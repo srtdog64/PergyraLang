@@ -105,7 +105,7 @@ check_json "semantic-code" "$SEM_ERR" \
 # Routing hints — cause_ir (IR-level origin) + fix_source (source-level
 # repair action token). Stable across versions; meaning frozen once shipped.
 check_json "semantic-hints" "$SEM_ERR" \
-  'isinstance(data, list) and data[0].get("cause_ir") == "semantic:assignability_check" and data[0].get("fix_source") == "annotate-or-convert"'
+  'isinstance(data, list) and data[0].get("cause_ir") == "semantic:assignability_check" and data[0].get("fix_source") == "annotate-or-convert" and data[0].get("layer") == "type"'
 
 # --- case 2: parse error ---
 PARSE_SRC="$WORK_DIR/parse.pgy"
@@ -121,7 +121,7 @@ if "$PGY" "$PARSE_SRC" --backend=c --error-format=json 2>"$PARSE_ERR"; then
     exit 1
 fi
 check_json "parse" "$PARSE_ERR" \
-  'isinstance(data, list) and len(data) == 1 and data[0].get("severity") == "error" and data[0].get("stage") == "parse"'
+  'isinstance(data, list) and len(data) == 1 and data[0].get("severity") == "error" and data[0].get("stage") == "parse" and data[0].get("layer") == "syntax"'
 check_json "parse-code" "$PARSE_ERR" \
   'isinstance(data, list) and len(data) == 1 and data[0].get("code") == "PGY_PARSE_SYNTAX" and data[0].get("cause_ir") == "parse:unexpected_token" and data[0].get("fix_source") == "check-syntax"'
 
@@ -144,7 +144,7 @@ if "$PGY" "$PIN_SRC" --backend=c --error-format=json 2>"$PIN_ERR"; then
     exit 1
 fi
 check_json "pin-source-await-boundary" "$PIN_ERR" \
-  'isinstance(data, list) and any(d.get("stage") == "semantic" and d.get("code") == "PGY_SEM_PIN_AWAIT_BOUNDARY" and d.get("cause_ir") == "semantic:pin:await_boundary" and d.get("fix_source") == "end-pin-before-await" and "await suspension boundary" in d.get("message", "") for d in data)'
+  'isinstance(data, list) and any(d.get("stage") == "semantic" and d.get("layer") == "resource" and d.get("code") == "PGY_SEM_PIN_AWAIT_BOUNDARY" and d.get("cause_ir") == "semantic:pin:await_boundary" and d.get("fix_source") == "end-pin-before-await" and "await suspension boundary" in d.get("message", "") for d in data)'
 
 # --- case 2b: stable view surface uses pin semantic diagnostics ---
 PIN_RETURN_SRC="$WORK_DIR/pin_return_escape.pgy"

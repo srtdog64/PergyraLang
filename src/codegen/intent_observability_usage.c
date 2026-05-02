@@ -11,6 +11,36 @@
 static bool pgy_ast_uses_intent_observability(const ASTNode *node);
 
 static bool
+pgy_mir_symbol_uses_intent_observability(const char *name)
+{
+    return pgy_builtin_is_intent_observability(name);
+}
+
+static bool
+pgy_mir_instruction_uses_intent_observability(const MIRInstruction *inst)
+{
+    if (inst == NULL)
+        return false;
+
+    if (pgy_mir_symbol_uses_intent_observability(inst->name)
+        || pgy_mir_symbol_uses_intent_observability(inst->arg0)
+        || pgy_mir_symbol_uses_intent_observability(inst->arg1)
+        || pgy_mir_symbol_uses_intent_observability(inst->slot_anchor)
+        || pgy_mir_symbol_uses_intent_observability(inst->result_name)) {
+        return true;
+    }
+
+    /*
+     * MIR_STMT still carries generic AST-backed statements for calls whose
+     * callee has not been materialized as an instruction fact yet. Keep this
+     * fallback until statement call facts are part of MIR lowering.
+     */
+    return pgy_ast_uses_intent_observability(inst->ast)
+        || pgy_ast_uses_intent_observability(inst->expr0)
+        || pgy_ast_uses_intent_observability(inst->expr1);
+}
+
+static bool
 pgy_ast_array_uses_intent_observability(ASTNode *const *nodes, size_t count)
 {
     for (size_t i = 0; i < count; i++) {
@@ -47,6 +77,63 @@ pgy_fields_use_intent_observability(ClassField *const *fields, size_t count)
 }
 
 static bool
+pgy_decl_methods_use_intent_observability(const ASTNode *node)
+{
+    ASTNode **methods = NULL;
+    size_t method_count = 0;
+
+    if (node == NULL)
+        return false;
+
+    switch (node->type) {
+    case AST_CLASS_DECL:
+        methods = node->data.class_decl.methods;
+        method_count = node->data.class_decl.method_count;
+        break;
+    case AST_ENUM_DECL:
+        methods = node->data.enum_decl.methods;
+        method_count = node->data.enum_decl.method_count;
+        break;
+    case AST_ABILITY_DECL:
+        methods = node->data.ability_decl.methods;
+        method_count = node->data.ability_decl.method_count;
+        break;
+    case AST_IMPL_ABILITY:
+        methods = node->data.impl_ability.methods;
+        method_count = node->data.impl_ability.method_count;
+        break;
+    case AST_PARTY_DECL:
+        methods = node->data.party_decl.methods;
+        method_count = node->data.party_decl.method_count;
+        break;
+    case AST_ROSTER_DECL:
+        methods = node->data.roster_decl.methods;
+        method_count = node->data.roster_decl.method_count;
+        break;
+    case AST_WORLD_DECL:
+        methods = node->data.world_decl.methods;
+        method_count = node->data.world_decl.method_count;
+        break;
+    case AST_RELATION_DECL:
+        methods = node->data.relation_decl.methods;
+        method_count = node->data.relation_decl.method_count;
+        break;
+    case AST_EFFECT_DECL:
+        methods = node->data.effect_decl.methods;
+        method_count = node->data.effect_decl.method_count;
+        break;
+    case AST_ZONE_DECL:
+        methods = node->data.zone_decl.methods;
+        method_count = node->data.zone_decl.method_count;
+        break;
+    default:
+        return false;
+    }
+
+    return pgy_ast_array_uses_intent_observability(methods, method_count);
+}
+
+static bool
 pgy_ast_uses_intent_observability(const ASTNode *node)
 {
     if (node == NULL)
@@ -67,8 +154,7 @@ pgy_ast_uses_intent_observability(const ASTNode *node)
     case AST_CLASS_DECL:
         return pgy_fields_use_intent_observability(
                 node->data.class_decl.fields, node->data.class_decl.field_count)
-            || pgy_ast_array_uses_intent_observability(
-                node->data.class_decl.methods, node->data.class_decl.method_count);
+            || pgy_decl_methods_use_intent_observability(node);
     case AST_EXTERN_BLOCK:
         return pgy_ast_array_uses_intent_observability(
             node->data.extern_block.declarations, node->data.extern_block.count);
@@ -100,8 +186,7 @@ pgy_ast_uses_intent_observability(const ASTNode *node)
     case AST_RETURN:
         return pgy_ast_uses_intent_observability(node->data.return_stmt.value);
     case AST_ENUM_DECL:
-        return pgy_ast_array_uses_intent_observability(
-            node->data.enum_decl.methods, node->data.enum_decl.method_count);
+        return pgy_decl_methods_use_intent_observability(node);
     case AST_SELECT_STMT:
         return pgy_ast_array_uses_intent_observability(
                 node->data.select_stmt.cases, node->data.select_stmt.case_count)
@@ -174,8 +259,7 @@ pgy_ast_uses_intent_observability(const ASTNode *node)
     case AST_ABILITY_DECL:
         return pgy_ast_array_uses_intent_observability(
                 node->data.ability_decl.require_fields, node->data.ability_decl.require_count)
-            || pgy_ast_array_uses_intent_observability(
-                node->data.ability_decl.methods, node->data.ability_decl.method_count);
+            || pgy_decl_methods_use_intent_observability(node);
     case AST_ROLE_DECL:
         return pgy_ast_uses_intent_observability(node->data.role_decl.for_type)
             || pgy_ast_array_uses_intent_observability(
@@ -187,8 +271,7 @@ pgy_ast_uses_intent_observability(const ASTNode *node)
         return pgy_ast_uses_intent_observability(node->data.require_field.type);
     case AST_IMPL_ABILITY:
         return pgy_ast_uses_intent_observability(node->data.impl_ability.ability_ref)
-            || pgy_ast_array_uses_intent_observability(
-                node->data.impl_ability.methods, node->data.impl_ability.method_count);
+            || pgy_decl_methods_use_intent_observability(node);
     case AST_OVERRIDE_FUNC:
         return pgy_ast_uses_intent_observability(node->data.override_func.func_decl);
     case AST_PARTY_DECL:
@@ -196,8 +279,7 @@ pgy_ast_uses_intent_observability(const ASTNode *node)
                 node->data.party_decl.role_slots, node->data.party_decl.role_count)
             || pgy_ast_array_uses_intent_observability(
                 node->data.party_decl.shared_fields, node->data.party_decl.shared_count)
-            || pgy_ast_array_uses_intent_observability(
-                node->data.party_decl.methods, node->data.party_decl.method_count)
+            || pgy_decl_methods_use_intent_observability(node)
             || pgy_ast_uses_intent_observability(node->data.party_decl.extends);
     case AST_PARTY_SHARED:
         return pgy_ast_uses_intent_observability(node->data.party_shared.type)
@@ -215,8 +297,7 @@ pgy_ast_uses_intent_observability(const ASTNode *node)
                 node->data.roster_decl.party_slots, node->data.roster_decl.party_count)
             || pgy_ast_array_uses_intent_observability(
                 node->data.roster_decl.shared_fields, node->data.roster_decl.shared_count)
-            || pgy_ast_array_uses_intent_observability(
-                node->data.roster_decl.methods, node->data.roster_decl.method_count);
+            || pgy_decl_methods_use_intent_observability(node);
     case AST_WORLD_DECL:
         return pgy_ast_array_uses_intent_observability(
                 node->data.world_decl.rosters, node->data.world_decl.roster_count)
@@ -224,8 +305,7 @@ pgy_ast_uses_intent_observability(const ASTNode *node)
                 node->data.world_decl.zones, node->data.world_decl.zone_count)
             || pgy_ast_array_uses_intent_observability(
                 node->data.world_decl.shared_fields, node->data.world_decl.shared_count)
-            || pgy_ast_array_uses_intent_observability(
-                node->data.world_decl.methods, node->data.world_decl.method_count)
+            || pgy_decl_methods_use_intent_observability(node)
             || pgy_ast_array_uses_intent_observability(
                 node->data.world_decl.activations, node->data.world_decl.activate_count)
             || pgy_ast_array_uses_intent_observability(
@@ -277,8 +357,7 @@ pgy_ast_uses_intent_observability(const ASTNode *node)
                 node->data.relation_decl.refreshes, node->data.relation_decl.refresh_count)
             || pgy_ast_array_uses_intent_observability(
                 node->data.relation_decl.shared_fields, node->data.relation_decl.shared_count)
-            || pgy_ast_array_uses_intent_observability(
-                node->data.relation_decl.methods, node->data.relation_decl.method_count)
+            || pgy_decl_methods_use_intent_observability(node)
             || pgy_ast_uses_intent_observability(node->data.relation_decl.between_left_type)
             || pgy_ast_uses_intent_observability(node->data.relation_decl.between_right_type);
     case AST_EFFECT_DECL:
@@ -288,8 +367,7 @@ pgy_ast_uses_intent_observability(const ASTNode *node)
                 node->data.effect_decl.refreshes, node->data.effect_decl.refresh_count)
             || pgy_ast_array_uses_intent_observability(
                 node->data.effect_decl.shared_fields, node->data.effect_decl.shared_count)
-            || pgy_ast_array_uses_intent_observability(
-                node->data.effect_decl.methods, node->data.effect_decl.method_count);
+            || pgy_decl_methods_use_intent_observability(node);
     case AST_ZONE_DECL:
         return pgy_ast_array_uses_intent_observability(
                 node->data.zone_decl.slots, node->data.zone_decl.slot_count)
@@ -317,8 +395,7 @@ pgy_ast_uses_intent_observability(const ASTNode *node)
                 node->data.zone_decl.states, node->data.zone_decl.state_count)
             || pgy_ast_array_uses_intent_observability(
                 node->data.zone_decl.shared_fields, node->data.zone_decl.shared_count)
-            || pgy_ast_array_uses_intent_observability(
-                node->data.zone_decl.methods, node->data.zone_decl.method_count);
+            || pgy_decl_methods_use_intent_observability(node);
     case AST_DOMAIN_SLOT:
         return pgy_ast_uses_intent_observability(node->data.domain_slot.type)
             || pgy_ast_uses_intent_observability(node->data.domain_slot.initializer);
@@ -368,10 +445,13 @@ pgy_mir_program_uses_intent_observability(const MIRProgram *mir)
 
     for (size_t i = 0; i < mir->routine_count; i++) {
         const MIRRoutine *routine = &mir->routines[i];
-        if (pgy_ast_uses_intent_observability(routine->ast))
-            return true;
         for (size_t b = 0; b < routine->block_count; b++) {
             const MIRBasicBlock *block = &routine->blocks[b];
+            for (size_t j = 0; j < block->instruction_count; j++) {
+                const MIRInstruction *inst = &block->instructions[j];
+                if (pgy_mir_instruction_uses_intent_observability(inst))
+                    return true;
+            }
             if (pgy_ast_uses_intent_observability(block->source_ast)
                 || pgy_ast_uses_intent_observability(block->source_terminator_condition)
                 || pgy_ast_uses_intent_observability(block->source_terminator_value)
@@ -379,15 +459,9 @@ pgy_mir_program_uses_intent_observability(const MIRProgram *mir)
                     block->source_statements, block->source_statement_count)) {
                 return true;
             }
-            for (size_t j = 0; j < block->instruction_count; j++) {
-                const MIRInstruction *inst = &block->instructions[j];
-                if (pgy_ast_uses_intent_observability(inst->ast)
-                    || pgy_ast_uses_intent_observability(inst->expr0)
-                    || pgy_ast_uses_intent_observability(inst->expr1)) {
-                    return true;
-                }
-            }
         }
+        if (pgy_ast_uses_intent_observability(routine->ast))
+            return true;
     }
 
     return pgy_ast_array_uses_intent_observability(mir->types, mir->type_count)

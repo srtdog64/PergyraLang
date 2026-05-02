@@ -20,6 +20,7 @@ llvm_find_role_operator_method(LLVMGenCtx *ctx, ASTNode *role,
         for (size_t j = 0; j < impl->data.impl_ability.method_count; j++) {
             ASTNode *method = impl->data.impl_ability.methods[j];
             if (method != NULL && method->type == AST_FUNC_DECL
+                && method->data.func_decl.name != NULL
                 && llvm_operator_method_name_matches(op, method->data.func_decl.name)) {
                 return method;
             }
@@ -28,6 +29,10 @@ llvm_find_role_operator_method(LLVMGenCtx *ctx, ASTNode *role,
 
     for (size_t i = 0; i < role->data.role_decl.include_count; i++) {
         ASTNode *inc = role->data.role_decl.includes[i];
+        if (inc == NULL || inc->type != AST_INCLUDE_STMT
+            || inc->data.include_stmt.role_name == NULL) {
+            continue;
+        }
         ASTNode *included = llvm_find_role_decl(ctx, inc->data.include_stmt.role_name);
         ASTNode *method = llvm_find_role_operator_method(ctx, included, op, depth + 1);
         if (method != NULL)
@@ -36,4 +41,3 @@ llvm_find_role_operator_method(LLVMGenCtx *ctx, ASTNode *role,
 
     return NULL;
 }
-

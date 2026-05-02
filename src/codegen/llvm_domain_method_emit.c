@@ -8,6 +8,7 @@
 #include "llvm_domain_method_emit.h"
 
 #include "llvm_domain_decl_parts_helpers.h"
+#include "llvm_inventory_host_methods.h"
 #include "domain_frontier_policy.h"
 #include "llvm_domain_sync_frontier.h"
 #include "llvm_domain_projection_value_helpers.h"
@@ -32,16 +33,13 @@ llvm_emit_domain_sync_and_method_bodies(LLVMGenCtx *ctx,
             const char *decl_name = NULL;
             ASTNode **slots = NULL;
             size_t slot_count = 0;
-            ASTNode **methods = NULL;
-            size_t method_count = 0;
             ASTNode **shared_fields = NULL;
             size_t shared_count = 0;
             ASTNode **refreshes = NULL;
             size_t refresh_count = 0;
 
             llvm_domain_decl_parts(stmt, &decl_name, &slots, &slot_count,
-                &shared_fields, &shared_count, &methods, &method_count,
-                &refreshes, &refresh_count);
+                &shared_fields, &shared_count, &refreshes, &refresh_count);
             if (decl_name == NULL)
                 continue;
 
@@ -64,14 +62,32 @@ llvm_emit_domain_sync_and_method_bodies(LLVMGenCtx *ctx,
                 }
             }
 
-            for (size_t j = 0; j < method_count; j++) {
-                ASTNode *method = methods[j];
-                const MIRRoutine *mir_method;
-                if (method == NULL || method->type != AST_FUNC_DECL)
+            LLVMHostedMethodView method_view =
+                llvm_hosted_method_view_from_decl(ctx, decl_name, stmt);
+            for (size_t j = 0; j < method_view.count; j++) {
+                const MIRDeclMethod *method_meta =
+                    llvm_hosted_method_view_metadata(&method_view, j);
+                ASTNode *method =
+                    llvm_hosted_method_view_ast(&method_view, j);
+                const char *method_name = llvm_mir_decl_method_name(method_meta);
+                const MIRRoutine *mir_method = NULL;
+                if (method_name == NULL && method != NULL
+                    && method->type == AST_FUNC_DECL)
+                    method_name = method->data.func_decl.name;
+                if (method_meta == NULL
+                    && (method == NULL || method->type != AST_FUNC_DECL)) {
                     continue;
+                }
 
-                mir_method = llvm_find_mir_method_routine_local(ctx,
-                    decl_name, method);
+                if (method_meta != NULL && method_meta->has_routine) {
+                    LLVMMIRRoutineInventory routine_inventory;
+                    llvm_active_routine_inventory(ctx, &routine_inventory);
+                    mir_method = llvm_routine_inventory_get(
+                        &routine_inventory, method_meta->routine_index);
+                }
+                if (mir_method == NULL && method != NULL)
+                    mir_method = llvm_find_mir_method_routine_local(ctx,
+                        decl_name, method);
                 if (mir_method != NULL) {
                     llvm_emit_func_from_mir(mir_method, ctx);
                     continue;
@@ -81,8 +97,8 @@ llvm_emit_domain_sync_and_method_bodies(LLVMGenCtx *ctx,
                     snprintf(msg, sizeof(msg),
                              "MIR-only LLVM path missing routine for domain method '%s.%s'",
                              decl_name != NULL ? decl_name : "(anonymous-domain)",
-                             method->data.func_decl.name != NULL
-                                 ? method->data.func_decl.name
+                             method_name != NULL
+                                 ? method_name
                                  : "(anonymous)");
                     llvm_set_error_with_hints(ctx,
                         PGY_CODE_LLVM_MIR_ROUTINE_MISSING,
@@ -91,6 +107,11 @@ llvm_emit_domain_sync_and_method_bodies(LLVMGenCtx *ctx,
                         "%s", msg);
                     return false;
                 }
+
+                if (method == NULL || method->type != AST_FUNC_DECL)
+                    continue;
+                if (method->data.func_decl.name == NULL)
+                    continue;
 
                 char fname[256];
                 snprintf(fname, sizeof(fname), "%s_%s",
@@ -150,6 +171,10 @@ llvm_emit_domain_sync_and_method_bodies(LLVMGenCtx *ctx,
                     LLVMTypeRef pt;
                     if (llvm_param_is_implicit_self_local(p))
                         continue;
+                    if (p == NULL || p->name == NULL) {
+                        lpidx++;
+                        continue;
+                    }
                     if (p->type != NULL && p->type->type == AST_TYPE)
                         type_name = p->type->data.type.name;
                     param_cls = type_name != NULL

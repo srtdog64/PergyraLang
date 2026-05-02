@@ -405,6 +405,10 @@ dir_collect_intent_info(DIRProgram *dir, size_t from_id, ASTNode *node)
         step.predecessor_step_index = i > 0 ? (i - 1) : SIZE_MAX;
         step.transfer_from_alias = step_node->data.intent_step.transfer_from_alias;
         step.transfer_to_alias = step_node->data.intent_step.transfer_to_alias;
+        step.who_inherited_from_intent =
+            step_node->data.intent_step.inherited_who_from_intent;
+        step.where_inherited_from_intent =
+            step_node->data.intent_step.inherited_where_from_intent;
         step.causes_effect_name = step_node->data.intent_step.causes_effect;
         {
             ssize_t to = dir_find_effect_node_by_name(dir, step.causes_effect_name);

@@ -585,6 +585,7 @@ test_air_dump_prints_evidence_provenance(void)
         .evidence_count = 4,
         .strict_evidence = true,
         .has_hir_input = true,
+        .has_rir_input = true,
     };
     char buffer[2048];
     FILE *out = tmpfile();
@@ -600,7 +601,7 @@ test_air_dump_prints_evidence_provenance(void)
     buffer[bytes] = '\0';
     fclose(out);
 
-    ok = strstr(buffer, "strict_evidence=yes hir_input=yes") != NULL
+    ok = strstr(buffer, "strict_evidence=yes hir_input=yes rir_input=yes") != NULL
         && strstr(buffer, "evidence hir=yes(reserve) hir_cfg=yes") != NULL
         && strstr(buffer, "rir_boundary=yes(WarehouseZone)") != NULL
         && strstr(buffer, "rir_authority=yes(shipper)") != NULL

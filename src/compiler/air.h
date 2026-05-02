@@ -73,6 +73,7 @@ typedef struct
     AIRSyncClass     sync_class;
     AIRFailureClass  failure_class;
     const char      *compensation_hook;
+    bool             who_from_intent_default;
 } AIRIntentNode;
 
 typedef struct
@@ -85,6 +86,8 @@ typedef struct
     ASTNode        *ast;
     AIRSyncClass    sync_class;
     bool            authority_required;
+    bool            source_from_intent_default;
+    bool            source_from_transfer;
     const char    **authority_names;
     size_t          authority_name_count;
     bool            has_hir_routine_evidence;
@@ -128,6 +131,7 @@ typedef struct AIRProgram
     size_t           evidence_capacity;
     bool             strict_evidence;
     bool             has_hir_input;
+    bool             has_rir_input;
     bool             has_mir_input;
     size_t           hir_routine_evidence_count;
     size_t           hir_cfg_evidence_count;

@@ -119,14 +119,11 @@ llvm_emit_domain_passes(LLVMGenCtx *ctx)
         size_t slot_count = 0;
         ASTNode **shared_fields = NULL;
         size_t shared_count = 0;
-        ASTNode **methods = NULL;
-        size_t method_count = 0;
         ASTNode **refreshes = NULL;
         size_t refresh_count = 0;
 
         llvm_domain_decl_parts(stmt, &decl_name, &slots, &slot_count,
-            &shared_fields, &shared_count, &methods, &method_count,
-            &refreshes, &refresh_count);
+            &shared_fields, &shared_count, &refreshes, &refresh_count);
         if (decl_name == NULL) {
             continue;
         }
@@ -550,8 +547,12 @@ llvm_emit_domain_passes(LLVMGenCtx *ctx)
             llvm_emit_domain_sync_forward_decl(ctx, decl_name, struct_ty, entry);
         }
 
-        llvm_emit_domain_method_forward_decls(ctx, decl_name, struct_ty,
-            methods, method_count);
+        {
+            LLVMHostedMethodView method_view =
+                llvm_hosted_method_view_from_decl(ctx, decl_name, stmt);
+            llvm_emit_domain_method_forward_decls(ctx, decl_name, struct_ty,
+                &method_view);
+        }
         }
     }
 

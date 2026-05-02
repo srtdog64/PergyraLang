@@ -110,15 +110,18 @@ void
 llvm_emit_domain_method_forward_decls(LLVMGenCtx *ctx,
                                       const char *decl_name,
                                       LLVMTypeRef struct_ty,
-                                      ASTNode **methods,
-                                      size_t method_count)
+                                      const LLVMHostedMethodView *methods)
 {
     if (ctx == NULL || decl_name == NULL || struct_ty == NULL)
         return;
 
-    for (size_t j = 0; j < method_count; j++) {
-        ASTNode *method = methods[j];
-        const MIRDeclMethod *method_meta;
+    if (methods == NULL)
+        return;
+
+    for (size_t j = 0; j < methods->count; j++) {
+        const MIRDeclMethod *method_meta =
+            llvm_hosted_method_view_metadata(methods, j);
+        ASTNode *method = llvm_hosted_method_view_ast(methods, j);
         const char *mname;
         ASTNode *return_type;
         size_t pc;
@@ -130,11 +133,9 @@ llvm_emit_domain_method_forward_decls(LLVMGenCtx *ctx,
         char fname[256];
         LLVMValueRef fn;
 
-        if (method == NULL || method->type != AST_FUNC_DECL)
+        if (method_meta == NULL && (method == NULL || method->type != AST_FUNC_DECL))
             continue;
 
-        method_meta = llvm_find_host_method_metadata_in_context(
-            ctx, decl_name, method->data.func_decl.name);
         mname = llvm_domain_method_name_metadata_first(method_meta, method);
         pc = llvm_domain_method_param_count_metadata_first(method_meta, method);
         ret = ctx->type_void;
@@ -297,6 +298,8 @@ llvm_emit_domain_role_forward_decls(LLVMGenCtx *ctx,
                     continue;
 
                 mname = method->data.func_decl.name;
+                if (mname == NULL)
+                    continue;
                 pc = method->data.func_decl.param_count;
                 ret = ctx->type_void;
                 if (method->data.func_decl.return_type != NULL)
@@ -353,6 +356,10 @@ llvm_emit_domain_role_forward_decls(LLVMGenCtx *ctx,
 
                 if (suffix == NULL || method == NULL)
                     continue;
+                if (method->type != AST_FUNC_DECL
+                    || method->data.func_decl.name == NULL) {
+                    continue;
+                }
 
                 snprintf(opname, sizeof(opname), "operator_%s_%s", suffix, for_type_name);
                 if (llvm_lookup_function(ctx, opname) != NULL)

@@ -3,11 +3,19 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PGY_BIN="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
+if [[ "$PGY_BIN" != *.exe && -x "${PGY_BIN}.exe" ]]; then
+    PGY_BIN="${PGY_BIN}.exe"
+fi
 WORK_DIR="$(mktemp -d "${TMPDIR:-/tmp}/pgy-dogfood-webgl.XXXXXX")"
 trap 'rm -rf "$WORK_DIR"' EXIT
 
 if [[ ! -x "$PGY_BIN" ]]; then
     echo "[dogfood-webgl] missing compiler binary: $PGY_BIN" >&2
+    exit 1
+fi
+if ! "$PGY_BIN" --help >"$WORK_DIR/pgy-help.out" 2>"$WORK_DIR/pgy-help.err"; then
+    echo "[dogfood-webgl] compiler binary is not runnable: $PGY_BIN" >&2
+    cat "$WORK_DIR/pgy-help.err" >&2
     exit 1
 fi
 

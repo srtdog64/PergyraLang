@@ -1,4 +1,7 @@
 
+#include "../compiler/mir_cfg_contract_cleanup_fact.h"
+#include "../compiler/mir_cfg_contract_pin.h"
+
 static bool
 transpiler_has_mapping_for_all_emitted_blocks(const TranspilerCtx *ctx,
                                              const MIRRoutine *routine,
@@ -240,6 +243,30 @@ transpiler_validate_mir_emission_contract(const TranspilerCtx *ctx,
                 snprintf(reason, reason_cap, "MIR contract invalid for %s: block %llu bad invalidation successor",
                          routine_name, (unsigned long long) block->id);
             return false;
+        }
+        if (block->has_cleanup_succ) {
+            const char *cleanup_fact = "cleanup-edge";
+            if (routine->has_rollback_block && routine->rollback_block == i)
+                cleanup_fact = "cleanup-edge-from-rollback";
+            else if (routine->has_invalidation_block && routine->invalidation_block == i)
+                cleanup_fact = "cleanup-edge-from-invalidation";
+            if (!mir_block_has_cleanup_edge_fact(block, cleanup_fact)) {
+                if (reason != NULL && reason_cap > 0)
+                    snprintf(reason, reason_cap,
+                             "MIR contract invalid for %s: block %llu missing %s fact",
+                             routine_name,
+                             (unsigned long long) block->id,
+                             cleanup_fact);
+                return false;
+            }
+            if (block->is_pin_region && !mir_block_has_pin_cleanup_edge(block)) {
+                if (reason != NULL && reason_cap > 0)
+                    snprintf(reason, reason_cap,
+                             "MIR contract invalid for %s: pin block %llu missing pin cleanup fact",
+                             routine_name,
+                             (unsigned long long) block->id);
+                return false;
+            }
         }
 
         for (size_t j = 0; j < block->instruction_count; j++) {

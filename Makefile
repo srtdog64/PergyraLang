@@ -150,7 +150,8 @@ COMMON_DIR   = $(SRC_DIR)/common
 # -----------------------------------------------------------------
 # Source groups
 # -----------------------------------------------------------------
-COMMON_SOURCES   = $(COMMON_DIR)/arena.c
+COMMON_SOURCES   = $(COMMON_DIR)/arena.c \
+                   $(COMMON_DIR)/diagnostic_layer.c
 LEXER_SOURCES    = $(LEXER_DIR)/lexer.c \
                    $(LEXER_DIR)/lexer_token_debug.c
 PARSER_SOURCES   = $(PARSER_DIR)/ast.c \
@@ -1176,6 +1177,12 @@ semantic-fixture-isolation-test-smoke: $(SEMANTIC_TEST)
 diagnostic-registry-test-smoke:
 	"$(BASH)" tests/diagnostic_registry_smoke.sh
 
+layered-diagnostics-contract-test-smoke:
+	"$(BASH)" tests/layered_diagnostics_contract_smoke.sh
+
+intent-compression-contract-test-smoke:
+	"$(BASH)" tests/intent_compression_contract_smoke.sh
+
 runtime-authority-contract-test-smoke:
 	"$(BASH)" tests/runtime_authority_contract_smoke.sh
 
@@ -1203,6 +1210,9 @@ runtime-frontier-contract-test-smoke:
 
 runtime-frontier-policy-test-smoke:
 	CC="$(CC)" "$(BASH)" tests/runtime_frontier_policy_smoke.sh
+
+runtime-intent-observability-contract-test-smoke:
+	"$(BASH)" tests/runtime_intent_observability_contract_smoke.sh
 
 parallel-core-contract-test-smoke:
 	"$(BASH)" tests/parallel_core_contract_smoke.sh
@@ -1310,6 +1320,8 @@ ci-linux:
 	$(MAKE) type-resolution-resolver-inventory-test-smoke
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" semantic-fixture-isolation-test-smoke
 	$(MAKE) diagnostic-registry-test-smoke
+	$(MAKE) layered-diagnostics-contract-test-smoke
+	$(MAKE) intent-compression-contract-test-smoke
 	$(MAKE) runtime-authority-contract-test-smoke
 	$(MAKE) runtime-panic-contract-test-smoke
 	$(MAKE) CC="$(CI_LINUX_CC)" runtime-panic-abi-test-smoke
@@ -1319,6 +1331,7 @@ ci-linux:
 	$(MAKE) abi-ownership-shape-test-smoke
 	$(MAKE) runtime-frontier-contract-test-smoke
 	$(MAKE) CC="$(CI_LINUX_CC)" runtime-frontier-policy-test-smoke
+	$(MAKE) runtime-intent-observability-contract-test-smoke
 	$(MAKE) parallel-core-contract-test-smoke
 	$(MAKE) perf-contract-test-smoke
 	$(MAKE) parser-lexer-diagnostic-test-smoke
@@ -1363,6 +1376,8 @@ ci-macos:
 	$(MAKE) CC="$(CI_MACOS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_MACOS_BUILD_DIR)" BIN_DIR="$(CI_MACOS_BIN_DIR)" diagnostics-json-test-smoke
 	$(MAKE) CC="$(CI_MACOS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_MACOS_BUILD_DIR)" BIN_DIR="$(CI_MACOS_BIN_DIR)" cfg-body-dataflow-test-smoke
 	$(MAKE) CC="$(CI_MACOS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_MACOS_BUILD_DIR)" BIN_DIR="$(CI_MACOS_BIN_DIR)" semantic-fixture-isolation-test-smoke
+	$(MAKE) layered-diagnostics-contract-test-smoke
+	$(MAKE) intent-compression-contract-test-smoke
 	$(MAKE) parser-lexer-diagnostic-test-smoke
 
 check-windows-toolchain:
@@ -1385,6 +1400,8 @@ ci-windows:
 	$(MAKE) beta-test-suite-freeze-test-smoke
 	$(MAKE) documentation-quality-test-smoke
 	$(MAKE) beta-readiness-checklist-test-smoke
+	$(MAKE) layered-diagnostics-contract-test-smoke
+	$(MAKE) intent-compression-contract-test-smoke
 	@if [ "$(CI_WINDOWS_RUNNABLE)" = "1" ]; then \
 		echo "ci-windows: native MSYS2 runtime detected; running executable smoke/tests"; \
 		$(MAKE) CC="$(CI_WINDOWS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" test-all; \
@@ -1466,7 +1483,7 @@ lsp: $(PGY_LSP)
 
 .PHONY: all clean clean-objects rebuild debug release analyze format memcheck \
         test test-parser test-datastructures test-security test-semantic test-transpile test-memory test-abi test-concurrency test-dir test-air test-rir test-mir test-hir test-all \
-llvm-test llvm-test-parser llvm-test-semantic llvm-test-transpile llvm-test-memory llvm-test-concurrency llvm-test-dir llvm-test-rir llvm-test-mir llvm-test-hir llvm-test-backend-compare llvm-test-all llvm-test-smoke tooling-conformance-test-smoke stdlib-test-smoke module-test-smoke module-taxonomy-test-smoke package-module-resolver-test-smoke unicode-policy-test-smoke beta-test-suite-freeze-test-smoke build-source-inventory-test-smoke observability-schema-test-smoke memory-concurrency-model-test-smoke async-model-positioning-test-smoke documentation-quality-test-smoke llvm-campaign-projection-test-smoke llvm-dnd-campaign-test-smoke beta-readiness-checklist-test-smoke dogfood-webgl-test-smoke formal-semantics-test-smoke air-drift-test-smoke air-json-schema-test-smoke air-backend-nonimpact-test-smoke air-backend-nonimpact-full-test-smoke air-strict-backend-compare-test-smoke codegen-determinism-test-smoke runtime-none-contract-test-smoke raw-escape-contract-test-smoke semantic-inc-size-test-smoke semantic-tu-size-test-smoke production-header-size-test-smoke backend-inc-size-test-smoke test-inc-size-test-smoke semantic-core-shape-test-smoke type-resolution-dag-test-smoke type-resolution-resolver-inventory-test-smoke semantic-fixture-isolation-test-smoke diagnostic-registry-test-smoke runtime-authority-contract-test-smoke runtime-panic-contract-test-smoke runtime-panic-abi-test-smoke runtime-panic-codegen-test-smoke projection-diagnostic-contract-test-smoke runtime-abi-lifetime-test-smoke abi-ownership-shape-test-smoke runtime-frontier-contract-test-smoke runtime-frontier-policy-test-smoke parallel-core-contract-test-smoke perf-contract-test-smoke parser-lexer-diagnostic-test-smoke diagnostics-json-test-smoke cfg-body-dataflow-test-smoke mir-declaration-inventory-test-smoke example-test-smoke ast-dispatch-test-smoke ci-linux ci-macos ci-windows check-linux-toolchain check-macos-toolchain check-windows-toolchain \
+llvm-test llvm-test-parser llvm-test-semantic llvm-test-transpile llvm-test-memory llvm-test-concurrency llvm-test-dir llvm-test-rir llvm-test-mir llvm-test-hir llvm-test-backend-compare llvm-test-all llvm-test-smoke tooling-conformance-test-smoke stdlib-test-smoke module-test-smoke module-taxonomy-test-smoke package-module-resolver-test-smoke unicode-policy-test-smoke beta-test-suite-freeze-test-smoke build-source-inventory-test-smoke observability-schema-test-smoke memory-concurrency-model-test-smoke async-model-positioning-test-smoke documentation-quality-test-smoke llvm-campaign-projection-test-smoke llvm-dnd-campaign-test-smoke beta-readiness-checklist-test-smoke dogfood-webgl-test-smoke formal-semantics-test-smoke air-drift-test-smoke air-json-schema-test-smoke air-backend-nonimpact-test-smoke air-backend-nonimpact-full-test-smoke air-strict-backend-compare-test-smoke codegen-determinism-test-smoke runtime-none-contract-test-smoke raw-escape-contract-test-smoke semantic-inc-size-test-smoke semantic-tu-size-test-smoke production-header-size-test-smoke backend-inc-size-test-smoke test-inc-size-test-smoke semantic-core-shape-test-smoke type-resolution-dag-test-smoke type-resolution-resolver-inventory-test-smoke semantic-fixture-isolation-test-smoke diagnostic-registry-test-smoke layered-diagnostics-contract-test-smoke intent-compression-contract-test-smoke runtime-authority-contract-test-smoke runtime-panic-contract-test-smoke runtime-panic-abi-test-smoke runtime-panic-codegen-test-smoke projection-diagnostic-contract-test-smoke runtime-abi-lifetime-test-smoke abi-ownership-shape-test-smoke runtime-frontier-contract-test-smoke runtime-frontier-policy-test-smoke runtime-intent-observability-contract-test-smoke parallel-core-contract-test-smoke perf-contract-test-smoke parser-lexer-diagnostic-test-smoke diagnostics-json-test-smoke cfg-body-dataflow-test-smoke mir-declaration-inventory-test-smoke example-test-smoke ast-dispatch-test-smoke ci-linux ci-macos ci-windows check-linux-toolchain check-macos-toolchain check-windows-toolchain \
         example-hello example-slots llvm emit-llvm-% lsp
 
 ifeq ($(filter clean clean-objects,$(MAKECMDGOALS)),)

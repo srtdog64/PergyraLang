@@ -166,7 +166,11 @@ test_air_strict_evidence_requires_mir_pin_cleanup(void)
     for (size_t i = 0; ok && i < air.drift_count; i++) {
         if (air.drifts[i].kind == AIR_DRIFT_BOUNDARY_EVIDENCE_MISSING
             && strstr(air.drifts[i].message,
-                      "AIR pin boundary has no matching MIR pin cleanup evidence") != NULL) {
+                      "AIR pin boundary has no matching MIR pin cleanup evidence") != NULL
+            && strstr(air.drifts[i].message,
+                      "source_provenance=explicit") != NULL
+            && strstr(air.drifts[i].message,
+                      "who_provenance=explicit") != NULL) {
             found = true;
             break;
         }
@@ -570,6 +574,7 @@ test_air_world_boundary_requires_transfer_evidence(void)
     bool ok = air != NULL
         && air->boundary_count == 1
         && air->boundaries[0].kind == AIR_BOUNDARY_WORLD
+        && air->boundaries[0].source_from_transfer
         && !air->boundaries[0].has_rir_boundary_evidence
         && found;
     air_destroy(air);
@@ -621,6 +626,7 @@ test_air_world_boundary_accepts_transfer_evidence(void)
     bool ok = air != NULL
         && air->boundary_count == 1
         && air->boundaries[0].kind == AIR_BOUNDARY_WORLD
+        && air->boundaries[0].source_from_transfer
         && air->boundaries[0].has_rir_boundary_evidence
         && air->drift_count == 0;
     air_destroy(air);
@@ -691,7 +697,8 @@ test_air_world_boundary_rejects_mismatched_transfer_ast(void)
             if (air->drifts[i].kind == AIR_DRIFT_BOUNDARY_EVIDENCE_MISSING
                 && air->drifts[i].boundary_index < air->boundary_count
                 && air->boundaries[air->drifts[i].boundary_index].kind == AIR_BOUNDARY_WORLD
-                && strstr(air->drifts[i].message, "implementation boundary 'payment'") != NULL) {
+                && strstr(air->drifts[i].message, "implementation boundary 'payment'") != NULL
+                && strstr(air->drifts[i].message, "source_provenance=transfer") != NULL) {
                 found_missing_transfer_drift = true;
                 break;
             }
@@ -702,6 +709,7 @@ test_air_world_boundary_rejects_mismatched_transfer_ast(void)
         && air->boundary_count == 1
         && air->boundaries[0].kind == AIR_BOUNDARY_WORLD
         && air->boundaries[0].ast == &step_ast
+        && air->boundaries[0].source_from_transfer
         && !air->boundaries[0].has_rir_boundary_evidence
         && found_missing_transfer_drift;
     air_destroy(air);

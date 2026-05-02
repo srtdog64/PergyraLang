@@ -52,6 +52,22 @@ intent_resolve_step_where_type(ASTNode *step, SemanticContext *ctx)
     return intent_resolve_type_ref(type_ref, ctx);
 }
 
+static const char *
+intent_step_where_source_label(const ASTNode *step)
+{
+    if (step == NULL || step->type != AST_INTENT_STEP)
+        return "unknown step source";
+    if (step->data.intent_step.inherited_where_from_intent)
+        return "the intent-level where default";
+    if (step->data.intent_step.inherited_where_from_action)
+        return "the matching action contract";
+    if (step->data.intent_step.derived_where_from_transfer)
+        return "the transfer target";
+    if (step->data.intent_step.derived_where_from_using)
+        return "the using binding";
+    return "the step-local where clause";
+}
+
 bool
 type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
 {
@@ -174,9 +190,23 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
             zone_decl = find_domain_decl_by_name(ctx->program_root, AST_ZONE_DECL,
                 zone_type != NULL ? zone_type->name : NULL);
             if (step->data.intent_step.where_type != NULL && zone_decl == NULL) {
+                char contract_summary[512];
+                intent_step_format_contract_source_summary(
+                    node, step, ctx, contract_summary, sizeof(contract_summary));
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_INTENT_STEP_INVALID, PGY_CAUSE_INTENT_STEP, PGY_FIX_ALIGN_STEP_WITH_ZONE_ACTION_CONTRACTS, step->data.intent_step.where_type,
-                    "Intent step '%s' refers to unknown zone '%s'",
+                    "Intent step '%s' refers to unknown zone '%s'.\n"
+                    "Reason:\n"
+                    "- where clauses must resolve to a declared zone\n"
+                    "- this where value came from %s\n"
+                    "%s%s"
+                    "Fix:\n"
+                    "- declare zone '%s'\n"
+                    "- or change the where/default/derived source to a declared zone",
                     step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
+                    zone_type != NULL ? zone_type->name : "<zone>",
+                    intent_step_where_source_label(step),
+                    contract_summary[0] != '\0' ? contract_summary : "",
+                    contract_summary[0] != '\0' ? "\n" : "",
                     zone_type != NULL ? zone_type->name : "<zone>");
             }
         }
@@ -190,23 +220,46 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                 step->data.intent_step.name, "using");
             if (step->data.intent_step.using_expr->type != AST_IDENTIFIER) {
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_INTENT_STEP_INVALID, PGY_CAUSE_INTENT_STEP, PGY_FIX_ALIGN_STEP_WITH_ZONE_ACTION_CONTRACTS, step->data.intent_step.using_expr,
-                    "Intent step '%s' using clause must reference an intent parameter alias",
+                    "Intent step '%s' using clause must reference an intent parameter alias.\n"
+                    "Reason:\n"
+                    "- compressed using derivation can only bind a named intent participant or value\n"
+                    "- expression-valued using clauses would make the derived zone contract ambiguous\n"
+                    "Fix:\n"
+                    "- replace the using clause with an intent parameter alias\n"
+                    "- or write an explicit step where clause instead of deriving it from using",
                     step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>");
             } else if (find_intent_involves_local(node,
                     step->data.intent_step.using_expr->data.identifier.name) == NULL) {
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_INTENT_STEP_INVALID, PGY_CAUSE_INTENT_STEP, PGY_FIX_ALIGN_STEP_WITH_ZONE_ACTION_CONTRACTS, step->data.intent_step.using_expr,
-                    "Intent step '%s' using clause refers to unknown binding '%s'",
+                    "Intent step '%s' using clause refers to unknown binding '%s'.\n"
+                    "Reason:\n"
+                    "- compressed using derivation only resolves aliases declared by this intent\n"
+                    "- no intent participant named '%s' is visible at this step\n"
+                    "Fix:\n"
+                    "- declare '%s' in the intent participant list\n"
+                    "- or change the using clause to an existing participant alias",
                     step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
+                    step->data.intent_step.using_expr->data.identifier.name != NULL
+                        ? step->data.intent_step.using_expr->data.identifier.name : "<binding>",
+                    step->data.intent_step.using_expr->data.identifier.name != NULL
+                        ? step->data.intent_step.using_expr->data.identifier.name : "<binding>",
                     step->data.intent_step.using_expr->data.identifier.name != NULL
                         ? step->data.intent_step.using_expr->data.identifier.name : "<binding>");
             }
             if (using_type != TYPE_UNKNOWN && zone_type != TYPE_UNKNOWN
                 && !type_equals(using_type, zone_type)) {
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_INTENT_STEP_INVALID, PGY_CAUSE_INTENT_STEP, PGY_FIX_ALIGN_STEP_WITH_ZONE_ACTION_CONTRACTS, step->data.intent_step.using_expr,
-                    "Intent step '%s' using binding must match zone type '%s', got '%s'",
+                    "Intent step '%s' using binding must match zone type '%s', got '%s'.\n"
+                    "Reason:\n"
+                    "- using derives the step boundary from the same zone contract as where\n"
+                    "- using binding points to a different zone than the current where contract\n"
+                    "Fix:\n"
+                    "- change using to a binding of type '%s'\n"
+                    "- or change the step where clause to match the using binding",
                     step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
                     type_name_or_unknown(zone_type),
-                    type_name_or_unknown(using_type));
+                    type_name_or_unknown(using_type),
+                    type_name_or_unknown(zone_type));
             }
         }
 
@@ -227,7 +280,13 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                 || step->data.intent_step.intent_expr->data.call.callee == NULL
                 || step->data.intent_step.intent_expr->data.call.callee->type != AST_IDENTIFIER) {
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_INTENT_STEP_INVALID, PGY_CAUSE_INTENT_STEP, PGY_FIX_ALIGN_STEP_WITH_ZONE_ACTION_CONTRACTS, step->data.intent_step.intent_expr,
-                    "Intent step '%s' intent clause must call a named intent before lowering to Bool-gated orchestration",
+                    "Intent step '%s' intent clause must call a named intent before lowering to Bool-gated orchestration.\n"
+                    "Reason:\n"
+                    "- compressed intent orchestration needs a stable declared intent target\n"
+                    "- anonymous or computed callees cannot carry intent provenance into AIR\n"
+                    "Fix:\n"
+                    "- call a declared intent by name\n"
+                    "- or replace the intent clause with an explicit Bool predicate",
                     step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>");
             } else {
                 const char *resolved_name =
@@ -238,9 +297,13 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                     : NULL;
                 if (intent_sym == NULL || intent_sym->kind != SYMBOL_INTENT) {
                     semantic_error_with_hints(ctx, PGY_CODE_SEM_INTENT_STEP_INVALID, PGY_CAUSE_INTENT_STEP, PGY_FIX_ALIGN_STEP_WITH_ZONE_ACTION_CONTRACTS, step->data.intent_step.intent_expr,
-                        "Intent step '%s' intent clause target '%s' is not a declared intent (resolved kind: %s). "
-                        "Boolean-gated orchestration requires a declared intent that returns Bool. "
-                        "Declare '%s' as an intent or replace this clause with a Bool-compatible predicate.",
+                        "Intent step '%s' intent clause target '%s' is not a declared intent (resolved kind: %s).\n"
+                        "Reason:\n"
+                        "- boolean-gated orchestration requires a declared intent target\n"
+                        "- non-intent callees do not carry intent step provenance into AIR\n"
+                        "Fix:\n"
+                        "- declare '%s' as an intent that returns Bool\n"
+                        "- or replace this clause with a Bool-compatible predicate",
                         step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
                         callee_name != NULL ? callee_name : "<callee>",
                         intent_sym != NULL
@@ -251,16 +314,25 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
             }
             if (intent_type != TYPE_UNKNOWN && !type_equals(intent_type, TYPE_BOOL)) {
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_INTENT_STEP_INVALID, PGY_CAUSE_INTENT_STEP, PGY_FIX_ALIGN_STEP_WITH_ZONE_ACTION_CONTRACTS, step->data.intent_step.intent_expr,
-                    "Intent step '%s' intent clause must return Bool for boolean-orchestration, got '%s'. "
-                    "Expected `Bool`; adjust the callee '%s' return type to Bool or wrap with a Bool predicate.",
+                    "Intent step '%s' intent clause must return Bool for boolean-orchestration, got '%s'.\n"
+                    "Reason:\n"
+                    "- intent step orchestration treats the called intent as a Bool gate\n"
+                    "- non-Bool results cannot decide whether the step may proceed\n"
+                    "Fix:\n"
+                    "- adjust callee '%s' to return Bool\n"
+                    "- or wrap the call with a Bool predicate",
                     step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
                     type_name_or_unknown(intent_type),
                     callee_name != NULL ? callee_name : "<callee>");
             } else if (intent_type == TYPE_UNKNOWN) {
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_INTENT_STEP_INVALID, PGY_CAUSE_INTENT_STEP, PGY_FIX_ALIGN_STEP_WITH_ZONE_ACTION_CONTRACTS, step->data.intent_step.intent_expr,
-                    "Intent step '%s' intent clause type could not be resolved as Bool. "
-                    "Boolean-gated orchestration requires the called clause to evaluate to Bool; "
-                    "make '%s' return Bool or wrap it in a Bool predicate.",
+                    "Intent step '%s' intent clause type could not be resolved as Bool.\n"
+                    "Reason:\n"
+                    "- boolean-gated orchestration requires the called clause to evaluate to Bool\n"
+                    "- unresolved intent clause types cannot be lowered with stable AIR evidence\n"
+                    "Fix:\n"
+                    "- make '%s' return Bool\n"
+                    "- or wrap it in a Bool predicate",
                     step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
                     callee_name != NULL ? callee_name : "<callee>");
             }

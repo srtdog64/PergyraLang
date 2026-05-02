@@ -24,6 +24,8 @@ emit_extern_block(ASTNode *node, TranspilerCtx *ctx)
             continue;
 
         const char *name = decl->data.func_decl.name;
+        if (name == NULL)
+            continue;
         const char *ret_type = "void";
         if (decl->data.func_decl.return_type != NULL)
             ret_type = pergyra_ast_type_to_c(decl->data.func_decl.return_type);
@@ -42,6 +44,8 @@ emit_extern_block(ASTNode *node, TranspilerCtx *ctx)
                 p != NULL ? p->type : NULL,
                 surface_desc);
             if (pt == NULL)
+                return;
+            if (p == NULL || p->name == NULL)
                 return;
             if (j > 0)
                 codebuf_write(ctx->out, ", ");

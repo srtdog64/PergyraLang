@@ -116,13 +116,15 @@ llvm_register_enum_decl(LLVMGenCtx *ctx, ASTNode *stmt)
          * destroyed in llvm_ctx_destroy(). */
     }
 
-    const MIRDeclHeader *enum_decl_header =
-        llvm_find_host_decl_header_in_context(ctx, enum_name);
+    LLVMHostedMethodView enum_method_view =
+        llvm_hosted_method_view_from_decl(ctx, enum_name, stmt);
     const MIRDeclMethod *enum_method_metadata = NULL;
     size_t enum_method_metadata_count = 0;
-    llvm_host_decl_method_metadata(enum_decl_header,
-        &enum_method_metadata, &enum_method_metadata_count);
-    if (enum_decl_header == NULL && stmt->data.enum_decl.method_count > 0) {
+    if (enum_method_view.uses_mir_metadata) {
+        enum_method_metadata = enum_method_view.metadata;
+        enum_method_metadata_count = enum_method_view.count;
+    }
+    if (llvm_hosted_method_view_missing_mir_metadata(&enum_method_view)) {
         llvm_set_mir_inventory_missing(ctx,
             "MIR-only LLVM path missing enum method declaration metadata");
         return;
@@ -220,19 +222,23 @@ llvm_register_nominal_decl(LLVMGenCtx *ctx, ASTNode *stmt)
         entry->is_boundary_transfer_contract = is_boundary_transfer;
         for (size_t j = 0; j < fc; j++) {
             ClassField *f = stmt->data.class_decl.fields[j];
+            if (f == NULL || f->name == NULL)
+                continue;
             llvm_class_add_field(entry, f->name, field_types[j], (int)j);
         }
     }
 
     /* field_types is ctx->scratch-owned. */
 
-    const MIRDeclHeader *class_decl_header =
-        llvm_find_host_decl_header_in_context(ctx, cls_name);
+    LLVMHostedMethodView class_method_view =
+        llvm_hosted_method_view_from_decl(ctx, cls_name, stmt);
     const MIRDeclMethod *class_method_metadata = NULL;
     size_t class_method_metadata_count = 0;
-    llvm_host_decl_method_metadata(class_decl_header,
-        &class_method_metadata, &class_method_metadata_count);
-    if (class_decl_header == NULL && stmt->data.class_decl.method_count > 0) {
+    if (class_method_view.uses_mir_metadata) {
+        class_method_metadata = class_method_view.metadata;
+        class_method_metadata_count = class_method_view.count;
+    }
+    if (llvm_hosted_method_view_missing_mir_metadata(&class_method_view)) {
         llvm_set_mir_inventory_missing(ctx,
             "MIR-only LLVM path missing class method declaration metadata");
         return;
@@ -336,6 +342,8 @@ llvm_register_active_extern_prototypes(LLVMGenCtx *ctx)
                 continue;
 
             const char *fname = decl->data.func_decl.name;
+            if (fname == NULL)
+                continue;
             if (llvm_lookup_function(ctx, fname) != NULL)
                 continue;
 

@@ -24,7 +24,8 @@ intent_involves_type_name(ASTNode *involves);
 static Type *
 intent_action_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
 {
-    Type *resolved = semantic_type_resolution_lookup_metadata_type_ref(ctx, type_ref);
+    Type *resolved =
+        semantic_type_resolution_lookup_type_ref_or_materialize(ctx, type_ref);
     return resolved != NULL ? resolved : TYPE_UNKNOWN;
 }
 

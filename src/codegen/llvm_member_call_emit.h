@@ -125,6 +125,8 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
                                 FuncParam *p = method_decl->data.func_decl.params[pk];
                                 const char *ptn = NULL;
                                 LLVMClassTypeEntry *param_cls = NULL;
+                                if (p == NULL || p->name == NULL)
+                                    continue;
                                 if (p->type == NULL
                                     && strcmp(p->name, "self") == 0) {
                                     continue;
@@ -269,6 +271,8 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
                             FuncParam *p = method_decl->data.func_decl.params[pk];
                             const char *ptn = NULL;
                             LLVMClassTypeEntry *param_cls = NULL;
+                            if (p == NULL || p->name == NULL)
+                                continue;
                             if (p->type == NULL
                                 && strcmp(p->name, "self") == 0) {
                                 continue;
@@ -372,6 +376,8 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
                             FuncParam *p = method_decl->data.func_decl.params[pk];
                             const char *ptn = NULL;
                             LLVMClassTypeEntry *param_cls = NULL;
+                            if (p == NULL || p->name == NULL)
+                                continue;
                             if (p->type == NULL
                                 && strcmp(p->name, "self") == 0) {
                                 continue;

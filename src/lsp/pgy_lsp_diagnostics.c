@@ -10,7 +10,30 @@
 
 #include "../lexer/lexer.h"
 #include "../parser/parser.h"
+#include "../semantic/diag_codes.h"
 #include "../semantic/semantic.h"
+
+static void
+lsp_escape_json_string(char *out, size_t out_size, const char *text)
+{
+    size_t oi = 0;
+
+    if (out == NULL || out_size == 0)
+        return;
+    if (text == NULL) {
+        out[0] = '\0';
+        return;
+    }
+
+    for (const char *p = text; *p != '\0' && oi < out_size - 1; p++) {
+        if ((*p == '"' || *p == '\\') && oi + 1 < out_size - 1)
+            out[oi++] = '\\';
+        if (oi >= out_size - 1)
+            break;
+        out[oi++] = *p;
+    }
+    out[oi] = '\0';
+}
 
 void
 publish_diagnostics(const char *uri, const char *source_text)
@@ -38,17 +61,16 @@ publish_diagnostics(const char *uri, const char *source_text)
         if (line < 0) line = 0;
 
         char escaped[512];
-        size_t ei = 0;
-        for (const char *p = parse_msg; *p && ei < sizeof(escaped) - 2; p++) {
-            if (*p == '"' || *p == '\\') escaped[ei++] = '\\';
-            escaped[ei++] = *p;
-        }
-        escaped[ei] = '\0';
+        lsp_escape_json_string(escaped, sizeof(escaped), parse_msg);
 
         snprintf(diag_buf, sizeof(diag_buf),
             "{\"range\":{\"start\":{\"line\":%d,\"character\":0},"
             "\"end\":{\"line\":%d,\"character\":100}},"
             "\"severity\":1,\"source\":\"pgy\","
+            "\"code\":\"" PGY_CODE_PARSE_SYNTAX "\","
+            "\"data\":{\"layer\":\"syntax\","
+            "\"cause_ir\":\"" PGY_CAUSE_PARSE_UNEXPECTED_TOKEN "\","
+            "\"fix_source\":\"" PGY_FIX_CHECK_SYNTAX "\"},"
             "\"message\":\"%s\"}", line, line, escaped);
     } else if (ast != NULL) {
         SemanticResult *sem = semantic_analyze(ast);
@@ -67,19 +89,32 @@ publish_diagnostics(const char *uri, const char *source_text)
                 int severity = (d->level == DIAG_ERROR) ? 1 : 2;
 
                 char escaped[512];
-                size_t ei = 0;
-                for (const char *p = d->message;
-                     *p && ei < sizeof(escaped) - 2; p++) {
-                    if (*p == '"' || *p == '\\') escaped[ei++] = '\\';
-                    escaped[ei++] = *p;
-                }
-                escaped[ei] = '\0';
+                char code[128];
+                char cause_ir[128];
+                char fix_source[128];
+                lsp_escape_json_string(escaped, sizeof(escaped), d->message);
+                lsp_escape_json_string(code, sizeof(code), d->code);
+                lsp_escape_json_string(cause_ir, sizeof(cause_ir), d->cause_ir);
+                lsp_escape_json_string(fix_source, sizeof(fix_source),
+                    d->fix_source);
 
                 int n = snprintf(diag_buf + off, sizeof(diag_buf) - off,
                     "{\"range\":{\"start\":{\"line\":%d,\"character\":0},"
                     "\"end\":{\"line\":%d,\"character\":100}},"
                     "\"severity\":%d,\"source\":\"pgy\","
-                    "\"message\":\"%s\"}", dline, dline, severity, escaped);
+                    "\"code\":\"%s\","
+                    "\"data\":{\"layer\":\"%s\","
+                    "\"cause_ir\":\"%s\","
+                    "\"fix_source\":\"%s\"},"
+                    "\"message\":\"%s\"}",
+                    dline,
+                    dline,
+                    severity,
+                    code,
+                    diagnostic_layer_name(d->layer),
+                    cause_ir,
+                    fix_source,
+                    escaped);
                 if (n > 0) off += (size_t)n;
                 emitted++;
             }

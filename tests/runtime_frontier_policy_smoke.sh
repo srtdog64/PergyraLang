@@ -2,9 +2,21 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-CC_BIN="${CC:-cc}"
+if [[ -n "${CC:-}" ]]; then
+    CC_BIN="$CC"
+elif command -v cc >/dev/null 2>&1; then
+    CC_BIN="cc"
+elif command -v gcc >/dev/null 2>&1; then
+    CC_BIN="gcc"
+elif command -v clang >/dev/null 2>&1; then
+    CC_BIN="clang"
+else
+    echo "[runtime-frontier-policy] missing C compiler: tried CC, cc, gcc, clang" >&2
+    exit 1
+fi
 tmp_dir="$(mktemp -d)"
 trap 'rm -rf "$tmp_dir"' EXIT
+probe_exe="$tmp_dir/frontier_policy_check.exe"
 
 cat >"$tmp_dir/frontier_policy_check.c" <<'C'
 #include <stdint.h>
@@ -50,8 +62,23 @@ main(void)
 }
 C
 
-"$CC_BIN" -Wall -Wextra -Werror=implicit-function-declaration -Werror=implicit-int \
-    -std=c11 -Isrc "$tmp_dir/frontier_policy_check.c" -o "$tmp_dir/frontier_policy_check"
-"$tmp_dir/frontier_policy_check"
+compiled=0
+for candidate in "$CC_BIN" gcc clang cc; do
+    command -v "$candidate" >/dev/null 2>&1 || continue
+    if "$candidate" -Wall -Wextra -Werror=implicit-function-declaration -Werror=implicit-int \
+        -std=c11 -Isrc "$tmp_dir/frontier_policy_check.c" -o "$probe_exe"; then
+        CC_BIN="$candidate"
+        compiled=1
+        break
+    fi
+done
+if [[ "$compiled" != "1" ]]; then
+    echo "[runtime-frontier-policy] C compiler failed while building frontier policy probe: tried CC/cc/gcc/clang" >&2
+    exit 1
+fi
+if ! "$probe_exe"; then
+    echo "[runtime-frontier-policy] frontier policy arithmetic probe failed" >&2
+    exit 1
+fi
 
 echo "[runtime-frontier-policy] bounded frontier pass-limit arithmetic is gated"

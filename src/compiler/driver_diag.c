@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "../common/diagnostic_layer.h"
 #include "../semantic/diag_codes.h"
 
 static void
@@ -73,6 +74,10 @@ driver_emit_single_diag_json_full(const char *stage, const char *code,
 
     fputs("[{\"severity\":\"error\",\"stage\":", out);
     driver_json_emit_string(out, stage != NULL ? stage : "unknown");
+    fputs(",\"layer\":", out);
+    driver_json_emit_string(out,
+        diagnostic_layer_name(diagnostic_layer_from_tags(
+            stage, cause_ir, code)));
     if (code != NULL) {
         fputs(",\"code\":", out);
         driver_json_emit_string(out, code);

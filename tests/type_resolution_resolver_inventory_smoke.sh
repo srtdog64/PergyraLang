@@ -188,15 +188,28 @@ grep -q 'semantic_type_resolution_lookup_metadata_type_ref(ctx,' \
   >"$type_ref_helper_matches" || true
 
 for owner in \
+  src/semantic/type_checker_ability_decl.c \
   src/semantic/type_checker_ability_where.c \
+  src/semantic/type_checker_call_constructor.c \
   src/semantic/type_checker_class_decl.c \
   src/semantic/type_checker_decls_domain_helpers.c \
+  src/semantic/type_checker_expr.c \
+  src/semantic/type_checker_expr_call.c \
+  src/semantic/type_checker_expr_host.c \
   src/semantic/type_checker_func_decl.c \
+  src/semantic/type_checker_func_action_contract.c \
   src/semantic/type_checker_generic_contracts.h \
   src/semantic/type_checker_generic_validation.c \
   src/semantic/type_checker_host_helpers.c \
+  src/semantic/type_checker_intent_action_contract.c \
   src/semantic/type_checker_intent_decl.c \
+  src/semantic/type_checker_intent_participants.c \
+  src/semantic/type_checker_intent_role_fields.c \
+  src/semantic/type_checker_intent_transfer.c \
+  src/semantic/type_checker_ownership_destructure.c \
   src/semantic/type_checker_ownership_let_helpers.c \
+  src/semantic/type_checker_projection_path.c \
+  src/semantic/type_checker_world_helpers.c \
   src/semantic/type_checker_zone_decl_authority.c
 do
   grep -q 'semantic_type_resolution_lookup_type_ref_or_materialize' "$owner" || {
@@ -205,16 +218,29 @@ do
   }
 done
 
-grep -Ev 'src/semantic/type_checker_ability_where\.c' "$type_ref_helper_matches" \
+grep -Ev 'src/semantic/type_checker_ability_decl\.c' "$type_ref_helper_matches" \
+  | grep -Ev 'src/semantic/type_checker_ability_where\.c' \
+  | grep -Ev 'src/semantic/type_checker_call_constructor\.c' \
   | grep -Ev 'src/semantic/type_checker_class_decl\.c' \
   | grep -Ev 'src/semantic/type_checker_decls_domain_helpers\.c' \
+  | grep -Ev 'src/semantic/type_checker_expr\.c' \
+  | grep -Ev 'src/semantic/type_checker_expr_call\.c' \
+  | grep -Ev 'src/semantic/type_checker_expr_host\.c' \
   | grep -Ev 'src/semantic/type_checker_func_decl\.c' \
+  | grep -Ev 'src/semantic/type_checker_func_action_contract\.c' \
   | grep -Ev 'src/semantic/type_checker_generic_contracts\.h' \
   | grep -Ev 'src/semantic/type_checker_generic_validation\.c' \
   | grep -Ev 'src/semantic/type_checker_host_helpers\.c' \
+  | grep -Ev 'src/semantic/type_checker_intent_action_contract\.c' \
   | grep -Ev 'src/semantic/type_checker_intent_decl\.c' \
+  | grep -Ev 'src/semantic/type_checker_intent_participants\.c' \
+  | grep -Ev 'src/semantic/type_checker_intent_role_fields\.c' \
+  | grep -Ev 'src/semantic/type_checker_intent_transfer\.c' \
+  | grep -Ev 'src/semantic/type_checker_ownership_destructure\.c' \
   | grep -Ev 'src/semantic/type_checker_internal\.h' \
   | grep -Ev 'src/semantic/type_checker_ownership_let_helpers\.c' \
+  | grep -Ev 'src/semantic/type_checker_projection_path\.c' \
+  | grep -Ev 'src/semantic/type_checker_world_helpers\.c' \
   | grep -Ev 'src/semantic/type_checker_zone_decl_authority\.c' \
   | grep -Ev 'src/semantic/type_checker_resolution_metadata\.c' \
   >"$bad_type_ref_helper" || true
@@ -227,9 +253,24 @@ if [ -s "$bad_type_ref_helper" ]; then
 fi
 
 type_ref_helper_count="$(wc -l <"$type_ref_helper_matches")"
-if [ "$type_ref_helper_count" -ne 12 ]; then
-  echo "[type-resolution-resolver-inventory] metadata-first type-ref helper inventory changed: $type_ref_helper_count != 12" >&2
+if [ "$type_ref_helper_count" -ne 25 ]; then
+  echo "[type-resolution-resolver-inventory] metadata-first type-ref helper inventory changed: $type_ref_helper_count != 25" >&2
   cat "$type_ref_helper_matches" >&2
+  exit 1
+fi
+
+direct_metadata_type_ref_users="$(
+  grep -RIn 'semantic_type_resolution_lookup_metadata_type_ref(ctx' src/semantic \
+    | grep -Ev 'src/semantic/type_checker_resolution_metadata\.c' \
+    | grep -Ev 'src/semantic/type_checker_resolution_metadata_constructed\.c' \
+    | grep -Ev 'src/semantic/type_checker_resolution_metadata_diagnostics\.c' \
+    | grep -Ev 'src/semantic/type_checker_resolution_stage_alias\.c' \
+    | grep -Ev 'src/semantic/type_checker_resolution_stage_signature\.c' \
+    || true
+)"
+if [ -n "$direct_metadata_type_ref_users" ]; then
+  echo "[type-resolution-resolver-inventory] semantic owner bypassed metadata-first type-ref helper:" >&2
+  echo "$direct_metadata_type_ref_users" >&2
   exit 1
 fi
 
@@ -279,6 +320,42 @@ grep -q 'metadata_type = resolve_named_type_from_metadata(name, ctx, site);' \
 grep -q 'semantic_type_resolution_metadata_named_builtin_or_shell_singleton' \
   src/semantic/type_checker_resolution_helpers.c || {
   echo "[type-resolution-resolver-inventory] resolve_named_type no longer delegates builtin/shell lookup to metadata owner" >&2
+  exit 1
+}
+
+grep -q 'typedef struct TypeNameSlot' \
+  src/semantic/type_checker_resolution_metadata.c || {
+  echo "[type-resolution-resolver-inventory] metadata builtin/shell lookup lost dispatch-table entry type" >&2
+  exit 1
+}
+
+grep -q 'bool keep_owned = owned;' \
+  src/semantic/type_checker_resolution_metadata.c || {
+  echo "[type-resolution-resolver-inventory] metadata update lost ownership preservation state" >&2
+  exit 1
+}
+
+grep -q 'ctx->type_resolution_metadata.owned\[i\] == resolved_type' \
+  src/semantic/type_checker_resolution_metadata.c && {
+  echo "[type-resolution-resolver-inventory] metadata ownership preservation compares owned bit to type pointer" >&2
+  exit 1
+}
+
+grep -q 'ctx->type_resolution_metadata.values\[i\] == resolved_type' \
+  src/semantic/type_checker_resolution_metadata.c || {
+  echo "[type-resolution-resolver-inventory] metadata update may downgrade ownership on same-pointer re-record" >&2
+  exit 1
+}
+
+grep -q 'static const TypeNameSlot builtins' \
+  src/semantic/type_checker_resolution_metadata.c || {
+  echo "[type-resolution-resolver-inventory] metadata builtin lookup reintroduced ad-hoc branches" >&2
+  exit 1
+}
+
+grep -q 'static const TypeNameSlot shells' \
+  src/semantic/type_checker_resolution_metadata.c || {
+  echo "[type-resolution-resolver-inventory] metadata shell lookup reintroduced ad-hoc branches" >&2
   exit 1
 }
 

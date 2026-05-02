@@ -6,12 +6,25 @@ static void
 emit_hosted_methods_from_mir_or_error_local(const char *host_name,
                                             const char *anonymous_host_name,
                                             const char *host_kind,
-                                            ASTNode **methods,
-                                            size_t method_count,
+                                            const TranspilerHostedMethodView *method_view,
                                             TranspilerCtx *ctx)
 {
+    size_t method_count = method_view != NULL ? method_view->count : 0;
+
+    if (transpiler_hosted_method_view_missing_mir_metadata(method_view)) {
+        transpiler_set_backend_error_with_hints(
+            ctx,
+            PGY_CODE_MIR_TOPOLOGY_INVALID,
+            PGY_CAUSE_MIR_TOPOLOGY_ROUTINE_MISSING,
+            PGY_FIX_INSPECT_HIR_TO_MIR_LOWERING,
+            "MIR-only C path missing declaration metadata for %s methods '%s'",
+            host_kind != NULL ? host_kind : "host",
+            host_name != NULL ? host_name : anonymous_host_name);
+        return;
+    }
+
     for (size_t i = 0; i < method_count; i++) {
-        ASTNode *method = methods[i];
+        ASTNode *method = transpiler_hosted_method_view_ast(method_view, i);
         const MIRRoutine *mir_method;
         char emitted_name[256];
 
@@ -269,6 +282,8 @@ ensure_ability_ref_vtable_decl(ASTNode *ability_ref, TranspilerCtx *ctx)
             char surface_desc[256];
             if (p == NULL)
                 continue;
+            if (p->name == NULL)
+                continue;
             if (strcmp(p->name, "self") == 0 && p->type == NULL)
                 continue;
             if (p->type != NULL) {
@@ -302,8 +317,14 @@ ensure_ability_ref_vtable_decl(ASTNode *ability_ref, TranspilerCtx *ctx)
 static void
 emit_role_method_impl(const char *role_name, ASTNode *method, TranspilerCtx *ctx)
 {
-    const MIRRoutine *mir_method = transpiler_find_mir_method(ctx, role_name, method);
-    const char *method_name = method->data.func_decl.name;
+    const MIRRoutine *mir_method;
+    const char *method_name;
+
+    if (method == NULL || method->type != AST_FUNC_DECL)
+        return;
+
+    mir_method = transpiler_find_mir_method(ctx, role_name, method);
+    method_name = method->data.func_decl.name;
     if (ctx != NULL && ctx->mir != NULL && mir_method == NULL) {
         transpiler_set_backend_error_with_hints(ctx, PGY_CODE_MIR_TOPOLOGY_INVALID, PGY_CAUSE_MIR_TOPOLOGY_ROUTINE_MISSING, PGY_FIX_INSPECT_HIR_TO_MIR_LOWERING, "MIR-only C path missing routine for role method '%s.%s'",
             role_name != NULL ? role_name : "(anonymous)",
@@ -354,7 +375,9 @@ emit_role_vtable_instance(const char *role_name, ASTNode *impl, TranspilerCtx *c
 
     for (size_t j = 0; j < impl->data.impl_ability.method_count; j++) {
         ASTNode *method = impl->data.impl_ability.methods[j];
-        if (method->type != AST_FUNC_DECL)
+        if (method == NULL || method->type != AST_FUNC_DECL)
+            continue;
+        if (method->data.func_decl.name == NULL)
             continue;
         codebuf_write(ctx->out, "    .%s = %s_%s,\n",
                       method->data.func_decl.name,
@@ -393,6 +416,8 @@ emit_role_operator_aliases(ASTNode *role, TranspilerCtx *ctx)
         ASTNode *method = find_role_operator_method_decl(ctx, role, op, 0);
         char fn_name[256];
         if (suffix == NULL || method == NULL
+            || method->type != AST_FUNC_DECL
+            || method->data.func_decl.name == NULL
             ) {
             continue;
         }
@@ -404,7 +429,8 @@ emit_role_operator_aliases(ASTNode *role, TranspilerCtx *ctx)
         size_t rhs_param_count = 0;
         for (size_t j = 0; j < method->data.func_decl.param_count; j++) {
             FuncParam *p = method->data.func_decl.params[j];
-            if (p != NULL && !(p->type == NULL && strcmp(p->name, "self") == 0)) {
+            if (p != NULL && p->name != NULL
+                && !(p->type == NULL && strcmp(p->name, "self") == 0)) {
                 rhs_param = p;
                 rhs_param_count++;
             }

@@ -185,11 +185,20 @@ not in vision, because they are *contractually scheduled*, not aspirational.
 ### 4.4 Post-BETA Trajectory — Self-Host (committed sequence, partial recommended)
 
 **Status (2026-05-02):** Upgraded from *aspirational* to *committed
-sequence*. BDFL declared the explicit progression: BETA closure → final
-dogfood → BETA+ self-host start. Recorded in `TODO.md` "★ Core Goal" and
-memory `project_no_self_host_decision.md`. The *partial self-host*
-recommendation below remains the recommended scope; full self-host is
-not assumed inevitable.
+sequence*. BDFL declared the explicit 4-step progression: BETA closure →
+dogfood → **Intent-Compress sprint** (`TODO.md` §0c) → BETA+ self-host
+start. Recorded in `TODO.md` "★ Core Goal" and memory
+`project_no_self_host_decision.md`. The *partial self-host* recommendation
+below remains the recommended scope; full self-host is not assumed
+inevitable.
+
+**Intent-Compress as self-host gating step.** Verbose intent declarations
+would be a tax on the self-host port: every intent in the Pergyra-in-
+Pergyra compiler would carry that verbosity. Compressing intent syntax
+(via 4-clause inference) before self-host begins removes that tax, in the
+same way slot model removed the lifetime-annotation tax. Both decisions
+were scoped to user-language ergonomics; both pay back a positive
+externality at self-host entry. See `TODO.md` §0c for sprint detail.
 
 **Why post-BETA, not pre-BETA**
 

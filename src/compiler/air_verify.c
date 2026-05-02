@@ -66,12 +66,16 @@ air_boundary_has_authoritative_evidence(const AIRProgram *air,
 {
     /*
      * Compatibility fixtures may still construct AIRBoundaryNode booleans by
-     * hand. Once an evidence inventory exists, the inventory is the authority
-     * and the booleans are only cached summaries for dumps/legacy consumers.
+     * hand. Once an evidence inventory exists, or once real HIR/RIR/MIR input
+     * has been attached, the inventory is the authority and the booleans are
+     * only cached summaries for dumps/legacy consumers.
      */
     (void)boundary;
     if (air != NULL && air->evidence_count > 0)
         return air_boundary_has_evidence_kind(air, boundary_index, kind);
+    if (air != NULL
+        && (air->has_hir_input || air->has_rir_input || air->has_mir_input))
+        return false;
     return legacy_flag;
 }
 
@@ -163,6 +167,43 @@ air_format_authority_names(const AIRBoundaryNode *boundary,
     return emitted;
 }
 
+static void
+air_format_boundary_provenance(const AIRIntentNode *intent,
+                               const AIRBoundaryNode *boundary,
+                               char *out,
+                               size_t out_size)
+{
+    const char *source_provenance;
+    const char *who_provenance;
+
+    if (out == NULL || out_size == 0)
+        return;
+    out[0] = '\0';
+    if (intent == NULL || boundary == NULL)
+        return;
+
+    if (boundary->source_from_intent_default && boundary->source_from_transfer)
+        source_provenance = "intent-default+transfer";
+    else if (boundary->source_from_intent_default)
+        source_provenance = "intent-default";
+    else if (boundary->source_from_transfer)
+        source_provenance = "transfer";
+    else
+        source_provenance = "explicit";
+    who_provenance = intent->who_from_intent_default
+        ? "intent-default"
+        : "explicit";
+    snprintf(out,
+             out_size,
+             "; owner=%s step=%s boundary_source=%s source_provenance=%s who_provenance=%s",
+             intent->intent_owner != NULL ? intent->intent_owner : "<intent>",
+             intent->step_name != NULL ? intent->step_name : "<step>",
+             boundary->source_name != NULL ? boundary->source_name : "<boundary>",
+             source_provenance,
+             who_provenance);
+    out[out_size - 1] = '\0';
+}
+
 bool
 air_verify(AIRProgram *air, char **error_message)
 {
@@ -174,13 +215,20 @@ air_verify(AIRProgram *air, char **error_message)
     for (size_t i = 0; i < air->boundary_count; i++) {
         AIRBoundaryNode *boundary = &air->boundaries[i];
         AIRIntentNode *intent = &air->intents[boundary->intent_index];
+        char provenance[256];
+        air_format_boundary_provenance(intent, boundary, provenance, sizeof(provenance));
         if (air_sync_conflicts(intent->sync_class, boundary->sync_class)) {
+            char message[512];
+            snprintf(message,
+                     sizeof(message),
+                     PGY_CODE_SEM_INTENT_BOUNDARY_DRIFT
+                     ": intent sync class conflicts with boundary implementation sync class%s",
+                     provenance);
             if (!air_append_drift(air,
                                   AIR_DRIFT_SYNC_ASYNC_CONFLICT,
                                   boundary->intent_index,
                                   i,
-                                  PGY_CODE_SEM_INTENT_BOUNDARY_DRIFT
-                                  ": intent sync class conflicts with boundary implementation sync class",
+                                  message,
                                   error_message)) {
                 return false;
             }
@@ -194,9 +242,10 @@ air_verify(AIRProgram *air, char **error_message)
             snprintf(message,
                      sizeof(message),
                      PGY_CODE_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING
-                     ": AIR boundary has no matching RIR boundary evidence; implementation boundary '%s' (%s)",
+                     ": AIR boundary has no matching RIR boundary evidence; implementation boundary '%s' (%s)%s",
                      boundary->source_name != NULL ? boundary->source_name : "<unknown>",
-                     air_boundary_kind_name(boundary->kind));
+                     air_boundary_kind_name(boundary->kind),
+                     provenance);
             if (!air_append_drift(air,
                                   AIR_DRIFT_BOUNDARY_EVIDENCE_MISSING,
                                   boundary->intent_index,
@@ -216,9 +265,10 @@ air_verify(AIRProgram *air, char **error_message)
             snprintf(message,
                      sizeof(message),
                      PGY_CODE_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING
-                     ": AIR boundary has no matching HIR routine evidence; implementation boundary '%s' (%s)",
+                     ": AIR boundary has no matching HIR routine evidence; implementation boundary '%s' (%s)%s",
                      boundary->source_name != NULL ? boundary->source_name : "<unknown>",
-                     air_boundary_kind_name(boundary->kind));
+                     air_boundary_kind_name(boundary->kind),
+                     provenance);
             if (!air_append_drift(air,
                                   AIR_DRIFT_BOUNDARY_EVIDENCE_MISSING,
                                   boundary->intent_index,
@@ -237,9 +287,10 @@ air_verify(AIRProgram *air, char **error_message)
             snprintf(message,
                      sizeof(message),
                      PGY_CODE_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING
-                     ": AIR implementation boundary has no matching HIR CFG evidence; implementation boundary '%s' (%s)",
+                     ": AIR implementation boundary has no matching HIR CFG evidence; implementation boundary '%s' (%s)%s",
                      boundary->source_name != NULL ? boundary->source_name : "<unknown>",
-                     air_boundary_kind_name(boundary->kind));
+                     air_boundary_kind_name(boundary->kind),
+                     provenance);
             if (!air_append_drift(air,
                                   AIR_DRIFT_BOUNDARY_EVIDENCE_MISSING,
                                   boundary->intent_index,
@@ -266,8 +317,9 @@ air_verify(AIRProgram *air, char **error_message)
                 snprintf(message,
                          sizeof(message),
                          PGY_CODE_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING
-                         ": AIR authority boundary has no matching RIR authority evidence; expected authority participant(s): %s",
-                         authority_names);
+                         ": AIR authority boundary has no matching RIR authority evidence; expected authority participant(s): %s%s",
+                         authority_names,
+                         provenance);
                 drift_message = message;
             }
             if (!air_append_drift(air,
@@ -289,9 +341,10 @@ air_verify(AIRProgram *air, char **error_message)
             snprintf(message,
                      sizeof(message),
                      PGY_CODE_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING
-                     ": AIR pin boundary has no matching MIR pin cleanup evidence; implementation boundary '%s' (%s)",
+                     ": AIR pin boundary has no matching MIR pin cleanup evidence; implementation boundary '%s' (%s)%s",
                      boundary->source_name != NULL ? boundary->source_name : "<unknown>",
-                     air_boundary_kind_name(boundary->kind));
+                     air_boundary_kind_name(boundary->kind),
+                     provenance);
             if (!air_append_drift(air,
                                   AIR_DRIFT_BOUNDARY_EVIDENCE_MISSING,
                                   boundary->intent_index,

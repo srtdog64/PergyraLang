@@ -10,6 +10,9 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
     if (inventory_decl != NULL)
         node = inventory_decl;
 
+    TranspilerHostedMethodView method_view =
+        transpiler_hosted_method_view_from_decl(ctx, name, node);
+
     for (size_t i = 0; i < node->data.zone_decl.slot_count; i++) {
         ASTNode *slot = node->data.zone_decl.slots[i];
         if (slot != NULL)
@@ -22,9 +25,11 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
             ensure_type_specializations_from_ast_to(ctx, ctx->out,
                 shared->data.party_shared.type);
     }
-    for (size_t i = 0; i < node->data.zone_decl.method_count; i++)
+    for (size_t i = 0; i < method_view.count; i++) {
+        ASTNode *method = transpiler_hosted_method_view_ast(&method_view, i);
         ensure_collection_specializations_from_stmt_to(ctx, ctx->out,
-            node->data.zone_decl.methods[i]);
+            method);
+    }
 
     if (!transpiler_emit_zone_struct_decl(ctx, node, name))
         return;
@@ -467,12 +472,14 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
     ctx->indent--;
     codebuf_write(ctx->out, "}\n");
 
-    for (size_t i = 0; i < node->data.zone_decl.method_count; i++) {
+    for (size_t i = 0; i < method_view.count; i++) {
+        ASTNode *method = transpiler_hosted_method_view_ast(&method_view, i);
+        if (method == NULL || method->type != AST_FUNC_DECL)
+            continue;
         emit_hosted_method_forward_decl_named(name,
-            node->data.zone_decl.methods[i], true, ctx->out, ctx);
+            method, true, ctx->out, ctx);
     }
 
     emit_hosted_methods_from_mir_or_error_local(name, "(anonymous-zone)",
-        "zone", node->data.zone_decl.methods,
-        node->data.zone_decl.method_count, ctx);
+        "zone", &method_view, ctx);
 }

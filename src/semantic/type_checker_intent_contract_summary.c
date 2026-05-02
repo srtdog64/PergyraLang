@@ -157,7 +157,8 @@ intent_step_format_contract_source_summary(const ASTNode *intent_decl,
     }
 
     if (step->data.intent_step.who_count > 0
-        && !step->data.intent_step.inherited_who_from_action) {
+        && !step->data.intent_step.inherited_who_from_action
+        && !step->data.intent_step.inherited_who_from_intent) {
         size_t alias_used = 0;
         for (size_t i = 0; i < step->data.intent_step.who_count; i++) {
             const char *alias = step->data.intent_step.who_names != NULL
@@ -177,6 +178,7 @@ intent_step_format_contract_source_summary(const ASTNode *intent_decl,
     }
     if (step->data.intent_step.where_type != NULL
         && !step->data.intent_step.inherited_where_from_action
+        && !step->data.intent_step.inherited_where_from_intent
         && !step->data.intent_step.derived_where_from_using
         && !step->data.intent_step.derived_where_from_transfer
         && step->data.intent_step.where_type->type == AST_TYPE
@@ -259,6 +261,24 @@ intent_step_format_contract_source_summary(const ASTNode *intent_decl,
             has_any ? "\n" : "");
         has_any = true;
     }
+    if (step->data.intent_step.inherited_who_from_intent) {
+        size_t alias_used = 0;
+        for (size_t i = 0; i < step->data.intent_step.who_count; i++) {
+            const char *alias = step->data.intent_step.who_names != NULL
+                ? step->data.intent_step.who_names[i] : NULL;
+            if (alias == NULL)
+                continue;
+            intent_step_summary_append(alias_list, sizeof(alias_list), &alias_used,
+                "%s%s", alias_used > 0 ? ", " : "", alias);
+        }
+        intent_step_summary_append(buffer, buffer_size, &used,
+            "%s- reused who from intent-level default%s%s",
+            has_any ? "\n" : "",
+            alias_list[0] != '\0' ? ": " : "",
+            alias_list);
+        has_any = true;
+        alias_list[0] = '\0';
+    }
     if (step->data.intent_step.inherited_where_from_action) {
         const char *zone_name =
             (step->data.intent_step.where_type != NULL
@@ -268,6 +288,18 @@ intent_step_format_contract_source_summary(const ASTNode *intent_decl,
                 : "<zone>";
         intent_step_summary_append(buffer, buffer_size, &used,
             "%s- reused zone from matching action contract: %s",
+            has_any ? "\n" : "", zone_name);
+        has_any = true;
+    }
+    if (step->data.intent_step.inherited_where_from_intent) {
+        const char *zone_name =
+            (step->data.intent_step.where_type != NULL
+             && step->data.intent_step.where_type->type == AST_TYPE
+             && step->data.intent_step.where_type->data.type.name != NULL)
+                ? step->data.intent_step.where_type->data.type.name
+                : "<zone>";
+        intent_step_summary_append(buffer, buffer_size, &used,
+            "%s- reused zone from intent-level default: %s",
             has_any ? "\n" : "", zone_name);
         has_any = true;
     }

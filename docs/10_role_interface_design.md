@@ -47,7 +47,7 @@ role MonsterCombat for Monster {
 - `override func ...`
 
 아래 **Core Concepts** 섹션은 설계 방향 설명이며, 일부 예시는 현재 문법과 다를 수 있다.
-특히 `&mut self`, `impl Trait`, `Result<(), Error>` 같은 표기는 현재 stable current surface라기보다 장기 설계 메모에 가깝다.
+특히 Rust식 receiver/trait 표기는 현재 stable current surface라기보다 장기 설계 메모에 가깝다.
 
 ## Core Concepts (Design Notes)
 
@@ -97,11 +97,11 @@ ability Damageable
     fields _healthSlot: SecureSlot<Int>
     fields _token: Token
     
-    func TakeDamage(&mut self, amount: Int)
-    func Heal(&mut self, amount: Int)
+    func TakeDamage(amount: Int) -> Void
+    func Heal(amount: Int) -> Void
     
     // 기본 구현
-    func IsAlive(&self) -> Bool
+    func IsAlive() -> Bool
     {
         return Read(self._healthSlot, self._token) > 0
     }
@@ -111,7 +111,7 @@ ability Attackable
 {
     fields _attackPower: Int
     
-    func Attack(&self, target: &mut impl Damageable) -> Int
+    func Attack(target: Damageable) -> Int
 }
 ```
 
@@ -126,13 +126,13 @@ role PlayerDamageable for Player
 {
     impl ability Damageable
     {
-        func TakeDamage(&mut self, amount: Int)
+        func TakeDamage(amount: Int) -> Void
         {
             let current = Read(self._healthSlot, self._token)
             Write(self._healthSlot, Max(0, current - amount), self._token)
         }
         
-        func Heal(&mut self, amount: Int)
+        func Heal(amount: Int) -> Void
         {
             let current = Read(self._healthSlot, self._token)
             Write(self._healthSlot, Min(100, current + amount), self._token)
@@ -152,7 +152,7 @@ role BasicDamageable<T> for T where T has _healthSlot: Slot<Int>
 {
     impl ability Damageable
     {
-        func TakeDamage(&mut self, amount: Int)
+        func TakeDamage(amount: Int) -> Void
         {
             let current = Read(self._healthSlot)
             Write(self._healthSlot, current - amount)
@@ -176,7 +176,7 @@ role MonsterCombat for Monster
     // 추가 능력 구현
     impl ability Attackable
     {
-        func Attack(&self, target: &mut impl Damageable) -> Int
+        func Attack(target: Damageable) -> Int
         {
             target.TakeDamage(10)
             return 10
@@ -184,7 +184,7 @@ role MonsterCombat for Monster
     }
     
     // 포함된 역할의 메서드 재정의
-    override func TakeDamage(&mut self, amount: Int)
+    override func TakeDamage(amount: Int) -> Void
     {
         Log("Monster takes damage!")
         // parent-call surface removed
@@ -217,7 +217,7 @@ secure ability SecureTransferable
     fields _balanceSlot: SecureSlot<Decimal>
     fields _token: Token
     
-    func Transfer(&mut self, to: &mut impl SecureTransferable, amount: Decimal) -> Result<(), Error>
+    func Transfer(to: SecureTransferable, amount: Decimal) -> Result<Void, Error>
 }
 
 // 일반 전송 능력
@@ -225,7 +225,7 @@ ability Transferable
 {
     fields _balanceSlot: Slot<Decimal>
     
-    func Transfer(&mut self, to: &mut impl Transferable, amount: Decimal) -> Result<(), Error>
+    func Transfer(to: Transferable, amount: Decimal) -> Result<Void, Error>
 }
 
 // 타입 시스템이 보안 불일치를 방지

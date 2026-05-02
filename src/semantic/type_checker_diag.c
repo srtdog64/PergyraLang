@@ -104,6 +104,9 @@ emit_diagnostic_full(SemanticContext *ctx, DiagnosticLevel level,
                 existing->cause_ir = cause_ir;
             if (existing->fix_source == NULL && fix_source != NULL)
                 existing->fix_source = fix_source;
+            if (existing->layer == DIAG_LAYER_UNKNOWN)
+                existing->layer = diagnostic_layer_from_tags("semantic",
+                    existing->cause_ir, existing->code);
             if (existing->payload == NULL && payload != NULL)
                 existing->payload = diag_payload_snapshot_create(payload);
             free(message);
@@ -134,6 +137,7 @@ emit_diagnostic_full(SemanticContext *ctx, DiagnosticLevel level,
     d->col        = node ? node->column : 0;
     d->message    = message;
     d->code       = code;        /* non-owning; static literal or NULL */
+    d->layer      = diagnostic_layer_from_tags("semantic", cause_ir, code);
     d->cause_ir   = cause_ir;    /* non-owning; static literal or NULL */
     d->fix_source = fix_source;  /* non-owning; static literal or NULL */
     d->payload    = diag_payload_snapshot_create(payload);

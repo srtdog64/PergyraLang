@@ -172,9 +172,14 @@ llvm_emit_mir_param_allocas(const MIRRoutine *routine, ASTNode *func_decl,
                 continue;
             }
 
+            slot_inner = llvm_mir_boundary_slot_inner_name(p, &is_secure_slot);
+            if (p->name == NULL) {
+                emitted_index += (slot_inner != NULL && is_secure_slot) ? 2 : 1;
+                continue;
+            }
+
             pt = llvm_mir_required_type_from_ast(ctx, func_decl, p->type,
                 "function parameter");
-            slot_inner = llvm_mir_boundary_slot_inner_name(p, &is_secure_slot);
             if (slot_inner != NULL) {
                 LLVMTypeRef slot_ptr_ty = LLVMPointerType(pt, 0);
                 alloca = LLVMBuildAlloca(ctx->builder, slot_ptr_ty, p->name);
@@ -273,7 +278,7 @@ llvm_emit_mir_param_allocas(const MIRRoutine *routine, ASTNode *func_decl,
                     }
                     seen++;
                 }
-                if (p == NULL)
+                if (p == NULL || p->name == NULL)
                     continue;
                 LLVMTypeRef pt = llvm_mir_required_type_from_ast(
                     ctx, func_decl, p->type, "function parameter");

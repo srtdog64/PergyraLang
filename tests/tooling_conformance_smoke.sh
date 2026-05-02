@@ -66,6 +66,7 @@ lsp_bin = sys.argv[1]
 out_path = sys.argv[2]
 
 source = "func Main() -> Void\n{\n    Log(1);\n}\n"
+invalid_source = "func Main() -> Void\n{\n    let x: Int = ;\n}\n"
 uri = "file:///tmp/pgy_tooling_conformance.pgy"
 
 messages = [
@@ -110,6 +111,14 @@ messages = [
             "position": {"line": 2, "character": 4},
         },
     },
+    {
+        "jsonrpc": "2.0",
+        "method": "textDocument/didChange",
+        "params": {
+            "textDocument": {"uri": uri, "version": 2},
+            "contentChanges": [{"text": invalid_source}],
+        },
+    },
     {"jsonrpc": "2.0", "id": 4, "method": "shutdown", "params": None},
     {"jsonrpc": "2.0", "method": "exit", "params": None},
 ]
@@ -152,6 +161,9 @@ required = [
     '"completionProvider":{"resolveProvider":false}',
     '"Function declaration"',
     '"label":"subject"',
+    '"method":"textDocument/publishDiagnostics"',
+    '"code":"PGY_PARSE_SYNTAX"',
+    '"data":{"layer":"syntax"',
 ]
 missing = [needle for needle in required if needle not in stdout]
 if missing:

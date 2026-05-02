@@ -11,6 +11,8 @@ print_intent_step_contract_sources(const ASTNode *node, int indent)
         return;
     if (!node->data.intent_step.inherited_who_from_action
         && !node->data.intent_step.inherited_where_from_action
+        && !node->data.intent_step.inherited_who_from_intent
+        && !node->data.intent_step.inherited_where_from_intent
         && !node->data.intent_step.inherited_requires_from_action
         && !node->data.intent_step.inherited_causes_from_action
         && !node->data.intent_step.inherited_authorized_by_from_action
@@ -27,8 +29,16 @@ print_intent_step_contract_sources(const ASTNode *node, int indent)
         printf("reused who from matching action contract");
         printed = true;
     }
+    if (node->data.intent_step.inherited_who_from_intent) {
+        printf("%sreused who from intent-level default", printed ? ", " : "");
+        printed = true;
+    }
     if (node->data.intent_step.inherited_where_from_action) {
         printf("%sreused zone from matching action contract", printed ? ", " : "");
+        printed = true;
+    }
+    if (node->data.intent_step.inherited_where_from_intent) {
+        printf("%sreused zone from intent-level default", printed ? ", " : "");
         printed = true;
     }
     if (node->data.intent_step.inherited_requires_from_action) {

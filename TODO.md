@@ -24,18 +24,27 @@ business-object lifetime을 정적으로 예측하려 하지 않는다. Slot은 
 boundary transition을 거절하고 runtime은 generation/token/resource state를
 검증한다. 이 선택은 borrow checker 누락이 아니라 의도적인 추상화 기준이다.
 
-## ★ Core Goal — 진행 시퀀스 (2026-05-02 명시)
+## ★ Core Goal — 진행 시퀀스 (2026-05-02 명시, 4-step)
 
 **확정 순서 — BDFL 결정:**
 
 1. **BETA closure** — 현재 (§0a 참조). 70% 기능 / 55-60% strict 신뢰도
    → 100% 신뢰도까지 닫기
-2. **마지막 도그푸드** — BETA 안정 후 사용자 직접 *전부 사용*. examples/
-   50+ 양 백엔드 검증, dnd_tavern_campaign 회귀, 결제 saga / AI
-   orchestration mock 워크로드 등
-3. **BETA+ 시점 self-host 시작** — partial self-host 권고
-   (parser + 의미 분석 → Pergyra, LLVM C API wrap은 C 유지). docs/120
-   §4.4 참조. *aspiration이 아니라 committed 일정*.
+2. **dogfood (compiler-adjacent first)** — §0-selfhost 의 첫 dogfood
+   원칙: diagnostic catalog checker, AIR graph JSON validator, MIR dump
+   diff tool, C/LLVM backend output comparator, module/package resolver
+   helper 부터. dnd_tavern_campaign / 결제 saga mock / AI orchestration
+   mock 등 도메인 워크로드도 양 백엔드 회귀. **§0c Intent-Compress
+   추론 규칙 설계의 evidence source** (어느 clause가 과잉 required인지
+   dogfood가 보여줌)
+3. **§0c Intent-Compress sprint** — intent 장황함이 *제거 가능한 유일한
+   비용* (§0c 상세). compressed-default + 4-clause 추론 (`who`/`where`/
+   `requires`/`authorized by`). AI-assisted 3일 컷 추정. self-host
+   진입 *직전* 자리. self-host가 *verbose intent를 Pergyra로 다시 쓰는
+   비용*을 회피
+4. **BETA+ self-host 시작** — §0-selfhost 의 점진 이식 경로
+   (compiler-adjacent → parser/formatter/diagnostic → full long-term).
+   docs/120 §4.4 참조. *aspiration이 아니라 committed 일정*.
 
 **의도:**
 - §0a (Strict Beta) → §0b (review/ 메타) → 코드 품질 sprint
@@ -237,6 +246,143 @@ memory: `project_killer_usecase_dungeon_crawler.md` 와 1:1 일치.
 - `docs/120_vision_and_capability_audit.md` §4 — vision territory 정합성
 - `docs/122_managing_intent_drift.md` §4 — falsification 프로토콜 적용
 - memory: `project_killer_usecase_dungeon_crawler.md` — 핵심 동기
+
+## 0c. Forward Plan — Intent-Compress (post-beta priority 0, self-host 직전)
+
+**입안일:** 2026-05-02. **상태:** 계획 (★ Core Goal step 3에 박힘).
+**scope:** intent block 의 *제거 가능한 유일한 verbosity*. compressed
+form을 *디폴트*로, verbose 는 *명시 옵션*으로. 4 clause (`who`/`where`/
+`requires`/`authorized by`) 를 컨텍스트에서 추론.
+
+### 왜 이 sprint가 다른 trade-off와 *질적으로 다른가*
+
+다른 trade-off (slot↔lifetime, layer 혼재, Result-first verbose) 는
+*thesis나 mandate가 비용을 정당화*. intent verbose 는 그렇지 않음 —
+*제거 가능한 비용*. 5가지 차이:
+
+1. **Thesis가 요구하지 않음** — DDD primitive 1급 thesis 는 *intent 가
+   언어 시민*이라 말하지, *8 clause 의례*를 요구하지 않음. clause 추론
+   은 thesis *약화 아님*, ergonomics 표현. Rust lifetime elision 과 동일
+2. **Signature 자리 가림** — intent block 은 학습자가 *5분 안에 만나는*
+   Pergyra 의 signature 구문. 첫 인상이 무거우면 *thesis 평가 전에* 떠남
+3. **라이브러리 비교 역전** — 현재 syntax 로 Camunda saga / Python 데코
+   레이터보다 *길어 보임*. 마케팅 narrative ("언어 차원 강제") 가 syntax
+   로 *역행*되는 자리
+4. **Minimum floor 높음** — toy intent 불가능 (8 clause 강제). *낮은
+   floor + 깊은 ceiling* 자연 확장 막힘. docs/120 §4.5 educational entry
+   path 도 이 자리에서 막힘
+5. **Self-host 진입 비용** — verbose intent 를 Pergyra 컴파일러 자체에
+   서 다시 쓰는 비용. compress 후 self-host 진입 시 *훨씬 깔끔*. 이게
+   step 3 가 step 4 *직전* 자리인 이유
+
+### Direction A — compressed-default + 4 clause 추론
+
+**Before (현재):**
+```pgy
+intent ProcessPayment {
+    who: Customer,
+    where: PaymentZone,
+    requires: customer.balance >= amount,
+    authorized by: customer.payment_authority,
+    precondition: not order.paid,
+    success: order.paid = true,
+    failure: order.paid = false,
+    compensate: refund_handler(order)
+}
+```
+
+**After (compressed default):**
+```pgy
+intent ProcessPayment for Customer in PaymentZone {
+    requires balance >= amount;
+    authorized;
+    success: order.paid = true;
+}
+```
+
+전체 verbose form 은 명시 가능 — *예외 자리에서만*. 평균 케이스는 5-line
+이내.
+
+### 4 clause 추론 규칙 (sketch)
+
+| Clause | 추론 source |
+|---|---|
+| `who:` | (a) 호출 site receiver (`customer.process_payment(...)` → who=customer) (b) intent 가 subject 안에 선언된 경우 그 subject (c) 명시 안 되면 require error |
+| `where:` | (a) 호출 site 의 `zone` 컨텍스트 (b) intent 가 zone 안에 선언된 경우 그 zone (c) 명시 안 되면 world scope (d) world scope 도 ambiguous 하면 require error |
+| `requires:` | (a) 본문 분석 — `who.field` 사용 시 자동 `who.field.exists` (b) numeric ops → 범위 추론 (c) ambiguous 자리는 명시 권고 (require 아님 — *strict mode flag* 로 강제 가능) |
+| `authorized by:` | (a) 호출 site 의 `authority` 컨텍스트 propagate (b) `who` 가 authority 가지면 self (c) 명시 안 되면 require error (보안 자리이므로 *fail-closed*) |
+
+### 충돌 해소
+
+**explicit > inferred 일관**. 사용자가 명시한 자리는 *항상* 우선. 단
+explicit 와 inferred 가 *다르면* warning (silently override 안 함).
+
+### Sprint 분할
+
+**Phase 1 (1일, AI-assisted)** — 추론 규칙 design + AST/HIR 변경 설계
+- [ ] 4 clause 추론 규칙 finalize
+- [ ] AST 에 `inferred_who` / `inferred_where` 등 메타 필드
+- [ ] HIR/MIR 은 *expanded form* 유지 (verification/debug 정합)
+- [ ] semantic phase 에서 expansion 위치 결정
+
+**Phase 2 (1일)** — 구현
+- [ ] semantic phase clause 추론 구현
+- [ ] explicit-vs-inferred 충돌 검출
+- [ ] backend-compare gate 정합 유지 (양 백엔드 같은 expanded form 사용)
+
+**Phase 3 (1일)** — 진단 + 테스트 + 문서
+- [ ] 추론 실패 진단 (*"이 자리에서 `who` 추론 불가, 명시 필요. 호출
+  receiver 또는 enclosing subject 가 없음"*)
+- [ ] negative test cases (추론 실패 자리들)
+- [ ] examples/ 의 verbose intent 들을 compressed form 으로 마이그레이션
+- [ ] dnd_tavern_campaign / 결제 saga mock 양 backend 회귀
+- [ ] docs/121 §3 carrier/coherence 자리에 *compressed form* 정합 추가
+- [ ] docs/120 §4.4 self-host 항목에 *intent-compress 가 self-host 진입
+  자격* 명시 (이미 박혀 있음, 강화)
+
+### 검증 체크포인트
+
+- 모든 examples/ 양 백엔드 회귀 zero
+- AIR drift fact 정합 — expanded form 이 동일하면 AIR fact 도 동일
+- backend-compare gate 69/69 유지
+- *대표 intent 5개 LOC 측정* — 평균 5-line 이내 도달
+- 마이그레이션 후 *educational angle* 가능성 검증 (toy intent 가능)
+
+### Out of scope (이 sprint 에서 *안* 함)
+
+- `precondition` / `success` / `failure` / `compensate` clause 자체
+  변경 — 이건 thesis 의 핵심 표현, 추론 안 함
+- 새 intent semantic 추가 — 이건 별도 ticket
+- Educational entry path full 작업 (docs/120 §4.5 후보) — 이 sprint
+  *그것을 unblock* 만 함, 본 작업은 별도
+
+### 의존성 / 정합
+
+- **Step 2 (dogfood) 의 evidence 가 input** — dogfood 가 *어느 clause가
+  과잉 required 인지* 보여줘야 추론 규칙 정확. dogfood 없이 시작하면
+  *추측*
+- **Step 4 (self-host) 가 consumer** — self-host 컴파일러 자체가
+  compressed form 사용. step 3 → step 4 순서 강제
+- **docs/120 §4.4 (self-host) 와 §4.5 (educational, 후보)** 모두 이
+  sprint 후 시작 가능
+
+### 비용 추정 정정
+
+직전 분석에서 "4-7개월" 추정했으나 *AI-assisted 환경에서 3일 컷* 으로
+재추정 (BDFL 결정). 추론 규칙은 *데이터-구조 자체가 단순*하고 (4 clause,
+~5 source 별 추론 패턴), AI 가 implementation/test/diagnostic 패턴 빠르게
+churn. *진짜 시간 비용은 dogfood evidence 수집* (별도 step). sprint
+자체는 dogfood 후 3일.
+
+### 참조
+
+- `docs/121_types_as_domain_medium.md` §3 — carrier/coherence/negative-space
+- `docs/120_vision_and_capability_audit.md` §4.4 — self-host 진입 자격
+- `docs/122_managing_intent_drift.md` §4 — falsification 프로토콜 (sprint
+  내 적용)
+- memory `feedback_marketing_language_drift.md` — marketing claim 과
+  syntax 정합성 자리
+- ★ Core Goal step 3 — 시퀀스 자리 anchor
 
 ## UTF-8 Progress Note - 2026-05-01 - Dogfood-first WebGL Bridge Gate
 
@@ -5398,6 +5544,38 @@ Source of truth:
 - `llvm_set_mir_inventory_missing(...)` remains the required path for
   declaration/routine inventory gaps. `mir_declaration_inventory_smoke.sh`
   now gates metadata-first registration and rejects AST method-array loops.
+- The legacy `llvm_find_host_decl_methods_in_context(...)` / `llvm_host_decl_methods(...)`
+  AST method-array seam is removed. `llvm_find_host_method_decl_in_context(...)`
+  is now metadata-only and returns the method AST only as a diagnostic/codegen
+  anchor from `MIRDeclMethod`.
+- C backend nominal host-method lookup now also checks `MIRDeclHeader.method_metadata`
+  first. When a MIR header exists, `find_nominal_host_method_decl(...)` no
+  longer falls back to AST method-array scans for missing methods.
+- Zone projection sync and intent-step subject action lookup now delegate to
+  the same C backend MIR-aware nominal host-method lookup seam instead of
+  open-coding `class_decl.methods[]` scans.
+- `transpiler_find_mir_method(...)` now resolves method routines through
+  `MIRDeclHeader.method_metadata` before falling back to the legacy routine
+  scan. All C method emitters that already use this seam now benefit from the
+  linked declaration metadata.
+- The public C backend `transpiler_decl_methods_local(...)` AST method-array
+  seam is removed. The remaining AST method-list access is quarantined as a
+  static fallback inside `transpiler_decl_host_lookup.c` for MIR-absent paths.
+- C class/enum method emission now also chooses its method iteration source
+  from `MIRDeclHeader.method_metadata` when MIR is present. AST method arrays
+  remain only as the no-MIR fallback/emission anchor.
+- Shared C domain method body emission (`emit_hosted_methods_from_mir_or_error_local`)
+  now also chooses its active method source from `MIRDeclHeader.method_metadata`
+  before falling back to AST method arrays.
+- Domain forward declarations for party/roster/relation/effect/zone/world now
+  also use `MIRDeclHeader.method_metadata` when MIR is present, with AST arrays
+  left as the no-MIR fallback.
+- The repeated metadata/fallback selection was folded into
+  `TranspilerHostedMethodView`, so C backend hosted-method emitters share one
+  policy instead of open-coding MIR header checks in each owner.
+- `emit_hosted_methods_from_mir_or_error_local(...)` now accepts a
+  `TranspilerHostedMethodView` directly, so the shared body-emission helper no
+  longer exposes an AST method-array API.
 - Local lightweight gate passed:
   `documentation_quality_smoke`, `perf_contract_smoke`, `source_utf8_smoke`,
   `test_inc_size_smoke`, `air_drift_smoke`,

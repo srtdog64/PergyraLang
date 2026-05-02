@@ -85,6 +85,8 @@ emit_func_decl_named(ASTNode *node, const char *emitted_name,
         pt = transpiler_require_ast_c_type(ctx, p != NULL ? p->type : NULL, surface_desc);
         if (pt == NULL)
             goto emit_func_decl_named_fail;
+        if (p == NULL || p->name == NULL)
+            goto emit_func_decl_named_fail;
         if (i > 0) codebuf_write(params_sig, ", ");
         if (p->type != NULL)
             type_name = render_type_name(p->type);

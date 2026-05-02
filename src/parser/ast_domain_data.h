@@ -200,6 +200,8 @@ typedef struct {
     size_t authorized_by_count;
     size_t authorized_by_capacity;
     ASTNode* expect_expr;
+    bool inherited_who_from_intent;
+    bool inherited_where_from_intent;
     bool inherited_who_from_action;
     bool inherited_where_from_action;
     bool inherited_requires_from_action;

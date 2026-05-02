@@ -107,6 +107,7 @@ static int32_t pgy_intent_last_history_count = 0;
 static PgyIntentRecentEntry pgy_intent_recent_ring[PGY_INTENT_RECENT_MAX];
 static int32_t pgy_intent_recent_count = 0;
 static int32_t pgy_intent_recent_head = 0;
+static int32_t pgy_intent_active_count = 0;
 
 static inline void
 pgy_intent_history_step_set_string(char **dst, const char *value)
@@ -313,6 +314,30 @@ pgy_intent_find_active_entry(int32_t handle)
 }
 
 static inline int32_t
+pgy_intent_find_active_registry_slot(int32_t handle)
+{
+    int32_t slot = pgy_intent_active_index_find_slot(handle);
+
+    if (slot >= 0) {
+        int32_t active_slot = pgy_intent_active_index_slots[slot];
+        if (active_slot >= 0 && active_slot < PGY_INTENT_ACTIVE_MAX) {
+            PgyIntentActiveEntry *entry =
+                &pgy_intent_active_registry[active_slot];
+            if (entry->active && entry->handle == handle)
+                return active_slot;
+        }
+    }
+
+    for (int32_t i = 0; i < PGY_INTENT_ACTIVE_MAX; i++) {
+        if (pgy_intent_active_registry[i].active
+            && pgy_intent_active_registry[i].handle == handle) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+static inline int32_t
 pgy_intent_current_handle(void)
 {
     if (pgy_intent_current_depth <= 0)
@@ -455,6 +480,7 @@ pgy_intent_enter_export(char *name, void **subjects, int32_t subject_count,
     pgy_intent_active_registry[free_index].step_count = 0;
     pgy_intent_active_registry[free_index].failed = false;
     pgy_intent_active_registry[free_index].active = true;
+    pgy_intent_active_count++;
     pgy_intent_active_index_set(handle, free_index);
     if (PGY_INTENT_OBSERVABILITY_ENABLED) {
         char line[256];

@@ -205,6 +205,13 @@ for term in "${zone_first_todo_terms[@]}"; do
     require_text "TODO.md" "$term"
 done
 
+for rel in docs/10_role_interface_design.md docs/11_party_system_design.md; do
+    forbid_text "$rel" "&mut self"
+    forbid_text "$rel" "&self"
+    forbid_text "$rel" "impl Trait"
+    forbid_text "$rel" "Result<(), Error>"
+done
+
 self_hosting_terms=(
     "self-hosting은 beta blocker가 아니라 beta 이후의 검증 목표"
     "compiler-adjacent tool부터"

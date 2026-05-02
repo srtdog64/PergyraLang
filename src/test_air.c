@@ -79,6 +79,7 @@ lower_air_from_source(const char *source)
 #include "tests/air/test_air_cleanup_transfer_part_c.cases.h"
 #include "tests/air/test_air_boundary_part_d.cases.h"
 #include "tests/air/test_air_parsed_part_e.cases.h"
+#include "tests/air/test_air_strict_part_f.cases.h"
 
 int
 main(void)
@@ -103,6 +104,9 @@ main(void)
     TEST("AIR strict evidence prefers inventory over legacy flags");
     EXPECT(test_air_strict_evidence_prefers_inventory_over_legacy_flags());
 
+    TEST("AIR strict evidence rejects legacy flags with real input");
+    EXPECT(test_air_strict_evidence_rejects_legacy_flags_with_real_input());
+
     TEST("AIR task group boundary requires RIR and HIR evidence");
     EXPECT(test_air_task_group_boundary_requires_rir_and_hir_evidence());
 
@@ -123,6 +127,9 @@ main(void)
 
     TEST("AIR verify rejects boundary sync shape mismatch");
     EXPECT(test_air_verify_rejects_boundary_sync_shape_mismatch());
+
+    TEST("AIR verify rejects world boundary without transfer provenance");
+    EXPECT(test_air_verify_rejects_world_boundary_without_transfer_provenance());
 
     TEST("AIR verify rejects invalid drift inventory");
     EXPECT(test_air_verify_rejects_invalid_drift_inventory());

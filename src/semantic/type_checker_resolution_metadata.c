@@ -5,6 +5,11 @@
 #include "type_checker_internal.h"
 #include "type_checker_resolution_metadata_internal.h"
 
+typedef struct TypeNameSlot {
+    const char *name;
+    Type **slot;
+} TypeNameSlot;
+
 static Type *
 metadata_scope_named_type(SemanticContext *ctx, ASTNode *type_node)
 {
@@ -218,13 +223,18 @@ semantic_type_resolution_record_resolved_type_impl(SemanticContext *ctx,
         size_t existing = 0;
         if (metadata_lookup_entry_index(ctx, type_node, &existing)) {
             size_t i = existing;
+            bool keep_owned = owned;
             if (ctx->type_resolution_metadata.owned[i]
                 && ctx->type_resolution_metadata.values[i] != resolved_type) {
                 semantic_type_resolution_free_owned_type(
                     (Type *)ctx->type_resolution_metadata.values[i]);
             }
+            if (ctx->type_resolution_metadata.owned[i]
+                && ctx->type_resolution_metadata.values[i] == resolved_type) {
+                keep_owned = true;
+            }
             ctx->type_resolution_metadata.values[i] = resolved_type;
-            ctx->type_resolution_metadata.owned[i] = owned;
+            ctx->type_resolution_metadata.owned[i] = keep_owned;
             return;
         }
     }
@@ -431,26 +441,23 @@ semantic_type_resolution_lookup_type_ref_or_materialize(SemanticContext *ctx,
 Type *
 semantic_type_resolution_metadata_builtin_singleton(const char *name)
 {
-    if (name == NULL)
-        return NULL;
-    if (strcmp(name, "Int") == 0)
-        return TYPE_INT;
-    if (strcmp(name, "Long") == 0)
-        return TYPE_LONG;
-    if (strcmp(name, "Float") == 0)
-        return TYPE_FLOAT;
-    if (strcmp(name, "Double") == 0)
-        return TYPE_DOUBLE;
-    if (strcmp(name, "Bool") == 0)
-        return TYPE_BOOL;
-    if (strcmp(name, "String") == 0)
-        return TYPE_STRING;
-    if (strcmp(name, "QubitSlot") == 0)
-        return TYPE_QUBIT;
-    if (strcmp(name, "Void") == 0)
-        return TYPE_VOID;
-    if (strcmp(name, "Allocator") == 0)
-        return TYPE_ALLOCATOR;
+    static const TypeNameSlot builtins[] = {
+        { "Allocator", &TYPE_ALLOCATOR },
+        { "Bool", &TYPE_BOOL },
+        { "Double", &TYPE_DOUBLE },
+        { "Float", &TYPE_FLOAT },
+        { "Int", &TYPE_INT },
+        { "Long", &TYPE_LONG },
+        { "QubitSlot", &TYPE_QUBIT },
+        { "String", &TYPE_STRING },
+        { "Void", &TYPE_VOID },
+    };
+    const size_t count = sizeof(builtins) / sizeof(builtins[0]);
+
+    for (size_t i = 0; name != NULL && i < count; i++) {
+        if (strcmp(name, builtins[i].name) == 0)
+            return *builtins[i].slot;
+    }
     return NULL;
 }
 
@@ -458,34 +465,28 @@ Type *
 semantic_type_resolution_metadata_named_builtin_or_shell_singleton(
     const char *name)
 {
+    static const TypeNameSlot shells[] = {
+        { "Array", &TYPE_ARRAY },
+        { "Box", &TYPE_BOX },
+        { "DeviceSlot", &TYPE_DEVICE_SLOT },
+        { "HashMap", &TYPE_HASHMAP },
+        { "List", &TYPE_LIST },
+        { "Option", &TYPE_OPTION },
+        { "Queue", &TYPE_QUEUE },
+        { "Rc", &TYPE_RC },
+        { "RemoteFuture", &TYPE_REMOTE_FUTURE },
+        { "Set", &TYPE_SET },
+        { "Slice", &TYPE_SLICE },
+        { "Weak", &TYPE_WEAK },
+    };
     Type *builtin = semantic_type_resolution_metadata_builtin_singleton(name);
+    const size_t count = sizeof(shells) / sizeof(shells[0]);
+
     if (builtin != NULL)
         return builtin;
-    if (name == NULL)
-        return NULL;
-    if (strcmp(name, "Array") == 0)
-        return TYPE_ARRAY;
-    if (strcmp(name, "Slice") == 0)
-        return TYPE_SLICE;
-    if (strcmp(name, "List") == 0)
-        return TYPE_LIST;
-    if (strcmp(name, "Queue") == 0)
-        return TYPE_QUEUE;
-    if (strcmp(name, "HashMap") == 0)
-        return TYPE_HASHMAP;
-    if (strcmp(name, "Set") == 0)
-        return TYPE_SET;
-    if (strcmp(name, "Box") == 0)
-        return TYPE_BOX;
-    if (strcmp(name, "Rc") == 0)
-        return TYPE_RC;
-    if (strcmp(name, "Weak") == 0)
-        return TYPE_WEAK;
-    if (strcmp(name, "RemoteFuture") == 0)
-        return TYPE_REMOTE_FUTURE;
-    if (strcmp(name, "DeviceSlot") == 0)
-        return TYPE_DEVICE_SLOT;
-    if (strcmp(name, "Option") == 0)
-        return TYPE_OPTION;
+    for (size_t i = 0; name != NULL && i < count; i++) {
+        if (strcmp(name, shells[i].name) == 0)
+            return *shells[i].slot;
+    }
     return NULL;
 }

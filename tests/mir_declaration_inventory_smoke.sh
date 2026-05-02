@@ -31,10 +31,17 @@ for rel in \
     "src/codegen/llvm_pipeline.c" \
     "src/codegen/llvm_domain.c" \
     "src/codegen/llvm_domain_method_helpers.c" \
+    "src/codegen/llvm_domain_method_emit.c" \
+    "src/codegen/llvm_domain_forward.c" \
+    "src/codegen/llvm_domain_forward.h" \
     "src/codegen/llvm_backend.h" \
     "src/codegen/llvm_register.c" \
     "src/codegen/transpiler.h" \
     "src/codegen/transpiler.c" \
+    "src/codegen/transpiler_decl_host_lookup.c" \
+    "src/codegen/transpiler_domain_role_ability_emit.h" \
+    "src/codegen/transpiler_generic_class_specialization_emit.h" \
+    "src/codegen/transpiler_mir_ssa_names.h" \
     "src/compiler/mir.h" \
     "src/compiler/mir_lower_public_api.h" \
     "src/compiler/mir_decl_headers.h" \
@@ -57,15 +64,26 @@ done
 for term in \
     "llvm_host_decl_method_metadata" \
     "llvm_find_host_method_metadata_in_context" \
+    "llvm_hosted_method_view" \
+    "llvm_hosted_method_view_metadata" \
+    "llvm_hosted_method_view_ast" \
     "llvm_find_host_method_decl_in_context" \
-    "llvm_find_host_decl_methods_in_context" \
     "llvm_mir_decl_method_name" \
+    "llvm_mir_decl_method_ast" \
     "llvm_mir_decl_method_param_count" \
     "llvm_mir_decl_method_param" \
     "llvm_mir_decl_method_return_type" \
     "llvm_mir_decl_method_is_action_like"; do
     require_term "src/codegen/llvm_inventory_host_methods.h" "$term"
 done
+if grep -Fq "llvm_find_host_decl_methods_in_context" \
+    "$ROOT_DIR/src/codegen/llvm_inventory_host_methods.h"; then
+    fail "LLVM host method inventory must not expose AST method-array lookup helpers"
+fi
+if grep -Fq "llvm_host_decl_methods(" \
+    "$ROOT_DIR/src/codegen/llvm_inventory_host_methods.h"; then
+    fail "LLVM host method inventory must be MIRDeclMethod metadata-only"
+fi
 
 for term in \
     "llvm_active_routine_inventory" \
@@ -90,7 +108,8 @@ done
 
 for term in \
     "llvm_active_nominal_inventory(ctx, &nominal_nodes, &nominal_count)" \
-    "llvm_host_decl_method_metadata(decl_header" \
+    "llvm_hosted_method_view_from_decl(ctx, cls_name, decl)" \
+    "method_view.uses_mir_metadata" \
     "method_meta->has_routine" \
     "method_meta->routine_index" \
     "llvm_set_mir_inventory_missing(ctx" \
@@ -106,6 +125,10 @@ fi
 if grep -Fq "llvm_find_host_decl_methods_in_context(ctx, cls_name" \
     "$ROOT_DIR/src/codegen/llvm_pipeline.c"; then
     fail "LLVM pipeline class-method emission must consume MIRDeclMethod metadata, not AST method arrays"
+fi
+if grep -Eq 'decl->data\.class_decl\.method_count|decl->data\.class_decl\.methods\[[^]]+\]' \
+    "$ROOT_DIR/src/codegen/llvm_pipeline.c"; then
+    fail "LLVM pipeline must use LLVMHostedMethodView for class-method inventory guards"
 fi
 
 require_term "src/codegen/llvm_internal_api.h" "llvm_set_mir_inventory_missing"
@@ -150,6 +173,97 @@ for term in \
     "transpiler_active_has_top_level_exec(ctx)"; do
     require_term "src/codegen/transpiler.c" "$term"
 done
+for term in \
+    "transpiler_find_method_in_mir_header" \
+    "mir_find_decl_header(ctx->mir, host_type_name)" \
+    "transpiler_hosted_method_view_from_decl(ctx, host_type_name, decl)" \
+    "header->method_metadata_count" \
+    "method->name" \
+    "method->ast"; do
+    require_term "src/codegen/transpiler_decl_host_lookup.c" "$term"
+done
+if grep -RIn 'transpiler_decl_methods_local' "$ROOT_DIR/src/codegen"; then
+    fail "C backend must not expose public AST method-array lookup seam"
+fi
+for rel in \
+    "src/codegen/transpiler_block_intent_helpers.h" \
+    "src/codegen/transpiler_projection_sync_helpers.h"; do
+    require_term "$rel" "find_nominal_host_method_decl(ctx"
+    if grep -Eq 'data\.class_decl\.methods\[[^]]+\]|data\.class_decl\.method_count' \
+        "$ROOT_DIR/$rel"; then
+        fail "$rel must use the C backend MIR-aware host-method lookup seam"
+    fi
+done
+for term in \
+    "mir_find_decl_header(ctx->mir, owner_name)" \
+    "header->method_metadata_count" \
+    "method->has_routine" \
+    "method->routine_index < ctx->mir->routine_count"; do
+    require_term "src/codegen/transpiler_mir_ssa_names.h" "$term"
+done
+for rel in \
+    "src/codegen/transpiler_class_decl_emit.h" \
+    "src/codegen/transpiler_enum_decl_emit.h"; do
+    require_term "$rel" "transpiler_hosted_method_view_from_decl(ctx"
+    require_term "$rel" "transpiler_hosted_method_view_ast(&method_view, i)"
+done
+require_term "src/codegen/transpiler_generic_class_specialization_emit.h" \
+    "transpiler_hosted_method_view_from_decl(ctx, base_class_name"
+require_term "src/codegen/transpiler_generic_class_specialization_emit.h" \
+    "transpiler_hosted_method_view_ast(&method_view, i)"
+if grep -Eq 'class_decl->data\.class_decl\.methods\[[^]]+\]' \
+    "$ROOT_DIR/src/codegen/transpiler_generic_class_specialization_emit.h"; then
+    fail "generic class specialization must consume TranspilerHostedMethodView, not index AST method arrays"
+fi
+for term in \
+    "TranspilerHostedMethodView" \
+    "transpiler_hosted_method_view(" \
+    "transpiler_hosted_method_view_from_decl(" \
+    "transpiler_hosted_method_view_ast(" \
+    "transpiler_hosted_method_view_missing_mir_metadata("; do
+    require_term "src/codegen/transpiler_decl_lookup.h" "$term"
+done
+for rel in \
+    "src/codegen/transpiler_domain_nominal_emit.h" \
+    "src/codegen/transpiler_zone_decl_emit.h" \
+    "src/codegen/transpiler_world_select_event_emit.h"; do
+    require_term "$rel" "transpiler_hosted_method_view_from_decl(ctx"
+    require_term "$rel" "transpiler_hosted_method_view_ast(&method_view, i)"
+done
+require_term "src/codegen/transpiler_domain_role_ability_emit.h" \
+    "const TranspilerHostedMethodView *method_view"
+if grep -Eq 'emit_hosted_methods_from_mir_or_error_local\([^)]*ASTNode \*\*methods|emit_hosted_methods_from_mir_or_error_local\([^)]*size_t method_count' \
+    "$ROOT_DIR/src/codegen/transpiler_domain_role_ability_emit.h"; then
+    fail "hosted method body emission must accept TranspilerHostedMethodView, not AST method arrays"
+fi
+require_term "src/codegen/transpiler_class_decl_emit.h" \
+    "transpiler_hosted_method_view_from_decl(ctx, name"
+require_term "src/codegen/transpiler_class_decl_emit.h" \
+    "transpiler_hosted_method_view_missing_mir_metadata(&method_view)"
+require_term "src/codegen/transpiler_enum_decl_emit.h" \
+    "transpiler_hosted_method_view_from_decl(ctx, ename"
+require_term "src/codegen/transpiler_enum_decl_emit.h" \
+    "transpiler_hosted_method_view_missing_mir_metadata(&method_view)"
+require_term "src/codegen/transpiler_domain_role_ability_emit.h" \
+    "transpiler_hosted_method_view_missing_mir_metadata(method_view)"
+c_method_raw_hits="$(
+    for path in "$ROOT_DIR"/src/codegen/transpiler*.c \
+        "$ROOT_DIR"/src/codegen/transpiler*.h; do
+        [[ -e "$path" ]] || continue
+        rel="${path#$ROOT_DIR/}"
+        case "$rel" in
+            src/codegen/transpiler_decl_lookup.h)
+                continue
+                ;;
+        esac
+        grep -EIn 'data\.(class_decl|enum_decl|relation_decl|effect_decl|zone_decl|world_decl|party_decl|roster_decl)\.methods\[[^]]+\]|data\.(class_decl|enum_decl|relation_decl|effect_decl|zone_decl|world_decl|party_decl|roster_decl)\.method_count' \
+            "$path" | sed "s#^#$rel:#" || true
+    done
+)"
+if [[ -n "$c_method_raw_hits" ]]; then
+    fail "C backend hosted-method emission must use TranspilerHostedMethodView outside method-view owners:
+$c_method_raw_hits"
+fi
 
 routine_raw_hits="$(
     for rel in \
@@ -174,6 +288,7 @@ for term in \
     "llvm_find_host_method_metadata_in_context" \
     "method_meta->has_routine" \
     "llvm_routine_inventory_get" \
+    "return NULL;" \
     "routine->kind == MIR_SCOPE_METHOD"; do
     require_term "src/codegen/llvm_domain_method_helpers.c" "$term"
 done
@@ -182,7 +297,10 @@ for term in \
     "llvm_mir_decl_method_param_count(method_meta)" \
     "llvm_mir_decl_method_return_type(method_meta)" \
     "llvm_mir_decl_method_is_action_like(method_meta)" \
-    "llvm_host_decl_method_metadata" \
+    "llvm_hosted_method_view_from_decl(ctx, enum_name, stmt)" \
+    "llvm_hosted_method_view_from_decl(ctx, cls_name, stmt)" \
+    "llvm_hosted_method_view_missing_mir_metadata(&enum_method_view)" \
+    "llvm_hosted_method_view_missing_mir_metadata(&class_method_view)" \
     "llvm_mir_decl_method_ast(method_meta)" \
     "llvm_set_mir_inventory_missing(ctx" \
     "MIR-only LLVM path missing enum method declaration metadata" \
@@ -192,6 +310,10 @@ done
 if grep -Eq 'for[[:space:]]*\([^)]*stmt->data\.(enum_decl|class_decl)\.method_count' \
     "$ROOT_DIR/src/codegen/llvm_register.c"; then
     fail "LLVM nominal method registration must iterate MIRDeclMethod metadata, not AST method_count"
+fi
+if grep -Eq 'stmt->data\.(enum_decl|class_decl)\.method_count' \
+    "$ROOT_DIR/src/codegen/llvm_register.c"; then
+    fail "LLVM nominal method registration must use LLVMHostedMethodView for method-count guards"
 fi
 if grep -Eq 'stmt->data\.(enum_decl|class_decl)\.methods\[[^]]+\]' \
     "$ROOT_DIR/src/codegen/llvm_register.c"; then
@@ -206,7 +328,7 @@ domain_method_forward_body="$(
     ' "$ROOT_DIR/src/codegen/llvm_domain_forward.c"
 )"
 for term in \
-    "llvm_find_host_method_metadata_in_context" \
+    "llvm_hosted_method_view_metadata(methods, j)" \
     "llvm_domain_method_param_count_metadata_first" \
     "llvm_domain_method_param_metadata_first" \
     "llvm_domain_method_return_type_metadata_first"; do
@@ -216,6 +338,37 @@ done
 if grep -Eq 'method->data\.func_decl\.(param_count|return_type)' \
     <<<"$domain_method_forward_body"; then
     fail "LLVM domain method forward declarations must not read AST method param_count/return_type directly"
+fi
+require_term "src/codegen/llvm_domain_forward.h" \
+    "const LLVMHostedMethodView *methods"
+require_term "src/codegen/llvm_domain_forward.c" \
+    "llvm_hosted_method_view_metadata(methods, j)"
+require_term "src/codegen/llvm_domain_method_emit.c" \
+    "LLVMHostedMethodView method_view"
+require_term "src/codegen/llvm_domain_method_emit.c" \
+    "llvm_hosted_method_view_metadata(&method_view, j)"
+if grep -Eq 'llvm_emit_domain_method_forward_decls\([^)]*ASTNode \*\*methods|llvm_emit_domain_method_forward_decls\([^)]*size_t method_count' \
+    "$ROOT_DIR/src/codegen/llvm_domain_forward.h" \
+    "$ROOT_DIR/src/codegen/llvm_domain_forward.c"; then
+    fail "LLVM domain method forward declarations must accept LLVMHostedMethodView, not AST method arrays"
+fi
+llvm_method_raw_hits="$(
+    for path in "$ROOT_DIR"/src/codegen/llvm*.[ch]; do
+        [[ -e "$path" ]] || continue
+        rel="${path#$ROOT_DIR/}"
+        case "$rel" in
+            src/codegen/llvm_inventory_host_methods.h|\
+            src/codegen/llvm_domain_decl_parts_helpers.h)
+                continue
+                ;;
+        esac
+        grep -EIn 'data\.(class_decl|enum_decl|relation_decl|effect_decl|zone_decl|world_decl|party_decl|roster_decl)\.methods\[[^]]+\]|data\.(class_decl|enum_decl|relation_decl|effect_decl|zone_decl|world_decl|party_decl|roster_decl)\.method_count' \
+            "$path" | sed "s#^#$rel:#" || true
+    done
+)"
+if [[ -n "$llvm_method_raw_hits" ]]; then
+    fail "LLVM hosted-method emission must use LLVMHostedMethodView outside method-view owners:
+$llvm_method_raw_hits"
 fi
 
 for forbidden in \

@@ -246,6 +246,7 @@ air_collect_rir_evidence(AIRProgram *air, const RIRProgram *rir, char **error_me
 {
     if (air == NULL || rir == NULL)
         return true;
+    air->has_rir_input = true;
     for (size_t i = 0; i < rir->scope_count; i++) {
         const RIRScope *scope = &rir->scopes[i];
         const char *scope_name = scope->name != NULL ? scope->name : scope->owner_name;

@@ -358,12 +358,17 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
     codebuf_write(ctx->out, "}\n");
 
     /* Methods */
-    for (size_t i = 0; i < node->data.world_decl.method_count; i++) {
+    TranspilerHostedMethodView method_view =
+        transpiler_hosted_method_view_from_decl(ctx, name, node);
+
+    for (size_t i = 0; i < method_view.count; i++) {
+        ASTNode *method = transpiler_hosted_method_view_ast(&method_view, i);
+        if (method == NULL || method->type != AST_FUNC_DECL)
+            continue;
         emit_hosted_method_forward_decl_named(name,
-            node->data.world_decl.methods[i], true, ctx->out, ctx);
+            method, true, ctx->out, ctx);
     }
 
     emit_hosted_methods_from_mir_or_error_local(name, "(anonymous-world)",
-        "world", node->data.world_decl.methods,
-        node->data.world_decl.method_count, ctx);
+        "world", &method_view, ctx);
 }

@@ -1,7 +1,19 @@
 static void
 emit_enum_decl_stmt(ASTNode *node, TranspilerCtx *ctx)
 {
-        const char *ename = node->data.enum_decl.name;
+    const char *ename = node->data.enum_decl.name;
+    TranspilerHostedMethodView method_view =
+        transpiler_hosted_method_view_from_decl(ctx, ename, node);
+    if (transpiler_hosted_method_view_missing_mir_metadata(&method_view)) {
+        transpiler_set_backend_error_with_hints(
+            ctx,
+            PGY_CODE_MIR_TOPOLOGY_INVALID,
+            PGY_CAUSE_MIR_TOPOLOGY_ROUTINE_MISSING,
+            PGY_FIX_INSPECT_HIR_TO_MIR_LOWERING,
+            "MIR-only C path missing declaration metadata for enum methods '%s'",
+            ename != NULL ? ename : "(anonymous-enum)");
+        return;
+    }
 
         /* Check if any variant has data → tagged union */
         bool has_data = false;
@@ -111,19 +123,20 @@ emit_enum_decl_stmt(ASTNode *node, TranspilerCtx *ctx)
             codebuf_write(ctx->out, "\n");
         }
 
-        for (size_t i = 0; i < node->data.enum_decl.method_count; i++) {
-            ASTNode *method = node->data.enum_decl.methods[i];
+        for (size_t i = 0; i < method_view.count; i++) {
+            ASTNode *method = transpiler_hosted_method_view_ast(&method_view, i);
             if (method == NULL || method->type != AST_FUNC_DECL)
                 continue;
             emit_hosted_method_forward_decl_named(ename, method, false,
                                                   ctx->out, ctx);
         }
 
-        for (size_t i = 0; i < node->data.enum_decl.method_count; i++) {
-            ASTNode *method = node->data.enum_decl.methods[i];
-            const MIRRoutine *mir_method = transpiler_find_mir_method(ctx, ename, method);
+        for (size_t i = 0; i < method_view.count; i++) {
+            ASTNode *method = transpiler_hosted_method_view_ast(&method_view, i);
+            const MIRRoutine *mir_method;
             if (method == NULL || method->type != AST_FUNC_DECL)
                 continue;
+            mir_method = transpiler_find_mir_method(ctx, ename, method);
             if (ctx != NULL && ctx->mir != NULL && mir_method == NULL) {
                 if (ctx->backend_error == NULL) {
                     ctx->backend_error = strdup_fmt(

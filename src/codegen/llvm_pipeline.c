@@ -495,12 +495,18 @@ llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx)
                 continue;
 
             cls_name = llvm_decl_node_name(decl);
-            decl_header = llvm_find_host_decl_header_in_context(ctx, cls_name);
-            method_metadata = NULL;
-            method_metadata_count = 0;
-            llvm_host_decl_method_metadata(decl_header,
-                &method_metadata, &method_metadata_count);
-            if (decl_header == NULL && decl->data.class_decl.method_count > 0) {
+            LLVMHostedMethodView method_view =
+                llvm_hosted_method_view_from_decl(ctx, cls_name, decl);
+            decl_header = method_view.uses_mir_metadata
+                ? llvm_find_host_decl_header_in_context(ctx, cls_name)
+                : NULL;
+            method_metadata = method_view.uses_mir_metadata
+                ? method_view.metadata
+                : NULL;
+            method_metadata_count = method_view.uses_mir_metadata
+                ? method_view.count
+                : 0;
+            if (decl_header == NULL && method_view.count > 0) {
                 llvm_set_mir_inventory_missing(ctx,
                     "MIR-only LLVM path missing declaration metadata for class method '%s.%s'",
                     cls_name != NULL ? cls_name : "(anonymous-class)",

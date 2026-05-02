@@ -266,6 +266,10 @@ dir_dump(const DIRProgram *dir, FILE *out)
                         step->transfer_from_alias != NULL ? step->transfer_from_alias : "-",
                         step->transfer_to_alias != NULL ? step->transfer_to_alias : "-");
             }
+            if (step->who_inherited_from_intent)
+                fputs(" who-default=intent", out);
+            if (step->where_inherited_from_intent)
+                fputs(" where-default=intent", out);
             fputc('\n', out);
             for (size_t k = 0; k < step->who_count; k++)
                 fprintf(out, "      who[%zu] %s\n", k, step->who_names[k]);

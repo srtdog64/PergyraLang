@@ -13,6 +13,8 @@ test_air_synthesizes_intent_and_boundary(void)
             .where_type_name = "WarehouseZone",
             .authorized_by = authorized_by,
             .authorized_by_count = 1,
+            .who_inherited_from_intent = true,
+            .where_inherited_from_intent = true,
         },
     };
     DIRIntentInfo intents[] = {
@@ -56,8 +58,10 @@ test_air_synthesizes_intent_and_boundary(void)
         && strcmp(air->intents[0].step_name, "reserve") == 0
         && air->intents[0].ast == &intent_ast
         && air->intents[0].sync_class == AIR_SYNC_SYNC
+        && air->intents[0].who_from_intent_default
         && air->boundaries[0].kind == AIR_BOUNDARY_ZONE
         && air->boundaries[0].ast == &intent_ast
+        && air->boundaries[0].source_from_intent_default
         && air->boundaries[0].authority_required
         && air->boundaries[0].authority_name_count == 1
         && strcmp(air->boundaries[0].authority_names[0], "shipper") == 0
@@ -78,6 +82,7 @@ test_air_detects_sync_async_drift(void)
             .step_index = 0,
             .sync_class = AIR_SYNC_SYNC,
             .failure_class = AIR_FAILURE_RECOVERABLE,
+            .who_from_intent_default = true,
         },
     };
     AIRBoundaryNode boundaries[] = {
@@ -88,6 +93,7 @@ test_air_detects_sync_async_drift(void)
             .intent_index = 0,
             .step_index = 0,
             .sync_class = AIR_SYNC_ASYNC,
+            .source_from_intent_default = true,
         },
     };
     AIRProgram air = {
@@ -101,7 +107,9 @@ test_air_detects_sync_async_drift(void)
     bool ok = checked
         && air.drift_count == 1
         && air.drifts[0].kind == AIR_DRIFT_SYNC_ASYNC_CONFLICT
-        && strstr(air.drifts[0].message, "PGY_SEM_INTENT_BOUNDARY_DRIFT") != NULL;
+        && strstr(air.drifts[0].message, "PGY_SEM_INTENT_BOUNDARY_DRIFT") != NULL
+        && strstr(air.drifts[0].message, "source_provenance=intent-default") != NULL
+        && strstr(air.drifts[0].message, "who_provenance=intent-default") != NULL;
     test_air_clear_stack_drifts(&air);
     free(error);
     return ok;
@@ -127,6 +135,7 @@ test_air_accepts_async_boundary_match(void)
             .intent_index = 0,
             .step_index = 0,
             .sync_class = AIR_SYNC_ASYNC,
+            .source_from_transfer = true,
         },
     };
     AIRProgram air = {
@@ -614,6 +623,7 @@ test_air_verify_rejects_boundary_sync_shape_mismatch(void)
             .intent_index = 0,
             .step_index = 0,
             .sync_class = AIR_SYNC_SYNC,
+            .source_from_transfer = true,
         },
     };
     AIRProgram air = {

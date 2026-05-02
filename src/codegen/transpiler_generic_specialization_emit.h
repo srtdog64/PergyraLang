@@ -4,6 +4,10 @@ ensure_generic_specialization(TranspilerCtx *ctx, ASTNode *decl, ASTNode *call)
     GenericBindingEntry bindings[MAX_GENERIC_BINDINGS];
     size_t binding_count = 0;
 
+    if (ctx == NULL || decl == NULL || decl->type != AST_FUNC_DECL
+        || decl->data.func_decl.name == NULL) {
+        return NULL;
+    }
     if (!infer_generic_call_bindings(ctx, decl, call, bindings, &binding_count))
         return NULL;
 

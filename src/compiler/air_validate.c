@@ -223,6 +223,13 @@ air_validate(const AIRProgram *air, char **error_message)
                                     air_boundary_kind_name(air->boundaries[i].kind));
             return false;
         }
+        if (air->boundaries[i].kind == AIR_BOUNDARY_WORLD
+            && !air->boundaries[i].source_from_transfer) {
+            air_set_invariant_error(error_message,
+                                    "AIR world boundary node %zu has no transfer provenance",
+                                    i);
+            return false;
+        }
         if (air->boundaries[i].authority_name_count > 0
             && air->boundaries[i].authority_names == NULL) {
             air_set_invariant_error(error_message,

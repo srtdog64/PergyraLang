@@ -11,6 +11,7 @@
 #include <stdbool.h>
 #include "../parser/ast.h"
 #include "../common/arena.h"
+#include "../common/diagnostic_layer.h"
 #include "../semantic/type_system.h"
 #include "../semantic/symbol_table.h"
 
@@ -57,6 +58,7 @@ struct Diagnostic
     uint32_t        col;
     char*           message;
     const char*     code;         /* non-owning pointer to static string */
+    DiagnosticLayer layer;
 
     /* Optional routing hints. Both NULL when the site did not set them;
      * both non-owning (static literal).

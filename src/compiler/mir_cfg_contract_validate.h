@@ -204,11 +204,14 @@ mir_validate_cfg_contract_state(const MIRRoutine *routine,
                 }
                 if (block->is_pin_region
                     && !mir_block_has_pin_cleanup_edge(block)) {
+                    const char *pin_reason =
+                        mir_block_pin_cleanup_missing_reason(block);
                     if (error_message != NULL) {
                         *error_message = mir_strdup_fmt(
-                            "MIR routine '%s' pin-region block[%zu] missing pin-unpin cleanup fact",
+                            "MIR routine '%s' pin-region block[%zu] missing pin-unpin cleanup fact: %s",
                             routine->name != NULL ? routine->name : "(anonymous)",
-                            i);
+                            i,
+                            pin_reason != NULL ? pin_reason : "unknown pin cleanup mismatch");
                     }
                     free(hir_block_seen);
                     return false;

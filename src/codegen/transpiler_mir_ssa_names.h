@@ -36,6 +36,21 @@ transpiler_find_mir_method(const TranspilerCtx *ctx,
     }
 
     target = method_decl->data.func_decl.name;
+    {
+        const MIRDeclHeader *header = mir_find_decl_header(ctx->mir, owner_name);
+        if (header != NULL) {
+            for (size_t i = 0; i < header->method_metadata_count; i++) {
+                const MIRDeclMethod *method = &header->method_metadata[i];
+                if (method->name == NULL || strcmp(method->name, target) != 0)
+                    continue;
+                if (method->has_routine && method->routine_index < ctx->mir->routine_count)
+                    return &ctx->mir->routines[method->routine_index];
+                return NULL;
+            }
+            return NULL;
+        }
+    }
+
     for (size_t i = 0; i < ctx->mir->routine_count; i++) {
         const MIRRoutine *routine = &ctx->mir->routines[i];
         if (routine->kind != MIR_SCOPE_METHOD)

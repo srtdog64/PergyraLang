@@ -8,15 +8,29 @@ emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
         return;
 
     const char *name = node->data.class_decl.name;
+    TranspilerHostedMethodView method_view =
+        transpiler_hosted_method_view_from_decl(ctx, name, node);
+    if (transpiler_hosted_method_view_missing_mir_metadata(&method_view)) {
+        transpiler_set_backend_error_with_hints(
+            ctx,
+            PGY_CODE_MIR_TOPOLOGY_INVALID,
+            PGY_CAUSE_MIR_TOPOLOGY_ROUTINE_MISSING,
+            PGY_FIX_INSPECT_HIR_TO_MIR_LOWERING,
+            "MIR-only C path missing declaration metadata for class methods '%s'",
+            name != NULL ? name : "(anonymous-class)");
+        return;
+    }
 
     for (size_t i = 0; i < node->data.class_decl.field_count; i++) {
         ClassField *f = node->data.class_decl.fields[i];
         if (f != NULL)
             ensure_type_specializations_from_ast_to(ctx, ctx->out, f->type);
     }
-    for (size_t i = 0; i < node->data.class_decl.method_count; i++)
+    for (size_t i = 0; i < method_view.count; i++) {
+        ASTNode *method = transpiler_hosted_method_view_ast(&method_view, i);
         ensure_collection_specializations_from_stmt_to(ctx, ctx->out,
-            node->data.class_decl.methods[i]);
+            method);
+    }
 
     codebuf_write(ctx->out, "\ntypedef struct %s\n{\n", name);
 
@@ -52,19 +66,22 @@ emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
         name, name);
 
     /* Methods become free functions over a subject self-cell or class value. */
-    for (size_t i = 0; i < node->data.class_decl.method_count; i++) {
-        ASTNode *method = node->data.class_decl.methods[i];
+    for (size_t i = 0; i < method_view.count; i++) {
+        ASTNode *method = transpiler_hosted_method_view_ast(&method_view, i);
         bool use_self_cell = is_pointer_self_host_type_name(ctx, name);
+        if (method == NULL || method->type != AST_FUNC_DECL)
+            continue;
         emit_hosted_method_forward_decl_named(name, method, use_self_cell,
                                               ctx->out, ctx);
     }
 
-    for (size_t i = 0; i < node->data.class_decl.method_count; i++) {
-        ASTNode *method = node->data.class_decl.methods[i];
+    for (size_t i = 0; i < method_view.count; i++) {
+        ASTNode *method = transpiler_hosted_method_view_ast(&method_view, i);
         bool use_self_cell = is_pointer_self_host_type_name(ctx, name);
-        const MIRRoutine *mir_method = transpiler_find_mir_method(ctx, name, method);
-        if (method->type != AST_FUNC_DECL)
+        const MIRRoutine *mir_method;
+        if (method == NULL || method->type != AST_FUNC_DECL)
             continue;
+        mir_method = transpiler_find_mir_method(ctx, name, method);
         if (ctx != NULL && ctx->mir != NULL && mir_method == NULL) {
             if (ctx->backend_error == NULL) {
                 ctx->backend_error = strdup_fmt(

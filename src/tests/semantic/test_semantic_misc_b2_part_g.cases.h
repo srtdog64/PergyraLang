@@ -159,6 +159,65 @@
         lexer_destroy(lexer);
     }
 
+    TEST("intent-level where default failure reports provenance");
+    {
+        const char *source =
+            "subject Hero { let hp: Int; }\n"
+            "intent Patrol(hero: Hero) {\n"
+            "    who: hero;\n"
+            "    where: MissingZone;\n"
+            "    step Guard { expect: true; }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "this where value came from the intent-level where default"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "declare zone 'MissingZone'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("intent using mismatch reports compressed derivation reason");
+    {
+        const char *source =
+            "subject Hero { let hp: Int; }\n"
+            "zone BattleZone {\n"
+            "    subject slot hero: Hero\n"
+            "}\n"
+            "intent Patrol(battle: BattleZone, hero: Hero) {\n"
+            "    who: hero;\n"
+            "    where: BattleZone;\n"
+            "    step Guard { using: hero; expect: true; }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "using binding must match zone type 'BattleZone', got 'Hero'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "using binding points to a different zone than the current where contract"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "change using to a binding of type 'BattleZone'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
 }
 
 /* -----------------------------------------------------------------

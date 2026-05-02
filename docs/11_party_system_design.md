@@ -46,7 +46,7 @@ bind team.tank = Warrior;
 - top-level `bind party.slot = ClassName`
 
 아래 섹션은 설계 방향 설명이며, 일부 예시는 현재 문법과 다를 수 있다.
-특히 role slot의 복잡한 제약식, `&mut self`, `impl Trait`, advanced orchestration 예시는 장기 설계 메모로 읽는 편이 맞다.
+특히 role slot의 복잡한 제약식과 advanced orchestration 예시는 장기 설계 메모로 읽는 편이 맞다.
 또한 `entity`는 party 존재론의 코어 용어가 아니며, core에서는 `subject`를 기준으로 설명한다.
 
 ## Party의 핵심 요소 (Design Notes)
@@ -129,7 +129,7 @@ role PriestHealer for Priest
 {
     impl ability Healing
     {
-        func HealLowestHP(&mut self)
+        func HealLowestHP() -> Void
         {
             // context로 party 멤버 접근
             let tank = context.GetRole<Damageable>("tank")
@@ -239,7 +239,7 @@ role MageDPS for Mage
 {
     impl ability DamageDealing
     {
-        func CastFireball(&mut self)
+        func CastFireball() -> Void
         {
             // ✅ OK: role 내부에서 context 사용
             let tank = context.GetRole<Taunting>("tank")
@@ -262,9 +262,9 @@ func InvalidFunction()
 // Party는 불변 참조만 제공
 role A for StructA
 {
-    func MethodA(&self)
+    func MethodA() -> Void
     {
-        let b = context.GetRole<AbilityB>("roleB")  // &B (불변 참조)
+        let b = context.GetRole<AbilityB>("roleB")
         b.ReadOnlyMethod()  // OK
         // b.MutatingMethod()  // Error: cannot mutate through & reference
     }
@@ -282,7 +282,7 @@ party FlexibleTeam
     role slot support: Healing | Buffing  // OR 조합
     
     // 멤버 교체 메서드
-    func SwapSupport(&mut self, newSupport: impl Healing | Buffing)
+    func SwapSupport(newSupport: Healing | Buffing) -> Void
     {
         self.support = newSupport
         Log($"Support role swapped to {newSupport.GetName()}")

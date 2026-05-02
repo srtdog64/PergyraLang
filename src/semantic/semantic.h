@@ -56,6 +56,10 @@ void            semantic_result_print(const SemanticResult* result);
  * Each entry: {
  *   "severity": "error" | "warning",
  *   "stage": "semantic",
+ *   "layer": "type" | "resource" | "concurrency" | "domain" | ...,
+ *   "code": "PGY_..."?,
+ *   "cause_ir": "<stage>:<subsystem>:<condition>"?,
+ *   "fix_source": "<stable-fix-token>"?,
  *   "location": {"line": N, "column": M},
  *   "message": "..."
  * }

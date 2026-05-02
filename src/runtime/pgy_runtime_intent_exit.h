@@ -10,10 +10,13 @@ pgy_intent_exit_export(int32_t handle)
     pgy_intent_pop_current_handle(handle);
     pthread_mutex_lock(&pgy_intent_registry_mutex);
 
-    for (int i = 0; i < PGY_INTENT_ACTIVE_MAX; i++) {
-        PgyIntentActiveEntry *entry = &pgy_intent_active_registry[i];
-        if (!entry->active || entry->handle != handle)
-            continue;
+    {
+        int32_t active_slot = pgy_intent_find_active_registry_slot(handle);
+        if (active_slot < 0) {
+            pthread_mutex_unlock(&pgy_intent_registry_mutex);
+            return;
+        }
+        PgyIntentActiveEntry *entry = &pgy_intent_active_registry[active_slot];
         if (PGY_INTENT_OBSERVABILITY_ENABLED) {
             free(pgy_intent_last_trace);
             free(pgy_intent_last_failure);
@@ -99,7 +102,8 @@ pgy_intent_exit_export(int32_t handle)
         entry->failed = false;
         pgy_intent_active_index_clear(handle);
         entry->active = false;
-        break;
+        if (pgy_intent_active_count > 0)
+            pgy_intent_active_count--;
     }
 
     pthread_mutex_unlock(&pgy_intent_registry_mutex);

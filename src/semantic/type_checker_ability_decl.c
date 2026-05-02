@@ -13,7 +13,8 @@ ability_decl_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
     if (type_ref == NULL || ctx == NULL)
         return TYPE_UNKNOWN;
 
-    resolved = semantic_type_resolution_lookup_metadata_type_ref(ctx, type_ref);
+    resolved = semantic_type_resolution_lookup_type_ref_or_materialize(ctx,
+                                                                       type_ref);
     return resolved != NULL ? resolved : TYPE_UNKNOWN;
 }
 
@@ -84,6 +85,8 @@ type_check_ability_decl(ASTNode *node, SemanticContext *ctx)
     scope_enter(&ctx->scope, SCOPE_BLOCK);
     for (size_t i = 0; i < node->data.ability_decl.method_count; i++) {
         ASTNode *method = node->data.ability_decl.methods[i];
+        if (method == NULL || method->type != AST_FUNC_DECL)
+            continue;
         /* Only type-check methods that have a body */
         if (method->data.func_decl.body != NULL) {
             type_check_func_decl(method, ctx);
@@ -93,9 +96,10 @@ type_check_ability_decl(ASTNode *node, SemanticContext *ctx)
                 ability_decl_resolve_type_ref(
                     method->data.func_decl.return_type, ctx);
             for (size_t j = 0; j < method->data.func_decl.param_count; j++) {
-                if (method->data.func_decl.params[j]->type != NULL)
+                FuncParam *param = method->data.func_decl.params[j];
+                if (param != NULL && param->type != NULL)
                     ability_decl_resolve_type_ref(
-                        method->data.func_decl.params[j]->type, ctx);
+                        param->type, ctx);
             }
         }
     }

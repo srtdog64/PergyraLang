@@ -333,6 +333,7 @@ test_air_parsed_transfer_emits_zone_and_world_boundaries(void)
                 && strcmp(air->boundaries[i].source_name, "payment") == 0) {
                 found_world = true;
                 found_world_evidence = air->boundaries[i].has_rir_boundary_evidence
+                    && air->boundaries[i].source_from_transfer
                     && air->boundaries[i].has_rir_authority_evidence
                     && air->boundaries[i].rir_boundary_evidence_scope != NULL
                     && air->boundaries[i].rir_authority_evidence_name != NULL
@@ -394,7 +395,8 @@ test_air_parsed_transfer_reports_zone_missing_authority_evidence(void)
             if (boundary->kind == AIR_BOUNDARY_WORLD
                 && boundary->source_name != NULL
                 && strcmp(boundary->source_name, "payment") == 0
-                && boundary->has_rir_boundary_evidence) {
+                && boundary->has_rir_boundary_evidence
+                && boundary->source_from_transfer) {
                 found_world_transfer_evidence = true;
             }
         }

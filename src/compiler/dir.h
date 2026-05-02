@@ -93,6 +93,8 @@ typedef struct
     size_t      predecessor_step_index;
     const char *transfer_from_alias;
     const char *transfer_to_alias;
+    bool        who_inherited_from_intent;
+    bool        where_inherited_from_intent;
     const char **who_names;
     size_t      who_count;
     size_t      who_capacity;

@@ -18,23 +18,19 @@ find_subject_host_method_decl(TranspilerCtx *ctx, const char *type_name,
                               const char *method_name)
 {
     ASTNode *decl;
+    ASTNode *method;
 
     if (ctx == NULL || type_name == NULL || method_name == NULL)
         return NULL;
 
     decl = find_class_decl(ctx, type_name);
-    if (decl != NULL && decl->type == AST_CLASS_DECL) {
-        for (size_t i = 0; i < decl->data.class_decl.method_count; i++) {
-            ASTNode *method = decl->data.class_decl.methods[i];
-            if (method != NULL && method->type == AST_FUNC_DECL
-                && method->data.func_decl.name != NULL
-                && strcmp(method->data.func_decl.name, method_name) == 0) {
-                return method;
-            }
-        }
-    }
+    if (decl == NULL || decl->type != AST_CLASS_DECL)
+        return NULL;
 
-    return NULL;
+    method = find_nominal_host_method_decl(ctx, type_name, method_name);
+    if (method == NULL || method->type != AST_FUNC_DECL)
+        return NULL;
+    return method;
 }
 
 static bool

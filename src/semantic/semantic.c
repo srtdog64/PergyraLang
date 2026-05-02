@@ -319,6 +319,8 @@ semantic_result_print_json(const SemanticResult *result)
         fputs("{\"severity\":", out);
         json_emit_string(out, severity);
         fputs(",\"stage\":\"semantic\"", out);
+        fputs(",\"layer\":", out);
+        json_emit_string(out, diagnostic_layer_name(d->layer));
         if (d->code != NULL) {
             fputs(",\"code\":", out);
             json_emit_string(out, d->code);

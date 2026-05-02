@@ -325,6 +325,7 @@ air_synthesize(const HIRProgram *hir,
     }
     air->strict_evidence = air_strict_evidence_enabled();
     air->has_hir_input = hir != NULL;
+    air->has_rir_input = rir != NULL;
 
     size_t intent_node_count = 0;
     size_t boundary_node_count = 0;
@@ -383,6 +384,8 @@ air_synthesize(const HIRProgram *hir,
             air->intents[intent_index].ast = step->ast != NULL ? step->ast : owner_ast;
             air->intents[intent_index].sync_class = sync_class;
             air->intents[intent_index].failure_class = air_failure_from_dir_step(step);
+            air->intents[intent_index].who_from_intent_default =
+                step->who_inherited_from_intent;
 
             if (air_step_has_zone_boundary(step)) {
                 air->boundaries[boundary_index].kind = AIR_BOUNDARY_ZONE;
@@ -403,6 +406,8 @@ air_synthesize(const HIRProgram *hir,
                 air->boundaries[boundary_index].ast = step->ast != NULL ? step->ast : owner_ast;
                 air->boundaries[boundary_index].sync_class = sync_class;
                 air->boundaries[boundary_index].authority_required = step->authorized_by_count > 0;
+                air->boundaries[boundary_index].source_from_intent_default =
+                    step->where_inherited_from_intent;
                 boundary_index++;
             }
             if (air_step_has_world_boundary(step)) {
@@ -426,6 +431,7 @@ air_synthesize(const HIRProgram *hir,
                 air->boundaries[boundary_index].ast = step->ast != NULL ? step->ast : owner_ast;
                 air->boundaries[boundary_index].sync_class = sync_class;
                 air->boundaries[boundary_index].authority_required = step->authorized_by_count > 0;
+                air->boundaries[boundary_index].source_from_transfer = true;
                 boundary_index++;
             }
             if (!air_append_step_expr_boundaries(air,

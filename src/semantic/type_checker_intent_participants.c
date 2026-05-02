@@ -11,7 +11,7 @@ intent_participant_resolve_involves_type(ASTNode *involves, SemanticContext *ctx
         || involves->data.intent_involves.subject_type == NULL) {
         return TYPE_UNKNOWN;
     }
-    Type *resolved = semantic_type_resolution_lookup_metadata_type_ref(
+    Type *resolved = semantic_type_resolution_lookup_type_ref_or_materialize(
         ctx, involves->data.intent_involves.subject_type);
     return resolved != NULL ? resolved : TYPE_UNKNOWN;
 }
@@ -33,9 +33,20 @@ type_check_intent_step_participant_contract(ASTNode *intent_decl,
         ASTNode *involves = find_intent_involves_local(intent_decl, alias);
         const char *participant_type_name = NULL;
         if (involves == NULL) {
+            const char *source = step->data.intent_step.inherited_who_from_intent
+                ? " inherited from the intent-level who default"
+                : "";
             semantic_error_with_hints(ctx, PGY_CODE_SEM_INTENT_STEP_INVALID, PGY_CAUSE_INTENT_STEP, PGY_FIX_ALIGN_STEP_WITH_ZONE_ACTION_CONTRACTS, step,
-                "Intent step '%s' refers to unknown participant '%s'",
+                "Intent step '%s' refers to unknown participant '%s'%s.\n"
+                "Reason:\n"
+                "- who must name an intent participant declared in the intent parameter list, who <alias>: <Subject>;, or involves <alias>: <Subject>;\n"
+                "- this step cannot be checked until the participant alias is bound to a subject type\n"
+                "Fix:\n"
+                "- declare the participant with 'who %s: <Subject>;' or add it to the intent parameter list\n"
+                "- or change the intent-level who default to an existing participant alias",
                 step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
+                alias != NULL ? alias : "<participant>",
+                source,
                 alias != NULL ? alias : "<participant>");
             continue;
         }

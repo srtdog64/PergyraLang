@@ -159,27 +159,34 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
         spec_name, spec_name,
         spec_name, spec_name);
 
-    for (size_t i = 0; i < class_decl->data.class_decl.method_count; i++) {
-        ASTNode *method = class_decl->data.class_decl.methods[i];
+    const char *base_class_name = class_decl->data.class_decl.name;
+    TranspilerHostedMethodView method_view =
+        transpiler_hosted_method_view_from_decl(ctx, base_class_name,
+            class_decl);
+
+    for (size_t i = 0; i < method_view.count; i++) {
+        ASTNode *method = transpiler_hosted_method_view_ast(&method_view, i);
         bool use_self_cell = is_pointer_self_host_type_name(ctx, spec_name);
+        if (method == NULL || method->type != AST_FUNC_DECL)
+            continue;
         emit_hosted_method_forward_decl_named(spec_name, method, use_self_cell,
                                               ctx->helpers, ctx);
     }
 
-    for (size_t i = 0; i < class_decl->data.class_decl.method_count; i++) {
-        ASTNode *method = class_decl->data.class_decl.methods[i];
+    for (size_t i = 0; i < method_view.count; i++) {
+        ASTNode *method = transpiler_hosted_method_view_ast(&method_view, i);
         bool use_self_cell = is_pointer_self_host_type_name(ctx, spec_name);
-        const MIRRoutine *mir_method = transpiler_find_mir_method(ctx,
-            class_decl->data.class_decl.name, method);
-        if (method->type != AST_FUNC_DECL)
+        if (method == NULL || method->type != AST_FUNC_DECL)
             continue;
+        const MIRRoutine *mir_method = transpiler_find_mir_method(ctx,
+            base_class_name, method);
 
         if (ctx != NULL && ctx->mir != NULL && mir_method == NULL) {
             if (ctx->backend_error == NULL) {
                 ctx->backend_error = strdup_fmt(
                     "MIR-only C path missing routine for generic class method '%s.%s' specialization '%s'",
-                    class_decl->data.class_decl.name != NULL
-                        ? class_decl->data.class_decl.name
+                    base_class_name != NULL
+                        ? base_class_name
                         : "(anonymous-class)",
                     method->data.func_decl.name != NULL
                         ? method->data.func_decl.name

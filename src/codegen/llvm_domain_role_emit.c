@@ -40,6 +40,8 @@ llvm_emit_domain_role_method_bodies(LLVMGenCtx *ctx,
                 ASTNode *method = impl->data.impl_ability.methods[j];
                 if (method == NULL || method->type != AST_FUNC_DECL)
                     continue;
+                if (role_name == NULL || method->data.func_decl.name == NULL)
+                    continue;
 
                 char fname[256];
                 snprintf(fname, sizeof(fname), "%s_%s",
@@ -92,6 +94,10 @@ llvm_emit_domain_role_method_bodies(LLVMGenCtx *ctx,
                     FuncParam *p = method->data.func_decl.params[k];
                     if (llvm_param_is_implicit_self_local(p))
                         continue;
+                    if (p == NULL || p->name == NULL) {
+                        lpidx++;
+                        continue;
+                    }
                     LLVMTypeRef pt = (p->type != NULL)
                         ? ast_type_to_llvm(ctx, p->type)
                         : ctx->type_i32;
@@ -160,6 +166,10 @@ llvm_emit_domain_role_method_bodies(LLVMGenCtx *ctx,
                         llvm_find_role_operator_method(ctx, stmt, ops[oi], 0);
                     if (suffix == NULL || method == NULL)
                         continue;
+                    if (role_name == NULL || method->type != AST_FUNC_DECL
+                        || method->data.func_decl.name == NULL) {
+                        continue;
+                    }
 
                     char opname[256];
                     char mname[256];
@@ -220,6 +230,8 @@ llvm_emit_domain_role_method_bodies(LLVMGenCtx *ctx,
             }
 
             /* Create vtable global constant. */
+            if (role_name == NULL || ab_name == NULL)
+                continue;
             char vt_type_name[256];
             snprintf(vt_type_name, sizeof(vt_type_name),
                      "%s_vtable", ab_name);
@@ -236,6 +248,10 @@ llvm_emit_domain_role_method_bodies(LLVMGenCtx *ctx,
                 for (size_t j = 0; j < mc; j++) {
                     ASTNode *method = impl->data.impl_ability.methods[j];
                     if (method == NULL || method->type != AST_FUNC_DECL) {
+                        vals[j] = LLVMConstNull(ctx->type_i8ptr);
+                        continue;
+                    }
+                    if (role_name == NULL || method->data.func_decl.name == NULL) {
                         vals[j] = LLVMConstNull(ctx->type_i8ptr);
                         continue;
                     }

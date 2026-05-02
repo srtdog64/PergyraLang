@@ -147,6 +147,8 @@ llvm_resolve_callee_entry(LLVMGenCtx *ctx, const char *callee_name,
             FuncParam *p = generic_ast->data.func_decl.params[k];
             if (llvm_param_is_implicit_self(p))
                 continue;
+            if (p == NULL || p->name == NULL)
+                continue;
             {
                 bool is_secure = false;
                 const char *inner = llvm_boundary_slot_inner_name(ctx, p, &is_secure);
@@ -175,6 +177,8 @@ llvm_resolve_callee_entry(LLVMGenCtx *ctx, const char *callee_name,
         for (size_t k = 0; k < pc; k++) {
             FuncParam *p = generic_ast->data.func_decl.params[k];
             if (llvm_param_is_implicit_self(p))
+                continue;
+            if (p == NULL || p->name == NULL)
                 continue;
             {
                 bool is_secure = false;

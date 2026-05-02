@@ -93,6 +93,7 @@ find_role_operator_method_decl(TranspilerCtx *ctx, ASTNode *role,
         for (size_t j = 0; j < impl->data.impl_ability.method_count; j++) {
             ASTNode *method = impl->data.impl_ability.methods[j];
             if (method != NULL && method->type == AST_FUNC_DECL
+                && method->data.func_decl.name != NULL
                 && operator_method_name_matches(op, method->data.func_decl.name)) {
                 return method;
             }
@@ -101,6 +102,10 @@ find_role_operator_method_decl(TranspilerCtx *ctx, ASTNode *role,
 
     for (size_t i = 0; i < role->data.role_decl.include_count; i++) {
         ASTNode *include_stmt = role->data.role_decl.includes[i];
+        if (include_stmt == NULL || include_stmt->type != AST_INCLUDE_STMT
+            || include_stmt->data.include_stmt.role_name == NULL) {
+            continue;
+        }
         ASTNode *included_role = find_role_decl(ctx,
             include_stmt->data.include_stmt.role_name);
         ASTNode *method = find_role_operator_method_decl(ctx, included_role,

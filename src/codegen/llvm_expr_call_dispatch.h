@@ -142,6 +142,8 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                         FuncParam *p = host_method->data.func_decl.params[pk];
                         const char *ptn = NULL;
                         LLVMClassTypeEntry *param_cls = NULL;
+                        if (p == NULL || p->name == NULL)
+                            continue;
                         if (p->type == NULL && strcmp(p->name, "self") == 0)
                             continue;
                         if (logical_idx == i) {

@@ -25,6 +25,7 @@ run_literal_doc_contract_smoke() {
         "src/semantic/type_checker_flow_resources.h"
         "src/semantic/type_checker_flow_parallel.h"
         "src/compiler/mir_cleanup.c"
+        "src/compiler/mir_cfg_contract_cleanup_fact.h"
         "src/compiler/mir_cfg_contract_pin.h"
         "src/compiler/mir_cfg_contract_validate.h"
         "src/compiler/mir_ssa_use_edges.h"
@@ -45,7 +46,16 @@ run_literal_doc_contract_smoke() {
     require_literal "docs/103_cfg_body_dataflow_need.md" "Move/use-after-move"
     require_literal "docs/103_cfg_body_dataflow_need.md" "Drop/cleanup"
     require_literal "src/compiler/mir_cleanup.c" "cleanup-edge"
+    require_literal "src/compiler/mir_cfg_contract_cleanup_fact.h" "slot_anchor"
+    require_literal "src/compiler/mir_cfg_contract_cleanup_fact.h" "arg0"
     require_literal "src/compiler/mir_cfg_contract_pin.h" "pin-unpin-cleanup-edge"
+    require_literal "src/compiler/mir_cfg_contract_pin.h" "mir_block_find_pin_cleanup_edge_fact"
+    require_literal "src/compiler/mir_cfg_contract_pin.h" "mir_block_pin_cleanup_missing_reason"
+    require_literal "src/compiler/mir_cfg_contract_pin.h" "pin cleanup fact does not match source slot, view, and access mode"
+    require_literal "src/codegen/transpiler_mir_emission_contract.h" "mir_block_has_cleanup_edge_fact(block, cleanup_fact)"
+    require_literal "src/codegen/transpiler_mir_emission_contract.h" "mir_block_has_pin_cleanup_edge(block)"
+    require_literal "src/compiler/air_evidence.c" "mir_block_has_cleanup_edge_fact(block"
+    require_literal "src/compiler/air_evidence.c" "mir_block_find_pin_cleanup_edge_fact(block)"
     require_literal "src/test_mir.c" "pin-unpin-cleanup-edge"
     require_literal "src/semantic/type_checker_ownership_let.c" "function-body lets must be initialized at the binding site"
     require_literal "Makefile" "cfg-body-dataflow-test-smoke"
@@ -84,6 +94,7 @@ flow_resources_path = root / "src" / "semantic" / "type_checker_flow_resources.h
 flow_loops_path = root / "src" / "semantic" / "type_checker_flow_loops.h"
 flow_parallel_path = root / "src" / "semantic" / "type_checker_flow_parallel.h"
 mir_cleanup_path = root / "src" / "compiler" / "mir_cleanup.c"
+mir_cfg_contract_cleanup_fact_path = root / "src" / "compiler" / "mir_cfg_contract_cleanup_fact.h"
 mir_cfg_contract_pin_path = root / "src" / "compiler" / "mir_cfg_contract_pin.h"
 mir_cfg_contract_control_path = root / "src" / "compiler" / "mir_cfg_contract_control.h"
 mir_cfg_contract_validate_path = root / "src" / "compiler" / "mir_cfg_contract_validate.h"
@@ -140,6 +151,7 @@ for path in (
     flow_loops_path,
     flow_parallel_path,
     mir_cleanup_path,
+    mir_cfg_contract_cleanup_fact_path,
     mir_cfg_contract_pin_path,
     mir_cfg_contract_control_path,
     mir_cfg_contract_validate_path,
@@ -216,10 +228,17 @@ flow = (
     + expr_path.read_text(encoding="utf-8")
 )
 mir_cleanup = mir_cleanup_path.read_text(encoding="utf-8")
+mir_cfg_contract_cleanup_fact = mir_cfg_contract_cleanup_fact_path.read_text(encoding="utf-8")
 mir_cfg_contract_pin = mir_cfg_contract_pin_path.read_text(encoding="utf-8")
 mir_cfg_contract_control = mir_cfg_contract_control_path.read_text(encoding="utf-8")
 mir_cfg_contract_validate = mir_cfg_contract_validate_path.read_text(encoding="utf-8")
-mir_cfg_contract_validator = mir_cfg_contract_pin + "\n" + mir_cfg_contract_validate
+mir_cfg_contract_validator = (
+    mir_cfg_contract_cleanup_fact
+    + "\n"
+    + mir_cfg_contract_pin
+    + "\n"
+    + mir_cfg_contract_validate
+)
 mir = mir_path.read_text(encoding="utf-8")
 mir_ssa_rename = mir_ssa_rename_path.read_text(encoding="utf-8")
 mir_ssa_use_edges = mir_ssa_use_edges_path.read_text(encoding="utf-8")
@@ -349,11 +368,15 @@ for forbidden in [
 
 required_mir_cleanup_validator_terms = [
     "mir_block_has_pin_cleanup_edge",
+    "mir_block_pin_cleanup_missing_reason",
     "mir_stmt_ast_is_cfg_owned_control",
     "pin-unpin-cleanup-edge",
+    "slot_anchor",
+    "arg0",
     "incomplete loop-init fact",
     "incomplete loop-branch fact",
     "pin-region block[%zu] missing pin-unpin cleanup fact",
+    "pin cleanup fact does not match source slot, view, and access mode",
     "rollback block missing cleanup-edge MIR fact",
     "invalidation block missing cleanup-edge MIR fact",
     "cleanup block[%zu] must not have normal CFG successors",
@@ -791,8 +814,10 @@ fi
 if [[ -x "${TMP_PGY}.exe" ]]; then
     TMP_PGY="${TMP_PGY}.exe"
 fi
+PGY_EXPLICIT=0
 if [[ -n "${PGY_BIN:-}" ]]; then
     PGY="$PGY_BIN"
+    PGY_EXPLICIT=1
 elif [[ -x "$DEFAULT_PGY" ]]; then
     PGY="$DEFAULT_PGY"
 elif [[ -x "$TMP_PGY" ]]; then
@@ -841,6 +866,17 @@ if [[ ! -f "$EXAMPLE" ]]; then
     echo "missing example source: $EXAMPLE" >&2
     exit 1
 fi
+
+if ! "$PGY" --help >"$WORK_DIR/pgy-help.out" 2>"$WORK_DIR/pgy-help.err"; then
+    if [[ "$PGY_EXPLICIT" -eq 0 ]]; then
+        echo "cfg-body-dataflow smoke: SKIP default compiler executable probe; source/doc contract already checked"
+        exit 0
+    fi
+    echo "cfg body dataflow compiler binary is not runnable: $PGY" >&2
+    cat "$WORK_DIR/pgy-help.err" >&2
+    exit 1
+fi
+
 EXAMPLE_FOR_PGY="$(to_native_path_for_pgy "$EXAMPLE")"
 
 HIR_CFG_OUT="$WORK_DIR/hir_cfg.txt"

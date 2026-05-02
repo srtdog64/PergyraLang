@@ -1,4 +1,6 @@
 #include "air_internal.h"
+#include "mir_cfg_contract_cleanup_fact.h"
+#include "mir_cfg_contract_pin.h"
 
 #include "../semantic/semantic.h"
 
@@ -116,32 +118,6 @@ air_mir_pin_block_matches_boundary(const MIRBasicBlock *block,
     return block->pin_block_ast == boundary->ast;
 }
 
-static const MIRInstruction *
-air_mir_find_pin_cleanup_instruction(const MIRBasicBlock *block)
-{
-    const char *expected_access;
-
-    if (block == NULL)
-        return NULL;
-    if (block->pin_source_name == NULL || block->pin_source_name[0] == '\0')
-        return NULL;
-    if (block->pin_view_name == NULL || block->pin_view_name[0] == '\0')
-        return NULL;
-
-    expected_access = block->pin_view_is_write ? "write" : "read";
-    for (size_t i = 0; i < block->instruction_count; i++) {
-        const MIRInstruction *inst = &block->instructions[i];
-        if (inst->kind == MIR_INST_CLEANUP_EDGE
-            && air_name_matches(inst->name, "pin-unpin-cleanup-edge")
-            && air_name_matches(inst->slot_anchor, block->pin_source_name)
-            && air_name_matches(inst->arg0, block->pin_view_name)
-            && air_name_matches(inst->arg1, expected_access)) {
-            return inst;
-        }
-    }
-    return NULL;
-}
-
 static bool
 air_mir_pin_cleanup_instruction_has_anchor(const MIRInstruction *inst)
 {
@@ -172,10 +148,12 @@ air_mir_routine_cleanup_fact_count(const MIRRoutine *routine)
         return 0;
     for (size_t i = 0; i < routine->block_count; i++) {
         const MIRBasicBlock *block = &routine->blocks[i];
-        for (size_t j = 0; j < block->instruction_count; j++) {
-            if (block->instructions[j].kind == MIR_INST_CLEANUP_EDGE)
-                count++;
-        }
+        if (mir_block_has_cleanup_edge_fact(block, "cleanup-edge"))
+            count++;
+        if (mir_block_has_cleanup_edge_fact(block, "cleanup-edge-from-rollback"))
+            count++;
+        if (mir_block_has_cleanup_edge_fact(block, "cleanup-edge-from-invalidation"))
+            count++;
     }
     return count;
 }
@@ -201,7 +179,7 @@ air_collect_mir_pin_block_evidence(AIRProgram *air,
     if (!air_mir_pin_block_has_cleanup_successor(routine, block))
         return true;
 
-    inst = air_mir_find_pin_cleanup_instruction(block);
+    inst = mir_block_find_pin_cleanup_edge_fact(block);
     if (!air_mir_pin_cleanup_instruction_has_anchor(inst))
         return true;
 

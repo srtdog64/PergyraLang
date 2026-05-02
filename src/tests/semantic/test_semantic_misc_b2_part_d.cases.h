@@ -331,6 +331,100 @@
         lexer_destroy(lexer);
     }
 
+    TEST("intent step reuses intent-level who and where defaults");
+    {
+        const char *source =
+            "subject Hero {\n"
+            "    let hp: Int;\n"
+            "    action Guard(self) -> Void {\n"
+            "        self.hp = self.hp + 1;\n"
+            "    }\n"
+            "}\n"
+            "zone BattleZone {\n"
+            "    subject slot hero: Hero\n"
+            "    authority hero\n"
+            "}\n"
+            "intent Patrol(battle: BattleZone, hero: Hero) {\n"
+            "    who: hero;\n"
+            "    where: BattleZone;\n"
+            "    step Guard {\n"
+            "        using: battle;\n"
+            "        on: hero.Guard();\n"
+            "        expect: true;\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+        ASTNode *intent = NULL;
+        ASTNode *step = NULL;
+
+        if (program != NULL && program->type == AST_PROGRAM) {
+            for (size_t i = 0; i < program->data.program.count; i++) {
+                ASTNode *stmt = program->data.program.statements[i];
+                if (stmt != NULL && stmt->type == AST_INTENT_DECL) {
+                    intent = stmt;
+                    break;
+                }
+            }
+        }
+        if (intent != NULL && intent->data.intent_decl.step_count > 0)
+            step = intent->data.intent_decl.steps[0];
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+        EXPECT(step != NULL && step->data.intent_step.inherited_who_from_intent);
+        EXPECT(step != NULL && step->data.intent_step.inherited_where_from_intent);
+        EXPECT(step != NULL && !step->data.intent_step.inherited_who_from_action);
+        EXPECT(step != NULL && !step->data.intent_step.inherited_where_from_action);
+        EXPECT(step != NULL && step->data.intent_step.who_count == 1);
+        EXPECT(step != NULL && strcmp(step->data.intent_step.who_names[0], "hero") == 0);
+        EXPECT(step != NULL
+            && step->data.intent_step.where_type != NULL
+            && step->data.intent_step.where_type->type == AST_TYPE
+            && strcmp(step->data.intent_step.where_type->data.type.name, "BattleZone") == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("intent-level who default failure reports provenance");
+    {
+        const char *source =
+            "subject Hero {\n"
+            "    let hp: Int;\n"
+            "}\n"
+            "zone BattleZone {\n"
+            "    subject slot hero: Hero\n"
+            "}\n"
+            "intent Patrol(battle: BattleZone, hero: Hero) {\n"
+            "    who: ghost;\n"
+            "    where: BattleZone;\n"
+            "    step Guard {\n"
+            "        expect: true;\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "inherited from the intent-level who default"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "declare the participant with 'who ghost: <Subject>;'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("intent step move shorthand accepts unique target zone type");
     {
         const char *source =
@@ -566,6 +660,10 @@
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "is not a declared intent"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "non-intent callees do not carry intent step provenance into AIR"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "declare 'Charge' as an intent that returns Bool"));
 
         semantic_result_destroy(result);
         ast_destroy(program);

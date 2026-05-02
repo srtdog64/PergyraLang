@@ -17,6 +17,12 @@ mir_block_has_cleanup_edge_fact(const MIRBasicBlock *block,
         if (inst->kind == MIR_INST_CLEANUP_EDGE
             && inst->name != NULL
             && strcmp(inst->name, edge_name) == 0) {
+            if (inst->slot_anchor == NULL
+                || strcmp(inst->slot_anchor, "cleanup") != 0) {
+                continue;
+            }
+            if (inst->arg0 == NULL || strcmp(inst->arg0, "cleanup") != 0)
+                continue;
             return true;
         }
     }

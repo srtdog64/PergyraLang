@@ -3,56 +3,14 @@
 #ifndef PGY_LLVM_INVENTORY_HOST_METHODS_H
 #define PGY_LLVM_INVENTORY_HOST_METHODS_H
 
-static inline void
-llvm_host_decl_methods(const MIRDeclHeader *decl_header,
-                       ASTNode *decl,
-                       ASTNode ***methods_out,
-                       size_t *method_count_out)
+typedef struct
 {
-    ASTNode **methods = NULL;
-    size_t method_count = 0;
-
-    if (decl_header != NULL && llvm_is_host_decl_type(decl_header->ast_type)) {
-        methods = decl_header->methods;
-        method_count = decl_header->method_count;
-    }
-
-    if (methods == NULL && decl != NULL) {
-        switch (decl->type) {
-        case AST_CLASS_DECL:
-            methods = decl->data.class_decl.methods;
-            method_count = decl->data.class_decl.method_count;
-            break;
-        case AST_ENUM_DECL:
-            methods = decl->data.enum_decl.methods;
-            method_count = decl->data.enum_decl.method_count;
-            break;
-        case AST_RELATION_DECL:
-            methods = decl->data.relation_decl.methods;
-            method_count = decl->data.relation_decl.method_count;
-            break;
-        case AST_EFFECT_DECL:
-            methods = decl->data.effect_decl.methods;
-            method_count = decl->data.effect_decl.method_count;
-            break;
-        case AST_ZONE_DECL:
-            methods = decl->data.zone_decl.methods;
-            method_count = decl->data.zone_decl.method_count;
-            break;
-        case AST_WORLD_DECL:
-            methods = decl->data.world_decl.methods;
-            method_count = decl->data.world_decl.method_count;
-            break;
-        default:
-            break;
-        }
-    }
-
-    if (methods_out != NULL)
-        *methods_out = methods;
-    if (method_count_out != NULL)
-        *method_count_out = method_count;
-}
+    const MIRDeclMethod *metadata;
+    ASTNode           **fallback_methods;
+    size_t             count;
+    bool               uses_mir_metadata;
+    bool               requires_mir_metadata;
+} LLVMHostedMethodView;
 
 static inline void
 llvm_host_decl_method_metadata(const MIRDeclHeader *decl_header,
@@ -93,6 +51,116 @@ llvm_find_host_method_metadata_in_context(const LLVMGenCtx *ctx,
     }
 
     return NULL;
+}
+
+static inline LLVMHostedMethodView
+llvm_hosted_method_view(const LLVMGenCtx *ctx,
+                        const char *host_type_name,
+                        ASTNode **fallback_methods,
+                        size_t fallback_count)
+{
+    LLVMHostedMethodView view;
+    const MIRDeclHeader *decl_header = NULL;
+
+    view.metadata = NULL;
+    view.fallback_methods = fallback_methods;
+    view.count = fallback_count;
+    view.uses_mir_metadata = false;
+    view.requires_mir_metadata = ctx != NULL && ctx->mir != NULL
+        && fallback_count > 0;
+
+    if (ctx != NULL && ctx->mir != NULL && host_type_name != NULL)
+        decl_header = llvm_find_host_decl_header_in_context(ctx, host_type_name);
+    if (decl_header != NULL) {
+        llvm_host_decl_method_metadata(decl_header,
+            &view.metadata, &view.count);
+        view.uses_mir_metadata = true;
+    }
+
+    return view;
+}
+
+static inline bool
+llvm_hosted_method_view_missing_mir_metadata(const LLVMHostedMethodView *view)
+{
+    return view != NULL
+        && view->requires_mir_metadata
+        && !view->uses_mir_metadata
+        && view->count > 0;
+}
+
+static inline LLVMHostedMethodView
+llvm_hosted_method_view_from_decl(const LLVMGenCtx *ctx,
+                                  const char *host_type_name,
+                                  ASTNode *decl)
+{
+    ASTNode **fallback_methods = NULL;
+    size_t fallback_count = 0;
+
+    if (decl != NULL) {
+        switch (decl->type) {
+        case AST_CLASS_DECL:
+            fallback_methods = decl->data.class_decl.methods;
+            fallback_count = decl->data.class_decl.method_count;
+            break;
+        case AST_ENUM_DECL:
+            fallback_methods = decl->data.enum_decl.methods;
+            fallback_count = decl->data.enum_decl.method_count;
+            break;
+        case AST_PARTY_DECL:
+            fallback_methods = decl->data.party_decl.methods;
+            fallback_count = decl->data.party_decl.method_count;
+            break;
+        case AST_ROSTER_DECL:
+            fallback_methods = decl->data.roster_decl.methods;
+            fallback_count = decl->data.roster_decl.method_count;
+            break;
+        case AST_WORLD_DECL:
+            fallback_methods = decl->data.world_decl.methods;
+            fallback_count = decl->data.world_decl.method_count;
+            break;
+        case AST_RELATION_DECL:
+            fallback_methods = decl->data.relation_decl.methods;
+            fallback_count = decl->data.relation_decl.method_count;
+            break;
+        case AST_EFFECT_DECL:
+            fallback_methods = decl->data.effect_decl.methods;
+            fallback_count = decl->data.effect_decl.method_count;
+            break;
+        case AST_ZONE_DECL:
+            fallback_methods = decl->data.zone_decl.methods;
+            fallback_count = decl->data.zone_decl.method_count;
+            break;
+        default:
+            break;
+        }
+    }
+
+    return llvm_hosted_method_view(ctx, host_type_name,
+        fallback_methods, fallback_count);
+}
+
+static inline const MIRDeclMethod *
+llvm_hosted_method_view_metadata(const LLVMHostedMethodView *view,
+                                 size_t index)
+{
+    if (view == NULL || !view->uses_mir_metadata
+        || view->metadata == NULL || index >= view->count) {
+        return NULL;
+    }
+    return &view->metadata[index];
+}
+
+static inline ASTNode *
+llvm_hosted_method_view_ast(const LLVMHostedMethodView *view, size_t index)
+{
+    const MIRDeclMethod *method = llvm_hosted_method_view_metadata(view, index);
+
+    if (view == NULL || index >= view->count)
+        return NULL;
+    if (method != NULL)
+        return method->ast;
+    return view->fallback_methods != NULL ? view->fallback_methods[index] : NULL;
 }
 
 static inline const char *
@@ -148,70 +216,14 @@ llvm_find_host_method_decl_in_context(const LLVMGenCtx *ctx,
                                       const char *host_type_name,
                                       const char *method_name)
 {
-    const MIRDeclHeader *decl_header = NULL;
-    ASTNode *decl = NULL;
-    ASTNode **methods = NULL;
-    size_t method_count = 0;
+    const MIRDeclMethod *method = NULL;
 
     if (ctx == NULL || host_type_name == NULL || method_name == NULL)
         return NULL;
 
-    decl_header = llvm_find_host_decl_header_in_context(ctx, host_type_name);
-    if (decl_header != NULL) {
-        const MIRDeclMethod *method =
-            llvm_find_host_method_metadata_in_context(
-                ctx, host_type_name, method_name);
-        if (method != NULL)
-            return method->ast;
-        decl = decl_header->ast;
-    }
-
-    if (decl == NULL)
-        decl = llvm_find_host_decl_in_active_inventory(ctx, host_type_name);
-    if (decl == NULL)
-        return NULL;
-
-    llvm_host_decl_methods(decl_header, decl, &methods, &method_count);
-    for (size_t i = 0; i < method_count; i++) {
-        ASTNode *method = methods != NULL ? methods[i] : NULL;
-        if (method != NULL && method->type == AST_FUNC_DECL
-            && method->data.func_decl.name != NULL
-            && strcmp(method->data.func_decl.name, method_name) == 0) {
-            return method;
-        }
-    }
-
-    return NULL;
-}
-
-static inline void
-llvm_find_host_decl_methods_in_context(const LLVMGenCtx *ctx,
-                                       const char *host_type_name,
-                                       ASTNode ***methods_out,
-                                       size_t *method_count_out)
-{
-    const MIRDeclHeader *decl_header = NULL;
-    ASTNode *decl = NULL;
-
-    if (methods_out != NULL)
-        *methods_out = NULL;
-    if (method_count_out != NULL)
-        *method_count_out = 0;
-    if (ctx == NULL || host_type_name == NULL)
-        return;
-
-    decl_header = llvm_find_host_decl_header_in_context(ctx, host_type_name);
-    if (decl_header != NULL) {
-        llvm_host_decl_methods(decl_header, NULL, methods_out, method_count_out);
-        return;
-    }
-
-    if (decl == NULL)
-        decl = llvm_find_host_decl_in_active_inventory(ctx, host_type_name);
-    if (decl == NULL)
-        return;
-
-    llvm_host_decl_methods(decl_header, decl, methods_out, method_count_out);
+    method = llvm_find_host_method_metadata_in_context(
+        ctx, host_type_name, method_name);
+    return llvm_mir_decl_method_ast(method);
 }
 
 #endif /* PGY_LLVM_INVENTORY_HOST_METHODS_H */

@@ -47,6 +47,14 @@ llvm_function_emitted_param_count(LLVMGenCtx *ctx, ASTNode *node)
     for (size_t i = 0; i < node->data.func_decl.param_count; i++) {
         bool is_secure = false;
         FuncParam *p = node->data.func_decl.params[i];
+        if (p == NULL || p->name == NULL) {
+            llvm_set_error_at_with_hints(ctx, node,
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                "LLVM function parameter requires a concrete name and type metadata");
+            continue;
+        }
         count++;
         if (llvm_boundary_slot_inner_name(ctx, p, &is_secure) != NULL && is_secure)
             count++;
@@ -212,6 +220,8 @@ llvm_forward_declare_func(ASTNode *node, LLVMGenCtx *ctx)
         for (size_t i = 0; i < param_count; i++) {
             bool is_secure = false;
             FuncParam *p = node->data.func_decl.params[i];
+            if (p == NULL || p->name == NULL)
+                continue;
             LLVMTypeRef pt = llvm_decl_required_param_type(ctx, node, p);
             if (p != NULL
                 && p->type != NULL
@@ -285,6 +295,8 @@ llvm_emit_func_decl(ASTNode *node, LLVMGenCtx *ctx)
     for (size_t i = 0; i < node->data.func_decl.param_count; i++) {
         FuncParam *p = node->data.func_decl.params[i];
         bool is_secure = false;
+        if (p == NULL || p->name == NULL)
+            continue;
         const char *inner = llvm_boundary_slot_inner_name(ctx, p, &is_secure);
         LLVMTypeRef pt = llvm_decl_required_param_type(ctx, node, p);
         /* For 'self' parameter in class methods, use the class struct pointer

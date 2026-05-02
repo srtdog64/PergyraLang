@@ -158,13 +158,14 @@ air_dump(const AIRProgram *air, FILE *out)
         fprintf(out, "AIRProgram(null)\n");
         return;
     }
-    fprintf(out, "AIRProgram intents=%zu boundaries=%zu evidence_nodes=%zu drifts=%zu strict_evidence=%s hir_input=%s mir_input=%s\n",
+    fprintf(out, "AIRProgram intents=%zu boundaries=%zu evidence_nodes=%zu drifts=%zu strict_evidence=%s hir_input=%s rir_input=%s mir_input=%s\n",
             air->intent_count,
             air->boundary_count,
             air->evidence_count,
             air->drift_count,
             air->strict_evidence ? "yes" : "no",
             air->has_hir_input ? "yes" : "no",
+            air->has_rir_input ? "yes" : "no",
             air->has_mir_input ? "yes" : "no");
     fprintf(out, "  evidence hir_routines=%zu hir_cfg=%zu rir_boundaries=%zu rir_authority=%zu mir_cleanup=%zu mir_pin_cleanup=%zu dag_generic=%zu dag_ability=%zu rir_effect=%zu/%zu rir_relation=%zu/%zu\n",
             air->hir_routine_evidence_count,
@@ -182,18 +183,19 @@ air_dump(const AIRProgram *air, FILE *out)
     for (size_t i = 0; i < air->intent_count; i++) {
         const AIRIntentNode *intent = &air->intents[i];
         fprintf(out,
-                "  intent[%zu] owner=%s step=%s index=%zu sync=%s failure=%s\n",
+                "  intent[%zu] owner=%s step=%s index=%zu sync=%s failure=%s who_from_intent_default=%s\n",
                 i,
                 intent->intent_owner != NULL ? intent->intent_owner : "<anonymous>",
                 intent->step_name != NULL ? intent->step_name : "<unnamed>",
                 intent->step_index,
                 air_sync_class_name(intent->sync_class),
-                air_failure_class_name(intent->failure_class));
+                air_failure_class_name(intent->failure_class),
+                intent->who_from_intent_default ? "yes" : "no");
     }
     for (size_t i = 0; i < air->boundary_count; i++) {
         const AIRBoundaryNode *boundary = &air->boundaries[i];
         fprintf(out,
-                "  boundary[%zu] kind=%s owner=%s source=%s intent=%zu step=%zu sync=%s authority=%s\n",
+                "  boundary[%zu] kind=%s owner=%s source=%s intent=%zu step=%zu sync=%s authority=%s source_from_intent_default=%s source_from_transfer=%s\n",
                 i,
                 air_boundary_kind_name(boundary->kind),
                 boundary->owner_name != NULL ? boundary->owner_name : "<anonymous>",
@@ -201,7 +203,9 @@ air_dump(const AIRProgram *air, FILE *out)
                 boundary->intent_index,
                 boundary->step_index,
                 air_sync_class_name(boundary->sync_class),
-                boundary->authority_required ? "yes" : "no");
+                boundary->authority_required ? "yes" : "no",
+                boundary->source_from_intent_default ? "yes" : "no",
+                boundary->source_from_transfer ? "yes" : "no");
         fprintf(out,
                 "    evidence hir=%s(%s) hir_cfg=%s rir_boundary=%s(%s) rir_authority=%s(%s)\n",
                 boundary->has_hir_routine_evidence ? "yes" : "no",
@@ -254,6 +258,8 @@ air_dump_json(const AIRProgram *air, FILE *out)
     air_json_bool(out, air->strict_evidence);
     fputs(",\"hir_input\":", out);
     air_json_bool(out, air->has_hir_input);
+    fputs(",\"rir_input\":", out);
+    air_json_bool(out, air->has_rir_input);
     fputs(",\"mir_input\":", out);
     air_json_bool(out, air->has_mir_input);
     fprintf(out,
@@ -290,6 +296,8 @@ air_dump_json(const AIRProgram *air, FILE *out)
         air_json_string(out, air_sync_class_name(intent->sync_class));
         fputs(",\"failure\":", out);
         air_json_string(out, air_failure_class_name(intent->failure_class));
+        fputs(",\"who_from_intent_default\":", out);
+        air_json_bool(out, intent->who_from_intent_default);
         fprintf(out,
                 ",\"location\":{\"line\":%u,\"column\":%u}}",
                 air_node_line(intent->ast),
@@ -315,6 +323,10 @@ air_dump_json(const AIRProgram *air, FILE *out)
         air_json_string(out, air_sync_class_name(boundary->sync_class));
         fputs(",\"authority_required\":", out);
         air_json_bool(out, boundary->authority_required);
+        fputs(",\"source_from_intent_default\":", out);
+        air_json_bool(out, boundary->source_from_intent_default);
+        fputs(",\"source_from_transfer\":", out);
+        air_json_bool(out, boundary->source_from_transfer);
         fputs(",\"authority_names\":[", out);
         for (size_t j = 0; j < boundary->authority_name_count; j++) {
             if (j > 0)

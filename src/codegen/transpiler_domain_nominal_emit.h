@@ -18,7 +18,7 @@ emit_included_role_impls(ASTNode *role, TranspilerCtx *ctx)
 
         for (size_t j = 0; j < included_role->data.role_decl.impl_count; j++) {
             ASTNode *impl = included_role->data.role_decl.impl_abilities[j];
-            if (impl->type != AST_IMPL_ABILITY)
+            if (impl == NULL || impl->type != AST_IMPL_ABILITY)
                 continue;
 
             if (role_has_ability(role,
@@ -30,7 +30,7 @@ emit_included_role_impls(ASTNode *role, TranspilerCtx *ctx)
 
             for (size_t k = 0; k < impl->data.impl_ability.method_count; k++) {
                 ASTNode *method = impl->data.impl_ability.methods[k];
-                if (method->type != AST_FUNC_DECL)
+                if (method == NULL || method->type != AST_FUNC_DECL)
                     continue;
                 if (role_has_method(role, method->data.func_decl.name))
                     continue;
@@ -60,7 +60,7 @@ emit_ability_decl(ASTNode *node, TranspilerCtx *ctx)
 
     for (size_t i = 0; i < node->data.ability_decl.method_count; i++) {
         ASTNode *method = node->data.ability_decl.methods[i];
-        if (method->type != AST_FUNC_DECL)
+        if (method == NULL || method->type != AST_FUNC_DECL)
             continue;
 
         const char *method_name = method->data.func_decl.name;
@@ -73,6 +73,8 @@ emit_ability_decl(ASTNode *node, TranspilerCtx *ctx)
         for (size_t j = 0; j < method->data.func_decl.param_count; j++) {
             FuncParam *p = method->data.func_decl.params[j];
             char *param_name = NULL;
+            if (p == NULL || p->name == NULL)
+                continue;
             if (strcmp(p->name, "self") == 0 && p->type == NULL)
                 continue;
             const char *pt = NULL;
@@ -119,10 +121,13 @@ emit_role_decl(ASTNode *node, TranspilerCtx *ctx)
     for (size_t i = 0; i < node->data.role_decl.impl_count; i++) {
         ASTNode *impl = node->data.role_decl.impl_abilities[i];
 
+        if (impl == NULL)
+            continue;
+
         if (impl->type == AST_IMPL_ABILITY) {
             for (size_t j = 0; j < impl->data.impl_ability.method_count; j++) {
                 ASTNode *method = impl->data.impl_ability.methods[j];
-                if (method->type != AST_FUNC_DECL)
+                if (method == NULL || method->type != AST_FUNC_DECL)
                     continue;
                 emit_role_method_impl(name, method, ctx);
             }
@@ -137,13 +142,15 @@ emit_role_decl(ASTNode *node, TranspilerCtx *ctx)
             const char *method_name = func->data.func_decl.name;
             const char *ret_type = "void";
             if (func->data.func_decl.return_type != NULL)
-            ret_type = pergyra_ast_type_to_c(func->data.func_decl.return_type);
+                ret_type = pergyra_ast_type_to_c(func->data.func_decl.return_type);
 
             codebuf_write(ctx->out, "\nstatic %s\n%s_%s(void *self",
                           ret_type, name, method_name);
 
             for (size_t k = 0; k < func->data.func_decl.param_count; k++) {
                 FuncParam *p = func->data.func_decl.params[k];
+                if (p == NULL || p->name == NULL)
+                    continue;
                 if (strcmp(p->name, "self") == 0 && p->type == NULL)
                     continue;
                 const char *pt = NULL;
@@ -253,14 +260,19 @@ emit_party_decl(ASTNode *node, TranspilerCtx *ctx)
     codebuf_write(ctx->out, "} %s;\n", name);
 
     /* Methods as free functions */
-    for (size_t i = 0; i < node->data.party_decl.method_count; i++) {
+    TranspilerHostedMethodView method_view =
+        transpiler_hosted_method_view_from_decl(ctx, name, node);
+
+    for (size_t i = 0; i < method_view.count; i++) {
+        ASTNode *method = transpiler_hosted_method_view_ast(&method_view, i);
+        if (method == NULL || method->type != AST_FUNC_DECL)
+            continue;
         emit_hosted_method_forward_decl_named(name,
-            node->data.party_decl.methods[i], true, ctx->out, ctx);
+            method, true, ctx->out, ctx);
     }
 
     emit_hosted_methods_from_mir_or_error_local(name, "(anonymous-party)",
-        "party", node->data.party_decl.methods,
-        node->data.party_decl.method_count, ctx);
+        "party", &method_view, ctx);
 
     /* Emit bind helpers for dyn role slots */
     for (size_t i = 0; i < node->data.party_decl.role_count; i++) {
@@ -348,14 +360,19 @@ emit_roster_decl(ASTNode *node, TranspilerCtx *ctx)
     codebuf_write(ctx->out, "} %s;\n", name);
 
     /* Methods */
-    for (size_t i = 0; i < node->data.roster_decl.method_count; i++) {
+    TranspilerHostedMethodView method_view =
+        transpiler_hosted_method_view_from_decl(ctx, name, node);
+
+    for (size_t i = 0; i < method_view.count; i++) {
+        ASTNode *method = transpiler_hosted_method_view_ast(&method_view, i);
+        if (method == NULL || method->type != AST_FUNC_DECL)
+            continue;
         emit_hosted_method_forward_decl_named(name,
-            node->data.roster_decl.methods[i], true, ctx->out, ctx);
+            method, true, ctx->out, ctx);
     }
 
     emit_hosted_methods_from_mir_or_error_local(name, "(anonymous-roster)",
-        "roster", node->data.roster_decl.methods,
-        node->data.roster_decl.method_count, ctx);
+        "roster", &method_view, ctx);
 }
 
 void
@@ -432,14 +449,19 @@ emit_relation_decl(ASTNode *node, TranspilerCtx *ctx)
     ctx->indent--;
     codebuf_write(ctx->out, "}\n");
 
-    for (size_t i = 0; i < node->data.relation_decl.method_count; i++) {
+    TranspilerHostedMethodView method_view =
+        transpiler_hosted_method_view_from_decl(ctx, name, node);
+
+    for (size_t i = 0; i < method_view.count; i++) {
+        ASTNode *method = transpiler_hosted_method_view_ast(&method_view, i);
+        if (method == NULL || method->type != AST_FUNC_DECL)
+            continue;
         emit_hosted_method_forward_decl_named(name,
-            node->data.relation_decl.methods[i], true, ctx->out, ctx);
+            method, true, ctx->out, ctx);
     }
 
     emit_hosted_methods_from_mir_or_error_local(name, "(anonymous-relation)",
-        "relation", node->data.relation_decl.methods,
-        node->data.relation_decl.method_count, ctx);
+        "relation", &method_view, ctx);
 }
 
 void
@@ -516,12 +538,17 @@ emit_effect_decl(ASTNode *node, TranspilerCtx *ctx)
     ctx->indent--;
     codebuf_write(ctx->out, "}\n");
 
-    for (size_t i = 0; i < node->data.effect_decl.method_count; i++) {
+    TranspilerHostedMethodView method_view =
+        transpiler_hosted_method_view_from_decl(ctx, name, node);
+
+    for (size_t i = 0; i < method_view.count; i++) {
+        ASTNode *method = transpiler_hosted_method_view_ast(&method_view, i);
+        if (method == NULL || method->type != AST_FUNC_DECL)
+            continue;
         emit_hosted_method_forward_decl_named(name,
-            node->data.effect_decl.methods[i], true, ctx->out, ctx);
+            method, true, ctx->out, ctx);
     }
 
     emit_hosted_methods_from_mir_or_error_local(name, "(anonymous-effect)",
-        "effect", node->data.effect_decl.methods,
-        node->data.effect_decl.method_count, ctx);
+        "effect", &method_view, ctx);
 }

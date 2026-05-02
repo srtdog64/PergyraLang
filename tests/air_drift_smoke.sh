@@ -56,8 +56,14 @@ run_literal_air_drift_smoke() {
     require_literal "Makefile" "air-drift-test-smoke"
     require_literal "src/compiler/air.h" "AIREvidenceNode"
     require_literal "src/compiler/air_evidence.c" "AIR_EVIDENCE_MIR_PIN_CLEANUP"
+    require_literal "src/compiler/air_evidence.c" "cleanup-edge-from-rollback"
+    require_literal "src/compiler/air_evidence.c" "slot_anchor"
+    require_literal "src/compiler/air_evidence.c" "arg0"
     require_literal "src/compiler/air_evidence.c" "AIR_EVIDENCE_DAG_GENERIC"
     require_literal "src/compiler/air_verify.c" "air_verify"
+    require_literal "src/compiler/air_verify.c" "source_provenance="
+    require_literal "src/compiler/air_verify.c" "who_provenance="
+    require_literal "src/compiler/air_verify.c" "intent-default+transfer"
     require_literal "src/compiler/driver_app.c" "air_synthesize"
     require_literal "docs/72_diagnostic_codes.md" "PGY_SEM_INTENT_BOUNDARY_DRIFT"
     require_literal "src/test_air.c" "AIR strict evidence requires MIR pin cleanup"
@@ -121,6 +127,7 @@ air_test_case_paths = [
     root / "src" / "tests" / "air" / "test_air_cleanup_transfer_part_c.cases.h",
     root / "src" / "tests" / "air" / "test_air_boundary_part_d.cases.h",
     root / "src" / "tests" / "air" / "test_air_parsed_part_e.cases.h",
+    root / "src" / "tests" / "air" / "test_air_strict_part_f.cases.h",
 ]
 rir_test_path = root / "src" / "test_rir.c"
 rir_test_case_paths = [
@@ -288,6 +295,7 @@ required_header_terms = [
     "authority_names",
     "authority_name_count",
     "has_hir_input",
+    "has_rir_input",
     "hir_routine_evidence_count",
     "hir_cfg_evidence_count",
     "rir_boundary_evidence_count",
@@ -313,9 +321,11 @@ required_impl_terms = [
     "PGY_AIR_STRICT_EVIDENCE",
     "air_strict_evidence_enabled",
     "air->has_hir_input = hir != NULL",
+    "air->has_rir_input = rir != NULL",
     "air_sync_conflicts",
     "air_collect_hir_evidence",
     "air_collect_rir_evidence",
+    "real HIR/RIR/MIR input",
     "air_assign_first_owned_name",
     "air_boundary_sync_shape_valid",
     "air_boundary_requires_hir_evidence",
@@ -353,6 +363,10 @@ required_impl_terms = [
     "RIR_OP_CHANNEL_SELECT",
     "air_call_is_io_boundary",
     "air_format_authority_names",
+    "air_format_boundary_provenance",
+    "source_provenance=",
+    "who_provenance=",
+    "intent-default+transfer",
     "air_boundary_authority_matches",
     "air_ast_contains_node",
     "air_rir_op_matches_boundary_ast",
@@ -363,6 +377,11 @@ required_impl_terms = [
     "air_hir_cfg_contains_boundary_ast",
     "air_rir_scope_matches_boundary",
     "air_mir_pin_block_has_cleanup_successor",
+    "air_mir_routine_cleanup_fact_count",
+    "cleanup-edge-from-rollback",
+    "cleanup-edge-from-invalidation",
+    "slot_anchor",
+    "arg0",
     "block->cleanup_succ != routine->cleanup_block",
     "AIR synthesis count mismatch",
     "intent_index != intent_node_count",
@@ -496,6 +515,8 @@ required_test_terms = [
     "AIR strict evidence reports missing RIR boundary",
     "AIR strict evidence requires HIR for implementation boundary",
     "AIR strict evidence prefers inventory over legacy flags",
+    "AIR strict evidence rejects legacy flags with real input",
+    "test_air_strict_evidence_rejects_legacy_flags_with_real_input",
     "AIR task group boundary requires RIR and HIR evidence",
     "AIR verify rejects invalid boundary inventory",
     "AIR verify rejects missing inventory arrays",
@@ -538,7 +559,7 @@ required_test_terms = [
     "AIR rejects empty RIR propagation evidence",
     "AIR rejects invalid DAG evidence provider",
     "AIR rejects empty DAG evidence",
-    "strict_evidence=yes hir_input=yes",
+    "strict_evidence=yes hir_input=yes rir_input=yes",
     "mir_input",
     "AIR pin boundary has no matching MIR pin cleanup evidence",
     "evidence hir=yes(reserve) hir_cfg=yes",

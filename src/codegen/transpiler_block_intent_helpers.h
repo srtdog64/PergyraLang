@@ -18,23 +18,23 @@ static ASTNode *
 find_subject_action_decl(TranspilerCtx *ctx, const char *subject_name, const char *action_name)
 {
     ASTNode *decl;
+    ASTNode *method;
+
     if (ctx == NULL || subject_name == NULL || action_name == NULL)
         return NULL;
+
     decl = find_subject_host_decl(ctx, subject_name);
     if (decl == NULL || decl->type != AST_CLASS_DECL
         || decl->data.class_decl.nominal_kind != NOMINAL_DECL_SUBJECT) {
         return NULL;
     }
-    for (size_t i = 0; i < decl->data.class_decl.method_count; i++) {
-        ASTNode *method = decl->data.class_decl.methods[i];
-        if (method != NULL && method->type == AST_FUNC_DECL
-            && method->data.func_decl.is_action
-            && method->data.func_decl.name != NULL
-            && strcmp(method->data.func_decl.name, action_name) == 0) {
-            return method;
-        }
+
+    method = find_nominal_host_method_decl(ctx, subject_name, action_name);
+    if (method == NULL || method->type != AST_FUNC_DECL
+        || !method->data.func_decl.is_action) {
+        return NULL;
     }
-    return NULL;
+    return method;
 }
 
 static ASTNode *
