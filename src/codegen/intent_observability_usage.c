@@ -40,7 +40,18 @@ pgy_mir_symbol_uses_intent_observability(const char *name)
 }
 
 static bool
-pgy_mir_instruction_uses_intent_observability(const MIRInstruction *inst)
+pgy_name_array_uses_intent_observability(const char *const *names, size_t count)
+{
+    for (size_t i = 0; i < count; i++) {
+        if (pgy_mir_symbol_uses_intent_observability(names[i]))
+            return true;
+    }
+    return false;
+}
+
+static bool
+pgy_mir_instruction_uses_intent_observability(const MIRInstruction *inst,
+                                              bool allow_ast_fallback)
 {
     if (inst == NULL)
         return false;
@@ -53,10 +64,14 @@ pgy_mir_instruction_uses_intent_observability(const MIRInstruction *inst)
         return true;
     }
 
+    if (!allow_ast_fallback)
+        return false;
+
     /*
-     * MIR_STMT still carries generic AST-backed statements for calls whose
-     * callee has not been materialized as an instruction fact yet. Keep this
-     * fallback until statement call facts are part of MIR lowering.
+     * Direct statement calls are carried in MIR_STMT.arg0, and direct
+     * initializer calls are carried in MIR_INST_DEF.arg1. Keep AST-backed
+     * scanning only for nested expression calls and declaration inventory that
+     * has not yet been lowered into a dedicated MIR fact.
      */
     return pgy_ast_uses_intent_observability(inst->ast)
         || pgy_ast_uses_intent_observability(inst->expr0)
@@ -64,14 +79,17 @@ pgy_mir_instruction_uses_intent_observability(const MIRInstruction *inst)
 }
 
 static bool
-pgy_mir_block_uses_intent_observability(const MIRBasicBlock *block)
+pgy_mir_block_uses_intent_observability(const MIRBasicBlock *block,
+                                        bool allow_ast_fallback)
 {
     if (block == NULL)
         return false;
 
     for (size_t i = 0; i < block->instruction_count; i++) {
-        if (pgy_mir_instruction_uses_intent_observability(&block->instructions[i]))
+        if (pgy_mir_instruction_uses_intent_observability(
+                &block->instructions[i], allow_ast_fallback)) {
             return true;
+        }
     }
 
     return false;
@@ -83,9 +101,18 @@ pgy_mir_routine_uses_intent_observability(const MIRRoutine *routine)
     if (routine == NULL)
         return false;
 
+    if (routine->hir_routine != NULL
+        && pgy_name_array_uses_intent_observability(
+            routine->hir_routine->direct_calls,
+            routine->hir_routine->direct_call_count)) {
+        return true;
+    }
+
     for (size_t i = 0; i < routine->block_count; i++) {
-        if (pgy_mir_block_uses_intent_observability(&routine->blocks[i]))
+        if (pgy_mir_block_uses_intent_observability(
+                &routine->blocks[i], routine->hir_routine == NULL)) {
             return true;
+        }
     }
 
     return false;

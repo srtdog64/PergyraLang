@@ -41,7 +41,7 @@ collect_effective_generic_arg_types(GenericParams *decl_params,
             semantic_type_resolution_lookup_annotation_nullable(
                 ctx, effective_nodes[i]);
         if (resolved == NULL || resolved == TYPE_UNKNOWN) {
-            resolved = semantic_type_resolution_lookup_type_ref_or_materialize(
+            resolved = semantic_type_resolution_lookup_metadata_type_ref(
                 ctx, effective_nodes[i]);
         }
         effective_types[i] = resolved != NULL ? resolved : TYPE_UNKNOWN;

@@ -116,13 +116,18 @@ Operational mode:
 - 2026-05-02 DAG effective generic arg seam tightening:
   ability where validation now consumes centralized effective-argument type
   evidence from `collect_effective_generic_arg_types(...)`. The materializing
-  helper is owned by `type_checker_generic_effective_args.c`;
-  `type_checker_ability_where.c` is annotation-only, so ability-bound validation
-  no longer creates DAG facts as a side effect. ABI/runtime layout remains
-  unchanged and the generic support implementation header did not grow. Intent
-  role-field require checks also consume that centralized effective-argument
-  type evidence, keeping `type_checker_intent_role_fields.c` below the 600 LOC
-  split-review line.
+  helper was originally owned by `type_checker_generic_effective_args.c`; the
+  2026-05-03 follow-up removes that materializer seam and also moves
+  `type_checker_generic_contracts.h` plus
+  `type_checker_generic_validation.c` to annotation metadata and
+  `semantic_type_resolution_lookup_metadata_type_ref(...)` only. Host/domain
+  slot helper reads, intent participant/value/step-where type reads, function
+  parameter/return signatures, and expression-local annotations also moved to
+  the metadata-only path. The resolver inventory cap is now 3 type-ref helper
+  references, while fallback/materializer counters stay at 0. ABI/runtime
+  layout remains unchanged. Intent role-field require checks also consume that
+  centralized effective-argument type evidence, keeping
+  `type_checker_intent_role_fields.c` below the 600 LOC split-review line.
 - 2026-05-02 AST analysis ownership tightening:
   intent observability no-trace detection no longer carries a large
   codegen-local AST visitor. `src/parser/ast_analysis.c` owns the reusable
@@ -186,6 +191,41 @@ Operational mode:
   invalidation roots. This closes a cleanup-chain shape hole where a corrupted
   root could still point at a valid block index. Gate:
   `make test-mir cfg-body-dataflow-test-smoke`.
+- 2026-05-03 CFG/MIR direct-call fact tightening:
+  direct statement calls now carry their callee name as `MIR_INST_STMT.arg0`,
+  and direct initializer calls carry their callee name as `MIR_INST_DEF.arg1`.
+  Intent observability no-trace detection consumes those MIR facts and HIR
+  routine `direct_calls` before falling back to structural AST traversal. Gate:
+  `make test-mir cfg-body-dataflow-test-smoke test-transpile
+  perf-contract-test-smoke` (`32/0` MIR tests, `710/0` transpile tests).
+- 2026-05-03 CFG loop-flow consumer tightening:
+  `while` and static range `for` statements now return semantic CFG flow flags
+  to their parent body instead of being flattened through the generic statement
+  fallback. The accepted slice is conservative: `while true { return ... }`
+  satisfies non-`Void` all-path return, and
+  `for i in 0..1 { return ... }` satisfies it only when the range is
+  statically non-empty and no `break` path exits the loop. `for-in`, empty
+  ranges, dynamic ranges/conditions, possible `break`, and non-returning
+  backedges remain fallthrough. Gate:
+  `make test-semantic cfg-body-dataflow-test-smoke` (`2497/0` semantic tests).
+- 2026-05-03 DAG intent/action-contract seam tightening:
+  `type_checker_intent_role_fields.c` no longer owns a second local
+  materializing type-ref helper, and `type_checker_func_action_contract.c`
+  consumes annotation metadata for action-contract domain-slot/parameter reads.
+  This keeps direct semantic behavior stable while shrinking the resolver
+  inventory cap from `12` to `10`; the later generic/host/intent/function/expr
+  metadata-only slice lowers the cap to `3`. The only remaining semantic owner
+  seam is `type_checker_ownership_let_helpers.c`; it requires earlier
+  collection shell/key-policy metadata before it can leave the compatibility
+  path. Gate:
+  `make test-semantic type-resolution-dag-test-smoke
+  type-resolution-resolver-inventory-test-smoke`.
+- 2026-05-03 intent compression provenance tightening:
+  `where`-derived unique zone bindings now leave an explicit
+  `derived_using_from_where` fact instead of looking like a local `using`
+  clause in AST print/contract summaries. Gate:
+  `make test-parser test-semantic cfg-body-dataflow-test-smoke`
+  (`2498/0` semantic tests).
 - 2026-05-01 dogfood-first beta gate:
   the beta target is now "core stable enough to start a small WebGL/chat-game
   dogfood", not a full 1.0 compiler. Quantum, Rust-style lifetime borrow
@@ -3341,14 +3381,16 @@ make ast-dispatch-test-smoke
   the same, so that CFG/body-safety-adjacent path no longer materializes DAG
   metadata as a side effect.
 - The next attempted candidates are now classified as true stage-order seams,
-  not low-risk annotation readers: world helpers, action contract effect-slot
-  checks, and compressed intent role/ability field checks still need a
-  materialization prepass before they can leave the allowlist. Their effective
-  generic-argument derivation now consumes centralized type evidence, but the
-  role-field owner still has a local type-ref resolver for binding and zone
-  derivation. Ability where generic-bound actual validation now consumes
-  centralized effective-argument type evidence instead of owning a local
-  materializer seam.
+  not low-risk annotation readers: the remaining materializing semantic owner
+  seam is ownership-let annotation/type-argument handling. A negative probe
+  showed that lowering it to metadata-only drops unsupported `HashMap` key
+  diagnostics, so collection shell/key-policy facts must be staged before this
+  owner can leave the compatibility path. Effective generic-argument
+  derivation, generic contract validation, generic where/default validation,
+  host/domain slot reads, intent-local type reads, function signatures,
+  expression annotations, action contract reads, and compressed intent
+  role/ability field checks now consume centralized metadata/effective-argument
+  evidence instead of owning local materializer seams.
 - Class/ability signature staging now opens a generic-parameter scope before
   resolving staged fields and methods, aligning DAG staging with the full
   semantic checker even where the materializer allowlist is still required.

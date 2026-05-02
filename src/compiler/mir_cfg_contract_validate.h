@@ -153,6 +153,18 @@ mir_validate_cfg_contract_state(const MIRRoutine *routine,
             return false;
         }
 
+        if (block->is_cleanup
+            && !mir_cleanup_block_is_registered_root(routine, i)) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR routine '%s' cleanup block[%zu] is not registered as a cleanup root",
+                    routine->name != NULL ? routine->name : "(anonymous)",
+                    i);
+            }
+            free(hir_block_seen);
+            return false;
+        }
+
         if (block->is_cleanup && block->is_pin_region) {
             if (error_message != NULL) {
                 *error_message = mir_strdup_fmt(

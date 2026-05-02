@@ -178,8 +178,6 @@ test_dir_lowering(void)
             "zone PaymentZone { subject slot customer: Customer }\n"
             "intent Checkout(cart: CartZone, payment: PaymentZone, buyer: Customer) {\n"
             "    step move_to_payment {\n"
-            "        where: PaymentZone;\n"
-            "        using: payment;\n"
             "        who: buyer;\n"
             "        transfer: cart -> payment;\n"
             "    }\n"
@@ -224,10 +222,16 @@ test_dir_lowering(void)
                      && buyer->subject_type_name != NULL
                      && strcmp(buyer->subject_type_name, "Customer") == 0
                      && buyer->subject_type_node_id != SIZE_MAX
+                     && step->where_type_name != NULL
+                     && strcmp(step->where_type_name, "PaymentZone") == 0
+                     && step->using_alias != NULL
+                     && strcmp(step->using_alias, "payment") == 0
                      && step->transfer_from_alias != NULL
                      && strcmp(step->transfer_from_alias, "cart") == 0
                      && step->transfer_to_alias != NULL
                      && strcmp(step->transfer_to_alias, "payment") == 0
+                     && step->where_derived_from_transfer
+                     && step->using_derived_from_transfer
                      && step->where_type_node_id != SIZE_MAX
                      && step2->predecessor_step_name != NULL
                      && strcmp(step2->predecessor_step_name, "move_to_payment") == 0
@@ -306,6 +310,47 @@ test_dir_lowering(void)
                      && adjustments->subject_type_node_id == SIZE_MAX
                      && has_price_edge
                      && has_adjustments_edge;
+            }
+        }
+
+        EXPECT(ok && dir_validate(dir, NULL));
+        dir_destroy(dir);
+    }
+
+    TEST("DIR preserves intent step using derivation provenance");
+    {
+        const char *src =
+            "subject Player {\n"
+            "    let hp: Int;\n"
+            "    action Guard(self) -> Void within Arena authorized by self {\n"
+            "        return;\n"
+            "    }\n"
+            "}\n"
+            "zone Arena {\n"
+            "    subject slot hero: Player\n"
+            "    authority hero\n"
+            "}\n"
+            "intent Patrol(arena: Arena, hero: Player) {\n"
+            "    step Verify {\n"
+            "        on: hero.Guard();\n"
+            "        expect: true;\n"
+            "    }\n"
+            "}\n";
+        DIRProgram *dir = lower_dir_from_source(src);
+        bool ok = false;
+
+        if (dir != NULL && dir->intent_count == 1) {
+            const DIRIntentInfo *intent = &dir->intents[0];
+            if (intent->step_count == 1) {
+                const DIRIntentStep *step = &intent->steps[0];
+                ok = step->where_type_name != NULL
+                     && strcmp(step->where_type_name, "Arena") == 0
+                     && step->using_alias != NULL
+                     && strcmp(step->using_alias, "arena") == 0
+                     && step->where_inherited_from_action
+                     && step->using_derived_from_where
+                     && step->who_derived_from_on_receiver
+                     && step->authorized_by_inherited_from_action;
             }
         }
 

@@ -65,14 +65,20 @@ run_intent_step_using_derivation_ast_print_test(void)
     }
 
     step->data.intent_step.derived_where_from_using = true;
+    step->data.intent_step.derived_using_from_where = true;
 
     if (!ast_print_contains(ast, "derived zone from using binding")) {
         printf("[FAIL] Expected AST print to include using-derived zone provenance\n");
         failed = 1;
         goto cleanup;
     }
+    if (!ast_print_contains(ast, "derived using from zone type")) {
+        printf("[FAIL] Expected AST print to include where-derived using provenance\n");
+        failed = 1;
+        goto cleanup;
+    }
 
-    printf("AST print includes using-derived zone provenance.\n");
+    printf("AST print includes using-derived zone and where-derived using provenance.\n");
 
 cleanup:
     ast_destroy(ast);

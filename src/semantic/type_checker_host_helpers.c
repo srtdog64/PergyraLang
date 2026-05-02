@@ -20,7 +20,7 @@ create_overlay_nominal_type(const char *name)
 static Type *
 host_helper_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
 {
-    return semantic_type_resolution_lookup_type_ref_or_materialize(ctx, type_ref);
+    return semantic_type_resolution_lookup_metadata_type_ref(ctx, type_ref);
 }
 
 static Type *

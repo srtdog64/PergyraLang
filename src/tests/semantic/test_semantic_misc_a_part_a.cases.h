@@ -139,6 +139,74 @@ test_misc_grammar_edges(void)
         lexer_destroy(lexer);
     }
 
+    TEST("CFG body flow accepts while-true all-path return");
+    {
+        const char *source =
+            "func Pick() -> Int {\n"
+            "    while true {\n"
+            "        return 1;\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("CFG body flow accepts static single-iteration for all-path return");
+    {
+        const char *source =
+            "func Pick() -> Int {\n"
+            "    for i in 0..1 {\n"
+            "        return 1;\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("CFG body flow keeps zero-iteration for as fallthrough");
+    {
+        const char *source =
+            "func Pick() -> Int {\n"
+            "    for i in 0..0 {\n"
+            "        return 1;\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "may fall through without returning a value"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("ReadView return escape uses pin escape diagnostic");
     {
         const char *source =
@@ -532,6 +600,31 @@ test_misc_grammar_edges(void)
         lexer_destroy(lexer);
     }
 
+    TEST("CFG static false while does not merge unreachable resource state");
+    {
+        const char *source =
+            "func Main() -> Void {\n"
+            "    let slot: Slot<Int> = ClaimSlot<Int>();\n"
+            "    while false {\n"
+            "        Release(slot);\n"
+            "    }\n"
+            "    Write(slot, 1);\n"
+            "    Release(slot);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("CFG defer return does not make following statement unreachable");
     {
         const char *source =
@@ -716,4 +809,3 @@ test_misc_grammar_edges(void)
         parser_destroy(parser);
         lexer_destroy(lexer);
     }
-

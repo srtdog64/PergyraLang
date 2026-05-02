@@ -241,6 +241,44 @@ routine_has_stmt_call_named(const MIRRoutine *routine, const char *callee_name)
 }
 
 static bool
+routine_has_stmt_call_fact_named(const MIRRoutine *routine, const char *callee_name)
+{
+    if (routine == NULL || callee_name == NULL)
+        return false;
+    for (size_t bi = 0; bi < routine->block_count; bi++) {
+        const MIRBasicBlock *block = &routine->blocks[bi];
+        for (size_t ii = 0; ii < block->instruction_count; ii++) {
+            const MIRInstruction *inst = &block->instructions[ii];
+            if (inst->kind == MIR_INST_STMT
+                && inst->arg0 != NULL
+                && strcmp(inst->arg0, callee_name) == 0) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+static bool
+routine_has_def_call_fact_named(const MIRRoutine *routine, const char *callee_name)
+{
+    if (routine == NULL || callee_name == NULL)
+        return false;
+    for (size_t bi = 0; bi < routine->block_count; bi++) {
+        const MIRBasicBlock *block = &routine->blocks[bi];
+        for (size_t ii = 0; ii < block->instruction_count; ii++) {
+            const MIRInstruction *inst = &block->instructions[ii];
+            if (inst->kind == MIR_INST_DEF
+                && inst->arg1 != NULL
+                && strcmp(inst->arg1, callee_name) == 0) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+static bool
 routine_has_stmt_ast_type(const MIRRoutine *routine, ASTNodeType type)
 {
     if (routine == NULL)

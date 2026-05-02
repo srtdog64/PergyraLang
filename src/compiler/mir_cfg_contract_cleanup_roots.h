@@ -1,3 +1,5 @@
+#include "mir_cfg_contract_cleanup_root_membership.h"
+
 static bool
 mir_validate_cfg_contract_cleanup_roots(const MIRRoutine *routine,
                                         bool requires_cleanup_for_body,

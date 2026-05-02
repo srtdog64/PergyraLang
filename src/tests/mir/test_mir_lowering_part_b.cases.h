@@ -342,6 +342,55 @@ test_mir_lowering_part_b(void)
         hir_destroy(hir);
     }
 
+    TEST("MIR carries direct statement call facts");
+    {
+        const char *src =
+            "func DirectCallFact() -> Void {\n"
+            "    Log(1);\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        const MIRRoutine *routine = NULL;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok)
+            routine = find_mir_routine(mir, "DirectCallFact", MIR_SCOPE_FUNCTION);
+        EXPECT(ok
+               && mir_validate(mir, NULL)
+               && routine != NULL
+               && routine_has_stmt_call_named(routine, "Log")
+               && routine_has_stmt_call_fact_named(routine, "Log"));
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
+    TEST("MIR carries direct initializer call facts");
+    {
+        const char *src =
+            "func SourceValue() -> Int {\n"
+            "    return 1;\n"
+            "}\n"
+            "func InitializerCallFact() -> Int {\n"
+            "    let value: Int = SourceValue();\n"
+            "    return value;\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        const MIRRoutine *routine = NULL;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok)
+            routine = find_mir_routine(mir, "InitializerCallFact", MIR_SCOPE_FUNCTION);
+        EXPECT(ok
+               && mir_validate(mir, NULL)
+               && routine != NULL
+               && routine_has_def_call_fact_named(routine, "SourceValue"));
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
     TEST("MIR preserves defer statements inside CFG loop blocks");
     {
         const char *src =

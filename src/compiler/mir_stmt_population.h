@@ -1,6 +1,7 @@
 #ifndef PERGYRA_MIR_STMT_POPULATION_H
 #define PERGYRA_MIR_STMT_POPULATION_H
 
+#include "mir_call_fact.h"
 #include "mir_cfg_contract_control.h"
 
 /* ---------------------------------------------------------------------------
@@ -301,6 +302,7 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
                 inst.kind = MIR_INST_STMT;
                 inst.name = "stmt";
                 inst.ast = stmt;
+                mir_attach_statement_call_fact(&inst, stmt);
                 mir_set_inst_source_statement_index(&inst, s);
                 new_insts[new_count++] = inst;
                 continue;
@@ -319,6 +321,7 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
                 inst.kind = MIR_INST_STMT;
                 inst.name = "stmt";
                 inst.ast = stmt;
+                mir_attach_statement_call_fact(&inst, stmt);
                 mir_set_inst_source_statement_index(&inst, s);
                 new_insts[new_count++] = inst;
                 continue;
@@ -357,6 +360,7 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
                         def_inst.kind = MIR_INST_STMT;
                         def_inst.name = "stmt";
                         def_inst.ast = stmt;
+                        mir_attach_statement_call_fact(&def_inst, stmt);
                         mir_set_inst_source_statement_index(&def_inst, s);
                         new_insts[new_count++] = def_inst;
                         continue;
@@ -365,6 +369,7 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
                      * extract both the type annotation and the initializer. */
                     if (def_inst.ast == NULL)
                         def_inst.ast = stmt;
+                    mir_attach_def_initializer_call_fact(&def_inst, stmt);
                     mir_set_inst_source_statement_index(&def_inst, s);
                     new_insts[new_count++] = def_inst;
                     copied_flags[def_cursor] = true;
@@ -387,6 +392,7 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
                     inst.kind = MIR_INST_STMT;
                     inst.name = "stmt";
                     inst.ast = stmt;
+                    mir_attach_statement_call_fact(&inst, stmt);
                     mir_set_inst_source_statement_index(&inst, s);
                     new_insts[new_count++] = inst;
                 }
@@ -398,6 +404,7 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
                 inst.kind = MIR_INST_STMT;
                 inst.name = "stmt";
                 inst.ast = stmt;
+                mir_attach_statement_call_fact(&inst, stmt);
                 mir_set_inst_source_statement_index(&inst, s);
                 new_insts[new_count++] = inst;
             }
@@ -465,15 +472,18 @@ mir_append_non_cfg_body_statements(MIRRoutine *routine, MIRBasicBlock *entry)
     }
 
     body = func_decl->data.func_decl.body;
-    if (body->type != AST_BLOCK)
-        return append_instruction(entry, (MIRInstruction){
+    if (body->type != AST_BLOCK) {
+        MIRInstruction inst = {
             .id = routine->instruction_count++,
             .kind = MIR_INST_STMT,
             .name = "stmt",
             .ast = body,
             .source_statement_index = 0,
             .has_source_statement_index = true,
-        });
+        };
+        mir_attach_statement_call_fact(&inst, body);
+        return append_instruction(entry, inst);
+    }
 
     if (entry->source_statements != NULL && entry->source_statement_count > 0) {
         statements = entry->source_statements;
@@ -495,28 +505,32 @@ mir_append_non_cfg_body_statements(MIRRoutine *routine, MIRBasicBlock *entry)
                                                       statement_count,
                                                       i,
                                                       stmt)) {
-            if (!append_instruction(entry, (MIRInstruction){
+            MIRInstruction inst = {
                     .id = routine->instruction_count++,
                     .kind = MIR_INST_STMT,
                     .name = "stmt",
                     .ast = stmt,
                     .source_statement_index = i,
                     .has_source_statement_index = true,
-                })) {
+            };
+            mir_attach_statement_call_fact(&inst, stmt);
+            if (!append_instruction(entry, inst)) {
                 return false;
             }
             continue;
         }
         if (stmt->type == AST_LET_DECL
             && mir_let_decl_requires_stmt_preservation(stmt)) {
-            if (!append_instruction(entry, (MIRInstruction){
+            MIRInstruction inst = {
                     .id = routine->instruction_count++,
                     .kind = MIR_INST_STMT,
                     .name = "stmt",
                     .ast = stmt,
                     .source_statement_index = i,
                     .has_source_statement_index = true,
-                })) {
+            };
+            mir_attach_statement_call_fact(&inst, stmt);
+            if (!append_instruction(entry, inst)) {
                 return false;
             }
             continue;
@@ -535,6 +549,7 @@ mir_append_non_cfg_body_statements(MIRRoutine *routine, MIRBasicBlock *entry)
                 }
                 if (inst->ast == NULL)
                     inst->ast = stmt;
+                mir_attach_def_initializer_call_fact(inst, stmt);
                 mir_set_inst_source_statement_index(inst, i);
                 matched_def = true;
                 break;
@@ -542,14 +557,16 @@ mir_append_non_cfg_body_statements(MIRRoutine *routine, MIRBasicBlock *entry)
             if (matched_def)
                 continue;
         }
-        if (!append_instruction(entry, (MIRInstruction){
+        MIRInstruction inst = {
                 .id = routine->instruction_count++,
                 .kind = MIR_INST_STMT,
                 .name = "stmt",
                 .ast = stmt,
                 .source_statement_index = i,
                 .has_source_statement_index = true,
-            })) {
+        };
+        mir_attach_statement_call_fact(&inst, stmt);
+        if (!append_instruction(entry, inst)) {
             return false;
         }
     }

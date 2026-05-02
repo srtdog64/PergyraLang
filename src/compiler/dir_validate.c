@@ -166,6 +166,30 @@ dir_validate(const DIRProgram *dir, char **error_message)
                 }
                 return false;
             }
+            if ((step->where_inherited_from_action
+                 || step->where_inherited_from_intent
+                 || step->where_derived_from_using
+                 || step->where_derived_from_transfer)
+                && step->where_type_name == NULL) {
+                if (error_message != NULL) {
+                    *error_message = dir_validate_strdup_fmt(
+                        "DIR intent[%llu] step '%s' has zone provenance without a zone",
+                        (unsigned long long)i,
+                        step->name != NULL ? step->name : "-");
+                }
+                return false;
+            }
+            if ((step->using_derived_from_where
+                 || step->using_derived_from_transfer)
+                && step->using_alias == NULL) {
+                if (error_message != NULL) {
+                    *error_message = dir_validate_strdup_fmt(
+                        "DIR intent[%llu] step '%s' has using provenance without a binding",
+                        (unsigned long long)i,
+                        step->name != NULL ? step->name : "-");
+                }
+                return false;
+            }
             if (step->predecessor_step_name != NULL && j == 0) {
                 if (error_message != NULL) {
                     *error_message = dir_validate_strdup_fmt(
@@ -268,6 +292,8 @@ dir_dump(const DIRProgram *dir, FILE *out)
             }
             if (step->who_inherited_from_intent)
                 fputs(" who-default=intent", out);
+            if (step->who_inherited_from_action)
+                fputs(" who-default=action", out);
             if (step->who_derived_from_on_receiver)
                 fputs(" who-derived=on-receiver", out);
             if (step->who_derived_from_single_participant)
@@ -276,6 +302,14 @@ dir_dump(const DIRProgram *dir, FILE *out)
                 fputs(" where-default=intent", out);
             if (step->where_inherited_from_action)
                 fputs(" where-default=action", out);
+            if (step->where_derived_from_using)
+                fputs(" where-derived=using", out);
+            if (step->where_derived_from_transfer)
+                fputs(" where-derived=transfer", out);
+            if (step->using_derived_from_transfer)
+                fputs(" using-derived=transfer", out);
+            if (step->using_derived_from_where)
+                fputs(" using-derived=where", out);
             if (step->requires_inherited_from_action)
                 fputs(" requires-default=action", out);
             if (step->causes_inherited_from_action)

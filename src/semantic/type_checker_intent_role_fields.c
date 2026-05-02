@@ -6,28 +6,20 @@
 #include <string.h>
 
 static Type *
-intent_role_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
-{
-    Type *resolved =
-        semantic_type_resolution_lookup_type_ref_or_materialize(ctx, type_ref);
-    return resolved != NULL ? resolved : TYPE_UNKNOWN;
-}
-
-static Type *
 intent_role_resolve_involves_type(ASTNode *involves, SemanticContext *ctx)
 {
     if (involves == NULL || involves->type != AST_INTENT_INVOLVES)
         return NULL;
-    return intent_role_resolve_type_ref(
-        involves->data.intent_involves.subject_type, ctx);
+    return intent_normalize_type(intent_resolve_type_ref(
+        involves->data.intent_involves.subject_type, ctx));
 }
 
 static Type *intent_role_resolve_value_type(ASTNode *value, SemanticContext *ctx)
 {
     if (value == NULL || value->type != AST_INTENT_VALUE)
         return NULL;
-    return intent_role_resolve_type_ref(
-        value->data.intent_value.value_type, ctx);
+    return intent_normalize_type(intent_resolve_type_ref(
+        value->data.intent_value.value_type, ctx));
 }
 
 static Type *
@@ -48,7 +40,7 @@ intent_role_resolve_field_type(ClassField *field, SemanticContext *ctx)
 {
     if (field == NULL)
         return NULL;
-    return intent_role_resolve_type_ref(field->type, ctx);
+    return intent_normalize_type(intent_resolve_type_ref(field->type, ctx));
 }
 
 static ClassField *
@@ -135,13 +127,13 @@ resolve_ability_require_field_type_scope(ASTNode *ability_decl,
         return;
     if (ability_decl == NULL || ability_decl->type != AST_ABILITY_DECL
         || ability_ref == NULL || ability_ref->type != AST_TYPE) {
-        *out_type = intent_role_resolve_type_ref(type_node, ctx);
+        *out_type = intent_normalize_type(intent_resolve_type_ref(type_node, ctx));
         return;
     }
 
     decl_params = ability_decl->data.ability_decl.generic_params;
     if (decl_params == NULL || decl_params->count == 0) {
-        *out_type = intent_role_resolve_type_ref(type_node, ctx);
+        *out_type = intent_normalize_type(intent_resolve_type_ref(type_node, ctx));
         return;
     }
 
@@ -254,7 +246,7 @@ resolve_ability_require_field_type_scope(ASTNode *ability_decl,
         scope_declare(ctx->scope, s);
     }
 
-    *out_type = intent_role_resolve_type_ref(type_node, ctx);
+    *out_type = intent_normalize_type(intent_resolve_type_ref(type_node, ctx));
     scope_exit(&ctx->scope);
     free(ability_text);
     free(effective_types);
@@ -486,14 +478,18 @@ intent_step_derive_zone_binding_context(ASTNode *intent_decl, ASTNode *step,
 
     if (step->data.intent_step.using_expr == NULL
         && step->data.intent_step.where_type != NULL) {
-        Type *zone_type = intent_role_resolve_type_ref(step->data.intent_step.where_type, ctx);
+        Type *zone_type = intent_normalize_type(
+            intent_resolve_type_ref(step->data.intent_step.where_type, ctx));
 
         if (zone_type == NULL || zone_type->name == NULL)
             return;
 
         const char *matched_alias = find_unique_intent_binding_alias_by_type_name(
             intent_decl, zone_type->name, ctx);
-        if (matched_alias != NULL)
+        if (matched_alias != NULL) {
             step->data.intent_step.using_expr = ast_create_identifier(matched_alias);
+            step->data.intent_step.derived_using_from_where =
+                step->data.intent_step.using_expr != NULL;
+        }
     }
 }

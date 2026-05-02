@@ -408,6 +408,77 @@ test_mir_lowering_part_a(void)
         hir_destroy(hir);
     }
 
+    TEST("MIR validator rejects orphan cleanup-marked block");
+    {
+        const char *src =
+            "subject Buyer { let hp: Int; action Pay(self) -> Void { return; } }\n"
+            "ability Payable { func Pay() -> Void; }\n"
+            "role BuyerPay for Buyer {\n"
+            "    impl ability Payable { func Pay() -> Void { return; } }\n"
+            "}\n"
+            "object BuyerView { let hp: Int; }\n"
+            "zone PaymentZone {\n"
+            "    subject slot buyer: Buyer\n"
+            "    object slot view: BuyerView\n"
+            "    authority buyer requires Payable\n"
+            "    refresh view from buyer by buyer\n"
+            "}\n"
+            "intent Purchase(payment: PaymentZone, buyer: Buyer) {\n"
+            "    rollback: full;\n"
+            "    step pay {\n"
+            "        where: PaymentZone;\n"
+            "        using: payment;\n"
+            "        who: buyer;\n"
+            "        authorized by: buyer;\n"
+            "        requires: Payable;\n"
+            "        on: buyer.Pay();\n"
+            "        compensate: buyer.Pay();\n"
+            "    }\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        MIRRoutine *purchase = NULL;
+        char *mir_error = NULL;
+        bool corrupted = false;
+        bool rejected = false;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+
+        if (ok)
+            purchase = find_mir_routine_mut(mir, "Purchase", MIR_SCOPE_INTENT);
+        if (purchase != NULL) {
+            size_t next_count = purchase->block_count + 1;
+            MIRBasicBlock *grown = realloc(purchase->blocks,
+                                           next_count * sizeof(MIRBasicBlock));
+            if (grown != NULL) {
+                MIRBasicBlock orphan;
+                memset(&orphan, 0, sizeof(orphan));
+                purchase->blocks = grown;
+                orphan.id = purchase->block_count;
+                orphan.is_cleanup = true;
+                orphan.is_reachable = true;
+                orphan.source_hir_block_id = SIZE_MAX;
+                purchase->blocks[purchase->block_count] = orphan;
+                purchase->block_count = next_count;
+                purchase->block_capacity = next_count;
+                corrupted = true;
+            }
+        }
+
+        rejected = ok
+                   && purchase != NULL
+                   && corrupted
+                   && !mir_validate(mir, &mir_error)
+                   && mir_error != NULL
+                   && strstr(mir_error, "cleanup block") != NULL
+                   && strstr(mir_error, "not registered as a cleanup root") != NULL;
+        EXPECT(rejected);
+        free(mir_error);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
     TEST("MIR carries pin-region cleanup edge metadata");
     {
         const char *src =

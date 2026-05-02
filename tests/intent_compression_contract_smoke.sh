@@ -113,6 +113,12 @@ grep -Fq "where_inherited_from_intent" \
     "$ROOT_DIR/src/compiler/dir.h"
 grep -Fq "where_inherited_from_action" \
     "$ROOT_DIR/src/compiler/dir.h"
+grep -Fq "where_derived_from_using" \
+    "$ROOT_DIR/src/compiler/dir.h"
+grep -Fq "where_derived_from_transfer" \
+    "$ROOT_DIR/src/compiler/dir.h"
+grep -Fq "using_derived_from_transfer" \
+    "$ROOT_DIR/src/compiler/dir.h"
 grep -Fq "requires_inherited_from_action" \
     "$ROOT_DIR/src/compiler/dir.h"
 grep -Fq "causes_inherited_from_action" \
@@ -124,6 +130,12 @@ grep -Fq "who-derived=single-participant" \
 grep -Fq "where-default=intent" \
     "$ROOT_DIR/src/compiler/dir_validate.c"
 grep -Fq "where-default=action" \
+    "$ROOT_DIR/src/compiler/dir_validate.c"
+grep -Fq "where-derived=using" \
+    "$ROOT_DIR/src/compiler/dir_validate.c"
+grep -Fq "where-derived=transfer" \
+    "$ROOT_DIR/src/compiler/dir_validate.c"
+grep -Fq "using-derived=transfer" \
     "$ROOT_DIR/src/compiler/dir_validate.c"
 grep -Fq "requires-default=action" \
     "$ROOT_DIR/src/compiler/dir_validate.c"
@@ -147,6 +159,8 @@ grep -Fq "source_from_action" \
     "$ROOT_DIR/src/compiler/air.h"
 grep -Fq "source_from_transfer" \
     "$ROOT_DIR/src/compiler/air.h"
+grep -Fq "step->where_derived_from_transfer" \
+    "$ROOT_DIR/src/compiler/air.c"
 grep -Fq "source_provenance=" \
     "$ROOT_DIR/src/compiler/air_verify.c"
 grep -Fq "who_provenance=" \
@@ -231,6 +245,20 @@ grep -Fq "intent using mismatch reports compressed derivation reason" \
     "$ROOT_DIR/src/tests/semantic/test_semantic_misc_b2_part_g.cases.h"
 grep -Fq "using binding points to a different zone than the current where contract" \
     "$ROOT_DIR/src/tests/semantic/test_semantic_misc_b2_part_g.cases.h"
+grep -Fq "derived_using_from_where" \
+    "$ROOT_DIR/src/tests/semantic/test_semantic_intent_compression_part_a.cases.h"
+grep -Fq "derived using from zone type" \
+    "$ROOT_DIR/src/parser/ast_print_intent.c"
+grep -Fq "using_derived_from_where" \
+    "$ROOT_DIR/src/compiler/dir_collect.c"
+grep -Fq "using-derived=where" \
+    "$ROOT_DIR/src/compiler/dir_validate.c"
+grep -Fq "DIR captures intent transfer and zone parameter participants" \
+    "$ROOT_DIR/src/tests/dir/test_dir_lowering.cases.h"
+grep -Fq "step->where_derived_from_transfer" \
+    "$ROOT_DIR/src/tests/dir/test_dir_lowering.cases.h"
+grep -Fq "step->using_derived_from_transfer" \
+    "$ROOT_DIR/src/tests/dir/test_dir_lowering.cases.h"
 grep -Fq "non-intent callees do not carry intent step provenance into AIR" \
     "$ROOT_DIR/src/tests/semantic/test_semantic_misc_b2_part_d.cases.h"
 grep -Fq "declare the participant with 'who ghost: <Subject>;'" \

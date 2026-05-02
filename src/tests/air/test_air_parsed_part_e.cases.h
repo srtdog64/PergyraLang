@@ -301,8 +301,6 @@ test_air_parsed_transfer_emits_zone_and_world_boundaries(void)
         "}\n"
         "intent Checkout(cart: CartZone, payment: PaymentZone, buyer: Buyer) {\n"
         "    step Handoff {\n"
-        "        where: PaymentZone;\n"
-        "        using: payment;\n"
         "        transfer: cart -> payment;\n"
         "        who: buyer;\n"
         "        authorized by: buyer;\n"
@@ -324,6 +322,7 @@ test_air_parsed_transfer_emits_zone_and_world_boundaries(void)
                 && strcmp(air->boundaries[i].source_name, "PaymentZone") == 0) {
                 found_zone = true;
                 found_zone_evidence = air->boundaries[i].has_rir_boundary_evidence
+                    && air->boundaries[i].source_from_transfer
                     && air->boundaries[i].has_rir_authority_evidence
                     && air->boundaries[i].rir_boundary_evidence_scope != NULL
                     && air->boundaries[i].rir_authority_evidence_name != NULL

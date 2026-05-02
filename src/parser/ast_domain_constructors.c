@@ -283,6 +283,7 @@ ASTNode* ast_create_intent_step(const char* name) {
     node->data.intent_step.derived_where_from_using = false;
     node->data.intent_step.derived_where_from_transfer = false;
     node->data.intent_step.derived_using_from_transfer = false;
+    node->data.intent_step.derived_using_from_where = false;
     return node;
 }
 

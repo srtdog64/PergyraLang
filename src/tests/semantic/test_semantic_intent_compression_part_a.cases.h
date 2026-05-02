@@ -207,6 +207,7 @@ test_intent_compression_semantics(void)
         EXPECT(result != NULL && result->error_count == 0);
         EXPECT(step != NULL && step->data.intent_step.derived_who_from_on_receiver);
         EXPECT(step != NULL && step->data.intent_step.inherited_where_from_action);
+        EXPECT(step != NULL && step->data.intent_step.derived_using_from_where);
         EXPECT(step != NULL && step->data.intent_step.inherited_authorized_by_from_action);
         EXPECT(step != NULL && step->data.intent_step.where_type != NULL);
         EXPECT(step != NULL && step->data.intent_step.where_type->type == AST_TYPE);

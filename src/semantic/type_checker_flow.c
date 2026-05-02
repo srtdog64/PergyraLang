@@ -443,6 +443,10 @@ type_check_statement_flow(ASTNode *node, SemanticContext *ctx,
         return type_check_match_stmt_flow(node, ctx, loop_flow);
     case AST_WITH_STMT:
         return type_check_with_stmt_flow(node, ctx, loop_flow);
+    case AST_WHILE_LOOP:
+        return type_check_while_loop_flow(node, ctx);
+    case AST_FOR_LOOP:
+        return type_check_for_loop_flow(node, ctx);
     case AST_PARALLEL_BLOCK:
         (void)type_check_parallel_block_flow(node, ctx);
         return FLOW_FALLTHROUGH;

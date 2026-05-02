@@ -213,6 +213,7 @@ typedef struct {
     bool derived_where_from_using;
     bool derived_where_from_transfer;
     bool derived_using_from_transfer;
+    bool derived_using_from_where;
 } ASTIntentStepData;
 
 typedef struct {

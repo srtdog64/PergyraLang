@@ -181,6 +181,66 @@ LLVM-family target/extern bridge track으로 둔다.
      reflected in predecessor lists, and every recorded predecessor must point
      back through a true/false/cleanup/rollback/invalidation edge. Gate:
      `make test-mir cfg-body-dataflow-test-smoke` (`28/0` MIR tests).
+   - 2026-05-03 CFG/MIR direct-call fact tightening: direct statement calls now
+     carry their callee name as `MIR_INST_STMT.arg0`, and direct initializer
+     calls carry their callee name as `MIR_INST_DEF.arg1`. Intent observability
+     no-trace detection consumes those MIR facts and HIR routine `direct_calls`
+     before structural AST fallback. Gate: `make test-mir
+     cfg-body-dataflow-test-smoke test-transpile perf-contract-test-smoke`
+     (`32/0` MIR tests, `710/0` transpile tests).
+   - 2026-05-03 CFG loop-flow consumer tightening: `while` and static range
+     `for` statements now return semantic CFG flow flags to their parent body
+     instead of being flattened through the generic statement fallback. The
+     accepted slice is conservative: `while true { return ... }` satisfies
+     non-`Void` all-path return, and `for i in 0..1 { return ... }` satisfies it
+     only when the range is statically non-empty and no `break` path exits the
+     loop. `for-in`, empty ranges, dynamic ranges/conditions, possible `break`,
+     and non-returning backedges remain fallthrough. Gate:
+     `make test-semantic cfg-body-dataflow-test-smoke` (`2497/0` semantic
+     tests).
+   - 2026-05-03 DAG intent/action-contract seam tightening:
+     `type_checker_intent_role_fields.c` no longer owns a second local
+     materializing type-ref helper, and `type_checker_func_action_contract.c`
+     consumes annotation metadata for action-contract domain-slot/parameter
+     reads. This shrank the resolver inventory cap from `12` to `10`; the
+     2026-05-03 generic/host/intent-type follow-up below shrinks it again to `5` while keeping
+     fallback/materializer counters at zero. Negative probes confirmed
+     `type_checker_ownership_let_helpers.c` still needs earlier collection
+     shell/key-policy metadata before leaving the compatibility path. Gate:
+     `make test-semantic type-resolution-dag-test-smoke
+     type-resolution-resolver-inventory-test-smoke`.
+   - 2026-05-03 DAG generic materializer seam removal:
+     `type_checker_generic_effective_args.c`,
+     `type_checker_generic_contracts.h`, and
+     `type_checker_generic_validation.c` now consume annotation metadata and
+     `semantic_type_resolution_lookup_metadata_type_ref(...)` only; they no
+     longer call the materializing type-ref helper. `type_checker_host_helpers.c`
+     now follows the same metadata-only path for host/domain slot type reads,
+     `type_checker_func_decl.c` now uses metadata-only lookup for function
+     parameter/return signatures, and `type_checker_expr.c` does the same for
+     expression-local annotations. The resolver inventory cap is now `3`, with
+     fallback/materializer counters still at zero. The only remaining semantic
+     owner seam is `type_checker_ownership_let_helpers.c`; a negative probe
+     showed that lowering it to metadata-only drops unsupported `HashMap` key
+     diagnostics, so collection shell/key-policy facts must be staged first.
+     Gate:
+     `make test-semantic type-resolution-dag-test-smoke
+     type-resolution-resolver-inventory-test-smoke` (`2500/0` semantic).
+   - 2026-05-03: intent compression provenance tightened. A `using` binding
+     derived from a unique `where`/zone type now records
+     `derived_using_from_where`, so AST print and contract summaries no longer
+     report it as a local clause. Gate:
+     `make test-parser test-semantic cfg-body-dataflow-test-smoke` (`2498/0`).
+   - 2026-05-03: intent transfer compression provenance tightened through DIR
+     and AIR. Transfer-only steps can now derive both `where` and `using` from
+     the transfer target; DIR records `where_derived_from_transfer` and
+     `using_derived_from_transfer`, validates that provenance has concrete
+     zone/binding facts, and AIR marks the corresponding zone boundary with
+     `source_from_transfer`. Gate: `make test-semantic test-dir test-air
+     test-transpile cfg-body-dataflow-test-smoke
+     intent-compression-contract-test-smoke type-resolution-dag-test-smoke
+     type-resolution-resolver-inventory-test-smoke perf-contract-test-smoke`
+     (`2500/0` semantic, `9/0` DIR, `67/0` AIR, `710/0` transpile).
 2. **CFG body safety source-of-truth 승격.** all-path return / definite assignment /
    move-use / pin cleanup 이후 ownership/drop/zone/effect transition 소비자가
    CFG/MIR fact를 직접 소비하게 만든다.
@@ -4678,7 +4738,7 @@ Source of truth:
     - 확인된 남은 blocker: `type_checker_program.inc`의 function body param/return/domain-slot materialization seam은 단순 lookup-only로 낮추면 direct semantic unit path에서 graph metadata bootstrap 없이 segfault가 난다. 이 seam은 direct semantic unit bootstrap 또는 null-safe diagnostic path가 먼저 필요하다
     - 확인된 남은 blocker: `type_checker_intent_decl.c`의 intent participant/value/where resolver seam은 단순 lookup-only로 낮추면 semantic suite 후반 parallel execution path에서 segfault가 난다. intent declaration은 graph precollect가 있지만 direct semantic/bootstrap path와 step/local binding materialization이 아직 lookup-only 계약을 만족하지 않으므로 explicit fallback seam으로 남긴다
     - 확인된 남은 blocker: `type_checker_helpers_host.inc`의 host helper resolver는 단순 lookup-only로 낮추면 intent/zone authority positive path가 subject-slot type metadata 부족으로 무너진다. 이 seam은 zone/world/host subject-slot nominal metadata를 DAG에 보존한 뒤 제거해야 한다
-    - 확인된 남은 blocker: `type_checker_generic_validation.c`의 generic where/default validation resolver는 단순 lookup-only로 낮추면 default type argument where-bound validation positive path가 깨진다. 이 seam은 generic default effective-arg fact와 where-bound provenance를 DAG metadata에 올린 뒤 제거해야 한다
+    - 완료: `type_checker_generic_validation.c`의 generic where/default validation resolver는 generic default effective-arg fact와 where-bound provenance가 DAG metadata에 올라온 뒤 metadata-only lookup으로 전환했다. resolver inventory gate가 이 owner의 materializing helper 재도입을 차단한다
     - 확인된 남은 blocker: `type_checker_generic_support.inc`의 boundary type helper seam은 단순 lookup-only로 낮추면 `ref class` / `ref subject` escape diagnostics 150개가 빠진다. 이 seam은 generic/nominal boundary category fact와 ref/own escape classifier가 DAG metadata에서 같은 type category를 볼 수 있을 때 제거해야 한다
     - 확인된 남은 blocker: `type_checker_ability_where.c`의 ability where-bound resolver는 단순 lookup-only로 낮추면 generic ability multi-bound mismatch provenance가 사라져 `Cloneable` bound mismatch 진단 회귀가 난다. 이 seam은 ability where-bound effective-arg / multi-bound provenance fact를 DAG metadata에 올린 뒤 제거해야 한다
     - 확인된 남은 blocker: `type_checker_operator_expr.inc`의 operator overload method signature resolver는 단순 lookup-only로 낮추면 semantic suite가 event/misc path 진입 전후에 segfault할 수 있다. 이 seam은 method param/return signature metadata와 operator overload candidate summary를 DAG에 올린 뒤 제거해야 한다

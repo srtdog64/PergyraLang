@@ -418,6 +418,8 @@ air_synthesize(const HIRProgram *hir,
                     step->where_inherited_from_intent;
                 air->boundaries[boundary_index].source_from_action =
                     step->where_inherited_from_action;
+                air->boundaries[boundary_index].source_from_transfer =
+                    step->where_derived_from_transfer;
                 air->boundaries[boundary_index].authority_from_zone =
                     step->authorized_by_derived_from_zone;
                 air->boundaries[boundary_index].authority_from_action =

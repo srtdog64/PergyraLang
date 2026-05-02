@@ -76,6 +76,7 @@ run_literal_air_drift_smoke() {
     require_literal "src/compiler/driver_app.c" "air_synthesize"
     require_literal "docs/72_diagnostic_codes.md" "PGY_SEM_INTENT_BOUNDARY_DRIFT"
     require_literal "src/test_air.c" "AIR strict evidence requires MIR pin cleanup"
+    require_literal "src/test_air.c" "AIR ignores orphan MIR cleanup root evidence"
     require_literal "src/test_air.c" "AIR parsed transfer emits zone and world boundaries"
     require_literal "src/test_rir.c" "RIR_OP_SPAWN"
     require_literal "docs/72_diagnostic_codes.md" "PGY_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING"
@@ -137,6 +138,7 @@ air_test_case_paths = [
     root / "src" / "tests" / "air" / "test_air_boundary_part_d.cases.h",
     root / "src" / "tests" / "air" / "test_air_parsed_part_e.cases.h",
     root / "src" / "tests" / "air" / "test_air_strict_part_f.cases.h",
+    root / "src" / "tests" / "air" / "test_air_observability_pin_part_g.cases.h",
 ]
 rir_test_path = root / "src" / "test_rir.c"
 rir_test_case_paths = [
@@ -570,6 +572,7 @@ required_test_terms = [
     "AIR rejects orphan MIR pin cleanup evidence",
     "AIR strict evidence requires MIR pin cleanup",
     "AIR collects MIR cleanup block evidence",
+    "AIR ignores orphan MIR cleanup root evidence",
     "AIR rejects empty MIR cleanup evidence",
     "AIR collects DAG generic ability evidence",
     "AIR reports DAG fallback drift",

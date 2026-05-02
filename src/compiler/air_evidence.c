@@ -1,5 +1,6 @@
 #include "air_internal.h"
 #include "mir_cfg_contract_cleanup_fact.h"
+#include "mir_cfg_contract_cleanup_root_membership.h"
 #include "mir_cfg_contract_pin.h"
 
 #include "../semantic/semantic.h"
@@ -149,6 +150,11 @@ air_mir_routine_cleanup_fact_count(const MIRRoutine *routine)
         return 0;
     for (size_t i = 0; i < routine->block_count; i++) {
         const MIRBasicBlock *block = &routine->blocks[i];
+        const bool registered_cleanup_root =
+            mir_cleanup_block_is_registered_root(routine, i);
+
+        if (block->is_cleanup && !registered_cleanup_root)
+            continue;
         if (block->has_cleanup_succ
             && block->cleanup_succ == routine->cleanup_block
             && routine->cleanup_block < routine->block_count
@@ -156,11 +162,16 @@ air_mir_routine_cleanup_fact_count(const MIRRoutine *routine)
             count++;
             continue;
         }
-        if (mir_block_has_cleanup_edge_fact(block, "cleanup-edge"))
+        if (!block->is_cleanup
+            && mir_block_has_cleanup_edge_fact(block, "cleanup-edge"))
             count++;
-        if (mir_block_has_cleanup_edge_fact(block, "cleanup-edge-from-rollback"))
+        if (routine->has_rollback_block
+            && i == routine->rollback_block
+            && mir_block_has_cleanup_edge_fact(block, "cleanup-edge-from-rollback"))
             count++;
-        if (mir_block_has_cleanup_edge_fact(block, "cleanup-edge-from-invalidation"))
+        if (routine->has_invalidation_block
+            && i == routine->invalidation_block
+            && mir_block_has_cleanup_edge_fact(block, "cleanup-edge-from-invalidation"))
             count++;
     }
     return count;

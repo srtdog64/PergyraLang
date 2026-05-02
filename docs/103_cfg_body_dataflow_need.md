@@ -208,7 +208,34 @@ The migration should be incremental and gated:
   cleanup blocks marked as pin regions. This keeps cleanup/rollback/invalidation
   on the exceptional cleanup chain instead of letting backend consumers treat
   cleanup as a normal body-flow block.
+- Done: MIR validation rejects `is_cleanup` blocks that are not registered as
+  the routine cleanup, rollback, or invalidation root. This keeps cleanup-block
+  exemptions tied to the explicit exceptional cleanup inventory instead of
+  allowing orphan cleanup-marked blocks to bypass ordinary body-flow validation.
+- Done: AIR global MIR cleanup evidence now follows the same cleanup-root
+  inventory rule. Handmade or malformed MIR with an unregistered cleanup-marked
+  block cannot produce extra `AIR_EVIDENCE_MIR_CLEANUP` facts.
+- Done: direct statement calls now carry their callee name as
+  `MIR_INST_STMT.arg0`, and direct initializer calls carry their callee name as
+  `MIR_INST_DEF.arg1`. Backend feature-use probes can consume the MIR facts for
+  direct calls instead of rediscovering the same call through AST traversal; AST
+  scanning remains only for nested expression/declaration inventory that has not
+  yet been materialized as a dedicated MIR fact. The C backend now has a
+  regression that keeps intent observability enabled when the only builtin use
+  is a direct initializer call. The probe also consumes HIR routine
+  `direct_calls` before walking MIR blocks, so routine-level nested call
+  summaries no longer require a routine AST rediscovery pass.
 - Done: non-`Void` function all-path return now consumes the semantic CFG body flow summary and emits `PGY_SEM_MISSING_RETURN` when a reachable normal path can fall through.
+- Done: `while true { return ... }` now propagates the loop body's terminating
+  return fact through `type_check_while_loop_flow(...)` instead of being
+  flattened into a generic fallthrough statement. Loops with possible `break`,
+  non-static conditions, or non-returning backedges remain conservative
+  fallthrough paths.
+- Done: static range `for` loops now propagate the loop body's terminating
+  return fact through `type_check_for_loop_flow(...)` only when the compiler can
+  prove the loop executes at least once and no `break` path exits the loop.
+  `0..0`, `for-in`, dynamic ranges, and loops with possible backedges remain
+  conservative fallthrough paths.
 - Done: semantic CFG body-flow flag consumption now goes through
   `flow_record_statement_result()`, `flow_has_fallthrough()`, and
   `flow_terminating_flags()` instead of open-coded branch/join flag masks.

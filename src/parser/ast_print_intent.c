@@ -21,7 +21,8 @@ print_intent_step_contract_sources(const ASTNode *node, int indent)
         && !node->data.intent_step.derived_authorized_by_from_zone
         && !node->data.intent_step.derived_where_from_using
         && !node->data.intent_step.derived_where_from_transfer
-        && !node->data.intent_step.derived_using_from_transfer) {
+        && !node->data.intent_step.derived_using_from_transfer
+        && !node->data.intent_step.derived_using_from_where) {
         return;
     }
 
@@ -78,6 +79,11 @@ print_intent_step_contract_sources(const ASTNode *node, int indent)
     }
     if (node->data.intent_step.derived_using_from_transfer) {
         printf("%sderived using from transfer target", printed ? ", " : "");
+        printed = true;
+    }
+    if (node->data.intent_step.derived_using_from_where) {
+        printf("%sderived using from zone type", printed ? ", " : "");
+        printed = true;
     }
     printf("\n");
 }

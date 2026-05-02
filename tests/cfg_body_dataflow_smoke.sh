@@ -25,6 +25,7 @@ run_literal_doc_contract_smoke() {
         "src/semantic/type_checker_flow_resources.h"
         "src/semantic/type_checker_flow_parallel.h"
         "src/compiler/mir_cleanup.c"
+        "src/compiler/mir_call_fact.h"
         "src/compiler/mir_cfg_contract_cleanup_fact.h"
         "src/compiler/mir_cfg_contract_pin.h"
         "src/compiler/mir_cfg_contract_validate.h"
@@ -54,10 +55,27 @@ run_literal_doc_contract_smoke() {
     require_literal "src/compiler/mir_cfg_contract_pin.h" "pin cleanup fact does not match source slot, view, and access mode"
     require_literal "src/compiler/mir_cfg_contract_validate.h" "mir_validate_edge_predecessor_link"
     require_literal "src/compiler/mir_cfg_contract_validate.h" "mir_validate_successor_index"
+    require_literal "src/compiler/mir_cfg_contract_validate.h" "mir_cleanup_block_is_registered_root"
+    require_literal "src/compiler/mir_cfg_contract_validate.h" "not registered as a cleanup root"
     require_literal "src/compiler/mir_cfg_contract_validate.h" "rollback successor"
     require_literal "src/compiler/mir_cfg_contract_validate.h" "invalidation successor"
     require_literal "src/compiler/mir_ssa_use_edges.h" "mir_def_instruction_source_expr"
     require_literal "src/compiler/mir_ssa_use_edges.h" "ASTNode *expr = inst->ast"
+    require_literal "src/compiler/mir_stmt_population.h" "#include \"mir_call_fact.h\""
+    require_literal "src/compiler/mir_call_fact.h" "mir_attach_statement_call_fact"
+    require_literal "src/compiler/mir_call_fact.h" "inst->arg0 = stmt->data.call.callee->data.identifier.name"
+    require_literal "src/compiler/mir_call_fact.h" "mir_attach_def_initializer_call_fact"
+    require_literal "src/compiler/mir_call_fact.h" "inst->arg1 = expr->data.call.callee->data.identifier.name"
+    require_literal "src/semantic/type_checker_flow.c" "type_check_while_loop_flow(node, ctx)"
+    require_literal "src/semantic/type_checker_flow.c" "type_check_for_loop_flow(node, ctx)"
+    require_literal "src/semantic/type_checker_flow_loops.h" "type_check_while_loop_flow(ASTNode *node, SemanticContext *ctx)"
+    require_literal "src/semantic/type_checker_flow_loops.h" "type_check_for_loop_flow(ASTNode *node, SemanticContext *ctx)"
+    require_literal "src/semantic/type_checker_flow_loops.h" "condition_static_false"
+    require_literal "src/semantic/type_checker_flow_loops.h" "restore_resource_states(&base)"
+    require_literal "src/tests/semantic/test_semantic_misc_a_part_a.cases.h" "CFG body flow accepts while-true all-path return"
+    require_literal "src/tests/semantic/test_semantic_misc_a_part_a.cases.h" "CFG body flow accepts static single-iteration for all-path return"
+    require_literal "src/tests/semantic/test_semantic_misc_a_part_a.cases.h" "CFG body flow keeps zero-iteration for as fallthrough"
+    require_literal "src/tests/semantic/test_semantic_misc_a_part_a.cases.h" "CFG static false while does not merge unreachable resource state"
     require_literal "src/codegen/transpiler_mir_emission_contract.h" "mir_block_has_cleanup_edge_fact(block, cleanup_fact)"
     require_literal "src/codegen/transpiler_mir_emission_contract.h" "mir_block_has_pin_cleanup_edge(block)"
     require_literal "src/compiler/air_evidence.c" "mir_block_has_cleanup_edge_fact(block"
@@ -100,6 +118,7 @@ flow_resources_path = root / "src" / "semantic" / "type_checker_flow_resources.h
 flow_loops_path = root / "src" / "semantic" / "type_checker_flow_loops.h"
 flow_parallel_path = root / "src" / "semantic" / "type_checker_flow_parallel.h"
 mir_cleanup_path = root / "src" / "compiler" / "mir_cleanup.c"
+mir_call_fact_path = root / "src" / "compiler" / "mir_call_fact.h"
 mir_cfg_contract_cleanup_fact_path = root / "src" / "compiler" / "mir_cfg_contract_cleanup_fact.h"
 mir_cfg_contract_pin_path = root / "src" / "compiler" / "mir_cfg_contract_pin.h"
 mir_cfg_contract_control_path = root / "src" / "compiler" / "mir_cfg_contract_control.h"
@@ -157,6 +176,7 @@ for path in (
     flow_loops_path,
     flow_parallel_path,
     mir_cleanup_path,
+    mir_call_fact_path,
     mir_cfg_contract_cleanup_fact_path,
     mir_cfg_contract_pin_path,
     mir_cfg_contract_control_path,
@@ -234,6 +254,7 @@ flow = (
     + expr_path.read_text(encoding="utf-8")
 )
 mir_cleanup = mir_cleanup_path.read_text(encoding="utf-8")
+mir_call_fact = mir_call_fact_path.read_text(encoding="utf-8")
 mir_cfg_contract_cleanup_fact = mir_cfg_contract_cleanup_fact_path.read_text(encoding="utf-8")
 mir_cfg_contract_pin = mir_cfg_contract_pin_path.read_text(encoding="utf-8")
 mir_cfg_contract_control = mir_cfg_contract_control_path.read_text(encoding="utf-8")
@@ -391,6 +412,8 @@ required_mir_cleanup_validator_terms = [
     "invalidation successor",
     "cleanup block[%zu] must not have normal CFG successors",
     "cleanup block[%zu] must not be a pin region",
+    "mir_cleanup_block_is_registered_root",
+    "not registered as a cleanup root",
     "CFG-owned control statement as fallback STMT",
 ]
 missing_mir_cleanup_validator = [
@@ -456,6 +479,7 @@ mir_owner_limits = {
     mir_ssa_use_edges_path: 600,
     mir_liveness_dce_path: 600,
     mir_dce_path: 600,
+    mir_call_fact_path: 600,
     mir_stmt_population_path: 600,
 }
 for path, limit in mir_owner_limits.items():
@@ -502,6 +526,13 @@ required_mir_owner_terms = {
         "AST_PARALLEL_BLOCK",
         "AST_DEFER_STMT",
     ],
+    "src/compiler/mir_call_fact.h": [
+        "PERGYRA_MIR_CALL_FACT_H",
+        "mir_attach_statement_call_fact",
+        "inst->arg0 = stmt->data.call.callee->data.identifier.name",
+        "mir_attach_def_initializer_call_fact",
+        "inst->arg1 = expr->data.call.callee->data.identifier.name",
+    ],
     "src/compiler/mir_stmt_population.h": [
         "mir_populate_stmt_instructions",
         "mir_stmt_def_name",
@@ -512,6 +543,7 @@ required_mir_owner_terms = {
         "Intent metadata is MIR semantic inventory",
         "#include \"mir_cfg_contract_control.h\"",
         "mir_stmt_ast_is_cfg_owned_control(stmt)",
+        "#include \"mir_call_fact.h\"",
     ],
     "src/compiler/mir_cfg_contract_control.h": [
         "PERGYRA_MIR_CFG_CONTRACT_CONTROL_H",
@@ -531,6 +563,7 @@ mir_owner_text = {
     "src/compiler/mir_ssa_use_edges.h": mir_ssa_use_edges,
     "src/compiler/mir_liveness_dce.h": mir_liveness_dce,
     "src/compiler/mir_dce.h": mir_dce,
+    "src/compiler/mir_call_fact.h": mir_call_fact,
     "src/compiler/mir_stmt_population.h": mir_stmt_population,
     "src/compiler/mir_cfg_contract_control.h": mir_cfg_contract_control,
 }
@@ -561,6 +594,8 @@ required_flow_terms = [
     "type_check_while_loop",
     "type_check_for_loop",
     "merge_resource_snapshots_or",
+    "condition_static_false",
+    "restore_resource_states(&base)",
     "type_check_defer_body_flow",
     "flow_reject_dynamic_defer_control",
     "PGY_CODE_SEM_DEFER_DYNAMIC_CONTROL",
@@ -711,6 +746,9 @@ for term in ["PGY_SEM_MISSING_RETURN", "PGY_SEM_UNREACHABLE_CODE"]:
         raise SystemExit(f"diagnostic docs must document {term}")
 
 for term in [
+    "CFG body flow accepts while-true all-path return",
+    "CFG body flow accepts static single-iteration for all-path return",
+    "CFG body flow keeps zero-iteration for as fallthrough",
     "CFG body flow warns on unreachable statement after return",
     "CFG body flow warns after all if branches terminate",
     "CFG body flow warns after exhaustive match terminates",
@@ -718,6 +756,7 @@ for term in [
     "CFG body flow warns after loop continue terminates path",
     "CFG loop move join consumes QubitSlot on break path",
     "CFG loop move join rejects consumed QubitSlot on continue backedge",
+    "CFG static false while does not merge unreachable resource state",
     "CFG defer return does not make following statement unreachable",
     "CFG defer return does not satisfy non-Void all-path return",
     "CFG defer QubitSlot release does not consume current path",
@@ -792,9 +831,14 @@ for term in [
     "MIR validator rejects CFG-owned control fallback statements",
     "MIR validator rejects missing rollback and invalidation cleanup facts",
     "MIR validator rejects pin-region without cleanup root",
+    "MIR validator rejects orphan cleanup-marked block",
     "MIR keeps pin cleanup fact across early return",
     "MIR keeps pin cleanup fact across branch returns",
     "MIR keeps pin cleanup fact across loop break and continue",
+    "MIR carries direct statement call facts",
+    "routine_has_stmt_call_fact_named",
+    "MIR carries direct initializer call facts",
+    "routine_has_def_call_fact_named",
     "source_terminator_kind == HIR_BLOCK_RETURN",
     "source_terminator_kind != HIR_BLOCK_GOTO",
     "routine_has_complete_loop_init_for",

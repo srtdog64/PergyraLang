@@ -241,6 +241,66 @@ test_air_collects_mir_cleanup_block_evidence(void)
 }
 
 static bool
+test_air_ignores_orphan_mir_cleanup_root_evidence(void)
+{
+    AIRProgram *air = (AIRProgram *)calloc(1, sizeof(AIRProgram));
+    MIRProgram mir;
+    MIRRoutine routine;
+    MIRBasicBlock blocks[3];
+    MIRInstruction insts[2];
+    char *error = NULL;
+    bool ok;
+
+    if (air == NULL)
+        return false;
+
+    memset(insts, 0, sizeof(insts));
+    insts[0].kind = MIR_INST_CLEANUP_EDGE;
+    insts[0].name = "cleanup-edge";
+    insts[1].kind = MIR_INST_CLEANUP_EDGE;
+    insts[1].name = "cleanup-edge-from-rollback";
+
+    memset(blocks, 0, sizeof(blocks));
+    blocks[0].is_reachable = true;
+    blocks[0].has_cleanup_succ = true;
+    blocks[0].cleanup_succ = 1;
+    blocks[0].instructions = &insts[0];
+    blocks[0].instruction_count = 1;
+    blocks[1].id = 1;
+    blocks[1].is_cleanup = true;
+    blocks[1].is_reachable = true;
+    blocks[2].id = 2;
+    blocks[2].is_cleanup = true;
+    blocks[2].is_reachable = true;
+    blocks[2].instructions = &insts[1];
+    blocks[2].instruction_count = 1;
+
+    memset(&routine, 0, sizeof(routine));
+    routine.name = "cleanup_owner";
+    routine.blocks = blocks;
+    routine.block_count = 3;
+    routine.has_cleanup_block = true;
+    routine.cleanup_block = 1;
+    routine.cleanup_instruction_count = 2;
+    routine.cleanup_edge_count = 2;
+
+    memset(&mir, 0, sizeof(mir));
+    mir.routines = &routine;
+    mir.routine_count = 1;
+
+    ok = air_collect_mir_evidence(air, &mir, &error)
+        && air_validate(air, &error)
+        && air->mir_cleanup_evidence_count == 1
+        && air->evidence_count == 1
+        && air->evidence_nodes[0].kind == AIR_EVIDENCE_MIR_CLEANUP
+        && air->evidence_nodes[0].fact_count == 1
+        && air->evidence_nodes[0].fallback_count == 0;
+    free(error);
+    air_destroy(air);
+    return ok;
+}
+
+static bool
 test_air_rejects_empty_mir_cleanup_evidence(void)
 {
     AIREvidenceNode evidence_nodes[] = {

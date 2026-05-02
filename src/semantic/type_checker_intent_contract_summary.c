@@ -228,6 +228,7 @@ intent_step_format_contract_source_summary(const ASTNode *intent_decl,
     }
     if (step->data.intent_step.using_expr != NULL
         && !step->data.intent_step.derived_using_from_transfer
+        && !step->data.intent_step.derived_using_from_where
         && step->data.intent_step.using_expr->type == AST_IDENTIFIER
         && step->data.intent_step.using_expr->data.identifier.name != NULL) {
         intent_step_summary_append(buffer, buffer_size, &used,
@@ -414,6 +415,18 @@ intent_step_format_contract_source_summary(const ASTNode *intent_decl,
                 : "<binding>";
         intent_step_summary_append(buffer, buffer_size, &used,
             "%s- derived using from transfer target: %s",
+            has_any ? "\n" : "", using_name);
+        has_any = true;
+    }
+    if (step->data.intent_step.derived_using_from_where) {
+        const char *using_name =
+            (step->data.intent_step.using_expr != NULL
+             && step->data.intent_step.using_expr->type == AST_IDENTIFIER
+             && step->data.intent_step.using_expr->data.identifier.name != NULL)
+                ? step->data.intent_step.using_expr->data.identifier.name
+                : "<binding>";
+        intent_step_summary_append(buffer, buffer_size, &used,
+            "%s- derived using from zone type: %s",
             has_any ? "\n" : "", using_name);
         has_any = true;
     }

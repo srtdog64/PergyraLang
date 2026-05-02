@@ -204,6 +204,9 @@ main(void)
     TEST("AIR collects MIR cleanup block evidence");
     EXPECT(test_air_collects_mir_cleanup_block_evidence());
 
+    TEST("AIR ignores orphan MIR cleanup root evidence");
+    EXPECT(test_air_ignores_orphan_mir_cleanup_root_evidence());
+
     TEST("AIR rejects empty MIR cleanup evidence");
     EXPECT(test_air_rejects_empty_mir_cleanup_evidence());
 

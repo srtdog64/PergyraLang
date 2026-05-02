@@ -844,6 +844,48 @@ test_intent_observability_emit(void)
         ast_destroy(program);
     }
 
+    TEST("intent trace calls stay enabled for initializer observability builtin");
+    {
+        const char *source =
+            "func Main() -> Void {\n"
+            "    let current: Int = IntentCurrentHandle();\n"
+            "    Log(ToString(current));\n"
+            "}\n";
+        ASTNode *program = NULL;
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        char path_buf[512];
+        const char *path = NULL;
+        char *output = NULL;
+        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
+        TranspileResult *res = NULL;
+
+        make_tmp_path(path_buf, sizeof(path_buf), "pgy_test_intent_trace_init_fact.c");
+        path = path_buf;
+        if (ok) {
+            res = transpile_with_mir(hir, mir, path);
+            ok = (res != NULL && res->success);
+        }
+        if (ok)
+            output = read_file_text(path);
+
+        EXPECT(ok && res != NULL && output != NULL);
+        if (ok && res != NULL && output != NULL) {
+            EXPECT(res->uses_intent_observability);
+            EXPECT_STR_CONTAINS(output, "#define PGY_INTENT_OBSERVABILITY_ENABLED 1");
+            EXPECT_STR_CONTAINS(output, "pgy_intent_current_handle_export(");
+        }
+
+        transpile_result_destroy(res);
+        free(output);
+        remove(path);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+        ast_destroy(program);
+    }
+
     TEST("intent observability builtins lower to runtime exports");
     {
         const char *source =
