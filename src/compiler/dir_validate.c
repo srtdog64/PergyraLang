@@ -277,6 +277,8 @@ dir_dump(const DIRProgram *dir, FILE *out)
                 fprintf(out, "      requires[%zu] %s\n", k, step->required_abilities[k]);
             for (size_t k = 0; k < step->authorized_by_count; k++)
                 fprintf(out, "      authorized_by[%zu] %s\n", k, step->authorized_by[k]);
+            if (step->authorized_by_derived_from_zone)
+                fputs("      authorized_by_provenance zone-derived\n", out);
         }
     }
 }

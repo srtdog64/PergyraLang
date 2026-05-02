@@ -408,6 +408,8 @@ air_synthesize(const HIRProgram *hir,
                 air->boundaries[boundary_index].authority_required = step->authorized_by_count > 0;
                 air->boundaries[boundary_index].source_from_intent_default =
                     step->where_inherited_from_intent;
+                air->boundaries[boundary_index].authority_from_zone =
+                    step->authorized_by_derived_from_zone;
                 boundary_index++;
             }
             if (air_step_has_world_boundary(step)) {
@@ -432,6 +434,8 @@ air_synthesize(const HIRProgram *hir,
                 air->boundaries[boundary_index].sync_class = sync_class;
                 air->boundaries[boundary_index].authority_required = step->authorized_by_count > 0;
                 air->boundaries[boundary_index].source_from_transfer = true;
+                air->boundaries[boundary_index].authority_from_zone =
+                    step->authorized_by_derived_from_zone;
                 boundary_index++;
             }
             if (!air_append_step_expr_boundaries(air,

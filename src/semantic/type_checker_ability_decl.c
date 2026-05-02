@@ -8,14 +8,10 @@
 static Type *
 ability_decl_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
 {
-    Type *resolved;
-
     if (type_ref == NULL || ctx == NULL)
         return TYPE_UNKNOWN;
 
-    resolved = semantic_type_resolution_lookup_type_ref_or_materialize(ctx,
-                                                                       type_ref);
-    return resolved != NULL ? resolved : TYPE_UNKNOWN;
+    return semantic_type_resolution_lookup_annotation_or_unknown(ctx, type_ref);
 }
 
 bool
@@ -57,16 +53,12 @@ type_check_ability_decl(ASTNode *node, SemanticContext *ctx)
         for (size_t gi = 0; gi < gp->count; gi++) {
             if (gp->params[gi] == NULL || gp->params[gi]->name == NULL)
                 continue;
-            Type *tp = calloc(1, sizeof(Type));
-            if (tp != NULL) {
-                tp->kind = TYPE_KIND_CLASS;
-                tp->name = pergyra_strdup(gp->params[gi]->name);
-            }
+            Type *tp = type_create_generic(gp->params[gi]->name);
             Symbol *s = symbol_create_variable(
                 gp->params[gi]->name,
                 tp != NULL ? tp : TYPE_UNKNOWN,
                 node->line, node->column);
-            s->kind = SYMBOL_CLASS;
+            s->kind = SYMBOL_TYPE_PARAM;
             scope_declare(ctx->scope, s);
         }
     }

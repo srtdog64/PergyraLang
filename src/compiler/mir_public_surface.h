@@ -324,7 +324,8 @@ mir_dump(const MIRProgram *mir, FILE *out)
             if (source_stmt != NULL)
                 snprintf(source_ast_loc, sizeof(source_ast_loc), "line %u:%u",
                     source_stmt->line, source_stmt->column);
-            snprintf(source_ast_id, sizeof(source_ast_id), "%p", (const void *)source_stmt);
+            snprintf(source_ast_id, sizeof(source_ast_id), "line-%u-col-%u",
+                     source_stmt->line, source_stmt->column);
             has_source_stmt = true;
         }
         label_name = label;

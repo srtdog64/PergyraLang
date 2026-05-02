@@ -160,6 +160,8 @@ llvm_hosted_method_view_ast(const LLVMHostedMethodView *view, size_t index)
         return NULL;
     if (method != NULL)
         return method->ast;
+    if (view->requires_mir_metadata)
+        return NULL;
     return view->fallback_methods != NULL ? view->fallback_methods[index] : NULL;
 }
 

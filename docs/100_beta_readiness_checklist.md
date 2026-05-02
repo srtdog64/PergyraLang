@@ -1,6 +1,6 @@
 # Beta Readiness Checklist
 
-마지막 업데이트: 2026-05-01
+마지막 업데이트: 2026-05-02
 
 이 문서는 베타 진입 전 반드시 닫아야 하는 실행 체크리스트다. 기준은 기능 개수가 아니라 **surface trust + 구조 지속 가능성 + C/LLVM parity + CFG-backed body safety + AIR-backed abstraction safety + dogfood-first path**다. 현재 표기는 두 개로 분리한다: 기능 체감 진행도는 약 70%, strict beta readiness는 약 60%로 본다. CFG/AIR/DAG/MIR/ABI source-of-truth closure가 더 닫히면 75-80% 범위로 재평가한다.
 
@@ -8,6 +8,74 @@
 
 Operational mode:
 
+- 2026-05-02 debt ledger refresh:
+  the current blocker map is now separated into closed seams and remaining
+  source-of-truth seams. CFG/MIR use facts prefer instruction-carried
+  provenance for DEF/branch/return and MIR value summaries consume DEF slot
+  anchors, but backend residual emission still has source-array compatibility
+  paths. AIR evidence inventory is the preferred consumer API for covered
+  facts, but not every abstraction boundary is fully evidence-node driven.
+  DAG fallback counters are still zero; the remaining DAG debt is recursive
+  resolver compatibility removal from semantic judgement paths, not another
+  fallback counter cleanup. C/LLVM hosted-method declaration views now reject
+  silent AST fallback when MIR metadata is required, but declaration payloads
+  inside `MIRProgram` are still AST-backed. Runtime intent exit uses active
+  registry indexed lookup; the full transitive frontier scheduler remains a
+  blocker.
+- 2026-05-02 thread-pool usage fact tightening:
+  shared C/LLVM runtime thread-pool detection now treats `await` and
+  `task-group` as direct runtime surfaces and scans MIR instruction `ast`,
+  `expr0`, and `expr1` provenance before falling back to source-only block
+  arrays. The remaining source-array fallback is localized in
+  `thread_pool_usage.c` and gated by `parallel-core-contract-test-smoke`.
+- 2026-05-02 intent zone-authority compression:
+  authority-sensitive intent steps can now derive `authorized by` from a single
+  unambiguous `who` participant mapped to the current zone's authority subject
+  slot. The authority owner remains the zone/resource layer; intent records
+  `derived_authorized_by_from_zone` provenance and then validates through the
+  normal authorized-by path. Pure local-zone declarations still require explicit
+  approval and keep the existing diagnostic.
+- 2026-05-02 AIR authority provenance lift:
+  derived approval is no longer semantic-only. DIR carries
+  `authorized_by_derived_from_zone`, AIR carries `authority_from_zone`, JSON
+  dumps expose that field, and AIR diagnostics report
+  `authority_provenance=zone-derived|explicit|none`.
+- 2026-05-02 MIR cleanup ownership repair:
+  MIR statement reconstruction now restores `instruction_capacity` after
+  rebuilding a block's instruction array. This closes a heap-corruption path
+  where later cleanup-edge materialization wrote past the rebuilt array in pin
+  regions. C MIR block mapping comments also stopped emitting raw AST pointer
+  addresses, so AIR strict/relaxed backend non-impact checks compare
+  deterministic artifacts instead of process-local addresses.
+- 2026-05-02 MIR CFG predecessor validation tightening:
+  MIR validation now checks predecessor lists in both directions. A successor
+  must appear in the target predecessor list, and every recorded predecessor
+  must have a matching forward edge. This closes a CFG shape hole where cleanup
+  or exceptional blocks could retain stale predecessor entries after lowering
+  rewrites. Gate: `make test-mir cfg-body-dataflow-test-smoke`.
+- 2026-05-02 DAG generic-param evidence tightening:
+  class/function/ability generic parameters and nominal staging scopes now
+  register as `SYMBOL_TYPE_PARAM` carrying `TYPE_KIND_GENERIC`, not as
+  class-like placeholders. The DAG smoke now requires non-zero
+  `GENERIC_PARAM` evidence (`generic_param_nodes=29` locally), so generic
+  parameter dependencies cannot silently regress into declaration evidence.
+- 2026-05-02 DAG class-field seam removal:
+  class/subject/vessel field signatures now write metadata during nominal
+  staging before falling back to graph-backed skip accounting. The class
+  declaration checker consumes annotation metadata and no longer calls the
+  materializing type-ref helper. Current gate: helper refs `14`, graph-backed
+  skips `2450`, metadata hits `7582`, fallback/materializer counters `0`.
+- 2026-05-02 DAG domain/world field seam removal:
+  relation/effect/zone/world field signatures now write metadata before
+  semantic owner checks consume those types. Domain and world helper owners now
+  consume annotation metadata instead of the materializing type-ref helper.
+  Current gate: helper refs `12`, graph-backed skips `1980`, metadata hits
+  `8052`, fallback/materializer counters `0`.
+- 2026-05-02 CFG/MIR root identity validation:
+  MIR validation now rejects overlapping entry, cleanup, rollback, and
+  invalidation roots. This closes a cleanup-chain shape hole where a corrupted
+  root could still point at a valid block index. Gate:
+  `make test-mir cfg-body-dataflow-test-smoke`.
 - 2026-05-01 dogfood-first beta gate:
   the beta target is now "core stable enough to start a small WebGL/chat-game
   dogfood", not a full 1.0 compiler. Quantum, Rust-style lifetime borrow
@@ -76,21 +144,18 @@ Operational mode:
   semantic mega-header or non-metadata owners. Local gates:
   `make type-resolution-resolver-inventory-test-smoke`,
   `make type-resolution-dag-test-smoke`, and `make test-semantic` (`2359/0`).
-- 2026-04-30 DAG declaration/helper reader tightening:
+- 2026-04-30/2026-05-02 DAG declaration/helper reader tightening:
   `type_checker_ability_decl.c`, `type_checker_projection_path.c`,
-  `type_checker_zone_decl_authority.c`, `type_checker_world_helpers.c`,
-  `type_checker_expr.c`, `type_checker_expr_call.c`, and
-  `type_checker_expr_host.c`, `type_checker_call_constructor.c`, and
-  `type_checker_func_action_contract.c`, and
-  `type_checker_intent_participants.c`, `type_checker_intent_transfer.c`,
-  `type_checker_intent_action_contract.c`, and
-  `type_checker_intent_role_fields.c` no longer use the materializing type-ref
-  helper for declaration/field/lambda/method-return/host-expression/constructor,
-  action-contract, intent participant, transfer, inherited-action, and
-  role-field reader paths that already have DAG metadata. They consume DAG
-  metadata-only type refs and closing the owner-local fallback seam inventory
-  at `0` while keeping retired resolver calls and materializer fallbacks at
-  `0`.
+  `type_checker_zone_decl_authority.c`, `type_checker_expr_call.c`,
+  `type_checker_expr_host.c`, `type_checker_call_constructor.c`,
+  `type_checker_intent_participants.c`, `type_checker_intent_transfer.c`, and
+  `type_checker_intent_action_contract.c` no longer use the materializing
+  type-ref helper for declaration/field/method-return/host-expression/
+  constructor, intent participant, transfer, and inherited-action reader paths
+  that already have DAG metadata. The remaining materializing helper inventory
+  is capped at 15 total references, including the central declaration and
+  implementation, while retired resolver calls and materializer fallbacks stay
+  at `0`.
 - The remaining DAG gaps are classified as evidence/modeling gaps, not
   fallback seams: domain host/slot metadata must feed authority checks,
   generic ability where-clause checks must preserve bound provenance, and
@@ -1185,6 +1250,12 @@ Runtime frontier scheduler closure:
 - 2026-04-29 update: `make runtime-frontier-policy-test-smoke` compiles and
   executes the `src/codegen/domain_frontier_policy.h` arithmetic directly. This
   keeps the frontier policy gate from being only a string-contract check.
+- 2026-05-02 update: frontier pass-limit policy moved to the runtime contract
+  owner (`src/runtime/pgy_frontier_policy.h`), with the codegen header kept as a
+  compatibility wrapper. The C and LLVM world emitters now also preserve a
+  separate "derived state changed in this pass" fact, so a converged derived
+  loop still feeds the outer transitive frontier once before dirty flags are
+  cleared.
 - Remaining blocker: the full bounded fixpoint / transitive frontier scheduler
   must broaden that same transitive frontier policy beyond the currently
   covered world/zone/projection slices so the broader world-zone propagation
@@ -1478,11 +1549,12 @@ Closed now:
   with generated CFG containing the same boundary AST increments
   `hir_cfg_evidence_count` when a boundary AST is available. This closes the
   routine-only-vs-CFG-backed wording drift without changing public syntax.
-- 2026-04-29 update: AIR evidence policy is exposed through
-  `air_boundary_requires_hir_evidence(...)` and
-  `air_boundary_requires_rir_evidence(...)`, and the driver diagnostic consumes
-  those AIR facts to distinguish missing HIR CFG evidence from missing RIR
-  boundary evidence instead of emitting a stale RIR-only explanation.
+- 2026-05-02 update: AIR evidence policy is exposed through
+  `air_boundary_requires_hir_evidence(...)`,
+  `air_boundary_requires_rir_evidence(...)`, and
+  `air_boundary_has_evidence(...)`. Driver diagnostics and AIR graph dumps now
+  consume the evidence inventory first, with legacy per-boundary flags retained
+  only as compatibility summaries when no inventory exists.
 - 2026-04-29 HIR evidence tightening: `HIR_TOPLEVEL_INTENT` no longer grants
   blanket HIR evidence to every AIR boundary. HIR evidence must match the
   intent owner, step, or boundary source name. `test_air` now locks the negative
@@ -3108,6 +3180,36 @@ make ast-dispatch-test-smoke
 - Verified with `make type-resolution-resolver-inventory-test-smoke`,
   `make type-resolution-dag-test-smoke`, `make test-semantic`,
   `make semantic-core-shape-test-smoke`, and `make semantic-tu-size-test-smoke`.
+
+## Progress Log - 2026-05-02 AIR/DAG Source-Of-Truth Tightening
+
+- AIR now carries zone-derived authority provenance through DIR and AIR:
+  `authorized_by_derived_from_zone` becomes `authority_from_zone`, and AIR JSON
+  plus drift diagnostics expose `authority_provenance=zone-derived|explicit|none`.
+- MIR cleanup evidence accounting is stricter and more CFG-backed:
+  `AIR_EVIDENCE_MIR_CLEANUP` consumes MIR cleanup successors first, while pin
+  cleanup remains boundary-specific `AIR_EVIDENCE_MIR_PIN_CLEANUP`.
+- DAG materializer owner inventory shrank from `25` to `18`; intent participant,
+  transfer, inherited-action parameter, and zone-authority subject-slot type
+  annotations now use the centralized annotation read API instead of the
+  materializer seam. Abstract ability method signature validation also now
+  consumes annotation facts directly. Projection field-path type reads also
+  consume annotation facts, keeping projection diagnostics read-only with
+  respect to DAG metadata creation. Destructuring ownership type reads now do
+  the same, so that CFG/body-safety-adjacent path no longer materializes DAG
+  metadata as a side effect.
+- The next attempted candidates are now classified as true stage-order seams,
+  not low-risk annotation readers: world helpers, action contract effect-slot
+  checks, compressed intent role/ability field checks, and ability where
+  generic-bound actual validation still need a materialization prepass before
+  they can leave the allowlist.
+- Class/ability signature staging now opens a generic-parameter scope before
+  resolving staged fields and methods, aligning DAG staging with the full
+  semantic checker even where the materializer allowlist is still required.
+- Local gates: `make test-air`, `make test-semantic`,
+  `make type-resolution-resolver-inventory-test-smoke`,
+  `make type-resolution-dag-test-smoke`, `air-drift-test-smoke`,
+  `intent_compression_contract_smoke.sh`.
 
 ## Progress Log - 2026-04-30 C/LLVM Defer Cleanup Parity
 

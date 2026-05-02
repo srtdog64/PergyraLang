@@ -115,6 +115,8 @@ transpiler_hosted_method_view_ast(const TranspilerHostedMethodView *view,
         return NULL;
     if (view->uses_mir_metadata)
         return view->metadata != NULL ? view->metadata[index].ast : NULL;
+    if (view->requires_mir_metadata)
+        return NULL;
     return view->fallback_methods != NULL ? view->fallback_methods[index] : NULL;
 }
 

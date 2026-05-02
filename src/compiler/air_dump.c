@@ -167,13 +167,14 @@ air_dump(const AIRProgram *air, FILE *out)
             air->has_hir_input ? "yes" : "no",
             air->has_rir_input ? "yes" : "no",
             air->has_mir_input ? "yes" : "no");
-    fprintf(out, "  evidence hir_routines=%zu hir_cfg=%zu rir_boundaries=%zu rir_authority=%zu mir_cleanup=%zu mir_pin_cleanup=%zu dag_generic=%zu dag_ability=%zu rir_effect=%zu/%zu rir_relation=%zu/%zu\n",
+    fprintf(out, "  evidence hir_routines=%zu hir_cfg=%zu rir_boundaries=%zu rir_authority=%zu mir_cleanup=%zu mir_pin_cleanup=%zu dag_metadata=%zu dag_generic=%zu dag_ability=%zu rir_effect=%zu/%zu rir_relation=%zu/%zu\n",
             air->hir_routine_evidence_count,
             air->hir_cfg_evidence_count,
             air->rir_boundary_evidence_count,
             air->rir_authority_evidence_count,
             air->mir_cleanup_evidence_count,
             air->mir_pin_cleanup_evidence_count,
+            air->dag_metadata_evidence_count,
             air->dag_generic_evidence_count,
             air->dag_ability_evidence_count,
             air->rir_effect_propagation_evidence_count,
@@ -195,7 +196,7 @@ air_dump(const AIRProgram *air, FILE *out)
     for (size_t i = 0; i < air->boundary_count; i++) {
         const AIRBoundaryNode *boundary = &air->boundaries[i];
         fprintf(out,
-                "  boundary[%zu] kind=%s owner=%s source=%s intent=%zu step=%zu sync=%s authority=%s source_from_intent_default=%s source_from_transfer=%s\n",
+                "  boundary[%zu] kind=%s owner=%s source=%s intent=%zu step=%zu sync=%s authority=%s source_from_intent_default=%s source_from_transfer=%s authority_from_zone=%s\n",
                 i,
                 air_boundary_kind_name(boundary->kind),
                 boundary->owner_name != NULL ? boundary->owner_name : "<anonymous>",
@@ -205,19 +206,20 @@ air_dump(const AIRProgram *air, FILE *out)
                 air_sync_class_name(boundary->sync_class),
                 boundary->authority_required ? "yes" : "no",
                 boundary->source_from_intent_default ? "yes" : "no",
-                boundary->source_from_transfer ? "yes" : "no");
+                boundary->source_from_transfer ? "yes" : "no",
+                boundary->authority_from_zone ? "yes" : "no");
         fprintf(out,
                 "    evidence hir=%s(%s) hir_cfg=%s rir_boundary=%s(%s) rir_authority=%s(%s)\n",
-                boundary->has_hir_routine_evidence ? "yes" : "no",
+                air_boundary_has_evidence(air, i, AIR_EVIDENCE_HIR_ROUTINE) ? "yes" : "no",
                 boundary->hir_routine_evidence_name != NULL
                     ? boundary->hir_routine_evidence_name
                     : "<none>",
-                boundary->has_hir_cfg_evidence ? "yes" : "no",
-                boundary->has_rir_boundary_evidence ? "yes" : "no",
+                air_boundary_has_evidence(air, i, AIR_EVIDENCE_HIR_CFG) ? "yes" : "no",
+                air_boundary_has_evidence(air, i, AIR_EVIDENCE_RIR_BOUNDARY) ? "yes" : "no",
                 boundary->rir_boundary_evidence_scope != NULL
                     ? boundary->rir_boundary_evidence_scope
                     : "<none>",
-                boundary->has_rir_authority_evidence ? "yes" : "no",
+                air_boundary_has_evidence(air, i, AIR_EVIDENCE_RIR_AUTHORITY) ? "yes" : "no",
                 boundary->rir_authority_evidence_name != NULL
                     ? boundary->rir_authority_evidence_name
                     : "<none>");
@@ -266,7 +268,7 @@ air_dump_json(const AIRProgram *air, FILE *out)
             ",\"hir_routine_evidence_count\":%zu,\"hir_cfg_evidence_count\":%zu,"
             "\"rir_boundary_evidence_count\":%zu,\"rir_authority_evidence_count\":%zu,"
             "\"mir_cleanup_evidence_count\":%zu,\"mir_pin_cleanup_evidence_count\":%zu,"
-            "\"dag_generic_evidence_count\":%zu,\"dag_ability_evidence_count\":%zu,"
+            "\"dag_metadata_evidence_count\":%zu,\"dag_generic_evidence_count\":%zu,\"dag_ability_evidence_count\":%zu,"
             "\"rir_effect_propagation_required_count\":%zu,\"rir_effect_propagation_evidence_count\":%zu,"
             "\"rir_relation_propagation_required_count\":%zu,\"rir_relation_propagation_evidence_count\":%zu},",
             air->hir_routine_evidence_count,
@@ -275,6 +277,7 @@ air_dump_json(const AIRProgram *air, FILE *out)
             air->rir_authority_evidence_count,
             air->mir_cleanup_evidence_count,
             air->mir_pin_cleanup_evidence_count,
+            air->dag_metadata_evidence_count,
             air->dag_generic_evidence_count,
             air->dag_ability_evidence_count,
             air->rir_effect_propagation_required_count,
@@ -327,6 +330,8 @@ air_dump_json(const AIRProgram *air, FILE *out)
         air_json_bool(out, boundary->source_from_intent_default);
         fputs(",\"source_from_transfer\":", out);
         air_json_bool(out, boundary->source_from_transfer);
+        fputs(",\"authority_from_zone\":", out);
+        air_json_bool(out, boundary->authority_from_zone);
         fputs(",\"authority_names\":[", out);
         for (size_t j = 0; j < boundary->authority_name_count; j++) {
             if (j > 0)
@@ -335,13 +340,17 @@ air_dump_json(const AIRProgram *air, FILE *out)
         }
         fputs("],\"evidence_flags\":{", out);
         fputs("\"hir_routine\":", out);
-        air_json_bool(out, boundary->has_hir_routine_evidence);
+        air_json_bool(out, air_boundary_has_evidence(
+            air, i, AIR_EVIDENCE_HIR_ROUTINE));
         fputs(",\"hir_cfg\":", out);
-        air_json_bool(out, boundary->has_hir_cfg_evidence);
+        air_json_bool(out, air_boundary_has_evidence(
+            air, i, AIR_EVIDENCE_HIR_CFG));
         fputs(",\"rir_boundary\":", out);
-        air_json_bool(out, boundary->has_rir_boundary_evidence);
+        air_json_bool(out, air_boundary_has_evidence(
+            air, i, AIR_EVIDENCE_RIR_BOUNDARY));
         fputs(",\"rir_authority\":", out);
-        air_json_bool(out, boundary->has_rir_authority_evidence);
+        air_json_bool(out, air_boundary_has_evidence(
+            air, i, AIR_EVIDENCE_RIR_AUTHORITY));
         fputs("},\"location\":{", out);
         fprintf(out,
                 "\"line\":%u,\"column\":%u}}",
@@ -458,6 +467,7 @@ air_evidence_kind_name(AIREvidenceKind kind)
     case AIR_EVIDENCE_RIR_AUTHORITY: return "rir_authority";
     case AIR_EVIDENCE_MIR_CLEANUP: return "mir_cleanup";
     case AIR_EVIDENCE_MIR_PIN_CLEANUP: return "mir_pin_cleanup";
+    case AIR_EVIDENCE_DAG_METADATA: return "dag_metadata";
     case AIR_EVIDENCE_DAG_GENERIC: return "dag_generic";
     case AIR_EVIDENCE_DAG_ABILITY: return "dag_ability";
     case AIR_EVIDENCE_RIR_EFFECT_PROPAGATION: return "rir_effect_propagation";

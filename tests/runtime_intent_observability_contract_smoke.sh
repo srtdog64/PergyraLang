@@ -16,6 +16,8 @@ require_term() {
 
 for rel in \
     "src/runtime/pgy_runtime_intent_active_exports.h" \
+    "src/runtime/pgy_runtime_lib_intent_active_index_exports.h" \
+    "src/runtime/pgy_runtime_lib_intent_slot_core_exports.h" \
     "src/runtime/pgy_runtime_lib_intent_exports.h" \
     "src/codegen/transpiler_intent_observability_builtin_emit.h" \
     "src/codegen/llvm_expr_intent_observability_calls.h"; do
@@ -51,5 +53,8 @@ done
 require_term "$ROOT_DIR/src/codegen/transpiler_intent_observability_builtin_emit.h" "BUILTIN_INTENT_ACTIVE_HANDLE"
 require_term "$ROOT_DIR/src/codegen/transpiler_intent_observability_builtin_emit.h" "pgy_intent_active_handle_export"
 require_term "$ROOT_DIR/src/codegen/llvm_expr_intent_observability_calls.h" "IntentActiveHandle"
+require_term "$ROOT_DIR/src/runtime/pgy_runtime_lib_intent_active_index_exports.h" "pgy_intent_find_active_registry_slot_export"
+require_term "$ROOT_DIR/src/runtime/pgy_runtime_lib_intent_slot_core_exports.h" "pgy_intent_find_active_registry_slot_export(handle)"
+require_term "$ROOT_DIR/src/runtime/pgy_runtime_lib_intent_slot_core_exports.h" "pgy_intent_active_index_clear_export(handle)"
 
 echo "[runtime-intent-observability-contract] active index/handle contract is gated"

@@ -409,6 +409,8 @@ dir_collect_intent_info(DIRProgram *dir, size_t from_id, ASTNode *node)
             step_node->data.intent_step.inherited_who_from_intent;
         step.where_inherited_from_intent =
             step_node->data.intent_step.inherited_where_from_intent;
+        step.authorized_by_derived_from_zone =
+            step_node->data.intent_step.derived_authorized_by_from_zone;
         step.causes_effect_name = step_node->data.intent_step.causes_effect;
         {
             ssize_t to = dir_find_effect_node_by_name(dir, step.causes_effect_name);

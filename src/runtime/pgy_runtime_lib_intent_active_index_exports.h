@@ -92,4 +92,28 @@ pgy_intent_find_active_entry_export(int32_t handle)
     return pgy_intent_find_active_entry_linear_export(handle);
 }
 
+static int32_t
+pgy_intent_find_active_registry_slot_export(int32_t handle)
+{
+    int32_t slot = pgy_intent_active_index_find_slot_export(handle);
+
+    if (slot >= 0) {
+        int32_t active_slot = pgy_intent_active_index_slots[slot];
+        if (active_slot >= 0 && active_slot < PGY_INTENT_ACTIVE_MAX) {
+            PgyIntentActiveEntry *entry =
+                &pgy_intent_active_registry[active_slot];
+            if (entry->active && entry->handle == handle)
+                return active_slot;
+        }
+    }
+
+    for (int32_t i = 0; i < PGY_INTENT_ACTIVE_MAX; i++) {
+        if (pgy_intent_active_registry[i].active
+            && pgy_intent_active_registry[i].handle == handle) {
+            return i;
+        }
+    }
+    return -1;
+}
+
 #endif /* PGY_RUNTIME_LIB_INTENT_ACTIVE_INDEX_EXPORTS_H */

@@ -17,6 +17,7 @@ llvm_world_sync_emit_frontier(ASTNode *stmt, LLVMClassTypeEntry *decl_cls,
     LLVMValueRef frontier_continue_addr;
     LLVMValueRef pass_addr;
     LLVMValueRef continue_addr;
+    LLVMValueRef changed_any_addr;
     LLVMValueRef frontier_limit_val;
     LLVMValueRef limit_val;
     LLVMBasicBlockRef frontier_check_bb;
@@ -45,6 +46,8 @@ llvm_world_sync_emit_frontier(ASTNode *stmt, LLVMClassTypeEntry *decl_cls,
         "world.derived.pass.addr");
     continue_addr = llvm_create_entry_alloca(ctx, ctx->type_i1,
         "world.derived.continue.addr");
+    changed_any_addr = llvm_create_entry_alloca(ctx, ctx->type_i1,
+        "world.derived.changed_any.addr");
     frontier_limit_val = LLVMConstInt(ctx->type_i32,
         (unsigned long long)pgy_frontier_world_transitive_pass_limit(zone_count,
             stmt->data.world_decl.state_count), 0);
@@ -95,6 +98,7 @@ llvm_world_sync_emit_frontier(ASTNode *stmt, LLVMClassTypeEntry *decl_cls,
 
     LLVMPositionBuilderAtEnd(ctx->builder, frontier_body_bb);
     LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 0, 0), frontier_continue_addr);
+    LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 0, 0), changed_any_addr);
     {
         LLVMValueRef pass_val = LLVMBuildLoad2(ctx->builder, ctx->type_i32,
             frontier_pass_addr, llvm_tmp_name(ctx));
@@ -384,6 +388,12 @@ llvm_world_sync_emit_frontier(ASTNode *stmt, LLVMClassTypeEntry *decl_cls,
                 LLVMBuildLoad2(ctx->builder, ctx->type_i1, continue_addr, llvm_tmp_name(ctx)),
                 changed_val, llvm_tmp_name(ctx)),
             continue_addr);
+        LLVMBuildStore(ctx->builder,
+            LLVMBuildOr(ctx->builder,
+                LLVMBuildLoad2(ctx->builder, ctx->type_i1, changed_any_addr,
+                    llvm_tmp_name(ctx)),
+                changed_val, llvm_tmp_name(ctx)),
+            changed_any_addr);
         llvm_stamp_domain_provenance(ctx, decl_cls, self_ptr, "zone_state",
             state->data.world_state.state_name, PGY_PROP_CAUSE_WORLD_DERIVED);
     }
@@ -407,10 +417,14 @@ llvm_world_sync_emit_frontier(ASTNode *stmt, LLVMClassTypeEntry *decl_cls,
     LLVMBuildBr(ctx->builder, derived_exit_bb);
     LLVMPositionBuilderAtEnd(ctx->builder, derived_exit_bb);
     {
-        LLVMValueRef pending_val = derived_ptr != NULL
+        LLVMValueRef pending_val = LLVMBuildLoad2(ctx->builder, ctx->type_i1,
+            changed_any_addr, llvm_tmp_name(ctx));
+        LLVMValueRef dirty_pending = derived_ptr != NULL
             ? LLVMBuildLoad2(ctx->builder, ctx->type_i1, derived_ptr, llvm_tmp_name(ctx))
             : LLVMBuildLoad2(ctx->builder, ctx->type_i1, derived_dirty_addr,
                 llvm_tmp_name(ctx));
+        pending_val = LLVMBuildOr(ctx->builder, pending_val, dirty_pending,
+            llvm_tmp_name(ctx));
         for (size_t i = 0; i < zone_count; i++) {
             ASTNode *zone = stmt->data.world_decl.zones[i];
             char dirty_field[256];

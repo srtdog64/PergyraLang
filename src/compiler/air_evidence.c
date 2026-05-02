@@ -148,6 +148,13 @@ air_mir_routine_cleanup_fact_count(const MIRRoutine *routine)
         return 0;
     for (size_t i = 0; i < routine->block_count; i++) {
         const MIRBasicBlock *block = &routine->blocks[i];
+        if (block->has_cleanup_succ
+            && block->cleanup_succ == routine->cleanup_block
+            && routine->cleanup_block < routine->block_count
+            && routine->blocks[routine->cleanup_block].is_cleanup) {
+            count++;
+            continue;
+        }
         if (mir_block_has_cleanup_edge_fact(block, "cleanup-edge"))
             count++;
         if (mir_block_has_cleanup_edge_fact(block, "cleanup-edge-from-rollback"))
@@ -273,6 +280,9 @@ air_collect_dag_evidence(AIRProgram *air, const SemanticResult *sem, char **erro
     const size_t fallback_count = sem != NULL
         ? sem->type_resolution_metadata_materializer_fallbacks
         : 0;
+    const size_t metadata_fact_count = sem != NULL
+        ? sem->type_resolution_metadata_entries
+        : 0;
     const size_t generic_fact_count = sem != NULL
         ? sem->type_resolution_stage_compat_generic_contract_count
         : 0;
@@ -282,6 +292,20 @@ air_collect_dag_evidence(AIRProgram *air, const SemanticResult *sem, char **erro
 
     if (air == NULL || sem == NULL)
         return true;
+
+    if (metadata_fact_count > 0 || fallback_count > 0) {
+        if (!air_append_evidence_node_ex(air,
+                                         AIR_EVIDENCE_DAG_METADATA,
+                                         SIZE_MAX,
+                                         "type-resolution-dag",
+                                         "metadata-inventory",
+                                         metadata_fact_count,
+                                         fallback_count,
+                                         error_message)) {
+            return false;
+        }
+        air->dag_metadata_evidence_count++;
+    }
 
     if (generic_fact_count > 0 || fallback_count > 0) {
         if (!air_append_evidence_node_ex(air,

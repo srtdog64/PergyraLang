@@ -58,6 +58,7 @@ typedef enum
     AIR_EVIDENCE_RIR_AUTHORITY,
     AIR_EVIDENCE_MIR_CLEANUP,
     AIR_EVIDENCE_MIR_PIN_CLEANUP,
+    AIR_EVIDENCE_DAG_METADATA,
     AIR_EVIDENCE_DAG_GENERIC,
     AIR_EVIDENCE_DAG_ABILITY,
     AIR_EVIDENCE_RIR_EFFECT_PROPAGATION,
@@ -88,6 +89,7 @@ typedef struct
     bool            authority_required;
     bool            source_from_intent_default;
     bool            source_from_transfer;
+    bool            authority_from_zone;
     const char    **authority_names;
     size_t          authority_name_count;
     bool            has_hir_routine_evidence;
@@ -139,6 +141,7 @@ typedef struct AIRProgram
     size_t           rir_authority_evidence_count;
     size_t           mir_cleanup_evidence_count;
     size_t           mir_pin_cleanup_evidence_count;
+    size_t           dag_metadata_evidence_count;
     size_t           dag_generic_evidence_count;
     size_t           dag_ability_evidence_count;
     size_t           rir_effect_propagation_required_count;
@@ -159,6 +162,9 @@ bool        air_verify(AIRProgram *air, char **error_message);
 bool        air_check_drift(AIRProgram *air, char **error_message);
 bool        air_boundary_requires_hir_evidence(const AIRBoundaryNode *boundary);
 bool        air_boundary_requires_rir_evidence(const AIRBoundaryNode *boundary);
+bool        air_boundary_has_evidence(const AIRProgram *air,
+                                      size_t boundary_index,
+                                      AIREvidenceKind kind);
 bool        air_collect_mir_evidence(AIRProgram *air,
                                      const MIRProgram *mir,
                                      char **error_message);

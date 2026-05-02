@@ -8,8 +8,109 @@
 #include "type_checker_internal.h"
 #include "type_checker_intent_helpers_internal.h"
 #include "diag_codes.h"
+#include "../common/string_compat.h"
 
 #include <stdbool.h>
+#include <stdlib.h>
+
+static bool
+intent_step_append_authorized_by(ASTNode *step, const char *alias)
+{
+    char **grown;
+    char *owned_alias;
+    size_t next_capacity;
+
+    if (step == NULL || step->type != AST_INTENT_STEP || alias == NULL)
+        return false;
+
+    owned_alias = pergyra_strdup(alias);
+    if (owned_alias == NULL)
+        return false;
+
+    if (step->data.intent_step.authorized_by_count
+        == step->data.intent_step.authorized_by_capacity) {
+        next_capacity = step->data.intent_step.authorized_by_capacity == 0
+            ? 4
+            : step->data.intent_step.authorized_by_capacity * 2;
+        grown = realloc(step->data.intent_step.authorized_by,
+            next_capacity * sizeof(char *));
+        if (grown == NULL) {
+            free(owned_alias);
+            return false;
+        }
+        step->data.intent_step.authorized_by = grown;
+        step->data.intent_step.authorized_by_capacity = next_capacity;
+    }
+
+    step->data.intent_step.authorized_by[
+        step->data.intent_step.authorized_by_count++] = owned_alias;
+    return true;
+}
+
+static bool
+intent_step_can_derive_zone_authority(ASTNode *step,
+                                      bool has_subintent,
+                                      bool step_requires_authority_flow)
+{
+    if (step == NULL || step->type != AST_INTENT_STEP || has_subintent)
+        return false;
+    return (step->data.intent_step.inherited_where_from_action
+            || step->data.intent_step.inherited_where_from_intent
+            || step->data.intent_step.derived_where_from_transfer
+            || step->data.intent_step.causes_effect != NULL
+            || step->data.intent_step.transfer_from_alias != NULL
+            || step->data.intent_step.transfer_to_alias != NULL
+            || step_requires_authority_flow);
+}
+
+static void
+intent_step_derive_authorized_by_from_zone(ASTNode *intent_decl,
+                                           ASTNode *step,
+                                           ASTNode *zone_decl,
+                                           bool has_subintent,
+                                           bool step_requires_authority_flow,
+                                           SemanticContext *ctx)
+{
+    const char *alias;
+    ASTNode *involves;
+    const char *participant_type_name;
+    bool ambiguous = false;
+    ASTNode *authority_slot;
+    const char *authority_slot_name;
+
+    if (intent_decl == NULL || step == NULL || zone_decl == NULL || ctx == NULL
+        || zone_decl->type != AST_ZONE_DECL
+        || zone_decl->data.zone_decl.authority_count == 0
+        || step->data.intent_step.authorized_by_count > 0
+        || !intent_step_can_derive_zone_authority(
+            step, has_subintent, step_requires_authority_flow)) {
+        return;
+    }
+
+    alias = intent_step_single_who_alias(step);
+    if (alias == NULL)
+        return;
+
+    involves = find_intent_involves_local(intent_decl, alias);
+    participant_type_name = intent_involves_type_name(involves);
+    if (participant_type_name == NULL
+        || !intent_involves_is_subject_host(ctx->program_root, involves)) {
+        return;
+    }
+
+    authority_slot = resolve_zone_subject_slot_for_participant(
+        zone_decl, ctx, alias, participant_type_name, &ambiguous);
+    authority_slot_name = authority_slot != NULL
+        ? authority_slot->data.domain_slot.slot_name
+        : NULL;
+    if (ambiguous || authority_slot_name == NULL
+        || find_zone_authority(zone_decl, authority_slot_name) == NULL) {
+        return;
+    }
+
+    if (intent_step_append_authorized_by(step, alias))
+        step->data.intent_step.derived_authorized_by_from_zone = true;
+}
 
 void
 type_check_intent_step_authority_contract(ASTNode *intent_decl,
@@ -23,6 +124,10 @@ type_check_intent_step_authority_contract(ASTNode *intent_decl,
         || ctx == NULL) {
         return;
     }
+
+    intent_step_derive_authorized_by_from_zone(
+        intent_decl, step, zone_decl, has_subintent,
+        step_requires_authority_flow, ctx);
 
     if (zone_decl != NULL
         && zone_decl->data.zone_decl.authority_count > 0

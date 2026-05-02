@@ -221,7 +221,7 @@ test_effect_inference(void)
         ast_destroy(func);
     }
 
-    TEST("intent step effect in authority-bearing zone requires authorized by");
+    TEST("intent step effect in authority-bearing zone derives authorized by");
     {
         const char *source =
             "subject Player { let hp: Int; }\n"
@@ -247,11 +247,26 @@ test_effect_inference(void)
         Parser *parser = parser_create(lexer);
         ASTNode *program = parser_parse_program(parser);
         SemanticResult *result = semantic_analyze(program);
+        ASTNode *intent = NULL;
+        ASTNode *step = NULL;
+
+        if (program != NULL && program->type == AST_PROGRAM) {
+            for (size_t i = 0; i < program->data.program.count; i++) {
+                ASTNode *stmt = program->data.program.statements[i];
+                if (stmt != NULL && stmt->type == AST_INTENT_DECL) {
+                    intent = stmt;
+                    break;
+                }
+            }
+        }
+        if (intent != NULL && intent->data.intent_decl.step_count > 0)
+            step = intent->data.intent_decl.steps[0];
 
         EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count > 0);
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "without 'authorized by'"));
+        EXPECT(result != NULL && result->error_count == 0);
+        EXPECT(step != NULL && step->data.intent_step.derived_authorized_by_from_zone);
+        EXPECT(step != NULL && step->data.intent_step.authorized_by_count == 1);
+        EXPECT(step != NULL && strcmp(step->data.intent_step.authorized_by[0], "player") == 0);
 
         semantic_result_destroy(result);
         ast_destroy(program);

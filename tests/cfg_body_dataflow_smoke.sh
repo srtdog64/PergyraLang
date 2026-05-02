@@ -52,6 +52,12 @@ run_literal_doc_contract_smoke() {
     require_literal "src/compiler/mir_cfg_contract_pin.h" "mir_block_find_pin_cleanup_edge_fact"
     require_literal "src/compiler/mir_cfg_contract_pin.h" "mir_block_pin_cleanup_missing_reason"
     require_literal "src/compiler/mir_cfg_contract_pin.h" "pin cleanup fact does not match source slot, view, and access mode"
+    require_literal "src/compiler/mir_cfg_contract_validate.h" "mir_validate_edge_predecessor_link"
+    require_literal "src/compiler/mir_cfg_contract_validate.h" "mir_validate_successor_index"
+    require_literal "src/compiler/mir_cfg_contract_validate.h" "rollback successor"
+    require_literal "src/compiler/mir_cfg_contract_validate.h" "invalidation successor"
+    require_literal "src/compiler/mir_ssa_use_edges.h" "mir_def_instruction_source_expr"
+    require_literal "src/compiler/mir_ssa_use_edges.h" "ASTNode *expr = inst->ast"
     require_literal "src/codegen/transpiler_mir_emission_contract.h" "mir_block_has_cleanup_edge_fact(block, cleanup_fact)"
     require_literal "src/codegen/transpiler_mir_emission_contract.h" "mir_block_has_pin_cleanup_edge(block)"
     require_literal "src/compiler/air_evidence.c" "mir_block_has_cleanup_edge_fact(block"
@@ -367,6 +373,8 @@ for forbidden in [
         )
 
 required_mir_cleanup_validator_terms = [
+    "mir_validate_edge_predecessor_link",
+    "mir_validate_successor_index",
     "mir_block_has_pin_cleanup_edge",
     "mir_block_pin_cleanup_missing_reason",
     "mir_stmt_ast_is_cfg_owned_control",
@@ -379,6 +387,8 @@ required_mir_cleanup_validator_terms = [
     "pin cleanup fact does not match source slot, view, and access mode",
     "rollback block missing cleanup-edge MIR fact",
     "invalidation block missing cleanup-edge MIR fact",
+    "rollback successor",
+    "invalidation successor",
     "cleanup block[%zu] must not have normal CFG successors",
     "cleanup block[%zu] must not be a pin region",
     "CFG-owned control statement as fallback STMT",
@@ -472,11 +482,15 @@ required_mir_owner_terms = {
         "mir_append_versioned_use",
         "mir_append_block_versioned_name",
         "mir_parse_versioned_name",
+        "mir_def_instruction_source_expr",
+        "ASTNode *expr = inst->ast",
         "mir_populate_use_edges",
     ],
     "src/compiler/mir_liveness_dce.h": [
         "mir_compute_liveness",
         "mir_build_value_summaries",
+        "inst->kind != MIR_INST_DEF",
+        "write_name = mir_instruction_slot_anchor(inst)",
         "#include \"mir_dce.h\"",
     ],
     "src/compiler/mir_dce.h": [

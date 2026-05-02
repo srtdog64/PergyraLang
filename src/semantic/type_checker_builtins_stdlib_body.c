@@ -24,10 +24,173 @@ stdlib_body_normalize_type(Type *type)
     return type != NULL ? type : TYPE_UNKNOWN;
 }
 
+static Type *
+type_check_builtin_print(ASTNode *expr, SemanticContext *ctx)
+{
+    if (!check_call_arity(expr, 1, "Print", ctx))
+        return TYPE_UNKNOWN;
+    require_assignable(stdlib_body_normalize_type(
+            type_check_expression(expr->data.call.arguments[0], ctx)),
+        TYPE_STRING, expr->data.call.arguments[0], ctx);
+    return TYPE_VOID;
+}
+
+static Type *
+type_check_builtin_sleep(ASTNode *expr, SemanticContext *ctx)
+{
+    if (!check_call_arity(expr, 1, "Sleep", ctx))
+        return TYPE_UNKNOWN;
+    require_assignable(stdlib_body_normalize_type(
+            type_check_expression(expr->data.call.arguments[0], ctx)),
+        TYPE_INT, expr->data.call.arguments[0], ctx);
+    semantic_record_effect(ctx, EFFECT_NONDETERMINISTIC);
+    return TYPE_VOID;
+}
+
+static Type *
+type_check_builtin_device_read(ASTNode *expr, const char *name,
+                               SemanticContext *ctx)
+{
+    if (!check_call_arity(expr, 1, name, ctx))
+        return TYPE_UNKNOWN;
+    return stdlib_body_normalize_type(type_get_constructed_arg(
+        type_check_device_handle_arg(expr->data.call.arguments[0],
+            ctx, name, false), 0));
+}
+
+static Type *
+type_check_builtin_device_write(ASTNode *expr, const char *name,
+                                SemanticContext *ctx)
+{
+    Type *slot_type;
+    Type *inner;
+
+    if (!check_call_arity(expr, 2, name, ctx))
+        return TYPE_UNKNOWN;
+
+    slot_type = type_check_device_handle_arg(
+        expr->data.call.arguments[0], ctx, name, false);
+    inner = stdlib_body_normalize_type(type_get_constructed_arg(slot_type, 0));
+    require_assignable(stdlib_body_normalize_type(
+            type_check_expression(expr->data.call.arguments[1], ctx)),
+        inner, expr->data.call.arguments[1], ctx);
+    return TYPE_VOID;
+}
+
+static Type *
+type_check_builtin_release_device_slot(ASTNode *expr, const char *name,
+                                       SemanticContext *ctx)
+{
+    ASTNode *slot_arg;
+    Type *slot_type;
+
+    if (!check_call_arity(expr, 1, name, ctx))
+        return TYPE_UNKNOWN;
+
+    semantic_record_body_summary(ctx, BODY_SUMMARY_DROPS_RESOURCE);
+    slot_arg = expr->data.call.arguments[0];
+    slot_type = type_check_device_handle_arg(slot_arg, ctx, name, true);
+    if (slot_type == TYPE_UNKNOWN)
+        return TYPE_UNKNOWN;
+    if (slot_arg->type != AST_IDENTIFIER) {
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, slot_arg,
+            "ReleaseDeviceSlot requires a DeviceSlot identifier");
+        return TYPE_UNKNOWN;
+    }
+    {
+        Symbol *sym = scope_lookup(ctx->scope, slot_arg->data.identifier.name);
+        if (sym != NULL && sym->slot_info.state == SLOT_STATE_RELEASED) {
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, slot_arg,
+                "DeviceSlot '%s' has already been released",
+                slot_arg->data.identifier.name);
+            return TYPE_UNKNOWN;
+        }
+    }
+    scope_release_slot(ctx->scope, slot_arg->data.identifier.name);
+    return TYPE_VOID;
+}
+
+static Type *
+type_check_builtin_submit_device_read(ASTNode *expr, const char *name,
+                                      SemanticContext *ctx)
+{
+    Type *slot_type;
+
+    if (!check_call_arity(expr, 1, name, ctx))
+        return TYPE_UNKNOWN;
+
+    slot_type = type_check_device_handle_arg(
+        expr->data.call.arguments[0], ctx, name, false);
+    return wrap_constructed(TYPE_REMOTE_FUTURE,
+        stdlib_body_normalize_type(type_get_constructed_arg(slot_type, 0)));
+}
+
+static Type *
+type_check_builtin_clone(ASTNode *expr, SemanticContext *ctx)
+{
+    Type *arg_type;
+
+    if (!check_call_arity(expr, 1, "Clone", ctx))
+        return TYPE_UNKNOWN;
+
+    arg_type = stdlib_body_normalize_type(
+        type_check_expression(expr->data.call.arguments[0], ctx));
+    return arg_type;
+}
+
+static Type *
+type_check_resolved_stdlib_call(ASTNode *expr, const char *name,
+                                SemanticContext *ctx, bool *handled_out)
+{
+    BuiltinKind kind;
+
+    if (handled_out != NULL)
+        *handled_out = true;
+
+    kind = builtin_resolve(name);
+    switch (kind) {
+    case BUILTIN_PRINT:
+        return type_check_builtin_print(expr, ctx);
+    case BUILTIN_READ_LINE:
+        if (!check_call_arity(expr, 0, name, ctx))
+            return TYPE_UNKNOWN;
+        semantic_record_effect(ctx, EFFECT_NONDETERMINISTIC);
+        return TYPE_STRING;
+    case BUILTIN_NOW:
+        if (!check_call_arity(expr, 0, name, ctx))
+            return TYPE_UNKNOWN;
+        semantic_record_effect(ctx, EFFECT_NONDETERMINISTIC);
+        return TYPE_INT;
+    case BUILTIN_SLEEP:
+        return type_check_builtin_sleep(expr, ctx);
+    case BUILTIN_CLAIM_DEVICE_SLOT:
+        return type_check_claim_device_slot(expr, ctx);
+    case BUILTIN_DEVICE_READ:
+        return type_check_builtin_device_read(expr, name, ctx);
+    case BUILTIN_DEVICE_WRITE:
+        return type_check_builtin_device_write(expr, name, ctx);
+    case BUILTIN_RELEASE_DEVICE_SLOT:
+        return type_check_builtin_release_device_slot(expr, name, ctx);
+    case BUILTIN_SUBMIT_DEVICE_READ:
+        return type_check_builtin_submit_device_read(expr, name, ctx);
+    case BUILTIN_CLONE:
+        return type_check_builtin_clone(expr, ctx);
+    default:
+        if (handled_out != NULL)
+            *handled_out = false;
+        return TYPE_UNKNOWN;
+    }
+}
+
 Type *
 type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
 {
     bool handled = false;
+    Type *resolved_type = type_check_resolved_stdlib_call(
+        expr, name, ctx, &handled);
+    if (handled)
+        return resolved_type;
+
     Type *scalar_type = type_check_stdlib_scalar_call(expr, name, ctx, &handled);
     if (handled)
         return scalar_type;
@@ -53,106 +216,12 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
         type_check_expression(expr->data.call.arguments[0], ctx);
         return TYPE_STRING;
     }
-    if (strcmp(name, "Print") == 0) {
-        if (!check_call_arity(expr, 1, name, ctx))
-            return TYPE_UNKNOWN;
-        require_assignable(stdlib_body_normalize_type(
-                type_check_expression(expr->data.call.arguments[0], ctx)),
-            TYPE_STRING, expr->data.call.arguments[0], ctx);
-        return TYPE_VOID;
-    }
-    if (strcmp(name, "ReadLine") == 0) {
-        if (!check_call_arity(expr, 0, name, ctx))
-            return TYPE_UNKNOWN;
-        semantic_record_effect(ctx, EFFECT_NONDETERMINISTIC);
-        return TYPE_STRING;
-    }
-    if (strcmp(name, "Now") == 0) {
-        if (!check_call_arity(expr, 0, name, ctx))
-            return TYPE_UNKNOWN;
-        semantic_record_effect(ctx, EFFECT_NONDETERMINISTIC);
-        return TYPE_INT;
-    }
-    if (strcmp(name, "Sleep") == 0) {
-        if (!check_call_arity(expr, 1, name, ctx))
-            return TYPE_UNKNOWN;
-        require_assignable(stdlib_body_normalize_type(
-                type_check_expression(expr->data.call.arguments[0], ctx)),
-            TYPE_INT, expr->data.call.arguments[0], ctx);
-        semantic_record_effect(ctx, EFFECT_NONDETERMINISTIC);
-        return TYPE_VOID;
-    }
 
     if (strcmp(name, "ClaimQubit") == 0) {
         if (!check_call_arity(expr, 0, name, ctx))
             return TYPE_UNKNOWN;
         /* Qubit starts in SUPERPOSITION state (uncollapsed). */
         return TYPE_QUBIT;
-    }
-    if (strcmp(name, "ClaimDeviceSlot") == 0) {
-        return type_check_claim_device_slot(expr, ctx);
-    }
-    if (strcmp(name, "DeviceRead") == 0) {
-        if (!check_call_arity(expr, 1, name, ctx))
-            return TYPE_UNKNOWN;
-        return stdlib_body_normalize_type(type_get_constructed_arg(
-            type_check_device_handle_arg(expr->data.call.arguments[0],
-                ctx, name, false), 0));
-    }
-    if (strcmp(name, "DeviceWrite") == 0) {
-        if (!check_call_arity(expr, 2, name, ctx))
-            return TYPE_UNKNOWN;
-        Type *slot_type = type_check_device_handle_arg(
-            expr->data.call.arguments[0], ctx, name, false);
-        Type *inner = stdlib_body_normalize_type(
-            type_get_constructed_arg(slot_type, 0));
-        require_assignable(stdlib_body_normalize_type(
-                type_check_expression(expr->data.call.arguments[1], ctx)),
-            inner, expr->data.call.arguments[1], ctx);
-        return TYPE_VOID;
-    }
-    if (strcmp(name, "ReleaseDeviceSlot") == 0) {
-        if (!check_call_arity(expr, 1, name, ctx))
-            return TYPE_UNKNOWN;
-        semantic_record_body_summary(ctx, BODY_SUMMARY_DROPS_RESOURCE);
-        ASTNode *slot_arg = expr->data.call.arguments[0];
-        Type *slot_type = type_check_device_handle_arg(slot_arg, ctx, name, true);
-        if (slot_type == TYPE_UNKNOWN)
-            return TYPE_UNKNOWN;
-        if (slot_arg->type != AST_IDENTIFIER) {
-            semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, slot_arg,
-                "ReleaseDeviceSlot requires a DeviceSlot identifier");
-            return TYPE_UNKNOWN;
-        }
-        {
-            Symbol *sym = scope_lookup(ctx->scope, slot_arg->data.identifier.name);
-            if (sym != NULL && sym->slot_info.state == SLOT_STATE_RELEASED) {
-                semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, slot_arg,
-                    "DeviceSlot '%s' has already been released",
-                    slot_arg->data.identifier.name);
-                return TYPE_UNKNOWN;
-            }
-        }
-        scope_release_slot(ctx->scope, slot_arg->data.identifier.name);
-        return TYPE_VOID;
-    }
-    if (strcmp(name, "SubmitDeviceRead") == 0) {
-        if (!check_call_arity(expr, 1, name, ctx))
-            return TYPE_UNKNOWN;
-        Type *slot_type = type_check_device_handle_arg(
-            expr->data.call.arguments[0], ctx, name, false);
-        return wrap_constructed(TYPE_REMOTE_FUTURE,
-            stdlib_body_normalize_type(type_get_constructed_arg(slot_type, 0)));
-    }
-
-    /* ---- Clone: explicit copy of Slot ---- */
-    if (strcmp(name, "Clone") == 0) {
-        if (!check_call_arity(expr, 1, name, ctx))
-            return TYPE_UNKNOWN;
-        Type *arg_type = stdlib_body_normalize_type(
-            type_check_expression(expr->data.call.arguments[0], ctx));
-        /* Clone returns the same type ??a fresh independent copy */
-        return arg_type;
     }
 
     /* ---- Result builtins ---- */

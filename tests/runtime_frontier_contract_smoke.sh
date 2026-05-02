@@ -13,11 +13,26 @@ require_file() {
     [[ -f "$ROOT_DIR/$rel" ]] || fail "missing runtime frontier contract file: $rel"
 }
 
+normalized_file_for() {
+    local path="$1"
+    local key
+    local normalized_path
+
+    key="$(printf '%s' "$path" | sed 's#[^A-Za-z0-9_]#_#g')"
+    normalized_path="$tmp_dir/norm_${key}"
+    if [[ ! -f "$normalized_path" ]]; then
+        tr '\n\r\t' '   ' < "$path" |
+            sed 's/[[:space:]][[:space:]]*/ /g' > "$normalized_path"
+    fi
+    printf '%s\n' "$normalized_path"
+}
+
 require_term() {
     local label="$1"
     local path="$2"
     local term="$3"
     local normalized_term
+    local normalized_path
 
     if grep -Fq -- "$term" "$path"; then
         return 0
@@ -28,9 +43,8 @@ require_term() {
             tr '\n\r\t' '   ' |
             sed 's/[[:space:]][[:space:]]*/ /g'
     )"
-    if ! tr '\n\r\t' '   ' < "$path" |
-        sed 's/[[:space:]][[:space:]]*/ /g' |
-        grep -Fq -- "$normalized_term"; then
+    normalized_path="$(normalized_file_for "$path")"
+    if ! grep -Fq -- "$normalized_term" "$normalized_path"; then
         fail "$label missing frontier contract term: $term"
     fi
 }
@@ -47,6 +61,7 @@ require_terms() {
 
 for rel in \
     "src/codegen/domain_frontier_policy.h" \
+    "src/runtime/pgy_frontier_policy.h" \
     "src/codegen/transpiler_domain_nominal_emit.h" \
     "src/codegen/transpiler_domain_provenance_emit.h" \
     "src/codegen/transpiler_zone_decl_emit.h" \
@@ -115,6 +130,7 @@ require_terms "C world frontier emitter" "$ROOT_DIR/src/codegen/transpiler_world
     "pgy_frontier_world_transitive_pass_limit" \
     "pgy_frontier_world_derived_pass_limit" \
     "_pgy_world_frontier_pass_limit" \
+    "_pgy_world_derived_changed_any" \
     "while (_pgy_world_frontier_continue && _pgy_world_frontier_pass < _pgy_world_frontier_pass_limit)" \
     "_pgy_world_frontier_continue = true" \
     "world frontier recompute exceeded bounded pass limit" \
@@ -139,6 +155,7 @@ require_terms "LLVM world/zone frontier emitter" "$llvm_domain_contract" \
     "zone.frontier.overflow" \
     "world.frontier.pass.addr" \
     "world.frontier.continue.addr" \
+    "world.derived.changed_any.addr" \
     "world.frontier.overflow" \
     "world.derived.overflow" \
     "pgy_runtime_panic_internal_invariant_export" \
@@ -154,7 +171,7 @@ require_terms "LLVM projection frontier emitter" "$llvm_projection_contract" \
     "projection recompute exceeded bounded pass limit" \
     "LLVMBuildUnreachable"
 
-require_terms "frontier policy source of truth" "$ROOT_DIR/src/codegen/domain_frontier_policy.h" \
+require_terms "frontier policy source of truth" "$ROOT_DIR/src/runtime/pgy_frontier_policy.h" \
     "UINT32_MAX" \
     "pgy_frontier_pass_limit_clamp" \
     "pgy_frontier_pass_limit_add" \
@@ -164,6 +181,9 @@ require_terms "frontier policy source of truth" "$ROOT_DIR/src/codegen/domain_fr
     "pgy_frontier_world_pass_limit" \
     "pgy_frontier_world_transitive_pass_limit" \
     "pgy_frontier_world_derived_pass_limit"
+
+require_terms "codegen frontier policy compatibility wrapper" "$ROOT_DIR/src/codegen/domain_frontier_policy.h" \
+    "../runtime/pgy_frontier_policy.h"
 
 require_terms "frontier policy arithmetic smoke" "$ROOT_DIR/tests/runtime_frontier_policy_smoke.sh" \
     "pgy_frontier_pass_limit_cap" \

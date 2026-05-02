@@ -364,6 +364,7 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_context.c \
                    $(CODEGEN_DIR)/codegen_slot_type_policy.c \
                    $(CODEGEN_DIR)/intent_observability_usage.c \
                    $(CODEGEN_DIR)/transpiler_builtin_type_table.c \
+                   $(CODEGEN_DIR)/thread_pool_usage.c \
                    $(CODEGEN_DIR)/transpiler_entry.c \
                    $(CODEGEN_DIR)/transpiler_symbols.c \
                    $(CODEGEN_DIR)/transpiler_decl_lookup.c \

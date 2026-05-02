@@ -1,0 +1,12 @@
+#ifndef PGY_THREAD_POOL_USAGE_H
+#define PGY_THREAD_POOL_USAGE_H
+
+#include <stdbool.h>
+
+#include "../compiler/mir.h"
+#include "../parser/ast.h"
+
+bool pgy_ast_uses_thread_pool(const ASTNode *node);
+bool pgy_mir_routine_uses_thread_pool(const MIRRoutine *routine);
+
+#endif

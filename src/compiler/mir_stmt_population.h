@@ -415,6 +415,7 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
         free(old_insts);
         block->instructions = new_insts;
         block->instruction_count = new_count;
+        block->instruction_capacity = new_cap;
     }
 
     for (size_t block_id = 0; block_id < routine->block_count && !has_stmt_inst; block_id++) {

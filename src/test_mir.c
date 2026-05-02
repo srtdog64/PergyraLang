@@ -148,6 +148,18 @@ block_has_inst_named(const MIRBasicBlock *block, const char *name)
 }
 
 static bool
+test_block_has_forward_edge_to(const MIRBasicBlock *block, size_t target)
+{
+    if (block == NULL)
+        return false;
+    return (block->has_succ_true && block->succ_true == target)
+        || (block->has_succ_false && block->succ_false == target)
+        || (block->has_cleanup_succ && block->cleanup_succ == target)
+        || (block->has_rollback_succ && block->rollback_succ == target)
+        || (block->has_invalidation_succ && block->invalidation_succ == target);
+}
+
+static bool
 block_rename_inst_named(MIRBasicBlock *block, const char *old_name, const char *new_name)
 {
     if (block == NULL || old_name == NULL)

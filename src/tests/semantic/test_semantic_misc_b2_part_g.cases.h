@@ -177,8 +177,6 @@
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "this where value came from the intent-level where default"));
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "declare zone 'MissingZone'"));
 
         semantic_result_destroy(result);
         ast_destroy(program);

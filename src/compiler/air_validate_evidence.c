@@ -15,6 +15,7 @@ air_evidence_kind_valid(AIREvidenceKind kind)
     case AIR_EVIDENCE_RIR_AUTHORITY:
     case AIR_EVIDENCE_MIR_CLEANUP:
     case AIR_EVIDENCE_MIR_PIN_CLEANUP:
+    case AIR_EVIDENCE_DAG_METADATA:
     case AIR_EVIDENCE_DAG_GENERIC:
     case AIR_EVIDENCE_DAG_ABILITY:
     case AIR_EVIDENCE_RIR_EFFECT_PROPAGATION:
@@ -28,6 +29,7 @@ static bool
 air_evidence_kind_is_global(AIREvidenceKind kind)
 {
     return kind == AIR_EVIDENCE_DAG_GENERIC
+        || kind == AIR_EVIDENCE_DAG_METADATA
         || kind == AIR_EVIDENCE_DAG_ABILITY
         || kind == AIR_EVIDENCE_MIR_CLEANUP
         || kind == AIR_EVIDENCE_RIR_EFFECT_PROPAGATION
@@ -111,11 +113,14 @@ air_evidence_node_matches_boundary_shape(const AIRProgram *air,
                 return false;
             }
         }
-        if (evidence->kind == AIR_EVIDENCE_DAG_GENERIC
+        if (evidence->kind == AIR_EVIDENCE_DAG_METADATA
+            || evidence->kind == AIR_EVIDENCE_DAG_GENERIC
             || evidence->kind == AIR_EVIDENCE_DAG_ABILITY) {
-            const char *expected_subject = evidence->kind == AIR_EVIDENCE_DAG_GENERIC
-                ? "generic-contracts"
-                : "ability-consumers";
+            const char *expected_subject = "metadata-inventory";
+            if (evidence->kind == AIR_EVIDENCE_DAG_GENERIC)
+                expected_subject = "generic-contracts";
+            else if (evidence->kind == AIR_EVIDENCE_DAG_ABILITY)
+                expected_subject = "ability-consumers";
             if (evidence->fact_count == 0 && evidence->fallback_count == 0) {
                 air_set_invariant_error(error_message,
                                         "AIR DAG evidence node %zu has no DAG facts",
@@ -253,6 +258,7 @@ air_evidence_node_matches_boundary_shape(const AIRProgram *air,
         }
         return true;
     case AIR_EVIDENCE_DAG_GENERIC:
+    case AIR_EVIDENCE_DAG_METADATA:
     case AIR_EVIDENCE_DAG_ABILITY:
     case AIR_EVIDENCE_MIR_CLEANUP:
     case AIR_EVIDENCE_RIR_EFFECT_PROPAGATION:

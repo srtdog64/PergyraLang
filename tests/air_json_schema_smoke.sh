@@ -63,6 +63,7 @@ for required in \
     '"boundaries"' \
     '"source_from_intent_default"' \
     '"source_from_transfer"' \
+    '"authority_from_zone"' \
     '"evidence"' \
     '"drifts":[]' \
     '"evidence_flags"' \
@@ -77,6 +78,7 @@ for required in \
     '"fallback_count":0' \
     '"mir_cleanup_evidence_count"' \
     '"mir_pin_cleanup_evidence_count"' \
+    '"dag_metadata_evidence_count"' \
     '"dag_generic_evidence_count"' \
     '"dag_ability_evidence_count"' \
     '"rir_effect_propagation_required_count"' \
@@ -117,12 +119,15 @@ assert data["observability"]["surfaces"] == ["last", "history", "active", "recen
 assert all("who_from_intent_default" in intent for intent in data["intents"])
 assert all("source_from_intent_default" in boundary for boundary in data["boundaries"])
 assert all("source_from_transfer" in boundary for boundary in data["boundaries"])
+assert all("authority_from_zone" in boundary for boundary in data["boundaries"])
 assert any(b["kind"] == "zone" and b["evidence_flags"]["rir_boundary"] for b in data["boundaries"])
 assert any(e["kind"] == "rir_boundary" for e in data["evidence"])
 assert any(e["kind"] == "hir_cfg" for e in data["evidence"])
 assert all("provider" in e and "subject" in e for e in data["evidence"])
 assert all("fact_count" in e and "fallback_count" in e for e in data["evidence"])
 assert all(e["fallback_count"] == 0 for e in data["evidence"])
+if summary["dag_metadata_evidence_count"] > 0:
+    assert any(e["kind"] == "dag_metadata" for e in data["evidence"])
 if summary["dag_generic_evidence_count"] > 0:
     assert any(e["kind"] == "dag_generic" for e in data["evidence"])
 if summary["dag_ability_evidence_count"] > 0:

@@ -176,13 +176,12 @@ transpiler_emit_mir_block_mapping_comment(CodeBuf *out,
     if (source_stmt != NULL) {
         write_indent_to(out, indent);
         codebuf_write(out,
-            "/* mir block=%zu hir=%zu (%s) src=%u:%u ast=%p */\n",
+            "/* mir block=%zu hir=%zu (%s) src=%u:%u */\n",
             block->id,
             block->source_hir_block_id,
             routine_name != NULL ? routine_name : "<routine>",
             line,
-            column,
-            (const void *)source_stmt);
+            column);
     } else {
         write_indent_to(out, indent);
         codebuf_write(out,

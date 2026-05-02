@@ -70,7 +70,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                 gp->params[gi]->name,
                 tp != NULL ? tp : TYPE_UNKNOWN,
                 node->line, node->column);
-            s->kind = SYMBOL_CLASS;
+            s->kind = SYMBOL_TYPE_PARAM;
             scope_declare(ctx->scope, s);
         }
     }
@@ -244,16 +244,12 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
         for (size_t gi = 0; gi < gp->count; gi++) {
             if (gp->params[gi] == NULL || gp->params[gi]->name == NULL)
                 continue;
-            Type *tp = calloc(1, sizeof(Type));
-            if (tp != NULL) {
-                tp->kind = TYPE_KIND_CLASS;
-                tp->name = pergyra_strdup(gp->params[gi]->name);
-            }
+            Type *tp = type_create_generic(gp->params[gi]->name);
             Symbol *s = symbol_create_variable(
                 gp->params[gi]->name,
                 tp != NULL ? tp : TYPE_UNKNOWN,
                 node->line, node->column);
-            s->kind = SYMBOL_CLASS;
+            s->kind = SYMBOL_TYPE_PARAM;
             scope_declare(ctx->scope, s);
         }
     }

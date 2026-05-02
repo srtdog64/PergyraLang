@@ -19,7 +19,10 @@ require_file() {
 require_term() {
     local rel="$1"
     local term="$2"
-    grep -Fq "$term" "$ROOT_DIR/$rel" ||
+    local text
+
+    text="$(<"$ROOT_DIR/$rel")"
+    [[ "$text" == *"$term"* ]] ||
         fail "$rel missing term: $term"
 }
 
@@ -220,6 +223,7 @@ for term in \
     "transpiler_hosted_method_view(" \
     "transpiler_hosted_method_view_from_decl(" \
     "transpiler_hosted_method_view_ast(" \
+    "if (view->requires_mir_metadata)" \
     "transpiler_hosted_method_view_missing_mir_metadata("; do
     require_term "src/codegen/transpiler_decl_lookup.h" "$term"
 done
@@ -247,6 +251,7 @@ require_term "src/codegen/transpiler_enum_decl_emit.h" \
 require_term "src/codegen/transpiler_domain_role_ability_emit.h" \
     "transpiler_hosted_method_view_missing_mir_metadata(method_view)"
 c_method_raw_hits="$(
+    c_method_files=()
     for path in "$ROOT_DIR"/src/codegen/transpiler*.c \
         "$ROOT_DIR"/src/codegen/transpiler*.h; do
         [[ -e "$path" ]] || continue
@@ -256,9 +261,12 @@ c_method_raw_hits="$(
                 continue
                 ;;
         esac
-        grep -EIn 'data\.(class_decl|enum_decl|relation_decl|effect_decl|zone_decl|world_decl|party_decl|roster_decl)\.methods\[[^]]+\]|data\.(class_decl|enum_decl|relation_decl|effect_decl|zone_decl|world_decl|party_decl|roster_decl)\.method_count' \
-            "$path" | sed "s#^#$rel:#" || true
+        c_method_files+=("$path")
     done
+    if ((${#c_method_files[@]})); then
+        grep -EHIn 'data\.(class_decl|enum_decl|relation_decl|effect_decl|zone_decl|world_decl|party_decl|roster_decl)\.methods\[[^]]+\]|data\.(class_decl|enum_decl|relation_decl|effect_decl|zone_decl|world_decl|party_decl|roster_decl)\.method_count' \
+            "${c_method_files[@]}" | sed "s#^$ROOT_DIR/##" || true
+    fi
 )"
 if [[ -n "$c_method_raw_hits" ]]; then
     fail "C backend hosted-method emission must use TranspilerHostedMethodView outside method-view owners:
@@ -353,6 +361,7 @@ if grep -Eq 'llvm_emit_domain_method_forward_decls\([^)]*ASTNode \*\*methods|llv
     fail "LLVM domain method forward declarations must accept LLVMHostedMethodView, not AST method arrays"
 fi
 llvm_method_raw_hits="$(
+    llvm_method_files=()
     for path in "$ROOT_DIR"/src/codegen/llvm*.[ch]; do
         [[ -e "$path" ]] || continue
         rel="${path#$ROOT_DIR/}"
@@ -362,9 +371,12 @@ llvm_method_raw_hits="$(
                 continue
                 ;;
         esac
-        grep -EIn 'data\.(class_decl|enum_decl|relation_decl|effect_decl|zone_decl|world_decl|party_decl|roster_decl)\.methods\[[^]]+\]|data\.(class_decl|enum_decl|relation_decl|effect_decl|zone_decl|world_decl|party_decl|roster_decl)\.method_count' \
-            "$path" | sed "s#^#$rel:#" || true
+        llvm_method_files+=("$path")
     done
+    if ((${#llvm_method_files[@]})); then
+        grep -EHIn 'data\.(class_decl|enum_decl|relation_decl|effect_decl|zone_decl|world_decl|party_decl|roster_decl)\.methods\[[^]]+\]|data\.(class_decl|enum_decl|relation_decl|effect_decl|zone_decl|world_decl|party_decl|roster_decl)\.method_count' \
+            "${llvm_method_files[@]}" | sed "s#^$ROOT_DIR/##" || true
+    fi
 )"
 if [[ -n "$llvm_method_raw_hits" ]]; then
     fail "LLVM hosted-method emission must use LLVMHostedMethodView outside method-view owners:
@@ -384,6 +396,9 @@ for forbidden in \
         fail "LLVM MIR method accessors must not fall back to AST method nodes: $forbidden"
     fi
 done
+
+require_term "src/codegen/llvm_inventory_host_methods.h" \
+    "if (view->requires_mir_metadata)"
 
 for term in \
     "MIRDeclMethod" \
@@ -431,6 +446,11 @@ allowed_raw_files=(
     "src/codegen/transpiler.h"
 )
 raw_hits=""
+domain_array_pattern="$(
+    IFS='|'
+    printf '%s' "${domain_arrays[*]}"
+)"
+raw_scan_files=()
 for path in "$ROOT_DIR"/src/codegen/llvm*.[ch] \
     "$ROOT_DIR/src/codegen/transpiler.c" \
     "$ROOT_DIR/src/codegen/transpiler.h"; do
@@ -444,12 +464,16 @@ for path in "$ROOT_DIR"/src/codegen/llvm*.[ch] \
         fi
     done
     [[ "$allowed" == true ]] && continue
-    for name in "${domain_arrays[@]}"; do
-        if grep -Eq "\bctx->mir->$name\b|\bmir->$name\b" "$path"; then
-            raw_hits+="$rel: raw MIR declaration array access: $name"$'\n'
-        fi
-    done
+    raw_scan_files+=("$path")
 done
+if ((${#raw_scan_files[@]})); then
+    raw_hits="$(
+        grep -EHIn "\\b(ctx->mir|mir)->($domain_array_pattern)\\b" \
+            "${raw_scan_files[@]}" |
+            sed "s#^$ROOT_DIR/##; s#:#: raw MIR declaration array access: #" ||
+            true
+    )"
+fi
 if [[ -n "$raw_hits" ]]; then
     fail "raw MIR declaration inventory array access outside allowed owner files:
 $raw_hits"

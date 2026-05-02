@@ -22,7 +22,7 @@ cat >"$tmp_dir/frontier_policy_check.c" <<'C'
 #include <stdint.h>
 #include <stddef.h>
 
-#include "codegen/domain_frontier_policy.h"
+#include "runtime/pgy_frontier_policy.h"
 
 static int
 expect_size(const char *name, size_t actual, size_t expected)

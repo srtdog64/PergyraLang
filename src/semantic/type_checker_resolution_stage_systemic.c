@@ -156,12 +156,15 @@ semantic_stage_world_decl(ASTNode *decl, SemanticContext *ctx)
         ASTNode *field = decl->data.world_decl.shared_fields[i];
         if (field == NULL || field->type != AST_PARTY_SHARED)
             continue;
-        (void)semantic_stage_resolve_type_quiet(
-            field->data.party_shared.type,
-            ctx,
-            field,
-            field->data.party_shared.name,
-            "world shared field type lookup");
+        if (semantic_type_resolution_lookup_metadata_type_ref(ctx,
+                field->data.party_shared.type) == NULL) {
+            (void)semantic_stage_resolve_type_quiet(
+                field->data.party_shared.type,
+                ctx,
+                field,
+                field->data.party_shared.name,
+                "world shared field type lookup");
+        }
     }
     semantic_stage_method_array(
         decl->data.world_decl.methods,

@@ -184,6 +184,7 @@ void semantic_stage_record_alias_diagnostic_unresolved(ASTNode *alias_decl,
 const char *semantic_symbol_kind_label(SymbolKind kind);
 const char *intent_step_single_who_alias(const ASTNode *step);
 ASTNode *find_intent_involves_local(ASTNode *intent, const char *alias);
+ASTNode *find_intent_value_local(ASTNode *intent, const char *alias);
 ASTNode *intent_step_resolve_transfer_target_involves(
     ASTNode *intent_decl,
     ASTNode *step,

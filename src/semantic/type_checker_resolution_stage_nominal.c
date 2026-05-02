@@ -27,9 +27,43 @@ stage_nominal_strdup_fmt(const char *fmt, ...)
     return buf;
 }
 
+static bool
+stage_nominal_enter_generic_scope(GenericParams *gp, SemanticContext *ctx)
+{
+    bool entered = false;
+
+    if (gp == NULL || gp->count == 0 || ctx == NULL)
+        return false;
+
+    scope_enter(&ctx->scope, SCOPE_BLOCK);
+    entered = true;
+    for (size_t i = 0; i < gp->count; i++) {
+        GenericParam *param = gp->params[i];
+        Type *type;
+        Symbol *sym;
+
+        if (param == NULL || param->name == NULL)
+            continue;
+
+        type = type_create_generic(param->name);
+        sym = symbol_create_variable(param->name,
+                                     type != NULL ? type : TYPE_UNKNOWN,
+                                     0,
+                                     0);
+        if (sym == NULL)
+            continue;
+        sym->kind = SYMBOL_TYPE_PARAM;
+        scope_declare(ctx->scope, sym);
+    }
+
+    return entered;
+}
+
 void
 semantic_stage_class_decl(ASTNode *decl, SemanticContext *ctx)
 {
+    bool generic_scope_entered;
+
     if (decl == NULL || decl->type != AST_CLASS_DECL || ctx == NULL)
         return;
 
@@ -40,6 +74,9 @@ semantic_stage_class_decl(ASTNode *decl, SemanticContext *ctx)
         decl,
         "class",
         decl->data.class_decl.name);
+
+    generic_scope_entered = stage_nominal_enter_generic_scope(
+        decl->data.class_decl.generic_params, ctx);
     for (size_t i = 0; i < decl->data.class_decl.field_count; i++) {
         ClassField *field = decl->data.class_decl.fields[i];
         char *consumer_name;
@@ -52,12 +89,15 @@ semantic_stage_class_decl(ASTNode *decl, SemanticContext *ctx)
             field->name != NULL ? field->name : "<field>");
         if (consumer_name == NULL)
             continue;
-        (void)semantic_stage_resolve_type_quiet(
-            field->type,
-            ctx,
-            decl,
-            consumer_name,
-            "class field type lookup");
+        if (semantic_type_resolution_lookup_metadata_type_ref(ctx, field->type)
+            == NULL) {
+            (void)semantic_stage_resolve_type_quiet(
+                field->type,
+                ctx,
+                decl,
+                consumer_name,
+                "class field type lookup");
+        }
         free(consumer_name);
     }
     semantic_stage_method_array(
@@ -65,6 +105,8 @@ semantic_stage_class_decl(ASTNode *decl, SemanticContext *ctx)
         decl->data.class_decl.method_count,
         ctx,
         decl->data.class_decl.name);
+    if (generic_scope_entered)
+        scope_exit(&ctx->scope);
 }
 
 void
@@ -113,6 +155,8 @@ semantic_stage_enum_decl(ASTNode *decl, SemanticContext *ctx)
 void
 semantic_stage_ability_decl(ASTNode *decl, SemanticContext *ctx)
 {
+    bool generic_scope_entered;
+
     if (decl == NULL || decl->type != AST_ABILITY_DECL || ctx == NULL)
         return;
 
@@ -123,6 +167,8 @@ semantic_stage_ability_decl(ASTNode *decl, SemanticContext *ctx)
         decl,
         "ability",
         decl->data.ability_decl.name);
+    generic_scope_entered = stage_nominal_enter_generic_scope(
+        decl->data.ability_decl.generic_params, ctx);
     for (size_t i = 0; i < decl->data.ability_decl.require_count; i++) {
         ASTNode *req = decl->data.ability_decl.require_fields[i];
         char *consumer_name;
@@ -149,6 +195,8 @@ semantic_stage_ability_decl(ASTNode *decl, SemanticContext *ctx)
         decl->data.ability_decl.method_count,
         ctx,
         decl->data.ability_decl.name);
+    if (generic_scope_entered)
+        scope_exit(&ctx->scope);
 }
 
 void

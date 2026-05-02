@@ -7,9 +7,13 @@ grep -Fq "inherited_who_from_intent" \
     "$ROOT_DIR/src/parser/ast_domain_data.h"
 grep -Fq "inherited_where_from_intent" \
     "$ROOT_DIR/src/parser/ast_domain_data.h"
+grep -Fq "derived_authorized_by_from_zone" \
+    "$ROOT_DIR/src/parser/ast_domain_data.h"
 grep -Fq "inherited_who_from_intent = false" \
     "$ROOT_DIR/src/parser/ast_domain_constructors.c"
 grep -Fq "inherited_where_from_intent = false" \
+    "$ROOT_DIR/src/parser/ast_domain_constructors.c"
+grep -Fq "derived_authorized_by_from_zone = false" \
     "$ROOT_DIR/src/parser/ast_domain_constructors.c"
 grep -Fq "inherited_who_from_intent = copied_any" \
     "$ROOT_DIR/src/parser/parser_intent.c"
@@ -19,10 +23,28 @@ grep -Fq "reused who from intent-level default" \
     "$ROOT_DIR/src/parser/ast_print_intent.c"
 grep -Fq "reused zone from intent-level default" \
     "$ROOT_DIR/src/parser/ast_print_intent.c"
+grep -Fq "derived authorized by from zone authority" \
+    "$ROOT_DIR/src/parser/ast_print_intent.c"
 grep -Fq "reused who from intent-level default" \
     "$ROOT_DIR/src/semantic/type_checker_intent_contract_summary.c"
 grep -Fq "reused zone from intent-level default" \
     "$ROOT_DIR/src/semantic/type_checker_intent_contract_summary.c"
+grep -Fq "approval owner stays on the zone/resource layer" \
+    "$ROOT_DIR/src/semantic/type_checker_intent_contract_summary.c"
+grep -Fq "intent_step_derive_authorized_by_from_zone" \
+    "$ROOT_DIR/src/semantic/type_checker_intent_authority.c"
+grep -Fq "intent_step_can_derive_zone_authority" \
+    "$ROOT_DIR/src/semantic/type_checker_intent_authority.c"
+grep -Fq "authorized_by_derived_from_zone" \
+    "$ROOT_DIR/src/compiler/dir.h"
+grep -Fq "derived_authorized_by_from_zone" \
+    "$ROOT_DIR/src/compiler/dir_collect.c"
+grep -Fq "authority_from_zone" \
+    "$ROOT_DIR/src/compiler/air.h"
+grep -Fq "authority_provenance=%s" \
+    "$ROOT_DIR/src/compiler/air_verify.c"
+grep -Fq "zone-derived" \
+    "$ROOT_DIR/src/compiler/air_verify.c"
 grep -Fq "inherited from the intent-level who default" \
     "$ROOT_DIR/src/semantic/type_checker_intent_participants.c"
 grep -Fq "intent_step_where_source_label" \
@@ -75,6 +97,14 @@ grep -Fq "source_from_transfer" \
     "$ROOT_DIR/src/compiler/air_dump.c"
 grep -Fq "intent step reuses intent-level who and where defaults" \
     "$ROOT_DIR/src/tests/semantic/test_semantic_misc_b2_part_d.cases.h"
+grep -Fq "intent authority-bearing zone derives authorized by for secure helper" \
+    "$ROOT_DIR/src/tests/semantic/test_semantic_misc_b2_part_c.cases.h"
+grep -Fq "intent transfer derives zone using and authorized by from target authority" \
+    "$ROOT_DIR/src/tests/semantic/test_semantic_misc_b2_part_c.cases.h"
+grep -Fq "records derived authorized by before action diagnostics" \
+    "$ROOT_DIR/src/tests/semantic/test_semantic_misc_b2_part_c.cases.h"
+grep -Fq "intent step effect in authority-bearing zone derives authorized by" \
+    "$ROOT_DIR/src/tests/semantic/test_semantic_effects_part_a.cases.h"
 grep -Fq "intent-level who default failure reports provenance" \
     "$ROOT_DIR/src/tests/semantic/test_semantic_misc_b2_part_d.cases.h"
 grep -Fq "intent-level where default failure reports provenance" \

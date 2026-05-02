@@ -26,6 +26,28 @@ mir_validate_cfg_contract_roots(const MIRRoutine *routine, char **error_message)
                 routine->name != NULL ? routine->name : "(anonymous)");
         return false;
     }
+    if (routine->has_cleanup_block && routine->entry_block == routine->cleanup_block) {
+        if (error_message != NULL)
+            *error_message = mir_strdup_fmt(
+                "MIR routine '%s' entry and cleanup blocks must be distinct",
+                routine->name != NULL ? routine->name : "(anonymous)");
+        return false;
+    }
+    if (routine->has_rollback_block && routine->entry_block == routine->rollback_block) {
+        if (error_message != NULL)
+            *error_message = mir_strdup_fmt(
+                "MIR routine '%s' entry and rollback blocks must be distinct",
+                routine->name != NULL ? routine->name : "(anonymous)");
+        return false;
+    }
+    if (routine->has_invalidation_block
+        && routine->entry_block == routine->invalidation_block) {
+        if (error_message != NULL)
+            *error_message = mir_strdup_fmt(
+                "MIR routine '%s' entry and invalidation blocks must be distinct",
+                routine->name != NULL ? routine->name : "(anonymous)");
+        return false;
+    }
     if (!routine->has_cleanup_block && routine->has_rollback_block) {
         if (error_message != NULL)
             *error_message = mir_strdup_fmt(
@@ -37,6 +59,22 @@ mir_validate_cfg_contract_roots(const MIRRoutine *routine, char **error_message)
         if (error_message != NULL)
             *error_message = mir_strdup_fmt(
                 "MIR routine '%s' has invalidation block without cleanup root",
+                routine->name != NULL ? routine->name : "(anonymous)");
+        return false;
+    }
+    if (routine->has_cleanup_block && routine->has_rollback_block
+        && routine->cleanup_block == routine->rollback_block) {
+        if (error_message != NULL)
+            *error_message = mir_strdup_fmt(
+                "MIR routine '%s' cleanup and rollback blocks must be distinct",
+                routine->name != NULL ? routine->name : "(anonymous)");
+        return false;
+    }
+    if (routine->has_cleanup_block && routine->has_invalidation_block
+        && routine->cleanup_block == routine->invalidation_block) {
+        if (error_message != NULL)
+            *error_message = mir_strdup_fmt(
+                "MIR routine '%s' cleanup and invalidation blocks must be distinct",
                 routine->name != NULL ? routine->name : "(anonymous)");
         return false;
     }

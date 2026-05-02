@@ -56,6 +56,33 @@ air_boundary_has_evidence_kind(const AIRProgram *air,
     return false;
 }
 
+bool
+air_boundary_has_evidence(const AIRProgram *air,
+                          size_t boundary_index,
+                          AIREvidenceKind kind)
+{
+    const AIRBoundaryNode *boundary;
+
+    if (air == NULL || boundary_index >= air->boundary_count)
+        return false;
+    if (air->evidence_count > 0)
+        return air_boundary_has_evidence_kind(air, boundary_index, kind);
+
+    boundary = &air->boundaries[boundary_index];
+    switch (kind) {
+    case AIR_EVIDENCE_HIR_ROUTINE:
+        return boundary->has_hir_routine_evidence;
+    case AIR_EVIDENCE_HIR_CFG:
+        return boundary->has_hir_cfg_evidence;
+    case AIR_EVIDENCE_RIR_BOUNDARY:
+        return boundary->has_rir_boundary_evidence;
+    case AIR_EVIDENCE_RIR_AUTHORITY:
+        return boundary->has_rir_authority_evidence;
+    default:
+        return false;
+    }
+}
+
 
 static bool
 air_boundary_has_authoritative_evidence(const AIRProgram *air,
@@ -175,6 +202,7 @@ air_format_boundary_provenance(const AIRIntentNode *intent,
 {
     const char *source_provenance;
     const char *who_provenance;
+    const char *authority_provenance;
 
     if (out == NULL || out_size == 0)
         return;
@@ -193,14 +221,18 @@ air_format_boundary_provenance(const AIRIntentNode *intent,
     who_provenance = intent->who_from_intent_default
         ? "intent-default"
         : "explicit";
+    authority_provenance = boundary->authority_from_zone
+        ? "zone-derived"
+        : (boundary->authority_required ? "explicit" : "none");
     snprintf(out,
              out_size,
-             "; owner=%s step=%s boundary_source=%s source_provenance=%s who_provenance=%s",
+             "; owner=%s step=%s boundary_source=%s source_provenance=%s who_provenance=%s authority_provenance=%s",
              intent->intent_owner != NULL ? intent->intent_owner : "<intent>",
              intent->step_name != NULL ? intent->step_name : "<step>",
              boundary->source_name != NULL ? boundary->source_name : "<boundary>",
              source_provenance,
-             who_provenance);
+             who_provenance,
+             authority_provenance);
     out[out_size - 1] = '\0';
 }
 
@@ -238,11 +270,13 @@ air_verify(AIRProgram *air, char **error_message)
             && !air_boundary_has_authoritative_evidence(
                 air, boundary, i, AIR_EVIDENCE_RIR_BOUNDARY,
                 boundary->has_rir_boundary_evidence)) {
-            char message[512];
+            char message[768];
             snprintf(message,
                      sizeof(message),
                      PGY_CODE_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING
-                     ": AIR boundary has no matching RIR boundary evidence; implementation boundary '%s' (%s)%s",
+                     ": AIR boundary has no matching RIR boundary evidence; implementation boundary '%s' (%s)%s. "
+                     "Reason: strict AIR requires lowered boundary evidence before abstraction-boundary verification. "
+                     "Fix: preserve the RIR boundary evidence node for this implementation boundary.",
                      boundary->source_name != NULL ? boundary->source_name : "<unknown>",
                      air_boundary_kind_name(boundary->kind),
                      provenance);
@@ -261,11 +295,13 @@ air_verify(AIRProgram *air, char **error_message)
             && !air_boundary_has_authoritative_evidence(
                 air, boundary, i, AIR_EVIDENCE_HIR_ROUTINE,
                 boundary->has_hir_routine_evidence)) {
-            char message[512];
+            char message[768];
             snprintf(message,
                      sizeof(message),
                      PGY_CODE_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING
-                     ": AIR boundary has no matching HIR routine evidence; implementation boundary '%s' (%s)%s",
+                     ": AIR boundary has no matching HIR routine evidence; implementation boundary '%s' (%s)%s. "
+                     "Reason: strict AIR requires a CFG-capable HIR routine owner for this boundary. "
+                     "Fix: attach the HIR routine evidence node before AIR verification.",
                      boundary->source_name != NULL ? boundary->source_name : "<unknown>",
                      air_boundary_kind_name(boundary->kind),
                      provenance);
@@ -283,11 +319,13 @@ air_verify(AIRProgram *air, char **error_message)
             && !air_boundary_has_authoritative_evidence(
                 air, boundary, i, AIR_EVIDENCE_HIR_CFG,
                 boundary->has_hir_cfg_evidence)) {
-            char message[512];
+            char message[768];
             snprintf(message,
                      sizeof(message),
                      PGY_CODE_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING
-                     ": AIR implementation boundary has no matching HIR CFG evidence; implementation boundary '%s' (%s)%s",
+                     ": AIR implementation boundary has no matching HIR CFG evidence; implementation boundary '%s' (%s)%s. "
+                     "Reason: strict AIR requires body control-flow evidence for boundary safety. "
+                     "Fix: lower this body through the HIR CFG path and attach AIR_EVIDENCE_HIR_CFG.",
                      boundary->source_name != NULL ? boundary->source_name : "<unknown>",
                      air_boundary_kind_name(boundary->kind),
                      provenance);
@@ -306,10 +344,12 @@ air_verify(AIRProgram *air, char **error_message)
                 air, boundary, i, AIR_EVIDENCE_RIR_AUTHORITY,
                 boundary->has_rir_authority_evidence)) {
             char authority_names[256];
-            char message[512];
+            char message[768];
             const char *drift_message =
                 PGY_CODE_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING
-                ": AIR authority boundary has no matching RIR authority evidence";
+                ": AIR authority boundary has no matching RIR authority evidence. "
+                "Reason: strict AIR requires authority checks to be backed by RIR authority evidence. "
+                "Fix: attach AIR_EVIDENCE_RIR_AUTHORITY for this authority boundary.";
 
             if (air_format_authority_names(boundary,
                                            authority_names,
@@ -317,7 +357,9 @@ air_verify(AIRProgram *air, char **error_message)
                 snprintf(message,
                          sizeof(message),
                          PGY_CODE_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING
-                         ": AIR authority boundary has no matching RIR authority evidence; expected authority participant(s): %s%s",
+                         ": AIR authority boundary has no matching RIR authority evidence; expected authority participant(s): %s%s. "
+                         "Reason: strict AIR requires authority checks to be backed by RIR authority evidence. "
+                         "Fix: attach AIR_EVIDENCE_RIR_AUTHORITY for each expected authority participant.",
                          authority_names,
                          provenance);
                 drift_message = message;
@@ -337,11 +379,13 @@ air_verify(AIRProgram *air, char **error_message)
             && !air_boundary_has_authoritative_evidence(
                 air, boundary, i, AIR_EVIDENCE_MIR_PIN_CLEANUP,
                 false)) {
-            char message[512];
+            char message[768];
             snprintf(message,
                      sizeof(message),
                      PGY_CODE_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING
-                     ": AIR pin boundary has no matching MIR pin cleanup evidence; implementation boundary '%s' (%s)%s",
+                     ": AIR pin boundary has no matching MIR pin cleanup evidence; implementation boundary '%s' (%s)%s. "
+                     "Reason: strict AIR requires pin boundaries to prove all exits run unpin cleanup. "
+                     "Fix: emit the MIR pin cleanup edge and attach AIR_EVIDENCE_MIR_PIN_CLEANUP.",
                      boundary->source_name != NULL ? boundary->source_name : "<unknown>",
                      air_boundary_kind_name(boundary->kind),
                      provenance);
@@ -358,11 +402,13 @@ air_verify(AIRProgram *air, char **error_message)
     if (air->strict_evidence
         && air->rir_effect_propagation_required_count
             > air->rir_effect_propagation_evidence_count) {
-        char message[256];
+        char message[512];
         snprintf(message,
                  sizeof(message),
                  PGY_CODE_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING
-                 ": AIR effect propagation has RIR op without effect resource/state evidence; required=%zu evidence=%zu",
+                 ": AIR effect propagation has RIR op without effect resource/state evidence; required=%zu evidence=%zu. "
+                 "Reason: strict AIR requires every effect propagation op to carry resource/state evidence. "
+                 "Fix: attach AIR_EVIDENCE_RIR_EFFECT_PROPAGATION for the missing propagation op.",
                  air->rir_effect_propagation_required_count,
                  air->rir_effect_propagation_evidence_count);
         if (!air_append_drift(air,
@@ -377,11 +423,13 @@ air_verify(AIRProgram *air, char **error_message)
     if (air->strict_evidence
         && air->rir_relation_propagation_required_count
             > air->rir_relation_propagation_evidence_count) {
-        char message[256];
+        char message[512];
         snprintf(message,
                  sizeof(message),
                  PGY_CODE_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING
-                 ": AIR relation propagation has RIR op without relation resource/state evidence; required=%zu evidence=%zu",
+                 ": AIR relation propagation has RIR op without relation resource/state evidence; required=%zu evidence=%zu. "
+                 "Reason: strict AIR requires every relation propagation op to carry resource/state evidence. "
+                 "Fix: attach AIR_EVIDENCE_RIR_RELATION_PROPAGATION for the missing propagation op.",
                  air->rir_relation_propagation_required_count,
                  air->rir_relation_propagation_evidence_count);
         if (!air_append_drift(air,
@@ -396,14 +444,17 @@ air_verify(AIRProgram *air, char **error_message)
     if (air->strict_evidence) {
         for (size_t i = 0; i < air->evidence_count; i++) {
             const AIREvidenceNode *evidence = &air->evidence_nodes[i];
-            if ((evidence->kind == AIR_EVIDENCE_DAG_GENERIC
+            if ((evidence->kind == AIR_EVIDENCE_DAG_METADATA
+                 || evidence->kind == AIR_EVIDENCE_DAG_GENERIC
                  || evidence->kind == AIR_EVIDENCE_DAG_ABILITY)
                 && evidence->fallback_count > 0) {
-                char message[256];
+                char message[768];
                 snprintf(message,
                          sizeof(message),
                          PGY_CODE_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING
-                         ": AIR DAG evidence contains metadata materializer fallback; kind=%s fallback_count=%zu",
+                         ": AIR DAG evidence contains metadata materializer fallback; kind=%s fallback_count=%zu. "
+                         "Reason: strict AIR requires graph-backed type evidence before abstraction-boundary verification. "
+                         "Fix: remove the type-resolution materializer fallback or add the missing DAG evidence node.",
                          air_evidence_kind_name(evidence->kind),
                          evidence->fallback_count);
                 if (!air_append_drift(air,

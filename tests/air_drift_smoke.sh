@@ -59,11 +59,20 @@ run_literal_air_drift_smoke() {
     require_literal "src/compiler/air_evidence.c" "cleanup-edge-from-rollback"
     require_literal "src/compiler/air_evidence.c" "slot_anchor"
     require_literal "src/compiler/air_evidence.c" "arg0"
+    require_literal "src/compiler/air_evidence.c" "AIR_EVIDENCE_DAG_METADATA"
+    require_literal "src/compiler/air_evidence.c" "metadata-inventory"
     require_literal "src/compiler/air_evidence.c" "AIR_EVIDENCE_DAG_GENERIC"
     require_literal "src/compiler/air_verify.c" "air_verify"
     require_literal "src/compiler/air_verify.c" "source_provenance="
     require_literal "src/compiler/air_verify.c" "who_provenance="
     require_literal "src/compiler/air_verify.c" "intent-default+transfer"
+    require_literal "src/compiler/air_verify.c" "strict AIR requires graph-backed type evidence"
+    require_literal "src/compiler/air_verify.c" "missing DAG evidence node"
+    require_literal "src/compiler/air_verify.c" "strict AIR requires lowered boundary evidence"
+    require_literal "src/compiler/air_verify.c" "air_boundary_has_evidence"
+    require_literal "src/compiler/driver_diag.c" "air_boundary_has_evidence("
+    require_literal "src/compiler/air_verify.c" "strict AIR requires body control-flow evidence"
+    require_literal "src/compiler/air_verify.c" "strict AIR requires pin boundaries to prove all exits run unpin cleanup"
     require_literal "src/compiler/driver_app.c" "air_synthesize"
     require_literal "docs/72_diagnostic_codes.md" "PGY_SEM_INTENT_BOUNDARY_DRIFT"
     require_literal "src/test_air.c" "AIR strict evidence requires MIR pin cleanup"
@@ -339,6 +348,9 @@ required_impl_terms = [
     "AST_DOMAIN_SLOT",
     "AIR implementation boundary has no matching HIR CFG evidence",
     "AIR boundary has no matching HIR routine evidence",
+    "strict AIR requires lowered boundary evidence",
+    "strict AIR requires body control-flow evidence",
+    "strict AIR requires pin boundaries to prove all exits run unpin cleanup",
     "air_drift_kind_valid",
     "air_name_is_empty",
     "air_collect_hir_evidence(air, hir, error_message)",
@@ -479,6 +491,11 @@ if missing_span_terms:
 required_dag_drift_terms = [
     (air_impl, "dag_fallback_present", "AIR DAG fallback drift JSON name"),
     (air_impl, "AIR DAG evidence contains metadata materializer fallback", "AIR DAG fallback drift message"),
+    (air_impl, "strict AIR requires graph-backed type evidence", "AIR DAG fallback drift reason"),
+    (air_impl, "missing DAG evidence node", "AIR DAG fallback drift fix"),
+    (air_impl, "strict AIR requires authority checks to be backed by RIR authority evidence", "AIR authority drift reason"),
+    (air_impl, "strict AIR requires every effect propagation op to carry resource/state evidence", "AIR effect propagation drift reason"),
+    (air_impl, "strict AIR requires every relation propagation op to carry resource/state evidence", "AIR relation propagation drift reason"),
 ]
 missing_dag_drift_terms = [label for text, needle, label in required_dag_drift_terms if needle not in text]
 if missing_dag_drift_terms:
@@ -569,11 +586,13 @@ required_test_terms = [
     "AIR_EVIDENCE_MIR_PIN_CLEANUP",
     "cleanup-block",
     "AIR_EVIDENCE_DAG_GENERIC",
+    "AIR_EVIDENCE_DAG_METADATA",
     "AIR_EVIDENCE_DAG_ABILITY",
     "AIR_DRIFT_DAG_FALLBACK_PRESENT",
     "air_collect_mir_evidence",
     "air_collect_dag_evidence",
     "mir_pin_cleanup_evidence_count",
+    "dag_metadata_evidence_count",
     "dag_generic_evidence_count",
     "dag_ability_evidence_count",
     "type_resolution_metadata_entries",

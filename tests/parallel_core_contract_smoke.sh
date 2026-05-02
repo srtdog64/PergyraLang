@@ -96,6 +96,34 @@ require_text(
 )
 
 require_text(
+    "src/codegen/thread_pool_usage.c",
+    [
+        "pgy_mir_instruction_uses_thread_pool",
+        "AST_AWAIT_EXPR",
+        "AST_TASK_GROUP",
+        "inst->expr0",
+        "inst->expr1",
+        "Compatibility fallback for source-only MIR blocks",
+    ],
+)
+
+require_text(
+    "src/codegen/transpiler_thread_pool.c",
+    [
+        "pgy_mir_routine_uses_thread_pool",
+        "pgy_ast_uses_thread_pool",
+    ],
+)
+
+require_text(
+    "src/codegen/llvm_pipeline.c",
+    [
+        "pgy_mir_routine_uses_thread_pool",
+        "pgy_ast_uses_thread_pool",
+    ],
+)
+
+require_text(
     "tests/module_smoke.sh",
     [
         "parallel_ref_slot_conflict",

@@ -19,10 +19,28 @@ It then prints evidence counters, intent nodes, boundary nodes, legacy
 per-boundary evidence flags, and first-class `AIREvidenceNode` provenance.
 Current first-class evidence node kinds are `hir_routine`, `hir_cfg`,
 `rir_boundary`, `rir_authority`, `mir_cleanup`, `mir_pin_cleanup`,
-`dag_generic`, `dag_ability`, `rir_effect_propagation`, and
+`dag_metadata`, `dag_generic`, `dag_ability`, `rir_effect_propagation`, and
 `rir_relation_propagation`.
 
-마지막 업데이트: 2026-04-30
+2026-05-02 debt status:
+
+- AIR should be treated as the cross-layer verifier, not the owner of CFG, DAG,
+  MIR cleanup, runtime propagation, or codegen.
+- Covered evidence now has first-class inventory and consumers should use
+  `air_boundary_has_evidence(...)` or the evidence-node inventory instead of
+  reading legacy cached booleans directly.
+- DAG metadata evidence is connected to AIR as provenance, but semantic
+  judgement still belongs to the DAG owner. AIR must reject drift or missing
+  evidence; it must not materialize generic/ability facts itself.
+- MIR cleanup/pin evidence is connected to AIR as provenance, but cleanup
+  generation and validation still belong to MIR. AIR must audit the evidence,
+  not synthesize cleanup edges.
+- Remaining AIR 1.0 debt is consumer coverage: effect propagation drift,
+  trace/observability ABI evidence, module/generic ability provenance, and
+  runtime frontier evidence must all become evidence-node-backed before AIR can
+  be called the full abstraction-boundary verifier.
+
+마지막 업데이트: 2026-05-02
 
 ## 1. 포지셔닝: Verification IR, 별도 codegen 레이어 아님
 
@@ -258,6 +276,9 @@ sixth compiler core and the architecture is wrong.
   evidence inventory exists. The legacy per-boundary flags are cached summaries
   for dumps and compatibility fixtures; they do not independently satisfy
   strict evidence once inventory nodes are present.
+- Consumers must use `air_boundary_has_evidence(...)` instead of reading those
+  cached flags directly. This keeps driver diagnostics and AIR graph dumps on
+  the same evidence-node source of truth as strict verification.
 - Evidence nodes are shape-checked against their boundary class. Global evidence
   (`mir_cleanup`, `dag_*`, `rir_*_propagation`) must not attach to a concrete
   boundary; `hir_cfg` evidence requires same-boundary `hir_routine` evidence;
@@ -269,6 +290,9 @@ sixth compiler core and the architecture is wrong.
   not create cleanup facts; it records that MIR-owned cleanup evidence exists,
   and strict verification requires matching `mir_pin_cleanup` evidence for AIR
   `pin` execution boundaries once MIR input has been attached.
+  Global MIR cleanup evidence consumes CFG cleanup successors first and only
+  then falls back to named cleanup-edge facts; boundary-specific pin cleanup
+  evidence remains `AIR_EVIDENCE_MIR_PIN_CLEANUP`.
 - Parsed-source intent routines now have a minimal HIR CFG materializer:
   `hir_lower_intent_cfg(...)` builds ordered clause blocks for intent
   priority/success/failure expressions and each step's `where`, `using`,
@@ -385,6 +409,11 @@ sixth compiler core and the architecture is wrong.
   출력이 `pgy.air.graph.v1` graph shape를 유지하는지 확인한다. Python이
   있으면 실제 JSON parser로 summary/boundary/evidence/observability schema를
   검증하고, Python이 없는 환경에서는 literal schema gate로 통과한다.
+
+Zone-derived authority provenance is explicit in AIR. Compressed intent steps
+that derive `authorized by` from the current zone authority carry
+`authority_from_zone`, AIR JSON exposes that field, and drift diagnostics
+report `authority_provenance=zone-derived|explicit|none`.
 
 ### Phase 2 (post-beta, toward 1.0)
 

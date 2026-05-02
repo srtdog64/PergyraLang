@@ -50,6 +50,48 @@ mir_parse_versioned_name(const char *versioned, char *base, size_t base_size, si
     return true;
 }
 
+static ASTNode *
+mir_def_instruction_source_stmt(const MIRInstruction *inst,
+                                MIRBasicBlock *block,
+                                size_t *stmt_index)
+{
+    if (inst != NULL && inst->ast != NULL)
+        return inst->ast;
+
+    if (block == NULL || stmt_index == NULL)
+        return NULL;
+
+    while (*stmt_index < block->source_statement_count) {
+        ASTNode *stmt = block->source_statements[*stmt_index];
+        if (stmt != NULL
+            && (stmt->type == AST_LET_DECL
+                || (stmt->type == AST_ASSIGNMENT
+                    && stmt->data.assignment.target != NULL
+                    && stmt->data.assignment.target->type == AST_IDENTIFIER))) {
+            return stmt;
+        }
+        (*stmt_index)++;
+    }
+
+    return NULL;
+}
+
+static ASTNode *
+mir_def_instruction_source_expr(const MIRInstruction *inst,
+                                MIRBasicBlock *block,
+                                size_t *stmt_index)
+{
+    ASTNode *stmt = mir_def_instruction_source_stmt(inst, block, stmt_index);
+
+    if (stmt == NULL)
+        return NULL;
+    if (stmt->type == AST_LET_DECL)
+        return stmt->data.let_decl.initializer;
+    if (stmt->type == AST_ASSIGNMENT)
+        return stmt->data.assignment.value;
+    return NULL;
+}
+
 static bool
 mir_populate_use_edges(MIRRoutine *routine)
 {
@@ -117,32 +159,16 @@ mir_populate_use_edges(MIRRoutine *routine)
                 continue;
             }
             if (inst->kind == MIR_INST_DEF) {
-                while (stmt_index < block->source_statement_count) {
-                    ASTNode *stmt = block->source_statements[stmt_index];
-                    if (stmt != NULL
-                        && (stmt->type == AST_LET_DECL
-                            || (stmt->type == AST_ASSIGNMENT
-                                && stmt->data.assignment.target != NULL
-                                && stmt->data.assignment.target->type == AST_IDENTIFIER))) {
-                        break;
-                    }
-                    stmt_index++;
-                }
-                if (stmt_index < block->source_statement_count) {
-                    ASTNode *stmt = block->source_statements[stmt_index];
-                    ASTNode *expr = NULL;
+                ASTNode *expr =
+                    mir_def_instruction_source_expr(inst, block, &stmt_index);
+                if (expr != NULL) {
                     const char **raw_uses = NULL;
                     size_t raw_use_count = 0;
                     size_t raw_use_capacity = 0;
-                    if (stmt != NULL && stmt->type == AST_LET_DECL)
-                        expr = stmt->data.let_decl.initializer;
-                    else if (stmt != NULL && stmt->type == AST_ASSIGNMENT)
-                        expr = stmt->data.assignment.value;
-                    if (expr != NULL
-                        && !mir_collect_expr_identifier_uses(expr,
-                                                            &raw_uses,
-                                                            &raw_use_count,
-                                                            &raw_use_capacity)) {
+                    if (!mir_collect_expr_identifier_uses(expr,
+                                                          &raw_uses,
+                                                          &raw_use_count,
+                                                          &raw_use_capacity)) {
                         free((void *)raw_uses);
                         free(current_versions);
                         free((void *)ssa_names);
@@ -179,9 +205,7 @@ mir_populate_use_edges(MIRRoutine *routine)
                 const char **raw_uses = NULL;
                 size_t raw_use_count = 0;
                 size_t raw_use_capacity = 0;
-                ASTNode *expr = (inst->kind == MIR_INST_BRANCH)
-                                    ? block->source_terminator_condition
-                                    : block->source_terminator_value;
+                ASTNode *expr = inst->ast;
 	                if (!mir_collect_expr_identifier_uses(expr,
                                                        &raw_uses,
                                                        &raw_use_count,

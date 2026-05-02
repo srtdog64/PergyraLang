@@ -229,15 +229,17 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                     "- or write an explicit step where clause instead of deriving it from using",
                     step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>");
             } else if (find_intent_involves_local(node,
+                    step->data.intent_step.using_expr->data.identifier.name) == NULL
+                && find_intent_value_local(node,
                     step->data.intent_step.using_expr->data.identifier.name) == NULL) {
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_INTENT_STEP_INVALID, PGY_CAUSE_INTENT_STEP, PGY_FIX_ALIGN_STEP_WITH_ZONE_ACTION_CONTRACTS, step->data.intent_step.using_expr,
                     "Intent step '%s' using clause refers to unknown binding '%s'.\n"
                     "Reason:\n"
                     "- compressed using derivation only resolves aliases declared by this intent\n"
-                    "- no intent participant named '%s' is visible at this step\n"
+                    "- no intent participant or value binding named '%s' is visible at this step\n"
                     "Fix:\n"
-                    "- declare '%s' in the intent participant list\n"
-                    "- or change the using clause to an existing participant alias",
+                    "- declare '%s' in the intent participant/value list\n"
+                    "- or change the using clause to an existing binding alias",
                     step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
                     step->data.intent_step.using_expr->data.identifier.name != NULL
                         ? step->data.intent_step.using_expr->data.identifier.name : "<binding>",

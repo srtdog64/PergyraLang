@@ -220,17 +220,20 @@ driver_format_air_authority_names(const AIRBoundaryNode *boundary,
 }
 
 static bool
-driver_format_air_evidence_summary(const AIRBoundaryNode *boundary,
+driver_format_air_evidence_summary(const AIRProgram *air,
+                                   size_t boundary_index,
                                    char *out,
                                    size_t out_size)
 {
     int written;
+    const AIRBoundaryNode *boundary;
 
     if (out == NULL || out_size == 0)
         return false;
     out[0] = '\0';
-    if (boundary == NULL)
+    if (air == NULL || boundary_index >= air->boundary_count)
         return false;
+    boundary = &air->boundaries[boundary_index];
 
     written = snprintf(out,
                        out_size,
@@ -238,7 +241,8 @@ driver_format_air_evidence_summary(const AIRBoundaryNode *boundary,
                        boundary->hir_routine_evidence_name != NULL
                            ? boundary->hir_routine_evidence_name
                            : "<none>",
-                       boundary->has_hir_cfg_evidence ? "yes" : "no",
+                       air_boundary_has_evidence(
+                           air, boundary_index, AIR_EVIDENCE_HIR_CFG) ? "yes" : "no",
                        boundary->rir_boundary_evidence_scope != NULL
                            ? boundary->rir_boundary_evidence_scope
                            : "<none>",
@@ -288,10 +292,12 @@ driver_emit_air_drift_fail(const DriverFlags *flags, const AIRProgram *air)
     if (drift != NULL && drift->kind == AIR_DRIFT_BOUNDARY_EVIDENCE_MISSING) {
         bool missing_hir = boundary != NULL
             && air_boundary_requires_hir_evidence(boundary)
-            && !boundary->has_hir_cfg_evidence;
+            && !air_boundary_has_evidence(
+                air, drift->boundary_index, AIR_EVIDENCE_HIR_CFG);
         bool missing_rir = boundary != NULL
             && air_boundary_requires_rir_evidence(boundary)
-            && !boundary->has_rir_boundary_evidence;
+            && !air_boundary_has_evidence(
+                air, drift->boundary_index, AIR_EVIDENCE_RIR_BOUNDARY);
         code = PGY_CODE_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING;
         cause_ir = PGY_CAUSE_INTENT_BOUNDARY_EVIDENCE;
         fix_source = PGY_FIX_ALIGN_INTENT_BOUNDARY_EVIDENCE;
@@ -310,7 +316,8 @@ driver_emit_air_drift_fail(const DriverFlags *flags, const AIRProgram *air)
         }
         if (boundary != NULL
             && boundary->authority_required
-            && !boundary->has_rir_authority_evidence
+            && !air_boundary_has_evidence(
+                air, drift->boundary_index, AIR_EVIDENCE_RIR_AUTHORITY)
             && driver_format_air_authority_names(boundary,
                                                  authority_names,
                                                  sizeof(authority_names))) {
@@ -321,7 +328,8 @@ driver_emit_air_drift_fail(const DriverFlags *flags, const AIRProgram *air)
                      authority_names);
             reason = reason_with_authority;
         }
-        if (driver_format_air_evidence_summary(boundary,
+        if (driver_format_air_evidence_summary(air,
+                                               drift->boundary_index,
                                                evidence_summary,
                                                sizeof(evidence_summary))) {
             snprintf(reason_with_evidence,

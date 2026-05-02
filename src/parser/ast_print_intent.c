@@ -16,6 +16,7 @@ print_intent_step_contract_sources(const ASTNode *node, int indent)
         && !node->data.intent_step.inherited_requires_from_action
         && !node->data.intent_step.inherited_causes_from_action
         && !node->data.intent_step.inherited_authorized_by_from_action
+        && !node->data.intent_step.derived_authorized_by_from_zone
         && !node->data.intent_step.derived_where_from_using
         && !node->data.intent_step.derived_where_from_transfer
         && !node->data.intent_step.derived_using_from_transfer) {
@@ -51,6 +52,10 @@ print_intent_step_contract_sources(const ASTNode *node, int indent)
     }
     if (node->data.intent_step.inherited_authorized_by_from_action) {
         printf("%sreused authorized by from matching action contract", printed ? ", " : "");
+        printed = true;
+    }
+    if (node->data.intent_step.derived_authorized_by_from_zone) {
+        printf("%sderived authorized by from zone authority", printed ? ", " : "");
         printed = true;
     }
     if (node->data.intent_step.derived_where_from_transfer) {

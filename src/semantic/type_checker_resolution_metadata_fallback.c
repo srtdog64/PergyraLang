@@ -124,7 +124,9 @@ semantic_type_resolution_record_materializer_fallback(SemanticContext *ctx,
         PGY_CAUSE_TYPE_UNKNOWN,
         PGY_FIX_ANNOTATE_CONCRETE_TYPE,
         type_node,
-        "Type-resolution DAG could not materialize type metadata for '%s'; beta mode requires a graph-backed type fact instead of resolver fallback",
+        "Type-resolution DAG could not materialize type metadata for '%s'.\n"
+        "Reason: beta type resolution requires a graph-backed metadata fact; recursive resolver fallback is retired.\n"
+        "Fix: stage this type in the declaration graph or add an owner-local metadata materializer before using it.",
         metadata_fallback_type_name(type_node));
     ctx->type_resolution_metadata_materializer_fallbacks++;
     if (type_node == NULL) {

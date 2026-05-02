@@ -170,7 +170,9 @@ test_air_strict_evidence_requires_mir_pin_cleanup(void)
             && strstr(air.drifts[i].message,
                       "source_provenance=explicit") != NULL
             && strstr(air.drifts[i].message,
-                      "who_provenance=explicit") != NULL) {
+                      "who_provenance=explicit") != NULL
+            && strstr(air.drifts[i].message,
+                      "authority_provenance=none") != NULL) {
             found = true;
             break;
         }
@@ -283,16 +285,20 @@ test_air_collects_dag_generic_ability_evidence(void)
 
     ok = air_collect_dag_evidence(air, &sem, &error)
         && air_validate(air, &error)
+        && air->dag_metadata_evidence_count == 1
         && air->dag_generic_evidence_count == 1
         && air->dag_ability_evidence_count == 1
-        && air->evidence_count == 2
-        && air->evidence_nodes[0].kind == AIR_EVIDENCE_DAG_GENERIC
+        && air->evidence_count == 3
+        && air->evidence_nodes[0].kind == AIR_EVIDENCE_DAG_METADATA
         && air->evidence_nodes[0].boundary_index == SIZE_MAX
-        && air->evidence_nodes[0].fact_count == 7
+        && air->evidence_nodes[0].fact_count == 33
         && air->evidence_nodes[0].fallback_count == 0
-        && air->evidence_nodes[1].kind == AIR_EVIDENCE_DAG_ABILITY
-        && air->evidence_nodes[1].fact_count == 5
-        && air->evidence_nodes[1].fallback_count == 0;
+        && air->evidence_nodes[1].kind == AIR_EVIDENCE_DAG_GENERIC
+        && air->evidence_nodes[1].fact_count == 7
+        && air->evidence_nodes[1].fallback_count == 0
+        && air->evidence_nodes[2].kind == AIR_EVIDENCE_DAG_ABILITY
+        && air->evidence_nodes[2].fact_count == 5
+        && air->evidence_nodes[2].fallback_count == 0;
     free(error);
     air_destroy(air);
     return ok;
@@ -316,13 +322,15 @@ test_air_reports_dag_fallback_drift(void)
 
     ok = air_collect_dag_evidence(air, &sem, &error)
         && air_verify(air, &error)
-        && air->drift_count == 2
+        && air->drift_count == 3
         && air->drifts[0].kind == AIR_DRIFT_DAG_FALLBACK_PRESENT
         && air->drifts[0].intent_index == SIZE_MAX
         && air->drifts[0].boundary_index == SIZE_MAX
-        && strstr(air->drifts[0].message, "dag_generic") != NULL
+        && strstr(air->drifts[0].message, "dag_metadata") != NULL
         && air->drifts[1].kind == AIR_DRIFT_DAG_FALLBACK_PRESENT
-        && strstr(air->drifts[1].message, "dag_ability") != NULL;
+        && strstr(air->drifts[1].message, "dag_generic") != NULL
+        && air->drifts[2].kind == AIR_DRIFT_DAG_FALLBACK_PRESENT
+        && strstr(air->drifts[2].message, "dag_ability") != NULL;
     free(error);
     air_destroy(air);
     return ok;

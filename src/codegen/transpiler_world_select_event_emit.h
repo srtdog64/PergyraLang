@@ -157,9 +157,13 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
     write_indent(ctx);
     codebuf_write(ctx->out, "bool _pgy_world_frontier_continue = true;\n");
     write_indent(ctx);
+    codebuf_write(ctx->out, "bool _pgy_world_derived_changed_any = false;\n");
+    write_indent(ctx);
     codebuf_write(ctx->out,
         "while (_pgy_world_frontier_continue && _pgy_world_frontier_pass < _pgy_world_frontier_pass_limit) {\n");
     ctx->indent++;
+    write_indent(ctx);
+    codebuf_write(ctx->out, "_pgy_world_derived_changed_any = false;\n");
     write_indent(ctx);
     codebuf_write(ctx->out, "bool _pgy_world_needs_derived = self->__world_derived_dirty;\n");
     write_indent(ctx);
@@ -303,6 +307,8 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
         ctx->indent++;
         write_indent(ctx);
         codebuf_write(ctx->out, "_pgy_world_continue = true;\n");
+        write_indent(ctx);
+        codebuf_write(ctx->out, "_pgy_world_derived_changed_any = true;\n");
         ctx->indent--;
         write_indent(ctx);
         codebuf_write(ctx->out, "}\n");
@@ -325,7 +331,7 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
     write_indent(ctx);
     codebuf_write(ctx->out, "}\n");
     write_indent(ctx);
-    codebuf_write(ctx->out, "if (self->__world_derived_dirty");
+    codebuf_write(ctx->out, "if (_pgy_world_derived_changed_any || self->__world_derived_dirty");
     for (size_t i = 0; i < node->data.world_decl.zone_count; i++) {
         ASTNode *wz = node->data.world_decl.zones[i];
         if (wz == NULL || wz->type != AST_WORLD_ZONE

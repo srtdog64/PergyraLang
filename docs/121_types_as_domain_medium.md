@@ -112,6 +112,10 @@ Consequences:
   not to `authority`.
 - `authority` guards mutation, handoff, external effect, and boundary
   crossing; it is not an information-ranking mechanism.
+- `intent` may infer and consume an authority edge for compressed orchestration,
+  but it does not become the canonical authority owner. The owner stays on the
+  `zone` / resource layer, and inferred approval must carry provenance back to
+  that owner.
 
 This distinction prevents the language from turning every rich data model
 into a permission-heavy object. The stable modeling rule is:

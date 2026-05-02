@@ -172,11 +172,9 @@ mir_lower(const HIRProgram *hir, const RIRProgram *rir, char **error_message)
                 || hir_routine->cfg.block_count != cfg_block_count_before)) {
             if (error_message != NULL) {
                 *error_message = mir_strdup_fmt(
-                    "HIR CFG pointer changed during MIR lowering for routine '%s' (before=%p/%zu after=%p/%zu)",
+                    "HIR CFG storage changed during MIR lowering for routine '%s' (before_count=%zu after_count=%zu)",
                     routine.name != NULL ? routine.name : "(anonymous)",
-                    (void *)cfg_blocks_before,
                     cfg_block_count_before,
-                    (void *)hir_routine->cfg.blocks,
                     hir_routine->cfg.block_count);
             }
             mir_destroy(mir);

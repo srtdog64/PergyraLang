@@ -128,8 +128,6 @@
     TEST("intent authority diagnostic mentions locally declared step zone");
     {
         const char *source =
-            "/// @effects secure\n"
-            "func Gate() -> Bool { return true; }\n"
             "subject Driver {\n"
             "    let started: Bool;\n"
             "    action Ignite(self) -> Void {\n"
@@ -145,7 +143,7 @@
             "        where: CockpitZone;\n"
             "        using: cockpit;\n"
             "        who: driver;\n"
-            "        on: Gate();\n"
+            "        on: true;\n"
             "        expect: true;\n"
             "    }\n"
             "}\n";
@@ -194,7 +192,7 @@
         lexer_destroy(lexer);
     }
 
-    TEST("intent authority diagnostic mentions derived transfer zone and using");
+    TEST("intent transfer derives zone using and authorized by from target authority");
     {
         const char *source =
             "subject Courier { let level: Int; }\n"
@@ -216,25 +214,28 @@
         Parser *parser = parser_create(lexer);
         ASTNode *program = parser_parse_program(parser);
         SemanticResult *result = semantic_analyze(program);
+        ASTNode *intent = NULL;
+        ASTNode *step = NULL;
+
+        if (program != NULL && program->type == AST_PROGRAM) {
+            for (size_t i = 0; i < program->data.program.count; i++) {
+                ASTNode *stmt = program->data.program.statements[i];
+                if (stmt != NULL && stmt->type == AST_INTENT_DECL) {
+                    intent = stmt;
+                    break;
+                }
+            }
+        }
+        if (intent != NULL && intent->data.intent_decl.step_count > 0)
+            step = intent->data.intent_decl.steps[0];
 
         EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count > 0);
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "derived zone from transfer target handoff: DeliveryZone"));
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "derived using from transfer target: deliver"));
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "locally declared who on step: courier"));
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "approval boundary provenance is"));
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "derived from transfer edge: load -> deliver"));
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "transfers zone state"));
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "cannot run in authority-bearing zone 'DeliveryZone' without 'authorized by'"));
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Fix:"));
+        EXPECT(result != NULL && result->error_count == 0);
+        EXPECT(step != NULL && step->data.intent_step.derived_where_from_transfer);
+        EXPECT(step != NULL && step->data.intent_step.derived_using_from_transfer);
+        EXPECT(step != NULL && step->data.intent_step.derived_authorized_by_from_zone);
+        EXPECT(step != NULL && step->data.intent_step.authorized_by_count == 1);
+        EXPECT(step != NULL && strcmp(step->data.intent_step.authorized_by[0], "courier") == 0);
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -642,7 +643,7 @@
         lexer_destroy(lexer);
     }
 
-    TEST("intent authority-bearing zone rejects secure helper call without authorized by");
+    TEST("intent authority-bearing zone derives authorized by for secure helper");
     {
         const char *source =
             "/// @effects secure\n"
@@ -670,11 +671,26 @@
         Parser *parser = parser_create(lexer);
         ASTNode *program = parser_parse_program(parser);
         SemanticResult *result = semantic_analyze(program);
+        ASTNode *intent = NULL;
+        ASTNode *step = NULL;
+
+        if (program != NULL && program->type == AST_PROGRAM) {
+            for (size_t i = 0; i < program->data.program.count; i++) {
+                ASTNode *stmt = program->data.program.statements[i];
+                if (stmt != NULL && stmt->type == AST_INTENT_DECL) {
+                    intent = stmt;
+                    break;
+                }
+            }
+        }
+        if (intent != NULL && intent->data.intent_decl.step_count > 0)
+            step = intent->data.intent_decl.steps[0];
 
         EXPECT(!parser_has_error(parser));
-        EXPECT(result != NULL && result->error_count > 0);
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "invokes authority-sensitive helpers"));
+        EXPECT(result != NULL && result->error_count == 0);
+        EXPECT(step != NULL && step->data.intent_step.derived_authorized_by_from_zone);
+        EXPECT(step != NULL && step->data.intent_step.authorized_by_count == 1);
+        EXPECT(step != NULL && strcmp(step->data.intent_step.authorized_by[0], "driver") == 0);
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -682,7 +698,7 @@
         lexer_destroy(lexer);
     }
 
-    TEST("intent authority-bearing zone rejects zone-action helper call without authorized by");
+    TEST("intent authority-bearing zone-action helper records derived authorized by before action diagnostics");
     {
         const char *source =
             "subject Driver {\n"
@@ -714,11 +730,26 @@
         Parser *parser = parser_create(lexer);
         ASTNode *program = parser_parse_program(parser);
         SemanticResult *result = semantic_analyze(program);
+        ASTNode *intent = NULL;
+        ASTNode *step = NULL;
+
+        if (program != NULL && program->type == AST_PROGRAM) {
+            for (size_t i = 0; i < program->data.program.count; i++) {
+                ASTNode *stmt = program->data.program.statements[i];
+                if (stmt != NULL && stmt->type == AST_INTENT_DECL) {
+                    intent = stmt;
+                    break;
+                }
+            }
+        }
+        if (intent != NULL && intent->data.intent_decl.step_count > 0)
+            step = intent->data.intent_decl.steps[0];
 
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "invokes authority-sensitive helpers"));
+        EXPECT(step != NULL && step->data.intent_step.derived_authorized_by_from_zone);
+        EXPECT(step != NULL && step->data.intent_step.authorized_by_count == 1);
+        EXPECT(step != NULL && strcmp(step->data.intent_step.authorized_by[0], "driver") == 0);
 
         semantic_result_destroy(result);
         ast_destroy(program);

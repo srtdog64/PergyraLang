@@ -95,6 +95,7 @@ typedef struct
     const char *transfer_to_alias;
     bool        who_inherited_from_intent;
     bool        where_inherited_from_intent;
+    bool        authorized_by_derived_from_zone;
     const char **who_names;
     size_t      who_count;
     size_t      who_capacity;

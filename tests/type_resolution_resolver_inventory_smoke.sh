@@ -172,6 +172,18 @@ grep -q 'semantic_type_resolution_try_record_stable_constructed_type(ctx, type_n
   exit 1
 }
 
+grep -q 'recursive resolver fallback is retired' \
+  src/semantic/type_checker_resolution_metadata_fallback.c || {
+  echo "[type-resolution-resolver-inventory] fallback diagnostic no longer explains the retired recursive resolver boundary" >&2
+  exit 1
+}
+
+grep -q 'owner-local metadata materializer' \
+  src/semantic/type_checker_resolution_metadata_fallback.c || {
+  echo "[type-resolution-resolver-inventory] fallback diagnostic no longer points at the owner-local materializer fix" >&2
+  exit 1
+}
+
 grep -q 'resolved = semantic_type_resolution_lookup_metadata_type_ref(ctx, type_node)' \
   src/semantic/type_checker_resolution_stage_signature.c || {
   echo "[type-resolution-resolver-inventory] signature stage no longer consumes metadata type-ref before returning unknown" >&2
@@ -188,29 +200,16 @@ grep -q 'semantic_type_resolution_lookup_metadata_type_ref(ctx,' \
   >"$type_ref_helper_matches" || true
 
 for owner in \
-  src/semantic/type_checker_ability_decl.c \
   src/semantic/type_checker_ability_where.c \
-  src/semantic/type_checker_call_constructor.c \
-  src/semantic/type_checker_class_decl.c \
-  src/semantic/type_checker_decls_domain_helpers.c \
   src/semantic/type_checker_expr.c \
-  src/semantic/type_checker_expr_call.c \
-  src/semantic/type_checker_expr_host.c \
   src/semantic/type_checker_func_decl.c \
   src/semantic/type_checker_func_action_contract.c \
   src/semantic/type_checker_generic_contracts.h \
   src/semantic/type_checker_generic_validation.c \
   src/semantic/type_checker_host_helpers.c \
-  src/semantic/type_checker_intent_action_contract.c \
   src/semantic/type_checker_intent_decl.c \
-  src/semantic/type_checker_intent_participants.c \
   src/semantic/type_checker_intent_role_fields.c \
-  src/semantic/type_checker_intent_transfer.c \
-  src/semantic/type_checker_ownership_destructure.c \
-  src/semantic/type_checker_ownership_let_helpers.c \
-  src/semantic/type_checker_projection_path.c \
-  src/semantic/type_checker_world_helpers.c \
-  src/semantic/type_checker_zone_decl_authority.c
+  src/semantic/type_checker_ownership_let_helpers.c
 do
   grep -q 'semantic_type_resolution_lookup_type_ref_or_materialize' "$owner" || {
     echo "[type-resolution-resolver-inventory] semantic resolver owner lost metadata-first type-ref helper: $owner" >&2
@@ -218,30 +217,17 @@ do
   }
 done
 
-grep -Ev 'src/semantic/type_checker_ability_decl\.c' "$type_ref_helper_matches" \
-  | grep -Ev 'src/semantic/type_checker_ability_where\.c' \
-  | grep -Ev 'src/semantic/type_checker_call_constructor\.c' \
-  | grep -Ev 'src/semantic/type_checker_class_decl\.c' \
-  | grep -Ev 'src/semantic/type_checker_decls_domain_helpers\.c' \
+grep -Ev 'src/semantic/type_checker_ability_where\.c' "$type_ref_helper_matches" \
   | grep -Ev 'src/semantic/type_checker_expr\.c' \
-  | grep -Ev 'src/semantic/type_checker_expr_call\.c' \
-  | grep -Ev 'src/semantic/type_checker_expr_host\.c' \
   | grep -Ev 'src/semantic/type_checker_func_decl\.c' \
   | grep -Ev 'src/semantic/type_checker_func_action_contract\.c' \
   | grep -Ev 'src/semantic/type_checker_generic_contracts\.h' \
   | grep -Ev 'src/semantic/type_checker_generic_validation\.c' \
   | grep -Ev 'src/semantic/type_checker_host_helpers\.c' \
-  | grep -Ev 'src/semantic/type_checker_intent_action_contract\.c' \
   | grep -Ev 'src/semantic/type_checker_intent_decl\.c' \
-  | grep -Ev 'src/semantic/type_checker_intent_participants\.c' \
   | grep -Ev 'src/semantic/type_checker_intent_role_fields\.c' \
-  | grep -Ev 'src/semantic/type_checker_intent_transfer\.c' \
-  | grep -Ev 'src/semantic/type_checker_ownership_destructure\.c' \
   | grep -Ev 'src/semantic/type_checker_internal\.h' \
   | grep -Ev 'src/semantic/type_checker_ownership_let_helpers\.c' \
-  | grep -Ev 'src/semantic/type_checker_projection_path\.c' \
-  | grep -Ev 'src/semantic/type_checker_world_helpers\.c' \
-  | grep -Ev 'src/semantic/type_checker_zone_decl_authority\.c' \
   | grep -Ev 'src/semantic/type_checker_resolution_metadata\.c' \
   >"$bad_type_ref_helper" || true
 
@@ -253,8 +239,8 @@ if [ -s "$bad_type_ref_helper" ]; then
 fi
 
 type_ref_helper_count="$(wc -l <"$type_ref_helper_matches")"
-if [ "$type_ref_helper_count" -ne 25 ]; then
-  echo "[type-resolution-resolver-inventory] metadata-first type-ref helper inventory changed: $type_ref_helper_count != 25" >&2
+if [ "$type_ref_helper_count" -ne 12 ]; then
+  echo "[type-resolution-resolver-inventory] metadata-first type-ref helper inventory changed: $type_ref_helper_count != 12" >&2
   cat "$type_ref_helper_matches" >&2
   exit 1
 fi
@@ -265,7 +251,10 @@ direct_metadata_type_ref_users="$(
     | grep -Ev 'src/semantic/type_checker_resolution_metadata_constructed\.c' \
     | grep -Ev 'src/semantic/type_checker_resolution_metadata_diagnostics\.c' \
     | grep -Ev 'src/semantic/type_checker_resolution_stage_alias\.c' \
+    | grep -Ev 'src/semantic/type_checker_resolution_stage_domain_decl\.c' \
     | grep -Ev 'src/semantic/type_checker_resolution_stage_signature\.c' \
+    | grep -Ev 'src/semantic/type_checker_resolution_stage_nominal\.c' \
+    | grep -Ev 'src/semantic/type_checker_resolution_stage_systemic\.c' \
     || true
 )"
 if [ -n "$direct_metadata_type_ref_users" ]; then
@@ -428,6 +417,16 @@ grep -q 'semantic_type_resolution_metadata_stable_constructed_shell(' \
   exit 1
 }
 
+grep -q 'find_intent_value_local' src/semantic/type_checker_intent_role_fields.c || {
+  echo "[type-resolution-resolver-inventory] intent compressed using derivation no longer resolves value bindings" >&2
+  exit 1
+}
+
+grep -q 'intent_role_resolve_binding_type' src/semantic/type_checker_intent_role_fields.c || {
+  echo "[type-resolution-resolver-inventory] intent using derivation must use the shared binding type resolver" >&2
+  exit 1
+}
+
 grep -q 'semantic_type_resolution_metadata_stable_builtin_shell_arity(' \
   src/semantic/type_checker_resolution_metadata_fallback.c || {
   echo "[type-resolution-resolver-inventory] metadata fallback owner stopped using centralized stable shell arity" >&2
@@ -452,4 +451,4 @@ for needle in \
   }
 done
 
-echo "[type-resolution-resolver-inventory] direct resolver and fallback seam inventory are gated (fallback seams=$fallback_sites cap=0 annotation-sensitive seams=$annotation_sites)"
+echo "[type-resolution-resolver-inventory] direct resolver and fallback seam inventory are gated (fallback seams=$fallback_sites cap=0 annotation-sensitive seams=$annotation_sites type-ref helper refs=$type_ref_helper_count cap=12)"

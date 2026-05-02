@@ -23,6 +23,27 @@ intent_role_resolve_involves_type(ASTNode *involves, SemanticContext *ctx)
         involves->data.intent_involves.subject_type, ctx);
 }
 
+static Type *intent_role_resolve_value_type(ASTNode *value, SemanticContext *ctx)
+{
+    if (value == NULL || value->type != AST_INTENT_VALUE)
+        return NULL;
+    return intent_role_resolve_type_ref(
+        value->data.intent_value.value_type, ctx);
+}
+
+static Type *
+intent_role_resolve_binding_type(ASTNode *intent, const char *alias, SemanticContext *ctx)
+{
+    ASTNode *involves = find_intent_involves_local(intent, alias);
+    ASTNode *value;
+
+    if (involves != NULL)
+        return intent_role_resolve_involves_type(involves, ctx);
+
+    value = find_intent_value_local(intent, alias);
+    return intent_role_resolve_value_type(value, ctx);
+}
+
 static Type *
 intent_role_resolve_field_type(ClassField *field, SemanticContext *ctx)
 {
@@ -391,6 +412,22 @@ find_intent_involves_local(ASTNode *intent, const char *alias)
     return NULL;
 }
 
+ASTNode *find_intent_value_local(ASTNode *intent, const char *alias)
+{
+    if (intent == NULL || intent->type != AST_INTENT_DECL || alias == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < intent->data.intent_decl.value_count; i++) {
+        ASTNode *value = intent->data.intent_decl.values[i];
+        if (value != NULL && value->type == AST_INTENT_VALUE
+            && value->data.intent_value.alias != NULL
+            && strcmp(value->data.intent_value.alias, alias) == 0) {
+            return value;
+        }
+    }
+    return NULL;
+}
+
 static ASTNode *
 find_unique_intent_involves_by_type_name(ASTNode *intent,
                                          const char *type_name,
@@ -420,6 +457,43 @@ find_unique_intent_involves_by_type_name(ASTNode *intent,
     if (matched != NULL && alias_out != NULL)
         *alias_out = matched->data.intent_involves.alias;
     return matched;
+}
+
+static const char *find_unique_intent_binding_alias_by_type_name(
+    ASTNode *intent, const char *type_name, SemanticContext *ctx)
+{
+    const char *matched_alias = NULL;
+
+    if (intent == NULL || intent->type != AST_INTENT_DECL || type_name == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < intent->data.intent_decl.involve_count; i++) {
+        ASTNode *involves = intent->data.intent_decl.involves[i];
+        Type *participant_type = intent_role_resolve_involves_type(involves, ctx);
+
+        if (participant_type == NULL || participant_type->name == NULL
+            || strcmp(participant_type->name, type_name) != 0) {
+            continue;
+        }
+        if (matched_alias != NULL)
+            return NULL;
+        matched_alias = involves->data.intent_involves.alias;
+    }
+
+    for (size_t i = 0; i < intent->data.intent_decl.value_count; i++) {
+        ASTNode *value = intent->data.intent_decl.values[i];
+        Type *value_type = intent_role_resolve_value_type(value, ctx);
+
+        if (value_type == NULL || value_type->name == NULL
+            || strcmp(value_type->name, type_name) != 0) {
+            continue;
+        }
+        if (matched_alias != NULL)
+            return NULL;
+        matched_alias = value->data.intent_value.alias;
+    }
+
+    return matched_alias;
 }
 
 ASTNode *
@@ -501,9 +575,8 @@ intent_step_derive_zone_binding_context(ASTNode *intent_decl, ASTNode *step,
     if (step->data.intent_step.where_type == NULL
         && step->data.intent_step.using_expr != NULL
         && step->data.intent_step.using_expr->type == AST_IDENTIFIER) {
-        ASTNode *using_involves = find_intent_involves_local(intent_decl,
-            step->data.intent_step.using_expr->data.identifier.name);
-        Type *using_type = intent_role_resolve_involves_type(using_involves, ctx);
+        Type *using_type = intent_role_resolve_binding_type(intent_decl,
+            step->data.intent_step.using_expr->data.identifier.name, ctx);
         ASTNode *zone_decl = find_domain_decl_by_name(ctx->program_root,
             AST_ZONE_DECL, using_type != NULL ? using_type->name : NULL);
         if (zone_decl != NULL && using_type != NULL && using_type->name != NULL) {
@@ -515,31 +588,12 @@ intent_step_derive_zone_binding_context(ASTNode *intent_decl, ASTNode *step,
     if (step->data.intent_step.using_expr == NULL
         && step->data.intent_step.where_type != NULL) {
         Type *zone_type = intent_role_resolve_type_ref(step->data.intent_step.where_type, ctx);
-        const char *matched_alias = NULL;
 
         if (zone_type == NULL || zone_type->name == NULL)
             return;
 
-        for (size_t i = 0; i < intent_decl->data.intent_decl.involve_count; i++) {
-            ASTNode *involves = intent_decl->data.intent_decl.involves[i];
-            Type *participant_type;
-
-            if (involves == NULL || involves->type != AST_INTENT_INVOLVES
-                || involves->data.intent_involves.subject_type == NULL) {
-                continue;
-            }
-
-            participant_type = intent_role_resolve_involves_type(involves, ctx);
-            if (participant_type == NULL || participant_type->name == NULL
-                || strcmp(participant_type->name, zone_type->name) != 0) {
-                continue;
-            }
-
-            if (matched_alias != NULL)
-                return;
-            matched_alias = involves->data.intent_involves.alias;
-        }
-
+        const char *matched_alias = find_unique_intent_binding_alias_by_type_name(
+            intent_decl, zone_type->name, ctx);
         if (matched_alias != NULL)
             step->data.intent_step.using_expr = ast_create_identifier(matched_alias);
     }

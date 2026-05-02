@@ -181,6 +181,83 @@ test_mir_lowering_part_a(void)
         hir_destroy(hir);
     }
 
+    TEST("MIR validator rejects predecessor without forward edge");
+    {
+        const char *src =
+            "subject Buyer { let hp: Int; action Pay(self) -> Void { return; } }\n"
+            "ability Payable { func Pay() -> Void; }\n"
+            "role BuyerPay for Buyer {\n"
+            "    impl ability Payable { func Pay() -> Void { return; } }\n"
+            "}\n"
+            "object BuyerView { let hp: Int; }\n"
+            "zone PaymentZone {\n"
+            "    subject slot buyer: Buyer\n"
+            "    object slot view: BuyerView\n"
+            "    authority buyer requires Payable\n"
+            "    refresh view from buyer by buyer\n"
+            "}\n"
+            "intent Purchase(payment: PaymentZone, buyer: Buyer) {\n"
+            "    rollback: full;\n"
+            "    step pay {\n"
+            "        where: PaymentZone;\n"
+            "        using: payment;\n"
+            "        who: buyer;\n"
+            "        authorized by: buyer;\n"
+            "        requires: Payable;\n"
+            "        on: buyer.Pay();\n"
+            "        compensate: buyer.Pay();\n"
+            "    }\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        MIRRoutine *purchase = NULL;
+        char *mir_error = NULL;
+        bool rejected = false;
+        bool corrupted = false;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok)
+            purchase = find_mir_routine_mut(mir, "Purchase", MIR_SCOPE_INTENT);
+        if (purchase != NULL) {
+            for (size_t target = 0; target < purchase->block_count && !corrupted; target++) {
+                MIRBasicBlock *block = &purchase->blocks[target];
+                if (block->predecessor_count == 0)
+                    continue;
+                for (size_t pred = 0; pred < purchase->block_count; pred++) {
+                    size_t next_count;
+                    size_t *grown;
+                    if (pred == target)
+                        continue;
+                    if (!test_block_has_forward_edge_to(&purchase->blocks[pred], target)) {
+                        next_count = block->predecessor_count + 1;
+                        grown = realloc(block->predecessors,
+                                        next_count * sizeof(size_t));
+                        if (grown == NULL)
+                            break;
+                        block->predecessors = grown;
+                        block->predecessors[block->predecessor_count] = pred;
+                        block->predecessor_count = next_count;
+                        block->predecessor_capacity = next_count;
+                        corrupted = true;
+                        break;
+                    }
+                }
+            }
+        }
+        rejected = ok
+                   && purchase != NULL
+                   && corrupted
+                   && !mir_validate(mir, &mir_error)
+                   && mir_error != NULL
+                   && strstr(mir_error, "predecessor") != NULL
+                   && strstr(mir_error, "no matching forward edge") != NULL;
+        EXPECT(rejected);
+        free(mir_error);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
     TEST("MIR validator rejects missing rollback and invalidation cleanup facts");
     {
         const char *src =
@@ -252,6 +329,80 @@ test_mir_lowering_part_a(void)
                                 && strstr(mir_error, "invalidation block missing cleanup-edge MIR fact") != NULL;
         EXPECT(rollback_rejected && invalidation_rejected);
         free(mir_error);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
+    TEST("MIR validator rejects overlapping cleanup roots");
+    {
+        const char *src =
+            "subject Buyer { let hp: Int; action Pay(self) -> Void { return; } }\n"
+            "ability Payable { func Pay() -> Void; }\n"
+            "role BuyerPay for Buyer {\n"
+            "    impl ability Payable { func Pay() -> Void { return; } }\n"
+            "}\n"
+            "object BuyerView { let hp: Int; }\n"
+            "zone PaymentZone {\n"
+            "    subject slot buyer: Buyer\n"
+            "    object slot view: BuyerView\n"
+            "    authority buyer requires Payable\n"
+            "    refresh view from buyer by buyer\n"
+            "}\n"
+            "intent Purchase(payment: PaymentZone, buyer: Buyer) {\n"
+            "    rollback: full;\n"
+            "    step pay {\n"
+            "        where: PaymentZone;\n"
+            "        using: payment;\n"
+            "        who: buyer;\n"
+            "        authorized by: buyer;\n"
+            "        requires: Payable;\n"
+            "        on: buyer.Pay();\n"
+            "        compensate: buyer.Pay();\n"
+            "    }\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        MIRRoutine *purchase = NULL;
+        char *mir_error = NULL;
+        bool cleanup_rollback_rejected = false;
+        bool entry_cleanup_rejected = false;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        size_t saved_entry = 0;
+        size_t saved_cleanup = 0;
+
+        if (ok)
+            purchase = find_mir_routine_mut(mir, "Purchase", MIR_SCOPE_INTENT);
+        if (purchase != NULL
+            && purchase->has_cleanup_block
+            && purchase->has_rollback_block) {
+            saved_cleanup = purchase->cleanup_block;
+            purchase->cleanup_block = purchase->rollback_block;
+            cleanup_rollback_rejected =
+                !mir_validate(mir, &mir_error)
+                && mir_error != NULL
+                && strstr(mir_error, "cleanup and rollback blocks must be distinct") != NULL;
+            free(mir_error);
+            mir_error = NULL;
+            purchase->cleanup_block = saved_cleanup;
+        }
+        if (purchase != NULL && purchase->has_cleanup_block) {
+            saved_entry = purchase->entry_block;
+            purchase->entry_block = purchase->cleanup_block;
+            entry_cleanup_rejected =
+                !mir_validate(mir, &mir_error)
+                && mir_error != NULL
+                && strstr(mir_error, "entry and cleanup blocks must be distinct") != NULL;
+            free(mir_error);
+            mir_error = NULL;
+            purchase->entry_block = saved_entry;
+        }
+
+        EXPECT(ok
+               && purchase != NULL
+               && cleanup_rollback_rejected
+               && entry_cleanup_rejected);
         mir_destroy(mir);
         rir_destroy(rir);
         hir_destroy(hir);

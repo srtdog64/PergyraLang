@@ -8,153 +8,13 @@
 #ifdef PGY_LLVM_ENABLED
 
 #include "llvm_internal.h"
+#include "thread_pool_usage.h"
 
 static void
 llvm_pipeline_debug_stage(const char *stage)
 {
     if (stage != NULL && getenv("PGY_DEBUG_LLVM_STAGE") != NULL)
         fprintf(stderr, "[llvm stage] %s\n", stage);
-}
-
-static bool
-llvm_ast_uses_thread_pool(ASTNode *node)
-{
-    if (node == NULL)
-        return false;
-
-    switch (node->type) {
-    case AST_PARALLEL_BLOCK:
-    case AST_ASYNC_BLOCK:
-    case AST_SPAWN_EXPR:
-        return true;
-    case AST_BLOCK:
-        for (size_t i = 0; i < node->data.block.count; i++) {
-            if (llvm_ast_uses_thread_pool(node->data.block.statements[i]))
-                return true;
-        }
-        return false;
-    case AST_LET_DECL:
-        return llvm_ast_uses_thread_pool(node->data.let_decl.type)
-            || llvm_ast_uses_thread_pool(node->data.let_decl.initializer);
-    case AST_RETURN:
-        return llvm_ast_uses_thread_pool(node->data.return_stmt.value);
-    case AST_CALL:
-        if (llvm_ast_uses_thread_pool(node->data.call.callee))
-            return true;
-        for (size_t i = 0; i < node->data.call.arg_count; i++) {
-            if (llvm_ast_uses_thread_pool(node->data.call.arguments[i]))
-                return true;
-        }
-        return false;
-    case AST_BINARY:
-        return llvm_ast_uses_thread_pool(node->data.binary.left)
-            || llvm_ast_uses_thread_pool(node->data.binary.right);
-    case AST_UNARY:
-        return llvm_ast_uses_thread_pool(node->data.unary.operand);
-    case AST_ASSIGNMENT:
-        return llvm_ast_uses_thread_pool(node->data.assignment.target)
-            || llvm_ast_uses_thread_pool(node->data.assignment.value);
-    case AST_MEMBER_ACCESS:
-        return llvm_ast_uses_thread_pool(node->data.member.object);
-    case AST_ARRAY_ACCESS:
-        return llvm_ast_uses_thread_pool(node->data.array_access.array)
-            || llvm_ast_uses_thread_pool(node->data.array_access.index);
-    case AST_ARRAY_LITERAL:
-        for (size_t i = 0; i < node->data.array_literal.count; i++) {
-            if (llvm_ast_uses_thread_pool(node->data.array_literal.elements[i]))
-                return true;
-        }
-        return false;
-    case AST_TUPLE_LITERAL:
-        for (size_t i = 0; i < node->data.tuple_literal.count; i++) {
-            if (llvm_ast_uses_thread_pool(node->data.tuple_literal.elements[i]))
-                return true;
-        }
-        return false;
-    case AST_IF_STMT:
-        return llvm_ast_uses_thread_pool(node->data.if_stmt.condition)
-            || llvm_ast_uses_thread_pool(node->data.if_stmt.then_branch)
-            || llvm_ast_uses_thread_pool(node->data.if_stmt.else_branch);
-    case AST_FOR_LOOP:
-        return llvm_ast_uses_thread_pool(node->data.for_loop.range_start)
-            || llvm_ast_uses_thread_pool(node->data.for_loop.range_end)
-            || llvm_ast_uses_thread_pool(node->data.for_loop.iterable)
-            || llvm_ast_uses_thread_pool(node->data.for_loop.body);
-    case AST_WHILE_LOOP:
-        return llvm_ast_uses_thread_pool(node->data.while_loop.condition)
-            || llvm_ast_uses_thread_pool(node->data.while_loop.body);
-    case AST_MATCH_STMT:
-        if (llvm_ast_uses_thread_pool(node->data.match_stmt.subject)
-            || llvm_ast_uses_thread_pool(node->data.match_stmt.default_body))
-            return true;
-        for (size_t i = 0; i < node->data.match_stmt.case_count; i++) {
-            if (llvm_ast_uses_thread_pool(node->data.match_stmt.cases[i]))
-                return true;
-        }
-        return false;
-    case AST_MATCH_CASE:
-        return llvm_ast_uses_thread_pool(node->data.match_case.pattern)
-            || llvm_ast_uses_thread_pool(node->data.match_case.guard)
-            || llvm_ast_uses_thread_pool(node->data.match_case.body);
-    case AST_SELECT_STMT:
-        for (size_t i = 0; i < node->data.select_stmt.case_count; i++) {
-            if (llvm_ast_uses_thread_pool(node->data.select_stmt.cases[i]))
-                return true;
-        }
-        return llvm_ast_uses_thread_pool(node->data.select_stmt.default_case);
-    case AST_TASK_GROUP:
-        for (size_t i = 0; i < node->data.task_group.task_count; i++) {
-            if (llvm_ast_uses_thread_pool(node->data.task_group.tasks[i]))
-                return true;
-        }
-        return false;
-    case AST_EVENT_SUBSCRIBE:
-    case AST_EVENT_UNSUBSCRIBE:
-        return llvm_ast_uses_thread_pool(node->data.event_op.event)
-            || llvm_ast_uses_thread_pool(node->data.event_op.handler);
-    case AST_EVENT_INVOKE:
-        if (llvm_ast_uses_thread_pool(node->data.event_invoke.event))
-            return true;
-        for (size_t i = 0; i < node->data.event_invoke.arg_count; i++) {
-            if (llvm_ast_uses_thread_pool(node->data.event_invoke.arguments[i]))
-                return true;
-        }
-        return false;
-    default:
-        return false;
-    }
-}
-
-static bool
-llvm_mir_routine_uses_thread_pool(const MIRRoutine *routine)
-{
-    if (routine == NULL)
-        return false;
-
-    for (size_t i = 0; i < routine->block_count; i++) {
-        const MIRBasicBlock *block = &routine->blocks[i];
-
-        if (block->source_terminator_condition != NULL
-            && llvm_ast_uses_thread_pool(block->source_terminator_condition)) {
-            return true;
-        }
-        if (block->source_terminator_value != NULL
-            && llvm_ast_uses_thread_pool(block->source_terminator_value)) {
-            return true;
-        }
-
-        for (size_t j = 0; j < block->source_statement_count; j++) {
-            if (llvm_ast_uses_thread_pool(block->source_statements[j]))
-                return true;
-        }
-
-        for (size_t j = 0; j < block->instruction_count; j++) {
-            if (llvm_ast_uses_thread_pool(block->instructions[j].ast))
-                return true;
-        }
-    }
-
-    return false;
 }
 
 static bool
@@ -168,14 +28,14 @@ llvm_requires_thread_pool(const LLVMGenCtx *ctx)
 
     llvm_active_routine_inventory(ctx, &routine_inventory);
     for (size_t i = 0; i < routine_inventory.count; i++) {
-        if (llvm_mir_routine_uses_thread_pool(&routine_inventory.routines[i]))
+        if (pgy_mir_routine_uses_thread_pool(&routine_inventory.routines[i]))
             return true;
     }
 
     synthetic_executable_func = mir_find_function_decl(ctx->mir, "__pgy_top_level_exec");
     if (synthetic_executable_func != NULL
         && synthetic_executable_func->type == AST_FUNC_DECL
-        && llvm_ast_uses_thread_pool(
+        && pgy_ast_uses_thread_pool(
             synthetic_executable_func->data.func_decl.body)) {
         return true;
     }

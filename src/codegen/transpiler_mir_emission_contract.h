@@ -522,8 +522,12 @@ transpiler_can_emit_intent_cleanup_from_mir_with_reason(const TranspilerCtx *ctx
         || routine->ast == NULL
         || !routine->has_cleanup_block) {
         if (reason != NULL && reason_cap > 0)
-            snprintf(reason, reason_cap, "intent %s has no MIR cleanup section (kind=%d, ast=%p, has_cleanup_block=%d)",
-                intent_decl->data.intent_decl.name, routine->kind, (void*)routine->ast, routine->has_cleanup_block);
+            snprintf(reason, reason_cap,
+                "intent %s has no MIR cleanup section (kind=%d, has_ast=%d, has_cleanup_block=%d)",
+                intent_decl->data.intent_decl.name,
+                routine->kind,
+                routine->ast != NULL,
+                routine->has_cleanup_block);
         return false;
     }
     if (!transpiler_validate_mir_emission_contract(ctx,

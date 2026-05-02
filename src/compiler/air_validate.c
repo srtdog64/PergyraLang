@@ -254,6 +254,21 @@ air_validate(const AIRProgram *air, char **error_message)
                                     i);
             return false;
         }
+        if (air->boundaries[i].authority_from_zone
+            && !air->boundaries[i].authority_required) {
+            air_set_invariant_error(error_message,
+                                    "AIR boundary node %zu has zone-derived authority provenance without authority",
+                                    i);
+            return false;
+        }
+        if (air->boundaries[i].authority_from_zone
+            && air->boundaries[i].kind != AIR_BOUNDARY_ZONE
+            && air->boundaries[i].kind != AIR_BOUNDARY_WORLD) {
+            air_set_invariant_error(error_message,
+                                    "AIR boundary node %zu has zone-derived authority on non-zone/world boundary",
+                                    i);
+            return false;
+        }
         if (air->boundaries[i].has_hir_routine_evidence
             && air_name_is_empty(air->boundaries[i].hir_routine_evidence_name)) {
             air_set_invariant_error(error_message,
