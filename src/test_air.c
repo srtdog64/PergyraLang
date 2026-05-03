@@ -83,6 +83,7 @@ lower_air_from_source(const char *source)
 #include "tests/air/test_air_core_part_a.cases.h"
 #include "tests/air/test_air_evidence_part_b.cases.h"
 #include "tests/air/test_air_cleanup_transfer_part_c.cases.h"
+#include "tests/air/test_air_cleanup_transfer_part_d.cases.h"
 #include "tests/air/test_air_boundary_part_d.cases.h"
 #include "tests/air/test_air_parsed_part_e.cases.h"
 #include "tests/air/test_air_strict_part_f.cases.h"
@@ -200,6 +201,9 @@ main(void)
 
     TEST("AIR strict evidence requires MIR pin cleanup");
     EXPECT(test_air_strict_evidence_requires_mir_pin_cleanup());
+
+    TEST("AIR rejects MIR pin cleanup evidence fact-count mismatch");
+    EXPECT(test_air_rejects_pin_cleanup_evidence_fact_count_mismatch());
 
     TEST("AIR collects MIR cleanup block evidence");
     EXPECT(test_air_collects_mir_cleanup_block_evidence());

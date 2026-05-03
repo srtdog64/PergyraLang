@@ -79,7 +79,7 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
     for (size_t i = 0; i < block->instruction_count; i++) {
         size_t inst_index = source_order_mode ? inst_order[i] : i;
         const MIRInstruction *inst = &block->instructions[inst_index];
-        ASTNode *stmt = transpiler_mir_find_stmt_for_inst(func_decl, block, inst);
+        ASTNode *stmt = transpiler_mir_find_stmt_for_inst(func_decl, inst);
 
         if (!transpiler_materialize_pending_inst_uses(buf, ctx, func_decl, block,
                                                       inst, ssa_map_out, ctx->indent,

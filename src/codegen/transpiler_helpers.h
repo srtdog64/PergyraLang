@@ -393,7 +393,8 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
         if ((value == NULL
              || (slot_anchor != NULL && strcmp(value, slot_anchor) == 0))
             && inst->ast != NULL
-            && inst->ast->type == AST_CALL) {
+            && inst->has_source_location
+            && inst->source_ast_type == AST_CALL) {
             ASTNode *callee = inst->ast->data.call.callee;
             ASTNode *value_node = NULL;
             if (callee != NULL && callee->type == AST_IDENTIFIER

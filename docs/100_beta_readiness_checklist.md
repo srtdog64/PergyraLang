@@ -123,11 +123,17 @@ Operational mode:
   `semantic_type_resolution_lookup_metadata_type_ref(...)` only. Host/domain
   slot helper reads, intent participant/value/step-where type reads, function
   parameter/return signatures, and expression-local annotations also moved to
-  the metadata-only path. The resolver inventory cap is now 3 type-ref helper
-  references, while fallback/materializer counters stay at 0. ABI/runtime
-  layout remains unchanged. Intent role-field require checks also consume that
-  centralized effective-argument type evidence, keeping
-  `type_checker_intent_role_fields.c` below the 600 LOC split-review line.
+  the metadata-only path. `type_checker_ownership_let_helpers.c` now consumes
+  metadata type-ref facts plus the stable-shell arity, constructed-type, and
+  unknown-bare-name diagnostic helpers. The rejected annotation-only probe
+  caused broad semantic drift, so the accepted closure is metadata +
+  diagnostics, not annotation-only. Semantic owners no longer call the
+  materializing type-ref helper. The resolver inventory cap is now 2 type-ref
+  helper references, covering only the central API declaration/implementation,
+  while fallback/materializer counters stay at 0. ABI/runtime layout remains
+  unchanged. Intent role-field require checks also consume that centralized
+  effective-argument type evidence, keeping `type_checker_intent_role_fields.c`
+  below the 600 LOC split-review line.
 - 2026-05-02 AST analysis ownership tightening:
   intent observability no-trace detection no longer carries a large
   codegen-local AST visitor. `src/parser/ast_analysis.c` owns the reusable
@@ -214,10 +220,11 @@ Operational mode:
   consumes annotation metadata for action-contract domain-slot/parameter reads.
   This keeps direct semantic behavior stable while shrinking the resolver
   inventory cap from `12` to `10`; the later generic/host/intent/function/expr
-  metadata-only slice lowers the cap to `3`. The only remaining semantic owner
-  seam is `type_checker_ownership_let_helpers.c`; it requires earlier
-  collection shell/key-policy metadata before it can leave the compatibility
-  path. Gate:
+  metadata-only slice lowered the cap to `3`; the ownership-let closure now
+  removes the last semantic owner seam by consuming metadata type-ref facts plus
+  the shared stable-shell/constructed-type/unknown-name diagnostic helpers. The
+  cap is now `2`, covering only the central declaration/implementation of
+  `semantic_type_resolution_lookup_type_ref_or_materialize(...)`. Gate:
   `make test-semantic type-resolution-dag-test-smoke
   type-resolution-resolver-inventory-test-smoke`.
 - 2026-05-03 intent compression provenance tightening:
@@ -226,6 +233,72 @@ Operational mode:
   clause in AST print/contract summaries. Gate:
   `make test-parser test-semantic cfg-body-dataflow-test-smoke`
   (`2498/0` semantic tests).
+- 2026-05-03 CFG loop snapshot lifetime fix:
+  `for`/`while` flow restores merged resource state before destroying the loop
+  scope. This prevents loop snapshots that contain loop-local symbols from
+  writing through freed scope storage during transpile/MIR lowering tests.
+  Parallel task flow now restores the entry ownership snapshot before
+  destroying each task scope, keeping task-local symbols out of post-scope
+  writes while preserving joined conflict analysis.
+  Function signature metadata misses also fail closed to `TYPE_UNKNOWN` rather
+  than crashing `type_create_function(...)`. Gate: manual native MinGW
+  `test-semantic` (`2500/0`) and `test-transpile` (`710/0`).
+- 2026-05-03 AIR boundary evidence fact-count closure:
+  HIR/RIR/MIR boundary evidence nodes must carry exactly one boundary fact.
+  This keeps a single boundary proof from being widened into an ambiguous
+  multi-fact evidence node. Gate: manual native MinGW `test-air` (`68/0`).
+- 2026-05-03 MIR source-location materialization:
+  C MIR block mapping comments now consume scalar MIR source-location facts
+  (`has_source_location`, `source_line`, `source_column`) instead of reading
+  `block->source_ast` in codegen. Source AST pointers remain construction and
+  debug provenance, but backend comments no longer consume them directly. Gate:
+  manual native MinGW `test-mir` (`32/0`), `test-air` (`68/0`), and
+  `test-transpile` (`710/0`).
+- 2026-05-03 MIR surface-usage fact materialization:
+  MIR instructions now carry `has_surface_usage_facts` and
+  `uses_thread_pool_surface`. C/LLVM thread-pool dependency checks consume that
+  MIR fact first and only scan AST payloads for hand-built or legacy MIR
+  without facts. The shared fact materializer is now called by base, cleanup,
+  and intent MIR append paths. Gate: manual native MinGW `test-semantic`
+  (`2500/0`), `test-mir` (`32/0`), `test-air` (`68/0`), and `test-transpile`
+  (`710/0`).
+- 2026-05-03 MIR branch-shape materialization:
+  branch and loop-init instructions now carry `MIRBranchShape` (`FOR_RANGE`,
+  `FOR_IN`, `MATCH_CASE`, `SELECT_DISPATCH`). C and LLVM MIR control emitters
+  consume that fact instead of classifying branch control by AST node type. AST
+  payloads remain only for expression/condition emission. MIR validation and
+  MIR lowering regressions also consume `branch_shape` for loop-branch
+  completeness, so the fact is now part of the MIR contract, not just a backend
+  convenience. Gate: manual native MinGW `test-semantic` (`2500/0`),
+  `test-mir` (`32/0`), `test-air` (`68/0`), `test-transpile` (`710/0`), plus
+  LLVM control owner compile smoke.
+- 2026-05-03 MIR dump source-location tightening:
+  `mir_dump(...)` now prints source locations from
+  `MIRBasicBlock.has_source_location` / `source_line` / `source_column` instead
+  of rebuilding them from `source_statements[0]` or terminator AST pointers.
+  This keeps public MIR dumps aligned with materialized MIR facts. Gate: manual
+  native MinGW `test-mir` (`32/0`) and `test-transpile` (`710/0`).
+- 2026-05-03 MIR instruction source-location materialization:
+  instructions now carry `has_source_location`, `source_line`, `source_column`,
+  and `source_ast_type` facts. `mir_dump(...)` prints instruction `ast-type` /
+  `line` from those facts instead of reading `inst->ast`. AST payloads remain
+  available to expression emitters, but the public MIR dump path no longer
+  consumes AST pointers for instruction provenance. Gate: manual native MinGW
+  `test-mir` (`32/0`), `test-air` (`68/0`), and `test-transpile` (`710/0`).
+- 2026-05-03 MIR AST-type consumer tightening:
+  C/LLVM codegen no longer branches on `inst->ast->type`. Instruction kind
+  decisions now consume `source_ast_type` / `has_source_location`; AST payloads
+  remain only where expression or statement emission still needs the original
+  syntax tree. Gate: manual native MinGW `test-transpile` (`710/0`), `test-mir`
+  (`32/0`), `test-air` (`68/0`), and `perf_contract_smoke`.
+- 2026-05-03 C backend source-array consumer tightening:
+  `transpiler_mir_find_stmt_for_inst(...)` now trusts instruction-carried
+  statement AST provenance first and falls back only to function-scope let
+  lookup by name. Codegen no longer reads `block->source_statements`,
+  `block->source_ast`, `source_terminator_*`, or `inst->ast->type` in the
+  scanned C/LLVM backend owners; those block source arrays remain MIR
+  construction input, not backend judgement input. Gate: manual native MinGW
+  `test-transpile` (`710/0`) and `perf_contract_smoke`.
 - 2026-05-01 dogfood-first beta gate:
   the beta target is now "core stable enough to start a small WebGL/chat-game
   dogfood", not a full 1.0 compiler. Quantum, Rust-style lifetime borrow
@@ -2103,11 +2176,13 @@ Closed now:
   signature-stage seam: constructed stable refs reached by compatibility
   callers stay DAG-metadata-first instead of silently reopening recursive
   resolver fallback.
-- 2026-04-29 API update:
-  `semantic_type_resolution_lookup_type_ref_or_materialize(...)` is the named
+- 2026-04-29 API update, superseded by the 2026-05-03 semantic-owner closure:
+  `semantic_type_resolution_lookup_type_ref_or_materialize(...)` was the named
   semantic-owner API for "metadata-first, diagnostic-materializer second" type
-  refs. It prevents each checker owner from hand-rolling the same preflight and
-  makes the remaining compatibility seam easier to gate.
+  refs. It prevented each checker owner from hand-rolling the same preflight
+  while the compatibility seam was being retired. The current beta gate keeps
+  this symbol only as the central declaration/implementation seam; semantic
+  owners consume metadata facts plus narrow diagnostic helpers directly.
 - 2026-04-29 domain seam update: intent participant/value/where type refs and
   zone authority subject-slot type refs now consume that API. Ability where,
   class/function signature, action contract, domain slot, and world slot refs
@@ -3380,17 +3455,18 @@ make ast-dispatch-test-smoke
   respect to DAG metadata creation. Destructuring ownership type reads now do
   the same, so that CFG/body-safety-adjacent path no longer materializes DAG
   metadata as a side effect.
-- The next attempted candidates are now classified as true stage-order seams,
-  not low-risk annotation readers: the remaining materializing semantic owner
-  seam is ownership-let annotation/type-argument handling. A negative probe
-  showed that lowering it to metadata-only drops unsupported `HashMap` key
-  diagnostics, so collection shell/key-policy facts must be staged before this
-  owner can leave the compatibility path. Effective generic-argument
-  derivation, generic contract validation, generic where/default validation,
-  host/domain slot reads, intent-local type reads, function signatures,
-  expression annotations, action contract reads, and compressed intent
-  role/ability field checks now consume centralized metadata/effective-argument
-  evidence instead of owning local materializer seams.
+- The ownership-let materializing semantic owner seam is now closed without
+  pretending that annotation-only lookup was sufficient. The negative probe
+  showed that annotation-only lookup caused broad semantic drift and lost
+  unsupported `HashMap` key diagnostics. The accepted path consumes DAG
+  metadata type-ref facts and then calls the shared stable-shell arity,
+  constructed-type, and unknown-bare-name diagnostic helpers. Effective
+  generic-argument derivation, generic contract validation, generic
+  where/default validation, host/domain slot reads, intent-local type reads,
+  function signatures, expression annotations, action contract reads,
+  ownership-let annotations/type arguments, and compressed intent role/ability
+  field checks now consume centralized metadata/effective-argument evidence
+  instead of owning local materializer seams.
 - Class/ability signature staging now opens a generic-parameter scope before
   resolving staged fields and methods, aligning DAG staging with the full
   semantic checker even where the materializer allowlist is still required.

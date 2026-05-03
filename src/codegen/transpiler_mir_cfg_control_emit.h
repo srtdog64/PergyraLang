@@ -31,12 +31,13 @@ transpiler_mir_emit_for_loop_init_inst(CodeBuf *buf,
         return true;
     if (inst->kind != MIR_INST_LOOP_INIT)
         return true;
-    if (inst->ast == NULL || inst->ast->type != AST_FOR_LOOP)
+    if (inst->branch_shape != MIR_BRANCH_FOR_RANGE
+        && inst->branch_shape != MIR_BRANCH_FOR_IN)
         return false;
     variable = inst->arg0;
     if (variable == NULL)
         return true;
-    if (inst->ast->data.for_loop.iterable != NULL) {
+    if (inst->branch_shape == MIR_BRANCH_FOR_IN) {
         write_indent_to(buf, ctx->indent);
         codebuf_write(buf, "size_t _pgy_idx_%s = 0;\n", variable);
         return true;
@@ -99,12 +100,13 @@ transpiler_mir_render_for_loop_condition_inst(const MIRInstruction *inst,
 
     if (inst == NULL || ctx == NULL)
         return NULL;
-    if (inst->ast == NULL || inst->ast->type != AST_FOR_LOOP)
+    if (inst->branch_shape != MIR_BRANCH_FOR_RANGE
+        && inst->branch_shape != MIR_BRANCH_FOR_IN)
         return NULL;
     variable = inst->arg0;
     if (variable == NULL)
         return NULL;
-    if (inst->ast->data.for_loop.iterable != NULL) {
+    if (inst->branch_shape == MIR_BRANCH_FOR_IN) {
         const char *collection_type = NULL;
         const char *length_field;
         char *collection;
@@ -149,9 +151,7 @@ transpiler_mir_find_incoming_for_in_branch(const MIRRoutine *routine,
         for (size_t j = 0; j < pred->instruction_count; j++) {
             const MIRInstruction *inst = &pred->instructions[j];
             if (inst->kind == MIR_INST_BRANCH
-                && inst->ast != NULL
-                && inst->ast->type == AST_FOR_LOOP
-                && inst->ast->data.for_loop.iterable != NULL) {
+                && inst->branch_shape == MIR_BRANCH_FOR_IN) {
                 return inst;
             }
         }
@@ -207,8 +207,8 @@ transpiler_mir_find_loop_branch_inst(const MIRBasicBlock *block)
     for (size_t i = 0; i < block->instruction_count; i++) {
         const MIRInstruction *inst = &block->instructions[i];
         if (inst->kind == MIR_INST_BRANCH
-            && inst->ast != NULL
-            && inst->ast->type == AST_FOR_LOOP) {
+            && (inst->branch_shape == MIR_BRANCH_FOR_RANGE
+                || inst->branch_shape == MIR_BRANCH_FOR_IN)) {
             return inst;
         }
     }
@@ -244,9 +244,7 @@ transpiler_mir_emit_loop_backedge_increment(CodeBuf *buf,
         return true;
 
     write_indent_to(buf, ctx->indent);
-    if (branch_inst->ast != NULL
-        && branch_inst->ast->type == AST_FOR_LOOP
-        && branch_inst->ast->data.for_loop.iterable != NULL) {
+    if (branch_inst->branch_shape == MIR_BRANCH_FOR_IN) {
         codebuf_write(buf, "_pgy_idx_%s = _pgy_idx_%s + 1;\n",
             variable,
             variable);
@@ -267,9 +265,10 @@ transpiler_mir_render_branch_condition(ASTNode *func_decl,
     ASTNode *condition = inst != NULL ? inst->ast : NULL;
     if (condition == NULL)
         return pergyra_strdup("true");
-    if (condition->type == AST_FOR_LOOP)
+    if (inst->branch_shape == MIR_BRANCH_FOR_RANGE
+        || inst->branch_shape == MIR_BRANCH_FOR_IN)
         return transpiler_mir_render_for_loop_condition_inst(inst, ctx, ssa_map);
-    if (condition->type == AST_MATCH_CASE)
+    if (inst->branch_shape == MIR_BRANCH_MATCH_CASE)
         return transpiler_mir_render_match_case_condition(func_decl, condition,
                                                          ctx, ssa_map);
     return emit_expression_with_ssa_map(condition, ctx, ssa_map);

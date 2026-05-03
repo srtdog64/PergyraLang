@@ -63,6 +63,7 @@ type_check_parallel_block_flow(ASTNode *node, SemanticContext *ctx)
         scope_enter(&ctx->scope, SCOPE_BLOCK);
         (void)type_check_statement_flow(node->data.parallel.tasks[i], ctx, NULL);
         task_snap = snapshot_resource_states(ctx);
+        restore_resource_states(&base);
         scope_exit(&ctx->scope);
         if (has_joined) {
             const Symbol *conflict = NULL;

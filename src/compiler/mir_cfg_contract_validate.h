@@ -216,8 +216,8 @@ mir_validate_cfg_contract_state(const MIRRoutine *routine,
                     }
                 }
                 if (inst->kind == MIR_INST_BRANCH
-                    && inst->ast != NULL
-                    && inst->ast->type == AST_FOR_LOOP
+                    && (inst->branch_shape == MIR_BRANCH_FOR_RANGE
+                        || inst->branch_shape == MIR_BRANCH_FOR_IN)
                     && (inst->arg0 == NULL || inst->expr0 == NULL || inst->expr1 == NULL)) {
                     if (error_message != NULL) {
                         *error_message = mir_strdup_fmt(

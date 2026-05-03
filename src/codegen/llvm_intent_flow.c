@@ -107,7 +107,8 @@ llvm_collect_mir_intent_steps(const MIRRoutine *routine,
             const MIRInstruction *inst = &block->instructions[ii];
 
             if (inst->kind != MIR_INST_STMT || inst->ast == NULL
-                || inst->ast->type != AST_INTENT_STEP) {
+                || !inst->has_source_location
+                || inst->source_ast_type != AST_INTENT_STEP) {
                 continue;
             }
             if (inst->name == NULL || strcmp(inst->name, "IntentStep") != 0)
@@ -130,7 +131,8 @@ llvm_collect_mir_intent_steps(const MIRRoutine *routine,
         for (size_t ii = 0; ii < block->instruction_count; ii++) {
             const MIRInstruction *inst = &block->instructions[ii];
             if (inst->kind != MIR_INST_STMT || inst->ast == NULL
-                || inst->ast->type != AST_INTENT_STEP)
+                || !inst->has_source_location
+                || inst->source_ast_type != AST_INTENT_STEP)
                 continue;
             if (inst->name == NULL || strcmp(inst->name, "IntentStep") != 0)
                 continue;

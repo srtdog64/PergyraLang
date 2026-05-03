@@ -196,20 +196,28 @@ grep -q 'semantic_type_resolution_lookup_metadata_type_ref(ctx,' \
   exit 1
 }
 
+grep -q 'semantic_type_resolution_lookup_metadata_type_ref' \
+  src/semantic/type_checker_ownership_let_helpers.c || {
+  echo "[type-resolution-resolver-inventory] ownership let type-ref path no longer consumes DAG metadata first" >&2
+  exit 1
+}
+
+grep -q 'semantic_type_resolution_reject_invalid_stable_constructed_type' \
+  src/semantic/type_checker_ownership_let_helpers.c || {
+  echo "[type-resolution-resolver-inventory] ownership let type-ref path lost stable constructed-type diagnostics" >&2
+  exit 1
+}
+
+grep -q 'semantic_type_resolution_reject_unknown_bare_named_type' \
+  src/semantic/type_checker_ownership_let_helpers.c || {
+  echo "[type-resolution-resolver-inventory] ownership let type-ref path lost unknown bare-name diagnostics" >&2
+  exit 1
+}
+
 { grep -RIn 'semantic_type_resolution_lookup_type_ref_or_materialize' src/semantic || true; } \
   >"$type_ref_helper_matches" || true
 
-for owner in \
-  src/semantic/type_checker_ownership_let_helpers.c
-do
-  grep -q 'semantic_type_resolution_lookup_type_ref_or_materialize' "$owner" || {
-    echo "[type-resolution-resolver-inventory] semantic resolver owner lost metadata-first type-ref helper: $owner" >&2
-    exit 1
-  }
-done
-
 grep -Ev 'src/semantic/type_checker_internal\.h' "$type_ref_helper_matches" \
-  | grep -Ev 'src/semantic/type_checker_ownership_let_helpers\.c' \
   | grep -Ev 'src/semantic/type_checker_resolution_metadata\.c' \
   >"$bad_type_ref_helper" || true
 
@@ -221,8 +229,8 @@ if [ -s "$bad_type_ref_helper" ]; then
 fi
 
 type_ref_helper_count="$(wc -l <"$type_ref_helper_matches")"
-if [ "$type_ref_helper_count" -ne 3 ]; then
-  echo "[type-resolution-resolver-inventory] metadata-first type-ref helper inventory changed: $type_ref_helper_count != 3" >&2
+if [ "$type_ref_helper_count" -ne 2 ]; then
+  echo "[type-resolution-resolver-inventory] metadata-first type-ref helper inventory changed: $type_ref_helper_count != 2" >&2
   cat "$type_ref_helper_matches" >&2
   exit 1
 fi
@@ -236,6 +244,7 @@ direct_metadata_type_ref_users="$(
     | grep -Ev 'src/semantic/type_checker_func_decl\.c' \
     | grep -Ev 'src/semantic/type_checker_host_helpers\.c' \
     | grep -Ev 'src/semantic/type_checker_intent_types\.c' \
+    | grep -Ev 'src/semantic/type_checker_ownership_let_helpers\.c' \
     | grep -Ev 'src/semantic/type_checker_resolution_metadata\.c' \
     | grep -Ev 'src/semantic/type_checker_resolution_metadata_constructed\.c' \
     | grep -Ev 'src/semantic/type_checker_resolution_metadata_diagnostics\.c' \
@@ -440,4 +449,4 @@ for needle in \
   }
 done
 
-echo "[type-resolution-resolver-inventory] direct resolver and fallback seam inventory are gated (fallback seams=$fallback_sites cap=0 annotation-sensitive seams=$annotation_sites type-ref helper refs=$type_ref_helper_count cap=3)"
+echo "[type-resolution-resolver-inventory] direct resolver and fallback seam inventory are gated (fallback seams=$fallback_sites cap=0 annotation-sensitive seams=$annotation_sites type-ref helper refs=$type_ref_helper_count cap=2)"

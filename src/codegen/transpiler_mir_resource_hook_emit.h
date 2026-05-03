@@ -30,7 +30,8 @@ transpiler_emit_mir_resource_hook(TranspilerCtx *ctx,
             && inst->name != NULL
             && strcmp(inst->name, "Write") == 0
             && inst->ast != NULL
-            && inst->ast->type == AST_CALL) {
+            && inst->has_source_location
+            && inst->source_ast_type == AST_CALL) {
             ASTNode *callee = inst->ast->data.call.callee;
             ASTNode *value_node = NULL;
             if (callee != NULL
@@ -71,7 +72,8 @@ transpiler_emit_mir_resource_hook(TranspilerCtx *ctx,
                     ? lookup_typed_var(ctx, claim_name)
                     : NULL;
                 if (inst->ast != NULL
-                    && inst->ast->type == AST_LET_DECL
+                    && inst->has_source_location
+                    && inst->source_ast_type == AST_LET_DECL
                     && inst->ast->data.let_decl.name != NULL
                     && claim_name != NULL
                     && strcmp(claim_name, inst->ast->data.let_decl.name) == 0) {

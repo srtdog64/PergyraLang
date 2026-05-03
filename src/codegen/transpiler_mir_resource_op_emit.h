@@ -24,7 +24,8 @@ transpiler_emit_mir_resource_op_inst(CodeBuf *buf,
     if (inst->name != NULL
         && strcmp(inst->name, "Write") == 0
         && inst->ast != NULL
-        && inst->ast->type == AST_CALL) {
+        && inst->has_source_location
+        && inst->source_ast_type == AST_CALL) {
         ASTNode *callee = inst->ast->data.call.callee;
         ASTNode *value_expr = NULL;
         char map_reason[256];
@@ -66,7 +67,9 @@ transpiler_emit_mir_resource_op_inst(CodeBuf *buf,
         }
     }
     if (inst->name != NULL && strcmp(inst->name, "Claim") == 0
-        && (inst->ast == NULL || inst->ast->type != AST_WITH_STMT)) {
+        && (inst->ast == NULL
+            || !inst->has_source_location
+            || inst->source_ast_type != AST_WITH_STMT)) {
         return TRANSPILE_MIR_INST_HANDLED;
     }
     if (!transpiler_emit_mir_resource_hook(ctx, buf, ctx->indent, inst, "0", false)) {

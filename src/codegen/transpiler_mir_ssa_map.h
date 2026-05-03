@@ -160,20 +160,18 @@ transpiler_emit_mir_block_mapping_comment(CodeBuf *out,
                                           const MIRRoutine *routine,
                                           const MIRBasicBlock *block)
 {
-    const ASTNode *source_stmt = NULL;
     uint32_t line = 0;
     uint32_t column = 0;
 
     if (out == NULL || routine == NULL || block == NULL)
         return;
 
-    source_stmt = block->source_ast;
-    if (source_stmt != NULL) {
-        line = source_stmt->line;
-        column = source_stmt->column;
+    if (block->has_source_location) {
+        line = block->source_line;
+        column = block->source_column;
     }
 
-    if (source_stmt != NULL) {
+    if (block->has_source_location) {
         write_indent_to(out, indent);
         codebuf_write(out,
             "/* mir block=%zu hir=%zu (%s) src=%u:%u */\n",

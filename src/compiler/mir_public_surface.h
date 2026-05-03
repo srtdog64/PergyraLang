@@ -305,28 +305,18 @@ mir_dump(const MIRProgram *mir, FILE *out)
         for (size_t j = 0; j < routine->block_count; j++) {
             const MIRBasicBlock *block = &routine->blocks[j];
         const char *label_name = NULL;
-        const ASTNode *source_stmt = NULL;
         char source_ast_loc[64] = "<none>";
         char source_ast_id[32] = "<none>";
         char label[128];
-        bool has_source_stmt = false;
         if (routine->name != NULL)
             snprintf(label, sizeof(label), "_pgy_mir_bb_%s_%zu", routine->name, j);
         else
             snprintf(label, sizeof(label), "_pgy_mir_bb_%s_%zu", "(anonymous)", j);
-        if (block->source_statement_count > 0)
-            source_stmt = block->source_statements[0];
-        else if (block->source_terminator_condition != NULL)
-            source_stmt = block->source_terminator_condition;
-        else if (block->source_terminator_value != NULL)
-            source_stmt = block->source_terminator_value;
-        if (source_stmt != NULL) {
-            if (source_stmt != NULL)
-                snprintf(source_ast_loc, sizeof(source_ast_loc), "line %u:%u",
-                    source_stmt->line, source_stmt->column);
+        if (block->has_source_location) {
+            snprintf(source_ast_loc, sizeof(source_ast_loc), "line %u:%u",
+                     block->source_line, block->source_column);
             snprintf(source_ast_id, sizeof(source_ast_id), "line-%u-col-%u",
-                     source_stmt->line, source_stmt->column);
-            has_source_stmt = true;
+                     block->source_line, block->source_column);
         }
         label_name = label;
         fprintf(out,
@@ -338,7 +328,7 @@ mir_dump(const MIRProgram *mir, FILE *out)
                 block->is_cleanup ? "yes" : "no",
                 (size_t)(block->source_hir_block_id),
                 source_ast_loc,
-                has_source_stmt ? source_ast_id : "<none>",
+                block->has_source_location ? source_ast_id : "<none>",
                 block->predecessor_count,
                 block->has_succ_true ? "yes" : "no",
                 block->has_succ_false ? "yes" : "no",
@@ -424,10 +414,10 @@ mir_dump(const MIRProgram *mir, FILE *out)
                     for (size_t m = 0; m < inst->use_count; m++)
                         fprintf(out, "%s%s", m == 0 ? "" : ",", inst->uses[m]);
                 }
-                if (inst->ast != NULL) {
+                if (inst->has_source_location) {
                     fprintf(out, " ast-type=%d line=%u",
-                            (int)inst->ast->type,
-                            inst->ast->line);
+                            (int)inst->source_ast_type,
+                            inst->source_line);
                 }
                 fprintf(out, "\n");
             }

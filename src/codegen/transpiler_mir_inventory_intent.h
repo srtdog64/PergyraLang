@@ -177,7 +177,8 @@ transpiler_collect_mir_intent_steps(const MIRRoutine *routine, ASTNode ***steps_
             ASTNode **grown;
 
             if (inst->kind != MIR_INST_STMT || inst->ast == NULL
-                || inst->ast->type != AST_INTENT_STEP) {
+                || !inst->has_source_location
+                || inst->source_ast_type != AST_INTENT_STEP) {
                 continue;
             }
             if (inst->name == NULL || strcmp(inst->name, "IntentStep") != 0)

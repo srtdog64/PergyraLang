@@ -268,6 +268,9 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
                 inst.name = "loop-init";
                 inst.ast = stmt;
                 inst.arg0 = stmt->data.for_loop.variable;
+                inst.branch_shape = stmt->data.for_loop.iterable != NULL
+                    ? MIR_BRANCH_FOR_IN
+                    : MIR_BRANCH_FOR_RANGE;
                 mir_set_inst_source_statement_index(&inst, s);
                 if (stmt->data.for_loop.iterable != NULL) {
                     inst.expr0 = stmt->data.for_loop.iterable;
@@ -439,6 +442,8 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
         block->instructions = new_insts;
         block->instruction_count = new_count;
         block->instruction_capacity = new_cap;
+        for (size_t fact_i = 0; fact_i < block->instruction_count; fact_i++)
+            mir_instruction_record_surface_usage(&block->instructions[fact_i]);
     }
 
     for (size_t block_id = 0; block_id < routine->block_count && !has_stmt_inst; block_id++) {

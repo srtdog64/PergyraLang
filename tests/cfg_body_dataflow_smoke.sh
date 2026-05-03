@@ -72,6 +72,8 @@ run_literal_doc_contract_smoke() {
     require_literal "src/semantic/type_checker_flow_loops.h" "type_check_for_loop_flow(ASTNode *node, SemanticContext *ctx)"
     require_literal "src/semantic/type_checker_flow_loops.h" "condition_static_false"
     require_literal "src/semantic/type_checker_flow_loops.h" "restore_resource_states(&base)"
+    require_literal "src/semantic/type_checker_flow_loops.h" "restore_resource_states(&merged)"
+    require_literal "src/semantic/type_checker_flow_parallel.h" "restore_resource_states(&base)"
     require_literal "src/tests/semantic/test_semantic_misc_a_part_a.cases.h" "CFG body flow accepts while-true all-path return"
     require_literal "src/tests/semantic/test_semantic_misc_a_part_a.cases.h" "CFG body flow accepts static single-iteration for all-path return"
     require_literal "src/tests/semantic/test_semantic_misc_a_part_a.cases.h" "CFG body flow keeps zero-iteration for as fallthrough"

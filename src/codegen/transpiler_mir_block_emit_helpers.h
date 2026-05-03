@@ -20,18 +20,13 @@ transpiler_mir_seed_block_phi_names(const MIRBasicBlock *block,
 
 static ASTNode *
 transpiler_mir_find_stmt_for_inst(const ASTNode *func_decl,
-                                  const MIRBasicBlock *block,
                                   const MIRInstruction *inst)
 {
     ASTNode *stmt = inst != NULL ? inst->ast : NULL;
     if (stmt == NULL && inst != NULL
         && inst->kind == MIR_INST_DEF
         && inst->arg0 != NULL) {
-        if (block->source_ast != NULL)
-            stmt = transpiler_find_let_decl_by_name_in_block(block->source_ast,
-                                                             inst->arg0);
-        if (stmt == NULL)
-            stmt = transpiler_find_let_decl_by_name(func_decl, inst->arg0);
+        stmt = transpiler_find_let_decl_by_name(func_decl, inst->arg0);
     }
     return stmt;
 }

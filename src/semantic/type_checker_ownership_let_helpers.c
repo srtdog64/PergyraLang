@@ -12,7 +12,19 @@
 Type *
 ownership_let_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
 {
-    return semantic_type_resolution_lookup_type_ref_or_materialize(ctx, type_ref);
+    Type *resolved = semantic_type_resolution_lookup_metadata_type_ref(
+        ctx, type_ref);
+    if (resolved != NULL)
+        return resolved;
+    if (semantic_type_resolution_reject_invalid_stable_shell_arity(ctx,
+                                                                   type_ref))
+        return TYPE_UNKNOWN;
+    if (semantic_type_resolution_reject_invalid_stable_constructed_type(
+            ctx, type_ref))
+        return TYPE_UNKNOWN;
+    if (semantic_type_resolution_reject_unknown_bare_named_type(ctx, type_ref))
+        return TYPE_UNKNOWN;
+    return TYPE_UNKNOWN;
 }
 
 Type *

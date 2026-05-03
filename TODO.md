@@ -188,6 +188,59 @@ LLVM-family target/extern bridge track으로 둔다.
      before structural AST fallback. Gate: `make test-mir
      cfg-body-dataflow-test-smoke test-transpile perf-contract-test-smoke`
      (`32/0` MIR tests, `710/0` transpile tests).
+   - 2026-05-03 MIR source-location materialization: C MIR block mapping
+     comments now consume scalar `MIRBasicBlock.has_source_location` /
+     `source_line` / `source_column` facts instead of reading
+     `block->source_ast` in codegen. This keeps source AST pointers as MIR
+     construction/debug provenance, not a backend consume path. Gate: manual
+     native MinGW `test-mir` (`32/0`), `test-air` (`68/0`), and
+     `test-transpile` (`710/0`).
+   - 2026-05-03 MIR surface-usage fact materialization: MIR instructions now
+     carry `has_surface_usage_facts` and `uses_thread_pool_surface`. C/LLVM
+     thread-pool dependency checks consume that MIR fact first and only scan
+     AST payloads for hand-built or legacy MIR without facts. The shared fact
+     materializer is now called by base, cleanup, and intent MIR append paths.
+     Gate: manual native MinGW `test-semantic` (`2500/0`), `test-mir` (`32/0`),
+     `test-air` (`68/0`), and `test-transpile` (`710/0`).
+   - 2026-05-03 MIR branch-shape materialization: branch and loop-init
+     instructions now carry `MIRBranchShape` (`FOR_RANGE`, `FOR_IN`,
+     `MATCH_CASE`, `SELECT_DISPATCH`). C and LLVM MIR control emitters consume
+     that fact instead of classifying branch control by AST node type. AST
+     payloads remain only for expression/condition emission. MIR validation and
+     MIR lowering regressions also consume `branch_shape` for loop-branch
+     completeness, so the fact is now part of the MIR contract, not just a
+     backend convenience. Gate: manual native MinGW `test-semantic` (`2500/0`),
+     `test-mir` (`32/0`), `test-air` (`68/0`), `test-transpile` (`710/0`), plus
+     LLVM control owner compile smoke.
+   - 2026-05-03 MIR dump source-location tightening: `mir_dump(...)` now prints
+     source locations from `MIRBasicBlock.has_source_location` /
+     `source_line` / `source_column` instead of rebuilding them from
+     `source_statements[0]` or terminator AST pointers. This keeps public MIR
+     dumps aligned with materialized MIR facts. Gate: manual native MinGW
+     `test-mir` (`32/0`) and `test-transpile` (`710/0`).
+   - 2026-05-03 MIR instruction source-location materialization:
+     instructions now carry `has_source_location`, `source_line`,
+     `source_column`, and `source_ast_type` facts. `mir_dump(...)` prints
+     instruction `ast-type`/`line` from those facts instead of reading
+     `inst->ast`. AST payloads remain available to expression emitters, but
+     the public MIR dump path no longer consumes AST pointers for instruction
+     provenance. Gate: manual native MinGW `test-mir` (`32/0`), `test-air`
+     (`68/0`), and `test-transpile` (`710/0`).
+   - 2026-05-03 MIR AST-type consumer tightening:
+     C/LLVM codegen no longer branches on `inst->ast->type`. Instruction kind
+     decisions now consume `source_ast_type` / `has_source_location`; AST
+     payloads remain only where expression or statement emission still needs
+     the original syntax tree. Gate: manual native MinGW `test-transpile`
+     (`710/0`), `test-mir` (`32/0`), `test-air` (`68/0`), and
+     `perf_contract_smoke`.
+   - 2026-05-03 C backend source-array consumer tightening:
+     `transpiler_mir_find_stmt_for_inst(...)` now trusts instruction-carried
+     statement AST provenance first and falls back only to function-scope let
+     lookup by name. Codegen no longer reads `block->source_statements`,
+     `block->source_ast`, `source_terminator_*`, or `inst->ast->type` in the
+     scanned C/LLVM backend owners; those block source arrays remain MIR
+     construction input, not backend judgement input. Gate: manual native
+     MinGW `test-transpile` (`710/0`) and `perf_contract_smoke`.
    - 2026-05-03 CFG loop-flow consumer tightening: `while` and static range
      `for` statements now return semantic CFG flow flags to their parent body
      instead of being flattened through the generic statement fallback. The
@@ -218,11 +271,14 @@ LLVM-family target/extern bridge track으로 둔다.
      now follows the same metadata-only path for host/domain slot type reads,
      `type_checker_func_decl.c` now uses metadata-only lookup for function
      parameter/return signatures, and `type_checker_expr.c` does the same for
-     expression-local annotations. The resolver inventory cap is now `3`, with
-     fallback/materializer counters still at zero. The only remaining semantic
-     owner seam is `type_checker_ownership_let_helpers.c`; a negative probe
-     showed that lowering it to metadata-only drops unsupported `HashMap` key
-     diagnostics, so collection shell/key-policy facts must be staged first.
+     expression-local annotations. `type_checker_ownership_let_helpers.c` now
+     consumes metadata type-ref facts plus the stable-shell arity,
+     constructed-type, and unknown-bare-name diagnostic helpers; the rejected
+     annotation-only probe caused broad semantic drift, so the accepted closure
+     is metadata + diagnostics, not annotation-only. Semantic owners no longer
+     call the materializing type-ref helper. The resolver inventory cap is now
+     `2`, covering only the central API declaration/implementation, with
+     fallback/materializer counters still at zero.
      Gate:
      `make test-semantic type-resolution-dag-test-smoke
      type-resolution-resolver-inventory-test-smoke` (`2500/0` semantic).
@@ -6087,3 +6143,24 @@ Local verification for this debt refresh:
   `make air-json-schema-test-smoke`, `make test-inc-size-test-smoke`,
   `git diff --check`, `make source-utf8-test-smoke`, and
   `make documentation-quality-test-smoke`.
+
+## Progress Log - 2026-05-03 CFG Loop Snapshot Lifetime Closure
+
+- `for` / `while` flow now restores merged resource state before destroying
+  the loop scope. This prevents loop-local snapshot symbols from writing
+  through freed scope storage during MIR/transpile lowering.
+- `parallel` task flow now restores the entry ownership snapshot before
+  destroying each task scope, keeping task-local symbols out of post-scope
+  writes while preserving joined conflict analysis.
+- Function signature metadata misses now fail closed to `TYPE_UNKNOWN` instead
+  of reaching `type_create_function(...)` as `NULL`.
+- C backend MIR block lookup now prefers exact `source_statement_index`
+  metadata over block-AST name search for preserved let statements.
+- AIR boundary evidence now rejects fact-count drift: each boundary evidence
+  node must carry exactly one boundary fact. This prevents hand-built or
+  JSON-fed evidence from widening HIR/RIR/MIR boundary proofs into ambiguous
+  multi-fact claims.
+- Local native MinGW gates: `test-semantic` (`2500/0`) and `test-transpile`
+  (`710/0`), plus `test-air` (`68/0`). The POSIX Makefile path is still
+  blocked locally by Git Bash `Win32 error 5`, so these were run through direct
+  object rebuild/link.

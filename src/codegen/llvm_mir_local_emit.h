@@ -28,7 +28,8 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                 if (layout_type != NULL) {
                     alloca_type = layout_type;
                 } else if (inst->ast != NULL) {
-                    if (inst->ast->type == AST_LET_DECL) {
+                    if (inst->has_source_location
+                        && inst->source_ast_type == AST_LET_DECL) {
                         value_expr = inst->ast->data.let_decl.initializer;
                         if (inst->ast->data.let_decl.type != NULL) {
                             alloca_type = llvm_mir_type_from_ast(

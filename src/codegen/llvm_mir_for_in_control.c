@@ -28,8 +28,7 @@ llvm_mir_emit_for_in_loop_init(const MIRInstruction *inst, LLVMGenCtx *ctx)
 
     if (inst == NULL || ctx == NULL)
         return true;
-    if (inst->ast == NULL || inst->ast->type != AST_FOR_LOOP
-        || inst->ast->data.for_loop.iterable == NULL) {
+    if (inst->branch_shape != MIR_BRANCH_FOR_IN) {
         return true;
     }
     variable = inst->arg0;
@@ -57,8 +56,7 @@ llvm_mir_emit_for_in_loop_condition(const MIRInstruction *inst, LLVMGenCtx *ctx)
 
     if (inst == NULL || ctx == NULL)
         return NULL;
-    if (inst->ast == NULL || inst->ast->type != AST_FOR_LOOP
-        || inst->ast->data.for_loop.iterable == NULL) {
+    if (inst->branch_shape != MIR_BRANCH_FOR_IN) {
         return NULL;
     }
     variable = inst->arg0;
@@ -114,8 +112,7 @@ llvm_mir_emit_for_in_loop_increment(const MIRInstruction *inst, LLVMGenCtx *ctx)
 
     if (inst == NULL || ctx == NULL)
         return true;
-    if (inst->ast == NULL || inst->ast->type != AST_FOR_LOOP
-        || inst->ast->data.for_loop.iterable == NULL) {
+    if (inst->branch_shape != MIR_BRANCH_FOR_IN) {
         return true;
     }
     variable = inst->arg0;
@@ -160,9 +157,7 @@ llvm_mir_find_incoming_for_in_branch(const MIRRoutine *routine,
         for (size_t j = 0; j < pred->instruction_count; j++) {
             const MIRInstruction *inst = &pred->instructions[j];
             if (inst->kind == MIR_INST_BRANCH
-                && inst->ast != NULL
-                && inst->ast->type == AST_FOR_LOOP
-                && inst->ast->data.for_loop.iterable != NULL) {
+                && inst->branch_shape == MIR_BRANCH_FOR_IN) {
                 return inst;
             }
         }

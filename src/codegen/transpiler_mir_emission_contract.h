@@ -65,8 +65,10 @@ transpiler_has_mapping_for_all_emitted_blocks(const TranspilerCtx *ctx,
             const MIRInstruction *inst = &block->instructions[j];
             if (!transpiler_mir_seed_resource_alias_local(&ssa_map, inst))
                 return false;
-            if (inst->kind == MIR_INST_STMT && inst->ast != NULL) {
-                if (inst->ast->type == AST_LET_DECL
+            if (inst->kind == MIR_INST_STMT
+                && inst->ast != NULL
+                && inst->has_source_location) {
+                if (inst->source_ast_type == AST_LET_DECL
                     && inst->ast->data.let_decl.name != NULL) {
                     const char *versioned_name =
                         transpiler_find_block_exit_ssa_name(
@@ -79,7 +81,7 @@ transpiler_has_mapping_for_all_emitted_blocks(const TranspilerCtx *ctx,
                             return false;
                         }
                     }
-                } else if (inst->ast->type == AST_LET_DESTRUCTURE
+                } else if (inst->source_ast_type == AST_LET_DESTRUCTURE
                            && inst->ast->data.let_destructure.names != NULL) {
                     for (size_t dn = 0;
                          dn < inst->ast->data.let_destructure.name_count;
@@ -99,7 +101,7 @@ transpiler_has_mapping_for_all_emitted_blocks(const TranspilerCtx *ctx,
                             }
                         }
                     }
-                } else if (inst->ast->type == AST_ASSIGNMENT
+                } else if (inst->source_ast_type == AST_ASSIGNMENT
                            && inst->ast->data.assignment.target != NULL
                            && inst->ast->data.assignment.target->type == AST_IDENTIFIER
                            && inst->ast->data.assignment.target->data.identifier.name != NULL) {

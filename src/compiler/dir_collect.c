@@ -3,7 +3,6 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-
 static bool
 append_name(const char ***items, size_t *count, size_t *capacity, const char *name)
 {
@@ -22,7 +21,6 @@ append_name(const char ***items, size_t *count, size_t *capacity, const char *na
     (*count)++;
     return true;
 }
-
 static bool
 append_intent_info(DIRIntentInfo **items, size_t *count, size_t *capacity, DIRIntentInfo info)
 {
@@ -38,7 +36,6 @@ append_intent_info(DIRIntentInfo **items, size_t *count, size_t *capacity, DIRIn
     (*count)++;
     return true;
 }
-
 static bool
 append_intent_participant(DIRIntentParticipant **items,
                           size_t *count,

@@ -291,7 +291,8 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block, const MIRRoutine 
             && inst->name != NULL
             && strcmp(inst->name, "Claim") == 0
             && inst->ast != NULL
-            && inst->ast->type == AST_WITH_STMT) {
+            && inst->has_source_location
+            && inst->source_ast_type == AST_WITH_STMT) {
             llvm_mir_emit_with_claim_only(inst->ast, ctx);
         }
     }
@@ -302,7 +303,7 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block, const MIRRoutine 
             fprintf(stderr,
                 "[llvm inst] block=%zu inst=%zu kind=%d ast=%d result=%s\n",
                 mir_block->id, i, (int)inst->kind,
-                inst->ast != NULL ? (int)inst->ast->type : -1,
+                inst->has_source_location ? (int)inst->source_ast_type : -1,
                 inst->result_name != NULL ? inst->result_name : "-");
         }
         switch (inst->kind) {
@@ -310,7 +311,8 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block, const MIRRoutine 
             if (inst->name != NULL
                 && strcmp(inst->name, "Claim") == 0
                 && inst->ast != NULL
-                && inst->ast->type == AST_WITH_STMT) {
+                && inst->has_source_location
+                && inst->source_ast_type == AST_WITH_STMT) {
                 llvm_mir_emit_with_claim_only(inst->ast, ctx);
             }
             if (inst->name != NULL
@@ -350,7 +352,9 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block, const MIRRoutine 
             break;
         case MIR_INST_DEF:
             if (inst->ast != NULL && inst->result_name != NULL) {
-                if (inst->ast->type == AST_LET_DECL || inst->ast->type == AST_ASSIGNMENT) {
+                if (inst->has_source_location
+                    && (inst->source_ast_type == AST_LET_DECL
+                        || inst->source_ast_type == AST_ASSIGNMENT)) {
                     if (getenv("PGY_DEBUG_LLVM_DETAIL") != NULL)
                         fprintf(stderr, "[llvm inst] emit_statement\n");
                     if (!llvm_mir_declare_assignment_recv_target(inst->ast, ctx))
@@ -376,11 +380,12 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block, const MIRRoutine 
             }
             if (inst->ast != NULL && mir_block->has_succ_true && mir_block->has_succ_false) {
                 LLVMValueRef cond;
-                if (inst->ast->type == AST_FOR_LOOP) {
+                if (inst->branch_shape == MIR_BRANCH_FOR_RANGE
+                    || inst->branch_shape == MIR_BRANCH_FOR_IN) {
                     cond = llvm_mir_emit_for_loop_condition(inst, ctx);
-                } else if (inst->ast->type == AST_MATCH_CASE) {
+                } else if (inst->branch_shape == MIR_BRANCH_MATCH_CASE) {
                     cond = llvm_mir_emit_match_case_condition(func_decl, inst->ast, ctx);
-                } else if (inst->ast->type == AST_BLOCK) {
+                } else if (inst->branch_shape == MIR_BRANCH_SELECT_DISPATCH) {
                     cond = llvm_mir_emit_select_dispatch_condition(
                         inst->ast, routine, mir_block->succ_true, ctx);
                     if (cond == NULL)
@@ -441,9 +446,13 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block, const MIRRoutine 
                 return;
             break;
         case MIR_INST_STMT:
-            if (inst->ast != NULL && inst->ast->type == AST_WITH_STMT) {
+            if (inst->ast != NULL
+                && inst->has_source_location
+                && inst->source_ast_type == AST_WITH_STMT) {
                 llvm_mir_emit_with_claim_only(inst->ast, ctx);
-            } else if (inst->ast != NULL && inst->ast->type == AST_DEFER_STMT) {
+            } else if (inst->ast != NULL
+                       && inst->has_source_location
+                       && inst->source_ast_type == AST_DEFER_STMT) {
                 if (inst->ast->data.defer_stmt.body != NULL)
                     llvm_register_defer(inst->ast->data.defer_stmt.body, ctx);
             } else if (inst->ast != NULL && !llvm_mir_stmt_is_cfg_container(inst->ast)) {

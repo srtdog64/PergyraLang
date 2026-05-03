@@ -201,6 +201,12 @@ air_evidence_node_matches_boundary_shape(const AIRProgram *air,
                                 evidence_index);
         return false;
     }
+    if (evidence->fact_count != 1) {
+        air_set_invariant_error(error_message,
+                                "AIR boundary evidence node %zu must carry exactly one boundary fact",
+                                evidence_index);
+        return false;
+    }
     if (evidence->fallback_count != 0) {
         air_set_invariant_error(error_message,
                                 "AIR boundary evidence node %zu has fallback evidence facts",

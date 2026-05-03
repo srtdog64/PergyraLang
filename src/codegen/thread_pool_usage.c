@@ -23,6 +23,9 @@ pgy_mir_instruction_uses_thread_pool(const MIRInstruction *inst)
     if (inst == NULL)
         return false;
 
+    if (inst->has_surface_usage_facts)
+        return inst->uses_thread_pool_surface;
+
     return pgy_ast_uses_thread_pool(inst->ast)
         || pgy_ast_uses_thread_pool(inst->expr0)
         || pgy_ast_uses_thread_pool(inst->expr1);

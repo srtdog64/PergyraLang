@@ -3,6 +3,7 @@ append_instruction(MIRBasicBlock *block, MIRInstruction inst)
 {
     if (block == NULL)
         return false;
+    mir_instruction_record_surface_usage(&inst);
     if (block->instruction_count == block->instruction_capacity) {
         size_t next_capacity = block->instruction_capacity == 0 ? 8 : block->instruction_capacity * 2;
         MIRInstruction *grown =
@@ -49,6 +50,7 @@ insert_instruction(MIRBasicBlock *block, size_t index, MIRInstruction inst)
 {
     if (block == NULL)
         return false;
+    mir_instruction_record_surface_usage(&inst);
     if (index > block->instruction_count)
         index = block->instruction_count;
     if (block->instruction_count == block->instruction_capacity) {

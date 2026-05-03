@@ -248,11 +248,11 @@ type_check_for_loop_flow(ASTNode *node, SemanticContext *ctx)
     ctx->loop_depth--;
     if (ctx->loop_depth >= 0 && ctx->loop_depth < SEMANTIC_MAX_LOOP_DEPTH)
         ctx->loop_labels[ctx->loop_depth] = NULL;
+    restore_resource_states(&merged);
     scope_exit(&ctx->scope);
     ctx->current_function_effects =
         type_effect_mask_join(effect_base, merged_effect_delta);
 
-    restore_resource_states(&merged);
     destroy_resource_snapshot(&base);
     destroy_resource_snapshot(&merged);
     destroy_resource_snapshot(&entry);
@@ -392,10 +392,10 @@ type_check_while_loop_flow(ASTNode *node, SemanticContext *ctx)
     ctx->loop_depth--;
     if (ctx->loop_depth >= 0 && ctx->loop_depth < SEMANTIC_MAX_LOOP_DEPTH)
         ctx->loop_labels[ctx->loop_depth] = NULL;
+    restore_resource_states(&merged);
     scope_exit(&ctx->scope);
     ctx->current_function_effects =
         type_effect_mask_join(effect_base, merged_effect_delta);
-    restore_resource_states(&merged);
     destroy_resource_snapshot(&base);
     destroy_resource_snapshot(&merged);
     destroy_resource_snapshot(&entry);

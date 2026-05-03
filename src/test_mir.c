@@ -355,8 +355,8 @@ routine_has_complete_loop_branch_for(const MIRRoutine *routine, const char *vari
         for (size_t ii = 0; ii < block->instruction_count; ii++) {
             const MIRInstruction *inst = &block->instructions[ii];
             if (inst->kind == MIR_INST_BRANCH
-                && inst->ast != NULL
-                && inst->ast->type == AST_FOR_LOOP
+                && (inst->branch_shape == MIR_BRANCH_FOR_RANGE
+                    || inst->branch_shape == MIR_BRANCH_FOR_IN)
                 && inst->arg0 != NULL
                 && strcmp(inst->arg0, variable) == 0
                 && inst->expr0 != NULL

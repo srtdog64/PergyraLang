@@ -9,6 +9,46 @@
 #include "../common/string_compat.h"
 #include "../common/arena.h"
 #include "../runtime/pgy_abi_spec.h"
+#include "../parser/ast_analysis.h"
+
+void
+mir_instruction_record_surface_usage(MIRInstruction *inst)
+{
+    if (inst == NULL)
+        return;
+    if (inst->ast != NULL) {
+        inst->has_source_location = true;
+        inst->source_line = inst->ast->line;
+        inst->source_column = inst->ast->column;
+        inst->source_ast_type = inst->ast->type;
+    } else {
+        inst->has_source_location = false;
+        inst->source_line = 0;
+        inst->source_column = 0;
+        inst->source_ast_type = 0;
+    }
+    inst->has_surface_usage_facts = true;
+    inst->uses_thread_pool_surface =
+        ast_uses_thread_pool_surface(inst->ast)
+        || ast_uses_thread_pool_surface(inst->expr0)
+        || ast_uses_thread_pool_surface(inst->expr1);
+}
+
+static MIRBranchShape
+mir_branch_shape_from_ast(const ASTNode *node)
+{
+    if (node == NULL)
+        return MIR_BRANCH_EXPR;
+    if (node->type == AST_FOR_LOOP)
+        return node->data.for_loop.iterable != NULL
+            ? MIR_BRANCH_FOR_IN
+            : MIR_BRANCH_FOR_RANGE;
+    if (node->type == AST_MATCH_CASE)
+        return MIR_BRANCH_MATCH_CASE;
+    if (node->type == AST_BLOCK)
+        return MIR_BRANCH_SELECT_DISPATCH;
+    return MIR_BRANCH_EXPR;
+}
 
 #include "mir_base_helpers.h"
 #include "mir_cleanup.h"
@@ -81,6 +121,8 @@ mir_add_terminator_instruction(MIRRoutine *routine, MIRBasicBlock *block)
     inst.ast = (block->source_terminator_kind == HIR_BLOCK_BRANCH)
                    ? block->source_terminator_condition
                    : block->source_terminator_value;
+    if (inst.kind == MIR_INST_BRANCH)
+        inst.branch_shape = mir_branch_shape_from_ast(inst.ast);
     if (inst.kind == MIR_INST_BRANCH
         && inst.ast != NULL
         && inst.ast->type == AST_FOR_LOOP) {
@@ -159,6 +201,19 @@ mir_copy_phi_nodes(MIRSourcePhiNode **dst, size_t *dst_count,
         }
     }
     return true;
+}
+
+static void
+mir_block_record_source_location(MIRBasicBlock *block)
+{
+    ASTNode *source_ast;
+
+    if (block == NULL)
+        return;
+    source_ast = block->source_ast;
+    block->has_source_location = source_ast != NULL;
+    block->source_line = source_ast != NULL ? source_ast->line : 0;
+    block->source_column = source_ast != NULL ? source_ast->column : 0;
 }
 
 static bool
@@ -463,6 +518,7 @@ mir_build_blocks_from_hir(MIRRoutine *routine, const HIRRoutine *hir_routine)
             block.source_ast = src->terminator_value;
         else
             block.source_ast = NULL;
+        mir_block_record_source_location(&block);
         block.succ_true = src->succ_true;
         block.succ_false = src->succ_false;
         block.has_succ_true = src->has_succ_true;

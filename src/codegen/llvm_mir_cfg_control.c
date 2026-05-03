@@ -425,12 +425,14 @@ llvm_mir_emit_for_loop_init(const MIRInstruction *inst, LLVMGenCtx *ctx)
     if (inst->kind != MIR_INST_LOOP_INIT)
         return true;
     node = inst->ast;
-    if (node == NULL || node->type != AST_FOR_LOOP)
+    if (node == NULL
+        || (inst->branch_shape != MIR_BRANCH_FOR_RANGE
+            && inst->branch_shape != MIR_BRANCH_FOR_IN))
         return false;
     variable = inst->arg0;
     if (variable == NULL)
         return true;
-    if (node->data.for_loop.iterable != NULL)
+    if (inst->branch_shape == MIR_BRANCH_FOR_IN)
         return llvm_mir_emit_for_in_loop_init(inst, ctx);
     if (llvm_scope_lookup(ctx, variable) != NULL)
         return true;
@@ -456,12 +458,14 @@ llvm_mir_emit_for_loop_condition(const MIRInstruction *inst, LLVMGenCtx *ctx)
     if (inst == NULL || ctx == NULL)
         return NULL;
     node = inst->ast;
-    if (node == NULL || node->type != AST_FOR_LOOP)
+    if (node == NULL
+        || (inst->branch_shape != MIR_BRANCH_FOR_RANGE
+            && inst->branch_shape != MIR_BRANCH_FOR_IN))
         return NULL;
     variable = inst->arg0;
     if (variable == NULL)
         return NULL;
-    if (node->data.for_loop.iterable != NULL)
+    if (inst->branch_shape == MIR_BRANCH_FOR_IN)
         return llvm_mir_emit_for_in_loop_condition(inst, ctx);
 
     loop_var = llvm_scope_lookup(ctx, variable);
@@ -497,12 +501,13 @@ llvm_mir_emit_for_loop_increment(const MIRInstruction *inst, LLVMGenCtx *ctx)
 
     if (inst == NULL || ctx == NULL)
         return true;
-    if (inst->ast == NULL || inst->ast->type != AST_FOR_LOOP)
+    if (inst->branch_shape != MIR_BRANCH_FOR_RANGE
+        && inst->branch_shape != MIR_BRANCH_FOR_IN)
         return true;
     variable = inst->arg0;
     if (variable == NULL)
         return true;
-    if (inst->ast->data.for_loop.iterable != NULL)
+    if (inst->branch_shape == MIR_BRANCH_FOR_IN)
         return llvm_mir_emit_for_in_loop_increment(inst, ctx);
 
     loop_var = llvm_scope_lookup(ctx, variable);
@@ -526,8 +531,8 @@ llvm_mir_find_loop_branch_inst(const MIRBasicBlock *block)
     for (size_t i = 0; i < block->instruction_count; i++) {
         const MIRInstruction *inst = &block->instructions[i];
         if (inst->kind == MIR_INST_BRANCH
-            && inst->ast != NULL
-            && inst->ast->type == AST_FOR_LOOP) {
+            && (inst->branch_shape == MIR_BRANCH_FOR_RANGE
+                || inst->branch_shape == MIR_BRANCH_FOR_IN)) {
             return inst;
         }
     }

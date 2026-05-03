@@ -67,6 +67,15 @@ typedef enum
     MIR_INST_STMT
 } MIRInstKind;
 
+typedef enum
+{
+    MIR_BRANCH_EXPR,
+    MIR_BRANCH_FOR_RANGE,
+    MIR_BRANCH_FOR_IN,
+    MIR_BRANCH_MATCH_CASE,
+    MIR_BRANCH_SELECT_DISPATCH
+} MIRBranchShape;
+
 typedef struct
 {
     size_t      predecessor_block;
@@ -89,8 +98,15 @@ typedef struct
     size_t           phi_incoming_count;
     const RIROp     *rir_op;
     ASTNode         *ast;
+    bool             has_source_location;
+    uint32_t         source_line;
+    uint32_t         source_column;
+    ASTNodeType      source_ast_type;
     size_t           source_statement_index;
     bool             has_source_statement_index;
+    bool             has_surface_usage_facts;
+    bool             uses_thread_pool_surface;
+    MIRBranchShape   branch_shape;
     /* ABI type layout: backends read this instead of inventing layouts. */
     ASTNode         *expr0;
     ASTNode         *expr1;
@@ -111,6 +127,9 @@ typedef struct
     size_t           source_hir_block_id;
     const HIRBasicBlock *source_hir_block;
     ASTNode         *source_ast;
+    bool             has_source_location;
+    uint32_t         source_line;
+    uint32_t         source_column;
     ASTNode        **source_statements;
     size_t           source_statement_count;
     ASTNode         *source_terminator_condition;
@@ -291,6 +310,7 @@ struct MIRProgram
 };
 
 MIRProgram *mir_lower(const HIRProgram *hir, const RIRProgram *rir, char **error_message);
+void        mir_instruction_record_surface_usage(MIRInstruction *inst);
 void        mir_active_inventory(const MIRProgram *mir,
                                  ASTNodeType decl_type,
                                  ASTNode ***nodes_out,
