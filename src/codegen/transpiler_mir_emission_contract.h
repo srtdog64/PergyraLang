@@ -517,7 +517,7 @@ transpiler_can_emit_intent_cleanup_from_mir_with_reason(const TranspilerCtx *ctx
         reason[0] = '\0';
     if (routine == NULL || intent_decl == NULL || intent_decl->type != AST_INTENT_DECL) {
         if (reason != NULL && reason_cap > 0)
-            snprintf(reason, reason_cap, "intent cannot lower to MIR: no matching MIR routine (found %llu routines)", (unsigned long long) (ctx != NULL && ctx->mir != NULL ? ctx->mir->routine_count : 0));
+            snprintf(reason, reason_cap, "intent cannot lower to MIR: no matching MIR routine (found %llu routines)", (unsigned long long) transpiler_active_routine_count(ctx));
         return false;
     }
     if (routine->kind != MIR_SCOPE_INTENT

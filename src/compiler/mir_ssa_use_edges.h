@@ -51,23 +51,14 @@ mir_parse_versioned_name(const char *versioned, char *base, size_t base_size, si
 }
 
 static ASTNode *
-mir_def_instruction_source_stmt(const MIRInstruction *inst,
-                                MIRBasicBlock *block)
+mir_def_instruction_source_stmt(const MIRInstruction *inst)
 {
     ASTNode *stmt;
 
-    if (inst != NULL && inst->ast != NULL)
-        return inst->ast;
-
-    if (inst == NULL
-        || block == NULL
-        || !inst->has_source_statement_index
-        || inst->source_statement_index >= block->source_statement_inventory.count
-        || block->source_statement_inventory.items == NULL) {
+    if (inst == NULL)
         return NULL;
-    }
 
-    stmt = block->source_statement_inventory.items[inst->source_statement_index];
+    stmt = inst->ast;
     if (stmt != NULL
         && (stmt->type == AST_LET_DECL
             || (stmt->type == AST_ASSIGNMENT
@@ -82,7 +73,10 @@ static ASTNode *
 mir_def_instruction_source_expr(const MIRInstruction *inst,
                                 MIRBasicBlock *block)
 {
-    ASTNode *stmt = mir_def_instruction_source_stmt(inst, block);
+    ASTNode *stmt;
+
+    (void)block;
+    stmt = mir_def_instruction_source_stmt(inst);
 
     if (stmt == NULL)
         return NULL;

@@ -156,6 +156,7 @@ LEXER_SOURCES    = $(LEXER_DIR)/lexer.c \
                    $(LEXER_DIR)/lexer_token_debug.c
 PARSER_SOURCES   = $(PARSER_DIR)/ast.c \
                    $(PARSER_DIR)/ast_analysis.c \
+                   $(PARSER_DIR)/ast_thread_pool_analysis.c \
                    $(PARSER_DIR)/ast_destroy.c \
                    $(PARSER_DIR)/ast_destroy_domain.c \
                    $(PARSER_DIR)/ast_clone.c \

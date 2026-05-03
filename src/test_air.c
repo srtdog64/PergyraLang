@@ -81,6 +81,7 @@ lower_air_from_source(const char *source)
 
 
 #include "tests/air/test_air_core_part_a.cases.h"
+#include "tests/air/test_air_core_part_h.cases.h"
 #include "tests/air/test_air_evidence_part_b.cases.h"
 #include "tests/air/test_air_cleanup_transfer_part_c.cases.h"
 #include "tests/air/test_air_cleanup_transfer_part_d.cases.h"
@@ -88,6 +89,7 @@ lower_air_from_source(const char *source)
 #include "tests/air/test_air_parsed_part_e.cases.h"
 #include "tests/air/test_air_strict_part_f.cases.h"
 #include "tests/air/test_air_observability_pin_part_g.cases.h"
+#include "tests/air/test_air_mir_terminator_part_h.cases.h"
 
 int
 main(void)
@@ -144,6 +146,9 @@ main(void)
 
     TEST("AIR verify rejects invalid evidence inventory");
     EXPECT(test_air_verify_rejects_invalid_evidence_inventory());
+
+    TEST("AIR verify rejects duplicate evidence nodes");
+    EXPECT(test_air_verify_rejects_duplicate_evidence_nodes());
 
     TEST("AIR verify rejects evidence boundary shape mismatch");
     EXPECT(test_air_verify_rejects_evidence_boundary_shape_mismatch());
@@ -207,6 +212,15 @@ main(void)
 
     TEST("AIR collects MIR cleanup block evidence");
     EXPECT(test_air_collects_mir_cleanup_block_evidence());
+
+    TEST("AIR collects MIR terminator evidence");
+    EXPECT(test_air_collects_mir_terminator_evidence());
+
+    TEST("AIR rejects empty MIR terminator evidence");
+    EXPECT(test_air_rejects_empty_mir_terminator_evidence());
+
+    TEST("AIR strict evidence requires MIR terminator evidence");
+    EXPECT(test_air_strict_evidence_requires_mir_terminator_evidence());
 
     TEST("AIR ignores orphan MIR cleanup root evidence");
     EXPECT(test_air_ignores_orphan_mir_cleanup_root_evidence());

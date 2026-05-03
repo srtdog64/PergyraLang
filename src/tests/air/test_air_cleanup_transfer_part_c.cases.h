@@ -387,6 +387,7 @@ test_air_collects_dag_generic_ability_evidence(void)
     memset(&sem, 0, sizeof(sem));
     sem.type_resolution_metadata_entries = 33;
     sem.type_resolution_metadata_hits = 49;
+    sem.type_resolution_metadata_dead_ends = 0;
     sem.type_resolution_metadata_materializer_fallbacks = 0;
     sem.type_resolution_stage_compat_generic_contract_count = 7;
     sem.type_resolution_dag_ability_evidence_count = 5;
@@ -426,6 +427,7 @@ test_air_reports_dag_fallback_drift(void)
     air->strict_evidence = true;
     sem.type_resolution_stage_compat_generic_contract_count = 1;
     sem.type_resolution_dag_ability_evidence_count = 1;
+    sem.type_resolution_metadata_dead_ends = 2;
     sem.type_resolution_metadata_materializer_fallbacks = 2;
 
     ok = air_collect_dag_evidence(air, &sem, &error)

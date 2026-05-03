@@ -87,6 +87,16 @@ if grep -Fq "llvm_host_decl_methods(" \
     "$ROOT_DIR/src/codegen/llvm_inventory_host_methods.h"; then
     fail "LLVM host method inventory must be MIRDeclMethod metadata-only"
 fi
+require_term "src/codegen/llvm_inventory_host_methods.h" "ast_compat_methods"
+require_term "src/codegen/llvm_inventory_host_methods.h" "ast_compat_count"
+require_term "src/codegen/llvm_inventory_host_methods.h" \
+    "view->count != view->ast_compat_count"
+if grep -Fq "fallback_methods" "$ROOT_DIR/src/codegen/llvm_inventory_host_methods.h"; then
+    fail "LLVM hosted method view must name AST compatibility paths explicitly, not as fallback_methods"
+fi
+if grep -Fq "fallback_count" "$ROOT_DIR/src/codegen/llvm_inventory_host_methods.h"; then
+    fail "LLVM hosted method view must name AST compatibility counts explicitly, not as fallback_count"
+fi
 
 for term in \
     "llvm_active_routine_inventory" \
@@ -158,6 +168,11 @@ done
 
 for term in \
     "transpiler_active_inventory" \
+    "TranspilerMIRRoutineInventory" \
+    "transpiler_active_routine_inventory" \
+    "transpiler_mir_routine_inventory_from_program" \
+    "transpiler_routine_inventory_get" \
+    "transpiler_active_routine_count" \
     "transpiler_active_externs" \
     "transpiler_active_executables" \
     "transpiler_active_synthetic_executable_func" \
@@ -200,42 +215,86 @@ done
 for term in \
     "mir_find_decl_header(ctx->mir, owner_name)" \
     "header->method_metadata_count" \
-    "method->has_routine" \
-    "method->routine_index < ctx->mir->routine_count"; do
+    "transpiler_mir_decl_method_routine(ctx, method)"; do
     require_term "src/codegen/transpiler_mir_ssa_names.h" "$term"
+done
+for term in \
+    "method->has_routine" \
+    "transpiler_active_routine_inventory(ctx, &inventory)" \
+    "transpiler_routine_inventory_get(&inventory, method->routine_index)" \
+    "transpiler_mir_decl_method_param_count" \
+    "transpiler_mir_decl_method_param" \
+    "transpiler_mir_decl_method_return_type" \
+    "transpiler_mir_decl_method_is_action_like"; do
+    require_term "src/codegen/transpiler_decl_lookup.h" "$term"
+done
+for term in \
+    "emit_hosted_method_forward_decl_from_metadata" \
+    "transpiler_mir_decl_method_param_count(method_meta)" \
+    "transpiler_mir_decl_method_return_type(method_meta)" \
+    "transpiler_mir_decl_method_param(method_meta, j)"; do
+    require_term "src/codegen/transpiler_func_forward_helpers.h" "$term"
 done
 for rel in \
     "src/codegen/transpiler_class_decl_emit.h" \
     "src/codegen/transpiler_enum_decl_emit.h"; do
     require_term "$rel" "transpiler_hosted_method_view_from_decl(ctx"
     require_term "$rel" "transpiler_hosted_method_view_ast(&method_view, i)"
+    require_term "$rel" "transpiler_hosted_method_view_routine(ctx, &method_view, i)"
+    require_term "$rel" "emit_hosted_method_forward_decl_from_metadata"
 done
 require_term "src/codegen/transpiler_generic_class_specialization_emit.h" \
     "transpiler_hosted_method_view_from_decl(ctx, base_class_name"
 require_term "src/codegen/transpiler_generic_class_specialization_emit.h" \
     "transpiler_hosted_method_view_ast(&method_view, i)"
+require_term "src/codegen/transpiler_generic_class_specialization_emit.h" \
+    "transpiler_hosted_method_view_routine(ctx,"
+require_term "src/codegen/transpiler_generic_class_specialization_emit.h" \
+    "emit_hosted_method_forward_decl_from_metadata"
 if grep -Eq 'class_decl->data\.class_decl\.methods\[[^]]+\]' \
     "$ROOT_DIR/src/codegen/transpiler_generic_class_specialization_emit.h"; then
     fail "generic class specialization must consume TranspilerHostedMethodView, not index AST method arrays"
 fi
 for term in \
     "TranspilerHostedMethodView" \
+    "ast_compat_methods" \
+    "ast_compat_count" \
+    "view->count != view->ast_compat_count" \
     "transpiler_hosted_method_view(" \
+    "transpiler_hosted_method_view_metadata(" \
+    "transpiler_mir_decl_method_name(" \
+    "transpiler_mir_decl_method_ast(" \
+    "transpiler_mir_decl_method_routine(" \
+    "transpiler_hosted_method_view_routine(" \
     "transpiler_hosted_method_view_from_decl(" \
     "transpiler_hosted_method_view_ast(" \
     "if (view->requires_mir_metadata)" \
     "transpiler_hosted_method_view_missing_mir_metadata("; do
     require_term "src/codegen/transpiler_decl_lookup.h" "$term"
 done
+if grep -Fq "fallback_methods" "$ROOT_DIR/src/codegen/transpiler_decl_lookup.h"; then
+    fail "C hosted method view must name AST compatibility paths explicitly, not as fallback_methods"
+fi
+if grep -Fq "fallback_count" "$ROOT_DIR/src/codegen/transpiler_decl_lookup.h"; then
+    fail "C hosted method view must name AST compatibility counts explicitly, not as fallback_count"
+fi
 for rel in \
     "src/codegen/transpiler_domain_nominal_emit.h" \
     "src/codegen/transpiler_zone_decl_emit.h" \
     "src/codegen/transpiler_world_select_event_emit.h"; do
     require_term "$rel" "transpiler_hosted_method_view_from_decl(ctx"
     require_term "$rel" "transpiler_hosted_method_view_ast(&method_view, i)"
+    require_term "$rel" "emit_hosted_method_forward_decl_from_metadata"
 done
+if grep -RIn "emit_hosted_method_forward_decl_named" "$ROOT_DIR/src/codegen"; then
+    fail "C hosted method forward declarations must use MIRDeclMethod metadata-first helper"
+fi
 require_term "src/codegen/transpiler_domain_role_ability_emit.h" \
     "const TranspilerHostedMethodView *method_view"
+require_term "src/codegen/transpiler_domain_role_ability_emit.h" \
+    "transpiler_hosted_method_view_metadata(method_view, i)"
+require_term "src/codegen/transpiler_domain_role_ability_emit.h" \
+    "transpiler_mir_decl_method_routine(ctx, method_meta)"
 if grep -Eq 'emit_hosted_methods_from_mir_or_error_local\([^)]*ASTNode \*\*methods|emit_hosted_methods_from_mir_or_error_local\([^)]*size_t method_count' \
     "$ROOT_DIR/src/codegen/transpiler_domain_role_ability_emit.h"; then
     fail "hosted method body emission must accept TranspilerHostedMethodView, not AST method arrays"
@@ -271,6 +330,31 @@ c_method_raw_hits="$(
 if [[ -n "$c_method_raw_hits" ]]; then
     fail "C backend hosted-method emission must use TranspilerHostedMethodView outside method-view owners:
 $c_method_raw_hits"
+fi
+
+c_routine_raw_hits="$(
+    c_routine_files=()
+    for path in "$ROOT_DIR"/src/codegen/*.c \
+        "$ROOT_DIR"/src/codegen/*.h; do
+        [[ -e "$path" ]] || continue
+        rel="${path#$ROOT_DIR/}"
+        case "$rel" in
+            src/codegen/llvm*|\
+            src/codegen/transpiler.h|\
+            src/codegen/transpiler_decl_lookup.h)
+                continue
+                ;;
+        esac
+        c_routine_files+=("$path")
+    done
+    if ((${#c_routine_files[@]})); then
+        grep -EHIn '\bctx->mir->routine_count\b|\bctx->mir->routines\b|\bmir->routine_count\b|\bmir->routines\b' \
+            "${c_routine_files[@]}" | sed "s#^$ROOT_DIR/##" || true
+    fi
+)"
+if [[ -n "$c_routine_raw_hits" ]]; then
+    fail "C backend routine inventory must use TranspilerMIRRoutineInventory outside helper owners:
+$c_routine_raw_hits"
 fi
 
 routine_raw_hits="$(
@@ -417,6 +501,31 @@ for term in \
         fail "MIR declaration method metadata missing term: $term"
     fi
 done
+for term in \
+    "mir_validate_decl_header_ast_compat" \
+    "mir_validate_decl_header_metadata" \
+    "AST method compatibility drift" \
+    "AST payload drift" \
+    "name metadata drift" \
+    "duplicates declaration header" \
+    "pointer-self ABI metadata drift" \
+    "method metadata count" \
+    "signature metadata drift" \
+    "routine index"; do
+    require_term "src/compiler/mir_fact_validate.h" "$term"
+done
+require_term "src/compiler/mir_public_surface.h" \
+    "mir_validate_decl_header_metadata(mir, error_message)"
+require_term "src/tests/mir/test_mir_lowering_part_b.cases.h" \
+    "MIR validator rejects hosted method signature metadata drift"
+require_term "src/tests/mir/test_mir_lowering_part_b.cases.h" \
+    "MIR validator rejects declaration header name metadata drift"
+require_term "src/tests/mir/test_mir_lowering_part_b.cases.h" \
+    "MIR declaration headers preserve pointer-self ABI shape"
+require_term "src/tests/mir/test_mir_lowering_part_b.cases.h" \
+    "MIR validator rejects pointer-self ABI metadata drift"
+require_term "src/tests/mir/test_mir_lowering_part_b.cases.h" \
+    "MIR validator rejects duplicate declaration header names"
 
 if awk '/decl = decl_header->ast;/{exit} {print}' \
     "$ROOT_DIR/src/codegen/llvm_inventory_host_methods.h" |

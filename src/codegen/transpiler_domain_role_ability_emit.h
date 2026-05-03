@@ -24,14 +24,23 @@ emit_hosted_methods_from_mir_or_error_local(const char *host_name,
     }
 
     for (size_t i = 0; i < method_count; i++) {
+        const MIRDeclMethod *method_meta =
+            transpiler_hosted_method_view_metadata(method_view, i);
         ASTNode *method = transpiler_hosted_method_view_ast(method_view, i);
-        const MIRRoutine *mir_method;
+        const MIRRoutine *mir_method = NULL;
+        const char *method_name = NULL;
         char emitted_name[256];
 
         if (method == NULL || method->type != AST_FUNC_DECL)
             continue;
 
-        mir_method = transpiler_find_mir_method(ctx, host_name, method);
+        method_name = transpiler_mir_decl_method_name(method_meta);
+        if (method_name == NULL)
+            method_name = method->data.func_decl.name;
+
+        mir_method = transpiler_mir_decl_method_routine(ctx, method_meta);
+        if (mir_method == NULL)
+            mir_method = transpiler_find_mir_method(ctx, host_name, method);
         if (mir_method == NULL) {
             transpiler_set_backend_error_with_hints(
                 ctx,
@@ -41,14 +50,14 @@ emit_hosted_methods_from_mir_or_error_local(const char *host_name,
                 "MIR-only C path missing routine for %s method '%s.%s'",
                 host_kind != NULL ? host_kind : "host",
                 host_name != NULL ? host_name : anonymous_host_name,
-                method->data.func_decl.name != NULL
-                    ? method->data.func_decl.name
+                method_name != NULL
+                    ? method_name
                     : "(anonymous)");
             return;
         }
 
         snprintf(emitted_name, sizeof(emitted_name), "%s_%s", host_name,
-            method->data.func_decl.name);
+            method_name != NULL ? method_name : "(anonymous)");
         emit_func_decl_from_mir_named(method, mir_method, emitted_name, ctx->out, ctx);
         if (ctx != NULL && ctx->backend_error != NULL)
             return;

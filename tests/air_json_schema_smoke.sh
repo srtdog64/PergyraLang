@@ -84,6 +84,7 @@ for required in \
     '"fallback_count":0' \
     '"mir_cleanup_evidence_count"' \
     '"mir_pin_cleanup_evidence_count"' \
+    '"mir_terminator_evidence_count"' \
     '"dag_metadata_evidence_count"' \
     '"dag_generic_evidence_count"' \
     '"dag_ability_evidence_count"' \
@@ -150,6 +151,7 @@ if summary["dag_ability_evidence_count"] > 0:
 assert any(e["kind"] == "mir_cleanup" for e in data["evidence"])
 assert summary["mir_cleanup_evidence_count"] >= 1
 assert summary["mir_pin_cleanup_evidence_count"] >= 0
+assert summary["mir_terminator_evidence_count"] >= 0
 assert summary["rir_effect_propagation_evidence_count"] <= summary["rir_effect_propagation_required_count"]
 assert summary["rir_relation_propagation_evidence_count"] <= summary["rir_relation_propagation_required_count"]
 assert summary["observability_schema_evidence_count"] == 1

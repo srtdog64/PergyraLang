@@ -6,7 +6,8 @@
 typedef struct
 {
     const MIRDeclMethod *metadata;
-    ASTNode           **fallback_methods;
+    ASTNode           **ast_compat_methods;
+    size_t             ast_compat_count;
     size_t             count;
     bool               uses_mir_metadata;
     bool               requires_mir_metadata;
@@ -56,18 +57,19 @@ llvm_find_host_method_metadata_in_context(const LLVMGenCtx *ctx,
 static inline LLVMHostedMethodView
 llvm_hosted_method_view(const LLVMGenCtx *ctx,
                         const char *host_type_name,
-                        ASTNode **fallback_methods,
-                        size_t fallback_count)
+                        ASTNode **ast_compat_methods,
+                        size_t ast_compat_count)
 {
     LLVMHostedMethodView view;
     const MIRDeclHeader *decl_header = NULL;
 
     view.metadata = NULL;
-    view.fallback_methods = fallback_methods;
-    view.count = fallback_count;
+    view.ast_compat_methods = ast_compat_methods;
+    view.ast_compat_count = ast_compat_count;
+    view.count = ast_compat_count;
     view.uses_mir_metadata = false;
     view.requires_mir_metadata = ctx != NULL && ctx->mir != NULL
-        && fallback_count > 0;
+        && ast_compat_count > 0;
 
     if (ctx != NULL && ctx->mir != NULL && host_type_name != NULL)
         decl_header = llvm_find_host_decl_header_in_context(ctx, host_type_name);
@@ -85,8 +87,9 @@ llvm_hosted_method_view_missing_mir_metadata(const LLVMHostedMethodView *view)
 {
     return view != NULL
         && view->requires_mir_metadata
-        && !view->uses_mir_metadata
-        && view->count > 0;
+        && (!view->uses_mir_metadata
+            || view->count != view->ast_compat_count)
+        && view->ast_compat_count > 0;
 }
 
 static inline LLVMHostedMethodView
@@ -94,42 +97,42 @@ llvm_hosted_method_view_from_decl(const LLVMGenCtx *ctx,
                                   const char *host_type_name,
                                   ASTNode *decl)
 {
-    ASTNode **fallback_methods = NULL;
-    size_t fallback_count = 0;
+    ASTNode **ast_compat_methods = NULL;
+    size_t ast_compat_count = 0;
 
     if (decl != NULL) {
         switch (decl->type) {
         case AST_CLASS_DECL:
-            fallback_methods = decl->data.class_decl.methods;
-            fallback_count = decl->data.class_decl.method_count;
+            ast_compat_methods = decl->data.class_decl.methods;
+            ast_compat_count = decl->data.class_decl.method_count;
             break;
         case AST_ENUM_DECL:
-            fallback_methods = decl->data.enum_decl.methods;
-            fallback_count = decl->data.enum_decl.method_count;
+            ast_compat_methods = decl->data.enum_decl.methods;
+            ast_compat_count = decl->data.enum_decl.method_count;
             break;
         case AST_PARTY_DECL:
-            fallback_methods = decl->data.party_decl.methods;
-            fallback_count = decl->data.party_decl.method_count;
+            ast_compat_methods = decl->data.party_decl.methods;
+            ast_compat_count = decl->data.party_decl.method_count;
             break;
         case AST_ROSTER_DECL:
-            fallback_methods = decl->data.roster_decl.methods;
-            fallback_count = decl->data.roster_decl.method_count;
+            ast_compat_methods = decl->data.roster_decl.methods;
+            ast_compat_count = decl->data.roster_decl.method_count;
             break;
         case AST_WORLD_DECL:
-            fallback_methods = decl->data.world_decl.methods;
-            fallback_count = decl->data.world_decl.method_count;
+            ast_compat_methods = decl->data.world_decl.methods;
+            ast_compat_count = decl->data.world_decl.method_count;
             break;
         case AST_RELATION_DECL:
-            fallback_methods = decl->data.relation_decl.methods;
-            fallback_count = decl->data.relation_decl.method_count;
+            ast_compat_methods = decl->data.relation_decl.methods;
+            ast_compat_count = decl->data.relation_decl.method_count;
             break;
         case AST_EFFECT_DECL:
-            fallback_methods = decl->data.effect_decl.methods;
-            fallback_count = decl->data.effect_decl.method_count;
+            ast_compat_methods = decl->data.effect_decl.methods;
+            ast_compat_count = decl->data.effect_decl.method_count;
             break;
         case AST_ZONE_DECL:
-            fallback_methods = decl->data.zone_decl.methods;
-            fallback_count = decl->data.zone_decl.method_count;
+            ast_compat_methods = decl->data.zone_decl.methods;
+            ast_compat_count = decl->data.zone_decl.method_count;
             break;
         default:
             break;
@@ -137,7 +140,7 @@ llvm_hosted_method_view_from_decl(const LLVMGenCtx *ctx,
     }
 
     return llvm_hosted_method_view(ctx, host_type_name,
-        fallback_methods, fallback_count);
+        ast_compat_methods, ast_compat_count);
 }
 
 static inline const MIRDeclMethod *
@@ -162,7 +165,9 @@ llvm_hosted_method_view_ast(const LLVMHostedMethodView *view, size_t index)
         return method->ast;
     if (view->requires_mir_metadata)
         return NULL;
-    return view->fallback_methods != NULL ? view->fallback_methods[index] : NULL;
+    return view->ast_compat_methods != NULL
+        ? view->ast_compat_methods[index]
+        : NULL;
 }
 
 static inline const char *

@@ -124,39 +124,46 @@ emit_enum_decl_stmt(ASTNode *node, TranspilerCtx *ctx)
         }
 
         for (size_t i = 0; i < method_view.count; i++) {
+            const MIRDeclMethod *method_meta =
+                transpiler_hosted_method_view_metadata(&method_view, i);
             ASTNode *method = transpiler_hosted_method_view_ast(&method_view, i);
             if (method == NULL || method->type != AST_FUNC_DECL)
                 continue;
-            emit_hosted_method_forward_decl_named(ename, method, false,
-                                                  ctx->out, ctx);
+            emit_hosted_method_forward_decl_from_metadata(ename, method_meta,
+                method, false, ctx->out, ctx);
         }
 
         for (size_t i = 0; i < method_view.count; i++) {
+            const MIRDeclMethod *method_meta =
+                transpiler_hosted_method_view_metadata(&method_view, i);
             ASTNode *method = transpiler_hosted_method_view_ast(&method_view, i);
             const MIRRoutine *mir_method;
+            const char *method_name;
             if (method == NULL || method->type != AST_FUNC_DECL)
                 continue;
-            mir_method = transpiler_find_mir_method(ctx, ename, method);
+            method_name = transpiler_mir_decl_method_name(method_meta);
+            if (method_name == NULL)
+                method_name = method->data.func_decl.name;
+            mir_method = transpiler_hosted_method_view_routine(ctx, &method_view, i);
+            if (mir_method == NULL)
+                mir_method = transpiler_find_mir_method(ctx, ename, method);
             if (ctx != NULL && ctx->mir != NULL && mir_method == NULL) {
                 if (ctx->backend_error == NULL) {
                     ctx->backend_error = strdup_fmt(
                         "MIR-only C path missing routine for enum method '%s.%s'",
                         ename != NULL ? ename : "(anonymous-enum)",
-                        method->data.func_decl.name != NULL
-                            ? method->data.func_decl.name
-                            : "(anonymous)");
+                        method_name != NULL ? method_name : "(anonymous)");
                 }
                 return;
             }
             if (mir_method != NULL) {
                 char emitted_name[256];
                 snprintf(emitted_name, sizeof(emitted_name), "%s_%s", ename,
-                    method->data.func_decl.name);
+                    method_name != NULL ? method_name : "(anonymous)");
                 emit_func_decl_from_mir_named(method, mir_method, emitted_name, ctx->out, ctx);
                 continue;
             }
 
-            const char *method_name = method->data.func_decl.name;
             const char *ret_type = "void";
             if (method->data.func_decl.return_type != NULL)
                 ret_type = pergyra_ast_type_to_c(method->data.func_decl.return_type);

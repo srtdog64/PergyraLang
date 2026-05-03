@@ -73,6 +73,8 @@ emit_func_forward_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
 static const MIRRoutine *
 transpiler_find_mir_function(const TranspilerCtx *ctx, const ASTNode *func_decl)
 {
+    TranspilerMIRRoutineInventory inventory;
+
     if (ctx == NULL || ctx->mir == NULL || func_decl == NULL
         || func_decl->type != AST_FUNC_DECL
         || func_decl->data.func_decl.name == NULL) {
@@ -80,8 +82,12 @@ transpiler_find_mir_function(const TranspilerCtx *ctx, const ASTNode *func_decl)
     }
 
     const char *target = func_decl->data.func_decl.name;
-    for (size_t i = 0; i < ctx->mir->routine_count; i++) {
-        const MIRRoutine *routine = &ctx->mir->routines[i];
+    transpiler_active_routine_inventory(ctx, &inventory);
+    for (size_t i = 0; i < inventory.count; i++) {
+        const MIRRoutine *routine =
+            transpiler_routine_inventory_get(&inventory, i);
+        if (routine == NULL)
+            continue;
         if (routine->kind != MIR_SCOPE_FUNCTION)
             continue;
         if (routine->name == NULL)
@@ -102,14 +108,20 @@ transpiler_find_mir_function(const TranspilerCtx *ctx, const ASTNode *func_decl)
 static const MIRRoutine *
 transpiler_find_mir_intent(const TranspilerCtx *ctx, const ASTNode *intent_decl)
 {
+    TranspilerMIRRoutineInventory inventory;
+
     if (ctx == NULL || ctx->mir == NULL || intent_decl == NULL
         || intent_decl->type != AST_INTENT_DECL
         || intent_decl->data.intent_decl.name == NULL) {
         return NULL;
     }
 
-    for (size_t i = 0; i < ctx->mir->routine_count; i++) {
-        const MIRRoutine *routine = &ctx->mir->routines[i];
+    transpiler_active_routine_inventory(ctx, &inventory);
+    for (size_t i = 0; i < inventory.count; i++) {
+        const MIRRoutine *routine =
+            transpiler_routine_inventory_get(&inventory, i);
+        if (routine == NULL)
+            continue;
         if (routine->kind != MIR_SCOPE_INTENT
             || routine->name == NULL
             || strcmp(routine->name, intent_decl->data.intent_decl.name) != 0) {

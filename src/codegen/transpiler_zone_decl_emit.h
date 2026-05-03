@@ -473,10 +473,12 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
     codebuf_write(ctx->out, "}\n");
 
     for (size_t i = 0; i < method_view.count; i++) {
+        const MIRDeclMethod *method_meta =
+            transpiler_hosted_method_view_metadata(&method_view, i);
         ASTNode *method = transpiler_hosted_method_view_ast(&method_view, i);
         if (method == NULL || method->type != AST_FUNC_DECL)
             continue;
-        emit_hosted_method_forward_decl_named(name,
+        emit_hosted_method_forward_decl_from_metadata(name, method_meta,
             method, true, ctx->out, ctx);
     }
 

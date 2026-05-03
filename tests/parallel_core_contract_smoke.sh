@@ -135,7 +135,9 @@ require_text(
     "src/codegen/transpiler_thread_pool.c",
     [
         "pgy_mir_routine_uses_thread_pool",
-        "ctx->mir->routine_count",
+        "TranspilerMIRRoutineInventory",
+        "transpiler_active_routine_inventory",
+        "transpiler_routine_inventory_get",
     ],
 )
 reject_text(

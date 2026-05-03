@@ -43,25 +43,30 @@ transpiler_find_mir_method(const TranspilerCtx *ctx,
                 const MIRDeclMethod *method = &header->method_metadata[i];
                 if (method->name == NULL || strcmp(method->name, target) != 0)
                     continue;
-                if (method->has_routine && method->routine_index < ctx->mir->routine_count)
-                    return &ctx->mir->routines[method->routine_index];
-                return NULL;
+                return transpiler_mir_decl_method_routine(ctx, method);
             }
             return NULL;
         }
     }
 
-    for (size_t i = 0; i < ctx->mir->routine_count; i++) {
-        const MIRRoutine *routine = &ctx->mir->routines[i];
-        if (routine->kind != MIR_SCOPE_METHOD)
-            continue;
-        if (routine->ast == method_decl)
-            return routine;
-        if (routine->name != NULL
-            && routine->owner_name != NULL
-            && strcmp(routine->name, target) == 0
-            && strcmp(routine->owner_name, owner_name) == 0) {
-            return routine;
+    {
+        TranspilerMIRRoutineInventory inventory;
+        transpiler_active_routine_inventory(ctx, &inventory);
+        for (size_t i = 0; i < inventory.count; i++) {
+            const MIRRoutine *routine =
+                transpiler_routine_inventory_get(&inventory, i);
+            if (routine == NULL)
+                continue;
+            if (routine->kind != MIR_SCOPE_METHOD)
+                continue;
+            if (routine->ast == method_decl)
+                return routine;
+            if (routine->name != NULL
+                && routine->owner_name != NULL
+                && strcmp(routine->name, target) == 0
+                && strcmp(routine->owner_name, owner_name) == 0) {
+                return routine;
+            }
         }
     }
 

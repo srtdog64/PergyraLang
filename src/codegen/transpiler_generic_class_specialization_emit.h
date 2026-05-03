@@ -165,21 +165,33 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
             class_decl);
 
     for (size_t i = 0; i < method_view.count; i++) {
+        const MIRDeclMethod *method_meta =
+            transpiler_hosted_method_view_metadata(&method_view, i);
         ASTNode *method = transpiler_hosted_method_view_ast(&method_view, i);
         bool use_self_cell = is_pointer_self_host_type_name(ctx, spec_name);
         if (method == NULL || method->type != AST_FUNC_DECL)
             continue;
-        emit_hosted_method_forward_decl_named(spec_name, method, use_self_cell,
-                                              ctx->helpers, ctx);
+        emit_hosted_method_forward_decl_from_metadata(spec_name, method_meta,
+            method, use_self_cell, ctx->helpers, ctx);
     }
 
     for (size_t i = 0; i < method_view.count; i++) {
+        const MIRDeclMethod *method_meta =
+            transpiler_hosted_method_view_metadata(&method_view, i);
         ASTNode *method = transpiler_hosted_method_view_ast(&method_view, i);
         bool use_self_cell = is_pointer_self_host_type_name(ctx, spec_name);
+        const char *method_name;
+        const MIRRoutine *mir_method;
         if (method == NULL || method->type != AST_FUNC_DECL)
             continue;
-        const MIRRoutine *mir_method = transpiler_find_mir_method(ctx,
-            base_class_name, method);
+        method_name = transpiler_mir_decl_method_name(method_meta);
+        if (method_name == NULL)
+            method_name = method->data.func_decl.name;
+        mir_method = transpiler_hosted_method_view_routine(ctx,
+            &method_view, i);
+        if (mir_method == NULL)
+            mir_method = transpiler_find_mir_method(ctx,
+                base_class_name, method);
 
         if (ctx != NULL && ctx->mir != NULL && mir_method == NULL) {
             if (ctx->backend_error == NULL) {
@@ -188,9 +200,7 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
                     base_class_name != NULL
                         ? base_class_name
                         : "(anonymous-class)",
-                    method->data.func_decl.name != NULL
-                        ? method->data.func_decl.name
-                        : "(anonymous)",
+                    method_name != NULL ? method_name : "(anonymous)",
                     spec_name != NULL ? spec_name : "(anonymous-specialization)");
             }
             g_type_render_ctx = saved_render_ctx;
@@ -202,15 +212,12 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
         if (mir_method != NULL) {
             char emitted_name[256];
             snprintf(emitted_name, sizeof(emitted_name), "%s_%s", spec_name,
-                method->data.func_decl.name != NULL
-                    ? method->data.func_decl.name
-                    : "(anonymous)");
+                method_name != NULL ? method_name : "(anonymous)");
             emit_func_decl_from_mir_named(method, mir_method, emitted_name,
                 ctx->helpers, ctx);
             continue;
         }
 
-        const char *method_name = method->data.func_decl.name;
         const char *ret_type = "void";
         if (method->data.func_decl.return_type != NULL)
             ret_type = pergyra_ast_type_to_c(method->data.func_decl.return_type);

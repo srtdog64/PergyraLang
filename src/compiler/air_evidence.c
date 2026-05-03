@@ -178,6 +178,39 @@ air_mir_routine_cleanup_fact_count(const MIRRoutine *routine)
 }
 
 static bool
+air_mir_instruction_has_terminator_provenance(const MIRInstruction *inst)
+{
+    if (inst == NULL || !inst->has_source_terminator_kind)
+        return false;
+    if (inst->kind == MIR_INST_BRANCH)
+        return inst->source_terminator_kind == HIR_BLOCK_BRANCH;
+    if (inst->kind == MIR_INST_RETURN)
+        return inst->source_terminator_kind == HIR_BLOCK_RETURN;
+    return false;
+}
+
+static size_t
+air_mir_routine_terminator_fact_count(const MIRRoutine *routine)
+{
+    size_t count = 0;
+
+    if (routine == NULL)
+        return 0;
+    for (size_t i = 0; i < routine->block_count; i++) {
+        const MIRBasicBlock *block = &routine->blocks[i];
+        if (block->instruction_count > 0 && block->instructions == NULL)
+            continue;
+        for (size_t j = 0; j < block->instruction_count; j++) {
+            if (air_mir_instruction_has_terminator_provenance(
+                    &block->instructions[j])) {
+                count++;
+            }
+        }
+    }
+    return count;
+}
+
+static bool
 air_has_mir_pin_cleanup_evidence(const AIRProgram *air,
                                  size_t boundary_index,
                                  const char *routine_name);
@@ -254,6 +287,21 @@ air_collect_mir_evidence(AIRProgram *air, const MIRProgram *mir, char **error_me
             ? routine->name
             : routine->owner_name;
         size_t cleanup_fact_count = air_mir_routine_cleanup_fact_count(routine);
+        size_t terminator_fact_count =
+            air_mir_routine_terminator_fact_count(routine);
+        if (terminator_fact_count > 0) {
+            if (!air_append_evidence_node_ex(air,
+                                             AIR_EVIDENCE_MIR_TERMINATOR,
+                                             SIZE_MAX,
+                                             routine_name,
+                                             "cfg-terminator",
+                                             terminator_fact_count,
+                                             0,
+                                             error_message)) {
+                return false;
+            }
+            air->mir_terminator_evidence_count++;
+        }
         if (cleanup_fact_count == 0)
             continue;
         if (!air_append_evidence_node_ex(air,
@@ -289,8 +337,8 @@ air_collect_mir_evidence(AIRProgram *air, const MIRProgram *mir, char **error_me
 bool
 air_collect_dag_evidence(AIRProgram *air, const SemanticResult *sem, char **error_message)
 {
-    const size_t fallback_count = sem != NULL
-        ? sem->type_resolution_metadata_materializer_fallbacks
+    const size_t dead_end_count = sem != NULL
+        ? sem->type_resolution_metadata_dead_ends
         : 0;
     const size_t metadata_fact_count = sem != NULL
         ? sem->type_resolution_metadata_entries
@@ -305,42 +353,42 @@ air_collect_dag_evidence(AIRProgram *air, const SemanticResult *sem, char **erro
     if (air == NULL || sem == NULL)
         return true;
 
-    if (metadata_fact_count > 0 || fallback_count > 0) {
+    if (metadata_fact_count > 0 || dead_end_count > 0) {
         if (!air_append_evidence_node_ex(air,
                                          AIR_EVIDENCE_DAG_METADATA,
                                          SIZE_MAX,
                                          "type-resolution-dag",
                                          "metadata-inventory",
                                          metadata_fact_count,
-                                         fallback_count,
+                                         dead_end_count,
                                          error_message)) {
             return false;
         }
         air->dag_metadata_evidence_count++;
     }
 
-    if (generic_fact_count > 0 || fallback_count > 0) {
+    if (generic_fact_count > 0 || dead_end_count > 0) {
         if (!air_append_evidence_node_ex(air,
                                          AIR_EVIDENCE_DAG_GENERIC,
                                          SIZE_MAX,
                                          "type-resolution-dag",
                                          "generic-contracts",
                                          generic_fact_count,
-                                         fallback_count,
+                                         dead_end_count,
                                          error_message)) {
             return false;
         }
         air->dag_generic_evidence_count++;
     }
 
-    if (ability_fact_count > 0 || fallback_count > 0) {
+    if (ability_fact_count > 0 || dead_end_count > 0) {
         if (!air_append_evidence_node_ex(air,
                                          AIR_EVIDENCE_DAG_ABILITY,
                                          SIZE_MAX,
                                          "type-resolution-dag",
                                          "ability-consumers",
                                          ability_fact_count,
-                                         fallback_count,
+                                         dead_end_count,
                                          error_message)) {
             return false;
         }

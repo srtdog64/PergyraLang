@@ -107,6 +107,11 @@ mir_validate(const MIRProgram *mir, char **error_message)
         return false;
     }
 
+    if (!mir_validate_decl_header_metadata(mir, error_message))
+        return false;
+    if (!mir_validate_inventory_surface_usage(mir, error_message))
+        return false;
+
     for (size_t i = 0; i < mir->routine_count; i++) {
         const MIRRoutine *routine = &mir->routines[i];
 
@@ -171,6 +176,8 @@ mir_validate(const MIRProgram *mir, char **error_message)
             if (!mir_validate_statement_inventory(routine, block, j, error_message))
                 return false;
             if (!mir_validate_instruction_surface_usage(routine, block, j, error_message))
+                return false;
+            if (!mir_validate_terminator_provenance(routine, block, j, error_message))
                 return false;
             for (size_t k = 0; k < block->instruction_count; k++) {
                 const MIRInstruction *inst = &block->instructions[k];

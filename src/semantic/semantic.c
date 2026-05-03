@@ -211,6 +211,8 @@ semantic_analyze(ASTNode *ast)
         ctx->type_resolution_metadata.count;
     result->type_resolution_metadata_hits =
         ctx->type_resolution_metadata_hits;
+    result->type_resolution_metadata_dead_ends =
+        ctx->type_resolution_metadata_dead_ends;
     result->type_resolution_metadata_materializer_fallbacks =
         ctx->type_resolution_metadata_materializer_fallbacks;
     result->type_resolution_stage_compat_generic_contract_count =

@@ -58,6 +58,7 @@ typedef enum
     AIR_EVIDENCE_RIR_AUTHORITY,
     AIR_EVIDENCE_MIR_CLEANUP,
     AIR_EVIDENCE_MIR_PIN_CLEANUP,
+    AIR_EVIDENCE_MIR_TERMINATOR,
     AIR_EVIDENCE_DAG_METADATA,
     AIR_EVIDENCE_DAG_GENERIC,
     AIR_EVIDENCE_DAG_ABILITY,
@@ -148,6 +149,7 @@ typedef struct AIRProgram
     size_t           rir_authority_evidence_count;
     size_t           mir_cleanup_evidence_count;
     size_t           mir_pin_cleanup_evidence_count;
+    size_t           mir_terminator_evidence_count;
     size_t           dag_metadata_evidence_count;
     size_t           dag_generic_evidence_count;
     size_t           dag_ability_evidence_count;

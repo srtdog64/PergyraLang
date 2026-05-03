@@ -127,6 +127,72 @@ test_mir_lowering_part_b(void)
         hir_destroy(hir);
     }
 
+    TEST("MIR records intent observability surface usage fact");
+    {
+        const char *src =
+            "func IntentObs() -> Void {\n"
+            "    Log(IntentLastTrace());\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        MIRRoutine *routine = NULL;
+        bool has_intent_observability_fact = false;
+        bool has_inventory_fact = false;
+        bool rejected_stale_fact = false;
+        bool rejected_inventory_stale = false;
+        char *mir_error = NULL;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok)
+            routine = find_mir_routine_mut(mir, "IntentObs", MIR_SCOPE_FUNCTION);
+        if (mir != NULL) {
+            has_inventory_fact =
+                mir->has_inventory_surface_usage_facts
+                && mir->inventory_uses_intent_observability_surface;
+        }
+        if (routine != NULL) {
+            for (size_t b = 0; b < routine->block_count; b++) {
+                MIRBasicBlock *block = &routine->blocks[b];
+                for (size_t i = 0; i < block->instruction_count; i++) {
+                    MIRInstruction *inst = &block->instructions[i];
+                    if (inst->has_surface_usage_facts
+                        && inst->uses_intent_observability_surface) {
+                        bool saved_fact = inst->uses_intent_observability_surface;
+                        has_intent_observability_fact = true;
+                        inst->uses_intent_observability_surface = false;
+                        rejected_stale_fact =
+                            !mir_validate(mir, &mir_error)
+                            && mir_error != NULL
+                            && strstr(mir_error, "intent observability surface usage fact") != NULL;
+                        inst->uses_intent_observability_surface = saved_fact;
+                        free(mir_error);
+                        mir_error = NULL;
+                        break;
+                    }
+                }
+                if (has_intent_observability_fact)
+                    break;
+            }
+        }
+        if (mir != NULL && has_inventory_fact) {
+            mir->inventory_uses_intent_observability_surface = false;
+            rejected_inventory_stale =
+                !mir_validate(mir, &mir_error)
+                && mir_error != NULL
+                && strstr(mir_error, "intent observability inventory surface usage fact") != NULL;
+        }
+        EXPECT(ok
+               && routine != NULL
+               && has_inventory_fact
+               && has_intent_observability_fact
+               && rejected_stale_fact
+               && rejected_inventory_stale);
+        free(mir_error);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
     TEST("MIR inserts phi nodes and SSA-renamed locals on merge");
     {
         const char *src =
@@ -295,6 +361,7 @@ test_mir_lowering_part_b(void)
                && routine_has_inst_kind(routine, MIR_INST_LOOP_INIT)
                && routine_has_complete_loop_init_for(routine, "i")
                && routine_has_complete_loop_branch_for(routine, "i")
+               && routine_has_return_source_terminator(routine)
                && !routine_has_stmt_ast_type(routine, AST_FOR_LOOP)
                && !routine_has_stmt_ast_type(routine, AST_MATCH_STMT)
                && !routine_has_stmt_ast_type(routine, AST_BREAK)
@@ -496,6 +563,50 @@ test_mir_lowering_part_b(void)
         hir_destroy(hir);
     }
 
+    TEST("MIR validator rejects terminator without HIR source provenance");
+    {
+        const char *src =
+            "func TerminatorSource(flag: Bool) -> Int {\n"
+            "    if flag {\n"
+            "        return 1;\n"
+            "    }\n"
+            "    return 2;\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        MIRRoutine *routine = NULL;
+        char *mir_error = NULL;
+        bool mutated = false;
+        bool rejected = false;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok)
+            routine = find_mir_routine_mut(mir, "TerminatorSource", MIR_SCOPE_FUNCTION);
+        if (routine != NULL) {
+            for (size_t bi = 0; bi < routine->block_count && !mutated; bi++) {
+                MIRBasicBlock *block = &routine->blocks[bi];
+                for (size_t ii = 0; ii < block->instruction_count; ii++) {
+                    MIRInstruction *inst = &block->instructions[ii];
+                    if (inst->kind == MIR_INST_RETURN) {
+                        inst->has_source_terminator_kind = false;
+                        mutated = true;
+                        break;
+                    }
+                }
+            }
+        }
+        rejected = ok
+                   && mutated
+                   && !mir_validate(mir, &mir_error)
+                   && mir_error != NULL
+                   && strstr(mir_error, "HIR source terminator kind") != NULL;
+        EXPECT(rejected);
+        free(mir_error);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
     TEST("MIR DCE removes dead pure-query statements while preserving routine validity");
     {
         const char *src =
@@ -516,6 +627,182 @@ test_mir_lowering_part_b(void)
                && probe->has_dce
                && probe->dce_removed_count > 0
                && !routine_has_stmt_call_named(probe, "ChannelLength"));
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
+    TEST("MIR validator rejects hosted method signature metadata drift");
+    {
+        const char *src =
+            "enum Status {\n"
+            "    Idle,\n"
+            "    Busy,\n"
+            "    func Code(self) -> Int { return 7; }\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        char *mir_error = NULL;
+        bool mutated = false;
+        bool rejected = false;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok && mir != NULL) {
+            for (size_t i = 0; i < mir->decl_header_count; i++) {
+                MIRDeclHeader *header = &mir->decl_headers[i];
+                if (header->name != NULL
+                    && strcmp(header->name, "Status") == 0
+                    && header->method_metadata_count > 0) {
+                    header->method_metadata[0].param_count++;
+                    mutated = true;
+                    break;
+                }
+            }
+        }
+        rejected = ok
+                   && mutated
+                   && !mir_validate(mir, &mir_error)
+                   && mir_error != NULL
+                   && strstr(mir_error, "signature metadata drift") != NULL;
+        EXPECT(rejected);
+        free(mir_error);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
+    TEST("MIR validator rejects declaration header name metadata drift");
+    {
+        const char *src =
+            "class Item {\n"
+            "    func Code(self) -> Int { return 7; }\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        char *mir_error = NULL;
+        bool mutated = false;
+        bool rejected = false;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok && mir != NULL) {
+            for (size_t i = 0; i < mir->decl_header_count; i++) {
+                MIRDeclHeader *header = &mir->decl_headers[i];
+                if (header->name != NULL && strcmp(header->name, "Item") == 0) {
+                    header->name = "OtherItem";
+                    mutated = true;
+                    break;
+                }
+            }
+        }
+        rejected = ok
+                   && mutated
+                   && !mir_validate(mir, &mir_error)
+                   && mir_error != NULL
+                   && strstr(mir_error, "name metadata drift") != NULL;
+        EXPECT(rejected);
+        free(mir_error);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
+    TEST("MIR declaration headers preserve pointer-self ABI shape");
+    {
+        const char *src =
+            "subject Player {\n"
+            "    let hp: Int;\n"
+            "    func Read(self) -> Int { return hp; }\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        MIRDeclHeader *player = NULL;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok && mir != NULL) {
+            for (size_t i = 0; i < mir->decl_header_count; i++) {
+                if (mir->decl_headers[i].name != NULL
+                    && strcmp(mir->decl_headers[i].name, "Player") == 0) {
+                    player = &mir->decl_headers[i];
+                    break;
+                }
+            }
+        }
+        EXPECT(ok
+               && player != NULL
+               && player->uses_pointer_self
+               && player->method_count == 1
+               && player->method_metadata_count == 1
+               && mir_validate(mir, NULL));
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
+    TEST("MIR validator rejects pointer-self ABI metadata drift");
+    {
+        const char *src =
+            "vessel Handle {\n"
+            "    let value: Int;\n"
+            "    func Read(self) -> Int { return value; }\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        char *mir_error = NULL;
+        bool mutated = false;
+        bool rejected = false;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok && mir != NULL) {
+            for (size_t i = 0; i < mir->decl_header_count; i++) {
+                MIRDeclHeader *header = &mir->decl_headers[i];
+                if (header->name != NULL && strcmp(header->name, "Handle") == 0) {
+                    header->uses_pointer_self = false;
+                    mutated = true;
+                    break;
+                }
+            }
+        }
+        rejected = ok
+                   && mutated
+                   && !mir_validate(mir, &mir_error)
+                   && mir_error != NULL
+                   && strstr(mir_error, "pointer-self ABI metadata drift") != NULL;
+        EXPECT(rejected);
+        free(mir_error);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
+    TEST("MIR validator rejects duplicate declaration header names");
+    {
+        const char *src =
+            "class A { let value: Int; }\n"
+            "class B { let value: Int; }\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        char *mir_error = NULL;
+        size_t mutated = 0;
+        bool rejected = false;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok && mir != NULL) {
+            for (size_t i = 0; i < mir->decl_header_count; i++) {
+                MIRDeclHeader *header = &mir->decl_headers[i];
+                if (header->name != NULL && strcmp(header->name, "B") == 0) {
+                    header->name = "A";
+                    mutated++;
+                    break;
+                }
+            }
+        }
+        rejected = ok
+                   && mutated == 1
+                   && !mir_validate(mir, &mir_error)
+                   && mir_error != NULL
+                   && strstr(mir_error, "duplicates declaration header") != NULL;
+        EXPECT(rejected);
+        free(mir_error);
         mir_destroy(mir);
         rir_destroy(rir);
         hir_destroy(hir);

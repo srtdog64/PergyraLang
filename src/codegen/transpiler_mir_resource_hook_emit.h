@@ -102,8 +102,13 @@ transpiler_emit_mir_resource_hook(TranspilerCtx *ctx,
                 && view_entry->source_slot[0] != '\0') {
                 view_source_slot = view_entry->source_slot;
             } else if (ctx->mir != NULL) {
-                for (size_t ri = 0; ri < ctx->mir->routine_count && view_source_slot == NULL; ri++) {
-                    const MIRRoutine *routine = &ctx->mir->routines[ri];
+                TranspilerMIRRoutineInventory inventory;
+                transpiler_active_routine_inventory(ctx, &inventory);
+                for (size_t ri = 0; ri < inventory.count && view_source_slot == NULL; ri++) {
+                    const MIRRoutine *routine =
+                        transpiler_routine_inventory_get(&inventory, ri);
+                    if (routine == NULL)
+                        continue;
                     for (size_t bi = 0; bi < routine->block_count && view_source_slot == NULL; bi++) {
                         const MIRBasicBlock *block = &routine->blocks[bi];
                         for (size_t ii = 0; ii < block->instruction_count; ii++) {

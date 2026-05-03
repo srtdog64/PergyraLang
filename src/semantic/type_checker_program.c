@@ -7,32 +7,37 @@
 #include "diag_codes.h"
 
 static Type *
-program_resolve_type_quiet(ASTNode *type_node, SemanticContext *ctx)
+program_lookup_dag_type_annotation_or_unknown(ASTNode *type_node,
+                                              SemanticContext *ctx)
 {
+    /* Top-level placeholders must consume precollected DAG metadata only. */
     return semantic_type_resolution_lookup_annotation_or_unknown(ctx,
                                                                  type_node);
 }
 
 static Type *
-program_resolve_func_return_type_quiet(ASTNode *func_decl, SemanticContext *ctx)
+program_lookup_dag_func_return_type_or_void(ASTNode *func_decl,
+                                            SemanticContext *ctx)
 {
     if (func_decl == NULL || func_decl->type != AST_FUNC_DECL
         || func_decl->data.func_decl.return_type == NULL) {
         return TYPE_VOID;
     }
-    return program_resolve_type_quiet(func_decl->data.func_decl.return_type, ctx);
+    return program_lookup_dag_type_annotation_or_unknown(
+        func_decl->data.func_decl.return_type, ctx);
 }
 
 static Type *
-program_resolve_intent_binding_type_quiet(ASTNode *binding, SemanticContext *ctx)
+program_lookup_dag_intent_binding_type_or_unknown(ASTNode *binding,
+                                                  SemanticContext *ctx)
 {
     if (binding == NULL)
         return TYPE_UNKNOWN;
     if (binding->type == AST_INTENT_INVOLVES)
-        return program_resolve_type_quiet(
+        return program_lookup_dag_type_annotation_or_unknown(
             binding->data.intent_involves.subject_type, ctx);
     if (binding->type == AST_INTENT_VALUE)
-        return program_resolve_type_quiet(
+        return program_lookup_dag_type_annotation_or_unknown(
             binding->data.intent_value.value_type, ctx);
     return TYPE_UNKNOWN;
 }
@@ -106,7 +111,7 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                                          sizeof(Type *));
                 for (size_t j = 0; j < real_pc; j++)
                     ptypes[j] = TYPE_UNKNOWN;
-                Type *ret = program_resolve_func_return_type_quiet(stmt, ctx);
+                Type *ret = program_lookup_dag_func_return_type_or_void(stmt, ctx);
                 Type *placeholder = type_create_function(ptypes, real_pc, ret);
                 if (placeholder != NULL)
                     placeholder->data.function.effect_mask =
@@ -126,7 +131,7 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                     if (p != NULL
                         && p->type == AST_LET_DECL
                         && p->data.let_decl.type != NULL) {
-                        eptypes[j] = program_resolve_type_quiet(
+                        eptypes[j] = program_lookup_dag_type_annotation_or_unknown(
                             p->data.let_decl.type, ctx);
                     } else {
                         eptypes[j] = TYPE_UNKNOWN;
@@ -165,7 +170,8 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                     Type **ptypes = calloc(vpc, sizeof(Type *));
                     for (size_t p = 0; p < vpc && ptypes != NULL; p++) {
                         ASTNode *pt = stmt->data.enum_decl.variant_params[j][p];
-                        ptypes[p] = program_resolve_type_quiet(pt, ctx);
+                        ptypes[p] =
+                            program_lookup_dag_type_annotation_or_unknown(pt, ctx);
                     }
                     Type *ft = type_create_function(ptypes, vpc, etype);
                     free(ptypes);
@@ -211,11 +217,11 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                             : stmt->data.intent_decl.values[j - stmt->data.intent_decl.involve_count]);
                     if (binding != NULL && binding->type == AST_INTENT_INVOLVES
                         && binding->data.intent_involves.subject_type != NULL) {
-                        ptypes[j] = program_resolve_intent_binding_type_quiet(
+                        ptypes[j] = program_lookup_dag_intent_binding_type_or_unknown(
                             binding, ctx);
                     } else if (binding != NULL && binding->type == AST_INTENT_VALUE
                         && binding->data.intent_value.value_type != NULL) {
-                        ptypes[j] = program_resolve_intent_binding_type_quiet(
+                        ptypes[j] = program_lookup_dag_intent_binding_type_or_unknown(
                             binding, ctx);
                     } else {
                         ptypes[j] = TYPE_UNKNOWN;
@@ -360,11 +366,12 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                 if (ctx->type_resolution_metadata.owned[i])
                     metadata_owned_count++;
             }
-            fprintf(stderr, "[type-res-stats] metadata: entries=%llu owned=%llu hits=%llu misses=%llu materializer_fallbacks=%llu\n",
+            fprintf(stderr, "[type-res-stats] metadata: entries=%llu owned=%llu hits=%llu misses=%llu dead_ends=%llu materializer_fallbacks=%llu\n",
                     (unsigned long long) ctx->type_resolution_metadata.count,
                     (unsigned long long) metadata_owned_count,
                     (unsigned long long) ctx->type_resolution_metadata_hits,
                     (unsigned long long) ctx->type_resolution_metadata_misses,
+                    (unsigned long long) ctx->type_resolution_metadata_dead_ends,
                     (unsigned long long) ctx->type_resolution_metadata_materializer_fallbacks);
             fprintf(stderr, "[type-res-stats] metadata-unresolved-audit: named=%llu generic_named=%llu compound=%llu other=%llu\n",
                     (unsigned long long) ctx->type_resolution_metadata_fallback_named,

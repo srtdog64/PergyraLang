@@ -178,6 +178,60 @@ grep -q 'recursive resolver fallback is retired' \
   exit 1
 }
 
+grep -q 'PGY_TYPE_RES_DEAD_END_TRACE' \
+  src/semantic/type_checker_resolution_metadata_fallback.c || {
+  echo "[type-resolution-resolver-inventory] metadata dead-end trace env var regressed to fallback naming" >&2
+  exit 1
+}
+
+grep -q 'type_resolution_metadata_dead_ends' \
+  src/semantic/semantic.h || {
+  echo "[type-resolution-resolver-inventory] semantic result does not expose dead-end DAG evidence count" >&2
+  exit 1
+}
+
+grep -q 'dead_ends=%llu materializer_fallbacks=%llu' \
+  src/semantic/type_checker_program.c || {
+  echo "[type-resolution-resolver-inventory] type-resolution stats do not expose dead_ends before compatibility materializer_fallbacks" >&2
+  exit 1
+}
+
+grep -q 'program_lookup_dag_type_annotation_or_unknown' \
+  src/semantic/type_checker_program.c || {
+  echo "[type-resolution-resolver-inventory] program placeholder path lost explicit DAG-annotation lookup seam" >&2
+  exit 1
+}
+
+if grep -q 'program_resolve_type_quiet\|program_resolve_func_return_type_quiet\|program_resolve_intent_binding_type_quiet' \
+  src/semantic/type_checker_program.c; then
+  echo "[type-resolution-resolver-inventory] program placeholder path reintroduced resolver-style naming" >&2
+  exit 1
+fi
+
+if grep -q 'semantic_type_resolution_lookup_or_materialize(ctx' \
+  src/semantic/type_checker_program.c; then
+  echo "[type-resolution-resolver-inventory] program placeholder path must not materialize metadata locally" >&2
+  exit 1
+fi
+
+grep -q 'type_resolution_metadata_dead_ends' \
+  src/compiler/air_evidence.c || {
+  echo "[type-resolution-resolver-inventory] AIR evidence still consumes compatibility fallback counter directly" >&2
+  exit 1
+}
+
+grep -q '\[type-res-dead-end\]' \
+  src/semantic/type_checker_resolution_metadata_fallback.c || {
+  echo "[type-resolution-resolver-inventory] metadata dead-end trace label regressed to fallback naming" >&2
+  exit 1
+}
+
+if grep -q 'PGY_TYPE_RES_FALLBACK_TRACE\|\[type-res-fallback\]' \
+  src/semantic/type_checker_resolution_metadata_fallback.c; then
+  echo "[type-resolution-resolver-inventory] metadata dead-end trace still uses fallback naming" >&2
+  exit 1
+fi
+
 grep -q 'owner-local metadata materializer' \
   src/semantic/type_checker_resolution_metadata_fallback.c || {
   echo "[type-resolution-resolver-inventory] fallback diagnostic no longer points at the owner-local materializer fix" >&2

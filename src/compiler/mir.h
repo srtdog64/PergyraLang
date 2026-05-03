@@ -108,10 +108,13 @@ typedef struct
     uint32_t         source_line;
     uint32_t         source_column;
     ASTNodeType      source_ast_type;
+    HIRBlockTerminatorKind source_terminator_kind;
+    bool             has_source_terminator_kind;
     size_t           source_statement_index;
     bool             has_source_statement_index;
     bool             has_surface_usage_facts;
     bool             uses_thread_pool_surface;
+    bool             uses_intent_observability_surface;
     MIRBranchShape   branch_shape;
     /* ABI type layout: backends read this instead of inventing layouts. */
     ASTNode         *expr0;
@@ -305,6 +308,9 @@ struct MIRProgram
     size_t      intent_count;
     ASTNode   **functions;
     size_t      function_count;
+    bool        has_inventory_surface_usage_facts;
+    bool        inventory_uses_thread_pool_surface;
+    bool        inventory_uses_intent_observability_surface;
     bool        has_top_level_exec;
     bool        has_main_function;
 };

@@ -186,6 +186,7 @@ struct SemanticContext
     } type_resolution_metadata;
     size_t type_resolution_metadata_hits;
     size_t type_resolution_metadata_misses;
+    size_t type_resolution_metadata_dead_ends;
     size_t type_resolution_metadata_materializer_fallbacks;
     size_t type_resolution_metadata_fallback_named;
     size_t type_resolution_metadata_fallback_generic_named;

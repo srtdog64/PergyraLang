@@ -6,8 +6,8 @@
 #include "type_checker_internal.h"
 
 static void
-metadata_record_named_materializer_fallback(SemanticContext *ctx,
-                                            ASTNode *type_node)
+metadata_record_named_dead_end_diagnostic(SemanticContext *ctx,
+                                          ASTNode *type_node)
 {
     const char *name;
     Symbol *sym;
@@ -49,19 +49,19 @@ metadata_record_named_materializer_fallback(SemanticContext *ctx,
 }
 
 static bool
-metadata_trace_materializer_fallback_enabled(void)
+metadata_trace_dead_end_diagnostic_enabled(void)
 {
     static int cached = -1;
 
     if (cached < 0) {
-        const char *value = getenv("PGY_TYPE_RES_FALLBACK_TRACE");
+        const char *value = getenv("PGY_TYPE_RES_DEAD_END_TRACE");
         cached = value != NULL && value[0] != '\0' && strcmp(value, "0") != 0;
     }
     return cached != 0;
 }
 
 static const char *
-metadata_fallback_ast_kind(const ASTNode *type_node)
+metadata_dead_end_ast_kind(const ASTNode *type_node)
 {
     if (type_node == NULL)
         return "<null>";
@@ -80,12 +80,12 @@ metadata_fallback_ast_kind(const ASTNode *type_node)
 }
 
 static void
-metadata_trace_materializer_fallback(ASTNode *type_node)
+metadata_trace_dead_end_diagnostic(ASTNode *type_node)
 {
     const char *name = NULL;
     size_t generic_count = 0;
 
-    if (!metadata_trace_materializer_fallback_enabled())
+    if (!metadata_trace_dead_end_diagnostic_enabled())
         return;
     if (type_node != NULL && type_node->type == AST_TYPE) {
         name = type_node->data.type.name;
@@ -93,8 +93,8 @@ metadata_trace_materializer_fallback(ASTNode *type_node)
             generic_count = type_node->data.type.generic_args->count;
     }
     fprintf(stderr,
-            "[type-res-fallback] kind=%s name=%s generic_args=%llu line=%u column=%u\n",
-            metadata_fallback_ast_kind(type_node),
+            "[type-res-dead-end] kind=%s name=%s generic_args=%llu line=%u column=%u\n",
+            metadata_dead_end_ast_kind(type_node),
             name != NULL ? name : "<none>",
             (unsigned long long)generic_count,
             type_node != NULL ? type_node->line : 0,
@@ -102,13 +102,13 @@ metadata_trace_materializer_fallback(ASTNode *type_node)
 }
 
 static const char *
-metadata_fallback_type_name(ASTNode *type_node)
+metadata_dead_end_type_name(ASTNode *type_node)
 {
     if (type_node == NULL)
         return "<null>";
     if (type_node->type == AST_TYPE && type_node->data.type.name != NULL)
         return type_node->data.type.name;
-    return metadata_fallback_ast_kind(type_node);
+    return metadata_dead_end_ast_kind(type_node);
 }
 
 void
@@ -118,7 +118,7 @@ semantic_type_resolution_record_metadata_dead_end_diagnostic(SemanticContext *ct
     if (ctx == NULL)
         return;
 
-    metadata_trace_materializer_fallback(type_node);
+    metadata_trace_dead_end_diagnostic(type_node);
     semantic_error_with_hints(ctx,
         PGY_CODE_SEM_UNKNOWN_TYPE,
         PGY_CAUSE_TYPE_UNKNOWN,
@@ -127,8 +127,10 @@ semantic_type_resolution_record_metadata_dead_end_diagnostic(SemanticContext *ct
         "Type-resolution DAG could not materialize type metadata for '%s'.\n"
         "Reason: beta type resolution requires a graph-backed metadata fact; recursive resolver fallback is retired.\n"
         "Fix: stage this type in the declaration graph or add an owner-local metadata materializer before using it.",
-        metadata_fallback_type_name(type_node));
-    ctx->type_resolution_metadata_materializer_fallbacks++;
+        metadata_dead_end_type_name(type_node));
+    ctx->type_resolution_metadata_dead_ends++;
+    ctx->type_resolution_metadata_materializer_fallbacks =
+        ctx->type_resolution_metadata_dead_ends;
     if (type_node == NULL) {
         ctx->type_resolution_metadata_fallback_other++;
         return;
@@ -141,7 +143,7 @@ semantic_type_resolution_record_metadata_dead_end_diagnostic(SemanticContext *ct
                 ctx->type_resolution_metadata_fallback_generic_named++;
             } else {
                 ctx->type_resolution_metadata_fallback_named++;
-                metadata_record_named_materializer_fallback(ctx, type_node);
+                metadata_record_named_dead_end_diagnostic(ctx, type_node);
             }
             return;
         }

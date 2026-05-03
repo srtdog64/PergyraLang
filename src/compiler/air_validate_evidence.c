@@ -16,6 +16,7 @@ air_evidence_kind_valid(AIREvidenceKind kind)
     case AIR_EVIDENCE_RIR_AUTHORITY:
     case AIR_EVIDENCE_MIR_CLEANUP:
     case AIR_EVIDENCE_MIR_PIN_CLEANUP:
+    case AIR_EVIDENCE_MIR_TERMINATOR:
     case AIR_EVIDENCE_DAG_METADATA:
     case AIR_EVIDENCE_DAG_GENERIC:
     case AIR_EVIDENCE_DAG_ABILITY:
@@ -34,6 +35,7 @@ air_evidence_kind_is_global(AIREvidenceKind kind)
         || kind == AIR_EVIDENCE_DAG_METADATA
         || kind == AIR_EVIDENCE_DAG_ABILITY
         || kind == AIR_EVIDENCE_MIR_CLEANUP
+        || kind == AIR_EVIDENCE_MIR_TERMINATOR
         || kind == AIR_EVIDENCE_RIR_EFFECT_PROPAGATION
         || kind == AIR_EVIDENCE_RIR_RELATION_PROPAGATION
         || kind == AIR_EVIDENCE_OBSERVABILITY_SCHEMA;
@@ -125,6 +127,18 @@ air_inventory_has_boundary_evidence_kind(const AIRProgram *air,
 }
 
 static bool
+air_evidence_nodes_duplicate(const AIREvidenceNode *left,
+                             const AIREvidenceNode *right)
+{
+    if (left == NULL || right == NULL)
+        return false;
+    return left->kind == right->kind
+        && left->boundary_index == right->boundary_index
+        && air_name_matches(left->provider_name, right->provider_name)
+        && air_name_matches(left->subject_name, right->subject_name);
+}
+
+static bool
 air_validate_boundary_summary_evidence(const AIRProgram *air,
                                        size_t boundary_index,
                                        AIREvidenceKind kind,
@@ -183,6 +197,29 @@ air_evidence_node_matches_boundary_shape(const AIRProgram *air,
             if (!air_name_matches(evidence->subject_name, "cleanup-block")) {
                 air_set_invariant_error(error_message,
                                         "AIR MIR cleanup evidence node %zu has invalid cleanup subject '%s'",
+                                        evidence_index,
+                                        evidence->subject_name != NULL
+                                            ? evidence->subject_name
+                                            : "<null>");
+                return false;
+            }
+        }
+        if (evidence->kind == AIR_EVIDENCE_MIR_TERMINATOR) {
+            if (evidence->fact_count == 0) {
+                air_set_invariant_error(error_message,
+                                        "AIR MIR terminator evidence node %zu has no terminator facts",
+                                        evidence_index);
+                return false;
+            }
+            if (evidence->fallback_count != 0) {
+                air_set_invariant_error(error_message,
+                                        "AIR MIR terminator evidence node %zu has fallback terminator facts",
+                                        evidence_index);
+                return false;
+            }
+            if (!air_name_matches(evidence->subject_name, "cfg-terminator")) {
+                air_set_invariant_error(error_message,
+                                        "AIR MIR terminator evidence node %zu has invalid terminator subject '%s'",
                                         evidence_index,
                                         evidence->subject_name != NULL
                                             ? evidence->subject_name
@@ -400,6 +437,7 @@ air_evidence_node_matches_boundary_shape(const AIRProgram *air,
     case AIR_EVIDENCE_DAG_METADATA:
     case AIR_EVIDENCE_DAG_ABILITY:
     case AIR_EVIDENCE_MIR_CLEANUP:
+    case AIR_EVIDENCE_MIR_TERMINATOR:
     case AIR_EVIDENCE_RIR_EFFECT_PROPAGATION:
     case AIR_EVIDENCE_RIR_RELATION_PROPAGATION:
     case AIR_EVIDENCE_OBSERVABILITY_SCHEMA:
@@ -440,6 +478,15 @@ air_validate_evidence_inventory(const AIRProgram *air, char **error_message)
                                     "AIR evidence node %zu has no subject provenance",
                                     i);
             return false;
+        }
+        for (size_t j = 0; j < i; j++) {
+            if (air_evidence_nodes_duplicate(&air->evidence_nodes[j], evidence)) {
+                air_set_invariant_error(error_message,
+                                        "AIR evidence node %zu duplicates evidence node %zu",
+                                        i,
+                                        j);
+                return false;
+            }
         }
         if (!air_evidence_node_matches_boundary_shape(air, i, error_message))
             return false;

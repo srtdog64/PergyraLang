@@ -174,6 +174,12 @@ materializer_unresolved="$(
     | awk '{ total += $1 } END { print total + 0 }'
 )"
 
+metadata_dead_ends="$(
+  grep -a '\[type-res-stats\] metadata:' "$log" \
+    | sed -E 's/.*dead_ends=([0-9]+).*/\1/' \
+    | awk '{ total += $1 } END { print total + 0 }'
+)"
+
 metadata_unresolved_sum="$(
   grep -a '\[type-res-stats\] metadata-unresolved-audit:' "$log" \
     | sed -E 's/.*named=([0-9]+).*generic_named=([0-9]+).*compound=([0-9]+).*other=([0-9]+).*/\1 \2 \3 \4/' \
@@ -381,8 +387,13 @@ if [ "$materializer_unresolved" -ne 0 ]; then
   exit 1
 fi
 
-if [ "$metadata_unresolved_sum" -ne "$materializer_unresolved" ]; then
-  echo "metadata unresolved audit family accounting mismatch: sum=$metadata_unresolved_sum total=$materializer_unresolved" >&2
+if [ "$metadata_dead_ends" -ne "$materializer_unresolved" ]; then
+  echo "metadata dead-end and compatibility materializer counters diverged: dead_ends=$metadata_dead_ends materializer_fallbacks=$materializer_unresolved" >&2
+  exit 1
+fi
+
+if [ "$metadata_unresolved_sum" -ne "$metadata_dead_ends" ]; then
+  echo "metadata unresolved audit family accounting mismatch: sum=$metadata_unresolved_sum dead_ends=$metadata_dead_ends" >&2
   exit 1
 fi
 
@@ -397,8 +408,8 @@ if [ "$metadata_named_alias" -ne 0 ]; then
 fi
 
 metadata_diagnostic_unresolved_sum=$((metadata_named_builtin_shell + metadata_unresolved_generic_named + metadata_named_missing_symbol))
-if [ "$metadata_diagnostic_unresolved_sum" -ne "$materializer_unresolved" ]; then
-  echo "metadata unresolved audit contains non-diagnostic materializer debt: diagnostic_sum=$metadata_diagnostic_unresolved_sum total=$materializer_unresolved" >&2
+if [ "$metadata_diagnostic_unresolved_sum" -ne "$metadata_dead_ends" ]; then
+  echo "metadata unresolved audit contains non-diagnostic dead-end debt: diagnostic_sum=$metadata_diagnostic_unresolved_sum dead_ends=$metadata_dead_ends" >&2
   exit 1
 fi
 
@@ -477,4 +488,4 @@ grep -a -q 'topo_ok=1' "$log" || {
   exit 1
 }
 
-echo "[type-resolution-dag] graph stats and metadata reuse present (graph-backed skips=$graph_skips generic_param_nodes=$generic_param_nodes retired_resolver_calls=$resolve_calls retired_resolver_unique_nodes=$resolve_unique_nodes retired_resolver_kind_sum=$resolve_kind_sum retired_resolver_kind_ast_type=$resolve_kind_ast_type retired_resolver_kind_compound_or_other=$resolve_kind_compound_or_other retired_resolver_body_fallbacks=$resolver_body_fallbacks metadata_entries=$metadata_entries metadata_owned=$metadata_owned metadata_hits=$metadata_hits materializer_unresolved=$materializer_unresolved metadata_unresolved_named=$metadata_unresolved_named metadata_unresolved_generic_named=$metadata_unresolved_generic_named metadata_unresolved_compound=$metadata_unresolved_compound metadata_unresolved_other=$metadata_unresolved_other metadata_unresolved_builtin_shell=$metadata_named_builtin_shell metadata_unresolved_generic_class=$metadata_named_generic_class metadata_unresolved_alias=$metadata_named_alias metadata_unresolved_non_class_symbol=$metadata_named_non_class_symbol metadata_unresolved_missing_symbol=$metadata_named_missing_symbol stage_materialize_calls=$stage_materialize_calls stage_materialize_failed=$stage_materialize_failed stage_materialize_suppressed=$stage_materialize_suppressed stage_materialize_alias=$stage_materialize_alias stage_materialize_non_alias=$stage_materialize_non_alias alias_materialized=$alias_materialized alias_diagnostic_unresolved=$alias_diagnostic_unresolved alias_diagnostic_resolver_calls=$alias_diagnostic_resolver_calls alias_diagnostic_resolved=$alias_diagnostic_resolved alias_diagnostic_cycle_unresolved=$alias_diagnostic_cycle_unresolved)"
+echo "[type-resolution-dag] graph stats and metadata reuse present (graph-backed skips=$graph_skips generic_param_nodes=$generic_param_nodes retired_resolver_calls=$resolve_calls retired_resolver_unique_nodes=$resolve_unique_nodes retired_resolver_kind_sum=$resolve_kind_sum retired_resolver_kind_ast_type=$resolve_kind_ast_type retired_resolver_kind_compound_or_other=$resolve_kind_compound_or_other retired_resolver_body_fallbacks=$resolver_body_fallbacks metadata_entries=$metadata_entries metadata_owned=$metadata_owned metadata_hits=$metadata_hits metadata_dead_ends=$metadata_dead_ends materializer_unresolved=$materializer_unresolved metadata_unresolved_named=$metadata_unresolved_named metadata_unresolved_generic_named=$metadata_unresolved_generic_named metadata_unresolved_compound=$metadata_unresolved_compound metadata_unresolved_other=$metadata_unresolved_other metadata_unresolved_builtin_shell=$metadata_named_builtin_shell metadata_unresolved_generic_class=$metadata_named_generic_class metadata_unresolved_alias=$metadata_named_alias metadata_unresolved_non_class_symbol=$metadata_named_non_class_symbol metadata_unresolved_missing_symbol=$metadata_named_missing_symbol stage_materialize_calls=$stage_materialize_calls stage_materialize_failed=$stage_materialize_failed stage_materialize_suppressed=$stage_materialize_suppressed stage_materialize_alias=$stage_materialize_alias stage_materialize_non_alias=$stage_materialize_non_alias alias_materialized=$alias_materialized alias_diagnostic_unresolved=$alias_diagnostic_unresolved alias_diagnostic_resolver_calls=$alias_diagnostic_resolver_calls alias_diagnostic_resolved=$alias_diagnostic_resolved alias_diagnostic_cycle_unresolved=$alias_diagnostic_cycle_unresolved)"

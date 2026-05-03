@@ -371,6 +371,26 @@ routine_has_complete_loop_branch_for(const MIRRoutine *routine, const char *vari
 }
 
 static bool
+routine_has_return_source_terminator(const MIRRoutine *routine)
+{
+    if (routine == NULL)
+        return false;
+    for (size_t bi = 0; bi < routine->block_count; bi++) {
+        const MIRBasicBlock *block = &routine->blocks[bi];
+        for (size_t ii = 0; ii < block->instruction_count; ii++) {
+            const MIRInstruction *inst = &block->instructions[ii];
+            if (inst->kind == MIR_INST_RETURN
+                && inst->has_source_terminator_kind
+                && inst->source_terminator_kind == HIR_BLOCK_RETURN
+                && inst->source_terminator_kind != HIR_BLOCK_GOTO) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+static bool
 block_has_phi_result_prefix(const MIRBasicBlock *block, const char *prefix)
 {
     size_t prefix_len = strlen(prefix);

@@ -167,13 +167,14 @@ air_dump(const AIRProgram *air, FILE *out)
             air->has_hir_input ? "yes" : "no",
             air->has_rir_input ? "yes" : "no",
             air->has_mir_input ? "yes" : "no");
-    fprintf(out, "  evidence hir_routines=%zu hir_cfg=%zu rir_boundaries=%zu rir_authority=%zu mir_cleanup=%zu mir_pin_cleanup=%zu dag_metadata=%zu dag_generic=%zu dag_ability=%zu rir_effect=%zu/%zu rir_relation=%zu/%zu\n",
+    fprintf(out, "  evidence hir_routines=%zu hir_cfg=%zu rir_boundaries=%zu rir_authority=%zu mir_cleanup=%zu mir_pin_cleanup=%zu mir_terminator=%zu dag_metadata=%zu dag_generic=%zu dag_ability=%zu rir_effect=%zu/%zu rir_relation=%zu/%zu\n",
             air->hir_routine_evidence_count,
             air->hir_cfg_evidence_count,
             air->rir_boundary_evidence_count,
             air->rir_authority_evidence_count,
             air->mir_cleanup_evidence_count,
             air->mir_pin_cleanup_evidence_count,
+            air->mir_terminator_evidence_count,
             air->dag_metadata_evidence_count,
             air->dag_generic_evidence_count,
             air->dag_ability_evidence_count,
@@ -274,6 +275,7 @@ air_dump_json(const AIRProgram *air, FILE *out)
             ",\"hir_routine_evidence_count\":%zu,\"hir_cfg_evidence_count\":%zu,"
             "\"rir_boundary_evidence_count\":%zu,\"rir_authority_evidence_count\":%zu,"
             "\"mir_cleanup_evidence_count\":%zu,\"mir_pin_cleanup_evidence_count\":%zu,"
+            "\"mir_terminator_evidence_count\":%zu,"
             "\"dag_metadata_evidence_count\":%zu,\"dag_generic_evidence_count\":%zu,\"dag_ability_evidence_count\":%zu,"
             "\"rir_effect_propagation_required_count\":%zu,\"rir_effect_propagation_evidence_count\":%zu,"
             "\"rir_relation_propagation_required_count\":%zu,\"rir_relation_propagation_evidence_count\":%zu,"
@@ -284,6 +286,7 @@ air_dump_json(const AIRProgram *air, FILE *out)
             air->rir_authority_evidence_count,
             air->mir_cleanup_evidence_count,
             air->mir_pin_cleanup_evidence_count,
+            air->mir_terminator_evidence_count,
             air->dag_metadata_evidence_count,
             air->dag_generic_evidence_count,
             air->dag_ability_evidence_count,
@@ -487,6 +490,7 @@ air_evidence_kind_name(AIREvidenceKind kind)
     case AIR_EVIDENCE_RIR_AUTHORITY: return "rir_authority";
     case AIR_EVIDENCE_MIR_CLEANUP: return "mir_cleanup";
     case AIR_EVIDENCE_MIR_PIN_CLEANUP: return "mir_pin_cleanup";
+    case AIR_EVIDENCE_MIR_TERMINATOR: return "mir_terminator";
     case AIR_EVIDENCE_DAG_METADATA: return "dag_metadata";
     case AIR_EVIDENCE_DAG_GENERIC: return "dag_generic";
     case AIR_EVIDENCE_DAG_ABILITY: return "dag_ability";

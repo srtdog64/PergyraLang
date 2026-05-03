@@ -26,6 +26,7 @@ run_literal_doc_contract_smoke() {
         "src/semantic/type_checker_flow_parallel.h"
         "src/compiler/mir_cleanup.c"
         "src/compiler/mir_call_fact.h"
+        "src/compiler/mir_non_cfg_stmt_population.h"
         "src/compiler/mir_cfg_contract_cleanup_fact.h"
         "src/compiler/mir_cfg_contract_pin.h"
         "src/compiler/mir_cfg_contract_validate.h"
@@ -60,8 +61,9 @@ run_literal_doc_contract_smoke() {
     require_literal "src/compiler/mir_cfg_contract_validate.h" "rollback successor"
     require_literal "src/compiler/mir_cfg_contract_validate.h" "invalidation successor"
     require_literal "src/compiler/mir_ssa_use_edges.h" "mir_def_instruction_source_expr"
-    require_literal "src/compiler/mir_ssa_use_edges.h" "ASTNode *expr = inst->ast"
+    require_literal "src/compiler/mir_ssa_use_edges.h" "stmt = inst->ast"
     require_literal "src/compiler/mir_stmt_population.h" "#include \"mir_call_fact.h\""
+    require_literal "src/compiler/mir_non_cfg_stmt_population.h" "routine->hir_routine != NULL && routine->hir_routine->has_cfg"
     require_literal "src/compiler/mir_call_fact.h" "mir_attach_statement_call_fact"
     require_literal "src/compiler/mir_call_fact.h" "inst->arg0 = stmt->data.call.callee->data.identifier.name"
     require_literal "src/compiler/mir_call_fact.h" "mir_attach_def_initializer_call_fact"
@@ -131,6 +133,7 @@ mir_ssa_use_edges_path = root / "src" / "compiler" / "mir_ssa_use_edges.h"
 mir_liveness_dce_path = root / "src" / "compiler" / "mir_liveness_dce.h"
 mir_dce_path = root / "src" / "compiler" / "mir_dce.h"
 mir_stmt_population_path = root / "src" / "compiler" / "mir_stmt_population.h"
+mir_non_cfg_stmt_population_path = root / "src" / "compiler" / "mir_non_cfg_stmt_population.h"
 hir_lower_cfg_path = root / "src" / "compiler" / "hir_lower_cfg.c"
 hir_lower_intent_cfg_path = root / "src" / "compiler" / "hir_lower_intent_cfg.c"
 mir_c_control_emit_path = root / "src" / "codegen" / "transpiler_mir_cfg_control_emit.h"
@@ -189,6 +192,7 @@ for path in (
     mir_liveness_dce_path,
     mir_dce_path,
     mir_stmt_population_path,
+    mir_non_cfg_stmt_population_path,
     hir_lower_cfg_path,
     hir_lower_intent_cfg_path,
     mir_c_control_emit_path,
@@ -274,6 +278,7 @@ mir_ssa_use_edges = mir_ssa_use_edges_path.read_text(encoding="utf-8")
 mir_liveness_dce = mir_liveness_dce_path.read_text(encoding="utf-8")
 mir_dce = mir_dce_path.read_text(encoding="utf-8")
 mir_stmt_population = mir_stmt_population_path.read_text(encoding="utf-8")
+mir_non_cfg_stmt_population = mir_non_cfg_stmt_population_path.read_text(encoding="utf-8")
 mir_codegen_control = (
     mir_c_control_emit_path.read_text(encoding="utf-8")
     + "\n"
@@ -509,7 +514,7 @@ required_mir_owner_terms = {
         "mir_append_block_versioned_name",
         "mir_parse_versioned_name",
         "mir_def_instruction_source_expr",
-        "ASTNode *expr = inst->ast",
+        "stmt = inst->ast",
         "mir_populate_use_edges",
     ],
     "src/compiler/mir_liveness_dce.h": [
@@ -547,6 +552,12 @@ required_mir_owner_terms = {
         "mir_stmt_ast_is_cfg_owned_control(stmt)",
         "#include \"mir_call_fact.h\"",
     ],
+    "src/compiler/mir_non_cfg_stmt_population.h": [
+        "mir_append_non_cfg_body_statements",
+        "routine->hir_routine != NULL && routine->hir_routine->has_cfg",
+        "mir_attach_statement_call_fact",
+        "mir_attach_def_initializer_call_fact",
+    ],
     "src/compiler/mir_cfg_contract_control.h": [
         "PERGYRA_MIR_CFG_CONTRACT_CONTROL_H",
         "mir_stmt_ast_is_cfg_owned_control",
@@ -567,6 +578,7 @@ mir_owner_text = {
     "src/compiler/mir_dce.h": mir_dce,
     "src/compiler/mir_call_fact.h": mir_call_fact,
     "src/compiler/mir_stmt_population.h": mir_stmt_population,
+    "src/compiler/mir_non_cfg_stmt_population.h": mir_non_cfg_stmt_population,
     "src/compiler/mir_cfg_contract_control.h": mir_cfg_contract_control,
 }
 for owner, terms in required_mir_owner_terms.items():
@@ -851,6 +863,12 @@ for term in [
 
 if 'parser_consume(parser, TOKEN_ASSIGN, "Expected \'=\' in let declaration")' not in parser:
     raise SystemExit("parser must keep local let declarations initialized")
+
+if "source_statement_inventory.items[inst->source_statement_index]" in mir_ssa_use_edges:
+    raise SystemExit(
+        "MIR DEF use-edge collection must consume instruction-carried AST, "
+        "not reopen block source_statement_inventory"
+    )
 
 for term in [
     "PGY_CODE_SEM_UNINIT_LOCAL",

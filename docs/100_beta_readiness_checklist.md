@@ -22,7 +22,39 @@ Operational mode:
   DAG's remaining unresolved metadata path is now explicitly named as a
   metadata dead-end diagnostic instead of a materializer fallback recorder; the
   fallback counters remain as regression evidence, but recursive materialization
-  is not presented as a valid owner seam.
+  is not presented as a valid owner seam. Developer tracing uses
+  `PGY_TYPE_RES_DEAD_END_TRACE` / `[type-res-dead-end]` for the same reason.
+  C/LLVM hosted-method declaration views now name their AST-side method arrays
+  `ast_compat_methods` / `ast_compat_count`, making the remaining declaration
+  bootstrap compatibility seam explicit instead of presenting it as a generic
+  fallback path. C backend class/enum/generic method-body emission also consumes
+  `MIRDeclMethod` name/routine helper accessors first, so AST compatibility no
+  longer owns hosted-method routine identity discovery on that path. C backend
+  routine iteration now goes through `TranspilerMIRRoutineInventory`, aligning
+  thread-pool, intent-observability, function/intent/method lookup, and
+  view-resource scans with the same helper-gated source-of-truth discipline.
+  C/LLVM hosted-method views now also reject MIR metadata count drift against
+  the AST compatibility count instead of silently truncating or extending hosted
+  method iteration.
+  DAG evidence now exposes `type_resolution_metadata_dead_ends` to AIR while
+  retaining `materializer_fallbacks` as a compatibility metric name for existing
+  stat parsers. `SemanticContext` also owns
+  `type_resolution_metadata_dead_ends` directly now;
+  the legacy `type_resolution_metadata_materializer_fallbacks` counter is synced
+  from it instead of being the hidden source-of-truth. `PGY_TYPE_RES_STATS=1`
+  now prints `dead_ends` before the compatibility `materializer_fallbacks`
+  mirror, and the DAG smoke gates both counters for equality. CFG/MIR DEF use-edge
+  collection now consumes instruction-carried
+  `inst->ast` and no longer reopens block source-statement inventory as an
+  initializer fallback. MIR BRANCH/RETURN instructions also carry
+  `source_terminator_kind`, and `mir_validate(...)` rejects terminators whose
+  HIR provenance is missing or mismatched. AIR now consumes those validated
+  MIR terminator facts as global `AIR_EVIDENCE_MIR_TERMINATOR` nodes and
+  exposes `mir_terminator_evidence_count` in `pgy.air.graph.v1`, so CFG
+  terminator provenance is visible to CI/LSP consumers instead of remaining
+  MIR-validator-only state. Strict AIR also emits a global missing-evidence
+  drift when real MIR input is present for boundaries but no MIR terminator
+  evidence was attached.
 - 2026-05-02 debt ledger refresh:
   the current blocker map is now separated into closed seams and remaining
   source-of-truth seams. CFG/MIR use facts prefer instruction-carried
@@ -271,12 +303,13 @@ Operational mode:
   `test-transpile` (`710/0`).
 - 2026-05-03 MIR surface-usage fact materialization:
   MIR instructions now carry `has_surface_usage_facts` and
-  `uses_thread_pool_surface`. C/LLVM thread-pool dependency checks consume that
-  MIR fact first and only scan AST payloads for hand-built or legacy MIR
-  without facts. The shared fact materializer is now called by base, cleanup,
-  and intent MIR append paths. Gate: manual native MinGW `test-semantic`
-  (`2500/0`), `test-mir` (`32/0`), `test-air` (`68/0`), and `test-transpile`
-  (`710/0`).
+  `uses_thread_pool_surface` / `uses_intent_observability_surface`. C/LLVM
+  thread-pool dependency checks and intent-observability no-trace detection
+  consume those MIR facts first and only scan AST payloads for hand-built or
+  legacy MIR without facts. The shared fact materializer is now called by base,
+  cleanup, and intent MIR append paths. Gate: manual native MinGW
+  `test-semantic` (`2500/0`), `test-mir` (`35/0`), `test-air` (`70/0`), and
+  `test-transpile` (`710/0`).
 - 2026-05-03 MIR branch-shape materialization:
   branch and loop-init instructions now carry `MIRBranchShape` (`FOR_RANGE`,
   `FOR_IN`, `MATCH_CASE`, `SELECT_DISPATCH`). C and LLVM MIR control emitters
@@ -360,11 +393,17 @@ Operational mode:
   Gate: manual native MinGW `test-mir` (`33/0`) and `test-transpile` (`710/0`).
 - 2026-05-03 MIR surface-usage validator:
   `mir_validate(...)` now rejects instructions that carry AST/expression/source
-  payloads without materialized surface-usage facts. This turns thread-pool
-  usage from a best-effort construction convention into a MIR contract: codegen
-  can consume `has_surface_usage_facts` / `uses_thread_pool_surface` without
-  silently relying on AST rescans for normal lowered MIR. Gate: manual native
-  MinGW `test-mir` (`33/0`) and `test-transpile` (`710/0`).
+  payloads without materialized surface-usage facts, and also rejects stale
+  thread-pool or intent-observability facts when the instruction payloads no
+  longer match the stored bits. This turns surface usage from a best-effort
+  construction convention into a MIR contract: codegen can consume
+  `has_surface_usage_facts`, `uses_thread_pool_surface`, and
+  `uses_intent_observability_surface` without silently relying on AST rescans
+  for normal lowered MIR. Thread-pool dependency detection now follows the same
+  consumer rule as intent observability: HIR-backed lowered routines consume
+  MIR facts only, while AST payload rescans are reserved for hand-built legacy
+  MIR without HIR provenance. Gate: manual native MinGW `test-mir` (`35/0`) and
+  `test-transpile` (`710/0`).
 - 2026-05-01 dogfood-first beta gate:
   the beta target is now "core stable enough to start a small WebGL/chat-game
   dogfood", not a full 1.0 compiler. Quantum, Rust-style lifetime borrow
@@ -2192,13 +2231,24 @@ Closed now:
   `type-resolution-resolver-inventory-test-smoke`.
 - Central metadata materializer fallback is dormant in the semantic suite:
   `materializer_fallbacks=0`.
-- Current local stats are `graph-backed skips=3140`,
+- Current local stats are `graph-backed skips=2033`,
   `resolve_calls=0`, `resolve_unique_nodes=0`,
-  `metadata_entries=3436`, `metadata_owned=257`,
-  `metadata_hits=6756`, and `materializer_fallbacks=0`.
+  `metadata_entries=3498`, `metadata_owned=258`,
+  `metadata_hits=8380`, and `materializer_fallbacks=0`.
 - Metadata fallback families are all zero, including named, generic-named,
   compound, other, builtin shell, generic class, alias, non-class symbol, and
   missing-symbol fallback.
+- Top-level program placeholder signatures consume DAG annotations through
+  `program_lookup_dag_type_annotation_or_unknown(...)`. The resolver-inventory
+  smoke blocks old `program_resolve_*` naming and local metadata materialization
+  in `type_checker_program.c`, so this path cannot silently drift back into a
+  recursive resolver-style seam.
+- AIR evidence inventory now rejects duplicate evidence nodes with the same
+  kind, boundary, provider, and subject. Repeated evidence must increase
+  `fact_count` instead of adding ambiguous duplicate nodes.
+- Non-CFG MIR statement population now hard-rejects accidental use on
+  CFG-backed HIR routines. This keeps legacy source-statement population out of
+  the CFG/body-safety source-of-truth path.
 - Alias compatibility surface is closed at the DAG stage: `compat_alias=0`,
   `compat_non_alias=0`, `alias_materialized=6`,
   `alias_diagnostic_unresolved=78`, and
@@ -2632,7 +2682,7 @@ find src -path src/tests -prune -o -name '*.inc' -print
   blocked outside central metadata/diagnostic compatibility owners by
   `type-resolution-resolver-inventory-test-smoke`.
 - `resolve_generic_type_arg(...)` is also metadata-first, so constructed builtin and generic consumer paths reuse graph facts before recursive fallback.
-- `make type-resolution-dag-test-smoke` now gates graph-backed stage skips, retired compatibility resolver calls (`retired_resolver_calls<=0`), metadata entries, metadata owned entries, metadata hits, metadata materializer fallback count, zero stage metadata materialization, and alias-stage split accounting. Current local stats for this slice are `graph-backed skips=3146 retired_resolver_calls=0 retired_resolver_unique_nodes=0 metadata_entries=3442 metadata_owned=257 metadata_hits=6768 materializer_unresolved=0 metadata_unresolved_named=0 metadata_unresolved_generic_named=0 metadata_unresolved_compound=0 metadata_unresolved_other=0 metadata_unresolved_builtin_shell=0 metadata_unresolved_generic_class=0 metadata_unresolved_alias=0 metadata_unresolved_non_class_symbol=0 metadata_unresolved_missing_symbol=0 stage_materialize_calls=0 stage_materialize_failed=0 stage_materialize_suppressed=0 stage_materialize_alias=0 stage_materialize_non_alias=0 alias_materialized=6 alias_diagnostic_unresolved=78 alias_diagnostic_resolver_calls=0 alias_diagnostic_resolved=0 alias_diagnostic_cycle_unresolved=78`.
+- `make type-resolution-dag-test-smoke` now gates graph-backed stage skips, retired compatibility resolver calls (`retired_resolver_calls<=0`), metadata entries, metadata owned entries, metadata hits, metadata materializer fallback count, zero stage metadata materialization, and alias-stage split accounting. Current local stats for this slice are `graph-backed skips=2033 retired_resolver_calls=0 retired_resolver_unique_nodes=0 metadata_entries=3498 metadata_owned=258 metadata_hits=8380 materializer_unresolved=0 metadata_unresolved_named=0 metadata_unresolved_generic_named=0 metadata_unresolved_compound=0 metadata_unresolved_other=0 metadata_unresolved_builtin_shell=0 metadata_unresolved_generic_class=0 metadata_unresolved_alias=0 metadata_unresolved_non_class_symbol=0 metadata_unresolved_missing_symbol=0 stage_materialize_calls=0 stage_materialize_failed=0 stage_materialize_suppressed=0 stage_materialize_alias=0 stage_materialize_non_alias=0 alias_materialized=6 alias_diagnostic_unresolved=78 alias_diagnostic_resolver_calls=0 alias_diagnostic_resolved=0 alias_diagnostic_cycle_unresolved=78`.
 - The DAG smoke now enforces beta floors for graph-backed usage and metadata materialization instead of accepting any non-zero metadata activity.
 - The central metadata materializer fallback is closed, not merely capped:
   `materializer_fallbacks==0` and every metadata unresolved audit family must stay at
@@ -2819,6 +2869,8 @@ grep -R "resolve_type_node" -n src/semantic
 - `MIRDeclMethod` now carries method `name`, `owner_name`, `is_action_like`, and `within_zone` metadata beside the temporary AST payload. LLVM host method lookup compares `MIRDeclMethod.name` before falling back to AST method arrays.
 - `MIRDeclMethod` also links to method body MIR through `has_routine` / `routine_index`, so LLVM method emission can consume the declaration-header method row before falling back to AST-method based routine lookup.
 - `MIRDeclMethod` now carries hosted method signature metadata (`params`, `param_count`, `return_type`). LLVM nominal/enum method prototype registration consumes this metadata through helper accessors before falling back to AST method payloads.
+- C backend hosted-method body emission now uses `transpiler_mir_decl_method_*` and `transpiler_hosted_method_view_routine(...)` for class, enum, generic-class, and domain hosted-method paths. AST compatibility remains for body/type payloads, but routine identity is no longer rediscovered from AST first on those paths.
+- C backend routine scans now use `TranspilerMIRRoutineInventory` and `transpiler_routine_inventory_get(...)`, so direct `ctx->mir->routines` walking is limited to helper owners and diagnostic count reporting.
 - LLVM domain sync/event/role ownership is no longer concentrated in `llvm_domain.c`: method/provenance helpers live in `llvm_domain_method_helpers.c`, event type/helper lowering lives in `llvm_domain_event.c`, role method/operator/vtable emission lives in `llvm_domain_role_emit.c`, domain sync/method body emission lives in `llvm_domain_method_emit.c`, world sync lives in `llvm_domain_world_sync.c`, zone sync lives in `llvm_domain_zone_sync.c`, and the declaration/projection/zone-binding helper families are split into focused owner headers. `llvm_domain.c` is now 895 LOC and remains backend-compare green.
 - LLVM statement ownership is now split by real TU owner: type inference lives in `llvm_stmt_type_infer.c`, let helper/type rendering lives in `llvm_stmt_let_helpers.c`, let lowering lives in `llvm_stmt_let_with.c`, collection/channel/array let specializations live in `llvm_stmt_let_collections.c`, callable/lambda let registration lives in `llvm_stmt_let_callable.c`, with lowering lives in `llvm_stmt_with.c`, `while`/`for`/`match` lowering lives in `llvm_stmt_loop_match.c`, `parallel`/`async`/`select` lowering lives in `llvm_stmt_parallel_async.c`, zone-action effect propagation lives in `llvm_stmt_zone_action.c`, and generic type-argument rendering lives in `llvm_stmt_type_render.c`. `llvm_stmt.c` is now 573 LOC, `llvm_stmt_let_with.c` is now 562 LOC, and both dispatcher and let owners are below the 600 LOC split-review threshold.
 - MIR cleanup/rollback/invalidation CFG edge ownership is split into
@@ -2888,6 +2940,41 @@ Inventory regression gate: `make mir-declaration-inventory-test-smoke` keeps C/L
 2026-04-26 MIR method routine-link update: `mir_link_decl_method_routines(...)` connects each `MIRDeclMethod` to its method body routine by stable `routine_index` after routine lowering completes. LLVM method emission now uses this row-level link first, keeping AST method lookup as compatibility fallback only.
 
 2026-04-26 MIR method signature update: hosted method prototype registration now reads `MIRDeclMethod` signature fields through `llvm_mir_decl_method_*` helpers. The remaining AST pointer is compatibility payload for body/type nodes, not the primary lookup-visible method row.
+
+2026-05-03 C hosted-method forward declaration update: C backend hosted-method
+forward declarations now read `MIRDeclMethod` signature fields through
+`transpiler_mir_decl_method_*` helpers and the metadata-first forward helper.
+The previous AST-only hosted-method forward declaration helper is removed, so
+class/enum/generic/domain hosted prototypes no longer rediscover method
+signatures from AST before checking MIR declaration metadata.
+`mir_validate(...)` now also rejects declaration-header hosted-method metadata
+drift: declaration header name/type/method-list compatibility, method metadata
+count, row AST payload compatibility, owner/name/signature compatibility, and
+linked routine indexes are checked before codegen consumes the declaration
+inventory.
+MIR declaration headers also preserve pointer-self ABI shape for subject/vessel
+and domain hosts, and roster hosted methods are now recorded in declaration
+metadata instead of being omitted from `MIRDeclHeader`.
+Duplicate declaration header names are rejected by `mir_validate(...)`, keeping
+`mir_find_decl_header(...)` from resolving ambiguous declaration inventory rows.
+
+2026-05-03 MIR inventory surface-usage update: declaration/function inventory
+surface scans for intent observability and thread-pool usage are now
+materialized once into `MIRProgram` inventory facts. C/LLVM codegen consumes
+`inventory_uses_intent_observability_surface` instead of rescanning declaration
+AST payloads for no-trace intent observability decisions. `mir_validate(...)`
+owns the stale-fact check, and the MIR regression corrupts the inventory fact
+explicitly to keep this a MIR contract rather than a backend heuristic. Local
+gate: native MinGW `test-mir` (`40/0`) and `perf_contract_smoke`.
+
+2026-05-03 AST analysis owner update: `src/parser/ast_analysis.c` is narrowed to
+generic identifier-call traversal and intent-observability prefix detection.
+Thread-pool surface traversal moved to `src/parser/ast_thread_pool_analysis.c`
+and is wired through `PARSER_SOURCES`. This keeps the split responsibility-based
+(`identifier-call scan` vs `thread-pool surface scan`) and returns the parser
+analysis owner below the 600 LOC split-review threshold. Local gates:
+`test-parser`, `test-mir`, `build-source-inventory-test-smoke`, and
+`test_inc_size_smoke`.
 
 2026-04-26 C backend structure update: `src/codegen/transpiler_context.c` now owns the output/context primitive layer that had been carried by `transpiler_helpers_core_a_part_a.inc`: `CodeBuf`, `TranspilerCtx` create/destroy, indentation, backend error/hint allocation, and scratch arena string helpers. The private seam is `src/codegen/transpiler_context.h`; the remaining forward declarations were folded into `transpiler_helpers_core_a.inc`, so `transpiler_helpers_core_a_part_a.inc` has been deleted.
 

@@ -36,6 +36,8 @@ run_literal_air_drift_smoke() {
         "src/compiler/driver_app.c"
         "src/compiler/driver_diag.c"
         "src/test_air.c"
+        "src/tests/air/test_air_core_part_h.cases.h"
+        "src/tests/air/test_air_mir_terminator_part_h.cases.h"
         "src/test_rir.c"
         "docs/72_diagnostic_codes.md"
         "tests/air_backend_nonimpact_smoke.sh"
@@ -56,6 +58,7 @@ run_literal_air_drift_smoke() {
     require_literal "Makefile" "air-drift-test-smoke"
     require_literal "src/compiler/air.h" "AIREvidenceNode"
     require_literal "src/compiler/air_evidence.c" "AIR_EVIDENCE_MIR_PIN_CLEANUP"
+    require_literal "src/compiler/air_evidence.c" "AIR_EVIDENCE_MIR_TERMINATOR"
     require_literal "src/compiler/air_evidence.c" "cleanup-edge-from-rollback"
     require_literal "src/compiler/air_evidence.c" "slot_anchor"
     require_literal "src/compiler/air_evidence.c" "arg0"
@@ -72,11 +75,18 @@ run_literal_air_drift_smoke() {
     require_literal "src/compiler/air_verify.c" "air_boundary_has_evidence"
     require_literal "src/compiler/driver_diag.c" "air_boundary_has_evidence("
     require_literal "src/compiler/air_verify.c" "strict AIR requires body control-flow evidence"
+    require_literal "src/compiler/air_verify.c" "strict AIR requires MIR branch/return terminator provenance"
     require_literal "src/compiler/air_verify.c" "strict AIR requires pin boundaries to prove all exits run unpin cleanup"
+    require_literal "src/compiler/air_validate_evidence.c" "duplicates evidence node"
     require_literal "src/compiler/driver_app.c" "air_synthesize"
     require_literal "docs/72_diagnostic_codes.md" "PGY_SEM_INTENT_BOUNDARY_DRIFT"
     require_literal "src/test_air.c" "AIR strict evidence requires MIR pin cleanup"
     require_literal "src/test_air.c" "AIR ignores orphan MIR cleanup root evidence"
+    require_literal "src/tests/air/test_air_core_part_h.cases.h" "AIR verify rejects invalid drift inventory"
+    require_literal "src/test_air.c" "AIR verify rejects duplicate evidence nodes"
+    require_literal "src/tests/air/test_air_mir_terminator_part_h.cases.h" "AIR collects MIR terminator evidence"
+    require_literal "src/tests/air/test_air_mir_terminator_part_h.cases.h" "MIR terminator evidence node 0 has no terminator facts"
+    require_literal "src/tests/air/test_air_mir_terminator_part_h.cases.h" "AIR MIR input has no CFG terminator evidence"
     require_literal "src/test_air.c" "AIR parsed transfer emits zone and world boundaries"
     require_literal "src/test_rir.c" "RIR_OP_SPAWN"
     require_literal "docs/72_diagnostic_codes.md" "PGY_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING"
@@ -139,6 +149,8 @@ air_test_case_paths = [
     root / "src" / "tests" / "air" / "test_air_parsed_part_e.cases.h",
     root / "src" / "tests" / "air" / "test_air_strict_part_f.cases.h",
     root / "src" / "tests" / "air" / "test_air_observability_pin_part_g.cases.h",
+    root / "src" / "tests" / "air" / "test_air_core_part_h.cases.h",
+    root / "src" / "tests" / "air" / "test_air_mir_terminator_part_h.cases.h",
 ]
 rir_test_path = root / "src" / "test_rir.c"
 rir_test_case_paths = [
@@ -352,6 +364,7 @@ required_impl_terms = [
     "AIR boundary has no matching HIR routine evidence",
     "strict AIR requires lowered boundary evidence",
     "strict AIR requires body control-flow evidence",
+    "strict AIR requires MIR branch/return terminator provenance",
     "strict AIR requires pin boundaries to prove all exits run unpin cleanup",
     "air_drift_kind_valid",
     "air_name_is_empty",
@@ -533,7 +546,7 @@ required_test_terms = [
     "AIR drift checker accepts matching async boundary",
     "AIR strict evidence reports missing RIR boundary",
     "AIR strict evidence requires HIR for implementation boundary",
-    "AIR strict evidence prefers inventory over legacy flags",
+    "AIR strict evidence rejects stale legacy summary flags",
     "AIR strict evidence rejects legacy flags with real input",
     "test_air_strict_evidence_rejects_legacy_flags_with_real_input",
     "AIR task group boundary requires RIR and HIR evidence",
@@ -544,11 +557,13 @@ required_test_terms = [
     "AIR verify rejects boundary sync shape mismatch",
     "AIR verify rejects invalid drift inventory",
     "AIR verify rejects invalid evidence inventory",
+    "AIR verify rejects duplicate evidence nodes",
     "AIR verify rejects evidence boundary shape mismatch",
     "AIR verify rejects empty boundary evidence",
     "evidence count without evidence array",
     "references missing boundary node",
     "has no provider provenance",
+    "duplicates evidence node",
     "undeclared authority subject",
     "global evidence node",
     "no matching HIR routine evidence",
@@ -568,10 +583,13 @@ required_test_terms = [
     "PGY_OBSERVABILITY_SURFACE_LAST",
     "PGY_OBSERVABILITY_EVENT_INTENT_ENTER",
     "mir_pin_cleanup_evidence_count",
+    "mir_terminator_evidence_count",
+    "AIR collects MIR terminator evidence",
     "AIR collects MIR pin cleanup evidence",
     "AIR rejects orphan MIR pin cleanup evidence",
     "AIR rejects MIR pin cleanup evidence fact-count mismatch",
     "AIR strict evidence requires MIR pin cleanup",
+    "AIR strict evidence requires MIR terminator evidence",
     "AIR collects MIR cleanup block evidence",
     "AIR ignores orphan MIR cleanup root evidence",
     "AIR rejects empty MIR cleanup evidence",
@@ -588,6 +606,8 @@ required_test_terms = [
     "evidence_node[3] kind=rir_authority",
     "AIR_EVIDENCE_MIR_CLEANUP",
     "AIR_EVIDENCE_MIR_PIN_CLEANUP",
+    "AIR_EVIDENCE_MIR_TERMINATOR",
+    "AIR MIR input has no CFG terminator evidence",
     "must carry exactly one boundary fact",
     "cleanup-block",
     "AIR_EVIDENCE_DAG_GENERIC",
@@ -597,6 +617,7 @@ required_test_terms = [
     "air_collect_mir_evidence",
     "air_collect_dag_evidence",
     "mir_pin_cleanup_evidence_count",
+    "mir_terminator_evidence_count",
     "dag_metadata_evidence_count",
     "dag_generic_evidence_count",
     "dag_ability_evidence_count",

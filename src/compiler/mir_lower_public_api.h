@@ -67,6 +67,7 @@ mir_lower(const HIRProgram *hir, const RIRProgram *rir, char **error_message)
             mir->has_main_function = true;
         }
     }
+    mir_program_record_inventory_surface_usage(mir);
 
 #undef MIR_COPY_AST_LIST
 

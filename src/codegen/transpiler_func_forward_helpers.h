@@ -290,28 +290,47 @@ emit_func_decl_named(ASTNode *node, const char *emitted_name,
                      CodeBuf *buf, TranspilerCtx *ctx);
 
 static void
-emit_hosted_method_forward_decl_named(const char *host_name, ASTNode *method,
-                                      bool pointer_self, CodeBuf *buf,
-                                      TranspilerCtx *ctx)
+emit_hosted_method_forward_decl_from_metadata(const char *host_name,
+                                              const MIRDeclMethod *method_meta,
+                                              ASTNode *method,
+                                              bool pointer_self, CodeBuf *buf,
+                                              TranspilerCtx *ctx);
+
+static void
+emit_hosted_method_forward_decl_from_metadata(const char *host_name,
+                                              const MIRDeclMethod *method_meta,
+                                              ASTNode *method,
+                                              bool pointer_self, CodeBuf *buf,
+                                              TranspilerCtx *ctx)
 {
     if (host_name == NULL || method == NULL || buf == NULL || ctx == NULL
         || method->type != AST_FUNC_DECL)
         return;
 
-    const char *method_name = method->data.func_decl.name;
+    const char *method_name = transpiler_mir_decl_method_name(method_meta);
+    ASTNode *return_type = transpiler_mir_decl_method_return_type(method_meta);
+    size_t param_count = transpiler_mir_decl_method_param_count(method_meta);
     const char *ret_type = "void";
     if (method_name == NULL)
+        method_name = method->data.func_decl.name;
+    if (return_type == NULL)
+        return_type = method->data.func_decl.return_type;
+    if (param_count == 0 && method_meta == NULL)
+        param_count = method->data.func_decl.param_count;
+    if (method_name == NULL)
         return;
-    ensure_type_specializations_from_ast(ctx, method->data.func_decl.return_type);
-    if (method->data.func_decl.return_type != NULL)
-        ret_type = pergyra_ast_type_to_c(method->data.func_decl.return_type);
+    ensure_type_specializations_from_ast(ctx, return_type);
+    if (return_type != NULL)
+        ret_type = pergyra_ast_type_to_c(return_type);
 
     codebuf_write(buf, "\n%s\n%s_%s(%s%s",
                   ret_type, host_name, method_name, host_name,
                   pointer_self ? " *self" : " self");
 
-    for (size_t j = 0; j < method->data.func_decl.param_count; j++) {
-        FuncParam *p = method->data.func_decl.params[j];
+    for (size_t j = 0; j < param_count; j++) {
+        FuncParam *p = transpiler_mir_decl_method_param(method_meta, j);
+        if (p == NULL && method_meta == NULL)
+            p = method->data.func_decl.params[j];
         if (p == NULL || p->name == NULL)
             continue;
         if (strcmp(p->name, "self") == 0)

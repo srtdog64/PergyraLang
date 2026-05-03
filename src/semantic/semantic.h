@@ -26,6 +26,9 @@ typedef struct SemanticResult
     size_t       warning_count;
     size_t       type_resolution_metadata_entries;
     size_t       type_resolution_metadata_hits;
+    size_t       type_resolution_metadata_dead_ends;
+    /* Compatibility metric name kept for existing smoke/stat parsers. New
+     * code should consume type_resolution_metadata_dead_ends. */
     size_t       type_resolution_metadata_materializer_fallbacks;
     size_t       type_resolution_stage_compat_generic_contract_count;
     size_t       type_resolution_stage_compat_ability_consumer_count;

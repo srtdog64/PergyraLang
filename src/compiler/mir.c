@@ -32,6 +32,10 @@ mir_instruction_record_surface_usage(MIRInstruction *inst)
         ast_uses_thread_pool_surface(inst->ast)
         || ast_uses_thread_pool_surface(inst->expr0)
         || ast_uses_thread_pool_surface(inst->expr1);
+    inst->uses_intent_observability_surface =
+        ast_uses_intent_observability_surface(inst->ast)
+        || ast_uses_intent_observability_surface(inst->expr0)
+        || ast_uses_intent_observability_surface(inst->expr1);
 }
 
 static MIRBranchShape
@@ -53,6 +57,7 @@ mir_branch_shape_from_ast(const ASTNode *node)
 #include "mir_base_helpers.h"
 #include "mir_cleanup.h"
 #include "mir_intent.h"
+#include "mir_surface_usage.h"
 #include "mir_type_helpers.h"
 
 static void mir_clear_block_name_set(const char ***names, size_t *count, size_t *capacity);
@@ -122,6 +127,8 @@ mir_add_terminator_instruction(MIRRoutine *routine,
                     ? MIR_INST_BRANCH
                     : MIR_INST_RETURN;
     inst.name = (terminator_kind == HIR_BLOCK_BRANCH) ? "branch" : "return";
+    inst.source_terminator_kind = terminator_kind;
+    inst.has_source_terminator_kind = true;
     inst.ast = (terminator_kind == HIR_BLOCK_BRANCH)
                    ? terminator_condition
                    : terminator_value;
@@ -393,6 +400,7 @@ mir_validate_instruction_uses(const MIRRoutine *routine,
 
 #include "mir_fact_validate.h"
 #include "mir_stmt_population.h"
+#include "mir_non_cfg_stmt_population.h"
 
 static bool
 mir_populate_instructions(MIRRoutine *routine)

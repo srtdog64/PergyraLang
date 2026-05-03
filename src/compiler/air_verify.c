@@ -410,6 +410,24 @@ air_verify(AIRProgram *air, char **error_message)
         }
     }
     if (air->strict_evidence
+        && air->has_mir_input
+        && air->boundary_count > 0
+        && air->mir_terminator_evidence_count == 0) {
+        const char *message =
+            PGY_CODE_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING
+            ": AIR MIR input has no CFG terminator evidence. "
+            "Reason: strict AIR requires MIR branch/return terminator provenance before abstraction-boundary verification. "
+            "Fix: preserve MIR source_terminator_kind facts and attach AIR_EVIDENCE_MIR_TERMINATOR.";
+        if (!air_append_drift(air,
+                              AIR_DRIFT_BOUNDARY_EVIDENCE_MISSING,
+                              SIZE_MAX,
+                              SIZE_MAX,
+                              message,
+                              error_message)) {
+            return false;
+        }
+    }
+    if (air->strict_evidence
         && air->rir_effect_propagation_required_count
             > air->rir_effect_propagation_evidence_count) {
         char message[512];

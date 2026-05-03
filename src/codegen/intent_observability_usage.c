@@ -4,6 +4,7 @@
  */
 
 #include "intent_observability_usage.h"
+#include "transpiler.h"
 #include "transpiler_builtin_type_table.h"
 
 #include "../compiler/mir.h"
@@ -64,14 +65,18 @@ pgy_mir_instruction_uses_intent_observability(const MIRInstruction *inst,
         return true;
     }
 
+    if (inst->has_surface_usage_facts)
+        return inst->uses_intent_observability_surface;
+
     if (!allow_ast_fallback)
         return false;
 
     /*
-     * Direct statement calls are carried in MIR_STMT.arg0, and direct
-     * initializer calls are carried in MIR_INST_DEF.arg1. Keep AST-backed
-     * scanning only for nested expression calls and declaration inventory that
-     * has not yet been lowered into a dedicated MIR fact.
+     * Direct statement calls are carried in MIR_STMT.arg0, direct initializer
+     * calls are carried in MIR_INST_DEF.arg1, and lowered declaration
+     * inventory is carried by MIRProgram inventory surface facts. Keep
+     * instruction AST scanning only for hand-built legacy MIR without HIR
+     * provenance.
      */
     return pgy_ast_uses_intent_observability(inst->ast)
         || pgy_ast_uses_intent_observability(inst->expr0)
@@ -121,6 +126,11 @@ pgy_mir_routine_uses_intent_observability(const MIRRoutine *routine)
 static bool
 pgy_mir_inventory_uses_intent_observability(const MIRProgram *mir)
 {
+    if (mir == NULL)
+        return false;
+    if (mir->has_inventory_surface_usage_facts)
+        return mir->inventory_uses_intent_observability_surface;
+
     return pgy_ast_array_uses_intent_observability(mir->types, mir->type_count)
         || pgy_ast_array_uses_intent_observability(mir->abilities, mir->ability_count)
         || pgy_ast_array_uses_intent_observability(mir->roles, mir->role_count)
@@ -139,11 +149,16 @@ pgy_mir_inventory_uses_intent_observability(const MIRProgram *mir)
 bool
 pgy_mir_program_uses_intent_observability(const MIRProgram *mir)
 {
+    TranspilerMIRRoutineInventory inventory;
+
     if (mir == NULL)
         return false;
 
-    for (size_t i = 0; i < mir->routine_count; i++) {
-        if (pgy_mir_routine_uses_intent_observability(&mir->routines[i]))
+    transpiler_mir_routine_inventory_from_program(mir, &inventory);
+    for (size_t i = 0; i < inventory.count; i++) {
+        const MIRRoutine *routine =
+            transpiler_routine_inventory_get(&inventory, i);
+        if (pgy_mir_routine_uses_intent_observability(routine))
             return true;
     }
 

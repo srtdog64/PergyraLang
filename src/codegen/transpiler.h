@@ -266,6 +266,61 @@ typedef struct
     const char *backend_error_fix_source;
 } TranspilerCtx;
 
+typedef struct
+{
+    const MIRRoutine *routines;
+    size_t            count;
+} TranspilerMIRRoutineInventory;
+
+static inline void
+transpiler_active_routine_inventory(const TranspilerCtx *ctx,
+                                    TranspilerMIRRoutineInventory *inventory)
+{
+    if (inventory == NULL)
+        return;
+    inventory->routines = NULL;
+    inventory->count = 0;
+    if (ctx != NULL && ctx->mir != NULL) {
+        inventory->routines = ctx->mir->routines;
+        inventory->count = ctx->mir->routine_count;
+    }
+}
+
+static inline void
+transpiler_mir_routine_inventory_from_program(
+    const MIRProgram *mir,
+    TranspilerMIRRoutineInventory *inventory)
+{
+    if (inventory == NULL)
+        return;
+    inventory->routines = NULL;
+    inventory->count = 0;
+    if (mir != NULL) {
+        inventory->routines = mir->routines;
+        inventory->count = mir->routine_count;
+    }
+}
+
+static inline const MIRRoutine *
+transpiler_routine_inventory_get(
+    const TranspilerMIRRoutineInventory *inventory,
+    size_t index)
+{
+    if (inventory == NULL || inventory->routines == NULL
+        || index >= inventory->count) {
+        return NULL;
+    }
+    return &inventory->routines[index];
+}
+
+static inline size_t
+transpiler_active_routine_count(const TranspilerCtx *ctx)
+{
+    TranspilerMIRRoutineInventory inventory;
+    transpiler_active_routine_inventory(ctx, &inventory);
+    return inventory.count;
+}
+
 static inline void
 transpiler_active_inventory(const TranspilerCtx *ctx,
                             ASTNodeType decl_type,
