@@ -66,7 +66,6 @@ concrete_type_satisfies_bound(Type *concrete_type, ASTNode *bound_node,
  * Former wrapper include chains were deleted once the helpers_late.c TU went
  * out. */
 #include "type_checker_context_helpers.h"
-#include "type_checker_resolution_helpers.h"
 #include "type_checker_helpers_effects.h"
 /* type_checker_visibility was promoted to type_checker_visibility.{h,c}
  * (P1 axis 1).  See docs/92_inc_split_roadmap.md. */

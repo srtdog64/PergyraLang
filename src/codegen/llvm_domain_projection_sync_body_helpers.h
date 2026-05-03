@@ -119,7 +119,7 @@ llvm_emit_domain_projection_sync_body(ASTNode *stmt,
             LLVMValueRef pass_val = LLVMBuildLoad2(ctx->builder, ctx->type_i32,
                 pass_addr, llvm_tmp_name(ctx));
             LLVMValueRef pass_limit = LLVMConstInt(ctx->type_i32,
-                (unsigned)pgy_frontier_projection_pass_limit(refresh_count), 0);
+                (unsigned)pgy_domain_projection_frontier_pass_limit(refresh_count), 0);
             LLVMValueRef within_limit = LLVMBuildICmp(ctx->builder, LLVMIntULT,
                 pass_val, pass_limit, llvm_tmp_name(ctx));
             LLVMValueRef loop_cond = LLVMBuildAnd(ctx->builder, continue_val,

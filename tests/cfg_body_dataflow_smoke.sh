@@ -27,6 +27,7 @@ run_literal_doc_contract_smoke() {
         "src/compiler/mir_cleanup.c"
         "src/compiler/mir_call_fact.h"
         "src/compiler/mir_non_cfg_stmt_population.h"
+        "src/compiler/mir_cleanup_fact_names.h"
         "src/compiler/mir_cfg_contract_cleanup_fact.h"
         "src/compiler/mir_cfg_contract_pin.h"
         "src/compiler/mir_cfg_contract_validate.h"
@@ -47,10 +48,12 @@ run_literal_doc_contract_smoke() {
     require_literal "docs/103_cfg_body_dataflow_need.md" "Definite assignment"
     require_literal "docs/103_cfg_body_dataflow_need.md" "Move/use-after-move"
     require_literal "docs/103_cfg_body_dataflow_need.md" "Drop/cleanup"
-    require_literal "src/compiler/mir_cleanup.c" "cleanup-edge"
+    require_literal "src/compiler/mir_cleanup_fact_names.h" "MIR_CLEANUP_FACT_EDGE"
+    require_literal "src/compiler/mir_cleanup_fact_names.h" "cleanup-edge"
+    require_literal "src/compiler/mir_cleanup_fact_names.h" "MIR_CLEANUP_FACT_PIN_UNPIN_EDGE"
     require_literal "src/compiler/mir_cfg_contract_cleanup_fact.h" "slot_anchor"
     require_literal "src/compiler/mir_cfg_contract_cleanup_fact.h" "arg0"
-    require_literal "src/compiler/mir_cfg_contract_pin.h" "pin-unpin-cleanup-edge"
+    require_literal "src/compiler/mir_cfg_contract_pin.h" "MIR_CLEANUP_FACT_PIN_UNPIN_EDGE"
     require_literal "src/compiler/mir_cfg_contract_pin.h" "mir_block_find_pin_cleanup_edge_fact"
     require_literal "src/compiler/mir_cfg_contract_pin.h" "mir_block_pin_cleanup_missing_reason"
     require_literal "src/compiler/mir_cfg_contract_pin.h" "pin cleanup fact does not match source slot, view, and access mode"
@@ -63,6 +66,7 @@ run_literal_doc_contract_smoke() {
     require_literal "src/compiler/mir_ssa_use_edges.h" "mir_def_instruction_source_expr"
     require_literal "src/compiler/mir_ssa_use_edges.h" "stmt = inst->ast"
     require_literal "src/compiler/mir_stmt_population.h" "#include \"mir_call_fact.h\""
+    require_literal "src/compiler/mir_stmt_population.h" "mir_set_inst_source_statement_index(&new_insts[*new_count - 1]"
     require_literal "src/compiler/mir_non_cfg_stmt_population.h" "routine->hir_routine != NULL && routine->hir_routine->has_cfg"
     require_literal "src/compiler/mir_call_fact.h" "mir_attach_statement_call_fact"
     require_literal "src/compiler/mir_call_fact.h" "inst->arg0 = stmt->data.call.callee->data.identifier.name"
@@ -105,6 +109,7 @@ fi
 if [[ "$DOCS_CHECK_DONE" -eq 0 ]]; then
 "$PYTHON_BIN" - "$ROOT_DIR" <<'PY'
 import pathlib
+import re
 import sys
 
 root = pathlib.Path(sys.argv[1])
@@ -122,6 +127,7 @@ flow_resources_path = root / "src" / "semantic" / "type_checker_flow_resources.h
 flow_loops_path = root / "src" / "semantic" / "type_checker_flow_loops.h"
 flow_parallel_path = root / "src" / "semantic" / "type_checker_flow_parallel.h"
 mir_cleanup_path = root / "src" / "compiler" / "mir_cleanup.c"
+mir_cleanup_fact_names_path = root / "src" / "compiler" / "mir_cleanup_fact_names.h"
 mir_call_fact_path = root / "src" / "compiler" / "mir_call_fact.h"
 mir_cfg_contract_cleanup_fact_path = root / "src" / "compiler" / "mir_cfg_contract_cleanup_fact.h"
 mir_cfg_contract_pin_path = root / "src" / "compiler" / "mir_cfg_contract_pin.h"
@@ -138,6 +144,7 @@ hir_lower_cfg_path = root / "src" / "compiler" / "hir_lower_cfg.c"
 hir_lower_intent_cfg_path = root / "src" / "compiler" / "hir_lower_intent_cfg.c"
 mir_c_control_emit_path = root / "src" / "codegen" / "transpiler_mir_cfg_control_emit.h"
 mir_llvm_control_emit_path = root / "src" / "codegen" / "llvm_mir_cfg_control.c"
+mir_llvm_block_emit_path = root / "src" / "codegen" / "llvm_mir_block_emit.h"
 mir_llvm_for_in_control_path = root / "src" / "codegen" / "llvm_mir_for_in_control.c"
 mir_llvm_internal_api_path = root / "src" / "codegen" / "llvm_internal_api.h"
 mir_tests_path = root / "src" / "test_mir.c"
@@ -181,6 +188,7 @@ for path in (
     flow_loops_path,
     flow_parallel_path,
     mir_cleanup_path,
+    mir_cleanup_fact_names_path,
     mir_call_fact_path,
     mir_cfg_contract_cleanup_fact_path,
     mir_cfg_contract_pin_path,
@@ -197,6 +205,7 @@ for path in (
     hir_lower_intent_cfg_path,
     mir_c_control_emit_path,
     mir_llvm_control_emit_path,
+    mir_llvm_block_emit_path,
     mir_llvm_for_in_control_path,
     mir_llvm_internal_api_path,
     mir_tests_path,
@@ -260,13 +269,16 @@ flow = (
     + expr_path.read_text(encoding="utf-8")
 )
 mir_cleanup = mir_cleanup_path.read_text(encoding="utf-8")
+mir_cleanup_fact_names = mir_cleanup_fact_names_path.read_text(encoding="utf-8")
 mir_call_fact = mir_call_fact_path.read_text(encoding="utf-8")
 mir_cfg_contract_cleanup_fact = mir_cfg_contract_cleanup_fact_path.read_text(encoding="utf-8")
 mir_cfg_contract_pin = mir_cfg_contract_pin_path.read_text(encoding="utf-8")
 mir_cfg_contract_control = mir_cfg_contract_control_path.read_text(encoding="utf-8")
 mir_cfg_contract_validate = mir_cfg_contract_validate_path.read_text(encoding="utf-8")
 mir_cfg_contract_validator = (
-    mir_cfg_contract_cleanup_fact
+    mir_cleanup_fact_names
+    + "\n"
+    + mir_cfg_contract_cleanup_fact
     + "\n"
     + mir_cfg_contract_pin
     + "\n"
@@ -284,10 +296,13 @@ mir_codegen_control = (
     + "\n"
     + mir_llvm_control_emit_path.read_text(encoding="utf-8")
     + "\n"
+    + mir_llvm_block_emit_path.read_text(encoding="utf-8")
+    + "\n"
     + mir_llvm_for_in_control_path.read_text(encoding="utf-8")
     + "\n"
     + mir_llvm_internal_api_path.read_text(encoding="utf-8")
 )
+mir_llvm_block_emit = mir_llvm_block_emit_path.read_text(encoding="utf-8")
 mir_tests = "\n".join(
     [mir_tests_path.read_text(encoding="utf-8")]
     + [path.read_text(encoding="utf-8") for path in mir_test_case_paths]
@@ -551,6 +566,7 @@ required_mir_owner_terms = {
         "#include \"mir_cfg_contract_control.h\"",
         "mir_stmt_ast_is_cfg_owned_control(stmt)",
         "#include \"mir_call_fact.h\"",
+        "mir_set_inst_source_statement_index(&new_insts[*new_count - 1]",
     ],
     "src/compiler/mir_non_cfg_stmt_population.h": [
         "mir_append_non_cfg_body_statements",
@@ -871,6 +887,32 @@ if "source_statement_inventory.items[inst->source_statement_index]" in mir_ssa_u
         "not reopen block source_statement_inventory"
     )
 
+if re.search(
+    r"has_source_location\s*&&\s*inst->source_ast_type\s*==\s*AST_WITH_STMT",
+    mir_llvm_block_emit,
+):
+    raise SystemExit(
+        "LLVM with-slot claim setup must not require source-location metadata"
+    )
+
+if re.search(
+    r"for\s*\([^)]*mir_block->instruction_count[^)]*\)\s*\{[^{}]*"
+    r"MIR_INST_RESOURCE_OP[^{}]*AST_WITH_STMT",
+    mir_llvm_block_emit,
+    flags=re.S,
+):
+    raise SystemExit(
+        "LLVM with-slot claim setup must not reintroduce a block-entry prepass"
+    )
+
+if re.search(
+    r"case\s+MIR_INST_STMT\s*:[\s\S]*?source_ast_type\s*==\s*AST_WITH_STMT",
+    mir_llvm_block_emit,
+):
+    raise SystemExit(
+        "LLVM with-slot claim setup must consume resource-op Claim facts, not residual statements"
+    )
+
 for term in [
     "PGY_CODE_SEM_UNINIT_LOCAL",
     "PGY_CAUSE_UNINIT_LOCAL",
@@ -914,6 +956,16 @@ require_literal "src/codegen/transpiler_helpers.h" "mir_instruction_intent_step_
 if grep -RIn "inst->arg1 == NULL || strcmp(inst->arg1, step_name)" \
     "$ROOT_DIR/src/codegen/transpiler_helpers.h"; then
     echo "C intent helper must use MIR intent step matching API" >&2
+    exit 1
+fi
+if grep -n "source_ast_type != AST_INTENT_STEP" \
+    "$ROOT_DIR/src/codegen/llvm_intent_flow.c"; then
+    echo "LLVM intent step collection must consume MIR intent-step facts, not source_ast_type filters" >&2
+    exit 1
+fi
+if grep -n "source_ast_type != AST_INTENT_STEP" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_inventory_intent.h"; then
+    echo "C intent step collection must consume MIR intent-step facts, not source_ast_type filters" >&2
     exit 1
 fi
 
@@ -998,6 +1050,8 @@ MIR_OUT="$WORK_DIR/mir.txt"
 PARALLEL_SELECT="$WORK_DIR/parallel_select.pgy"
 PARALLEL_SELECT_AST="$WORK_DIR/parallel_select_ast.txt"
 PARALLEL_SELECT_MIR="$WORK_DIR/parallel_select_mir.txt"
+WITH_SLOT_ORDER="$WORK_DIR/with_slot_order.pgy"
+WITH_SLOT_ORDER_C="$WORK_DIR/with_slot_order.c"
 
 "$PGY" "$EXAMPLE_FOR_PGY" --hir-cfg > "$HIR_CFG_OUT"
 "$PGY" "$EXAMPLE_FOR_PGY" --hir-dom > "$HIR_DOM_OUT"
@@ -1021,6 +1075,21 @@ EOF
 PARALLEL_SELECT_FOR_PGY="$(to_native_path_for_pgy "$PARALLEL_SELECT")"
 "$PGY" "$PARALLEL_SELECT_FOR_PGY" --ast > "$PARALLEL_SELECT_AST"
 "$PGY" "$PARALLEL_SELECT_FOR_PGY" --mir > "$PARALLEL_SELECT_MIR"
+
+cat > "$WITH_SLOT_ORDER" <<'EOF'
+func Cost() -> Int {
+    return 4;
+}
+
+func Main() -> Void {
+    with slot<Int> as s {
+        Write(s, Cost());
+        Print(ToString(Read(s)));
+    }
+}
+EOF
+WITH_SLOT_ORDER_FOR_PGY="$(to_native_path_for_pgy "$WITH_SLOT_ORDER")"
+"$PGY" "$WITH_SLOT_ORDER_FOR_PGY" --emit-c -o "$WITH_SLOT_ORDER_C" > "$WORK_DIR/with_slot_order.out"
 
 grep -Fq "HIR cfg view" "$HIR_CFG_OUT"
 grep -Fq "function MergeRouteScore" "$HIR_CFG_OUT"
@@ -1050,5 +1119,12 @@ grep -Fq "Parallel:" "$PARALLEL_SELECT_AST"
 grep -Fq "ChannelSend: ch <- 7" "$PARALLEL_SELECT_AST"
 grep -Fq "inst[01] stmt" "$PARALLEL_SELECT_MIR"
 grep -Fq "ast-type=9" "$PARALLEL_SELECT_MIR"
+
+claim_line="$(grep -n "PgySlot_Int s = pgy_claim_Int();" "$WITH_SLOT_ORDER_C" | head -1 | cut -d: -f1)"
+read_line="$(grep -n "pgy_read_Int(&s)" "$WITH_SLOT_ORDER_C" | head -1 | cut -d: -f1)"
+if [[ -z "$claim_line" || -z "$read_line" || "$claim_line" -ge "$read_line" ]]; then
+    echo "with-slot MIR resource ops must preserve source order before residual Read statements" >&2
+    exit 1
+fi
 
 echo "cfg-body-dataflow smoke: PASS $EXAMPLE"

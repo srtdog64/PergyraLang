@@ -19,7 +19,7 @@ pgy_ast_uses_thread_pool(const ASTNode *node)
 
 static bool
 pgy_mir_instruction_uses_thread_pool(const MIRInstruction *inst,
-                                     bool allow_ast_fallback)
+                                     bool allow_legacy_ast_probe)
 {
     if (inst == NULL)
         return false;
@@ -27,7 +27,7 @@ pgy_mir_instruction_uses_thread_pool(const MIRInstruction *inst,
     if (inst->has_surface_usage_facts)
         return inst->uses_thread_pool_surface;
 
-    if (!allow_ast_fallback)
+    if (!allow_legacy_ast_probe)
         return false;
 
     /*

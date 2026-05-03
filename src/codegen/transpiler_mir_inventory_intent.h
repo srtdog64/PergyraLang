@@ -183,13 +183,10 @@ transpiler_collect_mir_intent_steps(const MIRRoutine *routine, ASTNode ***steps_
             const MIRInstruction *inst = &block->instructions[ii];
             ASTNode **grown;
 
-            if (inst->ast == NULL
-                || !inst->has_source_location
-                || inst->source_ast_type != AST_INTENT_STEP) {
+            if (mir_instruction_intent_step_name(inst) == NULL
+                || inst->ast == NULL) {
                 continue;
             }
-            if (!mir_instruction_is_intent_stmt(inst, "IntentStep"))
-                continue;
             if (count >= capacity) {
                 size_t new_capacity = capacity == 0 ? 8 : capacity * 2;
                 grown = realloc(steps, new_capacity * sizeof(ASTNode *));

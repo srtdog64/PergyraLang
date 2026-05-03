@@ -236,7 +236,8 @@ C 백엔드:
   hosted func   -> TypeName_FuncName(Type *self, ...)
   action        -> TypeName_ActionName(Type *self, ...)
 
-JS 백엔드 (미래):
+직접 JS 백엔드 (beta+1 이후 재검토, 베타 dogfood 경로 아님):
+  note         -> direct JS backend is beta+1, not the beta dogfood path
   free func     -> function FuncName(...) { }
   hosted func   -> class Type { FuncName() { this.xxx } }
   action        -> class Type { ActionName() { this.xxx } }

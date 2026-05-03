@@ -19,6 +19,26 @@ llvm_mir_for_in_index_name(const char *variable, char *buf, size_t buf_size)
     snprintf(buf, buf_size, "__pgy_idx_%s", variable != NULL ? variable : "it");
 }
 
+static LLVMFuncEntry *
+llvm_mir_for_in_required_runtime(LLVMGenCtx *ctx,
+                                 const MIRInstruction *inst,
+                                 const char *function_name)
+{
+    LLVMFuncEntry *fn = function_name != NULL
+        ? llvm_lookup_function(ctx, function_name)
+        : NULL;
+
+    if (fn == NULL && ctx != NULL && !ctx->has_error) {
+        llvm_set_error_at_with_hints(ctx, inst != NULL ? inst->ast : NULL,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "LLVM MIR for-in lowering requires registered runtime function '%s'",
+            function_name != NULL ? function_name : "<missing>");
+    }
+    return fn;
+}
+
 bool
 llvm_mir_emit_for_in_loop_init(const MIRInstruction *inst, LLVMGenCtx *ctx)
 {
@@ -82,8 +102,8 @@ llvm_mir_emit_for_in_loop_condition(const MIRInstruction *inst, LLVMGenCtx *ctx)
     if (iterable->type == AST_IDENTIFIER) {
         const char *iter_name = iterable->data.identifier.name;
         LLVMVarEntry *list_var = llvm_scope_lookup(ctx, iter_name);
-        LLVMFuncEntry *size_fn =
-            llvm_lookup_function(ctx, "pgy_list_size_raw_export");
+        LLVMFuncEntry *size_fn = llvm_mir_for_in_required_runtime(ctx, inst,
+            "pgy_list_size_raw_export");
         if (list_var != NULL && size_fn != NULL) {
             LLVMValueRef args[] = {
                 LLVMBuildBitCast(ctx->builder, list_var->alloca,
@@ -215,7 +235,8 @@ llvm_mir_emit_for_in_body_binding(const MIRRoutine *routine,
     }
     llvm_mir_for_in_index_name(variable, idx_name, sizeof(idx_name));
     idx_var = llvm_scope_lookup(ctx, idx_name);
-    get_fn = llvm_lookup_function(ctx, "pgy_list_get_raw_export");
+    get_fn = llvm_mir_for_in_required_runtime(ctx, branch_inst,
+        "pgy_list_get_raw_export");
     if (loop_var == NULL || loop_var->alloca == NULL
         || idx_var == NULL || idx_var->alloca == NULL || get_fn == NULL) {
         return true;

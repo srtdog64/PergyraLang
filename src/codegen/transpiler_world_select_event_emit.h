@@ -1,12 +1,21 @@
+static ASTNode *
+transpiler_frontier_lookup_zone(void *ctx, const char *zone_name)
+{
+    return find_zone_decl((TranspilerCtx *)ctx, zone_name);
+}
+
 void
 emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
 {
     const char *name = node->data.world_decl.name;
     ASTNode *inventory_decl = transpiler_find_decl_in_inventory_local(
         ctx, AST_WORLD_DECL, name);
+    size_t embedded_frontier_count;
 
     if (inventory_decl != NULL)
         node = inventory_decl;
+    embedded_frontier_count = pgy_domain_world_embedded_frontier_count(
+        node, transpiler_frontier_lookup_zone, ctx);
 
     codebuf_write(ctx->out, "\n/* World: %s */\n", name);
     codebuf_write(ctx->out, "typedef struct %s\n{\n", name);
@@ -152,8 +161,8 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
     codebuf_write(ctx->out, "size_t _pgy_world_frontier_pass = 0;\n");
     write_indent(ctx);
     codebuf_write(ctx->out, "size_t _pgy_world_frontier_pass_limit = %zu;\n",
-        pgy_frontier_world_transitive_pass_limit(node->data.world_decl.zone_count,
-            node->data.world_decl.state_count));
+        pgy_domain_world_transitive_frontier_pass_limit(
+            node, embedded_frontier_count));
     write_indent(ctx);
     codebuf_write(ctx->out, "bool _pgy_world_frontier_continue = true;\n");
     write_indent(ctx);
@@ -214,7 +223,7 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
     codebuf_write(ctx->out, "size_t _pgy_world_pass = 0;\n");
     write_indent(ctx);
     codebuf_write(ctx->out, "size_t _pgy_world_pass_limit = %zu;\n",
-        pgy_frontier_world_derived_pass_limit(node->data.world_decl.state_count));
+        pgy_domain_world_derived_frontier_pass_limit(node));
     write_indent(ctx);
     codebuf_write(ctx->out, "bool _pgy_world_continue = true;\n");
     write_indent(ctx);

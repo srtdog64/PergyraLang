@@ -226,6 +226,9 @@ main(void)
     TEST("AIR rejects empty MIR terminator evidence");
     EXPECT(test_air_rejects_empty_mir_terminator_evidence());
 
+    TEST("AIR collects Void fallthrough terminator evidence");
+    EXPECT(test_air_collects_void_fallthrough_terminator_evidence());
+
     TEST("AIR strict evidence requires MIR terminator evidence");
     EXPECT(test_air_strict_evidence_requires_mir_terminator_evidence());
 

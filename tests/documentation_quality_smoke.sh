@@ -27,6 +27,16 @@ forbid_text() {
     fi
 }
 
+require_terms() {
+    local rel="$1"
+    local term
+
+    while IFS= read -r term; do
+        [[ -z "$term" ]] && continue
+        require_text "$rel" "$term"
+    done
+}
+
 validate_utf8_file() {
     local path="$1"
     local rel="${path#"$ROOT_DIR/"}"
@@ -50,6 +60,7 @@ required_files=(
     "docs/118_slot_model_rigor_audit.md"
     "docs/README_ko.md"
     "docs/121_types_as_domain_medium.md"
+    "docs/23_js_backend_policy.md"
     "docs/05_async_concurrency.md"
     "docs/113_memory_concurrency_model.md"
     "docs/114_async_model_positioning.md"
@@ -74,12 +85,14 @@ while IFS= read -r -d '' path; do
 done < <(find "$ROOT_DIR/docs" "$ROOT_DIR/examples" -type f \( -name '*.md' -o -name '*.pgy' \) -print0)
 validate_utf8_file "$ROOT_DIR/TODO.md"
 
-require_text "TODO.md" "Pergyra TODO (배포 준비)"
+require_text "TODO.md" "Pergyra TODO"
 
 index_terms=(
     "PergyraLang Documentation Index"
     "Beta Closure Source Of Truth"
+    "Historical Snapshots"
     "19_design_philosophy.md"
+    "Historical readiness snapshot; do not cite as the current beta verdict"
     "Async, Parallel, And Memory"
     "116_documentation_quality_audit.md"
     "Current Documentation Policy"
@@ -97,7 +110,7 @@ systems_identity_terms=(
     "optional runtime"
     "compile-time determinism"
     "pgyc --runtime=none main.pgy"
-    "intent/zone/world의 어떤 변경도 C FFI ABI를 깨면 안 된다"
+    "C FFI ABI"
 )
 for term in "${systems_identity_terms[@]}"; do
     require_text "docs/19_design_philosophy.md" "$term"
@@ -115,6 +128,16 @@ audit_terms=(
 )
 for term in "${audit_terms[@]}"; do
     require_text "docs/116_documentation_quality_audit.md" "$term"
+done
+
+readiness_snapshot_terms=(
+    "Beta Closure Readiness Report (Historical Snapshot)"
+    "Status: historical snapshot"
+    "The live beta-readiness source of truth is"
+    "docs/100_beta_readiness_checklist.md"
+)
+for term in "${readiness_snapshot_terms[@]}"; do
+    require_text "docs/98_beta_closure_readiness_report.md" "$term"
 done
 
 slot_rigor_terms=(
@@ -215,15 +238,15 @@ for rel in docs/10_role_interface_design.md docs/11_party_system_design.md; do
 done
 
 self_hosting_terms=(
-    "self-hosting은 beta blocker가 아니라 beta 이후의 검증 목표"
-    "compiler-adjacent tool부터"
+    "Self-host work begins after BETA closure"
+    "partial self-host"
     "AIR graph JSON validator"
     "MIR dump diff tool"
     "C/LLVM backend output comparator"
-    "full self-hosted compiler는 장기 proof target"
-    "Slot은 포인터 주소가"
-    "static verifier는 unsafe"
-    "boundary transition을 거절"
+    "full self-host"
+    "slot model removes"
+    "Missing for full self-host"
+    "Stable C escape hatch policy"
 )
 for term in "${self_hosting_terms[@]}"; do
     require_text "TODO.md" "$term"
@@ -247,9 +270,19 @@ readme_anti_hype_terms=(
     "not a whole-language stability claim"
     "Do not describe Pergyra as production-ready"
     "beta core candidate"
+    "Current beta-readiness source of truth"
+    "docs/100_beta_readiness_checklist.md"
+    "historical snapshot"
+    "examples/wasm_hello/"
+    "make dogfood-webgl-test-smoke"
 )
 for term in "${readme_anti_hype_terms[@]}"; do
     require_text "README.md" "$term"
+done
+
+for forbidden in \
+    "Current beta-readiness audit"; do
+    forbid_text "README.md" "$forbidden"
 done
 
 readme_ko_anti_hype_terms=(
@@ -257,6 +290,8 @@ readme_ko_anti_hype_terms=(
     "production-ready"
     "Rust-level memory safe"
     "fully proven"
+    "make dogfood-webgl-test-smoke"
+    "examples/wasm_hello/"
 )
 for term in "${readme_ko_anti_hype_terms[@]}"; do
     require_text "docs/README_ko.md" "$term"
@@ -302,6 +337,41 @@ stable_subset_slot_terms=(
 for term in "${stable_subset_slot_terms[@]}"; do
     require_text "docs/107_beta_stable_subset.md" "$term"
 done
+
+require_terms "docs/65_stable_example_surface_board.md" <<'EOF'
+tests/dogfood_webgl_smoke.sh
+examples/wasm_hello/
+stable dogfood bridge
+not a native WASM backend
+not stable WebGL language surface
+not full GPU/Spray stability
+not stable `page` / `http` / `storage` modules
+EOF
+
+stable_section="$(
+    sed -n '/^## 1\. Stable examples/,/^## 2\. Design sketch examples/p' \
+        "$ROOT_DIR/docs/65_stable_example_surface_board.md"
+)"
+while IFS= read -r entry; do
+    [[ -z "$entry" ]] && continue
+    example="${entry%\`}"
+    example="${example#\`}"
+    token="${example%/}"
+    if ! grep -Fq -- "$token" "$ROOT_DIR/tests/example_contract_smoke.sh" &&
+       ! grep -Fq -- "$token" "$ROOT_DIR/tests/dogfood_webgl_smoke.sh"; then
+        fail "stable example is not smoke-covered: $example"
+    fi
+done < <(grep -Eo '`examples/[^`]+`' <<<"$stable_section")
+
+require_terms "docs/23_js_backend_policy.md" <<'EOF'
+Status: beta+1 / historical design note
+Direct `.pgy -> JS` backend work is not
+Pergyra -> C backend --emit-c -> optional Emscripten/WebGL bridge
+the beta or first dogfood path
+pgy.render.webgl
+not promoted to core language
+EOF
+require_text "docs/grammar/02_grammar.md" "direct JS backend"
 
 guide_terms=(
     "Use named \`spawn Worker(args...)\` for beta-stable task creation"
@@ -364,14 +434,14 @@ for term in "${grammar_terms[@]}"; do
 done
 
 orthogonality_terms=(
-    "네 개의 상위 축"
-    "통합은 verifier graph에서 하고, ownership은 각 의미 축 owner에 남긴다"
-    "intent는 모든 권한의 owner가 아니다"
+    "Resource |"
+    "Execution |"
+    "Domain |"
+    "Type/Contract |"
     "ability/role vs authority"
     "zone vs world"
-    "직교성 audit 절차"
-    "owner fact는 흐려지면 안 된다"
-    "AIR는 통합 검증 레이어이지"
+    "Orthogonality Audit Procedure"
+    "AIR is not the owner"
 )
 for term in "${orthogonality_terms[@]}"; do
     require_text "docs/42_keyword_orthogonality.md" "$term"
@@ -379,10 +449,10 @@ done
 
 compiler_contract_orthogonality_terms=(
     "Compiler-facing orthogonality rule"
-    "backend가 AST를 다시 걸어 semantic feature를 재발견하는 것"
-    "authority/effect/zone의 최종 판정을 대신하는 것"
+    "backend semantic"
+    "DIR/RIR/AIR evidence"
     "Slot / Pin vs Static Lifetime"
-    "이전 문서에서 이들을 \`TOKEN_IDENTIFIER\`로 둔 표기는 lexer/parser 계약 drift로 본다"
+    "TOKEN_IDENTIFIER"
 )
 for term in "${compiler_contract_orthogonality_terms[@]}"; do
     require_text "docs/37_compiler_contracts.md" "$term"

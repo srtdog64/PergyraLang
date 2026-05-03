@@ -143,7 +143,7 @@ llvm_emit_world_sync(ASTNode *stmt, const char *decl_name,
         }
 
         llvm_world_sync_emit_frontier(stmt, decl_cls, sync_fn,
-            derived_dirty_addr, needs_derived_addr, derived_ptr, zone_count, ctx);
+            derived_dirty_addr, needs_derived_addr, derived_ptr, ctx);
 
         /* prev_active_addrs is ctx->scratch-owned. */
     }

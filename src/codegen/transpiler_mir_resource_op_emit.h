@@ -68,7 +68,6 @@ transpiler_emit_mir_resource_op_inst(CodeBuf *buf,
     }
     if (inst->name != NULL && strcmp(inst->name, "Claim") == 0
         && (inst->ast == NULL
-            || !inst->has_source_location
             || inst->source_ast_type != AST_WITH_STMT)) {
         return TRANSPILE_MIR_INST_HANDLED;
     }

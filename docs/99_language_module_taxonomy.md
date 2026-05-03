@@ -13,6 +13,7 @@ pgy.foundation
   -> pgy.core
        -> pgy.execution
        -> pgy.accel.spray
+       -> pgy.render.webgl
        -> pgy.render.skia
        -> pgy.compat.oop
        -> pgy.compat.dop
@@ -159,7 +160,22 @@ AI-first 방향을 위해 필요한 GPU/accelerator 축이다. 다만 이것은 
 - AI operator는 언어 키워드가 아니라 `pgy.accel.spray`의 표준 라이브러리 API로 제공한다.
 - tensor/functor/HKT 일반화는 이 모듈의 전제 조건이 아니다. 베타 이후에도 먼저 concrete tensor/operator contract를 닫고, 추상 FP 계층은 별도 검토한다.
 
-## 7. `pgy.render.skia`
+## 7. `pgy.render.webgl`
+
+Post-beta browser render bridge module. WebGL is not core language syntax and
+is not beta-stable surface. The beta dogfood smoke only validates emitted-C
+host imports and optional Emscripten linking; real WebGL API shape, resource
+wrappers, shader/upload helpers, and browser runtime glue belong here after
+beta closure.
+
+Beta 기준:
+
+- `pgy.render.webgl` is a reserved logical module name only.
+- No WebGL keyword, shader syntax, or renderer-specific ABI is opened in core.
+- `examples/wasm_hello/` is a bridge proof, not the module API contract.
+- Native LLVM wasm remains beta+1.
+
+## 7b. `pgy.render.skia`
 
 Skia, shader, render graph는 장기 경쟁력에 중요하지만 core 문법이 아니다. `pgy.render.skia`는 Spray와 같은 생태계 모듈이며, 그래픽 리소스 수명과 backend adapter를 명시적으로 다룬다.
 

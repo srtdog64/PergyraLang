@@ -42,6 +42,30 @@ while IFS= read -r src; do
     fi
 done <<< "$inventory"
 
+if command -v git >/dev/null 2>&1 \
+    && git -C "$ROOT_DIR" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    while IFS= read -r tracked; do
+        [[ -n "$tracked" ]] || continue
+        if git -C "$ROOT_DIR" ls-files --deleted -- "$tracked" \
+            | grep -Fxq "$tracked"; then
+            continue
+        fi
+        [[ -f "$ROOT_DIR/$tracked" ]] || continue
+
+        magic="$(
+            LC_ALL=C head -c 4 "$ROOT_DIR/$tracked" 2>/dev/null \
+                | od -An -tx1 2>/dev/null \
+                | tr -d ' \n'
+        )"
+        case "$magic" in
+            7f454c46|4d5a9000|feedface|feedfacf|cefaedfe|cffaedfe)
+                echo "[build-source-inventory] tracked executable artifact is not allowed: $tracked" >&2
+                missing=1
+                ;;
+        esac
+    done < <(git -C "$ROOT_DIR" ls-files 'tests/cases' 'examples')
+fi
+
 if [[ "$missing" -ne 0 ]]; then
     exit 1
 fi

@@ -1,158 +1,161 @@
 # Pergyra JavaScript Backend Policy
 
-마지막 업데이트: 2026-04-04
+WebGL module boundary (2026-05-04): WebGL is not promoted to core language
+surface. The beta path is only `Pergyra -> C backend --emit-c -> optional
+Emscripten/WebGL bridge`; it is an embedding/module bridge proof. `pgy.render.webgl`
+is reserved as a post-beta ecosystem module alongside `pgy.render.skia`, while
+direct JS backend and native LLVM wasm remain beta+1.
 
-## 목적
+留덉?留??낅뜲?댄듃: 2026-05-04
 
-JavaScript 백엔드는 브라우저와 Node.js 실행을 위한 타겟이다.
-하지만 JS 생태계의 `class` / `extends` / 부모 호출 의미론이
-Pergyra 코어 존재론을 오염시키면 안 된다.
+Status: beta+1 / historical design note. Direct `.pgy -> JS` backend work is not
+the beta or first dogfood path. The current beta dogfood path is
+`Pergyra -> C backend --emit-c -> optional Emscripten/WebGL bridge`; see
 
-따라서 JS 백엔드는 **언어 의미론을 JS에 맞추는 작업**이 아니라,
-**Pergyra 의미론을 JS 위에 보존해서 내리는 작업**이어야 한다.
+직접 JS 백엔드는 베타 dogfood 경로가 아님.
+`TODO.md` 짠0b and `docs/100_beta_readiness_checklist.md`.
 
-또한 멀티플랫폼 전략의 우선순위는 개별 플랫폼 언어 백엔드보다
-**공통 UI IR**이 먼저다.
-즉 Kotlin/Android 전용 백엔드를 서둘러 늘리기보다,
-native / web / mobile이 함께 소비할 수 있는
-scene/projection UI IR을 먼저 고정해야 한다.
+## 紐⑹쟻
 
-## 고정 원칙
+JavaScript 諛깆뿏?쒕뒗 beta+1 ?댄썑 ?ш??좏븷 ???덈뒗 釉뚮씪?곗?? Node.js ?ㅽ뻾
+?寃잛씠??
+?섏?留?JS ?앺깭怨꾩쓽 `class` / `extends` / 遺紐??몄텧 ?섎?濡좎씠
+Pergyra 肄붿뼱 議댁옱濡좎쓣 ?ㅼ뿼?쒗궎硫????쒕떎.
 
-- 코어 언어는 inheritance를 기본 의미론으로 채택하지 않는다
-- 코어 언어는 부모 호출 표면을 기본 표면으로 채택하지 않는다
-- 재사용은 `ability`, `role`, composition, delegation을 우선한다
-- JS backend는 필요하면 내부 lowering에서 delegation/mixin/object composition을 사용한다
-- JS interop은 별도 `extern js` 계층으로 분리한다
+?곕씪??JS 諛깆뿏?쒕뒗 **?몄뼱 ?섎?濡좎쓣 JS??留욎텛???묒뾽**???꾨땲??
+**Pergyra ?섎?濡좎쓣 JS ?꾩뿉 蹂댁〈?댁꽌 ?대━???묒뾽**?댁뼱???쒕떎.
 
-즉 JS 백엔드가 필요하다는 이유로
-Pergyra 코어에 `extends` / 부모 호출 / prototype-chain 중심 사고를 들이지 않는다.
+?먰븳 硫?고뵆?ロ뤌 ?꾨왂???곗꽑?쒖쐞??媛쒕퀎 ?뚮옯???몄뼱 諛깆뿏?쒕낫??**怨듯넻 UI IR**??癒쇱???
+利?Kotlin/Android ?꾩슜 諛깆뿏?쒕? ?쒕몮???섎━湲곕낫??
+native / web / mobile???④퍡 ?뚮퉬?????덈뒗
+scene/projection UI IR??癒쇱? 怨좎젙?댁빞 ?쒕떎.
 
-## 존재론 대응
+## 怨좎젙 ?먯튃
 
+- 肄붿뼱 ?몄뼱??inheritance瑜?湲곕낯 ?섎?濡좎쑝濡?梨꾪깮?섏? ?딅뒗??- 肄붿뼱 ?몄뼱??遺紐??몄텧 ?쒕㈃??湲곕낯 ?쒕㈃?쇰줈 梨꾪깮?섏? ?딅뒗??- ?ъ궗?⑹? `ability`, `role`, composition, delegation???곗꽑?쒕떎
+- JS backend??beta+1 ?댄썑 ?꾩슂?깆씠 ?낆쬆?섎㈃ ?대? lowering?먯꽌
+  delegation/mixin/object composition???ъ슜?쒕떎
+- JS interop? beta+1 ?댄썑 蹂꾨룄 `extern js` 怨꾩링?쇰줈 遺꾨━?쒕떎
+
+利?JS 諛깆뿏?쒓? ?꾩슂?섎떎???댁쑀濡?Pergyra 肄붿뼱??`extends` / 遺紐??몄텧 / prototype-chain 以묒떖 ?ш퀬瑜??ㅼ씠吏 ?딅뒗??
+
+## 議댁옱濡????
 ### struct
 
 - plain value object
-- shallow immutable-ish record lowering을 우선
-- 필요하면 simple object literal 또는 helper constructor로 생성
+- shallow immutable-ish record lowering???곗꽑
+- ?꾩슂?섎㈃ simple object literal ?먮뒗 helper constructor濡??앹꽦
 
 ### subject
 
 - identity-bearing active host
-- hidden self-cell / state cell을 가진 object로 lowering
-- plain structural copy를 허용하지 않음
-- method는 value-copy receiver가 아니라 identity cell 기반 dispatch로 본다
+- hidden self-cell / state cell??媛吏?object濡?lowering
+- plain structural copy瑜??덉슜?섏? ?딆쓬
+- method??value-copy receiver媛 ?꾨땲??identity cell 湲곕컲 dispatch濡?蹂몃떎
 
-가능한 lowering 방향:
+媛?ν븳 lowering 諛⑺뼢:
 
 - closure-backed cell object
-- hidden state slot을 가진 plain object
+- hidden state slot??媛吏?plain object
 - generated factory + method table
 
-핵심은 JS `class` 문법을 쓰느냐가 아니라,
-**subject가 passive value가 아니라 identity-bearing host로 유지되느냐**다.
+?듭떖? JS `class` 臾몃쾿???곕뒓?먭? ?꾨땲??
+**subject媛 passive value媛 ?꾨땲??identity-bearing host濡??좎??섎뒓??*??
 
 ### class
 
 - passive nominal object/value surface
-- 필요하면 JS `class` 또는 plain factory/object로 lowering 가능
-- 코어 의미론상 `subject`와 동일시하지 않는다
-
+- ?꾩슂?섎㈃ JS `class` ?먮뒗 plain factory/object濡?lowering 媛??- 肄붿뼱 ?섎?濡좎긽 `subject`? ?숈씪?쒗븯吏 ?딅뒗??
 ### object / tobject
 
 - projection / transfer representation
-- field-only surface를 우선
-- serialization-friendly shape 유지
+- field-only surface瑜??곗꽑
+- serialization-friendly shape ?좎?
 
 ### participant
 
-- 독립 ontological kind가 아니라 `subject` execution profile
-- JS lowering에서는 subject + mailbox/scheduler wrapper
-- event loop / microtask / runtime queue를 사용하더라도 본질은 execution model이다
+- ?낅┰ ontological kind媛 ?꾨땲??`subject` execution profile
+- JS lowering?먯꽌??subject + mailbox/scheduler wrapper
+- event loop / microtask / runtime queue瑜??ъ슜?섎뜑?쇰룄 蹂몄쭏? execution model?대떎
 
 ## ability / role lowering
 
-- `ability`는 JS interface 문법으로 직접 매핑하지 않는다
-- `ability`는 contract metadata + dispatch table shape로 본다
-- `role`은 mixin, delegated method bundle, generated vtable object 중 하나로 lower할 수 있다
+- `ability`??JS interface 臾몃쾿?쇰줈 吏곸젒 留ㅽ븨?섏? ?딅뒗??- `ability`??contract metadata + dispatch table shape濡?蹂몃떎
+- `role`? mixin, delegated method bundle, generated vtable object 以??섎굹濡?lower?????덈떎
 
-권장 방향:
+沅뚯옣 諛⑺뼢:
 
-1. semantic/HIR에서는 지금처럼 `ability` / `role`을 분리 유지
-2. JS lowering에서 role impl을 method bundle로 생성
-3. subject/party/zone/world가 그 bundle을 참조하게 한다
+1. semantic/HIR?먯꽌??吏湲덉쿂??`ability` / `role`??遺꾨━ ?좎?
+2. JS lowering?먯꽌 role impl??method bundle濡??앹꽦
+3. subject/party/zone/world媛 洹?bundle??李몄“?섍쾶 ?쒕떎
 
 ## relation / effect / zone / world
 
-JS 백엔드도 이 계층을 inheritance로 풀지 않는다.
+JS 諛깆뿏?쒕룄 ??怨꾩링??inheritance濡??吏 ?딅뒗??
 
-- `relation` / `effect`는 overlay state object
-- `zone`은 subject/object/tobject projection과 lifecycle state를 가진 coordinator object
-- `world`는 zone registry + lifecycle orchestrator
+- `relation` / `effect`??overlay state object
+- `zone`? subject/object/tobject projection怨?lifecycle state瑜?媛吏?coordinator object
+- `world`??zone registry + lifecycle orchestrator
 
-즉 deeper runtime semantics는 JS에서도
-prototype chain이 아니라 explicit state object와 sync step으로 푸는 것이 맞다.
+利?deeper runtime semantics??JS?먯꽌??prototype chain???꾨땲??explicit state object? sync step?쇰줈 ?몃뒗 寃껋씠 留욌떎.
 
-## interop 정책
+## interop ?뺤콉
 
-외부 JS 코드와 붙을 때만 별도 interop surface를 고려한다.
+?몃? JS 肄붾뱶? 遺숈쓣 ?뚮쭔 蹂꾨룄 interop surface瑜?怨좊젮?쒕떎.
 
-예시 방향:
+?덉떆 諛⑺뼢:
 
 ```pergyra
 extern js class HTMLElement;
 extern js func setTimeout(cb: JsFn, ms: Int) -> JsHandle;
 ```
 
-여기서의 `js class`는 Pergyra 코어 `class/subject` 존재론이 아니라
-외부 런타임 타입을 가리키는 interop 전용 어휘여야 한다.
+?ш린?쒖쓽 `js class`??Pergyra 肄붿뼱 `class/subject` 議댁옱濡좎씠 ?꾨땲???몃? ?고?????낆쓣 媛由ы궎??interop ?꾩슜 ?댄쐶?ъ빞 ?쒕떎.
 
-## 구현 순서
+## 援ы쁽 ?쒖꽌
 
-0. 공통 UI IR 우선
+0. 怨듯넻 UI IR ?곗꽑
    - `Window`, `Scene`, `Node`, `Layout`, `DrawCommand`, `InputEvent`, `ProjectionBinding`, `DirtyScope`
-   - `subject`는 직접 UI node가 아니라 projection source
-   - `object` / `tobject` / projection surface가 UI 소비 표면
-   - `zone` / `world` dirty sync가 UI 갱신 contract
+   - `subject`??吏곸젒 UI node媛 ?꾨땲??projection source
+   - `object` / `tobject` / projection surface媛 UI ?뚮퉬 ?쒕㈃
+   - `zone` / `world` dirty sync媛 UI 媛깆떊 contract
 
-1. 코어 의미론 유지
+1. 肄붿뼱 ?섎?濡??좎?
    - `subject != class`
-   - inheritance / 부모 호출 미도입 유지
+   - inheritance / 遺紐??몄텧 誘몃룄???좎?
 
-2. JS backend IR shape 고정
+2. JS backend IR shape 怨좎젙 (beta+1 ?댄썑)
    - record
    - cell object
    - method bundle
    - async task / mailbox wrapper
 
-3. 최소 lowering
+3. 理쒖냼 lowering (beta+1 ?댄썑)
    - `struct`
    - `class`
    - `subject`
    - `tobject`
    - basic function / method / projection
 
-4. UI IR consumer로서 web surface 연결
+4. UI IR consumer濡쒖꽌 web surface ?곌껐
    - scene/projection UI IR -> browser runtime
-   - DOM / canvas / WebGL 중 구체 lowering 선택
+   - DOM / canvas / WebGL 以?援ъ껜 lowering ?좏깮
 
 5. orchestration/lifecycle
    - participant runtime
    - channel/future shim
    - zone/world sync semantics
 
-6. interop
+6. interop (beta+1 ?댄썑)
    - `extern js`
    - DOM / Node surface
 
-7. mobile 재평가
-   - Android/iOS는 우선 공통 UI IR consumer 또는 shell bridge로 접근
-   - Kotlin backend는 web/native 경로가 부족하다고 확인된 뒤 별도 검토
+7. mobile ?ы룊媛
+   - Android/iOS???곗꽑 怨듯넻 UI IR consumer ?먮뒗 shell bridge濡??묎렐
+   - Kotlin backend??web/native 寃쎈줈媛 遺議깊븯?ㅺ퀬 ?뺤씤????蹂꾨룄 寃??
+## 寃곕줎
 
-## 결론
+吏곸젒 JS 諛깆뿏?쒕뒗 踰좏? dogfood 寃쎈줈媛 ?꾨땲?? ?꾩슂?깆씠 dogfood evidence濡??낆쬆?섎㈃ beta+1 ?댄썑 ?ш??좏븳?? 洹?寃쎌슦?먮룄 肄붿뼱 ?몄뼱??inheritance??遺紐??몄텧 ?쒕㈃???ｌ쓣 ?꾩슂???녿떎.
 
-JS 백엔드는 필요하다.
-하지만 그 이유로 코어 언어에 inheritance나 부모 호출 표면을 넣을 필요는 없다.
-
-Pergyra는 계속 intent-first 설계 언어이자 subject-core host 언어로 남고,
-JS는 그 의미론을 구현하는 한 타겟일 뿐이다.
+Pergyra??怨꾩냽 intent-first ?ㅺ퀎 ?몄뼱?댁옄 subject-core host ?몄뼱濡??④퀬,
+JS??洹??섎?濡좎쓣 援ы쁽?섎뒗 ???寃잛씪 肉먯씠??

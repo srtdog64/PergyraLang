@@ -1,5 +1,11 @@
 # Beta Readiness Checklist
 
+WebGL dogfood boundary (2026-05-04): the beta dogfood path is a bridge, not
+language surface. `make dogfood-webgl-test-smoke` proves that emitted C can keep
+host-import/frame-callback terms and optionally link through Emscripten. It does
+not freeze WebGL APIs, renderer syntax, native LLVM wasm, or `pgy.render.webgl`;
+those belong to post-beta module ecosystem work.
+
 마지막 업데이트: 2026-05-04
 
 이 문서는 베타 진입 전 반드시 닫아야 하는 실행 체크리스트다. 기준은 기능 개수가 아니라 **surface trust + 구조 지속 가능성 + C/LLVM parity + CFG-backed body safety + AIR-backed abstraction safety + dogfood-first path**다. 현재 표기는 두 개로 분리한다: 기능 체감 진행도는 약 70%, strict beta readiness는 약 60%를 기준값으로 두고 현재 실무 판단은 63%까지 본다. CFG/AIR/DAG/MIR/ABI source-of-truth closure가 끝나면 75-80% 범위로 재평가한다.
@@ -65,6 +71,28 @@ Operational mode:
   MIR-validator-only state. Strict AIR also emits a global missing-evidence
   drift when real MIR input is present for boundaries but no MIR terminator
   evidence was attached.
+- 2026-05-04 CFG/MIR intent-step consumer tightening:
+  C and LLVM intent step collection now classify step instructions through
+  `mir_instruction_intent_step_name(...)` instead of rechecking
+  `source_ast_type != AST_INTENT_STEP`. AST payloads remain only as
+  expression/step emission payloads, not as the step metadata source of truth.
+  Gate: `cfg-body-dataflow-test-smoke`, `perf-contract-test-smoke`, and
+  `test-mir` (`41/0`).
+- 2026-05-04 source artifact hygiene tightening:
+  tracked ELF/PE/Mach-O executables are not allowed under `examples/` or
+  `tests/cases/`. Stale generated example and ABI/backend case binaries were
+  removed from the tracked tree; `build-source-inventory-test-smoke` now scans
+  those fixture roots for executable artifacts, and `.gitignore` covers
+  regenerated `tests/cases/**/main` outputs.
+- 2026-05-04 AIR boundary walker tightening:
+  expression-boundary counting and boundary materialization now share one
+  `AIRBoundaryWalkCtx` traversal. This removes the prior split count/append
+  AST walkers and keeps boundary allocation size, source spans, and appended
+  boundary inventory on the same abstraction-boundary traversal. AIR AST
+  boundary kind/source classification is now table-backed through
+  `AIRAstBoundaryRule`, so boundary taxonomy and user-facing source labels no
+  longer drift through separate switches. Gates: `test-air` (`75/0`),
+  `air-drift-test-smoke`, and `air-json-schema-test-smoke`.
 - 2026-05-02 debt ledger refresh:
   the current blocker map is now separated into closed seams and remaining
   source-of-truth seams. CFG/MIR use facts prefer instruction-carried
@@ -284,6 +312,26 @@ Operational mode:
   `semantic_type_resolution_lookup_type_ref_or_materialize(...)`. Gate:
   `make test-semantic type-resolution-dag-test-smoke
   type-resolution-resolver-inventory-test-smoke`.
+- 2026-05-04 DAG stable-shell vocabulary tightening:
+  stable generic shell arity and constructed-shell lookup now share a
+  `StableShellSpec` table instead of parallel `strcmp` chains. Slot-like shell
+  materialization uses a `StableSlotShellSpec` dispatch table for `Slot`,
+  `SecureSlot`, `ReadView`, `WriteView`, and `MoveToken` constructor selection.
+  The resolver inventory smoke now gates these tables rather than the previous
+  branch strings. Current gate:
+  `type-resolution-resolver-inventory-test-smoke`,
+  `type-resolution-dag-test-smoke`, and `pgy`
+  (`retired_resolver_calls=0`, `materializer_unresolved=0`).
+- 2026-05-04 DAG direct named resolver closure:
+  expression/world host access and overlay world-zone slot registration now use
+  metadata-only named-type lookup seams. The retired `resolve_named_type(...)`
+  API and prototypes were removed, and the resolver inventory smoke rejects
+  reintroducing the symbol anywhere under `src/semantic`. Named-type reads can
+  no longer silently bypass DAG metadata through that compatibility entrypoint.
+  The unused `type_checker_resolution_helpers.h` compatibility header is also
+  gone; internal declarations live in `type_checker_internal.h`.
+  Gates: `type-resolution-resolver-inventory-test-smoke`,
+  `type-resolution-dag-test-smoke`, and `test-semantic` (`2500/0`).
 - 2026-05-03 intent compression provenance tightening:
   `where`-derived unique zone bindings now leave an explicit
   `derived_using_from_where` fact instead of looking like a local `using`
@@ -635,6 +683,13 @@ Operational mode:
   requires the MIR validator to reject both. Cleanup topology fields are not
   sufficient beta evidence unless the named MIR cleanup fact inventory is
   preserved.
+- 2026-05-04 cleanup fact vocabulary gate:
+  `src/compiler/mir_cleanup_fact_names.h` now owns the cleanup-edge,
+  rollback/invalidation cleanup-edge, `pin-unpin-cleanup-edge`, cleanup anchor,
+  and read/write pin cleanup labels. MIR cleanup generation, MIR validation,
+  AIR evidence collection, and C emission contract validation consume the same
+  constants, so cleanup evidence can no longer drift by duplicating literals in
+  separate consumers.
 - 2026-04-29 AIR inspection update:
   `pgy --air <source.pgy>` dumps the AIR verification summary after evidence
   collection and before drift failure. AIR remains verification-only and is not
@@ -1597,6 +1652,22 @@ Runtime frontier scheduler closure:
   `pgy_frontier_world_transitive_pass_limit(...)` policy in both C and LLVM.
   This makes the world zone-sync plus derived-state recompute family a shared
   source-of-truth contract instead of two backend-local helper choices.
+- 2026-05-04 update: the transitive world frontier pass limit now includes the
+  embedded zone frontier budget (`zone.state_count + zone.layer_slot_count`)
+  in addition to world zone/state counts. The C and LLVM world frontier
+  emitters compute that budget from active zone declarations and pass it to the
+  same runtime policy helper, so embedded world-zone propagation no longer uses
+  only the outer world shape as its bounded-fixpoint budget. The frontier
+  contract smoke now emits the existing embedded-world action fixture and
+  rejects the old outer-only generated limit. The embedded budget loop itself
+  now lives in `pgy_domain_world_embedded_frontier_count(...)` under the shared
+  codegen frontier policy wrapper; C and LLVM only provide backend-local zone
+  lookup callbacks.
+- 2026-05-04 update: zone, projection, world-transitive, and world-derived
+  pass-limit selection now goes through the named `pgy_domain_*_frontier_*`
+  wrappers in `src/codegen/domain_frontier_policy.h`. C and LLVM backend
+  call sites no longer pick runtime frontier formulas directly, so the wrapper
+  is the single codegen source of truth for bounded-frontier policy vocabulary.
 - 2026-04-29 update: frontier pass-limit formulas now saturate through the same
   u32-bounded helper family before emission. This keeps C `size_t` loops and
   LLVM i32 loop counters on the same bounded contract for oversized generated
@@ -1612,8 +1683,9 @@ Runtime frontier scheduler closure:
   cleared.
 - Remaining blocker: the full bounded fixpoint / transitive frontier scheduler
   must broaden that same transitive frontier policy beyond the currently
-  covered world/zone/projection slices so the broader world-zone propagation
-  family cannot grow helper-specific edge policies.
+  covered world/zone/projection slices and embedded zone frontier budget so the
+  broader world-zone propagation family cannot grow helper-specific edge
+  policies.
 
 Evidence command:
 
@@ -2494,12 +2566,26 @@ make test-semantic
   without changing lowering behavior. `make test-mir` and
   `make mir-declaration-inventory-test-smoke` cover the split.
 - C MIR block emission is no longer a replacement mega-header: destructuring
-  lowering, preserved source-let fallback emission, and source-order/claim
+  lowering, preserved source-order let emission, and source-order/claim
   scheduling now live in `transpiler_mir_destructure_emit.h`,
-  `transpiler_mir_fallback_let_emit.h`, and
+  `transpiler_mir_preserved_let_emit.h`, and
   `transpiler_mir_block_schedule_emit.h`. The main
   `transpiler_mir_block_emit.h` owner is below the 600 LOC split-review
   threshold.
+- 2026-05-04 with-slot source-order repair: `src/compiler/mir_stmt_population.h`
+  now propagates `source_statement_index` onto matched `MIR_INST_RESOURCE_OP`
+  facts, including residual `with slot` Claim/Write/Read facts, before C
+  backend source-order scheduling. `src/codegen/transpiler_mir_resource_op_emit.h`
+  also emits `AST_WITH_STMT` Claim facts by AST kind rather than requiring a
+  nonzero wrapper source location, and `src/codegen/llvm_mir_block_emit.h`
+  uses the same AST-kind criterion for LLVM with-slot claim setup. The LLVM
+  block-entry Claim prepass was also removed, so both backends now consume
+  with-slot setup through the main MIR instruction order rather than a
+  backend-local early materialization path. LLVM residual `MIR_INST_STMT`
+  handling also no longer emits `AST_WITH_STMT` Claim setup; the resource-op
+  Claim fact is the only stable with-slot materialization path. Gates:
+  `cfg-body-dataflow-test-smoke`, `example-test-smoke`, `test-mir`, and
+  `test-transpile` (`717/0`).
 - MIR emission contract and inventory debt were split further:
   resource/cleanup hook emission now lives in
   `transpiler_mir_resource_hook_emit.h`, and SSA name-map utilities plus MIR
@@ -3061,9 +3147,28 @@ production-header-size-test-smoke` remains green after the split.
 `src/semantic/type_checker_builtins_stdlib_scalar.c` now owns scalar, string,
 and math builtin checks, while
 `src/semantic/type_checker_builtins_stdlib_map.c` owns `HashMap` builtin checks.
-`src/semantic/type_checker_builtins_stdlib_body.c` is now 834 LOC and below the
-1,000 LOC hard cap. `make test-semantic pgy` remains green at 2357/0 after the
-split.
+`src/semantic/type_checker_builtins_stdlib_body.c` is now 415 LOC after the
+follow-up variant/channel transport split. `make test-semantic pgy` remains
+green at 2500/0 after the split.
+
+2026-05-04 stdlib HashMap dispatch tightening:
+`src/semantic/type_checker_builtins_stdlib_map.c` now resolves stable `Map*`
+builtins through a `StdlibMapBuiltinSpec` table and enum dispatch, keeping the
+HashMap stable-surface owner from growing another local `strcmp` branch chain.
+`src/semantic/type_checker_builtins_stdlib_channel_transport.c` routes the
+stable channel transport family (`TryRecv`, `RecvTimeout`, `TrySend`,
+`SendTimeout`, `TrySendStatus`, `SendTimeoutStatus`) through a
+`StdlibChannelTransportSpec` table before calling the channel transport typing
+helpers. `src/semantic/type_checker_builtins_stdlib_variant.c` routes
+Option/Result variant builtins (`Some`, `None`, `IsSome`, `IsNone`, `IsOk`,
+`IsErr`, `UnwrapOption`, `Unwrap`, `UnwrapOr`) through
+`StdlibVariantBuiltinSpec`, keeping variant typing policy in one dispatch table
+instead of a branch-local name chain.
+`src/semantic/type_checker_builtins_stdlib_collections.c` also routes the
+stable List/Set/Queue/Array builtin names through
+`StdlibCollectionBuiltinSpec`; the per-family semantic checks remain unchanged,
+but name classification is now table-owned.
+`make stdlib-test-smoke LLVM_ENABLED=0` and `make pgy LLVM_ENABLED=0` passed.
 
 2026-04-28 zone declaration owner update:
 `src/semantic/type_checker_zone_decl_authority.c` now owns zone authority

@@ -106,7 +106,7 @@ emit_domain_projection_sync_loop(TranspilerCtx *ctx,
     codebuf_write(ctx->out, "size_t _pgy_%s_pass = 0;\n", loop_prefix);
     write_indent(ctx);
     codebuf_write(ctx->out, "size_t _pgy_%s_pass_limit = %zu;\n",
-        loop_prefix, pgy_frontier_projection_pass_limit(refresh_count));
+        loop_prefix, pgy_domain_projection_frontier_pass_limit(refresh_count));
     write_indent(ctx);
     codebuf_write(ctx->out, "bool _pgy_%s_continue = true;\n", loop_prefix);
     write_indent(ctx);

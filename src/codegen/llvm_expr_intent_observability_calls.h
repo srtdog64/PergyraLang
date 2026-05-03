@@ -84,8 +84,19 @@ llvm_emit_intent_observability_call(ASTNode *node, LLVMGenCtx *ctx,
 
     ctx->uses_intent_observability = true;
     LLVMFuncEntry *fn = llvm_lookup_function(ctx, builtin->runtime_name);
-    if (fn == NULL)
-        return false;
+    if (fn == NULL) {
+        if (ctx != NULL && !ctx->has_error) {
+            llvm_set_error_at_with_hints(ctx, node,
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                PGY_FIX_INSPECT_MIR_INVENTORY,
+                "LLVM intent observability builtin '%s' requires registered runtime function '%s'",
+                builtin->name != NULL ? builtin->name : "<intent-observability>",
+                builtin->runtime_name != NULL ? builtin->runtime_name : "<missing>");
+        }
+        *out = LLVMConstInt(ctx->type_i32, 0, 0);
+        return true;
+    }
 
     if (builtin->arg_count == 0)
         *out = LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, NULL, 0,

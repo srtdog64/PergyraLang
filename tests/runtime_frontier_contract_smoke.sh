@@ -2,6 +2,10 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+DEFAULT_PGY="$ROOT_DIR/bin/pgy"
+if [[ -x "${DEFAULT_PGY}.exe" ]]; then
+    DEFAULT_PGY="${DEFAULT_PGY}.exe"
+fi
 
 fail() {
     echo "[runtime-frontier-contract] $*" >&2
@@ -57,6 +61,26 @@ require_terms() {
     for term in "$@"; do
         require_term "$label" "$path" "$term"
     done
+}
+
+require_generated_frontier_limit() {
+    local pgy_bin="${PGY_BIN:-$DEFAULT_PGY}"
+    local source="$ROOT_DIR/tests/cases/backend_compare/world_embedded_action_frontier/main.pgy"
+    local out_c="$tmp_dir/world_embedded_action_frontier.c"
+    local log="$tmp_dir/world_embedded_action_frontier.log"
+
+    [[ -n "$pgy_bin" && -x "$pgy_bin" ]] \
+        || fail "PGY_BIN must point to an executable pgy for generated frontier check"
+    "$pgy_bin" "$source" --emit-c -o "$out_c" >"$log" 2>&1 \
+        || fail "failed to emit generated frontier fixture with $pgy_bin"
+
+    require_terms "generated embedded world frontier C" "$out_c" \
+        "_pgy_world_frontier_pass_limit = 7;" \
+        "while (_pgy_world_frontier_continue && _pgy_world_frontier_pass < _pgy_world_frontier_pass_limit)"
+
+    if grep -Fq "_pgy_world_frontier_pass_limit = 5;" "$out_c"; then
+        fail "generated embedded world frontier still uses outer-only pass limit"
+    fi
 }
 
 for rel in \
@@ -119,7 +143,7 @@ cat \
     > "$c_frontier_text"
 
 require_terms "C zone frontier emitter" "$c_zone_contract" \
-    "pgy_frontier_zone_pass_limit" \
+    "pgy_domain_zone_frontier_pass_limit" \
     "_pgy_zone_frontier_pass_limit" \
     "while (_pgy_zone_frontier_continue && _pgy_zone_frontier_pass < _pgy_zone_frontier_pass_limit)" \
     "_pgy_zone_frontier_continue = true" \
@@ -127,8 +151,11 @@ require_terms "C zone frontier emitter" "$c_zone_contract" \
     "zone frontier recompute exceeded bounded pass limit"
 
 require_terms "C world frontier emitter" "$ROOT_DIR/src/codegen/transpiler_world_select_event_emit.h" \
-    "pgy_frontier_world_transitive_pass_limit" \
-    "pgy_frontier_world_derived_pass_limit" \
+    "transpiler_frontier_lookup_zone" \
+    "pgy_domain_world_embedded_frontier_count" \
+    "embedded_frontier_count" \
+    "pgy_domain_world_transitive_frontier_pass_limit" \
+    "pgy_domain_world_derived_frontier_pass_limit" \
     "_pgy_world_frontier_pass_limit" \
     "_pgy_world_derived_changed_any" \
     "while (_pgy_world_frontier_continue && _pgy_world_frontier_pass < _pgy_world_frontier_pass_limit)" \
@@ -140,16 +167,18 @@ require_terms "C world frontier emitter" "$ROOT_DIR/src/codegen/transpiler_world
     "world derived recompute exceeded bounded pass limit"
 
 require_terms "C projection frontier emitter" "$ROOT_DIR/src/codegen/transpiler_domain_provenance_emit.h" \
-    "pgy_frontier_projection_pass_limit" \
+    "pgy_domain_projection_frontier_pass_limit" \
     "_pgy_%s_pass_limit" \
     "while (_pgy_%s_continue && _pgy_%s_pass < _pgy_%s_pass_limit)" \
     "PGY_PANIC" \
     "projection recompute exceeded bounded pass limit"
 
 require_terms "LLVM world/zone frontier emitter" "$llvm_domain_contract" \
-    "pgy_frontier_zone_pass_limit" \
-    "pgy_frontier_world_transitive_pass_limit" \
-    "pgy_frontier_world_derived_pass_limit" \
+    "llvm_world_frontier_lookup_zone" \
+    "pgy_domain_world_embedded_frontier_count" \
+    "pgy_domain_zone_frontier_pass_limit" \
+    "pgy_domain_world_transitive_frontier_pass_limit" \
+    "pgy_domain_world_derived_frontier_pass_limit" \
     "zone.frontier.pass.addr" \
     "zone.frontier.continue.addr" \
     "zone.frontier.overflow" \
@@ -165,7 +194,7 @@ require_terms "LLVM world/zone frontier emitter" "$llvm_domain_contract" \
     "LLVMBuildUnreachable"
 
 require_terms "LLVM projection frontier emitter" "$llvm_projection_contract" \
-    "pgy_frontier_projection_pass_limit" \
+    "pgy_domain_projection_frontier_pass_limit" \
     "projection.loop.overflow" \
     "pgy_runtime_panic_internal_invariant_export" \
     "projection recompute exceeded bounded pass limit" \
@@ -180,22 +209,37 @@ require_terms "frontier policy source of truth" "$ROOT_DIR/src/runtime/pgy_front
     "pgy_frontier_zone_pass_limit" \
     "pgy_frontier_world_pass_limit" \
     "pgy_frontier_world_transitive_pass_limit" \
+    "embedded_zone_frontier_count" \
     "pgy_frontier_world_derived_pass_limit"
 
 require_terms "codegen frontier policy compatibility wrapper" "$ROOT_DIR/src/codegen/domain_frontier_policy.h" \
-    "../runtime/pgy_frontier_policy.h"
+    "../runtime/pgy_frontier_policy.h" \
+    "PgyDomainZoneLookupFn" \
+    "pgy_domain_zone_frontier_pass_limit" \
+    "pgy_domain_projection_frontier_pass_limit" \
+    "pgy_domain_world_derived_frontier_pass_limit" \
+    "pgy_domain_world_embedded_frontier_count" \
+    "pgy_domain_world_transitive_frontier_pass_limit" \
+    "zone_decl->data.zone_decl.state_count" \
+    "zone_decl->data.zone_decl.layer_slot_count"
 
 require_terms "frontier policy arithmetic smoke" "$ROOT_DIR/tests/runtime_frontier_policy_smoke.sh" \
     "pgy_frontier_pass_limit_cap" \
     "pgy_frontier_pass_limit_add" \
     "pgy_frontier_pass_limit_add_one" \
     "pgy_frontier_world_transitive_pass_limit" \
+    "pgy_domain_zone_frontier_pass_limit" \
+    "pgy_domain_projection_frontier_pass_limit" \
+    "pgy_domain_world_transitive_frontier_pass_limit" \
+    "world-transitive-embedded-limit" \
     "UINT32_MAX"
 
 require_terms "frontier policy Makefile wiring" "$ROOT_DIR/Makefile" \
     "runtime-frontier-policy-test-smoke:" \
     "tests/runtime_frontier_policy_smoke.sh" \
     "runtime-frontier-policy-test-smoke"
+
+require_generated_frontier_limit
 
 require_terms "ABI pipeline frontier case registry" "$ROOT_DIR/tests/abi_pipeline_smoke.sh" \
     "world_fixpoint_abi" \
@@ -230,6 +274,7 @@ require_terms "C authority/failure frontier surface" "$ROOT_DIR/src/codegen/tran
 
 require_terms "LLVM authority/failure frontier surface" "$ROOT_DIR/src/codegen/llvm_intent_flow.c" \
     "pgy_zone_authority_validate_flags_export" \
+    "return LLVMConstInt(ctx->type_i1, 0, 0)" \
     "llvm_emit_intent_presence_flag(ctx, zone_alias)" \
     "llvm_emit_intent_presence_flag(ctx, alias)" \
     "authority:%s" \

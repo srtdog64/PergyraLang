@@ -47,6 +47,12 @@ Type *type_check_stdlib_map_call(ASTNode *expr, const char *name,
 Type *type_check_stdlib_collection_call(ASTNode *expr, const char *name,
                                         SemanticContext *ctx,
                                         bool *handled_out);
+Type *type_check_stdlib_variant_builtin_call(ASTNode *expr, const char *name,
+                                             SemanticContext *ctx,
+                                             bool *handled_out);
+Type *type_check_stdlib_channel_transport_call(ASTNode *expr, const char *name,
+                                               SemanticContext *ctx,
+                                               bool *handled_out);
 Type *type_check_intent_observability_builtin(ASTNode *call, BuiltinKind kind,
                                               SemanticContext *ctx,
                                               bool *handled_out);

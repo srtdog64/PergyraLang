@@ -115,9 +115,14 @@ emit_builtin_write(ASTNode *call, TranspilerCtx *ctx)
             inner, slot_ref, value_expr, token_expr);
         free(token_expr);
     } else if (secure && slot_name != NULL) {
-        char fallback_token[96];
-        const char *token_name = lookup_slot_token_name_or_default(
-            ctx, slot_name, fallback_token, sizeof(fallback_token));
+        const char *token_name = require_slot_token_name(
+            ctx, slot_name, "SecureSlot Write");
+        if (token_name == NULL) {
+            free(slot_ref);
+            free(slot_expr);
+            free(value_expr);
+            return pergyra_strdup("0");
+        }
         result = strdup_fmt(
             "pgy_secure_write_%s(%s, %s, &%s)",
             inner, slot_ref, value_expr, token_name);
@@ -264,9 +269,13 @@ emit_builtin_read(ASTNode *call, TranspilerCtx *ctx)
             inner, slot_ref, token_expr);
         free(token_expr);
     } else if (secure && slot_name != NULL) {
-        char fallback_token[96];
-        const char *token_name = lookup_slot_token_name_or_default(
-            ctx, slot_name, fallback_token, sizeof(fallback_token));
+        const char *token_name = require_slot_token_name(
+            ctx, slot_name, "SecureSlot Read");
+        if (token_name == NULL) {
+            free(slot_ref);
+            free(slot_expr);
+            return pergyra_strdup("0");
+        }
         result = strdup_fmt("pgy_secure_read_%s(%s, &%s)",
             inner, slot_ref, token_name);
     } else {
@@ -309,9 +318,13 @@ emit_builtin_release(ASTNode *call, TranspilerCtx *ctx)
             inner, slot_ref, token_expr);
         free(token_expr);
     } else if (secure && slot_name != NULL) {
-        char fallback_token[96];
-        const char *token_name = lookup_slot_token_name_or_default(
-            ctx, slot_name, fallback_token, sizeof(fallback_token));
+        const char *token_name = require_slot_token_name(
+            ctx, slot_name, "SecureSlot Release");
+        if (token_name == NULL) {
+            free(slot_ref);
+            free(slot_expr);
+            return pergyra_strdup("0");
+        }
         result = strdup_fmt("pgy_secure_release_%s(%s, &%s)",
             inner, slot_ref, token_name);
     } else {

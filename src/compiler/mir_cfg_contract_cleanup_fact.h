@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "mir.h"
+#include "mir_cleanup_fact_names.h"
 
 static bool
 mir_block_has_cleanup_edge_fact(const MIRBasicBlock *block,
@@ -18,10 +19,11 @@ mir_block_has_cleanup_edge_fact(const MIRBasicBlock *block,
             && inst->name != NULL
             && strcmp(inst->name, edge_name) == 0) {
             if (inst->slot_anchor == NULL
-                || strcmp(inst->slot_anchor, "cleanup") != 0) {
+                || strcmp(inst->slot_anchor, MIR_CLEANUP_FACT_ANCHOR) != 0) {
                 continue;
             }
-            if (inst->arg0 == NULL || strcmp(inst->arg0, "cleanup") != 0)
+            if (inst->arg0 == NULL
+                || strcmp(inst->arg0, MIR_CLEANUP_FACT_ANCHOR) != 0)
                 continue;
             return true;
         }

@@ -81,6 +81,50 @@ test_air_rejects_empty_mir_terminator_evidence(void)
 }
 
 static bool
+test_air_collects_void_fallthrough_terminator_evidence(void)
+{
+    AIRProgram *air = (AIRProgram *)calloc(1, sizeof(AIRProgram));
+    MIRProgram mir;
+    MIRRoutine routine;
+    HIRRoutine hir_routine;
+    MIRBasicBlock block;
+    char *error = NULL;
+    bool ok;
+
+    if (air == NULL)
+        return false;
+
+    memset(&block, 0, sizeof(block));
+    block.id = 0;
+    block.is_reachable = true;
+    block.source_hir_block_id = 3;
+
+    memset(&routine, 0, sizeof(routine));
+    routine.name = "void_fallthrough";
+    memset(&hir_routine, 0, sizeof(hir_routine));
+    routine.hir_routine = &hir_routine;
+    routine.blocks = &block;
+    routine.block_count = 1;
+
+    memset(&mir, 0, sizeof(mir));
+    mir.routines = &routine;
+    mir.routine_count = 1;
+
+    ok = air_collect_mir_evidence(air, &mir, &error)
+        && air_validate(air, &error)
+        && air->has_mir_input
+        && air->mir_terminator_evidence_count == 1
+        && air->evidence_count == 1
+        && air->evidence_nodes[0].kind == AIR_EVIDENCE_MIR_TERMINATOR
+        && air->evidence_nodes[0].fact_count == 1
+        && air->evidence_nodes[0].fallback_count == 0
+        && strcmp(air->evidence_nodes[0].provider_name, "void_fallthrough") == 0;
+    free(error);
+    air_destroy(air);
+    return ok;
+}
+
+static bool
 test_air_strict_evidence_requires_mir_terminator_evidence(void)
 {
     AIRIntentNode intents[] = {

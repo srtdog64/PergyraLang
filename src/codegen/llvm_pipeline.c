@@ -92,7 +92,7 @@ llvm_emit_main_wrapper(LLVMGenCtx *ctx)
     if (ctx == NULL || ctx->mir == NULL)
         return;
 
-    LLVMFuncEntry *main_user = llvm_lookup_or_create_function(ctx, "Main", NULL, NULL);
+    LLVMFuncEntry *main_user = llvm_lookup_or_declare_function(ctx, "Main", NULL, NULL);
     synthetic_executable_func = mir_find_function_decl(ctx->mir, "__pgy_top_level_exec");
     has_top_level_exec = ctx->mir->has_top_level_exec;
     has_main_function = ctx->mir->has_main_function;
@@ -105,8 +105,8 @@ llvm_emit_main_wrapper(LLVMGenCtx *ctx)
         return;
 
     LLVMTypeRef main_type = LLVMFunctionType(ctx->type_i32, NULL, 0, 0);
-    LLVMFuncEntry *main_entry = llvm_lookup_or_create_function(ctx, "main", main_type,
-                                                               ctx->type_i32);
+    LLVMFuncEntry *main_entry = llvm_lookup_or_declare_function(ctx, "main", main_type,
+                                                                ctx->type_i32);
     LLVMValueRef main_fn = main_entry != NULL ? main_entry->fn : NULL;
     if (main_fn == NULL)
         return;

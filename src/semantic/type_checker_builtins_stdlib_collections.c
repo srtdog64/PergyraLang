@@ -4,10 +4,83 @@
 #include "type_checker_builtins_internal.h"
 #include "diag_codes.h"
 
+typedef enum StdlibCollectionBuiltinKind {
+    STDLIB_COLLECTION_UNKNOWN = 0,
+    STDLIB_COLLECTION_LIST_NEW,
+    STDLIB_COLLECTION_LIST_PUSH,
+    STDLIB_COLLECTION_LIST_GET,
+    STDLIB_COLLECTION_LIST_SET,
+    STDLIB_COLLECTION_LIST_SIZE,
+    STDLIB_COLLECTION_LIST_REMOVE,
+    STDLIB_COLLECTION_SET_NEW,
+    STDLIB_COLLECTION_SET_ADD,
+    STDLIB_COLLECTION_SET_REMOVE,
+    STDLIB_COLLECTION_SET_HAS,
+    STDLIB_COLLECTION_SET_SIZE,
+    STDLIB_COLLECTION_QUEUE_NEW,
+    STDLIB_COLLECTION_QUEUE_PUSH,
+    STDLIB_COLLECTION_QUEUE_POP,
+    STDLIB_COLLECTION_QUEUE_SIZE,
+    STDLIB_COLLECTION_QUEUE_EMPTY,
+    STDLIB_COLLECTION_ARRAY_LENGTH,
+    STDLIB_COLLECTION_ARRAY_PUSH,
+    STDLIB_COLLECTION_ARRAY_SET,
+    STDLIB_COLLECTION_ARRAY_POP,
+    STDLIB_COLLECTION_ARRAY_SORT,
+    STDLIB_COLLECTION_ARRAY_REVERSE,
+    STDLIB_COLLECTION_ARRAY_MAP,
+    STDLIB_COLLECTION_ARRAY_FILTER
+} StdlibCollectionBuiltinKind;
+
+typedef struct StdlibCollectionBuiltinSpec {
+    const char *name;
+    StdlibCollectionBuiltinKind kind;
+} StdlibCollectionBuiltinSpec;
+
 static Type *
 stdlib_collection_normalize_type(Type *type)
 {
     return type != NULL ? type : TYPE_UNKNOWN;
+}
+
+static StdlibCollectionBuiltinKind
+stdlib_collection_builtin_kind(const char *name)
+{
+    static const StdlibCollectionBuiltinSpec specs[] = {
+        { "ArrayFilter", STDLIB_COLLECTION_ARRAY_FILTER },
+        { "ArrayLength", STDLIB_COLLECTION_ARRAY_LENGTH },
+        { "ArrayMap", STDLIB_COLLECTION_ARRAY_MAP },
+        { "ArrayPop", STDLIB_COLLECTION_ARRAY_POP },
+        { "ArrayPush", STDLIB_COLLECTION_ARRAY_PUSH },
+        { "ArrayReverse", STDLIB_COLLECTION_ARRAY_REVERSE },
+        { "ArraySet", STDLIB_COLLECTION_ARRAY_SET },
+        { "ArraySort", STDLIB_COLLECTION_ARRAY_SORT },
+        { "ListGet", STDLIB_COLLECTION_LIST_GET },
+        { "ListNew", STDLIB_COLLECTION_LIST_NEW },
+        { "ListPush", STDLIB_COLLECTION_LIST_PUSH },
+        { "ListRemove", STDLIB_COLLECTION_LIST_REMOVE },
+        { "ListSet", STDLIB_COLLECTION_LIST_SET },
+        { "ListSize", STDLIB_COLLECTION_LIST_SIZE },
+        { "QueueEmpty", STDLIB_COLLECTION_QUEUE_EMPTY },
+        { "QueueNew", STDLIB_COLLECTION_QUEUE_NEW },
+        { "QueuePop", STDLIB_COLLECTION_QUEUE_POP },
+        { "QueuePush", STDLIB_COLLECTION_QUEUE_PUSH },
+        { "QueueSize", STDLIB_COLLECTION_QUEUE_SIZE },
+        { "SetAdd", STDLIB_COLLECTION_SET_ADD },
+        { "SetHas", STDLIB_COLLECTION_SET_HAS },
+        { "SetNew", STDLIB_COLLECTION_SET_NEW },
+        { "SetRemove", STDLIB_COLLECTION_SET_REMOVE },
+        { "SetSize", STDLIB_COLLECTION_SET_SIZE }
+    };
+    size_t i;
+
+    if (name == NULL)
+        return STDLIB_COLLECTION_UNKNOWN;
+    for (i = 0; i < sizeof(specs) / sizeof(specs[0]); i++) {
+        if (strcmp(name, specs[i].name) == 0)
+            return specs[i].kind;
+    }
+    return STDLIB_COLLECTION_UNKNOWN;
 }
 
 Type *
@@ -16,15 +89,23 @@ type_check_stdlib_collection_call(ASTNode *expr,
                                   SemanticContext *ctx,
                                   bool *handled_out)
 {
+    StdlibCollectionBuiltinKind kind = stdlib_collection_builtin_kind(name);
+
+    if (kind == STDLIB_COLLECTION_UNKNOWN) {
+        if (handled_out != NULL)
+            *handled_out = false;
+        return NULL;
+    }
+
     if (handled_out != NULL)
         *handled_out = true;
 
-    if (strcmp(name, "ListNew") == 0) {
+    if (kind == STDLIB_COLLECTION_LIST_NEW) {
         if (!check_call_arity(expr, 0, name, ctx))
             return TYPE_UNKNOWN;
         return TYPE_UNKNOWN;
     }
-    if (strcmp(name, "ListPush") == 0) {
+    if (kind == STDLIB_COLLECTION_LIST_PUSH) {
         Type *list_type;
         Type *value_type;
         if (!check_call_arity(expr, 2, name, ctx))
@@ -49,7 +130,7 @@ type_check_stdlib_collection_call(ASTNode *expr,
         }
         return TYPE_VOID;
     }
-    if (strcmp(name, "ListGet") == 0) {
+    if (kind == STDLIB_COLLECTION_LIST_GET) {
         Type *list_type;
         Type *index_type;
         if (!check_call_arity(expr, 2, name, ctx))
@@ -73,7 +154,7 @@ type_check_stdlib_collection_call(ASTNode *expr,
         }
         return TYPE_INT;
     }
-    if (strcmp(name, "ListSet") == 0) {
+    if (kind == STDLIB_COLLECTION_LIST_SET) {
         Type *list_type;
         Type *index_type;
         Type *value_type;
@@ -102,7 +183,7 @@ type_check_stdlib_collection_call(ASTNode *expr,
         }
         return TYPE_VOID;
     }
-    if (strcmp(name, "ListSize") == 0) {
+    if (kind == STDLIB_COLLECTION_LIST_SIZE) {
         Type *list_type;
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;
@@ -118,7 +199,7 @@ type_check_stdlib_collection_call(ASTNode *expr,
         }
         return TYPE_INT;
     }
-    if (strcmp(name, "ListRemove") == 0) {
+    if (kind == STDLIB_COLLECTION_LIST_REMOVE) {
         Type *list_type;
         Type *index_type;
         if (!check_call_arity(expr, 2, name, ctx))
@@ -138,12 +219,13 @@ type_check_stdlib_collection_call(ASTNode *expr,
         }
         return TYPE_INT;
     }
-    if (strcmp(name, "SetNew") == 0) {
+    if (kind == STDLIB_COLLECTION_SET_NEW) {
         if (!check_call_arity(expr, 0, name, ctx))
             return TYPE_UNKNOWN;
         return TYPE_UNKNOWN;
     }
-    if (strcmp(name, "SetAdd") == 0 || strcmp(name, "SetRemove") == 0) {
+    if (kind == STDLIB_COLLECTION_SET_ADD
+        || kind == STDLIB_COLLECTION_SET_REMOVE) {
         Type *set_type;
         Type *value_type;
         if (!check_call_arity(expr, 2, name, ctx))
@@ -152,7 +234,7 @@ type_check_stdlib_collection_call(ASTNode *expr,
             type_check_expression(expr->data.call.arguments[0], ctx));
         value_type = stdlib_collection_normalize_type(
             type_check_expression(expr->data.call.arguments[1], ctx));
-        if (strcmp(name, "SetAdd") == 0) {
+        if (kind == STDLIB_COLLECTION_SET_ADD) {
             reject_borrowed_boundary_container_store(
                 expr->data.call.arguments[1], value_type, "set", "SetAdd", ctx);
         }
@@ -171,7 +253,7 @@ type_check_stdlib_collection_call(ASTNode *expr,
         }
         return TYPE_VOID;
     }
-    if (strcmp(name, "SetHas") == 0) {
+    if (kind == STDLIB_COLLECTION_SET_HAS) {
         Type *set_type;
         Type *value_type;
         if (!check_call_arity(expr, 2, name, ctx))
@@ -194,7 +276,7 @@ type_check_stdlib_collection_call(ASTNode *expr,
         }
         return TYPE_BOOL;
     }
-    if (strcmp(name, "SetSize") == 0) {
+    if (kind == STDLIB_COLLECTION_SET_SIZE) {
         Type *set_type;
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;
@@ -210,12 +292,12 @@ type_check_stdlib_collection_call(ASTNode *expr,
         }
         return TYPE_INT;
     }
-    if (strcmp(name, "QueueNew") == 0) {
+    if (kind == STDLIB_COLLECTION_QUEUE_NEW) {
         if (!check_call_arity(expr, 0, name, ctx))
             return TYPE_UNKNOWN;
         return TYPE_UNKNOWN;
     }
-    if (strcmp(name, "QueuePush") == 0) {
+    if (kind == STDLIB_COLLECTION_QUEUE_PUSH) {
         Type *queue_type;
         Type *value_type;
         if (!check_call_arity(expr, 2, name, ctx))
@@ -240,7 +322,7 @@ type_check_stdlib_collection_call(ASTNode *expr,
         }
         return TYPE_VOID;
     }
-    if (strcmp(name, "QueuePop") == 0) {
+    if (kind == STDLIB_COLLECTION_QUEUE_POP) {
         Type *queue_type;
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;
@@ -260,7 +342,8 @@ type_check_stdlib_collection_call(ASTNode *expr,
         }
         return TYPE_INT;
     }
-    if (strcmp(name, "QueueSize") == 0 || strcmp(name, "QueueEmpty") == 0) {
+    if (kind == STDLIB_COLLECTION_QUEUE_SIZE
+        || kind == STDLIB_COLLECTION_QUEUE_EMPTY) {
         Type *queue_type;
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;
@@ -275,9 +358,9 @@ type_check_stdlib_collection_call(ASTNode *expr,
                 name,
                 queue_type->name != NULL ? queue_type->name : "<type>");
         }
-        return strcmp(name, "QueueEmpty") == 0 ? TYPE_BOOL : TYPE_INT;
+        return kind == STDLIB_COLLECTION_QUEUE_EMPTY ? TYPE_BOOL : TYPE_INT;
     }
-    if (strcmp(name, "ArrayLength") == 0) {
+    if (kind == STDLIB_COLLECTION_ARRAY_LENGTH) {
         Type *arg;
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;
@@ -293,7 +376,7 @@ type_check_stdlib_collection_call(ASTNode *expr,
         }
         return TYPE_INT;
     }
-    if (strcmp(name, "ArrayPush") == 0) {
+    if (kind == STDLIB_COLLECTION_ARRAY_PUSH) {
         Type *arr;
         Type *val;
         if (!check_call_arity(expr, 2, name, ctx))
@@ -317,7 +400,7 @@ type_check_stdlib_collection_call(ASTNode *expr,
         }
         return TYPE_VOID;
     }
-    if (strcmp(name, "ArraySet") == 0) {
+    if (kind == STDLIB_COLLECTION_ARRAY_SET) {
         Type *arr;
         Type *val;
         if (!check_call_arity(expr, 3, name, ctx))
@@ -344,7 +427,7 @@ type_check_stdlib_collection_call(ASTNode *expr,
         }
         return TYPE_VOID;
     }
-    if (strcmp(name, "ArrayPop") == 0) {
+    if (kind == STDLIB_COLLECTION_ARRAY_POP) {
         Type *arr;
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;
@@ -358,8 +441,8 @@ type_check_stdlib_collection_call(ASTNode *expr,
                 type_name_or_unknown(arr));
         return TYPE_VOID;
     }
-    if (strcmp(name, "ArraySort") == 0
-        || strcmp(name, "ArrayReverse") == 0) {
+    if (kind == STDLIB_COLLECTION_ARRAY_SORT
+        || kind == STDLIB_COLLECTION_ARRAY_REVERSE) {
         Type *arr;
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;
@@ -373,7 +456,8 @@ type_check_stdlib_collection_call(ASTNode *expr,
                 type_name_or_unknown(arr));
         return arr;
     }
-    if (strcmp(name, "ArrayMap") == 0 || strcmp(name, "ArrayFilter") == 0) {
+    if (kind == STDLIB_COLLECTION_ARRAY_MAP
+        || kind == STDLIB_COLLECTION_ARRAY_FILTER) {
         Type *arr;
         if (!check_call_arity(expr, 2, name, ctx))
             return TYPE_UNKNOWN;
@@ -389,7 +473,5 @@ type_check_stdlib_collection_call(ASTNode *expr,
         return arr;
     }
 
-    if (handled_out != NULL)
-        *handled_out = false;
     return NULL;
 }

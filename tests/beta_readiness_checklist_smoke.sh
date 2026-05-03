@@ -58,6 +58,8 @@ required_files=(
     "src/runtime/pgy_abi_spec_asserts.h"
     ".github/workflows/ci.yml"
     "Makefile"
+    "examples/wasm_hello/main.pgy"
+    "examples/wasm_hello/README.md"
 )
 
 for rel in "${required_files[@]}"; do
@@ -163,6 +165,8 @@ make tooling-conformance-test-smoke
 dogfood-first path
 make dogfood-webgl-test-smoke
 Pergyra -> C backend --emit-c -> optional Emscripten/WebGL bridge
+not freeze WebGL APIs
+pgy.render.webgl
 LSP beta-stable: initialize capability response, keyword hover, and keyword completion
 Debugger beta-stable: CLI `pgy debug <file>` parse + semantic gate and interactive quit path
 DAP, binary breakpoints, variable watch, multi-file workspace indexing
@@ -302,6 +306,20 @@ Fuzz testing is out-of-beta
 Property-based testing is out-of-beta
 Coverage percentage is not yet a beta acceptance metric
 make beta-test-suite-freeze-test-smoke
+EOF
+
+require_terms "examples/wasm_hello/README.md" <<'EOF'
+Pergyra -> C backend --emit-c -> optional Emscripten/WebGL bridge
+does not require or claim a native LLVM wasm backend
+not a stable WebGL language surface
+pgy.render.webgl
+make dogfood-webgl-test-smoke
+EOF
+
+require_terms "examples/wasm_hello/main.pgy" <<'EOF'
+extern "C"
+pgy_host_log
+pgy_webgl_frame
 EOF
 
 require_terms "docs/112_observability_trace_schema.md" <<'EOF'

@@ -17,6 +17,25 @@ llvm_log_function_for_type(LLVMGenCtx *ctx, LLVMTypeRef type,
     return "pgy_log_int";
 }
 
+static LLVMFuncEntry *
+llvm_required_log_function(LLVMGenCtx *ctx, ASTNode *node,
+                           const char *function_name)
+{
+    LLVMFuncEntry *fn = function_name != NULL
+        ? llvm_lookup_function(ctx, function_name)
+        : NULL;
+
+    if (fn == NULL && ctx != NULL && !ctx->has_error) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "LLVM log operation requires registered runtime function '%s'",
+            function_name != NULL ? function_name : "<missing>");
+    }
+    return fn;
+}
+
 static LLVMValueRef
 llvm_emit_log_call(ASTNode *node, LLVMGenCtx *ctx)
 {
@@ -57,7 +76,7 @@ llvm_emit_log_call(ASTNode *node, LLVMGenCtx *ctx)
         return LLVMConstInt(ctx->type_i32, 0, 0);
 
     log_fn_name = llvm_log_function_for_type(ctx, arg_type, multiline_log);
-    log_fn = llvm_lookup_function(ctx, log_fn_name);
+    log_fn = llvm_required_log_function(ctx, node, log_fn_name);
     if (log_fn == NULL)
         return LLVMConstInt(ctx->type_i32, 0, 0);
 
@@ -92,7 +111,7 @@ llvm_emit_log_raw_call(ASTNode *node, LLVMGenCtx *ctx)
 
     arg_type = LLVMTypeOf(arg);
     log_fn_name = llvm_log_function_for_type(ctx, arg_type, false);
-    log_fn = llvm_lookup_function(ctx, log_fn_name);
+    log_fn = llvm_required_log_function(ctx, node, log_fn_name);
     if (log_fn == NULL)
         return LLVMConstInt(ctx->type_i32, 0, 0);
 
@@ -132,7 +151,7 @@ llvm_emit_log_banner_call(ASTNode *node, LLVMGenCtx *ctx)
     if (log_arg == NULL)
         return LLVMConstInt(ctx->type_i32, 0, 0);
 
-    log_fn = llvm_lookup_function(ctx, "pgy_log_banner");
+    log_fn = llvm_required_log_function(ctx, node, "pgy_log_banner");
     if (log_fn == NULL)
         return LLVMConstInt(ctx->type_i32, 0, 0);
 

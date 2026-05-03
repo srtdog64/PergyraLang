@@ -48,4 +48,59 @@ test_source_order_mir_emit(void)
         ast_destroy(program);
         free(source);
     }
+
+    TEST("with-slot MIR resource ops materialize before residual Read statements");
+    {
+        const char *source =
+            "func Cost() -> Int {\n"
+            "    return 4;\n"
+            "}\n"
+            "\n"
+            "func Main() -> Void {\n"
+            "    with slot<Int> as s {\n"
+            "        Write(s, Cost());\n"
+            "        Print(ToString(Read(s)));\n"
+            "    }\n"
+            "}\n";
+        ASTNode *program = NULL;
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        TranspilerCtx *ctx = NULL;
+        const char *claim_pos = NULL;
+        const char *write_pos = NULL;
+        const char *read_pos = NULL;
+        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
+
+        if (ok) {
+            ctx = transpiler_ctx_create();
+            ctx->mir = mir;
+            emit_program(ctx);
+        }
+
+        if (ok && ctx != NULL && ctx->out != NULL && ctx->out->data != NULL) {
+            claim_pos = strstr(ctx->out->data,
+                "PgySlot_Int s = pgy_claim_Int();");
+            write_pos = strstr(ctx->out->data, "pgy_write_Int(&s, Cost())");
+            read_pos = strstr(ctx->out->data, "pgy_read_Int(&s)");
+        }
+
+        EXPECT(ok && ctx != NULL && ctx->out != NULL && ctx->out->data != NULL);
+        EXPECT(claim_pos != NULL);
+        EXPECT(write_pos != NULL);
+        EXPECT(read_pos != NULL);
+        if (claim_pos != NULL && write_pos != NULL)
+            EXPECT(claim_pos < write_pos);
+        if (claim_pos != NULL && read_pos != NULL)
+            EXPECT(claim_pos < read_pos);
+        if (claim_pos != NULL)
+            EXPECT(strstr(claim_pos + 1, "PgySlot_Int s = pgy_claim_Int();")
+                   == NULL);
+
+        transpiler_ctx_destroy(ctx);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+        ast_destroy(program);
+    }
 }

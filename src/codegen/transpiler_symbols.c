@@ -11,8 +11,10 @@
 #include <string.h>
 
 #include "transpiler_symbols.h"
+#include "transpiler_context.h"
 #include "codegen_slot_type_policy.h"
 #include "../common/string_compat.h"
+#include "../semantic/diag_codes.h"
 
 static char *
 transpiler_heap_fmt(const char *fmt, ...)
@@ -168,17 +170,23 @@ lookup_slot_token_name(TranspilerCtx *ctx, const char *var_name)
 }
 
 const char *
-lookup_slot_token_name_or_default(TranspilerCtx *ctx, const char *var_name,
-                                  char *fallback_buf, size_t fallback_cap)
+require_slot_token_name(TranspilerCtx *ctx,
+                        const char *var_name,
+                        const char *operation)
 {
     const char *token_name = lookup_slot_token_name(ctx, var_name);
 
     if (token_name != NULL && token_name[0] != '\0')
         return token_name;
-    if (var_name == NULL || fallback_buf == NULL || fallback_cap == 0)
-        return NULL;
-    snprintf(fallback_buf, fallback_cap, "%s_token", var_name);
-    return fallback_buf;
+    transpiler_set_backend_error_with_hints(
+        ctx,
+        PGY_CODE_C_TYPE_UNSUPPORTED,
+        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+        PGY_FIX_MATERIALIZE_TOKEN_TO_SLOT,
+        "C backend: %s requires paired secure-slot token for '%s'; token name synthesis is disabled",
+        operation != NULL ? operation : "SecureSlot operation",
+        var_name != NULL ? var_name : "<slot>");
+    return NULL;
 }
 
 bool

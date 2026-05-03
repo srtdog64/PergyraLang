@@ -65,9 +65,9 @@ void           llvm_register_function(LLVMGenCtx *ctx, const char *name,
 void           llvm_set_function_flags(LLVMGenCtx *ctx, const char *name,
                                        bool is_action, bool action_self_only);
 LLVMFuncEntry *llvm_lookup_function(LLVMGenCtx *ctx, const char *name);
-LLVMFuncEntry *llvm_lookup_or_create_function(LLVMGenCtx *ctx, const char *name,
-                                              LLVMTypeRef fn_type,
-                                              LLVMTypeRef ret_type);
+LLVMFuncEntry *llvm_lookup_or_declare_function(LLVMGenCtx *ctx, const char *name,
+                                               LLVMTypeRef fn_type,
+                                               LLVMTypeRef ret_type);
 void           llvm_mark_function_as_used(LLVMGenCtx *ctx, const char *name);
 
 /* =================================================================

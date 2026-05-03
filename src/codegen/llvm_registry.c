@@ -110,9 +110,9 @@ llvm_lookup_function(LLVMGenCtx *ctx, const char *name)
 }
 
 LLVMFuncEntry *
-llvm_lookup_or_create_function(LLVMGenCtx *ctx, const char *name,
-                               LLVMTypeRef fallback_type,
-                               LLVMTypeRef fallback_ret_type)
+llvm_lookup_or_declare_function(LLVMGenCtx *ctx, const char *name,
+                                LLVMTypeRef decl_type,
+                                LLVMTypeRef decl_ret_type)
 {
     if (ctx == NULL || name == NULL)
         return NULL;
@@ -126,7 +126,7 @@ llvm_lookup_or_create_function(LLVMGenCtx *ctx, const char *name,
 
     LLVMValueRef fn = LLVMGetNamedFunction(ctx->module, name);
     LLVMTypeRef fn_type = NULL;
-    LLVMTypeRef ret_type = fallback_ret_type;
+    LLVMTypeRef ret_type = decl_ret_type;
 
     if (fn != NULL) {
         LLVMTypeRef value_type = LLVMTypeOf(fn);
@@ -136,11 +136,11 @@ llvm_lookup_or_create_function(LLVMGenCtx *ctx, const char *name,
             fn_type = value_type;
         if (fn_type != NULL && LLVMGetTypeKind(fn_type) == LLVMFunctionTypeKind)
             ret_type = LLVMGetReturnType(fn_type);
-    } else if (fallback_type != NULL && ctx->module != NULL) {
-        fn = LLVMAddFunction(ctx->module, name, fallback_type);
-        fn_type = fallback_type;
+    } else if (decl_type != NULL && ctx->module != NULL) {
+        fn = LLVMAddFunction(ctx->module, name, decl_type);
+        fn_type = decl_type;
         if (ret_type == NULL)
-            ret_type = LLVMGetReturnType(fallback_type);
+            ret_type = LLVMGetReturnType(decl_type);
     }
 
     if (fn == NULL || fn_type == NULL

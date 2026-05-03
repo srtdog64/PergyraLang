@@ -1,6 +1,12 @@
 # Stable Example Surface Board
 
-마지막 업데이트: 2026-04-15
+WebGL dogfood boundary (2026-05-04): `examples/wasm_hello/` is a stable dogfood
+bridge example, not a stable WebGL language surface. The smoke covers emitted C
+host-import/frame-callback preservation and optional Emscripten linking only.
+`pgy.render.webgl`, renderer APIs, native LLVM wasm, and GPU/Spray remain
+module ecosystem tracks after beta closure.
+
+마지막 업데이트: 2026-05-04
 
 이 문서는 예제를 세 가지로 분리한다.
 
@@ -12,7 +18,8 @@
 
 - 예제는 문서보다 먼저 사용자에게 "무엇이 진짜 되는가"를 가르친다
 - 따라서 sketch 예제와 stable 예제를 같은 톤으로 두면 surface trust가 깨진다
-- 현재는 `tests/example_contract_smoke.sh`를 stable example source of truth로 본다
+- 현재는 `tests/example_contract_smoke.sh`를 stable example source of truth로 보고,
+  dogfood bridge 예제는 `tests/dogfood_webgl_smoke.sh`가 별도 gate로 밟는다
 
 ## 1. Stable examples (`compile-smoke covered`)
 
@@ -28,11 +35,11 @@
 | `examples/raid_graph_fsm/` | stable | graph + FSM corpus |
 | `examples/campaign_graph_fsm/` | stable | graph + FSM corpus |
 | `examples/dnd_tavern_campaign/` | stable | large example corpus |
-| `examples/shopping_mall_checkout_refund/` | stable | page/http/storage adapter path |
+| `examples/shopping_mall_checkout_refund/` | stable probe | checkout/refund orchestration and adapter-shape probe; not stable `page` / `http` / `storage` modules |
 | `examples/logistics_intent_probe/` | stable | DIR/RIR/MIR probe |
 | `examples/composite_intent_orchestration/` | stable | nested/orchestrated intent path |
 | `examples/resource_scheduler_async_probe/` | stable | async/parallel/resource probe |
-| `examples/spray_device_probe/` | stable | device/runtime probe |
+| `examples/spray_device_probe/` | stable probe | device/runtime probe; not full GPU/Spray stability |
 | `examples/calendar_working/` | stable | working calendar subset |
 | `examples/subject_object_tobject/` | stable | nominal/projection baseline |
 | `examples/adapter_policy_stack/` | stable | adapter/policy layering |
@@ -53,6 +60,7 @@
 | `examples/six_item_alignment_demo/` | stable | alignment/authoring demo |
 | `examples/ownership_forwarding_probe/` | stable | `own/ref` anchored-slot boundary subset |
 | `examples/order_analytics/` | stable | compile-smoke covered analytics example |
+| `examples/wasm_hello/` | stable dogfood bridge | C `--emit-c` + optional Emscripten/WebGL host-import smoke; not a native WASM backend; not stable WebGL language surface |
 
 이 목록의 의미:
 

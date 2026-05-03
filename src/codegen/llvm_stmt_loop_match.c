@@ -72,6 +72,26 @@ llvm_is_result_destructor(ASTNode *pat, const char **kind, const char **binding)
     return false;
 }
 
+static LLVMFuncEntry *
+llvm_stmt_for_in_required_runtime(LLVMGenCtx *ctx,
+                                  ASTNode *node,
+                                  const char *function_name)
+{
+    LLVMFuncEntry *fn = function_name != NULL
+        ? llvm_lookup_function(ctx, function_name)
+        : NULL;
+
+    if (fn == NULL && ctx != NULL && !ctx->has_error) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "LLVM statement for-in lowering requires registered runtime function '%s'",
+            function_name != NULL ? function_name : "<missing>");
+    }
+    return fn;
+}
+
 
 void
 llvm_emit_while_loop(ASTNode *node, LLVMGenCtx *ctx)
@@ -139,8 +159,13 @@ llvm_emit_for_loop(ASTNode *node, LLVMGenCtx *ctx)
                 LLVMBasicBlockRef body_bb;
                 LLVMBasicBlockRef incr_bb;
                 LLVMBasicBlockRef exit_bb;
-                LLVMFuncEntry *size_fn = llvm_lookup_function(ctx, "pgy_list_size_raw_export");
-                LLVMFuncEntry *get_fn = llvm_lookup_function(ctx, "pgy_list_get_raw_export");
+                LLVMFuncEntry *size_fn = llvm_stmt_for_in_required_runtime(ctx,
+                    node, "pgy_list_size_raw_export");
+                LLVMFuncEntry *get_fn = llvm_stmt_for_in_required_runtime(ctx,
+                    node, "pgy_list_get_raw_export");
+
+                if (size_fn == NULL || get_fn == NULL)
+                    return;
 
                 llvm_scope_push(ctx);
                 idx_alloca = llvm_create_entry_alloca(ctx, ctx->type_i32, llvm_tmp_name(ctx));

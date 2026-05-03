@@ -43,9 +43,7 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
     LLVMValueRef frontier_continue_addr = llvm_create_entry_alloca(ctx, ctx->type_i1,
         "zone.frontier.continue.addr");
     LLVMValueRef frontier_limit_val = LLVMConstInt(ctx->type_i32,
-        (unsigned long long)pgy_frontier_zone_pass_limit(
-            stmt->data.zone_decl.state_count,
-            stmt->data.zone_decl.layer_slot_count), 0);
+        (unsigned long long)pgy_domain_zone_frontier_pass_limit(stmt), 0);
     LLVMBasicBlockRef frontier_check_bb = LLVMAppendBasicBlockInContext(ctx->context, sync_fn,
         "zone.frontier.check");
     LLVMBasicBlockRef frontier_body_bb = LLVMAppendBasicBlockInContext(ctx->context, sync_fn,

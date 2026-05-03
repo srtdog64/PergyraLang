@@ -2,7 +2,15 @@
 #include "llvm_internal.h"
 #include "llvm_domain_sync_frontier.h"
 #include "llvm_domain_world_sync_internal.h"
+#include "llvm_inventory_decl_lookup.h"
 #include "domain_frontier_policy.h"
+
+static ASTNode *
+llvm_world_frontier_lookup_zone(void *ctx, const char *zone_name)
+{
+    return llvm_find_decl_in_active_inventory(
+        (LLVMGenCtx *)ctx, AST_ZONE_DECL, zone_name);
+}
 
 void
 llvm_world_sync_emit_frontier(ASTNode *stmt, LLVMClassTypeEntry *decl_cls,
@@ -10,7 +18,6 @@ llvm_world_sync_emit_frontier(ASTNode *stmt, LLVMClassTypeEntry *decl_cls,
                               LLVMValueRef derived_dirty_addr,
                               LLVMValueRef needs_derived_addr,
                               LLVMValueRef derived_ptr,
-                              size_t zone_count,
                               LLVMGenCtx *ctx)
 {
     LLVMValueRef frontier_pass_addr;
@@ -32,12 +39,14 @@ llvm_world_sync_emit_frontier(ASTNode *stmt, LLVMClassTypeEntry *decl_cls,
     LLVMBasicBlockRef finalize_bb;
     LLVMBasicBlockRef done_bb;
     LLVMBasicBlockRef derived_exit_bb;
+    size_t zone_count;
 
     if (stmt == NULL || stmt->type != AST_WORLD_DECL || decl_cls == NULL
         || sync_fn == NULL || derived_dirty_addr == NULL
         || needs_derived_addr == NULL || ctx == NULL)
         return;
 
+    zone_count = stmt->data.world_decl.zone_count;
     frontier_pass_addr = llvm_create_entry_alloca(ctx, ctx->type_i32,
         "world.frontier.pass.addr");
     frontier_continue_addr = llvm_create_entry_alloca(ctx, ctx->type_i1,
@@ -49,11 +58,11 @@ llvm_world_sync_emit_frontier(ASTNode *stmt, LLVMClassTypeEntry *decl_cls,
     changed_any_addr = llvm_create_entry_alloca(ctx, ctx->type_i1,
         "world.derived.changed_any.addr");
     frontier_limit_val = LLVMConstInt(ctx->type_i32,
-        (unsigned long long)pgy_frontier_world_transitive_pass_limit(zone_count,
-            stmt->data.world_decl.state_count), 0);
+        (unsigned long long)pgy_domain_world_transitive_frontier_pass_limit(
+            stmt, pgy_domain_world_embedded_frontier_count(
+                stmt, llvm_world_frontier_lookup_zone, ctx)), 0);
     limit_val = LLVMConstInt(ctx->type_i32,
-        (unsigned long long)pgy_frontier_world_derived_pass_limit(
-            stmt->data.world_decl.state_count), 0);
+        (unsigned long long)pgy_domain_world_derived_frontier_pass_limit(stmt), 0);
     frontier_check_bb = LLVMAppendBasicBlockInContext(ctx->context, sync_fn,
         "world.frontier.check");
     frontier_body_bb = LLVMAppendBasicBlockInContext(ctx->context, sync_fn,

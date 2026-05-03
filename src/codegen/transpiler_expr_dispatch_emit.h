@@ -89,11 +89,13 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
                 && !ctx->suppress_slot_auto_read) {
                 const char *inner = slot_inner_type_name(slot_type);
                 bool secure = strncmp(slot_type, "SecureSlot<", 11) == 0;
-                char fallback_token[96];
                 const char *token_name = secure
-                    ? lookup_slot_token_name_or_default(
-                          ctx, id_name, fallback_token, sizeof(fallback_token))
+                    ? require_slot_token_name(ctx, id_name, "SecureSlot SSA auto-read")
                     : NULL;
+                if (secure && token_name == NULL) {
+                    free(c_ssa_name);
+                    return pergyra_strdup("0");
+                }
                 char *result = secure
                     ? strdup_fmt("pgy_secure_read_%s(&%s, &%s)",
                                   inner, c_ssa_name, token_name)
@@ -119,11 +121,13 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
                 return pergyra_strdup("0");
             }
             char *slot_ref = slot_ref_expr(ctx, id_name, id_name);
-            char fallback_token[96];
             const char *token_name = secure
-                ? lookup_slot_token_name_or_default(
-                      ctx, id_name, fallback_token, sizeof(fallback_token))
+                ? require_slot_token_name(ctx, id_name, "SecureSlot auto-read")
                 : NULL;
+            if (secure && token_name == NULL) {
+                free(slot_ref);
+                return pergyra_strdup("0");
+            }
             char *result = secure
                 ? strdup_fmt("pgy_secure_read_%s(%s, &%s)",
                               inner, slot_ref, token_name)
@@ -345,9 +349,13 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
                 char *slot_ref = slot_ref_expr(ctx, tgt_name, tgt_name);
                 char *result;
                 if (secure) {
-                    char fallback_token[96];
-                    const char *token_name = lookup_slot_token_name_or_default(
-                        ctx, tgt_name, fallback_token, sizeof(fallback_token));
+                    const char *token_name = require_slot_token_name(
+                        ctx, tgt_name, "SecureSlot assignment");
+                    if (token_name == NULL) {
+                        free(slot_ref);
+                        free(value);
+                        return pergyra_strdup("0");
+                    }
                     result = strdup_fmt("pgy_secure_write_%s(%s, %s, &%s)",
                         inner, slot_ref, value, token_name);
                 } else {

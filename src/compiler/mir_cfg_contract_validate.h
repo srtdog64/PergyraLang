@@ -265,7 +265,8 @@ mir_validate_cfg_contract_state(const MIRRoutine *routine,
                     free(hir_block_seen);
                     return false;
                 }
-                if (!mir_block_has_cleanup_edge_fact(block, "cleanup-edge")) {
+                if (!mir_block_has_cleanup_edge_fact(block,
+                                                     MIR_CLEANUP_FACT_EDGE)) {
                     if (error_message != NULL) {
                         *error_message = mir_strdup_fmt(
                             "MIR routine '%s' block[%zu] missing cleanup-edge MIR fact",
@@ -540,7 +541,7 @@ mir_validate_cfg_contract_state(const MIRRoutine *routine,
         }
         if (routine->has_rollback_block
             && !mir_block_has_cleanup_edge_fact(&routine->blocks[routine->rollback_block],
-                                                "cleanup-edge-from-rollback")) {
+                                                MIR_CLEANUP_FACT_EDGE_FROM_ROLLBACK)) {
             if (error_message != NULL) {
                 *error_message = mir_strdup_fmt(
                     "MIR routine '%s' rollback block missing cleanup-edge MIR fact",
@@ -551,7 +552,7 @@ mir_validate_cfg_contract_state(const MIRRoutine *routine,
         }
         if (routine->has_invalidation_block
             && !mir_block_has_cleanup_edge_fact(&routine->blocks[routine->invalidation_block],
-                                                "cleanup-edge-from-invalidation")) {
+                                                MIR_CLEANUP_FACT_EDGE_FROM_INVALIDATION)) {
             if (error_message != NULL) {
                 *error_message = mir_strdup_fmt(
                     "MIR routine '%s' invalidation block missing cleanup-edge MIR fact",

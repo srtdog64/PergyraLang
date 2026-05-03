@@ -62,5 +62,6 @@ tests/*.exe
 tests/*.o
 tests/*_llvm
 tests/tmp_*
+tests/cases/**/main
 .codex
 .claude/

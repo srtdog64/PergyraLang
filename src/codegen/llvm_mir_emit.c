@@ -437,7 +437,7 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
         snprintf(qualified_name, sizeof(qualified_name), "%s_%s", owner_name, routine->name);
         fn_name = qualified_name;
     }
-    LLVMFuncEntry *entry = llvm_lookup_or_create_function(ctx, fn_name, func_type, ret_type);
+    LLVMFuncEntry *entry = llvm_lookup_or_declare_function(ctx, fn_name, func_type, ret_type);
     LLVMValueRef fn = entry != NULL ? entry->fn : NULL;
     if (fn == NULL)
         return NULL;

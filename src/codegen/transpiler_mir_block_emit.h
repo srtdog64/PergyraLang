@@ -1,5 +1,5 @@
 #include "transpiler_mir_destructure_emit.h"
-#include "transpiler_mir_fallback_let_emit.h"
+#include "transpiler_mir_preserved_let_emit.h"
 #include "transpiler_mir_block_schedule_emit.h"
 #include "transpiler_mir_stmt_emit.h"
 #include "transpiler_mir_resource_op_emit.h"
@@ -481,7 +481,7 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
             && stmt->data.let_decl.name != NULL
             && stmt->data.let_decl.initializer != NULL) {
             bool handled_let = false;
-            if (!transpiler_emit_mir_fallback_let_stmt(
+            if (!transpiler_emit_mir_preserved_let_stmt(
                     buf, func_decl, mir_routine, block, stmt, ctx,
                     ssa_map_out, &handled_let, reason, reason_cap)) {
                 ok = false;

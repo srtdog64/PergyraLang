@@ -1,18 +1,18 @@
-#ifndef PERGYRA_TRANSPILER_MIR_FALLBACK_LET_EMIT_H
-#define PERGYRA_TRANSPILER_MIR_FALLBACK_LET_EMIT_H
+#ifndef PERGYRA_TRANSPILER_MIR_PRESERVED_LET_EMIT_H
+#define PERGYRA_TRANSPILER_MIR_PRESERVED_LET_EMIT_H
 
 /* Preserved source let emission owner for MIR blocks. */
 static bool
-transpiler_emit_mir_fallback_let_stmt(CodeBuf *buf,
-                                      const ASTNode *func_decl,
-                                      const MIRRoutine *mir_routine,
-                                      const MIRBasicBlock *block,
-                                      ASTNode *stmt,
-                                      TranspilerCtx *ctx,
-                                      TranspilerSSANameMap *ssa_map_out,
-                                      bool *handled_out,
-                                      char *reason,
-                                      size_t reason_cap)
+transpiler_emit_mir_preserved_let_stmt(CodeBuf *buf,
+                                       const ASTNode *func_decl,
+                                       const MIRRoutine *mir_routine,
+                                       const MIRBasicBlock *block,
+                                       ASTNode *stmt,
+                                       TranspilerCtx *ctx,
+                                       TranspilerSSANameMap *ssa_map_out,
+                                       bool *handled_out,
+                                       char *reason,
+                                       size_t reason_cap)
 {
     const char *versioned_local;
 
@@ -136,4 +136,4 @@ transpiler_emit_mir_fallback_let_stmt(CodeBuf *buf,
     return true;
 }
 
-#endif /* PERGYRA_TRANSPILER_MIR_FALLBACK_LET_EMIT_H */
+#endif /* PERGYRA_TRANSPILER_MIR_PRESERVED_LET_EMIT_H */

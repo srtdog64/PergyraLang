@@ -1,0 +1,9 @@
+extern "C" {
+    func pgy_host_log(value: Int) -> Void;
+    func pgy_webgl_frame(frame: Int) -> Void;
+}
+
+func Main() -> Void {
+    pgy_host_log(1);
+    pgy_webgl_frame(0);
+}

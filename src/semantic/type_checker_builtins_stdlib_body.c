@@ -15,7 +15,6 @@
 #include "../common/string_compat.h"
 #include "type_checker_internal.h"
 #include "type_checker_builtins_internal.h"
-#include "type_checker_channel_transport_internal.h"
 #include "diag_codes.h"
 
 static Type *
@@ -224,91 +223,16 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
         return TYPE_QUBIT;
     }
 
-    /* ---- Result builtins ---- */
-    if (strcmp(name, "IsOk") == 0 || strcmp(name, "IsErr") == 0) {
-        if (!check_call_arity(expr, 1, name, ctx))
-            return TYPE_UNKNOWN;
-        type_check_expression(expr->data.call.arguments[0], ctx);
-        return TYPE_BOOL;
-    }
-    if (strcmp(name, "Some") == 0) {
-        if (!check_call_arity(expr, 1, name, ctx))
-            return TYPE_UNKNOWN;
-        return wrap_constructed(TYPE_OPTION,
-            stdlib_body_normalize_type(type_check_expression(
-                expr->data.call.arguments[0], ctx)));
-    }
-    if (strcmp(name, "None") == 0) {
-        if (!check_call_arity(expr, 0, name, ctx))
-            return TYPE_UNKNOWN;
-        return wrap_constructed(TYPE_OPTION, TYPE_UNKNOWN);
-    }
-    if (strcmp(name, "IsSome") == 0 || strcmp(name, "IsNone") == 0) {
-        Type *ot;
-        if (!check_call_arity(expr, 1, name, ctx))
-            return TYPE_UNKNOWN;
-        ot = stdlib_body_normalize_type(
-            type_check_expression(expr->data.call.arguments[0], ctx));
-        if (!type_is_constructed_named(ot, "Option")) {
-            semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr->data.call.arguments[0],
-                "%s requires Option<T>, got '%s'", name,
-                type_name_or_unknown(ot));
-            return TYPE_UNKNOWN;
-        }
-        return TYPE_BOOL;
-    }
-    if (strcmp(name, "UnwrapOption") == 0) {
-        Type *ot;
-        if (!check_call_arity(expr, 1, name, ctx))
-            return TYPE_UNKNOWN;
-        ot = stdlib_body_normalize_type(
-            type_check_expression(expr->data.call.arguments[0], ctx));
-        if (type_is_constructed_named(ot, "Option"))
-            return stdlib_body_normalize_type(type_get_constructed_arg(ot, 0));
-        semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr->data.call.arguments[0],
-            "UnwrapOption requires Option<T>, got '%s'",
-            type_name_or_unknown(ot));
-        return TYPE_UNKNOWN;
-    }
-    if (strcmp(name, "Unwrap") == 0) {
-        if (!check_call_arity(expr, 1, name, ctx))
-            return TYPE_UNKNOWN;
-        Type *rt = stdlib_body_normalize_type(
-            type_check_expression(expr->data.call.arguments[0], ctx));
-        if (type_is_constructed_named(rt, "Result"))
-            return stdlib_body_normalize_type(type_get_constructed_arg(rt, 0));
-        return TYPE_UNKNOWN;
-    }
-    if (strcmp(name, "UnwrapOr") == 0) {
-        if (!check_call_arity(expr, 2, name, ctx))
-            return TYPE_UNKNOWN;
-        Type *rt = stdlib_body_normalize_type(
-            type_check_expression(expr->data.call.arguments[0], ctx));
-        type_check_expression(expr->data.call.arguments[1], ctx);
-        if (type_is_constructed_named(rt, "Result"))
-            return stdlib_body_normalize_type(type_get_constructed_arg(rt, 0));
-        return TYPE_UNKNOWN;
-    }
+    Type *variant_type = type_check_stdlib_variant_builtin_call(
+        expr, name, ctx, &handled);
+    if (handled)
+        return variant_type;
 
     /* ---- Channel builtins ---- */
-    if (strcmp(name, "TryRecv") == 0) {
-        return type_check_channel_recv_builtin(expr, name, false, ctx);
-    }
-    if (strcmp(name, "RecvTimeout") == 0) {
-        return type_check_channel_recv_builtin(expr, name, true, ctx);
-    }
-    if (strcmp(name, "TrySend") == 0) {
-        return type_check_channel_send_builtin(expr, name, false, false, ctx);
-    }
-    if (strcmp(name, "SendTimeout") == 0) {
-        return type_check_channel_send_builtin(expr, name, true, false, ctx);
-    }
-    if (strcmp(name, "TrySendStatus") == 0) {
-        return type_check_channel_send_builtin(expr, name, false, true, ctx);
-    }
-    if (strcmp(name, "SendTimeoutStatus") == 0) {
-        return type_check_channel_send_builtin(expr, name, true, true, ctx);
-    }
+    Type *transport_type = type_check_stdlib_channel_transport_call(
+        expr, name, ctx, &handled);
+    if (handled)
+        return transport_type;
     {
         Type *channel_state_type = type_check_channel_state_builtin(
             expr, name, ctx, &handled);

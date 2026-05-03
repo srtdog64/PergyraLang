@@ -247,11 +247,8 @@ transpiler_validate_mir_emission_contract(const TranspilerCtx *ctx,
             return false;
         }
         if (block->has_cleanup_succ) {
-            const char *cleanup_fact = "cleanup-edge";
-            if (routine->has_rollback_block && routine->rollback_block == i)
-                cleanup_fact = "cleanup-edge-from-rollback";
-            else if (routine->has_invalidation_block && routine->invalidation_block == i)
-                cleanup_fact = "cleanup-edge-from-invalidation";
+            const char *cleanup_fact =
+                mir_cleanup_edge_fact_name_for_block(routine, i);
             if (!mir_block_has_cleanup_edge_fact(block, cleanup_fact)) {
                 if (reason != NULL && reason_cap > 0)
                     snprintf(reason, reason_cap,

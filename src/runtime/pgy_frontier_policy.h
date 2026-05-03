@@ -55,15 +55,20 @@ pgy_frontier_world_pass_limit(size_t zone_count, size_t state_count)
 }
 
 static inline size_t
-pgy_frontier_world_transitive_pass_limit(size_t zone_count, size_t state_count)
+pgy_frontier_world_transitive_pass_limit(size_t zone_count, size_t state_count,
+                                         size_t embedded_zone_frontier_count)
 {
     /*
      * A world frontier pass may sync dirty embedded zones and then recompute
      * derived world states. The frontier is monotone over the stable beta
-     * boolean state family, so each zone/state can force at most one new
-     * observed frontier change before convergence.
+     * boolean state family, so each world zone/state and each embedded zone
+     * frontier member can force at most one new observed frontier change
+     * before convergence.
      */
-    return pgy_frontier_world_pass_limit(zone_count, state_count);
+    return pgy_frontier_pass_limit_add_one(
+        pgy_frontier_pass_limit_add(
+            pgy_frontier_pass_limit_add(zone_count, state_count),
+            embedded_zone_frontier_count));
 }
 
 static inline size_t

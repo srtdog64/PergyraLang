@@ -116,6 +116,16 @@ if grep -RIn 'resolve_type_node(' src/semantic \
   exit 1
 fi
 
+{ grep -RIn 'resolve_named_type(' src/semantic || true; } \
+  >"$bad_direct" || true
+
+if [ -s "$bad_direct" ]; then
+  echo "[type-resolution-resolver-inventory] retired direct named-type resolver reappeared:" >&2
+  cat "$bad_direct" >&2
+  echo "Use DAG metadata lookup seams such as semantic_type_resolution_lookup_metadata_name_or_alias(...)." >&2
+  exit 1
+fi
+
 { grep -RIn 'semantic_type_resolution_lookup_resolved_type' src/semantic || true; } \
   | grep -Ev 'src/semantic/type_checker_resolution_metadata(_alias|_constructed)?\.c' \
   | grep -Ev 'src/semantic/type_checker_resolution_metadata_internal\.h' \
@@ -352,18 +362,6 @@ if grep -q 'semantic_type_resolution_lookup_type_ref_or_materialize' \
   exit 1
 fi
 
-grep -q 'metadata_type = resolve_named_type_from_metadata(name, ctx, site);' \
-  src/semantic/type_checker_resolution_helpers.c || {
-  echo "[type-resolution-resolver-inventory] resolve_named_type is no longer metadata-first" >&2
-  exit 1
-}
-
-grep -q 'semantic_type_resolution_metadata_named_builtin_or_shell_singleton' \
-  src/semantic/type_checker_resolution_helpers.c || {
-  echo "[type-resolution-resolver-inventory] resolve_named_type no longer delegates builtin/shell lookup to metadata owner" >&2
-  exit 1
-}
-
 grep -q 'typedef struct TypeNameSlot' \
   src/semantic/type_checker_resolution_metadata.c || {
   echo "[type-resolution-resolver-inventory] metadata builtin/shell lookup lost dispatch-table entry type" >&2
@@ -405,9 +403,8 @@ if grep -q 'strcmp(name, "' src/semantic/type_checker_resolution_helpers.c; then
   exit 1
 fi
 
-if grep -q 'resolve_named_type_from_metadata\|semantic_type_resolution_lookup_metadata_name_or_alias(ctx' \
-  src/semantic/type_checker_resolution_helpers.h; then
-  echo "[type-resolution-resolver-inventory] type_checker_resolution_helpers.h reintroduced implementation body" >&2
+if [ -e src/semantic/type_checker_resolution_helpers.h ]; then
+  echo "[type-resolution-resolver-inventory] retired type_checker_resolution_helpers.h reappeared" >&2
   exit 1
 fi
 
@@ -448,11 +445,15 @@ if [ -n "$alias_stack_debt" ]; then
 fi
 
 for needle in \
-  'strcmp(name, "Channel") == 0' \
-  'strcmp(name, "Future") == 0' \
-  'strcmp(name, "DeviceSlot") == 0' \
-  'strcmp(name, "Slot") == 0' \
-  'strcmp(name, "SecureSlot") == 0' \
+  'typedef struct StableShellSpec' \
+  'metadata_stable_shell_spec' \
+  '{ "Channel", &TYPE_CHANNEL, 1, 1, false }' \
+  '{ "Future", &TYPE_FUTURE, 1, 1, false }' \
+  '{ "DeviceSlot", &TYPE_DEVICE_SLOT, 1, 1, false }' \
+  '{ "Slot", NULL, 1, 1, true }' \
+  '{ "SecureSlot", NULL, 1, 1, true }' \
+  'typedef struct StableSlotShellSpec' \
+  'stable_slot_shell_create' \
   'type_node->type == AST_EVENT_HANDLER_TYPE' \
   'type_create_function(param_types, param_count, return_type)' \
   'type_node->data.type.tuple_elements != NULL' \

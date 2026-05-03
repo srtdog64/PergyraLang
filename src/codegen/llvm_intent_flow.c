@@ -106,9 +106,8 @@ llvm_collect_mir_intent_steps(const MIRRoutine *routine,
         for (size_t ii = 0; ii < block->instruction_count; ii++) {
             const MIRInstruction *inst = &block->instructions[ii];
 
-            if (inst->ast == NULL
-                || !inst->has_source_location
-                || inst->source_ast_type != AST_INTENT_STEP) {
+            if (mir_instruction_intent_step_name(inst) == NULL
+                || inst->ast == NULL) {
                 continue;
             }
             if (!mir_instruction_is_intent_stmt(inst, "IntentStep"))
@@ -130,9 +129,8 @@ llvm_collect_mir_intent_steps(const MIRRoutine *routine,
             continue;
         for (size_t ii = 0; ii < block->instruction_count; ii++) {
             const MIRInstruction *inst = &block->instructions[ii];
-            if (inst->ast == NULL
-                || !inst->has_source_location
-                || inst->source_ast_type != AST_INTENT_STEP)
+            if (mir_instruction_intent_step_name(inst) == NULL
+                || inst->ast == NULL)
                 continue;
             if (!mir_instruction_is_intent_stmt(inst, "IntentStep"))
                 continue;
@@ -369,11 +367,11 @@ llvm_emit_intent_presence_flag(LLVMGenCtx *ctx, const char *alias)
     if (ctx == NULL)
         return NULL;
     if (alias == NULL)
-        return LLVMConstInt(ctx->type_i1, 1, 0);
+        return LLVMConstInt(ctx->type_i1, 0, 0);
 
     var = llvm_scope_lookup(ctx, alias);
     if (var == NULL || LLVMGetTypeKind(var->type) != LLVMPointerTypeKind)
-        return LLVMConstInt(ctx->type_i1, 1, 0);
+        return LLVMConstInt(ctx->type_i1, 0, 0);
 
     value = LLVMBuildLoad2(ctx->builder, var->type, var->alloca, llvm_tmp_name(ctx));
     return LLVMBuildICmp(ctx->builder, LLVMIntNE, value,

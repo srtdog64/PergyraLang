@@ -1,6 +1,9 @@
-# Beta Closure Readiness Report
+# Beta Closure Readiness Report (Historical Snapshot)
 
 Date: 2026-04-26
+
+Status: historical snapshot. The live beta-readiness source of truth is
+`docs/100_beta_readiness_checklist.md`.
 
 Anti-hype correction (2026-04-29): this report is a readiness audit, not a
 marketing snapshot. Current source-of-truth docs (`docs/100` and `TODO.md`)
@@ -951,7 +954,9 @@ PergyraLang can be called beta when the following are simultaneously true:
 - `make test-all` is green;
 - `make test-abi` is green for C and LLVM smoke;
 - `make llvm-test-backend-compare` is green with the frozen subset cases;
-- Linux support is C+LLVM, Windows support is C plus LLVM when the toolchain is detected;
+- Linux support is C+LLVM. Current live policy is Windows C regression as the
+  official beta line, with Windows LLVM/backend compare only when executable
+  toolchain evidence is present; see `docs/100_beta_readiness_checklist.md`;
 - runtime propagation has handoff/general world-zone coverage, not only projection-chain and embedded slices;
 - recoverable runtime failures expose queryable state for the stable failure surface;
 - declaration-side MIR debt is either closed for the frozen subset or explicitly documented as non-user-visible representation debt;

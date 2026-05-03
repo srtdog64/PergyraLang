@@ -12,10 +12,49 @@
 #include "type_checker_collection_policy.h"
 #include "diag_codes.h"
 
+typedef enum StdlibMapBuiltinKind {
+    STDLIB_MAP_BUILTIN_UNKNOWN = 0,
+    STDLIB_MAP_BUILTIN_NEW,
+    STDLIB_MAP_BUILTIN_SET,
+    STDLIB_MAP_BUILTIN_GET,
+    STDLIB_MAP_BUILTIN_HAS,
+    STDLIB_MAP_BUILTIN_REMOVE,
+    STDLIB_MAP_BUILTIN_SIZE,
+    STDLIB_MAP_BUILTIN_KEYS
+} StdlibMapBuiltinKind;
+
+typedef struct StdlibMapBuiltinSpec {
+    const char *name;
+    StdlibMapBuiltinKind kind;
+} StdlibMapBuiltinSpec;
+
 static Type *
 stdlib_map_normalize_type(Type *type)
 {
     return type != NULL ? type : TYPE_UNKNOWN;
+}
+
+static StdlibMapBuiltinKind
+stdlib_map_builtin_kind(const char *name)
+{
+    static const StdlibMapBuiltinSpec specs[] = {
+        { "MapGet", STDLIB_MAP_BUILTIN_GET },
+        { "MapHas", STDLIB_MAP_BUILTIN_HAS },
+        { "MapKeys", STDLIB_MAP_BUILTIN_KEYS },
+        { "MapNew", STDLIB_MAP_BUILTIN_NEW },
+        { "MapRemove", STDLIB_MAP_BUILTIN_REMOVE },
+        { "MapSet", STDLIB_MAP_BUILTIN_SET },
+        { "MapSize", STDLIB_MAP_BUILTIN_SIZE }
+    };
+    size_t i;
+
+    if (name == NULL)
+        return STDLIB_MAP_BUILTIN_UNKNOWN;
+    for (i = 0; i < sizeof(specs) / sizeof(specs[0]); i++) {
+        if (strcmp(name, specs[i].name) == 0)
+            return specs[i].kind;
+    }
+    return STDLIB_MAP_BUILTIN_UNKNOWN;
 }
 
 static void
@@ -52,15 +91,23 @@ Type *
 type_check_stdlib_map_call(ASTNode *expr, const char *name,
                            SemanticContext *ctx, bool *handled_out)
 {
+    StdlibMapBuiltinKind kind = stdlib_map_builtin_kind(name);
+
+    if (kind == STDLIB_MAP_BUILTIN_UNKNOWN) {
+        if (handled_out != NULL)
+            *handled_out = false;
+        return TYPE_UNKNOWN;
+    }
+
     if (handled_out != NULL)
         *handled_out = true;
 
-    if (strcmp(name, "MapNew") == 0) {
+    if (kind == STDLIB_MAP_BUILTIN_NEW) {
         if (!check_call_arity(expr, 0, name, ctx))
             return TYPE_UNKNOWN;
         return TYPE_UNKNOWN; /* type resolved from let annotation */
     }
-    if (strcmp(name, "MapSet") == 0) {
+    if (kind == STDLIB_MAP_BUILTIN_SET) {
         Type *map_type;
         Type *key_type;
         Type *value_type;
@@ -88,8 +135,8 @@ type_check_stdlib_map_call(ASTNode *expr, const char *name,
         }
         return TYPE_VOID;
     }
-    if (strcmp(name, "MapGet") == 0 || strcmp(name, "MapHas") == 0
-        || strcmp(name, "MapRemove") == 0) {
+    if (kind == STDLIB_MAP_BUILTIN_GET || kind == STDLIB_MAP_BUILTIN_HAS
+        || kind == STDLIB_MAP_BUILTIN_REMOVE) {
         Type *map_type;
         Type *key_type;
         if (!check_call_arity(expr, 2, name, ctx))
@@ -105,33 +152,28 @@ type_check_stdlib_map_call(ASTNode *expr, const char *name,
                 expr->data.call.arguments[1], ctx);
             if (!stdlib_map_key_supported(expected_key))
                 report_unsupported_map_key(expr, name, map_type, ctx);
-            if (strcmp(name, "MapGet") == 0)
+            if (kind == STDLIB_MAP_BUILTIN_GET)
                 return stdlib_map_normalize_type(
                     map_type->data.constructed.args[1]);
         } else if (map_type != NULL && map_type != TYPE_UNKNOWN) {
             report_expected_hashmap(expr, name, map_type, ctx);
         }
-        if (strcmp(name, "MapGet") == 0)
+        if (kind == STDLIB_MAP_BUILTIN_GET)
             return TYPE_UNKNOWN; /* resolved from context */
-        return strcmp(name, "MapHas") == 0 ? TYPE_BOOL : TYPE_VOID;
+        return kind == STDLIB_MAP_BUILTIN_HAS ? TYPE_BOOL : TYPE_VOID;
     }
-    if (strcmp(name, "MapSize") == 0) {
+    if (kind == STDLIB_MAP_BUILTIN_SIZE) {
         Type *map_type;
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;
         map_type = stdlib_map_normalize_type(
             type_check_expression(expr->data.call.arguments[0], ctx));
         if (map_type != NULL && map_type != TYPE_UNKNOWN
-            && !type_is_constructed_named(map_type, "HashMap")) {
-            semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
-                PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,
-                PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr->data.call.arguments[0],
-                "MapSize expects HashMap<K, T> as first argument, got '%s'",
-                map_type->name != NULL ? map_type->name : "<type>");
-        }
+            && !type_is_constructed_named(map_type, "HashMap"))
+            report_expected_hashmap(expr, name, map_type, ctx);
         return TYPE_INT;
     }
-    if (strcmp(name, "MapKeys") == 0) {
+    if (kind == STDLIB_MAP_BUILTIN_KEYS) {
         Type *map_type;
         Type *key_type;
         Type *args[1];
@@ -152,7 +194,5 @@ type_check_stdlib_map_call(ASTNode *expr, const char *name,
         return TYPE_UNKNOWN;
     }
 
-    if (handled_out != NULL)
-        *handled_out = false;
     return TYPE_UNKNOWN;
 }

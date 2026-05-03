@@ -29,6 +29,7 @@ run_literal_air_drift_smoke() {
         "src/compiler/air_evidence.c"
         "src/compiler/air_evidence_ast.c"
         "src/compiler/air_evidence_rir.c"
+        "src/compiler/mir_cleanup_fact_names.h"
         "src/compiler/air_internal.h"
         "src/compiler/air_validate.c"
         "src/compiler/air_validate_evidence.c"
@@ -59,7 +60,8 @@ run_literal_air_drift_smoke() {
     require_literal "src/compiler/air.h" "AIREvidenceNode"
     require_literal "src/compiler/air_evidence.c" "AIR_EVIDENCE_MIR_PIN_CLEANUP"
     require_literal "src/compiler/air_evidence.c" "AIR_EVIDENCE_MIR_TERMINATOR"
-    require_literal "src/compiler/air_evidence.c" "cleanup-edge-from-rollback"
+    require_literal "src/compiler/air_evidence.c" "MIR_CLEANUP_FACT_EDGE_FROM_ROLLBACK"
+    require_literal "src/compiler/mir_cleanup_fact_names.h" "cleanup-edge-from-rollback"
     require_literal "src/compiler/air_evidence.c" "slot_anchor"
     require_literal "src/compiler/air_evidence.c" "arg0"
     require_literal "src/compiler/air_evidence.c" "AIR_EVIDENCE_DAG_METADATA"
@@ -138,6 +140,7 @@ air_dump_path = root / "src" / "compiler" / "air_dump.c"
 air_evidence_path = root / "src" / "compiler" / "air_evidence.c"
 air_evidence_ast_path = root / "src" / "compiler" / "air_evidence_ast.c"
 air_evidence_rir_path = root / "src" / "compiler" / "air_evidence_rir.c"
+mir_cleanup_fact_names_path = root / "src" / "compiler" / "mir_cleanup_fact_names.h"
 air_internal_path = root / "src" / "compiler" / "air_internal.h"
 air_validate_path = root / "src" / "compiler" / "air_validate.c"
 air_validate_evidence_path = root / "src" / "compiler" / "air_validate_evidence.c"
@@ -162,7 +165,7 @@ diag_docs_path = root / "docs" / "72_diagnostic_codes.md"
 air_backend_nonimpact_path = root / "tests" / "air_backend_nonimpact_smoke.sh"
 diagnostics_json_path = root / "tests" / "diagnostics_json_smoke.sh"
 
-for path in (air_path, checklist_path, todo_path, makefile_path, air_semantics_path, compiler_header_path, driver_path, driver_diag_path, pgy_driver_path, parser_intent_path, parser_intent_step_path, dir_header_path, dir_impl_path, dir_collect_path, air_header_path, air_impl_path, air_boundary_path, air_boundary_walk_path, air_dump_path, air_evidence_path, air_evidence_ast_path, air_evidence_rir_path, air_internal_path, air_validate_path, air_validate_evidence_path, air_verify_path, air_test_path, *air_test_case_paths, rir_test_path, *rir_test_case_paths, diag_docs_path, air_backend_nonimpact_path, diagnostics_json_path):
+for path in (air_path, checklist_path, todo_path, makefile_path, air_semantics_path, compiler_header_path, driver_path, driver_diag_path, pgy_driver_path, parser_intent_path, parser_intent_step_path, dir_header_path, dir_impl_path, dir_collect_path, air_header_path, air_impl_path, air_boundary_path, air_boundary_walk_path, air_dump_path, air_evidence_path, air_evidence_ast_path, air_evidence_rir_path, mir_cleanup_fact_names_path, air_internal_path, air_validate_path, air_validate_evidence_path, air_verify_path, air_test_path, *air_test_case_paths, rir_test_path, *rir_test_case_paths, diag_docs_path, air_backend_nonimpact_path, diagnostics_json_path):
     if not path.exists():
         raise SystemExit(f"missing AIR gate input: {path.relative_to(root)}")
 
@@ -191,6 +194,7 @@ air_boundary_walk = air_boundary_walk_path.read_text(encoding="utf-8")
 air_evidence = "\n".join([
     air_evidence_path.read_text(encoding="utf-8"),
     air_evidence_ast_path.read_text(encoding="utf-8"),
+    mir_cleanup_fact_names_path.read_text(encoding="utf-8"),
 ])
 air_impl = "\n".join([
     air_impl_path.read_text(encoding="utf-8"),
@@ -200,6 +204,7 @@ air_impl = "\n".join([
     air_evidence_path.read_text(encoding="utf-8"),
     air_evidence_ast_path.read_text(encoding="utf-8"),
     air_evidence_rir_path.read_text(encoding="utf-8"),
+    mir_cleanup_fact_names_path.read_text(encoding="utf-8"),
     air_internal_path.read_text(encoding="utf-8"),
     air_validate_path.read_text(encoding="utf-8"),
     air_validate_evidence_path.read_text(encoding="utf-8"),
@@ -433,19 +438,50 @@ shared_walker_terms = [
 ]
 missing_boundary_walk_terms = [
     term for term in shared_walker_terms
-    if air_boundary_walk.count(term) < 2
+    if term not in air_boundary_walk
 ]
 if missing_boundary_walk_terms:
     raise SystemExit(
-        "AIR boundary walker missing count/append mirrored payload term(s): "
+        "AIR boundary walker missing single traversal payload term(s): "
         + ", ".join(missing_boundary_walk_terms)
     )
+for forbidden in [
+    "air_count_expr_boundaries",
+    "air_append_expr_boundaries",
+]:
+    if forbidden in air_boundary_walk:
+        raise SystemExit(
+            "AIR boundary walker reintroduced split count/append traversal: "
+            + forbidden
+        )
+for required in [
+    "AIRBoundaryWalkCtx",
+    "air_walk_step_expr_boundaries",
+    "air_walk_expr_boundaries",
+    "ctx->append",
+]:
+    if required not in air_boundary_walk:
+        raise SystemExit(
+            "AIR boundary walker no longer uses a single count/append traversal: "
+            + required
+        )
 missing_evidence_terms = [term for term in shared_walker_terms if term not in air_evidence]
 if missing_evidence_terms:
     raise SystemExit(
         "AIR evidence containment missing mirrored payload term(s): "
         + ", ".join(missing_evidence_terms)
     )
+
+for required in [
+    "AIRAstBoundaryRule",
+    "kAstBoundaryRules",
+    "air_ast_boundary_rule_for_node",
+    "source_name",
+]:
+    if required not in air_impl:
+        raise SystemExit(
+            "AIR boundary taxonomy must stay table-backed: " + required
+        )
 
 required_driver_terms = [
     "air_synthesize(hir, dir, rir",
@@ -492,7 +528,7 @@ required_source_span_terms = [
     (dir_impl, "step.ast = step_node", "DIR intent step AST capture"),
     (air_impl, "step->ast != NULL ? step->ast : owner_ast", "AIR step AST fallback"),
     (air_impl, "? node", "AIR expression boundary span keeps node when available"),
-    (air_impl, ": step->ast", "AIR expression boundary span falls back to step AST"),
+    (air_impl, ": ctx->step->ast", "AIR expression boundary span falls back to step AST"),
     (air_test, "air->intents[0].ast->line > 0", "AIR parsed source intent span test"),
     (air_test, "air->boundaries[0].ast->line > 0", "AIR parsed source boundary span test"),
     (air_test, "found_io_drift", "AIR parsed IO boundary drift is tied to IO node"),
@@ -588,6 +624,7 @@ required_test_terms = [
     "mir_pin_cleanup_evidence_count",
     "mir_terminator_evidence_count",
     "AIR collects MIR terminator evidence",
+    "AIR collects Void fallthrough terminator evidence",
     "AIR collects MIR pin cleanup evidence",
     "AIR rejects orphan MIR pin cleanup evidence",
     "AIR rejects MIR pin cleanup evidence fact-count mismatch",

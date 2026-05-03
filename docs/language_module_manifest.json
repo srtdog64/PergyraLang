@@ -123,6 +123,30 @@
       ]
     },
     {
+      "name": "pgy.render.webgl",
+      "layer": "render-library",
+      "status": "post-beta-design-surface",
+      "beta_blocker": false,
+      "current_surface": "not implemented; reserved logical module for WebGL/browser render bridges",
+      "depends_on": [
+        "pgy.foundation",
+        "pgy.execution"
+      ],
+      "surfaces": [
+        "WebGL host bridge",
+        "browser frame callback adapter",
+        "resource wrapper API",
+        "shader/upload helper boundary",
+        "Emscripten shell integration"
+      ],
+      "out_of_scope": [
+        "new beta keywords",
+        "WebGL syntax in core",
+        "native LLVM wasm beta target",
+        "stable renderer ABI before module closure"
+      ]
+    },
+    {
       "name": "pgy.compat.oop",
       "layer": "compatibility",
       "status": "compatibility-surface",

@@ -48,8 +48,7 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
     codebuf_write(ctx->out, "size_t _pgy_zone_frontier_pass = 0;\n");
     write_indent(ctx);
     codebuf_write(ctx->out, "size_t _pgy_zone_frontier_pass_limit = %zu;\n",
-        pgy_frontier_zone_pass_limit(node->data.zone_decl.state_count,
-            node->data.zone_decl.layer_slot_count));
+        pgy_domain_zone_frontier_pass_limit(node));
     write_indent(ctx);
     codebuf_write(ctx->out, "bool _pgy_zone_frontier_continue = true;\n");
     write_indent(ctx);

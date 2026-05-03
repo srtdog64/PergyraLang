@@ -18,8 +18,13 @@ and follow-up debt over older design notes.
 | [`111_beta_test_suite_freeze.md`](111_beta_test_suite_freeze.md) | Mandatory pre-beta gate inventory |
 | [`70_beta_closure_master_board.md`](70_beta_closure_master_board.md) | B0/B1/B2 closure board and prioritization |
 | [`71_beta_execution_tickets.md`](71_beta_execution_tickets.md) | Execution-ticket breakdown for beta closure |
-| [`98_beta_closure_readiness_report.md`](98_beta_closure_readiness_report.md) | Snapshot readiness report |
 | [`120_vision_and_capability_audit.md`](120_vision_and_capability_audit.md) | Anti-hype current-vs-vision audit for external claims |
+
+## Historical Snapshots
+
+| Document | Purpose |
+|---|---|
+| [`98_beta_closure_readiness_report.md`](98_beta_closure_readiness_report.md) | Historical readiness snapshot; do not cite as the current beta verdict |
 
 ## Core Semantics
 

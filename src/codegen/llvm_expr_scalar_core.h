@@ -86,8 +86,17 @@ llvm_coerce_value_to_string(LLVMValueRef value, LLVMGenCtx *ctx)
         }
 
         fn = llvm_lookup_function(ctx, "pgy_int_to_string");
-        if (fn == NULL)
+        if (fn == NULL) {
+            if (ctx != NULL && !ctx->has_error) {
+                llvm_set_error_at_with_hints(ctx, NULL,
+                    PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_FIX_INSPECT_MIR_INVENTORY,
+                    "LLVM string coercion requires registered runtime function '%s'",
+                    "pgy_int_to_string");
+            }
             return NULL;
+        }
         args[0] = value;
         return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 1,
             llvm_tmp_name(ctx));
@@ -99,14 +108,54 @@ llvm_coerce_value_to_string(LLVMValueRef value, LLVMGenCtx *ctx)
                 llvm_tmp_name(ctx));
         }
         fn = llvm_lookup_function(ctx, "pgy_float_to_string");
-        if (fn == NULL)
+        if (fn == NULL) {
+            if (ctx != NULL && !ctx->has_error) {
+                llvm_set_error_at_with_hints(ctx, NULL,
+                    PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_FIX_INSPECT_MIR_INVENTORY,
+                    "LLVM string coercion requires registered runtime function '%s'",
+                    "pgy_float_to_string");
+            }
             return NULL;
+        }
         args[0] = value;
         return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 1,
             llvm_tmp_name(ctx));
     }
 
     return NULL;
+}
+
+static LLVMFuncEntry *
+llvm_required_scalar_runtime_function(LLVMGenCtx *ctx,
+                                      ASTNode *node,
+                                      const char *operation_name,
+                                      const char *function_name)
+{
+    LLVMFuncEntry *fn = function_name != NULL
+        ? llvm_lookup_function(ctx, function_name)
+        : NULL;
+
+    if (fn == NULL && ctx != NULL && !ctx->has_error) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "LLVM %s requires registered runtime function '%s'",
+            operation_name != NULL ? operation_name : "scalar operation",
+            function_name != NULL ? function_name : "<missing>");
+    }
+    return fn;
+}
+
+static LLVMFuncEntry *
+llvm_required_checked_math_function(LLVMGenCtx *ctx,
+                                    ASTNode *node,
+                                    const char *function_name)
+{
+    return llvm_required_scalar_runtime_function(ctx, node,
+        "checked arithmetic", function_name);
 }
 
 static LLVMValueRef
@@ -154,7 +203,8 @@ llvm_emit_binary(ASTNode *node, LLVMGenCtx *ctx)
 
     if (node->data.binary.op.type == TOKEN_PLUS
         && (left_type == ctx->type_i8ptr || right_type == ctx->type_i8ptr)) {
-        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "StringConcat");
+        LLVMFuncEntry *fn = llvm_required_scalar_runtime_function(ctx, node,
+            "string concatenation", "StringConcat");
         if (left_type != ctx->type_i8ptr)
             left = llvm_coerce_value_to_string(left, ctx);
         if (right_type != ctx->type_i8ptr)
@@ -166,12 +216,14 @@ llvm_emit_binary(ASTNode *node, LLVMGenCtx *ctx)
             return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn,
                                   args, 2, llvm_tmp_name(ctx));
         }
+        return LLVMConstInt(ctx->type_i32, 0, 0);
     }
 
     if ((node->data.binary.op.type == TOKEN_EQUAL
          || node->data.binary.op.type == TOKEN_NOT_EQUAL)
         && (left_type == ctx->type_i8ptr || right_type == ctx->type_i8ptr)) {
-        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_string_equals");
+        LLVMFuncEntry *fn = llvm_required_scalar_runtime_function(ctx, node,
+            "string comparison", "pgy_string_equals");
         if (left_type != ctx->type_i8ptr)
             left = llvm_coerce_value_to_string(left, ctx);
         if (right_type != ctx->type_i8ptr)
@@ -186,6 +238,7 @@ llvm_emit_binary(ASTNode *node, LLVMGenCtx *ctx)
                 return eq;
             return LLVMBuildNot(ctx->builder, eq, llvm_tmp_name(ctx));
         }
+        return LLVMConstInt(ctx->type_i32, 0, 0);
     }
 
     bool is_float = (left_type == ctx->type_f64 || left_type == ctx->type_f32
@@ -208,7 +261,8 @@ llvm_emit_binary(ASTNode *node, LLVMGenCtx *ctx)
                        : "pgy_checked_div_i32_export")
             : (use_i64 ? "pgy_checked_mod_i64_export"
                        : "pgy_checked_mod_i32_export");
-        LLVMFuncEntry *fn = llvm_lookup_function(ctx, helper);
+        LLVMFuncEntry *fn = llvm_required_checked_math_function(ctx, node,
+            helper);
         if (fn != NULL) {
             LLVMValueRef args[2];
             if (use_i64) {
@@ -224,6 +278,7 @@ llvm_emit_binary(ASTNode *node, LLVMGenCtx *ctx)
             return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn,
                                   args, 2, llvm_tmp_name(ctx));
         }
+        return LLVMConstInt(ctx->type_i32, 0, 0);
     }
 
     const char *tmp = llvm_tmp_name(ctx);

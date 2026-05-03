@@ -8,7 +8,8 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
     if (strcmp(callee_name, "ListNew") == 0 && node->data.call.arg_count == 0) {
         LLVMTypeRef list_ty = ctx->type_i32;
         LLVMValueRef tmp;
-        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_list_new_raw_export");
+        LLVMFuncEntry *fn = llvm_required_collection_function(ctx, node,
+            callee_name, "pgy_list_new_raw_export");
         if (ctx->current_ret_type != NULL
             && LLVMGetTypeKind(ctx->current_ret_type) == LLVMStructTypeKind) {
             list_ty = ctx->current_ret_type;
@@ -35,7 +36,8 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
     if (strcmp(callee_name, "SetNew") == 0 && node->data.call.arg_count == 0) {
         LLVMTypeRef set_ty = ctx->type_i32;
         LLVMValueRef tmp;
-        LLVMFuncEntry *fn = llvm_lookup_function(ctx, "pgy_set_new_raw_export");
+        LLVMFuncEntry *fn = llvm_required_collection_function(ctx, node,
+            callee_name, "pgy_set_new_raw_export");
         if (ctx->current_ret_type != NULL
             && LLVMGetTypeKind(ctx->current_ret_type) == LLVMStructTypeKind) {
             set_ty = ctx->current_ret_type;
@@ -93,7 +95,8 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
         }
         tmp = llvm_create_entry_alloca(ctx, elem_ty, llvm_tmp_name(ctx));
         LLVMBuildStore(ctx->builder, value, tmp);
-        fn = llvm_lookup_function(ctx, "pgy_set_add_raw_export");
+        fn = llvm_required_collection_function(ctx, node, callee_name,
+            "pgy_set_add_raw_export");
         if (fn != NULL) {
             LLVMValueRef args[] = {
                 LLVMBuildBitCast(ctx->builder, set_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
@@ -145,7 +148,8 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
         }
         tmp = llvm_create_entry_alloca(ctx, elem_ty, llvm_tmp_name(ctx));
         LLVMBuildStore(ctx->builder, value, tmp);
-        fn = llvm_lookup_function(ctx, "pgy_set_has_raw_export");
+        fn = llvm_required_collection_function(ctx, node, callee_name,
+            "pgy_set_has_raw_export");
         if (fn == NULL) {
             *out = LLVMConstInt(ctx->type_i1, 0, 0);
             return true;
@@ -201,7 +205,8 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
         }
         tmp = llvm_create_entry_alloca(ctx, elem_ty, llvm_tmp_name(ctx));
         LLVMBuildStore(ctx->builder, value, tmp);
-        fn = llvm_lookup_function(ctx, "pgy_set_remove_raw_export");
+        fn = llvm_required_collection_function(ctx, node, callee_name,
+            "pgy_set_remove_raw_export");
         if (fn != NULL) {
             LLVMValueRef args[] = {
                 LLVMBuildBitCast(ctx->builder, set_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
@@ -223,8 +228,13 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
             return true;
         }
         set_var = llvm_scope_lookup(ctx, set_arg->data.identifier.name);
-        fn = llvm_lookup_function(ctx, "pgy_set_size_raw_export");
-        if (set_var == NULL || fn == NULL) {
+        if (set_var == NULL) {
+            *out = LLVMConstInt(ctx->type_i32, 0, 0);
+            return true;
+        }
+        fn = llvm_required_collection_function(ctx, node, callee_name,
+            "pgy_set_size_raw_export");
+        if (fn == NULL) {
             *out = LLVMConstInt(ctx->type_i32, 0, 0);
             return true;
         }

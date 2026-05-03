@@ -8,6 +8,11 @@ if [[ "$PGY_BIN" != *.exe && -x "${PGY_BIN}.exe" ]]; then
 fi
 WORK_DIR="$(mktemp -d "${TMPDIR:-/tmp}/pgy-dogfood-webgl.XXXXXX")"
 trap 'rm -rf "$WORK_DIR"' EXIT
+SOURCE_FILE="$ROOT_DIR/examples/wasm_hello/main.pgy"
+
+# This gate validates the beta dogfood host bridge only. It must not become a
+# stable WebGL language-surface gate; renderer APIs live under post-beta
+# module ecosystem work such as pgy.render.webgl.
 
 if [[ ! -x "$PGY_BIN" ]]; then
     echo "[dogfood-webgl] missing compiler binary: $PGY_BIN" >&2
@@ -19,19 +24,12 @@ if ! "$PGY_BIN" --help >"$WORK_DIR/pgy-help.out" 2>"$WORK_DIR/pgy-help.err"; the
     exit 1
 fi
 
-cat >"$WORK_DIR/dogfood_webgl.pgy" <<'PGY'
-extern "C" {
-    func pgy_host_log(value: Int) -> Void;
-    func pgy_webgl_frame(frame: Int) -> Void;
-}
+if [[ ! -f "$SOURCE_FILE" ]]; then
+    echo "[dogfood-webgl] missing dogfood example: $SOURCE_FILE" >&2
+    exit 1
+fi
 
-func Main() -> Void {
-    pgy_host_log(1);
-    pgy_webgl_frame(0);
-}
-PGY
-
-if ! "$PGY_BIN" "$WORK_DIR/dogfood_webgl.pgy" --emit-c \
+if ! "$PGY_BIN" "$SOURCE_FILE" --emit-c \
     -o "$WORK_DIR/dogfood_webgl.c" >"$WORK_DIR/emit.out" 2>"$WORK_DIR/emit.err"; then
     echo "[dogfood-webgl] C emit failed" >&2
     cat "$WORK_DIR/emit.out" >&2
@@ -40,9 +38,8 @@ if ! "$PGY_BIN" "$WORK_DIR/dogfood_webgl.pgy" --emit-c \
 fi
 
 for term in \
-    'extern "C"' \
-    'pgy_host_log' \
-    'pgy_webgl_frame'; do
+    'void pgy_host_log' \
+    'void pgy_webgl_frame'; do
     if ! grep -Fq "$term" "$WORK_DIR/dogfood_webgl.c"; then
         echo "[dogfood-webgl] emitted C missing bridge term: $term" >&2
         sed -n '1,160p' "$WORK_DIR/dogfood_webgl.c" >&2
@@ -63,7 +60,7 @@ if ! grep -Eq 'pgy_webgl_frame\(0\)|pgy_webgl_frame\([^;]*0' "$WORK_DIR/dogfood_
 fi
 
 if ! command -v emcc >/dev/null 2>&1; then
-    echo "[dogfood-webgl] C bridge emitted; emcc not found, skipping wasm link"
+    echo "[dogfood-webgl] C host bridge emitted; emcc not found, skipping wasm link"
     exit 0
 fi
 
@@ -86,4 +83,4 @@ if [[ ! -f "$WORK_DIR/dogfood_webgl.html" || ! -f "$WORK_DIR/dogfood_webgl.js" ]
     exit 1
 fi
 
-echo "[dogfood-webgl] C bridge and optional Emscripten wasm shell ok"
+echo "[dogfood-webgl] C host bridge and optional Emscripten wasm shell ok"

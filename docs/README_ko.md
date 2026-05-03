@@ -92,7 +92,11 @@ make llvm-test-backend-compare
 make example-test-smoke
 make ir-pipeline-test-smoke
 make fmt-test-smoke
+make dogfood-webgl-test-smoke
 ```
+
+WebGL note: `examples/wasm_hello/` is a C `--emit-c` host-bridge dogfood gate,
+not stable WebGL language surface. `pgy.render.webgl` is post-beta module work.
 
 안정 예제 가이드:
 
@@ -103,6 +107,7 @@ make fmt-test-smoke
   - `examples/order_analytics/`
   - `examples/battle_simulator/`
   - `examples/biome_simulator/`
+  - `examples/wasm_hello/`
 - `examples/party_system_demo.pgy`, `examples/world_roster_city.pgy` 같은 예제는 design sketch이며 stable syntax reference가 아니다
 
 ## 문법 예제

@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "type_checker_resolution_helpers.h"
+#include "type_checker_internal.h"
 #include "diag_codes.h"
 
 ASTNode *
@@ -21,120 +21,6 @@ find_type_alias_decl(ASTNode *program, const char *name)
     }
 
     return NULL;
-}
-
-static Type *
-resolve_named_type_from_metadata(const char *name,
-                                 SemanticContext *ctx,
-                                 const ASTNode *site)
-{
-    if (name == NULL)
-        return NULL;
-
-    Type *resolved = semantic_type_resolution_lookup_metadata_name_or_alias(ctx,
-                                                                            name);
-    if (resolved == NULL)
-        return NULL;
-    if (resolved == TYPE_UNKNOWN)
-        return TYPE_UNKNOWN;
-
-    Type *builtin = semantic_type_resolution_metadata_builtin_singleton(name);
-    if (builtin != NULL) {
-        semantic_type_resolution_record_named_dependency(
-            ctx, site, name, TYPE_RES_NODE_BUILTIN, NULL, name,
-            "metadata builtin-type lookup");
-        return resolved;
-    }
-
-    ASTNode *alias_decl = ctx != NULL && ctx->program_root != NULL
-        ? find_type_alias_decl(ctx->program_root, name)
-        : NULL;
-    if (alias_decl != NULL) {
-        semantic_type_resolution_record_named_dependency(
-            ctx, site, name, TYPE_RES_NODE_ALIAS, alias_decl, name,
-            "metadata type-alias lookup");
-        return resolved;
-    }
-
-    Symbol *sym = ctx != NULL ? scope_lookup(ctx->scope, name) : NULL;
-    if (sym != NULL && sym->kind == SYMBOL_CLASS) {
-        ASTNode *decl = ctx->program_root != NULL
-            ? find_type_decl_by_name(ctx->program_root, name)
-            : NULL;
-        semantic_type_resolution_record_named_dependency(
-            ctx, site, name, TYPE_RES_NODE_DECL, decl, name,
-            "metadata named-type lookup");
-        return resolved;
-    }
-    if (sym != NULL) {
-        semantic_type_resolution_record_named_dependency(
-            ctx, site, name,
-            sym->kind == SYMBOL_TYPE_PARAM
-                ? TYPE_RES_NODE_GENERIC_PARAM
-                : TYPE_RES_NODE_DECL,
-            NULL, name, "metadata scope-type lookup");
-        return resolved;
-    }
-
-    return resolved;
-}
-
-Type *
-resolve_named_type(const char *name, SemanticContext *ctx, const ASTNode *site)
-{
-    Type *metadata_type = resolve_named_type_from_metadata(name, ctx, site);
-    Type *named_builtin;
-
-    if (metadata_type != NULL)
-        return metadata_type;
-
-    named_builtin = semantic_type_resolution_metadata_named_builtin_or_shell_singleton(
-        name);
-    if (named_builtin != NULL) {
-        semantic_type_resolution_record_named_dependency(ctx, site, name,
-            TYPE_RES_NODE_BUILTIN, NULL, name, "builtin-type lookup");
-        return named_builtin;
-    }
-
-    Symbol *sym = scope_lookup(ctx->scope, name);
-    if (sym != NULL && sym->kind == SYMBOL_CLASS && sym->type != TYPE_UNKNOWN) {
-        ASTNode *decl = (ctx != NULL && ctx->program_root != NULL)
-            ? find_type_decl_by_name(ctx->program_root, name)
-            : NULL;
-        semantic_type_resolution_record_named_dependency(
-            ctx, site, name, TYPE_RES_NODE_DECL, decl, name,
-            "named-type lookup");
-        return sym->type;
-    }
-
-    if (sym != NULL && sym->type != TYPE_UNKNOWN) {
-        semantic_type_resolution_record_named_dependency(
-            ctx, site, name,
-            sym->kind == SYMBOL_TYPE_PARAM
-                ? TYPE_RES_NODE_GENERIC_PARAM
-                : TYPE_RES_NODE_DECL,
-            NULL, name, "scope-type lookup");
-        return sym->type;
-    }
-
-    if (ctx != NULL && ctx->program_root != NULL) {
-        ASTNode *alias_decl = find_type_alias_decl(ctx->program_root, name);
-        if (alias_decl != NULL) {
-            semantic_type_resolution_record_named_dependency(
-                ctx, site, name, TYPE_RES_NODE_ALIAS, alias_decl, name,
-                "type-alias lookup");
-            Type *resolved = semantic_type_resolution_lookup_metadata_name_or_alias(
-                ctx, name);
-            if (sym != NULL && resolved != NULL)
-                sym->type = resolved;
-            return resolved != NULL ? resolved : TYPE_UNKNOWN;
-        }
-    }
-
-    semantic_error_with_hints(ctx, PGY_CODE_SEM_UNKNOWN_TYPE,
-        PGY_CAUSE_TYPE_UNKNOWN, PGY_FIX_IMPORT_OR_DECLARE_TYPE, site,
-        "Unknown type '%s'", name);
-    return TYPE_UNKNOWN;
 }
 
 bool

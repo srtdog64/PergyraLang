@@ -20,10 +20,9 @@ void set_slot_token_name(TranspilerCtx *ctx, const char *slot_name,
 const char *lookup_slot_type(TranspilerCtx *ctx, const char *var_name);
 bool lookup_slot_is_secure(TranspilerCtx *ctx, const char *var_name);
 const char *lookup_slot_token_name(TranspilerCtx *ctx, const char *var_name);
-const char *lookup_slot_token_name_or_default(TranspilerCtx *ctx,
-                                              const char *var_name,
-                                              char *fallback_buf,
-                                              size_t fallback_cap);
+const char *require_slot_token_name(TranspilerCtx *ctx,
+                                    const char *var_name,
+                                    const char *operation);
 bool lookup_slot_is_indirect(TranspilerCtx *ctx, const char *var_name);
 char *slot_ref_expr(TranspilerCtx *ctx, const char *slot_name,
                     const char *slot_expr);

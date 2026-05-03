@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "mir.h"
+#include "mir_cleanup_fact_names.h"
 
 static const MIRInstruction *
 mir_block_find_pin_cleanup_edge_fact(const MIRBasicBlock *block)
@@ -18,12 +19,14 @@ mir_block_find_pin_cleanup_edge_fact(const MIRBasicBlock *block)
     if (block->pin_view_name == NULL || block->pin_view_name[0] == '\0')
         return NULL;
 
-    expected_access = block->pin_view_is_write ? "write" : "read";
+    expected_access = block->pin_view_is_write
+        ? MIR_PIN_CLEANUP_ACCESS_WRITE
+        : MIR_PIN_CLEANUP_ACCESS_READ;
     for (size_t i = 0; i < block->instruction_count; i++) {
         const MIRInstruction *inst = &block->instructions[i];
         if (inst->kind != MIR_INST_CLEANUP_EDGE
             || inst->name == NULL
-            || strcmp(inst->name, "pin-unpin-cleanup-edge") != 0) {
+            || strcmp(inst->name, MIR_CLEANUP_FACT_PIN_UNPIN_EDGE) != 0) {
             continue;
         }
         if (inst->slot_anchor == NULL

@@ -269,10 +269,14 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                                         inner, slot_ref, val_expr, tok);
                     free(tok);
                 } else if (is_secure) {
-                    char fallback_token[96];
-                    const char *token_name = lookup_slot_token_name_or_default(
-                        ctx, obj->data.identifier.name,
-                        fallback_token, sizeof(fallback_token));
+                    const char *token_name = require_slot_token_name(
+                        ctx, obj->data.identifier.name, "SecureSlot method Write");
+                    if (token_name == NULL) {
+                        free(val_expr);
+                        free(slot_ref);
+                        free(obj_expr);
+                        return pergyra_strdup("0");
+                    }
                     result = strdup_fmt("pgy_secure_write_%s(%s, %s, &%s)",
                                         inner, slot_ref, val_expr, token_name);
                 } else {
@@ -286,10 +290,13 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             } else if (pgy_codegen_call_name_is_read(method)) {
                 char *result;
                 if (is_secure) {
-                    char fallback_token[96];
-                    const char *token_name = lookup_slot_token_name_or_default(
-                        ctx, obj->data.identifier.name,
-                        fallback_token, sizeof(fallback_token));
+                    const char *token_name = require_slot_token_name(
+                        ctx, obj->data.identifier.name, "SecureSlot method Read");
+                    if (token_name == NULL) {
+                        free(slot_ref);
+                        free(obj_expr);
+                        return pergyra_strdup("0");
+                    }
                     result = strdup_fmt("pgy_secure_read_%s(%s, &%s)",
                                         inner, slot_ref, token_name);
                 } else {
@@ -301,10 +308,13 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             } else if (pgy_codegen_call_name_is_release(method)) {
                 char *result;
                 if (is_secure) {
-                    char fallback_token[96];
-                    const char *token_name = lookup_slot_token_name_or_default(
-                        ctx, obj->data.identifier.name,
-                        fallback_token, sizeof(fallback_token));
+                    const char *token_name = require_slot_token_name(
+                        ctx, obj->data.identifier.name, "SecureSlot method Release");
+                    if (token_name == NULL) {
+                        free(slot_ref);
+                        free(obj_expr);
+                        return pergyra_strdup("0");
+                    }
                     result = strdup_fmt("pgy_secure_release_%s(%s, &%s)",
                                         inner, slot_ref, token_name);
                 } else {

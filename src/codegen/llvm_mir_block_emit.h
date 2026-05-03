@@ -287,18 +287,6 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block, const MIRRoutine 
 
     for (size_t i = 0; i < mir_block->instruction_count; i++) {
         const MIRInstruction *inst = &mir_block->instructions[i];
-        if (inst->kind == MIR_INST_RESOURCE_OP
-            && inst->name != NULL
-            && strcmp(inst->name, "Claim") == 0
-            && inst->ast != NULL
-            && inst->has_source_location
-            && inst->source_ast_type == AST_WITH_STMT) {
-            llvm_mir_emit_with_claim_only(inst->ast, ctx);
-        }
-    }
-
-    for (size_t i = 0; i < mir_block->instruction_count; i++) {
-        const MIRInstruction *inst = &mir_block->instructions[i];
         if (getenv("PGY_DEBUG_LLVM_DETAIL") != NULL) {
             fprintf(stderr,
                 "[llvm inst] block=%zu inst=%zu kind=%d ast=%d result=%s\n",
@@ -311,7 +299,6 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block, const MIRRoutine 
             if (inst->name != NULL
                 && strcmp(inst->name, "Claim") == 0
                 && inst->ast != NULL
-                && inst->has_source_location
                 && inst->source_ast_type == AST_WITH_STMT) {
                 llvm_mir_emit_with_claim_only(inst->ast, ctx);
             }
@@ -448,11 +435,7 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block, const MIRRoutine 
         case MIR_INST_STMT:
             if (inst->ast != NULL
                 && inst->has_source_location
-                && inst->source_ast_type == AST_WITH_STMT) {
-                llvm_mir_emit_with_claim_only(inst->ast, ctx);
-            } else if (inst->ast != NULL
-                       && inst->has_source_location
-                       && inst->source_ast_type == AST_DEFER_STMT) {
+                && inst->source_ast_type == AST_DEFER_STMT) {
                 if (inst->ast->data.defer_stmt.body != NULL)
                     llvm_register_defer(inst->ast->data.defer_stmt.body, ctx);
             } else if (inst->ast != NULL && !llvm_mir_stmt_is_cfg_container(inst->ast)) {

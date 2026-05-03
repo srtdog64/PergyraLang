@@ -152,6 +152,7 @@ make beta-test-suite-freeze-test-smoke
 make observability-schema-test-smoke
 make memory-concurrency-model-test-smoke
 make tooling-conformance-test-smoke
+make dogfood-webgl-test-smoke
 ```
 
 Propagation parity is currently locked through `world_fixpoint_abi`, `projection_chain_abi`, `zone_frontier_abi`, `intent_authority_snapshot_abi`, `handoff_projection_frontier_abi`, `handoff_world_state_frontier_abi`, `handoff_layer_state_frontier_abi`, `world_embedded_projection_abi`, `world_embedded_method_projection_abi`, `world_embedded_branch_projection_abi`, `world_embedded_action_frontier_abi`, and `world_embedded_action_pool_frontier_abi` in `make test-abi`, with zone lifecycle bounded frontier emission and C/LLVM runtime parity checked again in `make llvm-test-backend-compare`.
@@ -198,6 +199,10 @@ Recent backend hygiene snapshot:
 
 Stable example guidance:
 
+WebGL note: `examples/wasm_hello/` is a dogfood host-bridge example over C
+`--emit-c`, not stable WebGL language surface. Real WebGL APIs belong to the
+post-beta `pgy.render.webgl` module track.
+
 - smoke-covered examples: see [docs/65_stable_example_surface_board.md](docs/65_stable_example_surface_board.md)
 - current stable entry examples include:
   - `examples/logistics_intent_probe/`
@@ -205,6 +210,7 @@ Stable example guidance:
   - `examples/order_analytics/`
   - `examples/battle_simulator/`
   - `examples/biome_simulator/`
+  - `examples/wasm_hello/` — dogfood WebGL/WASM bridge via C `--emit-c`
 - contract compression canonical pairs:
   - `examples/intent_contract_pair_minimal.pgy`
   - `examples/authority_contract_pair_minimal.pgy`
@@ -554,6 +560,7 @@ Recommended stable examples to start from:
 - `examples/order_analytics/` — larger compile-smoke covered application example
 - `examples/subject_object_tobject/` — nominal/projection baseline
 - `examples/ownership_forwarding_probe/` — current `own/ref` anchored-slot boundary subset
+- `examples/wasm_hello/` — beta dogfood bridge: C `--emit-c` plus optional Emscripten
 
 Design-sketch examples:
 

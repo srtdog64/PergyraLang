@@ -344,6 +344,8 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_builtins_stdlib_scalar.c \
                    $(SEMANTIC_DIR)/type_checker_builtins_stdlib_map.c \
                    $(SEMANTIC_DIR)/type_checker_builtins_stdlib_collections.c \
+                   $(SEMANTIC_DIR)/type_checker_builtins_stdlib_channel_transport.c \
+                   $(SEMANTIC_DIR)/type_checker_builtins_stdlib_variant.c \
                    $(SEMANTIC_DIR)/type_checker_builtins_stdlib_body.c \
                    $(SEMANTIC_DIR)/type_checker_domain_role_lookup.c \
                    $(SEMANTIC_DIR)/type_checker_domain_projection.c \
@@ -721,10 +723,16 @@ llvm:
 # Build rules
 # -----------------------------------------------------------------
 
+define pgy_link
+$(file >$(BUILD_DIR)/$(notdir $@).rsp,$^)
+$(CC) $(CFLAGS) -o $@ @"$(BUILD_DIR)/$(notdir $@).rsp" $(1)
+@rm -f "$(BUILD_DIR)/$(notdir $@).rsp"
+endef
+
 # pgy compiler driver
 $(PGY): $(FRONTEND_OBJECTS) $(DRIVER_OBJ) | $(BIN_DIR)
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS_LLVM) $(THREAD_LINK_LIB) -lm
+	$(call pgy_link,$(LDFLAGS_LLVM) $(THREAD_LINK_LIB) -lm)
 
 $(REPO_BIN_DIR)/pgy$(EXEEXT): $(PGY) | $(REPO_BIN_DIR)
 	@if [ "$(abspath $<)" != "$(abspath $@)" ]; then cp -f "$<" "$@"; fi
@@ -742,85 +750,85 @@ endif
 # Lexer smoke-test (original main.c)
 $(LEXER_TEST): $(LEXER_OBJECTS) $(MAIN_OBJECT) | $(BIN_DIR)
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) -o $@ $^
+	$(call pgy_link,)
 
 # Parser test
 $(PARSER_TEST): $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(PARSER_TEST_OBJECT) | $(BIN_DIR)
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) -o $@ $^
+	$(call pgy_link,)
 
 # Data structures test
 $(DATASTRUCTURES_TEST): $(BUILD_DIR)/runtime/slot_pool.o \
                          $(BUILD_DIR)/runtime/slot_pool_perf.o \
                          $(TEST_DATASTRUCTURES_OBJ) | $(BIN_DIR)
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) -o $@ $^ $(THREAD_LINK_LIB)
+	$(call pgy_link,$(THREAD_LINK_LIB))
 
 # Security test
 $(SECURITY_TEST): $(RUNTIME_OBJECTS) $(RUNTIME_ASM_OBJECTS) \
                    $(TEST_SECURITY_OBJ) | $(BIN_DIR)
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) -o $@ $^ $(THREAD_LINK_LIB) -lssl -lcrypto
+	$(call pgy_link,$(THREAD_LINK_LIB) -lssl -lcrypto)
 
 # Semantic analyzer test
 $(SEMANTIC_TEST): $(FRONTEND_OBJECTS) $(TEST_SEMANTIC_OBJ) | $(BIN_DIR)
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS_LLVM) $(THREAD_LINK_LIB) -lm
+	$(call pgy_link,$(LDFLAGS_LLVM) $(THREAD_LINK_LIB) -lm)
 
 # C backend test
 $(TRANSPILE_TEST): $(FRONTEND_OBJECTS) $(TEST_TRANSPILE_OBJ) | $(BIN_DIR)
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS_LLVM) $(THREAD_LINK_LIB) -lm
+	$(call pgy_link,$(LDFLAGS_LLVM) $(THREAD_LINK_LIB) -lm)
 
 # Memory layout test (runtime-only, no frontend)
 $(MEMORY_TEST): $(TEST_MEMORY_OBJ) | $(BIN_DIR)
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) -o $@ $^
+	$(call pgy_link,)
 
 # ABI spec validation test (runtime-only, includes pgy_runtime.h for cross-check)
 $(ABI_TEST): $(TEST_ABI_OBJ) | $(BIN_DIR)
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) -o $@ $^
+	$(call pgy_link,)
 
 # ABI pipeline integration test (frontend + backend + produced binary)
 $(ABI_PIPELINE_TEST): $(FRONTEND_OBJECTS) $(TEST_ABI_PIPELINE_OBJ) | $(BIN_DIR)
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS_LLVM) $(THREAD_LINK_LIB) -lm
+	$(call pgy_link,$(LDFLAGS_LLVM) $(THREAD_LINK_LIB) -lm)
 
 # Concurrency runtime test
 $(CONCURRENCY_TEST): $(TEST_CONCURRENCY_OBJ) | $(BIN_DIR)
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) -o $@ $^ $(THREAD_LINK_LIB)
+	$(call pgy_link,$(THREAD_LINK_LIB))
 
 # DIR lowering test
 $(DIR_TEST): $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(SEMANTIC_LINK_SUPPORT) $(DIR_CORE_OBJECTS) $(TEST_DIR_OBJ) | $(BIN_DIR)
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) -o $@ $^ $(THREAD_LINK_LIB)
+	$(call pgy_link,$(THREAD_LINK_LIB))
 
 # AIR synthesis and drift test
 $(AIR_TEST): $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(SEMANTIC_LINK_SUPPORT) $(DIR_CORE_OBJECTS) $(HIR_CORE_OBJECTS) $(RIR_CORE_OBJECTS) $(AIR_CORE_OBJECTS) $(TEST_AIR_OBJ) | $(BIN_DIR)
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) -o $@ $^ $(THREAD_LINK_LIB)
+	$(call pgy_link,$(THREAD_LINK_LIB))
 
 # RIR lowering test
 $(RIR_TEST): $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(SEMANTIC_LINK_SUPPORT) $(DIR_CORE_OBJECTS) $(HIR_CORE_OBJECTS) $(RIR_CORE_OBJECTS) $(TEST_RIR_OBJ) | $(BIN_DIR)
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) -o $@ $^ $(THREAD_LINK_LIB)
+	$(call pgy_link,$(THREAD_LINK_LIB))
 
 # MIR lowering test
 $(MIR_TEST): $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(SEMANTIC_LINK_SUPPORT) $(HIR_CORE_OBJECTS) $(RIR_CORE_OBJECTS) $(MIR_CORE_OBJECTS) $(TEST_MIR_OBJ) | $(BIN_DIR)
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) -o $@ $^ $(THREAD_LINK_LIB)
+	$(call pgy_link,$(THREAD_LINK_LIB))
 
 # HIR lowering test
 $(HIR_TEST): $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(SEMANTIC_LINK_SUPPORT) $(HIR_CORE_OBJECTS) $(TEST_HIR_OBJ) | $(BIN_DIR)
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) -o $@ $^ $(THREAD_LINK_LIB)
+	$(call pgy_link,$(THREAD_LINK_LIB))
 
 # LSP server
 $(PGY_LSP): $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(SEMANTIC_LINK_SUPPORT) $(LSP_OBJECTS) | $(BIN_DIR)
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) -o $@ $^ $(THREAD_LINK_LIB)
+	$(call pgy_link,$(THREAD_LINK_LIB))
 
 $(REPO_BIN_DIR)/pgy-lsp$(EXEEXT): $(PGY_LSP) | $(REPO_BIN_DIR)
 	@if [ "$(abspath $<)" != "$(abspath $@)" ]; then cp -f "$<" "$@"; fi
@@ -1217,8 +1225,8 @@ runtime-abi-lifetime-test-smoke:
 abi-ownership-shape-test-smoke:
 	"$(BASH)" tests/abi_ownership_shape_smoke.sh
 
-runtime-frontier-contract-test-smoke:
-	"$(BASH)" tests/runtime_frontier_contract_smoke.sh
+runtime-frontier-contract-test-smoke: $(PGY)
+	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/runtime_frontier_contract_smoke.sh
 
 runtime-frontier-policy-test-smoke:
 	CC="$(CC)" "$(BASH)" tests/runtime_frontier_policy_smoke.sh
@@ -1341,7 +1349,7 @@ ci-linux:
 	$(MAKE) projection-diagnostic-contract-test-smoke
 	$(MAKE) runtime-abi-lifetime-test-smoke
 	$(MAKE) abi-ownership-shape-test-smoke
-	$(MAKE) runtime-frontier-contract-test-smoke
+	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" runtime-frontier-contract-test-smoke
 	$(MAKE) CC="$(CI_LINUX_CC)" runtime-frontier-policy-test-smoke
 	$(MAKE) runtime-intent-observability-contract-test-smoke
 	$(MAKE) parallel-core-contract-test-smoke

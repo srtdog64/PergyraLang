@@ -200,6 +200,82 @@ mir_block_source_inventory_at(const MIRBasicBlock *block, size_t index)
 }
 
 static bool
+mir_resource_op_matches_source_stmt(const MIRInstruction *inst,
+                                    const ASTNode *stmt)
+{
+    const char *anchor;
+
+    if (inst == NULL || stmt == NULL || inst->kind != MIR_INST_RESOURCE_OP)
+        return false;
+    if (inst->ast == stmt)
+        return true;
+    if (inst->has_source_location
+        && stmt->line != 0
+        && inst->source_line == stmt->line
+        && inst->source_column == stmt->column) {
+        return true;
+    }
+    if (stmt->type != AST_WITH_STMT
+        || inst->name == NULL
+        || strcmp(inst->name, "Claim") != 0) {
+        return false;
+    }
+    anchor = inst->slot_anchor != NULL ? inst->slot_anchor : inst->arg0;
+    return anchor != NULL
+        && stmt->data.with_stmt.alias != NULL
+        && strcmp(anchor, stmt->data.with_stmt.alias) == 0;
+}
+
+static void
+mir_copy_resource_ops_for_stmt(MIRInstruction *new_insts,
+                               size_t *new_count,
+                               MIRInstruction *old_insts,
+                               size_t old_count,
+                               bool *copied_flags,
+                               const ASTNode *stmt,
+                               size_t source_statement_index)
+{
+    if (new_insts == NULL || new_count == NULL || old_insts == NULL
+        || copied_flags == NULL || stmt == NULL) {
+        return;
+    }
+
+    for (size_t r = 0; r < old_count; r++) {
+        if (copied_flags[r])
+            continue;
+        if (!mir_resource_op_matches_source_stmt(&old_insts[r], stmt))
+            continue;
+        new_insts[(*new_count)++] = old_insts[r];
+        mir_set_inst_source_statement_index(&new_insts[*new_count - 1],
+                                            source_statement_index);
+        copied_flags[r] = true;
+    }
+}
+
+static void
+mir_assign_resource_op_source_statement_indices(MIRInstruction *insts,
+                                                size_t inst_count,
+                                                ASTNode **source_items,
+                                                size_t source_count)
+{
+    if (insts == NULL || source_items == NULL || source_count == 0)
+        return;
+
+    for (size_t i = 0; i < inst_count; i++) {
+        if (insts[i].kind != MIR_INST_RESOURCE_OP
+            || insts[i].has_source_statement_index) {
+            continue;
+        }
+        for (size_t s = 0; s < source_count; s++) {
+            if (mir_resource_op_matches_source_stmt(&insts[i], source_items[s])) {
+                mir_set_inst_source_statement_index(&insts[i], s);
+                break;
+            }
+        }
+    }
+}
+
+static bool
 mir_populate_stmt_instructions(MIRRoutine *routine)
 {
     bool has_stmt_inst = false;
@@ -304,12 +380,19 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
                 continue;
             }
             if (mir_stmt_is_control_flow(stmt, block)) {
-                if (mir_stmt_is_inline_cfg_wrapper(stmt))
+                if (mir_stmt_is_inline_cfg_wrapper(stmt)) {
+                    mir_copy_resource_ops_for_stmt(new_insts, &new_count,
+                                                   old_insts, old_count,
+                                                   copied_flags, stmt, s);
                     continue;
+                }
                 if (block->has_succ_true || block->has_succ_false)
                     break;
                 continue;
             }
+            mir_copy_resource_ops_for_stmt(new_insts, &new_count,
+                                           old_insts, old_count,
+                                           copied_flags, stmt, s);
             if (mir_assignment_requires_stmt_preservation(routine->ast,
                                                           mir_block_source_inventory_items(block),
                                                           inventory_count,
@@ -458,6 +541,11 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
         }
 
         /* Replace block's instruction array */
+        mir_assign_resource_op_source_statement_indices(
+            new_insts,
+            new_count,
+            mir_block_source_inventory_items(block),
+            inventory_count);
         free(copied_flags);
         free(old_insts);
         block->instructions = new_insts;

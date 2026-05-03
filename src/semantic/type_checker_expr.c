@@ -14,6 +14,25 @@ expr_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
 }
 
 static Type *
+expr_resolve_named_type_metadata_or_unknown(const char *name,
+                                            SemanticContext *ctx,
+                                            ASTNode *site)
+{
+    Type *resolved;
+
+    if (name == NULL || name[0] == '\0')
+        return TYPE_UNKNOWN;
+    resolved = semantic_type_resolution_lookup_metadata_name_or_alias(ctx,
+                                                                      name);
+    if (resolved != NULL)
+        return resolved;
+    semantic_error_with_hints(ctx, PGY_CODE_SEM_UNKNOWN_TYPE,
+        PGY_CAUSE_TYPE_UNKNOWN, PGY_FIX_IMPORT_OR_DECLARE_TYPE, site,
+        "Unknown type '%s'", name);
+    return TYPE_UNKNOWN;
+}
+
+static Type *
 expr_normalize_type(Type *type)
 {
     return type != NULL ? type : TYPE_UNKNOWN;
@@ -363,16 +382,16 @@ type_check_member_access(ASTNode *expr, SemanticContext *ctx)
                     ASTNode *slot = decl->data.world_decl.rosters[i];
                     if (slot != NULL && slot->data.world_roster.slot_name != NULL
                         && strcmp(slot->data.world_roster.slot_name, field_name) == 0) {
-                        return resolve_named_type(slot->data.world_roster.roster_type,
-                            ctx, slot);
+                        return expr_resolve_named_type_metadata_or_unknown(
+                            slot->data.world_roster.roster_type, ctx, slot);
                     }
                 }
                 for (size_t i = 0; i < decl->data.world_decl.zone_count; i++) {
                     ASTNode *slot = decl->data.world_decl.zones[i];
                     if (slot != NULL && slot->data.world_zone.slot_name != NULL
                         && strcmp(slot->data.world_zone.slot_name, field_name) == 0) {
-                        return resolve_named_type(slot->data.world_zone.zone_type,
-                            ctx, slot);
+                        return expr_resolve_named_type_metadata_or_unknown(
+                            slot->data.world_zone.zone_type, ctx, slot);
                     }
                 }
             }

@@ -37,6 +37,7 @@ required = {
     "pgy.execution",
     "pgy.runtime.scheduler",
     "pgy.accel.spray",
+    "pgy.render.webgl",
     "pgy.render.skia",
     "pgy.compat.oop",
     "pgy.compat.dop",
@@ -74,6 +75,14 @@ for item in modules:
 for token in ("pgy.core", "pgy.foundation", "pgy.execution"):
     if token not in readme:
         raise SystemExit(f"{token} missing from README")
+
+for token in (
+    "pgy.render.webgl",
+    "WebGL is not core language syntax",
+    "examples/wasm_hello/` is a bridge proof",
+):
+    if token not in taxonomy:
+        raise SystemExit(f"pgy.render.webgl taxonomy missing boundary: {token}")
 
 for token in (
     "Zig `comptime`-style type-level computation is not part of the beta type",

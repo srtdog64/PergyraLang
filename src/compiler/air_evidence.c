@@ -1,4 +1,5 @@
 #include "air_internal.h"
+#include "mir_cleanup_fact_names.h"
 #include "mir_cfg_contract_cleanup_fact.h"
 #include "mir_cfg_contract_cleanup_root_membership.h"
 #include "mir_cfg_contract_pin.h"
@@ -163,15 +164,17 @@ air_mir_routine_cleanup_fact_count(const MIRRoutine *routine)
             continue;
         }
         if (!block->is_cleanup
-            && mir_block_has_cleanup_edge_fact(block, "cleanup-edge"))
+            && mir_block_has_cleanup_edge_fact(block, MIR_CLEANUP_FACT_EDGE))
             count++;
         if (routine->has_rollback_block
             && i == routine->rollback_block
-            && mir_block_has_cleanup_edge_fact(block, "cleanup-edge-from-rollback"))
+            && mir_block_has_cleanup_edge_fact(
+                block, MIR_CLEANUP_FACT_EDGE_FROM_ROLLBACK))
             count++;
         if (routine->has_invalidation_block
             && i == routine->invalidation_block
-            && mir_block_has_cleanup_edge_fact(block, "cleanup-edge-from-invalidation"))
+            && mir_block_has_cleanup_edge_fact(
+                block, MIR_CLEANUP_FACT_EDGE_FROM_INVALIDATION))
             count++;
     }
     return count;
@@ -205,6 +208,25 @@ air_mir_routine_terminator_fact_count(const MIRRoutine *routine)
                     &block->instructions[j])) {
                 count++;
             }
+        }
+    }
+    if (count > 0)
+        return count;
+    if (routine->hir_routine == NULL)
+        return 0;
+
+    /*
+     * Void fallthrough routines do not materialize a branch/return instruction,
+     * but they still carry HIR-backed reachable blocks. Strict AIR needs proof
+     * that MIR owns CFG exit provenance; it must not force source authors to add
+     * explicit `return;` solely to satisfy evidence accounting.
+     */
+    for (size_t i = 0; i < routine->block_count; i++) {
+        const MIRBasicBlock *block = &routine->blocks[i];
+        if (block->is_reachable
+            && !block->is_cleanup
+            && block->source_hir_block_id != SIZE_MAX) {
+            count++;
         }
     }
     return count;

@@ -4,6 +4,51 @@
 #include "type_checker_collection_policy.h"
 #include "type_checker_internal.h"
 
+typedef struct StableShellSpec {
+    const char *name;
+    Type **constructor;
+    size_t min_args;
+    size_t max_args;
+    bool slot_like;
+} StableShellSpec;
+
+static const StableShellSpec *
+metadata_stable_shell_spec(const char *name)
+{
+    static const StableShellSpec specs[] = {
+        { "Array", &TYPE_ARRAY, 1, 1, false },
+        { "Box", &TYPE_BOX, 1, 1, false },
+        { "Channel", &TYPE_CHANNEL, 1, 1, false },
+        { "DeviceSlot", &TYPE_DEVICE_SLOT, 1, 1, false },
+        { "Future", &TYPE_FUTURE, 1, 1, false },
+        { "HashMap", &TYPE_HASHMAP, 2, 2, false },
+        { "List", &TYPE_LIST, 1, 1, false },
+        { "MoveToken", NULL, 1, 1, true },
+        { "Option", &TYPE_OPTION, 1, 1, false },
+        { "Queue", &TYPE_QUEUE, 1, 1, false },
+        { "Rc", &TYPE_RC, 1, 1, false },
+        { "ReadView", NULL, 1, 1, true },
+        { "RemoteFuture", &TYPE_REMOTE_FUTURE, 1, 1, false },
+        { "Result", &TYPE_RESULT, 1, 2, false },
+        { "SecureSlot", NULL, 1, 1, true },
+        { "Set", &TYPE_SET, 1, 1, false },
+        { "Slice", &TYPE_SLICE, 1, 1, false },
+        { "Slot", NULL, 1, 1, true },
+        { "Token", &TYPE_TOKEN, 1, 1, false },
+        { "Weak", &TYPE_WEAK, 1, 1, false },
+        { "WriteView", NULL, 1, 1, true },
+    };
+    const size_t count = sizeof(specs) / sizeof(specs[0]);
+
+    if (name == NULL)
+        return NULL;
+    for (size_t i = 0; i < count; i++) {
+        if (strcmp(name, specs[i].name) == 0)
+            return &specs[i];
+    }
+    return NULL;
+}
+
 bool
 semantic_type_resolution_metadata_type_ref_has_no_generic_args(
     const ASTNode *type_node)
@@ -22,37 +67,13 @@ semantic_type_resolution_metadata_stable_builtin_shell_arity(
 {
     size_t min = 1;
     size_t max = 1;
+    const StableShellSpec *spec = metadata_stable_shell_spec(name);
 
-    if (name == NULL)
+    if (spec == NULL)
         return false;
 
-    if (strcmp(name, "HashMap") == 0) {
-        min = 2;
-        max = 2;
-    } else if (strcmp(name, "Result") == 0) {
-        min = 1;
-        max = 2;
-    } else if (!(strcmp(name, "Array") == 0
-            || strcmp(name, "Slice") == 0
-            || strcmp(name, "List") == 0
-            || strcmp(name, "Queue") == 0
-            || strcmp(name, "Set") == 0
-            || strcmp(name, "Box") == 0
-            || strcmp(name, "Rc") == 0
-            || strcmp(name, "Weak") == 0
-            || strcmp(name, "Channel") == 0
-            || strcmp(name, "Future") == 0
-            || strcmp(name, "RemoteFuture") == 0
-            || strcmp(name, "Token") == 0
-            || strcmp(name, "DeviceSlot") == 0
-            || strcmp(name, "Option") == 0
-            || strcmp(name, "Slot") == 0
-            || strcmp(name, "SecureSlot") == 0
-            || strcmp(name, "ReadView") == 0
-            || strcmp(name, "WriteView") == 0
-            || strcmp(name, "MoveToken") == 0)) {
-        return false;
-    }
+    min = spec->min_args;
+    max = spec->max_args;
 
     if (out_min != NULL)
         *out_min = min;
@@ -64,53 +85,21 @@ semantic_type_resolution_metadata_stable_builtin_shell_arity(
 bool
 semantic_type_resolution_metadata_stable_slot_like_shell(const char *name)
 {
-    return name != NULL
-        && (strcmp(name, "Slot") == 0
-            || strcmp(name, "SecureSlot") == 0
-            || strcmp(name, "ReadView") == 0
-            || strcmp(name, "WriteView") == 0
-            || strcmp(name, "MoveToken") == 0);
+    const StableShellSpec *spec = metadata_stable_shell_spec(name);
+    return spec != NULL && spec->slot_like;
 }
 
 Type *
 semantic_type_resolution_metadata_stable_constructed_shell(const char *name,
                                                            size_t argc)
 {
-    if (name == NULL)
+    const StableShellSpec *spec = metadata_stable_shell_spec(name);
+
+    if (spec == NULL || spec->constructor == NULL)
         return NULL;
-    if (argc == 1 && strcmp(name, "Array") == 0)
-        return TYPE_ARRAY;
-    if (argc == 1 && strcmp(name, "Slice") == 0)
-        return TYPE_SLICE;
-    if (argc == 1 && strcmp(name, "List") == 0)
-        return TYPE_LIST;
-    if (argc == 1 && strcmp(name, "Queue") == 0)
-        return TYPE_QUEUE;
-    if (argc == 1 && strcmp(name, "Set") == 0)
-        return TYPE_SET;
-    if (argc == 1 && strcmp(name, "Box") == 0)
-        return TYPE_BOX;
-    if (argc == 1 && strcmp(name, "Rc") == 0)
-        return TYPE_RC;
-    if (argc == 1 && strcmp(name, "Weak") == 0)
-        return TYPE_WEAK;
-    if (argc == 1 && strcmp(name, "Channel") == 0)
-        return TYPE_CHANNEL;
-    if (argc == 1 && strcmp(name, "Future") == 0)
-        return TYPE_FUTURE;
-    if (argc == 1 && strcmp(name, "RemoteFuture") == 0)
-        return TYPE_REMOTE_FUTURE;
-    if (argc == 1 && strcmp(name, "Token") == 0)
-        return TYPE_TOKEN;
-    if (argc == 1 && strcmp(name, "DeviceSlot") == 0)
-        return TYPE_DEVICE_SLOT;
-    if (argc == 2 && strcmp(name, "HashMap") == 0)
-        return TYPE_HASHMAP;
-    if (argc == 1 && strcmp(name, "Option") == 0)
-        return TYPE_OPTION;
-    if ((argc == 1 || argc == 2) && strcmp(name, "Result") == 0)
-        return TYPE_RESULT;
-    return NULL;
+    if (argc < spec->min_args || argc > spec->max_args)
+        return NULL;
+    return *spec->constructor;
 }
 
 bool

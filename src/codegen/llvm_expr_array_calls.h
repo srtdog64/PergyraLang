@@ -52,7 +52,8 @@ llvm_emit_array_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
 
         char fn_name[64];
         snprintf(fn_name, sizeof(fn_name), "pgy_array_push_%s", suffix);
-        LLVMFuncEntry *fn = llvm_lookup_function(ctx, fn_name);
+        LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
+            "array", callee_name, fn_name);
         if (fn != NULL) {
             LLVMValueRef args[] = { arr_var->alloca, value };
             LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, "");
@@ -89,7 +90,8 @@ llvm_emit_array_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         if (suffix != NULL && strcmp(suffix, "Unknown") != 0) {
             char fn_name[64];
             snprintf(fn_name, sizeof(fn_name), "pgy_array_set_%s", suffix);
-            LLVMFuncEntry *fn = llvm_lookup_function(ctx, fn_name);
+            LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
+                "array", callee_name, fn_name);
             if (fn != NULL) {
                 LLVMValueRef index64 = idx;
                 if (LLVMTypeOf(index64) != ctx->type_i64)

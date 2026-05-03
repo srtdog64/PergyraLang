@@ -1,5 +1,15 @@
 # Pergyra TODO (배포 준비)
 
+English anchor for tooling/doc gates:
+
+- Self-host work begins after BETA closure and final dogfood.
+- Self-host is not a beta blocker; partial self-host is the recommended first trajectory.
+- First dogfood targets are compiler-adjacent tools: diagnostic catalog checker, AIR graph JSON validator, MIR dump diff tool, C/LLVM backend output comparator, and module/package resolver helper.
+- full self-host remains a long-term proof target, not a current capability.
+- The slot model removes the Rust-style lifetime annotation tax from the self-host path.
+- Missing for full self-host: stable module/package resolver, richer stdlib, debugger/bootstrap story, and Stable C escape hatch policy.
+- WebGL dogfood is not core language surface. The beta path is `Pergyra -> C backend --emit-c -> optional Emscripten/WebGL bridge`; it validates host bridge viability only. `pgy.render.webgl`, richer render APIs, native LLVM wasm, and GPU/Spray work stay module ecosystem tracks after beta closure.
+
 ## 0-selfhost. Beta 이후 self-hosting 목표
 
 **결정:** self-hosting은 beta blocker가 아니라 beta 이후의 검증 목표다.
@@ -338,6 +348,17 @@ module은 beta+1로 둔다.
      Gate:
      `make test-semantic type-resolution-dag-test-smoke
      type-resolution-resolver-inventory-test-smoke` (`2500/0` semantic).
+   - 2026-05-04 DAG direct named resolver seam closure:
+     expression/world host access and overlay world-zone slot registration now
+     consume metadata-only named-type lookup seams instead of calling
+     `resolve_named_type(...)` directly. The retired `resolve_named_type(...)`
+     API and prototypes were removed; the resolver inventory smoke rejects
+     reintroducing the symbol anywhere under `src/semantic`. The now-unused
+     `type_checker_resolution_helpers.h` compatibility header was also removed;
+     internal declarations live in `type_checker_internal.h`. Gate:
+     `make test-semantic type-resolution-dag-test-smoke
+     type-resolution-resolver-inventory-test-smoke` (`2500/0` semantic,
+     `retired_resolver_calls=0`, `materializer_unresolved=0`).
    - 2026-05-03: intent compression provenance tightened. A `using` binding
      derived from a unique `where`/zone type now records
      `derived_using_from_where`, so AST print and contract summaries no longer
@@ -6313,6 +6334,50 @@ Local verification for this debt refresh:
   of reaching `type_create_function(...)` as `NULL`.
 - C backend MIR block lookup now prefers exact `source_statement_index`
   metadata over block-AST name search for preserved let statements.
+- C backend preserved-let emission is now named as preserved source-order
+  emission (`transpiler_mir_preserved_let_emit.h`) rather than a fallback path,
+  and `perf-contract-test-smoke` rejects reintroducing the old fallback-let
+  owner/function names.
+- LLVM intent success predicate emission now fails closed with
+  `PGY_LLVM_TYPE_UNSUPPORTED` instead of silently lowering unsupported success
+  expressions to `true`; `perf-contract-test-smoke` rejects the old lossy
+  fallback wording.
+- LLVM intent authority presence flags now fail closed: missing/null/non-pointer
+  zone or participant aliases lower to `false` and flow through the shared
+  runtime authority rejection path instead of being treated as present.
+- LLVM function registry lookup/declaration now uses declaration terminology:
+  `llvm_lookup_or_declare_function(...)` with `decl_type`/`decl_ret_type`.
+  The old `lookup_or_create` and `fallback_type` names were false debt signals
+  for explicit external/runtime declarations, and `perf-contract-test-smoke`
+  rejects reintroducing them under `src/codegen`.
+- Intent observability usage detection now names the remaining hand-built MIR
+  compatibility path as a `legacy_ast_probe`, not an AST fallback. Production
+  lowered MIR still consumes routine direct calls and inventory surface facts;
+  `perf-contract-test-smoke` rejects the old `allow_ast_fallback` wording.
+- Thread-pool surface usage detection uses the same `legacy_ast_probe`
+  vocabulary for hand-built MIR fixtures, so codegen no longer advertises
+  production AST fallback for surface usage detection.
+- LLVM collection calls now fail closed when required List/Set/HashMap
+  runtime exports are not registered, using shared backend diagnostics instead
+  of treating missing runtime functions as empty `0`/`null` results. HashMap
+  raw-export lookup was folded into the required-runtime helper so unsupported
+  key metadata is also explicit.
+- Queue extended calls now use the same required-runtime helper as List/HashMap
+  calls, so missing queue exports no longer silently become empty/zero results.
+- LLVM MIR for-in lowering now requires registered `pgy_list_size_raw_export`
+  and `pgy_list_get_raw_export` functions via explicit backend diagnostics
+  instead of silently lowering a missing export into an empty loop/body.
+- LLVM statement-level for-in lowering now uses the same required-runtime
+  policy and stops before emitting partial loop IR when the list size/get
+  runtime exports are missing.
+- LLVM log and intent-observability expression calls now report missing runtime
+  exports as backend diagnostics instead of silently ignoring the call or
+  redispatching to the generic unknown-function path.
+- Link rules now use a shared response-file macro for object lists instead of
+  raw `$^` expansion. This closes a Windows/MinGW command-line length failure
+  where long object lists were truncated into non-existent paths during
+  LLVM-enabled links; `perf-contract-test-smoke` now gates the response-file
+  rule.
 - AIR boundary evidence now rejects fact-count drift: each boundary evidence
   node must carry exactly one boundary fact. This prevents hand-built or
   JSON-fed evidence from widening HIR/RIR/MIR boundary proofs into ambiguous
@@ -6391,3 +6456,35 @@ Local verification for this debt refresh:
 - Local native MinGW gates: `test-mir` (`35/0`), `test-air` (`71/0`),
   `air-drift-test-smoke`, and `air-json-schema-test-smoke`; plus
   `test-semantic` (`2500/0`), and `test-transpile` (`710/0`).
+
+## Progress Log - 2026-05-04 LLVM Runtime Helper Fail-Closed Sweep
+
+- LLVM runtime declaration terminology now says `lookup_or_declare`, not
+  `lookup_or_create` / fallback. This keeps declaration synthesis framed as an
+  explicit registry operation rather than an allowed backend fallback.
+- Stable LLVM collection, for-in, log, intent-observability, and stdlib
+  runtime helper calls now fail closed when their required runtime declaration
+  is missing. Missing helpers route through structured LLVM diagnostics with
+  `PGY_FIX_INSPECT_MIR_INVENTORY` instead of falling through to generic unknown
+  call handling or silently returning `0`.
+- LLVM checked integer division/modulo now also fails closed if the checked
+  arithmetic runtime helper is missing. It no longer falls back to raw LLVM
+  `sdiv`/`srem`, preserving the panic/runtime-parity contract for divide/mod
+  by zero.
+- LLVM string concatenation/comparison and numeric string coercion now use the
+  same explicit runtime-helper contract. Missing `StringConcat`,
+  `pgy_string_equals`, `pgy_int_to_string`, or `pgy_float_to_string` no longer
+  falls through into pointer comparison/arithmetic or generic unknown-call
+  behavior.
+- LLVM `ArrayPush` / `ArraySet` now require their type-specialized
+  `pgy_array_*_<suffix>` runtime exports. Missing array exports are backend
+  diagnostics instead of silent no-op array mutations.
+- The stdlib scalar/string/file/time LLVM path now consumes
+  `llvm_required_runtime_function(...)` for registered runtime helpers. The
+  generic unknown-function path remains unchanged for user/external calls; the
+  fail-closed sweep is intentionally limited to frozen builtin/runtime surface.
+- MinGW LLVM-enabled links now use response files for large object inventories,
+  avoiding command-line truncation in the current Windows build shape.
+- Verified slice probes: LLVM object rebuilds for the touched codegen owners,
+  native MinGW `test-parser`, native MinGW `test-semantic` (`2500/0`), and
+  `perf-contract-test-smoke`.

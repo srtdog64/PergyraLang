@@ -50,13 +50,15 @@ bool type_is_capability_bearing(const Type *type);
 bool type_is_subject_type(const Type *type, SemanticContext *ctx);
 bool type_is_class_object_type(const Type *type, SemanticContext *ctx);
 bool type_requires_boundary_borrow_tracking(const Type *type, SemanticContext *ctx);
-Type *resolve_named_type(const char *name, SemanticContext *ctx,
-                         const ASTNode *site);
 const char *type_name_or_unknown(const Type *type);
 bool name_looks_qualified(const char *name);
 void semantic_format_function_signature(const Type *type,
                                         char *out,
                                         size_t out_cap);
+void reject_if_embedded_world_zone_mutation(SemanticContext *ctx,
+                                            ASTNode *site,
+                                            ASTNode *target,
+                                            const char *op_name);
 void semantic_record_effect(SemanticContext *ctx, uint32_t effect_mask);
 void semantic_record_body_summary(SemanticContext *ctx, uint32_t summary_mask);
 void semantic_record_callee_body_summary(SemanticContext *ctx,
@@ -535,9 +537,6 @@ void    propagate_collapse_to_pool(SemanticContext *ctx, int32_t pool_id);
 /* Cross-TU helpers promoted from static to extern to support the
  * type_checker_decls_domain_helpers.c translation unit extraction
  * (5-A slice, docs/101_semantic_split_template.md). */
-const char *type_name_or_unknown(const Type *type);
-Type *resolve_named_type(const char *name, SemanticContext *ctx,
-                         const ASTNode *site);
 bool decl_is_projection_source(const ASTNode *decl);
 const char *projection_refresh_source_field_name(ASTNode *refresh,
                                                  const char *target_field_name);
@@ -553,14 +552,10 @@ bool type_check_constructor_symbol_call(ASTNode *expr,
                                         Type **type_out);
 
 /* Helper-axis promotions for the helpers_late.c TU (docs/101). */
-ASTNode *overlay_field_decl_at(ASTNode *decl, size_t index,
-                               const char **field_name_out);
 void semantic_ctx_mark_embedded_world_zone_name(SemanticContext *ctx,
                                                 const char *name,
                                                 const char *world_name,
                                                 const char *slot_name);
-void semantic_format_function_signature(const Type *type, char *out,
-                                        size_t out_cap);
 ASTNode *find_callable_decl_by_name(ASTNode *program, const char *name);
 const char *resource_handle_display_name(const Type *type);
 const char *format_effective_generic_type_list_scratch(SemanticContext *ctx,

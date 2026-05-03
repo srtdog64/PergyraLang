@@ -22,6 +22,7 @@ cat >"$tmp_dir/frontier_policy_check.c" <<'C'
 #include <stdint.h>
 #include <stddef.h>
 
+#include "codegen/domain_frontier_policy.h"
 #include "runtime/pgy_frontier_policy.h"
 
 static int
@@ -52,11 +53,18 @@ main(void)
     failures += expect_size("zone-limit-cap", pgy_frontier_zone_pass_limit(cap - 1, 9), cap);
     failures += expect_size("world-limit-zero", pgy_frontier_world_pass_limit(0, 0), 1);
     failures += expect_size("world-limit", pgy_frontier_world_pass_limit(2, 4), 7);
-    failures += expect_size("world-transitive-limit-zero", pgy_frontier_world_transitive_pass_limit(0, 0), 1);
-    failures += expect_size("world-transitive-limit", pgy_frontier_world_transitive_pass_limit(2, 4), 7);
+    failures += expect_size("world-transitive-limit-zero", pgy_frontier_world_transitive_pass_limit(0, 0, 0), 1);
+    failures += expect_size("world-transitive-limit", pgy_frontier_world_transitive_pass_limit(2, 4, 0), 7);
+    failures += expect_size("world-transitive-embedded-limit", pgy_frontier_world_transitive_pass_limit(2, 4, 3), 10);
+    failures += expect_size("world-transitive-embedded-limit-cap", pgy_frontier_world_transitive_pass_limit(cap - 1, 4, 3), cap);
     failures += expect_size("world-derived-limit-zero", pgy_frontier_world_derived_pass_limit(0), 1);
     failures += expect_size("world-derived-limit", pgy_frontier_world_derived_pass_limit(4), 5);
     failures += expect_size("world-derived-limit-cap", pgy_frontier_world_derived_pass_limit(cap), cap);
+    failures += expect_size("domain-zone-null", pgy_domain_zone_frontier_pass_limit(NULL), 1);
+    failures += expect_size("domain-projection", pgy_domain_projection_frontier_pass_limit(3), 4);
+    failures += expect_size("domain-world-derived-null", pgy_domain_world_derived_frontier_pass_limit(NULL), 1);
+    failures += expect_size("domain-world-embedded-null", pgy_domain_world_embedded_frontier_count(NULL, NULL, NULL), 0);
+    failures += expect_size("domain-world-transitive-null", pgy_domain_world_transitive_frontier_pass_limit(NULL, 3), 4);
 
     return failures == 0 ? 0 : 1;
 }

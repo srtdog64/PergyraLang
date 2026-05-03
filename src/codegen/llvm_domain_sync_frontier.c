@@ -38,7 +38,7 @@ llvm_emit_frontier_overflow_abort(LLVMGenCtx *ctx, const char *reason)
         return;
 
     panic_ft = LLVMFunctionType(ctx->type_void, &ctx->type_i8ptr, 1, 0);
-    panic_fn = llvm_lookup_or_create_function(ctx,
+    panic_fn = llvm_lookup_or_declare_function(ctx,
         "pgy_runtime_panic_internal_invariant_export",
         panic_ft, ctx->type_void);
     if (panic_fn != NULL) {

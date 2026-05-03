@@ -5,6 +5,61 @@
 #include "type_checker_collection_policy.h"
 #include "type_checker_resolution_metadata_internal.h"
 
+typedef enum StableSlotShellKind {
+    STABLE_SLOT_SHELL_SLOT,
+    STABLE_SLOT_SHELL_SECURE_SLOT,
+    STABLE_SLOT_SHELL_READ_VIEW,
+    STABLE_SLOT_SHELL_WRITE_VIEW,
+    STABLE_SLOT_SHELL_MOVE_TOKEN,
+} StableSlotShellKind;
+
+typedef struct StableSlotShellSpec {
+    const char *name;
+    StableSlotShellKind kind;
+} StableSlotShellSpec;
+
+static const StableSlotShellSpec *
+stable_slot_shell_spec(const char *name)
+{
+    static const StableSlotShellSpec specs[] = {
+        { "MoveToken", STABLE_SLOT_SHELL_MOVE_TOKEN },
+        { "ReadView", STABLE_SLOT_SHELL_READ_VIEW },
+        { "SecureSlot", STABLE_SLOT_SHELL_SECURE_SLOT },
+        { "Slot", STABLE_SLOT_SHELL_SLOT },
+        { "WriteView", STABLE_SLOT_SHELL_WRITE_VIEW },
+    };
+    const size_t count = sizeof(specs) / sizeof(specs[0]);
+
+    if (name == NULL)
+        return NULL;
+    for (size_t i = 0; i < count; i++) {
+        if (strcmp(name, specs[i].name) == 0)
+            return &specs[i];
+    }
+    return NULL;
+}
+
+static Type *
+stable_slot_shell_create(const StableSlotShellSpec *spec, Type *inner)
+{
+    if (spec == NULL || inner == NULL)
+        return NULL;
+
+    switch (spec->kind) {
+    case STABLE_SLOT_SHELL_SECURE_SLOT:
+        return type_create_slot(inner, true);
+    case STABLE_SLOT_SHELL_READ_VIEW:
+        return type_create_read_view(inner);
+    case STABLE_SLOT_SHELL_WRITE_VIEW:
+        return type_create_write_view(inner);
+    case STABLE_SLOT_SHELL_MOVE_TOKEN:
+        return type_create_slot_access(inner, false, SLOT_ACCESS_MOVE_TOKEN);
+    case STABLE_SLOT_SHELL_SLOT:
+    default:
+        return type_create_slot(inner, false);
+    }
+}
+
 static bool
 stable_constructed_type_node_is_builtin_constructed(const ASTNode *type_node)
 {
@@ -247,9 +302,13 @@ semantic_type_resolution_try_record_stable_constructed_type(SemanticContext *ctx
     if (semantic_type_resolution_metadata_stable_slot_like_shell(
             type_node->data.type.name)) {
         Type *inner;
-        Type *slot_type = NULL;
+        const StableSlotShellSpec *slot_spec =
+            stable_slot_shell_spec(type_node->data.type.name);
+        Type *slot_type;
 
         args_node = type_node->data.type.generic_args;
+        if (slot_spec == NULL)
+            return;
         if (args_node == NULL || args_node->count != 1)
             return;
         if (args_node->params[0] == NULL)
@@ -258,17 +317,7 @@ semantic_type_resolution_try_record_stable_constructed_type(SemanticContext *ctx
         if (inner == NULL)
             return;
 
-        if (strcmp(type_node->data.type.name, "SecureSlot") == 0)
-            slot_type = type_create_slot(inner, true);
-        else if (strcmp(type_node->data.type.name, "ReadView") == 0)
-            slot_type = type_create_read_view(inner);
-        else if (strcmp(type_node->data.type.name, "WriteView") == 0)
-            slot_type = type_create_write_view(inner);
-        else if (strcmp(type_node->data.type.name, "MoveToken") == 0)
-            slot_type = type_create_slot_access(inner, false, SLOT_ACCESS_MOVE_TOKEN);
-        else
-            slot_type = type_create_slot(inner, false);
-
+        slot_type = stable_slot_shell_create(slot_spec, inner);
         if (slot_type != NULL)
             semantic_type_resolution_record_owned_resolved_type(ctx, type_node, slot_type);
         return;

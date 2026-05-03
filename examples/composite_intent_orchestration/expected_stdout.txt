@@ -5,7 +5,8 @@
 [PaymentZone] charged=1
 [ShippingZone] shipped=1
 [History] count=1
-[Step] fulfill phase=ok participant= ok=true
+[Step] fulfill phase=ok participant=clerk ok=true
 [Trace] [intent] enter ProcessOrder
 [step] begin fulfill @ <zone>
+[bind] clerk -> <unbound>
 [step] ok fulfill

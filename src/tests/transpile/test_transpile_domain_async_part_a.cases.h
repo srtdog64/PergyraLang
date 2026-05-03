@@ -257,7 +257,7 @@ test_roster_world_emit(void)
         EXPECT_STR_CONTAINS(ctx->out->data, "GameWorld_sync(GameWorld *self)");
         EXPECT_STR_CONTAINS(ctx->out->data, "bool _pgy_prev_active_battle = self->__zone_active_battle;");
         EXPECT_STR_CONTAINS(ctx->out->data, "size_t _pgy_world_frontier_pass = 0;");
-        EXPECT_STR_CONTAINS(ctx->out->data, "size_t _pgy_world_frontier_pass_limit = 3;");
+        EXPECT_STR_CONTAINS(ctx->out->data, "size_t _pgy_world_frontier_pass_limit = 5;");
         EXPECT_STR_CONTAINS(ctx->out->data, "bool _pgy_world_frontier_continue = true;");
         EXPECT_STR_CONTAINS(ctx->out->data, "while (_pgy_world_frontier_continue && _pgy_world_frontier_pass < _pgy_world_frontier_pass_limit) {");
         EXPECT_STR_CONTAINS(ctx->out->data, "bool _pgy_world_needs_derived = self->__world_derived_dirty;");

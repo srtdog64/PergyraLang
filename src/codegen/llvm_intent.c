@@ -494,23 +494,26 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
     }
 
     {
-        /* `success` may legitimately be NULL when llvm_emit_expression cannot
-         * evaluate the success predicate at intent-completion scope (e.g.
-         * deep participant.vessel.field references that the LLVM expression
-         * emitter currently cannot resolve at this position). Without a
-         * guard, LLVMBuildStore(builder, NULL, alloca) crashes the LLVM C
-         * API. Until intent-scope expression emission covers every form the
-         * C backend accepts, fall back to a constant `true` so the intent
-         * completes its success branch with the same observable behavior as
-         * the C backend (which evaluates the predicate at runtime via the
-         * cleanup tail). The lossy fallback matches docs/120 §2 honest
-         * gap: full intent-success expression coverage on the LLVM backend
-         * is post-beta work. */
+        /* Do not silently turn an unsupported success predicate into `true`.
+         * Backend parity is stricter than preserving a best-effort executable:
+         * unsupported LLVM intent-success expressions must fail with a
+         * diagnostic until the predicate can lower through real LLVM facts. */
         LLVMValueRef success = NULL;
         if (node->data.intent_decl.success_expr != NULL)
             success = llvm_emit_expression(node->data.intent_decl.success_expr, ctx);
-        if (success == NULL)
-            success = LLVMConstInt(ctx->type_i1, 1, 0);
+        if (success == NULL) {
+            llvm_set_error_at_with_hints(ctx,
+                node->data.intent_decl.success_expr != NULL
+                    ? node->data.intent_decl.success_expr
+                    : node,
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                PGY_FIX_MATCH_PREDICATE_SIGNATURE_IN_HOST,
+                "LLVM intent '%s' cannot lower its success predicate; silent true fallback is disabled",
+                node->data.intent_decl.name != NULL
+                    ? node->data.intent_decl.name : "<intent>");
+            goto intent_emit_fail;
+        }
         LLVMBuildStore(ctx->builder, success, result_alloca);
         LLVMBuildBr(ctx->builder, cleanup_bb);
     }

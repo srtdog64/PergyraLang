@@ -1,5 +1,7 @@
 #include "mir_cleanup.h"
 
+#include "mir_cleanup_fact_names.h"
+
 #include <stddef.h>
 #include <stdarg.h>
 #include <stdint.h>
@@ -265,10 +267,12 @@ mir_materialize_pin_cleanup_edges(MIRRoutine *routine, MIRBasicBlock *block)
     memset(&inst, 0, sizeof(inst));
     inst.id = routine->instruction_count++;
     inst.kind = MIR_INST_CLEANUP_EDGE;
-    inst.name = "pin-unpin-cleanup-edge";
+    inst.name = MIR_CLEANUP_FACT_PIN_UNPIN_EDGE;
     inst.slot_anchor = block->pin_source_name;
     inst.arg0 = block->pin_view_name;
-    inst.arg1 = block->pin_view_is_write ? "write" : "read";
+    inst.arg1 = block->pin_view_is_write
+        ? MIR_PIN_CLEANUP_ACCESS_WRITE
+        : MIR_PIN_CLEANUP_ACCESS_READ;
     inst.ast = block->pin_block_ast;
     routine->cleanup_instruction_count++;
     return mir_cleanup_append_instruction(block, inst);
@@ -290,9 +294,9 @@ mir_materialize_cleanup_edges(MIRRoutine *routine)
                                 (MIRInstruction){
                                     .id = routine->instruction_count++,
                                     .kind = MIR_INST_CLEANUP_EDGE,
-                                    .name = "cleanup-edge",
-                                    .slot_anchor = "cleanup",
-                                    .arg0 = "cleanup",
+                                    .name = MIR_CLEANUP_FACT_EDGE,
+                                    .slot_anchor = MIR_CLEANUP_FACT_ANCHOR,
+                                    .arg0 = MIR_CLEANUP_FACT_ANCHOR,
                                     .arg1 = NULL,
                                     .ast = NULL,
                                 })) {
@@ -329,9 +333,9 @@ mir_materialize_cleanup_edges(MIRRoutine *routine)
                                 (MIRInstruction){
                                     .id = routine->instruction_count++,
                                     .kind = MIR_INST_CLEANUP_EDGE,
-                                    .name = "cleanup-edge-from-rollback",
-                                    .slot_anchor = "cleanup",
-                                    .arg0 = "cleanup",
+                                    .name = MIR_CLEANUP_FACT_EDGE_FROM_ROLLBACK,
+                                    .slot_anchor = MIR_CLEANUP_FACT_ANCHOR,
+                                    .arg0 = MIR_CLEANUP_FACT_ANCHOR,
                                     .arg1 = NULL,
                                     .ast = NULL,
                                 })) {
@@ -363,9 +367,9 @@ mir_materialize_cleanup_edges(MIRRoutine *routine)
                                 (MIRInstruction){
                                     .id = routine->instruction_count++,
                                     .kind = MIR_INST_CLEANUP_EDGE,
-                                    .name = "cleanup-edge-from-invalidation",
-                                    .slot_anchor = "cleanup",
-                                    .arg0 = "cleanup",
+                                    .name = MIR_CLEANUP_FACT_EDGE_FROM_INVALIDATION,
+                                    .slot_anchor = MIR_CLEANUP_FACT_ANCHOR,
+                                    .arg0 = MIR_CLEANUP_FACT_ANCHOR,
                                     .arg1 = NULL,
                                     .ast = NULL,
                                 })) {

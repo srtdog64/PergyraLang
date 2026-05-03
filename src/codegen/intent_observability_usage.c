@@ -25,16 +25,6 @@ pgy_ast_uses_intent_observability(const ASTNode *node)
 }
 
 static bool
-pgy_ast_array_uses_intent_observability(ASTNode *const *nodes, size_t count)
-{
-    for (size_t i = 0; i < count; i++) {
-        if (pgy_ast_uses_intent_observability(nodes[i]))
-            return true;
-    }
-    return false;
-}
-
-static bool
 pgy_mir_symbol_uses_intent_observability(const char *name)
 {
     return pgy_builtin_is_intent_observability(name);
@@ -52,7 +42,7 @@ pgy_name_array_uses_intent_observability(const char *const *names, size_t count)
 
 static bool
 pgy_mir_instruction_uses_intent_observability(const MIRInstruction *inst,
-                                              bool allow_ast_fallback)
+                                              bool allow_legacy_ast_probe)
 {
     if (inst == NULL)
         return false;
@@ -68,15 +58,15 @@ pgy_mir_instruction_uses_intent_observability(const MIRInstruction *inst,
     if (inst->has_surface_usage_facts)
         return inst->uses_intent_observability_surface;
 
-    if (!allow_ast_fallback)
+    if (!allow_legacy_ast_probe)
         return false;
 
     /*
      * Direct statement calls are carried in MIR_STMT.arg0, direct initializer
      * calls are carried in MIR_INST_DEF.arg1, and lowered declaration
      * inventory is carried by MIRProgram inventory surface facts. Keep
-     * instruction AST scanning only for hand-built legacy MIR without HIR
-     * provenance.
+     * instruction AST probing only for hand-built legacy MIR fixtures without
+     * HIR provenance; production lowering is expected to carry MIR facts.
      */
     return pgy_ast_uses_intent_observability(inst->ast)
         || pgy_ast_uses_intent_observability(inst->expr0)
@@ -85,14 +75,14 @@ pgy_mir_instruction_uses_intent_observability(const MIRInstruction *inst,
 
 static bool
 pgy_mir_block_uses_intent_observability(const MIRBasicBlock *block,
-                                        bool allow_ast_fallback)
+                                        bool allow_legacy_ast_probe)
 {
     if (block == NULL)
         return false;
 
     for (size_t i = 0; i < block->instruction_count; i++) {
         if (pgy_mir_instruction_uses_intent_observability(
-                &block->instructions[i], allow_ast_fallback)) {
+                &block->instructions[i], allow_legacy_ast_probe)) {
             return true;
         }
     }
@@ -128,22 +118,16 @@ pgy_mir_inventory_uses_intent_observability(const MIRProgram *mir)
 {
     if (mir == NULL)
         return false;
-    if (mir->has_inventory_surface_usage_facts)
-        return mir->inventory_uses_intent_observability_surface;
 
-    return pgy_ast_array_uses_intent_observability(mir->types, mir->type_count)
-        || pgy_ast_array_uses_intent_observability(mir->abilities, mir->ability_count)
-        || pgy_ast_array_uses_intent_observability(mir->roles, mir->role_count)
-        || pgy_ast_array_uses_intent_observability(mir->parties, mir->party_count)
-        || pgy_ast_array_uses_intent_observability(mir->rosters, mir->roster_count)
-        || pgy_ast_array_uses_intent_observability(mir->worlds, mir->world_count)
-        || pgy_ast_array_uses_intent_observability(mir->relations, mir->relation_count)
-        || pgy_ast_array_uses_intent_observability(mir->effects, mir->effect_count)
-        || pgy_ast_array_uses_intent_observability(mir->zones, mir->zone_count)
-        || pgy_ast_array_uses_intent_observability(mir->events, mir->event_count)
-        || pgy_ast_array_uses_intent_observability(mir->intents, mir->intent_count)
-        || pgy_ast_array_uses_intent_observability(mir->functions, mir->function_count)
-        || pgy_ast_array_uses_intent_observability(mir->externs, mir->extern_count);
+    /*
+     * Lowered MIR records inventory surface usage during mir_lower(); the MIR
+     * validator rejects missing or stale facts. Codegen must consume that fact
+     * instead of rediscovering declaration usage from AST inventory arrays.
+     */
+    if (!mir->has_inventory_surface_usage_facts)
+        return false;
+
+    return mir->inventory_uses_intent_observability_surface;
 }
 
 bool

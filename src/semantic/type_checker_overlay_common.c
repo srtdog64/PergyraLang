@@ -4,6 +4,25 @@
 
 #include <stdlib.h>
 
+static Type *
+overlay_resolve_named_type_metadata_or_unknown(const char *name,
+                                               SemanticContext *ctx,
+                                               ASTNode *site)
+{
+    Type *resolved;
+
+    if (name == NULL || name[0] == '\0')
+        return TYPE_UNKNOWN;
+    resolved = semantic_type_resolution_lookup_metadata_name_or_alias(ctx,
+                                                                      name);
+    if (resolved != NULL)
+        return resolved;
+    semantic_error_with_hints(ctx, PGY_CODE_SEM_UNKNOWN_TYPE,
+        PGY_CAUSE_TYPE_UNKNOWN, PGY_FIX_IMPORT_OR_DECLARE_TYPE, site,
+        "Unknown type '%s'", name);
+    return TYPE_UNKNOWN;
+}
+
 bool
 type_check_overlay_decl_common(ASTNode *node,
                                SemanticContext *ctx,
@@ -73,8 +92,9 @@ type_check_overlay_decl_common(ASTNode *node,
             if (wz != NULL && wz->type == AST_WORLD_ZONE
                 && wz->data.world_zone.slot_name != NULL
                 && wz->data.world_zone.zone_type != NULL) {
-                Type *zone_type = resolve_named_type(
-                    wz->data.world_zone.zone_type, ctx, wz);
+                Type *zone_type =
+                    overlay_resolve_named_type_metadata_or_unknown(
+                        wz->data.world_zone.zone_type, ctx, wz);
                 Symbol *zone_sym = calloc(1, sizeof(Symbol));
                 zone_sym->name = pergyra_strdup(wz->data.world_zone.slot_name);
                 zone_sym->kind = SYMBOL_VARIABLE;
