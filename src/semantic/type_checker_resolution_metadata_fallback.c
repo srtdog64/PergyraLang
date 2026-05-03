@@ -112,8 +112,8 @@ metadata_fallback_type_name(ASTNode *type_node)
 }
 
 void
-semantic_type_resolution_record_materializer_fallback(SemanticContext *ctx,
-                                                      ASTNode *type_node)
+semantic_type_resolution_record_metadata_dead_end_diagnostic(SemanticContext *ctx,
+                                                             ASTNode *type_node)
 {
     if (ctx == NULL)
         return;

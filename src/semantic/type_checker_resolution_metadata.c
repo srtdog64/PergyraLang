@@ -390,7 +390,7 @@ semantic_type_resolution_lookup_or_materialize(SemanticContext *ctx,
      * DAG smoke requires this path to be dormant (materializer_fallbacks == 0);
      * resolver-inventory smoke rejects recursive fallback reintroduction.
      */
-    semantic_type_resolution_record_materializer_fallback(ctx, type_node);
+    semantic_type_resolution_record_metadata_dead_end_diagnostic(ctx, type_node);
     return NULL;
 }
 

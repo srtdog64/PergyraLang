@@ -59,6 +59,95 @@ air_boundary_has_evidence_kind_provider(const AIRProgram *air,
 }
 
 static bool
+air_boundary_has_summary_flag(const AIRBoundaryNode *boundary,
+                              AIREvidenceKind kind)
+{
+    if (boundary == NULL)
+        return false;
+    switch (kind) {
+    case AIR_EVIDENCE_HIR_ROUTINE:
+        return boundary->has_hir_routine_evidence;
+    case AIR_EVIDENCE_HIR_CFG:
+        return boundary->has_hir_cfg_evidence;
+    case AIR_EVIDENCE_RIR_BOUNDARY:
+        return boundary->has_rir_boundary_evidence;
+    case AIR_EVIDENCE_RIR_AUTHORITY:
+        return boundary->has_rir_authority_evidence;
+    default:
+        return false;
+    }
+}
+
+static bool
+air_program_requires_summary_flag_for_evidence(const AIRProgram *air,
+                                               AIREvidenceKind kind)
+{
+    if (air == NULL)
+        return false;
+    switch (kind) {
+    case AIR_EVIDENCE_HIR_ROUTINE:
+    case AIR_EVIDENCE_HIR_CFG:
+        return air->has_hir_input;
+    case AIR_EVIDENCE_RIR_BOUNDARY:
+    case AIR_EVIDENCE_RIR_AUTHORITY:
+        return air->has_rir_input;
+    default:
+        return false;
+    }
+}
+
+typedef struct
+{
+    AIREvidenceKind kind;
+    const char     *label;
+} AIRBoundaryEvidenceSummaryRule;
+
+static const AIRBoundaryEvidenceSummaryRule kBoundaryEvidenceSummaryRules[] = {
+    { AIR_EVIDENCE_HIR_ROUTINE, "HIR routine evidence" },
+    { AIR_EVIDENCE_HIR_CFG, "HIR CFG evidence" },
+    { AIR_EVIDENCE_RIR_BOUNDARY, "RIR boundary evidence" },
+    { AIR_EVIDENCE_RIR_AUTHORITY, "RIR authority evidence" },
+};
+
+static bool
+air_inventory_has_boundary_evidence_kind(const AIRProgram *air,
+                                         size_t boundary_index,
+                                         AIREvidenceKind kind)
+{
+    if (air == NULL || boundary_index >= air->boundary_count)
+        return false;
+    for (size_t i = 0; i < air->evidence_count; i++) {
+        const AIREvidenceNode *evidence = &air->evidence_nodes[i];
+        if (evidence->kind == kind && evidence->boundary_index == boundary_index)
+            return true;
+    }
+    return false;
+}
+
+static bool
+air_validate_boundary_summary_evidence(const AIRProgram *air,
+                                       size_t boundary_index,
+                                       AIREvidenceKind kind,
+                                       const char *label,
+                                       char **error_message)
+{
+    const AIRBoundaryNode *boundary;
+
+    if (air == NULL || boundary_index >= air->boundary_count)
+        return false;
+    boundary = &air->boundaries[boundary_index];
+    if (!air_boundary_has_summary_flag(boundary, kind))
+        return true;
+    if (air_inventory_has_boundary_evidence_kind(air, boundary_index, kind))
+        return true;
+    air_set_invariant_error(error_message,
+                            "AIR boundary node %zu has %s summary without evidence node",
+                            boundary_index,
+                            label);
+    return false;
+}
+
+static bool
 air_evidence_node_matches_boundary_shape(const AIRProgram *air,
                                          size_t evidence_index,
                                          char **error_message)
@@ -195,6 +284,13 @@ air_evidence_node_matches_boundary_shape(const AIRProgram *air,
     }
 
     boundary = &air->boundaries[evidence->boundary_index];
+    if (air_program_requires_summary_flag_for_evidence(air, evidence->kind)
+        && !air_boundary_has_summary_flag(boundary, evidence->kind)) {
+        air_set_invariant_error(error_message,
+                                "AIR boundary evidence node %zu has no matching boundary summary flag",
+                                evidence_index);
+        return false;
+    }
     if (evidence->fact_count == 0) {
         air_set_invariant_error(error_message,
                                 "AIR boundary evidence node %zu has no evidence facts",
@@ -347,6 +443,21 @@ air_validate_evidence_inventory(const AIRProgram *air, char **error_message)
         }
         if (!air_evidence_node_matches_boundary_shape(air, i, error_message))
             return false;
+    }
+    if (air->evidence_count > 0) {
+        for (size_t i = 0; i < air->boundary_count; i++) {
+            for (size_t j = 0;
+                 j < sizeof(kBoundaryEvidenceSummaryRules)
+                    / sizeof(kBoundaryEvidenceSummaryRules[0]);
+                 j++) {
+                const AIRBoundaryEvidenceSummaryRule *rule =
+                    &kBoundaryEvidenceSummaryRules[j];
+                if (!air_validate_boundary_summary_evidence(
+                        air, i, rule->kind, rule->label, error_message)) {
+                    return false;
+                }
+            }
+        }
     }
     return true;
 }

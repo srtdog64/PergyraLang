@@ -179,6 +179,29 @@ mir_set_inst_source_statement_index(MIRInstruction *inst, size_t index)
     inst->has_source_statement_index = true;
 }
 
+static size_t
+mir_block_source_inventory_count(const MIRBasicBlock *block)
+{
+    return block != NULL ? block->source_statement_inventory.count : 0;
+}
+
+static ASTNode **
+mir_block_source_inventory_items(const MIRBasicBlock *block)
+{
+    return block != NULL ? block->source_statement_inventory.items : NULL;
+}
+
+static ASTNode *
+mir_block_source_inventory_at(const MIRBasicBlock *block, size_t index)
+{
+    if (block == NULL
+        || block->source_statement_inventory.items == NULL
+        || index >= block->source_statement_inventory.count) {
+        return NULL;
+    }
+    return block->source_statement_inventory.items[index];
+}
+
 static bool
 mir_populate_stmt_instructions(MIRRoutine *routine)
 {
@@ -190,9 +213,10 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
 
     for (size_t block_id = 0; block_id < routine->block_count; block_id++) {
         MIRBasicBlock *block = &routine->blocks[block_id];
+        size_t inventory_count = mir_block_source_inventory_count(block);
         if (block->is_cleanup)
             continue;
-        if (block->source_statement_count == 0)
+        if (inventory_count == 0)
             continue;
 
         /* Separate existing instructions into categories */
@@ -206,8 +230,8 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
          * non-control-flow statements including let/assignment that
          * might not have matching DEFs). */
         size_t stmt_count = 0;
-        for (size_t s = 0; s < block->source_statement_count; s++) {
-            ASTNode *stmt = block->source_statements[s];
+        for (size_t s = 0; s < inventory_count; s++) {
+            ASTNode *stmt = mir_block_source_inventory_at(block, s);
             if (mir_stmt_is_for_loop_init_payload(stmt, block)) {
                 stmt_count++;
                 continue;
@@ -258,8 +282,8 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
             }
         }
 
-        for (size_t s = 0; s < block->source_statement_count; s++) {
-            ASTNode *stmt = block->source_statements[s];
+        for (size_t s = 0; s < inventory_count; s++) {
+            ASTNode *stmt = mir_block_source_inventory_at(block, s);
             if (mir_stmt_is_for_loop_init_payload(stmt, block)) {
                 MIRInstruction inst;
                 memset(&inst, 0, sizeof(inst));
@@ -290,8 +314,8 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
                 continue;
             }
             if (mir_assignment_requires_stmt_preservation(routine->ast,
-                                                          block->source_statements,
-                                                          block->source_statement_count,
+                                                          mir_block_source_inventory_items(block),
+                                                          inventory_count,
                                                           s,
                                                           stmt)) {
                 mir_consume_matching_def_instruction(old_insts,
@@ -490,9 +514,10 @@ mir_append_non_cfg_body_statements(MIRRoutine *routine, MIRBasicBlock *entry)
         return append_instruction(entry, inst);
     }
 
-    if (entry->source_statements != NULL && entry->source_statement_count > 0) {
-        statements = entry->source_statements;
-        statement_count = entry->source_statement_count;
+    if (mir_block_source_inventory_items(entry) != NULL
+        && mir_block_source_inventory_count(entry) > 0) {
+        statements = mir_block_source_inventory_items(entry);
+        statement_count = mir_block_source_inventory_count(entry);
     } else {
         statements = body->data.block.statements;
         statement_count = body->data.block.count;

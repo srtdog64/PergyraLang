@@ -34,7 +34,7 @@ mir_destroy(MIRProgram *mir)
         MIRRoutine *routine = &mir->routines[i];
         for (size_t j = 0; j < routine->block_count; j++) {
             free(routine->blocks[j].predecessors);
-            free(routine->blocks[j].source_statements);
+            free(routine->blocks[j].source_statement_inventory.items);
             free((void *)routine->blocks[j].source_local_defs);
             free(routine->blocks[j].source_dom_tree_children);
             if (routine->blocks[j].source_phi_nodes != NULL) {
@@ -167,6 +167,10 @@ mir_validate(const MIRProgram *mir, char **error_message)
             }
 
             if (!mir_validate_block_liveness_sets(routine, block, j, error_message))
+                return false;
+            if (!mir_validate_statement_inventory(routine, block, j, error_message))
+                return false;
+            if (!mir_validate_instruction_surface_usage(routine, block, j, error_message))
                 return false;
             for (size_t k = 0; k < block->instruction_count; k++) {
                 const MIRInstruction *inst = &block->instructions[k];

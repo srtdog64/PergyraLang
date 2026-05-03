@@ -309,19 +309,9 @@ test_air_strict_evidence_prefers_inventory_over_legacy_flags(void)
         .has_hir_input = true,
     };
     char *error = NULL;
-    bool found_hir_cfg_drift = false;
-    bool checked = air_check_drift(&air, &error);
-
-    for (size_t i = 0; i < air.drift_count; i++) {
-        if (air.drifts[i].kind == AIR_DRIFT_BOUNDARY_EVIDENCE_MISSING
-            && strstr(air.drifts[i].message,
-                      "AIR implementation boundary has no matching HIR CFG evidence") != NULL) {
-            found_hir_cfg_drift = true;
-            break;
-        }
-    }
-
-    bool ok = checked && air.drift_count == 1 && found_hir_cfg_drift;
+    bool ok = !air_verify(&air, &error)
+        && error != NULL
+        && strstr(error, "HIR CFG evidence summary without evidence node") != NULL;
     test_air_clear_stack_drifts(&air);
     free(error);
     return ok;
@@ -870,6 +860,15 @@ test_air_verify_rejects_evidence_boundary_shape_mismatch(void)
             .fact_count = 1,
         },
     };
+    AIREvidenceNode real_input_missing_summary[] = {
+        {
+            .kind = AIR_EVIDENCE_HIR_ROUTINE,
+            .boundary_index = 0,
+            .provider_name = "reserve",
+            .subject_name = "WarehouseZone",
+            .fact_count = 1,
+        },
+    };
     AIRProgram bad_authority_subject = {
         .intents = intents,
         .intent_count = 1,
@@ -926,6 +925,15 @@ test_air_verify_rejects_evidence_boundary_shape_mismatch(void)
         .evidence_nodes = authority_provider_mismatch,
         .evidence_count = 2,
     };
+    AIRProgram bad_real_input_summary = {
+        .intents = intents,
+        .intent_count = 1,
+        .boundaries = boundaries,
+        .boundary_count = 1,
+        .evidence_nodes = real_input_missing_summary,
+        .evidence_count = 1,
+        .has_hir_input = true,
+    };
     char *error = NULL;
     bool ok = !air_verify(&bad_authority_subject, &error)
         && error != NULL
@@ -972,6 +980,13 @@ test_air_verify_rejects_evidence_boundary_shape_mismatch(void)
         && error != NULL
         && strstr(error, "RIR authority evidence node") != NULL
         && strstr(error, "no matching RIR boundary evidence") != NULL;
+    free(error);
+    error = NULL;
+    ok = ok
+        && !air_verify(&bad_real_input_summary, &error)
+        && error != NULL
+        && strstr(error, "boundary evidence node 0") != NULL
+        && strstr(error, "no matching boundary summary flag") != NULL;
     free(error);
     return ok;
 }

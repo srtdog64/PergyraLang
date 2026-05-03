@@ -753,8 +753,7 @@ test_mir_lowering_part_a(void)
                                                       "scores")) {
                     found_pin_cleanup = true;
                 }
-                if (block->source_terminator_kind == HIR_BLOCK_RETURN
-                    || block_has_inst_kind(block, MIR_INST_RETURN)) {
+                if (block_has_inst_kind(block, MIR_INST_RETURN)) {
                     found_pin_return = true;
                 }
             }
@@ -813,8 +812,7 @@ test_mir_lowering_part_a(void)
                                                       "scores")) {
                     found_pin_cleanup = true;
                 }
-                if (block->source_terminator_kind == HIR_BLOCK_RETURN
-                    || block_has_inst_kind(block, MIR_INST_RETURN)) {
+                if (block_has_inst_kind(block, MIR_INST_RETURN)) {
                     found_pin_return = true;
                     pin_return_count++;
                 }
@@ -867,8 +865,6 @@ test_mir_lowering_part_a(void)
                 if (!block->is_pin_region)
                     continue;
                 found_pin_block = true;
-                if (block->source_terminator_kind != HIR_BLOCK_GOTO)
-                    continue;
                 if (!block->has_cleanup_succ
                     || block->cleanup_succ != routine->cleanup_block
                     || !block_has_inst_named_with_slot(block,

@@ -84,6 +84,12 @@ typedef struct
 
 typedef struct
 {
+    ASTNode **items;
+    size_t    count;
+} MIRStatementInventory;
+
+typedef struct
+{
     size_t           id;
     MIRInstKind      kind;
     const char      *name;
@@ -125,16 +131,10 @@ typedef struct
     const char      *pin_view_name;
     ASTNode         *pin_block_ast;
     size_t           source_hir_block_id;
-    const HIRBasicBlock *source_hir_block;
-    ASTNode         *source_ast;
     bool             has_source_location;
     uint32_t         source_line;
     uint32_t         source_column;
-    ASTNode        **source_statements;
-    size_t           source_statement_count;
-    ASTNode         *source_terminator_condition;
-    ASTNode         *source_terminator_value;
-    HIRBlockTerminatorKind source_terminator_kind;
+    MIRStatementInventory source_statement_inventory;
     const char     **source_local_defs;
     size_t           source_local_def_count;
     size_t          *source_dom_tree_children;

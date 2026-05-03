@@ -312,8 +312,9 @@ void semantic_type_resolution_free_owned_type(Type *type);
 void semantic_type_resolution_free_metadata(SemanticContext *ctx);
 void semantic_type_resolution_try_record_stable_constructed_type(SemanticContext *ctx,
                                                                  ASTNode *type_node);
-void semantic_type_resolution_record_materializer_fallback(SemanticContext *ctx,
-                                                           ASTNode *type_node);
+void semantic_type_resolution_record_metadata_dead_end_diagnostic(
+    SemanticContext *ctx,
+    ASTNode *type_node);
 void semantic_type_resolution_collect_generic_contract_inventory(
     GenericParams *gp,
     WhereClause *wc,

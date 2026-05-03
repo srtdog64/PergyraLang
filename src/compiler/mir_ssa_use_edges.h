@@ -52,36 +52,37 @@ mir_parse_versioned_name(const char *versioned, char *base, size_t base_size, si
 
 static ASTNode *
 mir_def_instruction_source_stmt(const MIRInstruction *inst,
-                                MIRBasicBlock *block,
-                                size_t *stmt_index)
+                                MIRBasicBlock *block)
 {
+    ASTNode *stmt;
+
     if (inst != NULL && inst->ast != NULL)
         return inst->ast;
 
-    if (block == NULL || stmt_index == NULL)
+    if (inst == NULL
+        || block == NULL
+        || !inst->has_source_statement_index
+        || inst->source_statement_index >= block->source_statement_inventory.count
+        || block->source_statement_inventory.items == NULL) {
         return NULL;
-
-    while (*stmt_index < block->source_statement_count) {
-        ASTNode *stmt = block->source_statements[*stmt_index];
-        if (stmt != NULL
-            && (stmt->type == AST_LET_DECL
-                || (stmt->type == AST_ASSIGNMENT
-                    && stmt->data.assignment.target != NULL
-                    && stmt->data.assignment.target->type == AST_IDENTIFIER))) {
-            return stmt;
-        }
-        (*stmt_index)++;
     }
 
+    stmt = block->source_statement_inventory.items[inst->source_statement_index];
+    if (stmt != NULL
+        && (stmt->type == AST_LET_DECL
+            || (stmt->type == AST_ASSIGNMENT
+                && stmt->data.assignment.target != NULL
+                && stmt->data.assignment.target->type == AST_IDENTIFIER))) {
+        return stmt;
+    }
     return NULL;
 }
 
 static ASTNode *
 mir_def_instruction_source_expr(const MIRInstruction *inst,
-                                MIRBasicBlock *block,
-                                size_t *stmt_index)
+                                MIRBasicBlock *block)
 {
-    ASTNode *stmt = mir_def_instruction_source_stmt(inst, block, stmt_index);
+    ASTNode *stmt = mir_def_instruction_source_stmt(inst, block);
 
     if (stmt == NULL)
         return NULL;
@@ -112,7 +113,6 @@ mir_populate_use_edges(MIRRoutine *routine)
     for (size_t block_id = 0; block_id < routine->block_count; block_id++) {
         MIRBasicBlock *block = &routine->blocks[block_id];
         size_t *current_versions;
-        size_t stmt_index = 0;
         if (block->ssa_entry_versions == NULL || block->ssa_version_count != ssa_name_count)
             continue;
         for (size_t n = 0; n < ssa_name_count; n++) {
@@ -160,7 +160,7 @@ mir_populate_use_edges(MIRRoutine *routine)
             }
             if (inst->kind == MIR_INST_DEF) {
                 ASTNode *expr =
-                    mir_def_instruction_source_expr(inst, block, &stmt_index);
+                    mir_def_instruction_source_expr(inst, block);
                 if (expr != NULL) {
                     const char **raw_uses = NULL;
                     size_t raw_use_count = 0;
@@ -187,7 +187,6 @@ mir_populate_use_edges(MIRRoutine *routine)
                         }
                     }
                     free((void *)raw_uses);
-                    stmt_index++;
                 }
                 if (inst->result_name != NULL) {
                     char base[128];

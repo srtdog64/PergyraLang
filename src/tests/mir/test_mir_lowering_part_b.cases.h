@@ -49,6 +49,84 @@ test_mir_lowering_part_b(void)
         hir_destroy(hir);
     }
 
+    TEST("MIR validator rejects invalid statement inventory shape");
+    {
+        const char *src =
+            "func InventoryShape() -> Void {\n"
+            "    let x = 1;\n"
+            "    return;\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        MIRRoutine *routine = NULL;
+        MIRBasicBlock *block = NULL;
+        ASTNode **saved_items = NULL;
+        size_t saved_count = 0;
+        bool saved_has_index = false;
+        size_t saved_index = 0;
+        bool saved_has_surface_usage = false;
+        char *mir_error = NULL;
+        bool rejected_storage = false;
+        bool rejected_index = false;
+        bool rejected_surface = false;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok)
+            routine = find_mir_routine_mut(mir, "InventoryShape", MIR_SCOPE_FUNCTION);
+        if (routine != NULL && routine->block_count > 0) {
+            block = &routine->blocks[routine->entry_block];
+            saved_items = block->source_statement_inventory.items;
+            saved_count = block->source_statement_inventory.count;
+            block->source_statement_inventory.items = NULL;
+            block->source_statement_inventory.count = 1;
+            rejected_storage = !mir_validate(mir, &mir_error)
+                               && mir_error != NULL
+                               && strstr(mir_error, "statement inventory") != NULL;
+            free(mir_error);
+            mir_error = NULL;
+            block->source_statement_inventory.items = saved_items;
+            block->source_statement_inventory.count = saved_count;
+
+            if (block->instruction_count > 0) {
+                saved_has_index = block->instructions[0].has_source_statement_index;
+                saved_index = block->instructions[0].source_statement_index;
+                block->instructions[0].has_source_statement_index = true;
+                block->instructions[0].source_statement_index = saved_count + 1;
+                rejected_index = !mir_validate(mir, &mir_error)
+                                 && mir_error != NULL
+                                 && strstr(mir_error, "source statement index") != NULL;
+                block->instructions[0].has_source_statement_index = saved_has_index;
+                block->instructions[0].source_statement_index = saved_index;
+            }
+            for (size_t i = 0; i < block->instruction_count; i++) {
+                MIRInstruction *inst = &block->instructions[i];
+                if (inst->ast == NULL
+                    && inst->expr0 == NULL
+                    && inst->expr1 == NULL
+                    && !inst->has_source_location) {
+                    continue;
+                }
+                saved_has_surface_usage = inst->has_surface_usage_facts;
+                inst->has_surface_usage_facts = false;
+                rejected_surface = !mir_validate(mir, &mir_error)
+                                   && mir_error != NULL
+                                   && strstr(mir_error, "surface usage facts") != NULL;
+                inst->has_surface_usage_facts = saved_has_surface_usage;
+                break;
+            }
+        }
+        EXPECT(ok
+               && routine != NULL
+               && block != NULL
+               && rejected_storage
+               && rejected_index
+               && rejected_surface);
+        free(mir_error);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
     TEST("MIR inserts phi nodes and SSA-renamed locals on merge");
     {
         const char *src =
@@ -281,8 +359,9 @@ test_mir_lowering_part_b(void)
         if (routine != NULL) {
             for (size_t bi = 0; bi < routine->block_count && !injected; bi++) {
                 MIRBasicBlock *block = &routine->blocks[bi];
-                ASTNode *stmt = block->source_statement_count > 0
-                    ? block->source_statements[0]
+                ASTNode *stmt = block->source_statement_inventory.count > 0
+                    && block->source_statement_inventory.items != NULL
+                    ? block->source_statement_inventory.items[0]
                     : NULL;
                 if (stmt == NULL || stmt->type != AST_FOR_LOOP
                     || (!block->has_succ_true && !block->has_succ_false)) {

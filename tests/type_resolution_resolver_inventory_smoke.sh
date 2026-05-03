@@ -358,14 +358,19 @@ if grep -q 'resolve_named_type_from_metadata\|semantic_type_resolution_lookup_me
 fi
 
 materializer_recorders="$(
-  grep -RIn 'semantic_type_resolution_record_materializer_fallback' src/semantic \
+  grep -RIn 'semantic_type_resolution_record_metadata_dead_end_diagnostic' src/semantic \
     | grep -v 'type_checker_internal.h' \
     | grep -v 'type_checker_resolution_metadata_fallback.c' \
     | grep -v 'type_checker_resolution_metadata.c' || true
 )"
 if [ -n "$materializer_recorders" ]; then
-  echo "[type-resolution-resolver-inventory] materializer fallback recorder escaped central owner:" >&2
+  echo "[type-resolution-resolver-inventory] metadata dead-end diagnostic escaped central owner:" >&2
   printf '%s\n' "$materializer_recorders" >&2
+  exit 1
+fi
+
+if grep -RIn 'semantic_type_resolution_record_materializer_fallback' src/semantic; then
+  echo "[type-resolution-resolver-inventory] retired materializer fallback recorder name reappeared" >&2
   exit 1
 fi
 

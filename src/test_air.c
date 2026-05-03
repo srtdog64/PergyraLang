@@ -109,7 +109,7 @@ main(void)
     TEST("AIR strict evidence requires HIR for implementation boundary");
     EXPECT(test_air_strict_evidence_requires_hir_for_implementation_boundary());
 
-    TEST("AIR strict evidence prefers inventory over legacy flags");
+    TEST("AIR strict evidence rejects stale legacy summary flags");
     EXPECT(test_air_strict_evidence_prefers_inventory_over_legacy_flags());
 
     TEST("AIR strict evidence rejects legacy flags with real input");

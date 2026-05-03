@@ -302,9 +302,11 @@ block_source_has_stmt_type(const MIRBasicBlock *block, ASTNodeType type)
 {
     if (block == NULL)
         return false;
-    for (size_t i = 0; i < block->source_statement_count; i++) {
-        if (block->source_statements[i] != NULL
-            && block->source_statements[i]->type == type) {
+    if (block->source_statement_inventory.items == NULL)
+        return false;
+    for (size_t i = 0; i < block->source_statement_inventory.count; i++) {
+        ASTNode *stmt = block->source_statement_inventory.items[i];
+        if (stmt != NULL && stmt->type == type) {
             return true;
         }
     }

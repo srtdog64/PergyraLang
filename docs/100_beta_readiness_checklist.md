@@ -8,6 +8,21 @@
 
 Operational mode:
 
+- 2026-05-03 priority reset:
+  finish beta blockers in this order: (1) CFG/MIR fact contracts, (2) AIR
+  evidence consumption for abstraction boundaries, (3) DAG source-of-truth seams,
+  (4) LLVM declaration inventory bootstrap, (5) runtime frontier scheduler, and
+  (6) ABI ownership/runtime-none/raw-escape contracts. Dogfood/WebGL remains the
+  first beta use path after these contracts are stable; self-hosting stays beta+.
+  AIR evidence inventory now rejects stale legacy boundary summaries: when
+  `evidence_count > 0`, `has_hir_*` / `has_rir_*` boundary summary flags must
+  be backed by matching `AIREvidenceNode` entries before drift checking. For
+  real HIR/RIR input, boundary evidence nodes must also have matching summary
+  flags, keeping inventory and cached summaries bidirectionally consistent.
+  DAG's remaining unresolved metadata path is now explicitly named as a
+  metadata dead-end diagnostic instead of a materializer fallback recorder; the
+  fallback counters remain as regression evidence, but recursive materialization
+  is not presented as a valid owner seam.
 - 2026-05-02 debt ledger refresh:
   the current blocker map is now separated into closed seams and remaining
   source-of-truth seams. CFG/MIR use facts prefer instruction-carried
@@ -299,6 +314,57 @@ Operational mode:
   scanned C/LLVM backend owners; those block source arrays remain MIR
   construction input, not backend judgement input. Gate: manual native MinGW
   `test-transpile` (`710/0`) and `perf_contract_smoke`.
+- 2026-05-03 MIR construction fact hardening:
+  terminator and resource instructions now call
+  `mir_instruction_record_surface_usage(...)` at construction time, not only
+  through later append/rewrite paths. This keeps branch/return/resource
+  instructions carrying source location, AST type, and thread-pool surface facts
+  even if future construction paths bypass a rewrite helper. `MIRBasicBlock`
+  also no longer stores `source_ast` or `source_terminator_*` pointers; HIR
+  terminator payloads are consumed while constructing MIR terminator
+  instructions and then represented by MIR instruction facts. Gate: manual
+  native MinGW `test-mir` (`32/0`), `test-transpile` (`710/0`), plus
+  PowerShell-equivalent contract/size scans for the `perf_contract_smoke` and
+  `test_inc_size_smoke` assertions.
+- 2026-05-03 MIR use-edge provenance tightening:
+  DEF use-edge collection no longer walks forward through
+  `block->source_statements` looking for the next plausible let/assignment. If
+  a DEF instruction has no attached AST payload, the fallback is now an exact
+  `source_statement_index` lookup only. This keeps use-edge facts tied to
+  instruction provenance instead of implicit source-array ordering. Gate:
+  manual native MinGW `test-mir` (`32/0`), `test-transpile` (`710/0`), and
+  PowerShell-equivalent `perf_contract_smoke` assertions.
+- 2026-05-03 MIR statement-inventory accessor seam:
+  `MIRBasicBlock` now carries
+  `MIRStatementInventory source_statement_inventory` instead of raw
+  `source_statements` / `source_statement_count` fields. Statement population
+  routes through `mir_block_source_inventory_count(...)`,
+  `mir_block_source_inventory_at(...)`, and
+  `mir_block_source_inventory_items(...)`, while use-edge validation consumes
+  the named inventory directly. This does not remove HIR source statements from
+  MIR construction yet; it makes the remaining construction input an explicit
+  inventory contract instead of an open block array. Gate: manual native MinGW
+  `test-mir` (`33/0`), `test-transpile` (`710/0`), and PowerShell owner/contract
+  size scans.
+- 2026-05-03 MIR statement-inventory validation:
+  `mir_validate(...)` now rejects malformed statement inventory storage
+  (`count > 0` with no `items`) and instruction source-statement indexes outside
+  the named inventory. The regression fixture corrupts both shapes explicitly,
+  so downstream MIR consumers no longer rely only on defensive null checks.
+  Gate: manual native MinGW `test-mir` (`33/0`) and `test-transpile` (`710/0`).
+- 2026-05-03 MIR HIR-pointer cleanup:
+  `MIRBasicBlock` no longer stores the raw `source_hir_block` pointer. The MIR
+  contract keeps only `source_hir_block_id`, which is enough for CFG mapping
+  validation, MIR dumps, and C block mapping comments. This removes another
+  AST/HIR-carried pointer from MIR block state without changing emitted code.
+  Gate: manual native MinGW `test-mir` (`33/0`) and `test-transpile` (`710/0`).
+- 2026-05-03 MIR surface-usage validator:
+  `mir_validate(...)` now rejects instructions that carry AST/expression/source
+  payloads without materialized surface-usage facts. This turns thread-pool
+  usage from a best-effort construction convention into a MIR contract: codegen
+  can consume `has_surface_usage_facts` / `uses_thread_pool_surface` without
+  silently relying on AST rescans for normal lowered MIR. Gate: manual native
+  MinGW `test-mir` (`33/0`) and `test-transpile` (`710/0`).
 - 2026-05-01 dogfood-first beta gate:
   the beta target is now "core stable enough to start a small WebGL/chat-game
   dogfood", not a full 1.0 compiler. Quantum, Rust-style lifetime borrow
