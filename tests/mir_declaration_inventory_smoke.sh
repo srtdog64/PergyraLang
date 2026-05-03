@@ -309,6 +309,23 @@ require_term "src/codegen/transpiler_enum_decl_emit.h" \
     "transpiler_hosted_method_view_missing_mir_metadata(&method_view)"
 require_term "src/codegen/transpiler_domain_role_ability_emit.h" \
     "transpiler_hosted_method_view_missing_mir_metadata(method_view)"
+for rel in \
+    "src/codegen/transpiler_class_decl_emit.h" \
+    "src/codegen/transpiler_enum_decl_emit.h" \
+    "src/codegen/transpiler_generic_class_specialization_emit.h"; do
+    if grep -Fq "transpiler_find_mir_method(ctx" "$ROOT_DIR/$rel"; then
+        fail "$rel must use TranspilerHostedMethodView routine metadata, not a secondary method lookup"
+    fi
+done
+if sed -n '1,70p' "$ROOT_DIR/src/codegen/transpiler_domain_role_ability_emit.h" \
+    | grep -Fq "transpiler_find_mir_method(ctx"; then
+    fail "hosted role/domain method emission must use MIRDeclMethod routine metadata, not a secondary method lookup"
+fi
+if grep -RIn "transpiler_find_mir_method" "$ROOT_DIR/src/codegen"; then
+    fail "generic C method lookup helper name must not reappear; remaining role include seam is explicit"
+fi
+require_term "src/codegen/transpiler_mir_ssa_names.h" \
+    "transpiler_find_role_impl_mir_method"
 c_method_raw_hits="$(
     c_method_files=()
     for path in "$ROOT_DIR"/src/codegen/transpiler*.c \
@@ -384,6 +401,33 @@ for term in \
     "routine->kind == MIR_SCOPE_METHOD"; do
     require_term "src/codegen/llvm_domain_method_helpers.c" "$term"
 done
+if grep -Fq "routine->ast == method" \
+    "$ROOT_DIR/src/codegen/llvm_domain_method_helpers.c"; then
+    fail "LLVM domain method helper must not use AST identity as routine fallback"
+fi
+if grep -Fq "strcmp(routine->owner_name, owner_name)" \
+    "$ROOT_DIR/src/codegen/llvm_domain_method_helpers.c"; then
+    fail "LLVM domain method helper must consume linked MIRDeclMethod routine indexes, not owner/name routine search"
+fi
+if grep -Fq "routine->ast == method->ast" \
+    "$ROOT_DIR/src/compiler/mir_decl_headers.h"; then
+    fail "MIRDeclMethod routine linking must not use AST identity matching"
+fi
+for term in \
+    "mir_decl_header_set_role_impl_methods" \
+    "mir_role_impl_method_count" \
+    "case AST_ROLE_DECL"; do
+    require_term "src/compiler/mir_decl_headers.h" "$term"
+done
+for term in \
+    "hir->role_count" \
+    "mir_record_decl_header(mir, hir->roles[i])"; do
+    require_term "src/compiler/mir_lower_public_api.h" "$term"
+done
+if grep -Fq "routine->ast == method_decl" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_ssa_names.h"; then
+    fail "C MIR method lookup must use MIRDeclMethod routine metadata, not AST identity fallback"
+fi
 
 for term in \
     "llvm_mir_decl_method_param_count(method_meta)" \
@@ -439,6 +483,10 @@ require_term "src/codegen/llvm_domain_method_emit.c" \
     "LLVMHostedMethodView method_view"
 require_term "src/codegen/llvm_domain_method_emit.c" \
     "llvm_hosted_method_view_metadata(&method_view, j)"
+if grep -Fq "llvm_find_mir_method_routine_local(ctx," \
+    "$ROOT_DIR/src/codegen/llvm_domain_method_emit.c"; then
+    fail "LLVM hosted domain method body emission must use linked MIRDeclMethod routine indexes, not AST/name routine search"
+fi
 if grep -Eq 'llvm_emit_domain_method_forward_decls\([^)]*ASTNode \*\*methods|llvm_emit_domain_method_forward_decls\([^)]*size_t method_count' \
     "$ROOT_DIR/src/codegen/llvm_domain_forward.h" \
     "$ROOT_DIR/src/codegen/llvm_domain_forward.c"; then

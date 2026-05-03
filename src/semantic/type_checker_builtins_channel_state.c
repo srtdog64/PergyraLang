@@ -17,32 +17,43 @@ channel_state_normalize_type(Type *type)
     return type != NULL ? type : TYPE_UNKNOWN;
 }
 
-static bool
-channel_state_query_returns_bool(const char *name)
+typedef struct
 {
-    return strcmp(name, "ChannelFull") == 0
-        || strcmp(name, "ChannelClosed") == 0
-        || strcmp(name, "ChannelReady") == 0;
-}
+    const char *name;
+    bool returns_bool;
+} ChannelStateBuiltinSpec;
 
-static bool
-channel_state_query_is_supported(const char *name)
+static const ChannelStateBuiltinSpec channel_state_specs[] = {
+    { "ChannelCapacity", false },
+    { "ChannelClosed", true },
+    { "ChannelFull", true },
+    { "ChannelLength", false },
+    { "ChannelReady", true },
+    { "ChannelSpace", false },
+};
+
+static const ChannelStateBuiltinSpec *
+channel_state_find_spec(const char *name)
 {
-    return strcmp(name, "ChannelLength") == 0
-        || strcmp(name, "ChannelCapacity") == 0
-        || strcmp(name, "ChannelSpace") == 0
-        || channel_state_query_returns_bool(name);
+    if (name == NULL)
+        return NULL;
+    for (size_t i = 0; i < sizeof(channel_state_specs) / sizeof(channel_state_specs[0]); i++) {
+        if (strcmp(channel_state_specs[i].name, name) == 0)
+            return &channel_state_specs[i];
+    }
+    return NULL;
 }
 
 Type *
 type_check_channel_state_builtin(ASTNode *expr, const char *name,
                                  SemanticContext *ctx, bool *handled_out)
 {
+    const ChannelStateBuiltinSpec *spec = channel_state_find_spec(name);
     Type *ch_type;
 
     if (handled_out != NULL)
         *handled_out = false;
-    if (name == NULL || !channel_state_query_is_supported(name))
+    if (spec == NULL)
         return NULL;
     if (handled_out != NULL)
         *handled_out = true;
@@ -62,5 +73,5 @@ type_check_channel_state_builtin(ASTNode *expr, const char *name,
             type_name_or_unknown(ch_type));
         return TYPE_UNKNOWN;
     }
-    return channel_state_query_returns_bool(name) ? TYPE_BOOL : TYPE_INT;
+    return spec->returns_bool ? TYPE_BOOL : TYPE_INT;
 }

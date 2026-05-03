@@ -74,9 +74,7 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             }
         }
 
-        bool is_slot_method = (strcmp(method, "Write") == 0
-                            || strcmp(method, "Read") == 0
-                            || strcmp(method, "Release") == 0);
+        bool is_slot_method = pgy_codegen_call_name_is_slot_operation(method);
 
         if (obj != NULL && method != NULL) {
             const char *type_name = transpiler_resolve_nominal_host_expr_type_name(ctx, obj);
@@ -261,7 +259,8 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             }
             char *slot_ref = slot_ref_expr(ctx, obj->data.identifier.name, obj_expr);
 
-            if (strcmp(method, "Write") == 0 && call->data.call.arg_count >= 1) {
+            if (pgy_codegen_call_name_is_write(method)
+                && call->data.call.arg_count >= 1) {
                 char *val_expr = emit_expression(call->data.call.arguments[0], ctx);
                 char *result;
                 if (is_secure && call->data.call.arg_count >= 2) {
@@ -270,14 +269,10 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                                         inner, slot_ref, val_expr, tok);
                     free(tok);
                 } else if (is_secure) {
-                    const char *token_name =
-                        lookup_slot_token_name(ctx, obj->data.identifier.name);
                     char fallback_token[96];
-                    if (token_name == NULL) {
-                        snprintf(fallback_token, sizeof(fallback_token),
-                                 "%s_token", obj->data.identifier.name);
-                        token_name = fallback_token;
-                    }
+                    const char *token_name = lookup_slot_token_name_or_default(
+                        ctx, obj->data.identifier.name,
+                        fallback_token, sizeof(fallback_token));
                     result = strdup_fmt("pgy_secure_write_%s(%s, %s, &%s)",
                                         inner, slot_ref, val_expr, token_name);
                 } else {
@@ -288,17 +283,13 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                 free(slot_ref);
                 free(obj_expr);
                 return result;
-            } else if (strcmp(method, "Read") == 0) {
+            } else if (pgy_codegen_call_name_is_read(method)) {
                 char *result;
                 if (is_secure) {
-                    const char *token_name =
-                        lookup_slot_token_name(ctx, obj->data.identifier.name);
                     char fallback_token[96];
-                    if (token_name == NULL) {
-                        snprintf(fallback_token, sizeof(fallback_token),
-                                 "%s_token", obj->data.identifier.name);
-                        token_name = fallback_token;
-                    }
+                    const char *token_name = lookup_slot_token_name_or_default(
+                        ctx, obj->data.identifier.name,
+                        fallback_token, sizeof(fallback_token));
                     result = strdup_fmt("pgy_secure_read_%s(%s, &%s)",
                                         inner, slot_ref, token_name);
                 } else {
@@ -307,17 +298,13 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                 free(slot_ref);
                 free(obj_expr);
                 return result;
-            } else if (strcmp(method, "Release") == 0) {
+            } else if (pgy_codegen_call_name_is_release(method)) {
                 char *result;
                 if (is_secure) {
-                    const char *token_name =
-                        lookup_slot_token_name(ctx, obj->data.identifier.name);
                     char fallback_token[96];
-                    if (token_name == NULL) {
-                        snprintf(fallback_token, sizeof(fallback_token),
-                                 "%s_token", obj->data.identifier.name);
-                        token_name = fallback_token;
-                    }
+                    const char *token_name = lookup_slot_token_name_or_default(
+                        ctx, obj->data.identifier.name,
+                        fallback_token, sizeof(fallback_token));
                     result = strdup_fmt("pgy_secure_release_%s(%s, &%s)",
                                         inner, slot_ref, token_name);
                 } else {

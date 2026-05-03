@@ -126,6 +126,45 @@ transpiler_extract_type_suffix_from_fn(const char *fn_name)
  */
 __attribute__((unused))
 static bool
+transpiler_format_slot_runtime_fn(const char *op_name,
+                                  bool is_secure_slot,
+                                  bool is_device_slot,
+                                  const char *inner_name,
+                                  char *out,
+                                  size_t out_size)
+{
+    typedef struct SlotRuntimeFnSpec {
+        const char *op_name;
+        const char *plain_prefix;
+        const char *secure_prefix;
+        const char *device_prefix;
+    } SlotRuntimeFnSpec;
+
+    static const SlotRuntimeFnSpec specs[] = {
+        {"Claim", "pgy_claim", "pgy_claim_secure", "pgy_claim_device"},
+        {"Read", "pgy_read", "pgy_secure_read", "pgy_device_read"},
+        {"Write", "pgy_write", "pgy_secure_write", "pgy_device_write"},
+        {"Release", "pgy_release", "pgy_secure_release", "pgy_release_device"},
+    };
+
+    if (op_name == NULL || inner_name == NULL || out == NULL || out_size == 0)
+        return false;
+
+    for (size_t i = 0; i < sizeof(specs) / sizeof(specs[0]); i++) {
+        if (strcmp(op_name, specs[i].op_name) != 0)
+            continue;
+        const char *prefix = is_device_slot ? specs[i].device_prefix
+                           : is_secure_slot ? specs[i].secure_prefix
+                                            : specs[i].plain_prefix;
+        snprintf(out, out_size, "%s_%s", prefix, inner_name);
+        return true;
+    }
+
+    return false;
+}
+
+__attribute__((unused))
+static bool
 transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
                                 CodeBuf *out,
                                 int indent,
@@ -219,77 +258,11 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
         if (inner_name != NULL) {
             inner_c = pergyra_type_to_c(inner_name);
             if (inner_c != NULL && inner_c[0] != '\0') {
-                const char *op = op_name;
-                if (op != NULL) {
-                    if (strcmp(op, "Claim") == 0) {
-                        if (is_secure_slot) {
-                            snprintf(runtime_fn_buf, sizeof(runtime_fn_buf),
-                                "pgy_claim_secure_%s", inner_name);
-                            fn = runtime_fn_buf;
-                            suffix = inner_name;
-                        } else if (is_device_slot) {
-                            snprintf(runtime_fn_buf, sizeof(runtime_fn_buf),
-                                "pgy_claim_device_%s", inner_name);
-                            fn = runtime_fn_buf;
-                            suffix = inner_name;
-                        } else {
-                            snprintf(runtime_fn_buf, sizeof(runtime_fn_buf),
-                                "pgy_claim_%s", inner_name);
-                            fn = runtime_fn_buf;
-                            suffix = inner_name;
-                        }
-                    } else if (strcmp(op, "Read") == 0) {
-                        if (is_secure_slot) {
-                            snprintf(runtime_fn_buf, sizeof(runtime_fn_buf),
-                                "pgy_secure_read_%s", inner_name);
-                            fn = runtime_fn_buf;
-                            suffix = inner_name;
-                        } else if (is_device_slot) {
-                            snprintf(runtime_fn_buf, sizeof(runtime_fn_buf),
-                                "pgy_device_read_%s", inner_name);
-                            fn = runtime_fn_buf;
-                            suffix = inner_name;
-                        } else {
-                            snprintf(runtime_fn_buf, sizeof(runtime_fn_buf),
-                                "pgy_read_%s", inner_name);
-                            fn = runtime_fn_buf;
-                            suffix = inner_name;
-                        }
-                    } else if (strcmp(op, "Write") == 0) {
-                        if (is_secure_slot) {
-                            snprintf(runtime_fn_buf, sizeof(runtime_fn_buf),
-                                "pgy_secure_write_%s", inner_name);
-                            fn = runtime_fn_buf;
-                            suffix = inner_name;
-                        } else if (is_device_slot) {
-                            snprintf(runtime_fn_buf, sizeof(runtime_fn_buf),
-                                "pgy_device_write_%s", inner_name);
-                            fn = runtime_fn_buf;
-                            suffix = inner_name;
-                        } else {
-                            snprintf(runtime_fn_buf, sizeof(runtime_fn_buf),
-                                "pgy_write_%s", inner_name);
-                            fn = runtime_fn_buf;
-                            suffix = inner_name;
-                        }
-                    } else if (strcmp(op, "Release") == 0) {
-                        if (is_secure_slot) {
-                            snprintf(runtime_fn_buf, sizeof(runtime_fn_buf),
-                                "pgy_secure_release_%s", inner_name);
-                            fn = runtime_fn_buf;
-                            suffix = inner_name;
-                        } else if (is_device_slot) {
-                            snprintf(runtime_fn_buf, sizeof(runtime_fn_buf),
-                                "pgy_release_device_%s", inner_name);
-                            fn = runtime_fn_buf;
-                            suffix = inner_name;
-                        } else {
-                            snprintf(runtime_fn_buf, sizeof(runtime_fn_buf),
-                                "pgy_release_%s", inner_name);
-                            fn = runtime_fn_buf;
-                            suffix = inner_name;
-                        }
-                    }
+                if (transpiler_format_slot_runtime_fn(
+                        op_name, is_secure_slot, is_device_slot, inner_name,
+                        runtime_fn_buf, sizeof(runtime_fn_buf))) {
+                    fn = runtime_fn_buf;
+                    suffix = inner_name;
                 }
             }
         }
@@ -549,18 +522,13 @@ transpiler_mir_intent_has_stmt(const MIRRoutine *routine,
             continue;
         for (size_t ii = 0; ii < block->instruction_count; ii++) {
             const MIRInstruction *inst = &block->instructions[ii];
-            if (inst->kind != MIR_INST_STMT)
+            const char *payload = mir_instruction_intent_payload(inst);
+            if (!mir_instruction_is_intent_stmt(inst, inst_name))
                 continue;
-            if (inst->name == NULL || strcmp(inst->name, inst_name) != 0)
+            if (!mir_instruction_intent_step_matches(inst, step_name))
                 continue;
-            if (step_name != NULL) {
-                if (inst->arg1 == NULL || strcmp(inst->arg1, step_name) != 0)
-                    continue;
-            } else if (inst->arg1 != NULL) {
-                continue;
-            }
             if (arg0 != NULL) {
-                if (inst->arg0 == NULL || strcmp(inst->arg0, arg0) != 0)
+                if (payload == NULL || strcmp(payload, arg0) != 0)
                     continue;
             }
             return true;

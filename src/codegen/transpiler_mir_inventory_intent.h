@@ -148,19 +148,14 @@ transpiler_find_mir_intent_meta_arg(const MIRRoutine *routine,
             continue;
         for (size_t ii = 0; ii < block->instruction_count; ii++) {
             const MIRInstruction *inst = &block->instructions[ii];
-            if (inst->kind != MIR_INST_STMT)
+            const char *payload = mir_instruction_intent_payload(inst);
+            if (!mir_instruction_is_intent_stmt(inst, inst_name))
                 continue;
-            if (inst->name == NULL || strcmp(inst->name, inst_name) != 0)
+            if (payload == NULL)
                 continue;
-            if (inst->arg0 == NULL)
+            if (!mir_instruction_intent_step_matches(inst, step_name))
                 continue;
-            if (step_name != NULL) {
-                if (inst->arg1 == NULL || strcmp(inst->arg1, step_name) != 0)
-                    continue;
-            } else if (inst->arg1 != NULL) {
-                continue;
-            }
-            return inst->arg0;
+            return payload;
         }
     }
     return NULL;
@@ -188,12 +183,12 @@ transpiler_collect_mir_intent_steps(const MIRRoutine *routine, ASTNode ***steps_
             const MIRInstruction *inst = &block->instructions[ii];
             ASTNode **grown;
 
-            if (inst->kind != MIR_INST_STMT || inst->ast == NULL
+            if (inst->ast == NULL
                 || !inst->has_source_location
                 || inst->source_ast_type != AST_INTENT_STEP) {
                 continue;
             }
-            if (inst->name == NULL || strcmp(inst->name, "IntentStep") != 0)
+            if (!mir_instruction_is_intent_stmt(inst, "IntentStep"))
                 continue;
             if (count >= capacity) {
                 size_t new_capacity = capacity == 0 ? 8 : capacity * 2;
@@ -233,9 +228,7 @@ transpiler_collect_mir_intent_step_names(const MIRRoutine *routine, const char *
             const MIRInstruction *inst = &block->instructions[ii];
             const char **grown;
 
-            if (inst->kind != MIR_INST_STMT)
-                continue;
-            if (inst->name == NULL || strcmp(inst->name, "IntentStep") != 0)
+            if (mir_instruction_intent_step_name(inst) == NULL)
                 continue;
 
             if (count >= capacity) {
@@ -248,7 +241,7 @@ transpiler_collect_mir_intent_step_names(const MIRRoutine *routine, const char *
                 names = grown;
                 capacity = new_capacity;
             }
-            names[count++] = inst->arg0 != NULL ? inst->arg0 : inst->name;
+            names[count++] = mir_instruction_intent_step_name(inst);
         }
     }
 
@@ -270,18 +263,14 @@ transpiler_find_mir_intent_check_expr(const MIRRoutine *routine,
             continue;
         for (size_t ii = 0; ii < block->instruction_count; ii++) {
             const MIRInstruction *inst = &block->instructions[ii];
-            if (inst->kind != MIR_INST_STMT || inst->ast == NULL)
+            if (inst->ast == NULL)
                 continue;
-            if (inst->name == NULL || strcmp(inst->name, "IntentCheck") != 0)
+            if (!mir_instruction_is_intent_stmt(inst, "IntentCheck"))
                 continue;
-            if (inst->arg0 == NULL || strcmp(inst->arg0, phase_name) != 0)
+            if (!mir_instruction_intent_phase_matches(inst, phase_name))
                 continue;
-            if (step_name != NULL) {
-                if (inst->arg1 == NULL || strcmp(inst->arg1, step_name) != 0)
-                    continue;
-            } else if (inst->arg1 != NULL) {
+            if (!mir_instruction_intent_step_matches(inst, step_name))
                 continue;
-            }
             return inst->ast;
         }
     }
@@ -311,18 +300,14 @@ transpiler_collect_mir_intent_eval_exprs(const MIRRoutine *routine,
             const MIRInstruction *inst = &block->instructions[ii];
             ASTNode **grown;
 
-            if (inst->kind != MIR_INST_STMT || inst->ast == NULL)
+            if (inst->ast == NULL)
                 continue;
-            if (inst->name == NULL || strcmp(inst->name, "IntentEval") != 0)
+            if (!mir_instruction_is_intent_stmt(inst, "IntentEval"))
                 continue;
-            if (inst->arg0 == NULL || strcmp(inst->arg0, phase_name) != 0)
+            if (!mir_instruction_intent_phase_matches(inst, phase_name))
                 continue;
-            if (step_name != NULL) {
-                if (inst->arg1 == NULL || strcmp(inst->arg1, step_name) != 0)
-                    continue;
-            } else if (inst->arg1 != NULL) {
+            if (!mir_instruction_intent_step_matches(inst, step_name))
                 continue;
-            }
 
             if (count >= capacity) {
                 size_t new_capacity = capacity == 0 ? 4 : capacity * 2;

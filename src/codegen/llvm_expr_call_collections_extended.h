@@ -1,5 +1,6 @@
 #include "llvm_expr_call_collections_queue_extended.h"
 #include "codegen_hashmap_key_policy.h"
+#include "codegen_slot_type_policy.h"
 
 static LLVMFuncEntry *
 llvm_lookup_hashmap_raw_export(LLVMGenCtx *ctx,
@@ -413,14 +414,12 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         { *out = LLVMBuildLoad2(ctx->builder, array_ty, tmp, llvm_tmp_name(ctx)); return true; }
     }
 
-    if ((strcmp(callee_name, "ViewRead") == 0
-         || strcmp(callee_name, "ViewWrite") == 0
-         || strcmp(callee_name, "Move") == 0)
+    if (pgy_codegen_call_name_is_slot_source(callee_name)
         && node->data.call.arg_count == 1) {
         { *out = llvm_emit_expression(node->data.call.arguments[0], ctx); return true; }
     }
 
-    /* Built-in: StringLength(s) ??call strlen */
+    /* Built-in: StringLength(s) -> call strlen */
 
     return false;
 }

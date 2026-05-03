@@ -317,6 +317,18 @@ struct MIRProgram
 
 MIRProgram *mir_lower(const HIRProgram *hir, const RIRProgram *rir, char **error_message);
 void        mir_instruction_record_surface_usage(MIRInstruction *inst);
+bool        mir_instruction_is_intent_stmt(const MIRInstruction *inst,
+                                           const char *name);
+bool        mir_instruction_intent_step_matches(const MIRInstruction *inst,
+                                                const char *step_name);
+bool        mir_instruction_intent_phase_matches(const MIRInstruction *inst,
+                                                 const char *phase_name);
+const char *mir_instruction_intent_payload(const MIRInstruction *inst);
+const char *mir_instruction_intent_step_name(const MIRInstruction *inst);
+bool        mir_validate_intent_instruction_fact(const MIRRoutine *routine,
+                                                 const MIRBasicBlock *block,
+                                                 size_t block_index,
+                                                 char **error_message);
 void        mir_active_inventory(const MIRProgram *mir,
                                  ASTNodeType decl_type,
                                  ASTNode ***nodes_out,

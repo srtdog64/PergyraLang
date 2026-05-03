@@ -52,6 +52,29 @@ mir_type_node_is_slot_like(const ASTNode *type_node)
         || strncmp(name, "DeviceSlot<", 11) == 0;
 }
 
+typedef struct MIRClaimKindSpec {
+    const char *callee;
+    const char *abi_prefix;
+} MIRClaimKindSpec;
+
+static const MIRClaimKindSpec *
+mir_claim_kind_from_callee(const char *callee)
+{
+    static const MIRClaimKindSpec specs[] = {
+        {"ClaimSlot", "Slot"},
+        {"ClaimSecureSlot", "SecureSlot"},
+        {"ClaimDeviceSlot", "DeviceSlot"},
+    };
+
+    if (callee == NULL)
+        return NULL;
+    for (size_t i = 0; i < sizeof(specs) / sizeof(specs[0]); i++) {
+        if (strcmp(callee, specs[i].callee) == 0)
+            return &specs[i];
+    }
+    return NULL;
+}
+
 static bool
 mir_expr_is_claim_like(const ASTNode *expr)
 {
@@ -64,9 +87,7 @@ mir_expr_is_claim_like(const ASTNode *expr)
         return false;
 
     callee = expr->data.call.callee->data.identifier.name;
-    return strcmp(callee, "ClaimSlot") == 0
-        || strcmp(callee, "ClaimSecureSlot") == 0
-        || strcmp(callee, "ClaimDeviceSlot") == 0;
+    return mir_claim_kind_from_callee(callee) != NULL;
 }
 
 static bool
@@ -200,14 +221,14 @@ mir_claim_abi_type_name_from_ast(const ASTNode *ast)
         && ast->data.call.callee->data.identifier.name != NULL) {
         const char *callee = ast->data.call.callee->data.identifier.name;
         if (ast->data.call.arg_count >= 1 && ast->data.call.arguments[0] != NULL) {
+            const MIRClaimKindSpec *claim = mir_claim_kind_from_callee(callee);
             char *inner = mir_render_type_name(ast->data.call.arguments[0]);
             char *result = NULL;
-            if (strcmp(callee, "ClaimSlot") == 0)
-                result = mir_type_strdup_fmt("Slot<%s>", inner != NULL ? inner : "Int");
-            else if (strcmp(callee, "ClaimSecureSlot") == 0)
-                result = mir_type_strdup_fmt("SecureSlot<%s>", inner != NULL ? inner : "Int");
-            else if (strcmp(callee, "ClaimDeviceSlot") == 0)
-                result = mir_type_strdup_fmt("DeviceSlot<%s>", inner != NULL ? inner : "Int");
+            if (claim != NULL) {
+                result = mir_type_strdup_fmt("%s<%s>",
+                                             claim->abi_prefix,
+                                             inner != NULL ? inner : "Int");
+            }
             free(inner);
             return result;
         }

@@ -177,6 +177,8 @@ mir_validate(const MIRProgram *mir, char **error_message)
                 return false;
             if (!mir_validate_instruction_surface_usage(routine, block, j, error_message))
                 return false;
+            if (!mir_validate_intent_instruction_fact(routine, block, j, error_message))
+                return false;
             if (!mir_validate_terminator_provenance(routine, block, j, error_message))
                 return false;
             for (size_t k = 0; k < block->instruction_count; k++) {

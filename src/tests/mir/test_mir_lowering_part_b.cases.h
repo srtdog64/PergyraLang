@@ -49,6 +49,117 @@ test_mir_lowering_part_b(void)
         hir_destroy(hir);
     }
 
+    TEST("MIR validator rejects intent instruction metadata drift");
+    {
+        const char *src =
+            "subject Hero {\n"
+            "    action Guard(self) -> Void { return; }\n"
+            "}\n"
+            "zone Arena {\n"
+            "    subject slot hero: Hero\n"
+            "}\n"
+            "intent Patrol(arena: Arena, hero: Hero) {\n"
+            "    step Guard {\n"
+            "        where: Arena;\n"
+            "        using: arena;\n"
+            "        who: hero;\n"
+            "        expect: true;\n"
+            "    }\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        MIRRoutine *patrol = NULL;
+        MIRInstruction *intent_step = NULL;
+        MIRInstruction *intent_who = NULL;
+        MIRInstruction *intent_check = NULL;
+        const char *saved_step_arg0 = NULL;
+        const char *saved_who_arg0 = NULL;
+        const char *saved_who_arg1 = NULL;
+        const char *saved_check_arg0 = NULL;
+        char *mir_error = NULL;
+        bool rejected_step_name = false;
+        bool rejected_payload = false;
+        bool rejected_step_link = false;
+        bool rejected_phase = false;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok)
+            patrol = find_mir_routine_mut(mir, "Patrol", MIR_SCOPE_INTENT);
+        if (patrol != NULL) {
+            MIRBasicBlock *block = &patrol->blocks[patrol->entry_block];
+            for (size_t i = 0; i < block->instruction_count; i++) {
+                MIRInstruction *inst = &block->instructions[i];
+                if (inst->name == NULL)
+                    continue;
+                if (strcmp(inst->name, "IntentStep") == 0)
+                    intent_step = inst;
+                else if (strcmp(inst->name, "IntentWho") == 0)
+                    intent_who = inst;
+                else if (strcmp(inst->name, "IntentCheck") == 0
+                         && inst->arg0 != NULL
+                         && strcmp(inst->arg0, "expect") == 0) {
+                    intent_check = inst;
+                }
+            }
+        }
+        if (intent_step != NULL) {
+            saved_step_arg0 = intent_step->arg0;
+            intent_step->arg0 = NULL;
+            rejected_step_name =
+                !mir_validate(mir, &mir_error)
+                && mir_error != NULL
+                && strstr(mir_error, "IntentStep is missing MIR step name fact") != NULL;
+            intent_step->arg0 = saved_step_arg0;
+            free(mir_error);
+            mir_error = NULL;
+        }
+        if (intent_who != NULL) {
+            saved_who_arg0 = intent_who->arg0;
+            intent_who->arg0 = NULL;
+            rejected_payload =
+                !mir_validate(mir, &mir_error)
+                && mir_error != NULL
+                && strstr(mir_error, "is missing MIR payload fact") != NULL;
+            intent_who->arg0 = saved_who_arg0;
+            free(mir_error);
+            mir_error = NULL;
+
+            saved_who_arg1 = intent_who->arg1;
+            intent_who->arg1 = NULL;
+            rejected_step_link =
+                !mir_validate(mir, &mir_error)
+                && mir_error != NULL
+                && strstr(mir_error, "is missing step link fact") != NULL;
+            intent_who->arg1 = saved_who_arg1;
+            free(mir_error);
+            mir_error = NULL;
+        }
+        if (intent_check != NULL) {
+            saved_check_arg0 = intent_check->arg0;
+            intent_check->arg0 = NULL;
+            rejected_phase =
+                !mir_validate(mir, &mir_error)
+                && mir_error != NULL
+                && strstr(mir_error, "is missing phase fact") != NULL;
+            intent_check->arg0 = saved_check_arg0;
+            free(mir_error);
+            mir_error = NULL;
+        }
+        EXPECT(ok
+               && mir_validate(mir, NULL)
+               && intent_step != NULL
+               && intent_who != NULL
+               && intent_check != NULL
+               && rejected_step_name
+               && rejected_payload
+               && rejected_step_link
+               && rejected_phase);
+        free(mir_error);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
     TEST("MIR validator rejects invalid statement inventory shape");
     {
         const char *src =

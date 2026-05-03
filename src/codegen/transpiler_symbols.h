@@ -8,6 +8,8 @@
 #ifndef PERGYRA_TRANSPILER_SYMBOLS_H
 #define PERGYRA_TRANSPILER_SYMBOLS_H
 
+#include <stddef.h>
+
 #include "transpiler.h"
 
 void register_slot_var(TranspilerCtx *ctx, const char *name,
@@ -18,6 +20,10 @@ void set_slot_token_name(TranspilerCtx *ctx, const char *slot_name,
 const char *lookup_slot_type(TranspilerCtx *ctx, const char *var_name);
 bool lookup_slot_is_secure(TranspilerCtx *ctx, const char *var_name);
 const char *lookup_slot_token_name(TranspilerCtx *ctx, const char *var_name);
+const char *lookup_slot_token_name_or_default(TranspilerCtx *ctx,
+                                              const char *var_name,
+                                              char *fallback_buf,
+                                              size_t fallback_cap);
 bool lookup_slot_is_indirect(TranspilerCtx *ctx, const char *var_name);
 char *slot_ref_expr(TranspilerCtx *ctx, const char *slot_name,
                     const char *slot_expr);

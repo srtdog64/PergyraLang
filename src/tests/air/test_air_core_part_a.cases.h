@@ -318,6 +318,30 @@ test_air_strict_evidence_prefers_inventory_over_legacy_flags(void)
 }
 
 static bool
+test_air_has_evidence_ignores_legacy_flags_with_real_input(void)
+{
+    AIRBoundaryNode boundaries[] = {
+        {
+            .kind = AIR_BOUNDARY_PARALLEL,
+            .owner_name = "ShipOrder",
+            .source_name = "spawn",
+            .has_hir_routine_evidence = true,
+            .has_hir_cfg_evidence = true,
+            .has_rir_boundary_evidence = true,
+        },
+    };
+    AIRProgram air = {
+        .boundaries = boundaries,
+        .boundary_count = 1,
+        .has_hir_input = true,
+    };
+
+    return !air_boundary_has_evidence(&air, 0, AIR_EVIDENCE_HIR_ROUTINE)
+        && !air_boundary_has_evidence(&air, 0, AIR_EVIDENCE_HIR_CFG)
+        && !air_boundary_has_evidence(&air, 0, AIR_EVIDENCE_RIR_BOUNDARY);
+}
+
+static bool
 test_air_task_group_boundary_requires_rir_and_hir_evidence(void)
 {
     AIRIntentNode intents[] = {

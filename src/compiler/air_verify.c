@@ -67,6 +67,8 @@ air_boundary_has_evidence(const AIRProgram *air,
         return false;
     if (air->evidence_count > 0)
         return air_boundary_has_evidence_kind(air, boundary_index, kind);
+    if (air->has_hir_input || air->has_rir_input || air->has_mir_input)
+        return false;
 
     boundary = &air->boundaries[boundary_index];
     switch (kind) {

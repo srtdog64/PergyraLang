@@ -243,7 +243,7 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                     return slot_inner_type_name(list_type);
                 return "Unknown";
             }
-            if (strcmp(name, "ClaimDeviceSlot") == 0) {
+            if (pgy_codegen_call_name_is_claim_device_slot(name)) {
                 if (ctx != NULL
                     && ctx->active_type_hint != NULL
                     && strncmp(ctx->active_type_hint, "DeviceSlot<", 11) == 0) {

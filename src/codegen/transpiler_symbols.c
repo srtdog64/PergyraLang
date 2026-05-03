@@ -167,6 +167,20 @@ lookup_slot_token_name(TranspilerCtx *ctx, const char *var_name)
     return NULL;
 }
 
+const char *
+lookup_slot_token_name_or_default(TranspilerCtx *ctx, const char *var_name,
+                                  char *fallback_buf, size_t fallback_cap)
+{
+    const char *token_name = lookup_slot_token_name(ctx, var_name);
+
+    if (token_name != NULL && token_name[0] != '\0')
+        return token_name;
+    if (var_name == NULL || fallback_buf == NULL || fallback_cap == 0)
+        return NULL;
+    snprintf(fallback_buf, fallback_cap, "%s_token", var_name);
+    return fallback_buf;
+}
+
 bool
 lookup_slot_is_indirect(TranspilerCtx *ctx, const char *var_name)
 {

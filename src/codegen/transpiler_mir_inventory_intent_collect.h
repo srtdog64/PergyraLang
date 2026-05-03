@@ -18,20 +18,15 @@ transpiler_collect_mir_intent_who_aliases(const MIRRoutine *routine,
             continue;
         for (size_t ii = 0; ii < block->instruction_count; ii++) {
             const MIRInstruction *inst = &block->instructions[ii];
+            const char *payload = mir_instruction_intent_payload(inst);
             const char **grown;
 
-            if (inst->kind != MIR_INST_STMT)
+            if (!mir_instruction_is_intent_stmt(inst, "IntentWho"))
                 continue;
-            if (inst->name == NULL || strcmp(inst->name, "IntentWho") != 0)
+            if (payload == NULL)
                 continue;
-            if (inst->arg0 == NULL)
+            if (!mir_instruction_intent_step_matches(inst, step_name))
                 continue;
-            if (step_name != NULL) {
-                if (inst->arg1 == NULL || strcmp(inst->arg1, step_name) != 0)
-                    continue;
-            } else if (inst->arg1 != NULL) {
-                continue;
-            }
 
             if (count >= capacity) {
                 size_t new_capacity = capacity == 0 ? 4 : capacity * 2;
@@ -43,7 +38,7 @@ transpiler_collect_mir_intent_who_aliases(const MIRRoutine *routine,
                 aliases = grown;
                 capacity = new_capacity;
             }
-            aliases[count++] = inst->arg0;
+            aliases[count++] = payload;
         }
     }
 
@@ -71,20 +66,15 @@ transpiler_collect_mir_intent_authorized_aliases(const MIRRoutine *routine,
             continue;
         for (size_t ii = 0; ii < block->instruction_count; ii++) {
             const MIRInstruction *inst = &block->instructions[ii];
+            const char *payload = mir_instruction_intent_payload(inst);
             const char **grown;
 
-            if (inst->kind != MIR_INST_STMT)
+            if (!mir_instruction_is_intent_stmt(inst, "IntentAuthorizedBy"))
                 continue;
-            if (inst->name == NULL || strcmp(inst->name, "IntentAuthorizedBy") != 0)
+            if (payload == NULL)
                 continue;
-            if (inst->arg0 == NULL)
+            if (!mir_instruction_intent_step_matches(inst, step_name))
                 continue;
-            if (step_name != NULL) {
-                if (inst->arg1 == NULL || strcmp(inst->arg1, step_name) != 0)
-                    continue;
-            } else if (inst->arg1 != NULL) {
-                continue;
-            }
 
             if (count >= capacity) {
                 size_t new_capacity = capacity == 0 ? 4 : capacity * 2;
@@ -96,7 +86,7 @@ transpiler_collect_mir_intent_authorized_aliases(const MIRRoutine *routine,
                 aliases = grown;
                 capacity = new_capacity;
             }
-            aliases[count++] = inst->arg0;
+            aliases[count++] = payload;
         }
     }
 
@@ -127,14 +117,13 @@ transpiler_collect_mir_intent_participants(const MIRRoutine *routine,
             continue;
         for (size_t ii = 0; ii < block->instruction_count; ii++) {
             const MIRInstruction *inst = &block->instructions[ii];
+            const char *payload = mir_instruction_intent_payload(inst);
             const char **grown_aliases;
             const char **grown_types;
 
-            if (inst->kind != MIR_INST_STMT)
+            if (!mir_instruction_is_intent_stmt(inst, "IntentParticipant"))
                 continue;
-            if (inst->name == NULL || strcmp(inst->name, "IntentParticipant") != 0)
-                continue;
-            if (inst->arg0 == NULL || inst->arg1 == NULL)
+            if (payload == NULL || inst->arg1 == NULL)
                 continue;
 
             if (count >= capacity) {
@@ -160,7 +149,7 @@ transpiler_collect_mir_intent_participants(const MIRRoutine *routine,
                 types = grown_types;
                 capacity = new_capacity;
             }
-            aliases[count] = inst->arg0;
+            aliases[count] = payload;
             types[count] = inst->arg1;
             count++;
         }
@@ -191,20 +180,15 @@ transpiler_collect_mir_intent_dispatch_aliases(const MIRRoutine *routine,
             continue;
         for (size_t ii = 0; ii < block->instruction_count; ii++) {
             const MIRInstruction *inst = &block->instructions[ii];
+            const char *payload = mir_instruction_intent_payload(inst);
             const char **grown;
 
-            if (inst->kind != MIR_INST_STMT)
+            if (!mir_instruction_is_intent_stmt(inst, "IntentDispatch"))
                 continue;
-            if (inst->name == NULL || strcmp(inst->name, "IntentDispatch") != 0)
+            if (payload == NULL)
                 continue;
-            if (inst->arg0 == NULL)
+            if (!mir_instruction_intent_step_matches(inst, step_name))
                 continue;
-            if (step_name != NULL) {
-                if (inst->arg1 == NULL || strcmp(inst->arg1, step_name) != 0)
-                    continue;
-            } else if (inst->arg1 != NULL) {
-                continue;
-            }
 
             if (count >= capacity) {
                 size_t new_capacity = capacity == 0 ? 4 : capacity * 2;
@@ -216,7 +200,7 @@ transpiler_collect_mir_intent_dispatch_aliases(const MIRRoutine *routine,
                 aliases = grown;
                 capacity = new_capacity;
             }
-            aliases[count++] = inst->arg0;
+            aliases[count++] = payload;
         }
     }
 

@@ -6,16 +6,16 @@ llvm_emit_slot_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         return false;
     *out = NULL;
 
-    if (strcmp(callee_name, "ClaimSlot") == 0
-        || strcmp(callee_name, "ClaimSecureSlot") == 0) {
+    if (pgy_codegen_call_name_is_claim_slot(callee_name)
+        || pgy_codegen_call_name_is_claim_secure_slot(callee_name)) {
         llvm_set_error_at_with_hints(ctx, node, PGY_CODE_LLVM_TYPE_UNSUPPORTED, PGY_CAUSE_LLVM_SLOT_INNER_TYPE_MISSING, PGY_FIX_ANNOTATE_CONCRETE_TYPE, "LLVM standalone %s requires an explicitly typed binding; use 'let value: %s<T> = %s()'",
             callee_name,
-            strcmp(callee_name, "ClaimSecureSlot") == 0 ? "SecureSlot" : "Slot",
+            pgy_codegen_claim_slot_abi_prefix(callee_name),
             callee_name);
         return true;
     }
 
-    if (strcmp(callee_name, "ClaimDeviceSlot") == 0) {
+    if (pgy_codegen_call_name_is_claim_device_slot(callee_name)) {
         llvm_set_error_at_with_hints(ctx, node, PGY_CODE_LLVM_TYPE_UNSUPPORTED, PGY_CAUSE_LLVM_SLOT_INNER_TYPE_MISSING, PGY_FIX_ANNOTATE_CONCRETE_TYPE, "LLVM standalone ClaimDeviceSlot requires an explicitly typed binding; use 'let value: DeviceSlot<T> = ClaimDeviceSlot()'");
         return true;
     }

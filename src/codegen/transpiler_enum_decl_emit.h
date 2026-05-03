@@ -145,8 +145,6 @@ emit_enum_decl_stmt(ASTNode *node, TranspilerCtx *ctx)
             if (method_name == NULL)
                 method_name = method->data.func_decl.name;
             mir_method = transpiler_hosted_method_view_routine(ctx, &method_view, i);
-            if (mir_method == NULL)
-                mir_method = transpiler_find_mir_method(ctx, ename, method);
             if (ctx != NULL && ctx->mir != NULL && mir_method == NULL) {
                 if (ctx->backend_error == NULL) {
                     ctx->backend_error = strdup_fmt(

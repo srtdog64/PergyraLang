@@ -1,3 +1,6 @@
+/* Consumed from transpiler_mir_ssa_names.h. Keep slot claim vocabulary in the
+ * shared codegen slot policy instead of repeating raw builtin strings here. */
+
 static const char *
 transpiler_infer_local_type_name_from_expr(TranspilerCtx *ctx,
                                            const ASTNode *func_decl,
@@ -173,7 +176,7 @@ transpiler_find_local_type_name_in_block(TranspilerCtx *ctx,
                 && init->data.call.callee->type == AST_IDENTIFIER
                 && init->data.call.callee->data.identifier.name != NULL) {
                 const char *callee = init->data.call.callee->data.identifier.name;
-                if (strcmp(callee, "ClaimSecureSlot") == 0) {
+                if (pgy_codegen_call_name_is_claim_secure_slot(callee)) {
                     static char rendered_secure[128];
                     const char *inner = NULL;
                     if (init->data.call.generic_args != NULL
@@ -194,7 +197,7 @@ transpiler_find_local_type_name_in_block(TranspilerCtx *ctx,
                         i == 0 ? "SecureSlot<%s>" : "Token<%s>", inner);
                     return rendered_secure;
                 }
-                if (strcmp(callee, "ClaimSlot") == 0 && i == 0) {
+                if (pgy_codegen_call_name_is_claim_slot(callee) && i == 0) {
                     static char rendered_slot[128];
                     const char *inner = NULL;
                     if (init->data.call.generic_args != NULL

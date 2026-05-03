@@ -76,3 +76,34 @@ test_air_verify_rejects_duplicate_evidence_nodes(void)
     free(error);
     return ok;
 }
+
+static bool
+test_air_append_merges_duplicate_evidence_nodes(void)
+{
+    AIRProgram *air = (AIRProgram *)calloc(1, sizeof(AIRProgram));
+    char *error = NULL;
+    bool ok = air != NULL
+        && air_append_evidence_node_ex(air,
+                                       AIR_EVIDENCE_DAG_METADATA,
+                                       SIZE_MAX,
+                                       "type-resolution-dag",
+                                       "metadata-inventory",
+                                       7,
+                                       0,
+                                       &error)
+        && air_append_evidence_node_ex(air,
+                                       AIR_EVIDENCE_DAG_METADATA,
+                                       SIZE_MAX,
+                                       "type-resolution-dag",
+                                       "metadata-inventory",
+                                       3,
+                                       0,
+                                       &error)
+        && air->evidence_count == 1
+        && air->evidence_nodes != NULL
+        && air->evidence_nodes[0].fact_count == 10
+        && air_verify(air, &error);
+    free(error);
+    air_destroy(air);
+    return ok;
+}

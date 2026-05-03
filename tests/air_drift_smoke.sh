@@ -77,6 +77,7 @@ run_literal_air_drift_smoke() {
     require_literal "src/compiler/air_verify.c" "strict AIR requires body control-flow evidence"
     require_literal "src/compiler/air_verify.c" "strict AIR requires MIR branch/return terminator provenance"
     require_literal "src/compiler/air_verify.c" "strict AIR requires pin boundaries to prove all exits run unpin cleanup"
+    require_literal "src/compiler/air.c" "node->fact_count += fact_count"
     require_literal "src/compiler/air_validate_evidence.c" "duplicates evidence node"
     require_literal "src/compiler/driver_app.c" "air_synthesize"
     require_literal "docs/72_diagnostic_codes.md" "PGY_SEM_INTENT_BOUNDARY_DRIFT"
@@ -84,6 +85,7 @@ run_literal_air_drift_smoke() {
     require_literal "src/test_air.c" "AIR ignores orphan MIR cleanup root evidence"
     require_literal "src/tests/air/test_air_core_part_h.cases.h" "AIR verify rejects invalid drift inventory"
     require_literal "src/test_air.c" "AIR verify rejects duplicate evidence nodes"
+    require_literal "src/test_air.c" "AIR append merges duplicate evidence nodes"
     require_literal "src/tests/air/test_air_mir_terminator_part_h.cases.h" "AIR collects MIR terminator evidence"
     require_literal "src/tests/air/test_air_mir_terminator_part_h.cases.h" "MIR terminator evidence node 0 has no terminator facts"
     require_literal "src/tests/air/test_air_mir_terminator_part_h.cases.h" "AIR MIR input has no CFG terminator evidence"
@@ -549,6 +551,7 @@ required_test_terms = [
     "AIR strict evidence rejects stale legacy summary flags",
     "AIR strict evidence rejects legacy flags with real input",
     "test_air_strict_evidence_rejects_legacy_flags_with_real_input",
+    "test_air_has_evidence_ignores_legacy_flags_with_real_input",
     "AIR task group boundary requires RIR and HIR evidence",
     "AIR verify rejects invalid boundary inventory",
     "AIR verify rejects missing inventory arrays",

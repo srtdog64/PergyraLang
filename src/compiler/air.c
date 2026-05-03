@@ -167,6 +167,22 @@ air_append_evidence_node_ex(AIRProgram *air,
         air_set_error(error_message, "AIR evidence append requires a program");
         return false;
     }
+    for (size_t i = 0; i < air->evidence_count; i++) {
+        node = &air->evidence_nodes[i];
+        if (node->kind == kind
+            && node->boundary_index == boundary_index
+            && air_name_matches(node->provider_name, provider_name)
+            && air_name_matches(node->subject_name, subject_name)) {
+            if (fact_count > SIZE_MAX - node->fact_count
+                || fallback_count > SIZE_MAX - node->fallback_count) {
+                air_set_error(error_message, "AIR evidence node count overflow");
+                return false;
+            }
+            node->fact_count += fact_count;
+            node->fallback_count += fallback_count;
+            return true;
+        }
+    }
     if (air->evidence_count >= air->evidence_capacity) {
         AIREvidenceNode *next;
         size_t new_capacity = air->evidence_capacity == 0

@@ -842,6 +842,7 @@ for term in [
 for term in [
     "MIR lowers for-loop init as loop-init instead of fallback statement",
     "MIR lowers for-in init as loop-init instead of fallback statement",
+    "MIR validator rejects intent instruction metadata drift",
     "MIR validator rejects CFG-owned control fallback statements",
     "MIR validator rejects missing rollback and invalidation cleanup facts",
     "MIR validator rejects pin-region without cleanup root",
@@ -881,6 +882,39 @@ for term in [
 
 print("cfg body dataflow docs: ok")
 PY
+fi
+
+if grep -RIn "inst->arg0 != NULL ? inst->arg0 : inst->name" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_inventory_intent.h" \
+    "$ROOT_DIR/src/codegen/llvm_intent_flow.c"; then
+    echo "MIR intent step names must consume validator-owned arg0, not fallback to inst->name" >&2
+    exit 1
+fi
+if grep -RIn "inst->arg0" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_inventory_intent.h" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_inventory_intent_collect.h" \
+    "$ROOT_DIR/src/codegen/llvm_intent_mir_meta.c"; then
+    echo "MIR intent metadata readers must consume payloads through mir_instruction_intent_payload" >&2
+    exit 1
+fi
+require_literal "src/compiler/mir_intent_fact.c" "mir_instruction_intent_step_matches"
+require_literal "src/compiler/mir_intent_fact.c" "mir_instruction_intent_phase_matches"
+require_literal "src/compiler/mir_intent_fact.c" "mir_instruction_intent_payload"
+require_literal "src/compiler/mir_intent_fact.c" "mir_instruction_intent_step_name"
+require_literal "src/compiler/mir_intent_fact.c" "mir_validate_intent_instruction_fact"
+require_literal "src/compiler/mir_intent_fact.c" "inst == NULL || inst->kind != MIR_INST_STMT"
+require_literal "src/codegen/transpiler_mir_inventory_intent.h" "mir_instruction_intent_step_name(inst)"
+require_literal "src/codegen/llvm_intent_flow.c" "mir_instruction_intent_step_name(inst)"
+require_literal "src/codegen/transpiler_mir_inventory_intent.h" "mir_instruction_intent_phase_matches(inst, phase_name)"
+require_literal "src/codegen/llvm_intent_flow.c" "mir_instruction_intent_phase_matches(inst, phase_name)"
+require_literal "src/codegen/transpiler_mir_inventory_intent.h" "mir_instruction_intent_payload(inst)"
+require_literal "src/codegen/llvm_intent_mir_meta.c" "mir_instruction_intent_payload(inst)"
+require_literal "src/codegen/transpiler_helpers.h" "mir_instruction_intent_payload(inst)"
+require_literal "src/codegen/transpiler_helpers.h" "mir_instruction_intent_step_matches(inst, step_name)"
+if grep -RIn "inst->arg1 == NULL || strcmp(inst->arg1, step_name)" \
+    "$ROOT_DIR/src/codegen/transpiler_helpers.h"; then
+    echo "C intent helper must use MIR intent step matching API" >&2
+    exit 1
 fi
 
 DEFAULT_PGY="$ROOT_DIR/bin/pgy"

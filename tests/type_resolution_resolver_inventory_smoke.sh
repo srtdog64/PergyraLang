@@ -173,13 +173,13 @@ grep -q 'semantic_type_resolution_try_record_stable_constructed_type(ctx, type_n
 }
 
 grep -q 'recursive resolver fallback is retired' \
-  src/semantic/type_checker_resolution_metadata_fallback.c || {
+  src/semantic/type_checker_resolution_metadata_dead_end.c || {
   echo "[type-resolution-resolver-inventory] fallback diagnostic no longer explains the retired recursive resolver boundary" >&2
   exit 1
 }
 
 grep -q 'PGY_TYPE_RES_DEAD_END_TRACE' \
-  src/semantic/type_checker_resolution_metadata_fallback.c || {
+  src/semantic/type_checker_resolution_metadata_dead_end.c || {
   echo "[type-resolution-resolver-inventory] metadata dead-end trace env var regressed to fallback naming" >&2
   exit 1
 }
@@ -221,19 +221,19 @@ grep -q 'type_resolution_metadata_dead_ends' \
 }
 
 grep -q '\[type-res-dead-end\]' \
-  src/semantic/type_checker_resolution_metadata_fallback.c || {
+  src/semantic/type_checker_resolution_metadata_dead_end.c || {
   echo "[type-resolution-resolver-inventory] metadata dead-end trace label regressed to fallback naming" >&2
   exit 1
 }
 
 if grep -q 'PGY_TYPE_RES_FALLBACK_TRACE\|\[type-res-fallback\]' \
-  src/semantic/type_checker_resolution_metadata_fallback.c; then
+  src/semantic/type_checker_resolution_metadata_dead_end.c; then
   echo "[type-resolution-resolver-inventory] metadata dead-end trace still uses fallback naming" >&2
   exit 1
 fi
 
 grep -q 'owner-local metadata materializer' \
-  src/semantic/type_checker_resolution_metadata_fallback.c || {
+  src/semantic/type_checker_resolution_metadata_dead_end.c || {
   echo "[type-resolution-resolver-inventory] fallback diagnostic no longer points at the owner-local materializer fix" >&2
   exit 1
 }
@@ -414,7 +414,7 @@ fi
 materializer_recorders="$(
   grep -RIn 'semantic_type_resolution_record_metadata_dead_end_diagnostic' src/semantic \
     | grep -v 'type_checker_internal.h' \
-    | grep -v 'type_checker_resolution_metadata_fallback.c' \
+    | grep -v 'type_checker_resolution_metadata_dead_end.c' \
     | grep -v 'type_checker_resolution_metadata.c' || true
 )"
 if [ -n "$materializer_recorders" ]; then
@@ -485,13 +485,13 @@ grep -q 'intent_role_resolve_binding_type' src/semantic/type_checker_intent_role
 }
 
 grep -q 'semantic_type_resolution_metadata_stable_builtin_shell_arity(' \
-  src/semantic/type_checker_resolution_metadata_fallback.c || {
+  src/semantic/type_checker_resolution_metadata_dead_end.c || {
   echo "[type-resolution-resolver-inventory] metadata fallback owner stopped using centralized stable shell arity" >&2
   exit 1
 }
 
 grep -q 'Type-resolution DAG could not materialize type metadata' \
-  src/semantic/type_checker_resolution_metadata_fallback.c || {
+  src/semantic/type_checker_resolution_metadata_dead_end.c || {
   echo "[type-resolution-resolver-inventory] metadata fallback no longer emits an explicit DAG diagnostic" >&2
   exit 1
 }

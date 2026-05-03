@@ -1,6 +1,8 @@
 #ifndef PERGYRA_TRANSPILER_MIR_DESTRUCTURE_EMIT_H
 #define PERGYRA_TRANSPILER_MIR_DESTRUCTURE_EMIT_H
 
+#include "codegen_slot_type_policy.h"
+
 /* C backend MIR destructuring statement emission owner. */
 static bool
 transpiler_emit_mir_let_destructure_stmt(CodeBuf *buf,
@@ -29,7 +31,7 @@ transpiler_emit_mir_let_destructure_stmt(CodeBuf *buf,
         && init->data.call.callee->data.identifier.name != NULL
         && stmt->data.let_destructure.name_count == 2) {
         const char *cname = init->data.call.callee->data.identifier.name;
-        if (strcmp(cname, "ClaimSecureSlot") == 0) {
+        if (pgy_codegen_call_name_is_claim_secure_slot(cname)) {
             const char *inner = NULL;
             const char *slot_name;
             const char *token_name;
@@ -80,8 +82,8 @@ transpiler_emit_mir_let_destructure_stmt(CodeBuf *buf,
         && init->data.call.callee->type == AST_IDENTIFIER
         && init->data.call.callee->data.identifier.name != NULL
         && stmt->data.let_destructure.name_count == 1
-        && strcmp(init->data.call.callee->data.identifier.name,
-                  "ClaimSlot") == 0) {
+        && pgy_codegen_call_name_is_claim_slot(
+               init->data.call.callee->data.identifier.name)) {
         const char *inner = NULL;
         const char *slot_name;
         char typed_slot[64];

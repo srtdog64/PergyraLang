@@ -96,3 +96,106 @@ pgy_codegen_call_name_is_view_constructor(const char *name)
     return pgy_codegen_call_name_is_view_read(name)
         || pgy_codegen_call_name_is_view_write(name);
 }
+
+bool
+pgy_codegen_call_name_is_read(const char *name)
+{
+    return name != NULL && strcmp(name, "Read") == 0;
+}
+
+bool
+pgy_codegen_call_name_is_write(const char *name)
+{
+    return name != NULL && strcmp(name, "Write") == 0;
+}
+
+bool
+pgy_codegen_call_name_is_release(const char *name)
+{
+    return name != NULL && strcmp(name, "Release") == 0;
+}
+
+bool
+pgy_codegen_call_name_is_slot_operation(const char *name)
+{
+    return pgy_codegen_call_name_is_read(name)
+        || pgy_codegen_call_name_is_write(name)
+        || pgy_codegen_call_name_is_release(name);
+}
+
+bool
+pgy_codegen_call_name_is_move(const char *name)
+{
+    return name != NULL && strcmp(name, "Move") == 0;
+}
+
+bool
+pgy_codegen_call_name_is_slot_source(const char *name)
+{
+    return pgy_codegen_call_name_is_view_constructor(name)
+        || pgy_codegen_call_name_is_move(name);
+}
+
+typedef enum PgyCodegenClaimSlotKind {
+    PGY_CODEGEN_CLAIM_SLOT,
+    PGY_CODEGEN_CLAIM_SECURE_SLOT,
+    PGY_CODEGEN_CLAIM_DEVICE_SLOT,
+} PgyCodegenClaimSlotKind;
+
+typedef struct PgyCodegenClaimSlotSpec {
+    const char *name;
+    const char *abi_prefix;
+    PgyCodegenClaimSlotKind kind;
+} PgyCodegenClaimSlotSpec;
+
+static const PgyCodegenClaimSlotSpec *
+pgy_codegen_claim_slot_spec(const char *name)
+{
+    static const PgyCodegenClaimSlotSpec specs[] = {
+        {"ClaimSlot", "Slot", PGY_CODEGEN_CLAIM_SLOT},
+        {"ClaimSecureSlot", "SecureSlot", PGY_CODEGEN_CLAIM_SECURE_SLOT},
+        {"ClaimDeviceSlot", "DeviceSlot", PGY_CODEGEN_CLAIM_DEVICE_SLOT},
+    };
+
+    if (name == NULL)
+        return NULL;
+    for (size_t i = 0; i < sizeof(specs) / sizeof(specs[0]); i++) {
+        if (strcmp(name, specs[i].name) == 0)
+            return &specs[i];
+    }
+    return NULL;
+}
+
+bool
+pgy_codegen_call_name_is_claim_slot(const char *name)
+{
+    const PgyCodegenClaimSlotSpec *spec = pgy_codegen_claim_slot_spec(name);
+    return spec != NULL && spec->kind == PGY_CODEGEN_CLAIM_SLOT;
+}
+
+bool
+pgy_codegen_call_name_is_claim_secure_slot(const char *name)
+{
+    const PgyCodegenClaimSlotSpec *spec = pgy_codegen_claim_slot_spec(name);
+    return spec != NULL && spec->kind == PGY_CODEGEN_CLAIM_SECURE_SLOT;
+}
+
+bool
+pgy_codegen_call_name_is_claim_device_slot(const char *name)
+{
+    const PgyCodegenClaimSlotSpec *spec = pgy_codegen_claim_slot_spec(name);
+    return spec != NULL && spec->kind == PGY_CODEGEN_CLAIM_DEVICE_SLOT;
+}
+
+bool
+pgy_codegen_call_name_is_slot_claim(const char *name)
+{
+    return pgy_codegen_claim_slot_spec(name) != NULL;
+}
+
+const char *
+pgy_codegen_claim_slot_abi_prefix(const char *name)
+{
+    const PgyCodegenClaimSlotSpec *spec = pgy_codegen_claim_slot_spec(name);
+    return spec != NULL ? spec->abi_prefix : NULL;
+}

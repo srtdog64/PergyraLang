@@ -17,177 +17,312 @@ stdlib_scalar_normalize_type(Type *type)
     return type != NULL ? type : TYPE_UNKNOWN;
 }
 
+typedef Type *(*StdlibScalarHandler)(ASTNode *expr, const char *name,
+                                     SemanticContext *ctx);
+
+typedef struct
+{
+    const char *name;
+    StdlibScalarHandler handler;
+} StdlibScalarSpec;
+
+static void
+stdlib_scalar_require_string_arg(ASTNode *expr, size_t index,
+                                 SemanticContext *ctx)
+{
+    require_assignable(type_check_expression(expr->data.call.arguments[index], ctx),
+        TYPE_STRING, expr->data.call.arguments[index], ctx);
+}
+
+static Type *
+stdlib_scalar_check_abs(ASTNode *expr, const char *name, SemanticContext *ctx)
+{
+    if (!check_call_arity(expr, 1, name, ctx))
+        return TYPE_UNKNOWN;
+    return stdlib_scalar_normalize_type(
+        type_check_expression(expr->data.call.arguments[0], ctx));
+}
+
+static Type *
+stdlib_scalar_check_minmax(ASTNode *expr, const char *name,
+                           SemanticContext *ctx)
+{
+    Type *a;
+    Type *b;
+    if (!check_call_arity(expr, 2, name, ctx))
+        return TYPE_UNKNOWN;
+    a = stdlib_scalar_normalize_type(
+        type_check_expression(expr->data.call.arguments[0], ctx));
+    b = stdlib_scalar_normalize_type(
+        type_check_expression(expr->data.call.arguments[1], ctx));
+    require_assignable(b, a, expr->data.call.arguments[1], ctx);
+    return a;
+}
+
+static Type *
+stdlib_scalar_check_string_join(ASTNode *expr, const char *name,
+                                SemanticContext *ctx)
+{
+    Type *arr_type;
+    if (!check_call_arity(expr, 2, name, ctx))
+        return TYPE_UNKNOWN;
+    arr_type = stdlib_scalar_normalize_type(
+        type_check_expression(expr->data.call.arguments[0], ctx));
+    if (!type_is_constructed_named(arr_type, "Array")) {
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
+            PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,
+            PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr->data.call.arguments[0],
+            "StringJoin requires Array<String> as first argument");
+    }
+    stdlib_scalar_require_string_arg(expr, 1, ctx);
+    return TYPE_STRING;
+}
+
+static Type *
+stdlib_scalar_check_string_length(ASTNode *expr, const char *name,
+                                  SemanticContext *ctx)
+{
+    if (!check_call_arity(expr, 1, name, ctx))
+        return TYPE_UNKNOWN;
+    stdlib_scalar_require_string_arg(expr, 0, ctx);
+    return TYPE_INT;
+}
+
+static Type *
+stdlib_scalar_check_string_contains(ASTNode *expr, const char *name,
+                                    SemanticContext *ctx)
+{
+    if (!check_call_arity(expr, 2, name, ctx))
+        return TYPE_UNKNOWN;
+    stdlib_scalar_require_string_arg(expr, 0, ctx);
+    stdlib_scalar_require_string_arg(expr, 1, ctx);
+    return TYPE_BOOL;
+}
+
+static Type *
+stdlib_scalar_check_string_replace(ASTNode *expr, const char *name,
+                                   SemanticContext *ctx)
+{
+    if (!check_call_arity(expr, 3, name, ctx))
+        return TYPE_UNKNOWN;
+    for (size_t i = 0; i < 3; i++)
+        stdlib_scalar_require_string_arg(expr, i, ctx);
+    return TYPE_STRING;
+}
+
+static Type *
+stdlib_scalar_check_string_substring(ASTNode *expr, const char *name,
+                                     SemanticContext *ctx)
+{
+    if (!check_call_arity(expr, 3, name, ctx))
+        return TYPE_UNKNOWN;
+    stdlib_scalar_require_string_arg(expr, 0, ctx);
+    require_assignable(type_check_expression(expr->data.call.arguments[1], ctx),
+        TYPE_INT, expr->data.call.arguments[1], ctx);
+    require_assignable(type_check_expression(expr->data.call.arguments[2], ctx),
+        TYPE_INT, expr->data.call.arguments[2], ctx);
+    return TYPE_STRING;
+}
+
+static Type *
+stdlib_scalar_check_string_unary(ASTNode *expr, const char *name,
+                                 SemanticContext *ctx)
+{
+    if (!check_call_arity(expr, 1, name, ctx))
+        return TYPE_UNKNOWN;
+    stdlib_scalar_require_string_arg(expr, 0, ctx);
+    return TYPE_STRING;
+}
+
+static Type *
+stdlib_scalar_check_string_concat(ASTNode *expr, const char *name,
+                                  SemanticContext *ctx)
+{
+    if (!check_call_arity(expr, 2, name, ctx))
+        return TYPE_UNKNOWN;
+    stdlib_scalar_require_string_arg(expr, 0, ctx);
+    stdlib_scalar_require_string_arg(expr, 1, ctx);
+    return TYPE_STRING;
+}
+
+static Type *
+stdlib_scalar_check_string_split(ASTNode *expr, const char *name,
+                                 SemanticContext *ctx)
+{
+    Type *args[1] = { TYPE_STRING };
+    if (!check_call_arity(expr, 2, name, ctx))
+        return TYPE_UNKNOWN;
+    stdlib_scalar_require_string_arg(expr, 0, ctx);
+    stdlib_scalar_require_string_arg(expr, 1, ctx);
+    return type_create_constructed(TYPE_ARRAY, args, 1);
+}
+
+static Type *
+stdlib_scalar_check_to_int(ASTNode *expr, const char *name,
+                           SemanticContext *ctx)
+{
+    if (!check_call_arity(expr, 1, name, ctx))
+        return TYPE_UNKNOWN;
+    type_check_expression(expr->data.call.arguments[0], ctx);
+    return TYPE_INT;
+}
+
+static Type *
+stdlib_scalar_check_to_float(ASTNode *expr, const char *name,
+                             SemanticContext *ctx)
+{
+    if (!check_call_arity(expr, 1, name, ctx))
+        return TYPE_UNKNOWN;
+    type_check_expression(expr->data.call.arguments[0], ctx);
+    return TYPE_FLOAT;
+}
+
+static Type *
+stdlib_scalar_check_math_unary_float(ASTNode *expr, const char *name,
+                                     SemanticContext *ctx)
+{
+    if (!check_call_arity(expr, 1, name, ctx))
+        return TYPE_UNKNOWN;
+    type_check_expression(expr->data.call.arguments[0], ctx);
+    return TYPE_FLOAT;
+}
+
+static Type *
+stdlib_scalar_check_atan2(ASTNode *expr, const char *name,
+                          SemanticContext *ctx)
+{
+    if (!check_call_arity(expr, 2, name, ctx))
+        return TYPE_UNKNOWN;
+    type_check_expression(expr->data.call.arguments[0], ctx);
+    type_check_expression(expr->data.call.arguments[1], ctx);
+    return TYPE_FLOAT;
+}
+
+static Type *
+stdlib_scalar_check_clamp(ASTNode *expr, const char *name,
+                          SemanticContext *ctx)
+{
+    Type *val;
+    if (!check_call_arity(expr, 3, name, ctx))
+        return TYPE_UNKNOWN;
+    val = stdlib_scalar_normalize_type(
+        type_check_expression(expr->data.call.arguments[0], ctx));
+    type_check_expression(expr->data.call.arguments[1], ctx);
+    type_check_expression(expr->data.call.arguments[2], ctx);
+    return val;
+}
+
+static Type *
+stdlib_scalar_check_float_const(ASTNode *expr, const char *name,
+                                SemanticContext *ctx)
+{
+    (void)expr;
+    (void)name;
+    (void)ctx;
+    return TYPE_FLOAT;
+}
+
+static Type *
+stdlib_scalar_check_pow(ASTNode *expr, const char *name, SemanticContext *ctx)
+{
+    if (!check_call_arity(expr, 2, name, ctx))
+        return TYPE_UNKNOWN;
+    type_check_expression(expr->data.call.arguments[0], ctx);
+    type_check_expression(expr->data.call.arguments[1], ctx);
+    return TYPE_FLOAT;
+}
+
+static Type *
+stdlib_scalar_check_random(ASTNode *expr, const char *name, SemanticContext *ctx)
+{
+    (void)name;
+    if (expr->data.call.arg_count > 0)
+        type_check_expression(expr->data.call.arguments[0], ctx);
+    return TYPE_INT;
+}
+
+static Type *
+stdlib_scalar_check_seed_random(ASTNode *expr, const char *name,
+                                SemanticContext *ctx)
+{
+    if (!check_call_arity(expr, 1, name, ctx))
+        return TYPE_UNKNOWN;
+    require_assignable(type_check_expression(expr->data.call.arguments[0], ctx),
+        TYPE_INT, expr->data.call.arguments[0], ctx);
+    semantic_record_effect(ctx, EFFECT_NONDETERMINISTIC);
+    return TYPE_VOID;
+}
+
+static const StdlibScalarSpec stdlib_scalar_specs[] = {
+    { "Abs", stdlib_scalar_check_abs },
+    { "Acos", stdlib_scalar_check_math_unary_float },
+    { "Asin", stdlib_scalar_check_math_unary_float },
+    { "Atan", stdlib_scalar_check_math_unary_float },
+    { "Atan2", stdlib_scalar_check_atan2 },
+    { "Ceil", stdlib_scalar_check_math_unary_float },
+    { "Clamp", stdlib_scalar_check_clamp },
+    { "Concat", stdlib_scalar_check_string_concat },
+    { "Contains", stdlib_scalar_check_string_contains },
+    { "Cos", stdlib_scalar_check_math_unary_float },
+    { "E", stdlib_scalar_check_float_const },
+    { "Exp", stdlib_scalar_check_math_unary_float },
+    { "Floor", stdlib_scalar_check_math_unary_float },
+    { "Join", stdlib_scalar_check_string_join },
+    { "Log10", stdlib_scalar_check_math_unary_float },
+    { "Log2", stdlib_scalar_check_math_unary_float },
+    { "Lower", stdlib_scalar_check_string_unary },
+    { "MathLog", stdlib_scalar_check_math_unary_float },
+    { "Max", stdlib_scalar_check_minmax },
+    { "Min", stdlib_scalar_check_minmax },
+    { "PI", stdlib_scalar_check_float_const },
+    { "Pow", stdlib_scalar_check_pow },
+    { "Random", stdlib_scalar_check_random },
+    { "Replace", stdlib_scalar_check_string_replace },
+    { "Round", stdlib_scalar_check_math_unary_float },
+    { "SeedRandom", stdlib_scalar_check_seed_random },
+    { "Sin", stdlib_scalar_check_math_unary_float },
+    { "Split", stdlib_scalar_check_string_split },
+    { "Sqrt", stdlib_scalar_check_math_unary_float },
+    { "StringConcat", stdlib_scalar_check_string_concat },
+    { "StringContains", stdlib_scalar_check_string_contains },
+    { "StringJoin", stdlib_scalar_check_string_join },
+    { "StringLength", stdlib_scalar_check_string_length },
+    { "StringReplace", stdlib_scalar_check_string_replace },
+    { "StringSplit", stdlib_scalar_check_string_split },
+    { "StringTrim", stdlib_scalar_check_string_unary },
+    { "Substring", stdlib_scalar_check_string_substring },
+    { "Tan", stdlib_scalar_check_math_unary_float },
+    { "ToFloat", stdlib_scalar_check_to_float },
+    { "ToInt", stdlib_scalar_check_to_int },
+    { "ToLower", stdlib_scalar_check_string_unary },
+    { "ToUpper", stdlib_scalar_check_string_unary },
+    { "Trim", stdlib_scalar_check_string_unary },
+    { "Upper", stdlib_scalar_check_string_unary },
+};
+
+static const StdlibScalarSpec *
+stdlib_scalar_find_spec(const char *name)
+{
+    if (name == NULL)
+        return NULL;
+    for (size_t i = 0; i < sizeof(stdlib_scalar_specs) / sizeof(stdlib_scalar_specs[0]); i++) {
+        if (strcmp(stdlib_scalar_specs[i].name, name) == 0)
+            return &stdlib_scalar_specs[i];
+    }
+    return NULL;
+}
+
 Type *
 type_check_stdlib_scalar_call(ASTNode *expr, const char *name,
                               SemanticContext *ctx, bool *handled_out)
 {
-    if (handled_out != NULL)
-        *handled_out = true;
-
-    if (strcmp(name, "Abs") == 0) {
-        if (!check_call_arity(expr, 1, name, ctx))
-            return TYPE_UNKNOWN;
-        return stdlib_scalar_normalize_type(
-            type_check_expression(expr->data.call.arguments[0], ctx));
-    }
-    if (strcmp(name, "Min") == 0 || strcmp(name, "Max") == 0) {
-        Type *a;
-        Type *b;
-        if (!check_call_arity(expr, 2, name, ctx))
-            return TYPE_UNKNOWN;
-        a = stdlib_scalar_normalize_type(
-            type_check_expression(expr->data.call.arguments[0], ctx));
-        b = stdlib_scalar_normalize_type(
-            type_check_expression(expr->data.call.arguments[1], ctx));
-        require_assignable(b, a, expr->data.call.arguments[1], ctx);
-        return a;
-    }
-    if (strcmp(name, "StringLength") == 0) {
-        if (!check_call_arity(expr, 1, name, ctx))
-            return TYPE_UNKNOWN;
-        require_assignable(type_check_expression(expr->data.call.arguments[0], ctx),
-            TYPE_STRING, expr->data.call.arguments[0], ctx);
-        return TYPE_INT;
-    }
-    if (strcmp(name, "Contains") == 0 || strcmp(name, "StringContains") == 0) {
-        if (!check_call_arity(expr, 2, name, ctx))
-            return TYPE_UNKNOWN;
-        require_assignable(type_check_expression(expr->data.call.arguments[0], ctx),
-            TYPE_STRING, expr->data.call.arguments[0], ctx);
-        require_assignable(type_check_expression(expr->data.call.arguments[1], ctx),
-            TYPE_STRING, expr->data.call.arguments[1], ctx);
-        return TYPE_BOOL;
-    }
-    if (strcmp(name, "Replace") == 0 || strcmp(name, "StringReplace") == 0) {
-        if (!check_call_arity(expr, 3, name, ctx))
-            return TYPE_UNKNOWN;
-        for (size_t i = 0; i < 3; i++) {
-            require_assignable(type_check_expression(expr->data.call.arguments[i], ctx),
-                TYPE_STRING, expr->data.call.arguments[i], ctx);
-        }
-        return TYPE_STRING;
-    }
-    if (strcmp(name, "Substring") == 0) {
-        if (!check_call_arity(expr, 3, name, ctx))
-            return TYPE_UNKNOWN;
-        require_assignable(type_check_expression(expr->data.call.arguments[0], ctx),
-            TYPE_STRING, expr->data.call.arguments[0], ctx);
-        require_assignable(type_check_expression(expr->data.call.arguments[1], ctx),
-            TYPE_INT, expr->data.call.arguments[1], ctx);
-        require_assignable(type_check_expression(expr->data.call.arguments[2], ctx),
-            TYPE_INT, expr->data.call.arguments[2], ctx);
-        return TYPE_STRING;
-    }
-    if (strcmp(name, "Trim") == 0 || strcmp(name, "StringTrim") == 0
-        || strcmp(name, "Upper") == 0 || strcmp(name, "ToUpper") == 0
-        || strcmp(name, "Lower") == 0 || strcmp(name, "ToLower") == 0) {
-        if (!check_call_arity(expr, 1, name, ctx))
-            return TYPE_UNKNOWN;
-        require_assignable(type_check_expression(expr->data.call.arguments[0], ctx),
-            TYPE_STRING, expr->data.call.arguments[0], ctx);
-        return TYPE_STRING;
-    }
-    if (strcmp(name, "Concat") == 0 || strcmp(name, "StringConcat") == 0) {
-        if (!check_call_arity(expr, 2, name, ctx))
-            return TYPE_UNKNOWN;
-        require_assignable(type_check_expression(expr->data.call.arguments[0], ctx),
-            TYPE_STRING, expr->data.call.arguments[0], ctx);
-        require_assignable(type_check_expression(expr->data.call.arguments[1], ctx),
-            TYPE_STRING, expr->data.call.arguments[1], ctx);
-        return TYPE_STRING;
-    }
-    if (strcmp(name, "StringSplit") == 0 || strcmp(name, "Split") == 0) {
-        Type *args[1] = { TYPE_STRING };
-        if (!check_call_arity(expr, 2, name, ctx))
-            return TYPE_UNKNOWN;
-        require_assignable(type_check_expression(expr->data.call.arguments[0], ctx),
-            TYPE_STRING, expr->data.call.arguments[0], ctx);
-        require_assignable(type_check_expression(expr->data.call.arguments[1], ctx),
-            TYPE_STRING, expr->data.call.arguments[1], ctx);
-        return type_create_constructed(TYPE_ARRAY, args, 1);
-    }
-    if (strcmp(name, "StringJoin") == 0 || strcmp(name, "Join") == 0) {
-        Type *arr_type;
-        if (!check_call_arity(expr, 2, name, ctx))
-            return TYPE_UNKNOWN;
-        arr_type = stdlib_scalar_normalize_type(
-            type_check_expression(expr->data.call.arguments[0], ctx));
-        if (!type_is_constructed_named(arr_type, "Array")) {
-            semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
-                PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,
-                PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr->data.call.arguments[0],
-                "StringJoin requires Array<String> as first argument");
-        }
-        require_assignable(type_check_expression(expr->data.call.arguments[1], ctx),
-            TYPE_STRING, expr->data.call.arguments[1], ctx);
-        return TYPE_STRING;
-    }
-    if (strcmp(name, "ToInt") == 0) {
-        if (!check_call_arity(expr, 1, name, ctx))
-            return TYPE_UNKNOWN;
-        type_check_expression(expr->data.call.arguments[0], ctx);
-        return TYPE_INT;
-    }
-    if (strcmp(name, "ToFloat") == 0) {
-        if (!check_call_arity(expr, 1, name, ctx))
-            return TYPE_UNKNOWN;
-        type_check_expression(expr->data.call.arguments[0], ctx);
-        return TYPE_FLOAT;
-    }
-    if (strcmp(name, "Sqrt") == 0 || strcmp(name, "Floor") == 0
-        || strcmp(name, "Ceil") == 0
-        || strcmp(name, "Sin") == 0 || strcmp(name, "Cos") == 0
-        || strcmp(name, "Tan") == 0 || strcmp(name, "Asin") == 0
-        || strcmp(name, "Acos") == 0 || strcmp(name, "Atan") == 0
-        || strcmp(name, "Exp") == 0 || strcmp(name, "MathLog") == 0
-        || strcmp(name, "Log10") == 0 || strcmp(name, "Log2") == 0
-        || strcmp(name, "Round") == 0) {
-        if (!check_call_arity(expr, 1, name, ctx))
-            return TYPE_UNKNOWN;
-        type_check_expression(expr->data.call.arguments[0], ctx);
-        return TYPE_FLOAT;
-    }
-    if (strcmp(name, "Atan2") == 0) {
-        if (!check_call_arity(expr, 2, name, ctx))
-            return TYPE_UNKNOWN;
-        type_check_expression(expr->data.call.arguments[0], ctx);
-        type_check_expression(expr->data.call.arguments[1], ctx);
-        return TYPE_FLOAT;
-    }
-    if (strcmp(name, "Clamp") == 0) {
-        Type *val;
-        if (!check_call_arity(expr, 3, name, ctx))
-            return TYPE_UNKNOWN;
-        val = stdlib_scalar_normalize_type(
-            type_check_expression(expr->data.call.arguments[0], ctx));
-        type_check_expression(expr->data.call.arguments[1], ctx);
-        type_check_expression(expr->data.call.arguments[2], ctx);
-        return val;
-    }
-    if (strcmp(name, "PI") == 0 || strcmp(name, "E") == 0)
-        return TYPE_FLOAT;
-    if (strcmp(name, "Pow") == 0) {
-        if (!check_call_arity(expr, 2, name, ctx))
-            return TYPE_UNKNOWN;
-        type_check_expression(expr->data.call.arguments[0], ctx);
-        type_check_expression(expr->data.call.arguments[1], ctx);
-        return TYPE_FLOAT;
-    }
-    if (strcmp(name, "Random") == 0) {
-        if (expr->data.call.arg_count > 0)
-            type_check_expression(expr->data.call.arguments[0], ctx);
-        return TYPE_INT;
-    }
-    if (strcmp(name, "SeedRandom") == 0) {
-        if (!check_call_arity(expr, 1, name, ctx))
-            return TYPE_UNKNOWN;
-        require_assignable(type_check_expression(expr->data.call.arguments[0], ctx),
-            TYPE_INT, expr->data.call.arguments[0], ctx);
-        semantic_record_effect(ctx, EFFECT_NONDETERMINISTIC);
-        return TYPE_VOID;
-    }
+    const StdlibScalarSpec *spec = stdlib_scalar_find_spec(name);
 
     if (handled_out != NULL)
-        *handled_out = false;
-    return TYPE_UNKNOWN;
+        *handled_out = spec != NULL;
+    if (spec == NULL)
+        return TYPE_UNKNOWN;
+    if (spec->handler == NULL)
+        return TYPE_UNKNOWN;
+    return spec->handler(expr, name, ctx);
 }

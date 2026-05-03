@@ -59,6 +59,66 @@ mir_decl_header_set_methods(MIRDeclHeader *header,
     return true;
 }
 
+static size_t
+mir_role_impl_method_count(ASTNode *role_decl)
+{
+    size_t count = 0;
+    if (role_decl == NULL || role_decl->type != AST_ROLE_DECL)
+        return 0;
+    for (size_t i = 0; i < role_decl->data.role_decl.impl_count; i++) {
+        ASTNode *impl = role_decl->data.role_decl.impl_abilities[i];
+        if (impl == NULL || impl->type != AST_IMPL_ABILITY)
+            continue;
+        count += impl->data.impl_ability.method_count;
+    }
+    return count;
+}
+
+static bool
+mir_decl_header_set_role_impl_methods(MIRDeclHeader *header,
+                                      ASTNode *role_decl)
+{
+    size_t count;
+    size_t out = 0;
+
+    if (header == NULL || role_decl == NULL || role_decl->type != AST_ROLE_DECL)
+        return false;
+
+    count = mir_role_impl_method_count(role_decl);
+    header->methods = NULL;
+    header->method_count = 0;
+    header->method_metadata = NULL;
+    header->method_metadata_count = 0;
+    if (count == 0)
+        return true;
+
+    header->method_metadata = calloc(count, sizeof(MIRDeclMethod));
+    if (header->method_metadata == NULL)
+        return false;
+
+    for (size_t i = 0; i < role_decl->data.role_decl.impl_count; i++) {
+        ASTNode *impl = role_decl->data.role_decl.impl_abilities[i];
+        if (impl == NULL || impl->type != AST_IMPL_ABILITY)
+            continue;
+        for (size_t j = 0; j < impl->data.impl_ability.method_count; j++) {
+            ASTNode *method = impl->data.impl_ability.methods[j];
+            MIRDeclMethod *meta = &header->method_metadata[out++];
+            meta->ast = method;
+            meta->owner_name = header->name;
+            if (method != NULL && method->type == AST_FUNC_DECL) {
+                meta->name = method->data.func_decl.name;
+                meta->params = method->data.func_decl.params;
+                meta->param_count = method->data.func_decl.param_count;
+                meta->return_type = method->data.func_decl.return_type;
+                meta->is_action_like = method->data.func_decl.is_action;
+                meta->within_zone = method->data.func_decl.within_zone;
+            }
+        }
+    }
+    header->method_metadata_count = out;
+    return true;
+}
+
 static bool
 mir_record_decl_header(MIRProgram *mir, ASTNode *decl)
 {
@@ -117,6 +177,18 @@ mir_record_decl_header(MIRProgram *mir, ASTNode *decl)
         method_count = decl->data.effect_decl.method_count;
         header.uses_pointer_self = true;
         break;
+    case AST_ROLE_DECL:
+        header.name = decl->data.role_decl.name;
+        header.uses_pointer_self = true;
+        if (header.name == NULL)
+            return true;
+        if (!mir_decl_header_set_role_impl_methods(&header, decl))
+            return false;
+        if (!mir_append_decl_header(mir, header)) {
+            free(header.method_metadata);
+            return false;
+        }
+        return true;
     case AST_ZONE_DECL:
         header.name = decl->data.zone_decl.name;
         methods = decl->data.zone_decl.methods;
@@ -157,11 +229,6 @@ mir_link_decl_method_routines(MIRProgram *mir)
                 const MIRRoutine *routine = &mir->routines[ri];
                 if (routine->kind != MIR_SCOPE_METHOD)
                     continue;
-                if (routine->ast == method->ast) {
-                    method->has_routine = true;
-                    method->routine_index = ri;
-                    break;
-                }
                 if (routine->name == NULL
                     || strcmp(routine->name, method->name) != 0) {
                     continue;

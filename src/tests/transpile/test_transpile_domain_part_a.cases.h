@@ -136,6 +136,8 @@ test_ability_role_emit(void)
         ASTNode *roles[1] = { &role_node };
         MIRProgram mir; memset(&mir, 0, sizeof(mir));
         MIRRoutine routine; memset(&routine, 0, sizeof(routine));
+        MIRDeclHeader role_header; memset(&role_header, 0, sizeof(role_header));
+        MIRDeclMethod role_method; memset(&role_method, 0, sizeof(role_method));
         mir.abilities = abilities;
         mir.ability_count = 1;
         mir.roles = roles;
@@ -147,6 +149,22 @@ test_ability_role_emit(void)
         routine.owner_ast_type = AST_ROLE_DECL;
         mir.routines = &routine;
         mir.routine_count = 1;
+        role_method.ast = &impl_method;
+        role_method.name = "BatchMark";
+        role_method.owner_name = "CourierRoute";
+        role_method.params = impl_params;
+        role_method.param_count = 1;
+        role_method.return_type = impl_method.data.func_decl.return_type;
+        role_method.has_routine = true;
+        role_method.routine_index = 0;
+        role_header.name = "CourierRoute";
+        role_header.ast = &role_node;
+        role_header.ast_type = AST_ROLE_DECL;
+        role_header.method_metadata = &role_method;
+        role_header.method_metadata_count = 1;
+        role_header.uses_pointer_self = true;
+        mir.decl_headers = &role_header;
+        mir.decl_header_count = 1;
 
         TranspilerCtx *ctx = transpiler_ctx_create();
         ctx->mir = &mir;

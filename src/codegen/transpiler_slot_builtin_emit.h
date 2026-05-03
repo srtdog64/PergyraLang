@@ -1,6 +1,8 @@
 #ifndef PGY_TRANSPILER_SLOT_BUILTIN_EMIT_H
 #define PGY_TRANSPILER_SLOT_BUILTIN_EMIT_H
 
+#include "codegen_slot_type_policy.h"
+
 /* -----------------------------------------------------------------
  * Built-in call emitters
  * ----------------------------------------------------------------- */
@@ -113,12 +115,9 @@ emit_builtin_write(ASTNode *call, TranspilerCtx *ctx)
             inner, slot_ref, value_expr, token_expr);
         free(token_expr);
     } else if (secure && slot_name != NULL) {
-        const char *token_name = lookup_slot_token_name(ctx, slot_name);
         char fallback_token[96];
-        if (token_name == NULL) {
-            snprintf(fallback_token, sizeof(fallback_token), "%s_token", slot_name);
-            token_name = fallback_token;
-        }
+        const char *token_name = lookup_slot_token_name_or_default(
+            ctx, slot_name, fallback_token, sizeof(fallback_token));
         result = strdup_fmt(
             "pgy_secure_write_%s(%s, %s, &%s)",
             inner, slot_ref, value_expr, token_name);
@@ -191,10 +190,7 @@ resolve_slot_target(TranspilerCtx *ctx, ASTNode *slot_arg,
                && slot_arg->data.call.arguments[0]->type == AST_IDENTIFIER) {
         const char *callee = slot_arg->data.call.callee->data.identifier.name;
         const char *src = slot_arg->data.call.arguments[0]->data.identifier.name;
-        if (callee != NULL
-            && (strcmp(callee, "ViewRead") == 0
-                || strcmp(callee, "ViewWrite") == 0
-                || strcmp(callee, "Move") == 0)) {
+        if (pgy_codegen_call_name_is_slot_source(callee)) {
             slot_name = src;
             inner = lookup_slot_type(ctx, src);
             secure = lookup_slot_is_secure(ctx, src);
@@ -268,12 +264,9 @@ emit_builtin_read(ASTNode *call, TranspilerCtx *ctx)
             inner, slot_ref, token_expr);
         free(token_expr);
     } else if (secure && slot_name != NULL) {
-        const char *token_name = lookup_slot_token_name(ctx, slot_name);
         char fallback_token[96];
-        if (token_name == NULL) {
-            snprintf(fallback_token, sizeof(fallback_token), "%s_token", slot_name);
-            token_name = fallback_token;
-        }
+        const char *token_name = lookup_slot_token_name_or_default(
+            ctx, slot_name, fallback_token, sizeof(fallback_token));
         result = strdup_fmt("pgy_secure_read_%s(%s, &%s)",
             inner, slot_ref, token_name);
     } else {
@@ -316,19 +309,16 @@ emit_builtin_release(ASTNode *call, TranspilerCtx *ctx)
             inner, slot_ref, token_expr);
         free(token_expr);
     } else if (secure && slot_name != NULL) {
-        const char *token_name = lookup_slot_token_name(ctx, slot_name);
         char fallback_token[96];
-        if (token_name == NULL) {
-            snprintf(fallback_token, sizeof(fallback_token), "%s_token", slot_name);
-            token_name = fallback_token;
-        }
+        const char *token_name = lookup_slot_token_name_or_default(
+            ctx, slot_name, fallback_token, sizeof(fallback_token));
         result = strdup_fmt("pgy_secure_release_%s(%s, &%s)",
             inner, slot_ref, token_name);
     } else {
         result = strdup_fmt("pgy_release_%s(%s)", inner, slot_ref);
     }
 
-    /* Mark slot as explicitly released ??prevents auto-release at scope exit */
+    /* Mark slot as explicitly released -> prevents auto-release at scope exit */
     if (slot_arg->type == AST_IDENTIFIER) {
         const char *sname = slot_name != NULL ? slot_name : slot_arg->data.identifier.name;
         for (int i = 0; i < ctx->slot_var_count; i++) {

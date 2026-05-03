@@ -3,34 +3,46 @@
 #include <stdio.h>
 #include <string.h>
 
+typedef struct
+{
+    const char *name;
+    PgyHashMapKeyKind kind;
+    const char *c_infix;
+} PgyHashMapKeySpec;
+
+static const PgyHashMapKeySpec pgy_hashmap_key_specs[] = {
+    { "String", PGY_HASHMAP_KEY_STRING, "" },
+    { "Int", PGY_HASHMAP_KEY_INT, "_i32" },
+    { "Long", PGY_HASHMAP_KEY_LONG, "_i64" },
+    { "Bool", PGY_HASHMAP_KEY_BOOL, "_bool" },
+};
+
+static const PgyHashMapKeySpec *
+pgy_hashmap_key_find_spec(const char *name)
+{
+    const char *effective_name = name != NULL ? name : "String";
+    for (size_t i = 0; i < sizeof(pgy_hashmap_key_specs) / sizeof(pgy_hashmap_key_specs[0]); i++) {
+        if (strcmp(pgy_hashmap_key_specs[i].name, effective_name) == 0)
+            return &pgy_hashmap_key_specs[i];
+    }
+    return NULL;
+}
+
 PgyHashMapKeyKind
 pgy_hashmap_key_kind_from_name(const char *name)
 {
-    if (name == NULL || strcmp(name, "String") == 0)
-        return PGY_HASHMAP_KEY_STRING;
-    if (strcmp(name, "Int") == 0)
-        return PGY_HASHMAP_KEY_INT;
-    if (strcmp(name, "Long") == 0)
-        return PGY_HASHMAP_KEY_LONG;
-    if (strcmp(name, "Bool") == 0)
-        return PGY_HASHMAP_KEY_BOOL;
+    const PgyHashMapKeySpec *spec = pgy_hashmap_key_find_spec(name);
+    if (spec != NULL)
+        return spec->kind;
     return PGY_HASHMAP_KEY_UNKNOWN;
 }
 
 const char *
 pgy_hashmap_key_c_infix(const char *key_name)
 {
-    switch (pgy_hashmap_key_kind_from_name(key_name)) {
-    case PGY_HASHMAP_KEY_INT:
-        return "_i32";
-    case PGY_HASHMAP_KEY_LONG:
-        return "_i64";
-    case PGY_HASHMAP_KEY_BOOL:
-        return "_bool";
-    case PGY_HASHMAP_KEY_STRING:
-    case PGY_HASHMAP_KEY_UNKNOWN:
-        return "";
-    }
+    const PgyHashMapKeySpec *spec = pgy_hashmap_key_find_spec(key_name);
+    if (spec != NULL)
+        return spec->c_infix;
     return "";
 }
 

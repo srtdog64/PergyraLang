@@ -520,7 +520,7 @@ Current non-test production owners above the 600 LOC split-review threshold:
   `make air-drift-test-smoke`, `make backend-inc-size-test-smoke`, and
   `make production-header-size-test-smoke` remain green.
 - Type-resolution DAG fallback classification now lives in
-  `src/semantic/type_checker_resolution_metadata_fallback.c`. The metadata
+  `src/semantic/type_checker_resolution_metadata_dead_end.c`. The metadata
   materializer file drops from 907 LOC to 806 LOC while the exact fallback
   family counters remain unchanged under `make type-resolution-dag-test-smoke`.
 - Type-resolution DAG stable constructed materialization now lives in

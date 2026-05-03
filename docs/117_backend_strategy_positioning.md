@@ -476,23 +476,25 @@ The frozen platform matrix for beta is:
 | Platform | LLVM backend | C backend | Status |
 |---|---|---|---|
 | Linux x86_64 | ✅ regression-gated | ✅ regression-gated | Primary CI |
-| Windows x86_64 | 🟡 regression-gated, partial fixtures | 🟡 regression-gated, partial fixtures | Stage 4 blocker |
-| macOS arm64 | 🔴 best-effort | 🔴 best-effort | Post-beta lift |
+| Windows x86_64 | 🟡 only when executable `llvm-config --libs core` evidence is present | ✅ regression-gated | Beta contract is C-first |
+| macOS arm64 | 🔴 out-of-beta for LLVM | 🟡 C-only preflight | Post-beta lift |
 | Linux arm64 | 🔴 best-effort | 🔴 best-effort | Post-beta lift |
-| WASM | ⚪ design only | n/a | Post-1.0 |
+| WASM | ⚪ native LLVM wasm is beta+1 | 🟡 C→Emscripten dogfood bridge only | Dogfood, not stable backend |
 | Embedded (C-only) | n/a | ⚪ design only | Post-1.0 |
 
-Stage 4 promotes Windows to full Linux-equivalent regression. macOS
-arm64 is best-effort during beta — supported in the sense that bug
-reports get fixed, but not regression-gated.
+Stage 4 does not claim Linux-equivalent Windows LLVM support until a real
+Windows/MSYS2 runner is green with executable LLVM tooling. Windows beta support
+is C regression first; Windows LLVM is detected-toolchain evidence, not a release
+promise. macOS has a C-only preflight, while macOS LLVM/backend parity remains
+out-of-beta.
 
 ### 7.2 1.0 Promise
 
 For 1.0:
 
 - Linux x86_64 × {LLVM, C} — full regression, primary support
-- Windows x86_64 × {LLVM, C} — full regression, primary support
-- macOS arm64 × {LLVM, C} — best-effort, community-tested
+- Windows x86_64 × {C} — primary support; LLVM promotes only after runner parity
+- macOS arm64 × {C} — preflight support; LLVM promotes after a dedicated contract
 - Linux arm64 × {LLVM, C} — best-effort, community-tested
 
 Backend-compare regression is the abstraction-portability invariant

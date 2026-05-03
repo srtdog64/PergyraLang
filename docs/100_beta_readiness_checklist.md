@@ -1,10 +1,10 @@
 # Beta Readiness Checklist
 
-마지막 업데이트: 2026-05-02
+마지막 업데이트: 2026-05-04
 
-이 문서는 베타 진입 전 반드시 닫아야 하는 실행 체크리스트다. 기준은 기능 개수가 아니라 **surface trust + 구조 지속 가능성 + C/LLVM parity + CFG-backed body safety + AIR-backed abstraction safety + dogfood-first path**다. 현재 표기는 두 개로 분리한다: 기능 체감 진행도는 약 70%, strict beta readiness는 약 60%로 본다. CFG/AIR/DAG/MIR/ABI source-of-truth closure가 더 닫히면 75-80% 범위로 재평가한다.
+이 문서는 베타 진입 전 반드시 닫아야 하는 실행 체크리스트다. 기준은 기능 개수가 아니라 **surface trust + 구조 지속 가능성 + C/LLVM parity + CFG-backed body safety + AIR-backed abstraction safety + dogfood-first path**다. 현재 표기는 두 개로 분리한다: 기능 체감 진행도는 약 70%, strict beta readiness는 약 60%를 기준값으로 두고 현재 실무 판단은 63%까지 본다. CFG/AIR/DAG/MIR/ABI source-of-truth closure가 끝나면 75-80% 범위로 재평가한다.
 
-베타 진입 후 약 1년간 코어 패치를 멈추고 생태계 (`pgy.compat.*`, `pgy.kit.*`, `pgy.std.*`, `pgy.accel.spray`, `pgy.render.skia` 등) 를 올리는 것이 다음 단계이므로, 베타 closure 는 **"이 1년동안 코어가 자력으로 버틸 수 있는가"** 기준으로 본다. 이 의미에서 AIR/CFG/runtime invariant 는 모두 closure 직전까지 실 구현이 끝나야 하며, 단순 문서 합의로 끝나지 않는다.
+베타 진입 목표는 1년간 코어 문법과 의미론을 멈추고 생태계(`pgy.compat.*`, `pgy.kit.*`, `pgy.std.*`, `pgy.accel.spray`, `pgy.render.skia` 등)를 분리해도 되는 지점을 만드는 것이다. 따라서 beta closure는 **"이 코어가 1년 동안 자력으로 버틸 수 있는가"**를 기준으로 본다. 새 표면을 늘리는 작업은 AIR/CFG/runtime invariant가 닫힌 뒤로 미루며, 문서 합의만으로 완료된 것으로 보지 않는다.
 
 Operational mode:
 
@@ -35,7 +35,17 @@ Operational mode:
   view-resource scans with the same helper-gated source-of-truth discipline.
   C/LLVM hosted-method views now also reject MIR metadata count drift against
   the AST compatibility count instead of silently truncating or extending hosted
-  method iteration.
+  method iteration. LLVM hosted domain method body emission now consumes only
+  linked `MIRDeclMethod.routine_index` metadata; AST/name-based MIR routine
+  search is no longer allowed on that path and is smoke-gated by
+  `mir-declaration-inventory-test-smoke`. Role implementation methods are now
+  materialized into `MIRDeclHeader` metadata as well, so role/ability emission
+  and intent role calls no longer need an owner/name routine scan after the
+  linked metadata pass. The gate now checks role declaration metadata recording
+  and rejects reintroducing AST-identity or owner/name routine fallbacks. C
+  hosted method emission no longer calls a generic method lookup after reading a
+  hosted-method view; the only remaining method lookup helper is explicitly
+  named for the role-include copy seam.
   DAG evidence now exposes `type_resolution_metadata_dead_ends` to AIR while
   retaining `materializer_fallbacks` as a compatibility metric name for existing
   stat parsers. `SemanticContext` also owns
@@ -408,7 +418,7 @@ Operational mode:
   the beta target is now "core stable enough to start a small WebGL/chat-game
   dogfood", not a full 1.0 compiler. Quantum, Rust-style lifetime borrow
   checking, and native LLVM wasm are not beta blockers. The first dogfood path
-  is `Pergyra -> C backend -> optional Emscripten/WebGL bridge`. Gate:
+  is `Pergyra -> C backend --emit-c -> optional Emscripten/WebGL bridge`. Gate:
   `make dogfood-webgl-test-smoke`. The smoke validates host-import/frame-callback
   C emission and links with `emcc` only when Emscripten is installed.
 - 2026-04-30 AIR payload-containment update:
@@ -2752,7 +2762,7 @@ find src -path src/tests -prune -o -name '*.inc' -print
   `type_checker_resolution_stage.c` is now 88 LOC and owns top-level stage
   replay orchestration only.
 - Materializer fallback family accounting is split into
-  `type_checker_resolution_metadata_fallback.c`. `type_checker_resolution_metadata.c`
+  `type_checker_resolution_metadata_dead_end.c`. `type_checker_resolution_metadata.c`
   now owns metadata lookup/materialization while fallback taxonomy counters have
   a single owner.
 - Stable constructed type materialization is split into

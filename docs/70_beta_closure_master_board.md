@@ -1,6 +1,6 @@
 # Pergyra Beta Closure Master Board
 
-마지막 업데이트: 2026-04-24
+마지막 업데이트: 2026-05-04
 
 ## 목적
 
@@ -18,11 +18,12 @@
 ## 현재 판정
 
 - 현재 단계: `late-stage alpha / beta-closure sprint`
-- 베타 readiness 추정: `약 50%`
+- 베타 readiness 추정: 기능 체감 `약 70%`, strict beta 기준값 `약 60%`,
+  현재 실무 판단 `약 63%`
 - 판정 방식:
-  - 기능 표면 성숙도만 보면 다수 core/foundation surface가 구현되어 `90%+`처럼 보인다
+  - 기능 표면 성숙도만 보면 다수 core/foundation surface가 구현되어 더 높게 보인다
   - 그러나 strict beta는 `function body CFG/dataflow source-of-truth`, `DAG source-of-truth`, `runtime propagation generalization`, `MIR declaration inventory`, `arena/lifetime`, `장기 모듈화 stop condition`까지 함께 요구한다
-  - 따라서 현재 공식 수치는 기능 개수 기준이 아니라 **베타 신뢰도 기준 약 50%**로 낮춘다
+  - 따라서 현재 공식 수치는 기능 개수 기준이 아니라 **베타 신뢰도 기준값 약 60%, 실무 판단 약 63%**로 둔다
 - 핵심 판단:
   - 표현력 부족보다 `closure depth`와 `surface trust`가 남은 문제다
   - 베타 차단축은 키워드 수가 아니라 `B0 의미론 + function body CFG/dataflow closure + declaration-side MIR-only debt + type-resolution DAG closure + memory/lifetime debt + 장기 모듈화 debt`다
@@ -40,7 +41,9 @@
 3. C/LLVM이 domain semantics 기준 parity를 유지한다
 4. runtime observability가 디버깅 가능한 structured state를 제공한다
 5. semantic type resolution이 ad-hoc recursive lookup만이 아니라 graph inventory / cycle diagnostic 기준으로 닫히기 시작한다
-6. Linux/Windows CI가 parser/semantic/transpile/abi/backend-compare/example-smoke까지 녹색이다
+6. Linux는 C+LLVM parser/semantic/transpile/abi/backend-compare/example-smoke까지 녹색이고,
+   Windows는 C regression을 공식 beta line으로 유지한다. Windows LLVM은 executable
+   `llvm-config --libs core` evidence가 있는 MSYS2/MinGW runner에서만 승격한다
 7. 문서가 구현보다 앞서가지 않는다
 8. scratch/result lifetime과 cache boundary가 문서/구현 기준으로 설명 가능하다
 9. function/action/intent body safety가 CFG/dataflow facts로 검증된다: reachability, all-path return, use-before-init, move/borrow, drop/cleanup, zone/effect transition, parallel/channel boundary.
@@ -106,7 +109,7 @@ Operational beta checklist: `docs/100_beta_readiness_checklist.md`. The checklis
 | B0-3 generic contract | frozen subset 완료 | closed subset | 비차단 | default arg, omitted trailing default, multi-bound, ability/authority/party/action/intent consumer, cross-module imported consumer가 semantic 회귀 기준으로 닫혔다. broader type-family generalization은 beta-out-of-scope다 |
 | B0-4 own/ref | 진행 중 | 65% | 차단 | stable surface와 classifier 회귀는 많이 닫혔지만 strict beta 기준에서는 body CFG/dataflow migration이 남았다. copy-value trivial own/ref, boundary-visible aggregate provenance, movable value transfer/borrow, slot-handle boundary, direct/summary helper-chain은 유지하되 branch/join/loop/early-return/parallel boundary의 move/borrow/drop facts를 CFG source-of-truth로 승격해야 한다. `Token<T>` transport는 explicit reject, universal ownership lattice는 beta-out-of-scope다 |
 | MIR-only declaration debt | 진행 중 | 97% | 차단 | host context는 inventory-backed handle 쪽으로 이동했고 function/method/intent emit state는 `TranspilerMirEmitState` snapshot helper로 수렴됐다. generic class specialization method도 MIR routine gate를 탄다. party/roster/relation/effect/zone/world hosted method emission은 공용 MIR helper로 수렴했고, declaration emit entrypoint도 inventory decl을 우선 사용한다. dead AST fallback은 제거되어 MIR routine 부재 시 partial C surface 없이 즉시 backend error로 실패한다. 남은 것은 declaration inventory bootstrap 잔여다 |
-| Type-resolution DAG | 진행 중 | 78% | 차단 | graph inventory / cycle diagnostic / topo derivation 위에 provider-first staged worklist, local contract/projection synthetic node handler, generic default/constraint/where-bound staged resolution, role-action-intent-zone-party ability consumer pre-stage가 올라왔다. non-generic nominal class and known non-class scope symbols now materialize through graph metadata, cutting central materializer fallbacks from `4135` to `1296` while preserving generic default/provenance paths. fallback family inventory shows the remaining gap is alias-heavy named-symbol materialization (`alias=1281`, `builtin_shell=2`, `missing=6`, `generic_named=7`). graph cycle과 legacy alias cycle 모두 `Contract source` / `Reason` / `Fix` vocabulary로 정렬됐고, full graph-backed evaluator는 beta-out-of-scope로 두고 stage-2 source-of-truth 승격이 남음 |
+| Type-resolution DAG | 진행 중 | 86% | 차단 | graph inventory / cycle diagnostic / topo derivation 위에 provider-first staged worklist, local contract/projection synthetic node handler, generic default/constraint/where-bound staged resolution, role-action-intent-zone-party ability consumer pre-stage가 올라왔다. materializing type-ref helper is now present only at its declaration and implementation (`helper refs=2 cap=2`), semantic consumers no longer call it directly, `retired_resolver_calls=0`, `materializer_fallbacks=0`, and unresolved materializer families are 0. 남은 gap은 recursive fallback removal이 아니라 DAG evidence/modeling completion, module/generic/ability provenance widening, AIR evidence 연결이다 |
 | Arena / lifetime discipline | 진행 중 | 81% | 차단 | 방향은 `Arena + Index 참조 + 역할별 arena 분리`로 고정했다. 규칙 문서화는 끝났고 transpiler scratch-only temporary의 첫 safe vertical slice, semantic result-owned diagnostic payload seam, semantic scratch arena가 ownership path 조립 / stdlib preload / enum method mangling / parallel task metadata / type-resolution cycle detection / match redundancy coverage까지 확장됐다. HIR/MIR에는 routine-scope `scratch` arena가, LLVM은 `scratch + persistent + result-owned` lane으로 정리되어 event invoke, intent collector, projection path, local grow array, type render helper, callable signature metadata까지 arena 경계가 올라왔다. 남은 것은 owner shell과 runtime ABI contract, 반환 ownership이 섞인 일부 helper다 |
 | C/LLVM parity | 진행 중 | 90% | 차단 | LLVM stmt/expr fallback은 warning-only가 아니라 structured backend error로 고정됐고 AST dispatch partition smoke가 CI gate에 들어갔다. domain method MIR-missing 경로도 partial emit 없이 explicit backend error로 정렬됐다. world-derived / projection-chain bounded recompute도 C/LLVM parity smoke에 올라왔다. Windows full green은 plain Linux host가 아니라 MSYS2/MinGW + LLVM runner truth로 분리했다 |
 | runtime observability | 진행 중 | 91% | 차단 | last/history/active/recent baseline, propagation provenance stamp, authority guard `last_code` snapshot baseline, intent authority snapshot, bounded recompute ABI smoke는 있지만 deeper queryable failure state와 handoff/world-zone generalization까지 포함한 frontier recompute provenance가 더 남음 |
@@ -132,7 +135,10 @@ Operational beta checklist: `docs/100_beta_readiness_checklist.md`. The checklis
   - bounded recompute pass-limit overflow는 C의 `PGY_PANIC`과 LLVM의 `abort()` 경로로 hard-fail된다
   - `world_fixpoint_abi`, `projection_chain_abi`, `zone_frontier_abi`, `handoff_projection_frontier_abi`, `handoff_world_state_frontier_abi`, `handoff_layer_state_frontier_abi`, `world_embedded_projection_abi`, `world_embedded_method_projection_abi`, `world_embedded_branch_projection_abi`, `world_embedded_action_frontier_abi`, `world_embedded_action_pool_frontier_abi`가 `make test-abi`의 C/LLVM smoke에 올라왔다
 - 현재 propagation blocker는 helper flag 부재가 아니라 이미 들어간 bounded frontier loop와 embedded assignment/method/branch-driven recompute 및 v1 handoff projection/layer/state slice를 authority/failure와 더 넓은 world-zone path까지 일반화하는 `bounded fixpoint / transitive frontier scheduler`다
-- `docs/98_beta_closure_readiness_report.md` now records the current codebase verdict, improvement opportunities, and beta closure execution order. It keeps handoff propagation and broader world-zone scheduler generalization as the next highest-value blocker.
+- `docs/100_beta_readiness_checklist.md` is the live beta-readiness source of
+  truth. `docs/98_beta_closure_readiness_report.md` is retained as a historical
+  snapshot from the earlier 50% readiness line and must not be cited as the
+  current verdict.
 - AST 타입 디스패치 partition 규칙 문서화 완료 — `docs/95_ast_dispatch_partition.md`. 4 카테고리 (type annotation / decl sub-metadata / top-level decl / root) 로 전체 AST 타입이 disjoint 분할되고, 각 카테고리별로 case label 추가/금지/safety-net 판단 기준이 고정됨. `llvm_stmt.c` skip 리스트 + Zone/World safety-net forward 가 이 문서 기준으로 정렬됨
 - AST dispatch partition smoke 추가 — `tests/ast_dispatch_partition_smoke.sh`, `make ast-dispatch-test-smoke`. LLVM `stmt/expr`의 unknown/default path가 warning-only나 silent `0/null` fallback으로 회귀하지 못하게 Linux CI acceptance line에 연결됨
 - type-resolution DAG cycle provenance 강화 — graph validator cycle과 legacy alias-resolution cycle 모두 `Contract source:` / `Reason:` / `Fix:` 구조를 갖도록 정렬. semantic graph regression은 해당 vocabulary를 요구하며 `test-semantic 2019/0`으로 검증됨
@@ -568,12 +574,11 @@ diagnostic 고정 규칙:
 
 완료 기준:
 
-- `backend compare`
-- `llvm smoke`
-- `example smoke`
-- `ABI/runtime probe`
+- Linux: `backend compare`, `llvm smoke`, `example smoke`, `ABI/runtime probe`
+- Windows: C regression line; Windows LLVM/backend compare only when executable
+  LLVM toolchain evidence is present
 
-가 Linux/Windows 모두 녹색이다
+가 support matrix에 맞게 녹색이다
 
 추가 회귀 축:
 

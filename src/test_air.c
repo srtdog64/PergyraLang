@@ -8,6 +8,7 @@
 #include <string.h>
 
 #include "compiler/air.h"
+#include "compiler/air_internal.h"
 #include "lexer/lexer.h"
 #include "parser/parser.h"
 #include "runtime/pgy_runtime_observability_schema.h"
@@ -114,6 +115,9 @@ main(void)
     TEST("AIR strict evidence rejects stale legacy summary flags");
     EXPECT(test_air_strict_evidence_prefers_inventory_over_legacy_flags());
 
+    TEST("AIR evidence helper ignores legacy flags with real input");
+    EXPECT(test_air_has_evidence_ignores_legacy_flags_with_real_input());
+
     TEST("AIR strict evidence rejects legacy flags with real input");
     EXPECT(test_air_strict_evidence_rejects_legacy_flags_with_real_input());
 
@@ -149,6 +153,9 @@ main(void)
 
     TEST("AIR verify rejects duplicate evidence nodes");
     EXPECT(test_air_verify_rejects_duplicate_evidence_nodes());
+
+    TEST("AIR append merges duplicate evidence nodes");
+    EXPECT(test_air_append_merges_duplicate_evidence_nodes());
 
     TEST("AIR verify rejects evidence boundary shape mismatch");
     EXPECT(test_air_verify_rejects_evidence_boundary_shape_mismatch());

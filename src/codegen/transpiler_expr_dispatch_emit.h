@@ -89,14 +89,11 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
                 && !ctx->suppress_slot_auto_read) {
                 const char *inner = slot_inner_type_name(slot_type);
                 bool secure = strncmp(slot_type, "SecureSlot<", 11) == 0;
-                const char *token_name = secure
-                    ? lookup_slot_token_name(ctx, id_name)
-                    : NULL;
                 char fallback_token[96];
-                if (secure && token_name == NULL) {
-                    snprintf(fallback_token, sizeof(fallback_token), "%s_token", id_name);
-                    token_name = fallback_token;
-                }
+                const char *token_name = secure
+                    ? lookup_slot_token_name_or_default(
+                          ctx, id_name, fallback_token, sizeof(fallback_token))
+                    : NULL;
                 char *result = secure
                     ? strdup_fmt("pgy_secure_read_%s(&%s, &%s)",
                                   inner, c_ssa_name, token_name)
@@ -122,14 +119,11 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
                 return pergyra_strdup("0");
             }
             char *slot_ref = slot_ref_expr(ctx, id_name, id_name);
-            const char *token_name = secure
-                ? lookup_slot_token_name(ctx, id_name)
-                : NULL;
             char fallback_token[96];
-            if (secure && token_name == NULL) {
-                snprintf(fallback_token, sizeof(fallback_token), "%s_token", id_name);
-                token_name = fallback_token;
-            }
+            const char *token_name = secure
+                ? lookup_slot_token_name_or_default(
+                      ctx, id_name, fallback_token, sizeof(fallback_token))
+                : NULL;
             char *result = secure
                 ? strdup_fmt("pgy_secure_read_%s(%s, &%s)",
                               inner, slot_ref, token_name)
@@ -351,13 +345,9 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
                 char *slot_ref = slot_ref_expr(ctx, tgt_name, tgt_name);
                 char *result;
                 if (secure) {
-                    const char *token_name = lookup_slot_token_name(ctx, tgt_name);
                     char fallback_token[96];
-                    if (token_name == NULL) {
-                        snprintf(fallback_token, sizeof(fallback_token),
-                                 "%s_token", tgt_name);
-                        token_name = fallback_token;
-                    }
+                    const char *token_name = lookup_slot_token_name_or_default(
+                        ctx, tgt_name, fallback_token, sizeof(fallback_token));
                     result = strdup_fmt("pgy_secure_write_%s(%s, %s, &%s)",
                         inner, slot_ref, value, token_name);
                 } else {

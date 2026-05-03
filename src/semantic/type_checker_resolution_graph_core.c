@@ -35,52 +35,14 @@ type_resolution_strdup_fmt(const char *fmt, ...)
 static bool
 type_name_is_builtin_provider(const char *name)
 {
-    return name != NULL
-        && (strcmp(name, "Int") == 0
-            || strcmp(name, "Long") == 0
-            || strcmp(name, "Float") == 0
-            || strcmp(name, "Double") == 0
-            || strcmp(name, "Bool") == 0
-            || strcmp(name, "String") == 0
-            || strcmp(name, "QubitSlot") == 0
-            || strcmp(name, "Void") == 0
-            || strcmp(name, "Array") == 0
-            || strcmp(name, "Slice") == 0
-            || strcmp(name, "List") == 0
-            || strcmp(name, "Queue") == 0
-            || strcmp(name, "HashMap") == 0
-            || strcmp(name, "Set") == 0
-            || strcmp(name, "Box") == 0
-            || strcmp(name, "Rc") == 0
-            || strcmp(name, "Weak") == 0
-            || strcmp(name, "RemoteFuture") == 0
-            || strcmp(name, "DeviceSlot") == 0
-            || strcmp(name, "Allocator") == 0
-            || strcmp(name, "Option") == 0);
+    return semantic_type_resolution_metadata_named_builtin_or_shell_singleton(
+        name) != NULL;
 }
 
 static Type *
 type_resolution_builtin_singleton(const char *name)
 {
-    if (name == NULL)
-        return NULL;
-    if (strcmp(name, "Int") == 0)
-        return TYPE_INT;
-    if (strcmp(name, "Long") == 0)
-        return TYPE_LONG;
-    if (strcmp(name, "Float") == 0)
-        return TYPE_FLOAT;
-    if (strcmp(name, "Double") == 0)
-        return TYPE_DOUBLE;
-    if (strcmp(name, "Bool") == 0)
-        return TYPE_BOOL;
-    if (strcmp(name, "String") == 0)
-        return TYPE_STRING;
-    if (strcmp(name, "QubitSlot") == 0)
-        return TYPE_QUBIT;
-    if (strcmp(name, "Void") == 0)
-        return TYPE_VOID;
-    return NULL;
+    return semantic_type_resolution_metadata_builtin_singleton(name);
 }
 
 static bool

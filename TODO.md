@@ -28,7 +28,8 @@ boundary transition을 거절하고 runtime은 generation/token/resource state�
 
 **확정 순서 — BDFL 결정:**
 
-1. **BETA closure** — 현재 (§0a 참조). 70% 기능 / 55-60% strict 신뢰도
+1. **BETA closure** — 현재 (§0a 참조). 70% 기능 / strict beta 기준값 60%,
+   현재 실무 판단 63%
    → 100% 신뢰도까지 닫기
 2. **dogfood (compiler-adjacent first)** — §0-selfhost 의 첫 dogfood
    원칙: diagnostic catalog checker, AIR graph JSON validator, MIR dump
@@ -39,9 +40,9 @@ boundary transition을 거절하고 runtime은 generation/token/resource state�
    dogfood가 보여줌)
 3. **§0c Intent-Compress sprint** — intent 장황함이 *제거 가능한 유일한
    비용* (§0c 상세). compressed-default + 4-clause 추론 (`who`/`where`/
-   `requires`/`authorized by`). AI-assisted 3일 컷 추정. self-host
-   진입 *직전* 자리. self-host가 *verbose intent를 Pergyra로 다시 쓰는
-   비용*을 회피
+   `requires`/`authorized by`). 구현 견적은 Phase 1 명세 후 재산정한다.
+   self-host 진입 *직전* 자리. self-host가 *verbose intent를 Pergyra로
+   다시 쓰는 비용*을 회피
 4. **BETA+ self-host 시작** — §0-selfhost 의 점진 이식 경로
    (compiler-adjacent → parser/formatter/diagnostic → full long-term).
    docs/120 §4.4 참조. *aspiration이 아니라 committed 일정*.
@@ -132,14 +133,16 @@ runtime-validated handles) 로 대체. 진입 비용 낮춘 자리, 자기인식
 
 ## 0a. Strict Beta Closure Order — 2026-05-01 재고정
 
-**현재 판정:** 기능 구현률은 약 70%로 본다. 다만 strict beta 신뢰도는
-약 55-60%다. 차이는 기능 수가 아니라 CFG/AIR/DAG/MIR/ABI가 실제
-source-of-truth로 소비되는 깊이다.
+**현재 판정:** 기능 구현률은 약 70%로 본다. strict beta readiness는
+60%를 기준값으로 두고, 현재 실무 판단은 63%다. 차이는 기능 수가 아니라
+CFG/AIR/DAG/MIR/ABI가 실제 source-of-truth로 소비되는 깊이다.
 
 **명시적 제외:** quantum full model, Rust급 lifetime/borrow checker, HKT/FP,
 새 대형 언어 축은 beta 100% 계산에서 제외한다. WASM/WebGL은 실제 dogfooding
-경로라 중요하지만, beta closure 자체를 흔드는 새 semantic surface가 아니라
-LLVM-family target/extern bridge track으로 둔다.
+경로라 중요하지만, beta closure 자체를 흔드는 새 semantic surface가 아니다.
+베타의 1차 dogfood 경로는 `Pergyra -> C backend --emit-c -> optional
+Emscripten/WebGL bridge`로 고정하고, native LLVM wasm target과 richer render
+module은 beta+1로 둔다.
 
 **닫는 순서:**
 1. **AIR evidence producer 정합성.** 빈 evidence node 금지, DAG/MIR/RIR/HIR
@@ -361,8 +364,9 @@ LLVM-family target/extern bridge track으로 둔다.
    recompute 다음 단계인 full transitive frontier scheduler를 마감한다.
 6. **ABI ownership freeze.** Slot/Pin cleanup, Zone-bound handle, runtime-none,
    raw escape, ABI non-leakage를 코드 gate와 문서 계약으로 동시에 고정한다.
-7. **WASM/WebGL dogfood feasibility.** beta semantic closure 이후 `C/LLVM family`
-   경로로 `wasm32` target과 최소 WebGL bridge smoke를 만든다.
+7. **WASM/WebGL dogfood feasibility.** beta semantic closure 이후 C backend
+   `--emit-c` 산출물을 optional Emscripten으로 빌드하는 최소 WebGL bridge
+   smoke를 만든다. native LLVM wasm target은 beta+1이다.
 
 **운영 원칙:** 테스트 스위트를 무작정 넓히기 전에, 위 순서의 한 feature-owner를
 먼저 닫고 그 feature의 gate를 초록으로 만든다. 새 키워드/새 축은 추가하지 않는다.
@@ -379,14 +383,18 @@ saga에서 *우회 없이* 작동하지만 WebGL은 DOM/JS shim 우회 필수. W
 *개인 동기 + 시각적 마케팅 가치*로 여전히 유의미하나 ecosystem leverage
 순서에서 §0b 뒤로.
 
-### 결정 — JS 백엔드 ❌, WASM 백엔드 ✅
+### 결정 — JS 백엔드 ❌, C→Emscripten/WASM dogfood bridge ✅
 - **JS 백엔드 거부 사유:** GC + f64-only + reference-only emit 결과는
   `slot<T>` / zone / intent / authority *모두 흘림*. parity gate가 tri-way로
   분기 → 베타 closure 정합성 무너짐. docs/120 §4 vision territory 위반.
-- **WASM 채택 사유:** linear memory + i32/i64/f32/f64 native + 명시적
-  lifetime → slot/zone/intent 그대로 보존. LLVM target triple 한 줄 수준
-  ("LLVM family"의 자연 연장이라 새 semantic 표면 없음). dual-emit
-  parity gate에 영향 없음.
+- **베타 채택 사유:** native LLVM wasm backend가 아니라 C backend 산출물을
+  Emscripten으로 빌드하는 dogfood bridge를 1차 경로로 둔다. 이 경로는 새
+  public syntax 없이 host import/frame callback/resource handle smoke를
+  열 수 있고, C backend의 기존 parity discipline을 유지한다.
+- **beta+1 대상:** native LLVM wasm target, richer render module
+  (`pgy.render.webgl`, `pgy.render.skia`, `pgy.accel.spray`)은 dogfood evidence
+  이후 별도 track으로 둔다. `wasm32` target triple wiring을 "한 줄 작업"으로
+  과소평가하지 않는다.
 
 ### Why WebGL — Pergyra가 *유난히 잘 표현*하는 자리
 WebGL은 **불투명 리소스 핸들 API**. JS는 GC에 위임 → 텍스처 누수, 컨텍스트
@@ -404,14 +412,15 @@ loss 미스, 프레임 간 상태 누수가 사용자 책임. Pergyra slot/zone/
 
 memory: `project_killer_usecase_dungeon_crawler.md` 와 1:1 일치.
 
-### 현재 인프라 — 70-80% 이미 있음
+### 현재 인프라 — dogfood bridge 기준으로 일부 준비됨
 - ✅ `extern "ABI" { func ...; }` 파싱 — `src/parser/parser_decl.c:296`
   (`parse_extern_block`)
 - ✅ `AST_EXTERN_BLOCK` LLVM 등록 — `src/codegen/llvm_register.c:322-328`
-- ✅ LLVM 백엔드 자체 작동 (베타 inversion 완료)
-- ❌ `wasm32-unknown-unknown` target triple 옵션 — `Makefile` /
-  `src/codegen/llvm_pipeline.c` wiring 필요
-- ❌ `extern "wasm-import"` ABI 인식 (현재 `extern "C"`만) — 한 줄 작업
+- ✅ C backend `--emit-c` 경로가 dogfood bridge의 1차 source-of-truth
+- ⚠️ LLVM 백엔드 자체는 작동하지만 native wasm target은 beta blocker가 아님
+- ✅ `make dogfood-webgl-test-smoke` — C 산출물에서 host import/frame callback
+  bridge term을 검증하고, `emcc`가 있으면 HTML/JS wasm shell link까지 확인
+- ❌ `extern "wasm-import"` ABI 인식 (현재 `extern "C"` 중심) — 설계와 진단 필요
 - ❌ `Array<T>::as_raw_view()` stdlib (vertex buffer 데이터 패싱용)
 - ❌ JS shim 자체 (수백 LOC, *언어 외부*)
 
@@ -428,14 +437,16 @@ memory: `project_killer_usecase_dungeon_crawler.md` 와 1:1 일치.
 
 ### Phase 분할
 
-**Phase 0 (1주, 베타 내부) — Feasibility 경로 확보**
-- [ ] `Makefile` / `src/codegen/llvm_pipeline.c`에 `--target=wasm32-unknown-unknown` 옵션
+**Phase 0 (베타 내부) — C→Emscripten feasibility 경로 확보**
 - [ ] `examples/wasm_hello/` — `extern "C" fn console_log(...)` 호출하는
   최소 .pgy + 손으로 쓴 wasm-loader HTML
-- [ ] 산출물: `pgy --backend=llvm --target=wasm32 hello.pgy → hello.wasm`,
-  브라우저에서 콘솔 출력
-- [ ] *베타 scope 확장 아님* — 경로 확보. 베타 closure 후 즉시 시작 가능
-  하도록.
+- [ ] 산출물: `pgy --backend=c --emit-c hello.pgy → hello.c`,
+  optional `emcc hello.c` link, 브라우저에서 콘솔 출력
+- [ ] `make dogfood-webgl-test-smoke` — Emscripten이 없으면 skip 이유를
+  명시하고, 있으면 host-import/frame-callback link를 검증. 기본 smoke target은
+  이미 존재하며, 남은 일은 repository example과 render-resource fixture 확장
+- [ ] *베타 scope 확장 아님* — native LLVM wasm target을 열지 않고 C backend
+  dogfood bridge만 검증한다.
 
 **Phase 1 (2-3주, 베타 직후) — WebGL MVP**
 - [ ] `extern "wasm-import"` ABI 토큰 인식
@@ -461,8 +472,8 @@ memory: `project_killer_usecase_dungeon_crawler.md` 와 1:1 일치.
 - WASI 풀 surface (브라우저 target 우선)
 
 ### Verification 체크포인트
-- Phase 0: `pgy --target=wasm32` 가 valid `.wasm` 산출, 브라우저 로드 OK,
-  콘솔 출력 OK
+- Phase 0: `pgy --backend=c --emit-c` 산출물이 optional Emscripten으로 링크되고
+  브라우저 로드/콘솔 출력 OK
 - Phase 1: triangle 화면 표시, slot 누수 없음 (Chrome DevTools WebGL
   inspector), F1-F6 falsification 결과 `examples/webgl_triangle/FALSIFICATION.md`
 - Phase 2: 던전 floor 60fps 안정, 사용자 피드백 evidence 수집
@@ -546,13 +557,13 @@ explicit 와 inferred 가 *다르면* warning (silently override 안 함).
 
 ### Sprint 분할
 
-**Phase 1 (1일, AI-assisted)** — 추론 규칙 design + AST/HIR 변경 설계
+**Phase 1 (명세 우선, 견적 보류)** — 추론 규칙 design + AST/HIR 변경 설계
 - [ ] 4 clause 추론 규칙 finalize
 - [ ] AST 에 `inferred_who` / `inferred_where` 등 메타 필드
 - [ ] HIR/MIR 은 *expanded form* 유지 (verification/debug 정합)
 - [ ] semantic phase 에서 expansion 위치 결정
 
-**Phase 2 (1일)** — 구현
+**Phase 2 (명세 후 산정)** — 구현
 - [ ] semantic phase clause 추론 구현
 - [ ] explicit-vs-inferred 충돌 검출
 - [ ] backend-compare gate 정합 유지 (양 백엔드 같은 expanded form 사용)
@@ -595,11 +606,10 @@ explicit 와 inferred 가 *다르면* warning (silently override 안 함).
 
 ### 비용 추정 정정
 
-직전 분석에서 "4-7개월" 추정했으나 *AI-assisted 환경에서 3일 컷* 으로
-재추정 (BDFL 결정). 추론 규칙은 *데이터-구조 자체가 단순*하고 (4 clause,
-~5 source 별 추론 패턴), AI 가 implementation/test/diagnostic 패턴 빠르게
-churn. *진짜 시간 비용은 dogfood evidence 수집* (별도 step). sprint
-자체는 dogfood 후 3일.
+Intent-Compress는 척추 변경이므로 "며칠 컷"으로 고정하지 않는다. Phase 1은
+추론 규칙, 충돌 정책, 실패 진단, AST/HIR expansion 위치를 먼저 명세하고,
+그 결과로 Phase 2/3 구현 견적을 다시 낸다. AI-assisted 구현은 반복 속도를
+높일 수 있지만, 비용을 결정하는 것은 dogfood evidence와 진단 품질이다.
 
 ### 참조
 
@@ -1122,10 +1132,42 @@ dispatch / semantic lookup / runtime data structure 3축 결과 통합. *정확�
   rejects duplicate evidence nodes with the same kind, boundary, provider, and
   subject. AIR evidence is still an inventory, not a multiset; duplicate facts
   must be represented by `fact_count`, not repeated nodes.
+- Follow-up AIR evidence producer closure: `air_append_evidence_node_ex(...)`
+  now merges duplicate evidence keys into the existing node by incrementing
+  `fact_count` / `fallback_count`. The validator still rejects manually-created
+  duplicate nodes, but normal synthesis no longer fails real fixtures by
+  appending repeated identical evidence. Gate: `make test-air` (`74/0`) and
+  `air-drift-test-smoke`.
+- Follow-up AIR evidence read closure: `air_boundary_has_evidence(...)` now
+  ignores legacy boundary summary booleans when real HIR/RIR/MIR input is
+  attached and no evidence inventory exists. Compatibility fixtures without
+  real input may still use legacy flags. Gate: `make test-air` (`74/0`) and
+  `air-drift-test-smoke`.
 - Follow-up CFG/MIR guard: the non-CFG statement population helper now rejects
   CFG-backed HIR routines if it is called accidentally. This keeps non-CFG
   source statement fallback from re-entering the body-safety source-of-truth
   path, and `cfg-body-dataflow-test-smoke` gates the invariant.
+- Follow-up MIR intent fact tightening: `mir_validate(...)` now rejects drifted
+  intent MIR instruction facts (`IntentStep`, step metadata payloads, and
+  `IntentCheck`/`IntentEval` phase facts). Step-scoped facts must also carry the
+  MIR step-link fact. C/LLVM may still carry AST expression payloads for
+  emission, but step names, step links, metadata payload identity, and check/eval
+  phase classification are validator-owned MIR facts. Gate: `make test-mir`
+  (`41/0`) plus `cfg-body-dataflow-test-smoke`.
+- Follow-up C/LLVM MIR intent consumer tightening: C and LLVM step-name readers
+  now consume the validator-owned `IntentStep.arg0` fact directly instead of
+  falling back to `inst->name` (`"IntentStep"`). The CFG/body smoke blocks that
+  fallback from returning.
+- Follow-up MIR intent fact API split: intent MIR instruction matching now lives
+  in `src/compiler/mir_intent_fact.c` (`mir_instruction_is_intent_stmt(...)`,
+  `mir_instruction_intent_step_matches(...)`,
+  `mir_instruction_intent_phase_matches(...)`, and
+  `mir_instruction_intent_payload(...)`, plus
+  `mir_instruction_intent_step_name(...)`). C/LLVM consumers share the same
+  step-link, phase, and payload semantics, and `mir.c` stays below the 600 LOC
+  owner gate. `IntentCheck` / `IntentEval` phase classification and stable
+  metadata payload reads are no longer backend-local `inst->arg0` string
+  matching/reads.
 
 ## UTF-8 Progress Note - 2026-04-30 - AIR Payload Containment
 
@@ -1724,6 +1766,11 @@ dispatch / semantic lookup / runtime data structure 3축 결과 통합. *정확�
   declaration/routine inventory access outside the helper owners, requires MIR
   method metadata accessors, and keeps `declaration-side MIR-only debt` visible
   without requiring Python on CI runners.
+- LLVM hosted domain method body emission no longer uses AST/name-based MIR
+  routine search. It must consume the linked `MIRDeclMethod.routine_index`
+  metadata or fail with an explicit MIR inventory diagnostic; the declaration
+  inventory smoke gates this so the helper-gated MIR path does not regress into
+  routine discovery by AST compatibility payload.
 - Runtime ABI lifetime smoke is shell-only now. It preserves the borrowed
   runtime string, result-owned string/array, runtime-owned file-handle, macro
   export, and ownership proof-doc checks without requiring Python on CI
@@ -2243,6 +2290,14 @@ dispatch / semantic lookup / runtime data structure 3축 결과 통합. *정확�
   `make type-resolution-resolver-inventory-test-smoke`,
   `make semantic-fixture-isolation-test-smoke`, and concurrent
   `make test-semantic` + `make type-resolution-dag-test-smoke`.
+- Follow-up DAG consumer seam closure: the materializing type-ref helper is now
+  present only at its declaration and implementation (`helper refs=2 cap=2`).
+  No semantic consumer calls `semantic_type_resolution_lookup_type_ref_or_materialize(...)`
+  directly. Current DAG local stats: `graph-backed skips=2033`,
+  `metadata_entries=3498`, `metadata_owned=258`, `metadata_hits=8380`,
+  `retired_resolver_calls=0`, `materializer_fallbacks=0`, and all unresolved
+  materializer families at 0. Remaining DAG work is evidence/modeling
+  completion, not recursive fallback removal.
 
 ## UTF-8 Progress Note - 2026-04-28 - AST Destroy Owner Split
 
@@ -4038,7 +4093,10 @@ Source of truth:
 - 추가 closure: relation/effect/zone projection sync도 bounded transitive recompute loop로 올라왔고 declaration order에 기대지 않는다
 - 추가 회귀: `projection_chain_abi`가 C/LLVM ABI smoke, `make test-all`, `make llvm-test-backend-compare`에서 잠겼다
 - 추가 gate: `make runtime-frontier-contract-test-smoke`가 C emitter와 LLVM emitter에서 world derived-state bounded recompute, zone lifecycle bounded frontier loop, projection-chain bounded recompute, embedded world-zone action-caused layer/state freshness, authority/failure handoff queryable baseline, pass-limit overflow hard-fail, ABI smoke 등록, backend-compare 등록을 검사한다. 또한 `src/codegen/domain_frontier_policy.h`의 pass-limit source-of-truth helper와 `pgy_frontier_world_transitive_pass_limit(...)`를 C/LLVM emitter가 소비하는지 확인하고, `make runtime-frontier-policy-test-smoke`가 saturating pass-limit arithmetic을 실제 컴파일/실행으로 잠근다. 이 gate는 full bounded fixpoint / transitive frontier scheduler가 다시 single-pass 구현이나 non-queryable authority failure로 후퇴하지 못하게 막는 beta blocker gate다. 남은 runtime propagation closure는 broader world-zone propagation family를 같은 source-of-truth frontier policy로 일반화하는 일이다
-- Beta readiness audit: `docs/98_beta_closure_readiness_report.md` records the current codebase verdict, remaining blockers, and concrete closure order. It narrows the next highest-value implementation target to handoff propagation and broader world-zone scheduler generalization.
+- Beta readiness source of truth: `docs/100_beta_readiness_checklist.md` records
+  the current live blocker map and closure order. `docs/98_beta_closure_readiness_report.md`
+  remains a historical snapshot from the earlier 50% readiness line and should
+  not be cited as the current verdict.
 
 ### 최근 closure 진행 (2026-04-23)
 
@@ -4278,10 +4336,10 @@ Source of truth:
 
 - [ ] **C/LLVM parity + full CI green을 베타 최종 관문으로 고정**
   - Linux 기준 `parser / semantic / transpile / ABI / backend-compare / llvm smoke / ir-pipeline / example smoke`를 full green으로 유지
-  - Windows는 로컬 Linux host에서 강행하지 않고, MSYS2/MinGW + LLVM runner에서 `ci-windows` full green을 다시 고정
+  - Windows는 로컬 Linux host에서 강행하지 않고, MSYS2/MinGW runner의 C regression을 공식 beta line으로 고정한다. Windows LLVM/backend-compare는 executable LLVM evidence가 있는 runner에서만 추가 gate로 승격한다
   - backend compare는 domain semantics 기준 parity를 계속 확대하고, same-process ABI / launch / runtime environment 차이를 재발하지 않게 잡는다
-  - 현재 immediate blocker: Windows `backend-compare`와 LLVM parity의 마지막 crash / launch / runtime mismatch 제거
-  - 베타 선언 전 acceptance line은 “부분 green”이 아니라 C/LLVM parity와 expected stdout/stderr/result parity까지 포함한 CI green으로 둔다
+  - 현재 blocker는 Linux C/LLVM parity와 Windows C regression을 각각 support matrix truth에 맞춰 green으로 유지하는 것이다. Windows LLVM parity는 공식 beta support가 아니라 detected-toolchain evidence track이다
+  - 베타 선언 전 acceptance line은 “부분 green”이 아니라 support matrix에 맞는 expected stdout/stderr/result parity까지 포함한 CI green으로 둔다
 
 실행 가능한 연구용 컴파일러 단계는 넘겼지만, 아직 베타라고 부를 수는 없다.
 
@@ -4563,7 +4621,7 @@ Source of truth:
 - [ ] **Backend parity final closure**
   - C/LLVM이 domain semantics 기준으로 같은 결과를 내는지 고정
   - 대상: intent/zone/world, relation/effect/projection, ownership boundary, refresh/publish/bind, world embedding/handoff
-  - 기준: backend compare / llvm smoke / example smoke / ABI-runtime probe가 Linux/Windows 모두 녹색
+  - 기준: Linux에서 backend compare / llvm smoke / example smoke / ABI-runtime probe 녹색. Windows는 C regression line을 공식 beta gate로 유지하고, LLVM smoke/backend compare는 executable toolchain evidence가 있을 때만 추가 실행
 - [ ] **experimental surface 제거 또는 격리**
   - 닫지 못한 parser surface는 명시 거부 또는 문법 제거
 
@@ -5491,14 +5549,17 @@ Source of truth:
   - 원칙: `zone` / `world` state와 projection dirty sync가 UI IR의 갱신 계약이 됨
   - 순서: UI IR 고정 → native backend 1개 → JS/web backend 1개 → 그 뒤 mobile shell / Kotlin 필요성 재평가
   - 비목표: 플랫폼별 UI 의미론(Qt widget tree, WPF object model, Android View/Compose semantics)을 코어 언어에 직접 들이지 않음
-- [~] **JavaScript 백엔드** — `.pgy → JS` 변환으로 브라우저/Node.js 실행 지원
-  - 완료: 코어 의미론은 inheritance/super 없이 유지하고, JS lowering은 delegation/composition 중심으로 간다는 정책 초안 문서화
-  - 완료: Kotlin backend보다 공통 UI IR이 우선이라는 멀티플랫폼 정책 문서화
-  - 남음: JS IR/lowering shape, runtime shim, interop surface (`extern js`) 설계
+- [x] **JavaScript 백엔드 직접 경로 거부** — `.pgy → JS` 변환은 베타/dogfood
+  경로가 아님
+  - 완료: GC + reference-only lowering이 Slot/Zone/Intent/Authority parity를
+    흐릴 수 있어 직접 JS backend를 거부하고 C→Emscripten bridge를 1차 경로로
+    고정
+  - 남음: 필요 시 beta+1에서 JS shim/host import surface만 별도 설계
 - [ ] **mobile shell 전략** — Android/iOS는 우선 공통 UI IR consumer로 접근
   - 원칙: 초기 mobile 대응은 JS/web-compatible UI backend 또는 native shell bridge를 우선 검토
   - 남음: Android 전용 Kotlin backend는 공통 UI IR + web/native backend 검증 뒤 필요성을 재평가
-- [ ] **WebAssembly 타겟** — LLVM wasm32 backend 활용
+- [~] **WebAssembly/WebGL dogfood bridge** — C backend `--emit-c` + optional
+  Emscripten을 1차 경로로 사용. native LLVM wasm32 target은 beta+1
 
 ## P1.9 — AI-first 인프라 (2026-04-19 positioning 확정)
 
@@ -5930,10 +5991,10 @@ Source of truth:
 - Zone projection sync and intent-step subject action lookup now delegate to
   the same C backend MIR-aware nominal host-method lookup seam instead of
   open-coding `class_decl.methods[]` scans.
-- `transpiler_find_mir_method(...)` now resolves method routines through
-  `MIRDeclHeader.method_metadata` before falling back to the legacy routine
-  scan. All C method emitters that already use this seam now benefit from the
-  linked declaration metadata.
+- C hosted method emission now consumes `TranspilerHostedMethodView` routine
+  metadata directly. The generic `transpiler_find_mir_method(...)` helper name is
+  gone; the only remaining method lookup helper is explicitly scoped as
+  `transpiler_find_role_impl_mir_method(...)` for the role-include copy seam.
 - The public C backend `transpiler_decl_methods_local(...)` AST method-array
   seam is removed. The remaining AST method-list access is quarantined as a
   static fallback inside `transpiler_decl_host_lookup.c` for MIR-absent paths.

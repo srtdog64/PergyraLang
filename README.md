@@ -156,7 +156,7 @@ make tooling-conformance-test-smoke
 
 Propagation parity is currently locked through `world_fixpoint_abi`, `projection_chain_abi`, `zone_frontier_abi`, `intent_authority_snapshot_abi`, `handoff_projection_frontier_abi`, `handoff_world_state_frontier_abi`, `handoff_layer_state_frontier_abi`, `world_embedded_projection_abi`, `world_embedded_method_projection_abi`, `world_embedded_branch_projection_abi`, `world_embedded_action_frontier_abi`, and `world_embedded_action_pool_frontier_abi` in `make test-abi`, with zone lifecycle bounded frontier emission and C/LLVM runtime parity checked again in `make llvm-test-backend-compare`.
 
-Current beta-readiness audit: [docs/98_beta_closure_readiness_report.md](docs/98_beta_closure_readiness_report.md)
+Current beta-readiness source of truth: [docs/100_beta_readiness_checklist.md](docs/100_beta_readiness_checklist.md). The older [docs/98_beta_closure_readiness_report.md](docs/98_beta_closure_readiness_report.md) is a historical snapshot.
 
 Current CI support matrix:
 

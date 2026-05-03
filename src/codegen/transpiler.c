@@ -100,9 +100,10 @@ static const MIRRoutine *transpiler_find_mir_function(const TranspilerCtx *ctx,
                                                       const ASTNode *func_decl);
 static const MIRRoutine *transpiler_find_mir_intent(const TranspilerCtx *ctx,
                                                     const ASTNode *intent_decl);
-static const MIRRoutine *transpiler_find_mir_method(const TranspilerCtx *ctx,
-                                                    const char *owner_name,
-                                                    const ASTNode *method_decl);
+static const MIRRoutine *transpiler_find_role_impl_mir_method(
+    const TranspilerCtx *ctx,
+    const char *owner_name,
+    const ASTNode *method_decl);
 static bool transpiler_parse_versioned_name(const char *versioned,
                                             char *base,
                                             size_t base_size,

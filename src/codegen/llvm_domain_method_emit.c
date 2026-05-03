@@ -85,9 +85,6 @@ llvm_emit_domain_sync_and_method_bodies(LLVMGenCtx *ctx,
                     mir_method = llvm_routine_inventory_get(
                         &routine_inventory, method_meta->routine_index);
                 }
-                if (mir_method == NULL && method != NULL)
-                    mir_method = llvm_find_mir_method_routine_local(ctx,
-                        decl_name, method);
                 if (mir_method != NULL) {
                     llvm_emit_func_from_mir(mir_method, ctx);
                     continue;

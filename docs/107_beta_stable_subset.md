@@ -86,10 +86,12 @@ Explicit reject:
 
 Out of beta:
 
-- Full quantum resource model, WASM backend, package manager release workflow,
-  advanced debugger, full GPU/Spray, Skia/render, full FP/HKT/functor algebra,
-  arbitrary ownership, arbitrary map keys, and richer multi-instance
-  observability query language.
+- Full quantum resource model, native WASM backend, package manager release
+  workflow, advanced debugger, full GPU/Spray, Skia/render, full FP/HKT/functor
+  algebra, arbitrary ownership, arbitrary map keys, and richer multi-instance
+  observability query language. The beta dogfood bridge may still validate
+  `C backend --emit-c -> optional Emscripten`; that bridge is not a stable native
+  WASM backend surface.
 
 ## 2. Generic Contract Stable Subset
 

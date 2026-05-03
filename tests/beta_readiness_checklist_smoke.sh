@@ -162,12 +162,13 @@ make perf-contract-test-smoke
 make tooling-conformance-test-smoke
 dogfood-first path
 make dogfood-webgl-test-smoke
-Pergyra -> C backend -> optional Emscripten/WebGL bridge
+Pergyra -> C backend --emit-c -> optional Emscripten/WebGL bridge
 LSP beta-stable: initialize capability response, keyword hover, and keyword completion
 Debugger beta-stable: CLI `pgy debug <file>` parse + semantic gate and interactive quit path
 DAP, binary breakpoints, variable watch, multi-file workspace indexing
 beta readiness
 60%
+63%
 EOF
 
 require_terms "docs/19_design_philosophy.md" <<'EOF'

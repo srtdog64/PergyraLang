@@ -39,8 +39,6 @@ emit_hosted_methods_from_mir_or_error_local(const char *host_name,
             method_name = method->data.func_decl.name;
 
         mir_method = transpiler_mir_decl_method_routine(ctx, method_meta);
-        if (mir_method == NULL)
-            mir_method = transpiler_find_mir_method(ctx, host_name, method);
         if (mir_method == NULL) {
             transpiler_set_backend_error_with_hints(
                 ctx,
@@ -332,7 +330,7 @@ emit_role_method_impl(const char *role_name, ASTNode *method, TranspilerCtx *ctx
     if (method == NULL || method->type != AST_FUNC_DECL)
         return;
 
-    mir_method = transpiler_find_mir_method(ctx, role_name, method);
+    mir_method = transpiler_find_role_impl_mir_method(ctx, role_name, method);
     method_name = method->data.func_decl.name;
     if (ctx != NULL && ctx->mir != NULL && mir_method == NULL) {
         transpiler_set_backend_error_with_hints(ctx, PGY_CODE_MIR_TOPOLOGY_INVALID, PGY_CAUSE_MIR_TOPOLOGY_ROUTINE_MISSING, PGY_FIX_INSPECT_HIR_TO_MIR_LOWERING, "MIR-only C path missing routine for role method '%s.%s'",

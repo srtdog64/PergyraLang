@@ -3,12 +3,13 @@
 Date: 2026-04-26
 
 Anti-hype correction (2026-04-29): this report is a readiness audit, not a
-marketing snapshot. The current strict readiness line remains approximately
-**50%** until CFG/body dataflow, AIR boundary evidence, DAG source-of-truth
-closure, runtime propagation, ABI ownership, and backend parity are closed or
-explicitly downgraded from the beta contract. Historical progress-log entries
-below may mention older `.inc` inventories; the current `.inc` source of truth
-is the zero-inventory note immediately below plus `docs/115_inc_cleanup_status.md`.
+marketing snapshot. Current source-of-truth docs (`docs/100` and `TODO.md`)
+now separate feature-completeness from strict beta readiness: feature feel is
+about **70%**, strict beta readiness uses **60%** as the baseline, and current
+practical judgment is **63%**. This report is older than that policy update, so
+older progress-log entries below may mention the previous 50% line or older
+`.inc` inventories. The current `.inc` source of truth is the zero-inventory
+note immediately below plus `docs/115_inc_cleanup_status.md`.
 
 This document summarizes the current codebase state, the remaining improvement opportunities, and the concrete work needed to close PergyraLang for beta. It is based on the current README/TODO/status docs, the C/LLVM backend paths, the IR pipeline tests, the ABI smoke matrix, and backend-compare coverage.
 
@@ -31,7 +32,9 @@ PergyraLang is no longer blocked by broad surface absence. The remaining beta ri
   full semantic execution truth;
 - arena/lifetime rules are mostly settled but a few owner/runtime ABI boundaries remain.
 
-Current beta readiness is approximately **50%**.
+Current beta readiness for this historical report was approximately **50%**.
+Current live policy is **60% baseline / 63% practical judgment**; see
+`docs/100_beta_readiness_checklist.md`.
 
 This is intentionally lower than a feature-count reading. Many core and foundation surfaces are already implemented, tested, and documented, but strict beta readiness depends on the trust of the underlying closure mechanisms. Until function body safety is CFG/dataflow-backed, until type-resolution DAG becomes the source of truth for frozen-subset dependency ordering, and until long-term modularization reaches stable owner boundaries, the project should not be described as 90%+ beta-ready.
 
@@ -39,9 +42,9 @@ The current beta posture is best described as:
 
 > Narrow beta is close, but strict beta still needs CFG-backed body safety plus the remaining propagation, failure, MIR inventory, DAG, and lifetime closure work to be either completed or explicitly downgraded from the beta contract.
 
-2026-04-26 correction: the strict readiness number remains **50%** because CFG
-and AIR/body-dataflow source-of-truth are still not closed, but two structural
-risks improved materially. The type-resolution DAG fallback cap is now
+2026-04-26 correction: at the time of this report the strict readiness number
+remained **50%** because CFG and AIR/body-dataflow source-of-truth were still not
+closed, but two structural risks improved materially. The type-resolution DAG fallback cap is now
 `materializer_fallbacks<=1296` with exact family accounting, and the production
 runtime/codegen/compiler `.inc` size gate is green again with
 `src/compiler/mir_public_part_a.inc=959` and

@@ -110,6 +110,12 @@ mir_decl_header_ast_shape(const MIRDeclHeader *header,
         if (uses_pointer_self_out != NULL)
             *uses_pointer_self_out = true;
         return true;
+    case AST_ROLE_DECL:
+        if (name_out != NULL)
+            *name_out = ast->data.role_decl.name;
+        if (uses_pointer_self_out != NULL)
+            *uses_pointer_self_out = true;
+        return true;
     case AST_ROSTER_DECL:
         if (name_out != NULL)
             *name_out = ast->data.roster_decl.name;
@@ -272,7 +278,8 @@ mir_validate_decl_method_metadata(const MIRProgram *mir,
         return false;
     }
 
-    if (header->method_metadata_count != header->method_count) {
+    if (header->ast_type != AST_ROLE_DECL
+        && header->method_metadata_count != header->method_count) {
         if (error_message != NULL) {
             *error_message = mir_strdup_fmt(
                 "MIR declaration header[%zu] '%s' method metadata count %zu does not match AST compatibility count %zu",

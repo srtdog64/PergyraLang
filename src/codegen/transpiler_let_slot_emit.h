@@ -64,12 +64,12 @@ transpiler_try_emit_let_slot_claim(ASTNode *node,
     }
 
     const char *callee_name = init->data.call.callee->data.identifier.name;
-    if (strcmp(callee_name, "ClaimSlot") == 0) {
+    if (pgy_codegen_call_name_is_claim_slot(callee_name)) {
         is_slot = true;
-    } else if (strcmp(callee_name, "ClaimSecureSlot") == 0) {
+    } else if (pgy_codegen_call_name_is_claim_secure_slot(callee_name)) {
         is_slot = true;
         is_secure_slot = true;
-    } else if (strcmp(callee_name, "ClaimDeviceSlot") == 0) {
+    } else if (pgy_codegen_call_name_is_claim_device_slot(callee_name)) {
         is_device_slot = true;
     } else {
         return false;

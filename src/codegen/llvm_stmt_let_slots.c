@@ -1,5 +1,6 @@
 #ifdef PGY_LLVM_ENABLED
 #include "llvm_internal.h"
+#include "codegen_slot_type_policy.h"
 
 static const char *
 llvm_stmt_first_call_type_arg_name(ASTNode *call)
@@ -96,10 +97,10 @@ llvm_stmt_emit_claim_slot_let(ASTNode *node, LLVMGenCtx *ctx)
     }
 
     const char *callee = init->data.call.callee->data.identifier.name;
-    if (strcmp(callee, "ClaimSlot") == 0
-        || strcmp(callee, "ClaimSecureSlot") == 0) {
+    if (pgy_codegen_call_name_is_claim_slot(callee)
+        || pgy_codegen_call_name_is_claim_secure_slot(callee)) {
         const char *inner = NULL;
-        bool is_secure = (strcmp(callee, "ClaimSecureSlot") == 0);
+        bool is_secure = pgy_codegen_call_name_is_claim_secure_slot(callee);
         if (type_ann != NULL && type_ann->type == AST_TYPE
             && type_ann->data.type.generic_args != NULL
             && type_ann->data.type.generic_args->count > 0) {
@@ -115,7 +116,7 @@ llvm_stmt_emit_claim_slot_let(ASTNode *node, LLVMGenCtx *ctx)
                 "LLVM %s let-binding for '%s' requires an explicit %s<T> annotation",
                 callee,
                 name != NULL ? name : "<slot>",
-                is_secure ? "SecureSlot" : "Slot");
+                pgy_codegen_claim_slot_abi_prefix(callee));
             return true;
         }
 
@@ -135,7 +136,7 @@ llvm_stmt_emit_claim_slot_let(ASTNode *node, LLVMGenCtx *ctx)
         return true;
     }
 
-    if (strcmp(callee, "ClaimDeviceSlot") == 0) {
+    if (pgy_codegen_call_name_is_claim_device_slot(callee)) {
         const char *inner = NULL;
         if (type_ann != NULL && type_ann->type == AST_TYPE
             && type_ann->data.type.generic_args != NULL

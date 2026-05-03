@@ -245,7 +245,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_resolution_graph_inventory.c \
                    $(SEMANTIC_DIR)/type_checker_resolution_graph_body.c \
                    $(SEMANTIC_DIR)/type_checker_resolution_graph_decl.c \
-                   $(SEMANTIC_DIR)/type_checker_resolution_metadata_fallback.c \
+                   $(SEMANTIC_DIR)/type_checker_resolution_metadata_dead_end.c \
                    $(SEMANTIC_DIR)/type_checker_resolution_metadata_constructed.c \
                    $(SEMANTIC_DIR)/type_checker_resolution_metadata_alias.c \
                    $(SEMANTIC_DIR)/type_checker_resolution_metadata_diagnostics.c \
@@ -425,6 +425,7 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/mir.c \
                    $(COMPILER_DIR)/mir_cleanup.c \
                    $(COMPILER_DIR)/mir_intent.c \
+                   $(COMPILER_DIR)/mir_intent_fact.c \
                    $(COMPILER_DIR)/mir_type_helpers.c \
                    $(COMPILER_DIR)/hir.c \
                    $(COMPILER_DIR)/hir_routines.c \
@@ -667,6 +668,7 @@ AIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/air.o \
 MIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/mir.o \
                    $(BUILD_DIR)/compiler/mir_cleanup.o \
                    $(BUILD_DIR)/compiler/mir_intent.o \
+                   $(BUILD_DIR)/compiler/mir_intent_fact.o \
                    $(BUILD_DIR)/compiler/mir_type_helpers.o
 
 # -----------------------------------------------------------------

@@ -23,19 +23,14 @@ llvm_find_mir_intent_meta_arg(const MIRRoutine *routine,
             continue;
         for (size_t ii = 0; ii < block->instruction_count; ii++) {
             const MIRInstruction *inst = &block->instructions[ii];
-            if (inst->kind != MIR_INST_STMT)
+            const char *payload = mir_instruction_intent_payload(inst);
+            if (!mir_instruction_is_intent_stmt(inst, inst_name))
                 continue;
-            if (inst->name == NULL || strcmp(inst->name, inst_name) != 0)
+            if (payload == NULL)
                 continue;
-            if (inst->arg0 == NULL)
+            if (!mir_instruction_intent_step_matches(inst, step_name))
                 continue;
-            if (step_name != NULL) {
-                if (inst->arg1 == NULL || strcmp(inst->arg1, step_name) != 0)
-                    continue;
-            } else if (inst->arg1 != NULL) {
-                continue;
-            }
-            return inst->arg0;
+            return payload;
         }
     }
     return NULL;
@@ -56,18 +51,13 @@ llvm_mir_intent_has_stmt(const MIRRoutine *routine,
             continue;
         for (size_t ii = 0; ii < block->instruction_count; ii++) {
             const MIRInstruction *inst = &block->instructions[ii];
-            if (inst->kind != MIR_INST_STMT)
+            const char *payload = mir_instruction_intent_payload(inst);
+            if (!mir_instruction_is_intent_stmt(inst, inst_name))
                 continue;
-            if (inst->name == NULL || strcmp(inst->name, inst_name) != 0)
+            if (!mir_instruction_intent_step_matches(inst, step_name))
                 continue;
-            if (step_name != NULL) {
-                if (inst->arg1 == NULL || strcmp(inst->arg1, step_name) != 0)
-                    continue;
-            } else if (inst->arg1 != NULL) {
-                continue;
-            }
             if (arg0 != NULL) {
-                if (inst->arg0 == NULL || strcmp(inst->arg0, arg0) != 0)
+                if (payload == NULL || strcmp(payload, arg0) != 0)
                     continue;
             }
             return true;
@@ -97,18 +87,13 @@ llvm_collect_mir_intent_who_aliases(const MIRRoutine *routine,
             continue;
         for (size_t ii = 0; ii < block->instruction_count; ii++) {
             const MIRInstruction *inst = &block->instructions[ii];
-            if (inst->kind != MIR_INST_STMT)
+            const char *payload = mir_instruction_intent_payload(inst);
+            if (!mir_instruction_is_intent_stmt(inst, "IntentWho"))
                 continue;
-            if (inst->name == NULL || strcmp(inst->name, "IntentWho") != 0)
+            if (payload == NULL)
                 continue;
-            if (inst->arg0 == NULL)
+            if (!mir_instruction_intent_step_matches(inst, step_name))
                 continue;
-            if (step_name != NULL) {
-                if (inst->arg1 == NULL || strcmp(inst->arg1, step_name) != 0)
-                    continue;
-            } else if (inst->arg1 != NULL) {
-                continue;
-            }
             count++;
         }
     }
@@ -126,19 +111,14 @@ llvm_collect_mir_intent_who_aliases(const MIRRoutine *routine,
             continue;
         for (size_t ii = 0; ii < block->instruction_count; ii++) {
             const MIRInstruction *inst = &block->instructions[ii];
-            if (inst->kind != MIR_INST_STMT)
+            const char *payload = mir_instruction_intent_payload(inst);
+            if (!mir_instruction_is_intent_stmt(inst, "IntentWho"))
                 continue;
-            if (inst->name == NULL || strcmp(inst->name, "IntentWho") != 0)
+            if (payload == NULL)
                 continue;
-            if (inst->arg0 == NULL)
+            if (!mir_instruction_intent_step_matches(inst, step_name))
                 continue;
-            if (step_name != NULL) {
-                if (inst->arg1 == NULL || strcmp(inst->arg1, step_name) != 0)
-                    continue;
-            } else if (inst->arg1 != NULL) {
-                continue;
-            }
-            aliases[count++] = inst->arg0;
+            aliases[count++] = payload;
         }
     }
 
@@ -166,18 +146,13 @@ llvm_collect_mir_intent_authorized_aliases(const MIRRoutine *routine,
             continue;
         for (size_t ii = 0; ii < block->instruction_count; ii++) {
             const MIRInstruction *inst = &block->instructions[ii];
-            if (inst->kind != MIR_INST_STMT)
+            const char *payload = mir_instruction_intent_payload(inst);
+            if (!mir_instruction_is_intent_stmt(inst, "IntentAuthorizedBy"))
                 continue;
-            if (inst->name == NULL || strcmp(inst->name, "IntentAuthorizedBy") != 0)
+            if (payload == NULL)
                 continue;
-            if (inst->arg0 == NULL)
+            if (!mir_instruction_intent_step_matches(inst, step_name))
                 continue;
-            if (step_name != NULL) {
-                if (inst->arg1 == NULL || strcmp(inst->arg1, step_name) != 0)
-                    continue;
-            } else if (inst->arg1 != NULL) {
-                continue;
-            }
             count++;
         }
     }
@@ -195,19 +170,14 @@ llvm_collect_mir_intent_authorized_aliases(const MIRRoutine *routine,
             continue;
         for (size_t ii = 0; ii < block->instruction_count; ii++) {
             const MIRInstruction *inst = &block->instructions[ii];
-            if (inst->kind != MIR_INST_STMT)
+            const char *payload = mir_instruction_intent_payload(inst);
+            if (!mir_instruction_is_intent_stmt(inst, "IntentAuthorizedBy"))
                 continue;
-            if (inst->name == NULL || strcmp(inst->name, "IntentAuthorizedBy") != 0)
+            if (payload == NULL)
                 continue;
-            if (inst->arg0 == NULL)
+            if (!mir_instruction_intent_step_matches(inst, step_name))
                 continue;
-            if (step_name != NULL) {
-                if (inst->arg1 == NULL || strcmp(inst->arg1, step_name) != 0)
-                    continue;
-            } else if (inst->arg1 != NULL) {
-                continue;
-            }
-            aliases[count++] = inst->arg0;
+            aliases[count++] = payload;
         }
     }
 
@@ -238,11 +208,10 @@ llvm_collect_mir_intent_participants(const MIRRoutine *routine,
             continue;
         for (size_t ii = 0; ii < block->instruction_count; ii++) {
             const MIRInstruction *inst = &block->instructions[ii];
-            if (inst->kind != MIR_INST_STMT)
+            const char *payload = mir_instruction_intent_payload(inst);
+            if (!mir_instruction_is_intent_stmt(inst, "IntentParticipant"))
                 continue;
-            if (inst->name == NULL || strcmp(inst->name, "IntentParticipant") != 0)
-                continue;
-            if (inst->arg0 == NULL || inst->arg1 == NULL)
+            if (payload == NULL || inst->arg1 == NULL)
                 continue;
             count++;
         }
@@ -262,13 +231,12 @@ llvm_collect_mir_intent_participants(const MIRRoutine *routine,
             continue;
         for (size_t ii = 0; ii < block->instruction_count; ii++) {
             const MIRInstruction *inst = &block->instructions[ii];
-            if (inst->kind != MIR_INST_STMT)
+            const char *payload = mir_instruction_intent_payload(inst);
+            if (!mir_instruction_is_intent_stmt(inst, "IntentParticipant"))
                 continue;
-            if (inst->name == NULL || strcmp(inst->name, "IntentParticipant") != 0)
+            if (payload == NULL || inst->arg1 == NULL)
                 continue;
-            if (inst->arg0 == NULL || inst->arg1 == NULL)
-                continue;
-            aliases[count] = inst->arg0;
+            aliases[count] = payload;
             types[count] = inst->arg1;
             count++;
         }

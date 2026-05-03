@@ -12,16 +12,45 @@
 
 #include <string.h>
 
+static const char *
+llvm_registry_keep_string(LLVMGenCtx *ctx, const char *value)
+{
+    size_t len;
+    char *copy;
+
+    if (value == NULL)
+        return NULL;
+    if (ctx == NULL)
+        return value;
+
+    len = strlen(value);
+    copy = pgy_arena_alloc(&ctx->persistent, len + 1);
+    if (copy == NULL) {
+        if (!ctx->has_error)
+            llvm_set_error(ctx, "out of memory copying LLVM registry string");
+        return NULL;
+    }
+    memcpy(copy, value, len + 1);
+    return copy;
+}
+
 void
 llvm_register_slot_var(LLVMGenCtx *ctx, const char *var_name,
                        const char *inner_type,
                        bool is_secure)
 {
+    const char *owned_var_name;
+    const char *owned_inner_type;
+
     PGY_DYNARR_ENSURE(ctx->slot_vars, ctx->slot_var_count,
                       ctx->slot_var_capacity, LLVMSlotVarEntry);
+    owned_var_name = llvm_registry_keep_string(ctx, var_name);
+    owned_inner_type = llvm_registry_keep_string(ctx, inner_type);
+    if (owned_var_name == NULL || owned_inner_type == NULL)
+        return;
 
-    ctx->slot_vars[ctx->slot_var_count].var_name   = var_name;
-    ctx->slot_vars[ctx->slot_var_count].inner_type = inner_type;
+    ctx->slot_vars[ctx->slot_var_count].var_name   = owned_var_name;
+    ctx->slot_vars[ctx->slot_var_count].inner_type = owned_inner_type;
     ctx->slot_vars[ctx->slot_var_count].released   = false;
     ctx->slot_vars[ctx->slot_var_count].is_secure  = is_secure;
     ctx->slot_var_count++;
@@ -32,12 +61,21 @@ llvm_register_view_var(LLVMGenCtx *ctx, const char *var_name,
                        const char *source_slot, const char *inner_type,
                        bool is_move_token)
 {
+    const char *owned_var_name;
+    const char *owned_source_slot;
+    const char *owned_inner_type;
+
     PGY_DYNARR_ENSURE(ctx->view_vars, ctx->view_var_count,
                       ctx->view_var_capacity, LLVMViewVarEntry);
+    owned_var_name = llvm_registry_keep_string(ctx, var_name);
+    owned_source_slot = llvm_registry_keep_string(ctx, source_slot);
+    owned_inner_type = llvm_registry_keep_string(ctx, inner_type);
+    if (owned_var_name == NULL || owned_inner_type == NULL)
+        return;
 
-    ctx->view_vars[ctx->view_var_count].var_name = var_name;
-    ctx->view_vars[ctx->view_var_count].source_slot = source_slot;
-    ctx->view_vars[ctx->view_var_count].inner_type = inner_type;
+    ctx->view_vars[ctx->view_var_count].var_name = owned_var_name;
+    ctx->view_vars[ctx->view_var_count].source_slot = owned_source_slot;
+    ctx->view_vars[ctx->view_var_count].inner_type = owned_inner_type;
     ctx->view_vars[ctx->view_var_count].is_move_token = is_move_token;
     ctx->view_var_count++;
 }
@@ -348,11 +386,18 @@ llvm_register_future_var(LLVMGenCtx *ctx, const char *var_name,
                          const char *inner_type,
                          bool is_remote)
 {
+    const char *owned_var_name;
+    const char *owned_inner_type;
+
     PGY_DYNARR_ENSURE(ctx->future_vars, ctx->future_var_count,
                       ctx->future_var_capacity, LLVMFutureVarEntry);
+    owned_var_name = llvm_registry_keep_string(ctx, var_name);
+    owned_inner_type = llvm_registry_keep_string(ctx, inner_type);
+    if (owned_var_name == NULL || owned_inner_type == NULL)
+        return;
 
-    ctx->future_vars[ctx->future_var_count].var_name = var_name;
-    ctx->future_vars[ctx->future_var_count].inner_type = inner_type;
+    ctx->future_vars[ctx->future_var_count].var_name = owned_var_name;
+    ctx->future_vars[ctx->future_var_count].inner_type = owned_inner_type;
     ctx->future_vars[ctx->future_var_count].is_remote = is_remote;
     ctx->future_var_count++;
 }
@@ -381,11 +426,18 @@ void
 llvm_register_channel_var(LLVMGenCtx *ctx, const char *var_name,
                           const char *inner_type)
 {
+    const char *owned_var_name;
+    const char *owned_inner_type;
+
     PGY_DYNARR_ENSURE(ctx->channel_vars, ctx->channel_var_count,
                       ctx->channel_var_capacity, LLVMChannelVarEntry);
+    owned_var_name = llvm_registry_keep_string(ctx, var_name);
+    owned_inner_type = llvm_registry_keep_string(ctx, inner_type);
+    if (owned_var_name == NULL || owned_inner_type == NULL)
+        return;
 
-    ctx->channel_vars[ctx->channel_var_count].var_name = var_name;
-    ctx->channel_vars[ctx->channel_var_count].inner_type = inner_type;
+    ctx->channel_vars[ctx->channel_var_count].var_name = owned_var_name;
+    ctx->channel_vars[ctx->channel_var_count].inner_type = owned_inner_type;
     ctx->channel_var_count++;
 }
 
@@ -403,11 +455,18 @@ void
 llvm_register_rc_var(LLVMGenCtx *ctx, const char *var_name,
                      const char *inner_type)
 {
+    const char *owned_var_name;
+    const char *owned_inner_type;
+
     PGY_DYNARR_ENSURE(ctx->rc_vars, ctx->rc_var_count,
                       ctx->rc_var_capacity, LLVMRcVarEntry);
+    owned_var_name = llvm_registry_keep_string(ctx, var_name);
+    owned_inner_type = llvm_registry_keep_string(ctx, inner_type);
+    if (owned_var_name == NULL || owned_inner_type == NULL)
+        return;
 
-    ctx->rc_vars[ctx->rc_var_count].var_name = var_name;
-    ctx->rc_vars[ctx->rc_var_count].inner_type = inner_type;
+    ctx->rc_vars[ctx->rc_var_count].var_name = owned_var_name;
+    ctx->rc_vars[ctx->rc_var_count].inner_type = owned_inner_type;
     ctx->rc_var_count++;
 }
 
@@ -425,11 +484,18 @@ void
 llvm_register_weak_var(LLVMGenCtx *ctx, const char *var_name,
                        const char *inner_type)
 {
+    const char *owned_var_name;
+    const char *owned_inner_type;
+
     PGY_DYNARR_ENSURE(ctx->weak_vars, ctx->weak_var_count,
                       ctx->weak_var_capacity, LLVMWeakVarEntry);
+    owned_var_name = llvm_registry_keep_string(ctx, var_name);
+    owned_inner_type = llvm_registry_keep_string(ctx, inner_type);
+    if (owned_var_name == NULL || owned_inner_type == NULL)
+        return;
 
-    ctx->weak_vars[ctx->weak_var_count].var_name = var_name;
-    ctx->weak_vars[ctx->weak_var_count].inner_type = inner_type;
+    ctx->weak_vars[ctx->weak_var_count].var_name = owned_var_name;
+    ctx->weak_vars[ctx->weak_var_count].inner_type = owned_inner_type;
     ctx->weak_var_count++;
 }
 

@@ -22,8 +22,8 @@ static int g_fail = 0;
 
 #define EXPECT(cond) \
     do { \
-        if (cond) { printf("??n"); g_pass++; } \
-        else      { printf("?? (line %d)\n", __LINE__); g_fail++; } \
+        if (cond) { printf("ok\n"); g_pass++; } \
+        else      { printf("FAIL (line %d)\n", __LINE__); g_fail++; } \
     } while (0)
 
 static bool

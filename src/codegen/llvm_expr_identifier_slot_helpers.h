@@ -1,3 +1,5 @@
+#include "codegen_slot_type_policy.h"
+
 static char *
 llvm_normalize_banner_string_literal_scratch(const char *src, PgyArena *arena)
 {
@@ -408,10 +410,7 @@ llvm_resolve_slot_target(LLVMGenCtx *ctx, ASTNode *slot_arg,
                && slot_arg->data.call.arguments[0] != NULL
                && slot_arg->data.call.arguments[0]->type == AST_IDENTIFIER) {
         const char *callee = slot_arg->data.call.callee->data.identifier.name;
-        if (callee != NULL
-            && (strcmp(callee, "ViewRead") == 0
-                || strcmp(callee, "ViewWrite") == 0
-                || strcmp(callee, "Move") == 0)) {
+        if (pgy_codegen_call_name_is_slot_source(callee)) {
             source_name = slot_arg->data.call.arguments[0]->data.identifier.name;
             inner = llvm_lookup_slot_inner(ctx, source_name);
             is_secure = llvm_lookup_slot_is_secure(ctx, source_name);
@@ -461,7 +460,7 @@ llvm_emit_identifier(ASTNode *node, LLVMGenCtx *ctx)
     const char *name = node->data.identifier.name;
     LLVMProjectionBorrowEntry *projection_borrow;
 
-    /* Slot sugar: auto-Read — call pgy_read_T(&slot) instead of loading struct */
+    /* Slot sugar: auto-Read -> call pgy_read_T(&slot) instead of loading struct */
     if (!ctx->suppress_slot_auto_read) {
         const char *inner = llvm_lookup_slot_inner(ctx, name);
         if (inner != NULL) {

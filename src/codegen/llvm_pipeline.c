@@ -293,14 +293,7 @@ llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx)
             && func_decl->data.func_decl.generic_params->count > 0) {
             continue;
         }
-        bool mir_has_instructions = false;
-        for (size_t bi = 0; bi < routine->block_count; bi++) {
-            if (routine->blocks[bi].instruction_count > 0) {
-                mir_has_instructions = true;
-                break;
-            }
-        }
-        if (mir_has_instructions)
+        if (llvm_mir_routine_has_instructions(routine))
             llvm_emit_func_from_mir(routine, ctx);
     }
 

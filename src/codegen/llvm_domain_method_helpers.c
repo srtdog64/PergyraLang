@@ -39,20 +39,6 @@ llvm_find_mir_method_routine_local(const LLVMGenCtx *ctx,
         }
     }
 
-    for (size_t i = 0; i < routine_inventory.count; i++) {
-        const MIRRoutine *routine = &routine_inventory.routines[i];
-        if (routine->kind != MIR_SCOPE_METHOD)
-            continue;
-        if (routine->ast == method)
-            return routine;
-        if (routine->name != NULL
-            && routine->owner_name != NULL
-            && strcmp(routine->name, method_name) == 0
-            && strcmp(routine->owner_name, owner_name) == 0) {
-            return routine;
-        }
-    }
-
     return NULL;
 }
 
