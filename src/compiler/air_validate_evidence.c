@@ -4,7 +4,6 @@
  */
 
 #include "air_internal.h"
-#include "../runtime/pgy_runtime_observability_schema.h"
 
 static bool
 air_evidence_kind_valid(AIREvidenceKind kind)
@@ -26,19 +25,6 @@ air_evidence_kind_valid(AIREvidenceKind kind)
         return true;
     }
     return false;
-}
-
-static bool
-air_evidence_kind_is_global(AIREvidenceKind kind)
-{
-    return kind == AIR_EVIDENCE_DAG_GENERIC
-        || kind == AIR_EVIDENCE_DAG_METADATA
-        || kind == AIR_EVIDENCE_DAG_ABILITY
-        || kind == AIR_EVIDENCE_MIR_CLEANUP
-        || kind == AIR_EVIDENCE_MIR_TERMINATOR
-        || kind == AIR_EVIDENCE_RIR_EFFECT_PROPAGATION
-        || kind == AIR_EVIDENCE_RIR_RELATION_PROPAGATION
-        || kind == AIR_EVIDENCE_OBSERVABILITY_SCHEMA;
 }
 
 static bool
@@ -181,135 +167,9 @@ air_evidence_node_matches_boundary_shape(const AIRProgram *air,
                                     evidence->boundary_index);
             return false;
         }
-        if (evidence->kind == AIR_EVIDENCE_MIR_CLEANUP) {
-            if (evidence->fact_count == 0) {
-                air_set_invariant_error(error_message,
-                                        "AIR MIR cleanup evidence node %zu has no cleanup facts",
-                                        evidence_index);
-                return false;
-            }
-            if (evidence->fallback_count != 0) {
-                air_set_invariant_error(error_message,
-                                        "AIR MIR cleanup evidence node %zu has fallback cleanup facts",
-                                        evidence_index);
-                return false;
-            }
-            if (!air_name_matches(evidence->subject_name, "cleanup-block")) {
-                air_set_invariant_error(error_message,
-                                        "AIR MIR cleanup evidence node %zu has invalid cleanup subject '%s'",
-                                        evidence_index,
-                                        evidence->subject_name != NULL
-                                            ? evidence->subject_name
-                                            : "<null>");
-                return false;
-            }
-        }
-        if (evidence->kind == AIR_EVIDENCE_MIR_TERMINATOR) {
-            if (evidence->fact_count == 0) {
-                air_set_invariant_error(error_message,
-                                        "AIR MIR terminator evidence node %zu has no terminator facts",
-                                        evidence_index);
-                return false;
-            }
-            if (evidence->fallback_count != 0) {
-                air_set_invariant_error(error_message,
-                                        "AIR MIR terminator evidence node %zu has fallback terminator facts",
-                                        evidence_index);
-                return false;
-            }
-            if (!air_name_matches(evidence->subject_name, "cfg-terminator")) {
-                air_set_invariant_error(error_message,
-                                        "AIR MIR terminator evidence node %zu has invalid terminator subject '%s'",
-                                        evidence_index,
-                                        evidence->subject_name != NULL
-                                            ? evidence->subject_name
-                                            : "<null>");
-                return false;
-            }
-        }
-        if (evidence->kind == AIR_EVIDENCE_RIR_EFFECT_PROPAGATION
-            || evidence->kind == AIR_EVIDENCE_RIR_RELATION_PROPAGATION) {
-            if (evidence->fact_count == 0) {
-                air_set_invariant_error(error_message,
-                                        "AIR RIR propagation evidence node %zu has no propagation facts",
-                                        evidence_index);
-                return false;
-            }
-            if (evidence->fallback_count != 0) {
-                air_set_invariant_error(error_message,
-                                        "AIR RIR propagation evidence node %zu has fallback propagation facts",
-                                        evidence_index);
-                return false;
-            }
-        }
-        if (evidence->kind == AIR_EVIDENCE_DAG_METADATA
-            || evidence->kind == AIR_EVIDENCE_DAG_GENERIC
-            || evidence->kind == AIR_EVIDENCE_DAG_ABILITY) {
-            const char *expected_subject = "metadata-inventory";
-            if (evidence->kind == AIR_EVIDENCE_DAG_GENERIC)
-                expected_subject = "generic-contracts";
-            else if (evidence->kind == AIR_EVIDENCE_DAG_ABILITY)
-                expected_subject = "ability-consumers";
-            if (evidence->fact_count == 0 && evidence->fallback_count == 0) {
-                air_set_invariant_error(error_message,
-                                        "AIR DAG evidence node %zu has no DAG facts",
-                                        evidence_index);
-                return false;
-            }
-            if (!air_name_matches(evidence->provider_name, "type-resolution-dag")) {
-                air_set_invariant_error(error_message,
-                                        "AIR DAG evidence node %zu has invalid provider '%s'",
-                                        evidence_index,
-                                        evidence->provider_name != NULL
-                                            ? evidence->provider_name
-                                            : "<null>");
-                return false;
-            }
-            if (!air_name_matches(evidence->subject_name, expected_subject)) {
-                air_set_invariant_error(error_message,
-                                        "AIR DAG evidence node %zu has invalid subject '%s'",
-                                        evidence_index,
-                                        evidence->subject_name != NULL
-                                            ? evidence->subject_name
-                                            : "<null>");
-                return false;
-            }
-        }
-        if (evidence->kind == AIR_EVIDENCE_OBSERVABILITY_SCHEMA) {
-            if (evidence->fact_count == 0) {
-                air_set_invariant_error(error_message,
-                                        "AIR observability schema evidence node %zu has no schema facts",
-                                        evidence_index);
-                return false;
-            }
-            if (evidence->fallback_count != 0) {
-                air_set_invariant_error(error_message,
-                                        "AIR observability schema evidence node %zu has fallback schema facts",
-                                        evidence_index);
-                return false;
-            }
-            if (!air_name_matches(evidence->provider_name,
-                                  "runtime-observability-schema")) {
-                air_set_invariant_error(error_message,
-                                        "AIR observability schema evidence node %zu has invalid provider '%s'",
-                                        evidence_index,
-                                        evidence->provider_name != NULL
-                                            ? evidence->provider_name
-                                            : "<null>");
-                return false;
-            }
-            if (!air_name_matches(evidence->subject_name,
-                                  PGY_OBSERVABILITY_ABI_SCHEMA)) {
-                air_set_invariant_error(error_message,
-                                        "AIR observability schema evidence node %zu has invalid subject '%s'",
-                                        evidence_index,
-                                        evidence->subject_name != NULL
-                                            ? evidence->subject_name
-                                            : "<null>");
-                return false;
-            }
-        }
-        return true;
+        return air_validate_global_evidence_node(evidence,
+                                                 evidence_index,
+                                                 error_message);
     }
 
     if (evidence->boundary_index >= air->boundary_count) {

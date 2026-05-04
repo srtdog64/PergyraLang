@@ -1,4 +1,56 @@
-/* C backend select statement emitter. */
+/*
+ * Copyright (c) 2025 Pergyra Language Project
+ * All rights reserved.
+ *
+ * C backend select statement emission.
+ */
+
+#include <stdlib.h>
+#include <string.h>
+
+#include "transpiler.h"
+#include "transpiler_context.h"
+#include "transpiler_symbols.h"
+#include "../semantic/diag_codes.h"
+
+static bool
+select_case_parts(ASTNode *case_node, ASTNode **channel_out,
+                  const char **bind_name_out, ASTNode **body_out)
+{
+    if (case_node == NULL || case_node->type != AST_BLOCK
+        || case_node->data.block.count == 0)
+        return false;
+
+    ASTNode *first = case_node->data.block.statements[0];
+    ASTNode *body = case_node->data.block.count >= 2
+        ? case_node->data.block.statements[1] : NULL;
+
+    if (first->type == AST_CHANNEL_RECV) {
+        if (channel_out != NULL)
+            *channel_out = first->data.channel_recv.channel;
+        if (bind_name_out != NULL)
+            *bind_name_out = NULL;
+        if (body_out != NULL)
+            *body_out = body;
+        return true;
+    }
+
+    if (first->type == AST_ASSIGNMENT
+        && first->data.assignment.target != NULL
+        && first->data.assignment.target->type == AST_IDENTIFIER
+        && first->data.assignment.value != NULL
+        && first->data.assignment.value->type == AST_CHANNEL_RECV) {
+        if (channel_out != NULL)
+            *channel_out = first->data.assignment.value->data.channel_recv.channel;
+        if (bind_name_out != NULL)
+            *bind_name_out = first->data.assignment.target->data.identifier.name;
+        if (body_out != NULL)
+            *body_out = body;
+        return true;
+    }
+
+    return false;
+}
 
 void
 emit_select_stmt(ASTNode *node, TranspilerCtx *ctx)
@@ -33,7 +85,11 @@ emit_select_stmt(ASTNode *node, TranspilerCtx *ctx)
                 inner = slot_inner_type_name(type_name);
         }
         if (inner == NULL) {
-            transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "cannot derive receive type for select case channel '%s'",
+            transpiler_set_backend_error_with_hints(ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED,
+                PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+                "cannot derive receive type for select case channel '%s'",
                 channel->data.identifier.name != NULL
                     ? channel->data.identifier.name
                     : "(anonymous)");
@@ -72,13 +128,18 @@ emit_select_stmt(ASTNode *node, TranspilerCtx *ctx)
                 const char *inner = NULL;
 
                 if (valid_case && channel != NULL && channel->type == AST_IDENTIFIER) {
-                    const char *type_name = lookup_typed_var(ctx, channel->data.identifier.name);
+                    const char *type_name =
+                        lookup_typed_var(ctx, channel->data.identifier.name);
                     if (type_name != NULL && strncmp(type_name, "Channel<", 8) == 0)
                         inner = slot_inner_type_name(type_name);
                 }
                 if (valid_case && channel != NULL && channel->type == AST_IDENTIFIER
                     && inner == NULL) {
-                    transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "cannot derive receive type for select case channel '%s'",
+                    transpiler_set_backend_error_with_hints(ctx,
+                        PGY_CODE_C_TYPE_UNSUPPORTED,
+                        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                        PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+                        "cannot derive receive type for select case channel '%s'",
                         channel->data.identifier.name != NULL
                             ? channel->data.identifier.name
                             : "(anonymous)");

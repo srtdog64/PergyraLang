@@ -115,18 +115,6 @@ mir_collect_expr_identifier_uses(ASTNode *node,
     }
 }
 
-static const char *
-mir_instruction_slot_anchor(const MIRInstruction *inst)
-{
-    if (inst == NULL)
-        return NULL;
-    if (inst->slot_anchor != NULL)
-        return inst->slot_anchor;
-    if ((inst->kind == MIR_INST_DEF || inst->kind == MIR_INST_PHI) && inst->name != NULL)
-        return inst->name;
-    return inst->arg0;
-}
-
 static bool
 mir_assign_ssa_recursive(MIRRoutine *routine,
                          size_t block_id,

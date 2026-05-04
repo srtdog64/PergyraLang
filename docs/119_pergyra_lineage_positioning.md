@@ -1,6 +1,6 @@
 # Pergyra Lineage Positioning
 
-Last updated: 2026-04-28
+Last updated: 2026-05-04
 
 Related documents:
 
@@ -36,6 +36,19 @@ The honest one-line answer to "which language is Pergyra in the lineage of":
 > introduced as *first-class syntactic constructs*, with enforcement depth
 > varying by primitive (see `docs/120_vision_and_capability_audit.md` for
 > current-vs-vision separation).
+
+Clarification added 2026-05-04:
+
+> Pergyra is best understood as a relocation of C#'s forced
+> multi-paradigm attitude into a systems/domain-verification setting. C#
+> normalized the idea that OOP, FP-shaped pipelines, async/await, records,
+> pattern matching, properties, events, attributes, and generics can coexist
+> in one language surface. Pergyra inherits that integration attitude, but
+> moves the center of gravity from managed application runtime design to
+> systems resources, explicit ABI, Slot/authority boundaries, and first-class
+> domain orchestration. In short: C# is the father of the language shape;
+> Pergyra re-targets that shape toward no-GC systems substrate plus
+> intent/zone/world verification.
 
 The "aspires to" is load-bearing. Pergyra at beta is *not yet* fully
 C#-shaped at every surface, does **not** claim Rust-level memory safety, and is

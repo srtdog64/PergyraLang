@@ -4,34 +4,13 @@
 #include "type_checker_internal.h"
 #include "type_checker_ownership_internal.h"
 #include "diag_codes.h"
-
-typedef enum
-{
-    FLOW_NONE        = 0,
-    FLOW_FALLTHROUGH = 1 << 0,
-    FLOW_BREAK       = 1 << 1,
-    FLOW_CONTINUE    = 1 << 2,
-    FLOW_RETURN      = 1 << 3
-} FlowFlags;
-
-#include "type_checker_flow_resources.h"
+#include "type_checker_flow_internal.h"
 #include "type_checker_flow_effects.h"
-
-typedef struct
-{
-    ResourceConsumeSnapshot break_states;
-    ResourceConsumeSnapshot continue_states;
-    bool                 has_break_states;
-    bool                 has_continue_states;
-    Scope               *loop_scope;
-} LoopFlowState;
+#include "type_checker_flow_loops.h"
 
 static FlowFlags type_check_statement_flow(ASTNode *node,
                                            SemanticContext *ctx,
                                            LoopFlowState *loop_flow);
-static FlowFlags type_check_block_flow(ASTNode *node,
-                                       SemanticContext *ctx,
-                                       LoopFlowState *loop_flow);
 static FlowFlags type_check_if_stmt_flow(ASTNode *node,
                                          SemanticContext *ctx,
                                          LoopFlowState *loop_flow);
@@ -71,13 +50,13 @@ flow_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
     return semantic_type_resolution_lookup_annotation_nullable(ctx, type_ref);
 }
 
-static Type *
+Type *
 flow_normalize_type(Type *type)
 {
     return type != NULL ? type : TYPE_UNKNOWN;
 }
 
-static bool
+bool
 flow_condition_is_static_bool(const ASTNode *node)
 {
     return node != NULL && node->type == AST_BOOLEAN;
@@ -109,7 +88,7 @@ flow_match_subject_is_beta_supported(const Type *type)
     return false;
 }
 
-static bool
+bool
 flow_ast_contains_defer_stmt(const ASTNode *node)
 {
     if (node == NULL)
@@ -144,7 +123,7 @@ flow_ast_contains_defer_stmt(const ASTNode *node)
     }
 }
 
-static void
+void
 flow_reject_dynamic_defer_control(SemanticContext *ctx,
                                   ASTNode *site,
                                   const char *control_kind)
@@ -160,9 +139,7 @@ flow_reject_dynamic_defer_control(SemanticContext *ctx,
         control_kind != NULL ? control_kind : "flow");
 }
 
-#include "type_checker_flow_loops.h"
-
-static FlowFlags
+FlowFlags
 type_check_block_flow(ASTNode *node, SemanticContext *ctx,
                       LoopFlowState *loop_flow)
 {

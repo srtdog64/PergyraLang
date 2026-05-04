@@ -38,6 +38,13 @@ Progress log, 2026-05-04:
 - Split DAG graph/stage declarations out of the semantic internal umbrella into `type_checker_resolution_graph_internal.h`, reducing `type_checker_internal.h` from 571 LOC to 486 LOC and making the resolution graph API ownership explicit. Gate: `test-semantic` (`2500/0`).
 - Split LLVM secure-slot runtime declarations out of `llvm_runtime.c` into `llvm_runtime_secure_slot_decl.c`, reducing the mixed runtime declaration owner from 540 LOC to 486 LOC while keeping the Slot/Pin ABI declaration order behind `llvm_runtime_internal.h`. Gates: `bin/pgy.exe`, `llvm-test-smoke`, `build-source-inventory-test-smoke`, `source-utf8-test-smoke`, `production-header-size-test-smoke`.
 - Split MIR liveness/use validation out of `mir.c` into `mir_validation.c`, reducing the mixed MIR construction/validation owner from 546 LOC to 427 LOC and making body-safety validation a dedicated owner consumed by the MIR public validator. Gates: `test-mir` (`41/0`), `bin/pgy.exe`, `build-source-inventory-test-smoke`, `source-utf8-test-smoke`, `production-header-size-test-smoke`.
+- Split LLVM channel send/receive expression lowering out of `llvm_expr.c` into `llvm_expr_channel.c`, reducing the mixed expression dispatcher from 543 LOC to 477 LOC while preserving ChannelSend/ChannelRecv runtime diagnostics. Gates: `bin/pgy.exe`, `llvm-test-smoke`, `source-utf8-test-smoke`, `production-header-size-test-smoke`.
+- Tightened `build_source_inventory_smoke.sh` by batching `git check-ignore --stdin` instead of shelling out once per build source. This keeps the source inventory gate viable as owner splits increase. Gate: `build-source-inventory-test-smoke`.
+- Promoted C backend `select` lowering from a static include chunk into `transpiler_select.c`, deleting `transpiler_select_emit.h` and moving select case parsing out of `transpiler.c`. This keeps select/channel lowering in a responsibility-owned translation unit and reduces the main C backend owner to 504 LOC. Gates: `bin/pgy.exe`, `test-transpile` (`717/0`), `build-source-inventory-test-smoke`, `source-utf8-test-smoke`, `production-header-size-test-smoke`.
+- Split LLVM intent observability trace emission out of `llvm_intent.c` into `llvm_intent_trace.c`, reducing the main intent orchestration owner from 537 LOC to 499 LOC while keeping trace ABI calls behind `llvm_intent_internal.h`. Gates: `bin/pgy.exe`, `llvm-test-smoke`, `build-source-inventory-test-smoke`, `source-utf8-test-smoke`, `production-header-size-test-smoke`.
+- Split MIR CFG edge-topology validation out of `mir_cfg_contract_validate.h` into `mir_cfg_contract_edges.h`, reducing the cleanup/pin contract validator from 538 LOC to 342 LOC while keeping predecessor/successor checks in the CFG body-safety gate. Gates: `test-mir` (`41/0`), `cfg-body-dataflow-test-smoke`, `build-source-inventory-test-smoke`, `source-utf8-test-smoke`, `production-header-size-test-smoke`.
+- Split C backend MIR emission mapping precheck out of `transpiler_mir_emission_contract.h` into `transpiler_mir_emission_mapping_contract.h`, reducing the main MIR emission contract owner from 545 LOC to 396 LOC while keeping SSA/name mapping fallback rejection in the C backend contract gate. Gates: `test-transpile` (`717/0`), `cfg-body-dataflow-test-smoke`, `build-source-inventory-test-smoke`, `source-utf8-test-smoke`, `production-header-size-test-smoke`.
+- Split LLVM MIR ABI/type metadata helpers out of `llvm_mir_emit.c` into `llvm_mir_type_helpers.h`, reducing the main MIR function emitter from 528 LOC to 358 LOC while keeping boundary Slot/SecureSlot parameter typing shared with MIR local emission. Gates: `bin/pgy.exe`, `llvm-test-smoke`, `build-source-inventory-test-smoke`, `source-utf8-test-smoke`, `production-header-size-test-smoke`.
 - Closed a LLVM declaration inventory compatibility gap: active-inventory fallback lookup now mirrors the frozen host declaration set for class/enum/relation/effect/zone/world/party/role/roster. Gates: `perf-contract-test-smoke`, `mir-declaration-inventory-test-smoke`, `llvm-test-smoke`, and `llvm-test-backend-compare`.
 - Closed an AIR boundary evidence drift bug: duplicate boundary-scoped evidence appends are idempotent, while global evidence counters still accumulate. This preserves the invariant that each boundary evidence node carries exactly one boundary fact. Gate: `test-air` (`76/0`).
 - Closed a LLVM Slot/Pin ABI parity bug: LLVM lowering now calls out-param `pgy_pin_*_init_*` / `pgy_secure_pin_*_init_*` wrappers instead of relying on struct-by-value returns. Gates: `abi-ownership-shape-test-smoke`, `test-abi`, `llvm-test-smoke`, `llvm-test-backend-compare` (`69/69`, ABI same-process precheck `196/196`).
@@ -55,6 +62,14 @@ Progress log, 2026-05-04:
 - Tightened C known-nominal forwarding: `transpiler_has_known_nominal_type(...)` now includes enum and role declarations, keeping C forward-declaration policy aligned with the frozen host/type inventory instead of treating those names as unknown after zone emission. Gate: `mir-declaration-inventory-test-smoke`.
 - Rechecked runtime propagation frontier gates: bounded zone/world/projection frontier contracts, runtime panic overflow path, queryable authority/failure surface, generated embedded-world frontier limit, and shared frontier pass-limit arithmetic remain green. Gates: `runtime-frontier-contract-test-smoke`, `runtime-frontier-policy-test-smoke`.
 - Rechecked UTF/docs readiness gates after the progress-log and beta-board updates. Gates: `source-utf8-test-smoke`, `documentation-quality-test-smoke`, `beta-readiness-checklist-test-smoke`.
+- Split CFG resource snapshot implementation out of `type_checker_flow_resources.h` into `type_checker_flow_resources.c`, leaving the header declaration-only and keeping body-safety resource snapshot/parallel conflict facts in a real semantic owner. Gates: `test-semantic` (`2500/0`), `cfg-body-dataflow-test-smoke`, `production-header-size-test-smoke`.
+- Split CFG loop body-flow implementation out of `type_checker_flow_loops.h` into `type_checker_flow_loops.c` with a narrow `type_checker_flow_internal.h` seam for shared flow facts. Loop fixed-point resource/effect merging now lives in a real semantic owner instead of an implementation header. Gates: `test-semantic` (`2500/0`), `cfg-body-dataflow-test-smoke`, `production-header-size-test-smoke`, `build-source-inventory-test-smoke`, `source-utf8-test-smoke`.
+- Split MIR fact validation and inventory surface usage out of implementation headers into `mir_fact_validate.c` and `mir_surface_usage.c`, leaving `mir_fact_validate.h` / `mir_surface_usage.h` declaration-only. MIR validation/source-usage facts now link through real compiler owners instead of being textually injected into `mir.c`. Gates: `test-mir` (`41/0`), `cfg-body-dataflow-test-smoke`, `build-source-inventory-test-smoke`, `production-header-size-test-smoke`, `source-utf8-test-smoke`.
+- Split MIR statement population out of `mir_stmt_population.h` into `mir_stmt_population.c`, leaving the header declaration-only and making non-CFG statement population consume explicit shared helper prototypes instead of include-order leakage. Gates: `test-mir` (`41/0`), `cfg-body-dataflow-test-smoke`, `build-source-inventory-test-smoke`, `production-header-size-test-smoke`, `source-utf8-test-smoke`.
+- Split MIR liveness/use-def summary implementation out of `mir_liveness_dce.h` into `mir_liveness_dce.c`, leaving the header declaration-only and keeping liveness/value-summary ownership in a real compiler source owner. Gates: `test-mir` (`41/0`), `cfg-body-dataflow-test-smoke`, `build-source-inventory-test-smoke`, `production-header-size-test-smoke`, `source-utf8-test-smoke`.
+- Split MIR DCE implementation out of `mir_dce.h` into `mir_dce.c`, leaving the header declaration-only and removing the remaining MIR DCE static implementation header warnings from the MIR build. Gates: `test-mir` (`41/0`), `cfg-body-dataflow-test-smoke`, `build-source-inventory-test-smoke`, `production-header-size-test-smoke`, `source-utf8-test-smoke`.
+- Split MIR statement source classification out of `mir_stmt_population.c` into `mir_stmt_source.c`, keeping the population owner focused on instruction interleaving and leaving def-source/preservation classification behind the existing `mir_stmt_population.h` API. Gates: `test-mir` (`41/0`), `cfg-body-dataflow-test-smoke`, `build-source-inventory-test-smoke`, `production-header-size-test-smoke`, `source-utf8-test-smoke`.
+- Updated MIR/perf declaration smoke contracts to track the new declaration-only headers and responsibility-owned `.c` files (`mir_fact_validate.c`, `mir_stmt_population.c`, `mir_stmt_source.c`, `transpiler_inventory_view.h`, `llvm_expr_channel.c`, `type_checker_flow_resources.c`). Gates: `perf-contract-test-smoke`, `mir-declaration-inventory-test-smoke`.
 
 ## 0-selfhost. Beta 이후 self-hosting 목표
 
@@ -6649,3 +6664,26 @@ Local verification for this debt refresh:
   `test-air` (`75/0`), `llvm-test-smoke`, `perf-contract-test-smoke`,
   `mir-declaration-inventory-test-smoke`, and `git diff --check` (line-ending
   warnings only).
+- AIR owner cleanup continued: `air_names.c` now owns AIR diagnostic
+  formatting and owned-name allocation, while `air_validate_global_evidence.c`
+  owns DAG/MIR/RIR propagation/observability global evidence validation.
+  `air.c` is back to synthesis/evidence append, and boundary evidence
+  validation no longer carries the global evidence matrix inline. Local MinGW
+  verification: `test-air` (`76/0`).
+- Runtime owner cleanup continued: party dispatch moved from implementation
+  header `party_runtime_dispatch.h` into `party_runtime_dispatch.c`, with
+  `party_runtime_internal.h` making the small shared runtime helpers explicit.
+  Public `DispatchParallel(...)` ABI is unchanged; the runtime no longer keeps
+  the parallel dispatcher body in a header. Local MinGW verification:
+  `bin/pgy.exe`, `build-source-inventory-test-smoke`, `source-utf8-test-smoke`,
+  and `production-header-size-test-smoke`.
+- Parser expression owner cleanup continued: lambda lookahead/body parsing now
+  lives in `parser_expr_lambda.c`, and shared expression-list growth lives in
+  `parser_expr_util.c`. This keeps `parser_expr.c` focused on precedence,
+  postfix, and primary-expression orchestration while preserving the existing
+  parser internal API. Local MinGW verification: `test-parser`.
+- LLVM MIR CFG control cleanup continued: range/for-in loop initialization,
+  condition, and backedge increment lowering moved into
+  `llvm_mir_loop_control.c`. `llvm_mir_cfg_control.c` now keeps match/select
+  CFG condition lowering instead of carrying all loop control helpers inline.
+  Local MinGW verification: `llvm-test-smoke`.

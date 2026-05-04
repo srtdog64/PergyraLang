@@ -1,6 +1,9 @@
 #ifndef PERGYRA_MIR_NON_CFG_STMT_POPULATION_H
 #define PERGYRA_MIR_NON_CFG_STMT_POPULATION_H
 
+#include "mir_call_fact.h"
+#include "mir_stmt_population.h"
+
 static bool
 mir_append_non_cfg_body_statements(MIRRoutine *routine, MIRBasicBlock *entry)
 {

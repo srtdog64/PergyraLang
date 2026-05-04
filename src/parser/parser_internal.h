@@ -56,7 +56,13 @@ ASTNode *parse_addition(Parser *parser);
 ASTNode *parse_multiplication(Parser *parser);
 ASTNode *parse_unary(Parser *parser);
 ASTNode *finish_call(Parser *parser, ASTNode *callee);
+bool     parser_is_lambda_start(Parser *parser);
 ASTNode *parse_lambda_expression(Parser *parser);
+bool     parser_append_expr_node_with_capacity(Parser *parser,
+                                               ASTNode ***items,
+                                               size_t *count,
+                                               size_t *capacity,
+                                               ASTNode *item);
 bool     is_multiline_string_token(const char *value);
 ASTNode *parse_interpolation_body(const char *raw, bool is_fstring);
 

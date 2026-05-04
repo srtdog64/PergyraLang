@@ -176,7 +176,9 @@ PARSER_SOURCES   = $(PARSER_DIR)/ast.c \
                    $(PARSER_DIR)/parser_enum.c \
                    $(PARSER_DIR)/parser_export.c \
                    $(PARSER_DIR)/parser_expr.c \
+                   $(PARSER_DIR)/parser_expr_lambda.c \
                    $(PARSER_DIR)/parser_expr_string.c \
+                   $(PARSER_DIR)/parser_expr_util.c \
                    $(PARSER_DIR)/parser_pin.c \
                    $(PARSER_DIR)/parser_stmt.c \
                    $(PARSER_DIR)/parser_statement_dispatch.c \
@@ -211,6 +213,7 @@ RUNTIME_SOURCES  = $(RUNTIME_DIR)/slot_manager.c \
                    $(RUNTIME_DIR)/slot_manager_security_stats.c \
                    $(RUNTIME_DIR)/slot_manager_scope.c \
                    $(RUNTIME_DIR)/party_runtime.c \
+                   $(RUNTIME_DIR)/party_runtime_dispatch.c \
                    $(RUNTIME_DIR)/world_roster.c
 ASYNC_SOURCES    = $(ASYNC_DIR)/concurrent_queue.c \
                    $(ASYNC_DIR)/async_scope.c \
@@ -303,7 +306,9 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_ability_match.c \
                    $(SEMANTIC_DIR)/type_checker_ability_where.c \
                    $(SEMANTIC_DIR)/type_checker_ownership_classify.c \
+                   $(SEMANTIC_DIR)/type_checker_ownership_diag_context.c \
                    $(SEMANTIC_DIR)/type_checker_ownership_diag.c \
+                   $(SEMANTIC_DIR)/type_checker_ownership_diag_helper_call.c \
                    $(SEMANTIC_DIR)/type_checker_ownership_diag_constructor.c \
                    $(SEMANTIC_DIR)/type_checker_ownership_assign.c \
                    $(SEMANTIC_DIR)/type_checker_ownership_array_store.c \
@@ -362,6 +367,8 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_slot_view_active.c \
                    $(SEMANTIC_DIR)/type_checker_slot_view_boundary.c \
                    $(SEMANTIC_DIR)/type_checker_flow_effects.c \
+                   $(SEMANTIC_DIR)/type_checker_flow_resources.c \
+                   $(SEMANTIC_DIR)/type_checker_flow_loops.c \
                    $(SEMANTIC_DIR)/type_checker_flow_match_coverage.c \
                    $(SEMANTIC_DIR)/type_checker_flow_match.c \
                    $(SEMANTIC_DIR)/type_checker_flow.c \
@@ -388,6 +395,7 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_context.c \
                    $(CODEGEN_DIR)/transpiler_operator.c \
                    $(CODEGEN_DIR)/transpiler_projection.c \
                    $(CODEGEN_DIR)/transpiler_thread_pool.c \
+                   $(CODEGEN_DIR)/transpiler_select.c \
                    $(CODEGEN_DIR)/transpiler_type_alias.c \
                    $(CODEGEN_DIR)/transpiler_type_declarator.c \
                    $(CODEGEN_DIR)/transpiler_type_require.c \
@@ -400,6 +408,7 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/dir_collect_intent.c \
                    $(COMPILER_DIR)/dir_collect_domain.c \
                    $(COMPILER_DIR)/dir_validate.c \
+                   $(COMPILER_DIR)/air_names.c \
                    $(COMPILER_DIR)/air.c \
                    $(COMPILER_DIR)/air_boundary.c \
                    $(COMPILER_DIR)/air_boundary_walk.c \
@@ -407,6 +416,7 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/air_evidence_ast.c \
                    $(COMPILER_DIR)/air_evidence.c \
                    $(COMPILER_DIR)/air_evidence_rir.c \
+                   $(COMPILER_DIR)/air_validate_global_evidence.c \
                    $(COMPILER_DIR)/air_validate_evidence.c \
                    $(COMPILER_DIR)/air_validate.c \
                    $(COMPILER_DIR)/air_verify.c \
@@ -427,6 +437,12 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/hir_lower_intent_cfg.c \
                    $(COMPILER_DIR)/mir.c \
                    $(COMPILER_DIR)/mir_validation.c \
+                   $(COMPILER_DIR)/mir_surface_usage.c \
+                   $(COMPILER_DIR)/mir_fact_validate.c \
+                   $(COMPILER_DIR)/mir_stmt_population.c \
+                   $(COMPILER_DIR)/mir_stmt_source.c \
+                   $(COMPILER_DIR)/mir_liveness_dce.c \
+                   $(COMPILER_DIR)/mir_dce.c \
                    $(COMPILER_DIR)/mir_cleanup.c \
                    $(COMPILER_DIR)/mir_intent.c \
                    $(COMPILER_DIR)/mir_intent_fact.c \
@@ -469,6 +485,7 @@ ifneq ($(LLVM_ENABLED),0)
                          $(CODEGEN_DIR)/llvm_intent_setup.c \
                          $(CODEGEN_DIR)/llvm_intent_cleanup.c \
                          $(CODEGEN_DIR)/llvm_intent_step_context.c \
+                         $(CODEGEN_DIR)/llvm_intent_trace.c \
                          $(CODEGEN_DIR)/llvm_registry.c \
                          $(CODEGEN_DIR)/llvm_registry_collections.c \
                          $(CODEGEN_DIR)/llvm_registry_resources.c \
@@ -484,11 +501,13 @@ ifneq ($(LLVM_ENABLED),0)
                         $(CODEGEN_DIR)/llvm_mir_phi.c \
                         $(CODEGEN_DIR)/llvm_mir_cfg_control.c \
                         $(CODEGEN_DIR)/llvm_mir_for_in_control.c \
+                        $(CODEGEN_DIR)/llvm_mir_loop_control.c \
                         $(CODEGEN_DIR)/llvm_intent_mir_meta.c \
                          $(CODEGEN_DIR)/llvm_intent_zone.c \
                          $(CODEGEN_DIR)/llvm_intent_effect.c \
                          $(CODEGEN_DIR)/llvm_intent_flow.c \
                          $(CODEGEN_DIR)/llvm_expr.c \
+                         $(CODEGEN_DIR)/llvm_expr_channel.c \
                          $(CODEGEN_DIR)/llvm_expr_helpers.c \
                          $(CODEGEN_DIR)/llvm_stmt.c \
                          $(CODEGEN_DIR)/llvm_stmt_defer_scope.c \
@@ -663,18 +682,26 @@ RIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/rir.o \
                    $(BUILD_DIR)/compiler/rir_builder.o \
                    $(BUILD_DIR)/compiler/rir_builder_walk.o \
                    $(BUILD_DIR)/compiler/rir_builder_intent.o
-AIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/air.o \
+AIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/air_names.o \
+                   $(BUILD_DIR)/compiler/air.o \
                    $(BUILD_DIR)/compiler/air_boundary.o \
                    $(BUILD_DIR)/compiler/air_boundary_walk.o \
                    $(BUILD_DIR)/compiler/air_dump.o \
                    $(BUILD_DIR)/compiler/air_evidence_ast.o \
                    $(BUILD_DIR)/compiler/air_evidence.o \
                    $(BUILD_DIR)/compiler/air_evidence_rir.o \
+                   $(BUILD_DIR)/compiler/air_validate_global_evidence.o \
                    $(BUILD_DIR)/compiler/air_validate_evidence.o \
                    $(BUILD_DIR)/compiler/air_validate.o \
                    $(BUILD_DIR)/compiler/air_verify.o
 MIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/mir.o \
                    $(BUILD_DIR)/compiler/mir_validation.o \
+                   $(BUILD_DIR)/compiler/mir_surface_usage.o \
+                   $(BUILD_DIR)/compiler/mir_fact_validate.o \
+                   $(BUILD_DIR)/compiler/mir_stmt_population.o \
+                   $(BUILD_DIR)/compiler/mir_stmt_source.o \
+                   $(BUILD_DIR)/compiler/mir_liveness_dce.o \
+                   $(BUILD_DIR)/compiler/mir_dce.o \
                    $(BUILD_DIR)/compiler/mir_cleanup.o \
                    $(BUILD_DIR)/compiler/mir_intent.o \
                    $(BUILD_DIR)/compiler/mir_intent_fact.o \

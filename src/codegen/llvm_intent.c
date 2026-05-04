@@ -264,37 +264,12 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
             goto intent_emit_fail;
         causes_effect = step_ctx.causes_effect;
 
-        if (ctx->uses_intent_observability && trace_step_fn != NULL) {
-            LLVMValueRef handle = LLVMBuildLoad2(ctx->builder, ctx->type_i32,
-                handle_alloca, llvm_tmp_name(ctx));
-            LLVMValueRef args[] = {
-                handle,
-                LLVMBuildGlobalStringPtr(ctx->builder,
-                    step_name != NULL ? step_name : "<step>",
-                    llvm_tmp_name(ctx)),
-                LLVMBuildGlobalStringPtr(ctx->builder,
-                    step_ctx.zone_type_name != NULL ? step_ctx.zone_type_name : "<zone>",
-                    llvm_tmp_name(ctx))
-            };
-            LLVMBuildCall2(ctx->builder, trace_step_fn->fn_type, trace_step_fn->fn, args, 3, "");
-        }
-        if (ctx->uses_intent_observability && trace_bind_fn != NULL) {
-        for (size_t j = 0; j < step_ctx.who_alias_count; j++) {
-            LLVMValueRef handle = LLVMBuildLoad2(ctx->builder, ctx->type_i32,
-                handle_alloca, llvm_tmp_name(ctx));
-            const char *alias = step_ctx.who_aliases[j];
-            const char *slot_name = llvm_resolve_intent_zone_slot_name_for_zone(
-                ctx, node, step_ctx.zone_type_name, alias);
-            LLVMValueRef args[] = {
-                handle,
-                LLVMBuildGlobalStringPtr(ctx->builder, alias != NULL ? alias : "<participant>",
-                    llvm_tmp_name(ctx)),
-                LLVMBuildGlobalStringPtr(ctx->builder, slot_name != NULL ? slot_name : "<unbound>",
-                    llvm_tmp_name(ctx))
-            };
-            LLVMBuildCall2(ctx->builder, trace_bind_fn->fn_type, trace_bind_fn->fn, args, 3, "");
-        }
-        }
+        if (ctx->uses_intent_observability)
+            llvm_emit_intent_trace_step(ctx, trace_step_fn, handle_alloca,
+                step_name, step_ctx.zone_type_name);
+        if (ctx->uses_intent_observability)
+            llvm_emit_intent_trace_bindings(ctx, node, trace_bind_fn,
+                handle_alloca, &step_ctx);
         llvm_emit_intent_step_validate_authority(ctx, fn, fail_bb, fail_reason_alloca,
             step_name, step_ctx.zone_type_name, step_ctx.zone_alias,
             step_ctx.authorized_aliases, step_ctx.authorized_alias_count);
@@ -476,17 +451,9 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
         /* saved_participant_ptrs is ctx->scratch-owned; clear the local
          * reference so the next step rebinds fresh (blocks stay in arena). */
         saved_participant_ptrs = NULL;
-        if (ctx->uses_intent_observability && trace_step_ok_fn != NULL) {
-            LLVMValueRef handle = LLVMBuildLoad2(ctx->builder, ctx->type_i32,
-                handle_alloca, llvm_tmp_name(ctx));
-            LLVMValueRef args[] = {
-                handle,
-                LLVMBuildGlobalStringPtr(ctx->builder,
-                    step_name != NULL ? step_name : "<step>",
-                    llvm_tmp_name(ctx))
-            };
-            LLVMBuildCall2(ctx->builder, trace_step_ok_fn->fn_type, trace_step_ok_fn->fn, args, 2, "");
-        }
+        if (ctx->uses_intent_observability)
+            llvm_emit_intent_trace_step_ok(ctx, trace_step_ok_fn,
+                handle_alloca, step_name);
     }
 
     {
@@ -516,14 +483,9 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
 
     LLVMPositionBuilderAtEnd(ctx->builder, fail_bb);
     {
-        LLVMValueRef handle = LLVMBuildLoad2(ctx->builder, ctx->type_i32,
-            handle_alloca, llvm_tmp_name(ctx));
-        LLVMValueRef reason = LLVMBuildLoad2(ctx->builder, ctx->type_i8ptr,
-            fail_reason_alloca, llvm_tmp_name(ctx));
-        if (ctx->uses_intent_observability && trace_fail_fn != NULL) {
-            LLVMValueRef trace_args[] = { handle, reason };
-            LLVMBuildCall2(ctx->builder, trace_fail_fn->fn_type, trace_fail_fn->fn, trace_args, 2, "");
-        }
+        if (ctx->uses_intent_observability)
+            llvm_emit_intent_trace_failure(ctx, trace_fail_fn,
+                handle_alloca, fail_reason_alloca);
         LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 1, 0), failed_alloca);
         LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 0, 0), result_alloca);
         LLVMBuildBr(ctx->builder, cleanup_bb);

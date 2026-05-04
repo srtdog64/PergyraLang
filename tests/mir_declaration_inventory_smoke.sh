@@ -40,6 +40,7 @@ for rel in \
     "src/codegen/llvm_backend.h" \
     "src/codegen/llvm_register.c" \
     "src/codegen/transpiler.h" \
+    "src/codegen/transpiler_inventory_view.h" \
     "src/codegen/transpiler.c" \
     "src/codegen/transpiler_decl_host_lookup.c" \
     "src/codegen/transpiler_domain_role_ability_emit.h" \
@@ -118,10 +119,10 @@ for term in "mir_active_inventory" "mir_active_externs"; do
     require_term "src/compiler/mir_lower_public_api.h" "$term"
 done
 
-for rel in "src/codegen/llvm_inventory_decl_lookup.h" "src/codegen/transpiler.h"; do
+for rel in "src/codegen/llvm_inventory_decl_lookup.h" "src/codegen/transpiler_inventory_view.h"; do
     require_term "$rel" "mir_active_inventory(ctx->mir, decl_type, &nodes, &count)"
 done
-for rel in "src/codegen/llvm_inventory_internal.h" "src/codegen/transpiler.h"; do
+for rel in "src/codegen/llvm_inventory_internal.h" "src/codegen/transpiler_inventory_view.h"; do
     require_term "$rel" "mir_active_externs(ctx->mir, &nodes, &count)"
 done
 
@@ -184,7 +185,7 @@ for term in \
     "transpiler_active_synthetic_executable_func" \
     "transpiler_active_has_main_function" \
     "transpiler_active_has_top_level_exec"; do
-    require_term "src/codegen/transpiler.h" "$term"
+    require_term "src/codegen/transpiler_inventory_view.h" "$term"
 done
 
 for term in \
@@ -380,6 +381,7 @@ c_routine_raw_hits="$(
         case "$rel" in
             src/codegen/llvm*|\
             src/codegen/transpiler.h|\
+            src/codegen/transpiler_inventory_view.h|\
             src/codegen/transpiler_decl_lookup.h)
                 continue
                 ;;
@@ -590,7 +592,7 @@ for term in \
     "method metadata count" \
     "signature metadata drift" \
     "routine index"; do
-    require_term "src/compiler/mir_fact_validate.h" "$term"
+    require_term "src/compiler/mir_fact_validate.c" "$term"
 done
 require_term "src/compiler/mir_public_surface.h" \
     "mir_validate_decl_header_metadata(mir, error_message)"
@@ -630,7 +632,7 @@ allowed_raw_files=(
     "src/codegen/llvm_inventory_internal.h"
     "src/codegen/llvm_inventory_decl_lookup.h"
     "src/codegen/llvm_inventory_host_methods.h"
-    "src/codegen/transpiler.h"
+    "src/codegen/transpiler_inventory_view.h"
 )
 raw_hits=""
 domain_array_pattern="$(

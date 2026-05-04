@@ -115,6 +115,24 @@ void        llvm_emit_intent_step_mark_caused_effect(LLVMGenCtx *ctx,
                                                      const char *zone_type_name,
                                                      const char *zone_alias,
                                                      const char *causes_effect);
+void        llvm_emit_intent_trace_step(LLVMGenCtx *ctx,
+                                        LLVMFuncEntry *trace_step_fn,
+                                        LLVMValueRef handle_alloca,
+                                        const char *step_name,
+                                        const char *zone_type_name);
+void        llvm_emit_intent_trace_bindings(LLVMGenCtx *ctx,
+                                            ASTNode *intent,
+                                            LLVMFuncEntry *trace_bind_fn,
+                                            LLVMValueRef handle_alloca,
+                                            const LLVMIntentStepContext *step_ctx);
+void        llvm_emit_intent_trace_step_ok(LLVMGenCtx *ctx,
+                                           LLVMFuncEntry *trace_step_ok_fn,
+                                           LLVMValueRef handle_alloca,
+                                           const char *step_name);
+void        llvm_emit_intent_trace_failure(LLVMGenCtx *ctx,
+                                           LLVMFuncEntry *trace_fail_fn,
+                                           LLVMValueRef handle_alloca,
+                                           LLVMValueRef fail_reason_alloca);
 const MIRRoutine *llvm_find_mir_intent_routine(const LLVMGenCtx *ctx,
                                                ASTNode *intent_decl);
 void        llvm_emit_mir_resource_hook(LLVMGenCtx *ctx,

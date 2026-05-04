@@ -61,12 +61,6 @@ mir_branch_shape_from_ast(const ASTNode *node)
 #include "mir_type_helpers.h"
 #include "mir_validation.h"
 
-static void mir_clear_block_name_set(const char ***names, size_t *count, size_t *capacity);
-static int mir_find_value_summary(const MIRRoutine *routine, const char *name);
-static bool mir_compute_liveness(MIRRoutine *routine);
-static const char *mir_stmt_def_name(const ASTNode *stmt);
-static bool mir_let_decl_requires_stmt_preservation(const ASTNode *stmt);
-
 static bool
 mir_add_phi_placeholders(MIRRoutine *routine, MIRBasicBlock *block)
 {
@@ -256,6 +250,7 @@ mir_add_resource_instruction(MIRRoutine *routine, MIRBasicBlock *block, const RI
 #include "mir_ssa_rename.h"
 
 #include "mir_liveness_dce.h"
+#include "mir_dce.h"
 
 static bool
 mir_block_has_predecessor(const MIRBasicBlock *block, size_t predecessor)

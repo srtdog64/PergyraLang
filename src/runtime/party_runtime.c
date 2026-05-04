@@ -3,8 +3,7 @@
  * Party System Runtime Implementation
  */
 
-#include "party_runtime.h"
-#include <stdatomic.h>
+#include "party_runtime_internal.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -35,19 +34,16 @@ static struct {
 static void party_runtime_warn_scheduler(const char* reason,
                                          SchedulerTag tag,
                                          const char* name);
-static void party_runtime_warn(const char* op, const char* reason);
+void party_runtime_warn(const char* op, const char* reason);
 static char* party_runtime_strdup(const char* text);
 static uint64_t HashString(const char* str);
-static uint64_t GetTimeNanos(void);
-static void UpdateFiberStats(const char* roleId, const FiberResult* result);
-static void party_dispatch_sleep_ms(uint32_t milliseconds);
-static void party_dispatch_yield(void);
+uint64_t GetTimeNanos(void);
+void UpdateFiberStats(const char* roleId, const FiberResult* result);
 static size_t party_context_find_role_index_by_name(const PartyContext* context,
                                                     const char* slotName);
 static size_t party_context_find_role_index_by_slot(const PartyContext* context,
                                                     uint32_t slotId);
-static void* party_context_role_instance_by_slot(PartyContext* context,
-                                                 uint32_t slotId);
+void* party_context_role_instance_by_slot(PartyContext* context, uint32_t slotId);
 
 static void
 party_runtime_warn_scheduler(const char* reason, SchedulerTag tag, const char* name)
@@ -59,7 +55,7 @@ party_runtime_warn_scheduler(const char* reason, SchedulerTag tag, const char* n
             name != NULL ? name : "<null>");
 }
 
-static void
+void
 party_runtime_warn(const char* op, const char* reason)
 {
     fprintf(stderr,
@@ -236,7 +232,7 @@ party_context_find_role_index_by_slot(const PartyContext* context, uint32_t slot
     return SIZE_MAX;
 }
 
-static void*
+void*
 party_context_role_instance_by_slot(PartyContext* context, uint32_t slotId)
 {
     if (context == NULL) {
@@ -372,8 +368,6 @@ ContextGetShared(PartyContext* context, const char* fieldName)
     return result;
 }
 
-#include "party_runtime_dispatch.h"
-
 /* ============= Scheduler Management ============= */
 
 bool
@@ -438,7 +432,7 @@ GetSchedulerForTag(SchedulerTag tag)
 
 /* ============= Statistics ============= */
 
-static void
+void
 UpdateFiberStats(const char* roleId, const FiberResult* result)
 {
     if (roleId == NULL || result == NULL) {
@@ -557,7 +551,7 @@ HashString(const char* str)
     return hash;
 }
 
-static uint64_t
+uint64_t
 GetTimeNanos(void)
 {
 #ifdef _WIN32

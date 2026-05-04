@@ -1,5 +1,21 @@
-#ifndef PERGYRA_PARTY_RUNTIME_DISPATCH_H
-#define PERGYRA_PARTY_RUNTIME_DISPATCH_H
+/*
+ * Copyright (c) 2025 Pergyra Language Project
+ * All rights reserved.
+ *
+ * Party runtime parallel dispatch owner.
+ */
+
+#include "party_runtime_internal.h"
+
+#include <stdatomic.h>
+#include <stdlib.h>
+
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <sched.h>
+#include <time.h>
+#endif
 
 typedef struct {
     FiberMapEntry* entry;
@@ -9,6 +25,29 @@ typedef struct {
     atomic_bool* stopFlag;
     atomic_bool* completedFlag;
 } PartyDispatchThreadData;
+
+static void
+party_dispatch_sleep_ms(uint32_t milliseconds)
+{
+#ifdef _WIN32
+    Sleep(milliseconds);
+#else
+    struct timespec req;
+    req.tv_sec = milliseconds / 1000U;
+    req.tv_nsec = (long)(milliseconds % 1000U) * 1000000L;
+    nanosleep(&req, NULL);
+#endif
+}
+
+static void
+party_dispatch_yield(void)
+{
+#ifdef _WIN32
+    Sleep(0);
+#else
+    sched_yield();
+#endif
+}
 
 static void*
 PartyDispatchThreadMain(void* userData)
@@ -52,29 +91,6 @@ PartyDispatchThreadMain(void* userData)
 
     data->result->executionTimeNs = GetTimeNanos() - startTime;
     return NULL;
-}
-
-static void
-party_dispatch_sleep_ms(uint32_t milliseconds)
-{
-#ifdef _WIN32
-    Sleep(milliseconds);
-#else
-    struct timespec req;
-    req.tv_sec = milliseconds / 1000U;
-    req.tv_nsec = (long)(milliseconds % 1000U) * 1000000L;
-    nanosleep(&req, NULL);
-#endif
-}
-
-static void
-party_dispatch_yield(void)
-{
-#ifdef _WIN32
-    Sleep(0);
-#else
-    sched_yield();
-#endif
 }
 
 static void
@@ -169,7 +185,8 @@ DispatchParallel(FiberMap* map,
             continue;
         }
 
-        if (GetSchedulerForTag(entry->schedulerTag) == NULL && entry->schedulerTag != SCHEDULER_ANY) {
+        if (GetSchedulerForTag(entry->schedulerTag) == NULL
+            && entry->schedulerTag != SCHEDULER_ANY) {
             result.results[i].error = "Scheduler tag unresolved";
             atomic_store(&completedFlags[i], true);
             party_runtime_warn("dispatch_parallel",
@@ -284,5 +301,3 @@ DispatchParallel(FiberMap* map,
 
     return result;
 }
-
-#endif /* PERGYRA_PARTY_RUNTIME_DISPATCH_H */

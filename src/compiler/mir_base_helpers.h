@@ -123,18 +123,6 @@ append_name_unique(const char ***names, size_t *count, size_t *capacity, const c
 }
 
 static bool
-mir_name_set_contains(const char **names, size_t count, const char *name)
-{
-    if (names == NULL || name == NULL)
-        return false;
-    for (size_t i = 0; i < count; i++) {
-        if (names[i] != NULL && strcmp(names[i], name) == 0)
-            return true;
-    }
-    return false;
-}
-
-static bool
 append_block(MIRRoutine *routine, MIRBasicBlock block)
 {
     if (routine == NULL)

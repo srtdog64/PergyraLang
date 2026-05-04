@@ -3,67 +3,7 @@
 #include "mir_cfg_contract_cleanup_fact.h"
 #include "mir_cfg_contract_roots.h"
 #include "mir_cfg_contract_cleanup_roots.h"
-
-static bool
-mir_validate_edge_predecessor_link(const MIRRoutine *routine,
-                                   size_t source_index,
-                                   size_t target_index,
-                                   const char *edge_label,
-                                   char **error_message)
-{
-    const MIRBasicBlock *target_block;
-
-    if (routine == NULL || target_index >= routine->block_count)
-        return false;
-
-    target_block = &routine->blocks[target_index];
-    if (mir_block_has_predecessor(target_block, source_index))
-        return true;
-
-    if (error_message != NULL) {
-        *error_message = mir_strdup_fmt(
-            "MIR routine '%s' block[%zu] missing predecessor link to %s successor %zu",
-            routine->name != NULL ? routine->name : "(anonymous)",
-            source_index,
-            edge_label != NULL ? edge_label : "unknown",
-            target_index);
-    }
-    return false;
-}
-
-static bool
-mir_validate_successor_index(const MIRRoutine *routine,
-                             size_t source_index,
-                             size_t target_index,
-                             const char *edge_label,
-                             char **error_message)
-{
-    if (routine != NULL && target_index < routine->block_count)
-        return true;
-
-    if (error_message != NULL) {
-        *error_message = mir_strdup_fmt(
-            "MIR routine '%s' block[%zu] has invalid %s successor %zu",
-            routine != NULL && routine->name != NULL ? routine->name : "(anonymous)",
-            source_index,
-            edge_label != NULL ? edge_label : "unknown",
-            target_index);
-    }
-    return false;
-}
-
-static bool
-mir_block_has_forward_edge_to(const MIRBasicBlock *block, size_t target_index)
-{
-    if (block == NULL)
-        return false;
-    return (block->has_succ_true && block->succ_true == target_index)
-        || (block->has_succ_false && block->succ_false == target_index)
-        || (block->has_cleanup_succ && block->cleanup_succ == target_index)
-        || (block->has_rollback_succ && block->rollback_succ == target_index)
-        || (block->has_invalidation_succ
-            && block->invalidation_succ == target_index);
-}
+#include "mir_cfg_contract_edges.h"
 
 static bool
 mir_validate_cfg_contract_state(const MIRRoutine *routine,
@@ -323,101 +263,7 @@ mir_validate_cfg_contract_state(const MIRRoutine *routine,
             return false;
         }
 
-        if (block->predecessor_count > 0) {
-            for (size_t p = 0; p < block->predecessor_count; p++) {
-                if (block->predecessors[p] == i) {
-                    if (error_message != NULL) {
-                        *error_message = mir_strdup_fmt(
-                            "MIR routine '%s' block[%zu] contains self predecessor",
-                            routine->name != NULL ? routine->name : "(anonymous)",
-                            i);
-                    }
-                    free(hir_block_seen);
-                    return false;
-                }
-                if (block->predecessors[p] >= routine->block_count) {
-                    if (error_message != NULL) {
-                        *error_message = mir_strdup_fmt(
-                            "MIR routine '%s' block[%zu] has invalid predecessor %zu",
-                            routine->name != NULL ? routine->name : "(anonymous)",
-                            i,
-                            block->predecessors[p]);
-                    }
-                    free(hir_block_seen);
-                    return false;
-                }
-                if (!mir_block_has_forward_edge_to(
-                        &routine->blocks[block->predecessors[p]], i)) {
-                    if (error_message != NULL) {
-                        *error_message = mir_strdup_fmt(
-                            "MIR routine '%s' block[%zu] predecessor %zu has no matching forward edge",
-                            routine->name != NULL ? routine->name : "(anonymous)",
-                            i,
-                            block->predecessors[p]);
-                    }
-                    free(hir_block_seen);
-                    return false;
-                }
-            }
-            for (size_t p = 0; p < block->predecessor_count; p++) {
-                for (size_t q = p + 1; q < block->predecessor_count; q++) {
-                    if (block->predecessors[p] == block->predecessors[q]) {
-                        if (error_message != NULL) {
-                            *error_message = mir_strdup_fmt(
-                                "MIR routine '%s' block[%zu] has duplicate predecessor %zu",
-                                routine->name != NULL ? routine->name : "(anonymous)",
-                                i,
-                                block->predecessors[p]);
-                        }
-                        free(hir_block_seen);
-                        return false;
-                    }
-                }
-            }
-        }
-
-        if (block->has_succ_true
-            && !mir_validate_successor_index(routine,
-                                             i,
-                                             block->succ_true,
-                                             "true",
-                                             error_message)) {
-            free(hir_block_seen);
-            return false;
-        }
-        if (block->has_succ_false
-            && !mir_validate_successor_index(routine,
-                                             i,
-                                             block->succ_false,
-                                             "false",
-                                             error_message)) {
-            free(hir_block_seen);
-            return false;
-        }
-        if (block->has_cleanup_succ
-            && !mir_validate_successor_index(routine,
-                                             i,
-                                             block->cleanup_succ,
-                                             "cleanup",
-                                             error_message)) {
-            free(hir_block_seen);
-            return false;
-        }
-        if (block->has_rollback_succ
-            && !mir_validate_successor_index(routine,
-                                             i,
-                                             block->rollback_succ,
-                                             "rollback",
-                                             error_message)) {
-            free(hir_block_seen);
-            return false;
-        }
-        if (block->has_invalidation_succ
-            && !mir_validate_successor_index(routine,
-                                             i,
-                                             block->invalidation_succ,
-                                             "invalidation",
-                                             error_message)) {
+        if (!mir_validate_cfg_contract_block_edges(routine, i, error_message)) {
             free(hir_block_seen);
             return false;
         }
@@ -448,56 +294,6 @@ mir_validate_cfg_contract_state(const MIRRoutine *routine,
             }
         }
 
-        if (block->has_succ_true) {
-            if (!mir_validate_edge_predecessor_link(routine,
-                                                    i,
-                                                    block->succ_true,
-                                                    "true",
-                                                    error_message)) {
-                free(hir_block_seen);
-                return false;
-            }
-        }
-        if (block->has_succ_false) {
-            if (!mir_validate_edge_predecessor_link(routine,
-                                                    i,
-                                                    block->succ_false,
-                                                    "false",
-                                                    error_message)) {
-                free(hir_block_seen);
-                return false;
-            }
-        }
-        if (block->has_cleanup_succ) {
-            if (!mir_validate_edge_predecessor_link(routine,
-                                                    i,
-                                                    block->cleanup_succ,
-                                                    "cleanup",
-                                                    error_message)) {
-                free(hir_block_seen);
-                return false;
-            }
-        }
-        if (block->has_rollback_succ) {
-            if (!mir_validate_edge_predecessor_link(routine,
-                                                    i,
-                                                    block->rollback_succ,
-                                                    "rollback",
-                                                    error_message)) {
-                free(hir_block_seen);
-                return false;
-            }
-        }
-        if (block->has_invalidation_succ) {
-            if (!mir_validate_edge_predecessor_link(routine,
-                                                    i,
-                                                    block->invalidation_succ,
-                                                    "invalidation",
-                                                    error_message)) {
-                free(hir_block_seen);
-                return false;
-            }
-        }
     }
 
     if (routine->has_cleanup_block) {

@@ -62,6 +62,10 @@ bool        air_boundary_declares_authority_name(
                 const char *authority_name);
 bool        air_boundary_requires_mir_pin_cleanup_evidence(
                 const AIRBoundaryNode *boundary);
+bool        air_evidence_kind_is_global(AIREvidenceKind kind);
+bool        air_validate_global_evidence_node(const AIREvidenceNode *evidence,
+                                              size_t evidence_index,
+                                              char **error_message);
 bool        air_validate_evidence_inventory(const AIRProgram *air,
                                             char **error_message);
 

@@ -41,46 +41,6 @@ void emit_relation_decl(ASTNode *node, TranspilerCtx *ctx);
 void emit_effect_decl(ASTNode *node, TranspilerCtx *ctx);
 void emit_zone_decl(ASTNode *node, TranspilerCtx *ctx);
 void emit_world_decl(ASTNode *node, TranspilerCtx *ctx);
-static bool
-select_case_parts(ASTNode *case_node, ASTNode **channel_out,
-                  const char **bind_name_out, ASTNode **body_out)
-{
-    if (case_node == NULL || case_node->type != AST_BLOCK
-        || case_node->data.block.count == 0)
-        return false;
-
-    ASTNode *first = case_node->data.block.statements[0];
-    ASTNode *body = case_node->data.block.count >= 2
-        ? case_node->data.block.statements[1] : NULL;
-
-    if (first->type == AST_CHANNEL_RECV) {
-        if (channel_out != NULL)
-            *channel_out = first->data.channel_recv.channel;
-        if (bind_name_out != NULL)
-            *bind_name_out = NULL;
-        if (body_out != NULL)
-            *body_out = body;
-        return true;
-    }
-
-    if (first->type == AST_ASSIGNMENT
-        && first->data.assignment.target != NULL
-        && first->data.assignment.target->type == AST_IDENTIFIER
-        && first->data.assignment.value != NULL
-        && first->data.assignment.value->type == AST_CHANNEL_RECV) {
-        if (channel_out != NULL)
-            *channel_out = first->data.assignment.value->data.channel_recv.channel;
-        if (bind_name_out != NULL)
-            *bind_name_out = first->data.assignment.target->data.identifier.name;
-        if (body_out != NULL)
-            *body_out = body;
-        return true;
-    }
-
-    return false;
-}
-
-void emit_select_stmt(ASTNode *node, TranspilerCtx *ctx);
 #define TRANSPILE_SSA_MAP_CAPACITY 256
 #define TRANSPILE_SSA_NAME_BUCKETS 1024
 

@@ -18,6 +18,16 @@ fi
 inventory="$("$MAKE_BIN" -C "$ROOT_DIR" -s __pgy_build_source_inventory_print)"
 missing=0
 
+ignored_inventory=""
+if command -v git >/dev/null 2>&1 \
+    && git -C "$ROOT_DIR" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    ignored_inventory="$(
+        printf '%s\n' "$inventory" \
+            | git -C "$ROOT_DIR" check-ignore --stdin --no-index 2>/dev/null \
+            || true
+    )"
+fi
+
 while IFS= read -r src; do
     [[ -n "$src" ]] || continue
 
@@ -27,8 +37,8 @@ while IFS= read -r src; do
         continue
     fi
 
-    if command -v git >/dev/null 2>&1 \
-        && git -C "$ROOT_DIR" check-ignore -q --no-index "$src" 2>/dev/null; then
+    if [[ -n "$ignored_inventory" ]] \
+        && grep -Fxq "$src" <<< "$ignored_inventory"; then
         echo "[build-source-inventory] required build file is ignored: $src" >&2
         missing=1
     fi

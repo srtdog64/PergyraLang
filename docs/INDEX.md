@@ -113,6 +113,7 @@ and follow-up debt over older design notes.
 | [`121_types_as_domain_medium.md`](121_types_as_domain_medium.md) | Type-system mandate and subject/authority/projection modeling guard |
 | [`122_managing_intent_drift.md`](122_managing_intent_drift.md) | Drift management discipline: 5×5 matrix and recognition signals |
 | [`123_terminal_output_standard.md`](123_terminal_output_standard.md) | Terminal-output 3-tier architecture: Core / Stream CLI / Grid TUI |
+| [`124_ai_coding_atomic_units.md`](124_ai_coding_atomic_units.md) | AI-coding thesis: verifiable intent atoms, pattern-context units, and specification gradients |
 
 ## Implementation Guides
 

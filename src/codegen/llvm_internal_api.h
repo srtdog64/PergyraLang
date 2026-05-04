@@ -285,6 +285,8 @@ llvm_ast_type_uses_pointer_self(LLVMGenCtx *ctx, ASTNode *type_node)
  * Emitters -- expressions (llvm_expr.c)
  * ================================================================= */
 LLVMValueRef llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx);
+LLVMValueRef llvm_emit_channel_send_expr(ASTNode *node, LLVMGenCtx *ctx);
+LLVMValueRef llvm_emit_channel_recv_expr(ASTNode *node, LLVMGenCtx *ctx);
 void llvm_expr_set_missing_type_error(LLVMGenCtx *ctx, ASTNode *node,
                                       const char *surface);
 LLVMValueRef llvm_emit_checked_collection_get(LLVMGenCtx *ctx,

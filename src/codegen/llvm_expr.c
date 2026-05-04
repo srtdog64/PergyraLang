@@ -268,78 +268,12 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
 
     case AST_CHANNEL_SEND: {
         /* ch <- value → pgy_channel_send_T(&ch, value) */
-        LLVMVarEntry *ch_var = NULL;
-        const char *suffix = NULL;
-        if (node->data.channel_send.channel != NULL
-            && node->data.channel_send.channel->type == AST_IDENTIFIER) {
-            const char *name = node->data.channel_send.channel->data.identifier.name;
-            ch_var = llvm_scope_lookup(ctx, name);
-            {
-                const char *inner = llvm_lookup_channel_inner(ctx, name);
-                if (inner != NULL)
-                    suffix = inner;
-            }
-        }
-        if (suffix == NULL || suffix[0] == '\0') {
-            llvm_expr_set_missing_type_error(ctx, node,
-                "channel send expression");
-            return LLVMConstInt(ctx->type_i1, 0, 0);
-        }
-        if (ch_var != NULL) {
-            LLVMValueRef val = llvm_emit_expression(
-                node->data.channel_send.value, ctx);
-            char fname[128];
-            snprintf(fname, sizeof(fname), "pgy_channel_send_%s", suffix);
-            LLVMFuncEntry *fn = llvm_lookup_function(ctx, fname);
-            if (fn == NULL) {
-                llvm_required_runtime_function(ctx, node,
-                    "channel send expression", "ChannelSend", fname);
-                return LLVMConstInt(ctx->type_i1, 0, 0);
-            }
-            if (val != NULL) {
-                LLVMValueRef args[] = { ch_var->alloca, val };
-                return LLVMBuildCall2(ctx->builder, fn->fn_type,
-                    fn->fn, args, 2, llvm_tmp_name(ctx));
-            }
-        }
-        return LLVMConstInt(ctx->type_i1, 0, 0);
+        return llvm_emit_channel_send_expr(node, ctx);
     }
 
     case AST_CHANNEL_RECV: {
         /* <- ch → pgy_channel_recv_val_T(&ch) */
-        LLVMVarEntry *ch_var = NULL;
-        const char *suffix = NULL;
-        if (node->data.channel_recv.channel != NULL
-            && node->data.channel_recv.channel->type == AST_IDENTIFIER) {
-            const char *name = node->data.channel_recv.channel->data.identifier.name;
-            ch_var = llvm_scope_lookup(ctx, name);
-            {
-                const char *inner = llvm_lookup_channel_inner(ctx, name);
-                if (inner != NULL)
-                    suffix = inner;
-            }
-        }
-        if (suffix == NULL || suffix[0] == '\0') {
-            llvm_expr_set_missing_type_error(ctx, node,
-                "channel receive expression");
-            return LLVMConstInt(ctx->type_i32, 0, 0);
-        }
-        if (ch_var != NULL) {
-            char fname[128];
-            snprintf(fname, sizeof(fname), "pgy_channel_recv_val_%s", suffix);
-            LLVMFuncEntry *fn = llvm_lookup_function(ctx, fname);
-            if (fn == NULL) {
-                llvm_required_runtime_function(ctx, node,
-                    "channel receive expression", "ChannelRecv", fname);
-                return LLVMConstInt(ctx->type_i32, 0, 0);
-            }
-            {
-                LLVMValueRef args[] = { ch_var->alloca };
-                return LLVMBuildCall2(ctx->builder, fn->fn_type,
-                    fn->fn, args, 1, llvm_tmp_name(ctx));
-            }
-        }
-        return LLVMConstInt(ctx->type_i32, 0, 0);
+        return llvm_emit_channel_recv_expr(node, ctx);
     }
 
     case AST_SPAWN_EXPR:
