@@ -60,7 +60,13 @@ for term in \
     "llvm_find_decl_in_active_inventory" \
     "llvm_find_host_decl_in_active_inventory" \
     "mir_find_decl_header(ctx->mir, name)" \
-    "llvm_is_host_decl_type"; do
+    "llvm_is_host_decl_type" \
+    "AST_PARTY_DECL, name" \
+    "AST_ROLE_DECL, name" \
+    "AST_ROSTER_DECL, name" \
+    "return decl->data.party_decl.name" \
+    "return decl->data.role_decl.name" \
+    "return decl->data.roster_decl.name"; do
     require_term "src/codegen/llvm_inventory_decl_lookup.h" "$term"
 done
 
@@ -186,14 +192,30 @@ for term in \
     "transpiler_active_inventory(ctx, AST_CLASS_DECL, &types, &type_count)" \
     "transpiler_active_inventory(ctx, AST_FUNC_DECL, &functions, &function_count)" \
     "transpiler_active_inventory(ctx, AST_INTENT_DECL, &intents, &intent_count)" \
+    "transpiler_active_inventory(ctx, AST_ROLE_DECL, &roles, &role_count)" \
+    "transpiler_active_inventory(ctx, AST_PARTY_DECL, &parties, &party_count)" \
+    "transpiler_active_inventory(ctx, AST_ROSTER_DECL, &rosters, &roster_count)" \
     "transpiler_active_synthetic_executable_func(ctx)" \
     "transpiler_active_has_main_function(ctx)" \
     "transpiler_active_has_top_level_exec(ctx)"; do
     require_term "src/codegen/transpiler.c" "$term"
 done
 for term in \
+    "return decl->data.role_decl.name" \
+    "return decl->data.party_decl.name" \
+    "return decl->data.roster_decl.name" \
+    "find_enum_decl(ctx, name) != NULL" \
+    "find_role_decl(ctx, name) != NULL"; do
+    require_term "src/codegen/transpiler_decl_lookup.c" "$term"
+done
+for term in \
     "transpiler_find_method_in_mir_header" \
     "mir_find_decl_header(ctx->mir, host_type_name)" \
+    "ctx, AST_PARTY_DECL, owner_name" \
+    "ctx, AST_ROSTER_DECL, owner_name" \
+    "AST_PARTY_DECL" \
+    "AST_ROLE_DECL" \
+    "AST_ROSTER_DECL" \
     "transpiler_hosted_method_view_from_decl(ctx, host_type_name, decl)" \
     "header->method_metadata_count" \
     "method->name" \
@@ -400,6 +422,14 @@ for term in \
     "return NULL;" \
     "routine->kind == MIR_SCOPE_METHOD"; do
     require_term "src/codegen/llvm_domain_method_helpers.c" "$term"
+done
+
+for term in \
+    "return decl->data.party_decl.name" \
+    "return decl->data.role_decl.name" \
+    "return decl->data.roster_decl.name" \
+    "llvm_find_named_domain_decl(ctx, AST_ROLE_DECL, type_name)"; do
+    require_term "src/codegen/llvm_expr_boundary_projection_helpers.h" "$term"
 done
 if grep -Fq "routine->ast == method" \
     "$ROOT_DIR/src/codegen/llvm_domain_method_helpers.c"; then

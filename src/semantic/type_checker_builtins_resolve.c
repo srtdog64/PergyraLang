@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "type_checker_builtins_slotops.h"
+#include "builtin_kind.h"
 
 typedef struct BuiltinEntry {
     const char *name;

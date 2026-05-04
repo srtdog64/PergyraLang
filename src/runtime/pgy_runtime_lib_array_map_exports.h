@@ -84,6 +84,14 @@ void pgy_array_set_##Suffix(PgyArray_##Suffix *arr, size_t index, CType value)  
     arr->data[index] = value;                                                    \
 }                                                                                \
                                                                                  \
+void pgy_array_pop_##Suffix(PgyArray_##Suffix *arr)                              \
+{                                                                                \
+    if (arr == NULL)                                                             \
+        return;                                                                  \
+    if (arr->length > 0)                                                         \
+        arr->length--;                                                           \
+}                                                                                \
+                                                                                 \
 CType pgy_slice_get_##Suffix(PgySlice_##Suffix *slice, size_t index)             \
 {                                                                                \
     if (slice == NULL) {                                                         \

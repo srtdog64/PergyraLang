@@ -1,11 +1,13 @@
 static LLVMValueRef
-llvm_emit_checked_result_option_unwrap(LLVMGenCtx *ctx, LLVMValueRef aggregate,
+llvm_emit_checked_result_option_unwrap(LLVMGenCtx *ctx, ASTNode *node,
+                                       LLVMValueRef aggregate,
                                        unsigned value_index,
                                        const char *reason)
 {
     LLVMValueRef tag;
     LLVMValueRef ok;
     LLVMValueRef current_fn;
+    LLVMFuncEntry *panic_fn;
     LLVMBasicBlockRef ok_bb;
     LLVMBasicBlockRef fail_bb;
 
@@ -19,6 +21,18 @@ llvm_emit_checked_result_option_unwrap(LLVMGenCtx *ctx, LLVMValueRef aggregate,
     if (current_fn == NULL)
         return LLVMBuildExtractValue(ctx->builder, aggregate, value_index,
             llvm_tmp_name(ctx));
+    panic_fn = llvm_lookup_function(ctx,
+        "pgy_runtime_panic_internal_invariant_export");
+    if (panic_fn == NULL) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "LLVM checked unwrap requires registered runtime function '%s'",
+            "pgy_runtime_panic_internal_invariant_export");
+        return LLVMBuildExtractValue(ctx->builder, aggregate, value_index,
+            llvm_tmp_name(ctx));
+    }
 
     ok_bb = LLVMAppendBasicBlockInContext(ctx->context, current_fn,
         "unwrap.ok");
@@ -28,15 +42,11 @@ llvm_emit_checked_result_option_unwrap(LLVMGenCtx *ctx, LLVMValueRef aggregate,
 
     LLVMPositionBuilderAtEnd(ctx->builder, fail_bb);
     {
-        LLVMFuncEntry *panic_fn = llvm_lookup_function(ctx,
-            "pgy_runtime_panic_internal_invariant_export");
-        if (panic_fn != NULL) {
-            LLVMValueRef reason_arg = LLVMBuildGlobalStringPtr(ctx->builder,
-                reason != NULL ? reason : "runtime invariant failed",
-                llvm_tmp_name(ctx));
-            LLVMBuildCall2(ctx->builder, panic_fn->fn_type, panic_fn->fn,
-                &reason_arg, 1, "");
-        }
+        LLVMValueRef reason_arg = LLVMBuildGlobalStringPtr(ctx->builder,
+            reason != NULL ? reason : "runtime invariant failed",
+            llvm_tmp_name(ctx));
+        LLVMBuildCall2(ctx->builder, panic_fn->fn_type, panic_fn->fn,
+            &reason_arg, 1, "");
     }
     LLVMBuildUnreachable(ctx->builder);
 
@@ -165,7 +175,7 @@ llvm_emit_result_option_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_
     /* Built-in: Unwrap(result) ??extract value field */
     if (strcmp(callee_name, "Unwrap") == 0 && node->data.call.arg_count == 1) {
         LLVMValueRef r = llvm_emit_expression(node->data.call.arguments[0], ctx);
-        return llvm_emit_checked_result_option_unwrap(ctx, r, 1,
+        return llvm_emit_checked_result_option_unwrap(ctx, node, r, 1,
             "Result unwrap on Err value");
     }
 
@@ -229,7 +239,7 @@ llvm_emit_result_option_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_
     /* Built-in: UnwrapOption(option) ??extract value field */
     if (strcmp(callee_name, "UnwrapOption") == 0 && node->data.call.arg_count == 1) {
         LLVMValueRef o = llvm_emit_expression(node->data.call.arguments[0], ctx);
-        return llvm_emit_checked_result_option_unwrap(ctx, o, 1,
+        return llvm_emit_checked_result_option_unwrap(ctx, node, o, 1,
             "Option unwrap on None value");
     }
 

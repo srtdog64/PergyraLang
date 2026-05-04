@@ -29,7 +29,7 @@
 #include "transpiler_type_require.h"
 #include "transpiler_type_render.h"
 #include "../common/string_compat.h"
-#include "../semantic/type_checker.h"
+#include "../semantic/builtin_kind.h"
 #include "../semantic/diag_codes.h"
 
 /* Forward declarations for emitters defined later */

@@ -135,6 +135,9 @@ llvm_is_host_decl_type(ASTNodeType decl_type)
     switch (decl_type) {
     case AST_CLASS_DECL:
     case AST_ENUM_DECL:
+    case AST_PARTY_DECL:
+    case AST_ROLE_DECL:
+    case AST_ROSTER_DECL:
     case AST_RELATION_DECL:
     case AST_EFFECT_DECL:
     case AST_ZONE_DECL:
@@ -181,6 +184,15 @@ llvm_find_host_decl_in_active_inventory(const LLVMGenCtx *ctx, const char *name)
     if (decl != NULL)
         return decl;
     decl = llvm_find_decl_in_active_inventory(ctx, AST_ENUM_DECL, name);
+    if (decl != NULL)
+        return decl;
+    decl = llvm_find_decl_in_active_inventory(ctx, AST_PARTY_DECL, name);
+    if (decl != NULL)
+        return decl;
+    decl = llvm_find_decl_in_active_inventory(ctx, AST_ROLE_DECL, name);
+    if (decl != NULL)
+        return decl;
+    decl = llvm_find_decl_in_active_inventory(ctx, AST_ROSTER_DECL, name);
     if (decl != NULL)
         return decl;
     decl = llvm_find_decl_in_active_inventory(ctx, AST_RELATION_DECL, name);
@@ -241,6 +253,12 @@ llvm_current_host_decl_name(const LLVMGenCtx *ctx)
         return decl->data.class_decl.name;
     case AST_ENUM_DECL:
         return decl->data.enum_decl.name;
+    case AST_PARTY_DECL:
+        return decl->data.party_decl.name;
+    case AST_ROLE_DECL:
+        return decl->data.role_decl.name;
+    case AST_ROSTER_DECL:
+        return decl->data.roster_decl.name;
     case AST_RELATION_DECL:
         return decl->data.relation_decl.name;
     case AST_EFFECT_DECL:

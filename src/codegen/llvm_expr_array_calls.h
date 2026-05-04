@@ -113,22 +113,26 @@ llvm_emit_array_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         }
 
         LLVMVarEntry *arr_var = llvm_scope_lookup(ctx, arr_arg->data.identifier.name);
-        if (arr_var == NULL) {
+        LLVMArrayVarEntry *entry = llvm_lookup_array_var(ctx, arr_arg->data.identifier.name);
+        if (arr_var == NULL || entry == NULL) {
             *out = LLVMConstInt(ctx->type_i32, 0, 0);
             return true;
         }
 
-        LLVMValueRef arr = LLVMBuildLoad2(ctx->builder, arr_var->type, arr_var->alloca,
-            llvm_tmp_name(ctx));
-        LLVMValueRef len = llvm_array_length_i64(ctx, arr);
-        LLVMValueRef has_any = LLVMBuildICmp(ctx->builder, LLVMIntUGT, len,
-            LLVMConstInt(ctx->type_i64, 0, 0), llvm_tmp_name(ctx));
-        LLVMValueRef dec = LLVMBuildSub(ctx->builder, len,
-            LLVMConstInt(ctx->type_i64, 1, 0), llvm_tmp_name(ctx));
-        LLVMValueRef next_len = LLVMBuildSelect(ctx->builder, has_any, dec, len,
-            llvm_tmp_name(ctx));
-        arr = LLVMBuildInsertValue(ctx->builder, arr, next_len, 1, llvm_tmp_name(ctx));
-        LLVMBuildStore(ctx->builder, arr, arr_var->alloca);
+        const char *suffix = llvm_type_to_suffix(ctx, entry->elem_type);
+        if (suffix == NULL || strcmp(suffix, "Unknown") == 0) {
+            *out = LLVMConstInt(ctx->type_i32, 0, 0);
+            return true;
+        }
+
+        char fn_name[64];
+        snprintf(fn_name, sizeof(fn_name), "pgy_array_pop_%s", suffix);
+        LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
+            "array", callee_name, fn_name);
+        if (fn != NULL) {
+            LLVMValueRef args[] = { arr_var->alloca };
+            LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 1, "");
+        }
         *out = LLVMConstInt(ctx->type_i32, 0, 0);
         return true;
     }

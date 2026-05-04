@@ -157,6 +157,9 @@ main(void)
     TEST("AIR append merges duplicate evidence nodes");
     EXPECT(test_air_append_merges_duplicate_evidence_nodes());
 
+    TEST("AIR append keeps boundary evidence idempotent");
+    EXPECT(test_air_append_idempotent_boundary_evidence_nodes());
+
     TEST("AIR verify rejects evidence boundary shape mismatch");
     EXPECT(test_air_verify_rejects_evidence_boundary_shape_mismatch());
 

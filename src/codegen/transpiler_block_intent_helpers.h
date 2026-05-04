@@ -417,52 +417,6 @@ emit_intent_step_validate_authority(CodeBuf *out,
     }
 }
 
-static const char *
-infer_intent_step_causes_from_on_exprs(TranspilerCtx *ctx,
-                                       ASTNode *intent,
-                                       ASTNode **on_exprs,
-                                       size_t on_expr_count,
-                                       const char **participant_aliases,
-                                       const char **participant_types,
-                                       size_t participant_count)
-{
-    if (ctx == NULL || intent == NULL || on_exprs == NULL)
-        return NULL;
-
-    for (size_t i = 0; i < on_expr_count; i++) {
-        ASTNode *expr = on_exprs[i];
-        ASTNode *callee;
-        ASTNode *receiver;
-        const char *alias;
-        const char *method_name;
-        const char *subject_name;
-        ASTNode *action_decl;
-
-        if (expr == NULL || expr->type != AST_CALL)
-            continue;
-        callee = expr->data.call.callee;
-        if (callee == NULL || callee->type != AST_MEMBER_ACCESS)
-            continue;
-        receiver = callee->data.member.object;
-        method_name = callee->data.member.name;
-        if (receiver == NULL || receiver->type != AST_IDENTIFIER
-            || receiver->data.identifier.name == NULL || method_name == NULL) {
-            continue;
-        }
-
-        alias = receiver->data.identifier.name;
-        subject_name = intent_zone_binding_type_name_with_metadata(
-            intent, alias, participant_aliases, participant_types, participant_count);
-        action_decl = find_subject_action_decl(ctx, subject_name, method_name);
-        if (action_decl != NULL && action_decl->type == AST_FUNC_DECL
-            && action_decl->data.func_decl.causes_effect != NULL) {
-            return action_decl->data.func_decl.causes_effect;
-        }
-    }
-
-    return NULL;
-}
-
 static void
 emit_intent_step_sync_effective_zone(CodeBuf *out, TranspilerCtx *ctx,
                                      ASTNode *step)

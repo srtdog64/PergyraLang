@@ -10,8 +10,9 @@
 #define PERGYRA_SEMANTIC_H
 
 #include <stdbool.h>
+#include <stddef.h>
 #include "../parser/ast.h"
-#include "../semantic/type_checker.h"
+#include "../semantic/diagnostic_types.h"
 
 /*
  * Result of semantic analysis

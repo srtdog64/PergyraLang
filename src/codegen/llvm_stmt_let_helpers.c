@@ -1,6 +1,6 @@
 #ifdef PGY_LLVM_ENABLED
 #include "llvm_internal.h"
-#include "../semantic/slot_analyzer.h"
+#include "../semantic/slot_summary.h"
 
 const char *
 llvm_stmt_render_type_annotation_static(ASTNode *type_ann)

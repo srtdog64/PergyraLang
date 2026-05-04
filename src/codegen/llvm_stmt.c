@@ -50,50 +50,6 @@ llvm_stmt_find_labeled_loop_depth(LLVMGenCtx *ctx, const char *label)
     return -1;
 }
 
-void
-llvm_defer_scope_push(LLVMGenCtx *ctx)
-{
-    if (ctx->defer_scope_depth >= MAX_SCOPE_DEPTH)
-        return;
-    ctx->defer_body_counts[ctx->defer_scope_depth++] = 0;
-}
-
-void
-llvm_defer_scope_pop(LLVMGenCtx *ctx)
-{
-    if (ctx->defer_scope_depth <= 0)
-        return;
-    ctx->defer_scope_depth--;
-    ctx->defer_body_counts[ctx->defer_scope_depth] = 0;
-}
-
-void
-llvm_register_defer(ASTNode *body, LLVMGenCtx *ctx)
-{
-    if (body == NULL || ctx->defer_scope_depth <= 0)
-        return;
-    int scope = ctx->defer_scope_depth - 1;
-    int count = ctx->defer_body_counts[scope];
-    if (count >= MAX_DEFER_PER_SCOPE)
-        return;
-    ctx->defer_bodies[scope][count] = body;
-    ctx->defer_body_counts[scope]++;
-}
-
-void
-llvm_emit_defers_from(LLVMGenCtx *ctx, int start_depth)
-{
-    if (start_depth < 0)
-        start_depth = 0;
-    for (int depth = ctx->defer_scope_depth - 1; depth >= start_depth; depth--) {
-        for (int i = ctx->defer_body_counts[depth] - 1; i >= 0; i--) {
-            ASTNode *body = ctx->defer_bodies[depth][i];
-            if (body != NULL)
-                llvm_emit_statement(body, ctx);
-        }
-    }
-}
-
 static void
 llvm_emit_return_stmt(ASTNode *node, LLVMGenCtx *ctx)
 {
@@ -230,11 +186,28 @@ llvm_emit_block(ASTNode *node, LLVMGenCtx *ctx)
                     if (token_var != NULL) {
                         LLVMValueRef args[] = { var->alloca, token_var->alloca };
                         LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, "");
+                    } else {
+                        llvm_set_error_at_with_hints(ctx, node,
+                            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                            PGY_FIX_INSPECT_MIR_INVENTORY,
+                            "LLVM secure slot auto-release requires paired token binding '%s_token'",
+                            vname != NULL ? vname : "<slot>");
+                        break;
                     }
                 } else {
                     LLVMValueRef args[] = { var->alloca };
                     LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 1, "");
                 }
+            } else if (var != NULL
+                       && pgy_classify_type(inner) != PGY_TK_UNKNOWN) {
+                llvm_set_error_at_with_hints(ctx, node,
+                    PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_FIX_INSPECT_MIR_INVENTORY,
+                    "LLVM auto-release requires registered runtime function '%s'",
+                    fn_name);
+                break;
             } else if (is_secure && var != NULL) {
                 LLVMValueRef occ_ptr = LLVMBuildStructGEP2(ctx->builder,
                     var->type, var->alloca, 1, llvm_tmp_name(ctx));

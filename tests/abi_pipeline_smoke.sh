@@ -41,13 +41,24 @@ WORK_DIR="$(mktemp -d "$WORK_BASE.XXXXXX")"
 trap 'rm -rf "$WORK_DIR"' EXIT
 
 normalize_output() {
-    tr -d '\r' | sed -E \
-        -e '/^[0-9]+ error\(s\), [0-9]+ warning\(s\)$/d' \
-        -e '/^\[WARNING\] /d' \
-        -e '/^pgy: compiled/d' \
-        -e '/^pgy: compiled \(LLVM\)/d' \
-        -e '/^--- output ---$/d' \
-        -e '/^--- end ---$/d' | awk 'seen || length($0) > 0 { print; seen = 1 }'
+    tr -d '\r' | awk '
+        /^[0-9]+ error\(s\), [0-9]+ warning\(s\)$/ { seen_summary = 1; next }
+        !seen_summary { pre[++pre_count] = $0; next }
+        /^pgy: compiled/ { next }
+        /^--- output ---$/ { next }
+        /^--- end ---$/ { next }
+        seen || length($0) > 0 { print; seen = 1 }
+        END {
+            if (!seen_summary) {
+                for (i = 1; i <= pre_count; i++) {
+                    if (seen || length(pre[i]) > 0) {
+                        print pre[i];
+                        seen = 1;
+                    }
+                }
+            }
+        }
+    '
 }
 
 files_equal() {
@@ -111,6 +122,7 @@ PY
 compile_expect_for_case() {
     case "$1" in
         projection_abi) printf '0 error(s), 2 warning(s)' ;;
+        intent_failure_abi) printf '0 error(s), 1 warning(s)' ;;
         *) printf '0 error(s), 0 warning(s)' ;;
     esac
 }

@@ -377,6 +377,7 @@ llvm_type_name_uses_pointer_self(LLVMGenCtx *ctx, const char *type_name)
 
     if (llvm_find_named_domain_decl(ctx, AST_PARTY_DECL, type_name) != NULL
         || llvm_find_named_domain_decl(ctx, AST_ROSTER_DECL, type_name) != NULL
+        || llvm_find_named_domain_decl(ctx, AST_ROLE_DECL, type_name) != NULL
         || llvm_find_named_domain_decl(ctx, AST_WORLD_DECL, type_name) != NULL
         || llvm_find_named_domain_decl(ctx, AST_RELATION_DECL, type_name) != NULL
         || llvm_find_named_domain_decl(ctx, AST_EFFECT_DECL, type_name) != NULL
@@ -409,6 +410,12 @@ llvm_current_host_class_name(LLVMGenCtx *ctx)
             return decl->data.class_decl.name;
         case AST_ENUM_DECL:
             return decl->data.enum_decl.name;
+        case AST_PARTY_DECL:
+            return decl->data.party_decl.name;
+        case AST_ROLE_DECL:
+            return decl->data.role_decl.name;
+        case AST_ROSTER_DECL:
+            return decl->data.roster_decl.name;
         case AST_RELATION_DECL:
             return decl->data.relation_decl.name;
         case AST_EFFECT_DECL:

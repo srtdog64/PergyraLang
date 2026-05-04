@@ -314,32 +314,3 @@ llvm_emit_string(ASTNode *node, LLVMGenCtx *ctx)
                                                     llvm_tmp_name(ctx));
     return global;
 }
-
-static size_t
-llvm_count_banner_line_indent(const char *line_start, const char *line_end)
-{
-    size_t indent = 0;
-
-    while (line_start < line_end) {
-        if (*line_start == ' ' || *line_start == '\t') {
-            indent++;
-            line_start++;
-            continue;
-        }
-        break;
-    }
-    return indent;
-}
-
-static bool
-llvm_line_is_empty_with_only_ws(const char *line_start, const char *line_end)
-{
-    for (const char *p = line_start; p < line_end; p++) {
-        if (*p != ' ' && *p != '\t')
-            return false;
-    }
-    return true;
-}
-
-static char *llvm_normalize_banner_string_literal_scratch(const char *src,
-                                                          PgyArena *arena);

@@ -203,6 +203,26 @@ PgyPinnedSlotView_##SuffixName pgy_pin_write_##SuffixName(PgySlot_##SuffixName *
     return view; \
 } \
 \
+void pgy_pin_read_init_##SuffixName(PgyPinnedSlotView_##SuffixName *out, \
+                                    PgySlot_##SuffixName *s) \
+{ \
+    if (out == NULL) { \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, \
+                          "null " #SuffixName " slot pin read out"); \
+    } \
+    *out = pgy_pin_read_##SuffixName(s); \
+} \
+\
+void pgy_pin_write_init_##SuffixName(PgyPinnedSlotView_##SuffixName *out, \
+                                     PgySlot_##SuffixName *s) \
+{ \
+    if (out == NULL) { \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, \
+                          "null " #SuffixName " slot pin write out"); \
+    } \
+    *out = pgy_pin_write_##SuffixName(s); \
+} \
+\
 void pgy_unpin_##SuffixName(PgyPinnedSlotView_##SuffixName *view) \
 { \
     if (view == NULL) { \

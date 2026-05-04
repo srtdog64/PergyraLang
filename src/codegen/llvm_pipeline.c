@@ -122,11 +122,18 @@ llvm_emit_main_wrapper(LLVMGenCtx *ctx)
     if (needs_thread_pool) {
         LLVMFuncEntry *init_fn = llvm_lookup_function(ctx,
                                      "pgy_pool_init_export");
-        if (init_fn != NULL) {
-            LLVMValueRef args[] = { LLVMConstInt(ctx->type_i64, 4, 0) };
-            LLVMBuildCall2(ctx->builder, init_fn->fn_type,
-                           init_fn->fn, args, 1, "");
+        if (init_fn == NULL) {
+            llvm_set_error_at_with_hints(ctx, NULL,
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                PGY_FIX_INSPECT_MIR_INVENTORY,
+                "LLVM thread-pool entry requires registered runtime function '%s'",
+                "pgy_pool_init_export");
+            return;
         }
+        LLVMValueRef args[] = { LLVMConstInt(ctx->type_i64, 4, 0) };
+        LLVMBuildCall2(ctx->builder, init_fn->fn_type,
+                       init_fn->fn, args, 1, "");
     }
 
     llvm_scope_push(ctx);
@@ -137,11 +144,19 @@ llvm_emit_main_wrapper(LLVMGenCtx *ctx)
         snprintf(fname, sizeof(fname), "%s_INIT", evt->event_name);
         LLVMFuncEntry *init_fn = llvm_lookup_function(ctx, fname);
         LLVMValueRef gv = LLVMGetNamedGlobal(ctx->module, evt->event_name);
-        if (init_fn != NULL && gv != NULL) {
-            LLVMValueRef args[] = { gv };
-            LLVMBuildCall2(ctx->builder, init_fn->fn_type,
-                           init_fn->fn, args, 1, "");
+        if (init_fn == NULL || gv == NULL) {
+            llvm_set_error_at_with_hints(ctx, NULL,
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                PGY_FIX_INSPECT_MIR_INVENTORY,
+                "LLVM event initialization requires generated event function '%s' and event storage '%s'",
+                fname, evt->event_name);
+            llvm_scope_pop(ctx);
+            return;
         }
+        LLVMValueRef args[] = { gv };
+        LLVMBuildCall2(ctx->builder, init_fn->fn_type,
+                       init_fn->fn, args, 1, "");
     }
 
     if (main_user != NULL)
@@ -167,9 +182,17 @@ llvm_emit_main_wrapper(LLVMGenCtx *ctx)
         if (needs_thread_pool) {
             LLVMFuncEntry *shutdown_fn = llvm_lookup_function(ctx,
                                              "pgy_pool_shutdown_export");
-            if (shutdown_fn != NULL)
-                LLVMBuildCall2(ctx->builder, shutdown_fn->fn_type,
-                               shutdown_fn->fn, NULL, 0, "");
+            if (shutdown_fn == NULL) {
+                llvm_set_error_at_with_hints(ctx, NULL,
+                    PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_FIX_INSPECT_MIR_INVENTORY,
+                    "LLVM thread-pool exit requires registered runtime function '%s'",
+                    "pgy_pool_shutdown_export");
+                return;
+            }
+            LLVMBuildCall2(ctx->builder, shutdown_fn->fn_type,
+                           shutdown_fn->fn, NULL, 0, "");
         }
         LLVMBuildRet(ctx->builder, LLVMConstInt(ctx->type_i32, 0, 0));
     }

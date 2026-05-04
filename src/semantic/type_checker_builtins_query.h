@@ -12,8 +12,9 @@
 #include <stddef.h>
 
 #include "../parser/ast.h"
-#include "type_checker.h"
 #include "type_system.h"
+
+typedef struct SemanticContext SemanticContext;
 
 bool check_call_arity(ASTNode *expr, size_t expected, const char *name,
                       SemanticContext *ctx);

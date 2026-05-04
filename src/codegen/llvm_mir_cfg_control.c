@@ -324,8 +324,15 @@ llvm_mir_emit_channel_ready_condition(ASTNode *channel, LLVMGenCtx *ctx)
 
     snprintf(fn_name, sizeof(fn_name), "pgy_channel_ready_%s", inner);
     ready_fn = llvm_lookup_function(ctx, fn_name);
-    if (ready_fn == NULL || ready_fn->fn == NULL)
+    if (ready_fn == NULL || ready_fn->fn == NULL) {
+        llvm_set_error_at_with_hints(ctx, channel,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "LLVM MIR select readiness requires registered runtime function '%s'",
+            fn_name);
         return NULL;
+    }
 
     args[0] = ch_var->alloca;
     return LLVMBuildCall2(ctx->builder, ready_fn->fn_type, ready_fn->fn,

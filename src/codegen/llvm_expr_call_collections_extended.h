@@ -139,15 +139,15 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         LLVMBuildStore(ctx->builder, LLVMConstNull(elem_ty), tmp);
         fn = llvm_required_collection_function(ctx, node, callee_name,
             "pgy_list_get_raw_export");
-        if (fn != NULL) {
-            LLVMValueRef args[] = {
-                LLVMBuildBitCast(ctx->builder, list_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
-                idx,
-                LLVMBuildBitCast(ctx->builder, tmp, ctx->type_i8ptr, llvm_tmp_name(ctx)),
-                llvm_sizeof_type_i64(ctx, elem_ty)
-            };
-            LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 4, "");
-        }
+        if (fn == NULL)
+            { *out = LLVMConstNull(elem_ty); return true; }
+        LLVMValueRef args[] = {
+            LLVMBuildBitCast(ctx->builder, list_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+            idx,
+            LLVMBuildBitCast(ctx->builder, tmp, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+            llvm_sizeof_type_i64(ctx, elem_ty)
+        };
+        LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 4, "");
         { *out = LLVMBuildLoad2(ctx->builder, elem_ty, tmp, llvm_tmp_name(ctx)); return true; }
     }
 
@@ -330,15 +330,15 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         tmp = llvm_create_entry_alloca(ctx, value_ty, llvm_tmp_name(ctx));
         LLVMBuildStore(ctx->builder, LLVMConstNull(value_ty), tmp);
         fn = llvm_required_hashmap_raw_export(ctx, node, callee_name, "get", key_name);
-        if (fn != NULL) {
-            LLVMValueRef args[] = {
-                LLVMBuildBitCast(ctx->builder, map_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
-                key,
-                LLVMBuildBitCast(ctx->builder, tmp, ctx->type_i8ptr, llvm_tmp_name(ctx)),
-                llvm_sizeof_type_i64(ctx, value_ty)
-            };
-            LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 4, "");
-        }
+        if (fn == NULL)
+            { *out = LLVMConstNull(value_ty); return true; }
+        LLVMValueRef args[] = {
+            LLVMBuildBitCast(ctx->builder, map_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+            key,
+            LLVMBuildBitCast(ctx->builder, tmp, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+            llvm_sizeof_type_i64(ctx, value_ty)
+        };
+        LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 4, "");
         { *out = LLVMBuildLoad2(ctx->builder, value_ty, tmp, llvm_tmp_name(ctx)); return true; }
     }
 
@@ -437,13 +437,13 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         tmp = llvm_create_entry_alloca(ctx, array_ty, llvm_tmp_name(ctx));
         LLVMBuildStore(ctx->builder, LLVMConstNull(array_ty), tmp);
         fn = llvm_required_hashmap_raw_export(ctx, node, callee_name, "keys", key_name);
-        if (fn != NULL) {
-            LLVMValueRef args[] = {
-                LLVMBuildBitCast(ctx->builder, map_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
-                LLVMBuildBitCast(ctx->builder, tmp, ctx->type_i8ptr, llvm_tmp_name(ctx))
-            };
-            LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, "");
-        }
+        if (fn == NULL)
+            { *out = LLVMConstNull(array_ty); return true; }
+        LLVMValueRef args[] = {
+            LLVMBuildBitCast(ctx->builder, map_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+            LLVMBuildBitCast(ctx->builder, tmp, ctx->type_i8ptr, llvm_tmp_name(ctx))
+        };
+        LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, "");
         { *out = LLVMBuildLoad2(ctx->builder, array_ty, tmp, llvm_tmp_name(ctx)); return true; }
     }
 

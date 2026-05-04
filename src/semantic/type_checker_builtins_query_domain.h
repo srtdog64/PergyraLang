@@ -11,8 +11,9 @@
 #include <stddef.h>
 
 #include "../parser/ast.h"
-#include "type_checker.h"
 #include "type_system.h"
+
+typedef struct SemanticContext SemanticContext;
 
 ASTNode *find_zone_domain_slot_local(ASTNode *zone, const char *slot_name);
 ASTNode *builtin_find_zone_layer_slot_local(ASTNode *zone,

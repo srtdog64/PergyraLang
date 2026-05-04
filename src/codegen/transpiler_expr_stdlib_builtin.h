@@ -167,8 +167,7 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                 free(arr);
                 return pergyra_strdup("0");
             }
-            char *result = strdup_fmt("((%s).length > 0 ? (%s).length-- : 0)",
-                arr, arr);
+            char *result = strdup_fmt("pgy_array_pop_%s(&%s)", inner, arr);
             free(arr);
             return result;
         }

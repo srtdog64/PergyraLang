@@ -254,6 +254,8 @@ transpiler_has_known_nominal_type(TranspilerCtx *ctx, const char *name)
         return false;
 
     if (find_class_decl(ctx, name) != NULL
+        || find_enum_decl(ctx, name) != NULL
+        || find_role_decl(ctx, name) != NULL
         || find_zone_decl(ctx, name) != NULL
         || find_party_decl(ctx, name) != NULL
         || find_roster_decl(ctx, name) != NULL

@@ -339,6 +339,10 @@ void llvm_stamp_domain_provenance(LLVMGenCtx *ctx,
                                   const char *prefix,
                                   const char *name,
                                   unsigned cause);
+void llvm_register_domain_structs(LLVMGenCtx *ctx,
+                                  ASTNode ***domain_groups,
+                                  const size_t *domain_group_counts,
+                                  size_t domain_group_count);
 void llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
                          LLVMClassTypeEntry *decl_cls, LLVMValueRef sync_fn,
                          LLVMGenCtx *ctx);

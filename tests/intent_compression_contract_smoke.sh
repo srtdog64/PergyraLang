@@ -3,6 +3,11 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
+if grep -R "infer_intent_step_causes_from_on_exprs" "$ROOT_DIR/src/codegen"; then
+    echo "intent causes inference must be materialized before codegen" >&2
+    exit 1
+fi
+
 grep -Fq "inherited_who_from_intent" \
     "$ROOT_DIR/src/parser/ast_domain_data.h"
 grep -Fq "inherited_where_from_intent" \

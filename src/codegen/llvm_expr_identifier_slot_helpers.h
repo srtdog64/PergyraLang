@@ -1,129 +1,5 @@
 #include "codegen_slot_type_policy.h"
 
-static char *
-llvm_normalize_banner_string_literal_scratch(const char *src, PgyArena *arena)
-{
-    const char *cursor = src;
-    const char *end;
-    size_t min_indent = 0;
-    bool found_content_line = false;
-    char *output = NULL;
-    size_t output_cap = 0;
-    size_t output_len = 0;
-
-    if (src == NULL)
-        return NULL;
-
-    if (cursor[0] == '\n')
-        cursor++;
-    else if (cursor[0] == '\r') {
-        cursor += (cursor[1] == '\n') ? 2 : 1;
-    }
-
-    end = cursor + strlen(cursor);
-    while (end > cursor && (end[-1] == '\n' || end[-1] == '\r'))
-        end--;
-
-    for (const char *line = cursor; line < end; ) {
-        const char *line_end = line;
-        while (line_end < end && *line_end != '\n' && *line_end != '\r')
-            line_end++;
-
-        if (!llvm_line_is_empty_with_only_ws(line, line_end)) {
-            size_t indent = llvm_count_banner_line_indent(line, line_end);
-            if (!found_content_line || indent < min_indent) {
-                min_indent = indent;
-                found_content_line = true;
-            }
-        }
-
-        if (line_end == end)
-            break;
-        if (*line_end == '\r' && line_end + 1 < end && *(line_end + 1) == '\n')
-            line = line_end + 2;
-        else
-            line = line_end + 1;
-    }
-
-    if (!found_content_line)
-        min_indent = 0;
-
-    output_cap = (size_t)(end - cursor + 1);
-    if (output_cap == 0)
-        output_cap = 1;
-    output = pgy_arena_alloc(arena, output_cap);
-    if (output == NULL)
-        return NULL;
-
-    for (const char *line = cursor; line < end; ) {
-        const char *line_end = line;
-        while (line_end < end && *line_end != '\n' && *line_end != '\r')
-            line_end++;
-
-        const char *body_start = line;
-        if (llvm_line_is_empty_with_only_ws(line, line_end))
-            body_start = line_end;
-        else {
-            for (size_t i = 0; i < min_indent && body_start < line_end; i++) {
-                if (*body_start == ' ' || *body_start == '\t')
-                    body_start++;
-                else
-                    break;
-            }
-        }
-
-        if (line_end > body_start) {
-            size_t seg_len = (size_t)(line_end - body_start);
-            if (output_len + seg_len + 2 > output_cap) {
-                size_t new_cap = (output_cap * 2 > output_len + seg_len + 2)
-                                 ? output_cap * 2
-                                 : output_len + seg_len + 2;
-                char *grown = pgy_arena_alloc(arena, new_cap);
-                if (grown == NULL)
-                    break;
-                memcpy(grown, output, output_len);
-                output = grown;
-                output_cap = new_cap;
-            }
-            memcpy(output + output_len, body_start, seg_len);
-            output_len += seg_len;
-        }
-
-        if (line_end < end) {
-            if (output_len + 2 > output_cap) {
-                size_t new_cap = output_cap * 2;
-                char *grown = pgy_arena_alloc(arena, new_cap);
-                if (grown == NULL)
-                    break;
-                memcpy(grown, output, output_len);
-                output = grown;
-                output_cap = new_cap;
-            }
-            output[output_len++] = '\n';
-            if (*line_end == '\r' && line_end + 1 < end && *(line_end + 1) == '\n')
-                line = line_end + 2;
-            else
-                line = line_end + 1;
-        } else {
-            break;
-        }
-    }
-
-    if (output_len >= output_cap) {
-        char *grown = pgy_arena_alloc(arena, output_len + 1);
-        if (grown != NULL) {
-            memcpy(grown, output, output_len);
-            output = grown;
-            output_cap = output_len + 1;
-        }
-    }
-    if (output == NULL)
-        return NULL;
-
-    output[output_len] = '\0';
-    return output;
-}
-
 static LLVMValueRef
 llvm_emit_boolean(ASTNode *node, LLVMGenCtx *ctx)
 {
@@ -164,11 +40,24 @@ llvm_direct_slot_write(LLVMGenCtx *ctx, LLVMVarEntry *slot_var,
 static void
 llvm_direct_slot_release(LLVMGenCtx *ctx, LLVMVarEntry *slot_var);
 
+static bool
+llvm_slot_inner_has_external_runtime_helpers(const char *inner)
+{
+    return pgy_classify_type(inner) != PGY_TK_UNKNOWN;
+}
+
 static void
 llvm_direct_secure_slot_write(LLVMGenCtx *ctx, LLVMVarEntry *slot_var,
                               LLVMValueRef value)
 {
     llvm_direct_slot_write(ctx, slot_var, value);
+}
+
+static void
+llvm_emit_structural_secure_slot_write(LLVMGenCtx *ctx, LLVMVarEntry *slot_var,
+                                       LLVMValueRef value)
+{
+    llvm_direct_secure_slot_write(ctx, slot_var, value);
 }
 
 static LLVMValueRef
@@ -195,6 +84,13 @@ llvm_direct_secure_slot_read(LLVMGenCtx *ctx, LLVMVarEntry *slot_var,
     value_ptr = LLVMBuildStructGEP2(ctx->builder, slot_ty,
         slot_ptr, 0, llvm_tmp_name(ctx));
     return LLVMBuildLoad2(ctx->builder, inner_ty, value_ptr, llvm_tmp_name(ctx));
+}
+
+static LLVMValueRef
+llvm_emit_structural_secure_slot_read(LLVMGenCtx *ctx, LLVMVarEntry *slot_var,
+                                      const char *inner)
+{
+    return llvm_direct_secure_slot_read(ctx, slot_var, inner);
 }
 
 static void
@@ -233,6 +129,13 @@ llvm_direct_secure_slot_release(LLVMGenCtx *ctx, LLVMVarEntry *slot_var)
         slot_ptr, 2, llvm_tmp_name(ctx));
     LLVMBuildStore(ctx->builder,
         LLVMConstInt(ctx->type_i64, 0, 0), token_ptr);
+}
+
+static void
+llvm_emit_structural_secure_slot_release(LLVMGenCtx *ctx,
+                                         LLVMVarEntry *slot_var)
+{
+    llvm_direct_secure_slot_release(ctx, slot_var);
 }
 
 static LLVMTypeRef
@@ -454,6 +357,24 @@ llvm_slot_runtime_arg(LLVMGenCtx *ctx, LLVMVarEntry *var)
     return var->alloca;
 }
 
+static LLVMVarEntry *
+llvm_require_secure_token_var(LLVMGenCtx *ctx, ASTNode *node,
+                              const char *slot_name,
+                              const char *operation_name)
+{
+    LLVMVarEntry *token_var = llvm_lookup_secure_token_var(ctx, slot_name);
+    if (token_var == NULL && ctx != NULL && !ctx->has_error) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "LLVM secure slot %s requires paired token binding '%s_token'",
+            operation_name != NULL ? operation_name : "operation",
+            slot_name != NULL ? slot_name : "<slot>");
+    }
+    return token_var;
+}
+
 static LLVMValueRef
 llvm_emit_identifier(ASTNode *node, LLVMGenCtx *ctx)
 {
@@ -473,7 +394,9 @@ llvm_emit_identifier(ASTNode *node, LLVMGenCtx *ctx)
                 LLVMFuncEntry *fn = llvm_lookup_function(ctx, fn_name);
                 if (fn != NULL) {
                     if (is_secure) {
-                        LLVMVarEntry *token_var = llvm_lookup_secure_token_var(ctx, name);
+                        LLVMVarEntry *token_var =
+                            llvm_require_secure_token_var(ctx, node, name,
+                                "auto-read");
                         if (token_var != NULL) {
                             LLVMValueRef args[] = {
                                 llvm_slot_runtime_arg(ctx, var),
@@ -482,13 +405,23 @@ llvm_emit_identifier(ASTNode *node, LLVMGenCtx *ctx)
                             return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn,
                                                  args, 2, llvm_tmp_name(ctx));
                         }
+                        return LLVMConstInt(ctx->type_i32, 0, 0);
                     }
                     LLVMValueRef args[] = { llvm_slot_runtime_arg(ctx, var) };
                     return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn,
                                          args, 1, llvm_tmp_name(ctx));
                 }
+                if (pgy_classify_type(inner) != PGY_TK_UNKNOWN) {
+                    llvm_set_error_at_with_hints(ctx, node,
+                        PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                        PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                        PGY_FIX_INSPECT_MIR_INVENTORY,
+                        "LLVM slot auto-read requires registered runtime function '%s'",
+                        fn_name);
+                    return LLVMConstInt(ctx->type_i32, 0, 0);
+                }
                 if (is_secure)
-                    return llvm_direct_secure_slot_read(ctx, var, inner);
+                    return llvm_emit_structural_secure_slot_read(ctx, var, inner);
                 return llvm_direct_slot_read(ctx, var, inner);
             }
         }

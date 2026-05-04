@@ -232,6 +232,15 @@ pgy_array_set_##SuffixName(PgyArray_##SuffixName *arr, size_t index, CType value
     arr->data[index] = value; \
 } \
 \
+static inline void \
+pgy_array_pop_##SuffixName(PgyArray_##SuffixName *arr) \
+{ \
+    if (arr == NULL) \
+        return; \
+    if (arr->length > 0) \
+        arr->length--; \
+} \
+\
 static inline CType \
 pgy_slice_get_##SuffixName(PgySlice_##SuffixName *slice, size_t index) \
 { \

@@ -136,46 +136,4 @@ llvm_emit_intent_step_mark_caused_effect(LLVMGenCtx *ctx,
     }
 }
 
-const char *
-llvm_infer_intent_step_causes_from_on_exprs(LLVMGenCtx *ctx,
-                                            ASTNode **on_exprs,
-                                            size_t on_expr_count)
-{
-    if (ctx == NULL || on_exprs == NULL)
-        return NULL;
-
-    for (size_t i = 0; i < on_expr_count; i++) {
-        ASTNode *expr = on_exprs[i];
-        ASTNode *callee;
-        ASTNode *receiver;
-        const char *alias;
-        const char *method_name;
-        const char *subject_name;
-        ASTNode *action_decl;
-
-        if (expr == NULL || expr->type != AST_CALL)
-            continue;
-        callee = expr->data.call.callee;
-        if (callee == NULL || callee->type != AST_MEMBER_ACCESS)
-            continue;
-        receiver = callee->data.member.object;
-        method_name = callee->data.member.name;
-        if (receiver == NULL || receiver->type != AST_IDENTIFIER
-            || receiver->data.identifier.name == NULL || method_name == NULL) {
-            continue;
-        }
-
-        alias = receiver->data.identifier.name;
-        subject_name = llvm_lookup_var_class(ctx, alias);
-        action_decl = llvm_find_host_method_decl_in_context(ctx, subject_name, method_name);
-        if (action_decl != NULL && action_decl->type == AST_FUNC_DECL
-            && action_decl->data.func_decl.is_action
-            && action_decl->data.func_decl.causes_effect != NULL) {
-            return action_decl->data.func_decl.causes_effect;
-        }
-    }
-
-    return NULL;
-}
-
 #endif

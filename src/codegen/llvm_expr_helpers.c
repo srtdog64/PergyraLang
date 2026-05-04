@@ -45,8 +45,15 @@ llvm_emit_checked_collection_get(LLVMGenCtx *ctx, LLVMValueRef aggregate,
 
     snprintf(fn_name, sizeof(fn_name), "%s%s", fn_prefix, suffix);
     fn = llvm_lookup_function(ctx, fn_name);
-    if (fn == NULL)
+    if (fn == NULL) {
+        llvm_set_error_at_with_hints(ctx, NULL,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "LLVM indexed collection access requires registered runtime function '%s'",
+            fn_name);
         return NULL;
+    }
 
     tmp = llvm_create_entry_alloca(ctx, aggregate_type, llvm_tmp_name(ctx));
     LLVMBuildStore(ctx->builder, aggregate, tmp);

@@ -393,10 +393,6 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
                 }
             }
         }
-        if (causes_effect == NULL) {
-            causes_effect = llvm_infer_intent_step_causes_from_on_exprs(
-                ctx, step_ctx.on_exprs, step_ctx.on_expr_count);
-        }
         llvm_emit_intent_step_mark_caused_effect(
             ctx, step_ctx.zone_type_name, step_ctx.zone_alias, causes_effect);
         if (rebound_aliases)
@@ -501,11 +497,11 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
         LLVMValueRef success = NULL;
         if (node->data.intent_decl.success_expr != NULL)
             success = llvm_emit_expression(node->data.intent_decl.success_expr, ctx);
+        else
+            success = LLVMConstInt(ctx->type_i1, 1, 0);
         if (success == NULL) {
             llvm_set_error_at_with_hints(ctx,
-                node->data.intent_decl.success_expr != NULL
-                    ? node->data.intent_decl.success_expr
-                    : node,
+                node->data.intent_decl.success_expr,
                 PGY_CODE_LLVM_TYPE_UNSUPPORTED,
                 PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
                 PGY_FIX_MATCH_PREDICATE_SIGNATURE_IN_HOST,

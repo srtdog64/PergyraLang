@@ -13,10 +13,13 @@
 #include <stdbool.h>
 
 #include "../parser/ast.h"
+#include "builtin_kind.h"
 #include "type_system.h"
-#include "type_checker.h"
 #include "type_checker_builtins_query.h"
 #include "type_checker_builtins_slotops.h"
+
+typedef struct SemanticContext SemanticContext;
+typedef struct Symbol Symbol;
 
 bool type_is_future_like(const Type *type);
 

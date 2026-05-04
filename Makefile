@@ -397,6 +397,7 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/compiler_llvm.c \
                    $(COMPILER_DIR)/dir.c \
                    $(COMPILER_DIR)/dir_collect.c \
+                   $(COMPILER_DIR)/dir_collect_intent.c \
                    $(COMPILER_DIR)/dir_collect_domain.c \
                    $(COMPILER_DIR)/dir_validate.c \
                    $(COMPILER_DIR)/air.c \
@@ -425,6 +426,7 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/hir_lower_cfg.c \
                    $(COMPILER_DIR)/hir_lower_intent_cfg.c \
                    $(COMPILER_DIR)/mir.c \
+                   $(COMPILER_DIR)/mir_validation.c \
                    $(COMPILER_DIR)/mir_cleanup.c \
                    $(COMPILER_DIR)/mir_intent.c \
                    $(COMPILER_DIR)/mir_intent_fact.c \
@@ -475,6 +477,7 @@ ifneq ($(LLVM_ENABLED),0)
                           $(CODEGEN_DIR)/llvm_runtime.c \
                           $(CODEGEN_DIR)/llvm_runtime_raw_collections.c \
                           $(CODEGEN_DIR)/llvm_runtime_channels.c \
+                          $(CODEGEN_DIR)/llvm_runtime_secure_slot_decl.c \
                         $(CODEGEN_DIR)/llvm_event.c \
                         $(CODEGEN_DIR)/llvm_mir_emit.c \
                         $(CODEGEN_DIR)/llvm_mir_vars.c \
@@ -488,6 +491,7 @@ ifneq ($(LLVM_ENABLED),0)
                          $(CODEGEN_DIR)/llvm_expr.c \
                          $(CODEGEN_DIR)/llvm_expr_helpers.c \
                          $(CODEGEN_DIR)/llvm_stmt.c \
+                         $(CODEGEN_DIR)/llvm_stmt_defer_scope.c \
                          $(CODEGEN_DIR)/llvm_stmt_type_infer.c \
                          $(CODEGEN_DIR)/llvm_stmt_type_infer_helpers.c \
                          $(CODEGEN_DIR)/llvm_stmt_let_callable.c \
@@ -510,10 +514,11 @@ ifneq ($(LLVM_ENABLED),0)
                           $(CODEGEN_DIR)/llvm_domain_zone_sync.c \
                           $(CODEGEN_DIR)/llvm_domain_zone_sync_relations.c \
                           $(CODEGEN_DIR)/llvm_domain_world_sync_directives.c \
-                          $(CODEGEN_DIR)/llvm_domain_world_frontier.c \
-                          $(CODEGEN_DIR)/llvm_domain_world_sync.c \
+                         $(CODEGEN_DIR)/llvm_domain_world_frontier.c \
+                         $(CODEGEN_DIR)/llvm_domain_world_sync.c \
                          $(CODEGEN_DIR)/llvm_domain_forward.c \
                          $(CODEGEN_DIR)/llvm_domain_struct_fields.c \
+                         $(CODEGEN_DIR)/llvm_domain_struct_register.c \
                          $(CODEGEN_DIR)/llvm_domain.c
   RUNTIME_LIB_SOURCES  = $(RUNTIME_DIR)/pgy_runtime_lib.c
   LLVM_BACKEND_OBJECTS = $(LLVM_BACKEND_SOURCES:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
@@ -635,6 +640,7 @@ SEMANTIC_LINK_SUPPORT = $(BUILD_DIR)/compiler/import_resolver.o \
                         $(BUILD_DIR)/compiler/path_utils.o
 DIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/dir.o \
                    $(BUILD_DIR)/compiler/dir_collect.o \
+                   $(BUILD_DIR)/compiler/dir_collect_intent.o \
                    $(BUILD_DIR)/compiler/dir_collect_domain.o \
                    $(BUILD_DIR)/compiler/dir_validate.o
 HIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/hir_analysis.o \
@@ -668,6 +674,7 @@ AIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/air.o \
                    $(BUILD_DIR)/compiler/air_validate.o \
                    $(BUILD_DIR)/compiler/air_verify.o
 MIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/mir.o \
+                   $(BUILD_DIR)/compiler/mir_validation.o \
                    $(BUILD_DIR)/compiler/mir_cleanup.o \
                    $(BUILD_DIR)/compiler/mir_intent.o \
                    $(BUILD_DIR)/compiler/mir_intent_fact.o \

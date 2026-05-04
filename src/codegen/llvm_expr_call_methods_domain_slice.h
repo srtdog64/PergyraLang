@@ -22,7 +22,8 @@ llvm_emit_member_call_slot_method(ASTNode *node, LLVMGenCtx *ctx,
                 if (val == NULL)
                     return LLVMConstInt(ctx->type_i32, 0, 0);
                 if (is_secure) {
-                    LLVMVarEntry *token_var = llvm_lookup_secure_token_var(ctx, slot_name);
+                    LLVMVarEntry *token_var = llvm_require_secure_token_var(ctx,
+                        node, slot_name, method_name);
                     if (token_var == NULL)
                         return LLVMConstInt(ctx->type_i32, 0, 0);
                     {
@@ -37,8 +38,11 @@ llvm_emit_member_call_slot_method(ASTNode *node, LLVMGenCtx *ctx,
                                 token_var->alloca
                             };
                             LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 3, "");
+                        } else if (!llvm_slot_inner_has_external_runtime_helpers(inner)) {
+                            llvm_emit_structural_secure_slot_write(ctx, slot_var, val);
                         } else {
-                            llvm_direct_secure_slot_write(ctx, slot_var, val);
+                            llvm_required_runtime_function(ctx, node,
+                                "secure slot", method_name, fn_name);
                         }
                     }
                 } else {
@@ -52,6 +56,9 @@ llvm_emit_member_call_slot_method(ASTNode *node, LLVMGenCtx *ctx,
                             val
                         };
                         LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, "");
+                    } else if (llvm_slot_inner_has_external_runtime_helpers(inner)) {
+                        llvm_required_runtime_function(ctx, node,
+                            "slot", method_name, fn_name);
                     } else {
                         llvm_direct_slot_write(ctx, slot_var, val);
                     }
@@ -61,7 +68,8 @@ llvm_emit_member_call_slot_method(ASTNode *node, LLVMGenCtx *ctx,
 
             if (strcmp(method_name, "Read") == 0) {
                 if (is_secure) {
-                    LLVMVarEntry *token_var = llvm_lookup_secure_token_var(ctx, slot_name);
+                    LLVMVarEntry *token_var = llvm_require_secure_token_var(ctx,
+                        node, slot_name, method_name);
                     if (token_var == NULL)
                         return LLVMConstInt(ctx->type_i32, 0, 0);
                     {
@@ -77,7 +85,12 @@ llvm_emit_member_call_slot_method(ASTNode *node, LLVMGenCtx *ctx,
                             return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn,
                                 args, 2, llvm_tmp_name(ctx));
                         }
-                        return llvm_direct_secure_slot_read(ctx, slot_var, inner);
+                        if (!llvm_slot_inner_has_external_runtime_helpers(inner))
+                            return llvm_emit_structural_secure_slot_read(ctx,
+                                slot_var, inner);
+                        llvm_required_runtime_function(ctx, node,
+                            "secure slot", method_name, fn_name);
+                        return LLVMConstInt(ctx->type_i32, 0, 0);
                     }
                 }
 
@@ -93,13 +106,19 @@ llvm_emit_member_call_slot_method(ASTNode *node, LLVMGenCtx *ctx,
                         return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn,
                             args, 1, llvm_tmp_name(ctx));
                     }
+                    if (llvm_slot_inner_has_external_runtime_helpers(inner)) {
+                        llvm_required_runtime_function(ctx, node,
+                            "slot", method_name, fn_name);
+                        return LLVMConstInt(ctx->type_i32, 0, 0);
+                    }
                     return llvm_direct_slot_read(ctx, slot_var, inner);
                 }
             }
 
             if (strcmp(method_name, "Release") == 0) {
                 if (is_secure) {
-                    LLVMVarEntry *token_var = llvm_lookup_secure_token_var(ctx, slot_name);
+                    LLVMVarEntry *token_var = llvm_require_secure_token_var(ctx,
+                        node, slot_name, method_name);
                     if (token_var == NULL)
                         return LLVMConstInt(ctx->type_i32, 0, 0);
                     {
@@ -113,8 +132,11 @@ llvm_emit_member_call_slot_method(ASTNode *node, LLVMGenCtx *ctx,
                                 token_var->alloca
                             };
                             LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, "");
+                        } else if (!llvm_slot_inner_has_external_runtime_helpers(inner)) {
+                            llvm_emit_structural_secure_slot_release(ctx, slot_var);
                         } else {
-                            llvm_direct_secure_slot_release(ctx, slot_var);
+                            llvm_required_runtime_function(ctx, node,
+                                "secure slot", method_name, fn_name);
                         }
                     }
                 } else {
@@ -127,6 +149,9 @@ llvm_emit_member_call_slot_method(ASTNode *node, LLVMGenCtx *ctx,
                             llvm_slot_runtime_arg(ctx, slot_var)
                         };
                         LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 1, "");
+                    } else if (llvm_slot_inner_has_external_runtime_helpers(inner)) {
+                        llvm_required_runtime_function(ctx, node,
+                            "slot", method_name, fn_name);
                     } else {
                         llvm_direct_slot_release(ctx, slot_var);
                     }

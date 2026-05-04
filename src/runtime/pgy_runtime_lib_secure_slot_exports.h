@@ -142,6 +142,26 @@ pgy_secure_pin_write_##Suffix(PgySecureSlot_##Suffix *s,                       \
     return view;                                                               \
 }                                                                              \
                                                                                \
+void pgy_secure_pin_read_init_##Suffix(PgyPinnedSecureSlotView_##Suffix *out,  \
+                                       PgySecureSlot_##Suffix *s,               \
+                                       const PgyToken_##Suffix *t)              \
+{                                                                              \
+    if (out == NULL)                                                           \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,          \
+                          "null secure slot pin read out");                    \
+    *out = pgy_secure_pin_read_##Suffix(s, t);                                  \
+}                                                                              \
+                                                                               \
+void pgy_secure_pin_write_init_##Suffix(PgyPinnedSecureSlotView_##Suffix *out, \
+                                        PgySecureSlot_##Suffix *s,              \
+                                        const PgyToken_##Suffix *t)             \
+{                                                                              \
+    if (out == NULL)                                                           \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,          \
+                          "null secure slot pin write out");                   \
+    *out = pgy_secure_pin_write_##Suffix(s, t);                                 \
+}                                                                              \
+                                                                               \
 void pgy_secure_unpin_##Suffix(PgyPinnedSecureSlotView_##Suffix *view)         \
 {                                                                              \
     if (view == NULL)                                                           \

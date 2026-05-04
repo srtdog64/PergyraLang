@@ -1,9 +1,18 @@
 static LLVMValueRef
-llvm_await_task_handle(LLVMGenCtx *ctx, LLVMValueRef task, const char *inner,
-                       bool is_remote)
+llvm_await_task_handle(LLVMGenCtx *ctx, ASTNode *node, LLVMValueRef task,
+                       const char *inner, bool is_remote)
 {
     LLVMFuncEntry *await_fn = llvm_lookup_function(ctx, "pgy_await_export");
-    if (await_fn == NULL || task == NULL)
+    if (await_fn == NULL) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "LLVM await expression requires registered runtime function '%s'",
+            "pgy_await_export");
+        return LLVMConstInt(ctx->type_i32, 0, 0);
+    }
+    if (task == NULL)
         return LLVMConstInt(ctx->type_i32, 0, 0);
 
     LLVMValueRef args[] = { task };
@@ -278,9 +287,23 @@ llvm_emit_spawn_expr(ASTNode *node, LLVMGenCtx *ctx)
     malloc_fn = llvm_lookup_function(ctx, "malloc");
     free_fn = llvm_lookup_function(ctx, "free");
     if (spawn_fn == NULL || malloc_fn == NULL || free_fn == NULL) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "LLVM spawn expression requires registered runtime functions '%s', 'malloc', and 'free'",
+            node->data.spawn_expr.is_blocking
+                ? "pgy_spawn_blocking_export"
+                : "pgy_async_spawn_export");
         return LLVMConstNull(ctx->type_task_handle);
     }
     if (callee_entry == NULL) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_SYMBOL_UNDEFINED,
+            PGY_FIX_IMPORT_OR_DECLARE_SYMBOL,
+            "LLVM spawn expression target '%s' is not declared in the backend function registry",
+            callee_name);
         return LLVMConstNull(ctx->type_task_handle);
     }
 

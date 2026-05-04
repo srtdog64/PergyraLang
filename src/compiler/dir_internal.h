@@ -38,6 +38,7 @@ const char *type_name(DIRProgram *dir, ASTNode *type_node);
 bool dir_domain_slot_is_projection(ASTNode *slot);
 
 bool dir_collect_nodes(DIRProgram *dir, ASTNode *program);
+bool dir_collect_intent_info(DIRProgram *dir, size_t from_id, ASTNode *node);
 bool dir_collect_zone_edges(DIRProgram *dir, size_t from_id, ASTNode *node);
 bool dir_collect_relation_effect_slot_edges(DIRProgram *dir,
                                             size_t from_id,

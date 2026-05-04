@@ -111,8 +111,11 @@ llvm_emit_parallel_block(ASTNode *node, LLVMGenCtx *ctx)
     LLVMFuncEntry *await_fn = llvm_lookup_function(ctx, "pgy_await_export");
 
     if (spawn_fn == NULL || await_fn == NULL) {
-        for (size_t i = 0; i < count; i++)
-            llvm_emit_statement(node->data.parallel.tasks[i], ctx);
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "LLVM parallel block requires registered runtime functions 'pgy_spawn_export' and 'pgy_await_export'; sequential fallback is disabled");
         return;
     }
 
@@ -264,7 +267,11 @@ llvm_emit_async_block(ASTNode *node, LLVMGenCtx *ctx)
     LLVMFuncEntry *detach_fn = llvm_lookup_function(ctx, "pgy_async_detach_export");
     if (spawn_fn == NULL || detach_fn == NULL) {
         ctx->parallel_counter = saved_parallel_counter;
-        llvm_emit_statement(&fake_block, ctx);
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "LLVM async block requires registered runtime functions 'pgy_async_spawn_export' and 'pgy_async_detach_export'; synchronous fallback is disabled");
         return;
     }
 
@@ -369,58 +376,81 @@ llvm_emit_select_stmt(ASTNode *node, LLVMGenCtx *ctx)
                             LLVMValueRef tmp = llvm_create_entry_alloca(ctx, val_ty, llvm_tmp_name(ctx));
                             snprintf(fn_name, sizeof(fn_name), "pgy_channel_try_recv_%s", inner);
                             LLVMFuncEntry *try_fn = llvm_lookup_function(ctx, fn_name);
-                            if (try_fn != NULL) {
-                                LLVMValueRef args[] = { ch_var->alloca, tmp };
-                                LLVMValueRef ok = LLVMBuildCall2(ctx->builder, try_fn->fn_type,
-                                    try_fn->fn, args, 2, llvm_tmp_name(ctx));
-                                LLVMBuildCondBr(ctx->builder, ok, case_bb, fail_bb);
-
-                                LLVMPositionBuilderAtEnd(ctx->builder, case_bb);
-                                llvm_scope_push(ctx);
-                                {
-                                    LLVMValueRef bind_alloca =
-                                        llvm_create_entry_alloca(ctx, val_ty, bind_name);
-                                    LLVMValueRef received = LLVMBuildLoad2(ctx->builder, val_ty, tmp,
-                                        llvm_tmp_name(ctx));
-                                    LLVMBuildStore(ctx->builder, received, bind_alloca);
-                                    llvm_scope_declare(ctx, pergyra_strdup(bind_name),
-                                                       bind_alloca, val_ty);
-                                }
-                                if (body != NULL)
-                                    llvm_emit_statement(body, ctx);
-                                llvm_scope_pop(ctx);
-                                if (LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(ctx->builder)) == NULL)
-                                    LLVMBuildBr(ctx->builder, merge_bb);
-                                next_check_bb = fail_bb;
-                                continue;
+                            if (try_fn == NULL) {
+                                llvm_set_error_at_with_hints(ctx, channel,
+                                    PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                                    PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                                    PGY_FIX_INSPECT_MIR_INVENTORY,
+                                    "LLVM select receive requires registered runtime function '%s'",
+                                    fn_name);
+                                return;
                             }
+
+                            LLVMValueRef args[] = { ch_var->alloca, tmp };
+                            LLVMValueRef ok = LLVMBuildCall2(ctx->builder, try_fn->fn_type,
+                                try_fn->fn, args, 2, llvm_tmp_name(ctx));
+                            LLVMBuildCondBr(ctx->builder, ok, case_bb, fail_bb);
+
+                            LLVMPositionBuilderAtEnd(ctx->builder, case_bb);
+                            llvm_scope_push(ctx);
+                            {
+                                LLVMValueRef bind_alloca =
+                                    llvm_create_entry_alloca(ctx, val_ty, bind_name);
+                                LLVMValueRef received = LLVMBuildLoad2(ctx->builder, val_ty, tmp,
+                                    llvm_tmp_name(ctx));
+                                LLVMBuildStore(ctx->builder, received, bind_alloca);
+                                llvm_scope_declare(ctx, pergyra_strdup(bind_name),
+                                                   bind_alloca, val_ty);
+                            }
+                            if (body != NULL)
+                                llvm_emit_statement(body, ctx);
+                            llvm_scope_pop(ctx);
+                            if (LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(ctx->builder)) == NULL)
+                                LLVMBuildBr(ctx->builder, merge_bb);
+                            next_check_bb = fail_bb;
+                            continue;
                         } else {
                             snprintf(fn_name, sizeof(fn_name), "pgy_channel_ready_%s", inner);
                             LLVMFuncEntry *ready_fn = llvm_lookup_function(ctx, fn_name);
-                            if (ready_fn != NULL) {
-                                LLVMValueRef args[] = { ch_var->alloca };
-                                LLVMValueRef ready = LLVMBuildCall2(ctx->builder, ready_fn->fn_type,
-                                    ready_fn->fn, args, 1, llvm_tmp_name(ctx));
-                                LLVMBuildCondBr(ctx->builder, ready, case_bb, fail_bb);
-
-                                LLVMPositionBuilderAtEnd(ctx->builder, case_bb);
-                                {
-                                    char recv_name[128];
-                                    snprintf(recv_name, sizeof(recv_name), "pgy_channel_recv_val_%s", inner);
-                                    LLVMFuncEntry *recv_fn = llvm_lookup_function(ctx, recv_name);
-                                    if (recv_fn != NULL) {
-                                        LLVMValueRef recv_args[] = { ch_var->alloca };
-                                        (void)LLVMBuildCall2(ctx->builder, recv_fn->fn_type,
-                                            recv_fn->fn, recv_args, 1, "");
-                                    }
-                                }
-                                if (body != NULL)
-                                    llvm_emit_statement(body, ctx);
-                                if (LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(ctx->builder)) == NULL)
-                                    LLVMBuildBr(ctx->builder, merge_bb);
-                                next_check_bb = fail_bb;
-                                continue;
+                            if (ready_fn == NULL) {
+                                llvm_set_error_at_with_hints(ctx, channel,
+                                    PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                                    PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                                    PGY_FIX_INSPECT_MIR_INVENTORY,
+                                    "LLVM select readiness requires registered runtime function '%s'",
+                                    fn_name);
+                                return;
                             }
+
+                            LLVMValueRef args[] = { ch_var->alloca };
+                            LLVMValueRef ready = LLVMBuildCall2(ctx->builder, ready_fn->fn_type,
+                                ready_fn->fn, args, 1, llvm_tmp_name(ctx));
+                            LLVMBuildCondBr(ctx->builder, ready, case_bb, fail_bb);
+
+                            LLVMPositionBuilderAtEnd(ctx->builder, case_bb);
+                            {
+                                char recv_name[128];
+                                snprintf(recv_name, sizeof(recv_name), "pgy_channel_recv_val_%s", inner);
+                                LLVMFuncEntry *recv_fn = llvm_lookup_function(ctx, recv_name);
+                                if (recv_fn == NULL) {
+                                    llvm_set_error_at_with_hints(ctx, channel,
+                                        PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                                        PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                                        PGY_FIX_INSPECT_MIR_INVENTORY,
+                                        "LLVM select consume requires registered runtime function '%s'",
+                                        recv_name);
+                                    return;
+                                }
+                                LLVMValueRef recv_args[] = { ch_var->alloca };
+                                (void)LLVMBuildCall2(ctx->builder, recv_fn->fn_type,
+                                    recv_fn->fn, recv_args, 1, "");
+                            }
+                            if (body != NULL)
+                                llvm_emit_statement(body, ctx);
+                            if (LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(ctx->builder)) == NULL)
+                                LLVMBuildBr(ctx->builder, merge_bb);
+                            next_check_bb = fail_bb;
+                            continue;
                         }
                     }
                 }

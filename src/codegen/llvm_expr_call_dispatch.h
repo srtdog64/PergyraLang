@@ -419,7 +419,14 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
             }
         }
 
-        fprintf(stderr, "[llvm] warning: unknown function '%s'\n", callee_name);
+        if (ctx != NULL && !ctx->has_error) {
+            llvm_set_error_at_with_hints(ctx, node,
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_SYMBOL_UNDEFINED,
+                PGY_FIX_IMPORT_OR_DECLARE_SYMBOL,
+                "LLVM call target '%s' is not declared in the backend function registry",
+                callee_name != NULL ? callee_name : "<unknown>");
+        }
         return LLVMConstInt(ctx->type_i32, 0, 0);
     }
 

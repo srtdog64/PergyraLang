@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "slot_analyzer_internal.h"
+#include "type_checker.h"
 #include "diag_codes.h"
 
 #define INITIAL_ENTRY_CAPACITY 16

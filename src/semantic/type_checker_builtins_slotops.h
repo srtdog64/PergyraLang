@@ -1,9 +1,12 @@
 #ifndef PERGYRA_TYPE_CHECKER_BUILTINS_SLOTOPS_H
 #define PERGYRA_TYPE_CHECKER_BUILTINS_SLOTOPS_H
 
-#include "type_checker.h"
+#include <stdbool.h>
+#include "../parser/ast.h"
+#include "type_system.h"
 
-BuiltinKind builtin_resolve(const char *name);
+typedef struct SemanticContext SemanticContext;
+
 Type *type_check_claim_slot(ASTNode *call, SemanticContext *ctx);
 Type *type_check_claim_device_slot(ASTNode *call, SemanticContext *ctx);
 Type *type_check_view_read(ASTNode *call, SemanticContext *ctx);

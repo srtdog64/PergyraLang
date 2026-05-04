@@ -115,9 +115,6 @@ void        llvm_emit_intent_step_mark_caused_effect(LLVMGenCtx *ctx,
                                                      const char *zone_type_name,
                                                      const char *zone_alias,
                                                      const char *causes_effect);
-const char *llvm_infer_intent_step_causes_from_on_exprs(LLVMGenCtx *ctx,
-                                                        ASTNode **on_exprs,
-                                                        size_t on_expr_count);
 const MIRRoutine *llvm_find_mir_intent_routine(const LLVMGenCtx *ctx,
                                                ASTNode *intent_decl);
 void        llvm_emit_mir_resource_hook(LLVMGenCtx *ctx,

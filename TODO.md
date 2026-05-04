@@ -10,6 +10,52 @@ English anchor for tooling/doc gates:
 - Missing for full self-host: stable module/package resolver, richer stdlib, debugger/bootstrap story, and Stable C escape hatch policy.
 - WebGL dogfood is not core language surface. The beta path is `Pergyra -> C backend --emit-c -> optional Emscripten/WebGL bridge`; it validates host bridge viability only. `pgy.render.webgl`, richer render APIs, native LLVM wasm, and GPU/Spray work stay module ecosystem tracks after beta closure.
 
+Progress log, 2026-05-04:
+
+- Reduced C backend public-header coupling: `transpiler.h` no longer imports semantic/type-system umbrella headers and no longer exposes `BuiltinKind`-based internal builtin emitter prototypes. The C backend public surface now depends on AST/HIR/MIR/Arena only. Gates: `test-transpile`, `production-header-size-test-smoke`, `build-source-inventory-test-smoke`.
+- Reduced LLVM codegen-to-semantic coupling for slot escape summaries: `slot_summary.h` now owns the slot escape/parameter summary API, so LLVM let-lowering no longer imports the full `slot_analyzer.h` / `SemanticContext` surface. Gates: `test-semantic`, `test-transpile`, `production-header-size-test-smoke`, `build-source-inventory-test-smoke`.
+- Split `BuiltinKind` / `builtin_resolve(...)` out of `type_checker.h` into `builtin_kind.h`, so C codegen can consume the builtin dispatch vocabulary without importing the semantic type-checker umbrella. Gates: `test-semantic`, `test-transpile`, `source-utf8-test-smoke`.
+- Removed the stale semantic duplicate declaration of `builtin_resolve(...)` from slot builtin headers and made the resolver implementation include only the builtin vocabulary header. Gate: `test-semantic` (`2500/0`).
+- Reduced Slot analyzer public-header coupling: `slot_analyzer.h` now forward-declares `SemanticContext` instead of importing the full type-checker umbrella; only the implementation file consumes `type_checker.h`. Gates: `test-semantic`, `source-utf8-test-smoke`.
+- Reduced diagnostic payload public-header coupling: `diag_payload.h` now depends on AST plus forward-declared `SemanticContext` / `DiagnosticPayloadSnapshot`, rather than importing the type-checker umbrella. Gate: `test-semantic` (`2500/0`).
+- Split semantic diagnostic data into `diagnostic_types.h`, so `semantic.h` exposes `SemanticResult` diagnostics without importing the full type-checker umbrella. Gates: `test-semantic` (`2500/0`), `bin/pgy-lsp.exe`.
+- Reduced builtin helper header coupling: `type_checker_builtins_slotops.h`, `type_checker_builtins_query.h`, and `type_checker_builtins_query_domain.h` now declare only their AST/Type/SemanticContext surface instead of importing the full type-checker umbrella. Gate: `test-semantic` (`2500/0`).
+- Reduced builtin dispatcher internal-header coupling: `type_checker_builtins_internal.h` now depends on `builtin_kind.h` plus forward-declared `SemanticContext`/`Symbol`, and the declaration-only nominal header no longer imports the full type-checker umbrella. Gate: `test-semantic` (`2500/0`).
+- Reduced domain semantic internal-header coupling: `type_checker_domain_internal.h` now exposes only AST/SymbolKind/SemanticContext-facing declarations instead of importing the public type-checker umbrella. Gate: `test-semantic` (`2500/0`).
+- Split LLVM banner string normalization out of `llvm_expr_identifier_slot_helpers.h` into responsibility-owned `llvm_expr_banner_string_helpers.h`, reducing the slot identifier helper from the 600-LOC boundary to 476 LOC and keeping banner/log formatting outside slot lowering. Gates: `production-header-size-test-smoke`, `source-utf8-test-smoke`, `build-source-inventory-test-smoke`, `bin/pgy.exe`.
+- Aligned C expression type inference with the frozen nominal host set: constructor-like call inference now recognizes party/role/roster declarations alongside class/subject/relation/effect/zone/world. Gates: `test-transpile` (`717/0`), `mir-declaration-inventory-test-smoke`.
+- Removed duplicate role/ability emitter declarations from the C backend public header, keeping `transpiler.h`'s domain emitter surface single-declared while preserving include/impl-ability entry points. Gate: `bin/pgy.exe`.
+- Split C stdlib HashMap lowering out of the combined collection builtin owner into `transpiler_expr_stdlib_map_builtin.h`, reducing `transpiler_expr_stdlib_collection_builtin.h` from 502 LOC to 354 LOC and leaving the collection owner focused on List/Set/Queue dispatch. Gates: `test-transpile` (`717/0`), `production-header-size-test-smoke`, `build-source-inventory-test-smoke`.
+- Split MIR SSA local type-AST lookup out of `transpiler_mir_ssa_emit.h` into responsibility-owned `transpiler_mir_local_type_ast_lookup.h`, reducing the SSA emission owner from 514 LOC to 432 LOC without changing MIR lowering behavior. Gates: `test-transpile` (`717/0`), `production-header-size-test-smoke`, `build-source-inventory-test-smoke`, `source-utf8-test-smoke`, `bin/pgy.exe`.
+- Split MIR resource runtime-name policy out of `transpiler_helpers.h` into `transpiler_mir_resource_name_helpers.h`, reducing the generic helper owner from 557 LOC to 496 LOC while keeping resource op emission behavior unchanged. Gates: `test-transpile` (`717/0`), `production-header-size-test-smoke`, `build-source-inventory-test-smoke`, `source-utf8-test-smoke`, `bin/pgy.exe`.
+- Split C overlay world-embedded projection sync out of `transpiler_overlay_projection.h` into `transpiler_overlay_world_projection.h`, reducing the generic overlay projection owner from 533 LOC to 339 LOC while preserving assignment invalidation and receiver post-sync behavior. Gates: `test-transpile` (`717/0`), `production-header-size-test-smoke`, `build-source-inventory-test-smoke`, `source-utf8-test-smoke`, `bin/pgy.exe`.
+- Split C intent emission metadata cleanup and local carrier/context macros out of `transpiler_intent_emit.h` into `transpiler_intent_emit_metadata_helpers.h`, reducing the intent declaration emitter from 520 LOC to 487 LOC without changing MIR-only carrier validation or cleanup behavior. Gates: `test-transpile` (`717/0`), `production-header-size-test-smoke`, `build-source-inventory-test-smoke`, `source-utf8-test-smoke`, `bin/pgy.exe`.
+- Split MIR active-inventory inline views out of the public C backend header into `transpiler_inventory_view.h`, reducing `transpiler.h` from 531 LOC to 402 LOC while keeping the same public API available to existing consumers. Gates: `test-transpile` (`717/0`), `production-header-size-test-smoke`, `build-source-inventory-test-smoke`, `source-utf8-test-smoke`, `bin/pgy.exe`.
+- Split C relation/effect declaration emission out of `transpiler_domain_nominal_emit.h` into `transpiler_relation_effect_emit.h`, reducing the mixed domain nominal owner from 562 LOC to 382 LOC while preserving relation/effect projection sync and hosted method emission. Gates: `test-transpile` (`717/0`), `production-header-size-test-smoke`, `build-source-inventory-test-smoke`, `source-utf8-test-smoke`, `bin/pgy.exe`.
+- Split LLVM defer scope lifecycle out of `llvm_stmt.c` into `llvm_stmt_defer_scope.c`, reducing the statement dispatcher owner from 598 LOC to 497 LOC while preserving defer registration/emission semantics. Gates: `bin/pgy.exe`, `test-transpile` (`717/0`), `production-header-size-test-smoke`, `build-source-inventory-test-smoke`, `source-utf8-test-smoke`.
+- Split DIR intent metadata materialization out of `dir_collect.c` into `dir_collect_intent.c`, reducing the mixed declaration/edge collector from 578 LOC to 311 LOC and keeping compressed-intent provenance collection in a dedicated owner. Gates: `bin/pgy.exe`, `test-dir` (`9/0`), `build-source-inventory-test-smoke`, `source-utf8-test-smoke`.
+- Split LLVM domain struct layout/registration out of `llvm_domain.c` into `llvm_domain_struct_register.c`, reducing `llvm_domain.c` from 552 LOC to 85 LOC and leaving it as pass orchestration only. Gates: `bin/pgy.exe`, `llvm-test-smoke`, `build-source-inventory-test-smoke`, `source-utf8-test-smoke`.
+- Split DAG graph/stage declarations out of the semantic internal umbrella into `type_checker_resolution_graph_internal.h`, reducing `type_checker_internal.h` from 571 LOC to 486 LOC and making the resolution graph API ownership explicit. Gate: `test-semantic` (`2500/0`).
+- Split LLVM secure-slot runtime declarations out of `llvm_runtime.c` into `llvm_runtime_secure_slot_decl.c`, reducing the mixed runtime declaration owner from 540 LOC to 486 LOC while keeping the Slot/Pin ABI declaration order behind `llvm_runtime_internal.h`. Gates: `bin/pgy.exe`, `llvm-test-smoke`, `build-source-inventory-test-smoke`, `source-utf8-test-smoke`, `production-header-size-test-smoke`.
+- Split MIR liveness/use validation out of `mir.c` into `mir_validation.c`, reducing the mixed MIR construction/validation owner from 546 LOC to 427 LOC and making body-safety validation a dedicated owner consumed by the MIR public validator. Gates: `test-mir` (`41/0`), `bin/pgy.exe`, `build-source-inventory-test-smoke`, `source-utf8-test-smoke`, `production-header-size-test-smoke`.
+- Closed a LLVM declaration inventory compatibility gap: active-inventory fallback lookup now mirrors the frozen host declaration set for class/enum/relation/effect/zone/world/party/role/roster. Gates: `perf-contract-test-smoke`, `mir-declaration-inventory-test-smoke`, `llvm-test-smoke`, and `llvm-test-backend-compare`.
+- Closed an AIR boundary evidence drift bug: duplicate boundary-scoped evidence appends are idempotent, while global evidence counters still accumulate. This preserves the invariant that each boundary evidence node carries exactly one boundary fact. Gate: `test-air` (`76/0`).
+- Closed a LLVM Slot/Pin ABI parity bug: LLVM lowering now calls out-param `pgy_pin_*_init_*` / `pgy_secure_pin_*_init_*` wrappers instead of relying on struct-by-value returns. Gates: `abi-ownership-shape-test-smoke`, `test-abi`, `llvm-test-smoke`, `llvm-test-backend-compare` (`69/69`, ABI same-process precheck `196/196`).
+- Closed the compressed-intent LLVM success default gap: omitted `success:` lowers to explicit `true`; unsupported non-null success expressions still fail strictly. Gate: `llvm-test-backend-compare`.
+- Rechecked AIR verification-layer gates: strict evidence, drift detection, stable JSON graph schema, and backend non-impact all remain green after boundary evidence idempotence. Gates: `test-air` (`76/0`), `air-drift-test-smoke`, `air-json-schema-test-smoke`, `air-backend-nonimpact-full-test-smoke`.
+- Rechecked DAG source-of-truth gates: resolver fallback seams remain `0`, direct resolver inventory remains capped, and DAG metadata counters remain above the beta floor (`skips=2033`, `entries=3498`, `owned=258`, `hits=8380`, `materializer_fallbacks=0`). Gates: `type-resolution-resolver-inventory-test-smoke`, `type-resolution-dag-test-smoke`.
+- Rechecked CFG/MIR body-safety contract after Slot/Pin ABI changes: pin cleanup facts, CFG-owned control rejection, WriteView exclusivity, all-CFG-exit cleanup, SSA/PHI, DCE, and declaration-header drift gates remain green. Gates: `cfg-body-dataflow-test-smoke`, `test-mir` (`41/0`).
+- Closed a 600-LOC owner-size regression: projection invalidation/world-embedded sync logic moved from `llvm_expr_assignment_member_projection.h` into responsibility-owned `llvm_expr_assignment_projection.h` (233/378 LOC). Gates: `test-inc-size-test-smoke`, `production-header-size-test-smoke`, `build-source-inventory-test-smoke`, `llvm-test-smoke`.
+- Closed a LLVM host-name consistency gap: `llvm_current_host_decl_name(...)` now mirrors the same host declaration set as host classification and active-inventory fallback (`class/enum/party/role/roster/relation/effect/zone/world`). Gates: `mir-declaration-inventory-test-smoke`, `llvm-test-smoke`.
+- Tightened C/LLVM host-name smoke coverage: `mir-declaration-inventory-test-smoke` now gates party/role/roster active-inventory use and C/LLVM declaration-name helpers together.
+- Closed the matching LLVM host-struct-name drift: `llvm_current_host_class_name(...)` now includes party/role/roster for self/field/projection helpers that consume the current host as a registered LLVM struct. Gates: `mir-declaration-inventory-test-smoke`, `llvm-test-smoke`.
+- Closed a role pointer-self drift: `llvm_type_name_uses_pointer_self(...)` now treats `role` declarations consistently with the rest of the pointer-self domain host set. Gates: `mir-declaration-inventory-test-smoke`, `llvm-test-smoke`, targeted `compare_backends.sh` for `role_operator`, `zone_host_method_abi_combo`, and `host_method_class_return` (`3/3`).
+- Closed a compressed-intent layering seam: C/LLVM codegen no longer re-infers action `causes` from `on` expressions. `causes` must be materialized by semantic/DIR/MIR first, and `intent-compression-contract-test-smoke` now rejects reintroduced codegen-side inference.
+- Closed the matching C backend host-lookup drift: `transpiler_find_nominal_host_decl_local(...)` and `transpiler_find_host_decl_from_owner_local(...)` now mirror the frozen domain host set for party/role/roster in addition to class/enum/relation/effect/zone/world, so C and LLVM declaration lookup consume the same host inventory surface. Gates: `mir-declaration-inventory-test-smoke`, `test-transpile`.
+- Tightened C known-nominal forwarding: `transpiler_has_known_nominal_type(...)` now includes enum and role declarations, keeping C forward-declaration policy aligned with the frozen host/type inventory instead of treating those names as unknown after zone emission. Gate: `mir-declaration-inventory-test-smoke`.
+- Rechecked runtime propagation frontier gates: bounded zone/world/projection frontier contracts, runtime panic overflow path, queryable authority/failure surface, generated embedded-world frontier limit, and shared frontier pass-limit arithmetic remain green. Gates: `runtime-frontier-contract-test-smoke`, `runtime-frontier-policy-test-smoke`.
+- Rechecked UTF/docs readiness gates after the progress-log and beta-board updates. Gates: `source-utf8-test-smoke`, `documentation-quality-test-smoke`, `beta-readiness-checklist-test-smoke`.
+
 ## 0-selfhost. Beta 이후 self-hosting 목표
 
 **결정:** self-hosting은 beta blocker가 아니라 beta 이후의 검증 목표다.
@@ -6479,12 +6525,127 @@ Local verification for this debt refresh:
 - LLVM `ArrayPush` / `ArraySet` now require their type-specialized
   `pgy_array_*_<suffix>` runtime exports. Missing array exports are backend
   diagnostics instead of silent no-op array mutations.
+- LLVM indexed `Array<T>` / `Slice<T>` access now also requires the
+  type-specialized `pgy_array_get_*` / `pgy_slice_get_*` runtime exports before
+  using the checked collection accessor path. Missing accessors no longer fall
+  through to raw aggregate data loads that bypass the runtime bounds-check
+  contract.
+- The final LLVM generic unknown-call path now reports a structured backend
+  diagnostic (`import-or-declare-symbol`) instead of printing a warning and
+  returning `0`. User/external functions must be declared in the backend
+  function registry before LLVM emission.
+- LLVM host declaration metadata lookup now includes role, party, and roster
+  declarations. This fixes the exposed role ability operator-overload path:
+  `IntMath.Add` can resolve its MIR method routine through declaration
+  metadata instead of tripping the MIR-only missing-routine diagnostic.
+  The active-inventory compatibility path now mirrors the same host set, so
+  party/role/roster owners without a MIR decl header do not regress to a null
+  host declaration during LLVM method emission.
+- LLVM channel builtin coverage now includes `ChannelClose`, routed through the
+  same `Channel<T>` metadata and required-runtime helper path as channel
+  readiness/pressure queries. This removes another generic unknown-call escape
+  that was only visible once warning+0 fallback was disabled.
+- LLVM `Rc<T>` / `Weak<T>` builtins now require their type-specialized runtime
+  exports through the shared required-runtime helper. Missing Rc/Weak exports
+  are backend diagnostics instead of quiet empty-handle/no-op behavior.
+- LLVM `DeviceSlot<T>` read/write/release/submit operations now require their
+  type-specialized device runtime exports through the same required-runtime
+  helper, so device resource calls cannot silently degrade to `0`.
+- LLVM standalone `SecureSlot<T>` read/write/release now fail closed for
+  runtime-backed builtin payloads when the secure runtime export is missing.
+  User-defined payloads (`SecureSlot<Subject>`, `SecureSlot<Class>`) use the
+  module-local structural secure-slot lowering path because those helpers are
+  generated per payload rather than provided by the shared runtime registry.
+- LLVM method-call style `secureSlot.Write/Read/Release` follows the same
+  split: builtin secure payloads require registered runtime exports, while
+  user-defined payloads use explicit structural lowering instead of an
+  unlabelled direct fallback.
+- LLVM `with slot<T>` cleanup and typed slot initializers now use the same
+  builtin-vs-custom split. Runtime-backed builtin payloads fail closed if their
+  release/write helpers are absent; user-defined payloads use structural
+  slot-field lowering instead of silently skipping cleanup or initialization.
+- LLVM block-scope slot auto-release now also fails closed for runtime-backed
+  builtin payloads when the required release helper is missing. Custom payloads
+  keep structural cleanup because those helpers are not shared runtime exports.
+- LLVM slot auto-read and assignment-to-slot now use the same helper contract.
+  The assignment path also now chooses `pgy_secure_write_*` for secure slots
+  instead of probing the plain `pgy_write_*` name first.
+- LLVM indexed array assignment now lowers through the checked
+  `pgy_array_set_*` runtime helper instead of raw aggregate data-pointer stores.
+  Missing element metadata or missing set helpers are backend diagnostics.
+- C and LLVM `ArrayPop` now lower through the shared `pgy_array_pop_*` runtime
+  export instead of directly mutating the aggregate length field in backend
+  emitters. This keeps mutable collection operations on the runtime ABI
+  contract path.
+- LLVM array-literal and channel initializers now fail closed if
+  `pgy_array_new_*`, `pgy_array_push_*`, or `pgy_channel_init_*` is missing.
+  The backend no longer declares usable collection variables after skipped
+  runtime initialization.
+- LLVM expression-level array literals and channel send/receive now also
+  require their runtime helper declarations. Missing `pgy_array_push_*`,
+  `pgy_channel_send_*`, or `pgy_channel_recv_val_*` is a backend diagnostic
+  rather than a silent empty-array/false/zero fallback.
+- LLVM `MapKeys` now stops at the required runtime-helper diagnostic instead
+  of returning a null-initialized key array after the helper lookup fails.
+- LLVM `ListGet`, `QueuePop`, and `MapGet` now stop at their required
+  collection-helper diagnostics instead of returning a null-initialized temp
+  value after the helper lookup fails.
+- LLVM event subscribe/unsubscribe/invoke expression lowering now requires the
+  generated event function and event storage to be present. Missing event
+  inventory is reported as a backend diagnostic instead of a no-op event call.
+- LLVM checked `Result` / `Option` unwrap now requires the runtime panic export
+  before building the panic branch. Missing panic ABI is reported during backend
+  emission instead of silently lowering to a bare `unreachable`.
+- LLVM `parallel` blocks now fail closed when `pgy_spawn_export` or
+  `pgy_await_export` is absent. The previous sequential fallback hid runtime
+  ABI drift by changing concurrency semantics during LLVM lowering.
+- LLVM async blocks now fail closed when `pgy_async_spawn_export` or
+  `pgy_async_detach_export` is absent. The previous synchronous fallback also
+  hid runtime ABI drift by changing scheduling semantics during LLVM lowering.
+- LLVM spawn expressions now report missing spawn/malloc/free runtime helpers
+  and missing spawn targets as structured diagnostics instead of returning a
+  null task handle.
+- LLVM await expressions now require `pgy_await_export` instead of lowering a
+  missing await runtime helper to integer zero.
+- LLVM top-level pipeline emission now fails closed for missing thread-pool
+  init/shutdown exports and missing event initialization inventory. These were
+  previously no-op probes that could hide runtime ABI drift at program entry.
+- LLVM plain `Slot<T>` builtin/method `Write/Read/Release` now follows the
+  same builtin-vs-custom split as secure slots: primitive payloads require
+  registered runtime helpers, while user-defined payloads may use structural
+  slot-field lowering.
+- LLVM secure slot read/write/release paths now share a paired-token
+  diagnostic helper. Missing `<slot>_token` bindings report a structured
+  backend error instead of returning `0` from the emission path.
+- LLVM secure slot statement cleanup paths now report paired-token diagnostics
+  too, so block auto-release and `with SecureSlot<T>` cleanup cannot silently
+  skip token-aware release.
+- LLVM select/channel lowering now fails closed when `try_recv`, `ready`, or
+  `recv_val` helpers are missing. The MIR select readiness path reports the
+  same runtime-helper diagnostic instead of returning `NULL` and letting the
+  statement fallback emit an unconditional case body.
+- LLVM MIR pin enter/exit now reports structured runtime-helper diagnostics
+  (`pgy_pin_*`, `pgy_secure_pin_*`, `pgy_unpin_*`) instead of generic backend
+  strings when the pin runtime surface is absent.
 - The stdlib scalar/string/file/time LLVM path now consumes
   `llvm_required_runtime_function(...)` for registered runtime helpers. The
   generic unknown-function path remains unchanged for user/external calls; the
   fail-closed sweep is intentionally limited to frozen builtin/runtime surface.
+- Repeated stdlib scalar/string/file required-runtime calls now funnel through
+  `llvm_emit_required_runtime_call_result(...)`, reducing ad-hoc ternary
+  fallback sites and keeping new stdlib helpers on the same diagnostic contract
+  by default.
 - MinGW LLVM-enabled links now use response files for large object inventories,
   avoiding command-line truncation in the current Windows build shape.
 - Verified slice probes: LLVM object rebuilds for the touched codegen owners,
   native MinGW `test-parser`, native MinGW `test-semantic` (`2500/0`), and
+  `test-transpile` (`717/0`), `llvm-test-smoke`, and
   `perf-contract-test-smoke`.
+- Review follow-up gate: `llvm_find_host_decl_in_active_inventory(...)` now
+  searches party, role, and roster declarations in the active inventory
+  fallback path. `perf-contract-test-smoke` and
+  `mir-declaration-inventory-test-smoke` both gate the mirrored host set.
+  Local MinGW verification: `test-transpile` (`717/0`), `test-mir` (`41/0`),
+  `test-air` (`75/0`), `llvm-test-smoke`, `perf-contract-test-smoke`,
+  `mir-declaration-inventory-test-smoke`, and `git diff --check` (line-ending
+  warnings only).

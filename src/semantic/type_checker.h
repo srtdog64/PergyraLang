@@ -9,11 +9,14 @@
 #define PERGYRA_TYPE_CHECKER_H
 
 #include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 #include "../parser/ast.h"
 #include "../common/arena.h"
-#include "../common/diagnostic_layer.h"
+#include "../semantic/diagnostic_types.h"
 #include "../semantic/type_system.h"
 #include "../semantic/symbol_table.h"
+#include "../semantic/builtin_kind.h"
 
 #if defined(__GNUC__) || defined(__clang__)
 #define PGY_PRINTF_LIKE(fmt_index, first_arg) \
@@ -24,60 +27,12 @@
 
 /* Forward declarations */
 typedef struct SemanticContext SemanticContext;
-typedef struct Diagnostic      Diagnostic;
-typedef struct DiagnosticPayloadSnapshot DiagnosticPayloadSnapshot;
 typedef struct TypeResolutionNode TypeResolutionNode;
 typedef struct TypeResolutionEdge TypeResolutionEdge;
 typedef struct TypeResolutionGraph TypeResolutionGraph;
 
 #define SEMANTIC_MAX_LOOP_DEPTH 64
 
-/*
- * Diagnostic severity
- */
-typedef enum
-{
-    DIAG_ERROR,
-    DIAG_WARNING
-} DiagnosticLevel;
-
-/*
- * One compiler message.
- *
- * `code` is a stable identifier for downstream error routing
- * (e.g. "PGY_SEM_TYPE_MISMATCH"). It points to a string literal
- * owned by the compiler text segment — NOT freed by diagnostic
- * destruction. NULL means the site has not yet been assigned a
- * stable code (legacy path). Once assigned, a code's meaning
- * does not change across versions.
- */
-struct Diagnostic
-{
-    DiagnosticLevel level;
-    uint32_t        line;
-    uint32_t        col;
-    char*           message;
-    const char*     code;         /* non-owning pointer to static string */
-    DiagnosticLayer layer;
-
-    /* Optional routing hints. Both NULL when the site did not set them;
-     * both non-owning (static literal).
-     *
-     *  - `cause_ir`    identifies the IR-level origin of the diagnostic,
-     *                  format `<stage>:<subsystem>:<condition>`, e.g.
-     *                  "semantic:assignability_check" or
-     *                  "llvm:result_spec:capacity_exceeded". Disambiguates
-     *                  the same `code` fired from different pipeline paths.
-     *
-     *  - `fix_source`  short stable token describing the source-level
-     *                  repair action (e.g. "annotate-or-convert",
-     *                  "reuse-shared-error-enum"). Independent from the
-     *                  free-text `message` so message wording can evolve
-     *                  without breaking tooling that routes on this tag. */
-    const char*     cause_ir;
-    const char*     fix_source;
-    DiagnosticPayloadSnapshot *payload; /* owned; optional structured payload snapshot */
-};
 
 typedef enum
 {
@@ -376,122 +331,6 @@ bool type_check_release_slot(ASTNode* call, SemanticContext* ctx);
  * Called from type_check_call when the callee is an identifier
  * matching a built-in name.
  * ----------------------------------------------------------------- */
-
-typedef enum
-{
-    BUILTIN_CLAIM_SLOT,
-    BUILTIN_CLAIM_SECURE_SLOT,
-    BUILTIN_CLAIM_DEVICE_SLOT,
-    BUILTIN_VIEW_READ,
-    BUILTIN_VIEW_WRITE,
-    BUILTIN_MOVE,
-    BUILTIN_WRITE,
-    BUILTIN_READ,
-    BUILTIN_RELEASE,
-    BUILTIN_DEVICE_WRITE,
-    BUILTIN_DEVICE_READ,
-    BUILTIN_RELEASE_DEVICE_SLOT,
-    BUILTIN_SUBMIT_DEVICE_READ,
-    BUILTIN_SLOT_RAW_POINTER,
-    BUILTIN_LOG,
-    BUILTIN_LOG_BANNER,
-    BUILTIN_LOG_BLOCK,
-    BUILTIN_LOG_RAW,
-    BUILTIN_CLONE,
-    BUILTIN_RC_NEW,
-    BUILTIN_RC_CLONE,
-    BUILTIN_RC_DROP,
-    BUILTIN_RC_DOWNGRADE,
-    BUILTIN_RC_GET,
-    BUILTIN_WEAK_UPGRADE,
-    BUILTIN_WEAK_DROP,
-    BUILTIN_ALLOCATOR_SYSTEM,
-    BUILTIN_ALLOCATOR_TRACING,
-    BUILTIN_ALLOCATOR_DEBUG,
-    BUILTIN_ALLOCATOR_POOL,
-    BUILTIN_BOX,
-    BUILTIN_BOX_GET,
-    BUILTIN_BOX_SET,
-    BUILTIN_BOX_DROP,
-    BUILTIN_BOX_IS_VALID,
-    BUILTIN_BOX_ARRAY,
-    BUILTIN_TO_OBJECT,
-    BUILTIN_TO_TOBJECT,
-    BUILTIN_HAS_PROJECTION,
-    BUILTIN_HAS_LAYER,
-    BUILTIN_HAS_STATE,
-    BUILTIN_HAS_ZONE,
-    BUILTIN_HAS_ZONE_PROJECTION,
-    BUILTIN_HAS_ZONE_LAYER,
-    BUILTIN_HAS_ZONE_STATE,
-    BUILTIN_PARALLEL,
-    /* I/O built-ins */
-    BUILTIN_FILE_OPEN,
-    BUILTIN_FILE_READ,
-    BUILTIN_FILE_WRITE,
-    BUILTIN_FILE_CLOSE,
-    BUILTIN_READ_FILE,
-    BUILTIN_WRITE_FILE,
-    BUILTIN_INPUT,
-    BUILTIN_PRINT,
-    BUILTIN_READ_LINE,
-    BUILTIN_NOW,
-    BUILTIN_SLEEP,
-    BUILTIN_INTENT_LAST_TRACE,
-    BUILTIN_INTENT_LAST_FAILURE,
-    BUILTIN_INTENT_LAST_NAME,
-    BUILTIN_INTENT_LAST_HANDLE,
-    BUILTIN_INTENT_LAST_TRACE_ID,
-    BUILTIN_INTENT_LAST_STEP_COUNT,
-    BUILTIN_INTENT_LAST_FAILED,
-    BUILTIN_INTENT_HISTORY_COUNT,
-    BUILTIN_INTENT_HISTORY_STEP_NAME,
-    BUILTIN_INTENT_HISTORY_STEP_ZONE,
-    BUILTIN_INTENT_HISTORY_STEP_PHASE,
-    BUILTIN_INTENT_HISTORY_STEP_PARTICIPANT,
-    BUILTIN_INTENT_HISTORY_STEP_SLOT,
-    BUILTIN_INTENT_HISTORY_STEP_FROM_ZONE,
-    BUILTIN_INTENT_HISTORY_STEP_FROM_SLOT,
-    BUILTIN_INTENT_HISTORY_STEP_TO_ZONE,
-    BUILTIN_INTENT_HISTORY_STEP_TO_SLOT,
-    BUILTIN_INTENT_HISTORY_STEP_OK,
-    BUILTIN_INTENT_HISTORY_STEP_FAILURE,
-    BUILTIN_INTENT_ACTIVE_COUNT,
-    BUILTIN_INTENT_ACTIVE_NAME,
-    BUILTIN_INTENT_ACTIVE_HANDLE,
-    BUILTIN_INTENT_ACTIVE_PARENT_HANDLE,
-    BUILTIN_INTENT_ACTIVE_TRACE_ID,
-    BUILTIN_INTENT_ACTIVE_PRIORITY,
-    BUILTIN_INTENT_ACTIVE_SUBJECT_COUNT,
-    BUILTIN_INTENT_ACTIVE_STEP_COUNT,
-    BUILTIN_INTENT_ACTIVE_CONCURRENT,
-    BUILTIN_INTENT_ACTIVE_FAILED,
-    BUILTIN_INTENT_ACTIVE_FAILURE,
-    BUILTIN_INTENT_ACTIVE_TRACE,
-    BUILTIN_INTENT_ACTIVE_STEP_NAME,
-    BUILTIN_INTENT_ACTIVE_STEP_ZONE,
-    BUILTIN_INTENT_ACTIVE_STEP_PHASE,
-    BUILTIN_INTENT_ACTIVE_STEP_PARTICIPANT,
-    BUILTIN_INTENT_ACTIVE_STEP_SLOT,
-    BUILTIN_INTENT_ACTIVE_STEP_FROM_ZONE,
-    BUILTIN_INTENT_ACTIVE_STEP_FROM_SLOT,
-    BUILTIN_INTENT_ACTIVE_STEP_TO_ZONE,
-    BUILTIN_INTENT_ACTIVE_STEP_TO_SLOT,
-    BUILTIN_INTENT_ACTIVE_STEP_OK,
-    BUILTIN_INTENT_ACTIVE_STEP_FAILURE,
-    BUILTIN_INTENT_CURRENT_HANDLE,
-    BUILTIN_INTENT_RECENT_COUNT,
-    BUILTIN_INTENT_RECENT_HANDLE,
-    BUILTIN_INTENT_RECENT_TRACE_ID,
-    BUILTIN_INTENT_RECENT_NAME,
-    BUILTIN_INTENT_RECENT_TRACE,
-    BUILTIN_INTENT_RECENT_FAILURE,
-    BUILTIN_INTENT_RECENT_STEP_COUNT,
-    BUILTIN_INTENT_RECENT_FAILED,
-    BUILTIN_NOT_BUILTIN    /* Not a built-in — resolve as user function */
-} BuiltinKind;
-
-BuiltinKind builtin_resolve(const char* name);
 
 Type* type_check_builtin_call(ASTNode* call, BuiltinKind kind,
                                SemanticContext* ctx);

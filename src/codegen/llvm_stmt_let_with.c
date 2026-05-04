@@ -231,6 +231,13 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
                             LLVMValueRef args[] = { alloca_val, val };
                             LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, "");
                         }
+                    } else if (pgy_classify_type(inner) != PGY_TK_UNKNOWN) {
+                        llvm_set_error_at_with_hints(ctx, init,
+                            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                            PGY_FIX_INSPECT_MIR_INVENTORY,
+                            "LLVM slot initializer requires registered runtime function '%s'",
+                            fn_name);
                     } else {
                         LLVMValueRef value_ptr = LLVMBuildStructGEP2(ctx->builder,
                             slot_ty, alloca_val, 0, llvm_tmp_name(ctx));

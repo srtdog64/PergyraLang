@@ -57,6 +57,50 @@ air_strdup_owned(const char *text)
 }
 
 static bool
+air_evidence_kind_is_boundary_scoped(AIREvidenceKind kind)
+{
+    switch (kind) {
+    case AIR_EVIDENCE_HIR_ROUTINE:
+    case AIR_EVIDENCE_HIR_CFG:
+    case AIR_EVIDENCE_RIR_BOUNDARY:
+    case AIR_EVIDENCE_RIR_AUTHORITY:
+    case AIR_EVIDENCE_MIR_PIN_CLEANUP:
+        return true;
+    case AIR_EVIDENCE_MIR_CLEANUP:
+    case AIR_EVIDENCE_MIR_TERMINATOR:
+    case AIR_EVIDENCE_DAG_METADATA:
+    case AIR_EVIDENCE_DAG_GENERIC:
+    case AIR_EVIDENCE_DAG_ABILITY:
+    case AIR_EVIDENCE_RIR_EFFECT_PROPAGATION:
+    case AIR_EVIDENCE_RIR_RELATION_PROPAGATION:
+    case AIR_EVIDENCE_OBSERVABILITY_SCHEMA:
+        return false;
+    }
+    return false;
+}
+
+static bool
+air_evidence_node_merge_counts(AIREvidenceNode *node,
+                               AIREvidenceKind kind,
+                               size_t fact_count,
+                               size_t fallback_count,
+                               char **error_message)
+{
+    if (node == NULL)
+        return false;
+    if (air_evidence_kind_is_boundary_scoped(kind))
+        return true;
+    if (fact_count > SIZE_MAX - node->fact_count
+        || fallback_count > SIZE_MAX - node->fallback_count) {
+        air_set_error(error_message, "AIR evidence node count overflow");
+        return false;
+    }
+    node->fact_count += fact_count;
+    node->fallback_count += fallback_count;
+    return true;
+}
+
+static bool
 air_ensure_owned_name_capacity(AIRProgram *air)
 {
     char **grown;
@@ -173,14 +217,11 @@ air_append_evidence_node_ex(AIRProgram *air,
             && node->boundary_index == boundary_index
             && air_name_matches(node->provider_name, provider_name)
             && air_name_matches(node->subject_name, subject_name)) {
-            if (fact_count > SIZE_MAX - node->fact_count
-                || fallback_count > SIZE_MAX - node->fallback_count) {
-                air_set_error(error_message, "AIR evidence node count overflow");
-                return false;
-            }
-            node->fact_count += fact_count;
-            node->fallback_count += fallback_count;
-            return true;
+            return air_evidence_node_merge_counts(node,
+                                                  kind,
+                                                  fact_count,
+                                                  fallback_count,
+                                                  error_message);
         }
     }
     if (air->evidence_count >= air->evidence_capacity) {

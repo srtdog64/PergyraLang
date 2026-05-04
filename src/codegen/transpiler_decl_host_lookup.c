@@ -58,6 +58,12 @@ transpiler_find_host_decl_from_owner_local(TranspilerCtx *ctx,
     case AST_WORLD_DECL:
         return transpiler_find_decl_in_active_inventory_only_local(
             ctx, AST_WORLD_DECL, owner_name);
+    case AST_PARTY_DECL:
+        return transpiler_find_decl_in_active_inventory_only_local(
+            ctx, AST_PARTY_DECL, owner_name);
+    case AST_ROSTER_DECL:
+        return transpiler_find_decl_in_active_inventory_only_local(
+            ctx, AST_ROSTER_DECL, owner_name);
     case AST_ROLE_DECL:
         role_decl = transpiler_find_decl_in_active_inventory_only_local(
             ctx, AST_ROLE_DECL, owner_name);
@@ -147,6 +153,18 @@ transpiler_find_nominal_host_decl_local(TranspilerCtx *ctx,
     if (decl != NULL)
         goto cache_and_return;
     decl = transpiler_find_decl_in_inventory_local(ctx, AST_WORLD_DECL,
+                                                   host_type_name);
+    if (decl != NULL)
+        goto cache_and_return;
+    decl = transpiler_find_decl_in_inventory_local(ctx, AST_PARTY_DECL,
+                                                   host_type_name);
+    if (decl != NULL)
+        goto cache_and_return;
+    decl = transpiler_find_decl_in_inventory_local(ctx, AST_ROLE_DECL,
+                                                   host_type_name);
+    if (decl != NULL)
+        goto cache_and_return;
+    decl = transpiler_find_decl_in_inventory_local(ctx, AST_ROSTER_DECL,
                                                    host_type_name);
     if (decl != NULL)
         goto cache_and_return;

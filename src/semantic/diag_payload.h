@@ -31,7 +31,10 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-#include "type_checker.h"
+#include "../parser/ast.h"
+
+typedef struct SemanticContext SemanticContext;
+typedef struct DiagnosticPayloadSnapshot DiagnosticPayloadSnapshot;
 
 /* All fields are optional; renderers must tolerate NULL with sensible
  * defaults ("<unknown>", omitted line, etc).  String pointers are

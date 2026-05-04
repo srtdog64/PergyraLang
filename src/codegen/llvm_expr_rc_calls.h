@@ -139,7 +139,8 @@ llvm_emit_rc_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         }
         char fn_name[64];
         snprintf(fn_name, sizeof(fn_name), "pgy_rc_new_%s", suffix);
-        LLVMFuncEntry *fn = llvm_lookup_function(ctx, fn_name);
+        LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
+            "rc", callee_name, fn_name);
         if (fn == NULL)
             return true;
         LLVMValueRef args[] = { value };
@@ -179,7 +180,8 @@ llvm_emit_rc_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
     char fn_name[64];
     if (is_rc_clone) {
         snprintf(fn_name, sizeof(fn_name), "pgy_rc_clone_%s", suffix);
-        LLVMFuncEntry *fn = llvm_lookup_function(ctx, fn_name);
+        LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
+            "rc", callee_name, fn_name);
         if (fn == NULL)
             return true;
         LLVMValueRef handle = llvm_rc_load_handle(ctx, var);
@@ -191,7 +193,8 @@ llvm_emit_rc_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
 
     if (is_rc_get) {
         snprintf(fn_name, sizeof(fn_name), "pgy_rc_get_%s", suffix);
-        LLVMFuncEntry *fn = llvm_lookup_function(ctx, fn_name);
+        LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
+            "rc", callee_name, fn_name);
         if (fn == NULL)
             return true;
         LLVMValueRef handle = llvm_rc_load_handle(ctx, var);
@@ -205,7 +208,8 @@ llvm_emit_rc_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
 
     if (is_rc_drop) {
         snprintf(fn_name, sizeof(fn_name), "pgy_rc_drop_%s", suffix);
-        LLVMFuncEntry *fn = llvm_lookup_function(ctx, fn_name);
+        LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
+            "rc", callee_name, fn_name);
         if (fn != NULL) {
             LLVMValueRef args[] = { var->alloca };
             LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 1, "");
@@ -216,7 +220,8 @@ llvm_emit_rc_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
 
     if (is_rc_downgrade) {
         snprintf(fn_name, sizeof(fn_name), "pgy_rc_downgrade_%s", suffix);
-        LLVMFuncEntry *fn = llvm_lookup_function(ctx, fn_name);
+        LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
+            "rc", callee_name, fn_name);
         if (fn == NULL)
             return true;
         LLVMValueRef handle = llvm_rc_load_handle(ctx, var);
@@ -228,7 +233,8 @@ llvm_emit_rc_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
 
     if (is_weak_upgrade) {
         snprintf(fn_name, sizeof(fn_name), "pgy_weak_upgrade_%s", suffix);
-        LLVMFuncEntry *fn = llvm_lookup_function(ctx, fn_name);
+        LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
+            "weak", callee_name, fn_name);
         if (fn == NULL)
             return true;
         LLVMValueRef handle = llvm_rc_load_handle(ctx, var);
@@ -240,7 +246,8 @@ llvm_emit_rc_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
 
     if (is_weak_drop) {
         snprintf(fn_name, sizeof(fn_name), "pgy_weak_drop_%s", suffix);
-        LLVMFuncEntry *fn = llvm_lookup_function(ctx, fn_name);
+        LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
+            "weak", callee_name, fn_name);
         if (fn != NULL) {
             LLVMValueRef args[] = { var->alloca };
             LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 1, "");

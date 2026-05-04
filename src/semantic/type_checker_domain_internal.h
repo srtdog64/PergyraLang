@@ -1,7 +1,13 @@
 #ifndef PGY_TYPE_CHECKER_DOMAIN_INTERNAL_H
 #define PGY_TYPE_CHECKER_DOMAIN_INTERNAL_H
 
-#include "type_checker.h"
+#include <stdbool.h>
+#include <stddef.h>
+
+#include "../parser/ast.h"
+#include "symbol_table.h"
+
+typedef struct SemanticContext SemanticContext;
 
 size_t count_subject_domain_slots(ASTNode **slots, size_t slot_count);
 size_t count_object_domain_slots(ASTNode **slots, size_t slot_count);

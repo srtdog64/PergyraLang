@@ -130,9 +130,8 @@ llvm_mir_emit_pin_enter(const MIRBasicBlock *block, LLVMGenCtx *ctx)
     LLVMTypeRef pin_ty;
     LLVMValueRef pin_alloca;
     LLVMFuncEntry *pin_fn;
-    LLVMValueRef args[2];
+    LLVMValueRef args[3];
     LLVMValueRef slot_ptr_arg;
-    LLVMValueRef view;
     LLVMVarEntry *view_entry;
     char pin_name[64];
     char fn_name[128];
@@ -162,35 +161,46 @@ llvm_mir_emit_pin_enter(const MIRBasicBlock *block, LLVMGenCtx *ctx)
             llvm_set_error(ctx, "LLVM MIR secure pin block cannot resolve paired token");
             return false;
         }
-        snprintf(fn_name, sizeof(fn_name), "pgy_secure_pin_%s_%s",
+        snprintf(fn_name, sizeof(fn_name), "pgy_secure_pin_%s_init_%s",
                  block->pin_view_is_write ? "write" : "read", inner);
         pin_ty = llvm_pinned_secure_slot_struct_type(ctx, inner);
         pin_fn = llvm_lookup_function(ctx, fn_name);
         if (pin_fn == NULL || pin_fn->fn == NULL) {
-            llvm_set_error(ctx, "LLVM MIR secure pin runtime function is not registered");
+            llvm_set_error_at_with_hints(ctx, NULL,
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                PGY_FIX_INSPECT_MIR_INVENTORY,
+                "LLVM MIR secure pin requires registered runtime function '%s'",
+                fn_name);
             return false;
         }
         pin_alloca = llvm_create_entry_alloca(ctx, pin_ty, pin_name);
-        args[0] = slot_ptr_arg;
-        args[1] = token_entry->alloca;
-        view = LLVMBuildCall2(ctx->builder, pin_fn->fn_type, pin_fn->fn,
-                              args, 2, llvm_tmp_name(ctx));
+        args[0] = pin_alloca;
+        args[1] = slot_ptr_arg;
+        args[2] = token_entry->alloca;
+        LLVMBuildCall2(ctx->builder, pin_fn->fn_type, pin_fn->fn,
+                       args, 3, "");
     } else {
-        snprintf(fn_name, sizeof(fn_name), "pgy_pin_%s_%s",
+        snprintf(fn_name, sizeof(fn_name), "pgy_pin_%s_init_%s",
                  block->pin_view_is_write ? "write" : "read", inner);
         pin_ty = llvm_pinned_slot_struct_type(ctx, inner);
         pin_fn = llvm_lookup_function(ctx, fn_name);
         if (pin_fn == NULL || pin_fn->fn == NULL) {
-            llvm_set_error(ctx, "LLVM MIR pin runtime function is not registered");
+            llvm_set_error_at_with_hints(ctx, NULL,
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                PGY_FIX_INSPECT_MIR_INVENTORY,
+                "LLVM MIR pin requires registered runtime function '%s'",
+                fn_name);
             return false;
         }
         pin_alloca = llvm_create_entry_alloca(ctx, pin_ty, pin_name);
-        args[0] = slot_ptr_arg;
-        view = LLVMBuildCall2(ctx->builder, pin_fn->fn_type, pin_fn->fn,
-                              args, 1, llvm_tmp_name(ctx));
+        args[0] = pin_alloca;
+        args[1] = slot_ptr_arg;
+        LLVMBuildCall2(ctx->builder, pin_fn->fn_type, pin_fn->fn,
+                       args, 2, "");
     }
 
-    LLVMBuildStore(ctx->builder, view, pin_alloca);
     llvm_scope_declare(ctx, pergyra_strdup(pin_name), pin_alloca, pin_ty);
     if (block->pin_view_name != NULL) {
         view_entry = llvm_scope_lookup(ctx, block->pin_view_name);
@@ -257,7 +267,12 @@ llvm_mir_emit_pin_exit(const MIRBasicBlock *block, LLVMGenCtx *ctx)
              inner);
     unpin_fn = llvm_lookup_function(ctx, fn_name);
     if (unpin_fn == NULL || unpin_fn->fn == NULL) {
-        llvm_set_error(ctx, "LLVM MIR pin unpin runtime function is not registered");
+        llvm_set_error_at_with_hints(ctx, NULL,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "LLVM MIR pin cleanup requires registered runtime function '%s'",
+            fn_name);
         return false;
     }
 

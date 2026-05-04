@@ -1,4 +1,23 @@
 static bool
+llvm_emit_required_runtime_call_result(ASTNode *node, LLVMGenCtx *ctx,
+                                       const char *family_name,
+                                       const char *callee_name,
+                                       const char *runtime_name,
+                                       size_t arg_count,
+                                       LLVMValueRef *out_result)
+{
+    LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
+        family_name, callee_name, runtime_name);
+    if (fn == NULL) {
+        *out_result = LLVMConstInt(ctx->type_i32, 0, 0);
+        return true;
+    }
+    *out_result = llvm_emit_function_call_args(ctx, fn,
+        node->data.call.arguments, arg_count);
+    return true;
+}
+
+static bool
 llvm_emit_stdlib_string_file_call(ASTNode *node, LLVMGenCtx *ctx,
                                   const char *callee_name,
                                   LLVMValueRef *out_result)
@@ -28,87 +47,55 @@ llvm_emit_stdlib_string_file_call(ASTNode *node, LLVMGenCtx *ctx,
     if ((strcmp(callee_name, "Contains") == 0
          || strcmp(callee_name, "StringContains") == 0)
         && node->data.call.arg_count == 2) {
-        LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
-            "stdlib string", callee_name, "StringContains");
-        *out_result = fn != NULL
-            ? llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 2)
-            : LLVMConstInt(ctx->type_i32, 0, 0);
-        return true;
+        return llvm_emit_required_runtime_call_result(node, ctx,
+            "stdlib string", callee_name, "StringContains", 2, out_result);
     }
 
     if ((strcmp(callee_name, "Replace") == 0
          || strcmp(callee_name, "StringReplace") == 0)
         && node->data.call.arg_count == 3) {
-        LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
-            "stdlib string", callee_name, "StringReplace");
-        *out_result = fn != NULL
-            ? llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 3)
-            : LLVMConstInt(ctx->type_i32, 0, 0);
-        return true;
+        return llvm_emit_required_runtime_call_result(node, ctx,
+            "stdlib string", callee_name, "StringReplace", 3, out_result);
     }
 
     if (strcmp(callee_name, "Substring") == 0
         && node->data.call.arg_count == 3) {
-        LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
-            "stdlib string", callee_name, "Substring");
-        *out_result = fn != NULL
-            ? llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 3)
-            : LLVMConstInt(ctx->type_i32, 0, 0);
-        return true;
+        return llvm_emit_required_runtime_call_result(node, ctx,
+            "stdlib string", callee_name, "Substring", 3, out_result);
     }
 
     if ((strcmp(callee_name, "Trim") == 0
          || strcmp(callee_name, "StringTrim") == 0)
         && node->data.call.arg_count == 1) {
-        LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
-            "stdlib string", callee_name, "StringTrim");
-        *out_result = fn != NULL
-            ? llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 1)
-            : LLVMConstInt(ctx->type_i32, 0, 0);
-        return true;
+        return llvm_emit_required_runtime_call_result(node, ctx,
+            "stdlib string", callee_name, "StringTrim", 1, out_result);
     }
 
     if ((strcmp(callee_name, "Upper") == 0
          || strcmp(callee_name, "ToUpper") == 0)
         && node->data.call.arg_count == 1) {
-        LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
-            "stdlib string", callee_name, "ToUpper");
-        *out_result = fn != NULL
-            ? llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 1)
-            : LLVMConstInt(ctx->type_i32, 0, 0);
-        return true;
+        return llvm_emit_required_runtime_call_result(node, ctx,
+            "stdlib string", callee_name, "ToUpper", 1, out_result);
     }
 
     if ((strcmp(callee_name, "Lower") == 0
          || strcmp(callee_name, "ToLower") == 0)
         && node->data.call.arg_count == 1) {
-        LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
-            "stdlib string", callee_name, "ToLower");
-        *out_result = fn != NULL
-            ? llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 1)
-            : LLVMConstInt(ctx->type_i32, 0, 0);
-        return true;
+        return llvm_emit_required_runtime_call_result(node, ctx,
+            "stdlib string", callee_name, "ToLower", 1, out_result);
     }
 
     if ((strcmp(callee_name, "Concat") == 0
          || strcmp(callee_name, "StringConcat") == 0)
         && node->data.call.arg_count == 2) {
-        LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
-            "stdlib string", callee_name, "StringConcat");
-        *out_result = fn != NULL
-            ? llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 2)
-            : LLVMConstInt(ctx->type_i32, 0, 0);
-        return true;
+        return llvm_emit_required_runtime_call_result(node, ctx,
+            "stdlib string", callee_name, "StringConcat", 2, out_result);
     }
 
     if (strcmp(callee_name, "ReadFile") == 0
         && node->data.call.arg_count == 1) {
-        LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
-            "stdlib io", callee_name, "pgy_read_file");
-        *out_result = fn != NULL
-            ? llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 1)
-            : LLVMConstInt(ctx->type_i32, 0, 0);
-        return true;
+        return llvm_emit_required_runtime_call_result(node, ctx,
+            "stdlib io", callee_name, "pgy_read_file", 1, out_result);
     }
 
     if (strcmp(callee_name, "ToString") == 0
@@ -120,52 +107,32 @@ llvm_emit_stdlib_string_file_call(ASTNode *node, LLVMGenCtx *ctx,
 
     if (strcmp(callee_name, "ToInt") == 0
         && node->data.call.arg_count == 1) {
-        LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
-            "stdlib scalar", callee_name, "ToInt");
-        *out_result = fn != NULL
-            ? llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 1)
-            : LLVMConstInt(ctx->type_i32, 0, 0);
-        return true;
+        return llvm_emit_required_runtime_call_result(node, ctx,
+            "stdlib scalar", callee_name, "ToInt", 1, out_result);
     }
 
     if (strcmp(callee_name, "ToFloat") == 0
         && node->data.call.arg_count == 1) {
-        LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
-            "stdlib scalar", callee_name, "ToFloat");
-        *out_result = fn != NULL
-            ? llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 1)
-            : LLVMConstInt(ctx->type_i32, 0, 0);
-        return true;
+        return llvm_emit_required_runtime_call_result(node, ctx,
+            "stdlib scalar", callee_name, "ToFloat", 1, out_result);
     }
 
     if (strcmp(callee_name, "Random") == 0
         && node->data.call.arg_count == 1) {
-        LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
-            "stdlib scalar", callee_name, "Random");
-        *out_result = fn != NULL
-            ? llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 1)
-            : LLVMConstInt(ctx->type_i32, 0, 0);
-        return true;
+        return llvm_emit_required_runtime_call_result(node, ctx,
+            "stdlib scalar", callee_name, "Random", 1, out_result);
     }
 
     if (strcmp(callee_name, "WriteFile") == 0
         && node->data.call.arg_count == 2) {
-        LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
-            "stdlib io", callee_name, "pgy_write_file");
-        *out_result = fn != NULL
-            ? llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 2)
-            : LLVMConstInt(ctx->type_i32, 0, 0);
-        return true;
+        return llvm_emit_required_runtime_call_result(node, ctx,
+            "stdlib io", callee_name, "pgy_write_file", 2, out_result);
     }
 
     if (strcmp(callee_name, "Input") == 0
         && node->data.call.arg_count == 1) {
-        LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
-            "stdlib io", callee_name, "pgy_input");
-        *out_result = fn != NULL
-            ? llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 1)
-            : LLVMConstInt(ctx->type_i32, 0, 0);
-        return true;
+        return llvm_emit_required_runtime_call_result(node, ctx,
+            "stdlib io", callee_name, "pgy_input", 1, out_result);
     }
 
     return false;
@@ -181,52 +148,32 @@ llvm_emit_stdlib_runtime_io_call(ASTNode *node, LLVMGenCtx *ctx,
 
     if (strcmp(callee_name, "SeedRandom") == 0
         && node->data.call.arg_count == 1) {
-        LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
-            "stdlib runtime", callee_name, "SeedRandom");
-        *out_result = fn != NULL
-            ? llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 1)
-            : LLVMConstInt(ctx->type_i32, 0, 0);
-        return true;
+        return llvm_emit_required_runtime_call_result(node, ctx,
+            "stdlib runtime", callee_name, "SeedRandom", 1, out_result);
     }
 
     if (strcmp(callee_name, "FileOpen") == 0
         && node->data.call.arg_count == 2) {
-        LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
-            "stdlib file", callee_name, "pgy_file_open");
-        *out_result = fn != NULL
-            ? llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 2)
-            : LLVMConstInt(ctx->type_i32, 0, 0);
-        return true;
+        return llvm_emit_required_runtime_call_result(node, ctx,
+            "stdlib file", callee_name, "pgy_file_open", 2, out_result);
     }
 
     if (strcmp(callee_name, "FileRead") == 0
         && node->data.call.arg_count == 1) {
-        LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
-            "stdlib file", callee_name, "pgy_file_read");
-        *out_result = fn != NULL
-            ? llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 1)
-            : LLVMConstInt(ctx->type_i32, 0, 0);
-        return true;
+        return llvm_emit_required_runtime_call_result(node, ctx,
+            "stdlib file", callee_name, "pgy_file_read", 1, out_result);
     }
 
     if (strcmp(callee_name, "FileWrite") == 0
         && node->data.call.arg_count == 2) {
-        LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
-            "stdlib file", callee_name, "pgy_file_write");
-        *out_result = fn != NULL
-            ? llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 2)
-            : LLVMConstInt(ctx->type_i32, 0, 0);
-        return true;
+        return llvm_emit_required_runtime_call_result(node, ctx,
+            "stdlib file", callee_name, "pgy_file_write", 2, out_result);
     }
 
     if (strcmp(callee_name, "FileClose") == 0
         && node->data.call.arg_count == 1) {
-        LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
-            "stdlib file", callee_name, "pgy_file_close");
-        *out_result = fn != NULL
-            ? llvm_emit_function_call_args(ctx, fn, node->data.call.arguments, 1)
-            : LLVMConstInt(ctx->type_i32, 0, 0);
-        return true;
+        return llvm_emit_required_runtime_call_result(node, ctx,
+            "stdlib file", callee_name, "pgy_file_close", 1, out_result);
     }
 
     if (strcmp(callee_name, "Print") == 0 && node->data.call.arg_count == 1) {

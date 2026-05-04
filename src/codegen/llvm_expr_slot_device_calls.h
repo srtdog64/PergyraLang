@@ -47,9 +47,15 @@ llvm_emit_slot_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         snprintf(fn_name, sizeof(fn_name),
             is_secure ? "pgy_secure_write_%s" : "pgy_write_%s", inner);
         LLVMFuncEntry *fn = llvm_lookup_function(ctx, fn_name);
+        if (fn == NULL && llvm_slot_inner_has_external_runtime_helpers(inner)) {
+            llvm_required_runtime_function(ctx, node,
+                is_secure ? "secure slot" : "slot", callee_name, fn_name);
+            *out = LLVMConstInt(ctx->type_i32, 0, 0);
+            return true;
+        }
         if (fn == NULL) {
             if (is_secure)
-                llvm_direct_secure_slot_write(ctx, slot_var, val);
+                llvm_emit_structural_secure_slot_write(ctx, slot_var, val);
             else
                 llvm_direct_slot_write(ctx, slot_var, val);
             *out = LLVMConstInt(ctx->type_i32, 0, 0);
@@ -57,7 +63,8 @@ llvm_emit_slot_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         }
 
         if (is_secure) {
-            LLVMVarEntry *token_var = llvm_lookup_secure_token_var(ctx, source_name);
+            LLVMVarEntry *token_var = llvm_require_secure_token_var(ctx, node,
+                source_name, callee_name);
             if (token_var == NULL) {
                 *out = LLVMConstInt(ctx->type_i32, 0, 0);
                 return true;
@@ -100,15 +107,23 @@ llvm_emit_slot_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         snprintf(fn_name, sizeof(fn_name),
             is_secure ? "pgy_secure_read_%s" : "pgy_read_%s", inner);
         LLVMFuncEntry *fn = llvm_lookup_function(ctx, fn_name);
+        if (fn == NULL && llvm_slot_inner_has_external_runtime_helpers(inner)) {
+            llvm_required_runtime_function(ctx, node,
+                is_secure ? "secure slot" : "slot", callee_name, fn_name);
+            *out = LLVMConstInt(ctx->type_i32, 0, 0);
+            return true;
+        }
         if (fn == NULL) {
-            *out = is_secure
-                ? llvm_direct_secure_slot_read(ctx, slot_var, inner)
-                : llvm_direct_slot_read(ctx, slot_var, inner);
+            if (is_secure)
+                *out = llvm_emit_structural_secure_slot_read(ctx, slot_var, inner);
+            else
+                *out = llvm_direct_slot_read(ctx, slot_var, inner);
             return true;
         }
 
         if (is_secure) {
-            LLVMVarEntry *token_var = llvm_lookup_secure_token_var(ctx, source_name);
+            LLVMVarEntry *token_var = llvm_require_secure_token_var(ctx, node,
+                source_name, callee_name);
             if (token_var == NULL) {
                 *out = LLVMConstInt(ctx->type_i32, 0, 0);
                 return true;
@@ -150,18 +165,21 @@ llvm_emit_slot_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         snprintf(fn_name, sizeof(fn_name),
             is_secure ? "pgy_secure_release_%s" : "pgy_release_%s", inner);
         LLVMFuncEntry *fn = llvm_lookup_function(ctx, fn_name);
-        if (fn == NULL && is_secure) {
+        if (fn == NULL && llvm_slot_inner_has_external_runtime_helpers(inner)) {
+            llvm_required_runtime_function(ctx, node,
+                is_secure ? "secure slot" : "slot", callee_name, fn_name);
             *out = LLVMConstInt(ctx->type_i32, 0, 0);
             return true;
         }
 
         if (fn == NULL) {
             if (is_secure)
-                llvm_direct_secure_slot_release(ctx, slot_var);
+                llvm_emit_structural_secure_slot_release(ctx, slot_var);
             else
                 llvm_direct_slot_release(ctx, slot_var);
         } else if (is_secure) {
-            LLVMVarEntry *token_var = llvm_lookup_secure_token_var(ctx, source_name);
+            LLVMVarEntry *token_var = llvm_require_secure_token_var(ctx, node,
+                source_name, callee_name);
             if (token_var == NULL) {
                 *out = LLVMConstInt(ctx->type_i32, 0, 0);
                 return true;
@@ -215,7 +233,8 @@ llvm_emit_slot_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
 
         char fn_name[64];
         snprintf(fn_name, sizeof(fn_name), "pgy_device_write_%s", inner);
-        LLVMFuncEntry *fn = llvm_lookup_function(ctx, fn_name);
+        LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
+            "device slot", callee_name, fn_name);
         LLVMValueRef val = llvm_emit_expression(node->data.call.arguments[1], ctx);
         if (fn == NULL || val == NULL) {
             *out = LLVMConstInt(ctx->type_i32, 0, 0);
@@ -259,7 +278,8 @@ llvm_emit_slot_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         else
             snprintf(fn_name, sizeof(fn_name), "pgy_submit_device_read_%s", inner);
 
-        LLVMFuncEntry *fn = llvm_lookup_function(ctx, fn_name);
+        LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
+            "device slot", callee_name, fn_name);
         if (fn == NULL) {
             *out = LLVMConstInt(ctx->type_i32, 0, 0);
             return true;

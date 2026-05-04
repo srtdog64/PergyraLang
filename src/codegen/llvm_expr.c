@@ -13,9 +13,15 @@ static LLVMValueRef llvm_emit_member_lvalue_ptr(ASTNode *node, LLVMGenCtx *ctx,
                                                 LLVMTypeRef *out_field_type);
 static LLVMTypeRef llvm_function_signature_from_event_type(LLVMGenCtx *ctx,
                                                            ASTNode *type_node);
+static LLVMFuncEntry *llvm_required_runtime_function(LLVMGenCtx *ctx,
+                                                     ASTNode *node,
+                                                     const char *family_name,
+                                                     const char *callee_name,
+                                                     const char *function_name);
 LLVMValueRef llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx);
 #include "llvm_expr_boundary_projection_helpers.h"
 #include "llvm_expr_host_spawn_literal_helpers.h"
+#include "llvm_expr_banner_string_helpers.h"
 #include "llvm_expr_identifier_slot_helpers.h"
 #include "llvm_expr_assignment_member_projection.h"
 #include "llvm_expr_scalar_core.h"
@@ -96,10 +102,15 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
         char push_fn_name[64];
         snprintf(push_fn_name, sizeof(push_fn_name), "pgy_array_push_%s", inner_name);
         LLVMFuncEntry *push_fn = llvm_lookup_function(ctx, push_fn_name);
+        if (push_fn == NULL && count > 0) {
+            llvm_required_runtime_function(ctx, node,
+                "array literal expression", "ArrayPush", push_fn_name);
+            return LLVMConstInt(ctx->type_i32, 0, 0);
+        }
         LLVMBuildStore(ctx->builder, LLVMConstNull(array_type), tmp);
         for (size_t i = 0; i < count; i++) {
             LLVMValueRef elem = llvm_emit_expression(node->data.array_literal.elements[i], ctx);
-            if (push_fn != NULL && elem != NULL) {
+            if (elem != NULL) {
                 LLVMValueRef args[] = { tmp, elem };
                 LLVMBuildCall2(ctx->builder, push_fn->fn_type, push_fn->fn, args, 2, "");
             }
@@ -140,6 +151,13 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
                         return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn,
                             args, 2, llvm_tmp_name(ctx));
                     }
+                    llvm_required_runtime_function(ctx, node,
+                        "indexed collection access",
+                        struct_name != NULL
+                            && strncmp(struct_name, "PgySlice_", 9) == 0
+                            ? "SliceGet" : "ArrayGet",
+                        fn_name);
+                    return LLVMConstInt(ctx->type_i32, 0, 0);
                 }
             }
         }
@@ -170,6 +188,8 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
                 ctx, arr, arr_ty, idx, struct_name);
             if (checked != NULL)
                 return checked;
+            if (ctx->has_error)
+                return LLVMConstInt(ctx->type_i32, 0, 0);
 
             LLVMValueRef data_ptr = llvm_array_data_ptr(ctx, arr);
             LLVMTypeRef elem_ty = llvm_stmt_resolve_array_elem_type(
@@ -271,7 +291,12 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
             char fname[128];
             snprintf(fname, sizeof(fname), "pgy_channel_send_%s", suffix);
             LLVMFuncEntry *fn = llvm_lookup_function(ctx, fname);
-            if (fn != NULL && val != NULL) {
+            if (fn == NULL) {
+                llvm_required_runtime_function(ctx, node,
+                    "channel send expression", "ChannelSend", fname);
+                return LLVMConstInt(ctx->type_i1, 0, 0);
+            }
+            if (val != NULL) {
                 LLVMValueRef args[] = { ch_var->alloca, val };
                 return LLVMBuildCall2(ctx->builder, fn->fn_type,
                     fn->fn, args, 2, llvm_tmp_name(ctx));
@@ -303,7 +328,12 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
             char fname[128];
             snprintf(fname, sizeof(fname), "pgy_channel_recv_val_%s", suffix);
             LLVMFuncEntry *fn = llvm_lookup_function(ctx, fname);
-            if (fn != NULL) {
+            if (fn == NULL) {
+                llvm_required_runtime_function(ctx, node,
+                    "channel receive expression", "ChannelRecv", fname);
+                return LLVMConstInt(ctx->type_i32, 0, 0);
+            }
+            {
                 LLVMValueRef args[] = { ch_var->alloca };
                 return LLVMBuildCall2(ctx->builder, fn->fn_type,
                     fn->fn, args, 1, llvm_tmp_name(ctx));
@@ -326,7 +356,7 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
                 is_remote = llvm_lookup_future_is_remote(ctx, inner_expr->data.identifier.name);
             if (inner != NULL) {
                 LLVMValueRef task = llvm_emit_expression(inner_expr, ctx);
-                return llvm_await_task_handle(ctx, task, inner, is_remote);
+                return llvm_await_task_handle(ctx, node, task, inner, is_remote);
             }
             return llvm_emit_expression(inner_expr, ctx);
         }
@@ -437,11 +467,18 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
                 : LLVMGetNamedGlobal(ctx->module, evt_name);
             LLVMValueRef hval = llvm_emit_expression(handler, ctx);
 
-            if (fn != NULL && ev_ptr != NULL) {
-                LLVMValueRef args[] = { ev_ptr, hval };
-                LLVMBuildCall2(ctx->builder, fn->fn_type,
-                    fn->fn, args, 2, "");
+            if (fn == NULL || ev_ptr == NULL) {
+                llvm_set_error_at_with_hints(ctx, node,
+                    PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_FIX_INSPECT_MIR_INVENTORY,
+                    "LLVM event subscribe requires generated event function '%s' and event storage '%s'",
+                    fname, evt_name);
+                return LLVMConstInt(ctx->type_i32, 0, 0);
             }
+            LLVMValueRef args[] = { ev_ptr, hval };
+            LLVMBuildCall2(ctx->builder, fn->fn_type,
+                fn->fn, args, 2, "");
         }
         return LLVMConstInt(ctx->type_i32, 0, 0);
     }
@@ -464,11 +501,18 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
                 : LLVMGetNamedGlobal(ctx->module, evt_name);
             LLVMValueRef hval = llvm_emit_expression(handler, ctx);
 
-            if (fn != NULL && ev_ptr != NULL) {
-                LLVMValueRef args[] = { ev_ptr, hval };
-                LLVMBuildCall2(ctx->builder, fn->fn_type,
-                    fn->fn, args, 2, "");
+            if (fn == NULL || ev_ptr == NULL) {
+                llvm_set_error_at_with_hints(ctx, node,
+                    PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_FIX_INSPECT_MIR_INVENTORY,
+                    "LLVM event unsubscribe requires generated event function '%s' and event storage '%s'",
+                    fname, evt_name);
+                return LLVMConstInt(ctx->type_i32, 0, 0);
             }
+            LLVMValueRef args[] = { ev_ptr, hval };
+            LLVMBuildCall2(ctx->builder, fn->fn_type,
+                fn->fn, args, 2, "");
         }
         return LLVMConstInt(ctx->type_i32, 0, 0);
     }
@@ -488,17 +532,24 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
             LLVMValueRef ev_ptr = (ev != NULL) ? ev->alloca
                 : LLVMGetNamedGlobal(ctx->module, evt_name);
 
-            if (fn != NULL && ev_ptr != NULL) {
-                size_t ac = node->data.event_invoke.arg_count;
-                LLVMValueRef *args = pgy_arena_calloc(&ctx->scratch,
-                    (ac + 1) * sizeof(LLVMValueRef));
-                args[0] = ev_ptr;
-                for (size_t j = 0; j < ac; j++)
-                    args[j + 1] = llvm_emit_expression(
-                        node->data.event_invoke.arguments[j], ctx);
-                LLVMBuildCall2(ctx->builder, fn->fn_type,
-                    fn->fn, args, (unsigned)(ac + 1), "");
+            if (fn == NULL || ev_ptr == NULL) {
+                llvm_set_error_at_with_hints(ctx, node,
+                    PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_FIX_INSPECT_MIR_INVENTORY,
+                    "LLVM event invoke requires generated event function '%s' and event storage '%s'",
+                    fname, evt_name);
+                return LLVMConstInt(ctx->type_i32, 0, 0);
             }
+            size_t ac = node->data.event_invoke.arg_count;
+            LLVMValueRef *args = pgy_arena_calloc(&ctx->scratch,
+                (ac + 1) * sizeof(LLVMValueRef));
+            args[0] = ev_ptr;
+            for (size_t j = 0; j < ac; j++)
+                args[j + 1] = llvm_emit_expression(
+                    node->data.event_invoke.arguments[j], ctx);
+            LLVMBuildCall2(ctx->builder, fn->fn_type,
+                fn->fn, args, (unsigned)(ac + 1), "");
         }
         return LLVMConstInt(ctx->type_i32, 0, 0);
     }

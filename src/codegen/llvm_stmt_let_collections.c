@@ -280,16 +280,21 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
         snprintf(init_fn_name, sizeof(init_fn_name),
             "pgy_channel_init_%s", channel_inner);
         LLVMFuncEntry *init_fn = llvm_lookup_function(ctx, init_fn_name);
-        if (init_fn != NULL) {
-            LLVMValueRef cap = LLVMConstInt(ctx->type_i64, 16, 0);
-            if (init->data.call.arg_count > 0)
-                cap = LLVMBuildZExt(ctx->builder,
-                    llvm_emit_expression(init->data.call.arguments[0], ctx),
-                    ctx->type_i64, llvm_tmp_name(ctx));
-            LLVMValueRef args[] = { alloca_val, cap };
-            LLVMBuildCall2(ctx->builder, init_fn->fn_type,
-                           init_fn->fn, args, 2, "");
+        if (init_fn == NULL) {
+            bool ok = llvm_stmt_diag_collection(ctx, node,
+                LLVM_STMT_COLLECTION_DIAG_RUNTIME_FN, name,
+                "Channel", 0, init_fn_name);
+            free(channel_inner);
+            return ok;
         }
+        LLVMValueRef cap = LLVMConstInt(ctx->type_i64, 16, 0);
+        if (init->data.call.arg_count > 0)
+            cap = LLVMBuildZExt(ctx->builder,
+                llvm_emit_expression(init->data.call.arguments[0], ctx),
+                ctx->type_i64, llvm_tmp_name(ctx));
+        LLVMValueRef args[] = { alloca_val, cap };
+        LLVMBuildCall2(ctx->builder, init_fn->fn_type,
+                       init_fn->fn, args, 2, "");
         llvm_scope_declare(ctx, name, alloca_val, ch_type);
         llvm_register_channel_var(ctx, name, channel_inner);
         return true;
@@ -333,17 +338,25 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
 
         snprintf(new_fn_name, sizeof(new_fn_name), "pgy_array_new_%s", inner_name);
         new_fn = llvm_lookup_function(ctx, new_fn_name);
-        if (new_fn != NULL) {
-            LLVMValueRef args[] = {
-                LLVMConstInt(ctx->type_i64, (unsigned long long)count, 0)
-            };
-            LLVMValueRef arr_val = LLVMBuildCall2(ctx->builder, new_fn->fn_type,
-                new_fn->fn, args, 1, llvm_tmp_name(ctx));
-            LLVMBuildStore(ctx->builder, arr_val, var_alloca);
+        if (new_fn == NULL) {
+            return llvm_stmt_diag_collection(ctx, node,
+                LLVM_STMT_COLLECTION_DIAG_RUNTIME_FN, name,
+                "Array", 0, new_fn_name);
         }
+        LLVMValueRef args[] = {
+            LLVMConstInt(ctx->type_i64, (unsigned long long)count, 0)
+        };
+        LLVMValueRef arr_val = LLVMBuildCall2(ctx->builder, new_fn->fn_type,
+            new_fn->fn, args, 1, llvm_tmp_name(ctx));
+        LLVMBuildStore(ctx->builder, arr_val, var_alloca);
 
         snprintf(push_fn_name, sizeof(push_fn_name), "pgy_array_push_%s", inner_name);
         push_fn = llvm_lookup_function(ctx, push_fn_name);
+        if (push_fn == NULL) {
+            return llvm_stmt_diag_collection(ctx, node,
+                LLVM_STMT_COLLECTION_DIAG_RUNTIME_FN, name,
+                "Array", 0, push_fn_name);
+        }
 
         for (size_t i = 0; i < count; i++) {
             LLVMValueRef element = llvm_emit_expression(
@@ -366,7 +379,7 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
                     element = LLVMBuildSIToFP(ctx->builder, element, elem_type,
                                               llvm_tmp_name(ctx));
             }
-            if (push_fn != NULL && element != NULL) {
+            if (element != NULL) {
                 LLVMValueRef args[] = { var_alloca, element };
                 LLVMBuildCall2(ctx->builder, push_fn->fn_type,
                     push_fn->fn, args, 2, "");

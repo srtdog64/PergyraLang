@@ -149,6 +149,25 @@ llvm_emit_task_channel_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_n
             NULL, 0, llvm_tmp_name(ctx));
     }
 
+    if (strcmp(callee_name, "ChannelClose") == 0 && node->data.call.arg_count == 1) {
+        ASTNode *channel = NULL;
+        LLVMVarEntry *ch_var = NULL;
+        const char *inner = NULL;
+        char fname[128];
+        LLVMFuncEntry *fn;
+
+        if (!llvm_channel_arg(ctx, node, callee_name, &channel, &ch_var, &inner))
+            return NULL;
+        snprintf(fname, sizeof(fname), "pgy_channel_close_%s", inner);
+        fn = llvm_required_channel_function(ctx, channel, callee_name, fname);
+        if (fn == NULL)
+            return NULL;
+
+        LLVMValueRef args[] = { ch_var->alloca };
+        LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 1, "");
+        return LLVMConstInt(ctx->type_i32, 0, 0);
+    }
+
     if (strcmp(callee_name, "TrySend") == 0 && node->data.call.arg_count == 2) {
         ASTNode *channel = NULL;
         LLVMVarEntry *ch_var = NULL;
