@@ -73,7 +73,7 @@ llvm_mir_mark_owner_dirty_for_exit(LLVMGenCtx *ctx,
     }
 }
 
-static void
+void
 llvm_mir_emit_owner_sync_exit(LLVMGenCtx *ctx,
                               LLVMClassTypeEntry *owner_cls,
                               LLVMFuncEntry *owner_sync,

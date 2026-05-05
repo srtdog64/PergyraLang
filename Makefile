@@ -401,11 +401,14 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_context.c \
                    $(CODEGEN_DIR)/transpiler_mangled_name.c \
                    $(CODEGEN_DIR)/transpiler_misc_decl.c \
                    $(CODEGEN_DIR)/transpiler_mir_expr_ssa.c \
+                   $(CODEGEN_DIR)/transpiler_mir_let_lookup.c \
                    $(CODEGEN_DIR)/transpiler_mir_local_binding.c \
+                   $(CODEGEN_DIR)/transpiler_mir_local_type_ast_lookup.c \
                    $(CODEGEN_DIR)/transpiler_mir_inventory_intent_collect.c \
                    $(CODEGEN_DIR)/transpiler_mir_cfg_policy.c \
                    $(CODEGEN_DIR)/transpiler_mir_pin_emit.c \
                    $(CODEGEN_DIR)/transpiler_mir_role_lookup.c \
+                   $(CODEGEN_DIR)/transpiler_mir_signature.c \
                    $(CODEGEN_DIR)/transpiler_mir_ssa_entry.c \
                    $(CODEGEN_DIR)/transpiler_mir_ssa_lookup.c \
                    $(CODEGEN_DIR)/transpiler_mir_ssa_map.c \
@@ -415,6 +418,7 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_context.c \
                    $(CODEGEN_DIR)/transpiler_operator.c \
                    $(CODEGEN_DIR)/transpiler_projection_field_path.c \
                    $(CODEGEN_DIR)/transpiler_projection.c \
+                   $(CODEGEN_DIR)/transpiler_slot_builtin_emit.c \
                    $(CODEGEN_DIR)/transpiler_slot_target.c \
                    $(CODEGEN_DIR)/transpiler_thread_pool.c \
                    $(CODEGEN_DIR)/transpiler_select.c \
@@ -503,8 +507,9 @@ ifneq ($(LLVM_ENABLED),0)
                    $(CODEGEN_DIR)/llvm_backend_ast_type.c \
                    $(CODEGEN_DIR)/llvm_backend_forward_declare.c \
                    $(CODEGEN_DIR)/llvm_backend_type_map.c \
-                   $(CODEGEN_DIR)/llvm_backend_type_registry.c \
-                   $(CODEGEN_DIR)/llvm_type.c \
+                        $(CODEGEN_DIR)/llvm_backend_type_registry.c \
+                        $(CODEGEN_DIR)/llvm_boundary_slot_param.c \
+                        $(CODEGEN_DIR)/llvm_type.c \
                    $(CODEGEN_DIR)/llvm_api.c \
                    $(CODEGEN_DIR)/llvm_backend_generic.c \
                    $(CODEGEN_DIR)/llvm_pipeline.c \
@@ -526,6 +531,9 @@ ifneq ($(LLVM_ENABLED),0)
                         $(CODEGEN_DIR)/llvm_event.c \
                         $(CODEGEN_DIR)/llvm_mir_contract.c \
                         $(CODEGEN_DIR)/llvm_mir_emit.c \
+                        $(CODEGEN_DIR)/llvm_mir_block_emit.c \
+                        $(CODEGEN_DIR)/llvm_mir_local_emit.c \
+                        $(CODEGEN_DIR)/llvm_mir_type_helpers.c \
                         $(CODEGEN_DIR)/llvm_mir_vars.c \
                         $(CODEGEN_DIR)/llvm_mir_phi.c \
                         $(CODEGEN_DIR)/llvm_mir_cfg_control.c \
@@ -540,17 +548,27 @@ ifneq ($(LLVM_ENABLED),0)
                         $(CODEGEN_DIR)/llvm_inventory_host_methods.c \
                         $(CODEGEN_DIR)/llvm_expr.c \
                         $(CODEGEN_DIR)/llvm_expr_aggregate_utils.c \
+                        $(CODEGEN_DIR)/llvm_expr_banner_string_helpers.c \
+                        $(CODEGEN_DIR)/llvm_expr_boundary_projection_helpers.c \
                         $(CODEGEN_DIR)/llvm_expr_common.c \
                         $(CODEGEN_DIR)/llvm_expr_call_args.c \
                         $(CODEGEN_DIR)/llvm_expr_channel.c \
+                        $(CODEGEN_DIR)/llvm_expr_constructor_calls.c \
                         $(CODEGEN_DIR)/llvm_expr_event_calls.c \
                         $(CODEGEN_DIR)/llvm_expr_helpers.c \
+                        $(CODEGEN_DIR)/llvm_expr_domain_query_calls.c \
                         $(CODEGEN_DIR)/llvm_expr_domain_query_utils.c \
+                        $(CODEGEN_DIR)/llvm_expr_projection_path_helpers.c \
                         $(CODEGEN_DIR)/llvm_expr_intent_observability_calls.c \
+                        $(CODEGEN_DIR)/llvm_expr_log_calls.c \
                         $(CODEGEN_DIR)/llvm_expr_math_calls.c \
+                        $(CODEGEN_DIR)/llvm_expr_member_lvalue.c \
                         $(CODEGEN_DIR)/llvm_expr_rc_calls.c \
                         $(CODEGEN_DIR)/llvm_expr_result_option_calls.c \
+                        $(CODEGEN_DIR)/llvm_expr_scalar_core.c \
                         $(CODEGEN_DIR)/llvm_expr_slot_runtime_utils.c \
+                        $(CODEGEN_DIR)/llvm_expr_string_coerce.c \
+                        $(CODEGEN_DIR)/llvm_expr_task_channel_calls.c \
                         $(CODEGEN_DIR)/llvm_stmt.c \
                          $(CODEGEN_DIR)/llvm_stmt_defer_scope.c \
                          $(CODEGEN_DIR)/llvm_stmt_type_infer.c \
@@ -571,6 +589,7 @@ ifneq ($(LLVM_ENABLED),0)
                         $(CODEGEN_DIR)/llvm_domain_event.c \
                         $(CODEGEN_DIR)/llvm_domain_lookup.c \
                         $(CODEGEN_DIR)/llvm_domain_projection_count.c \
+                   $(CODEGEN_DIR)/llvm_domain_projection_value_helpers.c \
                    $(CODEGEN_DIR)/llvm_domain_projection_target.c \
                    $(CODEGEN_DIR)/llvm_domain_role_lookup.c \
                    $(CODEGEN_DIR)/llvm_domain_role_emit.c \

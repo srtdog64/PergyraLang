@@ -305,7 +305,7 @@ transpiler_can_emit_function_from_mir_with_reason(const TranspilerCtx *ctx,
         return false;
     }
     /* cleanup blocks are now fully supported - removed restriction */
-    if (!transpiler_mir_function_signature_supported(func_decl)) {
+    if (!transpiler_mir_function_signature_supported((TranspilerCtx *)ctx, func_decl)) {
         if (reason != NULL && reason_cap > 0)
             snprintf(reason, reason_cap, "function %s has unsupported MIR signature", func_decl->data.func_decl.name);
         return false;

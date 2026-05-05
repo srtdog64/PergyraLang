@@ -1,3 +1,5 @@
+#include "transpiler_slot_target.h"
+
 static char *
 emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
 {

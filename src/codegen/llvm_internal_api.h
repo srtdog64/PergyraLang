@@ -211,6 +211,10 @@ LLVMValueRef  llvm_mir_emit_select_dispatch_condition(ASTNode *case_node,
 LLVMValueRef  llvm_mir_emit_match_case_condition(ASTNode *func_decl,
                                                   ASTNode *case_node,
                                                   LLVMGenCtx *ctx);
+void          llvm_mir_emit_owner_sync_exit(LLVMGenCtx *ctx,
+                                            LLVMClassTypeEntry *owner_cls,
+                                            LLVMFuncEntry *owner_sync,
+                                            const char *owner_name);
 LLVMTypeRef   llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr);
 LLVMTypeRef   llvm_stmt_resolve_array_elem_type(LLVMGenCtx *ctx, ASTNode *expr,
                                                 LLVMValueRef data_ptr);

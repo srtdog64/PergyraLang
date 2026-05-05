@@ -359,10 +359,6 @@ const char *slot_inner_type_name(const char *slot_type_name);
  * Built-in call emitters
  * ----------------------------------------------------------------- */
 
-char *emit_builtin_claim_slot(ASTNode *call, TranspilerCtx *ctx);
-char *emit_builtin_write(ASTNode *call, TranspilerCtx *ctx);
-char *emit_builtin_read(ASTNode *call, TranspilerCtx *ctx);
-char *emit_builtin_release(ASTNode *call, TranspilerCtx *ctx);
 char *emit_builtin_log(ASTNode *call, TranspilerCtx *ctx);
 char *emit_builtin_log_banner(ASTNode *call, TranspilerCtx *ctx);
 char *emit_builtin_log_raw(ASTNode *call, TranspilerCtx *ctx);

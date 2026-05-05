@@ -1,42 +1,3 @@
-                                   LLVMValueRef source_ptr)
-{
-    LLVMValueRef projected;
-
-    if (ctx == NULL || target_cls == NULL || source_cls == NULL || source_ptr == NULL)
-        return LLVMConstInt(ctx->type_i32, 0, 0);
-
-    projected = LLVMConstNull(target_cls->struct_type);
-    for (int i = 0; i < target_cls->field_count; i++) {
-        LLVMClassFieldInfo *target_field = &target_cls->fields[i];
-        const char *source_field_name = target_field->field_name;
-        LLVMValueRef field_value;
-
-        if (target_field->field_name == NULL)
-            continue;
-
-        if (refresh != NULL && refresh->type == AST_ZONE_REFRESH) {
-            for (size_t j = 0; j < refresh->data.zone_refresh.field_map_count; j++) {
-                const char *mapped_target =
-                    refresh->data.zone_refresh.mapped_target_fields[j];
-                const char *mapped_source =
-                    refresh->data.zone_refresh.mapped_source_fields[j];
-                if (mapped_target != NULL && mapped_source != NULL
-                    && strcmp(mapped_target, target_field->field_name) == 0) {
-                    source_field_name = mapped_source;
-                    break;
-                }
-            }
-        }
-
-        field_value = llvm_load_projection_path_value(ctx, source_decl, source_cls,
-            source_ptr, source_field_name);
-        projected = LLVMBuildInsertValue(ctx->builder, projected, field_value,
-            (unsigned)target_field->index, llvm_tmp_name(ctx));
-    }
-
-    return projected;
-}
-
 static void
 llvm_emit_domain_projection_sync_body(ASTNode *stmt,
                                       LLVMClassTypeEntry *decl_cls,
@@ -236,7 +197,7 @@ llvm_emit_domain_projection_sync_body(ASTNode *stmt,
                     }
 
                     projected = llvm_build_domain_projection_value(ctx, target_cls,
-                        source_cls, llvm_find_projection_nominal_decl_local(ctx, source_type_name),
+                        source_cls, llvm_find_domain_projection_nominal_decl(ctx, source_type_name),
                         refresh, source_ptr);
                     LLVMBuildStore(ctx->builder, projected, target_ptr);
 
