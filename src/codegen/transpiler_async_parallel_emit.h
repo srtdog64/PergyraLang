@@ -170,7 +170,7 @@ emit_parallel_block(ASTNode *node, TranspilerCtx *ctx)
             const char *ssa_name = transpiler_resolve_active_ssa_name(
                 ctx, capture_slot_names[i]);
             if (ssa_name != NULL) {
-                char *c_name = transpiler_make_c_ssa_name(ssa_name);
+                char *c_name = transpiler_make_c_ssa_name(ctx, ssa_name);
                 codebuf_write(ctx->out, "&%s",
                     c_name != NULL ? c_name : capture_slot_names[i]);
                 free(c_name);
@@ -184,7 +184,7 @@ emit_parallel_block(ASTNode *node, TranspilerCtx *ctx)
             const char *ssa_name = transpiler_resolve_active_ssa_name(
                 ctx, capture_typed_names[i]);
             if (ssa_name != NULL) {
-                char *c_name = transpiler_make_c_ssa_name(ssa_name);
+                char *c_name = transpiler_make_c_ssa_name(ctx, ssa_name);
                 codebuf_write(ctx->out, "&%s",
                     c_name != NULL ? c_name : capture_typed_names[i]);
                 free(c_name);

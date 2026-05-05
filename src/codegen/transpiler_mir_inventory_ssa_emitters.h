@@ -2,6 +2,8 @@
  * Keep this shim for the existing transpiler include order. */
 #include "transpiler_mir_inventory_intent.h"
 #include "transpiler_mir_ssa_map.h"
+#include "transpiler_mir_local_binding.h"
 #include "transpiler_mir_ssa_names.h"
+#include "transpiler_mir_local_type_lookup.h"
 #include "transpiler_mir_ssa_emit.h"
 #include "transpiler_mir_phi_emit.h"

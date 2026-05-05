@@ -122,6 +122,8 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
     if (func_decl == NULL
         || (func_decl->type != AST_FUNC_DECL && func_decl->type != AST_INTENT_DECL))
         return NULL;
+    if (!llvm_mir_validate_cleanup_contract(routine, ctx))
+        return NULL;
 
     is_intent = (func_decl->type == AST_INTENT_DECL);
     is_method = (!is_intent && routine->kind == MIR_SCOPE_METHOD);

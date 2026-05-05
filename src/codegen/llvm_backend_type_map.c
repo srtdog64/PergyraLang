@@ -20,8 +20,6 @@ static LLVMGenCtx *g_llvm_type_render_ctx = NULL;
 
 /* Forward declaration for type mapping (used by slot helpers) */
 LLVMTypeRef pergyra_type_to_llvm(LLVMGenCtx *ctx, const char *type_name);
-static bool llvm_can_forward_declare_type_early(LLVMGenCtx *ctx, ASTNode *type_node);
-bool llvm_can_forward_declare_func_early(LLVMGenCtx *ctx, ASTNode *func);
 
 void
 llvm_set_type_render_ctx(LLVMGenCtx *ctx)
@@ -535,6 +533,4 @@ pergyra_type_to_llvm(LLVMGenCtx *ctx, const char *type_name)
     }
     return ctx->type_i32;
 }
-
-#include "llvm_backend_forward_declare.h"
 #endif /* PGY_LLVM_ENABLED */

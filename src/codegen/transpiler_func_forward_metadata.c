@@ -1,0 +1,86 @@
+/*
+ * Copyright (c) 2026 Pergyra Language Project
+ * C backend hosted-method forward declaration emission.
+ */
+
+#include <stdio.h>
+#include <string.h>
+
+#include "transpiler_func_forward_metadata.h"
+#include "transpiler_decl_lookup.h"
+#include "transpiler_host_self_policy.h"
+#include "transpiler_type_render.h"
+#include "transpiler_type_require.h"
+
+void
+emit_hosted_method_forward_decl_from_metadata(const char *host_name,
+                                              const MIRDeclMethod *method_meta,
+                                              ASTNode *method,
+                                              bool pointer_self,
+                                              CodeBuf *buf,
+                                              TranspilerCtx *ctx)
+{
+    const char *method_name;
+    ASTNode *return_type;
+    size_t param_count;
+    const char *ret_type = "void";
+
+    if (host_name == NULL || method == NULL || buf == NULL || ctx == NULL
+        || method->type != AST_FUNC_DECL)
+        return;
+
+    method_name = transpiler_mir_decl_method_name(method_meta);
+    return_type = transpiler_mir_decl_method_return_type(method_meta);
+    param_count = transpiler_mir_decl_method_param_count(method_meta);
+    if (method_name == NULL)
+        method_name = method->data.func_decl.name;
+    if (return_type == NULL)
+        return_type = method->data.func_decl.return_type;
+    if (param_count == 0 && method_meta == NULL)
+        param_count = method->data.func_decl.param_count;
+    if (method_name == NULL)
+        return;
+    ensure_type_specializations_from_ast(ctx, return_type);
+    if (return_type != NULL)
+        ret_type = pergyra_ast_type_to_c(return_type);
+
+    codebuf_write(buf, "\n%s\n%s_%s(%s%s",
+                  ret_type, host_name, method_name, host_name,
+                  pointer_self ? " *self" : " self");
+
+    for (size_t j = 0; j < param_count; j++) {
+        FuncParam *p = transpiler_mir_decl_method_param(method_meta, j);
+        const char *pt = NULL;
+        char surface_desc[256];
+
+        if (p == NULL && method_meta == NULL)
+            p = method->data.func_decl.params[j];
+        if (p == NULL || p->name == NULL)
+            continue;
+        if (strcmp(p->name, "self") == 0)
+            continue;
+
+        if (p->type != NULL)
+            ensure_type_specializations_from_ast(ctx, p->type);
+        snprintf(surface_desc, sizeof(surface_desc),
+            "hosted method parameter '%s.%s(%s)'",
+            host_name != NULL ? host_name : "(anonymous)",
+            method_name != NULL ? method_name : "(anonymous)",
+            p->name != NULL ? p->name : "(anonymous)");
+        pt = transpiler_require_ast_c_type(ctx, p->type, surface_desc);
+        if (pt == NULL)
+            return;
+        {
+            const char *ptn = p->type != NULL
+                ? transpiler_render_type_name_local(ctx, p->type)
+                : NULL;
+            bool subj_param = ptn != NULL
+                && is_pointer_self_host_type_name(ctx, ptn);
+            if (subj_param)
+                codebuf_write(buf, ", %s *%s", pt, p->name);
+            else
+                codebuf_write(buf, ", %s %s", pt, p->name);
+        }
+    }
+    codebuf_write(buf, ");\n");
+}

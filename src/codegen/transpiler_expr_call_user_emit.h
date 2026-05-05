@@ -79,7 +79,7 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                 ctx->suppress_slot_auto_read = true;
                 arg = emit_expression(call->data.call.arguments[i], ctx);
                 ctx->suppress_slot_auto_read = saved_suppress;
-                resolve_slot_target(ctx, call->data.call.arguments[i],
+                transpiler_resolve_slot_target(ctx, call->data.call.arguments[i],
                     &inner, &slot_name, &secure);
                 if (i > 0)
                     codebuf_write(args_buf, ", ");

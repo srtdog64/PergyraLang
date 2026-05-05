@@ -1,4 +1,5 @@
 #include "transpiler_helpers_core_a.h"
+#include "transpiler_mir_expr_ssa.h"
 #include "transpiler_helpers_core_b.h"
 #include "transpiler_mir_resource_name_helpers.h"
 

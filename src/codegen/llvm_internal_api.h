@@ -69,6 +69,11 @@ LLVMFuncEntry *llvm_lookup_or_declare_function(LLVMGenCtx *ctx, const char *name
                                                LLVMTypeRef fn_type,
                                                LLVMTypeRef ret_type);
 void           llvm_mark_function_as_used(LLVMGenCtx *ctx, const char *name);
+LLVMFuncEntry *llvm_required_runtime_function(LLVMGenCtx *ctx,
+                                               ASTNode *node,
+                                               const char *family_name,
+                                               const char *callee_name,
+                                               const char *function_name);
 
 /* =================================================================
  * Slot tracking (llvm_backend.c)
@@ -269,6 +274,8 @@ ASTNode *llvm_find_enum_decl(LLVMGenCtx *ctx, const char *enum_name);
 void llvm_register_active_nominal_types(LLVMGenCtx *ctx);
 void llvm_register_active_extern_prototypes(LLVMGenCtx *ctx);
 bool llvm_type_name_uses_pointer_self(LLVMGenCtx *ctx, const char *type_name);
+const char *llvm_current_field_class_name(LLVMGenCtx *ctx,
+                                          const char *field_name);
 
 static inline bool
 llvm_ast_type_uses_pointer_self(LLVMGenCtx *ctx, ASTNode *type_node)
@@ -285,6 +292,65 @@ llvm_ast_type_uses_pointer_self(LLVMGenCtx *ctx, ASTNode *type_node)
  * Emitters -- expressions (llvm_expr.c)
  * ================================================================= */
 LLVMValueRef llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx);
+LLVMValueRef llvm_current_self_base_ptr(LLVMGenCtx *ctx,
+                                        LLVMClassTypeEntry *cls);
+LLVMValueRef llvm_identifier_base_ptr(LLVMGenCtx *ctx, const char *name,
+                                      LLVMClassTypeEntry *cls);
+ASTNode *llvm_current_host_method_decl(LLVMGenCtx *ctx,
+                                       const char *method_name);
+LLVMValueRef llvm_current_self_call_arg(LLVMGenCtx *ctx);
+const char *llvm_operator_overload_suffix(PgyTokenType op);
+bool llvm_is_upper_ident(ASTNode *node);
+const char *llvm_expr_custom_type_name(ASTNode *node, LLVMGenCtx *ctx);
+LLVMClassTypeEntry *llvm_lookup_class_by_type(LLVMGenCtx *ctx,
+                                              LLVMTypeRef ty);
+LLVMValueRef llvm_emit_number(ASTNode *node, LLVMGenCtx *ctx);
+LLVMValueRef llvm_emit_string(ASTNode *node, LLVMGenCtx *ctx);
+LLVMValueRef llvm_emit_function_call_args(LLVMGenCtx *ctx, LLVMFuncEntry *func,
+                                          ASTNode **arg_nodes, size_t argc);
+LLVMValueRef llvm_array_data_ptr(LLVMGenCtx *ctx, LLVMValueRef array_value);
+LLVMValueRef llvm_array_length_i64(LLVMGenCtx *ctx, LLVMValueRef array_value);
+LLVMValueRef llvm_build_option_value(LLVMGenCtx *ctx, LLVMTypeRef inner_ty,
+                                     LLVMValueRef has_value,
+                                     LLVMValueRef value);
+bool llvm_slot_inner_has_external_runtime_helpers(const char *inner);
+LLVMValueRef llvm_direct_slot_read(LLVMGenCtx *ctx, LLVMVarEntry *slot_var,
+                                   const char *inner);
+void llvm_direct_slot_write(LLVMGenCtx *ctx, LLVMVarEntry *slot_var,
+                            LLVMValueRef value);
+void llvm_direct_slot_release(LLVMGenCtx *ctx, LLVMVarEntry *slot_var);
+void llvm_emit_structural_secure_slot_write(LLVMGenCtx *ctx,
+                                            LLVMVarEntry *slot_var,
+                                            LLVMValueRef value);
+LLVMValueRef llvm_emit_structural_secure_slot_read(LLVMGenCtx *ctx,
+                                                   LLVMVarEntry *slot_var,
+                                                   const char *inner);
+void llvm_emit_structural_secure_slot_release(LLVMGenCtx *ctx,
+                                              LLVMVarEntry *slot_var);
+LLVMValueRef llvm_slot_runtime_arg(LLVMGenCtx *ctx, LLVMVarEntry *var);
+LLVMVarEntry *llvm_require_secure_token_var(LLVMGenCtx *ctx, ASTNode *node,
+                                            const char *slot_name,
+                                            const char *operation_name);
+const char *llvm_call_arg_device_inner(LLVMGenCtx *ctx, ASTNode *node);
+ASTNode *llvm_find_named_domain_decl(LLVMGenCtx *ctx, ASTNodeType decl_type,
+                                     const char *name);
+ASTNode *llvm_find_nominal_host_method_decl(LLVMGenCtx *ctx,
+                                            const char *host_type_name,
+                                            const char *method_name);
+ASTNode *llvm_find_zone_state_decl(LLVMGenCtx *ctx, ASTNode *zone_decl,
+                                   const char *state_name);
+ASTNode *llvm_find_world_state_decl(LLVMGenCtx *ctx, ASTNode *world_decl,
+                                    const char *state_name);
+ASTNode *llvm_resolve_world_zone_decl(LLVMGenCtx *ctx, ASTNode *world_decl,
+                                      const char *slot_name);
+ASTNode *llvm_find_zone_domain_slot_decl(ASTNode *zone_decl,
+                                         const char *slot_name);
+ASTNode *llvm_find_zone_layer_slot_decl(ASTNode *zone_decl,
+                                        const char *slot_name);
+bool llvm_world_has_zone_slot(ASTNode *world_decl, const char *slot_name);
+const char *llvm_call_name_or_string_arg(ASTNode *node, size_t index);
+LLVMValueRef llvm_domain_query_false(LLVMGenCtx *ctx);
+const char *llvm_current_host_class_name(LLVMGenCtx *ctx);
 LLVMValueRef llvm_emit_channel_send_expr(ASTNode *node, LLVMGenCtx *ctx);
 LLVMValueRef llvm_emit_channel_recv_expr(ASTNode *node, LLVMGenCtx *ctx);
 void llvm_expr_set_missing_type_error(LLVMGenCtx *ctx, ASTNode *node,
@@ -324,6 +390,8 @@ void llvm_stmt_emit_zone_action_effect_runtime(ASTNode *call, LLVMGenCtx *ctx);
 void llvm_forward_declare_func(ASTNode *node, LLVMGenCtx *ctx);
 void llvm_emit_func_decl(ASTNode *node, LLVMGenCtx *ctx);
 LLVMValueRef llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx);
+bool llvm_mir_validate_cleanup_contract(const MIRRoutine *routine,
+                                        LLVMGenCtx *ctx);
 bool llvm_intent_involves_uses_pointer_self(LLVMGenCtx *ctx, ASTNode *involves);
 
 /* =================================================================

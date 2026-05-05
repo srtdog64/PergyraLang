@@ -35,6 +35,7 @@ for rel in \
     "src/codegen/transpiler_mir_pin_emit.h" \
     "src/codegen/transpiler_block_emit.h" \
     "src/codegen/llvm_runtime.c" \
+    "src/codegen/llvm_runtime_secure_slot_decl.c" \
     "src/codegen/llvm_mir_block_emit.h" \
     "src/compiler/mir_cfg_contract_pin.h" \
     "src/compiler/mir_cfg_contract_validate.h" \
@@ -82,8 +83,8 @@ require_term "src/codegen/llvm_runtime.c" "pgy_pin_read_%s"
 require_term "src/codegen/llvm_runtime.c" "pgy_pin_write_%s"
 require_term "src/codegen/llvm_runtime.c" "pgy_pin_read_init_%s"
 require_term "src/codegen/llvm_runtime.c" "pgy_pin_write_init_%s"
-require_term "src/codegen/llvm_runtime.c" "pgy_secure_pin_read_init_%s"
-require_term "src/codegen/llvm_runtime.c" "pgy_secure_pin_write_init_%s"
+require_term "src/codegen/llvm_runtime_secure_slot_decl.c" "pgy_secure_pin_read_init_%s"
+require_term "src/codegen/llvm_runtime_secure_slot_decl.c" "pgy_secure_pin_write_init_%s"
 require_term "src/codegen/llvm_runtime.c" "pgy_unpin_%s"
 require_term "src/codegen/llvm_mir_block_emit.h" "pgy_pin_%s_init_%s"
 require_term "src/codegen/llvm_mir_block_emit.h" "pgy_secure_pin_%s_init_%s"

@@ -136,8 +136,7 @@ llvm_emit_task_channel_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_n
             return NULL;
 
         LLVMValueRef args[] = { task };
-        return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn,
-            args, 1, llvm_tmp_name(ctx));
+        return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 1, "");
     }
 
     if (strcmp(callee_name, "IsCancelled") == 0 && node->data.call.arg_count == 0) {
@@ -164,8 +163,7 @@ llvm_emit_task_channel_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_n
             return NULL;
 
         LLVMValueRef args[] = { ch_var->alloca };
-        LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 1, "");
-        return LLVMConstInt(ctx->type_i32, 0, 0);
+        return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 1, "");
     }
 
     if (strcmp(callee_name, "TrySend") == 0 && node->data.call.arg_count == 2) {

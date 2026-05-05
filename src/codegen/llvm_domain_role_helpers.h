@@ -1,43 +1,9 @@
-static ASTNode *
-llvm_find_role_decl(LLVMGenCtx *ctx, const char *role_name)
-{
-    if (ctx == NULL || role_name == NULL)
-        return NULL;
-    return llvm_find_decl_in_active_inventory(ctx, AST_ROLE_DECL, role_name);
-}
+#ifndef PERGYRA_LLVM_DOMAIN_ROLE_HELPERS_H
+#define PERGYRA_LLVM_DOMAIN_ROLE_HELPERS_H
 
-static ASTNode *
-llvm_find_role_operator_method(LLVMGenCtx *ctx, ASTNode *role,
-                               PgyTokenType op, int depth)
-{
-    if (ctx == NULL || role == NULL || role->type != AST_ROLE_DECL || depth > 16)
-        return NULL;
+ASTNode *llvm_find_role_decl(LLVMGenCtx *ctx, const char *role_name);
 
-    for (size_t i = 0; i < role->data.role_decl.impl_count; i++) {
-        ASTNode *impl = role->data.role_decl.impl_abilities[i];
-        if (impl == NULL || impl->type != AST_IMPL_ABILITY)
-            continue;
-        for (size_t j = 0; j < impl->data.impl_ability.method_count; j++) {
-            ASTNode *method = impl->data.impl_ability.methods[j];
-            if (method != NULL && method->type == AST_FUNC_DECL
-                && method->data.func_decl.name != NULL
-                && llvm_operator_method_name_matches(op, method->data.func_decl.name)) {
-                return method;
-            }
-        }
-    }
+ASTNode *llvm_find_role_operator_method(LLVMGenCtx *ctx, ASTNode *role,
+                                        PgyTokenType op, int depth);
 
-    for (size_t i = 0; i < role->data.role_decl.include_count; i++) {
-        ASTNode *inc = role->data.role_decl.includes[i];
-        if (inc == NULL || inc->type != AST_INCLUDE_STMT
-            || inc->data.include_stmt.role_name == NULL) {
-            continue;
-        }
-        ASTNode *included = llvm_find_role_decl(ctx, inc->data.include_stmt.role_name);
-        ASTNode *method = llvm_find_role_operator_method(ctx, included, op, depth + 1);
-        if (method != NULL)
-            return method;
-    }
-
-    return NULL;
-}
+#endif /* PERGYRA_LLVM_DOMAIN_ROLE_HELPERS_H */

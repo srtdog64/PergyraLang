@@ -125,8 +125,7 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
     }
     entry->binding_count = gp->count;
 
-    TranspilerCtx *saved_render_ctx = g_type_render_ctx;
-    g_type_render_ctx = ctx;
+    TranspilerCtx *saved_render_ctx = transpiler_type_render_ctx_push(ctx);
 
     codebuf_write(ctx->helpers, "\ntypedef struct %s\n{\n", spec_name);
     for (size_t i = 0; i < class_decl->data.class_decl.field_count; i++) {
@@ -139,7 +138,7 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
             f != NULL && f->name != NULL ? f->name : "(anonymous)");
         ft = transpiler_require_ast_c_type(ctx, f != NULL ? f->type : NULL, surface_desc);
         if (ft == NULL) {
-            g_type_render_ctx = saved_render_ctx;
+            transpiler_type_render_ctx_restore(saved_render_ctx);
             ctx->generic_binding_count = saved_binding_count;
             codebuf_destroy(nbuf);
             return NULL;
@@ -200,7 +199,7 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
                     method_name != NULL ? method_name : "(anonymous)",
                     spec_name != NULL ? spec_name : "(anonymous-specialization)");
             }
-            g_type_render_ctx = saved_render_ctx;
+            transpiler_type_render_ctx_restore(saved_render_ctx);
             ctx->generic_binding_count = saved_binding_count;
             codebuf_destroy(nbuf);
             return NULL;
@@ -242,7 +241,7 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
                 p != NULL && p->name != NULL ? p->name : "(anonymous)");
             pt = transpiler_require_ast_c_type(ctx, p != NULL ? p->type : NULL, surface_desc);
             if (pt == NULL) {
-                g_type_render_ctx = saved_render_ctx;
+                transpiler_type_render_ctx_restore(saved_render_ctx);
                 ctx->generic_binding_count = saved_binding_count;
                 codebuf_destroy(nbuf);
                 return NULL;
@@ -257,7 +256,7 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
         codebuf_write(ctx->helpers, "}\n");
     }
 
-    g_type_render_ctx = saved_render_ctx;
+    transpiler_type_render_ctx_restore(saved_render_ctx);
     ctx->generic_binding_count = saved_binding_count;
     codebuf_destroy(nbuf);
 

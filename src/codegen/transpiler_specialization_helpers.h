@@ -6,15 +6,12 @@ render_type_name_with_bindings(TranspilerCtx *ctx, ASTNode *type_node,
                                GenericBindingEntry *bindings, size_t binding_count)
 {
     int saved_binding_count = ctx->generic_binding_count;
-    TranspilerCtx *saved_render_ctx = g_type_render_ctx;
     char *result;
 
     for (size_t i = 0; i < binding_count && ctx->generic_binding_count < MAX_GENERIC_BINDINGS; i++)
         ctx->generic_bindings[ctx->generic_binding_count++] = bindings[i];
 
-    g_type_render_ctx = ctx;
-    result = render_type_name(type_node);
-    g_type_render_ctx = saved_render_ctx;
+    result = render_type_name_in_ctx(ctx, type_node);
     ctx->generic_binding_count = saved_binding_count;
     return result;
 }

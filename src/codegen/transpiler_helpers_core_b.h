@@ -93,5 +93,6 @@ transpiler_contextual_option_inner_type_name(TranspilerCtx *ctx)
 
 #include "transpiler_specialization_helpers.h"
 #include "transpiler_expr_type_infer.h"
+#include "transpiler_func_forward_metadata.h"
 #include "transpiler_func_forward_helpers.h"
 #include "transpiler_generic_specialization_emit.h"

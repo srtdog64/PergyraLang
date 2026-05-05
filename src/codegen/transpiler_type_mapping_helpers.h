@@ -398,8 +398,4 @@ pergyra_type_to_c(const char *name)
     return pergyra_primitive_to_c(name);
 }
 
-static bool resolve_slot_target(TranspilerCtx *ctx, ASTNode *slot_arg,
-                                const char **inner_out, const char **slot_name_out,
-                                bool *secure_out);
-
 #include "transpiler_type_render_helpers.h"

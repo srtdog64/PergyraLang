@@ -1,7 +1,10 @@
+/* MIR SSA lookup/entry helpers are compiled owners; expose the seams early. */
+#include "transpiler_mir_ssa_entry.h"
+#include "transpiler_mir_ssa_lookup.h"
+#include "transpiler_mir_ssa_names.h"
+
 static int transpiler_find_loop_label_depth(const TranspilerCtx *ctx,
                                             const char *label);
-static bool transpiler_is_implicit_field(TranspilerCtx *ctx,
-                                         const char *base_name);
 static bool transpiler_expr_identifiers_mapped(const TranspilerCtx *ctx,
                                               const ASTNode *expr,
                                               const TranspilerSSANameMap *ssa_map,
@@ -14,11 +17,6 @@ static bool transpiler_emit_mir_phi_copies(CodeBuf *buf,
                                            size_t pred_block_index,
                                            const MIRBasicBlock *pred_block,
                                            const MIRBasicBlock *target_block);
-static const char *transpiler_find_prior_block_ssa_name(const MIRBasicBlock *block,
-                                                        size_t limit_inst_index,
-                                                        const char *base_name);
-static const char *transpiler_find_block_exit_ssa_name(const MIRBasicBlock *block,
-                                                       const char *base_name);
 static bool transpiler_seed_expr_identifier_mappings(const MIRBasicBlock *block,
                                                      size_t inst_index,
                                                      const ASTNode *expr,

@@ -58,7 +58,7 @@ emit_func_decl_named(ASTNode *node, const char *emitted_name,
     char *header_decl = NULL;
     transpiler_capture_mir_emit_state_local(ctx, &saved_emit_state);
     ctx->out = buf;
-    g_type_render_ctx = ctx;
+    transpiler_type_render_ctx_bind(ctx);
     if (node->data.func_decl.return_type != NULL) {
         {
             char *rendered = render_type_name(node->data.func_decl.return_type);

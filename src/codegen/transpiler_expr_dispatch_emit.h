@@ -77,7 +77,7 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
         }
         const char *ssa_name = transpiler_resolve_active_ssa_name(ctx, id_name);
         if (ssa_name != NULL) {
-            char *c_ssa_name = transpiler_make_c_ssa_name(ssa_name);
+            char *c_ssa_name = transpiler_make_c_ssa_name(ctx, ssa_name);
             const char *slot_type = lookup_typed_var(ctx, id_name);
             if (slot_type == NULL) {
                 char base_name[128];

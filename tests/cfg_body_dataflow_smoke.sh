@@ -35,6 +35,8 @@ run_literal_doc_contract_smoke() {
         "src/compiler/mir_ssa_use_edges.h"
         "src/test_mir.c"
         "src/semantic/type_checker_ownership_let.c"
+        "src/codegen/llvm_mir_emit.c"
+        "src/codegen/llvm_mir_contract.c"
     )
 
     for rel in "${required_files[@]}"; do
@@ -87,6 +89,9 @@ run_literal_doc_contract_smoke() {
     require_literal "src/tests/semantic/test_semantic_misc_a_part_a.cases.h" "CFG static false while does not merge unreachable resource state"
     require_literal "src/codegen/transpiler_mir_emission_contract.h" "mir_block_has_cleanup_edge_fact(block, cleanup_fact)"
     require_literal "src/codegen/transpiler_mir_emission_contract.h" "mir_block_has_pin_cleanup_edge(block)"
+    require_literal "src/codegen/llvm_mir_contract.c" "llvm_mir_validate_cleanup_contract"
+    require_literal "src/codegen/llvm_mir_contract.c" "mir_block_has_cleanup_edge_fact(block, cleanup_fact)"
+    require_literal "src/codegen/llvm_mir_contract.c" "mir_block_has_pin_cleanup_edge(block)"
     require_literal "src/compiler/air_evidence.c" "mir_block_has_cleanup_edge_fact(block"
     require_literal "src/compiler/air_evidence.c" "mir_block_find_pin_cleanup_edge_fact(block)"
     require_literal "src/test_mir.c" "pin-unpin-cleanup-edge"
@@ -142,6 +147,7 @@ mir_ssa_rename_path = root / "src" / "compiler" / "mir_ssa_rename.h"
 mir_ssa_use_edges_path = root / "src" / "compiler" / "mir_ssa_use_edges.h"
 mir_liveness_dce_header_path = root / "src" / "compiler" / "mir_liveness_dce.h"
 mir_liveness_dce_path = root / "src" / "compiler" / "mir_liveness_dce.c"
+mir_liveness_summary_path = root / "src" / "compiler" / "mir_liveness_summary.c"
 mir_dce_header_path = root / "src" / "compiler" / "mir_dce.h"
 mir_dce_path = root / "src" / "compiler" / "mir_dce.c"
 mir_stmt_population_header_path = root / "src" / "compiler" / "mir_stmt_population.h"
@@ -151,6 +157,8 @@ mir_non_cfg_stmt_population_path = root / "src" / "compiler" / "mir_non_cfg_stmt
 hir_lower_cfg_path = root / "src" / "compiler" / "hir_lower_cfg.c"
 hir_lower_intent_cfg_path = root / "src" / "compiler" / "hir_lower_intent_cfg.c"
 mir_c_control_emit_path = root / "src" / "codegen" / "transpiler_mir_cfg_control_emit.h"
+mir_llvm_emit_path = root / "src" / "codegen" / "llvm_mir_emit.c"
+mir_llvm_contract_path = root / "src" / "codegen" / "llvm_mir_contract.c"
 mir_llvm_control_emit_path = root / "src" / "codegen" / "llvm_mir_cfg_control.c"
 mir_llvm_loop_control_path = root / "src" / "codegen" / "llvm_mir_loop_control.c"
 mir_llvm_block_emit_path = root / "src" / "codegen" / "llvm_mir_block_emit.h"
@@ -211,6 +219,7 @@ for path in (
     mir_ssa_use_edges_path,
     mir_liveness_dce_header_path,
     mir_liveness_dce_path,
+    mir_liveness_summary_path,
     mir_dce_header_path,
     mir_dce_path,
     mir_stmt_population_header_path,
@@ -220,6 +229,8 @@ for path in (
     hir_lower_cfg_path,
     hir_lower_intent_cfg_path,
     mir_c_control_emit_path,
+    mir_llvm_emit_path,
+    mir_llvm_contract_path,
     mir_llvm_control_emit_path,
     mir_llvm_loop_control_path,
     mir_llvm_block_emit_path,
@@ -308,12 +319,17 @@ mir = mir_path.read_text(encoding="utf-8")
 mir_ssa_rename = mir_ssa_rename_path.read_text(encoding="utf-8")
 mir_ssa_use_edges = mir_ssa_use_edges_path.read_text(encoding="utf-8")
 mir_liveness_dce = mir_liveness_dce_path.read_text(encoding="utf-8")
+mir_liveness_summary = mir_liveness_summary_path.read_text(encoding="utf-8")
 mir_dce = mir_dce_path.read_text(encoding="utf-8")
 mir_stmt_population = mir_stmt_population_path.read_text(encoding="utf-8")
 mir_stmt_source = mir_stmt_source_path.read_text(encoding="utf-8")
 mir_non_cfg_stmt_population = mir_non_cfg_stmt_population_path.read_text(encoding="utf-8")
 mir_codegen_control = (
     mir_c_control_emit_path.read_text(encoding="utf-8")
+    + "\n"
+    + mir_llvm_emit_path.read_text(encoding="utf-8")
+    + "\n"
+    + mir_llvm_contract_path.read_text(encoding="utf-8")
     + "\n"
     + mir_llvm_control_emit_path.read_text(encoding="utf-8")
     + "\n"
@@ -524,6 +540,7 @@ mir_owner_limits = {
     mir_ssa_use_edges_path: 600,
     mir_liveness_dce_header_path: 600,
     mir_liveness_dce_path: 600,
+    mir_liveness_summary_path: 600,
     mir_dce_header_path: 600,
     mir_dce_path: 600,
     mir_call_fact_path: 600,
@@ -561,9 +578,11 @@ required_mir_owner_terms = {
     ],
     "src/compiler/mir_liveness_dce.c": [
         "mir_compute_liveness",
+    ],
+    "src/compiler/mir_liveness_summary.c": [
         "mir_build_value_summaries",
         "inst->kind != MIR_INST_DEF",
-        "write_name = mir_liveness_instruction_slot_anchor(inst)",
+        "write_name = mir_liveness_summary_slot_anchor(inst)",
     ],
     "src/compiler/mir_dce.c": [
         "mir_run_dce_on_routine",
@@ -620,6 +639,7 @@ mir_owner_text = {
     "src/compiler/mir_ssa_rename.h": mir_ssa_rename,
     "src/compiler/mir_ssa_use_edges.h": mir_ssa_use_edges,
     "src/compiler/mir_liveness_dce.c": mir_liveness_dce,
+    "src/compiler/mir_liveness_summary.c": mir_liveness_summary,
     "src/compiler/mir_dce.c": mir_dce,
     "src/compiler/mir_call_fact.h": mir_call_fact,
     "src/compiler/mir_stmt_population.c": mir_stmt_population,

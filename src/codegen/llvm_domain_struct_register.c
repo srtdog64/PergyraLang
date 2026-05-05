@@ -13,6 +13,7 @@
 #include "llvm_domain_forward.h"
 #include "llvm_domain_method_emit.h"
 #include "llvm_domain_projection_count_helpers.h"
+#include "llvm_domain_projection_target_helpers.h"
 #include "llvm_domain_struct_fields.h"
 
 static LLVMTypeRef

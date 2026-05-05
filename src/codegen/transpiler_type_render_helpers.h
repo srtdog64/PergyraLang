@@ -2,6 +2,33 @@
  * Type-name rendering
  * ----------------------------------------------------------------- */
 
+static TranspilerCtx *
+transpiler_type_render_ctx_current(void)
+{
+    return g_type_render_ctx;
+}
+
+static void
+transpiler_type_render_ctx_bind(TranspilerCtx *ctx)
+{
+    if (ctx != NULL)
+        g_type_render_ctx = ctx;
+}
+
+static TranspilerCtx *
+transpiler_type_render_ctx_push(TranspilerCtx *ctx)
+{
+    TranspilerCtx *saved_render_ctx = g_type_render_ctx;
+    transpiler_type_render_ctx_bind(ctx);
+    return saved_render_ctx;
+}
+
+static void
+transpiler_type_render_ctx_restore(TranspilerCtx *saved)
+{
+    g_type_render_ctx = saved;
+}
+
 static void
 append_type_name(CodeBuf *buf, ASTNode *type_node)
 {
@@ -27,10 +54,9 @@ append_type_name(CodeBuf *buf, ASTNode *type_node)
 
     {
         const char *bound = NULL;
-        if (g_type_render_ctx != NULL) {
-            bound = lookup_generic_binding(g_type_render_ctx,
-                                           type_node->data.type.name);
-        }
+        TranspilerCtx *render_ctx = transpiler_type_render_ctx_current();
+        if (render_ctx != NULL)
+            bound = lookup_generic_binding(render_ctx, type_node->data.type.name);
         codebuf_write(buf, "%s",
                       bound != NULL ? bound : type_node->data.type.name);
     }
@@ -82,17 +108,23 @@ render_type_name(ASTNode *type_node)
     return result;
 }
 
+static char *
+render_type_name_in_ctx(TranspilerCtx *ctx, ASTNode *type_node)
+{
+    TranspilerCtx *saved_render_ctx =
+        transpiler_type_render_ctx_push(ctx);
+    char *result = render_type_name(type_node);
+    transpiler_type_render_ctx_restore(saved_render_ctx);
+    return result;
+}
+
 const char *
 transpiler_render_type_name_local(TranspilerCtx *ctx, ASTNode *type_node)
 {
-    TranspilerCtx *saved_render_ctx = g_type_render_ctx;
     char *owned;
     char *stable;
 
-    if (ctx != NULL)
-        g_type_render_ctx = ctx;
-    owned = render_type_name(type_node);
-    g_type_render_ctx = saved_render_ctx;
+    owned = render_type_name_in_ctx(ctx, type_node);
     if (owned == NULL)
         return NULL;
 

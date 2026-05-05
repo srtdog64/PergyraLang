@@ -17,111 +17,6 @@ transpiler_render_effective_local_type_name(TranspilerCtx *ctx, ASTNode *type_no
     return render_type_name(type_node);
 }
 
-static bool
-transpiler_has_local_binding_in_block(ASTNode *body, const char *base_name)
-{
-    if (body == NULL || base_name == NULL)
-        return false;
-    if (body->type == AST_BLOCK) {
-        for (size_t i = 0; i < body->data.block.count; i++) {
-            if (transpiler_has_local_binding_in_block(
-                    body->data.block.statements[i], base_name)) {
-                return true;
-            }
-        }
-        return false;
-    }
-    if (body->type == AST_LET_DECL
-        && body->data.let_decl.name != NULL
-        && strcmp(body->data.let_decl.name, base_name) == 0) {
-        return true;
-    }
-    if (body->type == AST_WITH_STMT) {
-        if (body->data.with_stmt.alias != NULL
-            && strcmp(body->data.with_stmt.alias, base_name) == 0) {
-            return true;
-        }
-        return transpiler_has_local_binding_in_block(body->data.with_stmt.body, base_name);
-    }
-    if (body->type == AST_IF_STMT) {
-        return transpiler_has_local_binding_in_block(body->data.if_stmt.then_branch, base_name)
-            || transpiler_has_local_binding_in_block(body->data.if_stmt.else_branch, base_name);
-    }
-    if (body->type == AST_WHILE_LOOP)
-        return transpiler_has_local_binding_in_block(body->data.while_loop.body, base_name);
-    if (body->type == AST_FOR_LOOP) {
-        if (body->data.for_loop.variable != NULL
-            && strcmp(body->data.for_loop.variable, base_name) == 0) {
-            return true;
-        }
-        return transpiler_has_local_binding_in_block(body->data.for_loop.body, base_name);
-    }
-    return false;
-}
-
-static void
-transpiler_register_with_alias_bindings_in_block(TranspilerSSANameMap *ssa_map,
-                                                 ASTNode *body)
-{
-    if (ssa_map == NULL || body == NULL)
-        return;
-    if (body->type == AST_BLOCK) {
-        for (size_t i = 0; i < body->data.block.count; i++)
-            transpiler_register_with_alias_bindings_in_block(ssa_map,
-                body->data.block.statements[i]);
-        return;
-    }
-    if (body->type == AST_WITH_STMT) {
-        if (body->data.with_stmt.alias != NULL)
-            transpiler_ssa_name_map_set(ssa_map,
-                body->data.with_stmt.alias, body->data.with_stmt.alias);
-        transpiler_register_with_alias_bindings_in_block(ssa_map,
-            body->data.with_stmt.body);
-        return;
-    }
-    if (body->type == AST_LET_DESTRUCTURE) {
-        /* Destructuring bindings need precheck registration because MIR
-         * DEF emission for the individual bindings is not guaranteed across
-         * block boundaries (a `let (a, b) = ...; if a { ... }` splits the
-         * DEF producer and the consumer across blocks, and the per-block
-         * ssa_entry_values only propagate if the block's def list matches).
-         *
-         * Claim-shape cases (ClaimSlot/ClaimSecureSlot): the bindings are
-         * slot-anchored so the emit path self-maps them.
-         * All other cases (Array, Slice, tuple, user function): register
-         * them as self-mapping up-front so the precheck's identifier walk
-         * succeeds. The actual emit-time ssa_map picks up the versioned
-         * `<name>.1` mapping from the destructure's own emission. */
-        for (size_t i = 0; i < body->data.let_destructure.name_count; i++) {
-            const char *pname = body->data.let_destructure.names[i];
-            if (pname != NULL)
-                transpiler_ssa_name_map_set(ssa_map, pname, pname);
-        }
-        return;
-    }
-    if (body->type == AST_IF_STMT) {
-        transpiler_register_with_alias_bindings_in_block(ssa_map,
-            body->data.if_stmt.then_branch);
-        transpiler_register_with_alias_bindings_in_block(ssa_map,
-            body->data.if_stmt.else_branch);
-        return;
-    }
-    if (body->type == AST_WHILE_LOOP) {
-        transpiler_register_with_alias_bindings_in_block(ssa_map,
-            body->data.while_loop.body);
-        return;
-    }
-    if (body->type == AST_FOR_LOOP) {
-        if (body->data.for_loop.variable != NULL) {
-            transpiler_ssa_name_map_set(ssa_map,
-                body->data.for_loop.variable,
-                body->data.for_loop.variable);
-        }
-        transpiler_register_with_alias_bindings_in_block(ssa_map,
-            body->data.for_loop.body);
-    }
-}
-
 static void
 transpiler_register_explicit_local_bindings_in_block(TranspilerCtx *ctx,
                                                      const ASTNode *func_decl,
@@ -230,21 +125,6 @@ transpiler_register_explicit_local_bindings_in_block(TranspilerCtx *ctx,
                 stmt->data.for_loop.body);
         }
     }
-}
-
-static bool
-transpiler_has_explicit_local_binding(const ASTNode *func_decl,
-                                      const char *base_name)
-{
-    if (func_decl == NULL || func_decl->type != AST_FUNC_DECL || base_name == NULL)
-        return false;
-    for (size_t i = 0; i < func_decl->data.func_decl.param_count; i++) {
-        FuncParam *p = func_decl->data.func_decl.params[i];
-        if (p != NULL && p->name != NULL && strcmp(p->name, base_name) == 0)
-            return true;
-    }
-    return transpiler_has_local_binding_in_block(func_decl->data.func_decl.body,
-        base_name);
 }
 
 static const char *
@@ -408,25 +288,6 @@ transpiler_mir_function_signature_supported(const ASTNode *func_decl)
     }
 
     return true;
-}
-
-static char *
-emit_expression_with_ssa_map(ASTNode *node, TranspilerCtx *ctx,
-                             const TranspilerSSANameMap *ssa_map)
-{
-    const void *saved_active_ssa_map;
-    char *result;
-
-    if (node == NULL)
-        return pergyra_strdup("0");
-    if (ctx == NULL)
-        return emit_expression(node, ctx);
-
-    saved_active_ssa_map = ctx->active_ssa_map;
-    ctx->active_ssa_map = ssa_map;
-    result = emit_expression(node, ctx);
-    ctx->active_ssa_map = saved_active_ssa_map;
-    return result;
 }
 
 #include "transpiler_mir_ssa_lookup.h"

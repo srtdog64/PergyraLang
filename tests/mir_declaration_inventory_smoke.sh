@@ -592,7 +592,7 @@ for term in \
     "method metadata count" \
     "signature metadata drift" \
     "routine index"; do
-    require_term "src/compiler/mir_fact_validate.c" "$term"
+    require_term "src/compiler/mir_decl_header_validate.c" "$term"
 done
 require_term "src/compiler/mir_public_surface.h" \
     "mir_validate_decl_header_metadata(mir, error_message)"

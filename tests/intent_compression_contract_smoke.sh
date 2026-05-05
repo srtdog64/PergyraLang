@@ -79,7 +79,7 @@ grep -Fq "intent_step_can_derive_zone_authority" \
 grep -Fq "authorized_by_derived_from_zone" \
     "$ROOT_DIR/src/compiler/dir.h"
 grep -Fq "derived_authorized_by_from_zone" \
-    "$ROOT_DIR/src/compiler/dir_collect.c"
+    "$ROOT_DIR/src/compiler/dir_collect_intent.c"
 grep -Fq "authority_from_zone" \
     "$ROOT_DIR/src/compiler/air.h"
 grep -Fq "authority_from_action" \
@@ -255,7 +255,7 @@ grep -Fq "derived_using_from_where" \
 grep -Fq "derived using from zone type" \
     "$ROOT_DIR/src/parser/ast_print_intent.c"
 grep -Fq "using_derived_from_where" \
-    "$ROOT_DIR/src/compiler/dir_collect.c"
+    "$ROOT_DIR/src/compiler/dir_collect_intent.c"
 grep -Fq "using-derived=where" \
     "$ROOT_DIR/src/compiler/dir_validate.c"
 grep -Fq "DIR captures intent transfer and zone parameter participants" \

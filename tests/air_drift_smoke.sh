@@ -26,6 +26,8 @@ run_literal_air_drift_smoke() {
         "src/compiler/air_boundary.c"
         "src/compiler/air_boundary_walk.c"
         "src/compiler/air_dump.c"
+        "src/compiler/air_vocabulary.c"
+        "src/compiler/air_evidence_node.c"
         "src/compiler/air_evidence.c"
         "src/compiler/air_evidence_ast.c"
         "src/compiler/air_evidence_rir.c"
@@ -79,7 +81,7 @@ run_literal_air_drift_smoke() {
     require_literal "src/compiler/air_verify.c" "strict AIR requires body control-flow evidence"
     require_literal "src/compiler/air_verify.c" "strict AIR requires MIR branch/return terminator provenance"
     require_literal "src/compiler/air_verify.c" "strict AIR requires pin boundaries to prove all exits run unpin cleanup"
-    require_literal "src/compiler/air.c" "node->fact_count += fact_count"
+    require_literal "src/compiler/air_evidence_node.c" "node->fact_count += fact_count"
     require_literal "src/compiler/air_validate_evidence.c" "duplicates evidence node"
     require_literal "src/compiler/driver_app.c" "air_synthesize"
     require_literal "docs/72_diagnostic_codes.md" "PGY_SEM_INTENT_BOUNDARY_DRIFT"
@@ -132,11 +134,14 @@ parser_intent_step_path = root / "src" / "parser" / "parser_intent_step.c"
 dir_header_path = root / "src" / "compiler" / "dir.h"
 dir_impl_path = root / "src" / "compiler" / "dir.c"
 dir_collect_path = root / "src" / "compiler" / "dir_collect.c"
+dir_collect_intent_path = root / "src" / "compiler" / "dir_collect_intent.c"
 air_header_path = root / "src" / "compiler" / "air.h"
 air_impl_path = root / "src" / "compiler" / "air.c"
 air_boundary_path = root / "src" / "compiler" / "air_boundary.c"
 air_boundary_walk_path = root / "src" / "compiler" / "air_boundary_walk.c"
 air_dump_path = root / "src" / "compiler" / "air_dump.c"
+air_vocabulary_path = root / "src" / "compiler" / "air_vocabulary.c"
+air_evidence_node_path = root / "src" / "compiler" / "air_evidence_node.c"
 air_evidence_path = root / "src" / "compiler" / "air_evidence.c"
 air_evidence_ast_path = root / "src" / "compiler" / "air_evidence_ast.c"
 air_evidence_rir_path = root / "src" / "compiler" / "air_evidence_rir.c"
@@ -165,7 +170,7 @@ diag_docs_path = root / "docs" / "72_diagnostic_codes.md"
 air_backend_nonimpact_path = root / "tests" / "air_backend_nonimpact_smoke.sh"
 diagnostics_json_path = root / "tests" / "diagnostics_json_smoke.sh"
 
-for path in (air_path, checklist_path, todo_path, makefile_path, air_semantics_path, compiler_header_path, driver_path, driver_diag_path, pgy_driver_path, parser_intent_path, parser_intent_step_path, dir_header_path, dir_impl_path, dir_collect_path, air_header_path, air_impl_path, air_boundary_path, air_boundary_walk_path, air_dump_path, air_evidence_path, air_evidence_ast_path, air_evidence_rir_path, mir_cleanup_fact_names_path, air_internal_path, air_validate_path, air_validate_evidence_path, air_verify_path, air_test_path, *air_test_case_paths, rir_test_path, *rir_test_case_paths, diag_docs_path, air_backend_nonimpact_path, diagnostics_json_path):
+for path in (air_path, checklist_path, todo_path, makefile_path, air_semantics_path, compiler_header_path, driver_path, driver_diag_path, pgy_driver_path, parser_intent_path, parser_intent_step_path, dir_header_path, dir_impl_path, dir_collect_path, dir_collect_intent_path, air_header_path, air_impl_path, air_boundary_path, air_boundary_walk_path, air_dump_path, air_vocabulary_path, air_evidence_node_path, air_evidence_path, air_evidence_ast_path, air_evidence_rir_path, mir_cleanup_fact_names_path, air_internal_path, air_validate_path, air_validate_evidence_path, air_verify_path, air_test_path, *air_test_case_paths, rir_test_path, *rir_test_case_paths, diag_docs_path, air_backend_nonimpact_path, diagnostics_json_path):
     if not path.exists():
         raise SystemExit(f"missing AIR gate input: {path.relative_to(root)}")
 
@@ -188,6 +193,7 @@ dir_header = dir_header_path.read_text(encoding="utf-8")
 dir_impl = "\n".join([
     dir_impl_path.read_text(encoding="utf-8"),
     dir_collect_path.read_text(encoding="utf-8"),
+    dir_collect_intent_path.read_text(encoding="utf-8"),
 ])
 air_header = air_header_path.read_text(encoding="utf-8")
 air_boundary_walk = air_boundary_walk_path.read_text(encoding="utf-8")
@@ -201,6 +207,8 @@ air_impl = "\n".join([
     air_boundary_path.read_text(encoding="utf-8"),
     air_boundary_walk_path.read_text(encoding="utf-8"),
     air_dump_path.read_text(encoding="utf-8"),
+    air_vocabulary_path.read_text(encoding="utf-8"),
+    air_evidence_node_path.read_text(encoding="utf-8"),
     air_evidence_path.read_text(encoding="utf-8"),
     air_evidence_ast_path.read_text(encoding="utf-8"),
     air_evidence_rir_path.read_text(encoding="utf-8"),

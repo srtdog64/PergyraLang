@@ -386,14 +386,36 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_context.c \
                    $(CODEGEN_DIR)/transpiler_entry.c \
                    $(CODEGEN_DIR)/transpiler_symbols.c \
                    $(CODEGEN_DIR)/transpiler_decl_lookup.c \
+                   $(CODEGEN_DIR)/transpiler_decl_method_view.c \
                    $(CODEGEN_DIR)/transpiler_decl_host_lookup.c \
                    $(CODEGEN_DIR)/transpiler_enum.c \
                    $(CODEGEN_DIR)/transpiler_extern.c \
+                   $(CODEGEN_DIR)/transpiler_func_forward_policy.c \
+                   $(CODEGEN_DIR)/transpiler_func_forward_metadata.c \
+                   $(CODEGEN_DIR)/transpiler_intent_context.c \
+                   $(CODEGEN_DIR)/transpiler_host_self_policy.c \
+                   $(CODEGEN_DIR)/transpiler_intent_participant.c \
+                   $(CODEGEN_DIR)/transpiler_intent_zone_slot.c \
+                   $(CODEGEN_DIR)/transpiler_inventory_view.c \
                    $(CODEGEN_DIR)/transpiler_log_normalize.c \
+                   $(CODEGEN_DIR)/transpiler_mangled_name.c \
                    $(CODEGEN_DIR)/transpiler_misc_decl.c \
+                   $(CODEGEN_DIR)/transpiler_mir_expr_ssa.c \
+                   $(CODEGEN_DIR)/transpiler_mir_local_binding.c \
+                   $(CODEGEN_DIR)/transpiler_mir_inventory_intent_collect.c \
+                   $(CODEGEN_DIR)/transpiler_mir_cfg_policy.c \
+                   $(CODEGEN_DIR)/transpiler_mir_pin_emit.c \
+                   $(CODEGEN_DIR)/transpiler_mir_role_lookup.c \
+                   $(CODEGEN_DIR)/transpiler_mir_ssa_entry.c \
+                   $(CODEGEN_DIR)/transpiler_mir_ssa_lookup.c \
+                   $(CODEGEN_DIR)/transpiler_mir_ssa_map.c \
+                   $(CODEGEN_DIR)/transpiler_mir_ssa_names.c \
+                   $(CODEGEN_DIR)/transpiler_mir_ssa_utils.c \
                    $(CODEGEN_DIR)/transpiler_nominal.c \
                    $(CODEGEN_DIR)/transpiler_operator.c \
+                   $(CODEGEN_DIR)/transpiler_projection_field_path.c \
                    $(CODEGEN_DIR)/transpiler_projection.c \
+                   $(CODEGEN_DIR)/transpiler_slot_target.c \
                    $(CODEGEN_DIR)/transpiler_thread_pool.c \
                    $(CODEGEN_DIR)/transpiler_select.c \
                    $(CODEGEN_DIR)/transpiler_type_alias.c \
@@ -413,6 +435,8 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/air_boundary.c \
                    $(COMPILER_DIR)/air_boundary_walk.c \
                    $(COMPILER_DIR)/air_dump.c \
+                   $(COMPILER_DIR)/air_vocabulary.c \
+                   $(COMPILER_DIR)/air_evidence_node.c \
                    $(COMPILER_DIR)/air_evidence_ast.c \
                    $(COMPILER_DIR)/air_evidence.c \
                    $(COMPILER_DIR)/air_evidence_rir.c \
@@ -439,9 +463,11 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/mir_validation.c \
                    $(COMPILER_DIR)/mir_surface_usage.c \
                    $(COMPILER_DIR)/mir_fact_validate.c \
+                   $(COMPILER_DIR)/mir_decl_header_validate.c \
                    $(COMPILER_DIR)/mir_stmt_population.c \
                    $(COMPILER_DIR)/mir_stmt_source.c \
                    $(COMPILER_DIR)/mir_liveness_dce.c \
+                   $(COMPILER_DIR)/mir_liveness_summary.c \
                    $(COMPILER_DIR)/mir_dce.c \
                    $(COMPILER_DIR)/mir_cleanup.c \
                    $(COMPILER_DIR)/mir_intent.c \
@@ -475,6 +501,7 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
 ifneq ($(LLVM_ENABLED),0)
   LLVM_BACKEND_SOURCES = $(CODEGEN_DIR)/llvm_backend.c \
                    $(CODEGEN_DIR)/llvm_backend_ast_type.c \
+                   $(CODEGEN_DIR)/llvm_backend_forward_declare.c \
                    $(CODEGEN_DIR)/llvm_backend_type_map.c \
                    $(CODEGEN_DIR)/llvm_backend_type_registry.c \
                    $(CODEGEN_DIR)/llvm_type.c \
@@ -492,10 +519,12 @@ ifneq ($(LLVM_ENABLED),0)
                          $(CODEGEN_DIR)/llvm_error.c \
                           $(CODEGEN_DIR)/llvm_register.c \
                           $(CODEGEN_DIR)/llvm_runtime.c \
+                          $(CODEGEN_DIR)/llvm_runtime_require.c \
                           $(CODEGEN_DIR)/llvm_runtime_raw_collections.c \
                           $(CODEGEN_DIR)/llvm_runtime_channels.c \
                           $(CODEGEN_DIR)/llvm_runtime_secure_slot_decl.c \
                         $(CODEGEN_DIR)/llvm_event.c \
+                        $(CODEGEN_DIR)/llvm_mir_contract.c \
                         $(CODEGEN_DIR)/llvm_mir_emit.c \
                         $(CODEGEN_DIR)/llvm_mir_vars.c \
                         $(CODEGEN_DIR)/llvm_mir_phi.c \
@@ -503,13 +532,26 @@ ifneq ($(LLVM_ENABLED),0)
                         $(CODEGEN_DIR)/llvm_mir_for_in_control.c \
                         $(CODEGEN_DIR)/llvm_mir_loop_control.c \
                         $(CODEGEN_DIR)/llvm_intent_mir_meta.c \
-                         $(CODEGEN_DIR)/llvm_intent_zone.c \
-                         $(CODEGEN_DIR)/llvm_intent_effect.c \
-                         $(CODEGEN_DIR)/llvm_intent_flow.c \
-                         $(CODEGEN_DIR)/llvm_expr.c \
-                         $(CODEGEN_DIR)/llvm_expr_channel.c \
-                         $(CODEGEN_DIR)/llvm_expr_helpers.c \
-                         $(CODEGEN_DIR)/llvm_stmt.c \
+                        $(CODEGEN_DIR)/llvm_intent_zone.c \
+                        $(CODEGEN_DIR)/llvm_intent_effect.c \
+                        $(CODEGEN_DIR)/llvm_intent_flow.c \
+                        $(CODEGEN_DIR)/llvm_inventory_internal.c \
+                        $(CODEGEN_DIR)/llvm_inventory_decl_lookup.c \
+                        $(CODEGEN_DIR)/llvm_inventory_host_methods.c \
+                        $(CODEGEN_DIR)/llvm_expr.c \
+                        $(CODEGEN_DIR)/llvm_expr_aggregate_utils.c \
+                        $(CODEGEN_DIR)/llvm_expr_common.c \
+                        $(CODEGEN_DIR)/llvm_expr_call_args.c \
+                        $(CODEGEN_DIR)/llvm_expr_channel.c \
+                        $(CODEGEN_DIR)/llvm_expr_event_calls.c \
+                        $(CODEGEN_DIR)/llvm_expr_helpers.c \
+                        $(CODEGEN_DIR)/llvm_expr_domain_query_utils.c \
+                        $(CODEGEN_DIR)/llvm_expr_intent_observability_calls.c \
+                        $(CODEGEN_DIR)/llvm_expr_math_calls.c \
+                        $(CODEGEN_DIR)/llvm_expr_rc_calls.c \
+                        $(CODEGEN_DIR)/llvm_expr_result_option_calls.c \
+                        $(CODEGEN_DIR)/llvm_expr_slot_runtime_utils.c \
+                        $(CODEGEN_DIR)/llvm_stmt.c \
                          $(CODEGEN_DIR)/llvm_stmt_defer_scope.c \
                          $(CODEGEN_DIR)/llvm_stmt_type_infer.c \
                          $(CODEGEN_DIR)/llvm_stmt_type_infer_helpers.c \
@@ -525,8 +567,12 @@ ifneq ($(LLVM_ENABLED),0)
                          $(CODEGEN_DIR)/llvm_stmt_zone_action.c \
                          $(CODEGEN_DIR)/llvm_decl.c \
                          $(CODEGEN_DIR)/llvm_domain_method_helpers.c \
-                   $(CODEGEN_DIR)/llvm_domain_method_emit.c \
-                   $(CODEGEN_DIR)/llvm_domain_event.c \
+                        $(CODEGEN_DIR)/llvm_domain_method_emit.c \
+                        $(CODEGEN_DIR)/llvm_domain_event.c \
+                        $(CODEGEN_DIR)/llvm_domain_lookup.c \
+                        $(CODEGEN_DIR)/llvm_domain_projection_count.c \
+                   $(CODEGEN_DIR)/llvm_domain_projection_target.c \
+                   $(CODEGEN_DIR)/llvm_domain_role_lookup.c \
                    $(CODEGEN_DIR)/llvm_domain_role_emit.c \
                     $(CODEGEN_DIR)/llvm_domain_sync_frontier.c \
                     $(CODEGEN_DIR)/llvm_domain_zone_frontier_state.c \
@@ -687,6 +733,8 @@ AIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/air_names.o \
                    $(BUILD_DIR)/compiler/air_boundary.o \
                    $(BUILD_DIR)/compiler/air_boundary_walk.o \
                    $(BUILD_DIR)/compiler/air_dump.o \
+                   $(BUILD_DIR)/compiler/air_vocabulary.o \
+                   $(BUILD_DIR)/compiler/air_evidence_node.o \
                    $(BUILD_DIR)/compiler/air_evidence_ast.o \
                    $(BUILD_DIR)/compiler/air_evidence.o \
                    $(BUILD_DIR)/compiler/air_evidence_rir.o \
@@ -698,9 +746,11 @@ MIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/mir.o \
                    $(BUILD_DIR)/compiler/mir_validation.o \
                    $(BUILD_DIR)/compiler/mir_surface_usage.o \
                    $(BUILD_DIR)/compiler/mir_fact_validate.o \
+                   $(BUILD_DIR)/compiler/mir_decl_header_validate.o \
                    $(BUILD_DIR)/compiler/mir_stmt_population.o \
                    $(BUILD_DIR)/compiler/mir_stmt_source.o \
                    $(BUILD_DIR)/compiler/mir_liveness_dce.o \
+                   $(BUILD_DIR)/compiler/mir_liveness_summary.o \
                    $(BUILD_DIR)/compiler/mir_dce.o \
                    $(BUILD_DIR)/compiler/mir_cleanup.o \
                    $(BUILD_DIR)/compiler/mir_intent.o \

@@ -1,22 +1,8 @@
-#include "llvm_domain_projection_target_helpers.h"
+#ifndef PERGYRA_LLVM_DOMAIN_PROJECTION_COUNT_HELPERS_H
+#define PERGYRA_LLVM_DOMAIN_PROJECTION_COUNT_HELPERS_H
 
-static size_t
-llvm_count_domain_projection_slots(ASTNode **slots, size_t slot_count,
-                                   ASTNode **refreshes, size_t refresh_count)
-{
-    size_t projection_count = 0;
+size_t llvm_count_domain_projection_slots(ASTNode **slots, size_t slot_count,
+                                          ASTNode **refreshes,
+                                          size_t refresh_count);
 
-    if (slots == NULL)
-        return 0;
-
-    for (size_t i = 0; i < slot_count; i++) {
-        ASTNode *slot = slots[i];
-        if (slot != NULL && slot->type == AST_DOMAIN_SLOT
-            && (slot->data.domain_slot.is_tobject
-                || llvm_domain_slot_is_projection_target(slot, refreshes, refresh_count))) {
-            projection_count++;
-        }
-    }
-
-    return projection_count;
-}
+#endif /* PERGYRA_LLVM_DOMAIN_PROJECTION_COUNT_HELPERS_H */

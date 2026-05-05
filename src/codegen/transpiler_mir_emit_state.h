@@ -42,7 +42,7 @@ transpiler_capture_mir_emit_state_local(TranspilerCtx *ctx,
     state->typed_count = ctx->typed_var_count;
     state->host_decl = transpiler_current_host_decl_local(ctx);
     state->out = ctx->out;
-    state->render_ctx = g_type_render_ctx;
+    state->render_ctx = transpiler_type_render_ctx_current();
     state->func_decl = ctx->current_func_decl;
     snprintf(state->return_type, sizeof(state->return_type), "%s",
         ctx->current_return_type);
@@ -141,7 +141,7 @@ transpiler_restore_mir_emit_state_local(TranspilerCtx *ctx,
     }
     ctx->current_func_decl = saved_func_decl;
     transpiler_bind_current_host_decl_local(ctx, saved_host_decl);
-    g_type_render_ctx = saved_render_ctx;
+    transpiler_type_render_ctx_restore(saved_render_ctx);
     ctx->out = saved_out;
 }
 

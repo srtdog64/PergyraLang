@@ -28,6 +28,11 @@
 #include "transpiler_type_declarator.h"
 #include "transpiler_type_require.h"
 #include "transpiler_type_render.h"
+#include "transpiler_mir_role_lookup.h"
+#include "transpiler_mir_ssa_entry.h"
+#include "transpiler_mir_ssa_map.h"
+#include "transpiler_mir_ssa_names.h"
+#include "transpiler_mir_ssa_utils.h"
 #include "../common/string_compat.h"
 #include "../semantic/builtin_kind.h"
 #include "../semantic/diag_codes.h"
@@ -41,35 +46,6 @@ void emit_relation_decl(ASTNode *node, TranspilerCtx *ctx);
 void emit_effect_decl(ASTNode *node, TranspilerCtx *ctx);
 void emit_zone_decl(ASTNode *node, TranspilerCtx *ctx);
 void emit_world_decl(ASTNode *node, TranspilerCtx *ctx);
-#define TRANSPILE_SSA_MAP_CAPACITY 256
-#define TRANSPILE_SSA_NAME_BUCKETS 1024
-
-typedef struct
-{
-    bool in_use;
-    const char *base_name;
-    const char *versioned_name;
-} TranspilerSSANameBucket;
-
-typedef struct
-{
-    TranspilerSSANameBucket buckets[TRANSPILE_SSA_NAME_BUCKETS];
-} TranspilerSSANameMap;
-
-static const MIRRoutine *transpiler_find_mir_function(const TranspilerCtx *ctx,
-                                                      const ASTNode *func_decl);
-static const MIRRoutine *transpiler_find_mir_intent(const TranspilerCtx *ctx,
-                                                    const ASTNode *intent_decl);
-static const MIRRoutine *transpiler_find_role_impl_mir_method(
-    const TranspilerCtx *ctx,
-    const char *owner_name,
-    const ASTNode *method_decl);
-static bool transpiler_parse_versioned_name(const char *versioned,
-                                            char *base,
-                                            size_t base_size,
-                                            size_t *version_out);
-static char *transpiler_make_c_ssa_name(const char *versioned_name);
-static bool transpiler_c_type_uses_scalar_zero(const char *c_type);
 static const char *transpiler_find_local_type_name(TranspilerCtx *ctx,
                                                    const ASTNode *func_decl,
                                                    const char *base_name);
@@ -77,35 +53,6 @@ static const char *transpiler_infer_local_type_name_from_expr(TranspilerCtx *ctx
                                                               const ASTNode *func_decl,
                                                               ASTNode *expr);
 static const char *transpiler_let_slot_inner_from_call_type_arg(ASTNode *call);
-static bool transpiler_emit_mir_block_with_ssa_map(TranspilerSSANameMap *ssa_map,
-                                                  const MIRBasicBlock *block);
-static char *emit_expression_with_ssa_map(ASTNode *node,
-                                          TranspilerCtx *ctx,
-                                          const TranspilerSSANameMap *ssa_map);
-static bool transpiler_collect_ssa_name_entries(const char **versioned_values,
-                                               size_t value_count,
-                                               const char **base_names,
-                                               const char **versioned_names,
-                                               size_t max_entries,
-                                               size_t *map_count_out);
-static void transpiler_emit_mir_block_mapping_comment(CodeBuf *out,
-                                                      int indent,
-                                                      const char *routine_name,
-                                                      const MIRRoutine *routine,
-                                                      const MIRBasicBlock *block);
-static void transpiler_free_ssa_name_entries(const char **base_names,
-                                            size_t entry_count);
-static bool transpiler_rebuild_ssa_map(TranspilerSSANameMap *ssa_map,
-                                      const char **base_names,
-                                      const char **versioned_names,
-                                      size_t map_count);
-static const char *transpiler_resolve_ssa_name(const TranspilerSSANameMap *ssa_map,
-                                              const char *base_name);
-static const char *transpiler_resolve_active_ssa_name(const TranspilerCtx *ctx,
-                                                      const char *base_name);
-static bool transpiler_ssa_name_map_set(TranspilerSSANameMap *ssa_map,
-                                        const char *base_name,
-                                        const char *versioned_name);
 static bool transpiler_validate_mir_emission_contract(const TranspilerCtx *ctx,
                                                      const MIRRoutine *routine,
                                                      const ASTNode *decl,
