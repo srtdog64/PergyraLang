@@ -1,4 +1,13 @@
-static bool
+#ifdef PGY_LLVM_ENABLED
+
+#include "llvm_expr_call_queue_extended.h"
+
+#include <string.h>
+
+#include "llvm_expr_call_collections_extended.h"
+#include "llvm_internal_api.h"
+
+bool
 llvm_emit_queue_extended_call(ASTNode *node, LLVMGenCtx *ctx,
                               const char *callee_name,
                               LLVMValueRef *out)
@@ -123,3 +132,5 @@ llvm_emit_queue_extended_call(ASTNode *node, LLVMGenCtx *ctx,
 
     return false;
 }
+
+#endif

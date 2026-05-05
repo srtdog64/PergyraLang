@@ -9,8 +9,6 @@ llvm_zone_sync_emit_relation_clauses(ASTNode *stmt,
                                      LLVMValueRef sync_fn,
                                      LLVMGenCtx *ctx)
 {
-    (void)llvm_zone_bind_effect_layer;
-
     for (size_t i = 0; i < stmt->data.zone_decl.link_count; i++) {
         ASTNode *link = stmt->data.zone_decl.links[i];
         const char *state_name = link != NULL ? link->data.zone_link.state_name : NULL;

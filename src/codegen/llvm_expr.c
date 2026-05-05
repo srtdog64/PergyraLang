@@ -18,6 +18,7 @@ LLVMValueRef llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx);
 #include "llvm_expr_string_coerce.h"
 #include "llvm_expr_identifier_slot_helpers.h"
 #include "llvm_expr_assignment_member_projection.h"
+#include "llvm_expr_member_access.h"
 #include "llvm_expr_scalar_core.h"
 #include "llvm_expr_call_projection_sync.h"
 #include "llvm_expr_call_methods_domain_slice.h"

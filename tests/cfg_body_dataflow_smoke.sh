@@ -31,8 +31,9 @@ run_literal_doc_contract_smoke() {
         "src/compiler/mir_cfg_contract_cleanup_fact.h"
         "src/compiler/mir_cfg_contract_pin.h"
         "src/compiler/mir_cfg_contract_edges.h"
+        "src/compiler/mir_cfg_contract_edges.c"
         "src/compiler/mir_cfg_contract_validate.h"
-        "src/compiler/mir_ssa_use_edges.h"
+        "src/compiler/mir_ssa_rename.c"
         "src/test_mir.c"
         "src/semantic/type_checker_ownership_let.c"
         "src/codegen/llvm_mir_emit.c"
@@ -60,14 +61,14 @@ run_literal_doc_contract_smoke() {
     require_literal "src/compiler/mir_cfg_contract_pin.h" "mir_block_find_pin_cleanup_edge_fact"
     require_literal "src/compiler/mir_cfg_contract_pin.h" "mir_block_pin_cleanup_missing_reason"
     require_literal "src/compiler/mir_cfg_contract_pin.h" "pin cleanup fact does not match source slot, view, and access mode"
-    require_literal "src/compiler/mir_cfg_contract_edges.h" "mir_validate_edge_predecessor_link"
-    require_literal "src/compiler/mir_cfg_contract_edges.h" "mir_validate_successor_index"
+    require_literal "src/compiler/mir_cfg_contract_edges.c" "mir_validate_edge_predecessor_link"
+    require_literal "src/compiler/mir_cfg_contract_edges.c" "mir_validate_successor_index"
     require_literal "src/compiler/mir_cfg_contract_validate.h" "mir_cleanup_block_is_registered_root"
     require_literal "src/compiler/mir_cfg_contract_validate.h" "not registered as a cleanup root"
     require_literal "src/compiler/mir_cfg_contract_validate.h" "rollback successor"
     require_literal "src/compiler/mir_cfg_contract_validate.h" "invalidation successor"
-    require_literal "src/compiler/mir_ssa_use_edges.h" "mir_def_instruction_source_expr"
-    require_literal "src/compiler/mir_ssa_use_edges.h" "stmt = inst->ast"
+    require_literal "src/compiler/mir_ssa_rename.c" "mir_def_instruction_source_expr"
+    require_literal "src/compiler/mir_ssa_rename.c" "stmt = inst->ast"
     require_literal "src/compiler/mir_stmt_population.c" "#include \"mir_call_fact.h\""
     require_literal "src/compiler/mir_stmt_population.c" "mir_set_inst_source_statement_index(&new_insts[*new_count - 1]"
     require_literal "src/compiler/mir_non_cfg_stmt_population.h" "routine->hir_routine != NULL && routine->hir_routine->has_cfg"
@@ -140,11 +141,12 @@ mir_call_fact_path = root / "src" / "compiler" / "mir_call_fact.h"
 mir_cfg_contract_cleanup_fact_path = root / "src" / "compiler" / "mir_cfg_contract_cleanup_fact.h"
 mir_cfg_contract_pin_path = root / "src" / "compiler" / "mir_cfg_contract_pin.h"
 mir_cfg_contract_edges_path = root / "src" / "compiler" / "mir_cfg_contract_edges.h"
+mir_cfg_contract_edges_impl_path = root / "src" / "compiler" / "mir_cfg_contract_edges.c"
 mir_cfg_contract_control_path = root / "src" / "compiler" / "mir_cfg_contract_control.h"
 mir_cfg_contract_validate_path = root / "src" / "compiler" / "mir_cfg_contract_validate.h"
 mir_path = root / "src" / "compiler" / "mir.c"
 mir_ssa_rename_path = root / "src" / "compiler" / "mir_ssa_rename.h"
-mir_ssa_use_edges_path = root / "src" / "compiler" / "mir_ssa_use_edges.h"
+mir_ssa_rename_impl_path = root / "src" / "compiler" / "mir_ssa_rename.c"
 mir_liveness_dce_header_path = root / "src" / "compiler" / "mir_liveness_dce.h"
 mir_liveness_dce_path = root / "src" / "compiler" / "mir_liveness_dce.c"
 mir_liveness_summary_path = root / "src" / "compiler" / "mir_liveness_summary.c"
@@ -212,11 +214,12 @@ for path in (
     mir_cfg_contract_cleanup_fact_path,
     mir_cfg_contract_pin_path,
     mir_cfg_contract_edges_path,
+    mir_cfg_contract_edges_impl_path,
     mir_cfg_contract_control_path,
     mir_cfg_contract_validate_path,
     mir_path,
     mir_ssa_rename_path,
-    mir_ssa_use_edges_path,
+    mir_ssa_rename_impl_path,
     mir_liveness_dce_header_path,
     mir_liveness_dce_path,
     mir_liveness_summary_path,
@@ -301,7 +304,11 @@ mir_cleanup_fact_names = mir_cleanup_fact_names_path.read_text(encoding="utf-8")
 mir_call_fact = mir_call_fact_path.read_text(encoding="utf-8")
 mir_cfg_contract_cleanup_fact = mir_cfg_contract_cleanup_fact_path.read_text(encoding="utf-8")
 mir_cfg_contract_pin = mir_cfg_contract_pin_path.read_text(encoding="utf-8")
-mir_cfg_contract_edges = mir_cfg_contract_edges_path.read_text(encoding="utf-8")
+mir_cfg_contract_edges = (
+    mir_cfg_contract_edges_path.read_text(encoding="utf-8")
+    + "\n"
+    + mir_cfg_contract_edges_impl_path.read_text(encoding="utf-8")
+)
 mir_cfg_contract_control = mir_cfg_contract_control_path.read_text(encoding="utf-8")
 mir_cfg_contract_validate = mir_cfg_contract_validate_path.read_text(encoding="utf-8")
 mir_cfg_contract_validator = (
@@ -317,7 +324,7 @@ mir_cfg_contract_validator = (
 )
 mir = mir_path.read_text(encoding="utf-8")
 mir_ssa_rename = mir_ssa_rename_path.read_text(encoding="utf-8")
-mir_ssa_use_edges = mir_ssa_use_edges_path.read_text(encoding="utf-8")
+mir_ssa_rename_impl = mir_ssa_rename_impl_path.read_text(encoding="utf-8")
 mir_liveness_dce = mir_liveness_dce_path.read_text(encoding="utf-8")
 mir_liveness_summary = mir_liveness_summary_path.read_text(encoding="utf-8")
 mir_dce = mir_dce_path.read_text(encoding="utf-8")
@@ -537,7 +544,7 @@ for forbidden in [
 mir_owner_limits = {
     mir_path: 600,
     mir_ssa_rename_path: 600,
-    mir_ssa_use_edges_path: 600,
+    mir_ssa_rename_impl_path: 600,
     mir_liveness_dce_header_path: 600,
     mir_liveness_dce_path: 600,
     mir_liveness_summary_path: 600,
@@ -566,9 +573,10 @@ required_mir_owner_terms = {
     ],
     "src/compiler/mir_ssa_rename.h": [
         "mir_apply_ssa_rename",
-        "mir_collect_ssa_names",
+        "mir_populate_use_edges",
     ],
-    "src/compiler/mir_ssa_use_edges.h": [
+    "src/compiler/mir_ssa_rename.c": [
+        "mir_collect_ssa_names",
         "mir_append_versioned_use",
         "mir_append_block_versioned_name",
         "mir_parse_versioned_name",
@@ -637,7 +645,7 @@ required_mir_owner_terms = {
 mir_owner_text = {
     "src/compiler/mir.c": mir,
     "src/compiler/mir_ssa_rename.h": mir_ssa_rename,
-    "src/compiler/mir_ssa_use_edges.h": mir_ssa_use_edges,
+    "src/compiler/mir_ssa_rename.c": mir_ssa_rename_impl,
     "src/compiler/mir_liveness_dce.c": mir_liveness_dce,
     "src/compiler/mir_liveness_summary.c": mir_liveness_summary,
     "src/compiler/mir_dce.c": mir_dce,
@@ -931,7 +939,7 @@ for term in [
 if 'parser_consume(parser, TOKEN_ASSIGN, "Expected \'=\' in let declaration")' not in parser:
     raise SystemExit("parser must keep local let declarations initialized")
 
-if "source_statement_inventory.items[inst->source_statement_index]" in mir_ssa_use_edges:
+if "source_statement_inventory.items[inst->source_statement_index]" in mir_ssa_rename_impl:
     raise SystemExit(
         "MIR DEF use-edge collection must consume instruction-carried AST, "
         "not reopen block source_statement_inventory"
@@ -983,8 +991,7 @@ if grep -RIn "inst->arg0 != NULL ? inst->arg0 : inst->name" \
     exit 1
 fi
 if grep -RIn "inst->arg0" \
-    "$ROOT_DIR/src/codegen/transpiler_mir_inventory_intent.h" \
-    "$ROOT_DIR/src/codegen/transpiler_mir_inventory_intent_collect.h" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_inventory_intent_collect.c" \
     "$ROOT_DIR/src/codegen/llvm_intent_mir_meta.c"; then
     echo "MIR intent metadata readers must consume payloads through mir_instruction_intent_payload" >&2
     exit 1
@@ -995,11 +1002,11 @@ require_literal "src/compiler/mir_intent_fact.c" "mir_instruction_intent_payload
 require_literal "src/compiler/mir_intent_fact.c" "mir_instruction_intent_step_name"
 require_literal "src/compiler/mir_intent_fact.c" "mir_validate_intent_instruction_fact"
 require_literal "src/compiler/mir_intent_fact.c" "inst == NULL || inst->kind != MIR_INST_STMT"
-require_literal "src/codegen/transpiler_mir_inventory_intent.h" "mir_instruction_intent_step_name(inst)"
+require_literal "src/codegen/transpiler_mir_inventory_intent_collect.c" "mir_instruction_intent_step_name(inst)"
 require_literal "src/codegen/llvm_intent_flow.c" "mir_instruction_intent_step_name(inst)"
-require_literal "src/codegen/transpiler_mir_inventory_intent.h" "mir_instruction_intent_phase_matches(inst, phase_name)"
+require_literal "src/codegen/transpiler_mir_inventory_intent_collect.c" "mir_instruction_intent_phase_matches(inst, phase_name)"
 require_literal "src/codegen/llvm_intent_flow.c" "mir_instruction_intent_phase_matches(inst, phase_name)"
-require_literal "src/codegen/transpiler_mir_inventory_intent.h" "mir_instruction_intent_payload(inst)"
+require_literal "src/codegen/transpiler_mir_inventory_intent_collect.c" "mir_instruction_intent_payload(inst)"
 require_literal "src/codegen/llvm_intent_mir_meta.c" "mir_instruction_intent_payload(inst)"
 require_literal "src/codegen/transpiler_helpers.h" "mir_instruction_intent_payload(inst)"
 require_literal "src/codegen/transpiler_helpers.h" "mir_instruction_intent_step_matches(inst, step_name)"
@@ -1014,7 +1021,7 @@ if grep -n "source_ast_type != AST_INTENT_STEP" \
     exit 1
 fi
 if grep -n "source_ast_type != AST_INTENT_STEP" \
-    "$ROOT_DIR/src/codegen/transpiler_mir_inventory_intent.h"; then
+    "$ROOT_DIR/src/codegen/transpiler_mir_inventory_intent_collect.c"; then
     echo "C intent step collection must consume MIR intent-step facts, not source_ast_type filters" >&2
     exit 1
 fi

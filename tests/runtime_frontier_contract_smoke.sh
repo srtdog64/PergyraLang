@@ -133,6 +133,7 @@ cat \
     "$ROOT_DIR/src/codegen/llvm_domain_sync_frontier.c" \
     "$ROOT_DIR/src/codegen/llvm_domain_projection_sync_helpers.h" \
     "$ROOT_DIR/src/codegen/llvm_domain_projection_sync_body_helpers.h" \
+    "$ROOT_DIR/src/codegen/llvm_domain_projection_sync_body_helpers.c" \
     > "$llvm_projection_contract"
 
 cat \
@@ -212,14 +213,20 @@ require_terms "frontier policy source of truth" "$ROOT_DIR/src/runtime/pgy_front
     "embedded_zone_frontier_count" \
     "pgy_frontier_world_derived_pass_limit"
 
-require_terms "codegen frontier policy compatibility wrapper" "$ROOT_DIR/src/codegen/domain_frontier_policy.h" \
-    "../runtime/pgy_frontier_policy.h" \
+require_terms "codegen frontier policy compatibility wrapper declarations" "$ROOT_DIR/src/codegen/domain_frontier_policy.h" \
     "PgyDomainZoneLookupFn" \
     "pgy_domain_zone_frontier_pass_limit" \
     "pgy_domain_projection_frontier_pass_limit" \
     "pgy_domain_world_derived_frontier_pass_limit" \
     "pgy_domain_world_embedded_frontier_count" \
-    "pgy_domain_world_transitive_frontier_pass_limit" \
+    "pgy_domain_world_transitive_frontier_pass_limit"
+
+require_terms "codegen frontier policy compatibility wrapper implementation" "$ROOT_DIR/src/codegen/domain_frontier_policy.c" \
+    "../runtime/pgy_frontier_policy.h" \
+    "pgy_frontier_zone_pass_limit" \
+    "pgy_frontier_projection_pass_limit" \
+    "pgy_frontier_world_derived_pass_limit" \
+    "pgy_frontier_world_transitive_pass_limit" \
     "zone_decl->data.zone_decl.state_count" \
     "zone_decl->data.zone_decl.layer_slot_count"
 

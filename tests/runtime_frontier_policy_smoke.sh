@@ -74,7 +74,10 @@ compiled=0
 for candidate in "$CC_BIN" gcc clang cc; do
     command -v "$candidate" >/dev/null 2>&1 || continue
     if "$candidate" -Wall -Wextra -Werror=implicit-function-declaration -Werror=implicit-int \
-        -std=c11 -Isrc "$tmp_dir/frontier_policy_check.c" -o "$probe_exe"; then
+        -std=c11 -Isrc \
+        "$tmp_dir/frontier_policy_check.c" \
+        src/codegen/domain_frontier_policy.c \
+        -o "$probe_exe"; then
         CC_BIN="$candidate"
         compiled=1
         break

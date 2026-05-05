@@ -82,28 +82,6 @@ mir_add_phi_placeholders(MIRRoutine *routine, MIRBasicBlock *block)
 }
 
 static bool
-mir_add_def_instruction(MIRRoutine *routine,
-                        MIRBasicBlock *block,
-                        size_t insert_index,
-                        const char *base_name,
-                        const char *result_name)
-{
-    MIRInstruction inst;
-    if (routine == NULL || block == NULL || result_name == NULL)
-        return false;
-    memset(&inst, 0, sizeof(inst));
-    inst.id = routine->instruction_count++;
-    inst.kind = MIR_INST_DEF;
-    inst.name = "ssa-def";
-    inst.slot_anchor = base_name;
-    inst.arg0 = base_name;
-    inst.result_name = pergyra_strdup(result_name);
-    if (inst.result_name == NULL)
-        return false;
-    return insert_instruction(block, insert_index, inst);
-}
-
-static bool
 mir_add_terminator_instruction(MIRRoutine *routine,
                                MIRBasicBlock *block,
                                HIRBlockTerminatorKind terminator_kind,
@@ -251,18 +229,6 @@ mir_add_resource_instruction(MIRRoutine *routine, MIRBasicBlock *block, const RI
 
 #include "mir_liveness_dce.h"
 #include "mir_dce.h"
-
-static bool
-mir_block_has_predecessor(const MIRBasicBlock *block, size_t predecessor)
-{
-    if (block == NULL)
-        return false;
-    for (size_t i = 0; i < block->predecessor_count; i++) {
-        if (block->predecessors[i] == predecessor)
-            return true;
-    }
-    return false;
-}
 
 #include "mir_fact_validate.h"
 #include "mir_stmt_population.h"

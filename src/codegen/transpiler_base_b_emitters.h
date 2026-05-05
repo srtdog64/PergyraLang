@@ -1,3 +1,6 @@
+#ifndef PGY_TRANSPILER_BASE_B_EMITTERS_H
+#define PGY_TRANSPILER_BASE_B_EMITTERS_H
+
 /* C backend base emitter split into sub-1000 LOC include chunks.
  * Keep this shim for the existing transpiler include order. */
 #include "transpiler_mir_emit_state.h"
@@ -10,3 +13,5 @@
 #include "transpiler_block_emit.h"
 #include "transpiler_block_intent_helpers.h"
 #include "transpiler_intent_zone_binding_emit.h"
+
+#endif /* PGY_TRANSPILER_BASE_B_EMITTERS_H */

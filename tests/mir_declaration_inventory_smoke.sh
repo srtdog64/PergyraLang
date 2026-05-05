@@ -28,7 +28,9 @@ require_term() {
 
 for rel in \
     "src/codegen/llvm_internal.h" \
+    "src/codegen/llvm_inventory_internal.c" \
     "src/codegen/llvm_inventory_internal.h" \
+    "src/codegen/llvm_inventory_decl_lookup.c" \
     "src/codegen/llvm_inventory_decl_lookup.h" \
     "src/codegen/llvm_inventory_host_methods.h" \
     "src/codegen/llvm_pipeline.c" \
@@ -40,14 +42,17 @@ for rel in \
     "src/codegen/llvm_backend.h" \
     "src/codegen/llvm_register.c" \
     "src/codegen/transpiler.h" \
+    "src/codegen/transpiler_inventory_view.c" \
     "src/codegen/transpiler_inventory_view.h" \
     "src/codegen/transpiler.c" \
     "src/codegen/transpiler_decl_host_lookup.c" \
     "src/codegen/transpiler_domain_role_ability_emit.h" \
     "src/codegen/transpiler_generic_class_specialization_emit.h" \
+    "src/codegen/transpiler_mir_role_lookup.c" \
     "src/codegen/transpiler_mir_ssa_names.h" \
     "src/compiler/mir.h" \
     "src/compiler/mir_lower_public_api.h" \
+    "src/compiler/mir_decl_headers.c" \
     "src/compiler/mir_decl_headers.h" \
     "docs/100_beta_readiness_checklist.md" \
     "TODO.md"; do
@@ -59,7 +64,12 @@ for term in \
     "llvm_find_decl_header_in_context" \
     "llvm_find_host_decl_header_in_context" \
     "llvm_find_decl_in_active_inventory" \
-    "llvm_find_host_decl_in_active_inventory" \
+    "llvm_find_host_decl_in_active_inventory"; do
+    require_term "src/codegen/llvm_inventory_decl_lookup.h" "$term"
+done
+
+for term in \
+    "llvm_active_inventory" \
     "mir_find_decl_header(ctx->mir, name)" \
     "llvm_is_host_decl_type" \
     "AST_PARTY_DECL, name" \
@@ -68,7 +78,7 @@ for term in \
     "return decl->data.party_decl.name" \
     "return decl->data.role_decl.name" \
     "return decl->data.roster_decl.name"; do
-    require_term "src/codegen/llvm_inventory_decl_lookup.h" "$term"
+    require_term "src/codegen/llvm_inventory_decl_lookup.c" "$term"
 done
 
 for term in \
@@ -96,12 +106,14 @@ if grep -Fq "llvm_host_decl_methods(" \
 fi
 require_term "src/codegen/llvm_inventory_host_methods.h" "ast_compat_methods"
 require_term "src/codegen/llvm_inventory_host_methods.h" "ast_compat_count"
-require_term "src/codegen/llvm_inventory_host_methods.h" \
+require_term "src/codegen/llvm_inventory_host_methods.c" \
     "view->count != view->ast_compat_count"
-if grep -Fq "fallback_methods" "$ROOT_DIR/src/codegen/llvm_inventory_host_methods.h"; then
+if grep -Fq "fallback_methods" "$ROOT_DIR/src/codegen/llvm_inventory_host_methods.h" \
+    "$ROOT_DIR/src/codegen/llvm_inventory_host_methods.c"; then
     fail "LLVM hosted method view must name AST compatibility paths explicitly, not as fallback_methods"
 fi
-if grep -Fq "fallback_count" "$ROOT_DIR/src/codegen/llvm_inventory_host_methods.h"; then
+if grep -Fq "fallback_count" "$ROOT_DIR/src/codegen/llvm_inventory_host_methods.h" \
+    "$ROOT_DIR/src/codegen/llvm_inventory_host_methods.c"; then
     fail "LLVM hosted method view must name AST compatibility counts explicitly, not as fallback_count"
 fi
 
@@ -119,10 +131,10 @@ for term in "mir_active_inventory" "mir_active_externs"; do
     require_term "src/compiler/mir_lower_public_api.h" "$term"
 done
 
-for rel in "src/codegen/llvm_inventory_decl_lookup.h" "src/codegen/transpiler_inventory_view.h"; do
+for rel in "src/codegen/llvm_inventory_decl_lookup.c" "src/codegen/transpiler_inventory_view.c"; do
     require_term "$rel" "mir_active_inventory(ctx->mir, decl_type, &nodes, &count)"
 done
-for rel in "src/codegen/llvm_inventory_internal.h" "src/codegen/transpiler_inventory_view.h"; do
+for rel in "src/codegen/llvm_inventory_internal.c" "src/codegen/transpiler_inventory_view.c"; do
     require_term "$rel" "mir_active_externs(ctx->mir, &nodes, &count)"
 done
 
@@ -227,7 +239,7 @@ if grep -RIn 'transpiler_decl_methods_local' "$ROOT_DIR/src/codegen"; then
     fail "C backend must not expose public AST method-array lookup seam"
 fi
 for rel in \
-    "src/codegen/transpiler_block_intent_helpers.h" \
+    "src/codegen/transpiler_intent_context.c" \
     "src/codegen/transpiler_projection_sync_helpers.h"; do
     require_term "$rel" "find_nominal_host_method_decl(ctx"
     if grep -Eq 'data\.class_decl\.methods\[[^]]+\]|data\.class_decl\.method_count' \
@@ -239,12 +251,15 @@ for term in \
     "mir_find_decl_header(ctx->mir, owner_name)" \
     "header->method_metadata_count" \
     "transpiler_mir_decl_method_routine(ctx, method)"; do
-    require_term "src/codegen/transpiler_mir_ssa_names.h" "$term"
+    require_term "src/codegen/transpiler_mir_role_lookup.c" "$term"
 done
 for term in \
     "method->has_routine" \
     "transpiler_active_routine_inventory(ctx, &inventory)" \
-    "transpiler_routine_inventory_get(&inventory, method->routine_index)" \
+    "transpiler_routine_inventory_get(&inventory, method->routine_index)"; do
+    require_term "src/codegen/transpiler_decl_method_view.c" "$term"
+done
+for term in \
     "transpiler_mir_decl_method_param_count" \
     "transpiler_mir_decl_method_param" \
     "transpiler_mir_decl_method_return_type" \
@@ -256,7 +271,7 @@ for term in \
     "transpiler_mir_decl_method_param_count(method_meta)" \
     "transpiler_mir_decl_method_return_type(method_meta)" \
     "transpiler_mir_decl_method_param(method_meta, j)"; do
-    require_term "src/codegen/transpiler_func_forward_helpers.h" "$term"
+    require_term "src/codegen/transpiler_func_forward_metadata.c" "$term"
 done
 for rel in \
     "src/codegen/transpiler_class_decl_emit.h" \
@@ -282,7 +297,6 @@ for term in \
     "TranspilerHostedMethodView" \
     "ast_compat_methods" \
     "ast_compat_count" \
-    "view->count != view->ast_compat_count" \
     "transpiler_hosted_method_view(" \
     "transpiler_hosted_method_view_metadata(" \
     "transpiler_mir_decl_method_name(" \
@@ -291,14 +305,20 @@ for term in \
     "transpiler_hosted_method_view_routine(" \
     "transpiler_hosted_method_view_from_decl(" \
     "transpiler_hosted_method_view_ast(" \
-    "if (view->requires_mir_metadata)" \
     "transpiler_hosted_method_view_missing_mir_metadata("; do
     require_term "src/codegen/transpiler_decl_lookup.h" "$term"
 done
-if grep -Fq "fallback_methods" "$ROOT_DIR/src/codegen/transpiler_decl_lookup.h"; then
+for term in \
+    "view->count != view->ast_compat_count" \
+    "if (view->requires_mir_metadata)"; do
+    require_term "src/codegen/transpiler_decl_method_view.c" "$term"
+done
+if grep -Fq "fallback_methods" "$ROOT_DIR/src/codegen/transpiler_decl_lookup.h" \
+    "$ROOT_DIR/src/codegen/transpiler_decl_method_view.c"; then
     fail "C hosted method view must name AST compatibility paths explicitly, not as fallback_methods"
 fi
-if grep -Fq "fallback_count" "$ROOT_DIR/src/codegen/transpiler_decl_lookup.h"; then
+if grep -Fq "fallback_count" "$ROOT_DIR/src/codegen/transpiler_decl_lookup.h" \
+    "$ROOT_DIR/src/codegen/transpiler_decl_method_view.c"; then
     fail "C hosted method view must name AST compatibility counts explicitly, not as fallback_count"
 fi
 for rel in \
@@ -347,7 +367,7 @@ fi
 if grep -RIn "transpiler_find_mir_method" "$ROOT_DIR/src/codegen"; then
     fail "generic C method lookup helper name must not reappear; remaining role include seam is explicit"
 fi
-require_term "src/codegen/transpiler_mir_ssa_names.h" \
+require_term "src/codegen/transpiler_mir_role_lookup.c" \
     "transpiler_find_role_impl_mir_method"
 c_method_raw_hits="$(
     c_method_files=()
@@ -356,7 +376,8 @@ c_method_raw_hits="$(
         [[ -e "$path" ]] || continue
         rel="${path#$ROOT_DIR/}"
         case "$rel" in
-            src/codegen/transpiler_decl_lookup.h)
+            src/codegen/transpiler_decl_lookup.h|\
+            src/codegen/transpiler_decl_method_view.c)
                 continue
                 ;;
         esac
@@ -382,7 +403,9 @@ c_routine_raw_hits="$(
             src/codegen/llvm*|\
             src/codegen/transpiler.h|\
             src/codegen/transpiler_inventory_view.h|\
-            src/codegen/transpiler_decl_lookup.h)
+            src/codegen/transpiler_inventory_view.c|\
+            src/codegen/transpiler_decl_lookup.h|\
+            src/codegen/transpiler_decl_method_view.c)
                 continue
                 ;;
         esac
@@ -431,7 +454,7 @@ for term in \
     "return decl->data.role_decl.name" \
     "return decl->data.roster_decl.name" \
     "llvm_find_named_domain_decl(ctx, AST_ROLE_DECL, type_name)"; do
-    require_term "src/codegen/llvm_expr_boundary_projection_helpers.h" "$term"
+    require_term "src/codegen/llvm_domain_lookup.c" "$term"
 done
 if grep -Fq "routine->ast == method" \
     "$ROOT_DIR/src/codegen/llvm_domain_method_helpers.c"; then
@@ -442,14 +465,14 @@ if grep -Fq "strcmp(routine->owner_name, owner_name)" \
     fail "LLVM domain method helper must consume linked MIRDeclMethod routine indexes, not owner/name routine search"
 fi
 if grep -Fq "routine->ast == method->ast" \
-    "$ROOT_DIR/src/compiler/mir_decl_headers.h"; then
+    "$ROOT_DIR/src/compiler/mir_decl_headers.c"; then
     fail "MIRDeclMethod routine linking must not use AST identity matching"
 fi
 for term in \
     "mir_decl_header_set_role_impl_methods" \
     "mir_role_impl_method_count" \
     "case AST_ROLE_DECL"; do
-    require_term "src/compiler/mir_decl_headers.h" "$term"
+    require_term "src/compiler/mir_decl_headers.c" "$term"
 done
 for term in \
     "hir->role_count" \
@@ -457,7 +480,7 @@ for term in \
     require_term "src/compiler/mir_lower_public_api.h" "$term"
 done
 if grep -Fq "routine->ast == method_decl" \
-    "$ROOT_DIR/src/codegen/transpiler_mir_ssa_names.h"; then
+    "$ROOT_DIR/src/codegen/transpiler_mir_role_lookup.c"; then
     fail "C MIR method lookup must use MIRDeclMethod routine metadata, not AST identity fallback"
 fi
 
@@ -530,6 +553,7 @@ llvm_method_raw_hits="$(
         [[ -e "$path" ]] || continue
         rel="${path#$ROOT_DIR/}"
         case "$rel" in
+            src/codegen/llvm_inventory_host_methods.c|\
             src/codegen/llvm_inventory_host_methods.h|\
             src/codegen/llvm_domain_decl_parts_helpers.h)
                 continue
@@ -556,12 +580,13 @@ for forbidden in \
         "$ROOT_DIR/src/codegen/llvm_register.c" \
         "$ROOT_DIR/src/codegen/llvm_inventory_internal.h" \
         "$ROOT_DIR/src/codegen/llvm_inventory_host_methods.h" \
+        "$ROOT_DIR/src/codegen/llvm_inventory_host_methods.c" \
         "$ROOT_DIR/src/codegen/llvm_pipeline.c"; then
         fail "LLVM MIR method accessors must not fall back to AST method nodes: $forbidden"
     fi
 done
 
-require_term "src/codegen/llvm_inventory_host_methods.h" \
+require_term "src/codegen/llvm_inventory_host_methods.c" \
     "if (view->requires_mir_metadata)"
 
 for term in \
@@ -577,7 +602,8 @@ for term in \
     "routine_index"; do
     if ! grep -Fq "$term" "$ROOT_DIR/src/compiler/mir.h" \
         && ! grep -Fq "$term" "$ROOT_DIR/src/compiler/mir_lower_public_api.h" \
-        && ! grep -Fq "$term" "$ROOT_DIR/src/compiler/mir_decl_headers.h"; then
+        && ! grep -Fq "$term" "$ROOT_DIR/src/compiler/mir_decl_headers.h" \
+        && ! grep -Fq "$term" "$ROOT_DIR/src/compiler/mir_decl_headers.c"; then
         fail "MIR declaration method metadata missing term: $term"
     fi
 done
@@ -608,7 +634,7 @@ require_term "src/tests/mir/test_mir_lowering_part_b.cases.h" \
     "MIR validator rejects duplicate declaration header names"
 
 if awk '/decl = decl_header->ast;/{exit} {print}' \
-    "$ROOT_DIR/src/codegen/llvm_inventory_host_methods.h" |
+    "$ROOT_DIR/src/codegen/llvm_inventory_host_methods.c" |
     grep -Fq "method->data.func_decl.name != NULL"; then
     fail "LLVM host method lookup must compare MIRDeclMethod.name before AST func_decl name"
 fi
@@ -629,9 +655,13 @@ domain_arrays=(
 )
 allowed_raw_files=(
     "src/codegen/llvm_internal.h"
+    "src/codegen/llvm_inventory_internal.c"
     "src/codegen/llvm_inventory_internal.h"
+    "src/codegen/llvm_inventory_decl_lookup.c"
     "src/codegen/llvm_inventory_decl_lookup.h"
+    "src/codegen/llvm_inventory_host_methods.c"
     "src/codegen/llvm_inventory_host_methods.h"
+    "src/codegen/transpiler_inventory_view.c"
     "src/codegen/transpiler_inventory_view.h"
 )
 raw_hits=""

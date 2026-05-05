@@ -1,39 +1,3 @@
-/*
- * For multi-arg generics like Result<T, E>, split the inner body at the
- * top-level comma and sanitize each piece into a C-identifier fragment.
- * Returns a static buffer.
- */
-static const char *
-generic_args_to_c_suffix(const char *inner_body)
-{
-    static char buf[256];
-    size_t pos = 0;
-    bool prev_was_sep = false;
-
-    if (inner_body == NULL) {
-        buf[0] = '\0';
-        return buf;
-    }
-
-    for (const char *p = inner_body; *p != '\0' && pos + 1 < sizeof(buf); p++) {
-        char c = *p;
-        bool is_sep = (c == ',' || c == '<' || c == '>' || c == ' ' || c == '\t');
-        if (is_sep) {
-            if (!prev_was_sep && pos > 0) {
-                buf[pos++] = '_';
-                prev_was_sep = true;
-            }
-        } else {
-            buf[pos++] = c;
-            prev_was_sep = false;
-        }
-    }
-    while (pos > 0 && buf[pos - 1] == '_')
-        pos--;
-    buf[pos] = '\0';
-    return buf;
-}
-
 static bool
 transpiler_result_suffix_from_type_name(const char *type_name,
                                         char *out, size_t out_size)
