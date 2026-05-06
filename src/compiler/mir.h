@@ -267,7 +267,6 @@ typedef struct
     ASTNode     *ast;
     ASTNodeType  ast_type;
     const char  *name;
-    ASTNode    **methods;
     size_t       method_count;
     MIRDeclMethod *method_metadata;
     size_t       method_metadata_count;

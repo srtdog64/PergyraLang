@@ -37,7 +37,6 @@ mir_decl_header_strdup_fmt(const char *fmt, ...)
 static bool
 mir_decl_header_ast_shape(const MIRDeclHeader *header,
                           const char **name_out,
-                          ASTNode ***methods_out,
                           size_t *method_count_out,
                           bool *uses_pointer_self_out)
 {
@@ -45,8 +44,6 @@ mir_decl_header_ast_shape(const MIRDeclHeader *header,
 
     if (name_out != NULL)
         *name_out = NULL;
-    if (methods_out != NULL)
-        *methods_out = NULL;
     if (method_count_out != NULL)
         *method_count_out = 0;
     if (uses_pointer_self_out != NULL)
@@ -59,8 +56,6 @@ mir_decl_header_ast_shape(const MIRDeclHeader *header,
     case AST_CLASS_DECL:
         if (name_out != NULL)
             *name_out = ast->data.class_decl.name;
-        if (methods_out != NULL)
-            *methods_out = ast->data.class_decl.methods;
         if (method_count_out != NULL)
             *method_count_out = ast->data.class_decl.method_count;
         if (uses_pointer_self_out != NULL)
@@ -71,16 +66,12 @@ mir_decl_header_ast_shape(const MIRDeclHeader *header,
     case AST_ENUM_DECL:
         if (name_out != NULL)
             *name_out = ast->data.enum_decl.name;
-        if (methods_out != NULL)
-            *methods_out = ast->data.enum_decl.methods;
         if (method_count_out != NULL)
             *method_count_out = ast->data.enum_decl.method_count;
         return true;
     case AST_PARTY_DECL:
         if (name_out != NULL)
             *name_out = ast->data.party_decl.name;
-        if (methods_out != NULL)
-            *methods_out = ast->data.party_decl.methods;
         if (method_count_out != NULL)
             *method_count_out = ast->data.party_decl.method_count;
         if (uses_pointer_self_out != NULL)
@@ -95,8 +86,6 @@ mir_decl_header_ast_shape(const MIRDeclHeader *header,
     case AST_ROSTER_DECL:
         if (name_out != NULL)
             *name_out = ast->data.roster_decl.name;
-        if (methods_out != NULL)
-            *methods_out = ast->data.roster_decl.methods;
         if (method_count_out != NULL)
             *method_count_out = ast->data.roster_decl.method_count;
         if (uses_pointer_self_out != NULL)
@@ -105,8 +94,6 @@ mir_decl_header_ast_shape(const MIRDeclHeader *header,
     case AST_WORLD_DECL:
         if (name_out != NULL)
             *name_out = ast->data.world_decl.name;
-        if (methods_out != NULL)
-            *methods_out = ast->data.world_decl.methods;
         if (method_count_out != NULL)
             *method_count_out = ast->data.world_decl.method_count;
         if (uses_pointer_self_out != NULL)
@@ -115,8 +102,6 @@ mir_decl_header_ast_shape(const MIRDeclHeader *header,
     case AST_RELATION_DECL:
         if (name_out != NULL)
             *name_out = ast->data.relation_decl.name;
-        if (methods_out != NULL)
-            *methods_out = ast->data.relation_decl.methods;
         if (method_count_out != NULL)
             *method_count_out = ast->data.relation_decl.method_count;
         if (uses_pointer_self_out != NULL)
@@ -125,8 +110,6 @@ mir_decl_header_ast_shape(const MIRDeclHeader *header,
     case AST_EFFECT_DECL:
         if (name_out != NULL)
             *name_out = ast->data.effect_decl.name;
-        if (methods_out != NULL)
-            *methods_out = ast->data.effect_decl.methods;
         if (method_count_out != NULL)
             *method_count_out = ast->data.effect_decl.method_count;
         if (uses_pointer_self_out != NULL)
@@ -135,8 +118,6 @@ mir_decl_header_ast_shape(const MIRDeclHeader *header,
     case AST_ZONE_DECL:
         if (name_out != NULL)
             *name_out = ast->data.zone_decl.name;
-        if (methods_out != NULL)
-            *methods_out = ast->data.zone_decl.methods;
         if (method_count_out != NULL)
             *method_count_out = ast->data.zone_decl.method_count;
         if (uses_pointer_self_out != NULL)
@@ -153,7 +134,6 @@ mir_validate_decl_header_ast_compat(const MIRDeclHeader *header,
                                     char **error_message)
 {
     const char *ast_name = NULL;
-    ASTNode **ast_methods = NULL;
     size_t ast_method_count = 0;
     bool ast_uses_pointer_self = false;
 
@@ -178,8 +158,7 @@ mir_validate_decl_header_ast_compat(const MIRDeclHeader *header,
         return false;
     }
     if (!mir_decl_header_ast_shape(
-            header, &ast_name, &ast_methods, &ast_method_count,
-            &ast_uses_pointer_self)) {
+            header, &ast_name, &ast_method_count, &ast_uses_pointer_self)) {
         if (error_message != NULL) {
             *error_message = mir_strdup_fmt(
                 "MIR declaration header[%zu] '%s' has unsupported declaration AST shape",
@@ -198,11 +177,11 @@ mir_validate_decl_header_ast_compat(const MIRDeclHeader *header,
         }
         return false;
     }
-    if (header->methods != ast_methods
-        || header->method_count != ast_method_count) {
+    if (header->method_count != ast_method_count
+        && header->ast_type != AST_ROLE_DECL) {
         if (error_message != NULL) {
             *error_message = mir_strdup_fmt(
-                "MIR declaration header[%zu] '%s' AST method compatibility drift",
+                "MIR declaration header[%zu] '%s' AST method-count compatibility drift",
                 header_index,
                 header->name != NULL ? header->name : "(anonymous)");
         }
@@ -270,15 +249,6 @@ mir_validate_decl_method_metadata(const MIRProgram *mir,
     for (size_t i = 0; i < header->method_metadata_count; i++) {
         const MIRDeclMethod *method = &header->method_metadata[i];
         ASTNode *ast = method->ast;
-
-        if (header->methods != NULL && method->ast != header->methods[i]) {
-            if (error_message != NULL) {
-                *error_message = mir_strdup_fmt(
-                    "MIR declaration header[%zu] method[%zu] AST payload drift",
-                    header_index, i);
-            }
-            return false;
-        }
 
         if (method->owner_name == NULL
             || header->name == NULL

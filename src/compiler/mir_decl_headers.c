@@ -31,7 +31,6 @@ mir_decl_header_set_methods(MIRDeclHeader *header,
     if (header == NULL)
         return false;
 
-    header->methods = methods;
     header->method_count = method_count;
     header->method_metadata = NULL;
     header->method_metadata_count = 0;
@@ -86,8 +85,7 @@ mir_decl_header_set_role_impl_methods(MIRDeclHeader *header, ASTNode *role_decl)
         return false;
 
     count = mir_role_impl_method_count(role_decl);
-    header->methods = NULL;
-    header->method_count = 0;
+    header->method_count = count;
     header->method_metadata = NULL;
     header->method_metadata_count = 0;
     if (count == 0)
