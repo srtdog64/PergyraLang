@@ -1,3 +1,6 @@
+#ifndef PGY_TRANSPILER_SPECIALIZATION_HELPERS_H
+#define PGY_TRANSPILER_SPECIALIZATION_HELPERS_H
+
 #include "transpiler_type_mapping_helpers.h"
 #include "transpiler_role_ability_helpers.h"
 
@@ -446,3 +449,5 @@ collection_runtime_suffix(const char *inner_type)
     sanitize_c_suffix(inner_type, suffix, sizeof(suffix));
     return suffix;
 }
+
+#endif /* PGY_TRANSPILER_SPECIALIZATION_HELPERS_H */

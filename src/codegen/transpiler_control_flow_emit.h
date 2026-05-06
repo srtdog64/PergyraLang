@@ -1,3 +1,6 @@
+#ifndef PGY_TRANSPILER_CONTROL_FLOW_EMIT_H
+#define PGY_TRANSPILER_CONTROL_FLOW_EMIT_H
+
 /* -----------------------------------------------------------------
  * Control flow
  * ----------------------------------------------------------------- */
@@ -245,3 +248,5 @@ emit_while_loop(ASTNode *node, TranspilerCtx *ctx)
         ctx->loop_labels[loop_slot] = NULL;
     }
 }
+
+#endif /* PGY_TRANSPILER_CONTROL_FLOW_EMIT_H */

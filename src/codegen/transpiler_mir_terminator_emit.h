@@ -1,3 +1,6 @@
+#ifndef PGY_TRANSPILER_MIR_TERMINATOR_EMIT_H
+#define PGY_TRANSPILER_MIR_TERMINATOR_EMIT_H
+
 /* C backend MIR terminator emission owner. */
 
 static void
@@ -194,3 +197,5 @@ transpiler_emit_mir_fallthrough_terminator(const MIRRoutine *mir_routine,
     }
     return true;
 }
+
+#endif /* PGY_TRANSPILER_MIR_TERMINATOR_EMIT_H */

@@ -1,3 +1,6 @@
+#ifndef PGY_TRANSPILER_LET_EMIT_H
+#define PGY_TRANSPILER_LET_EMIT_H
+
 void
 emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
 {
@@ -481,3 +484,5 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
         }
     }
 }
+
+#endif /* PGY_TRANSPILER_LET_EMIT_H */

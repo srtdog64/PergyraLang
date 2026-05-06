@@ -1,3 +1,6 @@
+#ifndef PGY_TRANSPILER_INTENT_EMIT_H
+#define PGY_TRANSPILER_INTENT_EMIT_H
+
 /* C backend intent declaration emission owner.
  * Included inside transpiler.c after base declaration emitters. */
 
@@ -485,3 +488,5 @@ intent_emit_fail:
         mir_steps, participant_aliases, participant_types, mir_step_names);
     transpiler_restore_mir_emit_state_from_snapshot_local(ctx, &saved_emit_state);
 }
+
+#endif /* PGY_TRANSPILER_INTENT_EMIT_H */

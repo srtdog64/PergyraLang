@@ -1,3 +1,6 @@
+#ifndef PGY_TRANSPILER_OVERLAY_PROJECTION_H
+#define PGY_TRANSPILER_OVERLAY_PROJECTION_H
+
 /* C backend overlay/projection invalidation and zone-layer bind helpers.
  * Included inside transpiler.c after declaration lookup/projection seams. */
 
@@ -215,3 +218,5 @@ emit_current_overlay_projection_invalidation(TranspilerCtx *ctx,
 }
 
 #include "transpiler_overlay_world_projection.h"
+
+#endif /* PGY_TRANSPILER_OVERLAY_PROJECTION_H */

@@ -1,3 +1,6 @@
+#ifndef PGY_TRANSPILER_MIR_CFG_CONTROL_EMIT_H
+#define PGY_TRANSPILER_MIR_CFG_CONTROL_EMIT_H
+
 /* C backend MIR CFG control helpers.
  *
  * These helpers keep explicit CFG containers out of the generic AST statement
@@ -203,3 +206,5 @@ transpiler_mir_render_branch_condition(ASTNode *func_decl,
                                                          ctx, ssa_map);
     return emit_expression_with_ssa_map(condition, ctx, ssa_map);
 }
+
+#endif /* PGY_TRANSPILER_MIR_CFG_CONTROL_EMIT_H */

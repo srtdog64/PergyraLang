@@ -1,3 +1,6 @@
+#ifndef PGY_SRC_CODEGEN_TRANSPILER_MIR_BLOCK_EMIT_HELPERS_H
+#define PGY_SRC_CODEGEN_TRANSPILER_MIR_BLOCK_EMIT_HELPERS_H
+
 /* Small helpers for C backend MIR block statement emission. */
 static bool
 transpiler_mir_seed_block_phi_names(const MIRBasicBlock *block,
@@ -44,3 +47,4 @@ transpiler_mir_seed_pin_view_alias(const MIRBasicBlock *block,
                                        block->pin_view_name,
                                        block->pin_source_name);
 }
+#endif /* PGY_SRC_CODEGEN_TRANSPILER_MIR_BLOCK_EMIT_HELPERS_H */

@@ -1,3 +1,6 @@
+#ifndef PGY_TRANSPILER_MIR_FUNC_EMIT_H
+#define PGY_TRANSPILER_MIR_FUNC_EMIT_H
+
 #include "transpiler_mir_func_ssa_locals_emit.h"
 
 static void
@@ -397,3 +400,5 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
     codebuf_write(ctx->out, "}\n");
     transpiler_restore_mir_emit_state_from_snapshot_local(ctx, &saved_emit_state);
 }
+
+#endif /* PGY_TRANSPILER_MIR_FUNC_EMIT_H */

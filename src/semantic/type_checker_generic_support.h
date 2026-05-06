@@ -1,3 +1,6 @@
+#ifndef PGY_TYPE_CHECKER_GENERIC_SUPPORT_H
+#define PGY_TYPE_CHECKER_GENERIC_SUPPORT_H
+
 char *
 format_generic_subject_signature(const char *name, GenericParams *params)
 {
@@ -408,3 +411,5 @@ collect_effective_generic_arg_nodes(GenericParams *decl_params,
 }
 
 #include "type_checker_generic_contracts.h"
+
+#endif /* PGY_TYPE_CHECKER_GENERIC_SUPPORT_H */

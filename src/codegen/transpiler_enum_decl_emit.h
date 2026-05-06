@@ -1,3 +1,6 @@
+#ifndef PGY_TRANSPILER_ENUM_DECL_EMIT_H
+#define PGY_TRANSPILER_ENUM_DECL_EMIT_H
+
 static void
 emit_enum_decl_stmt(ASTNode *node, TranspilerCtx *ctx)
 {
@@ -195,3 +198,5 @@ emit_enum_decl_stmt(ASTNode *node, TranspilerCtx *ctx)
             codebuf_write(ctx->out, "}\n");
         }
 }
+
+#endif /* PGY_TRANSPILER_ENUM_DECL_EMIT_H */

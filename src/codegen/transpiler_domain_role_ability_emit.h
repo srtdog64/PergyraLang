@@ -1,3 +1,6 @@
+#ifndef PGY_TRANSPILER_DOMAIN_ROLE_ABILITY_EMIT_H
+#define PGY_TRANSPILER_DOMAIN_ROLE_ABILITY_EMIT_H
+
 /* =================================================================
  * Role/Ability system emitters
  * ================================================================= */
@@ -483,3 +486,5 @@ emit_role_operator_aliases(ASTNode *role, TranspilerCtx *ctx)
         codebuf_write(ctx->out, "}\n");
     }
 }
+
+#endif /* PGY_TRANSPILER_DOMAIN_ROLE_ABILITY_EMIT_H */

@@ -1,3 +1,6 @@
+#ifndef PGY_TRANSPILER_HELPERS_H
+#define PGY_TRANSPILER_HELPERS_H
+
 #include "transpiler_helpers_core_a.h"
 #include "transpiler_mir_expr_ssa.h"
 #include "transpiler_helpers_core_b.h"
@@ -495,3 +498,5 @@ transpiler_emit_none_with_context(TranspilerCtx *ctx, ASTNode *site)
 }
 
 #include "transpiler_expr_emitters.h"
+
+#endif /* PGY_TRANSPILER_HELPERS_H */

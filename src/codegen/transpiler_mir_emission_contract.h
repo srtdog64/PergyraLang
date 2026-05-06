@@ -1,6 +1,10 @@
+#ifndef PGY_TRANSPILER_MIR_EMISSION_CONTRACT_H
+#define PGY_TRANSPILER_MIR_EMISSION_CONTRACT_H
+
 
 #include "../compiler/mir_cfg_contract_cleanup_fact.h"
 #include "../compiler/mir_cfg_contract_pin.h"
+#include "../compiler/mir_cleanup_fact_names.h"
 #include "transpiler_mir_emission_mapping_contract.h"
 
 static bool
@@ -419,3 +423,5 @@ transpiler_can_emit_intent_cleanup_from_mir_with_reason_for_test(
     transpiler_ctx_destroy(ctx);
     return can_emit;
 }
+
+#endif /* PGY_TRANSPILER_MIR_EMISSION_CONTRACT_H */

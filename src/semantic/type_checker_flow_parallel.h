@@ -1,3 +1,6 @@
+#ifndef PGY_SRC_SEMANTIC_TYPE_CHECKER_FLOW_PARALLEL_H
+#define PGY_SRC_SEMANTIC_TYPE_CHECKER_FLOW_PARALLEL_H
+
 bool
 type_check_defer_body_flow(ASTNode *body, SemanticContext *ctx)
 {
@@ -101,3 +104,4 @@ type_check_parallel_block_flow(ASTNode *node, SemanticContext *ctx)
     destroy_resource_snapshot(&joined);
     return !ctx->has_error;
 }
+#endif /* PGY_SRC_SEMANTIC_TYPE_CHECKER_FLOW_PARALLEL_H */

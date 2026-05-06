@@ -1,3 +1,6 @@
+#ifndef PGY_TRANSPILER_MIR_FUNC_SSA_LOCALS_EMIT_H
+#define PGY_TRANSPILER_MIR_FUNC_SSA_LOCALS_EMIT_H
+
 static bool
 transpiler_emit_mir_func_ssa_local_decls(TranspilerCtx *ctx,
                                          ASTNode *node,
@@ -186,3 +189,5 @@ transpiler_emit_mir_func_ssa_local_decls(TranspilerCtx *ctx,
 
     return true;
 }
+
+#endif /* PGY_TRANSPILER_MIR_FUNC_SSA_LOCALS_EMIT_H */

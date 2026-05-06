@@ -1,3 +1,6 @@
+#ifndef PGY_SRC_CODEGEN_TRANSPILER_BLOCK_INTENT_REBIND_HELPERS_H
+#define PGY_SRC_CODEGEN_TRANSPILER_BLOCK_INTENT_REBIND_HELPERS_H
+
 static bool
 emit_intent_step_rebind_bound_zone_aliases(CodeBuf *out, TranspilerCtx *ctx,
                                            ASTNode *intent, ASTNode *step,
@@ -87,3 +90,4 @@ emit_intent_step_rebind_bound_zone_aliases_with_metadata(CodeBuf *out,
 
     return rebound;
 }
+#endif /* PGY_SRC_CODEGEN_TRANSPILER_BLOCK_INTENT_REBIND_HELPERS_H */

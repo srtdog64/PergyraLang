@@ -1,3 +1,6 @@
+#ifndef PGY_TYPE_CHECKER_GENERIC_CONTRACTS_H
+#define PGY_TYPE_CHECKER_GENERIC_CONTRACTS_H
+
 int
 find_generic_param_index(GenericParams *gp, const char *param_name)
 {
@@ -458,3 +461,5 @@ validate_class_where_clause_specialization_ast(ASTNode *class_decl,
     }
     free(effective_types);
 }
+
+#endif /* PGY_TYPE_CHECKER_GENERIC_CONTRACTS_H */

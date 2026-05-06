@@ -1,3 +1,6 @@
+#ifndef PGY_TRANSPILER_EXPR_CALL_SPAWN_EMIT_H
+#define PGY_TRANSPILER_EXPR_CALL_SPAWN_EMIT_H
+
 static char *
 emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
 {
@@ -425,3 +428,5 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
         return result;
     return emit_call_user_function(call, callee, ctx);
 }
+
+#endif /* PGY_TRANSPILER_EXPR_CALL_SPAWN_EMIT_H */

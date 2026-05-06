@@ -1,3 +1,6 @@
+#ifndef PGY_TRANSPILER_EXPR_STDLIB_MAP_BUILTIN_H
+#define PGY_TRANSPILER_EXPR_STDLIB_MAP_BUILTIN_H
+
 static char *
 emit_call_stdlib_map_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx)
 {
@@ -163,3 +166,4 @@ emit_call_stdlib_map_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx)
     }
     return NULL;
 }
+#endif /* PGY_TRANSPILER_EXPR_STDLIB_MAP_BUILTIN_H */

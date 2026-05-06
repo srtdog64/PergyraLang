@@ -1,3 +1,6 @@
+#ifndef PGY_TRANSPILER_SPAWN_CHANNEL_EMIT_H
+#define PGY_TRANSPILER_SPAWN_CHANNEL_EMIT_H
+
 char *
 emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
 {
@@ -218,3 +221,5 @@ emit_channel_recv(ASTNode *node, TranspilerCtx *ctx)
     free(ch);
     return result;
 }
+
+#endif /* PGY_TRANSPILER_SPAWN_CHANNEL_EMIT_H */

@@ -1,3 +1,6 @@
+#ifndef PGY_TRANSPILER_MATCH_EMIT_H
+#define PGY_TRANSPILER_MATCH_EMIT_H
+
 /* Check if a match-case pattern is a destructor like Ok(x), Err(x),
  * or a tagged union variant like Circle(r), Rect(w, h) */
 static bool
@@ -341,3 +344,5 @@ emit_match_stmt(ASTNode *node, TranspilerCtx *ctx)
     write_indent(ctx);
     codebuf_write(ctx->out, "}\n");
 }
+
+#endif /* PGY_TRANSPILER_MATCH_EMIT_H */

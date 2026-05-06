@@ -1,3 +1,6 @@
+#ifndef PGY_TRANSPILER_DOMAIN_PROVENANCE_EMIT_H
+#define PGY_TRANSPILER_DOMAIN_PROVENANCE_EMIT_H
+
 /* Domain propagation provenance and projection recompute helpers.
  * Included before role/zone/world emitters that stamp propagation state. */
 
@@ -235,3 +238,5 @@ emit_domain_projection_sync_loop(TranspilerCtx *ctx,
         codebuf_write(ctx->out, "}\n");
     }
 }
+
+#endif /* PGY_TRANSPILER_DOMAIN_PROVENANCE_EMIT_H */

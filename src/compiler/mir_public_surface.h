@@ -1,3 +1,6 @@
+#ifndef PGY_MIR_PUBLIC_SURFACE_H
+#define PGY_MIR_PUBLIC_SURFACE_H
+
 const char *
 mir_scope_kind_name(MIRScopeKind kind)
 {
@@ -437,3 +440,5 @@ mir_dump(const MIRProgram *mir, FILE *out)
         }
     }
 }
+
+#endif /* PGY_MIR_PUBLIC_SURFACE_H */

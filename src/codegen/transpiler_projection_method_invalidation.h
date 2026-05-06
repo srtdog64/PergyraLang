@@ -1,3 +1,6 @@
+#ifndef PGY_TRANSPILER_PROJECTION_METHOD_INVALIDATION_H
+#define PGY_TRANSPILER_PROJECTION_METHOD_INVALIDATION_H
+
 static void
 append_overlay_method_projection_invalidations(CodeBuf *buf,
                                                TranspilerCtx *ctx,
@@ -147,3 +150,4 @@ emit_current_overlay_method_projection_invalidation(TranspilerCtx *ctx,
         return result;
     }
 }
+#endif /* PGY_TRANSPILER_PROJECTION_METHOD_INVALIDATION_H */

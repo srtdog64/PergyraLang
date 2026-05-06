@@ -1,3 +1,6 @@
+#ifndef PGY_SRC_CODEGEN_TRANSPILER_MIR_RESOURCE_OP_EMIT_H
+#define PGY_SRC_CODEGEN_TRANSPILER_MIR_RESOURCE_OP_EMIT_H
+
 /* C backend MIR resource-op statement emission owner. */
 typedef enum
 {
@@ -82,3 +85,4 @@ transpiler_emit_mir_resource_op_inst(CodeBuf *buf,
     }
     return TRANSPILE_MIR_INST_HANDLED;
 }
+#endif /* PGY_SRC_CODEGEN_TRANSPILER_MIR_RESOURCE_OP_EMIT_H */

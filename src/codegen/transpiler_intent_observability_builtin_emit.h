@@ -1,3 +1,6 @@
+#ifndef PGY_TRANSPILER_INTENT_OBSERVABILITY_BUILTIN_EMIT_H
+#define PGY_TRANSPILER_INTENT_OBSERVABILITY_BUILTIN_EMIT_H
+
 static const char *
 intent_observability_zero_export(BuiltinKind bk)
 {
@@ -162,3 +165,4 @@ emit_builtin_intent_observability(ASTNode *call, BuiltinKind bk,
 
     return NULL;
 }
+#endif /* PGY_TRANSPILER_INTENT_OBSERVABILITY_BUILTIN_EMIT_H */

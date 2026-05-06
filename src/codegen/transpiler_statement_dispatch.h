@@ -1,3 +1,6 @@
+#ifndef PGY_TRANSPILER_STATEMENT_DISPATCH_H
+#define PGY_TRANSPILER_STATEMENT_DISPATCH_H
+
 void
 emit_statement(ASTNode *node, TranspilerCtx *ctx)
 {
@@ -253,3 +256,5 @@ emit_statement(ASTNode *node, TranspilerCtx *ctx)
     }
     }
 }
+
+#endif /* PGY_TRANSPILER_STATEMENT_DISPATCH_H */

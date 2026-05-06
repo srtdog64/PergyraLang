@@ -1,3 +1,6 @@
+#ifndef PGY_SRC_CODEGEN_TRANSPILER_MIR_STMT_EMIT_H
+#define PGY_SRC_CODEGEN_TRANSPILER_MIR_STMT_EMIT_H
+
 /* C backend MIR residual statement helpers. */
 
 static bool
@@ -83,3 +86,4 @@ transpiler_emit_mir_call_statement(CodeBuf *buf,
     free(expr);
     return true;
 }
+#endif /* PGY_SRC_CODEGEN_TRANSPILER_MIR_STMT_EMIT_H */

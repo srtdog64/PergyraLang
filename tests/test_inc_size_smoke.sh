@@ -56,4 +56,4 @@ if [[ -n "$production_violations" ]]; then
     exit 1
 fi
 
-echo "[test-inc-size] src has no .inc files or header implementation blocks; production owners <= ${PRODUCTION_LIMIT} LOC; src/tests .cases.h files <= ${LIMIT} LOC"
+echo "[test-inc-size] src has no .inc files or _IMPLEMENTATION header blocks; production owners <= ${PRODUCTION_LIMIT} LOC; src/tests .cases.h files <= ${LIMIT} LOC"

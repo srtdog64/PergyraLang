@@ -1,3 +1,6 @@
+#ifndef PGY_TRANSPILER_INTENT_CLEANUP_EMIT_H
+#define PGY_TRANSPILER_INTENT_CLEANUP_EMIT_H
+
 /* C backend intent cleanup / rollback tail emission owner. */
 
 static bool
@@ -276,3 +279,5 @@ transpiler_emit_intent_cleanup_tail(ASTNode *node,
     ctx->indent--;
     return true;
 }
+
+#endif /* PGY_TRANSPILER_INTENT_CLEANUP_EMIT_H */

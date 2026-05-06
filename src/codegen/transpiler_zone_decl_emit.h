@@ -1,3 +1,6 @@
+#ifndef PGY_TRANSPILER_ZONE_DECL_EMIT_H
+#define PGY_TRANSPILER_ZONE_DECL_EMIT_H
+
 #include "transpiler_zone_struct_emit.h"
 
 void
@@ -484,3 +487,5 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
     emit_hosted_methods_from_mir_or_error_local(name, "(anonymous-zone)",
         "zone", &method_view, ctx);
 }
+
+#endif /* PGY_TRANSPILER_ZONE_DECL_EMIT_H */

@@ -1,3 +1,6 @@
+#ifndef PGY_TRANSPILER_MIR_LOCAL_TYPE_LOOKUP_H
+#define PGY_TRANSPILER_MIR_LOCAL_TYPE_LOOKUP_H
+
 /* Consumed from transpiler_mir_ssa_names.h. Keep slot claim vocabulary in the
  * shared codegen slot policy instead of repeating raw builtin strings here. */
 
@@ -300,3 +303,5 @@ transpiler_find_local_type_name_in_block(TranspilerCtx *ctx,
     }
     return NULL;
 }
+
+#endif /* PGY_TRANSPILER_MIR_LOCAL_TYPE_LOOKUP_H */

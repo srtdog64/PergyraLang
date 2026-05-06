@@ -1,3 +1,6 @@
+#ifndef PGY_TRANSPILER_OVERLAY_WORLD_PROJECTION_H
+#define PGY_TRANSPILER_OVERLAY_WORLD_PROJECTION_H
+
 static bool
 resolve_world_embedded_projection_invalidation(TranspilerCtx *ctx,
                                                ASTNode *target,
@@ -193,3 +196,5 @@ emit_world_embedded_receiver_projection_sync(TranspilerCtx *ctx, ASTNode *receiv
         return result;
     }
 }
+
+#endif /* PGY_TRANSPILER_OVERLAY_WORLD_PROJECTION_H */

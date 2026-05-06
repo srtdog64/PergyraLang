@@ -1,3 +1,6 @@
+#ifndef PGY_TRANSPILER_EXPR_STDLIB_BUILTIN_H
+#define PGY_TRANSPILER_EXPR_STDLIB_BUILTIN_H
+
 /* C backend stdlib call lowering owner. Included inside transpiler.c after expression emitter prerequisites. */
 #include "transpiler_expr_stdlib_scalar_builtin.h"
 #include "transpiler_expr_stdlib_collection_builtin.h"
@@ -323,3 +326,5 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
 
     return NULL;
 }
+
+#endif /* PGY_TRANSPILER_EXPR_STDLIB_BUILTIN_H */

@@ -1,3 +1,6 @@
+#ifndef PGY_TRANSPILER_EXPR_BUILTIN_DISPATCH_H
+#define PGY_TRANSPILER_EXPR_BUILTIN_DISPATCH_H
+
 char *
 emit_unary(ASTNode *expr, TranspilerCtx *ctx)
 {
@@ -432,3 +435,5 @@ emit_call_builtin_dispatch(ASTNode *call, BuiltinKind bk, TranspilerCtx *ctx, bo
         return NULL;
     }
 }
+
+#endif /* PGY_TRANSPILER_EXPR_BUILTIN_DISPATCH_H */

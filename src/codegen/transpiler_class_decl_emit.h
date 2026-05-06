@@ -1,3 +1,6 @@
+#ifndef PGY_TRANSPILER_CLASS_DECL_EMIT_H
+#define PGY_TRANSPILER_CLASS_DECL_EMIT_H
+
 /* Class declaration lowering owner. Included after generic class specialization helpers. */
 
 void
@@ -158,3 +161,4 @@ emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
         codebuf_write(ctx->out, "}\n");
     }
 }
+#endif /* PGY_TRANSPILER_CLASS_DECL_EMIT_H */

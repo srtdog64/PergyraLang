@@ -132,8 +132,17 @@ transpiler_hosted_method_view_from_decl(const TranspilerCtx *ctx,
                                         const char *host_name,
                                         ASTNode *decl)
 {
+    const MIRDeclHeader *header = NULL;
     ASTNode **ast_compat_methods = NULL;
     size_t ast_compat_count = 0;
+
+    if (ctx != NULL && ctx->mir != NULL && host_name != NULL) {
+        header = mir_find_decl_header(ctx->mir, host_name);
+        if (header != NULL) {
+            return transpiler_hosted_method_view(
+                ctx, host_name, NULL, 0);
+        }
+    }
 
     if (decl != NULL) {
         switch (decl->type) {

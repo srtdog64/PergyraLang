@@ -1,3 +1,6 @@
+#ifndef PGY_TRANSPILER_LET_SLOT_EMIT_H
+#define PGY_TRANSPILER_LET_SLOT_EMIT_H
+
 /* Slot-related let-declaration lowering helpers.
  * Included inside transpiler.c before transpiler_let_emit.h. */
 
@@ -330,3 +333,5 @@ transpiler_try_emit_let_slot_sugar(TranspilerCtx *ctx,
     *ann_type_name_io = NULL;
     return true;
 }
+
+#endif /* PGY_TRANSPILER_LET_SLOT_EMIT_H */

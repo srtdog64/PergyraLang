@@ -26,13 +26,19 @@ run_literal_doc_contract_smoke() {
         "src/semantic/type_checker_flow_parallel.h"
         "src/compiler/mir_cleanup.c"
         "src/compiler/mir_call_fact.h"
+        "src/compiler/mir_call_fact.c"
         "src/compiler/mir_non_cfg_stmt_population.h"
+        "src/compiler/mir_non_cfg_stmt_population.c"
         "src/compiler/mir_cleanup_fact_names.h"
         "src/compiler/mir_cfg_contract_cleanup_fact.h"
+        "src/compiler/mir_cfg_contract_cleanup_fact.c"
         "src/compiler/mir_cfg_contract_pin.h"
+        "src/compiler/mir_cfg_contract_pin.c"
         "src/compiler/mir_cfg_contract_edges.h"
         "src/compiler/mir_cfg_contract_edges.c"
         "src/compiler/mir_cfg_contract_validate.h"
+        "src/compiler/mir_cfg_contract_validate.c"
+        "src/compiler/mir_cfg_contract_control.c"
         "src/compiler/mir_ssa_rename.c"
         "src/test_mir.c"
         "src/semantic/type_checker_ownership_let.c"
@@ -71,11 +77,11 @@ run_literal_doc_contract_smoke() {
     require_literal "src/compiler/mir_ssa_rename.c" "stmt = inst->ast"
     require_literal "src/compiler/mir_stmt_population.c" "#include \"mir_call_fact.h\""
     require_literal "src/compiler/mir_stmt_population.c" "mir_set_inst_source_statement_index(&new_insts[*new_count - 1]"
-    require_literal "src/compiler/mir_non_cfg_stmt_population.h" "routine->hir_routine != NULL && routine->hir_routine->has_cfg"
+    require_literal "src/compiler/mir_non_cfg_stmt_population.c" "routine->hir_routine != NULL && routine->hir_routine->has_cfg"
     require_literal "src/compiler/mir_call_fact.h" "mir_attach_statement_call_fact"
-    require_literal "src/compiler/mir_call_fact.h" "inst->arg0 = stmt->data.call.callee->data.identifier.name"
+    require_literal "src/compiler/mir_call_fact.c" "inst->arg0 = stmt->data.call.callee->data.identifier.name"
     require_literal "src/compiler/mir_call_fact.h" "mir_attach_def_initializer_call_fact"
-    require_literal "src/compiler/mir_call_fact.h" "inst->arg1 = expr->data.call.callee->data.identifier.name"
+    require_literal "src/compiler/mir_call_fact.c" "inst->arg1 = expr->data.call.callee->data.identifier.name"
     require_literal "src/semantic/type_checker_flow.c" "type_check_while_loop_flow(node, ctx)"
     require_literal "src/semantic/type_checker_flow.c" "type_check_for_loop_flow(node, ctx)"
     require_literal "src/semantic/type_checker_flow_loops.c" "type_check_while_loop_flow(ASTNode *node, SemanticContext *ctx)"
@@ -138,12 +144,17 @@ flow_parallel_path = root / "src" / "semantic" / "type_checker_flow_parallel.h"
 mir_cleanup_path = root / "src" / "compiler" / "mir_cleanup.c"
 mir_cleanup_fact_names_path = root / "src" / "compiler" / "mir_cleanup_fact_names.h"
 mir_call_fact_path = root / "src" / "compiler" / "mir_call_fact.h"
+mir_call_fact_impl_path = root / "src" / "compiler" / "mir_call_fact.c"
 mir_cfg_contract_cleanup_fact_path = root / "src" / "compiler" / "mir_cfg_contract_cleanup_fact.h"
+mir_cfg_contract_cleanup_fact_impl_path = root / "src" / "compiler" / "mir_cfg_contract_cleanup_fact.c"
 mir_cfg_contract_pin_path = root / "src" / "compiler" / "mir_cfg_contract_pin.h"
+mir_cfg_contract_pin_impl_path = root / "src" / "compiler" / "mir_cfg_contract_pin.c"
 mir_cfg_contract_edges_path = root / "src" / "compiler" / "mir_cfg_contract_edges.h"
 mir_cfg_contract_edges_impl_path = root / "src" / "compiler" / "mir_cfg_contract_edges.c"
 mir_cfg_contract_control_path = root / "src" / "compiler" / "mir_cfg_contract_control.h"
+mir_cfg_contract_control_impl_path = root / "src" / "compiler" / "mir_cfg_contract_control.c"
 mir_cfg_contract_validate_path = root / "src" / "compiler" / "mir_cfg_contract_validate.h"
+mir_cfg_contract_validate_impl_path = root / "src" / "compiler" / "mir_cfg_contract_validate.c"
 mir_path = root / "src" / "compiler" / "mir.c"
 mir_ssa_rename_path = root / "src" / "compiler" / "mir_ssa_rename.h"
 mir_ssa_rename_impl_path = root / "src" / "compiler" / "mir_ssa_rename.c"
@@ -156,6 +167,7 @@ mir_stmt_population_header_path = root / "src" / "compiler" / "mir_stmt_populati
 mir_stmt_population_path = root / "src" / "compiler" / "mir_stmt_population.c"
 mir_stmt_source_path = root / "src" / "compiler" / "mir_stmt_source.c"
 mir_non_cfg_stmt_population_path = root / "src" / "compiler" / "mir_non_cfg_stmt_population.h"
+mir_non_cfg_stmt_population_impl_path = root / "src" / "compiler" / "mir_non_cfg_stmt_population.c"
 hir_lower_cfg_path = root / "src" / "compiler" / "hir_lower_cfg.c"
 hir_lower_intent_cfg_path = root / "src" / "compiler" / "hir_lower_intent_cfg.c"
 mir_c_control_emit_path = root / "src" / "codegen" / "transpiler_mir_cfg_control_emit.h"
@@ -211,12 +223,17 @@ for path in (
     mir_cleanup_path,
     mir_cleanup_fact_names_path,
     mir_call_fact_path,
+    mir_call_fact_impl_path,
     mir_cfg_contract_cleanup_fact_path,
+    mir_cfg_contract_cleanup_fact_impl_path,
     mir_cfg_contract_pin_path,
+    mir_cfg_contract_pin_impl_path,
     mir_cfg_contract_edges_path,
     mir_cfg_contract_edges_impl_path,
     mir_cfg_contract_control_path,
+    mir_cfg_contract_control_impl_path,
     mir_cfg_contract_validate_path,
+    mir_cfg_contract_validate_impl_path,
     mir_path,
     mir_ssa_rename_path,
     mir_ssa_rename_impl_path,
@@ -229,6 +246,7 @@ for path in (
     mir_stmt_population_path,
     mir_stmt_source_path,
     mir_non_cfg_stmt_population_path,
+    mir_non_cfg_stmt_population_impl_path,
     hir_lower_cfg_path,
     hir_lower_intent_cfg_path,
     mir_c_control_emit_path,
@@ -301,16 +319,36 @@ flow = (
 )
 mir_cleanup = mir_cleanup_path.read_text(encoding="utf-8")
 mir_cleanup_fact_names = mir_cleanup_fact_names_path.read_text(encoding="utf-8")
-mir_call_fact = mir_call_fact_path.read_text(encoding="utf-8")
-mir_cfg_contract_cleanup_fact = mir_cfg_contract_cleanup_fact_path.read_text(encoding="utf-8")
-mir_cfg_contract_pin = mir_cfg_contract_pin_path.read_text(encoding="utf-8")
+mir_call_fact = (
+    mir_call_fact_path.read_text(encoding="utf-8")
+    + "\n"
+    + mir_call_fact_impl_path.read_text(encoding="utf-8")
+)
+mir_cfg_contract_cleanup_fact = (
+    mir_cfg_contract_cleanup_fact_path.read_text(encoding="utf-8")
+    + "\n"
+    + mir_cfg_contract_cleanup_fact_impl_path.read_text(encoding="utf-8")
+)
+mir_cfg_contract_pin = (
+    mir_cfg_contract_pin_path.read_text(encoding="utf-8")
+    + "\n"
+    + mir_cfg_contract_pin_impl_path.read_text(encoding="utf-8")
+)
 mir_cfg_contract_edges = (
     mir_cfg_contract_edges_path.read_text(encoding="utf-8")
     + "\n"
     + mir_cfg_contract_edges_impl_path.read_text(encoding="utf-8")
 )
-mir_cfg_contract_control = mir_cfg_contract_control_path.read_text(encoding="utf-8")
-mir_cfg_contract_validate = mir_cfg_contract_validate_path.read_text(encoding="utf-8")
+mir_cfg_contract_control = (
+    mir_cfg_contract_control_path.read_text(encoding="utf-8")
+    + "\n"
+    + mir_cfg_contract_control_impl_path.read_text(encoding="utf-8")
+)
+mir_cfg_contract_validate = (
+    mir_cfg_contract_validate_path.read_text(encoding="utf-8")
+    + "\n"
+    + mir_cfg_contract_validate_impl_path.read_text(encoding="utf-8")
+)
 mir_cfg_contract_validator = (
     mir_cleanup_fact_names
     + "\n"
@@ -330,7 +368,11 @@ mir_liveness_summary = mir_liveness_summary_path.read_text(encoding="utf-8")
 mir_dce = mir_dce_path.read_text(encoding="utf-8")
 mir_stmt_population = mir_stmt_population_path.read_text(encoding="utf-8")
 mir_stmt_source = mir_stmt_source_path.read_text(encoding="utf-8")
-mir_non_cfg_stmt_population = mir_non_cfg_stmt_population_path.read_text(encoding="utf-8")
+mir_non_cfg_stmt_population = (
+    mir_non_cfg_stmt_population_path.read_text(encoding="utf-8")
+    + "\n"
+    + mir_non_cfg_stmt_population_impl_path.read_text(encoding="utf-8")
+)
 mir_codegen_control = (
     mir_c_control_emit_path.read_text(encoding="utf-8")
     + "\n"
@@ -551,9 +593,12 @@ mir_owner_limits = {
     mir_dce_header_path: 600,
     mir_dce_path: 600,
     mir_call_fact_path: 600,
+    mir_call_fact_impl_path: 600,
     mir_stmt_population_header_path: 600,
     mir_stmt_population_path: 600,
     mir_stmt_source_path: 600,
+    mir_non_cfg_stmt_population_path: 600,
+    mir_non_cfg_stmt_population_impl_path: 600,
 }
 for path, limit in mir_owner_limits.items():
     loc = len(path.read_text(encoding="utf-8").splitlines())
@@ -604,8 +649,11 @@ required_mir_owner_terms = {
     "src/compiler/mir_call_fact.h": [
         "PERGYRA_MIR_CALL_FACT_H",
         "mir_attach_statement_call_fact",
-        "inst->arg0 = stmt->data.call.callee->data.identifier.name",
         "mir_attach_def_initializer_call_fact",
+    ],
+    "src/compiler/mir_call_fact.c": [
+        "#include \"mir_call_fact.h\"",
+        "inst->arg0 = stmt->data.call.callee->data.identifier.name",
         "inst->arg1 = expr->data.call.callee->data.identifier.name",
     ],
     "src/compiler/mir_stmt_population.c": [
@@ -626,6 +674,8 @@ required_mir_owner_terms = {
     ],
     "src/compiler/mir_non_cfg_stmt_population.h": [
         "mir_append_non_cfg_body_statements",
+    ],
+    "src/compiler/mir_non_cfg_stmt_population.c": [
         "routine->hir_routine != NULL && routine->hir_routine->has_cfg",
         "mir_attach_statement_call_fact",
         "mir_attach_def_initializer_call_fact",
@@ -650,9 +700,11 @@ mir_owner_text = {
     "src/compiler/mir_liveness_summary.c": mir_liveness_summary,
     "src/compiler/mir_dce.c": mir_dce,
     "src/compiler/mir_call_fact.h": mir_call_fact,
+    "src/compiler/mir_call_fact.c": mir_call_fact,
     "src/compiler/mir_stmt_population.c": mir_stmt_population,
     "src/compiler/mir_stmt_source.c": mir_stmt_source,
     "src/compiler/mir_non_cfg_stmt_population.h": mir_non_cfg_stmt_population,
+    "src/compiler/mir_non_cfg_stmt_population.c": mir_non_cfg_stmt_population,
     "src/compiler/mir_cfg_contract_control.h": mir_cfg_contract_control,
 }
 for owner, terms in required_mir_owner_terms.items():

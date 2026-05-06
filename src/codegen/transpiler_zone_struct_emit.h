@@ -1,3 +1,6 @@
+#ifndef PGY_SRC_CODEGEN_TRANSPILER_ZONE_STRUCT_EMIT_H
+#define PGY_SRC_CODEGEN_TRANSPILER_ZONE_STRUCT_EMIT_H
+
 static bool
 transpiler_emit_zone_struct_decl(TranspilerCtx *ctx, ASTNode *node, const char *name)
 {
@@ -119,3 +122,4 @@ transpiler_emit_zone_layer_accessors(TranspilerCtx *ctx, ASTNode *node, const ch
         codebuf_write(ctx->out, "}\n");
     }
 }
+#endif /* PGY_SRC_CODEGEN_TRANSPILER_ZONE_STRUCT_EMIT_H */

@@ -1,3 +1,6 @@
+#ifndef PGY_SRC_SEMANTIC_TYPE_CHECKER_ASSIGNMENT_H
+#define PGY_SRC_SEMANTIC_TYPE_CHECKER_ASSIGNMENT_H
+
 Type *
 type_check_assignment(ASTNode *expr, SemanticContext *ctx)
 {
@@ -117,3 +120,4 @@ type_check_assignment(ASTNode *expr, SemanticContext *ctx)
     require_assignable(value_type, target_type, expr, ctx);
     return target_type;
 }
+#endif /* PGY_SRC_SEMANTIC_TYPE_CHECKER_ASSIGNMENT_H */

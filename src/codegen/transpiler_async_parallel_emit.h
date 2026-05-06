@@ -1,3 +1,6 @@
+#ifndef PGY_TRANSPILER_ASYNC_PARALLEL_EMIT_H
+#define PGY_TRANSPILER_ASYNC_PARALLEL_EMIT_H
+
 void
 emit_parallel_block(ASTNode *node, TranspilerCtx *ctx)
 {
@@ -362,3 +365,5 @@ emit_async_block(ASTNode *node, TranspilerCtx *ctx)
     write_indent(ctx);
     codebuf_write(ctx->out, "}\n");
 }
+
+#endif /* PGY_TRANSPILER_ASYNC_PARALLEL_EMIT_H */

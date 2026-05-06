@@ -402,6 +402,7 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_context.c \
                    $(CODEGEN_DIR)/transpiler_mangled_name.c \
                    $(CODEGEN_DIR)/transpiler_misc_decl.c \
                    $(CODEGEN_DIR)/transpiler_mir_expr_ssa.c \
+                   $(CODEGEN_DIR)/transpiler_mir_emit_state.c \
                    $(CODEGEN_DIR)/transpiler_mir_let_lookup.c \
                    $(CODEGEN_DIR)/transpiler_mir_local_binding.c \
                    $(CODEGEN_DIR)/transpiler_mir_local_type_ast_lookup.c \
@@ -427,6 +428,7 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_context.c \
                    $(CODEGEN_DIR)/transpiler_type_alias.c \
                    $(CODEGEN_DIR)/transpiler_type_declarator.c \
                    $(CODEGEN_DIR)/transpiler_type_mapping.c \
+                   $(CODEGEN_DIR)/transpiler_type_render.c \
                    $(CODEGEN_DIR)/transpiler_type_require.c \
                    $(CODEGEN_DIR)/transpiler.c
 COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
@@ -469,14 +471,25 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/hir_lower_intent_cfg.c \
                    $(COMPILER_DIR)/mir.c \
                    $(COMPILER_DIR)/mir_base_helpers.c \
+                   $(COMPILER_DIR)/mir_call_fact.c \
                    $(COMPILER_DIR)/mir_validation.c \
+                   $(COMPILER_DIR)/mir_cleanup_fact_names.c \
+                   $(COMPILER_DIR)/mir_cfg_contract_pin.c \
+                   $(COMPILER_DIR)/mir_cfg_contract_control.c \
+                   $(COMPILER_DIR)/mir_cfg_contract_cleanup_fact.c \
+                   $(COMPILER_DIR)/mir_cfg_contract_roots.c \
+                   $(COMPILER_DIR)/mir_cfg_contract_cleanup_roots.c \
+                   $(COMPILER_DIR)/mir_cfg_contract_cleanup_root_membership.c \
                    $(COMPILER_DIR)/mir_cfg_contract_edges.c \
+                   $(COMPILER_DIR)/mir_cfg_contract_validate.c \
+                   $(COMPILER_DIR)/mir_abi_layout.c \
                    $(COMPILER_DIR)/mir_surface_usage.c \
                    $(COMPILER_DIR)/mir_fact_validate.c \
                    $(COMPILER_DIR)/mir_decl_header_validate.c \
                    $(COMPILER_DIR)/mir_decl_headers.c \
                    $(COMPILER_DIR)/mir_stmt_population.c \
                    $(COMPILER_DIR)/mir_stmt_source.c \
+                   $(COMPILER_DIR)/mir_non_cfg_stmt_population.c \
                    $(COMPILER_DIR)/mir_ssa_rename.c \
                    $(COMPILER_DIR)/mir_liveness_dce.c \
                    $(COMPILER_DIR)/mir_liveness_summary.c \
@@ -505,6 +518,7 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/llvm_runner.c \
                    $(COMPILER_DIR)/c_runner.c \
                    $(COMPILER_DIR)/repl.c \
+                   $(COMPILER_DIR)/fmt_io.c \
                    $(COMPILER_DIR)/fmt_layout.c \
                    $(COMPILER_DIR)/fmt.c \
                    $(COMPILER_DIR)/pkg.c \
@@ -722,6 +736,8 @@ BUILD_CONTRACT_INVENTORY_FILES = \
                    $(RUNTIME_DIR)/pgy_runtime_lib_raw_map_exports.h \
                    $(RUNTIME_DIR)/pgy_runtime_lib_raw_queue_exports.h \
                    $(RUNTIME_DIR)/pgy_runtime_lib_raw_set_exports.h \
+                   $(RUNTIME_DIR)/pgy_runtime_lib_intent_active_index_exports.c \
+                   $(RUNTIME_DIR)/pgy_runtime_lib_set_intent_trace_exports.c \
                    $(RUNTIME_DIR)/pgy_runtime_lib_secure_slot_exports.h \
                    tests/build_source_inventory_smoke.sh \
                    tests/dogfood_webgl_smoke.sh \
@@ -788,6 +804,9 @@ AIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/air_names.o \
                    $(BUILD_DIR)/compiler/air_evidence_node.o \
                    $(BUILD_DIR)/compiler/air_evidence_ast.o \
                    $(BUILD_DIR)/compiler/air_evidence.o \
+                   $(BUILD_DIR)/compiler/mir_cfg_contract_pin.o \
+                   $(BUILD_DIR)/compiler/mir_cfg_contract_cleanup_fact.o \
+                   $(BUILD_DIR)/compiler/mir_cfg_contract_cleanup_root_membership.o \
                    $(BUILD_DIR)/compiler/air_evidence_rir.o \
                    $(BUILD_DIR)/compiler/air_validate_global_evidence.o \
                    $(BUILD_DIR)/compiler/air_validate_evidence.o \
@@ -795,14 +814,25 @@ AIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/air_names.o \
                    $(BUILD_DIR)/compiler/air_verify.o
 MIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/mir.o \
                    $(BUILD_DIR)/compiler/mir_base_helpers.o \
+                   $(BUILD_DIR)/compiler/mir_call_fact.o \
                    $(BUILD_DIR)/compiler/mir_validation.o \
+                   $(BUILD_DIR)/compiler/mir_cleanup_fact_names.o \
+                   $(BUILD_DIR)/compiler/mir_cfg_contract_pin.o \
+                   $(BUILD_DIR)/compiler/mir_cfg_contract_control.o \
+                   $(BUILD_DIR)/compiler/mir_cfg_contract_cleanup_fact.o \
+                   $(BUILD_DIR)/compiler/mir_cfg_contract_roots.o \
+                   $(BUILD_DIR)/compiler/mir_cfg_contract_cleanup_roots.o \
+                   $(BUILD_DIR)/compiler/mir_cfg_contract_cleanup_root_membership.o \
                    $(BUILD_DIR)/compiler/mir_cfg_contract_edges.o \
+                   $(BUILD_DIR)/compiler/mir_cfg_contract_validate.o \
+                   $(BUILD_DIR)/compiler/mir_abi_layout.o \
                    $(BUILD_DIR)/compiler/mir_surface_usage.o \
                    $(BUILD_DIR)/compiler/mir_fact_validate.o \
                    $(BUILD_DIR)/compiler/mir_decl_header_validate.o \
                    $(BUILD_DIR)/compiler/mir_decl_headers.o \
                    $(BUILD_DIR)/compiler/mir_stmt_population.o \
                    $(BUILD_DIR)/compiler/mir_stmt_source.o \
+                   $(BUILD_DIR)/compiler/mir_non_cfg_stmt_population.o \
                    $(BUILD_DIR)/compiler/mir_ssa_rename.o \
                    $(BUILD_DIR)/compiler/mir_liveness_dce.o \
                    $(BUILD_DIR)/compiler/mir_liveness_summary.o \

@@ -1,3 +1,6 @@
+#ifndef PGY_SRC_CODEGEN_TRANSPILER_EXPR_EMITTERS_H
+#define PGY_SRC_CODEGEN_TRANSPILER_EXPR_EMITTERS_H
+
 /* Expression emitter helpers split on top-level function boundaries. */
 #include "transpiler_slot_builtin_emit.h"
 #include "transpiler_expr_core_emit.h"
@@ -9,3 +12,4 @@
 #include "transpiler_expr_call_spawn_emit.h"
 #include "transpiler_spawn_channel_emit.h"
 #include "transpiler_expr_dispatch_emit.h"
+#endif /* PGY_SRC_CODEGEN_TRANSPILER_EXPR_EMITTERS_H */

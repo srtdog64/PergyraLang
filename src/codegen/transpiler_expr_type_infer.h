@@ -1,4 +1,7 @@
-﻿#include "transpiler_builtin_type_table.h"
+﻿#ifndef PGY_TRANSPILER_EXPR_TYPE_INFER_H
+#define PGY_TRANSPILER_EXPR_TYPE_INFER_H
+
+#include "transpiler_builtin_type_table.h"
 
 #include "codegen_slot_type_policy.h"
 
@@ -416,3 +419,5 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
         return "Unknown";
     }
 }
+
+#endif /* PGY_TRANSPILER_EXPR_TYPE_INFER_H */

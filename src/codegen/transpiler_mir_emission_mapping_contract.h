@@ -1,3 +1,6 @@
+#ifndef PGY_TRANSPILER_MIR_EMISSION_MAPPING_CONTRACT_H
+#define PGY_TRANSPILER_MIR_EMISSION_MAPPING_CONTRACT_H
+
 /*
  * C backend MIR emission mapping precheck.
  *
@@ -152,3 +155,4 @@ transpiler_has_mapping_for_all_emitted_blocks(const TranspilerCtx *ctx,
     }
     return true;
 }
+#endif /* PGY_TRANSPILER_MIR_EMISSION_MAPPING_CONTRACT_H */

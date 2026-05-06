@@ -1,3 +1,6 @@
+#ifndef PGY_TRANSPILER_WORLD_SELECT_EVENT_EMIT_H
+#define PGY_TRANSPILER_WORLD_SELECT_EVENT_EMIT_H
+
 static ASTNode *
 transpiler_frontier_lookup_zone(void *ctx, const char *zone_name)
 {
@@ -389,3 +392,5 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
     emit_hosted_methods_from_mir_or_error_local(name, "(anonymous-world)",
         "world", &method_view, ctx);
 }
+
+#endif /* PGY_TRANSPILER_WORLD_SELECT_EVENT_EMIT_H */

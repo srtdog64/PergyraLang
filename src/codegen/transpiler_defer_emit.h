@@ -1,3 +1,6 @@
+#ifndef PGY_SRC_CODEGEN_TRANSPILER_DEFER_EMIT_H
+#define PGY_SRC_CODEGEN_TRANSPILER_DEFER_EMIT_H
+
 /* Lexical defer support for the C backend.
  *
  * Defer bodies must be emitted inline from the current function scope. A
@@ -55,3 +58,4 @@ transpiler_emit_defers_from(TranspilerCtx *ctx, int start_depth)
         }
     }
 }
+#endif /* PGY_SRC_CODEGEN_TRANSPILER_DEFER_EMIT_H */

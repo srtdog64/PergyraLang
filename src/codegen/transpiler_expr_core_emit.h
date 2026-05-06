@@ -1,3 +1,6 @@
+#ifndef PGY_SRC_CODEGEN_TRANSPILER_EXPR_CORE_EMIT_H
+#define PGY_SRC_CODEGEN_TRANSPILER_EXPR_CORE_EMIT_H
+
 #include "transpiler_expr_core_builtins_emit.h"
 
 static const char *
@@ -143,3 +146,4 @@ emit_binary(ASTNode *expr, TranspilerCtx *ctx)
     free(right);
     return result;
 }
+#endif /* PGY_SRC_CODEGEN_TRANSPILER_EXPR_CORE_EMIT_H */

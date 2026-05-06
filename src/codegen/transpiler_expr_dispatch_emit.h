@@ -1,3 +1,6 @@
+#ifndef PGY_TRANSPILER_EXPR_DISPATCH_EMIT_H
+#define PGY_TRANSPILER_EXPR_DISPATCH_EMIT_H
+
 char *
 emit_expression(ASTNode *node, TranspilerCtx *ctx)
 {
@@ -473,3 +476,5 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
         return pergyra_strdup("0");
     }
 }
+
+#endif /* PGY_TRANSPILER_EXPR_DISPATCH_EMIT_H */

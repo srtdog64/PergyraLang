@@ -1,3 +1,6 @@
+#ifndef PGY_SRC_CODEGEN_TRANSPILER_TYPE_RESULT_MAPPING_HELPERS_H
+#define PGY_SRC_CODEGEN_TRANSPILER_TYPE_RESULT_MAPPING_HELPERS_H
+
 static bool
 transpiler_result_suffix_from_type_name(const char *type_name,
                                         char *out, size_t out_size)
@@ -118,3 +121,4 @@ ensure_result_specialization_from_type_name_to(TranspilerCtx *ctx, CodeBuf *dst,
 
     ensure_result_specialization_to(ctx, dst, ok_type, err_type);
 }
+#endif /* PGY_SRC_CODEGEN_TRANSPILER_TYPE_RESULT_MAPPING_HELPERS_H */

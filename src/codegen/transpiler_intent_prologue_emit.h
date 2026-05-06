@@ -1,3 +1,6 @@
+#ifndef PGY_TRANSPILER_INTENT_PROLOGUE_EMIT_H
+#define PGY_TRANSPILER_INTENT_PROLOGUE_EMIT_H
+
 /* C backend intent signature and runtime entry emission owner. */
 
 static bool
@@ -184,3 +187,5 @@ transpiler_emit_intent_signature_and_entry(ASTNode *node,
 
     return true;
 }
+
+#endif /* PGY_TRANSPILER_INTENT_PROLOGUE_EMIT_H */

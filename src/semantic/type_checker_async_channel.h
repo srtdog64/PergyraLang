@@ -1,3 +1,6 @@
+#ifndef PGY_TYPE_CHECKER_ASYNC_CHANNEL_H
+#define PGY_TYPE_CHECKER_ASYNC_CHANNEL_H
+
 static const char *
 spawn_direct_callee_name(ASTNode *spawned)
 {
@@ -437,3 +440,5 @@ type_check_channel_recv(ASTNode *expr, SemanticContext *ctx)
 
     return element_type;
 }
+
+#endif /* PGY_TYPE_CHECKER_ASYNC_CHANNEL_H */

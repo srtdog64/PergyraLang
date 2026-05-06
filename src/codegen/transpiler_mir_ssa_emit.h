@@ -1,3 +1,6 @@
+#ifndef PGY_TRANSPILER_MIR_SSA_EMIT_H
+#define PGY_TRANSPILER_MIR_SSA_EMIT_H
+
 #include "transpiler_mir_local_type_ast_lookup.h"
 
 static char *
@@ -209,3 +212,5 @@ transpiler_find_local_type_name(TranspilerCtx *ctx,
 }
 
 #include "transpiler_mir_ssa_lookup.h"
+
+#endif /* PGY_TRANSPILER_MIR_SSA_EMIT_H */

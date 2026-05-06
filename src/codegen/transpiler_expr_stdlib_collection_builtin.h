@@ -1,3 +1,6 @@
+#ifndef PGY_TRANSPILER_EXPR_STDLIB_COLLECTION_BUILTIN_H
+#define PGY_TRANSPILER_EXPR_STDLIB_COLLECTION_BUILTIN_H
+
 /* Collection stdlib call lowering.
  * Included by transpiler_expr_stdlib_builtin.h inside transpiler.c. */
 
@@ -352,3 +355,5 @@ emit_call_stdlib_collection_builtin(const char *fn, ASTNode *call, TranspilerCtx
     }
     return NULL;
 }
+
+#endif /* PGY_TRANSPILER_EXPR_STDLIB_COLLECTION_BUILTIN_H */

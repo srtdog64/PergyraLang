@@ -1,3 +1,6 @@
+#ifndef PGY_TRANSPILER_DOMAIN_NOMINAL_EMIT_H
+#define PGY_TRANSPILER_DOMAIN_NOMINAL_EMIT_H
+
 static void
 emit_included_role_impls(ASTNode *role, TranspilerCtx *ctx)
 {
@@ -380,3 +383,5 @@ emit_roster_decl(ASTNode *node, TranspilerCtx *ctx)
 }
 
 #include "transpiler_relation_effect_emit.h"
+
+#endif /* PGY_TRANSPILER_DOMAIN_NOMINAL_EMIT_H */

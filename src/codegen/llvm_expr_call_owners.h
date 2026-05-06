@@ -1,1 +1,5 @@
+#ifndef PGY_SRC_CODEGEN_LLVM_EXPR_CALL_OWNERS_H
+#define PGY_SRC_CODEGEN_LLVM_EXPR_CALL_OWNERS_H
+
 #include "llvm_expr_call_dispatch.h"
+#endif /* PGY_SRC_CODEGEN_LLVM_EXPR_CALL_OWNERS_H */

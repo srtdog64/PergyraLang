@@ -1,3 +1,6 @@
+#ifndef PGY_TRANSPILER_MIR_MATCH_CONDITION_EMIT_H
+#define PGY_TRANSPILER_MIR_MATCH_CONDITION_EMIT_H
+
 static ASTNode *
 transpiler_mir_find_match_subject_for_case(ASTNode *node, ASTNode *case_node)
 {
@@ -308,3 +311,5 @@ transpiler_mir_render_match_case_condition(ASTNode *func_decl,
     free(subject);
     return cond;
 }
+
+#endif /* PGY_TRANSPILER_MIR_MATCH_CONDITION_EMIT_H */

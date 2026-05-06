@@ -1,3 +1,6 @@
+#ifndef PGY_SRC_CODEGEN_TRANSPILER_INTENT_FAILURE_EMIT_H
+#define PGY_SRC_CODEGEN_TRANSPILER_INTENT_FAILURE_EMIT_H
+
 static void
 emit_intent_step_condition_failure(CodeBuf *out,
                                    TranspilerCtx *ctx,
@@ -30,3 +33,4 @@ emit_intent_step_condition_failure(CodeBuf *out,
         codebuf_write(out, "goto __intent_cleanup; }\n");
     }
 }
+#endif /* PGY_SRC_CODEGEN_TRANSPILER_INTENT_FAILURE_EMIT_H */

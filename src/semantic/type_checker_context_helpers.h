@@ -1,3 +1,6 @@
+#ifndef PGY_TYPE_CHECKER_CONTEXT_HELPERS_H
+#define PGY_TYPE_CHECKER_CONTEXT_HELPERS_H
+
 static char *
 tc_strdup_fmt(const char *fmt, ...)
 {
@@ -176,3 +179,4 @@ semantic_context_destroy(SemanticContext *ctx)
 /* -----------------------------------------------------------------
  * Utility — resolve AST type node to Type*
  * ----------------------------------------------------------------- */
+#endif /* PGY_TYPE_CHECKER_CONTEXT_HELPERS_H */

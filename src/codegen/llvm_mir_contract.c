@@ -7,6 +7,7 @@
 
 #include "llvm_internal.h"
 
+#include "../compiler/mir_cleanup_fact_names.h"
 #include "../compiler/mir_cfg_contract_cleanup_fact.h"
 #include "../compiler/mir_cfg_contract_pin.h"
 

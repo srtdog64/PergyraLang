@@ -1,3 +1,6 @@
+#ifndef PGY_TRANSPILER_CALL_CONSTRUCTOR_RESULT_EMIT_H
+#define PGY_TRANSPILER_CALL_CONSTRUCTOR_RESULT_EMIT_H
+
 static char *
 emit_call_domain_constructor(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
 {
@@ -424,3 +427,5 @@ emit_call_domain_constructor(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
 }
 
 #include "transpiler_call_result_option_builtin_emit.h"
+
+#endif /* PGY_TRANSPILER_CALL_CONSTRUCTOR_RESULT_EMIT_H */

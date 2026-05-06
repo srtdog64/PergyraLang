@@ -1,3 +1,6 @@
+#ifndef PGY_TRANSPILER_BLOCK_INTENT_HELPERS_H
+#define PGY_TRANSPILER_BLOCK_INTENT_HELPERS_H
+
 #include "transpiler_intent_context.h"
 #include "transpiler_intent_participant.h"
 #include "transpiler_intent_zone_slot.h"
@@ -315,3 +318,5 @@ emit_intent_step_sync_effective_zone_with_metadata(CodeBuf *out, TranspilerCtx *
     write_indent(ctx);
     codebuf_write(out, "%s_sync(%s);\n", zone_type, zone_alias);
 }
+
+#endif /* PGY_TRANSPILER_BLOCK_INTENT_HELPERS_H */

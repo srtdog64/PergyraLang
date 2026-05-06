@@ -1,3 +1,6 @@
+#ifndef PGY_SRC_CODEGEN_TRANSPILER_MIR_EMIT_PREDICATES_H
+#define PGY_SRC_CODEGEN_TRANSPILER_MIR_EMIT_PREDICATES_H
+
 /* Small MIR emission predicate wrappers shared by later C emit owners. */
 
 static bool
@@ -17,3 +20,4 @@ transpiler_can_emit_intent_cleanup_from_mir(const TranspilerCtx *ctx,
     return transpiler_can_emit_intent_cleanup_from_mir_with_reason(
         ctx, intent_decl, mir_routine_out, NULL, 0);
 }
+#endif /* PGY_SRC_CODEGEN_TRANSPILER_MIR_EMIT_PREDICATES_H */

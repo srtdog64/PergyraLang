@@ -1,3 +1,6 @@
+#ifndef PGY_SRC_CODEGEN_TRANSPILER_EXPR_CALL_USER_EMIT_H
+#define PGY_SRC_CODEGEN_TRANSPILER_EXPR_CALL_USER_EMIT_H
+
 #include "transpiler_slot_target.h"
 
 static char *
@@ -141,3 +144,4 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
     codebuf_destroy(args_buf);
     return result;
 }
+#endif /* PGY_SRC_CODEGEN_TRANSPILER_EXPR_CALL_USER_EMIT_H */

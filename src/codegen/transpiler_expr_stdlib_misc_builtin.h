@@ -1,3 +1,6 @@
+#ifndef PGY_SRC_CODEGEN_TRANSPILER_EXPR_STDLIB_MISC_BUILTIN_H
+#define PGY_SRC_CODEGEN_TRANSPILER_EXPR_STDLIB_MISC_BUILTIN_H
+
 /* C backend misc stdlib call lowering owner. */
 static char *
 emit_call_stdlib_misc_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx)
@@ -98,3 +101,4 @@ emit_call_stdlib_misc_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx)
     }
     return NULL;
 }
+#endif /* PGY_SRC_CODEGEN_TRANSPILER_EXPR_STDLIB_MISC_BUILTIN_H */

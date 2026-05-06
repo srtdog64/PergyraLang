@@ -1,3 +1,6 @@
+#ifndef PGY_SRC_CODEGEN_TRANSPILER_CALL_RESULT_OPTION_BUILTIN_EMIT_H
+#define PGY_SRC_CODEGEN_TRANSPILER_CALL_RESULT_OPTION_BUILTIN_EMIT_H
+
 static char *
 emit_call_result_option_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
 {
@@ -136,3 +139,4 @@ emit_call_result_option_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *c
 
     return NULL;
 }
+#endif /* PGY_SRC_CODEGEN_TRANSPILER_CALL_RESULT_OPTION_BUILTIN_EMIT_H */

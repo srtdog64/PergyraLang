@@ -1,3 +1,6 @@
+#ifndef PGY_TRANSPILER_GENERIC_CLASS_SPECIALIZATION_EMIT_H
+#define PGY_TRANSPILER_GENERIC_CLASS_SPECIALIZATION_EMIT_H
+
 /* -----------------------------------------------------------------
  * Generic class monomorphization
  * ----------------------------------------------------------------- */
@@ -262,3 +265,5 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
 
     return spec_name;
 }
+
+#endif /* PGY_TRANSPILER_GENERIC_CLASS_SPECIALIZATION_EMIT_H */

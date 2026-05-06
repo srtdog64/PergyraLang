@@ -1,3 +1,6 @@
+#ifndef PGY_MIR_LOWER_PUBLIC_API_H
+#define PGY_MIR_LOWER_PUBLIC_API_H
+
 
 MIRProgram *
 mir_lower(const HIRProgram *hir, const RIRProgram *rir, char **error_message)
@@ -405,3 +408,5 @@ mir_run_dce_pass(MIRProgram *mir, char **error_message)
 
     return true;
 }
+
+#endif /* PGY_MIR_LOWER_PUBLIC_API_H */

@@ -1,3 +1,6 @@
+#ifndef PGY_SRC_CODEGEN_TRANSPILER_BLOCK_EMIT_H
+#define PGY_SRC_CODEGEN_TRANSPILER_BLOCK_EMIT_H
+
 static SlotVarEntry *
 transpiler_find_slot_var_local(TranspilerCtx *ctx, const char *name)
 {
@@ -138,3 +141,4 @@ emit_block(ASTNode *node, TranspilerCtx *ctx)
         emit_statement(node, ctx);
     }
 }
+#endif /* PGY_SRC_CODEGEN_TRANSPILER_BLOCK_EMIT_H */

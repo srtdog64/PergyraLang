@@ -1,3 +1,6 @@
+#ifndef PGY_SRC_CODEGEN_TRANSPILER_EVENT_EMIT_H
+#define PGY_SRC_CODEGEN_TRANSPILER_EVENT_EMIT_H
+
 /* C backend event declaration and subscription emitters. */
 
 void
@@ -101,3 +104,4 @@ emit_event_unsubscribe(ASTNode *node, TranspilerCtx *ctx)
     free(event_expr);
     free(handler_expr);
 }
+#endif /* PGY_SRC_CODEGEN_TRANSPILER_EVENT_EMIT_H */

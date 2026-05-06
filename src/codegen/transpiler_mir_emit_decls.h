@@ -1,3 +1,6 @@
+#ifndef PGY_SRC_CODEGEN_TRANSPILER_MIR_EMIT_DECLS_H
+#define PGY_SRC_CODEGEN_TRANSPILER_MIR_EMIT_DECLS_H
+
 /* MIR SSA lookup/entry helpers are compiled owners; expose the seams early. */
 #include "transpiler_mir_ssa_entry.h"
 #include "transpiler_mir_let_lookup.h"
@@ -80,3 +83,4 @@ static const char *ensure_generic_class_specialization(
  * ----------------------------------------------------------------- */
 
 #include "transpiler_mir_inventory_ssa_emitters.h"
+#endif /* PGY_SRC_CODEGEN_TRANSPILER_MIR_EMIT_DECLS_H */

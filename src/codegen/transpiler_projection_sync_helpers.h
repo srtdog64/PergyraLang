@@ -1,3 +1,6 @@
+#ifndef PGY_TRANSPILER_PROJECTION_SYNC_HELPERS_H
+#define PGY_TRANSPILER_PROJECTION_SYNC_HELPERS_H
+
 #include "transpiler_projection_method_invalidation.h"
 
 static const char *
@@ -423,3 +426,5 @@ find_world_state_decl(ASTNode *world_decl, const char *state_name)
     }
     return NULL;
 }
+
+#endif /* PGY_TRANSPILER_PROJECTION_SYNC_HELPERS_H */

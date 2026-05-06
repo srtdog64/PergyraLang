@@ -23,6 +23,7 @@
 static bool fmt_replace_file(const char *dst_path, const char *tmp_path);
 
 static bool format_source_to_stream(const char *source, FILE *out);
+static char *format_source_to_string(const char *source);
 
 #include "fmt_io.h"
 #include "fmt_layout.h"
@@ -137,6 +138,51 @@ format_source_to_stream(const char *source, FILE *out)
     return true;
 }
 
+static char *
+fmt_read_stream(FILE *f)
+{
+    long len;
+    size_t read_len;
+    char *buf;
+
+    if (f == NULL)
+        return NULL;
+    if (fseek(f, 0, SEEK_END) != 0)
+        return NULL;
+    len = ftell(f);
+    if (len < 0)
+        return NULL;
+    if (fseek(f, 0, SEEK_SET) != 0)
+        return NULL;
+    buf = malloc((size_t)len + 1);
+    if (buf == NULL)
+        return NULL;
+    read_len = fread(buf, 1, (size_t)len, f);
+    buf[read_len] = '\0';
+    return buf;
+}
+
+static char *
+format_source_to_string(const char *source)
+{
+    FILE *tmp;
+    char *result;
+
+    if (source == NULL)
+        return NULL;
+    tmp = tmpfile();
+    if (tmp == NULL)
+        return NULL;
+    if (!format_source_to_stream(source, tmp)) {
+        fclose(tmp);
+        return NULL;
+    }
+    fflush(tmp);
+    result = fmt_read_stream(tmp);
+    fclose(tmp);
+    return result;
+}
+
 static bool
 fmt_replace_file(const char *dst_path, const char *tmp_path)
 {
@@ -174,7 +220,7 @@ driver_run_fmt_command(int argc, char *argv[])
         return 1;
     }
 
-    char *source = read_file(path);
+    char *source = fmt_read_file(path);
     if (!source) {
         fprintf(stderr, "pgy fmt: cannot read '%s'\n", path);
         return 1;
@@ -211,13 +257,13 @@ driver_run_fmt_command(int argc, char *argv[])
         char *formatted;
         char *roundtrip;
         fclose(out);
-        formatted = read_file(tmppath);
+        formatted = fmt_read_file(tmppath);
         if (formatted == NULL) {
             remove(tmppath);
             fprintf(stderr, "pgy fmt: cannot read temp output\n");
             return 1;
         }
-        if (!source_is_parseable(formatted)) {
+        if (!fmt_source_is_parseable(formatted)) {
             free(formatted);
             remove(tmppath);
             fprintf(stderr, "pgy fmt: formatter produced unparsable output for '%s'\n", path);

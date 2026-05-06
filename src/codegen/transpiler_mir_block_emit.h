@@ -1,3 +1,6 @@
+#ifndef PGY_TRANSPILER_MIR_BLOCK_EMIT_H
+#define PGY_TRANSPILER_MIR_BLOCK_EMIT_H
+
 #include "transpiler_mir_destructure_emit.h"
 #include "transpiler_mir_preserved_let_emit.h"
 #include "transpiler_mir_block_schedule_emit.h"
@@ -496,3 +499,5 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
     return ok;
 }
 #include "transpiler_mir_emit_predicates.h"
+
+#endif /* PGY_TRANSPILER_MIR_BLOCK_EMIT_H */

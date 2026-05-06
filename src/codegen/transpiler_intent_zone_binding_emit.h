@@ -1,3 +1,6 @@
+#ifndef PGY_TRANSPILER_INTENT_ZONE_BINDING_EMIT_H
+#define PGY_TRANSPILER_INTENT_ZONE_BINDING_EMIT_H
+
 #include "transpiler_intent_zone_slot.h"
 
 static void
@@ -195,3 +198,5 @@ transpiler_can_forward_declare_intent_early(TranspilerCtx *ctx, ASTNode *intent)
     }
     return true;
 }
+
+#endif /* PGY_TRANSPILER_INTENT_ZONE_BINDING_EMIT_H */

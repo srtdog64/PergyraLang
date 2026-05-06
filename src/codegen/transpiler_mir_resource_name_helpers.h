@@ -1,3 +1,6 @@
+#ifndef PGY_SRC_CODEGEN_TRANSPILER_MIR_RESOURCE_NAME_HELPERS_H
+#define PGY_SRC_CODEGEN_TRANSPILER_MIR_RESOURCE_NAME_HELPERS_H
+
 static const char *
 transpiler_extract_type_suffix_from_fn(const char *fn_name)
 {
@@ -53,3 +56,4 @@ transpiler_format_slot_runtime_fn(const char *op_name,
 
     return false;
 }
+#endif /* PGY_SRC_CODEGEN_TRANSPILER_MIR_RESOURCE_NAME_HELPERS_H */

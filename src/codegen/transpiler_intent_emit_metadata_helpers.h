@@ -1,3 +1,6 @@
+#ifndef PGY_SRC_CODEGEN_TRANSPILER_INTENT_EMIT_METADATA_HELPERS_H
+#define PGY_SRC_CODEGEN_TRANSPILER_INTENT_EMIT_METADATA_HELPERS_H
+
 static void
 transpiler_free_intent_emit_metadata(ASTNode **mir_steps,
                                      const char **participant_aliases,
@@ -31,3 +34,4 @@ transpiler_free_intent_emit_metadata(ASTNode **mir_steps,
         transpiler_bind_current_host_decl_local(ctx, (SAVED_HOST_DECL)); \
         ctx->current_overlay_receiver_expr = (SAVED_OVERLAY_RECEIVER); \
     } while (0)
+#endif /* PGY_SRC_CODEGEN_TRANSPILER_INTENT_EMIT_METADATA_HELPERS_H */

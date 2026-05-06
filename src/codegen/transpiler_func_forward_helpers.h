@@ -1,3 +1,5 @@
+#ifndef PGY_TRANSPILER_FUNC_FORWARD_HELPERS_H
+#define PGY_TRANSPILER_FUNC_FORWARD_HELPERS_H
 
 static char *
 infer_spawn_return_type_name(TranspilerCtx *ctx, ASTNode *spawn_expr)
@@ -172,3 +174,4 @@ emit_func_forward_decl_named(ASTNode *node, const char *emitted_name,
 static void
 emit_func_decl_named(ASTNode *node, const char *emitted_name,
                      CodeBuf *buf, TranspilerCtx *ctx);
+#endif /* PGY_TRANSPILER_FUNC_FORWARD_HELPERS_H */

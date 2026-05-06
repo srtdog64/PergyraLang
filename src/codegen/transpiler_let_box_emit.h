@@ -1,3 +1,6 @@
+#ifndef PGY_TRANSPILER_LET_BOX_EMIT_H
+#define PGY_TRANSPILER_LET_BOX_EMIT_H
+
 /* Box/BoxArray/Rc let-declaration lowering helpers.
  * Included inside transpiler.c before transpiler_let_emit.h. */
 
@@ -180,3 +183,5 @@ transpiler_try_emit_box_family_let(TranspilerCtx *ctx,
         || transpiler_try_emit_box_or_rc_let(ctx, name, init, ann,
                                              ann_type_name_ptr);
 }
+
+#endif /* PGY_TRANSPILER_LET_BOX_EMIT_H */

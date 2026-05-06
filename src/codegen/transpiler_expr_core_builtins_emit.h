@@ -1,3 +1,6 @@
+#ifndef PGY_TRANSPILER_EXPR_CORE_BUILTINS_EMIT_H
+#define PGY_TRANSPILER_EXPR_CORE_BUILTINS_EMIT_H
+
 char *
 emit_builtin_log(ASTNode *call, TranspilerCtx *ctx)
 {
@@ -425,3 +428,5 @@ emit_builtin_allocator(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
         return pergyra_strdup("0");
     }
 }
+
+#endif /* PGY_TRANSPILER_EXPR_CORE_BUILTINS_EMIT_H */

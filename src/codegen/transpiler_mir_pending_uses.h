@@ -1,3 +1,6 @@
+#ifndef PGY_TRANSPILER_MIR_PENDING_USES_H
+#define PGY_TRANSPILER_MIR_PENDING_USES_H
+
 static ASTNode *
 transpiler_find_block_let_decl_from_mir_insts(const MIRBasicBlock *block,
                                               const char *name)
@@ -149,3 +152,4 @@ transpiler_materialize_pending_inst_uses(CodeBuf *buf,
 
     return true;
 }
+#endif /* PGY_TRANSPILER_MIR_PENDING_USES_H */

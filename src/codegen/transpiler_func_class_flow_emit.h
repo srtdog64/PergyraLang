@@ -1,3 +1,6 @@
+#ifndef PGY_TRANSPILER_FUNC_CLASS_FLOW_EMIT_H
+#define PGY_TRANSPILER_FUNC_CLASS_FLOW_EMIT_H
+
 void
 emit_func_decl_named(ASTNode *node, const char *emitted_name,
                      CodeBuf *buf, TranspilerCtx *ctx)
@@ -330,3 +333,5 @@ emit_return_stmt(ASTNode *node, TranspilerCtx *ctx)
         codebuf_write(ctx->out, "return;\n");
     }
 }
+
+#endif /* PGY_TRANSPILER_FUNC_CLASS_FLOW_EMIT_H */

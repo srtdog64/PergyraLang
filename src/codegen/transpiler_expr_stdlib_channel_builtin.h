@@ -1,3 +1,6 @@
+#ifndef PGY_TRANSPILER_EXPR_STDLIB_CHANNEL_BUILTIN_H
+#define PGY_TRANSPILER_EXPR_STDLIB_CHANNEL_BUILTIN_H
+
 static char *
 emit_call_stdlib_channel_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx)
 {
@@ -239,3 +242,5 @@ emit_call_stdlib_channel_builtin(const char *fn, ASTNode *call, TranspilerCtx *c
 
     return NULL;
 }
+
+#endif /* PGY_TRANSPILER_EXPR_STDLIB_CHANNEL_BUILTIN_H */

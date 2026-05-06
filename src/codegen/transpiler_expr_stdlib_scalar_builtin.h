@@ -1,3 +1,6 @@
+#ifndef PGY_TRANSPILER_EXPR_STDLIB_SCALAR_BUILTIN_H
+#define PGY_TRANSPILER_EXPR_STDLIB_SCALAR_BUILTIN_H
+
 /* Scalar, math, and string stdlib call lowering.
  * Included by transpiler_expr_stdlib_builtin.h inside transpiler.c. */
 
@@ -173,3 +176,5 @@ emit_call_stdlib_scalar_builtin(const char *fn, ASTNode *call, TranspilerCtx *ct
     }
     return NULL;
 }
+
+#endif /* PGY_TRANSPILER_EXPR_STDLIB_SCALAR_BUILTIN_H */

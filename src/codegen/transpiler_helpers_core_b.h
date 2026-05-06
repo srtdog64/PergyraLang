@@ -1,3 +1,6 @@
+#ifndef PGY_SRC_CODEGEN_TRANSPILER_HELPERS_CORE_B_H
+#define PGY_SRC_CODEGEN_TRANSPILER_HELPERS_CORE_B_H
+
 /* transpiler_helpers_core_b split into sub-1000 LOC include chunks.
  * Keep this shim for the existing include order. */
 static char *
@@ -48,20 +51,6 @@ func_has_generic_params(ASTNode *node)
         && node->data.func_decl.generic_params->count > 0;
 }
 
-static const char *
-lookup_generic_binding(TranspilerCtx *ctx, const char *name)
-{
-    if (ctx == NULL || name == NULL)
-        return NULL;
-
-    for (int i = ctx->generic_binding_count - 1; i >= 0; i--) {
-        if (strcmp(ctx->generic_bindings[i].name, name) == 0)
-            return ctx->generic_bindings[i].concrete_type;
-    }
-
-    return NULL;
-}
-
 static bool
 infer_generic_call_bindings(TranspilerCtx *ctx, ASTNode *decl, ASTNode *call,
                             GenericBindingEntry *bindings, size_t *binding_count);
@@ -96,3 +85,4 @@ transpiler_contextual_option_inner_type_name(TranspilerCtx *ctx)
 #include "transpiler_func_forward_metadata.h"
 #include "transpiler_func_forward_helpers.h"
 #include "transpiler_generic_specialization_emit.h"
+#endif /* PGY_SRC_CODEGEN_TRANSPILER_HELPERS_CORE_B_H */

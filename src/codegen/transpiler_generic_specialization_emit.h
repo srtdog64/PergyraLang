@@ -1,3 +1,6 @@
+#ifndef PGY_SRC_CODEGEN_TRANSPILER_GENERIC_SPECIALIZATION_EMIT_H
+#define PGY_SRC_CODEGEN_TRANSPILER_GENERIC_SPECIALIZATION_EMIT_H
+
 static const char *
 ensure_generic_specialization(TranspilerCtx *ctx, ASTNode *decl, ASTNode *call)
 {
@@ -57,3 +60,4 @@ ensure_generic_specialization(TranspilerCtx *ctx, ASTNode *decl, ASTNode *call)
     entry->emitting = false;
     return entry->specialized_name;
 }
+#endif /* PGY_SRC_CODEGEN_TRANSPILER_GENERIC_SPECIALIZATION_EMIT_H */
