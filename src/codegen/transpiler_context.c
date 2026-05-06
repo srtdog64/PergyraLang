@@ -219,6 +219,22 @@ transpiler_set_mir_topology_invalid(TranspilerCtx *ctx, const char *fmt, ...)
     va_end(ap);
 }
 
+void
+transpiler_set_mir_intent_carrier_missing(TranspilerCtx *ctx, const char *fmt, ...)
+{
+    va_list ap;
+
+    if (ctx == NULL || fmt == NULL || ctx->backend_error != NULL)
+        return;
+
+    ctx->backend_error_cause_ir = PGY_CAUSE_MIR_INTENT_CARRIER_MISSING;
+    ctx->backend_error_fix_source = PGY_FIX_CHECK_INTENT_STEP_LOWERING;
+
+    va_start(ap, fmt);
+    transpiler_set_backend_error_v(ctx, PGY_CODE_MIR_INTENT_CARRIER_MISSING, fmt, ap);
+    va_end(ap);
+}
+
 char *
 transpiler_scratch_strdup(TranspilerCtx *ctx, const char *s)
 {

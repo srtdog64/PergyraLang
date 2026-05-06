@@ -35,6 +35,18 @@ transpiler_mir_find_stmt_for_inst(const ASTNode *func_decl,
 }
 
 static bool
+transpiler_mir_def_uses_source_statement_emit(const MIRInstruction *inst,
+                                              const ASTNode *stmt,
+                                              ASTNodeType expected_type)
+{
+    return inst != NULL
+        && inst->kind == MIR_INST_DEF
+        && inst->requires_source_statement_emit
+        && stmt != NULL
+        && stmt->type == expected_type;
+}
+
+static bool
 transpiler_mir_seed_pin_view_alias(const MIRBasicBlock *block,
                                    TranspilerSSANameMap *ssa_map_out)
 {

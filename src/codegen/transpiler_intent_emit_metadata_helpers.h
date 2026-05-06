@@ -17,11 +17,7 @@ ASTNode **transpiler_build_mir_intent_step_sources(ASTNode *intent,
 
 #define PGY_MIR_INTENT_CARRIER_FAIL(MSG) \
     do { \
-        transpiler_set_backend_error_with_hints(ctx, \
-            PGY_CODE_MIR_INTENT_CARRIER_MISSING, \
-            PGY_CAUSE_MIR_INTENT_CARRIER_MISSING, \
-            PGY_FIX_CHECK_INTENT_STEP_LOWERING, \
-            (MSG)); \
+        transpiler_set_mir_intent_carrier_missing(ctx, "%s", (MSG)); \
         goto intent_emit_fail; \
     } while (0)
 #define PGY_BIND_INTENT_STEP_CONTEXT(STEP_ZONE_DECL, STEP_ZONE_ALIAS) \

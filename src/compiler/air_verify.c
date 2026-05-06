@@ -42,31 +42,6 @@ air_boundary_requires_hir_routine_evidence(const AIRBoundaryNode *boundary)
 }
 
 bool
-air_boundary_has_evidence_kind(const AIRProgram *air,
-                               size_t boundary_index,
-                               AIREvidenceKind kind)
-{
-    if (air == NULL || boundary_index >= air->boundary_count)
-        return false;
-    for (size_t i = 0; i < air->evidence_count; i++) {
-        const AIREvidenceNode *evidence = &air->evidence_nodes[i];
-        if (evidence->kind == kind && evidence->boundary_index == boundary_index)
-            return true;
-    }
-    return false;
-}
-
-static bool
-air_evidence_inventory_is_authoritative(const AIRProgram *air)
-{
-    return air != NULL
-        && (air->evidence_count > 0
-            || air->has_hir_input
-            || air->has_rir_input
-            || air->has_mir_input);
-}
-
-bool
 air_boundary_has_evidence(const AIRProgram *air,
                           size_t boundary_index,
                           AIREvidenceKind kind)

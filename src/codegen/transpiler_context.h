@@ -22,6 +22,8 @@ void transpiler_set_mir_inventory_missing(TranspilerCtx *ctx,
                                           const char *fmt, ...);
 void transpiler_set_mir_topology_invalid(TranspilerCtx *ctx,
                                          const char *fmt, ...);
+void transpiler_set_mir_intent_carrier_missing(TranspilerCtx *ctx,
+                                               const char *fmt, ...);
 char *transpiler_scratch_strdup(TranspilerCtx *ctx, const char *s);
 char *transpiler_scratch_fmt(TranspilerCtx *ctx, const char *fmt, ...);
 

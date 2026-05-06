@@ -65,6 +65,14 @@ mir_def_source_requires_initializer_fact(const MIRInstruction *inst)
 }
 
 static bool
+mir_branch_shape_requires_source_compatibility(const MIRInstruction *inst)
+{
+    return inst != NULL
+        && (inst->branch_shape == MIR_BRANCH_MATCH_CASE
+            || inst->branch_shape == MIR_BRANCH_SELECT_DISPATCH);
+}
+
+static bool
 mir_instruction_has_surface_payload_or_shape(const MIRInstruction *inst)
 {
     return inst != NULL
@@ -169,6 +177,18 @@ mir_validate_instruction_surface_usage(const MIRRoutine *routine,
             continue;
         if (inst->kind == MIR_INST_DEF
             && mir_def_source_requires_initializer_fact(inst)
+            && !inst->requires_source_statement_emit) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR routine '%s' block[%zu] instruction[%zu] DEF is missing source-statement emit fact",
+                    routine->name != NULL ? routine->name : "(anonymous)",
+                    block_index,
+                    i);
+            }
+            return false;
+        }
+        if (inst->kind == MIR_INST_DEF
+            && mir_def_source_requires_initializer_fact(inst)
             && inst->expr0 == NULL) {
             if (error_message != NULL) {
                 *error_message = mir_strdup_fmt(
@@ -199,6 +219,21 @@ mir_validate_instruction_surface_usage(const MIRRoutine *routine,
             if (error_message != NULL) {
                 *error_message = mir_strdup_fmt(
                     "MIR routine '%s' block[%zu] instruction[%zu] defer statement is missing MIR body expression fact",
+                    routine->name != NULL ? routine->name : "(anonymous)",
+                    block_index,
+                    i);
+            }
+            return false;
+        }
+        if (inst->requires_source_statement_emit
+            && (inst->kind != MIR_INST_DEF
+                || inst->ast == NULL
+                || !inst->has_source_location
+                || (inst->source_ast_type != AST_LET_DECL
+                    && inst->source_ast_type != AST_ASSIGNMENT))) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR routine '%s' block[%zu] instruction[%zu] source-statement emit fact is invalid",
                     routine->name != NULL ? routine->name : "(anonymous)",
                     block_index,
                     i);
@@ -297,6 +332,18 @@ mir_validate_terminator_provenance(const MIRRoutine *routine,
             if (error_message != NULL) {
                 *error_message = mir_strdup_fmt(
                     "MIR routine '%s' block[%zu] instruction[%zu] branch is missing MIR terminator expression fact",
+                    routine->name != NULL ? routine->name : "(anonymous)",
+                    block_index,
+                    i);
+            }
+            return false;
+        }
+        if (inst->kind == MIR_INST_BRANCH
+            && mir_branch_shape_requires_source_compatibility(inst)
+            && inst->ast == NULL) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR routine '%s' block[%zu] instruction[%zu] branch source compatibility fact is invalid",
                     routine->name != NULL ? routine->name : "(anonymous)",
                     block_index,
                     i);

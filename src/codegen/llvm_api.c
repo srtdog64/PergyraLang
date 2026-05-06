@@ -32,16 +32,8 @@ llvm_result_from_ctx_error(LLVMGenCtx *ctx)
     } else {
         snprintf(msg, sizeof(msg), "%s", ctx->error_msg);
     }
-    LLVMGenResult *res = llvm_result_error(msg);
-    if (res != NULL) {
-        if (ctx->error_code != NULL)
-            res->error_code = pgy_arena_strdup(&res->owned_arena, ctx->error_code);
-        if (ctx->error_cause_ir != NULL)
-            res->error_cause_ir = pgy_arena_strdup(&res->owned_arena, ctx->error_cause_ir);
-        if (ctx->error_fix_source != NULL)
-            res->error_fix_source = pgy_arena_strdup(&res->owned_arena, ctx->error_fix_source);
-    }
-    return res;
+    return llvm_result_error_with_hints(msg, ctx->error_code,
+        ctx->error_cause_ir, ctx->error_fix_source);
 }
 
 static LLVMGenResult *
@@ -259,6 +251,7 @@ llvm_codegen_to_object_core(const MIRProgram *mir,
         return llvm_result_error("Out of memory");
 
     ctx->mir = mir;
+    ctx->uses_intent_observability = pgy_mir_program_uses_intent_observability(mir);
 
     llvm_debug_stage("codegen_to_object:validate_mir");
     verify_result = llvm_validate_mir_for_codegen(mir);

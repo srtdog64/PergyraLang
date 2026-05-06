@@ -105,9 +105,8 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
                 continue;
         }
 
-        if (inst->kind == MIR_INST_DEF
-            && stmt != NULL
-            && stmt->type == AST_LET_DECL
+        if (transpiler_mir_def_uses_source_statement_emit(
+                inst, stmt, AST_LET_DECL)
             && stmt->data.let_decl.name != NULL
             && inst->arg0 != NULL
             && inst->result_name != NULL
@@ -312,8 +311,7 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
 
         if (inst->kind == MIR_INST_DEF
             && stmt != NULL
-            && stmt->type != AST_LET_DECL
-            && stmt->type != AST_ASSIGNMENT
+            && !inst->requires_source_statement_emit
             && inst->result_name != NULL) {
             ASTNode *binding_type_ast = NULL;
             char *lhs = NULL;

@@ -116,6 +116,7 @@ typedef struct
     bool             has_surface_usage_facts;
     bool             uses_thread_pool_surface;
     bool             uses_intent_observability_surface;
+    bool             requires_source_statement_emit;
     MIRBranchShape   branch_shape;
     /* ABI type layout: backends read this instead of inventing layouts. */
     ASTNode         *expr0;

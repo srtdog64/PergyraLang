@@ -9,6 +9,36 @@ typedef struct TranspilerMirPendingBinding {
 } TranspilerMirPendingBinding;
 
 static bool
+transpiler_pending_binding_from_source_compatibility(const MIRInstruction *inst,
+                                                     const char *name,
+                                                     TranspilerMirPendingBinding *out)
+{
+    ASTNode *stmt;
+
+    if (inst == NULL
+        || name == NULL
+        || !inst->requires_source_statement_emit
+        || !inst->has_source_location
+        || inst->source_ast_type != AST_LET_DECL) {
+        return false;
+    }
+
+    stmt = inst->ast;
+    if (stmt == NULL
+        || stmt->type != AST_LET_DECL
+        || stmt->data.let_decl.name == NULL
+        || strcmp(stmt->data.let_decl.name, name) != 0) {
+        return false;
+    }
+
+    if (out != NULL) {
+        out->initializer = stmt->data.let_decl.initializer;
+        out->type_annotation = stmt->data.let_decl.type;
+    }
+    return true;
+}
+
+static bool
 transpiler_find_block_binding_from_mir_insts(const MIRBasicBlock *block,
                                              const char *name,
                                              TranspilerMirPendingBinding *out)
@@ -20,7 +50,6 @@ transpiler_find_block_binding_from_mir_insts(const MIRBasicBlock *block,
 
     for (size_t i = 0; i < block->instruction_count; i++) {
         const MIRInstruction *inst = &block->instructions[i];
-        ASTNode *stmt;
 
         if (inst->kind != MIR_INST_DEF || inst->arg0 == NULL)
             continue;
@@ -28,6 +57,7 @@ transpiler_find_block_binding_from_mir_insts(const MIRBasicBlock *block,
             continue;
 
         if (inst->expr0 != NULL
+            && inst->requires_source_statement_emit
             && inst->has_source_location
             && inst->source_ast_type == AST_LET_DECL) {
             if (out != NULL) {
@@ -37,19 +67,8 @@ transpiler_find_block_binding_from_mir_insts(const MIRBasicBlock *block,
             return true;
         }
 
-        stmt = inst->ast;
-        if (stmt == NULL
-            || stmt->type != AST_LET_DECL
-            || stmt->data.let_decl.name == NULL) {
-            continue;
-        }
-        if (strcmp(stmt->data.let_decl.name, name) == 0) {
-            if (out != NULL) {
-                out->initializer = stmt->data.let_decl.initializer;
-                out->type_annotation = stmt->data.let_decl.type;
-            }
+        if (transpiler_pending_binding_from_source_compatibility(inst, name, out))
             return true;
-        }
     }
 
     return false;

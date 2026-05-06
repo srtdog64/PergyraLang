@@ -422,6 +422,7 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_allocator_builtin_emit.c \
                    $(CODEGEN_DIR)/transpiler_mir_phi_emit.c \
                    $(CODEGEN_DIR)/transpiler_mir_resource_op_core.c \
                    $(CODEGEN_DIR)/transpiler_mir_resource_name.c \
+                   $(CODEGEN_DIR)/transpiler_mir_reason_classifier.c \
                    $(CODEGEN_DIR)/transpiler_mir_role_lookup.c \
                    $(CODEGEN_DIR)/transpiler_mir_signature.c \
                    $(CODEGEN_DIR)/transpiler_mir_ssa_entry.c \

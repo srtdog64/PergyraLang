@@ -57,6 +57,11 @@ grep -Fq "ast_contains_identifier_call" "$ROOT_DIR/src/parser/ast_analysis.c"
 grep -Fq "ast_decl_methods_contain_identifier_call" "$ROOT_DIR/src/parser/ast_analysis.c"
 grep -Fq "ast_uses_intent_observability_surface" "$ROOT_DIR/src/parser/ast_analysis.c"
 grep -Fq "pgy_mir_instruction_uses_intent_observability" "$ROOT_DIR/src/codegen/intent_observability_usage.c"
+if [[ "$(grep -Fc "ctx->uses_intent_observability = pgy_mir_program_uses_intent_observability(mir)" "$ROOT_DIR/src/codegen/llvm_api.c")" -lt 2 ]]; then
+    echo "LLVM IR and object codegen paths must both preserve intent observability runtime selection" >&2
+    exit 1
+fi
+grep -Fq "return llvm_result_error_with_hints(msg, ctx->error_code" "$ROOT_DIR/src/codegen/llvm_api.c"
 grep -Fq "allow_legacy_payload_probe" "$ROOT_DIR/src/codegen/intent_observability_usage.c"
 ! grep -Fq "allow_legacy_ast_probe" "$ROOT_DIR/src/codegen/intent_observability_usage.c"
 grep -Fq "inst->has_surface_usage_facts" "$ROOT_DIR/src/codegen/intent_observability_usage.c"
@@ -76,6 +81,8 @@ grep -Fq "token name synthesis is disabled" "$ROOT_DIR/src/codegen/transpiler_sy
 ! grep -R -Fq "fallback_token" "$ROOT_DIR/src/codegen"
 ! grep -Fq "block->source_statements" "$ROOT_DIR/src/codegen/transpiler_mir_pending_uses.h"
 grep -Fq "transpiler_find_block_binding_from_mir_insts" "$ROOT_DIR/src/codegen/transpiler_mir_pending_uses.h"
+grep -Fq "transpiler_pending_binding_from_source_compatibility" "$ROOT_DIR/src/codegen/transpiler_mir_pending_uses.h"
+grep -Fq "!inst->requires_source_statement_emit" "$ROOT_DIR/src/codegen/transpiler_mir_pending_uses.h"
 grep -Fq "source_ast_type == AST_LET_DECL" "$ROOT_DIR/src/codegen/transpiler_mir_pending_uses.h"
 grep -Fq "out->initializer = inst->expr0" "$ROOT_DIR/src/codegen/transpiler_mir_pending_uses.h"
 grep -Fq "out->type_annotation = inst->expr1" "$ROOT_DIR/src/codegen/transpiler_mir_pending_uses.h"
@@ -89,6 +96,11 @@ if grep -RIn --include 'transpiler_mir*.h' --include 'transpiler_mir*.c' \
 fi
 if grep -RIn "ctx->backend_error = strdup_fmt" "$ROOT_DIR/src/codegen"; then
     echo "C backend failures must route through diagnostic helpers" >&2
+    exit 1
+fi
+if grep -RInE "ctx->backend_error[[:space:]]*=[^=]" "$ROOT_DIR/src/codegen" \
+    | grep -v "src/codegen/transpiler_context.c"; then
+    echo "C backend must assign backend_error only inside transpiler_context.c" >&2
     exit 1
 fi
 ! grep -Fq "block->source_statements" "$ROOT_DIR/src/codegen/transpiler_mir_block_emit_helpers.h"
@@ -109,7 +121,8 @@ grep -Fq "noncfg=%zu" "$ROOT_DIR/src/compiler/mir_public_surface.h"
 grep -Fq "mir_validate_non_cfg_fallback_state" "$ROOT_DIR/src/compiler/mir_public_surface.h"
 grep -Fq "used non-CFG body fallback" "$ROOT_DIR/src/compiler/mir_public_surface.h"
 grep -Fq "MIR validator rejects CFG-backed non-CFG body fallback state" "$ROOT_DIR/src/tests/mir/test_mir_lowering_part_c.cases.h"
-grep -Fq "stmt = inst->ast" "$ROOT_DIR/src/compiler/mir_ssa_rename.c"
+grep -Fq "if (inst->expr0 != NULL)" "$ROOT_DIR/src/compiler/mir_ssa_rename.c"
+grep -Fq "ASTNode *expr = inst->expr0 != NULL ? inst->expr0 : inst->expr1" "$ROOT_DIR/src/compiler/mir_ssa_rename.c"
 ! grep -Fq "source_statement_inventory" "$ROOT_DIR/src/compiler/mir_ssa_rename.c"
 grep -Fq "source_statement_inventory" "$ROOT_DIR/src/compiler/mir_stmt_population.c"
 ! grep -Fq "while (*stmt_index < block->source_statement_count)" "$ROOT_DIR/src/compiler/mir_ssa_rename.c"
@@ -126,6 +139,12 @@ grep -Fq "source payload without surface usage facts" "$ROOT_DIR/src/compiler/mi
 grep -Fq "missing MIR initializer expression fact" "$ROOT_DIR/src/compiler/mir_fact_validate.c"
 grep -Fq "mir_def_source_requires_initializer_fact" "$ROOT_DIR/src/compiler/mir_fact_validate.c"
 grep -Fq "mir_instruction_has_surface_payload_or_shape" "$ROOT_DIR/src/compiler/mir_fact_validate.c"
+grep -Fq "requires_source_statement_emit" "$ROOT_DIR/src/compiler/mir.h"
+grep -Fq "DEF is missing source-statement emit fact" "$ROOT_DIR/src/compiler/mir_fact_validate.c"
+grep -Fq "source-statement emit fact is invalid" "$ROOT_DIR/src/compiler/mir_fact_validate.c"
+grep -Fq "MIR validator rejects invalid source-statement emit fact" "$ROOT_DIR/src/tests/mir/test_mir_lowering_part_c.cases.h"
+grep -Fq "branch source compatibility fact is invalid" "$ROOT_DIR/src/compiler/mir_fact_validate.c"
+grep -Fq "MIR validator rejects source-compatible branch without payload" "$ROOT_DIR/src/tests/mir/test_mir_lowering_part_c.cases.h"
 ! grep -Fq "mir_def_source_expression" "$ROOT_DIR/src/compiler/mir_fact_validate.c"
 ! grep -Fq "inst->ast->data.let_decl" "$ROOT_DIR/src/compiler/mir_fact_validate.c"
 grep -Fq "missing MIR value expression fact" "$ROOT_DIR/src/compiler/mir_fact_validate.c"
@@ -136,6 +155,11 @@ grep -Fq "missing MIR body expression fact" "$ROOT_DIR/src/compiler/mir_fact_val
 grep -Fq "llvm_mir_ast_type_is_cfg_container" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
 grep -Fq "llvm_mir_branch_requires_source_compatibility" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
 grep -Fq "llvm_mir_def_uses_source_statement_compatibility" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
+grep -Fq "inst->requires_source_statement_emit" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
+grep -Fq "transpiler_mir_def_uses_source_statement_emit" "$ROOT_DIR/src/codegen/transpiler_mir_block_emit_helpers.h"
+grep -Fq "inst->requires_source_statement_emit" "$ROOT_DIR/src/codegen/transpiler_mir_block_emit_helpers.h"
+grep -Fq "transpiler_mir_def_uses_source_statement_emit(" "$ROOT_DIR/src/codegen/transpiler_mir_assignment_emit.h"
+grep -Fq "!inst->requires_source_statement_emit" "$ROOT_DIR/src/codegen/transpiler_mir_block_emit.h"
 if grep -B2 -F "source_ast_type == AST_DEFER_STMT" \
     "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c" | grep -Fq "inst->ast != NULL"; then
     echo "LLVM defer STMT emission must consume MIR defer facts, not AST presence" >&2
@@ -144,6 +168,7 @@ fi
 grep -Fq "inst->expr1 = stmt->data.let_decl.type" "$ROOT_DIR/src/compiler/mir_call_fact.c"
 grep -Fq "inst->expr0 = stmt->data.defer_stmt.body" "$ROOT_DIR/src/compiler/mir_call_fact.c"
 grep -Fq "inst->arg0 = stmt->data.let_decl.name" "$ROOT_DIR/src/compiler/mir_call_fact.c"
+grep -Fq "inst->requires_source_statement_emit = true" "$ROOT_DIR/src/compiler/mir_call_fact.c"
 grep -Fq "stale thread-pool surface usage fact" "$ROOT_DIR/src/compiler/mir_fact_validate.c"
 grep -Fq "stale intent observability surface usage fact" "$ROOT_DIR/src/compiler/mir_fact_validate.c"
 grep -Fq "inventory surface usage facts" "$ROOT_DIR/src/compiler/mir_fact_validate.c"
@@ -224,7 +249,7 @@ grep -Fq "ASTNode *return_expr = inst->expr0" "$ROOT_DIR/src/codegen/llvm_mir_bl
 grep -Fq "llvm_register_defer(inst->expr0, ctx)" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
 ! grep -Fq "inst->ast->data.defer_stmt" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
 grep -Fq "source_ast_type == AST_WITH_STMT" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
-grep -Fq "source_ast_type == AST_LET_DECL" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
+! grep -Fq "source_ast_type == AST_LET_DECL" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
 ! grep -Fq "inst->ast->type" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
 grep -Fq "source_ast_type == AST_LET_DECL" "$ROOT_DIR/src/codegen/llvm_mir_local_emit.c"
 grep -Fq "ASTNode *value_expr = inst->expr0" "$ROOT_DIR/src/codegen/llvm_mir_local_emit.c"

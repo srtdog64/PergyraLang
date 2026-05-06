@@ -491,6 +491,8 @@ mir_dump(const MIRProgram *mir, FILE *out)
                             (int)inst->source_ast_type,
                             inst->source_line);
                 }
+                if (inst->requires_source_statement_emit)
+                    fprintf(out, " source-stmt-emit");
                 fprintf(out, "\n");
             }
         }

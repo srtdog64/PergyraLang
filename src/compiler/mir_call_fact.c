@@ -42,8 +42,10 @@ mir_attach_def_initializer_call_fact(MIRInstruction *inst, const ASTNode *stmt)
     if (stmt->type == AST_LET_DECL) {
         expr = stmt->data.let_decl.initializer;
         inst->expr1 = stmt->data.let_decl.type;
+        inst->requires_source_statement_emit = true;
     } else if (stmt->type == AST_ASSIGNMENT) {
         expr = stmt->data.assignment.value;
+        inst->requires_source_statement_emit = true;
     }
     inst->expr0 = expr;
     if (expr == NULL || expr->type != AST_CALL)

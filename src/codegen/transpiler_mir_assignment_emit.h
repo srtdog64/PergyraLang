@@ -40,9 +40,8 @@ transpiler_emit_mir_assignment_def_inst(CodeBuf *buf,
     bool target_is_field = false;
     bool is_local_binding = false;
 
-    if (inst->kind != MIR_INST_DEF
-        || stmt == NULL
-        || stmt->type != AST_ASSIGNMENT
+    if (!transpiler_mir_def_uses_source_statement_emit(
+            inst, stmt, AST_ASSIGNMENT)
         || stmt->data.assignment.target == NULL
         || stmt->data.assignment.target->type != AST_IDENTIFIER
         || inst->arg0 == NULL

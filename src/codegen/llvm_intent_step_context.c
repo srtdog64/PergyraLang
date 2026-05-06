@@ -8,18 +8,13 @@
 #ifdef PGY_LLVM_ENABLED
 
 #include "llvm_intent_internal.h"
-#include "../semantic/diag_codes.h"
 
 #include <string.h>
 
 static bool
 llvm_intent_step_context_fail(LLVMGenCtx *ctx, const char *message)
 {
-    llvm_set_error_with_hints(ctx,
-        PGY_CODE_MIR_INTENT_CARRIER_MISSING,
-        PGY_CAUSE_MIR_INTENT_CARRIER_MISSING,
-        PGY_FIX_CHECK_INTENT_STEP_LOWERING,
-        message);
+    llvm_set_mir_intent_carrier_missing(ctx, "%s", message);
     return false;
 }
 

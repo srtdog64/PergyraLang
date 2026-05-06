@@ -129,11 +129,9 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
     is_method = (!is_intent && routine->kind == MIR_SCOPE_METHOD);
     owner_name = routine->owner_name;
     if (is_method && owner_name == NULL) {
-        char msg[256];
-        snprintf(msg, sizeof(msg),
-                 "MIR-only LLVM path missing owner metadata for method '%s'",
-                 routine->name != NULL ? routine->name : "(anonymous)");
-        llvm_set_error(ctx, msg);
+        llvm_set_mir_topology_invalid(ctx,
+            "MIR-only LLVM path missing owner metadata for method '%s'",
+            routine->name != NULL ? routine->name : "(anonymous)");
         return NULL;
     }
     owner_cls = (is_method && owner_name != NULL)

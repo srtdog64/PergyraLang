@@ -252,12 +252,22 @@ void llvm_set_error_at_with_hints(LLVMGenCtx *ctx, ASTNode *node,
                                    const char *fix_source,
                                    const char *fmt, ...);
 void llvm_set_mir_inventory_missing(LLVMGenCtx *ctx, const char *fmt, ...);
+void llvm_set_mir_topology_invalid(LLVMGenCtx *ctx, const char *fmt, ...);
+void llvm_set_mir_intent_carrier_missing(LLVMGenCtx *ctx, const char *fmt, ...);
 
 /* =================================================================
  * Result helpers (llvm_backend.c)
  * ================================================================= */
 LLVMGenResult *llvm_result_error(const char *message);
+LLVMGenResult *llvm_result_error_with_hints(const char *message,
+                                            const char *code,
+                                            const char *cause_ir,
+                                            const char *fix_source);
 LLVMGenResult *llvm_result_error_fmt(const char *fmt, ...);
+LLVMGenResult *llvm_result_error_fmt_with_hints(const char *code,
+                                                const char *cause_ir,
+                                                const char *fix_source,
+                                                const char *fmt, ...);
 LLVMGenResult *llvm_result_success(char *ir_text);
 
 /* =================================================================

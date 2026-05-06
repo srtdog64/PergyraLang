@@ -36,10 +36,9 @@ static bool
 llvm_mir_def_uses_source_statement_compatibility(const MIRInstruction *inst)
 {
     return inst != NULL
+        && inst->requires_source_statement_emit
         && inst->ast != NULL
-        && inst->has_source_location
-        && (inst->source_ast_type == AST_LET_DECL
-            || inst->source_ast_type == AST_ASSIGNMENT);
+        && inst->has_source_location;
 }
 
 static bool
@@ -199,7 +198,8 @@ llvm_mir_emit_pin_enter(const MIRBasicBlock *block, LLVMGenCtx *ctx)
     inner = llvm_lookup_slot_inner(ctx, block->pin_source_name);
     slot_entry = llvm_scope_lookup(ctx, block->pin_source_name);
     if (inner == NULL || slot_entry == NULL || slot_entry->alloca == NULL) {
-        llvm_set_error(ctx, "LLVM MIR pin block cannot resolve source slot");
+        llvm_set_mir_topology_invalid(ctx,
+            "LLVM MIR pin block cannot resolve source slot");
         return false;
     }
 
@@ -212,7 +212,8 @@ llvm_mir_emit_pin_enter(const MIRBasicBlock *block, LLVMGenCtx *ctx)
                  block->pin_source_name);
         token_entry = llvm_scope_lookup(ctx, token_name);
         if (token_entry == NULL || token_entry->alloca == NULL) {
-            llvm_set_error(ctx, "LLVM MIR secure pin block cannot resolve paired token");
+            llvm_set_mir_topology_invalid(ctx,
+                "LLVM MIR secure pin block cannot resolve paired token");
             return false;
         }
         snprintf(fn_name, sizeof(fn_name), "pgy_secure_pin_%s_init_%s",
@@ -304,7 +305,8 @@ llvm_mir_emit_pin_exit(const MIRBasicBlock *block, LLVMGenCtx *ctx)
 
     inner = llvm_lookup_slot_inner(ctx, block->pin_source_name);
     if (inner == NULL) {
-        llvm_set_error(ctx, "LLVM MIR pin block cannot resolve source slot at exit");
+        llvm_set_mir_topology_invalid(ctx,
+            "LLVM MIR pin block cannot resolve source slot at exit");
         return false;
     }
 
@@ -312,7 +314,8 @@ llvm_mir_emit_pin_exit(const MIRBasicBlock *block, LLVMGenCtx *ctx)
     llvm_mir_pin_local_name(block, pin_name, sizeof(pin_name));
     pin_entry = llvm_scope_lookup(ctx, pin_name);
     if (pin_entry == NULL || pin_entry->alloca == NULL) {
-        llvm_set_error(ctx, "LLVM MIR pin block cannot resolve pin local at exit");
+        llvm_set_mir_topology_invalid(ctx,
+            "LLVM MIR pin block cannot resolve pin local at exit");
         return false;
     }
 

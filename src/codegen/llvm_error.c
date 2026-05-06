@@ -46,7 +46,7 @@ llvm_set_error(LLVMGenCtx *ctx, const char *fmt, ...)
 
 /* Attach a stable diagnostic code (e.g. "PGY_LLVM_SPEC_LIMIT") to the
  * emitted error. `code` must have static lifetime (string literal).
- * First error wins — further calls are no-ops. */
+ * First error wins; further calls are no-ops. */
 void
 llvm_set_error_with_code(LLVMGenCtx *ctx, const char *code,
                          const char *fmt, ...)
@@ -167,6 +167,42 @@ llvm_set_mir_inventory_missing(LLVMGenCtx *ctx, const char *fmt, ...)
     va_end(args);
 }
 
+void
+llvm_set_mir_topology_invalid(LLVMGenCtx *ctx, const char *fmt, ...)
+{
+    if (ctx->has_error)
+        return;
+    ctx->has_error = true;
+    ctx->error_line = 0;
+    ctx->error_column = 0;
+    ctx->error_code = PGY_CODE_MIR_TOPOLOGY_INVALID;
+    ctx->error_cause_ir = PGY_CAUSE_MIR_TOPOLOGY_INVALID;
+    ctx->error_fix_source = PGY_FIX_INSPECT_HIR_TO_MIR_LOWERING;
+
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(ctx->error_msg, sizeof(ctx->error_msg), fmt, args);
+    va_end(args);
+}
+
+void
+llvm_set_mir_intent_carrier_missing(LLVMGenCtx *ctx, const char *fmt, ...)
+{
+    if (ctx->has_error)
+        return;
+    ctx->has_error = true;
+    ctx->error_line = 0;
+    ctx->error_column = 0;
+    ctx->error_code = PGY_CODE_MIR_INTENT_CARRIER_MISSING;
+    ctx->error_cause_ir = PGY_CAUSE_MIR_INTENT_CARRIER_MISSING;
+    ctx->error_fix_source = PGY_FIX_CHECK_INTENT_STEP_LOWERING;
+
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(ctx->error_msg, sizeof(ctx->error_msg), fmt, args);
+    va_end(args);
+}
+
 LLVMGenResult *
 llvm_result_error(const char *message)
 {
@@ -180,6 +216,24 @@ llvm_result_error(const char *message)
 }
 
 LLVMGenResult *
+llvm_result_error_with_hints(const char *message, const char *code,
+                             const char *cause_ir,
+                             const char *fix_source)
+{
+    LLVMGenResult *res = llvm_result_error(message);
+    if (res == NULL)
+        return NULL;
+
+    if (code != NULL)
+        res->error_code = pgy_arena_strdup(&res->owned_arena, code);
+    if (cause_ir != NULL)
+        res->error_cause_ir = pgy_arena_strdup(&res->owned_arena, cause_ir);
+    if (fix_source != NULL)
+        res->error_fix_source = pgy_arena_strdup(&res->owned_arena, fix_source);
+    return res;
+}
+
+LLVMGenResult *
 llvm_result_error_fmt(const char *fmt, ...)
 {
     LLVMGenResult *res = llvm_result_alloc();
@@ -189,6 +243,31 @@ llvm_result_error_fmt(const char *fmt, ...)
         return NULL;
 
     res->success = false;
+    va_start(args, fmt);
+    res->error_message = pgy_arena_vfmt(&res->owned_arena, fmt, args);
+    va_end(args);
+    return res;
+}
+
+LLVMGenResult *
+llvm_result_error_fmt_with_hints(const char *code,
+                                 const char *cause_ir,
+                                 const char *fix_source,
+                                 const char *fmt, ...)
+{
+    LLVMGenResult *res = llvm_result_alloc();
+    va_list args;
+
+    if (res == NULL)
+        return NULL;
+
+    res->success = false;
+    if (code != NULL)
+        res->error_code = pgy_arena_strdup(&res->owned_arena, code);
+    if (cause_ir != NULL)
+        res->error_cause_ir = pgy_arena_strdup(&res->owned_arena, cause_ir);
+    if (fix_source != NULL)
+        res->error_fix_source = pgy_arena_strdup(&res->owned_arena, fix_source);
     va_start(args, fmt);
     res->error_message = pgy_arena_vfmt(&res->owned_arena, fmt, args);
     va_end(args);

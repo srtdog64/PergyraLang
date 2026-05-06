@@ -74,6 +74,126 @@ test_mir_lowering_part_c(void)
         hir_destroy(hir);
     }
 
+    TEST("MIR validator rejects invalid source-statement emit fact");
+    {
+        const char *src =
+            "func DefSourceEmitFact() -> Int {\n"
+            "    let value: Int = 7;\n"
+            "    return value;\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        MIRRoutine *routine = NULL;
+        MIRInstruction *def_inst = NULL;
+        ASTNode *saved_ast = NULL;
+        char *mir_error = NULL;
+        bool rejected_missing_fact = false;
+        bool rejected_invalid_fact = false;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok)
+            routine = find_mir_routine_mut(mir, "DefSourceEmitFact",
+                                           MIR_SCOPE_FUNCTION);
+        if (routine != NULL) {
+            for (size_t bi = 0; bi < routine->block_count && def_inst == NULL; bi++) {
+                MIRBasicBlock *block = &routine->blocks[bi];
+                for (size_t ii = 0; ii < block->instruction_count; ii++) {
+                    MIRInstruction *inst = &block->instructions[ii];
+                    if (inst->kind == MIR_INST_DEF
+                        && inst->requires_source_statement_emit) {
+                        def_inst = inst;
+                        break;
+                    }
+                }
+            }
+        }
+        if (def_inst != NULL) {
+            def_inst->requires_source_statement_emit = false;
+            rejected_missing_fact =
+                !mir_validate(mir, &mir_error)
+                && mir_error != NULL
+                && strstr(mir_error, "DEF is missing source-statement emit fact") != NULL;
+            free(mir_error);
+            mir_error = NULL;
+            def_inst->requires_source_statement_emit = true;
+
+            saved_ast = def_inst->ast;
+            def_inst->ast = NULL;
+            rejected_invalid_fact =
+                !mir_validate(mir, &mir_error)
+                && mir_error != NULL
+                && strstr(mir_error, "source-statement emit fact is invalid") != NULL;
+            def_inst->ast = saved_ast;
+        }
+        EXPECT(ok
+               && routine != NULL
+               && def_inst != NULL
+               && saved_ast != NULL
+               && rejected_missing_fact
+               && rejected_invalid_fact
+               && mir_validate(mir, NULL));
+        free(mir_error);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
+    TEST("MIR validator rejects source-compatible branch without payload");
+    {
+        const char *src =
+            "func BranchSourcePayload(x: Int) -> Int {\n"
+            "    if x > 0 {\n"
+            "        return 1;\n"
+            "    }\n"
+            "    return 0;\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        MIRRoutine *routine = NULL;
+        MIRInstruction *branch_inst = NULL;
+        ASTNode *saved_ast = NULL;
+        char *mir_error = NULL;
+        bool rejected_missing_payload = false;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok)
+            routine = find_mir_routine_mut(mir, "BranchSourcePayload",
+                                           MIR_SCOPE_FUNCTION);
+        if (routine != NULL) {
+            for (size_t bi = 0; bi < routine->block_count && branch_inst == NULL; bi++) {
+                MIRBasicBlock *block = &routine->blocks[bi];
+                for (size_t ii = 0; ii < block->instruction_count; ii++) {
+                    MIRInstruction *inst = &block->instructions[ii];
+                    if (inst->kind == MIR_INST_BRANCH) {
+                        branch_inst = inst;
+                        break;
+                    }
+                }
+            }
+        }
+        if (branch_inst != NULL) {
+            saved_ast = branch_inst->ast;
+            branch_inst->branch_shape = MIR_BRANCH_MATCH_CASE;
+            branch_inst->ast = NULL;
+            rejected_missing_payload =
+                !mir_validate(mir, &mir_error)
+                && mir_error != NULL
+                && strstr(mir_error, "branch source compatibility fact is invalid") != NULL;
+            branch_inst->ast = saved_ast;
+            branch_inst->branch_shape = MIR_BRANCH_EXPR;
+        }
+        EXPECT(ok
+               && routine != NULL
+               && branch_inst != NULL
+               && saved_ast != NULL
+               && rejected_missing_payload
+               && mir_validate(mir, NULL));
+        free(mir_error);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
     TEST("MIR validator rejects hosted method signature metadata drift");
     {
         const char *src =

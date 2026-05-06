@@ -74,7 +74,8 @@ run_literal_doc_contract_smoke() {
     require_literal "src/compiler/mir_cfg_contract_validate.h" "rollback successor"
     require_literal "src/compiler/mir_cfg_contract_validate.h" "invalidation successor"
     require_literal "src/compiler/mir_ssa_rename.c" "mir_def_instruction_source_expr"
-    require_literal "src/compiler/mir_ssa_rename.c" "stmt = inst->ast"
+    require_literal "src/compiler/mir_ssa_rename.c" "if (inst->expr0 != NULL)"
+    require_literal "src/compiler/mir_ssa_rename.c" "ASTNode *expr = inst->expr0 != NULL ? inst->expr0 : inst->expr1"
     require_literal "src/compiler/mir_stmt_population.c" "#include \"mir_call_fact.h\""
     require_literal "src/compiler/mir_stmt_population.c" "mir_set_inst_source_statement_index(&new_insts[*new_count - 1]"
     require_literal "src/compiler/mir_non_cfg_stmt_population.c" "routine->hir_routine != NULL && routine->hir_routine->has_cfg"
@@ -82,6 +83,16 @@ run_literal_doc_contract_smoke() {
     require_literal "src/compiler/mir_call_fact.c" "inst->arg0 = stmt->data.call.callee->data.identifier.name"
     require_literal "src/compiler/mir_call_fact.h" "mir_attach_def_initializer_call_fact"
     require_literal "src/compiler/mir_call_fact.c" "inst->arg1 = expr->data.call.callee->data.identifier.name"
+    require_literal "src/compiler/mir_call_fact.c" "inst->requires_source_statement_emit = true"
+    require_literal "src/compiler/mir_fact_validate.c" "DEF is missing source-statement emit fact"
+    require_literal "src/compiler/mir_fact_validate.c" "source-statement emit fact is invalid"
+    require_literal "src/tests/mir/test_mir_lowering_part_c.cases.h" "MIR validator rejects invalid source-statement emit fact"
+    require_literal "src/compiler/mir_fact_validate.c" "branch source compatibility fact is invalid"
+    require_literal "src/tests/mir/test_mir_lowering_part_c.cases.h" "MIR validator rejects source-compatible branch without payload"
+    require_literal "src/codegen/llvm_mir_block_emit.c" "inst->requires_source_statement_emit"
+    require_literal "src/codegen/transpiler_mir_pending_uses.h" "!inst->requires_source_statement_emit"
+    require_literal "src/codegen/transpiler_mir_block_emit_helpers.h" "transpiler_mir_def_uses_source_statement_emit"
+    require_literal "src/codegen/transpiler_mir_assignment_emit.h" "transpiler_mir_def_uses_source_statement_emit("
     require_literal "src/semantic/type_checker_flow.c" "type_check_while_loop_flow(node, ctx)"
     require_literal "src/semantic/type_checker_flow.c" "type_check_for_loop_flow(node, ctx)"
     require_literal "src/semantic/type_checker_flow_loops.c" "type_check_while_loop_flow(ASTNode *node, SemanticContext *ctx)"
@@ -626,7 +637,8 @@ required_mir_owner_terms = {
         "mir_append_block_versioned_name",
         "mir_parse_versioned_name",
         "mir_def_instruction_source_expr",
-        "stmt = inst->ast",
+        "if (inst->expr0 != NULL)",
+        "ASTNode *expr = inst->expr0 != NULL ? inst->expr0 : inst->expr1",
         "mir_populate_use_edges",
     ],
     "src/compiler/mir_liveness_dce.c": [

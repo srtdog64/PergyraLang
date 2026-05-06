@@ -179,21 +179,68 @@ if grep -Eq 'decl->data\.class_decl\.method_count|decl->data\.class_decl\.method
 fi
 
 require_term "src/codegen/llvm_internal_api.h" "llvm_set_mir_inventory_missing"
+require_term "src/codegen/llvm_internal_api.h" "llvm_set_mir_topology_invalid"
+require_term "src/codegen/llvm_internal_api.h" "llvm_set_mir_intent_carrier_missing"
 require_term "src/codegen/llvm_error.c" "llvm_set_mir_inventory_missing"
+require_term "src/codegen/llvm_error.c" "llvm_set_mir_topology_invalid"
+require_term "src/codegen/llvm_error.c" "llvm_set_mir_intent_carrier_missing"
+require_term "src/codegen/llvm_error.c" "llvm_result_error_with_hints"
+require_term "src/codegen/llvm_error.c" "llvm_result_error_fmt_with_hints"
 require_term "src/codegen/llvm_error.c" "PGY_CODE_LLVM_MIR_ROUTINE_MISSING"
+require_term "src/codegen/llvm_error.c" "PGY_CODE_MIR_TOPOLOGY_INVALID"
+require_term "src/codegen/llvm_error.c" "PGY_CODE_MIR_INTENT_CARRIER_MISSING"
 require_term "src/codegen/llvm_error.c" "PGY_FIX_INSPECT_MIR_INVENTORY"
+require_term "src/codegen/llvm_error.c" "PGY_FIX_INSPECT_HIR_TO_MIR_LOWERING"
+require_term "src/codegen/llvm_error.c" "PGY_FIX_CHECK_INTENT_STEP_LOWERING"
 if grep -RIn "PGY_CAUSE_LLVM_MIR_ROUTINE_MISSING" "$ROOT_DIR/src/codegen" \
     | grep -v "src/codegen/llvm_error.c"; then
     fail "LLVM MIR-missing diagnostics must route through llvm_set_mir_inventory_missing"
+fi
+if grep -A3 -F "LLVM MIR pin block cannot resolve" \
+    "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c" | grep -Fq "llvm_set_error(ctx"; then
+    fail "LLVM MIR pin topology diagnostics must use llvm_set_mir_topology_invalid"
+fi
+if grep -A3 -F "MIR-only LLVM path missing owner metadata" \
+    "$ROOT_DIR/src/codegen/llvm_mir_emit.c" | grep -Fq "llvm_set_error(ctx"; then
+    fail "LLVM MIR owner topology diagnostics must use llvm_set_mir_topology_invalid"
+fi
+require_term "src/codegen/llvm_mir_contract.c" "llvm_set_mir_topology_invalid"
+if grep -RIn "llvm_set_error_with_hints(ctx" \
+    "$ROOT_DIR/src/codegen/llvm_mir_contract.c"; then
+    fail "LLVM MIR contract diagnostics must use llvm_set_mir_topology_invalid"
+fi
+require_term "src/codegen/llvm_pipeline.c" "llvm_result_error_with_hints(\"MIR program is NULL\""
+require_term "src/codegen/llvm_pipeline.c" "llvm_result_error_with_hints(\"MIR routine is missing name\""
+require_term "src/codegen/llvm_pipeline.c" "llvm_result_error_fmt_with_hints("
+if grep -A10 -F "MIR routine '%s' emission topology invalid" \
+    "$ROOT_DIR/src/codegen/llvm_pipeline.c" | grep -Fq "llvm_result_error_fmt("; then
+    fail "LLVM MIR topology preflight must attach structured diagnostic hints"
 fi
 
 if grep -A8 -F "MIR-only LLVM path missing intent routine" \
     "$ROOT_DIR/src/codegen/llvm_intent.c" | grep -Fq "llvm_set_error(ctx"; then
     fail "LLVM intent MIR-missing diagnostics must use llvm_set_mir_inventory_missing"
 fi
+if grep -A8 -F "MIR-only LLVM path missing intent participant metadata" \
+    "$ROOT_DIR/src/codegen/llvm_intent_flow.c" | grep -Fq "llvm_set_error(ctx"; then
+    fail "LLVM intent participant inventory diagnostics must use llvm_set_mir_inventory_missing"
+fi
+require_term "src/codegen/llvm_intent_cleanup.c" "llvm_set_mir_intent_carrier_missing"
+require_term "src/codegen/llvm_intent_step_context.c" "llvm_set_mir_intent_carrier_missing"
+if grep -RIn "llvm_set_error_with_hints(ctx" \
+    "$ROOT_DIR/src/codegen/llvm_intent_cleanup.c" \
+    "$ROOT_DIR/src/codegen/llvm_intent_step_context.c"; then
+    fail "LLVM intent carrier diagnostics must use llvm_set_mir_intent_carrier_missing"
+fi
 if grep -A8 -F "MIR-only LLVM path missing routine for function" \
     "$ROOT_DIR/src/codegen/llvm_pipeline.c" | grep -Fq "llvm_set_error(ctx"; then
     fail "LLVM pipeline MIR-missing diagnostics must use llvm_set_mir_inventory_missing"
+fi
+if grep -RIn "llvm_set_error(ctx" "$ROOT_DIR/src/codegen"/llvm_mir*.c \
+    "$ROOT_DIR/src/codegen"/llvm_mir*.h \
+    "$ROOT_DIR/src/codegen/llvm_intent_flow.c" \
+    "$ROOT_DIR/src/codegen/llvm_mir_emit.c"; then
+    fail "LLVM MIR emission must route failures through MIR diagnostic helpers"
 fi
 
 require_term "src/codegen/llvm_domain.c" "llvm_active_domain_inventory(ctx, &inventory)"
@@ -337,12 +384,18 @@ require_term "src/codegen/transpiler_context.h" \
     "transpiler_set_mir_inventory_missing"
 require_term "src/codegen/transpiler_context.h" \
     "transpiler_set_mir_topology_invalid"
+require_term "src/codegen/transpiler_context.h" \
+    "transpiler_set_mir_intent_carrier_missing"
 for term in \
     "transpiler_set_mir_inventory_missing" \
     "transpiler_set_mir_topology_invalid" \
+    "transpiler_set_mir_intent_carrier_missing" \
     "PGY_CODE_MIR_TOPOLOGY_INVALID" \
+    "PGY_CODE_MIR_INTENT_CARRIER_MISSING" \
     "PGY_CAUSE_MIR_TOPOLOGY_ROUTINE_MISSING" \
     "PGY_CAUSE_MIR_TOPOLOGY_INVALID" \
+    "PGY_CAUSE_MIR_INTENT_CARRIER_MISSING" \
+    "PGY_FIX_CHECK_INTENT_STEP_LOWERING" \
     "PGY_FIX_INSPECT_HIR_TO_MIR_LOWERING"; do
     require_term "src/codegen/transpiler_context.c" "$term"
 done
@@ -402,12 +455,40 @@ require_term "src/codegen/transpiler_domain_role_ability_emit.h" \
     "transpiler_set_mir_inventory_missing("
 require_term "src/codegen/transpiler_intent_emit.h" \
     "transpiler_set_mir_inventory_missing("
+require_term "src/codegen/transpiler_intent_emit_metadata_helpers.h" \
+    "transpiler_set_mir_intent_carrier_missing("
+require_term "src/codegen/transpiler_intent_cleanup_emit.h" \
+    "transpiler_set_mir_intent_carrier_missing("
+if grep -RIn "PGY_CODE_MIR_INTENT_CARRIER_MISSING" \
+    "$ROOT_DIR/src/codegen/transpiler_intent_emit_metadata_helpers.h" \
+    "$ROOT_DIR/src/codegen/transpiler_intent_cleanup_emit.h"; then
+    fail "C intent carrier diagnostics must use transpiler_set_mir_intent_carrier_missing"
+fi
 require_term "src/codegen/transpiler_mir_emit_state.c" \
     "transpiler_set_mir_inventory_missing("
 require_term "src/codegen/transpiler_mir_func_emit.h" \
     "transpiler_set_mir_topology_invalid("
 require_term "src/codegen/transpiler_mir_terminator_emit.h" \
     "transpiler_set_mir_topology_invalid("
+require_term "src/codegen/transpiler_mir_reason_classifier.h" \
+    "transpiler_classify_mir_function_reason"
+require_term "src/codegen/transpiler_mir_reason_classifier.c" \
+    "PGY_CODE_MIR_UNRESOLVED_LOCAL"
+require_term "src/codegen/transpiler_mir_reason_classifier.c" \
+    "PGY_CODE_MIR_SIGNATURE_UNSUPPORTED"
+require_term "src/codegen/transpiler_mir_reason_classifier.c" \
+    "PGY_CODE_MIR_SSA_LIMIT"
+require_term "src/codegen/transpiler_mir_reason_classifier.c" \
+    "kMirFunctionReasonPatterns"
+require_term "src/codegen/transpiler_mir_reason_classifier.c" \
+    "\"MIR contract invalid\""
+require_term "src/codegen/transpiler_mir_reason_classifier.c" \
+    "\"no matching MIR routine\""
+require_term "src/codegen/transpiler_func_class_flow_emit.h" \
+    "transpiler_classify_mir_function_reason(reason)"
+if grep -n "strstr(reason" "$ROOT_DIR/src/codegen/transpiler_func_class_flow_emit.h"; then
+    fail "C function emitter must not classify MIR reason strings inline"
+fi
 for rel in \
     "src/codegen/transpiler_class_decl_emit.h" \
     "src/codegen/transpiler_enum_decl_emit.h" \

@@ -1,4 +1,4 @@
-# Pergyra TODO (배포 준비)
+# Pergyra TODO (베타 준비)
 
 English anchor for tooling/doc gates:
 
@@ -13,6 +13,110 @@ English anchor for tooling/doc gates:
 
 Progress log, 2026-05-04:
 
+- Added structured LLVM preflight result diagnostics for
+  `llvm_validate_mir_for_codegen(...)`: null MIR programs, nameless routines,
+  and MIR emission-topology failures now return `LLVMGenResult` with
+  stable code/cause/fix fields instead of message-only errors. The result
+  helper preserves the existing owning-string ABI by arena-copying diagnostic
+  tags. Gates: `mir-declaration-inventory-test-smoke`,
+  `llvm-test-smoke`, and `test-inc-size-test-smoke`.
+- Fixed LLVM native object codegen's intent-observability runtime selection:
+  `llvm_codegen_to_object_core(...)` now derives
+  `ctx->uses_intent_observability` from MIR before emission, matching the LLVM
+  IR path and preventing observability-using programs from selecting the
+  non-observability runtime cache object. LLVM context-result conversion now
+  uses the same arena-owning structured-result helper, removing a duplicate
+  code/cause/fix copy path. The perf contract now requires both
+  LLVM codegen paths to set the MIR-derived flag. Gates:
+  `perf-contract-test-smoke` and `llvm-test-smoke`.
+- Centralized AIR authoritative-evidence policy:
+  `air_validate_evidence_inventory(...)`, `air_verify(...)`, and public
+  `air_boundary_has_evidence(...)` now consume the same internal
+  `air_evidence_inventory_is_authoritative(...)` helper instead of carrying
+  duplicate static predicates. Boundary evidence-kind lookup also lives with
+  the evidence validation owner now, so `air_verify.c` consumes inventory
+  facts rather than owning the lookup loop. This keeps strict evidence
+  validation and drift checking aligned as AIR becomes the
+  abstraction-boundary verification layer. Gates: `test-air` (`77/0`),
+  `air-drift-test-smoke`,
+  `air-json-schema-test-smoke`, and `air-backend-nonimpact-full-test-smoke`.
+- Tightened CFG/MIR use-edge population toward fact-first body safety:
+  `mir_populate_use_edges(...)` now prefers MIR expression facts (`expr0` /
+  `expr1`) for DEF and non-DEF instruction use collection before falling back
+  to source AST compatibility payloads. This keeps SSA/use-edge analysis aligned
+  with the existing MIR initializer/terminator fact validators and reduces the
+  remaining AST-first body-safety seam. Gates: `test-mir` (`48/0`),
+  `cfg-body-dataflow-test-smoke`, `perf-contract-test-smoke`, and
+  `test-inc-size-test-smoke`.
+- Isolated the C backend pending-use source compatibility path:
+  `transpiler_find_block_binding_from_mir_insts(...)` now keeps the fact-first
+  `expr0` / `expr1` binding path as the normal route and routes the remaining
+  source-AST let-binding compatibility through
+  `transpiler_pending_binding_from_source_compatibility(...)`. This does not
+  remove the seam, but it gives the remaining fallback a named owner and keeps
+  future cleanup from spreading statement payload reads back into the MIR block
+  binding path. Gates: `cfg-body-dataflow-test-smoke`,
+  `perf-contract-test-smoke`, and `test-mir` (`48/0`).
+- Narrowed the C backend pending-use source compatibility seam further:
+  both the normal pending-binding lookup and the residual source compatibility
+  helper now require `MIRInstruction.requires_source_statement_emit`, so a
+  source-shape-only `AST_LET_DECL` fact cannot reopen source payload reads.
+  The perf/CFG smokes gate the requirement and `test-transpile` keeps the C
+  backend behavior stable. Gates: `test-transpile` (`717/0`),
+  `cfg-body-dataflow-test-smoke`, `perf-contract-test-smoke`, and
+  `test-inc-size-test-smoke`.
+- Lifted the DEF source-statement compatibility decision into MIR:
+  `MIRInstruction.requires_source_statement_emit` is now populated by
+  `mir_attach_def_initializer_call_fact(...)`, validated by
+  `mir_validate_instruction_surface_usage(...)`, dumped by the MIR public
+  surface, and consumed by both `llvm_mir_def_uses_source_statement_compatibility(...)`
+  and the C backend's `transpiler_mir_def_uses_source_statement_emit(...)`.
+  The validator now enforces the fact in both directions: LET/ASSIGN DEFs must
+  carry it, and instructions carrying it must have valid source statement
+  shape/provenance.
+  C/LLVM still emit the original source statement for the compatibility path,
+  but backend code no longer decides that path by locally checking
+  `source_ast_type == AST_LET_DECL || AST_ASSIGNMENT`; the remaining
+  compatibility path is now an explicit MIR fact. Gates:
+  `cfg-body-dataflow-test-smoke`, `perf-contract-test-smoke`, `test-mir`
+  (`48/0`), `test-inc-size-test-smoke`, `llvm-test-smoke`, and
+  `build-source-inventory-test-smoke`.
+- Made the remaining LLVM match/select branch source-compatibility seam
+  explicit in MIR validation: `mir_validate_instruction_surface_usage(...)`
+  now rejects `MIR_BRANCH_MATCH_CASE` / `MIR_BRANCH_SELECT_DISPATCH` branches
+  that have no source payload, matching the current LLVM codegen requirement
+  instead of leaving the failure to backend emission. The MIR suite now carries
+  a negative drift fixture for this source-compatible branch path, and the
+  CFG/perf smokes gate the contract string. Gates: `test-mir` (`48/0`),
+  `cfg-body-dataflow-test-smoke`, `perf-contract-test-smoke`, and
+  `test-inc-size-test-smoke`.
+- LLVM MIR DEF statement compatibility is still a real remaining seam, not a
+  removable flag check: a trial restriction that used statement compatibility
+  only when `expr0 == NULL` broke the `break_continue` LLVM smoke. Closing this
+  requires first lifting base-name scope declaration and statement side-effect
+  lowering into explicit MIR facts; `expr0` alone is not enough to replace the
+  source-statement compatibility path safely.
+- Split C backend MIR function reason classification out of
+  `transpiler_func_class_flow_emit.h` into
+  `transpiler_mir_reason_classifier.{h,c}`. Function emission now consumes a
+  typed `TranspilerMirReasonDiagnostic` instead of inspecting reason strings
+  inline. The classifier is table-driven through `kMirFunctionReasonPatterns`,
+  including the `no matching MIR routine` and generic `MIR contract invalid`
+  topology families emitted by the MIR emission contract validator,
+  and the declaration-inventory smoke rejects reintroducing inline
+  `strstr(reason, ...)` classification in the emitter. Gates:
+  `mir-declaration-inventory-test-smoke`, `test-transpile`,
+  `build-source-inventory-test-smoke`, and `test-inc-size-test-smoke`.
+- Centralized C/LLVM MIR intent-carrier diagnostics behind
+  `transpiler_set_mir_intent_carrier_missing(...)` and
+  `llvm_set_mir_intent_carrier_missing(...)`: intent cleanup and step-context
+  emission no longer duplicate the carrier-missing code/cause/fix routing
+  locally, and the declaration-inventory smoke now rejects reintroducing local
+  carrier code/hint paths. LLVM MIR cleanup/pin contract validation also routes
+  topology failures through `llvm_set_mir_topology_invalid(...)` instead of
+  open-coded topology hints. Gates:
+  `mir-declaration-inventory-test-smoke`, `perf-contract-test-smoke`, and
+  `test-inc-size-test-smoke`.
 - Centralized AIR evidence-authority selection in `air_verify.c`: both public
   evidence lookup and strict drift verification now use the same
   `air_evidence_inventory_is_authoritative(...)` policy, so real HIR/RIR/MIR
@@ -79,7 +183,7 @@ Progress log, 2026-05-04:
 - Promoted the non-CFG fallback counter from visibility to validation:
   `mir_validate_non_cfg_fallback_state(...)` now rejects CFG-backed routines
   that report non-CFG body fallback use, and the MIR suite has a negative drift
-  fixture for that state. Gates: `test-mir` (`46/0`),
+  fixture for that state. Gates: `test-mir` (`48/0`),
   `perf-contract-test-smoke`, `cfg-body-dataflow-test-smoke`, and
   `test-inc-size-test-smoke`.
 - Strengthened `pgy.air.graph.v1` as a verification-consumer surface: each AIR
@@ -142,6 +246,14 @@ Progress log, 2026-05-04:
   `llvm_error.c`. Gates: `llvm-test-smoke`, `mir-declaration-inventory-test-smoke`,
   and `perf-contract-test-smoke`. Full backend compare was started as part of a
   combined gate but exceeded the local timeout; no compare failure was observed.
+- Added the LLVM-side `llvm_set_mir_topology_invalid(...)` helper and routed
+  MIR pin block resolution failures plus missing method owner metadata through
+  stable MIR topology code/cause/fix hints. LLVM intent participant metadata
+  gaps now route through `llvm_set_mir_inventory_missing(...)`; remaining plain
+  `llvm_set_error(...)` calls under LLVM are now OOM/registry failures, not MIR
+  inventory/topology diagnostics. Gates: `llvm-test-smoke`,
+  `mir-declaration-inventory-test-smoke`, `perf-contract-test-smoke`, and
+  `test-inc-size-test-smoke`.
 - Moved the shared C backend heap formatting helpers (`strdup_fmt` and `escape_c_string_literal`) out of `transpiler_helpers.h` into `transpiler_format.c`; the helper header no longer duplicates those string-format bodies at include sites, and the Makefile source inventory owns the new formatter. Gates: targeted `gcc -fsyntax-only` for `transpiler_format.c` and `transpiler.c`, `build-source-inventory-test-smoke`, `test-inc-size-test-smoke`, and `pgy`.
 - Moved the C backend MIR intent statement query out of `transpiler_helpers.h` into `transpiler_mir_intent_query.c`; intent emission now consumes a linked MIR query helper instead of a static header body, and an unused MIR DEF runtime-call helper was removed from the same header. Gates: targeted `gcc -fsyntax-only` for `transpiler_mir_intent_query.c` and `transpiler.c`, `build-source-inventory-test-smoke`, `test-inc-size-test-smoke`, and `pgy`.
 - Moved the C backend concrete MIR resource-op emitter out of `transpiler_helpers.h` into `transpiler_mir_resource_op_core.c`; resource hook emission now calls a linked ABI/resource owner instead of a static header body. Gates: targeted `gcc -fsyntax-only` for `transpiler_mir_resource_op_core.c` and `transpiler.c`, `build-source-inventory-test-smoke`, `test-inc-size-test-smoke`, and `pgy`.
@@ -1406,7 +1518,7 @@ dispatch / semantic lookup / runtime data structure 3축 결과 통합. *정확�
   for `pin` execution boundaries once MIR evidence is available. This keeps MIR
   as the cleanup source of truth while preventing AIR from treating a pin
   boundary as closed without the matching MIR `pin-unpin-cleanup-edge` evidence.
-  Local gate: `make test-air` (`48/0`).
+  Local gate: `make test-air` (`77/0`).
 - Follow-up AIR/CFG cleanup fact tightening: AIR no longer accepts an orphan
   `pin-unpin-cleanup-edge` instruction as pin cleanup evidence. The MIR pin
   block must also have a real cleanup successor that targets the routine cleanup

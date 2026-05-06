@@ -6,11 +6,7 @@
 static bool
 transpiler_emit_intent_missing_carrier(TranspilerCtx *ctx, const char *message)
 {
-    transpiler_set_backend_error_with_hints(ctx,
-        PGY_CODE_MIR_INTENT_CARRIER_MISSING,
-        PGY_CAUSE_MIR_INTENT_CARRIER_MISSING,
-        PGY_FIX_CHECK_INTENT_STEP_LOWERING,
-        message);
+    transpiler_set_mir_intent_carrier_missing(ctx, "%s", message);
     return false;
 }
 

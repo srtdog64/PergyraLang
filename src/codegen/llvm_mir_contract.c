@@ -27,10 +27,7 @@ llvm_mir_validate_cleanup_contract(const MIRRoutine *routine,
 
         if (block->has_cleanup_succ
             && block->cleanup_succ >= routine->block_count) {
-            llvm_set_error_with_hints(ctx,
-                PGY_CODE_MIR_TOPOLOGY_INVALID,
-                PGY_CAUSE_MIR_TOPOLOGY_INVALID,
-                PGY_FIX_INSPECT_HIR_TO_MIR_LOWERING,
+            llvm_set_mir_topology_invalid(ctx,
                 "LLVM MIR contract invalid for %s: block %zu has bad cleanup successor",
                 routine_name,
                 i);
@@ -38,10 +35,7 @@ llvm_mir_validate_cleanup_contract(const MIRRoutine *routine,
         }
         if (block->has_rollback_succ
             && block->rollback_succ >= routine->block_count) {
-            llvm_set_error_with_hints(ctx,
-                PGY_CODE_MIR_TOPOLOGY_INVALID,
-                PGY_CAUSE_MIR_TOPOLOGY_INVALID,
-                PGY_FIX_INSPECT_HIR_TO_MIR_LOWERING,
+            llvm_set_mir_topology_invalid(ctx,
                 "LLVM MIR contract invalid for %s: block %zu has bad rollback successor",
                 routine_name,
                 i);
@@ -49,10 +43,7 @@ llvm_mir_validate_cleanup_contract(const MIRRoutine *routine,
         }
         if (block->has_invalidation_succ
             && block->invalidation_succ >= routine->block_count) {
-            llvm_set_error_with_hints(ctx,
-                PGY_CODE_MIR_TOPOLOGY_INVALID,
-                PGY_CAUSE_MIR_TOPOLOGY_INVALID,
-                PGY_FIX_INSPECT_HIR_TO_MIR_LOWERING,
+            llvm_set_mir_topology_invalid(ctx,
                 "LLVM MIR contract invalid for %s: block %zu has bad invalidation successor",
                 routine_name,
                 i);
@@ -62,10 +53,7 @@ llvm_mir_validate_cleanup_contract(const MIRRoutine *routine,
              || block->has_rollback_succ
              || block->has_invalidation_succ)
             && !routine->has_cleanup_block) {
-            llvm_set_error_with_hints(ctx,
-                PGY_CODE_MIR_TOPOLOGY_INVALID,
-                PGY_CAUSE_MIR_TOPOLOGY_INVALID,
-                PGY_FIX_INSPECT_HIR_TO_MIR_LOWERING,
+            llvm_set_mir_topology_invalid(ctx,
                 "LLVM MIR contract invalid for %s: block %zu has cleanup edge without cleanup root",
                 routine_name,
                 i);
@@ -73,10 +61,7 @@ llvm_mir_validate_cleanup_contract(const MIRRoutine *routine,
         }
         if (!block->has_cleanup_succ) {
             if (block->is_reachable && block->is_pin_region) {
-                llvm_set_error_with_hints(ctx,
-                    PGY_CODE_MIR_TOPOLOGY_INVALID,
-                    PGY_CAUSE_MIR_TOPOLOGY_INVALID,
-                    PGY_FIX_INSPECT_HIR_TO_MIR_LOWERING,
+                llvm_set_mir_topology_invalid(ctx,
                     "LLVM MIR contract invalid for %s: pin block %zu has no cleanup successor",
                     routine_name,
                     i);
@@ -87,10 +72,7 @@ llvm_mir_validate_cleanup_contract(const MIRRoutine *routine,
 
         cleanup_fact = mir_cleanup_edge_fact_name_for_block(routine, i);
         if (!mir_block_has_cleanup_edge_fact(block, cleanup_fact)) {
-            llvm_set_error_with_hints(ctx,
-                PGY_CODE_MIR_TOPOLOGY_INVALID,
-                PGY_CAUSE_MIR_TOPOLOGY_INVALID,
-                PGY_FIX_INSPECT_HIR_TO_MIR_LOWERING,
+            llvm_set_mir_topology_invalid(ctx,
                 "LLVM MIR contract invalid for %s: block %zu missing %s fact",
                 routine_name,
                 i,
@@ -99,10 +81,7 @@ llvm_mir_validate_cleanup_contract(const MIRRoutine *routine,
         }
         if (block->is_pin_region && !mir_block_has_pin_cleanup_edge(block)) {
             const char *reason = mir_block_pin_cleanup_missing_reason(block);
-            llvm_set_error_with_hints(ctx,
-                PGY_CODE_MIR_TOPOLOGY_INVALID,
-                PGY_CAUSE_MIR_TOPOLOGY_INVALID,
-                PGY_FIX_INSPECT_HIR_TO_MIR_LOWERING,
+            llvm_set_mir_topology_invalid(ctx,
                 "LLVM MIR contract invalid for %s: pin block %zu missing pin cleanup fact (%s)",
                 routine_name,
                 i,
