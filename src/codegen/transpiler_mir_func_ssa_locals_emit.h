@@ -2,6 +2,19 @@
 #define PGY_TRANSPILER_MIR_FUNC_SSA_LOCALS_EMIT_H
 
 static bool
+transpiler_mir_ssa_local_limit_fail(TranspilerCtx *ctx, const char *name)
+{
+    transpiler_set_backend_error_with_hints(
+        ctx,
+        PGY_CODE_MIR_SSA_LIMIT,
+        PGY_CAUSE_MIR_SSA_CAPACITY_EXCEEDED,
+        PGY_FIX_INSPECT_HIR_TO_MIR_LOWERING,
+        "too many MIR SSA locals while emitting function '%s'",
+        name != NULL ? name : "<function>");
+    return false;
+}
+
+static bool
 transpiler_emit_mir_func_ssa_local_decls(TranspilerCtx *ctx,
                                          ASTNode *node,
                                          const MIRRoutine *mir_routine,
@@ -19,12 +32,7 @@ transpiler_emit_mir_func_ssa_local_decls(TranspilerCtx *ctx,
                                                     &declared_versioned_count,
                                                     4096,
                                                     block->live_in_names[j])) {
-                if (ctx->backend_error == NULL) {
-                    ctx->backend_error = strdup_fmt(
-                        "too many MIR SSA locals while emitting function '%s'",
-                        name != NULL ? name : "<function>");
-                }
-                return false;
+                return transpiler_mir_ssa_local_limit_fail(ctx, name);
             }
         }
         for (size_t j = 0; j < block->ssa_entry_value_count; j++) {
@@ -32,12 +40,7 @@ transpiler_emit_mir_func_ssa_local_decls(TranspilerCtx *ctx,
                                                     &declared_versioned_count,
                                                     4096,
                                                     block->ssa_entry_values[j])) {
-                if (ctx->backend_error == NULL) {
-                    ctx->backend_error = strdup_fmt(
-                        "too many MIR SSA locals while emitting function '%s'",
-                        name != NULL ? name : "<function>");
-                }
-                return false;
+                return transpiler_mir_ssa_local_limit_fail(ctx, name);
             }
         }
         for (size_t j = 0; j < block->ssa_exit_value_count; j++) {
@@ -45,12 +48,7 @@ transpiler_emit_mir_func_ssa_local_decls(TranspilerCtx *ctx,
                                                     &declared_versioned_count,
                                                     4096,
                                                     block->ssa_exit_values[j])) {
-                if (ctx->backend_error == NULL) {
-                    ctx->backend_error = strdup_fmt(
-                        "too many MIR SSA locals while emitting function '%s'",
-                        name != NULL ? name : "<function>");
-                }
-                return false;
+                return transpiler_mir_ssa_local_limit_fail(ctx, name);
             }
         }
         for (size_t j = 0; j < block->renamed_local_count; j++) {
@@ -58,12 +56,7 @@ transpiler_emit_mir_func_ssa_local_decls(TranspilerCtx *ctx,
                                                     &declared_versioned_count,
                                                     4096,
                                                     block->renamed_locals[j])) {
-                if (ctx->backend_error == NULL) {
-                    ctx->backend_error = strdup_fmt(
-                        "too many MIR SSA locals while emitting function '%s'",
-                        name != NULL ? name : "<function>");
-                }
-                return false;
+                return transpiler_mir_ssa_local_limit_fail(ctx, name);
             }
         }
         for (size_t j = 0; j < block->instruction_count; j++) {
@@ -73,12 +66,7 @@ transpiler_emit_mir_func_ssa_local_decls(TranspilerCtx *ctx,
                                                         &declared_versioned_count,
                                                         4096,
                                                         inst->uses[u])) {
-                    if (ctx->backend_error == NULL) {
-                        ctx->backend_error = strdup_fmt(
-                            "too many MIR SSA locals while emitting function '%s'",
-                            name != NULL ? name : "<function>");
-                    }
-                    return false;
+                    return transpiler_mir_ssa_local_limit_fail(ctx, name);
                 }
             }
             if ((inst->kind == MIR_INST_DEF || inst->kind == MIR_INST_PHI)
@@ -87,12 +75,7 @@ transpiler_emit_mir_func_ssa_local_decls(TranspilerCtx *ctx,
                                                        &declared_versioned_count,
                                                        4096,
                                                        inst->result_name)) {
-                if (ctx->backend_error == NULL) {
-                    ctx->backend_error = strdup_fmt(
-                        "too many MIR SSA locals while emitting function '%s'",
-                        name != NULL ? name : "<function>");
-                }
-                return false;
+                return transpiler_mir_ssa_local_limit_fail(ctx, name);
             }
         }
     }
@@ -135,12 +118,14 @@ transpiler_emit_mir_func_ssa_local_decls(TranspilerCtx *ctx,
             || c_type[0] == '\0'
             || (type_name != NULL && strcmp(type_name, "Unknown") == 0)
             || strcmp(c_type, "Unknown") == 0) {
-            if (ctx->backend_error == NULL) {
-                ctx->backend_error = strdup_fmt(
-                    "cannot determine C type for MIR local '%s' in function '%s'",
-                    versioned_name,
-                    name != NULL ? name : "<function>");
-            }
+            transpiler_set_backend_error_with_hints(
+                ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED,
+                PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+                "cannot determine C type for MIR local '%s' in function '%s'",
+                versioned_name,
+                name != NULL ? name : "<function>");
             return false;
         }
         c_name = transpiler_render_ssa_name(ctx, versioned_name);

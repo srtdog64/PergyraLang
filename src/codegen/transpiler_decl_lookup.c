@@ -104,7 +104,7 @@ transpiler_find_named_decl_local(TranspilerCtx *ctx, ASTNodeType decl_type,
     if (ctx->mir != NULL) {
         decl_header = mir_find_decl_header(ctx->mir, name);
         if (decl_header != NULL && decl_header->ast_type == decl_type)
-            return decl_header->ast;
+            return decl_header->source_ast;
     }
     transpiler_active_inventory(ctx, decl_type, &decls, &decl_count);
     if (decls == NULL)

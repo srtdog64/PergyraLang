@@ -56,6 +56,16 @@ air_boundary_has_evidence_kind(const AIRProgram *air,
     return false;
 }
 
+static bool
+air_evidence_inventory_is_authoritative(const AIRProgram *air)
+{
+    return air != NULL
+        && (air->evidence_count > 0
+            || air->has_hir_input
+            || air->has_rir_input
+            || air->has_mir_input);
+}
+
 bool
 air_boundary_has_evidence(const AIRProgram *air,
                           size_t boundary_index,
@@ -65,11 +75,11 @@ air_boundary_has_evidence(const AIRProgram *air,
 
     if (air == NULL || boundary_index >= air->boundary_count)
         return false;
-    if (air->evidence_count > 0)
-        return air_boundary_has_evidence_kind(air, boundary_index, kind);
-    if (air->has_hir_input || air->has_rir_input || air->has_mir_input)
+    if (air_evidence_inventory_is_authoritative(air)) {
+        if (air->evidence_count > 0)
+            return air_boundary_has_evidence_kind(air, boundary_index, kind);
         return false;
-
+    }
     boundary = &air->boundaries[boundary_index];
     switch (kind) {
     case AIR_EVIDENCE_HIR_ROUTINE:
@@ -85,7 +95,6 @@ air_boundary_has_evidence(const AIRProgram *air,
     }
 }
 
-
 static bool
 air_boundary_has_authoritative_evidence(const AIRProgram *air,
                                         const AIRBoundaryNode *boundary,
@@ -100,11 +109,11 @@ air_boundary_has_authoritative_evidence(const AIRProgram *air,
      * only cached summaries for dumps/legacy consumers.
      */
     (void)boundary;
-    if (air != NULL && air->evidence_count > 0)
-        return air_boundary_has_evidence_kind(air, boundary_index, kind);
-    if (air != NULL
-        && (air->has_hir_input || air->has_rir_input || air->has_mir_input))
+    if (air_evidence_inventory_is_authoritative(air)) {
+        if (air != NULL && air->evidence_count > 0)
+            return air_boundary_has_evidence_kind(air, boundary_index, kind);
         return false;
+    }
     return legacy_flag;
 }
 

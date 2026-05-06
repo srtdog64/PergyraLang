@@ -121,7 +121,7 @@ llvm_emit_domain_method_forward_decls(LLVMGenCtx *ctx,
     for (size_t j = 0; j < methods->count; j++) {
         const MIRDeclMethod *method_meta =
             llvm_hosted_method_view_metadata(methods, j);
-        ASTNode *method = llvm_hosted_method_view_ast(methods, j);
+        ASTNode *method = llvm_hosted_method_view_source_ast(methods, j);
         const char *mname;
         ASTNode *return_type;
         size_t pc;

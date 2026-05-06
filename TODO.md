@@ -3,6 +3,7 @@
 English anchor for tooling/doc gates:
 
 - Self-host work begins after BETA closure and final dogfood.
+- Self-host handoff docs live in `docs/self_hosted/README.md`; future agents should start there only after reading the beta source-of-truth docs.
 - Self-host is not a beta blocker; partial self-host is the recommended first trajectory.
 - First dogfood targets are compiler-adjacent tools: diagnostic catalog checker, AIR graph JSON validator, MIR dump diff tool, C/LLVM backend output comparator, and module/package resolver helper.
 - full self-host remains a long-term proof target, not a current capability.
@@ -12,6 +13,175 @@ English anchor for tooling/doc gates:
 
 Progress log, 2026-05-04:
 
+- Centralized AIR evidence-authority selection in `air_verify.c`: both public
+  evidence lookup and strict drift verification now use the same
+  `air_evidence_inventory_is_authoritative(...)` policy, so real HIR/RIR/MIR
+  input and explicit evidence inventories cannot drift through separate legacy
+  summary-flag checks. Follow-up validator tightening makes the same rule an
+  `air_verify(...)` invariant: with real HIR/RIR/MIR input, legacy summary flags
+  without matching `AIREvidenceNode` inventory are rejected before drift
+  checking. Gates: `test-air` (`77/0`), `air-drift-test-smoke`,
+  `air-json-schema-test-smoke`, and `air-backend-nonimpact-full-test-smoke`.
+- Refreshed `cfg-body-dataflow-test-smoke` after the C backend MIR intent query
+  owner split: the gate now checks `transpiler_mir_intent_query.c` instead of
+  the declaration-only `transpiler_helpers.h` shim for
+  `mir_instruction_intent_payload(...)` / step matching consumption. Gates:
+  `cfg-body-dataflow-test-smoke` and `test-mir` (`44/0`).
+- Tightened MIR DEF payload validation for CFG/body source-of-truth: the
+  validator now decides whether a DEF requires an initializer fact from
+  `source_ast_type` shape metadata instead of reopening `inst->ast->data`.
+  The MIR fixture clears `inst->ast` while preserving the shape fact to prove
+  the validator no longer depends on the AST payload. Gates: `test-mir`
+  (`44/0`), `cfg-body-dataflow-test-smoke`, and `perf-contract-test-smoke`.
+- Lifted return terminator value presence into `MIRInstruction` as
+  `source_terminator_has_value`, so MIR validation rejects missing return
+  expression facts from HIR terminator shape instead of using `inst->ast` as the
+  valued-return discriminator. The MIR terminator fixture now clears
+  `inst->ast` for both branch and return negative checks. Gates: `test-mir`
+  (`44/0`), `cfg-body-dataflow-test-smoke`, and `perf-contract-test-smoke`.
+- Tightened LLVM MIR statement fallback one step: `defer` registration now
+  consumes `source_ast_type == AST_DEFER_STMT` plus the `expr0` defer-body fact
+  instead of requiring `inst->ast`, and CFG-container classification can use
+  source AST shape facts through `llvm_mir_ast_type_is_cfg_container(...)`.
+  Remaining statement AST emission is explicitly source/provenance compatibility.
+  Gates: `llvm-test-smoke` and `perf-contract-test-smoke`.
+- Tightened MIR DCE as a body-safety consumer: statement side-effect decisions
+  now prefer MIR source shape and call-name facts (`source_ast_type`, `arg0`)
+  before falling back to AST payload. The new regression proves an AST-less
+  `Log` statement is preserved while AST-less `ChannelLength` is removed as a
+  pure query. Gates: `test-mir` (`45/0`), `perf-contract-test-smoke`, and
+  `cfg-body-dataflow-test-smoke`.
+- Named the remaining LLVM MIR block source compatibility seams instead of
+  leaving them as inline AST predicates: match/select branch lowering now flows
+  through `llvm_mir_branch_requires_source_compatibility(...)`, and DEF
+  statement fallback flows through
+  `llvm_mir_def_uses_source_statement_compatibility(...)`. This does not claim
+  the seam is removed; it narrows the future fact-replacement point and keeps
+  the debt visible. Gates: `llvm-test-smoke` and `perf-contract-test-smoke`.
+- Tightened CFG contract validation as a body-safety consumer: CFG-owned
+  fallback STMT rejection now prefers `source_ast_type` via
+  `mir_stmt_ast_type_is_cfg_owned_control(...)` and falls back to `inst->ast`
+  only when source shape metadata is absent. Gates: `test-mir` (`45/0`),
+  `perf-contract-test-smoke`, and `cfg-body-dataflow-test-smoke`.
+- Named the MIR surface-payload/shape validation guard as
+  `mir_instruction_has_surface_payload_or_shape(...)`, making the validator's
+  remaining AST acceptance explicit as source/provenance compatibility rather
+  than an inline semantic shortcut. Gates: `test-mir` (`45/0`) and
+  `perf-contract-test-smoke`.
+- Made the non-CFG body fallback visible on `MIRRoutine` as
+  `used_non_cfg_body_fallback` / `non_cfg_body_fallback_count`; MIR dumps now
+  print `noncfg=...`, and the normal CFG-backed pure-query fixture asserts zero
+  fallback usage. This turns the legacy body-population seam into a measurable
+  beta debt instead of a hidden compatibility path. Gates: `test-mir` (`45/0`),
+  `perf-contract-test-smoke`, `cfg-body-dataflow-test-smoke`,
+  `source-utf8-test-smoke`, `build-source-inventory-test-smoke`, and
+  `test-inc-size-test-smoke`.
+- Promoted the non-CFG fallback counter from visibility to validation:
+  `mir_validate_non_cfg_fallback_state(...)` now rejects CFG-backed routines
+  that report non-CFG body fallback use, and the MIR suite has a negative drift
+  fixture for that state. Gates: `test-mir` (`46/0`),
+  `perf-contract-test-smoke`, `cfg-body-dataflow-test-smoke`, and
+  `test-inc-size-test-smoke`.
+- Strengthened `pgy.air.graph.v1` as a verification-consumer surface: each AIR
+  evidence JSON node now carries additive `boundary_kind`, `boundary_owner`, and
+  `boundary_source` fields, so LSP/CI tools can consume evidence-to-boundary
+  provenance without rebuilding the join from `boundaries[]`. Gates: `test-air`
+  (`77/0`), `air-json-schema-test-smoke`, and `air-drift-test-smoke`.
+- Rechecked DAG source-of-truth gates after AIR/CFG validator tightening:
+  recursive resolver calls, resolver body fallbacks, metadata dead-ends,
+  materializer unresolved, stage materializer calls, and alias diagnostic
+  resolver calls all remain `0`; the active graph-backed counters are
+  `metadata_entries=3498`, `metadata_owned=258`, and `metadata_hits=8380`.
+  Gates: `type-resolution-dag-test-smoke` and
+  `type-resolution-resolver-inventory-test-smoke`.
+- Rechecked MIR declaration inventory / parallel surface gates after the AIR and
+  CFG validator changes. Declaration inventory remains helper-gated in both C
+  and LLVM, and remaining `source_ast` access is still named compatibility /
+  provenance rather than hidden inventory state. Gates:
+  `mir-declaration-inventory-test-smoke`, `parallel-core-contract-test-smoke`,
+  and `perf-contract-test-smoke`.
+- Mirrored LLVM's MIR-missing diagnostic seam in the C backend with
+  `transpiler_set_mir_inventory_missing(...)`. Class, enum, intent, and
+  hosted role/domain method emission now route missing declaration
+  metadata/routine/step/participant inventory failures through the same stable
+  code/cause/fix policy instead of ad-hoc backend errors; the
+  declaration-inventory smoke now rejects direct
+  `PGY_CAUSE_MIR_TOPOLOGY_ROUTINE_MISSING` use outside the C context helper.
+  Gates: `pgy`, `test-transpile` (`717/0`),
+  `mir-declaration-inventory-test-smoke`, `perf-contract-test-smoke`,
+  `build-source-inventory-test-smoke`, and `test-inc-size-test-smoke`.
+- Split the remaining C MIR emission diagnostic seam into inventory-missing
+  and topology-invalid helpers. Host-scoped method inventory gaps now use
+  `transpiler_set_mir_inventory_missing(...)`, while missing MIR method owner
+  metadata, block emission failure, and pin cleanup emission failure use
+  `transpiler_set_mir_topology_invalid(...)` with stable code/cause/fix hints.
+  Gates: `pgy`, `test-transpile` (`717/0`),
+  `mir-declaration-inventory-test-smoke`, `perf-contract-test-smoke`, and
+  `test-inc-size-test-smoke`.
+- Collapsed repeated C MIR SSA-local capacity errors behind
+  `transpiler_mir_ssa_local_limit_fail(...)`, so SSA limit failures now report
+  `PGY_CODE_MIR_SSA_LIMIT` / `PGY_CAUSE_MIR_SSA_CAPACITY_EXCEEDED` instead of
+  ad-hoc backend strings. MIR parameter/local/destructure/resource-op type
+  failures now route through stable C type unsupported hints, and the C MIR
+  emitter family no longer assigns `ctx->backend_error = strdup_fmt(...)`
+  directly. Gates: `pgy`, `test-transpile` (`717/0`),
+  `perf-contract-test-smoke`, and `test-inc-size-test-smoke`.
+- Removed the remaining direct C backend `ctx->backend_error = strdup_fmt(...)`
+  assignments from the legacy statement/slot/generic specialization emitters.
+  All C backend failures now pass through `transpiler_set_backend_error*`,
+  `transpiler_set_mir_inventory_missing(...)`, or
+  `transpiler_set_mir_topology_invalid(...)`; the perf/debt smoke rejects
+  reintroducing direct backend-error string assignment under `src/codegen`.
+  Gates: `pgy`, `test-transpile` (`717/0`),
+  `mir-declaration-inventory-test-smoke`, `perf-contract-test-smoke`, and
+  `test-inc-size-test-smoke`.
+- Completed the matching LLVM MIR-missing diagnostic cleanup for domain/role
+  method bodies: direct `PGY_CAUSE_LLVM_MIR_ROUTINE_MISSING` use is now
+  centralized in `llvm_set_mir_inventory_missing(...)`, and the declaration
+  inventory smoke rejects reintroducing direct cause usage outside
+  `llvm_error.c`. Gates: `llvm-test-smoke`, `mir-declaration-inventory-test-smoke`,
+  and `perf-contract-test-smoke`. Full backend compare was started as part of a
+  combined gate but exceeded the local timeout; no compare failure was observed.
+- Moved the shared C backend heap formatting helpers (`strdup_fmt` and `escape_c_string_literal`) out of `transpiler_helpers.h` into `transpiler_format.c`; the helper header no longer duplicates those string-format bodies at include sites, and the Makefile source inventory owns the new formatter. Gates: targeted `gcc -fsyntax-only` for `transpiler_format.c` and `transpiler.c`, `build-source-inventory-test-smoke`, `test-inc-size-test-smoke`, and `pgy`.
+- Moved the C backend MIR intent statement query out of `transpiler_helpers.h` into `transpiler_mir_intent_query.c`; intent emission now consumes a linked MIR query helper instead of a static header body, and an unused MIR DEF runtime-call helper was removed from the same header. Gates: targeted `gcc -fsyntax-only` for `transpiler_mir_intent_query.c` and `transpiler.c`, `build-source-inventory-test-smoke`, `test-inc-size-test-smoke`, and `pgy`.
+- Moved the C backend concrete MIR resource-op emitter out of `transpiler_helpers.h` into `transpiler_mir_resource_op_core.c`; resource hook emission now calls a linked ABI/resource owner instead of a static header body. Gates: targeted `gcc -fsyntax-only` for `transpiler_mir_resource_op_core.c` and `transpiler.c`, `build-source-inventory-test-smoke`, `test-inc-size-test-smoke`, and `pgy`.
+- Moved contextual `Option<T>` lookup and `None()` C emission out of `transpiler_helpers.h` into `transpiler_option_context.c`; `transpiler_helpers.h` is now a small include-order shim rather than an implementation header. Gates: targeted `gcc -fsyntax-only` for `transpiler_option_context.c` and `transpiler.c`, `build-source-inventory-test-smoke`, `test-inc-size-test-smoke`, `pgy`, and `test-transpile` (`717/0`).
+- Added declaration-only `transpiler_format.h` and moved MIR SSA expression dependencies to the specific MIR emit headers that consume them; `transpiler_helpers.h` no longer acts as the implicit provider for formatter or MIR SSA helper prototypes. Gates: targeted `gcc -fsyntax-only` for `transpiler.c`, `test-inc-size-test-smoke`, and `pgy`.
+- Moved C backend `Log` / `LogRaw` / `LogBanner` builtin lowering out of `transpiler_expr_core_builtins_emit.h` into `transpiler_log_builtin_emit.c`; the remaining core-builtin header now starts at wrapper ownership helpers and no longer exports log implementation bodies through the expression include stack. Gates: targeted `gcc -fsyntax-only` for `transpiler_log_builtin_emit.c` and `transpiler.c`, `build-source-inventory-test-smoke`, `test-inc-size-test-smoke`, and `pgy`.
+- Moved C backend allocator builtin lowering out of `transpiler_expr_core_builtins_emit.h` into `transpiler_allocator_builtin_emit.c`; the core-builtin header now retains only Rc/Weak/Box bodies because those still depend on the static expression type-inference seam. Gates: targeted `gcc -fsyntax-only` for `transpiler_allocator_builtin_emit.c` and `transpiler.c`, `build-source-inventory-test-smoke`, `test-inc-size-test-smoke`, and `pgy`.
+- Added the post-beta self-host handoff folder `docs/self_hosted/` with agent entry rules, staged roadmap, required language surface, and first compiler-adjacent tool candidates. The docs keep self-hosting explicitly post-beta and soft-first: diagnostic catalog checker, AIR graph JSON validator, MIR dump diff, backend comparator, and module/package resolver helper before any compiler rewrite. Gates: `documentation-quality-test-smoke`.
+- Split the C backend MIR resource-name helper implementation out of `transpiler_mir_resource_name_helpers.h` into `transpiler_mir_resource_name.c`; the header is now declaration-only and Makefile source inventory tracks the new owner. Broader implementation-header extraction remains ongoing because some wrappers still depend on include-order-local static seams. Gates: targeted `gcc -fsyntax-only` for `transpiler_mir_resource_name.c` and `transpiler.c`, `build-source-inventory-test-smoke`, `test-inc-size-test-smoke`, and `test-transpile` (`717/0`).
+- Split C backend event builtin call lowering out of `transpiler_event_builtin_emit.h` into `transpiler_event_builtin_emit.c`; the header is now declaration-only, and the new owner avoids pulling the broader `transpiler_helpers.h` include-order stack by using a local invoke-string formatter. Gates: targeted `gcc -fsyntax-only` for `transpiler_event_builtin_emit.c` and `transpiler.c`, plus `test-transpile` (`717/0`).
+- Split C backend intent condition-failure lowering out of `transpiler_intent_failure_emit.h` into `transpiler_intent_failure_emit.c`; the header is now declaration-only and the body consumes only the public context/output helper seam. Gates: targeted `gcc -fsyntax-only` for `transpiler_intent_failure_emit.c` and `transpiler.c`, plus `test-transpile` (`717/0`).
+- Split C backend intent emit metadata helpers out of `transpiler_intent_emit_metadata_helpers.h` into `transpiler_intent_emit_metadata_helpers.c`; the remaining header surface is limited to intent-emission control macros that intentionally bind call-site `goto`/context restoration. Gates: targeted `gcc -fsyntax-only` for `transpiler_intent_emit_metadata_helpers.c` and `transpiler.c`, plus `test-transpile` (`717/0`).
+- Moved the C backend indentation compatibility wrappers out of `transpiler_context.h` into `transpiler_context.c`; the header now declares `write_indent(...)` / `write_indent_to(...)` instead of embedding inline bodies at every include site. Gates: targeted `gcc -fsyntax-only` for `transpiler_context.c` and `transpiler.c`, plus `test-transpile` (`717/0`).
+- Moved ability vtable tag rendering out of `transpiler_role_ability_helpers.h` into the existing `transpiler_role_ability.c` owner, and introduced declaration-only `transpiler_type_mapping.h` so compiled owners can consume type-mapping APIs without pulling implementation headers. Gates: targeted `gcc -fsyntax-only` for `transpiler_role_ability.c` and `transpiler.c`, plus `test-transpile` (`717/0`).
+- Moved event declaration/subscription emission out of `transpiler_event_emit.h` into `transpiler_event_emit.c`; the header is now declaration-only, and event lowering now links through a normal C backend owner instead of exporting global function bodies through an implementation header. Gates: targeted `gcc -fsyntax-only` for `transpiler_event_emit.c` and `transpiler.c`, plus `test-transpile` (`717/0`).
+- Moved MIR phi-copy emission out of `transpiler_mir_phi_emit.h` into `transpiler_mir_phi_emit.c`; phi lowering now consumes public SSA map/name APIs through a compiled owner, and `transpiler_mir_emit_decls.h` no longer needs a static forward for that seam. Gates: targeted `gcc -fsyntax-only` for `transpiler_mir_phi_emit.c` and `transpiler.c`, plus `test-transpile` (`717/0`).
+- Moved function forward-declaration emission out of `transpiler_mir_inventory_intent.h` into `transpiler_func_forward_emit.c`; generic specialization and program bootstrap now share a linked prototype emitter instead of a static header body. Gates: targeted `gcc -fsyntax-only` for `transpiler_func_forward_emit.c` and `transpiler.c`, plus `test-transpile` (`717/0`).
+- Moved misc stdlib call lowering out of `transpiler_expr_stdlib_misc_builtin.h` into `transpiler_expr_stdlib_misc_builtin.c`; the new owner uses a local heap-format helper instead of depending on the broader static `strdup_fmt` include-order seam. Gates: targeted `gcc -fsyntax-only` for `transpiler_expr_stdlib_misc_builtin.c` and `transpiler.c`, plus `test-transpile` (`717/0`).
+- Tightened `test_inc_size_smoke.sh` so newly declaration-only C backend headers cannot silently grow function bodies again. The first gated headers are `transpiler_context.h`, `transpiler_event_builtin_emit.h`, `transpiler_event_emit.h`, `transpiler_expr_stdlib_misc_builtin.h`, `transpiler_format.h`, `transpiler_helpers.h`, `transpiler_intent_emit_metadata_helpers.h`, `transpiler_intent_failure_emit.h`, `transpiler_mir_inventory_intent.h`, `transpiler_mir_emit_state.h`, `transpiler_mir_phi_emit.h`, `transpiler_mir_resource_name_helpers.h`, and `transpiler_role_ability_helpers.h`; broader implementation-header extraction remains responsibility-first, not a blanket body ban yet. Gates: `bash -n tests/test_inc_size_smoke.sh`, `test-inc-size-test-smoke`, and `build-source-inventory-test-smoke`.
+- Lifted MIR resource `Write`, DEF initializer/type, statement binding/defer payloads, loop iterable/range, and CFG terminator expression provenance into instruction payloads: `mir_add_resource_instruction(...)` now records the write value expression in `MIRInstruction.expr0`, C MIR resource emission consumes that payload instead of reopening `inst->ast->data.call`, DEF instructions carry initializer/value `expr0` plus let type annotation `expr1`, statement let/assignment bindings carry `arg0`, for-in LLVM lowering consumes `expr0` for the iterable, defer statements carry body `expr0`, expression branch/return terminators carry `expr0`, C and LLVM MIR terminator/local/block emission use those payloads where possible, and the MIR validator rejects missing value/initializer/defer-body/terminator expression facts. Codegen now smoke-rejects `inst->ast->data` reopening so AST payload remains source/provenance instead of lowering inventory. Gates: `test-mir` (`44/0`), `test-transpile` (`717/0`), `cfg-body-dataflow-test-smoke`, `llvm-test-smoke`, and `perf-contract-test-smoke`.
+- Removed the remaining LLVM range-loop lowering dependency on `inst->ast` for loop init/condition shape checks. The loop-control emitter now uses MIR branch shape plus `arg0`/`expr0`/`expr1` facts for variable/start/end lowering, and the perf contract smoke rejects reintroducing the local `node = inst->ast` probe in `llvm_mir_loop_control.c`. Gates: `llvm-test-smoke` and `perf-contract-test-smoke`.
+- Removed the LLVM local alloca type-inference fallback that treated the whole source statement AST as a DEF value expression when `expr0` was absent. `llvm_mir_local_emit.c` now consumes `expr0` for initializer/value and `expr1` for explicit type annotation, while `source_ast_type` remains only a shape discriminator. Gates: `llvm-test-smoke` and `perf-contract-test-smoke`.
+- Tightened LLVM MIR block DEF/branch/return lowering so ordinary expression stores, expression branches, and return values consume `expr0` directly instead of falling back to the source AST. Let/assignment preserved-statement emission, match-case dispatch, select dispatch, and with-claim compatibility remain explicit source/provenance seams. Gates: `llvm-test-smoke` and `perf-contract-test-smoke`.
+- Split LLVM MIR branch condition payload checks by branch shape: expression/range/for-in branches require MIR expression payload, while only match/select compatibility branches are allowed to require the source AST. The perf contract now rejects the broad `inst->ast || inst->expr0` condition gate. Gates: `llvm-test-smoke` and `perf-contract-test-smoke`.
+- Matched the C backend branch-condition policy to the LLVM path: range/for-in branches consume MIR loop facts, match-case remains the explicit source compatibility seam, and ordinary expression branches consume `expr0` without falling back to `inst->ast`. Gates: `test-transpile` (`717/0`) and `perf-contract-test-smoke`.
+- Lifted intent check/eval expression payloads into MIR `expr0`: `IntentCheck` and `IntentEval` facts now carry their expression payload explicitly, the MIR intent fact validator rejects missing payloads, and C/LLVM intent collectors consume `expr0` instead of treating `inst->ast` as the expression inventory. Step headers and step-scoped metadata still keep the source AST as the explicit provenance seam. Gates: `test-mir` (`44/0`), `test-transpile` (`717/0`), `cfg-body-dataflow-test-smoke`, `llvm-test-smoke`, and `perf-contract-test-smoke`.
+- Removed two C backend MIR resource source-pointer guards that were only checking statement shape. Claim-with emission now uses `has_source_location/source_ast_type` instead of `inst->ast == NULL`, and claim materialization suppression uses the same source-shape metadata instead of checking the source pointer. The residual statement mirrored-resource pointer equality remains the intentional provenance seam. Gates: `test-transpile` (`717/0`) and `perf-contract-test-smoke`.
+- Tightened the C MIR emission mapping contract to validate branch/return/write identifier usage from MIR expression payloads instead of rescanning `inst->ast`, and split branch contract requirements by shape: match/select compatibility branches still require source AST, while expression branches require the `expr0` condition fact. Gates: `test-transpile` (`717/0`) and `perf-contract-test-smoke`.
+- Removed the C/LLVM intent step-sequence collector that treated `IntentStep` instruction `inst->ast` as the ordered step inventory. Backends now consume MIR `IntentStep` names as the step sequence and map those names back to declaration source steps only for source/provenance and expression emission; missing source mapping is an explicit MIR-only backend error. The perf contract rejects reintroducing `collect_mir_intent_steps`. Gates: `test-transpile` (`717/0`), `llvm-test-smoke`, and `perf-contract-test-smoke`.
+- Re-checked the C backend pending-use materialization seam. A direct switch from source `let` AST to DEF `expr0/expr1` regressed implicit `self` host-context emission for class/subject/world methods, so this seam remains intentionally source-backed until MIR carries host-context/implicit-receiver facts alongside the DEF payload. Gates after reverting the unsafe narrowing: `test-transpile` (`717/0`) and `perf-contract-test-smoke`.
+- Split MIR declaration-header validator cases out of `test_mir_lowering_part_b.cases.h` into `test_mir_lowering_part_c.cases.h`, bringing part B back under the 990 LOC test-case header gate after the MIR fact regressions were expanded. Gates: `test-inc-size-test-smoke` and `test-mir` (`44/0`).
+- Tightened whole-program usage discovery for intent observability and thread-pool runtime requirements: normal lowered MIR now consumes validated surface-usage facts, and the legacy fallback probes only explicit expression payloads (`expr0`/`expr1`) for hand-built MIR fixtures without HIR provenance. Source statement AST scanning is smoke-rejected for both usage paths, and the old `allow_legacy_ast_probe` naming is banned to keep the seam payload-only. Gates: `test-transpile` (`717/0`) and `perf-contract-test-smoke`.
+- Renamed the LLVM MIR branch condition gate from `llvm_mir_branch_has_condition_payload(...)` to `llvm_mir_branch_has_required_condition_fact(...)` because match/select compatibility branches still require source AST while ordinary expression/range/for-in branches require MIR expression facts. This keeps the remaining compatibility seam named honestly instead of pretending every branch condition is payload-backed. Gate: `perf-contract-test-smoke`.
+- Rechecked DAG source-of-truth closure after the MIR/codegen cleanup: `type-resolution-resolver-inventory-test-smoke` keeps direct resolver and metadata fallback seam inventory at cap 0, and `type-resolution-dag-test-smoke` reports `retired_resolver_calls=0`, `retired_resolver_body_fallbacks=0`, `metadata_dead_ends=0`, and `materializer_unresolved=0` with `metadata_entries=3498` / `metadata_hits=8380`. Remaining DAG work is no longer numeric fallback cleanup; it is reducing owner-local compatibility seams that still need graph evidence in their native owner.
+- Refreshed the MIR declaration-inventory smoke after the MIR test-case split: declaration-header validator assertions now live in `test_mir_lowering_part_c.cases.h`, and the smoke follows that owner instead of reporting a false regression against part B. Gates: `mir-declaration-inventory-test-smoke`, `test-inc-size-test-smoke`, and `build-source-inventory-test-smoke`.
+- Revalidated AIR after the CFG/MIR/DAG seam tightening. Strict evidence still carries HIR/RIR boundary evidence, MIR cleanup/pin cleanup/terminator evidence, DAG metadata/generic/ability evidence, RIR effect/relation propagation evidence, and observability schema evidence without backend impact. Gates: `test-air` (`76/0`), `air-drift-test-smoke`, and `air-json-schema-test-smoke`.
+- Narrowed the C backend pending-use materialization seam without repeating the earlier implicit-self regression: block-local pending bindings now prefer MIR DEF payload facts (`expr0` initializer and `expr1` type annotation) only for `AST_LET_DECL` DEFs, while assignment DEFs are ignored and source let lookup remains a compatibility/provenance fallback. The perf contract gates the payload-first shape and the `AST_LET_DECL` guard. Gates: `test-transpile` (`717/0`) and `perf-contract-test-smoke`.
+- Tightened LLVM select readiness lowering to read channel-receive readiness from DEF `expr0` instead of reopening the DEF source assignment AST. The older assignment-AST helper remains only for source select-case compatibility, while MIR CFG target-block readiness now consumes the same expression payload that DEF emission uses. Gates: `llvm-test-smoke` and `perf-contract-test-smoke`.
+- Replaced the LLVM MIR receive-target predeclare seam with `llvm_mir_declare_recv_target(arg0, expr0, ...)`, so select/channel DEF lowering no longer needs the source assignment AST to synthesize the receive target alloca. Gates: `llvm-test-smoke` and `perf-contract-test-smoke`.
+- Tightened MIR declaration-header inventory one step further: hosted-method views in both C and LLVM now consume MIR declaration metadata directly when a `MIRDeclHeader` exists, and the header no longer carries the AST method-array pointer as inventory state. Remaining AST payload is explicitly named `source_ast` and the old `*_method_ast` accessors are smoke-rejected, so the compatibility seam is visible as source/provenance only until declaration bootstrap is fully MIR-owned. C/LLVM host-decl lookup now uses table-driven owner/type lists instead of open-coded chains, and thread-pool / intent-observability dependency detection now consume program-level MIR surface-usage facts plus neutral `MIRRoutineInventory` before routine fallback so declaration inventory surface does not drift between C and LLVM. Gates: `test-mir` (`41/0`), `test-transpile` (`717/0`), `mir-declaration-inventory-test-smoke`, `parallel-core-contract-test-smoke`, and `perf-contract-test-smoke`.
 - Closed the remaining non-runtime include-guard boundary slips found by the guard scanner: `transpiler_async_parallel_emit.h`, `transpiler_block_intent_helpers.h`, `transpiler_control_flow_emit.h`, `transpiler_let_slot_emit.h`, `transpiler_mir_terminator_emit.h`, `transpiler_world_select_event_emit.h`, and `transpiler_mir_emission_contract.h` now keep their full implementation surface inside the declared guard. Gate: guard-boundary scan for `src/codegen`, `src/semantic`, `src/compiler`, and `src/parser`; targeted `gcc -fsyntax-only` for `transpiler.c`; `test-transpile` (`717/0`), `build-source-inventory-test-smoke`, and `test-inc-size-test-smoke`.
 - Split C backend MIR emit-state snapshot/restore helpers out of `transpiler_mir_emit_state.h` into `transpiler_mir_emit_state.c`; the header now exposes the `TranspilerMirEmitState` shape and explicit state APIs while keeping only the include-order forward declarations needed by condition emitters. Removed the now-dead `lookup_generic_binding(...)` static helper from `transpiler_helpers_core_b.h` after type rendering moved generic binding lookup into its own owner. Gates: targeted `gcc -fsyntax-only` for `transpiler_mir_emit_state.c` and `transpiler.c`; `test-transpile` (`717/0`), `build-source-inventory-test-smoke`, and `test-inc-size-test-smoke`.
 - Refreshed runtime panic contract smoke after LLVM expression owners moved from implementation headers into compiled owners. Checked arithmetic now verifies `llvm_expr_scalar_core.c`, checked Result/Option unwrap verifies `llvm_expr_result_option_calls.c`, and array mutation lowering verifies `llvm_expr_array_calls.c`, while the public headers remain declaration-only seams. Gates: `runtime-panic-contract-test-smoke`, `runtime-panic-abi-test-smoke`, `runtime-panic-codegen-test-smoke`, `build-source-inventory-test-smoke`, and `test-inc-size-test-smoke`.

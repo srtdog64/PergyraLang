@@ -139,9 +139,6 @@ void        llvm_emit_mir_resource_hook(LLVMGenCtx *ctx,
                                         const MIRInstruction *inst,
                                         LLVMValueRef handle,
                                         bool cleanup_hook);
-size_t      llvm_collect_mir_intent_steps(const MIRRoutine *routine,
-                                          LLVMGenCtx *ctx,
-                                          ASTNode ***steps_out);
 size_t      llvm_collect_mir_intent_step_names(const MIRRoutine *routine,
                                                LLVMGenCtx *ctx,
                                                const char ***names_out);

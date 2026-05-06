@@ -82,13 +82,15 @@ transpiler_try_emit_let_slot_claim(ASTNode *node,
     if (slot_inner == NULL && is_slot)
         slot_inner = transpiler_let_slot_inner_from_call_type_arg(init);
     if (slot_inner == NULL) {
-        if (ctx->backend_error == NULL) {
-            ctx->backend_error = strdup_fmt(
-                is_device_slot
-                    ? "cannot emit device slot claim for '%s': missing explicit DeviceSlot<T> annotation"
-                    : "cannot emit slot claim for '%s': missing explicit Slot<T>/SecureSlot<T> annotation or ClaimSlot<T>() type argument",
-                name != NULL ? name : "(anonymous)");
-        }
+        transpiler_set_backend_error_with_hints(
+            ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+            is_device_slot
+                ? "cannot emit device slot claim for '%s': missing explicit DeviceSlot<T> annotation"
+                : "cannot emit slot claim for '%s': missing explicit Slot<T>/SecureSlot<T> annotation or ClaimSlot<T>() type argument",
+            name != NULL ? name : "(anonymous)");
         free(*ann_type_name_io);
         *ann_type_name_io = NULL;
         (void)node;
@@ -178,12 +180,14 @@ transpiler_try_emit_let_slot_view_or_move(TranspilerCtx *ctx,
 
     const char *inner = transpiler_let_slot_inner_from_annotation(ann);
     if (inner == NULL) {
-        if (ctx->backend_error == NULL) {
-            ctx->backend_error = strdup_fmt(
-                "cannot emit %s declaration for '%s': missing explicit inner type",
-                is_move_decl ? "move-token" : "view",
-                name != NULL ? name : "(anonymous)");
-        }
+        transpiler_set_backend_error_with_hints(
+            ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+            "cannot emit %s declaration for '%s': missing explicit inner type",
+            is_move_decl ? "move-token" : "view",
+            name != NULL ? name : "(anonymous)");
         free(*ann_type_name_io);
         *ann_type_name_io = NULL;
         return true;
@@ -201,13 +205,15 @@ transpiler_try_emit_let_slot_view_or_move(TranspilerCtx *ctx,
         ctype = pergyra_type_to_c(slot_name_buf);
     }
     if (ctype == NULL) {
-        if (ctx->backend_error == NULL) {
-            ctx->backend_error = strdup_fmt(
-                "cannot lower %s declaration '%s' with inner type '%s' to a concrete slot type",
-                is_move_decl ? "move-token" : "view",
-                name != NULL ? name : "(anonymous)",
-                inner);
-        }
+        transpiler_set_backend_error_with_hints(
+            ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+            "cannot lower %s declaration '%s' with inner type '%s' to a concrete slot type",
+            is_move_decl ? "move-token" : "view",
+            name != NULL ? name : "(anonymous)",
+            inner);
         free(*ann_type_name_io);
         *ann_type_name_io = NULL;
         return true;
@@ -265,11 +271,13 @@ transpiler_try_emit_let_slot_sugar(TranspilerCtx *ctx,
 
     sugar_inner = transpiler_let_slot_inner_from_annotation(ann);
     if (sugar_inner == NULL) {
-        if (ctx->backend_error == NULL) {
-            ctx->backend_error = strdup_fmt(
-                "cannot emit slot sugar declaration for '%s': missing explicit Slot<T>/SecureSlot<T> inner type",
-                name != NULL ? name : "(anonymous)");
-        }
+        transpiler_set_backend_error_with_hints(
+            ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+            "cannot emit slot sugar declaration for '%s': missing explicit Slot<T>/SecureSlot<T> inner type",
+            name != NULL ? name : "(anonymous)");
         free(*ann_type_name_io);
         *ann_type_name_io = NULL;
         return true;

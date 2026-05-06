@@ -176,9 +176,21 @@ transpiler_validate_mir_emission_block_shape(const MIRBasicBlock *block,
             }
             has_branch = true;
             branch_count++;
-            if (inst->ast == NULL && (reason != NULL && reason_cap > 0)) {
+            if ((inst->branch_shape == MIR_BRANCH_MATCH_CASE
+                 || inst->branch_shape == MIR_BRANCH_SELECT_DISPATCH)
+                && inst->ast == NULL
+                && (reason != NULL && reason_cap > 0)) {
                 snprintf(reason, reason_cap,
                          "MIR contract invalid for %s: block %llu branch instruction misses condition AST",
+                         routine_name, (unsigned long long) block->id);
+                return false;
+            }
+            if (inst->branch_shape != MIR_BRANCH_MATCH_CASE
+                && inst->branch_shape != MIR_BRANCH_SELECT_DISPATCH
+                && inst->expr0 == NULL
+                && (reason != NULL && reason_cap > 0)) {
+                snprintf(reason, reason_cap,
+                         "MIR contract invalid for %s: block %llu branch instruction misses condition expression fact",
                          routine_name, (unsigned long long) block->id);
                 return false;
             }

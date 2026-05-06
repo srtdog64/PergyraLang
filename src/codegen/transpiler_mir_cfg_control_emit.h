@@ -9,6 +9,7 @@
  */
 
 #include "transpiler_mir_cfg_policy.h"
+#include "transpiler_mir_expr_ssa.h"
 
 static bool
 transpiler_mir_emit_for_loop_init_inst(CodeBuf *buf,
@@ -195,15 +196,23 @@ transpiler_mir_render_branch_condition(ASTNode *func_decl,
                                        TranspilerCtx *ctx,
                                        const TranspilerSSANameMap *ssa_map)
 {
-    ASTNode *condition = inst != NULL ? inst->ast : NULL;
-    if (condition == NULL)
+    ASTNode *condition;
+
+    if (inst == NULL)
         return pergyra_strdup("true");
     if (inst->branch_shape == MIR_BRANCH_FOR_RANGE
         || inst->branch_shape == MIR_BRANCH_FOR_IN)
         return transpiler_mir_render_for_loop_condition_inst(inst, ctx, ssa_map);
-    if (inst->branch_shape == MIR_BRANCH_MATCH_CASE)
+    if (inst->branch_shape == MIR_BRANCH_MATCH_CASE) {
+        condition = inst->ast;
+        if (condition == NULL)
+            return pergyra_strdup("true");
         return transpiler_mir_render_match_case_condition(func_decl, condition,
                                                          ctx, ssa_map);
+    }
+    condition = inst->expr0;
+    if (condition == NULL)
+        return pergyra_strdup("true");
     return emit_expression_with_ssa_map(condition, ctx, ssa_map);
 }
 

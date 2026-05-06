@@ -20,18 +20,10 @@ llvm_pipeline_debug_stage(const char *stage)
 static bool
 llvm_requires_thread_pool(const LLVMGenCtx *ctx)
 {
-    LLVMMIRRoutineInventory routine_inventory;
-
     if (ctx == NULL || ctx->mir == NULL)
         return false;
 
-    llvm_active_routine_inventory(ctx, &routine_inventory);
-    for (size_t i = 0; i < routine_inventory.count; i++) {
-        if (pgy_mir_routine_uses_thread_pool(&routine_inventory.routines[i]))
-            return true;
-    }
-
-    return false;
+    return pgy_mir_program_uses_thread_pool(ctx->mir);
 }
 
 static bool

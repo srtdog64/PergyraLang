@@ -1,6 +1,8 @@
 #ifndef PGY_SRC_CODEGEN_TRANSPILER_MIR_STMT_EMIT_H
 #define PGY_SRC_CODEGEN_TRANSPILER_MIR_STMT_EMIT_H
 
+#include "transpiler_mir_expr_ssa.h"
+
 /* C backend MIR residual statement helpers. */
 
 static bool

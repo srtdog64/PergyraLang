@@ -1,6 +1,8 @@
 #ifndef PERGYRA_TRANSPILER_MIR_RESOURCE_HOOK_EMIT_H
 #define PERGYRA_TRANSPILER_MIR_RESOURCE_HOOK_EMIT_H
 
+#include "transpiler_mir_expr_ssa.h"
+
 /* MIR resource/cleanup hook emission owner for the C backend. */
 static bool
 transpiler_emit_mir_resource_hook(TranspilerCtx *ctx,
@@ -29,24 +31,8 @@ transpiler_emit_mir_resource_hook(TranspilerCtx *ctx,
             && ctx->active_ssa_map != NULL
             && inst->name != NULL
             && strcmp(inst->name, "Write") == 0
-            && inst->ast != NULL
-            && inst->has_source_location
-            && inst->source_ast_type == AST_CALL) {
-            ASTNode *callee = inst->ast->data.call.callee;
-            ASTNode *value_node = NULL;
-            if (callee != NULL
-                && callee->type == AST_IDENTIFIER
-                && callee->data.identifier.name != NULL
-                && strcmp(callee->data.identifier.name, "Write") == 0
-                && inst->ast->data.call.arg_count >= 2) {
-                value_node = inst->ast->data.call.arguments[1];
-            } else if (callee != NULL
-                       && callee->type == AST_MEMBER_ACCESS
-                       && callee->data.member.name != NULL
-                       && strcmp(callee->data.member.name, "Write") == 0
-                       && inst->ast->data.call.arg_count >= 1) {
-                value_node = inst->ast->data.call.arguments[0];
-            }
+            && inst->expr0 != NULL) {
+            ASTNode *value_node = inst->expr0;
             if (value_node != NULL) {
                 write_value_expr = emit_expression_with_ssa_map(
                     value_node,
@@ -71,12 +57,17 @@ transpiler_emit_mir_resource_hook(TranspilerCtx *ctx,
                 const char *existing_type = claim_name != NULL
                     ? lookup_typed_var(ctx, claim_name)
                     : NULL;
-                if (inst->ast != NULL
-                    && inst->has_source_location
+                char result_base[128];
+                size_t result_version = 0;
+                bool claim_matches_result =
+                    claim_name != NULL
+                    && inst->result_name != NULL
+                    && transpiler_parse_versioned_name(inst->result_name,
+                        result_base, sizeof(result_base), &result_version)
+                    && strcmp(claim_name, result_base) == 0;
+                if (inst->has_source_location
                     && inst->source_ast_type == AST_LET_DECL
-                    && inst->ast->data.let_decl.name != NULL
-                    && claim_name != NULL
-                    && strcmp(claim_name, inst->ast->data.let_decl.name) == 0) {
+                    && claim_matches_result) {
                     claim_already_materialized_by_stmt = true;
                 } else if (claim_name != NULL
                            && existing_type != NULL
@@ -165,12 +156,14 @@ transpiler_emit_mir_resource_hook(TranspilerCtx *ctx,
                      * via MIR DEF/STMT paths; keep only the observability/export hook
                      * for projection resource ops that do not have a slot runtime ABI. */
                 } else {
-                    if (ctx != NULL && ctx->backend_error == NULL) {
-                        ctx->backend_error = strdup_fmt(
-                            "cannot emit MIR resource op '%s' for slot '%s': missing typed runtime layout",
-                            inst->name != NULL ? inst->name : "<op>",
-                            inst->slot_anchor != NULL ? inst->slot_anchor : "<slot>");
-                    }
+                    transpiler_set_backend_error_with_hints(
+                        ctx,
+                        PGY_CODE_C_TYPE_UNSUPPORTED,
+                        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                        PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+                        "cannot emit MIR resource op '%s' for slot '%s': missing typed runtime layout",
+                        inst->name != NULL ? inst->name : "<op>",
+                        inst->slot_anchor != NULL ? inst->slot_anchor : "<slot>");
                     free(write_value_expr);
                     return false;
                 }

@@ -34,10 +34,11 @@ LLVMHostedMethodView llvm_hosted_method_view_from_decl(
 const MIRDeclMethod *llvm_hosted_method_view_metadata(
     const LLVMHostedMethodView *view,
     size_t index);
-ASTNode *llvm_hosted_method_view_ast(const LLVMHostedMethodView *view,
-                                     size_t index);
+ASTNode *llvm_hosted_method_view_source_ast(
+    const LLVMHostedMethodView *view,
+    size_t index);
 const char *llvm_mir_decl_method_name(const MIRDeclMethod *method);
-ASTNode *llvm_mir_decl_method_ast(const MIRDeclMethod *method);
+ASTNode *llvm_mir_decl_method_source_ast(const MIRDeclMethod *method);
 size_t llvm_mir_decl_method_param_count(const MIRDeclMethod *method);
 FuncParam *llvm_mir_decl_method_param(const MIRDeclMethod *method,
                                       size_t index);

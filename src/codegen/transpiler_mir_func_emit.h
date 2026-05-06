@@ -27,11 +27,10 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
     ASTNode *resolved_host_decl = NULL;
 
     if (is_method && owner_name == NULL) {
-        if (ctx->backend_error == NULL) {
-            ctx->backend_error = strdup_fmt(
-                "MIR-only transpiler missing owner metadata for method '%s'",
-                name != NULL ? name : "<method>");
-        }
+        transpiler_set_mir_topology_invalid(
+            ctx,
+            "MIR-only transpiler missing owner metadata for method '%s'",
+            name != NULL ? name : "<method>");
         codebuf_destroy(params_sig);
         return;
     }
@@ -58,12 +57,11 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
     }
 
     if (owner_name != NULL && !owner_is_role && resolved_host_decl == NULL) {
-        if (ctx->backend_error == NULL) {
-            ctx->backend_error = strdup_fmt(
-                "MIR-only transpiler missing declaration inventory for host '%s' of method '%s'",
-                owner_name,
-                name != NULL ? name : "<method>");
-        }
+        transpiler_set_mir_inventory_missing(
+            ctx,
+            "MIR-only transpiler missing declaration inventory for host '%s' of method '%s'",
+            owner_name,
+            name != NULL ? name : "<method>");
         codebuf_destroy(params_sig);
         return;
     }
@@ -117,12 +115,14 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
             type_name = pergyra_strdup(mir_routine->owner_name);
         }
         if (pt == NULL) {
-            if (ctx->backend_error == NULL) {
-                ctx->backend_error = strdup_fmt(
-                    "cannot determine parameter type for MIR-emitted function '%s' at argument %llu",
-                    name != NULL ? name : "<function>",
-                    (unsigned long long) i);
-            }
+            transpiler_set_backend_error_with_hints(
+                ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED,
+                PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+                "cannot determine parameter type for MIR-emitted function '%s' at argument %llu",
+                name != NULL ? name : "<function>",
+                (unsigned long long) i);
             codebuf_destroy(params_sig);
             free(header_decl);
             transpiler_restore_mir_emit_state_from_snapshot_local(ctx, &saved_emit_state);
@@ -308,13 +308,12 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
                                                            sizeof(block_reason));
         if (!block_emitted) {
             transpiler_ssa_map_clear(&block_ssa_map);
-            if (ctx->backend_error == NULL) {
-                ctx->backend_error = strdup_fmt(
-                    "MIR block emission failed in function '%s' at block %llu: %s",
-                    name != NULL ? name : "<function>",
-                    (unsigned long long) block->id,
-                    block_reason[0] != '\0' ? block_reason : "unknown reason");
-            }
+            transpiler_set_mir_topology_invalid(
+                ctx,
+                "MIR block emission failed in function '%s' at block %llu: %s",
+                name != NULL ? name : "<function>",
+                (unsigned long long) block->id,
+                block_reason[0] != '\0' ? block_reason : "unknown reason");
             transpiler_defer_scope_pop(ctx);
             transpiler_restore_mir_emit_state_from_snapshot_local(ctx, &saved_emit_state);
             return;
@@ -380,8 +379,8 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
                         return;
                     }
                 } else if (inst->kind == MIR_INST_RETURN) {
-                    if (inst->ast != NULL) {
-                        char *ret_expr = emit_expression(inst->ast, ctx);
+                    if (inst->expr0 != NULL) {
+                        char *ret_expr = emit_expression(inst->expr0, ctx);
                         write_indent(ctx);
                         codebuf_write(ctx->out, "return %s;\n", ret_expr);
                         free(ret_expr);

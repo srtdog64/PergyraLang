@@ -104,49 +104,6 @@ transpiler_find_mir_intent_meta_arg(const MIRRoutine *routine,
 }
 
 size_t
-transpiler_collect_mir_intent_steps(const MIRRoutine *routine,
-                                    ASTNode ***steps_out)
-{
-    ASTNode **steps = NULL;
-    size_t count = 0;
-    size_t capacity = 0;
-
-    if (steps_out != NULL)
-        *steps_out = NULL;
-    if (routine == NULL || steps_out == NULL)
-        return 0;
-
-    for (size_t bi = 0; bi < routine->block_count; bi++) {
-        const MIRBasicBlock *block = &routine->blocks[bi];
-        if (block->is_cleanup || !block->is_reachable)
-            continue;
-        for (size_t ii = 0; ii < block->instruction_count; ii++) {
-            const MIRInstruction *inst = &block->instructions[ii];
-            ASTNode **grown;
-
-            if (mir_instruction_intent_step_name(inst) == NULL
-                || inst->ast == NULL) {
-                continue;
-            }
-            if (count >= capacity) {
-                size_t new_capacity = capacity == 0 ? 8 : capacity * 2;
-                grown = realloc(steps, new_capacity * sizeof(ASTNode *));
-                if (grown == NULL) {
-                    free(steps);
-                    return 0;
-                }
-                steps = grown;
-                capacity = new_capacity;
-            }
-            steps[count++] = inst->ast;
-        }
-    }
-
-    *steps_out = steps;
-    return count;
-}
-
-size_t
 transpiler_collect_mir_intent_step_names(const MIRRoutine *routine,
                                          const char ***names_out)
 {
@@ -203,7 +160,7 @@ transpiler_find_mir_intent_check_expr(const MIRRoutine *routine,
             continue;
         for (size_t ii = 0; ii < block->instruction_count; ii++) {
             const MIRInstruction *inst = &block->instructions[ii];
-            if (inst->ast == NULL)
+            if (inst->expr0 == NULL)
                 continue;
             if (!mir_instruction_is_intent_stmt(inst, "IntentCheck"))
                 continue;
@@ -211,7 +168,7 @@ transpiler_find_mir_intent_check_expr(const MIRRoutine *routine,
                 continue;
             if (!mir_instruction_intent_step_matches(inst, step_name))
                 continue;
-            return inst->ast;
+            return inst->expr0;
         }
     }
     return NULL;
@@ -240,7 +197,7 @@ transpiler_collect_mir_intent_eval_exprs(const MIRRoutine *routine,
             const MIRInstruction *inst = &block->instructions[ii];
             ASTNode **grown;
 
-            if (inst->ast == NULL)
+            if (inst->expr0 == NULL)
                 continue;
             if (!mir_instruction_is_intent_stmt(inst, "IntentEval"))
                 continue;
@@ -259,7 +216,7 @@ transpiler_collect_mir_intent_eval_exprs(const MIRRoutine *routine,
                 exprs = grown;
                 capacity = new_capacity;
             }
-            exprs[count++] = inst->ast;
+            exprs[count++] = inst->expr0;
         }
     }
 

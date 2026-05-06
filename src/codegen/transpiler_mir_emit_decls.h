@@ -16,12 +16,6 @@ static bool transpiler_expr_identifiers_mapped(const TranspilerCtx *ctx,
                                               const char *routine_name,
                                               char *reason,
                                               size_t reason_cap);
-static bool transpiler_emit_mir_phi_copies(CodeBuf *buf,
-                                           TranspilerCtx *ctx,
-                                           int indent,
-                                           size_t pred_block_index,
-                                           const MIRBasicBlock *pred_block,
-                                           const MIRBasicBlock *target_block);
 static bool transpiler_seed_expr_identifier_mappings(const MIRBasicBlock *block,
                                                      size_t inst_index,
                                                      const ASTNode *expr,

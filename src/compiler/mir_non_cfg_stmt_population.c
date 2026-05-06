@@ -19,6 +19,7 @@ mir_append_non_cfg_body_statements(MIRRoutine *routine, MIRBasicBlock *entry)
         return true;
     if (routine->hir_routine != NULL && routine->hir_routine->has_cfg)
         return false;
+    routine->used_non_cfg_body_fallback = true;
 
     func_decl = routine->ast;
     if (func_decl->type != AST_FUNC_DECL
@@ -37,6 +38,7 @@ mir_append_non_cfg_body_statements(MIRRoutine *routine, MIRBasicBlock *entry)
             .has_source_statement_index = true,
         };
         mir_attach_statement_call_fact(&inst, body);
+        routine->non_cfg_body_fallback_count++;
         return append_instruction(entry, inst);
     }
 
@@ -73,6 +75,7 @@ mir_append_non_cfg_body_statements(MIRRoutine *routine, MIRBasicBlock *entry)
             if (!append_instruction(entry, inst)) {
                 return false;
             }
+            routine->non_cfg_body_fallback_count++;
             continue;
         }
         if (stmt->type == AST_LET_DECL
@@ -89,6 +92,7 @@ mir_append_non_cfg_body_statements(MIRRoutine *routine, MIRBasicBlock *entry)
             if (!append_instruction(entry, inst)) {
                 return false;
             }
+            routine->non_cfg_body_fallback_count++;
             continue;
         }
         if (mir_stmt_is_def_source(stmt)) {
@@ -125,6 +129,7 @@ mir_append_non_cfg_body_statements(MIRRoutine *routine, MIRBasicBlock *entry)
         if (!append_instruction(entry, inst)) {
             return false;
         }
+        routine->non_cfg_body_fallback_count++;
     }
 
     return true;

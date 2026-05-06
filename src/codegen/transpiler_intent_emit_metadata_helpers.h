@@ -1,17 +1,19 @@
 #ifndef PGY_SRC_CODEGEN_TRANSPILER_INTENT_EMIT_METADATA_HELPERS_H
 #define PGY_SRC_CODEGEN_TRANSPILER_INTENT_EMIT_METADATA_HELPERS_H
 
-static void
-transpiler_free_intent_emit_metadata(ASTNode **mir_steps,
-                                     const char **participant_aliases,
-                                     const char **participant_types,
-                                     const char **mir_step_names)
-{
-    free(mir_steps);
-    free((void *)participant_aliases);
-    free((void *)participant_types);
-    free((void *)mir_step_names);
-}
+#include "transpiler.h"
+
+void transpiler_free_intent_emit_metadata(ASTNode **mir_steps,
+                                          const char **participant_aliases,
+                                          const char **participant_types,
+                                          const char **mir_step_names);
+
+ASTNode *transpiler_find_intent_step_source_by_name(ASTNode *intent,
+                                                    const char *step_name);
+
+ASTNode **transpiler_build_mir_intent_step_sources(ASTNode *intent,
+                                                   const char **step_names,
+                                                   size_t step_count);
 
 #define PGY_MIR_INTENT_CARRIER_FAIL(MSG) \
     do { \

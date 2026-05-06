@@ -2,6 +2,7 @@
 #define PGY_TRANSPILER_MIR_BLOCK_EMIT_H
 
 #include "transpiler_mir_destructure_emit.h"
+#include "transpiler_mir_expr_ssa.h"
 #include "transpiler_mir_preserved_let_emit.h"
 #include "transpiler_mir_block_schedule_emit.h"
 #include "transpiler_mir_stmt_emit.h"
@@ -390,7 +391,7 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
         if (inst->kind != MIR_INST_STMT)
             continue;
         if (stmt != NULL && stmt->type == AST_DEFER_STMT)
-            transpiler_register_defer(stmt->data.defer_stmt.body, ctx);
+            transpiler_register_defer(inst->expr0, ctx);
         if (stmt == NULL || stmt->type == AST_BLOCK || stmt->type == AST_RETURN
             || stmt->type == AST_DEFER_STMT) {
             continue;

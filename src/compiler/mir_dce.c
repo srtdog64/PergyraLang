@@ -205,12 +205,47 @@ mir_stmt_has_side_effect(const ASTNode *stmt)
 }
 
 static bool
+mir_stmt_shape_has_side_effect(const MIRInstruction *inst)
+{
+    if (inst == NULL || !inst->has_source_location)
+        return false;
+    if (mir_stmt_ast_type_is_cfg_owned_control(inst->source_ast_type))
+        return true;
+    switch (inst->source_ast_type) {
+    case AST_PARALLEL_BLOCK:
+    case AST_ASYNC_BLOCK:
+    case AST_SPAWN_EXPR:
+    case AST_AWAIT_EXPR:
+    case AST_CHANNEL_SEND:
+    case AST_CHANNEL_RECV:
+    case AST_EVENT_SUBSCRIBE:
+    case AST_EVENT_UNSUBSCRIBE:
+    case AST_EVENT_INVOKE:
+    case AST_ASSIGNMENT:
+    case AST_LET_DECL:
+    case AST_LET_DESTRUCTURE:
+    case AST_BIND_STMT:
+    case AST_UNSAFE_BLOCK:
+    case AST_DEFER_STMT:
+    case AST_INTENT_STEP:
+    case AST_WITH_STMT:
+        return true;
+    case AST_CALL:
+        return !mir_call_is_whitelisted_pure_query(inst->arg0);
+    default:
+        return false;
+    }
+}
+
+static bool
 mir_instruction_is_dead_stmt(const MIRInstruction *inst)
 {
     if (inst == NULL || inst->kind != MIR_INST_STMT)
         return false;
     if (mir_stmt_is_semantic_carrier(inst))
         return false;
+    if (inst->has_source_location)
+        return !mir_stmt_shape_has_side_effect(inst);
     if (inst->ast == NULL)
         return true;
     return !mir_stmt_has_side_effect(inst->ast);

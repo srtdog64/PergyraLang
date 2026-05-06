@@ -62,6 +62,11 @@ mir_append_intent_stmt(MIRRoutine *routine,
     inst.arg0 = arg0;
     inst.arg1 = arg1;
     inst.ast = ast;
+    if (name != NULL
+        && (strcmp(name, "IntentCheck") == 0
+            || strcmp(name, "IntentEval") == 0)) {
+        inst.expr0 = ast;
+    }
     return mir_intent_append_instruction(block, inst);
 }
 

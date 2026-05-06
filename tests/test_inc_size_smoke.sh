@@ -27,6 +27,40 @@ if [[ -n "$implementation_headers" ]]; then
     exit 1
 fi
 
+declaration_only_headers=(
+    "src/codegen/transpiler_context.h"
+    "src/codegen/transpiler_event_builtin_emit.h"
+    "src/codegen/transpiler_event_emit.h"
+    "src/codegen/transpiler_expr_stdlib_misc_builtin.h"
+    "src/codegen/transpiler_format.h"
+    "src/codegen/transpiler_helpers.h"
+    "src/codegen/transpiler_intent_emit_metadata_helpers.h"
+    "src/codegen/transpiler_intent_failure_emit.h"
+    "src/codegen/transpiler_mir_phi_emit.h"
+    "src/codegen/transpiler_mir_inventory_intent.h"
+    "src/codegen/transpiler_mir_emit_state.h"
+    "src/codegen/transpiler_mir_resource_name_helpers.h"
+    "src/codegen/transpiler_role_ability_helpers.h"
+)
+
+declaration_only_body_violations="$(
+    cd "$ROOT_DIR"
+    for header in "${declaration_only_headers[@]}"; do
+        [[ -f "$header" ]] || continue
+        awk '
+            /^[[:space:]]*(static[[:space:]]+)?[A-Za-z_][A-Za-z0-9_[:space:]*]+\(.*\)[[:space:]]*\{/ {
+                print FILENAME ":" FNR ":" $0
+            }
+        ' "$header"
+    done
+)"
+
+if [[ -n "$declaration_only_body_violations" ]]; then
+    echo "declaration-only headers must not grow function bodies:" >&2
+    echo "$declaration_only_body_violations" >&2
+    exit 1
+fi
+
 violations="$(
     cd "$ROOT_DIR"
     find src/tests -name '*.cases.h' -print0 \
@@ -56,4 +90,4 @@ if [[ -n "$production_violations" ]]; then
     exit 1
 fi
 
-echo "[test-inc-size] src has no .inc files or _IMPLEMENTATION header blocks; production owners <= ${PRODUCTION_LIMIT} LOC; src/tests .cases.h files <= ${LIMIT} LOC"
+echo "[test-inc-size] src has no .inc files or _IMPLEMENTATION header blocks; declaration-only headers stay body-free; production owners <= ${PRODUCTION_LIMIT} LOC; src/tests .cases.h files <= ${LIMIT} LOC"

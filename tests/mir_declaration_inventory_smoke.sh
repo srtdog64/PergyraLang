@@ -72,9 +72,12 @@ for term in \
     "llvm_active_inventory" \
     "mir_find_decl_header(ctx->mir, name)" \
     "llvm_is_host_decl_type" \
-    "AST_PARTY_DECL, name" \
-    "AST_ROLE_DECL, name" \
-    "AST_ROSTER_DECL, name" \
+    "static const ASTNodeType kLLVMHostDeclTypes[]" \
+    "AST_PARTY_DECL" \
+    "AST_ROLE_DECL" \
+    "AST_ROSTER_DECL" \
+    "kLLVMHostDeclTypes[i]" \
+    "llvm_host_decl_type_count()" \
     "return decl->data.party_decl.name" \
     "return decl->data.role_decl.name" \
     "return decl->data.roster_decl.name"; do
@@ -86,10 +89,10 @@ for term in \
     "llvm_find_host_method_metadata_in_context" \
     "llvm_hosted_method_view" \
     "llvm_hosted_method_view_metadata" \
-    "llvm_hosted_method_view_ast" \
+    "llvm_hosted_method_view_source_ast" \
     "llvm_find_host_method_decl_in_context" \
     "llvm_mir_decl_method_name" \
-    "llvm_mir_decl_method_ast" \
+    "llvm_mir_decl_method_source_ast" \
     "llvm_mir_decl_method_param_count" \
     "llvm_mir_decl_method_param" \
     "llvm_mir_decl_method_return_type" \
@@ -103,6 +106,10 @@ fi
 if grep -Fq "llvm_host_decl_methods(" \
     "$ROOT_DIR/src/codegen/llvm_inventory_host_methods.h"; then
     fail "LLVM host method inventory must be MIRDeclMethod metadata-only"
+fi
+if grep -RInE 'llvm_(hosted_method_view|mir_decl_method)_ast' \
+    "$ROOT_DIR/src/codegen"; then
+    fail "LLVM declaration method source compatibility accessors must use *_source_ast names"
 fi
 require_term "src/codegen/llvm_inventory_host_methods.h" "ast_compat_methods"
 require_term "src/codegen/llvm_inventory_host_methods.h" "ast_compat_count"
@@ -130,6 +137,14 @@ for term in "mir_active_inventory" "mir_active_externs"; do
     require_term "src/compiler/mir.h" "$term"
     require_term "src/compiler/mir_lower_public_api.h" "$term"
 done
+if grep -Fq "ASTNode    **methods;" "$ROOT_DIR/src/compiler/mir.h"; then
+    fail "MIRDeclHeader must not carry AST method-array pointers as inventory state"
+fi
+if grep -Fq "header->methods" \
+    "$ROOT_DIR/src/compiler/mir_decl_header_validate.c" \
+    "$ROOT_DIR/src/compiler/mir_decl_headers.c"; then
+    fail "MIR declaration-header validation must consume method metadata, not AST method arrays"
+fi
 
 for rel in "src/codegen/llvm_inventory_decl_lookup.c" "src/codegen/transpiler_inventory_view.c"; do
     require_term "$rel" "mir_active_inventory(ctx->mir, decl_type, &nodes, &count)"
@@ -167,6 +182,10 @@ require_term "src/codegen/llvm_internal_api.h" "llvm_set_mir_inventory_missing"
 require_term "src/codegen/llvm_error.c" "llvm_set_mir_inventory_missing"
 require_term "src/codegen/llvm_error.c" "PGY_CODE_LLVM_MIR_ROUTINE_MISSING"
 require_term "src/codegen/llvm_error.c" "PGY_FIX_INSPECT_MIR_INVENTORY"
+if grep -RIn "PGY_CAUSE_LLVM_MIR_ROUTINE_MISSING" "$ROOT_DIR/src/codegen" \
+    | grep -v "src/codegen/llvm_error.c"; then
+    fail "LLVM MIR-missing diagnostics must route through llvm_set_mir_inventory_missing"
+fi
 
 if grep -A8 -F "MIR-only LLVM path missing intent routine" \
     "$ROOT_DIR/src/codegen/llvm_intent.c" | grep -Fq "llvm_set_error(ctx"; then
@@ -222,21 +241,27 @@ for term in \
     require_term "src/codegen/transpiler_decl_lookup.c" "$term"
 done
 for term in \
-    "transpiler_find_method_in_mir_header" \
+    "transpiler_find_method_source_ast_in_mir_header" \
     "mir_find_decl_header(ctx->mir, host_type_name)" \
-    "ctx, AST_PARTY_DECL, owner_name" \
-    "ctx, AST_ROSTER_DECL, owner_name" \
+    "static const TranspilerHostOwnerLookup kTranspilerHostOwnerLookups[]" \
+    "static const ASTNodeType kTranspilerNominalHostLookupTypes[]" \
+    "lookup->lookup_type" \
+    "kTranspilerNominalHostLookupTypes[i]" \
     "AST_PARTY_DECL" \
     "AST_ROLE_DECL" \
     "AST_ROSTER_DECL" \
     "transpiler_hosted_method_view_from_decl(ctx, host_type_name, decl)" \
     "header->method_metadata_count" \
     "method->name" \
-    "method->ast"; do
+    "method->source_ast"; do
     require_term "src/codegen/transpiler_decl_host_lookup.c" "$term"
 done
 if grep -RIn 'transpiler_decl_methods_local' "$ROOT_DIR/src/codegen"; then
     fail "C backend must not expose public AST method-array lookup seam"
+fi
+if grep -RInE 'transpiler_(hosted_method_view|mir_decl_method)_ast' \
+    "$ROOT_DIR/src/codegen"; then
+    fail "C declaration method source compatibility accessors must use *_source_ast names"
 fi
 for rel in \
     "src/codegen/transpiler_intent_context.c" \
@@ -277,14 +302,14 @@ for rel in \
     "src/codegen/transpiler_class_decl_emit.h" \
     "src/codegen/transpiler_enum_decl_emit.h"; do
     require_term "$rel" "transpiler_hosted_method_view_from_decl(ctx"
-    require_term "$rel" "transpiler_hosted_method_view_ast(&method_view, i)"
+    require_term "$rel" "transpiler_hosted_method_view_source_ast(&method_view, i)"
     require_term "$rel" "transpiler_hosted_method_view_routine(ctx, &method_view, i)"
     require_term "$rel" "emit_hosted_method_forward_decl_from_metadata"
 done
 require_term "src/codegen/transpiler_generic_class_specialization_emit.h" \
     "transpiler_hosted_method_view_from_decl(ctx, base_class_name"
 require_term "src/codegen/transpiler_generic_class_specialization_emit.h" \
-    "transpiler_hosted_method_view_ast(&method_view, i)"
+    "transpiler_hosted_method_view_source_ast(&method_view, i)"
 require_term "src/codegen/transpiler_generic_class_specialization_emit.h" \
     "transpiler_hosted_method_view_routine(ctx,"
 require_term "src/codegen/transpiler_generic_class_specialization_emit.h" \
@@ -300,14 +325,31 @@ for term in \
     "transpiler_hosted_method_view(" \
     "transpiler_hosted_method_view_metadata(" \
     "transpiler_mir_decl_method_name(" \
-    "transpiler_mir_decl_method_ast(" \
+    "transpiler_mir_decl_method_source_ast(" \
     "transpiler_mir_decl_method_routine(" \
     "transpiler_hosted_method_view_routine(" \
     "transpiler_hosted_method_view_from_decl(" \
-    "transpiler_hosted_method_view_ast(" \
+    "transpiler_hosted_method_view_source_ast(" \
     "transpiler_hosted_method_view_missing_mir_metadata("; do
     require_term "src/codegen/transpiler_decl_lookup.h" "$term"
 done
+require_term "src/codegen/transpiler_context.h" \
+    "transpiler_set_mir_inventory_missing"
+require_term "src/codegen/transpiler_context.h" \
+    "transpiler_set_mir_topology_invalid"
+for term in \
+    "transpiler_set_mir_inventory_missing" \
+    "transpiler_set_mir_topology_invalid" \
+    "PGY_CODE_MIR_TOPOLOGY_INVALID" \
+    "PGY_CAUSE_MIR_TOPOLOGY_ROUTINE_MISSING" \
+    "PGY_CAUSE_MIR_TOPOLOGY_INVALID" \
+    "PGY_FIX_INSPECT_HIR_TO_MIR_LOWERING"; do
+    require_term "src/codegen/transpiler_context.c" "$term"
+done
+if grep -RIn "PGY_CAUSE_MIR_TOPOLOGY_ROUTINE_MISSING" "$ROOT_DIR/src/codegen" \
+    | grep -v "src/codegen/transpiler_context.c"; then
+    fail "C backend MIR-missing diagnostics must route through transpiler_set_mir_inventory_missing"
+fi
 for term in \
     "view->count != view->ast_compat_count" \
     "if (view->requires_mir_metadata)"; do
@@ -326,7 +368,7 @@ for rel in \
     "src/codegen/transpiler_zone_decl_emit.h" \
     "src/codegen/transpiler_world_select_event_emit.h"; do
     require_term "$rel" "transpiler_hosted_method_view_from_decl(ctx"
-    require_term "$rel" "transpiler_hosted_method_view_ast(&method_view, i)"
+    require_term "$rel" "transpiler_hosted_method_view_source_ast(&method_view, i)"
     require_term "$rel" "emit_hosted_method_forward_decl_from_metadata"
 done
 if grep -RIn "emit_hosted_method_forward_decl_named" "$ROOT_DIR/src/codegen"; then
@@ -346,12 +388,26 @@ require_term "src/codegen/transpiler_class_decl_emit.h" \
     "transpiler_hosted_method_view_from_decl(ctx, name"
 require_term "src/codegen/transpiler_class_decl_emit.h" \
     "transpiler_hosted_method_view_missing_mir_metadata(&method_view)"
+require_term "src/codegen/transpiler_class_decl_emit.h" \
+    "transpiler_set_mir_inventory_missing("
 require_term "src/codegen/transpiler_enum_decl_emit.h" \
     "transpiler_hosted_method_view_from_decl(ctx, ename"
 require_term "src/codegen/transpiler_enum_decl_emit.h" \
     "transpiler_hosted_method_view_missing_mir_metadata(&method_view)"
+require_term "src/codegen/transpiler_enum_decl_emit.h" \
+    "transpiler_set_mir_inventory_missing("
 require_term "src/codegen/transpiler_domain_role_ability_emit.h" \
     "transpiler_hosted_method_view_missing_mir_metadata(method_view)"
+require_term "src/codegen/transpiler_domain_role_ability_emit.h" \
+    "transpiler_set_mir_inventory_missing("
+require_term "src/codegen/transpiler_intent_emit.h" \
+    "transpiler_set_mir_inventory_missing("
+require_term "src/codegen/transpiler_mir_emit_state.c" \
+    "transpiler_set_mir_inventory_missing("
+require_term "src/codegen/transpiler_mir_func_emit.h" \
+    "transpiler_set_mir_topology_invalid("
+require_term "src/codegen/transpiler_mir_terminator_emit.h" \
+    "transpiler_set_mir_topology_invalid("
 for rel in \
     "src/codegen/transpiler_class_decl_emit.h" \
     "src/codegen/transpiler_enum_decl_emit.h" \
@@ -435,9 +491,9 @@ if [[ -n "$routine_raw_hits" ]]; then
 $routine_raw_hits"
 fi
 
-if grep -Fq "decl_header->ast == decl" \
+if grep -Fq "decl_header->source_ast == decl" \
     "$ROOT_DIR/src/codegen/llvm_inventory_host_methods.h"; then
-    fail "llvm_host_decl_methods must be MIRDeclHeader metadata-first; do not require decl_header->ast == decl"
+    fail "LLVM host method inventory must be metadata-first; do not require source_ast identity"
 fi
 
 for term in \
@@ -464,7 +520,7 @@ if grep -Fq "strcmp(routine->owner_name, owner_name)" \
     "$ROOT_DIR/src/codegen/llvm_domain_method_helpers.c"; then
     fail "LLVM domain method helper must consume linked MIRDeclMethod routine indexes, not owner/name routine search"
 fi
-if grep -Fq "routine->ast == method->ast" \
+if grep -Fq "routine->ast == method->source_ast" \
     "$ROOT_DIR/src/compiler/mir_decl_headers.c"; then
     fail "MIRDeclMethod routine linking must not use AST identity matching"
 fi
@@ -492,7 +548,7 @@ for term in \
     "llvm_hosted_method_view_from_decl(ctx, cls_name, stmt)" \
     "llvm_hosted_method_view_missing_mir_metadata(&enum_method_view)" \
     "llvm_hosted_method_view_missing_mir_metadata(&class_method_view)" \
-    "llvm_mir_decl_method_ast(method_meta)" \
+    "llvm_mir_decl_method_source_ast(method_meta)" \
     "llvm_set_mir_inventory_missing(ctx" \
     "MIR-only LLVM path missing enum method declaration metadata" \
     "MIR-only LLVM path missing class method declaration metadata"; do
@@ -610,8 +666,7 @@ done
 for term in \
     "mir_validate_decl_header_ast_compat" \
     "mir_validate_decl_header_metadata" \
-    "AST method compatibility drift" \
-    "AST payload drift" \
+    "AST method-count compatibility drift" \
     "name metadata drift" \
     "duplicates declaration header" \
     "pointer-self ABI metadata drift" \
@@ -622,18 +677,18 @@ for term in \
 done
 require_term "src/compiler/mir_public_surface.h" \
     "mir_validate_decl_header_metadata(mir, error_message)"
-require_term "src/tests/mir/test_mir_lowering_part_b.cases.h" \
+require_term "src/tests/mir/test_mir_lowering_part_c.cases.h" \
     "MIR validator rejects hosted method signature metadata drift"
-require_term "src/tests/mir/test_mir_lowering_part_b.cases.h" \
+require_term "src/tests/mir/test_mir_lowering_part_c.cases.h" \
     "MIR validator rejects declaration header name metadata drift"
-require_term "src/tests/mir/test_mir_lowering_part_b.cases.h" \
+require_term "src/tests/mir/test_mir_lowering_part_c.cases.h" \
     "MIR declaration headers preserve pointer-self ABI shape"
-require_term "src/tests/mir/test_mir_lowering_part_b.cases.h" \
+require_term "src/tests/mir/test_mir_lowering_part_c.cases.h" \
     "MIR validator rejects pointer-self ABI metadata drift"
-require_term "src/tests/mir/test_mir_lowering_part_b.cases.h" \
+require_term "src/tests/mir/test_mir_lowering_part_c.cases.h" \
     "MIR validator rejects duplicate declaration header names"
 
-if awk '/decl = decl_header->ast;/{exit} {print}' \
+if awk '/decl = decl_header->source_ast;/{exit} {print}' \
     "$ROOT_DIR/src/codegen/llvm_inventory_host_methods.c" |
     grep -Fq "method->data.func_decl.name != NULL"; then
     fail "LLVM host method lookup must compare MIRDeclMethod.name before AST func_decl name"

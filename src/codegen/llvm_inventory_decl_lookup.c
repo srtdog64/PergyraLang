@@ -7,6 +7,24 @@
 
 #include "llvm_internal.h"
 
+static const ASTNodeType kLLVMHostDeclTypes[] = {
+    AST_CLASS_DECL,
+    AST_ENUM_DECL,
+    AST_PARTY_DECL,
+    AST_ROLE_DECL,
+    AST_ROSTER_DECL,
+    AST_RELATION_DECL,
+    AST_EFFECT_DECL,
+    AST_ZONE_DECL,
+    AST_WORLD_DECL,
+};
+
+static size_t
+llvm_host_decl_type_count(void)
+{
+    return sizeof(kLLVMHostDeclTypes) / sizeof(kLLVMHostDeclTypes[0]);
+}
+
 ASTNode *
 llvm_bind_current_host_decl(LLVMGenCtx *ctx, ASTNode *host_decl)
 {
@@ -104,7 +122,7 @@ llvm_find_decl_in_active_inventory(const LLVMGenCtx *ctx,
     if (ctx->mir != NULL) {
         decl_header = mir_find_decl_header(ctx->mir, name);
         if (decl_header != NULL && decl_header->ast_type == decl_type)
-            return decl_header->ast;
+            return decl_header->source_ast;
     }
 
     llvm_active_inventory(ctx, decl_type, &nodes, &count);
@@ -133,20 +151,11 @@ llvm_param_is_implicit_self(const FuncParam *param)
 bool
 llvm_is_host_decl_type(ASTNodeType decl_type)
 {
-    switch (decl_type) {
-    case AST_CLASS_DECL:
-    case AST_ENUM_DECL:
-    case AST_PARTY_DECL:
-    case AST_ROLE_DECL:
-    case AST_ROSTER_DECL:
-    case AST_RELATION_DECL:
-    case AST_EFFECT_DECL:
-    case AST_ZONE_DECL:
-    case AST_WORLD_DECL:
-        return true;
-    default:
-        return false;
+    for (size_t i = 0; i < llvm_host_decl_type_count(); i++) {
+        if (kLLVMHostDeclTypes[i] == decl_type)
+            return true;
     }
+    return false;
 }
 
 const MIRDeclHeader *
@@ -172,40 +181,22 @@ ASTNode *
 llvm_find_host_decl_in_active_inventory(const LLVMGenCtx *ctx, const char *name)
 {
     const MIRDeclHeader *decl_header = NULL;
-    ASTNode *decl = NULL;
 
     if (ctx == NULL || name == NULL)
         return NULL;
 
     decl_header = llvm_find_host_decl_header_in_context(ctx, name);
     if (decl_header != NULL)
-        return decl_header->ast;
+        return decl_header->source_ast;
 
-    decl = llvm_find_decl_in_active_inventory(ctx, AST_CLASS_DECL, name);
-    if (decl != NULL)
-        return decl;
-    decl = llvm_find_decl_in_active_inventory(ctx, AST_ENUM_DECL, name);
-    if (decl != NULL)
-        return decl;
-    decl = llvm_find_decl_in_active_inventory(ctx, AST_PARTY_DECL, name);
-    if (decl != NULL)
-        return decl;
-    decl = llvm_find_decl_in_active_inventory(ctx, AST_ROLE_DECL, name);
-    if (decl != NULL)
-        return decl;
-    decl = llvm_find_decl_in_active_inventory(ctx, AST_ROSTER_DECL, name);
-    if (decl != NULL)
-        return decl;
-    decl = llvm_find_decl_in_active_inventory(ctx, AST_RELATION_DECL, name);
-    if (decl != NULL)
-        return decl;
-    decl = llvm_find_decl_in_active_inventory(ctx, AST_EFFECT_DECL, name);
-    if (decl != NULL)
-        return decl;
-    decl = llvm_find_decl_in_active_inventory(ctx, AST_ZONE_DECL, name);
-    if (decl != NULL)
-        return decl;
-    return llvm_find_decl_in_active_inventory(ctx, AST_WORLD_DECL, name);
+    for (size_t i = 0; i < llvm_host_decl_type_count(); i++) {
+        ASTNode *decl = llvm_find_decl_in_active_inventory(
+            ctx, kLLVMHostDeclTypes[i], name);
+        if (decl != NULL)
+            return decl;
+    }
+
+    return NULL;
 }
 
 ASTNode *

@@ -98,8 +98,8 @@ llvm_mir_emit_for_in_loop_condition(const MIRInstruction *inst, LLVMGenCtx *ctx)
         return NULL;
 
     size_call = LLVMConstInt(ctx->type_i32, 0, 0);
-    iterable = inst->ast->data.for_loop.iterable;
-    if (iterable->type == AST_IDENTIFIER) {
+    iterable = inst->expr0;
+    if (iterable != NULL && iterable->type == AST_IDENTIFIER) {
         const char *iter_name = iterable->data.identifier.name;
         LLVMVarEntry *list_var = llvm_scope_lookup(ctx, iter_name);
         LLVMFuncEntry *size_fn = llvm_mir_for_in_required_runtime(ctx, inst,

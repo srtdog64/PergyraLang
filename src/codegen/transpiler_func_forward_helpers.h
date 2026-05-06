@@ -167,7 +167,7 @@ infer_generic_call_bindings(TranspilerCtx *ctx, ASTNode *decl, ASTNode *call,
     return true;
 }
 
-static void
+void
 emit_func_forward_decl_named(ASTNode *node, const char *emitted_name,
                              CodeBuf *buf, TranspilerCtx *ctx);
 

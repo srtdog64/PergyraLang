@@ -55,12 +55,11 @@ emit_let_destructure_statement(ASTNode *node, TranspilerCtx *ctx)
         }
 
         if (arity != node->data.let_destructure.name_count) {
-            if (ctx->backend_error == NULL) {
-                ctx->backend_error = strdup_fmt(
-                    "tuple destructuring arity mismatch: binding %llu, tuple arity %llu",
-                    (unsigned long long)node->data.let_destructure.name_count,
-                    (unsigned long long)arity);
-            }
+            transpiler_set_mir_topology_invalid(
+                ctx,
+                "tuple destructuring arity mismatch: binding %llu, tuple arity %llu",
+                (unsigned long long)node->data.let_destructure.name_count,
+                (unsigned long long)arity);
             free(init_expr);
             return;
         }
@@ -91,11 +90,13 @@ emit_let_destructure_statement(ASTNode *node, TranspilerCtx *ctx)
         elem_c_type = pergyra_type_to_c(inner);
     }
     if (c_init_type == NULL || elem_c_type == NULL || inner == NULL) {
-        if (ctx->backend_error == NULL) {
-            ctx->backend_error = strdup_fmt(
-                "cannot lower destructuring initializer of type '%s' to a concrete array element type",
-                init_type != NULL ? init_type : "(unknown)");
-        }
+        transpiler_set_backend_error_with_hints(
+            ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+            "cannot lower destructuring initializer of type '%s' to a concrete array element type",
+            init_type != NULL ? init_type : "(unknown)");
         free(init_expr);
         return;
     }

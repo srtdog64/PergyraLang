@@ -4,6 +4,11 @@
 
 Self-hosting is a post-beta validation target, not a beta blocker.
 
+Dedicated self-hosting preparation lives under
+[`docs/self_hosted/README.md`](self_hosted/README.md). That folder is the
+handoff entry point for future agents and should be read only after the beta
+source-of-truth documents.
+
 The beta goal is to close the core first: CFG body safety, AIR evidence,
 DAG resolution, MIR/C/LLVM parity, ABI ownership, and the dogfood path. After
 that closure, Pergyra should start dogfooding with compiler-adjacent tools

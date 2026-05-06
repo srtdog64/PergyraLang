@@ -77,11 +77,13 @@ test_mir_lowering_part_b(void)
         const char *saved_who_arg0 = NULL;
         const char *saved_who_arg1 = NULL;
         const char *saved_check_arg0 = NULL;
+        ASTNode *saved_check_expr0 = NULL;
         char *mir_error = NULL;
         bool rejected_step_name = false;
         bool rejected_payload = false;
         bool rejected_step_link = false;
         bool rejected_phase = false;
+        bool rejected_expr_payload = false;
         bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
         if (ok)
             patrol = find_mir_routine_mut(mir, "Patrol", MIR_SCOPE_INTENT);
@@ -144,6 +146,16 @@ test_mir_lowering_part_b(void)
             intent_check->arg0 = saved_check_arg0;
             free(mir_error);
             mir_error = NULL;
+
+            saved_check_expr0 = intent_check->expr0;
+            intent_check->expr0 = NULL;
+            rejected_expr_payload =
+                !mir_validate(mir, &mir_error)
+                && mir_error != NULL
+                && strstr(mir_error, "is missing expression payload fact") != NULL;
+            intent_check->expr0 = saved_check_expr0;
+            free(mir_error);
+            mir_error = NULL;
         }
         EXPECT(ok
                && mir_validate(mir, NULL)
@@ -153,7 +165,8 @@ test_mir_lowering_part_b(void)
                && rejected_step_name
                && rejected_payload
                && rejected_step_link
-               && rejected_phase);
+               && rejected_phase
+               && rejected_expr_payload);
         free(mir_error);
         mir_destroy(mir);
         rir_destroy(rir);
@@ -232,6 +245,63 @@ test_mir_lowering_part_b(void)
                && rejected_storage
                && rejected_index
                && rejected_surface);
+        free(mir_error);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
+    TEST("MIR validator rejects Write resource op without value expression fact");
+    {
+        const char *src =
+            "func WritePayload() -> Void {\n"
+            "    let slot: Slot<Int> = ClaimSlot<Int>();\n"
+            "    Write(slot, 42);\n"
+            "    return;\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        MIRRoutine *routine = NULL;
+        MIRInstruction *write_inst = NULL;
+        ASTNode *saved_expr0 = NULL;
+        char *mir_error = NULL;
+        bool rejected_missing_value_fact = false;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok)
+            routine = find_mir_routine_mut(mir, "WritePayload", MIR_SCOPE_FUNCTION);
+        if (routine != NULL) {
+            for (size_t bi = 0; bi < routine->block_count && write_inst == NULL; bi++) {
+                MIRBasicBlock *block = &routine->blocks[bi];
+                for (size_t ii = 0; ii < block->instruction_count; ii++) {
+                    MIRInstruction *inst = &block->instructions[ii];
+                    if (inst->kind == MIR_INST_RESOURCE_OP
+                        && inst->name != NULL
+                        && strcmp(inst->name, "Write") == 0) {
+                        write_inst = inst;
+                        break;
+                    }
+                }
+            }
+        }
+        if (write_inst != NULL) {
+            saved_expr0 = write_inst->expr0;
+            ASTNode *saved_ast = write_inst->ast;
+            write_inst->expr0 = NULL;
+            write_inst->ast = NULL;
+            rejected_missing_value_fact =
+                !mir_validate(mir, &mir_error)
+                && mir_error != NULL
+                && strstr(mir_error, "missing MIR value expression fact") != NULL;
+            write_inst->ast = saved_ast;
+            write_inst->expr0 = saved_expr0;
+        }
+        EXPECT(ok
+               && routine != NULL
+               && write_inst != NULL
+               && saved_expr0 != NULL
+               && rejected_missing_value_fact
+               && mir_validate(mir, NULL));
         free(mir_error);
         mir_destroy(mir);
         rir_destroy(rir);
@@ -585,15 +655,48 @@ test_mir_lowering_part_b(void)
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
         MIRProgram *mir = NULL;
-        const MIRRoutine *routine = NULL;
+        MIRRoutine *routine = NULL;
+        MIRInstruction *defer_inst = NULL;
+        ASTNode *saved_expr0 = NULL;
+        char *mir_error = NULL;
+        bool rejected_missing_body_fact = false;
         bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
         if (ok)
-            routine = find_mir_routine(mir, "BranchDefer", MIR_SCOPE_FUNCTION);
+            routine = find_mir_routine_mut(mir, "BranchDefer", MIR_SCOPE_FUNCTION);
+        if (routine != NULL) {
+            for (size_t bi = 0; bi < routine->block_count && defer_inst == NULL; bi++) {
+                MIRBasicBlock *block = &routine->blocks[bi];
+                for (size_t ii = 0; ii < block->instruction_count; ii++) {
+                    MIRInstruction *inst = &block->instructions[ii];
+                    if (inst->kind == MIR_INST_STMT
+                        && inst->source_ast_type == AST_DEFER_STMT) {
+                        defer_inst = inst;
+                        break;
+                    }
+                }
+            }
+        }
+        if (defer_inst != NULL) {
+            saved_expr0 = defer_inst->expr0;
+            ASTNode *saved_ast = defer_inst->ast;
+            defer_inst->expr0 = NULL;
+            defer_inst->ast = NULL;
+            rejected_missing_body_fact =
+                !mir_validate(mir, &mir_error)
+                && mir_error != NULL
+                && strstr(mir_error, "missing MIR body expression fact") != NULL;
+            defer_inst->ast = saved_ast;
+            defer_inst->expr0 = saved_expr0;
+        }
         EXPECT(ok
-               && mir_validate(mir, NULL)
-               && routine != NULL
-               && routine_has_stmt_ast_type(routine, AST_DEFER_STMT)
-               && routine_has_stmt_call_named(routine, "Log"));
+                && mir_validate(mir, NULL)
+                && routine != NULL
+                && defer_inst != NULL
+                && saved_expr0 != NULL
+                && rejected_missing_body_fact
+                && routine_has_stmt_ast_type(routine, AST_DEFER_STMT)
+                && routine_has_stmt_call_named(routine, "Log"));
+        free(mir_error);
         mir_destroy(mir);
         rir_destroy(rir);
         hir_destroy(hir);
@@ -643,6 +746,63 @@ test_mir_lowering_part_b(void)
                && mir_validate(mir, NULL)
                && routine != NULL
                && routine_has_def_call_fact_named(routine, "SourceValue"));
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
+    TEST("MIR validator rejects DEF without initializer expression fact");
+    {
+        const char *src =
+            "func DefExpr() -> Int {\n"
+            "    let value: Int = 7;\n"
+            "    return value;\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        MIRRoutine *routine = NULL;
+        MIRInstruction *def_inst = NULL;
+        ASTNode *saved_expr0 = NULL;
+        char *mir_error = NULL;
+        bool rejected_missing_init_fact = false;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok)
+            routine = find_mir_routine_mut(mir, "DefExpr", MIR_SCOPE_FUNCTION);
+        if (routine != NULL) {
+            for (size_t bi = 0; bi < routine->block_count && def_inst == NULL; bi++) {
+                MIRBasicBlock *block = &routine->blocks[bi];
+                for (size_t ii = 0; ii < block->instruction_count; ii++) {
+                    MIRInstruction *inst = &block->instructions[ii];
+                    if (inst->kind == MIR_INST_DEF
+                        && inst->ast != NULL
+                        && inst->ast->type == AST_LET_DECL
+                        && inst->ast->data.let_decl.initializer != NULL) {
+                        def_inst = inst;
+                        break;
+                    }
+                }
+            }
+        }
+        if (def_inst != NULL) {
+            saved_expr0 = def_inst->expr0;
+            ASTNode *saved_ast = def_inst->ast;
+            def_inst->expr0 = NULL;
+            def_inst->ast = NULL;
+            rejected_missing_init_fact =
+                !mir_validate(mir, &mir_error)
+                && mir_error != NULL
+                && strstr(mir_error, "missing MIR initializer expression fact") != NULL;
+            def_inst->ast = saved_ast;
+            def_inst->expr0 = saved_expr0;
+        }
+        EXPECT(ok
+               && routine != NULL
+               && def_inst != NULL
+               && saved_expr0 != NULL
+               && rejected_missing_init_fact
+               && mir_validate(mir, NULL));
+        free(mir_error);
         mir_destroy(mir);
         rir_destroy(rir);
         hir_destroy(hir);
@@ -718,6 +878,85 @@ test_mir_lowering_part_b(void)
         hir_destroy(hir);
     }
 
+    TEST("MIR validator rejects terminator without expression fact");
+    {
+        const char *src =
+            "func TerminatorExpr(flag: Bool) -> Int {\n"
+            "    if flag {\n"
+            "        return 1;\n"
+            "    }\n"
+            "    return 2;\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        MIRRoutine *routine = NULL;
+        MIRInstruction *branch_inst = NULL;
+        MIRInstruction *return_inst = NULL;
+        ASTNode *saved_branch_expr = NULL;
+        ASTNode *saved_return_expr = NULL;
+        char *mir_error = NULL;
+        bool rejected_branch = false;
+        bool rejected_return = false;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok)
+            routine = find_mir_routine_mut(mir, "TerminatorExpr", MIR_SCOPE_FUNCTION);
+        if (routine != NULL) {
+            for (size_t bi = 0; bi < routine->block_count; bi++) {
+                MIRBasicBlock *block = &routine->blocks[bi];
+                for (size_t ii = 0; ii < block->instruction_count; ii++) {
+                    MIRInstruction *inst = &block->instructions[ii];
+                    if (branch_inst == NULL
+                        && inst->kind == MIR_INST_BRANCH
+                        && inst->branch_shape == MIR_BRANCH_EXPR)
+                        branch_inst = inst;
+                    if (return_inst == NULL
+                        && inst->kind == MIR_INST_RETURN
+                        && inst->ast != NULL)
+                        return_inst = inst;
+                }
+            }
+        }
+        if (branch_inst != NULL) {
+            saved_branch_expr = branch_inst->expr0;
+            ASTNode *saved_ast = branch_inst->ast;
+            branch_inst->expr0 = NULL;
+            branch_inst->ast = NULL;
+            rejected_branch =
+                !mir_validate(mir, &mir_error)
+                && mir_error != NULL
+                && strstr(mir_error, "branch is missing MIR terminator expression fact") != NULL;
+            branch_inst->ast = saved_ast;
+            branch_inst->expr0 = saved_branch_expr;
+            free(mir_error);
+            mir_error = NULL;
+        }
+        if (return_inst != NULL) {
+            saved_return_expr = return_inst->expr0;
+            ASTNode *saved_ast = return_inst->ast;
+            return_inst->expr0 = NULL;
+            return_inst->ast = NULL;
+            rejected_return =
+                !mir_validate(mir, &mir_error)
+                && mir_error != NULL
+                && strstr(mir_error, "return is missing MIR terminator expression fact") != NULL;
+            return_inst->ast = saved_ast;
+            return_inst->expr0 = saved_return_expr;
+        }
+        EXPECT(ok
+               && branch_inst != NULL
+               && return_inst != NULL
+               && saved_branch_expr != NULL
+               && saved_return_expr != NULL
+               && rejected_branch
+               && rejected_return
+               && mir_validate(mir, NULL));
+        free(mir_error);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
     TEST("MIR DCE removes dead pure-query statements while preserving routine validity");
     {
         const char *src =
@@ -735,6 +974,8 @@ test_mir_lowering_part_b(void)
         EXPECT(ok
                && mir_validate(mir, NULL)
                && probe != NULL
+               && !probe->used_non_cfg_body_fallback
+               && probe->non_cfg_body_fallback_count == 0
                && probe->has_dce
                && probe->dce_removed_count > 0
                && !routine_has_stmt_call_named(probe, "ChannelLength"));
@@ -743,179 +984,4 @@ test_mir_lowering_part_b(void)
         hir_destroy(hir);
     }
 
-    TEST("MIR validator rejects hosted method signature metadata drift");
-    {
-        const char *src =
-            "enum Status {\n"
-            "    Idle,\n"
-            "    Busy,\n"
-            "    func Code(self) -> Int { return 7; }\n"
-            "}\n";
-        HIRProgram *hir = NULL;
-        RIRProgram *rir = NULL;
-        MIRProgram *mir = NULL;
-        char *mir_error = NULL;
-        bool mutated = false;
-        bool rejected = false;
-        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
-        if (ok && mir != NULL) {
-            for (size_t i = 0; i < mir->decl_header_count; i++) {
-                MIRDeclHeader *header = &mir->decl_headers[i];
-                if (header->name != NULL
-                    && strcmp(header->name, "Status") == 0
-                    && header->method_metadata_count > 0) {
-                    header->method_metadata[0].param_count++;
-                    mutated = true;
-                    break;
-                }
-            }
-        }
-        rejected = ok
-                   && mutated
-                   && !mir_validate(mir, &mir_error)
-                   && mir_error != NULL
-                   && strstr(mir_error, "signature metadata drift") != NULL;
-        EXPECT(rejected);
-        free(mir_error);
-        mir_destroy(mir);
-        rir_destroy(rir);
-        hir_destroy(hir);
-    }
-
-    TEST("MIR validator rejects declaration header name metadata drift");
-    {
-        const char *src =
-            "class Item {\n"
-            "    func Code(self) -> Int { return 7; }\n"
-            "}\n";
-        HIRProgram *hir = NULL;
-        RIRProgram *rir = NULL;
-        MIRProgram *mir = NULL;
-        char *mir_error = NULL;
-        bool mutated = false;
-        bool rejected = false;
-        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
-        if (ok && mir != NULL) {
-            for (size_t i = 0; i < mir->decl_header_count; i++) {
-                MIRDeclHeader *header = &mir->decl_headers[i];
-                if (header->name != NULL && strcmp(header->name, "Item") == 0) {
-                    header->name = "OtherItem";
-                    mutated = true;
-                    break;
-                }
-            }
-        }
-        rejected = ok
-                   && mutated
-                   && !mir_validate(mir, &mir_error)
-                   && mir_error != NULL
-                   && strstr(mir_error, "name metadata drift") != NULL;
-        EXPECT(rejected);
-        free(mir_error);
-        mir_destroy(mir);
-        rir_destroy(rir);
-        hir_destroy(hir);
-    }
-
-    TEST("MIR declaration headers preserve pointer-self ABI shape");
-    {
-        const char *src =
-            "subject Player {\n"
-            "    let hp: Int;\n"
-            "    func Read(self) -> Int { return hp; }\n"
-            "}\n";
-        HIRProgram *hir = NULL;
-        RIRProgram *rir = NULL;
-        MIRProgram *mir = NULL;
-        MIRDeclHeader *player = NULL;
-        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
-        if (ok && mir != NULL) {
-            for (size_t i = 0; i < mir->decl_header_count; i++) {
-                if (mir->decl_headers[i].name != NULL
-                    && strcmp(mir->decl_headers[i].name, "Player") == 0) {
-                    player = &mir->decl_headers[i];
-                    break;
-                }
-            }
-        }
-        EXPECT(ok
-               && player != NULL
-               && player->uses_pointer_self
-               && player->method_count == 1
-               && player->method_metadata_count == 1
-               && mir_validate(mir, NULL));
-        mir_destroy(mir);
-        rir_destroy(rir);
-        hir_destroy(hir);
-    }
-
-    TEST("MIR validator rejects pointer-self ABI metadata drift");
-    {
-        const char *src =
-            "vessel Handle {\n"
-            "    let value: Int;\n"
-            "    func Read(self) -> Int { return value; }\n"
-            "}\n";
-        HIRProgram *hir = NULL;
-        RIRProgram *rir = NULL;
-        MIRProgram *mir = NULL;
-        char *mir_error = NULL;
-        bool mutated = false;
-        bool rejected = false;
-        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
-        if (ok && mir != NULL) {
-            for (size_t i = 0; i < mir->decl_header_count; i++) {
-                MIRDeclHeader *header = &mir->decl_headers[i];
-                if (header->name != NULL && strcmp(header->name, "Handle") == 0) {
-                    header->uses_pointer_self = false;
-                    mutated = true;
-                    break;
-                }
-            }
-        }
-        rejected = ok
-                   && mutated
-                   && !mir_validate(mir, &mir_error)
-                   && mir_error != NULL
-                   && strstr(mir_error, "pointer-self ABI metadata drift") != NULL;
-        EXPECT(rejected);
-        free(mir_error);
-        mir_destroy(mir);
-        rir_destroy(rir);
-        hir_destroy(hir);
-    }
-
-    TEST("MIR validator rejects duplicate declaration header names");
-    {
-        const char *src =
-            "class A { let value: Int; }\n"
-            "class B { let value: Int; }\n";
-        HIRProgram *hir = NULL;
-        RIRProgram *rir = NULL;
-        MIRProgram *mir = NULL;
-        char *mir_error = NULL;
-        size_t mutated = 0;
-        bool rejected = false;
-        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
-        if (ok && mir != NULL) {
-            for (size_t i = 0; i < mir->decl_header_count; i++) {
-                MIRDeclHeader *header = &mir->decl_headers[i];
-                if (header->name != NULL && strcmp(header->name, "B") == 0) {
-                    header->name = "A";
-                    mutated++;
-                    break;
-                }
-            }
-        }
-        rejected = ok
-                   && mutated == 1
-                   && !mir_validate(mir, &mir_error)
-                   && mir_error != NULL
-                   && strstr(mir_error, "duplicates declaration header") != NULL;
-        EXPECT(rejected);
-        free(mir_error);
-        mir_destroy(mir);
-        rir_destroy(rir);
-        hir_destroy(hir);
-    }
 }

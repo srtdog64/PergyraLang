@@ -84,6 +84,16 @@ air_program_requires_summary_flag_for_evidence(const AIRProgram *air,
     }
 }
 
+static bool
+air_evidence_inventory_is_authoritative_for_validation(const AIRProgram *air)
+{
+    return air != NULL
+        && (air->evidence_count > 0
+            || air->has_hir_input
+            || air->has_rir_input
+            || air->has_mir_input);
+}
+
 typedef struct
 {
     AIREvidenceKind kind;
@@ -351,7 +361,7 @@ air_validate_evidence_inventory(const AIRProgram *air, char **error_message)
         if (!air_evidence_node_matches_boundary_shape(air, i, error_message))
             return false;
     }
-    if (air->evidence_count > 0) {
+    if (air_evidence_inventory_is_authoritative_for_validation(air)) {
         for (size_t i = 0; i < air->boundary_count; i++) {
             for (size_t j = 0;
                  j < sizeof(kBoundaryEvidenceSummaryRules)

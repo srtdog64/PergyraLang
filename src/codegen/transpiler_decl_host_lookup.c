@@ -10,9 +10,52 @@
 
 #include "transpiler_decl_lookup.h"
 
+typedef struct
+{
+    ASTNodeType owner_type;
+    ASTNodeType lookup_type;
+} TranspilerHostOwnerLookup;
+
+static const TranspilerHostOwnerLookup kTranspilerHostOwnerLookups[] = {
+    { AST_ZONE_DECL, AST_ZONE_DECL },
+    { AST_RELATION_DECL, AST_RELATION_DECL },
+    { AST_EFFECT_DECL, AST_EFFECT_DECL },
+    { AST_WORLD_DECL, AST_WORLD_DECL },
+    { AST_PARTY_DECL, AST_PARTY_DECL },
+    { AST_ROSTER_DECL, AST_ROSTER_DECL },
+    { AST_ENUM_DECL, AST_ENUM_DECL },
+    { AST_CLASS_DECL, AST_CLASS_DECL },
+};
+
+static const ASTNodeType kTranspilerNominalHostLookupTypes[] = {
+    AST_RELATION_DECL,
+    AST_EFFECT_DECL,
+    AST_ZONE_DECL,
+    AST_WORLD_DECL,
+    AST_PARTY_DECL,
+    AST_ROLE_DECL,
+    AST_ROSTER_DECL,
+    AST_ENUM_DECL,
+    AST_CLASS_DECL,
+};
+
+static size_t
+transpiler_host_owner_lookup_count(void)
+{
+    return sizeof(kTranspilerHostOwnerLookups)
+        / sizeof(kTranspilerHostOwnerLookups[0]);
+}
+
+static size_t
+transpiler_nominal_host_lookup_type_count(void)
+{
+    return sizeof(kTranspilerNominalHostLookupTypes)
+        / sizeof(kTranspilerNominalHostLookupTypes[0]);
+}
+
 static ASTNode *
-transpiler_find_method_in_mir_header(const MIRDeclHeader *header,
-                                     const char *method_name)
+transpiler_find_method_source_ast_in_mir_header(const MIRDeclHeader *header,
+                                                const char *method_name)
 {
     if (header == NULL || method_name == NULL)
         return NULL;
@@ -20,7 +63,7 @@ transpiler_find_method_in_mir_header(const MIRDeclHeader *header,
     for (size_t i = 0; i < header->method_metadata_count; i++) {
         MIRDeclMethod *method = &header->method_metadata[i];
         if (method->name != NULL && strcmp(method->name, method_name) == 0)
-            return method->ast;
+            return method->source_ast;
     }
 
     return NULL;
@@ -45,26 +88,7 @@ transpiler_find_host_decl_from_owner_local(TranspilerCtx *ctx,
             return current_host_decl;
     }
 
-    switch (owner_ast_type) {
-    case AST_ZONE_DECL:
-        return transpiler_find_decl_in_active_inventory_only_local(
-            ctx, AST_ZONE_DECL, owner_name);
-    case AST_RELATION_DECL:
-        return transpiler_find_decl_in_active_inventory_only_local(
-            ctx, AST_RELATION_DECL, owner_name);
-    case AST_EFFECT_DECL:
-        return transpiler_find_decl_in_active_inventory_only_local(
-            ctx, AST_EFFECT_DECL, owner_name);
-    case AST_WORLD_DECL:
-        return transpiler_find_decl_in_active_inventory_only_local(
-            ctx, AST_WORLD_DECL, owner_name);
-    case AST_PARTY_DECL:
-        return transpiler_find_decl_in_active_inventory_only_local(
-            ctx, AST_PARTY_DECL, owner_name);
-    case AST_ROSTER_DECL:
-        return transpiler_find_decl_in_active_inventory_only_local(
-            ctx, AST_ROSTER_DECL, owner_name);
-    case AST_ROLE_DECL:
+    if (owner_ast_type == AST_ROLE_DECL) {
         role_decl = transpiler_find_decl_in_active_inventory_only_local(
             ctx, AST_ROLE_DECL, owner_name);
         if (role_decl != NULL
@@ -77,14 +101,19 @@ transpiler_find_host_decl_from_owner_local(TranspilerCtx *ctx,
                 role_decl->data.role_decl.for_type->data.type.name);
         }
         return NULL;
-    case AST_ENUM_DECL:
-        return transpiler_find_decl_in_active_inventory_only_local(
-            ctx, AST_ENUM_DECL, owner_name);
-    case AST_CLASS_DECL:
-    default:
-        return transpiler_find_decl_in_active_inventory_only_local(
-            ctx, AST_CLASS_DECL, owner_name);
     }
+
+    for (size_t i = 0; i < transpiler_host_owner_lookup_count(); i++) {
+        const TranspilerHostOwnerLookup *lookup =
+            &kTranspilerHostOwnerLookups[i];
+        if (lookup->owner_type == owner_ast_type) {
+            return transpiler_find_decl_in_active_inventory_only_local(
+                ctx, lookup->lookup_type, owner_name);
+        }
+    }
+
+    return transpiler_find_decl_in_active_inventory_only_local(
+        ctx, AST_CLASS_DECL, owner_name);
 }
 
 const char *
@@ -140,42 +169,14 @@ transpiler_find_nominal_host_decl_local(TranspilerCtx *ctx,
         return ctx->last_nominal_host_decl;
     }
 
-    decl = transpiler_find_decl_in_inventory_local(ctx, AST_RELATION_DECL,
-                                                   host_type_name);
-    if (decl != NULL)
-        goto cache_and_return;
-    decl = transpiler_find_decl_in_inventory_local(ctx, AST_EFFECT_DECL,
-                                                   host_type_name);
-    if (decl != NULL)
-        goto cache_and_return;
-    decl = transpiler_find_decl_in_inventory_local(ctx, AST_ZONE_DECL,
-                                                   host_type_name);
-    if (decl != NULL)
-        goto cache_and_return;
-    decl = transpiler_find_decl_in_inventory_local(ctx, AST_WORLD_DECL,
-                                                   host_type_name);
-    if (decl != NULL)
-        goto cache_and_return;
-    decl = transpiler_find_decl_in_inventory_local(ctx, AST_PARTY_DECL,
-                                                   host_type_name);
-    if (decl != NULL)
-        goto cache_and_return;
-    decl = transpiler_find_decl_in_inventory_local(ctx, AST_ROLE_DECL,
-                                                   host_type_name);
-    if (decl != NULL)
-        goto cache_and_return;
-    decl = transpiler_find_decl_in_inventory_local(ctx, AST_ROSTER_DECL,
-                                                   host_type_name);
-    if (decl != NULL)
-        goto cache_and_return;
-    decl = transpiler_find_decl_in_inventory_local(ctx, AST_ENUM_DECL,
-                                                   host_type_name);
-    if (decl != NULL)
-        goto cache_and_return;
-    decl = transpiler_find_decl_in_inventory_local(ctx, AST_CLASS_DECL,
-                                                   host_type_name);
-    if (decl == NULL)
-        return NULL;
+    for (size_t i = 0; i < transpiler_nominal_host_lookup_type_count(); i++) {
+        decl = transpiler_find_decl_in_inventory_local(
+            ctx, kTranspilerNominalHostLookupTypes[i], host_type_name);
+        if (decl != NULL)
+            goto cache_and_return;
+    }
+
+    return NULL;
 
 cache_and_return:
     snprintf(ctx->last_nominal_host_name,
@@ -201,13 +202,15 @@ current_host_method_decl(TranspilerCtx *ctx, const char *method_name)
     if (ctx->mir != NULL && host_name != NULL) {
         header = mir_find_decl_header(ctx->mir, host_name);
         if (header != NULL)
-            return transpiler_find_method_in_mir_header(header, method_name);
+            return transpiler_find_method_source_ast_in_mir_header(
+                header, method_name);
     }
 
     method_view = transpiler_hosted_method_view_from_decl(ctx, host_name, decl);
 
     for (size_t i = 0; i < method_view.count; i++) {
-        ASTNode *method = transpiler_hosted_method_view_ast(&method_view, i);
+        ASTNode *method =
+            transpiler_hosted_method_view_source_ast(&method_view, i);
         if (method != NULL && method->type == AST_FUNC_DECL
             && method->data.func_decl.name != NULL
             && strcmp(method->data.func_decl.name, method_name) == 0) {
@@ -240,7 +243,7 @@ find_nominal_host_method_decl(TranspilerCtx *ctx, const char *host_type_name,
     if (ctx->mir != NULL) {
         header = mir_find_decl_header(ctx->mir, host_type_name);
         if (header != NULL) {
-            method_from_mir = transpiler_find_method_in_mir_header(
+            method_from_mir = transpiler_find_method_source_ast_in_mir_header(
                 header, method_name);
             if (method_from_mir == NULL)
                 return NULL;
@@ -258,7 +261,8 @@ find_nominal_host_method_decl(TranspilerCtx *ctx, const char *host_type_name,
     method_view = transpiler_hosted_method_view_from_decl(ctx, host_type_name, decl);
 
     for (size_t i = 0; i < method_view.count; i++) {
-        ASTNode *method = transpiler_hosted_method_view_ast(&method_view, i);
+        ASTNode *method =
+            transpiler_hosted_method_view_source_ast(&method_view, i);
         if (method != NULL && method->type == AST_FUNC_DECL
             && method->data.func_decl.name != NULL
             && strcmp(method->data.func_decl.name, method_name) == 0) {

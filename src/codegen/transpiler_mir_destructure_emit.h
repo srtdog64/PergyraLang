@@ -2,6 +2,7 @@
 #define PERGYRA_TRANSPILER_MIR_DESTRUCTURE_EMIT_H
 
 #include "codegen_slot_type_policy.h"
+#include "transpiler_mir_expr_ssa.h"
 
 /* C backend MIR destructuring statement emission owner. */
 static bool
@@ -171,12 +172,11 @@ transpiler_emit_mir_let_destructure_stmt(CodeBuf *buf,
             }
         }
         if (arity != stmt->data.let_destructure.name_count) {
-            if (ctx->backend_error == NULL) {
-                ctx->backend_error = strdup_fmt(
-                    "tuple destructuring arity mismatch: binding %llu, tuple arity %llu",
-                    (unsigned long long) stmt->data.let_destructure.name_count,
-                    (unsigned long long) arity);
-            }
+            transpiler_set_mir_topology_invalid(
+                ctx,
+                "tuple destructuring arity mismatch: binding %llu, tuple arity %llu",
+                (unsigned long long) stmt->data.let_destructure.name_count,
+                (unsigned long long) arity);
             return false;
         }
         rhs_t = emit_expression_with_ssa_map(init, ctx, ssa_map_out);
@@ -222,11 +222,13 @@ transpiler_emit_mir_let_destructure_stmt(CodeBuf *buf,
         elem_c_type = pergyra_type_to_c(elem_inner);
     }
     if (c_init_type == NULL || elem_c_type == NULL || elem_inner == NULL) {
-        if (ctx->backend_error == NULL) {
-            ctx->backend_error = strdup_fmt(
-                "cannot lower destructuring initializer of type '%s' to a concrete array element type",
-                init_type_name != NULL ? init_type_name : "(unknown)");
-        }
+        transpiler_set_backend_error_with_hints(
+            ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+            "cannot lower destructuring initializer of type '%s' to a concrete array element type",
+            init_type_name != NULL ? init_type_name : "(unknown)");
         return false;
     }
 

@@ -110,6 +110,7 @@ typedef struct
     ASTNodeType      source_ast_type;
     HIRBlockTerminatorKind source_terminator_kind;
     bool             has_source_terminator_kind;
+    bool             source_terminator_has_value;
     size_t           source_statement_index;
     bool             has_source_statement_index;
     bool             has_surface_usage_facts;
@@ -234,6 +235,8 @@ typedef struct
     size_t             use_edge_count;
     size_t             live_value_count;
     size_t             dce_removed_count;
+    size_t             non_cfg_body_fallback_count;
+    bool               used_non_cfg_body_fallback;
     bool               has_liveness;
     bool               has_dce;
     MIRValueSummary   *value_summaries;
@@ -250,7 +253,14 @@ typedef struct
 
 typedef struct
 {
-    ASTNode    *ast;
+    const MIRRoutine *routines;
+    size_t            count;
+} MIRRoutineInventory;
+
+typedef struct
+{
+    /* Source compatibility/provenance only; declaration inventory lives below. */
+    ASTNode    *source_ast;
     const char *owner_name;
     const char *name;
     FuncParam **params;
@@ -264,7 +274,8 @@ typedef struct
 
 typedef struct
 {
-    ASTNode     *ast;
+    /* Source compatibility/provenance only; declaration inventory lives below. */
+    ASTNode     *source_ast;
     ASTNodeType  ast_type;
     const char  *name;
     size_t       method_count;
@@ -335,6 +346,12 @@ void        mir_active_inventory(const MIRProgram *mir,
 void        mir_active_externs(const MIRProgram *mir,
                                ASTNode ***nodes_out,
                                size_t *count_out);
+void        mir_routine_inventory_from_program(
+                const MIRProgram *mir,
+                MIRRoutineInventory *inventory);
+const MIRRoutine *mir_routine_inventory_get(
+                const MIRRoutineInventory *inventory,
+                size_t index);
 ASTNode     *mir_find_function_decl(const MIRProgram *mir, const char *name);
 const MIRDeclHeader *mir_find_decl_header(const MIRProgram *mir, const char *name);
 bool        mir_run_liveness_pass(MIRProgram *mir, char **error_message);

@@ -1,6 +1,8 @@
 #ifndef PGY_TRANSPILER_MIR_MATCH_CONDITION_EMIT_H
 #define PGY_TRANSPILER_MIR_MATCH_CONDITION_EMIT_H
 
+#include "transpiler_mir_expr_ssa.h"
+
 static ASTNode *
 transpiler_mir_find_match_subject_for_case(ASTNode *node, ASTNode *case_node)
 {

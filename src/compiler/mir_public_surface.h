@@ -99,6 +99,34 @@ mir_destroy(MIRProgram *mir)
     free(mir);
 }
 
+static bool
+mir_validate_non_cfg_fallback_state(const MIRRoutine *routine,
+                                    char **error_message)
+{
+    if (routine == NULL)
+        return true;
+    if (routine->non_cfg_body_fallback_count > 0
+        && !routine->used_non_cfg_body_fallback) {
+        if (error_message != NULL) {
+            *error_message = mir_strdup_fmt(
+                "MIR routine '%s' records non-CFG body fallback count without fallback flag",
+                routine->name != NULL ? routine->name : "(anonymous)");
+        }
+        return false;
+    }
+    if (routine->hir_routine != NULL
+        && routine->hir_routine->has_cfg
+        && routine->used_non_cfg_body_fallback) {
+        if (error_message != NULL) {
+            *error_message = mir_strdup_fmt(
+                "MIR routine '%s' is CFG-backed but used non-CFG body fallback",
+                routine->name != NULL ? routine->name : "(anonymous)");
+        }
+        return false;
+    }
+    return true;
+}
+
 bool
 mir_validate(const MIRProgram *mir, char **error_message)
 {
@@ -117,6 +145,9 @@ mir_validate(const MIRProgram *mir, char **error_message)
 
     for (size_t i = 0; i < mir->routine_count; i++) {
         const MIRRoutine *routine = &mir->routines[i];
+
+        if (!mir_validate_non_cfg_fallback_state(routine, error_message))
+            return false;
 
         if (!mir_validate_cfg_contract_state(routine, false, true, true, error_message))
             return false;
@@ -245,6 +276,30 @@ mir_validate(const MIRProgram *mir, char **error_message)
     return true;
 }
 
+void
+mir_routine_inventory_from_program(const MIRProgram *mir,
+                                   MIRRoutineInventory *inventory)
+{
+    if (inventory == NULL)
+        return;
+    inventory->routines = NULL;
+    inventory->count = 0;
+    if (mir != NULL) {
+        inventory->routines = mir->routines;
+        inventory->count = mir->routine_count;
+    }
+}
+
+const MIRRoutine *
+mir_routine_inventory_get(const MIRRoutineInventory *inventory, size_t index)
+{
+    if (inventory == NULL || inventory->routines == NULL
+        || index >= inventory->count) {
+        return NULL;
+    }
+    return &inventory->routines[index];
+}
+
 bool
 mir_validate_emission_topology(const MIRRoutine *routine,
                               bool require_cleanup,
@@ -274,7 +329,7 @@ mir_dump(const MIRProgram *mir, FILE *out)
     for (size_t i = 0; i < mir->routine_count; i++) {
         const MIRRoutine *routine = &mir->routines[i];
         fprintf(out,
-                "  routine[%02zu] %-8s %s blocks=%zu instructions=%zu cleanup-block=%s rollback-block=%s invalidation-block=%s phi=%zu renamed=%zu cleanup-edges=%zu uses=%zu live=%zu dce=%zu\n",
+                "  routine[%02zu] %-8s %s blocks=%zu instructions=%zu cleanup-block=%s rollback-block=%s invalidation-block=%s phi=%zu renamed=%zu cleanup-edges=%zu uses=%zu live=%zu dce=%zu noncfg=%zu\n",
                 i,
                 mir_scope_kind_name(routine->kind),
                 routine->name != NULL ? routine->name : "(anonymous)",
@@ -288,7 +343,8 @@ mir_dump(const MIRProgram *mir, FILE *out)
                 routine->cleanup_edge_count,
                 routine->use_edge_count,
                 routine->live_value_count,
-                routine->dce_removed_count);
+                routine->dce_removed_count,
+                routine->non_cfg_body_fallback_count);
         if (routine->has_use_def_summary) {
             fprintf(out, "    values=%zu\n", routine->value_summary_count);
             for (size_t j = 0; j < routine->value_summary_count; j++) {

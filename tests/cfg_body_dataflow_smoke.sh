@@ -677,8 +677,15 @@ required_mir_owner_terms = {
     ],
     "src/compiler/mir_non_cfg_stmt_population.c": [
         "routine->hir_routine != NULL && routine->hir_routine->has_cfg",
+        "used_non_cfg_body_fallback",
+        "non_cfg_body_fallback_count",
         "mir_attach_statement_call_fact",
         "mir_attach_def_initializer_call_fact",
+    ],
+    "src/compiler/mir_public_surface.h": [
+        "mir_validate_non_cfg_fallback_state",
+        "used non-CFG body fallback",
+        "non_cfg_body_fallback_count",
     ],
     "src/compiler/mir_cfg_contract_control.h": [
         "PERGYRA_MIR_CFG_CONTRACT_CONTROL_H",
@@ -705,6 +712,7 @@ mir_owner_text = {
     "src/compiler/mir_stmt_source.c": mir_stmt_source,
     "src/compiler/mir_non_cfg_stmt_population.h": mir_non_cfg_stmt_population,
     "src/compiler/mir_non_cfg_stmt_population.c": mir_non_cfg_stmt_population,
+    "src/compiler/mir_public_surface.h": (root / "src" / "compiler" / "mir_public_surface.h").read_text(encoding="utf-8"),
     "src/compiler/mir_cfg_contract_control.h": mir_cfg_contract_control,
 }
 for owner, terms in required_mir_owner_terms.items():
@@ -1060,10 +1068,10 @@ require_literal "src/codegen/transpiler_mir_inventory_intent_collect.c" "mir_ins
 require_literal "src/codegen/llvm_intent_flow.c" "mir_instruction_intent_phase_matches(inst, phase_name)"
 require_literal "src/codegen/transpiler_mir_inventory_intent_collect.c" "mir_instruction_intent_payload(inst)"
 require_literal "src/codegen/llvm_intent_mir_meta.c" "mir_instruction_intent_payload(inst)"
-require_literal "src/codegen/transpiler_helpers.h" "mir_instruction_intent_payload(inst)"
-require_literal "src/codegen/transpiler_helpers.h" "mir_instruction_intent_step_matches(inst, step_name)"
+require_literal "src/codegen/transpiler_mir_intent_query.c" "mir_instruction_intent_payload(inst)"
+require_literal "src/codegen/transpiler_mir_intent_query.c" "mir_instruction_intent_step_matches(inst, step_name)"
 if grep -RIn "inst->arg1 == NULL || strcmp(inst->arg1, step_name)" \
-    "$ROOT_DIR/src/codegen/transpiler_helpers.h"; then
+    "$ROOT_DIR/src/codegen/transpiler_mir_intent_query.c"; then
     echo "C intent helper must use MIR intent step matching API" >&2
     exit 1
 fi

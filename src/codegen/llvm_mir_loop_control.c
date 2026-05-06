@@ -12,7 +12,6 @@
 bool
 llvm_mir_emit_for_loop_init(const MIRInstruction *inst, LLVMGenCtx *ctx)
 {
-    ASTNode *node;
     LLVMValueRef var_alloca;
     LLVMValueRef start;
     const char *variable;
@@ -21,10 +20,8 @@ llvm_mir_emit_for_loop_init(const MIRInstruction *inst, LLVMGenCtx *ctx)
         return true;
     if (inst->kind != MIR_INST_LOOP_INIT)
         return true;
-    node = inst->ast;
-    if (node == NULL
-        || (inst->branch_shape != MIR_BRANCH_FOR_RANGE
-            && inst->branch_shape != MIR_BRANCH_FOR_IN))
+    if (inst->branch_shape != MIR_BRANCH_FOR_RANGE
+        && inst->branch_shape != MIR_BRANCH_FOR_IN)
         return false;
     variable = inst->arg0;
     if (variable == NULL)
@@ -46,7 +43,6 @@ llvm_mir_emit_for_loop_init(const MIRInstruction *inst, LLVMGenCtx *ctx)
 LLVMValueRef
 llvm_mir_emit_for_loop_condition(const MIRInstruction *inst, LLVMGenCtx *ctx)
 {
-    ASTNode *node;
     LLVMVarEntry *loop_var;
     LLVMValueRef current;
     LLVMValueRef end;
@@ -54,10 +50,8 @@ llvm_mir_emit_for_loop_condition(const MIRInstruction *inst, LLVMGenCtx *ctx)
 
     if (inst == NULL || ctx == NULL)
         return NULL;
-    node = inst->ast;
-    if (node == NULL
-        || (inst->branch_shape != MIR_BRANCH_FOR_RANGE
-            && inst->branch_shape != MIR_BRANCH_FOR_IN))
+    if (inst->branch_shape != MIR_BRANCH_FOR_RANGE
+        && inst->branch_shape != MIR_BRANCH_FOR_IN)
         return NULL;
     variable = inst->arg0;
     if (variable == NULL)

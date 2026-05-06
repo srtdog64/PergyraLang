@@ -80,6 +80,9 @@ for required in \
     '"kind":"mir_cleanup"' \
     '"provider":' \
     '"subject":' \
+    '"boundary_kind":' \
+    '"boundary_owner":' \
+    '"boundary_source":' \
     '"fact_count":' \
     '"fallback_count":0' \
     '"mir_cleanup_evidence_count"' \
@@ -140,6 +143,11 @@ assert any(b["kind"] == "zone" and b["evidence_flags"]["rir_boundary"] for b in 
 assert any(e["kind"] == "rir_boundary" for e in data["evidence"])
 assert any(e["kind"] == "hir_cfg" for e in data["evidence"])
 assert all("provider" in e and "subject" in e for e in data["evidence"])
+assert all("boundary_kind" in e for e in data["evidence"])
+assert all("boundary_owner" in e for e in data["evidence"])
+assert all("boundary_source" in e for e in data["evidence"])
+assert all(e["boundary_kind"] for e in data["evidence"] if e["boundary"] is not None)
+assert all(e["boundary_source"] for e in data["evidence"] if e["boundary"] is not None)
 assert all("fact_count" in e and "fallback_count" in e for e in data["evidence"])
 assert all(e["fallback_count"] == 0 for e in data["evidence"])
 if summary["dag_metadata_evidence_count"] > 0:

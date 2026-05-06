@@ -59,27 +59,6 @@ static char *
 render_type_name_with_bindings(TranspilerCtx *ctx, ASTNode *type_node,
                                GenericBindingEntry *bindings, size_t binding_count);
 
-static const char *
-transpiler_contextual_option_type_name(TranspilerCtx *ctx)
-{
-    if (ctx == NULL)
-        return NULL;
-    if (ctx->expected_type != NULL
-        && strncmp(ctx->expected_type, "Option<", 7) == 0)
-        return ctx->expected_type;
-    if (ctx->current_return_type[0] != '\0'
-        && strncmp(ctx->current_return_type, "Option<", 7) == 0)
-        return ctx->current_return_type;
-    return NULL;
-}
-
-static const char *
-transpiler_contextual_option_inner_type_name(TranspilerCtx *ctx)
-{
-    const char *option_type = transpiler_contextual_option_type_name(ctx);
-    return option_type != NULL ? slot_inner_type_name(option_type) : NULL;
-}
-
 #include "transpiler_specialization_helpers.h"
 #include "transpiler_expr_type_infer.h"
 #include "transpiler_func_forward_metadata.h"

@@ -177,7 +177,11 @@ mir_validate_cfg_contract_state(const MIRRoutine *routine,
                     return false;
                 }
                 if (inst->kind == MIR_INST_STMT
-                    && mir_stmt_ast_is_cfg_owned_control(inst->ast)) {
+                    && ((inst->has_source_location
+                         && mir_stmt_ast_type_is_cfg_owned_control(
+                             inst->source_ast_type))
+                        || (!inst->has_source_location
+                            && mir_stmt_ast_is_cfg_owned_control(inst->ast)))) {
                     if (error_message != NULL) {
                         *error_message = mir_strdup_fmt(
                             "MIR routine '%s' block[%zu] keeps CFG-owned control statement as fallback STMT",

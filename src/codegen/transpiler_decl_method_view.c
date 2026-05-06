@@ -66,10 +66,10 @@ transpiler_mir_decl_method_name(const MIRDeclMethod *method)
 }
 
 ASTNode *
-transpiler_mir_decl_method_ast(const MIRDeclMethod *method)
+transpiler_mir_decl_method_source_ast(const MIRDeclMethod *method)
 {
     if (method != NULL)
-        return method->ast;
+        return method->source_ast;
     return NULL;
 }
 
@@ -188,8 +188,9 @@ transpiler_hosted_method_view_from_decl(const TranspilerCtx *ctx,
 }
 
 ASTNode *
-transpiler_hosted_method_view_ast(const TranspilerHostedMethodView *view,
-                                  size_t index)
+transpiler_hosted_method_view_source_ast(
+    const TranspilerHostedMethodView *view,
+    size_t index)
 {
     const MIRDeclMethod *method =
         transpiler_hosted_method_view_metadata(view, index);
@@ -197,7 +198,7 @@ transpiler_hosted_method_view_ast(const TranspilerHostedMethodView *view,
     if (view == NULL || index >= view->count)
         return NULL;
     if (method != NULL)
-        return method->ast;
+        return method->source_ast;
     if (view->requires_mir_metadata)
         return NULL;
     return view->ast_compat_methods != NULL

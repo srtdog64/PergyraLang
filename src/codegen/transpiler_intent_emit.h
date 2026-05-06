@@ -38,10 +38,11 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
     if (mir_routine != NULL) {
         participant_count = transpiler_collect_mir_intent_participants(
             mir_routine, &participant_aliases, &participant_types);
-        (void)transpiler_collect_mir_intent_step_names(mir_routine, &mir_step_names);
+        step_count = transpiler_collect_mir_intent_step_names(
+            mir_routine, &mir_step_names);
+        mir_steps = transpiler_build_mir_intent_step_sources(
+            node, mir_step_names, step_count);
     }
-    if (mir_routine != NULL)
-        step_count = transpiler_collect_mir_intent_steps(mir_routine, &mir_steps);
     if (step_count == 0) {
         step_nodes = node->data.intent_decl.steps;
         step_count = node->data.intent_decl.step_count;
@@ -49,40 +50,53 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
         step_nodes = mir_steps;
     }
     if (mir_only_intent && node->data.intent_decl.step_count > 0 && mir_routine == NULL) {
-        if (ctx->backend_error == NULL) {
-            ctx->backend_error = strdup_fmt(
-                "MIR-only C path missing routine for intent '%s'",
-                node->data.intent_decl.name != NULL
-                    ? node->data.intent_decl.name
-                    : "(anonymous-intent)");
-        }
+        transpiler_set_mir_inventory_missing(
+            ctx,
+            "MIR-only C path missing routine for intent '%s'",
+            node->data.intent_decl.name != NULL
+                ? node->data.intent_decl.name
+                : "(anonymous-intent)");
         transpiler_free_intent_emit_metadata(
             mir_steps, participant_aliases, participant_types, mir_step_names);
         transpiler_restore_mir_emit_state_from_snapshot_local(ctx, &saved_emit_state);
         return;
     }
     if (mir_only_intent && node->data.intent_decl.step_count > 0 && step_count == 0) {
-        if (ctx->backend_error == NULL) {
-            ctx->backend_error = strdup_fmt(
-                "MIR-only C path missing intent step sequence for '%s'",
-                node->data.intent_decl.name != NULL
-                    ? node->data.intent_decl.name
-                    : "(anonymous-intent)");
-        }
+        transpiler_set_mir_inventory_missing(
+            ctx,
+            "MIR-only C path missing intent step sequence for '%s'",
+            node->data.intent_decl.name != NULL
+                ? node->data.intent_decl.name
+                : "(anonymous-intent)");
         transpiler_free_intent_emit_metadata(
             mir_steps, participant_aliases, participant_types, mir_step_names);
         transpiler_restore_mir_emit_state_from_snapshot_local(ctx, &saved_emit_state);
         return;
     }
+    if (mir_only_intent && node->data.intent_decl.step_count > 0) {
+        for (size_t i = 0; i < step_count; i++) {
+            if (mir_steps != NULL && mir_steps[i] != NULL)
+                continue;
+            transpiler_set_mir_inventory_missing(
+                ctx,
+                "MIR-only C path missing intent step source mapping for '%s'",
+                mir_step_names != NULL && mir_step_names[i] != NULL
+                    ? mir_step_names[i]
+                    : "(anonymous-step)");
+            transpiler_free_intent_emit_metadata(
+                mir_steps, participant_aliases, participant_types, mir_step_names);
+            transpiler_restore_mir_emit_state_from_snapshot_local(ctx, &saved_emit_state);
+            return;
+        }
+    }
     if (mir_only_intent && node->data.intent_decl.involve_count > 0) {
         if (participant_count < node->data.intent_decl.involve_count) {
-            if (ctx->backend_error == NULL) {
-                ctx->backend_error = strdup_fmt(
-                    "MIR-only C path missing intent participant metadata for '%s'",
-                    node->data.intent_decl.name != NULL
-                        ? node->data.intent_decl.name
-                        : "(anonymous-intent)");
-            }
+            transpiler_set_mir_inventory_missing(
+                ctx,
+                "MIR-only C path missing intent participant metadata for '%s'",
+                node->data.intent_decl.name != NULL
+                    ? node->data.intent_decl.name
+                    : "(anonymous-intent)");
             transpiler_free_intent_emit_metadata(
                 mir_steps, participant_aliases, participant_types, mir_step_names);
             transpiler_restore_mir_emit_state_from_snapshot_local(ctx, &saved_emit_state);
@@ -91,13 +105,12 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
         for (size_t i = 0; i < node->data.intent_decl.involve_count; i++) {
             if (participant_aliases == NULL || participant_types == NULL
                 || participant_aliases[i] == NULL || participant_types[i] == NULL) {
-                if (ctx->backend_error == NULL) {
-                    ctx->backend_error = strdup_fmt(
-                        "MIR-only C path has incomplete intent participant metadata for '%s'",
-                        node->data.intent_decl.name != NULL
-                            ? node->data.intent_decl.name
-                            : "(anonymous-intent)");
-                }
+                transpiler_set_mir_inventory_missing(
+                    ctx,
+                    "MIR-only C path has incomplete intent participant metadata for '%s'",
+                    node->data.intent_decl.name != NULL
+                        ? node->data.intent_decl.name
+                        : "(anonymous-intent)");
                 transpiler_free_intent_emit_metadata(
                     mir_steps, participant_aliases, participant_types, mir_step_names);
                 transpiler_restore_mir_emit_state_from_snapshot_local(ctx, &saved_emit_state);

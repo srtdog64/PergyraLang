@@ -1,6 +1,8 @@
 #ifndef PGY_TRANSPILER_MIR_TERMINATOR_EMIT_H
 #define PGY_TRANSPILER_MIR_TERMINATOR_EMIT_H
 
+#include "transpiler_mir_expr_ssa.h"
+
 /* C backend MIR terminator emission owner. */
 
 static void
@@ -11,7 +13,8 @@ transpiler_mir_set_pin_cleanup_error(TranspilerCtx *ctx,
 {
     if (ctx == NULL || ctx->backend_error != NULL || block == NULL)
         return;
-    ctx->backend_error = strdup_fmt(
+    transpiler_set_mir_topology_invalid(
+        ctx,
         "MIR pin cleanup emission failed in function '%s' at block %llu: %s",
         name != NULL ? name : "<function>",
         (unsigned long long) block->id,
@@ -80,14 +83,14 @@ transpiler_emit_mir_return_terminator(const MIRBasicBlock *block,
     char *ret_expr = NULL;
 
     transpiler_emit_defers_from(ctx, 0);
-    if (inst->ast != NULL) {
+    if (inst->expr0 != NULL) {
         const char *saved_expected_type = ctx->expected_type;
         if (ctx->current_return_type[0] != '\0'
             && strcmp(ctx->current_return_type, "Void") != 0
             && strcmp(ctx->current_return_type, "void") != 0) {
             ctx->expected_type = ctx->current_return_type;
         }
-        ret_expr = emit_expression_with_ssa_map(inst->ast, ctx, block_ssa_map);
+        ret_expr = emit_expression_with_ssa_map(inst->expr0, ctx, block_ssa_map);
         ctx->expected_type = saved_expected_type;
     }
     if (!transpiler_emit_mir_pin_exit_local(ctx->out, ctx, block,
@@ -99,7 +102,7 @@ transpiler_emit_mir_return_terminator(const MIRBasicBlock *block,
     }
 
     write_indent(ctx);
-    if (inst->ast != NULL) {
+    if (inst->expr0 != NULL) {
         codebuf_write(ctx->out, "return %s;\n",
                       ret_expr != NULL ? ret_expr : "0");
     } else {

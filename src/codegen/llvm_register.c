@@ -132,7 +132,7 @@ llvm_register_enum_decl(LLVMGenCtx *ctx, ASTNode *stmt)
 
     for (size_t j = 0; j < enum_method_metadata_count; j++) {
         const MIRDeclMethod *method_meta = &enum_method_metadata[j];
-        ASTNode *method = llvm_mir_decl_method_ast(method_meta);
+        ASTNode *method = llvm_mir_decl_method_source_ast(method_meta);
         const char *method_name = NULL;
         size_t pc = 0;
         ASTNode *return_type = NULL;
@@ -246,7 +246,7 @@ llvm_register_nominal_decl(LLVMGenCtx *ctx, ASTNode *stmt)
 
     for (size_t j = 0; j < class_method_metadata_count; j++) {
         const MIRDeclMethod *method_meta = &class_method_metadata[j];
-        ASTNode *method = llvm_mir_decl_method_ast(method_meta);
+        ASTNode *method = llvm_mir_decl_method_source_ast(method_meta);
         const char *method_name = NULL;
         size_t pc = 0;
         ASTNode *return_type = NULL;

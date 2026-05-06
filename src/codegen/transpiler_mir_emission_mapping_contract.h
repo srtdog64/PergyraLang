@@ -72,26 +72,24 @@ transpiler_has_mapping_for_all_emitted_blocks(const TranspilerCtx *ctx,
             if (!transpiler_mir_seed_resource_alias_local(&ssa_map, inst))
                 return false;
             if (inst->kind == MIR_INST_STMT
-                && inst->ast != NULL
                 && inst->has_source_location) {
                 if (inst->source_ast_type == AST_LET_DECL
-                    && inst->ast->data.let_decl.name != NULL) {
+                    && inst->arg0 != NULL) {
                     const char *versioned_name =
-                        transpiler_find_block_exit_ssa_name(
-                            block, inst->ast->data.let_decl.name);
+                        transpiler_find_block_exit_ssa_name(block, inst->arg0);
                     if (versioned_name != NULL
                         && !transpiler_ssa_name_map_set(&ssa_map,
-                                                        inst->ast->data.let_decl.name,
+                                                        inst->arg0,
                                                         versioned_name)) {
                         return false;
                     }
                 } else if (inst->source_ast_type == AST_LET_DESTRUCTURE
-                           && inst->ast->data.let_destructure.names != NULL) {
+                           && block->source_local_defs != NULL) {
                     for (size_t dn = 0;
-                         dn < inst->ast->data.let_destructure.name_count;
+                         dn < block->source_local_def_count;
                          dn++) {
                         const char *binding =
-                            inst->ast->data.let_destructure.names[dn];
+                            block->source_local_defs[dn];
                         const char *versioned_name;
                         if (binding == NULL)
                             continue;
@@ -105,11 +103,8 @@ transpiler_has_mapping_for_all_emitted_blocks(const TranspilerCtx *ctx,
                         }
                     }
                 } else if (inst->source_ast_type == AST_ASSIGNMENT
-                           && inst->ast->data.assignment.target != NULL
-                           && inst->ast->data.assignment.target->type == AST_IDENTIFIER
-                           && inst->ast->data.assignment.target->data.identifier.name != NULL) {
-                    const char *target_name =
-                        inst->ast->data.assignment.target->data.identifier.name;
+                           && inst->arg0 != NULL) {
+                    const char *target_name = inst->arg0;
                     const char *versioned_name =
                         transpiler_find_block_exit_ssa_name(block, target_name);
                     if (versioned_name != NULL
@@ -132,12 +127,19 @@ transpiler_has_mapping_for_all_emitted_blocks(const TranspilerCtx *ctx,
                                                           reason_cap)) {
                 return false;
             }
-            if ((inst->kind == MIR_INST_BRANCH || inst->kind == MIR_INST_RETURN
-                 || inst->kind == MIR_INST_RESOURCE_OP || inst->kind == MIR_INST_CLEANUP_EDGE)
-                && inst->ast != NULL) {
-                if (!transpiler_expr_identifiers_mapped(ctx, inst->ast, &ssa_map, routine_name,
-                                                       reason, reason_cap))
+            if (inst->kind == MIR_INST_BRANCH || inst->kind == MIR_INST_RETURN
+                || (inst->kind == MIR_INST_RESOURCE_OP
+                    && inst->name != NULL
+                    && strcmp(inst->name, "Write") == 0)) {
+                ASTNode *payload_expr = inst->expr0;
+                if (payload_expr != NULL
+                    && !transpiler_expr_identifiers_mapped(ctx, payload_expr,
+                                                          &ssa_map,
+                                                          routine_name,
+                                                          reason,
+                                                          reason_cap)) {
                     return false;
+                }
             }
             if (inst->kind == MIR_INST_DEF || inst->kind == MIR_INST_PHI) {
                 char base[128];

@@ -13,6 +13,7 @@
 #include "compiler/hir.h"
 #include "compiler/rir.h"
 #include "compiler/mir.h"
+#include "compiler/mir_dce.h"
 
 static int g_pass = 0;
 static int g_fail = 0;
@@ -485,12 +486,14 @@ find_value_summary_with_slot(const MIRRoutine *routine, const char *prefix, cons
 
 #include "tests/mir/test_mir_lowering_part_a.cases.h"
 #include "tests/mir/test_mir_lowering_part_b.cases.h"
+#include "tests/mir/test_mir_lowering_part_c.cases.h"
 
 static void
 test_mir_lowering(void)
 {
     test_mir_lowering_part_a();
     test_mir_lowering_part_b();
+    test_mir_lowering_part_c();
 }
 
 int

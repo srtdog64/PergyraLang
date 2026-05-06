@@ -8,11 +8,8 @@ emit_enum_decl_stmt(ASTNode *node, TranspilerCtx *ctx)
     TranspilerHostedMethodView method_view =
         transpiler_hosted_method_view_from_decl(ctx, ename, node);
     if (transpiler_hosted_method_view_missing_mir_metadata(&method_view)) {
-        transpiler_set_backend_error_with_hints(
+        transpiler_set_mir_inventory_missing(
             ctx,
-            PGY_CODE_MIR_TOPOLOGY_INVALID,
-            PGY_CAUSE_MIR_TOPOLOGY_ROUTINE_MISSING,
-            PGY_FIX_INSPECT_HIR_TO_MIR_LOWERING,
             "MIR-only C path missing declaration metadata for enum methods '%s'",
             ename != NULL ? ename : "(anonymous-enum)");
         return;
@@ -129,7 +126,8 @@ emit_enum_decl_stmt(ASTNode *node, TranspilerCtx *ctx)
         for (size_t i = 0; i < method_view.count; i++) {
             const MIRDeclMethod *method_meta =
                 transpiler_hosted_method_view_metadata(&method_view, i);
-            ASTNode *method = transpiler_hosted_method_view_ast(&method_view, i);
+            ASTNode *method =
+                transpiler_hosted_method_view_source_ast(&method_view, i);
             if (method == NULL || method->type != AST_FUNC_DECL)
                 continue;
             emit_hosted_method_forward_decl_from_metadata(ename, method_meta,
@@ -139,7 +137,8 @@ emit_enum_decl_stmt(ASTNode *node, TranspilerCtx *ctx)
         for (size_t i = 0; i < method_view.count; i++) {
             const MIRDeclMethod *method_meta =
                 transpiler_hosted_method_view_metadata(&method_view, i);
-            ASTNode *method = transpiler_hosted_method_view_ast(&method_view, i);
+            ASTNode *method =
+                transpiler_hosted_method_view_source_ast(&method_view, i);
             const MIRRoutine *mir_method;
             const char *method_name;
             if (method == NULL || method->type != AST_FUNC_DECL)
@@ -149,12 +148,11 @@ emit_enum_decl_stmt(ASTNode *node, TranspilerCtx *ctx)
                 method_name = method->data.func_decl.name;
             mir_method = transpiler_hosted_method_view_routine(ctx, &method_view, i);
             if (ctx != NULL && ctx->mir != NULL && mir_method == NULL) {
-                if (ctx->backend_error == NULL) {
-                    ctx->backend_error = strdup_fmt(
-                        "MIR-only C path missing routine for enum method '%s.%s'",
-                        ename != NULL ? ename : "(anonymous-enum)",
-                        method_name != NULL ? method_name : "(anonymous)");
-                }
+                transpiler_set_mir_inventory_missing(
+                    ctx,
+                    "MIR-only C path missing routine for enum method '%s.%s'",
+                    ename != NULL ? ename : "(anonymous-enum)",
+                    method_name != NULL ? method_name : "(anonymous)");
                 return;
             }
             if (mir_method != NULL) {

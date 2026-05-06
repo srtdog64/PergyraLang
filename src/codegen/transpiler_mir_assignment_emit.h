@@ -1,6 +1,8 @@
 #ifndef PGY_SRC_CODEGEN_TRANSPILER_MIR_ASSIGNMENT_EMIT_H
 #define PGY_SRC_CODEGEN_TRANSPILER_MIR_ASSIGNMENT_EMIT_H
 
+#include "transpiler_mir_expr_ssa.h"
+
 typedef enum TranspilerMIRAssignmentEmitResult {
     TRANSPILE_MIR_ASSIGNMENT_NOT_HANDLED = 0,
     TRANSPILE_MIR_ASSIGNMENT_HANDLED,

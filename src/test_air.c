@@ -121,6 +121,9 @@ main(void)
     TEST("AIR strict evidence rejects legacy flags with real input");
     EXPECT(test_air_strict_evidence_rejects_legacy_flags_with_real_input());
 
+    TEST("AIR verify rejects legacy summary without inventory");
+    EXPECT(test_air_verify_rejects_legacy_summary_without_inventory());
+
     TEST("AIR task group boundary requires RIR and HIR evidence");
     EXPECT(test_air_task_group_boundary_requires_rir_and_hir_evidence());
 

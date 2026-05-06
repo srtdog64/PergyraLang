@@ -73,31 +73,51 @@ test_air_strict_evidence_rejects_legacy_flags_with_real_input(void)
         .has_rir_input = true,
     };
     char *error = NULL;
-    bool found_rir_boundary_drift = false;
-    bool found_hir_routine_drift = false;
-    bool found_hir_cfg_drift = false;
     bool checked = air_check_drift(&air, &error);
-
-    for (size_t i = 0; i < air.drift_count; i++) {
-        if (air.drifts[i].kind != AIR_DRIFT_BOUNDARY_EVIDENCE_MISSING)
-            continue;
-        if (strstr(air.drifts[i].message,
-                   "AIR boundary has no matching RIR boundary evidence") != NULL)
-            found_rir_boundary_drift = true;
-        if (strstr(air.drifts[i].message,
-                   "AIR boundary has no matching HIR routine evidence") != NULL)
-            found_hir_routine_drift = true;
-        if (strstr(air.drifts[i].message,
-                   "AIR implementation boundary has no matching HIR CFG evidence") != NULL)
-            found_hir_cfg_drift = true;
-    }
-
-    bool ok = checked
-        && air.drift_count == 3
-        && found_rir_boundary_drift
-        && found_hir_routine_drift
-        && found_hir_cfg_drift;
+    bool ok = !checked
+        && error != NULL
+        && strstr(error, "summary without evidence node") != NULL;
     test_air_clear_stack_drifts(&air);
+    free(error);
+    return ok;
+}
+
+static bool
+test_air_verify_rejects_legacy_summary_without_inventory(void)
+{
+    AIRIntentNode intents[] = {
+        {
+            .intent_owner = "ShipOrder",
+            .step_name = "dispatch",
+            .step_index = 0,
+            .sync_class = AIR_SYNC_ASYNC,
+            .failure_class = AIR_FAILURE_RECOVERABLE,
+        },
+    };
+    AIRBoundaryNode boundaries[] = {
+        {
+            .kind = AIR_BOUNDARY_PARALLEL,
+            .owner_name = "ShipOrder",
+            .source_name = "spawn",
+            .intent_index = 0,
+            .step_index = 0,
+            .sync_class = AIR_SYNC_ASYNC,
+            .has_hir_routine_evidence = true,
+            .hir_routine_evidence_name = "dispatch",
+        },
+    };
+    AIRProgram air = {
+        .intents = intents,
+        .intent_count = 1,
+        .boundaries = boundaries,
+        .boundary_count = 1,
+        .strict_evidence = true,
+        .has_hir_input = true,
+    };
+    char *error = NULL;
+    bool ok = !air_verify(&air, &error)
+        && error != NULL
+        && strstr(error, "HIR routine evidence summary without evidence node") != NULL;
     free(error);
     return ok;
 }

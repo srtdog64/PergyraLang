@@ -31,6 +31,41 @@ llvm_intent_step_effective_zone_alias(ASTNode *step)
     return step->data.intent_step.transfer_to_alias;
 }
 
+static ASTNode *
+llvm_find_intent_step_source_by_name(ASTNode *intent, const char *step_name)
+{
+    if (intent == NULL || intent->type != AST_INTENT_DECL || step_name == NULL)
+        return NULL;
+    for (size_t i = 0; i < intent->data.intent_decl.step_count; i++) {
+        ASTNode *step = intent->data.intent_decl.steps[i];
+        if (step == NULL || step->type != AST_INTENT_STEP
+            || step->data.intent_step.name == NULL) {
+            continue;
+        }
+        if (strcmp(step->data.intent_step.name, step_name) == 0)
+            return step;
+    }
+    return NULL;
+}
+
+static ASTNode **
+llvm_build_mir_intent_step_sources(ASTNode *intent,
+                                   const char **step_names,
+                                   size_t step_count,
+                                   LLVMGenCtx *ctx)
+{
+    ASTNode **steps;
+
+    if (step_count == 0 || step_names == NULL || ctx == NULL)
+        return NULL;
+    steps = pgy_arena_calloc(&ctx->scratch, step_count * sizeof(ASTNode *));
+    if (steps == NULL)
+        return NULL;
+    for (size_t i = 0; i < step_count; i++)
+        steps[i] = llvm_find_intent_step_source_by_name(intent, step_names[i]);
+    return steps;
+}
+
 void
 llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
 {
@@ -76,8 +111,10 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
         return;
     mir_routine = llvm_find_mir_intent_routine(ctx, node);
     if (mir_routine != NULL) {
-        step_count = llvm_collect_mir_intent_steps(mir_routine, ctx, &mir_steps);
-        (void)llvm_collect_mir_intent_step_names(mir_routine, ctx, &mir_step_names);
+        step_count = llvm_collect_mir_intent_step_names(
+            mir_routine, ctx, &mir_step_names);
+        mir_steps = llvm_build_mir_intent_step_sources(
+            node, mir_step_names, step_count, ctx);
     }
     if (ctx->mir != NULL && node->data.intent_decl.step_count > 0) {
         if (mir_routine == NULL) {
@@ -94,6 +131,16 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
                 node->data.intent_decl.name != NULL
                     ? node->data.intent_decl.name
                     : "(anonymous)");
+            return;
+        }
+        for (size_t i = 0; i < step_count; i++) {
+            if (mir_steps != NULL && mir_steps[i] != NULL)
+                continue;
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing intent step source mapping for '%s'",
+                mir_step_names != NULL && mir_step_names[i] != NULL
+                    ? mir_step_names[i]
+                    : "(anonymous-step)");
             return;
         }
         mir_only_intent = true;

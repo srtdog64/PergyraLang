@@ -1,12 +1,22 @@
 #ifndef PGY_TRANSPILER_MIR_PENDING_USES_H
 #define PGY_TRANSPILER_MIR_PENDING_USES_H
 
-static ASTNode *
-transpiler_find_block_let_decl_from_mir_insts(const MIRBasicBlock *block,
-                                              const char *name)
+#include "transpiler_mir_expr_ssa.h"
+
+typedef struct TranspilerMirPendingBinding {
+    ASTNode *initializer;
+    ASTNode *type_annotation;
+} TranspilerMirPendingBinding;
+
+static bool
+transpiler_find_block_binding_from_mir_insts(const MIRBasicBlock *block,
+                                             const char *name,
+                                             TranspilerMirPendingBinding *out)
 {
     if (block == NULL || name == NULL)
-        return NULL;
+        return false;
+    if (out != NULL)
+        memset(out, 0, sizeof(*out));
 
     for (size_t i = 0; i < block->instruction_count; i++) {
         const MIRInstruction *inst = &block->instructions[i];
@@ -17,17 +27,32 @@ transpiler_find_block_let_decl_from_mir_insts(const MIRBasicBlock *block,
         if (strcmp(inst->arg0, name) != 0)
             continue;
 
+        if (inst->expr0 != NULL
+            && inst->has_source_location
+            && inst->source_ast_type == AST_LET_DECL) {
+            if (out != NULL) {
+                out->initializer = inst->expr0;
+                out->type_annotation = inst->expr1;
+            }
+            return true;
+        }
+
         stmt = inst->ast;
         if (stmt == NULL
             || stmt->type != AST_LET_DECL
             || stmt->data.let_decl.name == NULL) {
             continue;
         }
-        if (strcmp(stmt->data.let_decl.name, name) == 0)
-            return stmt;
+        if (strcmp(stmt->data.let_decl.name, name) == 0) {
+            if (out != NULL) {
+                out->initializer = stmt->data.let_decl.initializer;
+                out->type_annotation = stmt->data.let_decl.type;
+            }
+            return true;
+        }
     }
 
-    return NULL;
+    return false;
 }
 
 static bool
@@ -48,8 +73,9 @@ transpiler_materialize_pending_inst_uses(CodeBuf *buf,
     for (size_t i = 0; i < inst->use_count; i++) {
         const char *versioned_use = inst->uses[i];
         const char *exit_versioned;
-        ASTNode *let_decl;
-        ASTNode *initializer;
+        TranspilerMirPendingBinding binding;
+        ASTNode *let_decl = NULL;
+        ASTNode *initializer = NULL;
         const char *existing_type;
         ASTNode *binding_type_ast;
         char *binding_type_name = NULL;
@@ -96,12 +122,17 @@ transpiler_materialize_pending_inst_uses(CodeBuf *buf,
         if (exit_versioned == NULL)
             continue;
 
-        let_decl = transpiler_find_block_let_decl_from_mir_insts(block, base);
-        if (let_decl == NULL)
+        memset(&binding, 0, sizeof(binding));
+        if (transpiler_find_block_binding_from_mir_insts(block, base, &binding)) {
+            initializer = binding.initializer;
+        }
+        if (initializer == NULL) {
             let_decl = transpiler_find_let_decl_by_name(func_decl, base);
-        if (let_decl == NULL || let_decl->type != AST_LET_DECL)
-            continue;
-        initializer = let_decl->data.let_decl.initializer;
+            if (let_decl == NULL || let_decl->type != AST_LET_DECL)
+                continue;
+            initializer = let_decl->data.let_decl.initializer;
+            binding.type_annotation = let_decl->data.let_decl.type;
+        }
         if (initializer == NULL)
             continue;
         if (initializer->type == AST_CALL
@@ -135,9 +166,9 @@ transpiler_materialize_pending_inst_uses(CodeBuf *buf,
         if (!transpiler_ssa_name_map_set(ssa_map_out, base, exit_versioned))
             return false;
 
-        if (let_decl->data.let_decl.type != NULL) {
+        if (binding.type_annotation != NULL) {
             rendered_type = transpiler_render_effective_local_type_name(
-                ctx, let_decl->data.let_decl.type);
+                ctx, binding.type_annotation);
             value_type = rendered_type;
         } else {
             value_type = infer_expression_type_name(ctx, initializer);

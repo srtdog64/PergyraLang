@@ -269,7 +269,8 @@ emit_party_decl(ASTNode *node, TranspilerCtx *ctx)
     for (size_t i = 0; i < method_view.count; i++) {
         const MIRDeclMethod *method_meta =
             transpiler_hosted_method_view_metadata(&method_view, i);
-        ASTNode *method = transpiler_hosted_method_view_ast(&method_view, i);
+        ASTNode *method =
+            transpiler_hosted_method_view_source_ast(&method_view, i);
         if (method == NULL || method->type != AST_FUNC_DECL)
             continue;
         emit_hosted_method_forward_decl_from_metadata(name, method_meta,
@@ -371,7 +372,8 @@ emit_roster_decl(ASTNode *node, TranspilerCtx *ctx)
     for (size_t i = 0; i < method_view.count; i++) {
         const MIRDeclMethod *method_meta =
             transpiler_hosted_method_view_metadata(&method_view, i);
-        ASTNode *method = transpiler_hosted_method_view_ast(&method_view, i);
+        ASTNode *method =
+            transpiler_hosted_method_view_source_ast(&method_view, i);
         if (method == NULL || method->type != AST_FUNC_DECL)
             continue;
         emit_hosted_method_forward_decl_from_metadata(name, method_meta,

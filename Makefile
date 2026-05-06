@@ -377,7 +377,8 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/slot_analyzer_escape.c \
                    $(SEMANTIC_DIR)/slot_analyzer_summary.c \
                    $(SEMANTIC_DIR)/semantic.c
-CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_context.c \
+CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_allocator_builtin_emit.c \
+                   $(CODEGEN_DIR)/transpiler_context.c \
                    $(CODEGEN_DIR)/codegen_hashmap_key_policy.c \
                    $(CODEGEN_DIR)/codegen_slot_type_policy.c \
                    $(CODEGEN_DIR)/domain_frontier_policy.c \
@@ -390,15 +391,23 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_context.c \
                    $(CODEGEN_DIR)/transpiler_decl_method_view.c \
                    $(CODEGEN_DIR)/transpiler_decl_host_lookup.c \
                    $(CODEGEN_DIR)/transpiler_enum.c \
+                   $(CODEGEN_DIR)/transpiler_event_emit.c \
+                   $(CODEGEN_DIR)/transpiler_event_builtin_emit.c \
                    $(CODEGEN_DIR)/transpiler_extern.c \
+                   $(CODEGEN_DIR)/transpiler_expr_stdlib_misc_builtin.c \
+                   $(CODEGEN_DIR)/transpiler_format.c \
                    $(CODEGEN_DIR)/transpiler_func_forward_policy.c \
+                   $(CODEGEN_DIR)/transpiler_func_forward_emit.c \
                    $(CODEGEN_DIR)/transpiler_func_forward_metadata.c \
+                   $(CODEGEN_DIR)/transpiler_intent_failure_emit.c \
+                   $(CODEGEN_DIR)/transpiler_intent_emit_metadata_helpers.c \
                    $(CODEGEN_DIR)/transpiler_intent_context.c \
                    $(CODEGEN_DIR)/transpiler_host_self_policy.c \
                    $(CODEGEN_DIR)/transpiler_intent_participant.c \
                    $(CODEGEN_DIR)/transpiler_intent_zone_slot.c \
                    $(CODEGEN_DIR)/transpiler_inventory_view.c \
                    $(CODEGEN_DIR)/transpiler_log_normalize.c \
+                   $(CODEGEN_DIR)/transpiler_log_builtin_emit.c \
                    $(CODEGEN_DIR)/transpiler_mangled_name.c \
                    $(CODEGEN_DIR)/transpiler_misc_decl.c \
                    $(CODEGEN_DIR)/transpiler_mir_expr_ssa.c \
@@ -407,8 +416,12 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_context.c \
                    $(CODEGEN_DIR)/transpiler_mir_local_binding.c \
                    $(CODEGEN_DIR)/transpiler_mir_local_type_ast_lookup.c \
                    $(CODEGEN_DIR)/transpiler_mir_inventory_intent_collect.c \
+                   $(CODEGEN_DIR)/transpiler_mir_intent_query.c \
                    $(CODEGEN_DIR)/transpiler_mir_cfg_policy.c \
                    $(CODEGEN_DIR)/transpiler_mir_pin_emit.c \
+                   $(CODEGEN_DIR)/transpiler_mir_phi_emit.c \
+                   $(CODEGEN_DIR)/transpiler_mir_resource_op_core.c \
+                   $(CODEGEN_DIR)/transpiler_mir_resource_name.c \
                    $(CODEGEN_DIR)/transpiler_mir_role_lookup.c \
                    $(CODEGEN_DIR)/transpiler_mir_signature.c \
                    $(CODEGEN_DIR)/transpiler_mir_ssa_entry.c \
@@ -417,6 +430,7 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_context.c \
                    $(CODEGEN_DIR)/transpiler_mir_ssa_names.c \
                    $(CODEGEN_DIR)/transpiler_mir_ssa_utils.c \
                    $(CODEGEN_DIR)/transpiler_nominal.c \
+                   $(CODEGEN_DIR)/transpiler_option_context.c \
                    $(CODEGEN_DIR)/transpiler_operator.c \
                    $(CODEGEN_DIR)/transpiler_projection_field_path.c \
                    $(CODEGEN_DIR)/transpiler_projection.c \

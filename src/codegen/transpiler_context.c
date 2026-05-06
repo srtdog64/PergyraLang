@@ -11,6 +11,7 @@
 #include <string.h>
 
 #include "transpiler_context.h"
+#include "../semantic/diag_codes.h"
 
 #define CODEBUF_INITIAL_CAP 4096
 
@@ -186,6 +187,38 @@ transpiler_set_backend_error_with_hints(TranspilerCtx *ctx,
     va_end(ap);
 }
 
+void
+transpiler_set_mir_inventory_missing(TranspilerCtx *ctx, const char *fmt, ...)
+{
+    va_list ap;
+
+    if (ctx == NULL || fmt == NULL || ctx->backend_error != NULL)
+        return;
+
+    ctx->backend_error_cause_ir = PGY_CAUSE_MIR_TOPOLOGY_ROUTINE_MISSING;
+    ctx->backend_error_fix_source = PGY_FIX_INSPECT_HIR_TO_MIR_LOWERING;
+
+    va_start(ap, fmt);
+    transpiler_set_backend_error_v(ctx, PGY_CODE_MIR_TOPOLOGY_INVALID, fmt, ap);
+    va_end(ap);
+}
+
+void
+transpiler_set_mir_topology_invalid(TranspilerCtx *ctx, const char *fmt, ...)
+{
+    va_list ap;
+
+    if (ctx == NULL || fmt == NULL || ctx->backend_error != NULL)
+        return;
+
+    ctx->backend_error_cause_ir = PGY_CAUSE_MIR_TOPOLOGY_INVALID;
+    ctx->backend_error_fix_source = PGY_FIX_INSPECT_HIR_TO_MIR_LOWERING;
+
+    va_start(ap, fmt);
+    transpiler_set_backend_error_v(ctx, PGY_CODE_MIR_TOPOLOGY_INVALID, fmt, ap);
+    va_end(ap);
+}
+
 char *
 transpiler_scratch_strdup(TranspilerCtx *ctx, const char *s)
 {
@@ -268,6 +301,18 @@ transpiler_write_indent_to(CodeBuf *buf, int indent)
         codebuf_write_raw(buf, indent_chunk, chunk);
         remaining -= chunk;
     }
+}
+
+void
+write_indent(TranspilerCtx *ctx)
+{
+    transpiler_write_indent(ctx);
+}
+
+void
+write_indent_to(CodeBuf *buf, int indent)
+{
+    transpiler_write_indent_to(buf, indent);
 }
 
 void

@@ -10,12 +10,9 @@
 #include "llvm_internal.h"
 
 bool
-llvm_mir_stmt_is_cfg_container(ASTNode *node)
+llvm_mir_ast_type_is_cfg_container(ASTNodeType type)
 {
-    if (node == NULL)
-        return false;
-
-    switch (node->type) {
+    switch (type) {
     case AST_WITH_STMT:
     case AST_UNSAFE_BLOCK:
     case AST_DEFER_STMT:
@@ -31,6 +28,14 @@ llvm_mir_stmt_is_cfg_container(ASTNode *node)
     default:
         return false;
     }
+}
+
+bool
+llvm_mir_stmt_is_cfg_container(ASTNode *node)
+{
+    if (node == NULL)
+        return false;
+    return llvm_mir_ast_type_is_cfg_container(node->type);
 }
 
 static ASTNode *
@@ -263,6 +268,14 @@ llvm_mir_emit_match_case_condition(ASTNode *func_decl, ASTNode *case_node,
 }
 
 static ASTNode *
+llvm_mir_recv_expr_channel(ASTNode *node)
+{
+    if (node == NULL || node->type != AST_CHANNEL_RECV)
+        return NULL;
+    return node->data.channel_recv.channel;
+}
+
+static ASTNode *
 llvm_mir_assignment_recv_channel(ASTNode *node)
 {
     if (node == NULL || node->type != AST_ASSIGNMENT)
@@ -271,7 +284,7 @@ llvm_mir_assignment_recv_channel(ASTNode *node)
         || node->data.assignment.value->type != AST_CHANNEL_RECV) {
         return NULL;
     }
-    return node->data.assignment.value->data.channel_recv.channel;
+    return llvm_mir_recv_expr_channel(node->data.assignment.value);
 }
 
 static ASTNode *
@@ -353,9 +366,9 @@ llvm_mir_emit_select_case_condition(const MIRRoutine *routine,
     for (size_t i = 0; i < target->instruction_count; i++) {
         const MIRInstruction *inst = &target->instructions[i];
         ASTNode *channel;
-        if (inst->kind != MIR_INST_DEF || inst->ast == NULL)
+        if (inst->kind != MIR_INST_DEF)
             continue;
-        channel = llvm_mir_assignment_recv_channel(inst->ast);
+        channel = llvm_mir_recv_expr_channel(inst->expr0);
         if (channel != NULL)
             return llvm_mir_emit_channel_ready_condition(channel, ctx);
     }
@@ -375,26 +388,22 @@ llvm_mir_emit_select_dispatch_condition(ASTNode *case_node,
 }
 
 bool
-llvm_mir_declare_assignment_recv_target(ASTNode *node, LLVMGenCtx *ctx)
+llvm_mir_declare_recv_target(const char *target_name,
+                             ASTNode *recv_expr,
+                             LLVMGenCtx *ctx)
 {
     ASTNode *channel;
-    const char *target_name;
     const char *channel_name;
     const char *inner;
     LLVMTypeRef value_ty;
     LLVMValueRef alloca_val;
 
-    if (node == NULL || ctx == NULL || node->type != AST_ASSIGNMENT)
+    if (ctx == NULL)
         return true;
-    if (node->data.assignment.target == NULL
-        || node->data.assignment.target->type != AST_IDENTIFIER) {
-        return true;
-    }
-    target_name = node->data.assignment.target->data.identifier.name;
     if (target_name == NULL || llvm_scope_lookup(ctx, target_name) != NULL)
         return true;
 
-    channel = llvm_mir_assignment_recv_channel(node);
+    channel = llvm_mir_recv_expr_channel(recv_expr);
     if (channel == NULL || channel->type != AST_IDENTIFIER)
         return true;
 

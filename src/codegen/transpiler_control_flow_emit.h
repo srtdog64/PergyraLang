@@ -116,11 +116,13 @@ emit_for_loop(ASTNode *node, TranspilerCtx *ctx)
             length_field = "count";
         }
         if (elem_type == NULL) {
-            if (ctx->backend_error == NULL) {
-                ctx->backend_error = strdup_fmt(
-                    "cannot derive concrete element type for for-in iterable '%s'",
-                    coll_type != NULL ? coll_type : "(unknown)");
-            }
+            transpiler_set_backend_error_with_hints(
+                ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED,
+                PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+                "cannot derive concrete element type for for-in iterable '%s'",
+                coll_type != NULL ? coll_type : "(unknown)");
             free(coll);
             return;
         }

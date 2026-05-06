@@ -19,7 +19,7 @@ pgy_ast_uses_thread_pool(const ASTNode *node)
 
 static bool
 pgy_mir_instruction_uses_thread_pool(const MIRInstruction *inst,
-                                     bool allow_legacy_ast_probe)
+                                     bool allow_legacy_payload_probe)
 {
     if (inst == NULL)
         return false;
@@ -27,15 +27,16 @@ pgy_mir_instruction_uses_thread_pool(const MIRInstruction *inst,
     if (inst->has_surface_usage_facts)
         return inst->uses_thread_pool_surface;
 
-    if (!allow_legacy_ast_probe)
+    if (!allow_legacy_payload_probe)
         return false;
 
     /*
      * Normal lowered MIR has HIR provenance and validated surface facts. Keep
-     * AST-backed scanning only for hand-built legacy MIR without HIR provenance.
+     * only expression-payload scanning for hand-built legacy MIR without HIR
+     * provenance; source statement AST scanning is not a codegen dependency
+     * discovery path.
      */
-    return pgy_ast_uses_thread_pool(inst->ast)
-        || pgy_ast_uses_thread_pool(inst->expr0)
+    return pgy_ast_uses_thread_pool(inst->expr0)
         || pgy_ast_uses_thread_pool(inst->expr1);
 }
 
@@ -54,6 +55,29 @@ pgy_mir_routine_uses_thread_pool(const MIRRoutine *routine)
                 return true;
             }
         }
+    }
+
+    return false;
+}
+
+bool
+pgy_mir_program_uses_thread_pool(const MIRProgram *mir)
+{
+    MIRRoutineInventory inventory;
+
+    if (mir == NULL)
+        return false;
+
+    if (mir->has_inventory_surface_usage_facts
+        && mir->inventory_uses_thread_pool_surface) {
+        return true;
+    }
+
+    mir_routine_inventory_from_program(mir, &inventory);
+    for (size_t i = 0; i < inventory.count; i++) {
+        const MIRRoutine *routine = mir_routine_inventory_get(&inventory, i);
+        if (pgy_mir_routine_uses_thread_pool(routine))
+            return true;
     }
 
     return false;

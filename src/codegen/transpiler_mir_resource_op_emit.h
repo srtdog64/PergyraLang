@@ -26,25 +26,9 @@ transpiler_emit_mir_resource_op_inst(CodeBuf *buf,
         return TRANSPILE_MIR_INST_FAILED;
     if (inst->name != NULL
         && strcmp(inst->name, "Write") == 0
-        && inst->ast != NULL
-        && inst->has_source_location
-        && inst->source_ast_type == AST_CALL) {
-        ASTNode *callee = inst->ast->data.call.callee;
-        ASTNode *value_expr = NULL;
+        && inst->expr0 != NULL) {
+        ASTNode *value_expr = inst->expr0;
         char map_reason[256];
-        if (callee != NULL
-            && callee->type == AST_IDENTIFIER
-            && callee->data.identifier.name != NULL
-            && strcmp(callee->data.identifier.name, "Write") == 0
-            && inst->ast->data.call.arg_count >= 2) {
-            value_expr = inst->ast->data.call.arguments[1];
-        } else if (callee != NULL
-                   && callee->type == AST_MEMBER_ACCESS
-                   && callee->data.member.name != NULL
-                   && strcmp(callee->data.member.name, "Write") == 0
-                   && inst->ast->data.call.arg_count >= 1) {
-            value_expr = inst->ast->data.call.arguments[0];
-        }
         if (value_expr != NULL) {
             if (!transpiler_expr_identifiers_mapped(
                     ctx, value_expr, (const TranspilerSSANameMap *)ssa_map_out,
@@ -70,8 +54,8 @@ transpiler_emit_mir_resource_op_inst(CodeBuf *buf,
         }
     }
     if (inst->name != NULL && strcmp(inst->name, "Claim") == 0
-        && (inst->ast == NULL
-            || inst->source_ast_type != AST_WITH_STMT)) {
+        && !(inst->has_source_location
+             && inst->source_ast_type == AST_WITH_STMT)) {
         return TRANSPILE_MIR_INST_HANDLED;
     }
     if (!transpiler_emit_mir_resource_hook(ctx, buf, ctx->indent, inst, "0", false)) {

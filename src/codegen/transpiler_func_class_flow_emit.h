@@ -213,11 +213,13 @@ emit_with_stmt(ASTNode *node, TranspilerCtx *ctx)
     if (node->data.with_stmt.slot_type != NULL)
         inner = node->data.with_stmt.slot_type->data.type.name;
     if (inner == NULL) {
-        if (ctx->backend_error == NULL) {
-            ctx->backend_error = strdup_fmt(
-                "cannot emit with-slot alias '%s': missing explicit slot type",
-                alias != NULL ? alias : "(anonymous)");
-        }
+        transpiler_set_backend_error_with_hints(
+            ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+            "cannot emit with-slot alias '%s': missing explicit slot type",
+            alias != NULL ? alias : "(anonymous)");
         return;
     }
 

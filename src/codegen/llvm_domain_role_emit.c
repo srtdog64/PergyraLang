@@ -57,10 +57,7 @@ llvm_emit_domain_role_method_bodies(LLVMGenCtx *ctx,
                     continue;
                 }
                 if (ctx->mir != NULL) {
-                    llvm_set_error_with_hints(ctx,
-                        PGY_CODE_LLVM_MIR_ROUTINE_MISSING,
-                        PGY_CAUSE_LLVM_MIR_ROUTINE_MISSING,
-                        PGY_FIX_INSPECT_MIR_INVENTORY,
+                    llvm_set_mir_inventory_missing(ctx,
                         "MIR-only LLVM path missing routine for "
                         "domain method '%s.%s'",
                         role_name, method->data.func_decl.name);
@@ -109,18 +106,12 @@ llvm_emit_domain_role_method_bodies(LLVMGenCtx *ctx,
                 }
 
                 {
-                    char msg[384];
-                    snprintf(msg, sizeof(msg),
-                             "MIR-only LLVM path missing routine for role method '%s.%s'",
-                             role_name != NULL ? role_name : "(anonymous-role)",
-                             method->data.func_decl.name != NULL
-                                 ? method->data.func_decl.name
-                                 : "(anonymous)");
-                    llvm_set_error_with_hints(ctx,
-                        PGY_CODE_LLVM_MIR_ROUTINE_MISSING,
-                        PGY_CAUSE_LLVM_MIR_ROUTINE_MISSING,
-                        PGY_FIX_INSPECT_MIR_INVENTORY,
-                        "%s", msg);
+                    llvm_set_mir_inventory_missing(ctx,
+                        "MIR-only LLVM path missing routine for role method '%s.%s'",
+                        role_name != NULL ? role_name : "(anonymous-role)",
+                        method->data.func_decl.name != NULL
+                            ? method->data.func_decl.name
+                            : "(anonymous)");
                     llvm_scope_pop(ctx);
                     return false;
                 }

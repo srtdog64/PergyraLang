@@ -183,6 +183,17 @@ mir_validate_intent_instruction_fact(const MIRRoutine *routine,
             }
             return false;
         }
+        if (mir_intent_fact_requires_phase(inst) && inst->expr0 == NULL) {
+            if (error_message != NULL) {
+                *error_message = mir_intent_fact_strdup_fmt(
+                    "MIR routine '%s' block[%zu] instruction[%zu] intent fact '%s' is missing expression payload fact",
+                    routine->name != NULL ? routine->name : "(anonymous)",
+                    block_index,
+                    i,
+                    inst->name != NULL ? inst->name : "(unnamed)");
+            }
+            return false;
+        }
     }
 
     return true;

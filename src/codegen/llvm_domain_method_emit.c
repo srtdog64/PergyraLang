@@ -68,7 +68,7 @@ llvm_emit_domain_sync_and_method_bodies(LLVMGenCtx *ctx,
                 const MIRDeclMethod *method_meta =
                     llvm_hosted_method_view_metadata(&method_view, j);
                 ASTNode *method =
-                    llvm_hosted_method_view_ast(&method_view, j);
+                    llvm_hosted_method_view_source_ast(&method_view, j);
                 const char *method_name = llvm_mir_decl_method_name(method_meta);
                 const MIRRoutine *mir_method = NULL;
                 if (method_name == NULL && method != NULL
@@ -90,18 +90,12 @@ llvm_emit_domain_sync_and_method_bodies(LLVMGenCtx *ctx,
                     continue;
                 }
                 if (ctx->mir != NULL) {
-                    char msg[384];
-                    snprintf(msg, sizeof(msg),
-                             "MIR-only LLVM path missing routine for domain method '%s.%s'",
-                             decl_name != NULL ? decl_name : "(anonymous-domain)",
-                             method_name != NULL
-                                 ? method_name
-                                 : "(anonymous)");
-                    llvm_set_error_with_hints(ctx,
-                        PGY_CODE_LLVM_MIR_ROUTINE_MISSING,
-                        PGY_CAUSE_LLVM_MIR_ROUTINE_MISSING,
-                        PGY_FIX_INSPECT_MIR_INVENTORY,
-                        "%s", msg);
+                    llvm_set_mir_inventory_missing(ctx,
+                        "MIR-only LLVM path missing routine for domain method '%s.%s'",
+                        decl_name != NULL ? decl_name : "(anonymous-domain)",
+                        method_name != NULL
+                            ? method_name
+                            : "(anonymous)");
                     return false;
                 }
 
@@ -202,18 +196,12 @@ llvm_emit_domain_sync_and_method_bodies(LLVMGenCtx *ctx,
                 }
 
                 {
-                    char msg[384];
-                    snprintf(msg, sizeof(msg),
-                             "MIR-only LLVM path missing routine for domain method '%s.%s'",
-                             decl_name != NULL ? decl_name : "(anonymous-domain)",
-                             method->data.func_decl.name != NULL
-                                 ? method->data.func_decl.name
-                                 : "(anonymous)");
-                    llvm_set_error_with_hints(ctx,
-                        PGY_CODE_LLVM_MIR_ROUTINE_MISSING,
-                        PGY_CAUSE_LLVM_MIR_ROUTINE_MISSING,
-                        PGY_FIX_INSPECT_MIR_INVENTORY,
-                        "%s", msg);
+                    llvm_set_mir_inventory_missing(ctx,
+                        "MIR-only LLVM path missing routine for domain method '%s.%s'",
+                        decl_name != NULL ? decl_name : "(anonymous-domain)",
+                        method->data.func_decl.name != NULL
+                            ? method->data.func_decl.name
+                            : "(anonymous)");
                     return false;
                 }
 

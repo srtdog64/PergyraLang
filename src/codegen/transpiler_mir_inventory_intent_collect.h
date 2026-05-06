@@ -16,9 +16,6 @@ const char *transpiler_find_mir_intent_meta_arg(
     const MIRRoutine *routine,
     const char *step_name,
     const char *inst_name);
-size_t transpiler_collect_mir_intent_steps(
-    const MIRRoutine *routine,
-    ASTNode ***steps_out);
 size_t transpiler_collect_mir_intent_step_names(
     const MIRRoutine *routine,
     const char ***names_out);

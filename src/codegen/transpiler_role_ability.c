@@ -1,7 +1,13 @@
 #include "transpiler.h"
 
 #include <stdbool.h>
+#include <stdlib.h>
 #include <string.h>
+
+#include "../common/string_compat.h"
+#include "transpiler_role_ability_helpers.h"
+#include "transpiler_type_mapping.h"
+#include "transpiler_type_render.h"
 
 bool
 role_has_ability(ASTNode *role, const char *ability_name)
@@ -23,6 +29,31 @@ role_has_ability(ASTNode *role, const char *ability_name)
     }
 
     return false;
+}
+
+char *
+render_ability_ref_vtable_tag(ASTNode *ability_ref)
+{
+    char suffix[128];
+    size_t len;
+    char *rendered;
+
+    if (ability_ref == NULL)
+        return NULL;
+
+    rendered = render_type_name(ability_ref);
+    if (rendered == NULL)
+        return NULL;
+    sanitize_c_suffix(rendered, suffix, sizeof(suffix));
+    len = strlen(suffix);
+    while (len > 0 && suffix[len - 1] == '_')
+        suffix[--len] = '\0';
+    if (len == 0) {
+        free(rendered);
+        return NULL;
+    }
+    free(rendered);
+    return pergyra_strdup(suffix);
 }
 
 bool

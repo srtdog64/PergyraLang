@@ -48,10 +48,10 @@ mir_decl_header_ast_shape(const MIRDeclHeader *header,
         *method_count_out = 0;
     if (uses_pointer_self_out != NULL)
         *uses_pointer_self_out = false;
-    if (header == NULL || header->ast == NULL)
+    if (header == NULL || header->source_ast == NULL)
         return false;
 
-    ast = header->ast;
+    ast = header->source_ast;
     switch (ast->type) {
     case AST_CLASS_DECL:
         if (name_out != NULL)
@@ -139,7 +139,7 @@ mir_validate_decl_header_ast_compat(const MIRDeclHeader *header,
 
     if (header == NULL)
         return false;
-    if (header->ast == NULL) {
+    if (header->source_ast == NULL) {
         if (error_message != NULL) {
             *error_message = mir_strdup_fmt(
                 "MIR declaration header[%zu] '%s' has no AST compatibility payload",
@@ -148,7 +148,7 @@ mir_validate_decl_header_ast_compat(const MIRDeclHeader *header,
         }
         return false;
     }
-    if (header->ast_type != header->ast->type) {
+    if (header->ast_type != header->source_ast->type) {
         if (error_message != NULL) {
             *error_message = mir_strdup_fmt(
                 "MIR declaration header[%zu] '%s' AST type metadata drift",
@@ -248,7 +248,7 @@ mir_validate_decl_method_metadata(const MIRProgram *mir,
 
     for (size_t i = 0; i < header->method_metadata_count; i++) {
         const MIRDeclMethod *method = &header->method_metadata[i];
-        ASTNode *ast = method->ast;
+        ASTNode *ast = method->source_ast;
 
         if (method->owner_name == NULL
             || header->name == NULL

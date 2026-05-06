@@ -149,7 +149,7 @@ test_ability_role_emit(void)
         routine.owner_ast_type = AST_ROLE_DECL;
         mir.routines = &routine;
         mir.routine_count = 1;
-        role_method.ast = &impl_method;
+        role_method.source_ast = &impl_method;
         role_method.name = "BatchMark";
         role_method.owner_name = "CourierRoute";
         role_method.params = impl_params;
@@ -158,7 +158,7 @@ test_ability_role_emit(void)
         role_method.has_routine = true;
         role_method.routine_index = 0;
         role_header.name = "CourierRoute";
-        role_header.ast = &role_node;
+        role_header.source_ast = &role_node;
         role_header.ast_type = AST_ROLE_DECL;
         role_header.method_metadata = &role_method;
         role_header.method_metadata_count = 1;

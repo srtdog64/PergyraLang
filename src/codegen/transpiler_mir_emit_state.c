@@ -77,13 +77,12 @@ transpiler_emit_host_method_body_local(TranspilerCtx *ctx, ASTNode *host_decl,
         return;
 
     if (host_decl == NULL) {
-        if (ctx->backend_error == NULL) {
-            transpiler_set_backend_error(ctx,
-                "MIR-only transpiler missing declaration inventory for host-scoped method '%s.%s'",
-                self_type_name,
-                method->type == AST_FUNC_DECL && method->data.func_decl.name != NULL
-                    ? method->data.func_decl.name : "<method>");
-        }
+        transpiler_set_mir_inventory_missing(
+            ctx,
+            "MIR-only transpiler missing declaration inventory for host-scoped method '%s.%s'",
+            self_type_name,
+            method->type == AST_FUNC_DECL && method->data.func_decl.name != NULL
+                ? method->data.func_decl.name : "<method>");
         return;
     }
 

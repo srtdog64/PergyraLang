@@ -40,11 +40,13 @@ transpiler_try_emit_box_array_let(TranspilerCtx *ctx,
         inner = inner_buf;
     }
     if (inner == NULL) {
-        if (ctx->backend_error == NULL) {
-            ctx->backend_error = strdup_fmt(
-                "cannot emit BoxArray declaration for '%s': missing explicit Box<Array<T>> annotation",
-                name != NULL ? name : "(anonymous)");
-        }
+        transpiler_set_backend_error_with_hints(
+            ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+            "cannot emit BoxArray declaration for '%s': missing explicit Box<Array<T>> annotation",
+            name != NULL ? name : "(anonymous)");
         free(*ann_type_name_ptr);
         *ann_type_name_ptr = NULL;
         return true;

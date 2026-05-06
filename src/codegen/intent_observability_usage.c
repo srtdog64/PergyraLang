@@ -4,7 +4,6 @@
  */
 
 #include "intent_observability_usage.h"
-#include "transpiler.h"
 #include "transpiler_builtin_type_table.h"
 
 #include "../compiler/mir.h"
@@ -42,7 +41,7 @@ pgy_name_array_uses_intent_observability(const char *const *names, size_t count)
 
 static bool
 pgy_mir_instruction_uses_intent_observability(const MIRInstruction *inst,
-                                              bool allow_legacy_ast_probe)
+                                              bool allow_legacy_payload_probe)
 {
     if (inst == NULL)
         return false;
@@ -58,31 +57,31 @@ pgy_mir_instruction_uses_intent_observability(const MIRInstruction *inst,
     if (inst->has_surface_usage_facts)
         return inst->uses_intent_observability_surface;
 
-    if (!allow_legacy_ast_probe)
+    if (!allow_legacy_payload_probe)
         return false;
 
     /*
      * Direct statement calls are carried in MIR_STMT.arg0, direct initializer
      * calls are carried in MIR_INST_DEF.arg1, and lowered declaration
-     * inventory is carried by MIRProgram inventory surface facts. Keep
-     * instruction AST probing only for hand-built legacy MIR fixtures without
-     * HIR provenance; production lowering is expected to carry MIR facts.
+     * inventory is carried by MIRProgram inventory surface facts. Keep only
+     * payload probing for hand-built legacy MIR fixtures without HIR
+     * provenance; source statement AST scanning is no longer a codegen usage
+     * discovery path.
      */
-    return pgy_ast_uses_intent_observability(inst->ast)
-        || pgy_ast_uses_intent_observability(inst->expr0)
+    return pgy_ast_uses_intent_observability(inst->expr0)
         || pgy_ast_uses_intent_observability(inst->expr1);
 }
 
 static bool
 pgy_mir_block_uses_intent_observability(const MIRBasicBlock *block,
-                                        bool allow_legacy_ast_probe)
+                                        bool allow_legacy_payload_probe)
 {
     if (block == NULL)
         return false;
 
     for (size_t i = 0; i < block->instruction_count; i++) {
         if (pgy_mir_instruction_uses_intent_observability(
-                &block->instructions[i], allow_legacy_ast_probe)) {
+                &block->instructions[i], allow_legacy_payload_probe)) {
             return true;
         }
     }
@@ -133,15 +132,14 @@ pgy_mir_inventory_uses_intent_observability(const MIRProgram *mir)
 bool
 pgy_mir_program_uses_intent_observability(const MIRProgram *mir)
 {
-    TranspilerMIRRoutineInventory inventory;
+    MIRRoutineInventory inventory;
 
     if (mir == NULL)
         return false;
 
-    transpiler_mir_routine_inventory_from_program(mir, &inventory);
+    mir_routine_inventory_from_program(mir, &inventory);
     for (size_t i = 0; i < inventory.count; i++) {
-        const MIRRoutine *routine =
-            transpiler_routine_inventory_get(&inventory, i);
+        const MIRRoutine *routine = mir_routine_inventory_get(&inventory, i);
         if (pgy_mir_routine_uses_intent_observability(routine))
             return true;
     }

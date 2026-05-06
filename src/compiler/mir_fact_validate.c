@@ -56,6 +56,24 @@ mir_has_inventory_payload(const MIRProgram *mir)
             || mir->function_count > 0);
 }
 
+static bool
+mir_def_source_requires_initializer_fact(const MIRInstruction *inst)
+{
+    return inst != NULL
+        && (inst->source_ast_type == AST_LET_DECL
+            || inst->source_ast_type == AST_ASSIGNMENT);
+}
+
+static bool
+mir_instruction_has_surface_payload_or_shape(const MIRInstruction *inst)
+{
+    return inst != NULL
+        && (inst->ast != NULL
+            || inst->expr0 != NULL
+            || inst->expr1 != NULL
+            || inst->has_source_location);
+}
+
 bool
 mir_validate_inventory_surface_usage(const MIRProgram *mir, char **error_message)
 {
@@ -147,12 +165,46 @@ mir_validate_instruction_surface_usage(const MIRRoutine *routine,
 
     for (size_t i = 0; i < block->instruction_count; i++) {
         const MIRInstruction *inst = &block->instructions[i];
-        bool has_surface_payload = inst->ast != NULL
-                                   || inst->expr0 != NULL
-                                   || inst->expr1 != NULL
-                                   || inst->has_source_location;
-        if (!has_surface_payload)
+        if (!mir_instruction_has_surface_payload_or_shape(inst))
             continue;
+        if (inst->kind == MIR_INST_DEF
+            && mir_def_source_requires_initializer_fact(inst)
+            && inst->expr0 == NULL) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR routine '%s' block[%zu] instruction[%zu] DEF is missing MIR initializer expression fact",
+                    routine->name != NULL ? routine->name : "(anonymous)",
+                    block_index,
+                    i);
+            }
+            return false;
+        }
+        if (inst->kind == MIR_INST_RESOURCE_OP
+            && inst->name != NULL
+            && strcmp(inst->name, "Write") == 0
+            && inst->source_ast_type == AST_CALL
+            && inst->expr0 == NULL) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR routine '%s' block[%zu] instruction[%zu] Write resource op is missing MIR value expression fact",
+                    routine->name != NULL ? routine->name : "(anonymous)",
+                    block_index,
+                    i);
+            }
+            return false;
+        }
+        if (inst->kind == MIR_INST_STMT
+            && inst->source_ast_type == AST_DEFER_STMT
+            && inst->expr0 == NULL) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR routine '%s' block[%zu] instruction[%zu] defer statement is missing MIR body expression fact",
+                    routine->name != NULL ? routine->name : "(anonymous)",
+                    block_index,
+                    i);
+            }
+            return false;
+        }
         if (!inst->has_surface_usage_facts) {
             if (error_message != NULL) {
                 *error_message = mir_strdup_fmt(
@@ -233,6 +285,30 @@ mir_validate_terminator_provenance(const MIRRoutine *routine,
             if (error_message != NULL) {
                 *error_message = mir_strdup_fmt(
                     "MIR routine '%s' block[%zu] instruction[%zu] return source terminator is not HIR_BLOCK_RETURN",
+                    routine->name != NULL ? routine->name : "(anonymous)",
+                    block_index,
+                    i);
+            }
+            return false;
+        }
+        if (inst->kind == MIR_INST_BRANCH
+            && inst->branch_shape == MIR_BRANCH_EXPR
+            && inst->expr0 == NULL) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR routine '%s' block[%zu] instruction[%zu] branch is missing MIR terminator expression fact",
+                    routine->name != NULL ? routine->name : "(anonymous)",
+                    block_index,
+                    i);
+            }
+            return false;
+        }
+        if (inst->kind == MIR_INST_RETURN
+            && inst->source_terminator_has_value
+            && inst->expr0 == NULL) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR routine '%s' block[%zu] instruction[%zu] return is missing MIR terminator expression fact",
                     routine->name != NULL ? routine->name : "(anonymous)",
                     block_index,
                     i);

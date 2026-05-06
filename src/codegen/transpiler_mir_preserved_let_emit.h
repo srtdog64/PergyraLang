@@ -1,6 +1,8 @@
 #ifndef PERGYRA_TRANSPILER_MIR_PRESERVED_LET_EMIT_H
 #define PERGYRA_TRANSPILER_MIR_PRESERVED_LET_EMIT_H
 
+#include "transpiler_mir_expr_ssa.h"
+
 /* Preserved source let emission owner for MIR blocks. */
 static bool
 transpiler_emit_mir_preserved_let_stmt(CodeBuf *buf,

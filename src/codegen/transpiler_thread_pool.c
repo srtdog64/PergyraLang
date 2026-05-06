@@ -11,18 +11,8 @@
 bool
 transpiler_requires_thread_pool(const TranspilerCtx *ctx)
 {
-    TranspilerMIRRoutineInventory inventory;
-
     if (ctx == NULL || ctx->mir == NULL)
         return false;
 
-    transpiler_active_routine_inventory(ctx, &inventory);
-    for (size_t i = 0; i < inventory.count; i++) {
-        const MIRRoutine *routine =
-            transpiler_routine_inventory_get(&inventory, i);
-        if (pgy_mir_routine_uses_thread_pool(routine))
-            return true;
-    }
-
-    return false;
+    return pgy_mir_program_uses_thread_pool(ctx->mir);
 }

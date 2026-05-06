@@ -15,11 +15,8 @@ emit_hosted_methods_from_mir_or_error_local(const char *host_name,
     size_t method_count = method_view != NULL ? method_view->count : 0;
 
     if (transpiler_hosted_method_view_missing_mir_metadata(method_view)) {
-        transpiler_set_backend_error_with_hints(
+        transpiler_set_mir_inventory_missing(
             ctx,
-            PGY_CODE_MIR_TOPOLOGY_INVALID,
-            PGY_CAUSE_MIR_TOPOLOGY_ROUTINE_MISSING,
-            PGY_FIX_INSPECT_HIR_TO_MIR_LOWERING,
             "MIR-only C path missing declaration metadata for %s methods '%s'",
             host_kind != NULL ? host_kind : "host",
             host_name != NULL ? host_name : anonymous_host_name);
@@ -29,7 +26,8 @@ emit_hosted_methods_from_mir_or_error_local(const char *host_name,
     for (size_t i = 0; i < method_count; i++) {
         const MIRDeclMethod *method_meta =
             transpiler_hosted_method_view_metadata(method_view, i);
-        ASTNode *method = transpiler_hosted_method_view_ast(method_view, i);
+        ASTNode *method =
+            transpiler_hosted_method_view_source_ast(method_view, i);
         const MIRRoutine *mir_method = NULL;
         const char *method_name = NULL;
         char emitted_name[256];
@@ -43,11 +41,8 @@ emit_hosted_methods_from_mir_or_error_local(const char *host_name,
 
         mir_method = transpiler_mir_decl_method_routine(ctx, method_meta);
         if (mir_method == NULL) {
-            transpiler_set_backend_error_with_hints(
+            transpiler_set_mir_inventory_missing(
                 ctx,
-                PGY_CODE_MIR_TOPOLOGY_INVALID,
-                PGY_CAUSE_MIR_TOPOLOGY_ROUTINE_MISSING,
-                PGY_FIX_INSPECT_HIR_TO_MIR_LOWERING,
                 "MIR-only C path missing routine for %s method '%s.%s'",
                 host_kind != NULL ? host_kind : "host",
                 host_name != NULL ? host_name : anonymous_host_name,
@@ -336,7 +331,9 @@ emit_role_method_impl(const char *role_name, ASTNode *method, TranspilerCtx *ctx
     mir_method = transpiler_find_role_impl_mir_method(ctx, role_name, method);
     method_name = method->data.func_decl.name;
     if (ctx != NULL && ctx->mir != NULL && mir_method == NULL) {
-        transpiler_set_backend_error_with_hints(ctx, PGY_CODE_MIR_TOPOLOGY_INVALID, PGY_CAUSE_MIR_TOPOLOGY_ROUTINE_MISSING, PGY_FIX_INSPECT_HIR_TO_MIR_LOWERING, "MIR-only C path missing routine for role method '%s.%s'",
+        transpiler_set_mir_inventory_missing(
+            ctx,
+            "MIR-only C path missing routine for role method '%s.%s'",
             role_name != NULL ? role_name : "(anonymous)",
             method_name != NULL ? method_name : "(anonymous)");
         return;
@@ -348,7 +345,9 @@ emit_role_method_impl(const char *role_name, ASTNode *method, TranspilerCtx *ctx
         emit_func_decl_from_mir_named(method, mir_method, emitted_name, ctx->out, ctx);
         return;
     }
-    transpiler_set_backend_error_with_hints(ctx, PGY_CODE_MIR_TOPOLOGY_INVALID, PGY_CAUSE_MIR_TOPOLOGY_ROUTINE_MISSING, PGY_FIX_INSPECT_HIR_TO_MIR_LOWERING, "MIR-only C path missing routine for role method '%s.%s'",
+    transpiler_set_mir_inventory_missing(
+        ctx,
+        "MIR-only C path missing routine for role method '%s.%s'",
         role_name != NULL ? role_name : "(anonymous)",
         method_name != NULL ? method_name : "(anonymous)");
 }

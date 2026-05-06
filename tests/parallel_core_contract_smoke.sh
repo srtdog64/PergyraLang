@@ -106,6 +106,9 @@ require_text(
     "src/codegen/thread_pool_usage.c",
     [
         "pgy_mir_instruction_uses_thread_pool",
+        "pgy_mir_program_uses_thread_pool",
+        "mir_routine_inventory_from_program",
+        "inventory_uses_thread_pool_surface",
         "ast_uses_thread_pool_surface",
         "inst->expr0",
         "inst->expr1",
@@ -123,7 +126,7 @@ reject_text(
 )
 
 require_text(
-    "src/parser/ast_analysis.c",
+    "src/parser/ast_thread_pool_analysis.c",
     [
         "ast_uses_thread_pool_surface",
         "AST_AWAIT_EXPR",
@@ -134,10 +137,7 @@ require_text(
 require_text(
     "src/codegen/transpiler_thread_pool.c",
     [
-        "pgy_mir_routine_uses_thread_pool",
-        "TranspilerMIRRoutineInventory",
-        "transpiler_active_routine_inventory",
-        "transpiler_routine_inventory_get",
+        "pgy_mir_program_uses_thread_pool(ctx->mir)",
     ],
 )
 reject_text(
@@ -150,8 +150,7 @@ reject_text(
 require_text(
     "src/codegen/llvm_pipeline.c",
     [
-        "pgy_mir_routine_uses_thread_pool",
-        "llvm_active_routine_inventory",
+        "pgy_mir_program_uses_thread_pool(ctx->mir)",
     ],
 )
 reject_text(

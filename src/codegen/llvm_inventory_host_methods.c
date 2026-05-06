@@ -158,14 +158,15 @@ llvm_hosted_method_view_metadata(const LLVMHostedMethodView *view,
 }
 
 ASTNode *
-llvm_hosted_method_view_ast(const LLVMHostedMethodView *view, size_t index)
+llvm_hosted_method_view_source_ast(const LLVMHostedMethodView *view,
+                                   size_t index)
 {
     const MIRDeclMethod *method = llvm_hosted_method_view_metadata(view, index);
 
     if (view == NULL || index >= view->count)
         return NULL;
     if (method != NULL)
-        return method->ast;
+        return method->source_ast;
     if (view->requires_mir_metadata)
         return NULL;
     return view->ast_compat_methods != NULL
@@ -182,10 +183,10 @@ llvm_mir_decl_method_name(const MIRDeclMethod *method)
 }
 
 ASTNode *
-llvm_mir_decl_method_ast(const MIRDeclMethod *method)
+llvm_mir_decl_method_source_ast(const MIRDeclMethod *method)
 {
     if (method != NULL)
-        return method->ast;
+        return method->source_ast;
     return NULL;
 }
 
@@ -233,7 +234,7 @@ llvm_find_host_method_decl_in_context(const LLVMGenCtx *ctx,
 
     method = llvm_find_host_method_metadata_in_context(
         ctx, host_type_name, method_name);
-    return llvm_mir_decl_method_ast(method);
+    return llvm_mir_decl_method_source_ast(method);
 }
 
 #endif /* PGY_LLVM_ENABLED */

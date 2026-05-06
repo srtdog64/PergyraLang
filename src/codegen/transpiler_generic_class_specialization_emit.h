@@ -109,16 +109,18 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
             snprintf(b->concrete_type, sizeof(b->concrete_type), "%s",
                      effective_name);
         else {
-            if (ctx->backend_error == NULL) {
-                ctx->backend_error = strdup_fmt(
-                    "cannot resolve generic class binding '%s' for specialization '%s'",
-                    gp->params[i] != NULL && gp->params[i]->name != NULL
-                        ? gp->params[i]->name
-                        : "(anonymous)",
-                    class_decl != NULL && class_decl->data.class_decl.name != NULL
-                        ? class_decl->data.class_decl.name
-                        : "(anonymous)");
-            }
+            transpiler_set_backend_error_with_hints(
+                ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED,
+                PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+                "cannot resolve generic class binding '%s' for specialization '%s'",
+                gp->params[i] != NULL && gp->params[i]->name != NULL
+                    ? gp->params[i]->name
+                    : "(anonymous)",
+                class_decl != NULL && class_decl->data.class_decl.name != NULL
+                    ? class_decl->data.class_decl.name
+                    : "(anonymous)");
             ctx->generic_binding_count = saved_binding_count;
             codebuf_destroy(nbuf);
             return NULL;
@@ -169,7 +171,8 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
     for (size_t i = 0; i < method_view.count; i++) {
         const MIRDeclMethod *method_meta =
             transpiler_hosted_method_view_metadata(&method_view, i);
-        ASTNode *method = transpiler_hosted_method_view_ast(&method_view, i);
+        ASTNode *method =
+            transpiler_hosted_method_view_source_ast(&method_view, i);
         bool use_self_cell = is_pointer_self_host_type_name(ctx, spec_name);
         if (method == NULL || method->type != AST_FUNC_DECL)
             continue;
@@ -180,7 +183,8 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
     for (size_t i = 0; i < method_view.count; i++) {
         const MIRDeclMethod *method_meta =
             transpiler_hosted_method_view_metadata(&method_view, i);
-        ASTNode *method = transpiler_hosted_method_view_ast(&method_view, i);
+        ASTNode *method =
+            transpiler_hosted_method_view_source_ast(&method_view, i);
         bool use_self_cell = is_pointer_self_host_type_name(ctx, spec_name);
         const char *method_name;
         const MIRRoutine *mir_method;
@@ -193,15 +197,14 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
             &method_view, i);
 
         if (ctx != NULL && ctx->mir != NULL && mir_method == NULL) {
-            if (ctx->backend_error == NULL) {
-                ctx->backend_error = strdup_fmt(
-                    "MIR-only C path missing routine for generic class method '%s.%s' specialization '%s'",
-                    base_class_name != NULL
-                        ? base_class_name
-                        : "(anonymous-class)",
-                    method_name != NULL ? method_name : "(anonymous)",
-                    spec_name != NULL ? spec_name : "(anonymous-specialization)");
-            }
+            transpiler_set_mir_inventory_missing(
+                ctx,
+                "MIR-only C path missing routine for generic class method '%s.%s' specialization '%s'",
+                base_class_name != NULL
+                    ? base_class_name
+                    : "(anonymous-class)",
+                method_name != NULL ? method_name : "(anonymous)",
+                spec_name != NULL ? spec_name : "(anonymous-specialization)");
             transpiler_type_render_ctx_restore(saved_render_ctx);
             ctx->generic_binding_count = saved_binding_count;
             codebuf_destroy(nbuf);

@@ -45,7 +45,7 @@ mir_decl_header_set_methods(MIRDeclHeader *header,
     for (size_t i = 0; i < method_count; i++) {
         ASTNode *method = methods != NULL ? methods[i] : NULL;
         MIRDeclMethod *meta = &header->method_metadata[i];
-        meta->ast = method;
+        meta->source_ast = method;
         meta->owner_name = header->name;
         if (method != NULL && method->type == AST_FUNC_DECL) {
             meta->name = method->data.func_decl.name;
@@ -102,7 +102,7 @@ mir_decl_header_set_role_impl_methods(MIRDeclHeader *header, ASTNode *role_decl)
         for (size_t j = 0; j < impl->data.impl_ability.method_count; j++) {
             ASTNode *method = impl->data.impl_ability.methods[j];
             MIRDeclMethod *meta = &header->method_metadata[out++];
-            meta->ast = method;
+            meta->source_ast = method;
             meta->owner_name = header->name;
             if (method != NULL && method->type == AST_FUNC_DECL) {
                 meta->name = method->data.func_decl.name;
@@ -129,7 +129,7 @@ mir_record_decl_header(MIRProgram *mir, ASTNode *decl)
         return true;
 
     memset(&header, 0, sizeof(header));
-    header.ast = decl;
+    header.source_ast = decl;
     header.ast_type = decl->type;
 
     switch (decl->type) {

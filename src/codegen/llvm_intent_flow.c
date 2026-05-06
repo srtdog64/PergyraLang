@@ -87,62 +87,6 @@ llvm_emit_mir_resource_hook(LLVMGenCtx *ctx,
 }
 
 size_t
-llvm_collect_mir_intent_steps(const MIRRoutine *routine,
-                              LLVMGenCtx *ctx,
-                              ASTNode ***steps_out)
-{
-    ASTNode **steps = NULL;
-    size_t count = 0;
-
-    if (steps_out != NULL)
-        *steps_out = NULL;
-    if (routine == NULL || steps_out == NULL || ctx == NULL)
-        return 0;
-
-    for (size_t bi = 0; bi < routine->block_count; bi++) {
-        const MIRBasicBlock *block = &routine->blocks[bi];
-        if (block->is_cleanup || !block->is_reachable)
-            continue;
-        for (size_t ii = 0; ii < block->instruction_count; ii++) {
-            const MIRInstruction *inst = &block->instructions[ii];
-
-            if (mir_instruction_intent_step_name(inst) == NULL
-                || inst->ast == NULL) {
-                continue;
-            }
-            if (!mir_instruction_is_intent_stmt(inst, "IntentStep"))
-                continue;
-            count++;
-        }
-    }
-
-    if (count == 0)
-        return 0;
-    steps = pgy_arena_calloc(&ctx->scratch, count * sizeof(ASTNode *));
-    if (steps == NULL)
-        return 0;
-
-    count = 0;
-    for (size_t bi = 0; bi < routine->block_count; bi++) {
-        const MIRBasicBlock *block = &routine->blocks[bi];
-        if (block->is_cleanup || !block->is_reachable)
-            continue;
-        for (size_t ii = 0; ii < block->instruction_count; ii++) {
-            const MIRInstruction *inst = &block->instructions[ii];
-            if (mir_instruction_intent_step_name(inst) == NULL
-                || inst->ast == NULL)
-                continue;
-            if (!mir_instruction_is_intent_stmt(inst, "IntentStep"))
-                continue;
-            steps[count++] = inst->ast;
-        }
-    }
-
-    *steps_out = steps;
-    return count;
-}
-
-size_t
 llvm_collect_mir_intent_step_names(const MIRRoutine *routine,
                                    LLVMGenCtx *ctx,
                                    const char ***names_out)
@@ -205,7 +149,7 @@ llvm_find_mir_intent_check_expr(const MIRRoutine *routine,
             continue;
         for (size_t ii = 0; ii < block->instruction_count; ii++) {
             const MIRInstruction *inst = &block->instructions[ii];
-            if (inst->ast == NULL)
+            if (inst->expr0 == NULL)
                 continue;
             if (!mir_instruction_is_intent_stmt(inst, "IntentCheck"))
                 continue;
@@ -213,7 +157,7 @@ llvm_find_mir_intent_check_expr(const MIRRoutine *routine,
                 continue;
             if (!mir_instruction_intent_step_matches(inst, step_name))
                 continue;
-            return inst->ast;
+            return inst->expr0;
         }
     }
     return NULL;
@@ -241,7 +185,7 @@ llvm_collect_mir_intent_eval_exprs(const MIRRoutine *routine,
         for (size_t ii = 0; ii < block->instruction_count; ii++) {
             const MIRInstruction *inst = &block->instructions[ii];
 
-            if (inst->ast == NULL)
+            if (inst->expr0 == NULL)
                 continue;
             if (!mir_instruction_is_intent_stmt(inst, "IntentEval"))
                 continue;
@@ -266,7 +210,7 @@ llvm_collect_mir_intent_eval_exprs(const MIRRoutine *routine,
             continue;
         for (size_t ii = 0; ii < block->instruction_count; ii++) {
             const MIRInstruction *inst = &block->instructions[ii];
-            if (inst->ast == NULL)
+            if (inst->expr0 == NULL)
                 continue;
             if (!mir_instruction_is_intent_stmt(inst, "IntentEval"))
                 continue;
@@ -274,7 +218,7 @@ llvm_collect_mir_intent_eval_exprs(const MIRRoutine *routine,
                 continue;
             if (!mir_instruction_intent_step_matches(inst, step_name))
                 continue;
-            exprs[count++] = inst->ast;
+            exprs[count++] = inst->expr0;
         }
     }
 

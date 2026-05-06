@@ -186,8 +186,10 @@ bool          llvm_mir_base_name_from_versioned(const char *mir_name,
                                                 char *base_out,
                                                 size_t base_out_size);
 bool          llvm_mir_stmt_is_cfg_container(ASTNode *node);
-bool          llvm_mir_declare_assignment_recv_target(ASTNode *node,
-                                                      LLVMGenCtx *ctx);
+bool          llvm_mir_ast_type_is_cfg_container(ASTNodeType type);
+bool          llvm_mir_declare_recv_target(const char *target_name,
+                                           ASTNode *recv_expr,
+                                           LLVMGenCtx *ctx);
 bool          llvm_mir_emit_for_loop_init(const MIRInstruction *inst,
                                           LLVMGenCtx *ctx);
 LLVMValueRef  llvm_mir_emit_for_loop_condition(const MIRInstruction *inst,

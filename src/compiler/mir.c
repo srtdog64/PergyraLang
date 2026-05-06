@@ -102,11 +102,17 @@ mir_add_terminator_instruction(MIRRoutine *routine,
     inst.name = (terminator_kind == HIR_BLOCK_BRANCH) ? "branch" : "return";
     inst.source_terminator_kind = terminator_kind;
     inst.has_source_terminator_kind = true;
+    inst.source_terminator_has_value = terminator_value != NULL;
     inst.ast = (terminator_kind == HIR_BLOCK_BRANCH)
                    ? terminator_condition
                    : terminator_value;
     if (inst.kind == MIR_INST_BRANCH)
         inst.branch_shape = mir_branch_shape_from_ast(inst.ast);
+    if (inst.kind == MIR_INST_BRANCH
+        && inst.branch_shape == MIR_BRANCH_EXPR)
+        inst.expr0 = terminator_condition;
+    else if (inst.kind == MIR_INST_RETURN)
+        inst.expr0 = terminator_value;
     if (inst.kind == MIR_INST_BRANCH
         && inst.ast != NULL
         && inst.ast->type == AST_FOR_LOOP) {
@@ -198,6 +204,31 @@ mir_block_record_source_location(MIRBasicBlock *block, const ASTNode *source_ast
     block->source_column = source_ast != NULL ? source_ast->column : 0;
 }
 
+static ASTNode *
+mir_resource_write_value_expr_from_call(ASTNode *call)
+{
+    ASTNode *callee;
+
+    if (call == NULL || call->type != AST_CALL)
+        return NULL;
+    callee = call->data.call.callee;
+    if (callee == NULL)
+        return NULL;
+    if (callee->type == AST_IDENTIFIER
+        && callee->data.identifier.name != NULL
+        && strcmp(callee->data.identifier.name, "Write") == 0
+        && call->data.call.arg_count >= 2) {
+        return call->data.call.arguments[1];
+    }
+    if (callee->type == AST_MEMBER_ACCESS
+        && callee->data.member.name != NULL
+        && strcmp(callee->data.member.name, "Write") == 0
+        && call->data.call.arg_count >= 1) {
+        return call->data.call.arguments[0];
+    }
+    return NULL;
+}
+
 static bool
 mir_add_resource_instruction(MIRRoutine *routine, MIRBasicBlock *block, const RIROp *op)
 {
@@ -213,6 +244,8 @@ mir_add_resource_instruction(MIRRoutine *routine, MIRBasicBlock *block, const RI
     inst.arg1 = op->arg0;
     inst.rir_op = op;
     inst.ast = op->ast;
+    if (op->kind == RIR_OP_WRITE)
+        inst.expr0 = mir_resource_write_value_expr_from_call(op->ast);
     /* ABI type layout — lookup from type table */
     if (op->kind == RIR_OP_CLAIM)
         claim_type_name = mir_claim_abi_type_name_from_ast(op->ast);

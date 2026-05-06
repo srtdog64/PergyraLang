@@ -14,6 +14,44 @@
 #include "llvm_internal_api.h"
 #include "../common/string_compat.h"
 
+static bool
+llvm_mir_branch_requires_source_compatibility(const MIRInstruction *inst)
+{
+    return inst != NULL
+        && (inst->branch_shape == MIR_BRANCH_MATCH_CASE
+            || inst->branch_shape == MIR_BRANCH_SELECT_DISPATCH);
+}
+
+static bool
+llvm_mir_branch_has_required_condition_fact(const MIRInstruction *inst)
+{
+    if (inst == NULL)
+        return false;
+    if (llvm_mir_branch_requires_source_compatibility(inst))
+        return inst->ast != NULL;
+    return inst->expr0 != NULL;
+}
+
+static bool
+llvm_mir_def_uses_source_statement_compatibility(const MIRInstruction *inst)
+{
+    return inst != NULL
+        && inst->ast != NULL
+        && inst->has_source_location
+        && (inst->source_ast_type == AST_LET_DECL
+            || inst->source_ast_type == AST_ASSIGNMENT);
+}
+
+static bool
+llvm_mir_stmt_instruction_is_cfg_container(const MIRInstruction *inst)
+{
+    if (inst == NULL)
+        return false;
+    if (inst->has_source_location)
+        return llvm_mir_ast_type_is_cfg_container(inst->source_ast_type);
+    return llvm_mir_stmt_is_cfg_container(inst->ast);
+}
+
 static void
 llvm_mir_emit_with_claim_only(ASTNode *node, LLVMGenCtx *ctx)
 {
@@ -369,20 +407,20 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block, const MIRRoutine 
             }
             break;
         case MIR_INST_DEF:
-            if (inst->ast != NULL && inst->result_name != NULL) {
-                if (inst->has_source_location
-                    && (inst->source_ast_type == AST_LET_DECL
-                        || inst->source_ast_type == AST_ASSIGNMENT)) {
+            if (inst->result_name != NULL) {
+                if (llvm_mir_def_uses_source_statement_compatibility(inst)) {
                     if (getenv("PGY_DEBUG_LLVM_DETAIL") != NULL)
                         fprintf(stderr, "[llvm inst] emit_statement\n");
-                    if (!llvm_mir_declare_assignment_recv_target(inst->ast, ctx))
+                    if (!llvm_mir_declare_recv_target(inst->arg0, inst->expr0, ctx))
                         return;
                     llvm_emit_statement(inst->ast, ctx);
                 } else {
                     LLVMValueRef alloca = llvm_mir_get_var(vars, var_count, inst->result_name);
                     if (getenv("PGY_DEBUG_LLVM_DETAIL") != NULL)
                         fprintf(stderr, "[llvm inst] emit_expression_store\n");
-                    LLVMValueRef val = llvm_emit_expression(inst->ast, ctx);
+                    LLVMValueRef val = inst->expr0 != NULL
+                        ? llvm_emit_expression(inst->expr0, ctx)
+                        : NULL;
                     if (val != NULL && alloca != NULL) {
                         LLVMBuildStore(ctx->builder, val, alloca);
                     }
@@ -396,7 +434,9 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block, const MIRRoutine 
                 emitted_terminator = true;
                 break;
             }
-            if (inst->ast != NULL && mir_block->has_succ_true && mir_block->has_succ_false) {
+            if (llvm_mir_branch_has_required_condition_fact(inst)
+                && mir_block->has_succ_true
+                && mir_block->has_succ_false) {
                 LLVMValueRef cond;
                 if (inst->branch_shape == MIR_BRANCH_FOR_RANGE
                     || inst->branch_shape == MIR_BRANCH_FOR_IN) {
@@ -409,7 +449,7 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block, const MIRRoutine 
                     if (cond == NULL)
                         cond = LLVMConstInt(LLVMInt1TypeInContext(ctx->context), 1, 0);
                 } else {
-                    cond = llvm_emit_expression(inst->ast, ctx);
+                    cond = llvm_emit_expression(inst->expr0, ctx);
                 }
                 if (cond != NULL) {
                     LLVMBasicBlockRef true_bb = llvm_blocks[mir_block->succ_true];
@@ -429,7 +469,8 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block, const MIRRoutine 
         case MIR_INST_RETURN:
             llvm_emit_defers_from(ctx, 0);
             llvm_mir_emit_owner_sync_exit(ctx, owner_cls, owner_sync, owner_name);
-            if (inst->ast != NULL) {
+            if (inst->expr0 != NULL) {
+                ASTNode *return_expr = inst->expr0;
                 const char *saved_expected_type_name = ctx->expected_type_name;
                 LLVMValueRef val;
                 if (ctx->current_func_decl != NULL
@@ -438,7 +479,7 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block, const MIRRoutine 
                     ctx->expected_type_name = llvm_stmt_render_type_annotation_static(
                         ctx->current_func_decl->data.func_decl.return_type);
                 }
-                val = llvm_emit_expression(inst->ast, ctx);
+                val = llvm_emit_expression(return_expr, ctx);
                 ctx->expected_type_name = saved_expected_type_name;
                 if (val != NULL) {
                     if (!llvm_mir_emit_pin_exit(mir_block, ctx))
@@ -464,12 +505,12 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block, const MIRRoutine 
                 return;
             break;
         case MIR_INST_STMT:
-            if (inst->ast != NULL
-                && inst->has_source_location
+            if (inst->has_source_location
                 && inst->source_ast_type == AST_DEFER_STMT) {
-                if (inst->ast->data.defer_stmt.body != NULL)
-                    llvm_register_defer(inst->ast->data.defer_stmt.body, ctx);
-            } else if (inst->ast != NULL && !llvm_mir_stmt_is_cfg_container(inst->ast)) {
+                if (inst->expr0 != NULL)
+                    llvm_register_defer(inst->expr0, ctx);
+            } else if (inst->ast != NULL
+                && !llvm_mir_stmt_instruction_is_cfg_container(inst)) {
                 llvm_emit_statement(inst->ast, ctx);
             }
             break;

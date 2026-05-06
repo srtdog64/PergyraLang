@@ -1,6 +1,6 @@
 # PergyraLang Documentation Index
 
-Last updated: 2026-05-04
+Last updated: 2026-05-06
 
 Anti-hype update: 2026-04-29
 
@@ -19,6 +19,16 @@ and follow-up debt over older design notes.
 | [`70_beta_closure_master_board.md`](70_beta_closure_master_board.md) | B0/B1/B2 closure board and prioritization |
 | [`71_beta_execution_tickets.md`](71_beta_execution_tickets.md) | Execution-ticket breakdown for beta closure |
 | [`120_vision_and_capability_audit.md`](120_vision_and_capability_audit.md) | Anti-hype current-vs-vision audit for external claims |
+
+## Post-Beta Self-Hosting Track
+
+| Document | Purpose |
+|---|---|
+| [`self_hosted/README.md`](self_hosted/README.md) | Entry point for post-beta self-hosting preparation |
+| [`self_hosted/00_agent_entry.md`](self_hosted/00_agent_entry.md) | Agent handoff rules for self-hosted work |
+| [`self_hosted/01_staged_roadmap.md`](self_hosted/01_staged_roadmap.md) | Staged roadmap from soft self-host tools to compiler slices |
+| [`self_hosted/02_required_language_surface.md`](self_hosted/02_required_language_surface.md) | Language surface required before self-hosting can become credible |
+| [`self_hosted/03_tool_candidates.md`](self_hosted/03_tool_candidates.md) | First self-hostable tool candidates and non-goals |
 
 ## Historical Snapshots
 
@@ -132,6 +142,7 @@ and follow-up debt over older design notes.
 3. For async/parallel, read [`113_memory_concurrency_model.md`](113_memory_concurrency_model.md), then [`114_async_model_positioning.md`](114_async_model_positioning.md), then [`05_async_concurrency.md`](05_async_concurrency.md).
 4. For backend work, read [`115_inc_cleanup_status.md`](115_inc_cleanup_status.md), [`62_llvm_backend_debt_ledger.md`](62_llvm_backend_debt_ledger.md), and [`44_llvm_backend_coverage.md`](44_llvm_backend_coverage.md).
 5. For formal closure, read [`102_formal_semantics_and_proof_obligations.md`](102_formal_semantics_and_proof_obligations.md), [`103_cfg_body_dataflow_need.md`](103_cfg_body_dataflow_need.md), and [`104_air_compiler_architecture.md`](104_air_compiler_architecture.md).
+6. For post-beta self-hosting preparation, read [`self_hosted/README.md`](self_hosted/README.md) after the beta source-of-truth documents, not before them.
 
 ## Current Documentation Policy
 
