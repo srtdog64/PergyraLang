@@ -232,6 +232,25 @@ air_mir_routine_terminator_fact_count(const MIRRoutine *routine)
     return count;
 }
 
+static size_t
+air_mir_routine_select_receive_fact_count(const MIRRoutine *routine)
+{
+    size_t count = 0;
+
+    if (routine == NULL)
+        return 0;
+    for (size_t i = 0; i < routine->block_count; i++) {
+        const MIRBasicBlock *block = &routine->blocks[i];
+        if (block->instruction_count > 0 && block->instructions == NULL)
+            continue;
+        for (size_t j = 0; j < block->instruction_count; j++) {
+            if (block->instructions[j].requires_select_receive_statement_emit)
+                count++;
+        }
+    }
+    return count;
+}
+
 static bool
 air_has_mir_pin_cleanup_evidence(const AIRProgram *air,
                                  size_t boundary_index,
@@ -311,6 +330,8 @@ air_collect_mir_evidence(AIRProgram *air, const MIRProgram *mir, char **error_me
         size_t cleanup_fact_count = air_mir_routine_cleanup_fact_count(routine);
         size_t terminator_fact_count =
             air_mir_routine_terminator_fact_count(routine);
+        size_t select_receive_fact_count =
+            air_mir_routine_select_receive_fact_count(routine);
         if (terminator_fact_count > 0) {
             if (!air_append_evidence_node_ex(air,
                                              AIR_EVIDENCE_MIR_TERMINATOR,
@@ -323,6 +344,19 @@ air_collect_mir_evidence(AIRProgram *air, const MIRProgram *mir, char **error_me
                 return false;
             }
             air->mir_terminator_evidence_count++;
+        }
+        if (select_receive_fact_count > 0) {
+            if (!air_append_evidence_node_ex(air,
+                                             AIR_EVIDENCE_MIR_SELECT_RECEIVE,
+                                             SIZE_MAX,
+                                             routine_name,
+                                             "select-receive",
+                                             select_receive_fact_count,
+                                             0,
+                                             error_message)) {
+                return false;
+            }
+            air->mir_select_receive_evidence_count++;
         }
         if (cleanup_fact_count == 0)
             continue;

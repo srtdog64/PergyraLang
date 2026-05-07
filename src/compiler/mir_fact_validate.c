@@ -65,7 +65,41 @@ mir_def_source_requires_initializer_fact(const MIRInstruction *inst)
 }
 
 static bool
-mir_branch_shape_requires_source_compatibility(const MIRInstruction *inst)
+mir_def_source_requires_channel_receive_emit(const MIRInstruction *inst)
+{
+    return inst != NULL
+        && inst->kind == MIR_INST_DEF
+        && inst->expr0 != NULL
+        && inst->expr0->type == AST_CHANNEL_RECV;
+}
+
+static bool
+mir_def_source_requires_select_receive_emit(const MIRBasicBlock *block,
+                                            const MIRInstruction *inst)
+{
+    return block != NULL
+        && block->is_select_case_body
+        && inst != NULL
+        && inst->kind == MIR_INST_DEF
+        && inst->has_source_statement_index
+        && inst->source_statement_index == 0
+        && mir_def_source_requires_channel_receive_emit(inst);
+}
+
+static bool
+mir_claim_abi_type_is_slot_family(const MIRInstruction *inst)
+{
+    const char *abi_name = inst != NULL && inst->type_layout != NULL
+        ? inst->type_layout->abi_type_name
+        : NULL;
+    return abi_name != NULL
+        && (strncmp(abi_name, "Slot<", 5) == 0
+            || strncmp(abi_name, "SecureSlot<", 11) == 0
+            || strncmp(abi_name, "DeviceSlot<", 11) == 0);
+}
+
+static bool
+mir_branch_shape_requires_source_emit(const MIRInstruction *inst)
 {
     return inst != NULL
         && (inst->branch_shape == MIR_BRANCH_MATCH_CASE
@@ -225,6 +259,32 @@ mir_validate_instruction_surface_usage(const MIRRoutine *routine,
             }
             return false;
         }
+        if (inst->kind == MIR_INST_RESOURCE_OP
+            && inst->name != NULL
+            && strcmp(inst->name, "Claim") == 0
+            && inst->source_ast_type == AST_WITH_STMT) {
+            if (inst->type_layout == NULL
+                || inst->type_layout->abi_type_name == NULL) {
+                if (error_message != NULL) {
+                    *error_message = mir_strdup_fmt(
+                        "MIR routine '%s' block[%zu] instruction[%zu] with-slot Claim resource op is missing MIR ABI type layout fact",
+                        routine->name != NULL ? routine->name : "(anonymous)",
+                        block_index,
+                        i);
+                }
+                return false;
+            }
+            if (!mir_claim_abi_type_is_slot_family(inst)) {
+                if (error_message != NULL) {
+                    *error_message = mir_strdup_fmt(
+                        "MIR routine '%s' block[%zu] instruction[%zu] with-slot Claim resource op has invalid MIR ABI type layout fact",
+                        routine->name != NULL ? routine->name : "(anonymous)",
+                        block_index,
+                        i);
+                }
+                return false;
+            }
+        }
         if (inst->requires_source_statement_emit
             && (inst->kind != MIR_INST_DEF
                 || inst->ast == NULL
@@ -234,6 +294,78 @@ mir_validate_instruction_surface_usage(const MIRRoutine *routine,
             if (error_message != NULL) {
                 *error_message = mir_strdup_fmt(
                     "MIR routine '%s' block[%zu] instruction[%zu] source-statement emit fact is invalid",
+                    routine->name != NULL ? routine->name : "(anonymous)",
+                    block_index,
+                    i);
+            }
+            return false;
+        }
+        if (inst->requires_source_local_decl_emit
+            && (!inst->requires_source_statement_emit
+                || inst->kind != MIR_INST_DEF
+                || inst->source_ast_type != AST_LET_DECL
+                || inst->arg0 == NULL)) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR routine '%s' block[%zu] instruction[%zu] source-local-decl emit fact is invalid",
+                    routine->name != NULL ? routine->name : "(anonymous)",
+                    block_index,
+                    i);
+            }
+            return false;
+        }
+        if (inst->requires_source_statement_emit
+            && inst->source_ast_type == AST_LET_DECL
+            && !inst->requires_source_local_decl_emit) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR routine '%s' block[%zu] instruction[%zu] source-statement LET emit is missing local-decl fact",
+                    routine->name != NULL ? routine->name : "(anonymous)",
+                    block_index,
+                    i);
+            }
+            return false;
+        }
+        if (mir_def_source_requires_channel_receive_emit(inst)
+            && !inst->requires_channel_receive_statement_emit) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR routine '%s' block[%zu] instruction[%zu] channel receive DEF is missing source-statement receive emit fact",
+                    routine->name != NULL ? routine->name : "(anonymous)",
+                    block_index,
+                    i);
+            }
+            return false;
+        }
+        if (inst->requires_channel_receive_statement_emit
+            && (!inst->requires_source_statement_emit
+                || !mir_def_source_requires_channel_receive_emit(inst))) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR routine '%s' block[%zu] instruction[%zu] source-statement receive emit fact is invalid",
+                    routine->name != NULL ? routine->name : "(anonymous)",
+                    block_index,
+                    i);
+            }
+            return false;
+        }
+        if (mir_def_source_requires_select_receive_emit(block, inst)
+            && !inst->requires_select_receive_statement_emit) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR routine '%s' block[%zu] instruction[%zu] select receive DEF is missing select receive emit fact",
+                    routine->name != NULL ? routine->name : "(anonymous)",
+                    block_index,
+                    i);
+            }
+            return false;
+        }
+        if (inst->requires_select_receive_statement_emit
+            && (!inst->requires_channel_receive_statement_emit
+                || !mir_def_source_requires_select_receive_emit(block, inst))) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR routine '%s' block[%zu] instruction[%zu] select receive emit fact is invalid",
                     routine->name != NULL ? routine->name : "(anonymous)",
                     block_index,
                     i);
@@ -339,11 +471,36 @@ mir_validate_terminator_provenance(const MIRRoutine *routine,
             return false;
         }
         if (inst->kind == MIR_INST_BRANCH
-            && mir_branch_shape_requires_source_compatibility(inst)
+            && mir_branch_shape_requires_source_emit(inst)
+            && !inst->requires_source_branch_emit) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR routine '%s' block[%zu] instruction[%zu] branch is missing source-branch emit fact",
+                    routine->name != NULL ? routine->name : "(anonymous)",
+                    block_index,
+                    i);
+            }
+            return false;
+        }
+        if (inst->requires_source_branch_emit
+            && (inst->kind != MIR_INST_BRANCH
+                || inst->ast == NULL
+                || !mir_branch_shape_requires_source_emit(inst))) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR routine '%s' block[%zu] instruction[%zu] source-branch emit fact is invalid",
+                    routine->name != NULL ? routine->name : "(anonymous)",
+                    block_index,
+                    i);
+            }
+            return false;
+        }
+        if (inst->kind == MIR_INST_BRANCH
+            && mir_branch_shape_requires_source_emit(inst)
             && inst->ast == NULL) {
             if (error_message != NULL) {
                 *error_message = mir_strdup_fmt(
-                    "MIR routine '%s' block[%zu] instruction[%zu] branch source compatibility fact is invalid",
+                    "MIR routine '%s' block[%zu] instruction[%zu] source-branch emit fact is invalid",
                     routine->name != NULL ? routine->name : "(anonymous)",
                     block_index,
                     i);

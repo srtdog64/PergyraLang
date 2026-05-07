@@ -106,8 +106,12 @@ mir_add_terminator_instruction(MIRRoutine *routine,
     inst.ast = (terminator_kind == HIR_BLOCK_BRANCH)
                    ? terminator_condition
                    : terminator_value;
-    if (inst.kind == MIR_INST_BRANCH)
+    if (inst.kind == MIR_INST_BRANCH) {
         inst.branch_shape = mir_branch_shape_from_ast(inst.ast);
+        inst.requires_source_branch_emit =
+            inst.branch_shape == MIR_BRANCH_MATCH_CASE
+            || inst.branch_shape == MIR_BRANCH_SELECT_DISPATCH;
+    }
     if (inst.kind == MIR_INST_BRANCH
         && inst.branch_shape == MIR_BRANCH_EXPR)
         inst.expr0 = terminator_condition;
@@ -379,6 +383,7 @@ mir_build_blocks_from_hir(MIRRoutine *routine, const HIRRoutine *hir_routine)
         block.is_entry = (i == hir_routine->cfg.entry_block);
         block.is_reachable = src->is_reachable;
         block.is_pin_region = src->is_pin_region;
+        block.is_select_case_body = src->is_select_case_body;
         block.pin_view_is_write = src->pin_view_is_write;
         block.pin_source_name = src->pin_source_name;
         block.pin_view_name = src->pin_view_name;

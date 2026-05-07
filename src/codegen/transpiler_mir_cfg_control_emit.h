@@ -190,9 +190,96 @@ transpiler_mir_emit_loop_backedge_increment(CodeBuf *buf,
 
 #include "transpiler_mir_match_condition_emit.h"
 
+static ASTNode *
+transpiler_mir_recv_expr_channel(ASTNode *node)
+{
+    if (node == NULL || node->type != AST_CHANNEL_RECV)
+        return NULL;
+    return node->data.channel_recv.channel;
+}
+
+static ASTNode *
+transpiler_mir_assignment_recv_channel(ASTNode *node)
+{
+    if (node == NULL || node->type != AST_ASSIGNMENT)
+        return NULL;
+    return transpiler_mir_recv_expr_channel(node->data.assignment.value);
+}
+
+static ASTNode *
+transpiler_mir_select_case_channel(ASTNode *node)
+{
+    ASTNode *first;
+
+    if (node == NULL || node->type != AST_BLOCK || node->data.block.count == 0)
+        return NULL;
+    first = node->data.block.statements[0];
+    if (first == NULL)
+        return NULL;
+    if (first->type == AST_CHANNEL_RECV)
+        return first->data.channel_recv.channel;
+    return transpiler_mir_assignment_recv_channel(first);
+}
+
+static char *
+transpiler_mir_render_channel_ready_condition(
+    ASTNode *channel,
+    TranspilerCtx *ctx,
+    const TranspilerSSANameMap *ssa_map)
+{
+    char inner_buf[64];
+    const char *inner;
+    char *channel_expr;
+    char *result;
+
+    if (channel == NULL || ctx == NULL)
+        return NULL;
+    inner = transpiler_require_channel_inner_type(ctx, channel,
+        "MIR select dispatch", inner_buf, sizeof(inner_buf));
+    if (inner == NULL)
+        return NULL;
+    channel_expr = emit_expression_with_ssa_map(channel, ctx, ssa_map);
+    if (channel_expr == NULL)
+        return NULL;
+    result = strdup_fmt("pgy_channel_ready_%s(&%s)", inner, channel_expr);
+    free(channel_expr);
+    return result;
+}
+
+static char *
+transpiler_mir_render_select_case_condition(
+    ASTNode *case_node,
+    const MIRRoutine *routine,
+    size_t target_block,
+    TranspilerCtx *ctx,
+    const TranspilerSSANameMap *ssa_map)
+{
+    ASTNode *channel = transpiler_mir_select_case_channel(case_node);
+
+    if (channel != NULL)
+        return transpiler_mir_render_channel_ready_condition(channel, ctx,
+                                                            ssa_map);
+    if (routine == NULL || target_block >= routine->block_count)
+        return NULL;
+
+    const MIRBasicBlock *target = &routine->blocks[target_block];
+    for (size_t i = 0; i < target->instruction_count; i++) {
+        const MIRInstruction *inst = &target->instructions[i];
+        if (inst->kind != MIR_INST_DEF)
+            continue;
+        channel = transpiler_mir_recv_expr_channel(inst->expr0);
+        if (channel != NULL)
+            return transpiler_mir_render_channel_ready_condition(channel, ctx,
+                                                                ssa_map);
+    }
+    return NULL;
+}
+
 static char *
 transpiler_mir_render_branch_condition(ASTNode *func_decl,
+                                       const MIRRoutine *routine,
                                        const MIRInstruction *inst,
+                                       size_t target_block,
                                        TranspilerCtx *ctx,
                                        const TranspilerSSANameMap *ssa_map)
 {
@@ -209,6 +296,11 @@ transpiler_mir_render_branch_condition(ASTNode *func_decl,
             return pergyra_strdup("true");
         return transpiler_mir_render_match_case_condition(func_decl, condition,
                                                          ctx, ssa_map);
+    }
+    if (inst->branch_shape == MIR_BRANCH_SELECT_DISPATCH) {
+        char *select_cond = transpiler_mir_render_select_case_condition(
+            inst->ast, routine, target_block, ctx, ssa_map);
+        return select_cond != NULL ? select_cond : pergyra_strdup("false");
     }
     condition = inst->expr0;
     if (condition == NULL)

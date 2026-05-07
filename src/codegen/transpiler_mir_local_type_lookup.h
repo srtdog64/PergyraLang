@@ -26,6 +26,12 @@ transpiler_infer_local_type_name_from_expr(TranspilerCtx *ctx,
     case AST_IDENTIFIER:
         return transpiler_find_local_type_name(ctx, func_decl,
                                                expr->data.identifier.name);
+    case AST_CHANNEL_RECV: {
+        const char *channel_type = transpiler_infer_local_type_name_from_expr(
+            ctx, func_decl, expr->data.channel_recv.channel);
+        const char *inner = slot_inner_type_name(channel_type);
+        return (inner != NULL && inner[0] != '\0') ? inner : NULL;
+    }
     case AST_MEMBER_ACCESS: {
         const char *resolved =
             transpiler_resolve_nominal_host_expr_type_name(ctx, expr);
@@ -167,6 +173,17 @@ transpiler_find_local_type_name_in_block(TranspilerCtx *ctx,
         return transpiler_infer_local_type_name_from_expr(
             ctx, func_decl, body->data.let_decl.initializer);
     }
+    if (body->type == AST_ASSIGNMENT
+        && body->data.assignment.target != NULL
+        && body->data.assignment.target->type == AST_IDENTIFIER
+        && body->data.assignment.target->data.identifier.name != NULL
+        && strcmp(body->data.assignment.target->data.identifier.name,
+                  base_name) == 0
+        && body->data.assignment.value != NULL
+        && body->data.assignment.value->type == AST_CHANNEL_RECV) {
+        return transpiler_infer_local_type_name_from_expr(
+            ctx, func_decl, body->data.assignment.value);
+    }
     if (body->type == AST_LET_DESTRUCTURE) {
         for (size_t i = 0; i < body->data.let_destructure.name_count; i++) {
             const char *pname = body->data.let_destructure.names[i];
@@ -300,6 +317,16 @@ transpiler_find_local_type_name_in_block(TranspilerCtx *ctx,
     if (body->type == AST_WHILE_LOOP) {
         return transpiler_find_local_type_name_in_block(
             ctx, func_decl, body->data.while_loop.body, base_name);
+    }
+    if (body->type == AST_SELECT_STMT) {
+        for (size_t i = 0; i < body->data.select_stmt.case_count; i++) {
+            const char *found = transpiler_find_local_type_name_in_block(
+                ctx, func_decl, body->data.select_stmt.cases[i], base_name);
+            if (found != NULL)
+                return found;
+        }
+        return transpiler_find_local_type_name_in_block(
+            ctx, func_decl, body->data.select_stmt.default_case, base_name);
     }
     return NULL;
 }

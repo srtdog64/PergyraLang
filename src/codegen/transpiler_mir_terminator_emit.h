@@ -35,8 +35,8 @@ transpiler_emit_mir_branch_terminator(ASTNode *node,
                                       char *block_reason,
                                       size_t block_reason_cap)
 {
-    char *cond = transpiler_mir_render_branch_condition(node, inst, ctx,
-                                                        block_ssa_map);
+    char *cond = transpiler_mir_render_branch_condition(
+        node, mir_routine, inst, block->succ_true, ctx, block_ssa_map);
     const char *cond_text = cond != NULL ? cond : "false";
 
     if (block->has_succ_true) {

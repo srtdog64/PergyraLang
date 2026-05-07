@@ -123,6 +123,7 @@ struct HIRBasicBlock
     size_t                  statement_count;
     size_t                  statement_capacity;
     bool                    is_pin_region;
+    bool                    is_select_case_body;
     bool                    pin_view_is_write;
     const char             *pin_source_name;
     const char             *pin_view_name;

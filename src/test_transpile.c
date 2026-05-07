@@ -58,6 +58,7 @@ static MIRProgram *g_last_mir = NULL;
 #include "tests/transpile/test_transpile_domain_async_part_b.cases.h"
 #include "tests/transpile/test_transpile_stdlib_part_a.cases.h"
 #include "tests/transpile/test_transpile_mir_part_a.cases.h"
+#include "tests/transpile/test_transpile_mir_part_b.cases.h"
 #include "tests/transpile/test_transpile_mir_source_order.cases.h"
 
 int
@@ -81,6 +82,7 @@ main(void)
     test_stdlib_and_enum_emit();
     test_transpiler_reentry_stability();
     test_mir_vertical_slice_emit();
+    test_mir_select_dispatch_emit();
     test_intent_observability_emit();
     test_source_order_mir_emit();
 

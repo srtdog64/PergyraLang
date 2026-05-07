@@ -1,4 +1,4 @@
-# Pergyra TODO (베타 준비)
+# Pergyra TODO (Beta Closure)
 
 English anchor for tooling/doc gates:
 
@@ -9,6 +9,14 @@ English anchor for tooling/doc gates:
 - full self-host remains a long-term proof target, not a current capability.
 - The slot model removes the Rust-style lifetime annotation tax from the self-host path.
 - Missing for full self-host: stable module/package resolver, richer stdlib, debugger/bootstrap story, and Stable C escape hatch policy.
+- DWARF/CodeView debug information is a post-BETA but pre-self-host requirement:
+  current `pgy debug` is an AST-walking source debugger only. Before serious
+  Pergyra-debug-Pergyra work, LLVM DIBuilder Phase 1 must wire
+  compile-unit/file/line/function/variable-scope metadata and prove it through
+  a GDB/LLDB smoke. Do not market the current debugger as binary debugging.
+- Generic monomorphization explosion is a measurement risk, not a beta blocker:
+  after dogfood, record compile time and binary size for generic-heavy examples
+  before considering dictionary passing or selective monomorphization.
 - WebGL dogfood is not core language surface. The beta path is `Pergyra -> C backend --emit-c -> optional Emscripten/WebGL bridge`; it validates host bridge viability only. `pgy.render.webgl`, richer render APIs, native LLVM wasm, and GPU/Spray work stay module ecosystem tracks after beta closure.
 
 Progress log, 2026-05-04:
@@ -41,18 +49,19 @@ Progress log, 2026-05-04:
   `air-drift-test-smoke`,
   `air-json-schema-test-smoke`, and `air-backend-nonimpact-full-test-smoke`.
 - Tightened CFG/MIR use-edge population toward fact-first body safety:
-  `mir_populate_use_edges(...)` now prefers MIR expression facts (`expr0` /
-  `expr1`) for DEF and non-DEF instruction use collection before falling back
-  to source AST compatibility payloads. This keeps SSA/use-edge analysis aligned
-  with the existing MIR initializer/terminator fact validators and reduces the
-  remaining AST-first body-safety seam. Gates: `test-mir` (`48/0`),
+  `mir_populate_use_edges(...)` now consumes `expr0` directly for DEF
+  instruction use collection, while non-DEF instructions still prefer MIR
+  expression facts (`expr0` / `expr1`) before explicit source/provenance
+  payloads. This keeps SSA/use-edge analysis aligned with the existing MIR
+  initializer/terminator fact validators and reduces the remaining AST-first
+  body-safety seam. Gates: `test-mir` (`48/0`),
   `cfg-body-dataflow-test-smoke`, `perf-contract-test-smoke`, and
   `test-inc-size-test-smoke`.
 - Isolated the C backend pending-use source compatibility path:
   `transpiler_find_block_binding_from_mir_insts(...)` now keeps the fact-first
   `expr0` / `expr1` binding path as the normal route and routes the remaining
-  source-AST let-binding compatibility through
-  `transpiler_pending_binding_from_source_compatibility(...)`. This does not
+  source-AST let-binding emit seam through
+  `transpiler_pending_binding_from_source_statement_emit(...)`. This does not
   remove the seam, but it gives the remaining fallback a named owner and keeps
   future cleanup from spreading statement payload reads back into the MIR block
   binding path. Gates: `cfg-body-dataflow-test-smoke`,
@@ -62,14 +71,14 @@ Progress log, 2026-05-04:
   helper now require `MIRInstruction.requires_source_statement_emit`, so a
   source-shape-only `AST_LET_DECL` fact cannot reopen source payload reads.
   The perf/CFG smokes gate the requirement and `test-transpile` keeps the C
-  backend behavior stable. Gates: `test-transpile` (`717/0`),
+  backend behavior stable. Gates: `test-transpile` (`722/0`),
   `cfg-body-dataflow-test-smoke`, `perf-contract-test-smoke`, and
   `test-inc-size-test-smoke`.
 - Lifted the DEF source-statement compatibility decision into MIR:
   `MIRInstruction.requires_source_statement_emit` is now populated by
   `mir_attach_def_initializer_call_fact(...)`, validated by
   `mir_validate_instruction_surface_usage(...)`, dumped by the MIR public
-  surface, and consumed by both `llvm_mir_def_uses_source_statement_compatibility(...)`
+  surface, and consumed by both `llvm_mir_def_uses_source_statement_emit(...)`
   and the C backend's `transpiler_mir_def_uses_source_statement_emit(...)`.
   The validator now enforces the fact in both directions: LET/ASSIGN DEFs must
   carry it, and instructions carrying it must have valid source statement
@@ -81,6 +90,17 @@ Progress log, 2026-05-04:
   `cfg-body-dataflow-test-smoke`, `perf-contract-test-smoke`, `test-mir`
   (`48/0`), `test-inc-size-test-smoke`, `llvm-test-smoke`, and
   `build-source-inventory-test-smoke`.
+- Split local declaration source emission out of the broad source-statement
+  fact: `MIRInstruction.requires_source_local_decl_emit` now marks LET-backed
+  DEFs that still need source-local-declaration emission, is validated as a
+  LET-only MIR fact, is dumped as `source-local-decl-emit`, and is consumed by
+  C/LLVM as a distinct compatibility branch. Pending-use reconstruction in
+  the C backend now also requires the local-decl fact, so a broad
+  source-statement fact can no longer reopen local declaration payload reads
+  by itself. This does not remove the residual source statement emission path
+  yet, but it narrows the remaining seam from "any source statement" to "local
+  declaration source emit" for the next backend cleanup slice. Gates:
+  `test-mir` (`51/0`).
 - Made the remaining LLVM match/select branch source-compatibility seam
   explicit in MIR validation: `mir_validate_instruction_surface_usage(...)`
   now rejects `MIR_BRANCH_MATCH_CASE` / `MIR_BRANCH_SELECT_DISPATCH` branches
@@ -90,12 +110,195 @@ Progress log, 2026-05-04:
   CFG/perf smokes gate the contract string. Gates: `test-mir` (`48/0`),
   `cfg-body-dataflow-test-smoke`, `perf-contract-test-smoke`, and
   `test-inc-size-test-smoke`.
+- Lifted the source-compatible branch path into an explicit MIR fact:
+  `MIRInstruction.requires_source_branch_emit` is populated for match/select
+  branch shapes, validated for both missing and invalid source-branch fact
+  drift, dumped as
+  `source-branch-emit`, and consumed by LLVM's branch condition gate and the C
+  backend MIR emission contract instead of locally recomputing the match/select
+  shape pair for source-required branch validation. Gates: `test-mir` (`48/0`),
+  `cfg-body-dataflow-test-smoke`, `perf-contract-test-smoke`,
+  `test-transpile` (`729/0`), `test-inc-size-test-smoke`, and
+  `llvm-test-smoke`.
+- Matched the C MIR select-dispatch branch readiness path to the LLVM branch
+  path: C MIR branch condition rendering can now derive `pgy_channel_ready_T`
+  from a select case source block or from the target block receive DEF payload
+  instead of falling through to a default expression condition. A dedicated
+  transpile regression covers the C output path and the perf contract gates the
+  renderer terms. Gates: `test-transpile` (`729/0`), `perf-contract-test-smoke`,
+  and `test-inc-size-test-smoke`.
+- Closed the C MIR select bound-receive local materialization seam:
+  `case v = <-ch` now has a narrow C backend path that treats receive
+  assignments as select-local bindings, infers `v` from `Channel<T>` as `T`,
+  and emits the receive assignment through the SSA local (`_pgy_ssa_v_*`)
+  instead of leaking the source name `v` into generated C. The regression also
+  rejects the old `v = pgy_channel_recv_val_T(...)` output. Gates:
+  `test-transpile` (`729/0`), `test-mir` (`48/0`),
+  `cfg-body-dataflow-test-smoke`, `perf-contract-test-smoke`,
+  `test-inc-size-test-smoke`, `build-source-inventory-test-smoke`, and
+  `llvm-test-smoke`.
+- Made LLVM MIR local alloca type selection fact-first: the local allocator now
+  consumes `MIRInstruction.type_layout`, then `expr1` type facts, then `expr0`
+  value facts, instead of branching on `source_ast_type == AST_LET_DECL`.
+  This keeps source AST shape as provenance while the actual local type
+  decision follows MIR facts. Gates: `llvm-test-smoke` and
+  `perf-contract-test-smoke`.
 - LLVM MIR DEF statement compatibility is still a real remaining seam, not a
   removable flag check: a trial restriction that used statement compatibility
   only when `expr0 == NULL` broke the `break_continue` LLVM smoke. Closing this
   requires first lifting base-name scope declaration and statement side-effect
   lowering into explicit MIR facts; `expr0` alone is not enough to replace the
   source-statement compatibility path safely.
+- Rechecked the tempting LLVM channel-receive DEF shortcut after the C select
+  bound-receive cleanup: routing `expr0 == AST_CHANNEL_RECV` through raw value
+  store instead of `llvm_emit_statement(inst->ast, ...)` broke the
+  `select_fairness` LLVM smoke (`1,3,3,3` instead of the expected fair consume
+  sequence). This confirms that the remaining LLVM source-statement emit seam
+  still owns select consume/fairness side effects, not just local value storage.
+  Do not remove it until select consume state and source binding aliasing are
+  represented as explicit MIR facts. Gates after revert: `llvm-test-smoke` and
+  `perf-contract-test-smoke`.
+- Gated the remaining LLVM select-receive source-statement seam explicitly:
+  `perf-contract-test-smoke` now requires the `MIR_INST_DEF` path to keep
+  `llvm_mir_declare_recv_target(...)` plus `llvm_emit_statement(inst->ast, ...)`,
+  and `cfg-body-dataflow-test-smoke` ties that contract to the `select_fairness`
+  two-channel smoke fixture. This turns the failed shortcut into a named
+  blocker instead of a hidden backend assumption. Gates:
+  `perf-contract-test-smoke` and `cfg-body-dataflow-test-smoke`.
+- Split the first select receive/fairness reason out of the broad channel
+  receive source-statement fact: HIR select case body blocks now carry
+  `is_select_case_body`, MIR copies that block fact, and a receive DEF at
+  source statement index 0 is marked with
+  `requires_select_receive_statement_emit` / `select-recv-stmt-emit`. The MIR
+  validator rejects both missing select receive facts and invalid facts on
+  non-select receives, LLVM now names the select receive DEF path through
+  `llvm_mir_def_uses_select_receive_statement_emit(...)`, and the C backend
+  mirrors the same classification with
+  `transpiler_mir_def_uses_select_receive_statement_emit(...)` before using the
+  existing channel receive/source-statement lowering. AIR now also collects this as global
+  `AIR_EVIDENCE_MIR_SELECT_RECEIVE` / `mir_select_receive` evidence and exposes
+  `mir_select_receive_evidence_count` in `pgy.air.graph.v1`, so the
+  abstraction verifier can see the remaining select consume/fairness seam. This
+  does not remove
+  `llvm_emit_statement(inst->ast, ctx)` yet; it gives the remaining select
+  consume/fairness seam a narrower MIR reason before backend behavior is
+  changed. Gates: `test-mir` (`52/0`),
+  `test-air` (`79/0`), `cfg-body-dataflow-test-smoke`,
+  `perf-contract-test-smoke`, `air-drift-test-smoke`,
+  `air-json-schema-test-smoke` with a real select receive fixture,
+  `test-inc-size-test-smoke`,
+  `build-source-inventory-test-smoke`, and `llvm-test-smoke`.
+- Fixed a C/LLVM select-dispatch parity edge: when LLVM cannot materialize a
+  select readiness condition from the case source or target receive DEF, it now
+  falls back to `false` like the C backend instead of taking the true branch by
+  default. The perf/CFG smokes gate the fallback constant and
+  `llvm-test-smoke` keeps the `select_ready` / `select_fairness` runtime path
+  green. Gates: `perf-contract-test-smoke`, `cfg-body-dataflow-test-smoke`,
+  and `llvm-test-smoke`.
+- Removed the residual AST-shape initializer fallback from MIR DEF use-edge
+  collection: `mir_def_instruction_source_expr(...)` now returns only the
+  materialized `expr0` fact. The MIR validator already rejects LET/ASSIGN DEFs
+  without initializer facts, so SSA/use-edge analysis no longer reopens
+  `inst->ast->type` for that path. Gates: `test-mir` (`48/0`),
+  `perf-contract-test-smoke`, and `cfg-body-dataflow-test-smoke`.
+- Rechecked DAG/source inventory after the CFG/MIR cleanup slice:
+  `type-resolution-resolver-inventory-test-smoke` still reports
+  `fallback seams=0 cap=0` and `type-ref helper refs=2 cap=2`; source remains
+  `.inc=0` and the Makefile build inventory includes the new transpile owner.
+  Gates: `type-resolution-resolver-inventory-test-smoke`,
+  `test-inc-size-test-smoke`, and `build-source-inventory-test-smoke`.
+- Centralized LLVM select runtime-function diagnostics behind
+  `llvm_select_required_runtime_function(...)`: bound receive, readiness, and
+  consume now share one required-runtime lookup seam while preserving the
+  `receive` / `readiness` / `consume` diagnostic family labels. This is a
+  preparation step for lifting select consume/fairness into explicit MIR facts;
+  it does not remove the source-statement emit seam yet. Gates:
+  `llvm-test-smoke` and `perf-contract-test-smoke`.
+- Tightened the C select emitter's local runtime-call seams:
+  `transpiler_select.c` now routes select channel type lookup, guard emission,
+  and unbound receive consume through named local helpers instead of repeating
+  `pgy_channel_try_recv_T` / `pgy_channel_ready_T` strings in the loop body.
+  The unbound consume path no longer allocates a temporary `AST_CHANNEL_RECV`
+  node, so select emission does not reopen AST ownership just to call the
+  channel receive renderer. Gates: `test-transpile` (`729/0`) and
+  `perf-contract-test-smoke`.
+- Named the LLVM MIR select readiness runtime lookup seam:
+  `llvm_mir_emit_channel_ready_condition(...)` now delegates the registered
+  `pgy_channel_ready_T` lookup and diagnostic to
+  `llvm_mir_required_channel_ready_function(...)`, matching the C select
+  cleanup direction while preserving the MIR select readiness diagnostic text.
+  Gates: `llvm-test-smoke` and `perf-contract-test-smoke`.
+- Narrowed the LLVM statement select emitter toward a future MIR select-consume
+  fact: parsed select cases now flow through `LLVMSelectCaseInfo`, and bound
+  receive / ready-consume emission are split into
+  `llvm_select_emit_bound_receive_case(...)` and
+  `llvm_select_emit_ready_consume_case(...)`. This preserves the full
+  `select_fairness` behavior while giving the remaining AST statement path one
+  replacement point for future MIR consume/fairness facts. Gates:
+  `llvm-test-smoke`, `perf-contract-test-smoke`, and `test-inc-size-test-smoke`.
+- Split channel-receive DEF emission evidence out of the broad
+  source-statement emit fact: `MIRInstruction` now carries
+  `requires_channel_receive_statement_emit`, the MIR validator rejects missing
+  or invalid receive-emission facts, and the LLVM MIR DEF path only declares a
+  receive target when that narrower fact is present. This still preserves the
+  source-statement emit seam for select fairness/consume, but makes the reason
+  explicit and gives the next cleanup pass a concrete fact to consume. Gates:
+  `test-mir` (`49/0`), `cfg-body-dataflow-test-smoke`,
+  `perf-contract-test-smoke`, and `llvm-test-smoke`.
+- Aligned the C backend with the new channel-receive DEF fact:
+  `transpiler_mir_def_uses_channel_receive_statement_emit(...)` now gates
+  channel-receive assignment emission before the C backend renders
+  `pgy_channel_recv_val_T(...)`. This keeps C and LLVM consuming the same MIR
+  receive evidence instead of leaving the new fact LLVM-only. Gates:
+  `test-transpile` (`729/0`), `cfg-body-dataflow-test-smoke`, and
+  `perf-contract-test-smoke`.
+- Removed the LLVM channel-receive DEF dependency on full source-statement
+  emission: `llvm_mir_emit_channel_receive_def(...)` now emits the
+  `pgy_channel_recv_val_T(...)` call directly from MIR receive evidence,
+  stores it into the named target alloca, and mirrors it into the MIR SSA
+  alloca when present. The broader `llvm_emit_statement(inst->ast, ctx)` seam
+  remains only for other source-statement emit cases; select readiness and
+  fairness stay covered by LLVM smoke. Gates: `llvm-test-smoke` and
+  `test-inc-size-test-smoke`.
+- Hardened the same LLVM channel-receive DEF path against silent false
+  returns: missing target names, non-identifier channels, missing channel
+  allocas, and missing receive target allocas now set structured LLVM
+  diagnostics before emission stops. This keeps direct MIR evidence lowering
+  from reintroducing an unexplained backend stop. Gates:
+  `cfg-body-dataflow-test-smoke`, `perf-contract-test-smoke`,
+  `test-inc-size-test-smoke`, and `llvm-test-smoke`.
+- Moved LLVM MIR `with slot` claim setup off AST payload reads:
+  `llvm_mir_emit_with_claim_only(...)` now consumes `slot_anchor`,
+  `arg1`, and `MIRTypeLayout.abi_type_name` to derive the alias, secure/plain
+  slot family, and inner type. The AST payload is retained only as diagnostic
+  source location. The emitter now lives in the compiled
+  `llvm_mir_resource_claim.c` owner, so the MIR block emitter only dispatches
+  the Claim resource op instead of owning slot-allocation setup. The perf/CFG
+  smokes reject reintroducing `node->data.with_stmt` in the MIR block emitter
+  or the resource-claim owner. Gates:
+  `cfg-body-dataflow-test-smoke`, `perf-contract-test-smoke`,
+  `test-inc-size-test-smoke`, and `llvm-test-smoke`.
+- Added the upstream MIR validator contract for that `with slot` claim path:
+  CFG-backed Claim resource ops sourced from `with` statements must carry a
+  slot-family `MIRTypeLayout`, and corrupt/missing layout facts now fail before
+  LLVM can derive a wrong slot ABI. Gates: `test-mir` (`50/0`),
+  `cfg-body-dataflow-test-smoke`, and `perf-contract-test-smoke`.
+- Split LLVM MIR borrow-view alias setup out of the MIR block emitter into the
+  compiled `llvm_mir_resource_view.c` owner. `BorrowRead` / `BorrowWrite`
+  resource ops now keep slot alias, secure-slot token alias, and slot registry
+  mirroring in a resource-specific owner, while the block emitter only
+  dispatches the MIR resource op. Gates: `llvm-test-smoke`,
+  `cfg-body-dataflow-test-smoke`, `perf-contract-test-smoke`,
+  `test-inc-size-test-smoke`, and `build-source-inventory-test-smoke`.
+- Split LLVM MIR pin-region enter/exit emission out of the MIR block emitter
+  into the compiled `llvm_mir_pin_region.c` owner. Pin allocation, view alias
+  registration, secure-token alias registration, runtime pin lookup, and
+  unpin cleanup emission now live beside the Slot/Pin ABI contract instead of
+  the generic block walker. The ABI/perf/declaration-inventory smokes were
+  updated from stale header/block-emitter expectations to the current compiled
+  owners. Gates: `llvm-test-smoke`, `perf-contract-test-smoke`,
+  `abi-ownership-shape-test-smoke`, `mir-declaration-inventory-test-smoke`,
+  `test-inc-size-test-smoke`, and `build-source-inventory-test-smoke`.
 - Split C backend MIR function reason classification out of
   `transpiler_func_class_flow_emit.h` into
   `transpiler_mir_reason_classifier.{h,c}`. Function emission now consumes a
@@ -157,9 +360,9 @@ Progress log, 2026-05-04:
   `cfg-body-dataflow-test-smoke`.
 - Named the remaining LLVM MIR block source compatibility seams instead of
   leaving them as inline AST predicates: match/select branch lowering now flows
-  through `llvm_mir_branch_requires_source_compatibility(...)`, and DEF
+  through `llvm_mir_branch_requires_source_emit(...)`, and DEF
   statement fallback flows through
-  `llvm_mir_def_uses_source_statement_compatibility(...)`. This does not claim
+  `llvm_mir_def_uses_source_statement_emit(...)`. This does not claim
   the seam is removed; it narrows the future fact-replacement point and keeps
   the debt visible. Gates: `llvm-test-smoke` and `perf-contract-test-smoke`.
 - Tightened CFG contract validation as a body-safety consumer: CFG-owned
@@ -289,7 +492,7 @@ Progress log, 2026-05-04:
 - Renamed the LLVM MIR branch condition gate from `llvm_mir_branch_has_condition_payload(...)` to `llvm_mir_branch_has_required_condition_fact(...)` because match/select compatibility branches still require source AST while ordinary expression/range/for-in branches require MIR expression facts. This keeps the remaining compatibility seam named honestly instead of pretending every branch condition is payload-backed. Gate: `perf-contract-test-smoke`.
 - Rechecked DAG source-of-truth closure after the MIR/codegen cleanup: `type-resolution-resolver-inventory-test-smoke` keeps direct resolver and metadata fallback seam inventory at cap 0, and `type-resolution-dag-test-smoke` reports `retired_resolver_calls=0`, `retired_resolver_body_fallbacks=0`, `metadata_dead_ends=0`, and `materializer_unresolved=0` with `metadata_entries=3498` / `metadata_hits=8380`. Remaining DAG work is no longer numeric fallback cleanup; it is reducing owner-local compatibility seams that still need graph evidence in their native owner.
 - Refreshed the MIR declaration-inventory smoke after the MIR test-case split: declaration-header validator assertions now live in `test_mir_lowering_part_c.cases.h`, and the smoke follows that owner instead of reporting a false regression against part B. Gates: `mir-declaration-inventory-test-smoke`, `test-inc-size-test-smoke`, and `build-source-inventory-test-smoke`.
-- Revalidated AIR after the CFG/MIR/DAG seam tightening. Strict evidence still carries HIR/RIR boundary evidence, MIR cleanup/pin cleanup/terminator evidence, DAG metadata/generic/ability evidence, RIR effect/relation propagation evidence, and observability schema evidence without backend impact. Gates: `test-air` (`76/0`), `air-drift-test-smoke`, and `air-json-schema-test-smoke`.
+- Revalidated AIR after the CFG/MIR/DAG seam tightening. Strict evidence still carries HIR/RIR boundary evidence, MIR cleanup/pin cleanup/terminator evidence, DAG metadata/generic/ability evidence, RIR effect/relation propagation evidence, and observability schema evidence without backend impact. Gates: `test-air` (`77/0`), `air-drift-test-smoke`, and `air-json-schema-test-smoke`.
 - Narrowed the C backend pending-use materialization seam without repeating the earlier implicit-self regression: block-local pending bindings now prefer MIR DEF payload facts (`expr0` initializer and `expr1` type annotation) only for `AST_LET_DECL` DEFs, while assignment DEFs are ignored and source let lookup remains a compatibility/provenance fallback. The perf contract gates the payload-first shape and the `AST_LET_DECL` guard. Gates: `test-transpile` (`717/0`) and `perf-contract-test-smoke`.
 - Tightened LLVM select readiness lowering to read channel-receive readiness from DEF `expr0` instead of reopening the DEF source assignment AST. The older assignment-AST helper remains only for source select-case compatibility, while MIR CFG target-block readiness now consumes the same expression payload that DEF emission uses. Gates: `llvm-test-smoke` and `perf-contract-test-smoke`.
 - Replaced the LLVM MIR receive-target predeclare seam with `llvm_mir_declare_recv_target(arg0, expr0, ...)`, so select/channel DEF lowering no longer needs the source assignment AST to synthesize the receive target alloca. Gates: `llvm-test-smoke` and `perf-contract-test-smoke`.
@@ -298,7 +501,7 @@ Progress log, 2026-05-04:
 - Split C backend MIR emit-state snapshot/restore helpers out of `transpiler_mir_emit_state.h` into `transpiler_mir_emit_state.c`; the header now exposes the `TranspilerMirEmitState` shape and explicit state APIs while keeping only the include-order forward declarations needed by condition emitters. Removed the now-dead `lookup_generic_binding(...)` static helper from `transpiler_helpers_core_b.h` after type rendering moved generic binding lookup into its own owner. Gates: targeted `gcc -fsyntax-only` for `transpiler_mir_emit_state.c` and `transpiler.c`; `test-transpile` (`717/0`), `build-source-inventory-test-smoke`, and `test-inc-size-test-smoke`.
 - Refreshed runtime panic contract smoke after LLVM expression owners moved from implementation headers into compiled owners. Checked arithmetic now verifies `llvm_expr_scalar_core.c`, checked Result/Option unwrap verifies `llvm_expr_result_option_calls.c`, and array mutation lowering verifies `llvm_expr_array_calls.c`, while the public headers remain declaration-only seams. Gates: `runtime-panic-contract-test-smoke`, `runtime-panic-abi-test-smoke`, `runtime-panic-codegen-test-smoke`, `build-source-inventory-test-smoke`, and `test-inc-size-test-smoke`.
 - Revalidated runtime propagation frontier closure after the runtime/codegen owner cleanup. Bounded zone/world/projection frontier pass-limit arithmetic is gated, generated C frontier code uses the transitive embedded-world limit, and LLVM frontier emitters keep overflow panic/unreachable paths for zone, world, derived-world, and projection recompute. Gates: `runtime-frontier-contract-test-smoke` and `runtime-frontier-policy-test-smoke`.
-- Revalidated AIR as a verification-only abstraction boundary layer after the CFG/DAG/runtime owner cleanup. `test-air` remains `76/0`, `air-json-schema-test-smoke` parses `pgy.air.graph.v1`, and `air-backend-nonimpact-full-test-smoke` passes the full C/LLVM backend-compare corpus with AIR enabled, preserving codegen non-impact while strict evidence stays active. Gates: `air-drift-test-smoke`, `air-json-schema-test-smoke`, and `air-backend-nonimpact-full-test-smoke`.
+- Revalidated AIR as a verification-only abstraction boundary layer after the CFG/DAG/runtime owner cleanup. `test-air` remains `77/0`, `air-json-schema-test-smoke` parses `pgy.air.graph.v1`, and `air-backend-nonimpact-full-test-smoke` passes the full C/LLVM backend-compare corpus with AIR enabled, preserving codegen non-impact while strict evidence stays active. Gates: `air-drift-test-smoke`, `air-json-schema-test-smoke`, and `air-backend-nonimpact-full-test-smoke`.
 - Refreshed `cfg_body_dataflow_smoke.sh` after MIR CFG/body helpers moved from static headers into compiled owners. The smoke now reads the declaration headers plus their `.c` owners for call facts, non-CFG statement population, CFG contract control, pin/cleanup-fact helpers, and validator bodies instead of reporting false regressions against declaration-only headers. Gate: `cfg-body-dataflow-test-smoke`.
 - Revalidated the DAG source-of-truth gates after the owner-split work: retired recursive resolver calls remain `0`, resolver body fallbacks remain `0`, metadata dead-ends remain `0`, materializer unresolved remains `0`, metadata entries are `3498`, owned constructed metadata entries are `258`, and metadata hits are `8380`. Gates: `type-resolution-dag-test-smoke` and `type-resolution-resolver-inventory-test-smoke`.
 - Corrected `test_inc_size_smoke.sh` wording so the gate states its actual contract: no production `.inc` files, no `_IMPLEMENTATION` header blocks, production owners <= 600 LOC, and test case headers <= 990 LOC. Runtime public inline headers remain a separate, explicit runtime ABI/codegen contract instead of being hidden by over-broad gate wording. Gates: `test-inc-size-test-smoke`.

@@ -432,6 +432,7 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
                         def_inst.ast = stmt;
                     mir_attach_def_initializer_call_fact(&def_inst, stmt);
                     mir_set_inst_source_statement_index(&def_inst, s);
+                    mir_mark_select_receive_statement_emit(block, &def_inst);
                     new_insts[new_count++] = def_inst;
                     copied_flags[def_cursor] = true;
                     def_cursor++;

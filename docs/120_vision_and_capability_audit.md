@@ -240,8 +240,10 @@ Pergyra already supports the structural minimum for compiler self-host:
 Missing for full self-host (the actual gap, recorded honestly):
 
 - Rich string slicing / interning stdlib (currently lean)
-- Mature debugger story (Pergyra-debug-Pergyra requires non-trivial
-  investment)
+- Compiled-binary debug information: current `pgy debug` is AST-walking source
+  debugging only. Full self-host needs LLVM DIBuilder wiring for
+  DWARF/CodeView, line tables, function scopes, and local variable
+  `dbg.declare` / `dbg.value`, plus at least one GDB/LLDB smoke.
 - Paired Pergyra↔C reference examples for compiler-shaped patterns
 - Stable C escape hatch policy (so partial self-host is recoverable)
 

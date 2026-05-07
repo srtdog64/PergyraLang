@@ -43,10 +43,13 @@ mir_attach_def_initializer_call_fact(MIRInstruction *inst, const ASTNode *stmt)
         expr = stmt->data.let_decl.initializer;
         inst->expr1 = stmt->data.let_decl.type;
         inst->requires_source_statement_emit = true;
+        inst->requires_source_local_decl_emit = true;
     } else if (stmt->type == AST_ASSIGNMENT) {
         expr = stmt->data.assignment.value;
         inst->requires_source_statement_emit = true;
     }
+    if (expr != NULL && expr->type == AST_CHANNEL_RECV)
+        inst->requires_channel_receive_statement_emit = true;
     inst->expr0 = expr;
     if (expr == NULL || expr->type != AST_CALL)
         return;
@@ -55,4 +58,20 @@ mir_attach_def_initializer_call_fact(MIRInstruction *inst, const ASTNode *stmt)
         return;
     }
     inst->arg1 = expr->data.call.callee->data.identifier.name;
+}
+
+void
+mir_mark_select_receive_statement_emit(const MIRBasicBlock *block,
+                                       MIRInstruction *inst)
+{
+    if (block == NULL
+        || !block->is_select_case_body
+        || inst == NULL
+        || inst->kind != MIR_INST_DEF
+        || !inst->requires_channel_receive_statement_emit
+        || !inst->has_source_statement_index
+        || inst->source_statement_index != 0) {
+        return;
+    }
+    inst->requires_select_receive_statement_emit = true;
 }

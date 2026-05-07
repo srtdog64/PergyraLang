@@ -16,6 +16,7 @@ air_evidence_kind_is_global(AIREvidenceKind kind)
         || kind == AIR_EVIDENCE_DAG_ABILITY
         || kind == AIR_EVIDENCE_MIR_CLEANUP
         || kind == AIR_EVIDENCE_MIR_TERMINATOR
+        || kind == AIR_EVIDENCE_MIR_SELECT_RECEIVE
         || kind == AIR_EVIDENCE_RIR_EFFECT_PROPAGATION
         || kind == AIR_EVIDENCE_RIR_RELATION_PROPAGATION
         || kind == AIR_EVIDENCE_OBSERVABILITY_SCHEMA;
@@ -35,6 +36,9 @@ air_validate_mir_global_evidence(const AIREvidenceNode *evidence,
     } else if (evidence->kind == AIR_EVIDENCE_MIR_TERMINATOR) {
         expected_subject = "cfg-terminator";
         label = "terminator";
+    } else if (evidence->kind == AIR_EVIDENCE_MIR_SELECT_RECEIVE) {
+        expected_subject = "select-receive";
+        label = "select receive";
     } else {
         return true;
     }

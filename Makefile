@@ -570,6 +570,9 @@ ifneq ($(LLVM_ENABLED),0)
                         $(CODEGEN_DIR)/llvm_mir_contract.c \
                         $(CODEGEN_DIR)/llvm_mir_emit.c \
                         $(CODEGEN_DIR)/llvm_mir_block_emit.c \
+                        $(CODEGEN_DIR)/llvm_mir_pin_region.c \
+                        $(CODEGEN_DIR)/llvm_mir_resource_claim.c \
+                        $(CODEGEN_DIR)/llvm_mir_resource_view.c \
                         $(CODEGEN_DIR)/llvm_mir_local_emit.c \
                         $(CODEGEN_DIR)/llvm_mir_type_helpers.c \
                         $(CODEGEN_DIR)/llvm_mir_vars.c \

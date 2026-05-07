@@ -52,6 +52,68 @@ select_case_parts(ASTNode *case_node, ASTNode **channel_out,
     return false;
 }
 
+static const char *
+select_channel_inner_type(ASTNode *channel, TranspilerCtx *ctx)
+{
+    if (channel == NULL || channel->type != AST_IDENTIFIER)
+        return NULL;
+
+    const char *type_name = lookup_typed_var(ctx, channel->data.identifier.name);
+    if (type_name != NULL && strncmp(type_name, "Channel<", 8) == 0)
+        return slot_inner_type_name(type_name);
+    return NULL;
+}
+
+static void
+select_set_missing_channel_type_error(TranspilerCtx *ctx, ASTNode *channel)
+{
+    transpiler_set_backend_error_with_hints(ctx,
+        PGY_CODE_C_TYPE_UNSUPPORTED,
+        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+        PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+        "cannot derive receive type for select case channel '%s'",
+        channel != NULL && channel->type == AST_IDENTIFIER
+            && channel->data.identifier.name != NULL
+                ? channel->data.identifier.name
+                : "(anonymous)");
+}
+
+static void
+select_write_case_guard(TranspilerCtx *ctx, size_t offset, size_t index,
+                        ASTNode *channel, const char *bind_name,
+                        const char *inner)
+{
+    const char *prefix = offset == 0 ? "if" : "} else if";
+
+    if (channel == NULL || channel->type != AST_IDENTIFIER) {
+        codebuf_write(ctx->out, "%s (1) { /* select case %zu */\n",
+                      prefix, index);
+        return;
+    }
+
+    if (bind_name != NULL) {
+        codebuf_write(ctx->out,
+            "%s (pgy_channel_try_recv_%s(&%s, &_sel_recv_%zu)) { /* select case %zu */\n",
+            prefix, inner, channel->data.identifier.name, index, index);
+        return;
+    }
+
+    codebuf_write(ctx->out,
+        "%s (pgy_channel_ready_%s(&%s)) { /* select case %zu */\n",
+        prefix, inner, channel->data.identifier.name, index);
+}
+
+static void
+select_emit_unbound_consume(ASTNode *channel, const char *inner,
+                            TranspilerCtx *ctx)
+{
+    char *channel_expr = emit_expression(channel, ctx);
+    write_indent(ctx);
+    codebuf_write(ctx->out, "(void)pgy_channel_recv_val_%s(&%s);\n",
+                  inner, channel_expr);
+    free(channel_expr);
+}
+
 void
 emit_select_stmt(ASTNode *node, TranspilerCtx *ctx)
 {
@@ -79,20 +141,9 @@ emit_select_stmt(ASTNode *node, TranspilerCtx *ctx)
             || channel->type != AST_IDENTIFIER)
             continue;
 
-        {
-            const char *type_name = lookup_typed_var(ctx, channel->data.identifier.name);
-            if (type_name != NULL && strncmp(type_name, "Channel<", 8) == 0)
-                inner = slot_inner_type_name(type_name);
-        }
+        inner = select_channel_inner_type(channel, ctx);
         if (inner == NULL) {
-            transpiler_set_backend_error_with_hints(ctx,
-                PGY_CODE_C_TYPE_UNSUPPORTED,
-                PGY_CAUSE_C_TYPE_UNSUPPORTED,
-                PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
-                "cannot derive receive type for select case channel '%s'",
-                channel->data.identifier.name != NULL
-                    ? channel->data.identifier.name
-                    : "(anonymous)");
+            select_set_missing_channel_type_error(ctx, channel);
             return;
         }
 
@@ -127,53 +178,16 @@ emit_select_stmt(ASTNode *node, TranspilerCtx *ctx)
                 bool valid_case = select_case_parts(c, &channel, &bind_name, &body);
                 const char *inner = NULL;
 
-                if (valid_case && channel != NULL && channel->type == AST_IDENTIFIER) {
-                    const char *type_name =
-                        lookup_typed_var(ctx, channel->data.identifier.name);
-                    if (type_name != NULL && strncmp(type_name, "Channel<", 8) == 0)
-                        inner = slot_inner_type_name(type_name);
-                }
+                inner = select_channel_inner_type(channel, ctx);
                 if (valid_case && channel != NULL && channel->type == AST_IDENTIFIER
                     && inner == NULL) {
-                    transpiler_set_backend_error_with_hints(ctx,
-                        PGY_CODE_C_TYPE_UNSUPPORTED,
-                        PGY_CAUSE_C_TYPE_UNSUPPORTED,
-                        PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
-                        "cannot derive receive type for select case channel '%s'",
-                        channel->data.identifier.name != NULL
-                            ? channel->data.identifier.name
-                            : "(anonymous)");
+                    select_set_missing_channel_type_error(ctx, channel);
                     return;
                 }
 
                 write_indent(ctx);
-                if (offset == 0) {
-                    if (valid_case && channel != NULL && channel->type == AST_IDENTIFIER) {
-                        if (bind_name != NULL)
-                            codebuf_write(ctx->out,
-                                "if (pgy_channel_try_recv_%s(&%s, &_sel_recv_%zu)) { /* select case %zu */\n",
-                                inner, channel->data.identifier.name, i, i);
-                        else
-                            codebuf_write(ctx->out,
-                                "if (pgy_channel_ready_%s(&%s)) { /* select case %zu */\n",
-                                inner, channel->data.identifier.name, i);
-                    } else {
-                        codebuf_write(ctx->out, "if (1) { /* select case %zu */\n", i);
-                    }
-                } else {
-                    if (valid_case && channel != NULL && channel->type == AST_IDENTIFIER) {
-                        if (bind_name != NULL)
-                            codebuf_write(ctx->out,
-                                "} else if (pgy_channel_try_recv_%s(&%s, &_sel_recv_%zu)) { /* select case %zu */\n",
-                                inner, channel->data.identifier.name, i, i);
-                        else
-                            codebuf_write(ctx->out,
-                                "} else if (pgy_channel_ready_%s(&%s)) { /* select case %zu */\n",
-                                inner, channel->data.identifier.name, i);
-                    } else {
-                        codebuf_write(ctx->out, "} else if (1) { /* select case %zu */\n", i);
-                    }
-                }
+                select_write_case_guard(ctx, offset, i, channel,
+                                        valid_case ? bind_name : NULL, inner);
                 ctx->indent++;
                 if (valid_case) {
                     if (bind_name != NULL) {
@@ -181,10 +195,11 @@ emit_select_stmt(ASTNode *node, TranspilerCtx *ctx)
                         codebuf_write(ctx->out, "%s %s = _sel_recv_%zu;\n",
                                       pergyra_type_to_c(inner), bind_name, i);
                     } else if (channel != NULL) {
-                        char *recv = emit_channel_recv(ast_create_channel_recv(channel), ctx);
-                        write_indent(ctx);
-                        codebuf_write(ctx->out, "(void)%s;\n", recv);
-                        free(recv);
+                        if (inner == NULL) {
+                            select_set_missing_channel_type_error(ctx, channel);
+                            return;
+                        }
+                        select_emit_unbound_consume(channel, inner, ctx);
                     }
                     if (body != NULL)
                         emit_statement(body, ctx);

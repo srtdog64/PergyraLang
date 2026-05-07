@@ -13,6 +13,7 @@
 #include "compiler/hir.h"
 #include "compiler/rir.h"
 #include "compiler/mir.h"
+#include "compiler/mir_abi_layout.h"
 #include "compiler/mir_dce.h"
 
 static int g_pass = 0;

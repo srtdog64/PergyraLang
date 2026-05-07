@@ -1,5 +1,5 @@
 /*
- * pgy debug — Interactive Pergyra debugger
+ * pgy debug - interactive Pergyra source debugger
  *
  * Architecture:
  *   1. Parse source to AST
@@ -7,8 +7,11 @@
  *   3. At each statement, check breakpoints
  *   4. If breakpoint or step mode, pause and accept commands
  *
- * Current: source-level trace debugger (AST-walking)
- * Future: DWARF info + GDB/LLDB integration for compiled binaries
+ * Current: source-level trace debugger (AST-walking).
+ *
+ * Not yet implemented: compiled-binary debug info. There is no LLVM DIBuilder
+ * wiring here yet, so this debugger does not emit DWARF/CodeView records and
+ * does not provide GDB/LLDB integration for generated binaries.
  */
 
 #include "debugger.h"

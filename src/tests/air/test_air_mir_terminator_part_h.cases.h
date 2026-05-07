@@ -81,6 +81,80 @@ test_air_rejects_empty_mir_terminator_evidence(void)
 }
 
 static bool
+test_air_collects_mir_select_receive_evidence(void)
+{
+    AIRProgram *air = (AIRProgram *)calloc(1, sizeof(AIRProgram));
+    MIRProgram mir;
+    MIRRoutine routine;
+    MIRBasicBlock block;
+    MIRInstruction inst;
+    char *error = NULL;
+    bool ok;
+
+    if (air == NULL)
+        return false;
+
+    memset(&inst, 0, sizeof(inst));
+    inst.kind = MIR_INST_DEF;
+    inst.requires_select_receive_statement_emit = true;
+
+    memset(&block, 0, sizeof(block));
+    block.is_reachable = true;
+    block.instructions = &inst;
+    block.instruction_count = 1;
+
+    memset(&routine, 0, sizeof(routine));
+    routine.name = "select_owner";
+    routine.blocks = &block;
+    routine.block_count = 1;
+
+    memset(&mir, 0, sizeof(mir));
+    mir.routines = &routine;
+    mir.routine_count = 1;
+
+    ok = air_collect_mir_evidence(air, &mir, &error)
+        && air_validate(air, &error)
+        && air->has_mir_input
+        && air->mir_select_receive_evidence_count == 1
+        && air->evidence_count == 1
+        && air->evidence_nodes[0].kind == AIR_EVIDENCE_MIR_SELECT_RECEIVE
+        && air->evidence_nodes[0].boundary_index == SIZE_MAX
+        && air->evidence_nodes[0].fact_count == 1
+        && air->evidence_nodes[0].fallback_count == 0
+        && strcmp(air->evidence_nodes[0].provider_name, "select_owner") == 0
+        && strcmp(air->evidence_nodes[0].subject_name, "select-receive") == 0;
+    free(error);
+    air_destroy(air);
+    return ok;
+}
+
+static bool
+test_air_rejects_empty_mir_select_receive_evidence(void)
+{
+    AIREvidenceNode evidence_nodes[] = {
+        {
+            .kind = AIR_EVIDENCE_MIR_SELECT_RECEIVE,
+            .boundary_index = SIZE_MAX,
+            .provider_name = "select_owner",
+            .subject_name = "select-receive",
+            .fact_count = 0,
+            .fallback_count = 0,
+        },
+    };
+    AIRProgram air = {
+        .evidence_nodes = evidence_nodes,
+        .evidence_count = 1,
+    };
+    char *error = NULL;
+    bool ok = !air_validate(&air, &error)
+        && error != NULL
+        && strstr(error, "PGY_AIR_INVARIANT_INVALID") != NULL
+        && strstr(error, "MIR select receive evidence node 0 has no select receive facts") != NULL;
+    free(error);
+    return ok;
+}
+
+static bool
 test_air_collects_void_fallthrough_terminator_evidence(void)
 {
     AIRProgram *air = (AIRProgram *)calloc(1, sizeof(AIRProgram));

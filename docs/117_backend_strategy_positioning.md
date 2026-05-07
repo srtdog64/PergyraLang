@@ -82,7 +82,10 @@ LLVM IR is the performance path:
   a C compiler.
 - LLVM target list covers x86_64, arm64, riscv, wasm, ppc, mips, and
   more.
-- Debug info (DWARF, CodeView via PDB) is LLVM's responsibility.
+- Debug info (DWARF, CodeView via PDB) is LLVM's responsibility in the sense
+  that Pergyra should wire LLVM DIBuilder metadata rather than implement DWARF
+  itself. Current status: that wiring is not implemented yet, so compiled
+  binaries do not have production debug information.
 
 Pergyra's LLVM backend is the default path on platforms where LLVM is
 the natural toolchain (Linux, Windows MSVC/MinGW, macOS, WASM, server

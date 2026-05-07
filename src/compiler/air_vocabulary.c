@@ -69,6 +69,7 @@ air_evidence_kind_name(AIREvidenceKind kind)
     case AIR_EVIDENCE_MIR_CLEANUP: return "mir_cleanup";
     case AIR_EVIDENCE_MIR_PIN_CLEANUP: return "mir_pin_cleanup";
     case AIR_EVIDENCE_MIR_TERMINATOR: return "mir_terminator";
+    case AIR_EVIDENCE_MIR_SELECT_RECEIVE: return "mir_select_receive";
     case AIR_EVIDENCE_DAG_METADATA: return "dag_metadata";
     case AIR_EVIDENCE_DAG_GENERIC: return "dag_generic";
     case AIR_EVIDENCE_DAG_ABILITY: return "dag_ability";

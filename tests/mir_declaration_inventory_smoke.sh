@@ -197,7 +197,7 @@ if grep -RIn "PGY_CAUSE_LLVM_MIR_ROUTINE_MISSING" "$ROOT_DIR/src/codegen" \
     fail "LLVM MIR-missing diagnostics must route through llvm_set_mir_inventory_missing"
 fi
 if grep -A3 -F "LLVM MIR pin block cannot resolve" \
-    "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c" | grep -Fq "llvm_set_error(ctx"; then
+    "$ROOT_DIR/src/codegen/llvm_mir_pin_region.c" | grep -Fq "llvm_set_error(ctx"; then
     fail "LLVM MIR pin topology diagnostics must use llvm_set_mir_topology_invalid"
 fi
 if grep -A3 -F "MIR-only LLVM path missing owner metadata" \

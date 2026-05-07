@@ -39,6 +39,8 @@ transpiler_emit_mir_assignment_def_inst(CodeBuf *buf,
     char *rhs = NULL;
     bool target_is_field = false;
     bool is_local_binding = false;
+    bool is_channel_receive_assignment = false;
+    bool is_select_receive_assignment = false;
 
     if (!transpiler_mir_def_uses_source_statement_emit(
             inst, stmt, AST_ASSIGNMENT)
@@ -52,6 +54,35 @@ transpiler_emit_mir_assignment_def_inst(CodeBuf *buf,
     target_name = stmt->data.assignment.target->data.identifier.name;
     if (target_name == NULL || strcmp(inst->arg0, target_name) != 0)
         return TRANSPILE_MIR_ASSIGNMENT_HANDLED;
+
+    is_channel_receive_assignment =
+        stmt->data.assignment.value != NULL
+        && stmt->data.assignment.value->type == AST_CHANNEL_RECV;
+    is_select_receive_assignment =
+        is_channel_receive_assignment
+        && transpiler_mir_def_uses_select_receive_statement_emit(
+            inst, stmt, AST_ASSIGNMENT);
+    if (is_channel_receive_assignment
+        && !transpiler_mir_def_uses_channel_receive_statement_emit(
+            inst, stmt, AST_ASSIGNMENT)) {
+        if (reason != NULL && reason_cap > 0) {
+            snprintf(reason, reason_cap,
+                     "MIR block %llu emission failed: channel receive assignment '%s' is missing receive emit fact",
+                     (unsigned long long) block->id,
+                     target_name != NULL ? target_name : "<target>");
+        }
+        return TRANSPILE_MIR_ASSIGNMENT_FAILED;
+    }
+    if (inst->requires_select_receive_statement_emit
+        && !is_select_receive_assignment) {
+        if (reason != NULL && reason_cap > 0) {
+            snprintf(reason, reason_cap,
+                     "MIR block %llu emission failed: select receive assignment '%s' is missing select receive emit fact",
+                     (unsigned long long) block->id,
+                     target_name != NULL ? target_name : "<target>");
+        }
+        return TRANSPILE_MIR_ASSIGNMENT_FAILED;
+    }
 
     is_local_binding = transpiler_has_explicit_local_binding(func_decl,
                                                              target_name);

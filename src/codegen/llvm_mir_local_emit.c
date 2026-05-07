@@ -43,18 +43,12 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
 
                 if (layout_type != NULL) {
                     alloca_type = layout_type;
-                } else if (inst->has_source_location) {
-                    if (inst->source_ast_type == AST_LET_DECL) {
-                        if (type_expr != NULL) {
-                            alloca_type = llvm_mir_type_from_ast(ctx, type_expr);
-                            if (has_base_name)
-                                llvm_register_typed_var(ctx, base_name, type_expr);
-                        } else if (value_expr != NULL) {
-                            alloca_type = llvm_stmt_infer_expr_type(ctx, value_expr);
-                        }
-                    } else {
-                        alloca_type = llvm_stmt_infer_expr_type(ctx, value_expr);
-                    }
+                } else if (type_expr != NULL) {
+                    alloca_type = llvm_mir_type_from_ast(ctx, type_expr);
+                    if (has_base_name)
+                        llvm_register_typed_var(ctx, base_name, type_expr);
+                } else if (value_expr != NULL) {
+                    alloca_type = llvm_stmt_infer_expr_type(ctx, value_expr);
                 }
                 if (var_count >= var_capacity) {
                     size_t new_capacity = var_capacity > 0 ? var_capacity * 2 : 64;

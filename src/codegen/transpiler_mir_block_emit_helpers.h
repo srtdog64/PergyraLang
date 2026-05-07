@@ -47,6 +47,37 @@ transpiler_mir_def_uses_source_statement_emit(const MIRInstruction *inst,
 }
 
 static bool
+transpiler_mir_def_uses_source_local_decl_emit(const MIRInstruction *inst,
+                                               const ASTNode *stmt)
+{
+    return transpiler_mir_def_uses_source_statement_emit(inst, stmt,
+                                                        AST_LET_DECL)
+        && inst->requires_source_local_decl_emit;
+}
+
+static bool
+transpiler_mir_def_uses_channel_receive_statement_emit(
+    const MIRInstruction *inst,
+    const ASTNode *stmt,
+    ASTNodeType expected_type)
+{
+    return transpiler_mir_def_uses_source_statement_emit(inst, stmt,
+                                                        expected_type)
+        && inst->requires_channel_receive_statement_emit;
+}
+
+static bool
+transpiler_mir_def_uses_select_receive_statement_emit(
+    const MIRInstruction *inst,
+    const ASTNode *stmt,
+    ASTNodeType expected_type)
+{
+    return transpiler_mir_def_uses_channel_receive_statement_emit(
+            inst, stmt, expected_type)
+        && inst->requires_select_receive_statement_emit;
+}
+
+static bool
 transpiler_mir_seed_pin_view_alias(const MIRBasicBlock *block,
                                    TranspilerSSANameMap *ssa_map_out)
 {

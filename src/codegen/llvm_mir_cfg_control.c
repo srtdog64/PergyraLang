@@ -303,6 +303,25 @@ llvm_mir_select_case_channel(ASTNode *node)
     return llvm_mir_assignment_recv_channel(first);
 }
 
+static LLVMFuncEntry *
+llvm_mir_required_channel_ready_function(ASTNode *channel, LLVMGenCtx *ctx,
+                                         const char *function_name)
+{
+    LLVMFuncEntry *ready_fn = function_name != NULL
+        ? llvm_lookup_function(ctx, function_name)
+        : NULL;
+    if (ready_fn == NULL || ready_fn->fn == NULL) {
+        llvm_set_error_at_with_hints(ctx, channel,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "LLVM MIR select readiness requires registered runtime function '%s'",
+            function_name != NULL ? function_name : "<missing>");
+        return NULL;
+    }
+    return ready_fn;
+}
+
 static LLVMValueRef
 llvm_mir_emit_channel_ready_condition(ASTNode *channel, LLVMGenCtx *ctx)
 {
@@ -336,16 +355,9 @@ llvm_mir_emit_channel_ready_condition(ASTNode *channel, LLVMGenCtx *ctx)
     }
 
     snprintf(fn_name, sizeof(fn_name), "pgy_channel_ready_%s", inner);
-    ready_fn = llvm_lookup_function(ctx, fn_name);
-    if (ready_fn == NULL || ready_fn->fn == NULL) {
-        llvm_set_error_at_with_hints(ctx, channel,
-            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
-            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
-            PGY_FIX_INSPECT_MIR_INVENTORY,
-            "LLVM MIR select readiness requires registered runtime function '%s'",
-            fn_name);
+    ready_fn = llvm_mir_required_channel_ready_function(channel, ctx, fn_name);
+    if (ready_fn == NULL)
         return NULL;
-    }
 
     args[0] = ch_var->alloca;
     return LLVMBuildCall2(ctx->builder, ready_fn->fn_type, ready_fn->fn,
@@ -425,6 +437,106 @@ llvm_mir_declare_recv_target(const char *target_name,
     value_ty = pergyra_type_to_llvm(ctx, inner);
     alloca_val = llvm_create_entry_alloca(ctx, value_ty, target_name);
     llvm_scope_declare(ctx, pergyra_strdup(target_name), alloca_val, value_ty);
+    return true;
+}
+
+bool
+llvm_mir_emit_channel_receive_def(const MIRInstruction *inst,
+                                  LLVMGenCtx *ctx,
+                                  LLVMValueRef mir_alloca)
+{
+    ASTNode *channel;
+    const char *channel_name;
+    const char *inner;
+    LLVMVarEntry *channel_var;
+    LLVMVarEntry *target_var;
+    LLVMFuncEntry *recv_fn;
+    LLVMValueRef args[1];
+    LLVMValueRef value;
+    char fn_name[128];
+
+    if (inst == NULL || ctx == NULL)
+        return false;
+    if (inst->arg0 == NULL) {
+        llvm_set_error_at_with_hints(ctx, inst->expr0,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "LLVM channel receive DEF requires a materialized target name");
+        return false;
+    }
+    if (!llvm_mir_declare_recv_target(inst->arg0, inst->expr0, ctx))
+        return false;
+
+    channel = llvm_mir_recv_expr_channel(inst->expr0);
+    if (channel == NULL || channel->type != AST_IDENTIFIER) {
+        llvm_set_error_at_with_hints(ctx, inst->expr0,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "LLVM channel receive DEF requires an identifier channel");
+        return false;
+    }
+    channel_name = channel->data.identifier.name;
+    if (channel_name == NULL) {
+        llvm_set_error_at_with_hints(ctx, channel,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "LLVM channel receive DEF requires a named channel");
+        return false;
+    }
+
+    channel_var = llvm_scope_lookup(ctx, channel_name);
+    target_var = llvm_scope_lookup(ctx, inst->arg0);
+    if (channel_var == NULL || channel_var->alloca == NULL) {
+        llvm_set_error_at_with_hints(ctx, channel,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "LLVM channel receive DEF requires materialized channel '%s'",
+            channel_name);
+        return false;
+    }
+    if (target_var == NULL || target_var->alloca == NULL) {
+        llvm_set_error_at_with_hints(ctx, inst->expr0,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "LLVM channel receive DEF requires materialized target '%s'",
+            inst->arg0);
+        return false;
+    }
+
+    inner = llvm_lookup_channel_inner(ctx, channel_name);
+    if (inner == NULL || inner[0] == '\0') {
+        llvm_set_error_at_with_hints(ctx, channel,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_SLOT_INNER_TYPE_MISSING,
+            PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+            "LLVM channel receive DEF '%s' requires concrete Channel<T> metadata",
+            inst->arg0 != NULL ? inst->arg0 : "<target>");
+        return false;
+    }
+
+    snprintf(fn_name, sizeof(fn_name), "pgy_channel_recv_val_%s", inner);
+    recv_fn = llvm_lookup_function(ctx, fn_name);
+    if (recv_fn == NULL || recv_fn->fn == NULL) {
+        llvm_set_error_at_with_hints(ctx, channel,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "LLVM channel receive DEF requires registered runtime function '%s'",
+            fn_name);
+        return false;
+    }
+
+    args[0] = channel_var->alloca;
+    value = LLVMBuildCall2(ctx->builder, recv_fn->fn_type, recv_fn->fn,
+                           args, 1, llvm_tmp_name(ctx));
+    LLVMBuildStore(ctx->builder, value, target_var->alloca);
+    if (mir_alloca != NULL && mir_alloca != target_var->alloca)
+        LLVMBuildStore(ctx->builder, value, mir_alloca);
     return true;
 }
 

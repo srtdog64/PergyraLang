@@ -176,8 +176,7 @@ transpiler_validate_mir_emission_block_shape(const MIRBasicBlock *block,
             }
             has_branch = true;
             branch_count++;
-            if ((inst->branch_shape == MIR_BRANCH_MATCH_CASE
-                 || inst->branch_shape == MIR_BRANCH_SELECT_DISPATCH)
+            if (inst->requires_source_branch_emit
                 && inst->ast == NULL
                 && (reason != NULL && reason_cap > 0)) {
                 snprintf(reason, reason_cap,
@@ -185,8 +184,7 @@ transpiler_validate_mir_emission_block_shape(const MIRBasicBlock *block,
                          routine_name, (unsigned long long) block->id);
                 return false;
             }
-            if (inst->branch_shape != MIR_BRANCH_MATCH_CASE
-                && inst->branch_shape != MIR_BRANCH_SELECT_DISPATCH
+            if (!inst->requires_source_branch_emit
                 && inst->expr0 == NULL
                 && (reason != NULL && reason_cap > 0)) {
                 snprintf(reason, reason_cap,

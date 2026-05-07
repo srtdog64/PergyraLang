@@ -232,6 +232,12 @@ main(void)
     TEST("AIR rejects empty MIR terminator evidence");
     EXPECT(test_air_rejects_empty_mir_terminator_evidence());
 
+    TEST("AIR collects MIR select receive evidence");
+    EXPECT(test_air_collects_mir_select_receive_evidence());
+
+    TEST("AIR rejects empty MIR select receive evidence");
+    EXPECT(test_air_rejects_empty_mir_select_receive_evidence());
+
     TEST("AIR collects Void fallthrough terminator evidence");
     EXPECT(test_air_collects_void_fallthrough_terminator_evidence());
 

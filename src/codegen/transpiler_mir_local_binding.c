@@ -7,6 +7,31 @@
 
 #include "transpiler_mir_local_binding.h"
 
+static bool
+transpiler_select_case_has_receive_binding(ASTNode *node,
+                                           const char *base_name)
+{
+    if (node == NULL || base_name == NULL)
+        return false;
+    if (node->type == AST_BLOCK) {
+        for (size_t i = 0; i < node->data.block.count; i++) {
+            if (transpiler_select_case_has_receive_binding(
+                    node->data.block.statements[i], base_name)) {
+                return true;
+            }
+        }
+        return false;
+    }
+    return node->type == AST_ASSIGNMENT
+        && node->data.assignment.target != NULL
+        && node->data.assignment.target->type == AST_IDENTIFIER
+        && node->data.assignment.target->data.identifier.name != NULL
+        && strcmp(node->data.assignment.target->data.identifier.name,
+                  base_name) == 0
+        && node->data.assignment.value != NULL
+        && node->data.assignment.value->type == AST_CHANNEL_RECV;
+}
+
 bool
 transpiler_has_local_binding_in_block(ASTNode *body, const char *base_name)
 {
@@ -45,6 +70,20 @@ transpiler_has_local_binding_in_block(ASTNode *body, const char *base_name)
             return true;
         }
         return transpiler_has_local_binding_in_block(body->data.for_loop.body, base_name);
+    }
+    if (body->type == AST_SELECT_STMT) {
+        for (size_t i = 0; i < body->data.select_stmt.case_count; i++) {
+            if (transpiler_select_case_has_receive_binding(
+                    body->data.select_stmt.cases[i], base_name)) {
+                return true;
+            }
+            if (transpiler_has_local_binding_in_block(
+                    body->data.select_stmt.cases[i], base_name)) {
+                return true;
+            }
+        }
+        return transpiler_has_local_binding_in_block(
+            body->data.select_stmt.default_case, base_name);
     }
     return false;
 }

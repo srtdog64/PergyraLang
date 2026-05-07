@@ -131,6 +131,8 @@ hir_lower_choice_to_cfg(ASTNode *node, ASTNode **choices,
         ssize_t false_target = join_block;
         if (body_block < 0)
             return -1;
+        if (!choice_is_match_case)
+            (*blocks)[(size_t)body_block].is_select_case_body = true;
 
         if (i + 1 < choice_count) {
             next_dispatch = hir_cfg_new_region_block(blocks, block_count, block_capacity, pin);

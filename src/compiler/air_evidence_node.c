@@ -21,6 +21,7 @@ air_evidence_kind_is_boundary_scoped(AIREvidenceKind kind)
         return true;
     case AIR_EVIDENCE_MIR_CLEANUP:
     case AIR_EVIDENCE_MIR_TERMINATOR:
+    case AIR_EVIDENCE_MIR_SELECT_RECEIVE:
     case AIR_EVIDENCE_DAG_METADATA:
     case AIR_EVIDENCE_DAG_GENERIC:
     case AIR_EVIDENCE_DAG_ABILITY:

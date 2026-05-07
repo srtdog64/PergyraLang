@@ -28,6 +28,19 @@ mir_inst_kind_name(MIRInstKind kind)
     }
 }
 
+const char *
+mir_branch_shape_name(MIRBranchShape shape)
+{
+    switch (shape) {
+        case MIR_BRANCH_EXPR: return "expr";
+        case MIR_BRANCH_FOR_RANGE: return "for-range";
+        case MIR_BRANCH_FOR_IN: return "for-in";
+        case MIR_BRANCH_MATCH_CASE: return "match-case";
+        case MIR_BRANCH_SELECT_DISPATCH: return "select-dispatch";
+        default: return "unknown";
+    }
+}
+
 void
 mir_destroy(MIRProgram *mir)
 {
@@ -491,8 +504,19 @@ mir_dump(const MIRProgram *mir, FILE *out)
                             (int)inst->source_ast_type,
                             inst->source_line);
                 }
+                if (inst->kind == MIR_INST_BRANCH)
+                    fprintf(out, " branch-shape=%s",
+                            mir_branch_shape_name(inst->branch_shape));
+                if (inst->requires_source_branch_emit)
+                    fprintf(out, " source-branch-emit");
                 if (inst->requires_source_statement_emit)
                     fprintf(out, " source-stmt-emit");
+                if (inst->requires_source_local_decl_emit)
+                    fprintf(out, " source-local-decl-emit");
+                if (inst->requires_channel_receive_statement_emit)
+                    fprintf(out, " channel-recv-stmt-emit");
+                if (inst->requires_select_receive_statement_emit)
+                    fprintf(out, " select-recv-stmt-emit");
                 fprintf(out, "\n");
             }
         }

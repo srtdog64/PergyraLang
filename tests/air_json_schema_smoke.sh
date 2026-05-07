@@ -32,8 +32,25 @@ fi
 SOURCE="$ROOT_DIR/tests/cases/backend_compare/intent_zone_binding/main.pgy"
 OUT="$WORK_DIR/air.json"
 ERR="$WORK_DIR/air.err"
+SELECT_SOURCE="$WORK_DIR/air_select_receive.pgy"
+SELECT_OUT="$WORK_DIR/air_select_receive.json"
+SELECT_ERR="$WORK_DIR/air_select_receive.err"
+
+cat > "$SELECT_SOURCE" <<'EOF'
+func SelectReceiveAir(ch: Channel<Int>) -> Int {
+    ch <- 7;
+    select {
+        case v = <-ch:
+            return v;
+        default:
+            return 0;
+    }
+    return 0;
+}
+EOF
 
 "$PGY" --air-json "$SOURCE" --backend=c > "$OUT" 2> "$ERR"
+"$PGY" --air-json "$SELECT_SOURCE" --backend=c > "$SELECT_OUT" 2> "$SELECT_ERR"
 
 require_text() {
     local text="$1"
@@ -88,6 +105,7 @@ for required in \
     '"mir_cleanup_evidence_count"' \
     '"mir_pin_cleanup_evidence_count"' \
     '"mir_terminator_evidence_count"' \
+    '"mir_select_receive_evidence_count"' \
     '"dag_metadata_evidence_count"' \
     '"dag_generic_evidence_count"' \
     '"dag_ability_evidence_count"' \
@@ -111,12 +129,14 @@ elif command -v python >/dev/null 2>&1; then
 fi
 
 if [[ -n "$PY_BIN" ]]; then
-    "$PY_BIN" - "$OUT" <<'PY'
+    "$PY_BIN" - "$OUT" "$SELECT_OUT" <<'PY'
 import json
 import sys
 
 with open(sys.argv[1], "r", encoding="utf-8") as fh:
     data = json.load(fh)
+with open(sys.argv[2], "r", encoding="utf-8") as fh:
+    select_data = json.load(fh)
 
 assert data["schema"] == "pgy.air.graph.v1"
 summary = data["summary"]
@@ -160,6 +180,19 @@ assert any(e["kind"] == "mir_cleanup" for e in data["evidence"])
 assert summary["mir_cleanup_evidence_count"] >= 1
 assert summary["mir_pin_cleanup_evidence_count"] >= 0
 assert summary["mir_terminator_evidence_count"] >= 0
+assert summary["mir_select_receive_evidence_count"] >= 0
+if summary["mir_select_receive_evidence_count"] > 0:
+    assert any(e["kind"] == "mir_select_receive" for e in data["evidence"])
+select_summary = select_data["summary"]
+assert select_data["schema"] == "pgy.air.graph.v1"
+assert select_summary["mir_select_receive_evidence_count"] >= 1
+assert any(
+    e["kind"] == "mir_select_receive"
+    and e["subject"] == "select-receive"
+    and e["fact_count"] >= 1
+    and e["fallback_count"] == 0
+    for e in select_data["evidence"]
+)
 assert summary["rir_effect_propagation_evidence_count"] <= summary["rir_effect_propagation_required_count"]
 assert summary["rir_relation_propagation_evidence_count"] <= summary["rir_relation_propagation_required_count"]
 assert summary["observability_schema_evidence_count"] == 1
@@ -168,5 +201,16 @@ assert all("location" in b and b["location"]["line"] > 0 for b in data["boundari
 print("[air-json-schema] parsed schema ok")
 PY
 else
+    require_select_text() {
+        local text="$1"
+        if ! grep -Fq "$text" "$SELECT_OUT"; then
+            echo "[air-json-schema] missing select JSON term: $text" >&2
+            echo "---- select air json ----" >&2
+            sed -n '1,80p' "$SELECT_OUT" >&2
+            exit 1
+        fi
+    }
+    require_select_text '"kind":"mir_select_receive"'
+    require_select_text '"subject":"select-receive"'
     echo "[air-json-schema] python not found; grep contract ok"
 fi

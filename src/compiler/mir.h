@@ -117,6 +117,10 @@ typedef struct
     bool             uses_thread_pool_surface;
     bool             uses_intent_observability_surface;
     bool             requires_source_statement_emit;
+    bool             requires_source_local_decl_emit;
+    bool             requires_channel_receive_statement_emit;
+    bool             requires_select_receive_statement_emit;
+    bool             requires_source_branch_emit;
     MIRBranchShape   branch_shape;
     /* ABI type layout: backends read this instead of inventing layouts. */
     ASTNode         *expr0;
@@ -131,6 +135,7 @@ typedef struct
     bool             is_reachable;
     bool             is_cleanup;
     bool             is_pin_region;
+    bool             is_select_case_body;
     bool             pin_view_is_write;
     const char      *pin_source_name;
     const char      *pin_view_name;

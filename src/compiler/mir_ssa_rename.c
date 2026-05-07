@@ -330,24 +330,11 @@ mir_parse_versioned_name(const char *versioned,
 }
 
 static ASTNode *
-mir_def_instruction_source_expr(const MIRInstruction *inst, MIRBasicBlock *block)
+mir_def_instruction_source_expr(const MIRInstruction *inst)
 {
-    (void)block;
-
     if (inst == NULL || inst->kind != MIR_INST_DEF)
         return NULL;
-    if (inst->expr0 != NULL)
-        return inst->expr0;
-    if (inst->ast == NULL)
-        return NULL;
-    if (inst->ast->type == AST_LET_DECL)
-        return inst->ast->data.let_decl.initializer;
-    if (inst->ast->type == AST_ASSIGNMENT
-        && inst->ast->data.assignment.target != NULL
-        && inst->ast->data.assignment.target->type == AST_IDENTIFIER) {
-        return inst->ast->data.assignment.value;
-    }
-    return NULL;
+    return inst->expr0;
 }
 
 bool
@@ -418,7 +405,7 @@ mir_populate_use_edges(MIRRoutine *routine)
                 continue;
             }
             if (inst->kind == MIR_INST_DEF) {
-                ASTNode *expr = mir_def_instruction_source_expr(inst, block);
+                ASTNode *expr = mir_def_instruction_source_expr(inst);
                 if (expr != NULL) {
                     const char **raw_uses = NULL;
                     size_t raw_use_count = 0;

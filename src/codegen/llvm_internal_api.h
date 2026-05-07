@@ -190,6 +190,17 @@ bool          llvm_mir_ast_type_is_cfg_container(ASTNodeType type);
 bool          llvm_mir_declare_recv_target(const char *target_name,
                                            ASTNode *recv_expr,
                                            LLVMGenCtx *ctx);
+bool          llvm_mir_emit_channel_receive_def(const MIRInstruction *inst,
+                                                LLVMGenCtx *ctx,
+                                                LLVMValueRef mir_alloca);
+void          llvm_mir_emit_with_claim_only(const MIRInstruction *inst,
+                                            LLVMGenCtx *ctx);
+void          llvm_mir_emit_borrow_view_alias(const MIRInstruction *inst,
+                                              LLVMGenCtx *ctx);
+bool          llvm_mir_emit_pin_enter(const MIRBasicBlock *block,
+                                      LLVMGenCtx *ctx);
+bool          llvm_mir_emit_pin_exit(const MIRBasicBlock *block,
+                                     LLVMGenCtx *ctx);
 bool          llvm_mir_emit_for_loop_init(const MIRInstruction *inst,
                                           LLVMGenCtx *ctx);
 LLVMValueRef  llvm_mir_emit_for_loop_condition(const MIRInstruction *inst,
