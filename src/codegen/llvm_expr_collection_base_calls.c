@@ -15,23 +15,42 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
         return false;
 
     if (strcmp(callee_name, "ListNew") == 0 && node->data.call.arg_count == 0) {
-        LLVMTypeRef list_ty = ctx->type_i32;
+        LLVMTypeRef list_ty;
+        LLVMTypeRef elem_ty;
+        const char *inner_name = NULL;
         LLVMValueRef tmp;
-        LLVMFuncEntry *fn = llvm_required_collection_function(ctx, node,
-            callee_name, "pgy_list_new_raw_export");
-        if (ctx->current_ret_type != NULL
-            && LLVMGetTypeKind(ctx->current_ret_type) == LLVMStructTypeKind) {
-            list_ty = ctx->current_ret_type;
+        LLVMFuncEntry *fn;
+        if (ctx->current_ret_type == NULL
+            || LLVMGetTypeKind(ctx->current_ret_type) != LLVMStructTypeKind) {
+            llvm_set_error_at_with_hints(ctx, node,
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                "LLVM ListNew() requires contextual List<T>; implicit i32 fallback is disabled");
+            *out = LLVMConstInt(ctx->type_i32, 0, 0);
+            return true;
         }
+        if (ctx->expected_type_name != NULL
+            && strncmp(ctx->expected_type_name, "List<", 5) == 0) {
+            inner_name = llvm_constructed_arg_name_at(ctx->expected_type_name, 0);
+        }
+        if (inner_name == NULL || inner_name[0] == '\0'
+            || strcmp(inner_name, "Unknown") == 0) {
+            llvm_set_error_at_with_hints(ctx, node,
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                "LLVM ListNew() requires concrete List<T> type metadata");
+            *out = LLVMConstInt(ctx->type_i32, 0, 0);
+            return true;
+        }
+        list_ty = ctx->current_ret_type;
+        elem_ty = pergyra_type_to_llvm(ctx, inner_name);
+        fn = llvm_required_collection_function(ctx, node, callee_name,
+            "pgy_list_new_raw_export");
         tmp = llvm_create_entry_alloca(ctx, list_ty, llvm_tmp_name(ctx));
         LLVMBuildStore(ctx->builder, LLVMConstNull(list_ty), tmp);
         if (fn != NULL) {
-            LLVMTypeRef elem_ty = LLVMInt32TypeInContext(ctx->context);
-            if (LLVMCountStructElementTypes(list_ty) > 0) {
-                LLVMTypeRef fields[3];
-                LLVMGetStructElementTypes(list_ty, fields);
-                elem_ty = LLVMGetElementType(fields[0]);
-            }
             LLVMValueRef args[] = {
                 LLVMBuildBitCast(ctx->builder, tmp, ctx->type_i8ptr, llvm_tmp_name(ctx)),
                 llvm_sizeof_type_i64(ctx, elem_ty)
@@ -43,18 +62,42 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
     }
 
     if (strcmp(callee_name, "SetNew") == 0 && node->data.call.arg_count == 0) {
-        LLVMTypeRef set_ty = ctx->type_i32;
+        LLVMTypeRef set_ty;
+        LLVMTypeRef elem_ty;
+        const char *inner_name = NULL;
         LLVMValueRef tmp;
-        LLVMFuncEntry *fn = llvm_required_collection_function(ctx, node,
-            callee_name, "pgy_set_new_raw_export");
-        if (ctx->current_ret_type != NULL
-            && LLVMGetTypeKind(ctx->current_ret_type) == LLVMStructTypeKind) {
-            set_ty = ctx->current_ret_type;
+        LLVMFuncEntry *fn;
+        if (ctx->current_ret_type == NULL
+            || LLVMGetTypeKind(ctx->current_ret_type) != LLVMStructTypeKind) {
+            llvm_set_error_at_with_hints(ctx, node,
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                "LLVM SetNew() requires contextual Set<T>; implicit i32 fallback is disabled");
+            *out = LLVMConstInt(ctx->type_i32, 0, 0);
+            return true;
         }
+        if (ctx->expected_type_name != NULL
+            && strncmp(ctx->expected_type_name, "Set<", 4) == 0) {
+            inner_name = llvm_constructed_arg_name_at(ctx->expected_type_name, 0);
+        }
+        if (inner_name == NULL || inner_name[0] == '\0'
+            || strcmp(inner_name, "Unknown") == 0) {
+            llvm_set_error_at_with_hints(ctx, node,
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                "LLVM SetNew() requires concrete Set<T> type metadata");
+            *out = LLVMConstInt(ctx->type_i32, 0, 0);
+            return true;
+        }
+        set_ty = ctx->current_ret_type;
+        elem_ty = pergyra_type_to_llvm(ctx, inner_name);
+        fn = llvm_required_collection_function(ctx, node, callee_name,
+            "pgy_set_new_raw_export");
         tmp = llvm_create_entry_alloca(ctx, set_ty, llvm_tmp_name(ctx));
         LLVMBuildStore(ctx->builder, LLVMConstNull(set_ty), tmp);
         if (fn != NULL) {
-            LLVMTypeRef elem_ty = LLVMInt32TypeInContext(ctx->context);
             LLVMValueRef args[] = {
                 LLVMBuildBitCast(ctx->builder, tmp, ctx->type_i8ptr, llvm_tmp_name(ctx)),
                 llvm_sizeof_type_i64(ctx, elem_ty)
@@ -73,16 +116,11 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
         LLVMValueRef value;
         LLVMValueRef tmp;
         LLVMFuncEntry *fn;
-        if (set_arg == NULL || set_arg->type != AST_IDENTIFIER) {
-            *out = LLVMConstInt(ctx->type_i32, 0, 0);
+        set_var = llvm_collection_required_receiver_var(ctx, node, set_arg,
+            callee_name, "collection", LLVMConstInt(ctx->type_i32, 0, 0), out);
+        if (set_var == NULL)
             return true;
-        }
-        set_var = llvm_scope_lookup(ctx, set_arg->data.identifier.name);
         inner_name = llvm_lookup_set_inner(ctx, set_arg->data.identifier.name);
-        if (set_var == NULL) {
-            *out = LLVMConstInt(ctx->type_i32, 0, 0);
-            return true;
-        }
         elem_ty = llvm_collection_required_value_type(ctx, node, "Set",
             set_arg->data.identifier.name, inner_name, NULL);
         if (elem_ty == NULL) {
@@ -126,16 +164,11 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
         LLVMValueRef value;
         LLVMValueRef tmp;
         LLVMFuncEntry *fn;
-        if (set_arg == NULL || set_arg->type != AST_IDENTIFIER) {
-            *out = LLVMConstInt(ctx->type_i1, 0, 0);
+        set_var = llvm_collection_required_receiver_var(ctx, node, set_arg,
+            callee_name, "collection", LLVMConstInt(ctx->type_i1, 0, 0), out);
+        if (set_var == NULL)
             return true;
-        }
-        set_var = llvm_scope_lookup(ctx, set_arg->data.identifier.name);
         inner_name = llvm_lookup_set_inner(ctx, set_arg->data.identifier.name);
-        if (set_var == NULL) {
-            *out = LLVMConstInt(ctx->type_i1, 0, 0);
-            return true;
-        }
         elem_ty = llvm_collection_required_value_type(ctx, node, "Set",
             set_arg->data.identifier.name, inner_name, NULL);
         if (elem_ty == NULL) {
@@ -183,16 +216,11 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
         LLVMValueRef value;
         LLVMValueRef tmp;
         LLVMFuncEntry *fn;
-        if (set_arg == NULL || set_arg->type != AST_IDENTIFIER) {
-            *out = LLVMConstInt(ctx->type_i32, 0, 0);
+        set_var = llvm_collection_required_receiver_var(ctx, node, set_arg,
+            callee_name, "collection", LLVMConstInt(ctx->type_i32, 0, 0), out);
+        if (set_var == NULL)
             return true;
-        }
-        set_var = llvm_scope_lookup(ctx, set_arg->data.identifier.name);
         inner_name = llvm_lookup_set_inner(ctx, set_arg->data.identifier.name);
-        if (set_var == NULL) {
-            *out = LLVMConstInt(ctx->type_i32, 0, 0);
-            return true;
-        }
         elem_ty = llvm_collection_required_value_type(ctx, node, "Set",
             set_arg->data.identifier.name, inner_name, NULL);
         if (elem_ty == NULL) {
@@ -232,15 +260,10 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
         ASTNode *set_arg = node->data.call.arguments[0];
         LLVMVarEntry *set_var;
         LLVMFuncEntry *fn;
-        if (set_arg == NULL || set_arg->type != AST_IDENTIFIER) {
-            *out = LLVMConstInt(ctx->type_i32, 0, 0);
+        set_var = llvm_collection_required_receiver_var(ctx, node, set_arg,
+            callee_name, "collection", LLVMConstInt(ctx->type_i32, 0, 0), out);
+        if (set_var == NULL)
             return true;
-        }
-        set_var = llvm_scope_lookup(ctx, set_arg->data.identifier.name);
-        if (set_var == NULL) {
-            *out = LLVMConstInt(ctx->type_i32, 0, 0);
-            return true;
-        }
         fn = llvm_required_collection_function(ctx, node, callee_name,
             "pgy_set_size_raw_export");
         if (fn == NULL) {

@@ -152,6 +152,38 @@ pgy_sanitize_suffix(const char *in, char *out, size_t n)
  * Tracks `<>` depth so nested generics (`Result<Array<Int>, E>`) parse
  * correctly. Returns false if no top-level comma is found. */
 static bool
+pgy_result_type_ident_char(char c)
+{
+    return (c >= 'A' && c <= 'Z')
+        || (c >= 'a' && c <= 'z')
+        || (c >= '0' && c <= '9')
+        || c == '_';
+}
+
+static bool
+pgy_result_type_arg_has_unknown(const char *arg)
+{
+    const char *p = arg;
+    if (arg == NULL || arg[0] == '\0')
+        return true;
+    while (*p != '\0') {
+        const char *start;
+        size_t len;
+        if (!pgy_result_type_ident_char(*p)) {
+            p++;
+            continue;
+        }
+        start = p;
+        while (pgy_result_type_ident_char(*p))
+            p++;
+        len = (size_t)(p - start);
+        if (len == 7 && strncmp(start, "Unknown", 7) == 0)
+            return true;
+    }
+    return false;
+}
+
+static bool
 pgy_split_result_args(const char *inner,
                       char *ok_out, size_t ok_n,
                       char *err_out, size_t err_n)
@@ -278,6 +310,10 @@ llvm_result_suffix_from_context(LLVMGenCtx *ctx,
     if (!pgy_split_result_args(inner, ok_raw, sizeof(ok_raw),
                                err_raw, sizeof(err_raw)))
         return false;
+    if (pgy_result_type_arg_has_unknown(ok_raw)
+        || pgy_result_type_arg_has_unknown(err_raw)) {
+        return false;
+    }
 
     if (strlen(ok_raw) >= ok_n || strlen(err_raw) >= err_n)
         return false;
@@ -325,6 +361,17 @@ llvm_ensure_result_type(LLVMGenCtx *ctx,
 {
     if (ctx == NULL || ok_name == NULL || err_name == NULL)
         return NULL;
+    if (pgy_result_type_arg_has_unknown(ok_name)
+        || pgy_result_type_arg_has_unknown(err_name)) {
+        llvm_set_error_with_hints(ctx,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+            "Result<%s, %s>: cannot materialize Unknown result layout",
+            ok_name != NULL ? ok_name : "<unknown>",
+            err_name != NULL ? err_name : "<unknown>");
+        return NULL;
+    }
 
     char suffix[128];
     char combined[260];

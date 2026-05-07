@@ -91,6 +91,56 @@ llvm_required_collection_function(LLVMGenCtx *ctx,
     return fn;
 }
 
+LLVMVarEntry *
+llvm_collection_required_receiver_var(LLVMGenCtx *ctx,
+                                      ASTNode *node,
+                                      ASTNode *receiver,
+                                      const char *callee_name,
+                                      const char *collection_kind,
+                                      LLVMValueRef fallback,
+                                      LLVMValueRef *out)
+{
+    const char *kind;
+    const char *name;
+    LLVMVarEntry *var;
+
+    kind = collection_kind != NULL ? collection_kind : "collection";
+    if (receiver == NULL || receiver->type != AST_IDENTIFIER) {
+        if (ctx != NULL && !ctx->has_error) {
+            llvm_set_error_at_with_hints(ctx, node,
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                "LLVM %s operation '%s' requires an identifier receiver",
+                kind,
+                callee_name != NULL ? callee_name : "collection operation");
+        }
+        if (out != NULL)
+            *out = fallback;
+        return NULL;
+    }
+
+    name = receiver->data.identifier.name;
+    var = llvm_scope_lookup(ctx, name);
+    if (var == NULL) {
+        if (ctx != NULL && !ctx->has_error) {
+            llvm_set_error_at_with_hints(ctx, node,
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                "LLVM %s operation '%s' requires registered %s local '%s'",
+                kind,
+                callee_name != NULL ? callee_name : "collection operation",
+                kind,
+                name != NULL ? name : "<collection>");
+        }
+        if (out != NULL)
+            *out = fallback;
+        return NULL;
+    }
+    return var;
+}
+
 static LLVMTypeRef
 llvm_hashmap_key_array_type(LLVMGenCtx *ctx, const char *key_name)
 {
@@ -128,12 +178,11 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         LLVMValueRef value;
         LLVMValueRef tmp;
         LLVMFuncEntry *fn;
-        if (list_arg == NULL || list_arg->type != AST_IDENTIFIER)
-            { *out = LLVMConstInt(ctx->type_i32, 0, 0); return true; }
-        list_var = llvm_scope_lookup(ctx, list_arg->data.identifier.name);
-        inner_name = llvm_lookup_list_inner(ctx, list_arg->data.identifier.name);
+        list_var = llvm_collection_required_receiver_var(ctx, node, list_arg,
+            callee_name, "collection", LLVMConstInt(ctx->type_i32, 0, 0), out);
         if (list_var == NULL)
-            { *out = LLVMConstInt(ctx->type_i32, 0, 0); return true; }
+            return true;
+        inner_name = llvm_lookup_list_inner(ctx, list_arg->data.identifier.name);
         elem_ty = llvm_collection_required_value_type(ctx, node, "List",
             list_arg->data.identifier.name, inner_name, out);
         if (elem_ty == NULL)
@@ -172,12 +221,11 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         LLVMValueRef idx;
         LLVMValueRef tmp;
         LLVMFuncEntry *fn;
-        if (list_arg == NULL || list_arg->type != AST_IDENTIFIER)
-            { *out = LLVMConstInt(ctx->type_i32, 0, 0); return true; }
-        list_var = llvm_scope_lookup(ctx, list_arg->data.identifier.name);
-        inner_name = llvm_lookup_list_inner(ctx, list_arg->data.identifier.name);
+        list_var = llvm_collection_required_receiver_var(ctx, node, list_arg,
+            callee_name, "collection", LLVMConstInt(ctx->type_i32, 0, 0), out);
         if (list_var == NULL)
-            { *out = LLVMConstInt(ctx->type_i32, 0, 0); return true; }
+            return true;
+        inner_name = llvm_lookup_list_inner(ctx, list_arg->data.identifier.name);
         elem_ty = llvm_collection_required_value_type(ctx, node, "List",
             list_arg->data.identifier.name, inner_name, out);
         if (elem_ty == NULL)
@@ -212,12 +260,11 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         LLVMValueRef value;
         LLVMValueRef tmp;
         LLVMFuncEntry *fn;
-        if (list_arg == NULL || list_arg->type != AST_IDENTIFIER)
-            { *out = LLVMConstInt(ctx->type_i32, 0, 0); return true; }
-        list_var = llvm_scope_lookup(ctx, list_arg->data.identifier.name);
-        inner_name = llvm_lookup_list_inner(ctx, list_arg->data.identifier.name);
+        list_var = llvm_collection_required_receiver_var(ctx, node, list_arg,
+            callee_name, "collection", LLVMConstInt(ctx->type_i32, 0, 0), out);
         if (list_var == NULL)
-            { *out = LLVMConstInt(ctx->type_i32, 0, 0); return true; }
+            return true;
+        inner_name = llvm_lookup_list_inner(ctx, list_arg->data.identifier.name);
         elem_ty = llvm_collection_required_value_type(ctx, node, "List",
             list_arg->data.identifier.name, inner_name, out);
         if (elem_ty == NULL)
@@ -256,11 +303,10 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         ASTNode *list_arg = node->data.call.arguments[0];
         LLVMVarEntry *list_var;
         LLVMFuncEntry *fn;
-        if (list_arg == NULL || list_arg->type != AST_IDENTIFIER)
-            { *out = LLVMConstInt(ctx->type_i32, 0, 0); return true; }
-        list_var = llvm_scope_lookup(ctx, list_arg->data.identifier.name);
+        list_var = llvm_collection_required_receiver_var(ctx, node, list_arg,
+            callee_name, "collection", LLVMConstInt(ctx->type_i32, 0, 0), out);
         if (list_var == NULL)
-            { *out = LLVMConstInt(ctx->type_i32, 0, 0); return true; }
+            return true;
         fn = llvm_required_collection_function(ctx, node, callee_name,
             "pgy_list_size_raw_export");
         if (fn == NULL)
@@ -280,12 +326,11 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         LLVMTypeRef elem_ty;
         LLVMValueRef idx;
         LLVMFuncEntry *fn;
-        if (list_arg == NULL || list_arg->type != AST_IDENTIFIER)
-            { *out = LLVMConstInt(ctx->type_i32, 0, 0); return true; }
-        list_var = llvm_scope_lookup(ctx, list_arg->data.identifier.name);
-        inner_name = llvm_lookup_list_inner(ctx, list_arg->data.identifier.name);
+        list_var = llvm_collection_required_receiver_var(ctx, node, list_arg,
+            callee_name, "collection", LLVMConstInt(ctx->type_i32, 0, 0), out);
         if (list_var == NULL)
-            { *out = LLVMConstInt(ctx->type_i32, 0, 0); return true; }
+            return true;
+        inner_name = llvm_lookup_list_inner(ctx, list_arg->data.identifier.name);
         elem_ty = llvm_collection_required_value_type(ctx, node, "List",
             list_arg->data.identifier.name, inner_name, out);
         if (elem_ty == NULL)
@@ -318,13 +363,12 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         LLVMValueRef value;
         LLVMValueRef tmp;
         LLVMFuncEntry *fn;
-        if (map_arg == NULL || map_arg->type != AST_IDENTIFIER)
-            { *out = LLVMConstInt(ctx->type_i32, 0, 0); return true; }
-        map_var = llvm_scope_lookup(ctx, map_arg->data.identifier.name);
+        map_var = llvm_collection_required_receiver_var(ctx, node, map_arg,
+            callee_name, "HashMap", LLVMConstInt(ctx->type_i32, 0, 0), out);
+        if (map_var == NULL)
+            return true;
         key_name = llvm_lookup_map_key(ctx, map_arg->data.identifier.name);
         value_name = llvm_lookup_map_value(ctx, map_arg->data.identifier.name);
-        if (map_var == NULL)
-            { *out = LLVMConstInt(ctx->type_i32, 0, 0); return true; }
         value_ty = llvm_collection_required_value_type(ctx, node, "HashMap",
             map_arg->data.identifier.name, value_name, out);
         if (value_ty == NULL)
@@ -365,13 +409,12 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         LLVMValueRef key;
         LLVMValueRef tmp;
         LLVMFuncEntry *fn;
-        if (map_arg == NULL || map_arg->type != AST_IDENTIFIER)
-            { *out = LLVMConstInt(ctx->type_i32, 0, 0); return true; }
-        map_var = llvm_scope_lookup(ctx, map_arg->data.identifier.name);
+        map_var = llvm_collection_required_receiver_var(ctx, node, map_arg,
+            callee_name, "HashMap", LLVMConstInt(ctx->type_i32, 0, 0), out);
+        if (map_var == NULL)
+            return true;
         key_name = llvm_lookup_map_key(ctx, map_arg->data.identifier.name);
         value_name = llvm_lookup_map_value(ctx, map_arg->data.identifier.name);
-        if (map_var == NULL)
-            { *out = LLVMConstInt(ctx->type_i32, 0, 0); return true; }
         value_ty = llvm_collection_required_value_type(ctx, node, "HashMap",
             map_arg->data.identifier.name, value_name, out);
         if (value_ty == NULL)
@@ -400,13 +443,14 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         const char *key_name;
         LLVMValueRef key;
         LLVMFuncEntry *fn;
-        if (map_arg == NULL || map_arg->type != AST_IDENTIFIER)
-            { *out = LLVMConstInt(ctx->type_i1, 0, 0); return true; }
-        map_var = llvm_scope_lookup(ctx, map_arg->data.identifier.name);
+        map_var = llvm_collection_required_receiver_var(ctx, node, map_arg,
+            callee_name, "HashMap", LLVMConstInt(ctx->type_i1, 0, 0), out);
+        if (map_var == NULL)
+            return true;
         key_name = llvm_lookup_map_key(ctx, map_arg->data.identifier.name);
         key = llvm_emit_expression(node->data.call.arguments[1], ctx);
         fn = llvm_required_hashmap_raw_export(ctx, node, callee_name, "has", key_name);
-        if (map_var == NULL || key == NULL || fn == NULL)
+        if (key == NULL || fn == NULL)
             { *out = LLVMConstInt(ctx->type_i1, 0, 0); return true; }
         {
             LLVMValueRef args[] = {
@@ -425,13 +469,12 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         LLVMTypeRef value_ty;
         LLVMValueRef key;
         LLVMFuncEntry *fn;
-        if (map_arg == NULL || map_arg->type != AST_IDENTIFIER)
-            { *out = LLVMConstInt(ctx->type_i32, 0, 0); return true; }
-        map_var = llvm_scope_lookup(ctx, map_arg->data.identifier.name);
+        map_var = llvm_collection_required_receiver_var(ctx, node, map_arg,
+            callee_name, "HashMap", LLVMConstInt(ctx->type_i32, 0, 0), out);
+        if (map_var == NULL)
+            return true;
         key_name = llvm_lookup_map_key(ctx, map_arg->data.identifier.name);
         value_name = llvm_lookup_map_value(ctx, map_arg->data.identifier.name);
-        if (map_var == NULL)
-            { *out = LLVMConstInt(ctx->type_i32, 0, 0); return true; }
         value_ty = llvm_collection_required_value_type(ctx, node, "HashMap",
             map_arg->data.identifier.name, value_name, out);
         if (value_ty == NULL)
@@ -455,11 +498,10 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         ASTNode *map_arg = node->data.call.arguments[0];
         LLVMVarEntry *map_var;
         LLVMFuncEntry *fn;
-        if (map_arg == NULL || map_arg->type != AST_IDENTIFIER)
-            { *out = LLVMConstInt(ctx->type_i32, 0, 0); return true; }
-        map_var = llvm_scope_lookup(ctx, map_arg->data.identifier.name);
+        map_var = llvm_collection_required_receiver_var(ctx, node, map_arg,
+            callee_name, "HashMap", LLVMConstInt(ctx->type_i32, 0, 0), out);
         if (map_var == NULL)
-            { *out = LLVMConstInt(ctx->type_i32, 0, 0); return true; }
+            return true;
         fn = llvm_required_collection_function(ctx, node, callee_name,
             "pgy_map_size_raw_export");
         if (fn == NULL)
@@ -479,13 +521,12 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         LLVMTypeRef array_ty;
         LLVMValueRef tmp;
         LLVMFuncEntry *fn;
-        if (map_arg == NULL || map_arg->type != AST_IDENTIFIER)
-            { *out = LLVMConstNull(ctx->array_type_String); return true; }
-        map_var = llvm_scope_lookup(ctx, map_arg->data.identifier.name);
+        map_var = llvm_collection_required_receiver_var(ctx, node, map_arg,
+            callee_name, "HashMap", LLVMConstNull(ctx->array_type_String), out);
+        if (map_var == NULL)
+            return true;
         key_name = llvm_lookup_map_key(ctx, map_arg->data.identifier.name);
         array_ty = llvm_hashmap_key_array_type(ctx, key_name);
-        if (map_var == NULL)
-            { *out = LLVMConstNull(array_ty); return true; }
         tmp = llvm_create_entry_alloca(ctx, array_ty, llvm_tmp_name(ctx));
         LLVMBuildStore(ctx->builder, LLVMConstNull(array_ty), tmp);
         fn = llvm_required_hashmap_raw_export(ctx, node, callee_name, "keys", key_name);

@@ -2,6 +2,38 @@
 #define PGY_SRC_CODEGEN_TRANSPILER_TYPE_RESULT_MAPPING_HELPERS_H
 
 static bool
+transpiler_result_type_ident_char(char c)
+{
+    return (c >= 'A' && c <= 'Z')
+        || (c >= 'a' && c <= 'z')
+        || (c >= '0' && c <= '9')
+        || c == '_';
+}
+
+static bool
+transpiler_result_arg_list_has_unknown(const char *args)
+{
+    const char *p = args;
+    if (args == NULL || args[0] == '\0')
+        return true;
+    while (*p != '\0') {
+        const char *start;
+        size_t len;
+        if (!transpiler_result_type_ident_char(*p)) {
+            p++;
+            continue;
+        }
+        start = p;
+        while (transpiler_result_type_ident_char(*p))
+            p++;
+        len = (size_t)(p - start);
+        if (len == 7 && strncmp(start, "Unknown", 7) == 0)
+            return true;
+    }
+    return false;
+}
+
+static bool
 transpiler_result_suffix_from_type_name(const char *type_name,
                                         char *out, size_t out_size)
 {
@@ -26,6 +58,8 @@ transpiler_result_suffix_from_type_name(const char *type_name,
         n = sizeof(inner) - 1;
     memcpy(inner, open, n);
     inner[n] = '\0';
+    if (transpiler_result_arg_list_has_unknown(inner))
+        return false;
 
     if (strchr(inner, ',') == NULL) {
         copy_capped_string(out, out_size, inner);

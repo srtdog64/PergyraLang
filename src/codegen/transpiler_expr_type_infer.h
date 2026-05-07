@@ -335,6 +335,12 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
             if (strcmp(name, "Some") == 0 && expr->data.call.arg_count == 1) {
                 static char opt_buf[128];
                 const char *inner = infer_expression_type_name(ctx, expr->data.call.arguments[0]);
+                if (inner == NULL || inner[0] == '\0'
+                    || strcmp(inner, "Unknown") == 0) {
+                    inner = transpiler_contextual_option_inner_type_name(ctx);
+                }
+                if (inner == NULL || inner[0] == '\0')
+                    inner = "Unknown";
                 snprintf(opt_buf, sizeof(opt_buf), "Option<%s>", inner);
                 return opt_buf;
             }

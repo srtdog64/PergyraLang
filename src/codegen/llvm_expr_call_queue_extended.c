@@ -20,12 +20,11 @@ llvm_emit_queue_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         LLVMValueRef value;
         LLVMValueRef tmp;
         LLVMFuncEntry *fn;
-        if (queue_arg == NULL || queue_arg->type != AST_IDENTIFIER)
-            { *out = LLVMConstInt(ctx->type_i32, 0, 0); return true; }
-        queue_var = llvm_scope_lookup(ctx, queue_arg->data.identifier.name);
-        inner_name = llvm_lookup_queue_inner(ctx, queue_arg->data.identifier.name);
+        queue_var = llvm_collection_required_receiver_var(ctx, node, queue_arg,
+            callee_name, "queue", LLVMConstInt(ctx->type_i32, 0, 0), out);
         if (queue_var == NULL)
-            { *out = LLVMConstInt(ctx->type_i32, 0, 0); return true; }
+            return true;
+        inner_name = llvm_lookup_queue_inner(ctx, queue_arg->data.identifier.name);
         elem_ty = llvm_collection_required_value_type(ctx, node, "Queue",
             queue_arg->data.identifier.name, inner_name, out);
         if (elem_ty == NULL)
@@ -63,12 +62,11 @@ llvm_emit_queue_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         LLVMTypeRef elem_ty;
         LLVMValueRef tmp;
         LLVMFuncEntry *fn;
-        if (queue_arg == NULL || queue_arg->type != AST_IDENTIFIER)
-            { *out = LLVMConstInt(ctx->type_i32, 0, 0); return true; }
-        queue_var = llvm_scope_lookup(ctx, queue_arg->data.identifier.name);
-        inner_name = llvm_lookup_queue_inner(ctx, queue_arg->data.identifier.name);
+        queue_var = llvm_collection_required_receiver_var(ctx, node, queue_arg,
+            callee_name, "queue", LLVMConstInt(ctx->type_i32, 0, 0), out);
         if (queue_var == NULL)
-            { *out = LLVMConstInt(ctx->type_i32, 0, 0); return true; }
+            return true;
+        inner_name = llvm_lookup_queue_inner(ctx, queue_arg->data.identifier.name);
         elem_ty = llvm_collection_required_value_type(ctx, node, "Queue",
             queue_arg->data.identifier.name, inner_name, out);
         if (elem_ty == NULL)
@@ -92,11 +90,10 @@ llvm_emit_queue_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         ASTNode *queue_arg = node->data.call.arguments[0];
         LLVMVarEntry *queue_var;
         LLVMFuncEntry *fn;
-        if (queue_arg == NULL || queue_arg->type != AST_IDENTIFIER)
-            { *out = LLVMConstInt(ctx->type_i32, 0, 0); return true; }
-        queue_var = llvm_scope_lookup(ctx, queue_arg->data.identifier.name);
+        queue_var = llvm_collection_required_receiver_var(ctx, node, queue_arg,
+            callee_name, "queue", LLVMConstInt(ctx->type_i32, 0, 0), out);
         if (queue_var == NULL)
-            { *out = LLVMConstInt(ctx->type_i32, 0, 0); return true; }
+            return true;
         fn = llvm_required_collection_function(ctx, node, callee_name,
             "pgy_queue_size_raw_export");
         if (fn == NULL)
@@ -113,11 +110,10 @@ llvm_emit_queue_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         ASTNode *queue_arg = node->data.call.arguments[0];
         LLVMVarEntry *queue_var;
         LLVMFuncEntry *fn;
-        if (queue_arg == NULL || queue_arg->type != AST_IDENTIFIER)
-            { *out = LLVMConstInt(ctx->type_i1, 1, 0); return true; }
-        queue_var = llvm_scope_lookup(ctx, queue_arg->data.identifier.name);
+        queue_var = llvm_collection_required_receiver_var(ctx, node, queue_arg,
+            callee_name, "queue", LLVMConstInt(ctx->type_i1, 1, 0), out);
         if (queue_var == NULL)
-            { *out = LLVMConstInt(ctx->type_i1, 1, 0); return true; }
+            return true;
         fn = llvm_required_collection_function(ctx, node, callee_name,
             "pgy_queue_empty_raw_export");
         if (fn == NULL)

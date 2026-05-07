@@ -90,15 +90,35 @@ transpiler_register_explicit_local_bindings_in_block(TranspilerCtx *ctx,
         }
         if (stmt->type == AST_WITH_STMT && stmt->data.with_stmt.alias != NULL) {
             char *inner = render_type_name(stmt->data.with_stmt.slot_type);
-            if (inner == NULL || inner[0] == '\0') {
+            if (inner == NULL || inner[0] == '\0'
+                || strcmp(inner, "Unknown") == 0) {
+                if (ctx->backend_error == NULL) {
+                    transpiler_set_backend_error_with_hints(ctx,
+                        PGY_CODE_C_TYPE_UNSUPPORTED,
+                        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                        PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                        "C MIR with-slot alias '%s' requires concrete slot type metadata",
+                        stmt->data.with_stmt.alias);
+                }
                 free(inner);
                 continue;
             }
             char *slot_type = strdup_fmt("%s<%s>",
                 stmt->data.with_stmt.is_secure ? "SecureSlot" : "Slot",
                 inner);
-            register_typed_var(ctx, stmt->data.with_stmt.alias,
-                slot_type != NULL ? slot_type : "Slot<Unknown>");
+            if (slot_type == NULL) {
+                if (ctx->backend_error == NULL) {
+                    transpiler_set_backend_error_with_hints(ctx,
+                        PGY_CODE_C_TYPE_UNSUPPORTED,
+                        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                        PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                        "C MIR with-slot alias '%s' cannot synthesize slot type metadata",
+                        stmt->data.with_stmt.alias);
+                }
+                free(inner);
+                continue;
+            }
+            register_typed_var(ctx, stmt->data.with_stmt.alias, slot_type);
             register_slot_var(ctx, stmt->data.with_stmt.alias,
                 inner,
                 stmt->data.with_stmt.is_secure, false);

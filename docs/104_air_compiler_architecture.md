@@ -19,8 +19,9 @@ It then prints evidence counters, intent nodes, boundary nodes, legacy
 per-boundary evidence flags, and first-class `AIREvidenceNode` provenance.
 Current first-class evidence node kinds are `hir_routine`, `hir_cfg`,
 `rir_boundary`, `rir_authority`, `mir_cleanup`, `mir_pin_cleanup`,
-`dag_metadata`, `dag_generic`, `dag_ability`, `rir_effect_propagation`,
-`rir_relation_propagation`, and `observability_schema`.
+`mir_terminator`, `mir_select_receive`, `dag_metadata`, `dag_generic`,
+`dag_ability`, `rir_effect_propagation`, `rir_relation_propagation`, and
+`observability_schema`.
 
 2026-05-02 debt status:
 

@@ -152,12 +152,64 @@ test_expression_emit(void)
         transpiler_ctx_destroy(ctx);
     }
 
+    TEST("Some(value) without concrete payload type emits diagnostic recovery");
+    {
+        ctx = transpiler_ctx_create();
+        ASTNode *args[1] = { make_identifier("value", 1) };
+        result = emit_expression(make_call("Some", args, 1, 1), ctx);
+        EXPECT(strcmp(result, "0") == 0);
+        EXPECT(ctx->backend_error != NULL);
+        EXPECT_STR_CONTAINS(ctx->backend_error,
+                            "Some requires concrete payload type");
+        free(result);
+        transpiler_ctx_destroy(ctx);
+    }
+
     TEST("None() without contextual Option<T> emits diagnostic recovery");
     {
         ctx = transpiler_ctx_create();
         result = emit_expression(make_call("None", NULL, 0, 1), ctx);
         EXPECT(strcmp(result, "0") == 0);
         EXPECT(ctx->backend_error != NULL);
+        free(result);
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("IsSome(None()) without concrete Option<T> emits diagnostic recovery");
+    {
+        ctx = transpiler_ctx_create();
+        ASTNode *args[1] = { make_call("None", NULL, 0, 1) };
+        result = emit_expression(make_call("IsSome", args, 1, 1), ctx);
+        EXPECT(strcmp(result, "false") == 0);
+        EXPECT(ctx->backend_error != NULL);
+        EXPECT_STR_CONTAINS(ctx->backend_error,
+                            "IsSome requires concrete Option<T>");
+        free(result);
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("Ok(value) with unknown Result payload emits diagnostic recovery");
+    {
+        ctx = transpiler_ctx_create();
+        ctx->expected_type = "Result<Unknown, NetError>";
+        ASTNode *args[1] = { make_number(42, 1) };
+        result = emit_expression(make_call("Ok", args, 1, 1), ctx);
+        EXPECT(strcmp(result, "0") == 0);
+        EXPECT(ctx->backend_error != NULL);
+        EXPECT_STR_CONTAINS(ctx->backend_error,
+                            "cannot derive Result<T, E> specialization");
+        free(result);
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("Result suffix keeps user type names containing Unknown");
+    {
+        ctx = transpiler_ctx_create();
+        ctx->expected_type = "Result<MyUnknownType, NetError>";
+        ASTNode *args[1] = { make_number(42, 1) };
+        result = emit_expression(make_call("Ok", args, 1, 1), ctx);
+        EXPECT(strcmp(result, "Ok_MyUnknownType_NetError(42)") == 0);
+        EXPECT(ctx->backend_error == NULL);
         free(result);
         transpiler_ctx_destroy(ctx);
     }

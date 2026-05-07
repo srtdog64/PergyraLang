@@ -21,6 +21,51 @@ English anchor for tooling/doc gates:
 
 Progress log, 2026-05-04:
 
+- Removed another anonymous backend specialization fallback:
+  LLVM `Some(value)` now requires contextual `Option<T>` layout just like
+  `None()`, instead of synthesizing an ad-hoc `{ tag, LLVMTypeOf(value) }`
+  struct. This keeps C/LLVM parity aligned with the concrete Option policy and
+  prevents value-type-only inference from silently defining a backend-local
+  Option layout. The perf contract now gates the diagnostic string. Gates:
+  `llvm-test-smoke`.
+- Hardened LLVM Result/Option consumers against malformed operands:
+  `IsOk` / `IsErr` / `Unwrap` / `UnwrapOr` and
+  `IsSome` / `IsNone` / `UnwrapOption` now validate aggregate shape before
+  `extractvalue`. Non-aggregate drift is reported as a structured LLVM type
+  diagnostic instead of reaching backend IR builder failure paths. Gates:
+  `llvm-test-smoke`.
+- Reordered LLVM Result/Option constructors to be context-first:
+  `Ok`, `Err`, and `Some` now validate the contextual `Result<T,E>` /
+  `Option<T>` layout before emitting the payload expression. This matches the
+  C backend's concrete-specialization policy and avoids producing partial IR
+  on rejected anonymous constructor calls. Gates: `llvm-test-smoke`.
+- Removed LLVM collection-constructor implicit `i32` fallback:
+  expression-level `ListNew()` and `SetNew()` now require contextual
+  `List<T>` / `Set<T>` metadata and use that concrete element type for raw
+  runtime initialization. Missing context now produces a structured LLVM type
+  diagnostic instead of allocating an `i32` placeholder or probing struct
+  layout on a non-struct type. Gates: `llvm-test-smoke`.
+- Started replacing LLVM collection-operation silent receiver fallbacks:
+  List operations now share `llvm_collection_required_receiver_var(...)`, so a
+  non-identifier receiver or missing collection local reports a structured LLVM
+  diagnostic instead of returning `0` as if the operation succeeded. Gates:
+  `llvm-test-smoke`, `test-inc-size-test-smoke`.
+- Extended the same structured receiver check to LLVM Set operations:
+  `SetAdd`, `SetHas`, `SetRemove`, and `SetSize` now reject invalid receivers
+  or missing set locals through the same shared receiver helper instead of
+  silently producing `0`/`false`. Gates: `llvm-test-smoke`,
+  `test-inc-size-test-smoke`.
+- Extended receiver validation to LLVM Queue operations:
+  `QueuePush`, `QueuePop`, `QueueSize`, and `QueueEmpty` now use the shared
+  receiver helper with a `queue` kind label, so invalid receivers and missing
+  queue locals are structured diagnostics instead of silent `0` / `true`
+  fallbacks. Gates:
+  `llvm-test-smoke`, `test-inc-size-test-smoke`.
+- Reused the LLVM collection receiver helper for HashMap operations:
+  `MapSet`, `MapGet`, `MapHas`, `MapRemove`, `MapSize`, and `MapKeys` now reject
+  invalid receivers or missing map locals through the same structured
+  diagnostic path instead of returning empty values as if the operation had
+  succeeded. Gates: `llvm-test-smoke`, `test-inc-size-test-smoke`.
 - Added structured LLVM preflight result diagnostics for
   `llvm_validate_mir_for_codegen(...)`: null MIR programs, nameless routines,
   and MIR emission-topology failures now return `LLVMGenResult` with
@@ -188,6 +233,25 @@ Progress log, 2026-05-04:
   `air-json-schema-test-smoke` with a real select receive fixture,
   `test-inc-size-test-smoke`,
   `build-source-inventory-test-smoke`, and `llvm-test-smoke`.
+- Removed C backend anonymous `Option<Unknown>` specializations:
+  `Some(value)` now first uses the payload's concrete type, then contextual
+  `Option<T>` payload type, and otherwise emits a structured diagnostic
+  recovery instead of generating `Some_Unknown(...)`. `IsSome` / `IsNone` /
+  `UnwrapOption` now also require concrete `Option<T>` inner metadata instead
+  of accepting `Option<Unknown>`, and C type inference now also uses contextual
+  `Option<T>` inner metadata when inferring `Some(...)`. The perf contract
+  gates the shared helper, contextual inference hook, and regression fixtures.
+  The same pass now rejects `Result<Unknown, ...>` suffix derivation before
+  `Ok` / `Err` can generate anonymous result specializations, using exact
+  identifier-token matching so user type names such as `MyUnknownType` remain
+  valid. LLVM result layout materialization now mirrors the same exact-token
+  `Unknown` rejection before creating named `PgyResult_*` layouts. Gates:
+  `test-transpile` (`740/0`), `llvm-test-smoke`, and
+  `perf-contract-test-smoke`.
+- Removed the C MIR explicit-local prepass `Slot<Unknown>` fallback for
+  `with slot` aliases. If the alias slot type cannot be rendered as concrete
+  metadata, the prepass now records a structured C backend diagnostic and does
+  not register an anonymous slot type. Gate: `perf-contract-test-smoke`.
 - Fixed a C/LLVM select-dispatch parity edge: when LLVM cannot materialize a
   select readiness condition from the case source or target receive DEF, it now
   falls back to `false` like the C backend instead of taking the true branch by

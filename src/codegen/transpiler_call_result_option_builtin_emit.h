@@ -1,6 +1,18 @@
 #ifndef PGY_SRC_CODEGEN_TRANSPILER_CALL_RESULT_OPTION_BUILTIN_EMIT_H
 #define PGY_SRC_CODEGEN_TRANSPILER_CALL_RESULT_OPTION_BUILTIN_EMIT_H
 
+static bool
+transpiler_option_type_has_concrete_inner(const char *opt_type)
+{
+    const char *inner = NULL;
+    if (opt_type == NULL || strncmp(opt_type, "Option<", 7) != 0)
+        return false;
+    inner = slot_inner_type_name(opt_type);
+    return inner != NULL
+        && inner[0] != '\0'
+        && strcmp(inner, "Unknown") != 0;
+}
+
 static char *
 emit_call_result_option_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
 {
@@ -77,6 +89,20 @@ emit_call_result_option_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *c
         if (strcmp(fn, "Some") == 0 && call->data.call.arg_count == 1) {
             char *arg = emit_expression(call->data.call.arguments[0], ctx);
             const char *inner = infer_expression_type_name(ctx, call->data.call.arguments[0]);
+            if (inner == NULL || inner[0] == '\0'
+                || strcmp(inner, "Unknown") == 0) {
+                inner = transpiler_contextual_option_inner_type_name(ctx);
+            }
+            if (inner == NULL || inner[0] == '\0'
+                || strcmp(inner, "Unknown") == 0) {
+                free(arg);
+                transpiler_set_backend_error_with_hints(ctx,
+                    PGY_CODE_C_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                    PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                    "Some requires concrete payload type during C emission");
+                return pergyra_strdup("0");
+            }
             char *result = strdup_fmt("Some_%s(%s)", inner, arg);
             free(arg);
             return result;
@@ -86,12 +112,12 @@ emit_call_result_option_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *c
         }
         if (strcmp(fn, "IsSome") == 0 && call->data.call.arg_count == 1) {
             const char *opt_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
-            if (opt_type == NULL || strncmp(opt_type, "Option<", 7) != 0) {
+            if (!transpiler_option_type_has_concrete_inner(opt_type)) {
                 transpiler_set_backend_error_with_hints(ctx,
                     PGY_CODE_C_TYPE_UNSUPPORTED,
                     PGY_CAUSE_C_TYPE_UNSUPPORTED,
-                    PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
-                    "C backend: IsSome requires Option<T>; inferred '%s'",
+                    PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                    "C backend: IsSome requires concrete Option<T>; inferred '%s'",
                     opt_type != NULL ? opt_type : "<unknown>");
                 return pergyra_strdup("false");
             }
@@ -103,12 +129,12 @@ emit_call_result_option_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *c
         }
         if (strcmp(fn, "IsNone") == 0 && call->data.call.arg_count == 1) {
             const char *opt_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
-            if (opt_type == NULL || strncmp(opt_type, "Option<", 7) != 0) {
+            if (!transpiler_option_type_has_concrete_inner(opt_type)) {
                 transpiler_set_backend_error_with_hints(ctx,
                     PGY_CODE_C_TYPE_UNSUPPORTED,
                     PGY_CAUSE_C_TYPE_UNSUPPORTED,
-                    PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
-                    "C backend: IsNone requires Option<T>; inferred '%s'",
+                    PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                    "C backend: IsNone requires concrete Option<T>; inferred '%s'",
                     opt_type != NULL ? opt_type : "<unknown>");
                 return pergyra_strdup("false");
             }
@@ -120,12 +146,12 @@ emit_call_result_option_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *c
         }
         if (strcmp(fn, "UnwrapOption") == 0 && call->data.call.arg_count == 1) {
             const char *opt_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
-            if (opt_type == NULL || strncmp(opt_type, "Option<", 7) != 0) {
+            if (!transpiler_option_type_has_concrete_inner(opt_type)) {
                 transpiler_set_backend_error_with_hints(ctx,
                     PGY_CODE_C_TYPE_UNSUPPORTED,
                     PGY_CAUSE_C_TYPE_UNSUPPORTED,
-                    PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
-                    "C backend: UnwrapOption requires Option<T>; inferred '%s'",
+                    PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                    "C backend: UnwrapOption requires concrete Option<T>; inferred '%s'",
                     opt_type != NULL ? opt_type : "<unknown>");
                 return pergyra_strdup("0");
             }
