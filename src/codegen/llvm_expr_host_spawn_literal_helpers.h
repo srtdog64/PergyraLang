@@ -3,7 +3,7 @@
 
 #include "llvm_internal.h"
 
-LLVMValueRef llvm_emit_projection_from_binding(LLVMGenCtx *ctx,
+LLVMValueRef llvm_emit_projection_from_binding(ASTNode *node, LLVMGenCtx *ctx,
                                                const char *target_class_name,
                                                const char *source_name);
 

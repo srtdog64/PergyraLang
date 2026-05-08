@@ -6,4 +6,7 @@
 bool mir_block_has_cleanup_edge_fact(const MIRBasicBlock *block,
                                      const char *edge_name);
 
+bool mir_block_has_expected_cleanup_edge_fact(const MIRRoutine *routine,
+                                              size_t block_index);
+
 #endif

@@ -1,11 +1,31 @@
 #include "hir_analysis.h"
 
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
 static bool
+hir_analysis_next_capacity(size_t *capacity, size_t initial, size_t elem_size)
+{
+    if (capacity == NULL || initial == 0 || elem_size == 0)
+        return false;
+
+    size_t current = *capacity;
+    size_t next_capacity = current == 0 ? initial : current * 2;
+    if (current != 0 && next_capacity < current)
+        return false;
+    if (next_capacity > SIZE_MAX / elem_size)
+        return false;
+
+    *capacity = next_capacity;
+    return true;
+}
+
+static bool
 append_call_name(const char ***names, size_t *count, size_t *capacity, const char *name)
 {
+    if (names == NULL || count == NULL || capacity == NULL)
+        return false;
     if (name == NULL || *name == '\0')
         return true;
 
@@ -15,7 +35,9 @@ append_call_name(const char ***names, size_t *count, size_t *capacity, const cha
     }
 
     if (*count == *capacity) {
-        size_t next_capacity = *capacity == 0 ? 8 : *capacity * 2;
+        size_t next_capacity = *capacity;
+        if (!hir_analysis_next_capacity(&next_capacity, 8, sizeof(const char *)))
+            return false;
         const char **grown = realloc((void *)*names, next_capacity * sizeof(const char *));
         if (grown == NULL)
             return false;

@@ -440,6 +440,83 @@ test_air_collects_hir_and_rir_evidence(void)
 }
 
 static bool
+test_air_collects_all_rir_authority_evidence(void)
+{
+    DIRNode nodes[] = {
+        { .id = 1, .kind = DIR_NODE_INTENT, .name = "ShipOrder", .ast = NULL },
+    };
+    const char *authorized_by[] = { "shipper", "auditor" };
+    DIRIntentStep steps[] = {
+        {
+            .index = 0,
+            .name = "reserve",
+            .where_type_name = "WarehouseZone",
+            .authorized_by = authorized_by,
+            .authorized_by_count = 2,
+        },
+    };
+    DIRIntentInfo intents[] = {
+        { .node_id = 1, .steps = steps, .step_count = 1 },
+    };
+    DIRProgram dir = {
+        .nodes = nodes,
+        .node_count = 1,
+        .intents = intents,
+        .intent_count = 1,
+    };
+    RIRFact facts[] = {
+        {
+            .kind = RIR_FACT_AUTHORITY,
+            .name = "shipper",
+            .resource_kind = RIR_RESOURCE_AUTHORITY_HANDLE,
+            .state = RIR_STATE_AUTHORIZED,
+        },
+        {
+            .kind = RIR_FACT_AUTHORITY,
+            .name = "auditor",
+            .resource_kind = RIR_RESOURCE_AUTHORITY_HANDLE,
+            .state = RIR_STATE_AUTHORIZED,
+        },
+    };
+    RIRScope scopes[] = {
+        {
+            .kind = RIR_SCOPE_ZONE,
+            .owner_name = "ShipOrder",
+            .name = "WarehouseZone",
+            .facts = facts,
+            .fact_count = 2,
+        },
+    };
+    RIRProgram rir = {
+        .scopes = scopes,
+        .scope_count = 1,
+    };
+    char *error = NULL;
+    AIRProgram *air = air_synthesize(NULL, &dir, &rir, &error);
+    bool has_shipper = false;
+    bool has_auditor = false;
+    if (air != NULL) {
+        for (size_t i = 0; i < air->evidence_count; i++) {
+            const AIREvidenceNode *evidence = &air->evidence_nodes[i];
+            if (evidence->kind != AIR_EVIDENCE_RIR_AUTHORITY)
+                continue;
+            has_shipper = has_shipper
+                || strcmp(evidence->subject_name, "shipper") == 0;
+            has_auditor = has_auditor
+                || strcmp(evidence->subject_name, "auditor") == 0;
+        }
+    }
+    bool ok = air != NULL
+        && air->drift_count == 0
+        && air->rir_authority_evidence_count == 2
+        && has_shipper
+        && has_auditor;
+    air_destroy(air);
+    free(error);
+    return ok;
+}
+
+static bool
 test_air_rejects_mismatched_authority_evidence(void)
 {
     DIRNode nodes[] = {
@@ -519,6 +596,77 @@ test_air_rejects_mismatched_authority_evidence(void)
         && air->drift_count >= 1
         && found;
     air_destroy(air);
+    free(error);
+    return ok;
+}
+
+static bool
+test_air_requires_all_authority_participant_evidence(void)
+{
+    AIRIntentNode intents[] = {
+        {
+            .intent_owner = "ShipOrder",
+            .step_name = "reserve",
+            .step_index = 0,
+            .sync_class = AIR_SYNC_SYNC,
+            .failure_class = AIR_FAILURE_RECOVERABLE,
+        },
+    };
+    const char *authority_names[] = { "shipper", "auditor" };
+    AIRBoundaryNode boundaries[] = {
+        {
+            .kind = AIR_BOUNDARY_ZONE,
+            .owner_name = "ShipOrder",
+            .source_name = "WarehouseZone",
+            .intent_index = 0,
+            .step_index = 0,
+            .sync_class = AIR_SYNC_SYNC,
+            .authority_required = true,
+            .authority_names = authority_names,
+            .authority_name_count = 2,
+            .has_rir_boundary_evidence = true,
+            .rir_boundary_evidence_scope = "WarehouseZone",
+            .has_rir_authority_evidence = true,
+            .rir_authority_evidence_name = "shipper",
+        },
+    };
+    AIREvidenceNode evidence_nodes[] = {
+        {
+            .kind = AIR_EVIDENCE_RIR_BOUNDARY,
+            .boundary_index = 0,
+            .provider_name = "WarehouseZone",
+            .subject_name = "WarehouseZone",
+            .fact_count = 1,
+        },
+        {
+            .kind = AIR_EVIDENCE_RIR_AUTHORITY,
+            .boundary_index = 0,
+            .provider_name = "WarehouseZone",
+            .subject_name = "shipper",
+            .fact_count = 1,
+        },
+    };
+    AIRProgram air = {
+        .intents = intents,
+        .intent_count = 1,
+        .boundaries = boundaries,
+        .boundary_count = 1,
+        .evidence_nodes = evidence_nodes,
+        .evidence_count = 2,
+        .strict_evidence = true,
+        .has_rir_input = true,
+    };
+    char *error = NULL;
+    bool verified = air_verify(&air, &error);
+    bool ok = verified
+        && error == NULL
+        && air.drift_count == 1
+        && air.drifts[0].kind == AIR_DRIFT_BOUNDARY_EVIDENCE_MISSING
+        && strstr(air.drifts[0].message, "participant 'auditor'") != NULL
+        && strstr(air.drifts[0].message, "shipper, auditor") != NULL
+        && strstr(air.drifts[0].message,
+                  "every authorized participant") != NULL;
+    test_air_clear_stack_drifts(&air);
     free(error);
     return ok;
 }

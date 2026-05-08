@@ -6,6 +6,7 @@
  */
 
 #include <string.h>
+#include <stdlib.h>
 
 #include "codegen_slot_type_policy.h"
 
@@ -148,22 +149,29 @@ typedef struct PgyCodegenClaimSlotSpec {
     PgyCodegenClaimSlotKind kind;
 } PgyCodegenClaimSlotSpec;
 
+static int
+pgy_codegen_claim_slot_spec_compare(const void *key, const void *entry)
+{
+    return strcmp((const char *)key,
+                  ((const PgyCodegenClaimSlotSpec *)entry)->name);
+}
+
 static const PgyCodegenClaimSlotSpec *
 pgy_codegen_claim_slot_spec(const char *name)
 {
     static const PgyCodegenClaimSlotSpec specs[] = {
-        {"ClaimSlot", "Slot", PGY_CODEGEN_CLAIM_SLOT},
-        {"ClaimSecureSlot", "SecureSlot", PGY_CODEGEN_CLAIM_SECURE_SLOT},
         {"ClaimDeviceSlot", "DeviceSlot", PGY_CODEGEN_CLAIM_DEVICE_SLOT},
+        {"ClaimSecureSlot", "SecureSlot", PGY_CODEGEN_CLAIM_SECURE_SLOT},
+        {"ClaimSlot", "Slot", PGY_CODEGEN_CLAIM_SLOT},
     };
 
     if (name == NULL)
         return NULL;
-    for (size_t i = 0; i < sizeof(specs) / sizeof(specs[0]); i++) {
-        if (strcmp(name, specs[i].name) == 0)
-            return &specs[i];
-    }
-    return NULL;
+    return bsearch(name,
+                   specs,
+                   sizeof(specs) / sizeof(specs[0]),
+                   sizeof(specs[0]),
+                   pgy_codegen_claim_slot_spec_compare);
 }
 
 bool

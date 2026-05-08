@@ -435,6 +435,8 @@ llvm_mir_declare_recv_target(const char *target_name,
     }
 
     value_ty = pergyra_type_to_llvm(ctx, inner);
+    if (ctx->has_error || value_ty == NULL)
+        return false;
     alloca_val = llvm_create_entry_alloca(ctx, value_ty, target_name);
     llvm_scope_declare(ctx, pergyra_strdup(target_name), alloca_val, value_ty);
     return true;

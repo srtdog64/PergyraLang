@@ -118,7 +118,7 @@ mir_stmt_population_is_semantic_carrier(const MIRInstruction *inst)
 {
     if (inst == NULL || inst->kind != MIR_INST_STMT || inst->name == NULL)
         return false;
-    return strncmp(inst->name, "Intent", 6) == 0;
+    return mir_instruction_is_intent_semantic_carrier(inst);
 }
 
 void

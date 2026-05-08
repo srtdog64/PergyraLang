@@ -424,9 +424,6 @@ bool llvm_intent_involves_uses_pointer_self(LLVMGenCtx *ctx, ASTNode *involves);
 /* =================================================================
  * Emitters -- domain (llvm_domain.c)
  * ================================================================= */
-const MIRRoutine *llvm_find_mir_method_routine_local(const LLVMGenCtx *ctx,
-                                                     const char *owner_name,
-                                                     ASTNode *method);
 bool llvm_param_is_implicit_self_local(const FuncParam *param);
 const char *llvm_operator_suffix(PgyTokenType op);
 bool llvm_operator_method_name_matches(PgyTokenType op, const char *name);

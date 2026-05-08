@@ -1,6 +1,8 @@
 #ifndef PGY_TRANSPILER_FUNC_FORWARD_HELPERS_H
 #define PGY_TRANSPILER_FUNC_FORWARD_HELPERS_H
 
+#include "../common/string_compat.h"
+
 static char *
 infer_spawn_return_type_name(TranspilerCtx *ctx, ASTNode *spawn_expr)
 {
@@ -70,7 +72,7 @@ lookup_future_inner_type(TranspilerCtx *ctx, ASTNode *expr)
     if (expr->type == AST_SPAWN_EXPR) {
         char *inner = infer_spawn_return_type_name(ctx, expr);
         static char buf[128];
-        snprintf(buf, sizeof(buf), "%s", inner);
+        pergyra_str_copy(buf, sizeof(buf), inner);
         free(inner);
         return buf;
     }
@@ -89,7 +91,7 @@ pergyra_ast_type_to_c(ASTNode *type_node)
         return "void *";
 
     char *type_name = render_type_name(type_node);
-    snprintf(mapped, sizeof(mapped), "%s", pergyra_type_to_c(type_name));
+    pergyra_str_copy(mapped, sizeof(mapped), pergyra_type_to_c(type_name));
     free(type_name);
     return mapped;
 }
@@ -128,8 +130,8 @@ infer_generic_call_bindings(TranspilerCtx *ctx, ASTNode *decl, ASTNode *call,
     for (size_t i = 0; i < generic_count; i++) {
         GenericParam *param = decl->data.func_decl.generic_params->params[i];
         if (param != NULL && param->name != NULL) {
-            strncpy(bindings[i].name, param->name, sizeof(bindings[i].name) - 1);
-            bindings[i].name[sizeof(bindings[i].name) - 1] = '\0';
+            pergyra_str_copy(bindings[i].name,
+                sizeof(bindings[i].name), param->name);
         }
     }
 
@@ -153,9 +155,8 @@ infer_generic_call_bindings(TranspilerCtx *ctx, ASTNode *decl, ASTNode *call,
             return false;
         }
 
-        strncpy(bindings[generic_index].concrete_type, arg_type,
-            sizeof(bindings[generic_index].concrete_type) - 1);
-        bindings[generic_index].concrete_type[sizeof(bindings[generic_index].concrete_type) - 1] = '\0';
+        pergyra_str_copy(bindings[generic_index].concrete_type,
+            sizeof(bindings[generic_index].concrete_type), arg_type);
     }
 
     for (size_t i = 0; i < generic_count; i++) {

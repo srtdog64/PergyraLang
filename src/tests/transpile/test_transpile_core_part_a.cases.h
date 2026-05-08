@@ -105,6 +105,21 @@ test_type_mapping(void)
     TEST("Box<Array<Int>> -> PgyBoxArray_Int");
     EXPECT(strcmp(pergyra_type_to_c("Box<Array<Int>>"), "PgyBoxArray_Int") == 0);
 
+    TEST("Array<Unknown> keeps Unknown sentinel");
+    EXPECT(strcmp(pergyra_type_to_c("Array<Unknown>"), "Unknown") == 0);
+
+    TEST("Array<Unknown > keeps Unknown sentinel");
+    EXPECT(strcmp(pergyra_type_to_c("Array<Unknown >"), "Unknown") == 0);
+
+    TEST("HashMap<String, Unknown> keeps Unknown sentinel");
+    EXPECT(strcmp(pergyra_type_to_c("HashMap<String, Unknown>"), "Unknown") == 0);
+
+    TEST("Box<Array<Unknown>> keeps Unknown sentinel");
+    EXPECT(strcmp(pergyra_type_to_c("Box<Array<Unknown>>"), "Unknown") == 0);
+
+    TEST("Box<Array<UnknownError>> keeps user type name");
+    EXPECT(strcmp(pergyra_type_to_c("Box<Array<UnknownError>>"), "PgyBoxArray_UnknownError") == 0);
+
     TEST("slot_inner_type_name(Slot<Float>) -> Float");
     EXPECT(strcmp(slot_inner_type_name("Slot<Float>"), "Float") == 0);
 

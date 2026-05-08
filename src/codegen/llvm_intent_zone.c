@@ -148,6 +148,8 @@ llvm_emit_intent_step_bind_bound_zone(LLVMGenCtx *ctx,
 
                 participant_ptr_type = participant_var->type;
                 participant_value_type = pergyra_type_to_llvm(ctx, participant_type_name);
+                if (ctx->has_error || participant_value_type == NULL)
+                    return;
                 participant_ptr = LLVMBuildLoad2(ctx->builder, participant_ptr_type, participant_var->alloca,
                     llvm_tmp_name(ctx));
                 participant_value = LLVMBuildLoad2(ctx->builder, participant_value_type, participant_ptr,
@@ -251,6 +253,8 @@ llvm_emit_intent_step_bind_bound_zone(LLVMGenCtx *ctx,
 
             participant_ptr_type = participant_var->type;
             participant_value_type = pergyra_type_to_llvm(ctx, participant_type_name);
+            if (ctx->has_error || participant_value_type == NULL)
+                return;
             participant_ptr = LLVMBuildLoad2(ctx->builder, participant_ptr_type, participant_var->alloca,
                 llvm_tmp_name(ctx));
             participant_value = LLVMBuildLoad2(ctx->builder, participant_value_type, participant_ptr,
@@ -452,6 +456,8 @@ llvm_emit_intent_step_restore_bound_zone_aliases(LLVMGenCtx *ctx,
 
         participant_ptr_type = participant_var->type;
         participant_value_type = pergyra_type_to_llvm(ctx, participant_type_name);
+        if (ctx->has_error || participant_value_type == NULL)
+            return;
         zone_bound_ptr = LLVMBuildLoad2(ctx->builder, participant_ptr_type, participant_var->alloca,
             llvm_tmp_name(ctx));
         zone_bound_value = LLVMBuildLoad2(ctx->builder, participant_value_type, zone_bound_ptr,

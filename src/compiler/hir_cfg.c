@@ -1,7 +1,25 @@
 #include "hir_cfg_internal.h"
 
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+
+static bool
+hir_cfg_next_capacity(size_t *capacity, size_t initial, size_t elem_size)
+{
+    if (capacity == NULL || initial == 0 || elem_size == 0)
+        return false;
+
+    size_t current = *capacity;
+    size_t next_capacity = current == 0 ? initial : current * 2;
+    if (current != 0 && next_capacity < current)
+        return false;
+    if (next_capacity > SIZE_MAX / elem_size)
+        return false;
+
+    *capacity = next_capacity;
+    return true;
+}
 
 static bool
 hir_cfg_append_index_unique(size_t **items, size_t *count, size_t *capacity, size_t value)
@@ -12,7 +30,9 @@ hir_cfg_append_index_unique(size_t **items, size_t *count, size_t *capacity, siz
     }
 
     if (*count == *capacity) {
-        size_t next_capacity = *capacity == 0 ? 4 : *capacity * 2;
+        size_t next_capacity = *capacity;
+        if (!hir_cfg_next_capacity(&next_capacity, 4, sizeof(size_t)))
+            return false;
         size_t *grown = realloc(*items, next_capacity * sizeof(size_t));
         if (grown == NULL)
             return false;
@@ -38,7 +58,9 @@ hir_cfg_append_name_unique(const char ***names,
     }
 
     if (*count == *capacity) {
-        size_t next_capacity = *capacity == 0 ? 4 : *capacity * 2;
+        size_t next_capacity = *capacity;
+        if (!hir_cfg_next_capacity(&next_capacity, 4, sizeof(const char *)))
+            return false;
         const char **grown = realloc((void *)*names, next_capacity * sizeof(const char *));
         if (grown == NULL)
             return false;

@@ -423,8 +423,12 @@ compiler_text = "\n".join([
     (root / "src" / "compiler" / "compiler_runtime_cache.c").read_text(encoding="utf-8"),
 ])
 for token in [
+    'PGY_SRC_DIR "/common/string_compat.h"',
     'PGY_RUNTIME_DIR "/pgy_runtime_lib_slot_array_io_string_exports.h"',
     'PGY_RUNTIME_DIR "/pgy_runtime_builtin_storage_inline.h"',
+    'PGY_RUNTIME_DIR "/pgy_runtime_scalar_std_inline.h"',
+    'PGY_RUNTIME_DIR "/pgy_runtime_map_int_key_inline.h"',
+    'PGY_RUNTIME_DIR "/pgy_runtime_queue_inline.h"',
 ]:
     if token not in compiler_text:
         raise SystemExit(f"LLVM runtime cache freshness missing split runtime dependency {token}")

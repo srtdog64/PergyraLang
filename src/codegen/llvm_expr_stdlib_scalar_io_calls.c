@@ -7,6 +7,22 @@
 #include "llvm_expr_string_coerce.h"
 #include "llvm_internal_api.h"
 
+static LLVMValueRef
+llvm_stdlib_error_value(ASTNode *node, LLVMGenCtx *ctx,
+                        const char *callee_name, const char *message)
+{
+    if (ctx != NULL && !ctx->has_error) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+            "LLVM stdlib call '%s' %s",
+            callee_name != NULL ? callee_name : "<anonymous>",
+            message != NULL ? message : "could not lower its argument");
+    }
+    return NULL;
+}
+
 static bool
 llvm_emit_required_runtime_call_result(ASTNode *node, LLVMGenCtx *ctx,
                                        const char *family_name,
@@ -18,11 +34,14 @@ llvm_emit_required_runtime_call_result(ASTNode *node, LLVMGenCtx *ctx,
     LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
         family_name, callee_name, runtime_name);
     if (fn == NULL) {
-        *out_result = LLVMConstInt(ctx->type_i32, 0, 0);
+        *out_result = NULL;
         return true;
     }
     *out_result = llvm_emit_function_call_args(ctx, fn,
         node->data.call.arguments, arg_count);
+    if (*out_result == NULL)
+        *out_result = llvm_stdlib_error_value(node, ctx, callee_name,
+            "could not lower runtime call arguments");
     return true;
 }
 
@@ -39,6 +58,11 @@ llvm_emit_stdlib_string_file_call(ASTNode *node, LLVMGenCtx *ctx,
         LLVMFuncEntry *strlen_fn = llvm_lookup_function(ctx, "strlen");
         LLVMValueRef args[] = { s };
         LLVMValueRef len;
+        if (s == NULL) {
+            *out_result = llvm_stdlib_error_value(node, ctx, callee_name,
+                "could not lower string argument");
+            return true;
+        }
         if (strlen_fn == NULL) {
             LLVMTypeRef params[] = { ctx->type_i8ptr };
             LLVMTypeRef ft = LLVMFunctionType(ctx->type_i64, params, 1, 0);
@@ -110,7 +134,15 @@ llvm_emit_stdlib_string_file_call(ASTNode *node, LLVMGenCtx *ctx,
     if (strcmp(callee_name, "ToString") == 0
         && node->data.call.arg_count == 1) {
         LLVMValueRef value = llvm_emit_expression(node->data.call.arguments[0], ctx);
+        if (value == NULL) {
+            *out_result = llvm_stdlib_error_value(node, ctx, callee_name,
+                "could not lower value argument");
+            return true;
+        }
         *out_result = llvm_coerce_value_to_string(value, ctx);
+        if (*out_result == NULL)
+            *out_result = llvm_stdlib_error_value(node, ctx, callee_name,
+                "could not stringify value argument");
         return true;
     }
 
@@ -191,22 +223,25 @@ llvm_emit_stdlib_runtime_io_call(ASTNode *node, LLVMGenCtx *ctx,
         LLVMFuncEntry *pf = llvm_required_runtime_function(ctx, node,
             "stdlib io", callee_name, "printf");
         if (val == NULL) {
-            *out_result = LLVMConstInt(ctx->type_i32, 0, 0);
+            *out_result = llvm_stdlib_error_value(node, ctx, callee_name,
+                "could not lower print argument");
             return true;
         }
         vt = LLVMTypeOf(val);
-        if (pf != NULL) {
-            if (vt == ctx->type_i8ptr) {
-                LLVMValueRef fmt = LLVMBuildGlobalStringPtr(ctx->builder,
-                    "%s", ".fmt_s");
-                LLVMValueRef args[] = { fmt, val };
-                LLVMBuildCall2(ctx->builder, pf->fn_type, pf->fn, args, 2, "");
-            } else {
-                LLVMValueRef fmt = LLVMBuildGlobalStringPtr(ctx->builder,
-                    "%d", ".fmt_d");
-                LLVMValueRef args[] = { fmt, val };
-                LLVMBuildCall2(ctx->builder, pf->fn_type, pf->fn, args, 2, "");
-            }
+        if (pf == NULL) {
+            *out_result = NULL;
+            return true;
+        }
+        if (vt == ctx->type_i8ptr) {
+            LLVMValueRef fmt = LLVMBuildGlobalStringPtr(ctx->builder,
+                "%s", ".fmt_s");
+            LLVMValueRef args[] = { fmt, val };
+            LLVMBuildCall2(ctx->builder, pf->fn_type, pf->fn, args, 2, "");
+        } else {
+            LLVMValueRef fmt = LLVMBuildGlobalStringPtr(ctx->builder,
+                "%d", ".fmt_d");
+            LLVMValueRef args[] = { fmt, val };
+            LLVMBuildCall2(ctx->builder, pf->fn_type, pf->fn, args, 2, "");
         }
         *out_result = LLVMConstInt(ctx->type_i32, 0, 0);
         return true;
@@ -222,7 +257,7 @@ llvm_emit_stdlib_runtime_io_call(ASTNode *node, LLVMGenCtx *ctx,
             *out_result = LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn,
                 args, 1, "");
         } else {
-            *out_result = LLVMConstInt(ctx->type_i32, 0, 0);
+            *out_result = NULL;
         }
         return true;
     }
@@ -234,7 +269,7 @@ llvm_emit_stdlib_runtime_io_call(ASTNode *node, LLVMGenCtx *ctx,
             *out_result = LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn,
                 NULL, 0, "");
         } else {
-            *out_result = LLVMConstInt(ctx->type_i32, 0, 0);
+            *out_result = NULL;
         }
         return true;
     }
@@ -242,8 +277,17 @@ llvm_emit_stdlib_runtime_io_call(ASTNode *node, LLVMGenCtx *ctx,
     if (strcmp(callee_name, "Sleep") == 0 && node->data.call.arg_count == 1) {
         LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
             "stdlib time", callee_name, "pgy_sleep_ms");
-        if (fn != NULL) {
+        if (fn == NULL) {
+            *out_result = NULL;
+            return true;
+        }
+        {
             LLVMValueRef arg = llvm_emit_expression(node->data.call.arguments[0], ctx);
+            if (arg == NULL) {
+                *out_result = llvm_stdlib_error_value(node, ctx, callee_name,
+                    "could not lower sleep duration argument");
+                return true;
+            }
             LLVMValueRef args[] = { arg };
             LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 1, "");
         }

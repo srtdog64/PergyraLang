@@ -6,6 +6,8 @@ llvm_rc_suffix_from_inner(LLVMGenCtx *ctx, const char *inner)
     if (inner == NULL)
         return NULL;
     LLVMTypeRef ty = pergyra_type_to_llvm(ctx, inner);
+    if (ctx->has_error || ty == NULL)
+        return NULL;
     const char *suffix = llvm_type_to_suffix(ctx, ty);
     if (suffix == NULL || strcmp(suffix, "Unknown") == 0)
         return NULL;
@@ -81,6 +83,20 @@ llvm_rc_coerce_numeric(LLVMGenCtx *ctx, LLVMValueRef value, LLVMTypeRef target)
 }
 
 static LLVMValueRef
+llvm_rc_error_recovery(LLVMGenCtx *ctx, ASTNode *node, const char *message)
+{
+    if (ctx != NULL && !ctx->has_error) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+            "%s", message != NULL ? message
+                : "LLVM Rc/Weak builtin requires concrete metadata");
+    }
+    return NULL;
+}
+
+static LLVMValueRef
 llvm_rc_load_handle(LLVMGenCtx *ctx, LLVMVarEntry *var)
 {
     if (var == NULL)
@@ -107,7 +123,7 @@ llvm_emit_rc_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
 
     if (out == NULL)
         return true;
-    *out = LLVMConstInt(ctx->type_i32, 0, 0);
+    *out = NULL;
 
     if (node->data.call.arg_count != 1) {
         llvm_set_error_at_with_hints(ctx, node,
@@ -122,8 +138,11 @@ llvm_emit_rc_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
     if (is_rc_new) {
         const char *expected_inner = llvm_rc_expected_inner(ctx);
         LLVMValueRef value = llvm_emit_expression(arg, ctx);
-        if (value == NULL)
+        if (value == NULL) {
+            *out = llvm_rc_error_recovery(ctx, node,
+                "LLVM RcNew could not lower payload expression");
             return true;
+        }
         const char *suffix = expected_inner != NULL
             ? llvm_rc_suffix_from_inner(ctx, expected_inner)
             : llvm_type_to_suffix(ctx, LLVMTypeOf(value));
@@ -137,6 +156,11 @@ llvm_emit_rc_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         }
         if (expected_inner != NULL) {
             LLVMTypeRef target_type = pergyra_type_to_llvm(ctx, expected_inner);
+            if (ctx->has_error || target_type == NULL) {
+                *out = llvm_rc_error_recovery(ctx, node,
+                    "LLVM RcNew expected payload type could not be lowered");
+                return true;
+            }
             value = llvm_rc_coerce_numeric(ctx, value, target_type);
         }
         char fn_name[64];
@@ -204,6 +228,11 @@ llvm_emit_rc_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         LLVMValueRef ptr = LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn,
                                           args, 1, llvm_tmp_name(ctx));
         LLVMTypeRef value_ty = pergyra_type_to_llvm(ctx, inner);
+        if (ctx->has_error || value_ty == NULL) {
+            *out = llvm_rc_error_recovery(ctx, node,
+                "LLVM RcGet payload type could not be lowered");
+            return true;
+        }
         *out = LLVMBuildLoad2(ctx->builder, value_ty, ptr, llvm_tmp_name(ctx));
         return true;
     }

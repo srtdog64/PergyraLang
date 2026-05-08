@@ -1,6 +1,8 @@
 #ifndef PGY_SRC_CODEGEN_TRANSPILER_GENERIC_SPECIALIZATION_EMIT_H
 #define PGY_SRC_CODEGEN_TRANSPILER_GENERIC_SPECIALIZATION_EMIT_H
 
+#include "../common/string_compat.h"
+
 static const char *
 ensure_generic_specialization(TranspilerCtx *ctx, ASTNode *decl, ASTNode *call)
 {
@@ -42,9 +44,8 @@ ensure_generic_specialization(TranspilerCtx *ctx, ASTNode *decl, ASTNode *call)
         &ctx->generic_specializations[ctx->generic_specialization_count++];
     memset(entry, 0, sizeof(*entry));
     entry->func_decl = decl;
-    strncpy(entry->specialized_name, name_buf->data,
-        sizeof(entry->specialized_name) - 1);
-    entry->specialized_name[sizeof(entry->specialized_name) - 1] = '\0';
+    pergyra_str_copy(entry->specialized_name,
+        sizeof(entry->specialized_name), name_buf->data);
     entry->emitting = true;
     codebuf_destroy(name_buf);
 

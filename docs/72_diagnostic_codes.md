@@ -638,6 +638,7 @@ The LLVM backend cannot emit the requested type/operation: `Result<...>` inner t
 
 - **Reason**: LLVM monomorphization requires a known concrete type at emission time; type inference could not pin it down from annotations.
 - **Fix**: add an explicit `let x: <Type> = ...` annotation, or restructure the source so the type is derivable from context.
+- **Additional fix token**: `align-result-error-type` is used when postfix `?` cannot coerce the callee's `Result<T, E>` error payload into the current function's declared error payload type. Align the function return type with the propagated `E`, or map the error explicitly before using `?`.
 
 #### `PGY_LLVM_MIR_ROUTINE_MISSING`
 

@@ -1,6 +1,8 @@
 #ifndef PGY_TRANSPILER_SPECIALIZATION_HELPERS_H
 #define PGY_TRANSPILER_SPECIALIZATION_HELPERS_H
 
+#include "../common/string_compat.h"
+
 #include "transpiler_type_mapping_helpers.h"
 #include "transpiler_role_ability_helpers.h"
 
@@ -200,9 +202,7 @@ ensure_tuple_specialization_to(TranspilerCtx *ctx, CodeBuf *dst, ASTNode *tuple_
 
     /* Build suffix and element-name list */
     char suffix[256];
-    size_t suffix_off = 0;
     char elem_names[512];
-    size_t elem_off = 0;
     suffix[0] = '\0';
     elem_names[0] = '\0';
     for (size_t i = 0; i < n; i++) {
@@ -210,15 +210,11 @@ ensure_tuple_specialization_to(TranspilerCtx *ctx, CodeBuf *dst, ASTNode *tuple_
         char sane[96];
         sanitize_c_suffix(elem, sane, sizeof(sane));
         if (i > 0) {
-            suffix_off += (size_t)snprintf(suffix + suffix_off,
-                sizeof(suffix) - suffix_off, "_");
-            elem_off += (size_t)snprintf(elem_names + elem_off,
-                sizeof(elem_names) - elem_off, " ");
+            (void)pergyra_str_append(suffix, sizeof(suffix), "_");
+            (void)pergyra_str_append(elem_names, sizeof(elem_names), " ");
         }
-        suffix_off += (size_t)snprintf(suffix + suffix_off,
-            sizeof(suffix) - suffix_off, "%s", sane);
-        elem_off += (size_t)snprintf(elem_names + elem_off,
-            sizeof(elem_names) - elem_off, "%s", elem);
+        (void)pergyra_str_append(suffix, sizeof(suffix), sane);
+        (void)pergyra_str_append(elem_names, sizeof(elem_names), elem);
         free(elem);
     }
 

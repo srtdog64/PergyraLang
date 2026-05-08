@@ -76,12 +76,16 @@ llvm_emit_intent_entry_bindings(LLVMGenCtx *ctx,
                     : llvm_intent_involves_type_name(involves));
             if (type_name != NULL) {
                 pt = pergyra_type_to_llvm(ctx, type_name);
+                if (ctx->has_error || pt == NULL)
+                    return;
                 if (llvm_type_name_uses_pointer_self(ctx, type_name))
                     pt = LLVMPointerType(pt, 0);
             } else if (!mir_only_intent
                        && involves != NULL
                        && involves->data.intent_involves.subject_type != NULL) {
                 pt = ast_type_to_llvm(ctx, involves->data.intent_involves.subject_type);
+                if (ctx->has_error || pt == NULL)
+                    return;
                 if (llvm_intent_involves_uses_pointer_self(ctx, involves))
                     pt = LLVMPointerType(pt, 0);
             }
@@ -92,8 +96,11 @@ llvm_emit_intent_entry_bindings(LLVMGenCtx *ctx,
             type_name = (value->data.intent_value.value_type != NULL
                 && value->data.intent_value.value_type->type == AST_TYPE)
                 ? value->data.intent_value.value_type->data.type.name : NULL;
-            if (value->data.intent_value.value_type != NULL)
+            if (value->data.intent_value.value_type != NULL) {
                 pt = ast_type_to_llvm(ctx, value->data.intent_value.value_type);
+                if (ctx->has_error || pt == NULL)
+                    return;
+            }
         }
         LLVMValueRef a = llvm_create_entry_alloca(ctx, pt, alias != NULL ? alias : "param");
         LLVMBuildStore(ctx->builder, LLVMGetParam(fn, (unsigned)i), a);

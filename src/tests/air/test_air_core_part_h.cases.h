@@ -170,3 +170,40 @@ test_air_append_idempotent_boundary_evidence_nodes(void)
     air_destroy(air);
     return ok;
 }
+
+static bool
+test_air_append_rejects_boundary_evidence_duplicate_fallback(void)
+{
+    AIRProgram *air = (AIRProgram *)calloc(1, sizeof(AIRProgram));
+    char *error = NULL;
+    bool ok;
+
+    if (air == NULL)
+        return false;
+
+    ok = air_append_evidence_node_ex(air,
+                                     AIR_EVIDENCE_HIR_ROUTINE,
+                                     0,
+                                     "hir-lower",
+                                     "Charge.verify",
+                                     1,
+                                     0,
+                                     &error)
+        && !air_append_evidence_node_ex(air,
+                                        AIR_EVIDENCE_HIR_ROUTINE,
+                                        0,
+                                        "hir-lower",
+                                        "Charge.verify",
+                                        1,
+                                        1,
+                                        &error)
+        && error != NULL
+        && strstr(error, "AIR boundary evidence duplicate has invalid counts") != NULL
+        && air->evidence_count == 1
+        && air->evidence_nodes != NULL
+        && air->evidence_nodes[0].fact_count == 1
+        && air->evidence_nodes[0].fallback_count == 0;
+    free(error);
+    air_destroy(air);
+    return ok;
+}

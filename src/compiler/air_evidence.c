@@ -6,6 +6,7 @@
 
 #include "../semantic/semantic.h"
 #include "../runtime/pgy_runtime_observability_schema.h"
+#include "../runtime/pgy_frontier_policy.h"
 
 #include <string.h>
 
@@ -130,16 +131,28 @@ air_mir_pin_cleanup_instruction_has_anchor(const MIRInstruction *inst)
 }
 
 static bool
+air_mir_cleanup_root_is_valid(const MIRRoutine *routine)
+{
+    return routine != NULL
+        && routine->has_cleanup_block
+        && routine->cleanup_block < routine->block_count
+        && routine->blocks[routine->cleanup_block].is_cleanup
+        && routine->blocks[routine->cleanup_block].is_reachable;
+}
+
+static bool
 air_mir_pin_block_has_cleanup_successor(const MIRRoutine *routine,
                                         const MIRBasicBlock *block)
 {
     if (routine == NULL || block == NULL)
         return false;
-    if (!routine->has_cleanup_block || routine->cleanup_block >= routine->block_count)
+    if (!block->is_reachable || block->is_cleanup)
+        return false;
+    if (!air_mir_cleanup_root_is_valid(routine))
         return false;
     if (!block->has_cleanup_succ || block->cleanup_succ != routine->cleanup_block)
         return false;
-    return routine->blocks[routine->cleanup_block].is_cleanup;
+    return true;
 }
 
 static size_t
@@ -147,7 +160,7 @@ air_mir_routine_cleanup_fact_count(const MIRRoutine *routine)
 {
     size_t count = 0;
 
-    if (routine == NULL || !routine->has_cleanup_block)
+    if (!air_mir_cleanup_root_is_valid(routine))
         return 0;
     for (size_t i = 0; i < routine->block_count; i++) {
         const MIRBasicBlock *block = &routine->blocks[i];
@@ -156,25 +169,26 @@ air_mir_routine_cleanup_fact_count(const MIRRoutine *routine)
 
         if (block->is_cleanup && !registered_cleanup_root)
             continue;
-        if (block->has_cleanup_succ
+        if (block->is_reachable
+            && !block->is_cleanup
+            && block->has_cleanup_succ
             && block->cleanup_succ == routine->cleanup_block
-            && routine->cleanup_block < routine->block_count
-            && routine->blocks[routine->cleanup_block].is_cleanup) {
+            && air_mir_cleanup_root_is_valid(routine)
+            && mir_block_has_expected_cleanup_edge_fact(routine, i)) {
             count++;
             continue;
         }
-        if (!block->is_cleanup
-            && mir_block_has_cleanup_edge_fact(block, MIR_CLEANUP_FACT_EDGE))
+        if (block->is_reachable
+            && !block->is_cleanup
+            && mir_block_has_expected_cleanup_edge_fact(routine, i))
             count++;
         if (routine->has_rollback_block
             && i == routine->rollback_block
-            && mir_block_has_cleanup_edge_fact(
-                block, MIR_CLEANUP_FACT_EDGE_FROM_ROLLBACK))
+            && mir_block_has_expected_cleanup_edge_fact(routine, i))
             count++;
         if (routine->has_invalidation_block
             && i == routine->invalidation_block
-            && mir_block_has_cleanup_edge_fact(
-                block, MIR_CLEANUP_FACT_EDGE_FROM_INVALIDATION))
+            && mir_block_has_expected_cleanup_edge_fact(routine, i))
             count++;
     }
     return count;
@@ -400,10 +414,10 @@ air_collect_dag_evidence(AIRProgram *air, const SemanticResult *sem, char **erro
         ? sem->type_resolution_metadata_entries
         : 0;
     const size_t generic_fact_count = sem != NULL
-        ? sem->type_resolution_stage_compat_generic_contract_count
+        ? sem->type_resolution_dag_generic_contract_evidence_count
         : 0;
     const size_t ability_fact_count = sem != NULL
-        ? sem->type_resolution_dag_ability_evidence_count
+        ? sem->type_resolution_dag_ability_consumer_evidence_count
         : 0;
 
     if (air == NULL || sem == NULL)
@@ -469,5 +483,25 @@ air_collect_observability_schema_evidence(AIRProgram *air, char **error_message)
         return false;
     }
     air->observability_schema_evidence_count++;
+    return true;
+}
+
+bool
+air_collect_runtime_frontier_policy_evidence(AIRProgram *air,
+                                             char **error_message)
+{
+    if (air == NULL)
+        return true;
+    if (!air_append_evidence_node_ex(air,
+                                     AIR_EVIDENCE_RUNTIME_FRONTIER_POLICY,
+                                     SIZE_MAX,
+                                     PGY_FRONTIER_POLICY_SCHEMA,
+                                     PGY_FRONTIER_POLICY_SUBJECT,
+                                     PGY_FRONTIER_POLICY_FACT_COUNT,
+                                     0,
+                                     error_message)) {
+        return false;
+    }
+    air->runtime_frontier_policy_evidence_count++;
     return true;
 }

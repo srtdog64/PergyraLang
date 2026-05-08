@@ -35,82 +35,103 @@ llvm_channel_required_runtime_function(LLVMGenCtx *ctx,
     return fn;
 }
 
+static LLVMValueRef
+llvm_channel_expr_error(LLVMGenCtx *ctx, ASTNode *node, const char *message)
+{
+    if (ctx != NULL && !ctx->has_error) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "%s",
+            message != NULL ? message
+                : "LLVM channel expression could not be lowered");
+    }
+    return NULL;
+}
+
+static LLVMVarEntry *
+llvm_channel_required_binding(LLVMGenCtx *ctx, ASTNode *node,
+                              ASTNode *channel, const char *operation_name,
+                              const char **suffix_out)
+{
+    if (suffix_out != NULL)
+        *suffix_out = NULL;
+    if (channel == NULL || channel->type != AST_IDENTIFIER
+        || channel->data.identifier.name == NULL) {
+        llvm_expr_set_missing_type_error(ctx, node, operation_name);
+        return NULL;
+    }
+
+    const char *name = channel->data.identifier.name;
+    LLVMVarEntry *ch_var = llvm_scope_lookup(ctx, name);
+    const char *inner = llvm_lookup_channel_inner(ctx, name);
+    if (inner == NULL || inner[0] == '\0') {
+        llvm_expr_set_missing_type_error(ctx, node, operation_name);
+        return NULL;
+    }
+    if (ch_var == NULL) {
+        llvm_set_error_at_with_hints(ctx, channel,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "LLVM %s requires registered Channel<T> local '%s'",
+            operation_name, name);
+        return NULL;
+    }
+
+    if (suffix_out != NULL)
+        *suffix_out = inner;
+    return ch_var;
+}
+
 LLVMValueRef
 llvm_emit_channel_send_expr(ASTNode *node, LLVMGenCtx *ctx)
 {
-    LLVMVarEntry *ch_var = NULL;
     const char *suffix = NULL;
-    if (node->data.channel_send.channel != NULL
-        && node->data.channel_send.channel->type == AST_IDENTIFIER) {
-        const char *name = node->data.channel_send.channel->data.identifier.name;
-        ch_var = llvm_scope_lookup(ctx, name);
-        {
-            const char *inner = llvm_lookup_channel_inner(ctx, name);
-            if (inner != NULL)
-                suffix = inner;
-        }
+    LLVMVarEntry *ch_var = llvm_channel_required_binding(ctx, node,
+        node->data.channel_send.channel, "channel send expression", &suffix);
+    if (ch_var == NULL)
+        return NULL;
+
+    LLVMValueRef val = llvm_emit_expression(node->data.channel_send.value, ctx);
+    char fname[128];
+    snprintf(fname, sizeof(fname), "pgy_channel_send_%s", suffix);
+    LLVMFuncEntry *fn = llvm_lookup_function(ctx, fname);
+    if (fn == NULL) {
+        llvm_channel_required_runtime_function(ctx, node,
+            "channel send expression", "ChannelSend", fname);
+        return NULL;
     }
-    if (suffix == NULL || suffix[0] == '\0') {
-        llvm_expr_set_missing_type_error(ctx, node,
-            "channel send expression");
-        return LLVMConstInt(ctx->type_i1, 0, 0);
+    if (val != NULL) {
+        LLVMValueRef args[] = { ch_var->alloca, val };
+        return LLVMBuildCall2(ctx->builder, fn->fn_type,
+            fn->fn, args, 2, llvm_tmp_name(ctx));
     }
-    if (ch_var != NULL) {
-        LLVMValueRef val = llvm_emit_expression(
-            node->data.channel_send.value, ctx);
-        char fname[128];
-        snprintf(fname, sizeof(fname), "pgy_channel_send_%s", suffix);
-        LLVMFuncEntry *fn = llvm_lookup_function(ctx, fname);
-        if (fn == NULL) {
-            llvm_channel_required_runtime_function(ctx, node,
-                "channel send expression", "ChannelSend", fname);
-            return LLVMConstInt(ctx->type_i1, 0, 0);
-        }
-        if (val != NULL) {
-            LLVMValueRef args[] = { ch_var->alloca, val };
-            return LLVMBuildCall2(ctx->builder, fn->fn_type,
-                fn->fn, args, 2, llvm_tmp_name(ctx));
-        }
-    }
-    return LLVMConstInt(ctx->type_i1, 0, 0);
+    return llvm_channel_expr_error(ctx, node,
+        "LLVM channel send expression could not lower value expression");
 }
 
 LLVMValueRef
 llvm_emit_channel_recv_expr(ASTNode *node, LLVMGenCtx *ctx)
 {
-    LLVMVarEntry *ch_var = NULL;
     const char *suffix = NULL;
-    if (node->data.channel_recv.channel != NULL
-        && node->data.channel_recv.channel->type == AST_IDENTIFIER) {
-        const char *name = node->data.channel_recv.channel->data.identifier.name;
-        ch_var = llvm_scope_lookup(ctx, name);
-        {
-            const char *inner = llvm_lookup_channel_inner(ctx, name);
-            if (inner != NULL)
-                suffix = inner;
-        }
+    LLVMVarEntry *ch_var = llvm_channel_required_binding(ctx, node,
+        node->data.channel_recv.channel, "channel receive expression", &suffix);
+    if (ch_var == NULL)
+        return NULL;
+
+    char fname[128];
+    snprintf(fname, sizeof(fname), "pgy_channel_recv_val_%s", suffix);
+    LLVMFuncEntry *fn = llvm_lookup_function(ctx, fname);
+    if (fn == NULL) {
+        llvm_channel_required_runtime_function(ctx, node,
+            "channel receive expression", "ChannelRecv", fname);
+        return NULL;
     }
-    if (suffix == NULL || suffix[0] == '\0') {
-        llvm_expr_set_missing_type_error(ctx, node,
-            "channel receive expression");
-        return LLVMConstInt(ctx->type_i32, 0, 0);
-    }
-    if (ch_var != NULL) {
-        char fname[128];
-        snprintf(fname, sizeof(fname), "pgy_channel_recv_val_%s", suffix);
-        LLVMFuncEntry *fn = llvm_lookup_function(ctx, fname);
-        if (fn == NULL) {
-            llvm_channel_required_runtime_function(ctx, node,
-                "channel receive expression", "ChannelRecv", fname);
-            return LLVMConstInt(ctx->type_i32, 0, 0);
-        }
-        {
-            LLVMValueRef args[] = { ch_var->alloca };
-            return LLVMBuildCall2(ctx->builder, fn->fn_type,
-                fn->fn, args, 1, llvm_tmp_name(ctx));
-        }
-    }
-    return LLVMConstInt(ctx->type_i32, 0, 0);
+    LLVMValueRef args[] = { ch_var->alloca };
+    return LLVMBuildCall2(ctx->builder, fn->fn_type,
+        fn->fn, args, 1, llvm_tmp_name(ctx));
 }
 
 #endif /* PGY_LLVM_ENABLED */

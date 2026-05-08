@@ -1,11 +1,26 @@
 #include "mir_base_helpers.h"
 
+#include <stdint.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "../common/string_compat.h"
+
+static bool
+mir_next_capacity(size_t *capacity, size_t initial, size_t elem_size)
+{
+    size_t next;
+
+    if (capacity == NULL || elem_size == 0)
+        return false;
+    next = *capacity == 0 ? initial : *capacity * 2;
+    if (next < *capacity || next > SIZE_MAX / elem_size)
+        return false;
+    *capacity = next;
+    return true;
+}
 
 bool
 append_instruction(MIRBasicBlock *block, MIRInstruction inst)
@@ -14,7 +29,9 @@ append_instruction(MIRBasicBlock *block, MIRInstruction inst)
         return false;
     mir_instruction_record_surface_usage(&inst);
     if (block->instruction_count == block->instruction_capacity) {
-        size_t next_capacity = block->instruction_capacity == 0 ? 8 : block->instruction_capacity * 2;
+        size_t next_capacity = block->instruction_capacity;
+        if (!mir_next_capacity(&next_capacity, 8, sizeof(MIRInstruction)))
+            return false;
         MIRInstruction *grown =
             realloc(block->instructions, next_capacity * sizeof(MIRInstruction));
         if (grown == NULL)
@@ -63,7 +80,9 @@ insert_instruction(MIRBasicBlock *block, size_t index, MIRInstruction inst)
     if (index > block->instruction_count)
         index = block->instruction_count;
     if (block->instruction_count == block->instruction_capacity) {
-        size_t next_capacity = block->instruction_capacity == 0 ? 8 : block->instruction_capacity * 2;
+        size_t next_capacity = block->instruction_capacity;
+        if (!mir_next_capacity(&next_capacity, 8, sizeof(MIRInstruction)))
+            return false;
         MIRInstruction *grown =
             realloc(block->instructions, next_capacity * sizeof(MIRInstruction));
         if (grown == NULL)
@@ -86,7 +105,9 @@ append_name(const char ***names, size_t *count, size_t *capacity, const char *na
     if (names == NULL || count == NULL || capacity == NULL || name == NULL)
         return false;
     if (*count == *capacity) {
-        size_t next_capacity = *capacity == 0 ? 8 : *capacity * 2;
+        size_t next_capacity = *capacity;
+        if (!mir_next_capacity(&next_capacity, 8, sizeof(const char *)))
+            return false;
         grown = realloc((void *)*names, next_capacity * sizeof(const char *));
         if (grown == NULL)
             return false;
@@ -105,7 +126,11 @@ append_owned_name(const char ***names, size_t *count, size_t *capacity, char *na
     if (names == NULL || count == NULL || capacity == NULL || name == NULL)
         return false;
     if (*count == *capacity) {
-        size_t next_capacity = *capacity == 0 ? 8 : *capacity * 2;
+        size_t next_capacity = *capacity;
+        if (!mir_next_capacity(&next_capacity, 8, sizeof(const char *))) {
+            free(name);
+            return false;
+        }
         grown = realloc((void *)*names, next_capacity * sizeof(const char *));
         if (grown == NULL) {
             free(name);
@@ -140,7 +165,9 @@ append_block(MIRRoutine *routine, MIRBasicBlock block)
     if (routine == NULL)
         return false;
     if (routine->block_count == routine->block_capacity) {
-        size_t next_capacity = routine->block_capacity == 0 ? 8 : routine->block_capacity * 2;
+        size_t next_capacity = routine->block_capacity;
+        if (!mir_next_capacity(&next_capacity, 8, sizeof(MIRBasicBlock)))
+            return false;
         MIRBasicBlock *grown = realloc(routine->blocks, next_capacity * sizeof(MIRBasicBlock));
         if (grown == NULL)
             return false;
@@ -158,7 +185,9 @@ append_routine(MIRProgram *mir, MIRRoutine routine)
     if (mir == NULL)
         return false;
     if (mir->routine_count == mir->routine_capacity) {
-        size_t next_capacity = mir->routine_capacity == 0 ? 8 : mir->routine_capacity * 2;
+        size_t next_capacity = mir->routine_capacity;
+        if (!mir_next_capacity(&next_capacity, 8, sizeof(MIRRoutine)))
+            return false;
         MIRRoutine *grown = realloc(mir->routines, next_capacity * sizeof(MIRRoutine));
         if (grown == NULL)
             return false;
@@ -181,7 +210,7 @@ mir_add_def_instruction(MIRRoutine *routine,
     if (routine == NULL || block == NULL || result_name == NULL)
         return false;
     memset(&inst, 0, sizeof(inst));
-    inst.id = routine->instruction_count++;
+    inst.id = routine->instruction_count;
     inst.kind = MIR_INST_DEF;
     inst.name = "ssa-def";
     inst.slot_anchor = base_name;
@@ -189,34 +218,36 @@ mir_add_def_instruction(MIRRoutine *routine,
     inst.result_name = pergyra_strdup(result_name);
     if (inst.result_name == NULL)
         return false;
-    return insert_instruction(block, insert_index, inst);
+    if (!insert_instruction(block, insert_index, inst)) {
+        free((void *)inst.result_name);
+        return false;
+    }
+    routine->instruction_count++;
+    return true;
 }
 
 char *
 mir_make_versioned_name(const char *base, size_t version)
 {
-    char buffer[128];
-    size_t length;
-    char *result;
     if (base == NULL)
         base = "tmp";
-    snprintf(buffer, sizeof(buffer), "%s.%zu", base, version);
-    length = strlen(buffer);
-    result = malloc(length + 1);
-    if (result == NULL)
-        return NULL;
-    memcpy(result, buffer, length + 1);
-    return result;
+    return mir_strdup_fmt("%s.%zu", base, version);
 }
 
 bool
 copy_indices(size_t **dst, size_t *dst_count, const size_t *src, size_t src_count)
 {
+    if (dst == NULL || dst_count == NULL)
+        return false;
     if (src_count == 0) {
         *dst = NULL;
         *dst_count = 0;
         return true;
     }
+    if (src == NULL)
+        return false;
+    if (src_count > SIZE_MAX / sizeof(size_t))
+        return false;
     *dst = malloc(src_count * sizeof(size_t));
     if (*dst == NULL)
         return false;
@@ -228,10 +259,16 @@ copy_indices(size_t **dst, size_t *dst_count, const size_t *src, size_t src_coun
 bool
 copy_versions(size_t **dst, const size_t *src, size_t count)
 {
+    if (dst == NULL)
+        return false;
     if (count == 0) {
         *dst = NULL;
         return true;
     }
+    if (src == NULL)
+        return false;
+    if (count > SIZE_MAX / sizeof(size_t))
+        return false;
     *dst = malloc(count * sizeof(size_t));
     if (*dst == NULL)
         return false;

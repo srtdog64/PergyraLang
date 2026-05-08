@@ -1,3 +1,5 @@
+#include "../common/string_compat.h"
+
 typedef struct {
     char    **keys;
     void     *values;
@@ -261,33 +263,13 @@ pgy_map_size_raw_export(void *map_ptr)
 static char *
 pgy_map_i32_key_string_export(int32_t key)
 {
-    char stack_buf[32];
-    int len = snprintf(stack_buf, sizeof(stack_buf), "%d", key);
-    char *buf;
-
-    if (len < 0)
-        return NULL;
-    buf = (char *)malloc((size_t)len + 1);
-    if (buf == NULL)
-        return NULL;
-    memcpy(buf, stack_buf, (size_t)len + 1);
-    return buf;
+    return pergyra_strdup_printf("%d", key);
 }
 
 static char *
 pgy_map_i64_key_string_export(int64_t key)
 {
-    char stack_buf[48];
-    int len = snprintf(stack_buf, sizeof(stack_buf), "%lld", (long long)key);
-    char *buf;
-
-    if (len < 0)
-        return NULL;
-    buf = (char *)malloc((size_t)len + 1);
-    if (buf == NULL)
-        return NULL;
-    memcpy(buf, stack_buf, (size_t)len + 1);
-    return buf;
+    return pergyra_strdup_printf("%lld", (long long)key);
 }
 
 static char *

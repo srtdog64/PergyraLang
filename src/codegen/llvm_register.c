@@ -8,6 +8,7 @@
 #ifdef PGY_LLVM_ENABLED
 
 #include "llvm_internal.h"
+#include "llvm_inventory_host_methods.h"
 
 static LLVMTypeRef
 llvm_register_required_ast_type(LLVMGenCtx *ctx,
@@ -26,7 +27,7 @@ llvm_register_required_ast_type(LLVMGenCtx *ctx,
         PGY_FIX_ANNOTATE_CONCRETE_TYPE,
         "LLVM registration for %s requires explicit type metadata; silent i32 fallback is not allowed",
         surface != NULL ? surface : "declaration");
-    return ctx->type_i32;
+    return NULL;
 }
 
 void
@@ -88,6 +89,8 @@ llvm_register_enum_decl(LLVMGenCtx *ctx, ASTNode *stmt)
                 ASTNode *pt = stmt->data.enum_decl.variant_params[j][p];
                 payload_fields[p] = llvm_register_required_ast_type(
                     ctx, stmt, pt, "enum variant payload");
+                if (ctx->has_error || payload_fields[p] == NULL)
+                    return;
             }
 
             LLVMTypeRef payload_ty = LLVMStructCreateNamed(ctx->context, payload_name);
@@ -146,6 +149,8 @@ llvm_register_enum_decl(LLVMGenCtx *ctx, ASTNode *stmt)
         LLVMTypeRef ret_type = ctx->type_void;
         if (return_type != NULL)
             ret_type = ast_type_to_llvm(ctx, return_type);
+        if (ctx->has_error || ret_type == NULL)
+            return;
 
         size_t user_pc = 0;
         for (size_t k = 0; k < pc; k++) {
@@ -170,6 +175,8 @@ llvm_register_enum_decl(LLVMGenCtx *ctx, ASTNode *stmt)
                 continue;
             param_types[pidx++] = llvm_register_required_ast_type(
                 ctx, method, p != NULL ? p->type : NULL, "enum method parameter");
+            if (ctx->has_error || param_types[pidx - 1] == NULL)
+                return;
         }
 
         LLVMTypeRef ft = LLVMFunctionType(ret_type, param_types, (unsigned)(user_pc + 1), 0);
@@ -205,6 +212,8 @@ llvm_register_nominal_decl(LLVMGenCtx *ctx, ASTNode *stmt)
         ClassField *f = stmt->data.class_decl.fields[j];
         field_types[j] = llvm_register_required_ast_type(
             ctx, stmt, f != NULL ? f->type : NULL, "class field");
+        if (ctx->has_error || field_types[j] == NULL)
+            return;
     }
 
     LLVMTypeRef struct_ty = LLVMStructCreateNamed(ctx->context, cls_name);
@@ -262,6 +271,8 @@ llvm_register_nominal_decl(LLVMGenCtx *ctx, ASTNode *stmt)
         LLVMTypeRef ret_type = ctx->type_void;
         if (return_type != NULL)
             ret_type = ast_type_to_llvm(ctx, return_type);
+        if (ctx->has_error || ret_type == NULL)
+            return;
 
         size_t user_pc = 0;
         for (size_t k = 0; k < pc; k++) {
@@ -282,6 +293,8 @@ llvm_register_nominal_decl(LLVMGenCtx *ctx, ASTNode *stmt)
                 continue;
             param_types[pidx++] = llvm_register_required_ast_type(
                 ctx, method, p != NULL ? p->type : NULL, "class method parameter");
+            if (ctx->has_error || param_types[pidx - 1] == NULL)
+                return;
         }
 
         LLVMTypeRef ft = LLVMFunctionType(ret_type, param_types, (unsigned)(user_pc + 1), 0);
@@ -350,6 +363,8 @@ llvm_register_active_extern_prototypes(LLVMGenCtx *ctx)
             LLVMTypeRef ret = ctx->type_void;
             if (decl->data.func_decl.return_type != NULL)
                 ret = ast_type_to_llvm(ctx, decl->data.func_decl.return_type);
+            if (ctx->has_error || ret == NULL)
+                return;
 
             size_t pc = decl->data.func_decl.param_count;
             /* Extern param-type buffer: consumed by LLVMFunctionType. */
@@ -359,6 +374,8 @@ llvm_register_active_extern_prototypes(LLVMGenCtx *ctx)
                 FuncParam *p = decl->data.func_decl.params[k];
                 ptypes[k] = llvm_register_required_ast_type(
                     ctx, decl, p != NULL ? p->type : NULL, "extern parameter");
+                if (ctx->has_error || ptypes[k] == NULL)
+                    return;
             }
 
             LLVMTypeRef ft = LLVMFunctionType(ret, ptypes, (unsigned)pc, 0);

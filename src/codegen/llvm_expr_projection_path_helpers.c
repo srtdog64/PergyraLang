@@ -14,6 +14,21 @@
 #include "llvm_inventory_decl_lookup.h"
 #include "../common/string_compat.h"
 
+static LLVMValueRef
+llvm_projection_error_recovery(LLVMGenCtx *ctx, ASTNode *node,
+                               const char *message)
+{
+    if (ctx != NULL && !ctx->has_error) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "%s", message != NULL ? message
+                : "LLVM projection lowering requires complete metadata");
+    }
+    return NULL;
+}
+
 ASTNode *
 llvm_find_projection_nominal_decl(LLVMGenCtx *ctx, const char *name)
 {
@@ -99,7 +114,13 @@ llvm_resolve_projection_source_path_rec(LLVMGenCtx *ctx, ASTNode *source_decl,
             continue;
         }
 
-        prefix_len = strlen(field->name) + strlen(nested_path) + 2;
+        {
+            size_t field_len = strlen(field->name);
+            size_t nested_len = strlen(nested_path);
+            if (nested_len > ((size_t)-1) - field_len - 2)
+                continue;
+            prefix_len = field_len + nested_len + 2;
+        }
         prefixed_path = pgy_arena_alloc(&ctx->scratch, prefix_len);
         if (prefixed_path != NULL)
             snprintf(prefixed_path, prefix_len, "%s.%s", field->name, nested_path);
@@ -134,10 +155,31 @@ llvm_load_projection_path_value(LLVMGenCtx *ctx,
     ASTNode *current_decl;
     LLVMClassTypeEntry *current_cls;
     LLVMValueRef current_ptr;
+    int path_status;
 
-    if (llvm_resolve_projection_source_path_rec(ctx, source_decl, field_name, 0, &path) != 1
-        || path == NULL || source_cls == NULL || source_ptr == NULL) {
-        return LLVMConstInt(ctx->type_i32, 0, 0);
+    if (source_cls == NULL || source_ptr == NULL)
+        return llvm_projection_error_recovery(ctx, source_decl,
+            "LLVM projection path load requires source class metadata and storage");
+
+    path_status = llvm_resolve_projection_source_path_rec(ctx, source_decl,
+        field_name, 0, &path);
+    if (path_status != 1 || path == NULL) {
+        if (path_status == 2) {
+            llvm_set_error_at_with_hints(ctx, source_decl,
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                PGY_FIX_INSPECT_MIR_INVENTORY,
+                "LLVM projection source field '%s' is ambiguous across vessel paths",
+                field_name != NULL ? field_name : "<unnamed>");
+            return NULL;
+        }
+        llvm_set_error_at_with_hints(ctx, source_decl,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "LLVM projection source field '%s' is missing from source metadata",
+            field_name != NULL ? field_name : "<unnamed>");
+        return NULL;
     }
 
     current_decl = source_decl;
@@ -156,7 +198,8 @@ llvm_load_projection_path_value(LLVMGenCtx *ctx,
 
         field_index = llvm_class_field_index(current_cls, segment);
         if (field_index < 0)
-            break;
+            return llvm_projection_error_recovery(ctx, current_decl,
+                "LLVM projection path segment is not present in class metadata");
         for (int i = 0; i < current_cls->field_count; i++) {
             if (current_cls->fields[i].index == field_index) {
                 field_info = &current_cls->fields[i];
@@ -164,7 +207,8 @@ llvm_load_projection_path_value(LLVMGenCtx *ctx,
             }
         }
         if (field_info == NULL || field_info->field_type == NULL)
-            break;
+            return llvm_projection_error_recovery(ctx, current_decl,
+                "LLVM projection path segment requires field type metadata");
 
         field_ptr = LLVMBuildStructGEP2(ctx->builder, current_cls->struct_type,
             current_ptr, (unsigned)field_index, llvm_tmp_name(ctx));
@@ -184,13 +228,17 @@ llvm_load_projection_path_value(LLVMGenCtx *ctx,
             current_decl = llvm_find_projection_nominal_decl(ctx,
                 field->type->data.type.name);
             current_cls = llvm_lookup_class(ctx, field->type->data.type.name);
+            if (current_decl == NULL || current_cls == NULL)
+                return llvm_projection_error_recovery(ctx, field->type,
+                    "LLVM projection nested path requires vessel class metadata");
             current_ptr = field_ptr;
             break;
         }
         cursor = dot + 1;
     }
 
-    return LLVMConstInt(ctx->type_i32, 0, 0);
+    return llvm_projection_error_recovery(ctx, source_decl,
+        "LLVM projection path did not resolve to a loadable value");
 }
 
 LLVMValueRef
@@ -207,7 +255,8 @@ llvm_emit_subject_projection(ASTNode *node, LLVMGenCtx *ctx)
     LLVMValueRef projected;
 
     if (node == NULL || node->data.call.arg_count != 2)
-        return LLVMConstInt(ctx->type_i32, 0, 0);
+        return llvm_projection_error_recovery(ctx, node,
+            "LLVM subject projection requires target and source arguments");
 
     target_arg = node->data.call.arguments[0];
     source_arg = node->data.call.arguments[1];
@@ -215,7 +264,8 @@ llvm_emit_subject_projection(ASTNode *node, LLVMGenCtx *ctx)
         || target_arg->data.identifier.name == NULL
         || source_arg == NULL || source_arg->type != AST_IDENTIFIER
         || source_arg->data.identifier.name == NULL) {
-        return LLVMConstInt(ctx->type_i32, 0, 0);
+        return llvm_projection_error_recovery(ctx, node,
+            "LLVM subject projection requires identifier target and source arguments");
     }
 
     target_cls = llvm_lookup_class(ctx, target_arg->data.identifier.name);
@@ -226,7 +276,8 @@ llvm_emit_subject_projection(ASTNode *node, LLVMGenCtx *ctx)
     source_decl = source_class_name != NULL
         ? llvm_find_projection_nominal_decl(ctx, source_class_name) : NULL;
     if (target_cls == NULL || source_var == NULL || source_cls == NULL || source_decl == NULL)
-        return LLVMConstInt(ctx->type_i32, 0, 0);
+        return llvm_projection_error_recovery(ctx, node,
+            "LLVM subject projection requires target/source class metadata and source storage");
 
     source_base = source_var->alloca;
     if (source_var->type == LLVMPointerType(source_cls->struct_type, 0)) {
@@ -244,6 +295,8 @@ llvm_emit_subject_projection(ASTNode *node, LLVMGenCtx *ctx)
 
         field_value = llvm_load_projection_path_value(ctx, source_decl, source_cls,
             source_base, target_field->field_name);
+        if (ctx->has_error || field_value == NULL)
+            return NULL;
         projected = LLVMBuildInsertValue(ctx->builder, projected, field_value,
             (unsigned)target_field->index, llvm_tmp_name(ctx));
     }

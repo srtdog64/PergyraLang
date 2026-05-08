@@ -1,5 +1,6 @@
 #include "mir_cleanup.h"
 
+#include "mir_base_helpers.h"
 #include "mir_cleanup_fact_names.h"
 
 #include <stddef.h>
@@ -10,41 +11,32 @@
 #include <string.h>
 
 static bool
+mir_cleanup_next_capacity(size_t *capacity, size_t initial, size_t elem_size)
+{
+    if (capacity == NULL || initial == 0 || elem_size == 0)
+        return false;
+
+    size_t current = *capacity;
+    size_t next_capacity = current == 0 ? initial : current * 2;
+    if (current != 0 && next_capacity < current)
+        return false;
+    if (next_capacity > SIZE_MAX / elem_size)
+        return false;
+
+    *capacity = next_capacity;
+    return true;
+}
+
+static bool
 mir_cleanup_append_instruction(MIRBasicBlock *block, MIRInstruction inst)
 {
-    if (block == NULL)
-        return false;
-    mir_instruction_record_surface_usage(&inst);
-    if (block->instruction_count == block->instruction_capacity) {
-        size_t next_capacity = block->instruction_capacity == 0 ? 8 : block->instruction_capacity * 2;
-        MIRInstruction *grown =
-            realloc(block->instructions, next_capacity * sizeof(MIRInstruction));
-        if (grown == NULL)
-            return false;
-        block->instructions = grown;
-        block->instruction_capacity = next_capacity;
-    }
-    block->instructions[block->instruction_count] = inst;
-    block->instruction_count++;
-    return true;
+    return append_instruction(block, inst);
 }
 
 static bool
 mir_cleanup_append_block(MIRRoutine *routine, MIRBasicBlock block)
 {
-    if (routine == NULL)
-        return false;
-    if (routine->block_count == routine->block_capacity) {
-        size_t next_capacity = routine->block_capacity == 0 ? 8 : routine->block_capacity * 2;
-        MIRBasicBlock *grown = realloc(routine->blocks, next_capacity * sizeof(MIRBasicBlock));
-        if (grown == NULL)
-            return false;
-        routine->blocks = grown;
-        routine->block_capacity = next_capacity;
-    }
-    routine->blocks[routine->block_count] = block;
-    routine->block_count++;
-    return true;
+    return append_block(routine, block);
 }
 
 static bool
@@ -57,7 +49,9 @@ mir_cleanup_append_index_unique(size_t **items, size_t *count, size_t *capacity,
             return true;
     }
     if (*count == *capacity) {
-        size_t next_capacity = *capacity == 0 ? 4 : *capacity * 2;
+        size_t next_capacity = *capacity;
+        if (!mir_cleanup_next_capacity(&next_capacity, 4, sizeof(size_t)))
+            return false;
         size_t *grown = realloc(*items, next_capacity * sizeof(size_t));
         if (grown == NULL)
             return false;

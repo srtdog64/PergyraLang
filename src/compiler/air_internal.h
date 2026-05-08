@@ -2,11 +2,13 @@
 #define PERGYRA_AIR_INTERNAL_H
 
 #include <stdbool.h>
+#include <stddef.h>
 
 #include "air.h"
 
 void        air_set_error(char **error_message, const char *fmt, ...);
 void        air_set_invariant_error(char **error_message, const char *fmt, ...);
+bool        air_next_capacity(size_t *capacity, size_t initial, size_t elem_size);
 bool        air_name_is_empty(const char *name);
 char       *air_strdup_owned(const char *text);
 const char *air_program_owned_name(AIRProgram *air, const char *text);
@@ -54,19 +56,33 @@ bool        air_collect_rir_evidence(AIRProgram *air,
                                      char **error_message);
 bool        air_collect_observability_schema_evidence(AIRProgram *air,
                                                       char **error_message);
+bool        air_collect_runtime_frontier_policy_evidence(AIRProgram *air,
+                                                         char **error_message);
 bool        air_boundary_has_evidence_kind(const AIRProgram *air,
                                            size_t boundary_index,
                                            AIREvidenceKind kind);
+bool        air_boundary_has_evidence_kind_subject(const AIRProgram *air,
+                                                   size_t boundary_index,
+                                                   AIREvidenceKind kind,
+                                                   const char *subject_name);
+const char *air_boundary_missing_authority_evidence(const AIRProgram *air,
+                                                    const AIRBoundaryNode *boundary,
+                                                    size_t boundary_index);
 bool        air_boundary_declares_authority_name(
                 const AIRBoundaryNode *boundary,
                 const char *authority_name);
 bool        air_boundary_requires_mir_pin_cleanup_evidence(
                 const AIRBoundaryNode *boundary);
 bool        air_evidence_inventory_is_authoritative(const AIRProgram *air);
+bool        air_evidence_kind_is_known(AIREvidenceKind kind);
+bool        air_evidence_kind_is_boundary_scoped(AIREvidenceKind kind);
 bool        air_evidence_kind_is_global(AIREvidenceKind kind);
 bool        air_validate_global_evidence_node(const AIREvidenceNode *evidence,
                                               size_t evidence_index,
                                               char **error_message);
+bool        air_validate_boundary_legacy_evidence_shape(const AIRProgram *air,
+                                                        size_t boundary_index,
+                                                        char **error_message);
 bool        air_validate_evidence_inventory(const AIRProgram *air,
                                             char **error_message);
 

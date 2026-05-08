@@ -13,6 +13,20 @@
 #include "llvm_expr_string_coerce.h"
 #include "llvm_internal_api.h"
 
+static LLVMValueRef
+llvm_log_error(LLVMGenCtx *ctx, ASTNode *node, const char *message)
+{
+    if (ctx != NULL && !ctx->has_error) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+            "%s", message != NULL ? message
+                : "LLVM log operation requires a printable argument");
+    }
+    return NULL;
+}
+
 static const char *
 llvm_log_function_for_type(LLVMGenCtx *ctx, LLVMTypeRef type,
                            bool multiline_log)
@@ -63,7 +77,8 @@ llvm_emit_log_call(ASTNode *node, LLVMGenCtx *ctx)
     LLVMValueRef args[1];
 
     if (node->data.call.arg_count < 1)
-        return LLVMConstInt(ctx->type_i32, 0, 0);
+        return llvm_log_error(ctx, node,
+            "LLVM Log requires at least one argument");
 
     arg_node = node->data.call.arguments[0];
     if (arg_node != NULL && arg_node->type == AST_STRING
@@ -88,12 +103,13 @@ llvm_emit_log_call(ASTNode *node, LLVMGenCtx *ctx)
     }
 
     if (arg == NULL)
-        return LLVMConstInt(ctx->type_i32, 0, 0);
+        return llvm_log_error(ctx, node,
+            "LLVM Log could not lower its argument");
 
     log_fn_name = llvm_log_function_for_type(ctx, arg_type, multiline_log);
     log_fn = llvm_required_log_function(ctx, node, log_fn_name);
     if (log_fn == NULL)
-        return LLVMConstInt(ctx->type_i32, 0, 0);
+        return NULL;
 
     args[0] = arg;
     LLVMBuildCall2(ctx->builder, log_fn->fn_type, log_fn->fn, args, 1, "");
@@ -111,7 +127,8 @@ llvm_emit_log_raw_call(ASTNode *node, LLVMGenCtx *ctx)
     LLVMValueRef args[1];
 
     if (node->data.call.arg_count < 1)
-        return LLVMConstInt(ctx->type_i32, 0, 0);
+        return llvm_log_error(ctx, node,
+            "LLVM LogRaw requires at least one argument");
 
     arg_node = node->data.call.arguments[0];
     if (arg_node != NULL && arg_node->type == AST_STRING
@@ -121,14 +138,15 @@ llvm_emit_log_raw_call(ASTNode *node, LLVMGenCtx *ctx)
     } else {
         arg = llvm_emit_expression(arg_node, ctx);
         if (arg == NULL)
-            return LLVMConstInt(ctx->type_i32, 0, 0);
+            return llvm_log_error(ctx, node,
+                "LLVM LogRaw could not lower its argument");
     }
 
     arg_type = LLVMTypeOf(arg);
     log_fn_name = llvm_log_function_for_type(ctx, arg_type, false);
     log_fn = llvm_required_log_function(ctx, node, log_fn_name);
     if (log_fn == NULL)
-        return LLVMConstInt(ctx->type_i32, 0, 0);
+        return NULL;
 
     args[0] = arg;
     LLVMBuildCall2(ctx->builder, log_fn->fn_type, log_fn->fn, args, 1, "");
@@ -144,11 +162,13 @@ llvm_emit_log_banner_call(ASTNode *node, LLVMGenCtx *ctx)
     LLVMValueRef args[1];
 
     if (node->data.call.arg_count < 1)
-        return LLVMConstInt(ctx->type_i32, 0, 0);
+        return llvm_log_error(ctx, node,
+            "LLVM LogBanner requires at least one argument");
 
     arg = node->data.call.arguments[0];
     if (arg == NULL)
-        return LLVMConstInt(ctx->type_i32, 0, 0);
+        return llvm_log_error(ctx, node,
+            "LLVM LogBanner requires a non-null argument");
 
     if (arg->type == AST_STRING) {
         char *normalized = llvm_normalize_banner_string_literal_scratch(
@@ -164,11 +184,12 @@ llvm_emit_log_banner_call(ASTNode *node, LLVMGenCtx *ctx)
     }
 
     if (log_arg == NULL)
-        return LLVMConstInt(ctx->type_i32, 0, 0);
+        return llvm_log_error(ctx, node,
+            "LLVM LogBanner could not lower or stringify its argument");
 
     log_fn = llvm_required_log_function(ctx, node, "pgy_log_banner");
     if (log_fn == NULL)
-        return LLVMConstInt(ctx->type_i32, 0, 0);
+        return NULL;
 
     args[0] = log_arg;
     LLVMBuildCall2(ctx->builder, log_fn->fn_type, log_fn->fn, args, 1, "");

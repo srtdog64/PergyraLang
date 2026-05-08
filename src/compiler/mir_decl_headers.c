@@ -1,7 +1,26 @@
 #include "mir_decl_headers.h"
 
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+
+static bool
+mir_decl_next_capacity(size_t *capacity, size_t initial, size_t elem_size)
+{
+    size_t current;
+    size_t next;
+
+    if (capacity == NULL || elem_size == 0)
+        return false;
+    current = *capacity;
+    next = current == 0 ? initial : current * 2;
+    if (current != 0 && next < current)
+        return false;
+    if (next > SIZE_MAX / elem_size)
+        return false;
+    *capacity = next;
+    return true;
+}
 
 static bool
 mir_append_decl_header(MIRProgram *mir, MIRDeclHeader header)
@@ -9,11 +28,15 @@ mir_append_decl_header(MIRProgram *mir, MIRDeclHeader header)
     if (mir == NULL)
         return false;
     if (mir->decl_header_count == mir->decl_header_capacity) {
-        size_t next_capacity = mir->decl_header_capacity == 0
-            ? 8
-            : mir->decl_header_capacity * 2;
+        size_t next_capacity = mir->decl_header_capacity;
         MIRDeclHeader *grown =
-            realloc(mir->decl_headers, next_capacity * sizeof(MIRDeclHeader));
+            NULL;
+        if (!mir_decl_next_capacity(
+                &next_capacity, 8, sizeof(MIRDeclHeader))) {
+            return false;
+        }
+        grown = realloc(
+            mir->decl_headers, next_capacity * sizeof(MIRDeclHeader));
         if (grown == NULL)
             return false;
         mir->decl_headers = grown;
@@ -38,6 +61,8 @@ mir_decl_header_set_methods(MIRDeclHeader *header,
     if (method_count == 0)
         return true;
 
+    if (method_count > SIZE_MAX / sizeof(MIRDeclMethod))
+        return false;
     header->method_metadata = calloc(method_count, sizeof(MIRDeclMethod));
     if (header->method_metadata == NULL)
         return false;
@@ -60,19 +85,26 @@ mir_decl_header_set_methods(MIRDeclHeader *header,
     return true;
 }
 
-static size_t
-mir_role_impl_method_count(ASTNode *role_decl)
+static bool
+mir_role_impl_method_count(ASTNode *role_decl, size_t *count_out)
 {
     size_t count = 0;
-    if (role_decl == NULL || role_decl->type != AST_ROLE_DECL)
-        return 0;
+    if (count_out == NULL)
+        return false;
+    if (role_decl == NULL || role_decl->type != AST_ROLE_DECL) {
+        *count_out = 0;
+        return true;
+    }
     for (size_t i = 0; i < role_decl->data.role_decl.impl_count; i++) {
         ASTNode *impl = role_decl->data.role_decl.impl_abilities[i];
         if (impl == NULL || impl->type != AST_IMPL_ABILITY)
             continue;
+        if (impl->data.impl_ability.method_count > SIZE_MAX - count)
+            return false;
         count += impl->data.impl_ability.method_count;
     }
-    return count;
+    *count_out = count;
+    return true;
 }
 
 static bool
@@ -84,13 +116,16 @@ mir_decl_header_set_role_impl_methods(MIRDeclHeader *header, ASTNode *role_decl)
     if (header == NULL || role_decl == NULL || role_decl->type != AST_ROLE_DECL)
         return false;
 
-    count = mir_role_impl_method_count(role_decl);
+    if (!mir_role_impl_method_count(role_decl, &count))
+        return false;
     header->method_count = count;
     header->method_metadata = NULL;
     header->method_metadata_count = 0;
     if (count == 0)
         return true;
 
+    if (count > SIZE_MAX / sizeof(MIRDeclMethod))
+        return false;
     header->method_metadata = calloc(count, sizeof(MIRDeclMethod));
     if (header->method_metadata == NULL)
         return false;

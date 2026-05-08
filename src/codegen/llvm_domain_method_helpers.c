@@ -1,47 +1,6 @@
 #ifdef PGY_LLVM_ENABLED
 #include "llvm_internal.h"
 
-const MIRRoutine *
-llvm_find_mir_method_routine_local(const LLVMGenCtx *ctx,
-                                   const char *owner_name,
-                                   ASTNode *method)
-{
-    const char *method_name;
-    LLVMMIRRoutineInventory routine_inventory;
-
-    if (ctx == NULL || ctx->mir == NULL || owner_name == NULL
-        || method == NULL || method->type != AST_FUNC_DECL) {
-        return NULL;
-    }
-
-    method_name = method->data.func_decl.name;
-    if (method_name == NULL)
-        return NULL;
-
-    llvm_active_routine_inventory(ctx, &routine_inventory);
-    {
-        const MIRDeclMethod *method_meta =
-            llvm_find_host_method_metadata_in_context(
-                ctx, owner_name, method_name);
-        if (method_meta != NULL) {
-            const MIRRoutine *routine =
-                method_meta->has_routine
-                    ? llvm_routine_inventory_get(
-                        &routine_inventory, method_meta->routine_index)
-                    : NULL;
-            if (routine != NULL
-                && routine->kind == MIR_SCOPE_METHOD
-                && routine->name != NULL
-                && strcmp(routine->name, method_name) == 0) {
-                return routine;
-            }
-            return NULL;
-        }
-    }
-
-    return NULL;
-}
-
 bool
 llvm_param_is_implicit_self_local(const FuncParam *param)
 {

@@ -7,19 +7,13 @@
 
 #include "air_internal.h"
 #include "../runtime/pgy_runtime_observability_schema.h"
+#include "../runtime/pgy_frontier_policy.h"
 
 bool
 air_evidence_kind_is_global(AIREvidenceKind kind)
 {
-    return kind == AIR_EVIDENCE_DAG_GENERIC
-        || kind == AIR_EVIDENCE_DAG_METADATA
-        || kind == AIR_EVIDENCE_DAG_ABILITY
-        || kind == AIR_EVIDENCE_MIR_CLEANUP
-        || kind == AIR_EVIDENCE_MIR_TERMINATOR
-        || kind == AIR_EVIDENCE_MIR_SELECT_RECEIVE
-        || kind == AIR_EVIDENCE_RIR_EFFECT_PROPAGATION
-        || kind == AIR_EVIDENCE_RIR_RELATION_PROPAGATION
-        || kind == AIR_EVIDENCE_OBSERVABILITY_SCHEMA;
+    return air_evidence_kind_is_known(kind)
+        && !air_evidence_kind_is_boundary_scoped(kind);
 }
 
 static bool
@@ -182,6 +176,48 @@ air_validate_observability_schema_evidence(const AIREvidenceNode *evidence,
     return true;
 }
 
+static bool
+air_validate_runtime_frontier_policy_evidence(const AIREvidenceNode *evidence,
+                                              size_t evidence_index,
+                                              char **error_message)
+{
+    if (evidence->kind != AIR_EVIDENCE_RUNTIME_FRONTIER_POLICY)
+        return true;
+    if (evidence->fact_count != PGY_FRONTIER_POLICY_FACT_COUNT) {
+        air_set_invariant_error(error_message,
+                                "AIR runtime frontier policy evidence node %zu has invalid policy fact count",
+                                evidence_index);
+        return false;
+    }
+    if (evidence->fallback_count != 0) {
+        air_set_invariant_error(error_message,
+                                "AIR runtime frontier policy evidence node %zu has fallback policy facts",
+                                evidence_index);
+        return false;
+    }
+    if (!air_name_matches(evidence->provider_name,
+                          PGY_FRONTIER_POLICY_SCHEMA)) {
+        air_set_invariant_error(error_message,
+                                "AIR runtime frontier policy evidence node %zu has invalid provider '%s'",
+                                evidence_index,
+                                evidence->provider_name != NULL
+                                    ? evidence->provider_name
+                                    : "<null>");
+        return false;
+    }
+    if (!air_name_matches(evidence->subject_name,
+                          PGY_FRONTIER_POLICY_SUBJECT)) {
+        air_set_invariant_error(error_message,
+                                "AIR runtime frontier policy evidence node %zu has invalid subject '%s'",
+                                evidence_index,
+                                evidence->subject_name != NULL
+                                    ? evidence->subject_name
+                                    : "<null>");
+        return false;
+    }
+    return true;
+}
+
 bool
 air_validate_global_evidence_node(const AIREvidenceNode *evidence,
                                   size_t evidence_index,
@@ -193,6 +229,9 @@ air_validate_global_evidence_node(const AIREvidenceNode *evidence,
         && air_validate_rir_propagation_evidence(evidence, evidence_index, error_message)
         && air_validate_dag_global_evidence(evidence, evidence_index, error_message)
         && air_validate_observability_schema_evidence(evidence,
+                                                      evidence_index,
+                                                      error_message)
+        && air_validate_runtime_frontier_policy_evidence(evidence,
                                                       evidence_index,
                                                       error_message);
 }

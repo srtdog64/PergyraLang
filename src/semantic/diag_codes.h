@@ -326,6 +326,7 @@
 #define PGY_FIX_ALIGN_OPERAND_TYPES_OR_OVERLOAD "align-operand-types-or-overload"
 #define PGY_FIX_ALIGN_PATTERN_ARITY_OR_KIND     "align-pattern-arity-or-kind"
 #define PGY_FIX_ALIGN_RESOURCE_HANDLE_ARG       "align-resource-handle-arg"
+#define PGY_FIX_ALIGN_RESULT_ERROR_TYPE         "align-result-error-type"
 #define PGY_FIX_ALIGN_ROLE_IMPL_WITH_ABILITY    "align-role-impl-with-ability"
 #define PGY_FIX_ALIGN_STEP_WITH_ZONE_ACTION_CONTRACTS \
                                                    "align-step-with-zone-action-contracts"

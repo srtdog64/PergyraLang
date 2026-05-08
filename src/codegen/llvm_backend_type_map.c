@@ -108,7 +108,7 @@ llvm_required_constructed_arg_name_at(LLVMGenCtx *ctx, const char *type_name,
             arg_index + 1,
             type_name != NULL ? type_name : "<null>");
     }
-    return "Unknown";
+    return NULL;
 }
 
 char *
@@ -119,7 +119,7 @@ llvm_render_type_name(ASTNode *type_node)
 
     pgy_arena_init(&arena, 0);
     result = llvm_render_type_name_scratch(type_node, &arena);
-    result = result != NULL ? pergyra_strdup(result) : pergyra_strdup("Unknown");
+    result = result != NULL ? pergyra_strdup(result) : NULL;
     pgy_arena_destroy(&arena);
     return result;
 }
@@ -158,6 +158,8 @@ llvm_render_type_name_scratch(ASTNode *type_node, PgyArena *arena)
     }
 
     char *result = pgy_arena_strdup(arena, type_node->data.type.name);
+    if (result == NULL)
+        return NULL;
     for (size_t i = 0; i < type_node->data.type.generic_args->count; i++) {
         GenericParam *gp = type_node->data.type.generic_args->params[i];
         char *arg_name = NULL;
@@ -165,7 +167,7 @@ llvm_render_type_name_scratch(ASTNode *type_node, PgyArena *arena)
         size_t need;
 
         if (gp == NULL)
-            continue;
+            return NULL;
         if (gp->constraint != NULL)
             arg_name = llvm_render_type_name_scratch(gp->constraint, arena);
         else if (gp->name != NULL)
@@ -175,7 +177,13 @@ llvm_render_type_name_scratch(ASTNode *type_node, PgyArena *arena)
         if (arg_name == NULL || arg_name[0] == '\0')
             return NULL;
 
-        need = strlen(result) + strlen(arg_name) + 4;
+        {
+            size_t result_len = strlen(result);
+            size_t arg_len = strlen(arg_name);
+            if (arg_len > ((size_t)-1) - result_len - 4)
+                return NULL;
+            need = result_len + arg_len + 4;
+        }
         grown = (char *)pgy_arena_alloc(arena, need);
         if (grown == NULL)
             return NULL;
@@ -200,6 +208,8 @@ llvm_render_type_name_scratch(ASTNode *type_node, PgyArena *arena)
 
     {
         size_t cur_len = strlen(result);
+        if (cur_len > ((size_t)-1) - 2)
+            return NULL;
         char *grown = (char *)pgy_arena_alloc(arena, cur_len + 2);
         if (grown == NULL)
             return NULL;
@@ -217,7 +227,7 @@ llvm_resolve_inner_type(LLVMGenCtx *ctx, const char *type_name)
 {
     const char *inner = llvm_required_constructed_arg_name_at(ctx, type_name, 0,
         "Option<T>");
-    LLVMTypeRef resolved = pergyra_type_to_llvm(ctx, inner);
+    LLVMTypeRef resolved = inner != NULL ? pergyra_type_to_llvm(ctx, inner) : NULL;
     if (resolved == NULL && ctx != NULL && !ctx->has_error) {
         llvm_set_error_with_hints(ctx,
             PGY_CODE_LLVM_TYPE_UNSUPPORTED,
@@ -225,7 +235,7 @@ llvm_resolve_inner_type(LLVMGenCtx *ctx, const char *type_name)
             PGY_FIX_ANNOTATE_CONCRETE_TYPE,
             "Option<T>: cannot resolve concrete inner type metadata");
     }
-    return resolved != NULL ? resolved : ctx->type_i32;
+    return resolved;
 }
 
 static ASTNode *
@@ -369,21 +379,29 @@ pergyra_type_to_llvm(LLVMGenCtx *ctx, const char *type_name)
     if (strncmp(type_name, "List<", 5) == 0) {
         const char *inner = llvm_required_constructed_arg_name_at(ctx, type_name, 0,
             "List<T>");
+        if (inner == NULL)
+            return NULL;
         return llvm_list_struct_type(ctx, inner);
     }
     if (strncmp(type_name, "Set<", 4) == 0) {
         const char *inner = llvm_required_constructed_arg_name_at(ctx, type_name, 0,
             "Set<T>");
+        if (inner == NULL)
+            return NULL;
         return llvm_set_struct_type(ctx, inner);
     }
     if (strncmp(type_name, "Queue<", 6) == 0) {
         const char *inner = llvm_required_constructed_arg_name_at(ctx, type_name, 0,
             "Queue<T>");
+        if (inner == NULL)
+            return NULL;
         return llvm_queue_struct_type(ctx, inner);
     }
     if (strncmp(type_name, "HashMap<", 8) == 0) {
         const char *value = llvm_required_constructed_arg_name_at(ctx, type_name, 1,
             "HashMap<K, V>");
+        if (value == NULL)
+            return NULL;
         return llvm_hashmap_struct_type(ctx, value);
     }
 
@@ -446,7 +464,7 @@ pergyra_type_to_llvm(LLVMGenCtx *ctx, const char *type_name)
                     "Result<%s, %s>: cannot materialize named layout",
                     ok_name, err_name);
             }
-            return ctx != NULL ? ctx->type_i32 : NULL;
+            return NULL;
         }
         if (ok_name == NULL) {
             if (ctx != NULL && !ctx->has_error) {
@@ -456,36 +474,46 @@ pergyra_type_to_llvm(LLVMGenCtx *ctx, const char *type_name)
                     PGY_FIX_ANNOTATE_CONCRETE_TYPE,
                     "Result<T>: concrete Ok type metadata is required");
             }
-            return ctx != NULL ? ctx->type_i32 : NULL;
+            return NULL;
         }
         LLVMTypeRef ok_ty  = pergyra_type_to_llvm(ctx, ok_name);
         LLVMTypeRef err_ty = pergyra_type_to_llvm(ctx,
             err_name != NULL ? err_name : "PgyError");
+        if (ctx->has_error || ok_ty == NULL || err_ty == NULL)
+            return NULL;
         LLVMTypeRef fields[] = {
             ctx->type_i32,
-            ok_ty  != NULL ? ok_ty  : ctx->type_i32,
-            err_ty != NULL ? err_ty : ctx->type_i8ptr
+            ok_ty,
+            err_ty
         };
         return LLVMStructTypeInContext(ctx->context, fields, 3, 0);
     }
     case PGY_TK_OPTION: {
         LLVMTypeRef inner = llvm_resolve_inner_type(ctx, type_name);
+        if (ctx->has_error || inner == NULL)
+            return NULL;
         LLVMTypeRef fields[] = { ctx->type_i32, inner };
         return LLVMStructTypeInContext(ctx->context, fields, 2, 0);
     }
     case PGY_TK_SLOT: {
         const char *inner = llvm_required_constructed_arg_name_at(ctx, type_name, 0,
             "Slot<T>");
+        if (inner == NULL)
+            return NULL;
         return llvm_slot_struct_type(ctx, inner);
     }
     case PGY_TK_SECURE_SLOT: {
         const char *inner = llvm_required_constructed_arg_name_at(ctx, type_name, 0,
             "SecureSlot<T>");
+        if (inner == NULL)
+            return NULL;
         return llvm_secure_slot_struct_type(ctx, inner);
     }
     case PGY_TK_DEVICE_SLOT: {
         const char *inner = llvm_required_constructed_arg_name_at(ctx, type_name, 0,
             "DeviceSlot<T>");
+        if (inner == NULL)
+            return NULL;
         return llvm_slot_struct_type(ctx, inner);
     }
     case PGY_TK_REMOTE_FUTURE:
@@ -493,11 +521,15 @@ pergyra_type_to_llvm(LLVMGenCtx *ctx, const char *type_name)
     case PGY_TK_ARRAY: {
         const char *inner = llvm_required_constructed_arg_name_at(ctx, type_name, 0,
             "Array<T>");
+        if (inner == NULL)
+            return NULL;
         return llvm_array_struct_type(ctx, inner);
     }
     case PGY_TK_SLICE: {
         const char *inner = llvm_required_constructed_arg_name_at(ctx, type_name, 0,
             "Slice<T>");
+        if (inner == NULL)
+            return NULL;
         return llvm_slice_struct_type(ctx, inner);
     }
     case PGY_TK_CHANNEL:
@@ -531,6 +563,6 @@ pergyra_type_to_llvm(LLVMGenCtx *ctx, const char *type_name)
             "LLVM type '%s' is not registered in the LLVM type map; silent i32 fallback is not allowed",
             type_name);
     }
-    return ctx->type_i32;
+    return NULL;
 }
 #endif /* PGY_LLVM_ENABLED */

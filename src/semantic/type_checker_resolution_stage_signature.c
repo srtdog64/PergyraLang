@@ -123,6 +123,14 @@ semantic_stage_required_abilities(ASTNode **ability_refs,
     }
 }
 
+static void
+semantic_record_dag_generic_contract_evidence(SemanticContext *ctx)
+{
+    if (ctx == NULL)
+        return;
+    ctx->type_resolution_dag_generic_contract_evidence_count++;
+}
+
 void
 semantic_stage_generic_contract_nodes(GenericParams *gp,
                                       WhereClause *wc,
@@ -151,6 +159,7 @@ semantic_stage_generic_contract_nodes(GenericParams *gp,
                 continue;
 
             if (param->default_type != NULL) {
+                semantic_record_dag_generic_contract_evidence(ctx);
                 (void)semantic_stage_resolve_type_quiet(
                     param->default_type,
                     ctx,
@@ -160,6 +169,7 @@ semantic_stage_generic_contract_nodes(GenericParams *gp,
             }
 
             if (param->constraint != NULL) {
+                semantic_record_dag_generic_contract_evidence(ctx);
                 (void)semantic_stage_resolve_type_quiet(
                     param->constraint,
                     ctx,
@@ -188,6 +198,7 @@ semantic_stage_generic_contract_nodes(GenericParams *gp,
                 continue;
 
             for (size_t b = 0; b < tc->bound_count; b++) {
+                semantic_record_dag_generic_contract_evidence(ctx);
                 (void)semantic_stage_resolve_type_quiet(
                     tc->bounds[b],
                     ctx,

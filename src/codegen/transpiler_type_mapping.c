@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "../common/string_compat.h"
+
 #include "codegen_slot_type_policy.h"
 #include "transpiler.h"
 
@@ -213,6 +215,34 @@ generic_args_to_c_suffix(const char *inner_body)
     return buf;
 }
 
+static bool
+type_arg_name_is_unknown(const char *name)
+{
+    size_t len;
+
+    while (name != NULL && (*name == ' ' || *name == '\t'))
+        name++;
+    if (name == NULL || name[0] == '\0')
+        return true;
+    len = strlen(name);
+    while (len > 0 && (name[len - 1] == ' ' || name[len - 1] == '\t'))
+        len--;
+    return len == 7 && strncmp(name, "Unknown", 7) == 0;
+}
+
+static bool
+constructed_arg_name_is_unknown(const char *type_name, int arg_index)
+{
+    return type_arg_name_is_unknown(
+        constructed_arg_name_at(type_name, arg_index));
+}
+
+static bool
+constructed_single_arg_is_unknown(const char *type_name)
+{
+    return type_arg_name_is_unknown(slot_inner_type_name(type_name));
+}
+
 const char *
 pergyra_type_to_c(const char *name)
 {
@@ -242,22 +272,31 @@ pergyra_type_to_c(const char *name)
     if (strcmp(name, "Allocator") == 0)
         return "PgyAllocator";
     if (strncmp(name, "List<", 5) == 0) {
+        if (constructed_single_arg_is_unknown(name))
+            return "Unknown";
         sanitize_c_suffix(slot_inner_type_name(name), suffix, sizeof(suffix));
         snprintf(buf, sizeof(buf), "PgyList_%s", suffix);
         return buf;
     }
     if (strncmp(name, "HashMap<", 8) == 0) {
+        if (constructed_arg_name_is_unknown(name, 0)
+            || constructed_arg_name_is_unknown(name, 1))
+            return "Unknown";
         sanitize_c_suffix(constructed_arg_name_at(name, 1), suffix, sizeof(suffix));
         snprintf(buf, sizeof(buf), "PgyHashMap_%s", suffix);
         return buf;
     }
     if (strncmp(name, "Queue<", 6) == 0) {
+        if (constructed_single_arg_is_unknown(name))
+            return "Unknown";
         sanitize_c_suffix(slot_inner_type_name(name), suffix, sizeof(suffix));
         snprintf(buf, sizeof(buf), "PgyQueue_%s", suffix);
         return buf;
     }
     if (strncmp(name, "Set<", 4) == 0) {
         const char *inner = slot_inner_type_name(name);
+        if (type_arg_name_is_unknown(inner))
+            return "Unknown";
         if (inner != NULL && strcmp(inner, "String") == 0) {
             snprintf(buf, sizeof(buf), "PgySet_String");
         } else if (inner != NULL && strcmp(inner, "Int") == 0) {
@@ -275,18 +314,24 @@ pergyra_type_to_c(const char *name)
     if (strncmp(name, "Channel<", 8) == 0) {
         static char buf[128];
         const char *inner = slot_inner_type_name(name);
+        if (type_arg_name_is_unknown(inner))
+            return "Unknown";
         snprintf(buf, sizeof(buf), "PgyChannel_%s", inner);
         return buf;
     }
     if (strncmp(name, "Weak<", 5) == 0) {
         static char buf[128];
         const char *inner = slot_inner_type_name(name);
+        if (type_arg_name_is_unknown(inner))
+            return "Unknown";
         snprintf(buf, sizeof(buf), "PgyWeak_%s", inner);
         return buf;
     }
     if (strncmp(name, "Rc<", 3) == 0) {
         static char buf[128];
         const char *inner = slot_inner_type_name(name);
+        if (type_arg_name_is_unknown(inner))
+            return "Unknown";
         snprintf(buf, sizeof(buf), "PgyRc_%s", inner);
         return buf;
     }
@@ -299,54 +344,72 @@ pergyra_type_to_c(const char *name)
         char inner_buf[64];
         memcpy(inner_buf, inner, len);
         inner_buf[len] = '\0';
+        if (type_arg_name_is_unknown(inner_buf))
+            return "Unknown";
         snprintf(buf, sizeof(buf), "PgyBoxArray_%s", inner_buf);
         return buf;
     }
     if (strncmp(name, "Box<", 4) == 0) {
         static char buf[128];
         const char *inner = slot_inner_type_name(name);
+        if (type_arg_name_is_unknown(inner))
+            return "Unknown";
         snprintf(buf, sizeof(buf), "PgyBox_%s", inner);
         return buf;
     }
     if (strncmp(name, "Slice<", 6) == 0) {
         static char buf[128];
         const char *inner = slot_inner_type_name(name);
+        if (type_arg_name_is_unknown(inner))
+            return "Unknown";
         snprintf(buf, sizeof(buf), "PgySlice_%s", inner);
         return buf;
     }
     if (strncmp(name, "Array<", 6) == 0) {
         static char buf[128];
         const char *inner = slot_inner_type_name(name);
+        if (type_arg_name_is_unknown(inner))
+            return "Unknown";
         snprintf(buf, sizeof(buf), "PgyArray_%s", inner);
         return buf;
     }
     if (strncmp(name, "SecureSlot<", 11) == 0) {
         static char buf[128];
         const char *inner = slot_inner_type_name(name);
+        if (type_arg_name_is_unknown(inner))
+            return "Unknown";
         snprintf(buf, sizeof(buf), "PgySecureSlot_%s", inner);
         return buf;
     }
     if (pgy_codegen_type_name_is_read_view(name)) {
         static char buf[128];
         const char *inner = slot_inner_type_name(name);
+        if (type_arg_name_is_unknown(inner))
+            return "Unknown";
         snprintf(buf, sizeof(buf), "PgySlot_%s", inner);
         return buf;
     }
     if (pgy_codegen_type_name_is_write_view(name)) {
         static char buf[128];
         const char *inner = slot_inner_type_name(name);
+        if (type_arg_name_is_unknown(inner))
+            return "Unknown";
         snprintf(buf, sizeof(buf), "PgySlot_%s", inner);
         return buf;
     }
     if (strncmp(name, "DeviceSlot<", 11) == 0) {
         static char buf[128];
         const char *inner = slot_inner_type_name(name);
+        if (type_arg_name_is_unknown(inner))
+            return "Unknown";
         snprintf(buf, sizeof(buf), "PgyDeviceSlot_%s", inner);
         return buf;
     }
     if (strncmp(name, "Slot<", 5) == 0) {
         static char buf[128];
         const char *inner = slot_inner_type_name(name);
+        if (type_arg_name_is_unknown(inner))
+            return "Unknown";
         snprintf(buf, sizeof(buf), "PgySlot_%s", inner);
         return buf;
     }
@@ -354,9 +417,14 @@ pergyra_type_to_c(const char *name)
         static char buf[256];
         const char *inner = slot_inner_type_name(name);
         if (strchr(inner, ',') == NULL) {
+            if (type_arg_name_is_unknown(inner))
+                return "Unknown";
             snprintf(buf, sizeof(buf), "PgyResult_%s", inner);
             return buf;
         }
+        if (constructed_arg_name_is_unknown(name, 0)
+            || constructed_arg_name_is_unknown(name, 1))
+            return "Unknown";
         const char *suffix = generic_args_to_c_suffix(inner);
         size_t prefix_len = strlen("PgyResult_");
         memcpy(buf, "PgyResult_", prefix_len);
@@ -366,6 +434,8 @@ pergyra_type_to_c(const char *name)
     if (strncmp(name, "Option<", 7) == 0) {
         static char buf[128];
         const char *inner = slot_inner_type_name(name);
+        if (type_arg_name_is_unknown(inner))
+            return "Unknown";
         snprintf(buf, sizeof(buf), "PgyOption_%s", inner);
         return buf;
     }
@@ -375,7 +445,8 @@ pergyra_type_to_c(const char *name)
         size_t i = 1;
         size_t n = strlen(name);
         bool first = true;
-        off += (size_t)snprintf(buf + off, sizeof(buf) - off, "PgyTuple_");
+        buf[0] = '\0';
+        off = pergyra_str_append(buf, sizeof(buf), "PgyTuple_");
         while (i < n && name[i] != ')') {
             char elem[96];
             char sane[96];
@@ -397,12 +468,13 @@ pergyra_type_to_c(const char *name)
                 elem[--eo] = '\0';
             sanitize_c_suffix(elem, sane, sizeof(sane));
             if (!first)
-                off += (size_t)snprintf(buf + off, sizeof(buf) - off, "_");
-            off += (size_t)snprintf(buf + off, sizeof(buf) - off, "%s", sane);
+                off = pergyra_str_append(buf, sizeof(buf), "_");
+            off = pergyra_str_append(buf, sizeof(buf), sane);
             first = false;
             if (i < n && name[i] == ',') i++;
         }
-        snprintf(buf + off, sizeof(buf) - off, "_t");
+        (void)off;
+        (void)pergyra_str_append(buf, sizeof(buf), "_t");
         return buf;
     }
     return pergyra_primitive_to_c(name);

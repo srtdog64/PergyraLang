@@ -2,6 +2,7 @@
 
 #include "diag_codes.h"
 #include "type_checker_flow_match_internal.h"
+#include "../common/string_compat.h"
 
 static bool
 match_case_has_or_patterns(ASTNode *mc)
@@ -92,8 +93,8 @@ append_missing_variant(char *buf,
         return;
 
     if (!*first)
-        strncat(buf, ", ", buf_size - strlen(buf) - 1);
-    strncat(buf, variant_name, buf_size - strlen(buf) - 1);
+        pergyra_str_append(buf, buf_size, ", ");
+    pergyra_str_append(buf, buf_size, variant_name);
     *first = false;
 }
 

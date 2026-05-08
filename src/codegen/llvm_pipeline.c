@@ -8,6 +8,7 @@
 #ifdef PGY_LLVM_ENABLED
 
 #include "llvm_internal.h"
+#include "llvm_inventory_host_methods.h"
 #include "thread_pool_usage.h"
 
 static void
@@ -393,10 +394,8 @@ llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx)
                 const MIRRoutine *mir_method;
 
                 method_name = llvm_mir_decl_method_name(method_meta);
-                mir_method = method_meta != NULL && method_meta->has_routine
-                    ? llvm_routine_inventory_get(
-                        &routine_inventory, method_meta->routine_index)
-                    : NULL;
+                mir_method = llvm_hosted_method_view_routine(
+                    ctx, &method_view, j);
                 if (mir_method != NULL) {
                     llvm_emit_func_from_mir(mir_method, ctx);
                     continue;

@@ -76,6 +76,22 @@ if command -v git >/dev/null 2>&1 \
     done < <(git -C "$ROOT_DIR" ls-files 'tests/cases' 'examples')
 fi
 
+typo_tokens="$(
+    grep -RInE '\b(retun|stncmp|retun_type|infer_spawn_retun)\b' \
+        "$ROOT_DIR/src" \
+        --include='*.c' --include='*.h' || true
+)"
+typo_tokens="$(
+    printf '%s\n' "$typo_tokens" \
+        | grep -v '/src/test_' \
+        | grep -v '/src/tests/' || true
+)"
+if [[ -n "$typo_tokens" ]]; then
+    printf '%s\n' "$typo_tokens" >&2
+    echo "[build-source-inventory] production source contains typo-like C tokens" >&2
+    missing=1
+fi
+
 if [[ "$missing" -ne 0 ]]; then
     exit 1
 fi

@@ -30,8 +30,8 @@ append_effect_name(char *buf, size_t buf_size, const char *name, bool *first)
         return;
 
     if (!*first)
-        strncat(buf, ", ", buf_size - strlen(buf) - 1);
-    strncat(buf, name, buf_size - strlen(buf) - 1);
+        pergyra_str_append(buf, buf_size, ", ");
+    pergyra_str_append(buf, buf_size, name);
     *first = false;
 }
 
@@ -46,7 +46,7 @@ effect_mask_to_string(uint32_t mask, char *buf, size_t buf_size)
     buf[0] = '\0';
     mask = type_effect_mask_closure(mask);
     if (mask == EFFECT_NONE) {
-        strncat(buf, "local", buf_size - 1);
+        pergyra_str_append(buf, buf_size, "local");
         return;
     }
 

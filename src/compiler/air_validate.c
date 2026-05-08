@@ -269,57 +269,8 @@ air_validate(const AIRProgram *air, char **error_message)
                                     i);
             return false;
         }
-        if (air->boundaries[i].has_hir_routine_evidence
-            && air_name_is_empty(air->boundaries[i].hir_routine_evidence_name)) {
-            air_set_invariant_error(error_message,
-                                    "AIR boundary node %zu has HIR evidence without provenance",
-                                    i);
+        if (!air_validate_boundary_legacy_evidence_shape(air, i, error_message))
             return false;
-        }
-        if (air->boundaries[i].has_hir_cfg_evidence
-            && !air->boundaries[i].has_hir_routine_evidence) {
-            air_set_invariant_error(error_message,
-                                    "AIR boundary node %zu has HIR CFG evidence without routine evidence",
-                                    i);
-            return false;
-        }
-        if (air->boundaries[i].has_rir_boundary_evidence
-            && air_name_is_empty(air->boundaries[i].rir_boundary_evidence_scope)) {
-            air_set_invariant_error(error_message,
-                                    "AIR boundary node %zu has RIR boundary evidence without provenance",
-                                    i);
-            return false;
-        }
-        if (air->boundaries[i].has_rir_authority_evidence
-            && !air->boundaries[i].has_rir_boundary_evidence) {
-            air_set_invariant_error(error_message,
-                                    "AIR boundary node %zu has RIR authority evidence without boundary evidence",
-                                    i);
-            return false;
-        }
-        if (air->boundaries[i].has_rir_authority_evidence
-            && !air->boundaries[i].authority_required) {
-            air_set_invariant_error(error_message,
-                                    "AIR boundary node %zu has RIR authority evidence on non-authority boundary",
-                                    i);
-            return false;
-        }
-        if (air->boundaries[i].has_rir_authority_evidence
-            && air_name_is_empty(air->boundaries[i].rir_authority_evidence_name)) {
-            air_set_invariant_error(error_message,
-                                    "AIR boundary node %zu has RIR authority evidence without provenance",
-                                    i);
-            return false;
-        }
-        if (air->boundaries[i].has_rir_authority_evidence
-            && !air_boundary_declares_authority_name(
-                &air->boundaries[i],
-                air->boundaries[i].rir_authority_evidence_name)) {
-            air_set_invariant_error(error_message,
-                                    "AIR boundary node %zu has RIR authority evidence for undeclared participant",
-                                    i);
-            return false;
-        }
     }
     for (size_t i = 0; i < air->drift_count; i++) {
         if (!air_drift_kind_valid(air->drifts[i].kind)) {

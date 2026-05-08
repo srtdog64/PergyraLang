@@ -312,6 +312,18 @@ generic_param_nodes="$(
     | awk '{ total += $1 } END { print total + 0 }'
 )"
 
+dag_generic_contract_evidence="$(
+  grep -a '\[type-res-stats\] dag-evidence:' "$log" \
+    | sed -E 's/.*generic_contract=([0-9]+).*/\1/' \
+    | awk '{ total += $1 } END { print total + 0 }'
+)"
+
+dag_ability_consumer_evidence="$(
+  grep -a '\[type-res-stats\] dag-evidence:' "$log" \
+    | sed -E 's/.*ability_consumer=([0-9]+).*/\1/' \
+    | awk '{ total += $1 } END { print total + 0 }'
+)"
+
 if [ "$graph_skips" -le 0 ]; then
   echo "graph-backed stage skip inventory regressed to zero" >&2
   exit 1
@@ -324,6 +336,16 @@ fi
 
 if [ "$generic_param_nodes" -le 0 ]; then
   echo "generic parameter DAG evidence regressed to zero" >&2
+  exit 1
+fi
+
+if [ "$dag_generic_contract_evidence" -le 0 ]; then
+  echo "DAG generic contract evidence regressed to zero" >&2
+  exit 1
+fi
+
+if [ "$dag_ability_consumer_evidence" -le 0 ]; then
+  echo "DAG ability consumer evidence regressed to zero" >&2
   exit 1
 fi
 
@@ -488,4 +510,4 @@ grep -a -q 'topo_ok=1' "$log" || {
   exit 1
 }
 
-echo "[type-resolution-dag] graph stats and metadata reuse present (graph-backed skips=$graph_skips generic_param_nodes=$generic_param_nodes retired_resolver_calls=$resolve_calls retired_resolver_unique_nodes=$resolve_unique_nodes retired_resolver_kind_sum=$resolve_kind_sum retired_resolver_kind_ast_type=$resolve_kind_ast_type retired_resolver_kind_compound_or_other=$resolve_kind_compound_or_other retired_resolver_body_fallbacks=$resolver_body_fallbacks metadata_entries=$metadata_entries metadata_owned=$metadata_owned metadata_hits=$metadata_hits metadata_dead_ends=$metadata_dead_ends materializer_unresolved=$materializer_unresolved metadata_unresolved_named=$metadata_unresolved_named metadata_unresolved_generic_named=$metadata_unresolved_generic_named metadata_unresolved_compound=$metadata_unresolved_compound metadata_unresolved_other=$metadata_unresolved_other metadata_unresolved_builtin_shell=$metadata_named_builtin_shell metadata_unresolved_generic_class=$metadata_named_generic_class metadata_unresolved_alias=$metadata_named_alias metadata_unresolved_non_class_symbol=$metadata_named_non_class_symbol metadata_unresolved_missing_symbol=$metadata_named_missing_symbol stage_materialize_calls=$stage_materialize_calls stage_materialize_failed=$stage_materialize_failed stage_materialize_suppressed=$stage_materialize_suppressed stage_materialize_alias=$stage_materialize_alias stage_materialize_non_alias=$stage_materialize_non_alias alias_materialized=$alias_materialized alias_diagnostic_unresolved=$alias_diagnostic_unresolved alias_diagnostic_resolver_calls=$alias_diagnostic_resolver_calls alias_diagnostic_resolved=$alias_diagnostic_resolved alias_diagnostic_cycle_unresolved=$alias_diagnostic_cycle_unresolved)"
+echo "[type-resolution-dag] graph stats and metadata reuse present (graph-backed skips=$graph_skips generic_param_nodes=$generic_param_nodes dag_generic_contract_evidence=$dag_generic_contract_evidence dag_ability_consumer_evidence=$dag_ability_consumer_evidence retired_resolver_calls=$resolve_calls retired_resolver_unique_nodes=$resolve_unique_nodes retired_resolver_kind_sum=$resolve_kind_sum retired_resolver_kind_ast_type=$resolve_kind_ast_type retired_resolver_kind_compound_or_other=$resolve_kind_compound_or_other retired_resolver_body_fallbacks=$resolver_body_fallbacks metadata_entries=$metadata_entries metadata_owned=$metadata_owned metadata_hits=$metadata_hits metadata_dead_ends=$metadata_dead_ends materializer_unresolved=$materializer_unresolved metadata_unresolved_named=$metadata_unresolved_named metadata_unresolved_generic_named=$metadata_unresolved_generic_named metadata_unresolved_compound=$metadata_unresolved_compound metadata_unresolved_other=$metadata_unresolved_other metadata_unresolved_builtin_shell=$metadata_named_builtin_shell metadata_unresolved_generic_class=$metadata_named_generic_class metadata_unresolved_alias=$metadata_named_alias metadata_unresolved_non_class_symbol=$metadata_named_non_class_symbol metadata_unresolved_missing_symbol=$metadata_named_missing_symbol stage_materialize_calls=$stage_materialize_calls stage_materialize_failed=$stage_materialize_failed stage_materialize_suppressed=$stage_materialize_suppressed stage_materialize_alias=$stage_materialize_alias stage_materialize_non_alias=$stage_materialize_non_alias alias_materialized=$alias_materialized alias_diagnostic_unresolved=$alias_diagnostic_unresolved alias_diagnostic_resolver_calls=$alias_diagnostic_resolver_calls alias_diagnostic_resolved=$alias_diagnostic_resolved alias_diagnostic_cycle_unresolved=$alias_diagnostic_cycle_unresolved)"

@@ -8,6 +8,21 @@
 
 #include "llvm_internal_api.h"
 
+static LLVMValueRef
+llvm_domain_slice_error(ASTNode *node, LLVMGenCtx *ctx, const char *message)
+{
+    if (ctx != NULL && !ctx->has_error) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+            "%s",
+            message != NULL ? message
+                : "LLVM domain/slice method could not be lowered");
+    }
+    return NULL;
+}
+
 LLVMValueRef
 llvm_emit_member_call_slot_method(ASTNode *node, LLVMGenCtx *ctx,
                                   ASTNode *obj_node,
@@ -22,16 +37,26 @@ llvm_emit_member_call_slot_method(ASTNode *node, LLVMGenCtx *ctx,
         const char *inner = llvm_lookup_slot_inner(ctx, slot_name);
         bool is_secure = llvm_lookup_slot_is_secure(ctx, slot_name);
         LLVMVarEntry *slot_var = inner != NULL ? llvm_scope_lookup(ctx, slot_name) : NULL;
+        if (inner != NULL && slot_var == NULL) {
+            llvm_set_error_at_with_hints(ctx, obj_node,
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                PGY_FIX_INSPECT_MIR_INVENTORY,
+                "LLVM slot method '%s' requires registered slot local '%s'",
+                method_name, slot_name);
+            return NULL;
+        }
         if (inner != NULL && slot_var != NULL) {
             if (strcmp(method_name, "Write") == 0 && node->data.call.arg_count >= 1) {
                 LLVMValueRef val = llvm_emit_expression(node->data.call.arguments[0], ctx);
                 if (val == NULL)
-                    return LLVMConstInt(ctx->type_i32, 0, 0);
+                    return llvm_domain_slice_error(node, ctx,
+                        "LLVM slot Write() could not lower value expression");
                 if (is_secure) {
                     LLVMVarEntry *token_var = llvm_require_secure_token_var(ctx,
                         node, slot_name, method_name);
                     if (token_var == NULL)
-                        return LLVMConstInt(ctx->type_i32, 0, 0);
+                        return NULL;
                     {
                         char fn_name[64];
                         LLVMFuncEntry *fn;
@@ -49,6 +74,7 @@ llvm_emit_member_call_slot_method(ASTNode *node, LLVMGenCtx *ctx,
                         } else {
                             llvm_required_runtime_function(ctx, node,
                                 "secure slot", method_name, fn_name);
+                            return NULL;
                         }
                     }
                 } else {
@@ -65,6 +91,7 @@ llvm_emit_member_call_slot_method(ASTNode *node, LLVMGenCtx *ctx,
                     } else if (llvm_slot_inner_has_external_runtime_helpers(inner)) {
                         llvm_required_runtime_function(ctx, node,
                             "slot", method_name, fn_name);
+                        return NULL;
                     } else {
                         llvm_direct_slot_write(ctx, slot_var, val);
                     }
@@ -77,7 +104,7 @@ llvm_emit_member_call_slot_method(ASTNode *node, LLVMGenCtx *ctx,
                     LLVMVarEntry *token_var = llvm_require_secure_token_var(ctx,
                         node, slot_name, method_name);
                     if (token_var == NULL)
-                        return LLVMConstInt(ctx->type_i32, 0, 0);
+                        return NULL;
                     {
                         char fn_name[64];
                         LLVMFuncEntry *fn;
@@ -96,7 +123,7 @@ llvm_emit_member_call_slot_method(ASTNode *node, LLVMGenCtx *ctx,
                                 slot_var, inner);
                         llvm_required_runtime_function(ctx, node,
                             "secure slot", method_name, fn_name);
-                        return LLVMConstInt(ctx->type_i32, 0, 0);
+                        return NULL;
                     }
                 }
 
@@ -115,7 +142,7 @@ llvm_emit_member_call_slot_method(ASTNode *node, LLVMGenCtx *ctx,
                     if (llvm_slot_inner_has_external_runtime_helpers(inner)) {
                         llvm_required_runtime_function(ctx, node,
                             "slot", method_name, fn_name);
-                        return LLVMConstInt(ctx->type_i32, 0, 0);
+                        return NULL;
                     }
                     return llvm_direct_slot_read(ctx, slot_var, inner);
                 }
@@ -126,7 +153,7 @@ llvm_emit_member_call_slot_method(ASTNode *node, LLVMGenCtx *ctx,
                     LLVMVarEntry *token_var = llvm_require_secure_token_var(ctx,
                         node, slot_name, method_name);
                     if (token_var == NULL)
-                        return LLVMConstInt(ctx->type_i32, 0, 0);
+                        return NULL;
                     {
                         char fn_name[64];
                         LLVMFuncEntry *fn;
@@ -143,6 +170,7 @@ llvm_emit_member_call_slot_method(ASTNode *node, LLVMGenCtx *ctx,
                         } else {
                             llvm_required_runtime_function(ctx, node,
                                 "secure slot", method_name, fn_name);
+                            return NULL;
                         }
                     }
                 } else {
@@ -158,6 +186,7 @@ llvm_emit_member_call_slot_method(ASTNode *node, LLVMGenCtx *ctx,
                     } else if (llvm_slot_inner_has_external_runtime_helpers(inner)) {
                         llvm_required_runtime_function(ctx, node,
                             "slot", method_name, fn_name);
+                        return NULL;
                     } else {
                         llvm_direct_slot_release(ctx, slot_var);
                     }
@@ -198,7 +227,8 @@ llvm_emit_member_call_slice(ASTNode *node, LLVMGenCtx *ctx,
         len = llvm_emit_expression(node->data.call.arguments[1], ctx);
 
         if (receiver == NULL || start == NULL || len == NULL)
-            return LLVMConstInt(ctx->type_i32, 0, 0);
+            return llvm_domain_slice_error(node, ctx,
+                "LLVM Slice() could not lower receiver/start/length operands");
         if (getenv("PGY_DEBUG_LLVM_DETAIL") != NULL)
             fprintf(stderr, "[llvm slice] phase=operands-ready\n");
 
@@ -212,22 +242,41 @@ llvm_emit_member_call_slice(ASTNode *node, LLVMGenCtx *ctx,
         data_ptr = llvm_array_data_ptr(ctx, receiver);
         if (getenv("PGY_DEBUG_LLVM_DETAIL") != NULL)
             fprintf(stderr, "[llvm slice] phase=data-ptr\n");
-        if (LLVMGetTypeKind(LLVMTypeOf(data_ptr)) != LLVMPointerTypeKind)
-            return LLVMConstInt(ctx->type_i32, 0, 0);
+        if (data_ptr == NULL)
+            return llvm_domain_slice_error(node, ctx,
+                "LLVM Slice() receiver did not expose array data storage");
+        if (LLVMGetTypeKind(LLVMTypeOf(data_ptr)) != LLVMPointerTypeKind) {
+            llvm_set_error_at_with_hints(ctx, node,
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                "LLVM Slice() receiver requires concrete Array<T>/Slice<T> storage");
+            return NULL;
+        }
         elem_type = llvm_stmt_resolve_array_elem_type(ctx, obj_node, data_ptr);
-        if (elem_type == NULL)
-            elem_type = ctx->type_i32;
+        if (elem_type == NULL) {
+            llvm_set_error_at_with_hints(ctx, node,
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                "LLVM Slice() receiver requires concrete element type metadata");
+            return NULL;
+        }
         suffix = llvm_type_to_suffix(ctx, elem_type);
         if (getenv("PGY_DEBUG_LLVM_DETAIL") != NULL)
             fprintf(stderr, "[llvm slice] phase=elem ptr-kind=%d elem-kind=%d suffix=%s\n",
                 (int)LLVMGetTypeKind(LLVMTypeOf(data_ptr)),
                 elem_type != NULL ? (int)LLVMGetTypeKind(elem_type) : -1,
                 suffix != NULL ? suffix : "(null)");
-        if (suffix != NULL && strcmp(suffix, "Unknown") != 0)
-            slice_type = llvm_slice_struct_type(ctx, suffix);
-        else
-            slice_type = LLVMStructTypeInContext(ctx->context,
-                (LLVMTypeRef[]){ LLVMPointerType(elem_type, 0), ctx->type_i64 }, 2, 0);
+        if (suffix == NULL || strcmp(suffix, "Unknown") == 0) {
+            llvm_set_error_at_with_hints(ctx, node,
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                "LLVM Slice() receiver requires registered Slice<T> element metadata");
+            return NULL;
+        }
+        slice_type = llvm_slice_struct_type(ctx, suffix);
         start64 = (LLVMTypeOf(start) == ctx->type_i64)
             ? start
             : LLVMBuildSExt(ctx->builder, start, ctx->type_i64, llvm_tmp_name(ctx));

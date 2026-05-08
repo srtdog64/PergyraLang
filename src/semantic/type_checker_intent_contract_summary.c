@@ -13,9 +13,6 @@
 #include <stdio.h>
 #include <string.h>
 
-const char *
-intent_involves_type_name(ASTNode *involves);
-
 static const char *
 intent_summary_nominal_decl_name(ASTNode *decl)
 {

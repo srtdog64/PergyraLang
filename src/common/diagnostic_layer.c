@@ -134,6 +134,10 @@ diagnostic_layer_from_tags(const char *stage,
         return DIAG_LAYER_CONCURRENCY;
     }
 
+    if (diag_tag_equals(cause_ir, "semantic:assignability_check")) {
+        return DIAG_LAYER_TYPE;
+    }
+
     if (diag_tag_contains_any(cause_ir, domain_terms,
                               DIAG_ARRAY_LEN(domain_terms))
         || diag_tag_contains_any(code, domain_code_terms,

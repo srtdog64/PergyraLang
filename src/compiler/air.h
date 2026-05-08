@@ -65,7 +65,8 @@ typedef enum
     AIR_EVIDENCE_DAG_ABILITY,
     AIR_EVIDENCE_RIR_EFFECT_PROPAGATION,
     AIR_EVIDENCE_RIR_RELATION_PROPAGATION,
-    AIR_EVIDENCE_OBSERVABILITY_SCHEMA
+    AIR_EVIDENCE_OBSERVABILITY_SCHEMA,
+    AIR_EVIDENCE_RUNTIME_FRONTIER_POLICY
 } AIREvidenceKind;
 
 typedef struct
@@ -160,6 +161,7 @@ typedef struct AIRProgram
     size_t           rir_relation_propagation_required_count;
     size_t           rir_relation_propagation_evidence_count;
     size_t           observability_schema_evidence_count;
+    size_t           runtime_frontier_policy_evidence_count;
     char           **owned_names;
     size_t           owned_name_count;
     size_t           owned_name_capacity;

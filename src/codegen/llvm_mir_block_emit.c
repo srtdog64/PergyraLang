@@ -20,12 +20,20 @@ llvm_mir_branch_requires_source_emit(const MIRInstruction *inst)
 }
 
 static bool
+llvm_mir_instruction_has_source_ast_payload(const MIRInstruction *inst)
+{
+    return inst != NULL
+        && inst->ast != NULL
+        && inst->has_source_location;
+}
+
+static bool
 llvm_mir_branch_has_required_condition_fact(const MIRInstruction *inst)
 {
     if (inst == NULL)
         return false;
     if (llvm_mir_branch_requires_source_emit(inst))
-        return inst->ast != NULL;
+        return llvm_mir_instruction_has_source_ast_payload(inst);
     return inst->expr0 != NULL;
 }
 
@@ -34,8 +42,7 @@ llvm_mir_def_uses_source_statement_emit(const MIRInstruction *inst)
 {
     return inst != NULL
         && inst->requires_source_statement_emit
-        && inst->ast != NULL
-        && inst->has_source_location;
+        && llvm_mir_instruction_has_source_ast_payload(inst);
 }
 
 static bool
@@ -43,7 +50,8 @@ llvm_mir_def_uses_source_local_decl_emit(const MIRInstruction *inst)
 {
     return inst != NULL
         && llvm_mir_def_uses_source_statement_emit(inst)
-        && inst->requires_source_local_decl_emit;
+        && inst->requires_source_local_decl_emit
+        && inst->source_ast_type == AST_LET_DECL;
 }
 
 static bool
@@ -67,9 +75,9 @@ llvm_mir_stmt_instruction_is_cfg_container(const MIRInstruction *inst)
 {
     if (inst == NULL)
         return false;
-    if (inst->has_source_location)
-        return llvm_mir_ast_type_is_cfg_container(inst->source_ast_type);
-    return llvm_mir_stmt_is_cfg_container(inst->ast);
+    if (!inst->has_source_location)
+        return false;
+    return llvm_mir_ast_type_is_cfg_container(inst->source_ast_type);
 }
 
 void
@@ -81,6 +89,14 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block, const MIRRoutine 
 {
     (void)routine;
     (void)func_decl;
+
+    if (mir_block->instruction_count > 0 && mir_block->instructions == NULL) {
+        llvm_set_mir_topology_invalid(ctx,
+            "LLVM MIR block emission failed: block %llu has instruction count without instruction inventory",
+            (unsigned long long) mir_block->id);
+        return;
+    }
+
     LLVMBasicBlockRef llvm_block = llvm_blocks[mir_block->id];
     LLVMPositionBuilderAtEnd(ctx->builder, llvm_block);
     bool emitted_terminator = false;

@@ -9,7 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-static bool
+bool
 air_evidence_kind_is_boundary_scoped(AIREvidenceKind kind)
 {
     switch (kind) {
@@ -28,7 +28,32 @@ air_evidence_kind_is_boundary_scoped(AIREvidenceKind kind)
     case AIR_EVIDENCE_RIR_EFFECT_PROPAGATION:
     case AIR_EVIDENCE_RIR_RELATION_PROPAGATION:
     case AIR_EVIDENCE_OBSERVABILITY_SCHEMA:
+    case AIR_EVIDENCE_RUNTIME_FRONTIER_POLICY:
         return false;
+    }
+    return false;
+}
+
+bool
+air_evidence_kind_is_known(AIREvidenceKind kind)
+{
+    switch (kind) {
+    case AIR_EVIDENCE_HIR_ROUTINE:
+    case AIR_EVIDENCE_HIR_CFG:
+    case AIR_EVIDENCE_RIR_BOUNDARY:
+    case AIR_EVIDENCE_RIR_AUTHORITY:
+    case AIR_EVIDENCE_MIR_PIN_CLEANUP:
+    case AIR_EVIDENCE_MIR_CLEANUP:
+    case AIR_EVIDENCE_MIR_TERMINATOR:
+    case AIR_EVIDENCE_MIR_SELECT_RECEIVE:
+    case AIR_EVIDENCE_DAG_METADATA:
+    case AIR_EVIDENCE_DAG_GENERIC:
+    case AIR_EVIDENCE_DAG_ABILITY:
+    case AIR_EVIDENCE_RIR_EFFECT_PROPAGATION:
+    case AIR_EVIDENCE_RIR_RELATION_PROPAGATION:
+    case AIR_EVIDENCE_OBSERVABILITY_SCHEMA:
+    case AIR_EVIDENCE_RUNTIME_FRONTIER_POLICY:
+        return true;
     }
     return false;
 }
@@ -42,8 +67,14 @@ air_evidence_node_merge_counts(AIREvidenceNode *node,
 {
     if (node == NULL)
         return false;
-    if (air_evidence_kind_is_boundary_scoped(kind))
+    if (air_evidence_kind_is_boundary_scoped(kind)) {
+        if (fact_count != 1 || fallback_count != 0) {
+            air_set_error(error_message,
+                          "AIR boundary evidence duplicate has invalid counts");
+            return false;
+        }
         return true;
+    }
     if (fact_count > SIZE_MAX - node->fact_count
         || fallback_count > SIZE_MAX - node->fallback_count) {
         air_set_error(error_message, "AIR evidence node count overflow");
@@ -103,11 +134,8 @@ air_append_evidence_node_ex(AIRProgram *air,
     }
     if (air->evidence_count >= air->evidence_capacity) {
         AIREvidenceNode *next;
-        size_t new_capacity = air->evidence_capacity == 0
-            ? 16
-            : air->evidence_capacity * 2;
-        if (new_capacity < air->evidence_capacity
-            || new_capacity > SIZE_MAX / sizeof(AIREvidenceNode)) {
+        size_t new_capacity = air->evidence_capacity;
+        if (!air_next_capacity(&new_capacity, 16, sizeof(AIREvidenceNode))) {
             air_set_error(error_message, "AIR evidence node allocation failed");
             return false;
         }

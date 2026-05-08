@@ -5,9 +5,6 @@
  * Internal C backend local symbol, slot, and alias tracking.
  */
 
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "transpiler_symbols.h"
@@ -15,29 +12,6 @@
 #include "codegen_slot_type_policy.h"
 #include "../common/string_compat.h"
 #include "../semantic/diag_codes.h"
-
-static char *
-transpiler_heap_fmt(const char *fmt, ...)
-{
-    va_list ap;
-    int n;
-    char *s;
-
-    va_start(ap, fmt);
-    n = vsnprintf(NULL, 0, fmt, ap);
-    va_end(ap);
-    if (n < 0)
-        return pergyra_strdup("");
-
-    s = (char *)malloc((size_t)n + 1);
-    if (s == NULL)
-        return pergyra_strdup("");
-
-    va_start(ap, fmt);
-    vsnprintf(s, (size_t)n + 1, fmt, ap);
-    va_end(ap);
-    return s;
-}
 
 void
 register_slot_var(TranspilerCtx *ctx, const char *name,
@@ -51,10 +25,8 @@ register_slot_var(TranspilerCtx *ctx, const char *name,
 
     e = &ctx->slot_vars[ctx->slot_var_count++];
     ctx->last_slot_var_index = ctx->slot_var_count - 1;
-    strncpy(e->name, name, sizeof(e->name) - 1);
-    e->name[sizeof(e->name) - 1] = '\0';
-    strncpy(e->inner_type, inner_type, sizeof(e->inner_type) - 1);
-    e->inner_type[sizeof(e->inner_type) - 1] = '\0';
+    pergyra_str_copy(e->name, sizeof(e->name), name);
+    pergyra_str_copy(e->inner_type, sizeof(e->inner_type), inner_type);
     if (is_secure) {
         snprintf(e->token_name, sizeof(e->token_name), "%s_token", name);
     } else {
@@ -73,18 +45,16 @@ set_slot_token_name(TranspilerCtx *ctx, const char *slot_name,
     if (ctx->last_slot_var_index >= 0
         && ctx->last_slot_var_index < ctx->slot_var_count
         && strcmp(ctx->slot_vars[ctx->last_slot_var_index].name, slot_name) == 0) {
-        strncpy(ctx->slot_vars[ctx->last_slot_var_index].token_name, token_name,
-                sizeof(ctx->slot_vars[ctx->last_slot_var_index].token_name) - 1);
-        ctx->slot_vars[ctx->last_slot_var_index]
-            .token_name[sizeof(ctx->slot_vars[ctx->last_slot_var_index].token_name) - 1] = '\0';
+        pergyra_str_copy(ctx->slot_vars[ctx->last_slot_var_index].token_name,
+            sizeof(ctx->slot_vars[ctx->last_slot_var_index].token_name),
+            token_name);
         return;
     }
     for (int i = 0; i < ctx->slot_var_count; i++) {
         if (strcmp(ctx->slot_vars[i].name, slot_name) == 0) {
             ctx->last_slot_var_index = i;
-            strncpy(ctx->slot_vars[i].token_name, token_name,
-                    sizeof(ctx->slot_vars[i].token_name) - 1);
-            ctx->slot_vars[i].token_name[sizeof(ctx->slot_vars[i].token_name) - 1] = '\0';
+            pergyra_str_copy(ctx->slot_vars[i].token_name,
+                sizeof(ctx->slot_vars[i].token_name), token_name);
             return;
         }
     }
@@ -215,7 +185,7 @@ slot_ref_expr(TranspilerCtx *ctx, const char *slot_name, const char *slot_expr)
         return pergyra_strdup("");
     if (slot_name != NULL && lookup_slot_is_indirect(ctx, slot_name))
         return pergyra_strdup(slot_expr);
-    return transpiler_heap_fmt("&%s", slot_expr);
+    return pergyra_strdup_printf("&%s", slot_expr);
 }
 
 bool
@@ -255,18 +225,15 @@ register_typed_var(TranspilerCtx *ctx, const char *name, const char *type_name)
             || strcmp(type_name, "MoveToken") == 0
             || strncmp(type_name, "MoveToken<", 10) == 0)) {
         e = &ctx->typed_vars[ctx->last_typed_var_index];
-        strncpy(e->type_name, type_name, sizeof(e->type_name) - 1);
-        e->type_name[sizeof(e->type_name) - 1] = '\0';
+        pergyra_str_copy(e->type_name, sizeof(e->type_name), type_name);
         return;
     }
 
     e = &ctx->typed_vars[ctx->typed_var_count++];
     ctx->last_typed_var_index = ctx->typed_var_count - 1;
     memset(e, 0, sizeof(*e));
-    strncpy(e->name, name, sizeof(e->name) - 1);
-    e->name[sizeof(e->name) - 1] = '\0';
-    strncpy(e->type_name, type_name, sizeof(e->type_name) - 1);
-    e->type_name[sizeof(e->type_name) - 1] = '\0';
+    pergyra_str_copy(e->name, sizeof(e->name), name);
+    pergyra_str_copy(e->type_name, sizeof(e->type_name), type_name);
 }
 
 void
@@ -281,8 +248,7 @@ register_alias_var(TranspilerCtx *ctx, const char *name, ASTNode *target_expr)
     e = &ctx->alias_vars[ctx->alias_var_count++];
     ctx->last_alias_var_index = ctx->alias_var_count - 1;
     memset(e, 0, sizeof(*e));
-    strncpy(e->name, name, sizeof(e->name) - 1);
-    e->name[sizeof(e->name) - 1] = '\0';
+    pergyra_str_copy(e->name, sizeof(e->name), name);
     e->target_expr = target_expr;
 }
 
@@ -346,13 +312,10 @@ register_view_like_var(TranspilerCtx *ctx, const char *name, const char *type_na
 
     e = &ctx->typed_vars[ctx->typed_var_count++];
     memset(e, 0, sizeof(*e));
-    strncpy(e->name, name, sizeof(e->name) - 1);
-    e->name[sizeof(e->name) - 1] = '\0';
-    strncpy(e->type_name, type_name, sizeof(e->type_name) - 1);
-    e->type_name[sizeof(e->type_name) - 1] = '\0';
+    pergyra_str_copy(e->name, sizeof(e->name), name);
+    pergyra_str_copy(e->type_name, sizeof(e->type_name), type_name);
     if (source_slot != NULL) {
-        strncpy(e->source_slot, source_slot, sizeof(e->source_slot) - 1);
-        e->source_slot[sizeof(e->source_slot) - 1] = '\0';
+        pergyra_str_copy(e->source_slot, sizeof(e->source_slot), source_slot);
     }
     e->is_view = !is_move_token;
     e->is_move_token = is_move_token;
@@ -372,11 +335,8 @@ register_projection_borrow_var(TranspilerCtx *ctx, const char *name,
 
     e = &ctx->typed_vars[ctx->typed_var_count++];
     memset(e, 0, sizeof(*e));
-    strncpy(e->name, name, sizeof(e->name) - 1);
-    e->name[sizeof(e->name) - 1] = '\0';
-    strncpy(e->type_name, type_name, sizeof(e->type_name) - 1);
-    e->type_name[sizeof(e->type_name) - 1] = '\0';
-    strncpy(e->source_slot, source_name, sizeof(e->source_slot) - 1);
-    e->source_slot[sizeof(e->source_slot) - 1] = '\0';
+    pergyra_str_copy(e->name, sizeof(e->name), name);
+    pergyra_str_copy(e->type_name, sizeof(e->type_name), type_name);
+    pergyra_str_copy(e->source_slot, sizeof(e->source_slot), source_name);
     e->is_projection_borrow = true;
 }

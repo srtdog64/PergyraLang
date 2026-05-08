@@ -7,6 +7,27 @@
 #include "llvm_expr_call_collections_extended.h"
 #include "llvm_internal_api.h"
 
+static bool
+llvm_collection_base_error_out(LLVMGenCtx *ctx, ASTNode *node,
+                               LLVMValueRef *out, LLVMValueRef recovery,
+                               const char *message)
+{
+    (void)recovery;
+
+    if (ctx != NULL && !ctx->has_error) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "%s",
+            message != NULL ? message
+                : "LLVM collection builtin could not be lowered");
+    }
+    if (out != NULL)
+        *out = NULL;
+    return true;
+}
+
 bool
 llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
                                const char *callee_name, LLVMValueRef *out)
@@ -27,7 +48,7 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
                 PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
                 PGY_FIX_ANNOTATE_CONCRETE_TYPE,
                 "LLVM ListNew() requires contextual List<T>; implicit i32 fallback is disabled");
-            *out = LLVMConstInt(ctx->type_i32, 0, 0);
+            *out = NULL;
             return true;
         }
         if (ctx->expected_type_name != NULL
@@ -41,22 +62,32 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
                 PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
                 PGY_FIX_ANNOTATE_CONCRETE_TYPE,
                 "LLVM ListNew() requires concrete List<T> type metadata");
-            *out = LLVMConstInt(ctx->type_i32, 0, 0);
+            *out = NULL;
             return true;
         }
         list_ty = ctx->current_ret_type;
         elem_ty = pergyra_type_to_llvm(ctx, inner_name);
+        if (elem_ty == NULL)
+            return llvm_collection_base_error_out(ctx, node, out,
+                LLVMConstInt(ctx->type_i32, 0, 0),
+                "LLVM ListNew() requires concrete element LLVM type metadata");
         fn = llvm_required_collection_function(ctx, node, callee_name,
             "pgy_list_new_raw_export");
-        tmp = llvm_create_entry_alloca(ctx, list_ty, llvm_tmp_name(ctx));
-        LLVMBuildStore(ctx->builder, LLVMConstNull(list_ty), tmp);
-        if (fn != NULL) {
-            LLVMValueRef args[] = {
-                LLVMBuildBitCast(ctx->builder, tmp, ctx->type_i8ptr, llvm_tmp_name(ctx)),
-                llvm_sizeof_type_i64(ctx, elem_ty)
-            };
-            LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, "");
+        if (fn == NULL) {
+            *out = NULL;
+            return true;
         }
+        tmp = llvm_create_entry_alloca(ctx, list_ty, llvm_tmp_name(ctx));
+        if (tmp == NULL)
+            return llvm_collection_base_error_out(ctx, node, out,
+                LLVMConstInt(ctx->type_i32, 0, 0),
+                "LLVM ListNew() could not allocate list temporary");
+        LLVMBuildStore(ctx->builder, LLVMConstNull(list_ty), tmp);
+        LLVMValueRef args[] = {
+            LLVMBuildBitCast(ctx->builder, tmp, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+            llvm_sizeof_type_i64(ctx, elem_ty)
+        };
+        LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, "");
         *out = LLVMBuildLoad2(ctx->builder, list_ty, tmp, llvm_tmp_name(ctx));
         return true;
     }
@@ -74,7 +105,7 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
                 PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
                 PGY_FIX_ANNOTATE_CONCRETE_TYPE,
                 "LLVM SetNew() requires contextual Set<T>; implicit i32 fallback is disabled");
-            *out = LLVMConstInt(ctx->type_i32, 0, 0);
+            *out = NULL;
             return true;
         }
         if (ctx->expected_type_name != NULL
@@ -88,22 +119,32 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
                 PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
                 PGY_FIX_ANNOTATE_CONCRETE_TYPE,
                 "LLVM SetNew() requires concrete Set<T> type metadata");
-            *out = LLVMConstInt(ctx->type_i32, 0, 0);
+            *out = NULL;
             return true;
         }
         set_ty = ctx->current_ret_type;
         elem_ty = pergyra_type_to_llvm(ctx, inner_name);
+        if (elem_ty == NULL)
+            return llvm_collection_base_error_out(ctx, node, out,
+                LLVMConstInt(ctx->type_i32, 0, 0),
+                "LLVM SetNew() requires concrete element LLVM type metadata");
         fn = llvm_required_collection_function(ctx, node, callee_name,
             "pgy_set_new_raw_export");
-        tmp = llvm_create_entry_alloca(ctx, set_ty, llvm_tmp_name(ctx));
-        LLVMBuildStore(ctx->builder, LLVMConstNull(set_ty), tmp);
-        if (fn != NULL) {
-            LLVMValueRef args[] = {
-                LLVMBuildBitCast(ctx->builder, tmp, ctx->type_i8ptr, llvm_tmp_name(ctx)),
-                llvm_sizeof_type_i64(ctx, elem_ty)
-            };
-            LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, "");
+        if (fn == NULL) {
+            *out = NULL;
+            return true;
         }
+        tmp = llvm_create_entry_alloca(ctx, set_ty, llvm_tmp_name(ctx));
+        if (tmp == NULL)
+            return llvm_collection_base_error_out(ctx, node, out,
+                LLVMConstInt(ctx->type_i32, 0, 0),
+                "LLVM SetNew() could not allocate set temporary");
+        LLVMBuildStore(ctx->builder, LLVMConstNull(set_ty), tmp);
+        LLVMValueRef args[] = {
+            LLVMBuildBitCast(ctx->builder, tmp, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+            llvm_sizeof_type_i64(ctx, elem_ty)
+        };
+        LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, "");
         *out = LLVMBuildLoad2(ctx->builder, set_ty, tmp, llvm_tmp_name(ctx));
         return true;
     }
@@ -124,14 +165,14 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
         elem_ty = llvm_collection_required_value_type(ctx, node, "Set",
             set_arg->data.identifier.name, inner_name, NULL);
         if (elem_ty == NULL) {
-            *out = LLVMConstInt(ctx->type_i32, 0, 0);
+            *out = NULL;
             return true;
         }
         value = llvm_emit_expression(node->data.call.arguments[1], ctx);
-        if (value == NULL) {
-            *out = LLVMConstInt(ctx->type_i32, 0, 0);
-            return true;
-        }
+        if (value == NULL)
+            return llvm_collection_base_error_out(ctx, node, out,
+                LLVMConstInt(ctx->type_i32, 0, 0),
+                "LLVM SetAdd could not lower value expression");
         if (LLVMTypeOf(value) != elem_ty) {
             if ((elem_ty == ctx->type_i32 || elem_ty == ctx->type_i64)
                 && (LLVMTypeOf(value) == ctx->type_f32 || LLVMTypeOf(value) == ctx->type_f64))
@@ -141,17 +182,23 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
                 value = LLVMBuildSIToFP(ctx->builder, value, elem_ty, llvm_tmp_name(ctx));
         }
         tmp = llvm_create_entry_alloca(ctx, elem_ty, llvm_tmp_name(ctx));
+        if (tmp == NULL)
+            return llvm_collection_base_error_out(ctx, node, out,
+                LLVMConstInt(ctx->type_i32, 0, 0),
+                "LLVM SetAdd could not allocate element temporary");
         LLVMBuildStore(ctx->builder, value, tmp);
         fn = llvm_required_collection_function(ctx, node, callee_name,
             "pgy_set_add_raw_export");
-        if (fn != NULL) {
-            LLVMValueRef args[] = {
-                LLVMBuildBitCast(ctx->builder, set_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
-                LLVMBuildBitCast(ctx->builder, tmp, ctx->type_i8ptr, llvm_tmp_name(ctx)),
-                llvm_sizeof_type_i64(ctx, elem_ty)
-            };
-            LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 3, "");
+        if (fn == NULL) {
+            *out = NULL;
+            return true;
         }
+        LLVMValueRef args[] = {
+            LLVMBuildBitCast(ctx->builder, set_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+            LLVMBuildBitCast(ctx->builder, tmp, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+            llvm_sizeof_type_i64(ctx, elem_ty)
+        };
+        LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 3, "");
         *out = LLVMConstInt(ctx->type_i32, 0, 0);
         return true;
     }
@@ -172,14 +219,14 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
         elem_ty = llvm_collection_required_value_type(ctx, node, "Set",
             set_arg->data.identifier.name, inner_name, NULL);
         if (elem_ty == NULL) {
-            *out = LLVMConstInt(ctx->type_i1, 0, 0);
+            *out = NULL;
             return true;
         }
         value = llvm_emit_expression(node->data.call.arguments[1], ctx);
-        if (value == NULL) {
-            *out = LLVMConstInt(ctx->type_i1, 0, 0);
-            return true;
-        }
+        if (value == NULL)
+            return llvm_collection_base_error_out(ctx, node, out,
+                LLVMConstInt(ctx->type_i1, 0, 0),
+                "LLVM SetHas could not lower value expression");
         if (LLVMTypeOf(value) != elem_ty) {
             if ((elem_ty == ctx->type_i32 || elem_ty == ctx->type_i64)
                 && (LLVMTypeOf(value) == ctx->type_f32 || LLVMTypeOf(value) == ctx->type_f64))
@@ -189,11 +236,15 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
                 value = LLVMBuildSIToFP(ctx->builder, value, elem_ty, llvm_tmp_name(ctx));
         }
         tmp = llvm_create_entry_alloca(ctx, elem_ty, llvm_tmp_name(ctx));
+        if (tmp == NULL)
+            return llvm_collection_base_error_out(ctx, node, out,
+                LLVMConstInt(ctx->type_i1, 0, 0),
+                "LLVM SetHas could not allocate element temporary");
         LLVMBuildStore(ctx->builder, value, tmp);
         fn = llvm_required_collection_function(ctx, node, callee_name,
             "pgy_set_has_raw_export");
         if (fn == NULL) {
-            *out = LLVMConstInt(ctx->type_i1, 0, 0);
+            *out = NULL;
             return true;
         }
         {
@@ -224,14 +275,14 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
         elem_ty = llvm_collection_required_value_type(ctx, node, "Set",
             set_arg->data.identifier.name, inner_name, NULL);
         if (elem_ty == NULL) {
-            *out = LLVMConstInt(ctx->type_i32, 0, 0);
+            *out = NULL;
             return true;
         }
         value = llvm_emit_expression(node->data.call.arguments[1], ctx);
-        if (value == NULL) {
-            *out = LLVMConstInt(ctx->type_i32, 0, 0);
-            return true;
-        }
+        if (value == NULL)
+            return llvm_collection_base_error_out(ctx, node, out,
+                LLVMConstInt(ctx->type_i32, 0, 0),
+                "LLVM SetRemove could not lower value expression");
         if (LLVMTypeOf(value) != elem_ty) {
             if ((elem_ty == ctx->type_i32 || elem_ty == ctx->type_i64)
                 && (LLVMTypeOf(value) == ctx->type_f32 || LLVMTypeOf(value) == ctx->type_f64))
@@ -241,17 +292,23 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
                 value = LLVMBuildSIToFP(ctx->builder, value, elem_ty, llvm_tmp_name(ctx));
         }
         tmp = llvm_create_entry_alloca(ctx, elem_ty, llvm_tmp_name(ctx));
+        if (tmp == NULL)
+            return llvm_collection_base_error_out(ctx, node, out,
+                LLVMConstInt(ctx->type_i32, 0, 0),
+                "LLVM SetRemove could not allocate element temporary");
         LLVMBuildStore(ctx->builder, value, tmp);
         fn = llvm_required_collection_function(ctx, node, callee_name,
             "pgy_set_remove_raw_export");
-        if (fn != NULL) {
-            LLVMValueRef args[] = {
-                LLVMBuildBitCast(ctx->builder, set_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
-                LLVMBuildBitCast(ctx->builder, tmp, ctx->type_i8ptr, llvm_tmp_name(ctx)),
-                llvm_sizeof_type_i64(ctx, elem_ty)
-            };
-            LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 3, "");
+        if (fn == NULL) {
+            *out = NULL;
+            return true;
         }
+        LLVMValueRef args[] = {
+            LLVMBuildBitCast(ctx->builder, set_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+            LLVMBuildBitCast(ctx->builder, tmp, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+            llvm_sizeof_type_i64(ctx, elem_ty)
+        };
+        LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 3, "");
         *out = LLVMConstInt(ctx->type_i32, 0, 0);
         return true;
     }
@@ -267,7 +324,7 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
         fn = llvm_required_collection_function(ctx, node, callee_name,
             "pgy_set_size_raw_export");
         if (fn == NULL) {
-            *out = LLVMConstInt(ctx->type_i32, 0, 0);
+            *out = NULL;
             return true;
         }
         {

@@ -176,15 +176,21 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
                 && binding->data.intent_involves.subject_type != NULL) {
                 param_types[i] = llvm_mir_type_from_ast(
                     ctx, binding->data.intent_involves.subject_type);
+                if (ctx->has_error || param_types[i] == NULL)
+                    return NULL;
                 if (llvm_intent_involves_uses_pointer_self(ctx, binding))
                     param_types[i] = LLVMPointerType(param_types[i], 0);
             } else if (binding != NULL && binding->type == AST_INTENT_VALUE
                 && binding->data.intent_value.value_type != NULL) {
                 param_types[i] = llvm_mir_type_from_ast(
                     ctx, binding->data.intent_value.value_type);
+                if (ctx->has_error || param_types[i] == NULL)
+                    return NULL;
             } else {
                 param_types[i] = llvm_mir_required_type_from_ast(
                     ctx, binding, NULL, "intent binding");
+                if (ctx->has_error || param_types[i] == NULL)
+                    return NULL;
             }
         } else if (is_method && i == 0) {
             if (owner_cls != NULL) {
@@ -218,6 +224,8 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
             const char *slot_inner = llvm_mir_boundary_slot_inner_name(p, &is_secure_slot);
             if (slot_inner != NULL && p != NULL && p->type != NULL) {
                 LLVMTypeRef slot_ty = llvm_mir_type_from_ast(ctx, p->type);
+                if (ctx->has_error || slot_ty == NULL)
+                    return NULL;
                 param_types[i] = LLVMPointerType(slot_ty, 0);
                 if (is_secure_slot && i + 1 < param_count) {
                     param_types[++i] = llvm_secure_token_type(ctx, slot_inner);
@@ -229,6 +237,8 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
                 else
                     param_types[i] = llvm_mir_required_type_from_ast(
                         ctx, func_decl, NULL, "function parameter");
+                if (ctx->has_error || param_types[i] == NULL)
+                    return NULL;
                 if (p != NULL && p->type != NULL
                     && llvm_mir_param_uses_pointer_self(ctx, p->type)) {
                     param_types[i] = LLVMPointerType(param_types[i], 0);
@@ -239,6 +249,8 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
     LLVMTypeRef ret_type = is_intent ? ctx->type_i1 : ctx->type_i32;
     if (!is_intent && func_decl->data.func_decl.return_type != NULL)
         ret_type = llvm_mir_type_from_ast(ctx, func_decl->data.func_decl.return_type);
+    if (ctx->has_error || ret_type == NULL)
+        return NULL;
 
     LLVMTypeRef func_type = LLVMFunctionType(ret_type, param_types, (unsigned)param_count, 0);
     fn_name = routine->name;

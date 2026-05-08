@@ -57,6 +57,8 @@ symbol_index_insert(Symbol **index, size_t capacity, Symbol *symbol)
 
     if (index == NULL || capacity == 0 || symbol == NULL || symbol->name == NULL)
         return false;
+    if ((capacity & (capacity - 1)) != 0)
+        return false;
 
     mask = capacity - 1;
     slot = (size_t)symbol_hash_name(symbol->name) & mask;
@@ -66,6 +68,8 @@ symbol_index_insert(Symbol **index, size_t capacity, Symbol *symbol)
             index[slot] = symbol;
             return true;
         }
+        if (current->name == NULL)
+            return false;
         if (strcmp(current->name, symbol->name) == 0)
             return false;
         slot = (slot + 1) & mask;
@@ -79,6 +83,8 @@ scope_rebuild_symbol_index(Scope *scope, size_t new_capacity)
     Symbol **index;
 
     if (scope == NULL || new_capacity == 0)
+        return false;
+    if ((new_capacity & (new_capacity - 1)) != 0)
         return false;
 
     index = calloc(new_capacity, sizeof(Symbol *));
@@ -105,6 +111,8 @@ scope_ensure_symbol_index_capacity(Scope *scope, size_t next_count)
 
     if (scope == NULL)
         return false;
+    if (next_count > SIZE_MAX / 2)
+        return false;
 
     if (scope->symbol_index_capacity != 0
         && next_count * 2 < scope->symbol_index_capacity) {
@@ -114,8 +122,13 @@ scope_ensure_symbol_index_capacity(Scope *scope, size_t next_count)
     new_capacity = scope->symbol_index_capacity == 0
         ? INITIAL_SYMBOL_INDEX_CAPACITY
         : scope->symbol_index_capacity * 2;
-    while (next_count * 2 >= new_capacity)
+    if (new_capacity == 0)
+        return false;
+    while (next_count * 2 >= new_capacity) {
+        if (new_capacity > SIZE_MAX / 2)
+            return false;
         new_capacity *= 2;
+    }
 
     return scope_rebuild_symbol_index(scope, new_capacity);
 }
@@ -127,10 +140,38 @@ scope_lookup_current_linear(Scope *scope, const char *name)
         return NULL;
 
     for (size_t i = 0; i < scope->symbol_count; i++) {
-        if (strcmp(scope->symbols[i]->name, name) == 0)
-            return scope->symbols[i];
+        Symbol *sym = scope->symbols[i];
+        if (sym != NULL && sym->name != NULL
+            && strcmp(sym->name, name) == 0)
+            return sym;
     }
     return NULL;
+}
+
+static Symbol *
+symbol_alloc_named(const char *name, SymbolKind kind, Type *type,
+                   uint32_t line, uint32_t col)
+{
+    Symbol *sym;
+
+    if (name == NULL)
+        return NULL;
+
+    sym = calloc(1, sizeof(Symbol));
+    if (sym == NULL)
+        return NULL;
+
+    sym->name = pergyra_strdup(name);
+    if (sym->name == NULL) {
+        free(sym);
+        return NULL;
+    }
+
+    sym->kind = kind;
+    sym->type = type;
+    sym->decl_line = line;
+    sym->decl_col = col;
+    return sym;
 }
 
 /* -----------------------------------------------------------------
@@ -184,7 +225,10 @@ scope_destroy(Scope *scope)
 void
 scope_enter(Scope **current, ScopeKind kind)
 {
-    Scope *child = scope_create(*current, kind);
+    Scope *child;
+    if (current == NULL)
+        return;
+    child = scope_create(*current, kind);
     if (child != NULL)
         *current = child;
 }
@@ -192,6 +236,8 @@ scope_enter(Scope **current, ScopeKind kind)
 void
 scope_exit(Scope **current)
 {
+    if (current == NULL)
+        return;
     if (*current == NULL || (*current)->parent == NULL)
         return;
 
@@ -215,13 +261,20 @@ scope_declare(Scope *scope, Symbol *symbol)
 
     /* Grow if needed */
     if (scope->symbol_count >= scope->symbol_capacity) {
-        size_t new_cap = scope->symbol_capacity * 2;
-        Symbol **grown = realloc(scope->symbols, new_cap * sizeof(Symbol *));
+        size_t new_cap;
+        Symbol **grown;
+        if (scope->symbol_capacity > SIZE_MAX / (2 * sizeof(Symbol *)))
+            return false;
+        new_cap = scope->symbol_capacity * 2;
+        grown = realloc(scope->symbols, new_cap * sizeof(Symbol *));
         if (grown == NULL)
             return false;
         scope->symbols          = grown;
         scope->symbol_capacity  = new_cap;
     }
+
+    if (scope->symbol_count == SIZE_MAX)
+        return false;
 
     if (!scope_ensure_symbol_index_capacity(scope, scope->symbol_count + 1))
         return false;
@@ -260,6 +313,8 @@ scope_lookup_current(Scope *scope, const char *name)
 
     if (scope->symbol_index == NULL || scope->symbol_index_capacity == 0)
         return scope_lookup_current_linear(scope, name);
+    if ((scope->symbol_index_capacity & (scope->symbol_index_capacity - 1)) != 0)
+        return scope_lookup_current_linear(scope, name);
 
     mask = scope->symbol_index_capacity - 1;
     slot = (size_t)symbol_hash_name(name) & mask;
@@ -267,7 +322,7 @@ scope_lookup_current(Scope *scope, const char *name)
         Symbol *sym = scope->symbol_index[slot];
         if (sym == NULL)
             return NULL;
-        if (strcmp(sym->name, name) == 0)
+        if (sym->name != NULL && strcmp(sym->name, name) == 0)
             return sym;
         slot = (slot + 1) & mask;
     }
@@ -281,10 +336,17 @@ scope_lookup_current(Scope *scope, const char *name)
 void
 scope_register_slot(Scope *scope, Symbol *slot_sym)
 {
+    if (scope == NULL || slot_sym == NULL)
+        return;
     if (scope->owned_slot_count >= scope->owned_slot_capacity) {
-        size_t new_cap = scope->owned_slot_capacity * 2;
-        Symbol **grown = realloc(scope->owned_slots,
-                                 new_cap * sizeof(Symbol *));
+        size_t new_cap;
+        Symbol **grown;
+        if (scope->owned_slot_capacity > SIZE_MAX / (2 * sizeof(Symbol *)))
+            return;
+        new_cap = scope->owned_slot_capacity * 2;
+        if (new_cap == 0)
+            return;
+        grown = realloc(scope->owned_slots, new_cap * sizeof(Symbol *));
         if (grown == NULL)
             return;
         scope->owned_slots         = grown;
@@ -310,8 +372,12 @@ scope_release_slot(Scope *scope, const char *slot_name)
 void
 scope_auto_release_slots(Scope *scope)
 {
+    if (scope == NULL)
+        return;
     for (size_t i = 0; i < scope->owned_slot_count; i++) {
         Symbol *sym = scope->owned_slots[i];
+        if (sym == NULL)
+            continue;
         if (sym->slot_info.state == SLOT_STATE_CLAIMED)
             sym->slot_info.state = SLOT_STATE_RELEASED;
     }
@@ -325,15 +391,10 @@ Symbol *
 symbol_create_variable(const char *name, Type *type,
                         uint32_t line, uint32_t col)
 {
-    Symbol *sym = calloc(1, sizeof(Symbol));
+    Symbol *sym = symbol_alloc_named(name, SYMBOL_VARIABLE, type, line, col);
     if (sym == NULL)
         return NULL;
 
-    sym->name      = pergyra_strdup(name);
-    sym->kind      = SYMBOL_VARIABLE;
-    sym->type      = type;
-    sym->decl_line = line;
-    sym->decl_col  = col;
     sym->qubit_info.entangle_pool_id = -1;
     return sym;
 }
@@ -342,16 +403,7 @@ Symbol *
 symbol_create_function(const char *name, Type *func_type,
                         uint32_t line, uint32_t col)
 {
-    Symbol *sym = calloc(1, sizeof(Symbol));
-    if (sym == NULL)
-        return NULL;
-
-    sym->name      = pergyra_strdup(name);
-    sym->kind      = SYMBOL_FUNCTION;
-    sym->type      = func_type;
-    sym->decl_line = line;
-    sym->decl_col  = col;
-    return sym;
+    return symbol_alloc_named(name, SYMBOL_FUNCTION, func_type, line, col);
 }
 
 Symbol *
@@ -359,21 +411,19 @@ symbol_create_slot(const char *name, Type *slot_type,
                     bool is_secure, const char *paired_token,
                     uint32_t line, uint32_t col)
 {
-    Symbol *sym = calloc(1, sizeof(Symbol));
+    Symbol *sym = symbol_alloc_named(name, SYMBOL_SLOT, slot_type, line, col);
     if (sym == NULL)
         return NULL;
-
-    sym->name      = pergyra_strdup(name);
-    sym->kind      = SYMBOL_SLOT;
-    sym->type      = slot_type;
-    sym->decl_line = line;
-    sym->decl_col  = col;
 
     sym->slot_info.state             = SLOT_STATE_CLAIMED;
     sym->slot_info.is_secure         = is_secure;
     sym->slot_info.paired_token_name = paired_token
                                        ? pergyra_strdup(paired_token)
                                        : NULL;
+    if (paired_token != NULL && sym->slot_info.paired_token_name == NULL) {
+        symbol_destroy(sym);
+        return NULL;
+    }
     return sym;
 }
 
@@ -381,18 +431,17 @@ Symbol *
 symbol_create_token(const char *name, const char *paired_slot,
                      uint32_t line, uint32_t col)
 {
-    Symbol *sym = calloc(1, sizeof(Symbol));
+    Symbol *sym = symbol_alloc_named(name, SYMBOL_TOKEN, NULL, line, col);
     if (sym == NULL)
         return NULL;
-
-    sym->name      = pergyra_strdup(name);
-    sym->kind      = SYMBOL_TOKEN;
-    sym->decl_line = line;
-    sym->decl_col  = col;
 
     sym->slot_info.paired_slot_name = paired_slot
                                       ? pergyra_strdup(paired_slot)
                                       : NULL;
+    if (paired_slot != NULL && sym->slot_info.paired_slot_name == NULL) {
+        symbol_destroy(sym);
+        return NULL;
+    }
     return sym;
 }
 
@@ -408,6 +457,10 @@ symbol_create_view(const char *name, Type *view_type,
     sym->slot_info.paired_slot_name = source_slot != NULL
         ? pergyra_strdup(source_slot)
         : NULL;
+    if (source_slot != NULL && sym->slot_info.paired_slot_name == NULL) {
+        symbol_destroy(sym);
+        return NULL;
+    }
     return sym;
 }
 

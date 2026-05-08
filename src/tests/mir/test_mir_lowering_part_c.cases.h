@@ -44,6 +44,34 @@ test_mir_lowering_part_c(void)
         free(block.instructions);
     }
 
+    TEST("MIR DCE does not preserve user Intent-prefixed statements");
+    {
+        MIRInstruction *insts = calloc(1, sizeof(MIRInstruction));
+        MIRBasicBlock block = { 0 };
+        MIRRoutine routine = { 0 };
+        bool changed = false;
+        bool removed_user_intent;
+
+        if (insts != NULL) {
+            insts[0].kind = MIR_INST_STMT;
+            insts[0].name = "IntentDomainAction";
+            block.instructions = insts;
+            block.instruction_count = 1;
+            block.instruction_capacity = 1;
+            routine.name = "IntentPrefixDce";
+            routine.blocks = &block;
+            routine.block_count = 1;
+        }
+
+        removed_user_intent = insts != NULL
+            && mir_run_dce_on_routine(&routine, &changed)
+            && block.instruction_count == 0
+            && changed
+            && routine.dce_removed_count == 1;
+        EXPECT(removed_user_intent);
+        free(block.instructions);
+    }
+
     TEST("MIR validator rejects CFG-backed non-CFG body fallback state");
     {
         const char *src =
@@ -72,6 +100,82 @@ test_mir_lowering_part_c(void)
         mir_destroy(mir);
         rir_destroy(rir);
         hir_destroy(hir);
+    }
+
+    TEST("MIR validator rejects non-CFG fallback flag without count");
+    {
+        MIRRoutine routine = { 0 };
+        MIRProgram mir = { 0 };
+        char *mir_error = NULL;
+        bool rejected;
+
+        routine.name = "NonCfgFlagOnly";
+        routine.used_non_cfg_body_fallback = true;
+        routine.non_cfg_body_fallback_count = 0;
+        mir.routines = &routine;
+        mir.routine_count = 1;
+
+        rejected = !mir_validate(&mir, &mir_error)
+            && mir_error != NULL
+            && strstr(mir_error, "fallback flag without fallback count") != NULL;
+        EXPECT(rejected);
+        free(mir_error);
+    }
+
+    TEST("MIR validator rejects missing routine inventory");
+    {
+        MIRProgram mir = { 0 };
+        char *mir_error = NULL;
+        bool rejected;
+
+        mir.routine_count = 1;
+        mir.routines = NULL;
+
+        rejected = !mir_validate(&mir, &mir_error)
+            && mir_error != NULL
+            && strstr(mir_error, "without routine inventory") != NULL;
+        EXPECT(rejected);
+        free(mir_error);
+    }
+
+    TEST("MIR validator rejects missing block inventory");
+    {
+        MIRRoutine routine = { 0 };
+        MIRProgram mir = { 0 };
+        char *mir_error = NULL;
+        bool rejected;
+
+        routine.name = "MissingBlocks";
+        routine.block_count = 1;
+        routine.blocks = NULL;
+        mir.routine_count = 1;
+        mir.routines = &routine;
+
+        rejected = !mir_validate(&mir, &mir_error)
+            && mir_error != NULL
+            && strstr(mir_error, "without block inventory") != NULL;
+        EXPECT(rejected);
+        free(mir_error);
+    }
+
+    TEST("MIR validator rejects missing value-summary inventory");
+    {
+        MIRRoutine routine = { 0 };
+        MIRProgram mir = { 0 };
+        char *mir_error = NULL;
+        bool rejected;
+
+        routine.name = "MissingValueSummaries";
+        routine.value_summary_count = 1;
+        routine.value_summaries = NULL;
+        mir.routine_count = 1;
+        mir.routines = &routine;
+
+        rejected = !mir_validate(&mir, &mir_error)
+            && mir_error != NULL
+            && strstr(mir_error, "without value-summary inventory") != NULL;
+        EXPECT(rejected);
+        free(mir_error);
     }
 
     TEST("MIR validator rejects invalid source-statement emit fact");
@@ -451,8 +555,11 @@ test_mir_lowering_part_c(void)
         MIRRoutine *routine = NULL;
         MIRInstruction *branch_inst = NULL;
         ASTNode *saved_ast = NULL;
+        ASTNodeType saved_source_ast_type = 0;
+        bool saved_has_source_location = false;
         char *mir_error = NULL;
         bool rejected_missing_fact = false;
+        bool rejected_mismatched_source_type = false;
         bool rejected_missing_payload = false;
         bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
         if (ok)
@@ -472,6 +579,8 @@ test_mir_lowering_part_c(void)
         }
         if (branch_inst != NULL) {
             saved_ast = branch_inst->ast;
+            saved_source_ast_type = branch_inst->source_ast_type;
+            saved_has_source_location = branch_inst->has_source_location;
             branch_inst->branch_shape = MIR_BRANCH_MATCH_CASE;
             branch_inst->requires_source_branch_emit = false;
             rejected_missing_fact =
@@ -482,12 +591,24 @@ test_mir_lowering_part_c(void)
             mir_error = NULL;
 
             branch_inst->requires_source_branch_emit = true;
+            branch_inst->ast = saved_ast;
+            branch_inst->has_source_location = true;
+            branch_inst->source_ast_type = AST_BLOCK;
+            rejected_mismatched_source_type =
+                !mir_validate(mir, &mir_error)
+                && mir_error != NULL
+                && strstr(mir_error, "source-branch emit fact is invalid") != NULL;
+            free(mir_error);
+            mir_error = NULL;
+
             branch_inst->ast = NULL;
             rejected_missing_payload =
                 !mir_validate(mir, &mir_error)
                 && mir_error != NULL
                 && strstr(mir_error, "source-branch emit fact is invalid") != NULL;
             branch_inst->ast = saved_ast;
+            branch_inst->source_ast_type = saved_source_ast_type;
+            branch_inst->has_source_location = saved_has_source_location;
             branch_inst->branch_shape = MIR_BRANCH_EXPR;
             branch_inst->requires_source_branch_emit = false;
         }
@@ -496,6 +617,7 @@ test_mir_lowering_part_c(void)
                && branch_inst != NULL
                && saved_ast != NULL
                && rejected_missing_fact
+               && rejected_mismatched_source_type
                && rejected_missing_payload
                && mir_validate(mir, NULL));
         free(mir_error);
@@ -675,6 +797,47 @@ test_mir_lowering_part_c(void)
                    && strstr(mir_error, "duplicates declaration header") != NULL;
         EXPECT(rejected);
         free(mir_error);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
+    TEST("MIR does not treat Intent-prefixed user calls as observability");
+    {
+        const char *src =
+            "func IntentDomainAction() -> String {\n"
+            "    return \"ok\";\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    Log(IntentDomainAction());\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        const MIRRoutine *routine = NULL;
+        bool any_observability_fact = false;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok)
+            routine = find_mir_routine(mir, "Main", MIR_SCOPE_FUNCTION);
+        if (routine != NULL) {
+            for (size_t b = 0; b < routine->block_count; b++) {
+                const MIRBasicBlock *block = &routine->blocks[b];
+                for (size_t i = 0; i < block->instruction_count; i++) {
+                    const MIRInstruction *inst = &block->instructions[i];
+                    if (inst->has_surface_usage_facts
+                        && inst->uses_intent_observability_surface) {
+                        any_observability_fact = true;
+                    }
+                }
+            }
+        }
+        EXPECT(ok
+               && routine != NULL
+               && mir != NULL
+               && mir->has_inventory_surface_usage_facts
+               && !mir->inventory_uses_intent_observability_surface
+               && !any_observability_fact
+               && mir_validate(mir, NULL));
         mir_destroy(mir);
         rir_destroy(rir);
         hir_destroy(hir);

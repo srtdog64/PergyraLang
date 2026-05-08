@@ -23,20 +23,7 @@ static char msg_buf[262144]; /* 256KB for messages */
 static void
 lsp_copy_string(char *dst, size_t dst_size, const char *src)
 {
-    size_t len;
-
-    if (dst == NULL || dst_size == 0)
-        return;
-    if (src == NULL) {
-        dst[0] = '\0';
-        return;
-    }
-
-    len = strlen(src);
-    if (len >= dst_size)
-        len = dst_size - 1;
-    memcpy(dst, src, len);
-    dst[len] = '\0';
+    pergyra_str_copy(dst, dst_size, src);
 }
 
 static char *

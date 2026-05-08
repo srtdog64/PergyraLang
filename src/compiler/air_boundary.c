@@ -1,6 +1,5 @@
 #include "air_internal.h"
-
-#include <string.h>
+#include "io_boundary_builtin.h"
 
 typedef struct
 {
@@ -66,25 +65,7 @@ static bool
 air_call_is_io_boundary(const ASTNode *node)
 {
     const char *name = air_call_callee_name(node);
-    static const char *io_names[] = {
-        "FileOpen",
-        "FileRead",
-        "FileWrite",
-        "FileClose",
-        "ReadFile",
-        "WriteFile",
-        "Input",
-        "ReadLine",
-        "Now",
-        "Sleep",
-    };
-    if (name == NULL)
-        return false;
-    for (size_t i = 0; i < sizeof(io_names) / sizeof(io_names[0]); i++) {
-        if (strcmp(name, io_names[i]) == 0)
-            return true;
-    }
-    return false;
+    return pgy_compiler_io_boundary_builtin_is_stable(name);
 }
 
 AIRBoundaryKind

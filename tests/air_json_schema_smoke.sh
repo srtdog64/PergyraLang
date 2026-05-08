@@ -75,6 +75,9 @@ for required in \
     '"abi_schema":"pgy.intent.observability.v1"' \
     '"trace_schema":"pgy.intent.trace.v1"' \
     '"surfaces":["last","history","active","recent"]' \
+    '"runtime_frontier_policy"' \
+    '"schema":"pgy.runtime.frontier-policy.v1"' \
+    '"subject":"bounded-frontier-pass-limit"' \
     '"intents"' \
     '"who_from_intent_default"' \
     '"who_from_on_receiver"' \
@@ -114,7 +117,9 @@ for required in \
     '"rir_relation_propagation_required_count"' \
     '"rir_relation_propagation_evidence_count"' \
     '"observability_schema_evidence_count"' \
+    '"runtime_frontier_policy_evidence_count"' \
     '"kind":"observability_schema"' \
+    '"kind":"runtime_frontier_policy"' \
     '"provider":"runtime-observability-schema"' \
     '"location":{"line":' \
     '"authority_names"'; do
@@ -149,6 +154,9 @@ assert summary["drift_count"] == len(data["drifts"]) == 0
 assert data["observability"]["abi_schema"] == "pgy.intent.observability.v1"
 assert data["observability"]["trace_schema"] == "pgy.intent.trace.v1"
 assert data["observability"]["surfaces"] == ["last", "history", "active", "recent"]
+assert data["runtime_frontier_policy"]["schema"] == "pgy.runtime.frontier-policy.v1"
+assert data["runtime_frontier_policy"]["subject"] == "bounded-frontier-pass-limit"
+assert data["runtime_frontier_policy"]["fact_count"] == 8
 assert all("who_from_intent_default" in intent for intent in data["intents"])
 assert all("who_from_on_receiver" in intent for intent in data["intents"])
 assert all("who_from_single_participant" in intent for intent in data["intents"])
@@ -197,6 +205,8 @@ assert summary["rir_effect_propagation_evidence_count"] <= summary["rir_effect_p
 assert summary["rir_relation_propagation_evidence_count"] <= summary["rir_relation_propagation_required_count"]
 assert summary["observability_schema_evidence_count"] == 1
 assert any(e["kind"] == "observability_schema" and e["provider"] == "runtime-observability-schema" for e in data["evidence"])
+assert summary["runtime_frontier_policy_evidence_count"] == 1
+assert any(e["kind"] == "runtime_frontier_policy" and e["provider"] == "pgy.runtime.frontier-policy.v1" for e in data["evidence"])
 assert all("location" in b and b["location"]["line"] > 0 for b in data["boundaries"])
 print("[air-json-schema] parsed schema ok")
 PY

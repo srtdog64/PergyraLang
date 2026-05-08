@@ -20,6 +20,10 @@
 #define PGY_RUNTIME_DIR "src/runtime"
 #endif
 
+#ifndef PGY_SRC_DIR
+#define PGY_SRC_DIR "src"
+#endif
+
 #ifndef PGY_RUNTIME_LIB_C
 #define PGY_RUNTIME_LIB_C "src/runtime/pgy_runtime_lib.c"
 #endif
@@ -64,6 +68,7 @@ compiler_runtime_cache_is_fresh(const char *cache_obj_path)
     time_t cache_mtime;
     const char *deps[] = {
         PGY_RUNTIME_LIB_C,
+        PGY_SRC_DIR "/common/string_compat.h",
         PGY_RUNTIME_DIR "/pgy_runtime.h",
         PGY_RUNTIME_DIR "/pgy_runtime_lib_authority_file_core.h",
         PGY_RUNTIME_DIR "/pgy_runtime_lib_file_path_core.h",
@@ -91,9 +96,20 @@ compiler_runtime_cache_is_fresh(const char *cache_obj_path)
         PGY_RUNTIME_DIR "/pgy_runtime_platform_io_core.h",
         PGY_RUNTIME_DIR "/pgy_runtime_inline_core.h",
         PGY_RUNTIME_DIR "/pgy_runtime_intent_trace_inline.h",
+        PGY_RUNTIME_DIR "/pgy_runtime_intent_active_exports.h",
+        PGY_RUNTIME_DIR "/pgy_runtime_intent_history.h",
+        PGY_RUNTIME_DIR "/pgy_runtime_intent_exit.h",
+        PGY_RUNTIME_DIR "/pgy_runtime_panic_checked_inline.h",
         PGY_RUNTIME_DIR "/pgy_runtime_memory_array_slot_inline.h",
+        PGY_RUNTIME_DIR "/pgy_runtime_plain_slot_inline.h",
+        PGY_RUNTIME_DIR "/pgy_runtime_slot_macros.h",
+        PGY_RUNTIME_DIR "/pgy_runtime_array_sort_inline.h",
+        PGY_RUNTIME_DIR "/pgy_runtime_scalar_std_inline.h",
         PGY_RUNTIME_DIR "/pgy_runtime_builtin_storage_inline.h",
+        PGY_RUNTIME_DIR "/pgy_runtime_map_int_key_inline.h",
+        PGY_RUNTIME_DIR "/pgy_runtime_map_string_inline.h",
         PGY_RUNTIME_DIR "/pgy_runtime_list_set_inline.h",
+        PGY_RUNTIME_DIR "/pgy_runtime_queue_inline.h",
         PGY_RUNTIME_DIR "/pgy_runtime_pool_fsm_timer_inline.h",
         PGY_RUNTIME_DIR "/pgy_runtime_zone_result_option_inline.h",
         PGY_RUNTIME_DIR "/pgy_runtime_channel_inline.h",

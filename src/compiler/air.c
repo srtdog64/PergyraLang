@@ -6,8 +6,18 @@
 #include "air.h"
 #include "air_internal.h"
 
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+
+static bool
+air_count_add(size_t *count, size_t addend)
+{
+    if (count == NULL || *count > SIZE_MAX - addend)
+        return false;
+    *count += addend;
+    return true;
+}
 
 static bool
 air_assign_authority_names(AIRProgram *air,
@@ -21,6 +31,8 @@ air_assign_authority_names(AIRProgram *air,
     boundary->authority_name_count = 0;
     if (name_count == 0)
         return true;
+    if (name_count > SIZE_MAX / sizeof(char *))
+        return false;
 
     boundary->authority_names = (const char **)calloc(name_count, sizeof(char *));
     if (boundary->authority_names == NULL)
@@ -71,6 +83,12 @@ air_dir_node_ast(const DIRProgram *dir, size_t node_id)
             return dir->nodes[i].ast;
     }
     return NULL;
+}
+
+static ASTNode *
+air_step_provenance_ast(const DIRIntentStep *step, ASTNode *owner_ast)
+{
+    return step != NULL && step->ast != NULL ? step->ast : owner_ast;
 }
 
 static AIRSyncClass
@@ -127,17 +145,36 @@ air_synthesize(const HIRProgram *hir,
     size_t intent_node_count = 0;
     size_t boundary_node_count = 0;
     for (size_t i = 0; i < dir->intent_count; i++) {
-        intent_node_count += dir->intents[i].step_count;
+        if (!air_count_add(&intent_node_count, dir->intents[i].step_count)) {
+            air_set_error(error_message, "AIR intent count overflow");
+            return NULL;
+        }
         for (size_t j = 0; j < dir->intents[i].step_count; j++) {
-            if (air_step_has_zone_boundary(&dir->intents[i].steps[j]))
-                boundary_node_count++;
-            if (air_step_has_world_boundary(&dir->intents[i].steps[j]))
-                boundary_node_count++;
-            boundary_node_count += air_count_step_expr_boundaries(&dir->intents[i].steps[j]);
+            if (air_step_has_zone_boundary(&dir->intents[i].steps[j])) {
+                if (!air_count_add(&boundary_node_count, 1)) {
+                    air_set_error(error_message, "AIR boundary count overflow");
+                    return NULL;
+                }
+            }
+            if (air_step_has_world_boundary(&dir->intents[i].steps[j])) {
+                if (!air_count_add(&boundary_node_count, 1)) {
+                    air_set_error(error_message, "AIR boundary count overflow");
+                    return NULL;
+                }
+            }
+            if (!air_count_add(&boundary_node_count,
+                               air_count_step_expr_boundaries(&dir->intents[i].steps[j]))) {
+                air_set_error(error_message, "AIR boundary count overflow");
+                return NULL;
+            }
         }
     }
 
     if (intent_node_count > 0) {
+        if (intent_node_count > SIZE_MAX / sizeof(AIRIntentNode)) {
+            air_set_error(error_message, "AIR intent allocation overflow");
+            return NULL;
+        }
         air->intents = (AIRIntentNode *)calloc(intent_node_count, sizeof(AIRIntentNode));
         if (air->intents == NULL) {
             air_destroy(air);
@@ -146,6 +183,11 @@ air_synthesize(const HIRProgram *hir,
         }
     }
     if (boundary_node_count > 0) {
+        if (boundary_node_count > SIZE_MAX / sizeof(AIRBoundaryNode)) {
+            air_destroy(air);
+            air_set_error(error_message, "AIR boundary allocation overflow");
+            return NULL;
+        }
         air->boundaries = (AIRBoundaryNode *)calloc(boundary_node_count, sizeof(AIRBoundaryNode));
         if (air->boundaries == NULL) {
             air_destroy(air);
@@ -178,7 +220,8 @@ air_synthesize(const HIRProgram *hir,
                 return NULL;
             }
             air->intents[intent_index].step_index = step->index;
-            air->intents[intent_index].ast = step->ast != NULL ? step->ast : owner_ast;
+            air->intents[intent_index].ast =
+                air_step_provenance_ast(step, owner_ast);
             air->intents[intent_index].sync_class = sync_class;
             air->intents[intent_index].failure_class = air_failure_from_dir_step(step);
             air->intents[intent_index].who_from_intent_default =
@@ -208,7 +251,8 @@ air_synthesize(const HIRProgram *hir,
                 }
                 air->boundaries[boundary_index].intent_index = intent_index;
                 air->boundaries[boundary_index].step_index = step->index;
-                air->boundaries[boundary_index].ast = step->ast != NULL ? step->ast : owner_ast;
+                air->boundaries[boundary_index].ast =
+                    air_step_provenance_ast(step, owner_ast);
                 air->boundaries[boundary_index].sync_class = sync_class;
                 air->boundaries[boundary_index].authority_required = step->authorized_by_count > 0;
                 air->boundaries[boundary_index].source_from_intent_default =
@@ -241,7 +285,8 @@ air_synthesize(const HIRProgram *hir,
                 }
                 air->boundaries[boundary_index].intent_index = intent_index;
                 air->boundaries[boundary_index].step_index = step->index;
-                air->boundaries[boundary_index].ast = step->ast != NULL ? step->ast : owner_ast;
+                air->boundaries[boundary_index].ast =
+                    air_step_provenance_ast(step, owner_ast);
                 air->boundaries[boundary_index].sync_class = sync_class;
                 air->boundaries[boundary_index].authority_required = step->authorized_by_count > 0;
                 air->boundaries[boundary_index].source_from_transfer = true;
@@ -276,7 +321,8 @@ air_synthesize(const HIRProgram *hir,
     }
     if (!air_collect_hir_evidence(air, hir, error_message)
         || !air_collect_rir_evidence(air, rir, error_message)
-        || !air_collect_observability_schema_evidence(air, error_message)) {
+        || !air_collect_observability_schema_evidence(air, error_message)
+        || !air_collect_runtime_frontier_policy_evidence(air, error_message)) {
         air_destroy(air);
         return NULL;
     }

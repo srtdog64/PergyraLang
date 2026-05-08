@@ -18,9 +18,37 @@ llvm_emit_function_call_args(LLVMGenCtx *ctx, LLVMFuncEntry *func,
         return NULL;
 
     if (argc > 0) {
+        if (arg_nodes == NULL) {
+            llvm_set_error_with_hints(ctx,
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                "LLVM call helper requires argument AST payloads for '%s'",
+                LLVMGetValueName(func->fn));
+            return NULL;
+        }
         args = pgy_arena_calloc(&ctx->scratch, argc * sizeof(LLVMValueRef));
-        for (size_t i = 0; i < argc; i++)
+        if (args == NULL) {
+            llvm_set_error_with_hints(ctx,
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                "LLVM call helper could not allocate argument storage for '%s'",
+                LLVMGetValueName(func->fn));
+            return NULL;
+        }
+        for (size_t i = 0; i < argc; i++) {
             args[i] = llvm_emit_expression(arg_nodes[i], ctx);
+            if (args[i] == NULL) {
+                llvm_set_error_at_with_hints(ctx, arg_nodes[i],
+                    PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                    "LLVM call helper could not lower argument %zu for '%s'",
+                    i, LLVMGetValueName(func->fn));
+                return NULL;
+            }
+        }
     }
 
     if (func->ret_type == ctx->type_void) {

@@ -3,7 +3,6 @@
 
 /* MIR SSA lookup/entry helpers are compiled owners; expose the seams early. */
 #include "transpiler_mir_ssa_entry.h"
-#include "transpiler_mir_let_lookup.h"
 #include "transpiler_mir_ssa_lookup.h"
 #include "transpiler_mir_ssa_names.h"
 #include "transpiler_mir_signature.h"

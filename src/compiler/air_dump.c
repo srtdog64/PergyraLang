@@ -6,6 +6,7 @@
 #include "air.h"
 
 #include "../runtime/pgy_runtime_observability_schema.h"
+#include "../runtime/pgy_frontier_policy.h"
 
 #include <stdio.h>
 
@@ -194,6 +195,10 @@ air_dump(const AIRProgram *air, FILE *out)
             air->rir_effect_propagation_required_count,
             air->rir_relation_propagation_evidence_count,
             air->rir_relation_propagation_required_count);
+    fprintf(out,
+            "  runtime_evidence observability_schema=%zu frontier_policy=%zu\n",
+            air->observability_schema_evidence_count,
+            air->runtime_frontier_policy_evidence_count);
     for (size_t i = 0; i < air->intent_count; i++) {
         const AIRIntentNode *intent = &air->intents[i];
         fprintf(out,
@@ -292,7 +297,8 @@ air_dump_json(const AIRProgram *air, FILE *out)
             "\"dag_metadata_evidence_count\":%zu,\"dag_generic_evidence_count\":%zu,\"dag_ability_evidence_count\":%zu,"
             "\"rir_effect_propagation_required_count\":%zu,\"rir_effect_propagation_evidence_count\":%zu,"
             "\"rir_relation_propagation_required_count\":%zu,\"rir_relation_propagation_evidence_count\":%zu,"
-            "\"observability_schema_evidence_count\":%zu},",
+            "\"observability_schema_evidence_count\":%zu,"
+            "\"runtime_frontier_policy_evidence_count\":%zu},",
             air->hir_routine_evidence_count,
             air->hir_cfg_evidence_count,
             air->rir_boundary_evidence_count,
@@ -308,9 +314,17 @@ air_dump_json(const AIRProgram *air, FILE *out)
             air->rir_effect_propagation_evidence_count,
             air->rir_relation_propagation_required_count,
             air->rir_relation_propagation_evidence_count,
-            air->observability_schema_evidence_count);
+            air->observability_schema_evidence_count,
+            air->runtime_frontier_policy_evidence_count);
 
     air_dump_json_observability_schema(out);
+    fputs(",\"runtime_frontier_policy\":{\"schema\":", out);
+    air_json_string(out, PGY_FRONTIER_POLICY_SCHEMA);
+    fputs(",\"subject\":", out);
+    air_json_string(out, PGY_FRONTIER_POLICY_SUBJECT);
+    fprintf(out,
+            ",\"fact_count\":%u}",
+            (unsigned)PGY_FRONTIER_POLICY_FACT_COUNT);
     fputs(",\"intents\":[", out);
     for (size_t i = 0; i < air->intent_count; i++) {
         const AIRIntentNode *intent = &air->intents[i];

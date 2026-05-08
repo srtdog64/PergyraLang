@@ -34,9 +34,10 @@ require_text "src/common/diagnostic_layer.c" "\"backend\""
 require_text "src/common/diagnostic_layer.c" "\"pin\""
 require_text "src/common/diagnostic_layer.c" "\"cfg\""
 require_text "src/common/diagnostic_layer.c" "\"control\""
+require_text "src/common/diagnostic_layer.c" "semantic:assignability_check"
 require_text "src/common/diagnostic_layer.c" "_CHANNEL_"
 require_text "src/common/diagnostic_layer.c" "_INTENT_"
-require_text "src/semantic/type_checker.h" "DiagnosticLayer layer;"
+require_text "src/semantic/diagnostic_types.h" "DiagnosticLayer layer;"
 
 require_text "src/semantic/semantic.c" "\\\"layer\\\":"
 require_text "tests/diagnostics_json_smoke.sh" ".get(\"layer\")"
@@ -102,6 +103,9 @@ int main(void)
     failures += expect_layer("cfg", "semantic",
                              "semantic:cfg:missing_return_path",
                              "PGY_SEM_MISSING_RETURN", DIAG_LAYER_TYPE);
+    failures += expect_layer("assignability", "semantic",
+                             "semantic:assignability_check",
+                             "PGY_SEM_TYPE_MISMATCH", DIAG_LAYER_TYPE);
     failures += expect_layer("pin", "semantic",
                              "semantic:pin:await_boundary",
                              "PGY_SEM_PIN_AWAIT_BOUNDARY",

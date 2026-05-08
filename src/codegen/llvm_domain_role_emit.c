@@ -8,6 +8,15 @@
 #include "llvm_domain_role_emit.h"
 
 #include "llvm_domain_role_helpers.h"
+#include "llvm_inventory_host_methods.h"
+
+static const char *
+llvm_role_method_name_from_ast(ASTNode *method)
+{
+    if (method != NULL && method->type == AST_FUNC_DECL)
+        return method->data.func_decl.name;
+    return NULL;
+}
 
 bool
 llvm_emit_domain_role_method_bodies(LLVMGenCtx *ctx,
@@ -23,6 +32,41 @@ llvm_emit_domain_role_method_bodies(LLVMGenCtx *ctx,
             continue;
 
         const char *role_name = stmt->data.role_decl.name;
+        LLVMHostedMethodView method_view =
+            llvm_hosted_method_view_from_decl(ctx, role_name, stmt);
+
+        for (size_t j = 0; j < method_view.count; j++) {
+            const MIRDeclMethod *method_meta =
+                llvm_hosted_method_view_metadata(&method_view, j);
+            ASTNode *method =
+                llvm_hosted_method_view_source_ast(&method_view, j);
+            const char *method_name = llvm_mir_decl_method_name(method_meta);
+            const MIRRoutine *mir_method = NULL;
+            char fname[256];
+            LLVMFuncEntry *fentry;
+
+            if (method_name == NULL && method != NULL
+                && method->type == AST_FUNC_DECL)
+                method_name = llvm_role_method_name_from_ast(method);
+            if (role_name == NULL || method_name == NULL)
+                continue;
+
+            snprintf(fname, sizeof(fname), "%s_%s", role_name, method_name);
+            fentry = llvm_lookup_function(ctx, fname);
+            if (fentry == NULL)
+                continue;
+
+            mir_method = llvm_mir_decl_method_routine(ctx, method_meta);
+            if (mir_method != NULL) {
+                llvm_emit_func_from_mir(mir_method, ctx);
+                continue;
+            }
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing routine for role method '%s.%s'",
+                role_name != NULL ? role_name : "(anonymous-role)",
+                method_name != NULL ? method_name : "(anonymous)");
+            return false;
+        }
 
         for (size_t ii = 0; ii < stmt->data.role_decl.impl_count; ii++) {
             ASTNode *impl = stmt->data.role_decl.impl_abilities[ii];
@@ -33,109 +77,6 @@ llvm_emit_domain_role_method_bodies(LLVMGenCtx *ctx,
                 (impl->data.impl_ability.ability_ref != NULL
                  && impl->data.impl_ability.ability_ref->type == AST_TYPE)
                 ? impl->data.impl_ability.ability_ref->data.type.name : NULL;
-
-            /* Emit method bodies. */
-            for (size_t j = 0; j < impl->data.impl_ability.method_count;
-                 j++) {
-                ASTNode *method = impl->data.impl_ability.methods[j];
-                if (method == NULL || method->type != AST_FUNC_DECL)
-                    continue;
-                if (role_name == NULL || method->data.func_decl.name == NULL)
-                    continue;
-
-                char fname[256];
-                snprintf(fname, sizeof(fname), "%s_%s",
-                         role_name, method->data.func_decl.name);
-
-                LLVMFuncEntry *fentry = llvm_lookup_function(ctx, fname);
-                const MIRRoutine *mir_method =
-                    llvm_find_mir_method_routine_local(ctx, role_name, method);
-                if (fentry == NULL)
-                    continue;
-                if (mir_method != NULL) {
-                    llvm_emit_func_from_mir(mir_method, ctx);
-                    continue;
-                }
-                if (ctx->mir != NULL) {
-                    llvm_set_mir_inventory_missing(ctx,
-                        "MIR-only LLVM path missing routine for "
-                        "domain method '%s.%s'",
-                        role_name, method->data.func_decl.name);
-                    return false;
-                }
-
-                LLVMValueRef fn = fentry->fn;
-                LLVMTypeRef ret_type = fentry->ret_type;
-                LLVMValueRef saved_fn = ctx->current_function;
-                LLVMTypeRef saved_ret = ctx->current_ret_type;
-                ctx->current_function = fn;
-                ctx->current_ret_type = ret_type;
-
-                LLVMBasicBlockRef bb = LLVMAppendBasicBlockInContext(
-                    ctx->context, fn, "entry");
-                LLVMPositionBuilderAtEnd(ctx->builder, bb);
-                llvm_scope_push(ctx);
-
-                /* self param */
-                LLVMValueRef self_val = LLVMGetParam(fn, 0);
-                LLVMValueRef self_alloca = llvm_create_entry_alloca(
-                    ctx, ctx->type_i8ptr, "self.addr");
-                LLVMBuildStore(ctx->builder, self_val, self_alloca);
-                llvm_scope_declare(ctx, "self", self_alloca,
-                                    ctx->type_i8ptr);
-
-                /* User params */
-                size_t pc = method->data.func_decl.param_count;
-                unsigned lpidx = 1;
-                for (size_t k = 0; k < pc; k++) {
-                    FuncParam *p = method->data.func_decl.params[k];
-                    if (llvm_param_is_implicit_self_local(p))
-                        continue;
-                    if (p == NULL || p->name == NULL) {
-                        lpidx++;
-                        continue;
-                    }
-                    LLVMTypeRef pt = (p->type != NULL)
-                        ? ast_type_to_llvm(ctx, p->type)
-                        : ctx->type_i32;
-                    LLVMValueRef a = llvm_create_entry_alloca(
-                        ctx, pt, p->name);
-                    LLVMBuildStore(ctx->builder,
-                        LLVMGetParam(fn, lpidx++), a);
-                    llvm_scope_declare(ctx, p->name, a, pt);
-                }
-
-                {
-                    llvm_set_mir_inventory_missing(ctx,
-                        "MIR-only LLVM path missing routine for role method '%s.%s'",
-                        role_name != NULL ? role_name : "(anonymous-role)",
-                        method->data.func_decl.name != NULL
-                            ? method->data.func_decl.name
-                            : "(anonymous)");
-                    llvm_scope_pop(ctx);
-                    return false;
-                }
-
-                if (LLVMGetBasicBlockTerminator(
-                        LLVMGetInsertBlock(ctx->builder)) == NULL) {
-                    if (ret_type == ctx->type_void)
-                        LLVMBuildRetVoid(ctx->builder);
-                    else
-                        LLVMBuildRet(ctx->builder,
-                            LLVMConstInt(ret_type, 0, 0));
-                }
-
-                llvm_scope_pop(ctx);
-                ctx->current_function = saved_fn;
-                ctx->current_ret_type = saved_ret;
-
-                if (saved_fn != NULL) {
-                    LLVMBasicBlockRef last =
-                        LLVMGetLastBasicBlock(saved_fn);
-                    if (last != NULL)
-                        LLVMPositionBuilderAtEnd(ctx->builder, last);
-                }
-            }
 
             {
                 PgyTokenType ops[] = {
@@ -155,10 +96,11 @@ llvm_emit_domain_role_method_bodies(LLVMGenCtx *ctx,
                     const char *suffix = llvm_operator_suffix(ops[oi]);
                     ASTNode *method =
                         llvm_find_role_operator_method(ctx, stmt, ops[oi], 0);
+                    const char *method_name = llvm_role_method_name_from_ast(method);
                     if (suffix == NULL || method == NULL)
                         continue;
                     if (role_name == NULL || method->type != AST_FUNC_DECL
-                        || method->data.func_decl.name == NULL) {
+                        || method_name == NULL) {
                         continue;
                     }
 
@@ -167,7 +109,7 @@ llvm_emit_domain_role_method_bodies(LLVMGenCtx *ctx,
                     snprintf(opname, sizeof(opname), "operator_%s_%s",
                              suffix, for_type_name);
                     snprintf(mname, sizeof(mname), "%s_%s",
-                             role_name, method->data.func_decl.name);
+                             role_name, method_name);
 
                     LLVMFuncEntry *op_entry = llvm_lookup_function(ctx, opname);
                     LLVMFuncEntry *method_entry = llvm_lookup_function(ctx, mname);
@@ -238,17 +180,18 @@ llvm_emit_domain_role_method_bodies(LLVMGenCtx *ctx,
                     (mc > 0 ? mc : 1) * sizeof(LLVMValueRef));
                 for (size_t j = 0; j < mc; j++) {
                     ASTNode *method = impl->data.impl_ability.methods[j];
+                    const char *method_name = llvm_role_method_name_from_ast(method);
                     if (method == NULL || method->type != AST_FUNC_DECL) {
                         vals[j] = LLVMConstNull(ctx->type_i8ptr);
                         continue;
                     }
-                    if (role_name == NULL || method->data.func_decl.name == NULL) {
+                    if (role_name == NULL || method_name == NULL) {
                         vals[j] = LLVMConstNull(ctx->type_i8ptr);
                         continue;
                     }
                     char fname[256];
                     snprintf(fname, sizeof(fname), "%s_%s",
-                             role_name, method->data.func_decl.name);
+                             role_name, method_name);
                     LLVMFuncEntry *fe = llvm_lookup_function(ctx, fname);
                     vals[j] = (fe != NULL) ? fe->fn
                         : LLVMConstNull(ctx->type_i8ptr);

@@ -64,6 +64,17 @@ mir_validate_cfg_contract_state(const MIRRoutine *routine,
             ? (!block->is_cleanup)
             : (block->is_reachable && (!block->is_cleanup || require_cleanup_source_mapping));
 
+        if (block->instruction_count > 0 && block->instructions == NULL) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR routine '%s' block[%zu] has instruction count without instruction inventory",
+                    routine->name != NULL ? routine->name : "(anonymous)",
+                    i);
+            }
+            free(hir_block_seen);
+            return false;
+        }
+
         if (cfg_block_count > 0 && require_source_mapping) {
             size_t source_id = block->source_hir_block_id;
             if (source_id == SIZE_MAX || source_id >= cfg_block_count) {
@@ -194,6 +205,21 @@ mir_validate_cfg_contract_state(const MIRRoutine *routine,
             }
         }
 
+        if (!block->is_reachable
+            && !block->is_cleanup
+            && (block->has_cleanup_succ
+                || block->has_rollback_succ
+                || block->has_invalidation_succ)) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR routine '%s' unreachable block[%zu] has exceptional successor",
+                    routine->name != NULL ? routine->name : "(anonymous)",
+                    i);
+            }
+            free(hir_block_seen);
+            return false;
+        }
+
         if (block->is_reachable && !block->is_cleanup) {
             if (routine->has_cleanup_block) {
                 if (!block->has_cleanup_succ) {
@@ -217,8 +243,7 @@ mir_validate_cfg_contract_state(const MIRRoutine *routine,
                     free(hir_block_seen);
                     return false;
                 }
-                if (!mir_block_has_cleanup_edge_fact(block,
-                                                     MIR_CLEANUP_FACT_EDGE)) {
+                if (!mir_block_has_expected_cleanup_edge_fact(routine, i)) {
                     if (error_message != NULL) {
                         *error_message = mir_strdup_fmt(
                             "MIR routine '%s' block[%zu] missing cleanup-edge MIR fact",
@@ -348,8 +373,8 @@ mir_validate_cfg_contract_state(const MIRRoutine *routine,
             }
         }
         if (routine->has_rollback_block
-            && !mir_block_has_cleanup_edge_fact(&routine->blocks[routine->rollback_block],
-                                                MIR_CLEANUP_FACT_EDGE_FROM_ROLLBACK)) {
+            && !mir_block_has_expected_cleanup_edge_fact(
+                routine, routine->rollback_block)) {
             if (error_message != NULL) {
                 *error_message = mir_strdup_fmt(
                     "MIR routine '%s' rollback block missing cleanup-edge MIR fact",
@@ -359,8 +384,8 @@ mir_validate_cfg_contract_state(const MIRRoutine *routine,
             return false;
         }
         if (routine->has_invalidation_block
-            && !mir_block_has_cleanup_edge_fact(&routine->blocks[routine->invalidation_block],
-                                                MIR_CLEANUP_FACT_EDGE_FROM_INVALIDATION)) {
+            && !mir_block_has_expected_cleanup_edge_fact(
+                routine, routine->invalidation_block)) {
             if (error_message != NULL) {
                 *error_message = mir_strdup_fmt(
                     "MIR routine '%s' invalidation block missing cleanup-edge MIR fact",

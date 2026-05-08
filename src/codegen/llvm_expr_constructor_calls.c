@@ -13,6 +13,21 @@
 #include "llvm_internal_api.h"
 
 static LLVMValueRef
+llvm_constructor_error(ASTNode *node, LLVMGenCtx *ctx, const char *message)
+{
+    if (ctx != NULL && !ctx->has_error) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "%s",
+            message != NULL ? message
+                : "LLVM constructor call could not be lowered");
+    }
+    return NULL;
+}
+
+static LLVMValueRef
 llvm_emit_enum_variant_constructor(ASTNode *node, LLVMGenCtx *ctx,
                                    const char *callee_name)
 {
@@ -23,7 +38,8 @@ llvm_emit_enum_variant_constructor(ASTNode *node, LLVMGenCtx *ctx,
     ASTNode *enum_decl = llvm_find_enum_decl(ctx, variant->enum_name);
     LLVMClassTypeEntry *enum_cls = llvm_lookup_class(ctx, variant->enum_name);
     if (enum_decl == NULL || enum_cls == NULL)
-        return NULL;
+        return llvm_constructor_error(node, ctx,
+            "LLVM enum variant constructor requires enum declaration and class metadata");
 
     size_t variant_index = (size_t)variant->value;
     size_t param_count =
@@ -44,7 +60,8 @@ llvm_emit_enum_variant_constructor(ASTNode *node, LLVMGenCtx *ctx,
             for (size_t i = 0; i < param_count && i < node->data.call.arg_count; i++) {
                 LLVMValueRef arg = llvm_emit_expression(node->data.call.arguments[i], ctx);
                 if (arg == NULL)
-                    continue;
+                    return llvm_constructor_error(node, ctx,
+                        "LLVM enum variant constructor could not lower payload argument");
                 if (payload_cls != NULL
                     && i < (size_t)payload_cls->field_count
                     && payload_cls->fields[i].field_type != LLVMTypeOf(arg)) {
@@ -219,7 +236,8 @@ llvm_emit_class_constructor(ASTNode *node, LLVMGenCtx *ctx, const char *callee_n
     for (size_t i = 0; i < node->data.call.arg_count && i < (size_t)cls->field_count; i++) {
         LLVMValueRef arg = llvm_emit_expression(node->data.call.arguments[i], ctx);
         if (arg == NULL)
-            continue;
+            return llvm_constructor_error(node, ctx,
+                "LLVM class constructor could not lower field argument");
         object = LLVMBuildInsertValue(ctx->builder, object, arg,
             (unsigned)cls->fields[i].index, llvm_tmp_name(ctx));
     }

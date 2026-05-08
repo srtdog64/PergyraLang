@@ -96,7 +96,9 @@ for term in \
     "llvm_mir_decl_method_param_count" \
     "llvm_mir_decl_method_param" \
     "llvm_mir_decl_method_return_type" \
-    "llvm_mir_decl_method_is_action_like"; do
+    "llvm_mir_decl_method_is_action_like" \
+    "llvm_mir_decl_method_routine" \
+    "llvm_hosted_method_view_routine"; do
     require_term "src/codegen/llvm_inventory_host_methods.h" "$term"
 done
 if grep -Fq "llvm_find_host_decl_methods_in_context" \
@@ -122,6 +124,20 @@ fi
 if grep -Fq "fallback_count" "$ROOT_DIR/src/codegen/llvm_inventory_host_methods.h" \
     "$ROOT_DIR/src/codegen/llvm_inventory_host_methods.c"; then
     fail "LLVM hosted method view must name AST compatibility counts explicitly, not as fallback_count"
+fi
+for term in \
+    "method->has_routine" \
+    "llvm_active_routine_inventory(ctx, &inventory)" \
+    "llvm_routine_inventory_get(&inventory, method->routine_index)" \
+    "llvm_mir_decl_method_routine(" \
+    "llvm_hosted_method_view_routine("; do
+    require_term "src/codegen/llvm_inventory_host_methods.c" "$term"
+done
+if grep -RInE 'method(_meta)?->(has_routine|routine_index)' \
+    "$ROOT_DIR/src/codegen"/llvm_*.c \
+    "$ROOT_DIR/src/codegen"/llvm_*.h \
+    | grep -v "src/codegen/llvm_inventory_host_methods.c"; then
+    fail "LLVM hosted method routine lookup must go through llvm_mir_decl_method_routine/llvm_hosted_method_view_routine"
 fi
 
 for term in \
@@ -157,8 +173,7 @@ for term in \
     "llvm_active_nominal_inventory(ctx, &nominal_nodes, &nominal_count)" \
     "llvm_hosted_method_view_from_decl(ctx, cls_name, decl)" \
     "method_view.uses_mir_metadata" \
-    "method_meta->has_routine" \
-    "method_meta->routine_index" \
+    "llvm_hosted_method_view_routine(" \
     "llvm_set_mir_inventory_missing(ctx" \
     "MIR-only LLVM path missing routine for class method" \
     "MIR-only LLVM path missing routine for function" \
@@ -577,14 +592,9 @@ if grep -Fq "decl_header->source_ast == decl" \
     fail "LLVM host method inventory must be metadata-first; do not require source_ast identity"
 fi
 
-for term in \
-    "llvm_find_host_method_metadata_in_context" \
-    "method_meta->has_routine" \
-    "llvm_routine_inventory_get" \
-    "return NULL;" \
-    "routine->kind == MIR_SCOPE_METHOD"; do
-    require_term "src/codegen/llvm_domain_method_helpers.c" "$term"
-done
+if grep -RIn "llvm_find_mir_method_routine_local" "$ROOT_DIR/src/codegen"; then
+    fail "LLVM AST/name-based MIR method routine compatibility helper must not reappear"
+fi
 
 for term in \
     "return decl->data.party_decl.name" \
@@ -593,21 +603,15 @@ for term in \
     "llvm_find_named_domain_decl(ctx, AST_ROLE_DECL, type_name)"; do
     require_term "src/codegen/llvm_domain_lookup.c" "$term"
 done
-if grep -Fq "routine->ast == method" \
-    "$ROOT_DIR/src/codegen/llvm_domain_method_helpers.c"; then
-    fail "LLVM domain method helper must not use AST identity as routine fallback"
-fi
-if grep -Fq "strcmp(routine->owner_name, owner_name)" \
-    "$ROOT_DIR/src/codegen/llvm_domain_method_helpers.c"; then
-    fail "LLVM domain method helper must consume linked MIRDeclMethod routine indexes, not owner/name routine search"
-fi
 if grep -Fq "routine->ast == method->source_ast" \
     "$ROOT_DIR/src/compiler/mir_decl_headers.c"; then
     fail "MIRDeclMethod routine linking must not use AST identity matching"
 fi
 for term in \
+    "mir_decl_next_capacity" \
     "mir_decl_header_set_role_impl_methods" \
     "mir_role_impl_method_count" \
+    "SIZE_MAX / sizeof(MIRDeclMethod)" \
     "case AST_ROLE_DECL"; do
     require_term "src/compiler/mir_decl_headers.c" "$term"
 done
@@ -667,14 +671,74 @@ if grep -Eq 'method->data\.func_decl\.(param_count|return_type)' \
     <<<"$domain_method_forward_body"; then
     fail "LLVM domain method forward declarations must not read AST method param_count/return_type directly"
 fi
+role_method_forward_body="$(
+    awk '
+        /llvm_emit_role_method_forward_decls_metadata_first\(LLVMGenCtx \*ctx,/ { in_body = 1 }
+        /llvm_emit_domain_role_forward_decls\(LLVMGenCtx \*ctx,/ { in_body = 0 }
+        in_body { print }
+    ' "$ROOT_DIR/src/codegen/llvm_domain_forward.c"
+)"
+for term in \
+    "llvm_hosted_method_view_metadata(methods, j)" \
+    "llvm_domain_method_param_count_metadata_first" \
+    "llvm_domain_method_param_metadata_first" \
+    "llvm_domain_method_return_type_metadata_first"; do
+    grep -Fq "$term" <<<"$role_method_forward_body" ||
+        fail "LLVM role method forward declarations must be MIRDeclMethod metadata-first: missing $term"
+done
+if grep -Eq 'method->data\.func_decl\.(param_count|return_type)' \
+    <<<"$role_method_forward_body"; then
+    fail "LLVM role method forward declarations must not read AST method param_count/return_type directly"
+fi
+ability_vtable_body="$(
+    awk '
+        /llvm_emit_domain_ability_vtables\(LLVMGenCtx \*ctx,/ { in_body = 1 }
+        /llvm_emit_role_method_forward_decls_metadata_first\(LLVMGenCtx \*ctx,/ { in_body = 0 }
+        in_body { print }
+    ' "$ROOT_DIR/src/codegen/llvm_domain_forward.c"
+)"
+role_operator_body="$(
+    awk '
+        /PgyTokenType ops\[\] =/ { in_body = 1 }
+        /#endif/ { in_body = 0 }
+        in_body { print }
+    ' "$ROOT_DIR/src/codegen/llvm_domain_forward.c"
+)"
+for body_name in ability_vtable_body role_operator_body; do
+    body="${!body_name}"
+    for term in \
+        "llvm_domain_method_param_count_metadata_first" \
+        "llvm_domain_method_param_metadata_first" \
+        "llvm_domain_method_return_type_metadata_first"; do
+        grep -Fq "$term" <<<"$body" ||
+            fail "LLVM ${body_name} must route method signature reads through the shared method accessors: missing $term"
+    done
+    if grep -Eq 'method->data\.func_decl\.(param_count|return_type)' <<<"$body"; then
+        fail "LLVM ${body_name} must not read AST method param_count/return_type directly"
+    fi
+done
 require_term "src/codegen/llvm_domain_forward.h" \
     "const LLVMHostedMethodView *methods"
 require_term "src/codegen/llvm_domain_forward.c" \
     "llvm_hosted_method_view_metadata(methods, j)"
+require_term "src/codegen/llvm_domain_forward.c" \
+    "llvm_emit_role_method_forward_decls_metadata_first"
 require_term "src/codegen/llvm_domain_method_emit.c" \
     "LLVMHostedMethodView method_view"
 require_term "src/codegen/llvm_domain_method_emit.c" \
     "llvm_hosted_method_view_metadata(&method_view, j)"
+require_term "src/codegen/llvm_domain_role_emit.c" \
+    "LLVMHostedMethodView method_view"
+require_term "src/codegen/llvm_domain_role_emit.c" \
+    "llvm_hosted_method_view_metadata(&method_view, j)"
+require_term "src/codegen/llvm_domain_role_emit.c" \
+    "llvm_mir_decl_method_routine(ctx, method_meta)"
+require_term "src/codegen/llvm_domain_role_emit.c" \
+    "llvm_role_method_name_from_ast"
+if grep -Fq "llvm_find_mir_method_routine_local(ctx," \
+    "$ROOT_DIR/src/codegen/llvm_domain_role_emit.c"; then
+    fail "LLVM role method body emission must use linked MIRDeclMethod routine indexes, not AST/name routine search"
+fi
 if grep -Fq "llvm_find_mir_method_routine_local(ctx," \
     "$ROOT_DIR/src/codegen/llvm_domain_method_emit.c"; then
     fail "LLVM hosted domain method body emission must use linked MIRDeclMethod routine indexes, not AST/name routine search"

@@ -5,6 +5,8 @@
 
 #include "transpiler_builtin_type_table.h"
 
+#include "../common/intent_observability_names.h"
+
 #include <stdlib.h>
 #include <string.h>
 
@@ -162,7 +164,7 @@ pgy_builtin_is_intent_observability(const char *name)
 {
     const PgyBuiltinInfo *entry;
 
-    if (name == NULL || strncmp(name, "Intent", 6) != 0)
+    if (!pgy_intent_observability_name_is_builtin(name))
         return false;
 
     entry = pgy_builtin_lookup(name);

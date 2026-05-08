@@ -32,7 +32,8 @@ LLVMValueRef
 llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
 {
     if (node->data.call.callee == NULL)
-        return LLVMConstInt(ctx->type_i32, 0, 0);
+        return llvm_call_error_recovery(ctx, node,
+            "LLVM call expression requires a callee");
 
     /* Method call: obj.method(args) */
     if (node->data.call.callee->type == AST_MEMBER_ACCESS)
@@ -44,7 +45,8 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         callee_name = node->data.call.callee->data.identifier.name;
 
     if (callee_name == NULL)
-        return LLVMConstInt(ctx->type_i32, 0, 0);
+        return llvm_call_error_recovery(ctx, node,
+            "LLVM call expression requires an identifier or member callee");
 
     if (strcmp(callee_name, "Clone") == 0 && node->data.call.arg_count == 1) {
         return llvm_emit_expression(node->data.call.arguments[0], ctx);
@@ -53,13 +55,18 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
     {
         LLVMValueRef constructor_value =
             llvm_emit_constructor_call(node, ctx, callee_name);
+        if (ctx->has_error)
+            return NULL;
         if (constructor_value != NULL)
             return constructor_value;
     }
 
     if ((strcmp(callee_name, "ToTObject") == 0 || strcmp(callee_name, "ToObject") == 0)
         && node->data.call.arg_count == 2) {
-        return llvm_emit_subject_projection(node, ctx);
+        LLVMValueRef projection = llvm_emit_subject_projection(node, ctx);
+        if (ctx->has_error)
+            return NULL;
+        return projection;
     }
 
     {
@@ -70,26 +77,38 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
 
     {
         LLVMValueRef log_call = NULL;
-        if (llvm_emit_log_family_call(node, ctx, callee_name, &log_call))
+        if (llvm_emit_log_family_call(node, ctx, callee_name, &log_call)) {
+            if (ctx->has_error)
+                return NULL;
             return log_call;
+        }
     }
 
     {
         LLVMValueRef rc_call = NULL;
-        if (llvm_emit_rc_builtin_call(node, ctx, callee_name, &rc_call))
+        if (llvm_emit_rc_builtin_call(node, ctx, callee_name, &rc_call)) {
+            if (ctx->has_error)
+                return NULL;
             return rc_call;
+        }
     }
 
     {
         LLVMValueRef slot_builtin = NULL;
-        if (llvm_emit_slot_builtin_call(node, ctx, callee_name, &slot_builtin))
+        if (llvm_emit_slot_builtin_call(node, ctx, callee_name, &slot_builtin)) {
+            if (ctx->has_error)
+                return NULL;
             return slot_builtin;
+        }
     }
 
     {
         LLVMValueRef event_call = NULL;
-        if (llvm_emit_event_invocation_call(node, ctx, callee_name, &event_call))
+        if (llvm_emit_event_invocation_call(node, ctx, callee_name, &event_call)) {
+            if (ctx->has_error)
+                return NULL;
             return event_call;
+        }
     }
 
     {
@@ -118,8 +137,11 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
 
     {
         LLVMValueRef stdlib_call = NULL;
-        if (llvm_emit_stdlib_string_file_call(node, ctx, callee_name, &stdlib_call))
+        if (llvm_emit_stdlib_string_file_call(node, ctx, callee_name, &stdlib_call)) {
+            if (ctx->has_error)
+                return NULL;
             return stdlib_call;
+        }
     }
 
     {
@@ -131,6 +153,8 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         LLVMValueRef runtime_io_call = NULL;
         if (llvm_emit_stdlib_runtime_io_call(node, ctx, callee_name,
                 &runtime_io_call)) {
+            if (ctx->has_error)
+                return NULL;
             return runtime_io_call;
         }
     }
@@ -163,8 +187,12 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                 LLVMValueRef *args = pgy_arena_calloc(&ctx->scratch,
                     (argc + 1) * sizeof(LLVMValueRef));
                 if (args == NULL)
-                    return LLVMConstInt(ctx->type_i32, 0, 0);
+                    return llvm_call_error_recovery(ctx, node,
+                        "LLVM hosted method call argument allocation failed");
                 args[0] = llvm_current_self_call_arg(ctx);
+                if (args[0] == NULL)
+                    return llvm_call_error_recovery(ctx, node,
+                        "LLVM hosted method call requires a self receiver");
                 for (size_t i = 0; i < argc; i++) {
                     LLVMValueRef arg_val = llvm_emit_expression(node->data.call.arguments[i], ctx);
                     size_t logical_idx = 0;
@@ -198,6 +226,9 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                         }
                         logical_idx++;
                     }
+                    if (arg_val == NULL)
+                        return llvm_call_arg_error_recovery(ctx, node,
+                            callee_name, i);
                     args[i + 1] = arg_val;
                 }
                 {
@@ -225,6 +256,9 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
     if (decl != NULL)
         args = llvm_build_boundary_call_args(ctx, decl, node->data.call.arguments,
             argc, &emitted_argc);
+    if (args == NULL && decl != NULL && ctx->has_error)
+        return llvm_call_error_recovery(ctx, node,
+            "LLVM boundary call argument lowering failed");
     if (args == NULL && intent_decl != NULL) {
         args = pgy_arena_calloc(&ctx->scratch,
             (argc > 0 ? argc : 1) * sizeof(LLVMValueRef));
@@ -291,6 +325,9 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                 }
                 if (args[i] == NULL)
                     args[i] = llvm_emit_expression(arg_node, ctx);
+                if (args[i] == NULL)
+                    return llvm_call_arg_error_recovery(ctx, node,
+                        callee_name, i);
             }
             emitted_argc = (unsigned)argc;
         }
@@ -298,8 +335,15 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
     if (args == NULL) {
         args = pgy_arena_calloc(&ctx->scratch,
             (argc > 0 ? argc : 1) * sizeof(LLVMValueRef));
-        for (size_t i = 0; i < argc; i++)
+        if (args == NULL)
+            return llvm_call_error_recovery(ctx, node,
+                "LLVM call argument allocation failed");
+        for (size_t i = 0; i < argc; i++) {
             args[i] = llvm_emit_expression(node->data.call.arguments[i], ctx);
+            if (args[i] == NULL)
+                return llvm_call_arg_error_recovery(ctx, node,
+                    callee_name, i);
+        }
         emitted_argc = (unsigned)argc;
     }
 
@@ -312,17 +356,22 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         LLVMTypeRef *param_types = NULL;
         LLVMTypeRef fn_type;
         LLVMValueRef fn;
+        size_t forward_param_count = 0;
 
         if (intent_decl->data.intent_decl.binding_count > 0
             || intent_decl->data.intent_decl.involve_count > 0
             || intent_decl->data.intent_decl.value_count > 0) {
-            size_t param_count = intent_decl->data.intent_decl.binding_count > 0
+            forward_param_count = intent_decl->data.intent_decl.binding_count > 0
                 ? intent_decl->data.intent_decl.binding_count
                 : (intent_decl->data.intent_decl.involve_count
                     + intent_decl->data.intent_decl.value_count);
             param_types = pgy_arena_calloc(&ctx->scratch,
-                param_count * sizeof(LLVMTypeRef));
-            for (size_t i = 0; i < param_count; i++) {
+                forward_param_count * sizeof(LLVMTypeRef));
+            if (param_types == NULL) {
+                return llvm_call_error_recovery(ctx, node,
+                    "LLVM intent forward declaration parameter allocation failed");
+            }
+            for (size_t i = 0; i < forward_param_count; i++) {
                 LLVMTypeRef pt = ctx->type_i8ptr;
                 ASTNode *binding = intent_decl->data.intent_decl.binding_count > 0
                     ? intent_decl->data.intent_decl.bindings[i]
@@ -337,22 +386,24 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                     && binding->data.intent_involves.subject_type->type == AST_TYPE) {
                     type_name = binding->data.intent_involves.subject_type->data.type.name;
                     pt = ast_type_to_llvm(ctx, binding->data.intent_involves.subject_type);
+                    if (ctx->has_error || pt == NULL)
+                        return llvm_call_error_recovery(ctx, node,
+                            "LLVM intent forward declaration could not lower participant type");
                     if (llvm_type_name_uses_pointer_self(ctx, type_name))
                         pt = LLVMPointerType(pt, 0);
                 } else if (binding != NULL && binding->type == AST_INTENT_VALUE
                     && binding->data.intent_value.value_type != NULL) {
                     pt = ast_type_to_llvm(ctx, binding->data.intent_value.value_type);
-                }
-                if (pt == NULL) {
-                    pt = ctx->type_i8ptr;
+                    if (ctx->has_error || pt == NULL)
+                        return llvm_call_error_recovery(ctx, node,
+                            "LLVM intent forward declaration could not lower value type");
                 }
                 param_types[i] = pt;
             }
         }
 
         fn_type = LLVMFunctionType(ctx->type_i1, param_types,
-            (unsigned)(intent_decl->data.intent_decl.involve_count
-                + intent_decl->data.intent_decl.value_count), 0);
+            (unsigned)forward_param_count, 0);
         fn = LLVMAddFunction(ctx->module, callee_name, fn_type);
         llvm_register_function(ctx, callee_name, fn, fn_type, ctx->type_i1);
         func = llvm_lookup_function(ctx, callee_name);
@@ -364,16 +415,20 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         LLVMValueRef result;
         LLVMCallableVarEntry *callable_entry = NULL;
 
-        if (node->data.call.callee->type == AST_IDENTIFIER)
-            callee_var = llvm_scope_lookup(ctx, callee_name);
+            if (node->data.call.callee->type == AST_IDENTIFIER)
+                callee_var = llvm_scope_lookup(ctx, callee_name);
         callable_entry = llvm_lookup_callable_entry(ctx, callee_name);
         if (callee_var != NULL) {
             LLVMTypeRef callable_ptr_ty = NULL;
             if (LLVMGetTypeKind(callee_var->type) == LLVMPointerTypeKind)
                 fn_type = LLVMGetElementType(callee_var->type);
             if (fn_type == NULL || LLVMGetTypeKind(fn_type) != LLVMFunctionTypeKind) {
-                if (callable_entry != NULL)
+                if (callable_entry != NULL) {
                     fn_type = llvm_function_signature_from_callable_entry(ctx, callable_entry);
+                    if (ctx->has_error || fn_type == NULL)
+                        return llvm_call_error_recovery(ctx, node,
+                            "LLVM callable variable call could not lower callable signature");
+                }
             }
             if (fn_type != NULL && LLVMGetTypeKind(fn_type) == LLVMFunctionTypeKind)
                 callable_ptr_ty = LLVMPointerType(fn_type, 0);
@@ -393,22 +448,34 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                             size_t pc = p->type->data.event_handler_type.param_count;
                             LLVMTypeRef *pts = NULL;
                             LLVMTypeRef ret = ctx->type_void;
-                            if (p->type->data.event_handler_type.return_type != NULL)
+                            if (p->type->data.event_handler_type.return_type != NULL) {
                                 ret = ast_type_to_llvm(ctx,
                                     p->type->data.event_handler_type.return_type);
+                                if (ctx->has_error || ret == NULL)
+                                    return llvm_call_error_recovery(ctx, node,
+                                        "LLVM event-handler callable could not lower return type");
+                            }
                             if (pc > 0) {
                                 pts = pgy_arena_calloc(&ctx->scratch,
                                     pc * sizeof(LLVMTypeRef));
-                                if (pts != NULL) {
-                                    for (size_t pi = 0; pi < pc; pi++) {
-                                        pts[pi] = ast_type_to_llvm(ctx,
-                                            p->type->data.event_handler_type.param_types[pi]);
-                                    }
+                                if (pts == NULL) {
+                                    return llvm_call_error_recovery(ctx, node,
+                                        "LLVM event-handler callable parameter allocation failed");
+                                }
+                                for (size_t pi = 0; pi < pc; pi++) {
+                                    pts[pi] = ast_type_to_llvm(ctx,
+                                        p->type->data.event_handler_type.param_types[pi]);
+                                    if (ctx->has_error || pts[pi] == NULL)
+                                        return llvm_call_error_recovery(ctx, node,
+                                            "LLVM event-handler callable could not lower parameter type");
                                 }
                             }
                             fn_type = LLVMFunctionType(ret, pts, (unsigned)pc, 0);
                         } else {
                             LLVMTypeRef declared_ptr_ty = ast_type_to_llvm(ctx, p->type);
+                            if (ctx->has_error || declared_ptr_ty == NULL)
+                                return llvm_call_error_recovery(ctx, node,
+                                    "LLVM callable parameter declaration type could not be lowered");
                             if (LLVMGetTypeKind(declared_ptr_ty) == LLVMPointerTypeKind)
                                 fn_type = LLVMGetElementType(declared_ptr_ty);
                             else
@@ -429,6 +496,9 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                 callable_ptr_ty = LLVMPointerType(fn_type, 0);
             }
             fn_ptr = llvm_emit_expression(node->data.call.callee, ctx);
+            if (fn_ptr == NULL)
+                return llvm_call_error_recovery(ctx, node,
+                    "LLVM callable variable call could not lower callee expression");
             if (fn_ptr != NULL && callable_ptr_ty != NULL
                 && LLVMTypeOf(fn_ptr) != callable_ptr_ty) {
                 fn_ptr = LLVMBuildBitCast(ctx->builder, fn_ptr, callable_ptr_ty,
@@ -457,7 +527,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                 "LLVM call target '%s' is not declared in the backend function registry",
                 callee_name != NULL ? callee_name : "<unknown>");
         }
-        return LLVMConstInt(ctx->type_i32, 0, 0);
+        return NULL;
     }
 
     for (size_t i = 0; decl == NULL && i < argc; i++) {
@@ -477,9 +547,11 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                     if (callable_entry != NULL) {
                         LLVMTypeRef callable_sig =
                             llvm_function_signature_from_callable_entry(ctx, callable_entry);
-                        LLVMTypeRef callable_ptr_ty = callable_sig != NULL
-                            ? LLVMPointerType(callable_sig, 0)
-                            : v->type;
+                        if (ctx->has_error || callable_sig == NULL)
+                            return llvm_call_error_recovery(ctx, node,
+                                "LLVM callable argument could not lower callable signature");
+                        LLVMTypeRef callable_ptr_ty =
+                            LLVMPointerType(callable_sig, 0);
                         args[i] = LLVMBuildLoad2(ctx->builder, callable_ptr_ty,
                             v->alloca, llvm_tmp_name(ctx));
                     } else if (LLVMGetTypeKind(v->type) == LLVMPointerTypeKind) {

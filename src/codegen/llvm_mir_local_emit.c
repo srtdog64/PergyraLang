@@ -45,6 +45,8 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                     alloca_type = layout_type;
                 } else if (type_expr != NULL) {
                     alloca_type = llvm_mir_type_from_ast(ctx, type_expr);
+                    if (ctx->has_error || alloca_type == NULL)
+                        return;
                     if (has_base_name)
                         llvm_register_typed_var(ctx, base_name, type_expr);
                 } else if (value_expr != NULL) {
@@ -185,6 +187,8 @@ llvm_emit_mir_param_allocas(const MIRRoutine *routine, ASTNode *func_decl,
 
             pt = llvm_mir_required_type_from_ast(ctx, func_decl, p->type,
                 "function parameter");
+            if (ctx->has_error || pt == NULL)
+                return;
             if (slot_inner != NULL) {
                 LLVMTypeRef slot_ptr_ty = LLVMPointerType(pt, 0);
                 alloca = LLVMBuildAlloca(ctx->builder, slot_ptr_ty, p->name);
@@ -246,6 +250,8 @@ llvm_emit_mir_param_allocas(const MIRRoutine *routine, ASTNode *func_decl,
                 type_name = type_node->data.type.name;
             pt = llvm_mir_required_type_from_ast(ctx, binding, type_node,
                 "intent binding");
+            if (ctx->has_error || pt == NULL)
+                return;
             if (pointer_param)
                 pt = LLVMPointerType(pt, 0);
             LLVMValueRef alloca = LLVMBuildAlloca(ctx->builder, pt,
@@ -296,6 +302,8 @@ llvm_emit_mir_param_allocas(const MIRRoutine *routine, ASTNode *func_decl,
                     continue;
                 LLVMTypeRef pt = llvm_mir_required_type_from_ast(
                     ctx, func_decl, p->type, "function parameter");
+                if (ctx->has_error || pt == NULL)
+                    return;
                 if (p->type != NULL && llvm_mir_param_uses_pointer_self(ctx,
                     p->type)) {
                     pt = LLVMPointerType(pt, 0);

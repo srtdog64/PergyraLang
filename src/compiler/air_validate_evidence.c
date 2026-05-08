@@ -6,29 +6,6 @@
 #include "air_internal.h"
 
 static bool
-air_evidence_kind_valid(AIREvidenceKind kind)
-{
-    switch (kind) {
-    case AIR_EVIDENCE_HIR_ROUTINE:
-    case AIR_EVIDENCE_HIR_CFG:
-    case AIR_EVIDENCE_RIR_BOUNDARY:
-    case AIR_EVIDENCE_RIR_AUTHORITY:
-    case AIR_EVIDENCE_MIR_CLEANUP:
-    case AIR_EVIDENCE_MIR_PIN_CLEANUP:
-    case AIR_EVIDENCE_MIR_TERMINATOR:
-    case AIR_EVIDENCE_MIR_SELECT_RECEIVE:
-    case AIR_EVIDENCE_DAG_METADATA:
-    case AIR_EVIDENCE_DAG_GENERIC:
-    case AIR_EVIDENCE_DAG_ABILITY:
-    case AIR_EVIDENCE_RIR_EFFECT_PROPAGATION:
-    case AIR_EVIDENCE_RIR_RELATION_PROPAGATION:
-    case AIR_EVIDENCE_OBSERVABILITY_SCHEMA:
-        return true;
-    }
-    return false;
-}
-
-static bool
 air_boundary_has_evidence_kind_provider(const AIRProgram *air,
                                         size_t boundary_index,
                                         AIREvidenceKind kind,
@@ -40,6 +17,24 @@ air_boundary_has_evidence_kind_provider(const AIRProgram *air,
         const AIREvidenceNode *evidence = &air->evidence_nodes[i];
         if (evidence->kind == kind
             && evidence->boundary_index == boundary_index
+            && air_name_matches(evidence->provider_name, provider_name)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+static bool
+air_global_evidence_has_provider(const AIRProgram *air,
+                                 AIREvidenceKind kind,
+                                 const char *provider_name)
+{
+    if (air == NULL || air_name_is_empty(provider_name))
+        return false;
+    for (size_t i = 0; i < air->evidence_count; i++) {
+        const AIREvidenceNode *evidence = &air->evidence_nodes[i];
+        if (evidence->kind == kind
+            && evidence->boundary_index == SIZE_MAX
             && air_name_matches(evidence->provider_name, provider_name)) {
             return true;
         }
@@ -110,6 +105,74 @@ air_boundary_has_evidence_kind(const AIRProgram *air,
     return false;
 }
 
+bool
+air_boundary_has_evidence_kind_subject(const AIRProgram *air,
+                                       size_t boundary_index,
+                                       AIREvidenceKind kind,
+                                       const char *subject_name)
+{
+    if (air == NULL
+        || boundary_index >= air->boundary_count
+        || air_name_is_empty(subject_name)) {
+        return false;
+    }
+    for (size_t i = 0; i < air->evidence_count; i++) {
+        const AIREvidenceNode *evidence = &air->evidence_nodes[i];
+        if (evidence->kind == kind
+            && evidence->boundary_index == boundary_index
+            && air_name_matches(evidence->subject_name, subject_name)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool
+air_boundary_has_evidence(const AIRProgram *air,
+                          size_t boundary_index,
+                          AIREvidenceKind kind)
+{
+    const AIRBoundaryNode *boundary;
+
+    if (air == NULL || boundary_index >= air->boundary_count)
+        return false;
+    if (air_evidence_inventory_is_authoritative(air)) {
+        if (air->evidence_count > 0)
+            return air_boundary_has_evidence_kind(air, boundary_index, kind);
+        return false;
+    }
+    boundary = &air->boundaries[boundary_index];
+    return air_boundary_has_summary_flag(boundary, kind);
+}
+
+const char *
+air_boundary_missing_authority_evidence(const AIRProgram *air,
+                                        const AIRBoundaryNode *boundary,
+                                        size_t boundary_index)
+{
+    if (air == NULL || boundary == NULL || !boundary->authority_required)
+        return NULL;
+    if (!air_evidence_inventory_is_authoritative(air)) {
+        return air_boundary_has_evidence(air, boundary_index,
+                                         AIR_EVIDENCE_RIR_AUTHORITY)
+            ? NULL
+            : (boundary->authority_name_count > 0
+                ? boundary->authority_names[0]
+                : "<authority>");
+    }
+    for (size_t i = 0; i < boundary->authority_name_count; i++) {
+        const char *name = boundary->authority_names[i];
+        if (!air_boundary_has_evidence_kind_subject(
+                air,
+                boundary_index,
+                AIR_EVIDENCE_RIR_AUTHORITY,
+                name)) {
+            return name;
+        }
+    }
+    return boundary->authority_name_count == 0 ? "<authority>" : NULL;
+}
+
 typedef struct
 {
     AIREvidenceKind kind;
@@ -122,6 +185,70 @@ static const AIRBoundaryEvidenceSummaryRule kBoundaryEvidenceSummaryRules[] = {
     { AIR_EVIDENCE_RIR_BOUNDARY, "RIR boundary evidence" },
     { AIR_EVIDENCE_RIR_AUTHORITY, "RIR authority evidence" },
 };
+
+bool
+air_validate_boundary_legacy_evidence_shape(const AIRProgram *air,
+                                            size_t boundary_index,
+                                            char **error_message)
+{
+    const AIRBoundaryNode *boundary;
+
+    if (air == NULL || boundary_index >= air->boundary_count)
+        return false;
+    boundary = &air->boundaries[boundary_index];
+    if (boundary->has_hir_routine_evidence
+        && air_name_is_empty(boundary->hir_routine_evidence_name)) {
+        air_set_invariant_error(error_message,
+                                "AIR boundary node %zu has HIR evidence without provenance",
+                                boundary_index);
+        return false;
+    }
+    if (boundary->has_hir_cfg_evidence
+        && !boundary->has_hir_routine_evidence) {
+        air_set_invariant_error(error_message,
+                                "AIR boundary node %zu has HIR CFG evidence without routine evidence",
+                                boundary_index);
+        return false;
+    }
+    if (boundary->has_rir_boundary_evidence
+        && air_name_is_empty(boundary->rir_boundary_evidence_scope)) {
+        air_set_invariant_error(error_message,
+                                "AIR boundary node %zu has RIR boundary evidence without provenance",
+                                boundary_index);
+        return false;
+    }
+    if (boundary->has_rir_authority_evidence
+        && !boundary->has_rir_boundary_evidence) {
+        air_set_invariant_error(error_message,
+                                "AIR boundary node %zu has RIR authority evidence without boundary evidence",
+                                boundary_index);
+        return false;
+    }
+    if (boundary->has_rir_authority_evidence
+        && !boundary->authority_required) {
+        air_set_invariant_error(error_message,
+                                "AIR boundary node %zu has RIR authority evidence on non-authority boundary",
+                                boundary_index);
+        return false;
+    }
+    if (boundary->has_rir_authority_evidence
+        && air_name_is_empty(boundary->rir_authority_evidence_name)) {
+        air_set_invariant_error(error_message,
+                                "AIR boundary node %zu has RIR authority evidence without provenance",
+                                boundary_index);
+        return false;
+    }
+    if (boundary->has_rir_authority_evidence
+        && !air_boundary_declares_authority_name(
+            boundary,
+            boundary->rir_authority_evidence_name)) {
+        air_set_invariant_error(error_message,
+                                "AIR boundary node %zu has RIR authority evidence for undeclared participant",
+                                boundary_index);
+        return false;
+    }
+    return true;
+}
 
 static bool
 air_evidence_nodes_duplicate(const AIREvidenceNode *left,
@@ -303,6 +430,17 @@ air_evidence_node_matches_boundary_shape(const AIRProgram *air,
                                     evidence->boundary_index);
             return false;
         }
+        if (!air_global_evidence_has_provider(air,
+                                              AIR_EVIDENCE_MIR_CLEANUP,
+                                              evidence->provider_name)) {
+            air_set_invariant_error(error_message,
+                                    "AIR MIR pin cleanup evidence node %zu has no matching MIR cleanup evidence for provider '%s'",
+                                    evidence_index,
+                                    evidence->provider_name != NULL
+                                        ? evidence->provider_name
+                                        : "<null>");
+            return false;
+        }
         return true;
     case AIR_EVIDENCE_DAG_GENERIC:
     case AIR_EVIDENCE_DAG_METADATA:
@@ -313,6 +451,7 @@ air_evidence_node_matches_boundary_shape(const AIRProgram *air,
     case AIR_EVIDENCE_RIR_EFFECT_PROPAGATION:
     case AIR_EVIDENCE_RIR_RELATION_PROPAGATION:
     case AIR_EVIDENCE_OBSERVABILITY_SCHEMA:
+    case AIR_EVIDENCE_RUNTIME_FRONTIER_POLICY:
         return true;
     }
 
@@ -326,7 +465,7 @@ air_validate_evidence_inventory(const AIRProgram *air, char **error_message)
         return false;
     for (size_t i = 0; i < air->evidence_count; i++) {
         const AIREvidenceNode *evidence = &air->evidence_nodes[i];
-        if (!air_evidence_kind_valid(evidence->kind)) {
+        if (!air_evidence_kind_is_known(evidence->kind)) {
             air_set_invariant_error(error_message, "AIR evidence node %zu has invalid kind", i);
             return false;
         }

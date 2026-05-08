@@ -25,16 +25,28 @@ llvm_function_signature_from_event_type(LLVMGenCtx *ctx, ASTNode *type_node)
         return NULL;
 
     param_count = type_node->data.event_handler_type.param_count;
-    if (type_node->data.event_handler_type.return_type != NULL)
+    if (type_node->data.event_handler_type.return_type != NULL) {
         ret_type = ast_type_to_llvm(ctx, type_node->data.event_handler_type.return_type);
+        if (ctx->has_error || ret_type == NULL)
+            return NULL;
+    }
 
     if (param_count > 0) {
         param_types = pgy_arena_calloc(&ctx->scratch, param_count * sizeof(LLVMTypeRef));
-        if (param_types == NULL)
-            return LLVMFunctionType(ret_type, NULL, 0, 0);
-        for (size_t i = 0; i < param_count; i++)
+        if (param_types == NULL) {
+            llvm_set_error_at_with_hints(ctx, type_node,
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                PGY_FIX_INSPECT_MIR_INVENTORY,
+                "LLVM event-handler signature parameter allocation failed");
+            return NULL;
+        }
+        for (size_t i = 0; i < param_count; i++) {
             param_types[i] = ast_type_to_llvm(ctx,
                 type_node->data.event_handler_type.param_types[i]);
+            if (ctx->has_error || param_types[i] == NULL)
+                return NULL;
+        }
     }
 
     fn_type = LLVMFunctionType(ret_type, param_types, (unsigned)param_count, 0);
@@ -56,13 +68,24 @@ llvm_function_signature_from_callable_entry(LLVMGenCtx *ctx,
     ret_type = entry->return_type != NULL
         ? ast_type_to_llvm(ctx, entry->return_type)
         : ctx->type_void;
+    if (ctx->has_error || ret_type == NULL)
+        return NULL;
     if (entry->param_count > 0) {
         param_types = pgy_arena_calloc(&ctx->scratch,
                                        entry->param_count * sizeof(LLVMTypeRef));
-        if (param_types == NULL)
-            return LLVMFunctionType(ret_type, NULL, 0, 0);
-        for (size_t i = 0; i < entry->param_count; i++)
+        if (param_types == NULL) {
+            llvm_set_error_with_hints(ctx,
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                PGY_FIX_INSPECT_MIR_INVENTORY,
+                "LLVM callable signature parameter allocation failed");
+            return NULL;
+        }
+        for (size_t i = 0; i < entry->param_count; i++) {
             param_types[i] = ast_type_to_llvm(ctx, entry->param_types[i]);
+            if (ctx->has_error || param_types[i] == NULL)
+                return NULL;
+        }
     }
 
     return LLVMFunctionType(ret_type, param_types,
@@ -100,13 +123,29 @@ llvm_required_checked_math_function(LLVMGenCtx *ctx,
         "checked arithmetic", function_name);
 }
 
+static LLVMValueRef
+llvm_scalar_expr_error(LLVMGenCtx *ctx, ASTNode *node, const char *message)
+{
+    if (ctx != NULL && !ctx->has_error) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+            "%s",
+            message != NULL ? message
+                : "LLVM scalar expression could not be lowered");
+    }
+    return NULL;
+}
+
 LLVMValueRef
 llvm_emit_binary(ASTNode *node, LLVMGenCtx *ctx)
 {
     LLVMValueRef left  = llvm_emit_expression(node->data.binary.left, ctx);
     LLVMValueRef right = llvm_emit_expression(node->data.binary.right, ctx);
     if (left == NULL || right == NULL)
-        return LLVMConstInt(ctx->type_i32, 0, 0);
+        return llvm_scalar_expr_error(ctx, node,
+            "LLVM binary expression could not lower operand expression");
 
     LLVMTypeRef left_type  = LLVMTypeOf(left);
     LLVMTypeRef right_type = LLVMTypeOf(right);
@@ -125,10 +164,21 @@ llvm_emit_binary(ASTNode *node, LLVMGenCtx *ctx)
         }
 
         if (type_name != NULL && suffix != NULL) {
-            size_t fn_len = strlen("operator_") + strlen(suffix) + 1 + strlen(type_name) + 1;
+            size_t prefix_len = strlen("operator_");
+            size_t suffix_len = strlen(suffix);
+            size_t type_len = strlen(type_name);
+            size_t fn_len;
+            if (suffix_len > ((size_t)-1) - prefix_len - 2)
+                return llvm_scalar_expr_error(ctx, node,
+                    "LLVM operator overload name is too large");
+            if (type_len > ((size_t)-1) - prefix_len - suffix_len - 2)
+                return llvm_scalar_expr_error(ctx, node,
+                    "LLVM operator overload name is too large");
+            fn_len = prefix_len + suffix_len + type_len + 2;
             char *fn_name = pgy_arena_alloc(&ctx->scratch, fn_len);
             if (fn_name == NULL)
-                return LLVMConstInt(ctx->type_i32, 0, 0);
+                return llvm_scalar_expr_error(ctx, node,
+                    "LLVM operator overload name allocation failed");
             snprintf(fn_name, fn_len, "operator_%s_%s", suffix, type_name);
             LLVMFuncEntry *fn = llvm_lookup_function(ctx, fn_name);
             if (fn != NULL) {
@@ -158,7 +208,8 @@ llvm_emit_binary(ASTNode *node, LLVMGenCtx *ctx)
             return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn,
                                   args, 2, llvm_tmp_name(ctx));
         }
-        return LLVMConstInt(ctx->type_i32, 0, 0);
+        return llvm_scalar_expr_error(ctx, node,
+            "LLVM string concatenation could not lower/coerce operands");
     }
 
     if ((node->data.binary.op.type == TOKEN_EQUAL
@@ -180,7 +231,8 @@ llvm_emit_binary(ASTNode *node, LLVMGenCtx *ctx)
                 return eq;
             return LLVMBuildNot(ctx->builder, eq, llvm_tmp_name(ctx));
         }
-        return LLVMConstInt(ctx->type_i32, 0, 0);
+        return llvm_scalar_expr_error(ctx, node,
+            "LLVM string comparison could not lower/coerce operands");
     }
 
     bool is_float = (left_type == ctx->type_f64 || left_type == ctx->type_f32
@@ -220,7 +272,8 @@ llvm_emit_binary(ASTNode *node, LLVMGenCtx *ctx)
             return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn,
                                   args, 2, llvm_tmp_name(ctx));
         }
-        return LLVMConstInt(ctx->type_i32, 0, 0);
+        return llvm_scalar_expr_error(ctx, node,
+            "LLVM checked arithmetic requires runtime helper lowering");
     }
 
     const char *tmp = llvm_tmp_name(ctx);
@@ -273,7 +326,8 @@ llvm_emit_binary(ASTNode *node, LLVMGenCtx *ctx)
     case TOKEN_OR:
         return LLVMBuildOr(ctx->builder, left, right, tmp);
     default:
-        return LLVMConstInt(ctx->type_i32, 0, 0);
+        return llvm_scalar_expr_error(ctx, node,
+            "LLVM binary expression uses an unsupported operator");
     }
 }
 
@@ -282,13 +336,20 @@ llvm_emit_unary(ASTNode *node, LLVMGenCtx *ctx)
 {
     if (node->data.unary.op.type == TOKEN_QUESTION) {
         LLVMValueRef result = llvm_emit_expression(node->data.unary.operand, ctx);
-        LLVMTypeRef result_ty = LLVMTypeOf(result);
-        unsigned field_count = LLVMCountStructElementTypes(result_ty);
+        LLVMTypeRef result_ty;
+        unsigned field_count;
 
-        if (result == NULL || LLVMGetTypeKind(result_ty) != LLVMStructTypeKind
-            || field_count < 2 || ctx->current_function == NULL) {
-            return LLVMConstInt(ctx->type_i32, 0, 0);
-        }
+        if (result == NULL)
+            return llvm_scalar_expr_error(ctx, node,
+                "LLVM try operator could not lower operand expression");
+        result_ty = LLVMTypeOf(result);
+        if (LLVMGetTypeKind(result_ty) != LLVMStructTypeKind)
+            return llvm_scalar_expr_error(ctx, node,
+                "LLVM try operator requires Result-like aggregate operand");
+        field_count = LLVMCountStructElementTypes(result_ty);
+        if (field_count < 2 || ctx->current_function == NULL)
+            return llvm_scalar_expr_error(ctx, node,
+                "LLVM try operator requires Result payload fields and active function");
 
         LLVMTypeRef fields[8];
         LLVMGetStructElementTypes(result_ty, fields);
@@ -298,6 +359,9 @@ llvm_emit_unary(ASTNode *node, LLVMGenCtx *ctx)
             LLVMConstInt(ctx->type_i32, 0, 0), llvm_tmp_name(ctx));
 
         LLVMValueRef ok_alloca = llvm_create_entry_alloca(ctx, fields[1], llvm_tmp_name(ctx));
+        if (ok_alloca == NULL)
+            return llvm_scalar_expr_error(ctx, node,
+                "LLVM try operator payload allocation failed");
         LLVMBasicBlockRef ok_bb = LLVMAppendBasicBlockInContext(ctx->context,
             ctx->current_function, "try.ok");
         LLVMBasicBlockRef err_bb = LLVMAppendBasicBlockInContext(ctx->context,
@@ -347,7 +411,14 @@ llvm_emit_unary(ASTNode *node, LLVMGenCtx *ctx)
                     err_val = LLVMBuildBitCast(ctx->builder, err_val, dst_ty,
                         llvm_tmp_name(ctx));
                 } else {
-                    err_val = LLVMConstNull(dst_ty);
+                    llvm_set_error_at_with_hints(ctx, node,
+                        PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                        PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                        PGY_FIX_ALIGN_RESULT_ERROR_TYPE,
+                        "LLVM try operator cannot coerce Result error payload to current function error type");
+                    LLVMBuildUnreachable(ctx->builder);
+                    LLVMPositionBuilderAtEnd(ctx->builder, cont_bb);
+                    return NULL;
                 }
             }
             LLVMValueRef rebuilt = LLVMGetUndef(fn_ret_type);
@@ -368,7 +439,8 @@ llvm_emit_unary(ASTNode *node, LLVMGenCtx *ctx)
 
     LLVMValueRef operand = llvm_emit_expression(node->data.unary.operand, ctx);
     if (operand == NULL)
-        return LLVMConstInt(ctx->type_i32, 0, 0);
+        return llvm_scalar_expr_error(ctx, node,
+            "LLVM unary expression could not lower operand expression");
 
     const char *tmp = llvm_tmp_name(ctx);
 

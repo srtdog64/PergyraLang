@@ -55,6 +55,21 @@ llvm_boundary_param_uses_pointer_self(LLVMGenCtx *ctx, FuncParam *param)
     return param != NULL && llvm_ast_type_uses_pointer_self(ctx, param->type);
 }
 
+static LLVMValueRef *
+llvm_boundary_args_error(LLVMGenCtx *ctx, ASTNode *node, const char *message)
+{
+    if (ctx != NULL && !ctx->has_error) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "%s",
+            message != NULL ? message
+                : "LLVM boundary call argument lowering failed");
+    }
+    return NULL;
+}
+
 LLVMValueRef *
 llvm_build_boundary_call_args(LLVMGenCtx *ctx, ASTNode *decl,
                               ASTNode **arg_nodes, size_t argc,
@@ -67,6 +82,9 @@ llvm_build_boundary_call_args(LLVMGenCtx *ctx, ASTNode *decl,
         *out_count = 0;
     if (ctx == NULL || decl == NULL || decl->type != AST_FUNC_DECL)
         return NULL;
+    if (argc != decl->data.func_decl.param_count)
+        return llvm_boundary_args_error(ctx, decl,
+            "LLVM boundary call source argument count does not match function signature");
 
     for (size_t i = 0; i < decl->data.func_decl.param_count; i++) {
         bool is_secure = false;
@@ -79,7 +97,8 @@ llvm_build_boundary_call_args(LLVMGenCtx *ctx, ASTNode *decl,
     args = pgy_arena_calloc(&ctx->scratch,
                             (emitted_count > 0 ? emitted_count : 1) * sizeof(LLVMValueRef));
     if (args == NULL)
-        return NULL;
+        return llvm_boundary_args_error(ctx, decl,
+            "LLVM boundary call argument allocation failed");
 
     unsigned arg_idx = 0;
     unsigned emitted_idx = 0;
@@ -96,6 +115,9 @@ llvm_build_boundary_call_args(LLVMGenCtx *ctx, ASTNode *decl,
             args[emitted_idx++] = slot_var != NULL
                 ? llvm_boundary_slot_runtime_arg(ctx, slot_var)
                 : llvm_emit_expression(arg_node, ctx);
+            if (args[emitted_idx - 1] == NULL)
+                return llvm_boundary_args_error(ctx, arg_node,
+                    "LLVM boundary slot argument could not be lowered");
             if (is_secure) {
                 LLVMVarEntry *token_var = llvm_lookup_secure_token_var(ctx, source_name);
                 if (token_var != NULL) {
@@ -103,7 +125,8 @@ llvm_build_boundary_call_args(LLVMGenCtx *ctx, ASTNode *decl,
                     args[emitted_idx++] = LLVMBuildLoad2(ctx->builder, token_ty,
                         token_var->alloca, llvm_tmp_name(ctx));
                 } else {
-                    args[emitted_idx++] = LLVMConstNull(llvm_secure_token_type(ctx, inner));
+                    return llvm_boundary_args_error(ctx, arg_node,
+                        "LLVM secure boundary slot argument requires paired token binding");
                 }
             }
             continue;
@@ -129,6 +152,9 @@ llvm_build_boundary_call_args(LLVMGenCtx *ctx, ASTNode *decl,
         }
 
         args[emitted_idx++] = llvm_emit_expression(arg_node, ctx);
+        if (args[emitted_idx - 1] == NULL)
+            return llvm_boundary_args_error(ctx, arg_node,
+                "LLVM boundary call argument could not be lowered");
     }
 
     if (out_count != NULL)

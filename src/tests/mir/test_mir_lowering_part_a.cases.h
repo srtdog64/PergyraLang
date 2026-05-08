@@ -716,6 +716,88 @@ test_mir_lowering_part_a(void)
         hir_destroy(hir);
     }
 
+    TEST("MIR validator rejects unreachable cleanup root");
+    {
+        const char *src =
+            "func PinCleanupReachable(flag: Bool) -> Void {\n"
+            "    let scores: Slot<Int> = ClaimSlot<Int>();\n"
+            "    pin scores as view: WriteView<Int> {\n"
+            "        Write(view, 1);\n"
+            "    }\n"
+            "    Release(scores);\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        MIRRoutine *routine = NULL;
+        char *mir_error = NULL;
+        bool corrupted = false;
+        bool rejected = false;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok)
+            routine = find_mir_routine_mut(mir, "PinCleanupReachable", MIR_SCOPE_FUNCTION);
+        if (routine != NULL
+            && routine->has_cleanup_block
+            && routine->cleanup_block < routine->block_count) {
+            routine->blocks[routine->cleanup_block].is_reachable = false;
+            corrupted = true;
+        }
+        rejected = ok
+                   && corrupted
+                   && !mir_validate(mir, &mir_error)
+                   && mir_error != NULL
+                   && strstr(mir_error, "cleanup block") != NULL
+                   && strstr(mir_error, "not reachable") != NULL;
+        EXPECT(rejected);
+        free(mir_error);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
+    TEST("MIR validator rejects unreachable exceptional source");
+    {
+        const char *src =
+            "func PinCleanupReachable(flag: Bool) -> Void {\n"
+            "    let scores: Slot<Int> = ClaimSlot<Int>();\n"
+            "    pin scores as view: WriteView<Int> {\n"
+            "        Write(view, 1);\n"
+            "    }\n"
+            "    Release(scores);\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        MIRRoutine *routine = NULL;
+        char *mir_error = NULL;
+        bool corrupted = false;
+        bool rejected = false;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok)
+            routine = find_mir_routine_mut(mir, "PinCleanupReachable", MIR_SCOPE_FUNCTION);
+        if (routine != NULL) {
+            for (size_t i = 0; i < routine->block_count; i++) {
+                MIRBasicBlock *block = &routine->blocks[i];
+                if (block->is_cleanup || !block->has_cleanup_succ)
+                    continue;
+                block->is_reachable = false;
+                corrupted = true;
+                break;
+            }
+        }
+        rejected = ok
+                   && corrupted
+                   && !mir_validate(mir, &mir_error)
+                   && mir_error != NULL
+                   && strstr(mir_error, "unreachable block") != NULL
+                   && strstr(mir_error, "exceptional successor") != NULL;
+        EXPECT(rejected);
+        free(mir_error);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
     TEST("MIR keeps pin cleanup fact across early return");
     {
         const char *src =

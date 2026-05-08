@@ -27,6 +27,19 @@ Current stable contract note (2026-04-09):
 
 This means the current security story is not only `SecureSlot` token discipline, but also runtime path policy and stable hardware binding behavior.
 
+Beta portability note (2026-05-08):
+
+- The current security implementation is runtime validation plus targeted
+  regression evidence. It is not a completed third-party cryptographic audit.
+- `make test-security` requires OpenSSL development headers and linkable
+  `-lssl -lcrypto`. Minimal C-only toolchains should run
+  `make check-security-toolchain` first so missing dependencies fail as an
+  explicit preflight diagnostic instead of a partial compile error.
+- Platform claims must be tied to CI evidence. Linux/Windows secure-slot
+  evidence is accepted only where the toolchain can build and execute the
+  security regression suite; macOS remains support-matrix evidence work until
+  CI runs the same contract.
+
 ## Core Design: Security as a Type Parameter
 
 ### 1. Security Level Types

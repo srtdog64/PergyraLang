@@ -6,6 +6,14 @@ host-import/frame-callback terms and optionally link through Emscripten. It does
 not freeze WebGL APIs, renderer syntax, native LLVM wasm, or `pgy.render.webgl`;
 those belong to post-beta module ecosystem work.
 
+External review intake (2026-05-08): beta readiness now explicitly tracks
+operational and trust risks that are not new language features:
+toolchain/preflight clarity, release/debug hygiene, memory/string bounds audit,
+MIR-missing diagnostics as hard errors rather than partial generation, security
+runtime portability claims, documentation/implementation drift, and anchored
+ownership failure coverage. These items must be closed with diagnostics and
+smoke gates, not by broad marketing claims.
+
 마지막 업데이트: 2026-05-04
 
 이 문서는 베타 진입 전 반드시 닫아야 하는 실행 체크리스트다. 기준은 기능 개수가 아니라 **surface trust + 구조 지속 가능성 + C/LLVM parity + CFG-backed body safety + AIR-backed abstraction safety + dogfood-first path**다. 현재 표기는 두 개로 분리한다: 기능 체감 진행도는 약 70%, strict beta readiness는 약 60%를 기준값으로 두고 현재 실무 판단은 63%까지 본다. CFG/AIR/DAG/MIR/ABI source-of-truth closure가 끝나면 75-80% 범위로 재평가한다.
@@ -70,7 +78,12 @@ Operational mode:
   terminator provenance is visible to CI/LSP consumers instead of remaining
   MIR-validator-only state. Strict AIR also emits a global missing-evidence
   drift when real MIR input is present for boundaries but no MIR terminator
-  evidence was attached.
+  evidence was attached. MIR cleanup evidence is now fact-owned as well:
+  `mir_block_has_expected_cleanup_edge_fact(...)` centralizes the cleanup fact
+  name expected for each block, and AIR only counts cleanup evidence when the
+  source block carries that expected MIR cleanup-edge payload. This prevents a
+  plain cleanup successor from being treated as proof without the matching MIR
+  fact.
 - 2026-05-04 CFG/MIR intent-step consumer tightening:
   C and LLVM intent step collection now classify step instructions through
   `mir_instruction_intent_step_name(...)` instead of rechecking
@@ -462,6 +475,50 @@ Operational mode:
   MIR facts only, while AST payload rescans are reserved for hand-built legacy
   MIR without HIR provenance. Gate: manual native MinGW `test-mir` (`35/0`) and
   `test-transpile` (`710/0`).
+- 2026-05-08 intent observability exact classification:
+  intent observability usage now uses the exact stable builtin registry rather
+  than treating every `Intent*` call as runtime-observable. MIR intent inventory
+  statements are classified separately through an exact sorted
+  `mir_instruction_is_intent_semantic_carrier(...)`, so `IntentStep`/
+  `IntentWho`/`IntentDispatch` remain protected semantic carriers while a user
+  function such as `IntentDomainAction()` does not force trace runtime setup or
+  survive DCE as intent metadata. The perf contract also gates common/codegen/
+  semantic/resolver/LLVM observability table drift and bsearch ordering.
+  Gate: native MinGW `test-mir` (`57/0`) and `perf-contract-test-smoke`.
+- 2026-05-08 AIR evidence-kind classification owner:
+  AIR evidence-kind knowledge and boundary/global scoping now flow through
+  `air_evidence_kind_is_known(...)` and
+  `air_evidence_kind_is_boundary_scoped(...)`. Inventory validation and global
+  evidence validation consume the same classification helpers, reducing drift
+  when new first-class evidence nodes are added. Gate: native MinGW
+  `test-air` (`87/0`), `air-drift-test-smoke`, `air-json-schema-test-smoke`,
+  and `perf-contract-test-smoke`.
+- 2026-05-08 AIR/RIR IO boundary vocabulary owner:
+  the stable IO/time boundary builtin set now lives in
+  `src/compiler/io_boundary_builtin.c` and is consumed by both AIR boundary
+  synthesis and RIR lowering. This removes duplicate `io_names[]` scans from
+  `air_boundary.c` and `rir_builder_walk.c`, keeps the AIR/RIR vocabulary
+  sorted for `bsearch`, and gates future drift in `perf-contract-test-smoke`.
+  The same pass applies sorted-table classification to claim-slot codegen
+  policy and parser intent header value-binding names. Gate: native MinGW
+  `test-parser`, `test-rir` (`18/0`), `test-air` (`87/0`),
+  `test-transpile` (`745/0`), `air-drift-test-smoke`, and
+  `perf-contract-test-smoke`.
+- 2026-05-08 driver diagnostic mapping owner:
+  driver stage-fail JSON diagnostics now use a single `DriverDiagCodeMap` for
+  code extraction, `cause_ir`, and `fix_source` mapping. This prevents parser,
+  lexer, AIR, and runtime-none diagnostic metadata from drifting across
+  parallel if-chains. Gate: native MinGW `diagnostics-json-test-smoke`,
+  `layered-diagnostics-contract-test-smoke`, and `perf-contract-test-smoke`.
+- 2026-05-08 DAG evidence naming at AIR boundary:
+  AIR DAG evidence now consumes `SemanticResult` fields named for DAG evidence:
+  `type_resolution_dag_generic_contract_evidence_count` and
+  `type_resolution_dag_ability_consumer_evidence_count`. The old
+  `type_resolution_stage_compat_*` counters remain as telemetry mirrors only,
+  reducing compatibility-seam vocabulary in strict AIR. Gate: native MinGW
+  `test-air` (`87/0`), `type-resolution-dag-test-smoke`,
+  `type-resolution-resolver-inventory-test-smoke`, and
+  `perf-contract-test-smoke`.
 - 2026-05-01 dogfood-first beta gate:
   the beta target is now "core stable enough to start a small WebGL/chat-game
   dogfood", not a full 1.0 compiler. Quantum, Rust-style lifetime borrow
@@ -516,6 +573,14 @@ Operational mode:
   and the fact count is derived from the runtime schema vocabulary. Gate:
   `make test-air air-drift-test-smoke air-json-schema-test-smoke
   air-backend-nonimpact-full-test-smoke`.
+- 2026-05-04 AIR runtime frontier policy evidence:
+  bounded frontier pass-limit policy is now represented as global
+  `AIR_EVIDENCE_RUNTIME_FRONTIER_POLICY` evidence with provider
+  `pgy.runtime.frontier-policy.v1` and subject
+  `bounded-frontier-pass-limit`. This closes the AIR hook for the runtime
+  policy source of truth, not the full transitive frontier scheduler itself.
+  Gates: `make test-air air-drift-test-smoke air-json-schema-test-smoke
+  runtime-frontier-policy-test-smoke runtime-frontier-contract-test-smoke`.
 - 2026-04-30 AIR MIR pin-cleanup evidence step:
   `air_collect_mir_evidence(...)` records MIR-owned `pin-unpin-cleanup-edge`
   facts as `AIR_EVIDENCE_MIR_PIN_CLEANUP` nodes for matching AIR `pin`

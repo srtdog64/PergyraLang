@@ -122,6 +122,8 @@ llvm_slot_struct_type(LLVMGenCtx *ctx, const char *inner)
     case PGY_TK_STRING: return ctx->slot_type_String;
     default: {
         LLVMTypeRef inner_ty = pergyra_type_to_llvm(ctx, inner);
+        if (ctx->has_error || inner_ty == NULL)
+            return NULL;
         LLVMTypeRef fields[] = { inner_ty, LLVMInt1TypeInContext(ctx->context) };
         return LLVMStructTypeInContext(ctx->context, fields, 2, 0);
     }
@@ -140,6 +142,8 @@ llvm_pinned_slot_struct_type(LLVMGenCtx *ctx, const char *inner)
     case PGY_TK_STRING: return ctx->pinned_slot_type_String;
     default: {
         LLVMTypeRef slot_ty = llvm_slot_struct_type(ctx, inner);
+        if (ctx->has_error || slot_ty == NULL)
+            return NULL;
         LLVMTypeRef fields[] = {
             LLVMPointerType(slot_ty, 0), ctx->type_i1, ctx->type_i1
         };
@@ -160,6 +164,8 @@ llvm_secure_slot_struct_type(LLVMGenCtx *ctx, const char *inner)
     case PGY_TK_STRING: return ctx->secure_slot_type_String;
     default: {
         LLVMTypeRef inner_ty = pergyra_type_to_llvm(ctx, inner);
+        if (ctx->has_error || inner_ty == NULL)
+            return NULL;
         LLVMTypeRef fields[] = {
             inner_ty, LLVMInt1TypeInContext(ctx->context), ctx->type_i64
         };
@@ -181,6 +187,8 @@ llvm_pinned_secure_slot_struct_type(LLVMGenCtx *ctx, const char *inner)
     default: {
         LLVMTypeRef slot_ty = llvm_secure_slot_struct_type(ctx, inner);
         LLVMTypeRef token_ty = llvm_secure_token_type(ctx, inner);
+        if (ctx->has_error || slot_ty == NULL || token_ty == NULL)
+            return NULL;
         LLVMTypeRef fields[] = {
             LLVMPointerType(slot_ty, 0),
             LLVMPointerType(token_ty, 0),
@@ -221,6 +229,8 @@ llvm_array_struct_type(LLVMGenCtx *ctx, const char *inner)
     case PGY_TK_STRING: return ctx->array_type_String;
     default: {
         LLVMTypeRef elem_ty = pergyra_type_to_llvm(ctx, inner);
+        if (ctx->has_error || elem_ty == NULL)
+            return NULL;
         LLVMTypeRef fields[] = {
             LLVMPointerType(elem_ty, 0), ctx->type_i64, ctx->type_i64, ctx->type_i8ptr
         };
@@ -241,6 +251,8 @@ llvm_slice_struct_type(LLVMGenCtx *ctx, const char *inner)
     case PGY_TK_STRING: return ctx->slice_type_String;
     default: {
         LLVMTypeRef elem_ty = pergyra_type_to_llvm(ctx, inner);
+        if (ctx->has_error || elem_ty == NULL)
+            return NULL;
         LLVMTypeRef fields[] = {
             LLVMPointerType(elem_ty, 0), ctx->type_i64
         };
@@ -252,15 +264,19 @@ llvm_slice_struct_type(LLVMGenCtx *ctx, const char *inner)
 LLVMTypeRef
 llvm_list_struct_type(LLVMGenCtx *ctx, const char *inner)
 {
+    LLVMTypeRef elem_ty;
+
     if (inner == NULL || inner[0] == '\0') {
         llvm_set_error_with_hints(ctx,
             PGY_CODE_LLVM_TYPE_UNSUPPORTED,
             PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
             PGY_FIX_ANNOTATE_CONCRETE_TYPE,
             "List<T>: concrete element type metadata is required");
-        return ctx->type_i32;
+        return NULL;
     }
-    LLVMTypeRef elem_ty = pergyra_type_to_llvm(ctx, inner);
+    elem_ty = pergyra_type_to_llvm(ctx, inner);
+    if (ctx->has_error || elem_ty == NULL)
+        return NULL;
     LLVMTypeRef fields[] = {
         LLVMPointerType(elem_ty, 0), ctx->type_i64, ctx->type_i64
     };
@@ -276,7 +292,7 @@ llvm_set_struct_type(LLVMGenCtx *ctx, const char *inner)
             PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
             PGY_FIX_ANNOTATE_CONCRETE_TYPE,
             "Set<T>: concrete element type metadata is required");
-        return ctx->type_i32;
+        return NULL;
     }
     LLVMTypeRef fields[] = {
         ctx->type_i8ptr,
@@ -290,15 +306,19 @@ llvm_set_struct_type(LLVMGenCtx *ctx, const char *inner)
 LLVMTypeRef
 llvm_queue_struct_type(LLVMGenCtx *ctx, const char *inner)
 {
+    LLVMTypeRef elem_ty;
+
     if (inner == NULL || inner[0] == '\0') {
         llvm_set_error_with_hints(ctx,
             PGY_CODE_LLVM_TYPE_UNSUPPORTED,
             PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
             PGY_FIX_ANNOTATE_CONCRETE_TYPE,
             "Queue<T>: concrete element type metadata is required");
-        return ctx->type_i32;
+        return NULL;
     }
-    LLVMTypeRef elem_ty = pergyra_type_to_llvm(ctx, inner);
+    elem_ty = pergyra_type_to_llvm(ctx, inner);
+    if (ctx->has_error || elem_ty == NULL)
+        return NULL;
     LLVMTypeRef fields[] = {
         LLVMPointerType(elem_ty, 0), ctx->type_i64, ctx->type_i64,
         ctx->type_i64, ctx->type_i64
@@ -309,15 +329,19 @@ llvm_queue_struct_type(LLVMGenCtx *ctx, const char *inner)
 LLVMTypeRef
 llvm_hashmap_struct_type(LLVMGenCtx *ctx, const char *value)
 {
+    LLVMTypeRef value_ty;
+
     if (value == NULL || value[0] == '\0') {
         llvm_set_error_with_hints(ctx,
             PGY_CODE_LLVM_TYPE_UNSUPPORTED,
             PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
             PGY_FIX_ANNOTATE_CONCRETE_TYPE,
             "HashMap<K, V>: concrete value type metadata is required");
-        return ctx->type_i32;
+        return NULL;
     }
-    LLVMTypeRef value_ty = pergyra_type_to_llvm(ctx, value);
+    value_ty = pergyra_type_to_llvm(ctx, value);
+    if (ctx->has_error || value_ty == NULL)
+        return NULL;
     LLVMTypeRef fields[] = {
         LLVMPointerType(ctx->type_i8ptr, 0),
         LLVMPointerType(value_ty, 0),

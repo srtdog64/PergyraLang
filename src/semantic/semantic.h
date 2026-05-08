@@ -31,6 +31,10 @@ typedef struct SemanticResult
     /* Compatibility metric name kept for existing smoke/stat parsers. New
      * code should consume type_resolution_metadata_dead_ends. */
     size_t       type_resolution_metadata_materializer_fallbacks;
+    size_t       type_resolution_dag_generic_contract_evidence_count;
+    size_t       type_resolution_dag_ability_consumer_evidence_count;
+    /* Compatibility metric names kept for existing smoke/stat parsers. New
+     * code should consume the type_resolution_dag_*_evidence_count fields. */
     size_t       type_resolution_stage_compat_generic_contract_count;
     size_t       type_resolution_stage_compat_ability_consumer_count;
     size_t       type_resolution_dag_ability_evidence_count;

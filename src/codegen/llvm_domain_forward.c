@@ -70,8 +70,12 @@ llvm_domain_forward_required_param_type(LLVMGenCtx *ctx,
 {
     if (ctx == NULL)
         return NULL;
-    if (param != NULL && param->type != NULL)
-        return ast_type_to_llvm(ctx, param->type);
+    if (param != NULL && param->type != NULL) {
+        LLVMTypeRef type = ast_type_to_llvm(ctx, param->type);
+        if (ctx->has_error || type == NULL)
+            return NULL;
+        return type;
+    }
 
     llvm_set_error_at_with_hints(ctx, owner,
         PGY_CODE_LLVM_TYPE_UNSUPPORTED,
@@ -80,7 +84,7 @@ llvm_domain_forward_required_param_type(LLVMGenCtx *ctx,
         "LLVM %s '%s' parameter requires explicit type metadata; silent i32 fallback is not allowed",
         owner_kind != NULL ? owner_kind : "domain forward declaration",
         owner_name != NULL ? owner_name : "<anonymous>");
-    return ctx->type_i32;
+    return NULL;
 }
 
 void
@@ -141,8 +145,11 @@ llvm_emit_domain_method_forward_decls(LLVMGenCtx *ctx,
         ret = ctx->type_void;
         return_type =
             llvm_domain_method_return_type_metadata_first(method_meta, method);
-        if (return_type != NULL)
+        if (return_type != NULL) {
             ret = ast_type_to_llvm(ctx, return_type);
+            if (ctx->has_error || ret == NULL)
+                return;
+        }
 
         for (size_t k = 0; k < pc; k++) {
             FuncParam *p =
@@ -164,11 +171,15 @@ llvm_emit_domain_method_forward_decls(LLVMGenCtx *ctx,
             if (p != NULL && p->type != NULL && p->type->type == AST_TYPE)
                 type_name = p->type->data.type.name;
             param_cls = type_name != NULL ? llvm_lookup_class(ctx, type_name) : NULL;
-            if (param_cls != NULL && param_cls->is_pointer_self_host)
+            if (param_cls != NULL && param_cls->is_pointer_self_host) {
                 ptypes[pidx++] = LLVMPointerType(param_cls->struct_type, 0);
-            else
-                ptypes[pidx++] = llvm_domain_forward_required_param_type(
+            } else {
+                LLVMTypeRef pt = llvm_domain_forward_required_param_type(
                     ctx, method, p, "domain method", mname);
+                if (ctx->has_error || pt == NULL)
+                    return;
+                ptypes[pidx++] = pt;
+            }
         }
 
         ft = LLVMFunctionType(ret, ptypes, (unsigned)(user_pc + 1), 0);
@@ -218,26 +229,40 @@ llvm_emit_domain_ability_vtables(LLVMGenCtx *ctx,
                 continue;
             }
 
-            ret = ctx->type_void;
-            if (method->data.func_decl.return_type != NULL)
-                ret = ast_type_to_llvm(ctx, method->data.func_decl.return_type);
+            {
+                const char *mname =
+                    llvm_domain_method_name_metadata_first(NULL, method);
+                ASTNode *return_type =
+                    llvm_domain_method_return_type_metadata_first(NULL, method);
 
-            pc = method->data.func_decl.param_count;
-            for (size_t k = 0; k < pc; k++) {
-                FuncParam *p = method->data.func_decl.params[k];
-                if (!llvm_param_is_implicit_self_local(p))
-                    user_pc++;
-            }
-            ptypes = pgy_arena_calloc(&ctx->scratch,
-                (user_pc + 1) * sizeof(LLVMTypeRef));
-            ptypes[0] = ctx->type_i8ptr;
-            for (size_t k = 0; k < pc; k++) {
-                FuncParam *p = method->data.func_decl.params[k];
-                if (llvm_param_is_implicit_self_local(p))
-                    continue;
-                ptypes[pidx++] = llvm_domain_forward_required_param_type(
-                    ctx, method, p, "ability method",
-                    method->data.func_decl.name);
+                ret = ctx->type_void;
+                if (return_type != NULL) {
+                    ret = ast_type_to_llvm(ctx, return_type);
+                    if (ctx->has_error || ret == NULL)
+                        return;
+                }
+
+                pc = llvm_domain_method_param_count_metadata_first(NULL, method);
+                for (size_t k = 0; k < pc; k++) {
+                    FuncParam *p =
+                        llvm_domain_method_param_metadata_first(NULL, method, k);
+                    if (!llvm_param_is_implicit_self_local(p))
+                        user_pc++;
+                }
+                ptypes = pgy_arena_calloc(&ctx->scratch,
+                    (user_pc + 1) * sizeof(LLVMTypeRef));
+                ptypes[0] = ctx->type_i8ptr;
+                for (size_t k = 0; k < pc; k++) {
+                    FuncParam *p =
+                        llvm_domain_method_param_metadata_first(NULL, method, k);
+                    if (llvm_param_is_implicit_self_local(p))
+                        continue;
+                    LLVMTypeRef pt = llvm_domain_forward_required_param_type(
+                        ctx, method, p, "ability method", mname);
+                    if (ctx->has_error || pt == NULL)
+                        return;
+                    ptypes[pidx++] = pt;
+                }
             }
 
             fn_type = LLVMFunctionType(ret, ptypes, (unsigned)(user_pc + 1), 0);
@@ -253,11 +278,77 @@ llvm_emit_domain_ability_vtables(LLVMGenCtx *ctx,
                 ASTNode *method = stmt->data.ability_decl.methods[j];
                 if (method != NULL && method->type == AST_FUNC_DECL)
                     llvm_class_add_field(entry,
-                        method->data.func_decl.name,
+                        llvm_domain_method_name_metadata_first(NULL, method),
                         LLVMStructGetTypeAtIndex(vt_struct, (unsigned)j),
                         (int)j);
             }
         }
+    }
+}
+
+static void
+llvm_emit_role_method_forward_decls_metadata_first(LLVMGenCtx *ctx,
+                                                   const char *role_name,
+                                                   const LLVMHostedMethodView *methods)
+{
+    if (ctx == NULL || role_name == NULL || methods == NULL)
+        return;
+
+    for (size_t j = 0; j < methods->count; j++) {
+        const MIRDeclMethod *method_meta =
+            llvm_hosted_method_view_metadata(methods, j);
+        ASTNode *method = llvm_hosted_method_view_source_ast(methods, j);
+        const char *mname =
+            llvm_domain_method_name_metadata_first(method_meta, method);
+        size_t pc =
+            llvm_domain_method_param_count_metadata_first(method_meta, method);
+        ASTNode *return_type =
+            llvm_domain_method_return_type_metadata_first(method_meta, method);
+        LLVMTypeRef ret = ctx->type_void;
+        size_t user_pc = 0;
+        LLVMTypeRef *ptypes;
+        size_t pidx = 1;
+        LLVMTypeRef ft;
+        char fname[256];
+        LLVMValueRef fn;
+
+        if (method_meta == NULL && (method == NULL || method->type != AST_FUNC_DECL))
+            continue;
+        if (mname == NULL)
+            continue;
+        if (return_type != NULL) {
+            ret = ast_type_to_llvm(ctx, return_type);
+            if (ctx->has_error || ret == NULL)
+                return;
+        }
+
+        for (size_t k = 0; k < pc; k++) {
+            FuncParam *p =
+                llvm_domain_method_param_metadata_first(method_meta, method, k);
+            if (!llvm_param_is_implicit_self_local(p))
+                user_pc++;
+        }
+
+        ptypes = pgy_arena_calloc(&ctx->scratch,
+            (user_pc + 1) * sizeof(LLVMTypeRef));
+        ptypes[0] = ctx->type_i8ptr;
+        for (size_t k = 0; k < pc; k++) {
+            FuncParam *p =
+                llvm_domain_method_param_metadata_first(method_meta, method, k);
+            LLVMTypeRef pt;
+            if (llvm_param_is_implicit_self_local(p))
+                continue;
+            pt = llvm_domain_forward_required_param_type(
+                ctx, method, p, "role method", mname);
+            if (ctx->has_error || pt == NULL)
+                return;
+            ptypes[pidx++] = pt;
+        }
+
+        ft = LLVMFunctionType(ret, ptypes, (unsigned)(user_pc + 1), 0);
+        snprintf(fname, sizeof(fname), "%s_%s", role_name, mname);
+        fn = LLVMAddFunction(ctx->module, fname, ft);
+        llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ret);
     }
 }
 
@@ -277,56 +368,13 @@ llvm_emit_domain_role_forward_decls(LLVMGenCtx *ctx,
             continue;
 
         role_name = stmt->data.role_decl.name;
-        for (size_t ii = 0; ii < stmt->data.role_decl.impl_count; ii++) {
-            ASTNode *impl = stmt->data.role_decl.impl_abilities[ii];
-            if (impl == NULL || impl->type != AST_IMPL_ABILITY)
-                continue;
-
-            for (size_t j = 0; j < impl->data.impl_ability.method_count; j++) {
-                ASTNode *method = impl->data.impl_ability.methods[j];
-                const char *mname;
-                size_t pc;
-                LLVMTypeRef ret;
-                size_t user_pc = 0;
-                LLVMTypeRef *ptypes;
-                size_t pidx = 1;
-                LLVMTypeRef ft;
-                char fname[256];
-                LLVMValueRef fn;
-
-                if (method == NULL || method->type != AST_FUNC_DECL)
-                    continue;
-
-                mname = method->data.func_decl.name;
-                if (mname == NULL)
-                    continue;
-                pc = method->data.func_decl.param_count;
-                ret = ctx->type_void;
-                if (method->data.func_decl.return_type != NULL)
-                    ret = ast_type_to_llvm(ctx, method->data.func_decl.return_type);
-
-                for (size_t k = 0; k < pc; k++) {
-                    FuncParam *p = method->data.func_decl.params[k];
-                    if (!llvm_param_is_implicit_self_local(p))
-                        user_pc++;
-                }
-
-                ptypes = pgy_arena_calloc(&ctx->scratch,
-                    (user_pc + 1) * sizeof(LLVMTypeRef));
-                ptypes[0] = ctx->type_i8ptr;
-                for (size_t k = 0; k < pc; k++) {
-                    FuncParam *p = method->data.func_decl.params[k];
-                    if (llvm_param_is_implicit_self_local(p))
-                        continue;
-                    ptypes[pidx++] = llvm_domain_forward_required_param_type(
-                        ctx, method, p, "role method", mname);
-                }
-
-                ft = LLVMFunctionType(ret, ptypes, (unsigned)(user_pc + 1), 0);
-                snprintf(fname, sizeof(fname), "%s_%s", role_name, mname);
-                fn = LLVMAddFunction(ctx->module, fname, ft);
-                llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ret);
-            }
+        {
+            LLVMHostedMethodView method_view =
+                llvm_hosted_method_view_from_decl(ctx, role_name, stmt);
+            llvm_emit_role_method_forward_decls_metadata_first(
+                ctx, role_name, &method_view);
+            if (ctx->has_error)
+                return;
         }
 
         {
@@ -357,7 +405,7 @@ llvm_emit_domain_role_forward_decls(LLVMGenCtx *ctx,
                 if (suffix == NULL || method == NULL)
                     continue;
                 if (method->type != AST_FUNC_DECL
-                    || method->data.func_decl.name == NULL) {
+                    || llvm_domain_method_name_metadata_first(NULL, method) == NULL) {
                     continue;
                 }
 
@@ -365,8 +413,11 @@ llvm_emit_domain_role_forward_decls(LLVMGenCtx *ctx,
                 if (llvm_lookup_function(ctx, opname) != NULL)
                     continue;
 
-                for (size_t pj = 0; pj < method->data.func_decl.param_count; pj++) {
-                    FuncParam *p = method->data.func_decl.params[pj];
+                for (size_t pj = 0;
+                     pj < llvm_domain_method_param_count_metadata_first(NULL, method);
+                     pj++) {
+                    FuncParam *p =
+                        llvm_domain_method_param_metadata_first(NULL, method, pj);
                     if (!llvm_param_is_implicit_self_local(p)) {
                         rhs_param = p;
                         rhs_param_count++;
@@ -376,11 +427,21 @@ llvm_emit_domain_role_forward_decls(LLVMGenCtx *ctx,
                     continue;
 
                 lhs_type = ast_type_to_llvm(ctx, stmt->data.role_decl.for_type);
+                if (ctx->has_error || lhs_type == NULL)
+                    return;
                 rhs_type = llvm_domain_forward_required_param_type(
                     ctx, method, rhs_param, "role operator", opname);
-                ret = method->data.func_decl.return_type != NULL
-                    ? ast_type_to_llvm(ctx, method->data.func_decl.return_type)
-                    : ctx->type_void;
+                if (ctx->has_error || rhs_type == NULL)
+                    return;
+                {
+                    ASTNode *return_type =
+                        llvm_domain_method_return_type_metadata_first(NULL, method);
+                    ret = return_type != NULL
+                        ? ast_type_to_llvm(ctx, return_type)
+                        : ctx->type_void;
+                }
+                if (ctx->has_error || ret == NULL)
+                    return;
                 params[0] = lhs_type;
                 params[1] = rhs_type;
                 ft = LLVMFunctionType(ret, params, 2, 0);

@@ -64,10 +64,20 @@ path_join_dup(const char *dir, const char *path)
 char *
 path_replace_extension(const char *path, const char *new_ext)
 {
-    const char *dot = strrchr(path, '.');
-    const char *last_sep = strrchr(path, '/');
-    const char *last_bsep = strrchr(path, '\\');
+    const char *dot;
+    const char *last_sep;
+    const char *last_bsep;
     size_t base_len;
+    size_t ext_len;
+    size_t new_len;
+    char *result;
+
+    if (path == NULL || new_ext == NULL)
+        return NULL;
+
+    dot = strrchr(path, '.');
+    last_sep = strrchr(path, '/');
+    last_bsep = strrchr(path, '\\');
 
     if (last_bsep != NULL && (last_sep == NULL || last_bsep > last_sep))
         last_sep = last_bsep;
@@ -75,13 +85,16 @@ path_replace_extension(const char *path, const char *new_ext)
         dot = NULL;
 
     base_len = dot ? (size_t)(dot - path) : strlen(path);
-    size_t new_len = base_len + strlen(new_ext) + 1;
-    char *result = malloc(new_len);
+    ext_len = strlen(new_ext);
+    if (ext_len > ((size_t)-1) - base_len - 1)
+        return NULL;
+    new_len = base_len + ext_len + 1;
+    result = malloc(new_len);
     if (result == NULL)
         return NULL;
 
     memcpy(result, path, base_len);
-    memcpy(result + base_len, new_ext, strlen(new_ext) + 1);
+    memcpy(result + base_len, new_ext, ext_len + 1);
     return result;
 }
 

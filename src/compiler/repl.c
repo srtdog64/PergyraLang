@@ -11,6 +11,8 @@
 #include <string.h>
 #include <time.h>
 
+#include "../common/string_compat.h"
+
 #ifdef _WIN32
 #include <process.h>
 #define getpid _getpid
@@ -99,7 +101,7 @@ repl_run(void)
                 size_t l = strlen(line);
                 if (l > 0 && line[l - 1] == '\n')
                     line[--l] = '\0';
-                strncat(block, line, sizeof(block) - strlen(block) - 2);
+                pergyra_str_append(block, sizeof(block) - 1, line);
                 size_t block_len = strlen(block);
                 if (block_len + 2 < sizeof(block)) {
                     block[block_len] = '\n';
@@ -111,7 +113,7 @@ repl_run(void)
                 }
             }
 
-            strncat(decls, block, sizeof(decls) - strlen(decls) - 1);
+            pergyra_str_append(decls, sizeof(decls), block);
             printf("  (defined)\n");
             continue;
         }

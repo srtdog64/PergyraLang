@@ -250,6 +250,8 @@ llvm_select_emit_bound_receive_case(const LLVMSelectCaseInfo *info,
 {
     char fn_name[128];
     LLVMTypeRef val_ty = pergyra_type_to_llvm(ctx, info->inner);
+    if (ctx->has_error || val_ty == NULL)
+        return false;
     LLVMValueRef tmp = llvm_create_entry_alloca(ctx, val_ty, llvm_tmp_name(ctx));
     snprintf(fn_name, sizeof(fn_name), "pgy_channel_try_recv_%s", info->inner);
     LLVMFuncEntry *try_fn = llvm_select_required_runtime_function(

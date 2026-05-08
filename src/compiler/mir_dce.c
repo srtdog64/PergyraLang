@@ -125,10 +125,7 @@ mir_stmt_is_semantic_carrier(const MIRInstruction *inst)
     if (inst == NULL || inst->kind != MIR_INST_STMT || inst->name == NULL)
         return false;
 
-    if (strncmp(inst->name, "Intent", 6) == 0)
-        return true;
-
-    return false;
+    return mir_instruction_is_intent_semantic_carrier(inst);
 }
 
 static bool
@@ -263,6 +260,8 @@ mir_run_dce_on_routine(MIRRoutine *routine, bool *changed_out)
 
     for (size_t block_id = 0; block_id < routine->block_count; block_id++) {
         MIRBasicBlock *block = &routine->blocks[block_id];
+        if (block->instruction_count > 0 && block->instructions == NULL)
+            return false;
         for (size_t inst_id = block->instruction_count; inst_id-- > 0;) {
             MIRInstruction *inst = &block->instructions[inst_id];
             if (mir_instruction_is_dead_value(routine, inst)

@@ -896,7 +896,7 @@ elif grep -Fq "compiled without LLVM backend support" "$LLVM_CHANNEL_ERR"; then
     echo "[diag-json] llvm-channel-runtime-missing: SKIP (compiler built without LLVM backend support)"
 else
     check_json "llvm-channel-runtime-missing" "$LLVM_CHANNEL_ERR" \
-      'isinstance(data, list) and any(d.get("stage") == "llvm_codegen" and d.get("code") == "PGY_LLVM_TYPE_UNSUPPORTED" and d.get("cause_ir") == "llvm:type:unsupported_or_unknown" and d.get("fix_source") == "inspect-mir-inventory" and "pgy_channel_try_recv_Bool" in d.get("message", "") for d in data)'
+      'isinstance(data, list) and any(d.get("stage") == "llvm_codegen" and d.get("code") == "PGY_LLVM_TYPE_UNSUPPORTED" and d.get("cause_ir") == "llvm:type:unsupported_or_unknown" and d.get("fix_source") == "inspect-mir-inventory" and ("pgy_channel_init_Bool" in d.get("message", "") or "pgy_channel_try_recv_Bool" in d.get("message", "")) for d in data)'
 fi
 
 # --- case 3: success path emits [] ---

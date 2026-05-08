@@ -22,16 +22,20 @@ transpiler_mir_seed_block_phi_names(const MIRBasicBlock *block,
 }
 
 static ASTNode *
-transpiler_mir_find_stmt_for_inst(const ASTNode *func_decl,
-                                  const MIRInstruction *inst)
+transpiler_mir_find_stmt_for_inst(const MIRInstruction *inst)
 {
-    ASTNode *stmt = inst != NULL ? inst->ast : NULL;
-    if (stmt == NULL && inst != NULL
-        && inst->kind == MIR_INST_DEF
-        && inst->arg0 != NULL) {
-        stmt = transpiler_find_let_decl_by_name(func_decl, inst->arg0);
-    }
-    return stmt;
+    return inst != NULL ? inst->ast : NULL;
+}
+
+static bool
+transpiler_mir_inst_is_cfg_container(const MIRInstruction *inst,
+                                     const ASTNode *stmt)
+{
+    return inst != NULL
+        && stmt != NULL
+        && inst->has_source_location
+        && inst->source_ast_type == stmt->type
+        && transpiler_mir_stmt_is_cfg_container(stmt);
 }
 
 static bool
@@ -42,6 +46,8 @@ transpiler_mir_def_uses_source_statement_emit(const MIRInstruction *inst,
     return inst != NULL
         && inst->kind == MIR_INST_DEF
         && inst->requires_source_statement_emit
+        && inst->has_source_location
+        && inst->source_ast_type == expected_type
         && stmt != NULL
         && stmt->type == expected_type;
 }

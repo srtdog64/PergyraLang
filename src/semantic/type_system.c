@@ -353,13 +353,21 @@ type_create_slot(Type *inner_type, bool is_secure)
 Type *
 type_create_slot_access(Type *inner_type, bool is_secure, SlotAccessMode access_mode)
 {
-    Type *t = calloc(1, sizeof(Type));
+    Type *t;
+    const char *prefix = "Slot<";
+    size_t prefix_len;
+    size_t inner_len;
+    size_t name_len;
+
+    if (inner_type == NULL || inner_type->name == NULL)
+        return NULL;
+
+    t = calloc(1, sizeof(Type));
     if (t == NULL)
         return NULL;
 
     t->kind = TYPE_KIND_SLOT;
 
-    const char *prefix = "Slot<";
     if (access_mode == SLOT_ACCESS_READ_VIEW)
         prefix = "ReadView<";
     else if (access_mode == SLOT_ACCESS_WRITE_VIEW)
@@ -368,7 +376,14 @@ type_create_slot_access(Type *inner_type, bool is_secure, SlotAccessMode access_
         prefix = "MoveToken<";
     else if (is_secure)
         prefix = "SecureSlot<";
-    size_t name_len = strlen(prefix) + strlen(inner_type->name) + 2;
+
+    prefix_len = strlen(prefix);
+    inner_len = strlen(inner_type->name);
+    if (inner_len > ((size_t)-1) - prefix_len - 2) {
+        free(t);
+        return NULL;
+    }
+    name_len = prefix_len + inner_len + 2;
     t->name = malloc(name_len);
     if (t->name == NULL) {
         free(t);
@@ -376,14 +391,10 @@ type_create_slot_access(Type *inner_type, bool is_secure, SlotAccessMode access_
     }
     {
         size_t offset = 0;
-        size_t prefix_len = strlen(prefix);
         memcpy(t->name + offset, prefix, prefix_len);
         offset += prefix_len;
-        {
-            size_t inner_len = strlen(inner_type->name);
-            memcpy(t->name + offset, inner_type->name, inner_len);
-            offset += inner_len;
-        }
+        memcpy(t->name + offset, inner_type->name, inner_len);
+        offset += inner_len;
         t->name[offset++] = '>';
         t->name[offset] = '\0';
     }

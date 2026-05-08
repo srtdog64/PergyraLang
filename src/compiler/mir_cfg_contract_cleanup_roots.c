@@ -26,6 +26,15 @@ mir_validate_cfg_contract_cleanup_roots(const MIRRoutine *routine,
             }
             return false;
         }
+        if (!cleanup->is_reachable) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR routine '%s' cleanup block %zu is not reachable",
+                    routine->name != NULL ? routine->name : "(anonymous)",
+                    routine->cleanup_block);
+            }
+            return false;
+        }
     }
 
     if (routine->has_rollback_block) {
@@ -47,6 +56,15 @@ mir_validate_cfg_contract_cleanup_roots(const MIRRoutine *routine,
             }
             return false;
         }
+        if (!rollback->is_reachable) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR routine '%s' rollback block %zu is not reachable",
+                    routine->name != NULL ? routine->name : "(anonymous)",
+                    routine->rollback_block);
+            }
+            return false;
+        }
     }
 
     if (routine->has_invalidation_block) {
@@ -63,6 +81,15 @@ mir_validate_cfg_contract_cleanup_roots(const MIRRoutine *routine,
             if (error_message != NULL) {
                 *error_message = mir_strdup_fmt(
                     "MIR routine '%s' invalidation block %zu is not marked as cleanup",
+                    routine->name != NULL ? routine->name : "(anonymous)",
+                    routine->invalidation_block);
+            }
+            return false;
+        }
+        if (!invalidation->is_reachable) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR routine '%s' invalidation block %zu is not reachable",
                     routine->name != NULL ? routine->name : "(anonymous)",
                     routine->invalidation_block);
             }

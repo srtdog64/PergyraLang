@@ -13,9 +13,6 @@
 
 #include <string.h>
 
-const char *
-intent_involves_type_name(ASTNode *involves);
-
 static const char *
 intent_on_call_receiver_alias(ASTNode *expr, const char **method_name_out)
 {

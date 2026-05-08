@@ -41,6 +41,23 @@ air_set_error(char **error_message, const char *fmt, ...)
     va_end(args);
 }
 
+bool
+air_next_capacity(size_t *capacity, size_t initial, size_t elem_size)
+{
+    if (capacity == NULL || initial == 0 || elem_size == 0)
+        return false;
+
+    size_t current = *capacity;
+    size_t next_capacity = current == 0 ? initial : current * 2;
+    if (current != 0 && next_capacity < current)
+        return false;
+    if (next_capacity > SIZE_MAX / elem_size)
+        return false;
+
+    *capacity = next_capacity;
+    return true;
+}
+
 char *
 air_strdup_owned(const char *text)
 {
@@ -68,11 +85,8 @@ air_ensure_owned_name_capacity(AIRProgram *air)
     if (air->owned_name_count < air->owned_name_capacity)
         return true;
 
-    new_capacity = air->owned_name_capacity == 0
-        ? 16
-        : air->owned_name_capacity * 2;
-    if (new_capacity < air->owned_name_capacity
-        || new_capacity > SIZE_MAX / sizeof(char *)) {
+    new_capacity = air->owned_name_capacity;
+    if (!air_next_capacity(&new_capacity, 16, sizeof(char *))) {
         return false;
     }
 

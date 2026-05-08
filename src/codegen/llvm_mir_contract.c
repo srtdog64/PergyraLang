@@ -25,6 +25,13 @@ llvm_mir_validate_cleanup_contract(const MIRRoutine *routine,
         const MIRBasicBlock *block = &routine->blocks[i];
         const char *cleanup_fact;
 
+        if (block->instruction_count > 0 && block->instructions == NULL) {
+            llvm_set_mir_topology_invalid(ctx,
+                "LLVM MIR contract invalid for %s: block %zu has instruction count without instruction inventory",
+                routine_name,
+                i);
+            return false;
+        }
         if (block->has_cleanup_succ
             && block->cleanup_succ >= routine->block_count) {
             llvm_set_mir_topology_invalid(ctx,
@@ -71,7 +78,7 @@ llvm_mir_validate_cleanup_contract(const MIRRoutine *routine,
         }
 
         cleanup_fact = mir_cleanup_edge_fact_name_for_block(routine, i);
-        if (!mir_block_has_cleanup_edge_fact(block, cleanup_fact)) {
+        if (!mir_block_has_expected_cleanup_edge_fact(routine, i)) {
             llvm_set_mir_topology_invalid(ctx,
                 "LLVM MIR contract invalid for %s: block %zu missing %s fact",
                 routine_name,

@@ -153,6 +153,8 @@ llvm_emit_for_loop(ASTNode *node, LLVMGenCtx *ctx)
             LLVMVarEntry *list_var = llvm_scope_lookup(ctx, iter_name);
             if (list_inner != NULL && list_var != NULL) {
                 LLVMTypeRef elem_ty = pergyra_type_to_llvm(ctx, list_inner);
+                if (ctx->has_error || elem_ty == NULL)
+                    return;
                 LLVMValueRef idx_alloca;
                 LLVMValueRef fn = ctx->current_function;
                 LLVMBasicBlockRef cond_bb;

@@ -1,7 +1,25 @@
 #include "mir_liveness_dce.h"
 
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+
+static bool
+mir_liveness_next_capacity(size_t *capacity, size_t initial, size_t elem_size)
+{
+    if (capacity == NULL || initial == 0 || elem_size == 0)
+        return false;
+
+    size_t current = *capacity;
+    size_t next_capacity = current == 0 ? initial : current * 2;
+    if (current != 0 && next_capacity < current)
+        return false;
+    if (next_capacity > SIZE_MAX / elem_size)
+        return false;
+
+    *capacity = next_capacity;
+    return true;
+}
 
 static bool
 mir_liveness_append_name(const char ***names,
@@ -9,13 +27,14 @@ mir_liveness_append_name(const char ***names,
                          size_t *capacity,
                          const char *name)
 {
-    size_t next_capacity;
     const char **grown;
 
     if (names == NULL || count == NULL || capacity == NULL || name == NULL)
         return false;
     if (*count == *capacity) {
-        next_capacity = *capacity == 0 ? 8 : *capacity * 2;
+        size_t next_capacity = *capacity;
+        if (!mir_liveness_next_capacity(&next_capacity, 8, sizeof(const char *)))
+            return false;
         grown = realloc((void *)*names, next_capacity * sizeof(const char *));
         if (grown == NULL)
             return false;
@@ -70,6 +89,8 @@ mir_collect_block_defs_uses(MIRRoutine *routine)
 
     for (size_t i = 0; i < routine->block_count; i++) {
         MIRBasicBlock *block = &routine->blocks[i];
+        if (block->instruction_count > 0 && block->instructions == NULL)
+            return false;
         for (size_t j = 0; j < block->instruction_count; j++) {
             MIRInstruction *inst = &block->instructions[j];
             if (inst->kind == MIR_INST_PHI) {
@@ -134,6 +155,9 @@ mir_collect_successor_live_in(const MIRRoutine *routine,
         size_t succ = succs[i];
         if (succ >= routine->block_count)
             continue;
+        if (routine->blocks[succ].instruction_count > 0
+            && routine->blocks[succ].instructions == NULL)
+            return false;
         for (size_t j = 0; j < routine->blocks[succ].live_in_name_count; j++) {
             if (!mir_append_block_set(names,
                                       count,

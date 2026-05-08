@@ -1,13 +1,38 @@
 #include "hir_lower_cfg_internal.h"
 
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+
+static bool
+hir_lower_cfg_next_capacity(size_t *capacity, size_t initial, size_t elem_size)
+{
+    if (capacity == NULL || initial == 0 || elem_size == 0)
+        return false;
+
+    size_t current = *capacity;
+    size_t next_capacity = current == 0 ? initial : current * 2;
+    if (current != 0 && next_capacity < current)
+        return false;
+    if (next_capacity > SIZE_MAX / elem_size)
+        return false;
+
+    *capacity = next_capacity;
+    return true;
+}
 
 bool
 hir_cfg_append_stmt(ASTNode ***items, size_t *count, size_t *capacity, ASTNode *node)
 {
+    if (items == NULL || count == NULL || capacity == NULL)
+        return false;
+    if (node == NULL)
+        return true;
+
     if (*count == *capacity) {
-        size_t next_capacity = *capacity == 0 ? 8 : *capacity * 2;
+        size_t next_capacity = *capacity;
+        if (!hir_lower_cfg_next_capacity(&next_capacity, 8, sizeof(ASTNode *)))
+            return false;
         ASTNode **grown = realloc(*items, next_capacity * sizeof(ASTNode *));
         if (grown == NULL)
             return false;
@@ -35,7 +60,9 @@ ssize_t
 hir_cfg_new_block(HIRBasicBlock **blocks, size_t *count, size_t *capacity)
 {
     if (*count == *capacity) {
-        size_t next_capacity = *capacity == 0 ? 8 : *capacity * 2;
+        size_t next_capacity = *capacity;
+        if (!hir_lower_cfg_next_capacity(&next_capacity, 8, sizeof(HIRBasicBlock)))
+            return -1;
         HIRBasicBlock *grown = realloc(*blocks, next_capacity * sizeof(HIRBasicBlock));
         if (grown == NULL)
             return -1;

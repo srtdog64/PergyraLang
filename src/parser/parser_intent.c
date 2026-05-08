@@ -1,5 +1,13 @@
 #include "parser_internal.h"
 
+#include <stdlib.h>
+
+static int
+parser_intent_name_table_compare(const void *key, const void *entry)
+{
+    return strcmp((const char *)key, *(const char * const *)entry);
+}
+
 bool
 parser_intent_match_keyword(Parser *parser, const char *keyword)
 {
@@ -162,25 +170,50 @@ static bool
 intent_header_value_type_name(const char *type_name)
 {
     static const char *value_types[] = {
-        "Int", "Long", "Float", "Double", "Bool", "String", "Void",
-        "Qubit", "QubitSlot", "Token",
-        "Array", "Slice", "List", "Queue", "HashMap", "Set",
-        "Box", "Rc", "Weak", "Channel", "Future", "RemoteFuture",
-        "Result", "Option",
-        "Slot", "SecureSlot", "DeviceSlot",
-        "Allocator", "Timer", "Duration", "Instant",
-        "Money", "Version", "IdempotencyKey"
+        "Allocator",
+        "Array",
+        "Bool",
+        "Box",
+        "Channel",
+        "DeviceSlot",
+        "Double",
+        "Duration",
+        "Float",
+        "Future",
+        "HashMap",
+        "IdempotencyKey",
+        "Instant",
+        "Int",
+        "List",
+        "Long",
+        "Money",
+        "Option",
+        "Qubit",
+        "QubitSlot",
+        "Queue",
+        "Rc",
+        "RemoteFuture",
+        "Result",
+        "SecureSlot",
+        "Set",
+        "Slice",
+        "Slot",
+        "String",
+        "Timer",
+        "Token",
+        "Version",
+        "Void",
+        "Weak",
     };
 
     if (type_name == NULL)
         return false;
 
-    for (size_t i = 0; i < sizeof(value_types) / sizeof(value_types[0]); i++) {
-        if (strcmp(type_name, value_types[i]) == 0)
-            return true;
-    }
-
-    return false;
+    return bsearch(type_name,
+                   value_types,
+                   sizeof(value_types) / sizeof(value_types[0]),
+                   sizeof(value_types[0]),
+                   parser_intent_name_table_compare) != NULL;
 }
 
 static bool

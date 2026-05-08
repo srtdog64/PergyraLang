@@ -96,7 +96,6 @@ transpiler_materialize_pending_inst_uses(CodeBuf *buf,
         const char *versioned_use = inst->uses[i];
         const char *exit_versioned;
         TranspilerMirPendingBinding binding;
-        ASTNode *let_decl = NULL;
         ASTNode *initializer = NULL;
         const char *existing_type;
         ASTNode *binding_type_ast;
@@ -149,14 +148,8 @@ transpiler_materialize_pending_inst_uses(CodeBuf *buf,
             initializer = binding.initializer;
         }
         if (initializer == NULL) {
-            let_decl = transpiler_find_let_decl_by_name(func_decl, base);
-            if (let_decl == NULL || let_decl->type != AST_LET_DECL)
-                continue;
-            initializer = let_decl->data.let_decl.initializer;
-            binding.type_annotation = let_decl->data.let_decl.type;
-        }
-        if (initializer == NULL)
             continue;
+        }
         if (initializer->type == AST_CALL
             && initializer->data.call.callee != NULL
             && initializer->data.call.callee->type == AST_IDENTIFIER

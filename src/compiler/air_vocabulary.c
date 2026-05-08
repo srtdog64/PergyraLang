@@ -76,6 +76,7 @@ air_evidence_kind_name(AIREvidenceKind kind)
     case AIR_EVIDENCE_RIR_EFFECT_PROPAGATION: return "rir_effect_propagation";
     case AIR_EVIDENCE_RIR_RELATION_PROPAGATION: return "rir_relation_propagation";
     case AIR_EVIDENCE_OBSERVABILITY_SCHEMA: return "observability_schema";
+    case AIR_EVIDENCE_RUNTIME_FRONTIER_POLICY: return "runtime_frontier_policy";
     }
     return "invalid";
 }

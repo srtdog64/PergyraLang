@@ -20,20 +20,31 @@ ast_type_to_llvm(LLVMGenCtx *ctx, ASTNode *type_node)
         LLVMTypeRef ret_type = ctx->type_void;
         LLVMTypeRef fn_type;
 
-        if (type_node->data.event_handler_type.return_type != NULL)
+        if (type_node->data.event_handler_type.return_type != NULL) {
             ret_type = ast_type_to_llvm(ctx,
                 type_node->data.event_handler_type.return_type);
+            if (ctx->has_error || ret_type == NULL)
+                return NULL;
+        }
 
         if (param_count > 0) {
             /* Param-type buffer is consumed by LLVMFunctionType (which
              * copies contents) and never retained by the caller. */
             param_types = pgy_arena_calloc(&ctx->scratch,
                 param_count * sizeof(LLVMTypeRef));
-            if (param_types == NULL)
-                return LLVMPointerType(LLVMFunctionType(ret_type, NULL, 0, 0), 0);
+            if (param_types == NULL) {
+                llvm_set_error_at_with_hints(ctx, type_node,
+                    PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_FIX_INSPECT_MIR_INVENTORY,
+                    "LLVM event-handler type parameter allocation failed");
+                return NULL;
+            }
             for (size_t i = 0; i < param_count; i++) {
                 param_types[i] = ast_type_to_llvm(ctx,
                     type_node->data.event_handler_type.param_types[i]);
+                if (ctx->has_error || param_types[i] == NULL)
+                    return NULL;
             }
         }
 
@@ -50,11 +61,20 @@ ast_type_to_llvm(LLVMGenCtx *ctx, ASTNode *type_node)
         /* Field-type buffer is consumed by LLVMStructTypeInContext (copies). */
         LLVMTypeRef *fields = pgy_arena_calloc(&ctx->scratch,
             n * sizeof(LLVMTypeRef));
-        if (fields == NULL)
-            return ctx->type_i32;
-        for (size_t i = 0; i < n; i++)
+        if (fields == NULL) {
+            llvm_set_error_at_with_hints(ctx, type_node,
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                PGY_FIX_INSPECT_MIR_INVENTORY,
+                "LLVM tuple type field allocation failed");
+            return NULL;
+        }
+        for (size_t i = 0; i < n; i++) {
             fields[i] = ast_type_to_llvm(ctx,
                 type_node->data.type.tuple_elements[i]);
+            if (ctx->has_error || fields[i] == NULL)
+                return NULL;
+        }
         LLVMTypeRef result = LLVMStructTypeInContext(ctx->context, fields,
             (unsigned)n, 0);
         /* fields is ctx->scratch-owned. */
@@ -69,7 +89,7 @@ ast_type_to_llvm(LLVMGenCtx *ctx, ASTNode *type_node)
                 PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
                 PGY_FIX_ANNOTATE_CONCRETE_TYPE,
                 "LLVM type rendering requires concrete type metadata; silent Int fallback is not allowed");
-            return ctx->type_i32;
+            return NULL;
         }
         LLVMTypeRef resolved = pergyra_type_to_llvm(ctx, full_name);
         return resolved;
@@ -82,7 +102,7 @@ ast_type_to_llvm(LLVMGenCtx *ctx, ASTNode *type_node)
             PGY_FIX_ANNOTATE_CONCRETE_TYPE,
             "LLVM AST type mapping requires AST_TYPE or event handler metadata; silent i32 fallback is not allowed");
     }
-    return ctx->type_i32;
+    return NULL;
 }
 
 #endif /* PGY_LLVM_ENABLED */

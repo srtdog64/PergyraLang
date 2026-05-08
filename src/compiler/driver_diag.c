@@ -7,6 +7,63 @@
 #include "../common/diagnostic_layer.h"
 #include "../semantic/diag_codes.h"
 
+typedef struct DriverDiagCodeMap {
+    const char *code;
+    const char *cause_ir;
+    const char *fix_source;
+} DriverDiagCodeMap;
+
+static const DriverDiagCodeMap kDriverDiagCodeMaps[] = {
+    {
+        PGY_CODE_AIR_INVARIANT_INVALID,
+        PGY_CAUSE_AIR_INVARIANT_INVALID,
+        PGY_FIX_REPORT_COMPILER_BUG,
+    },
+    {
+        PGY_CODE_DRIVER_RUNTIME_NONE_UNSUPPORTED,
+        PGY_CAUSE_DRIVER_RUNTIME_NONE_UNSUPPORTED,
+        PGY_FIX_USE_DEFAULT_RUNTIME_OR_REMOVE_RUNTIME_SURFACE,
+    },
+    {
+        PGY_CODE_LEX_INVALID_TOKEN,
+        PGY_CAUSE_LEX_INVALID_TOKEN,
+        PGY_FIX_REMOVE_OR_ESCAPE_CHARACTER,
+    },
+    {
+        PGY_CODE_PARSE_SYNTAX,
+        PGY_CAUSE_PARSE_UNEXPECTED_TOKEN,
+        PGY_FIX_CHECK_SYNTAX,
+    },
+};
+
+static size_t
+driver_diag_code_map_count(void)
+{
+    return sizeof(kDriverDiagCodeMaps) / sizeof(kDriverDiagCodeMaps[0]);
+}
+
+static int
+driver_diag_code_map_compare(const void *lhs, const void *rhs)
+{
+    const DriverDiagCodeMap *a = (const DriverDiagCodeMap *)lhs;
+    const DriverDiagCodeMap *b = (const DriverDiagCodeMap *)rhs;
+    return strcmp(a->code, b->code);
+}
+
+static const DriverDiagCodeMap *
+driver_diag_code_map_find(const char *code)
+{
+    DriverDiagCodeMap key = {code, NULL, NULL};
+
+    if (code == NULL)
+        return NULL;
+    return bsearch(&key,
+                   kDriverDiagCodeMaps,
+                   driver_diag_code_map_count(),
+                   sizeof(kDriverDiagCodeMaps[0]),
+                   driver_diag_code_map_compare);
+}
+
 static void
 driver_json_emit_string(FILE *out, const char *s)
 {
@@ -118,47 +175,25 @@ driver_diag_code_from_message(const char *message)
 {
     if (message == NULL)
         return NULL;
-    if (strstr(message, PGY_CODE_LEX_INVALID_TOKEN) != NULL)
-        return PGY_CODE_LEX_INVALID_TOKEN;
-    if (strstr(message, PGY_CODE_PARSE_SYNTAX) != NULL)
-        return PGY_CODE_PARSE_SYNTAX;
-    if (strstr(message, PGY_CODE_AIR_INVARIANT_INVALID) != NULL)
-        return PGY_CODE_AIR_INVARIANT_INVALID;
-    if (strstr(message, PGY_CODE_DRIVER_RUNTIME_NONE_UNSUPPORTED) != NULL)
-        return PGY_CODE_DRIVER_RUNTIME_NONE_UNSUPPORTED;
+    for (size_t i = 0; i < driver_diag_code_map_count(); i++) {
+        if (strstr(message, kDriverDiagCodeMaps[i].code) != NULL)
+            return kDriverDiagCodeMaps[i].code;
+    }
     return NULL;
 }
 
 const char *
 driver_diag_cause_from_code(const char *code)
 {
-    if (code == NULL)
-        return NULL;
-    if (strcmp(code, PGY_CODE_LEX_INVALID_TOKEN) == 0)
-        return PGY_CAUSE_LEX_INVALID_TOKEN;
-    if (strcmp(code, PGY_CODE_PARSE_SYNTAX) == 0)
-        return PGY_CAUSE_PARSE_UNEXPECTED_TOKEN;
-    if (strcmp(code, PGY_CODE_AIR_INVARIANT_INVALID) == 0)
-        return PGY_CAUSE_AIR_INVARIANT_INVALID;
-    if (strcmp(code, PGY_CODE_DRIVER_RUNTIME_NONE_UNSUPPORTED) == 0)
-        return PGY_CAUSE_DRIVER_RUNTIME_NONE_UNSUPPORTED;
-    return NULL;
+    const DriverDiagCodeMap *entry = driver_diag_code_map_find(code);
+    return entry != NULL ? entry->cause_ir : NULL;
 }
 
 const char *
 driver_diag_fix_from_code(const char *code)
 {
-    if (code == NULL)
-        return NULL;
-    if (strcmp(code, PGY_CODE_LEX_INVALID_TOKEN) == 0)
-        return PGY_FIX_REMOVE_OR_ESCAPE_CHARACTER;
-    if (strcmp(code, PGY_CODE_PARSE_SYNTAX) == 0)
-        return PGY_FIX_CHECK_SYNTAX;
-    if (strcmp(code, PGY_CODE_AIR_INVARIANT_INVALID) == 0)
-        return PGY_FIX_REPORT_COMPILER_BUG;
-    if (strcmp(code, PGY_CODE_DRIVER_RUNTIME_NONE_UNSUPPORTED) == 0)
-        return PGY_FIX_USE_DEFAULT_RUNTIME_OR_REMOVE_RUNTIME_SURFACE;
-    return NULL;
+    const DriverDiagCodeMap *entry = driver_diag_code_map_find(code);
+    return entry != NULL ? entry->fix_source : NULL;
 }
 
 void
@@ -316,8 +351,6 @@ driver_emit_air_drift_fail(const DriverFlags *flags, const AIRProgram *air)
         }
         if (boundary != NULL
             && boundary->authority_required
-            && !air_boundary_has_evidence(
-                air, drift->boundary_index, AIR_EVIDENCE_RIR_AUTHORITY)
             && driver_format_air_authority_names(boundary,
                                                  authority_names,
                                                  sizeof(authority_names))) {

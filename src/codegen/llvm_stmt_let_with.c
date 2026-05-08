@@ -72,6 +72,10 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
                 /* Move: structural copy; the new alloca owns the data,
                  * source is invalidated */
                 LLVMTypeRef slot_ty = llvm_slot_struct_type(ctx, inner);
+                if (ctx->has_error || slot_ty == NULL) {
+                    free(inner);
+                    return;
+                }
                 LLVMValueRef alloca_val = llvm_create_entry_alloca(
                     ctx, slot_ty, name);
                 LLVMValueRef moved = LLVMBuildLoad2(ctx->builder,
@@ -128,6 +132,8 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
                     LLVMTypeRef slot_ty = is_secure
                         ? llvm_secure_slot_struct_type(ctx, inner)
                         : llvm_slot_struct_type(ctx, inner);
+                    if (ctx->has_error || slot_ty == NULL)
+                        return;
                     LLVMValueRef alloca_val = llvm_stmt_create_slot_alloca(ctx, slot_ty, name);
                     LLVMVarEntry *source = llvm_scope_lookup(ctx, init->data.identifier.name);
                     if (source == NULL)
@@ -152,6 +158,8 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
             LLVMTypeRef slot_ty = is_secure
                 ? llvm_secure_slot_struct_type(ctx, inner)
                 : llvm_slot_struct_type(ctx, inner);
+            if (ctx->has_error || slot_ty == NULL)
+                return;
             LLVMValueRef alloca_val = llvm_stmt_create_slot_alloca(ctx, slot_ty, name);
 
             /* Inline Claim: zero-init + set claimed=true */
@@ -283,16 +291,22 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
 
     /* Determine type from annotation or initializer */
     LLVMTypeRef var_type = ctx->type_i32; /* default */
-    if (type_ann != NULL)
+    if (type_ann != NULL) {
         var_type = ast_type_to_llvm(ctx, type_ann);
-    else if (init != NULL && init->type == AST_SPAWN_EXPR) {
+        if (ctx->has_error || var_type == NULL)
+            return;
+    } else if (init != NULL && init->type == AST_SPAWN_EXPR) {
         var_type = ctx->type_task_handle;
         spawn_future_inner = llvm_infer_spawn_future_inner(ctx, init);
     } else if (init != NULL) {
         var_type = llvm_stmt_infer_expr_type(ctx, init);
+        if (ctx->has_error || var_type == NULL)
+            return;
     }
     if (init != NULL && init->type == AST_LAMBDA_EXPR) {
         LLVMTypeRef lambda_type = llvm_stmt_lambda_signature_type(ctx, init);
+        if (ctx->has_error || lambda_type == NULL)
+            return;
         if (lambda_type != NULL)
             var_type = lambda_type;
     }

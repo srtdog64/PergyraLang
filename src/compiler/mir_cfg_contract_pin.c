@@ -16,6 +16,8 @@ mir_block_find_pin_cleanup_edge_fact(const MIRBasicBlock *block)
         return NULL;
     if (block->pin_view_name == NULL || block->pin_view_name[0] == '\0')
         return NULL;
+    if (block->instruction_count > 0 && block->instructions == NULL)
+        return NULL;
 
     expected_access = block->pin_view_is_write
         ? MIR_PIN_CLEANUP_ACCESS_WRITE

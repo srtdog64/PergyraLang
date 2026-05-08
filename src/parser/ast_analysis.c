@@ -5,6 +5,8 @@
 
 #include "ast_analysis.h"
 
+#include "../common/intent_observability_names.h"
+
 #include <string.h>
 
 static bool ast_array_contains_identifier_call(ASTNode *const *nodes,
@@ -475,7 +477,7 @@ static bool
 ast_identifier_is_intent_surface(const char *name, void *userdata)
 {
     (void)userdata;
-    return name != NULL && strncmp(name, "Intent", 6) == 0;
+    return pgy_intent_observability_name_is_builtin(name);
 }
 
 bool

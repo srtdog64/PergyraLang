@@ -37,9 +37,11 @@ Current first-class evidence node kinds are `hir_routine`, `hir_cfg`,
   generation and validation still belong to MIR. AIR must audit the evidence,
   not synthesize cleanup edges.
 - Remaining AIR 1.0 debt is consumer coverage: effect propagation drift,
-  trace/observability ABI evidence, module/generic ability provenance, and
-  runtime frontier evidence must all become evidence-node-backed before AIR can
-  be called the full abstraction-boundary verifier.
+  module/generic ability provenance, and full runtime frontier scheduler
+  coverage must all become evidence-node-backed before AIR can be called the
+  full abstraction-boundary verifier. Trace/observability ABI evidence and the
+  runtime frontier policy source-of-truth evidence are now present as global
+  `AIREvidenceNode` entries.
 
 마지막 업데이트: 2026-05-02
 
@@ -282,11 +284,12 @@ sixth compiler core and the architecture is wrong.
   cached flags directly. This keeps driver diagnostics and AIR graph dumps on
   the same evidence-node source of truth as strict verification.
 - Evidence nodes are shape-checked against their boundary class. Global evidence
-  (`mir_cleanup`, `dag_*`, `rir_*_propagation`) must not attach to a concrete
-  boundary; `hir_cfg` evidence requires same-boundary `hir_routine` evidence;
-  `rir_authority` evidence requires same-boundary `rir_boundary` evidence and a
-  declared authority participant; `mir_pin_cleanup` evidence can attach only to
-  a `pin` execution boundary.
+  (`mir_cleanup`, `dag_*`, `rir_*_propagation`, `observability_schema`,
+  `runtime_frontier_policy`) must not attach to a concrete boundary; `hir_cfg`
+  evidence requires same-boundary `hir_routine` evidence; `rir_authority`
+  evidence requires same-boundary `rir_boundary` evidence and a declared
+  authority participant; `mir_pin_cleanup` evidence can attach only to a `pin`
+  execution boundary.
 - MIR cleanup and pin-cleanup evidence are collected through
   `air_collect_mir_evidence(...)` after MIR has produced cleanup facts. AIR does
   not create cleanup facts; it records that MIR-owned cleanup evidence exists,

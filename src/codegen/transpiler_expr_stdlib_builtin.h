@@ -40,7 +40,8 @@ transpiler_resolve_unary_constructed_inner(TranspilerCtx *ctx,
         && strncmp(resolved_type, family, family_len) == 0
         && resolved_type[family_len] == '<') {
         const char *inner = slot_inner_type_name(resolved_type);
-        if (inner != NULL && inner[0] != '\0') {
+        if (inner != NULL && inner[0] != '\0'
+            && strcmp(inner, "Unknown") != 0) {
             snprintf(inner_buf, inner_buf_size, "%s", inner);
             if (inner_out != NULL)
                 *inner_out = inner_buf;

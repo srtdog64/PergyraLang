@@ -10,6 +10,8 @@ mir_block_has_cleanup_edge_fact(const MIRBasicBlock *block,
 {
     if (block == NULL || edge_name == NULL)
         return false;
+    if (block->instruction_count > 0 && block->instructions == NULL)
+        return false;
 
     for (size_t i = 0; i < block->instruction_count; i++) {
         const MIRInstruction *inst = &block->instructions[i];
@@ -27,4 +29,18 @@ mir_block_has_cleanup_edge_fact(const MIRBasicBlock *block,
         }
     }
     return false;
+}
+
+bool
+mir_block_has_expected_cleanup_edge_fact(const MIRRoutine *routine,
+                                         size_t block_index)
+{
+    const char *edge_name;
+
+    if (routine == NULL || block_index >= routine->block_count)
+        return false;
+
+    edge_name = mir_cleanup_edge_fact_name_for_block(routine, block_index);
+    return mir_block_has_cleanup_edge_fact(&routine->blocks[block_index],
+                                           edge_name);
 }

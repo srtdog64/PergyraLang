@@ -23,6 +23,13 @@ test_air_dump_json_prints_stable_graph_schema(void)
     };
     AIREvidenceNode evidence_nodes[] = {
         {
+            .kind = AIR_EVIDENCE_MIR_CLEANUP,
+            .boundary_index = SIZE_MAX,
+            .provider_name = "reserve",
+            .subject_name = "cleanup-block",
+            .fact_count = 1,
+        },
+        {
             .kind = AIR_EVIDENCE_MIR_PIN_CLEANUP,
             .boundary_index = 0,
             .provider_name = "reserve",
@@ -36,7 +43,7 @@ test_air_dump_json_prints_stable_graph_schema(void)
         .boundaries = boundaries,
         .boundary_count = 1,
         .evidence_nodes = evidence_nodes,
-        .evidence_count = 1,
+        .evidence_count = 2,
         .mir_cleanup_evidence_count = 1,
         .mir_pin_cleanup_evidence_count = 1,
         .strict_evidence = true,
@@ -59,6 +66,9 @@ test_air_dump_json_prints_stable_graph_schema(void)
     ok = strstr(buffer, "\"schema\":\"pgy.air.graph.v1\"") != NULL
         && strstr(buffer, "\"summary\"") != NULL
         && strstr(buffer, "\"observability\"") != NULL
+        && strstr(buffer, "\"runtime_frontier_policy\"") != NULL
+        && strstr(buffer, "\"" PGY_FRONTIER_POLICY_SCHEMA "\"") != NULL
+        && strstr(buffer, "\"" PGY_FRONTIER_POLICY_SUBJECT "\"") != NULL
         && strstr(buffer, "\"abi_schema\":\"" PGY_OBSERVABILITY_ABI_SCHEMA "\"") != NULL
         && strstr(buffer, "\"trace_schema\":\"" PGY_OBSERVABILITY_TRACE_SCHEMA "\"") != NULL
         && strstr(buffer, "\"surfaces\":[\"last\",\"history\",\"active\",\"recent\"]") != NULL
@@ -93,7 +103,8 @@ test_air_synthesis_collects_observability_schema_evidence(void)
     ok = air != NULL
         && error == NULL
         && air->observability_schema_evidence_count == 1
-        && air->evidence_count == 1
+        && air->runtime_frontier_policy_evidence_count == 1
+        && air->evidence_count == 2
         && air->evidence_nodes[0].kind == AIR_EVIDENCE_OBSERVABILITY_SCHEMA
         && air->evidence_nodes[0].boundary_index == SIZE_MAX
         && strcmp(air->evidence_nodes[0].provider_name,
@@ -103,6 +114,14 @@ test_air_synthesis_collects_observability_schema_evidence(void)
         && air->evidence_nodes[0].fact_count
             == PGY_OBSERVABILITY_SCHEMA_FACT_COUNT
         && air->evidence_nodes[0].fallback_count == 0
+        && air->evidence_nodes[1].kind == AIR_EVIDENCE_RUNTIME_FRONTIER_POLICY
+        && air->evidence_nodes[1].boundary_index == SIZE_MAX
+        && strcmp(air->evidence_nodes[1].provider_name,
+                  PGY_FRONTIER_POLICY_SCHEMA) == 0
+        && strcmp(air->evidence_nodes[1].subject_name,
+                  PGY_FRONTIER_POLICY_SUBJECT) == 0
+        && air->evidence_nodes[1].fact_count == PGY_FRONTIER_POLICY_FACT_COUNT
+        && air->evidence_nodes[1].fallback_count == 0
         && air->drift_count == 0;
     air_destroy(air);
     free(error);
@@ -164,6 +183,60 @@ test_air_rejects_empty_observability_schema_evidence(void)
 }
 
 static bool
+test_air_rejects_invalid_runtime_frontier_policy_provider(void)
+{
+    AIREvidenceNode evidence_nodes[] = {
+        {
+            .kind = AIR_EVIDENCE_RUNTIME_FRONTIER_POLICY,
+            .boundary_index = SIZE_MAX,
+            .provider_name = "wrong-frontier-policy",
+            .subject_name = PGY_FRONTIER_POLICY_SUBJECT,
+            .fact_count = PGY_FRONTIER_POLICY_FACT_COUNT,
+            .fallback_count = 0,
+        },
+    };
+    AIRProgram air = {
+        .evidence_nodes = evidence_nodes,
+        .evidence_count = 1,
+        .runtime_frontier_policy_evidence_count = 1,
+    };
+    char *error = NULL;
+    bool ok = !air_validate(&air, &error)
+        && error != NULL
+        && strstr(error,
+                  "runtime frontier policy evidence node 0 has invalid provider") != NULL;
+    free(error);
+    return ok;
+}
+
+static bool
+test_air_rejects_empty_runtime_frontier_policy_evidence(void)
+{
+    AIREvidenceNode evidence_nodes[] = {
+        {
+            .kind = AIR_EVIDENCE_RUNTIME_FRONTIER_POLICY,
+            .boundary_index = SIZE_MAX,
+            .provider_name = PGY_FRONTIER_POLICY_SCHEMA,
+            .subject_name = PGY_FRONTIER_POLICY_SUBJECT,
+            .fact_count = 0,
+            .fallback_count = 0,
+        },
+    };
+    AIRProgram air = {
+        .evidence_nodes = evidence_nodes,
+        .evidence_count = 1,
+        .runtime_frontier_policy_evidence_count = 1,
+    };
+    char *error = NULL;
+    bool ok = !air_validate(&air, &error)
+        && error != NULL
+        && strstr(error,
+                  "runtime frontier policy evidence node 0 has invalid policy fact count") != NULL;
+    free(error);
+    return ok;
+}
+
+static bool
 test_air_collects_mir_pin_cleanup_evidence(void)
 {
     ASTNode pin_ast;
@@ -171,7 +244,7 @@ test_air_collects_mir_pin_cleanup_evidence(void)
     MIRProgram mir;
     MIRRoutine routine;
     MIRBasicBlock blocks[2];
-    MIRInstruction inst;
+    MIRInstruction insts[2];
     char *error = NULL;
     bool ok;
 
@@ -202,13 +275,17 @@ test_air_collects_mir_pin_cleanup_evidence(void)
     air->boundaries[0].sync_class = AIR_SYNC_SYNC;
     air->boundaries[0].ast = &pin_ast;
 
-    memset(&inst, 0, sizeof(inst));
-    inst.kind = MIR_INST_CLEANUP_EDGE;
-    inst.name = "pin-unpin-cleanup-edge";
-    inst.slot_anchor = "scores";
-    inst.arg0 = "view";
-    inst.arg1 = "read";
-    inst.ast = &pin_ast;
+    memset(insts, 0, sizeof(insts));
+    insts[0].kind = MIR_INST_CLEANUP_EDGE;
+    insts[0].name = "cleanup-edge";
+    insts[0].slot_anchor = "cleanup";
+    insts[0].arg0 = "cleanup";
+    insts[1].kind = MIR_INST_CLEANUP_EDGE;
+    insts[1].name = "pin-unpin-cleanup-edge";
+    insts[1].slot_anchor = "scores";
+    insts[1].arg0 = "view";
+    insts[1].arg1 = "read";
+    insts[1].ast = &pin_ast;
 
     memset(blocks, 0, sizeof(blocks));
     blocks[0].is_reachable = true;
@@ -218,10 +295,11 @@ test_air_collects_mir_pin_cleanup_evidence(void)
     blocks[0].pin_block_ast = &pin_ast;
     blocks[0].has_cleanup_succ = true;
     blocks[0].cleanup_succ = 1;
-    blocks[0].instructions = &inst;
-    blocks[0].instruction_count = 1;
+    blocks[0].instructions = insts;
+    blocks[0].instruction_count = 2;
     blocks[1].id = 1;
     blocks[1].is_cleanup = true;
+    blocks[1].is_reachable = true;
 
     memset(&routine, 0, sizeof(routine));
     routine.name = "pin_scores";
@@ -331,7 +409,7 @@ test_air_rejects_unanchored_mir_pin_cleanup_evidence(void)
     MIRProgram mir;
     MIRRoutine routine;
     MIRBasicBlock blocks[2];
-    MIRInstruction inst;
+    MIRInstruction insts[2];
     char *error = NULL;
     bool ok;
 
@@ -362,10 +440,14 @@ test_air_rejects_unanchored_mir_pin_cleanup_evidence(void)
     air->boundaries[0].sync_class = AIR_SYNC_SYNC;
     air->boundaries[0].ast = &pin_ast;
 
-    memset(&inst, 0, sizeof(inst));
-    inst.kind = MIR_INST_CLEANUP_EDGE;
-    inst.name = "pin-unpin-cleanup-edge";
-    inst.ast = &pin_ast;
+    memset(insts, 0, sizeof(insts));
+    insts[0].kind = MIR_INST_CLEANUP_EDGE;
+    insts[0].name = "cleanup-edge";
+    insts[0].slot_anchor = "cleanup";
+    insts[0].arg0 = "cleanup";
+    insts[1].kind = MIR_INST_CLEANUP_EDGE;
+    insts[1].name = "pin-unpin-cleanup-edge";
+    insts[1].ast = &pin_ast;
 
     memset(blocks, 0, sizeof(blocks));
     blocks[0].is_reachable = true;
@@ -375,10 +457,11 @@ test_air_rejects_unanchored_mir_pin_cleanup_evidence(void)
     blocks[0].pin_block_ast = &pin_ast;
     blocks[0].has_cleanup_succ = true;
     blocks[0].cleanup_succ = 1;
-    blocks[0].instructions = &inst;
-    blocks[0].instruction_count = 1;
+    blocks[0].instructions = insts;
+    blocks[0].instruction_count = 2;
     blocks[1].id = 1;
     blocks[1].is_cleanup = true;
+    blocks[1].is_reachable = true;
 
     memset(&routine, 0, sizeof(routine));
     routine.name = "pin_scores";

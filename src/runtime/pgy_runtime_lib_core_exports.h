@@ -1,6 +1,8 @@
 #ifndef PGY_RUNTIME_LIB_CORE_EXPORTS_H
 #define PGY_RUNTIME_LIB_CORE_EXPORTS_H
 
+#include "../common/string_compat.h"
+
 void pgy_log_int(int32_t v)    { printf("%d\n", v); }
 void pgy_log_long(int64_t v)   { printf("%lld\n", (long long)v); }
 void pgy_log_float(float v)    { printf("%f\n", v); }
@@ -60,9 +62,8 @@ pgy_sleep_ms(int32_t ms)
 char *
 pgy_int_to_string(int32_t v)
 {
-    char stack_buf[32];
-    int len = snprintf(stack_buf, sizeof(stack_buf), "%d", v);
-    if (len < 0) {
+    char *buf = pergyra_strdup_printf("%d", v);
+    if (buf == NULL) {
         char *fallback = (char *)malloc(2);
         if (fallback != NULL) {
             fallback[0] = '0';
@@ -70,10 +71,6 @@ pgy_int_to_string(int32_t v)
         }
         return fallback;
     }
-    char *buf = (char *)malloc((size_t)len + 1);
-    if (buf == NULL)
-        return NULL;
-    memcpy(buf, stack_buf, (size_t)len + 1);
     return buf;
 }
 

@@ -17,15 +17,6 @@
 #include <string.h>
 
 bool
-any_subject_role_has_ability(ASTNode *program, ASTNode *ability_ref);
-ASTNode *
-any_subject_role_find_base_ability_impl(ASTNode *program, const char *ability_name);
-const char *
-intent_involves_type_name(ASTNode *involves);
-bool
-intent_clause_invokes_authority_sensitive_call(ASTNode *expr, SemanticContext *ctx);
-
-bool
 intent_semantic_append_name(char ***items, size_t *count, size_t *capacity,
                             const char *name)
 {

@@ -83,7 +83,7 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
     for (size_t i = 0; i < block->instruction_count; i++) {
         size_t inst_index = source_order_mode ? inst_order[i] : i;
         const MIRInstruction *inst = &block->instructions[inst_index];
-        ASTNode *stmt = transpiler_mir_find_stmt_for_inst(func_decl, inst);
+        ASTNode *stmt = transpiler_mir_find_stmt_for_inst(inst);
 
         if (!transpiler_materialize_pending_inst_uses(buf, ctx, func_decl, block,
                                                       inst, ssa_map_out, ctx->indent,
@@ -456,7 +456,7 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
             }
         }
         if (transpiler_mir_routine_has_explicit_cfg(mir_routine)
-            && transpiler_mir_stmt_is_cfg_container(stmt)) {
+            && transpiler_mir_inst_is_cfg_container(inst, stmt)) {
             continue;
         }
         if (stmt->type == AST_CALL) {

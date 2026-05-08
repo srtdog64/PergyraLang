@@ -11,6 +11,7 @@
 #include "compiler/air_internal.h"
 #include "lexer/lexer.h"
 #include "parser/parser.h"
+#include "runtime/pgy_frontier_policy.h"
 #include "runtime/pgy_runtime_observability_schema.h"
 #include "semantic/semantic.h"
 
@@ -163,6 +164,9 @@ main(void)
     TEST("AIR append keeps boundary evidence idempotent");
     EXPECT(test_air_append_idempotent_boundary_evidence_nodes());
 
+    TEST("AIR append rejects boundary evidence duplicate fallback");
+    EXPECT(test_air_append_rejects_boundary_evidence_duplicate_fallback());
+
     TEST("AIR verify rejects evidence boundary shape mismatch");
     EXPECT(test_air_verify_rejects_evidence_boundary_shape_mismatch());
 
@@ -184,8 +188,14 @@ main(void)
     TEST("AIR synthesis collects HIR/RIR evidence without mutation");
     EXPECT(test_air_collects_hir_and_rir_evidence());
 
+    TEST("AIR synthesis collects all RIR authority evidence");
+    EXPECT(test_air_collects_all_rir_authority_evidence());
+
     TEST("AIR strict evidence rejects mismatched authority participant");
     EXPECT(test_air_rejects_mismatched_authority_evidence());
+
+    TEST("AIR strict evidence requires all authority participants");
+    EXPECT(test_air_requires_all_authority_participant_evidence());
 
     TEST("AIR dump prints evidence provenance");
     EXPECT(test_air_dump_prints_evidence_provenance());
@@ -201,6 +211,12 @@ main(void)
 
     TEST("AIR rejects empty observability schema evidence");
     EXPECT(test_air_rejects_empty_observability_schema_evidence());
+
+    TEST("AIR rejects invalid runtime frontier policy provider");
+    EXPECT(test_air_rejects_invalid_runtime_frontier_policy_provider());
+
+    TEST("AIR rejects empty runtime frontier policy evidence");
+    EXPECT(test_air_rejects_empty_runtime_frontier_policy_evidence());
 
     TEST("AIR collects MIR pin cleanup evidence");
     EXPECT(test_air_collects_mir_pin_cleanup_evidence());
@@ -222,6 +238,9 @@ main(void)
 
     TEST("AIR rejects MIR pin cleanup evidence fact-count mismatch");
     EXPECT(test_air_rejects_pin_cleanup_evidence_fact_count_mismatch());
+
+    TEST("AIR rejects MIR pin cleanup without global cleanup evidence");
+    EXPECT(test_air_rejects_pin_cleanup_without_global_cleanup_evidence());
 
     TEST("AIR collects MIR cleanup block evidence");
     EXPECT(test_air_collects_mir_cleanup_block_evidence());
@@ -246,6 +265,12 @@ main(void)
 
     TEST("AIR ignores orphan MIR cleanup root evidence");
     EXPECT(test_air_ignores_orphan_mir_cleanup_root_evidence());
+
+    TEST("AIR ignores unreachable MIR cleanup root evidence");
+    EXPECT(test_air_ignores_unreachable_mir_cleanup_root_evidence());
+
+    TEST("AIR ignores unreachable MIR cleanup source evidence");
+    EXPECT(test_air_ignores_unreachable_mir_cleanup_source_evidence());
 
     TEST("AIR rejects empty MIR cleanup evidence");
     EXPECT(test_air_rejects_empty_mir_cleanup_evidence());

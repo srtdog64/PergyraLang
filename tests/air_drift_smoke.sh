@@ -41,7 +41,7 @@ run_literal_air_drift_smoke() {
         "src/test_air.c"
         "src/tests/air/test_air_core_part_h.cases.h"
         "src/tests/air/test_air_mir_terminator_part_h.cases.h"
-        "src/test_rir.c"
+        "src/tests/rir/test_rir_lowering.cases.h"
         "docs/72_diagnostic_codes.md"
         "tests/air_backend_nonimpact_smoke.sh"
         "tests/diagnostics_json_smoke.sh"
@@ -62,10 +62,10 @@ run_literal_air_drift_smoke() {
     require_literal "src/compiler/air.h" "AIREvidenceNode"
     require_literal "src/compiler/air_evidence.c" "AIR_EVIDENCE_MIR_PIN_CLEANUP"
     require_literal "src/compiler/air_evidence.c" "AIR_EVIDENCE_MIR_TERMINATOR"
-    require_literal "src/compiler/air_evidence.c" "MIR_CLEANUP_FACT_EDGE_FROM_ROLLBACK"
+    require_literal "src/compiler/air_evidence.c" "mir_block_has_expected_cleanup_edge_fact(routine, i)"
     require_literal "src/compiler/mir_cleanup_fact_names.h" "cleanup-edge-from-rollback"
     require_literal "src/compiler/air_evidence.c" "slot_anchor"
-    require_literal "src/compiler/air_evidence.c" "arg0"
+    require_literal "src/compiler/air_evidence.c" "mir_block_find_pin_cleanup_edge_fact"
     require_literal "src/compiler/air_evidence.c" "AIR_EVIDENCE_DAG_METADATA"
     require_literal "src/compiler/air_evidence.c" "metadata-inventory"
     require_literal "src/compiler/air_evidence.c" "AIR_EVIDENCE_DAG_GENERIC"
@@ -76,25 +76,29 @@ run_literal_air_drift_smoke() {
     require_literal "src/compiler/air_verify.c" "strict AIR requires graph-backed type evidence"
     require_literal "src/compiler/air_verify.c" "missing DAG evidence node"
     require_literal "src/compiler/air_verify.c" "strict AIR requires lowered boundary evidence"
-    require_literal "src/compiler/air_verify.c" "air_boundary_has_evidence"
+    require_literal "src/compiler/air_validate_evidence.c" "air_boundary_has_evidence"
     require_literal "src/compiler/driver_diag.c" "air_boundary_has_evidence("
     require_literal "src/compiler/air_verify.c" "strict AIR requires body control-flow evidence"
     require_literal "src/compiler/air_verify.c" "strict AIR requires MIR branch/return terminator provenance"
     require_literal "src/compiler/air_verify.c" "strict AIR requires pin boundaries to prove all exits run unpin cleanup"
+    require_literal "src/compiler/air_internal.h" "air_next_capacity"
+    require_literal "src/compiler/air_names.c" "air_next_capacity"
+    require_literal "src/compiler/air_evidence_node.c" "air_next_capacity(&new_capacity"
+    require_literal "src/compiler/air_verify.c" "air_next_capacity(&new_capacity"
     require_literal "src/compiler/air_evidence_node.c" "node->fact_count += fact_count"
     require_literal "src/compiler/air_validate_evidence.c" "duplicates evidence node"
     require_literal "src/compiler/driver_app.c" "air_synthesize"
     require_literal "docs/72_diagnostic_codes.md" "PGY_SEM_INTENT_BOUNDARY_DRIFT"
     require_literal "src/test_air.c" "AIR strict evidence requires MIR pin cleanup"
     require_literal "src/test_air.c" "AIR ignores orphan MIR cleanup root evidence"
-    require_literal "src/tests/air/test_air_core_part_h.cases.h" "AIR verify rejects invalid drift inventory"
+    require_literal "src/test_air.c" "AIR verify rejects invalid drift inventory"
     require_literal "src/test_air.c" "AIR verify rejects duplicate evidence nodes"
     require_literal "src/test_air.c" "AIR append merges duplicate evidence nodes"
-    require_literal "src/tests/air/test_air_mir_terminator_part_h.cases.h" "AIR collects MIR terminator evidence"
+    require_literal "src/test_air.c" "AIR collects MIR terminator evidence"
     require_literal "src/tests/air/test_air_mir_terminator_part_h.cases.h" "MIR terminator evidence node 0 has no terminator facts"
     require_literal "src/tests/air/test_air_mir_terminator_part_h.cases.h" "AIR MIR input has no CFG terminator evidence"
     require_literal "src/test_air.c" "AIR parsed transfer emits zone and world boundaries"
-    require_literal "src/test_rir.c" "RIR_OP_SPAWN"
+    require_literal "src/tests/rir/test_rir_lowering.cases.h" "RIR_OP_SPAWN"
     require_literal "docs/72_diagnostic_codes.md" "PGY_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING"
     require_literal "tests/air_backend_nonimpact_smoke.sh" "PGY_AIR_STRICT_EVIDENCE=0"
     require_literal "docs/semantics/07_air_abstraction_safety.md" "## Theorem: AIR Synthesis Read-Only"
@@ -117,6 +121,7 @@ fi
 if [[ "$AIR_CHECK_DONE" -eq 0 ]]; then
 "$PYTHON_BIN" - "$ROOT_DIR" <<'PY'
 import pathlib
+import re
 import sys
 
 root = pathlib.Path(sys.argv[1])
@@ -125,6 +130,7 @@ checklist_path = root / "docs" / "100_beta_readiness_checklist.md"
 todo_path = root / "TODO.md"
 makefile_path = root / "Makefile"
 air_semantics_path = root / "docs" / "semantics" / "07_air_abstraction_safety.md"
+io_boundary_builtin_path = root / "src" / "compiler" / "io_boundary_builtin.c"
 compiler_header_path = root / "src" / "compiler" / "compiler.h"
 driver_path = root / "src" / "compiler" / "driver_app.c"
 driver_diag_path = root / "src" / "compiler" / "driver_diag.c"
@@ -155,6 +161,7 @@ air_test_case_paths = [
     root / "src" / "tests" / "air" / "test_air_core_part_a.cases.h",
     root / "src" / "tests" / "air" / "test_air_evidence_part_b.cases.h",
     root / "src" / "tests" / "air" / "test_air_cleanup_transfer_part_c.cases.h",
+    root / "src" / "tests" / "air" / "test_air_cleanup_transfer_part_d.cases.h",
     root / "src" / "tests" / "air" / "test_air_boundary_part_d.cases.h",
     root / "src" / "tests" / "air" / "test_air_parsed_part_e.cases.h",
     root / "src" / "tests" / "air" / "test_air_strict_part_f.cases.h",
@@ -170,7 +177,7 @@ diag_docs_path = root / "docs" / "72_diagnostic_codes.md"
 air_backend_nonimpact_path = root / "tests" / "air_backend_nonimpact_smoke.sh"
 diagnostics_json_path = root / "tests" / "diagnostics_json_smoke.sh"
 
-for path in (air_path, checklist_path, todo_path, makefile_path, air_semantics_path, compiler_header_path, driver_path, driver_diag_path, pgy_driver_path, parser_intent_path, parser_intent_step_path, dir_header_path, dir_impl_path, dir_collect_path, dir_collect_intent_path, air_header_path, air_impl_path, air_boundary_path, air_boundary_walk_path, air_dump_path, air_vocabulary_path, air_evidence_node_path, air_evidence_path, air_evidence_ast_path, air_evidence_rir_path, mir_cleanup_fact_names_path, air_internal_path, air_validate_path, air_validate_evidence_path, air_verify_path, air_test_path, *air_test_case_paths, rir_test_path, *rir_test_case_paths, diag_docs_path, air_backend_nonimpact_path, diagnostics_json_path):
+for path in (air_path, checklist_path, todo_path, makefile_path, air_semantics_path, io_boundary_builtin_path, compiler_header_path, driver_path, driver_diag_path, pgy_driver_path, parser_intent_path, parser_intent_step_path, dir_header_path, dir_impl_path, dir_collect_path, dir_collect_intent_path, air_header_path, air_impl_path, air_boundary_path, air_boundary_walk_path, air_dump_path, air_vocabulary_path, air_evidence_node_path, air_evidence_path, air_evidence_ast_path, air_evidence_rir_path, mir_cleanup_fact_names_path, air_internal_path, air_validate_path, air_validate_evidence_path, air_verify_path, air_test_path, *air_test_case_paths, rir_test_path, *rir_test_case_paths, diag_docs_path, air_backend_nonimpact_path, diagnostics_json_path):
     if not path.exists():
         raise SystemExit(f"missing AIR gate input: {path.relative_to(root)}")
 
@@ -204,6 +211,7 @@ air_evidence = "\n".join([
 ])
 air_impl = "\n".join([
     air_impl_path.read_text(encoding="utf-8"),
+    io_boundary_builtin_path.read_text(encoding="utf-8"),
     air_boundary_path.read_text(encoding="utf-8"),
     air_boundary_walk_path.read_text(encoding="utf-8"),
     air_dump_path.read_text(encoding="utf-8"),
@@ -299,6 +307,8 @@ for term in [
     "air-backend-nonimpact-test-smoke:",
     "air-backend-nonimpact-full-test-smoke:",
     "air-strict-backend-compare-test-smoke:",
+    "$(COMPILER_DIR)/io_boundary_builtin.c",
+    "$(BUILD_DIR)/compiler/io_boundary_builtin.o",
     "$(COMPILER_DIR)/air_verify.c",
     "$(COMPILER_DIR)/air_boundary_walk.c",
     "$(BUILD_DIR)/compiler/air_verify.o",
@@ -363,7 +373,10 @@ required_impl_terms = [
     "air_sync_conflicts",
     "air_collect_hir_evidence",
     "air_collect_rir_evidence",
-    "real HIR/RIR/MIR input",
+    "air_collect_runtime_frontier_policy_evidence",
+    "PGY_FRONTIER_POLICY_SCHEMA",
+    "air_evidence_inventory_is_authoritative(air)",
+    "air_boundary_has_evidence(air, i, AIR_EVIDENCE_RIR_BOUNDARY)",
     "air_assign_first_owned_name",
     "air_boundary_sync_shape_valid",
     "air_boundary_requires_hir_evidence",
@@ -410,6 +423,8 @@ required_impl_terms = [
     "who_provenance=",
     "intent-default+transfer",
     "air_boundary_authority_matches",
+    "air_boundary_missing_authority_evidence",
+    "air_boundary_has_evidence_kind_subject",
     "air_ast_contains_node",
     "air_rir_op_matches_boundary_ast",
     "air_rir_io_op_matches_boundary",
@@ -418,12 +433,14 @@ required_impl_terms = [
     "air_hir_routine_matches_boundary",
     "air_hir_cfg_contains_boundary_ast",
     "air_rir_scope_matches_boundary",
+    "air_mir_cleanup_root_is_valid",
     "air_mir_pin_block_has_cleanup_successor",
     "air_mir_routine_cleanup_fact_count",
     "cleanup-edge-from-rollback",
     "cleanup-edge-from-invalidation",
     "slot_anchor",
-    "arg0",
+    "mir_block_find_pin_cleanup_edge_fact",
+    "block->is_reachable",
     "block->cleanup_succ != routine->cleanup_block",
     "AIR synthesis count mismatch",
     "intent_index != intent_node_count",
@@ -526,6 +543,17 @@ missing_driver = [term for term in required_driver_terms if term not in driver]
 if missing_driver:
     raise SystemExit("driver AIR validation missing term(s): " + ", ".join(missing_driver))
 
+driver_authority_guard = re.compile(
+    r"!\s*air_boundary_has_evidence\s*\([^)]*AIR_EVIDENCE_RIR_AUTHORITY[^)]*\)\s*"
+    r"&&\s*driver_format_air_authority_names",
+    re.S,
+)
+if driver_authority_guard.search(driver):
+    raise SystemExit(
+        "driver AIR authority diagnostics must report expected participants even "
+        "when partial RIR authority evidence exists"
+    )
+
 if "AIRProgram" in compiler_header:
     raise SystemExit("CompilerIRBundle must not carry AIRProgram; AIR is verification-only and non-codegen")
 
@@ -534,7 +562,9 @@ required_source_span_terms = [
     (parser_intent, "step->column = name_tok.column", "parser intent step column"),
     (dir_header, "ASTNode    *ast;", "DIR intent step AST field"),
     (dir_impl, "step.ast = step_node", "DIR intent step AST capture"),
-    (air_impl, "step->ast != NULL ? step->ast : owner_ast", "AIR step AST fallback"),
+    (air_impl, "air_step_provenance_ast", "AIR step AST provenance seam"),
+    (air_impl, "air_count_add", "AIR synthesis count overflow guard"),
+    (air_impl, "AIR boundary count overflow", "AIR synthesis boundary overflow diagnostic"),
     (air_impl, "? node", "AIR expression boundary span keeps node when available"),
     (air_impl, ": ctx->step->ast", "AIR expression boundary span falls back to step AST"),
     (air_test, "air->intents[0].ast->line > 0", "AIR parsed source intent span test"),
@@ -551,10 +581,11 @@ if missing_span_terms:
 
 required_dag_drift_terms = [
     (air_impl, "dag_fallback_present", "AIR DAG fallback drift JSON name"),
-    (air_impl, "AIR DAG evidence contains metadata materializer fallback", "AIR DAG fallback drift message"),
+    (air_impl, "AIR DAG evidence contains unresolved metadata dead-end", "AIR DAG fallback drift message"),
     (air_impl, "strict AIR requires graph-backed type evidence", "AIR DAG fallback drift reason"),
     (air_impl, "missing DAG evidence node", "AIR DAG fallback drift fix"),
     (air_impl, "strict AIR requires authority checks to be backed by RIR authority evidence", "AIR authority drift reason"),
+    (air_impl, "strict AIR requires every authorized participant to be backed by RIR authority evidence", "AIR authority participant-complete drift reason"),
     (air_impl, "strict AIR requires every effect propagation op to carry resource/state evidence", "AIR effect propagation drift reason"),
     (air_impl, "strict AIR requires every relation propagation op to carry resource/state evidence", "AIR relation propagation drift reason"),
 ]
@@ -585,6 +616,59 @@ for path in backend_non_consumers:
         raise SystemExit(
             f"backend/codegen file must not consume AIR directly: {path.relative_to(root)}"
         )
+
+legacy_summary_flags = [
+    "has_hir_routine_evidence",
+    "has_hir_cfg_evidence",
+    "has_rir_boundary_evidence",
+    "has_rir_authority_evidence",
+]
+legacy_summary_allowed = {
+    root / "src" / "compiler" / "air.h",
+    root / "src" / "compiler" / "air_evidence.c",
+    root / "src" / "compiler" / "air_evidence_rir.c",
+    root / "src" / "compiler" / "air_validate_evidence.c",
+}
+for path in (root / "src" / "compiler").glob("*.c"):
+    if path in legacy_summary_allowed:
+        continue
+    text = path.read_text(encoding="utf-8", errors="ignore")
+    for flag in legacy_summary_flags:
+        if flag in text:
+            raise SystemExit(
+                "AIR legacy summary flag escaped its evidence owner: "
+                f"{path.relative_to(root)} uses {flag}"
+            )
+if "air_boundary_has_authoritative_evidence" in (root / "src" / "compiler" / "air_verify.c").read_text(encoding="utf-8", errors="ignore"):
+    raise SystemExit(
+        "AIR verify must consume boundary evidence through air_boundary_has_evidence"
+    )
+air_verify_text = (root / "src" / "compiler" / "air_verify.c").read_text(encoding="utf-8", errors="ignore")
+if "air_evidence_inventory_is_authoritative" in air_verify_text:
+    raise SystemExit(
+        "AIR verify must not own authoritative evidence selection"
+    )
+if "air_boundary_has_evidence_kind_subject" in air_verify_text:
+    raise SystemExit(
+        "AIR verify must not scan participant evidence directly"
+    )
+if "air_validate_boundary_legacy_evidence_shape" not in (
+    root / "src" / "compiler" / "air_validate.c"
+).read_text(encoding="utf-8", errors="ignore"):
+    raise SystemExit("AIR validate must delegate legacy evidence shape checks")
+for flag in legacy_summary_flags:
+    if flag in air_verify_text:
+        raise SystemExit(
+            "AIR verify must not read legacy summary flags directly: "
+            f"{flag}"
+        )
+air_validate_evidence_text = (root / "src" / "compiler" / "air_validate_evidence.c").read_text(encoding="utf-8", errors="ignore")
+if "air_boundary_has_evidence(const AIRProgram *air" not in air_validate_evidence_text:
+    raise SystemExit("AIR evidence owner must expose air_boundary_has_evidence")
+if "return air_boundary_has_summary_flag(boundary, kind);" not in air_validate_evidence_text:
+    raise SystemExit("AIR legacy summary fallback must stay inside the evidence owner")
+if "air_boundary_missing_authority_evidence(const AIRProgram *air" not in air_validate_evidence_text:
+    raise SystemExit("AIR evidence owner must expose missing authority evidence lookup")
 
 required_test_terms = [
     "AIR synthesis creates intent and boundary nodes",
@@ -623,14 +707,19 @@ required_test_terms = [
     "AIR verify rejects empty evidence provenance",
     "PGY_AIR_INVARIANT_INVALID",
     "AIR check_drift remains verify compatibility wrapper",
+    "AIR synthesis collects all RIR authority evidence",
     "AIR strict evidence rejects mismatched authority participant",
+    "AIR strict evidence requires all authority participants",
     "AIR dump prints evidence provenance",
     "AIR JSON dump prints stable graph schema",
+    "AIR rejects invalid runtime frontier policy provider",
+    "AIR rejects empty runtime frontier policy evidence",
     "pgy.air.graph.v1",
     "pgy.intent.observability.v1",
     "pgy.intent.trace.v1",
     "PGY_OBSERVABILITY_SURFACE_LAST",
     "PGY_OBSERVABILITY_EVENT_INTENT_ENTER",
+    "PGY_FRONTIER_POLICY_FACT_COUNT",
     "mir_pin_cleanup_evidence_count",
     "mir_terminator_evidence_count",
     "mir_select_receive_evidence_count",
@@ -640,10 +729,13 @@ required_test_terms = [
     "AIR collects MIR pin cleanup evidence",
     "AIR rejects orphan MIR pin cleanup evidence",
     "AIR rejects MIR pin cleanup evidence fact-count mismatch",
+    "AIR rejects MIR pin cleanup without global cleanup evidence",
     "AIR strict evidence requires MIR pin cleanup",
     "AIR strict evidence requires MIR terminator evidence",
     "AIR collects MIR cleanup block evidence",
     "AIR ignores orphan MIR cleanup root evidence",
+    "AIR ignores unreachable MIR cleanup root evidence",
+    "AIR ignores unreachable MIR cleanup source evidence",
     "AIR rejects empty MIR cleanup evidence",
     "AIR collects DAG generic ability evidence",
     "AIR reports DAG fallback drift",
@@ -660,6 +752,7 @@ required_test_terms = [
     "AIR_EVIDENCE_MIR_PIN_CLEANUP",
     "AIR_EVIDENCE_MIR_TERMINATOR",
     "AIR_EVIDENCE_MIR_SELECT_RECEIVE",
+    "AIR_EVIDENCE_RUNTIME_FRONTIER_POLICY",
     "AIR MIR input has no CFG terminator evidence",
     "must carry exactly one boundary fact",
     "cleanup-block",

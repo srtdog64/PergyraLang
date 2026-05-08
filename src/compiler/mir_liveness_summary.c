@@ -1,9 +1,27 @@
 #include "mir_liveness_dce.h"
 
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "../common/string_compat.h"
+
+static bool
+mir_value_summary_next_capacity(size_t *capacity, size_t initial, size_t elem_size)
+{
+    if (capacity == NULL || initial == 0 || elem_size == 0)
+        return false;
+
+    size_t current = *capacity;
+    size_t next_capacity = current == 0 ? initial : current * 2;
+    if (current != 0 && next_capacity < current)
+        return false;
+    if (next_capacity > SIZE_MAX / elem_size)
+        return false;
+
+    *capacity = next_capacity;
+    return true;
+}
 
 static const char *
 mir_liveness_summary_slot_anchor(const MIRInstruction *inst)
@@ -48,8 +66,11 @@ mir_append_value_summary(MIRRoutine *routine,
     summary.has_ast_reassignment = false;
 
     if (routine->value_summary_count == routine->value_summary_capacity) {
-        size_t next_capacity =
-            routine->value_summary_capacity == 0 ? 8 : routine->value_summary_capacity * 2;
+        size_t next_capacity = routine->value_summary_capacity;
+        if (!mir_value_summary_next_capacity(&next_capacity, 8, sizeof(MIRValueSummary))) {
+            free((void *)summary.name);
+            return false;
+        }
         MIRValueSummary *grown =
             realloc(routine->value_summaries, next_capacity * sizeof(MIRValueSummary));
         if (grown == NULL) {
@@ -79,6 +100,8 @@ mir_build_value_summaries(MIRRoutine *routine)
 
     for (size_t block_id = 0; block_id < routine->block_count; block_id++) {
         MIRBasicBlock *block = &routine->blocks[block_id];
+        if (block->instruction_count > 0 && block->instructions == NULL)
+            return false;
         for (size_t inst_id = 0; inst_id < block->instruction_count; inst_id++) {
             const MIRInstruction *inst = &block->instructions[inst_id];
             if (inst->result_name != NULL) {
@@ -96,6 +119,8 @@ mir_build_value_summaries(MIRRoutine *routine)
 
     for (size_t block_id = 0; block_id < routine->block_count; block_id++) {
         const MIRBasicBlock *block = &routine->blocks[block_id];
+        if (block->instruction_count > 0 && block->instructions == NULL)
+            return false;
 
         for (size_t i = 0; i < block->live_in_name_count; i++) {
             int idx = mir_find_value_summary(routine, block->live_in_names[i]);
@@ -145,6 +170,8 @@ mir_build_value_summaries(MIRRoutine *routine)
 
     for (size_t block_id = 0; block_id < routine->block_count; block_id++) {
         const MIRBasicBlock *block = &routine->blocks[block_id];
+        if (block->instruction_count > 0 && block->instructions == NULL)
+            return false;
         for (size_t inst_id = 0; inst_id < block->instruction_count; inst_id++) {
             const MIRInstruction *inst = &block->instructions[inst_id];
             const char *write_name;

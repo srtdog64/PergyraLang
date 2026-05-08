@@ -194,6 +194,8 @@ pgy_intent_append_line_len(char **dst, size_t *dst_len, const char *line)
     if (*dst != NULL && old_len == 0)
         old_len = strlen(*dst);
     add_len = strlen(line);
+    if (add_len > ((size_t)-1) - old_len - 1)
+        return;
     grown = (char *)realloc(*dst, old_len + add_len + 1);
     if (grown == NULL)
         return;

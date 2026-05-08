@@ -1,6 +1,8 @@
 #ifndef PGY_TRANSPILER_PARALLEL_CAPTURE_H
 #define PGY_TRANSPILER_PARALLEL_CAPTURE_H
 
+#include "../common/string_compat.h"
+
 /* Helpers for discovering locals captured by generated C parallel blocks. */
 
 static ASTNode *
@@ -65,8 +67,8 @@ transpiler_parallel_add_capture_name(TranspilerCtx *ctx,
         if (!transpiler_parallel_capture_has_name(slot_names,
                 slot_count != NULL ? *slot_count : 0, name)
             && slot_count != NULL && *slot_count < MAX_SLOT_VARS) {
-            strncpy(slot_names[*slot_count], name, sizeof(slot_names[*slot_count]) - 1);
-            slot_names[*slot_count][sizeof(slot_names[*slot_count]) - 1] = '\0';
+            pergyra_str_copy(slot_names[*slot_count],
+                sizeof(slot_names[*slot_count]), name);
             (*slot_count)++;
         }
         return;
@@ -87,8 +89,8 @@ transpiler_parallel_add_capture_name(TranspilerCtx *ctx,
             && !transpiler_parallel_capture_has_name(typed_names,
                 typed_count != NULL ? *typed_count : 0, name)
             && typed_count != NULL && *typed_count < MAX_SLOT_VARS) {
-            strncpy(typed_names[*typed_count], name, sizeof(typed_names[*typed_count]) - 1);
-            typed_names[*typed_count][sizeof(typed_names[*typed_count]) - 1] = '\0';
+            pergyra_str_copy(typed_names[*typed_count],
+                sizeof(typed_names[*typed_count]), name);
             (*typed_count)++;
         }
     } else {
@@ -101,8 +103,8 @@ transpiler_parallel_add_capture_name(TranspilerCtx *ctx,
                     typed_count != NULL ? *typed_count : 0, name)
             && typed_count != NULL && *typed_count < MAX_SLOT_VARS) {
             register_typed_var(ctx, name, type_name);
-            strncpy(typed_names[*typed_count], name, sizeof(typed_names[*typed_count]) - 1);
-            typed_names[*typed_count][sizeof(typed_names[*typed_count]) - 1] = '\0';
+            pergyra_str_copy(typed_names[*typed_count],
+                sizeof(typed_names[*typed_count]), name);
             (*typed_count)++;
         }
     }

@@ -24,8 +24,12 @@ llvm_domain_required_ast_type(LLVMGenCtx *ctx,
 {
     if (ctx == NULL)
         return NULL;
-    if (type_node != NULL)
-        return ast_type_to_llvm(ctx, type_node);
+    if (type_node != NULL) {
+        LLVMTypeRef type = ast_type_to_llvm(ctx, type_node);
+        if (ctx->has_error || type == NULL)
+            return NULL;
+        return type;
+    }
 
     llvm_set_error_at_with_hints(ctx, field_node,
         PGY_CODE_LLVM_TYPE_UNSUPPORTED,
@@ -33,7 +37,41 @@ llvm_domain_required_ast_type(LLVMGenCtx *ctx,
         PGY_FIX_ANNOTATE_CONCRETE_TYPE,
         "LLVM domain %s requires explicit type metadata; silent i32 fallback is not allowed",
         field_kind != NULL ? field_kind : "field");
-    return ctx->type_i32;
+    return NULL;
+}
+
+static LLVMTypeRef
+llvm_domain_required_class_struct_type(LLVMGenCtx *ctx,
+                                       ASTNode *field_node,
+                                       const char *type_name,
+                                       const char *field_kind)
+{
+    LLVMClassTypeEntry *field_cls;
+
+    if (ctx == NULL)
+        return NULL;
+    if (type_name == NULL || type_name[0] == '\0') {
+        llvm_set_error_at_with_hints(ctx, field_node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+            "LLVM domain %s requires concrete class type metadata; silent i32 fallback is not allowed",
+            field_kind != NULL ? field_kind : "field");
+        return NULL;
+    }
+
+    field_cls = llvm_lookup_class(ctx, type_name);
+    if (field_cls != NULL && field_cls->struct_type != NULL)
+        return field_cls->struct_type;
+
+    llvm_set_error_at_with_hints(ctx, field_node,
+        PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+        PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+        PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+        "LLVM domain %s requires registered class metadata for '%s'; silent i32 fallback is not allowed",
+        field_kind != NULL ? field_kind : "field",
+        type_name);
+    return NULL;
 }
 
 void
@@ -100,11 +138,15 @@ llvm_register_domain_structs(LLVMGenCtx *ctx,
                     ASTNode *slot = stmt->data.zone_decl.slots[j];
                     ASTNode *slot_type = slot->data.domain_slot.type;
                     ftypes[idx] = llvm_domain_required_ast_type(ctx, slot, slot_type, "zone slot");
+                    if (ctx->has_error || ftypes[idx] == NULL)
+                        return;
                 }
                 for (size_t j = 0; j < stmt->data.zone_decl.shared_count; j++, idx++) {
                     ASTNode *sf = stmt->data.zone_decl.shared_fields[j];
                     ASTNode *sf_type = sf->data.party_shared.type;
                     ftypes[idx] = llvm_domain_required_ast_type(ctx, sf, sf_type, "zone shared field");
+                    if (ctx->has_error || ftypes[idx] == NULL)
+                        return;
                 }
                 for (size_t j = 0; j < stmt->data.zone_decl.layer_slot_count; j++, idx++) {
                     ASTNode *slot = stmt->data.zone_decl.layer_slots[j];
@@ -155,18 +197,20 @@ llvm_register_domain_structs(LLVMGenCtx *ctx,
                 size_t idx = 0;
                 for (size_t j = 0; j < stmt->data.roster_decl.party_count; j++, idx++) {
                     ASTNode *slot = stmt->data.roster_decl.party_slots[j];
-                    LLVMClassTypeEntry *field_cls = NULL;
-                    if (slot != NULL && slot->type == AST_SYSTEMIC_SLOT
-                        && slot->data.roster_slot.party_type != NULL) {
-                        field_cls = llvm_lookup_class(ctx,
-                            slot->data.roster_slot.party_type);
-                    }
-                    ftypes[idx] = field_cls != NULL ? field_cls->struct_type : ctx->type_i32;
+                    const char *party_type =
+                        (slot != NULL && slot->type == AST_SYSTEMIC_SLOT)
+                        ? slot->data.roster_slot.party_type : NULL;
+                    ftypes[idx] = llvm_domain_required_class_struct_type(ctx,
+                        slot, party_type, "roster party slot");
+                    if (ctx->has_error || ftypes[idx] == NULL)
+                        return;
                 }
                 for (size_t j = 0; j < stmt->data.roster_decl.shared_count; j++, idx++) {
                     ASTNode *sf = stmt->data.roster_decl.shared_fields[j];
                     ASTNode *sf_type = sf->data.party_shared.type;
                     ftypes[idx] = llvm_domain_required_ast_type(ctx, sf, sf_type, "roster shared field");
+                    if (ctx->has_error || ftypes[idx] == NULL)
+                        return;
                 }
             } else if (stmt->type == AST_WORLD_DECL) {
                 fc = stmt->data.world_decl.roster_count
@@ -184,20 +228,28 @@ llvm_register_domain_structs(LLVMGenCtx *ctx,
                 size_t idx = 0;
                 for (size_t j = 0; j < stmt->data.world_decl.roster_count; j++, idx++) {
                     ASTNode *ws = stmt->data.world_decl.rosters[j];
-                    LLVMClassTypeEntry *field_cls = ws != NULL
-                        ? llvm_lookup_class(ctx, ws->data.world_roster.roster_type) : NULL;
-                    ftypes[idx] = field_cls != NULL ? field_cls->struct_type : ctx->type_i32;
+                    const char *roster_type =
+                        ws != NULL ? ws->data.world_roster.roster_type : NULL;
+                    ftypes[idx] = llvm_domain_required_class_struct_type(ctx,
+                        ws, roster_type, "world roster slot");
+                    if (ctx->has_error || ftypes[idx] == NULL)
+                        return;
                 }
                 for (size_t j = 0; j < stmt->data.world_decl.zone_count; j++, idx++) {
                     ASTNode *wz = stmt->data.world_decl.zones[j];
-                    LLVMClassTypeEntry *field_cls = wz != NULL
-                        ? llvm_lookup_class(ctx, wz->data.world_zone.zone_type) : NULL;
-                    ftypes[idx] = field_cls != NULL ? field_cls->struct_type : ctx->type_i32;
+                    const char *zone_type =
+                        wz != NULL ? wz->data.world_zone.zone_type : NULL;
+                    ftypes[idx] = llvm_domain_required_class_struct_type(ctx,
+                        wz, zone_type, "world zone slot");
+                    if (ctx->has_error || ftypes[idx] == NULL)
+                        return;
                 }
                 for (size_t j = 0; j < stmt->data.world_decl.shared_count; j++, idx++) {
                     ASTNode *sf = stmt->data.world_decl.shared_fields[j];
                     ASTNode *sf_type = sf->data.party_shared.type;
                     ftypes[idx] = llvm_domain_required_ast_type(ctx, sf, sf_type, "world shared field");
+                    if (ctx->has_error || ftypes[idx] == NULL)
+                        return;
                 }
                 for (size_t j = 0; j < stmt->data.world_decl.zone_count; j++, idx++)
                     ftypes[idx] = ctx->type_i1;
@@ -228,11 +280,15 @@ llvm_register_domain_structs(LLVMGenCtx *ctx,
                     ASTNode *slot = slots[j];
                     ASTNode *slot_type = slot->data.domain_slot.type;
                     ftypes[idx] = llvm_domain_required_ast_type(ctx, slot, slot_type, "domain slot");
+                    if (ctx->has_error || ftypes[idx] == NULL)
+                        return;
                 }
                 for (size_t j = 0; j < shared_count; j++, idx++) {
                     ASTNode *sf = shared_fields[j];
                     ASTNode *sf_type = sf->data.party_shared.type;
                     ftypes[idx] = llvm_domain_required_ast_type(ctx, sf, sf_type, "domain shared field");
+                    if (ctx->has_error || ftypes[idx] == NULL)
+                        return;
                 }
                 for (size_t j = 0; j < dyn_slot_count; j++, idx++)
                     ftypes[idx] = ctx->type_i8ptr;

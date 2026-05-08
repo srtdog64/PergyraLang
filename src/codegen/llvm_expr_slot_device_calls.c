@@ -9,6 +9,26 @@
 #include "llvm_expr_identifier_slot_helpers.h"
 #include "llvm_internal_api.h"
 
+static bool
+llvm_slot_builtin_require_argc(ASTNode *node, LLVMGenCtx *ctx,
+                               const char *callee_name,
+                               size_t actual, size_t required,
+                               LLVMValueRef *out)
+{
+    if (actual >= required)
+        return true;
+    llvm_set_error_at_with_hints(ctx, node,
+        PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+        PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+        PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+        "LLVM %s requires at least %zu argument(s)",
+        callee_name != NULL ? callee_name : "slot operation",
+        required);
+    if (out != NULL)
+        *out = NULL;
+    return false;
+}
+
 bool
 llvm_emit_slot_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
                             const char *callee_name, LLVMValueRef *out)
@@ -32,10 +52,9 @@ llvm_emit_slot_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
     }
 
     if (strcmp(callee_name, "Write") == 0) {
-        if (node->data.call.arg_count < 2) {
-            *out = LLVMConstInt(ctx->type_i32, 0, 0);
+        if (!llvm_slot_builtin_require_argc(node, ctx, callee_name,
+                node->data.call.arg_count, 2, out))
             return true;
-        }
 
         const char *inner = NULL;
         const char *source_name = NULL;
@@ -44,13 +63,13 @@ llvm_emit_slot_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         LLVMVarEntry *slot_var = llvm_resolve_slot_target(ctx, slot_arg, &inner,
             &source_name, &is_secure);
         if (slot_var == NULL) {
-            *out = LLVMConstInt(ctx->type_i32, 0, 0);
+            *out = NULL;
             return true;
         }
 
         LLVMValueRef val = llvm_emit_expression(node->data.call.arguments[1], ctx);
         if (val == NULL) {
-            *out = LLVMConstInt(ctx->type_i32, 0, 0);
+            *out = NULL;
             return true;
         }
 
@@ -61,7 +80,7 @@ llvm_emit_slot_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         if (fn == NULL && llvm_slot_inner_has_external_runtime_helpers(inner)) {
             llvm_required_runtime_function(ctx, node,
                 is_secure ? "secure slot" : "slot", callee_name, fn_name);
-            *out = LLVMConstInt(ctx->type_i32, 0, 0);
+            *out = NULL;
             return true;
         }
         if (fn == NULL) {
@@ -77,7 +96,7 @@ llvm_emit_slot_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
             LLVMVarEntry *token_var = llvm_require_secure_token_var(ctx, node,
                 source_name, callee_name);
             if (token_var == NULL) {
-                *out = LLVMConstInt(ctx->type_i32, 0, 0);
+                *out = NULL;
                 return true;
             }
             LLVMValueRef args[] = {
@@ -98,10 +117,9 @@ llvm_emit_slot_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
     }
 
     if (strcmp(callee_name, "Read") == 0) {
-        if (node->data.call.arg_count < 1) {
-            *out = LLVMConstInt(ctx->type_i32, 0, 0);
+        if (!llvm_slot_builtin_require_argc(node, ctx, callee_name,
+                node->data.call.arg_count, 1, out))
             return true;
-        }
 
         const char *inner = NULL;
         const char *source_name = NULL;
@@ -110,7 +128,7 @@ llvm_emit_slot_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         LLVMVarEntry *slot_var = llvm_resolve_slot_target(ctx, slot_arg, &inner,
             &source_name, &is_secure);
         if (slot_var == NULL) {
-            *out = LLVMConstInt(ctx->type_i32, 0, 0);
+            *out = NULL;
             return true;
         }
 
@@ -121,7 +139,7 @@ llvm_emit_slot_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         if (fn == NULL && llvm_slot_inner_has_external_runtime_helpers(inner)) {
             llvm_required_runtime_function(ctx, node,
                 is_secure ? "secure slot" : "slot", callee_name, fn_name);
-            *out = LLVMConstInt(ctx->type_i32, 0, 0);
+            *out = NULL;
             return true;
         }
         if (fn == NULL) {
@@ -136,7 +154,7 @@ llvm_emit_slot_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
             LLVMVarEntry *token_var = llvm_require_secure_token_var(ctx, node,
                 source_name, callee_name);
             if (token_var == NULL) {
-                *out = LLVMConstInt(ctx->type_i32, 0, 0);
+                *out = NULL;
                 return true;
             }
             LLVMValueRef args[] = {
@@ -156,10 +174,9 @@ llvm_emit_slot_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
     }
 
     if (strcmp(callee_name, "Release") == 0) {
-        if (node->data.call.arg_count < 1) {
-            *out = LLVMConstInt(ctx->type_i32, 0, 0);
+        if (!llvm_slot_builtin_require_argc(node, ctx, callee_name,
+                node->data.call.arg_count, 1, out))
             return true;
-        }
 
         const char *inner = NULL;
         const char *source_name = NULL;
@@ -168,7 +185,7 @@ llvm_emit_slot_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         LLVMVarEntry *slot_var = llvm_resolve_slot_target(ctx, slot_arg, &inner,
             &source_name, &is_secure);
         if (slot_var == NULL) {
-            *out = LLVMConstInt(ctx->type_i32, 0, 0);
+            *out = NULL;
             return true;
         }
 
@@ -179,7 +196,7 @@ llvm_emit_slot_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         if (fn == NULL && llvm_slot_inner_has_external_runtime_helpers(inner)) {
             llvm_required_runtime_function(ctx, node,
                 is_secure ? "secure slot" : "slot", callee_name, fn_name);
-            *out = LLVMConstInt(ctx->type_i32, 0, 0);
+            *out = NULL;
             return true;
         }
 
@@ -192,7 +209,7 @@ llvm_emit_slot_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
             LLVMVarEntry *token_var = llvm_require_secure_token_var(ctx, node,
                 source_name, callee_name);
             if (token_var == NULL) {
-                *out = LLVMConstInt(ctx->type_i32, 0, 0);
+                *out = NULL;
                 return true;
             }
             LLVMValueRef args[] = {
@@ -222,10 +239,9 @@ llvm_emit_slot_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
     }
 
     if (strcmp(callee_name, "DeviceWrite") == 0) {
-        if (node->data.call.arg_count < 2) {
-            *out = LLVMConstInt(ctx->type_i32, 0, 0);
+        if (!llvm_slot_builtin_require_argc(node, ctx, callee_name,
+                node->data.call.arg_count, 2, out))
             return true;
-        }
 
         ASTNode *slot_arg = node->data.call.arguments[0];
         const char *inner = llvm_call_arg_device_inner(ctx, slot_arg);
@@ -238,7 +254,7 @@ llvm_emit_slot_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
             return true;
         }
         if (slot_var == NULL) {
-            *out = LLVMConstInt(ctx->type_i32, 0, 0);
+            *out = NULL;
             return true;
         }
 
@@ -248,7 +264,7 @@ llvm_emit_slot_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
             "device slot", callee_name, fn_name);
         LLVMValueRef val = llvm_emit_expression(node->data.call.arguments[1], ctx);
         if (fn == NULL || val == NULL) {
-            *out = LLVMConstInt(ctx->type_i32, 0, 0);
+            *out = NULL;
             return true;
         }
 
@@ -261,10 +277,9 @@ llvm_emit_slot_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
     if (strcmp(callee_name, "DeviceRead") == 0
         || strcmp(callee_name, "ReleaseDeviceSlot") == 0
         || strcmp(callee_name, "SubmitDeviceRead") == 0) {
-        if (node->data.call.arg_count < 1) {
-            *out = LLVMConstInt(ctx->type_i32, 0, 0);
+        if (!llvm_slot_builtin_require_argc(node, ctx, callee_name,
+                node->data.call.arg_count, 1, out))
             return true;
-        }
 
         ASTNode *slot_arg = node->data.call.arguments[0];
         const char *inner = llvm_call_arg_device_inner(ctx, slot_arg);
@@ -277,7 +292,7 @@ llvm_emit_slot_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
             return true;
         }
         if (slot_var == NULL) {
-            *out = LLVMConstInt(ctx->type_i32, 0, 0);
+            *out = NULL;
             return true;
         }
 
@@ -292,7 +307,7 @@ llvm_emit_slot_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
             "device slot", callee_name, fn_name);
         if (fn == NULL) {
-            *out = LLVMConstInt(ctx->type_i32, 0, 0);
+            *out = NULL;
             return true;
         }
 

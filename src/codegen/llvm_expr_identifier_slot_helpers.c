@@ -20,6 +20,20 @@ llvm_emit_boolean(ASTNode *node, LLVMGenCtx *ctx)
     return LLVMConstInt(ctx->type_i1, node->data.boolean.value ? 1 : 0, 0);
 }
 
+static LLVMValueRef
+llvm_identifier_error(ASTNode *node, LLVMGenCtx *ctx, const char *message)
+{
+    if (ctx != NULL && !ctx->has_error) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_SYMBOL_UNDEFINED,
+            PGY_FIX_IMPORT_OR_DECLARE_SYMBOL,
+            "%s",
+            message != NULL ? message : "LLVM identifier could not be resolved");
+    }
+    return NULL;
+}
+
 static const char *
 llvm_derive_slot_inner_from_current_decl(LLVMGenCtx *ctx,
                                          const char *source_name,
@@ -144,13 +158,25 @@ llvm_resolve_slot_target(LLVMGenCtx *ctx, ASTNode *slot_arg,
             source_name);
         return NULL;
     }
+    LLVMVarEntry *slot_var = source_name != NULL
+        ? llvm_scope_lookup(ctx, source_name)
+        : NULL;
+    if (slot_var == NULL) {
+        llvm_set_error_at_with_hints(ctx, slot_arg,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_SLOT_BINDING_MISSING,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "LLVM slot operation on '%s' requires a registered slot local",
+            source_name);
+        return NULL;
+    }
     if (inner_out != NULL)
         *inner_out = inner;
     if (source_name_out != NULL)
         *source_name_out = source_name;
     if (secure_out != NULL)
         *secure_out = is_secure;
-    return source_name != NULL ? llvm_scope_lookup(ctx, source_name) : NULL;
+    return slot_var;
 }
 
 LLVMValueRef
@@ -184,7 +210,7 @@ llvm_emit_identifier(ASTNode *node, LLVMGenCtx *ctx)
                             return LLVMBuildCall2(ctx->builder, fn->fn_type,
                                 fn->fn, args, 2, llvm_tmp_name(ctx));
                         }
-                        return LLVMConstInt(ctx->type_i32, 0, 0);
+                        return NULL;
                     }
                     {
                         LLVMValueRef args[] = { llvm_slot_runtime_arg(ctx, var) };
@@ -199,7 +225,7 @@ llvm_emit_identifier(ASTNode *node, LLVMGenCtx *ctx)
                         PGY_FIX_INSPECT_MIR_INVENTORY,
                         "LLVM slot auto-read requires registered runtime function '%s'",
                         fn_name);
-                    return LLVMConstInt(ctx->type_i32, 0, 0);
+                    return NULL;
                 }
                 if (is_secure)
                     return llvm_emit_structural_secure_slot_read(ctx, var, inner);
@@ -210,7 +236,7 @@ llvm_emit_identifier(ASTNode *node, LLVMGenCtx *ctx)
 
     projection_borrow = llvm_lookup_projection_borrow(ctx, name);
     if (projection_borrow != NULL) {
-        return llvm_emit_projection_from_binding(ctx,
+        return llvm_emit_projection_from_binding(node, ctx,
             projection_borrow->class_name,
             projection_borrow->source_name);
     }
@@ -230,7 +256,8 @@ llvm_emit_identifier(ASTNode *node, LLVMGenCtx *ctx)
                 LLVMValueRef gep;
                 LLVMTypeRef field_type;
                 if (base_ptr == NULL)
-                    return LLVMConstInt(ctx->type_i32, 0, 0);
+                    return llvm_identifier_error(node, ctx,
+                        "LLVM host field access requires a self receiver");
                 gep = LLVMBuildStructGEP2(ctx->builder,
                     cls->struct_type, base_ptr, (unsigned)field_idx,
                     llvm_tmp_name(ctx));
@@ -252,7 +279,8 @@ llvm_emit_identifier(ASTNode *node, LLVMGenCtx *ctx)
                 (unsigned long long)variant->value, 0);
     }
 
-    return LLVMConstInt(ctx->type_i32, 0, 0);
+    return llvm_identifier_error(node, ctx,
+        "LLVM identifier is not declared in the active scope, host, function registry, or enum inventory");
 }
 
 #endif

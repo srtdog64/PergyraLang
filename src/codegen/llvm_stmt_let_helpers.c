@@ -101,21 +101,33 @@ llvm_stmt_lambda_signature_type(LLVMGenCtx *ctx, ASTNode *expr)
     LLVMTypeRef *params = NULL;
     LLVMTypeRef ret_type = ctx->type_i32;
 
-    if (expr->data.lambda_expr.return_type != NULL)
+    if (expr->data.lambda_expr.return_type != NULL) {
         ret_type = ast_type_to_llvm(ctx, expr->data.lambda_expr.return_type);
+        if (ctx->has_error || ret_type == NULL)
+            return NULL;
+    }
 
     if (pc > 0) {
         params = pgy_arena_calloc(&ctx->scratch,
             (size_t)pc * sizeof(LLVMTypeRef));
-        if (params == NULL)
-            return LLVMPointerType(LLVMFunctionType(ret_type, NULL, 0, 0), 0);
+        if (params == NULL) {
+            llvm_set_error_at_with_hints(ctx, expr,
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                PGY_FIX_INSPECT_MIR_INVENTORY,
+                "LLVM lambda signature parameter allocation failed");
+            return NULL;
+        }
         for (int i = 0; i < pc; i++) {
             ASTNode *p = expr->data.lambda_expr.params[i];
             if (p != NULL && p->type == AST_LET_DECL
-                && p->data.let_decl.type != NULL)
+                && p->data.let_decl.type != NULL) {
                 params[i] = ast_type_to_llvm(ctx, p->data.let_decl.type);
-            else
+                if (ctx->has_error || params[i] == NULL)
+                    return NULL;
+            } else {
                 params[i] = ctx->type_i32;
+            }
         }
     }
 

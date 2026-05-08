@@ -31,6 +31,8 @@ llvm_stmt_render_type_arg_scratch(GenericParam *param, PgyArena *arena)
             return pgy_arena_strdup(arena, type->data.type.name);
 
         char *result = pgy_arena_strdup(arena, type->data.type.name);
+        if (result == NULL)
+            return NULL;
         for (size_t i = 0; i < type->data.type.generic_args->count; i++) {
             char *arg = llvm_stmt_render_type_arg_scratch(
                 type->data.type.generic_args->params[i], arena);
@@ -38,7 +40,10 @@ llvm_stmt_render_type_arg_scratch(GenericParam *param, PgyArena *arena)
                 return NULL;
             size_t cur_len = strlen(result);
             size_t arg_len = strlen(arg);
-            size_t need = cur_len + arg_len + 4;
+            size_t need;
+            if (arg_len > ((size_t)-1) - cur_len - 4)
+                return NULL;
+            need = cur_len + arg_len + 4;
             char *grown = pgy_arena_alloc(arena, need);
             if (grown == NULL)
                 return NULL;
@@ -57,6 +62,8 @@ llvm_stmt_render_type_arg_scratch(GenericParam *param, PgyArena *arena)
         }
         {
             size_t cur_len = strlen(result);
+            if (cur_len > ((size_t)-1) - 2)
+                return NULL;
             char *grown = pgy_arena_alloc(arena, cur_len + 2);
             if (grown == NULL)
                 return NULL;

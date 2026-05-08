@@ -36,7 +36,7 @@ llvm_stmt_diag_collection(LLVMGenCtx *ctx,
     llvm_set_error_at_with_hints(ctx, node,
         PGY_CODE_LLVM_TYPE_UNSUPPORTED,
         PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
-        PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+        PGY_FIX_INSPECT_MIR_INVENTORY,
         "LLVM %s binding '%s' requires runtime export '%s'; not registered",
         container_name != NULL ? container_name : "collection",
         binding_name != NULL ? binding_name : "<binding>",
@@ -106,6 +106,10 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
             }
             LLVMTypeRef list_ty = ast_type_to_llvm(ctx, type_ann);
             LLVMTypeRef elem_ty = pergyra_type_to_llvm(ctx, inner);
+            if (ctx->has_error || list_ty == NULL || elem_ty == NULL) {
+                free(inner);
+                return true;
+            }
             LLVMValueRef alloca_val = llvm_create_entry_alloca(ctx, list_ty, name);
             LLVMFuncEntry *new_fn = llvm_lookup_function(ctx, "pgy_list_new_raw_export");
             if (new_fn == NULL) {
@@ -136,6 +140,10 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
             }
             LLVMTypeRef set_ty = ast_type_to_llvm(ctx, type_ann);
             LLVMTypeRef elem_ty = pergyra_type_to_llvm(ctx, inner);
+            if (ctx->has_error || set_ty == NULL || elem_ty == NULL) {
+                free(inner);
+                return true;
+            }
             LLVMValueRef alloca_val = llvm_create_entry_alloca(ctx, set_ty, name);
             LLVMFuncEntry *new_fn = llvm_lookup_function(ctx, "pgy_set_new_raw_export");
             if (new_fn == NULL) {
@@ -166,6 +174,10 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
             }
             LLVMTypeRef queue_ty = ast_type_to_llvm(ctx, type_ann);
             LLVMTypeRef elem_ty = pergyra_type_to_llvm(ctx, inner);
+            if (ctx->has_error || queue_ty == NULL || elem_ty == NULL) {
+                free(inner);
+                return true;
+            }
             LLVMValueRef alloca_val = llvm_create_entry_alloca(ctx, queue_ty, name);
             LLVMFuncEntry *new_fn = llvm_lookup_function(ctx, "pgy_queue_new_raw_export");
             if (new_fn == NULL) {
@@ -224,6 +236,12 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
                 return ok;
             }
             value_ty = pergyra_type_to_llvm(ctx, value_type);
+            if (ctx->has_error || map_ty == NULL || value_ty == NULL) {
+                free(inner);
+                free(key_type);
+                free(value_type);
+                return true;
+            }
             alloca_val = llvm_create_entry_alloca(ctx, map_ty, name);
             new_fn = llvm_lookup_function(ctx, "pgy_map_new_raw_export");
             if (new_fn == NULL) {
@@ -330,6 +348,8 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
         }
 
         LLVMTypeRef array_type = llvm_array_struct_type(ctx, inner_name);
+        if (ctx->has_error || array_type == NULL)
+            return true;
         LLVMValueRef var_alloca = llvm_create_entry_alloca(ctx, array_type, name);
         char new_fn_name[64];
         char push_fn_name[64];

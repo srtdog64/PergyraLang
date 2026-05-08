@@ -443,18 +443,25 @@ llvm_forward_declare_intent(ASTNode *node, LLVMGenCtx *ctx)
                     : llvm_forward_intent_involves_type_name(binding);
                 if (type_name != NULL) {
                     pt = pergyra_type_to_llvm(ctx, type_name);
+                    if (ctx->has_error || pt == NULL)
+                        return;
                     if (llvm_type_name_uses_pointer_self(ctx, type_name))
                         pt = LLVMPointerType(pt, 0);
                 } else if (!mir_only_intent
                            && binding->data.intent_involves.subject_type != NULL) {
                     pt = ast_type_to_llvm(ctx, binding->data.intent_involves.subject_type);
+                    if (ctx->has_error || pt == NULL)
+                        return;
                     if (llvm_intent_involves_uses_pointer_self(ctx, binding))
                         pt = LLVMPointerType(pt, 0);
                 }
                 participant_index++;
             } else {
-                if (binding != NULL && binding->data.intent_value.value_type != NULL)
+                if (binding != NULL && binding->data.intent_value.value_type != NULL) {
                     pt = ast_type_to_llvm(ctx, binding->data.intent_value.value_type);
+                    if (ctx->has_error || pt == NULL)
+                        return;
+                }
             }
             param_types[i] = pt;
         }

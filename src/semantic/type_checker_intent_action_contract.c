@@ -16,11 +16,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-ASTNode *
-any_subject_role_find_base_ability_impl(ASTNode *program, const char *ability_name);
-const char *
-intent_involves_type_name(ASTNode *involves);
-
 static Type *
 intent_action_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
 {
@@ -226,7 +221,6 @@ intent_step_warn_redundant_action_contract(ASTNode *intent_decl,
     ASTNode *action_decl = intent_step_find_inheritable_action(
         intent_decl, step, ctx, &action_subject_decl);
     char redundant[256];
-    size_t used = 0;
     bool has_any = false;
     const char *step_name;
     const char *action_name;
@@ -255,16 +249,16 @@ intent_step_warn_redundant_action_contract(ASTNode *intent_decl,
         && step->data.intent_step.where_type->data.type.name != NULL
         && strcmp(step->data.intent_step.where_type->data.type.name,
                   action_decl->data.func_decl.within_zone) == 0) {
-        used += (size_t)snprintf(redundant + used, sizeof(redundant) - used,
-            "%s- where", has_any ? "\n" : "");
+        (void)pergyra_str_appendf(redundant, sizeof(redundant),
+                                  "%s- where", has_any ? "\n" : "");
         has_any = true;
     }
 
     if (step->data.intent_step.who_count > 0
         && !step->data.intent_step.inherited_who_from_action
         && intent_step_same_who_binding(intent_decl, step, action_subject_decl)) {
-        used += (size_t)snprintf(redundant + used, sizeof(redundant) - used,
-            "%s- who", has_any ? "\n" : "");
+        (void)pergyra_str_appendf(redundant, sizeof(redundant),
+                                  "%s- who", has_any ? "\n" : "");
         has_any = true;
     }
 
@@ -272,8 +266,8 @@ intent_step_warn_redundant_action_contract(ASTNode *intent_decl,
         && !step->data.intent_step.inherited_requires_from_action
         && action_decl->data.func_decl.required_ability_count > 0
         && intent_step_same_ability_list(step, action_decl)) {
-        used += (size_t)snprintf(redundant + used, sizeof(redundant) - used,
-            "%s- requires", has_any ? "\n" : "");
+        (void)pergyra_str_appendf(redundant, sizeof(redundant),
+                                  "%s- requires", has_any ? "\n" : "");
         has_any = true;
     }
 
@@ -282,8 +276,8 @@ intent_step_warn_redundant_action_contract(ASTNode *intent_decl,
         && action_decl->data.func_decl.causes_effect != NULL
         && strcmp(step->data.intent_step.causes_effect,
                   action_decl->data.func_decl.causes_effect) == 0) {
-        used += (size_t)snprintf(redundant + used, sizeof(redundant) - used,
-            "%s- causes", has_any ? "\n" : "");
+        (void)pergyra_str_appendf(redundant, sizeof(redundant),
+                                  "%s- causes", has_any ? "\n" : "");
         has_any = true;
     }
 
@@ -292,8 +286,8 @@ intent_step_warn_redundant_action_contract(ASTNode *intent_decl,
         && action_decl->data.func_decl.authorized_by_count > 0
         && intent_step_same_authorized_by_list(intent_decl, step, action_decl,
                                                action_subject_decl, ctx)) {
-        used += (size_t)snprintf(redundant + used, sizeof(redundant) - used,
-            "%s- authorized by", has_any ? "\n" : "");
+        (void)pergyra_str_appendf(redundant, sizeof(redundant),
+                                  "%s- authorized by", has_any ? "\n" : "");
         has_any = true;
     }
 

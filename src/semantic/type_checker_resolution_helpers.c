@@ -3,6 +3,7 @@
 
 #include "type_checker_internal.h"
 #include "diag_codes.h"
+#include "../common/string_compat.h"
 
 ASTNode *
 find_type_alias_decl(ASTNode *program, const char *name)
@@ -73,22 +74,19 @@ semantic_format_function_signature(const Type *type, char *out, size_t out_cap)
     if (type == NULL || type->kind != TYPE_KIND_FUNCTION)
         return;
 
-    pos = snprintf(out, out_cap, "fn(");
+    pos = pergyra_str_append(out, out_cap, "fn(");
     for (size_t i = 0; i < type->data.function.param_count; i++) {
         const char *param_name =
             type_name_or_unknown(type->data.function.param_types[i]);
         if (i > 0)
-            pos += snprintf(out + pos, out_cap > pos ? out_cap - pos : 0, ", ");
-        pos += snprintf(out + pos, out_cap > pos ? out_cap - pos : 0, "%s",
-                        param_name);
+            pos = pergyra_str_append(out, out_cap, ", ");
+        pos = pergyra_str_append(out, out_cap, param_name);
         if (pos >= out_cap)
             break;
     }
-    if (pos < out_cap) {
-        snprintf(out + pos, out_cap > pos ? out_cap - pos : 0,
-                 ")->%s",
-                 type_name_or_unknown(type->data.function.return_type));
-    }
+    if (pos < out_cap)
+        (void)pergyra_str_appendf(out, out_cap, ")->%s",
+                                  type_name_or_unknown(type->data.function.return_type));
 }
 
 static const char *

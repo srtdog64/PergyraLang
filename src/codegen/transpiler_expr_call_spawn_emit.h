@@ -92,7 +92,7 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                 ASTNode *method_decl = find_nominal_host_method_decl(ctx, owned_type_name, method);
 
                 snprintf(stable_type_name, sizeof(stable_type_name), "%s",
-                    owned_type_name != NULL ? owned_type_name : "Unknown");
+                    owned_type_name);
                 owned_type_name = stable_type_name;
                 use_self_cell = is_pointer_self_host_type_name(ctx, owned_type_name);
 

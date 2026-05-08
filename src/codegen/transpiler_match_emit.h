@@ -158,13 +158,15 @@ emit_match_stmt(ASTNode *node, TranspilerCtx *ctx)
     const char *subject_c_type;
     bool subject_is_option = subject_type != NULL && strncmp(subject_type, "Option<", 7) == 0;
 
-    if (subject_type == NULL || subject_type[0] == '\0') {
+    if (subject_type == NULL || subject_type[0] == '\0'
+        || strcmp(subject_type, "Unknown") == 0) {
         transpiler_set_backend_error_with_hints(ctx,
             PGY_CODE_C_TYPE_UNSUPPORTED,
             PGY_CAUSE_C_TYPE_UNSUPPORTED,
             PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
             "C match lowering requires a concrete subject type; implicit Int match fallback is disabled");
-        subject_type = "Unknown";
+        free(subj);
+        return;
     }
     subject_c_type = pergyra_type_to_c(subject_type);
 
@@ -263,10 +265,10 @@ emit_match_stmt(ASTNode *node, TranspilerCtx *ctx)
                         PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
                         "C match lowering cannot bind Some(%s) without Option<T> subject type",
                         binding);
-                    inner = "Unknown";
+                } else {
+                    codebuf_write(ctx->out, "%s %s = __match_%d.value;\n",
+                        pergyra_type_to_c(inner), binding, tmp_id);
                 }
-                codebuf_write(ctx->out, "%s %s = __match_%d.value;\n",
-                    pergyra_type_to_c(inner), binding, tmp_id);
             } else if (strcmp(kind, "Ok") == 0) {
                 const char *ok_type = strncmp(subject_type, "Result<", 7) == 0
                     ? constructed_arg_name_at(subject_type, 0) : NULL;
@@ -277,10 +279,10 @@ emit_match_stmt(ASTNode *node, TranspilerCtx *ctx)
                         PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
                         "C match lowering cannot bind Ok(%s) without Result<T,E> subject type",
                         binding);
-                    ok_type = "Unknown";
+                } else {
+                    codebuf_write(ctx->out, "%s %s = __match_%d.ok;\n",
+                        pergyra_type_to_c(ok_type), binding, tmp_id);
                 }
-                codebuf_write(ctx->out, "%s %s = __match_%d.ok;\n",
-                    pergyra_type_to_c(ok_type), binding, tmp_id);
             } else if (strcmp(kind, "Err") == 0) {
                 const char *err_type = "PgyError";
                 if (strncmp(subject_type, "Result<", 7) != 0) {
@@ -290,12 +292,20 @@ emit_match_stmt(ASTNode *node, TranspilerCtx *ctx)
                         PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
                         "C match lowering cannot bind Err(%s) without Result<T,E> subject type",
                         binding);
-                    err_type = "Unknown";
                 } else if (strchr(slot_inner_type_name(subject_type), ',') != NULL) {
                     err_type = constructed_arg_name_at(subject_type, 1);
                 }
-                codebuf_write(ctx->out, "%s %s = __match_%d.err;\n",
-                    pergyra_type_to_c(err_type), binding, tmp_id);
+                if (err_type == NULL || strcmp(err_type, "Unknown") == 0) {
+                    transpiler_set_backend_error_with_hints(ctx,
+                        PGY_CODE_C_TYPE_UNSUPPORTED,
+                        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                        PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+                        "C match lowering cannot bind Err(%s) without concrete Result error type",
+                        binding);
+                } else {
+                    codebuf_write(ctx->out, "%s %s = __match_%d.err;\n",
+                        pergyra_type_to_c(err_type), binding, tmp_id);
+                }
             }
         }
         if (kind != NULL

@@ -8,7 +8,7 @@
 #include "transpiler_mir_cfg_policy.h"
 
 bool
-transpiler_mir_stmt_is_cfg_container(ASTNode *node)
+transpiler_mir_stmt_is_cfg_container(const ASTNode *node)
 {
     if (node == NULL)
         return false;

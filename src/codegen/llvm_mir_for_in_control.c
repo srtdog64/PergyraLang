@@ -220,6 +220,8 @@ llvm_mir_emit_for_in_body_binding(const MIRRoutine *routine,
         return true;
 
     elem_ty = pergyra_type_to_llvm(ctx, list_inner);
+    if (ctx->has_error || elem_ty == NULL)
+        return false;
     loop_var = llvm_scope_lookup(ctx, variable);
     if (loop_var == NULL) {
         LLVMValueRef loop_alloca = llvm_create_entry_alloca(ctx, elem_ty,

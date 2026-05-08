@@ -2,6 +2,8 @@
  * Log — Type-safe Logging
  * ================================================================= */
 
+#include "../common/string_compat.h"
+
 static inline void pgy_log_int(int32_t v)    { printf("%d\n", v); }
 static inline void pgy_log_long(int64_t v)   { printf("%lld\n", (long long)v); }
 static inline void pgy_log_float(float v)    { printf("%f\n", v); }
@@ -56,9 +58,9 @@ static inline float  Acos(float x)            { return acosf(x); }
 static inline float  Atan(float x)            { return atanf(x); }
 static inline float  Atan2(float y, float x)  { return atan2f(y, x); }
 static inline float  Exp(float x)             { return expf(x); }
-static inline float  MathLog(float x)          { return logf(x); }
-static inline float  Log10(float x)            { return log10f(x); }
-static inline float  Log2(float x)             { return log2f(x); }
+static inline float  MathLog(float x)         { return logf(x); }
+static inline float  Log10(float x)           { return log10f(x); }
+static inline float  Log2(float x)            { return log2f(x); }
 #define PGY_PI 3.14159265358979323846f
 #define PGY_E  2.71828182845904523536f
 
@@ -74,10 +76,9 @@ static inline void SeedRandom(int32_t seed)   { srand((unsigned int)seed); }
  * ================================================================= */
 
 static inline char* pgy_int_to_string(int32_t val) {
-    char stack_buf[32];
-    int len = snprintf(stack_buf, sizeof(stack_buf), "%d", val);
+    char *buf = pergyra_strdup_printf("%d", val);
 
-    if (len < 0) {
+    if (buf == NULL) {
         char *fallback = (char *)malloc(2);
         if (fallback != NULL) {
             fallback[0] = '0';
@@ -85,16 +86,12 @@ static inline char* pgy_int_to_string(int32_t val) {
         }
         return fallback;
     }
-    char *buf = (char *)malloc((size_t)len + 1);
-    if (buf == NULL) return NULL;
-    memcpy(buf, stack_buf, (size_t)len + 1);
     return buf;
 }
 
 static inline char* pgy_long_to_string(int64_t val) {
-    char stack_buf[32];
-    int len = snprintf(stack_buf, sizeof(stack_buf), "%lld", (long long)val);
-    if (len < 0) {
+    char *buf = pergyra_strdup_printf("%lld", (long long)val);
+    if (buf == NULL) {
         char *fallback = (char *)malloc(2);
         if (fallback != NULL) {
             fallback[0] = '0';
@@ -102,23 +99,16 @@ static inline char* pgy_long_to_string(int64_t val) {
         }
         return fallback;
     }
-    char *buf = (char *)malloc((size_t)len + 1);
-    if (buf == NULL) return NULL;
-    memcpy(buf, stack_buf, (size_t)len + 1);
     return buf;
 }
 
 static inline char* pgy_float_to_string(float val) {
-    char stack_buf[32];
-    int len = snprintf(stack_buf, sizeof(stack_buf), "%g", (double)val);
-    if (len < 0) {
+    char *buf = pergyra_strdup_printf("%g", (double)val);
+    if (buf == NULL) {
         char *fallback = (char *)malloc(4);
         if (fallback != NULL) { fallback[0] = '0'; fallback[1] = '.'; fallback[2] = '0'; fallback[3] = '\0'; }
         return fallback;
     }
-    char *buf = (char *)malloc((size_t)len + 1);
-    if (buf == NULL) return NULL;
-    memcpy(buf, stack_buf, (size_t)len + 1);
     return buf;
 }
 
@@ -132,4 +122,3 @@ static inline char* pgy_bool_to_string(bool val) {
 
 /* Console I/O: Input(prompt), Print(msg) are already defined below as
  * pgy_input() and pgy_print(). See type_checker_builtins.c for semantic. */
-

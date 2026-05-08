@@ -222,6 +222,29 @@ llvm_mir_decl_method_is_action_like(const MIRDeclMethod *method)
     return false;
 }
 
+const MIRRoutine *
+llvm_mir_decl_method_routine(const LLVMGenCtx *ctx,
+                             const MIRDeclMethod *method)
+{
+    LLVMMIRRoutineInventory inventory;
+
+    if (ctx == NULL || ctx->mir == NULL || method == NULL)
+        return NULL;
+    if (!method->has_routine)
+        return NULL;
+    llvm_active_routine_inventory(ctx, &inventory);
+    return llvm_routine_inventory_get(&inventory, method->routine_index);
+}
+
+const MIRRoutine *
+llvm_hosted_method_view_routine(const LLVMGenCtx *ctx,
+                                const LLVMHostedMethodView *view,
+                                size_t index)
+{
+    return llvm_mir_decl_method_routine(
+        ctx, llvm_hosted_method_view_metadata(view, index));
+}
+
 ASTNode *
 llvm_find_host_method_decl_in_context(const LLVMGenCtx *ctx,
                                       const char *host_type_name,

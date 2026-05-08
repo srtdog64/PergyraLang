@@ -61,18 +61,55 @@ run_literal_doc_contract_smoke() {
     require_literal "src/compiler/mir_cleanup_fact_names.h" "MIR_CLEANUP_FACT_EDGE"
     require_literal "src/compiler/mir_cleanup_fact_names.h" "cleanup-edge"
     require_literal "src/compiler/mir_cleanup_fact_names.h" "MIR_CLEANUP_FACT_PIN_UNPIN_EDGE"
-    require_literal "src/compiler/mir_cfg_contract_cleanup_fact.h" "slot_anchor"
-    require_literal "src/compiler/mir_cfg_contract_cleanup_fact.h" "arg0"
-    require_literal "src/compiler/mir_cfg_contract_pin.h" "MIR_CLEANUP_FACT_PIN_UNPIN_EDGE"
-    require_literal "src/compiler/mir_cfg_contract_pin.h" "mir_block_find_pin_cleanup_edge_fact"
+    require_literal "src/compiler/mir_cfg_contract_cleanup_fact.c" "slot_anchor"
+    require_literal "src/compiler/mir_cfg_contract_cleanup_fact.c" "arg0"
+    require_literal "src/compiler/mir_cfg_contract_pin.c" "MIR_CLEANUP_FACT_PIN_UNPIN_EDGE"
+    require_literal "src/compiler/mir_cfg_contract_pin.c" "mir_block_find_pin_cleanup_edge_fact"
     require_literal "src/compiler/mir_cfg_contract_pin.h" "mir_block_pin_cleanup_missing_reason"
-    require_literal "src/compiler/mir_cfg_contract_pin.h" "pin cleanup fact does not match source slot, view, and access mode"
+    require_literal "src/compiler/mir_cfg_contract_pin.c" "pin cleanup fact does not match source slot, view, and access mode"
     require_literal "src/compiler/mir_cfg_contract_edges.c" "mir_validate_edge_predecessor_link"
     require_literal "src/compiler/mir_cfg_contract_edges.c" "mir_validate_successor_index"
-    require_literal "src/compiler/mir_cfg_contract_validate.h" "mir_cleanup_block_is_registered_root"
-    require_literal "src/compiler/mir_cfg_contract_validate.h" "not registered as a cleanup root"
-    require_literal "src/compiler/mir_cfg_contract_validate.h" "rollback successor"
-    require_literal "src/compiler/mir_cfg_contract_validate.h" "invalidation successor"
+    require_literal "src/compiler/mir_cfg_contract_cleanup_root_membership.c" "mir_cleanup_block_is_registered_root"
+    require_literal "src/compiler/mir_cfg_contract_validate.c" "not registered as a cleanup root"
+    require_literal "src/compiler/mir_cfg_contract_cleanup_roots.c" "cleanup block %zu is not reachable"
+    require_literal "src/compiler/mir_cfg_contract_cleanup_fact.c" "instruction_count > 0 && block->instructions == NULL"
+    require_literal "src/compiler/mir_cfg_contract_pin.c" "instruction_count > 0 && block->instructions == NULL"
+    require_literal "src/compiler/mir_dce.c" "instruction_count > 0 && block->instructions == NULL"
+    require_literal "src/compiler/mir_fact_validate.c" "instruction count without instruction inventory during"
+    require_literal "src/compiler/mir_liveness_dce.c" "instruction_count > 0 && block->instructions == NULL"
+    require_literal "src/compiler/mir_liveness_summary.c" "instruction_count > 0 && block->instructions == NULL"
+    require_literal "src/compiler/mir_validation.c" "instruction count without instruction inventory during use validation"
+    require_literal "src/compiler/mir_lifecycle.c" "invalid: instruction count without instruction inventory"
+    require_literal "src/compiler/mir_lifecycle.c" "without routine inventory"
+    require_literal "src/compiler/mir_lifecycle.c" "without block inventory"
+    require_literal "src/compiler/mir_lifecycle.c" "without value-summary inventory"
+    require_literal "src/compiler/mir_lifecycle.c" "invalid: routine count without routine inventory"
+    require_literal "src/compiler/mir_lifecycle.c" "invalid: block count without block inventory"
+    require_literal "src/compiler/mir_lifecycle.c" "invalid: value-summary count without value-summary inventory"
+    require_literal "src/compiler/mir_cfg_contract_validate.c" "unreachable block[%zu] has exceptional successor"
+    require_literal "src/compiler/mir_cfg_contract_validate.c" "instruction count without instruction inventory"
+    require_literal "src/compiler/mir_lifecycle.c" "instructions != NULL"
+    require_literal "src/codegen/transpiler_mir_emission_contract.h" "instruction count without instruction inventory"
+    require_literal "src/codegen/llvm_mir_block_emit.c" "instruction count without instruction inventory"
+    require_literal "src/codegen/llvm_mir_block_emit.c" "llvm_set_mir_topology_invalid(ctx"
+    require_literal "src/codegen/llvm_mir_contract.c" "instruction count without instruction inventory"
+    require_literal "src/compiler/mir_cfg_contract_validate.c" "rollback successor"
+    require_literal "src/compiler/mir_cfg_contract_validate.c" "invalidation successor"
+    require_literal "src/compiler/mir_cleanup.c" "#include \"mir_base_helpers.h\""
+    require_literal "src/compiler/mir_cleanup.c" "mir_cleanup_next_capacity"
+    require_literal "src/compiler/mir_intent.c" "#include \"mir_base_helpers.h\""
+    require_literal "src/compiler/mir_intent.c" "return append_instruction(block, inst)"
+    require_literal "src/compiler/mir_liveness_dce.c" "mir_liveness_next_capacity"
+    require_literal "src/compiler/mir_liveness_summary.c" "mir_value_summary_next_capacity"
+    require_literal "src/compiler/hir_cfg.c" "hir_cfg_next_capacity"
+    require_literal "src/compiler/hir_cfg.c" "next_capacity > SIZE_MAX / elem_size"
+    require_literal "src/compiler/hir_lower_cfg_blocks.c" "hir_lower_cfg_next_capacity"
+    require_literal "src/compiler/hir_lower_cfg_blocks.c" "next_capacity > SIZE_MAX / elem_size"
+    require_literal "src/compiler/hir_lower_intent_cfg.c" "#include \"hir_lower_cfg_internal.h\""
+    require_literal "src/compiler/hir_analysis.c" "hir_analysis_next_capacity"
+    require_literal "src/compiler/hir_analysis.c" "next_capacity > SIZE_MAX / elem_size"
+    require_literal "src/compiler/hir_routines.c" "hir_routines_next_capacity"
+    require_literal "src/compiler/hir_routines.c" "next_capacity > SIZE_MAX / elem_size"
     require_literal "src/compiler/mir_ssa_rename.c" "mir_def_instruction_source_expr"
     require_literal "src/compiler/mir_ssa_rename.c" "return inst->expr0"
     require_literal "src/compiler/mir_ssa_rename.c" "ASTNode *expr = inst->expr0 != NULL ? inst->expr0 : inst->expr1"
@@ -106,11 +143,11 @@ run_literal_doc_contract_smoke() {
     require_literal "src/tests/mir/test_mir_lowering_part_c.cases.h" "MIR validator rejects invalid select receive emit fact"
     require_literal "src/tests/mir/test_mir_lowering_part_c.cases.h" "MIR validator rejects invalid with-slot claim ABI fact"
     require_literal "src/tests/mir/test_mir_lowering_part_c.cases.h" "MIR validator rejects invalid source-local-decl emit fact"
-    require_literal "src/compiler/mir_public_surface.h" "source-local-decl-emit"
-    require_literal "src/compiler/mir_public_surface.h" "select-recv-stmt-emit"
+    require_literal "src/compiler/mir_lifecycle.c" "source-local-decl-emit"
+    require_literal "src/compiler/mir_lifecycle.c" "select-recv-stmt-emit"
     require_literal "src/compiler/mir_fact_validate.c" "source-branch emit fact is invalid"
     require_literal "src/tests/mir/test_mir_lowering_part_c.cases.h" "MIR validator rejects source-compatible branch without payload"
-    require_literal "src/compiler/mir_public_surface.h" "source-branch-emit"
+    require_literal "src/compiler/mir_lifecycle.c" "source-branch-emit"
     require_literal "src/codegen/llvm_mir_block_emit.c" "inst->requires_source_branch_emit"
     require_literal "src/codegen/transpiler_mir_emission_contract.h" "inst->requires_source_branch_emit"
     require_literal "src/codegen/llvm_mir_block_emit.c" "inst->requires_source_statement_emit"
@@ -136,29 +173,42 @@ run_literal_doc_contract_smoke() {
     require_literal "src/codegen/transpiler_mir_block_emit_helpers.h" "transpiler_mir_def_uses_source_local_decl_emit"
     require_literal "src/codegen/transpiler_mir_block_emit_helpers.h" "transpiler_mir_def_uses_channel_receive_statement_emit"
     require_literal "src/codegen/transpiler_mir_block_emit_helpers.h" "transpiler_mir_def_uses_select_receive_statement_emit"
+    require_literal "src/codegen/transpiler_mir_block_emit_helpers.h" "transpiler_mir_find_stmt_for_inst(const MIRInstruction *inst)"
+    require_literal "src/codegen/transpiler_mir_block_emit_helpers.h" "return inst != NULL ? inst->ast : NULL"
     require_literal "src/codegen/transpiler_mir_assignment_emit.h" "transpiler_mir_def_uses_source_statement_emit("
     require_literal "src/codegen/transpiler_mir_assignment_emit.h" "missing receive emit fact"
     require_literal "src/codegen/transpiler_mir_assignment_emit.h" "missing select receive emit fact"
+    if grep -Fq "transpiler_find_let_decl_by_name(func_decl, inst->arg0)" \
+        "$ROOT_DIR/src/codegen/transpiler_mir_block_emit_helpers.h"; then
+        echo "C MIR block emission helper reintroduced function-body let lookup fallback" >&2
+        exit 1
+    fi
+    if grep -R "transpiler_find_let_decl_by_name" "$ROOT_DIR/src/codegen" >/dev/null; then
+        echo "C MIR emission reintroduced name-based function-body let lookup" >&2
+        exit 1
+    fi
     require_literal "src/semantic/type_checker_flow.c" "type_check_while_loop_flow(node, ctx)"
     require_literal "src/semantic/type_checker_flow.c" "type_check_for_loop_flow(node, ctx)"
     require_literal "src/semantic/type_checker_flow_loops.c" "type_check_while_loop_flow(ASTNode *node, SemanticContext *ctx)"
     require_literal "src/semantic/type_checker_flow_loops.c" "type_check_for_loop_flow(ASTNode *node, SemanticContext *ctx)"
     require_literal "src/semantic/type_checker_flow_loops.c" "condition_static_false"
-    require_literal "src/semantic/type_checker_flow_loops.c" "restore_resource_states(&base)"
+    require_literal "src/semantic/type_checker_flow.c" "restore_resource_states(&base)"
     require_literal "src/semantic/type_checker_flow_loops.c" "restore_resource_states(&merged)"
     require_literal "src/semantic/type_checker_flow_parallel.h" "restore_resource_states(&base)"
     require_literal "src/tests/semantic/test_semantic_misc_a_part_a.cases.h" "CFG body flow accepts while-true all-path return"
     require_literal "src/tests/semantic/test_semantic_misc_a_part_a.cases.h" "CFG body flow accepts static single-iteration for all-path return"
     require_literal "src/tests/semantic/test_semantic_misc_a_part_a.cases.h" "CFG body flow keeps zero-iteration for as fallthrough"
     require_literal "src/tests/semantic/test_semantic_misc_a_part_a.cases.h" "CFG static false while does not merge unreachable resource state"
-    require_literal "src/codegen/transpiler_mir_emission_contract.h" "mir_block_has_cleanup_edge_fact(block, cleanup_fact)"
+    require_literal "src/codegen/transpiler_mir_emission_contract.h" "mir_block_has_expected_cleanup_edge_fact(routine, i)"
     require_literal "src/codegen/transpiler_mir_emission_contract.h" "mir_block_has_pin_cleanup_edge(block)"
     require_literal "src/codegen/llvm_mir_contract.c" "llvm_mir_validate_cleanup_contract"
-    require_literal "src/codegen/llvm_mir_contract.c" "mir_block_has_cleanup_edge_fact(block, cleanup_fact)"
+    require_literal "src/codegen/llvm_mir_contract.c" "mir_block_has_expected_cleanup_edge_fact(routine, i)"
     require_literal "src/codegen/llvm_mir_contract.c" "mir_block_has_pin_cleanup_edge(block)"
-    require_literal "src/compiler/air_evidence.c" "mir_block_has_cleanup_edge_fact(block"
+    require_literal "src/compiler/air_evidence.c" "mir_block_has_expected_cleanup_edge_fact(routine, i)"
     require_literal "src/compiler/air_evidence.c" "mir_block_find_pin_cleanup_edge_fact(block)"
-    require_literal "src/test_mir.c" "pin-unpin-cleanup-edge"
+    require_literal "src/tests/mir/test_mir_lowering_part_a.cases.h" "pin-unpin-cleanup-edge"
+    require_literal "src/tests/mir/test_mir_lowering_part_a.cases.h" "MIR validator rejects unreachable cleanup root"
+    require_literal "src/tests/mir/test_mir_lowering_part_a.cases.h" "MIR validator rejects unreachable exceptional source"
     require_literal "src/semantic/type_checker_ownership_let.c" "function-body lets must be initialized at the binding site"
     require_literal "Makefile" "cfg-body-dataflow-test-smoke"
 
@@ -199,6 +249,7 @@ flow_loops_header_path = root / "src" / "semantic" / "type_checker_flow_loops.h"
 flow_loops_path = root / "src" / "semantic" / "type_checker_flow_loops.c"
 flow_parallel_path = root / "src" / "semantic" / "type_checker_flow_parallel.h"
 mir_cleanup_path = root / "src" / "compiler" / "mir_cleanup.c"
+mir_intent_path = root / "src" / "compiler" / "mir_intent.c"
 mir_cleanup_fact_names_path = root / "src" / "compiler" / "mir_cleanup_fact_names.h"
 mir_call_fact_path = root / "src" / "compiler" / "mir_call_fact.h"
 mir_call_fact_impl_path = root / "src" / "compiler" / "mir_call_fact.c"
@@ -226,7 +277,10 @@ mir_stmt_source_path = root / "src" / "compiler" / "mir_stmt_source.c"
 mir_non_cfg_stmt_population_path = root / "src" / "compiler" / "mir_non_cfg_stmt_population.h"
 mir_non_cfg_stmt_population_impl_path = root / "src" / "compiler" / "mir_non_cfg_stmt_population.c"
 hir_lower_cfg_path = root / "src" / "compiler" / "hir_lower_cfg.c"
+hir_lower_cfg_blocks_path = root / "src" / "compiler" / "hir_lower_cfg_blocks.c"
 hir_lower_intent_cfg_path = root / "src" / "compiler" / "hir_lower_intent_cfg.c"
+hir_analysis_path = root / "src" / "compiler" / "hir_analysis.c"
+hir_routines_path = root / "src" / "compiler" / "hir_routines.c"
 mir_c_control_emit_path = root / "src" / "codegen" / "transpiler_mir_cfg_control_emit.h"
 mir_llvm_emit_path = root / "src" / "codegen" / "llvm_mir_emit.c"
 mir_llvm_contract_path = root / "src" / "codegen" / "llvm_mir_contract.c"
@@ -239,6 +293,7 @@ mir_tests_path = root / "src" / "test_mir.c"
 mir_test_case_paths = [
     root / "src" / "tests" / "mir" / "test_mir_lowering_part_a.cases.h",
     root / "src" / "tests" / "mir" / "test_mir_lowering_part_b.cases.h",
+    root / "src" / "tests" / "mir" / "test_mir_lowering_part_c.cases.h",
 ]
 async_channel_path = root / "src" / "semantic" / "type_checker_async_channel.h"
 helpers_effects_path = root / "src" / "semantic" / "type_checker_helpers_effects.c"
@@ -278,6 +333,7 @@ for path in (
     flow_loops_path,
     flow_parallel_path,
     mir_cleanup_path,
+    mir_intent_path,
     mir_cleanup_fact_names_path,
     mir_call_fact_path,
     mir_call_fact_impl_path,
@@ -305,7 +361,10 @@ for path in (
     mir_non_cfg_stmt_population_path,
     mir_non_cfg_stmt_population_impl_path,
     hir_lower_cfg_path,
+    hir_lower_cfg_blocks_path,
     hir_lower_intent_cfg_path,
+    hir_analysis_path,
+    hir_routines_path,
     mir_c_control_emit_path,
     mir_llvm_emit_path,
     mir_llvm_contract_path,
@@ -375,6 +434,7 @@ flow = (
     + expr_path.read_text(encoding="utf-8")
 )
 mir_cleanup = mir_cleanup_path.read_text(encoding="utf-8")
+mir_intent_text = mir_intent_path.read_text(encoding="utf-8")
 mir_cleanup_fact_names = mir_cleanup_fact_names_path.read_text(encoding="utf-8")
 mir_call_fact = (
     mir_call_fact_path.read_text(encoding="utf-8")
@@ -474,6 +534,32 @@ semantic_tests = (
     + "\n"
     + semantic_parallel_context_tests_path.read_text(encoding="utf-8")
 )
+
+for term in [
+    '#include "mir_base_helpers.h"',
+    "mir_cleanup_next_capacity",
+    "next_capacity > SIZE_MAX / elem_size",
+]:
+    if term not in mir_cleanup:
+        raise SystemExit(f"MIR cleanup capacity/base-helper contract missing {term}")
+for term in [
+    '#include "mir_base_helpers.h"',
+    "return append_instruction(block, inst)",
+]:
+    if term not in mir_intent_text:
+        raise SystemExit(f"MIR intent append helper contract missing {term}")
+for term in [
+    "mir_liveness_next_capacity",
+    "next_capacity > SIZE_MAX / elem_size",
+]:
+    if term not in mir_liveness_dce:
+        raise SystemExit(f"MIR liveness DCE capacity guard missing {term}")
+for term in [
+    "mir_value_summary_next_capacity",
+    "next_capacity > SIZE_MAX / elem_size",
+]:
+    if term not in mir_liveness_summary:
+        raise SystemExit(f"MIR value-summary capacity guard missing {term}")
 
 required_doc_terms = [
     "HIR has function CFG v0",
@@ -577,6 +663,7 @@ required_mir_cleanup_validator_terms = [
     "invalidation block missing cleanup-edge MIR fact",
     "rollback successor",
     "invalidation successor",
+    "unreachable block[%zu] has exceptional successor",
     "cleanup block[%zu] must not have normal CFG successors",
     "cleanup block[%zu] must not be a pin region",
     "mir_cleanup_block_is_registered_root",
@@ -744,6 +831,7 @@ required_mir_owner_terms = {
         "mir_validate_non_cfg_fallback_state",
         "used non-CFG body fallback",
         "non_cfg_body_fallback_count",
+        "fallback flag without fallback count",
     ],
     "src/compiler/mir_cfg_contract_control.h": [
         "PERGYRA_MIR_CFG_CONTRACT_CONTROL_H",
@@ -882,7 +970,10 @@ for path in (
     hir_cfg_phi_path,
     hir_cfg_internal_path,
     hir_lower_cfg_path,
+    hir_lower_cfg_blocks_path,
     hir_lower_intent_cfg_path,
+    hir_analysis_path,
+    hir_routines_path,
 ):
     if not path.exists():
         raise SystemExit(f"missing HIR CFG owner file: {path.relative_to(root)}")
@@ -890,8 +981,13 @@ for path in (
 hir_cfg_text = hir_cfg_path.read_text(encoding="utf-8")
 hir_cfg_phi_text = hir_cfg_phi_path.read_text(encoding="utf-8")
 hir_lower_cfg_text = hir_lower_cfg_path.read_text(encoding="utf-8")
+hir_lower_cfg_blocks_text = hir_lower_cfg_blocks_path.read_text(encoding="utf-8")
 hir_lower_intent_cfg_text = hir_lower_intent_cfg_path.read_text(encoding="utf-8")
+hir_analysis_text = hir_analysis_path.read_text(encoding="utf-8")
+hir_routines_text = hir_routines_path.read_text(encoding="utf-8")
 for term in [
+    "hir_cfg_next_capacity",
+    "next_capacity > SIZE_MAX / elem_size",
     "hir_compute_cfg_dominance",
     "hir_compute_cfg_dominance_frontier",
     "hir_compute_cfg_dom_tree",
@@ -914,6 +1010,26 @@ for term in [
 ]:
     if term not in (hir_lower_cfg_text + "\n" + hir_lower_intent_cfg_text):
         raise SystemExit(f"HIR CFG lowerer split missing {term}")
+for term in [
+    "hir_lower_cfg_next_capacity",
+    "next_capacity > SIZE_MAX / elem_size",
+]:
+    if term not in hir_lower_cfg_blocks_text:
+        raise SystemExit(f"HIR CFG lowerer capacity guard missing {term}")
+if "intent_cfg_new_block" in hir_lower_intent_cfg_text or "intent_cfg_append_stmt" in hir_lower_intent_cfg_text:
+    raise SystemExit("HIR intent CFG lowerer reintroduced duplicate block/statement append helpers")
+for term in [
+    "hir_analysis_next_capacity",
+    "next_capacity > SIZE_MAX / elem_size",
+]:
+    if term not in hir_analysis_text:
+        raise SystemExit(f"HIR analysis capacity guard missing {term}")
+for term in [
+    "hir_routines_next_capacity",
+    "next_capacity > SIZE_MAX / elem_size",
+]:
+    if term not in hir_routines_text:
+        raise SystemExit(f"HIR routine capacity guard missing {term}")
 for term in [
     "intent_cfg_append_step_statements",
     "step->data.intent_step.using_expr",
@@ -1036,6 +1152,10 @@ for term in [
     "MIR lowers for-in init as loop-init instead of fallback statement",
     "MIR validator rejects intent instruction metadata drift",
     "MIR validator rejects CFG-owned control fallback statements",
+    "MIR validator rejects non-CFG fallback flag without count",
+    "MIR validator rejects missing routine inventory",
+    "MIR validator rejects missing block inventory",
+    "MIR validator rejects missing value-summary inventory",
     "MIR validator rejects missing rollback and invalidation cleanup facts",
     "MIR validator rejects pin-region without cleanup root",
     "MIR validator rejects orphan cleanup-marked block",

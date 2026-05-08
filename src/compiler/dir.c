@@ -1,5 +1,6 @@
 #include "dir_internal.h"
 
+#include <stdint.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
@@ -8,10 +9,26 @@
 #include "../common/string_compat.h"
 
 static bool
+dir_next_capacity(size_t *capacity, size_t initial, size_t elem_size)
+{
+    size_t next;
+
+    if (capacity == NULL || elem_size == 0)
+        return false;
+    next = *capacity == 0 ? initial : *capacity * 2;
+    if (next < *capacity || next > SIZE_MAX / elem_size)
+        return false;
+    *capacity = next;
+    return true;
+}
+
+static bool
 append_node(DIRNode **nodes, size_t *count, size_t *capacity, DIRNode node)
 {
     if (*count == *capacity) {
-        size_t next_capacity = *capacity == 0 ? 16 : *capacity * 2;
+        size_t next_capacity = *capacity;
+        if (!dir_next_capacity(&next_capacity, 16, sizeof(DIRNode)))
+            return false;
         DIRNode *grown = realloc(*nodes, next_capacity * sizeof(DIRNode));
         if (grown == NULL)
             return false;
@@ -95,7 +112,9 @@ static bool
 append_edge(DIREdge **edges, size_t *count, size_t *capacity, DIREdge edge)
 {
     if (*count == *capacity) {
-        size_t next_capacity = *capacity == 0 ? 32 : *capacity * 2;
+        size_t next_capacity = *capacity;
+        if (!dir_next_capacity(&next_capacity, 32, sizeof(DIREdge)))
+            return false;
         DIREdge *grown = realloc(*edges, next_capacity * sizeof(DIREdge));
         if (grown == NULL)
             return false;
@@ -116,7 +135,9 @@ dir_track_owned_name(DIRProgram *dir, char *name)
         return false;
 
     if (dir->owned_name_count == dir->owned_name_capacity) {
-        size_t next_capacity = dir->owned_name_capacity == 0 ? 16 : dir->owned_name_capacity * 2;
+        size_t next_capacity = dir->owned_name_capacity;
+        if (!dir_next_capacity(&next_capacity, 16, sizeof(char *)))
+            return false;
         grown = realloc(dir->owned_names, next_capacity * sizeof(char *));
         if (grown == NULL)
             return false;

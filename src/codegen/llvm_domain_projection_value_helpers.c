@@ -45,6 +45,20 @@ llvm_domain_projection_field_at(ASTNode *decl, size_t index)
     return NULL;
 }
 
+static LLVMValueRef
+llvm_domain_projection_value_error(LLVMGenCtx *ctx, const char *message)
+{
+    if (ctx != NULL && !ctx->has_error) {
+        llvm_set_error_with_hints(ctx,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "%s", message != NULL ? message
+                : "LLVM domain projection value lowering failed");
+    }
+    return NULL;
+}
+
 static int
 llvm_resolve_domain_projection_source_path_rec(LLVMGenCtx *ctx,
                                                ASTNode *source_decl,
@@ -101,7 +115,13 @@ llvm_resolve_domain_projection_source_path_rec(LLVMGenCtx *ctx,
             continue;
         }
 
-        prefix_len = strlen(field->name) + strlen(nested_path) + 2;
+        {
+            size_t field_len = strlen(field->name);
+            size_t nested_len = strlen(nested_path);
+            if (nested_len > ((size_t)-1) - field_len - 2)
+                continue;
+            prefix_len = field_len + nested_len + 2;
+        }
         prefixed_path = pgy_arena_alloc(&ctx->scratch, prefix_len);
         if (prefixed_path != NULL)
             snprintf(prefixed_path, prefix_len, "%s.%s", field->name, nested_path);
@@ -137,10 +157,19 @@ llvm_load_domain_projection_path_value(LLVMGenCtx *ctx,
     LLVMClassTypeEntry *current_cls;
     LLVMValueRef current_ptr;
 
-    if (llvm_resolve_domain_projection_source_path_rec(ctx, source_decl,
-            field_name, 0, &path) != 1
-        || path == NULL || source_cls == NULL || source_ptr == NULL) {
-        return LLVMConstInt(ctx->type_i32, 0, 0);
+    {
+        int path_status = llvm_resolve_domain_projection_source_path_rec(ctx,
+            source_decl, field_name, 0, &path);
+        if (path_status != 1 || path == NULL) {
+            return llvm_domain_projection_value_error(ctx,
+                path_status == 2
+                    ? "LLVM domain projection source path is ambiguous"
+                    : "LLVM domain projection source field path is missing");
+        }
+    }
+    if (source_cls == NULL || source_ptr == NULL) {
+        return llvm_domain_projection_value_error(ctx,
+            "LLVM domain projection requires source class metadata and storage");
     }
 
     current_decl = source_decl;
@@ -159,7 +188,8 @@ llvm_load_domain_projection_path_value(LLVMGenCtx *ctx,
 
         field_index = llvm_class_field_index(current_cls, segment);
         if (field_index < 0)
-            break;
+            return llvm_domain_projection_value_error(ctx,
+                "LLVM domain projection path segment is missing from metadata");
         for (int i = 0; i < current_cls->field_count; i++) {
             if (current_cls->fields[i].index == field_index) {
                 field_info = &current_cls->fields[i];
@@ -167,7 +197,8 @@ llvm_load_domain_projection_path_value(LLVMGenCtx *ctx,
             }
         }
         if (field_info == NULL || field_info->field_type == NULL)
-            break;
+            return llvm_domain_projection_value_error(ctx,
+                "LLVM domain projection field metadata is incomplete");
 
         field_ptr = LLVMBuildStructGEP2(ctx->builder, current_cls->struct_type,
             current_ptr, (unsigned)field_index, llvm_tmp_name(ctx));
@@ -188,12 +219,16 @@ llvm_load_domain_projection_path_value(LLVMGenCtx *ctx,
                 ctx, field->type->data.type.name);
             current_cls = llvm_lookup_class(ctx, field->type->data.type.name);
             current_ptr = field_ptr;
+            if (current_decl == NULL || current_cls == NULL)
+                return llvm_domain_projection_value_error(ctx,
+                    "LLVM domain projection nested vessel metadata is missing");
             break;
         }
         cursor = dot + 1;
     }
 
-    return LLVMConstInt(ctx->type_i32, 0, 0);
+    return llvm_domain_projection_value_error(ctx,
+        "LLVM domain projection path did not produce a value");
 }
 
 LLVMValueRef
@@ -207,7 +242,8 @@ llvm_build_domain_projection_value(LLVMGenCtx *ctx,
     LLVMValueRef projected;
 
     if (ctx == NULL || target_cls == NULL || source_cls == NULL || source_ptr == NULL)
-        return LLVMConstInt(ctx->type_i32, 0, 0);
+        return llvm_domain_projection_value_error(ctx,
+            "LLVM domain projection requires target/source metadata and source storage");
 
     projected = LLVMConstNull(target_cls->struct_type);
     for (int i = 0; i < target_cls->field_count; i++) {
@@ -234,6 +270,8 @@ llvm_build_domain_projection_value(LLVMGenCtx *ctx,
 
         field_value = llvm_load_domain_projection_path_value(ctx, source_decl,
             source_cls, source_ptr, source_field_name);
+        if (field_value == NULL)
+            return NULL;
         projected = LLVMBuildInsertValue(ctx->builder, projected, field_value,
             (unsigned)target_field->index, llvm_tmp_name(ctx));
     }

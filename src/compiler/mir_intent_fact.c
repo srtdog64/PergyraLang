@@ -42,6 +42,43 @@ mir_instruction_is_intent_stmt(const MIRInstruction *inst, const char *name)
         && strcmp(inst->name, name) == 0;
 }
 
+static const char *const k_mir_intent_semantic_carrier_names[] = {
+    "IntentAuthorizedBy",
+    "IntentCauses",
+    "IntentCheck",
+    "IntentDispatch",
+    "IntentEval",
+    "IntentInvalidationTarget",
+    "IntentParticipant",
+    "IntentStep",
+    "IntentWho",
+    "IntentZoneAlias",
+    "IntentZoneFrom",
+    "IntentZoneWhere",
+};
+
+static int
+mir_intent_carrier_name_compare(const void *key, const void *entry)
+{
+    const char *name = (const char *)key;
+    const char *const *candidate = (const char *const *)entry;
+
+    return strcmp(name, *candidate);
+}
+
+bool
+mir_instruction_is_intent_semantic_carrier(const MIRInstruction *inst)
+{
+    if (inst == NULL || inst->kind != MIR_INST_STMT || inst->name == NULL)
+        return false;
+
+    return bsearch(inst->name, k_mir_intent_semantic_carrier_names,
+                   sizeof(k_mir_intent_semantic_carrier_names)
+                       / sizeof(k_mir_intent_semantic_carrier_names[0]),
+                   sizeof(k_mir_intent_semantic_carrier_names[0]),
+                   mir_intent_carrier_name_compare) != NULL;
+}
+
 bool
 mir_instruction_intent_step_matches(const MIRInstruction *inst,
                                     const char *step_name)

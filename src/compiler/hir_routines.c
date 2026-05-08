@@ -1,5 +1,6 @@
 #include "hir_internal.h"
 
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
@@ -11,10 +12,31 @@
 #include "hir_lower_cfg.h"
 
 static bool
+hir_routines_next_capacity(size_t *capacity, size_t initial, size_t elem_size)
+{
+    if (capacity == NULL || initial == 0 || elem_size == 0)
+        return false;
+
+    size_t current = *capacity;
+    size_t next_capacity = current == 0 ? initial : current * 2;
+    if (current != 0 && next_capacity < current)
+        return false;
+    if (next_capacity > SIZE_MAX / elem_size)
+        return false;
+
+    *capacity = next_capacity;
+    return true;
+}
+
+static bool
 append_decl(HIRDecl **decls, size_t *count, size_t *capacity, HIRDecl decl)
 {
+    if (decls == NULL || count == NULL || capacity == NULL)
+        return false;
     if (*count == *capacity) {
-        size_t next_capacity = *capacity == 0 ? 16 : *capacity * 2;
+        size_t next_capacity = *capacity;
+        if (!hir_routines_next_capacity(&next_capacity, 16, sizeof(HIRDecl)))
+            return false;
         HIRDecl *grown = realloc(*decls, next_capacity * sizeof(HIRDecl));
         if (grown == NULL)
             return false;
@@ -220,8 +242,12 @@ hir_finish_func_routine(HIRRoutine *routine, ASTNode *func)
 static bool
 hir_append_routine(HIRProgram *hir, HIRRoutine *routine)
 {
+    if (hir == NULL || routine == NULL)
+        return false;
     if (hir->routine_count == hir->routine_capacity) {
-        size_t next_capacity = hir->routine_capacity == 0 ? 16 : hir->routine_capacity * 2;
+        size_t next_capacity = hir->routine_capacity;
+        if (!hir_routines_next_capacity(&next_capacity, 16, sizeof(HIRRoutine)))
+            return false;
         HIRRoutine *grown = realloc(hir->routines, next_capacity * sizeof(HIRRoutine));
         if (grown == NULL)
             return false;

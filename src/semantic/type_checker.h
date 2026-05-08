@@ -110,6 +110,7 @@ struct SemanticContext
     size_t type_resolution_stage_compat_resolve_count;
     size_t type_resolution_stage_compat_resolve_failed_count;
     size_t type_resolution_stage_compat_resolve_suppressed_diag_count;
+    size_t type_resolution_dag_generic_contract_evidence_count;
     size_t type_resolution_stage_compat_generic_contract_count;
     size_t type_resolution_stage_compat_signature_count;
     size_t type_resolution_stage_compat_ability_consumer_count;

@@ -1,35 +1,12 @@
 #include "rir.h"
 #include "rir_internal.h"
+#include "io_boundary_builtin.h"
 
 #include <string.h>
 
 #define type_name rir_type_name
 #define expr_name rir_expr_name
 #define call_name rir_call_name
-
-static bool
-rir_call_name_is_io_boundary(const char *name)
-{
-    static const char *io_names[] = {
-        "FileOpen",
-        "FileRead",
-        "FileWrite",
-        "FileClose",
-        "ReadFile",
-        "WriteFile",
-        "Input",
-        "ReadLine",
-        "Now",
-        "Sleep",
-    };
-    if (name == NULL)
-        return false;
-    for (size_t i = 0; i < sizeof(io_names) / sizeof(io_names[0]); i++) {
-        if (strcmp(name, io_names[i]) == 0)
-            return true;
-    }
-    return false;
-}
 
 static bool
 rir_walk_call(RIRScope *scope, ASTNode *node)
@@ -75,7 +52,7 @@ rir_walk_call(RIRScope *scope, ASTNode *node)
         ASTNode **args = node->data.call.arguments;
         size_t argc = node->data.call.arg_count;
 
-        if (rir_call_name_is_io_boundary(name)) {
+        if (pgy_compiler_io_boundary_builtin_is_stable(name)) {
             const char *first_arg = argc >= 1 ? expr_name(args[0]) : NULL;
             if (!add_op(scope, RIR_OP_IO, name, first_arg, NULL, node))
                 return false;

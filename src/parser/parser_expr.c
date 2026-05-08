@@ -3,6 +3,56 @@
 /* Forward declarations */
 ASTNode* parse_pipe(Parser* parser);
 
+static int
+parser_name_table_compare(const void *key, const void *entry)
+{
+    const char *name = (const char *)key;
+    const char *const *candidate = (const char *const *)entry;
+
+    return strcmp(name, *candidate);
+}
+
+static bool
+parser_name_in_sorted_table(const char *name,
+                            const char *const *names,
+                            size_t count)
+{
+    if (name == NULL || names == NULL || count == 0)
+        return false;
+
+    return bsearch(name, names, count, sizeof(names[0]),
+                   parser_name_table_compare) != NULL;
+}
+
+static bool
+parser_name_accepts_call_type_arguments(const char *name)
+{
+    static const char *const names[] = {
+        "ClaimSecureSlot",
+        "ClaimSlot",
+    };
+
+    return parser_name_in_sorted_table(name, names,
+                                       sizeof(names) / sizeof(names[0]));
+}
+
+static bool
+parser_name_is_builtin_like_identifier(const char *name)
+{
+    static const char *const names[] = {
+        "Channel",
+        "ClaimSecureSlot",
+        "ClaimSlot",
+        "Log",
+        "Read",
+        "Release",
+        "Write",
+    };
+
+    return parser_name_in_sorted_table(name, names,
+                                       sizeof(names) / sizeof(names[0]));
+}
+
 static bool
 parser_prepend_call_argument(Parser *parser, ASTNode *call, ASTNode *argument)
 {
@@ -31,12 +81,12 @@ parser_prepend_call_argument(Parser *parser, ASTNode *call, ASTNode *argument)
     return true;
 }
 
-// 표현식 파싱 (우선순위 기반)
+/* Expression parsing entry point. */
 ASTNode* parser_parse_expression(Parser* parser) {
     return parser_parse_assignment(parser);
 }
 
-// 할당 표현식
+/* Assignment and event-subscription expressions. */
 ASTNode* parser_parse_assignment(Parser* parser) {
     ASTNode* expr = parse_pipe(parser);
 
@@ -60,24 +110,23 @@ ASTNode* parser_parse_assignment(Parser* parser) {
     return expr;
 }
 
-// 파이프 연산자 |> (left-to-right data flow)
+/* Pipe operator: a |> f becomes f(a); a |> f(b) becomes f(a, b). */
 ASTNode* parse_pipe(Parser* parser) {
     ASTNode* expr = parse_logical_or(parser);
 
     while (parser_match(parser, TOKEN_PIPE_ARROW)) {
         Token op = parser->previous_token;
         ASTNode* right = parse_logical_or(parser);
-        /* a |> f → f(a).  If right is a call f(b), transform to f(a, b). */
+        /* If right is already a call f(b), transform to f(a, b). */
         if (right->type == AST_CALL) {
             if (!parser_prepend_call_argument(parser, right, expr)) {
-                /* realloc 실패: expr와 right를 해제하고 NULL 반환 */
                 ast_destroy(expr);
                 ast_destroy(right);
                 return NULL;
             }
             expr = right;
         } else if (right->type == AST_IDENTIFIER) {
-            /* a |> f → f(a) */
+            /* a |> f becomes f(a). */
             ASTNode *call = ast_create_call(right);
             call->data.call.arguments = calloc(1, sizeof(ASTNode *));
             call->data.call.arguments[0] = expr;
@@ -91,7 +140,7 @@ ASTNode* parse_pipe(Parser* parser) {
     return expr;
 }
 
-// 논리 OR
+/* Logical OR. */
 ASTNode* parse_logical_or(Parser* parser) {
     ASTNode* expr = parse_logical_and(parser);
 
@@ -104,7 +153,7 @@ ASTNode* parse_logical_or(Parser* parser) {
     return expr;
 }
 
-// 논리 AND
+/* Logical AND. */
 ASTNode* parse_logical_and(Parser* parser) {
     ASTNode* expr = parse_equality(parser);
 
@@ -117,7 +166,7 @@ ASTNode* parse_logical_and(Parser* parser) {
     return expr;
 }
 
-// 동등성 비교
+/* Equality comparison. */
 ASTNode* parse_equality(Parser* parser) {
     ASTNode* expr = parse_comparison(parser);
 
@@ -131,7 +180,7 @@ ASTNode* parse_equality(Parser* parser) {
     return expr;
 }
 
-// 비교 연산
+/* Relational comparison. */
 ASTNode* parse_comparison(Parser* parser) {
     ASTNode* expr = parse_addition(parser);
 
@@ -147,7 +196,7 @@ ASTNode* parse_comparison(Parser* parser) {
     return expr;
 }
 
-// 덧셈/뺄셈
+/* Addition and subtraction. */
 ASTNode* parse_addition(Parser* parser) {
     ASTNode* expr = parse_multiplication(parser);
 
@@ -161,7 +210,7 @@ ASTNode* parse_addition(Parser* parser) {
     return expr;
 }
 
-// 곱셈/나눗셈
+/* Multiplication, division, and remainder. */
 ASTNode* parse_multiplication(Parser* parser) {
     ASTNode* expr = parse_unary(parser);
 
@@ -176,7 +225,7 @@ ASTNode* parse_multiplication(Parser* parser) {
     return expr;
 }
 
-// 단항 연산
+/* Unary prefix operators. */
 ASTNode* parse_unary(Parser* parser) {
     if (parser_match(parser, TOKEN_NOT) ||
         parser_match(parser, TOKEN_MINUS)) {
@@ -188,28 +237,25 @@ ASTNode* parse_unary(Parser* parser) {
     return parser_parse_call(parser);
 }
 
-// 함수 호출 / 멤버 접근
+/* Function calls, member access, indexing, and postfix try. */
 ASTNode* parser_parse_call(Parser* parser) {
     ASTNode* expr = parser_parse_primary(parser);
 
     while (true) {
         if (parser_match(parser, TOKEN_LPAREN)) {
-            // 함수 호출
             expr = finish_call(parser, expr);
         } else if (parser_check(parser, TOKEN_DOT) &&
                    parser->current_token.length == 1 &&
                    strcmp(parser->current_token.text, ".") == 0) {
             parser_advance(parser);
-            // 멤버 접근
             Token name = consume_member_name_token(parser, "Expected property name after '.'");
             expr = ast_create_member_access(expr, name.text);
         } else if (parser_match(parser, TOKEN_LBRACKET)) {
-            // 배열 인덱싱
             ASTNode* index = parser_parse_expression(parser);
             parser_consume(parser, TOKEN_RBRACKET, "Expected ']' after array index");
             expr = ast_create_array_access(expr, index);
         } else if (parser_match(parser, TOKEN_QUESTION)) {
-            /* Postfix ? — try/propagate: expr? → early return on error */
+            /* Postfix ? is try/propagate: early-return on error. */
             ASTNode *try_node = calloc(1, sizeof(ASTNode));
             if (try_node != NULL) {
                 try_node->type = AST_UNARY;
@@ -226,7 +272,7 @@ ASTNode* parser_parse_call(Parser* parser) {
     return expr;
 }
 
-// 함수 호출 완성
+/* Finish parsing a function call after `(` has been consumed. */
 ASTNode* finish_call(Parser* parser, ASTNode* callee) {
     ASTNode* call = ast_create_call(callee);
     if (call != NULL && callee != NULL) {
@@ -242,7 +288,7 @@ ASTNode* finish_call(Parser* parser, ASTNode* callee) {
         parser->pending_call_generic_args = NULL;
     }
 
-    // 인자 파싱
+    /* Parse arguments. */
     if (!parser_check(parser, TOKEN_RPAREN)) {
         do {
             ASTNode* arg = parser_parse_expression(parser);
@@ -255,10 +301,10 @@ ASTNode* finish_call(Parser* parser, ASTNode* callee) {
     return call;
 }
 
-// 기본 표현식
+/* Primary expressions. */
 ASTNode* parser_parse_primary(Parser* parser) {
     /* Leading-dot enum/union variant shorthand:
-     * .Some(v), .None, .Ok(x) → parse as bare variant identifier/call.
+     * .Some(v), .None, .Ok(x) parse as bare variant identifier/call.
      * This keeps docs-style match/return syntax working without forcing
      * the enum name at each use site. */
     if (parser_check(parser, TOKEN_DOT)
@@ -274,37 +320,37 @@ ASTNode* parser_parse_primary(Parser* parser) {
         return ast_create_identifier(variant.text);
     }
 
-    // await 표현식
+    /* await expression. */
     if (parser_match(parser, TOKEN_AWAIT)) {
         return parser_parse_await_expression(parser);
     }
 
-    // spawn 표현식
+    /* spawn expression. */
     if (parser_match(parser, TOKEN_SPAWN)) {
         return parser_parse_spawn_expression(parser);
     }
 
-    // parallel 블록은 초기화 식에서도 쓰인다.
+    /* Parallel block can also appear in expression position. */
     if (parser_match(parser, TOKEN_PARALLEL)) {
         return parser_parse_parallel_block(parser);
     }
 
-    // 채널 수신: <-channel
+    /* Channel receive: <-channel. */
     if (parser_check(parser, TOKEN_CHANNEL_OP)) {
         return parser_parse_channel_expression(parser);
     }
 
-    // true
+    /* true. */
     if (parser_match(parser, TOKEN_TRUE)) {
         return ast_create_boolean(true);
     }
 
-    // false
+    /* false. */
     if (parser_match(parser, TOKEN_FALSE)) {
         return ast_create_boolean(false);
     }
 
-    // 배열 리터럴 [1, 2, 3]
+    /* Array literal: [1, 2, 3]. */
     if (parser_match(parser, TOKEN_LBRACKET)) {
         ASTNode *arr = calloc(1, sizeof(ASTNode));
         arr->type = AST_ARRAY_LITERAL;
@@ -330,12 +376,12 @@ ASTNode* parser_parse_primary(Parser* parser) {
         return arr;
     }
 
-    // 숫자
+    /* Number literal. */
     if (parser_match(parser, TOKEN_NUMBER)) {
         return ast_create_number(parser->previous_token.text);
     }
 
-    // 문자열
+    /* String literal. */
     if (parser_match(parser, TOKEN_STRING) || parser_match(parser, TOKEN_MULTILINE_STRING)) {
         const char *raw = parser->previous_token.text;
         /* Check for string interpolation: "...${expr}..."; skip for multiline string
@@ -347,34 +393,27 @@ ASTNode* parser_parse_primary(Parser* parser) {
         return ast_create_string(raw);
     }
 
-    // 보간 문자열: f"Hello {name}"
+    /* Interpolated string literal: f"Hello {name}". */
     if (parser_match(parser, TOKEN_INTERPOLATED_STRING)) {
         const char *raw = parser->previous_token.text;
         return parse_interpolation_body(raw, true);
     }
 
-    // 식별자 또는 슬롯 연산
+    /* Identifier-like expression names and builtin-like calls. */
     if (parser_match_expr_name_token(parser)) {
         Token name_token = parser->previous_token;
         char* name = pergyra_strdup(parser->previous_token.text);
 
-        if ((strcmp(name, "ClaimSlot") == 0 ||
-             strcmp(name, "ClaimSecureSlot") == 0) &&
-            parser_check(parser, TOKEN_LESS)) {
+        if (parser_name_accepts_call_type_arguments(name)
+            && parser_check(parser, TOKEN_LESS)) {
             /* Parse and stash the `<T>` args so finish_call can attach
              * them to the AST_CALL (needed for destructuring patterns
              * where the LHS has no type annotation to recover T from). */
             parser->pending_call_generic_args = parse_type_arguments(parser);
         }
 
-        // 내장 함수 처리
-        if (strcmp(name, "ClaimSlot") == 0 ||
-            strcmp(name, "ClaimSecureSlot") == 0 ||
-            strcmp(name, "Write") == 0 ||
-            strcmp(name, "Read") == 0 ||
-            strcmp(name, "Release") == 0 ||
-            strcmp(name, "Log") == 0 ||
-            strcmp(name, "Channel") == 0) {
+        /* Builtin-like names are represented as identifiers first. */
+        if (parser_name_is_builtin_like_identifier(name)) {
             ASTNode* ident = ast_create_identifier(name);
             if (ident != NULL) {
                 ident->line = name_token.line;
@@ -384,7 +423,7 @@ ASTNode* parser_parse_primary(Parser* parser) {
             return ident;
         }
 
-        // 채널 송신 체크: channel <- value
+        /* Channel send: channel <- value. */
         ASTNode* ident = ast_create_identifier(name);
         if (ident != NULL) {
             ident->line = name_token.line;
@@ -405,12 +444,12 @@ ASTNode* parser_parse_primary(Parser* parser) {
         return ident;
     }
 
-    // 람다식: (x: Int) => { ... }
+    /* Lambda expression: (x: Int) => { ... }. */
     if (parser_is_lambda_start(parser)) {
         return parse_lambda_expression(parser);
     }
 
-    // 괄호 표현식 / 튜플 리터럴
+    /* Parenthesized expression or tuple literal. */
     if (parser_match(parser, TOKEN_LPAREN)) {
         ASTNode* first = parser_parse_expression(parser);
         if (parser_check(parser, TOKEN_COMMA)) {

@@ -8,6 +8,18 @@
 #include "transpiler_mir_emission_mapping_contract.h"
 
 static bool
+transpiler_mir_branch_source_ast_type_matches_shape(const MIRInstruction *inst)
+{
+    if (inst == NULL || !inst->has_source_location)
+        return false;
+    if (inst->branch_shape == MIR_BRANCH_MATCH_CASE)
+        return inst->source_ast_type == AST_MATCH_CASE;
+    if (inst->branch_shape == MIR_BRANCH_SELECT_DISPATCH)
+        return inst->source_ast_type == AST_BLOCK;
+    return true;
+}
+
+static bool
 transpiler_validate_mir_emission_contract(const TranspilerCtx *ctx,
                                          const MIRRoutine *routine,
                                          const ASTNode *decl,
@@ -61,6 +73,14 @@ transpiler_validate_mir_emission_contract(const TranspilerCtx *ctx,
         if (block == NULL)
             return false;
 
+        if (block->instruction_count > 0 && block->instructions == NULL) {
+            if (reason != NULL && reason_cap > 0)
+                snprintf(reason, reason_cap,
+                         "MIR contract invalid for %s: block %llu has instruction count without instruction inventory",
+                         routine_name, (unsigned long long) block->id);
+            return false;
+        }
+
         if (!transpiler_validate_mir_emission_block_shape(block,
                                                           routine_name,
                                                           require_cleanup,
@@ -102,7 +122,7 @@ transpiler_validate_mir_emission_contract(const TranspilerCtx *ctx,
         if (block->has_cleanup_succ) {
             const char *cleanup_fact =
                 mir_cleanup_edge_fact_name_for_block(routine, i);
-            if (!mir_block_has_cleanup_edge_fact(block, cleanup_fact)) {
+            if (!mir_block_has_expected_cleanup_edge_fact(routine, i)) {
                 if (reason != NULL && reason_cap > 0)
                     snprintf(reason, reason_cap,
                              "MIR contract invalid for %s: block %llu missing %s fact",
@@ -177,10 +197,11 @@ transpiler_validate_mir_emission_block_shape(const MIRBasicBlock *block,
             has_branch = true;
             branch_count++;
             if (inst->requires_source_branch_emit
-                && inst->ast == NULL
+                && (inst->ast == NULL
+                    || !transpiler_mir_branch_source_ast_type_matches_shape(inst))
                 && (reason != NULL && reason_cap > 0)) {
                 snprintf(reason, reason_cap,
-                         "MIR contract invalid for %s: block %llu branch instruction misses condition AST",
+                         "MIR contract invalid for %s: block %llu branch instruction has invalid source-branch fact",
                          routine_name, (unsigned long long) block->id);
                 return false;
             }

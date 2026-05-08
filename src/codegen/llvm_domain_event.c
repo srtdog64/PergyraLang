@@ -15,8 +15,12 @@ llvm_domain_event_required_param_type(LLVMGenCtx *ctx,
 {
     if (ctx == NULL)
         return NULL;
-    if (type_node != NULL)
-        return ast_type_to_llvm(ctx, type_node);
+    if (type_node != NULL) {
+        LLVMTypeRef type = ast_type_to_llvm(ctx, type_node);
+        if (ctx->has_error || type == NULL)
+            return NULL;
+        return type;
+    }
 
     llvm_set_error_at_with_hints(ctx, event_decl,
         PGY_CODE_LLVM_TYPE_UNSUPPORTED,
@@ -24,7 +28,7 @@ llvm_domain_event_required_param_type(LLVMGenCtx *ctx,
         PGY_FIX_ANNOTATE_CONCRETE_TYPE,
         "LLVM event '%s' parameter requires explicit type metadata; silent i32 fallback is not allowed",
         event_name != NULL ? event_name : "<anonymous>");
-    return ctx->type_i32;
+    return NULL;
 }
 
 void
@@ -66,6 +70,8 @@ llvm_emit_domain_event_helpers(LLVMGenCtx *ctx,
             ASTNode *param_type = (p != NULL) ? p->data.let_decl.type : NULL;
             ptypes[j] = llvm_domain_event_required_param_type(
                 ctx, stmt, param_type, ename);
+            if (ctx->has_error || ptypes[j] == NULL)
+                return;
         }
         llvm_register_event(ctx, ename, evt_struct, pc, ptypes);
 

@@ -3,6 +3,7 @@
 #include <stdio.h>
 
 #include "diag_codes.h"
+#include "../common/string_compat.h"
 
 uint32_t
 effect_delta_from_baseline(uint32_t baseline, uint32_t after)
@@ -20,23 +21,24 @@ flow_effect_mask_to_string(uint32_t mask, char *buf, size_t buf_size)
 
     if (buf == NULL || buf_size == 0)
         return;
+    buf[0] = '\0';
     if (closed == EFFECT_NONE) {
         snprintf(buf, buf_size, "local");
         return;
     }
 
     if (type_effect_mask_has(closed, EFFECT_SECURE))
-        off += (size_t)snprintf(buf + off, buf_size > off ? buf_size - off : 0,
-                                "%ssecure", off > 0 ? ", " : "");
+        off = pergyra_str_appendf(buf, buf_size,
+                                  "%ssecure", off > 0 ? ", " : "");
     if (type_effect_mask_has(closed, EFFECT_REMOTE))
-        off += (size_t)snprintf(buf + off, buf_size > off ? buf_size - off : 0,
-                                "%sremote", off > 0 ? ", " : "");
+        off = pergyra_str_appendf(buf, buf_size,
+                                  "%sremote", off > 0 ? ", " : "");
     if (type_effect_mask_has(closed, EFFECT_NONDETERMINISTIC))
-        off += (size_t)snprintf(buf + off, buf_size > off ? buf_size - off : 0,
-                                "%snondeterministic", off > 0 ? ", " : "");
+        off = pergyra_str_appendf(buf, buf_size,
+                                  "%snondeterministic", off > 0 ? ", " : "");
     if (type_effect_mask_has(closed, EFFECT_COLLAPSE))
-        off += (size_t)snprintf(buf + off, buf_size > off ? buf_size - off : 0,
-                                "%scollapse", off > 0 ? ", " : "");
+        off = pergyra_str_appendf(buf, buf_size,
+                                  "%scollapse", off > 0 ? ", " : "");
 }
 
 void

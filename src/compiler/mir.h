@@ -335,6 +335,8 @@ MIRProgram *mir_lower(const HIRProgram *hir, const RIRProgram *rir, char **error
 void        mir_instruction_record_surface_usage(MIRInstruction *inst);
 bool        mir_instruction_is_intent_stmt(const MIRInstruction *inst,
                                            const char *name);
+bool        mir_instruction_is_intent_semantic_carrier(
+                const MIRInstruction *inst);
 bool        mir_instruction_intent_step_matches(const MIRInstruction *inst,
                                                 const char *step_name);
 bool        mir_instruction_intent_phase_matches(const MIRInstruction *inst,
@@ -372,6 +374,7 @@ void        mir_dump(const MIRProgram *mir, FILE *out);
 
 const char *mir_scope_kind_name(MIRScopeKind kind);
 const char *mir_inst_kind_name(MIRInstKind kind);
+const char *mir_branch_shape_name(MIRBranchShape shape);
 
 /* ABI Type Layout Lookup: backends use this instead of inventing layouts. */
 const MIRTypeLayout *mir_abi_lookup(const char *pergyra_type_name);

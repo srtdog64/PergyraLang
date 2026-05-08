@@ -1,6 +1,21 @@
 #include "llvm_internal.h"
 
 static LLVMValueRef
+llvm_result_option_error(LLVMGenCtx *ctx, ASTNode *node,
+                         const char *message)
+{
+    if (ctx != NULL && !ctx->has_error) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+            "%s", message != NULL ? message
+                : "LLVM Result/Option lowering requires concrete metadata");
+    }
+    return NULL;
+}
+
+static LLVMValueRef
 llvm_emit_checked_result_option_unwrap(LLVMGenCtx *ctx, ASTNode *node,
                                        LLVMValueRef aggregate,
                                        unsigned value_index,
@@ -21,8 +36,8 @@ llvm_emit_checked_result_option_unwrap(LLVMGenCtx *ctx, ASTNode *node,
         LLVMConstInt(ctx->type_i32, 0, 0), llvm_tmp_name(ctx));
     current_fn = LLVMGetBasicBlockParent(LLVMGetInsertBlock(ctx->builder));
     if (current_fn == NULL)
-        return LLVMBuildExtractValue(ctx->builder, aggregate, value_index,
-            llvm_tmp_name(ctx));
+        return llvm_result_option_error(ctx, node,
+            "LLVM checked unwrap requires an active function insertion block");
     panic_fn = llvm_lookup_function(ctx,
         "pgy_runtime_panic_internal_invariant_export");
     if (panic_fn == NULL) {
@@ -32,8 +47,7 @@ llvm_emit_checked_result_option_unwrap(LLVMGenCtx *ctx, ASTNode *node,
             PGY_FIX_INSPECT_MIR_INVENTORY,
             "LLVM checked unwrap requires registered runtime function '%s'",
             "pgy_runtime_panic_internal_invariant_export");
-        return LLVMBuildExtractValue(ctx->builder, aggregate, value_index,
-            llvm_tmp_name(ctx));
+        return NULL;
     }
 
     ok_bb = LLVMAppendBasicBlockInContext(ctx->context, current_fn,
@@ -136,9 +150,12 @@ llvm_emit_result_option_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_
                 PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
                 PGY_FIX_ANNOTATE_CONCRETE_TYPE,
                 "LLVM Ok(value) requires contextual Result<T, E>; anonymous Result layout fallback is disabled");
-            return LLVMConstInt(ctx->type_i32, 0, 0);
+            return NULL;
         }
         val = llvm_emit_expression(node->data.call.arguments[0], ctx);
+        if (val == NULL)
+            return llvm_result_option_error(ctx, node,
+                "LLVM Ok(value) could not lower payload expression");
         LLVMValueRef r = LLVMGetUndef(result_ty);
         r = LLVMBuildInsertValue(ctx->builder, r,
             LLVMConstInt(ctx->type_i32, 0, 0), 0, llvm_tmp_name(ctx));
@@ -179,9 +196,12 @@ llvm_emit_result_option_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_
                 PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
                 PGY_FIX_ANNOTATE_CONCRETE_TYPE,
                 "LLVM Err(value) requires contextual Result<T, E>; anonymous Result layout fallback is disabled");
-            return LLVMConstInt(ctx->type_i32, 0, 0);
+            return NULL;
         }
         val = llvm_emit_expression(node->data.call.arguments[0], ctx);
+        if (val == NULL)
+            return llvm_result_option_error(ctx, node,
+                "LLVM Err(value) could not lower payload expression");
         LLVMValueRef r = LLVMGetUndef(result_ty);
         if (LLVMTypeOf(val) != fields[2]) {
             LLVMTypeRef val_ty = LLVMTypeOf(val);
@@ -220,7 +240,7 @@ llvm_emit_result_option_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_
                 PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
                 PGY_FIX_ANNOTATE_CONCRETE_TYPE,
                 "LLVM IsOk(result) requires concrete Result<T, E> aggregate operand");
-            return LLVMConstInt(ctx->type_i1, 0, 0);
+            return NULL;
         }
         LLVMValueRef tag = LLVMBuildExtractValue(ctx->builder, r, 0, llvm_tmp_name(ctx));
         return LLVMBuildICmp(ctx->builder, LLVMIntEQ, tag,
@@ -238,7 +258,7 @@ llvm_emit_result_option_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_
                 PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
                 PGY_FIX_ANNOTATE_CONCRETE_TYPE,
                 "LLVM IsErr(result) requires concrete Result<T, E> aggregate operand");
-            return LLVMConstInt(ctx->type_i1, 0, 0);
+            return NULL;
         }
         LLVMValueRef tag = LLVMBuildExtractValue(ctx->builder, r, 0, llvm_tmp_name(ctx));
         return LLVMBuildICmp(ctx->builder, LLVMIntEQ, tag,
@@ -256,7 +276,7 @@ llvm_emit_result_option_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_
                 PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
                 PGY_FIX_ANNOTATE_CONCRETE_TYPE,
                 "LLVM Unwrap(result) requires concrete Result<T, E> aggregate operand");
-            return LLVMConstInt(ctx->type_i32, 0, 0);
+            return NULL;
         }
         return llvm_emit_checked_result_option_unwrap(ctx, node, r, 1,
             "Result unwrap on Err value");
@@ -267,6 +287,9 @@ llvm_emit_result_option_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_
         LLVMValueRef r = llvm_emit_expression(node->data.call.arguments[0], ctx);
         LLVMValueRef def = llvm_emit_expression(node->data.call.arguments[1], ctx);
         LLVMTypeRef fields[3];
+        if (r == NULL || def == NULL)
+            return llvm_result_option_error(ctx, node,
+                "LLVM UnwrapOr(result, default) could not lower operand expression");
         if (!llvm_result_option_value_struct(r, 3, fields)
             || fields[0] != ctx->type_i32) {
             llvm_set_error_at_with_hints(ctx, node,
@@ -274,8 +297,9 @@ llvm_emit_result_option_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_
                 PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
                 PGY_FIX_ANNOTATE_CONCRETE_TYPE,
                 "LLVM UnwrapOr(result, default) requires concrete Result<T, E> aggregate operand");
-            return def != NULL ? def : LLVMConstInt(ctx->type_i32, 0, 0);
+            return NULL;
         }
+        def = llvm_coerce_result_option_payload(ctx, def, fields[1]);
         LLVMValueRef tag = LLVMBuildExtractValue(ctx->builder, r, 0, llvm_tmp_name(ctx));
         LLVMValueRef ok = LLVMBuildICmp(ctx->builder, LLVMIntEQ, tag,
             LLVMConstInt(ctx->type_i32, 0, 0), llvm_tmp_name(ctx));
@@ -295,9 +319,12 @@ llvm_emit_result_option_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_
                 PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
                 PGY_FIX_ANNOTATE_CONCRETE_TYPE,
                 "LLVM Some(value) requires contextual Option<T>; anonymous Option layout fallback is disabled");
-            return LLVMConstInt(ctx->type_i32, 0, 0);
+            return NULL;
         }
         val = llvm_emit_expression(node->data.call.arguments[0], ctx);
+        if (val == NULL)
+            return llvm_result_option_error(ctx, node,
+                "LLVM Some(value) could not lower payload expression");
         option_ty = ctx->current_ret_type;
         val = llvm_coerce_result_option_payload(ctx, val, fields[1]);
         LLVMValueRef o = LLVMGetUndef(option_ty);
@@ -317,7 +344,7 @@ llvm_emit_result_option_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_
                 PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
                 PGY_FIX_ANNOTATE_CONCRETE_TYPE,
                 "LLVM None() requires contextual Option<T>; Option<Int> fallback is disabled");
-            return LLVMConstInt(ctx->type_i32, 0, 0);
+            return NULL;
         }
         LLVMTypeRef value_ty = fields[1];
         LLVMTypeRef option_ty = LLVMStructTypeInContext(ctx->context,
@@ -343,7 +370,7 @@ llvm_emit_result_option_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_
                 PGY_FIX_ANNOTATE_CONCRETE_TYPE,
                 "LLVM %s(option) requires concrete Option<T> aggregate operand",
                 callee_name);
-            return LLVMConstInt(ctx->type_i1, 0, 0);
+            return NULL;
         }
         LLVMValueRef tag = LLVMBuildExtractValue(ctx->builder, o, 0, llvm_tmp_name(ctx));
         return LLVMBuildICmp(ctx->builder, LLVMIntEQ, tag,
@@ -363,7 +390,7 @@ llvm_emit_result_option_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_
                 PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
                 PGY_FIX_ANNOTATE_CONCRETE_TYPE,
                 "LLVM UnwrapOption(option) requires concrete Option<T> aggregate operand");
-            return LLVMConstInt(ctx->type_i32, 0, 0);
+            return NULL;
         }
         return llvm_emit_checked_result_option_unwrap(ctx, node, o, 1,
             "Option unwrap on None value");

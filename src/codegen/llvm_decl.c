@@ -26,6 +26,12 @@ llvm_function_emitted_param_count(LLVMGenCtx *ctx, ASTNode *node)
 }
 
 static LLVMTypeRef
+llvm_decl_implicit_self_placeholder_type(LLVMGenCtx *ctx)
+{
+    return ctx != NULL ? ctx->type_i32 : NULL;
+}
+
+static LLVMTypeRef
 llvm_decl_required_param_type(LLVMGenCtx *ctx, ASTNode *func, FuncParam *param)
 {
     if (ctx == NULL)
@@ -33,14 +39,14 @@ llvm_decl_required_param_type(LLVMGenCtx *ctx, ASTNode *func, FuncParam *param)
     if (param != NULL && param->type != NULL)
         return ast_type_to_llvm(ctx, param->type);
     if (param != NULL && llvm_param_is_implicit_self(param))
-        return ctx->type_i32;
+        return llvm_decl_implicit_self_placeholder_type(ctx);
 
     llvm_set_error_at_with_hints(ctx, func,
         PGY_CODE_LLVM_TYPE_UNSUPPORTED,
         PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
         PGY_FIX_ANNOTATE_CONCRETE_TYPE,
         "LLVM function parameter requires explicit type metadata; silent i32 fallback is not allowed");
-    return ctx->type_i32;
+    return NULL;
 }
 
 static ASTNode *
@@ -173,6 +179,8 @@ llvm_forward_declare_func(ASTNode *node, LLVMGenCtx *ctx)
     LLVMTypeRef ret_type = ctx->type_void;
     if (node->data.func_decl.return_type != NULL)
         ret_type = ast_type_to_llvm(ctx, node->data.func_decl.return_type);
+    if (ctx->has_error || ret_type == NULL)
+        return;
 
     /* Parameter types */
     LLVMTypeRef *param_types = NULL;
@@ -186,6 +194,8 @@ llvm_forward_declare_func(ASTNode *node, LLVMGenCtx *ctx)
             if (p == NULL || p->name == NULL)
                 continue;
             LLVMTypeRef pt = llvm_decl_required_param_type(ctx, node, p);
+            if (ctx->has_error || pt == NULL)
+                return;
             if (p != NULL
                 && p->type != NULL
                 && p->type->type == AST_TYPE
@@ -275,6 +285,8 @@ llvm_emit_func_decl(ASTNode *node, LLVMGenCtx *ctx)
                     : cls->struct_type;
             }
         }
+        if (ctx->has_error || pt == NULL)
+            goto cleanup;
         if (p != NULL
             && p->type != NULL
             && p->type->type == AST_TYPE
@@ -319,6 +331,7 @@ llvm_emit_func_decl(ASTNode *node, LLVMGenCtx *ctx)
                           LLVMConstInt(ret_type, 0, 0));
     }
 
+cleanup:
     llvm_scope_pop(ctx);
 
     ctx->slot_var_count = saved_slot_var_count;

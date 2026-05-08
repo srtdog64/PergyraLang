@@ -56,7 +56,7 @@ llvm_type_to_suffix(LLVMGenCtx *ctx, LLVMTypeRef ty)
     if (ty == ctx->type_f64)    return "Double";
     if (ty == ctx->type_i1)     return "Bool";
     if (ty == ctx->type_i8ptr)  return "String";
-    return "Unknown";
+    return NULL;
 }
 
 LLVMValueRef

@@ -169,17 +169,17 @@ mir_render_type_name(ASTNode *type_node)
             ? type_node->data.type.name : "Int");
         if (type_node->data.type.generic_args != NULL
             && type_node->data.type.generic_args->count > 0) {
-            strncat(buf, "<", cap - strlen(buf) - 1);
+            pergyra_str_append(buf, cap, "<");
             for (size_t i = 0; i < type_node->data.type.generic_args->count; i++) {
                 GenericParam *param = type_node->data.type.generic_args->params[i];
                 char *inner = mir_render_type_name(
                     param != NULL ? param->constraint : NULL);
                 if (i > 0)
-                    strncat(buf, ",", cap - strlen(buf) - 1);
-                strncat(buf, inner != NULL ? inner : "Int", cap - strlen(buf) - 1);
+                    pergyra_str_append(buf, cap, ",");
+                pergyra_str_append(buf, cap, inner != NULL ? inner : "Int");
                 free(inner);
             }
-            strncat(buf, ">", cap - strlen(buf) - 1);
+            pergyra_str_append(buf, cap, ">");
         }
         return buf;
     }

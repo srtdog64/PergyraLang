@@ -123,10 +123,10 @@ llvm_mir_type_from_ast(LLVMGenCtx *ctx, ASTNode *type_node)
     LLVMTypeRef type;
 
     if (ctx == NULL || type_node == NULL)
-        return ctx != NULL ? ctx->type_i32 : NULL;
+        return NULL;
 
     type = ast_type_to_llvm(ctx, type_node);
-    return type != NULL ? type : ctx->type_i32;
+    return type;
 }
 
 LLVMTypeRef
@@ -146,7 +146,7 @@ llvm_mir_required_type_from_ast(LLVMGenCtx *ctx,
             PGY_FIX_ANNOTATE_CONCRETE_TYPE,
             "LLVM MIR %s requires explicit type metadata; silent i32 fallback is not allowed",
             slot_kind != NULL ? slot_kind : "signature slot");
-        return ctx->type_i32;
+        return NULL;
     }
 
     type = ast_type_to_llvm(ctx, type_node);
@@ -159,7 +159,7 @@ llvm_mir_required_type_from_ast(LLVMGenCtx *ctx,
         PGY_FIX_ANNOTATE_CONCRETE_TYPE,
         "LLVM MIR %s has unsupported type metadata; silent i32 fallback is not allowed",
         slot_kind != NULL ? slot_kind : "signature slot");
-    return ctx->type_i32;
+    return NULL;
 }
 
 bool

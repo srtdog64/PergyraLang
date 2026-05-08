@@ -32,10 +32,16 @@ llvm_await_task_handle(LLVMGenCtx *ctx, ASTNode *node, LLVMValueRef task,
             PGY_FIX_INSPECT_MIR_INVENTORY,
             "LLVM await expression requires registered runtime function '%s'",
             "pgy_await_export");
-        return LLVMConstInt(ctx->type_i32, 0, 0);
+        return NULL;
     }
-    if (task == NULL)
-        return LLVMConstInt(ctx->type_i32, 0, 0);
+    if (task == NULL) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "LLVM await expression could not lower task handle expression");
+        return NULL;
+    }
 
     args[0] = task;
     raw = LLVMBuildCall2(ctx->builder, await_fn->fn_type,
@@ -59,6 +65,8 @@ llvm_await_task_handle(LLVMGenCtx *ctx, ASTNode *node, LLVMValueRef task,
     }
 
     inner_ty = pergyra_type_to_llvm(ctx, inner);
+    if (ctx->has_error || inner_ty == NULL)
+        return NULL;
     if (strcmp(inner, "String") == 0) {
         LLVMValueRef typed_ptr = LLVMBuildBitCast(ctx->builder, raw,
             LLVMPointerType(ctx->type_i8ptr, 0), llvm_tmp_name(ctx));
@@ -107,7 +115,41 @@ llvm_spawn_required_param_type(LLVMGenCtx *ctx,
         PGY_FIX_ANNOTATE_CONCRETE_TYPE,
         "LLVM generic call '%s' parameter requires explicit type metadata; silent i32 fallback is not allowed",
         callee_name != NULL ? callee_name : "<anonymous>");
-    return ctx->type_i32;
+    return NULL;
+}
+
+static const char *
+llvm_generic_call_required_suffix(LLVMGenCtx *ctx,
+                                  ASTNode *owner,
+                                  const char *callee_name,
+                                  LLVMValueRef value,
+                                  size_t arg_index)
+{
+    const char *suffix;
+
+    if (ctx == NULL || value == NULL) {
+        llvm_set_error_at_with_hints(ctx, owner,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+            "LLVM generic call '%s' requires a lowered argument %zu for specialization",
+            callee_name != NULL ? callee_name : "<anonymous>",
+            arg_index + 1);
+        return NULL;
+    }
+
+    suffix = llvm_type_to_suffix(ctx, LLVMTypeOf(value));
+    if (suffix != NULL && strcmp(suffix, "Unknown") != 0)
+        return suffix;
+
+    llvm_set_error_at_with_hints(ctx, owner,
+        PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+        PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+        PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+        "LLVM generic call '%s' requires concrete argument %zu type metadata for specialization",
+        callee_name != NULL ? callee_name : "<anonymous>",
+        arg_index + 1);
+    return NULL;
 }
 
 LLVMFuncEntry *
@@ -122,9 +164,10 @@ llvm_resolve_callee_entry(LLVMGenCtx *ctx, const char *callee_name,
 
     snprintf(mangled, sizeof(mangled), "%s", callee_name);
     for (size_t i = 0; i < argc; i++) {
-        LLVMTypeRef at = (args != NULL && args[i] != NULL)
-            ? LLVMTypeOf(args[i]) : ctx->type_i32;
-        const char *suf = llvm_type_to_suffix(ctx, at);
+        const char *suf = llvm_generic_call_required_suffix(ctx, generic_ast,
+            callee_name, args != NULL ? args[i] : NULL, i);
+        if (suf == NULL)
+            return NULL;
         llvm_append_mangled_suffix(mangled, sizeof(mangled), suf);
     }
 
@@ -148,13 +191,32 @@ llvm_resolve_callee_entry(LLVMGenCtx *ctx, const char *callee_name,
         saved_subst = ctx->type_subst_count;
         ctx->type_subst_count = 0;
         for (size_t gi = 0; gi < gp->count && gi < 8; gi++) {
-            LLVMTypeRef concrete = (gi < argc && args != NULL && args[gi] != NULL)
-                ? LLVMTypeOf(args[gi]) : ctx->type_i32;
+            const char *suffix;
+            LLVMTypeRef concrete;
+            if (gi >= argc || args == NULL || args[gi] == NULL) {
+                llvm_set_error_at_with_hints(ctx, generic_ast,
+                    PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                    "LLVM generic call '%s' requires argument %zu to bind generic parameter '%s'",
+                    callee_name != NULL ? callee_name : "<anonymous>",
+                    gi + 1,
+                    gp->params[gi] != NULL && gp->params[gi]->name != NULL
+                        ? gp->params[gi]->name : "<anonymous>");
+                ctx->type_subst_count = saved_subst;
+                return NULL;
+            }
+            concrete = LLVMTypeOf(args[gi]);
+            suffix = llvm_generic_call_required_suffix(ctx, generic_ast,
+                callee_name, args[gi], gi);
+            if (suffix == NULL) {
+                ctx->type_subst_count = saved_subst;
+                return NULL;
+            }
             ctx->type_subst[ctx->type_subst_count].param_name =
                 gp->params[gi]->name;
             ctx->type_subst[ctx->type_subst_count].llvm_type = concrete;
-            ctx->type_subst[ctx->type_subst_count].type_name =
-                llvm_type_to_suffix(ctx, concrete);
+            ctx->type_subst[ctx->type_subst_count].type_name = suffix;
             ctx->type_subst_count++;
         }
 
@@ -168,6 +230,16 @@ llvm_resolve_callee_entry(LLVMGenCtx *ctx, const char *callee_name,
         pc = generic_ast->data.func_decl.param_count;
         ptypes = pgy_arena_calloc(&ctx->scratch,
             ((pc * 2) > 0 ? (pc * 2) : 1) * sizeof(LLVMTypeRef));
+        if (ptypes == NULL) {
+            llvm_set_error_at_with_hints(ctx, generic_ast,
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                PGY_FIX_INSPECT_MIR_INVENTORY,
+                "LLVM generic spawn specialization parameter type allocation failed for '%s'",
+                callee_name != NULL ? callee_name : "<anonymous>");
+            ctx->type_subst_count = saved_subst;
+            return NULL;
+        }
         real_pc = 0;
         for (size_t k = 0; k < pc; k++) {
             FuncParam *p = generic_ast->data.func_decl.params[k];
@@ -185,8 +257,13 @@ llvm_resolve_callee_entry(LLVMGenCtx *ctx, const char *callee_name,
                     if (is_secure)
                         ptypes[real_pc++] = llvm_secure_token_type(ctx, inner);
                 } else {
-                    ptypes[real_pc++] = llvm_spawn_required_param_type(
+                    LLVMTypeRef pt = llvm_spawn_required_param_type(
                         ctx, generic_ast, p, callee_name);
+                    if (pt == NULL) {
+                        ctx->type_subst_count = saved_subst;
+                        return NULL;
+                    }
+                    ptypes[real_pc++] = pt;
                 }
             }
         }
@@ -212,6 +289,15 @@ llvm_resolve_callee_entry(LLVMGenCtx *ctx, const char *callee_name,
                     &is_secure);
                 LLVMTypeRef pt = llvm_spawn_required_param_type(
                     ctx, generic_ast, p, callee_name);
+                if (pt == NULL) {
+                    llvm_scope_pop(ctx);
+                    ctx->type_subst_count = saved_subst;
+                    ctx->current_function = saved_fn;
+                    ctx->current_ret_type = saved_ret;
+                    if (saved_bb != NULL)
+                        LLVMPositionBuilderAtEnd(ctx->builder, saved_bb);
+                    return NULL;
+                }
                 if (inner != NULL) {
                     LLVMValueRef slot_ptr = LLVMGetParam(mono_fn,
                         (unsigned)real_pc++);
@@ -286,8 +372,14 @@ llvm_emit_spawn_expr(ASTNode *node, LLVMGenCtx *ctx)
     LLVMFuncEntry *free_fn = NULL;
     int wrapper_id = ++ctx->tmp_counter;
 
-    if (target == NULL)
-        return LLVMConstNull(ctx->type_task_handle);
+    if (target == NULL) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_SYMBOL_UNDEFINED,
+            PGY_FIX_IMPORT_OR_DECLARE_SYMBOL,
+            "LLVM spawn expression requires a target expression");
+        return NULL;
+    }
 
     if (target->type == AST_CALL) {
         call = target;
@@ -299,13 +391,38 @@ llvm_emit_spawn_expr(ASTNode *node, LLVMGenCtx *ctx)
 
     if (callee != NULL && callee->type == AST_IDENTIFIER)
         callee_name = callee->data.identifier.name;
-    if (callee_name == NULL)
-        return LLVMConstNull(ctx->type_task_handle);
+    if (callee_name == NULL) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_SYMBOL_UNDEFINED,
+            PGY_FIX_IMPORT_OR_DECLARE_SYMBOL,
+            "LLVM spawn expression requires an identifier target");
+        return NULL;
+    }
 
     if (argc > 0) {
         args = pgy_arena_calloc(&ctx->scratch, argc * sizeof(LLVMValueRef));
-        for (size_t i = 0; i < argc; i++)
+        if (args == NULL) {
+            llvm_set_error_at_with_hints(ctx, node,
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                PGY_FIX_INSPECT_MIR_INVENTORY,
+                "LLVM spawn expression argument allocation failed");
+            return NULL;
+        }
+        for (size_t i = 0; i < argc; i++) {
             args[i] = llvm_emit_expression(call->data.call.arguments[i], ctx);
+            if (args[i] == NULL) {
+                llvm_set_error_at_with_hints(ctx, node,
+                    PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                    "LLVM spawn expression target '%s' could not lower argument %zu",
+                    callee_name,
+                    i + 1);
+                return NULL;
+            }
+        }
     }
 
     callee_entry = llvm_resolve_callee_entry(ctx, callee_name, args, argc);
@@ -324,7 +441,7 @@ llvm_emit_spawn_expr(ASTNode *node, LLVMGenCtx *ctx)
             node->data.spawn_expr.is_blocking
                 ? "pgy_spawn_blocking_export"
                 : "pgy_async_spawn_export");
-        return LLVMConstNull(ctx->type_task_handle);
+        return NULL;
     }
     if (callee_entry == NULL) {
         llvm_set_error_at_with_hints(ctx, node,
@@ -333,7 +450,7 @@ llvm_emit_spawn_expr(ASTNode *node, LLVMGenCtx *ctx)
             PGY_FIX_IMPORT_OR_DECLARE_SYMBOL,
             "LLVM spawn expression target '%s' is not declared in the backend function registry",
             callee_name);
-        return LLVMConstNull(ctx->type_task_handle);
+        return NULL;
     }
 
     {
@@ -363,10 +480,31 @@ llvm_emit_spawn_expr(ASTNode *node, LLVMGenCtx *ctx)
         if (argc > 0) {
             LLVMTypeRef *field_types = pgy_arena_calloc(&ctx->scratch,
                 argc * sizeof(LLVMTypeRef));
+            if (field_types == NULL) {
+                llvm_set_error_at_with_hints(ctx, node,
+                    PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_FIX_INSPECT_MIR_INVENTORY,
+                    "LLVM spawn expression argument type allocation failed");
+                return NULL;
+            }
             for (size_t i = 0; i < argc; i++)
                 field_types[i] = LLVMTypeOf(args[i]);
             arg_struct_type = LLVMStructTypeInContext(ctx->context, field_types,
                 (unsigned)argc, 0);
+        }
+
+        if (argc > 16) {
+            loaded_args = pgy_arena_calloc(&ctx->scratch,
+                argc * sizeof(LLVMValueRef));
+            if (loaded_args == NULL) {
+                llvm_set_error_at_with_hints(ctx, node,
+                    PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_FIX_INSPECT_MIR_INVENTORY,
+                    "LLVM spawn expression loaded-argument allocation failed");
+                return NULL;
+            }
         }
 
         ctx->current_function = wrapper_fn;
@@ -374,10 +512,6 @@ llvm_emit_spawn_expr(ASTNode *node, LLVMGenCtx *ctx)
         entry = LLVMAppendBasicBlockInContext(ctx->context, wrapper_fn, "entry");
         LLVMPositionBuilderAtEnd(ctx->builder, entry);
         llvm_scope_push(ctx);
-
-        if (argc > 16)
-            loaded_args = pgy_arena_calloc(&ctx->scratch,
-                argc * sizeof(LLVMValueRef));
 
         raw_arg = LLVMGetParam(wrapper_fn, 0);
         if (argc > 0) {

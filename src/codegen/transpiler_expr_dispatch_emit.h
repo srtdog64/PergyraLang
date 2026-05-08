@@ -1,6 +1,8 @@
 #ifndef PGY_TRANSPILER_EXPR_DISPATCH_EMIT_H
 #define PGY_TRANSPILER_EXPR_DISPATCH_EMIT_H
 
+#include "../common/string_compat.h"
+
 char *
 emit_expression(ASTNode *node, TranspilerCtx *ctx)
 {
@@ -92,6 +94,16 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
                 && !ctx->suppress_slot_auto_read) {
                 const char *inner = slot_inner_type_name(slot_type);
                 bool secure = strncmp(slot_type, "SecureSlot<", 11) == 0;
+                if (inner == NULL || inner[0] == '\0'
+                    || strcmp(inner, "Unknown") == 0) {
+                    transpiler_set_backend_error_with_hints(ctx,
+                        PGY_CODE_C_TYPE_UNSUPPORTED,
+                        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                        PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                        "C slot SSA auto-read requires concrete Slot<T> payload metadata");
+                    free(c_ssa_name);
+                    return pergyra_strdup("0");
+                }
                 const char *token_name = secure
                     ? require_slot_token_name(ctx, id_name, "SecureSlot SSA auto-read")
                     : NULL;
@@ -118,7 +130,8 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
         if (!ctx->suppress_slot_auto_read && is_slot_var(ctx, id_name)) {
             const char *inner = lookup_slot_type(ctx, id_name);
             bool secure = lookup_slot_is_secure(ctx, id_name);
-            if (inner == NULL) {
+            if (inner == NULL || inner[0] == '\0'
+                || strcmp(inner, "Unknown") == 0) {
                 transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "cannot determine slot payload type for auto-read of '%s'",
                     id_name != NULL ? id_name : "<slot>");
                 return pergyra_strdup("0");
@@ -240,15 +253,37 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
         char *index = emit_expression(node->data.array_access.index, ctx);
         const char *array_type = infer_expression_type_name(ctx, node->data.array_access.array);
         char *result;
-        if (strncmp(array_type, "Array<", 6) == 0) {
+        if (array_type != NULL && strncmp(array_type, "Array<", 6) == 0) {
             const char *inner = slot_inner_type_name(array_type);
+            if (inner == NULL || inner[0] == '\0'
+                || strcmp(inner, "Unknown") == 0) {
+                transpiler_set_backend_error_with_hints(ctx,
+                    PGY_CODE_C_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                    PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                    "C array access requires concrete Array<T> element metadata");
+                free(array);
+                free(index);
+                return pergyra_strdup("0");
+            }
             int tmp_id = ++ctx->tmp_counter;
             result = strdup_fmt(
                 "({ PgyArray_%s _pgy_arr_get_%d = %s; "
                 "pgy_array_get_%s(&_pgy_arr_get_%d, %s); })",
                 inner, tmp_id, array, inner, tmp_id, index);
-        } else if (strncmp(array_type, "Slice<", 6) == 0) {
+        } else if (array_type != NULL && strncmp(array_type, "Slice<", 6) == 0) {
             const char *inner = slot_inner_type_name(array_type);
+            if (inner == NULL || inner[0] == '\0'
+                || strcmp(inner, "Unknown") == 0) {
+                transpiler_set_backend_error_with_hints(ctx,
+                    PGY_CODE_C_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                    PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                    "C slice access requires concrete Slice<T> element metadata");
+                free(array);
+                free(index);
+                return pergyra_strdup("0");
+            }
             int tmp_id = ++ctx->tmp_counter;
             result = strdup_fmt(
                 "({ PgySlice_%s _pgy_slice_get_%d = %s; "
@@ -263,10 +298,10 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
     }
 
     case AST_TUPLE_LITERAL: {
-        /* Determine tuple type name from context. Priority:
+        /* Determine tuple type name from concrete context. Priority:
          *   1) ctx->expected_type (let binding with annotation)
          *   2) ctx->current_return_type (inside `return` in tuple-returning fn)
-         *   3) Build from element type names (best-effort fallback).
+         *   3) Build from concrete element type names.
          * All three must start with '(' for tuple classification. */
         char tuple_name_buf[256];
         const char *tuple_name = NULL;
@@ -276,8 +311,8 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
             tuple_name = ctx->current_return_type;
         if (tuple_name == NULL) {
             size_t off = 0;
-            off += (size_t)snprintf(tuple_name_buf + off,
-                sizeof(tuple_name_buf) - off, "(");
+            tuple_name_buf[0] = '\0';
+            off = pergyra_str_append(tuple_name_buf, sizeof(tuple_name_buf), "(");
             for (size_t i = 0; i < node->data.tuple_literal.count; i++) {
                 const char *et =
                     infer_expression_type_name(ctx, node->data.tuple_literal.elements[i]);
@@ -291,17 +326,26 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
                     return pergyra_strdup("0");
                 }
                 if (i > 0) {
-                    off += (size_t)snprintf(tuple_name_buf + off,
-                        sizeof(tuple_name_buf) - off, ", ");
+                    off = pergyra_str_append(tuple_name_buf,
+                        sizeof(tuple_name_buf), ", ");
                 }
-                off += (size_t)snprintf(tuple_name_buf + off,
-                    sizeof(tuple_name_buf) - off, "%s", et);
+                off = pergyra_str_append(tuple_name_buf,
+                    sizeof(tuple_name_buf), et);
             }
-            (void)snprintf(tuple_name_buf + off,
-                sizeof(tuple_name_buf) - off, ")");
+            (void)off;
+            (void)pergyra_str_append(tuple_name_buf, sizeof(tuple_name_buf), ")");
             tuple_name = tuple_name_buf;
         }
         const char *ctype = pergyra_type_to_c(tuple_name);
+        if (ctype == NULL || ctype[0] == '\0'
+            || strcmp(ctype, "Unknown") == 0) {
+            transpiler_set_backend_error_with_hints(ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED,
+                PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                "C tuple literal requires concrete tuple layout metadata");
+            return pergyra_strdup("0");
+        }
         CodeBuf *out = codebuf_create();
         codebuf_write(out, "((%s){", ctype);
         for (size_t i = 0; i < node->data.tuple_literal.count; i++) {
@@ -320,6 +364,16 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
     case AST_ARRAY_LITERAL: {
         const char *array_type = infer_expression_type_name(ctx, node);
         const char *inner = slot_inner_type_name(array_type);
+        if (array_type == NULL || strncmp(array_type, "Array<", 6) != 0
+            || inner == NULL || inner[0] == '\0'
+            || strcmp(inner, "Unknown") == 0) {
+            transpiler_set_backend_error_with_hints(ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED,
+                PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                "C array literal requires concrete Array<T> element metadata");
+            return pergyra_strdup("0");
+        }
         int tmp_id = ++ctx->tmp_counter;
         CodeBuf *buf = codebuf_create();
         codebuf_write(buf, "({ PgyArray_%s _pgy_arr_%d = pgy_array_new_%s(%zu); ",
@@ -343,7 +397,8 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
             if (is_slot_var(ctx, tgt_name)) {
                 const char *inner = lookup_slot_type(ctx, tgt_name);
                 bool secure = lookup_slot_is_secure(ctx, tgt_name);
-                if (inner == NULL) {
+                if (inner == NULL || inner[0] == '\0'
+                    || strcmp(inner, "Unknown") == 0) {
                     transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "cannot determine slot payload type for assignment to '%s'",
                         tgt_name != NULL ? tgt_name : "<slot>");
                     return pergyra_strdup("0");
@@ -400,6 +455,17 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
             bool is_remote = is_remote_future_expr(ctx,
                 node->data.await_expr.expression);
             char *result;
+            if (expr == NULL
+                || inner == NULL || inner[0] == '\0'
+                || strcmp(inner, "Unknown") == 0) {
+                transpiler_set_backend_error_with_hints(ctx,
+                    PGY_CODE_C_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                    PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                    "C await expression requires concrete Future<T> result metadata");
+                free(expr);
+                return pergyra_strdup("0");
+            }
             if (strcmp(inner, "Void") == 0) {
                 result = strdup_fmt("pgy_await_void(%s)", expr);
             } else if (is_remote) {

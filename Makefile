@@ -151,7 +151,8 @@ COMMON_DIR   = $(SRC_DIR)/common
 # Source groups
 # -----------------------------------------------------------------
 COMMON_SOURCES   = $(COMMON_DIR)/arena.c \
-                   $(COMMON_DIR)/diagnostic_layer.c
+                   $(COMMON_DIR)/diagnostic_layer.c \
+                   $(COMMON_DIR)/intent_observability_names.c
 LEXER_SOURCES    = $(LEXER_DIR)/lexer.c \
                    $(LEXER_DIR)/lexer_token_debug.c
 PARSER_SOURCES   = $(PARSER_DIR)/ast.c \
@@ -412,7 +413,6 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_allocator_builtin_emit.c \
                    $(CODEGEN_DIR)/transpiler_misc_decl.c \
                    $(CODEGEN_DIR)/transpiler_mir_expr_ssa.c \
                    $(CODEGEN_DIR)/transpiler_mir_emit_state.c \
-                   $(CODEGEN_DIR)/transpiler_mir_let_lookup.c \
                    $(CODEGEN_DIR)/transpiler_mir_local_binding.c \
                    $(CODEGEN_DIR)/transpiler_mir_local_type_ast_lookup.c \
                    $(CODEGEN_DIR)/transpiler_mir_inventory_intent_collect.c \
@@ -454,6 +454,7 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/dir_collect_intent.c \
                    $(COMPILER_DIR)/dir_collect_domain.c \
                    $(COMPILER_DIR)/dir_validate.c \
+                   $(COMPILER_DIR)/io_boundary_builtin.c \
                    $(COMPILER_DIR)/air_names.c \
                    $(COMPILER_DIR)/air.c \
                    $(COMPILER_DIR)/air_boundary.c \
@@ -485,6 +486,8 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/hir_lower_cfg.c \
                    $(COMPILER_DIR)/hir_lower_intent_cfg.c \
                    $(COMPILER_DIR)/mir.c \
+                   $(COMPILER_DIR)/mir_names.c \
+                   $(COMPILER_DIR)/mir_lifecycle.c \
                    $(COMPILER_DIR)/mir_base_helpers.c \
                    $(COMPILER_DIR)/mir_call_fact.c \
                    $(COMPILER_DIR)/mir_validation.c \
@@ -597,7 +600,9 @@ ifneq ($(LLVM_ENABLED),0)
                         $(CODEGEN_DIR)/llvm_expr_array_calls.c \
                         $(CODEGEN_DIR)/llvm_expr_call_args.c \
                         $(CODEGEN_DIR)/llvm_expr_call_collections_extended.c \
+                        $(CODEGEN_DIR)/llvm_expr_call_collections_require.c \
                         $(CODEGEN_DIR)/llvm_expr_call_dispatch.c \
+                        $(CODEGEN_DIR)/llvm_expr_call_errors.c \
                         $(CODEGEN_DIR)/llvm_expr_call_queue_extended.c \
                         $(CODEGEN_DIR)/llvm_expr_call_methods_domain_slice.c \
                         $(CODEGEN_DIR)/llvm_expr_call_methods_vtable_dispatch.c \
@@ -804,6 +809,7 @@ HIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/hir_analysis.o \
                    $(BUILD_DIR)/compiler/hir_public.o \
                    $(BUILD_DIR)/compiler/hir_validate.o
 RIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/rir.o \
+                   $(BUILD_DIR)/compiler/io_boundary_builtin.o \
                    $(BUILD_DIR)/compiler/rir_names.o \
                     $(BUILD_DIR)/compiler/rir_public_surface.o \
                     $(BUILD_DIR)/compiler/rir_validation.o \
@@ -814,6 +820,7 @@ RIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/rir.o \
                    $(BUILD_DIR)/compiler/rir_builder_walk.o \
                    $(BUILD_DIR)/compiler/rir_builder_intent.o
 AIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/air_names.o \
+                   $(BUILD_DIR)/compiler/io_boundary_builtin.o \
                    $(BUILD_DIR)/compiler/air.o \
                    $(BUILD_DIR)/compiler/air_boundary.o \
                    $(BUILD_DIR)/compiler/air_boundary_walk.o \
@@ -822,6 +829,7 @@ AIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/air_names.o \
                    $(BUILD_DIR)/compiler/air_evidence_node.o \
                    $(BUILD_DIR)/compiler/air_evidence_ast.o \
                    $(BUILD_DIR)/compiler/air_evidence.o \
+                   $(BUILD_DIR)/compiler/mir_cleanup_fact_names.o \
                    $(BUILD_DIR)/compiler/mir_cfg_contract_pin.o \
                    $(BUILD_DIR)/compiler/mir_cfg_contract_cleanup_fact.o \
                    $(BUILD_DIR)/compiler/mir_cfg_contract_cleanup_root_membership.o \
@@ -831,6 +839,8 @@ AIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/air_names.o \
                    $(BUILD_DIR)/compiler/air_validate.o \
                    $(BUILD_DIR)/compiler/air_verify.o
 MIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/mir.o \
+                   $(BUILD_DIR)/compiler/mir_names.o \
+                   $(BUILD_DIR)/compiler/mir_lifecycle.o \
                    $(BUILD_DIR)/compiler/mir_base_helpers.o \
                    $(BUILD_DIR)/compiler/mir_call_fact.o \
                    $(BUILD_DIR)/compiler/mir_validation.o \
@@ -940,7 +950,7 @@ $(LEXER_TEST): $(LEXER_OBJECTS) $(MAIN_OBJECT) | $(BIN_DIR)
 	$(call pgy_link,)
 
 # Parser test
-$(PARSER_TEST): $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(PARSER_TEST_OBJECT) | $(BIN_DIR)
+$(PARSER_TEST): $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(PARSER_TEST_OBJECT) | $(BIN_DIR)
 	@mkdir -p $(dir $@)
 	$(call pgy_link,)
 
@@ -952,7 +962,7 @@ $(DATASTRUCTURES_TEST): $(BUILD_DIR)/runtime/slot_pool.o \
 	$(call pgy_link,$(THREAD_LINK_LIB))
 
 # Security test
-$(SECURITY_TEST): $(RUNTIME_OBJECTS) $(RUNTIME_ASM_OBJECTS) \
+$(SECURITY_TEST): check-security-toolchain $(RUNTIME_OBJECTS) $(RUNTIME_ASM_OBJECTS) \
                    $(TEST_SECURITY_OBJ) | $(BIN_DIR)
 	@mkdir -p $(dir $@)
 	$(call pgy_link,$(THREAD_LINK_LIB) -lssl -lcrypto)
@@ -1303,6 +1313,15 @@ async-model-positioning-test-smoke:
 documentation-quality-test-smoke:
 	"$(BASH)" tests/documentation_quality_smoke.sh
 
+debug-hygiene-test-smoke:
+	"$(BASH)" tests/debug_hygiene_smoke.sh
+
+memory-string-safety-test-smoke:
+	"$(BASH)" tests/memory_string_safety_smoke.sh
+
+security-portability-contract-test-smoke:
+	"$(BASH)" tests/security_portability_contract_smoke.sh
+
 llvm-campaign-projection-test-smoke:
 	$(MAKE) LLVM_ENABLED=1 $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/llvm_campaign_projection_smoke.sh
@@ -1490,7 +1509,52 @@ check-macos-toolchain:
 	echo "hint: run under GitHub Actions macos-latest or a native macOS shell." >&2; \
 	exit 1
 
+check-build-tools:
+	@if ! "$(BASH)" -lc 'exit 0' >/dev/null 2>&1; then \
+		echo "build preflight requires bash for smoke tests and CI scripts." >&2; \
+		echo "current BASH: $(BASH)" >&2; \
+		echo "hint: install bash, or run from MSYS2/Git Bash/WSL on Windows." >&2; \
+		exit 1; \
+	fi
+	@if ! $(CC) --version >/dev/null 2>&1; then \
+		echo "build preflight requires a working C compiler." >&2; \
+		echo "current CC: $(CC)" >&2; \
+		echo "hint: install gcc/clang, or set CC=/path/to/compiler." >&2; \
+		exit 1; \
+	fi
+	@if [ "$(LLVM_ENABLED)" != "0" ]; then \
+		if [ -n "$(LLVM_CONFIG)" ] && "$(LLVM_CONFIG)" --version >/dev/null 2>&1; then \
+			exit 0; \
+		fi; \
+		if [ -n "$(LLVM_MONOLITHIC_SONAME)" ] && [ -f "$(LLVM_MONOLITHIC_SONAME)" ]; then \
+			exit 0; \
+		fi; \
+		if [ -f "$(LLVM_DIR)/llvm-c/Core.h" ] && [ -d "$(LLVM_INSTALL)/lib" ]; then \
+			exit 0; \
+		fi; \
+		echo "build preflight requires LLVM when LLVM_ENABLED=$(LLVM_ENABLED)." >&2; \
+		echo "hint: install llvm-config/libLLVM, or run with LLVM_ENABLED=0 for the C backend." >&2; \
+		exit 1; \
+	fi
+	@if [ -z "$(NASM)" ]; then \
+		echo "build preflight: nasm not found; assembly runtime objects are disabled." >&2; \
+	fi
+
+check-security-toolchain:
+	@tmp="$${TMPDIR:-/tmp}/pgy_openssl_check_$$$$.c"; \
+	exe="$${TMPDIR:-/tmp}/pgy_openssl_check_$$$$$(EXEEXT)"; \
+	printf '%s\n' '#include <openssl/evp.h>' 'int main(void) { return EVP_sha256() == 0; }' > "$$tmp"; \
+	if ! $(CC) $(PLATFORM_CFLAGS) "$$tmp" -o "$$exe" -lssl -lcrypto >/dev/null 2>&1; then \
+		rm -f "$$tmp" "$$exe"; \
+		echo "security test preflight requires OpenSSL development headers and libraries." >&2; \
+		echo "missing: openssl/evp.h or linkable -lssl -lcrypto for CC=$(CC)" >&2; \
+		echo "hint: install OpenSSL development packages, or skip test-security on minimal C-only toolchains." >&2; \
+		exit 1; \
+	fi; \
+	rm -f "$$tmp" "$$exe"
+
 ci-linux:
+	$(MAKE) check-build-tools CC="$(CI_LINUX_CC)"
 	$(MAKE) check-linux-toolchain
 	$(MAKE) build-source-inventory-test-smoke
 	$(MAKE) source-utf8-test-smoke
@@ -1508,6 +1572,9 @@ ci-linux:
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" observability-schema-test-smoke
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" memory-concurrency-model-test-smoke
 	$(MAKE) documentation-quality-test-smoke
+	$(MAKE) debug-hygiene-test-smoke
+	$(MAKE) memory-string-safety-test-smoke
+	$(MAKE) security-portability-contract-test-smoke
 	$(MAKE) beta-readiness-checklist-test-smoke
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" dogfood-webgl-test-smoke
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" runtime-none-contract-test-smoke
@@ -1557,6 +1624,7 @@ ci-linux:
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" test-all
 
 ci-macos:
+	$(MAKE) check-build-tools CC="$(CI_MACOS_CC)" LLVM_ENABLED=0
 	$(MAKE) check-macos-toolchain
 	$(MAKE) build-source-inventory-test-smoke
 	$(MAKE) source-utf8-test-smoke
@@ -1572,6 +1640,9 @@ ci-macos:
 	PGY_OBSERVABILITY_BACKENDS=c $(MAKE) CC="$(CI_MACOS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_MACOS_BUILD_DIR)" BIN_DIR="$(CI_MACOS_BIN_DIR)" observability-schema-test-smoke
 	PGY_MEMORY_CONCURRENCY_BACKENDS=c $(MAKE) CC="$(CI_MACOS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_MACOS_BUILD_DIR)" BIN_DIR="$(CI_MACOS_BIN_DIR)" memory-concurrency-model-test-smoke
 	$(MAKE) documentation-quality-test-smoke
+	$(MAKE) debug-hygiene-test-smoke
+	$(MAKE) memory-string-safety-test-smoke
+	$(MAKE) security-portability-contract-test-smoke
 	$(MAKE) beta-readiness-checklist-test-smoke
 	$(MAKE) CC="$(CI_MACOS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_MACOS_BUILD_DIR)" BIN_DIR="$(CI_MACOS_BIN_DIR)" dogfood-webgl-test-smoke
 	$(MAKE) CC="$(CI_MACOS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_MACOS_BUILD_DIR)" BIN_DIR="$(CI_MACOS_BIN_DIR)" runtime-none-contract-test-smoke
@@ -1600,12 +1671,16 @@ check-windows-toolchain:
 	exit 1
 
 ci-windows:
+	$(MAKE) check-build-tools CC="$(CI_WINDOWS_CC)" LLVM_ENABLED=0
 	$(MAKE) check-windows-toolchain
 	$(MAKE) build-source-inventory-test-smoke
 	$(MAKE) source-utf8-test-smoke
 	$(MAKE) CC="$(CI_WINDOWS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" clean
 	$(MAKE) beta-test-suite-freeze-test-smoke
 	$(MAKE) documentation-quality-test-smoke
+	$(MAKE) debug-hygiene-test-smoke
+	$(MAKE) memory-string-safety-test-smoke
+	$(MAKE) security-portability-contract-test-smoke
 	$(MAKE) beta-readiness-checklist-test-smoke
 	$(MAKE) layered-diagnostics-contract-test-smoke
 	$(MAKE) intent-compression-contract-test-smoke
@@ -1690,7 +1765,7 @@ lsp: $(PGY_LSP)
 
 .PHONY: all clean clean-objects rebuild debug release analyze format memcheck \
         test test-parser test-datastructures test-security test-semantic test-transpile test-memory test-abi test-concurrency test-dir test-air test-rir test-mir test-hir test-all \
-llvm-test llvm-test-parser llvm-test-semantic llvm-test-transpile llvm-test-memory llvm-test-concurrency llvm-test-dir llvm-test-rir llvm-test-mir llvm-test-hir llvm-test-backend-compare llvm-test-all llvm-test-smoke tooling-conformance-test-smoke stdlib-test-smoke module-test-smoke module-taxonomy-test-smoke package-module-resolver-test-smoke unicode-policy-test-smoke beta-test-suite-freeze-test-smoke build-source-inventory-test-smoke observability-schema-test-smoke memory-concurrency-model-test-smoke async-model-positioning-test-smoke documentation-quality-test-smoke llvm-campaign-projection-test-smoke llvm-dnd-campaign-test-smoke beta-readiness-checklist-test-smoke dogfood-webgl-test-smoke formal-semantics-test-smoke air-drift-test-smoke air-json-schema-test-smoke air-backend-nonimpact-test-smoke air-backend-nonimpact-full-test-smoke air-strict-backend-compare-test-smoke codegen-determinism-test-smoke runtime-none-contract-test-smoke raw-escape-contract-test-smoke semantic-inc-size-test-smoke semantic-tu-size-test-smoke production-header-size-test-smoke backend-inc-size-test-smoke test-inc-size-test-smoke semantic-core-shape-test-smoke type-resolution-dag-test-smoke type-resolution-resolver-inventory-test-smoke semantic-fixture-isolation-test-smoke diagnostic-registry-test-smoke layered-diagnostics-contract-test-smoke intent-compression-contract-test-smoke runtime-authority-contract-test-smoke runtime-panic-contract-test-smoke runtime-panic-abi-test-smoke runtime-panic-codegen-test-smoke projection-diagnostic-contract-test-smoke runtime-abi-lifetime-test-smoke abi-ownership-shape-test-smoke runtime-frontier-contract-test-smoke runtime-frontier-policy-test-smoke runtime-intent-observability-contract-test-smoke parallel-core-contract-test-smoke perf-contract-test-smoke parser-lexer-diagnostic-test-smoke diagnostics-json-test-smoke cfg-body-dataflow-test-smoke mir-declaration-inventory-test-smoke example-test-smoke ast-dispatch-test-smoke ci-linux ci-macos ci-windows check-linux-toolchain check-macos-toolchain check-windows-toolchain \
+llvm-test llvm-test-parser llvm-test-semantic llvm-test-transpile llvm-test-memory llvm-test-concurrency llvm-test-dir llvm-test-rir llvm-test-mir llvm-test-hir llvm-test-backend-compare llvm-test-all llvm-test-smoke tooling-conformance-test-smoke stdlib-test-smoke module-test-smoke module-taxonomy-test-smoke package-module-resolver-test-smoke unicode-policy-test-smoke beta-test-suite-freeze-test-smoke build-source-inventory-test-smoke observability-schema-test-smoke memory-concurrency-model-test-smoke async-model-positioning-test-smoke documentation-quality-test-smoke debug-hygiene-test-smoke memory-string-safety-test-smoke security-portability-contract-test-smoke llvm-campaign-projection-test-smoke llvm-dnd-campaign-test-smoke beta-readiness-checklist-test-smoke dogfood-webgl-test-smoke formal-semantics-test-smoke air-drift-test-smoke air-json-schema-test-smoke air-backend-nonimpact-test-smoke air-backend-nonimpact-full-test-smoke air-strict-backend-compare-test-smoke codegen-determinism-test-smoke runtime-none-contract-test-smoke raw-escape-contract-test-smoke semantic-inc-size-test-smoke semantic-tu-size-test-smoke production-header-size-test-smoke backend-inc-size-test-smoke test-inc-size-test-smoke semantic-core-shape-test-smoke type-resolution-dag-test-smoke type-resolution-resolver-inventory-test-smoke semantic-fixture-isolation-test-smoke diagnostic-registry-test-smoke layered-diagnostics-contract-test-smoke intent-compression-contract-test-smoke runtime-authority-contract-test-smoke runtime-panic-contract-test-smoke runtime-panic-abi-test-smoke runtime-panic-codegen-test-smoke projection-diagnostic-contract-test-smoke runtime-abi-lifetime-test-smoke abi-ownership-shape-test-smoke runtime-frontier-contract-test-smoke runtime-frontier-policy-test-smoke runtime-intent-observability-contract-test-smoke parallel-core-contract-test-smoke perf-contract-test-smoke parser-lexer-diagnostic-test-smoke diagnostics-json-test-smoke cfg-body-dataflow-test-smoke mir-declaration-inventory-test-smoke example-test-smoke ast-dispatch-test-smoke ci-linux ci-macos ci-windows check-build-tools check-security-toolchain check-linux-toolchain check-macos-toolchain check-windows-toolchain \
         example-hello example-slots llvm emit-llvm-% lsp
 
 ifeq ($(filter clean clean-objects,$(MAKECMDGOALS)),)

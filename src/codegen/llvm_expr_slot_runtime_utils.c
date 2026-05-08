@@ -24,9 +24,11 @@ llvm_direct_slot_read(LLVMGenCtx *ctx, LLVMVarEntry *slot_var,
     LLVMValueRef value_ptr;
 
     if (slot_var == NULL || inner == NULL)
-        return LLVMConstInt(ctx->type_i32, 0, 0);
+        return NULL;
 
     inner_ty = pergyra_type_to_llvm(ctx, inner);
+    if (ctx->has_error || inner_ty == NULL)
+        return NULL;
     if (slot_var->type != NULL
         && LLVMGetTypeKind(slot_var->type) == LLVMPointerTypeKind) {
         slot_ty = llvm_slot_struct_type(ctx, inner);
@@ -67,8 +69,10 @@ llvm_direct_secure_slot_read(LLVMGenCtx *ctx, LLVMVarEntry *slot_var,
     LLVMValueRef value_ptr;
 
     if (slot_var == NULL || inner == NULL)
-        return LLVMConstInt(ctx->type_i32, 0, 0);
+        return NULL;
     inner_ty = pergyra_type_to_llvm(ctx, inner);
+    if (ctx->has_error || inner_ty == NULL)
+        return NULL;
     if (slot_var->type != NULL
         && LLVMGetTypeKind(slot_var->type) == LLVMPointerTypeKind) {
         slot_ty = llvm_secure_slot_struct_type(ctx, inner);

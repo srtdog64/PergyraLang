@@ -5,6 +5,7 @@
 
 #include "parser_internal.h"
 #include "../semantic/diag_codes.h"
+#include "../common/string_compat.h"
 
 // 파서 생성
 Parser* parser_create(Lexer* lexer) {
@@ -155,20 +156,13 @@ void parser_error(Parser* parser, const char* format, ...) {
         return;
     }
     snprintf(parser->error_msg, sizeof(parser->error_msg), "%s", message);
-    strncat(parser->error_msg, "\nCode: ",
-            sizeof(parser->error_msg) - strlen(parser->error_msg) - 1);
-    strncat(parser->error_msg, PGY_CODE_PARSE_SYNTAX,
-            sizeof(parser->error_msg) - strlen(parser->error_msg) - 1);
-    strncat(parser->error_msg, "\nReason: ",
-            sizeof(parser->error_msg) - strlen(parser->error_msg) - 1);
-    strncat(parser->error_msg, PGY_CAUSE_PARSE_UNEXPECTED_TOKEN,
-            sizeof(parser->error_msg) - strlen(parser->error_msg) - 1);
-    strncat(parser->error_msg, "\nFix: ",
-            sizeof(parser->error_msg) - strlen(parser->error_msg) - 1);
-    strncat(parser->error_msg, PGY_FIX_CHECK_SYNTAX,
-            sizeof(parser->error_msg) - strlen(parser->error_msg) - 1);
-    strncat(parser->error_msg, location,
-            sizeof(parser->error_msg) - strlen(parser->error_msg) - 1);
+    pergyra_str_append(parser->error_msg, sizeof(parser->error_msg), "\nCode: ");
+    pergyra_str_append(parser->error_msg, sizeof(parser->error_msg), PGY_CODE_PARSE_SYNTAX);
+    pergyra_str_append(parser->error_msg, sizeof(parser->error_msg), "\nReason: ");
+    pergyra_str_append(parser->error_msg, sizeof(parser->error_msg), PGY_CAUSE_PARSE_UNEXPECTED_TOKEN);
+    pergyra_str_append(parser->error_msg, sizeof(parser->error_msg), "\nFix: ");
+    pergyra_str_append(parser->error_msg, sizeof(parser->error_msg), PGY_FIX_CHECK_SYNTAX);
+    pergyra_str_append(parser->error_msg, sizeof(parser->error_msg), location);
 }
 
 // 에러 복구 - 다음 문장까지 건너뛰기

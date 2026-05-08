@@ -2,7 +2,7 @@
  * Copyright (c) 2025 Pergyra Language Project
  * All rights reserved.
  *
- * Symbol Table — Scope management for semantic analysis
+ * Symbol Table and scope management for semantic analysis
  */
 
 #ifndef PERGYRA_SYMBOL_TABLE_H
@@ -31,7 +31,7 @@ typedef enum
     SYMBOL_ABILITY,     /* ability Foo              */
     SYMBOL_ROLE,        /* role Bar for Baz         */
     SYMBOL_PARTY,       /* party Baz                */
-    SYMBOL_ROSTER,    /* roster Sys             */
+    SYMBOL_ROSTER,     /* roster Sys             */
     SYMBOL_WORLD,       /* world W                  */
     SYMBOL_INTENT,      /* intent Purchase          */
     SYMBOL_RELATION,    /* relation R               */
@@ -41,7 +41,7 @@ typedef enum
 
 /*
  * Slot state machine
- *   UNCLAIMED → CLAIMED → RELEASED
+ *   UNCLAIMED -> CLAIMED -> RELEASED
  */
 typedef enum
 {
@@ -53,11 +53,11 @@ typedef enum
 /*
  * Movable-resource compile-time state machine
  * Current concrete user: QubitSlot
- *   NONE          — not a qubit variable (default, backward compat)
- *   SUPERPOSITION — after ClaimQubit() or H()
- *   ENTANGLED     — after Entangle()
- *   COLLAPSED     — after Measure()
- *   CLASSICAL     — after IntoClassical(), qubit consumed
+ *   NONE          - not a qubit variable (default, backward compat)
+ *   SUPERPOSITION - after ClaimQubit() or H()
+ *   ENTANGLED     - after Entangle()
+ *   COLLAPSED     - after Measure()
+ *   CLASSICAL     - after IntoClassical(), qubit consumed
  */
 typedef enum
 {
@@ -69,7 +69,7 @@ typedef enum
 } QubitSemanticState;
 
 /*
- * Symbol — one entry in the symbol table
+ * Symbol - one entry in the symbol table
  */
 struct Symbol
 {
@@ -113,7 +113,7 @@ typedef enum
 } ScopeKind;
 
 /*
- * Scope — one level in the scope chain
+ * Scope - one level in the scope chain
  */
 struct Scope
 {

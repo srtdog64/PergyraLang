@@ -106,6 +106,45 @@ llvm_required_task_function(LLVMGenCtx *ctx, ASTNode *node,
     return fn;
 }
 
+static LLVMValueRef
+llvm_task_channel_error(LLVMGenCtx *ctx, ASTNode *node,
+                        const char *callee_name,
+                        const char *message)
+{
+    if (ctx != NULL && !ctx->has_error) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "LLVM %s %s",
+            callee_name != NULL ? callee_name : "task/channel operation",
+            message != NULL ? message : "could not be lowered");
+    }
+    return NULL;
+}
+
+static bool
+llvm_is_task_channel_builtin_name(const char *callee_name)
+{
+    if (callee_name == NULL)
+        return false;
+    return strcmp(callee_name, "Cancel") == 0
+        || strcmp(callee_name, "IsCancelled") == 0
+        || strcmp(callee_name, "ChannelClose") == 0
+        || strcmp(callee_name, "TrySend") == 0
+        || strcmp(callee_name, "TrySendStatus") == 0
+        || strcmp(callee_name, "SendTimeout") == 0
+        || strcmp(callee_name, "SendTimeoutStatus") == 0
+        || strcmp(callee_name, "TryRecv") == 0
+        || strcmp(callee_name, "RecvTimeout") == 0
+        || strcmp(callee_name, "ChannelReady") == 0
+        || strcmp(callee_name, "ChannelLength") == 0
+        || strcmp(callee_name, "ChannelCapacity") == 0
+        || strcmp(callee_name, "ChannelSpace") == 0
+        || strcmp(callee_name, "ChannelFull") == 0
+        || strcmp(callee_name, "ChannelClosed") == 0;
+}
+
 static bool
 llvm_channel_arg(LLVMGenCtx *ctx, ASTNode *node, const char *callee_name,
                  ASTNode **out_channel, LLVMVarEntry **out_var,
@@ -146,8 +185,11 @@ llvm_emit_task_channel_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_n
         LLVMFuncEntry *fn = llvm_required_task_function(ctx, node, callee_name,
             "pgy_task_cancel_export");
         LLVMValueRef task = llvm_emit_expression(node->data.call.arguments[0], ctx);
-        if (fn == NULL || task == NULL)
+        if (fn == NULL)
             return NULL;
+        if (task == NULL)
+            return llvm_task_channel_error(ctx, node, callee_name,
+                "could not lower task handle expression");
 
         LLVMValueRef args[] = { task };
         return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 1, "");
@@ -192,7 +234,8 @@ llvm_emit_task_channel_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_n
             return NULL;
         val = llvm_emit_expression(node->data.call.arguments[1], ctx);
         if (val == NULL)
-            return NULL;
+            return llvm_task_channel_error(ctx, node, callee_name,
+                "could not lower send value expression");
         snprintf(fname, sizeof(fname), "pgy_channel_try_send_%s", inner);
         fn = llvm_required_channel_function(ctx, channel, callee_name, fname);
         if (fn == NULL)
@@ -217,7 +260,8 @@ llvm_emit_task_channel_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_n
             return NULL;
         val = llvm_emit_expression(node->data.call.arguments[1], ctx);
         if (val == NULL)
-            return NULL;
+            return llvm_task_channel_error(ctx, node, callee_name,
+                "could not lower send status value expression");
         snprintf(closed_name, sizeof(closed_name), "pgy_channel_closed_%s", inner);
         snprintf(send_name, sizeof(send_name), "pgy_channel_try_send_%s", inner);
         closed_fn = llvm_required_channel_function(ctx, channel, callee_name, closed_name);
@@ -249,8 +293,12 @@ llvm_emit_task_channel_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_n
             return NULL;
         val = llvm_emit_expression(node->data.call.arguments[1], ctx);
         timeout = llvm_emit_expression(node->data.call.arguments[2], ctx);
-        if (val == NULL || timeout == NULL)
-            return NULL;
+        if (val == NULL)
+            return llvm_task_channel_error(ctx, node, callee_name,
+                "could not lower timeout send value expression");
+        if (timeout == NULL)
+            return llvm_task_channel_error(ctx, node, callee_name,
+                "could not lower timeout expression");
         if (LLVMTypeOf(timeout) != ctx->type_i64) {
             timeout = LLVMBuildSExtOrBitCast(ctx->builder, timeout,
                 ctx->type_i64, llvm_tmp_name(ctx));
@@ -280,8 +328,12 @@ llvm_emit_task_channel_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_n
             return NULL;
         val = llvm_emit_expression(node->data.call.arguments[1], ctx);
         timeout = llvm_emit_expression(node->data.call.arguments[2], ctx);
-        if (val == NULL || timeout == NULL)
-            return NULL;
+        if (val == NULL)
+            return llvm_task_channel_error(ctx, node, callee_name,
+                "could not lower timeout send status value expression");
+        if (timeout == NULL)
+            return llvm_task_channel_error(ctx, node, callee_name,
+                "could not lower timeout status expression");
         if (LLVMTypeOf(timeout) != ctx->type_i64) {
             timeout = LLVMBuildSExtOrBitCast(ctx->builder, timeout,
                 ctx->type_i64, llvm_tmp_name(ctx));
@@ -324,7 +376,13 @@ llvm_emit_task_channel_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_n
         if (!llvm_channel_arg(ctx, node, callee_name, &channel, &ch_var, &inner))
             return NULL;
         value_ty = pergyra_type_to_llvm(ctx, inner);
+        if (value_ty == NULL)
+            return llvm_task_channel_error(ctx, channel, callee_name,
+                "requires a concrete LLVM value type for Channel<T>");
         tmp = llvm_create_entry_alloca(ctx, value_ty, llvm_tmp_name(ctx));
+        if (tmp == NULL)
+            return llvm_task_channel_error(ctx, channel, callee_name,
+                "could not allocate receive temporary");
         LLVMBuildStore(ctx->builder, LLVMConstNull(value_ty), tmp);
 
         if (strcmp(callee_name, "TryRecv") == 0) {
@@ -343,7 +401,8 @@ llvm_emit_task_channel_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_n
 
         LLVMValueRef timeout = llvm_emit_expression(node->data.call.arguments[1], ctx);
         if (timeout == NULL)
-            return NULL;
+            return llvm_task_channel_error(ctx, node, callee_name,
+                "could not lower receive timeout expression");
         if (LLVMTypeOf(timeout) != ctx->type_i64) {
             timeout = LLVMBuildSExtOrBitCast(ctx->builder, timeout,
                 ctx->type_i64, llvm_tmp_name(ctx));
@@ -391,6 +450,11 @@ llvm_emit_task_channel_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_n
         LLVMValueRef args[] = { ch_var->alloca };
         return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn,
             args, 1, llvm_tmp_name(ctx));
+    }
+
+    if (llvm_is_task_channel_builtin_name(callee_name)) {
+        return llvm_task_channel_error(ctx, node, callee_name,
+            "has unsupported arity for the LLVM task/channel builtin");
     }
 
     return NULL;

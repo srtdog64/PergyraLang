@@ -4,6 +4,10 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#define PGY_FRONTIER_POLICY_SCHEMA "pgy.runtime.frontier-policy.v1"
+#define PGY_FRONTIER_POLICY_SUBJECT "bounded-frontier-pass-limit"
+#define PGY_FRONTIER_POLICY_FACT_COUNT 8u
+
 static inline size_t
 pgy_frontier_pass_limit_cap(void)
 {

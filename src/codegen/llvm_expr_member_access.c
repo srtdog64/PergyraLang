@@ -7,6 +7,20 @@
 #include "llvm_expr_projection_path_helpers.h"
 #include "llvm_internal_api.h"
 
+static LLVMValueRef
+llvm_member_access_error(LLVMGenCtx *ctx, ASTNode *node, const char *message)
+{
+    if (ctx != NULL && !ctx->has_error) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "%s", message != NULL ? message
+                : "LLVM member access requires registered type metadata");
+    }
+    return NULL;
+}
+
 LLVMValueRef
 llvm_emit_member_access(ASTNode *node, LLVMGenCtx *ctx)
 {
@@ -14,7 +28,8 @@ llvm_emit_member_access(ASTNode *node, LLVMGenCtx *ctx)
     const char *field_name = node->data.member.name;
 
     if (obj_node == NULL || field_name == NULL)
-        return LLVMConstInt(ctx->type_i32, 0, 0);
+        return llvm_member_access_error(ctx, node,
+            "LLVM member access requires an object and field name");
 
     if (llvm_is_upper_ident(obj_node)) {
         LLVMEnumVariantEntry *variant =
@@ -31,15 +46,18 @@ llvm_emit_member_access(ASTNode *node, LLVMGenCtx *ctx)
         int field_idx;
 
         if (class_name == NULL)
-            return LLVMConstInt(ctx->type_i32, 0, 0);
+            return llvm_member_access_error(ctx, node,
+                "LLVM member access requires concrete receiver type metadata");
 
         cls = llvm_lookup_class(ctx, class_name);
         if (cls == NULL)
-            return LLVMConstInt(ctx->type_i32, 0, 0);
+            return llvm_member_access_error(ctx, node,
+                "LLVM member access requires registered receiver class metadata");
 
         field_idx = llvm_class_field_index(cls, field_name);
         if (field_idx < 0)
-            return LLVMConstInt(ctx->type_i32, 0, 0);
+            return llvm_member_access_error(ctx, node,
+                "LLVM member access requires a registered field on the receiver type");
 
         if (obj_node->type == AST_IDENTIFIER) {
             const char *var_name = obj_node->data.identifier.name;
@@ -52,12 +70,14 @@ llvm_emit_member_access(ASTNode *node, LLVMGenCtx *ctx)
                 const char *source_class_name = llvm_lookup_var_class(ctx,
                     projection_borrow->source_name);
                 if (source_class_name == NULL)
-                    return LLVMConstInt(ctx->type_i32, 0, 0);
+                    return llvm_member_access_error(ctx, node,
+                        "LLVM projection member access requires source class metadata");
                 source_cls = llvm_lookup_class(ctx, source_class_name);
                 source_decl = llvm_find_projection_nominal_decl(ctx, source_class_name);
                 source_var = llvm_scope_lookup(ctx, projection_borrow->source_name);
                 if (source_cls == NULL || source_decl == NULL || source_var == NULL)
-                    return LLVMConstInt(ctx->type_i32, 0, 0);
+                    return llvm_member_access_error(ctx, node,
+                        "LLVM projection member access requires registered source metadata");
                 {
                     LLVMValueRef source_base = source_var->alloca;
                     if (source_var->type == LLVMPointerType(source_cls->struct_type, 0)) {
@@ -84,7 +104,8 @@ llvm_emit_member_access(ASTNode *node, LLVMGenCtx *ctx)
         {
             LLVMValueRef obj_val = llvm_emit_expression(obj_node, ctx);
             if (obj_val == NULL)
-                return LLVMConstInt(ctx->type_i32, 0, 0);
+                return llvm_member_access_error(ctx, node,
+                    "LLVM member access could not lower receiver expression");
 
             if (LLVMTypeOf(obj_val) == LLVMPointerType(cls->struct_type, 0)) {
                 LLVMValueRef gep = LLVMBuildStructGEP2(ctx->builder,
@@ -102,7 +123,8 @@ llvm_emit_member_access(ASTNode *node, LLVMGenCtx *ctx)
         }
     }
 
-    return LLVMConstInt(ctx->type_i32, 0, 0);
+    return llvm_member_access_error(ctx, node,
+        "LLVM member access receiver layout is not compatible with the registered field");
 }
 
 #endif

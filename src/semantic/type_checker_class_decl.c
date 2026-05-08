@@ -171,7 +171,11 @@ type_check_class_decl(ASTNode *node, SemanticContext *ctx)
             continue;
 
         /* Build mangled name: ClassName_MethodName */
-        size_t len = strlen(name) + 1 + strlen(mname) + 1;
+        size_t name_len = strlen(name);
+        size_t method_len = strlen(mname);
+        if (method_len > ((size_t)-1) - name_len - 2)
+            continue;
+        size_t len = name_len + method_len + 2;
         char *mangled = malloc(len);
         if (mangled == NULL)
             continue;

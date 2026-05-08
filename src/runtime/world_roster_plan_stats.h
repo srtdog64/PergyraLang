@@ -1,6 +1,8 @@
 #ifndef PERGYRA_WORLD_ROSTER_PLAN_STATS_H
 #define PERGYRA_WORLD_ROSTER_PLAN_STATS_H
 
+#include "../common/string_compat.h"
+
 HierarchicalExecutionPlan*
 GenerateWorldExecutionPlan(WorldContext* world)
 {
@@ -211,11 +213,11 @@ GenerateWorldVisualization(WorldContext* world, const char* format)
     if (strcmp(mode, "dot") == 0) {
         snprintf(out, capacity, "digraph %s {\n", world->name != NULL ? world->name : "World");
         for (size_t i = 0; i < world->rosterCount; i++) {
-            strncat(out, "  world -> ", capacity - strlen(out) - 1U);
-            strncat(out, world->rosters[i].slotName, capacity - strlen(out) - 1U);
-            strncat(out, ";\n", capacity - strlen(out) - 1U);
+            pergyra_str_append(out, capacity, "  world -> ");
+            pergyra_str_append(out, capacity, world->rosters[i].slotName);
+            pergyra_str_append(out, capacity, ";\n");
         }
-        strncat(out, "}\n", capacity - strlen(out) - 1U);
+        pergyra_str_append(out, capacity, "}\n");
         return out;
     }
 
@@ -228,9 +230,9 @@ GenerateWorldVisualization(WorldContext* world, const char* format)
 
     snprintf(out, capacity, "World %s\n", world->name != NULL ? world->name : "World");
     for (size_t i = 0; i < world->rosterCount; i++) {
-        strncat(out, "- Roster ", capacity - strlen(out) - 1U);
-        strncat(out, world->rosters[i].slotName, capacity - strlen(out) - 1U);
-        strncat(out, "\n", capacity - strlen(out) - 1U);
+        pergyra_str_append(out, capacity, "- Roster ");
+        pergyra_str_append(out, capacity, world->rosters[i].slotName);
+        pergyra_str_append(out, capacity, "\n");
     }
     return out;
 }

@@ -305,10 +305,9 @@ air_collect_rir_evidence(AIRProgram *air, const RIRProgram *rir, char **error_me
                                                   error_message)) {
                         return false;
                     }
-                    break;
                 }
             }
-            for (size_t k = 0; !boundary->has_rir_authority_evidence && k < scope->op_count; k++) {
+            for (size_t k = 0; k < scope->op_count; k++) {
                 if (scope->ops[k].kind == RIR_OP_AUTHORIZE
                     && air_boundary_authority_matches(boundary, scope->ops[k].subject)) {
                     if (!air_assign_first_owned_name(air,
@@ -327,7 +326,6 @@ air_collect_rir_evidence(AIRProgram *air, const RIRProgram *rir, char **error_me
                                                   error_message)) {
                         return false;
                     }
-                    break;
                 }
             }
         }

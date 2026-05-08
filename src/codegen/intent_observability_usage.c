@@ -79,6 +79,9 @@ pgy_mir_block_uses_intent_observability(const MIRBasicBlock *block,
     if (block == NULL)
         return false;
 
+    if (block->instruction_count > 0 && block->instructions == NULL)
+        return false;
+
     for (size_t i = 0; i < block->instruction_count; i++) {
         if (pgy_mir_instruction_uses_intent_observability(
                 &block->instructions[i], allow_legacy_payload_probe)) {

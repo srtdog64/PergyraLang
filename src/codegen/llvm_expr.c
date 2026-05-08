@@ -22,13 +22,46 @@ LLVMValueRef llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx);
 #include "llvm_expr_scalar_core.h"
 #include "llvm_expr_call_projection_sync.h"
 #include "llvm_expr_call_methods_domain_slice.h"
+#include "llvm_expr_event_calls.h"
 #include "llvm_member_call_emit.h"
 #include "llvm_expr_call_owners.h"
+
+static LLVMValueRef
+llvm_expression_error(LLVMGenCtx *ctx, ASTNode *node, const char *message)
+{
+    if (ctx == NULL)
+        return NULL;
+    if (ctx != NULL && !ctx->has_error) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "%s", message != NULL ? message
+                : "LLVM expression lowering requires complete metadata");
+    }
+    return NULL;
+}
+
+static LLVMValueRef
+llvm_zero_value_for_type(LLVMGenCtx *ctx, LLVMTypeRef type)
+{
+    if (ctx == NULL || type == NULL)
+        return NULL;
+
+    LLVMTypeKind kind = LLVMGetTypeKind(type);
+    if (kind == LLVMVoidTypeKind)
+        return NULL;
+    if (kind == LLVMIntegerTypeKind)
+        return LLVMConstInt(type, 0, 0);
+    if (kind == LLVMFloatTypeKind || kind == LLVMDoubleTypeKind)
+        return LLVMConstReal(type, 0.0);
+    return LLVMConstNull(type);
+}
 
 LLVMValueRef
 llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
 {
-    if (node == NULL || ctx->has_error)
+    if (ctx == NULL || node == NULL || ctx->has_error)
         return NULL;
 
     switch (node->type) {
@@ -53,11 +86,21 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
         LLVMTypeRef  *tys  = pgy_arena_calloc(&ctx->scratch,
             n * sizeof(LLVMTypeRef));
         if (vals == NULL || tys == NULL)
-            return LLVMConstInt(ctx->type_i32, 0, 0);
+            return llvm_expression_error(ctx, node,
+                "LLVM tuple literal allocation failed");
         for (size_t i = 0; i < n; i++) {
             vals[i] = llvm_emit_expression(node->data.tuple_literal.elements[i], ctx);
-            if (vals[i] == NULL)
-                vals[i] = LLVMConstInt(ctx->type_i32, 0, 0);
+            if (vals[i] == NULL) {
+                if (ctx != NULL && !ctx->has_error) {
+                    llvm_set_error_at_with_hints(ctx, node,
+                        PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                        PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                        PGY_FIX_INSPECT_MIR_INVENTORY,
+                        "LLVM tuple literal could not lower element %zu",
+                        i);
+                }
+                return NULL;
+            }
             tys[i] = LLVMTypeOf(vals[i]);
         }
         LLVMTypeRef tup_ty = LLVMStructTypeInContext(ctx->context, tys,
@@ -74,10 +117,14 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
         size_t count = node->data.array_literal.count;
         const char *inner_name = NULL;
         LLVMTypeRef elem_type = ctx->type_i32;
+        LLVMValueRef first_value = NULL;
         if (count > 0) {
-            LLVMValueRef first = llvm_emit_expression(node->data.array_literal.elements[0], ctx);
-            if (first != NULL) {
-                elem_type = LLVMTypeOf(first);
+            first_value = llvm_emit_expression(node->data.array_literal.elements[0], ctx);
+            if (first_value == NULL)
+                return llvm_expression_error(ctx, node,
+                    "LLVM array literal could not lower element 0");
+            {
+                elem_type = LLVMTypeOf(first_value);
                 const char *suffix = llvm_type_to_suffix(ctx, elem_type);
                 if (suffix != NULL && strcmp(suffix, "Unknown") != 0)
                     inner_name = suffix;
@@ -86,29 +133,46 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
                    && strncmp(ctx->expected_type_name, "Array<", 6) == 0) {
             inner_name = llvm_constructed_arg_name_at(ctx->expected_type_name, 0);
         }
-        if (inner_name == NULL || inner_name[0] == '\0') {
+        if (inner_name == NULL || inner_name[0] == '\0'
+            || strcmp(inner_name, "Unknown") == 0) {
             llvm_expr_set_missing_type_error(ctx, node,
                 "array literal expression");
-            return LLVMConstInt(ctx->type_i32, 0, 0);
+            return NULL;
         }
 
         LLVMTypeRef array_type = llvm_array_struct_type(ctx, inner_name);
+        if (ctx->has_error || array_type == NULL)
+            return llvm_expression_error(ctx, node,
+                "LLVM array literal could not lower Array<T> type");
         LLVMValueRef tmp = llvm_create_entry_alloca(ctx, array_type, llvm_tmp_name(ctx));
+        if (tmp == NULL)
+            return llvm_expression_error(ctx, node,
+                "LLVM array literal could not allocate array temporary");
         char push_fn_name[64];
         snprintf(push_fn_name, sizeof(push_fn_name), "pgy_array_push_%s", inner_name);
         LLVMFuncEntry *push_fn = llvm_lookup_function(ctx, push_fn_name);
         if (push_fn == NULL && count > 0) {
             llvm_required_runtime_function(ctx, node,
                 "array literal expression", "ArrayPush", push_fn_name);
-            return LLVMConstInt(ctx->type_i32, 0, 0);
+            return NULL;
         }
         LLVMBuildStore(ctx->builder, LLVMConstNull(array_type), tmp);
         for (size_t i = 0; i < count; i++) {
-            LLVMValueRef elem = llvm_emit_expression(node->data.array_literal.elements[i], ctx);
-            if (elem != NULL) {
-                LLVMValueRef args[] = { tmp, elem };
-                LLVMBuildCall2(ctx->builder, push_fn->fn_type, push_fn->fn, args, 2, "");
+            LLVMValueRef elem = i == 0 ? first_value
+                : llvm_emit_expression(node->data.array_literal.elements[i], ctx);
+            if (elem == NULL) {
+                if (ctx != NULL && !ctx->has_error) {
+                    llvm_set_error_at_with_hints(ctx, node,
+                        PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                        PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                        PGY_FIX_INSPECT_MIR_INVENTORY,
+                        "LLVM array literal could not lower element %zu",
+                        i);
+                }
+                return NULL;
             }
+            LLVMValueRef args[] = { tmp, elem };
+            LLVMBuildCall2(ctx->builder, push_fn->fn_type, push_fn->fn, args, 2, "");
         }
         return LLVMBuildLoad2(ctx->builder, array_type, tmp, llvm_tmp_name(ctx));
     }
@@ -119,7 +183,8 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
         LLVMValueRef idx = llvm_emit_expression(
             node->data.array_access.index, ctx);
         if (arr == NULL || idx == NULL)
-            return LLVMConstInt(ctx->type_i32, 0, 0);
+            return llvm_expression_error(ctx, node,
+                "LLVM array access could not lower receiver or index expression");
 
         if (array_node != NULL && array_node->type == AST_IDENTIFIER) {
             const char *name = array_node->data.identifier.name;
@@ -152,8 +217,10 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
                             && strncmp(struct_name, "PgySlice_", 9) == 0
                             ? "SliceGet" : "ArrayGet",
                         fn_name);
-                    return LLVMConstInt(ctx->type_i32, 0, 0);
+                    return NULL;
                 }
+                return llvm_expression_error(ctx, node,
+                    "LLVM indexed collection access requires concrete Array<T>/Slice<T> element metadata");
             }
         }
 
@@ -184,19 +251,21 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
             if (checked != NULL)
                 return checked;
             if (ctx->has_error)
-                return LLVMConstInt(ctx->type_i32, 0, 0);
+                return NULL;
 
             LLVMValueRef data_ptr = llvm_array_data_ptr(ctx, arr);
             LLVMTypeRef elem_ty = llvm_stmt_resolve_array_elem_type(
                 ctx, array_node, data_ptr);
             if (elem_ty == NULL)
-                elem_ty = ctx->type_i32;
+                return llvm_expression_error(ctx, node,
+                    "LLVM aggregate array access requires concrete element metadata");
             LLVMValueRef gep = LLVMBuildGEP2(ctx->builder,
                 elem_ty, data_ptr, &idx, 1, llvm_tmp_name(ctx));
             return LLVMBuildLoad2(ctx->builder, elem_ty,
                 gep, llvm_tmp_name(ctx));
         }
-        return LLVMConstInt(ctx->type_i32, 0, 0);
+        return llvm_expression_error(ctx, node,
+            "LLVM array access receiver is not an array, slice, string, or pointer");
     }
 
     case AST_CONTEXT_ACCESS: {
@@ -204,7 +273,8 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
          * self is in scope as the party/roster method's first param */
         LLVMVarEntry *self_var = llvm_scope_lookup(ctx, "self");
         if (self_var == NULL)
-            return LLVMConstNull(ctx->type_i8ptr);
+            return llvm_expression_error(ctx, node,
+                "LLVM context access requires a registered self parameter");
 
         /* For now: return the self pointer cast — the role slot is
          * accessed through the party struct, which self points to */
@@ -219,10 +289,14 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
         const char *pty = node->data.party_instance.party_type;
         LLVMClassTypeEntry *cls = llvm_lookup_class(ctx, pty);
         if (cls == NULL)
-            return LLVMConstNull(ctx->type_i8ptr);
+            return llvm_expression_error(ctx, node,
+                "LLVM party instance requires registered class metadata");
 
         LLVMValueRef alloca = llvm_create_entry_alloca(ctx,
             cls->struct_type, llvm_tmp_name(ctx));
+        if (alloca == NULL)
+            return llvm_expression_error(ctx, node,
+                "LLVM party instance allocation failed");
 
         /* Zero-initialize */
         LLVMValueRef zero = LLVMConstNull(cls->struct_type);
@@ -232,19 +306,32 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
         for (size_t i = 0; i < node->data.party_instance.assignment_count; i++) {
             const char *slot_name = node->data.party_instance.assignments[i].slot_name;
             ASTNode *val_node = node->data.party_instance.assignments[i].value;
+            bool found_field = false;
 
             /* Find field index */
             for (int f = 0; f < cls->field_count; f++) {
                 if (strcmp(cls->fields[f].field_name, slot_name) == 0) {
+                    found_field = true;
                     LLVMValueRef field_ptr = LLVMBuildStructGEP2(
                         ctx->builder, cls->struct_type, alloca,
                         (unsigned)cls->fields[f].index,
                         llvm_tmp_name(ctx));
                     LLVMValueRef val = llvm_emit_expression(val_node, ctx);
-                    if (val != NULL)
-                        LLVMBuildStore(ctx->builder, val, field_ptr);
+                    if (val == NULL)
+                        return llvm_expression_error(ctx, node,
+                            "LLVM party instance could not lower assigned value");
+                    LLVMBuildStore(ctx->builder, val, field_ptr);
                     break;
                 }
+            }
+            if (!found_field) {
+                llvm_set_error_at_with_hints(ctx, node,
+                    PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_FIX_INSPECT_MIR_INVENTORY,
+                    "LLVM party instance field '%s' is not present in class metadata",
+                    slot_name != NULL ? slot_name : "<unnamed>");
+                return NULL;
             }
         }
 
@@ -253,12 +340,9 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
     }
 
     case AST_TASK_GROUP: {
-        /* TaskGroup { tasks... } → emit tasks sequentially (MVP) */
-        for (size_t i = 0; i < node->data.task_group.task_count; i++) {
-            if (node->data.task_group.tasks[i] != NULL)
-                llvm_emit_expression(node->data.task_group.tasks[i], ctx);
-        }
-        return LLVMConstInt(ctx->type_i32, 0, 0);
+        /* TaskGroup must be consumed by the AIR/RIR/MIR boundary path. */
+        return llvm_expression_error(ctx, node,
+            "LLVM TaskGroup expression must lower through AIR/RIR/MIR task-group boundary, not expression fallback");
     }
 
     case AST_CHANNEL_SEND: {
@@ -289,17 +373,24 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
             }
             return llvm_emit_expression(inner_expr, ctx);
         }
-        return LLVMConstInt(ctx->type_i32, 0, 0);
+        return llvm_expression_error(ctx, node,
+            "LLVM await expression requires an operand expression");
     case AST_LAMBDA_EXPR: {
         /* Generate a static LLVM function and return its pointer */
         int lid = ctx->lambda_counter++;
         int pc = (int)node->data.lambda_expr.param_count;
+        if (pc > 8)
+            return llvm_expression_error(ctx, node,
+                "LLVM lambda expression supports at most 8 parameters");
 
         /* Determine return type */
         LLVMTypeRef ret_type = ctx->type_i32;
-        if (node->data.lambda_expr.return_type != NULL)
+        if (node->data.lambda_expr.return_type != NULL) {
             ret_type = ast_type_to_llvm(ctx, node->data.lambda_expr.return_type);
-        else if (node->data.lambda_expr.body != NULL
+            if (ctx->has_error || ret_type == NULL)
+                return llvm_expression_error(ctx, node,
+                    "LLVM lambda expression could not lower return type");
+        } else if (node->data.lambda_expr.body != NULL
                  && node->data.lambda_expr.body->type == AST_BLOCK)
             ret_type = ctx->type_void;
 
@@ -307,10 +398,17 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
         LLVMTypeRef lparams[8];
         for (int j = 0; j < pc && j < 8; j++) {
             ASTNode *p = node->data.lambda_expr.params[j];
-            if (p->type == AST_LET_DECL && p->data.let_decl.type != NULL)
+            if (p == NULL)
+                return llvm_expression_error(ctx, node,
+                    "LLVM lambda expression has a missing parameter");
+            if (p->type == AST_LET_DECL && p->data.let_decl.type != NULL) {
                 lparams[j] = ast_type_to_llvm(ctx, p->data.let_decl.type);
-            else
+                if (ctx->has_error || lparams[j] == NULL)
+                    return llvm_expression_error(ctx, node,
+                        "LLVM lambda expression could not lower parameter type");
+            } else {
                 lparams[j] = ctx->type_i32;
+            }
         }
 
         char lname[128];
@@ -336,8 +434,16 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
         llvm_scope_push(ctx);
         for (int j = 0; j < pc; j++) {
             ASTNode *p = node->data.lambda_expr.params[j];
-            const char *pname = (p->type == AST_IDENTIFIER)
-                ? p->data.identifier.name : p->data.let_decl.name;
+            const char *pname = NULL;
+            if (p != NULL && p->type == AST_IDENTIFIER)
+                pname = p->data.identifier.name;
+            else if (p != NULL && p->type == AST_LET_DECL)
+                pname = p->data.let_decl.name;
+            if (pname == NULL || pname[0] == '\0') {
+                llvm_expression_error(ctx, node,
+                    "LLVM lambda expression requires named parameters");
+                break;
+            }
             LLVMValueRef alloca = LLVMBuildAlloca(ctx->builder,
                 lparams[j], pname);
             LLVMBuildStore(ctx->builder, LLVMGetParam(lfn, (unsigned)j),
@@ -351,10 +457,18 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
             } else {
                 LLVMValueRef val = llvm_emit_expression(
                     node->data.lambda_expr.body, ctx);
-                if (ret_type != ctx->type_void)
+                if (ret_type != ctx->type_void && val != NULL)
                     LLVMBuildRet(ctx->builder, val);
-                else
+                else if (ret_type == ctx->type_void)
                     LLVMBuildRetVoid(ctx->builder);
+                else {
+                    llvm_expression_error(ctx, node,
+                        "LLVM lambda expression could not lower body expression");
+                    LLVMValueRef zero = llvm_zero_value_for_type(ctx,
+                        ret_type);
+                    if (zero != NULL)
+                        LLVMBuildRet(ctx->builder, zero);
+                }
             }
         }
 
@@ -363,9 +477,12 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
                 LLVMGetInsertBlock(ctx->builder)) == NULL) {
             if (ret_type == ctx->type_void)
                 LLVMBuildRetVoid(ctx->builder);
-            else
-                LLVMBuildRet(ctx->builder,
-                    LLVMConstInt(ret_type, 0, 0));
+            else {
+                LLVMValueRef zero = llvm_zero_value_for_type(ctx,
+                    ret_type);
+                if (zero != NULL)
+                    LLVMBuildRet(ctx->builder, zero);
+            }
         }
 
         llvm_scope_pop(ctx);
@@ -373,114 +490,25 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
         /* Restore builder state */
         ctx->current_function = saved_fn;
         ctx->current_ret_type = saved_ret;
-        LLVMPositionBuilderAtEnd(ctx->builder, saved_bb);
+        if (saved_bb != NULL)
+            LLVMPositionBuilderAtEnd(ctx->builder, saved_bb);
 
         return lfn;
     }
 
     case AST_EVENT_SUBSCRIBE: {
         /* event += handler → EventName_SUBSCRIBE(&event, handler) */
-        ASTNode *evt = node->data.event_op.event;
-        ASTNode *handler = node->data.event_op.handler;
-
-        const char *evt_name = NULL;
-        if (evt != NULL && evt->type == AST_IDENTIFIER)
-            evt_name = evt->data.identifier.name;
-
-        if (evt_name != NULL) {
-            char fname[256];
-            snprintf(fname, sizeof(fname), "%s_SUBSCRIBE", evt_name);
-            LLVMFuncEntry *fn = llvm_lookup_function(ctx, fname);
-            LLVMVarEntry *ev = llvm_scope_lookup(ctx, evt_name);
-            LLVMValueRef ev_ptr = (ev != NULL) ? ev->alloca
-                : LLVMGetNamedGlobal(ctx->module, evt_name);
-            LLVMValueRef hval = llvm_emit_expression(handler, ctx);
-
-            if (fn == NULL || ev_ptr == NULL) {
-                llvm_set_error_at_with_hints(ctx, node,
-                    PGY_CODE_LLVM_TYPE_UNSUPPORTED,
-                    PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
-                    PGY_FIX_INSPECT_MIR_INVENTORY,
-                    "LLVM event subscribe requires generated event function '%s' and event storage '%s'",
-                    fname, evt_name);
-                return LLVMConstInt(ctx->type_i32, 0, 0);
-            }
-            LLVMValueRef args[] = { ev_ptr, hval };
-            LLVMBuildCall2(ctx->builder, fn->fn_type,
-                fn->fn, args, 2, "");
-        }
-        return LLVMConstInt(ctx->type_i32, 0, 0);
+        return llvm_emit_event_subscribe_expr(node, ctx);
     }
 
     case AST_EVENT_UNSUBSCRIBE: {
         /* event -= handler → EventName_UNSUBSCRIBE(&event, handler) */
-        ASTNode *evt = node->data.event_op.event;
-        ASTNode *handler = node->data.event_op.handler;
-
-        const char *evt_name = NULL;
-        if (evt != NULL && evt->type == AST_IDENTIFIER)
-            evt_name = evt->data.identifier.name;
-
-        if (evt_name != NULL) {
-            char fname[256];
-            snprintf(fname, sizeof(fname), "%s_UNSUBSCRIBE", evt_name);
-            LLVMFuncEntry *fn = llvm_lookup_function(ctx, fname);
-            LLVMVarEntry *ev = llvm_scope_lookup(ctx, evt_name);
-            LLVMValueRef ev_ptr = (ev != NULL) ? ev->alloca
-                : LLVMGetNamedGlobal(ctx->module, evt_name);
-            LLVMValueRef hval = llvm_emit_expression(handler, ctx);
-
-            if (fn == NULL || ev_ptr == NULL) {
-                llvm_set_error_at_with_hints(ctx, node,
-                    PGY_CODE_LLVM_TYPE_UNSUPPORTED,
-                    PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
-                    PGY_FIX_INSPECT_MIR_INVENTORY,
-                    "LLVM event unsubscribe requires generated event function '%s' and event storage '%s'",
-                    fname, evt_name);
-                return LLVMConstInt(ctx->type_i32, 0, 0);
-            }
-            LLVMValueRef args[] = { ev_ptr, hval };
-            LLVMBuildCall2(ctx->builder, fn->fn_type,
-                fn->fn, args, 2, "");
-        }
-        return LLVMConstInt(ctx->type_i32, 0, 0);
+        return llvm_emit_event_unsubscribe_expr(node, ctx);
     }
 
     case AST_EVENT_INVOKE: {
         /* Emit(event, args...) → EventName_INVOKE(&event, args...) */
-        ASTNode *evt = node->data.event_invoke.event;
-        const char *evt_name = NULL;
-        if (evt != NULL && evt->type == AST_IDENTIFIER)
-            evt_name = evt->data.identifier.name;
-
-        if (evt_name != NULL) {
-            char fname[256];
-            snprintf(fname, sizeof(fname), "%s_INVOKE", evt_name);
-            LLVMFuncEntry *fn = llvm_lookup_function(ctx, fname);
-            LLVMVarEntry *ev = llvm_scope_lookup(ctx, evt_name);
-            LLVMValueRef ev_ptr = (ev != NULL) ? ev->alloca
-                : LLVMGetNamedGlobal(ctx->module, evt_name);
-
-            if (fn == NULL || ev_ptr == NULL) {
-                llvm_set_error_at_with_hints(ctx, node,
-                    PGY_CODE_LLVM_TYPE_UNSUPPORTED,
-                    PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
-                    PGY_FIX_INSPECT_MIR_INVENTORY,
-                    "LLVM event invoke requires generated event function '%s' and event storage '%s'",
-                    fname, evt_name);
-                return LLVMConstInt(ctx->type_i32, 0, 0);
-            }
-            size_t ac = node->data.event_invoke.arg_count;
-            LLVMValueRef *args = pgy_arena_calloc(&ctx->scratch,
-                (ac + 1) * sizeof(LLVMValueRef));
-            args[0] = ev_ptr;
-            for (size_t j = 0; j < ac; j++)
-                args[j + 1] = llvm_emit_expression(
-                    node->data.event_invoke.arguments[j], ctx);
-            LLVMBuildCall2(ctx->builder, fn->fn_type,
-                fn->fn, args, (unsigned)(ac + 1), "");
-        }
-        return LLVMConstInt(ctx->type_i32, 0, 0);
+        return llvm_emit_event_invoke_expr(node, ctx);
     }
 
     case AST_WORLD_ACTIVATE:
@@ -508,7 +536,7 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
             PGY_FIX_INSPECT_MIR_INVENTORY,
             "LLVM domain AST node %d reached expression emission; domain operations must lower through MIR/domain emitters, not silent expression fallback",
             (int)node->type);
-        return LLVMConstInt(ctx->type_i32, 0, 0);
+        return NULL;
 
     default:
         llvm_set_error_at_with_hints(ctx, node,
@@ -517,7 +545,7 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
             PGY_FIX_INSPECT_MIR_INVENTORY,
             "LLVM expression emitter has no lowering for AST node type %d; add an explicit lowering or route this declaration metadata through the domain/MIR emitter",
             (int)node->type);
-        return LLVMConstInt(ctx->type_i32, 0, 0);
+        return NULL;
     }
 }
 

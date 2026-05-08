@@ -1,5 +1,6 @@
 #include "hir.h"
 
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -10,10 +11,28 @@
 #include "hir_internal.h"
 
 static bool
+hir_next_capacity(size_t *capacity, size_t initial, size_t elem_size)
+{
+    size_t next;
+
+    if (capacity == NULL || elem_size == 0)
+        return false;
+    next = *capacity == 0 ? initial : *capacity * 2;
+    if (next < *capacity || next > SIZE_MAX / elem_size)
+        return false;
+    *capacity = next;
+    return true;
+}
+
+static bool
 append_ast(ASTNode ***items, size_t *count, size_t *capacity, ASTNode *node)
 {
+    if (items == NULL || count == NULL || capacity == NULL)
+        return false;
     if (*count == *capacity) {
-        size_t next_capacity = *capacity == 0 ? 8 : *capacity * 2;
+        size_t next_capacity = *capacity;
+        if (!hir_next_capacity(&next_capacity, 8, sizeof(ASTNode *)))
+            return false;
         ASTNode **grown = realloc(*items, next_capacity * sizeof(ASTNode *));
         if (grown == NULL)
             return false;
@@ -31,8 +50,12 @@ append_item(HIRTopLevelItem **items,
             size_t *capacity,
             HIRTopLevelItem item)
 {
+    if (items == NULL || count == NULL || capacity == NULL)
+        return false;
     if (*count == *capacity) {
-        size_t next_capacity = *capacity == 0 ? 16 : *capacity * 2;
+        size_t next_capacity = *capacity;
+        if (!hir_next_capacity(&next_capacity, 16, sizeof(HIRTopLevelItem)))
+            return false;
         HIRTopLevelItem *grown = realloc(*items, next_capacity * sizeof(HIRTopLevelItem));
         if (grown == NULL)
             return false;
@@ -47,13 +70,19 @@ append_item(HIRTopLevelItem **items,
 static bool
 append_index_unique(size_t **items, size_t *count, size_t *capacity, size_t value)
 {
+    if (items == NULL || count == NULL || capacity == NULL)
+        return false;
+    if (*count > 0 && *items == NULL)
+        return false;
     for (size_t i = 0; i < *count; i++) {
         if ((*items)[i] == value)
             return true;
     }
 
     if (*count == *capacity) {
-        size_t next_capacity = *capacity == 0 ? 4 : *capacity * 2;
+        size_t next_capacity = *capacity;
+        if (!hir_next_capacity(&next_capacity, 4, sizeof(size_t)))
+            return false;
         size_t *grown = realloc(*items, next_capacity * sizeof(size_t));
         if (grown == NULL)
             return false;
@@ -135,6 +164,8 @@ hir_build_routine_name_index(const HIRProgram *hir, size_t *out_count)
         return NULL;
     *out_count = 0;
     if (hir == NULL || hir->routine_count == 0)
+        return NULL;
+    if (hir->routine_count > SIZE_MAX / sizeof(HIRRoutineNameIndex))
         return NULL;
 
     index = calloc(hir->routine_count, sizeof(HIRRoutineNameIndex));

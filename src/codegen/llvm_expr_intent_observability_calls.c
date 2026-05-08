@@ -99,16 +99,30 @@ llvm_emit_intent_observability_call(ASTNode *node, LLVMGenCtx *ctx,
                 builtin->name != NULL ? builtin->name : "<intent-observability>",
                 builtin->runtime_name != NULL ? builtin->runtime_name : "<missing>");
         }
-        *out = LLVMConstInt(ctx->type_i32, 0, 0);
+        *out = NULL;
         return true;
     }
 
     if (builtin->arg_count == 0)
         *out = LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, NULL, 0,
             llvm_tmp_name(ctx));
-    else
-        *out = llvm_emit_function_call_args(ctx, fn,
+    else {
+        LLVMValueRef result = llvm_emit_function_call_args(ctx, fn,
             node->data.call.arguments, builtin->arg_count);
+        if (result == NULL) {
+            if (ctx != NULL && !ctx->has_error) {
+                llvm_set_error_at_with_hints(ctx, node,
+                    PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                    PGY_FIX_INSPECT_MIR_INVENTORY,
+                    "LLVM intent observability builtin '%s' could not lower argument expression",
+                    builtin->name != NULL ? builtin->name : "<intent-observability>");
+            }
+            *out = NULL;
+            return true;
+        }
+        *out = result;
+    }
 
     return true;
 }

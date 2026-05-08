@@ -10,6 +10,20 @@
 
 #include <stdio.h>
 
+static LLVMValueRef
+llvm_event_expr_error(LLVMGenCtx *ctx, ASTNode *node, const char *message)
+{
+    if (ctx != NULL && !ctx->has_error) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "%s", message != NULL ? message
+                : "LLVM event expression lowering requires complete metadata");
+    }
+    return NULL;
+}
+
 bool
 llvm_emit_event_invocation_call(ASTNode *node, LLVMGenCtx *ctx,
                                 const char *callee_name, LLVMValueRef *out)
@@ -32,18 +46,154 @@ llvm_emit_event_invocation_call(ASTNode *node, LLVMGenCtx *ctx,
         if (ev != NULL)
             ev_ptr = ev->alloca;
     }
-    if (fn == NULL || ev_ptr == NULL)
-        return false;
+    if (fn == NULL || ev_ptr == NULL) {
+        *out = llvm_event_expr_error(ctx, node,
+            "LLVM event invocation call requires generated event function and storage");
+        return true;
+    }
 
     arg_count = node->data.call.arg_count;
     args = pgy_arena_calloc(&ctx->scratch, (arg_count + 1) * sizeof(LLVMValueRef));
+    if (args == NULL) {
+        *out = llvm_event_expr_error(ctx, node,
+            "LLVM event invocation call argument allocation failed");
+        return true;
+    }
     args[0] = ev_ptr;
-    for (size_t j = 0; j < arg_count; j++)
+    for (size_t j = 0; j < arg_count; j++) {
         args[j + 1] = llvm_emit_expression(node->data.call.arguments[j], ctx);
+        if (args[j + 1] == NULL) {
+            *out = llvm_event_expr_error(ctx, node,
+                "LLVM event invocation call could not lower argument expression");
+            return true;
+        }
+    }
     LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args,
         (unsigned)(arg_count + 1), "");
     *out = LLVMConstInt(ctx->type_i32, 0, 0);
     return true;
+}
+
+LLVMValueRef
+llvm_emit_event_subscribe_expr(ASTNode *node, LLVMGenCtx *ctx)
+{
+    ASTNode *evt = node->data.event_op.event;
+    ASTNode *handler = node->data.event_op.handler;
+    const char *evt_name = NULL;
+    if (evt != NULL && evt->type == AST_IDENTIFIER)
+        evt_name = evt->data.identifier.name;
+    if (evt_name == NULL)
+        return llvm_event_expr_error(ctx, node,
+            "LLVM event subscribe requires an identifier event target");
+
+    char fname[256];
+    snprintf(fname, sizeof(fname), "%s_SUBSCRIBE", evt_name);
+    LLVMFuncEntry *fn = llvm_lookup_function(ctx, fname);
+    LLVMVarEntry *ev = llvm_scope_lookup(ctx, evt_name);
+    LLVMValueRef ev_ptr = (ev != NULL) ? ev->alloca
+        : LLVMGetNamedGlobal(ctx->module, evt_name);
+    LLVMValueRef hval = llvm_emit_expression(handler, ctx);
+
+    if (fn == NULL || ev_ptr == NULL) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "LLVM event subscribe requires generated event function '%s' and event storage '%s'",
+            fname, evt_name);
+        return NULL;
+    }
+    if (hval == NULL)
+        return llvm_event_expr_error(ctx, node,
+            "LLVM event subscribe could not lower handler expression");
+
+    LLVMValueRef args[] = { ev_ptr, hval };
+    LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, "");
+    return LLVMConstInt(ctx->type_i32, 0, 0);
+}
+
+LLVMValueRef
+llvm_emit_event_unsubscribe_expr(ASTNode *node, LLVMGenCtx *ctx)
+{
+    ASTNode *evt = node->data.event_op.event;
+    ASTNode *handler = node->data.event_op.handler;
+    const char *evt_name = NULL;
+    if (evt != NULL && evt->type == AST_IDENTIFIER)
+        evt_name = evt->data.identifier.name;
+    if (evt_name == NULL)
+        return llvm_event_expr_error(ctx, node,
+            "LLVM event unsubscribe requires an identifier event target");
+
+    char fname[256];
+    snprintf(fname, sizeof(fname), "%s_UNSUBSCRIBE", evt_name);
+    LLVMFuncEntry *fn = llvm_lookup_function(ctx, fname);
+    LLVMVarEntry *ev = llvm_scope_lookup(ctx, evt_name);
+    LLVMValueRef ev_ptr = (ev != NULL) ? ev->alloca
+        : LLVMGetNamedGlobal(ctx->module, evt_name);
+    LLVMValueRef hval = llvm_emit_expression(handler, ctx);
+
+    if (fn == NULL || ev_ptr == NULL) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "LLVM event unsubscribe requires generated event function '%s' and event storage '%s'",
+            fname, evt_name);
+        return NULL;
+    }
+    if (hval == NULL)
+        return llvm_event_expr_error(ctx, node,
+            "LLVM event unsubscribe could not lower handler expression");
+
+    LLVMValueRef args[] = { ev_ptr, hval };
+    LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, "");
+    return LLVMConstInt(ctx->type_i32, 0, 0);
+}
+
+LLVMValueRef
+llvm_emit_event_invoke_expr(ASTNode *node, LLVMGenCtx *ctx)
+{
+    ASTNode *evt = node->data.event_invoke.event;
+    const char *evt_name = NULL;
+    if (evt != NULL && evt->type == AST_IDENTIFIER)
+        evt_name = evt->data.identifier.name;
+    if (evt_name == NULL)
+        return llvm_event_expr_error(ctx, node,
+            "LLVM event invoke requires an identifier event target");
+
+    char fname[256];
+    snprintf(fname, sizeof(fname), "%s_INVOKE", evt_name);
+    LLVMFuncEntry *fn = llvm_lookup_function(ctx, fname);
+    LLVMVarEntry *ev = llvm_scope_lookup(ctx, evt_name);
+    LLVMValueRef ev_ptr = (ev != NULL) ? ev->alloca
+        : LLVMGetNamedGlobal(ctx->module, evt_name);
+    if (fn == NULL || ev_ptr == NULL) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "LLVM event invoke requires generated event function '%s' and event storage '%s'",
+            fname, evt_name);
+        return NULL;
+    }
+
+    size_t ac = node->data.event_invoke.arg_count;
+    LLVMValueRef *args = pgy_arena_calloc(&ctx->scratch,
+        (ac + 1) * sizeof(LLVMValueRef));
+    if (args == NULL)
+        return llvm_event_expr_error(ctx, node,
+            "LLVM event invoke argument allocation failed");
+    args[0] = ev_ptr;
+    for (size_t j = 0; j < ac; j++) {
+        args[j + 1] = llvm_emit_expression(
+            node->data.event_invoke.arguments[j], ctx);
+        if (args[j + 1] == NULL)
+            return llvm_event_expr_error(ctx, node,
+                "LLVM event invoke could not lower argument expression");
+    }
+    LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args,
+        (unsigned)(ac + 1), "");
+    return LLVMConstInt(ctx->type_i32, 0, 0);
 }
 
 #endif /* PGY_LLVM_ENABLED */

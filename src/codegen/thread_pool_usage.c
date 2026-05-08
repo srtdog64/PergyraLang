@@ -49,6 +49,9 @@ pgy_mir_routine_uses_thread_pool(const MIRRoutine *routine)
     for (size_t i = 0; i < routine->block_count; i++) {
         const MIRBasicBlock *block = &routine->blocks[i];
 
+        if (block->instruction_count > 0 && block->instructions == NULL)
+            return false;
+
         for (size_t j = 0; j < block->instruction_count; j++) {
             if (pgy_mir_instruction_uses_thread_pool(
                     &block->instructions[j], routine->hir_routine == NULL)) {

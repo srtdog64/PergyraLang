@@ -73,6 +73,8 @@ mir_validation_block_can_use_value_before_inst(const MIRBasicBlock *block,
 {
     if (block == NULL || name == NULL)
         return false;
+    if (block->instruction_count > 0 && block->instructions == NULL)
+        return false;
     if (mir_validation_name_set_contains(block->live_in_names, block->live_in_name_count, name)
         || mir_validation_name_set_contains(block->ssa_entry_values, block->ssa_entry_value_count, name)) {
         return true;
@@ -125,6 +127,16 @@ mir_validate_instruction_uses(const MIRRoutine *routine,
 {
     if (routine == NULL || block == NULL)
         return false;
+
+    if (block->instruction_count > 0 && block->instructions == NULL) {
+        if (error_message != NULL) {
+            *error_message = mir_validation_strdup_fmt(
+                "MIR routine '%s' block[%zu] has instruction count without instruction inventory during use validation",
+                routine->name != NULL ? routine->name : "(anonymous)",
+                block_index);
+        }
+        return false;
+    }
 
     for (size_t i = 0; i < block->instruction_count; i++) {
         const MIRInstruction *inst = &block->instructions[i];
