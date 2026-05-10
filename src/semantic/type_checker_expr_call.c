@@ -202,8 +202,10 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
                         && slot_sym->slot_info.paired_token_name != NULL) {
                         token_name = slot_sym->slot_info.paired_token_name;
                     } else {
-                        snprintf(token_name_buf, sizeof(token_name_buf), "%s_token",
-                            object->data.identifier.name);
+                        if (!semantic_format_secure_token_name(
+                                token_name_buf, sizeof(token_name_buf),
+                                object->data.identifier.name, expr, ctx))
+                            return TYPE_UNKNOWN;
                         token_name = token_name_buf;
                     }
                     if ((strcmp(method_name, "Write") == 0 && orig_argc < 2)

@@ -13,21 +13,41 @@
 #include <stdlib.h>
 #include <string.h>
 
-static char *
-air_vformat(const char *fmt, va_list args)
+char *
+air_vformat_owned(const char *fmt, va_list args)
 {
     va_list copy;
+    char *buffer;
+    int needed;
+    int written;
+
     va_copy(copy, args);
-    int needed = vsnprintf(NULL, 0, fmt, copy);
+    needed = vsnprintf(NULL, 0, fmt, copy);
     va_end(copy);
     if (needed < 0)
         return NULL;
 
-    char *buffer = (char *)malloc((size_t)needed + 1);
+    buffer = (char *)malloc((size_t)needed + 1);
     if (buffer == NULL)
         return NULL;
-    vsnprintf(buffer, (size_t)needed + 1, fmt, args);
+    written = vsnprintf(buffer, (size_t)needed + 1, fmt, args);
+    if (written < 0 || written != needed) {
+        free(buffer);
+        return NULL;
+    }
     return buffer;
+}
+
+char *
+air_format_owned(const char *fmt, ...)
+{
+    va_list args;
+    char *result;
+
+    va_start(args, fmt);
+    result = air_vformat_owned(fmt, args);
+    va_end(args);
+    return result;
 }
 
 void
@@ -37,7 +57,7 @@ air_set_error(char **error_message, const char *fmt, ...)
         return;
     va_list args;
     va_start(args, fmt);
-    *error_message = air_vformat(fmt, args);
+    *error_message = air_vformat_owned(fmt, args);
     va_end(args);
 }
 

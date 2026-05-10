@@ -50,6 +50,62 @@ llvm_stmt_find_labeled_loop_depth(LLVMGenCtx *ctx, const char *label)
     return -1;
 }
 
+static bool
+llvm_stmt_format_runtime_name(LLVMGenCtx *ctx, ASTNode *node,
+                              char *out, size_t out_size,
+                              const char *prefix, const char *type_name)
+{
+    int written;
+
+    if (out == NULL || out_size == 0)
+        return false;
+
+    written = snprintf(out, out_size, "%s%s",
+        prefix != NULL ? prefix : "",
+        type_name != NULL ? type_name : "");
+    if (written >= 0 && (size_t)written < out_size)
+        return true;
+
+    if (ctx != NULL && !ctx->has_error) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_SPEC_LIMIT,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_REFACTOR_OR_RAISE_LIMIT,
+            "LLVM statement runtime symbol is too long for type '%s'",
+            type_name != NULL ? type_name : "<type>");
+    }
+    return false;
+}
+
+static bool
+llvm_stmt_format_bind_name(LLVMGenCtx *ctx, ASTNode *node,
+                           char *out, size_t out_size,
+                           const char *prefix, const char *suffix,
+                           const char *label)
+{
+    int written;
+
+    if (out == NULL || out_size == 0)
+        return false;
+
+    written = snprintf(out, out_size, "%s%s",
+        prefix != NULL ? prefix : "",
+        suffix != NULL ? suffix : "");
+    if (written >= 0 && (size_t)written < out_size)
+        return true;
+
+    if (ctx != NULL && !ctx->has_error) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_SPEC_LIMIT,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_REFACTOR_OR_RAISE_LIMIT,
+            "LLVM bind %s name is too long for '%s'",
+            label != NULL ? label : "generated",
+            prefix != NULL ? prefix : "<name>");
+    }
+    return false;
+}
+
 static void
 llvm_emit_return_stmt(ASTNode *node, LLVMGenCtx *ctx)
 {
@@ -176,8 +232,12 @@ llvm_emit_block(ASTNode *node, LLVMGenCtx *ctx)
             const char *vname = ctx->slot_vars[i].var_name;
             char fn_name[64];
             bool is_secure = ctx->slot_vars[i].is_secure;
-            snprintf(fn_name, sizeof(fn_name),
-                is_secure ? "pgy_secure_release_%s" : "pgy_release_%s", inner);
+            if (!llvm_stmt_format_runtime_name(ctx, node, fn_name,
+                    sizeof(fn_name),
+                    is_secure ? "pgy_secure_release_" : "pgy_release_",
+                    inner)) {
+                break;
+            }
             LLVMFuncEntry *fn = llvm_lookup_function(ctx, fn_name);
             LLVMVarEntry *var = llvm_scope_lookup(ctx, vname);
             if (fn != NULL && var != NULL) {
@@ -452,7 +512,9 @@ llvm_emit_statement(ASTNode *node, LLVMGenCtx *ctx)
         if (cls == NULL) break;
 
         char vt_field[256];
-        snprintf(vt_field, sizeof(vt_field), "%s_vtable", slot_name);
+        if (!llvm_stmt_format_bind_name(ctx, node, vt_field,
+                sizeof(vt_field), slot_name, "_vtable", "vtable field"))
+            break;
         int field_idx = -1;
         for (int fi = 0; fi < cls->field_count; fi++) {
             if (strcmp(cls->fields[fi].field_name, vt_field) == 0) {
@@ -465,7 +527,9 @@ llvm_emit_statement(ASTNode *node, LLVMGenCtx *ctx)
         /* Find the Role's vtable global.
          * Convention: RoleName_AbilityName_vtable_instance */
         char global_prefix[256];
-        snprintf(global_prefix, sizeof(global_prefix), "%s_", role_name);
+        if (!llvm_stmt_format_bind_name(ctx, node, global_prefix,
+                sizeof(global_prefix), role_name, "_", "vtable global prefix"))
+            break;
         LLVMValueRef vt_global = NULL;
         LLVMValueRef g = LLVMGetFirstGlobal(ctx->module);
         while (g != NULL) {

@@ -23,6 +23,31 @@ llvm_domain_slice_error(ASTNode *node, LLVMGenCtx *ctx, const char *message)
     return NULL;
 }
 
+static bool
+llvm_domain_slot_format_runtime_name(char *out, size_t out_size,
+                                     const char *prefix, const char *inner)
+{
+    int written;
+
+    if (out == NULL || out_size == 0 || prefix == NULL || inner == NULL)
+        return false;
+    written = snprintf(out, out_size, "%s_%s", prefix, inner);
+    return written >= 0 && (size_t)written < out_size;
+}
+
+static LLVMValueRef
+llvm_domain_slot_runtime_name_error(ASTNode *node, LLVMGenCtx *ctx,
+                                    const char *method_name)
+{
+    llvm_set_error_at_with_hints(ctx, node,
+        PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+        PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+        PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+        "LLVM slot method '%s' runtime function name is too long",
+        method_name != NULL ? method_name : "<unknown>");
+    return NULL;
+}
+
 LLVMValueRef
 llvm_emit_member_call_slot_method(ASTNode *node, LLVMGenCtx *ctx,
                                   ASTNode *obj_node,
@@ -60,7 +85,10 @@ llvm_emit_member_call_slot_method(ASTNode *node, LLVMGenCtx *ctx,
                     {
                         char fn_name[64];
                         LLVMFuncEntry *fn;
-                        snprintf(fn_name, sizeof(fn_name), "pgy_secure_write_%s", inner);
+                        if (!llvm_domain_slot_format_runtime_name(fn_name,
+                                sizeof(fn_name), "pgy_secure_write", inner))
+                            return llvm_domain_slot_runtime_name_error(
+                                node, ctx, method_name);
                         fn = llvm_lookup_function(ctx, fn_name);
                         if (fn != NULL) {
                             LLVMValueRef args[] = {
@@ -80,7 +108,10 @@ llvm_emit_member_call_slot_method(ASTNode *node, LLVMGenCtx *ctx,
                 } else {
                     char fn_name[64];
                     LLVMFuncEntry *fn;
-                    snprintf(fn_name, sizeof(fn_name), "pgy_write_%s", inner);
+                    if (!llvm_domain_slot_format_runtime_name(fn_name,
+                            sizeof(fn_name), "pgy_write", inner))
+                        return llvm_domain_slot_runtime_name_error(
+                            node, ctx, method_name);
                     fn = llvm_lookup_function(ctx, fn_name);
                     if (fn != NULL) {
                         LLVMValueRef args[] = {
@@ -108,7 +139,10 @@ llvm_emit_member_call_slot_method(ASTNode *node, LLVMGenCtx *ctx,
                     {
                         char fn_name[64];
                         LLVMFuncEntry *fn;
-                        snprintf(fn_name, sizeof(fn_name), "pgy_secure_read_%s", inner);
+                        if (!llvm_domain_slot_format_runtime_name(fn_name,
+                                sizeof(fn_name), "pgy_secure_read", inner))
+                            return llvm_domain_slot_runtime_name_error(
+                                node, ctx, method_name);
                         fn = llvm_lookup_function(ctx, fn_name);
                         if (fn != NULL) {
                             LLVMValueRef args[] = {
@@ -130,7 +164,10 @@ llvm_emit_member_call_slot_method(ASTNode *node, LLVMGenCtx *ctx,
                 {
                     char fn_name[64];
                     LLVMFuncEntry *fn;
-                    snprintf(fn_name, sizeof(fn_name), "pgy_read_%s", inner);
+                    if (!llvm_domain_slot_format_runtime_name(fn_name,
+                            sizeof(fn_name), "pgy_read", inner))
+                        return llvm_domain_slot_runtime_name_error(
+                            node, ctx, method_name);
                     fn = llvm_lookup_function(ctx, fn_name);
                     if (fn != NULL) {
                         LLVMValueRef args[] = {
@@ -157,7 +194,10 @@ llvm_emit_member_call_slot_method(ASTNode *node, LLVMGenCtx *ctx,
                     {
                         char fn_name[64];
                         LLVMFuncEntry *fn;
-                        snprintf(fn_name, sizeof(fn_name), "pgy_secure_release_%s", inner);
+                        if (!llvm_domain_slot_format_runtime_name(fn_name,
+                                sizeof(fn_name), "pgy_secure_release", inner))
+                            return llvm_domain_slot_runtime_name_error(
+                                node, ctx, method_name);
                         fn = llvm_lookup_function(ctx, fn_name);
                         if (fn != NULL) {
                             LLVMValueRef args[] = {
@@ -176,7 +216,10 @@ llvm_emit_member_call_slot_method(ASTNode *node, LLVMGenCtx *ctx,
                 } else {
                     char fn_name[64];
                     LLVMFuncEntry *fn;
-                    snprintf(fn_name, sizeof(fn_name), "pgy_release_%s", inner);
+                    if (!llvm_domain_slot_format_runtime_name(fn_name,
+                            sizeof(fn_name), "pgy_release", inner))
+                        return llvm_domain_slot_runtime_name_error(
+                            node, ctx, method_name);
                     fn = llvm_lookup_function(ctx, fn_name);
                     if (fn != NULL) {
                         LLVMValueRef args[] = {

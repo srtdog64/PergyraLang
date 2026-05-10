@@ -1,9 +1,84 @@
 #ifndef PGY_TRANSPILER_GENERIC_CLASS_SPECIALIZATION_EMIT_H
 #define PGY_TRANSPILER_GENERIC_CLASS_SPECIALIZATION_EMIT_H
 
+#include <stdbool.h>
+#include <stdio.h>
+#include <string.h>
+
 /* -----------------------------------------------------------------
  * Generic class monomorphization
  * ----------------------------------------------------------------- */
+
+static bool
+transpiler_generic_class_copy_name(char *out, size_t out_size,
+                                   const char *name)
+{
+    size_t len;
+
+    if (out == NULL || out_size == 0 || name == NULL)
+        return false;
+    len = strlen(name);
+    if (len >= out_size)
+        return false;
+    memcpy(out, name, len + 1);
+    return true;
+}
+
+static bool
+transpiler_generic_class_method_name(char *out, size_t out_size,
+                                     const char *class_name,
+                                     const char *method_name)
+{
+    int written;
+
+    if (out == NULL || out_size == 0 || class_name == NULL
+        || method_name == NULL) {
+        return false;
+    }
+    written = snprintf(out, out_size, "%s_%s", class_name, method_name);
+    return written >= 0 && (size_t)written < out_size;
+}
+
+static bool
+transpiler_generic_class_surface_desc(char *out, size_t out_size,
+                                      const char *surface_kind,
+                                      const char *class_name,
+                                      const char *method_name,
+                                      const char *param_name)
+{
+    int written;
+
+    if (out == NULL || out_size == 0 || surface_kind == NULL)
+        return false;
+
+    if (param_name != NULL) {
+        written = snprintf(out, out_size, "%s '%s.%s(%s)'",
+            surface_kind,
+            class_name != NULL ? class_name : "(anonymous)",
+            method_name != NULL ? method_name : "(anonymous)",
+            param_name);
+    } else {
+        written = snprintf(out, out_size, "%s '%s.%s'",
+            surface_kind,
+            class_name != NULL ? class_name : "(anonymous)",
+            method_name != NULL ? method_name : "(anonymous)");
+    }
+
+    return written >= 0 && (size_t)written < out_size;
+}
+
+static void
+transpiler_generic_class_format_too_long(TranspilerCtx *ctx,
+                                         const char *surface_kind)
+{
+    transpiler_set_backend_error_with_hints(
+        ctx,
+        PGY_CODE_C_TYPE_UNSUPPORTED,
+        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+        PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+        "%s is too long for C generic class specialization emission",
+        surface_kind != NULL ? surface_kind : "generic class generated name");
+}
 
 static bool
 class_has_generic_params(ASTNode *node)
@@ -79,7 +154,22 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
 
     GenericClassSpecEntry *entry = &ctx->generic_class_specs[ctx->generic_class_spec_count++];
     entry->class_decl = class_decl;
-    snprintf(entry->specialized_name, sizeof(entry->specialized_name), "%s", nbuf->data);
+    if (!transpiler_generic_class_copy_name(
+            entry->specialized_name, sizeof(entry->specialized_name),
+            nbuf->data)) {
+        ctx->generic_class_spec_count--;
+        transpiler_set_backend_error_with_hints(
+            ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+            "C backend: generic class specialization name is too long for '%s'",
+            class_decl->data.class_decl.name != NULL
+                ? class_decl->data.class_decl.name
+                : "(anonymous)");
+        codebuf_destroy(nbuf);
+        return NULL;
+    }
     entry->emitted = true;
     const char *spec_name = entry->specialized_name;
 
@@ -92,8 +182,21 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
         if (ctx->generic_binding_count >= MAX_GENERIC_BINDINGS)
             break;
         GenericBindingEntry *b = &ctx->generic_bindings[ctx->generic_binding_count++];
-        snprintf(b->name, sizeof(b->name), "%s",
-                 gp->params[i] != NULL ? gp->params[i]->name : "T");
+        if (!transpiler_generic_class_copy_name(
+                b->name, sizeof(b->name),
+                gp->params[i] != NULL && gp->params[i]->name != NULL
+                    ? gp->params[i]->name
+                    : "T")) {
+            transpiler_set_backend_error_with_hints(
+                ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED,
+                PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+                "C backend: generic class binding name is too long");
+            ctx->generic_binding_count = saved_binding_count;
+            codebuf_destroy(nbuf);
+            return NULL;
+        }
         if (garg != NULL && garg->name != NULL)
             effective_name = garg->name;
         else if (garg != NULL && garg->constraint != NULL
@@ -105,10 +208,22 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
                  && formal->default_type->data.type.name != NULL)
             effective_name = formal->default_type->data.type.name;
 
-        if (effective_name != NULL)
-            snprintf(b->concrete_type, sizeof(b->concrete_type), "%s",
-                     effective_name);
-        else {
+        if (effective_name != NULL) {
+            if (!transpiler_generic_class_copy_name(
+                    b->concrete_type, sizeof(b->concrete_type),
+                    effective_name)) {
+                transpiler_set_backend_error_with_hints(
+                    ctx,
+                    PGY_CODE_C_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                    PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+                    "C backend: generic class concrete binding is too long for specialization '%s'",
+                    spec_name != NULL ? spec_name : "(anonymous)");
+                ctx->generic_binding_count = saved_binding_count;
+                codebuf_destroy(nbuf);
+                return NULL;
+            }
+        } else {
             transpiler_set_backend_error_with_hints(
                 ctx,
                 PGY_CODE_C_TYPE_UNSUPPORTED,
@@ -137,10 +252,19 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
         ClassField *f = class_decl->data.class_decl.fields[i];
         const char *ft = NULL;
         char surface_desc[256];
-        snprintf(surface_desc, sizeof(surface_desc),
-            "generic class field '%s.%s'",
-            spec_name != NULL ? spec_name : "(anonymous)",
-            f != NULL && f->name != NULL ? f->name : "(anonymous)");
+        if (!transpiler_generic_class_surface_desc(
+                surface_desc, sizeof(surface_desc),
+                "generic class field",
+                spec_name,
+                f != NULL && f->name != NULL ? f->name : "(anonymous)",
+                NULL)) {
+            transpiler_generic_class_format_too_long(
+                ctx, "generic class field diagnostic surface");
+            transpiler_type_render_ctx_restore(saved_render_ctx);
+            ctx->generic_binding_count = saved_binding_count;
+            codebuf_destroy(nbuf);
+            return NULL;
+        }
         ft = transpiler_require_ast_c_type(ctx, f != NULL ? f->type : NULL, surface_desc);
         if (ft == NULL) {
             transpiler_type_render_ctx_restore(saved_render_ctx);
@@ -213,8 +337,22 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
 
         if (mir_method != NULL) {
             char emitted_name[256];
-            snprintf(emitted_name, sizeof(emitted_name), "%s_%s", spec_name,
-                method_name != NULL ? method_name : "(anonymous)");
+            if (!transpiler_generic_class_method_name(
+                    emitted_name, sizeof(emitted_name), spec_name,
+                    method_name)) {
+                transpiler_set_backend_error_with_hints(
+                    ctx,
+                    PGY_CODE_C_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                    PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+                    "C backend: generic class method symbol is too long for '%s.%s'",
+                    spec_name != NULL ? spec_name : "(anonymous)",
+                    method_name != NULL ? method_name : "(anonymous)");
+                transpiler_type_render_ctx_restore(saved_render_ctx);
+                ctx->generic_binding_count = saved_binding_count;
+                codebuf_destroy(nbuf);
+                return NULL;
+            }
             emit_func_decl_from_mir_named(method, mir_method, emitted_name,
                 ctx->helpers, ctx);
             continue;
@@ -240,11 +378,19 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
                 continue;
             const char *pt = NULL;
             char surface_desc[256];
-            snprintf(surface_desc, sizeof(surface_desc),
-                "generic class method parameter '%s.%s(%s)'",
-                spec_name != NULL ? spec_name : "(anonymous)",
-                method_name != NULL ? method_name : "(anonymous)",
-                p != NULL && p->name != NULL ? p->name : "(anonymous)");
+            if (!transpiler_generic_class_surface_desc(
+                    surface_desc, sizeof(surface_desc),
+                    "generic class method parameter",
+                    spec_name,
+                    method_name,
+                    p != NULL && p->name != NULL ? p->name : "(anonymous)")) {
+                transpiler_generic_class_format_too_long(
+                    ctx, "generic class method parameter diagnostic surface");
+                transpiler_type_render_ctx_restore(saved_render_ctx);
+                ctx->generic_binding_count = saved_binding_count;
+                codebuf_destroy(nbuf);
+                return NULL;
+            }
             pt = transpiler_require_ast_c_type(ctx, p != NULL ? p->type : NULL, surface_desc);
             if (pt == NULL) {
                 transpiler_type_render_ctx_restore(saved_render_ctx);

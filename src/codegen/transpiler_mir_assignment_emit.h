@@ -2,6 +2,7 @@
 #define PGY_SRC_CODEGEN_TRANSPILER_MIR_ASSIGNMENT_EMIT_H
 
 #include "transpiler_mir_expr_ssa.h"
+#include "transpiler_mir_reason.h"
 
 typedef enum TranspilerMIRAssignmentEmitResult {
     TRANSPILE_MIR_ASSIGNMENT_NOT_HANDLED = 0,
@@ -66,7 +67,7 @@ transpiler_emit_mir_assignment_def_inst(CodeBuf *buf,
         && !transpiler_mir_def_uses_channel_receive_statement_emit(
             inst, stmt, AST_ASSIGNMENT)) {
         if (reason != NULL && reason_cap > 0) {
-            snprintf(reason, reason_cap,
+            transpiler_mir_reasonf(reason, reason_cap,
                      "MIR block %llu emission failed: channel receive assignment '%s' is missing receive emit fact",
                      (unsigned long long) block->id,
                      target_name != NULL ? target_name : "<target>");
@@ -76,7 +77,7 @@ transpiler_emit_mir_assignment_def_inst(CodeBuf *buf,
     if (inst->requires_select_receive_statement_emit
         && !is_select_receive_assignment) {
         if (reason != NULL && reason_cap > 0) {
-            snprintf(reason, reason_cap,
+            transpiler_mir_reasonf(reason, reason_cap,
                      "MIR block %llu emission failed: select receive assignment '%s' is missing select receive emit fact",
                      (unsigned long long) block->id,
                      target_name != NULL ? target_name : "<target>");
@@ -122,7 +123,7 @@ transpiler_emit_mir_assignment_def_inst(CodeBuf *buf,
             free(field_lhs);
             free(field_rhs);
             if (reason != NULL && reason_cap > 0) {
-                snprintf(reason, reason_cap,
+                transpiler_mir_reasonf(reason, reason_cap,
                          "MIR block %llu emission failed: unable to render field assignment to '%s'",
                          (unsigned long long) block->id,
                          target_name != NULL ? target_name : "<field>");
@@ -151,7 +152,7 @@ transpiler_emit_mir_assignment_def_inst(CodeBuf *buf,
     if (rhs == NULL) {
         free(lhs);
         if (reason != NULL && reason_cap > 0) {
-            snprintf(reason, reason_cap,
+            transpiler_mir_reasonf(reason, reason_cap,
                      "MIR block %llu emission failed: unable to render assignment to '%s'",
                      (unsigned long long) block->id,
                      target_name != NULL ? target_name : "<target>");

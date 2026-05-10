@@ -18,6 +18,69 @@ llvm_role_method_name_from_ast(ASTNode *method)
     return NULL;
 }
 
+static bool
+llvm_role_emit_join_name(char *out,
+    size_t out_size,
+    const char *left,
+    const char *right)
+{
+    int written;
+
+    if (out == NULL || out_size == 0 || left == NULL || right == NULL)
+        return false;
+
+    written = snprintf(out, out_size, "%s_%s", left, right);
+    return written >= 0 && (size_t)written < out_size;
+}
+
+static bool
+llvm_role_emit_operator_name(char *out,
+    size_t out_size,
+    const char *suffix,
+    const char *for_type_name)
+{
+    int written;
+
+    if (out == NULL || out_size == 0 || suffix == NULL || for_type_name == NULL)
+        return false;
+
+    written = snprintf(out, out_size, "operator_%s_%s",
+        suffix, for_type_name);
+    return written >= 0 && (size_t)written < out_size;
+}
+
+static bool
+llvm_role_emit_vtable_type_name(char *out,
+    size_t out_size,
+    const char *ability_name)
+{
+    int written;
+
+    if (out == NULL || out_size == 0 || ability_name == NULL)
+        return false;
+
+    written = snprintf(out, out_size, "%s_vtable", ability_name);
+    return written >= 0 && (size_t)written < out_size;
+}
+
+static bool
+llvm_role_emit_vtable_global_name(char *out,
+    size_t out_size,
+    const char *role_name,
+    const char *ability_name)
+{
+    int written;
+
+    if (out == NULL || out_size == 0 || role_name == NULL
+        || ability_name == NULL) {
+        return false;
+    }
+
+    written = snprintf(out, out_size, "%s_%s_vtable_instance",
+        role_name, ability_name);
+    return written >= 0 && (size_t)written < out_size;
+}
+
 bool
 llvm_emit_domain_role_method_bodies(LLVMGenCtx *ctx,
     ASTNode **roles,
@@ -51,7 +114,11 @@ llvm_emit_domain_role_method_bodies(LLVMGenCtx *ctx,
             if (role_name == NULL || method_name == NULL)
                 continue;
 
-            snprintf(fname, sizeof(fname), "%s_%s", role_name, method_name);
+            if (!llvm_role_emit_join_name(fname, sizeof(fname),
+                    role_name, method_name)) {
+                llvm_set_error(ctx, "role method name is too long");
+                return false;
+            }
             fentry = llvm_lookup_function(ctx, fname);
             if (fentry == NULL)
                 continue;
@@ -106,10 +173,18 @@ llvm_emit_domain_role_method_bodies(LLVMGenCtx *ctx,
 
                     char opname[256];
                     char mname[256];
-                    snprintf(opname, sizeof(opname), "operator_%s_%s",
-                             suffix, for_type_name);
-                    snprintf(mname, sizeof(mname), "%s_%s",
-                             role_name, method_name);
+                    if (!llvm_role_emit_operator_name(opname, sizeof(opname),
+                            suffix, for_type_name)) {
+                        llvm_set_error(ctx,
+                            "role operator bridge name is too long");
+                        return false;
+                    }
+                    if (!llvm_role_emit_join_name(mname, sizeof(mname),
+                            role_name, method_name)) {
+                        llvm_set_error(ctx,
+                            "role operator method name is too long");
+                        return false;
+                    }
 
                     LLVMFuncEntry *op_entry = llvm_lookup_function(ctx, opname);
                     LLVMFuncEntry *method_entry = llvm_lookup_function(ctx, mname);
@@ -166,8 +241,11 @@ llvm_emit_domain_role_method_bodies(LLVMGenCtx *ctx,
             if (role_name == NULL || ab_name == NULL)
                 continue;
             char vt_type_name[256];
-            snprintf(vt_type_name, sizeof(vt_type_name),
-                     "%s_vtable", ab_name);
+            if (!llvm_role_emit_vtable_type_name(vt_type_name,
+                    sizeof(vt_type_name), ab_name)) {
+                llvm_set_error(ctx, "role vtable type name is too long");
+                return false;
+            }
             LLVMClassTypeEntry *vt_cls = llvm_lookup_class(ctx,
                 vt_type_name);
             if (vt_cls != NULL) {
@@ -190,8 +268,12 @@ llvm_emit_domain_role_method_bodies(LLVMGenCtx *ctx,
                         continue;
                     }
                     char fname[256];
-                    snprintf(fname, sizeof(fname), "%s_%s",
-                             role_name, method_name);
+                    if (!llvm_role_emit_join_name(fname, sizeof(fname),
+                            role_name, method_name)) {
+                        llvm_set_error(ctx,
+                            "role vtable method name is too long");
+                        return false;
+                    }
                     LLVMFuncEntry *fe = llvm_lookup_function(ctx, fname);
                     vals[j] = (fe != NULL) ? fe->fn
                         : LLVMConstNull(ctx->type_i8ptr);
@@ -201,8 +283,12 @@ llvm_emit_domain_role_method_bodies(LLVMGenCtx *ctx,
                     vt_cls->struct_type, vals, (unsigned)mc);
 
                 char global_name[256];
-                snprintf(global_name, sizeof(global_name),
-                         "%s_%s_vtable_instance", role_name, ab_name);
+                if (!llvm_role_emit_vtable_global_name(global_name,
+                        sizeof(global_name), role_name, ab_name)) {
+                    llvm_set_error(ctx,
+                        "role vtable global name is too long");
+                    return false;
+                }
                 LLVMValueRef global = LLVMAddGlobal(ctx->module,
                     vt_cls->struct_type, global_name);
                 LLVMSetInitializer(global, vt_const);

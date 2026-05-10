@@ -9,6 +9,27 @@
 
 #include "llvm_intent_internal.h"
 
+static bool
+llvm_intent_flow_reason_name(LLVMGenCtx *ctx, char *out, size_t out_size,
+                             const char *prefix, const char *step_name)
+{
+    int written;
+
+    if (out == NULL || out_size == 0 || prefix == NULL)
+        return false;
+    written = snprintf(out, out_size, "%s:%s", prefix,
+        step_name != NULL ? step_name : "<step>");
+    if (written >= 0 && (size_t)written < out_size)
+        return true;
+    llvm_set_error_with_hints(ctx,
+        PGY_CODE_LLVM_SPEC_LIMIT,
+        PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+        PGY_FIX_REFACTOR_OR_RAISE_LIMIT,
+        "intent authority failure reason is too long for step '%s'",
+        step_name != NULL ? step_name : "<step>");
+    return false;
+}
+
 static const char *
 llvm_forward_intent_involves_type_name(ASTNode *involves)
 {
@@ -362,8 +383,9 @@ llvm_emit_intent_step_validate_authority(LLVMGenCtx *ctx,
         args[3] = LLVMBuildGlobalStringPtr(ctx->builder, alias, llvm_tmp_name(ctx));
         ok = LLVMBuildCall2(ctx->builder, validate_fn->fn_type, validate_fn->fn,
             args, 4, llvm_tmp_name(ctx));
-        snprintf(reason, sizeof(reason), "authority:%s",
-            step_name != NULL ? step_name : "<step>");
+        if (!llvm_intent_flow_reason_name(ctx, reason, sizeof(reason),
+                "authority", step_name))
+            return;
         LLVMBuildStore(ctx->builder,
             LLVMBuildGlobalStringPtr(ctx->builder, reason, llvm_tmp_name(ctx)),
             fail_reason_alloca);

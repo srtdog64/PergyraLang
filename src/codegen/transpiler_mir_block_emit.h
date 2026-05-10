@@ -9,6 +9,7 @@
 #include "transpiler_mir_resource_op_emit.h"
 #include "transpiler_mir_block_emit_helpers.h"
 #include "transpiler_mir_assignment_emit.h"
+#include "transpiler_mir_reason.h"
 static bool
 transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
                                      const MIRRoutine *mir_routine,
@@ -34,7 +35,7 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
         ssa_map_out = out_ssa_map;
     if (!transpiler_emit_mir_block_with_ssa_map(ssa_map_out, block)) {
         if (reason != NULL && reason_cap > 0)
-            snprintf(reason, reason_cap,
+            transpiler_mir_reasonf(reason, reason_cap,
                      "MIR emission failed for block %llu in %s: missing SSA entry map",
                      (unsigned long long) block->id, func_decl->type == AST_FUNC_DECL
                      ? func_decl->data.func_decl.name
@@ -44,7 +45,7 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
     if (!transpiler_mir_emit_for_in_body_binding(buf, mir_routine, block, ctx,
                                                  ssa_map_out)) {
         if (reason != NULL && reason_cap > 0) {
-            snprintf(reason, reason_cap,
+            transpiler_mir_reasonf(reason, reason_cap,
                      "MIR block %llu emission failed: unsupported for-in body binding",
                      (unsigned long long) block->id);
         }
@@ -185,7 +186,7 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
                     free(lhs);
                     free(local_type_name_owned);
                     if (reason != NULL && reason_cap > 0) {
-                        snprintf(reason, reason_cap,
+                        transpiler_mir_reasonf(reason, reason_cap,
                                  "MIR block %llu emission failed: '?' let binding '%s' requires Result<T,E> operand",
                                  (unsigned long long) block->id,
                                  stmt->data.let_decl.name != NULL
@@ -200,7 +201,7 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
                     free(lhs);
                     free(local_type_name_owned);
                     if (reason != NULL && reason_cap > 0) {
-                        snprintf(reason, reason_cap,
+                        transpiler_mir_reasonf(reason, reason_cap,
                                  "MIR block %llu emission failed: '?' let binding '%s' requires a Result-returning function",
                                  (unsigned long long) block->id,
                                  stmt->data.let_decl.name != NULL
@@ -217,7 +218,7 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
                     free(lhs);
                     free(local_type_name_owned);
                     if (reason != NULL && reason_cap > 0) {
-                        snprintf(reason, reason_cap,
+                        transpiler_mir_reasonf(reason, reason_cap,
                                  "MIR block %llu emission failed: unable to render '?' operand for '%s'",
                                  (unsigned long long) block->id,
                                  stmt->data.let_decl.name != NULL
@@ -267,7 +268,7 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
                 free(lhs);
                 free(local_type_name_owned);
                 if (reason != NULL && reason_cap > 0) {
-                    snprintf(reason, reason_cap,
+                    transpiler_mir_reasonf(reason, reason_cap,
                              "MIR block %llu emission failed: unable to render initializer for '%s'",
                              (unsigned long long) block->id,
                              stmt->data.let_decl.name != NULL
@@ -341,7 +342,7 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
                 free(lhs);
                 free(rhs);
                 if (reason != NULL && reason_cap > 0) {
-                    snprintf(reason, reason_cap,
+                    transpiler_mir_reasonf(reason, reason_cap,
                              "MIR block %llu emission failed: unable to render DEF for '%s'",
                              (unsigned long long) block->id,
                              binding_name != NULL ? binding_name : inst->result_name);
@@ -375,7 +376,7 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
             if (!transpiler_mir_emit_for_loop_init_inst(buf, inst, ctx,
                                                         ssa_map_out)) {
                 if (reason != NULL && reason_cap > 0) {
-                    snprintf(reason, reason_cap,
+                    transpiler_mir_reasonf(reason, reason_cap,
                              "MIR block %llu emission failed: unsupported for-in CFG lowering",
                              (unsigned long long) block->id);
                 }
@@ -440,7 +441,7 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
                     free(lhs);
                     free(rhs);
                     if (reason != NULL && reason_cap > 0) {
-                        snprintf(reason, reason_cap,
+                        transpiler_mir_reasonf(reason, reason_cap,
                                  "MIR block %llu emission failed: unable to render local assignment to '%s'",
                                  (unsigned long long) block->id,
                                  target_name);

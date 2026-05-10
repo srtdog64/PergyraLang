@@ -14,6 +14,30 @@
 #include <stdlib.h>
 #include <string.h>
 
+static bool
+transpiler_mir_resource_format(char *out,
+                               size_t out_size,
+                               const char *fmt,
+                               const char *value)
+{
+    int written;
+
+    if (out == NULL || out_size == 0 || fmt == NULL || value == NULL)
+        return false;
+    written = snprintf(out, out_size, fmt, value);
+    return written >= 0 && (size_t)written < out_size;
+}
+
+static bool
+transpiler_mir_resource_format_addr(char *out,
+                                    size_t out_size,
+                                    bool indirect,
+                                    const char *name)
+{
+    return transpiler_mir_resource_format(out, out_size,
+        indirect ? "%s" : "&%s", name);
+}
+
 bool
 transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
                                 CodeBuf *out,
@@ -125,9 +149,9 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
         slot_anchor = inst->slot_anchor;
     if (slot_anchor == NULL)
         slot_anchor = "slot";
-    snprintf(anchor_expr_buf, sizeof(anchor_expr_buf), "%s%s",
-             anchor_is_indirect ? "" : "&",
-             slot_anchor);
+    if (!transpiler_mir_resource_format_addr(anchor_expr_buf,
+            sizeof(anchor_expr_buf), anchor_is_indirect, slot_anchor))
+        return false;
     anchor_expr = anchor_expr_buf;
 
     if (op_name != NULL && strcmp(op_name, "Claim") == 0) {
@@ -135,12 +159,18 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
         const char *anchor = inst->slot_anchor != NULL ? inst->slot_anchor : "slot";
         if (suffix == NULL)
             return false;
-        if (is_device_slot)
-            snprintf(c_type_buf, sizeof(c_type_buf), "PgyDeviceSlot_%s", suffix);
-        else if (is_secure_slot)
-            snprintf(c_type_buf, sizeof(c_type_buf), "PgySecureSlot_%s", suffix);
-        else
-            snprintf(c_type_buf, sizeof(c_type_buf), "PgySlot_%s", suffix);
+        if (is_device_slot) {
+            if (!transpiler_mir_resource_format(c_type_buf,
+                    sizeof(c_type_buf), "PgyDeviceSlot_%s", suffix))
+                return false;
+        } else if (is_secure_slot) {
+            if (!transpiler_mir_resource_format(c_type_buf,
+                    sizeof(c_type_buf), "PgySecureSlot_%s", suffix))
+                return false;
+        } else if (!transpiler_mir_resource_format(c_type_buf,
+                sizeof(c_type_buf), "PgySlot_%s", suffix)) {
+            return false;
+        }
 
         if (is_secure_slot) {
             write_indent_to(out, indent);
@@ -167,7 +197,9 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
         if (read_inner_c == NULL)
             return false;
         if (anchor != NULL && strcmp(anchor, slot_anchor) != 0) {
-            snprintf(local_anchor_expr_buf, sizeof(local_anchor_expr_buf), "&%s", anchor);
+            if (!transpiler_mir_resource_format(local_anchor_expr_buf,
+                    sizeof(local_anchor_expr_buf), "&%s", anchor))
+                return false;
             local_anchor_expr = local_anchor_expr_buf;
         }
         if (is_secure_slot) {
@@ -224,8 +256,12 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
                                                 version_base,
                                                 sizeof(version_base),
                                                 &version)) {
-                snprintf(value_expr_buf, sizeof(value_expr_buf), "_pgy_ssa_%s_%zu",
-                         version_base, version);
+                int written = snprintf(value_expr_buf, sizeof(value_expr_buf),
+                    "_pgy_ssa_%s_%zu", version_base, version);
+                if (written < 0 || (size_t)written >= sizeof(value_expr_buf)) {
+                    free(ast_value_expr);
+                    return false;
+                }
                 value = value_expr_buf;
             }
         }

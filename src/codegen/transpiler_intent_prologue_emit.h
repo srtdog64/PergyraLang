@@ -4,6 +4,37 @@
 /* C backend intent signature and runtime entry emission owner. */
 
 static bool
+transpiler_intent_prologue_surface_desc(char *out, size_t out_size,
+                                        const char *surface_kind,
+                                        const char *alias,
+                                        const char *intent_name)
+{
+    int written;
+
+    if (out == NULL || out_size == 0 || surface_kind == NULL)
+        return false;
+
+    written = snprintf(out, out_size, "%s '%s' of '%s'",
+        surface_kind,
+        alias != NULL ? alias : "(anonymous)",
+        intent_name != NULL ? intent_name : "(anonymous)");
+
+    return written >= 0 && (size_t)written < out_size;
+}
+
+static void
+transpiler_intent_prologue_surface_desc_too_long(TranspilerCtx *ctx,
+                                                 const char *surface_kind)
+{
+    transpiler_set_backend_error_with_hints(ctx,
+        PGY_CODE_C_TYPE_UNSUPPORTED,
+        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+        PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+        "%s diagnostic surface is too long for C backend emission",
+        surface_kind != NULL ? surface_kind : "intent binding");
+}
+
+static bool
 transpiler_emit_intent_signature_and_entry(ASTNode *node,
                                            TranspilerCtx *ctx,
                                            bool mir_only_intent,
@@ -50,10 +81,13 @@ transpiler_emit_intent_signature_and_entry(ASTNode *node,
                     ? participant_aliases[participant_index]
                     : (binding->data.intent_involves.alias != NULL
                         ? binding->data.intent_involves.alias : "participant");
-                snprintf(surface_desc, sizeof(surface_desc),
-                    "intent participant '%s' of '%s'",
-                    alias != NULL ? alias : "(anonymous)",
-                    node->data.intent_decl.name != NULL ? node->data.intent_decl.name : "(anonymous)");
+                if (!transpiler_intent_prologue_surface_desc(surface_desc,
+                        sizeof(surface_desc), "intent participant", alias,
+                        node->data.intent_decl.name)) {
+                    transpiler_intent_prologue_surface_desc_too_long(
+                        ctx, "intent participant");
+                    return false;
+                }
                 if (participant_type != NULL) {
                     pt = transpiler_require_type_name_c_type(ctx, participant_type, surface_desc);
                     type_name = pergyra_strdup(participant_type);
@@ -69,10 +103,13 @@ transpiler_emit_intent_signature_and_entry(ASTNode *node,
                 ASTNode *value_type = binding != NULL ? binding->data.intent_value.value_type : NULL;
                 alias = (binding != NULL && binding->data.intent_value.alias != NULL)
                     ? binding->data.intent_value.alias : "value";
-                snprintf(surface_desc, sizeof(surface_desc),
-                    "intent value '%s' of '%s'",
-                    alias,
-                    node->data.intent_decl.name != NULL ? node->data.intent_decl.name : "(anonymous)");
+                if (!transpiler_intent_prologue_surface_desc(surface_desc,
+                        sizeof(surface_desc), "intent value", alias,
+                        node->data.intent_decl.name)) {
+                    transpiler_intent_prologue_surface_desc_too_long(
+                        ctx, "intent value");
+                    return false;
+                }
                 pt = transpiler_require_ast_c_type(ctx, value_type, surface_desc);
                 if (value_type != NULL)
                     type_name = render_type_name(value_type);

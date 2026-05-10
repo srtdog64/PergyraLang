@@ -2,6 +2,45 @@
 #include "llvm_internal.h"
 #include "llvm_stmt_type_infer_helpers.h"
 
+#include <stdarg.h>
+#include <stdio.h>
+
+static bool
+llvm_stmt_format_host_method_name(LLVMGenCtx *ctx, char *out, size_t out_size,
+                                  const char *host_name, const char *method_name)
+{
+    int written;
+
+    if (out == NULL || out_size == 0 || host_name == NULL
+        || method_name == NULL) {
+        return false;
+    }
+    written = snprintf(out, out_size, "%s_%s", host_name, method_name);
+    if (written >= 0 && (size_t)written < out_size)
+        return true;
+    llvm_set_error_with_hints(ctx,
+        PGY_CODE_LLVM_SPEC_LIMIT,
+        PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+        PGY_FIX_REFACTOR_OR_RAISE_LIMIT,
+        "LLVM host method lookup name is too long for '%s.%s'",
+        host_name, method_name);
+    return false;
+}
+
+static bool
+llvm_stmt_type_reasonf(char *out, size_t out_size, const char *fmt, ...)
+{
+    va_list ap;
+    int written;
+
+    if (out == NULL || out_size == 0 || fmt == NULL)
+        return false;
+    va_start(ap, fmt);
+    written = vsnprintf(out, out_size, fmt, ap);
+    va_end(ap);
+    return written >= 0 && (size_t)written < out_size;
+}
+
 LLVMClassTypeEntry *
 llvm_stmt_lookup_class_by_type(LLVMGenCtx *ctx, LLVMTypeRef type)
 {
@@ -97,8 +136,9 @@ llvm_stmt_infer_nominal_name_from_init(LLVMGenCtx *ctx, ASTNode *init)
                 const char *host_name = llvm_decl_node_name(host_decl);
                 char full_name[256];
                 if (host_name != NULL) {
-                    snprintf(full_name, sizeof(full_name), "%s_%s",
-                        host_name, name);
+                    if (!llvm_stmt_format_host_method_name(ctx, full_name,
+                            sizeof(full_name), host_name, name))
+                        return NULL;
                     callee_fn = llvm_lookup_function(ctx, full_name);
                 }
             }
@@ -230,11 +270,14 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
                  && expr->data.member.object->data.identifier.name != NULL)
                     ? expr->data.member.object->data.identifier.name
                     : NULL;
-            snprintf(reason, sizeof(reason),
-                     "member access '%s:%s.%s' did not resolve to a known field",
-                     base_expr_name != NULL ? base_expr_name : "<expr>",
-                     base_name != NULL ? base_name : "<unknown>",
-                     field_name);
+            if (!llvm_stmt_type_reasonf(reason, sizeof(reason),
+                    "member access '%s:%s.%s' did not resolve to a known field",
+                    base_expr_name != NULL ? base_expr_name : "<expr>",
+                    base_name != NULL ? base_name : "<unknown>",
+                    field_name)) {
+                return llvm_stmt_unknown_expr_type(ctx, expr,
+                    "member access did not resolve to a known field");
+            }
             return llvm_stmt_unknown_expr_type(ctx, expr, reason);
         }
     }
@@ -314,8 +357,9 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
             const char *host_name = llvm_decl_node_name(host_decl);
             if (fn == NULL && host_name != NULL) {
                 char full_name[256];
-                snprintf(full_name, sizeof(full_name), "%s_%s",
-                    host_name, callee);
+                if (!llvm_stmt_format_host_method_name(ctx, full_name,
+                        sizeof(full_name), host_name, callee))
+                    return ctx->type_i32;
                 fn = llvm_lookup_function(ctx, full_name);
             }
             if (fn != NULL)

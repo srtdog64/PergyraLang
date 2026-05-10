@@ -10,6 +10,35 @@
 
 #include "transpiler_decl_lookup.h"
 
+static void
+transpiler_decl_lookup_cache_store(TranspilerCtx *ctx,
+                                   ASTNodeType decl_type,
+                                   ASTNode **decls,
+                                   size_t decl_count,
+                                   const char *name,
+                                   ASTNode *decl,
+                                   bool active_only)
+{
+    size_t len;
+
+    if (ctx == NULL || name == NULL || decl == NULL)
+        return;
+
+    len = strlen(name);
+    if (len >= sizeof(ctx->last_decl_lookup_name)) {
+        ctx->last_decl_lookup_result = NULL;
+        ctx->last_decl_lookup_name[0] = '\0';
+        return;
+    }
+
+    ctx->last_decl_lookup_type = decl_type;
+    memcpy(ctx->last_decl_lookup_name, name, len + 1);
+    ctx->last_decl_lookup_inventory = decls;
+    ctx->last_decl_lookup_inventory_count = decl_count;
+    ctx->last_decl_lookup_result = decl;
+    ctx->last_decl_lookup_active_only = active_only;
+}
+
 static ASTNode *
 find_extern_function_decl(TranspilerCtx *ctx, const char *function_name)
 {
@@ -322,13 +351,8 @@ transpiler_find_decl_in_inventory_local(TranspilerCtx *ctx,
         if (decl != NULL && decl->type == decl_type
             && decl_name != NULL
             && strcmp(decl_name, name) == 0) {
-            ctx->last_decl_lookup_type = decl_type;
-            snprintf(ctx->last_decl_lookup_name,
-                sizeof(ctx->last_decl_lookup_name), "%s", name);
-            ctx->last_decl_lookup_inventory = decls;
-            ctx->last_decl_lookup_inventory_count = decl_count;
-            ctx->last_decl_lookup_result = decl;
-            ctx->last_decl_lookup_active_only = false;
+            transpiler_decl_lookup_cache_store(ctx, decl_type, decls,
+                decl_count, name, decl, false);
             return decl;
         }
     }
@@ -362,13 +386,8 @@ transpiler_find_decl_in_active_inventory_only_local(TranspilerCtx *ctx,
         if (decl != NULL && decl->type == decl_type
             && decl_name != NULL
             && strcmp(decl_name, name) == 0) {
-            ctx->last_decl_lookup_type = decl_type;
-            snprintf(ctx->last_decl_lookup_name,
-                sizeof(ctx->last_decl_lookup_name), "%s", name);
-            ctx->last_decl_lookup_inventory = decls;
-            ctx->last_decl_lookup_inventory_count = decl_count;
-            ctx->last_decl_lookup_result = decl;
-            ctx->last_decl_lookup_active_only = true;
+            transpiler_decl_lookup_cache_store(ctx, decl_type, decls,
+                decl_count, name, decl, true);
             return decl;
         }
     }

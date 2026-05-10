@@ -96,6 +96,25 @@ llvm_rc_error_recovery(LLVMGenCtx *ctx, ASTNode *node, const char *message)
     return NULL;
 }
 
+static bool
+llvm_rc_runtime_name(LLVMGenCtx *ctx, char *out, size_t out_size,
+                     const char *prefix, const char *suffix,
+                     const char *callee_name)
+{
+    int written;
+
+    if (out == NULL || out_size == 0 || prefix == NULL || suffix == NULL)
+        return false;
+
+    written = snprintf(out, out_size, "%s%s", prefix, suffix);
+    if (written >= 0 && (size_t)written < out_size)
+        return true;
+
+    llvm_set_error(ctx, "LLVM %s runtime name is too long",
+        callee_name != NULL ? callee_name : "Rc/Weak builtin");
+    return false;
+}
+
 static LLVMValueRef
 llvm_rc_load_handle(LLVMGenCtx *ctx, LLVMVarEntry *var)
 {
@@ -164,7 +183,9 @@ llvm_emit_rc_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
             value = llvm_rc_coerce_numeric(ctx, value, target_type);
         }
         char fn_name[64];
-        snprintf(fn_name, sizeof(fn_name), "pgy_rc_new_%s", suffix);
+        if (!llvm_rc_runtime_name(ctx, fn_name, sizeof(fn_name),
+                "pgy_rc_new_", suffix, callee_name))
+            return true;
         LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
             "rc", callee_name, fn_name);
         if (fn == NULL)
@@ -205,7 +226,9 @@ llvm_emit_rc_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
 
     char fn_name[64];
     if (is_rc_clone) {
-        snprintf(fn_name, sizeof(fn_name), "pgy_rc_clone_%s", suffix);
+        if (!llvm_rc_runtime_name(ctx, fn_name, sizeof(fn_name),
+                "pgy_rc_clone_", suffix, callee_name))
+            return true;
         LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
             "rc", callee_name, fn_name);
         if (fn == NULL)
@@ -218,7 +241,9 @@ llvm_emit_rc_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
     }
 
     if (is_rc_get) {
-        snprintf(fn_name, sizeof(fn_name), "pgy_rc_get_%s", suffix);
+        if (!llvm_rc_runtime_name(ctx, fn_name, sizeof(fn_name),
+                "pgy_rc_get_", suffix, callee_name))
+            return true;
         LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
             "rc", callee_name, fn_name);
         if (fn == NULL)
@@ -238,7 +263,9 @@ llvm_emit_rc_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
     }
 
     if (is_rc_drop) {
-        snprintf(fn_name, sizeof(fn_name), "pgy_rc_drop_%s", suffix);
+        if (!llvm_rc_runtime_name(ctx, fn_name, sizeof(fn_name),
+                "pgy_rc_drop_", suffix, callee_name))
+            return true;
         LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
             "rc", callee_name, fn_name);
         if (fn != NULL) {
@@ -250,7 +277,9 @@ llvm_emit_rc_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
     }
 
     if (is_rc_downgrade) {
-        snprintf(fn_name, sizeof(fn_name), "pgy_rc_downgrade_%s", suffix);
+        if (!llvm_rc_runtime_name(ctx, fn_name, sizeof(fn_name),
+                "pgy_rc_downgrade_", suffix, callee_name))
+            return true;
         LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
             "rc", callee_name, fn_name);
         if (fn == NULL)
@@ -263,7 +292,9 @@ llvm_emit_rc_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
     }
 
     if (is_weak_upgrade) {
-        snprintf(fn_name, sizeof(fn_name), "pgy_weak_upgrade_%s", suffix);
+        if (!llvm_rc_runtime_name(ctx, fn_name, sizeof(fn_name),
+                "pgy_weak_upgrade_", suffix, callee_name))
+            return true;
         LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
             "weak", callee_name, fn_name);
         if (fn == NULL)
@@ -276,7 +307,9 @@ llvm_emit_rc_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
     }
 
     if (is_weak_drop) {
-        snprintf(fn_name, sizeof(fn_name), "pgy_weak_drop_%s", suffix);
+        if (!llvm_rc_runtime_name(ctx, fn_name, sizeof(fn_name),
+                "pgy_weak_drop_", suffix, callee_name))
+            return true;
         LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
             "weak", callee_name, fn_name);
         if (fn != NULL) {

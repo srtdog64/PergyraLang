@@ -10,6 +10,34 @@
 #include "transpiler_host_self_policy.h"
 #include "transpiler_symbols.h"
 #include "transpiler_type_render.h"
+#include "semantic/diag_codes.h"
+
+static bool
+transpiler_mir_emit_copy_return_type(char *out, size_t out_size,
+                                     const char *type_name)
+{
+    size_t len;
+
+    if (out == NULL || out_size == 0 || type_name == NULL)
+        return false;
+
+    len = strlen(type_name);
+    if (len >= out_size)
+        return false;
+
+    memcpy(out, type_name, len + 1);
+    return true;
+}
+
+static void
+transpiler_mir_emit_return_type_too_long(TranspilerCtx *ctx)
+{
+    transpiler_set_backend_error_with_hints(ctx,
+        PGY_CODE_C_TYPE_UNSUPPORTED,
+        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+        PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+        "function return type is too long for C backend emit state");
+}
 
 static void
 transpiler_restore_mir_emit_state_local(TranspilerCtx *ctx,
@@ -27,8 +55,11 @@ transpiler_restore_mir_emit_state_local(TranspilerCtx *ctx,
     transpiler_restore_local_binding_counts_local(ctx, saved_slot_count,
                                                   saved_typed_count, -1);
     if (saved_return_type != NULL) {
-        snprintf(ctx->current_return_type, sizeof(ctx->current_return_type),
-            "%s", saved_return_type);
+        if (!transpiler_mir_emit_copy_return_type(ctx->current_return_type,
+                sizeof(ctx->current_return_type), saved_return_type)) {
+            transpiler_mir_emit_return_type_too_long(ctx);
+            return;
+        }
     }
     ctx->current_func_decl = saved_func_decl;
     transpiler_bind_current_host_decl_local(ctx, saved_host_decl);
@@ -49,8 +80,11 @@ transpiler_capture_mir_emit_state_local(TranspilerCtx *ctx,
     state->out = ctx->out;
     state->render_ctx = transpiler_type_render_ctx_current();
     state->func_decl = ctx->current_func_decl;
-    snprintf(state->return_type, sizeof(state->return_type), "%s",
-        ctx->current_return_type);
+    if (!transpiler_mir_emit_copy_return_type(state->return_type,
+            sizeof(state->return_type), ctx->current_return_type)) {
+        transpiler_mir_emit_return_type_too_long(ctx);
+        state->return_type[0] = '\0';
+    }
 }
 
 void
@@ -159,6 +193,8 @@ transpiler_set_current_return_type_local(TranspilerCtx *ctx,
     if (ctx == NULL)
         return;
 
-    snprintf(ctx->current_return_type, sizeof(ctx->current_return_type),
-             "%s", type_name != NULL ? type_name : "Void");
+    if (!transpiler_mir_emit_copy_return_type(ctx->current_return_type,
+            sizeof(ctx->current_return_type),
+            type_name != NULL ? type_name : "Void"))
+        transpiler_mir_emit_return_type_too_long(ctx);
 }

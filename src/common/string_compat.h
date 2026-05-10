@@ -32,6 +32,7 @@ pergyra_strdup_vprintf(const char *fmt, va_list args)
 {
     va_list copy;
     int needed;
+    int written;
     char *buffer;
 
     if (fmt == NULL)
@@ -46,7 +47,11 @@ pergyra_strdup_vprintf(const char *fmt, va_list args)
     buffer = malloc((size_t)needed + 1);
     if (buffer == NULL)
         return NULL;
-    vsnprintf(buffer, (size_t)needed + 1, fmt, args);
+    written = vsnprintf(buffer, (size_t)needed + 1, fmt, args);
+    if (written < 0 || written != needed) {
+        free(buffer);
+        return NULL;
+    }
     return buffer;
 }
 

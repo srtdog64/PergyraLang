@@ -237,6 +237,25 @@ test_air_rejects_empty_runtime_frontier_policy_evidence(void)
 }
 
 static bool
+test_air_runtime_frontier_policy_names_publish_order(void)
+{
+    bool ok = PGY_FRONTIER_POLICY_FACT_COUNT == 9
+        && pgy_frontier_publish_order_is_valid(
+            PGY_FRONTIER_PUBLISH_WRITE_VALUE,
+            PGY_FRONTIER_PUBLISH_READY)
+        && pgy_frontier_publish_order_is_valid(
+            PGY_FRONTIER_PUBLISH_READY,
+            PGY_FRONTIER_PUBLISH_CLEAR_DIRTY)
+        && !pgy_frontier_publish_order_is_valid(
+            PGY_FRONTIER_PUBLISH_CLEAR_DIRTY,
+            PGY_FRONTIER_PUBLISH_READY)
+        && !pgy_frontier_publish_order_is_valid(
+            (PgyFrontierPublishPhase)99,
+            PGY_FRONTIER_PUBLISH_READY);
+    return ok;
+}
+
+static bool
 test_air_collects_mir_pin_cleanup_evidence(void)
 {
     ASTNode pin_ast;

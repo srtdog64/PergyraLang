@@ -1,6 +1,37 @@
 #ifndef PGY_TRANSPILER_RELATION_EFFECT_EMIT_H
 #define PGY_TRANSPILER_RELATION_EFFECT_EMIT_H
 
+static bool
+transpiler_relation_effect_surface_desc(char *out, size_t out_size,
+                                        const char *surface_kind,
+                                        const char *owner_name,
+                                        const char *member_name)
+{
+    int written;
+
+    if (out == NULL || out_size == 0 || surface_kind == NULL)
+        return false;
+
+    written = snprintf(out, out_size, "%s '%s.%s'",
+        surface_kind,
+        owner_name != NULL ? owner_name : "(anonymous)",
+        member_name != NULL ? member_name : "(anonymous)");
+
+    return written >= 0 && (size_t)written < out_size;
+}
+
+static void
+transpiler_relation_effect_surface_desc_too_long(TranspilerCtx *ctx,
+                                                 const char *surface_kind)
+{
+    transpiler_set_backend_error_with_hints(ctx,
+        PGY_CODE_C_TYPE_UNSUPPORTED,
+        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+        PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+        "%s diagnostic surface is too long for C backend emission",
+        surface_kind != NULL ? surface_kind : "relation/effect");
+}
+
 void
 emit_relation_decl(ASTNode *node, TranspilerCtx *ctx)
 {
@@ -18,12 +49,13 @@ emit_relation_decl(ASTNode *node, TranspilerCtx *ctx)
         ASTNode *slot = node->data.relation_decl.slots[i];
         const char *ft = NULL;
         char surface_desc[256];
-        snprintf(surface_desc, sizeof(surface_desc),
-            "relation slot '%s.%s'",
-            name != NULL ? name : "(anonymous)",
-            slot != NULL && slot->data.domain_slot.slot_name != NULL
-                ? slot->data.domain_slot.slot_name
-                : "(anonymous)");
+        if (!transpiler_relation_effect_surface_desc(surface_desc,
+                sizeof(surface_desc), "relation slot", name,
+                slot != NULL ? slot->data.domain_slot.slot_name : NULL)) {
+            transpiler_relation_effect_surface_desc_too_long(
+                ctx, "relation slot");
+            return;
+        }
         ft = transpiler_require_ast_c_type(
             ctx,
             slot != NULL ? slot->data.domain_slot.type : NULL,
@@ -45,12 +77,13 @@ emit_relation_decl(ASTNode *node, TranspilerCtx *ctx)
         ASTNode *shared = node->data.relation_decl.shared_fields[i];
         const char *ft = NULL;
         char surface_desc[256];
-        snprintf(surface_desc, sizeof(surface_desc),
-            "relation shared field '%s.%s'",
-            name != NULL ? name : "(anonymous)",
-            shared != NULL && shared->data.party_shared.name != NULL
-                ? shared->data.party_shared.name
-                : "(anonymous)");
+        if (!transpiler_relation_effect_surface_desc(surface_desc,
+                sizeof(surface_desc), "relation shared field", name,
+                shared != NULL ? shared->data.party_shared.name : NULL)) {
+            transpiler_relation_effect_surface_desc_too_long(
+                ctx, "relation shared field");
+            return;
+        }
         ft = transpiler_require_ast_c_type(
             ctx,
             shared != NULL ? shared->data.party_shared.type : NULL,
@@ -110,12 +143,13 @@ emit_effect_decl(ASTNode *node, TranspilerCtx *ctx)
         ASTNode *slot = node->data.effect_decl.slots[i];
         const char *ft = NULL;
         char surface_desc[256];
-        snprintf(surface_desc, sizeof(surface_desc),
-            "effect slot '%s.%s'",
-            name != NULL ? name : "(anonymous)",
-            slot != NULL && slot->data.domain_slot.slot_name != NULL
-                ? slot->data.domain_slot.slot_name
-                : "(anonymous)");
+        if (!transpiler_relation_effect_surface_desc(surface_desc,
+                sizeof(surface_desc), "effect slot", name,
+                slot != NULL ? slot->data.domain_slot.slot_name : NULL)) {
+            transpiler_relation_effect_surface_desc_too_long(
+                ctx, "effect slot");
+            return;
+        }
         ft = transpiler_require_ast_c_type(
             ctx,
             slot != NULL ? slot->data.domain_slot.type : NULL,
@@ -137,12 +171,13 @@ emit_effect_decl(ASTNode *node, TranspilerCtx *ctx)
         ASTNode *shared = node->data.effect_decl.shared_fields[i];
         const char *ft = NULL;
         char surface_desc[256];
-        snprintf(surface_desc, sizeof(surface_desc),
-            "effect shared field '%s.%s'",
-            name != NULL ? name : "(anonymous)",
-            shared != NULL && shared->data.party_shared.name != NULL
-                ? shared->data.party_shared.name
-                : "(anonymous)");
+        if (!transpiler_relation_effect_surface_desc(surface_desc,
+                sizeof(surface_desc), "effect shared field", name,
+                shared != NULL ? shared->data.party_shared.name : NULL)) {
+            transpiler_relation_effect_surface_desc_too_long(
+                ctx, "effect shared field");
+            return;
+        }
         ft = transpiler_require_ast_c_type(
             ctx,
             shared != NULL ? shared->data.party_shared.type : NULL,

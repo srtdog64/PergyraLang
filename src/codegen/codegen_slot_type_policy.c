@@ -79,16 +79,65 @@ pgy_codegen_type_name_is_slot_family(const char *type_name)
         || pgy_codegen_type_name_is_device_slot(type_name);
 }
 
+typedef enum PgyCodegenSlotCallKind {
+    PGY_CODEGEN_SLOT_CALL_MOVE = 1u << 0,
+    PGY_CODEGEN_SLOT_CALL_READ = 1u << 1,
+    PGY_CODEGEN_SLOT_CALL_RELEASE = 1u << 2,
+    PGY_CODEGEN_SLOT_CALL_VIEW_READ = 1u << 3,
+    PGY_CODEGEN_SLOT_CALL_VIEW_WRITE = 1u << 4,
+    PGY_CODEGEN_SLOT_CALL_WRITE = 1u << 5,
+} PgyCodegenSlotCallKind;
+
+typedef struct PgyCodegenSlotCallSpec {
+    const char *name;
+    unsigned flags;
+} PgyCodegenSlotCallSpec;
+
+static int
+pgy_codegen_slot_call_spec_compare(const void *key, const void *entry)
+{
+    return strcmp((const char *)key,
+                  ((const PgyCodegenSlotCallSpec *)entry)->name);
+}
+
+static const PgyCodegenSlotCallSpec *
+pgy_codegen_slot_call_spec(const char *name)
+{
+    static const PgyCodegenSlotCallSpec specs[] = {
+        {"Move", PGY_CODEGEN_SLOT_CALL_MOVE},
+        {"Read", PGY_CODEGEN_SLOT_CALL_READ},
+        {"Release", PGY_CODEGEN_SLOT_CALL_RELEASE},
+        {"ViewRead", PGY_CODEGEN_SLOT_CALL_VIEW_READ},
+        {"ViewWrite", PGY_CODEGEN_SLOT_CALL_VIEW_WRITE},
+        {"Write", PGY_CODEGEN_SLOT_CALL_WRITE},
+    };
+
+    if (name == NULL)
+        return NULL;
+    return bsearch(name,
+                   specs,
+                   sizeof(specs) / sizeof(specs[0]),
+                   sizeof(specs[0]),
+                   pgy_codegen_slot_call_spec_compare);
+}
+
+static bool
+pgy_codegen_slot_call_has_flag(const char *name, unsigned flag)
+{
+    const PgyCodegenSlotCallSpec *spec = pgy_codegen_slot_call_spec(name);
+    return spec != NULL && (spec->flags & flag) != 0;
+}
+
 bool
 pgy_codegen_call_name_is_view_read(const char *name)
 {
-    return name != NULL && strcmp(name, "ViewRead") == 0;
+    return pgy_codegen_slot_call_has_flag(name, PGY_CODEGEN_SLOT_CALL_VIEW_READ);
 }
 
 bool
 pgy_codegen_call_name_is_view_write(const char *name)
 {
-    return name != NULL && strcmp(name, "ViewWrite") == 0;
+    return pgy_codegen_slot_call_has_flag(name, PGY_CODEGEN_SLOT_CALL_VIEW_WRITE);
 }
 
 bool
@@ -101,19 +150,19 @@ pgy_codegen_call_name_is_view_constructor(const char *name)
 bool
 pgy_codegen_call_name_is_read(const char *name)
 {
-    return name != NULL && strcmp(name, "Read") == 0;
+    return pgy_codegen_slot_call_has_flag(name, PGY_CODEGEN_SLOT_CALL_READ);
 }
 
 bool
 pgy_codegen_call_name_is_write(const char *name)
 {
-    return name != NULL && strcmp(name, "Write") == 0;
+    return pgy_codegen_slot_call_has_flag(name, PGY_CODEGEN_SLOT_CALL_WRITE);
 }
 
 bool
 pgy_codegen_call_name_is_release(const char *name)
 {
-    return name != NULL && strcmp(name, "Release") == 0;
+    return pgy_codegen_slot_call_has_flag(name, PGY_CODEGEN_SLOT_CALL_RELEASE);
 }
 
 bool
@@ -127,7 +176,7 @@ pgy_codegen_call_name_is_slot_operation(const char *name)
 bool
 pgy_codegen_call_name_is_move(const char *name)
 {
-    return name != NULL && strcmp(name, "Move") == 0;
+    return pgy_codegen_slot_call_has_flag(name, PGY_CODEGEN_SLOT_CALL_MOVE);
 }
 
 bool

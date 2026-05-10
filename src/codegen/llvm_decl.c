@@ -95,6 +95,32 @@ llvm_decl_current_nominal_name(LLVMGenCtx *ctx)
     return NULL;
 }
 
+static bool
+llvm_decl_token_param_name(LLVMGenCtx *ctx, ASTNode *node,
+                           char *out, size_t out_size,
+                           const char *param_name)
+{
+    int written;
+
+    if (out == NULL || out_size == 0)
+        return false;
+
+    written = snprintf(out, out_size, "%s_token",
+        param_name != NULL ? param_name : "");
+    if (written >= 0 && (size_t)written < out_size)
+        return true;
+
+    if (ctx != NULL && !ctx->has_error) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_SPEC_LIMIT,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_REFACTOR_OR_RAISE_LIMIT,
+            "LLVM secure slot parameter token name is too long for '%s'",
+            param_name != NULL ? param_name : "<param>");
+    }
+    return false;
+}
+
 static void
 llvm_decl_emit_zone_authority_check(LLVMGenCtx *ctx)
 {
@@ -302,7 +328,9 @@ llvm_emit_func_decl(ASTNode *node, LLVMGenCtx *ctx)
                 LLVMTypeRef token_ty = llvm_secure_token_type(ctx, inner);
                 char token_name[256];
                 LLVMValueRef token_alloca;
-                snprintf(token_name, sizeof(token_name), "%s_token", p->name);
+                if (!llvm_decl_token_param_name(ctx, node, token_name,
+                        sizeof(token_name), p->name))
+                    goto cleanup;
                 token_alloca = llvm_create_entry_alloca(ctx, token_ty, token_name);
                 LLVMBuildStore(ctx->builder, LLVMGetParam(fn, llvm_pidx++), token_alloca);
                 llvm_scope_declare(ctx, pergyra_strdup(token_name), token_alloca, token_ty);

@@ -9,6 +9,7 @@
 #include <string.h>
 
 #include "transpiler_context.h"
+#include "transpiler_mir_reason.h"
 #include "transpiler_mir_ssa_map.h"
 
 static SlotVarEntry *
@@ -27,47 +28,80 @@ transpiler_mir_find_pin_slot_local(TranspilerCtx *ctx,
     return NULL;
 }
 
-static void
+static bool
 transpiler_mir_pin_local_name(const MIRBasicBlock *block,
                               char *buf,
                               size_t buf_size)
 {
+    int written;
+
     if (buf == NULL || buf_size == 0)
-        return;
-    snprintf(buf, buf_size, "__pgy_mir_pin_%zu",
-             block != NULL ? block->id : 0);
+        return false;
+    written = snprintf(buf, buf_size, "__pgy_mir_pin_%zu",
+                       block != NULL ? block->id : 0);
+    return written >= 0 && (size_t)written < buf_size;
 }
 
-static const char *
+static bool
 transpiler_mir_slot_address_local(const SlotVarEntry *slot,
                                   char *buf,
-                                  size_t buf_size)
+                                  size_t buf_size,
+                                  const char **out)
 {
+    int written;
+
+    if (out == NULL)
+        return false;
+    *out = "NULL";
     if (slot == NULL)
-        return "NULL";
-    if (slot->is_indirect)
-        return slot->name;
-    if (buf != NULL && buf_size > 0) {
-        snprintf(buf, buf_size, "&%s", slot->name);
-        return buf;
+        return true;
+    if (slot->is_indirect) {
+        *out = slot->name;
+        return true;
     }
-    return slot->name;
+    if (buf != NULL && buf_size > 0) {
+        written = snprintf(buf, buf_size, "&%s", slot->name);
+        if (written < 0 || (size_t)written >= buf_size)
+            return false;
+        *out = buf;
+        return true;
+    }
+    *out = slot->name;
+    return true;
 }
 
-static const char *
+static bool
 transpiler_mir_slot_token_address_local(const SlotVarEntry *slot,
                                         char *buf,
-                                        size_t buf_size)
+                                        size_t buf_size,
+                                        const char **out)
 {
     const char *token_name;
+    int written;
+
+    if (out == NULL)
+        return false;
+    *out = "NULL";
     if (slot == NULL)
-        return "NULL";
+        return true;
     token_name = slot->token_name[0] != '\0' ? slot->token_name : slot->name;
     if (buf != NULL && buf_size > 0) {
-        snprintf(buf, buf_size, "&%s", token_name);
-        return buf;
+        written = snprintf(buf, buf_size, "&%s", token_name);
+        if (written < 0 || (size_t)written >= buf_size)
+            return false;
+        *out = buf;
+        return true;
     }
-    return token_name;
+    *out = token_name;
+    return true;
+}
+
+static void
+transpiler_mir_pin_format_reason(char *reason, size_t reason_cap,
+                                 const char *message)
+{
+    transpiler_mir_reasonf(reason, reason_cap, "%s",
+        message != NULL ? message : "MIR pin formatting failed");
 }
 
 bool
@@ -81,6 +115,8 @@ transpiler_emit_mir_pin_enter_local(CodeBuf *buf,
     char pin_name[64];
     char slot_addr[96];
     char token_addr[96];
+    const char *slot_expr;
+    const char *token_expr;
     const char *mode;
 
     if (block == NULL || !block->is_pin_region)
@@ -89,7 +125,7 @@ transpiler_emit_mir_pin_enter_local(CodeBuf *buf,
     slot = transpiler_mir_find_pin_slot_local(ctx, block);
     if (slot == NULL || slot->inner_type[0] == '\0') {
         if (reason != NULL && reason_cap > 0) {
-            snprintf(reason, reason_cap,
+            transpiler_mir_reasonf(reason, reason_cap,
                      "MIR pin block %zu cannot resolve source slot '%s'",
                      block->id,
                      block->pin_source_name != NULL
@@ -98,7 +134,23 @@ transpiler_emit_mir_pin_enter_local(CodeBuf *buf,
         return false;
     }
 
-    transpiler_mir_pin_local_name(block, pin_name, sizeof(pin_name));
+    if (!transpiler_mir_pin_local_name(block, pin_name, sizeof(pin_name))) {
+        transpiler_mir_pin_format_reason(reason, reason_cap,
+            "MIR pin block local name is too long");
+        return false;
+    }
+    if (!transpiler_mir_slot_address_local(slot, slot_addr, sizeof(slot_addr),
+            &slot_expr)) {
+        transpiler_mir_pin_format_reason(reason, reason_cap,
+            "MIR pin block slot address expression is too long");
+        return false;
+    }
+    if (!transpiler_mir_slot_token_address_local(slot, token_addr,
+            sizeof(token_addr), &token_expr)) {
+        transpiler_mir_pin_format_reason(reason, reason_cap,
+            "MIR pin block token address expression is too long");
+        return false;
+    }
     mode = block->pin_view_is_write ? "write" : "read";
     transpiler_write_indent_to(buf, ctx->indent);
     if (slot->is_secure) {
@@ -107,14 +159,14 @@ transpiler_emit_mir_pin_enter_local(CodeBuf *buf,
             "pgy_secure_pin_%s_%s(%s, %s);\n",
             slot->inner_type, pin_name,
             mode, slot->inner_type,
-            transpiler_mir_slot_address_local(slot, slot_addr, sizeof(slot_addr)),
-            transpiler_mir_slot_token_address_local(slot, token_addr, sizeof(token_addr)));
+            slot_expr,
+            token_expr);
     } else {
         codebuf_write(buf,
             "PgyPinnedSlotView_%s %s = pgy_pin_%s_%s(%s);\n",
             slot->inner_type, pin_name,
             mode, slot->inner_type,
-            transpiler_mir_slot_address_local(slot, slot_addr, sizeof(slot_addr)));
+            slot_expr);
     }
 
     return true;
@@ -136,7 +188,7 @@ transpiler_emit_mir_pin_exit_local(CodeBuf *buf,
     slot = transpiler_mir_find_pin_slot_local(ctx, block);
     if (slot == NULL || slot->inner_type[0] == '\0') {
         if (reason != NULL && reason_cap > 0) {
-            snprintf(reason, reason_cap,
+            transpiler_mir_reasonf(reason, reason_cap,
                      "MIR pin block %zu cannot resolve source slot '%s' for exit",
                      block->id,
                      block->pin_source_name != NULL
@@ -145,7 +197,11 @@ transpiler_emit_mir_pin_exit_local(CodeBuf *buf,
         return false;
     }
 
-    transpiler_mir_pin_local_name(block, pin_name, sizeof(pin_name));
+    if (!transpiler_mir_pin_local_name(block, pin_name, sizeof(pin_name))) {
+        transpiler_mir_pin_format_reason(reason, reason_cap,
+            "MIR pin block local name is too long for exit");
+        return false;
+    }
     transpiler_write_indent_to(buf, ctx->indent);
     if (slot->is_secure) {
         codebuf_write(buf, "pgy_secure_unpin_%s(&%s);\n",

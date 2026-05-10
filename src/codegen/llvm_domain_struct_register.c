@@ -9,6 +9,9 @@
 
 #include "llvm_internal.h"
 
+#include <stdbool.h>
+#include <stdio.h>
+
 #include "llvm_domain_decl_parts_helpers.h"
 #include "llvm_domain_forward.h"
 #include "llvm_domain_method_emit.h"
@@ -72,6 +75,76 @@ llvm_domain_required_class_struct_type(LLVMGenCtx *ctx,
         field_kind != NULL ? field_kind : "field",
         type_name);
     return NULL;
+}
+
+static bool
+llvm_domain_struct_register_field_name(char *out,
+                                       size_t out_size,
+                                       const char *kind,
+                                       const char *name)
+{
+    int written;
+
+    if (out == NULL || out_size == 0 || kind == NULL || name == NULL)
+        return false;
+    written = snprintf(out, out_size, "__%s_%s", kind, name);
+    return written >= 0 && (size_t)written < out_size;
+}
+
+static bool
+llvm_domain_struct_register_suffix_name(char *out,
+                                        size_t out_size,
+                                        const char *name,
+                                        const char *suffix)
+{
+    int written;
+
+    if (out == NULL || out_size == 0 || name == NULL || suffix == NULL)
+        return false;
+    written = snprintf(out, out_size, "%s_%s", name, suffix);
+    return written >= 0 && (size_t)written < out_size;
+}
+
+static bool
+llvm_domain_struct_add_generated_field(LLVMGenCtx *ctx,
+                                       LLVMClassTypeEntry *entry,
+                                       LLVMTypeRef field_type,
+                                       int field_index,
+                                       const char *kind,
+                                       const char *name)
+{
+    char field_name[256];
+
+    if (!llvm_domain_struct_register_field_name(field_name,
+            sizeof(field_name), kind, name)) {
+        llvm_set_error(ctx,
+            "LLVM domain generated field name is too long for '%s'", name);
+        return false;
+    }
+    llvm_class_add_field(entry, pergyra_strdup(field_name), field_type,
+        field_index);
+    return true;
+}
+
+static bool
+llvm_domain_struct_add_suffixed_field(LLVMGenCtx *ctx,
+                                      LLVMClassTypeEntry *entry,
+                                      LLVMTypeRef field_type,
+                                      int field_index,
+                                      const char *name,
+                                      const char *suffix)
+{
+    char field_name[256];
+
+    if (!llvm_domain_struct_register_suffix_name(field_name,
+            sizeof(field_name), name, suffix)) {
+        llvm_set_error(ctx,
+            "LLVM domain generated field name is too long for '%s'", name);
+        return false;
+    }
+    llvm_class_add_field(entry, pergyra_strdup(field_name), field_type,
+        field_index);
+    return true;
 }
 
 void
@@ -336,51 +409,50 @@ llvm_register_domain_structs(LLVMGenCtx *ctx,
                     }
                     for (size_t j = 0; j < stmt->data.zone_decl.layer_slot_count; j++, field_index++) {
                         ASTNode *slot = stmt->data.zone_decl.layer_slots[j];
-                        char field_name[256];
-                        snprintf(field_name, sizeof(field_name), "__layer_active_%s",
-                            slot->data.zone_layer_slot.slot_name);
-                        llvm_class_add_field(entry, pergyra_strdup(field_name),
-                            ftypes[field_index], field_index);
+                        if (!llvm_domain_struct_add_generated_field(ctx, entry,
+                                ftypes[field_index], field_index,
+                                "layer_active",
+                                slot->data.zone_layer_slot.slot_name))
+                            return;
                     }
                     for (size_t j = 0; j < stmt->data.zone_decl.layer_slot_count; j++, field_index++) {
                         ASTNode *slot = stmt->data.zone_decl.layer_slots[j];
-                        char field_name[256];
-                        snprintf(field_name, sizeof(field_name), "__layer_epoch_%s",
-                            slot->data.zone_layer_slot.slot_name);
-                        llvm_class_add_field(entry, pergyra_strdup(field_name),
-                            ftypes[field_index], field_index);
+                        if (!llvm_domain_struct_add_generated_field(ctx, entry,
+                                ftypes[field_index], field_index,
+                                "layer_epoch",
+                                slot->data.zone_layer_slot.slot_name))
+                            return;
                     }
                     for (size_t j = 0; j < stmt->data.zone_decl.layer_slot_count; j++, field_index++) {
                         ASTNode *slot = stmt->data.zone_decl.layer_slots[j];
-                        char field_name[256];
-                        snprintf(field_name, sizeof(field_name), "__layer_cause_%s",
-                            slot->data.zone_layer_slot.slot_name);
-                        llvm_class_add_field(entry, pergyra_strdup(field_name),
-                            ftypes[field_index], field_index);
+                        if (!llvm_domain_struct_add_generated_field(ctx, entry,
+                                ftypes[field_index], field_index,
+                                "layer_cause",
+                                slot->data.zone_layer_slot.slot_name))
+                            return;
                     }
                     for (size_t j = 0; j < stmt->data.zone_decl.state_count; j++, field_index++) {
                         ASTNode *state = stmt->data.zone_decl.states[j];
-                        char field_name[256];
-                        snprintf(field_name, sizeof(field_name), "__state_%s",
-                            state->data.zone_state.state_name);
-                        llvm_class_add_field(entry, pergyra_strdup(field_name),
-                            ftypes[field_index], field_index);
+                        if (!llvm_domain_struct_add_generated_field(ctx, entry,
+                                ftypes[field_index], field_index,
+                                "state", state->data.zone_state.state_name))
+                            return;
                     }
                     for (size_t j = 0; j < stmt->data.zone_decl.state_count; j++, field_index++) {
                         ASTNode *state = stmt->data.zone_decl.states[j];
-                        char field_name[256];
-                        snprintf(field_name, sizeof(field_name), "__state_epoch_%s",
-                            state->data.zone_state.state_name);
-                        llvm_class_add_field(entry, pergyra_strdup(field_name),
-                            ftypes[field_index], field_index);
+                        if (!llvm_domain_struct_add_generated_field(ctx, entry,
+                                ftypes[field_index], field_index,
+                                "state_epoch",
+                                state->data.zone_state.state_name))
+                            return;
                     }
                     for (size_t j = 0; j < stmt->data.zone_decl.state_count; j++, field_index++) {
                         ASTNode *state = stmt->data.zone_decl.states[j];
-                        char field_name[256];
-                        snprintf(field_name, sizeof(field_name), "__state_cause_%s",
-                            state->data.zone_state.state_name);
-                        llvm_class_add_field(entry, pergyra_strdup(field_name),
-                            ftypes[field_index], field_index);
+                        if (!llvm_domain_struct_add_generated_field(ctx, entry,
+                                ftypes[field_index], field_index,
+                                "state_cause",
+                                state->data.zone_state.state_name))
+                            return;
                     }
                     llvm_domain_add_projection_state_fields(ctx, entry, ftypes, &field_index,
                         stmt->data.zone_decl.slots,
@@ -422,67 +494,63 @@ llvm_register_domain_structs(LLVMGenCtx *ctx,
                     }
                     for (size_t j = 0; j < stmt->data.world_decl.zone_count; j++, field_index++) {
                         ASTNode *wz = stmt->data.world_decl.zones[j];
-                        char field_name[256];
-                        snprintf(field_name, sizeof(field_name), "__zone_active_%s",
-                            wz->data.world_zone.slot_name);
-                        llvm_class_add_field(entry, pergyra_strdup(field_name),
-                            ftypes[field_index], field_index);
+                        if (!llvm_domain_struct_add_generated_field(ctx, entry,
+                                ftypes[field_index], field_index,
+                                "zone_active", wz->data.world_zone.slot_name))
+                            return;
                     }
                     for (size_t j = 0; j < stmt->data.world_decl.zone_count; j++, field_index++) {
                         ASTNode *wz = stmt->data.world_decl.zones[j];
-                        char field_name[256];
-                        snprintf(field_name, sizeof(field_name), "__zone_dirty_%s",
-                            wz->data.world_zone.slot_name);
-                        llvm_class_add_field(entry, pergyra_strdup(field_name),
-                            ftypes[field_index], field_index);
+                        if (!llvm_domain_struct_add_generated_field(ctx, entry,
+                                ftypes[field_index], field_index,
+                                "zone_dirty", wz->data.world_zone.slot_name))
+                            return;
                     }
                     for (size_t j = 0; j < stmt->data.world_decl.zone_count; j++, field_index++) {
                         ASTNode *wz = stmt->data.world_decl.zones[j];
-                        char field_name[256];
-                        snprintf(field_name, sizeof(field_name), "__zone_seen_generation_%s",
-                            wz->data.world_zone.slot_name);
-                        llvm_class_add_field(entry, pergyra_strdup(field_name),
-                            ftypes[field_index], field_index);
+                        if (!llvm_domain_struct_add_generated_field(ctx, entry,
+                                ftypes[field_index], field_index,
+                                "zone_seen_generation",
+                                wz->data.world_zone.slot_name))
+                            return;
                     }
                     for (size_t j = 0; j < stmt->data.world_decl.state_count; j++, field_index++) {
                         ASTNode *state = stmt->data.world_decl.states[j];
-                        char field_name[256];
-                        snprintf(field_name, sizeof(field_name), "__zone_state_%s",
-                            state->data.world_state.state_name);
-                        llvm_class_add_field(entry, pergyra_strdup(field_name),
-                            ftypes[field_index], field_index);
+                        if (!llvm_domain_struct_add_generated_field(ctx, entry,
+                                ftypes[field_index], field_index,
+                                "zone_state",
+                                state->data.world_state.state_name))
+                            return;
                     }
                     for (size_t j = 0; j < stmt->data.world_decl.zone_count; j++, field_index++) {
                         ASTNode *wz = stmt->data.world_decl.zones[j];
-                        char field_name[256];
-                        snprintf(field_name, sizeof(field_name), "__zone_epoch_%s",
-                            wz->data.world_zone.slot_name);
-                        llvm_class_add_field(entry, pergyra_strdup(field_name),
-                            ftypes[field_index], field_index);
+                        if (!llvm_domain_struct_add_generated_field(ctx, entry,
+                                ftypes[field_index], field_index,
+                                "zone_epoch", wz->data.world_zone.slot_name))
+                            return;
                     }
                     for (size_t j = 0; j < stmt->data.world_decl.zone_count; j++, field_index++) {
                         ASTNode *wz = stmt->data.world_decl.zones[j];
-                        char field_name[256];
-                        snprintf(field_name, sizeof(field_name), "__zone_cause_%s",
-                            wz->data.world_zone.slot_name);
-                        llvm_class_add_field(entry, pergyra_strdup(field_name),
-                            ftypes[field_index], field_index);
+                        if (!llvm_domain_struct_add_generated_field(ctx, entry,
+                                ftypes[field_index], field_index,
+                                "zone_cause", wz->data.world_zone.slot_name))
+                            return;
                     }
                     for (size_t j = 0; j < stmt->data.world_decl.state_count; j++, field_index++) {
                         ASTNode *state = stmt->data.world_decl.states[j];
-                        char field_name[256];
-                        snprintf(field_name, sizeof(field_name), "__zone_state_epoch_%s",
-                            state->data.world_state.state_name);
-                        llvm_class_add_field(entry, pergyra_strdup(field_name),
-                            ftypes[field_index], field_index);
+                        if (!llvm_domain_struct_add_generated_field(ctx, entry,
+                                ftypes[field_index], field_index,
+                                "zone_state_epoch",
+                                state->data.world_state.state_name))
+                            return;
                     }
                     for (size_t j = 0; j < stmt->data.world_decl.state_count; j++, field_index++) {
                         ASTNode *state = stmt->data.world_decl.states[j];
-                        char field_name[256];
-                        snprintf(field_name, sizeof(field_name), "__zone_state_cause_%s",
-                            state->data.world_state.state_name);
-                        llvm_class_add_field(entry, pergyra_strdup(field_name),
-                            ftypes[field_index], field_index);
+                        if (!llvm_domain_struct_add_generated_field(ctx, entry,
+                                ftypes[field_index], field_index,
+                                "zone_state_cause",
+                                state->data.world_state.state_name))
+                            return;
                     }
                     llvm_class_add_field(entry, pergyra_strdup("__world_derived_dirty"),
                         ftypes[field_index], field_index);
@@ -507,12 +575,10 @@ llvm_register_domain_structs(LLVMGenCtx *ctx,
                         if (rs == NULL || rs->type != AST_ROLE_SLOT
                             || !rs->data.role_slot.is_dynamic)
                             continue;
-                        char vt_field_buf[256];
-                        snprintf(vt_field_buf, sizeof(vt_field_buf), "%s_vtable",
-                                 rs->data.role_slot.slot_name);
-                        llvm_class_add_field(entry, pergyra_strdup(vt_field_buf),
-                            ctx->type_i8ptr,
-                            field_index);
+                        if (!llvm_domain_struct_add_suffixed_field(ctx, entry,
+                                ctx->type_i8ptr, field_index,
+                                rs->data.role_slot.slot_name, "vtable"))
+                            return;
                         field_index++;
                     }
                     if (stmt->type == AST_RELATION_DECL || stmt->type == AST_EFFECT_DECL)

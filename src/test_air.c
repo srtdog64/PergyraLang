@@ -218,6 +218,9 @@ main(void)
     TEST("AIR rejects empty runtime frontier policy evidence");
     EXPECT(test_air_rejects_empty_runtime_frontier_policy_evidence());
 
+    TEST("AIR runtime frontier policy names PGY_FRONTIER_PUBLISH_READY and PGY_FRONTIER_PUBLISH_CLEAR_DIRTY");
+    EXPECT(test_air_runtime_frontier_policy_names_publish_order());
+
     TEST("AIR collects MIR pin cleanup evidence");
     EXPECT(test_air_collects_mir_pin_cleanup_evidence());
 

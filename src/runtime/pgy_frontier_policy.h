@@ -6,7 +6,43 @@
 
 #define PGY_FRONTIER_POLICY_SCHEMA "pgy.runtime.frontier-policy.v1"
 #define PGY_FRONTIER_POLICY_SUBJECT "bounded-frontier-pass-limit"
-#define PGY_FRONTIER_POLICY_FACT_COUNT 8u
+#define PGY_FRONTIER_POLICY_FACT_COUNT 9u
+
+typedef enum PgyFrontierPublishPhase {
+    PGY_FRONTIER_PUBLISH_WRITE_VALUE = 0,
+    PGY_FRONTIER_PUBLISH_WRITE_EPOCH = 1,
+    PGY_FRONTIER_PUBLISH_WRITE_CAUSE = 2,
+    PGY_FRONTIER_PUBLISH_READY = 3,
+    PGY_FRONTIER_PUBLISH_CLEAR_DIRTY = 4,
+} PgyFrontierPublishPhase;
+
+static inline int
+pgy_frontier_publish_phase_order(PgyFrontierPublishPhase phase)
+{
+    switch (phase) {
+    case PGY_FRONTIER_PUBLISH_WRITE_VALUE:
+        return 0;
+    case PGY_FRONTIER_PUBLISH_WRITE_EPOCH:
+        return 1;
+    case PGY_FRONTIER_PUBLISH_WRITE_CAUSE:
+        return 2;
+    case PGY_FRONTIER_PUBLISH_READY:
+        return 3;
+    case PGY_FRONTIER_PUBLISH_CLEAR_DIRTY:
+        return 4;
+    }
+    return -1;
+}
+
+static inline int
+pgy_frontier_publish_order_is_valid(PgyFrontierPublishPhase before,
+                                    PgyFrontierPublishPhase after)
+{
+    int before_order = pgy_frontier_publish_phase_order(before);
+    int after_order = pgy_frontier_publish_phase_order(after);
+    return before_order >= 0 && after_order >= 0
+        && before_order <= after_order;
+}
 
 static inline size_t
 pgy_frontier_pass_limit_cap(void)

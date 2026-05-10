@@ -1,9 +1,40 @@
 ﻿#ifndef PGY_TRANSPILER_EXPR_TYPE_INFER_H
 #define PGY_TRANSPILER_EXPR_TYPE_INFER_H
 
+#include <stdbool.h>
+#include <stdio.h>
+#include <string.h>
+
 #include "transpiler_builtin_type_table.h"
 
 #include "codegen_slot_type_policy.h"
+
+static bool
+transpiler_infer_format_type_name(char *out, size_t out_size,
+                                  const char *prefix, const char *inner)
+{
+    int written;
+
+    if (out == NULL || out_size == 0 || prefix == NULL || inner == NULL)
+        return false;
+    written = snprintf(out, out_size, "%s<%s>", prefix, inner);
+    return written >= 0 && (size_t)written < out_size;
+}
+
+static bool
+transpiler_infer_copy_type_name(char *out, size_t out_size,
+                                const char *type_name)
+{
+    size_t len;
+
+    if (out == NULL || out_size == 0 || type_name == NULL)
+        return false;
+    len = strlen(type_name);
+    if (len >= out_size)
+        return false;
+    memcpy(out, type_name, len + 1);
+    return true;
+}
 
 static const char *
 infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
@@ -36,8 +67,10 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
         if (inner == NULL || inner[0] == '\0')
             inner = "Unknown";
         static char buf[128];
-        snprintf(buf, sizeof(buf), "Array<%s>", inner);
-        return buf;
+        return transpiler_infer_format_type_name(buf, sizeof(buf), "Array",
+                   inner)
+            ? buf
+            : "Unknown";
     }
     case AST_ARRAY_ACCESS: {
         const char *array_type = infer_expression_type_name(ctx, expr->data.array_access.array);
@@ -100,9 +133,10 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                             char *ft = render_type_name(f->type);
                             if (ft != NULL) {
                                 static char mbuf[128];
-                                snprintf(mbuf, sizeof(mbuf), "%s", ft);
+                                bool ok = transpiler_infer_copy_type_name(
+                                    mbuf, sizeof(mbuf), ft);
                                 free(ft);
-                                return mbuf;
+                                return ok ? mbuf : "Unknown";
                             }
                         }
                     }
@@ -180,9 +214,10 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                     const char *inner = slot_inner_type_name(receiver_type);
                     if (inner == NULL || inner[0] == '\0')
                         return "Unknown";
-                    snprintf(slice_buf, sizeof(slice_buf), "Slice<%s>",
-                        inner);
-                    return slice_buf;
+                    return transpiler_infer_format_type_name(
+                               slice_buf, sizeof(slice_buf), "Slice", inner)
+                        ? slice_buf
+                        : "Unknown";
                 }
             }
             ASTNode *method_decl = NULL;
@@ -194,9 +229,10 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
             if (method_decl != NULL && method_decl->type == AST_FUNC_DECL
                 && method_decl->data.func_decl.return_type != NULL) {
                 char *resolved = render_type_name(method_decl->data.func_decl.return_type);
-                snprintf(derived_call_type, sizeof(derived_call_type), "%s", resolved);
+                bool ok = transpiler_infer_copy_type_name(
+                    derived_call_type, sizeof(derived_call_type), resolved);
                 free(resolved);
-                return derived_call_type;
+                return ok ? derived_call_type : "Unknown";
             }
         }
         if (expr->data.call.callee != NULL
@@ -233,9 +269,11 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                         key_buf, sizeof(key_buf));
                     if (key_buf[0] == '\0')
                         return "Unknown";
-                    snprintf(map_keys_buf, sizeof(map_keys_buf), "Array<%s>",
-                        key_buf);
-                    return map_keys_buf;
+                    return transpiler_infer_format_type_name(
+                               map_keys_buf, sizeof(map_keys_buf), "Array",
+                               key_buf)
+                        ? map_keys_buf
+                        : "Unknown";
                 }
                 return "Unknown";
             }
@@ -261,9 +299,10 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                 const char *inner = slot_inner_type_name(slot_type);
                 if (inner == NULL || inner[0] == '\0')
                     return "Unknown";
-                snprintf(read_view, sizeof(read_view), "ReadView<%s>",
-                    inner);
-                return read_view;
+                return transpiler_infer_format_type_name(
+                           read_view, sizeof(read_view), "ReadView", inner)
+                    ? read_view
+                    : "Unknown";
             }
             if (strcmp(name, "ViewWrite") == 0 && expr->data.call.arg_count >= 1) {
                 static char write_view[128];
@@ -272,9 +311,10 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                 const char *inner = slot_inner_type_name(slot_type);
                 if (inner == NULL || inner[0] == '\0')
                     return "Unknown";
-                snprintf(write_view, sizeof(write_view), "WriteView<%s>",
-                    inner);
-                return write_view;
+                return transpiler_infer_format_type_name(
+                           write_view, sizeof(write_view), "WriteView", inner)
+                    ? write_view
+                    : "Unknown";
             }
             if (strcmp(name, "Measure") == 0 || strcmp(name, "QubitState") == 0)
                 return "Int";
@@ -310,9 +350,11 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                     const char *inner = slot_inner_type_name(slot_type);
                     if (inner == NULL || inner[0] == '\0')
                         return "Unknown";
-                    snprintf(device_future, sizeof(device_future), "RemoteFuture<%s>",
-                        inner);
-                    return device_future;
+                    return transpiler_infer_format_type_name(
+                               device_future, sizeof(device_future),
+                               "RemoteFuture", inner)
+                        ? device_future
+                        : "Unknown";
                 }
                 return "Unknown";
             }
@@ -324,13 +366,20 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                 static char opt_buf[128];
                 if (strcmp(name, "TrySendStatus") == 0
                     || strcmp(name, "SendTimeoutStatus") == 0) {
-                    snprintf(opt_buf, sizeof(opt_buf), "Option<Bool>");
+                    return transpiler_infer_copy_type_name(
+                               opt_buf, sizeof(opt_buf), "Option<Bool>")
+                        ? opt_buf
+                        : "Unknown";
                 } else {
                     const char *inner = channel_inner_type_name(ctx,
                         expr->data.call.arguments[0]);
-                    snprintf(opt_buf, sizeof(opt_buf), "Option<%s>", inner);
+                    if (inner == NULL || inner[0] == '\0')
+                        return "Unknown";
+                    return transpiler_infer_format_type_name(
+                               opt_buf, sizeof(opt_buf), "Option", inner)
+                        ? opt_buf
+                        : "Unknown";
                 }
-                return opt_buf;
             }
             if (strcmp(name, "Some") == 0 && expr->data.call.arg_count == 1) {
                 static char opt_buf[128];
@@ -341,8 +390,10 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                 }
                 if (inner == NULL || inner[0] == '\0')
                     inner = "Unknown";
-                snprintf(opt_buf, sizeof(opt_buf), "Option<%s>", inner);
-                return opt_buf;
+                return transpiler_infer_format_type_name(
+                           opt_buf, sizeof(opt_buf), "Option", inner)
+                    ? opt_buf
+                    : "Unknown";
             }
             if (strcmp(name, "None") == 0) {
                 const char *context_type = transpiler_contextual_option_type_name(ctx);
@@ -391,9 +442,11 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                     && host_method->type == AST_FUNC_DECL
                     && host_method->data.func_decl.return_type != NULL) {
                     char *resolved = render_type_name(host_method->data.func_decl.return_type);
-                    snprintf(derived_call_type, sizeof(derived_call_type), "%s", resolved);
+                    bool ok = transpiler_infer_copy_type_name(
+                        derived_call_type, sizeof(derived_call_type),
+                        resolved);
                     free(resolved);
-                    return derived_call_type;
+                    return ok ? derived_call_type : "Unknown";
                 }
             }
 
@@ -410,9 +463,11 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                     }
                     if (resolved == NULL)
                         resolved = render_type_name(decl->data.func_decl.return_type);
-                    snprintf(derived_call_type, sizeof(derived_call_type), "%s", resolved);
+                    bool ok = transpiler_infer_copy_type_name(
+                        derived_call_type, sizeof(derived_call_type),
+                        resolved);
                     free(resolved);
-                    return derived_call_type;
+                    return ok ? derived_call_type : "Unknown";
                 }
             }
         }

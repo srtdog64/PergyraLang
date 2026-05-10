@@ -1,6 +1,35 @@
 #ifndef PGY_TRANSPILER_ASYNC_PARALLEL_EMIT_H
 #define PGY_TRANSPILER_ASYNC_PARALLEL_EMIT_H
 
+static bool
+transpiler_capture_surface_desc(char *out, size_t out_size,
+                                const char *kind,
+                                const char *capture_name)
+{
+    int written;
+
+    if (out == NULL || out_size == 0 || kind == NULL)
+        return false;
+
+    written = snprintf(out, out_size, "%s capture '%s'",
+        kind,
+        capture_name != NULL ? capture_name : "(anonymous)");
+
+    return written >= 0 && (size_t)written < out_size;
+}
+
+static void
+transpiler_capture_surface_desc_too_long(TranspilerCtx *ctx,
+                                         const char *kind)
+{
+    transpiler_set_backend_error_with_hints(ctx,
+        PGY_CODE_C_TYPE_UNSUPPORTED,
+        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+        PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+        "%s capture diagnostic surface is too long for C backend emission",
+        kind != NULL ? kind : "parallel/async");
+}
+
 void
 emit_parallel_block(ASTNode *node, TranspilerCtx *ctx)
 {
@@ -64,9 +93,12 @@ emit_parallel_block(ASTNode *node, TranspilerCtx *ctx)
                     entry = lookup_typed_entry(ctx, capture_typed_names[i]);
                 }
             }
-            snprintf(surface_desc, sizeof(surface_desc),
-                "parallel capture '%.220s'",
-                capture_typed_names[i]);
+            if (!transpiler_capture_surface_desc(surface_desc,
+                    sizeof(surface_desc), "parallel",
+                    capture_typed_names[i])) {
+                transpiler_capture_surface_desc_too_long(ctx, "parallel");
+                return;
+            }
 
             /* Function-typed locals need a pointer-to-function-pointer
              * declarator so `(*_pctx->name)` inside the wrapper yields the
@@ -262,9 +294,12 @@ emit_async_block(ASTNode *node, TranspilerCtx *ctx)
             TypedVarEntry *entry = lookup_typed_entry(ctx, capture_typed_names[i]);
             char surface_desc[256];
             const char *c_type;
-            snprintf(surface_desc, sizeof(surface_desc),
-                "async capture '%.223s'",
-                capture_typed_names[i]);
+            if (!transpiler_capture_surface_desc(surface_desc,
+                    sizeof(surface_desc), "async",
+                    capture_typed_names[i])) {
+                transpiler_capture_surface_desc_too_long(ctx, "async");
+                return;
+            }
             c_type = transpiler_require_type_name_c_type(
                 ctx,
                 entry != NULL ? entry->type_name : NULL,

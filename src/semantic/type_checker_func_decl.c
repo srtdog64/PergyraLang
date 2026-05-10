@@ -287,7 +287,9 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
             Symbol *slot_sym;
 
             if (pt->data.slot.is_secure) {
-                snprintf(token_name, sizeof(token_name), "%s_token", param_name);
+                if (!semantic_format_secure_token_name(
+                        token_name, sizeof(token_name), param_name, node, ctx))
+                    continue;
                 paired_token = token_name;
             }
 

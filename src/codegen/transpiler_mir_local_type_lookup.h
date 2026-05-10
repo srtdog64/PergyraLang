@@ -1,8 +1,38 @@
 #ifndef PGY_TRANSPILER_MIR_LOCAL_TYPE_LOOKUP_H
 #define PGY_TRANSPILER_MIR_LOCAL_TYPE_LOOKUP_H
 
+#include <stdbool.h>
+#include <stdio.h>
+#include <string.h>
+
 /* Consumed from transpiler_mir_ssa_names.h. Keep slot claim vocabulary in the
  * shared codegen slot policy instead of repeating raw builtin strings here. */
+
+static bool
+transpiler_mir_render_type_name(char *out, size_t out_size,
+                                const char *prefix, const char *inner)
+{
+    int written;
+
+    if (out == NULL || out_size == 0 || prefix == NULL || inner == NULL)
+        return false;
+    written = snprintf(out, out_size, "%s<%s>", prefix, inner);
+    return written >= 0 && (size_t)written < out_size;
+}
+
+static bool
+transpiler_mir_copy_type_name(char *out, size_t out_size, const char *type_name)
+{
+    size_t len;
+
+    if (out == NULL || out_size == 0 || type_name == NULL)
+        return false;
+    len = strlen(type_name);
+    if (len >= out_size)
+        return false;
+    memcpy(out, type_name, len + 1);
+    return true;
+}
 
 static const char *
 transpiler_infer_local_type_name_from_expr(TranspilerCtx *ctx,
@@ -98,8 +128,9 @@ transpiler_infer_local_type_name_from_expr(TranspilerCtx *ctx,
                 const char *inner = slot_inner_type_name(receiver_type);
                 if (inner == NULL || inner[0] == '\0')
                     return NULL;
-                snprintf(rendered_slice, sizeof(rendered_slice), "Slice<%s>",
-                    inner);
+                if (!transpiler_mir_render_type_name(rendered_slice,
+                        sizeof(rendered_slice), "Slice", inner))
+                    return NULL;
                 return rendered_slice;
             }
             if (receiver_type != NULL)
@@ -213,8 +244,10 @@ transpiler_find_local_type_name_in_block(TranspilerCtx *ctx,
                     }
                     if (inner == NULL || inner[0] == '\0')
                         return NULL;
-                    snprintf(rendered_secure, sizeof(rendered_secure),
-                        i == 0 ? "SecureSlot<%s>" : "Token<%s>", inner);
+                    if (!transpiler_mir_render_type_name(rendered_secure,
+                            sizeof(rendered_secure),
+                            i == 0 ? "SecureSlot" : "Token", inner))
+                        return NULL;
                     return rendered_secure;
                 }
                 if (pgy_codegen_call_name_is_claim_slot(callee) && i == 0) {
@@ -227,8 +260,9 @@ transpiler_find_local_type_name_in_block(TranspilerCtx *ctx,
                     }
                     if (inner == NULL || inner[0] == '\0')
                         return NULL;
-                    snprintf(rendered_slot, sizeof(rendered_slot),
-                        "Slot<%s>", inner);
+                    if (!transpiler_mir_render_type_name(rendered_slot,
+                            sizeof(rendered_slot), "Slot", inner))
+                        return NULL;
                     return rendered_slot;
                 }
             }
@@ -248,7 +282,9 @@ transpiler_find_local_type_name_in_block(TranspilerCtx *ctx,
                 const char *inner = slot_inner_type_name(init_type);
                 if (inner != NULL) {
                     static char rendered_arr[128];
-                    snprintf(rendered_arr, sizeof(rendered_arr), "%s", inner);
+                    if (!transpiler_mir_copy_type_name(rendered_arr,
+                            sizeof(rendered_arr), inner))
+                        return NULL;
                     return rendered_arr;
                 }
             }
@@ -296,10 +332,13 @@ transpiler_find_local_type_name_in_block(TranspilerCtx *ctx,
             char *inner = render_type_name(body->data.with_stmt.slot_type);
             if (inner == NULL || inner[0] == '\0')
                 return NULL;
-            snprintf(rendered_slot, sizeof(rendered_slot),
-                     "%s<%s>",
-                     body->data.with_stmt.is_secure ? "SecureSlot" : "Slot",
-                     inner);
+            if (!transpiler_mir_render_type_name(rendered_slot,
+                    sizeof(rendered_slot),
+                    body->data.with_stmt.is_secure ? "SecureSlot" : "Slot",
+                    inner)) {
+                free(inner);
+                return NULL;
+            }
             free(inner);
             return rendered_slot;
         }

@@ -1,9 +1,25 @@
 #ifndef PGY_TRANSPILER_CONTROL_FLOW_EMIT_H
 #define PGY_TRANSPILER_CONTROL_FLOW_EMIT_H
 
+#include <stdbool.h>
+#include <stdio.h>
+#include <string.h>
+
 /* -----------------------------------------------------------------
  * Control flow
  * ----------------------------------------------------------------- */
+
+static bool
+transpiler_loop_label_name(char *out, size_t out_size,
+                           const char *kind, int loop_id)
+{
+    int written;
+
+    if (out == NULL || out_size == 0 || kind == NULL)
+        return false;
+    written = snprintf(out, out_size, "_pgy_loop_%s_%d", kind, loop_id);
+    return written >= 0 && (size_t)written < out_size;
+}
 
 static bool
 transpiler_condition_is_already_parenthesized(const char *expr)
@@ -88,12 +104,19 @@ emit_for_loop(ASTNode *node, TranspilerCtx *ctx)
 
     if (loop_slot < TRANSPILE_MAX_LOOP_DEPTH) {
         ctx->loop_labels[loop_slot] = node->data.for_loop.label;
-        snprintf(ctx->loop_break_labels[loop_slot],
-                 sizeof(ctx->loop_break_labels[loop_slot]),
-                 "_pgy_loop_break_%d", loop_id);
-        snprintf(ctx->loop_continue_labels[loop_slot],
-                 sizeof(ctx->loop_continue_labels[loop_slot]),
-                 "_pgy_loop_continue_%d", loop_id);
+        if (!transpiler_loop_label_name(ctx->loop_break_labels[loop_slot],
+                sizeof(ctx->loop_break_labels[loop_slot]), "break", loop_id)
+            || !transpiler_loop_label_name(ctx->loop_continue_labels[loop_slot],
+                sizeof(ctx->loop_continue_labels[loop_slot]), "continue",
+                loop_id)) {
+            transpiler_set_backend_error_with_hints(
+                ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED,
+                PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+                "C backend: generated for-loop cleanup label is too long");
+            return;
+        }
         ctx->loop_break_label_used[loop_slot] = false;
         ctx->loop_continue_label_used[loop_slot] = false;
         ctx->loop_defer_base_depth[loop_slot] = ctx->defer_scope_depth;
@@ -210,12 +233,20 @@ emit_while_loop(ASTNode *node, TranspilerCtx *ctx)
     int loop_id = ++ctx->tmp_counter;
     if (loop_slot < TRANSPILE_MAX_LOOP_DEPTH) {
         ctx->loop_labels[loop_slot] = node->data.while_loop.label;
-        snprintf(ctx->loop_break_labels[loop_slot],
-                 sizeof(ctx->loop_break_labels[loop_slot]),
-                 "_pgy_loop_break_%d", loop_id);
-        snprintf(ctx->loop_continue_labels[loop_slot],
-                 sizeof(ctx->loop_continue_labels[loop_slot]),
-                 "_pgy_loop_continue_%d", loop_id);
+        if (!transpiler_loop_label_name(ctx->loop_break_labels[loop_slot],
+                sizeof(ctx->loop_break_labels[loop_slot]), "break", loop_id)
+            || !transpiler_loop_label_name(ctx->loop_continue_labels[loop_slot],
+                sizeof(ctx->loop_continue_labels[loop_slot]), "continue",
+                loop_id)) {
+            transpiler_set_backend_error_with_hints(
+                ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED,
+                PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+                "C backend: generated while-loop cleanup label is too long");
+            free(cond);
+            return;
+        }
         ctx->loop_break_label_used[loop_slot] = false;
         ctx->loop_continue_label_used[loop_slot] = false;
         ctx->loop_defer_base_depth[loop_slot] = ctx->defer_scope_depth;

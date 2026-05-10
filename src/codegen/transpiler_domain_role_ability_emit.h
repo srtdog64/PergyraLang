@@ -1,9 +1,87 @@
 #ifndef PGY_TRANSPILER_DOMAIN_ROLE_ABILITY_EMIT_H
 #define PGY_TRANSPILER_DOMAIN_ROLE_ABILITY_EMIT_H
 
+#include <stdbool.h>
+#include <stdio.h>
+#include <string.h>
+
 /* =================================================================
  * Role/Ability system emitters
  * ================================================================= */
+
+static bool
+transpiler_role_ability_copy_name(char *out, size_t out_size,
+                                  const char *name)
+{
+    size_t len;
+
+    if (out == NULL || out_size == 0 || name == NULL)
+        return false;
+    len = strlen(name);
+    if (len >= out_size)
+        return false;
+    memcpy(out, name, len + 1);
+    return true;
+}
+
+static bool
+transpiler_role_ability_host_method_name(char *out, size_t out_size,
+                                         const char *host_name,
+                                         const char *method_name)
+{
+    int written;
+
+    if (out == NULL || out_size == 0 || host_name == NULL
+        || method_name == NULL) {
+        return false;
+    }
+    written = snprintf(out, out_size, "%s_%s", host_name, method_name);
+    return written >= 0 && (size_t)written < out_size;
+}
+
+static bool
+transpiler_role_ability_vtable_typedef_name(char *out, size_t out_size,
+                                            const char *tag)
+{
+    int written;
+
+    if (out == NULL || out_size == 0 || tag == NULL)
+        return false;
+    written = snprintf(out, out_size, "%s_vtable", tag);
+    return written >= 0 && (size_t)written < out_size;
+}
+
+static bool
+transpiler_role_operator_alias_name(char *out, size_t out_size,
+                                    const char *suffix,
+                                    const char *for_type)
+{
+    int written;
+
+    if (out == NULL || out_size == 0 || suffix == NULL || for_type == NULL)
+        return false;
+    written = snprintf(out, out_size, "operator_%s_%s", suffix, for_type);
+    return written >= 0 && (size_t)written < out_size;
+}
+
+static bool
+transpiler_role_ability_surface_desc(char *out, size_t out_size,
+                                     const char *prefix,
+                                     const char *owner_name,
+                                     const char *method_name,
+                                     const char *param_name)
+{
+    int written;
+
+    if (out == NULL || out_size == 0 || prefix == NULL)
+        return false;
+    written = snprintf(out, out_size, "%s '%s.%s(%s)'",
+        prefix,
+        owner_name != NULL ? owner_name : "(anonymous)",
+        method_name != NULL ? method_name : "(anonymous)",
+        param_name != NULL ? param_name : "(anonymous)");
+    return written >= 0 && (size_t)written < out_size;
+}
 
 static void
 emit_hosted_methods_from_mir_or_error_local(const char *host_name,
@@ -52,8 +130,17 @@ emit_hosted_methods_from_mir_or_error_local(const char *host_name,
             return;
         }
 
-        snprintf(emitted_name, sizeof(emitted_name), "%s_%s", host_name,
-            method_name != NULL ? method_name : "(anonymous)");
+        if (!transpiler_role_ability_host_method_name(
+                emitted_name, sizeof(emitted_name), host_name, method_name)) {
+            transpiler_set_backend_error_with_hints(ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED,
+                PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+                "C backend: hosted method symbol name is too long for %s.%s",
+                host_name != NULL ? host_name : "(anonymous)",
+                method_name != NULL ? method_name : "(anonymous)");
+            return;
+        }
         emit_func_decl_from_mir_named(method, mir_method, emitted_name, ctx->out, ctx);
         if (ctx != NULL && ctx->backend_error != NULL)
             return;
@@ -109,9 +196,22 @@ build_ability_ref_bindings(ASTNode *ability_decl,
                     : "<ability>");
             return;
         }
-        snprintf(bindings[out].name, sizeof(bindings[out].name), "%s", formal->name);
-        snprintf(bindings[out].concrete_type, sizeof(bindings[out].concrete_type),
-            "%s", rendered);
+        if (!transpiler_role_ability_copy_name(
+                bindings[out].name, sizeof(bindings[out].name), formal->name)
+            || !transpiler_role_ability_copy_name(
+                bindings[out].concrete_type,
+                sizeof(bindings[out].concrete_type), rendered)) {
+            transpiler_set_backend_error_with_hints(ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED,
+                PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+                "C backend: generic ability binding name is too long for ability '%s'",
+                ability_decl->data.ability_decl.name != NULL
+                    ? ability_decl->data.ability_decl.name
+                    : "<ability>");
+            free(rendered);
+            return;
+        }
         free(rendered);
         out++;
     }
@@ -194,7 +294,15 @@ ability_ref_vtable_typedef_name(ASTNode *ability_ref,
         transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "cannot render ability vtable tag for ability reference");
         return false;
     }
-    snprintf(buf, buf_size, "%s_vtable", tag);
+    if (!transpiler_role_ability_vtable_typedef_name(buf, buf_size, tag)) {
+        transpiler_set_backend_error_with_hints(ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+            "C backend: ability vtable typedef name is too long");
+        free(tag);
+        return false;
+    }
     free(tag);
     return true;
 }
@@ -245,8 +353,18 @@ ensure_ability_ref_vtable_decl(ASTNode *ability_ref, TranspilerCtx *ctx)
     }
 
     if (ctx->ability_vtable_spec_count < MAX_ABILITY_VTABLE_SPECIALIZATIONS) {
-        snprintf(ctx->ability_vtable_specs[ctx->ability_vtable_spec_count++].name,
-            sizeof(ctx->ability_vtable_specs[0].name), "%s", tag);
+        if (!transpiler_role_ability_copy_name(
+                ctx->ability_vtable_specs[ctx->ability_vtable_spec_count].name,
+                sizeof(ctx->ability_vtable_specs[0].name), tag)) {
+            transpiler_set_backend_error_with_hints(ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED,
+                PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+                "C backend: ability vtable specialization name is too long");
+            free(tag);
+            return;
+        }
+        ctx->ability_vtable_spec_count++;
     }
 
     if (!ability_ref_vtable_typedef_name(ability_ref, typedef_name, sizeof(typedef_name), ctx)) {
@@ -296,11 +414,19 @@ ensure_ability_ref_vtable_decl(ASTNode *ability_ref, TranspilerCtx *ctx)
                 pointer_param = param_name != NULL
                     && is_pointer_self_host_type_name(ctx, param_name);
             }
-            snprintf(surface_desc, sizeof(surface_desc),
-                "ability vtable parameter '%s.%s(%s)'",
-                ability_name != NULL ? ability_name : "(anonymous)",
-                method->data.func_decl.name != NULL ? method->data.func_decl.name : "(anonymous)",
-                p->name != NULL ? p->name : "(anonymous)");
+            if (!transpiler_role_ability_surface_desc(surface_desc,
+                    sizeof(surface_desc), "ability vtable parameter",
+                    ability_name, method->data.func_decl.name, p->name)) {
+                transpiler_set_backend_error_with_hints(ctx,
+                    PGY_CODE_C_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                    PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+                    "C backend: ability vtable parameter diagnostic is too long");
+                free(param_name);
+                free(ret_name);
+                free(tag);
+                return;
+            }
             pt = transpiler_require_type_name_c_type(ctx, param_name, surface_desc);
             if (pt == NULL) {
                 free(param_name);
@@ -340,8 +466,17 @@ emit_role_method_impl(const char *role_name, ASTNode *method, TranspilerCtx *ctx
     }
     if (mir_method != NULL) {
         char emitted_name[256];
-        snprintf(emitted_name, sizeof(emitted_name), "%s_%s",
-                 role_name, method_name);
+        if (!transpiler_role_ability_host_method_name(
+                emitted_name, sizeof(emitted_name), role_name, method_name)) {
+            transpiler_set_backend_error_with_hints(ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED,
+                PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+                "C backend: role method symbol name is too long for '%s.%s'",
+                role_name != NULL ? role_name : "(anonymous)",
+                method_name != NULL ? method_name : "(anonymous)");
+            return;
+        }
         emit_func_decl_from_mir_named(method, mir_method, emitted_name, ctx->out, ctx);
         return;
     }
@@ -430,7 +565,16 @@ emit_role_operator_aliases(ASTNode *role, TranspilerCtx *ctx)
             ) {
             continue;
         }
-        snprintf(fn_name, sizeof(fn_name), "operator_%s_%s", suffix, for_type);
+        if (!transpiler_role_operator_alias_name(fn_name, sizeof(fn_name),
+                suffix, for_type)) {
+            transpiler_set_backend_error_with_hints(ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED,
+                PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+                "C backend: role operator alias name is too long for role '%s'",
+                role_name != NULL ? role_name : "(anonymous)");
+            return;
+        }
         if (find_function_decl(ctx, fn_name) != NULL)
             continue;
 
@@ -459,11 +603,16 @@ emit_role_operator_aliases(ASTNode *role, TranspilerCtx *ctx)
 
         if (method->data.func_decl.return_type != NULL)
             ret_type = pergyra_ast_type_to_c(method->data.func_decl.return_type);
-        snprintf(surface_desc, sizeof(surface_desc),
-            "role operator parameter '%s.%s(%s)'",
-            role_name != NULL ? role_name : "(anonymous)",
-            method->data.func_decl.name != NULL ? method->data.func_decl.name : "(anonymous)",
-            rhs_name != NULL ? rhs_name : "(anonymous)");
+        if (!transpiler_role_ability_surface_desc(surface_desc,
+                sizeof(surface_desc), "role operator parameter",
+                role_name, method->data.func_decl.name, rhs_name)) {
+            transpiler_set_backend_error_with_hints(ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED,
+                PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+                "C backend: role operator parameter diagnostic is too long");
+            return;
+        }
         rhs_type = transpiler_require_ast_c_type(
             ctx,
             rhs_param != NULL ? rhs_param->type : NULL,

@@ -10,6 +10,48 @@
 #include "llvm_internal.h"
 #include "llvm_inventory_host_methods.h"
 
+static bool
+llvm_register_join_name(LLVMGenCtx *ctx, char *out, size_t out_size,
+                        const char *left, const char *sep,
+                        const char *right, const char *surface)
+{
+    int written;
+
+    if (out == NULL || out_size == 0 || left == NULL || sep == NULL
+        || right == NULL) {
+        return false;
+    }
+    written = snprintf(out, out_size, "%s%s%s", left, sep, right);
+    if (written >= 0 && (size_t)written < out_size)
+        return true;
+    llvm_set_error_with_hints(ctx,
+        PGY_CODE_LLVM_SPEC_LIMIT,
+        PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+        PGY_FIX_REFACTOR_OR_RAISE_LIMIT,
+        "LLVM registration generated name is too long for %s",
+        surface != NULL ? surface : "declaration");
+    return false;
+}
+
+static bool
+llvm_register_payload_field_name(LLVMGenCtx *ctx, char *out, size_t out_size,
+                                 size_t index)
+{
+    int written;
+
+    if (out == NULL || out_size == 0)
+        return false;
+    written = snprintf(out, out_size, "_%zu", index);
+    if (written >= 0 && (size_t)written < out_size)
+        return true;
+    llvm_set_error_with_hints(ctx,
+        PGY_CODE_LLVM_SPEC_LIMIT,
+        PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+        PGY_FIX_REFACTOR_OR_RAISE_LIMIT,
+        "LLVM enum payload field name is too long");
+    return false;
+}
+
 static LLVMTypeRef
 llvm_register_required_ast_type(LLVMGenCtx *ctx,
                                 ASTNode *owner,
@@ -81,7 +123,11 @@ llvm_register_enum_decl(LLVMGenCtx *ctx, ASTNode *stmt)
             }
 
             char payload_name[256];
-            snprintf(payload_name, sizeof(payload_name), "%s$%s", enum_name, variant_name);
+            if (!llvm_register_join_name(ctx, payload_name,
+                    sizeof(payload_name), enum_name, "$", variant_name,
+                    "enum variant payload")) {
+                return;
+            }
 
             LLVMTypeRef *payload_fields = pgy_arena_calloc(&ctx->scratch,
                 param_count * sizeof(LLVMTypeRef));
@@ -101,7 +147,10 @@ llvm_register_enum_decl(LLVMGenCtx *ctx, ASTNode *stmt)
             if (payload_entry != NULL) {
                 for (size_t p = 0; p < param_count; p++) {
                     char field_name[32];
-                    snprintf(field_name, sizeof(field_name), "_%zu", p);
+                    if (!llvm_register_payload_field_name(ctx, field_name,
+                            sizeof(field_name), p)) {
+                        return;
+                    }
                     llvm_class_add_field(payload_entry,
                         pergyra_strdup(field_name),
                         payload_fields[p], (int)p);
@@ -181,7 +230,10 @@ llvm_register_enum_decl(LLVMGenCtx *ctx, ASTNode *stmt)
 
         LLVMTypeRef ft = LLVMFunctionType(ret_type, param_types, (unsigned)(user_pc + 1), 0);
         char full_name[256];
-        snprintf(full_name, sizeof(full_name), "%s_%s", enum_name, method_name);
+        if (!llvm_register_join_name(ctx, full_name, sizeof(full_name),
+                enum_name, "_", method_name, "enum method")) {
+            return;
+        }
         LLVMValueRef fn = LLVMAddFunction(ctx->module, full_name, ft);
         llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ret_type);
         /* param_types is ctx->scratch-owned. */
@@ -299,7 +351,10 @@ llvm_register_nominal_decl(LLVMGenCtx *ctx, ASTNode *stmt)
 
         LLVMTypeRef ft = LLVMFunctionType(ret_type, param_types, (unsigned)(user_pc + 1), 0);
         char full_name[256];
-        snprintf(full_name, sizeof(full_name), "%s_%s", cls_name, method_name);
+        if (!llvm_register_join_name(ctx, full_name, sizeof(full_name),
+                cls_name, "_", method_name, "class method")) {
+            return;
+        }
         LLVMValueRef fn = LLVMAddFunction(ctx->module, full_name, ft);
         llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ret_type);
         llvm_set_function_flags(ctx, LLVMGetValueName(fn),

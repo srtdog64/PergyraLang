@@ -31,6 +31,35 @@ llvm_domain_event_required_param_type(LLVMGenCtx *ctx,
     return NULL;
 }
 
+static bool
+llvm_domain_event_struct_name(char *out,
+    size_t out_size,
+    const char *event_name)
+{
+    int written;
+
+    if (out == NULL || out_size == 0 || event_name == NULL)
+        return false;
+
+    written = snprintf(out, out_size, "PgyEvent_%s", event_name);
+    return written >= 0 && (size_t)written < out_size;
+}
+
+static bool
+llvm_domain_event_helper_name(char *out,
+    size_t out_size,
+    const char *event_name,
+    const char *suffix)
+{
+    int written;
+
+    if (out == NULL || out_size == 0 || event_name == NULL || suffix == NULL)
+        return false;
+
+    written = snprintf(out, out_size, "%s_%s", event_name, suffix);
+    return written >= 0 && (size_t)written < out_size;
+}
+
 void
 llvm_emit_domain_event_helpers(LLVMGenCtx *ctx,
     ASTNode **events,
@@ -53,7 +82,10 @@ llvm_emit_domain_event_helpers(LLVMGenCtx *ctx,
                                                  PGY_EVENT_MAX_HANDLERS);
         LLVMTypeRef sfields[] = { handler_arr, ctx->type_i64 };
         char sname[256];
-        snprintf(sname, sizeof(sname), "PgyEvent_%s", ename);
+        if (!llvm_domain_event_struct_name(sname, sizeof(sname), ename)) {
+            llvm_set_error(ctx, "event struct name is too long");
+            return;
+        }
         LLVMTypeRef evt_struct = LLVMStructCreateNamed(ctx->context, sname);
         LLVMStructSetBody(evt_struct, sfields, 2, 0);
 
@@ -84,7 +116,11 @@ llvm_emit_domain_event_helpers(LLVMGenCtx *ctx,
         /* --- Generate EventName_INIT(ptr) -> void --- */
         {
             char fname[256];
-            snprintf(fname, sizeof(fname), "%s_INIT", ename);
+            if (!llvm_domain_event_helper_name(fname, sizeof(fname),
+                    ename, "INIT")) {
+                llvm_set_error(ctx, "event init helper name is too long");
+                return;
+            }
             LLVMTypeRef init_params[] = { ctx->type_i8ptr };
             LLVMTypeRef init_ft = LLVMFunctionType(ctx->type_void,
                 init_params, 1, 0);
@@ -108,7 +144,11 @@ llvm_emit_domain_event_helpers(LLVMGenCtx *ctx,
         /* --- Generate EventName_SUBSCRIBE(ptr, handler_ptr) -> void --- */
         {
             char fname[256];
-            snprintf(fname, sizeof(fname), "%s_SUBSCRIBE", ename);
+            if (!llvm_domain_event_helper_name(fname, sizeof(fname),
+                    ename, "SUBSCRIBE")) {
+                llvm_set_error(ctx, "event subscribe helper name is too long");
+                return;
+            }
             LLVMTypeRef sub_params[] = { ctx->type_i8ptr, ctx->type_i8ptr };
             LLVMTypeRef sub_ft = LLVMFunctionType(ctx->type_void,
                 sub_params, 2, 0);
@@ -165,7 +205,12 @@ llvm_emit_domain_event_helpers(LLVMGenCtx *ctx,
         /* --- Generate EventName_UNSUBSCRIBE(ptr, handler_ptr) -> void --- */
         {
             char fname[256];
-            snprintf(fname, sizeof(fname), "%s_UNSUBSCRIBE", ename);
+            if (!llvm_domain_event_helper_name(fname, sizeof(fname),
+                    ename, "UNSUBSCRIBE")) {
+                llvm_set_error(ctx,
+                    "event unsubscribe helper name is too long");
+                return;
+            }
             LLVMTypeRef unsub_params[] = { ctx->type_i8ptr, ctx->type_i8ptr };
             LLVMTypeRef unsub_ft = LLVMFunctionType(ctx->type_void,
                 unsub_params, 2, 0);
@@ -256,7 +301,11 @@ llvm_emit_domain_event_helpers(LLVMGenCtx *ctx,
         /* --- Generate EventName_INVOKE(ptr, params...) -> void --- */
         {
             char fname[256];
-            snprintf(fname, sizeof(fname), "%s_INVOKE", ename);
+            if (!llvm_domain_event_helper_name(fname, sizeof(fname),
+                    ename, "INVOKE")) {
+                llvm_set_error(ctx, "event invoke helper name is too long");
+                return;
+            }
             /*
              * params: ptr (event), then handler params.  Consumed by
              * LLVMFunctionType (which copies the type array) and never

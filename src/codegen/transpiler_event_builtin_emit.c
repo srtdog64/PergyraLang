@@ -14,13 +14,19 @@ transpiler_event_strdup_invoke(const char *name, const char *args)
                           name, name, separator, safe_args);
     if (needed < 0)
         return NULL;
+    if ((size_t)needed == (size_t)-1)
+        return NULL;
 
     char *result = malloc((size_t)needed + 1);
     if (result == NULL)
         return NULL;
 
-    snprintf(result, (size_t)needed + 1, "%s_INVOKE(&%s%s%s)",
-             name, name, separator, safe_args);
+    int written = snprintf(result, (size_t)needed + 1,
+        "%s_INVOKE(&%s%s%s)", name, name, separator, safe_args);
+    if (written < 0 || written != needed) {
+        free(result);
+        return NULL;
+    }
     return result;
 }
 

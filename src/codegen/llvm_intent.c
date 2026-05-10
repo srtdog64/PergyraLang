@@ -66,6 +66,43 @@ llvm_build_mir_intent_step_sources(ASTNode *intent,
     return steps;
 }
 
+static bool
+llvm_intent_action_function_name(LLVMGenCtx *ctx, char *out, size_t out_size,
+                                 const char *subject_name,
+                                 const char *step_name)
+{
+    int written;
+
+    if (out == NULL || out_size == 0 || subject_name == NULL || step_name == NULL)
+        return false;
+    written = snprintf(out, out_size, "%s_%s", subject_name, step_name);
+    if (written >= 0 && (size_t)written < out_size)
+        return true;
+    llvm_set_error(ctx, "intent action function name is too long");
+    return false;
+}
+
+static bool
+llvm_intent_reason_name(LLVMGenCtx *ctx, char *out, size_t out_size,
+                        const char *prefix, const char *step_name)
+{
+    int written;
+
+    if (out == NULL || out_size == 0 || prefix == NULL)
+        return false;
+    written = snprintf(out, out_size, "%s:%s", prefix,
+        step_name != NULL ? step_name : "<step>");
+    if (written >= 0 && (size_t)written < out_size)
+        return true;
+    llvm_set_error_with_hints(ctx,
+        PGY_CODE_LLVM_SPEC_LIMIT,
+        PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+        PGY_FIX_REFACTOR_OR_RAISE_LIMIT,
+        "intent failure reason is too long for step '%s'",
+        step_name != NULL ? step_name : "<step>");
+    return false;
+}
+
 void
 llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
 {
@@ -338,8 +375,9 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
             char reason[256];
             LLVMBasicBlockRef next_bb = LLVMAppendBasicBlockInContext(ctx->context, fn, "intent.pre.ok");
             LLVMValueRef cond = llvm_emit_expression(step_ctx.pre_expr, ctx);
-            snprintf(reason, sizeof(reason), "pre:%s",
-                step_name != NULL ? step_name : "<step>");
+            if (!llvm_intent_reason_name(ctx, reason, sizeof(reason), "pre",
+                    step_name))
+                return;
             LLVMBuildStore(ctx->builder,
                 LLVMBuildGlobalStringPtr(ctx->builder,
                     reason,
@@ -353,8 +391,9 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
             char reason[256];
             LLVMBasicBlockRef next_bb = LLVMAppendBasicBlockInContext(ctx->context, fn, "intent.invariant.pre.ok");
             LLVMValueRef cond = llvm_emit_expression(step_ctx.invariant_pre_expr, ctx);
-            snprintf(reason, sizeof(reason), "invariant-pre:%s",
-                step_name != NULL ? step_name : "<step>");
+            if (!llvm_intent_reason_name(ctx, reason, sizeof(reason),
+                    "invariant-pre", step_name))
+                return;
             LLVMBuildStore(ctx->builder,
                 LLVMBuildGlobalStringPtr(ctx->builder,
                     reason,
@@ -374,8 +413,9 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
             char reason[256];
             LLVMBasicBlockRef next_bb = LLVMAppendBasicBlockInContext(ctx->context, fn, "intent.subintent.ok");
             LLVMValueRef cond = llvm_emit_expression(step_ctx.subintent_expr, ctx);
-            snprintf(reason, sizeof(reason), "intent:%s",
-                step_name != NULL ? step_name : "<step>");
+            if (!llvm_intent_reason_name(ctx, reason, sizeof(reason),
+                    "intent", step_name))
+                return;
             LLVMBuildStore(ctx->builder,
                 LLVMBuildGlobalStringPtr(ctx->builder,
                     reason,
@@ -396,8 +436,9 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
                     char full_name[256];
                     LLVMFuncEntry *action_fn;
                     LLVMVarEntry *participant_var = llvm_scope_lookup(ctx, alias);
-                    snprintf(full_name, sizeof(full_name), "%s_%s",
-                        subject_name, step_name);
+                    if (!llvm_intent_action_function_name(ctx, full_name,
+                            sizeof(full_name), subject_name, step_name))
+                        return;
                     action_fn = llvm_lookup_function(ctx, full_name);
                     if (action_fn != NULL && action_fn->is_action
                         && action_fn->action_self_only && participant_var != NULL) {
@@ -440,8 +481,9 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
             char reason[256];
             LLVMBasicBlockRef next_bb = LLVMAppendBasicBlockInContext(ctx->context, fn, "intent.guard.ok");
             LLVMValueRef cond = llvm_emit_expression(step_ctx.guard_expr, ctx);
-            snprintf(reason, sizeof(reason), "guard:%s",
-                step_name != NULL ? step_name : "<step>");
+            if (!llvm_intent_reason_name(ctx, reason, sizeof(reason), "guard",
+                    step_name))
+                return;
             LLVMBuildStore(ctx->builder,
                 LLVMBuildGlobalStringPtr(ctx->builder,
                     reason,
@@ -455,8 +497,9 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
             char reason[256];
             LLVMBasicBlockRef next_bb = LLVMAppendBasicBlockInContext(ctx->context, fn, "intent.expect.ok");
             LLVMValueRef cond = llvm_emit_expression(step_ctx.expect_expr, ctx);
-            snprintf(reason, sizeof(reason), "expect:%s",
-                step_name != NULL ? step_name : "<step>");
+            if (!llvm_intent_reason_name(ctx, reason, sizeof(reason), "expect",
+                    step_name))
+                return;
             LLVMBuildStore(ctx->builder,
                 LLVMBuildGlobalStringPtr(ctx->builder,
                     reason,
@@ -470,8 +513,9 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
             char reason[256];
             LLVMBasicBlockRef next_bb = LLVMAppendBasicBlockInContext(ctx->context, fn, "intent.post.ok");
             LLVMValueRef cond = llvm_emit_expression(step_ctx.post_expr, ctx);
-            snprintf(reason, sizeof(reason), "post:%s",
-                step_name != NULL ? step_name : "<step>");
+            if (!llvm_intent_reason_name(ctx, reason, sizeof(reason), "post",
+                    step_name))
+                return;
             LLVMBuildStore(ctx->builder,
                 LLVMBuildGlobalStringPtr(ctx->builder,
                     reason,
@@ -485,8 +529,9 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
             char reason[256];
             LLVMBasicBlockRef next_bb = LLVMAppendBasicBlockInContext(ctx->context, fn, "intent.invariant.post.ok");
             LLVMValueRef cond = llvm_emit_expression(step_ctx.invariant_post_expr, ctx);
-            snprintf(reason, sizeof(reason), "invariant-post:%s",
-                step_name != NULL ? step_name : "<step>");
+            if (!llvm_intent_reason_name(ctx, reason, sizeof(reason),
+                    "invariant-post", step_name))
+                return;
             LLVMBuildStore(ctx->builder,
                 LLVMBuildGlobalStringPtr(ctx->builder,
                     reason,

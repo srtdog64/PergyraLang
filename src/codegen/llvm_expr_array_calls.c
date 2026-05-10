@@ -62,6 +62,33 @@ llvm_array_required_elem_suffix(LLVMGenCtx *ctx, ASTNode *node,
     return NULL;
 }
 
+static bool
+llvm_array_format_runtime_name(char *out, size_t out_size,
+                               const char *prefix, const char *suffix)
+{
+    int written;
+
+    if (out == NULL || out_size == 0 || prefix == NULL || suffix == NULL)
+        return false;
+    written = snprintf(out, out_size, "%s_%s", prefix, suffix);
+    return written >= 0 && (size_t)written < out_size;
+}
+
+static bool
+llvm_array_runtime_name_error(ASTNode *node, LLVMGenCtx *ctx,
+                              const char *callee_name, LLVMValueRef *out)
+{
+    llvm_set_error_at_with_hints(ctx, node,
+        PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+        PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+        PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+        "LLVM array operation '%s' runtime function name is too long",
+        callee_name != NULL ? callee_name : "<unknown>");
+    if (out != NULL)
+        *out = NULL;
+    return true;
+}
+
 bool
 llvm_emit_array_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
                              const char *callee_name, LLVMValueRef *out)
@@ -114,7 +141,9 @@ llvm_emit_array_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         }
 
         char fn_name[64];
-        snprintf(fn_name, sizeof(fn_name), "pgy_array_push_%s", suffix);
+        if (!llvm_array_format_runtime_name(fn_name, sizeof(fn_name),
+                "pgy_array_push", suffix))
+            return llvm_array_runtime_name_error(node, ctx, callee_name, out);
         LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
             "array", callee_name, fn_name);
         if (fn == NULL) {
@@ -157,7 +186,9 @@ llvm_emit_array_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
                 value = LLVMBuildSIToFP(ctx->builder, value, entry->elem_type, llvm_tmp_name(ctx));
         }
         char fn_name[64];
-        snprintf(fn_name, sizeof(fn_name), "pgy_array_set_%s", suffix);
+        if (!llvm_array_format_runtime_name(fn_name, sizeof(fn_name),
+                "pgy_array_set", suffix))
+            return llvm_array_runtime_name_error(node, ctx, callee_name, out);
         LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
             "array", callee_name, fn_name);
         if (fn == NULL) {
@@ -191,7 +222,9 @@ llvm_emit_array_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         }
 
         char fn_name[64];
-        snprintf(fn_name, sizeof(fn_name), "pgy_array_pop_%s", suffix);
+        if (!llvm_array_format_runtime_name(fn_name, sizeof(fn_name),
+                "pgy_array_pop", suffix))
+            return llvm_array_runtime_name_error(node, ctx, callee_name, out);
         LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
             "array", callee_name, fn_name);
         if (fn == NULL) {

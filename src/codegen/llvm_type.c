@@ -184,6 +184,43 @@ pgy_result_type_arg_has_unknown(const char *arg)
 }
 
 static bool
+pgy_result_copy_name(char *out, size_t out_n, const char *name)
+{
+    size_t len;
+
+    if (out == NULL || out_n == 0 || name == NULL)
+        return false;
+    len = strlen(name);
+    if (len >= out_n)
+        return false;
+    memcpy(out, name, len + 1);
+    return true;
+}
+
+static bool
+pgy_result_join_names(char *out, size_t out_n, const char *lhs,
+                      const char *rhs)
+{
+    int written;
+
+    if (out == NULL || out_n == 0 || lhs == NULL || rhs == NULL)
+        return false;
+    written = snprintf(out, out_n, "%s_%s", lhs, rhs);
+    return written >= 0 && (size_t)written < out_n;
+}
+
+static bool
+pgy_result_struct_name(char *out, size_t out_n, const char *suffix)
+{
+    int written;
+
+    if (out == NULL || out_n == 0 || suffix == NULL)
+        return false;
+    written = snprintf(out, out_n, "PgyResult_%s", suffix);
+    return written >= 0 && (size_t)written < out_n;
+}
+
+static bool
 pgy_split_result_args(const char *inner,
                       char *ok_out, size_t ok_n,
                       char *err_out, size_t err_n)
@@ -315,13 +352,13 @@ llvm_result_suffix_from_context(LLVMGenCtx *ctx,
         return false;
     }
 
-    if (strlen(ok_raw) >= ok_n || strlen(err_raw) >= err_n)
+    if (!pgy_result_copy_name(ok_out, ok_n, ok_raw)
+        || !pgy_result_copy_name(err_out, err_n, err_raw))
         return false;
-    snprintf(ok_out, ok_n, "%s", ok_raw);
-    snprintf(err_out, err_n, "%s", err_raw);
 
     char combined[260];
-    snprintf(combined, sizeof(combined), "%s_%s", ok_raw, err_raw);
+    if (!pgy_result_join_names(combined, sizeof(combined), ok_raw, err_raw))
+        return false;
     pgy_sanitize_suffix(combined, suffix_out, suffix_n);
     return suffix_out[0] != '\0';
 }
@@ -375,7 +412,15 @@ llvm_ensure_result_type(LLVMGenCtx *ctx,
 
     char suffix[128];
     char combined[260];
-    snprintf(combined, sizeof(combined), "%s_%s", ok_name, err_name);
+    if (!pgy_result_join_names(combined, sizeof(combined), ok_name, err_name)) {
+        llvm_set_error_with_hints(ctx,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+            "Result<%s, %s>: specialization name is too long",
+            ok_name, err_name);
+        return NULL;
+    }
     pgy_sanitize_suffix(combined, suffix, sizeof(suffix));
     if (suffix[0] == '\0')
         return NULL;
@@ -404,15 +449,32 @@ llvm_ensure_result_type(LLVMGenCtx *ctx,
     }
 
     char struct_name[160];
-    snprintf(struct_name, sizeof(struct_name), "PgyResult_%s", suffix);
+    if (!pgy_result_struct_name(struct_name, sizeof(struct_name), suffix)) {
+        llvm_set_error_with_hints(ctx,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+            "Result<%s, %s>: generated struct name is too long",
+            ok_name, err_name);
+        return NULL;
+    }
     LLVMTypeRef struct_ty = LLVMStructCreateNamed(ctx->context, struct_name);
     LLVMTypeRef fields[3] = { ctx->type_i32, ok_ty, err_ty };
     LLVMStructSetBody(struct_ty, fields, 3, 0);
 
     LLVMResultSpecEntry *entry = &ctx->result_specs[ctx->result_spec_count++];
-    snprintf(entry->suffix,   sizeof(entry->suffix),   "%s", suffix);
-    snprintf(entry->ok_name,  sizeof(entry->ok_name),  "%s", ok_name);
-    snprintf(entry->err_name, sizeof(entry->err_name), "%s", err_name);
+    if (!pgy_result_copy_name(entry->suffix, sizeof(entry->suffix), suffix)
+        || !pgy_result_copy_name(entry->ok_name, sizeof(entry->ok_name), ok_name)
+        || !pgy_result_copy_name(entry->err_name, sizeof(entry->err_name), err_name)) {
+        ctx->result_spec_count--;
+        llvm_set_error_with_hints(ctx,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+            "Result<%s, %s>: cache key is too long",
+            ok_name, err_name);
+        return NULL;
+    }
     entry->struct_ty = struct_ty;
     entry->ok_ty     = ok_ty;
     entry->err_ty    = err_ty;

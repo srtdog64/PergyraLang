@@ -11,6 +11,43 @@
 #include "llvm_domain_role_helpers.h"
 #include "llvm_inventory_host_methods.h"
 
+static bool
+llvm_domain_forward_suffix_name(char *out,
+                                size_t out_size,
+                                const char *name,
+                                const char *suffix)
+{
+    int written;
+
+    if (out == NULL || out_size == 0 || name == NULL || suffix == NULL)
+        return false;
+    written = snprintf(out, out_size, "%s_%s", name, suffix);
+    return written >= 0 && (size_t)written < out_size;
+}
+
+static bool
+llvm_domain_forward_join_name(char *out,
+                              size_t out_size,
+                              const char *left,
+                              const char *right)
+{
+    return llvm_domain_forward_suffix_name(out, out_size, left, right);
+}
+
+static bool
+llvm_domain_forward_operator_name(char *out,
+                                  size_t out_size,
+                                  const char *suffix,
+                                  const char *type_name)
+{
+    int written;
+
+    if (out == NULL || out_size == 0 || suffix == NULL || type_name == NULL)
+        return false;
+    written = snprintf(out, out_size, "operator_%s_%s", suffix, type_name);
+    return written >= 0 && (size_t)written < out_size;
+}
+
 static const char *
 llvm_domain_method_name_metadata_first(const MIRDeclMethod *method_meta,
                                        ASTNode *method)
@@ -102,7 +139,12 @@ llvm_emit_domain_sync_forward_decl(LLVMGenCtx *ctx,
         return;
 
     sync_ft = LLVMFunctionType(ctx->type_void, sync_params, 1, 0);
-    snprintf(sync_name, sizeof(sync_name), "%s_sync", decl_name);
+    if (!llvm_domain_forward_suffix_name(sync_name, sizeof(sync_name),
+            decl_name, "sync")) {
+        llvm_set_error(ctx,
+            "LLVM domain sync routine name is too long for '%s'", decl_name);
+        return;
+    }
     sync_fn = LLVMAddFunction(ctx->module, sync_name, sync_ft);
     llvm_register_function(ctx, LLVMGetValueName(sync_fn),
         sync_fn, sync_ft, ctx->type_void);
@@ -185,7 +227,13 @@ llvm_emit_domain_method_forward_decls(LLVMGenCtx *ctx,
         ft = LLVMFunctionType(ret, ptypes, (unsigned)(user_pc + 1), 0);
         if (mname == NULL)
             continue;
-        snprintf(fname, sizeof(fname), "%s_%s", decl_name, mname);
+        if (!llvm_domain_forward_join_name(fname, sizeof(fname), decl_name,
+                mname)) {
+            llvm_set_error(ctx,
+                "LLVM domain method routine name is too long for '%s.%s'",
+                decl_name, mname);
+            return;
+        }
         fn = LLVMAddFunction(ctx->module, fname, ft);
         llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ret);
     }
@@ -269,7 +317,12 @@ llvm_emit_domain_ability_vtables(LLVMGenCtx *ctx,
             vt_fields[j] = LLVMPointerType(fn_type, 0);
         }
 
-        snprintf(vt_name, sizeof(vt_name), "%s_vtable", ab_name);
+        if (!llvm_domain_forward_suffix_name(vt_name, sizeof(vt_name),
+                ab_name, "vtable")) {
+            llvm_set_error(ctx,
+                "LLVM ability vtable name is too long for '%s'", ab_name);
+            return;
+        }
         vt_struct = LLVMStructCreateNamed(ctx->context, vt_name);
         LLVMStructSetBody(vt_struct, vt_fields, (unsigned)mc, 0);
         entry = llvm_register_class(ctx, pergyra_strdup(vt_name), vt_struct, false, false);
@@ -346,7 +399,13 @@ llvm_emit_role_method_forward_decls_metadata_first(LLVMGenCtx *ctx,
         }
 
         ft = LLVMFunctionType(ret, ptypes, (unsigned)(user_pc + 1), 0);
-        snprintf(fname, sizeof(fname), "%s_%s", role_name, mname);
+        if (!llvm_domain_forward_join_name(fname, sizeof(fname), role_name,
+                mname)) {
+            llvm_set_error(ctx,
+                "LLVM role method routine name is too long for '%s.%s'",
+                role_name, mname);
+            return;
+        }
         fn = LLVMAddFunction(ctx->module, fname, ft);
         llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ret);
     }
@@ -409,7 +468,13 @@ llvm_emit_domain_role_forward_decls(LLVMGenCtx *ctx,
                     continue;
                 }
 
-                snprintf(opname, sizeof(opname), "operator_%s_%s", suffix, for_type_name);
+                if (!llvm_domain_forward_operator_name(opname, sizeof(opname),
+                        suffix, for_type_name)) {
+                    llvm_set_error(ctx,
+                        "LLVM role operator routine name is too long for '%s'",
+                        for_type_name);
+                    return;
+                }
                 if (llvm_lookup_function(ctx, opname) != NULL)
                     continue;
 

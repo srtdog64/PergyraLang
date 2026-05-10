@@ -21,19 +21,26 @@ llvm_debug_stage(const char *stage)
 static LLVMGenResult *
 llvm_result_from_ctx_error(LLVMGenCtx *ctx)
 {
-    char msg[1024];
-
     if (ctx == NULL)
         return llvm_result_error("LLVM context is NULL");
 
     if (ctx->error_line > 0) {
-        snprintf(msg, sizeof(msg), "line %u:%u: %s",
-                 ctx->error_line, ctx->error_column, ctx->error_msg);
-    } else {
-        snprintf(msg, sizeof(msg), "%s", ctx->error_msg);
+        return llvm_result_error_fmt_with_hints(
+            ctx->error_code,
+            ctx->error_cause_ir,
+            ctx->error_fix_source,
+            "line %u:%u: %s",
+            ctx->error_line,
+            ctx->error_column,
+            ctx->error_msg != NULL ? ctx->error_msg : "LLVM backend error");
     }
-    return llvm_result_error_with_hints(msg, ctx->error_code,
-        ctx->error_cause_ir, ctx->error_fix_source);
+
+    return llvm_result_error_fmt_with_hints(
+        ctx->error_code,
+        ctx->error_cause_ir,
+        ctx->error_fix_source,
+        "%s",
+        ctx->error_msg != NULL ? ctx->error_msg : "LLVM backend error");
 }
 
 static LLVMGenResult *
@@ -45,7 +52,7 @@ llvm_verify_module_result(LLVMGenCtx *ctx)
         return llvm_result_error("LLVM context is NULL");
 
     if (LLVMVerifyModule(ctx->module, LLVMReturnStatusAction, &verify_error)) {
-        char msg[1024];
+        LLVMGenResult *res;
         if (getenv("PGY_DEBUG_LLVM_VERIFY") != NULL) {
             char *ir = LLVMPrintModuleToString(ctx->module);
             if (ir != NULL) {
@@ -53,10 +60,10 @@ llvm_verify_module_result(LLVMGenCtx *ctx)
                 LLVMDisposeMessage(ir);
             }
         }
-        snprintf(msg, sizeof(msg), "LLVM verify failed: %s",
-                 verify_error != NULL ? verify_error : "(unknown)");
+        res = llvm_result_error_fmt("LLVM verify failed: %s",
+            verify_error != NULL ? verify_error : "(unknown)");
         LLVMDisposeMessage(verify_error);
-        return llvm_result_error(msg);
+        return res;
     }
 
     LLVMDisposeMessage(verify_error);
@@ -310,10 +317,9 @@ llvm_codegen_to_object_core(const MIRProgram *mir,
         if (LLVMTargetMachineEmitToFile(machine, ctx->module,
                                         (char *)output_path,
                                         LLVMObjectFile, &emit_error)) {
-            char msg[1024];
             LLVMGenResult *res;
-            snprintf(msg, sizeof(msg), "Object emit failed: %s",
-                     emit_error != NULL ? emit_error : "(unknown)");
+            res = llvm_result_error_fmt("Object emit failed: %s",
+                emit_error != NULL ? emit_error : "(unknown)");
             LLVMDisposeMessage(emit_error);
             LLVMDisposeTargetMachine(machine);
             if (triple != NULL)
@@ -322,7 +328,6 @@ llvm_codegen_to_object_core(const MIRProgram *mir,
                 LLVMDisposeMessage(cpu);
             if (features != NULL)
                 LLVMDisposeMessage(features);
-            res = llvm_result_error(msg);
             llvm_ctx_destroy(ctx);
             return res;
         }

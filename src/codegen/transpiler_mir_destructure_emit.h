@@ -1,10 +1,38 @@
 #ifndef PERGYRA_TRANSPILER_MIR_DESTRUCTURE_EMIT_H
 #define PERGYRA_TRANSPILER_MIR_DESTRUCTURE_EMIT_H
 
+#include <stdbool.h>
+#include <stdio.h>
+
 #include "codegen_slot_type_policy.h"
 #include "transpiler_mir_expr_ssa.h"
+#include "transpiler_mir_reason.h"
 
 /* C backend MIR destructuring statement emission owner. */
+static bool
+transpiler_mir_destructure_format_type(char *out, size_t out_size,
+                                       const char *prefix, const char *inner)
+{
+    int written;
+
+    if (out == NULL || out_size == 0 || prefix == NULL || inner == NULL)
+        return false;
+    written = snprintf(out, out_size, "%s<%s>", prefix, inner);
+    return written >= 0 && (size_t)written < out_size;
+}
+
+static bool
+transpiler_mir_destructure_ssa_local(char *out, size_t out_size,
+                                     const char *binding_name)
+{
+    int written;
+
+    if (out == NULL || out_size == 0 || binding_name == NULL)
+        return false;
+    written = snprintf(out, out_size, "%s.1", binding_name);
+    return written >= 0 && (size_t)written < out_size;
+}
+
 static bool
 transpiler_emit_mir_let_destructure_stmt(CodeBuf *buf,
                                          const MIRBasicBlock *block,
@@ -46,7 +74,7 @@ transpiler_emit_mir_let_destructure_stmt(CodeBuf *buf,
             }
             if (inner == NULL || inner[0] == '\0') {
                 if (reason != NULL && reason_cap > 0) {
-                    snprintf(reason, reason_cap,
+                    transpiler_mir_reasonf(reason, reason_cap,
                         "ClaimSecureSlot destructuring requires concrete generic type");
                 }
                 transpiler_set_backend_error_with_hints(ctx,
@@ -68,9 +96,18 @@ transpiler_emit_mir_let_destructure_stmt(CodeBuf *buf,
             codebuf_write(buf, "(void)%s;\n", slot_name);
             register_slot_var(ctx, slot_name, inner, true, false);
             set_slot_token_name(ctx, slot_name, token_name);
-            snprintf(typed_tok, sizeof(typed_tok), "Token<%s>", inner);
+            if (!transpiler_mir_destructure_format_type(
+                    typed_tok, sizeof(typed_tok), "Token", inner)
+                || !transpiler_mir_destructure_format_type(
+                    typed_slot, sizeof(typed_slot), "SecureSlot", inner)) {
+                transpiler_set_backend_error_with_hints(ctx,
+                    PGY_CODE_C_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                    PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                    "C backend: ClaimSecureSlot destructuring type name is too long");
+                return false;
+            }
             register_typed_var(ctx, token_name, typed_tok);
-            snprintf(typed_slot, sizeof(typed_slot), "SecureSlot<%s>", inner);
             register_typed_var(ctx, slot_name, typed_slot);
             transpiler_ssa_name_map_set(ssa_map_out, slot_name, slot_name);
             transpiler_ssa_name_map_set(ssa_map_out, token_name, token_name);
@@ -96,7 +133,7 @@ transpiler_emit_mir_let_destructure_stmt(CodeBuf *buf,
         }
         if (inner == NULL || inner[0] == '\0') {
             if (reason != NULL && reason_cap > 0) {
-                snprintf(reason, reason_cap,
+                transpiler_mir_reasonf(reason, reason_cap,
                     "ClaimSlot destructuring requires concrete generic type");
             }
             transpiler_set_backend_error_with_hints(ctx,
@@ -113,7 +150,15 @@ transpiler_emit_mir_let_destructure_stmt(CodeBuf *buf,
         write_indent_to(buf, ctx->indent);
         codebuf_write(buf, "(void)%s;\n", slot_name);
         register_slot_var(ctx, slot_name, inner, false, false);
-        snprintf(typed_slot, sizeof(typed_slot), "Slot<%s>", inner);
+        if (!transpiler_mir_destructure_format_type(
+                typed_slot, sizeof(typed_slot), "Slot", inner)) {
+            transpiler_set_backend_error_with_hints(ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED,
+                PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                "C backend: ClaimSlot destructuring type name is too long");
+            return false;
+        }
         register_typed_var(ctx, slot_name, typed_slot);
         transpiler_ssa_name_map_set(ssa_map_out, slot_name, slot_name);
         return true;
@@ -195,8 +240,13 @@ transpiler_emit_mir_let_destructure_stmt(CodeBuf *buf,
 
             if (bname == NULL)
                 continue;
-            snprintf(ssa_versioned_tmp, sizeof(ssa_versioned_tmp),
-                     "%s.1", bname);
+            if (!transpiler_mir_destructure_ssa_local(
+                    ssa_versioned_tmp, sizeof(ssa_versioned_tmp), bname)) {
+                transpiler_set_mir_topology_invalid(
+                    ctx,
+                    "tuple destructuring SSA binding name is too long");
+                return false;
+            }
             ssa_versioned = pergyra_strdup(ssa_versioned_tmp);
             if (ssa_versioned == NULL)
                 return false;
@@ -238,7 +288,7 @@ transpiler_emit_mir_let_destructure_stmt(CodeBuf *buf,
 
         if (rhs == NULL) {
             if (reason != NULL && reason_cap > 0) {
-                snprintf(reason, reason_cap,
+                transpiler_mir_reasonf(reason, reason_cap,
                          "MIR block %llu emission failed: unable to render destructuring initializer",
                          (unsigned long long) block->id);
             }
@@ -257,8 +307,13 @@ transpiler_emit_mir_let_destructure_stmt(CodeBuf *buf,
 
             if (bname == NULL)
                 continue;
-            snprintf(ssa_versioned_tmp, sizeof(ssa_versioned_tmp),
-                     "%s.1", bname);
+            if (!transpiler_mir_destructure_ssa_local(
+                    ssa_versioned_tmp, sizeof(ssa_versioned_tmp), bname)) {
+                transpiler_set_mir_topology_invalid(
+                    ctx,
+                    "array destructuring SSA binding name is too long");
+                return false;
+            }
             ssa_versioned = pergyra_strdup(ssa_versioned_tmp);
             if (ssa_versioned == NULL)
                 return false;

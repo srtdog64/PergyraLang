@@ -18,6 +18,24 @@ English anchor for tooling/doc gates:
   after dogfood, record compile time and binary size for generic-heavy examples
   before considering dictionary passing or selective monomorphization.
 - WebGL dogfood is not core language surface. The beta path is `Pergyra -> C backend --emit-c -> optional Emscripten/WebGL bridge`; it validates host bridge viability only. `pgy.render.webgl`, richer render APIs, native LLVM wasm, and GPU/Spray work stay module ecosystem tracks after beta closure.
+- Self-hosted compiler layout must use feature/module folders, not C-style
+  filename namespaces. The current C compiler can survive with long filenames,
+  include-order seams, and Makefile inventory, but the Pergyra compiler must
+  expose architecture through module paths and namespaces.
+- Preferred self-host module layout:
+  `compiler.frontend.{lexer,parser,ast}`,
+  `compiler.semantic.{dag,ownership,effects,intent,zone}`,
+  `compiler.ir.{hir,dir,rir,air,mir}`,
+  `compiler.backend.{c,llvm,wasm_bridge}`,
+  `compiler.runtime_contract.{slot,pin,frontier}`, and
+  `compiler.tooling.{fmt,lsp,diagnostics}`.
+- Self-host split policy: feature folder first, responsibility owner second.
+  `_helpers`-style modules are forbidden unless they are truly cross-feature
+  utilities. The self-hosted codebase has Pergyra modules/namespaces, so it
+  must not copy the C-era habit of hiding ownership behind helper filenames.
+- Current C directory reshuffle is not a beta blocker. Large-scale folder
+  recovery belongs to the post-beta self-host path, where Pergyra modules and
+  namespaces become the architecture contract.
 
 External review risk intake, 2026-05-08:
 
@@ -61,9 +79,361 @@ External review risk intake, 2026-05-08:
   runtime hard-fail/queryable failure cases. Do not market this as a Rust
   borrow checker; it is layered static boundary verification plus runtime
   handle validation.
+- Hardened C domain nominal diagnostic surface formatting:
+  ability method parameters, role override parameters, party shared fields, and
+  roster shared fields now route through a checked formatter instead of
+  accepting truncated `snprintf` output. Gate:
+  `memory-string-safety-test-smoke`.
+- Hardened C relation/effect diagnostic surface formatting:
+  relation/effect slots and shared fields now reject overlong diagnostic
+  surfaces instead of passing clipped strings into type-requirement errors.
+  Gate: `memory-string-safety-test-smoke`.
+- Hardened C class generated-name and diagnostic formatting:
+  class field/method-parameter type diagnostics and MIR-backed class method
+  emitted names now reject overlong generated strings instead of using clipped
+  stack buffers. Gate: `memory-string-safety-test-smoke`.
+- Hardened C stdlib collection type-buffer copies:
+  HashMap/List/Set/Queue alias resolution and inner-type extraction now check
+  fixed buffer capacity before copying rendered type names, so collection
+  metadata cannot silently continue with a truncated concrete type. Gate:
+  `memory-string-safety-test-smoke`.
+- Hardened C function lowering state string handling:
+  function return-type tracking and parameter diagnostic surfaces now use
+  checked helpers, rejecting overlong names before body lowering can consume a
+  truncated `current_return_type`. Gate: `memory-string-safety-test-smoke`.
+- Hardened C MIR emit-state return-type snapshots:
+  capture/restore/set of `current_return_type` now use a checked copy helper
+  and report a backend error instead of clipping emit-state type facts. Gate:
+  `memory-string-safety-test-smoke`.
+- Hardened C zone diagnostic surface formatting:
+  zone slots and shared fields now reject overlong diagnostic surfaces before
+  type requirement checks, matching relation/effect/domain nominal policy.
+  Gate: `memory-string-safety-test-smoke`.
+- Hardened C intent binding diagnostic surface formatting:
+  intent participant/value forward-declaration type diagnostics now reject
+  overlong surface strings before binding emission, keeping intent contract
+  errors from using clipped aliases or intent names. Gate:
+  `memory-string-safety-test-smoke`.
+- Hardened C stdlib unary constructed type-buffer copies:
+  Array/Slice/Channel alias resolution and inner-type extraction now check
+  capacity before copying rendered type names, so stdlib lowering cannot
+  consume truncated concrete type metadata. Gate:
+  `memory-string-safety-test-smoke`.
+- Hardened C enum method generated-name and diagnostic formatting:
+  MIR-backed enum method emitted names and enum method parameter diagnostics now
+  reject overlong generated strings instead of consuming clipped stack buffers.
+  Gate: `memory-string-safety-test-smoke`.
+- Hardened C pin-block generated address formatting:
+  pin block slot/token address fragments now check `&name` formatting before
+  emission and report a backend error instead of generating clipped C code.
+  Gate: `memory-string-safety-test-smoke`.
+- Hardened C declaration lookup cache names:
+  active-inventory lookup cache keys now use a checked store helper and skip
+  caching overlong names instead of comparing against truncated cache keys.
+  Gate: `memory-string-safety-test-smoke`.
+- Hardened C intent prologue diagnostic surface formatting:
+  intent participant/value signature emission now rejects overlong diagnostic
+  surfaces before type lowering, matching intent forward-declaration policy.
+  Gate: `memory-string-safety-test-smoke`.
+- Hardened C let-slot constructed type formatting:
+  View/Move lowering now checks temporary `Slot<T>`/`SecureSlot<T>` type names
+  before passing them to C type mapping, instead of allowing truncated
+  constructed type metadata. Gate: `memory-string-safety-test-smoke`.
+- Hardened C event builtin dynamic formatting:
+  event invocation string allocation now verifies the second `snprintf` result
+  matches the measured length, freeing the buffer on mismatch. Gate:
+  `memory-string-safety-test-smoke`.
+- Hardened C parallel/async capture diagnostic formatting:
+  capture type diagnostics now reject overlong capture names instead of using
+  precision-truncated surface strings. Gate:
+  `memory-string-safety-test-smoke`.
+- Hardened C specialization registry names:
+  Result, collection, and tuple specialization cache entries now use checked
+  assembly/copies and raise a backend error on overlong generated names instead
+  of storing truncated registry keys. Gate: `memory-string-safety-test-smoke`.
+- Hardened C generic class diagnostic surface formatting:
+  generic class field and fallback method-parameter type diagnostics now reject
+  overlong specialization/member surfaces instead of passing clipped names to
+  C type requirement checks. Gate: `memory-string-safety-test-smoke`.
+- Hardened LLVM API error-message formatting:
+  context, verifier, and object-emission errors now use arena-backed formatted
+  result helpers instead of fixed 1024-byte stack buffers, preserving full
+  diagnostic text at the public backend API boundary. Gate:
+  `memory-string-safety-test-smoke`.
+- Hardened semantic SecureSlot token-name materialization:
+  implicit paired token names now go through a checked formatter shared by
+  let-claim, annotated let, function parameter, and member-call fallback paths,
+  so overlong slot names cannot silently truncate the slot/token capability
+  invariant. Gate: `memory-string-safety-test-smoke`.
+- Hardened AIR verifier drift/provenance formatting:
+  strict evidence drift messages, invariant errors, authority participant
+  lists, and boundary provenance strings now use owned dynamic formatting
+  instead of fixed stack buffers. This keeps AIR's verification-layer
+  diagnostic surface from clipping CFG/MIR/DAG/effect evidence context. Gate:
+  `memory-string-safety-test-smoke`.
+- Hardened MIR claim type-name rendering:
+  MIR claim ABI type names now build generic type strings with owned dynamic
+  append instead of a fixed 256-byte buffer, and MIR formatted-string helpers
+  verify the second `vsnprintf` length before returning. This prevents
+  truncated `Slot<T>` / `Channel<T>` / nested generic names from becoming ABI
+  lookup facts. Gate: `memory-string-safety-test-smoke`.
+- Hardened MIR ABI generic suffix extraction:
+  `mir_abi_lookup(...)` now extracts generic inner suffixes and generated
+  release/runtime lookup names into owned exact strings instead of fixed
+  64/128-byte buffers, so runtime-function lookup cannot accidentally use a
+  truncated generic payload suffix or helper name. Gate:
+  `memory-string-safety-test-smoke`.
+- Hardened MIR shared formatted-string allocation:
+  `mir_strdup_fmt(...)` now verifies the second `vsnprintf` result before
+  returning owned strings, aligning MIR error/name formatting with the AIR
+  formatting contract. Gate: `memory-string-safety-test-smoke`.
+- Hardened MIR dump label/source-location formatting:
+  `mir_dump(...)` now formats block labels and source-location strings through
+  `mir_strdup_fmt(...)` instead of fixed stack buffers, so CFG dump evidence
+  cannot clip long routine names while debugging body-safety facts. Gate:
+  `memory-string-safety-test-smoke`.
+- Hardened MIR validation formatted-string clones:
+  declaration-header validation, fact validation, intent-fact diagnostics, and
+  global MIR validation now verify their second `vsnprintf` result before
+  returning owned diagnostic strings. Gate: `memory-string-safety-test-smoke`.
+- Hardened MIR SSA versioned-name parsing:
+  SSA use-edge population now parses versioned result names into owned exact
+  base strings instead of a fixed 128-byte buffer, so long local names cannot
+  silently skip current-version updates during CFG/body dataflow. Gate:
+  `memory-string-safety-test-smoke`.
+- Hardened common owned printf helper:
+  `pergyra_strdup_vprintf(...)` now verifies the second `vsnprintf` result
+  before returning owned strings, so users of the shared compatibility helper
+  inherit the same no-clipped-owned-string contract as AIR and MIR. Gate:
+  `memory-string-safety-test-smoke`.
 
 Progress log, 2026-05-08:
 
+- Added a runtime frontier publish-order contract:
+  `pgy_frontier_policy.h` now names the write-value, write-epoch,
+  write-cause, ready, and clear-dirty phases and rejects invalid or reversed
+  phase order. The AIR runtime frontier policy fact count was raised with the
+  contract, and `runtime-frontier-policy-test-smoke` compiles and executes the
+  phase-order probe so the scheduler cannot silently regress to clearing dirty
+  state before publishing ready state.
+- Lifted HashMap key codegen policy to a sorted lookup table:
+  `codegen_hashmap_key_policy.c` now uses the same bsearch-backed policy shape
+  as Slot/Pin call classification for the beta-stable key subset
+  (`Bool`, `Int`, `Long`, `String`). `perf-contract-test-smoke` gates both the
+  lookup seam and sorted table order so future collection additions do not
+  reintroduce local strcmp chains.
+- Hardened MIR resource runtime-name formatting:
+  slot runtime operation selection now uses a sorted bsearch table, and
+  `transpiler_format_slot_runtime_fn(...)` returns failure on `snprintf`
+  truncation instead of treating a clipped runtime symbol as a valid codegen
+  result. Gates: `perf-contract-test-smoke`,
+  `memory-string-safety-test-smoke`.
+- Hardened LLVM channel runtime-name formatting:
+  channel send/receive expression emit now rejects overlong generated runtime
+  helper names instead of looking up a truncated `pgy_channel_*` symbol.
+  Gate: `memory-string-safety-test-smoke`.
+- Hardened LLVM task/channel runtime-name formatting:
+  task/channel builtins (`ChannelClose`, `TrySend`, timeout send/receive,
+  channel state queries) now share bounded runtime-name formatters and reject
+  truncation before runtime function lookup. Gate:
+  `memory-string-safety-test-smoke`.
+- Hardened LLVM parallel/async/select generated names:
+  `llvm_stmt_parallel_async.c` now checks generated parallel context/task
+  wrapper names, async wrapper names, select round-robin globals, and select
+  channel runtime lookup names before adding LLVM symbols or looking up
+  channel runtime functions. Gate: `memory-string-safety-test-smoke`.
+- Hardened LLVM slot/device runtime-name formatting:
+  core Slot/SecureSlot and DeviceSlot builtin emit now rejects overlong
+  generated runtime helper names before function lookup instead of relying on
+  truncated stack buffers. Gate: `memory-string-safety-test-smoke`.
+- Hardened LLVM array runtime-name formatting:
+  ArrayPush/ArraySet/ArrayPop helper names now go through a bounded formatter
+  and fail before runtime lookup if the generated `pgy_array_*` symbol would be
+  truncated. Gate: `memory-string-safety-test-smoke`.
+- Hardened LLVM member slot-method runtime-name formatting:
+  `slot.Write/Read/Release` member-call lowering now shares a bounded
+  `pgy_*` runtime-name formatter with explicit truncation failure, keeping the
+  member-call path aligned with standalone Slot/SecureSlot builtin emission.
+  Gate: `memory-string-safety-test-smoke`.
+- Hardened C MIR pin address/name formatting:
+  `transpiler_mir_pin_emit.c` now rejects overlong pin locals, slot address
+  expressions, and token address expressions before emitting pin/unpin code,
+  instead of allowing fixed stack buffers to truncate ownership ABI calls.
+  Gate: `memory-string-safety-test-smoke`.
+- Hardened LLVM MIR pin-region name formatting:
+  `llvm_mir_pin_region.c` now checks pin local names, paired token names,
+  pin-init runtime names, and unpin runtime names before scope/runtime lookup,
+  keeping MIR pin cleanup lowering from relying on truncated Slot/Pin ABI
+  identifiers. Gate: `memory-string-safety-test-smoke`.
+- Hardened C MIR resource-op formatting:
+  `transpiler_mir_resource_op_core.c` now rejects overlong slot address
+  expressions, generated C slot type names, and versioned SSA value names
+  before emitting concrete Slot/SecureSlot/DeviceSlot calls, keeping the C
+  backend resource path aligned with the hardened MIR pin and LLVM runtime-name
+  paths. Gate: `memory-string-safety-test-smoke`.
+- Hardened LLVM domain provenance field-name formatting:
+  `llvm_domain_method_helpers.c` now rejects overlong generated epoch/cause
+  field names before domain provenance stamping, preventing a truncated lookup
+  from silently skipping or targeting the wrong provenance field. Gate:
+  `memory-string-safety-test-smoke`.
+- Hardened LLVM projection sync field-name formatting:
+  `llvm_domain_projection_sync_body_helpers.c` now uses a shared bounded
+  projection field-name formatter for dirty/ready lookup and propagation-chain
+  invalidation, so overlong projection slot names cannot be truncated into
+  false frontier state. Gate: `memory-string-safety-test-smoke`.
+- Hardened LLVM projection struct field registration:
+  `llvm_domain_struct_fields.c` now uses the same bounded projection field-name
+  policy when registering ready/dirty/epoch/cause fields and raises a backend
+  error on overlong generated names instead of adding truncated metadata.
+  Gate: `memory-string-safety-test-smoke`.
+- Hardened LLVM world frontier field-name formatting:
+  `llvm_domain_world_frontier.c` now routes zone dirty/seen/state/active,
+  projection/layer/state detail, and embedded zone sync names through bounded
+  formatters. Overlong names no longer truncate into false world-frontier
+  lookup misses or accidental field hits. Gate:
+  `memory-string-safety-test-smoke`.
+- Hardened LLVM world sync field-name formatting:
+  `llvm_domain_world_sync.c` now rejects overlong generated zone active/dirty
+  field names and previous-active scratch names before the world sync command
+  pass or dirty propagation pass consumes them. Gate:
+  `memory-string-safety-test-smoke`.
+- Hardened LLVM zone frontier state formatting:
+  `llvm_domain_zone_frontier_state.c` now rejects overlong previous-state,
+  previous-layer, state, and layer-active field names before snapshot/reset or
+  frontier-continue comparison consumes them. Gate:
+  `memory-string-safety-test-smoke`.
+- Hardened LLVM domain struct generated-field registration:
+  `llvm_domain_struct_register.c` now uses bounded helpers for generated
+  layer/state/world-zone/provenance/vtable field names and raises a backend
+  error before registering truncated metadata. This keeps declaration-time
+  field inventory aligned with the bounded lookup/emit paths. Gate:
+  `memory-string-safety-test-smoke`.
+- Hardened LLVM zone sync field-name formatting:
+  `llvm_domain_zone_sync.c` now routes direct layer/state mutation, apply,
+  maintain, and detach field lookups through a bounded zone field-name helper.
+  Overlong state/layer names no longer truncate into false activation or stale
+  propagation state. Gate: `memory-string-safety-test-smoke`.
+- Hardened LLVM zone relation sync field-name formatting:
+  `llvm_domain_zone_sync_relations.c` now routes link, maintained relation, and
+  unlink state/layer lookups through a bounded formatter, keeping relation
+  propagation aligned with the same zone field-name policy as effect/state
+  propagation. Gate: `memory-string-safety-test-smoke`.
+- Hardened LLVM zone bind projection/sync formatting:
+  `llvm_domain_zone_bind_helpers.c` now rejects overlong generated projection
+  dirty/ready field names and effect/relation sync routine names before
+  binding layers or invalidating projections, keeping bind-time propagation on
+  the same bounded name policy as zone sync and projection sync. Gate:
+  `memory-string-safety-test-smoke`.
+- Hardened LLVM world directive field-name formatting:
+  `llvm_domain_world_sync_directives.c` now uses a bounded helper for
+  generated zone-active field lookup during activate/maintain/deactivate
+  directives, keeping directive lowering aligned with world sync/frontier name
+  policy. Gate: `memory-string-safety-test-smoke`.
+- Hardened LLVM domain forward declaration names:
+  `llvm_domain_forward.c` now uses bounded helpers for generated sync,
+  hosted-method, ability-vtable, role-method, and role-operator routine names
+  and raises backend errors on truncation instead of registering clipped
+  declarations. Gate: `memory-string-safety-test-smoke`.
+- Hardened LLVM role emit declaration/use names:
+  `llvm_domain_role_emit.c` now uses bounded helpers for role method lookup,
+  role operator bridge names, ability-vtable type names, and vtable instance
+  globals. Overlong role/ability/operator names now fail the backend path
+  instead of looking up or registering truncated LLVM symbols. Gate:
+  `memory-string-safety-test-smoke`.
+- Hardened LLVM event helper names:
+  `llvm_domain_event.c` now routes generated event struct/init/subscribe/
+  unsubscribe/invoke names through bounded helpers and rejects truncation
+  before registering LLVM types or helper functions. Gate:
+  `memory-string-safety-test-smoke`.
+- Hardened LLVM event call-name lookup:
+  `llvm_expr_event_calls.c` now uses the same bounded event helper-name policy
+  for invocation, subscribe, unsubscribe, and invoke expression lowering, so
+  call sites cannot look up truncated event helper symbols. Gate:
+  `memory-string-safety-test-smoke`.
+- Hardened LLVM Rc/Weak call-site runtime names:
+  `llvm_expr_rc_calls.c` now formats Rc/Weak runtime lookup names through a
+  bounded helper, keeping expression lowering aligned with the bounded runtime
+  declaration policy in `llvm_runtime.c`. Gate:
+  `memory-string-safety-test-smoke`.
+- Hardened LLVM projection-sync call field/function names:
+  `llvm_expr_call_projection_sync.c` now routes embedded-world projection
+  dirty/ready fields, zone-dirty fields, and world sync function lookups
+  through bounded helpers before mutating projection freshness state. Gate:
+  `memory-string-safety-test-smoke`.
+- Hardened LLVM world/effect sync call method names:
+  `llvm_expr_call_methods_world_effect_sync.c` now uses bounded helpers for
+  layer active/epoch/cause fields, state provenance fields, projection
+  dirty/ready fields, and effect sync function lookups before propagating
+  world-embedded action effects. Gate: `memory-string-safety-test-smoke`.
+- Hardened LLVM domain query field-name formatting:
+  `llvm_expr_domain_query_calls.c` now routes `HasProjection`, `HasLayer`,
+  `HasState`, `HasZone`, and zone-detail query field lookups through one
+  bounded field-name helper, turning overlong domain query names into explicit
+  LLVM backend errors instead of truncated false/accidental field matches.
+  Gate: `memory-string-safety-test-smoke`.
+- Hardened LLVM intent effect provenance names:
+  `llvm_intent_effect.c` now uses the same bounded field-name shape for
+  intent-caused layer/state epoch and cause updates, aligning direct intent
+  effect propagation with the world/effect sync call path. Gate:
+  `memory-string-safety-test-smoke`.
+- Hardened LLVM intent zone sync lookup names:
+  `llvm_intent_zone.c` now routes bound-zone, rebinding, and effective-zone
+  sync function lookups through one bounded helper, preventing long zone names
+  from turning handoff/sync into silent truncated lookup misses. Gate:
+  `memory-string-safety-test-smoke`.
+- Hardened LLVM intent action dispatch names:
+  `llvm_intent.c` now checks generated `Subject_step` action function names
+  before lookup during implicit intent-step dispatch, preventing truncated
+  action names from being treated as absent or accidentally matching another
+  function. Gate: `memory-string-safety-test-smoke`.
+- Hardened LLVM channel runtime declarations:
+  `llvm_runtime_channels.c` now declares all `pgy_channel_*_<T>` functions
+  through a single bounded runtime-name helper instead of repeating direct
+  fixed-buffer formatting across every channel operation. Gate:
+  `memory-string-safety-test-smoke`.
+- Hardened LLVM secure-slot runtime declarations:
+  `llvm_runtime_secure_slot_decl.c` now declares claim/read/write/release,
+  pin-read/pin-write, pin-init, and unpin exports through one bounded
+  SecureSlot runtime-name helper so Slot/Pin ABI symbols cannot be silently
+  truncated at declaration time. Gates: `memory-string-safety-test-smoke`,
+  `abi-ownership-shape-test-smoke`.
+- Hardened LLVM plain/device slot runtime declarations:
+  `llvm_runtime.c` now declares claim/read/write/release, pin/unpin, and
+  DeviceSlot runtime exports through one bounded Slot runtime-name helper,
+  keeping plain Slot/DeviceSlot ABI declaration names aligned with the
+  SecureSlot helper policy. Gates: `memory-string-safety-test-smoke`,
+  `abi-ownership-shape-test-smoke`.
+- Hardened LLVM Rc/Weak/Array/Slice runtime declarations:
+  `llvm_runtime.c` now also declares Rc/Weak and collection runtime exports
+  through the same bounded `pgy_<op>_<T>` export-name helper, removing the
+  remaining direct fixed-buffer runtime symbol formatting from that owner.
+  Gate: `memory-string-safety-test-smoke`.
+- Hardened C backend constructed type-name formatting:
+  `transpiler_type_mapping.c` now routes generated collection, Slot/Pin,
+  channel, Rc/Weak, Result, and Option C type names through a bounded join
+  helper and returns `Unknown` instead of emitting truncated generated type
+  names. Gate: `memory-string-safety-test-smoke`.
+- Hardened C backend nominal host lookup cache keys:
+  `transpiler_decl_host_lookup.c` now stores nominal host/method cache keys
+  only when they fit exactly in the fixed cache buffers; overlong names still
+  return the lookup result but do not poison future cache comparisons with
+  truncated keys. Gate: `memory-string-safety-test-smoke`.
+- Hardened LLVM Result layout-name formatting:
+  `llvm_type.c` now checks `Result<T,E>` suffix joins, generated
+  `PgyResult_*` struct names, and result-spec cache copies before materializing
+  LLVM result layouts, avoiding truncated ABI type-layout keys. Gate:
+  `memory-string-safety-test-smoke`.
+- Hardened LLVM projection nested-path formatting:
+  `llvm_domain_projection_value_helpers.c` now owns nested vessel path joining
+  in one scratch-arena helper with overflow and `snprintf` return checks,
+  keeping projection source-path resolution from relying on unchecked formatted
+  writes even after capacity calculation. Gate:
+  `memory-string-safety-test-smoke`.
+- Hardened LLVM expression projection path formatting:
+  `llvm_expr_projection_path_helpers.c` now mirrors the domain projection path
+  helper shape for nested vessel field paths, with centralized overflow and
+  formatted-write checks before path traversal. Gate:
+  `memory-string-safety-test-smoke`.
 - Hardened semantic symbol-table storage:
   symbol constructors now reject null names and allocation failures instead of
   leaking unnamed symbols into the scope index; paired slot/token names fail
@@ -515,6 +885,130 @@ Progress log, 2026-05-08:
   `air_evidence_kind_is_boundary_scoped(...)`; global-evidence validation and
   evidence inventory validation consume those helpers instead of maintaining
   separate kind lists.
+- Hardened C MIR local type-name inference rendering:
+  `transpiler_mir_local_type_lookup.h` now checks generated
+  `Slice<T>`/`Slot<T>`/`SecureSlot<T>`/`Token<T>` local type strings and copied
+  destructured array element names before returning type metadata. Overlong
+  inferred local types now fail closed with `NULL` instead of silently
+  truncating the type name. Gate: `memory-string-safety-test-smoke`.
+- Hardened C expression type inference rendering:
+  `transpiler_expr_type_infer.h` now routes inferred `Array<T>`, `Slice<T>`,
+  `ReadView<T>`, `WriteView<T>`, `RemoteFuture<T>`, and `Option<T>` names, plus
+  rendered function/member return types, through checked format/copy helpers.
+  Overlong inferred expression types now degrade to `Unknown` instead of
+  publishing truncated type metadata. Gate: `memory-string-safety-test-smoke`.
+- Hardened C MIR destructuring metadata names:
+  `transpiler_mir_destructure_emit.h` now checks `Token<T>`, `Slot<T>`,
+  `SecureSlot<T>`, and destructuring SSA binding names before registering typed
+  variables or SSA maps. Overlong destructuring metadata now reports a backend
+  type/topology error instead of truncating names. Gate:
+  `memory-string-safety-test-smoke`.
+- Hardened C role/ability ABI names:
+  `transpiler_domain_role_ability_emit.h` now checks hosted method symbols,
+  role method symbols, ability vtable typedef/spec names, generic ability
+  bindings, and role operator alias names before publishing C backend ABI
+  names. Diagnostic surface descriptions remain best-effort strings, but ABI
+  names now fail closed on overflow. Gate: `memory-string-safety-test-smoke`.
+- Hardened C generic class specialization names:
+  `transpiler_generic_class_specialization_emit.h` now checks monomorphized
+  specialization names, generic binding names/types, and specialized method
+  symbols before publishing C backend specialization metadata. Gate:
+  `memory-string-safety-test-smoke`.
+- Hardened C control-flow cleanup labels:
+  `transpiler_control_flow_emit.h` now checks generated loop break/continue
+  labels before storing them in the loop cleanup stack. Gate:
+  `memory-string-safety-test-smoke`.
+- Centralized C MIR emission contract reason formatting:
+  `transpiler_mir_reason.h` now owns `transpiler_mir_reasonf(...)`, and
+  `transpiler_mir_emission_contract.h` routes diagnostic reason-buffer writes
+  through it instead of repeating direct `snprintf(reason, ...)` calls at every
+  contract branch. This is a diagnostic consistency cleanup, not an ABI-name
+  change. Gate:
+  `memory-string-safety-test-smoke`.
+- Reused the MIR reason formatter in C MIR block emission:
+  `transpiler_mir_block_emit.h` now consumes `transpiler_mir_reasonf(...)` for
+  MIR block emission failure reasons instead of repeating direct
+  `snprintf(reason, ...)` calls. Gate: `memory-string-safety-test-smoke`.
+- Reused the MIR reason formatter in assignment/destructuring emission:
+  `transpiler_mir_assignment_emit.h` and
+  `transpiler_mir_destructure_emit.h` now share `transpiler_mir_reasonf(...)`
+  for reason-buffer diagnostics while keeping metadata/symbol name generation
+  on fail-closed checked helpers. Gate: `memory-string-safety-test-smoke`.
+- Reused the MIR reason formatter in pin emission:
+  `transpiler_mir_pin_emit.c` now shares `transpiler_mir_reasonf(...)` for
+  pin enter/exit diagnostics while keeping pin local/address/token names on
+  fail-closed checked helpers. Gate: `memory-string-safety-test-smoke`.
+- Reused the MIR reason formatter across the remaining C MIR helper owners:
+  block scheduling, pending-use materialization, preserved let emission,
+  resource-op emission, SSA contract checks, and residual call-statement
+  emission now share `transpiler_mir_reasonf(...)` for reason-buffer
+  diagnostics. Gate: `memory-string-safety-test-smoke`.
+- Hardened LLVM intent failure reason strings:
+  `llvm_intent.c` now uses `llvm_intent_reason_name(...)` for precondition,
+  invariant, subintent, guard, expect, and postcondition failure reason strings
+  before storing them into the runtime failure-reason alloca. Overlong
+  observability reason strings now fail the LLVM path explicitly instead of
+  truncating runtime provenance. Gate: `memory-string-safety-test-smoke`.
+- Hardened LLVM intent authority failure reason strings:
+  `llvm_intent_flow.c` now uses `llvm_intent_flow_reason_name(...)` before
+  storing authority rejection reasons into the intent failure path, matching the
+  rest of the LLVM intent provenance formatting policy. Gate:
+  `memory-string-safety-test-smoke`.
+- Hardened LLVM statement type-inference helper names:
+  `llvm_stmt_type_infer.c` now checks generated host-method lookup names and
+  member-access unknown-type reason strings instead of relying on direct fixed
+  buffer formatting. Gate: `memory-string-safety-test-smoke`.
+- Hardened LLVM nominal registration names:
+  `llvm_register.c` now checks enum payload type names, generated payload field
+  names, and enum/class hosted method function names before registering LLVM
+  types/functions. Gate: `memory-string-safety-test-smoke`.
+- Hardened LLVM zone-action propagation names:
+  `llvm_stmt_zone_action.c` now checks generated layer-active,
+  projection-dirty/ready field names, and effect sync function names before
+  updating zone/effect propagation state. Gate: `memory-string-safety-test-smoke`.
+- Hardened LLVM secure-slot let-binding names:
+  `llvm_stmt_let_with.c` now checks generated `<binding>_token` aliases and
+  slot write runtime symbols before lowering SecureSlot sugar or initializer
+  writes. Gate: `memory-string-safety-test-smoke`.
+- Hardened LLVM secure-slot parameter token names:
+  `llvm_decl.c` now checks generated `<param>_token` aliases while lowering
+  secure slot function parameters, keeping ABI parameter storage fail-closed
+  instead of truncation-prone. Gate: `memory-string-safety-test-smoke`.
+- Hardened LLVM collection let runtime symbols:
+  `llvm_stmt_let_collections.c` now checks generated Channel init and Array
+  new/push runtime export names before lookup, keeping collection sugar
+  fail-closed on overlong type names. Gate: `memory-string-safety-test-smoke`.
+- Hardened LLVM statement runtime/bind names:
+  `llvm_stmt.c` now checks generated auto-release runtime symbols and bind
+  vtable lookup names before lookup, avoiding silent truncation in statement
+  cleanup and role binding paths. Gate: `memory-string-safety-test-smoke`.
+- Hardened LLVM let-helper type rendering:
+  `llvm_stmt_let_helpers.c` now returns `NULL` on overlong rendered generic
+  annotations or inferred spawn future type names instead of returning
+  truncated static type strings. Gate: `memory-string-safety-test-smoke`.
+- Hardened LLVM with-slot runtime names:
+  `llvm_stmt_with.c` now checks generated SecureSlot token aliases and
+  cleanup runtime symbols before scope registration or release lookup, while
+  preserving scope-pop on fail-closed token-name errors. Gate:
+  `memory-string-safety-test-smoke`.
+- Hardened LLVM expression runtime/lambda names:
+  `llvm_expr.c` now checks generated array/slice runtime lookup symbols and
+  lambda function names before lookup/registration. Gate:
+  `memory-string-safety-test-smoke`.
+- Hardened LLVM spawn/generic generated names:
+  `llvm_expr_spawn_call_helpers.c` now checks generic specialization base
+  names, secure slot token aliases inside monomorphized wrappers, and spawn
+  wrapper function names before lookup/registration. Gate:
+  `memory-string-safety-test-smoke`.
+- Tightened LLVM MIR pin-region memory/string gate:
+  `memory-string-safety-test-smoke` now gates pin local, token, init, and
+  unpin name helpers in `llvm_mir_pin_region.c`, keeping Slot/Pin ABI cleanup
+  name generation covered as a complete helper family.
+- Hardened C role/ability diagnostic name formatting:
+  `transpiler_domain_role_ability_emit.h` now checks ability-vtable and role
+  operator parameter surface descriptions before passing them into type
+  diagnostics, and the memory/string gate covers the full role/ability helper
+  family.
   Direct regressions:
   `MIR does not treat Intent-prefixed user calls as observability` and
   `MIR DCE does not preserve user Intent-prefixed statements`. Gates:
@@ -8559,3 +9053,8 @@ Local verification for this debt refresh:
   inventories now share an overflow-checked `air_next_capacity(...)` helper.
   This keeps AIR's verification-layer inventories on the same allocation
   contract as HIR/MIR facts.
+- Lifted Slot/Pin codegen call-name branching into a sorted dispatch table:
+  `Read` / `Write` / `Release` / `Move` / `ViewRead` / `ViewWrite` now share
+  one `PgyCodegenSlotCallSpec` lookup instead of scattered direct `strcmp`
+  predicates. This follows the beta code-quality rule that repeated builtin
+  branching should become data/table-driven before the surface expands.

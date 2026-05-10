@@ -1,5 +1,6 @@
 #include "codegen_hashmap_key_policy.h"
 
+#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -11,21 +12,28 @@ typedef struct
 } PgyHashMapKeySpec;
 
 static const PgyHashMapKeySpec pgy_hashmap_key_specs[] = {
-    { "String", PGY_HASHMAP_KEY_STRING, "" },
+    { "Bool", PGY_HASHMAP_KEY_BOOL, "_bool" },
     { "Int", PGY_HASHMAP_KEY_INT, "_i32" },
     { "Long", PGY_HASHMAP_KEY_LONG, "_i64" },
-    { "Bool", PGY_HASHMAP_KEY_BOOL, "_bool" },
+    { "String", PGY_HASHMAP_KEY_STRING, "" },
 };
+
+static int
+pgy_hashmap_key_spec_compare(const void *key, const void *entry)
+{
+    return strcmp((const char *)key,
+                  ((const PgyHashMapKeySpec *)entry)->name);
+}
 
 static const PgyHashMapKeySpec *
 pgy_hashmap_key_find_spec(const char *name)
 {
     const char *effective_name = name != NULL ? name : "String";
-    for (size_t i = 0; i < sizeof(pgy_hashmap_key_specs) / sizeof(pgy_hashmap_key_specs[0]); i++) {
-        if (strcmp(pgy_hashmap_key_specs[i].name, effective_name) == 0)
-            return &pgy_hashmap_key_specs[i];
-    }
-    return NULL;
+    return bsearch(effective_name,
+                   pgy_hashmap_key_specs,
+                   sizeof(pgy_hashmap_key_specs) / sizeof(pgy_hashmap_key_specs[0]),
+                   sizeof(pgy_hashmap_key_specs[0]),
+                   pgy_hashmap_key_spec_compare);
 }
 
 PgyHashMapKeyKind

@@ -1,6 +1,46 @@
 #ifdef PGY_LLVM_ENABLED
 #include "llvm_internal.h"
 
+static bool
+llvm_zone_action_field_name(LLVMGenCtx *ctx, char *out, size_t out_size,
+                            const char *prefix, const char *name)
+{
+    int written;
+
+    if (out == NULL || out_size == 0 || prefix == NULL || name == NULL)
+        return false;
+    written = snprintf(out, out_size, "%s%s", prefix, name);
+    if (written >= 0 && (size_t)written < out_size)
+        return true;
+    llvm_set_error_with_hints(ctx,
+        PGY_CODE_LLVM_SPEC_LIMIT,
+        PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+        PGY_FIX_REFACTOR_OR_RAISE_LIMIT,
+        "LLVM zone action generated field name is too long for '%s'",
+        name);
+    return false;
+}
+
+static bool
+llvm_zone_action_sync_name(LLVMGenCtx *ctx, char *out, size_t out_size,
+                           const char *effect_name)
+{
+    int written;
+
+    if (out == NULL || out_size == 0 || effect_name == NULL)
+        return false;
+    written = snprintf(out, out_size, "%s_sync", effect_name);
+    if (written >= 0 && (size_t)written < out_size)
+        return true;
+    llvm_set_error_with_hints(ctx,
+        PGY_CODE_LLVM_SPEC_LIMIT,
+        PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+        PGY_FIX_REFACTOR_OR_RAISE_LIMIT,
+        "LLVM zone action sync function name is too long for effect '%s'",
+        effect_name);
+    return false;
+}
+
 static ASTNode *
 llvm_stmt_find_effect_decl(LLVMGenCtx *ctx, const char *effect_name)
 {
@@ -189,7 +229,9 @@ llvm_stmt_emit_zone_action_effect_runtime(ASTNode *call, LLVMGenCtx *ctx)
         if (layer_name == NULL)
             continue;
 
-        snprintf(active_field, sizeof(active_field), "__layer_active_%s", layer_name);
+        if (!llvm_zone_action_field_name(ctx, active_field,
+                sizeof(active_field), "__layer_active_", layer_name))
+            return;
         active_idx = llvm_class_field_index(zone_cls, active_field);
         if (active_idx >= 0) {
             active_ptr = LLVMBuildStructGEP2(ctx->builder, zone_cls->struct_type,
@@ -237,8 +279,10 @@ llvm_stmt_emit_zone_action_effect_runtime(ASTNode *call, LLVMGenCtx *ctx)
                 continue;
             }
 
-            snprintf(dirty_field, sizeof(dirty_field), "__projection_dirty_%s",
-                     projection_name);
+            if (!llvm_zone_action_field_name(ctx, dirty_field,
+                    sizeof(dirty_field), "__projection_dirty_",
+                    projection_name))
+                return;
             dirty_idx = llvm_class_field_index(effect_cls, dirty_field);
             if (dirty_idx >= 0) {
                 LLVMValueRef dirty_ptr = LLVMBuildStructGEP2(
@@ -249,8 +293,10 @@ llvm_stmt_emit_zone_action_effect_runtime(ASTNode *call, LLVMGenCtx *ctx)
                                dirty_ptr);
             }
 
-            snprintf(ready_field, sizeof(ready_field), "__projection_ready_%s",
-                     projection_name);
+            if (!llvm_zone_action_field_name(ctx, ready_field,
+                    sizeof(ready_field), "__projection_ready_",
+                    projection_name))
+                return;
             ready_idx = llvm_class_field_index(effect_cls, ready_field);
             if (ready_idx >= 0) {
                 LLVMValueRef ready_ptr = LLVMBuildStructGEP2(
@@ -262,7 +308,9 @@ llvm_stmt_emit_zone_action_effect_runtime(ASTNode *call, LLVMGenCtx *ctx)
             }
         }
 
-        snprintf(sync_name, sizeof(sync_name), "%s_sync", effect_name);
+        if (!llvm_zone_action_sync_name(ctx, sync_name, sizeof(sync_name),
+                effect_name))
+            return;
         sync_entry = llvm_lookup_function(ctx, sync_name);
         if (sync_entry != NULL) {
             LLVMValueRef sync_args[] = { layer_ptr };

@@ -720,6 +720,8 @@ required_test_terms = [
     "PGY_OBSERVABILITY_SURFACE_LAST",
     "PGY_OBSERVABILITY_EVENT_INTENT_ENTER",
     "PGY_FRONTIER_POLICY_FACT_COUNT",
+    "PGY_FRONTIER_PUBLISH_READY",
+    "PGY_FRONTIER_PUBLISH_CLEAR_DIRTY",
     "mir_pin_cleanup_evidence_count",
     "mir_terminator_evidence_count",
     "mir_select_receive_evidence_count",

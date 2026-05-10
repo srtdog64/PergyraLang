@@ -6,6 +6,32 @@
 
 #include "codegen_slot_type_policy.h"
 
+static bool
+transpiler_let_slot_constructed_type_name(char *out, size_t out_size,
+                                          const char *family,
+                                          const char *inner)
+{
+    int written;
+
+    if (out == NULL || out_size == 0 || family == NULL || inner == NULL)
+        return false;
+
+    written = snprintf(out, out_size, "%s<%s>", family, inner);
+    return written >= 0 && (size_t)written < out_size;
+}
+
+static void
+transpiler_let_slot_constructed_type_too_long(TranspilerCtx *ctx,
+                                              const char *family)
+{
+    transpiler_set_backend_error_with_hints(ctx,
+        PGY_CODE_C_TYPE_UNSUPPORTED,
+        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+        PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+        "%s constructed type is too long for C backend emission",
+        family != NULL ? family : "slot");
+}
+
 static const char *
 transpiler_let_slot_inner_from_annotation(ASTNode *ann)
 {
@@ -197,11 +223,23 @@ transpiler_try_emit_let_slot_view_or_move(TranspilerCtx *ctx,
     const char *ctype = NULL;
     if (source_secure) {
         char secure_name[128];
-        snprintf(secure_name, sizeof(secure_name), "SecureSlot<%s>", inner);
+        if (!transpiler_let_slot_constructed_type_name(secure_name,
+                sizeof(secure_name), "SecureSlot", inner)) {
+            transpiler_let_slot_constructed_type_too_long(ctx, "SecureSlot");
+            free(*ann_type_name_io);
+            *ann_type_name_io = NULL;
+            return true;
+        }
         ctype = pergyra_type_to_c(secure_name);
     } else {
         char slot_name_buf[128];
-        snprintf(slot_name_buf, sizeof(slot_name_buf), "Slot<%s>", inner);
+        if (!transpiler_let_slot_constructed_type_name(slot_name_buf,
+                sizeof(slot_name_buf), "Slot", inner)) {
+            transpiler_let_slot_constructed_type_too_long(ctx, "Slot");
+            free(*ann_type_name_io);
+            *ann_type_name_io = NULL;
+            return true;
+        }
         ctype = pergyra_type_to_c(slot_name_buf);
     }
     if (ctype == NULL) {

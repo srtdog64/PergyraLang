@@ -28,6 +28,24 @@ llvm_load_current_bool_field(LLVMGenCtx *ctx, LLVMClassTypeEntry *cls,
 }
 
 static bool
+llvm_domain_query_field_name(LLVMGenCtx *ctx, char *out, size_t out_size,
+                             const char *prefix, const char *name,
+                             const char *what)
+{
+    int written;
+
+    if (out == NULL || out_size == 0 || prefix == NULL || name == NULL)
+        return false;
+
+    written = snprintf(out, out_size, "%s%s", prefix, name);
+    if (written >= 0 && (size_t)written < out_size)
+        return true;
+
+    llvm_set_error(ctx, "%s is too long", what != NULL ? what : "domain query field name");
+    return false;
+}
+
+static bool
 llvm_emit_has_projection_query(ASTNode *node, LLVMGenCtx *ctx, LLVMValueRef *out)
 {
     ASTNode *host_decl = llvm_current_host_decl(ctx);
@@ -50,7 +68,11 @@ llvm_emit_has_projection_query(ASTNode *node, LLVMGenCtx *ctx, LLVMValueRef *out
 
     {
         char field_name[256];
-        snprintf(field_name, sizeof(field_name), "__projection_ready_%s", slot_name);
+        if (!llvm_domain_query_field_name(ctx, field_name, sizeof(field_name),
+                "__projection_ready_", slot_name, "projection query field name")) {
+            *out = NULL;
+            return true;
+        }
         field_idx = llvm_class_field_index(cls, field_name);
     }
     *out = llvm_load_current_bool_field(ctx, cls, field_idx);
@@ -77,7 +99,11 @@ llvm_emit_has_layer_query(ASTNode *node, LLVMGenCtx *ctx, LLVMValueRef *out)
 
     {
         char field_name[256];
-        snprintf(field_name, sizeof(field_name), "__layer_active_%s", layer_name);
+        if (!llvm_domain_query_field_name(ctx, field_name, sizeof(field_name),
+                "__layer_active_", layer_name, "layer query field name")) {
+            *out = NULL;
+            return true;
+        }
         field_idx = llvm_class_field_index(cls, field_name);
     }
     *out = llvm_load_current_bool_field(ctx, cls, field_idx);
@@ -111,7 +137,11 @@ llvm_emit_has_state_query(ASTNode *node, LLVMGenCtx *ctx, LLVMValueRef *out)
 
     {
         char field_name[256];
-        snprintf(field_name, sizeof(field_name), "__state_%s", state_name);
+        if (!llvm_domain_query_field_name(ctx, field_name, sizeof(field_name),
+                "__state_", state_name, "state query field name")) {
+            *out = NULL;
+            return true;
+        }
         field_idx = llvm_class_field_index(cls, field_name);
     }
     *out = llvm_load_current_bool_field(ctx, cls, field_idx);
@@ -157,10 +187,13 @@ llvm_emit_has_zone_query(ASTNode *node, LLVMGenCtx *ctx, LLVMValueRef *out)
                 LLVMValueRef input_val;
                 if (input_name == NULL)
                     continue;
-                if (llvm_world_has_zone_slot(world_decl, input_name))
-                    snprintf(field_name, sizeof(field_name), "__zone_active_%s", input_name);
-                else
-                    snprintf(field_name, sizeof(field_name), "__zone_state_%s", input_name);
+                if (!llvm_domain_query_field_name(ctx, field_name, sizeof(field_name),
+                        llvm_world_has_zone_slot(world_decl, input_name)
+                            ? "__zone_active_" : "__zone_state_",
+                        input_name, "world zone query field name")) {
+                    *out = NULL;
+                    return true;
+                }
                 input_idx = llvm_class_field_index(cls, field_name);
                 if (input_idx < 0)
                     continue;
@@ -178,12 +211,20 @@ llvm_emit_has_zone_query(ASTNode *node, LLVMGenCtx *ctx, LLVMValueRef *out)
         }
         {
             char field_name[256];
-            snprintf(field_name, sizeof(field_name), "__zone_state_%s", name);
+            if (!llvm_domain_query_field_name(ctx, field_name, sizeof(field_name),
+                    "__zone_state_", name, "world state query field name")) {
+                *out = NULL;
+                return true;
+            }
             field_idx = llvm_class_field_index(cls, field_name);
         }
     } else if (llvm_world_has_zone_slot(world_decl, name)) {
         char field_name[256];
-        snprintf(field_name, sizeof(field_name), "__zone_active_%s", name);
+        if (!llvm_domain_query_field_name(ctx, field_name, sizeof(field_name),
+                "__zone_active_", name, "world zone query field name")) {
+            *out = NULL;
+            return true;
+        }
         field_idx = llvm_class_field_index(cls, field_name);
     }
 
@@ -233,19 +274,31 @@ llvm_emit_has_zone_detail_query(ASTNode *node, LLVMGenCtx *ctx,
         ASTNode *slot = llvm_find_zone_domain_slot_decl(zone_decl, detail_name);
         if (slot != NULL && !slot->data.domain_slot.is_subject) {
             char field_name[256];
-            snprintf(field_name, sizeof(field_name), "__projection_ready_%s", detail_name);
+            if (!llvm_domain_query_field_name(ctx, field_name, sizeof(field_name),
+                    "__projection_ready_", detail_name, "zone projection query field name")) {
+                *out = NULL;
+                return true;
+            }
             field_idx = llvm_class_field_index(zone_cls, field_name);
         }
     } else if (strcmp(callee_name, "HasZoneLayer") == 0) {
         if (llvm_find_zone_layer_slot_decl(zone_decl, detail_name) != NULL) {
             char field_name[256];
-            snprintf(field_name, sizeof(field_name), "__layer_active_%s", detail_name);
+            if (!llvm_domain_query_field_name(ctx, field_name, sizeof(field_name),
+                    "__layer_active_", detail_name, "zone layer query field name")) {
+                *out = NULL;
+                return true;
+            }
             field_idx = llvm_class_field_index(zone_cls, field_name);
         }
     } else if (strcmp(callee_name, "HasZoneState") == 0) {
         if (llvm_find_zone_state_decl(ctx, zone_decl, detail_name) != NULL) {
             char field_name[256];
-            snprintf(field_name, sizeof(field_name), "__state_%s", detail_name);
+            if (!llvm_domain_query_field_name(ctx, field_name, sizeof(field_name),
+                    "__state_", detail_name, "zone state query field name")) {
+                *out = NULL;
+                return true;
+            }
             field_idx = llvm_class_field_index(zone_cls, field_name);
         }
     }

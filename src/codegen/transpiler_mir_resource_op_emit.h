@@ -1,6 +1,8 @@
 #ifndef PGY_SRC_CODEGEN_TRANSPILER_MIR_RESOURCE_OP_EMIT_H
 #define PGY_SRC_CODEGEN_TRANSPILER_MIR_RESOURCE_OP_EMIT_H
 
+#include "transpiler_mir_reason.h"
+
 /* C backend MIR resource-op statement emission owner. */
 typedef enum
 {
@@ -60,7 +62,7 @@ transpiler_emit_mir_resource_op_inst(CodeBuf *buf,
     }
     if (!transpiler_emit_mir_resource_hook(ctx, buf, ctx->indent, inst, "0", false)) {
         if (reason != NULL && reason_cap > 0) {
-            snprintf(reason, reason_cap,
+            transpiler_mir_reasonf(reason, reason_cap,
                      "MIR block %llu emission failed: unable to emit resource op '%s'",
                      (unsigned long long) block->id,
                      inst->name != NULL ? inst->name : "<op>");

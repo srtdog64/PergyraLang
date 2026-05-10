@@ -25,10 +25,11 @@ transpiler_block_slot_address_local(const SlotVarEntry *slot,
     if (slot->is_indirect)
         return slot->name;
     if (buf != NULL && buf_size > 0) {
-        snprintf(buf, buf_size, "&%s", slot->name);
-        return buf;
+        int written = snprintf(buf, buf_size, "&%s", slot->name);
+        if (written >= 0 && (size_t)written < buf_size)
+            return buf;
     }
-    return slot->name;
+    return NULL;
 }
 
 static const char *
@@ -41,10 +42,21 @@ transpiler_block_slot_token_address_local(const SlotVarEntry *slot,
         return "NULL";
     token_name = slot->token_name[0] != '\0' ? slot->token_name : slot->name;
     if (buf != NULL && buf_size > 0) {
-        snprintf(buf, buf_size, "&%s", token_name);
-        return buf;
+        int written = snprintf(buf, buf_size, "&%s", token_name);
+        if (written >= 0 && (size_t)written < buf_size)
+            return buf;
     }
-    return token_name;
+    return NULL;
+}
+
+static void
+transpiler_block_pin_address_too_long(TranspilerCtx *ctx)
+{
+    transpiler_set_backend_error_with_hints(ctx,
+        PGY_CODE_C_TYPE_UNSUPPORTED,
+        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+        PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+        "pin block slot address is too long for C backend emission");
 }
 
 static bool
@@ -55,6 +67,8 @@ emit_pin_block_enter_local(ASTNode *node, TranspilerCtx *ctx)
     const char *mode;
     char slot_addr[96];
     char token_addr[96];
+    const char *slot_addr_expr;
+    const char *token_addr_expr;
 
     if (node == NULL || ctx == NULL || node->type != AST_BLOCK
         || !node->data.block.is_pin_block
@@ -73,22 +87,36 @@ emit_pin_block_enter_local(ASTNode *node, TranspilerCtx *ctx)
     ctx->indent++;
     write_indent(ctx);
     if (slot->is_secure) {
+        slot_addr_expr = transpiler_block_slot_address_local(
+            slot, slot_addr, sizeof(slot_addr));
+        token_addr_expr = transpiler_block_slot_token_address_local(
+            slot, token_addr, sizeof(token_addr));
+        if (slot_addr_expr == NULL || token_addr_expr == NULL) {
+            transpiler_block_pin_address_too_long(ctx);
+            return false;
+        }
         codebuf_write(ctx->out,
             "PgyPinnedSecureSlotView_%s __pgy_pin_%d "
             "__attribute__((cleanup(pgy_secure_unpin_cleanup_%s))) = "
             "pgy_secure_pin_%s_%s(%s, %s);\n",
             slot->inner_type, pin_id, slot->inner_type,
             mode, slot->inner_type,
-            transpiler_block_slot_address_local(slot, slot_addr, sizeof(slot_addr)),
-            transpiler_block_slot_token_address_local(slot, token_addr, sizeof(token_addr)));
+            slot_addr_expr,
+            token_addr_expr);
     } else {
+        slot_addr_expr = transpiler_block_slot_address_local(
+            slot, slot_addr, sizeof(slot_addr));
+        if (slot_addr_expr == NULL) {
+            transpiler_block_pin_address_too_long(ctx);
+            return false;
+        }
         codebuf_write(ctx->out,
             "PgyPinnedSlotView_%s __pgy_pin_%d "
             "__attribute__((cleanup(pgy_unpin_cleanup_%s))) = "
             "pgy_pin_%s_%s(%s);\n",
             slot->inner_type, pin_id, slot->inner_type,
             mode, slot->inner_type,
-            transpiler_block_slot_address_local(slot, slot_addr, sizeof(slot_addr)));
+            slot_addr_expr);
     }
 
     return true;

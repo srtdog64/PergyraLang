@@ -7,6 +7,21 @@
 #include "llvm_domain_projection_value_helpers.h"
 #include "llvm_domain_projection_sync_body_helpers.h"
 #include "llvm_domain_zone_sync_internal.h"
+
+static bool
+llvm_zone_sync_field_name(char *out,
+                          size_t out_size,
+                          const char *kind,
+                          const char *name)
+{
+    int written;
+
+    if (out == NULL || out_size == 0 || kind == NULL || name == NULL)
+        return false;
+    written = snprintf(out, out_size, "__%s_%s", kind, name);
+    return written >= 0 && (size_t)written < out_size;
+}
+
 void
 llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
                     LLVMClassTypeEntry *decl_cls, LLVMValueRef sync_fn,
@@ -113,8 +128,12 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
         }
 
         layer_name = slot->data.zone_layer_slot.slot_name;
-        snprintf(cause_field, sizeof(cause_field), "__layer_cause_%s", layer_name);
-        snprintf(active_field, sizeof(active_field), "__layer_active_%s", layer_name);
+        if (!llvm_zone_sync_field_name(cause_field, sizeof(cause_field),
+                "layer_cause", layer_name))
+            continue;
+        if (!llvm_zone_sync_field_name(active_field, sizeof(active_field),
+                "layer_active", layer_name))
+            continue;
         cause_idx = llvm_class_field_index(decl_cls, cause_field);
         active_idx = llvm_class_field_index(decl_cls, active_field);
         if (cause_idx < 0 || active_idx < 0)
@@ -150,8 +169,9 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
                 || strcmp(state->data.zone_state.layer_slot_name, layer_name) != 0) {
                 continue;
             }
-            snprintf(state_field, sizeof(state_field), "__state_%s",
-                state->data.zone_state.state_name);
+            if (!llvm_zone_sync_field_name(state_field, sizeof(state_field),
+                    "state", state->data.zone_state.state_name))
+                continue;
             state_idx = llvm_class_field_index(decl_cls, state_field);
             if (state_idx < 0)
                 continue;
@@ -189,7 +209,9 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
             int field_idx;
             LLVMValueRef self_ptr;
             LLVMValueRef state_ptr;
-            snprintf(field_name, sizeof(field_name), "__state_%s", state_name);
+            if (!llvm_zone_sync_field_name(field_name, sizeof(field_name),
+                    "state", state_name))
+                continue;
             field_idx = llvm_class_field_index(decl_cls, field_name);
             if (field_idx < 0)
                 continue;
@@ -218,7 +240,9 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
                     char layer_field[256];
                     int layer_idx;
                     LLVMValueRef layer_ptr;
-                    snprintf(layer_field, sizeof(layer_field), "__layer_active_%s", layer_name);
+                    if (!llvm_zone_sync_field_name(layer_field,
+                            sizeof(layer_field), "layer_active", layer_name))
+                        continue;
                     layer_idx = llvm_class_field_index(decl_cls, layer_field);
                     if (layer_idx >= 0) {
                         layer_ptr = LLVMBuildStructGEP2(ctx->builder, decl_cls->struct_type,
@@ -255,8 +279,9 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
             int layer_idx;
             LLVMValueRef self_ptr = LLVMGetParam(sync_fn, 0);
             LLVMValueRef layer_ptr;
-            snprintf(layer_field, sizeof(layer_field), "__layer_active_%s",
-                apply->data.zone_apply.effect_slot_name);
+            if (!llvm_zone_sync_field_name(layer_field, sizeof(layer_field),
+                    "layer_active", apply->data.zone_apply.effect_slot_name))
+                continue;
             layer_idx = llvm_class_field_index(decl_cls, layer_field);
             if (layer_idx >= 0) {
                 layer_ptr = LLVMBuildStructGEP2(ctx->builder, decl_cls->struct_type,
@@ -285,8 +310,10 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
             int layer_idx;
             LLVMValueRef self_ptr = LLVMGetParam(sync_fn, 0);
             LLVMValueRef layer_ptr;
-            snprintf(layer_field, sizeof(layer_field), "__layer_active_%s",
-                maintain->data.zone_maintain_effect.effect_slot_name);
+            if (!llvm_zone_sync_field_name(layer_field, sizeof(layer_field),
+                    "layer_active",
+                    maintain->data.zone_maintain_effect.effect_slot_name))
+                continue;
             layer_idx = llvm_class_field_index(decl_cls, layer_field);
             if (layer_idx >= 0) {
                 layer_ptr = LLVMBuildStructGEP2(ctx->builder, decl_cls->struct_type,
@@ -326,7 +353,9 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
                 continue;
             }
             state_name = state->data.zone_state.state_name;
-            snprintf(field_name, sizeof(field_name), "__state_%s", state_name);
+            if (!llvm_zone_sync_field_name(field_name, sizeof(field_name),
+                    "state", state_name))
+                continue;
             field_idx = llvm_class_field_index(decl_cls, field_name);
             if (field_idx < 0)
                 continue;
@@ -347,8 +376,9 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
             int field_idx;
             LLVMValueRef self_ptr;
             LLVMValueRef state_ptr;
-            snprintf(field_name, sizeof(field_name), "__state_%s",
-                maintain->data.zone_maintain_state.state_name);
+            if (!llvm_zone_sync_field_name(field_name, sizeof(field_name),
+                    "state", maintain->data.zone_maintain_state.state_name))
+                continue;
             field_idx = llvm_class_field_index(decl_cls, field_name);
             if (field_idx < 0)
                 continue;
@@ -369,8 +399,10 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
                     char layer_field[256];
                     int layer_idx;
                     LLVMValueRef layer_ptr;
-                    snprintf(layer_field, sizeof(layer_field), "__layer_active_%s",
-                        state->data.zone_state.layer_slot_name);
+                    if (!llvm_zone_sync_field_name(layer_field,
+                            sizeof(layer_field), "layer_active",
+                            state->data.zone_state.layer_slot_name))
+                        continue;
                     layer_idx = llvm_class_field_index(decl_cls, layer_field);
                     if (layer_idx >= 0) {
                         layer_ptr = LLVMBuildStructGEP2(ctx->builder, decl_cls->struct_type,
@@ -423,7 +455,9 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
             int field_idx;
             LLVMValueRef self_ptr;
             LLVMValueRef state_ptr;
-            snprintf(field_name, sizeof(field_name), "__state_%s", state_name);
+            if (!llvm_zone_sync_field_name(field_name, sizeof(field_name),
+                    "state", state_name))
+                continue;
             field_idx = llvm_class_field_index(decl_cls, field_name);
             if (field_idx < 0)
                 continue;
@@ -452,7 +486,9 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
                     char layer_field[256];
                     int layer_idx;
                     LLVMValueRef layer_ptr;
-                    snprintf(layer_field, sizeof(layer_field), "__layer_active_%s", layer_name);
+                    if (!llvm_zone_sync_field_name(layer_field,
+                            sizeof(layer_field), "layer_active", layer_name))
+                        continue;
                     layer_idx = llvm_class_field_index(decl_cls, layer_field);
                     if (layer_idx >= 0) {
                         layer_ptr = LLVMBuildStructGEP2(ctx->builder, decl_cls->struct_type,
@@ -469,8 +505,9 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
             int layer_idx;
             LLVMValueRef self_ptr = LLVMGetParam(sync_fn, 0);
             LLVMValueRef layer_ptr;
-            snprintf(layer_field, sizeof(layer_field), "__layer_active_%s",
-                detach->data.zone_detach.effect_slot_name);
+            if (!llvm_zone_sync_field_name(layer_field, sizeof(layer_field),
+                    "layer_active", detach->data.zone_detach.effect_slot_name))
+                continue;
             layer_idx = llvm_class_field_index(decl_cls, layer_field);
             if (layer_idx >= 0) {
                 layer_ptr = LLVMBuildStructGEP2(ctx->builder, decl_cls->struct_type,

@@ -65,6 +65,32 @@ main(void)
     failures += expect_size("domain-world-derived-null", pgy_domain_world_derived_frontier_pass_limit(NULL), 1);
     failures += expect_size("domain-world-embedded-null", pgy_domain_world_embedded_frontier_count(NULL, NULL, NULL), 0);
     failures += expect_size("domain-world-transitive-null", pgy_domain_world_transitive_frontier_pass_limit(NULL, 3), 4);
+    failures += expect_size("publish-fact-count", PGY_FRONTIER_POLICY_FACT_COUNT, 9);
+    failures += expect_size("publish-write-before-ready",
+                            pgy_frontier_publish_order_is_valid(
+                                PGY_FRONTIER_PUBLISH_WRITE_VALUE,
+                                PGY_FRONTIER_PUBLISH_READY),
+                            1);
+    failures += expect_size("publish-ready-before-clear-dirty",
+                            pgy_frontier_publish_order_is_valid(
+                                PGY_FRONTIER_PUBLISH_READY,
+                                PGY_FRONTIER_PUBLISH_CLEAR_DIRTY),
+                            1);
+    failures += expect_size("publish-clear-dirty-not-before-ready",
+                            pgy_frontier_publish_order_is_valid(
+                                PGY_FRONTIER_PUBLISH_CLEAR_DIRTY,
+                                PGY_FRONTIER_PUBLISH_READY),
+                            0);
+    failures += expect_size("publish-invalid-before-rejected",
+                            pgy_frontier_publish_order_is_valid(
+                                (PgyFrontierPublishPhase)99,
+                                PGY_FRONTIER_PUBLISH_READY),
+                            0);
+    failures += expect_size("publish-invalid-after-rejected",
+                            pgy_frontier_publish_order_is_valid(
+                                PGY_FRONTIER_PUBLISH_WRITE_VALUE,
+                                (PgyFrontierPublishPhase)99),
+                            0);
 
     return failures == 0 ? 0 : 1;
 }

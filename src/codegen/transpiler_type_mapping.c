@@ -6,6 +6,20 @@
 
 #include "codegen_slot_type_policy.h"
 #include "transpiler.h"
+#include "transpiler_type_mapping.h"
+
+static bool
+transpiler_type_name_join(char *out, size_t out_size, const char *prefix,
+                          const char *suffix)
+{
+    int written;
+
+    if (out == NULL || out_size == 0 || prefix == NULL || suffix == NULL)
+        return false;
+
+    written = snprintf(out, out_size, "%s%s", prefix, suffix);
+    return written >= 0 && (size_t)written < out_size;
+}
 
 const char *
 pergyra_primitive_to_c(const char *name)
@@ -62,7 +76,7 @@ sanitize_c_suffix(const char *type_name, char *buf, size_t buf_size)
         return;
 
     if (type_name == NULL || *type_name == '\0') {
-        snprintf(buf, buf_size, "Int");
+        copy_capped_string(buf, buf_size, "Int");
         return;
     }
 
@@ -83,7 +97,7 @@ sanitize_c_suffix(const char *type_name, char *buf, size_t buf_size)
     while (out > 0 && buf[out - 1] == '_')
         out--;
     if (out == 0) {
-        snprintf(buf, buf_size, "Int");
+        copy_capped_string(buf, buf_size, "Int");
         return;
     }
     if (buf[0] >= '0' && buf[0] <= '9') {
@@ -181,7 +195,7 @@ copy_constructed_arg_name_at(const char *type_name, int arg_index,
     arg_name = constructed_arg_name_at(type_name, arg_index);
     if (arg_name == NULL)
         arg_name = "Unknown";
-    snprintf(buf, buf_size, "%s", arg_name);
+    copy_capped_string(buf, buf_size, arg_name);
 }
 
 const char *
@@ -275,7 +289,8 @@ pergyra_type_to_c(const char *name)
         if (constructed_single_arg_is_unknown(name))
             return "Unknown";
         sanitize_c_suffix(slot_inner_type_name(name), suffix, sizeof(suffix));
-        snprintf(buf, sizeof(buf), "PgyList_%s", suffix);
+        if (!transpiler_type_name_join(buf, sizeof(buf), "PgyList_", suffix))
+            return "Unknown";
         return buf;
     }
     if (strncmp(name, "HashMap<", 8) == 0) {
@@ -283,14 +298,16 @@ pergyra_type_to_c(const char *name)
             || constructed_arg_name_is_unknown(name, 1))
             return "Unknown";
         sanitize_c_suffix(constructed_arg_name_at(name, 1), suffix, sizeof(suffix));
-        snprintf(buf, sizeof(buf), "PgyHashMap_%s", suffix);
+        if (!transpiler_type_name_join(buf, sizeof(buf), "PgyHashMap_", suffix))
+            return "Unknown";
         return buf;
     }
     if (strncmp(name, "Queue<", 6) == 0) {
         if (constructed_single_arg_is_unknown(name))
             return "Unknown";
         sanitize_c_suffix(slot_inner_type_name(name), suffix, sizeof(suffix));
-        snprintf(buf, sizeof(buf), "PgyQueue_%s", suffix);
+        if (!transpiler_type_name_join(buf, sizeof(buf), "PgyQueue_", suffix))
+            return "Unknown";
         return buf;
     }
     if (strncmp(name, "Set<", 4) == 0) {
@@ -298,12 +315,13 @@ pergyra_type_to_c(const char *name)
         if (type_arg_name_is_unknown(inner))
             return "Unknown";
         if (inner != NULL && strcmp(inner, "String") == 0) {
-            snprintf(buf, sizeof(buf), "PgySet_String");
+            copy_capped_string(buf, sizeof(buf), "PgySet_String");
         } else if (inner != NULL && strcmp(inner, "Int") == 0) {
-            snprintf(buf, sizeof(buf), "PgySet_int");
+            copy_capped_string(buf, sizeof(buf), "PgySet_int");
         } else {
             sanitize_c_suffix(inner, suffix, sizeof(suffix));
-            snprintf(buf, sizeof(buf), "PgySet_%s", suffix);
+            if (!transpiler_type_name_join(buf, sizeof(buf), "PgySet_", suffix))
+                return "Unknown";
         }
         return buf;
     }
@@ -316,7 +334,8 @@ pergyra_type_to_c(const char *name)
         const char *inner = slot_inner_type_name(name);
         if (type_arg_name_is_unknown(inner))
             return "Unknown";
-        snprintf(buf, sizeof(buf), "PgyChannel_%s", inner);
+        if (!transpiler_type_name_join(buf, sizeof(buf), "PgyChannel_", inner))
+            return "Unknown";
         return buf;
     }
     if (strncmp(name, "Weak<", 5) == 0) {
@@ -324,7 +343,8 @@ pergyra_type_to_c(const char *name)
         const char *inner = slot_inner_type_name(name);
         if (type_arg_name_is_unknown(inner))
             return "Unknown";
-        snprintf(buf, sizeof(buf), "PgyWeak_%s", inner);
+        if (!transpiler_type_name_join(buf, sizeof(buf), "PgyWeak_", inner))
+            return "Unknown";
         return buf;
     }
     if (strncmp(name, "Rc<", 3) == 0) {
@@ -332,7 +352,8 @@ pergyra_type_to_c(const char *name)
         const char *inner = slot_inner_type_name(name);
         if (type_arg_name_is_unknown(inner))
             return "Unknown";
-        snprintf(buf, sizeof(buf), "PgyRc_%s", inner);
+        if (!transpiler_type_name_join(buf, sizeof(buf), "PgyRc_", inner))
+            return "Unknown";
         return buf;
     }
     if (strncmp(name, "Box<Array<", 10) == 0) {
@@ -346,7 +367,8 @@ pergyra_type_to_c(const char *name)
         inner_buf[len] = '\0';
         if (type_arg_name_is_unknown(inner_buf))
             return "Unknown";
-        snprintf(buf, sizeof(buf), "PgyBoxArray_%s", inner_buf);
+        if (!transpiler_type_name_join(buf, sizeof(buf), "PgyBoxArray_", inner_buf))
+            return "Unknown";
         return buf;
     }
     if (strncmp(name, "Box<", 4) == 0) {
@@ -354,7 +376,8 @@ pergyra_type_to_c(const char *name)
         const char *inner = slot_inner_type_name(name);
         if (type_arg_name_is_unknown(inner))
             return "Unknown";
-        snprintf(buf, sizeof(buf), "PgyBox_%s", inner);
+        if (!transpiler_type_name_join(buf, sizeof(buf), "PgyBox_", inner))
+            return "Unknown";
         return buf;
     }
     if (strncmp(name, "Slice<", 6) == 0) {
@@ -362,7 +385,8 @@ pergyra_type_to_c(const char *name)
         const char *inner = slot_inner_type_name(name);
         if (type_arg_name_is_unknown(inner))
             return "Unknown";
-        snprintf(buf, sizeof(buf), "PgySlice_%s", inner);
+        if (!transpiler_type_name_join(buf, sizeof(buf), "PgySlice_", inner))
+            return "Unknown";
         return buf;
     }
     if (strncmp(name, "Array<", 6) == 0) {
@@ -370,7 +394,8 @@ pergyra_type_to_c(const char *name)
         const char *inner = slot_inner_type_name(name);
         if (type_arg_name_is_unknown(inner))
             return "Unknown";
-        snprintf(buf, sizeof(buf), "PgyArray_%s", inner);
+        if (!transpiler_type_name_join(buf, sizeof(buf), "PgyArray_", inner))
+            return "Unknown";
         return buf;
     }
     if (strncmp(name, "SecureSlot<", 11) == 0) {
@@ -378,7 +403,8 @@ pergyra_type_to_c(const char *name)
         const char *inner = slot_inner_type_name(name);
         if (type_arg_name_is_unknown(inner))
             return "Unknown";
-        snprintf(buf, sizeof(buf), "PgySecureSlot_%s", inner);
+        if (!transpiler_type_name_join(buf, sizeof(buf), "PgySecureSlot_", inner))
+            return "Unknown";
         return buf;
     }
     if (pgy_codegen_type_name_is_read_view(name)) {
@@ -386,7 +412,8 @@ pergyra_type_to_c(const char *name)
         const char *inner = slot_inner_type_name(name);
         if (type_arg_name_is_unknown(inner))
             return "Unknown";
-        snprintf(buf, sizeof(buf), "PgySlot_%s", inner);
+        if (!transpiler_type_name_join(buf, sizeof(buf), "PgySlot_", inner))
+            return "Unknown";
         return buf;
     }
     if (pgy_codegen_type_name_is_write_view(name)) {
@@ -394,7 +421,8 @@ pergyra_type_to_c(const char *name)
         const char *inner = slot_inner_type_name(name);
         if (type_arg_name_is_unknown(inner))
             return "Unknown";
-        snprintf(buf, sizeof(buf), "PgySlot_%s", inner);
+        if (!transpiler_type_name_join(buf, sizeof(buf), "PgySlot_", inner))
+            return "Unknown";
         return buf;
     }
     if (strncmp(name, "DeviceSlot<", 11) == 0) {
@@ -402,7 +430,8 @@ pergyra_type_to_c(const char *name)
         const char *inner = slot_inner_type_name(name);
         if (type_arg_name_is_unknown(inner))
             return "Unknown";
-        snprintf(buf, sizeof(buf), "PgyDeviceSlot_%s", inner);
+        if (!transpiler_type_name_join(buf, sizeof(buf), "PgyDeviceSlot_", inner))
+            return "Unknown";
         return buf;
     }
     if (strncmp(name, "Slot<", 5) == 0) {
@@ -410,7 +439,8 @@ pergyra_type_to_c(const char *name)
         const char *inner = slot_inner_type_name(name);
         if (type_arg_name_is_unknown(inner))
             return "Unknown";
-        snprintf(buf, sizeof(buf), "PgySlot_%s", inner);
+        if (!transpiler_type_name_join(buf, sizeof(buf), "PgySlot_", inner))
+            return "Unknown";
         return buf;
     }
     if (strncmp(name, "Result<", 7) == 0) {
@@ -419,7 +449,8 @@ pergyra_type_to_c(const char *name)
         if (strchr(inner, ',') == NULL) {
             if (type_arg_name_is_unknown(inner))
                 return "Unknown";
-            snprintf(buf, sizeof(buf), "PgyResult_%s", inner);
+            if (!transpiler_type_name_join(buf, sizeof(buf), "PgyResult_", inner))
+                return "Unknown";
             return buf;
         }
         if (constructed_arg_name_is_unknown(name, 0)
@@ -436,7 +467,8 @@ pergyra_type_to_c(const char *name)
         const char *inner = slot_inner_type_name(name);
         if (type_arg_name_is_unknown(inner))
             return "Unknown";
-        snprintf(buf, sizeof(buf), "PgyOption_%s", inner);
+        if (!transpiler_type_name_join(buf, sizeof(buf), "PgyOption_", inner))
+            return "Unknown";
         return buf;
     }
     if (name[0] == '(') {

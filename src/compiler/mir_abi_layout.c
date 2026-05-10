@@ -1,7 +1,9 @@
 #include "mir_abi_layout.h"
 
+#include <stdarg.h>
 #include <stddef.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "../runtime/pgy_abi_spec.h"
@@ -48,6 +50,55 @@ abi_type_lookup_by_runtime_fn(const char *runtime_fn)
         }
     }
     return NULL;
+}
+
+static char *
+mir_abi_format_owned(const char *fmt, ...)
+{
+    va_list args;
+    va_list copy;
+    int needed;
+    int written;
+    char *result;
+
+    if (fmt == NULL)
+        return NULL;
+
+    va_start(args, fmt);
+    va_copy(copy, args);
+    needed = vsnprintf(NULL, 0, fmt, copy);
+    va_end(copy);
+    if (needed < 0) {
+        va_end(args);
+        return NULL;
+    }
+
+    result = (char *)malloc((size_t)needed + 1);
+    if (result == NULL) {
+        va_end(args);
+        return NULL;
+    }
+    written = vsnprintf(result, (size_t)needed + 1, fmt, args);
+    va_end(args);
+    if (written < 0 || written != needed) {
+        free(result);
+        return NULL;
+    }
+    return result;
+}
+
+static MIRTypeLayout *
+mir_abi_lookup_runtime_fmt(const char *fmt, const char *suffix)
+{
+    MIRTypeLayout *layout;
+    char *runtime_name;
+
+    runtime_name = mir_abi_format_owned(fmt, suffix);
+    if (runtime_name == NULL)
+        return NULL;
+    layout = abi_type_lookup_by_runtime_fn(runtime_name);
+    free(runtime_name);
+    return layout;
 }
 
 static void
@@ -250,23 +301,30 @@ abi_type_table_init(void)
 }
 
 /* Extract inner type from "Slot<Int>" ??"Int" */
-static const char *
-mir_extract_inner_type_suffix(const char *pergyra_type_name)
+static char *
+mir_extract_inner_type_suffix_owned(const char *pergyra_type_name)
 {
+    const char *lt;
+    const char *gt;
+    size_t len;
+    char *suffix;
+
     if (pergyra_type_name == NULL)
         return NULL;
-    const char *lt = strchr(pergyra_type_name, '<');
-    const char *gt = strrchr(pergyra_type_name, '>');
+    lt = strchr(pergyra_type_name, '<');
+    gt = strrchr(pergyra_type_name, '>');
     if (lt == NULL || gt == NULL || gt <= lt)
         return NULL;
-    /* Return substring between < and > */
-    static char buf[64];
-    size_t len = (size_t)(gt - lt - 1);
-    if (len >= sizeof(buf))
-        len = sizeof(buf) - 1;
-    memcpy(buf, lt + 1, len);
-    buf[len] = '\0';
-    return buf;
+    len = (size_t)(gt - lt - 1);
+    if (len == (size_t)-1)
+        return NULL;
+
+    suffix = (char *)malloc(len + 1);
+    if (suffix == NULL)
+        return NULL;
+    memcpy(suffix, lt + 1, len);
+    suffix[len] = '\0';
+    return suffix;
 }
 
 /* Lookup ABI type by Pergyra type name.
@@ -282,8 +340,6 @@ mir_extract_inner_type_suffix(const char *pergyra_type_name)
 const MIRTypeLayout *
 mir_abi_lookup(const char *pergyra_type_name)
 {
-    int written;
-
     if (pergyra_type_name == NULL)
         return NULL;
 
@@ -293,84 +349,75 @@ mir_abi_lookup(const char *pergyra_type_name)
         return t;
 
     /* Step 2: Try release mode variant for Slot/Option/Result generics */
-    char rel_name[128];
-    written = snprintf(rel_name, sizeof(rel_name), "%s_rel", pergyra_type_name);
-    if (written >= 0 && (size_t)written < sizeof(rel_name)) {
+    char *rel_name = mir_abi_format_owned("%s_rel", pergyra_type_name);
+    if (rel_name != NULL) {
         t = abi_type_lookup_by_name(rel_name);
+        free(rel_name);
         if (t != NULL)
             return t;
     }
 
     /* Try to find by runtime function name pattern */
     /* e.g. "Slot<Int>" -> look for any type with "pgy_claim_Int" */
-    const char *suffix = mir_extract_inner_type_suffix(pergyra_type_name);
+    char *suffix = mir_extract_inner_type_suffix_owned(pergyra_type_name);
     if (suffix != NULL) {
-        char fn_prefix[128];
-
         /* Check if it's a Slot type */
         if (strncmp(pergyra_type_name, "Slot<", 5) == 0) {
-            written = snprintf(fn_prefix, sizeof(fn_prefix), "pgy_claim_%s", suffix);
-            if (written >= 0 && (size_t)written < sizeof(fn_prefix)) {
-                t = abi_type_lookup_by_runtime_fn(fn_prefix);
-                if (t != NULL)
-                    return t;
+            t = mir_abi_lookup_runtime_fmt("pgy_claim_%s", suffix);
+            if (t != NULL) {
+                free(suffix);
+                return t;
             }
         }
         /* Option */
         else if (strncmp(pergyra_type_name, "Option<", 7) == 0) {
-
-            written = snprintf(fn_prefix, sizeof(fn_prefix), "pgy_option_some_%s", suffix);
-            if (written >= 0 && (size_t)written < sizeof(fn_prefix)) {
-                t = abi_type_lookup_by_runtime_fn(fn_prefix);
-                if (t != NULL)
-                    return t;
+            t = mir_abi_lookup_runtime_fmt("pgy_option_some_%s", suffix);
+            if (t != NULL) {
+                free(suffix);
+                return t;
             }
         }
         /* Result */
         else if (strncmp(pergyra_type_name, "Result<", 7) == 0) {
-            written = snprintf(fn_prefix, sizeof(fn_prefix), "pgy_result_ok_%s", suffix);
-            if (written >= 0 && (size_t)written < sizeof(fn_prefix)) {
-                t = abi_type_lookup_by_runtime_fn(fn_prefix);
-                if (t != NULL)
-                    return t;
+            t = mir_abi_lookup_runtime_fmt("pgy_result_ok_%s", suffix);
+            if (t != NULL) {
+                free(suffix);
+                return t;
             }
         }
         /* ZoneChannel<T> */
         else if (strncmp(pergyra_type_name, "ZoneChannel<", 12) == 0) {
-            written = snprintf(fn_prefix, sizeof(fn_prefix), "pgy_zone_channel_create_%s", suffix);
-            if (written >= 0 && (size_t)written < sizeof(fn_prefix)) {
-                t = abi_type_lookup_by_runtime_fn(fn_prefix);
-                if (t != NULL)
-                    return t;
+            t = mir_abi_lookup_runtime_fmt("pgy_zone_channel_create_%s", suffix);
+            if (t != NULL) {
+                free(suffix);
+                return t;
             }
         }
         /* WorldChannel<T> */
         else if (strncmp(pergyra_type_name, "WorldChannel<", 13) == 0) {
-            written = snprintf(fn_prefix, sizeof(fn_prefix), "pgy_world_channel_create_%s", suffix);
-            if (written >= 0 && (size_t)written < sizeof(fn_prefix)) {
-                t = abi_type_lookup_by_runtime_fn(fn_prefix);
-                if (t != NULL)
-                    return t;
+            t = mir_abi_lookup_runtime_fmt("pgy_world_channel_create_%s", suffix);
+            if (t != NULL) {
+                free(suffix);
+                return t;
             }
         }
         /* Box<T> */
         else if (strncmp(pergyra_type_name, "Box<", 4) == 0) {
-            written = snprintf(fn_prefix, sizeof(fn_prefix), "pgy_box_new_%s", suffix);
-            if (written >= 0 && (size_t)written < sizeof(fn_prefix)) {
-                t = abi_type_lookup_by_runtime_fn(fn_prefix);
-                if (t != NULL)
-                    return t;
+            t = mir_abi_lookup_runtime_fmt("pgy_box_new_%s", suffix);
+            if (t != NULL) {
+                free(suffix);
+                return t;
             }
         }
         /* Array<T> */
         else if (strncmp(pergyra_type_name, "Array<", 6) == 0) {
-            written = snprintf(fn_prefix, sizeof(fn_prefix), "pgy_array_new_%s", suffix);
-            if (written >= 0 && (size_t)written < sizeof(fn_prefix)) {
-                t = abi_type_lookup_by_runtime_fn(fn_prefix);
-                if (t != NULL)
-                    return t;
+            t = mir_abi_lookup_runtime_fmt("pgy_array_new_%s", suffix);
+            if (t != NULL) {
+                free(suffix);
+                return t;
             }
         }
+        free(suffix);
     }
 
     /* Fall back to exact match for non-generic types (Future, Qubit, TaskHandle, etc.) */

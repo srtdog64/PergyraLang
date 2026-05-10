@@ -85,7 +85,9 @@ ownership_let_try_claim_slot_decl(ASTNode *node,
     }
 
     if (is_secure) {
-        snprintf(token_name_buf, sizeof(token_name_buf), "%s_token", name);
+        if (!semantic_format_secure_token_name(
+                token_name_buf, sizeof(token_name_buf), name, node, ctx))
+            return true;
         paired_token = token_name_buf;
     }
     sym = symbol_create_slot(name, slot_type, is_secure, paired_token,

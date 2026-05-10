@@ -3,6 +3,51 @@
 
 #include "transpiler_mir_reason_classifier.h"
 
+static bool
+transpiler_func_copy_current_return_type(TranspilerCtx *ctx,
+                                         const char *type_name)
+{
+    size_t len;
+
+    if (ctx == NULL || type_name == NULL)
+        return false;
+
+    len = strlen(type_name);
+    if (len >= sizeof(ctx->current_return_type))
+        return false;
+
+    memcpy(ctx->current_return_type, type_name, len + 1);
+    return true;
+}
+
+static bool
+transpiler_func_parameter_surface_desc(char *out, size_t out_size,
+                                       const char *param_name,
+                                       const char *func_name)
+{
+    int written;
+
+    if (out == NULL || out_size == 0)
+        return false;
+
+    written = snprintf(out, out_size, "function parameter '%s' of '%s'",
+        param_name != NULL ? param_name : "(anonymous)",
+        func_name != NULL ? func_name : "(anonymous)");
+
+    return written >= 0 && (size_t)written < out_size;
+}
+
+static void
+transpiler_func_format_too_long(TranspilerCtx *ctx, const char *surface_kind)
+{
+    transpiler_set_backend_error_with_hints(ctx,
+        PGY_CODE_C_TYPE_UNSUPPORTED,
+        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+        PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+        "%s is too long for C backend emission",
+        surface_kind != NULL ? surface_kind : "function generated string");
+}
+
 void
 emit_func_decl_named(ASTNode *node, const char *emitted_name,
                      CodeBuf *buf, TranspilerCtx *ctx)
@@ -43,12 +88,19 @@ emit_func_decl_named(ASTNode *node, const char *emitted_name,
     if (node->data.func_decl.return_type != NULL) {
         {
             char *rendered = render_type_name(node->data.func_decl.return_type);
-            snprintf(ctx->current_return_type, sizeof(ctx->current_return_type),
-                "%s", rendered);
+            if (rendered == NULL
+                || !transpiler_func_copy_current_return_type(ctx, rendered)) {
+                free(rendered);
+                transpiler_func_format_too_long(ctx, "function return type");
+                goto emit_func_decl_named_fail;
+            }
             free(rendered);
         }
     } else {
-        snprintf(ctx->current_return_type, sizeof(ctx->current_return_type), "Void");
+        if (!transpiler_func_copy_current_return_type(ctx, "Void")) {
+            transpiler_func_format_too_long(ctx, "function return type");
+            goto emit_func_decl_named_fail;
+        }
     }
 
     for (size_t i = 0; i < node->data.func_decl.param_count; i++) {
@@ -59,10 +111,13 @@ emit_func_decl_named(ASTNode *node, const char *emitted_name,
         bool boundary_slot = false;
         bool secure_slot = false;
         char surface_desc[256];
-        snprintf(surface_desc, sizeof(surface_desc),
-            "function parameter '%s' of '%s'",
-            p != NULL && p->name != NULL ? p->name : "(anonymous)",
-            name != NULL ? name : "(anonymous)");
+        if (!transpiler_func_parameter_surface_desc(surface_desc,
+                sizeof(surface_desc),
+                p != NULL ? p->name : NULL, name)) {
+            transpiler_func_format_too_long(
+                ctx, "function parameter diagnostic surface");
+            goto emit_func_decl_named_fail;
+        }
         pt = transpiler_require_ast_c_type(ctx, p != NULL ? p->type : NULL, surface_desc);
         if (pt == NULL)
             goto emit_func_decl_named_fail;

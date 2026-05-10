@@ -90,6 +90,12 @@ grep -Fq "pgy_compiler_io_boundary_builtin_is_stable(name)" "$ROOT_DIR/src/compi
 ! grep -Fq "io_names[]" "$ROOT_DIR/src/compiler/rir_builder_walk.c"
 grep -Fq "pgy_codegen_claim_slot_spec_compare" "$ROOT_DIR/src/codegen/codegen_slot_type_policy.c"
 grep -Fq "bsearch(name" "$ROOT_DIR/src/codegen/codegen_slot_type_policy.c"
+grep -Fq "PgyCodegenSlotCallSpec specs[]" "$ROOT_DIR/src/codegen/codegen_slot_type_policy.c"
+grep -Fq "pgy_codegen_slot_call_spec_compare" "$ROOT_DIR/src/codegen/codegen_slot_type_policy.c"
+grep -Fq "pgy_hashmap_key_spec_compare" "$ROOT_DIR/src/codegen/codegen_hashmap_key_policy.c"
+grep -Fq "bsearch(effective_name" "$ROOT_DIR/src/codegen/codegen_hashmap_key_policy.c"
+grep -Fq "slot_runtime_fn_spec_compare" "$ROOT_DIR/src/codegen/transpiler_mir_resource_name.c"
+grep -Fq "bsearch(op_name" "$ROOT_DIR/src/codegen/transpiler_mir_resource_name.c"
 grep -Fq "index_keys" "$ROOT_DIR/src/semantic/type_checker.h"
 grep -Fq "metadata_lookup_entry_index" "$ROOT_DIR/src/semantic/type_checker_resolution_metadata.c"
 grep -Fq "metadata_index_insert" "$ROOT_DIR/src/semantic/type_checker_resolution_metadata.c"
@@ -207,6 +213,53 @@ if [[ "$codegen_claim_slot_names" != "$codegen_claim_slot_names_sorted" ]]; then
     echo "codegen claim-slot builtin names must stay sorted for bsearch" >&2
     diff -u <(printf '%s\n' "$codegen_claim_slot_names_sorted") \
         <(printf '%s\n' "$codegen_claim_slot_names") >&2 || true
+    exit 1
+fi
+codegen_slot_call_names="$(
+    sed -n '/PgyCodegenSlotCallSpec specs\[\]/,/^    };/p' \
+        "$ROOT_DIR/src/codegen/codegen_slot_type_policy.c" \
+        | grep -o '"[A-Za-z0-9_]*"' \
+        | tr -d '"'
+)"
+codegen_slot_call_names_sorted="$(
+    printf '%s\n' "$codegen_slot_call_names" | sort
+)"
+if [[ "$codegen_slot_call_names" != "$codegen_slot_call_names_sorted" ]]; then
+    echo "codegen slot call names must stay sorted for bsearch" >&2
+    diff -u <(printf '%s\n' "$codegen_slot_call_names_sorted") \
+        <(printf '%s\n' "$codegen_slot_call_names") >&2 || true
+    exit 1
+fi
+codegen_hashmap_key_names="$(
+    sed -n '/pgy_hashmap_key_specs\[\]/,/^};/p' \
+        "$ROOT_DIR/src/codegen/codegen_hashmap_key_policy.c" \
+        | grep -o '{ "[A-Za-z0-9_]*"' \
+        | grep -o '"[A-Za-z0-9_]*"' \
+        | tr -d '"'
+)"
+codegen_hashmap_key_names_sorted="$(
+    printf '%s\n' "$codegen_hashmap_key_names" | sort
+)"
+if [[ "$codegen_hashmap_key_names" != "$codegen_hashmap_key_names_sorted" ]]; then
+    echo "codegen HashMap key names must stay sorted for bsearch" >&2
+    diff -u <(printf '%s\n' "$codegen_hashmap_key_names_sorted") \
+        <(printf '%s\n' "$codegen_hashmap_key_names") >&2 || true
+    exit 1
+fi
+slot_runtime_fn_names="$(
+    sed -n '/SlotRuntimeFnSpec specs\[\]/,/^    };/p' \
+        "$ROOT_DIR/src/codegen/transpiler_mir_resource_name.c" \
+        | grep -o '{ "[A-Za-z0-9_]*"' \
+        | grep -o '"[A-Za-z0-9_]*"' \
+        | tr -d '"'
+)"
+slot_runtime_fn_names_sorted="$(
+    printf '%s\n' "$slot_runtime_fn_names" | sort
+)"
+if [[ "$slot_runtime_fn_names" != "$slot_runtime_fn_names_sorted" ]]; then
+    echo "transpiler slot runtime op names must stay sorted for bsearch" >&2
+    diff -u <(printf '%s\n' "$slot_runtime_fn_names_sorted") \
+        <(printf '%s\n' "$slot_runtime_fn_names") >&2 || true
     exit 1
 fi
 driver_diag_code_names="$(
@@ -553,8 +606,8 @@ grep -Fq "source-branch-emit" "$ROOT_DIR/src/compiler/mir_lifecycle.c"
 grep -Fq "inst.requires_source_branch_emit" "$ROOT_DIR/src/compiler/mir.c"
 grep -Fq "mir_instruction_record_surface_usage(&inst);" "$ROOT_DIR/src/compiler/mir.c"
 grep -Fq "mir_instruction_record_surface_usage(&inst)" "$ROOT_DIR/src/compiler/mir_base_helpers.c"
-grep -Fq "mir_instruction_record_surface_usage(&inst)" "$ROOT_DIR/src/compiler/mir_cleanup.c"
-grep -Fq "mir_instruction_record_surface_usage(&inst)" "$ROOT_DIR/src/compiler/mir_intent.c"
+grep -Fq "return append_instruction(block, inst)" "$ROOT_DIR/src/compiler/mir_cleanup.c"
+grep -Fq "return append_instruction(block, inst)" "$ROOT_DIR/src/compiler/mir_intent.c"
 grep -Fq "inst.expr0 = ast" "$ROOT_DIR/src/compiler/mir_intent.c"
 grep -Fq "expression payload fact" "$ROOT_DIR/src/compiler/mir_intent_fact.c"
 grep -Fq "rejected_expr_payload" "$ROOT_DIR/src/tests/mir/test_mir_lowering_part_b.cases.h"
@@ -678,7 +731,8 @@ grep -Fq "channel send requires concrete Channel<T> payload metadata" "$ROOT_DIR
 grep -Fq "channel receive requires concrete Channel<T> payload metadata" "$ROOT_DIR/src/codegen/transpiler_spawn_channel_emit.h"
 grep -Fq "constructed_single_arg_is_unknown" "$ROOT_DIR/src/codegen/transpiler_type_mapping.c"
 grep -Fq "constructed_arg_name_is_unknown" "$ROOT_DIR/src/codegen/transpiler_type_mapping.c"
-grep -Fq "PgyArray_%s" "$ROOT_DIR/src/codegen/transpiler_type_mapping.c"
+grep -Fq "transpiler_type_name_join" "$ROOT_DIR/src/codegen/transpiler_type_mapping.c"
+grep -Fq "PgyArray_" "$ROOT_DIR/src/codegen/transpiler_type_mapping.c"
 grep -Fq "strcmp(inner, \"Unknown\") != 0" "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_builtin.h"
 grep -Fq "without concrete Result error type" "$ROOT_DIR/src/codegen/transpiler_match_emit.h"
 grep -Fq "Some(value) without concrete payload type emits diagnostic recovery" "$ROOT_DIR/src/tests/transpile/test_transpile_core_part_a.cases.h"
@@ -901,7 +955,8 @@ grep -Fq "LLVM event invoke could not lower argument expression" "$ROOT_DIR/src/
     "$ROOT_DIR/src/codegen/llvm_expr_event_calls.c" | \
     grep -Fq "LLVMConstInt(ctx->type_i32, 0, 0)"
 grep -Fq "LLVM indexed collection access requires registered runtime function" "$ROOT_DIR/src/codegen/llvm_expr_helpers.c"
-grep -Fq "pgy_array_pop_%s" "$ROOT_DIR/src/codegen/llvm_expr_array_calls.c"
+grep -Fq "llvm_array_format_runtime_name" "$ROOT_DIR/src/codegen/llvm_expr_array_calls.c"
+grep -Fq "\"pgy_array_pop\"" "$ROOT_DIR/src/codegen/llvm_expr_array_calls.c"
 grep -Fq "pgy_array_pop_##Suffix" "$ROOT_DIR/src/runtime/pgy_runtime_lib_array_map_exports.h"
 grep -Fq "LLVM Slice() receiver requires concrete element type metadata" "$ROOT_DIR/src/codegen/llvm_expr_call_methods_domain_slice.c"
 grep -Fq "LLVM Slice() receiver requires registered Slice<T> element metadata" "$ROOT_DIR/src/codegen/llvm_expr_call_methods_domain_slice.c"
@@ -1078,7 +1133,8 @@ grep -Fq "AST_PARTY_DECL" "$ROOT_DIR/src/codegen/llvm_inventory_decl_lookup.c"
 grep -Fq "AST_ROLE_DECL" "$ROOT_DIR/src/codegen/llvm_inventory_decl_lookup.c"
 grep -Fq "AST_ROSTER_DECL" "$ROOT_DIR/src/codegen/llvm_inventory_decl_lookup.c"
 grep -Fq "ChannelClose" "$ROOT_DIR/src/codegen/llvm_expr_task_channel_calls.c"
-grep -Fq "pgy_channel_close_%s" "$ROOT_DIR/src/codegen/llvm_expr_task_channel_calls.c"
+grep -Fq "llvm_task_channel_format_runtime_name" "$ROOT_DIR/src/codegen/llvm_expr_task_channel_calls.c"
+grep -Fq "\"pgy_channel_close\"" "$ROOT_DIR/src/codegen/llvm_expr_task_channel_calls.c"
 grep -Fq "llvm_task_channel_error" "$ROOT_DIR/src/codegen/llvm_expr_task_channel_calls.c"
 grep -Fq "could not lower send value expression" "$ROOT_DIR/src/codegen/llvm_expr_task_channel_calls.c"
 grep -Fq "has unsupported arity for the LLVM task/channel builtin" "$ROOT_DIR/src/codegen/llvm_expr_task_channel_calls.c"

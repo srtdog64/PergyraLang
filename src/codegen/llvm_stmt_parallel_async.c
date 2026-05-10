@@ -5,6 +5,66 @@
  * Parallel / async / select statement emission
  * ================================================================= */
 
+static bool
+llvm_parallel_counter_name(LLVMGenCtx *ctx, char *out, size_t out_size,
+                           const char *prefix, int counter)
+{
+    int written;
+
+    if (out == NULL || out_size == 0 || prefix == NULL)
+        return false;
+    written = snprintf(out, out_size, "%s%d", prefix, counter);
+    if (written >= 0 && (size_t)written < out_size)
+        return true;
+    llvm_set_error(ctx, "LLVM parallel generated name is too long");
+    return false;
+}
+
+static bool
+llvm_parallel_task_name(LLVMGenCtx *ctx, char *out, size_t out_size,
+                        int counter, size_t index)
+{
+    int written;
+
+    if (out == NULL || out_size == 0)
+        return false;
+    written = snprintf(out, out_size, "_pgy_par_%d_%zu", counter, index);
+    if (written >= 0 && (size_t)written < out_size)
+        return true;
+    llvm_set_error(ctx, "LLVM parallel task wrapper name is too long");
+    return false;
+}
+
+static bool
+llvm_async_wrapper_name(LLVMGenCtx *ctx, char *out, size_t out_size,
+                        int counter)
+{
+    int written;
+
+    if (out == NULL || out_size == 0)
+        return false;
+    written = snprintf(out, out_size, "_pgy_async_%d_0", counter);
+    if (written >= 0 && (size_t)written < out_size)
+        return true;
+    llvm_set_error(ctx, "LLVM async wrapper name is too long");
+    return false;
+}
+
+static bool
+llvm_select_channel_runtime_name(LLVMGenCtx *ctx, char *out, size_t out_size,
+                                 const char *prefix, const char *inner)
+{
+    int written;
+
+    if (out == NULL || out_size == 0 || prefix == NULL || inner == NULL)
+        return false;
+    written = snprintf(out, out_size, "%s%s", prefix, inner);
+    if (written >= 0 && (size_t)written < out_size)
+        return true;
+    llvm_set_error(ctx, "LLVM select channel runtime name is too long");
+    return false;
+}
+
 void
 llvm_emit_parallel_block(ASTNode *node, LLVMGenCtx *ctx)
 {
@@ -33,7 +93,9 @@ llvm_emit_parallel_block(ASTNode *node, LLVMGenCtx *ctx)
         ctx_fields[i] = ctx->type_i8ptr;
 
     char ctx_name[64];
-    snprintf(ctx_name, sizeof(ctx_name), "_pgy_par_ctx_%d", ctx->parallel_counter);
+    if (!llvm_parallel_counter_name(ctx, ctx_name, sizeof(ctx_name),
+            "_pgy_par_ctx_", ctx->parallel_counter))
+        return;
     LLVMTypeRef ctx_struct_type = LLVMStructCreateNamed(ctx->context, ctx_name);
     LLVMStructSetBody(ctx_struct_type, ctx_fields, (unsigned)n_captured, 0);
 
@@ -63,8 +125,9 @@ llvm_emit_parallel_block(ASTNode *node, LLVMGenCtx *ctx)
 
     for (size_t i = 0; i < count; i++) {
         char fn_name[64];
-        snprintf(fn_name, sizeof(fn_name), "_pgy_par_%d_%zu",
-                 ctx->parallel_counter, i);
+        if (!llvm_parallel_task_name(ctx, fn_name, sizeof(fn_name),
+                ctx->parallel_counter, i))
+            return;
 
         LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, wrapper_type);
         wrapper_fns[i] = fn;
@@ -253,7 +316,9 @@ llvm_select_emit_bound_receive_case(const LLVMSelectCaseInfo *info,
     if (ctx->has_error || val_ty == NULL)
         return false;
     LLVMValueRef tmp = llvm_create_entry_alloca(ctx, val_ty, llvm_tmp_name(ctx));
-    snprintf(fn_name, sizeof(fn_name), "pgy_channel_try_recv_%s", info->inner);
+    if (!llvm_select_channel_runtime_name(ctx, fn_name, sizeof(fn_name),
+            "pgy_channel_try_recv_", info->inner))
+        return false;
     LLVMFuncEntry *try_fn = llvm_select_required_runtime_function(
         ctx, info->channel, "receive", fn_name);
     if (try_fn == NULL)
@@ -291,7 +356,9 @@ llvm_select_emit_ready_consume_case(const LLVMSelectCaseInfo *info,
                                     LLVMGenCtx *ctx)
 {
     char fn_name[128];
-    snprintf(fn_name, sizeof(fn_name), "pgy_channel_ready_%s", info->inner);
+    if (!llvm_select_channel_runtime_name(ctx, fn_name, sizeof(fn_name),
+            "pgy_channel_ready_", info->inner))
+        return false;
     LLVMFuncEntry *ready_fn = llvm_select_required_runtime_function(
         ctx, info->channel, "readiness", fn_name);
     if (ready_fn == NULL)
@@ -305,8 +372,9 @@ llvm_select_emit_ready_consume_case(const LLVMSelectCaseInfo *info,
     LLVMPositionBuilderAtEnd(ctx->builder, case_bb);
     {
         char recv_name[128];
-        snprintf(recv_name, sizeof(recv_name), "pgy_channel_recv_val_%s",
-                 info->inner);
+        if (!llvm_select_channel_runtime_name(ctx, recv_name, sizeof(recv_name),
+                "pgy_channel_recv_val_", info->inner))
+            return false;
         LLVMFuncEntry *recv_fn = llvm_select_required_runtime_function(
             ctx, info->channel, "consume", recv_name);
         if (recv_fn == NULL)
@@ -377,7 +445,10 @@ llvm_emit_async_block(ASTNode *node, LLVMGenCtx *ctx)
     LLVMTypeRef wrapper_params[] = { ctx->type_i8ptr };
     LLVMTypeRef wrapper_type = LLVMFunctionType(ctx->type_i8ptr, wrapper_params, 1, 0);
     char fn_name[64];
-    snprintf(fn_name, sizeof(fn_name), "_pgy_async_%d_0", ctx->parallel_counter++);
+    if (!llvm_async_wrapper_name(ctx, fn_name, sizeof(fn_name),
+            ctx->parallel_counter))
+        return;
+    ctx->parallel_counter++;
     LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, wrapper_type);
     LLVMBasicBlockRef entry = LLVMAppendBasicBlockInContext(ctx->context, fn, "entry");
     LLVMPositionBuilderAtEnd(ctx->builder, entry);
@@ -447,7 +518,9 @@ llvm_emit_select_stmt(ASTNode *node, LLVMGenCtx *ctx)
     {
         int select_id = ctx->tmp_counter++;
         char rr_name[64];
-        snprintf(rr_name, sizeof(rr_name), "__pgy_select_rr_%d", select_id);
+        if (!llvm_parallel_counter_name(ctx, rr_name, sizeof(rr_name),
+                "__pgy_select_rr_", select_id))
+            return;
 
         LLVMValueRef rr_global = LLVMAddGlobal(ctx->module, ctx->type_i32, rr_name);
         LLVMSetInitializer(rr_global, LLVMConstInt(ctx->type_i32, 0, 0));

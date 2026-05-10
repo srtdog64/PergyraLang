@@ -7,6 +7,23 @@
 #include "codegen_hashmap_key_policy.h"
 
 static bool
+transpiler_collection_copy_type_name(char *out, size_t out_size,
+                                     const char *type_name)
+{
+    size_t len;
+
+    if (out == NULL || out_size == 0 || type_name == NULL)
+        return false;
+
+    len = strlen(type_name);
+    if (len >= out_size)
+        return false;
+
+    memcpy(out, type_name, len + 1);
+    return true;
+}
+
+static bool
 transpiler_require_hashmap_type(TranspilerCtx *ctx, const char *map_type,
                                 const char *operation,
                                 char *key_buf, size_t key_buf_size,
@@ -24,8 +41,18 @@ transpiler_require_hashmap_type(TranspilerCtx *ctx, const char *map_type,
                 ctx, alias_decl->data.type_alias.target_type);
             char *rendered = render_type_name(target);
             if (rendered != NULL) {
-                snprintf(resolved_buf, sizeof(resolved_buf), "%s", rendered);
+                bool copied = transpiler_collection_copy_type_name(
+                    resolved_buf, sizeof(resolved_buf), rendered);
                 free(rendered);
+                if (!copied) {
+                    transpiler_set_backend_error_with_hints(ctx,
+                        PGY_CODE_C_TYPE_UNSUPPORTED,
+                        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                        PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                        "C backend: %s resolved HashMap type is too long",
+                        operation != NULL ? operation : "HashMap operation");
+                    return false;
+                }
                 resolved_type = resolved_buf;
             }
         }
@@ -75,8 +102,19 @@ transpiler_require_unary_collection_type(TranspilerCtx *ctx,
                 ctx, alias_decl->data.type_alias.target_type);
             char *rendered = render_type_name(target);
             if (rendered != NULL) {
-                snprintf(resolved_buf, sizeof(resolved_buf), "%s", rendered);
+                bool copied = transpiler_collection_copy_type_name(
+                    resolved_buf, sizeof(resolved_buf), rendered);
                 free(rendered);
+                if (!copied) {
+                    transpiler_set_backend_error_with_hints(ctx,
+                        PGY_CODE_C_TYPE_UNSUPPORTED,
+                        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                        PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                        "C backend: %s resolved %s type is too long",
+                        operation != NULL ? operation : "collection operation",
+                        family != NULL ? family : "collection");
+                    return false;
+                }
                 resolved_type = resolved_buf;
             }
         }
@@ -88,7 +126,17 @@ transpiler_require_unary_collection_type(TranspilerCtx *ctx,
         && resolved_type[family_len] == '<') {
         const char *inner = slot_inner_type_name(resolved_type);
         if (inner != NULL && inner[0] != '\0') {
-            snprintf(inner_buf, inner_buf_size, "%s", inner);
+            if (!transpiler_collection_copy_type_name(inner_buf,
+                    inner_buf_size, inner)) {
+                transpiler_set_backend_error_with_hints(ctx,
+                    PGY_CODE_C_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                    PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                    "C backend: %s inner %s type is too long",
+                    operation != NULL ? operation : "collection operation",
+                    family != NULL ? family : "collection");
+                return false;
+            }
             if (inner_out != NULL)
                 *inner_out = inner_buf;
             return true;

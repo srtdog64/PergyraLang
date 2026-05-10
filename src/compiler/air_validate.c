@@ -9,22 +9,28 @@
 #include "../semantic/diag_codes.h"
 
 #include <stdarg.h>
-#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 void
 air_set_invariant_error(char **error_message, const char *fmt, ...)
 {
-    char detail[512];
     va_list args;
+    char *detail;
 
     va_start(args, fmt);
-    vsnprintf(detail, sizeof(detail), fmt, args);
+    detail = air_vformat_owned(fmt, args);
     va_end(args);
-    detail[sizeof(detail) - 1] = '\0';
+    if (detail == NULL) {
+        air_set_error(error_message,
+                      PGY_CODE_AIR_INVARIANT_INVALID
+                      ": AIR invariant detail formatting failed");
+        return;
+    }
     air_set_error(error_message,
                   PGY_CODE_AIR_INVARIANT_INVALID ": %s",
                   detail);
+    free(detail);
 }
 
 bool

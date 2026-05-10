@@ -2,6 +2,7 @@
 #define PGY_TRANSPILER_SPECIALIZATION_HELPERS_H
 
 #include "../common/string_compat.h"
+#include "../semantic/diag_codes.h"
 
 #include "transpiler_type_mapping_helpers.h"
 #include "transpiler_role_ability_helpers.h"
@@ -19,6 +20,55 @@ render_type_name_with_bindings(TranspilerCtx *ctx, ASTNode *type_node,
     result = render_type_name_in_ctx(ctx, type_node);
     ctx->generic_binding_count = saved_binding_count;
     return result;
+}
+
+static bool
+transpiler_specialization_copy_spec_name(char *dst, size_t dst_size,
+                                         const char *value)
+{
+    size_t len;
+
+    if (dst == NULL || dst_size == 0 || value == NULL)
+        return false;
+
+    len = strlen(value);
+    if (len >= dst_size)
+        return false;
+
+    memcpy(dst, value, len + 1);
+    return true;
+}
+
+static bool
+transpiler_specialization_append_spec_text(char *dst, size_t dst_size,
+                                           const char *value)
+{
+    size_t used;
+    size_t len;
+
+    if (dst == NULL || dst_size == 0 || value == NULL)
+        return false;
+
+    used = strlen(dst);
+    len = strlen(value);
+    if (used >= dst_size || len >= dst_size - used)
+        return false;
+
+    memcpy(dst + used, value, len + 1);
+    return true;
+}
+
+static void
+transpiler_specialization_spec_name_too_long(TranspilerCtx *ctx,
+                                             const char *surface)
+{
+    transpiler_set_backend_error_with_hints(
+        ctx,
+        PGY_CODE_C_TYPE_UNSUPPORTED,
+        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+        PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+        "generated specialization name is too long while lowering %s",
+        surface != NULL ? surface : "collection specialization");
 }
 
 /*
@@ -52,14 +102,12 @@ ensure_result_specialization_to(TranspilerCtx *ctx, CodeBuf *dst,
     {
         size_t ok_len = strlen(ok_suffix);
         size_t err_len = strlen(err_suffix);
-        if (ok_len >= sizeof(combined))
-            ok_len = sizeof(combined) - 1;
-        memcpy(combined, ok_suffix, ok_len);
-        if (ok_len + 1 < sizeof(combined)) {
-            combined[ok_len++] = '_';
+        if (ok_len + 1 + err_len >= sizeof(combined)) {
+            transpiler_specialization_spec_name_too_long(ctx, ok_type);
+            return;
         }
-        if (ok_len + err_len >= sizeof(combined))
-            err_len = sizeof(combined) - ok_len - 1;
+        memcpy(combined, ok_suffix, ok_len);
+        combined[ok_len++] = '_';
         memcpy(combined + ok_len, err_suffix, err_len);
         combined[ok_len + err_len] = '\0';
     }
@@ -84,12 +132,18 @@ ensure_result_specialization_to(TranspilerCtx *ctx, CodeBuf *dst,
     if (ok_ctype == NULL) ok_ctype = ok_type;
     if (err_ctype == NULL) err_ctype = err_type;
 
-    copy_capped_string(ctx->result_specs_suffix[ctx->result_spec_count],
-                       sizeof(ctx->result_specs_suffix[0]), combined);
-    copy_capped_string(ctx->result_specs_ok_ctype[ctx->result_spec_count],
-                       sizeof(ctx->result_specs_ok_ctype[0]), ok_ctype);
-    copy_capped_string(ctx->result_specs_err_ctype[ctx->result_spec_count],
-                       sizeof(ctx->result_specs_err_ctype[0]), err_ctype);
+    if (!transpiler_specialization_copy_spec_name(
+            ctx->result_specs_suffix[ctx->result_spec_count],
+            sizeof(ctx->result_specs_suffix[0]), combined)
+        || !transpiler_specialization_copy_spec_name(
+            ctx->result_specs_ok_ctype[ctx->result_spec_count],
+            sizeof(ctx->result_specs_ok_ctype[0]), ok_ctype)
+        || !transpiler_specialization_copy_spec_name(
+            ctx->result_specs_err_ctype[ctx->result_spec_count],
+            sizeof(ctx->result_specs_err_ctype[0]), err_ctype)) {
+        transpiler_specialization_spec_name_too_long(ctx, ok_type);
+        return;
+    }
     ctx->result_spec_count++;
 
     codebuf_write(dst,
@@ -149,12 +203,17 @@ ensure_collection_specialization_to(TranspilerCtx *ctx, CodeBuf *dst,
     if (ctype == NULL)
         return;
 
-    snprintf(ctx->collection_specs[ctx->collection_spec_count].kind,
-             sizeof(ctx->collection_specs[ctx->collection_spec_count].kind),
-             "%s", kind);
-    snprintf(ctx->collection_specs[ctx->collection_spec_count].suffix,
-             sizeof(ctx->collection_specs[ctx->collection_spec_count].suffix),
-             "%s", suffix);
+    if (!transpiler_specialization_copy_spec_name(
+            ctx->collection_specs[ctx->collection_spec_count].kind,
+            sizeof(ctx->collection_specs[ctx->collection_spec_count].kind),
+            kind)
+        || !transpiler_specialization_copy_spec_name(
+            ctx->collection_specs[ctx->collection_spec_count].suffix,
+            sizeof(ctx->collection_specs[ctx->collection_spec_count].suffix),
+            suffix)) {
+        transpiler_specialization_spec_name_too_long(ctx, inner_type);
+        return;
+    }
     ctx->collection_spec_count++;
 
     if (strcmp(kind, "List") == 0) {
@@ -210,11 +269,23 @@ ensure_tuple_specialization_to(TranspilerCtx *ctx, CodeBuf *dst, ASTNode *tuple_
         char sane[96];
         sanitize_c_suffix(elem, sane, sizeof(sane));
         if (i > 0) {
-            (void)pergyra_str_append(suffix, sizeof(suffix), "_");
-            (void)pergyra_str_append(elem_names, sizeof(elem_names), " ");
+            if (!transpiler_specialization_append_spec_text(
+                    suffix, sizeof(suffix), "_")
+                || !transpiler_specialization_append_spec_text(
+                    elem_names, sizeof(elem_names), " ")) {
+                transpiler_specialization_spec_name_too_long(ctx, elem);
+                free(elem);
+                return;
+            }
         }
-        (void)pergyra_str_append(suffix, sizeof(suffix), sane);
-        (void)pergyra_str_append(elem_names, sizeof(elem_names), elem);
+        if (!transpiler_specialization_append_spec_text(
+                suffix, sizeof(suffix), sane)
+            || !transpiler_specialization_append_spec_text(
+                elem_names, sizeof(elem_names), elem)) {
+            transpiler_specialization_spec_name_too_long(ctx, elem);
+            free(elem);
+            return;
+        }
         free(elem);
     }
 
@@ -227,10 +298,15 @@ ensure_tuple_specialization_to(TranspilerCtx *ctx, CodeBuf *dst, ASTNode *tuple_
             elem_names);
         return;
     }
-    copy_capped_string(ctx->tuple_specs_suffix[ctx->tuple_spec_count],
-        sizeof(ctx->tuple_specs_suffix[0]), suffix);
-    copy_capped_string(ctx->tuple_specs_elements[ctx->tuple_spec_count],
-        sizeof(ctx->tuple_specs_elements[0]), elem_names);
+    if (!transpiler_specialization_copy_spec_name(
+            ctx->tuple_specs_suffix[ctx->tuple_spec_count],
+            sizeof(ctx->tuple_specs_suffix[0]), suffix)
+        || !transpiler_specialization_copy_spec_name(
+            ctx->tuple_specs_elements[ctx->tuple_spec_count],
+            sizeof(ctx->tuple_specs_elements[0]), elem_names)) {
+        transpiler_specialization_spec_name_too_long(ctx, elem_names);
+        return;
+    }
     ctx->tuple_specs_arity[ctx->tuple_spec_count] = (int)n;
     ctx->tuple_spec_count++;
 

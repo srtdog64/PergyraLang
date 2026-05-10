@@ -22,6 +22,59 @@ llvm_stmt_require_let_type_arg(LLVMGenCtx *ctx, ASTNode *node,
     return false;
 }
 
+static bool
+llvm_let_with_token_name(LLVMGenCtx *ctx, ASTNode *node,
+                         char *out, size_t out_size,
+                         const char *binding_name)
+{
+    int written;
+
+    if (out == NULL || out_size == 0)
+        return false;
+
+    written = snprintf(out, out_size, "%s_token",
+        binding_name != NULL ? binding_name : "");
+    if (written >= 0 && (size_t)written < out_size)
+        return true;
+
+    if (ctx != NULL && !ctx->has_error) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_SPEC_LIMIT,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_REFACTOR_OR_RAISE_LIMIT,
+            "LLVM secure slot token name is too long for binding '%s'",
+            binding_name != NULL ? binding_name : "<binding>");
+    }
+    return false;
+}
+
+static bool
+llvm_let_with_slot_write_name(LLVMGenCtx *ctx, ASTNode *node,
+                              char *out, size_t out_size,
+                              const char *inner_type, bool is_secure)
+{
+    int written;
+
+    if (out == NULL || out_size == 0)
+        return false;
+
+    written = snprintf(out, out_size,
+        is_secure ? "pgy_secure_write_%s" : "pgy_write_%s",
+        inner_type != NULL ? inner_type : "");
+    if (written >= 0 && (size_t)written < out_size)
+        return true;
+
+    if (ctx != NULL && !ctx->has_error) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_SPEC_LIMIT,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_REFACTOR_OR_RAISE_LIMIT,
+            "LLVM slot write runtime symbol is too long for type '%s'",
+            inner_type != NULL ? inner_type : "<type>");
+    }
+    return false;
+}
+
 void
 llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
 {
@@ -146,7 +199,9 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
                     if (is_secure) {
                         LLVMTypeRef token_ty = llvm_secure_token_type(ctx, inner);
                         char token_name[256];
-                        snprintf(token_name, sizeof(token_name), "%s_token", name);
+                        if (!llvm_let_with_token_name(ctx, node, token_name,
+                                sizeof(token_name), name))
+                            return;
                         LLVMValueRef token_alloca = llvm_stmt_create_slot_alloca(ctx, token_ty, token_name);
                         LLVMBuildStore(ctx->builder, LLVMConstNull(token_ty), token_alloca);
                         llvm_scope_declare(ctx, pergyra_strdup(token_name), token_alloca, token_ty);
@@ -181,7 +236,9 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
                 LLVMValueRef token_write_ptr;
                 LLVMValueRef token_read_ptr;
 
-                snprintf(token_name, sizeof(token_name), "%s_token", name);
+                if (!llvm_let_with_token_name(ctx, node, token_name,
+                        sizeof(token_name), name))
+                    return;
                 token_alloca = llvm_stmt_create_slot_alloca(ctx, token_ty, token_name);
                 LLVMBuildStore(ctx->builder, LLVMConstNull(token_ty), token_alloca);
 
@@ -222,14 +279,17 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
                 LLVMValueRef val = llvm_emit_expression(init, ctx);
                 if (val != NULL) {
                     char fn_name[64];
-                    snprintf(fn_name, sizeof(fn_name),
-                        is_secure ? "pgy_secure_write_%s" : "pgy_write_%s", inner);
+                    if (!llvm_let_with_slot_write_name(ctx, init, fn_name,
+                            sizeof(fn_name), inner, is_secure))
+                        return;
                     LLVMFuncEntry *fn = llvm_lookup_function(ctx, fn_name);
                     if (fn != NULL) {
                         if (is_secure) {
                             char token_name[256];
                             LLVMVarEntry *token_var;
-                            snprintf(token_name, sizeof(token_name), "%s_token", name);
+                            if (!llvm_let_with_token_name(ctx, node,
+                                    token_name, sizeof(token_name), name))
+                                return;
                             token_var = llvm_scope_lookup(ctx, token_name);
                             if (token_var != NULL) {
                                 LLVMValueRef args[] = { alloca_val, val, token_var->alloca };

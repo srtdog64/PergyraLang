@@ -2,6 +2,7 @@
 
 #include "llvm_domain_projection_sync_body_helpers.h"
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -10,6 +11,20 @@
 #include "llvm_domain_projection_value_helpers.h"
 #include "llvm_domain_sync_frontier.h"
 #include "llvm_internal_api.h"
+
+static bool
+llvm_projection_sync_field_name(char *out,
+                                size_t out_size,
+                                const char *kind,
+                                const char *slot_name)
+{
+    int written;
+
+    if (out == NULL || out_size == 0 || kind == NULL || slot_name == NULL)
+        return false;
+    written = snprintf(out, out_size, "__projection_%s_%s", kind, slot_name);
+    return written >= 0 && (size_t)written < out_size;
+}
 
 void
 llvm_emit_domain_projection_sync_body(ASTNode *stmt,
@@ -67,8 +82,9 @@ llvm_emit_domain_projection_sync_body(ASTNode *stmt,
             target_slot_name = refresh->data.zone_refresh.object_slot_name;
             if (target_slot_name == NULL)
                 continue;
-            snprintf(field_name, sizeof(field_name), "__projection_dirty_%s",
-                target_slot_name);
+            if (!llvm_projection_sync_field_name(field_name,
+                    sizeof(field_name), "dirty", target_slot_name))
+                continue;
             dirty_index = llvm_class_field_index(decl_cls, field_name);
             if (dirty_index < 0)
                 continue;
@@ -166,11 +182,13 @@ llvm_emit_domain_projection_sync_body(ASTNode *stmt,
             source_index = llvm_class_field_index(decl_cls, source_slot_name);
             {
                 char field_name[256];
-                snprintf(field_name, sizeof(field_name), "__projection_dirty_%s",
-                    target_slot_name);
+                if (!llvm_projection_sync_field_name(field_name,
+                        sizeof(field_name), "dirty", target_slot_name))
+                    continue;
                 dirty_index = llvm_class_field_index(decl_cls, field_name);
-                snprintf(field_name, sizeof(field_name), "__projection_ready_%s",
-                    target_slot_name);
+                if (!llvm_projection_sync_field_name(field_name,
+                        sizeof(field_name), "ready", target_slot_name))
+                    continue;
                 ready_index = llvm_class_field_index(decl_cls, field_name);
             }
             if (target_cls == NULL || source_cls == NULL
@@ -245,11 +263,15 @@ llvm_emit_domain_projection_sync_body(ASTNode *stmt,
                             continue;
                         }
 
-                        snprintf(dep_field_name, sizeof(dep_field_name),
-                            "__projection_dirty_%s", dependent_target_name);
+                        if (!llvm_projection_sync_field_name(dep_field_name,
+                                sizeof(dep_field_name), "dirty",
+                                dependent_target_name))
+                            continue;
                         dep_dirty_index = llvm_class_field_index(decl_cls, dep_field_name);
-                        snprintf(dep_field_name, sizeof(dep_field_name),
-                            "__projection_ready_%s", dependent_target_name);
+                        if (!llvm_projection_sync_field_name(dep_field_name,
+                                sizeof(dep_field_name), "ready",
+                                dependent_target_name))
+                            continue;
                         dep_ready_index = llvm_class_field_index(decl_cls, dep_field_name);
                         if (dep_dirty_index >= 0) {
                             LLVMValueRef dep_dirty_ptr = LLVMBuildStructGEP2(ctx->builder,

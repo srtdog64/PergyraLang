@@ -1,6 +1,58 @@
 #ifdef PGY_LLVM_ENABLED
 #include "llvm_internal.h"
 
+static bool
+llvm_with_token_name(LLVMGenCtx *ctx, ASTNode *node,
+                     char *out, size_t out_size, const char *alias)
+{
+    int written;
+
+    if (out == NULL || out_size == 0)
+        return false;
+
+    written = snprintf(out, out_size, "%s_token",
+        alias != NULL ? alias : "");
+    if (written >= 0 && (size_t)written < out_size)
+        return true;
+
+    if (ctx != NULL && !ctx->has_error) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_SPEC_LIMIT,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_REFACTOR_OR_RAISE_LIMIT,
+            "LLVM with-slot token name is too long for alias '%s'",
+            alias != NULL ? alias : "<alias>");
+    }
+    return false;
+}
+
+static bool
+llvm_with_release_name(LLVMGenCtx *ctx, ASTNode *node,
+                       char *out, size_t out_size,
+                       const char *inner, bool is_secure)
+{
+    int written;
+
+    if (out == NULL || out_size == 0)
+        return false;
+
+    written = snprintf(out, out_size,
+        is_secure ? "pgy_secure_release_%s" : "pgy_release_%s",
+        inner != NULL ? inner : "");
+    if (written >= 0 && (size_t)written < out_size)
+        return true;
+
+    if (ctx != NULL && !ctx->has_error) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_SPEC_LIMIT,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_REFACTOR_OR_RAISE_LIMIT,
+            "LLVM with-slot cleanup runtime symbol is too long for type '%s'",
+            inner != NULL ? inner : "<type>");
+    }
+    return false;
+}
+
 void
 llvm_emit_with_stmt(ASTNode *node, LLVMGenCtx *ctx)
 {
@@ -39,7 +91,11 @@ llvm_emit_with_stmt(ASTNode *node, LLVMGenCtx *ctx)
     if (is_secure) {
         LLVMTypeRef token_ty = llvm_secure_token_type(ctx, inner);
         char token_name[256];
-        snprintf(token_name, sizeof(token_name), "%s_token", alias);
+        if (!llvm_with_token_name(ctx, node, token_name,
+                sizeof(token_name), alias)) {
+            llvm_scope_pop(ctx);
+            return;
+        }
         LLVMValueRef token_alloca = llvm_stmt_create_slot_alloca(ctx,
             token_ty, token_name);
         LLVMBuildStore(ctx->builder, LLVMConstNull(token_ty), token_alloca);
@@ -75,10 +131,10 @@ llvm_emit_with_stmt(ASTNode *node, LLVMGenCtx *ctx)
         llvm_emit_block(node->data.with_stmt.body, ctx);
 
     if (LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(ctx->builder)) == NULL) {
-        snprintf(fn_name, sizeof(fn_name),
-                 is_secure ? "pgy_secure_release_%s" : "pgy_release_%s",
-                 inner);
-        LLVMFuncEntry *release_fn = llvm_lookup_function(ctx, fn_name);
+        LLVMFuncEntry *release_fn = NULL;
+        if (llvm_with_release_name(ctx, node, fn_name, sizeof(fn_name),
+                inner, is_secure))
+            release_fn = llvm_lookup_function(ctx, fn_name);
         if (release_fn != NULL) {
             if (is_secure) {
                 LLVMVarEntry *token_var = llvm_lookup_secure_token_var(ctx,
@@ -100,7 +156,7 @@ llvm_emit_with_stmt(ASTNode *node, LLVMGenCtx *ctx)
                 LLVMBuildCall2(ctx->builder, release_fn->fn_type,
                                release_fn->fn, args, 1, "");
             }
-        } else if (pgy_classify_type(inner) != PGY_TK_UNKNOWN) {
+        } else if (!ctx->has_error && pgy_classify_type(inner) != PGY_TK_UNKNOWN) {
             llvm_set_error_at_with_hints(ctx, node,
                 PGY_CODE_LLVM_TYPE_UNSUPPORTED,
                 PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,

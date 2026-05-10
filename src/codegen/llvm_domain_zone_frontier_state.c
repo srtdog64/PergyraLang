@@ -1,7 +1,36 @@
 #ifdef PGY_LLVM_ENABLED
 #include "llvm_domain_zone_sync_internal.h"
 
+#include <stdbool.h>
 #include <stdio.h>
+
+static bool
+llvm_zone_frontier_prev_name(char *out,
+                             size_t out_size,
+                             const char *kind,
+                             const char *name)
+{
+    int written;
+
+    if (out == NULL || out_size == 0 || kind == NULL || name == NULL)
+        return false;
+    written = snprintf(out, out_size, "zone.prev_%s.%s", kind, name);
+    return written >= 0 && (size_t)written < out_size;
+}
+
+static bool
+llvm_zone_frontier_field_name(char *out,
+                              size_t out_size,
+                              const char *kind,
+                              const char *name)
+{
+    int written;
+
+    if (out == NULL || out_size == 0 || kind == NULL || name == NULL)
+        return false;
+    written = snprintf(out, out_size, "__%s_%s", kind, name);
+    return written >= 0 && (size_t)written < out_size;
+}
 
 void
 llvm_zone_sync_alloc_previous_state(ASTNode *stmt, LLVMGenCtx *ctx,
@@ -21,8 +50,9 @@ llvm_zone_sync_alloc_previous_state(ASTNode *stmt, LLVMGenCtx *ctx,
         if (state == NULL || state->type != AST_ZONE_STATE
             || state->data.zone_state.state_name == NULL)
             continue;
-        snprintf(prev_name, sizeof(prev_name), "zone.prev_state.%s",
-            state->data.zone_state.state_name);
+        if (!llvm_zone_frontier_prev_name(prev_name, sizeof(prev_name),
+                "state", state->data.zone_state.state_name))
+            continue;
         prev_state_addrs[i] = llvm_create_entry_alloca(ctx, ctx->type_i1, prev_name);
     }
     for (size_t i = 0; i < stmt->data.zone_decl.layer_slot_count; i++) {
@@ -31,8 +61,9 @@ llvm_zone_sync_alloc_previous_state(ASTNode *stmt, LLVMGenCtx *ctx,
         if (slot == NULL || slot->type != AST_ZONE_LAYER_SLOT
             || slot->data.zone_layer_slot.slot_name == NULL)
             continue;
-        snprintf(prev_name, sizeof(prev_name), "zone.prev_layer.%s",
-            slot->data.zone_layer_slot.slot_name);
+        if (!llvm_zone_frontier_prev_name(prev_name, sizeof(prev_name),
+                "layer", slot->data.zone_layer_slot.slot_name))
+            continue;
         prev_layer_addrs[i] = llvm_create_entry_alloca(ctx, ctx->type_i1, prev_name);
     }
     if (prev_state_addrs_out != NULL)
@@ -62,7 +93,9 @@ llvm_zone_sync_snapshot_previous_state(ASTNode *stmt,
         state_name = state->data.zone_state.state_name;
         {
             char field_name[256];
-            snprintf(field_name, sizeof(field_name), "__state_%s", state_name);
+            if (!llvm_zone_frontier_field_name(field_name, sizeof(field_name),
+                    "state", state_name))
+                continue;
             field_idx = llvm_class_field_index(decl_cls, field_name);
         }
         if (field_idx < 0)
@@ -84,8 +117,9 @@ llvm_zone_sync_snapshot_previous_state(ASTNode *stmt,
         if (prev_layer_addrs[i] == NULL || slot == NULL || slot->type != AST_ZONE_LAYER_SLOT
             || slot->data.zone_layer_slot.slot_name == NULL)
             continue;
-        snprintf(field_name, sizeof(field_name), "__layer_active_%s",
-            slot->data.zone_layer_slot.slot_name);
+        if (!llvm_zone_frontier_field_name(field_name, sizeof(field_name),
+                "layer_active", slot->data.zone_layer_slot.slot_name))
+            continue;
         field_idx = llvm_class_field_index(decl_cls, field_name);
         if (field_idx < 0)
             continue;
@@ -116,7 +150,9 @@ llvm_zone_sync_reset_state_and_layers(ASTNode *stmt,
         state_name = state->data.zone_state.state_name;
         {
             char field_name[256];
-            snprintf(field_name, sizeof(field_name), "__state_%s", state_name);
+            if (!llvm_zone_frontier_field_name(field_name, sizeof(field_name),
+                    "state", state_name))
+                continue;
             field_idx = llvm_class_field_index(decl_cls, field_name);
         }
         if (field_idx < 0)
@@ -181,8 +217,9 @@ llvm_zone_sync_reset_state_and_layers(ASTNode *stmt,
         if (slot == NULL || slot->type != AST_ZONE_LAYER_SLOT
             || slot->data.zone_layer_slot.slot_name == NULL)
             continue;
-        snprintf(field_name, sizeof(field_name), "__layer_active_%s",
-            slot->data.zone_layer_slot.slot_name);
+        if (!llvm_zone_frontier_field_name(field_name, sizeof(field_name),
+                "layer_active", slot->data.zone_layer_slot.slot_name))
+            continue;
         field_idx = llvm_class_field_index(decl_cls, field_name);
         if (field_idx < 0)
             continue;
@@ -219,7 +256,9 @@ llvm_zone_sync_update_frontier_continue(ASTNode *stmt,
         state_name = state->data.zone_state.state_name;
         {
             char field_name[256];
-            snprintf(field_name, sizeof(field_name), "__state_%s", state_name);
+            if (!llvm_zone_frontier_field_name(field_name, sizeof(field_name),
+                    "state", state_name))
+                continue;
             field_idx = llvm_class_field_index(decl_cls, field_name);
         }
         if (field_idx < 0)
@@ -252,8 +291,9 @@ llvm_zone_sync_update_frontier_continue(ASTNode *stmt,
         if (prev_layer_addrs[i] == NULL || slot == NULL || slot->type != AST_ZONE_LAYER_SLOT
             || slot->data.zone_layer_slot.slot_name == NULL)
             continue;
-        snprintf(field_name, sizeof(field_name), "__layer_active_%s",
-            slot->data.zone_layer_slot.slot_name);
+        if (!llvm_zone_frontier_field_name(field_name, sizeof(field_name),
+                "layer_active", slot->data.zone_layer_slot.slot_name))
+            continue;
         field_idx = llvm_class_field_index(decl_cls, field_name);
         if (field_idx < 0)
             continue;

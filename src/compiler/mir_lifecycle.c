@@ -1,4 +1,5 @@
 #include "mir.h"
+#include "mir_base_helpers.h"
 
 #include <stdint.h>
 #include <stdio.h>
@@ -161,31 +162,40 @@ mir_dump(const MIRProgram *mir, FILE *out)
         }
         for (size_t j = 0; j < routine->block_count; j++) {
             const MIRBasicBlock *block = &routine->blocks[j];
-            const char *label_name = NULL;
-            char source_ast_loc[64] = "<none>";
-            char source_ast_id[32] = "<none>";
-            char label[128];
-            if (routine->name != NULL)
-                snprintf(label, sizeof(label), "_pgy_mir_bb_%s_%zu", routine->name, j);
-            else
-                snprintf(label, sizeof(label), "_pgy_mir_bb_%s_%zu", "(anonymous)", j);
-            if (block->has_source_location) {
-                snprintf(source_ast_loc, sizeof(source_ast_loc), "line %u:%u",
-                         block->source_line, block->source_column);
-                snprintf(source_ast_id, sizeof(source_ast_id), "line-%u-col-%u",
-                         block->source_line, block->source_column);
+            char *label = mir_strdup_fmt("_pgy_mir_bb_%s_%zu",
+                                         routine->name != NULL ? routine->name : "(anonymous)",
+                                         j);
+            char *source_ast_loc = NULL;
+            char *source_ast_id = NULL;
+            if (label == NULL) {
+                fprintf(out, "    invalid: block label allocation failed\n");
+                continue;
             }
-            label_name = label;
+            if (block->has_source_location) {
+                source_ast_loc = mir_strdup_fmt("line %u:%u",
+                                                block->source_line,
+                                                block->source_column);
+                source_ast_id = mir_strdup_fmt("line-%u-col-%u",
+                                               block->source_line,
+                                               block->source_column);
+                if (source_ast_loc == NULL || source_ast_id == NULL) {
+                    fprintf(out, "    invalid: block source-location allocation failed\n");
+                    free(source_ast_loc);
+                    free(source_ast_id);
+                    free(label);
+                    continue;
+                }
+            }
             fprintf(out,
                     "    block[%02zu] label=%s reachable=%s cleanup=%s "
                     "source-hir=%zu source-ast=%s source-ast-id=%s preds=%zu succT=%s succF=%s cleanupSucc=%s instructions=%zu defs=%zu uses=%zu liveIn=%zu liveOut=%zu\n",
                     j,
-                    label_name,
+                    label,
                     block->is_reachable ? "yes" : "no",
                     block->is_cleanup ? "yes" : "no",
                     (size_t)(block->source_hir_block_id),
-                    source_ast_loc,
-                    block->has_source_location ? source_ast_id : "<none>",
+                    source_ast_loc != NULL ? source_ast_loc : "<none>",
+                    source_ast_id != NULL ? source_ast_id : "<none>",
                     block->predecessor_count,
                     block->has_succ_true ? "yes" : "no",
                     block->has_succ_false ? "yes" : "no",
@@ -245,6 +255,9 @@ mir_dump(const MIRProgram *mir, FILE *out)
             }
             if (block->instruction_count > 0 && block->instructions == NULL) {
                 fprintf(out, "      invalid: instruction count without instruction inventory\n");
+                free(source_ast_loc);
+                free(source_ast_id);
+                free(label);
                 continue;
             }
             for (size_t k = 0; k < block->instruction_count; k++) {
@@ -295,6 +308,9 @@ mir_dump(const MIRProgram *mir, FILE *out)
                     fprintf(out, " select-recv-stmt-emit");
                 fprintf(out, "\n");
             }
+            free(source_ast_loc);
+            free(source_ast_id);
+            free(label);
         }
     }
 }

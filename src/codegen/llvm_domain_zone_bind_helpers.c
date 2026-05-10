@@ -12,6 +12,32 @@
 #include "llvm_internal_api.h"
 #include "llvm_inventory_decl_lookup.h"
 
+static bool
+llvm_zone_bind_sync_name(char *out, size_t out_size, const char *name)
+{
+    int written;
+
+    if (out == NULL || out_size == 0 || name == NULL)
+        return false;
+    written = snprintf(out, out_size, "%s_sync", name);
+    return written >= 0 && (size_t)written < out_size;
+}
+
+static bool
+llvm_zone_bind_projection_field_name(char *out,
+                                     size_t out_size,
+                                     const char *kind,
+                                     const char *projection_name)
+{
+    int written;
+
+    if (out == NULL || out_size == 0 || kind == NULL || projection_name == NULL)
+        return false;
+    written = snprintf(out, out_size, "__projection_%s_%s", kind,
+        projection_name);
+    return written >= 0 && (size_t)written < out_size;
+}
+
 static ASTNode *
 llvm_find_nth_bindable_domain_slot(ASTNode **slots, size_t slot_count,
                                    ASTNode **refreshes, size_t refresh_count,
@@ -149,8 +175,9 @@ llvm_zone_bind_effect_layer(ASTNode *zone_decl, LLVMClassTypeEntry *zone_cls,
             tmp_effect, (unsigned)subject_idx, llvm_tmp_name(ctx));
         LLVMBuildStore(ctx->builder, target_value, subject_ptr);
 
-        snprintf(sync_name, sizeof(sync_name), "%s_sync",
-            effect_decl->data.effect_decl.name);
+        if (!llvm_zone_bind_sync_name(sync_name, sizeof(sync_name),
+                effect_decl->data.effect_decl.name))
+            return;
         sync_entry = llvm_lookup_function(ctx, sync_name);
         if (sync_entry != NULL) {
             sync_args[0] = tmp_effect;
@@ -259,10 +286,12 @@ llvm_zone_bind_effect_layer(ASTNode *zone_decl, LLVMClassTypeEntry *zone_cls,
             continue;
         }
 
-        snprintf(dirty_field, sizeof(dirty_field), "__projection_dirty_%s",
-            projection_name);
-        snprintf(ready_field, sizeof(ready_field), "__projection_ready_%s",
-            projection_name);
+        if (!llvm_zone_bind_projection_field_name(dirty_field,
+                sizeof(dirty_field), "dirty", projection_name))
+            continue;
+        if (!llvm_zone_bind_projection_field_name(ready_field,
+                sizeof(ready_field), "ready", projection_name))
+            continue;
         dirty_idx = llvm_class_field_index(effect_cls, dirty_field);
         ready_idx = llvm_class_field_index(effect_cls, ready_field);
         if (dirty_idx >= 0) {
@@ -283,8 +312,9 @@ llvm_zone_bind_effect_layer(ASTNode *zone_decl, LLVMClassTypeEntry *zone_cls,
     {
         char sync_name[256];
         LLVMFuncEntry *sync_entry;
-        snprintf(sync_name, sizeof(sync_name), "%s_sync",
-            effect_decl->data.effect_decl.name);
+        if (!llvm_zone_bind_sync_name(sync_name, sizeof(sync_name),
+                effect_decl->data.effect_decl.name))
+            return;
         sync_entry = llvm_lookup_function(ctx, sync_name);
         if (sync_entry != NULL) {
             LLVMValueRef sync_args[] = { layer_ptr };
@@ -404,10 +434,12 @@ llvm_zone_bind_relation_layer(ASTNode *zone_decl, LLVMClassTypeEntry *zone_cls,
             continue;
         }
 
-        snprintf(dirty_field, sizeof(dirty_field), "__projection_dirty_%s",
-            projection_name);
-        snprintf(ready_field, sizeof(ready_field), "__projection_ready_%s",
-            projection_name);
+        if (!llvm_zone_bind_projection_field_name(dirty_field,
+                sizeof(dirty_field), "dirty", projection_name))
+            continue;
+        if (!llvm_zone_bind_projection_field_name(ready_field,
+                sizeof(ready_field), "ready", projection_name))
+            continue;
         dirty_idx = llvm_class_field_index(relation_cls, dirty_field);
         ready_idx = llvm_class_field_index(relation_cls, ready_field);
         if (dirty_idx >= 0) {
@@ -428,8 +460,9 @@ llvm_zone_bind_relation_layer(ASTNode *zone_decl, LLVMClassTypeEntry *zone_cls,
     {
         char sync_name[256];
         LLVMFuncEntry *sync_entry;
-        snprintf(sync_name, sizeof(sync_name), "%s_sync",
-            relation_decl->data.relation_decl.name);
+        if (!llvm_zone_bind_sync_name(sync_name, sizeof(sync_name),
+                relation_decl->data.relation_decl.name))
+            return;
         sync_entry = llvm_lookup_function(ctx, sync_name);
         if (sync_entry != NULL) {
             LLVMValueRef sync_args[] = { layer_ptr };

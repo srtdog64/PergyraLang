@@ -50,6 +50,18 @@ llvm_channel_expr_error(LLVMGenCtx *ctx, ASTNode *node, const char *message)
     return NULL;
 }
 
+static bool
+llvm_channel_format_runtime_name(char *out, size_t out_size,
+                                 const char *prefix, const char *suffix)
+{
+    int written;
+
+    if (out == NULL || out_size == 0 || prefix == NULL || suffix == NULL)
+        return false;
+    written = snprintf(out, out_size, "%s_%s", prefix, suffix);
+    return written >= 0 && (size_t)written < out_size;
+}
+
 static LLVMVarEntry *
 llvm_channel_required_binding(LLVMGenCtx *ctx, ASTNode *node,
                               ASTNode *channel, const char *operation_name,
@@ -96,7 +108,11 @@ llvm_emit_channel_send_expr(ASTNode *node, LLVMGenCtx *ctx)
 
     LLVMValueRef val = llvm_emit_expression(node->data.channel_send.value, ctx);
     char fname[128];
-    snprintf(fname, sizeof(fname), "pgy_channel_send_%s", suffix);
+    if (!llvm_channel_format_runtime_name(fname, sizeof(fname),
+            "pgy_channel_send", suffix)) {
+        return llvm_channel_expr_error(ctx, node,
+            "LLVM channel send expression runtime function name is too long");
+    }
     LLVMFuncEntry *fn = llvm_lookup_function(ctx, fname);
     if (fn == NULL) {
         llvm_channel_required_runtime_function(ctx, node,
@@ -122,7 +138,11 @@ llvm_emit_channel_recv_expr(ASTNode *node, LLVMGenCtx *ctx)
         return NULL;
 
     char fname[128];
-    snprintf(fname, sizeof(fname), "pgy_channel_recv_val_%s", suffix);
+    if (!llvm_channel_format_runtime_name(fname, sizeof(fname),
+            "pgy_channel_recv_val", suffix)) {
+        return llvm_channel_expr_error(ctx, node,
+            "LLVM channel receive expression runtime function name is too long");
+    }
     LLVMFuncEntry *fn = llvm_lookup_function(ctx, fname);
     if (fn == NULL) {
         llvm_channel_required_runtime_function(ctx, node,

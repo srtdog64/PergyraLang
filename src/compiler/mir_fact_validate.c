@@ -14,6 +14,7 @@ mir_fact_strdup_fmt(const char *fmt, ...)
     va_list args;
     va_list copy;
     int length;
+    int written;
     char *result;
 
     va_start(args, fmt);
@@ -30,8 +31,12 @@ mir_fact_strdup_fmt(const char *fmt, ...)
         va_end(args);
         return NULL;
     }
-    vsnprintf(result, (size_t)length + 1, fmt, args);
+    written = vsnprintf(result, (size_t)length + 1, fmt, args);
     va_end(args);
+    if (written < 0 || written != length) {
+        free(result);
+        return NULL;
+    }
     return result;
 }
 

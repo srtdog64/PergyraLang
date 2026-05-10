@@ -1,6 +1,46 @@
 #ifndef PGY_TRANSPILER_DOMAIN_NOMINAL_EMIT_H
 #define PGY_TRANSPILER_DOMAIN_NOMINAL_EMIT_H
 
+static bool
+transpiler_domain_nominal_surface_desc(char *out, size_t out_size,
+                                       const char *prefix,
+                                       const char *owner_name,
+                                       const char *member_name,
+                                       const char *param_name)
+{
+    int written;
+
+    if (out == NULL || out_size == 0 || prefix == NULL)
+        return false;
+
+    if (param_name != NULL) {
+        written = snprintf(out, out_size, "%s '%s.%s(%s)'",
+            prefix,
+            owner_name != NULL ? owner_name : "(anonymous)",
+            member_name != NULL ? member_name : "(anonymous)",
+            param_name);
+    } else {
+        written = snprintf(out, out_size, "%s '%s.%s'",
+            prefix,
+            owner_name != NULL ? owner_name : "(anonymous)",
+            member_name != NULL ? member_name : "(anonymous)");
+    }
+
+    return written >= 0 && (size_t)written < out_size;
+}
+
+static void
+transpiler_domain_nominal_surface_desc_too_long(TranspilerCtx *ctx,
+                                                const char *surface_kind)
+{
+    transpiler_set_backend_error_with_hints(ctx,
+        PGY_CODE_C_TYPE_UNSUPPORTED,
+        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+        PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+        "%s diagnostic surface is too long for C backend emission",
+        surface_kind != NULL ? surface_kind : "domain nominal");
+}
+
 static void
 emit_included_role_impls(ASTNode *role, TranspilerCtx *ctx)
 {
@@ -83,11 +123,14 @@ emit_ability_decl(ASTNode *node, TranspilerCtx *ctx)
             const char *pt = NULL;
             bool pointer_param = false;
             char surface_desc[256];
-            snprintf(surface_desc, sizeof(surface_desc),
-                "ability method parameter '%s.%s(%s)'",
-                name != NULL ? name : "(anonymous)",
-                method_name != NULL ? method_name : "(anonymous)",
-                p != NULL && p->name != NULL ? p->name : "(anonymous)");
+            if (!transpiler_domain_nominal_surface_desc(surface_desc,
+                    sizeof(surface_desc), "ability method parameter",
+                    name, method_name,
+                    p != NULL ? p->name : NULL)) {
+                transpiler_domain_nominal_surface_desc_too_long(
+                    ctx, "ability method parameter");
+                return;
+            }
             pt = transpiler_require_ast_c_type(ctx, p != NULL ? p->type : NULL, surface_desc);
             if (pt == NULL)
                 return;
@@ -158,11 +201,14 @@ emit_role_decl(ASTNode *node, TranspilerCtx *ctx)
                     continue;
                 const char *pt = NULL;
                 char surface_desc[256];
-                snprintf(surface_desc, sizeof(surface_desc),
-                    "role override parameter '%s.%s(%s)'",
-                    name != NULL ? name : "(anonymous)",
-                    method_name != NULL ? method_name : "(anonymous)",
-                    p != NULL && p->name != NULL ? p->name : "(anonymous)");
+                if (!transpiler_domain_nominal_surface_desc(surface_desc,
+                        sizeof(surface_desc), "role override parameter",
+                        name, method_name,
+                        p != NULL ? p->name : NULL)) {
+                    transpiler_domain_nominal_surface_desc_too_long(
+                        ctx, "role override parameter");
+                    return;
+                }
                 pt = transpiler_require_ast_c_type(ctx, p != NULL ? p->type : NULL, surface_desc);
                 if (pt == NULL)
                     return;
@@ -245,12 +291,14 @@ emit_party_decl(ASTNode *node, TranspilerCtx *ctx)
         ASTNode *shared = node->data.party_decl.shared_fields[i];
         const char *ft = NULL;
         char surface_desc[256];
-        snprintf(surface_desc, sizeof(surface_desc),
-            "party shared field '%s.%s'",
-            name != NULL ? name : "(anonymous)",
-            shared != NULL && shared->data.party_shared.name != NULL
-                ? shared->data.party_shared.name
-                : "(anonymous)");
+        if (!transpiler_domain_nominal_surface_desc(surface_desc,
+                sizeof(surface_desc), "party shared field", name,
+                shared != NULL ? shared->data.party_shared.name : NULL,
+                NULL)) {
+            transpiler_domain_nominal_surface_desc_too_long(
+                ctx, "party shared field");
+            return;
+        }
         ft = transpiler_require_ast_c_type(
             ctx,
             shared != NULL ? shared->data.party_shared.type : NULL,
@@ -348,12 +396,14 @@ emit_roster_decl(ASTNode *node, TranspilerCtx *ctx)
         ASTNode *shared = node->data.roster_decl.shared_fields[i];
         const char *ft = NULL;
         char surface_desc[256];
-        snprintf(surface_desc, sizeof(surface_desc),
-            "roster shared field '%s.%s'",
-            name != NULL ? name : "(anonymous)",
-            shared != NULL && shared->data.party_shared.name != NULL
-                ? shared->data.party_shared.name
-                : "(anonymous)");
+        if (!transpiler_domain_nominal_surface_desc(surface_desc,
+                sizeof(surface_desc), "roster shared field", name,
+                shared != NULL ? shared->data.party_shared.name : NULL,
+                NULL)) {
+            transpiler_domain_nominal_surface_desc_too_long(
+                ctx, "roster shared field");
+            return;
+        }
         ft = transpiler_require_ast_c_type(
             ctx,
             shared != NULL ? shared->data.party_shared.type : NULL,

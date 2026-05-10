@@ -15,10 +15,13 @@ llvm_stmt_render_type_annotation_static(ASTNode *type_ann)
         || type_ann->data.type.generic_args->count == 0)
         return type_ann->data.type.name;
 
-    offset = (size_t)snprintf(buf, sizeof(buf), "%s<",
-                              type_ann->data.type.name);
-    if (offset >= sizeof(buf))
-        offset = sizeof(buf) - 1;
+    {
+        int written = snprintf(buf, sizeof(buf), "%s<",
+                               type_ann->data.type.name);
+        if (written < 0 || (size_t)written >= sizeof(buf))
+            return NULL;
+        offset = (size_t)written;
+    }
     for (size_t i = 0; i < type_ann->data.type.generic_args->count; i++) {
         char *arg = llvm_stmt_render_type_arg(
             type_ann->data.type.generic_args->params[i]);
@@ -31,19 +34,16 @@ llvm_stmt_render_type_annotation_static(ASTNode *type_ann)
                                arg);
         free(arg);
         if (written < 0)
-            break;
+            return NULL;
+        if ((size_t)written >= sizeof(buf) - offset)
+            return NULL;
         offset += (size_t)written;
-        if (offset >= sizeof(buf)) {
-            offset = sizeof(buf) - 1;
-            break;
-        }
     }
     if (offset + 1 < sizeof(buf)) {
         buf[offset++] = '>';
         buf[offset] = '\0';
     } else {
-        buf[sizeof(buf) - 2] = '>';
-        buf[sizeof(buf) - 1] = '\0';
+        return NULL;
     }
     return buf;
 }
@@ -279,7 +279,9 @@ llvm_infer_spawn_future_inner(LLVMGenCtx *ctx, ASTNode *spawn_expr)
                 call->data.call.arguments[i]);
             if (actual_type == NULL || actual_type[0] == '\0')
                 continue;
-            snprintf(buf, sizeof(buf), "%s", actual_type);
+            if (strlen(actual_type) >= sizeof(buf))
+                return NULL;
+            memcpy(buf, actual_type, strlen(actual_type) + 1);
             return buf;
         }
     }

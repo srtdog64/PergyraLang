@@ -5,6 +5,33 @@
 #include "llvm_inventory_decl_lookup.h"
 #include "domain_frontier_policy.h"
 
+static bool
+llvm_world_frontier_field_name(char *out,
+                               size_t out_size,
+                               const char *kind,
+                               const char *name)
+{
+    int written;
+
+    if (out == NULL || out_size == 0 || kind == NULL || name == NULL)
+        return false;
+    written = snprintf(out, out_size, "__%s_%s", kind, name);
+    return written >= 0 && (size_t)written < out_size;
+}
+
+static bool
+llvm_world_frontier_sync_name(char *out,
+                              size_t out_size,
+                              const char *zone_type)
+{
+    int written;
+
+    if (out == NULL || out_size == 0 || zone_type == NULL)
+        return false;
+    written = snprintf(out, out_size, "%s_sync", zone_type);
+    return written >= 0 && (size_t)written < out_size;
+}
+
 static ASTNode *
 llvm_world_frontier_lookup_zone(void *ctx, const char *zone_name)
 {
@@ -143,10 +170,12 @@ llvm_world_sync_emit_frontier(ASTNode *stmt, LLVMClassTypeEntry *decl_cls,
             || zone->data.world_zone.slot_name == NULL)
             continue;
         zone_idx = llvm_class_field_index(decl_cls, zone->data.world_zone.slot_name);
-        snprintf(dirty_field, sizeof(dirty_field), "__zone_dirty_%s",
-            zone->data.world_zone.slot_name);
-        snprintf(seen_field, sizeof(seen_field), "__zone_seen_generation_%s",
-            zone->data.world_zone.slot_name);
+        if (!llvm_world_frontier_field_name(dirty_field, sizeof(dirty_field),
+                "zone_dirty", zone->data.world_zone.slot_name))
+            continue;
+        if (!llvm_world_frontier_field_name(seen_field, sizeof(seen_field),
+                "zone_seen_generation", zone->data.world_zone.slot_name))
+            continue;
         dirty_idx = llvm_class_field_index(decl_cls, dirty_field);
         seen_idx = llvm_class_field_index(decl_cls, seen_field);
         self_ptr = LLVMGetParam(sync_fn, 0);
@@ -156,8 +185,9 @@ llvm_world_sync_emit_frontier(ASTNode *stmt, LLVMClassTypeEntry *decl_cls,
             LLVMClassTypeEntry *zone_cls = llvm_lookup_class(ctx, zone->data.world_zone.zone_type);
             char sync_name[256];
             LLVMFuncEntry *zone_sync;
-            snprintf(sync_name, sizeof(sync_name), "%s_sync",
-                zone->data.world_zone.zone_type);
+            if (!llvm_world_frontier_sync_name(sync_name, sizeof(sync_name),
+                    zone->data.world_zone.zone_type))
+                continue;
             zone_sync = llvm_lookup_function(ctx, sync_name);
             if (zone_cls == NULL || zone_sync == NULL)
                 continue;
@@ -282,8 +312,9 @@ llvm_world_sync_emit_frontier(ASTNode *stmt, LLVMClassTypeEntry *decl_cls,
             || state->data.world_state.state_name == NULL)
             continue;
         slot_name = state->data.world_state.zone_slot_name;
-        snprintf(state_field, sizeof(state_field), "__zone_state_%s",
-            state->data.world_state.state_name);
+        if (!llvm_world_frontier_field_name(state_field, sizeof(state_field),
+                "zone_state", state->data.world_state.state_name))
+            continue;
         state_idx = llvm_class_field_index(decl_cls, state_field);
         if (state_idx < 0)
             continue;
@@ -293,7 +324,9 @@ llvm_world_sync_emit_frontier(ASTNode *stmt, LLVMClassTypeEntry *decl_cls,
         prev_state_val = LLVMBuildLoad2(ctx->builder, ctx->type_i1,
             state_ptr, llvm_tmp_name(ctx));
         if (slot_name != NULL) {
-            snprintf(active_field, sizeof(active_field), "__zone_active_%s", slot_name);
+            if (!llvm_world_frontier_field_name(active_field,
+                    sizeof(active_field), "zone_active", slot_name))
+                continue;
             active_idx = llvm_class_field_index(decl_cls, active_field);
             if (active_idx >= 0) {
                 active_ptr = LLVMBuildStructGEP2(ctx->builder, decl_cls->struct_type,
@@ -317,11 +350,15 @@ llvm_world_sync_emit_frontier(ASTNode *stmt, LLVMClassTypeEntry *decl_cls,
                     continue;
                 if (llvm_world_sync_has_zone_slot(stmt, input_name)) {
                     char input_field[256];
-                    snprintf(input_field, sizeof(input_field), "__zone_active_%s", input_name);
+                    if (!llvm_world_frontier_field_name(input_field,
+                            sizeof(input_field), "zone_active", input_name))
+                        continue;
                     input_idx = llvm_class_field_index(decl_cls, input_field);
                 } else {
                     char input_field[256];
-                    snprintf(input_field, sizeof(input_field), "__zone_state_%s", input_name);
+                    if (!llvm_world_frontier_field_name(input_field,
+                            sizeof(input_field), "zone_state", input_name))
+                        continue;
                     input_idx = llvm_class_field_index(decl_cls, input_field);
                 }
                 if (input_idx < 0)
@@ -359,16 +396,22 @@ llvm_world_sync_emit_frontier(ASTNode *stmt, LLVMClassTypeEntry *decl_cls,
 
                 switch (state->data.world_state.source_kind) {
                 case WORLD_STATE_SOURCE_PROJECTION:
-                    snprintf(detail_field, sizeof(detail_field), "__projection_ready_%s",
-                        state->data.world_state.detail_name);
+                    if (!llvm_world_frontier_field_name(detail_field,
+                            sizeof(detail_field), "projection_ready",
+                            state->data.world_state.detail_name))
+                        detail_field[0] = '\0';
                     break;
                 case WORLD_STATE_SOURCE_LAYER:
-                    snprintf(detail_field, sizeof(detail_field), "__layer_active_%s",
-                        state->data.world_state.detail_name);
+                    if (!llvm_world_frontier_field_name(detail_field,
+                            sizeof(detail_field), "layer_active",
+                            state->data.world_state.detail_name))
+                        detail_field[0] = '\0';
                     break;
                 case WORLD_STATE_SOURCE_STATE:
-                    snprintf(detail_field, sizeof(detail_field), "__state_%s",
-                        state->data.world_state.detail_name);
+                    if (!llvm_world_frontier_field_name(detail_field,
+                            sizeof(detail_field), "state",
+                            state->data.world_state.detail_name))
+                        detail_field[0] = '\0';
                     break;
                 case WORLD_STATE_SOURCE_ZONE:
                 default:
@@ -444,8 +487,10 @@ llvm_world_sync_emit_frontier(ASTNode *stmt, LLVMClassTypeEntry *decl_cls,
             if (zone == NULL || zone->type != AST_WORLD_ZONE
                 || zone->data.world_zone.slot_name == NULL)
                 continue;
-            snprintf(dirty_field, sizeof(dirty_field), "__zone_dirty_%s",
-                zone->data.world_zone.slot_name);
+            if (!llvm_world_frontier_field_name(dirty_field,
+                    sizeof(dirty_field), "zone_dirty",
+                    zone->data.world_zone.slot_name))
+                continue;
             dirty_idx = llvm_class_field_index(decl_cls, dirty_field);
             if (dirty_idx < 0)
                 continue;

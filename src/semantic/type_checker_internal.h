@@ -67,6 +67,11 @@ void semantic_record_callee_body_summary(SemanticContext *ctx,
 void semantic_record_callable_decl_summary(SemanticContext *ctx,
                                            ASTNode *callable_decl,
                                            uint32_t declared_effects);
+bool semantic_format_secure_token_name(char *out,
+                                       size_t out_size,
+                                       const char *slot_name,
+                                       ASTNode *site,
+                                       SemanticContext *ctx);
 void effect_mask_to_string(uint32_t mask, char *buf, size_t buf_size);
 Type *create_overlay_nominal_type(const char *name);
 size_t overlay_field_count(ASTNode *decl);

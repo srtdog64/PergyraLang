@@ -3,6 +3,62 @@
 
 /* Class declaration lowering owner. Included after generic class specialization helpers. */
 
+static bool
+transpiler_class_surface_desc(char *out, size_t out_size,
+                              const char *surface_kind,
+                              const char *class_name,
+                              const char *member_name,
+                              const char *param_name)
+{
+    int written;
+
+    if (out == NULL || out_size == 0 || surface_kind == NULL)
+        return false;
+
+    if (param_name != NULL) {
+        written = snprintf(out, out_size, "%s '%s.%s(%s)'",
+            surface_kind,
+            class_name != NULL ? class_name : "(anonymous)",
+            member_name != NULL ? member_name : "(anonymous)",
+            param_name);
+    } else {
+        written = snprintf(out, out_size, "%s '%s.%s'",
+            surface_kind,
+            class_name != NULL ? class_name : "(anonymous)",
+            member_name != NULL ? member_name : "(anonymous)");
+    }
+
+    return written >= 0 && (size_t)written < out_size;
+}
+
+static bool
+transpiler_class_method_emit_name(char *out, size_t out_size,
+                                  const char *class_name,
+                                  const char *method_name)
+{
+    int written;
+
+    if (out == NULL || out_size == 0)
+        return false;
+
+    written = snprintf(out, out_size, "%s_%s",
+        class_name != NULL ? class_name : "(anonymous)",
+        method_name != NULL ? method_name : "(anonymous)");
+
+    return written >= 0 && (size_t)written < out_size;
+}
+
+static void
+transpiler_class_format_too_long(TranspilerCtx *ctx, const char *surface_kind)
+{
+    transpiler_set_backend_error_with_hints(ctx,
+        PGY_CODE_C_TYPE_UNSUPPORTED,
+        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+        PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+        "%s is too long for C backend emission",
+        surface_kind != NULL ? surface_kind : "class generated name");
+}
+
 void
 emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
 {
@@ -39,10 +95,12 @@ emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
         ClassField *f = node->data.class_decl.fields[i];
         const char *ft = NULL;
         char surface_desc[256];
-        snprintf(surface_desc, sizeof(surface_desc),
-            "class field '%s.%s'",
-            name != NULL ? name : "(anonymous)",
-            f != NULL && f->name != NULL ? f->name : "(anonymous)");
+        if (!transpiler_class_surface_desc(surface_desc,
+                sizeof(surface_desc), "class field", name,
+                f != NULL ? f->name : NULL, NULL)) {
+            transpiler_class_format_too_long(ctx, "class field diagnostic surface");
+            return;
+        }
         ft = transpiler_require_ast_c_type(ctx, f != NULL ? f->type : NULL, surface_desc);
         if (ft == NULL)
             return;
@@ -103,8 +161,11 @@ emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
         }
         if (mir_method != NULL) {
             char emitted_name[256];
-            snprintf(emitted_name, sizeof(emitted_name), "%s_%s", name,
-                method_name != NULL ? method_name : "(anonymous)");
+            if (!transpiler_class_method_emit_name(emitted_name,
+                    sizeof(emitted_name), name, method_name)) {
+                transpiler_class_format_too_long(ctx, "class method emitted name");
+                return;
+            }
             emit_func_decl_from_mir_named(method, mir_method, emitted_name, ctx->out, ctx);
             continue;
         }
@@ -129,11 +190,13 @@ emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
                 continue;
             const char *pt = NULL;
             char surface_desc[256];
-            snprintf(surface_desc, sizeof(surface_desc),
-                "class method parameter '%s.%s(%s)'",
-                name != NULL ? name : "(anonymous)",
-                method_name != NULL ? method_name : "(anonymous)",
-                p != NULL && p->name != NULL ? p->name : "(anonymous)");
+            if (!transpiler_class_surface_desc(surface_desc,
+                    sizeof(surface_desc), "class method parameter", name,
+                    method_name, p != NULL ? p->name : NULL)) {
+                transpiler_class_format_too_long(
+                    ctx, "class method parameter diagnostic surface");
+                return;
+            }
             pt = transpiler_require_ast_c_type(ctx, p != NULL ? p->type : NULL, surface_desc);
             if (pt == NULL)
                 return;

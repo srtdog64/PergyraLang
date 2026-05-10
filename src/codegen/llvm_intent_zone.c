@@ -17,6 +17,20 @@ llvm_intent_zone_binding_type_name(LLVMGenCtx *ctx, const char *alias)
     return llvm_lookup_var_class(ctx, alias);
 }
 
+static bool
+llvm_intent_zone_sync_name(char *out,
+    size_t out_size,
+    const char *zone_type_name)
+{
+    int written;
+
+    if (out == NULL || out_size == 0 || zone_type_name == NULL)
+        return false;
+
+    written = snprintf(out, out_size, "%s_sync", zone_type_name);
+    return written >= 0 && (size_t)written < out_size;
+}
+
 const char *
 llvm_resolve_intent_zone_slot_name_for_zone(LLVMGenCtx *ctx, ASTNode *intent,
                                             const char *zone_type_name, const char *alias)
@@ -207,14 +221,22 @@ llvm_emit_intent_step_bind_bound_zone(LLVMGenCtx *ctx,
             }
         }
 
-        snprintf(from_sync_name, sizeof(from_sync_name), "%s_sync", from_zone_type_name);
+        if (!llvm_intent_zone_sync_name(from_sync_name,
+                sizeof(from_sync_name), from_zone_type_name)) {
+            llvm_set_error(ctx, "from-zone sync function name is too long");
+            return;
+        }
         from_sync_fn = llvm_lookup_function(ctx, from_sync_name);
         if (from_sync_fn != NULL) {
             LLVMValueRef args[] = { from_zone_ptr };
             LLVMBuildCall2(ctx->builder, from_sync_fn->fn_type, from_sync_fn->fn, args, 1, "");
         }
         if (strcmp(from_alias, zone_alias) != 0 || strcmp(from_zone_type_name, zone_type_name) != 0) {
-            snprintf(sync_name, sizeof(sync_name), "%s_sync", zone_type_name);
+            if (!llvm_intent_zone_sync_name(sync_name, sizeof(sync_name),
+                    zone_type_name)) {
+                llvm_set_error(ctx, "zone sync function name is too long");
+                return;
+            }
             sync_fn = llvm_lookup_function(ctx, sync_name);
             if (sync_fn != NULL) {
                 LLVMValueRef args[] = { zone_ptr };
@@ -281,7 +303,11 @@ llvm_emit_intent_step_bind_bound_zone(LLVMGenCtx *ctx,
         }
     }
 
-    snprintf(sync_name, sizeof(sync_name), "%s_sync", zone_type_name);
+    if (!llvm_intent_zone_sync_name(sync_name, sizeof(sync_name),
+            zone_type_name)) {
+        llvm_set_error(ctx, "zone sync function name is too long");
+        return;
+    }
     sync_fn = llvm_lookup_function(ctx, sync_name);
     if (sync_fn != NULL) {
         LLVMValueRef args[] = { zone_ptr };
@@ -410,7 +436,11 @@ llvm_emit_intent_step_sync_effective_zone(LLVMGenCtx *ctx,
         return;
 
     zone_ptr = LLVMBuildLoad2(ctx->builder, zone_var->type, zone_var->alloca, llvm_tmp_name(ctx));
-    snprintf(sync_name, sizeof(sync_name), "%s_sync", zone_type_name);
+    if (!llvm_intent_zone_sync_name(sync_name, sizeof(sync_name),
+            zone_type_name)) {
+        llvm_set_error(ctx, "zone sync function name is too long");
+        return;
+    }
     sync_fn = llvm_lookup_function(ctx, sync_name);
     if (sync_fn != NULL) {
         LLVMValueRef args[] = { zone_ptr };

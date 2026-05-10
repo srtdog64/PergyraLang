@@ -3,9 +3,12 @@
 
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdarg.h>
 
 #include "air.h"
 
+char       *air_vformat_owned(const char *fmt, va_list args);
+char       *air_format_owned(const char *fmt, ...);
 void        air_set_error(char **error_message, const char *fmt, ...);
 void        air_set_invariant_error(char **error_message, const char *fmt, ...);
 bool        air_next_capacity(size_t *capacity, size_t initial, size_t elem_size);

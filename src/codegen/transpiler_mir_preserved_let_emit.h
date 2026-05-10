@@ -2,6 +2,7 @@
 #define PERGYRA_TRANSPILER_MIR_PRESERVED_LET_EMIT_H
 
 #include "transpiler_mir_expr_ssa.h"
+#include "transpiler_mir_reason.h"
 
 /* Preserved source let emission owner for MIR blocks. */
 static bool
@@ -110,7 +111,7 @@ transpiler_emit_mir_preserved_let_stmt(CodeBuf *buf,
             free(rhs);
             free(rendered_type);
             if (reason != NULL && reason_cap > 0) {
-                snprintf(reason, reason_cap,
+                transpiler_mir_reasonf(reason, reason_cap,
                          "MIR block %zu emission failed: unable to materialize preserved let-binding '%s'",
                          block->id, stmt->data.let_decl.name);
             }

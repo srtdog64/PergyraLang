@@ -13,6 +13,7 @@ mir_type_strdup_fmt(const char *fmt, ...)
     va_list args;
     va_list copy;
     int length;
+    int written;
     char *result;
 
     va_start(args, fmt);
@@ -29,9 +30,38 @@ mir_type_strdup_fmt(const char *fmt, ...)
         va_end(args);
         return NULL;
     }
-    vsnprintf(result, (size_t)length + 1, fmt, args);
+    written = vsnprintf(result, (size_t)length + 1, fmt, args);
     va_end(args);
+    if (written < 0 || written != length) {
+        free(result);
+        return NULL;
+    }
     return result;
+}
+
+static bool
+mir_type_append_owned(char **dst, const char *suffix)
+{
+    size_t dst_len;
+    size_t suffix_len;
+    char *grown;
+
+    if (dst == NULL || *dst == NULL)
+        return false;
+    if (suffix == NULL)
+        suffix = "";
+
+    dst_len = strlen(*dst);
+    suffix_len = strlen(suffix);
+    if (suffix_len > ((size_t)-1) - dst_len - 1)
+        return false;
+
+    grown = realloc(*dst, dst_len + suffix_len + 1);
+    if (grown == NULL)
+        return false;
+    memcpy(grown + dst_len, suffix, suffix_len + 1);
+    *dst = grown;
+    return true;
 }
 
 static bool
@@ -161,27 +191,34 @@ mir_render_type_name(ASTNode *type_node)
     if (type_node == NULL)
         return pergyra_strdup("Int");
     if (type_node->type == AST_TYPE) {
-        size_t cap = 256;
-        char *buf = calloc(cap, 1);
-        if (buf == NULL)
-            return NULL;
-        snprintf(buf, cap, "%s", type_node->data.type.name != NULL
+        char *result = pergyra_strdup(type_node->data.type.name != NULL
             ? type_node->data.type.name : "Int");
+        if (result == NULL)
+            return NULL;
         if (type_node->data.type.generic_args != NULL
             && type_node->data.type.generic_args->count > 0) {
-            pergyra_str_append(buf, cap, "<");
+            if (!mir_type_append_owned(&result, "<")) {
+                free(result);
+                return NULL;
+            }
             for (size_t i = 0; i < type_node->data.type.generic_args->count; i++) {
                 GenericParam *param = type_node->data.type.generic_args->params[i];
                 char *inner = mir_render_type_name(
                     param != NULL ? param->constraint : NULL);
-                if (i > 0)
-                    pergyra_str_append(buf, cap, ",");
-                pergyra_str_append(buf, cap, inner != NULL ? inner : "Int");
+                if ((i > 0 && !mir_type_append_owned(&result, ","))
+                    || !mir_type_append_owned(&result, inner != NULL ? inner : "Int")) {
+                    free(inner);
+                    free(result);
+                    return NULL;
+                }
                 free(inner);
             }
-            pergyra_str_append(buf, cap, ">");
+            if (!mir_type_append_owned(&result, ">")) {
+                free(result);
+                return NULL;
+            }
         }
-        return buf;
+        return result;
     }
     if (type_node->type == AST_CHANNEL_TYPE) {
         char *inner = mir_render_type_name(type_node->data.channel_type.element_type);

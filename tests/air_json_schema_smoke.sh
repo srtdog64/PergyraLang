@@ -78,6 +78,7 @@ for required in \
     '"runtime_frontier_policy"' \
     '"schema":"pgy.runtime.frontier-policy.v1"' \
     '"subject":"bounded-frontier-pass-limit"' \
+    '"fact_count":9' \
     '"intents"' \
     '"who_from_intent_default"' \
     '"who_from_on_receiver"' \
@@ -156,7 +157,7 @@ assert data["observability"]["trace_schema"] == "pgy.intent.trace.v1"
 assert data["observability"]["surfaces"] == ["last", "history", "active", "recent"]
 assert data["runtime_frontier_policy"]["schema"] == "pgy.runtime.frontier-policy.v1"
 assert data["runtime_frontier_policy"]["subject"] == "bounded-frontier-pass-limit"
-assert data["runtime_frontier_policy"]["fact_count"] == 8
+assert data["runtime_frontier_policy"]["fact_count"] == 9
 assert all("who_from_intent_default" in intent for intent in data["intents"])
 assert all("who_from_on_receiver" in intent for intent in data["intents"])
 assert all("who_from_single_participant" in intent for intent in data["intents"])

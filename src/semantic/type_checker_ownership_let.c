@@ -440,7 +440,9 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
         }
 
         if (decl_type->data.slot.is_secure) {
-            snprintf(token_name_buf, sizeof(token_name_buf), "%s_token", name);
+            if (!semantic_format_secure_token_name(
+                    token_name_buf, sizeof(token_name_buf), name, node, ctx))
+                return !ctx->has_error;
             paired_token = token_name_buf;
         }
         sym = symbol_create_slot(name, decl_type,

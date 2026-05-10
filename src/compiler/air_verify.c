@@ -8,6 +8,7 @@
 
 #include "../semantic/diag_codes.h"
 
+#include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -91,57 +92,92 @@ air_append_drift(AIRProgram *air,
 }
 
 static bool
-air_format_authority_names(const AIRBoundaryNode *boundary,
-                           char *out,
-                           size_t out_size)
+air_append_driftf(AIRProgram *air,
+                  AIRDriftKind kind,
+                  size_t intent_index,
+                  size_t boundary_index,
+                  char **error_message,
+                  const char *fmt,
+                  ...)
 {
-    size_t used = 0;
-    bool emitted = false;
+    va_list args;
+    char *message;
+    bool ok;
 
-    if (out == NULL || out_size == 0)
+    va_start(args, fmt);
+    message = air_vformat_owned(fmt, args);
+    va_end(args);
+    if (message == NULL) {
+        air_set_error(error_message, "AIR drift message formatting failed");
         return false;
-    out[0] = '\0';
+    }
+
+    ok = air_append_drift(air, kind, intent_index, boundary_index,
+                          message, error_message);
+    free(message);
+    return ok;
+}
+
+static char *
+air_format_authority_names_owned(const AIRBoundaryNode *boundary)
+{
+    size_t total = 1;
+    bool emitted = false;
+    char *out;
+    size_t used = 0;
+
     if (boundary == NULL || boundary->authority_names == NULL)
-        return false;
+        return NULL;
 
     for (size_t i = 0; i < boundary->authority_name_count; i++) {
         const char *name = boundary->authority_names[i];
-        int written;
-
         if (name == NULL || name[0] == '\0')
             continue;
-        written = snprintf(out + used,
-                           out_size - used,
-                           "%s%s",
-                           emitted ? ", " : "",
-                           name);
-        if (written < 0)
-            return emitted;
-        if ((size_t)written >= out_size - used) {
-            out[out_size - 1] = '\0';
-            return true;
-        }
-        used += (size_t)written;
+        if (emitted && total > SIZE_MAX - 2)
+            return NULL;
+        if (emitted)
+            total += 2;
+        if (strlen(name) > SIZE_MAX - total)
+            return NULL;
+        total += strlen(name);
         emitted = true;
     }
-    return emitted;
+    if (!emitted)
+        return NULL;
+
+    out = (char *)malloc(total);
+    if (out == NULL)
+        return NULL;
+    out[0] = '\0';
+    emitted = false;
+    for (size_t i = 0; i < boundary->authority_name_count; i++) {
+        const char *name = boundary->authority_names[i];
+        size_t len;
+        if (name == NULL || name[0] == '\0')
+            continue;
+        if (emitted) {
+            memcpy(out + used, ", ", 2);
+            used += 2;
+        }
+        len = strlen(name);
+        memcpy(out + used, name, len);
+        used += len;
+        out[used] = '\0';
+        emitted = true;
+    }
+    return out;
 }
 
-static void
-air_format_boundary_provenance(const AIRIntentNode *intent,
-                               const AIRBoundaryNode *boundary,
-                               char *out,
-                               size_t out_size)
+static char *
+air_format_boundary_provenance_owned(const AIRIntentNode *intent,
+                                     const AIRBoundaryNode *boundary)
 {
     const char *source_provenance;
     const char *who_provenance;
     const char *authority_provenance;
 
-    if (out == NULL || out_size == 0)
-        return;
-    out[0] = '\0';
     if (intent == NULL || boundary == NULL)
-        return;
+        return air_strdup_owned("");
 
     if (boundary->source_from_intent_default && boundary->source_from_transfer)
         source_provenance = "intent-default+transfer";
@@ -167,16 +203,14 @@ air_format_boundary_provenance(const AIRIntentNode *intent,
         authority_provenance = "action-inherited";
     else
         authority_provenance = boundary->authority_required ? "explicit" : "none";
-    snprintf(out,
-             out_size,
-             "; owner=%s step=%s boundary_source=%s source_provenance=%s who_provenance=%s authority_provenance=%s",
-             intent->intent_owner != NULL ? intent->intent_owner : "<intent>",
-             intent->step_name != NULL ? intent->step_name : "<step>",
-             boundary->source_name != NULL ? boundary->source_name : "<boundary>",
-             source_provenance,
-             who_provenance,
-             authority_provenance);
-    out[out_size - 1] = '\0';
+    return air_format_owned(
+        "; owner=%s step=%s boundary_source=%s source_provenance=%s who_provenance=%s authority_provenance=%s",
+        intent->intent_owner != NULL ? intent->intent_owner : "<intent>",
+        intent->step_name != NULL ? intent->step_name : "<step>",
+        boundary->source_name != NULL ? boundary->source_name : "<boundary>",
+        source_provenance,
+        who_provenance,
+        authority_provenance);
 }
 
 bool
@@ -190,43 +224,42 @@ air_verify(AIRProgram *air, char **error_message)
     for (size_t i = 0; i < air->boundary_count; i++) {
         AIRBoundaryNode *boundary = &air->boundaries[i];
         AIRIntentNode *intent = &air->intents[boundary->intent_index];
-        char provenance[256];
-        air_format_boundary_provenance(intent, boundary, provenance, sizeof(provenance));
+        char *provenance = air_format_boundary_provenance_owned(intent, boundary);
+        if (provenance == NULL) {
+            air_set_error(error_message, "AIR boundary provenance formatting failed");
+            return false;
+        }
         if (air_sync_conflicts(intent->sync_class, boundary->sync_class)) {
-            char message[512];
-            snprintf(message,
-                     sizeof(message),
-                     PGY_CODE_SEM_INTENT_BOUNDARY_DRIFT
-                     ": intent sync class conflicts with boundary implementation sync class%s",
-                     provenance);
-            if (!air_append_drift(air,
-                                  AIR_DRIFT_SYNC_ASYNC_CONFLICT,
-                                  boundary->intent_index,
-                                  i,
-                                  message,
-                                  error_message)) {
+            if (!air_append_driftf(
+                    air,
+                    AIR_DRIFT_SYNC_ASYNC_CONFLICT,
+                    boundary->intent_index,
+                    i,
+                    error_message,
+                    PGY_CODE_SEM_INTENT_BOUNDARY_DRIFT
+                    ": intent sync class conflicts with boundary implementation sync class%s",
+                    provenance)) {
+                free(provenance);
                 return false;
             }
         }
         if (air->strict_evidence
             && air_boundary_requires_rir_evidence(boundary)
             && !air_boundary_has_evidence(air, i, AIR_EVIDENCE_RIR_BOUNDARY)) {
-            char message[768];
-            snprintf(message,
-                     sizeof(message),
-                     PGY_CODE_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING
-                     ": AIR boundary has no matching RIR boundary evidence; implementation boundary '%s' (%s)%s. "
-                     "Reason: strict AIR requires lowered boundary evidence before abstraction-boundary verification. "
-                     "Fix: preserve the RIR boundary evidence node for this implementation boundary.",
-                     boundary->source_name != NULL ? boundary->source_name : "<unknown>",
-                     air_boundary_kind_name(boundary->kind),
-                     provenance);
-            if (!air_append_drift(air,
-                                  AIR_DRIFT_BOUNDARY_EVIDENCE_MISSING,
-                                  boundary->intent_index,
-                                  i,
-                                  message,
-                                  error_message)) {
+            if (!air_append_driftf(
+                    air,
+                    AIR_DRIFT_BOUNDARY_EVIDENCE_MISSING,
+                    boundary->intent_index,
+                    i,
+                    error_message,
+                    PGY_CODE_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING
+                    ": AIR boundary has no matching RIR boundary evidence; implementation boundary '%s' (%s)%s. "
+                    "Reason: strict AIR requires lowered boundary evidence before abstraction-boundary verification. "
+                    "Fix: preserve the RIR boundary evidence node for this implementation boundary.",
+                    boundary->source_name != NULL ? boundary->source_name : "<unknown>",
+                    air_boundary_kind_name(boundary->kind),
+                    provenance)) {
+                free(provenance);
                 return false;
             }
         }
@@ -234,124 +267,125 @@ air_verify(AIRProgram *air, char **error_message)
             && air->has_hir_input
             && air_boundary_requires_hir_routine_evidence(boundary)
             && !air_boundary_has_evidence(air, i, AIR_EVIDENCE_HIR_ROUTINE)) {
-            char message[768];
-            snprintf(message,
-                     sizeof(message),
-                     PGY_CODE_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING
-                     ": AIR boundary has no matching HIR routine evidence; implementation boundary '%s' (%s)%s. "
-                     "Reason: strict AIR requires a CFG-capable HIR routine owner for this boundary. "
-                     "Fix: attach the HIR routine evidence node before AIR verification.",
-                     boundary->source_name != NULL ? boundary->source_name : "<unknown>",
-                     air_boundary_kind_name(boundary->kind),
-                     provenance);
-            if (!air_append_drift(air,
-                                  AIR_DRIFT_BOUNDARY_EVIDENCE_MISSING,
-                                  boundary->intent_index,
-                                  i,
-                                  message,
-                                  error_message)) {
+            if (!air_append_driftf(
+                    air,
+                    AIR_DRIFT_BOUNDARY_EVIDENCE_MISSING,
+                    boundary->intent_index,
+                    i,
+                    error_message,
+                    PGY_CODE_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING
+                    ": AIR boundary has no matching HIR routine evidence; implementation boundary '%s' (%s)%s. "
+                    "Reason: strict AIR requires a CFG-capable HIR routine owner for this boundary. "
+                    "Fix: attach the HIR routine evidence node before AIR verification.",
+                    boundary->source_name != NULL ? boundary->source_name : "<unknown>",
+                    air_boundary_kind_name(boundary->kind),
+                    provenance)) {
+                free(provenance);
                 return false;
             }
         }
         if (air->strict_evidence
             && air_boundary_requires_hir_evidence(boundary)
             && !air_boundary_has_evidence(air, i, AIR_EVIDENCE_HIR_CFG)) {
-            char message[768];
-            snprintf(message,
-                     sizeof(message),
-                     PGY_CODE_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING
-                     ": AIR implementation boundary has no matching HIR CFG evidence; implementation boundary '%s' (%s)%s. "
-                     "Reason: strict AIR requires body control-flow evidence for boundary safety. "
-                     "Fix: lower this body through the HIR CFG path and attach AIR_EVIDENCE_HIR_CFG.",
-                     boundary->source_name != NULL ? boundary->source_name : "<unknown>",
-                     air_boundary_kind_name(boundary->kind),
-                     provenance);
-            if (!air_append_drift(air,
-                                  AIR_DRIFT_BOUNDARY_EVIDENCE_MISSING,
-                                  boundary->intent_index,
-                                  i,
-                                  message,
-                                  error_message)) {
+            if (!air_append_driftf(
+                    air,
+                    AIR_DRIFT_BOUNDARY_EVIDENCE_MISSING,
+                    boundary->intent_index,
+                    i,
+                    error_message,
+                    PGY_CODE_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING
+                    ": AIR implementation boundary has no matching HIR CFG evidence; implementation boundary '%s' (%s)%s. "
+                    "Reason: strict AIR requires body control-flow evidence for boundary safety. "
+                    "Fix: lower this body through the HIR CFG path and attach AIR_EVIDENCE_HIR_CFG.",
+                    boundary->source_name != NULL ? boundary->source_name : "<unknown>",
+                    air_boundary_kind_name(boundary->kind),
+                    provenance)) {
+                free(provenance);
                 return false;
             }
         }
         if (air->strict_evidence
             && boundary->authority_required) {
-            char authority_names[256];
-            char message[768];
             const char *missing_authority =
                 air_boundary_missing_authority_evidence(air, boundary, i);
-            const char *drift_message =
-                PGY_CODE_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING
-                ": AIR authority boundary has no matching RIR authority evidence. "
-                "Reason: strict AIR requires authority checks to be backed by RIR authority evidence. "
-                "Fix: attach AIR_EVIDENCE_RIR_AUTHORITY for this authority boundary.";
+            char *authority_names = NULL;
 
-            if (missing_authority != NULL
-                && air_format_authority_names(boundary,
-                                              authority_names,
-                                              sizeof(authority_names))) {
-                snprintf(message,
-                         sizeof(message),
-                         PGY_CODE_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING
-                         ": AIR authority boundary has no matching RIR authority evidence; expected authority participant(s): %s%s. "
-                         "Reason: strict AIR requires authority checks to be backed by RIR authority evidence. "
-                         "Fix: attach AIR_EVIDENCE_RIR_AUTHORITY for each expected authority participant.",
-                         authority_names,
-                         provenance);
-                drift_message = message;
-            }
-            if (missing_authority != NULL
-                && !air_name_is_empty(missing_authority)
-                && !air_name_matches(missing_authority, "<authority>")) {
-                snprintf(message,
-                         sizeof(message),
-                         PGY_CODE_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING
-                         ": AIR authority boundary is missing RIR authority evidence for participant '%s'; expected authority participant(s): %s%s. "
-                         "Reason: strict AIR requires every authorized participant to be backed by RIR authority evidence. "
-                         "Fix: attach AIR_EVIDENCE_RIR_AUTHORITY for the missing authority participant.",
-                         missing_authority,
-                         air_format_authority_names(boundary,
-                                                    authority_names,
-                                                    sizeof(authority_names))
-                            ? authority_names
-                            : "<unknown>",
-                         provenance);
-                drift_message = message;
-            }
-            if (missing_authority != NULL
-                && !air_append_drift(air,
-                                     AIR_DRIFT_BOUNDARY_EVIDENCE_MISSING,
-                                     boundary->intent_index,
-                                     i,
-                                     drift_message,
-                                     error_message)) {
-                return false;
+            if (missing_authority != NULL) {
+                authority_names = air_format_authority_names_owned(boundary);
+                if (!air_name_is_empty(missing_authority)
+                    && !air_name_matches(missing_authority, "<authority>")) {
+                    if (!air_append_driftf(
+                            air,
+                            AIR_DRIFT_BOUNDARY_EVIDENCE_MISSING,
+                            boundary->intent_index,
+                            i,
+                            error_message,
+                            PGY_CODE_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING
+                            ": AIR authority boundary is missing RIR authority evidence for participant '%s'; expected authority participant(s): %s%s. "
+                            "Reason: strict AIR requires every authorized participant to be backed by RIR authority evidence. "
+                            "Fix: attach AIR_EVIDENCE_RIR_AUTHORITY for the missing authority participant.",
+                            missing_authority,
+                            authority_names != NULL ? authority_names : "<unknown>",
+                            provenance)) {
+                        free(authority_names);
+                        free(provenance);
+                        return false;
+                    }
+                } else if (authority_names != NULL) {
+                    if (!air_append_driftf(
+                            air,
+                            AIR_DRIFT_BOUNDARY_EVIDENCE_MISSING,
+                            boundary->intent_index,
+                            i,
+                            error_message,
+                            PGY_CODE_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING
+                            ": AIR authority boundary has no matching RIR authority evidence; expected authority participant(s): %s%s. "
+                            "Reason: strict AIR requires authority checks to be backed by RIR authority evidence. "
+                            "Fix: attach AIR_EVIDENCE_RIR_AUTHORITY for each expected authority participant.",
+                            authority_names,
+                            provenance)) {
+                        free(authority_names);
+                        free(provenance);
+                        return false;
+                    }
+                } else if (!air_append_drift(
+                               air,
+                               AIR_DRIFT_BOUNDARY_EVIDENCE_MISSING,
+                               boundary->intent_index,
+                               i,
+                               PGY_CODE_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING
+                               ": AIR authority boundary has no matching RIR authority evidence. "
+                               "Reason: strict AIR requires authority checks to be backed by RIR authority evidence. "
+                               "Fix: attach AIR_EVIDENCE_RIR_AUTHORITY for this authority boundary.",
+                               error_message)) {
+                    free(provenance);
+                    return false;
+                }
+                free(authority_names);
             }
         }
         if (air->strict_evidence
             && air->has_mir_input
             && air_boundary_requires_mir_pin_cleanup_evidence(boundary)
             && !air_boundary_has_evidence(air, i, AIR_EVIDENCE_MIR_PIN_CLEANUP)) {
-            char message[768];
-            snprintf(message,
-                     sizeof(message),
-                     PGY_CODE_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING
-                     ": AIR pin boundary has no matching MIR pin cleanup evidence; implementation boundary '%s' (%s)%s. "
-                     "Reason: strict AIR requires pin boundaries to prove all exits run unpin cleanup. "
-                     "Fix: emit the MIR pin cleanup edge and attach AIR_EVIDENCE_MIR_PIN_CLEANUP.",
-                     boundary->source_name != NULL ? boundary->source_name : "<unknown>",
-                     air_boundary_kind_name(boundary->kind),
-                     provenance);
-            if (!air_append_drift(air,
-                                  AIR_DRIFT_BOUNDARY_EVIDENCE_MISSING,
-                                  boundary->intent_index,
-                                  i,
-                                  message,
-                                  error_message)) {
+            if (!air_append_driftf(
+                    air,
+                    AIR_DRIFT_BOUNDARY_EVIDENCE_MISSING,
+                    boundary->intent_index,
+                    i,
+                    error_message,
+                    PGY_CODE_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING
+                    ": AIR pin boundary has no matching MIR pin cleanup evidence; implementation boundary '%s' (%s)%s. "
+                    "Reason: strict AIR requires pin boundaries to prove all exits run unpin cleanup. "
+                    "Fix: emit the MIR pin cleanup edge and attach AIR_EVIDENCE_MIR_PIN_CLEANUP.",
+                    boundary->source_name != NULL ? boundary->source_name : "<unknown>",
+                    air_boundary_kind_name(boundary->kind),
+                    provenance)) {
+                free(provenance);
                 return false;
             }
         }
+        free(provenance);
     }
     if (air->strict_evidence
         && air->has_mir_input
@@ -374,42 +408,36 @@ air_verify(AIRProgram *air, char **error_message)
     if (air->strict_evidence
         && air->rir_effect_propagation_required_count
             > air->rir_effect_propagation_evidence_count) {
-        char message[512];
-        snprintf(message,
-                 sizeof(message),
-                 PGY_CODE_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING
-                 ": AIR effect propagation has RIR op without effect resource/state evidence; required=%zu evidence=%zu. "
-                 "Reason: strict AIR requires every effect propagation op to carry resource/state evidence. "
-                 "Fix: attach AIR_EVIDENCE_RIR_EFFECT_PROPAGATION for the missing propagation op.",
-                 air->rir_effect_propagation_required_count,
-                 air->rir_effect_propagation_evidence_count);
-        if (!air_append_drift(air,
-                              AIR_DRIFT_EFFECT_PROPAGATION_MISSING,
-                              SIZE_MAX,
-                              SIZE_MAX,
-                              message,
-                              error_message)) {
+        if (!air_append_driftf(
+                air,
+                AIR_DRIFT_EFFECT_PROPAGATION_MISSING,
+                SIZE_MAX,
+                SIZE_MAX,
+                error_message,
+                PGY_CODE_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING
+                ": AIR effect propagation has RIR op without effect resource/state evidence; required=%zu evidence=%zu. "
+                "Reason: strict AIR requires every effect propagation op to carry resource/state evidence. "
+                "Fix: attach AIR_EVIDENCE_RIR_EFFECT_PROPAGATION for the missing propagation op.",
+                air->rir_effect_propagation_required_count,
+                air->rir_effect_propagation_evidence_count)) {
             return false;
         }
     }
     if (air->strict_evidence
         && air->rir_relation_propagation_required_count
             > air->rir_relation_propagation_evidence_count) {
-        char message[512];
-        snprintf(message,
-                 sizeof(message),
-                 PGY_CODE_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING
-                 ": AIR relation propagation has RIR op without relation resource/state evidence; required=%zu evidence=%zu. "
-                 "Reason: strict AIR requires every relation propagation op to carry resource/state evidence. "
-                 "Fix: attach AIR_EVIDENCE_RIR_RELATION_PROPAGATION for the missing propagation op.",
-                 air->rir_relation_propagation_required_count,
-                 air->rir_relation_propagation_evidence_count);
-        if (!air_append_drift(air,
-                              AIR_DRIFT_RELATION_PROPAGATION_MISSING,
-                              SIZE_MAX,
-                              SIZE_MAX,
-                              message,
-                              error_message)) {
+        if (!air_append_driftf(
+                air,
+                AIR_DRIFT_RELATION_PROPAGATION_MISSING,
+                SIZE_MAX,
+                SIZE_MAX,
+                error_message,
+                PGY_CODE_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING
+                ": AIR relation propagation has RIR op without relation resource/state evidence; required=%zu evidence=%zu. "
+                "Reason: strict AIR requires every relation propagation op to carry resource/state evidence. "
+                "Fix: attach AIR_EVIDENCE_RIR_RELATION_PROPAGATION for the missing propagation op.",
+                air->rir_relation_propagation_required_count,
+                air->rir_relation_propagation_evidence_count)) {
             return false;
         }
     }
@@ -420,21 +448,18 @@ air_verify(AIRProgram *air, char **error_message)
                  || evidence->kind == AIR_EVIDENCE_DAG_GENERIC
                  || evidence->kind == AIR_EVIDENCE_DAG_ABILITY)
                 && evidence->fallback_count > 0) {
-                char message[768];
-                snprintf(message,
-                         sizeof(message),
-                         PGY_CODE_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING
-                         ": AIR DAG evidence contains unresolved metadata dead-end; kind=%s fallback_count=%zu. "
-                         "Reason: strict AIR requires graph-backed type evidence before abstraction-boundary verification. "
-                         "Fix: resolve the type-resolution metadata dead-end or add the missing DAG evidence node.",
-                         air_evidence_kind_name(evidence->kind),
-                         evidence->fallback_count);
-                if (!air_append_drift(air,
-                                      AIR_DRIFT_DAG_FALLBACK_PRESENT,
-                                      SIZE_MAX,
-                                      SIZE_MAX,
-                                      message,
-                                      error_message)) {
+                if (!air_append_driftf(
+                        air,
+                        AIR_DRIFT_DAG_FALLBACK_PRESENT,
+                        SIZE_MAX,
+                        SIZE_MAX,
+                        error_message,
+                        PGY_CODE_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING
+                        ": AIR DAG evidence contains unresolved metadata dead-end; kind=%s fallback_count=%zu. "
+                        "Reason: strict AIR requires graph-backed type evidence before abstraction-boundary verification. "
+                        "Fix: resolve the type-resolution metadata dead-end or add the missing DAG evidence node.",
+                        air_evidence_kind_name(evidence->kind),
+                        evidence->fallback_count)) {
                     return false;
                 }
             }

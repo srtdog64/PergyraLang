@@ -6,10 +6,45 @@
  */
 
 #include <string.h>
+#include <stdio.h>
 
 #include "diag_codes.h"
 #include "diag_payload.h"
 #include "type_checker_ownership_diag_internal.h"
+#include "type_checker_internal.h"
+
+bool
+semantic_format_secure_token_name(char *out,
+                                  size_t out_size,
+                                  const char *slot_name,
+                                  ASTNode *site,
+                                  SemanticContext *ctx)
+{
+    int written;
+
+    if (out == NULL || out_size == 0 || slot_name == NULL)
+        return false;
+
+    written = snprintf(out, out_size, "%s_token", slot_name);
+    if (written >= 0 && (size_t)written < out_size)
+        return true;
+
+    semantic_error_with_hints(
+        ctx,
+        PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
+        PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,
+        PGY_FIX_USE_SLOT_BOUND_IDENTIFIER,
+        site,
+        "SecureSlot token name for '%s' is too long to materialize safely.\n"
+        "Reason:\n"
+        "- SecureSlot lowering derives a paired token binding from the slot name\n"
+        "- truncating that token name would break the slot/token capability invariant\n"
+        "Fix:\n"
+        "- shorten the SecureSlot binding name\n"
+        "- or bind the token explicitly with a shorter stable name",
+        slot_name);
+    return false;
+}
 
 void
 semantic_report_borrowed_new_binding_escape(ASTNode *site,

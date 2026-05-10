@@ -58,6 +58,57 @@ llvm_zero_value_for_type(LLVMGenCtx *ctx, LLVMTypeRef type)
     return LLVMConstNull(type);
 }
 
+static bool
+llvm_expr_runtime_name(LLVMGenCtx *ctx, ASTNode *node,
+                       char *out, size_t out_size,
+                       const char *prefix, const char *type_name)
+{
+    int written;
+
+    if (out == NULL || out_size == 0)
+        return false;
+
+    written = snprintf(out, out_size, "%s%s",
+        prefix != NULL ? prefix : "",
+        type_name != NULL ? type_name : "");
+    if (written >= 0 && (size_t)written < out_size)
+        return true;
+
+    if (ctx != NULL && !ctx->has_error) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_SPEC_LIMIT,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_REFACTOR_OR_RAISE_LIMIT,
+            "LLVM expression runtime symbol is too long for type '%s'",
+            type_name != NULL ? type_name : "<type>");
+    }
+    return false;
+}
+
+static bool
+llvm_expr_lambda_name(LLVMGenCtx *ctx, ASTNode *node,
+                      char *out, size_t out_size, int lambda_id)
+{
+    int written;
+
+    if (out == NULL || out_size == 0)
+        return false;
+
+    written = snprintf(out, out_size, "pgy_lambda_%d", lambda_id);
+    if (written >= 0 && (size_t)written < out_size)
+        return true;
+
+    if (ctx != NULL && !ctx->has_error) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_SPEC_LIMIT,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_REFACTOR_OR_RAISE_LIMIT,
+            "LLVM lambda function name is too long for id %d",
+            lambda_id);
+    }
+    return false;
+}
+
 LLVMValueRef
 llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
 {
@@ -149,7 +200,9 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
             return llvm_expression_error(ctx, node,
                 "LLVM array literal could not allocate array temporary");
         char push_fn_name[64];
-        snprintf(push_fn_name, sizeof(push_fn_name), "pgy_array_push_%s", inner_name);
+        if (!llvm_expr_runtime_name(ctx, node, push_fn_name,
+                sizeof(push_fn_name), "pgy_array_push_", inner_name))
+            return NULL;
         LLVMFuncEntry *push_fn = llvm_lookup_function(ctx, push_fn_name);
         if (push_fn == NULL && count > 0) {
             llvm_required_runtime_function(ctx, node,
@@ -200,7 +253,9 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
                         && strncmp(struct_name, "PgySlice_", 9) == 0) {
                         fn_prefix = "pgy_slice_get_";
                     }
-                    snprintf(fn_name, sizeof(fn_name), "%s%s", fn_prefix, suffix);
+                    if (!llvm_expr_runtime_name(ctx, node, fn_name,
+                            sizeof(fn_name), fn_prefix, suffix))
+                        return NULL;
                     LLVMFuncEntry *fn = llvm_lookup_function(ctx, fn_name);
                     if (fn != NULL) {
                         LLVMValueRef index64 = idx;
@@ -412,7 +467,8 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
         }
 
         char lname[128];
-        snprintf(lname, sizeof(lname), "pgy_lambda_%d", lid);
+        if (!llvm_expr_lambda_name(ctx, node, lname, sizeof(lname), lid))
+            return NULL;
         LLVMTypeRef lft = LLVMFunctionType(ret_type,
             lparams, (unsigned)pc, 0);
         LLVMValueRef lfn = LLVMAddFunction(ctx->module, lname, lft);

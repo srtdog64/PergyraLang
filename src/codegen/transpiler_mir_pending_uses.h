@@ -1,6 +1,8 @@
 #ifndef PGY_TRANSPILER_MIR_PENDING_USES_H
 #define PGY_TRANSPILER_MIR_PENDING_USES_H
 
+#include "transpiler_mir_reason.h"
+
 #include "transpiler_mir_expr_ssa.h"
 
 typedef struct TranspilerMirPendingBinding {
@@ -166,7 +168,7 @@ transpiler_materialize_pending_inst_uses(CodeBuf *buf,
                 free(lhs);
                 free(rhs);
                 if (reason != NULL && reason_cap > 0) {
-                    snprintf(reason, reason_cap,
+                    transpiler_mir_reasonf(reason, reason_cap,
                              "MIR block %llu emission failed: unable to materialize pending value '%s'",
                              (unsigned long long) block->id, base);
                 }

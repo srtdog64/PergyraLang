@@ -9,6 +9,35 @@
 #include "llvm_internal_api.h"
 #include "llvm_inventory_decl_lookup.h"
 
+static bool
+llvm_projection_sync_call_field_name(char *out,
+    size_t out_size,
+    const char *kind,
+    const char *slot_name)
+{
+    int written;
+
+    if (out == NULL || out_size == 0 || kind == NULL || slot_name == NULL)
+        return false;
+
+    written = snprintf(out, out_size, "__%s_%s", kind, slot_name);
+    return written >= 0 && (size_t)written < out_size;
+}
+
+static bool
+llvm_projection_sync_call_function_name(char *out,
+    size_t out_size,
+    const char *type_name)
+{
+    int written;
+
+    if (out == NULL || out_size == 0 || type_name == NULL)
+        return false;
+
+    written = snprintf(out, out_size, "%s_sync", type_name);
+    return written >= 0 && (size_t)written < out_size;
+}
+
 void
 llvm_emit_world_embedded_receiver_projection_sync(LLVMGenCtx *ctx,
                                                   ASTNode *receiver)
@@ -73,8 +102,12 @@ llvm_emit_world_embedded_receiver_projection_sync(LLVMGenCtx *ctx,
             continue;
         }
 
-        snprintf(field_name, sizeof(field_name), "__projection_dirty_%s",
-            slot->data.domain_slot.slot_name);
+        if (!llvm_projection_sync_call_field_name(field_name,
+                sizeof(field_name), "projection_dirty",
+                slot->data.domain_slot.slot_name)) {
+            llvm_set_error(ctx, "projection dirty field name is too long");
+            return;
+        }
         field_idx = llvm_class_field_index(zone_cls, field_name);
         if (field_idx >= 0) {
             LLVMValueRef dirty_ptr = LLVMBuildStructGEP2(ctx->builder,
@@ -83,8 +116,12 @@ llvm_emit_world_embedded_receiver_projection_sync(LLVMGenCtx *ctx,
             LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 1, 0), dirty_ptr);
         }
 
-        snprintf(field_name, sizeof(field_name), "__projection_ready_%s",
-            slot->data.domain_slot.slot_name);
+        if (!llvm_projection_sync_call_field_name(field_name,
+                sizeof(field_name), "projection_ready",
+                slot->data.domain_slot.slot_name)) {
+            llvm_set_error(ctx, "projection ready field name is too long");
+            return;
+        }
         field_idx = llvm_class_field_index(zone_cls, field_name);
         if (field_idx >= 0) {
             LLVMValueRef ready_ptr = LLVMBuildStructGEP2(ctx->builder,
@@ -107,7 +144,11 @@ llvm_emit_world_embedded_receiver_projection_sync(LLVMGenCtx *ctx,
         char world_sync_name[256];
         LLVMFuncEntry *world_sync;
 
-        snprintf(dirty_field, sizeof(dirty_field), "__zone_dirty_%s", zone_slot_name);
+        if (!llvm_projection_sync_call_field_name(dirty_field,
+                sizeof(dirty_field), "zone_dirty", zone_slot_name)) {
+            llvm_set_error(ctx, "world zone-dirty field name is too long");
+            return;
+        }
         dirty_idx = llvm_class_field_index(world_cls, dirty_field);
         if (dirty_idx >= 0) {
             LLVMValueRef dirty_ptr = LLVMBuildStructGEP2(ctx->builder,
@@ -122,9 +163,13 @@ llvm_emit_world_embedded_receiver_projection_sync(LLVMGenCtx *ctx,
                 llvm_tmp_name(ctx));
             LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 1, 0), derived_ptr);
         }
-        snprintf(world_sync_name, sizeof(world_sync_name), "%s_sync",
-            host_decl->data.world_decl.name != NULL
-                ? host_decl->data.world_decl.name : "World");
+        if (!llvm_projection_sync_call_function_name(world_sync_name,
+                sizeof(world_sync_name),
+                host_decl->data.world_decl.name != NULL
+                    ? host_decl->data.world_decl.name : "World")) {
+            llvm_set_error(ctx, "world sync function name is too long");
+            return;
+        }
         world_sync = llvm_lookup_function(ctx, world_sync_name);
         if (world_sync != NULL && world_sync->fn != NULL && world_sync->fn_type != NULL) {
             LLVMValueRef world_args[] = { world_ptr };
@@ -183,10 +228,16 @@ llvm_emit_current_zone_subject_projection_sync(LLVMGenCtx *ctx, ASTNode *receive
             continue;
         }
 
-        snprintf(dirty_field, sizeof(dirty_field), "__projection_dirty_%s",
-            target_name);
-        snprintf(ready_field, sizeof(ready_field), "__projection_ready_%s",
-            target_name);
+        if (!llvm_projection_sync_call_field_name(dirty_field,
+                sizeof(dirty_field), "projection_dirty", target_name)) {
+            llvm_set_error(ctx, "projection dirty field name is too long");
+            return;
+        }
+        if (!llvm_projection_sync_call_field_name(ready_field,
+                sizeof(ready_field), "projection_ready", target_name)) {
+            llvm_set_error(ctx, "projection ready field name is too long");
+            return;
+        }
         dirty_idx = llvm_class_field_index(host_cls, dirty_field);
         ready_idx = llvm_class_field_index(host_cls, ready_field);
 

@@ -44,6 +44,36 @@ llvm_stmt_diag_collection(LLVMGenCtx *ctx,
     return false;
 }
 
+static bool
+llvm_stmt_collection_runtime_name(LLVMGenCtx *ctx,
+                                  ASTNode *node,
+                                  char *out,
+                                  size_t out_size,
+                                  const char *prefix,
+                                  const char *type_name)
+{
+    int written;
+
+    if (out == NULL || out_size == 0)
+        return false;
+
+    written = snprintf(out, out_size, "%s%s",
+        prefix != NULL ? prefix : "",
+        type_name != NULL ? type_name : "");
+    if (written >= 0 && (size_t)written < out_size)
+        return true;
+
+    if (ctx != NULL && !ctx->has_error) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_SPEC_LIMIT,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_REFACTOR_OR_RAISE_LIMIT,
+            "LLVM collection runtime symbol is too long for type '%s'",
+            type_name != NULL ? type_name : "<type>");
+    }
+    return false;
+}
+
 bool
 llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
 {
@@ -295,8 +325,11 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
                 LLVM_STMT_COLLECTION_DIAG_TYPE_ARG, name, "Channel", 0, NULL);
         }
 
-        snprintf(init_fn_name, sizeof(init_fn_name),
-            "pgy_channel_init_%s", channel_inner);
+        if (!llvm_stmt_collection_runtime_name(ctx, node, init_fn_name,
+                sizeof(init_fn_name), "pgy_channel_init_", channel_inner)) {
+            free(channel_inner);
+            return true;
+        }
         LLVMFuncEntry *init_fn = llvm_lookup_function(ctx, init_fn_name);
         if (init_fn == NULL) {
             bool ok = llvm_stmt_diag_collection(ctx, node,
@@ -356,7 +389,9 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
         LLVMFuncEntry *new_fn;
         LLVMFuncEntry *push_fn;
 
-        snprintf(new_fn_name, sizeof(new_fn_name), "pgy_array_new_%s", inner_name);
+        if (!llvm_stmt_collection_runtime_name(ctx, node, new_fn_name,
+                sizeof(new_fn_name), "pgy_array_new_", inner_name))
+            return true;
         new_fn = llvm_lookup_function(ctx, new_fn_name);
         if (new_fn == NULL) {
             return llvm_stmt_diag_collection(ctx, node,
@@ -370,7 +405,9 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
             new_fn->fn, args, 1, llvm_tmp_name(ctx));
         LLVMBuildStore(ctx->builder, arr_val, var_alloca);
 
-        snprintf(push_fn_name, sizeof(push_fn_name), "pgy_array_push_%s", inner_name);
+        if (!llvm_stmt_collection_runtime_name(ctx, node, push_fn_name,
+                sizeof(push_fn_name), "pgy_array_push_", inner_name))
+            return true;
         push_fn = llvm_lookup_function(ctx, push_fn_name);
         if (push_fn == NULL) {
             return llvm_stmt_diag_collection(ctx, node,

@@ -2,6 +2,33 @@
 #include "llvm_internal.h"
 #include "llvm_domain_world_sync_internal.h"
 
+static bool
+llvm_world_sync_field_name(char *out,
+                           size_t out_size,
+                           const char *kind,
+                           const char *slot_name)
+{
+    int written;
+
+    if (out == NULL || out_size == 0 || kind == NULL || slot_name == NULL)
+        return false;
+    written = snprintf(out, out_size, "__%s_%s", kind, slot_name);
+    return written >= 0 && (size_t)written < out_size;
+}
+
+static bool
+llvm_world_sync_prev_active_name(char *out,
+                                 size_t out_size,
+                                 const char *slot_name)
+{
+    int written;
+
+    if (out == NULL || out_size == 0 || slot_name == NULL)
+        return false;
+    written = snprintf(out, out_size, "world.prev_active.%s", slot_name);
+    return written >= 0 && (size_t)written < out_size;
+}
+
 void
 llvm_emit_world_sync(ASTNode *stmt, const char *decl_name,
                      LLVMClassTypeEntry *decl_cls, LLVMValueRef sync_fn,
@@ -68,16 +95,18 @@ llvm_emit_world_sync(ASTNode *stmt, const char *decl_name,
             if (zone == NULL || zone->type != AST_WORLD_ZONE
                 || zone->data.world_zone.slot_name == NULL)
                 continue;
-            snprintf(active_field, sizeof(active_field), "__zone_active_%s",
-                zone->data.world_zone.slot_name);
+            if (!llvm_world_sync_field_name(active_field, sizeof(active_field),
+                    "zone_active", zone->data.world_zone.slot_name))
+                continue;
             active_idx = llvm_class_field_index(decl_cls, active_field);
             self_ptr = LLVMGetParam(sync_fn, 0);
             if (active_idx < 0)
                 continue;
             active_ptr = LLVMBuildStructGEP2(ctx->builder, decl_cls->struct_type,
                 self_ptr, (unsigned)active_idx, llvm_tmp_name(ctx));
-            snprintf(prev_name, sizeof(prev_name), "world.prev_active.%s",
-                zone->data.world_zone.slot_name);
+            if (!llvm_world_sync_prev_active_name(prev_name, sizeof(prev_name),
+                    zone->data.world_zone.slot_name))
+                continue;
             prev_addr = llvm_create_entry_alloca(ctx, ctx->type_i1, prev_name);
             prev_val = LLVMBuildLoad2(ctx->builder, ctx->type_i1,
                 active_ptr, llvm_tmp_name(ctx));
@@ -107,8 +136,12 @@ llvm_emit_world_sync(ASTNode *stmt, const char *decl_name,
                 || prev_active_addrs[i] == NULL)
                 continue;
             slot_name = zone->data.world_zone.slot_name;
-            snprintf(active_field, sizeof(active_field), "__zone_active_%s", slot_name);
-            snprintf(dirty_field, sizeof(dirty_field), "__zone_dirty_%s", slot_name);
+            if (!llvm_world_sync_field_name(active_field, sizeof(active_field),
+                    "zone_active", slot_name))
+                continue;
+            if (!llvm_world_sync_field_name(dirty_field, sizeof(dirty_field),
+                    "zone_dirty", slot_name))
+                continue;
             active_idx = llvm_class_field_index(decl_cls, active_field);
             dirty_idx = llvm_class_field_index(decl_cls, dirty_field);
             if (active_idx < 0 || dirty_idx < 0)

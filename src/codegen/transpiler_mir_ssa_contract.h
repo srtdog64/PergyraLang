@@ -1,6 +1,8 @@
 #ifndef PGY_TRANSPILER_MIR_SSA_CONTRACT_H
 #define PGY_TRANSPILER_MIR_SSA_CONTRACT_H
 
+#include "transpiler_mir_reason.h"
+
 static bool
 transpiler_seed_expr_identifier_mappings(const MIRBasicBlock *block,
                                          size_t inst_index,
@@ -120,7 +122,7 @@ transpiler_expr_identifiers_mapped(const TranspilerCtx *ctx,
         if (ctx != NULL && find_function_decl((TranspilerCtx *)ctx, name) != NULL)
             return true;
         if (reason != NULL && reason_cap > 0) {
-            snprintf(reason, reason_cap,
+            transpiler_mir_reasonf(reason, reason_cap,
                      "MIR contract breach in %s at line %u: unresolved identifier `%s` (expected SSA-mapped local)",
                      routine_name != NULL ? routine_name : "<routine>",
                      expr->line,

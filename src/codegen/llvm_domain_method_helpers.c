@@ -77,6 +77,22 @@ llvm_operator_method_name_matches(PgyTokenType op, const char *name)
     return false;
 }
 
+static bool
+llvm_domain_provenance_field_name(char *out,
+                                  size_t out_size,
+                                  const char *suffix,
+                                  const char *prefix,
+                                  const char *name)
+{
+    int written;
+
+    if (out == NULL || out_size == 0 || suffix == NULL
+        || prefix == NULL || name == NULL)
+        return false;
+    written = snprintf(out, out_size, "__%s_%s_%s", prefix, suffix, name);
+    return written >= 0 && (size_t)written < out_size;
+}
+
 void
 llvm_stamp_domain_provenance(LLVMGenCtx *ctx,
                              LLVMClassTypeEntry *decl_cls,
@@ -93,7 +109,9 @@ llvm_stamp_domain_provenance(LLVMGenCtx *ctx,
         return;
     }
 
-    snprintf(field_name, sizeof(field_name), "__%s_epoch_%s", prefix, name);
+    if (!llvm_domain_provenance_field_name(field_name, sizeof(field_name),
+            "epoch", prefix, name))
+        return;
     field_idx = llvm_class_field_index(decl_cls, field_name);
     if (field_idx >= 0) {
         LLVMValueRef epoch_ptr = LLVMBuildStructGEP2(ctx->builder,
@@ -106,7 +124,9 @@ llvm_stamp_domain_provenance(LLVMGenCtx *ctx,
         LLVMBuildStore(ctx->builder, next_epoch, epoch_ptr);
     }
 
-    snprintf(field_name, sizeof(field_name), "__%s_cause_%s", prefix, name);
+    if (!llvm_domain_provenance_field_name(field_name, sizeof(field_name),
+            "cause", prefix, name))
+        return;
     field_idx = llvm_class_field_index(decl_cls, field_name);
     if (field_idx >= 0) {
         LLVMValueRef cause_ptr = LLVMBuildStructGEP2(ctx->builder,

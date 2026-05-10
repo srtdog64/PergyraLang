@@ -12,6 +12,21 @@
 
 #include <stdio.h>
 
+static bool
+llvm_runtime_secure_slot_name(char *out,
+    size_t out_size,
+    const char *op,
+    const char *suffix)
+{
+    int written;
+
+    if (out == NULL || out_size == 0 || op == NULL || suffix == NULL)
+        return false;
+
+    written = snprintf(out, out_size, "pgy_%s_%s", op, suffix);
+    return written >= 0 && (size_t)written < out_size;
+}
+
 void
 llvm_declare_runtime_secure_slots(LLVMGenCtx *ctx)
 {
@@ -36,31 +51,49 @@ llvm_declare_runtime_secure_slots(LLVMGenCtx *ctx)
 
         { LLVMTypeRef params[] = { LLVMPointerType(tty, 0) };
           LLVMTypeRef ft = LLVMFunctionType(sty, params, 1, 0);
-          snprintf(fname, sizeof(fname), "pgy_claim_secure_%s", suf);
+          if (!llvm_runtime_secure_slot_name(fname, sizeof(fname), "claim_secure", suf)) {
+              llvm_set_error(ctx, "secure slot claim runtime name is too long");
+              return;
+          }
           LLVMValueRef fn = LLVMAddFunction(ctx->module, fname, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, sty); }
         { LLVMTypeRef params[] = { LLVMPointerType(sty, 0), vt, LLVMPointerType(tty, 0) };
           LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, params, 3, 0);
-          snprintf(fname, sizeof(fname), "pgy_secure_write_%s", suf);
+          if (!llvm_runtime_secure_slot_name(fname, sizeof(fname), "secure_write", suf)) {
+              llvm_set_error(ctx, "secure slot write runtime name is too long");
+              return;
+          }
           LLVMValueRef fn = LLVMAddFunction(ctx->module, fname, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ctx->type_void); }
         { LLVMTypeRef params[] = { LLVMPointerType(sty, 0), LLVMPointerType(tty, 0) };
           LLVMTypeRef ft = LLVMFunctionType(vt, params, 2, 0);
-          snprintf(fname, sizeof(fname), "pgy_secure_read_%s", suf);
+          if (!llvm_runtime_secure_slot_name(fname, sizeof(fname), "secure_read", suf)) {
+              llvm_set_error(ctx, "secure slot read runtime name is too long");
+              return;
+          }
           LLVMValueRef fn = LLVMAddFunction(ctx->module, fname, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, vt); }
         { LLVMTypeRef params[] = { LLVMPointerType(sty, 0), LLVMPointerType(tty, 0) };
           LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, params, 2, 0);
-          snprintf(fname, sizeof(fname), "pgy_secure_release_%s", suf);
+          if (!llvm_runtime_secure_slot_name(fname, sizeof(fname), "secure_release", suf)) {
+              llvm_set_error(ctx, "secure slot release runtime name is too long");
+              return;
+          }
           LLVMValueRef fn = LLVMAddFunction(ctx->module, fname, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ctx->type_void); }
         { LLVMTypeRef pinned_ty = llvm_pinned_secure_slot_struct_type(ctx, suf);
           LLVMTypeRef params[] = { LLVMPointerType(sty, 0), LLVMPointerType(tty, 0) };
           LLVMTypeRef ft = LLVMFunctionType(pinned_ty, params, 2, 0);
-          snprintf(fname, sizeof(fname), "pgy_secure_pin_read_%s", suf);
+          if (!llvm_runtime_secure_slot_name(fname, sizeof(fname), "secure_pin_read", suf)) {
+              llvm_set_error(ctx, "secure slot pin-read runtime name is too long");
+              return;
+          }
           LLVMValueRef fn = LLVMAddFunction(ctx->module, fname, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, pinned_ty);
-          snprintf(fname, sizeof(fname), "pgy_secure_pin_write_%s", suf);
+          if (!llvm_runtime_secure_slot_name(fname, sizeof(fname), "secure_pin_write", suf)) {
+              llvm_set_error(ctx, "secure slot pin-write runtime name is too long");
+              return;
+          }
           fn = LLVMAddFunction(ctx->module, fname, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, pinned_ty); }
         { LLVMTypeRef pinned_ty = llvm_pinned_secure_slot_struct_type(ctx, suf);
@@ -70,16 +103,25 @@ llvm_declare_runtime_secure_slots(LLVMGenCtx *ctx)
               LLVMPointerType(tty, 0)
           };
           LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, params, 3, 0);
-          snprintf(fname, sizeof(fname), "pgy_secure_pin_read_init_%s", suf);
+          if (!llvm_runtime_secure_slot_name(fname, sizeof(fname), "secure_pin_read_init", suf)) {
+              llvm_set_error(ctx, "secure slot pin-read init runtime name is too long");
+              return;
+          }
           LLVMValueRef fn = LLVMAddFunction(ctx->module, fname, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ctx->type_void);
-          snprintf(fname, sizeof(fname), "pgy_secure_pin_write_init_%s", suf);
+          if (!llvm_runtime_secure_slot_name(fname, sizeof(fname), "secure_pin_write_init", suf)) {
+              llvm_set_error(ctx, "secure slot pin-write init runtime name is too long");
+              return;
+          }
           fn = LLVMAddFunction(ctx->module, fname, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ctx->type_void); }
         { LLVMTypeRef pinned_ty = llvm_pinned_secure_slot_struct_type(ctx, suf);
           LLVMTypeRef params[] = { LLVMPointerType(pinned_ty, 0) };
           LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, params, 1, 0);
-          snprintf(fname, sizeof(fname), "pgy_secure_unpin_%s", suf);
+          if (!llvm_runtime_secure_slot_name(fname, sizeof(fname), "secure_unpin", suf)) {
+              llvm_set_error(ctx, "secure slot unpin runtime name is too long");
+              return;
+          }
           LLVMValueRef fn = LLVMAddFunction(ctx->module, fname, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ctx->type_void); }
     }

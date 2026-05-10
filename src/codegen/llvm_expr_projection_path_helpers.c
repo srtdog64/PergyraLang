@@ -29,6 +29,37 @@ llvm_projection_error_recovery(LLVMGenCtx *ctx, ASTNode *node,
     return NULL;
 }
 
+static char *
+llvm_expr_projection_join_path(LLVMGenCtx *ctx,
+                               const char *field_name,
+                               const char *nested_path)
+{
+    size_t field_len;
+    size_t nested_len;
+    size_t path_len;
+    char *path;
+    int written;
+
+    if (ctx == NULL || field_name == NULL || nested_path == NULL)
+        return NULL;
+
+    field_len = strlen(field_name);
+    nested_len = strlen(nested_path);
+    if (nested_len > ((size_t)-1) - field_len - 2)
+        return NULL;
+
+    path_len = field_len + nested_len + 2;
+    path = pgy_arena_alloc(&ctx->scratch, path_len);
+    if (path == NULL)
+        return NULL;
+
+    written = snprintf(path, path_len, "%s.%s", field_name, nested_path);
+    if (written < 0 || (size_t)written >= path_len)
+        return NULL;
+
+    return path;
+}
+
 ASTNode *
 llvm_find_projection_nominal_decl(LLVMGenCtx *ctx, const char *name)
 {
@@ -90,7 +121,6 @@ llvm_resolve_projection_source_path_rec(LLVMGenCtx *ctx, ASTNode *source_decl,
         ASTNode *vessel_decl;
         char *nested_path = NULL;
         char *prefixed_path;
-        size_t prefix_len;
         int nested_status;
 
         if (field == NULL || !field->is_vessel_field
@@ -114,16 +144,8 @@ llvm_resolve_projection_source_path_rec(LLVMGenCtx *ctx, ASTNode *source_decl,
             continue;
         }
 
-        {
-            size_t field_len = strlen(field->name);
-            size_t nested_len = strlen(nested_path);
-            if (nested_len > ((size_t)-1) - field_len - 2)
-                continue;
-            prefix_len = field_len + nested_len + 2;
-        }
-        prefixed_path = pgy_arena_alloc(&ctx->scratch, prefix_len);
-        if (prefixed_path != NULL)
-            snprintf(prefixed_path, prefix_len, "%s.%s", field->name, nested_path);
+        prefixed_path = llvm_expr_projection_join_path(
+            ctx, field->name, nested_path);
         if (prefixed_path == NULL)
             continue;
 

@@ -41,6 +41,35 @@ llvm_call_find_domain_decl(LLVMGenCtx *ctx, ASTNodeType decl_type, const char *n
     return NULL;
 }
 
+static bool
+llvm_world_effect_sync_field_name(char *out,
+    size_t out_size,
+    const char *kind,
+    const char *name)
+{
+    int written;
+
+    if (out == NULL || out_size == 0 || kind == NULL || name == NULL)
+        return false;
+
+    written = snprintf(out, out_size, "__%s_%s", kind, name);
+    return written >= 0 && (size_t)written < out_size;
+}
+
+static bool
+llvm_world_effect_sync_function_name(char *out,
+    size_t out_size,
+    const char *effect_name)
+{
+    int written;
+
+    if (out == NULL || out_size == 0 || effect_name == NULL)
+        return false;
+
+    written = snprintf(out, out_size, "%s_sync", effect_name);
+    return written >= 0 && (size_t)written < out_size;
+}
+
 static ASTNode *
 llvm_call_find_first_effect_subject_slot(ASTNode *effect_decl)
 {
@@ -147,7 +176,11 @@ llvm_emit_world_embedded_action_effect_sync(LLVMGenCtx *ctx,
 
         {
             char active_field[256];
-            snprintf(active_field, sizeof(active_field), "__layer_active_%s", layer_name);
+            if (!llvm_world_effect_sync_field_name(active_field,
+                    sizeof(active_field), "layer_active", layer_name)) {
+                llvm_set_error(ctx, "layer active field name is too long");
+                return;
+            }
             active_idx = llvm_class_field_index(zone_cls, active_field);
         }
         if (active_idx >= 0) {
@@ -161,8 +194,16 @@ llvm_emit_world_embedded_action_effect_sync(LLVMGenCtx *ctx,
             char cause_field[256];
             int epoch_idx;
             int cause_idx;
-            snprintf(epoch_field, sizeof(epoch_field), "__layer_epoch_%s", layer_name);
-            snprintf(cause_field, sizeof(cause_field), "__layer_cause_%s", layer_name);
+            if (!llvm_world_effect_sync_field_name(epoch_field,
+                    sizeof(epoch_field), "layer_epoch", layer_name)) {
+                llvm_set_error(ctx, "layer epoch field name is too long");
+                return;
+            }
+            if (!llvm_world_effect_sync_field_name(cause_field,
+                    sizeof(cause_field), "layer_cause", layer_name)) {
+                llvm_set_error(ctx, "layer cause field name is too long");
+                return;
+            }
             epoch_idx = llvm_class_field_index(zone_cls, epoch_field);
             cause_idx = llvm_class_field_index(zone_cls, cause_field);
             if (epoch_idx >= 0) {
@@ -196,10 +237,18 @@ llvm_emit_world_embedded_action_effect_sync(LLVMGenCtx *ctx,
                 || strcmp(state->data.zone_state.layer_slot_name, layer_name) != 0) {
                 continue;
             }
-            snprintf(state_epoch_field, sizeof(state_epoch_field), "__state_epoch_%s",
-                state->data.zone_state.state_name);
-            snprintf(state_cause_field, sizeof(state_cause_field), "__state_cause_%s",
-                state->data.zone_state.state_name);
+            if (!llvm_world_effect_sync_field_name(state_epoch_field,
+                    sizeof(state_epoch_field), "state_epoch",
+                    state->data.zone_state.state_name)) {
+                llvm_set_error(ctx, "state epoch field name is too long");
+                return;
+            }
+            if (!llvm_world_effect_sync_field_name(state_cause_field,
+                    sizeof(state_cause_field), "state_cause",
+                    state->data.zone_state.state_name)) {
+                llvm_set_error(ctx, "state cause field name is too long");
+                return;
+            }
             state_epoch_idx = llvm_class_field_index(zone_cls, state_epoch_field);
             state_cause_idx = llvm_class_field_index(zone_cls, state_cause_field);
             if (state_epoch_idx >= 0) {
@@ -256,7 +305,11 @@ llvm_emit_world_embedded_action_effect_sync(LLVMGenCtx *ctx,
             subject_ptr = LLVMBuildStructGEP2(ctx->builder, effect_cls->struct_type,
                 tmp_effect, (unsigned)target_idx, llvm_tmp_name(ctx));
             LLVMBuildStore(ctx->builder, source_value, subject_ptr);
-            snprintf(sync_name, sizeof(sync_name), "%s_sync", effect_name);
+            if (!llvm_world_effect_sync_function_name(sync_name,
+                    sizeof(sync_name), effect_name)) {
+                llvm_set_error(ctx, "effect sync function name is too long");
+                return;
+            }
             sync_entry = llvm_lookup_function(ctx, sync_name);
             if (sync_entry != NULL) {
                 LLVMValueRef sync_args[] = { tmp_effect };
@@ -349,10 +402,18 @@ llvm_emit_world_embedded_action_effect_sync(LLVMGenCtx *ctx,
                 || strcmp(refresh_source, target_slot->data.domain_slot.slot_name) != 0) {
                 continue;
             }
-            snprintf(dirty_field, sizeof(dirty_field), "__projection_dirty_%s",
-                projection_name);
-            snprintf(ready_field, sizeof(ready_field), "__projection_ready_%s",
-                projection_name);
+            if (!llvm_world_effect_sync_field_name(dirty_field,
+                    sizeof(dirty_field), "projection_dirty",
+                    projection_name)) {
+                llvm_set_error(ctx, "projection dirty field name is too long");
+                return;
+            }
+            if (!llvm_world_effect_sync_field_name(ready_field,
+                    sizeof(ready_field), "projection_ready",
+                    projection_name)) {
+                llvm_set_error(ctx, "projection ready field name is too long");
+                return;
+            }
             dirty_idx = llvm_class_field_index(effect_cls, dirty_field);
             ready_idx = llvm_class_field_index(effect_cls, ready_field);
             if (dirty_idx >= 0) {
@@ -371,7 +432,11 @@ llvm_emit_world_embedded_action_effect_sync(LLVMGenCtx *ctx,
         {
             char sync_name[256];
             LLVMFuncEntry *sync_entry;
-            snprintf(sync_name, sizeof(sync_name), "%s_sync", effect_name);
+            if (!llvm_world_effect_sync_function_name(sync_name,
+                    sizeof(sync_name), effect_name)) {
+                llvm_set_error(ctx, "effect sync function name is too long");
+                return;
+            }
             sync_entry = llvm_lookup_function(ctx, sync_name);
             if (sync_entry != NULL) {
                 LLVMValueRef sync_args[] = { layer_ptr };

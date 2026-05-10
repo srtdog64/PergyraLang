@@ -24,6 +24,21 @@ llvm_event_expr_error(LLVMGenCtx *ctx, ASTNode *node, const char *message)
     return NULL;
 }
 
+static bool
+llvm_event_call_helper_name(char *out,
+    size_t out_size,
+    const char *event_name,
+    const char *suffix)
+{
+    int written;
+
+    if (out == NULL || out_size == 0 || event_name == NULL || suffix == NULL)
+        return false;
+
+    written = snprintf(out, out_size, "%s_%s", event_name, suffix);
+    return written >= 0 && (size_t)written < out_size;
+}
+
 bool
 llvm_emit_event_invocation_call(ASTNode *node, LLVMGenCtx *ctx,
                                 const char *callee_name, LLVMValueRef *out)
@@ -38,7 +53,12 @@ llvm_emit_event_invocation_call(ASTNode *node, LLVMGenCtx *ctx,
     if (out == NULL || evt == NULL)
         return false;
 
-    snprintf(fname, sizeof(fname), "%s_INVOKE", callee_name);
+    if (!llvm_event_call_helper_name(fname, sizeof(fname),
+            callee_name, "INVOKE")) {
+        *out = llvm_event_expr_error(ctx, node,
+            "LLVM event invocation helper name is too long");
+        return true;
+    }
     fn = llvm_lookup_function(ctx, fname);
     ev_ptr = LLVMGetNamedGlobal(ctx->module, callee_name);
     if (ev_ptr == NULL) {
@@ -87,7 +107,11 @@ llvm_emit_event_subscribe_expr(ASTNode *node, LLVMGenCtx *ctx)
             "LLVM event subscribe requires an identifier event target");
 
     char fname[256];
-    snprintf(fname, sizeof(fname), "%s_SUBSCRIBE", evt_name);
+    if (!llvm_event_call_helper_name(fname, sizeof(fname),
+            evt_name, "SUBSCRIBE")) {
+        return llvm_event_expr_error(ctx, node,
+            "LLVM event subscribe helper name is too long");
+    }
     LLVMFuncEntry *fn = llvm_lookup_function(ctx, fname);
     LLVMVarEntry *ev = llvm_scope_lookup(ctx, evt_name);
     LLVMValueRef ev_ptr = (ev != NULL) ? ev->alloca
@@ -125,7 +149,11 @@ llvm_emit_event_unsubscribe_expr(ASTNode *node, LLVMGenCtx *ctx)
             "LLVM event unsubscribe requires an identifier event target");
 
     char fname[256];
-    snprintf(fname, sizeof(fname), "%s_UNSUBSCRIBE", evt_name);
+    if (!llvm_event_call_helper_name(fname, sizeof(fname),
+            evt_name, "UNSUBSCRIBE")) {
+        return llvm_event_expr_error(ctx, node,
+            "LLVM event unsubscribe helper name is too long");
+    }
     LLVMFuncEntry *fn = llvm_lookup_function(ctx, fname);
     LLVMVarEntry *ev = llvm_scope_lookup(ctx, evt_name);
     LLVMValueRef ev_ptr = (ev != NULL) ? ev->alloca
@@ -162,7 +190,11 @@ llvm_emit_event_invoke_expr(ASTNode *node, LLVMGenCtx *ctx)
             "LLVM event invoke requires an identifier event target");
 
     char fname[256];
-    snprintf(fname, sizeof(fname), "%s_INVOKE", evt_name);
+    if (!llvm_event_call_helper_name(fname, sizeof(fname),
+            evt_name, "INVOKE")) {
+        return llvm_event_expr_error(ctx, node,
+            "LLVM event invoke helper name is too long");
+    }
     LLVMFuncEntry *fn = llvm_lookup_function(ctx, fname);
     LLVMVarEntry *ev = llvm_scope_lookup(ctx, evt_name);
     LLVMValueRef ev_ptr = (ev != NULL) ? ev->alloca

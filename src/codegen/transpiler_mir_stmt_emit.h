@@ -2,6 +2,7 @@
 #define PGY_SRC_CODEGEN_TRANSPILER_MIR_STMT_EMIT_H
 
 #include "transpiler_mir_expr_ssa.h"
+#include "transpiler_mir_reason.h"
 
 /* C backend MIR residual statement helpers. */
 
@@ -78,7 +79,7 @@ transpiler_emit_mir_call_statement(CodeBuf *buf,
     if (expr == NULL || expr[0] == '\0') {
         free(expr);
         if (reason != NULL && reason_cap > 0) {
-            snprintf(reason, reason_cap,
+            transpiler_mir_reasonf(reason, reason_cap,
                      "MIR block %llu emission failed: unable to render call statement with SSA mapping",
                      (unsigned long long) block->id);
         }

@@ -13,13 +13,70 @@
 
 #include "../common/string_compat.h"
 
-static void
-llvm_mir_pin_local_name(const MIRBasicBlock *block, char *buf, size_t buf_size)
+static bool
+llvm_mir_pin_local_name(LLVMGenCtx *ctx, const MIRBasicBlock *block,
+                        char *buf, size_t buf_size)
 {
+    int written;
+
     if (buf == NULL || buf_size == 0)
-        return;
-    snprintf(buf, buf_size, "__pgy_mir_pin_%zu",
-             block != NULL ? block->id : 0);
+        return false;
+    written = snprintf(buf, buf_size, "__pgy_mir_pin_%zu",
+                       block != NULL ? block->id : 0);
+    if (written >= 0 && (size_t)written < buf_size)
+        return true;
+    llvm_set_error(ctx, "MIR pin local name is too long");
+    return false;
+}
+
+static bool
+llvm_mir_pin_token_name(LLVMGenCtx *ctx, char *buf, size_t buf_size,
+                        const char *name)
+{
+    int written;
+
+    if (buf == NULL || buf_size == 0 || name == NULL)
+        return false;
+    written = snprintf(buf, buf_size, "%s_token", name);
+    if (written >= 0 && (size_t)written < buf_size)
+        return true;
+    llvm_set_error(ctx, "MIR pin token name is too long");
+    return false;
+}
+
+static bool
+llvm_mir_pin_init_name(LLVMGenCtx *ctx, char *buf, size_t buf_size,
+                       bool is_secure, bool is_write, const char *inner)
+{
+    int written;
+
+    if (buf == NULL || buf_size == 0 || inner == NULL)
+        return false;
+    written = snprintf(buf, buf_size,
+                       is_secure ? "pgy_secure_pin_%s_init_%s"
+                                 : "pgy_pin_%s_init_%s",
+                       is_write ? "write" : "read", inner);
+    if (written >= 0 && (size_t)written < buf_size)
+        return true;
+    llvm_set_error(ctx, "MIR pin init runtime name is too long");
+    return false;
+}
+
+static bool
+llvm_mir_unpin_name(LLVMGenCtx *ctx, char *buf, size_t buf_size,
+                    bool is_secure, const char *inner)
+{
+    int written;
+
+    if (buf == NULL || buf_size == 0 || inner == NULL)
+        return false;
+    written = snprintf(buf, buf_size,
+                       is_secure ? "pgy_secure_unpin_%s" : "pgy_unpin_%s",
+                       inner);
+    if (written >= 0 && (size_t)written < buf_size)
+        return true;
+    llvm_set_error(ctx, "MIR pin cleanup runtime name is too long");
+    return false;
 }
 
 static LLVMValueRef
@@ -65,20 +122,23 @@ llvm_mir_emit_pin_enter(const MIRBasicBlock *block, LLVMGenCtx *ctx)
     }
 
     is_secure = llvm_lookup_slot_is_secure(ctx, block->pin_source_name);
-    llvm_mir_pin_local_name(block, pin_name, sizeof(pin_name));
+    if (!llvm_mir_pin_local_name(ctx, block, pin_name, sizeof(pin_name)))
+        return false;
     slot_ptr_arg = llvm_mir_slot_pointer_arg(ctx, slot_entry);
     if (is_secure) {
         LLVMVarEntry *token_entry;
-        snprintf(token_name, sizeof(token_name), "%s_token",
-                 block->pin_source_name);
+        if (!llvm_mir_pin_token_name(ctx, token_name, sizeof(token_name),
+                block->pin_source_name))
+            return false;
         token_entry = llvm_scope_lookup(ctx, token_name);
         if (token_entry == NULL || token_entry->alloca == NULL) {
             llvm_set_mir_topology_invalid(ctx,
                 "LLVM MIR secure pin block cannot resolve paired token");
             return false;
         }
-        snprintf(fn_name, sizeof(fn_name), "pgy_secure_pin_%s_init_%s",
-                 block->pin_view_is_write ? "write" : "read", inner);
+        if (!llvm_mir_pin_init_name(ctx, fn_name, sizeof(fn_name), true,
+                block->pin_view_is_write, inner))
+            return false;
         pin_ty = llvm_pinned_secure_slot_struct_type(ctx, inner);
         pin_fn = llvm_lookup_function(ctx, fn_name);
         if (pin_fn == NULL || pin_fn->fn == NULL) {
@@ -97,8 +157,9 @@ llvm_mir_emit_pin_enter(const MIRBasicBlock *block, LLVMGenCtx *ctx)
         LLVMBuildCall2(ctx->builder, pin_fn->fn_type, pin_fn->fn,
                        args, 3, "");
     } else {
-        snprintf(fn_name, sizeof(fn_name), "pgy_pin_%s_init_%s",
-                 block->pin_view_is_write ? "write" : "read", inner);
+        if (!llvm_mir_pin_init_name(ctx, fn_name, sizeof(fn_name), false,
+                block->pin_view_is_write, inner))
+            return false;
         pin_ty = llvm_pinned_slot_struct_type(ctx, inner);
         pin_fn = llvm_lookup_function(ctx, fn_name);
         if (pin_fn == NULL || pin_fn->fn == NULL) {
@@ -131,13 +192,15 @@ llvm_mir_emit_pin_enter(const MIRBasicBlock *block, LLVMGenCtx *ctx)
                                inner, is_secure);
         if (is_secure) {
             LLVMVarEntry *token_entry;
-            snprintf(token_name, sizeof(token_name), "%s_token",
-                     block->pin_source_name);
+            if (!llvm_mir_pin_token_name(ctx, token_name, sizeof(token_name),
+                    block->pin_source_name))
+                return false;
             token_entry = llvm_scope_lookup(ctx, token_name);
             if (token_entry != NULL) {
                 char view_token_name[256];
-                snprintf(view_token_name, sizeof(view_token_name), "%s_token",
-                         block->pin_view_name);
+                if (!llvm_mir_pin_token_name(ctx, view_token_name,
+                        sizeof(view_token_name), block->pin_view_name))
+                    return false;
                 if (llvm_scope_lookup(ctx, view_token_name) == NULL) {
                     llvm_scope_declare(ctx, pergyra_strdup(view_token_name),
                                        token_entry->alloca, token_entry->type);
@@ -172,7 +235,8 @@ llvm_mir_emit_pin_exit(const MIRBasicBlock *block, LLVMGenCtx *ctx)
     }
 
     is_secure = llvm_lookup_slot_is_secure(ctx, block->pin_source_name);
-    llvm_mir_pin_local_name(block, pin_name, sizeof(pin_name));
+    if (!llvm_mir_pin_local_name(ctx, block, pin_name, sizeof(pin_name)))
+        return false;
     pin_entry = llvm_scope_lookup(ctx, pin_name);
     if (pin_entry == NULL || pin_entry->alloca == NULL) {
         llvm_set_mir_topology_invalid(ctx,
@@ -180,9 +244,8 @@ llvm_mir_emit_pin_exit(const MIRBasicBlock *block, LLVMGenCtx *ctx)
         return false;
     }
 
-    snprintf(fn_name, sizeof(fn_name), is_secure ? "pgy_secure_unpin_%s"
-                                                 : "pgy_unpin_%s",
-             inner);
+    if (!llvm_mir_unpin_name(ctx, fn_name, sizeof(fn_name), is_secure, inner))
+        return false;
     unpin_fn = llvm_lookup_function(ctx, fn_name);
     if (unpin_fn == NULL || unpin_fn->fn == NULL) {
         llvm_set_error_at_with_hints(ctx, NULL,

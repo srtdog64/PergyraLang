@@ -10,6 +10,30 @@
 #include "llvm_internal.h"
 #include "llvm_runtime_internal.h"
 
+static bool
+llvm_runtime_export_name(char *out,
+    size_t out_size,
+    const char *op,
+    const char *suffix)
+{
+    int written;
+
+    if (out == NULL || out_size == 0 || op == NULL || suffix == NULL)
+        return false;
+
+    written = snprintf(out, out_size, "pgy_%s_%s", op, suffix);
+    return written >= 0 && (size_t)written < out_size;
+}
+
+static bool
+llvm_runtime_slot_name(char *out,
+    size_t out_size,
+    const char *op,
+    const char *suffix)
+{
+    return llvm_runtime_export_name(out, out_size, op, suffix);
+}
+
 void
 llvm_declare_runtime(LLVMGenCtx *ctx)
 {
@@ -295,70 +319,112 @@ llvm_declare_runtime(LLVMGenCtx *ctx)
         char fn_name[64];
 
         { LLVMTypeRef ft = LLVMFunctionType(slot_ty, NULL, 0, 0);
-          snprintf(fn_name, sizeof(fn_name), "pgy_claim_%s", suffix);
+          if (!llvm_runtime_slot_name(fn_name, sizeof(fn_name), "claim", suffix)) {
+              llvm_set_error(ctx, "slot claim runtime name is too long");
+              return;
+          }
           LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, slot_ty); }
         { LLVMTypeRef params[] = { ptr_ty, val_ty };
           LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, params, 2, 0);
-          snprintf(fn_name, sizeof(fn_name), "pgy_write_%s", suffix);
+          if (!llvm_runtime_slot_name(fn_name, sizeof(fn_name), "write", suffix)) {
+              llvm_set_error(ctx, "slot write runtime name is too long");
+              return;
+          }
           LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ctx->type_void); }
         { LLVMTypeRef params[] = { ptr_ty };
           LLVMTypeRef ft = LLVMFunctionType(val_ty, params, 1, 0);
-          snprintf(fn_name, sizeof(fn_name), "pgy_read_%s", suffix);
+          if (!llvm_runtime_slot_name(fn_name, sizeof(fn_name), "read", suffix)) {
+              llvm_set_error(ctx, "slot read runtime name is too long");
+              return;
+          }
           LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, val_ty); }
         { LLVMTypeRef params[] = { ptr_ty };
           LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, params, 1, 0);
-          snprintf(fn_name, sizeof(fn_name), "pgy_release_%s", suffix);
+          if (!llvm_runtime_slot_name(fn_name, sizeof(fn_name), "release", suffix)) {
+              llvm_set_error(ctx, "slot release runtime name is too long");
+              return;
+          }
           LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ctx->type_void); }
         { LLVMTypeRef pinned_ty = llvm_pinned_slot_struct_type(ctx, suffix);
           LLVMTypeRef params[] = { ptr_ty };
           LLVMTypeRef ft = LLVMFunctionType(pinned_ty, params, 1, 0);
-          snprintf(fn_name, sizeof(fn_name), "pgy_pin_read_%s", suffix);
+          if (!llvm_runtime_slot_name(fn_name, sizeof(fn_name), "pin_read", suffix)) {
+              llvm_set_error(ctx, "slot pin-read runtime name is too long");
+              return;
+          }
           LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, pinned_ty);
-          snprintf(fn_name, sizeof(fn_name), "pgy_pin_write_%s", suffix);
+          if (!llvm_runtime_slot_name(fn_name, sizeof(fn_name), "pin_write", suffix)) {
+              llvm_set_error(ctx, "slot pin-write runtime name is too long");
+              return;
+          }
           fn = LLVMAddFunction(ctx->module, fn_name, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, pinned_ty); }
         { LLVMTypeRef pinned_ty = llvm_pinned_slot_struct_type(ctx, suffix);
           LLVMTypeRef params[] = { LLVMPointerType(pinned_ty, 0), ptr_ty };
           LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, params, 2, 0);
-          snprintf(fn_name, sizeof(fn_name), "pgy_pin_read_init_%s", suffix);
+          if (!llvm_runtime_slot_name(fn_name, sizeof(fn_name), "pin_read_init", suffix)) {
+              llvm_set_error(ctx, "slot pin-read init runtime name is too long");
+              return;
+          }
           LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ctx->type_void);
-          snprintf(fn_name, sizeof(fn_name), "pgy_pin_write_init_%s", suffix);
+          if (!llvm_runtime_slot_name(fn_name, sizeof(fn_name), "pin_write_init", suffix)) {
+              llvm_set_error(ctx, "slot pin-write init runtime name is too long");
+              return;
+          }
           fn = LLVMAddFunction(ctx->module, fn_name, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ctx->type_void); }
         { LLVMTypeRef pinned_ty = llvm_pinned_slot_struct_type(ctx, suffix);
           LLVMTypeRef params[] = { LLVMPointerType(pinned_ty, 0) };
           LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, params, 1, 0);
-          snprintf(fn_name, sizeof(fn_name), "pgy_unpin_%s", suffix);
+          if (!llvm_runtime_slot_name(fn_name, sizeof(fn_name), "unpin", suffix)) {
+              llvm_set_error(ctx, "slot unpin runtime name is too long");
+              return;
+          }
           LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ctx->type_void); }
         { LLVMTypeRef ft = LLVMFunctionType(slot_ty, NULL, 0, 0);
-          snprintf(fn_name, sizeof(fn_name), "pgy_claim_device_%s", suffix);
+          if (!llvm_runtime_slot_name(fn_name, sizeof(fn_name), "claim_device", suffix)) {
+              llvm_set_error(ctx, "device slot claim runtime name is too long");
+              return;
+          }
           LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, slot_ty); }
         { LLVMTypeRef params[] = { ptr_ty, val_ty };
           LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, params, 2, 0);
-          snprintf(fn_name, sizeof(fn_name), "pgy_device_write_%s", suffix);
+          if (!llvm_runtime_slot_name(fn_name, sizeof(fn_name), "device_write", suffix)) {
+              llvm_set_error(ctx, "device slot write runtime name is too long");
+              return;
+          }
           LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ctx->type_void); }
         { LLVMTypeRef params[] = { ptr_ty };
           LLVMTypeRef ft = LLVMFunctionType(val_ty, params, 1, 0);
-          snprintf(fn_name, sizeof(fn_name), "pgy_device_read_%s", suffix);
+          if (!llvm_runtime_slot_name(fn_name, sizeof(fn_name), "device_read", suffix)) {
+              llvm_set_error(ctx, "device slot read runtime name is too long");
+              return;
+          }
           LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, val_ty); }
         { LLVMTypeRef params[] = { ptr_ty };
           LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, params, 1, 0);
-          snprintf(fn_name, sizeof(fn_name), "pgy_release_device_%s", suffix);
+          if (!llvm_runtime_slot_name(fn_name, sizeof(fn_name), "release_device", suffix)) {
+              llvm_set_error(ctx, "device slot release runtime name is too long");
+              return;
+          }
           LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ctx->type_void); }
         { LLVMTypeRef params[] = { ptr_ty };
           LLVMTypeRef ft = LLVMFunctionType(ctx->type_task_handle, params, 1, 0);
-          snprintf(fn_name, sizeof(fn_name), "pgy_submit_device_read_%s", suffix);
+          if (!llvm_runtime_slot_name(fn_name, sizeof(fn_name), "submit_device_read", suffix)) {
+              llvm_set_error(ctx, "device slot submit-read runtime name is too long");
+              return;
+          }
           LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ctx->type_task_handle); }
     }
@@ -372,37 +438,58 @@ llvm_declare_runtime(LLVMGenCtx *ctx)
 
         { LLVMTypeRef params[] = { val_ty };
           LLVMTypeRef ft = LLVMFunctionType(ctx->type_i8ptr, params, 1, 0);
-          snprintf(fn_name, sizeof(fn_name), "pgy_rc_new_%s", suffix);
+          if (!llvm_runtime_export_name(fn_name, sizeof(fn_name), "rc_new", suffix)) {
+              llvm_set_error(ctx, "Rc new runtime name is too long");
+              return;
+          }
           LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ctx->type_i8ptr); }
         { LLVMTypeRef params[] = { ctx->type_i8ptr };
           LLVMTypeRef ft = LLVMFunctionType(ctx->type_i8ptr, params, 1, 0);
-          snprintf(fn_name, sizeof(fn_name), "pgy_rc_clone_%s", suffix);
+          if (!llvm_runtime_export_name(fn_name, sizeof(fn_name), "rc_clone", suffix)) {
+              llvm_set_error(ctx, "Rc clone runtime name is too long");
+              return;
+          }
           LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ctx->type_i8ptr); }
         { LLVMTypeRef params[] = { ctx->type_i8ptr };
           LLVMTypeRef ft = LLVMFunctionType(val_ptr_ty, params, 1, 0);
-          snprintf(fn_name, sizeof(fn_name), "pgy_rc_get_%s", suffix);
+          if (!llvm_runtime_export_name(fn_name, sizeof(fn_name), "rc_get", suffix)) {
+              llvm_set_error(ctx, "Rc get runtime name is too long");
+              return;
+          }
           LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, val_ptr_ty); }
         { LLVMTypeRef params[] = { ctx->type_i8ptr };
           LLVMTypeRef ft = LLVMFunctionType(ctx->type_i8ptr, params, 1, 0);
-          snprintf(fn_name, sizeof(fn_name), "pgy_rc_downgrade_%s", suffix);
+          if (!llvm_runtime_export_name(fn_name, sizeof(fn_name), "rc_downgrade", suffix)) {
+              llvm_set_error(ctx, "Rc downgrade runtime name is too long");
+              return;
+          }
           LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ctx->type_i8ptr); }
         { LLVMTypeRef params[] = { handle_ptr_ty };
           LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, params, 1, 0);
-          snprintf(fn_name, sizeof(fn_name), "pgy_rc_drop_%s", suffix);
+          if (!llvm_runtime_export_name(fn_name, sizeof(fn_name), "rc_drop", suffix)) {
+              llvm_set_error(ctx, "Rc drop runtime name is too long");
+              return;
+          }
           LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ctx->type_void); }
         { LLVMTypeRef params[] = { ctx->type_i8ptr };
           LLVMTypeRef ft = LLVMFunctionType(ctx->type_i8ptr, params, 1, 0);
-          snprintf(fn_name, sizeof(fn_name), "pgy_weak_upgrade_%s", suffix);
+          if (!llvm_runtime_export_name(fn_name, sizeof(fn_name), "weak_upgrade", suffix)) {
+              llvm_set_error(ctx, "Weak upgrade runtime name is too long");
+              return;
+          }
           LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ctx->type_i8ptr); }
         { LLVMTypeRef params[] = { handle_ptr_ty };
           LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, params, 1, 0);
-          snprintf(fn_name, sizeof(fn_name), "pgy_weak_drop_%s", suffix);
+          if (!llvm_runtime_export_name(fn_name, sizeof(fn_name), "weak_drop", suffix)) {
+              llvm_set_error(ctx, "Weak drop runtime name is too long");
+              return;
+          }
           LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ctx->type_void); }
     }
@@ -416,38 +503,59 @@ llvm_declare_runtime(LLVMGenCtx *ctx)
 
         { LLVMTypeRef params[] = { ctx->type_i64 };
           LLVMTypeRef ft = LLVMFunctionType(arr_ty, params, 1, 0);
-          snprintf(fn_name, sizeof(fn_name), "pgy_array_new_%s", suffix);
+          if (!llvm_runtime_export_name(fn_name, sizeof(fn_name), "array_new", suffix)) {
+              llvm_set_error(ctx, "Array new runtime name is too long");
+              return;
+          }
           LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, arr_ty); }
         { LLVMTypeRef params[] = { arr_ptr_ty, val_ty };
           LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, params, 2, 0);
-          snprintf(fn_name, sizeof(fn_name), "pgy_array_push_%s", suffix);
+          if (!llvm_runtime_export_name(fn_name, sizeof(fn_name), "array_push", suffix)) {
+              llvm_set_error(ctx, "Array push runtime name is too long");
+              return;
+          }
           LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ctx->type_void); }
         { LLVMTypeRef params[] = { arr_ptr_ty, ctx->type_i64 };
           LLVMTypeRef ft = LLVMFunctionType(val_ty, params, 2, 0);
-          snprintf(fn_name, sizeof(fn_name), "pgy_array_get_%s", suffix);
+          if (!llvm_runtime_export_name(fn_name, sizeof(fn_name), "array_get", suffix)) {
+              llvm_set_error(ctx, "Array get runtime name is too long");
+              return;
+          }
           LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, val_ty); }
         { LLVMTypeRef params[] = { arr_ptr_ty, ctx->type_i64, val_ty };
           LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, params, 3, 0);
-          snprintf(fn_name, sizeof(fn_name), "pgy_array_set_%s", suffix);
+          if (!llvm_runtime_export_name(fn_name, sizeof(fn_name), "array_set", suffix)) {
+              llvm_set_error(ctx, "Array set runtime name is too long");
+              return;
+          }
           LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ctx->type_void); }
         { LLVMTypeRef params[] = { arr_ptr_ty };
           LLVMTypeRef ft = LLVMFunctionType(ctx->type_void, params, 1, 0);
-          snprintf(fn_name, sizeof(fn_name), "pgy_array_pop_%s", suffix);
+          if (!llvm_runtime_export_name(fn_name, sizeof(fn_name), "array_pop", suffix)) {
+              llvm_set_error(ctx, "Array pop runtime name is too long");
+              return;
+          }
           LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, ctx->type_void); }
         { LLVMTypeRef params[] = { LLVMPointerType(llvm_slice_struct_type(ctx, suffix), 0),
                                    ctx->type_i64 };
           LLVMTypeRef ft = LLVMFunctionType(val_ty, params, 2, 0);
-          snprintf(fn_name, sizeof(fn_name), "pgy_slice_get_%s", suffix);
+          if (!llvm_runtime_export_name(fn_name, sizeof(fn_name), "slice_get", suffix)) {
+              llvm_set_error(ctx, "Slice get runtime name is too long");
+              return;
+          }
           LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft, val_ty); }
         { LLVMTypeRef params[] = { arr_ptr_ty, ctx->type_i64, ctx->type_i64 };
           LLVMTypeRef ft = LLVMFunctionType(llvm_slice_struct_type(ctx, suffix), params, 3, 0);
-          snprintf(fn_name, sizeof(fn_name), "pgy_array_slice_%s", suffix);
+          if (!llvm_runtime_export_name(fn_name, sizeof(fn_name), "array_slice", suffix)) {
+              llvm_set_error(ctx, "Array slice runtime name is too long");
+              return;
+          }
           LLVMValueRef fn = LLVMAddFunction(ctx->module, fn_name, ft);
           llvm_register_function(ctx, LLVMGetValueName(fn), fn, ft,
               llvm_slice_struct_type(ctx, suffix)); }

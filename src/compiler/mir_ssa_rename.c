@@ -307,26 +307,20 @@ mir_append_block_versioned_name(MIRBasicBlock *block,
     return append_owned_name(names, count, capacity, versioned);
 }
 
-static bool
-mir_parse_versioned_name(const char *versioned,
-                         char *base,
-                         size_t base_size,
-                         size_t *version_out)
+static char *
+mir_parse_versioned_name_owned(const char *versioned, size_t *version_out)
 {
     const char *dot;
     size_t len;
-    if (versioned == NULL || base == NULL || base_size == 0 || version_out == NULL)
-        return false;
+
+    if (versioned == NULL || version_out == NULL)
+        return NULL;
     dot = strrchr(versioned, '.');
     if (dot == NULL)
-        return false;
+        return NULL;
     len = (size_t)(dot - versioned);
-    if (len + 1 > base_size)
-        return false;
-    memcpy(base, versioned, len);
-    base[len] = '\0';
     *version_out = (size_t)strtoull(dot + 1, NULL, 10);
-    return true;
+    return pergyra_strndup(versioned, len);
 }
 
 static ASTNode *
@@ -392,14 +386,15 @@ mir_populate_use_edges(MIRRoutine *routine)
                     routine->use_edge_count++;
                 }
                 if (inst->result_name != NULL) {
-                    char base[128];
                     size_t version = 0;
                     int idx;
-                    if (mir_parse_versioned_name(inst->result_name, base,
-                            sizeof(base), &version)) {
+                    char *base = mir_parse_versioned_name_owned(inst->result_name,
+                                                                &version);
+                    if (base != NULL) {
                         idx = mir_find_ssa_name_index(ssa_names, ssa_name_count, base);
                         if (idx >= 0)
                             current_versions[idx] = version;
+                        free(base);
                     }
                 }
                 continue;
@@ -434,14 +429,15 @@ mir_populate_use_edges(MIRRoutine *routine)
                     free((void *)raw_uses);
                 }
                 if (inst->result_name != NULL) {
-                    char base[128];
                     size_t version = 0;
                     int idx;
-                    if (mir_parse_versioned_name(inst->result_name, base,
-                            sizeof(base), &version)) {
+                    char *base = mir_parse_versioned_name_owned(inst->result_name,
+                                                                &version);
+                    if (base != NULL) {
                         idx = mir_find_ssa_name_index(ssa_names, ssa_name_count, base);
                         if (idx >= 0)
                             current_versions[idx] = version;
+                        free(base);
                     }
                 }
                 continue;

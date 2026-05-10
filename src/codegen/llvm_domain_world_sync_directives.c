@@ -1,6 +1,20 @@
 #ifdef PGY_LLVM_ENABLED
 #include "llvm_domain_world_sync_internal.h"
 
+static bool
+llvm_world_sync_directive_field_name(char *out,
+                                     size_t out_size,
+                                     const char *kind,
+                                     const char *slot_name)
+{
+    int written;
+
+    if (out == NULL || out_size == 0 || kind == NULL || slot_name == NULL)
+        return false;
+    written = snprintf(out, out_size, "__%s_%s", kind, slot_name);
+    return written >= 0 && (size_t)written < out_size;
+}
+
 ASTNode *
 llvm_world_sync_find_state_decl(ASTNode *world_decl, const char *state_name)
 {
@@ -70,7 +84,9 @@ llvm_world_sync_store_zone_active(LLVMClassTypeEntry *decl_cls,
     if (slot_name == NULL)
         return;
 
-    snprintf(active_field, sizeof(active_field), "__zone_active_%s", slot_name);
+    if (!llvm_world_sync_directive_field_name(active_field,
+            sizeof(active_field), "zone_active", slot_name))
+        return;
     active_idx = llvm_class_field_index(decl_cls, active_field);
     if (active_idx < 0)
         return;

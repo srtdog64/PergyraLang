@@ -1,6 +1,8 @@
 #ifndef PERGYRA_TRANSPILER_MIR_BLOCK_SCHEDULE_EMIT_H
 #define PERGYRA_TRANSPILER_MIR_BLOCK_SCHEDULE_EMIT_H
 
+#include "transpiler_mir_reason.h"
+
 /* MIR block scheduling/prepass helpers for C emission. */
 static bool
 transpiler_mir_block_has_source_order_metadata(const MIRBasicBlock *block)
@@ -54,7 +56,7 @@ transpiler_mir_block_build_source_order(const MIRBasicBlock *block,
     if (inst_order == NULL) {
         free(inst_order);
         if (reason != NULL && reason_cap > 0) {
-            snprintf(reason, reason_cap,
+            transpiler_mir_reasonf(reason, reason_cap,
                      "MIR block %llu emission failed: unable to allocate source-order schedule",
                      (unsigned long long) block->id);
         }
@@ -109,7 +111,7 @@ transpiler_emit_mir_claim_prepass(CodeBuf *buf,
         if (!transpiler_emit_mir_resource_hook(ctx, buf, ctx->indent,
                                                inst, "0", false)) {
             if (reason != NULL && reason_cap > 0) {
-                snprintf(reason, reason_cap,
+                transpiler_mir_reasonf(reason, reason_cap,
                          "MIR block %zu emission failed: unable to emit claim op for '%s'",
                          block->id,
                          inst->slot_anchor != NULL ? inst->slot_anchor : "<slot>");
