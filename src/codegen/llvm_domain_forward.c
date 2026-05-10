@@ -163,6 +163,12 @@ llvm_emit_domain_method_forward_decls(LLVMGenCtx *ctx,
 
     if (methods == NULL)
         return;
+    if (llvm_hosted_method_view_missing_mir_metadata(methods)) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing method forward metadata for domain '%s'",
+            decl_name != NULL ? decl_name : "(anonymous-domain)");
+        return;
+    }
 
     for (size_t j = 0; j < methods->count; j++) {
         const MIRDeclMethod *method_meta =
@@ -346,6 +352,12 @@ llvm_emit_role_method_forward_decls_metadata_first(LLVMGenCtx *ctx,
 {
     if (ctx == NULL || role_name == NULL || methods == NULL)
         return;
+    if (llvm_hosted_method_view_missing_mir_metadata(methods)) {
+        llvm_set_mir_inventory_missing(ctx,
+            "MIR-only LLVM path missing method forward metadata for role '%s'",
+            role_name != NULL ? role_name : "(anonymous-role)");
+        return;
+    }
 
     for (size_t j = 0; j < methods->count; j++) {
         const MIRDeclMethod *method_meta =

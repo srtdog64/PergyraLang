@@ -161,12 +161,9 @@ mir_resource_op_matches_source_stmt(const MIRInstruction *inst,
 
     if (inst == NULL || stmt == NULL || inst->kind != MIR_INST_RESOURCE_OP)
         return false;
-    if (inst->ast == stmt)
+    if (mir_instruction_source_matches_ast_node(inst, stmt))
         return true;
-    if (inst->has_source_location
-        && stmt->line != 0
-        && inst->source_line == stmt->line
-        && inst->source_column == stmt->column) {
+    if (mir_instruction_source_location_matches_node(inst, stmt)) {
         return true;
     }
     if (stmt->type != AST_WITH_STMT

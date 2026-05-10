@@ -24,7 +24,7 @@ transpiler_mir_seed_block_phi_names(const MIRBasicBlock *block,
 static ASTNode *
 transpiler_mir_find_stmt_for_inst(const MIRInstruction *inst)
 {
-    return inst != NULL ? inst->ast : NULL;
+    return mir_instruction_source_payload(inst);
 }
 
 static bool
@@ -33,8 +33,7 @@ transpiler_mir_inst_is_cfg_container(const MIRInstruction *inst,
 {
     return inst != NULL
         && stmt != NULL
-        && inst->has_source_location
-        && inst->source_ast_type == stmt->type
+        && mir_instruction_source_matches_ast_node(inst, stmt)
         && transpiler_mir_stmt_is_cfg_container(stmt);
 }
 
@@ -43,11 +42,8 @@ transpiler_mir_def_uses_source_statement_emit(const MIRInstruction *inst,
                                               const ASTNode *stmt,
                                               ASTNodeType expected_type)
 {
-    return inst != NULL
-        && inst->kind == MIR_INST_DEF
-        && inst->requires_source_statement_emit
-        && inst->has_source_location
-        && inst->source_ast_type == expected_type
+    return mir_instruction_uses_source_statement_emit(inst)
+        && mir_instruction_source_matches_ast_type(inst, expected_type)
         && stmt != NULL
         && stmt->type == expected_type;
 }
@@ -56,9 +52,9 @@ static bool
 transpiler_mir_def_uses_source_local_decl_emit(const MIRInstruction *inst,
                                                const ASTNode *stmt)
 {
-    return transpiler_mir_def_uses_source_statement_emit(inst, stmt,
-                                                        AST_LET_DECL)
-        && inst->requires_source_local_decl_emit;
+    return mir_instruction_uses_source_local_decl_emit(inst)
+        && transpiler_mir_def_uses_source_statement_emit(inst, stmt,
+                                                        AST_LET_DECL);
 }
 
 static bool
@@ -67,9 +63,9 @@ transpiler_mir_def_uses_channel_receive_statement_emit(
     const ASTNode *stmt,
     ASTNodeType expected_type)
 {
-    return transpiler_mir_def_uses_source_statement_emit(inst, stmt,
-                                                        expected_type)
-        && inst->requires_channel_receive_statement_emit;
+    return mir_instruction_uses_channel_receive_statement_emit(inst)
+        && transpiler_mir_def_uses_source_statement_emit(inst, stmt,
+                                                        expected_type);
 }
 
 static bool
@@ -78,9 +74,9 @@ transpiler_mir_def_uses_select_receive_statement_emit(
     const ASTNode *stmt,
     ASTNodeType expected_type)
 {
-    return transpiler_mir_def_uses_channel_receive_statement_emit(
-            inst, stmt, expected_type)
-        && inst->requires_select_receive_statement_emit;
+    return mir_instruction_uses_select_receive_statement_emit(inst)
+        && transpiler_mir_def_uses_channel_receive_statement_emit(
+            inst, stmt, expected_type);
 }
 
 static bool

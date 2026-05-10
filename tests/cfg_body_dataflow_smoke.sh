@@ -130,7 +130,7 @@ run_literal_doc_contract_smoke() {
     require_literal "src/compiler/mir_fact_validate.c" "DEF is missing source-statement emit fact"
     require_literal "src/compiler/mir_fact_validate.c" "channel receive DEF is missing source-statement receive emit fact"
     require_literal "src/compiler/mir_fact_validate.c" "select receive DEF is missing select receive emit fact"
-    require_literal "src/compiler/mir_fact_validate.c" "branch is missing source-branch emit fact"
+    require_literal "src/compiler/mir_fact_terminator_validate.c" "branch is missing source-branch emit fact"
     require_literal "src/compiler/mir_fact_validate.c" "source-statement emit fact is invalid"
     require_literal "src/compiler/mir_fact_validate.c" "source-statement receive emit fact is invalid"
     require_literal "src/compiler/mir_fact_validate.c" "select receive emit fact is invalid"
@@ -138,6 +138,11 @@ run_literal_doc_contract_smoke() {
     require_literal "src/compiler/mir_fact_validate.c" "source-statement LET emit is missing local-decl fact"
     require_literal "src/compiler/mir_fact_validate.c" "with-slot Claim resource op is missing MIR ABI type layout fact"
     require_literal "src/compiler/mir_fact_validate.c" "with-slot Claim resource op has invalid MIR ABI type layout fact"
+    require_literal "src/compiler/mir_fact_validate.c" "mir_instruction_source_is_local_decl(inst)"
+    require_literal "src/compiler/mir_fact_validate.c" "mir_instruction_source_is_assignment(inst)"
+    require_literal "src/compiler/mir_fact_validate.c" "mir_instruction_source_is_defer_stmt(inst)"
+    require_literal "src/compiler/mir_fact_validate.c" "mir_instruction_source_is_with_slot_claim(inst)"
+    require_literal "src/compiler/mir_intent_fact.c" "mir_instruction_source_is_intent_step(inst)"
     require_literal "src/tests/mir/test_mir_lowering_part_c.cases.h" "MIR validator rejects invalid source-statement emit fact"
     require_literal "src/tests/mir/test_mir_lowering_part_c.cases.h" "MIR validator rejects missing channel receive emit fact"
     require_literal "src/tests/mir/test_mir_lowering_part_c.cases.h" "MIR validator rejects invalid select receive emit fact"
@@ -145,12 +150,27 @@ run_literal_doc_contract_smoke() {
     require_literal "src/tests/mir/test_mir_lowering_part_c.cases.h" "MIR validator rejects invalid source-local-decl emit fact"
     require_literal "src/compiler/mir_lifecycle.c" "source-local-decl-emit"
     require_literal "src/compiler/mir_lifecycle.c" "select-recv-stmt-emit"
-    require_literal "src/compiler/mir_fact_validate.c" "source-branch emit fact is invalid"
+    require_literal "src/compiler/mir_fact_terminator_validate.c" "source-branch emit fact is invalid"
+    require_literal "src/compiler/mir_source_shape.c" "mir_instruction_branch_requires_source_emit"
+    require_literal "src/compiler/mir_source_shape.c" "mir_instruction_has_source_payload"
+    require_literal "src/compiler/mir_source_shape.c" "mir_block_has_hir_source_mapping"
+    require_literal "src/compiler/mir_source_shape.c" "mir_block_has_source_location"
+    require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_is_intent_step"
+    require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_is_cfg_owned_control"
+    require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_stmt_has_side_effect_hint"
+    require_literal "src/compiler/mir_cfg_contract_validate.c" "mir_instruction_source_is_cfg_owned_control(inst)"
+    require_literal "src/compiler/mir_dce.c" "mir_instruction_source_stmt_has_side_effect_hint(inst)"
+    require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_branch_payload_matches_shape"
     require_literal "src/tests/mir/test_mir_lowering_part_c.cases.h" "MIR validator rejects source-compatible branch without payload"
     require_literal "src/compiler/mir_lifecycle.c" "source-branch-emit"
-    require_literal "src/codegen/llvm_mir_block_emit.c" "inst->requires_source_branch_emit"
-    require_literal "src/codegen/transpiler_mir_emission_contract.h" "inst->requires_source_branch_emit"
-    require_literal "src/codegen/llvm_mir_block_emit.c" "inst->requires_source_statement_emit"
+    require_literal "src/codegen/llvm_mir_block_emit.c" "mir_instruction_branch_requires_source_emit(inst)"
+    require_literal "src/codegen/transpiler_mir_emission_contract.h" "mir_instruction_branch_requires_source_emit(inst)"
+    require_literal "src/compiler/air_evidence.c" "mir_block_has_hir_source_mapping(block)"
+    require_literal "src/codegen/transpiler_mir_ssa_map.c" "mir_block_source_hir_id(block)"
+    require_literal "src/codegen/transpiler_mir_ssa_map.c" "mir_block_source_line(block)"
+    require_literal "src/compiler/mir_source_shape.c" "mir_instruction_uses_source_statement_emit"
+    require_literal "src/compiler/mir_source_shape.c" "mir_instruction_uses_source_local_decl_emit"
+    require_literal "src/codegen/llvm_mir_block_emit.c" "mir_instruction_uses_source_statement_emit(inst)"
     require_literal "src/codegen/llvm_mir_block_emit.c" "llvm_mir_def_uses_source_local_decl_emit"
     require_literal "src/codegen/llvm_mir_block_emit.c" "llvm_mir_def_uses_channel_receive_statement_emit"
     require_literal "src/codegen/llvm_mir_block_emit.c" "llvm_mir_def_uses_select_receive_statement_emit"
@@ -158,23 +178,26 @@ run_literal_doc_contract_smoke() {
     require_literal "src/codegen/llvm_mir_cfg_control.c" "llvm_mir_declare_recv_target(inst->arg0, inst->expr0, ctx)"
     require_literal "src/codegen/llvm_mir_cfg_control.c" "LLVM channel receive DEF requires registered runtime function"
     require_literal "src/codegen/llvm_mir_resource_claim.c" "llvm_mir_claim_inner_type_name(inst"
+    require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_is_with_slot_claim"
+    require_literal "src/codegen/llvm_mir_block_emit.c" "mir_instruction_is_with_slot_claim(inst)"
+    require_literal "src/codegen/transpiler_mir_resource_op_emit.h" "mir_instruction_is_with_slot_claim(inst)"
     require_literal "src/codegen/llvm_mir_resource_claim.c" "inst->type_layout->abi_type_name"
     require_literal "Makefile" '$(CODEGEN_DIR)/llvm_mir_resource_claim.c'
     require_literal "src/codegen/llvm_mir_block_emit.c" "llvm_mir_emit_borrow_view_alias(inst, ctx)"
     require_literal "Makefile" '$(CODEGEN_DIR)/llvm_mir_resource_view.c'
-    require_literal "src/codegen/llvm_mir_block_emit.c" "llvm_emit_statement(inst->ast, ctx)"
+    require_literal "src/codegen/llvm_mir_block_emit.c" "llvm_emit_statement(source_payload, ctx)"
     require_literal "src/codegen/llvm_mir_block_emit.c" "LLVMConstInt(LLVMInt1TypeInContext(ctx->context), 0, 0)"
     require_literal "tests/llvm_smoke.sh" "select_fairness"
     require_literal "tests/llvm_smoke.sh" "case v = <-a:"
     require_literal "tests/llvm_smoke.sh" "case v = <-b:"
-    require_literal "src/codegen/transpiler_mir_pending_uses.h" "!inst->requires_source_statement_emit"
-    require_literal "src/codegen/transpiler_mir_pending_uses.h" "!inst->requires_source_local_decl_emit"
+    require_literal "src/codegen/transpiler_mir_pending_uses.h" "!mir_instruction_uses_source_local_decl_emit(inst)"
     require_literal "src/codegen/transpiler_mir_block_emit_helpers.h" "transpiler_mir_def_uses_source_statement_emit"
     require_literal "src/codegen/transpiler_mir_block_emit_helpers.h" "transpiler_mir_def_uses_source_local_decl_emit"
     require_literal "src/codegen/transpiler_mir_block_emit_helpers.h" "transpiler_mir_def_uses_channel_receive_statement_emit"
     require_literal "src/codegen/transpiler_mir_block_emit_helpers.h" "transpiler_mir_def_uses_select_receive_statement_emit"
     require_literal "src/codegen/transpiler_mir_block_emit_helpers.h" "transpiler_mir_find_stmt_for_inst(const MIRInstruction *inst)"
-    require_literal "src/codegen/transpiler_mir_block_emit_helpers.h" "return inst != NULL ? inst->ast : NULL"
+    require_literal "src/codegen/transpiler_mir_block_emit_helpers.h" "return mir_instruction_source_payload(inst)"
+    require_literal "src/compiler/mir_stmt_population.c" "mir_instruction_source_matches_ast_node(inst, stmt)"
     require_literal "src/codegen/transpiler_mir_assignment_emit.h" "transpiler_mir_def_uses_source_statement_emit("
     require_literal "src/codegen/transpiler_mir_assignment_emit.h" "missing receive emit fact"
     require_literal "src/codegen/transpiler_mir_assignment_emit.h" "missing select receive emit fact"
@@ -185,6 +208,22 @@ run_literal_doc_contract_smoke() {
     fi
     if grep -R "transpiler_find_let_decl_by_name" "$ROOT_DIR/src/codegen" >/dev/null; then
         echo "C MIR emission reintroduced name-based function-body let lookup" >&2
+        exit 1
+    fi
+    if grep -RIn -- 'inst->ast\|resource_inst->ast' "$ROOT_DIR/src/codegen" >/dev/null; then
+        echo "Backend MIR emission reopened raw instruction AST payload; use mir_instruction_source_payload(...)" >&2
+        grep -RIn -- 'inst->ast\|resource_inst->ast' "$ROOT_DIR/src/codegen" >&2
+        exit 1
+    fi
+    local raw_payload_hits
+    raw_payload_hits="$(grep -RIn -- 'inst->ast\|resource_inst->ast' "$ROOT_DIR/src/compiler" \
+        | grep -v 'src/compiler/mir.c:' \
+        | grep -v 'src/compiler/mir_source_shape.c:' \
+        | grep -v 'src/compiler/mir_non_cfg_stmt_population.c:' \
+        || true)"
+    if [ -n "$raw_payload_hits" ]; then
+        echo "Compiler MIR consumers reopened raw instruction AST payload; use mir_instruction_source_payload(...)" >&2
+        printf '%s\n' "$raw_payload_hits" >&2
         exit 1
     fi
     require_literal "src/semantic/type_checker_flow.c" "type_check_while_loop_flow(node, ctx)"
@@ -201,7 +240,11 @@ run_literal_doc_contract_smoke() {
     require_literal "src/tests/semantic/test_semantic_misc_a_part_a.cases.h" "CFG static false while does not merge unreachable resource state"
     require_literal "src/codegen/transpiler_mir_emission_contract.h" "mir_block_has_expected_cleanup_edge_fact(routine, i)"
     require_literal "src/codegen/transpiler_mir_emission_contract.h" "mir_block_has_pin_cleanup_edge(block)"
+    require_literal "src/compiler/mir_fact_validate.c" "mir_validate_routine_emission_facts"
+    require_literal "src/codegen/transpiler_mir_emission_contract.h" "mir_validate_routine_emission_facts(routine"
     require_literal "src/codegen/llvm_mir_contract.c" "llvm_mir_validate_cleanup_contract"
+    require_literal "src/codegen/llvm_mir_contract.c" "mir_validate_emission_topology(routine"
+    require_literal "src/codegen/llvm_mir_contract.c" "mir_validate_routine_emission_facts(routine"
     require_literal "src/codegen/llvm_mir_contract.c" "mir_block_has_expected_cleanup_edge_fact(routine, i)"
     require_literal "src/codegen/llvm_mir_contract.c" "mir_block_has_pin_cleanup_edge(block)"
     require_literal "src/compiler/air_evidence.c" "mir_block_has_expected_cleanup_edge_fact(routine, i)"
@@ -684,9 +727,9 @@ if "AST_PARALLEL_BLOCK" in mir_cfg_contract_control:
     raise SystemExit(
         "parallel blocks are not CFG-owned until HIR/MIR has real parallel CFG lowering"
     )
-if "AST_PARALLEL_BLOCK" not in mir_dce:
+if "AST_PARALLEL_BLOCK" not in mir_source_shape:
     raise SystemExit(
-        "MIR DCE must preserve parallel blocks as side-effecting statements"
+        "MIR source-shape owner must preserve parallel blocks as side-effecting statements"
     )
 
 required_mir_codegen_control_terms = [
@@ -1152,6 +1195,7 @@ for term in [
     "MIR lowers for-in init as loop-init instead of fallback statement",
     "MIR validator rejects intent instruction metadata drift",
     "MIR validator rejects CFG-owned control fallback statements",
+    "MIR validator rejects terminal CFG-owned control fallback statements",
     "MIR validator rejects non-CFG fallback flag without count",
     "MIR validator rejects missing routine inventory",
     "MIR validator rejects missing block inventory",
@@ -1181,6 +1225,87 @@ if "source_statement_inventory.items[inst->source_statement_index]" in mir_ssa_r
     raise SystemExit(
         "MIR DEF use-edge collection must consume instruction-carried AST, "
         "not reopen block source_statement_inventory"
+    )
+
+if "inst->has_source_location" in mir_dce:
+    raise SystemExit(
+        "MIR DCE must consume mir_instruction_has_source_location(...) "
+        "instead of reopening raw source-location fields"
+    )
+
+if "inst->source_ast_type" in mir_llvm_block_emit:
+    raise SystemExit(
+        "LLVM MIR block emission must consume MIR source-shape accessors "
+        "instead of reopening raw source_ast_type"
+    )
+
+if "inst->has_source_location" in mir_llvm_block_emit:
+    raise SystemExit(
+        "LLVM MIR block emission must consume MIR source-shape accessors "
+        "instead of reopening raw source-location fields"
+    )
+
+mir_stmt_population_impl = (
+    ROOT / "src/compiler/mir_stmt_population.c"
+).read_text(encoding="utf-8")
+if "inst->source_line" in mir_stmt_population_impl:
+    raise SystemExit(
+        "MIR statement population must consume source-location match helper "
+        "instead of reopening raw source line fields"
+    )
+
+if "inst->has_source_location" in mir_stmt_population_impl:
+    raise SystemExit(
+        "MIR statement population must consume source-location match helper "
+        "instead of reopening raw source-location fields"
+    )
+
+mir_lifecycle_impl = (
+    ROOT / "src/compiler/mir_lifecycle.c"
+).read_text(encoding="utf-8")
+if "inst->source_ast_type" in mir_lifecycle_impl:
+    raise SystemExit(
+        "MIR dump/lifecycle must consume source-shape accessors instead of "
+        "reopening raw instruction source_ast_type"
+    )
+
+if "inst->source_line" in mir_lifecycle_impl:
+    raise SystemExit(
+        "MIR dump/lifecycle must consume source-shape accessors instead of "
+        "reopening raw instruction source_line"
+    )
+
+if "block->source_line" in mir_lifecycle_impl:
+    raise SystemExit(
+        "MIR dump/lifecycle must consume block source accessors instead of "
+        "reopening raw block source_line"
+    )
+
+raw_source_fields = (
+    "->source_ast_type",
+    "->has_source_location",
+    "->source_line",
+    "->source_column",
+)
+raw_source_allowed = {
+    pathlib.Path("src/compiler/mir.c"),
+    pathlib.Path("src/compiler/mir_source_shape.c"),
+}
+raw_source_leaks = []
+for rel_root in ("src/compiler", "src/codegen", "src/semantic"):
+    for path in (ROOT / rel_root).rglob("*.[ch]"):
+        rel = path.relative_to(ROOT)
+        if rel in raw_source_allowed:
+            continue
+        text = path.read_text(encoding="utf-8", errors="ignore")
+        for field in raw_source_fields:
+            if field in text:
+                raw_source_leaks.append(f"{rel}:{field}")
+                break
+if raw_source_leaks:
+    raise SystemExit(
+        "MIR source/location raw fields escaped source-shape owners:\n"
+        + "\n".join(raw_source_leaks)
     )
 
 if re.search(

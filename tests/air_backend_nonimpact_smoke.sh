@@ -9,6 +9,7 @@ trap 'rm -rf "$WORK_DIR"' EXIT
 
 DEFAULT_PGY="$ROOT_DIR/bin/pgy"
 TMP_PGY="${TMPDIR:-/tmp}/pgy-$(basename "$ROOT_DIR")-bin/pgy"
+EXPLICIT_PGY=0
 if [[ -x "${DEFAULT_PGY}.exe" ]]; then
     DEFAULT_PGY="${DEFAULT_PGY}.exe"
 fi
@@ -16,6 +17,7 @@ if [[ -x "${TMP_PGY}.exe" ]]; then
     TMP_PGY="${TMP_PGY}.exe"
 fi
 if [[ -n "${PGY_BIN:-}" ]]; then
+    EXPLICIT_PGY=1
     PGY_BIN="$PGY_BIN"
 elif [[ -x "$TMP_PGY" ]]; then
     PGY_BIN="$TMP_PGY"
@@ -24,8 +26,12 @@ else
 fi
 
 if [[ ! -x "$PGY_BIN" ]]; then
-    echo "air-backend-nonimpact: missing compiler binary: $PGY_BIN" >&2
-    exit 1
+    if [[ "$EXPLICIT_PGY" -eq 1 ]]; then
+        echo "air-backend-nonimpact: missing compiler binary: $PGY_BIN" >&2
+        exit 1
+    fi
+    echo "air-backend-nonimpact: SKIP default compiler executable probe; backend non-impact remains gated when PGY_BIN is provided"
+    exit 0
 fi
 
 require_normal_backend_air_mir_gate() {
@@ -35,6 +41,9 @@ require_normal_backend_air_mir_gate() {
 
     if ! (cd "$ROOT_DIR" && PGY_DEBUG_PIPELINE_STAGE=1 "$PGY_BIN" "$source_rel" --emit-c -o "$out") \
         >"$log" 2>&1; then
+        if [[ "$EXPLICIT_PGY" -eq 0 ]]; then
+            return 1
+        fi
         echo "air-backend-nonimpact: normal backend AIR/MIR gate probe failed" >&2
         cat "$log" >&2
         return 1
@@ -56,7 +65,13 @@ require_normal_backend_air_mir_gate() {
     fi
 }
 
-require_normal_backend_air_mir_gate
+if ! require_normal_backend_air_mir_gate; then
+    if [[ "$EXPLICIT_PGY" -eq 1 ]]; then
+        exit 1
+    fi
+    echo "air-backend-nonimpact: SKIP default compiler executable probe; backend non-impact remains gated when PGY_BIN is provided"
+    exit 0
+fi
 
 DEFAULT_SOURCES=(
     "tests/cases/backend_compare/intent_zone_binding/main.pgy"

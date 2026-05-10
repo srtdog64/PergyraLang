@@ -35,7 +35,7 @@ operator_overload_suffix(PgyTokenType op)
 static Type *
 operator_expr_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
 {
-    return semantic_type_resolution_lookup_annotation_or_unknown(ctx, type_ref);
+    return semantic_type_resolution_lookup_type_ref_or_materialize(ctx, type_ref);
 }
 
 static bool

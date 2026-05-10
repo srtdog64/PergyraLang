@@ -14,17 +14,9 @@
 #include "llvm_internal_api.h"
 
 static bool
-llvm_mir_branch_requires_source_emit(const MIRInstruction *inst)
-{
-    return inst != NULL && inst->requires_source_branch_emit;
-}
-
-static bool
 llvm_mir_instruction_has_source_ast_payload(const MIRInstruction *inst)
 {
-    return inst != NULL
-        && inst->ast != NULL
-        && inst->has_source_location;
+    return mir_instruction_source_payload(inst) != NULL;
 }
 
 static bool
@@ -32,7 +24,7 @@ llvm_mir_branch_has_required_condition_fact(const MIRInstruction *inst)
 {
     if (inst == NULL)
         return false;
-    if (llvm_mir_branch_requires_source_emit(inst))
+    if (mir_instruction_branch_requires_source_emit(inst))
         return llvm_mir_instruction_has_source_ast_payload(inst);
     return inst->expr0 != NULL;
 }
@@ -40,44 +32,35 @@ llvm_mir_branch_has_required_condition_fact(const MIRInstruction *inst)
 static bool
 llvm_mir_def_uses_source_statement_emit(const MIRInstruction *inst)
 {
-    return inst != NULL
-        && inst->requires_source_statement_emit
+    return mir_instruction_uses_source_statement_emit(inst)
         && llvm_mir_instruction_has_source_ast_payload(inst);
 }
 
 static bool
 llvm_mir_def_uses_source_local_decl_emit(const MIRInstruction *inst)
 {
-    return inst != NULL
-        && llvm_mir_def_uses_source_statement_emit(inst)
-        && inst->requires_source_local_decl_emit
-        && inst->source_ast_type == AST_LET_DECL;
+    return mir_instruction_uses_source_local_decl_emit(inst)
+        && llvm_mir_instruction_has_source_ast_payload(inst);
 }
 
 static bool
 llvm_mir_def_uses_channel_receive_statement_emit(const MIRInstruction *inst)
 {
-    return inst != NULL
-        && llvm_mir_def_uses_source_statement_emit(inst)
-        && inst->requires_channel_receive_statement_emit;
+    return mir_instruction_uses_channel_receive_statement_emit(inst)
+        && llvm_mir_instruction_has_source_ast_payload(inst);
 }
 
 static bool
 llvm_mir_def_uses_select_receive_statement_emit(const MIRInstruction *inst)
 {
-    return inst != NULL
-        && llvm_mir_def_uses_channel_receive_statement_emit(inst)
-        && inst->requires_select_receive_statement_emit;
+    return mir_instruction_uses_select_receive_statement_emit(inst)
+        && llvm_mir_instruction_has_source_ast_payload(inst);
 }
 
 static bool
 llvm_mir_stmt_instruction_is_cfg_container(const MIRInstruction *inst)
 {
-    if (inst == NULL)
-        return false;
-    if (!inst->has_source_location)
-        return false;
-    return llvm_mir_ast_type_is_cfg_container(inst->source_ast_type);
+    return mir_instruction_source_is_cfg_container(inst);
 }
 
 void
@@ -108,18 +91,17 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block, const MIRRoutine 
 
     for (size_t i = 0; i < mir_block->instruction_count; i++) {
         const MIRInstruction *inst = &mir_block->instructions[i];
+        ASTNode *source_payload = mir_instruction_source_payload(inst);
         if (getenv("PGY_DEBUG_LLVM_DETAIL") != NULL) {
             fprintf(stderr,
                 "[llvm inst] block=%zu inst=%zu kind=%d ast=%d result=%s\n",
                 mir_block->id, i, (int)inst->kind,
-                inst->has_source_location ? (int)inst->source_ast_type : -1,
+                mir_instruction_source_ast_type_or(inst, -1),
                 inst->result_name != NULL ? inst->result_name : "-");
         }
         switch (inst->kind) {
         case MIR_INST_RESOURCE_OP:
-            if (inst->name != NULL
-                && strcmp(inst->name, "Claim") == 0
-                && inst->source_ast_type == AST_WITH_STMT) {
+            if (mir_instruction_is_with_slot_claim(inst)) {
                 llvm_mir_emit_with_claim_only(inst, ctx);
             }
             llvm_mir_emit_borrow_view_alias(inst, ctx);
@@ -143,7 +125,7 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block, const MIRRoutine 
                         fprintf(stderr, llvm_mir_def_uses_source_local_decl_emit(inst)
                             ? "[llvm inst] emit_source_local_decl\n"
                             : "[llvm inst] emit_source_statement\n");
-                    llvm_emit_statement(inst->ast, ctx);
+                    llvm_emit_statement(source_payload, ctx);
                 } else {
                     LLVMValueRef alloca = llvm_mir_get_var(vars, var_count, inst->result_name);
                     if (getenv("PGY_DEBUG_LLVM_DETAIL") != NULL)
@@ -172,10 +154,12 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block, const MIRRoutine 
                     || inst->branch_shape == MIR_BRANCH_FOR_IN) {
                     cond = llvm_mir_emit_for_loop_condition(inst, ctx);
                 } else if (inst->branch_shape == MIR_BRANCH_MATCH_CASE) {
-                    cond = llvm_mir_emit_match_case_condition(func_decl, inst->ast, ctx);
+                    cond = llvm_mir_emit_match_case_condition(func_decl,
+                                                              source_payload,
+                                                              ctx);
                 } else if (inst->branch_shape == MIR_BRANCH_SELECT_DISPATCH) {
                     cond = llvm_mir_emit_select_dispatch_condition(
-                        inst->ast, routine, mir_block->succ_true, ctx);
+                        source_payload, routine, mir_block->succ_true, ctx);
                     if (cond == NULL)
                         cond = LLVMConstInt(LLVMInt1TypeInContext(ctx->context), 0, 0);
                 } else {
@@ -235,13 +219,12 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block, const MIRRoutine 
                 return;
             break;
         case MIR_INST_STMT:
-            if (inst->has_source_location
-                && inst->source_ast_type == AST_DEFER_STMT) {
+            if (mir_instruction_source_is_defer_stmt(inst)) {
                 if (inst->expr0 != NULL)
                     llvm_register_defer(inst->expr0, ctx);
-            } else if (inst->ast != NULL
+            } else if (source_payload != NULL
                 && !llvm_mir_stmt_instruction_is_cfg_container(inst)) {
-                llvm_emit_statement(inst->ast, ctx);
+                llvm_emit_statement(source_payload, ctx);
             }
             break;
         default:

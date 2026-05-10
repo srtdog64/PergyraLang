@@ -79,6 +79,7 @@ compiler_runtime_cache_is_fresh(const char *cache_obj_path)
         PGY_RUNTIME_DIR "/pgy_runtime_lib_raw_set_exports.h",
         PGY_RUNTIME_DIR "/pgy_runtime_lib_set_raw_exports.h",
         PGY_RUNTIME_DIR "/pgy_runtime_lib_intent_active_index_exports.c",
+        PGY_RUNTIME_DIR "/pgy_runtime_lib_mir_trace_exports.c",
         PGY_RUNTIME_DIR "/pgy_runtime_lib_set_intent_trace_exports.c",
         PGY_RUNTIME_DIR "/pgy_runtime_lib_intent_active_index_exports.h",
         PGY_RUNTIME_DIR "/pgy_runtime_lib_set_intent_trace_exports.h",

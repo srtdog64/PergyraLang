@@ -38,7 +38,7 @@ collect_effective_generic_arg_types(GenericParams *decl_params,
 
     for (size_t i = 0; i < effective_count; i++) {
         Type *resolved =
-            semantic_type_resolution_lookup_annotation_nullable(
+            semantic_type_resolution_lookup_type_ref_or_materialize(
                 ctx, effective_nodes[i]);
         if (resolved == NULL || resolved == TYPE_UNKNOWN) {
             resolved = semantic_type_resolution_lookup_metadata_type_ref(

@@ -8,6 +8,7 @@
 #include <stdarg.h>
 #include <stdbool.h>
 #include <ctype.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -57,7 +58,14 @@ static bool
 import_stack_push(ImportStack *stack, const char *path)
 {
     if (stack->count == stack->capacity) {
-        size_t next = stack->capacity == 0 ? 8 : stack->capacity * 2;
+        size_t next = 8;
+        if (stack->capacity != 0) {
+            if (stack->capacity > SIZE_MAX / 2)
+                return false;
+            next = stack->capacity * 2;
+        }
+        if (next > SIZE_MAX / sizeof(char *))
+            return false;
         char **grown = realloc(stack->paths, next * sizeof(char *));
         if (grown == NULL)
             return false;

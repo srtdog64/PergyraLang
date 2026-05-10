@@ -268,6 +268,14 @@ slot_claim_common(SlotManager *manager, TypeTag type, uint32_t scopeId,
         return err;
     }
 
+    if (manager->activeSlots >= manager->tableSize) {
+        memset(handle, 0, sizeof(*handle));
+        pthread_mutex_unlock(manager_mutex(manager));
+        err = SLOT_ERROR_OUT_OF_MEMORY;
+        slot_manager_warn("claim", handle, err);
+        return err;
+    }
+
     entry = find_free_entry_locked(manager);
     if (entry == NULL) {
         pthread_mutex_unlock(manager_mutex(manager));

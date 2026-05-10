@@ -378,6 +378,13 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
     /* Methods */
     TranspilerHostedMethodView method_view =
         transpiler_hosted_method_view_from_decl(ctx, name, node);
+    if (transpiler_hosted_method_view_missing_mir_metadata(&method_view)) {
+        transpiler_set_mir_inventory_missing(
+            ctx,
+            "MIR-only C path missing method declaration metadata for world '%s'",
+            name != NULL ? name : "(anonymous-world)");
+        return;
+    }
 
     for (size_t i = 0; i < method_view.count; i++) {
         const MIRDeclMethod *method_meta =

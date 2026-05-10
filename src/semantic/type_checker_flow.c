@@ -47,7 +47,7 @@ flow_has_fallthrough(FlowFlags flags)
 static Type *
 flow_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
 {
-    return semantic_type_resolution_lookup_annotation_nullable(ctx, type_ref);
+    return semantic_type_resolution_lookup_type_ref_or_materialize(ctx, type_ref);
 }
 
 Type *

@@ -27,6 +27,20 @@ typedef struct LLVMIntentStepContext {
 
 const char *llvm_intent_involves_type_name(ASTNode *involves);
 const char *llvm_intent_step_effective_zone_alias(ASTNode *step);
+ASTNode   **llvm_build_mir_intent_step_sources(ASTNode *intent,
+                                               const char **step_names,
+                                               size_t step_count,
+                                               LLVMGenCtx *ctx);
+bool        llvm_intent_action_function_name(LLVMGenCtx *ctx,
+                                             char *out,
+                                             size_t out_size,
+                                             const char *subject_name,
+                                             const char *step_name);
+bool        llvm_intent_reason_name(LLVMGenCtx *ctx,
+                                    char *out,
+                                    size_t out_size,
+                                    const char *prefix,
+                                    const char *step_name);
 bool        llvm_intent_step_context_load(LLVMGenCtx *ctx,
                                           ASTNode *intent,
                                           const MIRRoutine *mir_routine,

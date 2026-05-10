@@ -291,6 +291,17 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
     TranspilerHostedMethodView method_view =
         transpiler_hosted_method_view_from_decl(ctx, base_class_name,
             class_decl);
+    if (transpiler_hosted_method_view_missing_mir_metadata(&method_view)) {
+        transpiler_set_mir_inventory_missing(
+            ctx,
+            "MIR-only C path missing method declaration metadata for generic class '%s' specialization '%s'",
+            base_class_name != NULL ? base_class_name : "(anonymous-class)",
+            spec_name != NULL ? spec_name : "(anonymous-specialization)");
+        transpiler_type_render_ctx_restore(saved_render_ctx);
+        ctx->generic_binding_count = saved_binding_count;
+        codebuf_destroy(nbuf);
+        return NULL;
+    }
 
     for (size_t i = 0; i < method_view.count; i++) {
         const MIRDeclMethod *method_meta =

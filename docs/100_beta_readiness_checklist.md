@@ -14,6 +14,17 @@ runtime portability claims, documentation/implementation drift, and anchored
 ownership failure coverage. These items must be closed with diagnostics and
 smoke gates, not by broad marketing claims.
 
+Current status (2026-05-10): this checklist is the beta execution contract.
+The criterion is not feature count; it is **surface trust + structural
+sustainability + C/LLVM parity + CFG-backed body safety + AIR-backed
+abstraction safety + dogfood-first path**. Feature feel is about 70%, while
+strict beta readiness is about 63%. When the CFG/AIR/DAG/MIR/ABI
+source-of-truth closures are complete, reassess in the 75-80% range.
+
+Beta closure asks one practical question: **can the core survive a one-year
+freeze while dogfood starts?** If AIR/CFG/runtime invariants are still
+incomplete, documentation alone does not count as closure.
+
 마지막 업데이트: 2026-05-04
 
 이 문서는 베타 진입 전 반드시 닫아야 하는 실행 체크리스트다. 기준은 기능 개수가 아니라 **surface trust + 구조 지속 가능성 + C/LLVM parity + CFG-backed body safety + AIR-backed abstraction safety + dogfood-first path**다. 현재 표기는 두 개로 분리한다: 기능 체감 진행도는 약 70%, strict beta readiness는 약 60%를 기준값으로 두고 현재 실무 판단은 63%까지 본다. CFG/AIR/DAG/MIR/ABI source-of-truth closure가 끝나면 75-80% 범위로 재평가한다.
@@ -592,25 +603,26 @@ Operational mode:
   `retired-compatibility-cache`. This is a wording/contract tightening: the
   counters still gate `0` calls and `0` cache misses, but logs no longer make
   the removed resolver look like an active compatibility implementation.
-- 2026-04-30 DAG public seam tightening:
+- 2026-04-30/2026-05-10 DAG public seam tightening:
   annotation-sensitive metadata readers are centralized behind
-  `semantic_type_resolution_lookup_annotation_nullable(...)` and
-  `semantic_type_resolution_lookup_annotation_or_unknown(...)`. The raw
-  resolved-type lookup is private to metadata materialization owners through
-  `type_checker_resolution_metadata_internal.h`, and
+  metadata-owner APIs, and contract/boundary type references now prefer
+  `semantic_type_resolution_lookup_type_ref_or_materialize(...)`. Direct
+  `annotation_or_unknown` consumers are capped to the program placeholder path;
+  raw resolved-type lookup remains private to metadata materialization owners
+  through `type_checker_resolution_metadata_internal.h`.
   `type-resolution-resolver-inventory-test-smoke` rejects re-export through the
   semantic mega-header or non-metadata owners. Local gates:
-  `make type-resolution-resolver-inventory-test-smoke`,
-  `make type-resolution-dag-test-smoke`, and `make test-semantic` (`2359/0`).
-- 2026-04-30/2026-05-02 DAG declaration/helper reader tightening:
+  `type-resolution-resolver-inventory-smoke`, `type-resolution-dag-smoke`
+  when `SEMANTIC_TEST_BIN` is available, and targeted semantic syntax checks.
+- 2026-04-30/2026-05-10 DAG declaration/helper reader tightening:
   `type_checker_ability_decl.c`, `type_checker_projection_path.c`,
   `type_checker_zone_decl_authority.c`, `type_checker_expr_call.c`,
   `type_checker_expr_host.c`, `type_checker_call_constructor.c`,
   `type_checker_intent_participants.c`, `type_checker_intent_transfer.c`, and
-  `type_checker_intent_action_contract.c` no longer use the materializing
-  type-ref helper for declaration/field/method-return/host-expression/
-  constructor, intent participant, transfer, and inherited-action reader paths
-  that already have DAG metadata. The remaining materializing helper inventory
+  `type_checker_intent_action_contract.c` are classified materializing helper
+  users for declaration/field/method-return/host-expression/constructor,
+  intent participant, transfer, and inherited-action reader paths. The current
+  materializing helper inventory
   is capped at 15 total references, including the central declaration and
   implementation, while retired resolver calls and materializer fallbacks stay
   at `0`.
@@ -2258,7 +2270,7 @@ Goal:
 |---|---|---|---|
 | AST nodes are immutable (분석이 트리 오염 안 함) | 파싱 결과 보존 | 5-IR pipeline (AST → HIR → DIR → RIR → MIR). AST는 read-only entry IR이고 분석은 다음 IR에서 진행. mutate 안 함 | ✅ 교과서 답 *초과* |
 | AST와 분석 로직 디커플링 (Visitor / Double Dispatch) | 데이터-로직 분리 | C tagged-union + switch on `node->kind`. AST는 class hierarchy 아니라 tagged union이므로 method 첨부 자체가 불가능. Visitor 흉내 안 함 | ✅ 교과서 답 *idiom 적합* |
-| 심볼 테이블 = HashMap stack (블록 스코프 shadowing) | 변수 가시성 | **Frame chain + flat array per scope, linear scan lookup** (`src/semantic/symbol_table.c`, 296 LOC). textbook의 HashMap-of-HashMap 보다 단순. 작은 scope에는 cache-friendly로 우월할 수 있고, 큰 scope에는 lift 필요 | 🟢 audit 완료 / 큰 scope 워크로드에서 lift 후보 |
+| 심볼 테이블 = HashMap stack (블록 스코프 shadowing) | 변수 가시성 | **Frame chain + per-scope hash index with flat-array ownership storage** (`src/semantic/symbol_table.c`). The stable path is no longer a pure linear lookup; the linear helper is a malformed-index compatibility fallback and tiny-scope safety net. | 🟢 audit 완료 / stale linear-scan debt closed |
 | CompilerDiagnostic 객체 (line/col/hint, exception 아님) | 진단 누적 | `diag_codes.h` 100+ stable codes + level/stage/`Reason:`/`Fix:`/span/multi-span/JSON 회귀 (`diagnostics-json-test-smoke`) | ✅ 교과서 답 *대폭 초과* |
 
 → **4점 textbook 중 3개 *초과*, 1개 audit 필요 (스코프 implementation pattern).** textbook 채점은 대부분 통과.
@@ -2272,7 +2284,7 @@ modern 컴파일러 (rustc, Clang, TS, GHC, Roc) 가 textbook 4점을 *넘어서
 |---|---|---|
 | Multi-IR pipeline (single AST analysis pass 아님) | AST/HIR/DIR/RIR/MIR + AIR (verification IR) = 6 IR | ✅ |
 | Pattern matching dispatch (Visitor 안 씀) | C tagged union switch (idiomatic in C; pattern matching 등가) | ✅ |
-| Persistent / versioned scope (naive HashMap-of-HashMap 아님) | **Frame chain + flat array per scope** (linear scan). 작은 scope에 cache-friendly, 큰 scope에서는 hash 기반 production 컴파일러 (rustc/Clang/GCC) 보다 느림 | 🟢 audit 완료 / 베타 acceptable / 프로파일링 후 lift 후보 |
+| Persistent / versioned scope (naive HashMap-of-HashMap 아님) | **Frame chain + per-scope hash index + flat array for ordered ownership cleanup**. This keeps scope teardown simple while making normal name lookup hash-backed. | 🟢 audit 완료 / 베타 acceptable |
 | Stable diagnostic codes (free-text 아님) | `PGY_*` 100+ stable codes, `diag_codes.h` | ✅ |
 | Span representation (range + snippet, line/col만 아님) | **point-span only** (`Diagnostic` line/col 단일, ASTNode도 line/column 단일). end_line/end_column 또는 byte range 미지원. snippet 렌더링은 별도 도구가 line/col로 부분 재구성 | 🟡 lift 후보 (범위 표현 추가) |
 | Multi-span 진단 (offending site + related def site) | **API single-span only**. `Diagnostic` 단일 line/col, `semantic_error*` 단일 `node`. 일부 site (slot_analyzer)가 메시지 텍스트에 prior line 숫자 임베드하지만 JSON/LSP consumer는 추출 불가. 대부분 diagnostic은 prior site 0 정보 (e.g., class redeclaration) | 🔴 명시적 out-of-beta / LSP 통합 시 lift |
@@ -2303,7 +2315,7 @@ modern 컴파일러 (rustc, Clang, TS, GHC, Roc) 가 textbook 4점을 *넘어서
 ### Remaining
 
 - **스코프 manager pattern audit** — *완료 (2026-04-27).* 패턴은 *(e) Frame
-  chain + flat array per scope*, linear scan lookup
+  chain + per-scope hash index + flat ownership array*, hash-backed lookup
   (`src/semantic/symbol_table.c` 296 LOC). textbook (a)~(d) 어느 쪽도 아니고
   *더 단순한 (e)*. 작은 scope에서는 cache-friendly로 hash 기반보다 *빠를 수
   있음*. 큰 scope (전역에 수천 symbol, 큰 함수에 수백 local) 워크로드에서는
@@ -2405,10 +2417,9 @@ Closed now:
   alias replay that leaks back into the recursive resolver path fails the beta
   DAG contract.
 - Non-metadata `semantic_type_resolution_lookup_resolved_annotation(...)`
-  readers are now smoke-gated at exactly 12. They are not recursive resolver
-  fallback, but they remain a narrow source-of-truth seam for effective generic
-  defaults and ability references until those annotation facts move into DAG
-  metadata.
+  readers are smoke-gated at zero. Contract/boundary readers now enter the
+  materializing type-ref seam, while the remaining annotation-only
+  `or_unknown` consumer is the program placeholder path.
 - Central metadata materialization no longer falls through to
   `resolve_type_node(type_node, ctx)`. Unsupported shapes are recorded as
   explicit fallback inventory and return unresolved; the DAG smoke keeps

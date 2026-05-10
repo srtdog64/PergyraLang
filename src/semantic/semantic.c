@@ -26,11 +26,14 @@ semantic_program_append_statement(ASTNode *program, ASTNode *stmt)
         return false;
 
     if (program->data.program.count >= program->data.program.capacity) {
-        new_capacity = program->data.program.capacity == 0
-            ? 8
-            : program->data.program.capacity * 2;
-        if (new_capacity < program->data.program.capacity
-            || new_capacity > SIZE_MAX / sizeof(ASTNode *)) {
+        if (program->data.program.capacity == 0) {
+            new_capacity = 8;
+        } else {
+            if (program->data.program.capacity > SIZE_MAX / 2)
+                return false;
+            new_capacity = program->data.program.capacity * 2;
+        }
+        if (new_capacity > SIZE_MAX / sizeof(ASTNode *)) {
             return false;
         }
         grown = realloc(program->data.program.statements,
@@ -61,9 +64,14 @@ semantic_loaded_modules_append(char ***module_names,
     }
 
     if (*count >= *capacity) {
-        new_capacity = *capacity == 0 ? 8 : *capacity * 2;
-        if (new_capacity < *capacity
-            || new_capacity > SIZE_MAX / sizeof(char *)) {
+        if (*capacity == 0) {
+            new_capacity = 8;
+        } else {
+            if (*capacity > SIZE_MAX / 2)
+                return false;
+            new_capacity = *capacity * 2;
+        }
+        if (new_capacity > SIZE_MAX / sizeof(char *)) {
             return false;
         }
         grown = realloc(*module_names, sizeof(char *) * new_capacity);

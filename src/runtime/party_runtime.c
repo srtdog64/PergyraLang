@@ -23,13 +23,8 @@ static struct {
     FiberScheduler* scheduler;
 } g_schedulerRegistry[16] = {0};
 
+static FiberScheduler* g_schedulerByTag[SCHEDULER_CUSTOM_3 + 1] = {0};
 static size_t g_schedulerCount = 0;
-
-static struct {
-    FiberStats* stats;
-    size_t count;
-    size_t capacity;
-} g_fiberStats = {0};
 
 static void party_runtime_warn_scheduler(const char* reason,
                                          SchedulerTag tag,
@@ -38,7 +33,6 @@ void party_runtime_warn(const char* op, const char* reason);
 static char* party_runtime_strdup(const char* text);
 static uint64_t HashString(const char* str);
 uint64_t GetTimeNanos(void);
-void UpdateFiberStats(const char* roleId, const FiberResult* result);
 static size_t party_context_find_role_index_by_name(const PartyContext* context,
                                                     const char* slotName);
 static size_t party_context_find_role_index_by_slot(const PartyContext* context,
@@ -291,6 +285,8 @@ RoleQueryResult
 ContextFindRoles(PartyContext* context, const char* requiredAbility)
 {
     RoleQueryResult result = {0};
+    size_t capacity = 0;
+
     if (context == NULL || requiredAbility == NULL) {
         party_runtime_warn("context.find_roles", "context or requiredAbility is null");
         return result;
@@ -298,50 +294,78 @@ ContextFindRoles(PartyContext* context, const char* requiredAbility)
 
     pthread_mutex_lock(&context->contextLock);
 
-    size_t matches = 0;
     for (size_t i = 0; i < context->roleCount; i++) {
+        bool matched = false;
+
+        if (context->roles[i].roleInstance == NULL)
+            continue;
+
         for (size_t j = 0; j < context->roles[i].abilityCount; j++) {
             if (context->roles[i].abilities[j] != NULL
-                && strcmp(context->roles[i].abilities[j], requiredAbility) == 0
-                && context->roles[i].roleInstance != NULL) {
-                matches++;
+                && strcmp(context->roles[i].abilities[j], requiredAbility) == 0) {
+                matched = true;
                 break;
             }
         }
-    }
 
-    if (matches > 0) {
-        result.instances = (void**)calloc(matches, sizeof(void*));
-        result.slotNames = (const char**)calloc(matches, sizeof(const char*));
-        if (result.instances == NULL || result.slotNames == NULL) {
+        if (!matched)
+            continue;
+
+        if (result.count == capacity) {
+            size_t nextCapacity = capacity != 0 ? capacity * 2U : 4U;
+            void** nextInstances =
+                (void**)malloc(nextCapacity * sizeof(void*));
+            const char** nextSlotNames =
+                (const char**)malloc(nextCapacity * sizeof(const char*));
+            if (nextInstances == NULL || nextSlotNames == NULL) {
+                free(nextInstances);
+                free((void*)nextSlotNames);
+                free(result.instances);
+                free((void*)result.slotNames);
+                result.instances = NULL;
+                result.slotNames = NULL;
+                result.count = 0;
+                party_runtime_warn("context.find_roles", "result allocation failed");
+                break;
+            }
+            if (result.count > 0) {
+                memcpy(nextInstances, result.instances, result.count * sizeof(void*));
+                memcpy((void*)nextSlotNames,
+                       result.slotNames,
+                       result.count * sizeof(const char*));
+            }
             free(result.instances);
             free((void*)result.slotNames);
-            result.instances = NULL;
-            result.slotNames = NULL;
-            matches = 0;
-            party_runtime_warn("context.find_roles", "result allocation failed");
-        } else {
-            size_t idx = 0;
-            for (size_t i = 0; i < context->roleCount && idx < matches; i++) {
-                for (size_t j = 0; j < context->roles[i].abilityCount; j++) {
-                    if (context->roles[i].abilities[j] != NULL
-                        && strcmp(context->roles[i].abilities[j], requiredAbility) == 0
-                        && context->roles[i].roleInstance != NULL) {
-                        result.instances[idx] = context->roles[i].roleInstance;
-                        result.slotNames[idx] = context->roles[i].slotName;
-                        idx++;
-                        break;
-                    }
-                }
-            }
-            result.count = matches;
+            result.instances = nextInstances;
+            result.slotNames = nextSlotNames;
+            capacity = nextCapacity;
         }
+
+        result.instances[result.count] = context->roles[i].roleInstance;
+        result.slotNames[result.count] = context->roles[i].slotName;
+        result.count++;
+    }
+
+    if (result.count == 0) {
+        free(result.instances);
+        free((void*)result.slotNames);
+        result.instances = NULL;
+        result.slotNames = NULL;
+    } else if (result.count < capacity) {
+        void** trimmedInstances =
+            (void**)realloc(result.instances, result.count * sizeof(void*));
+        const char** trimmedSlotNames =
+            (const char**)realloc((void*)result.slotNames,
+                                  result.count * sizeof(const char*));
+        if (trimmedInstances != NULL)
+            result.instances = trimmedInstances;
+        if (trimmedSlotNames != NULL)
+            result.slotNames = trimmedSlotNames;
     }
 
     pthread_mutex_unlock(&context->contextLock);
     return result;
 }
-
 void*
 ContextGetShared(PartyContext* context, const char* fieldName)
 {
@@ -382,11 +406,13 @@ RegisterScheduler(SchedulerTag tag, const char* name, FiberScheduler* scheduler)
         return false;
     }
 
+    if (tag >= SCHEDULER_MAIN_THREAD && tag <= SCHEDULER_CUSTOM_3
+        && g_schedulerByTag[tag] != NULL) {
+        party_runtime_warn_scheduler("duplicate scheduler tag", tag, name);
+        return false;
+    }
+
     for (size_t i = 0; i < g_schedulerCount; i++) {
-        if (g_schedulerRegistry[i].tag == tag) {
-            party_runtime_warn_scheduler("duplicate scheduler tag", tag, name);
-            return false;
-        }
         if (g_schedulerRegistry[i].name != NULL
             && strcmp(g_schedulerRegistry[i].name, name) == 0) {
             party_runtime_warn_scheduler("duplicate scheduler name", tag, name);
@@ -408,6 +434,8 @@ RegisterScheduler(SchedulerTag tag, const char* name, FiberScheduler* scheduler)
     g_schedulerRegistry[g_schedulerCount].tag = tag;
     g_schedulerRegistry[g_schedulerCount].name = ownedName;
     g_schedulerRegistry[g_schedulerCount].scheduler = scheduler;
+    if (tag >= SCHEDULER_MAIN_THREAD && tag <= SCHEDULER_CUSTOM_3)
+        g_schedulerByTag[tag] = scheduler;
     g_schedulerCount++;
     return true;
 }
@@ -415,95 +443,18 @@ RegisterScheduler(SchedulerTag tag, const char* name, FiberScheduler* scheduler)
 FiberScheduler*
 GetSchedulerForTag(SchedulerTag tag)
 {
-    for (size_t i = 0; i < g_schedulerCount; i++) {
-        if (g_schedulerRegistry[i].tag == tag) {
-            return g_schedulerRegistry[i].scheduler;
-        }
-    }
-
     if (tag == SCHEDULER_ANY)
         return SchedulerGetCurrent();
+
+    if (tag >= SCHEDULER_MAIN_THREAD && tag <= SCHEDULER_CUSTOM_3
+        && g_schedulerByTag[tag] != NULL) {
+        return g_schedulerByTag[tag];
+    }
 
     if (tag != SCHEDULER_ANY) {
         party_runtime_warn("scheduler.lookup", "scheduler tag not registered");
     }
     return NULL;
-}
-
-/* ============= Statistics ============= */
-
-void
-UpdateFiberStats(const char* roleId, const FiberResult* result)
-{
-    if (roleId == NULL || result == NULL) {
-        return;
-    }
-
-    FiberStats* stats = NULL;
-    for (size_t i = 0; i < g_fiberStats.count; i++) {
-        if (g_fiberStats.stats[i].roleId != NULL
-            && strcmp(g_fiberStats.stats[i].roleId, roleId) == 0) {
-            stats = &g_fiberStats.stats[i];
-            break;
-        }
-    }
-
-    if (stats == NULL) {
-        if (g_fiberStats.count >= g_fiberStats.capacity) {
-            size_t newCapacity = g_fiberStats.capacity > 0 ? g_fiberStats.capacity * 2U : 16U;
-            FiberStats* newStats =
-                (FiberStats*)realloc(g_fiberStats.stats, newCapacity * sizeof(FiberStats));
-            if (newStats == NULL) {
-                party_runtime_warn("fiber_stats", "stats array growth failed");
-                return;
-            }
-            g_fiberStats.stats = newStats;
-            g_fiberStats.capacity = newCapacity;
-        }
-
-        stats = &g_fiberStats.stats[g_fiberStats.count++];
-        memset(stats, 0, sizeof(FiberStats));
-        stats->roleId = party_runtime_strdup(roleId);
-        if (stats->roleId == NULL) {
-            g_fiberStats.count--;
-            party_runtime_warn("fiber_stats", "role id allocation failed");
-            return;
-        }
-        stats->minTimeNs = UINT64_MAX;
-    }
-
-    stats->totalExecutions++;
-    stats->totalTimeNs += result->executionTimeNs;
-    if (result->executionTimeNs < stats->minTimeNs) {
-        stats->minTimeNs = result->executionTimeNs;
-    }
-    if (result->executionTimeNs > stats->maxTimeNs) {
-        stats->maxTimeNs = result->executionTimeNs;
-    }
-    stats->avgTimeNs = stats->totalExecutions > 0
-                           ? stats->totalTimeNs / stats->totalExecutions
-                           : 0;
-    if (!result->success) {
-        stats->errorCount++;
-    }
-}
-
-FiberStats
-GetFiberStats(const char* roleId)
-{
-    FiberStats empty = {0};
-    if (roleId == NULL) {
-        return empty;
-    }
-
-    for (size_t i = 0; i < g_fiberStats.count; i++) {
-        if (g_fiberStats.stats[i].roleId != NULL
-            && strcmp(g_fiberStats.stats[i].roleId, roleId) == 0) {
-            return g_fiberStats.stats[i];
-        }
-    }
-
-    return empty;
 }
 
 /* ============= Debugging ============= */
@@ -521,17 +472,7 @@ DumpFiberMaps(void)
                (void*)g_schedulerRegistry[i].scheduler);
     }
 
-    printf("\nFiber Statistics:\n");
-    for (size_t i = 0; i < g_fiberStats.count; i++) {
-        FiberStats* stats = &g_fiberStats.stats[i];
-        printf("  Role: %s\n", stats->roleId);
-        printf("    Executions: %llu\n", (unsigned long long)stats->totalExecutions);
-        printf("    Avg Time: %llu ns\n", (unsigned long long)stats->avgTimeNs);
-        printf("    Min/Max: %llu / %llu\n",
-               (unsigned long long)stats->minTimeNs,
-               (unsigned long long)stats->maxTimeNs);
-        printf("    Errors: %u\n", stats->errorCount);
-    }
+    party_runtime_dump_fiber_stats();
 }
 
 /* ============= Helper Functions ============= */

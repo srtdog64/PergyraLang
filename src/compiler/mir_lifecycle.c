@@ -171,13 +171,13 @@ mir_dump(const MIRProgram *mir, FILE *out)
                 fprintf(out, "    invalid: block label allocation failed\n");
                 continue;
             }
-            if (block->has_source_location) {
+            if (mir_block_has_source_location(block)) {
                 source_ast_loc = mir_strdup_fmt("line %u:%u",
-                                                block->source_line,
-                                                block->source_column);
+                                                mir_block_source_line(block),
+                                                mir_block_source_column(block));
                 source_ast_id = mir_strdup_fmt("line-%u-col-%u",
-                                               block->source_line,
-                                               block->source_column);
+                                               mir_block_source_line(block),
+                                               mir_block_source_column(block));
                 if (source_ast_loc == NULL || source_ast_id == NULL) {
                     fprintf(out, "    invalid: block source-location allocation failed\n");
                     free(source_ast_loc);
@@ -288,10 +288,10 @@ mir_dump(const MIRProgram *mir, FILE *out)
                     for (size_t m = 0; m < inst->use_count; m++)
                         fprintf(out, "%s%s", m == 0 ? "" : ",", inst->uses[m]);
                 }
-                if (inst->has_source_location) {
+                if (mir_instruction_has_source_location(inst)) {
                     fprintf(out, " ast-type=%d line=%u",
-                            (int)inst->source_ast_type,
-                            inst->source_line);
+                            mir_instruction_source_ast_type_or(inst, -1),
+                            mir_instruction_source_line(inst));
                 }
                 if (inst->kind == MIR_INST_BRANCH)
                     fprintf(out, " branch-shape=%s",

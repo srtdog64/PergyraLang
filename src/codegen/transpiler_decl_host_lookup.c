@@ -53,6 +53,14 @@ transpiler_nominal_host_lookup_type_count(void)
         / sizeof(kTranspilerNominalHostLookupTypes[0]);
 }
 
+static bool
+transpiler_decl_header_is_nominal_host(const MIRDeclHeader *header)
+{
+    if (header == NULL)
+        return false;
+    return transpiler_is_host_decl_type(header->ast_type);
+}
+
 static ASTNode *
 transpiler_find_method_source_ast_in_mir_header(const MIRDeclHeader *header,
                                                 const char *method_name)
@@ -253,7 +261,7 @@ current_host_method_decl(TranspilerCtx *ctx, const char *method_name)
     host_name = transpiler_decl_name_local(decl);
     if (ctx->mir != NULL && host_name != NULL) {
         header = mir_find_decl_header(ctx->mir, host_name);
-        if (header != NULL)
+        if (transpiler_decl_header_is_nominal_host(header))
             return transpiler_find_method_source_ast_in_mir_header(
                 header, method_name);
     }
@@ -294,7 +302,7 @@ find_nominal_host_method_decl(TranspilerCtx *ctx, const char *host_type_name,
 
     if (ctx->mir != NULL) {
         header = mir_find_decl_header(ctx->mir, host_type_name);
-        if (header != NULL) {
+        if (transpiler_decl_header_is_nominal_host(header)) {
             method_from_mir = transpiler_find_method_source_ast_in_mir_header(
                 header, method_name);
             if (method_from_mir == NULL)

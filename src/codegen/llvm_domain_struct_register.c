@@ -9,7 +9,6 @@
 
 #include "llvm_internal.h"
 
-#include <stdbool.h>
 #include <stdio.h>
 
 #include "llvm_domain_decl_parts_helpers.h"
@@ -18,64 +17,6 @@
 #include "llvm_domain_projection_count_helpers.h"
 #include "llvm_domain_projection_target_helpers.h"
 #include "llvm_domain_struct_fields.h"
-
-static LLVMTypeRef
-llvm_domain_required_ast_type(LLVMGenCtx *ctx,
-                              ASTNode *field_node,
-                              ASTNode *type_node,
-                              const char *field_kind)
-{
-    if (ctx == NULL)
-        return NULL;
-    if (type_node != NULL) {
-        LLVMTypeRef type = ast_type_to_llvm(ctx, type_node);
-        if (ctx->has_error || type == NULL)
-            return NULL;
-        return type;
-    }
-
-    llvm_set_error_at_with_hints(ctx, field_node,
-        PGY_CODE_LLVM_TYPE_UNSUPPORTED,
-        PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
-        PGY_FIX_ANNOTATE_CONCRETE_TYPE,
-        "LLVM domain %s requires explicit type metadata; silent i32 fallback is not allowed",
-        field_kind != NULL ? field_kind : "field");
-    return NULL;
-}
-
-static LLVMTypeRef
-llvm_domain_required_class_struct_type(LLVMGenCtx *ctx,
-                                       ASTNode *field_node,
-                                       const char *type_name,
-                                       const char *field_kind)
-{
-    LLVMClassTypeEntry *field_cls;
-
-    if (ctx == NULL)
-        return NULL;
-    if (type_name == NULL || type_name[0] == '\0') {
-        llvm_set_error_at_with_hints(ctx, field_node,
-            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
-            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
-            PGY_FIX_ANNOTATE_CONCRETE_TYPE,
-            "LLVM domain %s requires concrete class type metadata; silent i32 fallback is not allowed",
-            field_kind != NULL ? field_kind : "field");
-        return NULL;
-    }
-
-    field_cls = llvm_lookup_class(ctx, type_name);
-    if (field_cls != NULL && field_cls->struct_type != NULL)
-        return field_cls->struct_type;
-
-    llvm_set_error_at_with_hints(ctx, field_node,
-        PGY_CODE_LLVM_TYPE_UNSUPPORTED,
-        PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
-        PGY_FIX_ANNOTATE_CONCRETE_TYPE,
-        "LLVM domain %s requires registered class metadata for '%s'; silent i32 fallback is not allowed",
-        field_kind != NULL ? field_kind : "field",
-        type_name);
-    return NULL;
-}
 
 static bool
 llvm_domain_struct_register_field_name(char *out,

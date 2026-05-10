@@ -451,7 +451,7 @@ mir_populate_use_edges(MIRRoutine *routine)
                 size_t raw_use_capacity = 0;
                 ASTNode *expr = inst->expr0 != NULL ? inst->expr0 : inst->expr1;
                 if (expr == NULL)
-                    expr = inst->ast;
+                    expr = mir_instruction_source_payload(inst);
                 if (expr != NULL
                     && !mir_collect_expr_identifier_uses(expr, &raw_uses,
                         &raw_use_count, &raw_use_capacity)) {

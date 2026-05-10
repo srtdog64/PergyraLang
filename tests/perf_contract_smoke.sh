@@ -30,8 +30,51 @@ grep -Fq "P10" "$ROOT_DIR/TODO.md"
 grep -Fq "trace_len" "$ROOT_DIR/src/runtime/pgy_runtime_intent_trace_inline.h"
 grep -Fq "pgy_intent_active_count" "$ROOT_DIR/src/runtime/pgy_runtime_intent_trace_inline.h"
 grep -Fq "count = pgy_intent_active_count" "$ROOT_DIR/src/runtime/pgy_runtime_intent_active_exports.h"
+grep -Fq "pgy_intent_active_free_cursor" "$ROOT_DIR/src/runtime/pgy_runtime_intent_trace_inline.h"
+grep -Fq "pgy_intent_active_free_cursor" "$ROOT_DIR/src/runtime/pgy_runtime_lib_set_intent_trace_exports.c"
+grep -Fq "pgy_intent_find_free_active_slot" "$ROOT_DIR/src/runtime/pgy_runtime_intent_trace_inline.h"
+grep -Fq "pgy_intent_find_free_active_slot_export" "$ROOT_DIR/src/runtime/pgy_runtime_lib_set_intent_trace_exports.c"
+grep -Fq "subject_count > 0 && subjects == NULL" "$ROOT_DIR/src/runtime/pgy_runtime_intent_trace_inline.h"
+grep -Fq "subject_count > 0 && subjects == NULL" "$ROOT_DIR/src/runtime/pgy_runtime_lib_set_intent_trace_exports.c"
+grep -Fq "pgy_intent_active_count_value" "$ROOT_DIR/src/runtime/pgy_runtime_lib_set_intent_trace_exports.c"
+grep -Fq "count = pgy_intent_active_count_value" "$ROOT_DIR/src/runtime/pgy_runtime_lib_intent_exports.h"
 grep -Fq "pgy_intent_append_line_len" "$ROOT_DIR/src/runtime/pgy_runtime_intent_trace_events_inline.h"
 grep -Fq "pgy_intent_append_line_len_export" "$ROOT_DIR/src/runtime/pgy_runtime_lib_set_intent_trace_exports.c"
+grep -Fq "pgy_runtime_lib_mir_trace_exports.c" "$ROOT_DIR/Makefile"
+grep -Fq "pgy_runtime_lib_mir_trace_exports.c" "$ROOT_DIR/src/compiler/compiler_runtime_cache.c"
+grep -Fq '#include "pgy_runtime_lib_mir_trace_exports.c"' "$ROOT_DIR/src/runtime/pgy_runtime_lib.c"
+grep -Fq "pgy_mir_resource_op_export" "$ROOT_DIR/src/runtime/pgy_runtime_lib_mir_trace_exports.c"
+grep -Fq "pgy_mir_cleanup_op_export" "$ROOT_DIR/src/runtime/pgy_runtime_lib_mir_trace_exports.c"
+grep -Fq "g_schedulerByTag" "$ROOT_DIR/src/runtime/party_runtime.c"
+grep -Fq "return g_schedulerByTag[tag]" "$ROOT_DIR/src/runtime/party_runtime.c"
+grep -Fq "party_runtime_stats.c" "$ROOT_DIR/Makefile"
+grep -Fq "indexHashes" "$ROOT_DIR/src/runtime/party_runtime_stats.c"
+grep -Fq "fiber_stats_lookup(roleId)" "$ROOT_DIR/src/runtime/party_runtime_stats.c"
+grep -Fq "fiber_stats_index_insert(stats->roleId" "$ROOT_DIR/src/runtime/party_runtime_stats.c"
+if grep -A12 -F "pgy_intent_active_count_export(void)" \
+    "$ROOT_DIR/src/runtime/pgy_runtime_lib_intent_exports.h" | \
+    grep -Fq "PGY_INTENT_ACTIVE_MAX"; then
+    echo "[perf-contract] exported active-count query regressed to registry scan" >&2
+    exit 1
+fi
+if grep -A14 -F "GetSchedulerForTag(SchedulerTag tag)" \
+    "$ROOT_DIR/src/runtime/party_runtime.c" | \
+    grep -Fq "g_schedulerCount"; then
+    echo "[perf-contract] scheduler tag lookup regressed to registry scan" >&2
+    exit 1
+fi
+if grep -A10 -F "GetFiberStats(const char* roleId)" \
+    "$ROOT_DIR/src/runtime/party_runtime_stats.c" | \
+    grep -Fq "g_fiberStats.count"; then
+    echo "[perf-contract] fiber stat lookup regressed to stats-count scan" >&2
+    exit 1
+fi
+if grep -A80 -F "ContextFindRoles(PartyContext* context, const char* requiredAbility)" \
+    "$ROOT_DIR/src/runtime/party_runtime.c" | \
+    grep -Fq "matches"; then
+    echo "[perf-contract] context role query regressed to two-pass match counting" >&2
+    exit 1
+fi
 grep -Fq "symbol_ptr_array_contains" "$ROOT_DIR/src/semantic/slot_analyzer.c"
 grep -Fq "bsearch(&needle" "$ROOT_DIR/src/semantic/slot_analyzer.c"
 grep -Fq "symbol_hash_name" "$ROOT_DIR/src/semantic/symbol_table.c"
@@ -96,6 +139,28 @@ grep -Fq "pgy_hashmap_key_spec_compare" "$ROOT_DIR/src/codegen/codegen_hashmap_k
 grep -Fq "bsearch(effective_name" "$ROOT_DIR/src/codegen/codegen_hashmap_key_policy.c"
 grep -Fq "slot_runtime_fn_spec_compare" "$ROOT_DIR/src/codegen/transpiler_mir_resource_name.c"
 grep -Fq "bsearch(op_name" "$ROOT_DIR/src/codegen/transpiler_mir_resource_name.c"
+grep -Fq "slot_builtin_type_compare" "$ROOT_DIR/src/runtime/slot_type_utils.c"
+grep -Fq "bsearch(" "$ROOT_DIR/src/runtime/slot_type_utils.c"
+grep -B10 -A2 -F "entry = find_free_entry_locked(manager);" \
+    "$ROOT_DIR/src/runtime/slot_manager.c" | \
+    grep -Fq "manager->activeSlots >= manager->tableSize"
+grep -A18 -F "RosterAddParty(RosterContext* roster" \
+    "$ROOT_DIR/src/runtime/world_roster.c" | \
+    grep -Fq "ownedSlotName = world_roster_strdup(slotName)"
+grep -A18 -F "WorldAddRoster(WorldContext* world" \
+    "$ROOT_DIR/src/runtime/world_roster.c" | \
+    grep -Fq "ownedRosterType ="
+grep -Fq "world_roster_plan_stats.c" "$ROOT_DIR/Makefile"
+if grep -R -Fq '#include "world_roster_plan_stats.h"' "$ROOT_DIR/src/runtime"; then
+    echo "[perf-contract] world roster plan/stats regressed to implementation header include" >&2
+    exit 1
+fi
+grep -Fq 'world name allocation failed' "$ROOT_DIR/src/runtime/world_roster_plan_stats.c"
+grep -Fq 'party plan allocation failed' "$ROOT_DIR/src/runtime/world_roster_plan_stats.c"
+grep -Fq 'role stats allocation failed' "$ROOT_DIR/src/runtime/world_roster_plan_stats.c"
+grep -Fq "llvm_runtime_task_memory_decl.c" "$ROOT_DIR/Makefile"
+grep -Fq "llvm_declare_runtime_task_memory(ctx)" "$ROOT_DIR/src/codegen/llvm_runtime.c"
+grep -Fq "pgy_spawn_blocking_export" "$ROOT_DIR/src/codegen/llvm_runtime_task_memory_decl.c"
 grep -Fq "index_keys" "$ROOT_DIR/src/semantic/type_checker.h"
 grep -Fq "metadata_lookup_entry_index" "$ROOT_DIR/src/semantic/type_checker_resolution_metadata.c"
 grep -Fq "metadata_index_insert" "$ROOT_DIR/src/semantic/type_checker_resolution_metadata.c"
@@ -382,7 +447,7 @@ if [[ "$(grep -Fc "ctx->uses_intent_observability = pgy_mir_program_uses_intent_
     echo "LLVM IR and object codegen paths must both preserve intent observability runtime selection" >&2
     exit 1
 fi
-grep -Fq "return llvm_result_error_with_hints(msg, ctx->error_code" "$ROOT_DIR/src/codegen/llvm_api.c"
+grep -Fq "return llvm_result_error_fmt_with_hints(" "$ROOT_DIR/src/codegen/llvm_api.c"
 grep -Fq "allow_legacy_payload_probe" "$ROOT_DIR/src/codegen/intent_observability_usage.c"
 ! grep -Fq "allow_legacy_ast_probe" "$ROOT_DIR/src/codegen/intent_observability_usage.c"
 grep -Fq "inst->has_surface_usage_facts" "$ROOT_DIR/src/codegen/intent_observability_usage.c"
@@ -405,9 +470,8 @@ grep -Fq "token name synthesis is disabled" "$ROOT_DIR/src/codegen/transpiler_sy
 grep -Fq "transpiler_find_block_binding_from_mir_insts" "$ROOT_DIR/src/codegen/transpiler_mir_pending_uses.h"
 grep -Fq "transpiler_pending_binding_from_source_statement_emit" "$ROOT_DIR/src/codegen/transpiler_mir_pending_uses.h"
 ! grep -Fq "transpiler_pending_binding_from_source_compatibility" "$ROOT_DIR/src/codegen/transpiler_mir_pending_uses.h"
-grep -Fq "!inst->requires_source_statement_emit" "$ROOT_DIR/src/codegen/transpiler_mir_pending_uses.h"
-grep -Fq "!inst->requires_source_local_decl_emit" "$ROOT_DIR/src/codegen/transpiler_mir_pending_uses.h"
-grep -Fq "source_ast_type == AST_LET_DECL" "$ROOT_DIR/src/codegen/transpiler_mir_pending_uses.h"
+grep -Fq "!mir_instruction_uses_source_local_decl_emit(inst)" "$ROOT_DIR/src/codegen/transpiler_mir_pending_uses.h"
+! grep -Fq "source_ast_type == AST_LET_DECL" "$ROOT_DIR/src/codegen/transpiler_mir_pending_uses.h"
 grep -Fq "out->initializer = inst->expr0" "$ROOT_DIR/src/codegen/transpiler_mir_pending_uses.h"
 grep -Fq "out->type_annotation = inst->expr1" "$ROOT_DIR/src/codegen/transpiler_mir_pending_uses.h"
 grep -Fq "transpiler_mir_ssa_local_limit_fail" "$ROOT_DIR/src/codegen/transpiler_mir_func_ssa_locals_emit.h"
@@ -431,7 +495,7 @@ fi
 ! grep -Fq "block->source_ast" "$ROOT_DIR/src/codegen/transpiler_mir_block_emit_helpers.h"
 grep -Fq "has_source_location" "$ROOT_DIR/src/codegen/transpiler_mir_ssa_map.c"
 ! grep -Fq "block->source_ast" "$ROOT_DIR/src/codegen/transpiler_mir_ssa_map.c"
-grep -Fq "block->has_source_location" "$ROOT_DIR/src/compiler/mir_lifecycle.c"
+grep -Fq "mir_block_has_source_location(block)" "$ROOT_DIR/src/compiler/mir_lifecycle.c"
 ! grep -Fq "source_ast;" "$ROOT_DIR/src/compiler/mir.h"
 ! grep -Fq "source_terminator_condition" "$ROOT_DIR/src/compiler/mir.h"
 ! grep -Fq "source_terminator_value" "$ROOT_DIR/src/compiler/mir.h"
@@ -469,7 +533,7 @@ grep -Fq "AIR rejects invalid runtime frontier policy provider" "$ROOT_DIR/src/t
 grep -Fq "no matching MIR cleanup evidence" "$ROOT_DIR/src/compiler/air_validate_evidence.c"
 grep -Fq "AIR rejects MIR pin cleanup without global cleanup evidence" "$ROOT_DIR/src/test_air.c"
 grep -Fq "AIR DAG evidence contains unresolved metadata dead-end" "$ROOT_DIR/src/compiler/air_verify.c"
-grep -Fq "sem.type_resolution_metadata_materializer_fallbacks = 0" "$ROOT_DIR/src/tests/air/test_air_cleanup_transfer_part_c.cases.h"
+grep -R -Fq "sem.type_resolution_metadata_materializer_fallbacks = 0" "$ROOT_DIR/src/tests/air"
 grep -Fq "return inst->expr0" "$ROOT_DIR/src/compiler/mir_ssa_rename.c"
 grep -Fq "ASTNode *expr = inst->expr0 != NULL ? inst->expr0 : inst->expr1" "$ROOT_DIR/src/compiler/mir_ssa_rename.c"
 ! grep -Fq "inst->ast->type" "$ROOT_DIR/src/compiler/mir_ssa_rename.c"
@@ -499,7 +563,7 @@ grep -Fq "requires_source_branch_emit" "$ROOT_DIR/src/compiler/mir.h"
 grep -Fq "DEF is missing source-statement emit fact" "$ROOT_DIR/src/compiler/mir_fact_validate.c"
 grep -Fq "channel receive DEF is missing source-statement receive emit fact" "$ROOT_DIR/src/compiler/mir_fact_validate.c"
 grep -Fq "select receive DEF is missing select receive emit fact" "$ROOT_DIR/src/compiler/mir_fact_validate.c"
-grep -Fq "branch is missing source-branch emit fact" "$ROOT_DIR/src/compiler/mir_fact_validate.c"
+grep -Fq "branch is missing source-branch emit fact" "$ROOT_DIR/src/compiler/mir_fact_terminator_validate.c"
 grep -Fq "source-statement emit fact is invalid" "$ROOT_DIR/src/compiler/mir_fact_validate.c"
 grep -Fq "source-statement receive emit fact is invalid" "$ROOT_DIR/src/compiler/mir_fact_validate.c"
 grep -Fq "select receive emit fact is invalid" "$ROOT_DIR/src/compiler/mir_fact_validate.c"
@@ -514,53 +578,54 @@ grep -Fq "MIR validator rejects invalid with-slot claim ABI fact" "$ROOT_DIR/src
 grep -Fq "MIR validator rejects invalid source-local-decl emit fact" "$ROOT_DIR/src/tests/mir/test_mir_lowering_part_c.cases.h"
 grep -Fq "source-local-decl-emit" "$ROOT_DIR/src/compiler/mir_lifecycle.c"
 grep -Fq "select-recv-stmt-emit" "$ROOT_DIR/src/compiler/mir_lifecycle.c"
-grep -Fq "source-branch emit fact is invalid" "$ROOT_DIR/src/compiler/mir_fact_validate.c"
+grep -Fq "source-branch emit fact is invalid" "$ROOT_DIR/src/compiler/mir_fact_terminator_validate.c"
 grep -Fq "MIR validator rejects source-compatible branch without payload" "$ROOT_DIR/src/tests/mir/test_mir_lowering_part_c.cases.h"
-grep -Fq "mir_branch_shape_requires_source_emit" "$ROOT_DIR/src/compiler/mir_fact_validate.c"
-grep -Fq "mir_branch_source_ast_type_matches_shape" "$ROOT_DIR/src/compiler/mir_fact_validate.c"
-grep -Fq "inst->source_ast_type == AST_MATCH_CASE" "$ROOT_DIR/src/compiler/mir_fact_validate.c"
-grep -Fq "inst->source_ast_type == AST_BLOCK" "$ROOT_DIR/src/compiler/mir_fact_validate.c"
-! grep -Fq "mir_branch_shape_requires_source_compatibility" "$ROOT_DIR/src/compiler/mir_fact_validate.c"
+grep -Fq "mir_instruction_branch_requires_source_emit" "$ROOT_DIR/src/compiler/mir_source_shape.c"
+grep -Fq "mir_instruction_has_source_payload" "$ROOT_DIR/src/compiler/mir_source_shape.c"
+grep -Fq "mir_instruction_source_branch_payload_matches_shape" "$ROOT_DIR/src/compiler/mir_source_shape.c"
+grep -Fq "inst->source_ast_type == AST_MATCH_CASE" "$ROOT_DIR/src/compiler/mir_source_shape.c"
+grep -Fq "inst->source_ast_type == AST_BLOCK" "$ROOT_DIR/src/compiler/mir_source_shape.c"
+! grep -Fq "mir_branch_shape_requires_source_compatibility" "$ROOT_DIR/src/compiler/mir_fact_terminator_validate.c"
 ! grep -Fq "mir_def_source_expression" "$ROOT_DIR/src/compiler/mir_fact_validate.c"
 ! grep -Fq "inst->ast->data.let_decl" "$ROOT_DIR/src/compiler/mir_fact_validate.c"
 grep -Fq "missing MIR value expression fact" "$ROOT_DIR/src/compiler/mir_fact_validate.c"
-grep -Fq "missing MIR terminator expression fact" "$ROOT_DIR/src/compiler/mir_fact_validate.c"
-grep -Fq "source_terminator_has_value" "$ROOT_DIR/src/compiler/mir_fact_validate.c"
+grep -Fq "missing MIR terminator expression fact" "$ROOT_DIR/src/compiler/mir_fact_terminator_validate.c"
+grep -Fq "source_terminator_has_value" "$ROOT_DIR/src/compiler/mir_fact_terminator_validate.c"
 grep -Fq "missing MIR body expression fact" "$ROOT_DIR/src/compiler/mir_fact_validate.c"
 ! grep -Fq "&& inst->ast != NULL" "$ROOT_DIR/src/compiler/mir_fact_validate.c"
-grep -Fq "llvm_mir_ast_type_is_cfg_container" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
+grep -Fq "llvm_mir_ast_type_is_cfg_container" "$ROOT_DIR/src/codegen/llvm_mir_cfg_control.c"
 ! grep -Fq "return llvm_mir_stmt_is_cfg_container(inst->ast)" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
-grep -Fq "llvm_mir_branch_requires_source_emit" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
+grep -Fq "mir_instruction_source_is_cfg_container(inst)" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
+grep -Fq "mir_instruction_source_payload(inst) != NULL" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
+grep -Fq "mir_instruction_branch_requires_source_emit(inst)" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
 ! grep -Fq "llvm_mir_branch_requires_source_compatibility" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
 grep -Fq "llvm_mir_def_uses_source_statement_emit" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
 grep -Fq "llvm_mir_def_uses_source_local_decl_emit" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
 grep -Fq "llvm_mir_def_uses_channel_receive_statement_emit" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
 grep -Fq "llvm_mir_def_uses_select_receive_statement_emit" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
 ! grep -Fq "llvm_mir_def_uses_source_statement_compatibility" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
-grep -Fq "inst->requires_source_statement_emit" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
+grep -Fq "mir_instruction_uses_source_statement_emit(inst)" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
 grep -Fq "llvm_mir_emit_channel_receive_def(inst, ctx" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
 grep -Fq "llvm_mir_declare_recv_target(inst->arg0, inst->expr0, ctx)" "$ROOT_DIR/src/codegen/llvm_mir_cfg_control.c"
 grep -Fq "LLVM channel receive DEF requires registered runtime function" "$ROOT_DIR/src/codegen/llvm_mir_cfg_control.c"
-grep -Fq "llvm_emit_statement(inst->ast, ctx)" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
+grep -Fq "llvm_emit_statement(source_payload, ctx)" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
+! grep -R -Fq "llvm_emit_statement(inst->ast" "$ROOT_DIR/src/codegen"
 grep -Fq "LLVMConstInt(LLVMInt1TypeInContext(ctx->context), 0, 0)" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
 grep -Fq "transpiler_mir_def_uses_source_statement_emit" "$ROOT_DIR/src/codegen/transpiler_mir_block_emit_helpers.h"
 grep -Fq "transpiler_mir_inst_is_cfg_container" "$ROOT_DIR/src/codegen/transpiler_mir_block_emit_helpers.h"
-grep -Fq "inst->source_ast_type == stmt->type" "$ROOT_DIR/src/codegen/transpiler_mir_block_emit_helpers.h"
+grep -Fq "mir_instruction_source_matches_ast_node(inst, stmt)" "$ROOT_DIR/src/codegen/transpiler_mir_block_emit_helpers.h"
 grep -Fq "transpiler_mir_def_uses_source_local_decl_emit" "$ROOT_DIR/src/codegen/transpiler_mir_block_emit_helpers.h"
 grep -Fq "transpiler_mir_def_uses_channel_receive_statement_emit" "$ROOT_DIR/src/codegen/transpiler_mir_block_emit_helpers.h"
 grep -Fq "transpiler_mir_def_uses_select_receive_statement_emit" "$ROOT_DIR/src/codegen/transpiler_mir_block_emit_helpers.h"
-grep -Fq "inst->requires_source_statement_emit" "$ROOT_DIR/src/codegen/transpiler_mir_block_emit_helpers.h"
+grep -Fq "mir_instruction_uses_source_statement_emit(inst)" "$ROOT_DIR/src/codegen/transpiler_mir_block_emit_helpers.h"
 grep -Fq "transpiler_mir_def_uses_source_statement_emit(" "$ROOT_DIR/src/codegen/transpiler_mir_assignment_emit.h"
-grep -Fq "inst->source_ast_type == expected_type" "$ROOT_DIR/src/codegen/transpiler_mir_block_emit_helpers.h"
-grep -Fq "resource_inst->source_ast_type != stmt->type" "$ROOT_DIR/src/codegen/transpiler_mir_stmt_emit.h"
+grep -Fq "mir_instruction_source_matches_ast_type(inst, expected_type)" "$ROOT_DIR/src/codegen/transpiler_mir_block_emit_helpers.h"
+grep -Fq "mir_instruction_source_matches_ast_node(resource_inst, stmt)" "$ROOT_DIR/src/codegen/transpiler_mir_stmt_emit.h"
 grep -Fq "missing receive emit fact" "$ROOT_DIR/src/codegen/transpiler_mir_assignment_emit.h"
 grep -Fq "missing select receive emit fact" "$ROOT_DIR/src/codegen/transpiler_mir_assignment_emit.h"
-grep -Fq "!inst->requires_source_statement_emit" "$ROOT_DIR/src/codegen/transpiler_mir_block_emit.h"
-if grep -B2 -F "source_ast_type == AST_DEFER_STMT" \
-    "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c" | grep -Fq "inst->ast != NULL"; then
-    echo "LLVM defer STMT emission must consume MIR defer facts, not AST presence" >&2
-    exit 1
-fi
+grep -Fq "!mir_instruction_uses_source_statement_emit(inst)" "$ROOT_DIR/src/codegen/transpiler_mir_block_emit.h"
+grep -Fq "mir_instruction_source_is_defer_stmt(inst)" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
+grep -Fq "mir_instruction_source_is_defer_stmt" "$ROOT_DIR/src/compiler/mir_source_shape.c"
 grep -Fq "inst->expr1 = stmt->data.let_decl.type" "$ROOT_DIR/src/compiler/mir_call_fact.c"
 grep -Fq "inst->expr0 = stmt->data.defer_stmt.body" "$ROOT_DIR/src/compiler/mir_call_fact.c"
 grep -Fq "inst->arg0 = stmt->data.let_decl.name" "$ROOT_DIR/src/compiler/mir_call_fact.c"
@@ -569,17 +634,19 @@ grep -Fq "stale thread-pool surface usage fact" "$ROOT_DIR/src/compiler/mir_fact
 grep -Fq "stale intent observability surface usage fact" "$ROOT_DIR/src/compiler/mir_fact_validate.c"
 grep -Fq "inventory surface usage facts" "$ROOT_DIR/src/compiler/mir_fact_validate.c"
 grep -Fq "inventory_uses_intent_observability_surface" "$ROOT_DIR/src/compiler/mir.h"
-grep -Fq "mir_stmt_shape_has_side_effect" "$ROOT_DIR/src/compiler/mir_dce.c"
-grep -Fq "source_ast_type" "$ROOT_DIR/src/compiler/mir_dce.c"
+grep -Fq "mir_source_ast_stmt_has_side_effect_hint(" "$ROOT_DIR/src/compiler/mir_dce.c"
+grep -Fq "mir_instruction_source_payload(inst)" "$ROOT_DIR/src/compiler/mir_dce.c"
+grep -Fq "mir_source_ast_type_stmt_has_side_effect_hint" "$ROOT_DIR/src/compiler/mir_source_shape.c"
+! grep -Fq "source_ast_type" "$ROOT_DIR/src/compiler/mir_dce.c"
 grep -Fq "MIR DCE uses statement shape facts without AST payload" "$ROOT_DIR/src/tests/mir/test_mir_lowering_part_c.cases.h"
-grep -Fq "mir_stmt_ast_type_is_cfg_owned_control" "$ROOT_DIR/src/compiler/mir_cfg_contract_validate.c"
+grep -Fq "mir_stmt_ast_type_is_cfg_owned_control" "$ROOT_DIR/src/compiler/mir_source_shape.c"
 grep -Fq "if (!mir->has_inventory_surface_usage_facts)" "$ROOT_DIR/src/codegen/intent_observability_usage.c"
 ! grep -Fq "allow_ast_fallback" "$ROOT_DIR/src/codegen/intent_observability_usage.c"
 ! grep -Fq "pgy_ast_array_uses_intent_observability" "$ROOT_DIR/src/codegen/intent_observability_usage.c"
 ! grep -Fq "mir->types" "$ROOT_DIR/src/codegen/intent_observability_usage.c"
 ! grep -Fq "mir->intents" "$ROOT_DIR/src/codegen/intent_observability_usage.c"
-grep -Fq "inst->has_source_location" "$ROOT_DIR/src/compiler/mir_lifecycle.c"
-grep -Fq "inst->source_ast_type" "$ROOT_DIR/src/compiler/mir_lifecycle.c"
+grep -Fq "mir_instruction_has_source_location(inst)" "$ROOT_DIR/src/compiler/mir_lifecycle.c"
+grep -Fq "mir_instruction_source_ast_type_or(inst, -1)" "$ROOT_DIR/src/compiler/mir_lifecycle.c"
 ! grep -Fq "inst->ast->type" "$ROOT_DIR/src/compiler/mir_lifecycle.c"
 ! grep -Fq "inst->ast->line" "$ROOT_DIR/src/compiler/mir_lifecycle.c"
 ! grep -Fq "source_terminator_condition" "$ROOT_DIR/src/compiler/mir_lifecycle.c"
@@ -634,8 +701,7 @@ grep -Fq "pgy_mir_program_uses_thread_pool(ctx->mir)" "$ROOT_DIR/src/codegen/tra
 grep -Fq "pgy_mir_program_uses_thread_pool(ctx->mir)" "$ROOT_DIR/src/codegen/llvm_pipeline.c"
 grep -Fq "branch_shape == MIR_BRANCH_FOR_IN" "$ROOT_DIR/src/codegen/transpiler_mir_cfg_control_emit.h"
 grep -Fq "branch_shape == MIR_BRANCH_FOR_RANGE" "$ROOT_DIR/src/codegen/transpiler_mir_cfg_control_emit.h"
-grep -Fq "inst->source_ast_type != AST_MATCH_CASE" "$ROOT_DIR/src/codegen/transpiler_mir_cfg_control_emit.h"
-grep -Fq "inst->source_ast_type != AST_BLOCK" "$ROOT_DIR/src/codegen/transpiler_mir_cfg_control_emit.h"
+grep -Fq "mir_instruction_source_branch_payload_matches_shape(inst)" "$ROOT_DIR/src/codegen/transpiler_mir_cfg_control_emit.h"
 grep -Fq "transpiler_mir_render_select_case_condition" "$ROOT_DIR/src/codegen/transpiler_mir_cfg_control_emit.h"
 grep -Fq "pgy_channel_ready_%s(&%s)" "$ROOT_DIR/src/codegen/transpiler_mir_cfg_control_emit.h"
 grep -Fq "MIR select dispatch emits channel readiness in C backend" "$ROOT_DIR/src/tests/transpile/test_transpile_mir_part_b.cases.h"
@@ -652,11 +718,11 @@ grep -Fq "emit_expression_with_ssa_map(inst->expr0" "$ROOT_DIR/src/codegen/trans
 grep -Fq "emit_expression(inst->expr0" "$ROOT_DIR/src/codegen/transpiler_mir_func_emit.h"
 grep -Fq "branch_shape == MIR_BRANCH_FOR_IN" "$ROOT_DIR/src/codegen/llvm_mir_for_in_control.c"
 grep -Fq "branch_shape == MIR_BRANCH_MATCH_CASE" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
-grep -Fq "inst->requires_source_branch_emit" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
-grep -Fq "inst->requires_source_branch_emit" "$ROOT_DIR/src/codegen/transpiler_mir_emission_contract.h"
-grep -Fq "transpiler_mir_branch_source_ast_type_matches_shape" "$ROOT_DIR/src/codegen/transpiler_mir_emission_contract.h"
-grep -Fq "inst->source_ast_type == AST_MATCH_CASE" "$ROOT_DIR/src/codegen/transpiler_mir_emission_contract.h"
-grep -Fq "inst->source_ast_type == AST_BLOCK" "$ROOT_DIR/src/codegen/transpiler_mir_emission_contract.h"
+grep -Fq "mir_instruction_branch_requires_source_emit(inst)" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
+grep -Fq "mir_instruction_branch_requires_source_emit(inst)" "$ROOT_DIR/src/codegen/transpiler_mir_emission_contract.h"
+grep -Fq "mir_instruction_source_branch_payload_matches_shape" "$ROOT_DIR/src/codegen/transpiler_mir_emission_contract.h"
+! grep -Fq "inst->source_ast_type == AST_MATCH_CASE" "$ROOT_DIR/src/codegen/transpiler_mir_emission_contract.h"
+! grep -Fq "inst->source_ast_type == AST_BLOCK" "$ROOT_DIR/src/codegen/transpiler_mir_emission_contract.h"
 ! grep -Fq "branch_shape == MIR_BRANCH_SELECT_DISPATCH)" "$ROOT_DIR/src/codegen/transpiler_mir_emission_contract.h"
 grep -Fq "llvm_mir_branch_has_required_condition_fact(inst)" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
 ! grep -Fq "inst->ast != NULL || inst->expr0 != NULL" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
@@ -666,8 +732,8 @@ grep -Fq "ASTNode *return_expr = inst->expr0" "$ROOT_DIR/src/codegen/llvm_mir_bl
 ! grep -Fq "inst->expr0 != NULL ? inst->expr0 : inst->ast" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
 grep -Fq "llvm_register_defer(inst->expr0, ctx)" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
 ! grep -Fq "inst->ast->data.defer_stmt" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
-grep -Fq "source_ast_type == AST_WITH_STMT" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
-grep -Fq "source_ast_type == AST_LET_DECL" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
+grep -Fq "mir_instruction_is_with_slot_claim(inst)" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
+grep -Fq "mir_instruction_uses_source_local_decl_emit(inst)" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
 ! grep -Fq "inst->ast->type" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
 grep -Fq "ASTNode *value_expr = inst->expr0" "$ROOT_DIR/src/codegen/llvm_mir_local_emit.c"
 grep -Fq "ASTNode *type_expr = inst->expr1" "$ROOT_DIR/src/codegen/llvm_mir_local_emit.c"
@@ -678,12 +744,13 @@ grep -Fq "value_expr != NULL" "$ROOT_DIR/src/codegen/llvm_mir_local_emit.c"
 ! grep -Fq "inst->ast->type" "$ROOT_DIR/src/codegen/llvm_mir_local_emit.c"
 ! grep -Fq "inst->ast->data.let_decl" "$ROOT_DIR/src/codegen/llvm_mir_local_emit.c"
 grep -Fq "inst->expr0" "$ROOT_DIR/src/codegen/transpiler_mir_resource_op_emit.h"
-grep -Fq "source_ast_type == AST_WITH_STMT" "$ROOT_DIR/src/codegen/transpiler_mir_resource_op_emit.h"
-grep -Fq "&& !(inst->has_source_location" "$ROOT_DIR/src/codegen/transpiler_mir_resource_op_emit.h"
+grep -Fq "mir_instruction_is_with_slot_claim(inst)" "$ROOT_DIR/src/codegen/transpiler_mir_resource_op_emit.h"
+! grep -Fq "source_ast_type == AST_WITH_STMT" "$ROOT_DIR/src/codegen/transpiler_mir_resource_op_emit.h"
 ! grep -Fq "inst->ast == NULL" "$ROOT_DIR/src/codegen/transpiler_mir_resource_op_emit.h"
 ! grep -Fq "inst->ast->type" "$ROOT_DIR/src/codegen/transpiler_mir_resource_op_emit.h"
 grep -Fq "inst->expr0" "$ROOT_DIR/src/codegen/transpiler_mir_resource_hook_emit.h"
-grep -Fq "source_ast_type == AST_LET_DECL" "$ROOT_DIR/src/codegen/transpiler_mir_resource_hook_emit.h"
+grep -Fq "mir_instruction_source_is_local_decl(inst)" "$ROOT_DIR/src/codegen/transpiler_mir_resource_hook_emit.h"
+grep -Fq "mir_instruction_source_is_local_decl" "$ROOT_DIR/src/compiler/mir_source_shape.c"
 ! grep -Fq "inst->ast != NULL" "$ROOT_DIR/src/codegen/transpiler_mir_resource_hook_emit.h"
 ! grep -Fq "inst->ast->type" "$ROOT_DIR/src/codegen/transpiler_mir_resource_hook_emit.h"
 ! grep -Fq "inst->ast->data.call" "$ROOT_DIR/src/codegen/transpiler_mir_resource_op_emit.h"
@@ -702,7 +769,8 @@ grep -Fq "branch instruction misses condition expression fact" "$ROOT_DIR/src/co
 ! grep -R -Fq "inst->ast->data" "$ROOT_DIR/src/codegen"
 ! grep -Fq "source_ast_type != AST_INTENT_STEP" "$ROOT_DIR/src/codegen/llvm_intent_flow.c"
 ! grep -Fq "source_ast_type != AST_INTENT_STEP" "$ROOT_DIR/src/codegen/transpiler_mir_inventory_intent.h"
-grep -Fq "source_ast_type == AST_LET_DESTRUCTURE" "$ROOT_DIR/src/codegen/transpiler_mir_emission_mapping_contract.h"
+grep -Fq "mir_instruction_source_is_local_destructure(inst)" "$ROOT_DIR/src/codegen/transpiler_mir_emission_mapping_contract.h"
+grep -Fq "mir_instruction_source_is_assignment(inst)" "$ROOT_DIR/src/codegen/transpiler_mir_emission_mapping_contract.h"
 ! grep -R -Fq "inst->ast->type" "$ROOT_DIR/src/codegen"
 grep -Fq "transpiler_emit_mir_preserved_let_stmt" "$ROOT_DIR/src/codegen/transpiler_mir_preserved_let_emit.h"
 grep -Fq "transpiler_mir_preserved_let_emit.h" "$ROOT_DIR/src/codegen/transpiler_mir_block_emit.h"
@@ -927,16 +995,16 @@ grep -Fq "LLVM LogBanner could not lower or stringify its argument" "$ROOT_DIR/s
 ! grep -Fq "LLVMFuncEntry *fn = llvm_lookup_function(ctx, \"StringConcat\")" "$ROOT_DIR/src/codegen/llvm_expr_scalar_core.c"
 ! grep -Fq "LLVMFuncEntry *fn = llvm_lookup_function(ctx, \"pgy_string_equals\")" "$ROOT_DIR/src/codegen/llvm_expr_scalar_core.c"
 grep -Fq "indexed collection access" "$ROOT_DIR/src/codegen/llvm_expr.c"
-grep -Fq "llvm_expression_error" "$ROOT_DIR/src/codegen/llvm_expr.c"
+grep -Fq "llvm_expression_error" "$ROOT_DIR/src/codegen/llvm_expr_emit_support.c"
 ! grep -A16 -F "llvm_expression_error(LLVMGenCtx *ctx" \
-    "$ROOT_DIR/src/codegen/llvm_expr.c" | \
+    "$ROOT_DIR/src/codegen/llvm_expr_emit_support.c" | \
     grep -Fq "LLVMConstInt(ctx->type_i32, 0, 0)"
 grep -Fq "LLVM array access could not lower receiver or index expression" "$ROOT_DIR/src/codegen/llvm_expr.c"
 grep -Fq "LLVM aggregate array access requires concrete element metadata" "$ROOT_DIR/src/codegen/llvm_expr.c"
 grep -Fq "strcmp(inner_name, \"Unknown\") == 0" "$ROOT_DIR/src/codegen/llvm_expr.c"
 grep -Fq "if (ctx == NULL || node == NULL || ctx->has_error)" "$ROOT_DIR/src/codegen/llvm_expr.c"
 grep -Fq "LLVM array access receiver is not an array, slice, string, or pointer" "$ROOT_DIR/src/codegen/llvm_expr.c"
-grep -Fq "llvm_zero_value_for_type" "$ROOT_DIR/src/codegen/llvm_expr.c"
+grep -Fq "llvm_zero_value_for_type" "$ROOT_DIR/src/codegen/llvm_expr_emit_support.c"
 grep -Fq "LLVM TaskGroup expression must lower through AIR/RIR/MIR task-group boundary" "$ROOT_DIR/src/codegen/llvm_expr.c"
 grep -Fq "first_value = llvm_emit_expression" "$ROOT_DIR/src/codegen/llvm_expr.c"
 grep -Fq "LLVM array literal could not lower element %zu" "$ROOT_DIR/src/codegen/llvm_expr.c"
@@ -968,8 +1036,8 @@ grep -Fq "llvm_domain_slice_error" "$ROOT_DIR/src/codegen/llvm_expr_call_methods
 grep -Fq "LLVM slot Write() could not lower value expression" "$ROOT_DIR/src/codegen/llvm_expr_call_methods_domain_slice.c"
 grep -Fq "LLVM Slice() receiver did not expose array data storage" "$ROOT_DIR/src/codegen/llvm_expr_call_methods_domain_slice.c"
 ! grep -Fq "LLVMStructTypeInContext(ctx->context," "$ROOT_DIR/src/codegen/llvm_expr_call_methods_domain_slice.c"
-grep -Fq "pgy_channel_init_%s" "$ROOT_DIR/src/codegen/llvm_stmt_let_collections.c"
-grep -Fq "pgy_array_new_%s" "$ROOT_DIR/src/codegen/llvm_stmt_let_collections.c"
+grep -Fq '"pgy_channel_init_",' "$ROOT_DIR/src/codegen/llvm_stmt_let_collections.c"
+grep -Fq '"pgy_array_new_",' "$ROOT_DIR/src/codegen/llvm_stmt_let_collections.c"
 grep -Fq "array literal expression" "$ROOT_DIR/src/codegen/llvm_expr.c"
 grep -Fq "channel send expression" "$ROOT_DIR/src/codegen/llvm_expr_channel.c"
 grep -Fq "channel receive expression" "$ROOT_DIR/src/codegen/llvm_expr_channel.c"
@@ -1019,12 +1087,12 @@ grep -Fq "llvm_constructor_error" "$ROOT_DIR/src/codegen/llvm_expr_constructor_c
 grep -Fq "LLVM enum variant constructor could not lower payload argument" "$ROOT_DIR/src/codegen/llvm_expr_constructor_calls.c"
 grep -Fq "LLVM class constructor could not lower field argument" "$ROOT_DIR/src/codegen/llvm_expr_constructor_calls.c"
 grep -Fq "LLVM hosted method call argument allocation failed" "$ROOT_DIR/src/codegen/llvm_expr_call_dispatch.c"
-grep -Fq "LLVM callable variable call could not lower callee expression" "$ROOT_DIR/src/codegen/llvm_expr_call_dispatch.c"
-grep -Fq "LLVM callable variable call could not lower callable signature" "$ROOT_DIR/src/codegen/llvm_expr_call_dispatch.c"
+grep -Fq "LLVM callable variable call could not lower callee expression" "$ROOT_DIR/src/codegen/llvm_expr_call_variable.c"
+grep -Fq "LLVM callable variable call could not lower callable signature" "$ROOT_DIR/src/codegen/llvm_expr_call_variable.c"
 grep -Fq "LLVM callable argument could not lower callable signature" "$ROOT_DIR/src/codegen/llvm_expr_call_dispatch.c"
-grep -Fq "LLVM event-handler callable could not lower return type" "$ROOT_DIR/src/codegen/llvm_expr_call_dispatch.c"
-grep -Fq "LLVM event-handler callable could not lower parameter type" "$ROOT_DIR/src/codegen/llvm_expr_call_dispatch.c"
-grep -Fq "LLVM callable parameter declaration type could not be lowered" "$ROOT_DIR/src/codegen/llvm_expr_call_dispatch.c"
+grep -Fq "LLVM event-handler callable could not lower return type" "$ROOT_DIR/src/codegen/llvm_expr_call_variable.c"
+grep -Fq "LLVM event-handler callable could not lower parameter type" "$ROOT_DIR/src/codegen/llvm_expr_call_variable.c"
+grep -Fq "LLVM callable parameter declaration type could not be lowered" "$ROOT_DIR/src/codegen/llvm_expr_call_variable.c"
 grep -Fq "LLVM callable signature parameter allocation failed" "$ROOT_DIR/src/codegen/llvm_expr_scalar_core.c"
 grep -Fq "LLVM lambda signature parameter allocation failed" "$ROOT_DIR/src/codegen/llvm_stmt_let_helpers.c"
 grep -Fq "if (ctx->has_error || var_type == NULL)" "$ROOT_DIR/src/codegen/llvm_stmt_let_with.c"
@@ -1039,7 +1107,7 @@ grep -Fq "LLVM intent forward declaration could not lower participant type" "$RO
 grep -Fq "LLVM intent forward declaration could not lower value type" "$ROOT_DIR/src/codegen/llvm_expr_call_dispatch.c"
 ! grep -Fq "pt = ctx->type_i8ptr;" "$ROOT_DIR/src/codegen/llvm_expr_call_dispatch.c"
 grep -Fq "if (ctx->has_error || participant_value_type == NULL)" "$ROOT_DIR/src/codegen/llvm_intent_zone.c"
-grep -Fq "LLVM event-handler callable parameter allocation failed" "$ROOT_DIR/src/codegen/llvm_expr_call_dispatch.c"
+grep -Fq "LLVM event-handler callable parameter allocation failed" "$ROOT_DIR/src/codegen/llvm_expr_call_variable.c"
 grep -Fq "forward_param_count" "$ROOT_DIR/src/codegen/llvm_expr_call_dispatch.c"
 grep -Fq "LLVM boundary call argument lowering failed" "$ROOT_DIR/src/codegen/llvm_expr_call_dispatch.c"
 grep -Fq "llvm_boundary_args_error" "$ROOT_DIR/src/codegen/llvm_expr_boundary_projection_helpers.c"
@@ -1078,12 +1146,12 @@ grep -Fq "if (ctx->has_error || alloca_type == NULL)" \
     "$ROOT_DIR/src/codegen/llvm_domain_forward.c" | \
     grep -Fq "return ctx->type_i32"
 ! grep -A24 -F "llvm_domain_required_ast_type(LLVMGenCtx *ctx" \
-    "$ROOT_DIR/src/codegen/llvm_domain_struct_register.c" | \
+    "$ROOT_DIR/src/codegen/llvm_domain_struct_fields.c" | \
     grep -Fq "return ctx->type_i32"
 grep -Fq "llvm_domain_required_class_struct_type" \
-    "$ROOT_DIR/src/codegen/llvm_domain_struct_register.c"
+    "$ROOT_DIR/src/codegen/llvm_domain_struct_fields.c"
 grep -Fq "requires registered class metadata" \
-    "$ROOT_DIR/src/codegen/llvm_domain_struct_register.c"
+    "$ROOT_DIR/src/codegen/llvm_domain_struct_fields.c"
 grep -Fq "if (ctx->has_error || field_types[j] == NULL)" \
     "$ROOT_DIR/src/codegen/llvm_register.c"
 grep -Fq "if (ctx->has_error || ptypes[k] == NULL)" \
@@ -1129,6 +1197,8 @@ grep -Fq "LLVM RcGet payload type could not be lowered" "$ROOT_DIR/src/codegen/l
 grep -Fq "static const ASTNodeType kLLVMHostDeclTypes[]" "$ROOT_DIR/src/codegen/llvm_inventory_decl_lookup.c"
 grep -Fq "llvm_host_decl_type_count()" "$ROOT_DIR/src/codegen/llvm_inventory_decl_lookup.c"
 grep -Fq "kLLVMHostDeclTypes[i]" "$ROOT_DIR/src/codegen/llvm_inventory_decl_lookup.c"
+grep -Fq "return decl_header->ast_type == decl_type" "$ROOT_DIR/src/codegen/llvm_inventory_decl_lookup.c"
+grep -Fq "return decl_header->ast_type == decl_type" "$ROOT_DIR/src/codegen/transpiler_decl_lookup.c"
 grep -Fq "AST_PARTY_DECL" "$ROOT_DIR/src/codegen/llvm_inventory_decl_lookup.c"
 grep -Fq "AST_ROLE_DECL" "$ROOT_DIR/src/codegen/llvm_inventory_decl_lookup.c"
 grep -Fq "AST_ROSTER_DECL" "$ROOT_DIR/src/codegen/llvm_inventory_decl_lookup.c"
@@ -1151,7 +1221,7 @@ grep -Fq "llvm_slot_inner_has_external_runtime_helpers" "$ROOT_DIR/src/codegen/l
     "$ROOT_DIR/src/codegen/llvm_expr_slot_runtime_utils.c" | \
     grep -Fq "LLVMConstInt(ctx->type_i32, 0, 0)"
 grep -Fq "if (ctx->has_error || inner_ty == NULL)" "$ROOT_DIR/src/codegen/llvm_expr_slot_runtime_utils.c"
-grep -Fq "if (ctx->has_error || inner_ty == NULL)" "$ROOT_DIR/src/codegen/llvm_expr_spawn_call_helpers.c"
+grep -Fq "if (ctx->has_error || inner_ty == NULL)" "$ROOT_DIR/src/codegen/llvm_expr_await_task.c"
 grep -Fq "llvm_emit_structural_secure_slot_write" "$ROOT_DIR/src/codegen/llvm_expr_slot_runtime_utils.c"
 grep -Fq "llvm_emit_structural_secure_slot_read" "$ROOT_DIR/src/codegen/llvm_expr_identifier_slot_helpers.c"
 grep -Fq "llvm_emit_structural_secure_slot_release" "$ROOT_DIR/src/codegen/llvm_expr_slot_runtime_utils.c"
@@ -1206,8 +1276,8 @@ grep -Fq "llvm_mir_required_channel_ready_function(channel, ctx, fn_name)" "$ROO
 grep -Fq "sequential fallback is disabled" "$ROOT_DIR/src/codegen/llvm_stmt_parallel_async.c"
 grep -Fq "synchronous fallback is disabled" "$ROOT_DIR/src/codegen/llvm_stmt_parallel_async.c"
 grep -Fq "LLVM spawn expression requires registered runtime functions" "$ROOT_DIR/src/codegen/llvm_expr_spawn_call_helpers.c"
-grep -Fq "LLVM await expression requires registered runtime function" "$ROOT_DIR/src/codegen/llvm_expr_spawn_call_helpers.c"
-grep -Fq "LLVM await expression could not lower task handle expression" "$ROOT_DIR/src/codegen/llvm_expr_spawn_call_helpers.c"
+grep -Fq "LLVM await expression requires registered runtime function" "$ROOT_DIR/src/codegen/llvm_expr_await_task.c"
+grep -Fq "LLVM await expression could not lower task handle expression" "$ROOT_DIR/src/codegen/llvm_expr_await_task.c"
 grep -Fq "LLVM thread-pool entry requires registered runtime function" "$ROOT_DIR/src/codegen/llvm_pipeline.c"
 grep -Fq "LLVM event initialization requires generated event function" "$ROOT_DIR/src/codegen/llvm_pipeline.c"
 grep -Fq "LLVM MIR select readiness requires registered runtime function" "$ROOT_DIR/src/codegen/llvm_mir_cfg_control.c"
@@ -1583,6 +1653,11 @@ fi
 if grep -Fq 'participant = pgy_runtime_strdup_export("")' \
     "$ROOT_DIR/src/runtime/pgy_runtime_lib_set_intent_trace_exports.h"; then
     echo "[perf-contract] exported intent step begin reintroduced empty participant allocation" >&2
+    exit 1
+fi
+if grep -Fq "pgy_mir_resource_op_export" \
+    "$ROOT_DIR/src/runtime/pgy_runtime_lib_set_intent_trace_exports.c"; then
+    echo "[perf-contract] MIR trace exports regressed into the intent trace owner" >&2
     exit 1
 fi
 

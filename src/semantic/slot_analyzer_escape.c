@@ -5,6 +5,7 @@
  * Slot analyzer escape collection helpers.
  */
 
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -25,7 +26,14 @@ slot_escape_record(SlotEscapeEntry **entries, size_t *count, size_t *capacity,
     }
 
     if (*count >= *capacity) {
-        size_t new_cap = *capacity == 0 ? 8 : (*capacity * 2);
+        size_t new_cap = 8;
+        if (*capacity != 0) {
+            if (*capacity > SIZE_MAX / 2)
+                return;
+            new_cap = *capacity * 2;
+        }
+        if (new_cap > SIZE_MAX / sizeof(SlotEscapeEntry))
+            return;
         SlotEscapeEntry *new_entries = realloc(*entries,
             new_cap * sizeof(SlotEscapeEntry));
         if (new_entries == NULL)

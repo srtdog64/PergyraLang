@@ -6,6 +6,7 @@
 #include "module_normalizer.h"
 #include "module_normalizer_internal.h"
 
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -22,7 +23,15 @@ static bool
 astvec_push(ASTVec *vec, ASTNode *node)
 {
     if (vec->count == vec->capacity) {
-        size_t next = vec->capacity == 0 ? 8 : vec->capacity * 2;
+        size_t next = 8;
+        if (vec->capacity != 0) {
+            if (vec->capacity > SIZE_MAX / 2)
+                return false;
+            next = vec->capacity * 2;
+        }
+        if (next > SIZE_MAX / sizeof(ASTNode *)) {
+            return false;
+        }
         ASTNode **grown = realloc(vec->items, next * sizeof(ASTNode *));
         if (grown == NULL)
             return false;

@@ -1,7 +1,34 @@
-#ifndef PERGYRA_WORLD_ROSTER_PLAN_STATS_H
-#define PERGYRA_WORLD_ROSTER_PLAN_STATS_H
-
+#include "world_roster.h"
 #include "../common/string_compat.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+static void
+world_roster_warn(const char* op, const char* reason)
+{
+    fprintf(stderr,
+            "[pgy][world-roster] %s failed: %s\n",
+            op != NULL ? op : "operation",
+            reason != NULL ? reason : "unknown");
+}
+
+static char*
+world_roster_strdup(const char* text)
+{
+    size_t len;
+    char* copy;
+
+    if (text == NULL)
+        return NULL;
+
+    len = strlen(text) + 1U;
+    copy = (char*)malloc(len);
+    if (copy != NULL)
+        memcpy(copy, text, len);
+    return copy;
+}
 
 HierarchicalExecutionPlan*
 GenerateWorldExecutionPlan(WorldContext* world)
@@ -19,6 +46,11 @@ GenerateWorldExecutionPlan(WorldContext* world)
     }
 
     plan->worldName = world_roster_strdup(world->name);
+    if (plan->worldName == NULL) {
+        FreeExecutionPlan(plan);
+        world_roster_warn("generate_world_execution_plan", "world name allocation failed");
+        return NULL;
+    }
     plan->rosterCount = world->rosterCount;
     plan->canParallelizeRosters = (world->rosterCount > 1);
     plan->rosters = calloc(world->rosterCount, sizeof(*plan->rosters));
@@ -31,17 +63,32 @@ GenerateWorldExecutionPlan(WorldContext* world)
     for (size_t i = 0; i < world->rosterCount; i++) {
         RosterContext* roster = world->rosters[i].instance;
         plan->rosters[i].rosterName = world_roster_strdup(world->rosters[i].slotName);
+        if (plan->rosters[i].rosterName == NULL) {
+            FreeExecutionPlan(plan);
+            world_roster_warn("generate_world_execution_plan", "roster name allocation failed");
+            return NULL;
+        }
         plan->rosters[i].partyCount = roster != NULL ? roster->partyCount : 0;
         plan->totalParties += plan->rosters[i].partyCount;
         plan->canParallelizeParties = plan->canParallelizeParties || plan->rosters[i].partyCount > 1;
 
         plan->rosters[i].parties =
             calloc(plan->rosters[i].partyCount, sizeof(*plan->rosters[i].parties));
+        if (plan->rosters[i].parties == NULL && plan->rosters[i].partyCount > 0) {
+            FreeExecutionPlan(plan);
+            world_roster_warn("generate_world_execution_plan", "party plan allocation failed");
+            return NULL;
+        }
         for (size_t j = 0; roster != NULL && j < roster->partyCount; j++) {
             PartyContext* context = roster->partySlots[j].partyContext;
             FiberMap* map = PartyContextGetFiberMap(context);
             plan->rosters[i].parties[j].partyName =
                 world_roster_strdup(roster->partySlots[j].slotName);
+            if (plan->rosters[i].parties[j].partyName == NULL) {
+                FreeExecutionPlan(plan);
+                world_roster_warn("generate_world_execution_plan", "party name allocation failed");
+                return NULL;
+            }
             plan->rosters[i].parties[j].fiberMap = map;
             plan->rosters[i].parties[j].roleCount = map != NULL ? map->entryCount : 0;
             plan->totalRoles += plan->rosters[i].parties[j].roleCount;
@@ -106,20 +153,41 @@ GetWorldStatistics(WorldContext* world)
     for (size_t i = 0; i < world->rosterCount; i++) {
         RosterContext* roster = world->rosters[i].instance;
         stats->rosterStats[i].rosterName = world_roster_strdup(world->rosters[i].slotName);
+        if (stats->rosterStats[i].rosterName == NULL) {
+            FreeWorldStatistics(stats);
+            world_roster_warn("get_world_statistics", "roster name allocation failed");
+            return NULL;
+        }
         stats->rosterStats[i].partyCount = roster != NULL ? roster->partyCount : 0;
         stats->rosterStats[i].partyStats =
             calloc(stats->rosterStats[i].partyCount,
                    sizeof(*stats->rosterStats[i].partyStats));
+        if (stats->rosterStats[i].partyStats == NULL
+            && stats->rosterStats[i].partyCount > 0) {
+            FreeWorldStatistics(stats);
+            world_roster_warn("get_world_statistics", "party stats allocation failed");
+            return NULL;
+        }
 
         for (size_t j = 0; roster != NULL && j < roster->partyCount; j++) {
             PartyContext* context = roster->partySlots[j].partyContext;
             FiberMap* map = PartyContextGetFiberMap(context);
             stats->rosterStats[i].partyStats[j].partyName =
                 world_roster_strdup(roster->partySlots[j].slotName);
+            if (stats->rosterStats[i].partyStats[j].partyName == NULL) {
+                FreeWorldStatistics(stats);
+                world_roster_warn("get_world_statistics", "party name allocation failed");
+                return NULL;
+            }
             stats->rosterStats[i].partyStats[j].roleCount = map != NULL ? map->entryCount : 0;
             if (map != NULL && map->entryCount > 0) {
                 stats->rosterStats[i].partyStats[j].roleStats =
                     (FiberStats*)calloc(map->entryCount, sizeof(FiberStats));
+                if (stats->rosterStats[i].partyStats[j].roleStats == NULL) {
+                    FreeWorldStatistics(stats);
+                    world_roster_warn("get_world_statistics", "role stats allocation failed");
+                    return NULL;
+                }
                 for (size_t k = 0; k < map->entryCount; k++) {
                     stats->rosterStats[i].partyStats[j].roleStats[k] =
                         GetFiberStats(map->entries[k].roleId);
@@ -304,5 +372,3 @@ FreeWorldStatistics(WorldStatistics* stats)
     free(stats->rosterStats);
     free(stats);
 }
-
-#endif /* PERGYRA_WORLD_ROSTER_PLAN_STATS_H */

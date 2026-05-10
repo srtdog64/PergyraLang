@@ -51,7 +51,15 @@ bool
 append_scope(RIRProgram *rir, RIRScope scope)
 {
     if (rir->scope_count == rir->scope_capacity) {
-        size_t next_capacity = rir->scope_capacity == 0 ? 8 : rir->scope_capacity * 2;
+        size_t next_capacity = 8;
+        if (rir->scope_capacity != 0) {
+            if (rir->scope_capacity > SIZE_MAX / 2)
+                return false;
+            next_capacity = rir->scope_capacity * 2;
+        }
+        if (next_capacity > SIZE_MAX / sizeof(RIRScope)) {
+            return false;
+        }
         RIRScope *grown = realloc(rir->scopes, next_capacity * sizeof(RIRScope));
         if (grown == NULL)
             return false;
@@ -94,7 +102,15 @@ static bool
 scope_add_fact(RIRScope *scope, RIRFact fact)
 {
     if (scope->fact_count == scope->fact_capacity) {
-        size_t next_capacity = scope->fact_capacity == 0 ? 8 : scope->fact_capacity * 2;
+        size_t next_capacity = 8;
+        if (scope->fact_capacity != 0) {
+            if (scope->fact_capacity > SIZE_MAX / 2)
+                return false;
+            next_capacity = scope->fact_capacity * 2;
+        }
+        if (next_capacity > SIZE_MAX / sizeof(RIRFact)) {
+            return false;
+        }
         RIRFact *grown = realloc(scope->facts, next_capacity * sizeof(RIRFact));
         if (grown == NULL)
             return false;
@@ -110,7 +126,15 @@ static bool
 scope_add_op(RIRScope *scope, RIROp op)
 {
     if (scope->op_count == scope->op_capacity) {
-        size_t next_capacity = scope->op_capacity == 0 ? 8 : scope->op_capacity * 2;
+        size_t next_capacity = 8;
+        if (scope->op_capacity != 0) {
+            if (scope->op_capacity > SIZE_MAX / 2)
+                return false;
+            next_capacity = scope->op_capacity * 2;
+        }
+        if (next_capacity > SIZE_MAX / sizeof(RIROp)) {
+            return false;
+        }
         RIROp *grown = realloc(scope->ops, next_capacity * sizeof(RIROp));
         if (grown == NULL)
             return false;
@@ -139,8 +163,15 @@ static bool
 scope_add_state_summary(RIRScope *scope, RIRStateSummary summary)
 {
     if (scope->state_summary_count == scope->state_summary_capacity) {
-        size_t next_capacity =
-            scope->state_summary_capacity == 0 ? 8 : scope->state_summary_capacity * 2;
+        size_t next_capacity = 8;
+        if (scope->state_summary_capacity != 0) {
+            if (scope->state_summary_capacity > SIZE_MAX / 2)
+                return false;
+            next_capacity = scope->state_summary_capacity * 2;
+        }
+        if (next_capacity > SIZE_MAX / sizeof(RIRStateSummary)) {
+            return false;
+        }
         RIRStateSummary *grown =
             realloc(scope->state_summaries, next_capacity * sizeof(RIRStateSummary));
         if (grown == NULL)

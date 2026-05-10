@@ -56,8 +56,7 @@ transpiler_emit_mir_resource_op_inst(CodeBuf *buf,
         }
     }
     if (inst->name != NULL && strcmp(inst->name, "Claim") == 0
-        && !(inst->has_source_location
-             && inst->source_ast_type == AST_WITH_STMT)) {
+        && !mir_instruction_is_with_slot_claim(inst)) {
         return TRANSPILE_MIR_INST_HANDLED;
     }
     if (!transpiler_emit_mir_resource_hook(ctx, buf, ctx->indent, inst, "0", false)) {

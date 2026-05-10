@@ -17,6 +17,26 @@ air_evidence_kind_is_global(AIREvidenceKind kind)
 }
 
 static bool
+air_global_evidence_kind_has_validator(AIREvidenceKind kind)
+{
+    switch (kind) {
+    case AIR_EVIDENCE_MIR_CLEANUP:
+    case AIR_EVIDENCE_MIR_TERMINATOR:
+    case AIR_EVIDENCE_MIR_SELECT_RECEIVE:
+    case AIR_EVIDENCE_DAG_METADATA:
+    case AIR_EVIDENCE_DAG_GENERIC:
+    case AIR_EVIDENCE_DAG_ABILITY:
+    case AIR_EVIDENCE_RIR_EFFECT_PROPAGATION:
+    case AIR_EVIDENCE_RIR_RELATION_PROPAGATION:
+    case AIR_EVIDENCE_OBSERVABILITY_SCHEMA:
+    case AIR_EVIDENCE_RUNTIME_FRONTIER_POLICY:
+        return true;
+    default:
+        return false;
+    }
+}
+
+static bool
 air_validate_mir_global_evidence(const AIREvidenceNode *evidence,
                                  size_t evidence_index,
                                  char **error_message)
@@ -110,6 +130,12 @@ air_validate_dag_global_evidence(const AIREvidenceNode *evidence,
     if (evidence->fact_count == 0 && evidence->fallback_count == 0) {
         air_set_invariant_error(error_message,
                                 "AIR DAG evidence node %zu has no DAG facts",
+                                evidence_index);
+        return false;
+    }
+    if (evidence->fallback_count != 0) {
+        air_set_invariant_error(error_message,
+                                "AIR DAG evidence node %zu has fallback DAG facts",
                                 evidence_index);
         return false;
     }
@@ -225,6 +251,13 @@ air_validate_global_evidence_node(const AIREvidenceNode *evidence,
 {
     if (evidence == NULL)
         return false;
+    if (!air_global_evidence_kind_has_validator(evidence->kind)) {
+        air_set_invariant_error(error_message,
+                                "AIR global evidence node %zu has no global validator for kind '%s'",
+                                evidence_index,
+                                air_evidence_kind_name(evidence->kind));
+        return false;
+    }
     return air_validate_mir_global_evidence(evidence, evidence_index, error_message)
         && air_validate_rir_propagation_evidence(evidence, evidence_index, error_message)
         && air_validate_dag_global_evidence(evidence, evidence_index, error_message)

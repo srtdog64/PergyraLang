@@ -6,12 +6,113 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stddef.h>
 
 #include "compiler/driver_app.h"
 #include "compiler/repl.h"
 #include "compiler/fmt.h"
 #include "compiler/pkg.h"
 #include "compiler/debugger.h"
+
+typedef enum
+{
+    DRIVER_OPTION_NOOP,
+    DRIVER_OPTION_BOOL,
+    DRIVER_OPTION_BACKEND,
+    DRIVER_OPTION_OPT_PROFILE,
+    DRIVER_OPTION_DIAG_FORMAT,
+    DRIVER_OPTION_RUNTIME,
+    DRIVER_OPTION_HIR_DUMP
+} DriverOptionKind;
+
+typedef struct
+{
+    const char *name;
+    DriverOptionKind kind;
+    size_t offset;
+    int value;
+} DriverOptionSpec;
+
+static const DriverOptionSpec k_driver_options[] = {
+    { "--air", DRIVER_OPTION_BOOL, offsetof(DriverFlags, dump_air), true },
+    { "--air-json", DRIVER_OPTION_BOOL, offsetof(DriverFlags, dump_air_json), true },
+    { "--ast", DRIVER_OPTION_BOOL, offsetof(DriverFlags, dump_ast), true },
+    { "--backend=c", DRIVER_OPTION_BACKEND, 0, BACKEND_C },
+    { "--backend=llvm", DRIVER_OPTION_BACKEND, 0, BACKEND_LLVM },
+    { "--compile", DRIVER_OPTION_NOOP, 0, 0 },
+    { "--dir", DRIVER_OPTION_BOOL, offsetof(DriverFlags, dump_dir), true },
+    { "--emit-c", DRIVER_OPTION_BOOL, offsetof(DriverFlags, emit_c_only), true },
+    { "--emit-llvm", DRIVER_OPTION_BOOL, offsetof(DriverFlags, emit_llvm_ir), true },
+    { "--error-format=json", DRIVER_OPTION_DIAG_FORMAT, 0, DIAG_FORMAT_JSON },
+    { "--error-format=text", DRIVER_OPTION_DIAG_FORMAT, 0, DIAG_FORMAT_TEXT },
+    { "--hir", DRIVER_OPTION_HIR_DUMP, 0, HIR_DUMP_SUMMARY },
+    { "--hir-cfg", DRIVER_OPTION_HIR_DUMP, 0, HIR_DUMP_CFG },
+    { "--hir-dom", DRIVER_OPTION_HIR_DUMP, 0, HIR_DUMP_DOM },
+    { "--hir-ssa", DRIVER_OPTION_HIR_DUMP, 0, HIR_DUMP_SSA },
+    { "--mir", DRIVER_OPTION_BOOL, offsetof(DriverFlags, dump_mir), true },
+    { "--opt=dev", DRIVER_OPTION_OPT_PROFILE, 0, PGY_OPT_DEV },
+    { "--opt=release", DRIVER_OPTION_OPT_PROFILE, 0, PGY_OPT_RELEASE },
+    { "--repl", DRIVER_OPTION_BOOL, offsetof(DriverFlags, repl), true },
+    { "--rir", DRIVER_OPTION_BOOL, offsetof(DriverFlags, dump_rir), true },
+    { "--run", DRIVER_OPTION_BOOL, offsetof(DriverFlags, do_run), true },
+    { "--runtime=default", DRIVER_OPTION_RUNTIME, 0, RUNTIME_DEFAULT },
+    { "--runtime=none", DRIVER_OPTION_RUNTIME, 0, RUNTIME_NONE },
+    { "--tokens", DRIVER_OPTION_BOOL, offsetof(DriverFlags, dump_tokens), true },
+    { "--verbose", DRIVER_OPTION_BOOL, offsetof(DriverFlags, verbose), true },
+    { "-v", DRIVER_OPTION_BOOL, offsetof(DriverFlags, verbose), true },
+};
+
+static const DriverOptionSpec *
+find_driver_option(const char *arg)
+{
+    if (arg == NULL)
+        return NULL;
+
+    for (size_t i = 0;
+         i < sizeof(k_driver_options) / sizeof(k_driver_options[0]);
+         i++) {
+        if (strcmp(k_driver_options[i].name, arg) == 0)
+            return &k_driver_options[i];
+    }
+    return NULL;
+}
+
+static void
+apply_driver_option(DriverFlags *f, const DriverOptionSpec *option)
+{
+    if (f == NULL)
+        return;
+    if (option == NULL)
+        return;
+
+    switch (option->kind) {
+    case DRIVER_OPTION_NOOP:
+        break;
+    case DRIVER_OPTION_BOOL:
+        *(bool *)((char *)f + option->offset) = (bool)option->value;
+        if (option->offset == offsetof(DriverFlags, emit_c_only))
+            f->backend = BACKEND_C;
+        if (option->offset == offsetof(DriverFlags, emit_llvm_ir))
+            f->backend = BACKEND_LLVM;
+        break;
+    case DRIVER_OPTION_BACKEND:
+        f->backend = (BackendKind)option->value;
+        break;
+    case DRIVER_OPTION_OPT_PROFILE:
+        f->opt_profile = (PgyOptProfile)option->value;
+        break;
+    case DRIVER_OPTION_DIAG_FORMAT:
+        f->diag_format = (DiagnosticFormat)option->value;
+        break;
+    case DRIVER_OPTION_RUNTIME:
+        f->runtime_mode = (RuntimeMode)option->value;
+        break;
+    case DRIVER_OPTION_HIR_DUMP:
+        f->dump_hir = true;
+        f->hir_dump_mode = (HIRDumpMode)option->value;
+        break;
+    }
+}
 
 static DriverFlags
 parse_args(int argc, char *argv[])
@@ -28,65 +129,16 @@ parse_args(int argc, char *argv[])
     f.runtime_mode = RUNTIME_DEFAULT;
 
     for (int i = 1; i < argc; i++) {
+        const DriverOptionSpec *option;
+
         if (strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0) {
             driver_print_usage();
             exit(0);
-        } else if (strcmp(argv[i], "--compile") == 0) {
-            continue;
-        } else if (strcmp(argv[i], "--emit-c") == 0) {
-            f.emit_c_only = true;
-            f.backend = BACKEND_C;
-        } else if (strcmp(argv[i], "--backend=llvm") == 0) {
-            f.backend = BACKEND_LLVM;
-        } else if (strcmp(argv[i], "--backend=c") == 0) {
-            f.backend = BACKEND_C;
-        } else if (strcmp(argv[i], "--emit-llvm") == 0) {
-            f.emit_llvm_ir = true;
-            f.backend = BACKEND_LLVM;
-        } else if (strcmp(argv[i], "--opt=dev") == 0) {
-            f.opt_profile = PGY_OPT_DEV;
-        } else if (strcmp(argv[i], "--opt=release") == 0) {
-            f.opt_profile = PGY_OPT_RELEASE;
-        } else if (strcmp(argv[i], "--run") == 0) {
-            f.do_run = true;
-        } else if (strcmp(argv[i], "--tokens") == 0) {
-            f.dump_tokens = true;
-        } else if (strcmp(argv[i], "--ast") == 0) {
-            f.dump_ast = true;
-        } else if (strcmp(argv[i], "--dir") == 0) {
-            f.dump_dir = true;
-        } else if (strcmp(argv[i], "--rir") == 0) {
-            f.dump_rir = true;
-        } else if (strcmp(argv[i], "--air") == 0) {
-            f.dump_air = true;
-        } else if (strcmp(argv[i], "--air-json") == 0) {
-            f.dump_air_json = true;
-        } else if (strcmp(argv[i], "--mir") == 0) {
-            f.dump_mir = true;
-        } else if (strcmp(argv[i], "--hir") == 0) {
-            f.dump_hir = true;
-            f.hir_dump_mode = HIR_DUMP_SUMMARY;
-        } else if (strcmp(argv[i], "--hir-cfg") == 0) {
-            f.dump_hir = true;
-            f.hir_dump_mode = HIR_DUMP_CFG;
-        } else if (strcmp(argv[i], "--hir-dom") == 0) {
-            f.dump_hir = true;
-            f.hir_dump_mode = HIR_DUMP_DOM;
-        } else if (strcmp(argv[i], "--hir-ssa") == 0) {
-            f.dump_hir = true;
-            f.hir_dump_mode = HIR_DUMP_SSA;
-        } else if (strcmp(argv[i], "--repl") == 0) {
-            f.repl = true;
-        } else if (strcmp(argv[i], "-v") == 0 || strcmp(argv[i], "--verbose") == 0) {
-            f.verbose = true;
-        } else if (strcmp(argv[i], "--error-format=json") == 0) {
-            f.diag_format = DIAG_FORMAT_JSON;
-        } else if (strcmp(argv[i], "--error-format=text") == 0) {
-            f.diag_format = DIAG_FORMAT_TEXT;
-        } else if (strcmp(argv[i], "--runtime=default") == 0) {
-            f.runtime_mode = RUNTIME_DEFAULT;
-        } else if (strcmp(argv[i], "--runtime=none") == 0) {
-            f.runtime_mode = RUNTIME_NONE;
+        }
+
+        option = find_driver_option(argv[i]);
+        if (option != NULL) {
+            apply_driver_option(&f, option);
         } else if (strncmp(argv[i], "--runtime=", 10) == 0) {
             fprintf(stderr,
                     "pgy: unknown runtime mode '%s' (expected --runtime=default or --runtime=none)\n",

@@ -18,6 +18,18 @@ fi
 inventory="$("$MAKE_BIN" -C "$ROOT_DIR" -s __pgy_build_source_inventory_print)"
 missing=0
 
+duplicate_sources="$(
+    printf '%s\n' "$inventory" \
+        | sed '/^$/d' \
+        | sort \
+        | uniq -d
+)"
+if [[ -n "$duplicate_sources" ]]; then
+    printf '%s\n' "$duplicate_sources" >&2
+    echo "[build-source-inventory] duplicate source inventory entries" >&2
+    missing=1
+fi
+
 ignored_inventory=""
 if command -v git >/dev/null 2>&1 \
     && git -C "$ROOT_DIR" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
@@ -54,21 +66,17 @@ done <<< "$inventory"
 
 if command -v git >/dev/null 2>&1 \
     && git -C "$ROOT_DIR" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    deleted_examples="$(
+        git -C "$ROOT_DIR" ls-files --deleted -- 'tests/cases' 'examples'
+    )"
     while IFS= read -r tracked; do
         [[ -n "$tracked" ]] || continue
-        if git -C "$ROOT_DIR" ls-files --deleted -- "$tracked" \
-            | grep -Fxq "$tracked"; then
+        if [[ -n "$deleted_examples" ]] \
+            && grep -Fxq "$tracked" <<< "$deleted_examples"; then
             continue
         fi
-        [[ -f "$ROOT_DIR/$tracked" ]] || continue
-
-        magic="$(
-            LC_ALL=C head -c 4 "$ROOT_DIR/$tracked" 2>/dev/null \
-                | od -An -tx1 2>/dev/null \
-                | tr -d ' \n'
-        )"
-        case "$magic" in
-            7f454c46|4d5a9000|feedface|feedfacf|cefaedfe|cffaedfe)
+        case "$tracked" in
+            *.exe|*.dll|*.so|*.dylib|*.o|*.obj|*.a|*.lib|*.wasm)
                 echo "[build-source-inventory] tracked executable artifact is not allowed: $tracked" >&2
                 missing=1
                 ;;

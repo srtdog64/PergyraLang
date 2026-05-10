@@ -127,6 +127,42 @@ air_boundary_has_evidence_kind_subject(const AIRProgram *air,
     return false;
 }
 
+size_t
+air_global_evidence_node_count(const AIRProgram *air, AIREvidenceKind kind)
+{
+    size_t count = 0;
+
+    if (air == NULL || !air_evidence_kind_is_global(kind))
+        return 0;
+    for (size_t i = 0; i < air->evidence_count; i++) {
+        const AIREvidenceNode *evidence = &air->evidence_nodes[i];
+        if (evidence->kind == kind && evidence->boundary_index == SIZE_MAX)
+            count++;
+    }
+    return count;
+}
+
+size_t
+air_global_evidence_fact_count(const AIRProgram *air, AIREvidenceKind kind)
+{
+    size_t count = 0;
+
+    if (air == NULL || !air_evidence_kind_is_global(kind))
+        return 0;
+    for (size_t i = 0; i < air->evidence_count; i++) {
+        const AIREvidenceNode *evidence = &air->evidence_nodes[i];
+        if (evidence->kind == kind && evidence->boundary_index == SIZE_MAX)
+            count += evidence->fact_count;
+    }
+    return count;
+}
+
+bool
+air_global_has_evidence_kind(const AIRProgram *air, AIREvidenceKind kind)
+{
+    return air_global_evidence_node_count(air, kind) > 0;
+}
+
 bool
 air_boundary_has_evidence(const AIRProgram *air,
                           size_t boundary_index,
@@ -185,6 +221,46 @@ static const AIRBoundaryEvidenceSummaryRule kBoundaryEvidenceSummaryRules[] = {
     { AIR_EVIDENCE_RIR_BOUNDARY, "RIR boundary evidence" },
     { AIR_EVIDENCE_RIR_AUTHORITY, "RIR authority evidence" },
 };
+
+static bool
+air_validate_rir_propagation_summary_counter(const AIRProgram *air,
+                                             AIREvidenceKind kind,
+                                             size_t summary_count,
+                                             const char *label,
+                                             char **error_message)
+{
+    size_t fact_count;
+
+    if (air == NULL || !air->has_rir_input)
+        return true;
+    fact_count = air_global_evidence_fact_count(air, kind);
+    if (summary_count == fact_count)
+        return true;
+    air_set_invariant_error(error_message,
+                            "AIR RIR %s propagation evidence counter does not match evidence facts; summary=%zu facts=%zu",
+                            label,
+                            summary_count,
+                            fact_count);
+    return false;
+}
+
+static bool
+air_validate_rir_propagation_summary_counters(const AIRProgram *air,
+                                              char **error_message)
+{
+    return air_validate_rir_propagation_summary_counter(
+               air,
+               AIR_EVIDENCE_RIR_EFFECT_PROPAGATION,
+               air != NULL ? air->rir_effect_propagation_evidence_count : 0,
+               "effect",
+               error_message)
+        && air_validate_rir_propagation_summary_counter(
+               air,
+               AIR_EVIDENCE_RIR_RELATION_PROPAGATION,
+               air != NULL ? air->rir_relation_propagation_evidence_count : 0,
+               "relation",
+               error_message);
+}
 
 bool
 air_validate_boundary_legacy_evidence_shape(const AIRProgram *air,
@@ -502,6 +578,8 @@ air_validate_evidence_inventory(const AIRProgram *air, char **error_message)
         if (!air_evidence_node_matches_boundary_shape(air, i, error_message))
             return false;
     }
+    if (!air_validate_rir_propagation_summary_counters(air, error_message))
+        return false;
     if (air_evidence_inventory_is_authoritative(air)) {
         for (size_t i = 0; i < air->boundary_count; i++) {
             for (size_t j = 0;

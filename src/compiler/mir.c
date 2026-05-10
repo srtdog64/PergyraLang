@@ -38,6 +38,12 @@ mir_instruction_record_surface_usage(MIRInstruction *inst)
         || ast_uses_intent_observability_surface(inst->expr1);
 }
 
+bool
+mir_instruction_is_with_slot_claim(const MIRInstruction *inst)
+{
+    return mir_instruction_source_is_with_slot_claim(inst);
+}
+
 static MIRBranchShape
 mir_branch_shape_from_ast(const ASTNode *node)
 {

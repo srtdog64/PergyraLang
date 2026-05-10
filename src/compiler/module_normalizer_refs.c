@@ -1,5 +1,6 @@
 #include "module_normalizer_internal.h"
 
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -7,10 +8,6 @@
 
 static const char *module_rename_scope_lookup(const ModuleRenameScope *scope,
                                               const char *name);
-static bool module_shadow_push(ModuleShadowNames *shadow, const char *name);
-static bool module_shadow_contains(const ModuleShadowNames *shadow,
-                                   const char *name);
-static void module_shadow_pop_to(ModuleShadowNames *shadow, size_t saved_count);
 
 bool
 module_rename_scope_add(ModuleRenameScope *scope,
@@ -18,7 +15,15 @@ module_rename_scope_add(ModuleRenameScope *scope,
                         const char *new_name)
 {
     if (scope->count == scope->capacity) {
-        size_t next = scope->capacity == 0 ? 8 : scope->capacity * 2;
+        size_t next = 8;
+        if (scope->capacity != 0) {
+            if (scope->capacity > SIZE_MAX / 2)
+                return false;
+            next = scope->capacity * 2;
+        }
+        if (next > SIZE_MAX / sizeof(ModuleRenameEntry)) {
+            return false;
+        }
         ModuleRenameEntry *grown =
             realloc(scope->entries, next * sizeof(ModuleRenameEntry));
         if (grown == NULL)
@@ -63,51 +68,6 @@ module_rename_scope_destroy(ModuleRenameScope *scope)
     scope->entries = NULL;
     scope->count = 0;
     scope->capacity = 0;
-}
-
-static bool
-module_shadow_push(ModuleShadowNames *shadow, const char *name)
-{
-    if (name == NULL)
-        return true;
-    if (shadow->count == shadow->capacity) {
-        size_t next = shadow->capacity == 0 ? 8 : shadow->capacity * 2;
-        char **grown = realloc(shadow->names, next * sizeof(char *));
-        if (grown == NULL)
-            return false;
-        shadow->names = grown;
-        shadow->capacity = next;
-    }
-    shadow->names[shadow->count++] = pergyra_strdup(name);
-    return shadow->names[shadow->count - 1] != NULL;
-}
-
-static bool
-module_shadow_contains(const ModuleShadowNames *shadow, const char *name)
-{
-    for (size_t i = shadow->count; i > 0; i--) {
-        if (strcmp(shadow->names[i - 1], name) == 0)
-            return true;
-    }
-    return false;
-}
-
-static void
-module_shadow_pop_to(ModuleShadowNames *shadow, size_t saved_count)
-{
-    while (shadow->count > saved_count) {
-        free(shadow->names[shadow->count - 1]);
-        shadow->count--;
-    }
-}
-
-void
-module_shadow_destroy(ModuleShadowNames *shadow)
-{
-    module_shadow_pop_to(shadow, 0);
-    free(shadow->names);
-    shadow->names = NULL;
-    shadow->capacity = 0;
 }
 
 static void

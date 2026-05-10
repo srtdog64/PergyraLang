@@ -1,0 +1,88 @@
+# Beta Exit Handoff
+
+This document defines the handoff from beta closure to self-host preparation.
+It is intentionally narrow: if the beta contract is not closed, do not start a
+self-host migration.
+
+## Start Condition
+
+Self-host preparation may begin after all of these are true:
+
+- `docs/100_beta_readiness_checklist.md` has no open blocker for the stable
+  subset.
+- `docs/107_beta_stable_subset.md` matches the parser, semantic checker,
+  diagnostics, examples, and C/LLVM support matrix.
+- CFG/MIR body safety gates prove stable paths do not rely on AST fallback
+  judgments.
+- AIR strict evidence gates prove boundary, authority, MIR cleanup, DAG, and
+  runtime schema evidence can be exported and validated.
+- DAG evidence gates prove stable type resolution does not use the retired
+  recursive resolver or metadata materializer fallback.
+- Runtime ABI gates prove Slot/Pin/panic/failure contracts and C FFI layout are
+  stable for the beta subset.
+- C backend remains the oracle, and LLVM parity gaps are documented as explicit
+  unsupported paths or failing diagnostics.
+- A dogfood path exists through emitted C and at least one compiler-adjacent
+  tool candidate has a concrete input/output contract.
+
+## First Work Package
+
+The first self-host work package should be the **Diagnostic Catalog Checker**.
+It is the safest entry point because it is pure analysis and can be compared
+directly against existing docs and diagnostic registries.
+
+Required shape:
+
+- input: diagnostic registry, docs diagnostic tables, selected compiler call
+  sites;
+- output: duplicate/missing code report, missing `Reason:`/`Fix:` report, docs
+  drift report;
+- oracle: the current C compiler and shell smoke tests;
+- gate: stable stdout/JSON output plus a negative fixture with intentional
+  drift.
+
+## Second Work Package
+
+The second self-host work package should be the **AIR Graph JSON Validator**.
+It validates the exact layer Pergyra wants future agents and tools to consume.
+
+Required shape:
+
+- input: `pgy.air.graph.v1`;
+- output: schema validation, missing evidence node report, boundary/evidence
+  mismatch report, drift summary;
+- oracle: current `air_validate`, `air_verify`, and existing AIR smoke tests;
+- gate: the Pergyra validator must agree with the C validator on positive and
+  negative fixtures.
+
+## Forbidden At Handoff
+
+Do not start with:
+
+- parser rewrite;
+- type checker rewrite;
+- C backend rewrite;
+- LLVM backend rewrite;
+- native WASM backend;
+- runtime replacement;
+- new syntax added only for self-host convenience.
+
+These tasks can only be considered after soft self-host tools are useful and
+partial self-host passes have run beside the C implementation.
+
+## Architecture Rule
+
+Self-hosted code must not copy the C-era helper-file pattern. Use Pergyra
+modules and namespaces as architecture:
+
+- feature folder first;
+- responsibility owner second;
+- explicit input/output contract for every tool or pass;
+- no `_helpers` module unless it is truly cross-feature infrastructure.
+
+## Exit From Soft Self-Host
+
+Soft self-host is considered successful when at least two compiler-adjacent
+tools are written in Pergyra, run in CI, and produce stable outputs compared
+against the C compiler oracle. Only then should partial compiler-pass migration
+begin.

@@ -8,31 +8,56 @@
 #include "slot_manager.h"
 
 #include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
+
+typedef struct {
+    const char *name;
+    TypeTag tag;
+} SlotBuiltinTypeSpec;
+
+static const SlotBuiltinTypeSpec kSlotBuiltinTypes[] = {
+    {"Bool", TYPE_BOOL},
+    {"Double", TYPE_DOUBLE},
+    {"Float", TYPE_FLOAT},
+    {"Int", TYPE_INT},
+    {"Long", TYPE_LONG},
+    {"String", TYPE_STRING},
+    {"Vector", TYPE_VECTOR},
+};
+
+static int
+slot_builtin_type_compare(const void *key, const void *entry)
+{
+    const char *name = (const char *)key;
+    const SlotBuiltinTypeSpec *spec = (const SlotBuiltinTypeSpec *)entry;
+    return strcmp(name, spec->name);
+}
+
+static const SlotBuiltinTypeSpec *
+slot_builtin_type_find(const char *typeName)
+{
+    return (const SlotBuiltinTypeSpec *)bsearch(
+        typeName,
+        kSlotBuiltinTypes,
+        sizeof(kSlotBuiltinTypes) / sizeof(kSlotBuiltinTypes[0]),
+        sizeof(kSlotBuiltinTypes[0]),
+        slot_builtin_type_compare);
+}
 
 uint32_t
 TypeTagHash(const char *typeName)
 {
     uint32_t hash = 5381u;
     const unsigned char *p;
+    const SlotBuiltinTypeSpec *builtin;
 
     if (typeName == NULL)
         return 0;
 
-    if (strcmp(typeName, "Int") == 0)
-        return TYPE_INT;
-    if (strcmp(typeName, "Long") == 0)
-        return TYPE_LONG;
-    if (strcmp(typeName, "Float") == 0)
-        return TYPE_FLOAT;
-    if (strcmp(typeName, "Double") == 0)
-        return TYPE_DOUBLE;
-    if (strcmp(typeName, "String") == 0)
-        return TYPE_STRING;
-    if (strcmp(typeName, "Bool") == 0)
-        return TYPE_BOOL;
-    if (strcmp(typeName, "Vector") == 0)
-        return TYPE_VECTOR;
+    builtin = slot_builtin_type_find(typeName);
+    if (builtin != NULL)
+        return builtin->tag;
 
     for (p = (const unsigned char *)typeName; *p != '\0'; p++)
         hash = ((hash << 5) + hash) ^ *p;

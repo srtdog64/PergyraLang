@@ -61,6 +61,12 @@ llvm_emit_domain_sync_and_method_bodies(LLVMGenCtx *ctx,
 
             LLVMHostedMethodView method_view =
                 llvm_hosted_method_view_from_decl(ctx, decl_name, stmt);
+            if (llvm_hosted_method_view_missing_mir_metadata(&method_view)) {
+                llvm_set_mir_inventory_missing(ctx,
+                    "MIR-only LLVM path missing method declaration metadata for domain '%s'",
+                    decl_name != NULL ? decl_name : "(anonymous-domain)");
+                return false;
+            }
             for (size_t j = 0; j < method_view.count; j++) {
                 const MIRDeclMethod *method_meta =
                     llvm_hosted_method_view_metadata(&method_view, j);

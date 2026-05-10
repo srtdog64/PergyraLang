@@ -153,8 +153,7 @@ mir_validate_intent_instruction_fact(const MIRRoutine *routine,
     for (size_t i = 0; i < block->instruction_count; i++) {
         const MIRInstruction *inst = &block->instructions[i];
         if (mir_intent_fact_requires_ast_step(inst)) {
-            if (!inst->has_source_location
-                || inst->source_ast_type != AST_INTENT_STEP) {
+            if (!mir_instruction_source_is_intent_step(inst)) {
                 if (error_message != NULL) {
                     *error_message = mir_intent_fact_strdup_fmt(
                         "MIR routine '%s' block[%zu] instruction[%zu] intent fact '%s' is not anchored to an intent step source",

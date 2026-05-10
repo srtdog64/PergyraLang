@@ -29,7 +29,7 @@ llvm_mir_for_in_required_runtime(LLVMGenCtx *ctx,
         : NULL;
 
     if (fn == NULL && ctx != NULL && !ctx->has_error) {
-        llvm_set_error_at_with_hints(ctx, inst != NULL ? inst->ast : NULL,
+        llvm_set_error_at_with_hints(ctx, mir_instruction_source_payload(inst),
             PGY_CODE_LLVM_TYPE_UNSUPPORTED,
             PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
             PGY_FIX_INSPECT_MIR_INVENTORY,

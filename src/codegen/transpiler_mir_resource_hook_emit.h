@@ -65,8 +65,7 @@ transpiler_emit_mir_resource_hook(TranspilerCtx *ctx,
                     && transpiler_parse_versioned_name(inst->result_name,
                         result_base, sizeof(result_base), &result_version)
                     && strcmp(claim_name, result_base) == 0;
-                if (inst->has_source_location
-                    && inst->source_ast_type == AST_LET_DECL
+                if (mir_instruction_source_is_local_decl(inst)
                     && claim_matches_result) {
                     claim_already_materialized_by_stmt = true;
                 } else if (claim_name != NULL

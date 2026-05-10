@@ -19,10 +19,9 @@ transpiler_mir_stmt_is_mirrored_resource(TranspilerCtx *ctx,
         bool resource_is_secure = false;
         if (resource_inst->kind != MIR_INST_RESOURCE_OP)
             continue;
-        if (!resource_inst->has_source_location
-            || resource_inst->source_ast_type != stmt->type)
+        if (!mir_instruction_source_matches_ast_node(resource_inst, stmt))
             continue;
-        if (resource_inst->ast != stmt)
+        if (mir_instruction_source_payload(resource_inst) != stmt)
             continue;
         if (stmt->type == AST_PARALLEL_BLOCK
             || stmt->type == AST_ASYNC_BLOCK

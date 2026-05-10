@@ -11,9 +11,12 @@ hir_lower_cfg_next_capacity(size_t *capacity, size_t initial, size_t elem_size)
         return false;
 
     size_t current = *capacity;
-    size_t next_capacity = current == 0 ? initial : current * 2;
-    if (current != 0 && next_capacity < current)
-        return false;
+    size_t next_capacity = initial;
+    if (current != 0) {
+        if (current > SIZE_MAX / 2)
+            return false;
+        next_capacity = current * 2;
+    }
     if (next_capacity > SIZE_MAX / elem_size)
         return false;
 

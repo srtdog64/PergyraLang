@@ -118,6 +118,32 @@ air_append_driftf(AIRProgram *air,
     return ok;
 }
 
+static bool
+air_strict_require_dag_evidence_node(AIRProgram *air,
+                                     AIREvidenceKind kind,
+                                     size_t counter,
+                                     char **error_message)
+{
+    if (!air->strict_evidence
+        || counter == 0
+        || air_global_has_evidence_kind(air, kind)) {
+        return true;
+    }
+
+    return air_append_driftf(
+        air,
+        AIR_DRIFT_DAG_FALLBACK_PRESENT,
+        SIZE_MAX,
+        SIZE_MAX,
+        error_message,
+        PGY_CODE_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING
+        ": AIR DAG evidence counter has no matching evidence node; kind=%s counter=%zu. "
+        "Reason: strict AIR treats DAG summary counters as observability only; graph-backed type evidence must be carried by EvidenceNode. "
+        "Fix: attach the missing DAG evidence node or remove the stale counter-only summary.",
+        air_evidence_kind_name(kind),
+        counter);
+}
+
 static char *
 air_format_authority_names_owned(const AIRBoundaryNode *boundary)
 {
@@ -390,7 +416,7 @@ air_verify(AIRProgram *air, char **error_message)
     if (air->strict_evidence
         && air->has_mir_input
         && air->boundary_count > 0
-        && air->mir_terminator_evidence_count == 0) {
+        && !air_global_has_evidence_kind(air, AIR_EVIDENCE_MIR_TERMINATOR)) {
         const char *message =
             PGY_CODE_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING
             ": AIR MIR input has no CFG terminator evidence. "
@@ -406,8 +432,48 @@ air_verify(AIRProgram *air, char **error_message)
         }
     }
     if (air->strict_evidence
+        && !air_global_has_evidence_kind(air,
+                                         AIR_EVIDENCE_OBSERVABILITY_SCHEMA)) {
+        const char *message =
+            PGY_CODE_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING
+            ": AIR has no runtime observability schema evidence. "
+            "Reason: strict AIR requires observability ABI schema evidence before abstraction-boundary verification. "
+            "Fix: attach AIR_EVIDENCE_OBSERVABILITY_SCHEMA from the runtime observability schema.";
+        if (!air_append_drift(air,
+                              AIR_DRIFT_BOUNDARY_EVIDENCE_MISSING,
+                              SIZE_MAX,
+                              SIZE_MAX,
+                              message,
+                              error_message)) {
+            return false;
+        }
+    }
+    if (air->strict_evidence
+        && !air_global_has_evidence_kind(
+            air,
+            AIR_EVIDENCE_RUNTIME_FRONTIER_POLICY)) {
+        const char *message =
+            PGY_CODE_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING
+            ": AIR has no runtime frontier policy evidence. "
+            "Reason: strict AIR requires runtime frontier policy evidence before world/zone/projection frontier verification. "
+            "Fix: attach AIR_EVIDENCE_RUNTIME_FRONTIER_POLICY from the runtime frontier policy schema.";
+        if (!air_append_drift(air,
+                              AIR_DRIFT_BOUNDARY_EVIDENCE_MISSING,
+                              SIZE_MAX,
+                              SIZE_MAX,
+                              message,
+                              error_message)) {
+            return false;
+        }
+    }
+    if (air->strict_evidence
         && air->rir_effect_propagation_required_count
-            > air->rir_effect_propagation_evidence_count) {
+            > air_global_evidence_fact_count(
+                air,
+                AIR_EVIDENCE_RIR_EFFECT_PROPAGATION)) {
+        size_t evidence_count = air_global_evidence_fact_count(
+            air,
+            AIR_EVIDENCE_RIR_EFFECT_PROPAGATION);
         if (!air_append_driftf(
                 air,
                 AIR_DRIFT_EFFECT_PROPAGATION_MISSING,
@@ -419,13 +485,18 @@ air_verify(AIRProgram *air, char **error_message)
                 "Reason: strict AIR requires every effect propagation op to carry resource/state evidence. "
                 "Fix: attach AIR_EVIDENCE_RIR_EFFECT_PROPAGATION for the missing propagation op.",
                 air->rir_effect_propagation_required_count,
-                air->rir_effect_propagation_evidence_count)) {
+                evidence_count)) {
             return false;
         }
     }
     if (air->strict_evidence
         && air->rir_relation_propagation_required_count
-            > air->rir_relation_propagation_evidence_count) {
+            > air_global_evidence_fact_count(
+                air,
+                AIR_EVIDENCE_RIR_RELATION_PROPAGATION)) {
+        size_t evidence_count = air_global_evidence_fact_count(
+            air,
+            AIR_EVIDENCE_RIR_RELATION_PROPAGATION);
         if (!air_append_driftf(
                 air,
                 AIR_DRIFT_RELATION_PROPAGATION_MISSING,
@@ -437,11 +508,28 @@ air_verify(AIRProgram *air, char **error_message)
                 "Reason: strict AIR requires every relation propagation op to carry resource/state evidence. "
                 "Fix: attach AIR_EVIDENCE_RIR_RELATION_PROPAGATION for the missing propagation op.",
                 air->rir_relation_propagation_required_count,
-                air->rir_relation_propagation_evidence_count)) {
+                evidence_count)) {
             return false;
         }
     }
     if (air->strict_evidence) {
+        if (!air_strict_require_dag_evidence_node(
+                air,
+                AIR_EVIDENCE_DAG_METADATA,
+                air->dag_metadata_evidence_count,
+                error_message)
+            || !air_strict_require_dag_evidence_node(
+                air,
+                AIR_EVIDENCE_DAG_GENERIC,
+                air->dag_generic_evidence_count,
+                error_message)
+            || !air_strict_require_dag_evidence_node(
+                air,
+                AIR_EVIDENCE_DAG_ABILITY,
+                air->dag_ability_evidence_count,
+                error_message)) {
+            return false;
+        }
         for (size_t i = 0; i < air->evidence_count; i++) {
             const AIREvidenceNode *evidence = &air->evidence_nodes[i];
             if ((evidence->kind == AIR_EVIDENCE_DAG_METADATA

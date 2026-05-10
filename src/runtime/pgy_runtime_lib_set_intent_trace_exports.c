@@ -57,6 +57,8 @@ static int32_t pgy_intent_active_index_slots[PGY_INTENT_ACTIVE_INDEX_MAX];
 static pthread_mutex_t pgy_intent_registry_mutex = PTHREAD_MUTEX_INITIALIZER;
 static _Thread_local int32_t pgy_intent_current_stack[PGY_INTENT_ACTIVE_MAX];
 static _Thread_local int32_t pgy_intent_current_depth = 0;
+static int32_t pgy_intent_active_free_cursor = 0;
+static int32_t pgy_intent_active_count_value = 0;
 static int32_t pgy_intent_next_handle = 1;
 static int32_t pgy_intent_next_trace_id = 1;
 static char *pgy_intent_last_trace = NULL;
@@ -260,6 +262,28 @@ pgy_intent_subjects_overlap_export(void **lhs, int32_t lhs_count,
     return false;
 }
 
+static int32_t
+pgy_intent_find_free_active_slot_export(void)
+{
+    for (int32_t probe = 0; probe < PGY_INTENT_ACTIVE_MAX; probe++) {
+        int32_t slot = (pgy_intent_active_free_cursor + probe)
+            % PGY_INTENT_ACTIVE_MAX;
+        if (!pgy_intent_active_registry[slot].active) {
+            pgy_intent_active_free_cursor = (slot + 1)
+                % PGY_INTENT_ACTIVE_MAX;
+            return slot;
+        }
+    }
+    return -1;
+}
+
+static void
+pgy_intent_note_free_active_slot_export(int32_t slot)
+{
+    if (slot >= 0 && slot < PGY_INTENT_ACTIVE_MAX)
+        pgy_intent_active_free_cursor = slot;
+}
+
 int32_t
 pgy_intent_enter_export(char *name, void **subjects, int32_t subject_count,
                         bool is_concurrent, int32_t priority)
@@ -272,32 +296,37 @@ pgy_intent_enter_export(char *name, void **subjects, int32_t subject_count,
     pthread_mutex_lock(&pgy_intent_registry_mutex);
     parent_handle = pgy_intent_current_handle_export();
 
-    for (int i = 0; i < PGY_INTENT_ACTIVE_MAX; i++) {
-        PgyIntentActiveEntry *entry = &pgy_intent_active_registry[i];
-        if (!entry->active)
-            continue;
-        if (!pgy_intent_subjects_overlap_export(entry->subjects, entry->subject_count,
-                                                subjects, subject_count))
-            continue;
-        if (pgy_intent_handle_is_current_ancestor_export(entry->handle))
-            continue;
-        if (entry->is_concurrent && is_concurrent)
-            continue;
-        if (priority > entry->priority)
-            continue;
+    if (subject_count > 0 && subjects == NULL) {
         pgy_runtime_warn_intent_enter_failure(name,
-            "same-subject conflict with active intent",
+            "subject registry payload is null",
             priority, is_concurrent);
         pthread_mutex_unlock(&pgy_intent_registry_mutex);
         return 0;
     }
 
-    for (int i = 0; i < PGY_INTENT_ACTIVE_MAX; i++) {
-        if (!pgy_intent_active_registry[i].active) {
-            free_index = i;
-            break;
+    if (subject_count > 0) {
+        for (int i = 0; i < PGY_INTENT_ACTIVE_MAX; i++) {
+            PgyIntentActiveEntry *entry = &pgy_intent_active_registry[i];
+            if (!entry->active)
+                continue;
+            if (!pgy_intent_subjects_overlap_export(entry->subjects, entry->subject_count,
+                                                    subjects, subject_count))
+                continue;
+            if (pgy_intent_handle_is_current_ancestor_export(entry->handle))
+                continue;
+            if (entry->is_concurrent && is_concurrent)
+                continue;
+            if (priority > entry->priority)
+                continue;
+            pgy_runtime_warn_intent_enter_failure(name,
+                "same-subject conflict with active intent",
+                priority, is_concurrent);
+            pthread_mutex_unlock(&pgy_intent_registry_mutex);
+            return 0;
         }
     }
+
+    free_index = pgy_intent_find_free_active_slot_export();
 
     if (free_index < 0) {
         pgy_runtime_warn_intent_enter_failure(name,
@@ -341,6 +370,7 @@ pgy_intent_enter_export(char *name, void **subjects, int32_t subject_count,
     pgy_intent_active_registry[free_index].step_count = 0;
     pgy_intent_active_registry[free_index].failed = false;
     pgy_intent_active_registry[free_index].active = true;
+    pgy_intent_active_count_value++;
     pgy_intent_active_index_set_export(handle, free_index);
     if (PGY_INTENT_OBSERVABILITY_ENABLED) {
         char line[256];
@@ -384,7 +414,6 @@ pgy_intent_trace_step_export(int32_t handle, char *step_name, char *zone_name)
     }
     pthread_mutex_unlock(&pgy_intent_registry_mutex);
 }
-
 void
 pgy_intent_trace_bind_export(int32_t handle, char *participant_name, char *slot_name)
 {
@@ -513,44 +542,4 @@ pgy_intent_trace_fail_export(int32_t handle, char *reason)
         pgy_intent_append_line_len_export(&entry->trace, &entry->trace_len, line);
     }
     pthread_mutex_unlock(&pgy_intent_registry_mutex);
-}
-
-void
-pgy_mir_resource_op_export(int32_t handle,
-                           const char *op_name,
-                           const char *slot_anchor,
-                           const char *arg_name)
-{
-#ifdef PGY_MIR_TRACE
-    fprintf(stderr, "[MIR resource-op] handle=%d op=%s slot=%s arg=%s\n",
-            handle,
-            op_name      != NULL ? op_name      : "-",
-            slot_anchor  != NULL ? slot_anchor  : "-",
-            arg_name     != NULL ? arg_name     : "-");
-#else
-    (void)handle;
-    (void)op_name;
-    (void)slot_anchor;
-    (void)arg_name;
-#endif
-}
-
-void
-pgy_mir_cleanup_op_export(int32_t handle,
-                          const char *op_name,
-                          const char *slot_anchor,
-                          const char *arg_name)
-{
-#ifdef PGY_MIR_TRACE
-    fprintf(stderr, "[MIR cleanup-op] handle=%d op=%s slot=%s arg=%s\n",
-            handle,
-            op_name      != NULL ? op_name      : "-",
-            slot_anchor  != NULL ? slot_anchor  : "-",
-            arg_name     != NULL ? arg_name     : "-");
-#else
-    (void)handle;
-    (void)op_name;
-    (void)slot_anchor;
-    (void)arg_name;
-#endif
 }

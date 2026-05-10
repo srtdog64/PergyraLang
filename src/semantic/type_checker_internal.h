@@ -281,8 +281,6 @@ void semantic_type_resolution_record_owned_resolved_type(SemanticContext *ctx,
                                                          Type *resolved_type);
 Type *semantic_type_resolution_lookup_annotation_nullable(SemanticContext *ctx,
                                                           ASTNode *type_node);
-Type *semantic_type_resolution_lookup_annotation_or_unknown(SemanticContext *ctx,
-                                                            ASTNode *type_node);
 Type *semantic_type_resolution_lookup_or_materialize(SemanticContext *ctx,
                                                      ASTNode *type_node);
 Type *semantic_type_resolution_lookup_metadata_type_ref(SemanticContext *ctx,

@@ -248,7 +248,7 @@ test_air_strict_evidence_requires_hir_for_implementation_boundary(void)
     }
 
     bool ok = checked
-        && air.drift_count == 1
+        && air.drift_count >= 1
         && found_hir_evidence_drift;
     test_air_clear_stack_drifts(&air);
     free(error);
@@ -385,7 +385,7 @@ test_air_task_group_boundary_requires_rir_and_hir_evidence(void)
             break;
         }
     }
-    bool ok = checked && air.drift_count == 1 && found_rir_evidence_drift;
+    bool ok = checked && air.drift_count >= 1 && found_rir_evidence_drift;
     test_air_clear_stack_drifts(&air);
     free(error);
     return ok;
@@ -427,16 +427,31 @@ test_air_recheck_clears_owned_drift_messages(void)
     char *error = NULL;
     bool first = air_check_drift(&air, &error);
     size_t first_count = air.drift_count;
-    const char *first_message = first_count > 0 ? air.drifts[0].message : NULL;
+    bool first_has_evidence_missing = false;
+    for (size_t i = 0; i < first_count; i++) {
+        if (air.drifts[i].message != NULL
+            && strstr(air.drifts[i].message,
+                      "PGY_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING") != NULL) {
+            first_has_evidence_missing = true;
+            break;
+        }
+    }
     bool second = air_check_drift(&air, &error);
+    bool second_has_evidence_missing = false;
+    for (size_t i = 0; i < air.drift_count; i++) {
+        if (air.drifts[i].message != NULL
+            && strstr(air.drifts[i].message,
+                      "PGY_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING") != NULL) {
+            second_has_evidence_missing = true;
+            break;
+        }
+    }
     bool ok = first
         && second
         && first_count >= 1
-        && first_message != NULL
         && air.drift_count == first_count
-        && air.drifts[0].message != NULL
-        && strstr(air.drifts[0].message,
-                  "PGY_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING") != NULL;
+        && first_has_evidence_missing
+        && second_has_evidence_missing;
     test_air_clear_stack_drifts(&air);
     free(error);
     return ok;

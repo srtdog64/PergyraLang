@@ -75,6 +75,7 @@ ASTNode *find_ability_decl(TranspilerCtx *ctx, const char *ability_name);
 ASTNode *find_event_decl(TranspilerCtx *ctx, const char *event_name);
 bool transpiler_has_known_nominal_type(TranspilerCtx *ctx, const char *name);
 const char *transpiler_decl_name_local(ASTNode *decl);
+bool transpiler_is_host_decl_type(ASTNodeType decl_type);
 ASTNode *transpiler_find_decl_in_inventory_local(TranspilerCtx *ctx,
                                                  ASTNodeType decl_type,
                                                  const char *name);

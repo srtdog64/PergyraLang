@@ -22,5 +22,7 @@ bool mir_validate_terminator_provenance(const MIRRoutine *routine,
                                         const MIRBasicBlock *block,
                                         size_t block_index,
                                         char **error_message);
+bool mir_validate_routine_emission_facts(const MIRRoutine *routine,
+                                         char **error_message);
 
 #endif /* PERGYRA_MIR_FACT_VALIDATE_H */

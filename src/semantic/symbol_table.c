@@ -119,6 +119,8 @@ scope_ensure_symbol_index_capacity(Scope *scope, size_t next_count)
         return true;
     }
 
+    if (scope->symbol_index_capacity > SIZE_MAX / 2)
+        return false;
     new_capacity = scope->symbol_index_capacity == 0
         ? INITIAL_SYMBOL_INDEX_CAPACITY
         : scope->symbol_index_capacity * 2;
@@ -263,9 +265,11 @@ scope_declare(Scope *scope, Symbol *symbol)
     if (scope->symbol_count >= scope->symbol_capacity) {
         size_t new_cap;
         Symbol **grown;
-        if (scope->symbol_capacity > SIZE_MAX / (2 * sizeof(Symbol *)))
+        if (scope->symbol_capacity > SIZE_MAX / 2)
             return false;
         new_cap = scope->symbol_capacity * 2;
+        if (new_cap == 0 || new_cap > SIZE_MAX / sizeof(Symbol *))
+            return false;
         grown = realloc(scope->symbols, new_cap * sizeof(Symbol *));
         if (grown == NULL)
             return false;
@@ -341,10 +345,10 @@ scope_register_slot(Scope *scope, Symbol *slot_sym)
     if (scope->owned_slot_count >= scope->owned_slot_capacity) {
         size_t new_cap;
         Symbol **grown;
-        if (scope->owned_slot_capacity > SIZE_MAX / (2 * sizeof(Symbol *)))
+        if (scope->owned_slot_capacity > SIZE_MAX / 2)
             return;
         new_cap = scope->owned_slot_capacity * 2;
-        if (new_cap == 0)
+        if (new_cap == 0 || new_cap > SIZE_MAX / sizeof(Symbol *))
             return;
         grown = realloc(scope->owned_slots, new_cap * sizeof(Symbol *));
         if (grown == NULL)

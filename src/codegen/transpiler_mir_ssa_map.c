@@ -197,17 +197,17 @@ transpiler_emit_mir_block_mapping_comment(CodeBuf *out,
     if (out == NULL || routine == NULL || block == NULL)
         return;
 
-    if (block->has_source_location) {
-        line = block->source_line;
-        column = block->source_column;
+    if (mir_block_has_source_location(block)) {
+        line = mir_block_source_line(block);
+        column = mir_block_source_column(block);
     }
 
     transpiler_write_indent_to(out, indent);
-    if (block->has_source_location) {
+    if (mir_block_has_source_location(block)) {
         codebuf_write(out,
             "/* mir block=%zu hir=%zu (%s) src=%u:%u */\n",
             block->id,
-            block->source_hir_block_id,
+            mir_block_source_hir_id(block),
             routine_name != NULL ? routine_name : "<routine>",
             line,
             column);
@@ -215,7 +215,7 @@ transpiler_emit_mir_block_mapping_comment(CodeBuf *out,
         codebuf_write(out,
             "/* mir block=%zu hir=%s (%s) */\n",
             block->id,
-            block->source_hir_block_id == SIZE_MAX ? "<none>" : "mapped",
+            mir_block_has_hir_source_mapping(block) ? "mapped" : "<none>",
             routine_name != NULL ? routine_name : "<routine>");
     }
 }

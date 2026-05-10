@@ -15,6 +15,13 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
 
     TranspilerHostedMethodView method_view =
         transpiler_hosted_method_view_from_decl(ctx, name, node);
+    if (transpiler_hosted_method_view_missing_mir_metadata(&method_view)) {
+        transpiler_set_mir_inventory_missing(
+            ctx,
+            "MIR-only C path missing method declaration metadata for zone '%s'",
+            name != NULL ? name : "(anonymous-zone)");
+        return;
+    }
 
     for (size_t i = 0; i < node->data.zone_decl.slot_count; i++) {
         ASTNode *slot = node->data.zone_decl.slots[i];

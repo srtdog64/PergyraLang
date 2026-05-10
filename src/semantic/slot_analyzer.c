@@ -80,9 +80,16 @@ collect_live_slots(Scope *scope, size_t *out_count)
             }
 
             if (count >= capacity) {
-                new_capacity = capacity == 0 ? 8 : capacity * 2;
-                if (new_capacity < capacity
-                    || new_capacity > SIZE_MAX / sizeof(Symbol *)) {
+                if (capacity == 0) {
+                    new_capacity = 8;
+                } else {
+                    if (capacity > SIZE_MAX / 2) {
+                        free(result);
+                        return NULL;
+                    }
+                    new_capacity = capacity * 2;
+                }
+                if (new_capacity > SIZE_MAX / sizeof(Symbol *)) {
                     free(result);
                     return NULL;
                 }

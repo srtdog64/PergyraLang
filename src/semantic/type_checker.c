@@ -267,7 +267,7 @@ semantic_borrowed_boundary_root_name(ASTNode *expr, SemanticContext *ctx)
 static Type *
 statement_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
 {
-    return semantic_type_resolution_lookup_annotation_nullable(ctx, type_ref);
+    return semantic_type_resolution_lookup_type_ref_or_materialize(ctx, type_ref);
 }
 
 bool

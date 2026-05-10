@@ -111,6 +111,20 @@ metadata_dead_end_type_name(ASTNode *type_node)
     return metadata_dead_end_ast_kind(type_node);
 }
 
+static void
+metadata_sync_dead_end_compatibility_mirror(SemanticContext *ctx)
+{
+    if (ctx == NULL)
+        return;
+    /*
+     * Keep the historical stats label stable for scripts while making the
+     * ownership explicit: dead_ends is the source of truth; materializer_fallbacks
+     * is only a compatibility mirror and must not imply recursive fallback use.
+     */
+    ctx->type_resolution_metadata_materializer_fallbacks =
+        ctx->type_resolution_metadata_dead_ends;
+}
+
 void
 semantic_type_resolution_record_metadata_dead_end_diagnostic(SemanticContext *ctx,
                                                              ASTNode *type_node)
@@ -129,8 +143,7 @@ semantic_type_resolution_record_metadata_dead_end_diagnostic(SemanticContext *ct
         "Fix: stage this type in the declaration graph or add an owner-local metadata materializer before using it.",
         metadata_dead_end_type_name(type_node));
     ctx->type_resolution_metadata_dead_ends++;
-    ctx->type_resolution_metadata_materializer_fallbacks =
-        ctx->type_resolution_metadata_dead_ends;
+    metadata_sync_dead_end_compatibility_mirror(ctx);
     if (type_node == NULL) {
         ctx->type_resolution_metadata_fallback_other++;
         return;

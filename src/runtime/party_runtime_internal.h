@@ -13,6 +13,7 @@
 void party_runtime_warn(const char* op, const char* reason);
 uint64_t GetTimeNanos(void);
 void UpdateFiberStats(const char* roleId, const FiberResult* result);
+void party_runtime_dump_fiber_stats(void);
 void* party_context_role_instance_by_slot(PartyContext* context, uint32_t slotId);
 
 #endif /* PERGYRA_PARTY_RUNTIME_INTERNAL_H */

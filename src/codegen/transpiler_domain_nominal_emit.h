@@ -313,6 +313,13 @@ emit_party_decl(ASTNode *node, TranspilerCtx *ctx)
     /* Methods as free functions */
     TranspilerHostedMethodView method_view =
         transpiler_hosted_method_view_from_decl(ctx, name, node);
+    if (transpiler_hosted_method_view_missing_mir_metadata(&method_view)) {
+        transpiler_set_mir_inventory_missing(
+            ctx,
+            "MIR-only C path missing method declaration metadata for party '%s'",
+            name != NULL ? name : "(anonymous-party)");
+        return;
+    }
 
     for (size_t i = 0; i < method_view.count; i++) {
         const MIRDeclMethod *method_meta =
@@ -418,6 +425,13 @@ emit_roster_decl(ASTNode *node, TranspilerCtx *ctx)
     /* Methods */
     TranspilerHostedMethodView method_view =
         transpiler_hosted_method_view_from_decl(ctx, name, node);
+    if (transpiler_hosted_method_view_missing_mir_metadata(&method_view)) {
+        transpiler_set_mir_inventory_missing(
+            ctx,
+            "MIR-only C path missing method declaration metadata for roster '%s'",
+            name != NULL ? name : "(anonymous-roster)");
+        return;
+    }
 
     for (size_t i = 0; i < method_view.count; i++) {
         const MIRDeclMethod *method_meta =

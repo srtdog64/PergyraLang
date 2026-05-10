@@ -86,12 +86,14 @@ lower_air_from_source(const char *source)
 #include "tests/air/test_air_core_part_h.cases.h"
 #include "tests/air/test_air_evidence_part_b.cases.h"
 #include "tests/air/test_air_cleanup_transfer_part_c.cases.h"
+#include "tests/air/test_air_rir_propagation_part_j.cases.h"
 #include "tests/air/test_air_cleanup_transfer_part_d.cases.h"
 #include "tests/air/test_air_boundary_part_d.cases.h"
 #include "tests/air/test_air_parsed_part_e.cases.h"
 #include "tests/air/test_air_strict_part_f.cases.h"
 #include "tests/air/test_air_observability_pin_part_g.cases.h"
 #include "tests/air/test_air_mir_terminator_part_h.cases.h"
+#include "tests/air/test_air_counter_strict_part_i.cases.h"
 
 int
 main(void)
@@ -212,11 +214,23 @@ main(void)
     TEST("AIR rejects empty observability schema evidence");
     EXPECT(test_air_rejects_empty_observability_schema_evidence());
 
+    TEST("AIR strict evidence requires observability schema");
+    EXPECT(test_air_strict_evidence_requires_observability_schema());
+
+    TEST("AIR strict evidence rejects observability counter only");
+    EXPECT(test_air_strict_evidence_rejects_observability_counter_only());
+
     TEST("AIR rejects invalid runtime frontier policy provider");
     EXPECT(test_air_rejects_invalid_runtime_frontier_policy_provider());
 
     TEST("AIR rejects empty runtime frontier policy evidence");
     EXPECT(test_air_rejects_empty_runtime_frontier_policy_evidence());
+
+    TEST("AIR strict evidence requires runtime frontier policy");
+    EXPECT(test_air_strict_evidence_requires_runtime_frontier_policy());
+
+    TEST("AIR strict evidence rejects frontier counter only");
+    EXPECT(test_air_strict_evidence_rejects_frontier_counter_only());
 
     TEST("AIR runtime frontier policy names PGY_FRONTIER_PUBLISH_READY and PGY_FRONTIER_PUBLISH_CLEAR_DIRTY");
     EXPECT(test_air_runtime_frontier_policy_names_publish_order());
@@ -254,6 +268,9 @@ main(void)
     TEST("AIR rejects empty MIR terminator evidence");
     EXPECT(test_air_rejects_empty_mir_terminator_evidence());
 
+    TEST("AIR rejects MIR evidence without routine provider");
+    EXPECT(test_air_rejects_mir_evidence_without_routine_provider());
+
     TEST("AIR collects MIR select receive evidence");
     EXPECT(test_air_collects_mir_select_receive_evidence());
 
@@ -265,6 +282,9 @@ main(void)
 
     TEST("AIR strict evidence requires MIR terminator evidence");
     EXPECT(test_air_strict_evidence_requires_mir_terminator_evidence());
+
+    TEST("AIR strict evidence rejects MIR terminator counter only");
+    EXPECT(test_air_strict_evidence_rejects_mir_terminator_counter_only());
 
     TEST("AIR ignores orphan MIR cleanup root evidence");
     EXPECT(test_air_ignores_orphan_mir_cleanup_root_evidence());
@@ -284,20 +304,35 @@ main(void)
     TEST("AIR reports DAG fallback drift");
     EXPECT(test_air_reports_dag_fallback_drift());
 
+    TEST("AIR strict evidence rejects DAG counter only");
+    EXPECT(test_air_strict_evidence_rejects_dag_counter_only());
+
     TEST("AIR collects RIR effect relation propagation evidence");
     EXPECT(test_air_collects_rir_effect_relation_propagation_evidence());
+
+    TEST("AIR rejects RIR evidence without scope provider");
+    EXPECT(test_air_rejects_rir_evidence_without_scope_provider());
 
     TEST("AIR reports missing effect relation propagation evidence");
     EXPECT(test_air_reports_missing_effect_relation_propagation_evidence());
 
+    TEST("AIR strict evidence rejects RIR propagation counter only");
+    EXPECT(test_air_strict_evidence_rejects_rir_propagation_counter_only());
+
     TEST("AIR rejects empty RIR propagation evidence");
     EXPECT(test_air_rejects_empty_rir_propagation_evidence());
+
+    TEST("AIR rejects RIR propagation evidence counter mismatch");
+    EXPECT(test_air_rejects_rir_propagation_counter_mismatch());
 
     TEST("AIR rejects invalid DAG evidence provider");
     EXPECT(test_air_rejects_invalid_dag_evidence_provider());
 
     TEST("AIR rejects empty DAG evidence");
     EXPECT(test_air_rejects_empty_dag_evidence());
+
+    TEST("AIR rejects DAG fallback evidence");
+    EXPECT(test_air_rejects_dag_fallback_evidence());
 
     TEST("AIR rejects invalid DAG evidence subject");
     EXPECT(test_air_rejects_invalid_dag_evidence_subject());

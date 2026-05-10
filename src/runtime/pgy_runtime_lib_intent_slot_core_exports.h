@@ -109,6 +109,9 @@ pgy_intent_exit_export(int32_t handle)
         entry->failed = false;
         pgy_intent_active_index_clear_export(handle);
         entry->active = false;
+        pgy_intent_note_free_active_slot_export(active_slot);
+        if (pgy_intent_active_count_value > 0)
+            pgy_intent_active_count_value--;
     }
 
     pthread_mutex_unlock(&pgy_intent_registry_mutex);

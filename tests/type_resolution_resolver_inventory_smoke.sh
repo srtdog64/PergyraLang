@@ -9,10 +9,12 @@ bad_fallback="$(mktemp)"
 fallback_matches="$(mktemp)"
 annotation_matches="$(mktemp)"
 bad_annotation="$(mktemp)"
+annotation_or_unknown_matches="$(mktemp)"
+bad_annotation_or_unknown="$(mktemp)"
 bad_record="$(mktemp)"
 type_ref_helper_matches="$(mktemp)"
 bad_type_ref_helper="$(mktemp)"
-trap 'rm -f "$bad_direct" "$bad_fallback" "$fallback_matches" "$annotation_matches" "$bad_annotation" "$bad_record" "$type_ref_helper_matches" "$bad_type_ref_helper"' EXIT
+trap 'rm -f "$bad_direct" "$bad_fallback" "$fallback_matches" "$annotation_matches" "$bad_annotation" "$annotation_or_unknown_matches" "$bad_annotation_or_unknown" "$bad_record" "$type_ref_helper_matches" "$bad_type_ref_helper"' EXIT
 
 { grep -RIn "resolve_type_node(" src/semantic || true; } | while IFS=: read -r path line text; do
   case "$path" in
@@ -134,7 +136,7 @@ fi
 if [ -s "$bad_annotation" ]; then
   echo "[type-resolution-resolver-inventory] raw resolved-type lookup escaped metadata owners:" >&2
   cat "$bad_annotation" >&2
-  echo "Use semantic_type_resolution_lookup_annotation_nullable(...) or semantic_type_resolution_lookup_annotation_or_unknown(...)." >&2
+  echo "Use semantic_type_resolution_lookup_annotation_nullable(...) inside metadata owners or metadata-first type-ref helpers elsewhere." >&2
   exit 1
 fi
 
@@ -144,15 +146,47 @@ fi
 if [ -s "$annotation_matches" ]; then
   echo "[type-resolution-resolver-inventory] retired resolved-annotation API reappeared:" >&2
   cat "$annotation_matches" >&2
-  echo "Use semantic_type_resolution_lookup_annotation_nullable(...) or semantic_type_resolution_lookup_annotation_or_unknown(...)." >&2
+  echo "Use semantic_type_resolution_lookup_annotation_nullable(...) inside metadata owners or metadata-first type-ref helpers elsewhere." >&2
   exit 1
 fi
 
 annotation_sites="$(wc -l <"$annotation_matches")"
 if [ "$annotation_sites" -ne 0 ]; then
   echo "[type-resolution-resolver-inventory] resolved-annotation seam inventory changed: $annotation_sites != 0" >&2
-  echo "Use the centralized annotation nullable/or-unknown APIs instead of spreading annotation-sensitive reads." >&2
+  echo "Use metadata-first type-ref helpers; the annotation-or-unknown API is retired." >&2
   cat "$annotation_matches" >&2
+  exit 1
+fi
+
+{ grep -RIn 'semantic_type_resolution_lookup_annotation_or_unknown' src/semantic || true; } \
+  >"$annotation_or_unknown_matches" || true
+
+cp "$annotation_or_unknown_matches" "$bad_annotation_or_unknown"
+
+if [ -s "$bad_annotation_or_unknown" ]; then
+  echo "[type-resolution-resolver-inventory] unclassified annotation-only type-ref read(s):" >&2
+  cat "$bad_annotation_or_unknown" >&2
+  echo "Contract/boundary declaration paths should use metadata-first type-ref helpers; annotation-only reads must stay private to metadata owners." >&2
+  exit 1
+fi
+
+annotation_or_unknown_count="$(wc -l <"$annotation_or_unknown_matches")"
+if [ "$annotation_or_unknown_count" -ne 0 ]; then
+  echo "[type-resolution-resolver-inventory] annotation-only type-ref read inventory changed: $annotation_or_unknown_count != 0" >&2
+  cat "$annotation_or_unknown_matches" >&2
+  exit 1
+fi
+
+annotation_nullable_consumers="$(
+  grep -RIn 'semantic_type_resolution_lookup_annotation_nullable' src/semantic \
+    | grep -Ev 'src/semantic/type_checker_internal\.h' \
+    | grep -Ev 'src/semantic/type_checker_resolution_metadata\.c' \
+    || true
+)"
+if [ -n "$annotation_nullable_consumers" ]; then
+  echo "[type-resolution-resolver-inventory] unclassified nullable annotation read(s):" >&2
+  echo "$annotation_nullable_consumers" >&2
+  echo "Boundary/contract paths should use semantic_type_resolution_lookup_type_ref_or_materialize(...); keep nullable reads private to metadata owners." >&2
   exit 1
 fi
 
@@ -206,9 +240,15 @@ grep -q 'dead_ends=%llu materializer_fallbacks=%llu' \
   exit 1
 }
 
-grep -q 'program_lookup_dag_type_annotation_or_unknown' \
+grep -q 'metadata_sync_dead_end_compatibility_mirror' \
+  src/semantic/type_checker_resolution_metadata_dead_end.c || {
+  echo "[type-resolution-resolver-inventory] materializer_fallbacks mirror is not isolated from DAG dead-end owner" >&2
+  exit 1
+}
+
+grep -q 'program_lookup_dag_type_ref_or_unknown' \
   src/semantic/type_checker_program.c || {
-  echo "[type-resolution-resolver-inventory] program placeholder path lost explicit DAG-annotation lookup seam" >&2
+  echo "[type-resolution-resolver-inventory] program placeholder path lost explicit DAG metadata type-ref lookup seam" >&2
   exit 1
 }
 
@@ -282,7 +322,38 @@ grep -q 'semantic_type_resolution_reject_unknown_bare_named_type' \
   >"$type_ref_helper_matches" || true
 
 grep -Ev 'src/semantic/type_checker_internal\.h' "$type_ref_helper_matches" \
+  | grep -Ev 'src/semantic/type_checker\.c' \
+  | grep -Ev 'src/semantic/type_checker_ability_decl\.c' \
+  | grep -Ev 'src/semantic/type_checker_ability_fields\.c' \
+  | grep -Ev 'src/semantic/type_checker_ability_where\.c' \
+  | grep -Ev 'src/semantic/type_checker_async_channel\.h' \
+  | grep -Ev 'src/semantic/type_checker_builtins_projection\.c' \
+  | grep -Ev 'src/semantic/type_checker_builtins_query_domain\.c' \
+  | grep -Ev 'src/semantic/type_checker_call_constructor\.c' \
+  | grep -Ev 'src/semantic/type_checker_class_decl\.c' \
+  | grep -Ev 'src/semantic/type_checker_call_generic_where\.c' \
+  | grep -Ev 'src/semantic/type_checker_decls_domain_helpers\.c' \
+  | grep -Ev 'src/semantic/type_checker_expr_call\.c' \
+  | grep -Ev 'src/semantic/type_checker_expr_host\.c' \
+  | grep -Ev 'src/semantic/type_checker_expr_ops\.c' \
+  | grep -Ev 'src/semantic/type_checker_event\.c' \
+  | grep -Ev 'src/semantic/type_checker_flow\.c' \
+  | grep -Ev 'src/semantic/type_checker_func_action_contract\.c' \
+  | grep -Ev 'src/semantic/type_checker_generic_effective_args\.c' \
+  | grep -Ev 'src/semantic/type_checker_generic_support\.h' \
+  | grep -Ev 'src/semantic/type_checker_helpers_late\.c' \
+  | grep -Ev 'src/semantic/type_checker_intent_action_contract\.c' \
+  | grep -Ev 'src/semantic/type_checker_intent_participants\.c' \
+  | grep -Ev 'src/semantic/type_checker_intent_transfer\.c' \
+  | grep -Ev 'src/semantic/type_checker_intent_types\.c' \
+  | grep -Ev 'src/semantic/type_checker_module_contract\.c' \
+  | grep -Ev 'src/semantic/type_checker_ownership_destructure\.c' \
+  | grep -Ev 'src/semantic/type_checker_party_decl\.c' \
+  | grep -Ev 'src/semantic/type_checker_projection_path\.c' \
   | grep -Ev 'src/semantic/type_checker_resolution_metadata\.c' \
+  | grep -Ev 'src/semantic/type_checker_role_decl\.c' \
+  | grep -Ev 'src/semantic/type_checker_roster_decl\.c' \
+  | grep -Ev 'src/semantic/type_checker_world_helpers\.c' \
   >"$bad_type_ref_helper" || true
 
 if [ -s "$bad_type_ref_helper" ]; then
@@ -293,8 +364,8 @@ if [ -s "$bad_type_ref_helper" ]; then
 fi
 
 type_ref_helper_count="$(wc -l <"$type_ref_helper_matches")"
-if [ "$type_ref_helper_count" -ne 2 ]; then
-  echo "[type-resolution-resolver-inventory] metadata-first type-ref helper inventory changed: $type_ref_helper_count != 2" >&2
+if [ "$type_ref_helper_count" -ne 34 ]; then
+  echo "[type-resolution-resolver-inventory] metadata-first type-ref helper inventory changed: $type_ref_helper_count != 34" >&2
   cat "$type_ref_helper_matches" >&2
   exit 1
 fi
@@ -304,6 +375,7 @@ direct_metadata_type_ref_users="$(
     | grep -Ev 'src/semantic/type_checker_generic_contracts\.h' \
     | grep -Ev 'src/semantic/type_checker_generic_effective_args\.c' \
     | grep -Ev 'src/semantic/type_checker_generic_validation\.c' \
+    | grep -Ev 'src/semantic/type_checker_program\.c' \
     | grep -Ev 'src/semantic/type_checker_expr\.c' \
     | grep -Ev 'src/semantic/type_checker_func_decl\.c' \
     | grep -Ev 'src/semantic/type_checker_host_helpers\.c' \
@@ -509,4 +581,4 @@ for needle in \
   }
 done
 
-echo "[type-resolution-resolver-inventory] direct resolver and fallback seam inventory are gated (fallback seams=$fallback_sites cap=0 annotation-sensitive seams=$annotation_sites type-ref helper refs=$type_ref_helper_count cap=2)"
+echo "[type-resolution-resolver-inventory] direct resolver and fallback seam inventory are gated (fallback seams=$fallback_sites cap=0 annotation-sensitive seams=$annotation_sites annotation-only reads=$annotation_or_unknown_count cap=0 nullable annotation reads=0 type-ref helper refs=$type_ref_helper_count cap=34)"

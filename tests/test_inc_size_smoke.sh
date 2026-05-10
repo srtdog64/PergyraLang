@@ -27,6 +27,25 @@ if [[ -n "$implementation_headers" ]]; then
     exit 1
 fi
 
+removed_implementation_headers=(
+    "src/runtime/world_roster_plan_stats.h"
+)
+
+removed_header_violations="$(
+    cd "$ROOT_DIR"
+    for header in "${removed_implementation_headers[@]}"; do
+        if [[ -e "$header" ]]; then
+            echo "$header"
+        fi
+    done
+)"
+
+if [[ -n "$removed_header_violations" ]]; then
+    echo "removed implementation headers must not reappear:" >&2
+    echo "$removed_header_violations" >&2
+    exit 1
+fi
+
 declaration_only_headers=(
     "src/codegen/transpiler_context.h"
     "src/codegen/transpiler_event_builtin_emit.h"

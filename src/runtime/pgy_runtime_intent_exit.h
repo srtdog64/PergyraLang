@@ -102,6 +102,7 @@ pgy_intent_exit_export(int32_t handle)
         entry->failed = false;
         pgy_intent_active_index_clear(handle);
         entry->active = false;
+        pgy_intent_note_free_active_slot(active_slot);
         if (pgy_intent_active_count > 0)
             pgy_intent_active_count--;
     }

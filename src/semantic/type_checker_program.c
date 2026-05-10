@@ -7,12 +7,15 @@
 #include "diag_codes.h"
 
 static Type *
-program_lookup_dag_type_annotation_or_unknown(ASTNode *type_node,
-                                              SemanticContext *ctx)
+program_lookup_dag_type_ref_or_unknown(ASTNode *type_node,
+                                       SemanticContext *ctx)
 {
+    Type *resolved;
+
     /* Top-level placeholders must consume precollected DAG metadata only. */
-    return semantic_type_resolution_lookup_annotation_or_unknown(ctx,
-                                                                 type_node);
+    resolved = semantic_type_resolution_lookup_metadata_type_ref(ctx,
+                                                                type_node);
+    return resolved != NULL ? resolved : TYPE_UNKNOWN;
 }
 
 static Type *
@@ -23,7 +26,7 @@ program_lookup_dag_func_return_type_or_void(ASTNode *func_decl,
         || func_decl->data.func_decl.return_type == NULL) {
         return TYPE_VOID;
     }
-    return program_lookup_dag_type_annotation_or_unknown(
+    return program_lookup_dag_type_ref_or_unknown(
         func_decl->data.func_decl.return_type, ctx);
 }
 
@@ -34,10 +37,10 @@ program_lookup_dag_intent_binding_type_or_unknown(ASTNode *binding,
     if (binding == NULL)
         return TYPE_UNKNOWN;
     if (binding->type == AST_INTENT_INVOLVES)
-        return program_lookup_dag_type_annotation_or_unknown(
+        return program_lookup_dag_type_ref_or_unknown(
             binding->data.intent_involves.subject_type, ctx);
     if (binding->type == AST_INTENT_VALUE)
-        return program_lookup_dag_type_annotation_or_unknown(
+        return program_lookup_dag_type_ref_or_unknown(
             binding->data.intent_value.value_type, ctx);
     return TYPE_UNKNOWN;
 }
@@ -131,7 +134,7 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                     if (p != NULL
                         && p->type == AST_LET_DECL
                         && p->data.let_decl.type != NULL) {
-                        eptypes[j] = program_lookup_dag_type_annotation_or_unknown(
+                        eptypes[j] = program_lookup_dag_type_ref_or_unknown(
                             p->data.let_decl.type, ctx);
                     } else {
                         eptypes[j] = TYPE_UNKNOWN;
@@ -171,7 +174,7 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                     for (size_t p = 0; p < vpc && ptypes != NULL; p++) {
                         ASTNode *pt = stmt->data.enum_decl.variant_params[j][p];
                         ptypes[p] =
-                            program_lookup_dag_type_annotation_or_unknown(pt, ctx);
+                            program_lookup_dag_type_ref_or_unknown(pt, ctx);
                     }
                     Type *ft = type_create_function(ptypes, vpc, etype);
                     free(ptypes);

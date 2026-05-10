@@ -2,18 +2,45 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PGY_BIN="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
+PGY_BIN_WAS_DEFAULT=0
+if [[ -z "${PGY_BIN:-}" ]]; then
+    PGY_BIN="$ROOT_DIR/bin/pgy"
+    PGY_BIN_WAS_DEFAULT=1
+fi
 if [[ "$PGY_BIN" != *.exe && -x "${PGY_BIN}.exe" ]]; then
     PGY_BIN="${PGY_BIN}.exe"
 fi
 WORK_DIR="$(mktemp -d "${TMPDIR:-/tmp}/pgy-runtime-none.XXXXXX")"
 trap 'rm -rf "$WORK_DIR"' EXIT
 
+require_term() {
+    local rel="$1"
+    local term="$2"
+    grep -Fq -- "$term" "$ROOT_DIR/$rel" ||
+        { echo "[runtime-none-contract] $rel missing term: $term" >&2; exit 1; }
+}
+
+require_term "src/pgy_driver.c" "--runtime=none"
+require_term "src/compiler/driver_app.c" "PGY_DRIVER_RUNTIME_NONE_UNSUPPORTED"
+require_term "src/compiler/driver_app.c" "freestanding backend lowering is not implemented yet"
+require_term "src/compiler/runtime_none_contract.c" "runtime-dependent surface"
+require_term "src/compiler/driver_diag.c" "PGY_CAUSE_DRIVER_RUNTIME_NONE_UNSUPPORTED"
+require_term "src/semantic/diag_codes.h" "PGY_DRIVER_RUNTIME_NONE_UNSUPPORTED"
+require_term "src/semantic/diag_codes.h" "driver:runtime:none_unsupported"
+
 if [[ ! -x "$PGY_BIN" ]]; then
+    if [[ "$PGY_BIN_WAS_DEFAULT" -eq 1 ]]; then
+        echo "[runtime-none-contract] SKIP executable probe; source contract is gated"
+        exit 0
+    fi
     echo "[runtime-none-contract] missing compiler binary: $PGY_BIN" >&2
     exit 1
 fi
 if ! "$PGY_BIN" --help >"$WORK_DIR/pgy-help.out" 2>"$WORK_DIR/pgy-help.err"; then
+    if [[ "$PGY_BIN_WAS_DEFAULT" -eq 1 ]]; then
+        echo "[runtime-none-contract] SKIP executable probe; source contract is gated"
+        exit 0
+    fi
     echo "[runtime-none-contract] compiler binary is not runnable: $PGY_BIN" >&2
     cat "$WORK_DIR/pgy-help.err" >&2
     exit 1

@@ -63,7 +63,8 @@ Recently closed:
   context/statistics helpers into `slot_security_context_ops.h`.
 - `runtime/world_roster.c` — reduced below the 600 LOC owner threshold by
   moving execution-plan, world statistics, visualization, and free helpers into
-  `world_roster_plan_stats.h`.
+  compiled owner `world_roster_plan_stats.c`; the old implementation header
+  `world_roster_plan_stats.h` is intentionally removed.
 - `runtime/party_runtime.c` — reduced below the 600 LOC owner threshold by
   moving parallel dispatch/thread coordination into `party_runtime_dispatch.h`.
 - `lsp/pgy_lsp.c` — reduced below the 600 LOC owner threshold by moving JSON

@@ -13,6 +13,7 @@ and follow-up debt over older design notes.
 | Document | Purpose |
 |---|---|
 | [`100_beta_readiness_checklist.md`](100_beta_readiness_checklist.md) | Main beta readiness checklist and remaining blocker map |
+| [`125_source_of_truth_spine.md`](125_source_of_truth_spine.md) | Compiler source-of-truth ownership spine to stop A -> B -> A refactoring loops |
 | [`19_design_philosophy.md`](19_design_philosophy.md) | Systems-language identity and non-negotiable substrate baseline |
 | [`107_beta_stable_subset.md`](107_beta_stable_subset.md) | Single freeze point for the beta-stable language subset |
 | [`111_beta_test_suite_freeze.md`](111_beta_test_suite_freeze.md) | Mandatory pre-beta gate inventory |
@@ -29,6 +30,7 @@ and follow-up debt over older design notes.
 | [`self_hosted/01_staged_roadmap.md`](self_hosted/01_staged_roadmap.md) | Staged roadmap from soft self-host tools to compiler slices |
 | [`self_hosted/02_required_language_surface.md`](self_hosted/02_required_language_surface.md) | Language surface required before self-hosting can become credible |
 | [`self_hosted/03_tool_candidates.md`](self_hosted/03_tool_candidates.md) | First self-hostable tool candidates and non-goals |
+| [`self_hosted/04_beta_exit_handoff.md`](self_hosted/04_beta_exit_handoff.md) | Exact beta-exit artifacts required before self-host migration starts |
 
 ## Historical Snapshots
 
@@ -139,10 +141,11 @@ and follow-up debt over older design notes.
 
 1. Read [`107_beta_stable_subset.md`](107_beta_stable_subset.md).
 2. Read [`100_beta_readiness_checklist.md`](100_beta_readiness_checklist.md).
-3. For async/parallel, read [`113_memory_concurrency_model.md`](113_memory_concurrency_model.md), then [`114_async_model_positioning.md`](114_async_model_positioning.md), then [`05_async_concurrency.md`](05_async_concurrency.md).
-4. For backend work, read [`115_inc_cleanup_status.md`](115_inc_cleanup_status.md), [`62_llvm_backend_debt_ledger.md`](62_llvm_backend_debt_ledger.md), and [`44_llvm_backend_coverage.md`](44_llvm_backend_coverage.md).
-5. For formal closure, read [`102_formal_semantics_and_proof_obligations.md`](102_formal_semantics_and_proof_obligations.md), [`103_cfg_body_dataflow_need.md`](103_cfg_body_dataflow_need.md), and [`104_air_compiler_architecture.md`](104_air_compiler_architecture.md).
-6. For post-beta self-hosting preparation, read [`self_hosted/README.md`](self_hosted/README.md) after the beta source-of-truth documents, not before them.
+3. Read [`125_source_of_truth_spine.md`](125_source_of_truth_spine.md) before changing compiler architecture.
+4. For async/parallel, read [`113_memory_concurrency_model.md`](113_memory_concurrency_model.md), then [`114_async_model_positioning.md`](114_async_model_positioning.md), then [`05_async_concurrency.md`](05_async_concurrency.md).
+5. For backend work, read [`115_inc_cleanup_status.md`](115_inc_cleanup_status.md), [`62_llvm_backend_debt_ledger.md`](62_llvm_backend_debt_ledger.md), and [`44_llvm_backend_coverage.md`](44_llvm_backend_coverage.md).
+6. For formal closure, read [`102_formal_semantics_and_proof_obligations.md`](102_formal_semantics_and_proof_obligations.md), [`103_cfg_body_dataflow_need.md`](103_cfg_body_dataflow_need.md), and [`104_air_compiler_architecture.md`](104_air_compiler_architecture.md).
+7. For post-beta self-hosting preparation, read [`self_hosted/README.md`](self_hosted/README.md) after the beta source-of-truth documents, not before them.
 
 ## Current Documentation Policy
 

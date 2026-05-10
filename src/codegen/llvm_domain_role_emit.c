@@ -97,6 +97,12 @@ llvm_emit_domain_role_method_bodies(LLVMGenCtx *ctx,
         const char *role_name = stmt->data.role_decl.name;
         LLVMHostedMethodView method_view =
             llvm_hosted_method_view_from_decl(ctx, role_name, stmt);
+        if (llvm_hosted_method_view_missing_mir_metadata(&method_view)) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing method declaration metadata for role '%s'",
+                role_name != NULL ? role_name : "(anonymous-role)");
+            return false;
+        }
 
         for (size_t j = 0; j < method_view.count; j++) {
             const MIRDeclMethod *method_meta =

@@ -214,8 +214,10 @@ RUNTIME_SOURCES  = $(RUNTIME_DIR)/slot_manager.c \
                    $(RUNTIME_DIR)/slot_manager_security_stats.c \
                    $(RUNTIME_DIR)/slot_manager_scope.c \
                    $(RUNTIME_DIR)/party_runtime.c \
+                   $(RUNTIME_DIR)/party_runtime_stats.c \
                    $(RUNTIME_DIR)/party_runtime_dispatch.c \
-                   $(RUNTIME_DIR)/world_roster.c
+                   $(RUNTIME_DIR)/world_roster.c \
+                   $(RUNTIME_DIR)/world_roster_plan_stats.c
 ASYNC_SOURCES    = $(ASYNC_DIR)/concurrent_queue.c \
                    $(ASYNC_DIR)/async_scope.c \
                    $(ASYNC_DIR)/fiber.c \
@@ -486,6 +488,7 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/hir_lower_cfg.c \
                    $(COMPILER_DIR)/hir_lower_intent_cfg.c \
                    $(COMPILER_DIR)/mir.c \
+                   $(COMPILER_DIR)/mir_source_shape.c \
                    $(COMPILER_DIR)/mir_names.c \
                    $(COMPILER_DIR)/mir_lifecycle.c \
                    $(COMPILER_DIR)/mir_base_helpers.c \
@@ -503,6 +506,7 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/mir_abi_layout.c \
                    $(COMPILER_DIR)/mir_surface_usage.c \
                    $(COMPILER_DIR)/mir_fact_validate.c \
+                   $(COMPILER_DIR)/mir_fact_terminator_validate.c \
                    $(COMPILER_DIR)/mir_decl_header_validate.c \
                    $(COMPILER_DIR)/mir_decl_headers.c \
                    $(COMPILER_DIR)/mir_stmt_population.c \
@@ -524,6 +528,7 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/module_loader.c \
                    $(COMPILER_DIR)/module_normalizer.c \
                    $(COMPILER_DIR)/module_normalizer_refs.c \
+                   $(COMPILER_DIR)/module_normalizer_shadow.c \
                    $(COMPILER_DIR)/import_resolver.c \
                    $(COMPILER_DIR)/driver_app.c \
                    $(COMPILER_DIR)/driver_diag.c \
@@ -555,6 +560,7 @@ ifneq ($(LLVM_ENABLED),0)
                    $(CODEGEN_DIR)/llvm_backend_generic.c \
                    $(CODEGEN_DIR)/llvm_pipeline.c \
                          $(CODEGEN_DIR)/llvm_intent.c \
+                         $(CODEGEN_DIR)/llvm_intent_emit_support.c \
                          $(CODEGEN_DIR)/llvm_intent_setup.c \
                          $(CODEGEN_DIR)/llvm_intent_cleanup.c \
                          $(CODEGEN_DIR)/llvm_intent_step_context.c \
@@ -565,10 +571,12 @@ ifneq ($(LLVM_ENABLED),0)
                          $(CODEGEN_DIR)/llvm_error.c \
                           $(CODEGEN_DIR)/llvm_register.c \
                           $(CODEGEN_DIR)/llvm_runtime.c \
+                          $(CODEGEN_DIR)/llvm_runtime_core_builtin_decl.c \
                           $(CODEGEN_DIR)/llvm_runtime_require.c \
                           $(CODEGEN_DIR)/llvm_runtime_raw_collections.c \
                           $(CODEGEN_DIR)/llvm_runtime_channels.c \
                           $(CODEGEN_DIR)/llvm_runtime_secure_slot_decl.c \
+                          $(CODEGEN_DIR)/llvm_runtime_task_memory_decl.c \
                         $(CODEGEN_DIR)/llvm_event.c \
                         $(CODEGEN_DIR)/llvm_mir_contract.c \
                         $(CODEGEN_DIR)/llvm_mir_emit.c \
@@ -591,9 +599,11 @@ ifneq ($(LLVM_ENABLED),0)
                         $(CODEGEN_DIR)/llvm_inventory_decl_lookup.c \
                         $(CODEGEN_DIR)/llvm_inventory_host_methods.c \
                         $(CODEGEN_DIR)/llvm_expr.c \
+                        $(CODEGEN_DIR)/llvm_expr_emit_support.c \
                         $(CODEGEN_DIR)/llvm_expr_aggregate_utils.c \
                         $(CODEGEN_DIR)/llvm_expr_assignment_member_projection.c \
                         $(CODEGEN_DIR)/llvm_expr_assignment_projection.c \
+                        $(CODEGEN_DIR)/llvm_expr_await_task.c \
                         $(CODEGEN_DIR)/llvm_expr_banner_string_helpers.c \
                         $(CODEGEN_DIR)/llvm_expr_boundary_projection_helpers.c \
                         $(CODEGEN_DIR)/llvm_expr_common.c \
@@ -603,6 +613,7 @@ ifneq ($(LLVM_ENABLED),0)
                         $(CODEGEN_DIR)/llvm_expr_call_collections_require.c \
                         $(CODEGEN_DIR)/llvm_expr_call_dispatch.c \
                         $(CODEGEN_DIR)/llvm_expr_call_errors.c \
+                        $(CODEGEN_DIR)/llvm_expr_call_variable.c \
                         $(CODEGEN_DIR)/llvm_expr_call_queue_extended.c \
                         $(CODEGEN_DIR)/llvm_expr_call_methods_domain_slice.c \
                         $(CODEGEN_DIR)/llvm_expr_call_methods_vtable_dispatch.c \
@@ -629,11 +640,13 @@ ifneq ($(LLVM_ENABLED),0)
                         $(CODEGEN_DIR)/llvm_expr_scalar_core.c \
                         $(CODEGEN_DIR)/llvm_expr_slot_device_calls.c \
                         $(CODEGEN_DIR)/llvm_expr_slot_runtime_utils.c \
+                        $(CODEGEN_DIR)/llvm_expr_spawn_names.c \
                         $(CODEGEN_DIR)/llvm_expr_spawn_call_helpers.c \
                         $(CODEGEN_DIR)/llvm_expr_stdlib_scalar_io_calls.c \
                         $(CODEGEN_DIR)/llvm_expr_string_coerce.c \
                         $(CODEGEN_DIR)/llvm_expr_task_channel_calls.c \
                         $(CODEGEN_DIR)/llvm_stmt.c \
+                        $(CODEGEN_DIR)/llvm_stmt_emit_support.c \
                         $(CODEGEN_DIR)/llvm_stmt_defer_scope.c \
                         $(CODEGEN_DIR)/llvm_stmt_type_infer.c \
                         $(CODEGEN_DIR)/llvm_stmt_type_infer_helpers.c \
@@ -641,10 +654,12 @@ ifneq ($(LLVM_ENABLED),0)
                         $(CODEGEN_DIR)/llvm_stmt_let_collections.c \
                         $(CODEGEN_DIR)/llvm_stmt_let_helpers.c \
                         $(CODEGEN_DIR)/llvm_stmt_let_slots.c \
+                        $(CODEGEN_DIR)/llvm_stmt_let_names.c \
                         $(CODEGEN_DIR)/llvm_stmt_let_with.c \
                         $(CODEGEN_DIR)/llvm_stmt_with.c \
                         $(CODEGEN_DIR)/llvm_stmt_loop_match.c \
                         $(CODEGEN_DIR)/llvm_stmt_parallel_async.c \
+                        $(CODEGEN_DIR)/llvm_stmt_parallel_names.c \
                         $(CODEGEN_DIR)/llvm_stmt_type_render.c \
                         $(CODEGEN_DIR)/llvm_stmt_zone_action.c \
                         $(CODEGEN_DIR)/llvm_decl.c \
@@ -724,7 +739,6 @@ BUILD_SOURCE_INVENTORY_SOURCES = \
                    $(LEXER_SOURCES) \
                    $(PARSER_SOURCES) \
                    $(RUNTIME_SOURCES) \
-                   $(ASYNC_SOURCES) \
                    $(SEMANTIC_SOURCES) \
                    $(CODEGEN_SOURCES) \
                    $(COMPILER_SOURCES) \
@@ -760,6 +774,7 @@ BUILD_CONTRACT_INVENTORY_FILES = \
                    $(RUNTIME_DIR)/pgy_runtime_lib_raw_queue_exports.h \
                    $(RUNTIME_DIR)/pgy_runtime_lib_raw_set_exports.h \
                    $(RUNTIME_DIR)/pgy_runtime_lib_intent_active_index_exports.c \
+                   $(RUNTIME_DIR)/pgy_runtime_lib_mir_trace_exports.c \
                    $(RUNTIME_DIR)/pgy_runtime_lib_set_intent_trace_exports.c \
                    $(RUNTIME_DIR)/pgy_runtime_lib_secure_slot_exports.h \
                    tests/build_source_inventory_smoke.sh \
@@ -791,6 +806,7 @@ FRONTEND_OBJECTS = $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) \
 SEMANTIC_LINK_SUPPORT = $(BUILD_DIR)/compiler/import_resolver.o \
                         $(BUILD_DIR)/compiler/module_normalizer.o \
                         $(BUILD_DIR)/compiler/module_normalizer_refs.o \
+                        $(BUILD_DIR)/compiler/module_normalizer_shadow.o \
                         $(BUILD_DIR)/compiler/path_utils.o
 DIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/dir.o \
                    $(BUILD_DIR)/compiler/dir_collect.o \
@@ -829,8 +845,11 @@ AIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/air_names.o \
                    $(BUILD_DIR)/compiler/air_evidence_node.o \
                    $(BUILD_DIR)/compiler/air_evidence_ast.o \
                    $(BUILD_DIR)/compiler/air_evidence.o \
+                   $(BUILD_DIR)/compiler/mir_source_shape.o \
+                   $(BUILD_DIR)/compiler/mir_stmt_source.o \
                    $(BUILD_DIR)/compiler/mir_cleanup_fact_names.o \
                    $(BUILD_DIR)/compiler/mir_cfg_contract_pin.o \
+                   $(BUILD_DIR)/compiler/mir_cfg_contract_control.o \
                    $(BUILD_DIR)/compiler/mir_cfg_contract_cleanup_fact.o \
                    $(BUILD_DIR)/compiler/mir_cfg_contract_cleanup_root_membership.o \
                    $(BUILD_DIR)/compiler/air_evidence_rir.o \
@@ -839,6 +858,7 @@ AIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/air_names.o \
                    $(BUILD_DIR)/compiler/air_validate.o \
                    $(BUILD_DIR)/compiler/air_verify.o
 MIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/mir.o \
+                   $(BUILD_DIR)/compiler/mir_source_shape.o \
                    $(BUILD_DIR)/compiler/mir_names.o \
                    $(BUILD_DIR)/compiler/mir_lifecycle.o \
                    $(BUILD_DIR)/compiler/mir_base_helpers.o \
@@ -856,6 +876,7 @@ MIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/mir.o \
                    $(BUILD_DIR)/compiler/mir_abi_layout.o \
                    $(BUILD_DIR)/compiler/mir_surface_usage.o \
                    $(BUILD_DIR)/compiler/mir_fact_validate.o \
+                   $(BUILD_DIR)/compiler/mir_fact_terminator_validate.o \
                    $(BUILD_DIR)/compiler/mir_decl_header_validate.o \
                    $(BUILD_DIR)/compiler/mir_decl_headers.o \
                    $(BUILD_DIR)/compiler/mir_stmt_population.o \
@@ -1272,7 +1293,6 @@ __pgy_build_source_inventory_print:
 	@printf '%s\n' $(LEXER_SOURCES)
 	@printf '%s\n' $(PARSER_SOURCES)
 	@printf '%s\n' $(RUNTIME_SOURCES)
-	@printf '%s\n' $(ASYNC_SOURCES)
 	@printf '%s\n' $(SEMANTIC_SOURCES)
 	@printf '%s\n' $(CODEGEN_SOURCES)
 	@printf '%s\n' $(COMPILER_SOURCES)

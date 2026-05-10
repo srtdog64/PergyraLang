@@ -148,14 +148,14 @@ metadata_ensure_index_capacity(SemanticContext *ctx, size_t next_count)
     if (ctx == NULL)
         return false;
     if (ctx->type_resolution_metadata.index_capacity != 0
-        && next_count * 2 < ctx->type_resolution_metadata.index_capacity) {
+        && next_count < ctx->type_resolution_metadata.index_capacity / 2) {
         return true;
     }
 
     new_capacity = ctx->type_resolution_metadata.index_capacity == 0
         ? 256
         : ctx->type_resolution_metadata.index_capacity * 2;
-    while (next_count * 2 >= new_capacity) {
+    while (next_count >= new_capacity / 2) {
         if (new_capacity > SIZE_MAX / 2)
             return false;
         new_capacity *= 2;
@@ -241,7 +241,10 @@ semantic_type_resolution_record_resolved_type_impl(SemanticContext *ctx,
 
     if (ctx->type_resolution_metadata.count
         == ctx->type_resolution_metadata.capacity) {
-        size_t new_cap = ctx->type_resolution_metadata.capacity == 0
+        size_t new_cap;
+        if (ctx->type_resolution_metadata.capacity > SIZE_MAX / 2)
+            return;
+        new_cap = ctx->type_resolution_metadata.capacity == 0
             ? 128
             : ctx->type_resolution_metadata.capacity * 2;
         new_keys = malloc(new_cap * sizeof(void *));
@@ -327,20 +330,6 @@ semantic_type_resolution_lookup_annotation_nullable(SemanticContext *ctx,
                                                     ASTNode *type_node)
 {
     return semantic_type_resolution_lookup_resolved_type(ctx, type_node);
-}
-
-Type *
-semantic_type_resolution_lookup_annotation_or_unknown(SemanticContext *ctx,
-                                                      ASTNode *type_node)
-{
-    Type *resolved;
-
-    if (ctx == NULL || type_node == NULL)
-        return TYPE_UNKNOWN;
-
-    resolved = semantic_type_resolution_lookup_annotation_nullable(ctx,
-                                                                   type_node);
-    return resolved != NULL ? resolved : TYPE_UNKNOWN;
 }
 
 Type *

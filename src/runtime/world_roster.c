@@ -174,30 +174,36 @@ RosterAddParty(RosterContext* roster,
                void* partyInstance,
                PartyContext* partyContext)
 {
+    char* ownedSlotName;
+    char* ownedPartyType;
+
     if (roster == NULL || slotName == NULL || partyContext == NULL) {
         world_roster_warn("roster_add_party", "roster/slotName/partyContext is null");
+        return false;
+    }
+
+    ownedSlotName = world_roster_strdup(slotName);
+    ownedPartyType =
+        world_roster_strdup(partyContext->partyName != NULL ? partyContext->partyName : slotName);
+    if (ownedSlotName == NULL || ownedPartyType == NULL) {
+        free(ownedSlotName);
+        free(ownedPartyType);
+        world_roster_warn("roster_add_party", "slot name allocation failed");
         return false;
     }
 
     size_t newCount = roster->partyCount + 1U;
     void* grown = realloc(roster->partySlots, newCount * sizeof(*roster->partySlots));
     if (grown == NULL) {
+        free(ownedSlotName);
+        free(ownedPartyType);
         world_roster_warn("roster_add_party", "party slot growth failed");
         return false;
     }
     roster->partySlots = grown;
 
-    roster->partySlots[roster->partyCount].slotName = world_roster_strdup(slotName);
-    roster->partySlots[roster->partyCount].partyType =
-        world_roster_strdup(partyContext->partyName != NULL ? partyContext->partyName : slotName);
-    if (roster->partySlots[roster->partyCount].slotName == NULL
-        || roster->partySlots[roster->partyCount].partyType == NULL) {
-        free((void*)roster->partySlots[roster->partyCount].slotName);
-        free((void*)roster->partySlots[roster->partyCount].partyType);
-        world_roster_warn("roster_add_party", "slot name allocation failed");
-        return false;
-    }
-
+    roster->partySlots[roster->partyCount].slotName = ownedSlotName;
+    roster->partySlots[roster->partyCount].partyType = ownedPartyType;
     roster->partySlots[roster->partyCount].partyInstance = partyInstance;
     roster->partySlots[roster->partyCount].partyContext = partyContext;
     roster->partySlots[roster->partyCount].isArray = false;
@@ -357,30 +363,36 @@ CreateWorld(const char* worldName)
 bool
 WorldAddRoster(WorldContext* world, const char* slotName, RosterContext* roster)
 {
+    char* ownedSlotName;
+    char* ownedRosterType;
+
     if (world == NULL || slotName == NULL || roster == NULL) {
         world_roster_warn("world_add_roster", "world/slotName/roster is null");
+        return false;
+    }
+
+    ownedSlotName = world_roster_strdup(slotName);
+    ownedRosterType =
+        world_roster_strdup(roster->systemType != NULL ? roster->systemType : slotName);
+    if (ownedSlotName == NULL || ownedRosterType == NULL) {
+        free(ownedSlotName);
+        free(ownedRosterType);
+        world_roster_warn("world_add_roster", "roster slot allocation failed");
         return false;
     }
 
     size_t newCount = world->rosterCount + 1U;
     void* grown = realloc(world->rosters, newCount * sizeof(*world->rosters));
     if (grown == NULL) {
+        free(ownedSlotName);
+        free(ownedRosterType);
         world_roster_warn("world_add_roster", "roster slot growth failed");
         return false;
     }
     world->rosters = grown;
 
-    world->rosters[world->rosterCount].slotName = world_roster_strdup(slotName);
-    world->rosters[world->rosterCount].rosterType =
-        world_roster_strdup(roster->systemType != NULL ? roster->systemType : slotName);
-    if (world->rosters[world->rosterCount].slotName == NULL
-        || world->rosters[world->rosterCount].rosterType == NULL) {
-        free((void*)world->rosters[world->rosterCount].slotName);
-        free((void*)world->rosters[world->rosterCount].rosterType);
-        world_roster_warn("world_add_roster", "roster slot allocation failed");
-        return false;
-    }
-
+    world->rosters[world->rosterCount].slotName = ownedSlotName;
+    world->rosters[world->rosterCount].rosterType = ownedRosterType;
     world->rosters[world->rosterCount].instance = roster;
     world->rosterCount = newCount;
     return true;
@@ -513,5 +525,3 @@ WorldFindParty(WorldContext* world, const char* rosterSlot, const char* partySlo
     RosterContext* roster = WorldFindRoster(world, rosterSlot);
     return RosterFindParty(roster, partySlot);
 }
-
-#include "world_roster_plan_stats.h"

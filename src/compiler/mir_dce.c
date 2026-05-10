@@ -111,7 +111,7 @@ mir_instruction_is_dead_value(const MIRRoutine *routine, const MIRInstruction *i
      * provenance is now richer, but loop-carried seed values still are not
      * distinguished well enough to reopen dead local removal without changing
      * runtime behavior. */
-    if (inst->ast != NULL)
+    if (mir_instruction_source_payload(inst) != NULL)
         return false;
     return summary->use_count == 0
            && summary->live_in_block_count == 0
@@ -129,123 +129,18 @@ mir_stmt_is_semantic_carrier(const MIRInstruction *inst)
 }
 
 static bool
-mir_call_is_whitelisted_pure_query(const char *callee)
-{
-    if (callee == NULL)
-        return false;
-    return strcmp(callee, "HasState") == 0
-        || strcmp(callee, "HasLayer") == 0
-        || strcmp(callee, "HasProjection") == 0
-        || strcmp(callee, "HasZone") == 0
-        || strcmp(callee, "HasZoneProjection") == 0
-        || strcmp(callee, "HasZoneLayer") == 0
-        || strcmp(callee, "HasZoneState") == 0
-        || strcmp(callee, "ChannelLength") == 0
-        || strcmp(callee, "ChannelCapacity") == 0
-        || strcmp(callee, "ChannelSpace") == 0
-        || strcmp(callee, "ChannelFull") == 0
-        || strcmp(callee, "ChannelClosed") == 0;
-}
-
-static bool
-mir_stmt_has_side_effect(const ASTNode *stmt)
-{
-    if (stmt == NULL)
-        return false;
-    if (mir_stmt_ast_is_cfg_owned_control(stmt))
-        return true;
-    if (stmt->type == AST_PARALLEL_BLOCK
-        || stmt->type == AST_ASYNC_BLOCK
-        || stmt->type == AST_SPAWN_EXPR
-        || stmt->type == AST_AWAIT_EXPR
-        || stmt->type == AST_CHANNEL_SEND
-        || stmt->type == AST_CHANNEL_RECV
-        || stmt->type == AST_EVENT_SUBSCRIBE
-        || stmt->type == AST_EVENT_UNSUBSCRIBE
-        || stmt->type == AST_EVENT_INVOKE)
-        return true;
-    if (stmt->type == AST_ASSIGNMENT)
-        return true;
-    if (stmt->type == AST_LET_DECL)
-        /* A let that reached MIR as a STMT (rather than being merged into
-         * a DEF) still defines a binding whose downstream uses cannot be
-         * discovered from MIR_INST_STMT alone. Keep it so the transpiler
-         * emits the declaration + initializer side effects. */
-        return true;
-    if (stmt->type == AST_LET_DESTRUCTURE)
-        /* Defines new bindings whose downstream uses DCE cannot see via
-         * MIR_INST_STMT alone (the pre-declared SSA locals live in header).
-         * Conservatively always keep destructuring statements. */
-        return true;
-    if (stmt->type == AST_BIND_STMT)
-        return true;
-    if (stmt->type == AST_UNSAFE_BLOCK)
-        return true;
-    if (stmt->type == AST_DEFER_STMT)
-        return true;
-    if (stmt->type == AST_INTENT_STEP)
-        return true;
-    if (stmt->type == AST_WITH_STMT)
-        return true;
-    if (stmt->type == AST_CALL
-        && stmt->data.call.callee != NULL
-        && stmt->data.call.callee->type == AST_IDENTIFIER
-        && stmt->data.call.callee->data.identifier.name != NULL) {
-        const char *callee = stmt->data.call.callee->data.identifier.name;
-        if (mir_call_is_whitelisted_pure_query(callee))
-            return false;
-        return true;
-    }
-    if (stmt->type == AST_CALL)
-        return true;
-    return false;
-}
-
-static bool
-mir_stmt_shape_has_side_effect(const MIRInstruction *inst)
-{
-    if (inst == NULL || !inst->has_source_location)
-        return false;
-    if (mir_stmt_ast_type_is_cfg_owned_control(inst->source_ast_type))
-        return true;
-    switch (inst->source_ast_type) {
-    case AST_PARALLEL_BLOCK:
-    case AST_ASYNC_BLOCK:
-    case AST_SPAWN_EXPR:
-    case AST_AWAIT_EXPR:
-    case AST_CHANNEL_SEND:
-    case AST_CHANNEL_RECV:
-    case AST_EVENT_SUBSCRIBE:
-    case AST_EVENT_UNSUBSCRIBE:
-    case AST_EVENT_INVOKE:
-    case AST_ASSIGNMENT:
-    case AST_LET_DECL:
-    case AST_LET_DESTRUCTURE:
-    case AST_BIND_STMT:
-    case AST_UNSAFE_BLOCK:
-    case AST_DEFER_STMT:
-    case AST_INTENT_STEP:
-    case AST_WITH_STMT:
-        return true;
-    case AST_CALL:
-        return !mir_call_is_whitelisted_pure_query(inst->arg0);
-    default:
-        return false;
-    }
-}
-
-static bool
 mir_instruction_is_dead_stmt(const MIRInstruction *inst)
 {
     if (inst == NULL || inst->kind != MIR_INST_STMT)
         return false;
     if (mir_stmt_is_semantic_carrier(inst))
         return false;
-    if (inst->has_source_location)
-        return !mir_stmt_shape_has_side_effect(inst);
-    if (inst->ast == NULL)
+    if (mir_instruction_has_source_location(inst))
+        return !mir_instruction_source_stmt_has_side_effect_hint(inst);
+    if (mir_instruction_source_payload(inst) == NULL)
         return true;
-    return !mir_stmt_has_side_effect(inst->ast);
+    return !mir_source_ast_stmt_has_side_effect_hint(
+        mir_instruction_source_payload(inst));
 }
 
 bool

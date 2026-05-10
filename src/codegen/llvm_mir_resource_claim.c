@@ -59,7 +59,7 @@ llvm_mir_emit_with_claim_only(const MIRInstruction *inst, LLVMGenCtx *ctx)
     LLVMValueRef claimed_ptr;
     char inner_buf[128];
 
-    if (inst == NULL || ctx == NULL || inst->source_ast_type != AST_WITH_STMT)
+    if (inst == NULL || ctx == NULL || !mir_instruction_is_with_slot_claim(inst))
         return;
 
     alias = inst->slot_anchor != NULL ? inst->slot_anchor : inst->arg0;
@@ -69,7 +69,7 @@ llvm_mir_emit_with_claim_only(const MIRInstruction *inst, LLVMGenCtx *ctx)
     is_secure = llvm_mir_claim_is_secure(inst);
     inner = llvm_mir_claim_inner_type_name(inst, inner_buf, sizeof(inner_buf));
     if (inner == NULL || inner[0] == '\0') {
-        llvm_set_error_at_with_hints(ctx, inst->ast,
+        llvm_set_error_at_with_hints(ctx, mir_instruction_source_payload(inst),
             PGY_CODE_LLVM_TYPE_UNSUPPORTED,
             PGY_CAUSE_LLVM_SLOT_INNER_TYPE_MISSING,
             PGY_FIX_ANNOTATE_CONCRETE_TYPE,

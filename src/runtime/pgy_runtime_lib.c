@@ -12,6 +12,7 @@
 #include "pgy_runtime_lib_list_raw_exports.h"
 #include "pgy_runtime_lib_raw_collection_exports.h"
 #include "pgy_runtime_lib_set_intent_trace_exports.c"
+#include "pgy_runtime_lib_mir_trace_exports.c"
 #include "pgy_runtime_lib_intent_exports.h"
 #include "pgy_runtime_lib_intent_slot_core_exports.h"
 #include "pgy_runtime_lib_slot_exports.h"

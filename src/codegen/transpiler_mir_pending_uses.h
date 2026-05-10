@@ -20,14 +20,11 @@ transpiler_pending_binding_from_source_statement_emit(
 
     if (inst == NULL
         || name == NULL
-        || !inst->requires_source_statement_emit
-        || !inst->requires_source_local_decl_emit
-        || !inst->has_source_location
-        || inst->source_ast_type != AST_LET_DECL) {
+        || !mir_instruction_uses_source_local_decl_emit(inst)) {
         return false;
     }
 
-    stmt = inst->ast;
+    stmt = mir_instruction_source_payload(inst);
     if (stmt == NULL
         || stmt->type != AST_LET_DECL
         || stmt->data.let_decl.name == NULL
@@ -61,10 +58,7 @@ transpiler_find_block_binding_from_mir_insts(const MIRBasicBlock *block,
             continue;
 
         if (inst->expr0 != NULL
-            && inst->requires_source_statement_emit
-            && inst->requires_source_local_decl_emit
-            && inst->has_source_location
-            && inst->source_ast_type == AST_LET_DECL) {
+            && mir_instruction_uses_source_local_decl_emit(inst)) {
             if (out != NULL) {
                 out->initializer = inst->expr0;
                 out->type_annotation = inst->expr1;

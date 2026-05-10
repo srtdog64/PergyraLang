@@ -96,8 +96,10 @@ air_boundary_sync_from_kind(AIRBoundaryKind kind)
         return AIR_SYNC_EITHER;
     case AIR_BOUNDARY_EXECUTION:
     case AIR_BOUNDARY_ZONE:
-    case AIR_BOUNDARY_WORLD:
         return AIR_SYNC_SYNC;
+    /* World handoff is an async abstraction boundary by AIR contract. */
+    case AIR_BOUNDARY_WORLD:
+        return AIR_SYNC_ASYNC;
     case AIR_BOUNDARY_UNKNOWN:
     default:
         return AIR_SYNC_UNKNOWN;

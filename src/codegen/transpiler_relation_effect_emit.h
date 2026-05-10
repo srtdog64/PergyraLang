@@ -110,6 +110,13 @@ emit_relation_decl(ASTNode *node, TranspilerCtx *ctx)
 
     TranspilerHostedMethodView method_view =
         transpiler_hosted_method_view_from_decl(ctx, name, node);
+    if (transpiler_hosted_method_view_missing_mir_metadata(&method_view)) {
+        transpiler_set_mir_inventory_missing(
+            ctx,
+            "MIR-only C path missing method declaration metadata for relation '%s'",
+            name != NULL ? name : "(anonymous-relation)");
+        return;
+    }
 
     for (size_t i = 0; i < method_view.count; i++) {
         const MIRDeclMethod *method_meta =
@@ -204,6 +211,13 @@ emit_effect_decl(ASTNode *node, TranspilerCtx *ctx)
 
     TranspilerHostedMethodView method_view =
         transpiler_hosted_method_view_from_decl(ctx, name, node);
+    if (transpiler_hosted_method_view_missing_mir_metadata(&method_view)) {
+        transpiler_set_mir_inventory_missing(
+            ctx,
+            "MIR-only C path missing method declaration metadata for effect '%s'",
+            name != NULL ? name : "(anonymous-effect)");
+        return;
+    }
 
     for (size_t i = 0; i < method_view.count; i++) {
         const MIRDeclMethod *method_meta =

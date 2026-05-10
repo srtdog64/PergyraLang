@@ -48,7 +48,8 @@ semantic_validate_function_call_generic_where(ASTNode *expr,
             GenericParam *gp = decl_gp->params[gi];
             if (gp != NULL && gp->default_type != NULL) {
                 effective_generic_types[gi] =
-                    semantic_type_resolution_lookup_annotation_or_unknown(ctx, gp->default_type);
+                    semantic_type_resolution_lookup_type_ref_or_materialize(
+                        ctx, gp->default_type);
             }
         }
         for (size_t ai = 0; ai < provided; ai++) {

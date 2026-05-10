@@ -117,6 +117,12 @@ require_term "src/codegen/llvm_inventory_host_methods.h" "ast_compat_methods"
 require_term "src/codegen/llvm_inventory_host_methods.h" "ast_compat_count"
 require_term "src/codegen/llvm_inventory_host_methods.c" \
     "view->count != view->ast_compat_count"
+if grep -Fq "llvm_hosted_method_view(" \
+        "$ROOT_DIR/src/codegen/llvm_inventory_host_methods.c" \
+    && grep -Fq "NULL, 0)" \
+        "$ROOT_DIR/src/codegen/llvm_inventory_host_methods.c"; then
+    fail "LLVM hosted method view must preserve AST compatibility counts when a MIR header exists"
+fi
 if grep -Fq "fallback_methods" "$ROOT_DIR/src/codegen/llvm_inventory_host_methods.h" \
     "$ROOT_DIR/src/codegen/llvm_inventory_host_methods.c"; then
     fail "LLVM hosted method view must name AST compatibility paths explicitly, not as fallback_methods"
@@ -298,12 +304,14 @@ for term in \
     "return decl->data.role_decl.name" \
     "return decl->data.party_decl.name" \
     "return decl->data.roster_decl.name" \
+    "transpiler_is_host_decl_type" \
     "find_enum_decl(ctx, name) != NULL" \
     "find_role_decl(ctx, name) != NULL"; do
     require_term "src/codegen/transpiler_decl_lookup.c" "$term"
 done
 for term in \
     "transpiler_find_method_source_ast_in_mir_header" \
+    "transpiler_decl_header_is_nominal_host(header)" \
     "mir_find_decl_header(ctx->mir, host_type_name)" \
     "static const TranspilerHostOwnerLookup kTranspilerHostOwnerLookups[]" \
     "static const ASTNodeType kTranspilerNominalHostLookupTypes[]" \
@@ -336,12 +344,14 @@ for rel in \
 done
 for term in \
     "mir_find_decl_header(ctx->mir, owner_name)" \
+    "header->ast_type != AST_ROLE_DECL" \
     "header->method_metadata_count" \
     "transpiler_mir_decl_method_routine(ctx, method)"; do
     require_term "src/codegen/transpiler_mir_role_lookup.c" "$term"
 done
 for term in \
     "method->has_routine" \
+    "transpiler_is_host_decl_type(header->ast_type)" \
     "transpiler_active_routine_inventory(ctx, &inventory)" \
     "transpiler_routine_inventory_get(&inventory, method->routine_index)"; do
     require_term "src/codegen/transpiler_decl_method_view.c" "$term"
@@ -423,6 +433,12 @@ for term in \
     "if (view->requires_mir_metadata)"; do
     require_term "src/codegen/transpiler_decl_method_view.c" "$term"
 done
+if grep -Fq "transpiler_hosted_method_view(" \
+        "$ROOT_DIR/src/codegen/transpiler_decl_method_view.c" \
+    && grep -Fq "NULL, 0)" \
+        "$ROOT_DIR/src/codegen/transpiler_decl_method_view.c"; then
+    fail "C hosted method view must preserve AST compatibility counts when a MIR header exists"
+fi
 if grep -Fq "fallback_methods" "$ROOT_DIR/src/codegen/transpiler_decl_lookup.h" \
     "$ROOT_DIR/src/codegen/transpiler_decl_method_view.c"; then
     fail "C hosted method view must name AST compatibility paths explicitly, not as fallback_methods"
@@ -437,8 +453,27 @@ for rel in \
     "src/codegen/transpiler_world_select_event_emit.h"; do
     require_term "$rel" "transpiler_hosted_method_view_from_decl(ctx"
     require_term "$rel" "transpiler_hosted_method_view_source_ast(&method_view, i)"
+    require_term "$rel" "transpiler_hosted_method_view_missing_mir_metadata(&method_view)"
     require_term "$rel" "emit_hosted_method_forward_decl_from_metadata"
 done
+for term in \
+    "MIR-only C path missing method declaration metadata for party" \
+    "MIR-only C path missing method declaration metadata for roster"; do
+    require_term "src/codegen/transpiler_domain_nominal_emit.h" "$term"
+done
+for term in \
+    "MIR-only C path missing method declaration metadata for relation" \
+    "MIR-only C path missing method declaration metadata for effect"; do
+    require_term "src/codegen/transpiler_relation_effect_emit.h" "$term"
+done
+require_term "src/codegen/transpiler_zone_decl_emit.h" \
+    "MIR-only C path missing method declaration metadata for zone"
+require_term "src/codegen/transpiler_world_select_event_emit.h" \
+    "MIR-only C path missing method declaration metadata for world"
+require_term "src/codegen/transpiler_generic_class_specialization_emit.h" \
+    "transpiler_hosted_method_view_missing_mir_metadata(&method_view)"
+require_term "src/codegen/transpiler_generic_class_specialization_emit.h" \
+    "MIR-only C path missing method declaration metadata for generic class"
 if grep -RIn "emit_hosted_method_forward_decl_named" "$ROOT_DIR/src/codegen"; then
     fail "C hosted method forward declarations must use MIRDeclMethod metadata-first helper"
 fi
@@ -600,6 +635,7 @@ for term in \
     "return decl->data.party_decl.name" \
     "return decl->data.role_decl.name" \
     "return decl->data.roster_decl.name" \
+    "llvm_find_host_decl_header_in_context(ctx, type_name)" \
     "llvm_find_named_domain_decl(ctx, AST_ROLE_DECL, type_name)"; do
     require_term "src/codegen/llvm_domain_lookup.c" "$term"
 done
@@ -660,6 +696,8 @@ domain_method_forward_body="$(
     ' "$ROOT_DIR/src/codegen/llvm_domain_forward.c"
 )"
 for term in \
+    "llvm_hosted_method_view_missing_mir_metadata(methods)" \
+    "MIR-only LLVM path missing method forward metadata for domain" \
     "llvm_hosted_method_view_metadata(methods, j)" \
     "llvm_domain_method_param_count_metadata_first" \
     "llvm_domain_method_param_metadata_first" \
@@ -679,6 +717,8 @@ role_method_forward_body="$(
     ' "$ROOT_DIR/src/codegen/llvm_domain_forward.c"
 )"
 for term in \
+    "llvm_hosted_method_view_missing_mir_metadata(methods)" \
+    "MIR-only LLVM path missing method forward metadata for role" \
     "llvm_hosted_method_view_metadata(methods, j)" \
     "llvm_domain_method_param_count_metadata_first" \
     "llvm_domain_method_param_metadata_first" \
@@ -726,9 +766,17 @@ require_term "src/codegen/llvm_domain_forward.c" \
 require_term "src/codegen/llvm_domain_method_emit.c" \
     "LLVMHostedMethodView method_view"
 require_term "src/codegen/llvm_domain_method_emit.c" \
+    "llvm_hosted_method_view_missing_mir_metadata(&method_view)"
+require_term "src/codegen/llvm_domain_method_emit.c" \
+    "MIR-only LLVM path missing method declaration metadata for domain"
+require_term "src/codegen/llvm_domain_method_emit.c" \
     "llvm_hosted_method_view_metadata(&method_view, j)"
 require_term "src/codegen/llvm_domain_role_emit.c" \
     "LLVMHostedMethodView method_view"
+require_term "src/codegen/llvm_domain_role_emit.c" \
+    "llvm_hosted_method_view_missing_mir_metadata(&method_view)"
+require_term "src/codegen/llvm_domain_role_emit.c" \
+    "MIR-only LLVM path missing method declaration metadata for role"
 require_term "src/codegen/llvm_domain_role_emit.c" \
     "llvm_hosted_method_view_metadata(&method_view, j)"
 require_term "src/codegen/llvm_domain_role_emit.c" \

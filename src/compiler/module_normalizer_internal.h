@@ -31,6 +31,9 @@ bool module_rename_scope_add(ModuleRenameScope *scope,
                              const char *old_name,
                              const char *new_name);
 void module_rename_scope_destroy(ModuleRenameScope *scope);
+bool module_shadow_push(ModuleShadowNames *shadow, const char *name);
+bool module_shadow_contains(const ModuleShadowNames *shadow, const char *name);
+void module_shadow_pop_to(ModuleShadowNames *shadow, size_t saved_count);
 void module_shadow_destroy(ModuleShadowNames *shadow);
 void module_normalizer_normalize_node_refs(ASTNode *node,
                                            ModuleRenameScope *scope,

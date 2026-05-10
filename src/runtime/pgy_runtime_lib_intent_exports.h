@@ -235,13 +235,10 @@ pgy_intent_history_step_failure_export(int32_t index)
 int32_t
 pgy_intent_active_count_export(void)
 {
-    int32_t count = 0;
+    int32_t count;
 
     pthread_mutex_lock(&pgy_intent_registry_mutex);
-    for (int i = 0; i < PGY_INTENT_ACTIVE_MAX; i++) {
-        if (pgy_intent_active_registry[i].active)
-            count++;
-    }
+    count = pgy_intent_active_count_value;
     pthread_mutex_unlock(&pgy_intent_registry_mutex);
     return count;
 }

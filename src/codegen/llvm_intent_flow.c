@@ -11,13 +11,13 @@
 
 static bool
 llvm_intent_flow_reason_name(LLVMGenCtx *ctx, char *out, size_t out_size,
-                             const char *prefix, const char *step_name)
+                             const char *step_name)
 {
     int written;
 
-    if (out == NULL || out_size == 0 || prefix == NULL)
+    if (out == NULL || out_size == 0)
         return false;
-    written = snprintf(out, out_size, "%s:%s", prefix,
+    written = snprintf(out, out_size, "authority:%s",
         step_name != NULL ? step_name : "<step>");
     if (written >= 0 && (size_t)written < out_size)
         return true;
@@ -383,8 +383,7 @@ llvm_emit_intent_step_validate_authority(LLVMGenCtx *ctx,
         args[3] = LLVMBuildGlobalStringPtr(ctx->builder, alias, llvm_tmp_name(ctx));
         ok = LLVMBuildCall2(ctx->builder, validate_fn->fn_type, validate_fn->fn,
             args, 4, llvm_tmp_name(ctx));
-        if (!llvm_intent_flow_reason_name(ctx, reason, sizeof(reason),
-                "authority", step_name))
+        if (!llvm_intent_flow_reason_name(ctx, reason, sizeof(reason), step_name))
             return;
         LLVMBuildStore(ctx->builder,
             LLVMBuildGlobalStringPtr(ctx->builder, reason, llvm_tmp_name(ctx)),

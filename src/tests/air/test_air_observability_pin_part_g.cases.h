@@ -183,6 +183,72 @@ test_air_rejects_empty_observability_schema_evidence(void)
 }
 
 static bool
+test_air_strict_evidence_requires_observability_schema(void)
+{
+    AIREvidenceNode evidence_nodes[] = {
+        {
+            .kind = AIR_EVIDENCE_RUNTIME_FRONTIER_POLICY,
+            .boundary_index = SIZE_MAX,
+            .provider_name = PGY_FRONTIER_POLICY_SCHEMA,
+            .subject_name = PGY_FRONTIER_POLICY_SUBJECT,
+            .fact_count = PGY_FRONTIER_POLICY_FACT_COUNT,
+            .fallback_count = 0,
+        },
+    };
+    AIRProgram air = {
+        .evidence_nodes = evidence_nodes,
+        .evidence_count = 1,
+        .runtime_frontier_policy_evidence_count = 1,
+        .strict_evidence = true,
+    };
+    char *error = NULL;
+    bool found = false;
+    bool ok = air_verify(&air, &error);
+
+    for (size_t i = 0; ok && i < air.drift_count; i++) {
+        if (air.drifts[i].kind == AIR_DRIFT_BOUNDARY_EVIDENCE_MISSING
+            && air.drifts[i].intent_index == SIZE_MAX
+            && air.drifts[i].boundary_index == SIZE_MAX
+            && strstr(air.drifts[i].message,
+                      "AIR has no runtime observability schema evidence") != NULL
+            && strstr(air.drifts[i].message,
+                      "AIR_EVIDENCE_OBSERVABILITY_SCHEMA") != NULL) {
+            found = true;
+            break;
+        }
+    }
+    ok = ok && found;
+    test_air_clear_stack_drifts(&air);
+    free(error);
+    return ok;
+}
+
+static bool
+test_air_strict_evidence_rejects_observability_counter_only(void)
+{
+    AIRProgram air = {
+        .observability_schema_evidence_count = 1,
+        .strict_evidence = true,
+    };
+    char *error = NULL;
+    bool found = false;
+    bool ok = air_verify(&air, &error);
+
+    for (size_t i = 0; ok && i < air.drift_count; i++) {
+        if (air.drifts[i].kind == AIR_DRIFT_BOUNDARY_EVIDENCE_MISSING
+            && strstr(air.drifts[i].message,
+                      "AIR has no runtime observability schema evidence") != NULL) {
+            found = true;
+            break;
+        }
+    }
+    ok = ok && found;
+    test_air_clear_stack_drifts(&air);
+    free(error);
+    return ok;
+}
+
+static bool
 test_air_rejects_invalid_runtime_frontier_policy_provider(void)
 {
     AIREvidenceNode evidence_nodes[] = {
@@ -232,6 +298,72 @@ test_air_rejects_empty_runtime_frontier_policy_evidence(void)
         && error != NULL
         && strstr(error,
                   "runtime frontier policy evidence node 0 has invalid policy fact count") != NULL;
+    free(error);
+    return ok;
+}
+
+static bool
+test_air_strict_evidence_requires_runtime_frontier_policy(void)
+{
+    AIREvidenceNode evidence_nodes[] = {
+        {
+            .kind = AIR_EVIDENCE_OBSERVABILITY_SCHEMA,
+            .boundary_index = SIZE_MAX,
+            .provider_name = "runtime-observability-schema",
+            .subject_name = PGY_OBSERVABILITY_ABI_SCHEMA,
+            .fact_count = PGY_OBSERVABILITY_SCHEMA_FACT_COUNT,
+            .fallback_count = 0,
+        },
+    };
+    AIRProgram air = {
+        .evidence_nodes = evidence_nodes,
+        .evidence_count = 1,
+        .observability_schema_evidence_count = 1,
+        .strict_evidence = true,
+    };
+    char *error = NULL;
+    bool found = false;
+    bool ok = air_verify(&air, &error);
+
+    for (size_t i = 0; ok && i < air.drift_count; i++) {
+        if (air.drifts[i].kind == AIR_DRIFT_BOUNDARY_EVIDENCE_MISSING
+            && air.drifts[i].intent_index == SIZE_MAX
+            && air.drifts[i].boundary_index == SIZE_MAX
+            && strstr(air.drifts[i].message,
+                      "AIR has no runtime frontier policy evidence") != NULL
+            && strstr(air.drifts[i].message,
+                      "AIR_EVIDENCE_RUNTIME_FRONTIER_POLICY") != NULL) {
+            found = true;
+            break;
+        }
+    }
+    ok = ok && found;
+    test_air_clear_stack_drifts(&air);
+    free(error);
+    return ok;
+}
+
+static bool
+test_air_strict_evidence_rejects_frontier_counter_only(void)
+{
+    AIRProgram air = {
+        .runtime_frontier_policy_evidence_count = 1,
+        .strict_evidence = true,
+    };
+    char *error = NULL;
+    bool found = false;
+    bool ok = air_verify(&air, &error);
+
+    for (size_t i = 0; ok && i < air.drift_count; i++) {
+        if (air.drifts[i].kind == AIR_DRIFT_BOUNDARY_EVIDENCE_MISSING
+            && strstr(air.drifts[i].message,
+                      "AIR has no runtime frontier policy evidence") != NULL) {
+            found = true;
+            break;
+        }
+    }
+    ok = ok && found;
+    test_air_clear_stack_drifts(&air);
     free(error);
     return ok;
 }

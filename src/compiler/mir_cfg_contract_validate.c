@@ -158,6 +158,23 @@ mir_validate_cfg_contract_state(const MIRRoutine *routine,
             }
         }
 
+        if (cfg_block_count > 0 && block->is_reachable && !block->is_cleanup) {
+            for (size_t inst_id = 0; inst_id < block->instruction_count; inst_id++) {
+                const MIRInstruction *inst = &block->instructions[inst_id];
+                if (inst->kind == MIR_INST_STMT
+                    && mir_instruction_source_is_cfg_owned_control(inst)) {
+                    if (error_message != NULL) {
+                        *error_message = mir_strdup_fmt(
+                            "MIR routine '%s' block[%zu] keeps CFG-owned control statement as fallback STMT",
+                            routine->name != NULL ? routine->name : "(anonymous)",
+                            i);
+                    }
+                    free(hir_block_seen);
+                    return false;
+                }
+            }
+        }
+
         if (block->is_reachable && !block->is_cleanup
             && (block->has_succ_true || block->has_succ_false)) {
             for (size_t inst_id = 0; inst_id < block->instruction_count; inst_id++) {
@@ -181,21 +198,6 @@ mir_validate_cfg_contract_state(const MIRRoutine *routine,
                     if (error_message != NULL) {
                         *error_message = mir_strdup_fmt(
                             "MIR routine '%s' block[%zu] has incomplete loop-branch fact",
-                            routine->name != NULL ? routine->name : "(anonymous)",
-                            i);
-                    }
-                    free(hir_block_seen);
-                    return false;
-                }
-                if (inst->kind == MIR_INST_STMT
-                    && ((inst->has_source_location
-                         && mir_stmt_ast_type_is_cfg_owned_control(
-                             inst->source_ast_type))
-                        || (!inst->has_source_location
-                            && mir_stmt_ast_is_cfg_owned_control(inst->ast)))) {
-                    if (error_message != NULL) {
-                        *error_message = mir_strdup_fmt(
-                            "MIR routine '%s' block[%zu] keeps CFG-owned control statement as fallback STMT",
                             routine->name != NULL ? routine->name : "(anonymous)",
                             i);
                     }

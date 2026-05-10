@@ -2,8 +2,9 @@
  * Copyright (c) 2025 Pergyra Language Project
  * All rights reserved.
  *
- * Semantic Analyzer — unified interface
- * Runs all three passes and returns an annotated AST.
+ * Semantic analyzer unified interface.
+ * Runs semantic passes and returns an annotated AST plus source-of-truth
+ * counters consumed by later compiler stages.
  */
 
 #ifndef PERGYRA_SEMANTIC_H

@@ -13,9 +13,13 @@ mir_decl_next_capacity(size_t *capacity, size_t initial, size_t elem_size)
     if (capacity == NULL || elem_size == 0)
         return false;
     current = *capacity;
-    next = current == 0 ? initial : current * 2;
-    if (current != 0 && next < current)
-        return false;
+    if (current == 0) {
+        next = initial;
+    } else {
+        if (current > SIZE_MAX / 2)
+            return false;
+        next = current * 2;
+    }
     if (next > SIZE_MAX / elem_size)
         return false;
     *capacity = next;

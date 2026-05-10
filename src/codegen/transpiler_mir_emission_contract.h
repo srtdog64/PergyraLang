@@ -4,20 +4,9 @@
 #include "../compiler/mir_cfg_contract_cleanup_fact.h"
 #include "../compiler/mir_cfg_contract_pin.h"
 #include "../compiler/mir_cleanup_fact_names.h"
+#include "../compiler/mir_fact_validate.h"
 #include "transpiler_mir_emission_mapping_contract.h"
 #include "transpiler_mir_reason.h"
-
-static bool
-transpiler_mir_branch_source_ast_type_matches_shape(const MIRInstruction *inst)
-{
-    if (inst == NULL || !inst->has_source_location)
-        return false;
-    if (inst->branch_shape == MIR_BRANCH_MATCH_CASE)
-        return inst->source_ast_type == AST_MATCH_CASE;
-    if (inst->branch_shape == MIR_BRANCH_SELECT_DISPATCH)
-        return inst->source_ast_type == AST_BLOCK;
-    return true;
-}
 
 static bool
 transpiler_validate_mir_emission_contract(const TranspilerCtx *ctx,
@@ -66,6 +55,20 @@ transpiler_validate_mir_emission_contract(const TranspilerCtx *ctx,
         free(topology_error);
     }
 
+    {
+        char *fact_error = NULL;
+        if (!mir_validate_routine_emission_facts(routine, &fact_error)) {
+            if (reason != NULL && reason_cap > 0) {
+                transpiler_mir_reasonf(reason, reason_cap,
+                    "MIR contract invalid for %s: %s",
+                    routine_name,
+                    fact_error != NULL ? fact_error : "emission fact validation failed");
+            }
+            free(fact_error);
+            return false;
+        }
+        free(fact_error);
+    }
 
     for (size_t i = 0; i < routine->block_count; i++) {
         const MIRBasicBlock *block = &routine->blocks[i];
@@ -196,16 +199,16 @@ transpiler_validate_mir_emission_block_shape(const MIRBasicBlock *block,
             }
             has_branch = true;
             branch_count++;
-            if (inst->requires_source_branch_emit
-                && (inst->ast == NULL
-                    || !transpiler_mir_branch_source_ast_type_matches_shape(inst))
+            if (mir_instruction_branch_requires_source_emit(inst)
+                && (mir_instruction_source_payload(inst) == NULL
+                    || !mir_instruction_source_branch_payload_matches_shape(inst))
                 && (reason != NULL && reason_cap > 0)) {
                 transpiler_mir_reasonf(reason, reason_cap,
                          "MIR contract invalid for %s: block %llu branch instruction has invalid source-branch fact",
                          routine_name, (unsigned long long) block->id);
                 return false;
             }
-            if (!inst->requires_source_branch_emit
+            if (!mir_instruction_branch_requires_source_emit(inst)
                 && inst->expr0 == NULL
                 && (reason != NULL && reason_cap > 0)) {
                 transpiler_mir_reasonf(reason, reason_cap,

@@ -91,17 +91,8 @@ llvm_hosted_method_view_from_decl(const LLVMGenCtx *ctx,
                                   const char *host_type_name,
                                   ASTNode *decl)
 {
-    const MIRDeclHeader *decl_header = NULL;
     ASTNode **ast_compat_methods = NULL;
     size_t ast_compat_count = 0;
-
-    if (ctx != NULL && ctx->mir != NULL && host_type_name != NULL) {
-        decl_header = llvm_find_host_decl_header_in_context(ctx, host_type_name);
-        if (decl_header != NULL) {
-            return llvm_hosted_method_view(
-                ctx, host_type_name, NULL, 0);
-        }
-    }
 
     if (decl != NULL) {
         switch (decl->type) {

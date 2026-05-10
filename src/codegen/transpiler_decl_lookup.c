@@ -132,8 +132,10 @@ transpiler_find_named_decl_local(TranspilerCtx *ctx, ASTNodeType decl_type,
         return NULL;
     if (ctx->mir != NULL) {
         decl_header = mir_find_decl_header(ctx->mir, name);
-        if (decl_header != NULL && decl_header->ast_type == decl_type)
-            return decl_header->source_ast;
+        if (decl_header != NULL)
+            return decl_header->ast_type == decl_type
+                ? decl_header->source_ast
+                : NULL;
     }
     transpiler_active_inventory(ctx, decl_type, &decls, &decl_count);
     if (decls == NULL)
@@ -322,6 +324,25 @@ transpiler_decl_name_local(ASTNode *decl)
         return decl->data.world_decl.name;
     default:
         return NULL;
+    }
+}
+
+bool
+transpiler_is_host_decl_type(ASTNodeType decl_type)
+{
+    switch (decl_type) {
+    case AST_CLASS_DECL:
+    case AST_ENUM_DECL:
+    case AST_PARTY_DECL:
+    case AST_ROLE_DECL:
+    case AST_ROSTER_DECL:
+    case AST_RELATION_DECL:
+    case AST_EFFECT_DECL:
+    case AST_ZONE_DECL:
+    case AST_WORLD_DECL:
+        return true;
+    default:
+        return false;
     }
 }
 

@@ -206,6 +206,29 @@ air_mir_instruction_has_terminator_provenance(const MIRInstruction *inst)
     return false;
 }
 
+static const char *
+air_mir_routine_provider_name(const MIRRoutine *routine)
+{
+    if (routine == NULL)
+        return NULL;
+    if (!air_name_is_empty(routine->name))
+        return routine->name;
+    if (!air_name_is_empty(routine->owner_name))
+        return routine->owner_name;
+    return NULL;
+}
+
+static bool
+air_require_mir_routine_provider(const MIRRoutine *routine,
+                                 char **error_message)
+{
+    if (air_mir_routine_provider_name(routine) != NULL)
+        return true;
+    air_set_error(error_message,
+                  "AIR MIR evidence requires routine name or owner provenance");
+    return false;
+}
+
 static size_t
 air_mir_routine_terminator_fact_count(const MIRRoutine *routine)
 {
@@ -239,7 +262,7 @@ air_mir_routine_terminator_fact_count(const MIRRoutine *routine)
         const MIRBasicBlock *block = &routine->blocks[i];
         if (block->is_reachable
             && !block->is_cleanup
-            && block->source_hir_block_id != SIZE_MAX) {
+            && mir_block_has_hir_source_mapping(block)) {
             count++;
         }
     }
@@ -258,8 +281,10 @@ air_mir_routine_select_receive_fact_count(const MIRRoutine *routine)
         if (block->instruction_count > 0 && block->instructions == NULL)
             continue;
         for (size_t j = 0; j < block->instruction_count; j++) {
-            if (block->instructions[j].requires_select_receive_statement_emit)
+            if (mir_instruction_uses_select_receive_statement_emit(
+                    &block->instructions[j])) {
                 count++;
+            }
         }
     }
     return count;
@@ -338,14 +363,18 @@ air_collect_mir_evidence(AIRProgram *air, const MIRProgram *mir, char **error_me
 
     for (size_t i = 0; i < mir->routine_count; i++) {
         const MIRRoutine *routine = &mir->routines[i];
-        const char *routine_name = routine->name != NULL
-            ? routine->name
-            : routine->owner_name;
+        const char *routine_name = air_mir_routine_provider_name(routine);
         size_t cleanup_fact_count = air_mir_routine_cleanup_fact_count(routine);
         size_t terminator_fact_count =
             air_mir_routine_terminator_fact_count(routine);
         size_t select_receive_fact_count =
             air_mir_routine_select_receive_fact_count(routine);
+        if ((terminator_fact_count > 0
+             || select_receive_fact_count > 0
+             || cleanup_fact_count > 0)
+            && !air_require_mir_routine_provider(routine, error_message)) {
+            return false;
+        }
         if (terminator_fact_count > 0) {
             if (!air_append_evidence_node_ex(air,
                                              AIR_EVIDENCE_MIR_TERMINATOR,
@@ -389,9 +418,7 @@ air_collect_mir_evidence(AIRProgram *air, const MIRProgram *mir, char **error_me
 
     for (size_t i = 0; i < mir->routine_count; i++) {
         const MIRRoutine *routine = &mir->routines[i];
-        const char *routine_name = routine->name != NULL
-            ? routine->name
-            : routine->owner_name;
+        const char *routine_name = air_mir_routine_provider_name(routine);
         for (size_t j = 0; j < routine->block_count; j++) {
             if (!air_collect_mir_pin_block_evidence(air, routine,
                                                     &routine->blocks[j],

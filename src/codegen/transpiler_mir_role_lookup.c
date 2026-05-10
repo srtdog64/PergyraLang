@@ -25,7 +25,7 @@ transpiler_find_role_impl_mir_method(const TranspilerCtx *ctx,
 
     target = method_decl->data.func_decl.name;
     header = mir_find_decl_header(ctx->mir, owner_name);
-    if (header == NULL)
+    if (header == NULL || header->ast_type != AST_ROLE_DECL)
         return NULL;
 
     for (size_t i = 0; i < header->method_metadata_count; i++) {

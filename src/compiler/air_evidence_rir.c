@@ -19,6 +19,29 @@ air_boundary_authority_matches(const AIRBoundaryNode *boundary, const char *auth
     return false;
 }
 
+static const char *
+air_rir_scope_provider_name(const RIRScope *scope)
+{
+    if (scope == NULL)
+        return NULL;
+    if (!air_name_is_empty(scope->name))
+        return scope->name;
+    if (!air_name_is_empty(scope->owner_name))
+        return scope->owner_name;
+    return NULL;
+}
+
+static bool
+air_require_rir_scope_provider(const RIRScope *scope,
+                               char **error_message)
+{
+    if (air_rir_scope_provider_name(scope) != NULL)
+        return true;
+    air_set_error(error_message,
+                  "AIR RIR evidence requires scope name or owner provenance");
+    return false;
+}
+
 static bool
 air_rir_scope_matches_boundary(const RIRScope *scope, const AIRBoundaryNode *boundary)
 {
@@ -225,6 +248,8 @@ air_collect_rir_propagation_evidence(AIRProgram *air,
 
     if (!air_rir_scope_has_propagation_state(scope, op, resource_kind))
         return true;
+    if (!air_require_rir_scope_provider(scope, error_message))
+        return false;
 
     if (!air_append_evidence_node(air,
                                   evidence_kind,
@@ -249,7 +274,7 @@ air_collect_rir_evidence(AIRProgram *air, const RIRProgram *rir, char **error_me
     air->has_rir_input = true;
     for (size_t i = 0; i < rir->scope_count; i++) {
         const RIRScope *scope = &rir->scopes[i];
-        const char *scope_name = scope->name != NULL ? scope->name : scope->owner_name;
+        const char *scope_name = air_rir_scope_provider_name(scope);
         for (size_t j = 0; j < scope->fact_count; j++) {
             if (scope->facts[j].kind == RIR_FACT_AUTHORITY)
                 air->rir_authority_evidence_count++;
@@ -269,6 +294,8 @@ air_collect_rir_evidence(AIRProgram *air, const RIRProgram *rir, char **error_me
             AIRBoundaryNode *boundary = &air->boundaries[j];
             if (!air_rir_scope_provides_boundary_evidence(scope, boundary))
                 continue;
+            if (!air_require_rir_scope_provider(scope, error_message))
+                return false;
             if (!air_assign_first_owned_name(air,
                                              &boundary->rir_boundary_evidence_scope,
                                              scope_name,

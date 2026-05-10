@@ -25,7 +25,7 @@ llvm_mir_pin_local_name(LLVMGenCtx *ctx, const MIRBasicBlock *block,
                        block != NULL ? block->id : 0);
     if (written >= 0 && (size_t)written < buf_size)
         return true;
-    llvm_set_error(ctx, "MIR pin local name is too long");
+    llvm_set_mir_topology_invalid(ctx, "MIR pin local name is too long");
     return false;
 }
 
@@ -40,7 +40,7 @@ llvm_mir_pin_token_name(LLVMGenCtx *ctx, char *buf, size_t buf_size,
     written = snprintf(buf, buf_size, "%s_token", name);
     if (written >= 0 && (size_t)written < buf_size)
         return true;
-    llvm_set_error(ctx, "MIR pin token name is too long");
+    llvm_set_mir_topology_invalid(ctx, "MIR pin token name is too long");
     return false;
 }
 
@@ -58,7 +58,8 @@ llvm_mir_pin_init_name(LLVMGenCtx *ctx, char *buf, size_t buf_size,
                        is_write ? "write" : "read", inner);
     if (written >= 0 && (size_t)written < buf_size)
         return true;
-    llvm_set_error(ctx, "MIR pin init runtime name is too long");
+    llvm_set_mir_topology_invalid(ctx,
+        "MIR pin init runtime name is too long");
     return false;
 }
 
@@ -75,7 +76,8 @@ llvm_mir_unpin_name(LLVMGenCtx *ctx, char *buf, size_t buf_size,
                        inner);
     if (written >= 0 && (size_t)written < buf_size)
         return true;
-    llvm_set_error(ctx, "MIR pin cleanup runtime name is too long");
+    llvm_set_mir_topology_invalid(ctx,
+        "MIR pin cleanup runtime name is too long");
     return false;
 }
 

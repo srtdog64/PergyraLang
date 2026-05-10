@@ -311,7 +311,7 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
 
         if (inst->kind == MIR_INST_DEF
             && stmt != NULL
-            && !inst->requires_source_statement_emit
+            && !mir_instruction_uses_source_statement_emit(inst)
             && inst->result_name != NULL) {
             ASTNode *binding_type_ast = NULL;
             char *lhs = NULL;

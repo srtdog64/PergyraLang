@@ -184,7 +184,7 @@ llvm_type_name_uses_pointer_self(LLVMGenCtx *ctx, const char *type_name)
             return true;
     }
 
-    mir_decl = ctx->mir != NULL ? mir_find_decl_header(ctx->mir, type_name) : NULL;
+    mir_decl = llvm_find_host_decl_header_in_context(ctx, type_name);
     if (mir_decl != NULL)
         return mir_decl->uses_pointer_self;
 

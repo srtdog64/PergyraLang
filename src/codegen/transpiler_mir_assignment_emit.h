@@ -74,7 +74,7 @@ transpiler_emit_mir_assignment_def_inst(CodeBuf *buf,
         }
         return TRANSPILE_MIR_ASSIGNMENT_FAILED;
     }
-    if (inst->requires_select_receive_statement_emit
+    if (mir_instruction_uses_select_receive_statement_emit(inst)
         && !is_select_receive_assignment) {
         if (reason != NULL && reason_cap > 0) {
             transpiler_mir_reasonf(reason, reason_cap,

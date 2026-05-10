@@ -658,14 +658,18 @@ test_air_requires_all_authority_participant_evidence(void)
     };
     char *error = NULL;
     bool verified = air_verify(&air, &error);
-    bool ok = verified
-        && error == NULL
-        && air.drift_count == 1
-        && air.drifts[0].kind == AIR_DRIFT_BOUNDARY_EVIDENCE_MISSING
-        && strstr(air.drifts[0].message, "participant 'auditor'") != NULL
-        && strstr(air.drifts[0].message, "shipper, auditor") != NULL
-        && strstr(air.drifts[0].message,
-                  "every authorized participant") != NULL;
+    bool found = false;
+    for (size_t i = 0; verified && i < air.drift_count; i++) {
+        if (air.drifts[i].kind == AIR_DRIFT_BOUNDARY_EVIDENCE_MISSING
+            && strstr(air.drifts[i].message, "participant 'auditor'") != NULL
+            && strstr(air.drifts[i].message, "shipper, auditor") != NULL
+            && strstr(air.drifts[i].message,
+                      "every authorized participant") != NULL) {
+            found = true;
+            break;
+        }
+    }
+    bool ok = verified && error == NULL && found;
     test_air_clear_stack_drifts(&air);
     free(error);
     return ok;

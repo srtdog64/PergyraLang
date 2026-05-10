@@ -81,7 +81,7 @@ test_air_rejects_empty_mir_terminator_evidence(void)
 }
 
 static bool
-test_air_collects_mir_select_receive_evidence(void)
+test_air_rejects_mir_evidence_without_routine_provider(void)
 {
     AIRProgram *air = (AIRProgram *)calloc(1, sizeof(AIRProgram));
     MIRProgram mir;
@@ -95,7 +95,58 @@ test_air_collects_mir_select_receive_evidence(void)
         return false;
 
     memset(&inst, 0, sizeof(inst));
+    inst.kind = MIR_INST_RETURN;
+    inst.has_source_terminator_kind = true;
+    inst.source_terminator_kind = HIR_BLOCK_RETURN;
+
+    memset(&block, 0, sizeof(block));
+    block.is_reachable = true;
+    block.instructions = &inst;
+    block.instruction_count = 1;
+
+    memset(&routine, 0, sizeof(routine));
+    routine.blocks = &block;
+    routine.block_count = 1;
+
+    memset(&mir, 0, sizeof(mir));
+    mir.routines = &routine;
+    mir.routine_count = 1;
+
+    ok = !air_collect_mir_evidence(air, &mir, &error)
+        && error != NULL
+        && strstr(error,
+                  "AIR MIR evidence requires routine name or owner provenance") != NULL
+        && air->evidence_count == 0;
+    free(error);
+    air_destroy(air);
+    return ok;
+}
+
+static bool
+test_air_collects_mir_select_receive_evidence(void)
+{
+    AIRProgram *air = (AIRProgram *)calloc(1, sizeof(AIRProgram));
+    MIRProgram mir;
+    MIRRoutine routine;
+    MIRBasicBlock block;
+    MIRInstruction inst;
+    ASTNode source_ast;
+    char *error = NULL;
+    bool ok;
+
+    if (air == NULL)
+        return false;
+
+    memset(&source_ast, 0, sizeof(source_ast));
+    source_ast.type = AST_SELECT_STMT;
+
+    memset(&inst, 0, sizeof(inst));
     inst.kind = MIR_INST_DEF;
+    inst.ast = &source_ast;
+    inst.has_source_location = true;
+    inst.source_ast_type = source_ast.type;
+    inst.requires_source_statement_emit = true;
+    inst.requires_channel_receive_statement_emit = true;
     inst.requires_select_receive_statement_emit = true;
 
     memset(&block, 0, sizeof(block));
@@ -236,6 +287,57 @@ test_air_strict_evidence_requires_mir_terminator_evidence(void)
         if (air.drifts[i].kind == AIR_DRIFT_BOUNDARY_EVIDENCE_MISSING
             && air.drifts[i].intent_index == SIZE_MAX
             && air.drifts[i].boundary_index == SIZE_MAX
+            && strstr(air.drifts[i].message,
+                      "AIR MIR input has no CFG terminator evidence") != NULL
+            && strstr(air.drifts[i].message,
+                      "AIR_EVIDENCE_MIR_TERMINATOR") != NULL) {
+            found = true;
+            break;
+        }
+    }
+    ok = ok && found;
+    test_air_clear_stack_drifts(&air);
+    free(error);
+    return ok;
+}
+
+static bool
+test_air_strict_evidence_rejects_mir_terminator_counter_only(void)
+{
+    AIRIntentNode intents[] = {
+        {
+            .intent_owner = "Dispatch",
+            .step_name = "run",
+            .step_index = 0,
+            .sync_class = AIR_SYNC_SYNC,
+            .failure_class = AIR_FAILURE_RECOVERABLE,
+        },
+    };
+    AIRBoundaryNode boundaries[] = {
+        {
+            .kind = AIR_BOUNDARY_EXECUTION,
+            .owner_name = "Dispatch",
+            .source_name = "run",
+            .intent_index = 0,
+            .step_index = 0,
+            .sync_class = AIR_SYNC_SYNC,
+        },
+    };
+    AIRProgram air = {
+        .intents = intents,
+        .intent_count = 1,
+        .boundaries = boundaries,
+        .boundary_count = 1,
+        .mir_terminator_evidence_count = 1,
+        .strict_evidence = true,
+        .has_mir_input = true,
+    };
+    char *error = NULL;
+    bool found = false;
+    bool ok = air_verify(&air, &error);
+
+    for (size_t i = 0; ok && i < air.drift_count; i++) {
+        if (air.drifts[i].kind == AIR_DRIFT_BOUNDARY_EVIDENCE_MISSING
             && strstr(air.drifts[i].message,
                       "AIR MIR input has no CFG terminator evidence") != NULL
             && strstr(air.drifts[i].message,
