@@ -16,7 +16,9 @@ uint32_t slot_checksum_bytes(const void *ptr, size_t size);
 SlotEntry *find_slot_entry_locked(SlotManager *manager,
                                   const SlotHandle *handle);
 void slot_free_plain_buffer(SlotEntry *entry);
+void slot_free_buffers(SlotEntry *entry);
 bool slot_reserve_storage(SlotEntry *entry, size_t size);
+bool slot_store_plain_payload(SlotEntry *entry, const void *data, size_t size);
 bool slot_is_expired_locked(const SlotEntry *entry);
 SlotError slot_release_entry_locked(SlotManager *manager, SlotEntry *entry,
                                     bool allowSecure);

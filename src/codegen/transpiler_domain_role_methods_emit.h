@@ -7,6 +7,8 @@ emit_role_method_impl(const char *role_name, ASTNode *method, TranspilerCtx *ctx
     const MIRRoutine *mir_method;
     const char *method_name;
 
+    if (ctx != NULL && ctx->backend_error != NULL)
+        return;
     if (method == NULL || method->type != AST_FUNC_DECL)
         return;
 
@@ -52,10 +54,14 @@ emit_role_vtable_instance(const char *role_name, ASTNode *impl, TranspilerCtx *c
         ? impl->data.impl_ability.ability_ref->data.type.name : NULL;
     char typedef_name[128];
     char *vtable_tag = NULL;
+    if (ctx != NULL && ctx->backend_error != NULL)
+        return;
     if (ability_name == NULL || impl->data.impl_ability.method_count == 0)
         return;
 
     ensure_ability_ref_vtable_decl(impl->data.impl_ability.ability_ref, ctx);
+    if (ctx != NULL && ctx->backend_error != NULL)
+        return;
     if (!ability_ref_vtable_typedef_name(
             impl->data.impl_ability.ability_ref, typedef_name, sizeof(typedef_name), ctx))
         return;
@@ -99,6 +105,8 @@ emit_role_operator_aliases(ASTNode *role, TranspilerCtx *ctx)
         TOKEN_GREATER, TOKEN_GREATER_EQUAL
     };
 
+    if (ctx != NULL && ctx->backend_error != NULL)
+        return;
     if (role == NULL || role->type != AST_ROLE_DECL
         || role->data.role_decl.name == NULL
         || role->data.role_decl.for_type == NULL

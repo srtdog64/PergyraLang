@@ -4,6 +4,46 @@
 /* Scalar, math, and string stdlib call lowering.
  * Included by transpiler_expr_stdlib_builtin.h inside transpiler.c. */
 
+typedef struct TranspilerScalarUnarySpec {
+    const char *name;
+} TranspilerScalarUnarySpec;
+
+static int
+transpiler_scalar_unary_spec_compare(const void *key, const void *entry)
+{
+    const char *name = *(const char * const *)key;
+    const TranspilerScalarUnarySpec *spec =
+        (const TranspilerScalarUnarySpec *)entry;
+
+    return strcmp(name, spec->name);
+}
+
+static bool
+transpiler_scalar_unary_builtin_name(const char *fn)
+{
+    static const TranspilerScalarUnarySpec specs[] = {
+        { "Acos" },
+        { "Asin" },
+        { "Atan" },
+        { "Ceil" },
+        { "Cos" },
+        { "Exp" },
+        { "Floor" },
+        { "Log10" },
+        { "Log2" },
+        { "MathLog" },
+        { "Round" },
+        { "Sin" },
+        { "Tan" },
+    };
+
+    if (fn == NULL)
+        return false;
+
+    return bsearch(&fn, specs, sizeof(specs) / sizeof(specs[0]),
+        sizeof(specs[0]), transpiler_scalar_unary_spec_compare) != NULL;
+}
+
 static char *
 emit_call_stdlib_scalar_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx)
 {
@@ -128,13 +168,7 @@ emit_call_stdlib_scalar_builtin(const char *fn, ASTNode *call, TranspilerCtx *ct
         free(a); free(b);
         return result;
     }
-    if ((strcmp(fn, "Floor") == 0 || strcmp(fn, "Ceil") == 0
-        || strcmp(fn, "Round") == 0
-        || strcmp(fn, "Sin") == 0 || strcmp(fn, "Cos") == 0
-        || strcmp(fn, "Tan") == 0 || strcmp(fn, "Asin") == 0
-        || strcmp(fn, "Acos") == 0 || strcmp(fn, "Atan") == 0
-        || strcmp(fn, "Exp") == 0 || strcmp(fn, "MathLog") == 0
-        || strcmp(fn, "Log10") == 0 || strcmp(fn, "Log2") == 0)
+    if (transpiler_scalar_unary_builtin_name(fn)
         && call->data.call.arg_count == 1) {
         char *arg = emit_expression(call->data.call.arguments[0], ctx);
         char *result = strdup_fmt("%s(%s)", fn, arg);

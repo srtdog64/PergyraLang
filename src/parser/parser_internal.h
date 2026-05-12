@@ -124,6 +124,7 @@ ASTNode *parse_intent_step(Parser *parser);
 bool parser_intent_match_keyword(Parser *parser, const char *keyword);
 bool intent_append_node(ASTNode ***items, size_t *count, size_t *capacity,
                         ASTNode *node);
+void parse_intent_apply_defaults(ASTNode *intent);
 void parse_intent_name_list(Parser *parser, char ***items, size_t *count,
                             size_t *capacity, const char *message);
 ASTNode *parse_relation_declaration(Parser *parser);

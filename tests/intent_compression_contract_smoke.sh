@@ -29,9 +29,9 @@ grep -Fq "derived_who_from_single_participant = false" \
 grep -Fq "derived_who_from_on_receiver = false" \
     "$ROOT_DIR/src/parser/ast_domain_constructors.c"
 grep -Fq "inherited_who_from_intent = copied_any" \
-    "$ROOT_DIR/src/parser/parser_intent.c"
+    "$ROOT_DIR/src/parser/parser_intent_defaults.c"
 grep -Fq "inherited_where_from_intent =" \
-    "$ROOT_DIR/src/parser/parser_intent.c"
+    "$ROOT_DIR/src/parser/parser_intent_defaults.c"
 grep -Fq "reused who from intent-level default" \
     "$ROOT_DIR/src/parser/ast_print_intent.c"
 grep -Fq "derived who from single subject participant" \

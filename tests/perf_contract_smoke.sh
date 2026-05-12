@@ -49,9 +49,16 @@ grep -Fq "g_schedulerByTag" "$ROOT_DIR/src/runtime/party_runtime.c"
 grep -Fq "return g_schedulerByTag[tag]" "$ROOT_DIR/src/runtime/party_runtime.c"
 grep -Fq "party_runtime_stats.c" "$ROOT_DIR/Makefile"
 grep -Fq "indexHashes" "$ROOT_DIR/src/runtime/party_runtime_stats.c"
+grep -Fq "indexHealthy" "$ROOT_DIR/src/runtime/party_runtime_stats.c"
 grep -Fq "fiber_stats_lookup(roleId)" "$ROOT_DIR/src/runtime/party_runtime_stats.c"
 grep -Fq "fiber_stats_index_insert(stats->roleId" "$ROOT_DIR/src/runtime/party_runtime_stats.c"
 grep -Fq "return fiber_stats_lookup_linear(roleId);" "$ROOT_DIR/src/runtime/party_runtime_stats.c"
+if grep -A4 -F "if (g_fiberStats.indexHashes[slot] == 0)" \
+    "$ROOT_DIR/src/runtime/party_runtime_stats.c" | \
+    grep -Fq "fiber_stats_lookup_linear(roleId)"; then
+    echo "[perf-contract] fiber stat indexed miss regressed to linear fallback" >&2
+    exit 1
+fi
 if grep -A12 -F "pgy_intent_active_count_export(void)" \
     "$ROOT_DIR/src/runtime/pgy_runtime_lib_intent_exports.h" | \
     grep -Fq "PGY_INTENT_ACTIVE_MAX"; then
@@ -82,6 +89,33 @@ grep -Fq "symbol_hash_name" "$ROOT_DIR/src/semantic/symbol_table.c"
 grep -Fq "symbol_index_insert" "$ROOT_DIR/src/semantic/symbol_table.c"
 grep -Fq "scope_ensure_symbol_index_capacity" "$ROOT_DIR/src/semantic/symbol_table.c"
 grep -Fq "scope_lookup_current_linear" "$ROOT_DIR/src/semantic/symbol_table.c"
+grep -Fq "ScaffoldKindSpec" "$ROOT_DIR/src/compiler/driver_scaffold.c"
+grep -Fq "scaffold_find_kind" "$ROOT_DIR/src/compiler/driver_scaffold.c"
+grep -Fq "bsearch(" "$ROOT_DIR/src/compiler/driver_scaffold.c"
+grep -Fq "TranspilerTypeNameMap" "$ROOT_DIR/src/codegen/transpiler_type_mapping.c"
+grep -Fq "transpiler_lookup_type_name_map" "$ROOT_DIR/src/codegen/transpiler_type_mapping.c"
+grep -Fq "bsearch(" "$ROOT_DIR/src/codegen/transpiler_type_mapping.c"
+grep -Fq "lexer_keywords.c" "$ROOT_DIR/Makefile"
+grep -Fq "lexer_lookup_keyword" "$ROOT_DIR/src/lexer/lexer.c"
+grep -Fq "keyword_compare_slice" "$ROOT_DIR/src/lexer/lexer_keywords.c"
+lexer_keyword_names="$(
+    sed -n '/static const KeywordEntry kKeywords\[\]/,/^};/p' \
+        "$ROOT_DIR/src/lexer/lexer_keywords.c" \
+        | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
+        | grep -o '"[A-Za-z0-9_]*"' \
+        | tr -d '"'
+)"
+lexer_keyword_names_sorted="$(
+    printf '%s\n' "$lexer_keyword_names" | sort
+)"
+if [[ "$lexer_keyword_names" != "$lexer_keyword_names_sorted" ]]; then
+    echo "lexer keyword names must stay sorted for binary lookup" >&2
+    diff -u <(printf '%s\n' "$lexer_keyword_names_sorted") \
+        <(printf '%s\n' "$lexer_keyword_names") >&2 || true
+    exit 1
+fi
+grep -Fq "kEffectWordSpecs" "$ROOT_DIR/src/semantic/type_checker_helpers_effects.c"
+grep -Fq "bsearch(" "$ROOT_DIR/src/semantic/type_checker_helpers_effects.c"
 if grep -A28 -F "scope_lookup_current(Scope *scope" \
     "$ROOT_DIR/src/semantic/symbol_table.c" | \
     grep -Fq "scope->symbol_count"; then
@@ -97,20 +131,20 @@ grep -Fq "semantic_record_dag_generic_contract_evidence" "$ROOT_DIR/src/semantic
 grep -Fq "[type-res-stats] dag-evidence:" "$ROOT_DIR/src/semantic/type_checker_program.c"
 grep -Fq "dag_generic_contract_evidence" "$ROOT_DIR/tests/type_resolution_dag_smoke.sh"
 grep -Fq "dag_ability_consumer_evidence" "$ROOT_DIR/tests/type_resolution_dag_smoke.sh"
-grep -Fq "sem->type_resolution_dag_generic_contract_evidence_count" "$ROOT_DIR/src/compiler/air_evidence.c"
-grep -Fq "sem->type_resolution_dag_ability_consumer_evidence_count" "$ROOT_DIR/src/compiler/air_evidence.c"
+grep -Fq "sem->type_resolution_dag_generic_contract_evidence_count" "$ROOT_DIR/src/compiler/air_evidence_dag.c"
+grep -Fq "sem->type_resolution_dag_ability_consumer_evidence_count" "$ROOT_DIR/src/compiler/air_evidence_dag.c"
 if grep -A1 -F "result->type_resolution_dag_generic_contract_evidence_count =" \
     "$ROOT_DIR/src/semantic/semantic.c" | \
     grep -Fq "ctx->type_resolution_stage_compat_generic_contract_count"; then
     echo "[perf-contract] DAG generic evidence result regressed to compat counter" >&2
     exit 1
 fi
-! grep -Fq "sem->type_resolution_stage_compat_generic_contract_count" "$ROOT_DIR/src/compiler/air_evidence.c"
-! grep -Fq "sem->type_resolution_dag_ability_evidence_count" "$ROOT_DIR/src/compiler/air_evidence.c"
+! grep -Fq "sem->type_resolution_stage_compat_generic_contract_count" "$ROOT_DIR/src/compiler/air_evidence_dag.c"
+! grep -Fq "sem->type_resolution_dag_ability_evidence_count" "$ROOT_DIR/src/compiler/air_evidence_dag.c"
 grep -Fq "realloc(q->data, nc * sizeof" "$ROOT_DIR/src/runtime/pgy_runtime_queue_inline.h"
-grep -Fq "HIRRoutineNameIndex" "$ROOT_DIR/src/compiler/hir.c"
-grep -Fq "hir_build_routine_name_index" "$ROOT_DIR/src/compiler/hir.c"
-grep -Fq "hir_lookup_routine_index_by_name" "$ROOT_DIR/src/compiler/hir.c"
+grep -Fq "HIRRoutineNameIndex" "$ROOT_DIR/src/compiler/hir_callgraph.c"
+grep -Fq "hir_build_routine_name_index" "$ROOT_DIR/src/compiler/hir_callgraph.c"
+grep -Fq "hir_lookup_routine_index_by_name" "$ROOT_DIR/src/compiler/hir_callgraph.c"
 grep -Fq "evidence_capacity" "$ROOT_DIR/src/compiler/air.h"
 grep -Fq "drift_capacity" "$ROOT_DIR/src/compiler/air.h"
 grep -Fq "owned_name_capacity" "$ROOT_DIR/src/compiler/air.h"
@@ -410,6 +444,50 @@ if [[ "$resolver_builtin_names" != "$resolver_builtin_names_sorted" ]]; then
         <(printf '%s\n' "$resolver_builtin_names") >&2 || true
     exit 1
 fi
+for semantic_dispatch_file in \
+    "$ROOT_DIR/src/semantic/type_checker_builtins_channel_state.c" \
+    "$ROOT_DIR/src/semantic/type_checker_builtins_state_tools.c" \
+    "$ROOT_DIR/src/semantic/type_checker_builtins_stdlib_channel_transport.c" \
+    "$ROOT_DIR/src/semantic/type_checker_builtins_stdlib_collections.c" \
+    "$ROOT_DIR/src/semantic/type_checker_builtins_stdlib_body.c" \
+    "$ROOT_DIR/src/semantic/type_checker_builtins_stdlib_map.c" \
+    "$ROOT_DIR/src/semantic/type_checker_builtins_stdlib_scalar.c" \
+    "$ROOT_DIR/src/semantic/type_checker_builtins_stdlib_variant.c" \
+    "$ROOT_DIR/src/semantic/slot_analyzer_builtin.c" \
+    "$ROOT_DIR/src/semantic/type_checker_resolution_metadata.c" \
+    "$ROOT_DIR/src/semantic/type_checker_resolution_metadata_constructed.c" \
+    "$ROOT_DIR/src/semantic/type_checker_resolution_metadata_diagnostics.c"; do
+    grep -Fq "bsearch(" "$semantic_dispatch_file"
+done
+for semantic_dispatch_file in \
+    "$ROOT_DIR/src/semantic/type_checker_builtins_channel_state.c" \
+    "$ROOT_DIR/src/semantic/type_checker_builtins_state_tools.c" \
+    "$ROOT_DIR/src/semantic/type_checker_builtins_stdlib_channel_transport.c" \
+    "$ROOT_DIR/src/semantic/type_checker_builtins_stdlib_collections.c" \
+    "$ROOT_DIR/src/semantic/type_checker_builtins_stdlib_body.c" \
+    "$ROOT_DIR/src/semantic/type_checker_builtins_stdlib_map.c" \
+    "$ROOT_DIR/src/semantic/type_checker_builtins_stdlib_scalar.c" \
+    "$ROOT_DIR/src/semantic/type_checker_builtins_stdlib_variant.c" \
+    "$ROOT_DIR/src/semantic/slot_analyzer_builtin.c" \
+    "$ROOT_DIR/src/semantic/type_checker_resolution_metadata_constructed.c" \
+    "$ROOT_DIR/src/semantic/type_checker_resolution_metadata_diagnostics.c"; do
+    semantic_dispatch_names="$(
+        sed -n '/static const .*\[\]/,/^};/p' "$semantic_dispatch_file" \
+            | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
+            | grep -o '"[A-Za-z0-9_]*"' \
+            | tr -d '"' \
+            || true
+    )"
+    semantic_dispatch_names_sorted="$(
+        printf '%s\n' "$semantic_dispatch_names" | sort
+    )"
+    if [[ "$semantic_dispatch_names" != "$semantic_dispatch_names_sorted" ]]; then
+        echo "semantic dispatch names must stay sorted for bsearch: $semantic_dispatch_file" >&2
+        diff -u <(printf '%s\n' "$semantic_dispatch_names_sorted") \
+            <(printf '%s\n' "$semantic_dispatch_names") >&2 || true
+        exit 1
+    fi
+done
 llvm_intent_obs_names="$(
     grep -o '"Intent[A-Za-z0-9_]*"' \
         "$ROOT_DIR/src/codegen/llvm_expr_intent_observability_calls.c" \
@@ -847,6 +925,25 @@ grep -Fq "(void)recovery;" "$ROOT_DIR/src/codegen/llvm_expr_collection_base_call
 grep -Fq "LLVM ListNew() could not allocate list temporary" "$ROOT_DIR/src/codegen/llvm_expr_collection_base_calls.c"
 grep -Fq "LLVM SetAdd could not lower value expression" "$ROOT_DIR/src/codegen/llvm_expr_collection_base_calls.c"
 grep -Fq "*out = NULL;" "$ROOT_DIR/src/codegen/llvm_expr_call_collections_extended.c"
+grep -Fq "kLLVMCollectionBaseSpecs" "$ROOT_DIR/src/codegen/llvm_expr_collection_base_calls.c"
+grep -Fq "llvm_collection_base_lookup" "$ROOT_DIR/src/codegen/llvm_expr_collection_base_calls.c"
+grep -Fq "bsearch(" "$ROOT_DIR/src/codegen/llvm_expr_collection_base_calls.c"
+llvm_collection_base_names="$(
+    sed -n '/static const LLVMCollectionBaseSpec kLLVMCollectionBaseSpecs\[\]/,/^};/p' \
+        "$ROOT_DIR/src/codegen/llvm_expr_collection_base_calls.c" \
+        | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
+        | grep -o '"[A-Za-z0-9_]*"' \
+        | tr -d '"'
+)"
+llvm_collection_base_names_sorted="$(
+    printf '%s\n' "$llvm_collection_base_names" | sort
+)"
+if [[ "$llvm_collection_base_names" != "$llvm_collection_base_names_sorted" ]]; then
+    echo "LLVM base collection builtin names must stay sorted for bsearch" >&2
+    diff -u <(printf '%s\n' "$llvm_collection_base_names_sorted") \
+        <(printf '%s\n' "$llvm_collection_base_names") >&2 || true
+    exit 1
+fi
 grep -Fq "return NULL;" "$ROOT_DIR/src/codegen/llvm_backend_type_map.c"
 ! grep -A20 -F "llvm_required_constructed_arg_name_at" "$ROOT_DIR/src/codegen/llvm_backend_type_map.c" | grep -Fq 'return "Unknown";'
 grep -A40 -F "len = (size_t)(p - start);" "$ROOT_DIR/src/codegen/llvm_backend_type_render.c" | grep -Fq "return NULL;"
@@ -889,6 +986,31 @@ grep -Fq "MapKeys" "$ROOT_DIR/src/codegen/llvm_expr_call_collections_extended.c"
 grep -Fq "\"queue\"" "$ROOT_DIR/src/codegen/llvm_expr_call_queue_extended.c"
 grep -Fq "llvm_queue_error_out" "$ROOT_DIR/src/codegen/llvm_expr_call_queue_extended.c"
 grep -Fq "(void)recovery;" "$ROOT_DIR/src/codegen/llvm_expr_call_queue_extended.c"
+grep -Fq "kQueueExtendedSpecs" "$ROOT_DIR/src/codegen/llvm_expr_call_queue_extended.c"
+grep -Fq "llvm_queue_extended_lookup" "$ROOT_DIR/src/codegen/llvm_expr_call_queue_extended.c"
+grep -Fq "bsearch(" "$ROOT_DIR/src/codegen/llvm_expr_call_queue_extended.c"
+grep -Fq "kTranspilerCollectionSpecs" "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_collection_builtin.h"
+grep -Fq "transpiler_collection_lookup" "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_collection_builtin.h"
+grep -Fq "bsearch(" "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_collection_builtin.h"
+transpiler_collection_names="$(
+    sed -n '/static const TranspilerCollectionSpec kTranspilerCollectionSpecs\[\]/,/^};/p' \
+        "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_collection_builtin.h" \
+        | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
+        | grep -o '"[A-Za-z0-9_]*"' \
+        | tr -d '"'
+)"
+transpiler_collection_names_sorted="$(
+    printf '%s\n' "$transpiler_collection_names" | sort
+)"
+if [[ "$transpiler_collection_names" != "$transpiler_collection_names_sorted" ]]; then
+    echo "C backend collection builtin names must stay sorted for bsearch" >&2
+    diff -u <(printf '%s\n' "$transpiler_collection_names_sorted") \
+        <(printf '%s\n' "$transpiler_collection_names") >&2 || true
+    exit 1
+fi
+grep -Fq "kTranspilerMapSpecs" "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_map_builtin.h"
+grep -Fq "transpiler_map_lookup" "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_map_builtin.h"
+grep -Fq "bsearch(" "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_map_builtin.h"
 grep -Fq "LLVM QueuePush could not lower value expression" "$ROOT_DIR/src/codegen/llvm_expr_call_queue_extended.c"
 grep -Fq "LLVM QueuePop could not allocate result temporary" "$ROOT_DIR/src/codegen/llvm_expr_call_queue_extended.c"
 grep -Fq "{ *out = NULL; return true; }" "$ROOT_DIR/src/codegen/llvm_expr_call_queue_extended.c"
@@ -1226,6 +1348,59 @@ grep -Fq "\"pgy_channel_close\"" "$ROOT_DIR/src/codegen/llvm_expr_task_channel_c
 grep -Fq "llvm_task_channel_error" "$ROOT_DIR/src/codegen/llvm_expr_task_channel_calls.c"
 grep -Fq "could not lower send value expression" "$ROOT_DIR/src/codegen/llvm_expr_task_channel_calls.c"
 grep -Fq "has unsupported arity for the LLVM task/channel builtin" "$ROOT_DIR/src/codegen/llvm_expr_task_channel_calls.c"
+grep -Fq "llvm_task_channel_name_compare" "$ROOT_DIR/src/codegen/llvm_expr_task_channel_calls.c"
+grep -Fq "llvm_channel_query_op_compare" "$ROOT_DIR/src/codegen/llvm_expr_task_channel_calls.c"
+grep -Fq "llvm_channel_query_runtime_op(callee_name)" "$ROOT_DIR/src/codegen/llvm_expr_task_channel_calls.c"
+grep -Fq "llvm_stdlib_runtime_call_compare" "$ROOT_DIR/src/codegen/llvm_expr_stdlib_scalar_io_calls.c"
+grep -Fq "llvm_stdlib_string_file_runtime_call_lookup" "$ROOT_DIR/src/codegen/llvm_expr_stdlib_scalar_io_calls.c"
+task_channel_names="$(
+    sed -n '/static const LLVMTaskChannelNameSpec specs\[\]/,/^    };/p' \
+        "$ROOT_DIR/src/codegen/llvm_expr_task_channel_calls.c" \
+        | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
+        | grep -o '"[A-Za-z0-9_]*"' \
+        | tr -d '"'
+)"
+task_channel_names_sorted="$(
+    printf '%s\n' "$task_channel_names" | sort
+)"
+if [[ "$task_channel_names" != "$task_channel_names_sorted" ]]; then
+    echo "LLVM task/channel builtin names must stay sorted for bsearch" >&2
+    diff -u <(printf '%s\n' "$task_channel_names_sorted") \
+        <(printf '%s\n' "$task_channel_names") >&2 || true
+    exit 1
+fi
+channel_query_names="$(
+    sed -n '/static const LLVMChannelQueryOpSpec specs\[\]/,/^    };/p' \
+        "$ROOT_DIR/src/codegen/llvm_expr_task_channel_calls.c" \
+        | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
+        | grep -o '"[A-Za-z0-9_]*"' \
+        | tr -d '"'
+)"
+channel_query_names_sorted="$(
+    printf '%s\n' "$channel_query_names" | sort
+)"
+if [[ "$channel_query_names" != "$channel_query_names_sorted" ]]; then
+    echo "LLVM channel query op names must stay sorted for bsearch" >&2
+    diff -u <(printf '%s\n' "$channel_query_names_sorted") \
+        <(printf '%s\n' "$channel_query_names") >&2 || true
+    exit 1
+fi
+llvm_stdlib_string_file_names="$(
+    sed -n '/static const LLVMStdlibRuntimeCallSpec specs\[\]/,/^    };/p' \
+        "$ROOT_DIR/src/codegen/llvm_expr_stdlib_scalar_io_calls.c" \
+        | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
+        | grep -o '"[A-Za-z0-9_]*"' \
+        | tr -d '"'
+)"
+llvm_stdlib_string_file_names_sorted="$(
+    printf '%s\n' "$llvm_stdlib_string_file_names" | sort
+)"
+if [[ "$llvm_stdlib_string_file_names" != "$llvm_stdlib_string_file_names_sorted" ]]; then
+    echo "LLVM stdlib string/file runtime-call names must stay sorted for bsearch" >&2
+    diff -u <(printf '%s\n' "$llvm_stdlib_string_file_names_sorted") \
+        <(printf '%s\n' "$llvm_stdlib_string_file_names") >&2 || true
+    exit 1
+fi
 grep -Fq "llvm_required_runtime_function(ctx, node" "$ROOT_DIR/src/codegen/llvm_expr_rc_calls.c"
 grep -Fq "\"rc\", callee_name, fn_name" "$ROOT_DIR/src/codegen/llvm_expr_rc_calls.c"
 grep -Fq "\"weak\", callee_name, fn_name" "$ROOT_DIR/src/codegen/llvm_expr_rc_calls.c"
@@ -1288,6 +1463,42 @@ grep -Fq "ctx, info->channel, \"consume\", recv_name" "$ROOT_DIR/src/codegen/llv
 grep -Fq "select_write_case_guard" "$ROOT_DIR/src/codegen/transpiler_select.c"
 grep -Fq "select_emit_unbound_consume" "$ROOT_DIR/src/codegen/transpiler_select.c"
 grep -Fq "select_channel_inner_type" "$ROOT_DIR/src/codegen/transpiler_select.c"
+grep -Fq "transpiler_channel_query_spec_compare" "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_channel_builtin.h"
+grep -Fq "emit_call_stdlib_channel_query_builtin" "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_channel_builtin.h"
+grep -Fq "transpiler_scalar_unary_spec_compare" "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_scalar_builtin.h"
+grep -Fq "transpiler_scalar_unary_builtin_name(fn)" "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_scalar_builtin.h"
+transpiler_scalar_unary_names="$(
+    sed -n '/static const TranspilerScalarUnarySpec specs\[\]/,/^    };/p' \
+        "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_scalar_builtin.h" \
+        | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
+        | grep -o '"[A-Za-z0-9_]*"' \
+        | tr -d '"'
+)"
+transpiler_scalar_unary_names_sorted="$(
+    printf '%s\n' "$transpiler_scalar_unary_names" | sort
+)"
+if [[ "$transpiler_scalar_unary_names" != "$transpiler_scalar_unary_names_sorted" ]]; then
+    echo "C backend scalar unary names must stay sorted for bsearch" >&2
+    diff -u <(printf '%s\n' "$transpiler_scalar_unary_names_sorted") \
+        <(printf '%s\n' "$transpiler_scalar_unary_names") >&2 || true
+    exit 1
+fi
+transpiler_channel_query_names="$(
+    sed -n '/static const TranspilerChannelQuerySpec specs\[\]/,/^    };/p' \
+        "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_channel_builtin.h" \
+        | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
+        | grep -o '"[A-Za-z0-9_]*"' \
+        | tr -d '"'
+)"
+transpiler_channel_query_names_sorted="$(
+    printf '%s\n' "$transpiler_channel_query_names" | sort
+)"
+if [[ "$transpiler_channel_query_names" != "$transpiler_channel_query_names_sorted" ]]; then
+    echo "C backend channel query names must stay sorted for bsearch" >&2
+    diff -u <(printf '%s\n' "$transpiler_channel_query_names_sorted") \
+        <(printf '%s\n' "$transpiler_channel_query_names") >&2 || true
+    exit 1
+fi
 ! grep -Fq "ast_create_channel_recv(channel)" "$ROOT_DIR/src/codegen/transpiler_select.c"
 grep -Fq "llvm_mir_required_channel_ready_function" "$ROOT_DIR/src/codegen/llvm_mir_cfg_control.c"
 grep -Fq "llvm_mir_required_channel_ready_function(channel, ctx, fn_name)" "$ROOT_DIR/src/codegen/llvm_mir_cfg_control.c"

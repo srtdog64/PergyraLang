@@ -165,6 +165,8 @@ run_literal_doc_contract_smoke() {
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_is_cfg_owned_control"
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_stmt_has_side_effect_hint"
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_stmt_fallback_is_allowed"
+    require_literal "src/compiler/mir_source_shape.c" "k_pure_query_builtins"
+    require_literal "src/compiler/mir_source_shape.c" "bsearch(&callee"
     require_literal "src/compiler/mir_cfg_contract_validate.c" "mir_instruction_source_is_cfg_owned_control(inst)"
     require_literal "src/compiler/mir_dce.c" "mir_instruction_source_stmt_has_side_effect_hint(inst)"
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_branch_payload_matches_shape"
@@ -235,6 +237,9 @@ run_literal_doc_contract_smoke() {
     fi
     require_literal "src/semantic/type_checker_flow.c" "type_check_while_loop_flow(node, ctx)"
     require_literal "src/semantic/type_checker_flow.c" "type_check_for_loop_flow(node, ctx)"
+    require_literal "src/semantic/type_checker_flow.c" "type_check_loop_control_flow(node, ctx, loop_flow, true)"
+    require_literal "src/semantic/type_checker_flow_loop_control.c" "flow_validate_loop_control"
+    require_literal "src/semantic/type_checker_flow_loop_control.c" "loop_flow_record(loop_flow, is_break"
     require_literal "src/semantic/type_checker_lambda_capture.c" "PGY_CODE_SEM_BORROW_ESCAPE"
     require_literal "src/semantic/type_checker_lambda_capture.c" "capture_state_has_local"
     require_literal "src/semantic/type_checker_lambda_capture.c" "beta lambdas lower to standalone callable bodies without a closure environment"
@@ -298,6 +303,7 @@ flow_effects_path = root / "src" / "semantic" / "type_checker_flow_effects.c"
 flow_match_path = root / "src" / "semantic" / "type_checker_flow_match.c"
 flow_resources_header_path = root / "src" / "semantic" / "type_checker_flow_resources.h"
 flow_resources_path = root / "src" / "semantic" / "type_checker_flow_resources.c"
+flow_loop_control_path = root / "src" / "semantic" / "type_checker_flow_loop_control.c"
 flow_loops_header_path = root / "src" / "semantic" / "type_checker_flow_loops.h"
 flow_loops_path = root / "src" / "semantic" / "type_checker_flow_loops.c"
 flow_parallel_path = root / "src" / "semantic" / "type_checker_flow_parallel.h"
@@ -386,6 +392,7 @@ for path in (
     flow_match_path,
     flow_resources_header_path,
     flow_resources_path,
+    flow_loop_control_path,
     flow_loops_header_path,
     flow_loops_path,
     flow_parallel_path,
@@ -473,6 +480,8 @@ flow = (
     + flow_match_path.read_text(encoding="utf-8")
     + "\n"
     + flow_resources_path.read_text(encoding="utf-8")
+    + "\n"
+    + flow_loop_control_path.read_text(encoding="utf-8")
     + "\n"
     + flow_loops_path.read_text(encoding="utf-8")
     + "\n"
@@ -828,11 +837,11 @@ required_mir_owner_terms = {
     ],
     "src/compiler/mir_ssa_rename.c": [
         "mir_collect_ssa_names",
-        "mir_append_versioned_use",
-        "mir_append_block_versioned_name",
-        "mir_parse_versioned_name",
     ],
     "src/compiler/mir_ssa_use_edges.c": [
+        "mir_append_versioned_use",
+        "mir_append_block_versioned_name",
+        "mir_parse_versioned_name_owned",
         "mir_def_instruction_source_expr",
         "return inst->expr0",
         "ASTNode *expr = inst->expr0 != NULL ? inst->expr0 : inst->expr1",
@@ -867,6 +876,7 @@ required_mir_owner_terms = {
         "mir_populate_stmt_instructions",
         "MIR_INST_LOOP_INIT",
         "mir_stmt_is_for_loop_init_payload",
+        "mir_block == NULL",
         "mir_stmt_population_is_semantic_carrier(&old_insts[r])",
         "Intent metadata is MIR semantic inventory",
         "#include \"mir_cfg_contract_control.h\"",
@@ -1012,6 +1022,7 @@ for term in [
         hir_header = root / "src" / "compiler" / "hir.h"
         hir_cfg = root / "src" / "compiler" / "hir_cfg.c"
         hir_cfg_phi = root / "src" / "compiler" / "hir_cfg_phi.c"
+        hir_routine_cfg = root / "src" / "compiler" / "hir_routine_cfg.c"
         hir_public = root / "src" / "compiler" / "hir_public.c"
         joined = (
             hir_header.read_text(encoding="utf-8")
@@ -1019,6 +1030,8 @@ for term in [
             + hir_cfg.read_text(encoding="utf-8")
             + "\n"
             + hir_cfg_phi.read_text(encoding="utf-8")
+            + "\n"
+            + hir_routine_cfg.read_text(encoding="utf-8")
             + "\n"
             + hir_public.read_text(encoding="utf-8")
         )

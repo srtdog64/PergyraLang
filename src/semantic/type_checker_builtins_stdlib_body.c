@@ -137,6 +137,64 @@ type_check_builtin_clone(ASTNode *expr, SemanticContext *ctx)
     return arg_type;
 }
 
+typedef enum StdlibBodyBuiltin {
+    STDLIB_BODY_NOT_BUILTIN = 0,
+    STDLIB_BODY_CANCEL,
+    STDLIB_BODY_CHANNEL_CLOSE,
+    STDLIB_BODY_CLAIM_QUBIT,
+    STDLIB_BODY_ENTANGLE,
+    STDLIB_BODY_H,
+    STDLIB_BODY_INTO_CLASSICAL,
+    STDLIB_BODY_IS_CANCELLED,
+    STDLIB_BODY_IS_COLLAPSED,
+    STDLIB_BODY_MEASURE,
+    STDLIB_BODY_QUBIT_STATE,
+    STDLIB_BODY_RELEASE_QUBIT,
+    STDLIB_BODY_TO_STRING
+} StdlibBodyBuiltin;
+
+typedef struct StdlibBodyBuiltinSpec {
+    const char *name;
+    StdlibBodyBuiltin kind;
+} StdlibBodyBuiltinSpec;
+
+static int
+stdlib_body_builtin_compare(const void *key, const void *entry)
+{
+    const char *name = *(const char * const *)key;
+    const StdlibBodyBuiltinSpec *spec = (const StdlibBodyBuiltinSpec *)entry;
+
+    return strcmp(name, spec->name);
+}
+
+static StdlibBodyBuiltin
+stdlib_body_builtin_lookup(const char *name)
+{
+    static const StdlibBodyBuiltinSpec specs[] = {
+        { "Cancel", STDLIB_BODY_CANCEL },
+        { "ChannelClose", STDLIB_BODY_CHANNEL_CLOSE },
+        { "ClaimQubit", STDLIB_BODY_CLAIM_QUBIT },
+        { "Entangle", STDLIB_BODY_ENTANGLE },
+        { "H", STDLIB_BODY_H },
+        { "IntoClassical", STDLIB_BODY_INTO_CLASSICAL },
+        { "IsCancelled", STDLIB_BODY_IS_CANCELLED },
+        { "IsCollapsed", STDLIB_BODY_IS_COLLAPSED },
+        { "Measure", STDLIB_BODY_MEASURE },
+        { "QubitState", STDLIB_BODY_QUBIT_STATE },
+        { "ReleaseQubit", STDLIB_BODY_RELEASE_QUBIT },
+        { "ToString", STDLIB_BODY_TO_STRING },
+    };
+    const StdlibBodyBuiltinSpec *match;
+
+    if (name == NULL)
+        return STDLIB_BODY_NOT_BUILTIN;
+
+    match = (const StdlibBodyBuiltinSpec *)bsearch(
+        &name, specs, sizeof(specs) / sizeof(specs[0]),
+        sizeof(specs[0]), stdlib_body_builtin_compare);
+    return match != NULL ? match->kind : STDLIB_BODY_NOT_BUILTIN;
+}
+
 static Type *
 type_check_resolved_stdlib_call(ASTNode *expr, const char *name,
                                 SemanticContext *ctx, bool *handled_out)
@@ -185,6 +243,7 @@ Type *
 type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
 {
     bool handled = false;
+    StdlibBodyBuiltin body_builtin = STDLIB_BODY_NOT_BUILTIN;
     Type *resolved_type = type_check_resolved_stdlib_call(
         expr, name, ctx, &handled);
     if (handled)
@@ -209,18 +268,24 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
         if (handled)
             return state_tool_type;
     }
-    if (strcmp(name, "ToString") == 0) {
+
+    body_builtin = stdlib_body_builtin_lookup(name);
+    switch (body_builtin) {
+    case STDLIB_BODY_TO_STRING:
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;
         type_check_expression(expr->data.call.arguments[0], ctx);
         return TYPE_STRING;
-    }
 
-    if (strcmp(name, "ClaimQubit") == 0) {
+    case STDLIB_BODY_CLAIM_QUBIT:
         if (!check_call_arity(expr, 0, name, ctx))
             return TYPE_UNKNOWN;
         /* Qubit starts in SUPERPOSITION state (uncollapsed). */
         return TYPE_QUBIT;
+
+    case STDLIB_BODY_NOT_BUILTIN:
+    default:
+        break;
     }
 
     Type *variant_type = type_check_stdlib_variant_builtin_call(
@@ -239,10 +304,14 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
         if (handled)
             return channel_state_type;
     }
-    if (strcmp(name, "ChannelClose") == 0) {
+
+    switch (body_builtin) {
+    case STDLIB_BODY_CHANNEL_CLOSE:
         return type_check_channel_close_builtin(expr, ctx);
-    }
-    if (strcmp(name, "Cancel") == 0) {
+
+    case STDLIB_BODY_CANCEL: {
+        Type *task_type;
+
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;
         semantic_record_effect(ctx, EFFECT_REMOTE);
@@ -252,7 +321,7 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
                 "move cancel")) {
             return TYPE_UNKNOWN;
         }
-        Type *task_type = stdlib_body_normalize_type(
+        task_type = stdlib_body_normalize_type(
             type_check_expression(expr->data.call.arguments[0], ctx));
         if (!type_is_future_like(task_type)) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr->data.call.arguments[0],
@@ -266,14 +335,14 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
         }
         return TYPE_BOOL;
     }
-    if (strcmp(name, "IsCancelled") == 0) {
+
+    case STDLIB_BODY_IS_CANCELLED:
         if (!check_call_arity(expr, 0, name, ctx))
             return TYPE_UNKNOWN;
         semantic_record_effect(ctx, EFFECT_REMOTE);
         return TYPE_BOOL;
-    }
 
-    if (strcmp(name, "Measure") == 0) {
+    case STDLIB_BODY_MEASURE:
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;
         semantic_record_effect(ctx, EFFECT_COLLAPSE);
@@ -298,8 +367,8 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
                 propagate_collapse_to_pool(ctx, pool);
         }
         return TYPE_INT;
-    }
-    if (strcmp(name, "Entangle") == 0) {
+
+    case STDLIB_BODY_ENTANGLE:
         if (!check_call_arity(expr, 2, name, ctx))
             return TYPE_UNKNOWN;
         require_assignable(type_check_qubit_use(expr->data.call.arguments[0], ctx),
@@ -347,22 +416,22 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
             }
         }
         return TYPE_VOID;
-    }
-    if (strcmp(name, "QubitState") == 0) {
+
+    case STDLIB_BODY_QUBIT_STATE:
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;
         require_assignable(type_check_qubit_use(expr->data.call.arguments[0], ctx),
             TYPE_QUBIT, expr->data.call.arguments[0], ctx);
         return TYPE_INT;
-    }
-    if (strcmp(name, "IsCollapsed") == 0) {
+
+    case STDLIB_BODY_IS_COLLAPSED:
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;
         require_assignable(type_check_qubit_use(expr->data.call.arguments[0], ctx),
             TYPE_QUBIT, expr->data.call.arguments[0], ctx);
         return TYPE_BOOL;
-    }
-    if (strcmp(name, "ReleaseQubit") == 0) {
+
+    case STDLIB_BODY_RELEASE_QUBIT:
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;
         semantic_record_body_summary(ctx, BODY_SUMMARY_DROPS_RESOURCE);
@@ -370,8 +439,8 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
             TYPE_QUBIT, expr->data.call.arguments[0], ctx);
         consume_qubit_value(expr->data.call.arguments[0], ctx, "released");
         return TYPE_VOID;
-    }
-    if (strcmp(name, "H") == 0) {
+
+    case STDLIB_BODY_H:
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;
         require_assignable(type_check_qubit_use(expr->data.call.arguments[0], ctx),
@@ -388,8 +457,8 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
         set_qubit_semantic_state(expr->data.call.arguments[0], ctx,
                                  QUBIT_STATE_SUPERPOSITION);
         return TYPE_VOID;
-    }
-    if (strcmp(name, "IntoClassical") == 0) {
+
+    case STDLIB_BODY_INTO_CLASSICAL:
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;
         require_assignable(type_check_qubit_use(expr->data.call.arguments[0], ctx),
@@ -409,6 +478,12 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
         consume_qubit_value(expr->data.call.arguments[0], ctx,
                             "converted to classical");
         return TYPE_BOOL;
+
+    case STDLIB_BODY_TO_STRING:
+    case STDLIB_BODY_CLAIM_QUBIT:
+    case STDLIB_BODY_NOT_BUILTIN:
+    default:
+        break;
     }
 
     return NULL;

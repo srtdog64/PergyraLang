@@ -18,6 +18,7 @@
 #include <assert.h>
 #include <time.h>
 #include <unistd.h>
+#include <sys/types.h>
 #include <sys/stat.h>
 
 #ifdef _WIN32

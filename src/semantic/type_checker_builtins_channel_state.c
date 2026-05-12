@@ -5,6 +5,7 @@
  * Channel state query builtins.
  */
 
+#include <stdlib.h>
 #include <string.h>
 
 #include "diag_codes.h"
@@ -32,16 +33,28 @@ static const ChannelStateBuiltinSpec channel_state_specs[] = {
     { "ChannelSpace", false },
 };
 
+static int
+channel_state_compare(const void *key, const void *entry)
+{
+    const char *name = *(const char * const *)key;
+    const ChannelStateBuiltinSpec *spec =
+        (const ChannelStateBuiltinSpec *)entry;
+
+    return strcmp(name, spec->name);
+}
+
 static const ChannelStateBuiltinSpec *
 channel_state_find_spec(const char *name)
 {
+    const ChannelStateBuiltinSpec *match;
+
     if (name == NULL)
         return NULL;
-    for (size_t i = 0; i < sizeof(channel_state_specs) / sizeof(channel_state_specs[0]); i++) {
-        if (strcmp(channel_state_specs[i].name, name) == 0)
-            return &channel_state_specs[i];
-    }
-    return NULL;
+    match = (const ChannelStateBuiltinSpec *)bsearch(
+        &name, channel_state_specs,
+        sizeof(channel_state_specs) / sizeof(channel_state_specs[0]),
+        sizeof(channel_state_specs[0]), channel_state_compare);
+    return match;
 }
 
 Type *

@@ -12,126 +12,54 @@ expr_call_normalize_type(Type *type)
     return type != NULL ? type : TYPE_UNKNOWN;
 }
 
-static const char *
-expr_root_identifier_name(ASTNode *expr)
+static void
+expr_call_report_unknown_member(SemanticContext *ctx, ASTNode *site,
+                                const Type *object_type,
+                                const char *method_name)
 {
-    if (expr == NULL)
-        return NULL;
+    const char *type_name = type_name_or_unknown(object_type);
+    const char *member_name = method_name != NULL ? method_name : "<method>";
 
-    switch (expr->type) {
-    case AST_IDENTIFIER:
-        return expr->data.identifier.name;
-    case AST_MEMBER_ACCESS:
-        return expr_root_identifier_name(expr->data.member.object);
-    case AST_ARRAY_ACCESS:
-        return expr_root_identifier_name(expr->data.array_access.array);
-    default:
-        return NULL;
-    }
-}
-
-static size_t
-expr_embedded_world_zone_index(SemanticContext *ctx, const char *name)
-{
-    if (ctx == NULL || name == NULL)
-        return (size_t)-1;
-
-    for (size_t i = 0; i < ctx->embedded_world_zone_count; i++) {
-        if (ctx->embedded_world_zone_names[i] != NULL
-            && strcmp(ctx->embedded_world_zone_names[i], name) == 0) {
-            return i;
-        }
-    }
-    return (size_t)-1;
-}
-
-static bool
-expr_has_embedded_world_zone_name(SemanticContext *ctx, const char *name)
-{
-    return expr_embedded_world_zone_index(ctx, name) != (size_t)-1;
-}
-
-static const char *
-expr_embedded_world_zone_world_name(SemanticContext *ctx, const char *name)
-{
-    size_t index = expr_embedded_world_zone_index(ctx, name);
-    if (index == (size_t)-1 || ctx->embedded_world_zone_world_names == NULL)
-        return NULL;
-    return ctx->embedded_world_zone_world_names[index];
-}
-
-static const char *
-expr_embedded_world_zone_slot_name(SemanticContext *ctx, const char *name)
-{
-    size_t index = expr_embedded_world_zone_index(ctx, name);
-    if (index == (size_t)-1 || ctx->embedded_world_zone_slot_names == NULL)
-        return NULL;
-    return ctx->embedded_world_zone_slot_names[index];
+    semantic_error_with_hints(ctx, PGY_CODE_SEM_UNDEFINED_SYMBOL,
+        PGY_CAUSE_SYMBOL_UNDEFINED, PGY_FIX_IMPORT_OR_DECLARE_SYMBOL, site,
+        "Unknown method '%s.%s'.\n"
+        "Reason:\n"
+        "- the receiver type is known, but no callable member with this name is declared\n"
+        "- field access and method calls are separate beta-stable surfaces\n"
+        "Fix:\n"
+        "- declare method '%s' on '%s'\n"
+        "- or remove the call parentheses if this was meant to read a field",
+        type_name,
+        member_name,
+        member_name,
+        type_name);
 }
 
 static void
-expr_reject_embedded_world_zone_mutation(SemanticContext *ctx, ASTNode *site,
-                                         ASTNode *target, const char *op_name)
+expr_call_report_unsupported_callee(SemanticContext *ctx, ASTNode *site,
+                                    const char *callee_shape)
 {
-    const char *root_name;
-    const char *owner_world;
-    const char *owner_slot;
-    Symbol *root_sym;
-
-    if (ctx == NULL || site == NULL || target == NULL || op_name == NULL)
-        return;
-    if (ctx->current_world != NULL)
-        return;
-
-    root_name = expr_root_identifier_name(target);
-    if (root_name == NULL)
-        return;
-
-    root_sym = scope_lookup(ctx->scope, root_name);
-    if ((root_sym == NULL || !root_sym->embedded_in_world)
-        && !expr_has_embedded_world_zone_name(ctx, root_name)) {
-        return;
-    }
-
-    owner_world = expr_embedded_world_zone_world_name(ctx, root_name);
-    owner_slot = expr_embedded_world_zone_slot_name(ctx, root_name);
-
-    semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID,
-        PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, site,
-        "Zone '%s' cannot be mutated via %s after it was embedded into world '%s' slot '%s'.\n"
+    semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
+        PGY_CAUSE_CALL_NOT_CALLABLE, PGY_FIX_USE_CALLABLE_DECLARATION, site,
+        "Unsupported call target '%s'.\n"
         "Reason:\n"
-        "- origin binding is '%s'\n"
-        "Contract source:\n"
-        "- world '%s' zone slot '%s'\n"
-        "- embedding handoff edge is '%s' -> world '%s' slot '%s'\n"
-        "- derived embedding provenance points to world '%s' slot '%s'\n"
-        "- ownership/authority now flows through the world-owned slot rather than the old local binding\n"
-        "- owned embedding hands authority-bearing visibility to the world-owned slot\n"
-        "- mutating the old binding would diverge from the world-owned handoff destination\n"
+        "- beta-stable calls require a named function, callable binding, static member, or declared receiver method\n"
+        "- anonymous/computed callees do not yet carry stable provenance into semantic, AIR, MIR, and diagnostics\n"
         "Fix:\n"
-        "- finish configuring '%s' before constructing world '%s'\n"
-        "- or mutate it through world '%s' slot '%s' after embedding",
-        root_name, op_name,
-        owner_world != NULL ? owner_world : "<world>",
-        owner_slot != NULL ? owner_slot : "<slot>",
-        root_name,
-        owner_world != NULL ? owner_world : "<world>",
-        owner_slot != NULL ? owner_slot : "<slot>",
-        root_name,
-        owner_world != NULL ? owner_world : "<world>",
-        owner_slot != NULL ? owner_slot : "<slot>",
-        owner_world != NULL ? owner_world : "<world>",
-        owner_slot != NULL ? owner_slot : "<slot>",
-        root_name,
-        owner_world != NULL ? owner_world : "<world>",
-        owner_world != NULL ? owner_world : "<world>",
-        owner_slot != NULL ? owner_slot : "<slot>");
+        "- bind the callable to a named function or variable before calling it\n"
+        "- or use an explicit receiver method call with a declared method",
+        callee_shape != NULL ? callee_shape : "<callee>");
 }
 
 Type *
 type_check_call(ASTNode *expr, SemanticContext *ctx)
 {
     ASTNode *callee = expr->data.call.callee;
+
+    if (callee == NULL) {
+        expr_call_report_unsupported_callee(ctx, expr, "<missing>");
+        return TYPE_UNKNOWN;
+    }
 
     for (size_t i = 0; i < expr->data.call.arg_count; i++) {
         if (expr->data.call.arg_names != NULL
@@ -272,8 +200,8 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
               && object->data.identifier.name != NULL
               && object->data.identifier.name[0] >= 'A'
               && object->data.identifier.name[0] <= 'Z')) {
-            expr_reject_embedded_world_zone_mutation(ctx, expr, object,
-                                                     "hosted func/action call");
+            reject_if_embedded_world_zone_mutation(ctx, expr, object,
+                                                   "hosted func/action call");
             Type *object_type = expr_call_normalize_type(
                 type_check_expression(object, ctx));
             if (method_name != NULL
@@ -431,6 +359,10 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
                         scope_release_slot(ctx->scope, sym->name);
                     return TYPE_VOID;
                 }
+
+                expr_call_report_unknown_member(ctx, expr, object_type,
+                    method_name);
+                return TYPE_UNKNOWN;
             }
             ASTNode *class_decl;
 
@@ -485,11 +417,19 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
                             return TYPE_VOID;
                         }
                     }
+                    expr_call_report_unknown_member(ctx, expr, object_type,
+                        method_name);
+                    return TYPE_UNKNOWN;
                 }
+                expr_call_report_unknown_member(ctx, expr, object_type,
+                    method_name);
+                return TYPE_UNKNOWN;
             }
         }
+        expr_call_report_unsupported_callee(ctx, expr, "member access");
         return TYPE_UNKNOWN;
     }
 
+    expr_call_report_unsupported_callee(ctx, expr, "computed expression");
     return TYPE_UNKNOWN;
 }

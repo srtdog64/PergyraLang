@@ -1,9 +1,77 @@
 #ifndef PGY_TRANSPILER_EXPR_STDLIB_CHANNEL_BUILTIN_H
 #define PGY_TRANSPILER_EXPR_STDLIB_CHANNEL_BUILTIN_H
 
+typedef struct TranspilerChannelQuerySpec {
+    const char *name;
+    const char *runtime_op;
+} TranspilerChannelQuerySpec;
+
+static int
+transpiler_channel_query_spec_compare(const void *key, const void *entry)
+{
+    const char *name = *(const char * const *)key;
+    const TranspilerChannelQuerySpec *spec =
+        (const TranspilerChannelQuerySpec *)entry;
+
+    return strcmp(name, spec->name);
+}
+
+static const TranspilerChannelQuerySpec *
+transpiler_channel_query_spec_lookup(const char *fn)
+{
+    static const TranspilerChannelQuerySpec specs[] = {
+        { "ChannelCapacity", "capacity" },
+        { "ChannelClosed", "closed" },
+        { "ChannelFull", "full" },
+        { "ChannelLength", "length" },
+        { "ChannelReady", "ready" },
+        { "ChannelSpace", "space" },
+    };
+
+    if (fn == NULL)
+        return NULL;
+
+    return (const TranspilerChannelQuerySpec *)bsearch(
+        &fn, specs, sizeof(specs) / sizeof(specs[0]),
+        sizeof(specs[0]), transpiler_channel_query_spec_compare);
+}
+
+static char *
+emit_call_stdlib_channel_query_builtin(const char *fn, ASTNode *call,
+                                       TranspilerCtx *ctx)
+{
+    const TranspilerChannelQuerySpec *spec =
+        transpiler_channel_query_spec_lookup(fn);
+    char *ch;
+    char inner_buf[64];
+    const char *inner;
+    char *result;
+
+    if (spec == NULL || call->data.call.arg_count != 1)
+        return NULL;
+
+    ch = emit_expression(call->data.call.arguments[0], ctx);
+    inner = transpiler_require_channel_inner_type(ctx,
+        call->data.call.arguments[0], spec->name, inner_buf,
+        sizeof(inner_buf));
+    if (inner == NULL) {
+        free(ch);
+        return pergyra_strdup("0");
+    }
+
+    result = strdup_fmt("pgy_channel_%s_%s(&%s)",
+        spec->runtime_op, inner, ch);
+    free(ch);
+    return result;
+}
+
 static char *
 emit_call_stdlib_channel_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx)
 {
+    char *query_builtin = emit_call_stdlib_channel_query_builtin(fn, call, ctx);
+    if (query_builtin != NULL)
+        return query_builtin;
+
     if (strcmp(fn, "TryRecv") == 0 && call->data.call.arg_count == 1) {
         char *ch = emit_expression(call->data.call.arguments[0], ctx);
         char inner_buf[64];
@@ -146,96 +214,6 @@ emit_call_stdlib_channel_builtin(const char *fn, ASTNode *call, TranspilerCtx *c
         }
         char *result = strdup_fmt(
             "pgy_channel_close_%s(&%s)", inner, ch);
-        free(ch);
-        return result;
-    }
-    if (strcmp(fn, "ChannelReady") == 0 && call->data.call.arg_count == 1) {
-        char *ch = emit_expression(call->data.call.arguments[0], ctx);
-        char inner_buf[64];
-        const char *inner = transpiler_require_channel_inner_type(ctx,
-            call->data.call.arguments[0], "ChannelReady",
-            inner_buf, sizeof(inner_buf));
-        if (inner == NULL) {
-            free(ch);
-            return pergyra_strdup("0");
-        }
-        char *result = strdup_fmt(
-            "pgy_channel_ready_%s(&%s)", inner, ch);
-        free(ch);
-        return result;
-    }
-    if (strcmp(fn, "ChannelLength") == 0 && call->data.call.arg_count == 1) {
-        char *ch = emit_expression(call->data.call.arguments[0], ctx);
-        char inner_buf[64];
-        const char *inner = transpiler_require_channel_inner_type(ctx,
-            call->data.call.arguments[0], "ChannelLength",
-            inner_buf, sizeof(inner_buf));
-        if (inner == NULL) {
-            free(ch);
-            return pergyra_strdup("0");
-        }
-        char *result = strdup_fmt(
-            "pgy_channel_length_%s(&%s)", inner, ch);
-        free(ch);
-        return result;
-    }
-    if (strcmp(fn, "ChannelCapacity") == 0 && call->data.call.arg_count == 1) {
-        char *ch = emit_expression(call->data.call.arguments[0], ctx);
-        char inner_buf[64];
-        const char *inner = transpiler_require_channel_inner_type(ctx,
-            call->data.call.arguments[0], "ChannelCapacity",
-            inner_buf, sizeof(inner_buf));
-        if (inner == NULL) {
-            free(ch);
-            return pergyra_strdup("0");
-        }
-        char *result = strdup_fmt(
-            "pgy_channel_capacity_%s(&%s)", inner, ch);
-        free(ch);
-        return result;
-    }
-    if (strcmp(fn, "ChannelSpace") == 0 && call->data.call.arg_count == 1) {
-        char *ch = emit_expression(call->data.call.arguments[0], ctx);
-        char inner_buf[64];
-        const char *inner = transpiler_require_channel_inner_type(ctx,
-            call->data.call.arguments[0], "ChannelSpace",
-            inner_buf, sizeof(inner_buf));
-        if (inner == NULL) {
-            free(ch);
-            return pergyra_strdup("0");
-        }
-        char *result = strdup_fmt(
-            "pgy_channel_space_%s(&%s)", inner, ch);
-        free(ch);
-        return result;
-    }
-    if (strcmp(fn, "ChannelFull") == 0 && call->data.call.arg_count == 1) {
-        char *ch = emit_expression(call->data.call.arguments[0], ctx);
-        char inner_buf[64];
-        const char *inner = transpiler_require_channel_inner_type(ctx,
-            call->data.call.arguments[0], "ChannelFull",
-            inner_buf, sizeof(inner_buf));
-        if (inner == NULL) {
-            free(ch);
-            return pergyra_strdup("0");
-        }
-        char *result = strdup_fmt(
-            "pgy_channel_full_%s(&%s)", inner, ch);
-        free(ch);
-        return result;
-    }
-    if (strcmp(fn, "ChannelClosed") == 0 && call->data.call.arg_count == 1) {
-        char *ch = emit_expression(call->data.call.arguments[0], ctx);
-        char inner_buf[64];
-        const char *inner = transpiler_require_channel_inner_type(ctx,
-            call->data.call.arguments[0], "ChannelClosed",
-            inner_buf, sizeof(inner_buf));
-        if (inner == NULL) {
-            free(ch);
-            return pergyra_strdup("0");
-        }
-        char *result = strdup_fmt(
-            "pgy_channel_closed_%s(&%s)", inner, ch);
         free(ch);
         return result;
     }

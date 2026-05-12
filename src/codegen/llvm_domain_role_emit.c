@@ -126,8 +126,13 @@ llvm_emit_domain_role_method_bodies(LLVMGenCtx *ctx,
                 return false;
             }
             fentry = llvm_lookup_function(ctx, fname);
-            if (fentry == NULL)
-                continue;
+            if (fentry == NULL) {
+                llvm_set_mir_inventory_missing(ctx,
+                    "MIR-only LLVM path missing registered function for role method '%s.%s'",
+                    role_name != NULL ? role_name : "(anonymous-role)",
+                    method_name != NULL ? method_name : "(anonymous)");
+                return false;
+            }
 
             mir_method = llvm_mir_decl_method_routine(ctx, method_meta);
             if (mir_method != NULL) {
@@ -281,8 +286,14 @@ llvm_emit_domain_role_method_bodies(LLVMGenCtx *ctx,
                         return false;
                     }
                     LLVMFuncEntry *fe = llvm_lookup_function(ctx, fname);
-                    vals[j] = (fe != NULL) ? fe->fn
-                        : LLVMConstNull(ctx->type_i8ptr);
+                    if (fe == NULL) {
+                        llvm_set_mir_inventory_missing(ctx,
+                            "MIR-only LLVM path missing vtable function for role method '%s.%s'",
+                            role_name != NULL ? role_name : "(anonymous-role)",
+                            method_name != NULL ? method_name : "(anonymous)");
+                        return false;
+                    }
+                    vals[j] = fe->fn;
                 }
 
                 LLVMValueRef vt_const = LLVMConstNamedStruct(

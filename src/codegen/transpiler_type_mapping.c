@@ -1,5 +1,6 @@
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "../common/string_compat.h"
@@ -21,19 +22,55 @@ transpiler_type_name_join(char *out, size_t out_size, const char *prefix,
     return written >= 0 && (size_t)written < out_size;
 }
 
+typedef struct {
+    const char *name;
+    const char *c_name;
+} TranspilerTypeNameMap;
+
+static int
+transpiler_type_name_map_compare(const void *key, const void *entry)
+{
+    const char *name = (const char *)key;
+    const TranspilerTypeNameMap *map = (const TranspilerTypeNameMap *)entry;
+    return strcmp(name, map->name);
+}
+
+static const char *
+transpiler_lookup_type_name_map(const char *name,
+                                const TranspilerTypeNameMap *maps,
+                                size_t map_count)
+{
+    const TranspilerTypeNameMap *match;
+
+    if (name == NULL || maps == NULL || map_count == 0)
+        return NULL;
+    match = (const TranspilerTypeNameMap *)bsearch(
+        name, maps, map_count, sizeof(maps[0]),
+        transpiler_type_name_map_compare);
+    return match != NULL ? match->c_name : NULL;
+}
+
 const char *
 pergyra_primitive_to_c(const char *name)
 {
+    static const TranspilerTypeNameMap primitive_maps[] = {
+        {"Bool", "bool"},
+        {"Double", "double"},
+        {"Float", "float"},
+        {"Int", "int32_t"},
+        {"Long", "int64_t"},
+        {"QubitSlot", "int32_t"},
+        {"String", "char*"},
+        {"Void", "void"},
+    };
+    const char *mapped;
+
     if (name == NULL)
         return "int32_t";
-    if (strcmp(name, "Int")    == 0) return "int32_t";
-    if (strcmp(name, "Long")   == 0) return "int64_t";
-    if (strcmp(name, "Float")  == 0) return "float";
-    if (strcmp(name, "Double") == 0) return "double";
-    if (strcmp(name, "Bool")   == 0) return "bool";
-    if (strcmp(name, "String") == 0) return "char*";
-    if (strcmp(name, "QubitSlot") == 0) return "int32_t";
-    if (strcmp(name, "Void")   == 0) return "void";
+    mapped = transpiler_lookup_type_name_map(name, primitive_maps,
+        sizeof(primitive_maps) / sizeof(primitive_maps[0]));
+    if (mapped != NULL)
+        return mapped;
     if (name[0] >= 'A' && name[0] <= 'Z' && name[1] == '\0')
         return "void*";
     return name;
@@ -260,31 +297,28 @@ constructed_single_arg_is_unknown(const char *type_name)
 const char *
 pergyra_type_to_c(const char *name)
 {
+    static const TranspilerTypeNameMap legacy_maps[] = {
+        {"Allocator", "PgyAllocator"},
+        {"Cooldown", "PgyCooldown"},
+        {"Fsm", "PgyFsm"},
+        {"HashMap", "PgyHashMap_Int"},
+        {"HashMapStr", "PgyHashMap_String"},
+        {"List", "PgyList_Int"},
+        {"ListStr", "PgyList_String"},
+        {"Queue", "PgyQueue_Int"},
+        {"Set", "PgySet_String"},
+        {"Timer", "PgyTimer"},
+    };
     static char buf[128];
     char suffix[96];
+    const char *mapped;
 
     if (name == NULL)
         return "int32_t";
-    if (strcmp(name, "HashMap") == 0)
-        return "PgyHashMap_Int";
-    if (strcmp(name, "HashMapStr") == 0)
-        return "PgyHashMap_String";
-    if (strcmp(name, "List") == 0)
-        return "PgyList_Int";
-    if (strcmp(name, "ListStr") == 0)
-        return "PgyList_String";
-    if (strcmp(name, "Set") == 0)
-        return "PgySet_String";
-    if (strcmp(name, "Queue") == 0)
-        return "PgyQueue_Int";
-    if (strcmp(name, "Fsm") == 0)
-        return "PgyFsm";
-    if (strcmp(name, "Timer") == 0)
-        return "PgyTimer";
-    if (strcmp(name, "Cooldown") == 0)
-        return "PgyCooldown";
-    if (strcmp(name, "Allocator") == 0)
-        return "PgyAllocator";
+    mapped = transpiler_lookup_type_name_map(name, legacy_maps,
+        sizeof(legacy_maps) / sizeof(legacy_maps[0]));
+    if (mapped != NULL)
+        return mapped;
     if (strncmp(name, "List<", 5) == 0) {
         if (constructed_single_arg_is_unknown(name))
             return "Unknown";

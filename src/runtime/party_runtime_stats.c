@@ -15,6 +15,7 @@ static struct {
     uint64_t* indexHashes;
     size_t* indexSlots;
     size_t indexCapacity;
+    bool indexHealthy;
 } g_fiberStats = {0};
 
 static char*
@@ -80,6 +81,7 @@ fiber_stats_rebuild_index(size_t newCapacity)
     uint64_t* oldHashes;
     size_t* oldSlots;
     size_t oldCapacity;
+    bool oldHealthy;
 
     if (hashes == NULL || slots == NULL) {
         free(hashes);
@@ -90,9 +92,11 @@ fiber_stats_rebuild_index(size_t newCapacity)
     oldHashes = g_fiberStats.indexHashes;
     oldSlots = g_fiberStats.indexSlots;
     oldCapacity = g_fiberStats.indexCapacity;
+    oldHealthy = g_fiberStats.indexHealthy;
     g_fiberStats.indexHashes = hashes;
     g_fiberStats.indexSlots = slots;
     g_fiberStats.indexCapacity = newCapacity;
+    g_fiberStats.indexHealthy = true;
 
     for (size_t i = 0; i < g_fiberStats.count; i++) {
         if (g_fiberStats.stats[i].roleId != NULL
@@ -102,6 +106,7 @@ fiber_stats_rebuild_index(size_t newCapacity)
             g_fiberStats.indexHashes = oldHashes;
             g_fiberStats.indexSlots = oldSlots;
             g_fiberStats.indexCapacity = oldCapacity;
+            g_fiberStats.indexHealthy = oldHealthy;
             return false;
         }
     }
@@ -155,14 +160,14 @@ fiber_stats_lookup(const char* roleId)
 
     if (roleId == NULL)
         return NULL;
-    if (g_fiberStats.indexCapacity == 0)
+    if (g_fiberStats.indexCapacity == 0 || !g_fiberStats.indexHealthy)
         return fiber_stats_lookup_linear(roleId);
 
     hash = fiber_stats_hash_role(roleId);
     for (size_t probe = 0; probe < g_fiberStats.indexCapacity; probe++) {
         size_t slot = (size_t)((hash + probe) & (g_fiberStats.indexCapacity - 1U));
         if (g_fiberStats.indexHashes[slot] == 0)
-            return fiber_stats_lookup_linear(roleId);
+            return NULL;
         if (g_fiberStats.indexHashes[slot] != hash)
             continue;
 
@@ -183,8 +188,10 @@ fiber_stats_index_insert(const char* roleId, size_t statIndex)
 
     if (roleId == NULL)
         return false;
-    if (!fiber_stats_ensure_index_capacity(g_fiberStats.count + 1U))
+    if (!fiber_stats_ensure_index_capacity(g_fiberStats.count + 1U)) {
+        g_fiberStats.indexHealthy = false;
         return false;
+    }
 
     hash = fiber_stats_hash_role(roleId);
     for (size_t probe = 0; probe < g_fiberStats.indexCapacity; probe++) {
@@ -193,9 +200,11 @@ fiber_stats_index_insert(const char* roleId, size_t statIndex)
             || g_fiberStats.indexSlots[slot] == statIndex) {
             g_fiberStats.indexHashes[slot] = hash;
             g_fiberStats.indexSlots[slot] = statIndex;
+            g_fiberStats.indexHealthy = true;
             return true;
         }
     }
+    g_fiberStats.indexHealthy = false;
     return false;
 }
 

@@ -1,10 +1,68 @@
 #ifndef PGY_TRANSPILER_EXPR_STDLIB_MAP_BUILTIN_H
 #define PGY_TRANSPILER_EXPR_STDLIB_MAP_BUILTIN_H
 
+typedef enum {
+    TRANSPILER_MAP_OP_NONE = 0,
+    TRANSPILER_MAP_OP_GET,
+    TRANSPILER_MAP_OP_HAS,
+    TRANSPILER_MAP_OP_KEYS,
+    TRANSPILER_MAP_OP_NEW,
+    TRANSPILER_MAP_OP_REMOVE,
+    TRANSPILER_MAP_OP_SET,
+    TRANSPILER_MAP_OP_SIZE,
+} TranspilerMapOp;
+
+typedef struct {
+    const char *name;
+    size_t argc;
+    TranspilerMapOp op;
+} TranspilerMapSpec;
+
+static const TranspilerMapSpec kTranspilerMapSpecs[] = {
+    {"MapGet", 2, TRANSPILER_MAP_OP_GET},
+    {"MapHas", 2, TRANSPILER_MAP_OP_HAS},
+    {"MapKeys", 1, TRANSPILER_MAP_OP_KEYS},
+    {"MapNew", (size_t)-1, TRANSPILER_MAP_OP_NEW},
+    {"MapRemove", 2, TRANSPILER_MAP_OP_REMOVE},
+    {"MapSet", 3, TRANSPILER_MAP_OP_SET},
+    {"MapSize", 1, TRANSPILER_MAP_OP_SIZE},
+};
+
+static int
+transpiler_map_spec_compare(const void *key, const void *entry)
+{
+    const char *name = (const char *)key;
+    const TranspilerMapSpec *spec = (const TranspilerMapSpec *)entry;
+    return strcmp(name, spec->name);
+}
+
+static TranspilerMapOp
+transpiler_map_lookup(const char *fn, size_t argc)
+{
+    const TranspilerMapSpec *spec;
+
+    if (fn == NULL)
+        return TRANSPILER_MAP_OP_NONE;
+    spec = (const TranspilerMapSpec *)bsearch(
+        fn,
+        kTranspilerMapSpecs,
+        sizeof(kTranspilerMapSpecs) / sizeof(kTranspilerMapSpecs[0]),
+        sizeof(kTranspilerMapSpecs[0]),
+        transpiler_map_spec_compare);
+    if (spec == NULL)
+        return TRANSPILER_MAP_OP_NONE;
+    if (spec->argc != (size_t)-1 && spec->argc != argc)
+        return TRANSPILER_MAP_OP_NONE;
+    return spec->op;
+}
+
 static char *
 emit_call_stdlib_map_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx)
 {
-    if (strcmp(fn, "MapNew") == 0) {
+    TranspilerMapOp map_op = transpiler_map_lookup(fn,
+        call != NULL ? call->data.call.arg_count : 0);
+
+    if (map_op == TRANSPILER_MAP_OP_NEW) {
         const char *hint = ctx->active_type_hint;
         const char *key = NULL;
         const char *value = NULL;
@@ -28,7 +86,7 @@ emit_call_stdlib_map_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx)
         ensure_collection_specialization(ctx, "Map", value);
         return strdup_fmt("pgy_map_new_%s()", collection_runtime_suffix(value));
     }
-    if (strcmp(fn, "MapSet") == 0 && call->data.call.arg_count == 3) {
+    if (map_op == TRANSPILER_MAP_OP_SET) {
         char *m = emit_expression(call->data.call.arguments[0], ctx);
         char *k = emit_expression(call->data.call.arguments[1], ctx);
         char *v = emit_expression(call->data.call.arguments[2], ctx);
@@ -52,7 +110,7 @@ emit_call_stdlib_map_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx)
         free(m); free(k); free(v);
         return result;
     }
-    if (strcmp(fn, "MapGet") == 0 && call->data.call.arg_count == 2) {
+    if (map_op == TRANSPILER_MAP_OP_GET) {
         char *m = emit_expression(call->data.call.arguments[0], ctx);
         char *k = emit_expression(call->data.call.arguments[1], ctx);
         const char *map_type = infer_expression_type_name(ctx,
@@ -75,7 +133,7 @@ emit_call_stdlib_map_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx)
         free(m); free(k);
         return result;
     }
-    if (strcmp(fn, "MapHas") == 0 && call->data.call.arg_count == 2) {
+    if (map_op == TRANSPILER_MAP_OP_HAS) {
         char *m = emit_expression(call->data.call.arguments[0], ctx);
         char *k = emit_expression(call->data.call.arguments[1], ctx);
         const char *map_type = infer_expression_type_name(ctx,
@@ -98,7 +156,7 @@ emit_call_stdlib_map_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx)
         free(m); free(k);
         return result;
     }
-    if (strcmp(fn, "MapRemove") == 0 && call->data.call.arg_count == 2) {
+    if (map_op == TRANSPILER_MAP_OP_REMOVE) {
         char *m = emit_expression(call->data.call.arguments[0], ctx);
         char *k = emit_expression(call->data.call.arguments[1], ctx);
         const char *map_type = infer_expression_type_name(ctx,
@@ -121,7 +179,7 @@ emit_call_stdlib_map_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx)
         free(m); free(k);
         return result;
     }
-    if (strcmp(fn, "MapSize") == 0 && call->data.call.arg_count == 1) {
+    if (map_op == TRANSPILER_MAP_OP_SIZE) {
         char *m = emit_expression(call->data.call.arguments[0], ctx);
         const char *map_type = infer_expression_type_name(ctx,
             call->data.call.arguments[0]);
@@ -142,7 +200,7 @@ emit_call_stdlib_map_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx)
         free(m);
         return result;
     }
-    if (strcmp(fn, "MapKeys") == 0 && call->data.call.arg_count == 1) {
+    if (map_op == TRANSPILER_MAP_OP_KEYS) {
         char *m = emit_expression(call->data.call.arguments[0], ctx);
         const char *map_type = infer_expression_type_name(ctx,
             call->data.call.arguments[0]);

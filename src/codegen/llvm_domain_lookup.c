@@ -151,10 +151,34 @@ llvm_find_projection_class_decl(LLVMGenCtx *ctx, const char *name)
     return llvm_find_decl_in_active_inventory(ctx, AST_CLASS_DECL, name);
 }
 
+static bool
+llvm_host_decl_uses_pointer_self(ASTNode *decl)
+{
+    if (decl == NULL)
+        return false;
+
+    switch (decl->type) {
+    case AST_PARTY_DECL:
+    case AST_ROLE_DECL:
+    case AST_ROSTER_DECL:
+    case AST_WORLD_DECL:
+    case AST_RELATION_DECL:
+    case AST_EFFECT_DECL:
+    case AST_ZONE_DECL:
+        return true;
+    case AST_CLASS_DECL:
+        return decl->data.class_decl.nominal_kind == NOMINAL_DECL_SUBJECT
+            || decl->data.class_decl.nominal_kind == NOMINAL_DECL_VESSEL;
+    default:
+        return false;
+    }
+}
+
 bool
 llvm_type_name_uses_pointer_self(LLVMGenCtx *ctx, const char *type_name)
 {
     const MIRDeclHeader *mir_decl;
+    ASTNode *host_decl;
 
     if (ctx == NULL || type_name == NULL)
         return false;
@@ -169,14 +193,9 @@ llvm_type_name_uses_pointer_self(LLVMGenCtx *ctx, const char *type_name)
     if (mir_decl != NULL)
         return mir_decl->uses_pointer_self;
 
-    if (llvm_find_named_domain_decl(ctx, AST_PARTY_DECL, type_name) != NULL
-        || llvm_find_named_domain_decl(ctx, AST_ROSTER_DECL, type_name) != NULL
-        || llvm_find_named_domain_decl(ctx, AST_ROLE_DECL, type_name) != NULL
-        || llvm_find_named_domain_decl(ctx, AST_WORLD_DECL, type_name) != NULL
-        || llvm_find_named_domain_decl(ctx, AST_RELATION_DECL, type_name) != NULL
-        || llvm_find_named_domain_decl(ctx, AST_EFFECT_DECL, type_name) != NULL
-        || llvm_find_named_domain_decl(ctx, AST_ZONE_DECL, type_name) != NULL)
-        return true;
+    host_decl = llvm_find_host_decl_in_active_inventory(ctx, type_name);
+    if (host_decl != NULL)
+        return llvm_host_decl_uses_pointer_self(host_decl);
 
     {
         ASTNode *stmt = llvm_find_projection_class_decl(ctx, type_name);

@@ -72,9 +72,9 @@ run_literal_air_drift_smoke() {
     require_literal "src/compiler/mir_cleanup_fact_names.h" "cleanup-edge-from-rollback"
     require_literal "src/compiler/air_evidence.c" "slot_anchor"
     require_literal "src/compiler/air_evidence.c" "mir_block_find_pin_cleanup_edge_fact"
-    require_literal "src/compiler/air_evidence.c" "AIR_EVIDENCE_DAG_METADATA"
-    require_literal "src/compiler/air_evidence.c" "metadata-inventory"
-    require_literal "src/compiler/air_evidence.c" "AIR_EVIDENCE_DAG_GENERIC"
+    require_literal "src/compiler/air_evidence_dag.c" "AIR_EVIDENCE_DAG_METADATA"
+    require_literal "src/compiler/air_evidence_dag.c" "metadata-inventory"
+    require_literal "src/compiler/air_evidence_dag.c" "AIR_EVIDENCE_DAG_GENERIC"
     require_literal "src/compiler/air_verify.c" "air_verify"
     require_literal "src/compiler/air_verify_provenance.c" "source_provenance="
     require_literal "src/compiler/air_verify_provenance.c" "who_provenance="
@@ -104,6 +104,8 @@ run_literal_air_drift_smoke() {
     require_literal "src/compiler/air_internal.h" "air_next_capacity"
     require_literal "src/compiler/air_names.c" "air_next_capacity"
     require_literal "src/compiler/air_evidence_node.c" "air_next_capacity(&new_capacity"
+    require_literal "src/compiler/air_evidence_node.c" "air_evidence_kind_scope"
+    require_literal "src/compiler/air_evidence_node.c" "AIR evidence append requires a known evidence kind"
     require_literal "src/compiler/air_verify.c" "air_next_capacity(&new_capacity"
     require_literal "src/compiler/air_evidence_node.c" "node->fact_count += fact_count"
     require_literal "src/compiler/air_validate_evidence.c" "duplicates evidence node"
@@ -176,6 +178,7 @@ air_dump_path = root / "src" / "compiler" / "air_dump.c"
 air_vocabulary_path = root / "src" / "compiler" / "air_vocabulary.c"
 air_evidence_node_path = root / "src" / "compiler" / "air_evidence_node.c"
 air_evidence_path = root / "src" / "compiler" / "air_evidence.c"
+air_evidence_dag_path = root / "src" / "compiler" / "air_evidence_dag.c"
 air_evidence_ast_path = root / "src" / "compiler" / "air_evidence_ast.c"
 air_evidence_rir_path = root / "src" / "compiler" / "air_evidence_rir.c"
 env_flags_path = root / "src" / "common" / "env_flags.c"
@@ -210,7 +213,7 @@ diag_docs_path = root / "docs" / "72_diagnostic_codes.md"
 air_backend_nonimpact_path = root / "tests" / "air_backend_nonimpact_smoke.sh"
 diagnostics_json_path = root / "tests" / "diagnostics_json_smoke.sh"
 
-for path in (air_path, checklist_path, todo_path, makefile_path, air_semantics_path, io_boundary_builtin_path, compiler_header_path, driver_path, driver_diag_path, pgy_driver_path, parser_intent_path, parser_intent_step_path, dir_header_path, dir_impl_path, dir_collect_path, dir_collect_intent_path, air_header_path, air_impl_path, air_boundary_path, air_boundary_walk_path, air_dump_path, air_vocabulary_path, air_evidence_node_path, air_evidence_path, air_evidence_ast_path, air_evidence_rir_path, env_flags_path, mir_cleanup_fact_names_path, air_internal_path, air_validate_path, air_validate_evidence_path, air_validate_legacy_evidence_path, air_verify_provenance_path, air_verify_path, air_test_path, *air_test_case_paths, rir_test_path, *rir_test_case_paths, diag_docs_path, air_backend_nonimpact_path, diagnostics_json_path):
+for path in (air_path, checklist_path, todo_path, makefile_path, air_semantics_path, io_boundary_builtin_path, compiler_header_path, driver_path, driver_diag_path, pgy_driver_path, parser_intent_path, parser_intent_step_path, dir_header_path, dir_impl_path, dir_collect_path, dir_collect_intent_path, air_header_path, air_impl_path, air_boundary_path, air_boundary_walk_path, air_dump_path, air_vocabulary_path, air_evidence_node_path, air_evidence_path, air_evidence_dag_path, air_evidence_ast_path, air_evidence_rir_path, env_flags_path, mir_cleanup_fact_names_path, air_internal_path, air_validate_path, air_validate_evidence_path, air_validate_legacy_evidence_path, air_verify_provenance_path, air_verify_path, air_test_path, *air_test_case_paths, rir_test_path, *rir_test_case_paths, diag_docs_path, air_backend_nonimpact_path, diagnostics_json_path):
     if not path.exists():
         raise SystemExit(f"missing AIR gate input: {path.relative_to(root)}")
 
@@ -239,6 +242,7 @@ air_header = air_header_path.read_text(encoding="utf-8")
 air_boundary_walk = air_boundary_walk_path.read_text(encoding="utf-8")
 air_evidence = "\n".join([
     air_evidence_path.read_text(encoding="utf-8"),
+    air_evidence_dag_path.read_text(encoding="utf-8"),
     air_evidence_ast_path.read_text(encoding="utf-8"),
     mir_cleanup_fact_names_path.read_text(encoding="utf-8"),
 ])
@@ -251,6 +255,7 @@ air_impl = "\n".join([
     air_vocabulary_path.read_text(encoding="utf-8"),
     air_evidence_node_path.read_text(encoding="utf-8"),
     air_evidence_path.read_text(encoding="utf-8"),
+    air_evidence_dag_path.read_text(encoding="utf-8"),
     air_evidence_ast_path.read_text(encoding="utf-8"),
     air_evidence_rir_path.read_text(encoding="utf-8"),
     env_flags_path.read_text(encoding="utf-8"),

@@ -432,65 +432,9 @@ type_check_statement_flow(ASTNode *node, SemanticContext *ctx,
         type_check_return_stmt(node, ctx);
         return FLOW_RETURN;
     case AST_BREAK:
-        if (ctx->loop_depth <= 0) {
-            semantic_error_with_hints(ctx, PGY_CODE_SEM_LOOP_CONTROL_INVALID, PGY_CAUSE_LOOP_CONTROL, PGY_FIX_MOVE_INTO_LOOP_OR_FIX_LABEL, node, "'break' used outside of loop");
-            return FLOW_NONE;
-        }
-        if (node->data.break_stmt.label != NULL) {
-            bool found = false;
-            for (int i = ctx->loop_depth - 1; i >= 0; i--) {
-                if (ctx->loop_labels[i] != NULL
-                    && strcmp(ctx->loop_labels[i], node->data.break_stmt.label) == 0) {
-                    found = true;
-                    break;
-                }
-            }
-            if (!found) {
-                semantic_error_with_hints(ctx, PGY_CODE_SEM_LOOP_CONTROL_INVALID, PGY_CAUSE_LOOP_CONTROL, PGY_FIX_MOVE_INTO_LOOP_OR_FIX_LABEL, node, "Unknown loop label '%s' in break",
-                    node->data.break_stmt.label);
-                return FLOW_NONE;
-            }
-        }
-        {
-            ResourceConsumeSnapshot snap = snapshot_resource_states_from_scope(
-                loop_flow != NULL && loop_flow->loop_scope != NULL
-                    ? loop_flow->loop_scope
-                    : ctx->scope,
-                ctx);
-            loop_flow_record(loop_flow, true, &snap);
-            destroy_resource_snapshot(&snap);
-        }
-        return FLOW_BREAK;
+        return type_check_loop_control_flow(node, ctx, loop_flow, true);
     case AST_CONTINUE:
-        if (ctx->loop_depth <= 0) {
-            semantic_error_with_hints(ctx, PGY_CODE_SEM_LOOP_CONTROL_INVALID, PGY_CAUSE_LOOP_CONTROL, PGY_FIX_MOVE_INTO_LOOP_OR_FIX_LABEL, node, "'continue' used outside of loop");
-            return FLOW_NONE;
-        }
-        if (node->data.continue_stmt.label != NULL) {
-            bool found = false;
-            for (int i = ctx->loop_depth - 1; i >= 0; i--) {
-                if (ctx->loop_labels[i] != NULL
-                    && strcmp(ctx->loop_labels[i], node->data.continue_stmt.label) == 0) {
-                    found = true;
-                    break;
-                }
-            }
-            if (!found) {
-                semantic_error_with_hints(ctx, PGY_CODE_SEM_LOOP_CONTROL_INVALID, PGY_CAUSE_LOOP_CONTROL, PGY_FIX_MOVE_INTO_LOOP_OR_FIX_LABEL, node, "Unknown loop label '%s' in continue",
-                    node->data.continue_stmt.label);
-                return FLOW_NONE;
-            }
-        }
-        {
-            ResourceConsumeSnapshot snap = snapshot_resource_states_from_scope(
-                loop_flow != NULL && loop_flow->loop_scope != NULL
-                    ? loop_flow->loop_scope
-                    : ctx->scope,
-                ctx);
-            loop_flow_record(loop_flow, false, &snap);
-            destroy_resource_snapshot(&snap);
-        }
-        return FLOW_CONTINUE;
+        return type_check_loop_control_flow(node, ctx, loop_flow, false);
     default:
         type_check_statement(node, ctx);
         return FLOW_FALLTHROUGH;

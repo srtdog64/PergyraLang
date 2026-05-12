@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include <string.h>
 
 #include "type_checker_internal.h"
@@ -37,6 +38,16 @@ typedef struct StdlibCollectionBuiltinSpec {
     StdlibCollectionBuiltinKind kind;
 } StdlibCollectionBuiltinSpec;
 
+static int
+stdlib_collection_builtin_compare(const void *key, const void *entry)
+{
+    const char *name = *(const char * const *)key;
+    const StdlibCollectionBuiltinSpec *spec =
+        (const StdlibCollectionBuiltinSpec *)entry;
+
+    return strcmp(name, spec->name);
+}
+
 static Type *
 stdlib_collection_normalize_type(Type *type)
 {
@@ -72,15 +83,14 @@ stdlib_collection_builtin_kind(const char *name)
         { "SetRemove", STDLIB_COLLECTION_SET_REMOVE },
         { "SetSize", STDLIB_COLLECTION_SET_SIZE }
     };
-    size_t i;
+    const StdlibCollectionBuiltinSpec *match;
 
     if (name == NULL)
         return STDLIB_COLLECTION_UNKNOWN;
-    for (i = 0; i < sizeof(specs) / sizeof(specs[0]); i++) {
-        if (strcmp(name, specs[i].name) == 0)
-            return specs[i].kind;
-    }
-    return STDLIB_COLLECTION_UNKNOWN;
+    match = (const StdlibCollectionBuiltinSpec *)bsearch(
+        &name, specs, sizeof(specs) / sizeof(specs[0]), sizeof(specs[0]),
+        stdlib_collection_builtin_compare);
+    return match != NULL ? match->kind : STDLIB_COLLECTION_UNKNOWN;
 }
 
 Type *

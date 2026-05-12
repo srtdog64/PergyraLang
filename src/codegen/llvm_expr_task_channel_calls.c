@@ -8,6 +8,7 @@
 #include "llvm_expr_task_channel_calls.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "llvm_internal_api.h"
@@ -147,26 +148,83 @@ llvm_task_channel_format_op_runtime_name(char *out, size_t out_size,
     return written >= 0 && (size_t)written < out_size;
 }
 
+typedef struct LLVMTaskChannelNameSpec {
+    const char *name;
+} LLVMTaskChannelNameSpec;
+
+typedef struct LLVMChannelQueryOpSpec {
+    const char *name;
+    const char *runtime_op;
+} LLVMChannelQueryOpSpec;
+
+static int
+llvm_task_channel_name_compare(const void *key, const void *entry)
+{
+    const char *name = *(const char * const *)key;
+    const LLVMTaskChannelNameSpec *spec =
+        (const LLVMTaskChannelNameSpec *)entry;
+
+    return strcmp(name, spec->name);
+}
+
+static int
+llvm_channel_query_op_compare(const void *key, const void *entry)
+{
+    const char *name = *(const char * const *)key;
+    const LLVMChannelQueryOpSpec *spec =
+        (const LLVMChannelQueryOpSpec *)entry;
+
+    return strcmp(name, spec->name);
+}
+
 static bool
 llvm_is_task_channel_builtin_name(const char *callee_name)
 {
+    static const LLVMTaskChannelNameSpec specs[] = {
+        { "Cancel" },
+        { "ChannelCapacity" },
+        { "ChannelClose" },
+        { "ChannelClosed" },
+        { "ChannelFull" },
+        { "ChannelLength" },
+        { "ChannelReady" },
+        { "ChannelSpace" },
+        { "IsCancelled" },
+        { "RecvTimeout" },
+        { "SendTimeout" },
+        { "SendTimeoutStatus" },
+        { "TryRecv" },
+        { "TrySend" },
+        { "TrySendStatus" },
+    };
+
     if (callee_name == NULL)
         return false;
-    return strcmp(callee_name, "Cancel") == 0
-        || strcmp(callee_name, "IsCancelled") == 0
-        || strcmp(callee_name, "ChannelClose") == 0
-        || strcmp(callee_name, "TrySend") == 0
-        || strcmp(callee_name, "TrySendStatus") == 0
-        || strcmp(callee_name, "SendTimeout") == 0
-        || strcmp(callee_name, "SendTimeoutStatus") == 0
-        || strcmp(callee_name, "TryRecv") == 0
-        || strcmp(callee_name, "RecvTimeout") == 0
-        || strcmp(callee_name, "ChannelReady") == 0
-        || strcmp(callee_name, "ChannelLength") == 0
-        || strcmp(callee_name, "ChannelCapacity") == 0
-        || strcmp(callee_name, "ChannelSpace") == 0
-        || strcmp(callee_name, "ChannelFull") == 0
-        || strcmp(callee_name, "ChannelClosed") == 0;
+
+    return bsearch(&callee_name, specs, sizeof(specs) / sizeof(specs[0]),
+        sizeof(specs[0]), llvm_task_channel_name_compare) != NULL;
+}
+
+static const char *
+llvm_channel_query_runtime_op(const char *callee_name)
+{
+    static const LLVMChannelQueryOpSpec specs[] = {
+        { "ChannelCapacity", "capacity" },
+        { "ChannelClosed", "closed" },
+        { "ChannelFull", "full" },
+        { "ChannelLength", "length" },
+        { "ChannelReady", "ready" },
+        { "ChannelSpace", "space" },
+    };
+    const LLVMChannelQueryOpSpec *match;
+
+    if (callee_name == NULL)
+        return NULL;
+
+    match = (const LLVMChannelQueryOpSpec *)bsearch(
+        &callee_name, specs, sizeof(specs) / sizeof(specs[0]),
+        sizeof(specs[0]), llvm_channel_query_op_compare);
+    return match != NULL ? match->runtime_op : NULL;
 }
 
 static bool
@@ -474,40 +532,31 @@ llvm_emit_task_channel_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_n
         return llvm_build_option_value(ctx, value_ty, ok, value);
     }
 
-    if ((strcmp(callee_name, "ChannelReady") == 0
-         || strcmp(callee_name, "ChannelLength") == 0
-         || strcmp(callee_name, "ChannelCapacity") == 0
-         || strcmp(callee_name, "ChannelSpace") == 0
-         || strcmp(callee_name, "ChannelFull") == 0
-         || strcmp(callee_name, "ChannelClosed") == 0)
-        && node->data.call.arg_count == 1) {
-        ASTNode *channel = NULL;
-        LLVMVarEntry *ch_var = NULL;
-        const char *inner = NULL;
-        const char *op =
-            strcmp(callee_name, "ChannelReady") == 0 ? "ready" :
-            strcmp(callee_name, "ChannelLength") == 0 ? "length" :
-            strcmp(callee_name, "ChannelCapacity") == 0 ? "capacity" :
-            strcmp(callee_name, "ChannelSpace") == 0 ? "space" :
-            strcmp(callee_name, "ChannelFull") == 0 ? "full" :
-            "closed";
-        char fname[128];
-        LLVMFuncEntry *fn;
+    {
+        const char *op = llvm_channel_query_runtime_op(callee_name);
+        if (op != NULL && node->data.call.arg_count == 1) {
+            ASTNode *channel = NULL;
+            LLVMVarEntry *ch_var = NULL;
+            const char *inner = NULL;
+            char fname[128];
+            LLVMFuncEntry *fn;
 
-        if (!llvm_channel_arg(ctx, node, callee_name, &channel, &ch_var, &inner))
-            return NULL;
-        if (!llvm_task_channel_format_op_runtime_name(fname, sizeof(fname),
-                op, inner)) {
-            return llvm_task_channel_error(ctx, channel, callee_name,
-                "runtime function name is too long");
+            if (!llvm_channel_arg(ctx, node, callee_name,
+                    &channel, &ch_var, &inner))
+                return NULL;
+            if (!llvm_task_channel_format_op_runtime_name(fname, sizeof(fname),
+                    op, inner)) {
+                return llvm_task_channel_error(ctx, channel, callee_name,
+                    "runtime function name is too long");
+            }
+            fn = llvm_required_channel_function(ctx, channel, callee_name, fname);
+            if (fn == NULL)
+                return NULL;
+
+            LLVMValueRef args[] = { ch_var->alloca };
+            return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn,
+                args, 1, llvm_tmp_name(ctx));
         }
-        fn = llvm_required_channel_function(ctx, channel, callee_name, fname);
-        if (fn == NULL)
-            return NULL;
-
-        LLVMValueRef args[] = { ch_var->alloca };
-        return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn,
-            args, 1, llvm_tmp_name(ctx));
     }
 
     if (llvm_is_task_channel_builtin_name(callee_name)) {

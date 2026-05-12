@@ -5,6 +5,7 @@
  * Type Checker — HashMap stdlib builtin dispatch.
  */
 
+#include <stdlib.h>
 #include <string.h>
 
 #include "type_checker_internal.h"
@@ -28,6 +29,15 @@ typedef struct StdlibMapBuiltinSpec {
     StdlibMapBuiltinKind kind;
 } StdlibMapBuiltinSpec;
 
+static int
+stdlib_map_builtin_compare(const void *key, const void *entry)
+{
+    const char *name = *(const char * const *)key;
+    const StdlibMapBuiltinSpec *spec = (const StdlibMapBuiltinSpec *)entry;
+
+    return strcmp(name, spec->name);
+}
+
 static Type *
 stdlib_map_normalize_type(Type *type)
 {
@@ -46,15 +56,14 @@ stdlib_map_builtin_kind(const char *name)
         { "MapSet", STDLIB_MAP_BUILTIN_SET },
         { "MapSize", STDLIB_MAP_BUILTIN_SIZE }
     };
-    size_t i;
+    const StdlibMapBuiltinSpec *match;
 
     if (name == NULL)
         return STDLIB_MAP_BUILTIN_UNKNOWN;
-    for (i = 0; i < sizeof(specs) / sizeof(specs[0]); i++) {
-        if (strcmp(name, specs[i].name) == 0)
-            return specs[i].kind;
-    }
-    return STDLIB_MAP_BUILTIN_UNKNOWN;
+    match = (const StdlibMapBuiltinSpec *)bsearch(
+        &name, specs, sizeof(specs) / sizeof(specs[0]), sizeof(specs[0]),
+        stdlib_map_builtin_compare);
+    return match != NULL ? match->kind : STDLIB_MAP_BUILTIN_UNKNOWN;
 }
 
 static void

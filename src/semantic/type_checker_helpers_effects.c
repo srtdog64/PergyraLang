@@ -5,21 +5,42 @@
 #include <stdlib.h>
 #include <string.h>
 
+typedef struct {
+    const char *name;
+    uint32_t mask;
+} EffectWordSpec;
+
+static const EffectWordSpec kEffectWordSpecs[] = {
+    {"collapse", EFFECT_COLLAPSE},
+    {"local", EFFECT_NONE},
+    {"nondeterministic", EFFECT_NONDETERMINISTIC},
+    {"remote", EFFECT_REMOTE},
+    {"secure", EFFECT_SECURE},
+};
+
+static int
+effect_word_spec_compare(const void *key, const void *entry)
+{
+    const char *name = (const char *)key;
+    const EffectWordSpec *spec = (const EffectWordSpec *)entry;
+    return strcmp(name, spec->name);
+}
+
 static uint32_t
 parse_effect_word(const char *word)
 {
+    const EffectWordSpec *spec;
+
     if (word == NULL || *word == '\0')
         return EFFECT_NONE;
-    if (strcmp(word, "secure") == 0)
-        return EFFECT_SECURE;
-    if (strcmp(word, "remote") == 0)
-        return EFFECT_REMOTE;
-    if (strcmp(word, "nondeterministic") == 0)
-        return EFFECT_NONDETERMINISTIC;
-    if (strcmp(word, "collapse") == 0)
-        return EFFECT_COLLAPSE;
-    if (strcmp(word, "local") == 0)
-        return EFFECT_NONE;
+    spec = (const EffectWordSpec *)bsearch(
+        word,
+        kEffectWordSpecs,
+        sizeof(kEffectWordSpecs) / sizeof(kEffectWordSpecs[0]),
+        sizeof(kEffectWordSpecs[0]),
+        effect_word_spec_compare);
+    if (spec != NULL)
+        return spec->mask;
     return UINT32_MAX;
 }
 

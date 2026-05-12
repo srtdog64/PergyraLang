@@ -5,6 +5,7 @@
  * FSM, Timer, and Cooldown builtin family.
  */
 
+#include <stdlib.h>
 #include <string.h>
 
 #include "type_checker_internal.h"
@@ -38,33 +39,44 @@ typedef struct
 } StateToolBuiltinSpec;
 
 static const StateToolBuiltinSpec state_tool_specs[] = {
-    { "FsmNew", 0, STATE_TOOL_RET_UNKNOWN },
+    { "CooldownNew", 1, STATE_TOOL_RET_UNKNOWN },
+    { "CooldownReady", 1, STATE_TOOL_RET_BOOL },
+    { "CooldownTick", 2, STATE_TOOL_RET_VOID },
+    { "CooldownTrigger", 1, STATE_TOOL_RET_VOID },
     { "FsmAddState", 2, STATE_TOOL_RET_INT },
-    { "FsmTransition", 4, STATE_TOOL_RET_VOID },
-    { "FsmStep", 2, STATE_TOOL_RET_BOOL },
     { "FsmCurrent", 1, STATE_TOOL_RET_INT },
     { "FsmCurrentName", 1, STATE_TOOL_RET_STRING },
-    { "TimerNew", 1, STATE_TOOL_RET_UNKNOWN },
-    { "TimerTick", 2, STATE_TOOL_RET_VOID },
-    { "TimerRemaining", 1, STATE_TOOL_RET_INT },
+    { "FsmNew", 0, STATE_TOOL_RET_UNKNOWN },
+    { "FsmStep", 2, STATE_TOOL_RET_BOOL },
+    { "FsmTransition", 4, STATE_TOOL_RET_VOID },
     { "TimerDone", 1, STATE_TOOL_RET_BOOL },
+    { "TimerNew", 1, STATE_TOOL_RET_UNKNOWN },
+    { "TimerRemaining", 1, STATE_TOOL_RET_INT },
     { "TimerReset", 1, STATE_TOOL_RET_VOID },
-    { "CooldownNew", 1, STATE_TOOL_RET_UNKNOWN },
-    { "CooldownTick", 2, STATE_TOOL_RET_VOID },
-    { "CooldownReady", 1, STATE_TOOL_RET_BOOL },
-    { "CooldownTrigger", 1, STATE_TOOL_RET_VOID },
+    { "TimerTick", 2, STATE_TOOL_RET_VOID },
 };
+
+static int
+state_tool_compare(const void *key, const void *entry)
+{
+    const char *name = *(const char * const *)key;
+    const StateToolBuiltinSpec *spec = (const StateToolBuiltinSpec *)entry;
+
+    return strcmp(name, spec->name);
+}
 
 static const StateToolBuiltinSpec *
 state_tool_find_spec(const char *name)
 {
+    const StateToolBuiltinSpec *match;
+
     if (name == NULL)
         return NULL;
-    for (size_t i = 0; i < sizeof(state_tool_specs) / sizeof(state_tool_specs[0]); i++) {
-        if (strcmp(state_tool_specs[i].name, name) == 0)
-            return &state_tool_specs[i];
-    }
-    return NULL;
+    match = (const StateToolBuiltinSpec *)bsearch(
+        &name, state_tool_specs,
+        sizeof(state_tool_specs) / sizeof(state_tool_specs[0]),
+        sizeof(state_tool_specs[0]), state_tool_compare);
+    return match;
 }
 
 static Type *

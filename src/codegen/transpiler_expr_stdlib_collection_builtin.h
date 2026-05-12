@@ -6,6 +6,79 @@
 
 #include "codegen_hashmap_key_policy.h"
 
+typedef enum {
+    TRANSPILER_COLLECTION_OP_NONE = 0,
+    TRANSPILER_COLLECTION_OP_LIST_GET,
+    TRANSPILER_COLLECTION_OP_LIST_NEW,
+    TRANSPILER_COLLECTION_OP_LIST_PUSH,
+    TRANSPILER_COLLECTION_OP_LIST_REMOVE,
+    TRANSPILER_COLLECTION_OP_LIST_SET,
+    TRANSPILER_COLLECTION_OP_LIST_SIZE,
+    TRANSPILER_COLLECTION_OP_QUEUE_EMPTY,
+    TRANSPILER_COLLECTION_OP_QUEUE_NEW,
+    TRANSPILER_COLLECTION_OP_QUEUE_POP,
+    TRANSPILER_COLLECTION_OP_QUEUE_PUSH,
+    TRANSPILER_COLLECTION_OP_QUEUE_SIZE,
+    TRANSPILER_COLLECTION_OP_SET_ADD,
+    TRANSPILER_COLLECTION_OP_SET_HAS,
+    TRANSPILER_COLLECTION_OP_SET_NEW,
+    TRANSPILER_COLLECTION_OP_SET_REMOVE,
+    TRANSPILER_COLLECTION_OP_SET_SIZE,
+} TranspilerCollectionOp;
+
+typedef struct {
+    const char *name;
+    size_t argc;
+    TranspilerCollectionOp op;
+} TranspilerCollectionSpec;
+
+static const TranspilerCollectionSpec kTranspilerCollectionSpecs[] = {
+    {"ListGet", 2, TRANSPILER_COLLECTION_OP_LIST_GET},
+    {"ListNew", (size_t)-1, TRANSPILER_COLLECTION_OP_LIST_NEW},
+    {"ListPush", 2, TRANSPILER_COLLECTION_OP_LIST_PUSH},
+    {"ListRemove", 2, TRANSPILER_COLLECTION_OP_LIST_REMOVE},
+    {"ListSet", 3, TRANSPILER_COLLECTION_OP_LIST_SET},
+    {"ListSize", 1, TRANSPILER_COLLECTION_OP_LIST_SIZE},
+    {"QueueEmpty", 1, TRANSPILER_COLLECTION_OP_QUEUE_EMPTY},
+    {"QueueNew", (size_t)-1, TRANSPILER_COLLECTION_OP_QUEUE_NEW},
+    {"QueuePop", 1, TRANSPILER_COLLECTION_OP_QUEUE_POP},
+    {"QueuePush", 2, TRANSPILER_COLLECTION_OP_QUEUE_PUSH},
+    {"QueueSize", 1, TRANSPILER_COLLECTION_OP_QUEUE_SIZE},
+    {"SetAdd", 2, TRANSPILER_COLLECTION_OP_SET_ADD},
+    {"SetHas", 2, TRANSPILER_COLLECTION_OP_SET_HAS},
+    {"SetNew", (size_t)-1, TRANSPILER_COLLECTION_OP_SET_NEW},
+    {"SetRemove", 2, TRANSPILER_COLLECTION_OP_SET_REMOVE},
+    {"SetSize", 1, TRANSPILER_COLLECTION_OP_SET_SIZE},
+};
+
+static int
+transpiler_collection_spec_compare(const void *key, const void *entry)
+{
+    const char *name = (const char *)key;
+    const TranspilerCollectionSpec *spec = (const TranspilerCollectionSpec *)entry;
+    return strcmp(name, spec->name);
+}
+
+static TranspilerCollectionOp
+transpiler_collection_lookup(const char *fn, size_t argc)
+{
+    const TranspilerCollectionSpec *spec;
+
+    if (fn == NULL)
+        return TRANSPILER_COLLECTION_OP_NONE;
+    spec = (const TranspilerCollectionSpec *)bsearch(
+        fn,
+        kTranspilerCollectionSpecs,
+        sizeof(kTranspilerCollectionSpecs) / sizeof(kTranspilerCollectionSpecs[0]),
+        sizeof(kTranspilerCollectionSpecs[0]),
+        transpiler_collection_spec_compare);
+    if (spec == NULL)
+        return TRANSPILER_COLLECTION_OP_NONE;
+    if (spec->argc != (size_t)-1 && spec->argc != argc)
+        return TRANSPILER_COLLECTION_OP_NONE;
+    return spec->op;
+}
+
 static bool
 transpiler_collection_copy_type_name(char *out, size_t out_size,
                                      const char *type_name)
@@ -158,11 +231,15 @@ transpiler_require_unary_collection_type(TranspilerCtx *ctx,
 static char *
 emit_call_stdlib_collection_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx)
 {
+    size_t argc = call != NULL ? call->data.call.arg_count : 0;
+    TranspilerCollectionOp op;
     char *map_builtin = emit_call_stdlib_map_builtin(fn, call, ctx);
     if (map_builtin != NULL)
         return map_builtin;
 
-    if (strcmp(fn, "ListNew") == 0) {
+    op = transpiler_collection_lookup(fn, argc);
+
+    if (op == TRANSPILER_COLLECTION_OP_LIST_NEW) {
         const char *hint = ctx->active_type_hint;
         char inner_buf[64];
         const char *inner = NULL;
@@ -173,7 +250,7 @@ emit_call_stdlib_collection_builtin(const char *fn, ASTNode *call, TranspilerCtx
         ensure_collection_specialization(ctx, "List", inner);
         return strdup_fmt("pgy_list_new_%s()", collection_runtime_suffix(inner));
     }
-    if (strcmp(fn, "ListPush") == 0 && call->data.call.arg_count == 2) {
+    if (op == TRANSPILER_COLLECTION_OP_LIST_PUSH) {
         char *l = emit_expression(call->data.call.arguments[0], ctx);
         char *v = emit_expression(call->data.call.arguments[1], ctx);
         const char *list_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
@@ -189,7 +266,7 @@ emit_call_stdlib_collection_builtin(const char *fn, ASTNode *call, TranspilerCtx
             collection_runtime_suffix(inner), l, v);
         free(l); free(v); return r;
     }
-    if (strcmp(fn, "ListGet") == 0 && call->data.call.arg_count == 2) {
+    if (op == TRANSPILER_COLLECTION_OP_LIST_GET) {
         char *l = emit_expression(call->data.call.arguments[0], ctx);
         char *i = emit_expression(call->data.call.arguments[1], ctx);
         const char *list_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
@@ -205,7 +282,7 @@ emit_call_stdlib_collection_builtin(const char *fn, ASTNode *call, TranspilerCtx
             collection_runtime_suffix(inner), l, i);
         free(l); free(i); return r;
     }
-    if (strcmp(fn, "ListSet") == 0 && call->data.call.arg_count == 3) {
+    if (op == TRANSPILER_COLLECTION_OP_LIST_SET) {
         char *l = emit_expression(call->data.call.arguments[0], ctx);
         char *i = emit_expression(call->data.call.arguments[1], ctx);
         char *v = emit_expression(call->data.call.arguments[2], ctx);
@@ -222,7 +299,7 @@ emit_call_stdlib_collection_builtin(const char *fn, ASTNode *call, TranspilerCtx
             collection_runtime_suffix(inner), l, i, v);
         free(l); free(i); free(v); return r;
     }
-    if (strcmp(fn, "ListSize") == 0 && call->data.call.arg_count == 1) {
+    if (op == TRANSPILER_COLLECTION_OP_LIST_SIZE) {
         char *l = emit_expression(call->data.call.arguments[0], ctx);
         const char *list_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
         char inner_buf[64];
@@ -237,7 +314,7 @@ emit_call_stdlib_collection_builtin(const char *fn, ASTNode *call, TranspilerCtx
             collection_runtime_suffix(inner), l);
         free(l); return r;
     }
-    if (strcmp(fn, "ListRemove") == 0 && call->data.call.arg_count == 2) {
+    if (op == TRANSPILER_COLLECTION_OP_LIST_REMOVE) {
         char *l = emit_expression(call->data.call.arguments[0], ctx);
         char *i = emit_expression(call->data.call.arguments[1], ctx);
         const char *list_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
@@ -254,7 +331,7 @@ emit_call_stdlib_collection_builtin(const char *fn, ASTNode *call, TranspilerCtx
         free(l); free(i); return r;
     }
 
-    if (strcmp(fn, "SetNew") == 0) {
+    if (op == TRANSPILER_COLLECTION_OP_SET_NEW) {
         const char *hint = ctx->active_type_hint;
         char inner_buf[64];
         const char *set_inner = NULL;
@@ -265,7 +342,7 @@ emit_call_stdlib_collection_builtin(const char *fn, ASTNode *call, TranspilerCtx
         ensure_collection_specialization(ctx, "Set", set_inner);
         return strdup_fmt("pgy_set_new_%s()", collection_runtime_suffix(set_inner));
     }
-    if (strcmp(fn, "SetAdd") == 0 && call->data.call.arg_count == 2) {
+    if (op == TRANSPILER_COLLECTION_OP_SET_ADD) {
         const char *set_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
         char inner_buf[64];
         const char *set_inner = NULL;
@@ -281,7 +358,7 @@ emit_call_stdlib_collection_builtin(const char *fn, ASTNode *call, TranspilerCtx
             collection_runtime_suffix(set_inner), s, k);
         free(s); free(k); return r;
     }
-    if (strcmp(fn, "SetHas") == 0 && call->data.call.arg_count == 2) {
+    if (op == TRANSPILER_COLLECTION_OP_SET_HAS) {
         const char *set_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
         char inner_buf[64];
         const char *set_inner = NULL;
@@ -297,7 +374,7 @@ emit_call_stdlib_collection_builtin(const char *fn, ASTNode *call, TranspilerCtx
             collection_runtime_suffix(set_inner), s, k);
         free(s); free(k); return r;
     }
-    if (strcmp(fn, "SetRemove") == 0 && call->data.call.arg_count == 2) {
+    if (op == TRANSPILER_COLLECTION_OP_SET_REMOVE) {
         const char *set_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
         char inner_buf[64];
         const char *set_inner = NULL;
@@ -313,7 +390,7 @@ emit_call_stdlib_collection_builtin(const char *fn, ASTNode *call, TranspilerCtx
             collection_runtime_suffix(set_inner), s, k);
         free(s); free(k); return r;
     }
-    if (strcmp(fn, "SetSize") == 0 && call->data.call.arg_count == 1) {
+    if (op == TRANSPILER_COLLECTION_OP_SET_SIZE) {
         const char *set_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
         char inner_buf[64];
         const char *set_inner = NULL;
@@ -329,7 +406,7 @@ emit_call_stdlib_collection_builtin(const char *fn, ASTNode *call, TranspilerCtx
         free(s); return r;
     }
 
-    if (strcmp(fn, "QueueNew") == 0) {
+    if (op == TRANSPILER_COLLECTION_OP_QUEUE_NEW) {
         const char *hint = ctx->active_type_hint;
         char inner_buf[64];
         const char *inner = NULL;
@@ -340,7 +417,7 @@ emit_call_stdlib_collection_builtin(const char *fn, ASTNode *call, TranspilerCtx
         ensure_collection_specialization(ctx, "Queue", inner);
         return strdup_fmt("pgy_queue_new_%s()", collection_runtime_suffix(inner));
     }
-    if (strcmp(fn, "QueuePush") == 0 && call->data.call.arg_count == 2) {
+    if (op == TRANSPILER_COLLECTION_OP_QUEUE_PUSH) {
         char *q = emit_expression(call->data.call.arguments[0], ctx);
         char *v = emit_expression(call->data.call.arguments[1], ctx);
         const char *queue_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
@@ -356,7 +433,7 @@ emit_call_stdlib_collection_builtin(const char *fn, ASTNode *call, TranspilerCtx
             collection_runtime_suffix(inner), q, v);
         free(q); free(v); return r;
     }
-    if (strcmp(fn, "QueuePop") == 0 && call->data.call.arg_count == 1) {
+    if (op == TRANSPILER_COLLECTION_OP_QUEUE_POP) {
         char *q = emit_expression(call->data.call.arguments[0], ctx);
         const char *queue_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
         char inner_buf[64];
@@ -371,7 +448,7 @@ emit_call_stdlib_collection_builtin(const char *fn, ASTNode *call, TranspilerCtx
             collection_runtime_suffix(inner), q);
         free(q); return r;
     }
-    if (strcmp(fn, "QueueSize") == 0 && call->data.call.arg_count == 1) {
+    if (op == TRANSPILER_COLLECTION_OP_QUEUE_SIZE) {
         char *q = emit_expression(call->data.call.arguments[0], ctx);
         const char *queue_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
         char inner_buf[64];
@@ -386,7 +463,7 @@ emit_call_stdlib_collection_builtin(const char *fn, ASTNode *call, TranspilerCtx
             collection_runtime_suffix(inner), q);
         free(q); return r;
     }
-    if (strcmp(fn, "QueueEmpty") == 0 && call->data.call.arg_count == 1) {
+    if (op == TRANSPILER_COLLECTION_OP_QUEUE_EMPTY) {
         char *q = emit_expression(call->data.call.arguments[0], ctx);
         const char *queue_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
         char inner_buf[64];

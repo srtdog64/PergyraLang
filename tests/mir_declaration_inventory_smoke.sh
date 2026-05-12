@@ -318,6 +318,13 @@ for term in \
     require_term "src/codegen/transpiler_decl_lookup.c" "$term"
 done
 for term in \
+    "find_party_decl(ctx, type_name) != NULL" \
+    "find_role_decl(ctx, type_name) != NULL" \
+    "find_roster_decl(ctx, type_name) != NULL"; do
+    require_term "src/codegen/transpiler_projection.c" "$term"
+    require_term "src/codegen/transpiler_host_self_policy.c" "$term"
+done
+for term in \
     "transpiler_find_method_source_ast_in_mir_header" \
     "transpiler_decl_header_is_nominal_host(header)" \
     "mir_find_decl_header(ctx->mir, host_type_name)" \
@@ -643,7 +650,8 @@ for term in \
     "return llvm_is_host_decl_type(decl->type)" \
     "llvm_decl_node_name(decl)" \
     "llvm_find_host_decl_header_in_context(ctx, type_name)" \
-    "llvm_find_named_domain_decl(ctx, AST_ROLE_DECL, type_name)"; do
+    "llvm_find_host_decl_in_active_inventory(ctx, type_name)" \
+    "llvm_host_decl_uses_pointer_self"; do
     require_term "src/codegen/llvm_domain_lookup.c" "$term"
 done
 if grep -Fq "llvm_decl_current_nominal_name" \
@@ -794,6 +802,16 @@ require_term "src/codegen/llvm_domain_role_emit.c" \
     "llvm_mir_decl_method_routine(ctx, method_meta)"
 require_term "src/codegen/llvm_domain_role_emit.c" \
     "llvm_role_method_name_from_ast"
+require_term "src/codegen/llvm_domain_role_emit.c" \
+    "MIR-only LLVM path missing registered function for role method"
+require_term "src/codegen/llvm_domain_role_emit.c" \
+    "MIR-only LLVM path missing vtable function for role method"
+require_term "src/codegen/transpiler_domain_nominal_emit.h" \
+    "ctx != NULL && ctx->backend_error != NULL"
+require_term "src/codegen/transpiler_domain_role_methods_emit.h" \
+    "ctx != NULL && ctx->backend_error != NULL"
+require_term "src/codegen/transpiler_domain_role_methods_emit.h" \
+    "ensure_ability_ref_vtable_decl(impl->data.impl_ability.ability_ref, ctx)"
 if grep -Fq "llvm_find_mir_method_routine_local(ctx," \
     "$ROOT_DIR/src/codegen/llvm_domain_role_emit.c"; then
     fail "LLVM role method body emission must use linked MIRDeclMethod routine indexes, not AST/name routine search"

@@ -18,6 +18,12 @@
  * RUN:   ./bin/test_abi_pipeline
  */
 
+#ifndef _WIN32
+#ifndef _POSIX_C_SOURCE
+#define _POSIX_C_SOURCE 200809L
+#endif
+#endif
+
 #include <errno.h>
 #include <stdbool.h>
 #include <stdint.h>

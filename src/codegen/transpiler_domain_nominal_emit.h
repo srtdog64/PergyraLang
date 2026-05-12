@@ -78,9 +78,13 @@ emit_included_role_impls(ASTNode *role, TranspilerCtx *ctx)
                 if (role_has_method(role, method->data.func_decl.name))
                     continue;
                 emit_role_method_impl(role->data.role_decl.name, method, ctx);
+                if (ctx != NULL && ctx->backend_error != NULL)
+                    return;
             }
 
             emit_role_vtable_instance(role->data.role_decl.name, impl, ctx);
+            if (ctx != NULL && ctx->backend_error != NULL)
+                return;
         }
     }
 }
@@ -163,6 +167,8 @@ emit_role_decl(ASTNode *node, TranspilerCtx *ctx)
 
     codebuf_write(ctx->out, "\n/* Role: %s */\n", name);
     emit_included_role_impls(node, ctx);
+    if (ctx != NULL && ctx->backend_error != NULL)
+        return;
 
     for (size_t i = 0; i < node->data.role_decl.impl_count; i++) {
         ASTNode *impl = node->data.role_decl.impl_abilities[i];
@@ -176,9 +182,13 @@ emit_role_decl(ASTNode *node, TranspilerCtx *ctx)
                 if (method == NULL || method->type != AST_FUNC_DECL)
                     continue;
                 emit_role_method_impl(name, method, ctx);
+                if (ctx != NULL && ctx->backend_error != NULL)
+                    return;
             }
 
             emit_role_vtable_instance(name, impl, ctx);
+            if (ctx != NULL && ctx->backend_error != NULL)
+                return;
 
         } else if (impl->type == AST_OVERRIDE_FUNC) {
             ASTNode *func = impl->data.override_func.func_decl;

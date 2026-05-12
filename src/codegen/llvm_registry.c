@@ -102,8 +102,12 @@ llvm_set_function_flags(LLVMGenCtx *ctx, const char *name,
 LLVMFuncEntry *
 llvm_lookup_function(LLVMGenCtx *ctx, const char *name)
 {
+    if (ctx == NULL || name == NULL || ctx->functions == NULL)
+        return NULL;
+
     for (int i = 0; i < ctx->func_count; i++) {
-        if (strcmp(ctx->functions[i].name, name) == 0)
+        if (ctx->functions[i].name != NULL
+            && strcmp(ctx->functions[i].name, name) == 0)
             return &ctx->functions[i];
     }
     return NULL;

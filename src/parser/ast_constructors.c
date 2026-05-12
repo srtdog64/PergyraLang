@@ -80,7 +80,7 @@ ASTNode* ast_create_program(void) {
     return node;
 }
 
-// ?⑥닔 ?좎뼵
+// Function declaration
 ASTNode* ast_create_function(const char* name) {
     ASTNode* node = ast_create_node(AST_FUNC_DECL);
     node->data.func_decl.name = pergyra_strdup(name);
@@ -107,7 +107,7 @@ ASTNode* ast_create_function(const char* name) {
     return node;
 }
 
-// ?대옒???좎뼵
+// Class declaration
 ASTNode* ast_create_class(const char* name) {
     ASTNode* node = ast_create_node(AST_CLASS_DECL);
     node->data.class_decl.name = pergyra_strdup(name);
@@ -140,7 +140,7 @@ ASTNode* ast_create_vessel(const char* name) {
     return node;
 }
 
-// 援ъ“泥??좎뼵
+// Struct declaration
 ASTNode* ast_create_struct(const char* name) {
     ASTNode* node = ast_create_class(name);
     if (node) {
@@ -177,7 +177,7 @@ ASTNode* ast_create_extern_block(const char* abi) {
     return node;
 }
 
-// let ?좎뼵
+// Let declaration
 ASTNode* ast_create_let_declaration(const char* name) {
     ASTNode* node = ast_create_node(AST_LET_DECL);
     node->data.let_decl.name = pergyra_strdup(name);
@@ -196,7 +196,7 @@ ASTNode* ast_create_type_alias(const char* name, ASTNode* target_type) {
     return node;
 }
 
-// with 臾?
+// With statement
 ASTNode* ast_create_with_statement(void) {
     ASTNode* node = ast_create_node(AST_WITH_STMT);
     node->data.with_stmt.slot_type = NULL;
@@ -207,7 +207,6 @@ ASTNode* ast_create_with_statement(void) {
     return node;
 }
 
-// parallel 釉붾줉
 ASTNode* ast_create_parallel_block(void) {
     ASTNode* node = ast_create_node(AST_PARALLEL_BLOCK);
     node->data.parallel.tasks = NULL;
@@ -215,7 +214,6 @@ ASTNode* ast_create_parallel_block(void) {
     return node;
 }
 
-// 釉붾줉
 ASTNode* ast_create_block(void) {
     ASTNode* node = ast_create_node(AST_BLOCK);
     node->data.block.statements = NULL;
@@ -227,7 +225,6 @@ ASTNode* ast_create_block(void) {
     return node;
 }
 
-// for 猷⑦봽
 ASTNode* ast_create_for_loop(void) {
     ASTNode* node = ast_create_node(AST_FOR_LOOP);
     node->data.for_loop.label = NULL;
@@ -239,7 +236,6 @@ ASTNode* ast_create_for_loop(void) {
     return node;
 }
 
-// while 猷⑦봽
 ASTNode* ast_create_while_loop(void) {
     ASTNode* node = ast_create_node(AST_WHILE_LOOP);
     node->data.while_loop.label = NULL;
@@ -248,7 +244,7 @@ ASTNode* ast_create_while_loop(void) {
     return node;
 }
 
-// match 臾?
+// Match statement
 ASTNode* ast_create_match_statement(void) {
     ASTNode* node = ast_create_node(AST_MATCH_STMT);
     node->data.match_stmt.subject = NULL;
@@ -306,7 +302,7 @@ ASTNode* ast_create_bind_statement(const char* party_var, const char* slot_name,
     return node;
 }
 
-// if 臾?
+// If statement
 ASTNode* ast_create_if_statement(void) {
     ASTNode* node = ast_create_node(AST_IF_STMT);
     node->data.if_stmt.condition = NULL;
@@ -315,15 +311,15 @@ ASTNode* ast_create_if_statement(void) {
     return node;
 }
 
-// return 臾?
+// Return statement
 ASTNode* ast_create_return_statement(void) {
     ASTNode* node = ast_create_node(AST_RETURN);
     node->data.return_stmt.value = NULL;
     return node;
 }
 
-// ?쒗쁽???몃뱶??
-// ?댄빆 ?곗궛
+// Expression constructors
+// Binary operation
 ASTNode* ast_create_binary(ASTNode* left, Token op, ASTNode* right) {
     ASTNode* node = ast_create_node(AST_BINARY);
     node->data.binary.left = left;
@@ -332,7 +328,7 @@ ASTNode* ast_create_binary(ASTNode* left, Token op, ASTNode* right) {
     return node;
 }
 
-// ?⑦빆 ?곗궛
+// Unary operation
 ASTNode* ast_create_unary(Token op, ASTNode* operand) {
     ASTNode* node = ast_create_node(AST_UNARY);
     node->data.unary.op = op;
@@ -340,7 +336,7 @@ ASTNode* ast_create_unary(Token op, ASTNode* operand) {
     return node;
 }
 
-// ?⑥닔 ?몄텧
+// Function call
 ASTNode* ast_create_call(ASTNode* callee) {
     ASTNode* node = ast_create_node(AST_CALL);
     node->data.call.callee = callee;
@@ -351,7 +347,7 @@ ASTNode* ast_create_call(ASTNode* callee) {
     return node;
 }
 
-// 硫ㅻ쾭 ?묎렐
+// Member access
 ASTNode* ast_create_member_access(ASTNode* object, const char* member) {
     ASTNode* node = ast_create_node(AST_MEMBER_ACCESS);
     node->data.member.object = object;
@@ -359,7 +355,7 @@ ASTNode* ast_create_member_access(ASTNode* object, const char* member) {
     return node;
 }
 
-// 諛곗뿴 ?묎렐
+// Array access
 ASTNode* ast_create_array_access(ASTNode* array, ASTNode* index) {
     ASTNode* node = ast_create_node(AST_ARRAY_ACCESS);
     node->data.array_access.array = array;
@@ -367,7 +363,7 @@ ASTNode* ast_create_array_access(ASTNode* array, ASTNode* index) {
     return node;
 }
 
-// ?좊떦
+// Assignment
 ASTNode* ast_create_assignment(ASTNode* target, ASTNode* value) {
     ASTNode* node = ast_create_node(AST_ASSIGNMENT);
     node->data.assignment.target = target;
@@ -375,8 +371,8 @@ ASTNode* ast_create_assignment(ASTNode* target, ASTNode* value) {
     return node;
 }
 
-// 由ы꽣??
-// ?レ옄
+// Literal constructors
+// Number literal
 ASTNode* ast_create_number(const char* value) {
     ASTNode* node = ast_create_node(AST_NUMBER);
     node->data.number.is_long = false;
@@ -391,10 +387,10 @@ ASTNode* ast_create_number(const char* value) {
     return node;
 }
 
-// 臾몄옄??
+// String literal
 ASTNode* ast_create_string(const char* value) {
     ASTNode* node = ast_create_node(AST_STRING);
-    // ?곗샂???쒓굅
+    // Strip quote delimiters before unescaping.
     size_t len = strlen(value);
     const char *inner = value;
     size_t inner_len = len;
@@ -425,134 +421,25 @@ ASTNode* ast_create_string(const char* value) {
     return node;
 }
 
-// 遺덈┛
 ASTNode* ast_create_boolean(bool value) {
     ASTNode* node = ast_create_node(AST_BOOLEAN);
     node->data.boolean.value = value;
     return node;
 }
 
-// ?앸퀎??
+// Identifier
 ASTNode* ast_create_identifier(const char* name) {
     ASTNode* node = ast_create_node(AST_IDENTIFIER);
     node->data.identifier.name = pergyra_strdup(name);
     return node;
 }
 
-// ???
+// Type reference
 ASTNode* ast_create_type(const char* name) {
     ASTNode* node = ast_create_node(AST_TYPE);
     node->data.type.name = pergyra_strdup(name);
     node->data.type.generic_args = NULL;
     node->data.type.tuple_elements = NULL;
     node->data.type.tuple_element_count = 0;
-    return node;
-}
-
-ASTNode* ast_create_async_function(const char* name, bool is_async) {
-    ASTNode* node = ast_create_node(AST_FUNC_DECL);
-    if (!node) return NULL;
-    node->is_async_decl = is_async;
-
-    /* AST_FUNC_DECL uses a shared union for sync/async declarations.
-     * Initialize action-only fields explicitly so async funcs never
-     * inherit stale subject-action metadata through overlapping storage. */
-    node->data.func_decl.is_action = false;
-    node->data.func_decl.required_abilities = NULL;
-    node->data.func_decl.required_ability_count = 0;
-    node->data.func_decl.required_ability_capacity = 0;
-    node->data.func_decl.within_zone = NULL;
-    node->data.func_decl.causes_effect = NULL;
-    node->data.func_decl.authorized_by = NULL;
-    node->data.func_decl.authorized_by_count = 0;
-    node->data.func_decl.authorized_by_capacity = 0;
-
-    node->data.async_func_decl.name = pergyra_strdup(name);
-    node->data.async_func_decl.params = NULL;
-    node->data.async_func_decl.param_count = 0;
-    node->data.async_func_decl.param_capacity = 0;
-    node->data.async_func_decl.return_type = NULL;
-    node->data.async_func_decl.body = NULL;
-    node->data.async_func_decl.generic_params = NULL;
-    node->data.async_func_decl.where_clause = NULL;
-    node->data.async_func_decl.has_effects_clause = false;
-    node->data.async_func_decl.declared_effects = 0;
-    node->data.async_func_decl.access = ACCESS_PUBLIC;
-    node->data.async_func_decl.is_async = is_async;
-    node->data.async_func_decl.doc_comment = NULL;
-    return node;
-}
-
-ASTNode* ast_create_await_expression(ASTNode* expression) {
-    ASTNode* node = ast_create_node(AST_AWAIT_EXPR);
-    if (!node) return NULL;
-    node->data.await_expr.expression = expression;
-    return node;
-}
-
-ASTNode* ast_create_channel_send(ASTNode* channel, ASTNode* value) {
-    ASTNode* node = ast_create_node(AST_CHANNEL_SEND);
-    if (!node) return NULL;
-    node->data.channel_send.channel = channel;
-    node->data.channel_send.value = value;
-    return node;
-}
-
-ASTNode* ast_create_channel_recv(ASTNode* channel) {
-    ASTNode* node = ast_create_node(AST_CHANNEL_RECV);
-    if (!node) return NULL;
-    node->data.channel_recv.channel = channel;
-    return node;
-}
-
-ASTNode* ast_create_select_statement(void) {
-    ASTNode* node = ast_create_node(AST_SELECT_STMT);
-    if (!node) return NULL;
-    node->data.select_stmt.cases = NULL;
-    node->data.select_stmt.case_count = 0;
-    node->data.select_stmt.case_capacity = 0;
-    node->data.select_stmt.default_case = NULL;
-    return node;
-}
-
-ASTNode* ast_create_async_block(void) {
-    ASTNode* node = ast_create_node(AST_ASYNC_BLOCK);
-    if (!node) return NULL;
-    node->data.async_block.statements = NULL;
-    node->data.async_block.statement_count = 0;
-    node->data.async_block.statement_capacity = 0;
-    return node;
-}
-
-ASTNode* ast_create_spawn_expression(ASTNode* function) {
-    ASTNode* node = ast_create_node(AST_SPAWN_EXPR);
-    if (!node) return NULL;
-    node->data.spawn_expr.function = function;
-    node->data.spawn_expr.arguments = NULL;
-    node->data.spawn_expr.arg_count = 0;
-    return node;
-}
-
-ASTNode* ast_create_channel_type(ASTNode* element_type) {
-    ASTNode* node = ast_create_node(AST_CHANNEL_TYPE);
-    if (!node) return NULL;
-    node->data.channel_type.element_type = element_type;
-    node->data.channel_type.capacity = NULL;
-    return node;
-}
-
-ASTNode* ast_create_future_type(ASTNode* value_type) {
-    ASTNode* node = ast_create_node(AST_FUTURE_TYPE);
-    if (!node) return NULL;
-    node->data.future_type.value_type = value_type;
-    return node;
-}
-
-ASTNode* ast_create_task_group(bool wait_all) {
-    ASTNode* node = ast_create_node(AST_TASK_GROUP);
-    if (!node) return NULL;
-    node->data.task_group.tasks = NULL;
-    node->data.task_group.task_count = 0;
-    node->data.task_group.wait_all = wait_all;
     return node;
 }

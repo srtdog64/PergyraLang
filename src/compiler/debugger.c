@@ -129,6 +129,61 @@ print_backtrace(DebugCtx *ctx)
         ctx->current_line);
 }
 
+typedef enum
+{
+    DEBUG_CMD_UNKNOWN,
+    DEBUG_CMD_NEXT,
+    DEBUG_CMD_CONTINUE,
+    DEBUG_CMD_QUIT,
+    DEBUG_CMD_LIST,
+    DEBUG_CMD_INFO_BREAK,
+    DEBUG_CMD_BACKTRACE
+} DebugCommand;
+
+typedef struct
+{
+    const char  *name;
+    DebugCommand command;
+} DebugCommandAlias;
+
+static int
+debug_command_alias_compare(const void *key, const void *entry)
+{
+    const char *name = *(const char * const *)key;
+    const DebugCommandAlias *alias = (const DebugCommandAlias *)entry;
+
+    return strcmp(name, alias->name);
+}
+
+static DebugCommand
+debug_lookup_command(const char *cmd)
+{
+    static const DebugCommandAlias aliases[] = {
+        { "", DEBUG_CMD_NEXT },
+        { "backtrace", DEBUG_CMD_BACKTRACE },
+        { "bt", DEBUG_CMD_BACKTRACE },
+        { "c", DEBUG_CMD_CONTINUE },
+        { "continue", DEBUG_CMD_CONTINUE },
+        { "info break", DEBUG_CMD_INFO_BREAK },
+        { "info breakpoints", DEBUG_CMD_INFO_BREAK },
+        { "l", DEBUG_CMD_LIST },
+        { "list", DEBUG_CMD_LIST },
+        { "n", DEBUG_CMD_NEXT },
+        { "next", DEBUG_CMD_NEXT },
+        { "q", DEBUG_CMD_QUIT },
+        { "quit", DEBUG_CMD_QUIT },
+    };
+    const DebugCommandAlias *match;
+
+    if (cmd == NULL)
+        return DEBUG_CMD_UNKNOWN;
+
+    match = (const DebugCommandAlias *)bsearch(&cmd, aliases,
+        sizeof(aliases) / sizeof(aliases[0]), sizeof(aliases[0]),
+        debug_command_alias_compare);
+    return match != NULL ? match->command : DEBUG_CMD_UNKNOWN;
+}
+
 static void
 debug_prompt(DebugCtx *ctx, int current_line)
 {
@@ -150,22 +205,6 @@ debug_prompt(DebugCtx *ctx, int current_line)
         size_t len = strlen(cmd);
         if (len > 0 && cmd[len - 1] == '\n') cmd[len - 1] = '\0';
 
-        if (cmd[0] == '\0' || strcmp(cmd, "n") == 0 || strcmp(cmd, "next") == 0) {
-            ctx->step_mode = true;
-            return;
-        }
-        if (strcmp(cmd, "c") == 0 || strcmp(cmd, "continue") == 0) {
-            ctx->step_mode = false;
-            return;
-        }
-        if (strcmp(cmd, "q") == 0 || strcmp(cmd, "quit") == 0) {
-            ctx->running = false;
-            return;
-        }
-        if (strcmp(cmd, "l") == 0 || strcmp(cmd, "list") == 0) {
-            show_context(ctx, current_line, 8);
-            continue;
-        }
         if (strncmp(cmd, "b ", 2) == 0) {
             int line = atoi(cmd + 2);
             if (line > 0 && ctx->bp_count < MAX_BREAKPOINTS) {
@@ -181,14 +220,27 @@ debug_prompt(DebugCtx *ctx, int current_line)
                 clear_breakpoint(ctx, line);
             continue;
         }
-        if (strcmp(cmd, "info break") == 0
-            || strcmp(cmd, "info breakpoints") == 0) {
+        switch (debug_lookup_command(cmd)) {
+        case DEBUG_CMD_NEXT:
+            ctx->step_mode = true;
+            return;
+        case DEBUG_CMD_CONTINUE:
+            ctx->step_mode = false;
+            return;
+        case DEBUG_CMD_QUIT:
+            ctx->running = false;
+            return;
+        case DEBUG_CMD_LIST:
+            show_context(ctx, current_line, 8);
+            continue;
+        case DEBUG_CMD_INFO_BREAK:
             list_breakpoints(ctx);
             continue;
-        }
-        if (strcmp(cmd, "bt") == 0 || strcmp(cmd, "backtrace") == 0) {
+        case DEBUG_CMD_BACKTRACE:
             print_backtrace(ctx);
             continue;
+        case DEBUG_CMD_UNKNOWN:
+            break;
         }
         printf("Commands: n(ext), c(ontinue), b <line>, cl <line>, info break, bt, l(ist), q(uit)\n");
     }

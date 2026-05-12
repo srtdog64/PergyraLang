@@ -1187,9 +1187,11 @@ Operational mode:
   `type_checker_flow.c` owns body-flow orchestration and CFG fact consumption,
   `type_checker_flow_effects.c` owns branch-effect conflict,
   unreachable-statement, and effect-delta merge diagnostics, and
-  `type_checker_flow_effects.h` is declaration-only. Current sizes are 457
-  LOC, 122 LOC, and 33 LOC respectively. This removes another
-  implementation-style private-header seam from the body-safety path.
+  `type_checker_flow_effects.h` is declaration-only. Loop-control validation
+  and `break` / `continue` resource snapshot recording are also split into
+  `type_checker_flow_loop_control.c`, keeping the statement dispatcher from
+  owning loop-label diagnostics. This removes another implementation-style
+  private-header seam from the body-safety path.
 - HIR CFG ownership is split below the 600 LOC review threshold:
   `hir_cfg.c` owns predecessor finalization, reachability,
   dominance/frontier, dominator tree, natural loops, and CFG summary
@@ -2634,10 +2636,11 @@ make test-semantic
   scheduling moved to `pgy_parallel_coroutine.h` at 292 LOC. The split keeps the
   header-only runtime ABI stable and removes `pgy_parallel.h` from the 600 LOC
   split-review queue.
-- `parser_intent.c` is now a 468 LOC declaration/default propagation owner.
-  Step clause parsing moved to `parser_intent_step.h` at 297 LOC, so the intent
-  parser surface is below the 600 LOC split-review threshold without changing
-  parser exports.
+- `parser_intent.c` is now a 514 LOC declaration parser. Intent-level `who` /
+  `where` propagation moved to `parser_intent_defaults.c` at 69 LOC, and step
+  clause parsing remains in `parser_intent_step.h` at 297 LOC. The intent
+  parser surface stays below the 600 LOC split-review threshold without
+  changing parser exports.
 - `parser_expr.c` is now a 524 LOC expression precedence/call/primary owner.
   Multiline/interpolated string helpers moved to `parser_expr_string.h` at
   150 LOC, removing the expression parser from the 600 LOC split-review queue.
@@ -2659,11 +2662,12 @@ make test-semantic
   to 1581 LOC; the remaining split candidates are projection, effect, and
   relation contract diagnostics.
 - `type_checker_flow_match.c` now owns match pattern binding, match
-  exhaustiveness, redundancy, and total-coverage lattice checks. The CFG/body
-  flow owner `type_checker_flow.c` is down to 435 LOC and focuses on
-  branch/join, loop/defer/parallel boundary, return, and unreachable flow
-  orchestration. `semantic-core-shape-test-smoke` keeps both flow owners under
-  the 600 LOC split-review threshold.
+  exhaustiveness, redundancy, and total-coverage lattice checks.
+  `type_checker_flow_loop_control.c` owns `break` / `continue` validation and
+  loop resource snapshots. The CFG/body flow owner `type_checker_flow.c` is
+  down to 488 LOC and focuses on branch/join, block/defer/parallel boundary,
+  return, and unreachable flow orchestration. `semantic-core-shape-test-smoke`
+  keeps flow owners under the 600 LOC split-review threshold.
 - `mir_cleanup.c` no longer scans intent-step AST fields to decide
   invalidation cleanup. Rollback/invalidation block creation now consumes
   RIR policy ops, conservative semantics, flow-block summaries, and resource
@@ -3162,7 +3166,9 @@ grep -R "resolve_type_node" -n src/semantic
   shared internal name/error ownership declared in `src/compiler/air_internal.h`.
   HIR/RIR evidence matching no longer lives in the AIR synthesis/drift owner.
   `air-drift-test-smoke` now treats `air.c + air_evidence.c` as the AIR
-  implementation inventory.
+  implementation inventory. DAG evidence is further split into
+  `src/compiler/air_evidence_dag.c`, so `SemanticResult` DAG counters and
+  metadata dead-end facts enter AIR through a single source-of-truth owner.
 - AIR boundary traversal is split into `src/compiler/air_boundary.c`. AST
   boundary classification, boundary source derivation, sync-class mapping,
   step boundary counting, and boundary node append now have a dedicated owner.

@@ -54,6 +54,146 @@ English anchor for tooling/doc gates:
   `BASH` shell. This turns the Windows `mingw32-make` + Git Bash + external
   MinGW mismatch into an early, explicit environment diagnostic instead of a
   late opaque object-build failure.
+- Source harness portability tightened: root `src/test_*.c` harnesses that use
+  POSIX file-descriptor helpers now declare the required feature/header surface
+  explicitly (`_POSIX_C_SOURCE`, `<sys/types.h>`). The
+  `source-test-harness-compile` gate now reaches all 16 root harnesses instead
+  of stopping on hidden `fileno`/`mode_t` declarations.
+- Semantic surface trust tightened: known nominal/domain receivers no longer
+  accept unknown value-position members or unknown callable members by silently
+  returning `TYPE_UNKNOWN`. `obj.missing` and `obj.Missing()` now report
+  `PGY_CODE_SEM_UNDEFINED_SYMBOL` with Reason/Fix text while preserving the
+  normal method-call lookup path for declared methods.
+- Call target surface trust tightened: null/computed/unsupported callees now
+  emit an explicit `PGY_CODE_SEM_TYPE_MISMATCH` diagnostic instead of silently
+  returning `TYPE_UNKNOWN`. Beta-stable calls remain named functions, callable
+  bindings, static members, and declared receiver methods.
+- Stdlib collection builtin resolution now uses a sorted dispatch table +
+  `bsearch` instead of a linear `strcmp` scan. This is a small compiler-speed
+  cleanup and keeps the collection surface aligned with the "dispatch table
+  over branch chains" code-quality policy.
+- The same dispatch-table cleanup now covers stdlib body/map/scalar/variant/
+  channel transport builtins, channel-state/state-tool builtins, slot analyzer
+  builtin facts, and stable type-resolution shell metadata. Remaining linear
+  `strcmp` scans in semantic are mostly scoped symbol/field searches rather
+  than builtin vocabulary dispatch.
+- LLVM task/channel builtin membership and channel-query runtime op lookup now
+  use sorted dispatch tables as well. The emitter still keeps the actual
+  lowering bodies explicit, but vocabulary recognition no longer depends on a
+  repeated `strcmp` chain.
+- LLVM Queue extended builtin recognition (`QueuePush`, `QueuePop`,
+  `QueueSize`, `QueueEmpty`) now uses a sorted dispatch table before entering
+  the existing lowering bodies. This removes another fixed-vocabulary
+  `strcmp` chain without changing collection runtime ABI or result recovery.
+- C backend List/Set/Queue builtin recognition now mirrors that
+  table-dispatch policy through one shared collection dispatch table before
+  entering the existing lowering bodies. The lowering bodies remain explicit to
+  avoid a large collection-emitter rewrite in the same slice, but the fixed
+  vocabulary no longer has three separate lookup paths.
+- C backend HashMap builtin recognition now uses the same sorted
+  dispatch-table policy for `MapNew/Set/Get/Has/Remove/Size/Keys` before
+  entering the existing lowering bodies. This keeps C collection vocabulary
+  dispatch aligned with the LLVM/backend table cleanup without changing the
+  stable `HashMap<String|Int, T>` runtime ABI.
+- LLVM base collection builtin recognition now uses the same sorted
+  dispatch-table policy for `ListNew` and the base `Set*` family before entering
+  the existing lowering bodies. Runtime export checks and recovery values stay
+  unchanged; the perf contract now also gates sortedness for this table.
+- C backend channel query emission now mirrors that policy for
+  `ChannelReady/Length/Capacity/Space/Full/Closed`: one sorted query-op table
+  owns the runtime suffix mapping, while send/recv/cancel lowering bodies stay
+  explicit.
+- LLVM stdlib string/file/scalar runtime-call lowering now uses a sorted
+  `name -> family/runtime/arity` table for simple runtime calls. Special
+  lowerings such as `StringLength` and `ToString` remain explicit because they
+  synthesize LLVM IR directly instead of forwarding to a runtime export.
+- C backend scalar unary math lowering now uses a sorted unary-name table for
+  the direct `%s(arg)` family (`Sin`, `Cos`, `Floor`, `MathLog`, etc.) instead
+  of a long OR-chain. Special scalar forms (`Abs`, `Min`, `Max`, constants,
+  random defaults) remain explicit.
+- Runtime party/fiber stats lookup no longer turns an indexed miss into a
+  stats-count linear scan while the role-id index is healthy. The linear helper
+  remains only for absent/unhealthy index compatibility; `perf_contract_smoke`
+  now gates `indexHealthy` and rejects empty-index-slot fallback to the linear
+  path.
+- Semantic effect-word parsing (`secure`, `remote`, `nondeterministic`,
+  `collapse`, `local`) now uses a sorted table + `bsearch` instead of a
+  hard-coded branch chain. This keeps the effect vocabulary aligned with the
+  dispatch-table rule without changing the effect lattice itself.
+- DAG builtin/shell singleton lookup now also uses the same dispatch-table
+  pattern, and the resolver-inventory smoke checks the comparator plus
+  builtin/shell table lookup anchors so the metadata owner does not drift back
+  to ad-hoc branch scans.
+- CLI scaffold kind dispatch now uses a sorted `kind -> emitter` table instead
+  of a repeated `strcmp` ladder. This keeps user-facing project/host scaffold
+  vocabulary under the same fixed-vocabulary dispatch policy while preserving
+  the existing scaffold file/directory emitters.
+- C backend type-name mapping now uses sorted primitive/legacy alias tables for
+  fixed vocabulary (`Int`, `String`, `List`, `HashMapStr`, `Timer`, etc.)
+  instead of repeated string ladders. Constructed type lowering remains explicit
+  because it must inspect generic arguments and reject `Unknown` metadata.
+- Lexer keyword recognition now lives in `lexer_keywords.c` with a sorted
+  keyword table and binary lookup; the previous PascalCase builtin loop was
+  removed because builtins are identifiers at lexing time. This keeps future
+  syntax additions from adding another linear keyword scan or growing the lexer
+  owner past the 600 LOC signal.
+- Runtime intent trace event exports now live in
+  `pgy_runtime_lib_intent_trace_events_exports.c`, leaving
+  `pgy_runtime_lib_set_intent_trace_exports.c` focused on registry/current/
+  enter state. The runtime cache and build-source inventory both track the new
+  owner so generated-runtime freshness cannot miss event-export changes.
+- Inline runtime intent active-index helpers now live in
+  `pgy_runtime_intent_active_index_inline.h`, matching the exported active-index
+  owner split and keeping `pgy_runtime_intent_trace_inline.h` focused on trace
+  registry state plus enter/current semantics.
+- Slot manager creation now fails closed for zero-slot managers and failed
+  `pthread_mutex_init`, avoiding a runtime handle manager with unusable table or
+  mutex state. The payload-size comment was normalized to ASCII to keep source
+  UTF/encoding gates honest.
+- Slot manager plain-payload storage helpers now live in
+  `slot_manager_storage.c`, because plain write, secure-slot flows, and pin
+  views all consume the same storage/checksum/free helpers. `slot_manager.c`
+  stays focused on manager lifecycle, claim/read/write/release, and scope
+  release instead of owning shared payload mechanics.
+- Debugger command aliases now use one sorted alias table instead of repeated
+  `strcmp` command checks. This is not DWARF support; it is a small fixed-
+  vocabulary cleanup that keeps tooling command dispatch aligned with the same
+  branch-table policy used elsewhere.
+- HIR callgraph materialization now lives in `hir_callgraph.c`: routine name
+  indexing, direct-call edge materialization, and entry reachability propagation
+  are no longer embedded in `hir_lower()`. `hir.c` remains the top-level
+  lowering orchestrator and classification owner.
+- AST debug-print expression ownership now lives in `ast_print_expr.c`.
+  `ast_print.c` keeps the public recursive printer plus declaration/statement
+  orchestration, while compact expression cases (`AST_CALL`, `AST_BINARY`,
+  `AST_TYPE`, channel/future types, await/spawn, member/array access) are
+  handled by a named expression-print owner. This is a split-by-responsibility
+  cleanup, not a mechanical size cut; direct object builds for both owners pass.
+- Async/channel AST constructors now live in `ast_async_constructors.c`.
+  `ast_constructors.c` keeps core declaration/statement/expression/basic type
+  constructors, while async functions, await, channel send/recv/type, select,
+  async block, spawn, future type, and task groups are owned by the async
+  constructor TU. Direct object builds for both owners pass, and the build
+  source inventory tracks the new parser owner. The remaining mojibake comments
+  in `ast_constructors.c` were normalized to ASCII so the parser constructor
+  owner is readable instead of merely UTF-8-valid.
+- Intent step required-ability contract validation now lives in
+  `type_checker_intent_ability.c`. `type_checker_intent_decl.c` no longer owns
+  ability dependency recording, required-ability declaration resolution, or
+  participant ability mismatch provenance; it keeps declaration orchestration
+  and delegates the ability contract through the intent helper seam.
+- Semantic call dispatch no longer carries a private duplicate of embedded
+  world-zone mutation rejection. `type_checker_expr_call.c` now consumes the
+  shared `reject_if_embedded_world_zone_mutation(...)` helper owned by the
+  resolution/world-embedding helper path, dropping the call owner to 435 LOC
+  and keeping the world handoff diagnostic source-of-truth in one place.
+- CFG/body flow loop-control validation and resource snapshot recording now
+  live in `type_checker_flow_loop_control.c`. `type_checker_flow.c` delegates
+  `break` / `continue` flow facts through that owner and is now 488 LOC,
+  keeping the dispatcher focused on statement routing and branch/match/block
+  orchestration. Gates: direct GCC probes for both owners,
+  `cfg_body_dataflow_smoke.sh`, `semantic_core_shape_smoke.sh`, and
+  `build_source_inventory_smoke.sh`.
 - Windows native `mingw32-make` now prefers Git Bash (`C:/Progra~1/Git/bin/bash.exe`)
   before falling back to PATH `bash`. This prevents `C:\Windows\system32\bash.exe`
   or `cmd.exe` recipe parsing from masquerading as project failures. If `gcc`
@@ -91,6 +231,62 @@ English anchor for tooling/doc gates:
   is reserved before cleanup fact instructions are appended, so cleanup
   materialization no longer leaves an instruction-only partial edge when
   predecessor growth fails.
+- LLVM zone-authority emission now fails closed instead of silently skipping
+  required checks. If a `within zone` function cannot find its zone declaration
+  inventory, zone class layout, implicit `self`, authority subject slot, or
+  runtime authority-check export, the backend reports a structured diagnostic
+  instead of emitting a body without the authority guard. MIR-missing runtime
+  export gaps still route through `llvm_set_mir_inventory_missing(...)`, keeping
+  declaration-inventory diagnostics on the central helper contract.
+- LLVM function registry lookup now null-guards its context, lookup name, and
+  registry storage before scanning. This is a small crash-to-miss cleanup for
+  backend error paths: callers that already convert missing functions into
+  diagnostics can now do so even if the registry was not initialized.
+- LLVM role method emission now fails closed when MIR declaration metadata names
+  a role method but the LLVM function registry has no matching function entry.
+  The old path silently skipped the body or emitted a null vtable slot; both
+  cases now report through `llvm_set_mir_inventory_missing(...)` so declaration
+  bootstrap drift stays visible in the central MIR-inventory diagnostic channel.
+- C role emission now stops immediately when role method MIR emission sets a
+  backend error, including included-role methods and unresolved included-role
+  imports. This prevents a partial role body from continuing into
+  vtable/operator emission after the source-of-truth MIR routine lookup or
+  included-role resolution has already failed. The MIR declaration inventory
+  smoke now gates both LLVM role registry/vtable fail-closed diagnostics and the
+  C backend's early-stop guard. Role method/vtable/operator helpers also bail
+  out on pre-existing backend errors, and vtable emission re-checks after
+  ability-vtable declaration materialization.
+- CFG/body dataflow smoke now follows the current owner split for SSA use-edge
+  and HIR CFG validation helpers. Versioned-use helpers live in
+  `mir_ssa_use_edges.c`, while HIR CFG shape validation lives in
+  `hir_routine_cfg.c`; the gate now checks those owner files instead of the
+  pre-split locations. This keeps the smoke as a source-of-truth contract
+  rather than a stale filename contract.
+- Intent observability handle generation is now positive and collision-checked
+  across both generated inline runtime and LLVM exported runtime owners. Handle
+  and trace-id counters wrap back to the positive range before they can produce
+  the zero/negative sentinel values rejected by the active-index path, and
+  active handle reuse is avoided with a bounded probe over the active registry.
+  The exported runtime path also mirrors the inline path's subject-array
+  allocation overflow guard. `runtime_intent_observability_contract_smoke.sh`
+  now gates those positive-counter / unused-handle / overflow-guard terms so
+  observability cannot regress to sentinel handles silently.
+- CFG/MIR residual STMT policy now keeps pure-query classification in a sorted
+  table (`k_pure_query_builtins`) instead of a linear strcmp chain. This makes
+  the remaining allowed residual fallback set explicit and easier to audit while
+  body safety continues moving toward CFG/MIR facts as the source of truth.
+- `mir_stmt_is_control_flow(...)` now has an explicit null-block guard, so the
+  shared CFG ownership helper cannot crash if a future owner split calls it
+  before block construction. A missing block falls back to the central
+  CFG-owned-control classifier instead of dereferencing `mir_block`.
+- AIR evidence append now rejects unknown evidence kinds at the append boundary
+  instead of waiting for a later verifier pass to discover a malformed
+  `AIREvidenceNode`. This keeps the evidence inventory fail-closed while AIR is
+  being promoted to the abstraction-boundary verification layer.
+- AIR evidence-kind ownership is now centralized through one scope classifier:
+  boundary-scoped and known-kind checks both consume `air_evidence_kind_scope`.
+  This removes a duplicated evidence-kind switch so new AIR evidence kinds
+  cannot be added to one classification path while drifting from the other.
 - DAG metadata index rebuild now builds the replacement hash index off to the
   side and swaps it into `SemanticContext.type_resolution_metadata` only after
   every existing metadata entry was inserted successfully. Index rebuild
@@ -269,6 +465,15 @@ English anchor for tooling/doc gates:
   counts; MIR and RIR counter checks remain in the same owner. Gate used:
   object build for `air_validate_summary_counters.o` and
   `air_validate_evidence.o`.
+- AIR DAG evidence collection is now a dedicated owner:
+  `air_evidence_dag.c` consumes only `SemanticResult` DAG evidence counters
+  and metadata dead-end facts, while `air_evidence.c` stays focused on HIR/MIR
+  cleanup, pin, terminator, select-receive, observability, and runtime frontier
+  evidence. This keeps DAG-to-AIR evidence as an explicit source-of-truth seam
+  instead of another branch in the general MIR evidence owner. Gates:
+  direct GCC probes for both owners, `air_drift_smoke.sh`,
+  `type_resolution_resolver_inventory_smoke.sh`,
+  `perf_contract_smoke.sh`, and `build_source_inventory_smoke.sh`.
 - AIR synthesis must also clean up on pre-allocation count failures. Boundary
   and intent count overflow now destroys the partially allocated AIR program
   before returning an error, keeping the verification layer fail-closed even on
@@ -2335,6 +2540,15 @@ Progress log, 2026-05-08:
   `test-air`, `test-transpile`, `llvm-test-smoke`,
   `cfg-body-dataflow-test-smoke`, `air-drift-test-smoke`,
   `build-source-inventory-test-smoke`, and `perf-contract-test-smoke`.
+- Split intent default propagation into its own parser owner:
+  `parser_intent_defaults.c` now owns intent-level `who` / `where` inheritance
+  into step clauses, while `parser_intent.c` stays focused on declaration item
+  parsing and duplicate-surface checks. The intent compression smoke now gates
+  the new source owner directly, so compressed intent provenance cannot drift
+  back into an ad-hoc declaration tail loop. Gates: direct GCC compile probes
+  for `parser_intent.c` / `parser_intent_defaults.c`,
+  `intent_compression_contract_smoke.sh`,
+  `build_source_inventory_smoke.sh`, and `source_utf8_smoke.sh`.
 - Removed the C MIR block-emission let-lookup fallback:
   `transpiler_mir_find_stmt_for_inst(...)` now consumes only the
   instruction-carried AST payload instead of reopening the function body with
@@ -3528,6 +3742,8 @@ Progress log, 2026-05-04:
 - Tightened C/LLVM host-name smoke coverage: `mir-declaration-inventory-test-smoke` now gates party/role/roster active-inventory use and C/LLVM declaration-name helpers together.
 - Closed the matching LLVM host-struct-name drift: `llvm_current_host_class_name(...)` now includes party/role/roster for self/field/projection helpers that consume the current host as a registered LLVM struct. Gates: `mir-declaration-inventory-test-smoke`, `llvm-test-smoke`.
 - Closed a role pointer-self drift: `llvm_type_name_uses_pointer_self(...)` now treats `role` declarations consistently with the rest of the pointer-self domain host set. Gates: `mir-declaration-inventory-test-smoke`, `llvm-test-smoke`, targeted `compare_backends.sh` for `role_operator`, `zone_host_method_abi_combo`, and `host_method_class_retun` (`3/3`).
+- Closed the matching C backend host self-policy drift: `is_nominal_host_type_name(...)` and `is_pointer_self_host_type_name(...)` now include `party` / `role` / `roster`, matching the frozen MIR host inventory and LLVM pointer-self policy for member-call and self-parameter lowering. Gate: `mir-declaration-inventory-test-smoke`.
+- Reduced LLVM host self-policy duplication: `llvm_type_name_uses_pointer_self(...)` now consumes the single active host-declaration lookup seam before class fallback instead of repeating a separate party/role/roster/relation/effect/zone/world OR-chain. Gate: `mir-declaration-inventory-test-smoke`.
 - Closed a compressed-intent layering seam: C/LLVM codegen no longer re-infers action `causes` from `on` expressions. `causes` must be materialized by semantic/DIR/MIR first, and `intent-compression-contract-test-smoke` now rejects reintroduced codegen-side inference.
 - Closed the matching C backend host-lookup drift: `transpiler_find_nominal_host_decl_local(...)` and `transpiler_find_host_decl_from_owner_local(...)` now mirror the frozen domain host set for party/role/roster in addition to class/enum/relation/effect/zone/world, so C and LLVM declaration lookup consume the same host inventory surface. Gates: `mir-declaration-inventory-test-smoke`, `test-transpile`.
 - Tightened C known-nominal forwarding: `transpiler_has_known_nominal_type(...)` now includes enum and role declarations, keeping C forward-declaration policy aligned with the frozen host/type inventory instead of treating those names as unknown after zone emission. Gate: `mir-declaration-inventory-test-smoke`.
@@ -4919,9 +5135,11 @@ dispatch / semantic lookup / runtime data structure 3축 결과 통합. *정확�
   `pgy_parallel_coroutine.h` owns coroutine scheduling at 292 LOC. `make pgy`
   and `make test-abi` are green.
 - Intent parser ownership is now split without changing parser exports:
-  `parser_intent.c` is a 468 LOC declaration/default propagation owner and
-  `parser_intent_step.h` owns step clause parsing at 297 LOC. `make
-  test-parser` and `make test-semantic` are green.
+  `parser_intent.c` is a 514 LOC declaration parser,
+  `parser_intent_defaults.c` owns intent-level `who` / `where` propagation at
+  69 LOC, and `parser_intent_step.h` owns step clause parsing at 297 LOC.
+  Direct GCC probes plus `intent_compression_contract_smoke.sh`,
+  `build_source_inventory_smoke.sh`, and `source_utf8_smoke.sh` are green.
 - Expression parser string ownership is now split: `parser_expr.c` is a 524 LOC
   precedence/call/primary owner and `parser_expr_string.h` owns
   multiline/interpolation helpers at 150 LOC. `make test-parser` and
@@ -6183,7 +6401,8 @@ dispatch / semantic lookup / runtime data structure 3축 결과 통합. *정확�
   to `src/parser/ast_print_intent.c`; event printers moved to
   `src/parser/ast_print_event.c`; domain/world/zone printers remain in
   `src/parser/ast_print_domain.c`.
-- Current AST print owner sizes by `wc -l`: `ast_print.c` 553,
+- Current AST print owner sizes by `wc -l` after the later expression-owner
+  follow-up: `ast_print.c` 469, `ast_print_expr.c` 108,
   `ast_print_domain.c` 539, `ast_print_inline.c` 382,
   `ast_print_intent.c` 253, `ast_print_event.c` 76,
   `ast_print_generics.c` 63, and `ast_print_misc.c` 11.
@@ -6228,7 +6447,8 @@ dispatch / semantic lookup / runtime data structure 3축 결과 통합. *정확�
   compact one-line printing, operator spelling, escaped string rendering, or
   generic/where-clause inline rendering. Those moved to
   `src/parser/ast_print_inline.c` and `src/parser/ast_print_generics.c`.
-- Current AST print owner sizes by `wc -l`: `ast_print.c` 553,
+- Current AST print owner sizes by `wc -l` after the later expression-owner
+  follow-up: `ast_print.c` 469, `ast_print_expr.c` 108,
   `ast_print_inline.c` 382, `ast_print_generics.c` 63. The central AST print
   owner is now below the 600 LOC split-review threshold.
 - Local gates: `make test-parser pgy` and touched-file `git diff --check`.
@@ -6242,11 +6462,12 @@ dispatch / semantic lookup / runtime data structure 3축 결과 통합. *정확�
   `src/parser/ast_print_misc.c`), and AST construction now has core,
   domain-constructor, and clone owners (`src/parser/ast_constructors.c`,
   `src/parser/ast_domain_constructors.c`, `src/parser/ast_clone.c`).
-- Current parser owner sizes by `wc -l`: `ast.c` 894, `ast_print.c` 553,
-  `ast_print_domain.c` 539, `ast_print_inline.c` 382,
-  `ast_print_intent.c` 253, `ast_print_event.c` 76,
-  `ast_print_generics.c` 63, `ast_constructors.c` 545,
-  `ast_domain_constructors.c` 598, `ast_clone.c` 109, `ast.h` 973, and
+- Current parser owner sizes after later follow-up splits by `wc -l`: `ast.c`
+  133, `ast_print.c` 469, `ast_print_expr.c` 108, `ast_print_domain.c` 539,
+  `ast_print_inline.c` 382, `ast_print_intent.c` 253,
+  `ast_print_event.c` 76, `ast_print_generics.c` 63,
+  `ast_constructors.c` 445, `ast_async_constructors.c` 117,
+  `ast_domain_constructors.c` 500, `ast_clone.c` 109, `ast.h` 537, and
   `ast_types.h` 272. No production `.c` or `.h` owner remains above the
   1,000 LOC hard risk line.
 - Local gates: `make test-parser pgy`, `make test-semantic` (2357/0),

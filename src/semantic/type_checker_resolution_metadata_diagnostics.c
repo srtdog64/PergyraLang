@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include <string.h>
 
 #include "diag_codes.h"
@@ -11,6 +12,15 @@ typedef struct StableShellSpec {
     size_t max_args;
     bool slot_like;
 } StableShellSpec;
+
+static int
+metadata_stable_shell_compare(const void *key, const void *entry)
+{
+    const char *name = *(const char * const *)key;
+    const StableShellSpec *spec = (const StableShellSpec *)entry;
+
+    return strcmp(name, spec->name);
+}
 
 static const StableShellSpec *
 metadata_stable_shell_spec(const char *name)
@@ -39,14 +49,14 @@ metadata_stable_shell_spec(const char *name)
         { "WriteView", NULL, 1, 1, true },
     };
     const size_t count = sizeof(specs) / sizeof(specs[0]);
+    const StableShellSpec *match;
 
     if (name == NULL)
         return NULL;
-    for (size_t i = 0; i < count; i++) {
-        if (strcmp(name, specs[i].name) == 0)
-            return &specs[i];
-    }
-    return NULL;
+    match = (const StableShellSpec *)bsearch(
+        &name, specs, count, sizeof(specs[0]),
+        metadata_stable_shell_compare);
+    return match;
 }
 
 bool

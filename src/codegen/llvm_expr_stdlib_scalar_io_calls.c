@@ -2,6 +2,7 @@
 
 #include "llvm_expr_stdlib_scalar_io_calls.h"
 
+#include <stdlib.h>
 #include <string.h>
 
 #include "llvm_expr_string_coerce.h"
@@ -45,6 +46,56 @@ llvm_emit_required_runtime_call_result(ASTNode *node, LLVMGenCtx *ctx,
     return true;
 }
 
+typedef struct LLVMStdlibRuntimeCallSpec {
+    const char *name;
+    const char *family;
+    const char *runtime_name;
+    size_t      arg_count;
+} LLVMStdlibRuntimeCallSpec;
+
+static int
+llvm_stdlib_runtime_call_compare(const void *key, const void *entry)
+{
+    const char *name = *(const char * const *)key;
+    const LLVMStdlibRuntimeCallSpec *spec =
+        (const LLVMStdlibRuntimeCallSpec *)entry;
+
+    return strcmp(name, spec->name);
+}
+
+static const LLVMStdlibRuntimeCallSpec *
+llvm_stdlib_string_file_runtime_call_lookup(const char *callee_name)
+{
+    static const LLVMStdlibRuntimeCallSpec specs[] = {
+        { "Concat", "stdlib string", "StringConcat", 2 },
+        { "Contains", "stdlib string", "StringContains", 2 },
+        { "Input", "stdlib io", "pgy_input", 1 },
+        { "Lower", "stdlib string", "ToLower", 1 },
+        { "Random", "stdlib scalar", "Random", 1 },
+        { "ReadFile", "stdlib io", "pgy_read_file", 1 },
+        { "Replace", "stdlib string", "StringReplace", 3 },
+        { "StringConcat", "stdlib string", "StringConcat", 2 },
+        { "StringContains", "stdlib string", "StringContains", 2 },
+        { "StringReplace", "stdlib string", "StringReplace", 3 },
+        { "StringTrim", "stdlib string", "StringTrim", 1 },
+        { "Substring", "stdlib string", "Substring", 3 },
+        { "ToFloat", "stdlib scalar", "ToFloat", 1 },
+        { "ToInt", "stdlib scalar", "ToInt", 1 },
+        { "ToLower", "stdlib string", "ToLower", 1 },
+        { "ToUpper", "stdlib string", "ToUpper", 1 },
+        { "Trim", "stdlib string", "StringTrim", 1 },
+        { "Upper", "stdlib string", "ToUpper", 1 },
+        { "WriteFile", "stdlib io", "pgy_write_file", 2 },
+    };
+
+    if (callee_name == NULL)
+        return NULL;
+
+    return (const LLVMStdlibRuntimeCallSpec *)bsearch(
+        &callee_name, specs, sizeof(specs) / sizeof(specs[0]),
+        sizeof(specs[0]), llvm_stdlib_runtime_call_compare);
+}
+
 bool
 llvm_emit_stdlib_string_file_call(ASTNode *node, LLVMGenCtx *ctx,
                                   const char *callee_name,
@@ -77,60 +128,6 @@ llvm_emit_stdlib_string_file_call(ASTNode *node, LLVMGenCtx *ctx,
         return true;
     }
 
-    if ((strcmp(callee_name, "Contains") == 0
-         || strcmp(callee_name, "StringContains") == 0)
-        && node->data.call.arg_count == 2) {
-        return llvm_emit_required_runtime_call_result(node, ctx,
-            "stdlib string", callee_name, "StringContains", 2, out_result);
-    }
-
-    if ((strcmp(callee_name, "Replace") == 0
-         || strcmp(callee_name, "StringReplace") == 0)
-        && node->data.call.arg_count == 3) {
-        return llvm_emit_required_runtime_call_result(node, ctx,
-            "stdlib string", callee_name, "StringReplace", 3, out_result);
-    }
-
-    if (strcmp(callee_name, "Substring") == 0
-        && node->data.call.arg_count == 3) {
-        return llvm_emit_required_runtime_call_result(node, ctx,
-            "stdlib string", callee_name, "Substring", 3, out_result);
-    }
-
-    if ((strcmp(callee_name, "Trim") == 0
-         || strcmp(callee_name, "StringTrim") == 0)
-        && node->data.call.arg_count == 1) {
-        return llvm_emit_required_runtime_call_result(node, ctx,
-            "stdlib string", callee_name, "StringTrim", 1, out_result);
-    }
-
-    if ((strcmp(callee_name, "Upper") == 0
-         || strcmp(callee_name, "ToUpper") == 0)
-        && node->data.call.arg_count == 1) {
-        return llvm_emit_required_runtime_call_result(node, ctx,
-            "stdlib string", callee_name, "ToUpper", 1, out_result);
-    }
-
-    if ((strcmp(callee_name, "Lower") == 0
-         || strcmp(callee_name, "ToLower") == 0)
-        && node->data.call.arg_count == 1) {
-        return llvm_emit_required_runtime_call_result(node, ctx,
-            "stdlib string", callee_name, "ToLower", 1, out_result);
-    }
-
-    if ((strcmp(callee_name, "Concat") == 0
-         || strcmp(callee_name, "StringConcat") == 0)
-        && node->data.call.arg_count == 2) {
-        return llvm_emit_required_runtime_call_result(node, ctx,
-            "stdlib string", callee_name, "StringConcat", 2, out_result);
-    }
-
-    if (strcmp(callee_name, "ReadFile") == 0
-        && node->data.call.arg_count == 1) {
-        return llvm_emit_required_runtime_call_result(node, ctx,
-            "stdlib io", callee_name, "pgy_read_file", 1, out_result);
-    }
-
     if (strcmp(callee_name, "ToString") == 0
         && node->data.call.arg_count == 1) {
         LLVMValueRef value = llvm_emit_expression(node->data.call.arguments[0], ctx);
@@ -146,34 +143,14 @@ llvm_emit_stdlib_string_file_call(ASTNode *node, LLVMGenCtx *ctx,
         return true;
     }
 
-    if (strcmp(callee_name, "ToInt") == 0
-        && node->data.call.arg_count == 1) {
-        return llvm_emit_required_runtime_call_result(node, ctx,
-            "stdlib scalar", callee_name, "ToInt", 1, out_result);
-    }
-
-    if (strcmp(callee_name, "ToFloat") == 0
-        && node->data.call.arg_count == 1) {
-        return llvm_emit_required_runtime_call_result(node, ctx,
-            "stdlib scalar", callee_name, "ToFloat", 1, out_result);
-    }
-
-    if (strcmp(callee_name, "Random") == 0
-        && node->data.call.arg_count == 1) {
-        return llvm_emit_required_runtime_call_result(node, ctx,
-            "stdlib scalar", callee_name, "Random", 1, out_result);
-    }
-
-    if (strcmp(callee_name, "WriteFile") == 0
-        && node->data.call.arg_count == 2) {
-        return llvm_emit_required_runtime_call_result(node, ctx,
-            "stdlib io", callee_name, "pgy_write_file", 2, out_result);
-    }
-
-    if (strcmp(callee_name, "Input") == 0
-        && node->data.call.arg_count == 1) {
-        return llvm_emit_required_runtime_call_result(node, ctx,
-            "stdlib io", callee_name, "pgy_input", 1, out_result);
+    {
+        const LLVMStdlibRuntimeCallSpec *spec =
+            llvm_stdlib_string_file_runtime_call_lookup(callee_name);
+        if (spec != NULL && node->data.call.arg_count == spec->arg_count) {
+            return llvm_emit_required_runtime_call_result(node, ctx,
+                spec->family, callee_name, spec->runtime_name,
+                spec->arg_count, out_result);
+        }
     }
 
     return false;

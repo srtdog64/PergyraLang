@@ -38,6 +38,28 @@ expr_normalize_type(Type *type)
     return type != NULL ? type : TYPE_UNKNOWN;
 }
 
+static void
+expr_report_unknown_member(SemanticContext *ctx, ASTNode *site,
+                           const Type *object_type, const char *field_name)
+{
+    const char *type_name = type_name_or_unknown(object_type);
+    const char *member_name = field_name != NULL ? field_name : "<member>";
+
+    semantic_error_with_hints(ctx, PGY_CODE_SEM_UNDEFINED_SYMBOL,
+        PGY_CAUSE_SYMBOL_UNDEFINED, PGY_FIX_IMPORT_OR_DECLARE_SYMBOL, site,
+        "Unknown member '%s.%s'.\n"
+        "Reason:\n"
+        "- the receiver type is known, but no field or overlay member with this name is declared\n"
+        "- method calls are resolved through the call path; value-position member access requires a field\n"
+        "Fix:\n"
+        "- declare field '%s' on '%s'\n"
+        "- or call an existing method with parentheses if this was meant to be an action",
+        type_name,
+        member_name,
+        member_name,
+        type_name);
+}
+
 Type *
 type_check_expression(ASTNode *expr, SemanticContext *ctx)
 {
@@ -417,15 +439,17 @@ type_check_member_access(ASTNode *expr, SemanticContext *ctx)
             }
         }
 
-        /* Accept any remaining field access on nominal/domain types. */
+        expr_report_unknown_member(ctx, expr, object_type, field_name);
         return TYPE_UNKNOWN;
     }
 
-    /* Unknown member access ??allow without error for class/enum types */
     if (object_type != NULL
         && (object_type->kind == TYPE_KIND_CLASS
-            || object_type->kind == TYPE_KIND_ENUM))
+            || object_type->kind == TYPE_KIND_ENUM)) {
+        expr_report_unknown_member(ctx, expr, object_type,
+            expr->data.member.name);
         return TYPE_UNKNOWN;
+    }
 
     return TYPE_UNKNOWN;
 }

@@ -4,92 +4,13 @@
  */
 
 #include "lexer.h"
+#include "lexer_keywords.h"
 #include "../common/string_compat.h"
 #include "../semantic/diag_codes.h"
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
 #include <stdio.h>
-
-/* Keyword table for efficient lookup */
-typedef struct {
-    const char* keyword;
-    PgyTokenType   type;
-} KeywordEntry;
-
-static const KeywordEntry keywords[] = {
-    {"let",      TOKEN_LET},
-    {"func",     TOKEN_FUNC},
-    {"subject",  TOKEN_SUBJECT},
-    {"class",    TOKEN_CLASS},
-    {"struct",   TOKEN_STRUCT},
-    {"object",   TOKEN_OBJECT},
-    {"tobject",  TOKEN_TOBJECT},
-    {"vessel",   TOKEN_VESSEL},
-    {"intent",   TOKEN_INTENT},
-    {"extern",   TOKEN_EXTERN},
-    {"with",     TOKEN_WITH},
-    {"as",       TOKEN_AS},
-    {"parallel", TOKEN_PARALLEL},
-    {"for",      TOKEN_FOR},
-    {"in",       TOKEN_IN},
-    {"if",       TOKEN_IF},
-    {"else",     TOKEN_ELSE},
-    {"while",    TOKEN_WHILE},
-    {"return",   TOKEN_RETURN},
-    {"break",    TOKEN_BREAK},
-    {"continue", TOKEN_CONTINUE},
-    {"enum",     TOKEN_ENUM},
-    {"export",   TOKEN_EXPORT},
-    {"namespace", TOKEN_NAMESPACE},
-    {"true",     TOKEN_TRUE},
-    {"false",    TOKEN_FALSE},
-    {"public",   TOKEN_PUBLIC},
-    {"private",  TOKEN_PRIVATE},
-    {"innate",   TOKEN_INNATE},
-    {"where",    TOKEN_WHERE},
-    {"type",     PGY_TOKEN_TYPE},
-    {"impl",     TOKEN_IMPL},
-    {"async",    TOKEN_ASYNC},
-    {"await",    TOKEN_AWAIT},
-    {"channel",  TOKEN_CHANNEL},
-    {"select",   TOKEN_SELECT},
-    {"case",     TOKEN_CASE},
-    {"default",  TOKEN_DEFAULT},
-    {"spawn",    TOKEN_SPAWN},
-    {"event",    TOKEN_EVENT},
-    {"match",    TOKEN_MATCH},
-    {"import",   TOKEN_IMPORT},
-    {"use",      TOKEN_USE},
-    {"unsafe",   TOKEN_UNSAFE},
-    {"defer",    TOKEN_DEFER},
-    {"bind",     TOKEN_BIND},
-    {"ability",  TOKEN_ABILITY},
-    {"role",     TOKEN_ROLE},
-    {"include",  TOKEN_INCLUDE},
-    {"override", TOKEN_OVERRIDE},
-    {"secure",   TOKEN_SECURE},
-    {"remote",   TOKEN_REMOTE},
-    {"nondeterministic", TOKEN_NONDETERMINISTIC},
-    {"collapse", TOKEN_COLLAPSE},
-    {"local",    TOKEN_LOCAL},
-    {"party",    TOKEN_PARTY},
-    {"roster",   TOKEN_ROSTER},
-    {"world",    TOKEN_WORLD},
-    {"relation", TOKEN_RELATION},
-    {"effect",   TOKEN_EFFECT},
-    {"zone",     TOKEN_ZONE},
-
-    {"slot",     TOKEN_SLOT},
-    {"shared",   TOKEN_SHARED},
-    {"extends",  TOKEN_EXTENDS},
-    {"dyn",      TOKEN_DYN},
-    /* NOTE: `context` is NOT a reserved keyword — it is an ordinary identifier */
-    
-    {"own",      TOKEN_OWN},
-    {"ref",      TOKEN_REF},
-    {NULL,       TOKEN_EOF}
-};
 
 /* Create a new lexer */
 Lexer* lexer_create(const char* source) {
@@ -267,6 +188,7 @@ static Token error_token(Lexer* lexer, const char* message) {
 /* Scan identifier or keyword */
 static Token scan_identifier(Lexer* lexer) {
     const char* start = lexer->current - 1;
+    PgyTokenType keyword_type;
     
     while (is_alnum(peek(lexer))) {
         advance(lexer);
@@ -274,28 +196,9 @@ static Token scan_identifier(Lexer* lexer) {
     
     size_t length = lexer->current - start;
     
-    // Check if it's a keyword
-    for (const KeywordEntry* entry = keywords; entry->keyword != NULL; entry++) {
-        if (strlen(entry->keyword) == length &&
-            strncmp(start, entry->keyword, length) == 0) {
-            return make_token(lexer, entry->type, start, length);
-        }
-    }
-    
-    // Check for built-in functions (PascalCase)
-    if (length > 0 && isupper(start[0])) {
-        const char* builtins[] = {
-            "ClaimSlot", "ClaimSecureSlot", "Write", "Read", 
-            "Release", "Log", "Panic", NULL
-        };
-        
-        for (int i = 0; builtins[i] != NULL; i++) {
-            if (strlen(builtins[i]) == length &&
-                strncmp(start, builtins[i], length) == 0) {
-                return make_token(lexer, TOKEN_IDENTIFIER, start, length);
-            }
-        }
-    }
+    keyword_type = lexer_lookup_keyword(start, length);
+    if (keyword_type != TOKEN_IDENTIFIER)
+        return make_token(lexer, keyword_type, start, length);
     
     return make_token(lexer, TOKEN_IDENTIFIER, start, length);
 }

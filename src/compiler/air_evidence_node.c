@@ -9,8 +9,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-bool
-air_evidence_kind_is_boundary_scoped(AIREvidenceKind kind)
+static int
+air_evidence_kind_scope(AIREvidenceKind kind)
 {
     switch (kind) {
     case AIR_EVIDENCE_HIR_ROUTINE:
@@ -18,7 +18,7 @@ air_evidence_kind_is_boundary_scoped(AIREvidenceKind kind)
     case AIR_EVIDENCE_RIR_BOUNDARY:
     case AIR_EVIDENCE_RIR_AUTHORITY:
     case AIR_EVIDENCE_MIR_PIN_CLEANUP:
-        return true;
+        return 1;
     case AIR_EVIDENCE_MIR_CLEANUP:
     case AIR_EVIDENCE_MIR_TERMINATOR:
     case AIR_EVIDENCE_MIR_SELECT_RECEIVE:
@@ -29,33 +29,21 @@ air_evidence_kind_is_boundary_scoped(AIREvidenceKind kind)
     case AIR_EVIDENCE_RIR_RELATION_PROPAGATION:
     case AIR_EVIDENCE_OBSERVABILITY_SCHEMA:
     case AIR_EVIDENCE_RUNTIME_FRONTIER_POLICY:
-        return false;
+        return 0;
     }
-    return false;
+    return -1;
+}
+
+bool
+air_evidence_kind_is_boundary_scoped(AIREvidenceKind kind)
+{
+    return air_evidence_kind_scope(kind) == 1;
 }
 
 bool
 air_evidence_kind_is_known(AIREvidenceKind kind)
 {
-    switch (kind) {
-    case AIR_EVIDENCE_HIR_ROUTINE:
-    case AIR_EVIDENCE_HIR_CFG:
-    case AIR_EVIDENCE_RIR_BOUNDARY:
-    case AIR_EVIDENCE_RIR_AUTHORITY:
-    case AIR_EVIDENCE_MIR_PIN_CLEANUP:
-    case AIR_EVIDENCE_MIR_CLEANUP:
-    case AIR_EVIDENCE_MIR_TERMINATOR:
-    case AIR_EVIDENCE_MIR_SELECT_RECEIVE:
-    case AIR_EVIDENCE_DAG_METADATA:
-    case AIR_EVIDENCE_DAG_GENERIC:
-    case AIR_EVIDENCE_DAG_ABILITY:
-    case AIR_EVIDENCE_RIR_EFFECT_PROPAGATION:
-    case AIR_EVIDENCE_RIR_RELATION_PROPAGATION:
-    case AIR_EVIDENCE_OBSERVABILITY_SCHEMA:
-    case AIR_EVIDENCE_RUNTIME_FRONTIER_POLICY:
-        return true;
-    }
-    return false;
+    return air_evidence_kind_scope(kind) >= 0;
 }
 
 static bool
@@ -120,6 +108,10 @@ air_append_evidence_node_ex(AIRProgram *air,
 
     if (air == NULL) {
         air_set_error(error_message, "AIR evidence append requires a program");
+        return false;
+    }
+    if (!air_evidence_kind_is_known(kind)) {
+        air_set_error(error_message, "AIR evidence append requires a known evidence kind");
         return false;
     }
     for (size_t i = 0; i < air->evidence_count; i++) {

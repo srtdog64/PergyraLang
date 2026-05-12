@@ -14,6 +14,7 @@ void print_where_clause_inline(WhereClause *clause);
 void print_intent_step_contract_sources(const ASTNode *node, int indent);
 bool ast_print_domain_node(ASTNode *node, int indent);
 bool ast_print_event_node(ASTNode *node, int indent);
+bool ast_print_expr_node(ASTNode *node, int indent);
 bool ast_print_intent_node(ASTNode *node, int indent);
 
 #endif

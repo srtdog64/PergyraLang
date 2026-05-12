@@ -10,6 +10,15 @@ typedef struct TypeNameSlot {
     Type **slot;
 } TypeNameSlot;
 
+static int
+metadata_type_name_slot_compare(const void *key, const void *entry)
+{
+    const char *name = *(const char * const *)key;
+    const TypeNameSlot *slot = (const TypeNameSlot *)entry;
+
+    return strcmp(name, slot->name);
+}
+
 static Type *
 metadata_scope_named_type(SemanticContext *ctx, ASTNode *type_node)
 {
@@ -481,12 +490,14 @@ semantic_type_resolution_metadata_builtin_singleton(const char *name)
         { "Void", &TYPE_VOID },
     };
     const size_t count = sizeof(builtins) / sizeof(builtins[0]);
+    const TypeNameSlot *match;
 
-    for (size_t i = 0; name != NULL && i < count; i++) {
-        if (strcmp(name, builtins[i].name) == 0)
-            return *builtins[i].slot;
-    }
-    return NULL;
+    if (name == NULL)
+        return NULL;
+    match = (const TypeNameSlot *)bsearch(
+        &name, builtins, count, sizeof(builtins[0]),
+        metadata_type_name_slot_compare);
+    return match != NULL ? *match->slot : NULL;
 }
 
 Type *
@@ -509,12 +520,14 @@ semantic_type_resolution_metadata_named_builtin_or_shell_singleton(
     };
     Type *builtin = semantic_type_resolution_metadata_builtin_singleton(name);
     const size_t count = sizeof(shells) / sizeof(shells[0]);
+    const TypeNameSlot *match;
 
     if (builtin != NULL)
         return builtin;
-    for (size_t i = 0; name != NULL && i < count; i++) {
-        if (strcmp(name, shells[i].name) == 0)
-            return *shells[i].slot;
-    }
-    return NULL;
+    if (name == NULL)
+        return NULL;
+    match = (const TypeNameSlot *)bsearch(
+        &name, shells, count, sizeof(shells[0]),
+        metadata_type_name_slot_compare);
+    return match != NULL ? *match->slot : NULL;
 }

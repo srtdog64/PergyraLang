@@ -5,6 +5,7 @@
  * Slot analyzer builtin vocabulary.
  */
 
+#include <stdlib.h>
 #include <string.h>
 
 #include "slot_analyzer_internal.h"
@@ -27,19 +28,28 @@ static const SlotBuiltinFact slot_builtin_facts[] = {
     {"WriteView", 0, true},  /* legacy/parser-adjacent spelling */
 };
 
+static int
+slot_builtin_fact_compare(const void *key, const void *entry)
+{
+    const char *name = *(const char * const *)key;
+    const SlotBuiltinFact *fact = (const SlotBuiltinFact *)entry;
+
+    return strcmp(name, fact->name);
+}
+
 static const SlotBuiltinFact *
 slot_builtin_lookup(const char *name)
 {
+    const SlotBuiltinFact *match;
+
     if (name == NULL)
         return NULL;
 
-    for (size_t i = 0;
-         i < sizeof(slot_builtin_facts) / sizeof(slot_builtin_facts[0]);
-         i++) {
-        if (strcmp(slot_builtin_facts[i].name, name) == 0)
-            return &slot_builtin_facts[i];
-    }
-    return NULL;
+    match = (const SlotBuiltinFact *)bsearch(
+        &name, slot_builtin_facts,
+        sizeof(slot_builtin_facts) / sizeof(slot_builtin_facts[0]),
+        sizeof(slot_builtin_facts[0]), slot_builtin_fact_compare);
+    return match;
 }
 
 unsigned

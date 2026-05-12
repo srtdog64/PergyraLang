@@ -5,6 +5,7 @@
  * Type Checker — scalar/string/math stdlib builtin dispatch.
  */
 
+#include <stdlib.h>
 #include <string.h>
 
 #include "type_checker_internal.h"
@@ -25,6 +26,15 @@ typedef struct
     const char *name;
     StdlibScalarHandler handler;
 } StdlibScalarSpec;
+
+static int
+stdlib_scalar_compare(const void *key, const void *entry)
+{
+    const char *name = *(const char * const *)key;
+    const StdlibScalarSpec *spec = (const StdlibScalarSpec *)entry;
+
+    return strcmp(name, spec->name);
+}
 
 static void
 stdlib_scalar_require_string_arg(ASTNode *expr, size_t index,
@@ -303,13 +313,15 @@ static const StdlibScalarSpec stdlib_scalar_specs[] = {
 static const StdlibScalarSpec *
 stdlib_scalar_find_spec(const char *name)
 {
+    const StdlibScalarSpec *match;
+
     if (name == NULL)
         return NULL;
-    for (size_t i = 0; i < sizeof(stdlib_scalar_specs) / sizeof(stdlib_scalar_specs[0]); i++) {
-        if (strcmp(stdlib_scalar_specs[i].name, name) == 0)
-            return &stdlib_scalar_specs[i];
-    }
-    return NULL;
+    match = (const StdlibScalarSpec *)bsearch(
+        &name, stdlib_scalar_specs,
+        sizeof(stdlib_scalar_specs) / sizeof(stdlib_scalar_specs[0]),
+        sizeof(stdlib_scalar_specs[0]), stdlib_scalar_compare);
+    return match;
 }
 
 Type *

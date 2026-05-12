@@ -362,6 +362,9 @@ is_nominal_host_type_name(TranspilerCtx *ctx, const char *type_name)
     if (find_relation_decl(ctx, type_name) != NULL
         || find_effect_decl(ctx, type_name) != NULL
         || find_zone_decl(ctx, type_name) != NULL
+        || find_party_decl(ctx, type_name) != NULL
+        || find_role_decl(ctx, type_name) != NULL
+        || find_roster_decl(ctx, type_name) != NULL
         || find_world_decl(ctx, type_name) != NULL)
         return true;
     for (int i = 0; i < ctx->generic_class_spec_count; i++) {

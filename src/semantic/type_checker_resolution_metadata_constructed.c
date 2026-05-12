@@ -19,6 +19,15 @@ typedef struct StableSlotShellSpec {
     StableSlotShellKind kind;
 } StableSlotShellSpec;
 
+static int
+stable_slot_shell_compare(const void *key, const void *entry)
+{
+    const char *name = *(const char * const *)key;
+    const StableSlotShellSpec *spec = (const StableSlotShellSpec *)entry;
+
+    return strcmp(name, spec->name);
+}
+
 static const StableSlotShellSpec *
 stable_slot_shell_spec(const char *name)
 {
@@ -30,14 +39,13 @@ stable_slot_shell_spec(const char *name)
         { "WriteView", STABLE_SLOT_SHELL_WRITE_VIEW },
     };
     const size_t count = sizeof(specs) / sizeof(specs[0]);
+    const StableSlotShellSpec *match;
 
     if (name == NULL)
         return NULL;
-    for (size_t i = 0; i < count; i++) {
-        if (strcmp(name, specs[i].name) == 0)
-            return &specs[i];
-    }
-    return NULL;
+    match = (const StableSlotShellSpec *)bsearch(
+        &name, specs, count, sizeof(specs[0]), stable_slot_shell_compare);
+    return match;
 }
 
 static Type *

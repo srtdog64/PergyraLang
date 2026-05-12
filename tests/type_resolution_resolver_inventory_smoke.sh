@@ -265,7 +265,7 @@ if grep -q 'semantic_type_resolution_lookup_or_materialize(ctx' \
 fi
 
 grep -q 'type_resolution_metadata_dead_ends' \
-  src/compiler/air_evidence.c || {
+  src/compiler/air_evidence_dag.c || {
   echo "[type-resolution-resolver-inventory] AIR evidence still consumes compatibility fallback counter directly" >&2
   exit 1
 }
@@ -437,9 +437,27 @@ grep -q 'static const TypeNameSlot builtins' \
   exit 1
 }
 
+grep -q 'metadata_type_name_slot_compare' \
+  src/semantic/type_checker_resolution_metadata.c || {
+  echo "[type-resolution-resolver-inventory] metadata builtin/shell lookup lost dispatch-table comparator" >&2
+  exit 1
+}
+
+grep -q '&name, builtins' \
+  src/semantic/type_checker_resolution_metadata.c || {
+  echo "[type-resolution-resolver-inventory] metadata builtin lookup no longer uses dispatch-table search" >&2
+  exit 1
+}
+
 grep -q 'static const TypeNameSlot shells' \
   src/semantic/type_checker_resolution_metadata.c || {
   echo "[type-resolution-resolver-inventory] metadata shell lookup reintroduced ad-hoc branches" >&2
+  exit 1
+}
+
+grep -q '&name, shells' \
+  src/semantic/type_checker_resolution_metadata.c || {
+  echo "[type-resolution-resolver-inventory] metadata shell lookup no longer uses dispatch-table search" >&2
   exit 1
 }
 

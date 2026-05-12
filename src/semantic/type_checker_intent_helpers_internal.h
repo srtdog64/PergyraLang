@@ -95,4 +95,8 @@ void type_check_intent_step_participant_contract(ASTNode *intent_decl,
                                                  bool *matched_action,
                                                  SemanticContext *ctx);
 
+void type_check_intent_step_ability_contract(ASTNode *intent_decl,
+                                             ASTNode *step,
+                                             SemanticContext *ctx);
+
 #endif /* PERGYRA_TYPE_CHECKER_INTENT_HELPERS_INTERNAL_H */

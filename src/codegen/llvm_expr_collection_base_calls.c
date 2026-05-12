@@ -2,6 +2,7 @@
 
 #include "llvm_expr_collection_base_calls.h"
 
+#include <stdlib.h>
 #include <string.h>
 
 #include "llvm_expr_call_collections_extended.h"
@@ -28,14 +29,71 @@ llvm_collection_base_error_out(LLVMGenCtx *ctx, ASTNode *node,
     return true;
 }
 
+typedef enum {
+    LLVM_COLLECTION_BASE_OP_NONE = 0,
+    LLVM_COLLECTION_BASE_OP_LIST_NEW,
+    LLVM_COLLECTION_BASE_OP_SET_ADD,
+    LLVM_COLLECTION_BASE_OP_SET_HAS,
+    LLVM_COLLECTION_BASE_OP_SET_NEW,
+    LLVM_COLLECTION_BASE_OP_SET_REMOVE,
+    LLVM_COLLECTION_BASE_OP_SET_SIZE,
+} LLVMCollectionBaseOp;
+
+typedef struct {
+    const char *name;
+    size_t argc;
+    LLVMCollectionBaseOp op;
+} LLVMCollectionBaseSpec;
+
+static const LLVMCollectionBaseSpec kLLVMCollectionBaseSpecs[] = {
+    {"ListNew", 0, LLVM_COLLECTION_BASE_OP_LIST_NEW},
+    {"SetAdd", 2, LLVM_COLLECTION_BASE_OP_SET_ADD},
+    {"SetHas", 2, LLVM_COLLECTION_BASE_OP_SET_HAS},
+    {"SetNew", 0, LLVM_COLLECTION_BASE_OP_SET_NEW},
+    {"SetRemove", 2, LLVM_COLLECTION_BASE_OP_SET_REMOVE},
+    {"SetSize", 1, LLVM_COLLECTION_BASE_OP_SET_SIZE},
+};
+
+static int
+llvm_collection_base_spec_compare(const void *key, const void *entry)
+{
+    const char *name = (const char *)key;
+    const LLVMCollectionBaseSpec *spec = (const LLVMCollectionBaseSpec *)entry;
+    return strcmp(name, spec->name);
+}
+
+static LLVMCollectionBaseOp
+llvm_collection_base_lookup(const char *callee_name, size_t argc)
+{
+    const LLVMCollectionBaseSpec *spec;
+
+    if (callee_name == NULL)
+        return LLVM_COLLECTION_BASE_OP_NONE;
+    spec = (const LLVMCollectionBaseSpec *)bsearch(
+        callee_name,
+        kLLVMCollectionBaseSpecs,
+        sizeof(kLLVMCollectionBaseSpecs) / sizeof(kLLVMCollectionBaseSpecs[0]),
+        sizeof(kLLVMCollectionBaseSpecs[0]),
+        llvm_collection_base_spec_compare);
+    if (spec == NULL)
+        return LLVM_COLLECTION_BASE_OP_NONE;
+    if (spec->argc != argc)
+        return LLVM_COLLECTION_BASE_OP_NONE;
+    return spec->op;
+}
+
 bool
 llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
                                const char *callee_name, LLVMValueRef *out)
 {
+    LLVMCollectionBaseOp op;
+
     if (out == NULL)
         return false;
 
-    if (strcmp(callee_name, "ListNew") == 0 && node->data.call.arg_count == 0) {
+    op = llvm_collection_base_lookup(callee_name, node->data.call.arg_count);
+
+    if (op == LLVM_COLLECTION_BASE_OP_LIST_NEW) {
         LLVMTypeRef list_ty;
         LLVMTypeRef elem_ty;
         const char *inner_name = NULL;
@@ -92,7 +150,7 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
         return true;
     }
 
-    if (strcmp(callee_name, "SetNew") == 0 && node->data.call.arg_count == 0) {
+    if (op == LLVM_COLLECTION_BASE_OP_SET_NEW) {
         LLVMTypeRef set_ty;
         LLVMTypeRef elem_ty;
         const char *inner_name = NULL;
@@ -149,7 +207,7 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
         return true;
     }
 
-    if (strcmp(callee_name, "SetAdd") == 0 && node->data.call.arg_count == 2) {
+    if (op == LLVM_COLLECTION_BASE_OP_SET_ADD) {
         ASTNode *set_arg = node->data.call.arguments[0];
         LLVMVarEntry *set_var;
         const char *inner_name;
@@ -203,7 +261,7 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
         return true;
     }
 
-    if (strcmp(callee_name, "SetHas") == 0 && node->data.call.arg_count == 2) {
+    if (op == LLVM_COLLECTION_BASE_OP_SET_HAS) {
         ASTNode *set_arg = node->data.call.arguments[0];
         LLVMVarEntry *set_var;
         const char *inner_name;
@@ -259,7 +317,7 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
         }
     }
 
-    if (strcmp(callee_name, "SetRemove") == 0 && node->data.call.arg_count == 2) {
+    if (op == LLVM_COLLECTION_BASE_OP_SET_REMOVE) {
         ASTNode *set_arg = node->data.call.arguments[0];
         LLVMVarEntry *set_var;
         const char *inner_name;
@@ -313,7 +371,7 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
         return true;
     }
 
-    if (strcmp(callee_name, "SetSize") == 0 && node->data.call.arg_count == 1) {
+    if (op == LLVM_COLLECTION_BASE_OP_SET_SIZE) {
         ASTNode *set_arg = node->data.call.arguments[0];
         LLVMVarEntry *set_var;
         LLVMFuncEntry *fn;

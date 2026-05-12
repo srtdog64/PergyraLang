@@ -21,6 +21,10 @@ is_pointer_self_host_type_name(TranspilerCtx *ctx, const char *type_name)
         && decl->type == AST_CLASS_DECL
         && decl->data.class_decl.nominal_kind == NOMINAL_DECL_VESSEL)
         return true;
+    if (find_party_decl(ctx, type_name) != NULL
+        || find_role_decl(ctx, type_name) != NULL
+        || find_roster_decl(ctx, type_name) != NULL)
+        return true;
     return find_relation_decl(ctx, type_name) != NULL
         || find_effect_decl(ctx, type_name) != NULL
         || find_zone_decl(ctx, type_name) != NULL

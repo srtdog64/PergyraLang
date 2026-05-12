@@ -64,6 +64,25 @@ llvm_decl_find_current_zone_decl(LLVMGenCtx *ctx)
     return NULL;
 }
 
+static void
+llvm_decl_zone_authority_backend_error(LLVMGenCtx *ctx, ASTNode *node,
+                                       const char *zone_name,
+                                       const char *subject_slot_name,
+                                       const char *reason)
+{
+    if (ctx == NULL || ctx->has_error)
+        return;
+
+    llvm_set_error_at_with_hints(ctx, node,
+        PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+        PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+        PGY_FIX_INSPECT_MIR_INVENTORY,
+        "LLVM zone authority check could not be emitted for zone '%s' subject slot '%s': %s",
+        zone_name != NULL ? zone_name : "<unknown>",
+        subject_slot_name != NULL ? subject_slot_name : "<unknown>",
+        reason != NULL ? reason : "missing backend metadata");
+}
+
 static bool
 llvm_decl_token_param_name(LLVMGenCtx *ctx, ASTNode *node,
                            char *out, size_t out_size,
@@ -110,30 +129,61 @@ llvm_decl_emit_zone_authority_check(LLVMGenCtx *ctx)
         return;
 
     zone_decl = llvm_decl_find_current_zone_decl(ctx);
-    if (zone_decl == NULL
-        || zone_decl->data.zone_decl.authority_count == 0
+    if (zone_decl == NULL) {
+        if (ctx->current_func_decl != NULL
+            && ctx->current_func_decl->type == AST_FUNC_DECL
+            && ctx->current_func_decl->data.func_decl.within_zone != NULL) {
+            llvm_decl_zone_authority_backend_error(ctx, ctx->current_func_decl,
+                ctx->current_func_decl->data.func_decl.within_zone, NULL,
+                "current function declares a zone boundary but the zone declaration is missing from LLVM inventory");
+        }
+        return;
+    }
+
+    if (zone_decl->data.zone_decl.authority_count == 0
         || zone_decl->data.zone_decl.authorities == NULL
         || zone_decl->data.zone_decl.authorities[0] == NULL) {
         return;
     }
 
     authority = zone_decl->data.zone_decl.authorities[0];
+    zone_name = zone_decl->data.zone_decl.name;
     if (authority->type != AST_ZONE_AUTHORITY
         || authority->data.zone_authority.subject_slot_name == NULL) {
+        llvm_decl_zone_authority_backend_error(ctx, zone_decl, zone_name, NULL,
+            "authority declaration is malformed or lacks a subject slot");
         return;
     }
 
-    zone_name = zone_decl->data.zone_decl.name;
     zone_cls = zone_name != NULL ? llvm_lookup_class(ctx, zone_name) : NULL;
     self_var = llvm_scope_lookup(ctx, "self");
     check_fn = llvm_lookup_function(ctx, "pgy_zone_authority_check_export");
-    if (zone_cls == NULL || self_var == NULL || check_fn == NULL)
+    if (zone_cls == NULL) {
+        llvm_decl_zone_authority_backend_error(ctx, zone_decl, zone_name,
+            authority->data.zone_authority.subject_slot_name,
+            "zone class layout is missing");
         return;
+    }
+    if (self_var == NULL) {
+        llvm_decl_zone_authority_backend_error(ctx, ctx->current_func_decl,
+            zone_name, authority->data.zone_authority.subject_slot_name,
+            "implicit self binding is missing");
+        return;
+    }
+    if (check_fn == NULL) {
+        llvm_set_mir_inventory_missing(ctx,
+            "LLVM zone authority check runtime export is missing: pgy_zone_authority_check_export");
+        return;
+    }
 
     field_index = llvm_class_field_index(zone_cls,
         authority->data.zone_authority.subject_slot_name);
-    if (field_index < 0)
+    if (field_index < 0) {
+        llvm_decl_zone_authority_backend_error(ctx, zone_decl, zone_name,
+            authority->data.zone_authority.subject_slot_name,
+            "authority subject slot is missing from the zone class layout");
         return;
+    }
 
     self_value = LLVMBuildLoad2(ctx->builder, self_var->type, self_var->alloca,
         llvm_tmp_name(ctx));
@@ -314,6 +364,8 @@ llvm_emit_func_decl(ASTNode *node, LLVMGenCtx *ctx)
     }
 
     llvm_decl_emit_zone_authority_check(ctx);
+    if (ctx->has_error)
+        goto cleanup;
 
     /* Emit body */
     if (node->data.func_decl.body != NULL)

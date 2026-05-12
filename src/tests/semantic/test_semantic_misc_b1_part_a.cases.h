@@ -909,6 +909,38 @@
         lexer_destroy(lexer);
     }
 
+    TEST("unknown nominal field and method access are rejected");
+    {
+        const char *source =
+            "class Vault {\n"
+            "    public let visible: Int;\n"
+            "    public func Reveal(self) -> Int {\n"
+            "        return self.visible;\n"
+            "    }\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let v: Vault = Vault(7);\n"
+            "    Log(v.missing);\n"
+            "    Log(v.Missing());\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Unknown member 'Vault.missing'"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Unknown method 'Vault.Missing'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("subject vessel fields reject non-vessel target types");
     {
         const char *source =

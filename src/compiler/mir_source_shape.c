@@ -2,6 +2,7 @@
 
 #include "mir_cfg_contract_control.h"
 
+#include <stdlib.h>
 #include <string.h>
 
 bool
@@ -183,23 +184,45 @@ mir_instruction_source_is_cfg_owned_control(const MIRInstruction *inst)
     return mir_stmt_ast_is_cfg_owned_control(inst->ast);
 }
 
+static int
+mir_string_pointer_compare(const void *key, const void *entry)
+{
+    const char *const *name = (const char *const *)key;
+    const char *const *candidate = (const char *const *)entry;
+
+    if (name == NULL || *name == NULL)
+        return candidate != NULL && *candidate != NULL ? -1 : 0;
+    if (candidate == NULL || *candidate == NULL)
+        return 1;
+    return strcmp(*name, *candidate);
+}
+
 static bool
 mir_source_call_is_pure_query(const char *callee)
 {
+    static const char *const k_pure_query_builtins[] = {
+        "ChannelCapacity",
+        "ChannelClosed",
+        "ChannelFull",
+        "ChannelLength",
+        "ChannelSpace",
+        "HasLayer",
+        "HasProjection",
+        "HasState",
+        "HasZone",
+        "HasZoneLayer",
+        "HasZoneProjection",
+        "HasZoneState",
+    };
+
     if (callee == NULL)
         return false;
-    return strcmp(callee, "HasState") == 0
-        || strcmp(callee, "HasLayer") == 0
-        || strcmp(callee, "HasProjection") == 0
-        || strcmp(callee, "HasZone") == 0
-        || strcmp(callee, "HasZoneProjection") == 0
-        || strcmp(callee, "HasZoneLayer") == 0
-        || strcmp(callee, "HasZoneState") == 0
-        || strcmp(callee, "ChannelLength") == 0
-        || strcmp(callee, "ChannelCapacity") == 0
-        || strcmp(callee, "ChannelSpace") == 0
-        || strcmp(callee, "ChannelFull") == 0
-        || strcmp(callee, "ChannelClosed") == 0;
+    return bsearch(&callee,
+                   k_pure_query_builtins,
+                   sizeof(k_pure_query_builtins)
+                       / sizeof(k_pure_query_builtins[0]),
+                   sizeof(k_pure_query_builtins[0]),
+                   mir_string_pointer_compare) != NULL;
 }
 
 bool

@@ -5,6 +5,7 @@
  * Type Checker Option/Result stdlib variant builtin dispatch.
  */
 
+#include <stdlib.h>
 #include <string.h>
 
 #include "type_checker_internal.h"
@@ -29,6 +30,16 @@ typedef struct StdlibVariantBuiltinSpec {
     StdlibVariantBuiltinKind kind;
 } StdlibVariantBuiltinSpec;
 
+static int
+stdlib_variant_builtin_compare(const void *key, const void *entry)
+{
+    const char *name = *(const char * const *)key;
+    const StdlibVariantBuiltinSpec *spec =
+        (const StdlibVariantBuiltinSpec *)entry;
+
+    return strcmp(name, spec->name);
+}
+
 static Type *
 stdlib_variant_normalize_type(Type *type)
 {
@@ -49,15 +60,14 @@ stdlib_variant_builtin_kind(const char *name)
         { "UnwrapOption", STDLIB_VARIANT_UNWRAP_OPTION },
         { "UnwrapOr", STDLIB_VARIANT_UNWRAP_OR }
     };
-    size_t i;
+    const StdlibVariantBuiltinSpec *match;
 
     if (name == NULL)
         return STDLIB_VARIANT_UNKNOWN;
-    for (i = 0; i < sizeof(specs) / sizeof(specs[0]); i++) {
-        if (strcmp(name, specs[i].name) == 0)
-            return specs[i].kind;
-    }
-    return STDLIB_VARIANT_UNKNOWN;
+    match = (const StdlibVariantBuiltinSpec *)bsearch(
+        &name, specs, sizeof(specs) / sizeof(specs[0]), sizeof(specs[0]),
+        stdlib_variant_builtin_compare);
+    return match != NULL ? match->kind : STDLIB_VARIANT_UNKNOWN;
 }
 
 Type *

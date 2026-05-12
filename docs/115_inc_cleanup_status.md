@@ -70,11 +70,12 @@ Current largest non-test production owners:
 
 | File | LOC | Status |
 | --- | ---: | --- |
-| `src/lexer/lexer.c` | 587 | lexer owner; below split threshold, watch for new token behavior |
 | `src/codegen/llvm_internal.h` | 574 | LLVM private declarations; below split threshold, keep declaration-only |
-| `src/runtime/slot_manager.c` | 572 | core slot lifecycle owner; below split threshold |
-| `src/compiler/hir.c` | 559 | HIR orchestration owner; below split threshold |
-| `src/parser/ast_constructors.c` | 558 | AST constructor owner; below split threshold |
+| `src/codegen/llvm_expr_task_channel_calls.c` | 570 | LLVM task/channel call owner; below split threshold |
+| `src/codegen/llvm_stmt_parallel_async.c` | 554 | LLVM parallel/async statement owner; below split threshold |
+| `src/codegen/llvm_stmt_parallel_async.c` | 554 | LLVM parallel/async statement owner; below split threshold |
+| `src/codegen/transpiler_type_mapping.c` | 547 | C backend type mapping owner; below split threshold |
+| `src/codegen/transpiler_type_mapping.c` | 547 | C backend type mapping owner; below split threshold |
 - MIR CFG/body ownership is no longer a hard-size blocker:
   `src/compiler/mir.c` stays orchestration-only after SSA rename moved into
   `src/compiler/mir_ssa_rename.c`, versioned use-edge population moved into
@@ -90,6 +91,11 @@ Current largest non-test production owners:
   smoke gate now includes that owner directly.
 - Semantic owner TU size is also back under the 600 LOC review threshold after
   domain, intent, ownership, and slot-view diagnostics moved into named owners.
+- CFG/body flow keeps `type_checker_flow.c` as the if/match/block orchestration
+  owner required by the CFG smoke, while `type_checker_flow_loop_control.c`
+  owns `break` / `continue` loop-depth, label validation, and loop resource
+  snapshot recording. `type_checker_flow.c` is now 488 LOC and the new
+  loop-control owner is 55 LOC.
 - Runtime slot utility ownership now has a separate TU:
   `src/runtime/slot_type_utils.c` owns `TypeTagHash`, `TypeTagToString`,
   `TypeIsPrimitive`, `TypeGetSize`, `SlotHashFunction`,
@@ -144,9 +150,12 @@ Current largest non-test production owners:
   below the 600 LOC split-review threshold. Verified with `make pgy` and
   `make test-abi`.
 - Intent parser ownership is split without changing parser exports:
-  `src/parser/parser_intent.c` is now a 468 LOC declaration/default propagation
-  owner, while `src/parser/parser_intent_step.h` owns step clause parsing at
-  297 LOC. Verified with `make test-parser` and `make test-semantic`.
+  `src/parser/parser_intent.c` is now a 514 LOC declaration parser,
+  `src/parser/parser_intent_defaults.c` owns intent-level `who` / `where`
+  propagation at 69 LOC, and `src/parser/parser_intent_step.h` owns step
+  clause parsing at 297 LOC. Verified with direct GCC compile probes plus
+  `intent_compression_contract_smoke.sh`, `build_source_inventory_smoke.sh`,
+  and `source_utf8_smoke.sh`.
 - Expression parser string ownership is split:
   `src/parser/parser_expr.c` is now a 524 LOC expression precedence/call/primary
   owner, while `src/parser/parser_expr_string.h` owns multiline/interpolation
@@ -266,8 +275,13 @@ Current largest non-test production owners:
   TU: `src/semantic/type_checker_intent_transfer.c` owns transfer source/target
   alias validation, zone-binding checks, transfer target versus current zone
   contract checks, and `using` versus transfer-target consistency diagnostics.
-  `type_checker_intent_decl.c` is now 510 LOC and remains below the 600 LOC
-  split-review threshold. Verified with `make test-semantic` (2357/0).
+  Intent step required-ability contract ownership now lives in
+  `src/semantic/type_checker_intent_ability.c`, leaving
+  `type_checker_intent_decl.c` focused on declaration/step orchestration,
+  inference calls, and top-level priority/success/failure checks.
+  `type_checker_intent_decl.c` is now 464 LOC and remains below the 600 LOC
+  split-review threshold. Verified with targeted `gcc` object builds for both
+  intent owners and `build-source-inventory`.
 - Domain helper projection/overlay/contract ownership now has separate TUs:
   `src/semantic/type_checker_domain_projection.c` owns projection contract
   diagnostics, and `src/semantic/type_checker_overlay_common.c` owns overlay
@@ -324,25 +338,29 @@ Current largest non-test production owners:
   and where-clause inline rendering; `src/parser/ast_print_intent.c` owns
   intent printers plus intent contract provenance printing;
   `src/parser/ast_print_event.c` owns event printers;
-  `src/parser/ast_print_domain.c` owns domain/world/zone printers; and
-  `src/parser/ast_print_misc.c` owns trailing-newline policy. Current owner
-  sizes are `ast_print.c` 553 LOC, `ast_print_domain.c` 539 LOC,
+  `src/parser/ast_print_domain.c` owns domain/world/zone printers;
+  `src/parser/ast_print_expr.c` owns compact expression-node debug printing;
+  and `src/parser/ast_print_misc.c` owns trailing-newline policy. Current owner
+  sizes are `ast_print.c` 469 LOC, `ast_print_domain.c` 539 LOC,
   `ast_print_inline.c` 382 LOC, `ast_print_intent.c` 253 LOC,
-  `ast_print_event.c` 76 LOC, and `ast_print_generics.c` 63 LOC. The AST print
-  family is now below the 600 LOC split-review threshold. Verified with
-  `make test-parser pgy`.
-- AST constructor ownership now has constructor, domain-constructor, and clone
+  `ast_print_expr.c` 108 LOC, `ast_print_event.c` 76 LOC, and
+  `ast_print_generics.c` 63 LOC. The AST print family is now below the 600 LOC
+  split-review threshold. Verified with targeted `gcc` object builds for
+  `ast_print.c` and `ast_print_expr.c`.
+- AST constructor ownership now has constructor, async-constructor,
+  domain-constructor, and clone
   owners: `src/parser/ast_constructors.c` owns core statement/expression/basic
-  type constructors, `src/parser/ast_domain_constructors.c` owns
-  domain/intent/party/event constructors, and `src/parser/ast_clone.c` owns AST
-  clone helpers.
+  type constructors, `src/parser/ast_async_constructors.c` owns async/channel
+  constructors, `src/parser/ast_domain_constructors.c` owns domain/intent/
+  party/event constructors, and `src/parser/ast_clone.c` owns AST clone helpers.
 - AST mutation/destruction ownership is now split below the 600 LOC threshold:
   `src/parser/ast.c` owns only mutation helpers, `src/parser/ast_destroy.c`
   owns generic/where/comment destruction plus non-domain destroy cases, and
   `src/parser/ast_destroy_domain.c` owns domain/world/zone/intent/party/
   ability/event destroy cases. Current sizes are `ast.c` 65 LOC,
   `ast_destroy.c` 393 LOC, `ast_destroy_domain.c` 456 LOC,
-  `ast_constructors.c` 545 LOC, and `ast_domain_constructors.c` 598 LOC.
+  `ast_constructors.c` 445 LOC, `ast_async_constructors.c` 117 LOC, and
+  `ast_domain_constructors.c` 500 LOC.
   Verified with `make test-parser`.
 - AST public type ownership now has a shared type header:
   `src/parser/ast_types.h` owns AST enums, forward declarations, generic
@@ -502,6 +520,13 @@ Current largest non-test production owners:
   `air.c` and `air_evidence.c`. `make test-air air-drift-test-smoke
   air-backend-nonimpact-test-smoke air-strict-backend-compare-test-smoke`
   remains green.
+- AIR DAG evidence collection now lives in `src/compiler/air_evidence_dag.c`.
+  `src/compiler/air_evidence.c` is now 474 LOC and stays focused on HIR/MIR
+  evidence plus runtime schema/frontier evidence; the DAG owner is 67 LOC and
+  consumes only `SemanticResult` DAG counters and metadata dead-end facts.
+  Verified with direct GCC probes, `air_drift_smoke.sh`,
+  `type_resolution_resolver_inventory_smoke.sh`, `perf_contract_smoke.sh`, and
+  `build_source_inventory_smoke.sh`.
 - AIR boundary traversal now lives in `src/compiler/air_boundary.c`. Boundary
   classification, source derivation, sync-class mapping, step boundary counting,
   and boundary node append moved out of `src/compiler/air.c`; `air.c` drops
@@ -1780,6 +1805,22 @@ Observed results:
   high-value extraction candidate is not more blind line-count splitting; it is
   choosing a real owner seam for parser AST/domain owners, DIR declaration
   graph ownership, or the remaining zone/frontier bodies.
+- Latest owner cleanup moved exported intent trace events into
+  `src/runtime/pgy_runtime_lib_intent_trace_events_exports.c` and inline
+  active-index helpers into `src/runtime/pgy_runtime_intent_active_index_inline.h`.
+  The corresponding runtime cache and smoke gates now track those owners, and
+  the current production C/H owner inventory has no file above 600 LOC. The
+  remaining 560-plus review queue is `llvm_internal.h` and
+  `llvm_expr_task_channel_calls.c`; neither should be split without a named
+  responsibility seam.
+- Latest slot-manager cleanup moved shared plain-payload storage/checksum/free
+  helpers into `src/runtime/slot_manager_storage.c`. This is a responsibility
+  split, not a blind line-count split: `slot_manager.c`, secure-slot flows, and
+  pin views all share that storage seam through `slot_manager_internal.h`.
+- Latest HIR cleanup moved routine-name indexing, direct-call edge
+  materialization, and entry-reachability propagation into
+  `src/compiler/hir_callgraph.c`. `src/compiler/hir.c` is now focused on
+  top-level lowering orchestration and declaration classification.
 - Latest CFG/RIR consumer cleanup moved the RIR resource-state merge lattice
   from `src/compiler/rir_flow.h` into `src/compiler/rir_flow_state.h`.
   `rir_flow.h` is now 420 LOC and owns HIR CFG enrichment / bounded dataflow

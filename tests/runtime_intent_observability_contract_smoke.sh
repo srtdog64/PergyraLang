@@ -16,9 +16,11 @@ require_term() {
 
 for rel in \
     "src/runtime/pgy_runtime_intent_active_exports.h" \
+    "src/runtime/pgy_runtime_intent_active_index_inline.h" \
     "src/runtime/pgy_runtime_intent_trace_inline.h" \
     "src/runtime/pgy_runtime_lib_intent_active_index_exports.c" \
     "src/runtime/pgy_runtime_lib_intent_active_index_exports.h" \
+    "src/runtime/pgy_runtime_lib_intent_trace_events_exports.c" \
     "src/runtime/pgy_runtime_lib_intent_slot_core_exports.h" \
     "src/runtime/pgy_runtime_lib_intent_exports.h" \
     "src/codegen/transpiler_intent_observability_builtin_emit.h" \
@@ -59,9 +61,24 @@ require_term "$ROOT_DIR/src/codegen/llvm_expr_intent_observability_calls.c" "Int
 require_term "$ROOT_DIR/src/runtime/pgy_runtime_lib_intent_active_index_exports.c" "pgy_intent_find_active_registry_slot_export"
 require_term "$ROOT_DIR/src/runtime/pgy_runtime_intent_trace_inline.h" "PGY_INTENT_ACTIVE_INDEX_MAX must stay a power of two"
 require_term "$ROOT_DIR/src/runtime/pgy_runtime_lib_intent_active_index_exports.c" "PGY_INTENT_ACTIVE_INDEX_MAX must stay a power of two"
-require_term "$ROOT_DIR/src/runtime/pgy_runtime_intent_trace_inline.h" "pgy_intent_active_index_handles[first_tombstone] = handle"
+require_term "$ROOT_DIR/src/runtime/pgy_runtime_intent_active_index_inline.h" "pgy_intent_active_index_handles[first_tombstone] = handle"
 require_term "$ROOT_DIR/src/runtime/pgy_runtime_lib_intent_active_index_exports.c" "pgy_intent_active_index_handles[first_tombstone] = handle"
 require_term "$ROOT_DIR/src/runtime/pgy_runtime_lib_intent_slot_core_exports.h" "pgy_intent_find_active_registry_slot_export(handle)"
 require_term "$ROOT_DIR/src/runtime/pgy_runtime_lib_intent_slot_core_exports.h" "pgy_intent_active_index_clear_export(handle)"
+require_term "$ROOT_DIR/src/runtime/pgy_runtime_intent_trace_inline.h" "#include \"pgy_runtime_intent_active_index_inline.h\""
+require_term "$ROOT_DIR/src/runtime/pgy_runtime_lib_set_intent_trace_exports.c" "#include \"pgy_runtime_lib_intent_trace_events_exports.c\""
+
+require_term "$ROOT_DIR/src/runtime/pgy_runtime_intent_trace_inline.h" "pgy_intent_next_positive_counter"
+require_term "$ROOT_DIR/src/runtime/pgy_runtime_intent_trace_inline.h" "pgy_intent_next_unused_handle"
+require_term "$ROOT_DIR/src/runtime/pgy_runtime_intent_trace_inline.h" "pgy_intent_find_active_entry(candidate) == NULL"
+require_term "$ROOT_DIR/src/runtime/pgy_runtime_intent_trace_inline.h" "intent handle space exhausted"
+require_term "$ROOT_DIR/src/runtime/pgy_runtime_intent_trace_inline.h" "pgy_intent_next_positive_counter(&pgy_intent_next_trace_id)"
+
+require_term "$ROOT_DIR/src/runtime/pgy_runtime_lib_set_intent_trace_exports.c" "pgy_intent_next_positive_counter_export"
+require_term "$ROOT_DIR/src/runtime/pgy_runtime_lib_set_intent_trace_exports.c" "pgy_intent_next_unused_handle_export"
+require_term "$ROOT_DIR/src/runtime/pgy_runtime_lib_set_intent_trace_exports.c" "pgy_intent_find_active_entry_export(candidate) == NULL"
+require_term "$ROOT_DIR/src/runtime/pgy_runtime_lib_set_intent_trace_exports.c" "intent handle space exhausted"
+require_term "$ROOT_DIR/src/runtime/pgy_runtime_lib_set_intent_trace_exports.c" "pgy_intent_next_positive_counter_export(&pgy_intent_next_trace_id)"
+require_term "$ROOT_DIR/src/runtime/pgy_runtime_lib_set_intent_trace_exports.c" "(size_t)subject_count > SIZE_MAX / sizeof(void *)"
 
 echo "[runtime-intent-observability-contract] active index/handle contract is gated"

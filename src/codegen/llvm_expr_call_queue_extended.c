@@ -7,6 +7,53 @@
 #include "llvm_expr_call_collections_extended.h"
 #include "llvm_internal_api.h"
 
+typedef enum {
+    LLVM_QUEUE_EXT_NONE = 0,
+    LLVM_QUEUE_EXT_EMPTY,
+    LLVM_QUEUE_EXT_POP,
+    LLVM_QUEUE_EXT_PUSH,
+    LLVM_QUEUE_EXT_SIZE,
+} LLVMQueueExtendedOp;
+
+typedef struct {
+    const char *name;
+    unsigned argc;
+    LLVMQueueExtendedOp op;
+} LLVMQueueExtendedSpec;
+
+static const LLVMQueueExtendedSpec kQueueExtendedSpecs[] = {
+    {"QueueEmpty", 1, LLVM_QUEUE_EXT_EMPTY},
+    {"QueuePop", 1, LLVM_QUEUE_EXT_POP},
+    {"QueuePush", 2, LLVM_QUEUE_EXT_PUSH},
+    {"QueueSize", 1, LLVM_QUEUE_EXT_SIZE},
+};
+
+static int
+llvm_queue_extended_spec_compare(const void *key, const void *entry)
+{
+    const char *name = (const char *)key;
+    const LLVMQueueExtendedSpec *spec = (const LLVMQueueExtendedSpec *)entry;
+    return strcmp(name, spec->name);
+}
+
+static LLVMQueueExtendedOp
+llvm_queue_extended_lookup(const char *callee_name, unsigned argc)
+{
+    const LLVMQueueExtendedSpec *spec;
+
+    if (callee_name == NULL)
+        return LLVM_QUEUE_EXT_NONE;
+    spec = (const LLVMQueueExtendedSpec *)bsearch(
+        callee_name,
+        kQueueExtendedSpecs,
+        sizeof(kQueueExtendedSpecs) / sizeof(kQueueExtendedSpecs[0]),
+        sizeof(kQueueExtendedSpecs[0]),
+        llvm_queue_extended_spec_compare);
+    if (spec == NULL || spec->argc != argc)
+        return LLVM_QUEUE_EXT_NONE;
+    return spec->op;
+}
+
 static bool
 llvm_queue_error_out(LLVMGenCtx *ctx, ASTNode *node, LLVMValueRef *out,
                      LLVMValueRef recovery, const char *message)
@@ -32,7 +79,14 @@ llvm_emit_queue_extended_call(ASTNode *node, LLVMGenCtx *ctx,
                               const char *callee_name,
                               LLVMValueRef *out)
 {
-    if (strcmp(callee_name, "QueuePush") == 0 && node->data.call.arg_count == 2) {
+    LLVMQueueExtendedOp op;
+
+    if (node == NULL || node->type != AST_CALL)
+        return false;
+    op = llvm_queue_extended_lookup(callee_name,
+        (unsigned)node->data.call.arg_count);
+
+    if (op == LLVM_QUEUE_EXT_PUSH) {
         ASTNode *queue_arg = node->data.call.arguments[0];
         LLVMVarEntry *queue_var;
         const char *inner_name;
@@ -83,7 +137,7 @@ llvm_emit_queue_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         { *out = LLVMConstInt(ctx->type_i32, 0, 0); return true; }
     }
 
-    if (strcmp(callee_name, "QueuePop") == 0 && node->data.call.arg_count == 1) {
+    if (op == LLVM_QUEUE_EXT_POP) {
         ASTNode *queue_arg = node->data.call.arguments[0];
         LLVMVarEntry *queue_var;
         const char *inner_name;
@@ -118,7 +172,7 @@ llvm_emit_queue_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         { *out = LLVMBuildLoad2(ctx->builder, elem_ty, tmp, llvm_tmp_name(ctx)); return true; }
     }
 
-    if (strcmp(callee_name, "QueueSize") == 0 && node->data.call.arg_count == 1) {
+    if (op == LLVM_QUEUE_EXT_SIZE) {
         ASTNode *queue_arg = node->data.call.arguments[0];
         LLVMVarEntry *queue_var;
         LLVMFuncEntry *fn;
@@ -138,7 +192,7 @@ llvm_emit_queue_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         }
     }
 
-    if (strcmp(callee_name, "QueueEmpty") == 0 && node->data.call.arg_count == 1) {
+    if (op == LLVM_QUEUE_EXT_EMPTY) {
         ASTNode *queue_arg = node->data.call.arguments[0];
         LLVMVarEntry *queue_var;
         LLVMFuncEntry *fn;

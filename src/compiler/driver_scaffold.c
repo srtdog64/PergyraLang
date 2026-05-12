@@ -19,6 +19,13 @@
 
 #include "../common/string_compat.h"
 
+typedef int (*ScaffoldEmitFn)(const char *target);
+
+typedef struct {
+    const char *kind;
+    ScaffoldEmitFn emit;
+} ScaffoldKindSpec;
+
 static bool
 scaffold_has_suffix(const char *value, const char *suffix)
 {
@@ -420,12 +427,45 @@ scaffold_world_file(const char *target)
     return rc;
 }
 
+static int
+scaffold_kind_compare(const void *key, const void *entry)
+{
+    const char *kind = (const char *)key;
+    const ScaffoldKindSpec *spec = (const ScaffoldKindSpec *)entry;
+    return strcmp(kind, spec->kind);
+}
+
+static ScaffoldEmitFn
+scaffold_find_kind(const char *kind)
+{
+    static const ScaffoldKindSpec specs[] = {
+        {"class", scaffold_class_file},
+        {"object", scaffold_object_file},
+        {"project", scaffold_project_dir},
+        {"simulator", scaffold_simulator_dir},
+        {"subject", scaffold_subject_file},
+        {"tobject", scaffold_dto_file},
+        {"vessel", scaffold_vessel_file},
+        {"world", scaffold_world_file},
+        {"zone", scaffold_zone_file},
+    };
+    const ScaffoldKindSpec *match;
+
+    if (kind == NULL)
+        return NULL;
+    match = (const ScaffoldKindSpec *)bsearch(
+        kind, specs, sizeof(specs) / sizeof(specs[0]), sizeof(specs[0]),
+        scaffold_kind_compare);
+    return match != NULL ? match->emit : NULL;
+}
+
 int
 driver_run_scaffold_command(int argc, char *argv[])
 {
     const char *verb;
     const char *kind;
     const char *target;
+    ScaffoldEmitFn emit;
 
     verb = (argc > 0) ? argv[0] : "scaffold";
     if (argc < 3) {
@@ -448,24 +488,9 @@ driver_run_scaffold_command(int argc, char *argv[])
     kind = argv[1];
     target = argv[2];
 
-    if (strcmp(kind, "subject") == 0)
-        return scaffold_subject_file(target);
-    if (strcmp(kind, "class") == 0)
-        return scaffold_class_file(target);
-    if (strcmp(kind, "vessel") == 0)
-        return scaffold_vessel_file(target);
-    if (strcmp(kind, "object") == 0)
-        return scaffold_object_file(target);
-    if (strcmp(kind, "tobject") == 0)
-        return scaffold_dto_file(target);
-    if (strcmp(kind, "zone") == 0)
-        return scaffold_zone_file(target);
-    if (strcmp(kind, "world") == 0)
-        return scaffold_world_file(target);
-    if (strcmp(kind, "simulator") == 0)
-        return scaffold_simulator_dir(target);
-    if (strcmp(kind, "project") == 0)
-        return scaffold_project_dir(target);
+    emit = scaffold_find_kind(kind);
+    if (emit != NULL)
+        return emit(target);
 
     fprintf(stderr, "pgy: unknown scaffold kind '%s' for '%s'\n", kind, verb);
     return 1;

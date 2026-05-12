@@ -5,6 +5,7 @@
  * Type Checker stdlib channel transport builtin dispatch.
  */
 
+#include <stdlib.h>
 #include <string.h>
 
 #include "type_checker_internal.h"
@@ -25,6 +26,16 @@ typedef struct StdlibChannelTransportSpec {
     StdlibChannelTransportKind kind;
 } StdlibChannelTransportSpec;
 
+static int
+stdlib_channel_transport_compare(const void *key, const void *entry)
+{
+    const char *name = *(const char * const *)key;
+    const StdlibChannelTransportSpec *spec =
+        (const StdlibChannelTransportSpec *)entry;
+
+    return strcmp(name, spec->name);
+}
+
 static StdlibChannelTransportKind
 stdlib_channel_transport_kind(const char *name)
 {
@@ -36,15 +47,14 @@ stdlib_channel_transport_kind(const char *name)
         { "TrySend", STDLIB_CHANNEL_TRY_SEND },
         { "TrySendStatus", STDLIB_CHANNEL_TRY_SEND_STATUS }
     };
-    size_t i;
+    const StdlibChannelTransportSpec *match;
 
     if (name == NULL)
         return STDLIB_CHANNEL_TRANSPORT_UNKNOWN;
-    for (i = 0; i < sizeof(specs) / sizeof(specs[0]); i++) {
-        if (strcmp(name, specs[i].name) == 0)
-            return specs[i].kind;
-    }
-    return STDLIB_CHANNEL_TRANSPORT_UNKNOWN;
+    match = (const StdlibChannelTransportSpec *)bsearch(
+        &name, specs, sizeof(specs) / sizeof(specs[0]), sizeof(specs[0]),
+        stdlib_channel_transport_compare);
+    return match != NULL ? match->kind : STDLIB_CHANNEL_TRANSPORT_UNKNOWN;
 }
 
 Type *

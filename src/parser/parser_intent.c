@@ -509,36 +509,6 @@ parse_intent_declaration(Parser *parser)
 
     parser_consume(parser, TOKEN_RBRACE, "Expected '}' after intent body");
 
-    /* Propagate intent-level who/where to steps that omit them */
-    for (size_t i = 0; i < intent->data.intent_decl.step_count; i++) {
-        ASTNode *step = intent->data.intent_decl.steps[i];
-        if (step == NULL)
-            continue;
-
-        /* If step has no who, copy intent-level default */
-        if (step->data.intent_step.who_count == 0
-            && intent->data.intent_decl.default_who_count > 0) {
-            bool copied_any = false;
-            for (size_t j = 0; j < intent->data.intent_decl.default_who_count; j++) {
-                if (intent_append_name(&step->data.intent_step.who_names,
-                        &step->data.intent_step.who_count,
-                        &step->data.intent_step.who_capacity,
-                        intent->data.intent_decl.default_who_names[j])) {
-                    copied_any = true;
-                }
-            }
-            step->data.intent_step.inherited_who_from_intent = copied_any;
-        }
-
-        /* If step has no where, copy intent-level default */
-        if (step->data.intent_step.where_type == NULL
-            && intent->data.intent_decl.default_where_type != NULL) {
-            step->data.intent_step.where_type =
-                ast_clone(intent->data.intent_decl.default_where_type);
-            step->data.intent_step.inherited_where_from_intent =
-                step->data.intent_step.where_type != NULL;
-        }
-    }
-
+    parse_intent_apply_defaults(intent);
     return intent;
 }

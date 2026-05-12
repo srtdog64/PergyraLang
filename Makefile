@@ -168,10 +168,12 @@ COMMON_SOURCES   = $(COMMON_DIR)/arena.c \
                    $(COMMON_DIR)/env_flags.c \
                    $(COMMON_DIR)/intent_observability_names.c
 LEXER_SOURCES    = $(LEXER_DIR)/lexer.c \
+                   $(LEXER_DIR)/lexer_keywords.c \
                    $(LEXER_DIR)/lexer_token_debug.c
 PARSER_SOURCES   = $(PARSER_DIR)/ast.c \
                    $(PARSER_DIR)/ast_analysis.c \
                    $(PARSER_DIR)/ast_thread_pool_analysis.c \
+                   $(PARSER_DIR)/ast_async_constructors.c \
                    $(PARSER_DIR)/ast_destroy.c \
                    $(PARSER_DIR)/ast_destroy_domain.c \
                    $(PARSER_DIR)/ast_clone.c \
@@ -181,6 +183,7 @@ PARSER_SOURCES   = $(PARSER_DIR)/ast.c \
                    $(PARSER_DIR)/ast_print.c \
                    $(PARSER_DIR)/ast_print_domain.c \
                    $(PARSER_DIR)/ast_print_event.c \
+                   $(PARSER_DIR)/ast_print_expr.c \
                    $(PARSER_DIR)/ast_print_generics.c \
                    $(PARSER_DIR)/ast_print_inline.c \
                    $(PARSER_DIR)/ast_print_intent.c \
@@ -205,6 +208,7 @@ PARSER_SOURCES   = $(PARSER_DIR)/ast.c \
                    $(PARSER_DIR)/parser_decl_function_clause.c \
                    $(PARSER_DIR)/parser_decl_start.c \
                    $(PARSER_DIR)/parser_intent.c \
+                   $(PARSER_DIR)/parser_intent_defaults.c \
                    $(PARSER_DIR)/parser_intent_step.c \
                    $(PARSER_DIR)/parser_domain.c \
                    $(PARSER_DIR)/parser_domain_event.c \
@@ -215,6 +219,7 @@ PARSER_SOURCES   = $(PARSER_DIR)/ast.c \
                    $(PARSER_DIR)/parser_domain_zone.c \
                    $(PARSER_DIR)/parser_async.c
 RUNTIME_SOURCES  = $(RUNTIME_DIR)/slot_manager.c \
+                   $(RUNTIME_DIR)/slot_manager_storage.c \
                    $(RUNTIME_DIR)/slot_manager_pin.c \
                    $(RUNTIME_DIR)/slot_manager_query_lock.c \
                    $(RUNTIME_DIR)/slot_manager_secure_ops.c \
@@ -300,6 +305,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_domain_slots.c \
                    $(SEMANTIC_DIR)/type_checker_intent_decl.c \
                    $(SEMANTIC_DIR)/type_checker_intent_action_contract.c \
+                   $(SEMANTIC_DIR)/type_checker_intent_ability.c \
                    $(SEMANTIC_DIR)/type_checker_intent_on_inference.c \
                    $(SEMANTIC_DIR)/type_checker_intent_bindings.c \
                    $(SEMANTIC_DIR)/type_checker_intent_types.c \
@@ -387,6 +393,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_slot_view_boundary.c \
                    $(SEMANTIC_DIR)/type_checker_flow_effects.c \
                    $(SEMANTIC_DIR)/type_checker_flow_resources.c \
+                   $(SEMANTIC_DIR)/type_checker_flow_loop_control.c \
                    $(SEMANTIC_DIR)/type_checker_flow_loops.c \
                    $(SEMANTIC_DIR)/type_checker_flow_match_coverage.c \
                    $(SEMANTIC_DIR)/type_checker_flow_match.c \
@@ -482,6 +489,7 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/air_evidence_node.c \
                    $(COMPILER_DIR)/air_evidence_ast.c \
                    $(COMPILER_DIR)/air_evidence.c \
+                   $(COMPILER_DIR)/air_evidence_dag.c \
                    $(COMPILER_DIR)/air_evidence_rir.c \
                    $(COMPILER_DIR)/air_validate_global_evidence.c \
                    $(COMPILER_DIR)/air_validate_legacy_evidence.c \
@@ -507,6 +515,7 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/hir_lower_cfg.c \
                    $(COMPILER_DIR)/hir_lower_intent_cfg.c \
                    $(COMPILER_DIR)/hir_routine_cfg.c \
+                   $(COMPILER_DIR)/hir_callgraph.c \
                    $(COMPILER_DIR)/mir.c \
                    $(COMPILER_DIR)/mir_source_shape.c \
                    $(COMPILER_DIR)/mir_names.c \
@@ -804,6 +813,7 @@ BUILD_CONTRACT_INVENTORY_FILES = \
                    $(RUNTIME_DIR)/pgy_runtime_lib_raw_queue_exports.h \
                    $(RUNTIME_DIR)/pgy_runtime_lib_raw_set_exports.h \
                    $(RUNTIME_DIR)/pgy_runtime_lib_intent_active_index_exports.c \
+                   $(RUNTIME_DIR)/pgy_runtime_lib_intent_trace_events_exports.c \
                    $(RUNTIME_DIR)/pgy_runtime_lib_mir_trace_exports.c \
                    $(RUNTIME_DIR)/pgy_runtime_lib_set_intent_trace_exports.c \
                    $(RUNTIME_DIR)/pgy_runtime_lib_secure_slot_exports.h \
@@ -876,6 +886,7 @@ AIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/air_names.o \
                    $(BUILD_DIR)/compiler/air_evidence_node.o \
                    $(BUILD_DIR)/compiler/air_evidence_ast.o \
                    $(BUILD_DIR)/compiler/air_evidence.o \
+                   $(BUILD_DIR)/compiler/air_evidence_dag.o \
                    $(BUILD_DIR)/compiler/mir_source_shape.o \
                    $(BUILD_DIR)/compiler/mir_intent_fact.o \
                    $(BUILD_DIR)/compiler/mir_stmt_source.o \

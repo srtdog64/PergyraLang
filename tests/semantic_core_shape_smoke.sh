@@ -98,6 +98,7 @@ for path in \
     src/semantic/type_checker_builtins_slotops.h \
     src/semantic/type_checker_builtins_stdlib_body.c \
     src/semantic/type_checker_builtins_stdlib_collections.c \
+    src/semantic/type_checker_intent_ability.c \
     src/semantic/type_checker_intent_decl.c \
     src/semantic/type_checker_intent_authority.c \
     src/semantic/type_checker_intent_participants.c \
