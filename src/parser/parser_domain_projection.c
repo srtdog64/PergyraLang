@@ -68,8 +68,8 @@ parser_append_projection_field_map(Parser *parser,
                                    const char *target_text,
                                    const char *source_text)
 {
-    char **grown_targets;
-    char **grown_sources;
+    char **grown_targets = NULL;
+    char **grown_sources = NULL;
     char *owned_target;
     char *owned_source;
     size_t next_capacity;
@@ -86,17 +86,24 @@ parser_append_projection_field_map(Parser *parser,
             parser_error(parser, "Out of memory while growing projection map");
             return false;
         }
-        grown_targets = realloc(*target_fields, next_capacity * sizeof(char *));
+        grown_targets = calloc(next_capacity, sizeof(char *));
         if (grown_targets == NULL) {
             parser_error(parser, "Out of memory while growing projection map");
             return false;
         }
-        *target_fields = grown_targets;
-        grown_sources = realloc(*source_fields, next_capacity * sizeof(char *));
+        grown_sources = calloc(next_capacity, sizeof(char *));
         if (grown_sources == NULL) {
+            free(grown_targets);
             parser_error(parser, "Out of memory while growing projection map");
             return false;
         }
+        if (*count > 0) {
+            memcpy(grown_targets, *target_fields, *count * sizeof(char *));
+            memcpy(grown_sources, *source_fields, *count * sizeof(char *));
+        }
+        free(*target_fields);
+        free(*source_fields);
+        *target_fields = grown_targets;
         *source_fields = grown_sources;
         *capacity = next_capacity;
     }

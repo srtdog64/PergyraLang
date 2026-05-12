@@ -7,6 +7,7 @@
  */
 
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
 #include <time.h>
 #include <errno.h>
@@ -26,6 +27,12 @@
 
 /* Thread-local current scheduler */
 static __thread Scheduler* tlsCurrentScheduler = NULL;
+
+static bool
+scheduler_array_fits(size_t count, size_t elem_size)
+{
+    return elem_size != 0 && count <= SIZE_MAX / elem_size;
+}
 
 static void
 scheduler_warn(const char* op, const char* reason, Scheduler* scheduler)
@@ -184,6 +191,11 @@ Scheduler* SchedulerCreate(const SchedulerConfig* config)
     }
     
     scheduler->numWorkers = scheduler->config.numWorkers;
+    if (!scheduler_array_fits(scheduler->numWorkers, sizeof(WorkerThread))) {
+        scheduler_warn("create", "worker array allocation size overflow", scheduler);
+        free(scheduler);
+        return NULL;
+    }
     
     /* Initialize global queue */
     scheduler->globalRunQueue = ConcurrentQueueCreate();
@@ -236,7 +248,9 @@ Scheduler* SchedulerCreate(const SchedulerConfig* config)
                 ConcurrentQueueDestroy(scheduler->workers[j].localRunQueue);
             }
             free(scheduler->workers);
+#ifndef _WIN32
             close(scheduler->epollFd);
+#endif
             ConcurrentQueueDestroy(scheduler->globalRunQueue);
             pthread_mutex_destroy(&scheduler->parkMutex);
             pthread_cond_destroy(&scheduler->parkCondition);
@@ -283,7 +297,9 @@ void SchedulerDestroy(Scheduler* scheduler)
 void SchedulerStart(Scheduler* scheduler)
 {
     uint32_t startedWorkers = 0;
+#ifndef _WIN32
     bool ioStarted = false;
+#endif
 
     if (scheduler == NULL) {
         scheduler_warn("start", "scheduler is null", scheduler);
@@ -306,12 +322,14 @@ void SchedulerStart(Scheduler* scheduler)
         startedWorkers++;
     }
     
+#ifndef _WIN32
     /* Start I/O worker */
     if (pthread_create(&scheduler->ioWorker, NULL, IoWorkerMain, scheduler) != 0) {
         scheduler_warn("start", "io worker creation failed", scheduler);
         goto startup_failed;
     }
     ioStarted = true;
+#endif
     return;
 
 startup_failed:
@@ -327,9 +345,11 @@ startup_failed:
             scheduler_warn("start", "worker thread rollback join failed", scheduler);
         }
     }
+#ifndef _WIN32
     if (ioStarted && pthread_join(scheduler->ioWorker, NULL) != 0) {
         scheduler_warn("start", "io worker rollback join failed", scheduler);
     }
+#endif
     scheduler_warn("start", "scheduler startup aborted", scheduler);
 }
 
@@ -363,10 +383,12 @@ void SchedulerStop(Scheduler* scheduler)
         }
     }
     
+#ifndef _WIN32
     /* Stop I/O worker */
     if (pthread_join(scheduler->ioWorker, NULL) != 0) {
         scheduler_warn("stop", "io worker join failed", scheduler);
     }
+#endif
 }
 
 void SchedulerSpawn(Scheduler* scheduler, FiberStartRoutine routine, void* arg)

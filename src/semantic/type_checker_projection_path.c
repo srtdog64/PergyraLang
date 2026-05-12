@@ -57,8 +57,8 @@ projection_source_field_at(ASTNode *decl, size_t index)
     return NULL;
 }
 
-static Type *
-projection_path_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
+Type *
+projection_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
 {
     Type *resolved =
         semantic_type_resolution_lookup_type_ref_or_materialize(ctx, type_ref);
@@ -96,7 +96,7 @@ resolve_projection_source_field_path_rec(ASTNode *program_root,
                 *path_out = pergyra_strdup(field_name);
             if (field_type_out != NULL)
                 *field_type_out = field->type != NULL
-                    ? projection_path_resolve_type_ref(field->type, ctx)
+                    ? projection_resolve_type_ref(field->type, ctx)
                     : TYPE_UNKNOWN;
             return 1;
         }

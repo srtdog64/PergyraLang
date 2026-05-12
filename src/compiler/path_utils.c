@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 #include "../common/string_compat.h"
 
@@ -23,8 +24,14 @@
 char *
 path_dirname_dup(const char *path)
 {
-    const char *last_sep = strrchr(path, '/');
-    const char *last_bsep = strrchr(path, '\\');
+    const char *last_sep;
+    const char *last_bsep;
+
+    if (path == NULL)
+        return NULL;
+
+    last_sep = strrchr(path, '/');
+    last_bsep = strrchr(path, '\\');
     if (last_bsep != NULL && (last_sep == NULL || last_bsep > last_sep))
         last_sep = last_bsep;
 
@@ -46,10 +53,25 @@ path_dirname_dup(const char *path)
 char *
 path_join_dup(const char *dir, const char *path)
 {
-    size_t dlen = strlen(dir);
-    size_t plen = strlen(path);
-    bool needs_sep = dlen > 0 && dir[dlen - 1] != '/' && dir[dlen - 1] != '\\';
-    char *result = malloc(dlen + (needs_sep ? 1 : 0) + plen + 1);
+    size_t dlen;
+    size_t plen;
+    size_t sep_len;
+    bool needs_sep;
+    char *result;
+
+    if (dir == NULL || path == NULL)
+        return NULL;
+
+    dlen = strlen(dir);
+    plen = strlen(path);
+    needs_sep = dlen > 0 && dir[dlen - 1] != '/' && dir[dlen - 1] != '\\';
+    sep_len = needs_sep ? 1u : 0u;
+    if (dlen > SIZE_MAX - sep_len
+        || dlen + sep_len > SIZE_MAX - plen
+        || dlen + sep_len + plen > SIZE_MAX - 1) {
+        return NULL;
+    }
+    result = malloc(dlen + sep_len + plen + 1);
     if (result == NULL)
         return NULL;
 
@@ -182,6 +204,8 @@ path_resolve_runnable_binary(const char *path)
 #ifdef _WIN32
     if (!path_has_extension(path)) {
         size_t len = strlen(path);
+        if (len > SIZE_MAX - 5)
+            return NULL;
         char *with_ext = malloc(len + 5);
         if (with_ext == NULL)
             return NULL;

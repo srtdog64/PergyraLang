@@ -78,14 +78,6 @@ type_check_let_destructure_tail(ASTNode *node, ASTNode *init,
     return true;
 }
 
-static Type *
-ownership_destructure_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
-{
-    Type *resolved =
-        semantic_type_resolution_lookup_type_ref_or_materialize(ctx, type_ref);
-    return resolved != NULL ? resolved : TYPE_UNKNOWN;
-}
-
 bool
 type_check_let_destructure_stmt(ASTNode *node, SemanticContext *ctx)
 {
@@ -120,13 +112,12 @@ type_check_let_destructure_stmt(ASTNode *node, SemanticContext *ctx)
                     : NULL;
             Type *inner_type = NULL;
             if (inner_node != NULL)
-                inner_type = ownership_destructure_resolve_type_ref(
-                    inner_node, ctx);
+                inner_type = domain_resolve_type_ref(inner_node, ctx);
             if (inner_type == NULL && inner_name != NULL) {
                 ASTNode synth = {0};
                 synth.type = AST_TYPE;
                 synth.data.type.name = (char *)inner_name;
-                inner_type = ownership_destructure_resolve_type_ref(&synth, ctx);
+                inner_type = domain_resolve_type_ref(&synth, ctx);
             }
             if (inner_type == NULL)
                 inner_type = TYPE_UNKNOWN;

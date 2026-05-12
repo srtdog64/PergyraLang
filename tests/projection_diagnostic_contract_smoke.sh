@@ -4,14 +4,56 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PYTHON_BIN="${PYTHON_BIN:-}"
 
+require_literal() {
+    local rel="$1"
+    local term="$2"
+    grep -Fq -- "$term" "$ROOT_DIR/$rel" || {
+        echo "[projection-diagnostic-contract] $rel missing: $term" >&2
+        exit 1
+    }
+}
+
+run_literal_contract_smoke() {
+    local semantic_test="src/tests/semantic/test_semantic_projection_diagnostics.cases.h"
+    local projection_source="src/semantic/type_checker_domain_projection.c"
+    local proof_doc="docs/semantics/02_relation_effect_projection.md"
+
+    require_literal "$semantic_test" "zone refresh reports missing source field with structured diagnostic"
+    require_literal "$semantic_test" "target field 'mana' is missing from source slot 'player'"
+    require_literal "$semantic_test" "zone refresh reports ambiguous nested source field with structured diagnostic"
+    require_literal "$semantic_test" "target field 'hp' is ambiguous in source slot 'player'"
+    require_literal "$semantic_test" "zone refresh reports wrong projection kind with structured diagnostic"
+    require_literal "$semantic_test" "target slot 'playerPacket' uses the wrong projection kind"
+    require_literal "$semantic_test" "zone refresh reports duplicate field map with structured diagnostic"
+    require_literal "$semantic_test" "projection map duplicates target field 'hp'"
+
+    require_literal "$projection_source" "Contract source:"
+    require_literal "$projection_source" "Reason:"
+    require_literal "$projection_source" "Fix:"
+    require_literal "$projection_source" "target slot '%s' uses the wrong projection kind"
+    require_literal "$projection_source" "projection map duplicates target field '%s'"
+    require_literal "$projection_source" "target field '%s' is ambiguous in source slot '%s'"
+    require_literal "$projection_source" "target field '%s' maps from missing source field '%s' in slot '%s'"
+    require_literal "$projection_source" "source slot '%s' cannot be a tobject slot"
+    require_literal "$projection_source" "source slot '%s' is not a valid projection source"
+    require_literal "$projection_source" "projection map refers to unknown target field '%s'"
+
+    require_literal "$proof_doc" "## Theorem: Projection Diagnostic Completeness"
+    require_literal "$proof_doc" "missing source field"
+    require_literal "$proof_doc" "ambiguous path"
+    require_literal "$proof_doc" "wrong projection kind"
+    require_literal "$proof_doc" "duplicate field map"
+    echo "[projection-diagnostic-contract] projection diagnostic contract is smoke-gated (literal fallback)"
+}
+
 if [[ -z "$PYTHON_BIN" ]]; then
     if command -v python3 >/dev/null 2>&1; then
         PYTHON_BIN="$(command -v python3)"
     elif command -v python >/dev/null 2>&1; then
         PYTHON_BIN="$(command -v python)"
     else
-        echo "missing python for projection diagnostic contract smoke" >&2
-        exit 1
+        run_literal_contract_smoke
+        exit 0
     fi
 fi
 

@@ -11,6 +11,7 @@
 #include "../common/string_compat.h"
 
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdlib.h>
 
 static bool
@@ -32,6 +33,11 @@ intent_step_append_authorized_by(ASTNode *step, const char *alias)
         next_capacity = step->data.intent_step.authorized_by_capacity == 0
             ? 4
             : step->data.intent_step.authorized_by_capacity * 2;
+        if (next_capacity < step->data.intent_step.authorized_by_capacity
+            || next_capacity > SIZE_MAX / sizeof(char *)) {
+            free(owned_alias);
+            return false;
+        }
         grown = realloc(step->data.intent_step.authorized_by,
             next_capacity * sizeof(char *));
         if (grown == NULL) {

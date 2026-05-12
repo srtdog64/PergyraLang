@@ -4,14 +4,40 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PYTHON_BIN="${PYTHON_BIN:-}"
 
+require_literal() {
+    local rel="$1"
+    local term="$2"
+    grep -Fq -- "$term" "$ROOT_DIR/$rel" || {
+        echo "[parser-lexer-diagnostic] $rel missing: $term" >&2
+        exit 1
+    }
+}
+
+run_literal_contract_smoke() {
+    require_literal "src/parser/parser.c" "PGY_CODE_PARSE_SYNTAX"
+    require_literal "src/parser/parser.c" "PGY_CAUSE_PARSE_UNEXPECTED_TOKEN"
+    require_literal "src/parser/parser.c" "PGY_FIX_CHECK_SYNTAX"
+    require_literal "src/lexer/lexer.c" "PGY_CODE_LEX_INVALID_TOKEN"
+    require_literal "src/lexer/lexer.c" "PGY_CAUSE_LEX_INVALID_TOKEN"
+    require_literal "src/lexer/lexer.c" "PGY_FIX_REMOVE_OR_ESCAPE_CHARACTER"
+    require_literal "src/semantic/diag_codes.h" "PGY_PARSE_SYNTAX"
+    require_literal "src/semantic/diag_codes.h" "PGY_LEX_INVALID_TOKEN"
+    require_literal "docs/72_diagnostic_codes.md" "PGY_PARSE_SYNTAX"
+    require_literal "docs/72_diagnostic_codes.md" "PGY_LEX_INVALID_TOKEN"
+    require_literal "src/compiler/driver_diag.c" "driver_diag_code_from_message"
+    require_literal "src/compiler/driver_diag.c" "driver_diag_cause_from_code"
+    require_literal "src/compiler/driver_diag.c" "driver_diag_fix_from_code"
+    echo "[parser-lexer-diagnostic] stage codes and routing are source-gated (literal fallback)"
+}
+
 if [[ -z "$PYTHON_BIN" ]]; then
     if command -v python3 >/dev/null 2>&1; then
         PYTHON_BIN="$(command -v python3)"
     elif command -v python >/dev/null 2>&1; then
         PYTHON_BIN="$(command -v python)"
     else
-        echo "missing python for parser/lexer diagnostic smoke" >&2
-        exit 1
+        run_literal_contract_smoke
+        exit 0
     fi
 fi
 

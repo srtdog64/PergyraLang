@@ -80,7 +80,8 @@ let y = Validate(x)?;
 - `"..."`는 escape `\n`, `\r`, `\t`, `\\`, `\"`, `\0`를 지원한다.
 - `"""..."""`는 raw multiline payload이며 보간하지 않는다.
 - `"${expr}"`와 `f"{expr}"`는 단순 expression interpolation만 지원하고 `ToString(expr)`로 낮아진다.
-- `f"\{name}"`처럼 escaped `{`는 literal brace로 남는다.
+- `f"\{name}"` and `"\${name}"` escaped interpolation openers remain literal text.
+- malformed interpolation expressions remain literal text.
 - nested brace matching, format specifier, multiline interpolation은 베타 밖이다.
 
 ### 2.3 우선순위
@@ -680,3 +681,30 @@ Current stable grammar surface allows top-level visibility modifiers on:
 - callable declarations: `func`, `intent`, `event`
 
 This means module visibility is expressed directly on the declaration that owns the exported surface, instead of being restricted to type-like declarations only.
+
+## Common Syntax Pattern Grammar Policy
+
+The syntax pattern status table lives in
+[../124_syntax_pattern_matrix.md](../124_syntax_pattern_matrix.md).
+This grammar reference mirrors the current contract rather than redefining it.
+
+Grammar-level classification for common patterns:
+
+| Pattern family | Accepted grammar | Reserved or rejected grammar |
+|---|---|---|
+| Calls | ordinary positional calls, callable values, function references | named arguments remain semantic-rejected before dispatch |
+| Parameters | typed function/async/lambda parameters, generic default type parameters | value default arguments in parameter lists |
+| Lambdas | `=>` expression/block bodies without outer local/resource capture | full closure environments and captured resource state |
+| Strings | normal strings, raw multiline strings, simple interpolation | nested interpolation protocol and format specifiers |
+| Collections | array literals and indexed access | list/set/map literals, slicing, spread/rest `...` |
+| Destructuring | positional `let (a, b) = value;` | named field destructuring |
+| Matching | match, guards, or-patterns | broad structural/list patterns |
+| Conversion | explicit helper calls | broad expression `as`/`is` conversion/type-test syntax |
+| Construction | constructors/factory calls and declaration initializers | C#/TS-style object initializers |
+| Optionality | `Option<T>`, `Result<T,E>`, postfix `?` result propagation, `Option<T> ?? T` | `?.` |
+| Metadata | structured doc comments | `@` attributes/decorators |
+| Unsafe | `unsafe { ... }` boundary marker | raw pointer escape without a separate contract |
+| Generic shorthand | explicit type args/default type args | `_` placeholder elision |
+
+Reserved grammar must fail explicitly. It should not be accepted silently by the
+parser or treated as beta-stable because a token exists.

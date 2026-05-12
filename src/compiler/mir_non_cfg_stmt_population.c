@@ -16,6 +16,18 @@ mir_record_non_cfg_body_fallback(MIRRoutine *routine)
     routine->non_cfg_body_fallback_count++;
 }
 
+static bool
+mir_commit_non_cfg_instruction(MIRRoutine *routine, MIRBasicBlock *block, MIRInstruction *inst)
+{
+    if (routine == NULL || block == NULL || inst == NULL)
+        return false;
+    inst->id = routine->instruction_count;
+    if (!append_instruction(block, *inst))
+        return false;
+    routine->instruction_count++;
+    return true;
+}
+
 bool
 mir_append_non_cfg_body_statements(MIRRoutine *routine, MIRBasicBlock *entry)
 {
@@ -38,7 +50,6 @@ mir_append_non_cfg_body_statements(MIRRoutine *routine, MIRBasicBlock *entry)
     body = func_decl->data.func_decl.body;
     if (body->type != AST_BLOCK) {
         MIRInstruction inst = {
-            .id = routine->instruction_count++,
             .kind = MIR_INST_STMT,
             .name = "stmt",
             .ast = body,
@@ -46,8 +57,10 @@ mir_append_non_cfg_body_statements(MIRRoutine *routine, MIRBasicBlock *entry)
             .has_source_statement_index = true,
         };
         mir_attach_statement_call_fact(&inst, body);
+        if (!mir_commit_non_cfg_instruction(routine, entry, &inst))
+            return false;
         mir_record_non_cfg_body_fallback(routine);
-        return append_instruction(entry, inst);
+        return true;
     }
 
     if (mir_block_source_inventory_items(entry) != NULL
@@ -72,7 +85,6 @@ mir_append_non_cfg_body_statements(MIRRoutine *routine, MIRBasicBlock *entry)
                                                       i,
                                                       stmt)) {
             MIRInstruction inst = {
-                    .id = routine->instruction_count++,
                     .kind = MIR_INST_STMT,
                     .name = "stmt",
                     .ast = stmt,
@@ -80,7 +92,7 @@ mir_append_non_cfg_body_statements(MIRRoutine *routine, MIRBasicBlock *entry)
                     .has_source_statement_index = true,
             };
             mir_attach_statement_call_fact(&inst, stmt);
-            if (!append_instruction(entry, inst)) {
+            if (!mir_commit_non_cfg_instruction(routine, entry, &inst)) {
                 return false;
             }
             mir_record_non_cfg_body_fallback(routine);
@@ -89,7 +101,6 @@ mir_append_non_cfg_body_statements(MIRRoutine *routine, MIRBasicBlock *entry)
         if (stmt->type == AST_LET_DECL
             && mir_let_decl_requires_stmt_preservation(stmt)) {
             MIRInstruction inst = {
-                    .id = routine->instruction_count++,
                     .kind = MIR_INST_STMT,
                     .name = "stmt",
                     .ast = stmt,
@@ -97,7 +108,7 @@ mir_append_non_cfg_body_statements(MIRRoutine *routine, MIRBasicBlock *entry)
                     .has_source_statement_index = true,
             };
             mir_attach_statement_call_fact(&inst, stmt);
-            if (!append_instruction(entry, inst)) {
+            if (!mir_commit_non_cfg_instruction(routine, entry, &inst)) {
                 return false;
             }
             mir_record_non_cfg_body_fallback(routine);
@@ -127,7 +138,6 @@ mir_append_non_cfg_body_statements(MIRRoutine *routine, MIRBasicBlock *entry)
                 continue;
         }
         MIRInstruction inst = {
-                .id = routine->instruction_count++,
                 .kind = MIR_INST_STMT,
                 .name = "stmt",
                 .ast = stmt,
@@ -135,7 +145,7 @@ mir_append_non_cfg_body_statements(MIRRoutine *routine, MIRBasicBlock *entry)
                 .has_source_statement_index = true,
         };
         mir_attach_statement_call_fact(&inst, stmt);
-        if (!append_instruction(entry, inst)) {
+        if (!mir_commit_non_cfg_instruction(routine, entry, &inst)) {
             return false;
         }
         mir_record_non_cfg_body_fallback(routine);

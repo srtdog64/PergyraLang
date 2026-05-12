@@ -63,8 +63,10 @@ semantic_ctx_mark_embedded_world_zone_name(SemanticContext *ctx,
                                            const char *world_name,
                                            const char *slot_name)
 {
-    char **grown;
     size_t index;
+    char *owned_name;
+    char *owned_world_name = NULL;
+    char *owned_slot_name = NULL;
 
     if (ctx == NULL || name == NULL || *name == '\0')
         return;
@@ -85,27 +87,67 @@ semantic_ctx_mark_embedded_world_zone_name(SemanticContext *ctx,
         size_t new_cap = ctx->embedded_world_zone_capacity == 0
             ? 8
             : ctx->embedded_world_zone_capacity * 2;
-        grown = realloc(ctx->embedded_world_zone_names, new_cap * sizeof(char *));
-        if (grown == NULL)
+        char **grown_names;
+        char **grown_world_names;
+        char **grown_slot_names;
+        if (new_cap <= ctx->embedded_world_zone_capacity
+            || new_cap > (size_t)-1 / sizeof(char *))
             return;
-        ctx->embedded_world_zone_names = grown;
-        grown = realloc(ctx->embedded_world_zone_world_names, new_cap * sizeof(char *));
-        if (grown == NULL)
+        grown_names = calloc(new_cap, sizeof(char *));
+        if (grown_names == NULL)
             return;
-        ctx->embedded_world_zone_world_names = grown;
-        grown = realloc(ctx->embedded_world_zone_slot_names, new_cap * sizeof(char *));
-        if (grown == NULL)
+        grown_world_names = calloc(new_cap, sizeof(char *));
+        if (grown_world_names == NULL) {
+            free(grown_names);
             return;
-        ctx->embedded_world_zone_slot_names = grown;
+        }
+        grown_slot_names = calloc(new_cap, sizeof(char *));
+        if (grown_slot_names == NULL) {
+            free(grown_names);
+            free(grown_world_names);
+            return;
+        }
+        if (ctx->embedded_world_zone_count > 0) {
+            memcpy(grown_names, ctx->embedded_world_zone_names,
+                   ctx->embedded_world_zone_count * sizeof(char *));
+            memcpy(grown_world_names, ctx->embedded_world_zone_world_names,
+                   ctx->embedded_world_zone_count * sizeof(char *));
+            memcpy(grown_slot_names, ctx->embedded_world_zone_slot_names,
+                   ctx->embedded_world_zone_count * sizeof(char *));
+        }
+        free(ctx->embedded_world_zone_names);
+        free(ctx->embedded_world_zone_world_names);
+        free(ctx->embedded_world_zone_slot_names);
+        ctx->embedded_world_zone_names = grown_names;
+        ctx->embedded_world_zone_world_names = grown_world_names;
+        ctx->embedded_world_zone_slot_names = grown_slot_names;
         ctx->embedded_world_zone_capacity = new_cap;
     }
 
+    owned_name = pergyra_strdup(name);
+    if (owned_name == NULL)
+        return;
+    if (world_name != NULL && *world_name != '\0') {
+        owned_world_name = pergyra_strdup(world_name);
+        if (owned_world_name == NULL) {
+            free(owned_name);
+            return;
+        }
+    }
+    if (slot_name != NULL && *slot_name != '\0') {
+        owned_slot_name = pergyra_strdup(slot_name);
+        if (owned_slot_name == NULL) {
+            free(owned_name);
+            free(owned_world_name);
+            return;
+        }
+    }
     ctx->embedded_world_zone_names[ctx->embedded_world_zone_count] =
-        pergyra_strdup(name);
+        owned_name;
     ctx->embedded_world_zone_world_names[ctx->embedded_world_zone_count] =
-        (world_name != NULL && *world_name != '\0') ? pergyra_strdup(world_name) : NULL;
+        owned_world_name;
     ctx->embedded_world_zone_slot_names[ctx->embedded_world_zone_count] =
-        (slot_name != NULL && *slot_name != '\0') ? pergyra_strdup(slot_name) : NULL;
+        owned_slot_name;
     ctx->embedded_world_zone_count++;
 }
 

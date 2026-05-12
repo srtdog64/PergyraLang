@@ -1,3 +1,7 @@
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+
 typedef struct {
     void   *data;
     size_t  head;
@@ -5,6 +9,12 @@ typedef struct {
     size_t  count;
     size_t  capacity;
 } PgyQueueRaw;
+
+static bool
+pgy_queue_raw_shape_fits(size_t capacity, size_t elem_size)
+{
+    return capacity != 0 && elem_size != 0 && elem_size <= SIZE_MAX / capacity;
+}
 
 void
 pgy_queue_new_raw_export(void *queue_ptr, int64_t elem_size)
@@ -19,6 +29,11 @@ pgy_queue_new_raw_export(void *queue_ptr, int64_t elem_size)
         return;
     }
     queue->capacity = 16;
+    if (!pgy_queue_raw_shape_fits(queue->capacity, (size_t)elem_size)) {
+        queue->capacity = 0;
+        pgy_runtime_warn_invalid_collection("queue_new", "allocation size overflow");
+        return;
+    }
     queue->head = 0;
     queue->tail = 0;
     queue->count = 0;
@@ -50,16 +65,31 @@ pgy_queue_push_raw_export(void *queue_ptr, void *value_ptr, int64_t elem_size)
         return;
     }
     if (queue->count >= queue->capacity) {
-        size_t new_capacity = queue->capacity == 0 ? 16 : queue->capacity * 2;
-        void *new_data = calloc(new_capacity, (size_t)elem_size);
+        size_t elem_bytes = (size_t)elem_size;
+        size_t new_capacity;
+        void *new_data;
+        if (queue->capacity == 0) {
+            new_capacity = 16;
+        } else {
+            if (queue->capacity > SIZE_MAX / 2) {
+                pgy_runtime_warn_invalid_collection("queue_push", "capacity overflow");
+                return;
+            }
+            new_capacity = queue->capacity * 2;
+        }
+        if (!pgy_queue_raw_shape_fits(new_capacity, elem_bytes)) {
+            pgy_runtime_warn_invalid_collection("queue_push", "allocation size overflow");
+            return;
+        }
+        new_data = calloc(new_capacity, elem_bytes);
         if (new_data == NULL) {
             pgy_runtime_warn_invalid_collection("queue_push", "allocation failed");
             return;
         }
         for (size_t i = 0; i < queue->count; i++) {
-            memcpy((char *)new_data + (i * (size_t)elem_size),
-                   (char *)queue->data + (((queue->head + i) % queue->capacity) * (size_t)elem_size),
-                   (size_t)elem_size);
+            memcpy((char *)new_data + (i * elem_bytes),
+                   (char *)queue->data + (((queue->head + i) % queue->capacity) * elem_bytes),
+                   elem_bytes);
         }
         free(queue->data);
         queue->data = new_data;

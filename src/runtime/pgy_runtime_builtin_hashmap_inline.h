@@ -6,6 +6,15 @@
 #define PGY_HASHMAP_INIT_CAP 16
 #define PGY_HASHMAP_LOAD_FACTOR 0.75
 
+#ifndef PGY_RUNTIME_HASHMAP_CAPACITY_FITS
+#define PGY_RUNTIME_HASHMAP_CAPACITY_FITS(capacity, CType) \
+    ((capacity) != 0 \
+        && (capacity) <= UINT32_MAX \
+        && (capacity) <= SIZE_MAX / sizeof(char *) \
+        && (capacity) <= SIZE_MAX / sizeof(CType) \
+        && (capacity) <= SIZE_MAX / sizeof(uint8_t))
+#endif
+
 typedef struct
 {
     char   **keys;
@@ -53,6 +62,12 @@ static inline PgyHashMap_##SuffixName pgy_map_new_##SuffixName(void) \
     PgyHashMap_##SuffixName m; \
     m.capacity = PGY_HASHMAP_INIT_CAP; \
     m.count = 0; \
+    if (!PGY_RUNTIME_HASHMAP_CAPACITY_FITS(m.capacity, CType)) { \
+        m.keys = NULL; m.values = NULL; m.occupied = NULL; \
+        m.capacity = 0; \
+        pgy_runtime_warn_invalid_collection("map_new_" #SuffixName, "allocation size overflow"); \
+        return m; \
+    } \
     m.keys = (char **)calloc(m.capacity, sizeof(char *)); \
     m.values = (CType *)calloc(m.capacity, sizeof(CType)); \
     m.occupied = (uint8_t *)calloc(m.capacity, sizeof(uint8_t)); \
@@ -71,10 +86,26 @@ static inline void pgy_map_grow_##SuffixName(PgyHashMap_##SuffixName *m) \
     char **old_keys = m->keys; \
     CType *old_vals = m->values; \
     uint8_t *old_occ = m->occupied; \
-    size_t new_capacity = m->capacity == 0 ? PGY_HASHMAP_INIT_CAP : m->capacity * 2; \
-    char **new_keys = (char **)calloc(new_capacity, sizeof(char *)); \
-    CType *new_values = (CType *)calloc(new_capacity, sizeof(CType)); \
-    uint8_t *new_occupied = (uint8_t *)calloc(new_capacity, sizeof(uint8_t)); \
+    size_t new_capacity; \
+    char **new_keys; \
+    CType *new_values; \
+    uint8_t *new_occupied; \
+    if (m->capacity == 0) { \
+        new_capacity = PGY_HASHMAP_INIT_CAP; \
+    } else { \
+        if (m->capacity > SIZE_MAX / 2) { \
+            pgy_runtime_warn_invalid_collection("map_grow_" #SuffixName, "capacity overflow"); \
+            return; \
+        } \
+        new_capacity = m->capacity * 2; \
+    } \
+    if (!PGY_RUNTIME_HASHMAP_CAPACITY_FITS(new_capacity, CType)) { \
+        pgy_runtime_warn_invalid_collection("map_grow_" #SuffixName, "allocation size overflow"); \
+        return; \
+    } \
+    new_keys = (char **)calloc(new_capacity, sizeof(char *)); \
+    new_values = (CType *)calloc(new_capacity, sizeof(CType)); \
+    new_occupied = (uint8_t *)calloc(new_capacity, sizeof(uint8_t)); \
     if (new_keys == NULL || new_values == NULL || new_occupied == NULL) { \
         free(new_keys); free(new_values); free(new_occupied); \
         pgy_runtime_warn_invalid_collection("map_grow_" #SuffixName, "allocation failed"); \
@@ -145,6 +176,7 @@ static inline CType pgy_map_get_##SuffixName(PgyHashMap_##SuffixName *m, const c
         probes++; \
     } \
     PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS, "map key not found"); \
+    { CType zero_value; memset(&zero_value, 0, sizeof(zero_value)); return zero_value; } \
 } \
 \
 static inline bool pgy_map_has_##SuffixName(PgyHashMap_##SuffixName *m, const char *key) \

@@ -12,7 +12,6 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 
 static bool
 air_sync_conflicts(AIRSyncClass expected, AIRSyncClass actual)
@@ -124,18 +123,11 @@ air_strict_require_dag_evidence_node(AIRProgram *air,
                                      size_t counter,
                                      char **error_message)
 {
-    if (!air->strict_evidence
-        || counter == 0
-        || air_global_has_evidence_kind(air, kind)) {
+    if (!air->strict_evidence || counter == 0
+        || air_global_has_evidence_kind(air, kind))
         return true;
-    }
-
-    return air_append_driftf(
-        air,
-        AIR_DRIFT_DAG_FALLBACK_PRESENT,
-        SIZE_MAX,
-        SIZE_MAX,
-        error_message,
+    return air_append_driftf(air, AIR_DRIFT_DAG_FALLBACK_PRESENT,
+                             SIZE_MAX, SIZE_MAX, error_message,
         PGY_CODE_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING
         ": AIR DAG evidence counter has no matching evidence node; kind=%s counter=%zu. "
         "Reason: strict AIR treats DAG summary counters as observability only; graph-backed type evidence must be carried by EvidenceNode. "
@@ -144,99 +136,23 @@ air_strict_require_dag_evidence_node(AIRProgram *air,
         counter);
 }
 
-static char *
-air_format_authority_names_owned(const AIRBoundaryNode *boundary)
+static bool
+air_strict_require_mir_evidence_node(AIRProgram *air,
+                                     AIREvidenceKind kind,
+                                     size_t counter,
+                                     char **error_message)
 {
-    size_t total = 1;
-    bool emitted = false;
-    char *out;
-    size_t used = 0;
-
-    if (boundary == NULL || boundary->authority_names == NULL)
-        return NULL;
-
-    for (size_t i = 0; i < boundary->authority_name_count; i++) {
-        const char *name = boundary->authority_names[i];
-        if (name == NULL || name[0] == '\0')
-            continue;
-        if (emitted && total > SIZE_MAX - 2)
-            return NULL;
-        if (emitted)
-            total += 2;
-        if (strlen(name) > SIZE_MAX - total)
-            return NULL;
-        total += strlen(name);
-        emitted = true;
-    }
-    if (!emitted)
-        return NULL;
-
-    out = (char *)malloc(total);
-    if (out == NULL)
-        return NULL;
-    out[0] = '\0';
-    emitted = false;
-    for (size_t i = 0; i < boundary->authority_name_count; i++) {
-        const char *name = boundary->authority_names[i];
-        size_t len;
-        if (name == NULL || name[0] == '\0')
-            continue;
-        if (emitted) {
-            memcpy(out + used, ", ", 2);
-            used += 2;
-        }
-        len = strlen(name);
-        memcpy(out + used, name, len);
-        used += len;
-        out[used] = '\0';
-        emitted = true;
-    }
-    return out;
-}
-
-static char *
-air_format_boundary_provenance_owned(const AIRIntentNode *intent,
-                                     const AIRBoundaryNode *boundary)
-{
-    const char *source_provenance;
-    const char *who_provenance;
-    const char *authority_provenance;
-
-    if (intent == NULL || boundary == NULL)
-        return air_strdup_owned("");
-
-    if (boundary->source_from_intent_default && boundary->source_from_transfer)
-        source_provenance = "intent-default+transfer";
-    else if (boundary->source_from_intent_default)
-        source_provenance = "intent-default";
-    else if (boundary->source_from_action)
-        source_provenance = "action-inherited";
-    else if (boundary->source_from_transfer)
-        source_provenance = "transfer";
-    else
-        source_provenance = "explicit";
-    if (intent->who_from_intent_default)
-        who_provenance = "intent-default";
-    else if (intent->who_from_on_receiver)
-        who_provenance = "on-receiver";
-    else if (intent->who_from_single_participant)
-        who_provenance = "single-participant";
-    else
-        who_provenance = "explicit";
-    if (boundary->authority_from_zone)
-        authority_provenance = "zone-derived";
-    else if (boundary->authority_from_action)
-        authority_provenance = "action-inherited";
-    else
-        authority_provenance = boundary->authority_required ? "explicit" : "none";
-    return air_format_owned(
-        "; owner=%s step=%s boundary_source=%s source_provenance=%s who_provenance=%s authority_provenance=%s",
-        intent->intent_owner != NULL ? intent->intent_owner : "<intent>",
-        intent->step_name != NULL ? intent->step_name : "<step>",
-        boundary->source_name != NULL ? boundary->source_name : "<boundary>",
-        source_provenance,
-        who_provenance,
-        authority_provenance);
+    if (!air->strict_evidence || counter == 0
+        || air_global_has_evidence_kind(air, kind))
+        return true;
+    return air_append_driftf(air, AIR_DRIFT_BOUNDARY_EVIDENCE_MISSING,
+                             SIZE_MAX, SIZE_MAX, error_message,
+        PGY_CODE_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING
+        ": AIR MIR evidence counter has no matching evidence node; kind=%s counter=%zu. "
+        "Reason: strict AIR treats MIR summary counters as observability only; cleanup, terminator, and select receive safety must be carried by EvidenceNode. "
+        "Fix: attach the missing MIR evidence node or remove the stale counter-only summary.",
+        air_evidence_kind_name(kind),
+        counter);
 }
 
 bool
@@ -428,6 +344,25 @@ air_verify(AIRProgram *air, char **error_message)
                               SIZE_MAX,
                               message,
                               error_message)) {
+            return false;
+        }
+    }
+    if (air->strict_evidence) {
+        if (!air_strict_require_mir_evidence_node(
+                air,
+                AIR_EVIDENCE_MIR_CLEANUP,
+                air->mir_cleanup_evidence_count,
+                error_message)
+            || !air_strict_require_mir_evidence_node(
+                air,
+                AIR_EVIDENCE_MIR_TERMINATOR,
+                air->mir_terminator_evidence_count,
+                error_message)
+            || !air_strict_require_mir_evidence_node(
+                air,
+                AIR_EVIDENCE_MIR_SELECT_RECEIVE,
+                air->mir_select_receive_evidence_count,
+                error_message)) {
             return false;
         }
     }

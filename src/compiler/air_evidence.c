@@ -30,7 +30,7 @@ air_hir_cfg_contains_boundary_ast(const HIRRoutine *routine, const AIRBoundaryNo
     if (routine == NULL || boundary == NULL || !routine->has_cfg)
         return false;
     if (boundary->ast == NULL)
-        return true;
+        return !air_boundary_requires_hir_evidence(boundary);
     for (size_t i = 0; i < routine->cfg.block_count; i++) {
         const HIRBasicBlock *block = &routine->cfg.blocks[i];
         if (block == NULL)
@@ -66,26 +66,28 @@ air_collect_hir_evidence(AIRProgram *air, const HIRProgram *hir, char **error_me
                 const char *routine_name = routine->name != NULL
                     ? routine->name
                     : routine->owner_name;
-                if (!air_assign_first_owned_name(air,
-                                                 &boundary->hir_routine_evidence_name,
-                                                 routine_name,
-                                                 error_message,
-                                                 "HIR routine")) {
-                    return false;
+                if (!boundary->has_hir_routine_evidence) {
+                    if (!air_assign_first_owned_name(
+                            air,
+                            &boundary->hir_routine_evidence_name,
+                            routine_name,
+                            error_message,
+                            "HIR routine")) {
+                        return false;
+                    }
+                    if (!air_append_evidence_node(air,
+                                                  AIR_EVIDENCE_HIR_ROUTINE,
+                                                  j,
+                                                  routine_name,
+                                                  boundary->source_name,
+                                                  error_message)) {
+                        return false;
+                    }
+                    boundary->has_hir_routine_evidence = true;
+                    air->hir_routine_evidence_count++;
                 }
-                boundary->has_hir_routine_evidence = true;
-                air->hir_routine_evidence_count++;
-                if (!air_append_evidence_node(air,
-                                              AIR_EVIDENCE_HIR_ROUTINE,
-                                              j,
-                                              routine_name,
-                                              boundary->source_name,
-                                              error_message)) {
-                    return false;
-                }
-                if (air_hir_cfg_contains_boundary_ast(routine, boundary)) {
-                    boundary->has_hir_cfg_evidence = true;
-                    air->hir_cfg_evidence_count++;
+                if (!boundary->has_hir_cfg_evidence
+                    && air_hir_cfg_contains_boundary_ast(routine, boundary)) {
                     if (!air_append_evidence_node(air,
                                                   AIR_EVIDENCE_HIR_CFG,
                                                   j,
@@ -94,6 +96,8 @@ air_collect_hir_evidence(AIRProgram *air, const HIRProgram *hir, char **error_me
                                                   error_message)) {
                         return false;
                     }
+                    boundary->has_hir_cfg_evidence = true;
+                    air->hir_cfg_evidence_count++;
                 }
             }
         }
@@ -117,8 +121,8 @@ air_mir_pin_block_matches_boundary(const MIRBasicBlock *block,
         return false;
     if (!air_boundary_is_pin_boundary(boundary))
         return false;
-    if (boundary->ast == NULL)
-        return true;
+    if (boundary->ast == NULL || block->pin_block_ast == NULL)
+        return false;
     return block->pin_block_ast == boundary->ast;
 }
 

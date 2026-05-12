@@ -42,6 +42,7 @@ StructuredComment *parser_take_pending_doc_comment(Parser *parser);
 bool            parser_attach_pending_doc_comment(Parser *parser,
                                                   ASTNode *node);
 ASTNode        *parser_finalize_statement(Parser *parser, ASTNode *node);
+void            parser_reject_reserved_cast_after_expression(Parser *parser);
 void            parser_register_decl_hint(Parser *parser, ASTNode *node);
 bool            parser_lookup_decl_hint(Parser *parser, const char *name,
                                         ASTNodeType *node_type_out,
@@ -56,6 +57,10 @@ ASTNode *parse_addition(Parser *parser);
 ASTNode *parse_multiplication(Parser *parser);
 ASTNode *parse_unary(Parser *parser);
 ASTNode *finish_call(Parser *parser, ASTNode *callee);
+bool     parser_prepend_call_argument(Parser *parser, ASTNode *call,
+                                      ASTNode *argument);
+bool     parser_append_call_argument(Parser *parser, ASTNode *call,
+                                     const char *arg_name, ASTNode *arg);
 bool     parser_is_lambda_start(Parser *parser);
 ASTNode *parse_lambda_expression(Parser *parser);
 bool     parser_append_expr_node_with_capacity(Parser *parser,

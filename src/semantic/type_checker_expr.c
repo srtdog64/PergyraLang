@@ -100,6 +100,16 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
         ctx->current_function_effects = EFFECT_NONE;
         ctx->current_function_body_summary = BODY_SUMMARY_NONE;
 
+        if (semantic_reject_lambda_unsupported_captures(
+                expr->data.lambda_expr.body, ctx)) {
+            scope_exit(&ctx->scope);
+            ctx->current_function_effects = saved_effects;
+            ctx->current_function_body_summary = saved_body_summary;
+            ctx->tracking_function_effects = saved_tracking;
+            free(param_types);
+            return TYPE_UNKNOWN;
+        }
+
         if (expr->data.lambda_expr.return_type != NULL) {
             return_type = expr_resolve_type_ref(
                 expr->data.lambda_expr.return_type, ctx);

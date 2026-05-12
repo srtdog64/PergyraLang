@@ -1,6 +1,6 @@
 # Documentation Quality Audit
 
-Last updated: 2026-04-27
+Last updated: 2026-05-12
 
 Status: beta-closure support note.
 
@@ -38,12 +38,13 @@ contract; the source-of-truth contracts remain:
 6. Grammar docs now separate parser-accepted detached `async { ... }` from the
    beta-stable task surface. Named `spawn Worker(args...)` is the stable creation
    form; capture-bearing detached async blocks remain outside the beta contract.
-7. `documentation-quality-test-smoke` now scans all `docs/**/*.md` and
-   `examples/**/*.pgy` for invalid UTF-8 / replacement characters, and rejects
-   anonymous `async { ... }` in executable examples unless the file is explicitly
-   marked as a design sketch. The smoke is intentionally shell-only; it must not
-   require Python or another heavyweight language runtime just to validate beta
-   documentation wording.
+7. `documentation-quality-test-smoke` now keeps the default beta gate focused
+   on required contract docs and executable examples. The full `docs/**/*.md`
+   and `examples/**/*.pgy` UTF-8 / anonymous-async sweep is still available via
+   `PGY_DOC_QUALITY_FULL_UTF8=1`, but it is opt-in so CI does not spend most of
+   the documentation gate on historical or large example files. The smoke is
+   intentionally shell-only; it must not require Python or another heavyweight
+   language runtime just to validate beta documentation wording.
 8. `campaign_graph_fsm` exposed an LLVM-only projection freshness drift for
    current-zone subject method calls. The LLVM backend now syncs zone projection
    targets after those calls, and `llvm-campaign-projection-test-smoke` locks the

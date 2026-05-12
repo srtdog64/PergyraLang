@@ -58,6 +58,10 @@ void intent_step_derive_where_from_on_receiver(ASTNode *intent_decl,
                                                ASTNode *step,
                                                SemanticContext *ctx);
 
+bool intent_step_report_on_action_zone_conflict(ASTNode *intent_decl,
+                                                ASTNode *step,
+                                                SemanticContext *ctx);
+
 void intent_step_inherit_contract_from_on_receiver(ASTNode *intent_decl,
                                                    ASTNode *step,
                                                    SemanticContext *ctx);

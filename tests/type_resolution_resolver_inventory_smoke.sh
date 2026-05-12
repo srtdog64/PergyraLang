@@ -322,38 +322,11 @@ grep -q 'semantic_type_resolution_reject_unknown_bare_named_type' \
   >"$type_ref_helper_matches" || true
 
 grep -Ev 'src/semantic/type_checker_internal\.h' "$type_ref_helper_matches" \
-  | grep -Ev 'src/semantic/type_checker\.c' \
   | grep -Ev 'src/semantic/type_checker_ability_decl\.c' \
-  | grep -Ev 'src/semantic/type_checker_ability_fields\.c' \
-  | grep -Ev 'src/semantic/type_checker_ability_where\.c' \
-  | grep -Ev 'src/semantic/type_checker_async_channel\.h' \
-  | grep -Ev 'src/semantic/type_checker_builtins_projection\.c' \
-  | grep -Ev 'src/semantic/type_checker_builtins_query_domain\.c' \
-  | grep -Ev 'src/semantic/type_checker_call_constructor\.c' \
-  | grep -Ev 'src/semantic/type_checker_class_decl\.c' \
-  | grep -Ev 'src/semantic/type_checker_call_generic_where\.c' \
   | grep -Ev 'src/semantic/type_checker_decls_domain_helpers\.c' \
-  | grep -Ev 'src/semantic/type_checker_expr_call\.c' \
-  | grep -Ev 'src/semantic/type_checker_expr_host\.c' \
-  | grep -Ev 'src/semantic/type_checker_expr_ops\.c' \
-  | grep -Ev 'src/semantic/type_checker_event\.c' \
-  | grep -Ev 'src/semantic/type_checker_flow\.c' \
-  | grep -Ev 'src/semantic/type_checker_func_action_contract\.c' \
-  | grep -Ev 'src/semantic/type_checker_generic_effective_args\.c' \
-  | grep -Ev 'src/semantic/type_checker_generic_support\.h' \
-  | grep -Ev 'src/semantic/type_checker_helpers_late\.c' \
-  | grep -Ev 'src/semantic/type_checker_intent_action_contract\.c' \
-  | grep -Ev 'src/semantic/type_checker_intent_participants\.c' \
-  | grep -Ev 'src/semantic/type_checker_intent_transfer\.c' \
   | grep -Ev 'src/semantic/type_checker_intent_types\.c' \
-  | grep -Ev 'src/semantic/type_checker_module_contract\.c' \
-  | grep -Ev 'src/semantic/type_checker_ownership_destructure\.c' \
-  | grep -Ev 'src/semantic/type_checker_party_decl\.c' \
   | grep -Ev 'src/semantic/type_checker_projection_path\.c' \
   | grep -Ev 'src/semantic/type_checker_resolution_metadata\.c' \
-  | grep -Ev 'src/semantic/type_checker_role_decl\.c' \
-  | grep -Ev 'src/semantic/type_checker_roster_decl\.c' \
-  | grep -Ev 'src/semantic/type_checker_world_helpers\.c' \
   >"$bad_type_ref_helper" || true
 
 if [ -s "$bad_type_ref_helper" ]; then
@@ -364,8 +337,8 @@ if [ -s "$bad_type_ref_helper" ]; then
 fi
 
 type_ref_helper_count="$(wc -l <"$type_ref_helper_matches")"
-if [ "$type_ref_helper_count" -ne 34 ]; then
-  echo "[type-resolution-resolver-inventory] metadata-first type-ref helper inventory changed: $type_ref_helper_count != 34" >&2
+if [ "$type_ref_helper_count" -ne 6 ]; then
+  echo "[type-resolution-resolver-inventory] metadata-first type-ref helper inventory changed: $type_ref_helper_count != 6" >&2
   cat "$type_ref_helper_matches" >&2
   exit 1
 fi
@@ -581,4 +554,4 @@ for needle in \
   }
 done
 
-echo "[type-resolution-resolver-inventory] direct resolver and fallback seam inventory are gated (fallback seams=$fallback_sites cap=0 annotation-sensitive seams=$annotation_sites annotation-only reads=$annotation_or_unknown_count cap=0 nullable annotation reads=0 type-ref helper refs=$type_ref_helper_count cap=34)"
+echo "[type-resolution-resolver-inventory] direct resolver and fallback seam inventory are gated (fallback seams=$fallback_sites cap=0 annotation-sensitive seams=$annotation_sites annotation-only reads=$annotation_or_unknown_count cap=0 nullable annotation reads=0 type-ref helper refs=$type_ref_helper_count cap=6)"

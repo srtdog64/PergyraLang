@@ -30,6 +30,7 @@ run_literal_contract_smoke() {
         "src/runtime/pgy_runtime_lib_authority_file_core.h"
         "src/runtime/pgy_runtime_platform_io_core.h"
         "src/codegen/llvm_runtime.c"
+        "src/codegen/llvm_runtime_core_builtin_decl.c"
     )
     local required_macros=(
         "PGY_ZONE_AUTHORITY_CODE_OK"
@@ -63,8 +64,8 @@ run_literal_contract_smoke() {
     require_literal "src/runtime/pgy_runtime_authority_contract.h" "authority-token-mismatch"
     require_literal "src/runtime/pgy_runtime_lib_authority_file_core.h" "pgy_runtime_authority_contract.h"
     require_literal "src/runtime/pgy_runtime_platform_io_core.h" "pgy_runtime_authority_contract.h"
-    require_literal "src/codegen/llvm_runtime.c" "pgy_zone_authority_check_token_export"
-    require_literal "src/codegen/llvm_runtime.c" "pgy_zone_authority_validate_token_flags_export"
+    require_literal "src/codegen/llvm_runtime_core_builtin_decl.c" "pgy_zone_authority_check_token_export"
+    require_literal "src/codegen/llvm_runtime_core_builtin_decl.c" "pgy_zone_authority_validate_token_flags_export"
 
     forbid_literal "src/runtime/pgy_runtime_zone_result_option_inline.h" "\"missing-zone\""
     forbid_literal "src/runtime/pgy_runtime_zone_result_option_inline.h" "\"missing-participant\""
@@ -172,7 +173,7 @@ if re.search(r'pgy_zone_authority_last_code\[[^\]]+\]\s*=\s*"ok"', top_text):
 if "PGY_ZONE_AUTHORITY_CODE_OK" not in top_text:
     raise SystemExit("inline runtime top part does not use PGY_ZONE_AUTHORITY_CODE_OK")
 
-runtime_decl = root / "src" / "codegen" / "llvm_runtime.c"
+runtime_decl = root / "src" / "codegen" / "llvm_runtime_core_builtin_decl.c"
 runtime_text = runtime_decl.read_text(encoding="utf-8")
 required_exports = [
     "pgy_zone_authority_check_token_export",

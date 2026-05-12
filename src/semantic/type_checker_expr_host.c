@@ -5,14 +5,6 @@
 #include "diag_codes.h"
 
 static Type *
-expr_host_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
-{
-    Type *resolved =
-        semantic_type_resolution_lookup_type_ref_or_materialize(ctx, type_ref);
-    return resolved != NULL ? resolved : TYPE_UNKNOWN;
-}
-
-static Type *
 expr_host_resolve_named_type_metadata_or_unknown(const char *name,
                                                  SemanticContext *ctx,
                                                  ASTNode *site)
@@ -42,7 +34,7 @@ expr_host_resolve_class_field_type(ClassField *field, SemanticContext *ctx)
 {
     if (field == NULL)
         return NULL;
-    return expr_host_resolve_type_ref(field->type, ctx);
+    return domain_resolve_type_ref(field->type, ctx);
 }
 
 static Type *
@@ -52,7 +44,7 @@ expr_host_resolve_func_return_type(ASTNode *method, SemanticContext *ctx)
         || method->data.func_decl.return_type == NULL) {
         return TYPE_VOID;
     }
-    return expr_host_resolve_type_ref(method->data.func_decl.return_type, ctx);
+    return domain_resolve_type_ref(method->data.func_decl.return_type, ctx);
 }
 
 static Type *
@@ -60,7 +52,7 @@ expr_host_resolve_func_param_type(FuncParam *param, SemanticContext *ctx)
 {
     if (param == NULL || param->type == NULL)
         return TYPE_UNKNOWN;
-    return expr_host_resolve_type_ref(param->type, ctx);
+    return domain_resolve_type_ref(param->type, ctx);
 }
 
 Type *
@@ -105,7 +97,7 @@ expr_current_host_field_type(SemanticContext *ctx, const char *field_name)
         const char *name = NULL;
         ASTNode *type_node = overlay_field_decl_at(decl, i, &name);
         if (name != NULL && strcmp(name, field_name) == 0)
-            return expr_host_resolve_type_ref(type_node, ctx);
+            return domain_resolve_type_ref(type_node, ctx);
     }
 
     return NULL;

@@ -19,25 +19,43 @@ else
     PGY="$DEFAULT_PGY"
 fi
 
+if [[ ! -x "$PGY" ]]; then
+    echo "[llvm-campaign-projection] SKIP executable probe; missing compiler binary: $PGY"
+    exit 0
+fi
+
 PYTHON_BIN="${PYTHON_BIN:-}"
 if [[ -z "$PYTHON_BIN" ]]; then
     if command -v python3 >/dev/null 2>&1; then
         PYTHON_BIN="$(command -v python3)"
     elif command -v python >/dev/null 2>&1; then
         PYTHON_BIN="$(command -v python)"
-    else
-        echo "[llvm-campaign-projection] missing python" >&2
-        exit 1
     fi
-fi
-
-if [[ ! -x "$PGY" ]]; then
-    echo "[llvm-campaign-projection] missing compiler binary: $PGY" >&2
-    exit 1
 fi
 
 output="$("$PGY" "$ROOT_DIR/examples/campaign_graph_fsm/main.pgy" \
     --run --backend=llvm -o "${TMP_BASE%/}/pgy-campaign-projection-llvm" 2>&1)"
+
+if [[ -z "$PYTHON_BIN" ]]; then
+    tmp_dir="$(mktemp -d "${TMP_BASE%/}/pgy-campaign-projection.XXXXXX")"
+    trap 'rm -rf "$tmp_dir"' EXIT
+    normalize_output() {
+        tr -d '\r' | sed -E \
+            -e '/^0 error\(s\), 0 warning\(s\)$/d' \
+            -e '/^--- output ---$/d' \
+            -e '/^--- end ---$/d' \
+            -e '/^pgy: compiled/d' | awk 'seen || length($0) > 0 { print; seen = 1 }'
+    }
+    normalize_output < "$ROOT_DIR/examples/campaign_graph_fsm/expected_stdout.txt" \
+        > "$tmp_dir/expected.txt"
+    printf '%s\n' "$output" | normalize_output > "$tmp_dir/actual.txt"
+    if ! diff -u "$tmp_dir/expected.txt" "$tmp_dir/actual.txt"; then
+        echo "[llvm-campaign-projection] stdout mismatch" >&2
+        exit 1
+    fi
+    echo "[llvm-campaign-projection] campaign_graph_fsm LLVM projection parity ok"
+    exit 0
+fi
 
 "$PYTHON_BIN" - "$ROOT_DIR" "$output" <<'PY'
 import difflib

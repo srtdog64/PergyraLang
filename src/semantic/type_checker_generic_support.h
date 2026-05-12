@@ -206,12 +206,6 @@ format_effective_generic_type_list_scratch(SemanticContext *ctx,
     return result;
 }
 
-static Type *
-generic_support_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
-{
-    return semantic_type_resolution_lookup_type_ref_or_materialize(ctx, type_ref);
-}
-
 bool
 identifier_is_borrowed_boundary_param(ASTNode *expr, SemanticContext *ctx)
 {
@@ -240,7 +234,7 @@ identifier_is_borrowed_boundary_param(ASTNode *expr, SemanticContext *ctx)
         if (strcmp(param->name, ident_name) != 0)
             continue;
 
-        param_type = generic_support_resolve_type_ref(param->type, ctx);
+        param_type = domain_resolve_type_ref(param->type, ctx);
         return type_is_general_boundary_type(param_type, ctx);
     }
 

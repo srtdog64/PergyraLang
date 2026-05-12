@@ -543,10 +543,6 @@ test_qubit_slot_semantics_part_a(void)
         ast_destroy(call);
         ast_destroy(state_call);
     }
-
-#include "tests/semantic/test_semantic_ownership_boundaries_part_a.cases.h"
-#include "tests/semantic/test_semantic_ownership_boundaries_part_b.cases.h"
-
     TEST("Slot<Int> parameter types remain rejected");
     {
         SemanticContext *ctx = semantic_context_create();

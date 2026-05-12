@@ -9,10 +9,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 
 #include "../common/string_compat.h"
 #include "diag_payload.h"
 #include "type_checker.h"
+
+static bool
+diagnostic_capacity_fits(size_t count)
+{
+    return count <= SIZE_MAX / sizeof(Diagnostic *);
+}
 
 static void
 diag_payload_snapshot_destroy_fields(DiagnosticPayloadSnapshot *snapshot)
@@ -115,9 +122,18 @@ emit_diagnostic_full(SemanticContext *ctx, DiagnosticLevel level,
     }
 
     if (ctx->diagnostic_count >= ctx->diagnostic_capacity) {
-        size_t new_cap = ctx->diagnostic_capacity * 2;
-        Diagnostic **grown = realloc(ctx->diagnostics,
-                                     new_cap * sizeof(Diagnostic *));
+        size_t new_cap = ctx->diagnostic_capacity == 0
+            ? 16
+            : ctx->diagnostic_capacity * 2;
+        Diagnostic **grown;
+
+        if (ctx->diagnostic_capacity > SIZE_MAX / 2
+            || !diagnostic_capacity_fits(new_cap)) {
+            free(message);
+            return;
+        }
+
+        grown = realloc(ctx->diagnostics, new_cap * sizeof(Diagnostic *));
         if (grown == NULL) {
             free(message);
             return;

@@ -459,6 +459,10 @@ Token lexer_next_token(Lexer* lexer) {
         case '.': 
             if (peek(lexer) == '.') {
                 advance(lexer);
+                if (peek(lexer) == '.') {
+                    advance(lexer);
+                    return make_token(lexer, TOKEN_ELLIPSIS, start, 3);
+                }
                 return make_token(lexer, TOKEN_DOT, start, 2); // .. for ranges
             }
             return make_token(lexer, TOKEN_DOT, start, 1);
@@ -482,7 +486,17 @@ Token lexer_next_token(Lexer* lexer) {
             }
             return make_token(lexer, TOKEN_SLASH, start, 1);
         case '%': return make_token(lexer, TOKEN_PERCENT, start, 1);
-        case '?': return make_token(lexer, TOKEN_QUESTION, start, 1);
+        case '?':
+            if (peek(lexer) == '.') {
+                advance(lexer);
+                return make_token(lexer, TOKEN_OPTIONAL_CHAIN, start, 2);
+            }
+            if (peek(lexer) == '?') {
+                advance(lexer);
+                return make_token(lexer, TOKEN_COALESCE, start, 2);
+            }
+            return make_token(lexer, TOKEN_QUESTION, start, 1);
+        case '@': return make_token(lexer, TOKEN_AT, start, 1);
         case '"':
             if (peek(lexer) == '"' && peek_next(lexer) == '"') {
                 advance(lexer);

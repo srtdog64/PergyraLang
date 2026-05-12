@@ -85,11 +85,11 @@ grep -Fq "authority_from_zone" \
 grep -Fq "authority_from_action" \
     "$ROOT_DIR/src/compiler/air.h"
 grep -Fq "authority_provenance=%s" \
-    "$ROOT_DIR/src/compiler/air_verify.c"
+    "$ROOT_DIR/src/compiler/air_verify_provenance.c"
 grep -Fq "zone-derived" \
-    "$ROOT_DIR/src/compiler/air_verify.c"
+    "$ROOT_DIR/src/compiler/air_verify_provenance.c"
 grep -Fq "action-inherited" \
-    "$ROOT_DIR/src/compiler/air_verify.c"
+    "$ROOT_DIR/src/compiler/air_verify_provenance.c"
 grep -Fq "inherited from the intent-level who default" \
     "$ROOT_DIR/src/semantic/type_checker_intent_participants.c"
 grep -Fq "intent_step_where_source_label" \
@@ -167,11 +167,11 @@ grep -Fq "source_from_transfer" \
 grep -Fq "step->where_derived_from_transfer" \
     "$ROOT_DIR/src/compiler/air.c"
 grep -Fq "source_provenance=" \
-    "$ROOT_DIR/src/compiler/air_verify.c"
+    "$ROOT_DIR/src/compiler/air_verify_provenance.c"
 grep -Fq "who_provenance=" \
-    "$ROOT_DIR/src/compiler/air_verify.c"
+    "$ROOT_DIR/src/compiler/air_verify_provenance.c"
 grep -Fq "intent-default+transfer" \
-    "$ROOT_DIR/src/compiler/air_verify.c"
+    "$ROOT_DIR/src/compiler/air_verify_provenance.c"
 grep -Fq "AIR world boundary node %zu has no transfer provenance" \
     "$ROOT_DIR/src/compiler/air_validate.c"
 grep -Fq "test_air_verify_rejects_world_boundary_without_transfer_provenance" \

@@ -1,4 +1,5 @@
 #include "parser_internal.h"
+#include <stdint.h>
 
 typedef bool (*FunctionClauseParser)(Parser *parser, ASTNode *func,
                                      bool is_action);
@@ -64,6 +65,11 @@ parser_append_required_ability(Parser *parser, ASTNode *func, ASTNode *ability)
         size_t next_capacity = func->data.func_decl.required_ability_capacity == 0
             ? 4
             : func->data.func_decl.required_ability_capacity * 2;
+        if (next_capacity < func->data.func_decl.required_ability_capacity
+            || next_capacity > SIZE_MAX / sizeof(ASTNode *)) {
+            parser_error(parser, "Out of memory while parsing required abilities");
+            return false;
+        }
         grown = realloc(func->data.func_decl.required_abilities,
                         next_capacity * sizeof(ASTNode *));
         if (grown == NULL) {
@@ -99,6 +105,12 @@ parser_append_authorized_by(Parser *parser, ASTNode *func, const char *name)
         size_t next_capacity = func->data.func_decl.authorized_by_capacity == 0
             ? 4
             : func->data.func_decl.authorized_by_capacity * 2;
+        if (next_capacity < func->data.func_decl.authorized_by_capacity
+            || next_capacity > SIZE_MAX / sizeof(char *)) {
+            free(copy);
+            parser_error(parser, "Out of memory while parsing authorized-by subjects");
+            return false;
+        }
         grown = realloc(func->data.func_decl.authorized_by,
                         next_capacity * sizeof(char *));
         if (grown == NULL) {

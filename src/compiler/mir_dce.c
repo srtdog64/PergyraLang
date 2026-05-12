@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "mir_cfg_contract_control.h"
 #include "mir_liveness_dce.h"
 
 static bool

@@ -27,6 +27,10 @@ pgy_blocking_pool_init(size_t worker_count)
 
     if (worker_count == 0)
         worker_count = 4;  /* sensible default for I/O-bound work */
+    if (!pgy_parallel_array_fits(worker_count, sizeof(pthread_t))) {
+        pgy_parallel_warn("blocking-pool-init", "worker array size overflow");
+        return;
+    }
 
     memset(&g_pgy_blocking_pool, 0, sizeof(g_pgy_blocking_pool));
     g_pgy_blocking_pool.worker_count = worker_count;

@@ -64,37 +64,6 @@ llvm_decl_find_current_zone_decl(LLVMGenCtx *ctx)
     return NULL;
 }
 
-static const char *
-llvm_decl_current_nominal_name(LLVMGenCtx *ctx)
-{
-    ASTNode *decl;
-
-    if (ctx == NULL)
-        return NULL;
-
-    decl = llvm_decl_find_current_host_decl(ctx);
-    if (decl != NULL) {
-        switch (decl->type) {
-        case AST_ZONE_DECL:
-            return decl->data.zone_decl.name;
-        case AST_RELATION_DECL:
-            return decl->data.relation_decl.name;
-        case AST_EFFECT_DECL:
-            return decl->data.effect_decl.name;
-        case AST_WORLD_DECL:
-            return decl->data.world_decl.name;
-        case AST_ENUM_DECL:
-            return decl->data.enum_decl.name;
-        case AST_CLASS_DECL:
-            return decl->data.class_decl.name;
-        default:
-            break;
-        }
-    }
-
-    return NULL;
-}
-
 static bool
 llvm_decl_token_param_name(LLVMGenCtx *ctx, ASTNode *node,
                            char *out, size_t out_size,
@@ -301,7 +270,7 @@ llvm_emit_func_decl(ASTNode *node, LLVMGenCtx *ctx)
         /* For 'self' parameter in class methods, use the class struct pointer
          * type instead of the default i32. */
         if (llvm_param_is_implicit_self(p)) {
-            const char *host_name = llvm_decl_current_nominal_name(ctx);
+            const char *host_name = llvm_current_host_class_name(ctx);
             LLVMClassTypeEntry *cls = host_name != NULL
                 ? llvm_lookup_class(ctx, host_name)
                 : NULL;

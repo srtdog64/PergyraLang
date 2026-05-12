@@ -263,7 +263,11 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
     } else if (init != NULL) {
         const char *inferred_type = NULL;
         /* Type inference from initializer */
-        if (init->type == AST_NUMBER)  c_type = "int32_t";
+        if (init->type == AST_NUMBER) {
+            inferred_type = infer_expression_type_name(ctx, init);
+            if (inferred_type != NULL)
+                c_type = pergyra_type_to_c(inferred_type);
+        }
         else if (init->type == AST_STRING)  c_type = "char*";
         else if (init->type == AST_BOOLEAN) c_type = "bool";
         else if (init->type == AST_SPAWN_EXPR) c_type = "PgyTaskHandle";

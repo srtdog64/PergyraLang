@@ -345,6 +345,7 @@ ASTNode* ast_create_call(ASTNode* callee) {
     ASTNode* node = ast_create_node(AST_CALL);
     node->data.call.callee = callee;
     node->data.call.arguments = NULL;
+    node->data.call.arg_names = NULL;
     node->data.call.arg_count = 0;
     node->data.call.generic_args = NULL;
     return node;

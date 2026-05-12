@@ -36,7 +36,11 @@ async_scope_strdup(const char* text)
         return NULL;
     }
 
-    length = strlen(text) + 1;
+    length = strlen(text);
+    if (length == SIZE_MAX) {
+        return NULL;
+    }
+    length++;
     copy = (char*)malloc(length);
     if (copy == NULL) {
         return NULL;
@@ -56,6 +60,11 @@ AsyncScope* AsyncScopeCreate(AsyncScope* parent)
     
     /* Initialize fiber list */
     scope->fiberCapacity = INITIAL_FIBER_CAPACITY;
+    if (scope->fiberCapacity > SIZE_MAX / sizeof(Fiber*)) {
+        async_scope_warn("create", "fiber list allocation size overflow", parent);
+        free(scope);
+        return NULL;
+    }
     scope->fibers = (Fiber**)calloc(scope->fiberCapacity, sizeof(Fiber*));
     if (scope->fibers == NULL) {
         async_scope_warn("create", "fiber list allocation failed", parent);
@@ -119,8 +128,18 @@ static void AsyncScopeAddFiber(AsyncScope* scope, Fiber* fiber)
     
     /* Resize array if needed */
     if (scope->fiberCount >= scope->fiberCapacity) {
-        size_t newCapacity = scope->fiberCapacity * 2;
-        Fiber** newFibers = (Fiber**)realloc(scope->fibers, newCapacity * sizeof(Fiber*));
+        size_t newCapacity;
+        Fiber** newFibers;
+
+        if (scope->fiberCapacity > SIZE_MAX / 2
+            || scope->fiberCapacity > SIZE_MAX / (2 * sizeof(Fiber*))) {
+            async_scope_warn("add_fiber", "fiber list capacity overflow", scope);
+            pthread_mutex_unlock(&scope->fiberListMutex);
+            return;
+        }
+        newCapacity = scope->fiberCapacity * 2;
+        newFibers = (Fiber**)realloc(scope->fibers,
+                                     newCapacity * sizeof(Fiber*));
         
         if (newFibers != NULL) {
             scope->fibers = newFibers;

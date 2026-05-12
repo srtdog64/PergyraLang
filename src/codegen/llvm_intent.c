@@ -331,12 +331,8 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
             LLVMPositionBuilderAtEnd(ctx->builder, next_bb);
         } else if (step_ctx.on_expr_count == 0) {
             size_t alias_count = step_ctx.dispatch_alias_count;
-            if (!mir_only_intent && alias_count == 0)
-                alias_count = step->data.intent_step.who_count;
             for (size_t j = 0; j < alias_count; j++) {
-                const char *alias = step_ctx.dispatch_alias_count > 0
-                    ? step_ctx.dispatch_aliases[j]
-                    : step->data.intent_step.who_names[j];
+                const char *alias = step_ctx.dispatch_aliases[j];
                 const char *subject_name = llvm_lookup_var_class(ctx, alias);
                 if (subject_name != NULL) {
                     char full_name[256];

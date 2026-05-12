@@ -6,6 +6,13 @@
 
 LLVMTypeRef llvm_stmt_infer_scalar_builtin_type(LLVMGenCtx *ctx,
                                                 const char *callee);
+LLVMFuncEntry *llvm_stmt_lookup_visible_function(LLVMGenCtx *ctx,
+                                                 const char *callee);
+LLVMTypeRef llvm_stmt_lookup_declared_call_return_type(LLVMGenCtx *ctx,
+                                                       const char *callee);
+LLVMTypeRef llvm_stmt_promote_numeric_type(LLVMGenCtx *ctx,
+                                           LLVMTypeRef left_ty,
+                                           LLVMTypeRef right_ty);
 bool llvm_stmt_call_is_slot_builtin(const char *callee);
 bool llvm_stmt_slot_call_returns_value(const char *callee);
 bool llvm_stmt_call_returns_collection_size(const char *callee);
@@ -17,6 +24,7 @@ const char *llvm_stmt_lookup_collection_get_inner(LLVMGenCtx *ctx,
                                                   const char *collection);
 const char *llvm_stmt_lookup_slot_or_view_inner(LLVMGenCtx *ctx,
                                                 const char *receiver_name);
+LLVMTypeRef llvm_stmt_infer_await_expr_type(LLVMGenCtx *ctx, ASTNode *expr);
 
 #endif /* PGY_LLVM_ENABLED */
 

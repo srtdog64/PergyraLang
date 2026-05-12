@@ -41,6 +41,28 @@ PY
     exit 0
 fi
 
+if command -v perl >/dev/null 2>&1; then
+    export ROOT_DIR
+    find "$ROOT_DIR/src" -type f \( -name '*.c' -o -name '*.h' \) -print0 |
+        perl -MEncode=decode,FB_CROAK -0ne '
+            chomp;
+            my $path = $_;
+            open my $fh, "<:raw", $path or die "[source-utf8] cannot read $path: $!\n";
+            local $/;
+            my $data = <$fh>;
+            my $rel = $path;
+            my $root = $ENV{"ROOT_DIR"} . "/";
+            $rel =~ s/^\Q$root\E//;
+            if (index($data, pack("C*", 0xEF, 0xBF, 0xBD)) >= 0) {
+                die "[source-utf8] $rel contains Unicode replacement characters\n";
+            }
+            eval { decode("UTF-8", $data, FB_CROAK); 1 }
+                or die "[source-utf8] $rel is not valid UTF-8: $@\n";
+        '
+    echo "[source-utf8] src .c/.h files are valid UTF-8"
+    exit 0
+fi
+
 if ! command -v iconv >/dev/null 2>&1; then
     fail "missing iconv"
 fi

@@ -32,7 +32,7 @@ llvm_result_from_ctx_error(LLVMGenCtx *ctx)
             "line %u:%u: %s",
             ctx->error_line,
             ctx->error_column,
-            ctx->error_msg != NULL ? ctx->error_msg : "LLVM backend error");
+            ctx->error_msg[0] != '\0' ? ctx->error_msg : "LLVM backend error");
     }
 
     return llvm_result_error_fmt_with_hints(
@@ -40,7 +40,7 @@ llvm_result_from_ctx_error(LLVMGenCtx *ctx)
         ctx->error_cause_ir,
         ctx->error_fix_source,
         "%s",
-        ctx->error_msg != NULL ? ctx->error_msg : "LLVM backend error");
+        ctx->error_msg[0] != '\0' ? ctx->error_msg : "LLVM backend error");
 }
 
 static LLVMGenResult *

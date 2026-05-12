@@ -394,6 +394,15 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
             || stmt->type == AST_DEFER_STMT) {
             continue;
         }
+        if (!mir_instruction_source_stmt_fallback_is_allowed(inst)) {
+            if (reason != NULL && reason_cap > 0) {
+                transpiler_mir_reasonf(reason, reason_cap,
+                    "MIR block %llu emission failed: STMT fallback outside allowed residual statement policy",
+                    (unsigned long long) block->id);
+            }
+            ok = false;
+            break;
+        }
         if (stmt->type == AST_LET_DECL
             && stmt->data.let_decl.name != NULL
             && stmt->data.let_decl.initializer != NULL

@@ -242,6 +242,57 @@ test_mir_lowering_part_c(void)
         hir_destroy(hir);
     }
 
+    TEST("MIR validator rejects residual STMT without source inventory fact");
+    {
+        const char *src =
+            "func ResidualStmtInventoryFact() -> Void {\n"
+            "    if true {\n"
+            "        defer { Log(1); };\n"
+            "    }\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        MIRRoutine *routine = NULL;
+        MIRInstruction *stmt_inst = NULL;
+        char *mir_error = NULL;
+        bool rejected = false;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok)
+            routine = find_mir_routine_mut(mir, "ResidualStmtInventoryFact",
+                                           MIR_SCOPE_FUNCTION);
+        if (routine != NULL) {
+            for (size_t bi = 0; bi < routine->block_count && stmt_inst == NULL; bi++) {
+                MIRBasicBlock *block = &routine->blocks[bi];
+                for (size_t ii = 0; ii < block->instruction_count; ii++) {
+                    MIRInstruction *inst = &block->instructions[ii];
+                    if (inst->kind == MIR_INST_STMT
+                        && inst->source_ast_type == AST_DEFER_STMT) {
+                        stmt_inst = inst;
+                        break;
+                    }
+                }
+            }
+        }
+        if (stmt_inst != NULL) {
+            stmt_inst->has_source_statement_index = false;
+            rejected =
+                !mir_validate(mir, &mir_error)
+                && mir_error != NULL
+                && strstr(mir_error, "STMT fallback is missing source statement inventory fact") != NULL;
+            stmt_inst->has_source_statement_index = true;
+        }
+        EXPECT(ok
+               && routine != NULL
+               && stmt_inst != NULL
+               && rejected
+               && mir_validate(mir, NULL));
+        free(mir_error);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
     TEST("MIR validator rejects missing channel receive emit fact");
     {
         const char *src =

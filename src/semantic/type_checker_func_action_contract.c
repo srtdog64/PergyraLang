@@ -8,18 +8,11 @@
 #include "type_checker_module_contract_internal.h"
 
 static Type *
-action_contract_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
-{
-    return semantic_type_resolution_lookup_type_ref_or_materialize(ctx,
-                                                                   type_ref);
-}
-
-static Type *
 action_contract_resolve_domain_slot_type(ASTNode *slot, SemanticContext *ctx)
 {
     if (slot == NULL || slot->type != AST_DOMAIN_SLOT)
         return TYPE_UNKNOWN;
-    return action_contract_resolve_type_ref(slot->data.domain_slot.type, ctx);
+    return domain_resolve_slot_type(slot, ctx);
 }
 
 static Type *
@@ -27,7 +20,7 @@ action_contract_resolve_param_type(FuncParam *param, SemanticContext *ctx)
 {
     if (param == NULL || param->type == NULL)
         return TYPE_UNKNOWN;
-    return action_contract_resolve_type_ref(param->type, ctx);
+    return domain_resolve_type_ref(param->type, ctx);
 }
 
 static bool

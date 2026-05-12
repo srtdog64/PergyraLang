@@ -1,5 +1,3 @@
-#include <stdlib.h>
-
 #include "type_checker_internal.h"
 #include "diag_codes.h"
 
@@ -13,12 +11,6 @@ semantic_event_expr_name(ASTNode *expr)
     if (expr->type == AST_MEMBER_ACCESS && expr->data.member.name != NULL)
         return expr->data.member.name;
     return "<event>";
-}
-
-static Type *
-semantic_event_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
-{
-    return semantic_type_resolution_lookup_type_ref_or_materialize(ctx, type_ref);
 }
 
 static Type *
@@ -63,12 +55,12 @@ type_check_event_decl(ASTNode *node, SemanticContext *ctx)
             continue;
         }
 
-        if (semantic_event_resolve_type_ref(param->data.let_decl.type, ctx) == NULL)
+        if (domain_resolve_type_ref(param->data.let_decl.type, ctx) == NULL)
             ok = false;
     }
 
     if (node->data.event_decl.return_type != NULL) {
-        Type *return_type = semantic_event_resolve_type_ref(
+        Type *return_type = domain_resolve_type_ref(
             node->data.event_decl.return_type, ctx);
         if (return_type != NULL && !type_equals(return_type, TYPE_VOID)) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_EVENT_CONTRACT_INVALID,
@@ -90,40 +82,6 @@ semantic_event_handler_signature(ASTNode *handler, SemanticContext *ctx)
 {
     if (handler == NULL || ctx == NULL)
         return NULL;
-
-    if (handler->type == AST_LAMBDA_EXPR) {
-        size_t param_count = handler->data.lambda_expr.param_count;
-        Type **param_types = calloc(param_count > 0 ? param_count : 1,
-            sizeof(Type *));
-        Type *return_type = TYPE_VOID;
-        Type *lambda_type;
-
-        if (param_types == NULL)
-            return TYPE_UNKNOWN;
-
-        for (size_t i = 0; i < param_count; i++) {
-            ASTNode *param = handler->data.lambda_expr.params[i];
-            if (param != NULL
-                && param->type == AST_LET_DECL
-                && param->data.let_decl.type != NULL) {
-                param_types[i] = semantic_event_resolve_type_ref(
-                    param->data.let_decl.type, ctx);
-            } else {
-                param_types[i] = TYPE_UNKNOWN;
-            }
-        }
-
-        if (handler->data.lambda_expr.return_type != NULL) {
-            Type *resolved = semantic_event_resolve_type_ref(
-                handler->data.lambda_expr.return_type, ctx);
-            if (resolved != NULL)
-                return_type = resolved;
-        }
-
-        lambda_type = type_create_function(param_types, param_count, return_type);
-        free(param_types);
-        return lambda_type != NULL ? lambda_type : TYPE_UNKNOWN;
-    }
 
     return semantic_event_normalize_type(type_check_expression(handler, ctx));
 }

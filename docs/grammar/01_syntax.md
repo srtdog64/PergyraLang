@@ -495,8 +495,11 @@ await pending
 - multiline raw string: `"""..."""` 형태. 본문은 raw payload로 보존하며 `${...}` / `{...}` 보간을 수행하지 않는다.
 - legacy interpolation: `"hello ${name}"` 형태. `${expr}`는 `ToString(expr)`로 낮아진다.
 - f-string interpolation: `f"hello {name}"` 형태. `{expr}`는 `ToString(expr)`로 낮아진다.
-- escaped f-string brace: `f"\{name}"`는 보간이 아니라 literal `{name}`이다.
+- escaped interpolation opener: `f"\{name}"` and `"\${name}"` are literals,
+  not interpolation sites.
 - unmatched interpolation brace는 보간하지 않고 literal text로 보존한다.
+- malformed interpolation expressions are fail-closed: the string remains
+  literal instead of lowering a partial expression.
 
 베타 밖:
 - nested interpolation brace matching
@@ -786,6 +789,41 @@ world GameWorld {
 - 설계/비전 확인: [00_vision.md](/mnt/e/PergyraLang/docs/00_vision.md)
 - 상세 문법 레퍼런스: [02_grammar.md](/mnt/e/PergyraLang/docs/grammar/02_grammar.md)
 - 네이밍 규칙: [03_naming.md](/mnt/e/PergyraLang/docs/grammar/03_naming.md)
+
+## Common Syntax Pattern Contract
+
+The canonical crosswalk for common language syntax patterns is
+[../124_syntax_pattern_matrix.md](../124_syntax_pattern_matrix.md).
+This grammar document must not imply that a familiar syntax is beta-stable
+unless that matrix marks it stable or beta-stable.
+
+Current grammar contract:
+
+| Pattern | Grammar status | Beta contract |
+|---|---|---|
+| Intent compact step | active partial | `on:`-based inference is allowed for common receiver/action cases; explicit clauses remain valid. |
+| String interpolation | active partial | `"${expr}"` and `f"{expr}"` are parsed/lowered; escaping and backend parity remain the promotion gate. |
+| Array literal | stable | `[a, b, c]` is the collection literal baseline for beta. |
+| List/Set/HashMap literal | reserved/out-of-beta | Use collection APIs; `{ ... }` object/map literal syntax is explicitly rejected. |
+| Lambda literal | partial | `=>` callables are allowed, but outer local/resource capture is rejected until closure environments exist. |
+| Named arguments | reserved/rejected | `Call(name: value)` is preserved in parser/AST where accepted, then semantically rejected before dispatch. |
+| Default value arguments | rejected | `=` in function/async/lambda parameter lists is a parser error; generic default type arguments are separate. |
+| Tuple literal/type | partial | Existing tuple surface is not a blanket beta promise until ABI/parity diagnostics are closed. |
+| Positional destructuring | partial | `let (a, b) = value;` exists and remains CFG/dataflow-owned. |
+| Named destructuring | rejected | `let {x} = value;` is not beta grammar. |
+| Optional chaining/coalescing | partial | `??` is active for `Option<T> ?? T -> T`; `?.` remains reserved with explicit parser diagnostics. |
+| Cast/type test | reserved/rejected | Broad expression `as`/`is` conversion syntax is not beta grammar. |
+| Object initializer | rejected | `Type { ... }` is not beta construction syntax. |
+| Slicing/spread/rest | reserved/rejected | `xs[a..b]`, `xs[..]`, and `...` spread/rest are explicit parser rejects; requires collection/call ABI, failure, and ownership policy first. |
+| Match guard/or-pattern | active partial | Guard/or-pattern syntax is parser-supported; promotion depends on CFG/backend parity gates. |
+| Block expression | not beta grammar | Blocks are statements unless a local grammar section says otherwise. |
+| Unsafe/raw | partial | `unsafe { ... }` is a boundary marker, not permission to bypass Slot/authority contracts. |
+| Attribute annotation | reserved/rejected | `@` is reserved; structured comments remain the stable metadata path. |
+| Generic shorthand/elision | reserved/rejected | `_` type/generic placeholder syntax is rejected until DAG diagnostics own it. |
+
+Reservation does not mean implementation. It only fixes the token/precedence
+space so beta does not accidentally accept a shape that semantic/runtime/backend
+owners cannot close.
 
 ## 11. 현재 미지원 / AST 흔적만 있는 것
 

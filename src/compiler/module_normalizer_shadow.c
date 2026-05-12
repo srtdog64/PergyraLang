@@ -9,6 +9,8 @@
 bool
 module_shadow_push(ModuleShadowNames *shadow, const char *name)
 {
+    char *owned_name;
+
     if (name == NULL)
         return true;
     if (shadow->count == shadow->capacity) {
@@ -26,13 +28,18 @@ module_shadow_push(ModuleShadowNames *shadow, const char *name)
         shadow->names = grown;
         shadow->capacity = next;
     }
-    shadow->names[shadow->count++] = pergyra_strdup(name);
-    return shadow->names[shadow->count - 1] != NULL;
+    owned_name = pergyra_strdup(name);
+    if (owned_name == NULL)
+        return false;
+    shadow->names[shadow->count++] = owned_name;
+    return true;
 }
 
 bool
 module_shadow_contains(const ModuleShadowNames *shadow, const char *name)
 {
+    if (shadow == NULL || name == NULL)
+        return false;
     for (size_t i = shadow->count; i > 0; i--) {
         if (strcmp(shadow->names[i - 1], name) == 0)
             return true;

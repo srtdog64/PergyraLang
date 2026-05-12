@@ -417,8 +417,8 @@ void test_runtime_file_io_policy()
     unlink("pgy_security_root/inside.txt");
     rmdir(root_dir);
     rmdir(outside_dir);
-    mkdir(root_dir, 0700);
-    mkdir(outside_dir, 0700);
+    pgy_security_test_mkdir(root_dir, 0700);
+    pgy_security_test_mkdir(outside_dir, 0700);
     snprintf(rooted_path, sizeof(rooted_path), "%s/%s", root_dir, root_file);
     snprintf(outside_path, sizeof(outside_path), "%s/blocked.txt", outside_dir);
 
@@ -429,7 +429,7 @@ void test_runtime_file_io_policy()
     free(content);
     unlink(ok_path);
 
-    setenv("PGY_IO_ROOT", root_dir, 1);
+    pgy_security_test_setenv("PGY_IO_ROOT", root_dir, 1);
     pgy_write_file(abs_path, "blocked");
     TEST_SECURITY_VIOLATION(access(abs_path, F_OK) != 0,
                             "Absolute runtime file writes are denied by default");
@@ -457,7 +457,7 @@ void test_runtime_file_io_policy()
                             "Symlink escape outside PGY_IO_ROOT is denied");
 #endif
 
-    unsetenv("PGY_IO_ROOT");
+    pgy_security_test_unsetenv("PGY_IO_ROOT");
     unlink(rooted_path);
     unlink(outside_path);
     unlink(escape_link);

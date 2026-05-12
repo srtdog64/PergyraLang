@@ -5,10 +5,10 @@
 
 #include "air.h"
 #include "air_internal.h"
+#include "../common/env_flags.h"
 
 #include <stdint.h>
 #include <stdlib.h>
-#include <string.h>
 
 static bool
 air_count_add(size_t *count, size_t addend)
@@ -117,7 +117,7 @@ air_strict_evidence_enabled(void)
     const char *value = getenv("PGY_AIR_STRICT_EVIDENCE");
     if (value == NULL || value[0] == '\0')
         return true;
-    if (strcmp(value, "0") == 0 || strcmp(value, "false") == 0 || strcmp(value, "off") == 0)
+    if (pgy_env_value_is_false(value))
         return false;
     return true;
 }
@@ -146,24 +146,28 @@ air_synthesize(const HIRProgram *hir,
     size_t boundary_node_count = 0;
     for (size_t i = 0; i < dir->intent_count; i++) {
         if (!air_count_add(&intent_node_count, dir->intents[i].step_count)) {
+            air_destroy(air);
             air_set_error(error_message, "AIR intent count overflow");
             return NULL;
         }
         for (size_t j = 0; j < dir->intents[i].step_count; j++) {
             if (air_step_has_zone_boundary(&dir->intents[i].steps[j])) {
                 if (!air_count_add(&boundary_node_count, 1)) {
+                    air_destroy(air);
                     air_set_error(error_message, "AIR boundary count overflow");
                     return NULL;
                 }
             }
             if (air_step_has_world_boundary(&dir->intents[i].steps[j])) {
                 if (!air_count_add(&boundary_node_count, 1)) {
+                    air_destroy(air);
                     air_set_error(error_message, "AIR boundary count overflow");
                     return NULL;
                 }
             }
             if (!air_count_add(&boundary_node_count,
                                air_count_step_expr_boundaries(&dir->intents[i].steps[j]))) {
+                air_destroy(air);
                 air_set_error(error_message, "AIR boundary count overflow");
                 return NULL;
             }
@@ -172,6 +176,7 @@ air_synthesize(const HIRProgram *hir,
 
     if (intent_node_count > 0) {
         if (intent_node_count > SIZE_MAX / sizeof(AIRIntentNode)) {
+            air_destroy(air);
             air_set_error(error_message, "AIR intent allocation overflow");
             return NULL;
         }

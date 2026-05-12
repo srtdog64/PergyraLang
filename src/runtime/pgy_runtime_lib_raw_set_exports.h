@@ -12,12 +12,22 @@
  *   size_t   capacity
  * ================================================================= */
 
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+
 typedef struct {
     void    *data;
     uint8_t *occupied;
     size_t   count;
     size_t   capacity;
 } PgySetRaw;
+
+static bool
+pgy_set_raw_shape_fits(size_t capacity, size_t elem_size)
+{
+    return capacity != 0 && elem_size != 0 && elem_size <= SIZE_MAX / capacity;
+}
 
 static uint32_t
 pgy_hash_bytes(const void *ptr, size_t len)
@@ -62,6 +72,7 @@ void
 pgy_set_new_raw_export(void *set_ptr, int64_t elem_size)
 {
     PgySetRaw *set = (PgySetRaw *)set_ptr;
+    size_t elem_bytes;
     if (set == NULL) {
         pgy_runtime_warn_invalid_collection("set_new", "null set");
         return;
@@ -70,9 +81,15 @@ pgy_set_new_raw_export(void *set_ptr, int64_t elem_size)
         pgy_runtime_warn_invalid_collection("set_new", "non-positive element size");
         return;
     }
+    elem_bytes = (size_t)elem_size;
     set->capacity = 16;
+    if (!pgy_set_raw_shape_fits(set->capacity, elem_bytes)) {
+        set->capacity = 0;
+        pgy_runtime_warn_invalid_collection("set_new", "allocation size overflow");
+        return;
+    }
     set->count = 0;
-    set->data = calloc(set->capacity, (size_t)elem_size);
+    set->data = calloc(set->capacity, elem_bytes);
     set->occupied = (uint8_t *)calloc(set->capacity, sizeof(uint8_t));
     if (set->data == NULL || set->occupied == NULL) {
         free(set->data);
@@ -90,8 +107,30 @@ pgy_set_raw_rehash(PgySetRaw *set, int64_t elem_size)
     size_t oc = set->capacity;
     void *od = set->data;
     uint8_t *oo = set->occupied;
-    size_t new_capacity = set->capacity == 0 ? 16 : set->capacity * 2;
-    void *new_data = calloc(new_capacity, (size_t)elem_size);
+    size_t elem_bytes;
+    size_t new_capacity;
+    void *new_data;
+    if (elem_size <= 0) {
+        pgy_runtime_warn_invalid_collection("set_rehash", "non-positive element size");
+        return;
+    }
+    elem_bytes = (size_t)elem_size;
+    if (set->capacity == 0) {
+        new_capacity = 16;
+    } else {
+        if (set->capacity > SIZE_MAX / 2) {
+            pgy_runtime_warn_invalid_collection("set_rehash", "capacity overflow");
+            return;
+        }
+        new_capacity = set->capacity * 2;
+    }
+    if (new_capacity > UINT32_MAX
+        || !pgy_set_raw_shape_fits(new_capacity, elem_bytes)
+        || new_capacity > SIZE_MAX / sizeof(uint8_t)) {
+        pgy_runtime_warn_invalid_collection("set_rehash", "allocation size overflow");
+        return;
+    }
+    new_data = calloc(new_capacity, elem_bytes);
     uint8_t *new_occupied = (uint8_t *)calloc(new_capacity, sizeof(uint8_t));
     if (new_data == NULL || new_occupied == NULL) {
         free(new_data);
@@ -105,10 +144,10 @@ pgy_set_raw_rehash(PgySetRaw *set, int64_t elem_size)
     set->count = 0;
     for (size_t i = 0; i < oc; i++) {
         if (oo[i]) {
-            void *elem = (char *)od + i * (size_t)elem_size;
+            void *elem = (char *)od + i * elem_bytes;
             uint32_t h = pgy_set_raw_hash(elem, elem_size) % (uint32_t)set->capacity;
             while (set->occupied[h]) h = (h + 1) % (uint32_t)set->capacity;
-            memcpy(SET_RAW_ELEM(set, h, elem_size), elem, (size_t)elem_size);
+            memcpy(SET_RAW_ELEM(set, h, elem_size), elem, elem_bytes);
             set->occupied[h] = 1;
             set->count++;
         }

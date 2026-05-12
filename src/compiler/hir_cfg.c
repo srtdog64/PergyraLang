@@ -338,6 +338,10 @@ hir_mark_natural_loop(HIRRoutine *routine, size_t header, size_t latch)
         || latch >= routine->cfg.block_count) {
         return false;
     }
+    if (routine->cfg.block_count > SIZE_MAX / sizeof(bool)
+        || routine->cfg.block_count > SIZE_MAX / sizeof(size_t)) {
+        return false;
+    }
 
     bool *in_loop = pgy_arena_calloc(&routine->scratch,
         routine->cfg.block_count * sizeof(bool));

@@ -223,110 +223,6 @@ static const AIRBoundaryEvidenceSummaryRule kBoundaryEvidenceSummaryRules[] = {
 };
 
 static bool
-air_validate_rir_propagation_summary_counter(const AIRProgram *air,
-                                             AIREvidenceKind kind,
-                                             size_t summary_count,
-                                             const char *label,
-                                             char **error_message)
-{
-    size_t fact_count;
-
-    if (air == NULL || !air->has_rir_input)
-        return true;
-    fact_count = air_global_evidence_fact_count(air, kind);
-    if (summary_count == fact_count)
-        return true;
-    air_set_invariant_error(error_message,
-                            "AIR RIR %s propagation evidence counter does not match evidence facts; summary=%zu facts=%zu",
-                            label,
-                            summary_count,
-                            fact_count);
-    return false;
-}
-
-static bool
-air_validate_rir_propagation_summary_counters(const AIRProgram *air,
-                                              char **error_message)
-{
-    return air_validate_rir_propagation_summary_counter(
-               air,
-               AIR_EVIDENCE_RIR_EFFECT_PROPAGATION,
-               air != NULL ? air->rir_effect_propagation_evidence_count : 0,
-               "effect",
-               error_message)
-        && air_validate_rir_propagation_summary_counter(
-               air,
-               AIR_EVIDENCE_RIR_RELATION_PROPAGATION,
-               air != NULL ? air->rir_relation_propagation_evidence_count : 0,
-               "relation",
-               error_message);
-}
-
-bool
-air_validate_boundary_legacy_evidence_shape(const AIRProgram *air,
-                                            size_t boundary_index,
-                                            char **error_message)
-{
-    const AIRBoundaryNode *boundary;
-
-    if (air == NULL || boundary_index >= air->boundary_count)
-        return false;
-    boundary = &air->boundaries[boundary_index];
-    if (boundary->has_hir_routine_evidence
-        && air_name_is_empty(boundary->hir_routine_evidence_name)) {
-        air_set_invariant_error(error_message,
-                                "AIR boundary node %zu has HIR evidence without provenance",
-                                boundary_index);
-        return false;
-    }
-    if (boundary->has_hir_cfg_evidence
-        && !boundary->has_hir_routine_evidence) {
-        air_set_invariant_error(error_message,
-                                "AIR boundary node %zu has HIR CFG evidence without routine evidence",
-                                boundary_index);
-        return false;
-    }
-    if (boundary->has_rir_boundary_evidence
-        && air_name_is_empty(boundary->rir_boundary_evidence_scope)) {
-        air_set_invariant_error(error_message,
-                                "AIR boundary node %zu has RIR boundary evidence without provenance",
-                                boundary_index);
-        return false;
-    }
-    if (boundary->has_rir_authority_evidence
-        && !boundary->has_rir_boundary_evidence) {
-        air_set_invariant_error(error_message,
-                                "AIR boundary node %zu has RIR authority evidence without boundary evidence",
-                                boundary_index);
-        return false;
-    }
-    if (boundary->has_rir_authority_evidence
-        && !boundary->authority_required) {
-        air_set_invariant_error(error_message,
-                                "AIR boundary node %zu has RIR authority evidence on non-authority boundary",
-                                boundary_index);
-        return false;
-    }
-    if (boundary->has_rir_authority_evidence
-        && air_name_is_empty(boundary->rir_authority_evidence_name)) {
-        air_set_invariant_error(error_message,
-                                "AIR boundary node %zu has RIR authority evidence without provenance",
-                                boundary_index);
-        return false;
-    }
-    if (boundary->has_rir_authority_evidence
-        && !air_boundary_declares_authority_name(
-            boundary,
-            boundary->rir_authority_evidence_name)) {
-        air_set_invariant_error(error_message,
-                                "AIR boundary node %zu has RIR authority evidence for undeclared participant",
-                                boundary_index);
-        return false;
-    }
-    return true;
-}
-
-static bool
 air_evidence_nodes_duplicate(const AIREvidenceNode *left,
                              const AIREvidenceNode *right)
 {
@@ -431,6 +327,14 @@ air_evidence_node_matches_boundary_shape(const AIRProgram *air,
         }
         return true;
     case AIR_EVIDENCE_HIR_CFG:
+        if (air_boundary_requires_hir_evidence(boundary)
+            && boundary->ast == NULL) {
+            air_set_invariant_error(error_message,
+                                    "AIR HIR CFG evidence node %zu has no source AST provenance for boundary %zu",
+                                    evidence_index,
+                                    evidence->boundary_index);
+            return false;
+        }
         if (!air_name_matches(evidence->subject_name, boundary->source_name)) {
             air_set_invariant_error(error_message,
                                     "AIR HIR CFG evidence node %zu has subject/source mismatch for boundary %zu",
@@ -495,6 +399,13 @@ air_evidence_node_matches_boundary_shape(const AIRProgram *air,
         if (!air_boundary_requires_mir_pin_cleanup_evidence(boundary)) {
             air_set_invariant_error(error_message,
                                     "AIR MIR pin cleanup evidence node %zu is attached to non-pin boundary %zu",
+                                    evidence_index,
+                                    evidence->boundary_index);
+            return false;
+        }
+        if (boundary->ast == NULL) {
+            air_set_invariant_error(error_message,
+                                    "AIR MIR pin cleanup evidence node %zu has no source AST provenance for boundary %zu",
                                     evidence_index,
                                     evidence->boundary_index);
             return false;
@@ -578,7 +489,7 @@ air_validate_evidence_inventory(const AIRProgram *air, char **error_message)
         if (!air_evidence_node_matches_boundary_shape(air, i, error_message))
             return false;
     }
-    if (!air_validate_rir_propagation_summary_counters(air, error_message))
+    if (!air_validate_summary_counters(air, error_message))
         return false;
     if (air_evidence_inventory_is_authoritative(air)) {
         for (size_t i = 0; i < air->boundary_count; i++) {

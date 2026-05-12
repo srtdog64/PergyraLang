@@ -26,8 +26,9 @@
         ASTNode *program = parser_parse_program(parser);
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
-        MIRProgram *mir = lower_program_to_mir(program, &hir, &rir);
+        MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
         TranspilerCtx *ctx = transpiler_ctx_create();
+        ctx->mir = mir;
 
         emit_program(ctx);
 
@@ -106,8 +107,9 @@ test_parallel_execution_emit(void)
         ASTNode *program = parser_parse_program(parser);
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
-        MIRProgram *mir = lower_program_to_mir(program, &hir, &rir);
+        MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
         TranspilerCtx *ctx = transpiler_ctx_create();
+        ctx->mir = mir;
 
         emit_program(ctx);
 

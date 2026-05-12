@@ -910,3 +910,28 @@
         parser_destroy(parser);
         lexer_destroy(lexer);
     }
+
+    TEST("named call arguments are semantically rejected until dispatch ABI exists");
+    {
+        const char *source =
+            "func Add(a: Int, b: Int) -> Int {\n"
+            "    return a + b;\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    Log(Add(a: 1, b: 2));\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Named call arguments are reserved but not implemented yet"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }

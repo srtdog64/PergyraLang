@@ -8,6 +8,7 @@
 
 #include "type_checker_internal.h"
 #include "type_checker_intent_helpers_internal.h"
+#include "diag_codes.h"
 
 #include "../common/string_compat.h"
 
@@ -303,4 +304,59 @@ intent_step_derive_where_from_on_receiver(ASTNode *intent_decl,
         step->data.intent_step.where_type = ast_create_type(matched_zone);
         step->data.intent_step.inherited_where_from_action = true;
     }
+}
+
+bool
+intent_step_report_on_action_zone_conflict(ASTNode *intent_decl,
+                                           ASTNode *step,
+                                           SemanticContext *ctx)
+{
+    const char *first_zone = NULL;
+    const char *second_zone = NULL;
+
+    if (intent_decl == NULL || step == NULL || ctx == NULL
+        || step->type != AST_INTENT_STEP
+        || step->data.intent_step.where_type != NULL) {
+        return false;
+    }
+
+    for (size_t i = 0; i < step->data.intent_step.on_expr_count; i++) {
+        ASTNode *action_decl = intent_on_call_action(
+            intent_decl, ctx, step->data.intent_step.on_exprs[i], NULL);
+        const char *zone_name;
+
+        if (action_decl == NULL || action_decl->type != AST_FUNC_DECL)
+            continue;
+        zone_name = action_decl->data.func_decl.within_zone;
+        if (zone_name == NULL)
+            continue;
+        if (first_zone == NULL) {
+            first_zone = zone_name;
+            continue;
+        }
+        if (strcmp(first_zone, zone_name) != 0) {
+            second_zone = zone_name;
+            break;
+        }
+    }
+
+    if (first_zone == NULL || second_zone == NULL)
+        return false;
+
+    semantic_error_with_hints(ctx,
+        PGY_CODE_SEM_INTENT_STEP_INVALID,
+        PGY_CAUSE_INTENT_STEP,
+        PGY_FIX_ALIGN_STEP_WITH_ZONE_ACTION_CONTRACTS,
+        step,
+        "Intent step '%s' cannot infer a where zone from on-call actions.\n"
+        "Reason:\n"
+        "- compact step inference found action contracts in both '%s' and '%s'\n"
+        "- multiple on-call action zones make the step boundary ambiguous\n"
+        "Fix:\n"
+        "- add an explicit 'where: <Zone>;' and matching 'using: <zoneAlias>;'\n"
+        "- or split the on-calls into separate intent steps with one zone each",
+        step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
+        first_zone,
+        second_zone);
+    return true;
 }

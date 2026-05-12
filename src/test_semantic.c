@@ -88,6 +88,8 @@ test_semantic_enter_isolated_cwd(void)
 #include "tests/semantic/test_semantic_qubit_part_c.cases.h"
 #include "tests/semantic/test_semantic_qubit_part_d.cases.h"
 #include "tests/semantic/test_semantic_qubit_part_e.cases.h"
+#include "tests/semantic/test_semantic_ownership_boundaries_part_a.cases.h"
+#include "tests/semantic/test_semantic_ownership_boundaries_part_b.cases.h"
 #include "tests/semantic/test_semantic_domain_part_a.cases.h"
 #include "tests/semantic/test_semantic_domain_part_b.cases.h"
 #include "tests/semantic/test_semantic_event_part_a.cases.h"
@@ -124,6 +126,13 @@ test_semantic_enter_isolated_cwd(void)
  * Main
  * ----------------------------------------------------------------- */
 
+static void
+test_semantic_ownership_boundaries(void)
+{
+    test_semantic_ownership_boundaries_part_a();
+    test_semantic_ownership_boundaries_part_b();
+}
+
 int
 main(void)
 {
@@ -144,6 +153,7 @@ main(void)
     test_arrays_and_enums();
     test_stdlib_and_io();
     test_qubit_slot_semantics();
+    test_semantic_ownership_boundaries();
     test_quantum_extensions();
     test_match_stmt();
     test_event_semantics();

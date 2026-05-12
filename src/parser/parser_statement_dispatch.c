@@ -8,6 +8,13 @@
 ASTNode* parser_parse_statement(Parser* parser) {
     parser_collect_doc_comments(parser);
 
+    if (parser_match(parser, TOKEN_AT)) {
+        parser_error(parser,
+            "Attribute syntax '@...' is reserved but not implemented; use structured comments for metadata");
+        parser_synchronize(parser);
+        return NULL;
+    }
+
     if (parser_check_within_context_block_start(parser)) {
         return parser_finalize_statement(parser,
             parser_parse_within_context_block(parser));

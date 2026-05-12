@@ -251,6 +251,9 @@ void ast_print(ASTNode* node, int indent) {
             printf("(");
             for (size_t i = 0; i < node->data.call.arg_count; i++) {
                 if (i > 0) printf(", ");
+                if (node->data.call.arg_names != NULL
+                    && node->data.call.arg_names[i] != NULL)
+                    printf("%s: ", node->data.call.arg_names[i]);
                 ast_print_inline(node->data.call.arguments[i]);
             }
             printf(")");

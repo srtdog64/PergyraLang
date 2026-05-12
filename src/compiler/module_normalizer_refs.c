@@ -14,6 +14,12 @@ module_rename_scope_add(ModuleRenameScope *scope,
                         const char *old_name,
                         const char *new_name)
 {
+    char *owned_old_name;
+    char *owned_new_name;
+
+    if (scope == NULL || old_name == NULL || new_name == NULL)
+        return false;
+
     if (scope->count == scope->capacity) {
         size_t next = 8;
         if (scope->capacity != 0) {
@@ -31,14 +37,15 @@ module_rename_scope_add(ModuleRenameScope *scope,
         scope->entries = grown;
         scope->capacity = next;
     }
-    scope->entries[scope->count].old_name = pergyra_strdup(old_name);
-    scope->entries[scope->count].new_name = pergyra_strdup(new_name);
-    if (scope->entries[scope->count].old_name == NULL
-        || scope->entries[scope->count].new_name == NULL) {
-        free(scope->entries[scope->count].old_name);
-        free(scope->entries[scope->count].new_name);
+    owned_old_name = pergyra_strdup(old_name);
+    owned_new_name = pergyra_strdup(new_name);
+    if (owned_old_name == NULL || owned_new_name == NULL) {
+        free(owned_old_name);
+        free(owned_new_name);
         return false;
     }
+    scope->entries[scope->count].old_name = owned_old_name;
+    scope->entries[scope->count].new_name = owned_new_name;
     scope->count++;
     return true;
 }

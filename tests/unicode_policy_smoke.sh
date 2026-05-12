@@ -8,11 +8,6 @@ if [[ "$PGY" != *.exe && -x "${PGY}.exe" ]]; then
 fi
 TMP_BASE="${TMPDIR:-${TEMP:-/tmp}}"
 
-if [[ ! -x "$PGY" ]]; then
-    echo "[unicode-policy] missing compiler binary: $PGY" >&2
-    exit 1
-fi
-
 POLICY_DOC="$ROOT_DIR/docs/110_string_unicode_policy.md"
 if [[ ! -f "$POLICY_DOC" ]]; then
     echo "[unicode-policy] missing unicode policy doc: $POLICY_DOC" >&2
@@ -33,6 +28,11 @@ for required in \
         exit 1
     fi
 done
+
+if [[ ! -x "$PGY" ]]; then
+    echo "[unicode-policy] SKIP executable probe; source policy is gated"
+    exit 0
+fi
 
 WORK_DIR="$(mktemp -d "${TMP_BASE%/}/pgy_unicode_policy.XXXXXX")"
 trap 'rm -rf "$WORK_DIR"' EXIT

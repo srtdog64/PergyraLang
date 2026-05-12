@@ -151,6 +151,10 @@ llvm_intent_step_context_load(LLVMGenCtx *ctx,
         out->authorized_alias_count = step->data.intent_step.authorized_by_count;
         out->authorized_aliases = (const char **)step->data.intent_step.authorized_by;
     }
+    if (out->dispatch_alias_count == 0) {
+        out->dispatch_alias_count = step->data.intent_step.who_count;
+        out->dispatch_aliases = (const char **)step->data.intent_step.who_names;
+    }
     (void)intent;
     return true;
 }

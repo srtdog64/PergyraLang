@@ -5,6 +5,7 @@
  */
 
 #include "parser_internal.h"
+#include <stdint.h>
 
 static bool
 parser_append_async_param(Parser *parser, ASTNode *func, FuncParam *param)
@@ -18,6 +19,11 @@ parser_append_async_param(Parser *parser, ASTNode *func, FuncParam *param)
         size_t next_capacity = func->data.async_func_decl.param_capacity == 0
             ? 4
             : func->data.async_func_decl.param_capacity * 2;
+        if (next_capacity < func->data.async_func_decl.param_capacity
+            || next_capacity > SIZE_MAX / sizeof(FuncParam *)) {
+            parser_error(parser, "Out of memory while parsing async function parameters");
+            return false;
+        }
         grown = realloc(func->data.async_func_decl.params, next_capacity * sizeof(FuncParam *));
         if (grown == NULL) {
             parser_error(parser, "Out of memory while parsing async function parameters");
@@ -42,6 +48,11 @@ parser_append_async_node(Parser *parser, ASTNode ***nodes, size_t *count, size_t
 
     if (*count == *capacity) {
         size_t next_capacity = *capacity == 0 ? 4 : *capacity * 2;
+        if (next_capacity < *capacity
+            || next_capacity > SIZE_MAX / sizeof(ASTNode *)) {
+            parser_error(parser, error_message);
+            return false;
+        }
         grown = realloc(*nodes, next_capacity * sizeof(ASTNode *));
         if (grown == NULL) {
             parser_error(parser, error_message);
@@ -100,6 +111,11 @@ ASTNode* parser_parse_async_function(Parser* parser)
             parser_consume(parser, TOKEN_COLON, "Expected ':' after parameter name");
             ASTNode* param_type = parse_type(parser);
             param->type = param_type;
+        }
+        if (parser_match(parser, TOKEN_ASSIGN)) {
+            parser_error(parser,
+                "Default value arguments are reserved but not implemented; use an overload or wrapper function");
+            ast_destroy(parser_parse_expression(parser));
         }
         
         parser_append_async_param(parser, func, param);

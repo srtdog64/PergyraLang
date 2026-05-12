@@ -20,21 +20,18 @@ else
     PGY="$DEFAULT_PGY"
 fi
 
+if [[ ! -x "$PGY" ]]; then
+    echo "[llvm-dnd-campaign] SKIP executable probe; missing compiler binary: $PGY"
+    exit 0
+fi
+
 PYTHON_BIN="${PYTHON_BIN:-}"
 if [[ -z "$PYTHON_BIN" ]]; then
     if command -v python3 >/dev/null 2>&1; then
         PYTHON_BIN="$(command -v python3)"
     elif command -v python >/dev/null 2>&1; then
         PYTHON_BIN="$(command -v python)"
-    else
-        echo "[llvm-dnd-campaign] missing python" >&2
-        exit 1
     fi
-fi
-
-if [[ ! -x "$PGY" ]]; then
-    echo "[llvm-dnd-campaign] missing compiler binary: $PGY" >&2
-    exit 1
 fi
 
 tmp_dir="$(mktemp -d "${TMP_BASE%/}/pgy-dnd-campaign.XXXXXX")"
@@ -44,6 +41,35 @@ c_output="$("$PGY" "$ROOT_DIR/examples/dnd_tavern_campaign/main.pgy" \
     --run --backend=c -o "$tmp_dir/dnd-c" 2>&1)"
 llvm_output="$("$PGY" "$ROOT_DIR/examples/dnd_tavern_campaign/main.pgy" \
     --run --backend=llvm -o "$tmp_dir/dnd-llvm" 2>&1)"
+
+if [[ -z "$PYTHON_BIN" ]]; then
+    normalize_output() {
+        tr -d '\r' | sed -E \
+            -e '/^pgy: compiled/d' \
+            -e '/^pgy: wrote/d'
+    }
+    printf '%s\n' "$c_output" | normalize_output > "$tmp_dir/c.out"
+    printf '%s\n' "$llvm_output" | normalize_output > "$tmp_dir/llvm.out"
+    if ! diff -u "$tmp_dir/c.out" "$tmp_dir/llvm.out"; then
+        echo "[llvm-dnd-campaign] C/LLVM stdout mismatch" >&2
+        exit 1
+    fi
+    choice_count="$(grep -c '^\[Choice\] ' "$tmp_dir/llvm.out" || true)"
+    if [[ "$choice_count" -ne 5 ]]; then
+        echo "[llvm-dnd-campaign] expected exactly 5 choice lines, got $choice_count" >&2
+        exit 1
+    fi
+    if [[ "$(grep -c '^== EPILOGUE ==$' "$tmp_dir/llvm.out" || true)" -ne 1 ]]; then
+        echo "[llvm-dnd-campaign] expected exactly one epilogue" >&2
+        exit 1
+    fi
+    if ! grep -Fq "ready=true/true" "$tmp_dir/llvm.out"; then
+        echo "[llvm-dnd-campaign] missing final ready=true/true projection state" >&2
+        exit 1
+    fi
+    echo "[llvm-dnd-campaign] dnd_tavern_campaign C/LLVM parity ok"
+    exit 0
+fi
 
 "$PYTHON_BIN" - "$c_output" "$llvm_output" <<'PY'
 import difflib

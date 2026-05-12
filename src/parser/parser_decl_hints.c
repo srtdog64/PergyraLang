@@ -1,4 +1,5 @@
 #include "parser_internal.h"
+#include <stdint.h>
 
 static const char *
 parser_decl_hint_name(ASTNode *node)
@@ -96,6 +97,12 @@ parser_register_decl_hint(Parser *parser, ASTNode *node)
     if (parser->decl_hint_count >= parser->decl_hint_capacity) {
         size_t new_capacity = parser->decl_hint_capacity == 0
             ? 16 : parser->decl_hint_capacity * 2;
+        if (new_capacity < parser->decl_hint_capacity
+            || new_capacity > SIZE_MAX / sizeof(char *)
+            || new_capacity > SIZE_MAX / sizeof(ASTNodeType)
+            || new_capacity > SIZE_MAX / sizeof(NominalDeclKind)) {
+            return;
+        }
         if (!parser_grow_decl_hints(parser, new_capacity))
             return;
     }
@@ -104,6 +111,8 @@ parser_register_decl_hint(Parser *parser, ASTNode *node)
     if (node_type == AST_CLASS_DECL)
         nominal_kind = node->data.class_decl.nominal_kind;
     parser->decl_hint_names[parser->decl_hint_count] = pergyra_strdup(name);
+    if (parser->decl_hint_names[parser->decl_hint_count] == NULL)
+        return;
     parser->decl_hint_types[parser->decl_hint_count] = node_type;
     parser->decl_hint_nominal_kinds[parser->decl_hint_count] = nominal_kind;
     parser->decl_hint_count++;

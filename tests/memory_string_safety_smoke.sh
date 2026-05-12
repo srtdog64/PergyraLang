@@ -69,12 +69,12 @@ grep -Fq "snprintf" "$ROOT_DIR/src/test_security_comprehensive.c" \
     || fail "bounded formatting regression coverage is missing"
 
 require_literal "src/runtime/pgy_runtime_intent_trace_inline.h" \
-    "add_len > ((size_t)-1) - old_len - 1"
+    "old_len > SIZE_MAX - 1 || add_len > SIZE_MAX - old_len - 1"
 require_literal "src/runtime/pgy_runtime_lib_set_intent_trace_exports.c" \
-    "add_len > ((size_t)-1) - old_len - 1"
-require_literal "src/codegen/llvm_backend_type_map.c" \
+    "old_len > SIZE_MAX - 1 || add_len > SIZE_MAX - old_len - 1"
+require_literal "src/codegen/llvm_backend_type_render.c" \
     "arg_len > ((size_t)-1) - result_len - 4"
-require_literal "src/codegen/llvm_backend_type_map.c" \
+require_literal "src/codegen/llvm_backend_type_render.c" \
     "cur_len > ((size_t)-1) - 2"
 require_literal "src/codegen/llvm_stmt_type_render.c" \
     "arg_len > ((size_t)-1) - cur_len - 4"
@@ -92,7 +92,7 @@ require_literal "src/codegen/llvm_expr_projection_path_helpers.c" \
     "llvm_expr_projection_join_path"
 require_literal "src/codegen/llvm_expr_projection_path_helpers.c" \
     "written < 0 || (size_t)written >= path_len"
-require_literal "src/codegen/llvm_member_call_emit.c" \
+require_literal "src/codegen/llvm_member_call_support.c" \
     "method_len > ((size_t)-1) - class_len - 2"
 require_literal "src/codegen/llvm_expr_scalar_core.c" \
     "type_len > ((size_t)-1) - prefix_len - suffix_len - 2"
@@ -116,7 +116,7 @@ require_literal "src/codegen/llvm_expr_task_channel_calls.c" \
     "return written >= 0 && (size_t)written < out_size"
 require_literal "src/codegen/llvm_stmt_parallel_async.c" \
     "llvm_select_channel_runtime_name"
-require_literal "src/codegen/llvm_stmt_parallel_async.c" \
+require_literal "src/codegen/llvm_stmt_parallel_names.c" \
     "written >= 0 && (size_t)written < out_size"
 require_literal "src/codegen/llvm_expr_slot_device_calls.c" \
     "llvm_slot_format_runtime_name"
@@ -172,9 +172,9 @@ require_literal "src/codegen/llvm_domain_zone_frontier_state.c" \
     "llvm_zone_frontier_field_name"
 require_literal "src/codegen/llvm_domain_zone_frontier_state.c" \
     "return written >= 0 && (size_t)written < out_size"
-require_literal "src/codegen/llvm_domain_struct_register.c" \
+require_literal "src/codegen/llvm_domain_struct_register_fields.c" \
     "llvm_domain_struct_register_field_name"
-require_literal "src/codegen/llvm_domain_struct_register.c" \
+require_literal "src/codegen/llvm_domain_struct_register_fields.c" \
     "return written >= 0 && (size_t)written < out_size"
 require_literal "src/codegen/llvm_domain_zone_sync.c" \
     "llvm_zone_sync_field_name"
@@ -234,9 +234,9 @@ require_literal "src/codegen/llvm_intent_zone.c" \
     "llvm_intent_zone_sync_name"
 require_literal "src/codegen/llvm_intent_zone.c" \
     "return written >= 0 && (size_t)written < out_size"
-require_literal "src/codegen/llvm_intent.c" \
+require_literal "src/codegen/llvm_intent_emit_support.c" \
     "llvm_intent_action_function_name"
-require_literal "src/codegen/llvm_intent.c" \
+require_literal "src/codegen/llvm_intent_emit_support.c" \
     "written >= 0 && (size_t)written < out_size"
 require_literal "src/codegen/llvm_runtime_channels.c" \
     "llvm_runtime_channel_name"
@@ -378,7 +378,7 @@ require_literal "src/semantic/type_checker_ownership_diag.c" \
     "semantic_format_secure_token_name"
 require_literal "src/semantic/type_checker_ownership_diag.c" \
     "truncating that token name would break the slot/token capability invariant"
-require_literal "src/codegen/llvm_stmt_type_infer.c" \
+require_literal "src/codegen/llvm_stmt_type_infer_helpers.c" \
     "llvm_stmt_format_host_method_name"
 require_literal "src/codegen/llvm_register.c" \
     "llvm_register_join_name"
@@ -388,9 +388,9 @@ require_literal "src/codegen/llvm_stmt_zone_action.c" \
     "llvm_zone_action_field_name"
 require_literal "src/codegen/llvm_stmt_zone_action.c" \
     "llvm_zone_action_sync_name"
-require_literal "src/codegen/llvm_stmt_let_with.c" \
+require_literal "src/codegen/llvm_stmt_let_names.c" \
     "llvm_let_with_token_name"
-require_literal "src/codegen/llvm_stmt_let_with.c" \
+require_literal "src/codegen/llvm_stmt_let_names.c" \
     "llvm_let_with_slot_write_name"
 require_literal "src/codegen/llvm_decl.c" \
     "llvm_decl_token_param_name"
@@ -456,9 +456,9 @@ require_literal "src/compiler/mir_intent_fact.c" \
     "written < 0 || written != length"
 require_literal "src/compiler/mir_validation.c" \
     "written < 0 || written != length"
-require_literal "src/compiler/mir_ssa_rename.c" \
+require_literal "src/compiler/mir_ssa_use_edges.c" \
     "mir_parse_versioned_name_owned"
-require_literal "src/compiler/mir_ssa_rename.c" \
+require_literal "src/compiler/mir_ssa_use_edges.c" \
     "pergyra_strndup(versioned, len)"
 require_literal "src/common/string_compat.h" \
     "written < 0 || written != needed"

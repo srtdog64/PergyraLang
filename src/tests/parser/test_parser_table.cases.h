@@ -28,6 +28,77 @@
             1
         },
         {
+            "Reserved Generic Type Elision Is Rejected",
+            "func Main() -> Void {\n"
+            "    let values: List<_> = ListNew();\n"
+            "}",
+            0
+        },
+        {
+            "Reserved Generic Parameter Placeholder Is Rejected",
+            "func Identity<_>(value: Int) -> Int {\n"
+            "    return value;\n"
+            "}",
+            0
+        },
+        {
+            "Reserved Optional Chaining Is Rejected",
+            "func Main() -> Void {\n"
+            "    Log(user?.name);\n"
+            "}",
+            0
+        },
+        {
+            "Option Coalescing Parses",
+            "func Main() -> Void {\n"
+            "    Log(value ?? 0);\n"
+            "}",
+            1
+        },
+        {
+            "Reserved Attribute Marker Is Rejected",
+            "@test\n"
+            "func Main() -> Void {\n"
+            "    Log(1);\n"
+            "}",
+            0
+        },
+        {
+            "Reserved Spread Rest Is Rejected",
+            "func Main() -> Void {\n"
+            "    Log(...items);\n"
+            "}",
+            0
+        },
+        {
+            "Reserved Default Value Argument Is Rejected",
+            "func Add(x: Int = 1) -> Int {\n"
+            "    return x;\n"
+            "}",
+            0
+        },
+        {
+            "Reserved Async Default Value Argument Is Rejected",
+            "async func AddAsync(x: Int = 1) -> Int {\n"
+            "    return x;\n"
+            "}",
+            0
+        },
+        {
+            "Reserved Lambda Default Value Argument Is Rejected",
+            "func Main() -> Void {\n"
+            "    let f = (x: Int = 1) => x;\n"
+            "}",
+            0
+        },
+        {
+            "Reserved Named Field Destructuring Is Rejected",
+            "func Main() -> Void {\n"
+            "    let {x, y} = point;\n"
+            "}",
+            0
+        },
+        {
             "Function Typed Locals And Returns",
             "func AddOne(x: Int) -> Int {\n"
             "    return x + 1;\n"

@@ -11,13 +11,6 @@
 #include "type_checker_ability_fields_internal.h"
 #include "type_checker_visibility.h"
 
-static Type *
-ability_fields_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
-{
-    return semantic_type_resolution_lookup_type_ref_or_materialize(ctx,
-                                                                   type_ref);
-}
-
 void
 validate_ability_require_fields(ASTNode *node, SemanticContext *ctx)
 {
@@ -54,7 +47,7 @@ validate_ability_require_fields(ASTNode *node, SemanticContext *ctx)
                 break;
             }
         }
-        ability_fields_resolve_type_ref(req->data.require_field.type, ctx);
+        ability_resolve_type_ref(req->data.require_field.type, ctx);
         if (req->data.require_field.type != NULL
             && req->data.require_field.type->type == AST_TYPE
             && req->data.require_field.type->data.type.name != NULL) {

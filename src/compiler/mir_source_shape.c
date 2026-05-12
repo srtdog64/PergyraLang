@@ -11,9 +11,7 @@ mir_instruction_source_is_with_slot_claim(const MIRInstruction *inst)
         && inst->kind == MIR_INST_RESOURCE_OP
         && inst->name != NULL
         && strcmp(inst->name, "Claim") == 0
-        && inst->source_ast_type == AST_WITH_STMT
-        && inst->type_layout != NULL
-        && inst->type_layout->abi_type_name != NULL;
+        && inst->source_ast_type == AST_WITH_STMT;
 }
 
 bool
@@ -255,6 +253,22 @@ bool
 mir_instruction_source_stmt_has_side_effect_hint(const MIRInstruction *inst)
 {
     if (inst == NULL || !inst->has_source_location)
+        return false;
+    return mir_source_ast_type_stmt_has_side_effect_hint(
+        inst->source_ast_type, inst->arg0);
+}
+
+bool
+mir_instruction_source_stmt_fallback_is_allowed(const MIRInstruction *inst)
+{
+    if (inst == NULL || inst->kind != MIR_INST_STMT)
+        return false;
+    if (mir_instruction_is_intent_semantic_carrier(inst))
+        return true;
+    if (mir_instruction_source_payload(inst) == NULL
+        || !inst->has_source_statement_index)
+        return false;
+    if (mir_instruction_source_is_cfg_owned_control(inst))
         return false;
     return mir_source_ast_type_stmt_has_side_effect_hint(
         inst->source_ast_type, inst->arg0);

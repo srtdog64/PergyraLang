@@ -61,6 +61,8 @@ mandatory_targets=(
     "codegen-determinism-test-smoke"
     "runtime-none-contract-test-smoke"
     "raw-escape-contract-test-smoke"
+    "mir-declaration-inventory-test-smoke"
+    "transpile-strict-source-test-smoke"
     "stdlib-test-smoke"
     "package-module-resolver-test-smoke"
     "unicode-policy-test-smoke"

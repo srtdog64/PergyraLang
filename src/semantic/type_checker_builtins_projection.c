@@ -2,13 +2,6 @@
 #include "diag_codes.h"
 
 static Type *
-builtin_projection_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
-{
-    return semantic_type_resolution_lookup_type_ref_or_materialize(ctx,
-                                                                   type_ref);
-}
-
-static Type *
 builtin_projection_normalize_type(Type *type)
 {
     return type != NULL ? type : TYPE_UNKNOWN;
@@ -147,7 +140,7 @@ type_check_projection_call(ASTNode *call,
             continue;
         }
 
-        target_field_type = builtin_projection_resolve_type_ref(
+        target_field_type = projection_resolve_type_ref(
             target_field->type, ctx);
         require_assignable(
             builtin_projection_normalize_type(source_field_type),

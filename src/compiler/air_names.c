@@ -26,6 +26,8 @@ air_vformat_owned(const char *fmt, va_list args)
     va_end(copy);
     if (needed < 0)
         return NULL;
+    if ((size_t)needed > SIZE_MAX - 1)
+        return NULL;
 
     buffer = (char *)malloc((size_t)needed + 1);
     if (buffer == NULL)
@@ -90,6 +92,8 @@ air_strdup_owned(const char *text)
     if (text == NULL)
         text = "";
     len = strlen(text);
+    if (len > SIZE_MAX - 1)
+        return NULL;
     copy = (char *)malloc(len + 1);
     if (copy == NULL)
         return NULL;

@@ -120,6 +120,9 @@ ast_print_compact(ASTNode* node)
             for (size_t i = 0; i < node->data.call.arg_count; i++) {
                 if (i > 0)
                     printf(", ");
+                if (node->data.call.arg_names != NULL
+                    && node->data.call.arg_names[i] != NULL)
+                    printf("%s: ", node->data.call.arg_names[i]);
                 ast_print_compact(node->data.call.arguments[i]);
             }
             printf(")");

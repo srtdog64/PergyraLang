@@ -37,6 +37,51 @@ ast_append_node(ASTNode ***items, size_t *count, size_t *capacity,
     return true;
 }
 
+static bool
+ast_reserve_call_argument_capacity(ASTNode *call, size_t required_capacity)
+{
+    size_t new_capacity;
+    ASTNode **grown_arguments;
+    char **grown_names = NULL;
+
+    if (call == NULL || call->type != AST_CALL)
+        return false;
+    if (required_capacity <= call->data.call.arg_capacity)
+        return true;
+
+    new_capacity = call->data.call.arg_capacity == 0
+        ? 4
+        : call->data.call.arg_capacity;
+    while (new_capacity < required_capacity) {
+        if (new_capacity > SIZE_MAX / 2)
+            return false;
+        new_capacity *= 2;
+    }
+    if (new_capacity > SIZE_MAX / sizeof(ASTNode *)
+        || new_capacity > SIZE_MAX / sizeof(char *)) {
+        return false;
+    }
+
+    grown_arguments = realloc(call->data.call.arguments,
+        new_capacity * sizeof(ASTNode *));
+    if (grown_arguments == NULL)
+        return false;
+
+    if (call->data.call.arg_names != NULL) {
+        grown_names = realloc(call->data.call.arg_names,
+            new_capacity * sizeof(char *));
+        if (grown_names == NULL) {
+            call->data.call.arguments = grown_arguments;
+            return false;
+        }
+        call->data.call.arg_names = grown_names;
+    }
+
+    call->data.call.arguments = grown_arguments;
+    call->data.call.arg_capacity = new_capacity;
+    return true;
+}
+
 void ast_add_statement(ASTNode* parent, ASTNode* statement) {
     if (parent->type == AST_PROGRAM) {
         ast_append_node(&parent->data.program.statements,
@@ -71,10 +116,18 @@ void ast_add_parallel_task(ASTNode* parallel, ASTNode* task) {
 }
 
 void ast_add_argument(ASTNode* call, ASTNode* arg) {
+    size_t old_count;
+
     if (call->type != AST_CALL) return;
 
-    ast_append_node(&call->data.call.arguments,
-                    &call->data.call.arg_count,
-                    &call->data.call.arg_capacity,
-                    arg);
+    old_count = call->data.call.arg_count;
+    if (old_count == SIZE_MAX
+        || !ast_reserve_call_argument_capacity(call, old_count + 1)) {
+        return;
+    }
+
+    call->data.call.arguments[call->data.call.arg_count++] = arg;
+    if (call->data.call.arg_names != NULL) {
+        call->data.call.arg_names[old_count] = NULL;
+    }
 }

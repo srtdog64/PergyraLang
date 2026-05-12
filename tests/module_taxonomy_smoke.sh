@@ -4,14 +4,42 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PYTHON_BIN="${PYTHON_BIN:-}"
 
+require_literal() {
+    local rel="$1"
+    local term="$2"
+    grep -Fq -- "$term" "$ROOT_DIR/$rel" || {
+        echo "[module-taxonomy] $rel missing: $term" >&2
+        exit 1
+    }
+}
+
+run_literal_contract_smoke() {
+    for module in \
+        pgy.foundation pgy.core pgy.execution pgy.runtime.scheduler \
+        pgy.accel.spray pgy.render.webgl pgy.render.skia \
+        pgy.compat.oop pgy.compat.dop pgy.compat.fp \
+        pgy.std.money pgy.std.datetime pgy.std.timer pgy.std.versioning \
+        pgy.kit.ledger pgy.kit.obligation pgy.kit.device_adapter; do
+        require_literal "docs/language_module_manifest.json" "\"name\": \"$module\""
+        require_literal "docs/99_language_module_taxonomy.md" "$module"
+    done
+    require_literal "README.md" "pgy.core"
+    require_literal "README.md" "pgy.foundation"
+    require_literal "README.md" "pgy.execution"
+    require_literal "docs/99_language_module_taxonomy.md" "WebGL is not core language syntax"
+    require_literal "docs/99_language_module_taxonomy.md" "Zig-comptime-style type-level metaprogramming"
+    require_literal "docs/language_module_cases.json" "\"modules\""
+    echo "[module-taxonomy] manifest and docs are source-gated (literal fallback)"
+}
+
 if [[ -z "$PYTHON_BIN" ]]; then
     if command -v python3 >/dev/null 2>&1; then
         PYTHON_BIN="$(command -v python3)"
     elif command -v python >/dev/null 2>&1; then
         PYTHON_BIN="$(command -v python)"
     else
-        echo "missing python for module taxonomy smoke" >&2
-        exit 1
+        run_literal_contract_smoke
+        exit 0
     fi
 fi
 

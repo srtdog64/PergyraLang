@@ -114,6 +114,9 @@ air_append_evidence_node_ex(AIRProgram *air,
                             char **error_message)
 {
     AIREvidenceNode *node;
+    const char *owned_provider_name = NULL;
+    const char *owned_subject_name = NULL;
+    size_t owned_name_checkpoint;
 
     if (air == NULL) {
         air_set_error(error_message, "AIR evidence append requires a program");
@@ -153,17 +156,26 @@ air_append_evidence_node_ex(AIRProgram *air,
         return false;
     }
 
+    owned_name_checkpoint = air->owned_name_count;
+    if (!air_assign_owned_name(air, &owned_provider_name, provider_name)
+        || !air_assign_owned_name(air, &owned_subject_name, subject_name)) {
+        for (size_t i = owned_name_checkpoint; i < air->owned_name_count; i++) {
+            free(air->owned_names[i]);
+            air->owned_names[i] = NULL;
+        }
+        air->owned_name_count = owned_name_checkpoint;
+        air_set_error(error_message, "AIR evidence node provenance allocation failed");
+        return false;
+    }
+
     node = &air->evidence_nodes[air->evidence_count];
     memset(node, 0, sizeof(*node));
     node->kind = kind;
     node->boundary_index = boundary_index;
     node->fact_count = fact_count;
     node->fallback_count = fallback_count;
-    if (!air_assign_owned_name(air, &node->provider_name, provider_name)
-        || !air_assign_owned_name(air, &node->subject_name, subject_name)) {
-        air_set_error(error_message, "AIR evidence node provenance allocation failed");
-        return false;
-    }
+    node->provider_name = owned_provider_name;
+    node->subject_name = owned_subject_name;
     air->evidence_count++;
     return true;
 }

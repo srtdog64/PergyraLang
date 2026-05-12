@@ -188,6 +188,7 @@ struct ASTNode
         struct {
             ASTNode*       callee;
             ASTNode**      arguments;
+            char**         arg_names; /* optional per-argument names; NULL entry means positional */
             size_t         arg_count;
             size_t         arg_capacity;
             GenericParams* generic_args; /* optional: callee<T, U> type args */

@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
 
 #include "type_checker_internal.h"
@@ -95,6 +96,8 @@ semantic_find_graph_host_decl(ASTNode *program,
         if (dot == NULL || dot == space)
             return NULL;
         name_len = (size_t)(dot - space);
+        if (name_len > SIZE_MAX - 1)
+            return NULL;
         host_name = calloc(name_len + 1, 1);
         if (host_name == NULL)
             return NULL;
@@ -110,6 +113,8 @@ semantic_find_graph_host_decl(ASTNode *program,
         if (dot == NULL || dot == space)
             return NULL;
         name_len = (size_t)(dot - space);
+        if (name_len > SIZE_MAX - 1)
+            return NULL;
         host_name = calloc(name_len + 1, 1);
         if (host_name == NULL)
             return NULL;

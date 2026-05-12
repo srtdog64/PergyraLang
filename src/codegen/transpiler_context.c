@@ -9,11 +9,49 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 
 #include "transpiler_context.h"
 #include "../semantic/diag_codes.h"
 
 #define CODEBUF_INITIAL_CAP 4096
+
+static bool
+codebuf_reserve(CodeBuf *buf, size_t additional)
+{
+    size_t required;
+    size_t new_cap;
+    char *grown;
+
+    if (buf == NULL || buf->data == NULL)
+        return false;
+    if (buf->len > SIZE_MAX - additional
+        || buf->len + additional > SIZE_MAX - 1) {
+        return false;
+    }
+
+    required = buf->len + additional + 1;
+    if (required <= buf->cap)
+        return true;
+
+    new_cap = buf->cap == 0 ? CODEBUF_INITIAL_CAP : buf->cap;
+    while (new_cap < required) {
+        if (new_cap > SIZE_MAX / 2) {
+            new_cap = required;
+            break;
+        }
+        new_cap *= 2;
+    }
+    if (new_cap < required)
+        return false;
+
+    grown = realloc(buf->data, new_cap);
+    if (grown == NULL)
+        return false;
+    buf->data = grown;
+    buf->cap = new_cap;
+    return true;
+}
 
 CodeBuf *
 codebuf_create(void)
@@ -86,15 +124,9 @@ codebuf_write(CodeBuf *buf, const char *fmt, ...)
         return;
     }
 
-    while (buf->len + (size_t)needed + 1 > buf->cap) {
-        size_t new_cap = buf->cap * 2;
-        char  *grown   = realloc(buf->data, new_cap);
-        if (grown == NULL) {
-            va_end(ap);
-            return;
-        }
-        buf->data = grown;
-        buf->cap  = new_cap;
+    if (!codebuf_reserve(buf, (size_t)needed)) {
+        va_end(ap);
+        return;
     }
 
     vsnprintf(buf->data + buf->len, buf->cap - buf->len, fmt, ap);
@@ -105,15 +137,12 @@ codebuf_write(CodeBuf *buf, const char *fmt, ...)
 void
 codebuf_write_raw(CodeBuf *buf, const char *s, size_t n)
 {
-    while (buf->len + n + 1 > buf->cap) {
-        size_t new_cap = buf->cap * 2;
-        char  *grown   = realloc(buf->data, new_cap);
-        if (grown == NULL)
-            return;
-        buf->data = grown;
-        buf->cap  = new_cap;
-    }
-    memcpy(buf->data + buf->len, s, n);
+    if (buf == NULL || (s == NULL && n > 0))
+        return;
+    if (!codebuf_reserve(buf, n))
+        return;
+    if (n > 0)
+        memcpy(buf->data + buf->len, s, n);
     buf->len += n;
     buf->data[buf->len] = '\0';
 }

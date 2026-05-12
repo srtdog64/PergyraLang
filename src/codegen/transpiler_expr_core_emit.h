@@ -115,6 +115,18 @@ emit_binary(ASTNode *expr, TranspilerCtx *ctx)
         }
     }
 
+    if (expr->data.binary.op.type == TOKEN_COALESCE) {
+        char *left = emit_expression(expr->data.binary.left, ctx);
+        char *right = emit_expression(expr->data.binary.right, ctx);
+        char *result = strdup_fmt(
+            "(({ __auto_type _pgy_coalesce = %s; "
+            "_pgy_coalesce.tag == PgyOptionSome ? _pgy_coalesce.value : (%s); }))",
+            left, right);
+        free(left);
+        free(right);
+        return result;
+    }
+
     char *left  = emit_expression(expr->data.binary.left,  ctx);
     char *right = emit_expression(expr->data.binary.right, ctx);
     const char *op = binary_op_to_c(expr->data.binary.op.type);

@@ -39,9 +39,11 @@ The beta release candidate must keep these gates green:
 - `make codegen-determinism-test-smoke`
 - `make runtime-none-contract-test-smoke`
 - `make raw-escape-contract-test-smoke`
+- `make mir-declaration-inventory-test-smoke`
 - `make semantic-inc-size-test-smoke`
 - `make backend-inc-size-test-smoke`
 - `make test-inc-size-test-smoke`
+- `make transpile-strict-source-test-smoke`
 - `make stdlib-test-smoke`
 - `make package-module-resolver-test-smoke`
 - `make unicode-policy-test-smoke`

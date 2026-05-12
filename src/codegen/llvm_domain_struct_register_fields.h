@@ -1,0 +1,19 @@
+#ifndef PGY_LLVM_DOMAIN_STRUCT_REGISTER_FIELDS_H
+#define PGY_LLVM_DOMAIN_STRUCT_REGISTER_FIELDS_H
+
+#include "llvm_internal.h"
+
+bool llvm_domain_struct_register_fields(LLVMGenCtx *ctx,
+                                        ASTNode *stmt,
+                                        LLVMClassTypeEntry *entry,
+                                        LLVMTypeRef *ftypes,
+                                        ASTNode **slots,
+                                        size_t slot_count,
+                                        ASTNode **shared_fields,
+                                        size_t shared_count,
+                                        ASTNode **refreshes,
+                                        size_t refresh_count,
+                                        ASTNode **role_slots,
+                                        size_t role_count);
+
+#endif /* PGY_LLVM_DOMAIN_STRUCT_REGISTER_FIELDS_H */

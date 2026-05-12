@@ -637,6 +637,49 @@
         ast_destroy(call);
     }
 
+    TEST("Option coalescing returns inner type");
+    {
+        const char *source =
+            "func Main() -> Void {\n"
+            "    let maybe: Option<Int> = Some(7);\n"
+            "    let value: Int = maybe ?? 0;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("Option coalescing rejects non-Option left operand");
+    {
+        const char *source =
+            "func Main() -> Void {\n"
+            "    let value: Int = 1 ?? 0;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "'?""?' requires Option<T> on the left"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("ToTObject returns tobject projection type but warns as boundary projection outside domain context");
     {
         const char *source =

@@ -250,8 +250,11 @@ void ast_destroy(ASTNode* node) {
             ast_destroy(node->data.call.callee);
             for (size_t i = 0; i < node->data.call.arg_count; i++) {
                 ast_destroy(node->data.call.arguments[i]);
+                if (node->data.call.arg_names != NULL)
+                    free(node->data.call.arg_names[i]);
             }
             free(node->data.call.arguments);
+            free(node->data.call.arg_names);
             ast_destroy_generic_params(node->data.call.generic_args);
             break;
             

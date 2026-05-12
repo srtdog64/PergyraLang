@@ -242,7 +242,10 @@ static MIRProgram *
 mir_program_from_ast(ASTNode *program);
 
 static MIRProgram *
-lower_program_to_mir(ASTNode *program, HIRProgram **hir_out, RIRProgram **rir_out)
+lower_program_to_mir_ex(ASTNode *program,
+                        HIRProgram **hir_out,
+                        RIRProgram **rir_out,
+                        bool allow_synthetic_fallback)
 {
     SemanticResult *sem = semantic_analyze(program);
     char *hir_error = NULL;
@@ -268,7 +271,7 @@ lower_program_to_mir(ASTNode *program, HIRProgram **hir_out, RIRProgram **rir_ou
             mir = mir_lower(*hir_out, *rir_out, &mir_error);
     }
 
-    if (mir == NULL) {
+    if (mir == NULL && allow_synthetic_fallback) {
         /* Some inventory-driven transpile tests only need a synthetic MIR view
          * of the declarations. Keep the fallback, but do not leak debug stderr
          * into otherwise successful regression output. */
@@ -280,6 +283,20 @@ lower_program_to_mir(ASTNode *program, HIRProgram **hir_out, RIRProgram **rir_ou
     free(mir_error);
     g_last_mir = mir;
     return mir;
+}
+
+static MIRProgram *
+lower_program_to_mir(ASTNode *program, HIRProgram **hir_out, RIRProgram **rir_out)
+{
+    return lower_program_to_mir_ex(program, hir_out, rir_out, true);
+}
+
+static MIRProgram *
+lower_program_to_mir_strict(ASTNode *program,
+                            HIRProgram **hir_out,
+                            RIRProgram **rir_out)
+{
+    return lower_program_to_mir_ex(program, hir_out, rir_out, false);
 }
 
 static MIRProgram *

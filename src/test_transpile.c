@@ -57,6 +57,7 @@ static MIRProgram *g_last_mir = NULL;
 #include "tests/transpile/test_transpile_domain_async_part_a.cases.h"
 #include "tests/transpile/test_transpile_domain_async_part_b.cases.h"
 #include "tests/transpile/test_transpile_stdlib_part_a.cases.h"
+#include "tests/transpile/test_transpile_stdlib_part_b.cases.h"
 #include "tests/transpile/test_transpile_mir_part_a.cases.h"
 #include "tests/transpile/test_transpile_mir_part_b.cases.h"
 #include "tests/transpile/test_transpile_mir_source_order.cases.h"

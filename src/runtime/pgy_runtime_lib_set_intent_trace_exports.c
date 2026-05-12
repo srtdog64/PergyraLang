@@ -174,7 +174,7 @@ pgy_intent_append_line_len_export(char **dst, size_t *dst_len, const char *line)
     if (*dst != NULL && old_len == 0)
         old_len = strlen(*dst);
     add_len = strlen(line);
-    if (add_len > ((size_t)-1) - old_len - 1)
+    if (old_len > SIZE_MAX - 1 || add_len > SIZE_MAX - old_len - 1)
         return;
     grown = (char *)realloc(*dst, old_len + add_len + 1);
     if (grown == NULL)

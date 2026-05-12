@@ -82,6 +82,7 @@ bool decl_is_subject_host(const ASTNode *decl);
 ClassField *subject_host_field_at(ASTNode *decl, size_t index);
 size_t projection_source_field_count(ASTNode *decl);
 ClassField *projection_source_field_at(ASTNode *decl, size_t index);
+Type *projection_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx);
 char *format_generic_subject_signature(const char *name,
                                        GenericParams *params);
 TypeNominalFlavor nominal_flavor_from_decl(const ASTNode *decl);
@@ -100,6 +101,8 @@ bool expr_type_is_nominal_host_type(const Type *type,
                                     SemanticContext *ctx);
 bool expr_member_is_static_access(const ASTNode *expr);
 Symbol *lookup_identifier_symbol(ASTNode *expr, SemanticContext *ctx);
+bool semantic_reject_lambda_unsupported_captures(ASTNode *body,
+                                                 SemanticContext *ctx);
 void mark_world_embedded_zone_arguments(ASTNode *call, SemanticContext *ctx);
 bool expr_is_class_constructor_call(const ASTNode *expr, SemanticContext *ctx);
 bool expr_is_qubit_claim(const ASTNode *expr);
@@ -261,6 +264,7 @@ int find_generic_param_index(GenericParams *gp, const char *param_name);
 bool concrete_type_satisfies_bound(Type *concrete_type,
                                    ASTNode *bound_node,
                                    SemanticContext *ctx);
+Type *ability_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx);
 void semantic_type_resolution_record_type_ref_dependency(
     SemanticContext *ctx,
     const ASTNode *consumer_site,

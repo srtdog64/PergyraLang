@@ -8,13 +8,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-static Type *
-party_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
-{
-    return semantic_type_resolution_lookup_type_ref_or_materialize(ctx,
-                                                                   type_ref);
-}
-
 bool
 type_check_party_decl(ASTNode *node, SemanticContext *ctx)
 {
@@ -147,7 +140,7 @@ type_check_party_decl(ASTNode *node, SemanticContext *ctx)
     for (size_t i = 0; i < node->data.party_decl.shared_count; i++) {
         ASTNode *shared = node->data.party_decl.shared_fields[i];
         if (shared->data.party_shared.type != NULL)
-            party_resolve_type_ref(shared->data.party_shared.type, ctx);
+            domain_resolve_shared_type(shared, ctx);
         if (shared->data.party_shared.initializer != NULL)
             type_check_expression(shared->data.party_shared.initializer, ctx);
     }

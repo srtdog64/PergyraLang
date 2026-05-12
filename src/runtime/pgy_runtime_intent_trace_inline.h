@@ -25,6 +25,8 @@ pgy_runtime_strdup(const char *src)
         src = "";
 
     size_t len = strlen(src);
+    if (len > SIZE_MAX - 1)
+        return NULL;
     char *copy = (char *)malloc(len + 1);
     if (copy == NULL)
         return NULL;
@@ -37,6 +39,10 @@ pgy_runtime_strdup(const char *src)
 #define PGY_INTENT_ACTIVE_INDEX_MAX 512
 #define PGY_INTENT_ACTIVE_INDEX_TOMBSTONE (-1)
 #define PGY_INTENT_RECENT_MAX 16
+
+#if (PGY_INTENT_ACTIVE_INDEX_MAX & (PGY_INTENT_ACTIVE_INDEX_MAX - 1)) != 0
+#error "PGY_INTENT_ACTIVE_INDEX_MAX must stay a power of two"
+#endif
 
 #ifndef PGY_INTENT_OBSERVABILITY_ENABLED
 #define PGY_INTENT_OBSERVABILITY_ENABLED 1
@@ -195,7 +201,7 @@ pgy_intent_append_line_len(char **dst, size_t *dst_len, const char *line)
     if (*dst != NULL && old_len == 0)
         old_len = strlen(*dst);
     add_len = strlen(line);
-    if (add_len > ((size_t)-1) - old_len - 1)
+    if (old_len > SIZE_MAX - 1 || add_len > SIZE_MAX - old_len - 1)
         return;
     grown = (char *)realloc(*dst, old_len + add_len + 1);
     if (grown == NULL)
@@ -285,6 +291,10 @@ pgy_intent_active_index_set(int32_t handle, int32_t active_slot)
             pgy_intent_active_index_slots[slot] = active_slot;
             return;
         }
+    }
+    if (first_tombstone >= 0) {
+        pgy_intent_active_index_handles[first_tombstone] = handle;
+        pgy_intent_active_index_slots[first_tombstone] = active_slot;
     }
 }
 
@@ -482,6 +492,13 @@ pgy_intent_enter_export(char *name, void **subjects, int32_t subject_count,
         if (subject_count <= PGY_INTENT_INLINE_SUBJECT_CAPACITY) {
             subject_copy = pgy_intent_active_registry[free_index].inline_subjects;
         } else {
+            if ((size_t)subject_count > SIZE_MAX / sizeof(void *)) {
+                pgy_runtime_warn_intent_enter_failure(name,
+                    "subject registry allocation size overflow",
+                    priority, is_concurrent);
+                pthread_mutex_unlock(&pgy_intent_registry_mutex);
+                return 0;
+            }
             subject_copy = (void **)malloc(sizeof(void *) * (size_t)subject_count);
             if (subject_copy == NULL) {
                 pgy_runtime_warn_intent_enter_failure(name,

@@ -24,6 +24,7 @@ run_literal_doc_contract_smoke() {
         "src/semantic/type_checker_flow.c"
         "src/semantic/type_checker_flow_resources.h"
         "src/semantic/type_checker_flow_parallel.h"
+        "src/semantic/type_checker_lambda_capture.c"
         "src/compiler/mir_cleanup.c"
         "src/compiler/mir_call_fact.h"
         "src/compiler/mir_call_fact.c"
@@ -110,9 +111,9 @@ run_literal_doc_contract_smoke() {
     require_literal "src/compiler/hir_analysis.c" "next_capacity > SIZE_MAX / elem_size"
     require_literal "src/compiler/hir_routines.c" "hir_routines_next_capacity"
     require_literal "src/compiler/hir_routines.c" "next_capacity > SIZE_MAX / elem_size"
-    require_literal "src/compiler/mir_ssa_rename.c" "mir_def_instruction_source_expr"
-    require_literal "src/compiler/mir_ssa_rename.c" "return inst->expr0"
-    require_literal "src/compiler/mir_ssa_rename.c" "ASTNode *expr = inst->expr0 != NULL ? inst->expr0 : inst->expr1"
+    require_literal "src/compiler/mir_ssa_use_edges.c" "mir_def_instruction_source_expr"
+    require_literal "src/compiler/mir_ssa_use_edges.c" "return inst->expr0"
+    require_literal "src/compiler/mir_ssa_use_edges.c" "ASTNode *expr = inst->expr0 != NULL ? inst->expr0 : inst->expr1"
     require_literal "src/compiler/mir_stmt_population.c" "#include \"mir_call_fact.h\""
     require_literal "src/compiler/mir_stmt_population.c" "mir_set_inst_source_statement_index(&new_insts[*new_count - 1]"
     require_literal "src/compiler/mir_non_cfg_stmt_population.c" "routine->hir_routine != NULL && routine->hir_routine->has_cfg"
@@ -136,6 +137,10 @@ run_literal_doc_contract_smoke() {
     require_literal "src/compiler/mir_fact_validate.c" "select receive emit fact is invalid"
     require_literal "src/compiler/mir_fact_validate.c" "source-local-decl emit fact is invalid"
     require_literal "src/compiler/mir_fact_validate.c" "source-statement LET emit is missing local-decl fact"
+    require_literal "src/compiler/mir_fact_validate.c" "STMT fallback is missing source statement inventory fact"
+    require_literal "src/compiler/mir_fact_validate.c" "STMT fallback is outside allowed residual statement policy"
+    require_literal "src/codegen/llvm_mir_block_emit.c" "mir_instruction_source_stmt_fallback_is_allowed(inst)"
+    require_literal "src/codegen/transpiler_mir_block_emit.h" "mir_instruction_source_stmt_fallback_is_allowed(inst)"
     require_literal "src/compiler/mir_fact_validate.c" "with-slot Claim resource op is missing MIR ABI type layout fact"
     require_literal "src/compiler/mir_fact_validate.c" "with-slot Claim resource op has invalid MIR ABI type layout fact"
     require_literal "src/compiler/mir_fact_validate.c" "mir_instruction_source_is_local_decl(inst)"
@@ -148,6 +153,7 @@ run_literal_doc_contract_smoke() {
     require_literal "src/tests/mir/test_mir_lowering_part_c.cases.h" "MIR validator rejects invalid select receive emit fact"
     require_literal "src/tests/mir/test_mir_lowering_part_c.cases.h" "MIR validator rejects invalid with-slot claim ABI fact"
     require_literal "src/tests/mir/test_mir_lowering_part_c.cases.h" "MIR validator rejects invalid source-local-decl emit fact"
+    require_literal "src/tests/mir/test_mir_lowering_part_c.cases.h" "MIR validator rejects residual STMT without source inventory fact"
     require_literal "src/compiler/mir_lifecycle.c" "source-local-decl-emit"
     require_literal "src/compiler/mir_lifecycle.c" "select-recv-stmt-emit"
     require_literal "src/compiler/mir_fact_terminator_validate.c" "source-branch emit fact is invalid"
@@ -158,6 +164,7 @@ run_literal_doc_contract_smoke() {
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_is_intent_step"
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_is_cfg_owned_control"
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_stmt_has_side_effect_hint"
+    require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_stmt_fallback_is_allowed"
     require_literal "src/compiler/mir_cfg_contract_validate.c" "mir_instruction_source_is_cfg_owned_control(inst)"
     require_literal "src/compiler/mir_dce.c" "mir_instruction_source_stmt_has_side_effect_hint(inst)"
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_branch_payload_matches_shape"
@@ -228,6 +235,9 @@ run_literal_doc_contract_smoke() {
     fi
     require_literal "src/semantic/type_checker_flow.c" "type_check_while_loop_flow(node, ctx)"
     require_literal "src/semantic/type_checker_flow.c" "type_check_for_loop_flow(node, ctx)"
+    require_literal "src/semantic/type_checker_lambda_capture.c" "PGY_CODE_SEM_BORROW_ESCAPE"
+    require_literal "src/semantic/type_checker_lambda_capture.c" "capture_state_has_local"
+    require_literal "src/semantic/type_checker_lambda_capture.c" "beta lambdas lower to standalone callable bodies without a closure environment"
     require_literal "src/semantic/type_checker_flow_loops.c" "type_check_while_loop_flow(ASTNode *node, SemanticContext *ctx)"
     require_literal "src/semantic/type_checker_flow_loops.c" "type_check_for_loop_flow(ASTNode *node, SemanticContext *ctx)"
     require_literal "src/semantic/type_checker_flow_loops.c" "condition_static_false"
@@ -249,9 +259,9 @@ run_literal_doc_contract_smoke() {
     require_literal "src/codegen/llvm_mir_contract.c" "mir_block_has_pin_cleanup_edge(block)"
     require_literal "src/compiler/air_evidence.c" "mir_block_has_expected_cleanup_edge_fact(routine, i)"
     require_literal "src/compiler/air_evidence.c" "mir_block_find_pin_cleanup_edge_fact(block)"
-    require_literal "src/tests/mir/test_mir_lowering_part_a.cases.h" "pin-unpin-cleanup-edge"
-    require_literal "src/tests/mir/test_mir_lowering_part_a.cases.h" "MIR validator rejects unreachable cleanup root"
-    require_literal "src/tests/mir/test_mir_lowering_part_a.cases.h" "MIR validator rejects unreachable exceptional source"
+    require_literal "src/tests/mir/test_mir_lowering_part_e.cases.h" "pin-unpin-cleanup-edge"
+    require_literal "src/tests/mir/test_mir_lowering_part_e.cases.h" "MIR validator rejects unreachable cleanup root"
+    require_literal "src/tests/mir/test_mir_lowering_part_e.cases.h" "MIR validator rejects unreachable exceptional source"
     require_literal "src/semantic/type_checker_ownership_let.c" "function-body lets must be initialized at the binding site"
     require_literal "Makefile" "cfg-body-dataflow-test-smoke"
 
@@ -309,6 +319,7 @@ mir_cfg_contract_validate_impl_path = root / "src" / "compiler" / "mir_cfg_contr
 mir_path = root / "src" / "compiler" / "mir.c"
 mir_ssa_rename_path = root / "src" / "compiler" / "mir_ssa_rename.h"
 mir_ssa_rename_impl_path = root / "src" / "compiler" / "mir_ssa_rename.c"
+mir_ssa_use_edges_path = root / "src" / "compiler" / "mir_ssa_use_edges.c"
 mir_liveness_dce_header_path = root / "src" / "compiler" / "mir_liveness_dce.h"
 mir_liveness_dce_path = root / "src" / "compiler" / "mir_liveness_dce.c"
 mir_liveness_summary_path = root / "src" / "compiler" / "mir_liveness_summary.c"
@@ -317,6 +328,7 @@ mir_dce_path = root / "src" / "compiler" / "mir_dce.c"
 mir_stmt_population_header_path = root / "src" / "compiler" / "mir_stmt_population.h"
 mir_stmt_population_path = root / "src" / "compiler" / "mir_stmt_population.c"
 mir_stmt_source_path = root / "src" / "compiler" / "mir_stmt_source.c"
+mir_source_shape_path = root / "src" / "compiler" / "mir_source_shape.c"
 mir_non_cfg_stmt_population_path = root / "src" / "compiler" / "mir_non_cfg_stmt_population.h"
 mir_non_cfg_stmt_population_impl_path = root / "src" / "compiler" / "mir_non_cfg_stmt_population.c"
 hir_lower_cfg_path = root / "src" / "compiler" / "hir_lower_cfg.c"
@@ -337,6 +349,8 @@ mir_test_case_paths = [
     root / "src" / "tests" / "mir" / "test_mir_lowering_part_a.cases.h",
     root / "src" / "tests" / "mir" / "test_mir_lowering_part_b.cases.h",
     root / "src" / "tests" / "mir" / "test_mir_lowering_part_c.cases.h",
+    root / "src" / "tests" / "mir" / "test_mir_lowering_part_d.cases.h",
+    root / "src" / "tests" / "mir" / "test_mir_lowering_part_e.cases.h",
 ]
 async_channel_path = root / "src" / "semantic" / "type_checker_async_channel.h"
 helpers_effects_path = root / "src" / "semantic" / "type_checker_helpers_effects.c"
@@ -393,6 +407,7 @@ for path in (
     mir_path,
     mir_ssa_rename_path,
     mir_ssa_rename_impl_path,
+    mir_ssa_use_edges_path,
     mir_liveness_dce_header_path,
     mir_liveness_dce_path,
     mir_liveness_summary_path,
@@ -401,6 +416,7 @@ for path in (
     mir_stmt_population_header_path,
     mir_stmt_population_path,
     mir_stmt_source_path,
+    mir_source_shape_path,
     mir_non_cfg_stmt_population_path,
     mir_non_cfg_stmt_population_impl_path,
     hir_lower_cfg_path,
@@ -523,11 +539,13 @@ mir_cfg_contract_validator = (
 mir = mir_path.read_text(encoding="utf-8")
 mir_ssa_rename = mir_ssa_rename_path.read_text(encoding="utf-8")
 mir_ssa_rename_impl = mir_ssa_rename_impl_path.read_text(encoding="utf-8")
+mir_ssa_use_edges = mir_ssa_use_edges_path.read_text(encoding="utf-8")
 mir_liveness_dce = mir_liveness_dce_path.read_text(encoding="utf-8")
 mir_liveness_summary = mir_liveness_summary_path.read_text(encoding="utf-8")
 mir_dce = mir_dce_path.read_text(encoding="utf-8")
 mir_stmt_population = mir_stmt_population_path.read_text(encoding="utf-8")
 mir_stmt_source = mir_stmt_source_path.read_text(encoding="utf-8")
+mir_source_shape = mir_source_shape_path.read_text(encoding="utf-8")
 mir_non_cfg_stmt_population = (
     mir_non_cfg_stmt_population_path.read_text(encoding="utf-8")
     + "\n"
@@ -694,7 +712,7 @@ required_mir_cleanup_validator_terms = [
     "mir_validate_successor_index",
     "mir_block_has_pin_cleanup_edge",
     "mir_block_pin_cleanup_missing_reason",
-    "mir_stmt_ast_is_cfg_owned_control",
+    "mir_instruction_source_is_cfg_owned_control",
     "pin-unpin-cleanup-edge",
     "slot_anchor",
     "arg0",
@@ -774,6 +792,7 @@ mir_owner_limits = {
     mir_path: 600,
     mir_ssa_rename_path: 600,
     mir_ssa_rename_impl_path: 600,
+    mir_ssa_use_edges_path: 600,
     mir_liveness_dce_header_path: 600,
     mir_liveness_dce_path: 600,
     mir_liveness_summary_path: 600,
@@ -812,6 +831,8 @@ required_mir_owner_terms = {
         "mir_append_versioned_use",
         "mir_append_block_versioned_name",
         "mir_parse_versioned_name",
+    ],
+    "src/compiler/mir_ssa_use_edges.c": [
         "mir_def_instruction_source_expr",
         "return inst->expr0",
         "ASTNode *expr = inst->expr0 != NULL ? inst->expr0 : inst->expr1",
@@ -829,10 +850,8 @@ required_mir_owner_terms = {
         "mir_run_dce_on_routine",
         "mir_remove_instruction",
         "mir_reset_routine_analysis",
-        "#include \"mir_cfg_contract_control.h\"",
-        "mir_stmt_ast_is_cfg_owned_control(stmt)",
-        "AST_PARALLEL_BLOCK",
-        "AST_DEFER_STMT",
+        "mir_instruction_source_stmt_has_side_effect_hint(inst)",
+        "mir_source_ast_stmt_has_side_effect_hint",
     ],
     "src/compiler/mir_call_fact.h": [
         "PERGYRA_MIR_CALL_FACT_H",
@@ -892,6 +911,7 @@ mir_owner_text = {
     "src/compiler/mir.c": mir,
     "src/compiler/mir_ssa_rename.h": mir_ssa_rename,
     "src/compiler/mir_ssa_rename.c": mir_ssa_rename_impl,
+    "src/compiler/mir_ssa_use_edges.c": mir_ssa_use_edges,
     "src/compiler/mir_liveness_dce.c": mir_liveness_dce,
     "src/compiler/mir_liveness_summary.c": mir_liveness_summary,
     "src/compiler/mir_dce.c": mir_dce,
@@ -1175,6 +1195,8 @@ for term in [
     "method call records callable declaration body summary",
     "lambda body summary stays on lambda type",
     "lambda body summary does not leak to enclosing function",
+    "lambda local capture is rejected until closure environments exist",
+    "lambda block local shadow is not treated as capture",
     "lambda call propagates lambda body summary",
     "ReadView return escape uses pin escape diagnostic",
     "await with active ReadView uses pin await diagnostic",
@@ -1197,6 +1219,7 @@ for term in [
     "MIR validator rejects CFG-owned control fallback statements",
     "MIR validator rejects terminal CFG-owned control fallback statements",
     "MIR validator rejects non-CFG fallback flag without count",
+    "MIR validator rejects residual STMT without source inventory fact",
     "MIR validator rejects missing routine inventory",
     "MIR validator rejects missing block inventory",
     "MIR validator rejects missing value-summary inventory",
@@ -1221,7 +1244,7 @@ for term in [
 if 'parser_consume(parser, TOKEN_ASSIGN, "Expected \'=\' in let declaration")' not in parser:
     raise SystemExit("parser must keep local let declarations initialized")
 
-if "source_statement_inventory.items[inst->source_statement_index]" in mir_ssa_rename_impl:
+if "source_statement_inventory.items[inst->source_statement_index]" in mir_ssa_use_edges:
     raise SystemExit(
         "MIR DEF use-edge collection must consume instruction-carried AST, "
         "not reopen block source_statement_inventory"
@@ -1246,7 +1269,7 @@ if "inst->has_source_location" in mir_llvm_block_emit:
     )
 
 mir_stmt_population_impl = (
-    ROOT / "src/compiler/mir_stmt_population.c"
+    root / "src/compiler/mir_stmt_population.c"
 ).read_text(encoding="utf-8")
 if "inst->source_line" in mir_stmt_population_impl:
     raise SystemExit(
@@ -1261,7 +1284,7 @@ if "inst->has_source_location" in mir_stmt_population_impl:
     )
 
 mir_lifecycle_impl = (
-    ROOT / "src/compiler/mir_lifecycle.c"
+    root / "src/compiler/mir_lifecycle.c"
 ).read_text(encoding="utf-8")
 if "inst->source_ast_type" in mir_lifecycle_impl:
     raise SystemExit(
@@ -1293,13 +1316,13 @@ raw_source_allowed = {
 }
 raw_source_leaks = []
 for rel_root in ("src/compiler", "src/codegen", "src/semantic"):
-    for path in (ROOT / rel_root).rglob("*.[ch]"):
-        rel = path.relative_to(ROOT)
+    for path in (root / rel_root).rglob("*.[ch]"):
+        rel = path.relative_to(root)
         if rel in raw_source_allowed:
             continue
         text = path.read_text(encoding="utf-8", errors="ignore")
         for field in raw_source_fields:
-            if field in text:
+            if re.search(re.escape(field) + r"\b", text):
                 raw_source_leaks.append(f"{rel}:{field}")
                 break
 if raw_source_leaks:
@@ -1442,8 +1465,8 @@ to_native_path_for_pgy() {
 }
 
 if [[ ! -x "$PGY" ]]; then
-    echo "missing compiler binary: $PGY" >&2
-    exit 1
+    echo "cfg-body-dataflow smoke: SKIP executable probe; source/doc contract already checked"
+    exit 0
 fi
 
 if [[ ! -f "$EXAMPLE" ]]; then

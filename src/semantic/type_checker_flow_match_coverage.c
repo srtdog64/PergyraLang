@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include <string.h>
 
 #include "diag_codes.h"
@@ -106,6 +107,8 @@ collect_match_variant_space(const Type *subj_type,
     static const char *option_variants[] = { "Some", "None" };
     static const char *result_variants[] = { "Ok", "Err" };
 
+    if (variants_out == NULL)
+        return 0;
     *variants_out = NULL;
 
     if (subj_type == NULL)
@@ -141,6 +144,8 @@ check_match_redundancy(ASTNode *node, Type *subj_type, SemanticContext *ctx)
         || variants == NULL || variant_count == 0) {
         return;
     }
+    if (variant_count > SIZE_MAX / sizeof(bool))
+        return;
 
     seen = pgy_arena_calloc(&ctx->scratch_arena,
         variant_count * sizeof(bool));

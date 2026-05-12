@@ -1,8 +1,6 @@
 #include "parser_internal.h"
 
-/* Forward declarations */
 ASTNode* parse_pipe(Parser* parser);
-
 static int
 parser_name_table_compare(const void *key, const void *entry)
 {
@@ -13,8 +11,7 @@ parser_name_table_compare(const void *key, const void *entry)
 }
 
 static bool
-parser_name_in_sorted_table(const char *name,
-                            const char *const *names,
+parser_name_in_sorted_table(const char *name, const char *const *names,
                             size_t count)
 {
     if (name == NULL || names == NULL || count == 0)
@@ -31,7 +28,6 @@ parser_name_accepts_call_type_arguments(const char *name)
         "ClaimSecureSlot",
         "ClaimSlot",
     };
-
     return parser_name_in_sorted_table(name, names,
                                        sizeof(names) / sizeof(names[0]));
 }
@@ -48,45 +44,23 @@ parser_name_is_builtin_like_identifier(const char *name)
         "Release",
         "Write",
     };
-
     return parser_name_in_sorted_table(name, names,
                                        sizeof(names) / sizeof(names[0]));
 }
 
 static bool
-parser_prepend_call_argument(Parser *parser, ASTNode *call, ASTNode *argument)
+parser_token_is_range_separator(Token token)
 {
-    ASTNode **new_args;
-    size_t old_count;
-
-    if (call == NULL || call->type != AST_CALL)
-        return false;
-
-    old_count = call->data.call.arg_count;
-    if (old_count == call->data.call.arg_capacity) {
-        size_t next_capacity = call->data.call.arg_capacity == 0 ? 4 : call->data.call.arg_capacity * 2;
-        new_args = realloc(call->data.call.arguments,
-            next_capacity * sizeof(ASTNode *));
-        if (new_args == NULL) {
-            parser_error(parser, "Out of memory while prepending pipe argument");
-            return false;
-        }
-        call->data.call.arguments = new_args;
-        call->data.call.arg_capacity = next_capacity;
-    }
-
-    memmove(call->data.call.arguments + 1, call->data.call.arguments, old_count * sizeof(ASTNode *));
-    call->data.call.arguments[0] = argument;
-    call->data.call.arg_count = old_count + 1;
-    return true;
+    return token.type == TOKEN_DOT
+        && token.text != NULL
+        && token.length == 2
+        && strncmp(token.text, "..", 2) == 0;
 }
 
-/* Expression parsing entry point. */
 ASTNode* parser_parse_expression(Parser* parser) {
     return parser_parse_assignment(parser);
 }
 
-/* Assignment and event-subscription expressions. */
 ASTNode* parser_parse_assignment(Parser* parser) {
     ASTNode* expr = parse_pipe(parser);
 
@@ -96,7 +70,6 @@ ASTNode* parser_parse_assignment(Parser* parser) {
         return assign;
     }
 
-    /* Event subscription (+=) and unsubscription (-=) */
     if (parser_match(parser, TOKEN_SUBSCRIBE)) {
         ASTNode* handler = parser_parse_assignment(parser);
         return ast_create_event_subscribe(expr, handler);
@@ -110,14 +83,26 @@ ASTNode* parser_parse_assignment(Parser* parser) {
     return expr;
 }
 
-/* Pipe operator: a |> f becomes f(a); a |> f(b) becomes f(a, b). */
+static ASTNode*
+parse_coalescing(Parser *parser)
+{
+    ASTNode *expr = parse_logical_or(parser);
+
+    while (parser_match(parser, TOKEN_COALESCE)) {
+        Token op = parser->previous_token;
+        ASTNode *fallback = parse_logical_or(parser);
+        expr = ast_create_binary(expr, op, fallback);
+    }
+
+    return expr;
+}
+
 ASTNode* parse_pipe(Parser* parser) {
-    ASTNode* expr = parse_logical_or(parser);
+    ASTNode* expr = parse_coalescing(parser);
 
     while (parser_match(parser, TOKEN_PIPE_ARROW)) {
         Token op = parser->previous_token;
-        ASTNode* right = parse_logical_or(parser);
-        /* If right is already a call f(b), transform to f(a, b). */
+        ASTNode* right = parse_coalescing(parser);
         if (right->type == AST_CALL) {
             if (!parser_prepend_call_argument(parser, right, expr)) {
                 ast_destroy(expr);
@@ -126,11 +111,17 @@ ASTNode* parse_pipe(Parser* parser) {
             }
             expr = right;
         } else if (right->type == AST_IDENTIFIER) {
-            /* a |> f becomes f(a). */
             ASTNode *call = ast_create_call(right);
             call->data.call.arguments = calloc(1, sizeof(ASTNode *));
+            if (call->data.call.arguments == NULL) {
+                parser_error(parser, "Out of memory while lowering pipe expression");
+                ast_destroy(expr);
+                ast_destroy(call);
+                return NULL;
+            }
             call->data.call.arguments[0] = expr;
             call->data.call.arg_count = 1;
+            call->data.call.arg_capacity = 1;
             expr = call;
         } else {
             expr = ast_create_binary(expr, op, right);
@@ -140,7 +131,6 @@ ASTNode* parse_pipe(Parser* parser) {
     return expr;
 }
 
-/* Logical OR. */
 ASTNode* parse_logical_or(Parser* parser) {
     ASTNode* expr = parse_logical_and(parser);
 
@@ -153,7 +143,6 @@ ASTNode* parse_logical_or(Parser* parser) {
     return expr;
 }
 
-/* Logical AND. */
 ASTNode* parse_logical_and(Parser* parser) {
     ASTNode* expr = parse_equality(parser);
 
@@ -166,7 +155,6 @@ ASTNode* parse_logical_and(Parser* parser) {
     return expr;
 }
 
-/* Equality comparison. */
 ASTNode* parse_equality(Parser* parser) {
     ASTNode* expr = parse_comparison(parser);
 
@@ -180,7 +168,6 @@ ASTNode* parse_equality(Parser* parser) {
     return expr;
 }
 
-/* Relational comparison. */
 ASTNode* parse_comparison(Parser* parser) {
     ASTNode* expr = parse_addition(parser);
 
@@ -196,7 +183,6 @@ ASTNode* parse_comparison(Parser* parser) {
     return expr;
 }
 
-/* Addition and subtraction. */
 ASTNode* parse_addition(Parser* parser) {
     ASTNode* expr = parse_multiplication(parser);
 
@@ -210,7 +196,6 @@ ASTNode* parse_addition(Parser* parser) {
     return expr;
 }
 
-/* Multiplication, division, and remainder. */
 ASTNode* parse_multiplication(Parser* parser) {
     ASTNode* expr = parse_unary(parser);
 
@@ -225,7 +210,6 @@ ASTNode* parse_multiplication(Parser* parser) {
     return expr;
 }
 
-/* Unary prefix operators. */
 ASTNode* parse_unary(Parser* parser) {
     if (parser_match(parser, TOKEN_NOT) ||
         parser_match(parser, TOKEN_MINUS)) {
@@ -237,7 +221,6 @@ ASTNode* parse_unary(Parser* parser) {
     return parser_parse_call(parser);
 }
 
-/* Function calls, member access, indexing, and postfix try. */
 ASTNode* parser_parse_call(Parser* parser) {
     ASTNode* expr = parser_parse_primary(parser);
 
@@ -250,12 +233,37 @@ ASTNode* parser_parse_call(Parser* parser) {
             parser_advance(parser);
             Token name = consume_member_name_token(parser, "Expected property name after '.'");
             expr = ast_create_member_access(expr, name.text);
+        } else if (parser_match(parser, TOKEN_OPTIONAL_CHAIN)) {
+            Token name = consume_member_name_token(parser,
+                "Expected property name after '?.'");
+            parser_error(parser,
+                "Optional chaining '?.' is reserved but not implemented; use explicit Option matching or helper functions");
+            expr = ast_create_member_access(expr, name.text);
         } else if (parser_match(parser, TOKEN_LBRACKET)) {
-            ASTNode* index = parser_parse_expression(parser);
+            ASTNode* index;
+            if (parser_token_is_range_separator(parser->current_token)) {
+                parser_error(parser,
+                    "Slicing 'xs[..]' is reserved but not implemented; use explicit slice helper functions");
+                parser_advance(parser);
+                if (!parser_check(parser, TOKEN_RBRACKET))
+                    (void)parser_parse_expression(parser);
+                parser_consume(parser, TOKEN_RBRACKET, "Expected ']' after slice expression");
+                continue;
+            }
+            index = parser_parse_expression(parser);
+            if (parser_token_is_range_separator(parser->current_token)) {
+                parser_error(parser,
+                    "Slicing 'xs[a..b]' is reserved but not implemented; use explicit slice helper functions");
+                parser_advance(parser);
+                if (!parser_check(parser, TOKEN_RBRACKET))
+                    (void)parser_parse_expression(parser);
+                parser_consume(parser, TOKEN_RBRACKET, "Expected ']' after slice expression");
+                ast_destroy(index);
+                continue;
+            }
             parser_consume(parser, TOKEN_RBRACKET, "Expected ']' after array index");
             expr = ast_create_array_access(expr, index);
         } else if (parser_match(parser, TOKEN_QUESTION)) {
-            /* Postfix ? is try/propagate: early-return on error. */
             ASTNode *try_node = calloc(1, sizeof(ASTNode));
             if (try_node != NULL) {
                 try_node->type = AST_UNARY;
@@ -272,7 +280,6 @@ ASTNode* parser_parse_call(Parser* parser) {
     return expr;
 }
 
-/* Finish parsing a function call after `(` has been consumed. */
 ASTNode* finish_call(Parser* parser, ASTNode* callee) {
     ASTNode* call = ast_create_call(callee);
     if (call != NULL && callee != NULL) {
@@ -280,19 +287,26 @@ ASTNode* finish_call(Parser* parser, ASTNode* callee) {
         call->column = callee->column;
     }
 
-    /* Adopt generic args parsed by parser_parse_primary (e.g.
-     * ClaimSecureSlot<Int> left them on the parser). Consumed here so
-     * subsequent calls don't inherit them. */
     if (parser->pending_call_generic_args != NULL) {
         call->data.call.generic_args = parser->pending_call_generic_args;
         parser->pending_call_generic_args = NULL;
     }
 
-    /* Parse arguments. */
     if (!parser_check(parser, TOKEN_RPAREN)) {
         do {
-            ASTNode* arg = parser_parse_expression(parser);
-            ast_add_argument(call, arg);
+            const char *arg_name = NULL;
+            ASTNode* arg;
+            if (parser_check(parser, TOKEN_IDENTIFIER)
+                && parser_peek_next(parser).type == TOKEN_COLON) {
+                Token name = parser_advance(parser);
+                parser_advance(parser);
+                arg_name = name.text;
+            }
+            arg = parser_parse_expression(parser);
+            if (!parser_append_call_argument(parser, call, arg_name, arg)) {
+                ast_destroy(arg);
+                break;
+            }
         } while (parser_match(parser, TOKEN_COMMA));
     }
 
@@ -301,7 +315,6 @@ ASTNode* finish_call(Parser* parser, ASTNode* callee) {
     return call;
 }
 
-/* Primary expressions. */
 ASTNode* parser_parse_primary(Parser* parser) {
     /* Leading-dot enum/union variant shorthand:
      * .Some(v), .None, .Ok(x) parse as bare variant identifier/call.
@@ -320,37 +333,30 @@ ASTNode* parser_parse_primary(Parser* parser) {
         return ast_create_identifier(variant.text);
     }
 
-    /* await expression. */
     if (parser_match(parser, TOKEN_AWAIT)) {
         return parser_parse_await_expression(parser);
     }
 
-    /* spawn expression. */
     if (parser_match(parser, TOKEN_SPAWN)) {
         return parser_parse_spawn_expression(parser);
     }
 
-    /* Parallel block can also appear in expression position. */
     if (parser_match(parser, TOKEN_PARALLEL)) {
         return parser_parse_parallel_block(parser);
     }
 
-    /* Channel receive: <-channel. */
     if (parser_check(parser, TOKEN_CHANNEL_OP)) {
         return parser_parse_channel_expression(parser);
     }
 
-    /* true. */
     if (parser_match(parser, TOKEN_TRUE)) {
         return ast_create_boolean(true);
     }
 
-    /* false. */
     if (parser_match(parser, TOKEN_FALSE)) {
         return ast_create_boolean(false);
     }
 
-    /* Array literal: [1, 2, 3]. */
     if (parser_match(parser, TOKEN_LBRACKET)) {
         ASTNode *arr = calloc(1, sizeof(ASTNode));
         arr->type = AST_ARRAY_LITERAL;
@@ -376,16 +382,24 @@ ASTNode* parser_parse_primary(Parser* parser) {
         return arr;
     }
 
-    /* Number literal. */
+    if (parser_check(parser, TOKEN_LBRACE)) {
+        parser_error(parser,
+            "Object/map literal syntax '{ ... }' is reserved but not implemented; use constructors, factory functions, or collection APIs");
+        return NULL;
+    }
+
+    if (parser_match(parser, TOKEN_ELLIPSIS)) {
+        parser_error(parser,
+            "Spread/rest syntax '...' is reserved but not implemented; pass values explicitly");
+        return NULL;
+    }
+
     if (parser_match(parser, TOKEN_NUMBER)) {
         return ast_create_number(parser->previous_token.text);
     }
 
-    /* String literal. */
     if (parser_match(parser, TOKEN_STRING) || parser_match(parser, TOKEN_MULTILINE_STRING)) {
         const char *raw = parser->previous_token.text;
-        /* Check for string interpolation: "...${expr}..."; skip for multiline string
-         * to keep it as raw banner/text payload. */
         if (raw != NULL && !is_multiline_string_token(raw)
             && strstr(raw, "${") != NULL) {
             return parse_interpolation_body(raw, false);
@@ -393,13 +407,11 @@ ASTNode* parser_parse_primary(Parser* parser) {
         return ast_create_string(raw);
     }
 
-    /* Interpolated string literal: f"Hello {name}". */
     if (parser_match(parser, TOKEN_INTERPOLATED_STRING)) {
         const char *raw = parser->previous_token.text;
         return parse_interpolation_body(raw, true);
     }
 
-    /* Identifier-like expression names and builtin-like calls. */
     if (parser_match_expr_name_token(parser)) {
         Token name_token = parser->previous_token;
         char* name = pergyra_strdup(parser->previous_token.text);
@@ -412,7 +424,6 @@ ASTNode* parser_parse_primary(Parser* parser) {
             parser->pending_call_generic_args = parse_type_arguments(parser);
         }
 
-        /* Builtin-like names are represented as identifiers first. */
         if (parser_name_is_builtin_like_identifier(name)) {
             ASTNode* ident = ast_create_identifier(name);
             if (ident != NULL) {
@@ -423,7 +434,6 @@ ASTNode* parser_parse_primary(Parser* parser) {
             return ident;
         }
 
-        /* Channel send: channel <- value. */
         ASTNode* ident = ast_create_identifier(name);
         if (ident != NULL) {
             ident->line = name_token.line;
@@ -444,16 +454,13 @@ ASTNode* parser_parse_primary(Parser* parser) {
         return ident;
     }
 
-    /* Lambda expression: (x: Int) => { ... }. */
     if (parser_is_lambda_start(parser)) {
         return parse_lambda_expression(parser);
     }
 
-    /* Parenthesized expression or tuple literal. */
     if (parser_match(parser, TOKEN_LPAREN)) {
         ASTNode* first = parser_parse_expression(parser);
         if (parser_check(parser, TOKEN_COMMA)) {
-            /* Tuple literal: (a, b, ...) */
             ASTNode *tuple = calloc(1, sizeof(ASTNode));
             tuple->type = AST_TUPLE_LITERAL;
             tuple->line = parser->previous_token.line;
@@ -470,7 +477,7 @@ ASTNode* parser_parse_primary(Parser* parser) {
             }
             while (parser_match(parser, TOKEN_COMMA)) {
                 if (parser_check(parser, TOKEN_RPAREN))
-                    break; /* allow trailing comma */
+                    break;
                 ASTNode *elem = parser_parse_expression(parser);
                 if (!parser_append_expr_node_with_capacity(parser,
                         &tuple->data.tuple_literal.elements,

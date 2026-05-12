@@ -20,7 +20,9 @@
 #include <unistd.h>
 #include <sys/stat.h>
 
-#ifndef _WIN32
+#ifdef _WIN32
+#include <direct.h>
+#else
 extern int setenv(const char *name, const char *value, int overwrite);
 extern int unsetenv(const char *name);
 extern int symlink(const char *target, const char *linkpath);
@@ -46,6 +48,38 @@ static TestStats g_testStats = {0, 0, 0, 0};
 /*
  * Test utilities
  */
+static int
+pgy_security_test_mkdir(const char *path, int mode)
+{
+#ifdef _WIN32
+    (void)mode;
+    return _mkdir(path);
+#else
+    return mkdir(path, (mode_t)mode);
+#endif
+}
+
+static int
+pgy_security_test_setenv(const char *name, const char *value, int overwrite)
+{
+#ifdef _WIN32
+    (void)overwrite;
+    return _putenv_s(name, value != NULL ? value : "");
+#else
+    return setenv(name, value, overwrite);
+#endif
+}
+
+static int
+pgy_security_test_unsetenv(const char *name)
+{
+#ifdef _WIN32
+    return _putenv_s(name, "");
+#else
+    return unsetenv(name);
+#endif
+}
+
 #define TEST_ASSERT(condition, message) \
     do { \
         g_testStats.totalTests++; \

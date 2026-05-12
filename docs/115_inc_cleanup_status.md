@@ -1,6 +1,6 @@
 # Include Cleanup Status
 
-Last updated: 2026-04-29
+Last updated: 2026-05-12
 
 This note records the current state of the beta include-cleanup track. It is a
 progress ledger, not a new language surface.
@@ -24,6 +24,11 @@ progress ledger, not a new language surface.
   or be listed here with a named follow-up owner seam. New owners should aim
   below 600 LOC unless the file is a compact table, generated ABI surface, or a
   deliberately single-entry orchestration layer with no mixed responsibility.
+- Architecture judgement update: 600 LOC is a review signal, not a mechanical
+  split command. Splits must be by responsibility and source-of-truth seam.
+  If the owner still has one coherent responsibility, keep it as one owner and
+  improve its internal structure. Do not create new `_helpers` buckets just to
+  satisfy a line-count target.
 - The final pass-through and leaf helper shims were renamed to named private
   owner headers, including `pgy_runtime_inline_core.h`,
   `transpiler_base_a_emitters.h`, `transpiler_base_b_emitters.h`,
@@ -34,6 +39,18 @@ progress ledger, not a new language surface.
 - `inc-sentinel-test-smoke` now rejects any `.inc` reintroduction under `src`.
   Test fragments use the explicit `.cases.h` suffix instead of a tolerated
   `.inc` fixture lane.
+- `.cases.h` fragments are harness-owned, not fragment-owned: only
+  `src/test_*.c` harness entrypoints may include them, and nested
+  `.cases.h`-from-`.cases.h` aggregation is rejected. This keeps fixture
+  ownership visible to the build inventory and prevents hidden test trees from
+  reintroducing include-order debt.
+- The root `src/test_*.c` harnesses now have a direct compile smoke:
+  `source-test-harness-compile-test-smoke`. The gate catches missing standard
+  includes, test-only portability leaks, and hidden fixture coupling without
+  requiring full link/run. A native compiler sweep currently compiles all 16
+  root harnesses after the security fixture was moved behind test-local
+  mkdir/setenv wrappers and `test_security_comprehensive.c` gained its missing
+  `<stdbool.h>` include.
 - Test aggregator `.inc` shims have been removed from the semantic/transpile
   harnesses. `src/test_semantic.c` and `src/test_transpile.c` now include leaf
   fixture parts directly, and `test_semantic_async.cases.h` was split into
@@ -43,41 +60,36 @@ progress ledger, not a new language surface.
 
 ## Current Owner-Size Audit
 
-The active debt is no longer `.inc` inventory. It is owner cohesion. As of the
-2026-04-29 audit, all production `.c` and `.h` owners are below the 1,000 LOC
-hard risk line.
+The active debt is no longer `.inc` inventory or hard-size overflow. It is
+owner cohesion. As of the 2026-05-12 audit, all non-test production `.c` and
+`.h` owners are below the 600 LOC split-review threshold. The immediate
+priority is to keep the owner queue closed without reintroducing
+behavior-owning `.inc` files, `_helpers` buckets, or mega-headers.
 
-Files between 600 and 1,000 LOC remain split-review candidates under the
-stricter beta owner policy. The immediate priority is no longer "remove the
-last 1,000+ `.c` owner"; it is to keep slicing the 600-1,000 LOC owner queue
-without reintroducing behavior-owning `.inc` files or mega-headers.
-
-Current non-test production owners above the 600 LOC split-review threshold:
+Current largest non-test production owners:
 
 | File | LOC | Status |
 | --- | ---: | --- |
-| `src/lsp/pgy_lsp.c` | 865 | tooling owner; beta conformance track, not core semantics |
-| `src/parser/ast.h` | 797 | central AST public shape; split only after declaration IR/AIR contracts settle |
-| `src/runtime/world_roster.c` | 736 | runtime domain owner; split-review candidate |
-| `src/runtime/party_runtime.c` | 731 | runtime domain owner; split-review candidate |
-| `src/runtime/slot_security.c` | 712 | token/context/audit owner; further split candidate |
+| `src/lexer/lexer.c` | 587 | lexer owner; below split threshold, watch for new token behavior |
+| `src/codegen/llvm_internal.h` | 574 | LLVM private declarations; below split threshold, keep declaration-only |
+| `src/runtime/slot_manager.c` | 572 | core slot lifecycle owner; below split threshold |
+| `src/compiler/hir.c` | 559 | HIR orchestration owner; below split threshold |
+| `src/parser/ast_constructors.c` | 558 | AST constructor owner; below split threshold |
 - MIR CFG/body ownership is no longer a hard-size blocker:
-  `src/compiler/mir.c` is 512 LOC after the SSA rename/use-edge,
-  liveness/value-summary/DCE, and statement-population families moved into
-  `src/compiler/mir_ssa_rename.h`, `src/compiler/mir_liveness_dce.h`,
-  `src/compiler/mir_dce.h`, and `src/compiler/mir_stmt_population.h`. The
-  CFG/body smoke gate now keeps each of those owners below the 600 LOC
-  split-review threshold and verifies the top-level MIR file only orchestrates
-  block construction and pass ordering.
+  `src/compiler/mir.c` stays orchestration-only after SSA rename moved into
+  `src/compiler/mir_ssa_rename.c`, versioned use-edge population moved into
+  `src/compiler/mir_ssa_use_edges.c`, and liveness/value-summary/DCE plus
+  statement-population families moved into their own compiled owners. The
+  CFG/body smoke gate now keeps each owner below the 600 LOC split-review
+  threshold and verifies the top-level MIR file only orchestrates block
+  construction and pass ordering.
 - LLVM world sync ownership is below the split threshold again:
   `src/codegen/llvm_domain_world_sync.c` is 164 LOC after moving bounded
   transitive frontier and derived-state recompute emission into
   `src/codegen/llvm_domain_world_frontier.c` at 470 LOC. The runtime frontier
   smoke gate now includes that owner directly.
-- Semantic owner TU size is also back under the hard cap: active slot view
-  boundary diagnostics moved from `type_checker_helpers_late.c` into
-  `type_checker_slot_view_boundary.c`, reducing the late helper owner to 974
-  LOC while keeping the new boundary owner at 66 LOC.
+- Semantic owner TU size is also back under the 600 LOC review threshold after
+  domain, intent, ownership, and slot-view diagnostics moved into named owners.
 - Runtime slot utility ownership now has a separate TU:
   `src/runtime/slot_type_utils.c` owns `TypeTagHash`, `TypeTagToString`,
   `TypeIsPrimitive`, `TypeGetSize`, `SlotHashFunction`,
@@ -248,14 +260,14 @@ Current non-test production owners above the 600 LOC split-review threshold:
   `src/semantic/type_checker_intent_role_fields.c` owns role require-field
   validation plus intent transfer/zone-binding derivation helpers, and
   `src/semantic/type_checker_intent_control.c` owns intent-clause
-  control-transfer rejection. `type_checker_intent_helpers.c` is now 883 LOC.
+  control-transfer rejection. `type_checker_intent_helpers.c` is now 195 LOC.
   Verified with `make test-semantic pgy` (2357/0).
 - Intent declaration transfer/handoff contract ownership now has a separate
   TU: `src/semantic/type_checker_intent_transfer.c` owns transfer source/target
   alias validation, zone-binding checks, transfer target versus current zone
   contract checks, and `using` versus transfer-target consistency diagnostics.
-  `type_checker_intent_decl.c` is now 797 LOC and remains the main intent
-  declaration orchestration owner. Verified with `make test-semantic` (2357/0).
+  `type_checker_intent_decl.c` is now 510 LOC and remains below the 600 LOC
+  split-review threshold. Verified with `make test-semantic` (2357/0).
 - Domain helper projection/overlay/contract ownership now has separate TUs:
   `src/semantic/type_checker_domain_projection.c` owns projection contract
   diagnostics, and `src/semantic/type_checker_overlay_common.c` owns overlay
@@ -758,7 +770,7 @@ production .inc under src/codegen  = 0
 production .inc under src/compiler = 0
 production .inc under src/semantic = 0
 test .inc under src/tests          = 0
-test case includes under src/tests = 30 .cases.h files
+test case includes under src/tests = 84 .cases.h files
 ```
 
 Empty include sentinels are rejected:
@@ -769,7 +781,7 @@ make inc-sentinel-test-smoke
 
 This gate rejects any `.inc` file under `src`, rejects `.cases.h` fragments
 outside `src/tests`, rejects empty test case include fragments, and caps the
-test fragment inventory at the current 30 files unless
+test fragment inventory at the current 84 files unless
 `PGY_MAX_TEST_CASE_INCLUDES` is deliberately raised with this ledger. There is
 also a usage check: `.cases.h` can only be included by the dedicated test
 harnesses, every include must resolve under `src/tests`, and every `.cases.h`
@@ -1731,8 +1743,8 @@ Observed results:
   split. `slot_analyzer.c` is below both the 1,000 LOC hard line and the 600
   LOC split-review threshold after the summary owner split. `hir.c` is below
   the hard line after the HIR public surface split. The driver/compiler/HIR
-  owners remain above the 600 LOC split-review threshold.
-  Each remaining file needs a named semantic owner split, not blind line-count
+  owners are now below the 600 LOC split-review threshold. Future splits should
+  only happen when a named responsibility seam appears, not by blind line-count
   sharding.
 - The long-term target remains real `.c` / `.h` ownership for behavior-heavy
   families. The current state removes the worst include-order debt; new source

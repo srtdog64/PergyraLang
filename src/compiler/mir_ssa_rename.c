@@ -1,13 +1,25 @@
 #include "mir_ssa_rename.h"
 
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "../common/arena.h"
-#include "../common/string_compat.h"
 #include "mir_base_helpers.h"
+#include "mir_ssa_rename_internal.h"
 
 static bool
+mir_checked_array_size(size_t count, size_t elem_size, size_t *bytes_out)
+{
+    if (bytes_out == NULL || elem_size == 0)
+        return false;
+    if (count > SIZE_MAX / elem_size)
+        return false;
+    *bytes_out = count * elem_size;
+    return true;
+}
+
+bool
 mir_collect_ssa_names(const MIRRoutine *routine,
                       const char ***names_out,
                       size_t *count_out)
@@ -46,7 +58,7 @@ mir_collect_ssa_names(const MIRRoutine *routine,
     return true;
 }
 
-static int
+int
 mir_find_ssa_name_index(const char **names, size_t count, const char *name)
 {
     if (names == NULL || name == NULL)
@@ -58,7 +70,7 @@ mir_find_ssa_name_index(const char **names, size_t count, const char *name)
     return -1;
 }
 
-static bool
+bool
 mir_collect_expr_identifier_uses(ASTNode *node,
                                  const char ***uses,
                                  size_t *use_count,
@@ -248,6 +260,9 @@ mir_materialize_phi_inputs(MIRRoutine *routine,
             name_index = mir_find_ssa_name_index(ssa_names, ssa_name_count, phi->name);
             if (name_index < 0 || phi->incoming_predecessor_count == 0)
                 continue;
+            if (phi->incoming_predecessor_count
+                    > SIZE_MAX / sizeof(MIRPhiIncoming))
+                return false;
             inst->phi_incomings = calloc(phi->incoming_predecessor_count,
                                          sizeof(MIRPhiIncoming));
             if (inst->phi_incomings == NULL)
@@ -273,247 +288,6 @@ mir_materialize_phi_inputs(MIRRoutine *routine,
     return true;
 }
 
-static bool
-mir_append_versioned_use(MIRInstruction *inst, const char *base, size_t version)
-{
-    char *versioned;
-    if (inst == NULL || base == NULL)
-        return true;
-    versioned = mir_make_versioned_name(base, version);
-    if (versioned == NULL)
-        return false;
-    return append_owned_name(&inst->uses, &inst->use_count, &inst->use_capacity,
-                             versioned);
-}
-
-static bool
-mir_append_block_versioned_name(MIRBasicBlock *block,
-                                bool is_entry,
-                                const char *base,
-                                size_t version)
-{
-    char *versioned;
-    const char ***names;
-    size_t *count;
-    size_t *capacity;
-    if (block == NULL || base == NULL)
-        return true;
-    versioned = mir_make_versioned_name(base, version);
-    if (versioned == NULL)
-        return false;
-    names = is_entry ? &block->ssa_entry_values : &block->ssa_exit_values;
-    count = is_entry ? &block->ssa_entry_value_count : &block->ssa_exit_value_count;
-    capacity = is_entry ? &block->ssa_entry_value_capacity : &block->ssa_exit_value_capacity;
-    return append_owned_name(names, count, capacity, versioned);
-}
-
-static char *
-mir_parse_versioned_name_owned(const char *versioned, size_t *version_out)
-{
-    const char *dot;
-    size_t len;
-
-    if (versioned == NULL || version_out == NULL)
-        return NULL;
-    dot = strrchr(versioned, '.');
-    if (dot == NULL)
-        return NULL;
-    len = (size_t)(dot - versioned);
-    *version_out = (size_t)strtoull(dot + 1, NULL, 10);
-    return pergyra_strndup(versioned, len);
-}
-
-static ASTNode *
-mir_def_instruction_source_expr(const MIRInstruction *inst)
-{
-    if (inst == NULL || inst->kind != MIR_INST_DEF)
-        return NULL;
-    return inst->expr0;
-}
-
-bool
-mir_populate_use_edges(MIRRoutine *routine)
-{
-    const char **ssa_names = NULL;
-    size_t ssa_name_count = 0;
-
-    if (routine == NULL || routine->hir_routine == NULL)
-        return false;
-    if (!routine->hir_routine->has_cfg)
-        return true;
-    if (!mir_collect_ssa_names(routine, &ssa_names, &ssa_name_count))
-        return false;
-    if (ssa_name_count == 0) {
-        free((void *)ssa_names);
-        return true;
-    }
-
-    for (size_t block_id = 0; block_id < routine->block_count; block_id++) {
-        MIRBasicBlock *block = &routine->blocks[block_id];
-        size_t *current_versions;
-        if (block->ssa_entry_versions == NULL
-            || block->ssa_version_count != ssa_name_count)
-            continue;
-        for (size_t n = 0; n < ssa_name_count; n++) {
-            if (block->ssa_entry_versions[n] == 0)
-                continue;
-            if (!mir_append_block_versioned_name(block, true, ssa_names[n],
-                    block->ssa_entry_versions[n])) {
-                free((void *)ssa_names);
-                return false;
-            }
-        }
-        current_versions = calloc(ssa_name_count, sizeof(size_t));
-        if (current_versions == NULL) {
-            free((void *)ssa_names);
-            return false;
-        }
-        memcpy(current_versions, block->ssa_entry_versions,
-               ssa_name_count * sizeof(size_t));
-
-        for (size_t i = 0; i < block->instruction_count; i++) {
-            MIRInstruction *inst = &block->instructions[i];
-            if (inst->kind == MIR_INST_PHI) {
-                for (size_t j = 0; j < inst->phi_incoming_count; j++) {
-                    if (!append_owned_name(&inst->uses,
-                                           &inst->use_count,
-                                           &inst->use_capacity,
-                                           pergyra_strdup(inst->phi_incomings[j].value_name))) {
-                        free(current_versions);
-                        free((void *)ssa_names);
-                        return false;
-                    }
-                    routine->use_edge_count++;
-                }
-                if (inst->result_name != NULL) {
-                    size_t version = 0;
-                    int idx;
-                    char *base = mir_parse_versioned_name_owned(inst->result_name,
-                                                                &version);
-                    if (base != NULL) {
-                        idx = mir_find_ssa_name_index(ssa_names, ssa_name_count, base);
-                        if (idx >= 0)
-                            current_versions[idx] = version;
-                        free(base);
-                    }
-                }
-                continue;
-            }
-            if (inst->kind == MIR_INST_DEF) {
-                ASTNode *expr = mir_def_instruction_source_expr(inst);
-                if (expr != NULL) {
-                    const char **raw_uses = NULL;
-                    size_t raw_use_count = 0;
-                    size_t raw_use_capacity = 0;
-                    if (!mir_collect_expr_identifier_uses(expr, &raw_uses,
-                            &raw_use_count, &raw_use_capacity)) {
-                        free((void *)raw_uses);
-                        free(current_versions);
-                        free((void *)ssa_names);
-                        return false;
-                    }
-                    for (size_t j = 0; j < raw_use_count; j++) {
-                        int idx = mir_find_ssa_name_index(ssa_names, ssa_name_count,
-                                                          raw_uses[j]);
-                        if (idx >= 0) {
-                            if (!mir_append_versioned_use(inst, raw_uses[j],
-                                    current_versions[idx])) {
-                                free((void *)raw_uses);
-                                free(current_versions);
-                                free((void *)ssa_names);
-                                return false;
-                            }
-                            routine->use_edge_count++;
-                        }
-                    }
-                    free((void *)raw_uses);
-                }
-                if (inst->result_name != NULL) {
-                    size_t version = 0;
-                    int idx;
-                    char *base = mir_parse_versioned_name_owned(inst->result_name,
-                                                                &version);
-                    if (base != NULL) {
-                        idx = mir_find_ssa_name_index(ssa_names, ssa_name_count, base);
-                        if (idx >= 0)
-                            current_versions[idx] = version;
-                        free(base);
-                    }
-                }
-                continue;
-            }
-            if (inst->kind == MIR_INST_BRANCH || inst->kind == MIR_INST_RETURN
-                || inst->kind == MIR_INST_STMT
-                || inst->kind == MIR_INST_RESOURCE_OP
-                || inst->kind == MIR_INST_CLEANUP_EDGE) {
-                const char **raw_uses = NULL;
-                size_t raw_use_count = 0;
-                size_t raw_use_capacity = 0;
-                ASTNode *expr = inst->expr0 != NULL ? inst->expr0 : inst->expr1;
-                if (expr == NULL)
-                    expr = mir_instruction_source_payload(inst);
-                if (expr != NULL
-                    && !mir_collect_expr_identifier_uses(expr, &raw_uses,
-                        &raw_use_count, &raw_use_capacity)) {
-                    free((void *)raw_uses);
-                    free(current_versions);
-                    free((void *)ssa_names);
-                    return false;
-                }
-                if (raw_use_count == 0
-                    && (inst->kind == MIR_INST_RESOURCE_OP
-                        || inst->kind == MIR_INST_CLEANUP_EDGE)) {
-                    const char *candidates[2] = {inst->arg0, inst->arg1};
-                    for (size_t j = 0; j < 2; j++) {
-                        int idx = mir_find_ssa_name_index(ssa_names, ssa_name_count,
-                                                          candidates[j]);
-                        if (idx >= 0) {
-                            if (!mir_append_versioned_use(inst, candidates[j],
-                                    current_versions[idx])) {
-                                free((void *)raw_uses);
-                                free(current_versions);
-                                free((void *)ssa_names);
-                                return false;
-                            }
-                            routine->use_edge_count++;
-                        }
-                    }
-                } else {
-                    for (size_t j = 0; j < raw_use_count; j++) {
-                        int idx = mir_find_ssa_name_index(ssa_names, ssa_name_count,
-                                                          raw_uses[j]);
-                        if (idx >= 0) {
-                            if (!mir_append_versioned_use(inst, raw_uses[j],
-                                    current_versions[idx])) {
-                                free((void *)raw_uses);
-                                free(current_versions);
-                                free((void *)ssa_names);
-                                return false;
-                            }
-                            routine->use_edge_count++;
-                        }
-                    }
-                }
-                free((void *)raw_uses);
-            }
-        }
-
-        for (size_t n = 0; n < ssa_name_count; n++) {
-            if (current_versions[n] == 0)
-                continue;
-            if (!mir_append_block_versioned_name(block, false, ssa_names[n],
-                    current_versions[n])) {
-                free(current_versions);
-                free((void *)ssa_names);
-                return false;
-            }
-        }
-        free(current_versions);
-    }
-    free((void *)ssa_names);
-    return true;
-}
-
 bool
 mir_apply_ssa_rename(MIRRoutine *routine)
 {
@@ -522,6 +296,8 @@ mir_apply_ssa_rename(MIRRoutine *routine)
     size_t *next_versions = NULL;
     size_t *root_versions = NULL;
     size_t **out_versions = NULL;
+    size_t ssa_version_bytes = 0;
+    size_t out_version_bytes = 0;
     bool ok = false;
 
     if (routine == NULL || routine->hir_routine == NULL || !routine->hir_routine->has_cfg)
@@ -533,12 +309,15 @@ mir_apply_ssa_rename(MIRRoutine *routine)
         ok = true;
         goto cleanup;
     }
-    next_versions = pgy_arena_calloc(&routine->scratch,
-                                     ssa_name_count * sizeof(size_t));
-    root_versions = pgy_arena_calloc(&routine->scratch,
-                                     ssa_name_count * sizeof(size_t));
-    out_versions = pgy_arena_calloc(&routine->scratch,
-                                    routine->block_count * sizeof(size_t *));
+    if (!mir_checked_array_size(ssa_name_count, sizeof(size_t),
+            &ssa_version_bytes)
+        || !mir_checked_array_size(routine->block_count, sizeof(size_t *),
+            &out_version_bytes)) {
+        goto cleanup;
+    }
+    next_versions = pgy_arena_calloc(&routine->scratch, ssa_version_bytes);
+    root_versions = pgy_arena_calloc(&routine->scratch, ssa_version_bytes);
+    out_versions = pgy_arena_calloc(&routine->scratch, out_version_bytes);
     if (next_versions == NULL || root_versions == NULL || out_versions == NULL)
         goto cleanup;
 

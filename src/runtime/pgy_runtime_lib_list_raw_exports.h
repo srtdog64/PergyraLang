@@ -3,11 +3,21 @@
 
 /* LLVM-linkable raw List<T> exports used by generic collection lowering. */
 
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+
 typedef struct {
     void   *data;
     size_t  count;
     size_t  capacity;
 } PgyListRaw;
+
+static bool
+pgy_list_raw_shape_fits(size_t capacity, size_t elem_size)
+{
+    return capacity != 0 && elem_size != 0 && elem_size <= SIZE_MAX / capacity;
+}
 
 void
 pgy_list_new_raw_export(void *list_ptr, int64_t elem_size)
@@ -22,6 +32,11 @@ pgy_list_new_raw_export(void *list_ptr, int64_t elem_size)
         return;
     }
     list->capacity = 16;
+    if (!pgy_list_raw_shape_fits(list->capacity, (size_t)elem_size)) {
+        list->capacity = 0;
+        pgy_runtime_warn_invalid_collection("list_new", "allocation size overflow");
+        return;
+    }
     list->count = 0;
     list->data = calloc((size_t)list->capacity, (size_t)elem_size);
     if (list->data == NULL) {
@@ -52,8 +67,22 @@ pgy_list_push_raw_export(void *list_ptr, void *value_ptr, int64_t elem_size)
         return;
     }
     if (list->count >= list->capacity) {
-        size_t new_capacity = list->capacity == 0 ? 16 : list->capacity * 2;
-        void *grown = realloc(list->data, new_capacity * (size_t)elem_size);
+        size_t new_capacity;
+        void *grown;
+        if (list->capacity == 0) {
+            new_capacity = 16;
+        } else {
+            if (list->capacity > SIZE_MAX / 2) {
+                pgy_runtime_warn_invalid_collection("list_push", "capacity overflow");
+                return;
+            }
+            new_capacity = list->capacity * 2;
+        }
+        if (!pgy_list_raw_shape_fits(new_capacity, (size_t)elem_size)) {
+            pgy_runtime_warn_invalid_collection("list_push", "allocation size overflow");
+            return;
+        }
+        grown = realloc(list->data, new_capacity * (size_t)elem_size);
         if (grown == NULL) {
             pgy_runtime_warn_invalid_collection("list_push", "realloc failed");
             return;

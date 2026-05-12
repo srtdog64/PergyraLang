@@ -206,6 +206,104 @@ test_air_rejects_empty_mir_select_receive_evidence(void)
 }
 
 static bool
+test_air_rejects_mir_evidence_counter_mismatch(void)
+{
+    AIREvidenceNode cleanup_nodes[] = {
+        {
+            .kind = AIR_EVIDENCE_MIR_CLEANUP,
+            .boundary_index = SIZE_MAX,
+            .provider_name = "cleanup_owner",
+            .subject_name = "cleanup-block",
+            .fact_count = 1,
+            .fallback_count = 0,
+        },
+        {
+            .kind = AIR_EVIDENCE_MIR_CLEANUP,
+            .boundary_index = SIZE_MAX,
+            .provider_name = "cleanup_owner_2",
+            .subject_name = "cleanup-block",
+            .fact_count = 1,
+            .fallback_count = 0,
+        },
+    };
+    AIREvidenceNode terminator_nodes[] = {
+        {
+            .kind = AIR_EVIDENCE_MIR_TERMINATOR,
+            .boundary_index = SIZE_MAX,
+            .provider_name = "cfg_owner",
+            .subject_name = "cfg-terminator",
+            .fact_count = 1,
+            .fallback_count = 0,
+        },
+        {
+            .kind = AIR_EVIDENCE_MIR_TERMINATOR,
+            .boundary_index = SIZE_MAX,
+            .provider_name = "cfg_owner_2",
+            .subject_name = "cfg-terminator",
+            .fact_count = 1,
+            .fallback_count = 0,
+        },
+    };
+    AIREvidenceNode select_nodes[] = {
+        {
+            .kind = AIR_EVIDENCE_MIR_SELECT_RECEIVE,
+            .boundary_index = SIZE_MAX,
+            .provider_name = "select_owner",
+            .subject_name = "select-receive",
+            .fact_count = 1,
+            .fallback_count = 0,
+        },
+        {
+            .kind = AIR_EVIDENCE_MIR_SELECT_RECEIVE,
+            .boundary_index = SIZE_MAX,
+            .provider_name = "select_owner_2",
+            .subject_name = "select-receive",
+            .fact_count = 1,
+            .fallback_count = 0,
+        },
+    };
+    AIRProgram cleanup_air = {
+        .evidence_nodes = cleanup_nodes,
+        .evidence_count = 2,
+        .has_mir_input = true,
+        .mir_cleanup_evidence_count = 1,
+    };
+    AIRProgram terminator_air = {
+        .evidence_nodes = terminator_nodes,
+        .evidence_count = 2,
+        .has_mir_input = true,
+        .mir_terminator_evidence_count = 1,
+    };
+    AIRProgram select_air = {
+        .evidence_nodes = select_nodes,
+        .evidence_count = 2,
+        .has_mir_input = true,
+        .mir_select_receive_evidence_count = 1,
+    };
+    char *error = NULL;
+    bool ok = !air_validate(&cleanup_air, &error)
+        && error != NULL
+        && strstr(error,
+                  "MIR cleanup evidence counter does not match evidence nodes") != NULL;
+    free(error);
+    error = NULL;
+    ok = ok
+        && !air_validate(&terminator_air, &error)
+        && error != NULL
+        && strstr(error,
+                  "MIR terminator evidence counter does not match evidence nodes") != NULL;
+    free(error);
+    error = NULL;
+    ok = ok
+        && !air_validate(&select_air, &error)
+        && error != NULL
+        && strstr(error,
+                  "MIR select receive evidence counter does not match evidence nodes") != NULL;
+    free(error);
+    return ok;
+}
+
+static bool
 test_air_collects_void_fallthrough_terminator_evidence(void)
 {
     AIRProgram *air = (AIRProgram *)calloc(1, sizeof(AIRProgram));
@@ -342,6 +440,62 @@ test_air_strict_evidence_rejects_mir_terminator_counter_only(void)
                       "AIR MIR input has no CFG terminator evidence") != NULL
             && strstr(air.drifts[i].message,
                       "AIR_EVIDENCE_MIR_TERMINATOR") != NULL) {
+            found = true;
+            break;
+        }
+    }
+    ok = ok && found;
+    test_air_clear_stack_drifts(&air);
+    free(error);
+    return ok;
+}
+
+static bool
+test_air_strict_evidence_rejects_mir_cleanup_counter_only(void)
+{
+    AIRProgram air = {
+        .mir_cleanup_evidence_count = 1,
+        .strict_evidence = true,
+        .has_mir_input = true,
+    };
+    char *error = NULL;
+    bool found = false;
+    bool ok = air_verify(&air, &error);
+
+    for (size_t i = 0; ok && i < air.drift_count; i++) {
+        if (air.drifts[i].kind == AIR_DRIFT_BOUNDARY_EVIDENCE_MISSING
+            && strstr(air.drifts[i].message,
+                      "AIR MIR evidence counter has no matching evidence node") != NULL
+            && strstr(air.drifts[i].message,
+                      "mir_cleanup") != NULL) {
+            found = true;
+            break;
+        }
+    }
+    ok = ok && found;
+    test_air_clear_stack_drifts(&air);
+    free(error);
+    return ok;
+}
+
+static bool
+test_air_strict_evidence_rejects_mir_select_receive_counter_only(void)
+{
+    AIRProgram air = {
+        .mir_select_receive_evidence_count = 1,
+        .strict_evidence = true,
+        .has_mir_input = true,
+    };
+    char *error = NULL;
+    bool found = false;
+    bool ok = air_verify(&air, &error);
+
+    for (size_t i = 0; ok && i < air.drift_count; i++) {
+        if (air.drifts[i].kind == AIR_DRIFT_BOUNDARY_EVIDENCE_MISSING
+            && strstr(air.drifts[i].message,
+                      "AIR MIR evidence counter has no matching evidence node") != NULL
+            && strstr(air.drifts[i].message,
+                      "mir_select_receive") != NULL) {
             found = true;
             break;
         }

@@ -6,6 +6,16 @@
 #include "type_checker_flow_effects.h"
 
 static bool
+resource_snapshot_count_fits(size_t count)
+{
+    return count <= SIZE_MAX / sizeof(Symbol *)
+        && count <= SIZE_MAX / sizeof(bool)
+        && count <= SIZE_MAX / sizeof(SlotState)
+        && count <= SIZE_MAX / sizeof(QubitSemanticState)
+        && count <= SIZE_MAX / sizeof(int32_t);
+}
+
+static bool
 resource_snapshots_equal(const ResourceConsumeSnapshot *a,
                          const ResourceConsumeSnapshot *b)
 {
@@ -62,6 +72,8 @@ copy_resource_snapshot(const ResourceConsumeSnapshot *src)
     ResourceConsumeSnapshot dst = {0};
     if (src == NULL || src->count == 0)
         return dst;
+    if (!resource_snapshot_count_fits(src->count))
+        return dst;
 
     dst.symbols    = calloc(src->count, sizeof(Symbol *));
     dst.states     = calloc(src->count, sizeof(bool));
@@ -96,7 +108,12 @@ merge_resource_snapshots_or(ResourceConsumeSnapshot *dst,
         return;
 
     if (!*dst_initialized) {
-        *dst = copy_resource_snapshot(src);
+        ResourceConsumeSnapshot copy = copy_resource_snapshot(src);
+        if (src->count > 0 && copy.count != src->count) {
+            destroy_resource_snapshot(&copy);
+            return;
+        }
+        *dst = copy;
         *dst_initialized = true;
         return;
     }

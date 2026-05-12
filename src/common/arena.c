@@ -6,6 +6,7 @@
 #include "arena.h"
 
 #include <stdio.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -14,6 +15,9 @@
 static PgyArenaBlock *
 arena_new_block(size_t capacity)
 {
+    if (capacity > SIZE_MAX - sizeof(PgyArenaBlock))
+        return NULL;
+
     PgyArenaBlock *blk = malloc(sizeof(PgyArenaBlock) + capacity);
     if (blk == NULL)
         return NULL;
@@ -26,8 +30,11 @@ arena_new_block(size_t capacity)
 static bool
 arena_ensure(PgyArena *arena, size_t n)
 {
+    if (arena == NULL)
+        return false;
+
     if (arena->current != NULL
-        && arena->current->used + n <= arena->current->capacity)
+        && n <= arena->current->capacity - arena->current->used)
         return true;
 
     /* Need a new block. Size is max(block_size, n) to handle oversized requests. */
@@ -70,6 +77,8 @@ void *
 pgy_arena_alloc(PgyArena *arena, size_t n)
 {
     /* Align to pointer size */
+    if (n > SIZE_MAX - (sizeof(void *) - 1))
+        return NULL;
     n = (n + sizeof(void *) - 1) & ~(sizeof(void *) - 1);
 
     if (!arena_ensure(arena, n))
@@ -77,7 +86,10 @@ pgy_arena_alloc(PgyArena *arena, size_t n)
 
     void *ptr = arena->current->data + arena->current->used;
     arena->current->used += n;
-    arena->total_allocated += n;
+    if (arena->total_allocated <= SIZE_MAX - n)
+        arena->total_allocated += n;
+    else
+        arena->total_allocated = SIZE_MAX;
     return ptr;
 }
 
@@ -97,6 +109,8 @@ pgy_arena_strdup(PgyArena *arena, const char *s)
         return NULL;
 
     size_t len = strlen(s);
+    if (len > SIZE_MAX - 1)
+        return NULL;
     char *dup = pgy_arena_alloc(arena, len + 1);
     if (dup != NULL)
         memcpy(dup, s, len + 1);

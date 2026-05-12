@@ -89,6 +89,7 @@ lower_air_from_source(const char *source)
 #include "tests/air/test_air_rir_propagation_part_j.cases.h"
 #include "tests/air/test_air_cleanup_transfer_part_d.cases.h"
 #include "tests/air/test_air_boundary_part_d.cases.h"
+#include "tests/air/test_air_boundary_part_e.cases.h"
 #include "tests/air/test_air_parsed_part_e.cases.h"
 #include "tests/air/test_air_strict_part_f.cases.h"
 #include "tests/air/test_air_observability_pin_part_g.cases.h"
@@ -238,8 +239,14 @@ main(void)
     TEST("AIR collects MIR pin cleanup evidence");
     EXPECT(test_air_collects_mir_pin_cleanup_evidence());
 
+    TEST("AIR requires MIR pin cleanup AST provenance");
+    EXPECT(test_air_requires_pin_cleanup_ast_provenance());
+
     TEST("AIR rejects orphan MIR pin cleanup evidence");
     EXPECT(test_air_rejects_orphan_mir_pin_cleanup_evidence());
+
+    TEST("AIR strict evidence rejects pin cleanup without cleanup root");
+    EXPECT(test_air_strict_rejects_pin_cleanup_without_cleanup_root());
 
     TEST("AIR rejects unanchored MIR pin cleanup evidence");
     EXPECT(test_air_rejects_unanchored_mir_pin_cleanup_evidence());
@@ -249,6 +256,9 @@ main(void)
 
     TEST("AIR rejects pin cleanup evidence without slot subject");
     EXPECT(test_air_rejects_pin_cleanup_evidence_without_slot_subject());
+
+    TEST("AIR rejects pin cleanup evidence without source provenance");
+    EXPECT(test_air_rejects_pin_cleanup_evidence_without_source_provenance());
 
     TEST("AIR strict evidence requires MIR pin cleanup");
     EXPECT(test_air_strict_evidence_requires_mir_pin_cleanup());
@@ -277,6 +287,9 @@ main(void)
     TEST("AIR rejects empty MIR select receive evidence");
     EXPECT(test_air_rejects_empty_mir_select_receive_evidence());
 
+    TEST("AIR rejects MIR evidence counter mismatch");
+    EXPECT(test_air_rejects_mir_evidence_counter_mismatch());
+
     TEST("AIR collects Void fallthrough terminator evidence");
     EXPECT(test_air_collects_void_fallthrough_terminator_evidence());
 
@@ -285,6 +298,12 @@ main(void)
 
     TEST("AIR strict evidence rejects MIR terminator counter only");
     EXPECT(test_air_strict_evidence_rejects_mir_terminator_counter_only());
+
+    TEST("AIR strict evidence rejects MIR cleanup counter only");
+    EXPECT(test_air_strict_evidence_rejects_mir_cleanup_counter_only());
+
+    TEST("AIR strict evidence rejects MIR select receive counter only");
+    EXPECT(test_air_strict_evidence_rejects_mir_select_receive_counter_only());
 
     TEST("AIR ignores orphan MIR cleanup root evidence");
     EXPECT(test_air_ignores_orphan_mir_cleanup_root_evidence());
@@ -369,6 +388,15 @@ main(void)
 
     TEST("AIR await boundary rejects generic RIR scope evidence");
     EXPECT(test_air_await_boundary_rejects_generic_rir_scope_evidence());
+
+    TEST("AIR parallel boundary requires RIR source provenance");
+    EXPECT(test_air_parallel_boundary_requires_rir_source_provenance());
+
+    TEST("AIR HIR CFG requires boundary source provenance");
+    EXPECT(test_air_hir_cfg_requires_boundary_source_provenance());
+
+    TEST("AIR rejects HIR CFG evidence without source provenance");
+    EXPECT(test_air_rejects_hir_cfg_evidence_without_source_provenance());
 
     TEST("AIR channel boundary accepts exact RIR op evidence");
     EXPECT(test_air_channel_boundary_accepts_exact_rir_op_evidence());

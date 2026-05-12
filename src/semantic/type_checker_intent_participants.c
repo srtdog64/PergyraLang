@@ -4,17 +4,6 @@
 
 #include <stdbool.h>
 
-static Type *
-intent_participant_resolve_involves_type(ASTNode *involves, SemanticContext *ctx)
-{
-    if (involves == NULL || involves->type != AST_INTENT_INVOLVES
-        || involves->data.intent_involves.subject_type == NULL) {
-        return TYPE_UNKNOWN;
-    }
-    return semantic_type_resolution_lookup_type_ref_or_materialize(
-        ctx, involves->data.intent_involves.subject_type);
-}
-
 void
 type_check_intent_step_participant_contract(ASTNode *intent_decl,
                                             ASTNode *step,
@@ -74,7 +63,7 @@ type_check_intent_step_participant_contract(ASTNode *intent_decl,
             ASTNode *from_involves = find_intent_involves_local(intent_decl,
                 step->data.intent_step.transfer_from_alias);
             Type *from_type = from_involves != NULL
-                ? intent_participant_resolve_involves_type(from_involves, ctx) : NULL;
+                ? intent_resolve_involves_type(from_involves, ctx) : NULL;
             ASTNode *from_zone_decl = find_domain_decl_by_name(ctx->program_root, AST_ZONE_DECL,
                 from_type != NULL ? from_type->name : NULL);
             if (from_zone_decl != NULL

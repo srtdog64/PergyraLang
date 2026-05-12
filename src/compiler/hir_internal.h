@@ -6,5 +6,6 @@
 bool hir_append_decl_and_routine(HIRProgram *hir,
                                  HIRTopLevelItem item,
                                  char **error_message);
+bool hir_finish_cfg_routine(HIRRoutine *routine);
 
 #endif

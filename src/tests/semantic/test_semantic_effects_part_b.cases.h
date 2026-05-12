@@ -286,6 +286,70 @@
         ast_destroy(func);
     }
 
+    TEST("lambda local capture is rejected until closure environments exist");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        ASTNode *func = ast_create_function("CaptureLocal");
+        ASTNode *local = ast_create_let_declaration("x");
+        ASTNode *lambda = ast_create_lambda_expression();
+        ASTNode *decl = ast_create_let_declaration("f");
+
+        func->data.func_decl.return_type = ast_create_type("Void");
+        func->data.func_decl.body = ast_create_block();
+
+        local->data.let_decl.type = ast_create_type("Int");
+        local->data.let_decl.initializer = make_number(1, 2);
+        ast_add_statement(func->data.func_decl.body, local);
+
+        lambda->data.lambda_expr.return_type = ast_create_type("Int");
+        lambda->data.lambda_expr.body = make_identifier("x", 3);
+        decl->data.let_decl.initializer = lambda;
+        ast_add_statement(func->data.func_decl.body, decl);
+
+        type_check_func_decl(func, ctx);
+
+        EXPECT(ctx->has_error);
+
+        semantic_context_destroy(ctx);
+        ast_destroy(func);
+    }
+
+    TEST("lambda block local shadow is not treated as capture");
+    {
+        SemanticContext *ctx = semantic_context_create();
+        ASTNode *func = ast_create_function("LambdaLocalShadow");
+        ASTNode *outer = ast_create_let_declaration("value");
+        ASTNode *lambda = ast_create_lambda_expression();
+        ASTNode *inner = ast_create_let_declaration("value");
+        ASTNode *ret = ast_create_return_statement();
+        ASTNode *decl = ast_create_let_declaration("f");
+
+        func->data.func_decl.return_type = ast_create_type("Void");
+        func->data.func_decl.body = ast_create_block();
+
+        outer->data.let_decl.type = ast_create_type("Int");
+        outer->data.let_decl.initializer = make_number(1, 2);
+        ast_add_statement(func->data.func_decl.body, outer);
+
+        lambda->data.lambda_expr.return_type = ast_create_type("Int");
+        lambda->data.lambda_expr.body = ast_create_block();
+        inner->data.let_decl.type = ast_create_type("Int");
+        inner->data.let_decl.initializer = make_number(2, 3);
+        ast_add_statement(lambda->data.lambda_expr.body, inner);
+        ret->data.return_stmt.value = make_identifier("value", 4);
+        ast_add_statement(lambda->data.lambda_expr.body, ret);
+
+        decl->data.let_decl.initializer = lambda;
+        ast_add_statement(func->data.func_decl.body, decl);
+
+        type_check_func_decl(func, ctx);
+
+        EXPECT(!ctx->has_error);
+
+        semantic_context_destroy(ctx);
+        ast_destroy(func);
+    }
+
     TEST("lambda call propagates lambda body summary");
     {
         SemanticContext *ctx = semantic_context_create();

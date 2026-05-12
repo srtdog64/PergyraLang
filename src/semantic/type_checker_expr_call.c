@@ -7,14 +7,6 @@
 #include "diag_codes.h"
 
 static Type *
-expr_call_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
-{
-    Type *resolved =
-        semantic_type_resolution_lookup_type_ref_or_materialize(ctx, type_ref);
-    return resolved != NULL ? resolved : TYPE_UNKNOWN;
-}
-
-static Type *
 expr_call_normalize_type(Type *type)
 {
     return type != NULL ? type : TYPE_UNKNOWN;
@@ -140,6 +132,20 @@ Type *
 type_check_call(ASTNode *expr, SemanticContext *ctx)
 {
     ASTNode *callee = expr->data.call.callee;
+
+    for (size_t i = 0; i < expr->data.call.arg_count; i++) {
+        if (expr->data.call.arg_names != NULL
+            && expr->data.call.arg_names[i] != NULL) {
+            semantic_error_with_hints(ctx,
+                PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
+                PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,
+                PGY_FIX_MATCH_BUILTIN_SIGNATURE,
+                expr,
+                "Named call arguments are reserved but not implemented yet: '%s:'",
+                expr->data.call.arg_names[i]);
+            return TYPE_UNKNOWN;
+        }
+    }
 
     if (callee->type == AST_IDENTIFIER) {
         const char *name = callee->data.identifier.name;
@@ -474,7 +480,7 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
                                 return TYPE_UNKNOWN;
                             }
                             if (method->data.func_decl.return_type != NULL)
-                                return expr_call_resolve_type_ref(
+                                return domain_resolve_type_ref(
                                     method->data.func_decl.return_type, ctx);
                             return TYPE_VOID;
                         }

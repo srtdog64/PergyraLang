@@ -4,14 +4,34 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PYTHON_BIN="${PYTHON_BIN:-}"
 
+require_literal() {
+    local rel="$1"
+    local term="$2"
+    grep -Fq -- "$term" "$ROOT_DIR/$rel" || {
+        echo "[diagnostic-registry] $rel missing: $term" >&2
+        exit 1
+    }
+}
+
+run_literal_contract_smoke() {
+    require_literal "src/semantic/diag_codes.h" "PGY_CODE_"
+    require_literal "src/semantic/diag_codes.h" "PGY_CAUSE_"
+    require_literal "src/semantic/diag_codes.h" "PGY_FIX_"
+    require_literal "docs/72_diagnostic_codes.md" "PGY_PARSE_SYNTAX"
+    require_literal "docs/72_diagnostic_codes.md" "PGY_LEX_INVALID_TOKEN"
+    require_literal "src/semantic/type_checker_diag.c" "semantic_error_with_hints"
+    require_literal "src/semantic/type_checker_diag.c" "semantic_warning_with_hints"
+    echo "[diagnostic-registry] macros and docs are source-gated (literal fallback)"
+}
+
 if [[ -z "$PYTHON_BIN" ]]; then
     if command -v python3 >/dev/null 2>&1; then
         PYTHON_BIN="$(command -v python3)"
     elif command -v python >/dev/null 2>&1; then
         PYTHON_BIN="$(command -v python)"
     else
-        echo "missing python for diagnostic registry smoke" >&2
-        exit 1
+        run_literal_contract_smoke
+        exit 0
     fi
 fi
 

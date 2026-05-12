@@ -113,6 +113,12 @@ party_dispatch_collect_status(const DispatchResult* result,
     }
 }
 
+static bool
+party_dispatch_array_fits(size_t count, size_t elem_size)
+{
+    return elem_size != 0 && count <= SIZE_MAX / elem_size;
+}
+
 DispatchResult
 DispatchParallel(FiberMap* map,
                  PartyContext* context,
@@ -124,6 +130,14 @@ DispatchParallel(FiberMap* map,
 
     if (map == NULL || context == NULL || map->entryCount == 0) {
         party_runtime_warn("dispatch_parallel", "map/context missing or entryCount is zero");
+        return result;
+    }
+    if (!party_dispatch_array_fits(map->entryCount, sizeof(FiberResult))
+        || !party_dispatch_array_fits(map->entryCount, sizeof(pthread_t))
+        || !party_dispatch_array_fits(map->entryCount, sizeof(bool))
+        || !party_dispatch_array_fits(map->entryCount, sizeof(atomic_bool))
+        || !party_dispatch_array_fits(map->entryCount, sizeof(PartyDispatchThreadData))) {
+        party_runtime_warn("dispatch_parallel", "dispatcher allocation size overflow");
         return result;
     }
 

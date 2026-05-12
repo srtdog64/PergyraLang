@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdint.h>
 #include "../common/string_compat.h"
 #include "type_system.h"
 
@@ -41,6 +42,19 @@ Type *TYPE_DEVICE_SLOT = NULL;
 Type *TYPE_ALLOCATOR = NULL;
 Type *TYPE_RESULT = NULL;
 Type *TYPE_OPTION = NULL;
+
+static void
+type_free_singleton(Type **slot)
+{
+    Type *type;
+
+    if (slot == NULL || *slot == NULL)
+        return;
+    type = *slot;
+    free(type->name);
+    free(type);
+    *slot = NULL;
+}
 
 void
 type_system_init(void)
@@ -79,38 +93,32 @@ type_system_init(void)
 void
 type_system_cleanup(void)
 {
-    free(TYPE_INT->name);    free(TYPE_INT);
-    free(TYPE_LONG->name);   free(TYPE_LONG);
-    free(TYPE_FLOAT->name);  free(TYPE_FLOAT);
-    free(TYPE_DOUBLE->name); free(TYPE_DOUBLE);
-    free(TYPE_BOOL->name);   free(TYPE_BOOL);
-    free(TYPE_STRING->name); free(TYPE_STRING);
-    free(TYPE_QUBIT->name);  free(TYPE_QUBIT);
-    free(TYPE_VOID->name);   free(TYPE_VOID);
-    free(TYPE_UNKNOWN->name);free(TYPE_UNKNOWN);
-    free(TYPE_ARRAY->name);  free(TYPE_ARRAY);
-    free(TYPE_SLICE->name);  free(TYPE_SLICE);
-    free(TYPE_LIST->name);   free(TYPE_LIST);
-    free(TYPE_QUEUE->name);  free(TYPE_QUEUE);
-    free(TYPE_HASHMAP->name); free(TYPE_HASHMAP);
-    free(TYPE_SET->name);    free(TYPE_SET);
-    free(TYPE_BOX->name);    free(TYPE_BOX);
-    free(TYPE_RC->name);     free(TYPE_RC);
-    free(TYPE_WEAK->name);   free(TYPE_WEAK);
-    free(TYPE_CHANNEL->name); free(TYPE_CHANNEL);
-    free(TYPE_FUTURE->name); free(TYPE_FUTURE);
-    free(TYPE_REMOTE_FUTURE->name); free(TYPE_REMOTE_FUTURE);
-    free(TYPE_TOKEN->name); free(TYPE_TOKEN);
-    free(TYPE_DEVICE_SLOT->name); free(TYPE_DEVICE_SLOT);
-    free(TYPE_ALLOCATOR->name); free(TYPE_ALLOCATOR);
-    free(TYPE_RESULT->name); free(TYPE_RESULT);
-    free(TYPE_OPTION->name); free(TYPE_OPTION);
-
-    TYPE_INT = TYPE_LONG = TYPE_FLOAT = TYPE_DOUBLE =
-    TYPE_BOOL = TYPE_STRING = TYPE_QUBIT = TYPE_VOID = TYPE_UNKNOWN =
-    TYPE_ARRAY = TYPE_SLICE = TYPE_LIST = TYPE_QUEUE = TYPE_HASHMAP = TYPE_SET = TYPE_BOX = TYPE_RC =
-        TYPE_WEAK = TYPE_CHANNEL = TYPE_FUTURE = TYPE_REMOTE_FUTURE =
-        TYPE_TOKEN = TYPE_DEVICE_SLOT = TYPE_ALLOCATOR = TYPE_RESULT = TYPE_OPTION = NULL;
+    type_free_singleton(&TYPE_INT);
+    type_free_singleton(&TYPE_LONG);
+    type_free_singleton(&TYPE_FLOAT);
+    type_free_singleton(&TYPE_DOUBLE);
+    type_free_singleton(&TYPE_BOOL);
+    type_free_singleton(&TYPE_STRING);
+    type_free_singleton(&TYPE_QUBIT);
+    type_free_singleton(&TYPE_VOID);
+    type_free_singleton(&TYPE_UNKNOWN);
+    type_free_singleton(&TYPE_ARRAY);
+    type_free_singleton(&TYPE_SLICE);
+    type_free_singleton(&TYPE_LIST);
+    type_free_singleton(&TYPE_QUEUE);
+    type_free_singleton(&TYPE_HASHMAP);
+    type_free_singleton(&TYPE_SET);
+    type_free_singleton(&TYPE_BOX);
+    type_free_singleton(&TYPE_RC);
+    type_free_singleton(&TYPE_WEAK);
+    type_free_singleton(&TYPE_CHANNEL);
+    type_free_singleton(&TYPE_FUTURE);
+    type_free_singleton(&TYPE_REMOTE_FUTURE);
+    type_free_singleton(&TYPE_TOKEN);
+    type_free_singleton(&TYPE_DEVICE_SLOT);
+    type_free_singleton(&TYPE_ALLOCATOR);
+    type_free_singleton(&TYPE_RESULT);
+    type_free_singleton(&TYPE_OPTION);
 }
 
 /* -----------------------------------------------------------------
@@ -126,6 +134,10 @@ type_create_primitive(const char *name, size_t size, bool is_signed)
 
     t->kind                  = TYPE_KIND_PRIMITIVE;
     t->name                  = pergyra_strdup(name);
+    if (t->name == NULL) {
+        free(t);
+        return NULL;
+    }
     t->data.primitive.size   = size;
     t->data.primitive.is_signed = is_signed;
     return t;
@@ -141,6 +153,12 @@ type_create_generic(const char *param_name)
     t->kind                       = TYPE_KIND_GENERIC;
     t->name                       = pergyra_strdup(param_name);
     t->data.generic.param_name    = pergyra_strdup(param_name);
+    if (t->name == NULL || t->data.generic.param_name == NULL) {
+        free(t->name);
+        free(t->data.generic.param_name);
+        free(t);
+        return NULL;
+    }
     t->data.generic.constraints   = NULL;
     t->data.generic.constraint_count = 0;
     return t;
@@ -153,12 +171,41 @@ type_create_constructed(Type *constructor, Type **args, size_t arg_count)
     if (t == NULL)
         return NULL;
 
+    if (constructor == NULL || constructor->name == NULL)
+        return NULL;
+    if (arg_count > 0 && args == NULL)
+        return NULL;
+
     /* Name: "Constructor<Arg0, Arg1, ...>" */
-    size_t name_len = strlen(constructor->name) + 2; /* '<' '>' */
+    size_t name_len = strlen(constructor->name);
+    if (name_len > SIZE_MAX - 3) {
+        free(t);
+        return NULL;
+    }
+    name_len += 2; /* '<' '>' */
     for (size_t i = 0; i < arg_count; i++) {
-        name_len += strlen(args[i]->name);
-        if (i + 1 < arg_count)
+        size_t arg_len;
+        if (args[i] == NULL || args[i]->name == NULL) {
+            free(t);
+            return NULL;
+        }
+        arg_len = strlen(args[i]->name);
+        if (name_len > SIZE_MAX - arg_len) {
+            free(t);
+            return NULL;
+        }
+        name_len += arg_len;
+        if (i + 1 < arg_count) {
+            if (name_len > SIZE_MAX - 2) {
+                free(t);
+                return NULL;
+            }
             name_len += 2; /* ", " */
+        }
+    }
+    if (name_len > SIZE_MAX - 1) {
+        free(t);
+        return NULL;
     }
     name_len += 1; /* '\0' */
 
@@ -189,13 +236,21 @@ type_create_constructed(Type *constructor, Type **args, size_t arg_count)
     t->kind = TYPE_KIND_CONSTRUCTED;
     t->data.constructed.constructor = constructor;
     t->data.constructed.arg_count   = arg_count;
-    t->data.constructed.args = malloc(arg_count * sizeof(Type *));
-    if (t->data.constructed.args == NULL) {
+    if (arg_count > SIZE_MAX / sizeof(Type *)) {
         free(t->name);
         free(t);
         return NULL;
     }
-    memcpy(t->data.constructed.args, args, arg_count * sizeof(Type *));
+    t->data.constructed.args = (arg_count > 0)
+        ? malloc(arg_count * sizeof(Type *))
+        : NULL;
+    if (arg_count > 0 && t->data.constructed.args == NULL) {
+        free(t->name);
+        free(t);
+        return NULL;
+    }
+    if (arg_count > 0)
+        memcpy(t->data.constructed.args, args, arg_count * sizeof(Type *));
     return t;
 }
 
@@ -207,13 +262,36 @@ type_create_function(Type **params, size_t param_count, Type *return_type)
         return NULL;
 
     t->kind = TYPE_KIND_FUNCTION;
+    if (return_type == NULL || return_type->name == NULL
+        || (param_count > 0 && params == NULL)) {
+        free(t);
+        return NULL;
+    }
 
     /* Name: "(P0, P1) -> R" */
     size_t name_len = 3; /* "()" + "->" overhead */
     for (size_t i = 0; i < param_count; i++) {
-        name_len += strlen(params[i]->name) + 2;
+        size_t param_len;
+        if (params[i] == NULL || params[i]->name == NULL) {
+            free(t);
+            return NULL;
+        }
+        param_len = strlen(params[i]->name);
+        if (name_len > SIZE_MAX - param_len - 2) {
+            free(t);
+            return NULL;
+        }
+        name_len += param_len + 2;
     }
-    name_len += strlen(return_type->name) + 5;
+    {
+        size_t ret_len = strlen(return_type->name);
+        if (name_len > SIZE_MAX - ret_len
+            || name_len + ret_len > SIZE_MAX - 5) {
+            free(t);
+            return NULL;
+        }
+        name_len += ret_len + 5;
+    }
 
     t->name = malloc(name_len);
     if (t->name == NULL) {
@@ -278,9 +356,19 @@ type_create_tuple(Type **elements, size_t element_count)
     for (size_t i = 0; i < element_count; i++) {
         const char *en = (elements[i] != NULL && elements[i]->name != NULL)
                             ? elements[i]->name : "?";
-        name_len += strlen(en);
-        if (i + 1 < element_count)
+        size_t elem_len = strlen(en);
+        if (name_len > SIZE_MAX - elem_len) {
+            free(t);
+            return NULL;
+        }
+        name_len += elem_len;
+        if (i + 1 < element_count) {
+            if (name_len > SIZE_MAX - 2) {
+                free(t);
+                return NULL;
+            }
             name_len += 2; /* ", " */
+        }
     }
 
     t->name = malloc(name_len);

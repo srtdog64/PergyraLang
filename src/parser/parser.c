@@ -6,6 +6,7 @@
 #include "parser_internal.h"
 #include "../semantic/diag_codes.h"
 #include "../common/string_compat.h"
+#include <stdint.h>
 
 // 파서 생성
 Parser* parser_create(Lexer* lexer) {
@@ -98,6 +99,12 @@ parser_append_destructure_name(Parser *parser, ASTNode *node, const char *name)
         size_t next_capacity = node->data.let_destructure.name_capacity == 0
             ? 4
             : node->data.let_destructure.name_capacity * 2;
+        if (next_capacity < node->data.let_destructure.name_capacity
+            || next_capacity > SIZE_MAX / sizeof(char *)) {
+            free(owned_name);
+            parser_error(parser, "Out of memory while parsing destructuring names");
+            return false;
+        }
         grown = realloc(node->data.let_destructure.names, next_capacity * sizeof(char *));
         if (grown == NULL) {
             free(owned_name);
@@ -260,6 +267,42 @@ parser_finalize_statement(Parser *parser, ASTNode *node)
     return node;
 }
 
+static bool
+parser_check_contextual_is(Parser *parser)
+{
+    return parser != NULL
+        && parser_check(parser, TOKEN_IDENTIFIER)
+        && parser->current_token.text != NULL
+        && strcmp(parser->current_token.text, "is") == 0;
+}
+
+void
+parser_reject_reserved_cast_after_expression(Parser *parser)
+{
+    if (parser == NULL)
+        return;
+
+    if (parser_match(parser, TOKEN_AS)) {
+        parser_error(parser,
+            "Cast syntax 'expr as Type' is reserved but not implemented; use an explicit conversion helper");
+        (void)parse_type(parser);
+        return;
+    }
+
+    if (parser_check_contextual_is(parser)) {
+        parser_advance(parser);
+        parser_error(parser,
+            "Type-test syntax 'expr is Type' is reserved but not implemented; use an explicit predicate helper");
+        (void)parse_type(parser);
+        return;
+    }
+
+    if (parser_check(parser, TOKEN_LBRACE)) {
+        parser_error(parser,
+            "Object initializer syntax 'Type { ... }' is reserved but not implemented; use a constructor or factory function");
+    }
+}
+
 // ============= 문장 파싱 =============
 
 // 프로그램 파싱
@@ -293,6 +336,13 @@ ASTNode* parser_parse_program(Parser* parser) {
 // 문장 파싱
 // let 선언 파싱
 ASTNode* parser_parse_let_declaration(Parser* parser) {
+    if (parser_check(parser, TOKEN_LBRACE)) {
+        parser_error(parser,
+            "Named field destructuring is reserved but not implemented; use positional destructuring or explicit field reads");
+        parser_synchronize(parser);
+        return NULL;
+    }
+
     /* Destructuring: let (a, b, c) = expr; */
     if (parser_check(parser, TOKEN_LPAREN)) {
         parser_advance(parser);  /* consume '(' */
@@ -315,6 +365,7 @@ ASTNode* parser_parse_let_declaration(Parser* parser) {
         parser_consume(parser, TOKEN_RPAREN, "Expected ')' after destructuring names");
         parser_consume(parser, TOKEN_ASSIGN, "Expected '=' in let destructuring");
         node->data.let_destructure.initializer = parser_parse_expression(parser);
+        parser_reject_reserved_cast_after_expression(parser);
         parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after let destructuring");
         return node;
     }
@@ -332,6 +383,7 @@ ASTNode* parser_parse_let_declaration(Parser* parser) {
     // 초기화 표현식
     parser_consume(parser, TOKEN_ASSIGN, "Expected '=' in let declaration");
     let_decl->data.let_decl.initializer = parser_parse_expression(parser);
+    parser_reject_reserved_cast_after_expression(parser);
 
     parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after let declaration");
 
@@ -434,6 +486,7 @@ ASTNode* parser_parse_block(Parser* parser) {
 // 표현식 문장
 ASTNode* parser_parse_expression_statement(Parser* parser) {
     ASTNode* expr = parser_parse_expression(parser);
+    parser_reject_reserved_cast_after_expression(parser);
     parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after expression");
     return expr;
 }

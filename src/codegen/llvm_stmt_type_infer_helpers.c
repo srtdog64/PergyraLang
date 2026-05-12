@@ -41,6 +41,53 @@ llvm_stmt_type_name_is_simple_builtin_return(const char *type_name)
         PGY_ARRAY_COUNT(return_types));
 }
 
+static bool
+llvm_stmt_format_host_method_name(LLVMGenCtx *ctx, char *out, size_t out_size,
+                                  const char *host_name, const char *method_name)
+{
+    int written;
+
+    if (out == NULL || out_size == 0 || host_name == NULL
+        || method_name == NULL) {
+        return false;
+    }
+    written = snprintf(out, out_size, "%s_%s", host_name, method_name);
+    if (written >= 0 && (size_t)written < out_size)
+        return true;
+    llvm_set_error_with_hints(ctx,
+        PGY_CODE_LLVM_SPEC_LIMIT,
+        PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+        PGY_FIX_REFACTOR_OR_RAISE_LIMIT,
+        "LLVM host method lookup name is too long for '%s.%s'",
+        host_name, method_name);
+    return false;
+}
+
+LLVMFuncEntry *
+llvm_stmt_lookup_visible_function(LLVMGenCtx *ctx, const char *callee)
+{
+    LLVMFuncEntry *entry;
+    ASTNode *host_decl;
+    const char *host_name;
+    char full_name[256];
+
+    if (ctx == NULL || callee == NULL)
+        return NULL;
+
+    entry = llvm_lookup_function(ctx, callee);
+    if (entry != NULL)
+        return entry;
+
+    host_decl = llvm_current_host_decl(ctx);
+    host_name = llvm_decl_node_name(host_decl);
+    if (host_name == NULL)
+        return NULL;
+    if (!llvm_stmt_format_host_method_name(ctx, full_name, sizeof(full_name),
+            host_name, callee))
+        return NULL;
+    return llvm_lookup_function(ctx, full_name);
+}
+
 LLVMTypeRef
 llvm_stmt_infer_scalar_builtin_type(LLVMGenCtx *ctx, const char *callee)
 {
@@ -55,6 +102,33 @@ llvm_stmt_infer_scalar_builtin_type(LLVMGenCtx *ctx, const char *callee)
     if (!llvm_stmt_type_name_is_simple_builtin_return(type_name))
         return NULL;
     return pergyra_type_to_llvm(ctx, type_name);
+}
+
+LLVMTypeRef
+llvm_stmt_lookup_declared_call_return_type(LLVMGenCtx *ctx, const char *callee)
+{
+    ASTNode *decl;
+
+    if (ctx == NULL || callee == NULL)
+        return NULL;
+    decl = llvm_stmt_find_function_decl_by_name(ctx, callee);
+    if (decl == NULL || decl->type != AST_FUNC_DECL
+        || decl->data.func_decl.return_type == NULL)
+        return NULL;
+    return ast_type_to_llvm(ctx, decl->data.func_decl.return_type);
+}
+
+LLVMTypeRef
+llvm_stmt_promote_numeric_type(LLVMGenCtx *ctx, LLVMTypeRef left_ty,
+                               LLVMTypeRef right_ty)
+{
+    if (left_ty == ctx->type_f64 || right_ty == ctx->type_f64)
+        return ctx->type_f64;
+    if (left_ty == ctx->type_f32 || right_ty == ctx->type_f32)
+        return ctx->type_f32;
+    if (left_ty == ctx->type_i64 || right_ty == ctx->type_i64)
+        return ctx->type_i64;
+    return ctx->type_i32;
 }
 
 bool

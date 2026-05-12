@@ -1,6 +1,6 @@
 # PergyraLang Documentation Index
 
-Last updated: 2026-05-06
+Last updated: 2026-05-12
 
 Anti-hype update: 2026-04-29
 
@@ -125,6 +125,8 @@ and follow-up debt over older design notes.
 | [`121_types_as_domain_medium.md`](121_types_as_domain_medium.md) | Type-system mandate and subject/authority/projection modeling guard |
 | [`122_managing_intent_drift.md`](122_managing_intent_drift.md) | Drift management discipline: 5×5 matrix and recognition signals |
 | [`123_terminal_output_standard.md`](123_terminal_output_standard.md) | Terminal-output 3-tier architecture: Core / Stream CLI / Grid TUI |
+| [`124_syntax_pattern_matrix.md`](124_syntax_pattern_matrix.md) | Syntax pattern matrix: Pergyra vs C# / Rust / TS / Python / Go / Swift; gap + unique surface tracking |
+| [`127_compiler_speed_engineering.md`](127_compiler_speed_engineering.md) | Compile-speed / engineering discipline borrowed from D (DMD/LDC/GDC); measurement plan and anti-hype constraints |
 | [`124_ai_coding_atomic_units.md`](124_ai_coding_atomic_units.md) | AI-coding thesis: verifiable intent atoms, pattern-context units, and specification gradients |
 
 ## Implementation Guides

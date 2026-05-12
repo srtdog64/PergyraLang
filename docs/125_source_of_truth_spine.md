@@ -1,6 +1,6 @@
 # Pergyra Source-Of-Truth Spine
 
-Last updated: 2026-05-10
+Last updated: 2026-05-12
 
 This document freezes the compiler ownership spine for beta closure. It exists
 to stop A -> B -> A refactoring loops. When a future change is unclear, use this
@@ -201,6 +201,44 @@ Stop a refactor if any of these appear:
 - a compatibility seam grows without a planned deletion path;
 - a split is justified only by line count, not by responsibility;
 - the change improves local structure but does not move a beta blocker.
+
+## 5a. Current Architecture Judgement
+
+The 2026-05 beta closure architecture decision is:
+
+**Stabilize the C compiler's ownership spine; do not redesign the whole folder
+layout before beta.**
+
+Rationale:
+
+- The active problem is not `.inc` inventory anymore. It is fact ownership:
+  CFG/MIR, AIR, DAG, DIR/RIR, runtime policy, backend inventory, and ABI must
+  each have one source of truth.
+- Large-file reduction is useful only when it narrows a source-of-truth owner
+  or removes a compatibility seam. A 600 LOC file is a review signal, not a
+  command to split mechanically.
+- C has no real namespaces, so horizontal folders such as `parser/`,
+  `semantic/`, `compiler/`, `codegen/`, and `runtime/` are acceptable until
+  self-host. Forcing feature folders now would create high-risk path churn
+  without closing CFG/AIR/DAG/MIR/ABI blockers.
+- Implementation headers are debt only when they own behavior across multiple
+  translation units or hide source-of-truth logic. A single-include
+  implementation header may remain temporarily if moving it would expose a
+  wider dependency seam than it removes.
+- New `_helpers` owners are discouraged. If a split is needed, the new owner
+  name must describe the responsibility (`*_type_render`, `*_sync_clauses`,
+  `*_resource_types`, etc.), not just that it is a helper bucket.
+- Backend splits must preserve semantic ownership. C/LLVM emitters may consume
+  MIR/DIR/RIR/runtime/ABI facts, but a split must not make a backend file the
+  new semantic owner of type, effect, authority, cleanup, or body-safety truth.
+- Self-host is the natural point to recover a feature-folder/module layout
+  because Pergyra will have namespaces/modules as first-class structure. Until
+  then, beta work should prefer narrow owner seams over broad directory moves.
+
+Practical rule:
+
+If a refactor cannot name the removed compatibility seam, the source-of-truth
+owner it strengthens, and the gate that proves drift did not occur, defer it.
 
 ## 6. Allowed Temporary Debt
 

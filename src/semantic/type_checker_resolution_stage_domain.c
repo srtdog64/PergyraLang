@@ -1,6 +1,7 @@
 #include "type_checker_internal.h"
 
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
 
 static ASTNode *
@@ -508,6 +509,8 @@ semantic_stage_zone_local_contract_from_label(ASTNode *zone_decl,
         const char *field_part = strstr(label, ".field.");
         if (slot_part != NULL && field_part != NULL && field_part > slot_part) {
             size_t slot_len = (size_t)(field_part - (slot_part + 6));
+            if (slot_len > SIZE_MAX - 1)
+                return;
             char *slot_name = calloc(slot_len + 1, 1);
             if (slot_name == NULL)
                 return;

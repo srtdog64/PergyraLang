@@ -369,6 +369,9 @@ slot_analyze_parallel_block(ASTNode *parallel, SlotAnalyzer *sa)
      * before the function returns.  The per-task inner arrays are still
      * heap-owned by collect_slot_accesses and freed explicitly below. */
     PgyArena *scratch = &sa->ctx->scratch_arena;
+    if (n > SIZE_MAX / sizeof(SlotAccessEntry *)
+        || n > SIZE_MAX / sizeof(size_t))
+        return false;
     SlotAccessEntry **task_accesses =
         pgy_arena_calloc(scratch, n * sizeof(SlotAccessEntry *));
     size_t *task_counts = pgy_arena_calloc(scratch, n * sizeof(size_t));

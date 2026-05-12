@@ -138,28 +138,9 @@ llvm_current_host_class_name(LLVMGenCtx *ctx)
     if (decl == NULL)
         return NULL;
 
-    switch (decl->type) {
-    case AST_CLASS_DECL:
-        return decl->data.class_decl.name;
-    case AST_ENUM_DECL:
-        return decl->data.enum_decl.name;
-    case AST_PARTY_DECL:
-        return decl->data.party_decl.name;
-    case AST_ROLE_DECL:
-        return decl->data.role_decl.name;
-    case AST_ROSTER_DECL:
-        return decl->data.roster_decl.name;
-    case AST_RELATION_DECL:
-        return decl->data.relation_decl.name;
-    case AST_EFFECT_DECL:
-        return decl->data.effect_decl.name;
-    case AST_ZONE_DECL:
-        return decl->data.zone_decl.name;
-    case AST_WORLD_DECL:
-        return decl->data.world_decl.name;
-    default:
-        return NULL;
-    }
+    return llvm_is_host_decl_type(decl->type)
+        ? llvm_decl_node_name(decl)
+        : NULL;
 }
 
 static ASTNode *

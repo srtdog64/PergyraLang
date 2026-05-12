@@ -208,7 +208,15 @@ static inline void \
 pgy_array_push_##SuffixName(PgyArray_##SuffixName *arr, CType value) \
 { \
     if (arr->length == arr->capacity) { \
-        size_t next = arr->capacity == 0 ? 4 : arr->capacity * 2; \
+        size_t next; \
+        if (arr->capacity == 0) { \
+            next = 4; \
+        } else { \
+            if (arr->capacity > SIZE_MAX / 2) \
+                PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OOM, \
+                                  PGY_RUNTIME_PANIC_REASON_ALLOCATION_FAILED); \
+            next = arr->capacity * 2; \
+        } \
         pgy_array_reserve_##SuffixName(arr, next); \
     } \
     arr->data[arr->length++] = value; \

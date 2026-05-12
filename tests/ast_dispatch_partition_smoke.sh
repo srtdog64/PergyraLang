@@ -13,8 +13,35 @@ elif command -v python >/dev/null 2>&1; then
 fi
 
 if [[ -z "$PY_BIN" ]]; then
-    echo "[ast-dispatch] FAIL: python is required" >&2
-    exit 1
+    for token in \
+        AST_TYPE AST_CHANNEL_TYPE AST_EVENT_HANDLER_TYPE AST_FUTURE_TYPE \
+        AST_WORLD_ACTIVATE AST_WORLD_DEACTIVATE AST_WORLD_MAINTAIN AST_WORLD_STATE \
+        AST_ZONE_APPLY AST_ZONE_LINK AST_ZONE_DETACH AST_ZONE_UNLINK \
+        AST_ZONE_REFRESH AST_ZONE_AUTHORITY AST_ZONE_STATE; do
+        grep -Fq "$token" "$ROOT_DIR/docs/95_ast_dispatch_partition.md" || {
+            echo "[ast-dispatch] docs/95_ast_dispatch_partition.md missing $token" >&2
+            exit 1
+        }
+    done
+    grep -Fq "llvm_set_error_at_with_hints" "$ROOT_DIR/src/codegen/llvm_expr.c" || {
+        echo "[ast-dispatch] llvm_expr.c missing structured backend diagnostic" >&2
+        exit 1
+    }
+    grep -Fq "llvm_set_error_at_with_hints" "$ROOT_DIR/src/codegen/llvm_stmt.c" || {
+        echo "[ast-dispatch] llvm_stmt.c missing structured backend diagnostic" >&2
+        exit 1
+    }
+    if grep -Fq "warning: unhandled expression" "$ROOT_DIR/src/codegen/llvm_expr.c" ||
+       grep -Fq "warning: unhandled statement" "$ROOT_DIR/src/codegen/llvm_stmt.c"; then
+        echo "[ast-dispatch] fallback must not be warning-only" >&2
+        exit 1
+    fi
+    grep -Fq "not silent expression fallback" "$ROOT_DIR/src/codegen/llvm_expr.c" || {
+        echo "[ast-dispatch] LLVM domain safety-net missing explicit reject text" >&2
+        exit 1
+    }
+    echo "[ast-dispatch] OK: source partition contract is gated (literal fallback)"
+    exit 0
 fi
 
 "$PY_BIN" - "$ROOT_DIR" <<'PY'

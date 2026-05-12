@@ -11,6 +11,18 @@ mir_intent_append_instruction(MIRBasicBlock *block, MIRInstruction inst)
     return append_instruction(block, inst);
 }
 
+static bool
+mir_intent_commit_instruction(MIRRoutine *routine, MIRBasicBlock *block, MIRInstruction *inst)
+{
+    if (routine == NULL || block == NULL || inst == NULL)
+        return false;
+    inst->id = routine->instruction_count;
+    if (!mir_intent_append_instruction(block, *inst))
+        return false;
+    routine->instruction_count++;
+    return true;
+}
+
 static const char *
 mir_intent_node_name(ASTNode *node)
 {
@@ -43,7 +55,6 @@ mir_append_intent_stmt(MIRRoutine *routine,
         return false;
 
     memset(&inst, 0, sizeof(inst));
-    inst.id = routine->instruction_count++;
     inst.kind = MIR_INST_STMT;
     inst.name = name;
     inst.slot_anchor = slot_anchor;
@@ -55,7 +66,7 @@ mir_append_intent_stmt(MIRRoutine *routine,
             || strcmp(name, "IntentEval") == 0)) {
         inst.expr0 = ast;
     }
-    return mir_intent_append_instruction(block, inst);
+    return mir_intent_commit_instruction(routine, block, &inst);
 }
 
 static bool
@@ -116,14 +127,13 @@ mir_append_intent_invalidation_markers(MIRRoutine *routine, MIRBasicBlock *block
                 continue;
 
             memset(&inst, 0, sizeof(inst));
-            inst.id = routine->instruction_count++;
             inst.kind = MIR_INST_CLEANUP_EDGE;
             inst.name = "DetachInvalidation";
             inst.slot_anchor = src->arg0;
             inst.arg0 = src->arg0;
             inst.arg1 = src->arg1;
             inst.ast = src->ast;
-            if (!mir_intent_append_instruction(block, inst))
+            if (!mir_intent_commit_instruction(routine, block, &inst))
                 return false;
             routine->cleanup_instruction_count++;
         }

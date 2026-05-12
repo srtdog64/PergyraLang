@@ -13,6 +13,61 @@
 #include "llvm_mir_type_helpers.h"
 #include "../common/string_compat.h"
 
+static LLVMTypeRef
+llvm_mir_local_type_from_vars(LLVMMirVar *vars, size_t var_count,
+                              const char *name)
+{
+    LLVMMirVar *entry;
+    char base_name[128];
+
+    if (vars == NULL || name == NULL)
+        return NULL;
+
+    entry = llvm_mir_get_var_entry(vars, var_count, name);
+    if (entry != NULL)
+        return entry->type;
+
+    for (size_t i = var_count; i > 0; i--) {
+        const char *mir_name = vars[i - 1].mir_name;
+        if (mir_name == NULL)
+            continue;
+        if (!llvm_mir_base_name_from_versioned(mir_name, base_name,
+                sizeof(base_name)))
+            continue;
+        if (strcmp(base_name, name) == 0)
+            return vars[i - 1].type;
+    }
+
+    return NULL;
+}
+
+static LLVMTypeRef
+llvm_mir_local_type_from_value_fact(const MIRInstruction *inst,
+                                    LLVMMirVar *vars,
+                                    size_t var_count)
+{
+    ASTNode *value_expr;
+
+    if (inst == NULL)
+        return NULL;
+    if (inst->use_count > 0 && inst->uses != NULL) {
+        LLVMTypeRef use_type =
+            llvm_mir_local_type_from_vars(vars, var_count, inst->uses[0]);
+        if (use_type != NULL)
+            return use_type;
+    }
+
+    value_expr = inst->expr0;
+    if (value_expr != NULL
+        && value_expr->type == AST_IDENTIFIER
+        && value_expr->data.identifier.name != NULL) {
+        return llvm_mir_local_type_from_vars(
+            vars, var_count, value_expr->data.identifier.name);
+    }
+
+    return NULL;
+}
+
 void
 llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                             LLVMMirVar **vars_ptr, size_t *var_capacity_ptr,
@@ -50,7 +105,12 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                     if (has_base_name)
                         llvm_register_typed_var(ctx, base_name, type_expr);
                 } else if (value_expr != NULL) {
-                    alloca_type = llvm_stmt_infer_expr_type(ctx, value_expr);
+                    alloca_type = llvm_mir_local_type_from_value_fact(
+                        inst, vars, var_count);
+                    if (alloca_type == NULL)
+                        alloca_type = llvm_stmt_infer_expr_type(ctx, value_expr);
+                    if (ctx->has_error || alloca_type == NULL)
+                        return;
                 }
                 if (var_count >= var_capacity) {
                     size_t new_capacity = var_capacity > 0 ? var_capacity * 2 : 64;

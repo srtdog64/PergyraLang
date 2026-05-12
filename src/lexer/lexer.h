@@ -151,8 +151,12 @@ typedef enum
     TOKEN_ARROW,        /* -> */
     TOKEN_CHANNEL_OP,   /* <- */
     TOKEN_QUESTION,     /* ? (try/propagate) */
+    TOKEN_OPTIONAL_CHAIN, /* ?. (reserved optional chaining) */
+    TOKEN_COALESCE,     /* ?? (Option coalescing) */
     TOKEN_PIPE_ARROW,   /* |> (pipe) */
+    TOKEN_ELLIPSIS,     /* ... (reserved spread/rest) */
     TOKEN_DOT,          /* . */
+    TOKEN_AT,           /* @ (reserved attribute marker) */
     TOKEN_COMMA,        /* , */
     TOKEN_COLON,        /* : */
     TOKEN_COLON_ASSIGN, /* := */

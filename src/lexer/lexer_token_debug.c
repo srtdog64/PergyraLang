@@ -95,7 +95,13 @@ const char* token_type_to_string(PgyTokenType type) {
         case TOKEN_NOT: return "!";
         case TOKEN_ARROW: return "->";
         case TOKEN_CHANNEL_OP: return "<-";
+        case TOKEN_QUESTION: return "?";
+        case TOKEN_OPTIONAL_CHAIN: return "?.";
+        case TOKEN_COALESCE: return "??";
+        case TOKEN_PIPE_ARROW: return "|>";
+        case TOKEN_ELLIPSIS: return "...";
         case TOKEN_DOT: return ".";
+        case TOKEN_AT: return "@";
         case TOKEN_COMMA: return ",";
         case TOKEN_COLON: return ":";
         case TOKEN_COLON_ASSIGN: return ":=";

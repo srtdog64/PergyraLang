@@ -13,6 +13,7 @@
 
 #include "../common/string_compat.h"
 
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -30,6 +31,11 @@ intent_semantic_append_name(char ***items, size_t *count, size_t *capacity,
         return false;
     if (*count == *capacity) {
         size_t next_capacity = *capacity == 0 ? 4 : *capacity * 2;
+        if (next_capacity < *capacity
+            || next_capacity > SIZE_MAX / sizeof(char *)) {
+            free(owned_name);
+            return false;
+        }
         grown = realloc(*items, next_capacity * sizeof(char *));
         if (grown == NULL) {
             free(owned_name);
@@ -60,6 +66,11 @@ intent_step_append_required_ability_clone(ASTNode *step, ASTNode *ability)
             step->data.intent_step.required_ability_capacity == 0
                 ? 4
                 : step->data.intent_step.required_ability_capacity * 2;
+        if (next_capacity < step->data.intent_step.required_ability_capacity
+            || next_capacity > SIZE_MAX / sizeof(ASTNode *)) {
+            ast_destroy(ability_copy);
+            return false;
+        }
         grown = realloc(step->data.intent_step.required_abilities,
             next_capacity * sizeof(ASTNode *));
         if (grown == NULL) {

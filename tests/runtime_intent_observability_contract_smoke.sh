@@ -16,6 +16,7 @@ require_term() {
 
 for rel in \
     "src/runtime/pgy_runtime_intent_active_exports.h" \
+    "src/runtime/pgy_runtime_intent_trace_inline.h" \
     "src/runtime/pgy_runtime_lib_intent_active_index_exports.c" \
     "src/runtime/pgy_runtime_lib_intent_active_index_exports.h" \
     "src/runtime/pgy_runtime_lib_intent_slot_core_exports.h" \
@@ -56,6 +57,10 @@ require_term "$ROOT_DIR/src/codegen/transpiler_intent_observability_builtin_emit
 require_term "$ROOT_DIR/src/codegen/transpiler_intent_observability_builtin_emit.h" "pgy_intent_active_handle_export"
 require_term "$ROOT_DIR/src/codegen/llvm_expr_intent_observability_calls.c" "IntentActiveHandle"
 require_term "$ROOT_DIR/src/runtime/pgy_runtime_lib_intent_active_index_exports.c" "pgy_intent_find_active_registry_slot_export"
+require_term "$ROOT_DIR/src/runtime/pgy_runtime_intent_trace_inline.h" "PGY_INTENT_ACTIVE_INDEX_MAX must stay a power of two"
+require_term "$ROOT_DIR/src/runtime/pgy_runtime_lib_intent_active_index_exports.c" "PGY_INTENT_ACTIVE_INDEX_MAX must stay a power of two"
+require_term "$ROOT_DIR/src/runtime/pgy_runtime_intent_trace_inline.h" "pgy_intent_active_index_handles[first_tombstone] = handle"
+require_term "$ROOT_DIR/src/runtime/pgy_runtime_lib_intent_active_index_exports.c" "pgy_intent_active_index_handles[first_tombstone] = handle"
 require_term "$ROOT_DIR/src/runtime/pgy_runtime_lib_intent_slot_core_exports.h" "pgy_intent_find_active_registry_slot_export(handle)"
 require_term "$ROOT_DIR/src/runtime/pgy_runtime_lib_intent_slot_core_exports.h" "pgy_intent_active_index_clear_export(handle)"
 

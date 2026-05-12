@@ -1,4 +1,7 @@
 #include "../common/string_compat.h"
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
 
 typedef struct {
     char    **keys;
@@ -13,6 +16,7 @@ void
 pgy_map_new_raw_export(void *map_ptr, int64_t value_size)
 {
     PgyHashMapRaw *map = (PgyHashMapRaw *)map_ptr;
+    size_t elem_size;
     if (map == NULL) {
         pgy_runtime_warn_invalid_collection("map_new", "null map");
         return;
@@ -21,10 +25,16 @@ pgy_map_new_raw_export(void *map_ptr, int64_t value_size)
         pgy_runtime_warn_invalid_collection("map_new", "non-positive value size");
         return;
     }
+    elem_size = (size_t)value_size;
     map->capacity = 16;
+    if (elem_size > SIZE_MAX / map->capacity) {
+        map->capacity = 0;
+        pgy_runtime_warn_invalid_collection("map_new", "value size overflow");
+        return;
+    }
     map->count = 0;
     map->keys = (char **)calloc(map->capacity, sizeof(char *));
-    map->values = calloc(map->capacity, (size_t)value_size);
+    map->values = calloc(map->capacity, elem_size);
     map->occupied = (uint8_t *)calloc(map->capacity, sizeof(uint8_t));
     if (map->keys == NULL || map->values == NULL || map->occupied == NULL) {
         free(map->keys);
@@ -45,10 +55,27 @@ pgy_map_grow_raw_export(PgyHashMapRaw *map, int64_t value_size)
     char **old_keys = map->keys;
     void *old_values = map->values;
     uint8_t *old_occupied = map->occupied;
+    size_t elem_size;
 
+    if (value_size <= 0) {
+        pgy_runtime_warn_invalid_collection("map_grow", "non-positive value size");
+        return;
+    }
+    elem_size = (size_t)value_size;
+    if (map->capacity > SIZE_MAX / 2) {
+        pgy_runtime_warn_invalid_collection("map_grow", "capacity overflow");
+        return;
+    }
     size_t new_capacity = map->capacity == 0 ? 16 : map->capacity * 2;
+    if (new_capacity == 0 || new_capacity > UINT32_MAX
+        || new_capacity > SIZE_MAX / sizeof(char *)
+        || new_capacity > SIZE_MAX / sizeof(uint8_t)
+        || elem_size > SIZE_MAX / new_capacity) {
+        pgy_runtime_warn_invalid_collection("map_grow", "allocation size overflow");
+        return;
+    }
     char **new_keys = (char **)calloc(new_capacity, sizeof(char *));
-    void *new_values = calloc(new_capacity, (size_t)value_size);
+    void *new_values = calloc(new_capacity, elem_size);
     uint8_t *new_occupied = (uint8_t *)calloc(new_capacity, sizeof(uint8_t));
     if (new_keys == NULL || new_values == NULL || new_occupied == NULL) {
         free(new_keys);
@@ -71,9 +98,9 @@ pgy_map_grow_raw_export(PgyHashMapRaw *map, int64_t value_size)
             while (map->occupied[h])
                 h = (h + 1) % (uint32_t)map->capacity;
             map->keys[h] = old_keys[i];
-            memcpy((char *)map->values + (h * (size_t)value_size),
-                   (char *)old_values + (i * (size_t)value_size),
-                   (size_t)value_size);
+            memcpy((char *)map->values + (h * elem_size),
+                   (char *)old_values + (i * elem_size),
+                   elem_size);
             map->occupied[h] = 1;
             map->count++;
         }

@@ -41,6 +41,36 @@ test_statement_emit(void)
         transpiler_ctx_destroy(ctx);
     }
 
+    TEST("Option coalescing lowers to single-evaluation C fallback");
+    {
+        const char *source =
+            "func Main() -> Int {\n"
+            "    let maybe: Option<Int> = Some(7);\n"
+            "    return maybe ?? 0;\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
+        ctx = transpiler_ctx_create();
+
+        emit_program(ctx);
+
+        EXPECT_STR_CONTAINS(ctx->out->data, "__auto_type _pgy_coalesce = ");
+        EXPECT_STR_CONTAINS(ctx->out->data, "_pgy_coalesce.tag == PgyOptionSome");
+        EXPECT_STR_CONTAINS(ctx->out->data, "_pgy_coalesce.value : (0)");
+
+        transpiler_ctx_destroy(ctx);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("match Option<Int> destructures Some/None");
     {
         ctx = transpiler_ctx_create();
@@ -91,7 +121,7 @@ test_statement_emit(void)
         ASTNode *program = parser_parse_program(parser);
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
-        MIRProgram *mir = lower_program_to_mir(program, &hir, &rir);
+        MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
         ctx = transpiler_ctx_create();
 
         emit_program(ctx);
@@ -124,7 +154,7 @@ test_statement_emit(void)
         ASTNode *program = parser_parse_program(parser);
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
-        MIRProgram *mir = lower_program_to_mir(program, &hir, &rir);
+        MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
         ctx = transpiler_ctx_create();
 
         emit_program(ctx);

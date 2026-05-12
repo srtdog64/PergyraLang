@@ -18,13 +18,29 @@ static inline PgyPool pgy_pool_create(size_t item_size, size_t capacity)
     p.item_size = item_size;
     p.capacity = capacity;
     p.count = 0;
+    if (item_size == 0 || (capacity > 0 && item_size > SIZE_MAX / capacity)
+        || capacity > SIZE_MAX / sizeof(uint8_t)) {
+        p.data = NULL;
+        p.alive = NULL;
+        p.capacity = 0;
+        return p;
+    }
     p.data = calloc(capacity, item_size);
     p.alive = (uint8_t *)calloc(capacity, sizeof(uint8_t));
+    if (p.data == NULL || p.alive == NULL) {
+        free(p.data);
+        free(p.alive);
+        p.data = NULL;
+        p.alive = NULL;
+        p.capacity = 0;
+    }
     return p;
 }
 
 static inline int32_t pgy_pool_spawn(PgyPool *p, const void *item)
 {
+    if (p == NULL || item == NULL || p->data == NULL || p->alive == NULL)
+        return -1;
     for (size_t i = 0; i < p->capacity; i++) {
         if (!p->alive[i]) {
             memcpy((char *)p->data + i * p->item_size, item, p->item_size);
@@ -38,6 +54,8 @@ static inline int32_t pgy_pool_spawn(PgyPool *p, const void *item)
 
 static inline void pgy_pool_despawn(PgyPool *p, int32_t index)
 {
+    if (p == NULL || p->alive == NULL)
+        return;
     if (index >= 0 && (size_t)index < p->capacity && p->alive[index]) {
         p->alive[index] = 0;
         p->count--;
@@ -46,6 +64,8 @@ static inline void pgy_pool_despawn(PgyPool *p, int32_t index)
 
 static inline void *pgy_pool_get(PgyPool *p, int32_t index)
 {
+    if (p == NULL || p->data == NULL || p->alive == NULL)
+        return NULL;
     if (index < 0 || (size_t)index >= p->capacity || !p->alive[index])
         return NULL;
     return (char *)p->data + (size_t)index * p->item_size;
@@ -53,11 +73,13 @@ static inline void *pgy_pool_get(PgyPool *p, int32_t index)
 
 static inline bool pgy_pool_alive(PgyPool *p, int32_t index)
 {
+    if (p == NULL || p->alive == NULL)
+        return false;
     return index >= 0 && (size_t)index < p->capacity && p->alive[index];
 }
 
-static inline int32_t pgy_pool_count(PgyPool *p) { return (int32_t)p->count; }
-static inline int32_t pgy_pool_capacity(PgyPool *p) { return (int32_t)p->capacity; }
+static inline int32_t pgy_pool_count(PgyPool *p) { return p != NULL ? (int32_t)p->count : 0; }
+static inline int32_t pgy_pool_capacity(PgyPool *p) { return p != NULL ? (int32_t)p->capacity : 0; }
 
 /* =================================================================
  * FSM ??Finite State Machine

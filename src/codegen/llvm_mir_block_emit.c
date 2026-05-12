@@ -222,8 +222,19 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block, const MIRRoutine 
             if (mir_instruction_source_is_defer_stmt(inst)) {
                 if (inst->expr0 != NULL)
                     llvm_register_defer(inst->expr0, ctx);
-            } else if (source_payload != NULL
-                && !llvm_mir_stmt_instruction_is_cfg_container(inst)) {
+            } else if (source_payload != NULL) {
+                if (!mir_instruction_source_stmt_fallback_is_allowed(inst)) {
+                    llvm_set_error_at_with_hints(
+                        ctx,
+                        source_payload,
+                        PGY_CODE_MIR_TOPOLOGY_INVALID,
+                        PGY_CAUSE_MIR_TOPOLOGY_INVALID,
+                        PGY_FIX_INSPECT_HIR_TO_MIR_LOWERING,
+                        "LLVM MIR block emission rejected STMT fallback outside allowed residual statement policy");
+                    return;
+                }
+                if (llvm_mir_stmt_instruction_is_cfg_container(inst))
+                    break;
                 llvm_emit_statement(source_payload, ctx);
             }
             break;

@@ -17,6 +17,26 @@ Pergyra should not attempt a full compiler rewrite first. The practical path is:
 The current compiler remains C + LLVM/C backend until this track explicitly
 graduates.
 
+## Architecture Migration Judgement
+
+The C compiler should not be reorganized into broad feature folders before
+beta. That would mostly rewrite paths and includes while the real blockers are
+still CFG/MIR body safety, AIR evidence coverage, DAG source-of-truth closure,
+runtime frontier policy, backend inventory parity, and ABI ownership.
+
+Self-host is the right point to recover the cleaner architecture:
+
+- use Pergyra modules/namespaces to group features such as `intent`, `zone`,
+  `world`, `relation`, `effect`, `projection`, `slot`, and `air`;
+- avoid generic `_helpers` modules by default;
+- split by responsibility and evidence owner, not by line count;
+- keep C as the oracle while each Pergyra-written tool or pass proves parity;
+- prefer small compiler-adjacent tools before moving frontend/backend core.
+
+Future agents should treat this as a migration constraint: do not start with a
+full compiler rewrite, and do not preserve the current C folder shape as the
+target self-host shape.
+
 ## Handoff Gate
 
 Self-host preparation starts only when beta closure has produced these

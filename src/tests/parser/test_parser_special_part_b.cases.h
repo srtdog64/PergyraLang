@@ -632,9 +632,17 @@ run_string_literal_surface_test(void)
         "func Main() -> Void {\n"
         "    Log(f\"open \\{name}\");\n"
         "}\n";
+    const char *escaped_legacy_code =
+        "func Main() -> Void {\n"
+        "    Log(\"literal \\${name}\");\n"
+        "}\n";
     const char *unmatched_code =
         "func Main() -> Void {\n"
         "    Log(f\"prefix {name\");\n"
+        "}\n";
+    const char *malformed_code =
+        "func Main() -> Void {\n"
+        "    Log(f\"bad {1 + }\");\n"
         "}\n";
     int failed = 0;
     Lexer *lexer = NULL;
@@ -683,10 +691,36 @@ run_string_literal_surface_test(void)
     parser = NULL;
     lexer = NULL;
 
+    PARSE_STRING_CASE(escaped_legacy_code);
+    if (ast_print_contains(ast, "ToString")) {
+        printf("[FAIL] escaped legacy interpolation opener should remain literal\n");
+        failed = 1;
+        goto cleanup;
+    }
+    ast_destroy(ast);
+    parser_destroy(parser);
+    lexer_destroy(lexer);
+    ast = NULL;
+    parser = NULL;
+    lexer = NULL;
+
     PARSE_STRING_CASE(unmatched_code);
     if (ast_print_contains(ast, "ToString")
         || !ast_print_contains(ast, "prefix {name")) {
         printf("[FAIL] unmatched interpolation brace should preserve literal text\n");
+        failed = 1;
+        goto cleanup;
+    }
+    ast_destroy(ast);
+    parser_destroy(parser);
+    lexer_destroy(lexer);
+    ast = NULL;
+    parser = NULL;
+    lexer = NULL;
+
+    PARSE_STRING_CASE(malformed_code);
+    if (ast_print_contains(ast, "ToString")) {
+        printf("[FAIL] malformed interpolation expression should preserve literal text\n");
         failed = 1;
         goto cleanup;
     }
@@ -758,6 +792,151 @@ run_pin_block_metadata_test(void)
         printf("[FAIL] pin block metadata was not preserved in AST\n");
 
 cleanup:
+    ast_destroy(ast);
+    parser_destroy(parser);
+    lexer_destroy(lexer);
+    return failed;
+}
+
+static int
+run_named_call_argument_ast_print_test(void)
+{
+    const char *code =
+        "func Main() -> Void {\n"
+        "    Log(value: 1);\n"
+        "}\n";
+    int failed = 0;
+    Lexer *lexer = lexer_create(code);
+    Parser *parser = lexer != NULL ? parser_create(lexer) : NULL;
+    ASTNode *ast = parser != NULL ? parser_parse_program(parser) : NULL;
+
+    printf("\n=== Test: Named Call Argument AST Print ===\n");
+
+    if (lexer == NULL || parser == NULL || parser_has_error(parser)) {
+        printf("[FAIL] named call argument parse failed: %s\n",
+            parser != NULL ? parser_get_error(parser) : "<parser unavailable>");
+        failed = 1;
+        goto cleanup;
+    }
+
+    if (!ast_print_contains(ast, "Log(value: 1)")) {
+        printf("[FAIL] named call argument was not preserved in AST print\n");
+        failed = 1;
+    }
+
+cleanup:
+    ast_destroy(ast);
+    parser_destroy(parser);
+    lexer_destroy(lexer);
+    return failed;
+}
+
+static int
+run_reserved_slice_expression_diagnostic_test(void)
+{
+    const char *code =
+        "func Main() -> Void {\n"
+        "    let part = xs[1..3];\n"
+        "}\n";
+    int failed = 0;
+    Lexer *lexer = lexer_create(code);
+    Parser *parser = lexer != NULL ? parser_create(lexer) : NULL;
+    ASTNode *ast = parser != NULL ? parser_parse_program(parser) : NULL;
+    const char *error = parser != NULL ? parser_get_error(parser) : NULL;
+
+    printf("\n=== Test: Reserved Slice Expression Diagnostic ===\n");
+
+    if (parser == NULL || !parser_has_error(parser)
+        || error == NULL || strstr(error, "Slicing 'xs[a..b]' is reserved") == NULL) {
+        printf("[FAIL] expected reserved slicing diagnostic, got: %s\n",
+            error != NULL ? error : "<none>");
+        failed = 1;
+    }
+
+    ast_destroy(ast);
+    parser_destroy(parser);
+    lexer_destroy(lexer);
+    return failed;
+}
+
+static int
+run_reserved_cast_type_test_diagnostic_test(void)
+{
+    const char *code =
+        "func Main() -> Void {\n"
+        "    let narrowed = value as Player;\n"
+        "}\n";
+    int failed = 0;
+    Lexer *lexer = lexer_create(code);
+    Parser *parser = lexer != NULL ? parser_create(lexer) : NULL;
+    ASTNode *ast = parser != NULL ? parser_parse_program(parser) : NULL;
+    const char *error = parser != NULL ? parser_get_error(parser) : NULL;
+
+    printf("\n=== Test: Reserved Cast Type-Test Diagnostic ===\n");
+
+    if (parser == NULL || !parser_has_error(parser)
+        || error == NULL || strstr(error, "Cast syntax 'expr as Type' is reserved") == NULL) {
+        printf("[FAIL] expected reserved cast diagnostic, got: %s\n",
+            error != NULL ? error : "<none>");
+        failed = 1;
+    }
+
+    ast_destroy(ast);
+    parser_destroy(parser);
+    lexer_destroy(lexer);
+    return failed;
+}
+
+static int
+run_reserved_object_literal_diagnostic_test(void)
+{
+    const char *code =
+        "func Main() -> Void {\n"
+        "    let value = { hp: 10 };\n"
+        "}\n";
+    int failed = 0;
+    Lexer *lexer = lexer_create(code);
+    Parser *parser = lexer != NULL ? parser_create(lexer) : NULL;
+    ASTNode *ast = parser != NULL ? parser_parse_program(parser) : NULL;
+    const char *error = parser != NULL ? parser_get_error(parser) : NULL;
+
+    printf("\n=== Test: Reserved Object Literal Diagnostic ===\n");
+
+    if (parser == NULL || !parser_has_error(parser)
+        || error == NULL || strstr(error, "Object/map literal syntax") == NULL) {
+        printf("[FAIL] expected reserved object literal diagnostic, got: %s\n",
+            error != NULL ? error : "<none>");
+        failed = 1;
+    }
+
+    ast_destroy(ast);
+    parser_destroy(parser);
+    lexer_destroy(lexer);
+    return failed;
+}
+
+static int
+run_reserved_object_initializer_diagnostic_test(void)
+{
+    const char *code =
+        "func Main() -> Void {\n"
+        "    let value = Player { hp: 10 };\n"
+        "}\n";
+    int failed = 0;
+    Lexer *lexer = lexer_create(code);
+    Parser *parser = lexer != NULL ? parser_create(lexer) : NULL;
+    ASTNode *ast = parser != NULL ? parser_parse_program(parser) : NULL;
+    const char *error = parser != NULL ? parser_get_error(parser) : NULL;
+
+    printf("\n=== Test: Reserved Object Initializer Diagnostic ===\n");
+
+    if (parser == NULL || !parser_has_error(parser)
+        || error == NULL || strstr(error, "Object initializer syntax") == NULL) {
+        printf("[FAIL] expected reserved object initializer diagnostic, got: %s\n",
+            error != NULL ? error : "<none>");
+        failed = 1;
+    }
+
     ast_destroy(ast);
     parser_destroy(parser);
     lexer_destroy(lexer);

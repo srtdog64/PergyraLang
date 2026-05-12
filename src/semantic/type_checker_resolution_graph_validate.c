@@ -1,8 +1,15 @@
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdlib.h>
 
 #include "diag_codes.h"
 #include "type_checker_internal.h"
+
+static bool
+type_resolution_checked_array_count(size_t count, size_t elem_size)
+{
+    return elem_size > 0 && count <= SIZE_MAX / elem_size;
+}
 
 static bool
 type_resolution_find_cycle_visit(TypeResolutionGraph *graph,
@@ -76,6 +83,12 @@ type_resolution_validate_graph(SemanticContext *ctx)
     graph = &ctx->type_resolution_graph;
     if (graph->node_count == 0)
         return true;
+    if (!type_resolution_checked_array_count(graph->node_count,
+            sizeof(unsigned char))
+        || !type_resolution_checked_array_count(graph->node_count,
+            sizeof(size_t))) {
+        return false;
+    }
 
     color = calloc(graph->node_count, sizeof(unsigned char));
     stack = calloc(graph->node_count, sizeof(size_t));
@@ -155,6 +168,10 @@ type_resolution_build_topo_order(TypeResolutionGraph *graph,
         return false;
     if (graph->node_count == 0)
         return true;
+    if (!type_resolution_checked_array_count(graph->node_count,
+            sizeof(size_t))) {
+        return false;
+    }
 
     indegree = calloc(graph->node_count, sizeof(size_t));
     queue = calloc(graph->node_count, sizeof(size_t));

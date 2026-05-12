@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -106,9 +107,15 @@ stage_record_unique_alias_diagnostic(SemanticContext *ctx, const char *name)
 
     if (ctx->type_resolution_stage_alias_diagnostic_name_count
         == ctx->type_resolution_stage_alias_diagnostic_name_capacity) {
+        if (ctx->type_resolution_stage_alias_diagnostic_name_capacity
+            > SIZE_MAX / 2) {
+            return false;
+        }
         new_cap = ctx->type_resolution_stage_alias_diagnostic_name_capacity == 0
             ? 8
             : ctx->type_resolution_stage_alias_diagnostic_name_capacity * 2;
+        if (new_cap > SIZE_MAX / sizeof(char *))
+            return false;
         grown = realloc(ctx->type_resolution_stage_alias_diagnostic_names,
                         new_cap * sizeof(char *));
         if (grown == NULL)

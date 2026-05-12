@@ -199,6 +199,16 @@ main(void)
     printf("\n");
     failures += run_pin_block_metadata_test();
     printf("\n");
+    failures += run_named_call_argument_ast_print_test();
+    printf("\n");
+    failures += run_reserved_slice_expression_diagnostic_test();
+    printf("\n");
+    failures += run_reserved_cast_type_test_diagnostic_test();
+    printf("\n");
+    failures += run_reserved_object_literal_diagnostic_test();
+    printf("\n");
+    failures += run_reserved_object_initializer_diagnostic_test();
+    printf("\n");
     failures += run_vessel_keyword_alias_test();
     printf("\n");
     failures += run_lexical_zone_context_test();

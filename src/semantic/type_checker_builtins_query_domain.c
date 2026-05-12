@@ -3,13 +3,6 @@
 #include "type_checker_internal.h"
 #include "type_checker_builtins_query_domain.h"
 
-static Type *
-builtin_query_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
-{
-    return semantic_type_resolution_lookup_type_ref_or_materialize(ctx,
-                                                                   type_ref);
-}
-
 ASTNode *
 find_zone_domain_slot_local(ASTNode *zone, const char *slot_name)
 {
@@ -314,7 +307,7 @@ resolve_projection_source_field_type_rec(ASTNode *program,
             && strcmp(field->name, field_name) == 0) {
             if (field_type_out != NULL)
                 *field_type_out = field->type != NULL
-                    ? builtin_query_resolve_type_ref(field->type, ctx)
+                    ? projection_resolve_type_ref(field->type, ctx)
                     : TYPE_UNKNOWN;
             return 1;
         }

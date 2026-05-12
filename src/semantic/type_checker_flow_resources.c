@@ -5,6 +5,16 @@
 #include "type_checker_ownership_internal.h"
 
 static bool
+flow_snapshot_count_fits(size_t count)
+{
+    return count <= SIZE_MAX / sizeof(Symbol *)
+        && count <= SIZE_MAX / sizeof(bool)
+        && count <= SIZE_MAX / sizeof(SlotState)
+        && count <= SIZE_MAX / sizeof(QubitSemanticState)
+        && count <= SIZE_MAX / sizeof(int32_t);
+}
+
+static bool
 flow_snapshot_tracks_symbol(const Symbol *sym, SemanticContext *ctx)
 {
     OwnershipTypeClass ownership;
@@ -33,7 +43,16 @@ snapshot_resource_states_from_scope(Scope *scope, SemanticContext *ctx)
                 continue;
 
             if (snap.count == snap.capacity) {
-                size_t next_capacity = snap.capacity == 0 ? 8 : snap.capacity * 2;
+                size_t next_capacity;
+                if (snap.capacity > SIZE_MAX / 2) {
+                    destroy_resource_snapshot(&snap);
+                    return snap;
+                }
+                next_capacity = snap.capacity == 0 ? 8 : snap.capacity * 2;
+                if (!flow_snapshot_count_fits(next_capacity)) {
+                    destroy_resource_snapshot(&snap);
+                    return snap;
+                }
                 Symbol **new_symbols = calloc(next_capacity, sizeof(Symbol *));
                 bool *new_states = calloc(next_capacity, sizeof(bool));
                 bool *new_used_states = calloc(next_capacity, sizeof(bool));

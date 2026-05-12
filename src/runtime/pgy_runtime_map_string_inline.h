@@ -1,4 +1,16 @@
 /* String-value variant */
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+
+static inline bool pgy_map_string_capacity_fits(size_t capacity)
+{
+    return capacity != 0
+        && capacity <= UINT32_MAX
+        && capacity <= SIZE_MAX / sizeof(char *)
+        && capacity <= SIZE_MAX / sizeof(uint8_t);
+}
+
 typedef struct
 {
     char   **keys;
@@ -13,6 +25,11 @@ static inline PgyHashMap_String pgy_map_new_string(void)
     PgyHashMap_String m;
     m.capacity = PGY_HASHMAP_INIT_CAP;
     m.count = 0;
+    if (!pgy_map_string_capacity_fits(m.capacity)) {
+        m.keys = NULL; m.values = NULL; m.occupied = NULL; m.capacity = 0;
+        pgy_runtime_warn_invalid_collection("map_new_string", "allocation size overflow");
+        return m;
+    }
     m.keys     = (char **)calloc(m.capacity, sizeof(char *));
     m.values   = (char **)calloc(m.capacity, sizeof(char *));
     m.occupied = (uint8_t *)calloc(m.capacity, sizeof(uint8_t));
@@ -33,10 +50,26 @@ static inline void pgy_map_set_string(PgyHashMap_String *m, const char *key, con
     if ((double)m->count / (double)m->capacity > PGY_HASHMAP_LOAD_FACTOR) {
         size_t old_cap = m->capacity;
         char **ok = m->keys; char **ov = m->values; uint8_t *oo = m->occupied;
-        size_t new_capacity = m->capacity == 0 ? PGY_HASHMAP_INIT_CAP : m->capacity * 2;
-        char **new_keys = (char **)calloc(new_capacity, sizeof(char *));
-        char **new_values = (char **)calloc(new_capacity, sizeof(char *));
-        uint8_t *new_occupied = (uint8_t *)calloc(new_capacity, sizeof(uint8_t));
+        size_t new_capacity;
+        char **new_keys;
+        char **new_values;
+        uint8_t *new_occupied;
+        if (m->capacity == 0) {
+            new_capacity = PGY_HASHMAP_INIT_CAP;
+        } else {
+            if (m->capacity > SIZE_MAX / 2) {
+                pgy_runtime_warn_invalid_collection("map_set_string", "capacity overflow");
+                return;
+            }
+            new_capacity = m->capacity * 2;
+        }
+        if (!pgy_map_string_capacity_fits(new_capacity)) {
+            pgy_runtime_warn_invalid_collection("map_set_string", "allocation size overflow");
+            return;
+        }
+        new_keys = (char **)calloc(new_capacity, sizeof(char *));
+        new_values = (char **)calloc(new_capacity, sizeof(char *));
+        new_occupied = (uint8_t *)calloc(new_capacity, sizeof(uint8_t));
         if (new_keys == NULL || new_values == NULL || new_occupied == NULL) {
             free(new_keys); free(new_values); free(new_occupied);
             pgy_runtime_warn_invalid_collection("map_set_string", "map growth allocation failed");

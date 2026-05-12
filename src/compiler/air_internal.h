@@ -92,6 +92,13 @@ bool        air_validate_global_evidence_node(const AIREvidenceNode *evidence,
 bool        air_validate_boundary_legacy_evidence_shape(const AIRProgram *air,
                                                         size_t boundary_index,
                                                         char **error_message);
+bool        air_validate_summary_counters(const AIRProgram *air,
+                                          char **error_message);
+char       *air_format_authority_names_owned(
+                const AIRBoundaryNode *boundary);
+char       *air_format_boundary_provenance_owned(
+                const AIRIntentNode *intent,
+                const AIRBoundaryNode *boundary);
 bool        air_validate_evidence_inventory(const AIRProgram *air,
                                             char **error_message);
 

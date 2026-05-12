@@ -4,35 +4,6 @@
 
 #include <string.h>
 
-static Type *
-intent_transfer_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
-{
-    return semantic_type_resolution_lookup_type_ref_or_materialize(ctx,
-                                                                   type_ref);
-}
-
-static Type *
-intent_transfer_resolve_involves_type(ASTNode *involves, SemanticContext *ctx)
-{
-    ASTNode *type_ref;
-    if (involves == NULL || involves->type != AST_INTENT_INVOLVES)
-        return TYPE_UNKNOWN;
-    type_ref = involves->data.intent_involves.subject_type;
-    return intent_transfer_resolve_type_ref(type_ref, ctx);
-}
-
-static Type *
-intent_transfer_resolve_step_where_type(ASTNode *step, SemanticContext *ctx)
-{
-    ASTNode *type_ref;
-    if (step == NULL || step->type != AST_INTENT_STEP
-        || step->data.intent_step.where_type == NULL) {
-        return NULL;
-    }
-    type_ref = step->data.intent_step.where_type;
-    return intent_transfer_resolve_type_ref(type_ref, ctx);
-}
-
 void
 type_check_intent_step_transfer_contract(ASTNode *node,
                                          ASTNode *step,
@@ -53,14 +24,14 @@ type_check_intent_step_transfer_contract(ASTNode *node,
     ASTNode *to_involves = intent_step_resolve_transfer_target_involves(
         node, step, &to_alias);
     Type *from_type = from_involves != NULL
-        ? intent_transfer_resolve_involves_type(from_involves, ctx) : NULL;
+        ? intent_resolve_involves_type(from_involves, ctx) : NULL;
     Type *to_type = to_involves != NULL
-        ? intent_transfer_resolve_involves_type(to_involves, ctx) : NULL;
+        ? intent_resolve_involves_type(to_involves, ctx) : NULL;
     ASTNode *from_zone_decl = find_domain_decl_by_name(ctx->program_root, AST_ZONE_DECL,
         from_type != NULL ? from_type->name : NULL);
     ASTNode *to_zone_decl = find_domain_decl_by_name(ctx->program_root, AST_ZONE_DECL,
         to_type != NULL ? to_type->name : NULL);
-    Type *where_zone_type = intent_transfer_resolve_step_where_type(step, ctx);
+    Type *where_zone_type = intent_resolve_step_where_type(step, ctx);
 
     if (from_alias == NULL || to_alias == NULL) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_INTENT_STEP_INVALID, PGY_CAUSE_INTENT_STEP, PGY_FIX_ALIGN_STEP_WITH_ZONE_ACTION_CONTRACTS, step,

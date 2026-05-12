@@ -138,9 +138,130 @@ llvm_scalar_expr_error(LLVMGenCtx *ctx, ASTNode *node, const char *message)
     return NULL;
 }
 
+static LLVMValueRef
+llvm_scalar_coerce_payload(LLVMGenCtx *ctx, LLVMValueRef val,
+                           LLVMTypeRef target_ty)
+{
+    LLVMTypeRef val_ty;
+
+    if (ctx == NULL || val == NULL || target_ty == NULL)
+        return val;
+    val_ty = LLVMTypeOf(val);
+    if (val_ty == target_ty)
+        return val;
+    if ((target_ty == ctx->type_i32 || target_ty == ctx->type_i64)
+        && (val_ty == ctx->type_i32 || val_ty == ctx->type_i64)) {
+        return (LLVMGetIntTypeWidth(target_ty) > LLVMGetIntTypeWidth(val_ty))
+            ? LLVMBuildSExt(ctx->builder, val, target_ty, llvm_tmp_name(ctx))
+            : LLVMBuildTrunc(ctx->builder, val, target_ty, llvm_tmp_name(ctx));
+    }
+    if ((target_ty == ctx->type_f32 || target_ty == ctx->type_f64)
+        && (val_ty == ctx->type_i32 || val_ty == ctx->type_i64))
+        return LLVMBuildSIToFP(ctx->builder, val, target_ty, llvm_tmp_name(ctx));
+    if ((val_ty == ctx->type_f32 || val_ty == ctx->type_f64)
+        && (target_ty == ctx->type_i32 || target_ty == ctx->type_i64))
+        return LLVMBuildFPToSI(ctx->builder, val, target_ty, llvm_tmp_name(ctx));
+    if ((val_ty == ctx->type_f32 && target_ty == ctx->type_f64))
+        return LLVMBuildFPExt(ctx->builder, val, target_ty, llvm_tmp_name(ctx));
+    if ((val_ty == ctx->type_f64 && target_ty == ctx->type_f32))
+        return LLVMBuildFPTrunc(ctx->builder, val, target_ty, llvm_tmp_name(ctx));
+    return val;
+}
+
+static LLVMValueRef
+llvm_emit_option_coalesce(ASTNode *node, LLVMGenCtx *ctx)
+{
+    LLVMValueRef left;
+    LLVMTypeRef left_type;
+    LLVMTypeRef fields[2];
+    LLVMValueRef current_fn;
+    LLVMBasicBlockRef some_bb;
+    LLVMBasicBlockRef fallback_bb;
+    LLVMBasicBlockRef merge_bb;
+    LLVMBasicBlockRef incoming_blocks[2];
+    LLVMValueRef incoming_values[2];
+    unsigned incoming_count = 0;
+    LLVMValueRef tag;
+    LLVMValueRef is_some;
+    LLVMValueRef value;
+    LLVMValueRef fallback;
+    LLVMValueRef phi;
+
+    left = llvm_emit_expression(node->data.binary.left, ctx);
+    if (left == NULL)
+        return llvm_scalar_expr_error(ctx, node,
+            "LLVM coalesce operator could not lower left Option operand");
+
+    left_type = LLVMTypeOf(left);
+    if (LLVMGetTypeKind(left_type) != LLVMStructTypeKind
+        || LLVMCountStructElementTypes(left_type) != 2) {
+        return llvm_scalar_expr_error(ctx, node,
+            "LLVM coalesce operator requires concrete Option<T> aggregate operand");
+    }
+
+    current_fn = ctx != NULL ? ctx->current_function : NULL;
+    if (current_fn == NULL && ctx != NULL && ctx->builder != NULL) {
+        LLVMBasicBlockRef block = LLVMGetInsertBlock(ctx->builder);
+        current_fn = block != NULL ? LLVMGetBasicBlockParent(block) : NULL;
+    }
+    if (current_fn == NULL)
+        return llvm_scalar_expr_error(ctx, node,
+            "LLVM coalesce operator requires an active function for lazy fallback lowering");
+
+    LLVMGetStructElementTypes(left_type, fields);
+    tag = LLVMBuildExtractValue(ctx->builder, left, 0, llvm_tmp_name(ctx));
+    is_some = LLVMBuildICmp(ctx->builder, LLVMIntEQ, tag,
+        LLVMConstInt(ctx->type_i32, 0, 0), llvm_tmp_name(ctx));
+
+    some_bb = LLVMAppendBasicBlockInContext(ctx->context, current_fn,
+                                            "coalesce.some");
+    fallback_bb = LLVMAppendBasicBlockInContext(ctx->context, current_fn,
+                                                "coalesce.fallback");
+    merge_bb = LLVMAppendBasicBlockInContext(ctx->context, current_fn,
+                                             "coalesce.merge");
+
+    LLVMBuildCondBr(ctx->builder, is_some, some_bb, fallback_bb);
+
+    LLVMPositionBuilderAtEnd(ctx->builder, some_bb);
+    value = LLVMBuildExtractValue(ctx->builder, left, 1, llvm_tmp_name(ctx));
+    if (LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(ctx->builder)) == NULL) {
+        incoming_blocks[incoming_count] = LLVMGetInsertBlock(ctx->builder);
+        incoming_values[incoming_count] = value;
+        incoming_count++;
+        LLVMBuildBr(ctx->builder, merge_bb);
+    }
+
+    LLVMPositionBuilderAtEnd(ctx->builder, fallback_bb);
+    fallback = llvm_emit_expression(node->data.binary.right, ctx);
+    if (fallback == NULL)
+        return llvm_scalar_expr_error(ctx, node,
+            "LLVM coalesce operator could not lower fallback expression");
+    fallback = llvm_scalar_coerce_payload(ctx, fallback, fields[1]);
+    if (LLVMTypeOf(fallback) != fields[1])
+        return llvm_scalar_expr_error(ctx, node,
+            "LLVM coalesce operator fallback type does not match Option payload type");
+    if (LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(ctx->builder)) == NULL) {
+        incoming_blocks[incoming_count] = LLVMGetInsertBlock(ctx->builder);
+        incoming_values[incoming_count] = fallback;
+        incoming_count++;
+        LLVMBuildBr(ctx->builder, merge_bb);
+    }
+
+    LLVMPositionBuilderAtEnd(ctx->builder, merge_bb);
+    if (incoming_count == 0)
+        return LLVMGetUndef(fields[1]);
+
+    phi = LLVMBuildPhi(ctx->builder, fields[1], llvm_tmp_name(ctx));
+    LLVMAddIncoming(phi, incoming_values, incoming_blocks, incoming_count);
+    return phi;
+}
+
 LLVMValueRef
 llvm_emit_binary(ASTNode *node, LLVMGenCtx *ctx)
 {
+    if (node->data.binary.op.type == TOKEN_COALESCE)
+        return llvm_emit_option_coalesce(node, ctx);
+
     LLVMValueRef left  = llvm_emit_expression(node->data.binary.left, ctx);
     LLVMValueRef right = llvm_emit_expression(node->data.binary.right, ctx);
     if (left == NULL || right == NULL)
@@ -149,6 +270,7 @@ llvm_emit_binary(ASTNode *node, LLVMGenCtx *ctx)
 
     LLVMTypeRef left_type  = LLVMTypeOf(left);
     LLVMTypeRef right_type = LLVMTypeOf(right);
+
     {
         const char *suffix = llvm_operator_overload_suffix(
             node->data.binary.op.type);
@@ -328,132 +450,6 @@ llvm_emit_binary(ASTNode *node, LLVMGenCtx *ctx)
     default:
         return llvm_scalar_expr_error(ctx, node,
             "LLVM binary expression uses an unsupported operator");
-    }
-}
-
-LLVMValueRef
-llvm_emit_unary(ASTNode *node, LLVMGenCtx *ctx)
-{
-    if (node->data.unary.op.type == TOKEN_QUESTION) {
-        LLVMValueRef result = llvm_emit_expression(node->data.unary.operand, ctx);
-        LLVMTypeRef result_ty;
-        unsigned field_count;
-
-        if (result == NULL)
-            return llvm_scalar_expr_error(ctx, node,
-                "LLVM try operator could not lower operand expression");
-        result_ty = LLVMTypeOf(result);
-        if (LLVMGetTypeKind(result_ty) != LLVMStructTypeKind)
-            return llvm_scalar_expr_error(ctx, node,
-                "LLVM try operator requires Result-like aggregate operand");
-        field_count = LLVMCountStructElementTypes(result_ty);
-        if (field_count < 2 || ctx->current_function == NULL)
-            return llvm_scalar_expr_error(ctx, node,
-                "LLVM try operator requires Result payload fields and active function");
-
-        LLVMTypeRef fields[8];
-        LLVMGetStructElementTypes(result_ty, fields);
-
-        LLVMValueRef tag = LLVMBuildExtractValue(ctx->builder, result, 0, llvm_tmp_name(ctx));
-        LLVMValueRef is_ok = LLVMBuildICmp(ctx->builder, LLVMIntEQ, tag,
-            LLVMConstInt(ctx->type_i32, 0, 0), llvm_tmp_name(ctx));
-
-        LLVMValueRef ok_alloca = llvm_create_entry_alloca(ctx, fields[1], llvm_tmp_name(ctx));
-        if (ok_alloca == NULL)
-            return llvm_scalar_expr_error(ctx, node,
-                "LLVM try operator payload allocation failed");
-        LLVMBasicBlockRef ok_bb = LLVMAppendBasicBlockInContext(ctx->context,
-            ctx->current_function, "try.ok");
-        LLVMBasicBlockRef err_bb = LLVMAppendBasicBlockInContext(ctx->context,
-            ctx->current_function, "try.err");
-        LLVMBasicBlockRef cont_bb = LLVMAppendBasicBlockInContext(ctx->context,
-            ctx->current_function, "try.cont");
-
-        LLVMBuildCondBr(ctx->builder, is_ok, ok_bb, err_bb);
-
-        LLVMPositionBuilderAtEnd(ctx->builder, ok_bb);
-        {
-            LLVMValueRef ok_value = LLVMBuildExtractValue(ctx->builder, result,
-                1, llvm_tmp_name(ctx));
-            LLVMBuildStore(ctx->builder, ok_value, ok_alloca);
-            LLVMBuildBr(ctx->builder, cont_bb);
-        }
-
-        LLVMPositionBuilderAtEnd(ctx->builder, err_bb);
-        LLVMTypeRef fn_ret_type = ctx->current_ret_type;
-        if (ctx->current_func_decl != NULL
-            && ctx->current_func_decl->type == AST_FUNC_DECL
-            && ctx->current_func_decl->data.func_decl.return_type != NULL) {
-            LLVMTypeRef declared = ast_type_to_llvm(ctx,
-                ctx->current_func_decl->data.func_decl.return_type);
-            if (declared != NULL)
-                fn_ret_type = declared;
-        }
-        if (fn_ret_type == result_ty) {
-            LLVMBuildRet(ctx->builder, result);
-        } else if (fn_ret_type != NULL
-            && LLVMGetTypeKind(fn_ret_type) == LLVMStructTypeKind
-            && LLVMCountStructElementTypes(fn_ret_type) == 3) {
-            LLVMTypeRef ret_fields[3];
-            LLVMGetStructElementTypes(fn_ret_type, ret_fields);
-            LLVMValueRef err_val = LLVMBuildExtractValue(ctx->builder, result,
-                2, llvm_tmp_name(ctx));
-            if (LLVMTypeOf(err_val) != ret_fields[2]) {
-                LLVMTypeRef src_ty = LLVMTypeOf(err_val);
-                LLVMTypeRef dst_ty = ret_fields[2];
-                if (LLVMGetTypeKind(src_ty) == LLVMIntegerTypeKind
-                    && LLVMGetTypeKind(dst_ty) == LLVMIntegerTypeKind) {
-                    err_val = (LLVMGetIntTypeWidth(dst_ty) > LLVMGetIntTypeWidth(src_ty))
-                        ? LLVMBuildSExt(ctx->builder, err_val, dst_ty, llvm_tmp_name(ctx))
-                        : LLVMBuildTrunc(ctx->builder, err_val, dst_ty, llvm_tmp_name(ctx));
-                } else if (LLVMGetTypeKind(src_ty) == LLVMPointerTypeKind
-                           && LLVMGetTypeKind(dst_ty) == LLVMPointerTypeKind) {
-                    err_val = LLVMBuildBitCast(ctx->builder, err_val, dst_ty,
-                        llvm_tmp_name(ctx));
-                } else {
-                    llvm_set_error_at_with_hints(ctx, node,
-                        PGY_CODE_LLVM_TYPE_UNSUPPORTED,
-                        PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
-                        PGY_FIX_ALIGN_RESULT_ERROR_TYPE,
-                        "LLVM try operator cannot coerce Result error payload to current function error type");
-                    LLVMBuildUnreachable(ctx->builder);
-                    LLVMPositionBuilderAtEnd(ctx->builder, cont_bb);
-                    return NULL;
-                }
-            }
-            LLVMValueRef rebuilt = LLVMGetUndef(fn_ret_type);
-            rebuilt = LLVMBuildInsertValue(ctx->builder, rebuilt,
-                LLVMConstInt(ctx->type_i32, 1, 0), 0, llvm_tmp_name(ctx));
-            rebuilt = LLVMBuildInsertValue(ctx->builder, rebuilt,
-                LLVMConstNull(ret_fields[1]), 1, llvm_tmp_name(ctx));
-            rebuilt = LLVMBuildInsertValue(ctx->builder, rebuilt,
-                err_val, 2, llvm_tmp_name(ctx));
-            LLVMBuildRet(ctx->builder, rebuilt);
-        } else {
-            LLVMBuildUnreachable(ctx->builder);
-        }
-
-        LLVMPositionBuilderAtEnd(ctx->builder, cont_bb);
-        return LLVMBuildLoad2(ctx->builder, fields[1], ok_alloca, llvm_tmp_name(ctx));
-    }
-
-    LLVMValueRef operand = llvm_emit_expression(node->data.unary.operand, ctx);
-    if (operand == NULL)
-        return llvm_scalar_expr_error(ctx, node,
-            "LLVM unary expression could not lower operand expression");
-
-    const char *tmp = llvm_tmp_name(ctx);
-
-    switch (node->data.unary.op.type) {
-    case TOKEN_MINUS:
-        if (LLVMTypeOf(operand) == ctx->type_f64 ||
-            LLVMTypeOf(operand) == ctx->type_f32)
-            return LLVMBuildFNeg(ctx->builder, operand, tmp);
-        return LLVMBuildNeg(ctx->builder, operand, tmp);
-    case TOKEN_NOT:
-        return LLVMBuildNot(ctx->builder, operand, tmp);
-    default:
-        return operand;
     }
 }
 

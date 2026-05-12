@@ -9,13 +9,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-static Type *
-role_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
-{
-    return semantic_type_resolution_lookup_type_ref_or_materialize(ctx,
-                                                                   type_ref);
-}
-
 bool
 type_check_role_decl(ASTNode *node, SemanticContext *ctx)
 {
@@ -55,7 +48,7 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
             name != NULL ? name : "<role>",
             node->data.role_decl.for_type,
             "role host-type lookup");
-        Type *bound_type = role_resolve_type_ref(
+        Type *bound_type = domain_resolve_type_ref(
             node->data.role_decl.for_type, ctx);
         if (bound_type != NULL
             && node->data.role_decl.for_type->type == AST_TYPE
@@ -150,7 +143,7 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
                             tc->type_param);
                         if (param_index < 0 || (size_t)param_index >= effective_count)
                             continue;
-                        concrete_type = role_resolve_type_ref(
+                        concrete_type = domain_resolve_type_ref(
                             effective_args[param_index], ctx);
                         if (concrete_type == NULL)
                             continue;
@@ -367,7 +360,7 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
                                 malformed_impl_args = true;
                                 continue;
                             }
-                            role_resolve_type_ref(arg, ctx);
+                            domain_resolve_type_ref(arg, ctx);
                         }
                     }
                     if (!malformed_impl_args) {

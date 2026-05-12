@@ -16,6 +16,7 @@
 #include <string.h>
 #include <assert.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 /* ====================================================================
  * Test 1: Buffer Overflow Prevention - sprintf → snprintf

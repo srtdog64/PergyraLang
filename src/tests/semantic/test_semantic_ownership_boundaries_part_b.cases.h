@@ -1,3 +1,6 @@
+static void
+test_semantic_ownership_boundaries_part_b(void)
+{
     TEST("ref subject parameter cannot escape through helper/function call");
     {
         const char *source =
@@ -25,7 +28,6 @@
         parser_destroy(parser);
         lexer_destroy(lexer);
     }
-
     TEST("ref subject parameter cannot escape into new binding");
     {
         const char *source =
@@ -841,3 +843,4 @@
         parser_destroy(parser);
         lexer_destroy(lexer);
     }
+}

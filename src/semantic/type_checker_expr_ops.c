@@ -32,12 +32,6 @@ operator_overload_suffix(PgyTokenType op)
     }
 }
 
-static Type *
-operator_expr_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
-{
-    return semantic_type_resolution_lookup_type_ref_or_materialize(ctx, type_ref);
-}
-
 static bool
 operator_method_name_matches(PgyTokenType op, const char *name)
 {
@@ -175,12 +169,12 @@ type_check_role_operator_overload(ASTNode *expr, SemanticContext *ctx,
 
         Type *rhs_type = TYPE_INT;
         if (rhs_param != NULL && rhs_param->type != NULL)
-            rhs_type = operator_expr_resolve_type_ref(rhs_param->type, ctx);
+            rhs_type = domain_resolve_type_ref(rhs_param->type, ctx);
         if (!type_is_assignable(right, rhs_type))
             continue;
 
         if (method->data.func_decl.return_type != NULL)
-            return operator_expr_resolve_type_ref(
+            return domain_resolve_type_ref(
                 method->data.func_decl.return_type, ctx);
         return TYPE_VOID;
     }
@@ -251,6 +245,32 @@ type_check_binary(ASTNode *expr, SemanticContext *ctx)
     }
 
     PgyTokenType op = expr->data.binary.op.type;
+    if (op == TOKEN_COALESCE) {
+        Type *inner;
+        if (!type_is_constructed_named(left, "Option")) {
+            semantic_error_with_hints(ctx,
+                PGY_CODE_SEM_BINOP_TYPE_MISMATCH,
+                PGY_CAUSE_BINOP_OPERAND_TYPES,
+                PGY_FIX_ALIGN_OPERAND_TYPES_OR_OVERLOAD,
+                expr,
+                "'?""?' requires Option<T> on the left, got '%s'",
+                type_name_or_unknown(left));
+            return TYPE_UNKNOWN;
+        }
+        inner = expr_ops_normalize_type(type_get_constructed_arg(left, 0));
+        if (!type_is_assignable(right, inner)) {
+            semantic_error_with_hints(ctx,
+                PGY_CODE_SEM_BINOP_TYPE_MISMATCH,
+                PGY_CAUSE_BINOP_OPERAND_TYPES,
+                PGY_FIX_ALIGN_OPERAND_TYPES_OR_OVERLOAD,
+                expr,
+                "'?""?' fallback type '%s' is not assignable to '%s'",
+                type_name_or_unknown(right), type_name_or_unknown(inner));
+            return TYPE_UNKNOWN;
+        }
+        return inner;
+    }
+
     if (op == TOKEN_EQUAL || op == TOKEN_NOT_EQUAL
         || op == TOKEN_LESS     || op == TOKEN_LESS_EQUAL
         || op == TOKEN_GREATER  || op == TOKEN_GREATER_EQUAL) {

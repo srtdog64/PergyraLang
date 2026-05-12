@@ -13,6 +13,334 @@ English anchor for tooling/doc gates:
 - Self-host is not a beta blocker; partial self-host is the recommended first trajectory.
 - First dogfood targets are compiler-adjacent tools: diagnostic catalog checker, AIR graph JSON validator, MIR dump diff tool, C/LLVM backend output comparator, and module/package resolver helper.
 - full self-host remains a long-term proof target, not a current capability.
+- Common-language syntax/modeling pattern tracking lives in
+  `docs/124_syntax_pattern_matrix.md`. Use it before copying a familiar
+  C#/Rust/TypeScript/Python/Go/Swift/Zig pattern into the parser. Most gaps
+  should become intent inference, module APIs, or post-beta library/module work
+  rather than new core keywords.
+- D is tracked as a compiler-engineering and multi-paradigm reference, not as a
+  metaprogramming source. See `docs/124_syntax_pattern_matrix.md` Section 1a
+  and `docs/127_compiler_speed_engineering.md`: UFCS, in-source dogfood tests,
+  ranges/iteration ability, and compile-speed discipline are candidates;
+  CTFE, string mixins, template metaprogramming, and default GC stay off-axis.
+- Documentation quality gating is split into a fast beta contract smoke and an
+  opt-in full repository sweep. `documentation-quality-test-smoke` validates
+  required source-of-truth docs/examples by default; set
+  `PGY_DOC_QUALITY_FULL_UTF8=1` to scan every `docs/**/*.md` and
+  `examples/**/*.pgy` file plus the full anonymous-async example sweep.
+- CI/source smoke portability update: source-of-truth contract gates must not
+  fail solely because Python or a default `bin/pgy` is absent. The Python path
+  remains the richer structural/JSON audit when available; no-Python runners use
+  shell literal fallbacks for source contracts, while executable-only probes
+  skip only after their source/docs contract has been checked. `source-utf8`
+  now uses a single Perl fallback when Python is missing, avoiding per-file
+  `iconv` timeouts in Windows/Git Bash. Direct `type_resolution_dag_smoke.sh`
+  runs also skip when `SEMANTIC_TEST_BIN` is absent; Make/CI-provided semantic
+  binaries remain the strict path for DAG stats floors. Direct
+  `semantic_fixture_isolation_smoke.sh` runs follow the same no-binary skip
+  policy; the Make target still depends on `$(SEMANTIC_TEST)`.
+  `tooling_conformance_smoke.sh` still checks formatter/debugger when binaries
+  exist, but skips only the LSP JSON-RPC harness if Python is absent.
+  `type_resolution_resolver_inventory_smoke.sh` keeps the source-level DAG seam
+  gated in no-binary environments.
+- `source-test-harness-compile-test-smoke` now gives the root `src/test_*.c`
+  harnesses a cheap independent-TU compile gate. It is intentionally a compile
+  smoke, not a link/run gate: its job is to catch missing standard headers,
+  nested fixture include debt, and POSIX/Windows portability leaks before the
+  full test binaries are built. If the configured shell cannot compile even a
+  tiny C probe, the smoke skips with an explicit environment message; native
+  compiler sweeps remain the strict local verification path.
+- Build preflight now includes a tiny `CC` compile probe from the configured
+  `BASH` shell. This turns the Windows `mingw32-make` + Git Bash + external
+  MinGW mismatch into an early, explicit environment diagnostic instead of a
+  late opaque object-build failure.
+- Windows native `mingw32-make` now prefers Git Bash (`C:/Progra~1/Git/bin/bash.exe`)
+  before falling back to PATH `bash`. This prevents `C:\Windows\system32\bash.exe`
+  or `cmd.exe` recipe parsing from masquerading as project failures. If `gcc`
+  still cannot compile from that shell, `check-build-tools` reports the toolchain
+  mismatch explicitly and shell-only smokes may skip compile probes.
+- DAG/type-resolution OOM handling tightened: intent duplicate signature
+  repair, program-level function/event/enum-variant/intent placeholder
+  generation, and generic call-argument metadata recording now report
+  `PGY_CAUSE_RESOLUTION_OOM` with `reduce-scope-or-retry` instead of
+  dereferencing failed parameter-array allocations or silently skipping
+  where-bound call validation metadata. Program-level placeholder type/symbol
+  construction now fails the prepass explicitly instead of registering
+  `TYPE_UNKNOWN` for class/enum/domain/function/event/intent shells after an
+  allocation failure. A graph that already passed cycle validation no longer
+  reports topo-order allocation failure as another cycle diagnostic; it reports
+  the same `resolution:oom` class. This is not a new source-of-truth feature;
+  it removes crash/silent-degradation seams from existing graph-backed
+  declaration and call-checking paths.
+- CFG/body resource-state merge now refuses to mark a copied snapshot as
+  initialized when the copy failed to preserve the source symbol count. This
+  keeps OOM/overflow in loop break/continue/fallthrough joins from silently
+  becoming an empty but "valid" body-safety fact.
+- AIR evidence collection commit order tightened: HIR/RIR boundary summary
+  flags and counters now advance only after the matching `EvidenceNode` append
+  succeeds. This keeps strict AIR from carrying summary-only evidence if name
+  ownership or evidence-node allocation fails mid-collection. HIR/RIR boundary
+  and authority collection also avoids duplicate evidence-node merges from
+  inflating summary counters, keeping the `EvidenceNode` inventory as the proof
+  source of truth.
+- MIR cleanup edge materialization now follows the same commit-after-append
+  rule: cleanup/rollback/invalidation successor flags are set only after the
+  matching cleanup fact instruction and predecessor edge append succeed. This
+  prevents partial allocation failure from leaving successor facts without
+  materialized cleanup evidence for AIR/CFG validators. Predecessor edge storage
+  is reserved before cleanup fact instructions are appended, so cleanup
+  materialization no longer leaves an instruction-only partial edge when
+  predecessor growth fails.
+- DAG metadata index rebuild now builds the replacement hash index off to the
+  side and swaps it into `SemanticContext.type_resolution_metadata` only after
+  every existing metadata entry was inserted successfully. Index rebuild
+  failure therefore preserves the previous lookup index instead of replacing it
+  with a partially rebuilt one.
+- `docs/124_syntax_pattern_matrix.md` Section 16 tracks essential common patterns that
+  are not unique to Pergyra but are required for ordinary programming
+  ergonomics. Missing essentials must be marked as beta blocker, post-beta gap,
+  or intentional reject; they must not disappear behind Pergyra-unique surface
+  work.
+- `docs/124_syntax_pattern_matrix.md` Section 18 tracks core syntax patterns that
+  should be reserved before beta freeze even if implementation lands later.
+  This list is intentionally about language grammar only, not package manager,
+  module ecosystem, WebGL/GPU libraries, or external tooling.
+- 2026-05-11 recheck added the missing common-pattern rows that were not
+  represented clearly enough in `docs/124_syntax_pattern_matrix.md`:
+  member/index access, pipeline composition, slicing/keyed indexing, object
+  initializer/builder sugar, cast/type-test syntax, compound assignment,
+  spread/rest, and doc-comment metadata. These are taxonomy entries, not
+  permission to add parser-first features.
+- Syntax reservation must distinguish missing syntax from already-active
+  parser/AST surfaces. Current examples: interpolated strings, tuple
+  literals/types, lambda expressions, unsafe blocks, match guards, or-patterns,
+  positional destructuring, and `public`/`private` are already present in code
+  to varying depths. The beta task is to freeze or explicitly demote each one,
+  not to rediscover it as a new feature.
+- `??` is now the first promoted common-pattern sugar from this list:
+  `Option<T> ?? T -> T` parses, type-checks, and lowers through C/LLVM scalar
+  expression paths. `?.` and `@` remain grammar-reserved tokens with explicit
+  parser rejection rather than accidental lexer gaps.
+- `xs[a..b]` and `xs[..]` are now explicit parser rejects rather than generic
+  array-index parse failures. Public slicing remains post-beta until collection
+  ABI, failure policy, and ownership semantics are frozen.
+- `...` is now a reserved spread/rest token with explicit parser rejection in
+  expression positions. Public spread/rest remains post-beta until call ABI,
+  collection ABI, and destructuring ownership policy are frozen.
+- `expr as Type` and `expr is Type` now reject explicitly in `let`, `return`,
+  and expression-statement positions. Normal `as` uses in `with`, `pin`, and
+  `using ... as ...` remain active; broad cast/type-test syntax stays post-beta.
+- `{ ... }` object/map literal syntax and `Type { ... }` initializer sugar now
+  reject explicitly in expression contexts. Constructors, factory functions,
+  and collection APIs remain the beta path until partial-construction and
+  collection ABI ownership policy are frozen.
+- `Call(name: value)` is now grammar/AST-reserved and AST-printable, but it is
+  semantically rejected before call type checking. Do not route named arguments
+  into backend/codegen until call ABI, default-argument interaction, overload
+  policy, and diagnostics are designed.
+- Function/async/lambda default value arguments are now explicitly parser
+  rejected when `=` appears in a parameter list. Generic default type
+  arguments remain separate and active; value defaults require a later ABI and
+  call-dispatch design.
+- Lambda expressions remain a limited callable surface, not full closures:
+  semantic now rejects local value/resource capture because beta C/LLVM lowering
+  has no closure environment. Pass captured data as explicit parameters or move
+  the logic into a named function/action until closure capture and boundary
+  lifetime analysis are source-of-truth facts. Lambda-local `let` /
+  destructure / `for` bindings are tracked as local names so this reject gate
+  does not misclassify ordinary lambda body locals as captures.
+  The C backend lambda emitter now restores temporary parameter type bindings
+  on all lambda-lowering error exits, so backend failure cannot leak lambda
+  parameter typing into later emission.
+- Named field destructuring syntax such as `let {x, y} = value;` is now
+  explicitly parser-rejected. Positional destructuring remains active; named
+  destructuring must wait until CFG/dataflow facts, MIR cleanup, and backend
+  extraction policy can own the binding semantics.
+- Generic/type argument elision with `_` is now explicitly parser-rejected in
+  type positions and generic parameter declarations. `_` remains available as
+  an ordinary value/binding identifier where existing syntax allows it; it must
+  not silently become a nominal type named `_` until a real elision design
+  exists.
+- Intent compact step is no longer a pure design gap: semantic regressions
+  already cover `on:` receiver/action inference for `who`, action `within`,
+  action `requires`, action `causes`, simple/parameter `authorized by`, and
+  derived `using` where unambiguous. Remaining work is to make the compact form
+  the documented default and strengthen conflict diagnostics; do not add a
+  parallel intent syntax for this.
+- Parser vector growth that updates parallel arrays must commit capacity only
+  after every companion allocation succeeds. `parser_expr.c` now keeps call
+  argument storage and named-argument storage consistent on partial OOM during
+  pipe/call argument growth, including identifier-pipe lowering that creates
+  `f(x)` calls from `x |> f`; `ast.c` uses the same reserve-before-append rule
+  for direct AST call argument mutation, and projection field-map parsing now
+  grows target and source field arrays with copy-then-commit semantics.
+  Semantic world-zone embedding metadata now applies the same rule to its
+  zone/world/slot parallel arrays and rejects half-copied entries. Single-array
+  parser/semantic appenders still need overflow guards when they own
+  source-of-truth metadata; destructuring names and inferred intent authority
+  aliases now follow that rule. Intent semantic name/required-ability appenders
+  now also guard geometric growth before cloning or storing inferred contract
+  facts. Function parameter and nominal field/method parser appenders now guard
+  the same overflow edge before expanding the canonical AST declaration arrays;
+  async parameters, async blocks, and select-case parser vectors follow the
+  same rule. Action contract clauses now guard required-ability and
+  authorized-by vector growth before committing action contract metadata.
+- MIR instruction ids and MIR evidence counters are source-of-truth metadata:
+  they must advance only after the instruction append succeeds. `mir.c`,
+  `mir_cleanup.c`, `mir_intent.c`, and `mir_non_cfg_stmt_population.c` now use
+  commit-after-append helpers for base, cleanup, intent, and non-CFG fallback
+  instructions so failed block growth cannot leave `instruction_count`,
+  `cleanup_instruction_count`, or `cleanup_edge_count` ahead of the materialized
+  MIR graph. `mir_stmt_population.c` also guards rebuilt instruction-array
+  sizing and the zero-instruction `calloc(0)` edge before rewriting a block's
+  statement instruction inventory. `mir_ssa_rename.c` now guards SSA version,
+  block-version, and PHI incoming array sizing before materializing rename/use
+  facts, keeping large or corrupted CFG shapes from wrapping analysis storage.
+  `mir_liveness_dce.c` now applies the same block-count array guard before
+  building liveness postorder state.
+- HIR CFG is the body-safety input layer for MIR, so its analysis arrays follow
+  the same contract. Natural-loop marking, PHI worklist construction, PHI
+  candidate counters, and PHI node materialization now guard block/candidate
+  counts before allocating CFG analysis state.
+- HIR routine construction no longer owns CFG validation/finalization
+  mechanics. `hir_routine_cfg.c` now owns CFG shape/predecessor validation,
+  finalization, dominance/frontier, loop, local-def, phi, and summary
+  sequencing behind the internal `hir_finish_cfg_routine(...)` seam, while
+  `hir_routines.c` stays focused on declaration/routine construction and hidden
+  method extraction. Gate used: `test-hir` (`19 passed, 0 failed`).
+- MIR SSA ownership is split by source-of-truth responsibility:
+  `mir_ssa_rename.c` owns SSA name discovery, version assignment, and PHI input
+  materialization; `mir_ssa_use_edges.c` owns versioned use-edge population and
+  block entry/exit value summaries behind `mir_ssa_rename_internal.h`. Gate
+  used: `test-mir` (`63 passed, 0 failed`). `cfg_body_dataflow_smoke.sh` now
+  tracks the same split, so use-edge expression facts are gated against
+  `mir_ssa_use_edges.c` instead of the SSA rename owner.
+- LLVM statement type inference no longer owns nominal receiver/result
+  inference. `llvm_stmt_type_infer_nominal.c` owns nominal class-name inference
+  for identifiers, calls, and member access, while `llvm_stmt_type_infer.c`
+  remains the expression-type and array-element type owner. Gate used:
+  LLVM-enabled object build for `llvm_stmt_type_infer.o` and
+  `llvm_stmt_type_infer_nominal.o`.
+- LLVM member-call lowering support is split by responsibility:
+  `llvm_member_call_support.c` owns member-call diagnostic recovery, argument
+  vector allocation/storage, and method-name mangling; `llvm_member_call_emit.c`
+  remains the concrete dispatch/lowering owner. Gate used: LLVM-enabled object
+  build for `llvm_member_call_emit.o` and `llvm_member_call_support.o`.
+- LLVM scalar expression ownership is split by operator family:
+  `llvm_expr_unary_core.c` owns unary and try-operator lowering, while
+  `llvm_expr_scalar_core.c` remains the callable-signature, coalesce, and
+  binary-expression owner. Coalesce diagnostics now avoid raw `??` text in C
+  string literals to prevent trigraph rewriting warnings. Gate used:
+  LLVM-enabled object build for `llvm_expr_scalar_core.o` and
+  `llvm_expr_unary_core.o`.
+- LLVM resource registry ownership is split by registry behavior vs type
+  shape: `llvm_registry_resources.c` owns slot/view/device/future/channel/Rc/
+  Weak variable registry rows, while `llvm_registry_resource_types.c` owns
+  Slot/SecureSlot/Pin/container LLVM struct shapes and `sizeof` constants.
+  Gate used: LLVM-enabled object build for `llvm_registry_resources.o` and
+  `llvm_registry_resource_types.o`, plus source inventory and `.inc` size
+  smokes.
+- LLVM domain struct registration is split by struct body vs field inventory:
+  `llvm_domain_struct_register.c` owns domain struct type body construction,
+  while `llvm_domain_struct_register_fields.c` owns class-field inventory
+  registration for zone/world/roster/relation/effect generated fields behind
+  `llvm_domain_struct_register_fields.h`. Gate used: LLVM-enabled object build
+  for both owners, plus source inventory and `.inc` size smokes.
+- LLVM let lowering resource ownership is split out of the generic let owner:
+  `llvm_stmt_let_resources.c` owns ReadView/WriteView/MoveToken aliases and
+  Slot/SecureSlot sugar lowering, while `llvm_stmt_let_with.c` stays focused
+  on let orchestration, constructor/class handling, value initialization, and
+  typed registry post-processing. Gate used: LLVM-enabled object build for
+  both owners, plus source inventory and `.inc` size smokes.
+- LLVM zone sync clause lowering is split from frontier orchestration:
+  `llvm_domain_zone_sync_clauses.c` owns action-cause and detach clause
+  lowering, while `llvm_domain_zone_sync.c` stays focused on bounded frontier
+  loop orchestration plus apply/maintain dispatch. Gate used: LLVM-enabled
+  object build for both owners, plus source inventory and `.inc` size smokes.
+- LLVM backend type rendering is split from type mapping:
+  `llvm_backend_type_render.c` owns type-name rendering, constructed type
+  argument parsing, and the render context, while `llvm_backend_type_map.c`
+  owns Pergyra-to-LLVM mapping policy, alias resolution, generic defaults, and
+  concrete container/resource lowering. Gate used: LLVM-enabled object build
+  for both owners, plus source inventory and `.inc` size smokes.
+- AIR summary-counter validation now covers every global evidence family used
+  for beta closure. DAG metadata/generic/ability, observability schema, and
+  runtime frontier policy counters must match their `AIREvidenceNode` inventory
+  counts; MIR and RIR counter checks remain in the same owner. Gate used:
+  object build for `air_validate_summary_counters.o` and
+  `air_validate_evidence.o`.
+- AIR synthesis must also clean up on pre-allocation count failures. Boundary
+  and intent count overflow now destroys the partially allocated AIR program
+  before returning an error, keeping the verification layer fail-closed even on
+  synthetic or corrupted DIR inputs. AIR owned-name formatting and string
+  cloning now also guard `needed + 1` / `strlen + 1` before allocation.
+- DAG metadata recording must not publish a partially indexed resolved type.
+  `type_checker_resolution_metadata.c` now inserts into the metadata index
+  before committing the key/value/owned arrays, and frees owned constructed
+  types when capacity or index insertion fails. This keeps
+  `materializer_unresolved=0` and `retired_resolver_calls=0` from hiding an
+  allocation-failure leak or stale metadata slot. Constructed generic,
+  event-handler, and tuple metadata materializers now guard argument-array
+  sizing before allocating temporary `Type **` vectors. Metadata index growth
+  now checks capacity doubling before multiplication, and stage lookup/domain
+  label slicing guards `len + 1` before allocating copied host/slot names.
+- DAG graph inventory nodes and edges now allocate their copied labels/reasons
+  before publishing `node_count` or `edge_count`, and alias diagnostic-name
+  growth guards capacity overflow. The declaration graph must fail closed
+  rather than silently adding unlabeled graph facts. Immediate cycle checks,
+  cycle validation, and topo-order construction now also guard graph-size array
+  allocation before materializing visited/path/queue/order state.
+- Module normalizer shadow-name storage must commit `count` only after the
+  owned name is allocated. `module_shadow_push(...)` now avoids leaving a NULL
+  name in the active shadow stack on allocation failure, and namespace/name
+  joins guard size overflow before allocation. `module_shadow_contains(...)`
+  now rejects null inputs at the helper boundary. Rename-scope entries now use
+  the same allocate-before-commit rule for old/new names.
+- Parser declaration hints must not advance the active hint count until the
+  owned declaration name is available. `parser_register_decl_hint(...)` now
+  guards hint array growth and skips count commit on name allocation failure.
+- Slot/flow ownership snapshots are part of the static boundary verifier, not
+  best-effort bookkeeping. `slot_analyzer.c` now guards parallel task access
+  arrays before arena allocation, and `type_checker_flow_resources.c` /
+  `type_checker_flow_loops.c` guard snapshot/vector growth before copying
+  resource, slot, qubit, and pool state. `type_checker_flow_match_coverage.c`
+  now guards variant coverage bitsets before scratch allocation and rejects a
+  missing variant-output pointer instead of writing through it.
+- Semantic diagnostic emission is also source-of-truth state. Diagnostic array
+  growth now handles zero-capacity contexts and element-size overflow before
+  reallocating, so OOM/overflow cannot leave diagnostics half-published or
+  silently wrap the diagnostic inventory. Gate used: local `test_semantic.exe`
+  build and run, `2502 passed, 0 failed`.
+- C backend output buffers must not use wrapped length arithmetic as an
+  implicit codegen contract. `codebuf_write(...)` and `codebuf_write_raw(...)`
+  now share a fail-closed reserve helper that checks `len + payload + NUL` and
+  capacity doubling before `realloc`. Gate used: local `transpiler_context.o`
+  compile through the `pgy.exe` build graph; full link exceeded the local
+  timeout before completion.
+- LLVM backend dynamic-array helper macros must follow the same policy:
+  `PGY_DYNARR_ENSURE*` now rejects negative capacity, capacity-doubling
+  overflow, and element-size multiplication overflow before `realloc`, so
+  shared backend helper growth cannot wrap `int` capacity arithmetic.
+- The common arena allocator is also part of the allocation source-of-truth:
+  block header sizing, pointer-aligned allocation size, active-block
+  `used + n`, and total-allocation accounting now guard overflow before
+  committing arena state. Gate used: local `arena.o` compile.
+- Type environment mutation helpers must honor their null-guard contract before
+  reading counters. `type_env_add_variable(...)` and `type_env_add_type(...)`
+  now check `env` before accessing `var_count` / `type_count`.
+- Type constructors must fail closed instead of producing null-name type
+  objects. Primitive/generic/constructed/function/tuple constructors now guard
+  owned-name allocation, null inputs, argument-array sizing, and rendered type
+  name length overflow before committing type metadata. Singleton cleanup is
+  now null-safe so partial initialization failure cannot crash cleanup.
+- Import/path utility helpers must be null-safe at their public boundary and
+  guard rendered path length before allocation. `path_dirname_dup(...)`,
+  `path_join_dup(...)`, and Windows `.exe` resolution now fail closed on null
+  input or oversized path construction.
+- AIR evidence nodes must allocate provenance before committing the evidence
+  slot. `air_append_evidence_node_ex(...)` now snapshots the owned-name
+  inventory, rolls back partial provenance names on allocation failure, and
+  only increments `evidence_count` after the node is fully populated.
 - The slot model removes the Rust-style lifetime annotation tax from the self-host path.
 - Missing for full self-host: stable module/package resolver, richer stdlib, debugger/bootstrap story, and Stable C escape hatch policy.
 - DWARF/CodeView debug information is a post-BETA but pre-self-host requirement:
@@ -28,6 +356,57 @@ English anchor for tooling/doc gates:
   filename namespaces. The current C compiler can survive with long filenames,
   include-order seams, and Makefile inventory, but the Pergyra compiler must
   expose architecture through module paths and namespaces.
+- Runtime hot-path containers must still fail closed on impossible shape, even
+  when the normal dogfood sizes are small. Raw exported lists, queues, sets,
+  and maps now guard `capacity * 2`, `capacity * elem_size`/`value_size`, and
+  the current `uint32_t` hash-index ceiling where hashing still uses 32-bit
+  slots before allocation/reindexing. Gate used: local
+  `runtime/pgy_runtime_lib.o` compile. `HashMap<String,String>` inline runtime
+  growth now applies the same capacity and `uint32_t` hash-index ceiling guard;
+  `List<T>`, `List<Int>`, `List<String>`, `Queue<T>`, `Queue<Int>`,
+  `Queue<String>`, `Set<String>`, and generic `Set<T>` inline growth now share
+  the same checked capacity policy. Generic `HashMap<String,T>` macro growth
+  now uses the same checked policy before allocating key/value/occupied arrays,
+  and its panic-tail `get` path returns a zero value to avoid generated
+  non-void fallthrough warnings. The concrete builtin `HashMap<String,Int>`
+  storage path now mirrors that growth and panic-tail policy.
+  Gate used: local `pgy_runtime.h` include smoke compiles for
+  map/list/queue/set/hashmap paths.
+- Runtime intent observability string/subject storage now uses explicit
+  `SIZE_MAX` checks before `strlen + 1`, trace append growth, and subject-copy
+  array allocation. This keeps the trace/history registry from depending on
+  wrapped host arithmetic in malformed or extreme instrumentation paths.
+  The active-intent index table is now also guarded as a power-of-two hash-mask
+  table in both inline and exported runtime paths, so future table-size edits
+  cannot silently break open addressing. Gate used: local
+  `runtime/pgy_runtime_lib.o` compile and
+  `runtime-intent-observability-contract-test-smoke`.
+- Party runtime allocation is now closer to the same fail-closed policy:
+  `GenerateFiberMap`, role query result growth, fiber stats index/stats growth,
+  and dispatch thread/result array allocation now guard count/element-size
+  overflow before allocating. Fiber stats lookup now falls back to the linear
+  stats array on hash-index empty-slot misses, so an index insertion failure
+  cannot create duplicate role stats on later updates. Gate used: local
+  `party_runtime.o`, `party_runtime_stats.o`, and `party_runtime_dispatch.o`
+  compiles plus `perf_contract_smoke.sh`.
+- Parallel runtime allocation now uses the same count/element-size guard for
+  worker pools and parallel block handle/argument arrays, including the
+  blocking pool path. Gate used: local `pgy_runtime.h` parallel include smoke
+  compile.
+- Channel runtime allocation now rejects buffer-capacity multiplication
+  overflow before `calloc` for generated generic channels, SPSC channels, and
+  the exported `Int` / `String` channel ABI shims. This keeps channel
+  initialization fail-closed instead of depending on wrapped allocation sizes.
+  SPSC destroy/close/send/recv/space/closed public boundaries now also reject
+  null or uninitialized channels instead of dereferencing them after a failed
+  init. Gate used: local `pgy_runtime.h` channel include smoke compile and
+  `runtime/pgy_runtime_lib.o` compile.
+- Async runtime allocation and platform seams are being tightened with the
+  same rule. `AsyncScope` fiber-vector growth, scheduler worker-array
+  allocation, and async error string cloning now guard overflow; scheduler I/O
+  worker and epoll cleanup are explicitly POSIX-only so Windows object compile
+  does not see `ioWorker`/`epollFd`/`close`. Gate used: local `async_scope.o`
+  and `scheduler.o` compiles.
 - Preferred self-host module layout:
   `compiler.frontend.{lexer,parser,ast}`,
   `compiler.semantic.{dag,ownership,effects,intent,zone}`,
@@ -42,6 +421,104 @@ English anchor for tooling/doc gates:
 - Current C directory reshuffle is not a beta blocker. Large-scale folder
   recovery belongs to the post-beta self-host path, where Pergyra modules and
   namespaces become the architecture contract.
+- 2026-05-11 LLVM intent dispatch-context follow-up:
+  non-MIR LLVM intent step context now materializes default dispatch aliases
+  from `who` at the context boundary, matching the C backend shape. The LLVM
+  intent body emitter no longer reopens `step->data.intent_step.who_names[j]`
+  as a local fallback; it consumes `LLVMIntentStepContext` aliases. Gate:
+  `mir-declaration-inventory-test-smoke`.
+- 2026-05-11 AIR strict-evidence environment parity follow-up:
+  `PGY_AIR_STRICT_EVIDENCE` now accepts the same practical false spellings as
+  other driver/toolchain toggles (`0`, `false`, `FALSE`, `off`, `OFF`, `no`,
+  `NO`) while keeping strict evidence enabled by default. Gate:
+  `air-drift-test-smoke`.
+- 2026-05-11 AIR evidence owner split follow-up:
+  legacy boundary summary-shape validation moved out of the first-class
+  `AIREvidenceNode` inventory validator into
+  `src/compiler/air_validate_legacy_evidence.c`. The main evidence inventory
+  owner is now back down to 504 LOC and only owns authoritative evidence lookup,
+  global/boundary evidence counters, duplicate detection, and inventory shape
+  validation. Gates: targeted object builds for both owners, `test-air`
+  (99/0), `air-drift-test-smoke`, `build-source-inventory-test-smoke`, and
+  `test-inc-size-test-smoke`.
+- 2026-05-11 environment flag parser follow-up:
+  AIR strict-evidence toggles and compiler toolchain toggles now share
+  `src/common/env_flags.c` instead of carrying independent `0/false/off/no`
+  spelling chains. This keeps future CI/tooling flags from drifting on Windows
+  or Git Bash spelling conventions. Gates: targeted object builds for
+  `env_flags.o`, `air.o`, and `compiler_toolchain.o`, plus
+  `air-drift-test-smoke` and `perf-contract-test-smoke`.
+- 2026-05-11 backend builtin type registry follow-up:
+  `Input`, `Concat`, and `StringConcat` now live in the backend builtin type
+  table instead of LLVM call inference carrying a private string-return
+  strcmp chain. This keeps C/LLVM type facts on the shared registry path and
+  removes one local codegen-only source of truth. Gates: targeted object builds
+  for `transpiler_builtin_type_table.o` and `llvm_stmt_type_infer.o`, plus
+  `perf-contract-test-smoke`.
+- 2026-05-11 LLVM number literal type parity follow-up:
+  LLVM expression type inference now mirrors `llvm_emit_number(...)` for
+  numeric literals: `1L` and large integral literals infer `i64`, fractional
+  literals infer `f64`, and only in-range integral literals infer `i32`. This
+  removes another quiet `AST_NUMBER -> i32` assumption from initializer/local
+  type selection. Gates: targeted `llvm_stmt_type_infer.o` build and
+  `perf-contract-test-smoke`.
+- 2026-05-11 C/LLVM numeric let parity follow-up:
+  C backend unannotated `let` emission now routes numeric initializer typing
+  through `infer_expression_type_name(...)` and `pergyra_type_to_c(...)`
+  instead of hardcoding `AST_NUMBER` to `int32_t`. This keeps `Long` and
+  fractional numeric literals aligned with the LLVM inference/emission path.
+  Gates: targeted `transpiler.o` build and `perf-contract-test-smoke`.
+- 2026-05-11 C/LLVM arithmetic promotion parity follow-up:
+  C backend expression type inference and LLVM expression type inference now
+  both promote numeric binary operations through a shared precedence
+  (`Double`/`f64`, `Float`/`f32`, `Long`/`i64`, then `Int`/`i32`) instead of
+  treating numeric `+` as always `Int`/`i32`. String `+` still stays the string
+  concatenation path. Gates: targeted `transpiler.o` and
+  `llvm_stmt_type_infer.o` builds, plus `perf-contract-test-smoke`.
+- 2026-05-11 LLVM type-inference owner margin follow-up:
+  the new LLVM numeric promotion helper moved into
+  `llvm_stmt_type_infer_helpers.c`, and visible-function lookup moved there
+  as well, keeping `llvm_stmt_type_infer.c` at 546 LOC instead of sitting on
+  the 600 LOC boundary. This follows the split-by-responsibility rule: shared
+  inference helpers live in the helper owner, while
+  `llvm_stmt_type_infer.c` stays focused on expression dispatch. Gates:
+  targeted object builds for both owners, `perf-contract-test-smoke`, and
+  `test-inc-size-test-smoke`.
+- 2026-05-11 LLVM declared call-result type follow-up:
+  LLVM expression type inference now checks the active declaration inventory
+  return type before falling back to builtin/collection/domain special cases
+  and final poison `i32`. This narrows the remaining call-result fact gap
+  without reopening broad AST traversal: the lookup goes through
+  `llvm_stmt_find_function_decl_by_name(...)`, which is backed by the active
+  LLVM declaration inventory. Gates: targeted object builds for
+  `llvm_stmt_type_infer.o` and `llvm_stmt_type_infer_helpers.o`, plus
+  `perf-contract-test-smoke` and `test-inc-size-test-smoke`.
+- 2026-05-11 LLVM binary fallback tightening:
+  unsupported binary operators in LLVM expression type inference no longer
+  silently return poison `i32`; the recognized boolean, string, and numeric
+  operators still infer concrete types, while any unexpected binary operator
+  now reports a concrete-type diagnostic. Gate: `perf-contract-test-smoke`.
+- 2026-05-11 LLVM channel receive expected-type follow-up:
+  `AST_CHANNEL_RECV` type inference now consumes the enclosing expected value
+  type when channel metadata is not yet registered, instead of defaulting
+  directly to poison `i32`. Registered channel locals with missing
+  `Channel<T>` metadata still fail closed with the existing diagnostic, so
+  this only covers the MIR/select temporary allocation seam where a concrete
+  let/return type is already available. Gates: targeted
+  `llvm_stmt_type_infer.o` build and `perf-contract-test-smoke`.
+- 2026-05-11 LLVM call expected-type fallback tightening:
+  unknown/domain helper calls now also consume a concrete enclosing
+  `expected_type_name` before falling back to poison `i32`. This avoids
+  inventing `i32` for typed `let`/`return` contexts while preserving the
+  later expression-emission registry diagnostic if the helper function itself
+  is missing. Gate: `perf-contract-test-smoke`.
+- 2026-05-11 LLVM array element expected-type follow-up:
+  `llvm_stmt_resolve_array_elem_type(...)` now derives the element type from
+  enclosing `Array<T>` / `Slice<T>` expected type context before using its
+  legacy `i32` recovery. This reduces another local fallback for empty arrays,
+  slices, and element-sensitive calls where the source binding already carries
+  a concrete annotation. Gates: targeted `llvm_stmt_type_infer.o` build and
+  `perf-contract-test-smoke`.
 - 2026-05-10 AIR/DAG tightening:
   `AIR_BOUNDARY_WORLD` now classifies as `AIR_SYNC_ASYNC` in the shared
   boundary classifier, matching the validator and handoff model instead of
@@ -106,6 +583,15 @@ English anchor for tooling/doc gates:
   runtime frontier policy, or MIR CFG terminator evidence. This keeps repeated
   `air_check_drift` calls valid while still rejecting malformed indexed drift
   inventory.
+- 2026-05-10 DAG ability-contract seam follow-up:
+  ability references are contract/capability coordinates, not ordinary value
+  type materialization targets. `resolve_required_ability_decl(...)` now records
+  the DAG dependency without forcing `Ability<T>` through the generic type
+  materializer, while role require-field validation substitutes simple ability
+  generic parameters from effective/default arguments before consulting cached
+  metadata. This restored generic ability defaults and default-exported generic
+  ability contracts while keeping `retired_resolver_calls=0`,
+  `metadata_dead_ends=0`, and `materializer_fallbacks=0`.
 - 2026-05-10 DAG placeholder metadata-first follow-up:
   Top-level program placeholders now use `semantic_type_resolution_lookup_metadata_type_ref(...)`
   through `program_lookup_dag_type_ref_or_unknown(...)` instead of the last
@@ -118,6 +604,113 @@ English anchor for tooling/doc gates:
   declaration and implementation after all call sites moved to metadata-first
   type-ref helpers. The resolver inventory smoke now treats that symbol as
   fully retired instead of allowing it inside private metadata owners.
+- 2026-05-11 DAG ability owner seam consolidation follow-up:
+  ability declaration signatures, ability `fields` requirements, and ability
+  where-bound validation now share `ability_resolve_type_ref(...)` instead of
+  each owner calling the metadata materializer seam directly. The resolver
+  inventory smoke now caps materializing type-ref helper users at `32`, keeping
+  fallback seams, annotation-only reads, and nullable annotation reads at `0`.
+- 2026-05-11 DAG projection owner seam consolidation follow-up:
+  projection builtin target-field validation, domain-query projection source
+  lookup, and recursive projection path lookup now share
+  `projection_resolve_type_ref(...)`. This keeps projection diagnostics owned by
+  projection validators while reducing direct materializing type-ref helper
+  users to `30`; fallback seams and annotation-only reads remain at `0`.
+- 2026-05-11 DAG overlay declaration seam consolidation follow-up:
+  role host/generic-arg validation and party/roster shared-field validation now
+  reuse the declaration/domain type-ref seams instead of carrying local
+  materializer wrappers. The resolver inventory smoke now caps materializing
+  type-ref helper users at `27`.
+- 2026-05-11 DAG intent owner seam consolidation follow-up:
+  intent action contract binding lookup, participant transfer source lookup,
+  and transfer where/involves lookup now reuse the shared intent type-ref seam
+  instead of carrying local materializer wrappers. The resolver inventory smoke
+  now caps materializing type-ref helper users at `24`.
+- 2026-05-11 DAG host/constructor seam consolidation follow-up:
+  class field validation, constructor field validation, and current-host
+  field/method type lookup now reuse the declaration/domain type-ref seam
+  instead of local materializer wrappers. The resolver inventory smoke now caps
+  materializing type-ref helper users at `21`.
+- 2026-05-11 DAG event/action/module seam consolidation follow-up:
+  event signatures, action contract slot/param matching, and module ability
+  contract type arguments now reuse domain/ability owner seams instead of local
+  materializer wrappers. The resolver inventory smoke now caps materializing
+  type-ref helper users at `18`.
+- 2026-05-11 DAG world/flow/late-call seam consolidation follow-up:
+  world type refs, with-slot flow type refs, and late call default generic
+  argument refs now reuse the declaration/domain type-ref seam instead of local
+  materializer wrappers. The resolver inventory smoke now caps materializing
+  type-ref helper users at `15`.
+- 2026-05-11 DAG expression/generic-call seam consolidation follow-up:
+  method-call return type lookup, operator overload param/return type lookup,
+  and function generic where default-argument lookup now reuse the
+  declaration/domain type-ref seam. The resolver inventory smoke now caps
+  materializing type-ref helper users at `12`.
+- 2026-05-11 DAG statement/generic-support/ownership seam consolidation follow-up:
+  type-alias statement resolution, borrowed-boundary generic support, and
+  destructured slot-claim generic argument resolution now reuse the
+  declaration/domain type-ref seam. The resolver inventory smoke now caps
+  materializing type-ref helper users at `9`.
+- 2026-05-11 DAG async/effective-generic consumer seam closure:
+  async spawn-boundary parameter checks and effective generic argument
+  materialization now reuse the declaration/domain type-ref seam. Direct
+  materializing type-ref helper users are now capped at `6`: the internal
+  declaration, central metadata implementation, and the four formal owner seams
+  (`ability`, `domain`, `intent`, `projection`).
+- 2026-05-11 CFG/MIR pin cleanup root regression follow-up:
+  added an executable MIR regression for the existing invariant that any
+  reachable pin region must have a cleanup root, not just a matching
+  `pin-unpin-cleanup-edge` fact. This fills the gap where
+  `cfg_body_dataflow_smoke.sh` required the named regression but the MIR suite
+  did not yet instantiate it. Gates: `cfg_body_dataflow_smoke.sh`,
+  `gcc -fsyntax-only src/test_mir.c`.
+- 2026-05-11 AIR pin cleanup root consumer follow-up:
+  added a strict AIR regression for a reachable pin boundary whose MIR pin block
+  carries a pin cleanup edge fact but no registered cleanup root. AIR must not
+  collect MIR pin cleanup evidence for that shape, and strict verification must
+  report missing pin cleanup evidence. This keeps AIR consuming MIR cleanup-root
+  truth instead of accepting local edge facts without a root. Gates:
+  `air_drift_smoke.sh`, `gcc -fsyntax-only src/test_air.c`, `test-air`
+  (`105/0`).
+- 2026-05-11 AIR consumer coverage status refresh:
+  `docs/104_air_compiler_architecture.md` no longer lists RIR effect/relation
+  propagation as missing AIR 1.0 evidence coverage. Those paths now have global
+  `AIREvidenceNode` entries plus strict counter-only drift checks; remaining AIR
+  1.0 evidence work is narrower module/generic ability edge coverage and full
+  runtime frontier scheduler coverage.
+- 2026-05-11 AIR MIR summary-counter closure:
+  strict AIR now rejects MIR cleanup and select-receive summary counters unless
+  matching global `AIREvidenceNode` entries exist. MIR terminator counter-only
+  rejection remains covered by the same rule, so cleanup, terminator, and
+  select-receive evidence all share the same source-of-truth contract:
+  counters are observability summaries only, EvidenceNode is the proof object.
+  AIR validation also rejects MIR global evidence node-count drift when MIR
+  evidence nodes are present, while preserving counter-only cases as verifier
+  drift diagnostics instead of validation crashes. Gates: `air_drift_smoke.sh`,
+  `test-air` (`108/0`), `test_inc_size_smoke.sh`, and
+  `build_source_inventory_smoke.sh`.
+- 2026-05-11 AIR summary-counter owner split:
+  MIR/RIR summary-counter-to-`AIREvidenceNode` consistency checks moved out of
+  `air_validate_evidence.c` into `air_validate_summary_counters.c`. Evidence
+  inventory shape remains in the evidence owner, while compatibility telemetry
+  counter matching has its own owner. This keeps `air_validate_evidence.c` at
+  510 LOC after the stricter AIR evidence work and avoids another mechanical
+  `_helpers` split.
+- 2026-05-11 AIR verification provenance owner split:
+  authority/provenance diagnostic string formatting moved from `air_verify.c`
+  into `air_verify_provenance.c`. The verifier now owns drift decisions while
+  the new owner owns `source_provenance`, `who_provenance`, and authority-name
+  rendering. `air_verify.c` drops to 498 LOC and the AIR drift smoke now gates
+  the new owner explicitly.
+- 2026-05-11 owner-size gate repair:
+  `parser_expr.c` moved call-argument growth/prepend/append ownership to
+  `parser_expr_call_args.c`, keeping expression parsing below the 600 LOC owner
+  cap without adding a generic `_helpers` owner. Oversized AIR/MIR/transpile
+  test case headers were split at function or local include boundaries:
+  `test_air_boundary_part_e.cases.h`, `test_mir_lowering_part_e.cases.h`, and
+  `test_transpile_stdlib_part_b.cases.h`. Gates:
+  `test_inc_size_smoke.sh`, `build_source_inventory_smoke.sh`, targeted
+  `gcc -fsyntax-only` for parser/test owners.
 - 2026-05-10 AIR DAG evidence strictness follow-up:
   AIR global DAG evidence now rejects non-zero `fallback_count`, matching the
   DAG source-of-truth rule that graph-backed type evidence must not carry
@@ -348,6 +941,102 @@ English anchor for tooling/doc gates:
   `cfg-body-dataflow-smoke`, `perf-contract-smoke`,
   `build-source-inventory-smoke`, `test-inc-size-smoke`, and
   `git diff --check`.
+- 2026-05-11 CFG-owned wrapper/MIR ABI validation follow-up:
+  `with` and `unsafe` wrappers are now treated as CFG-owned wrapper
+  statements even when the containing block has no branch successors, so MIR
+  population preserves their resource facts without resurrecting the wrapper
+  as a fallback `STMT`. `mir_instruction_source_is_with_slot_claim(...)` also
+  no longer requires `type_layout` to be present before classifying a Claim as
+  a with-slot Claim; missing and invalid ABI layout facts are now validated by
+  the fact validator instead of being hidden by the classifier. Gates used:
+  `test-mir`, `cfg-body-dataflow-smoke`, `perf-contract-smoke`, and
+  `test-inc-size-smoke`.
+- 2026-05-11 AIR drift smoke inventory follow-up:
+  `air-drift-smoke` now audits the counter-strict and RIR-propagation AIR
+  regression owners (`test_air_counter_strict_part_i.cases.h` and
+  `test_air_rir_propagation_part_j.cases.h`) instead of relying on stale
+  `src/test_air.c` terms only. This keeps the smoke gate aligned with the
+  active AIR test inventory. Gate used: `air-drift-smoke`.
+- 2026-05-11 C backend domain transpile source-of-truth follow-up:
+  relation/effect domain transpile regressions now emit through full
+  `emit_program(ctx)` with the active MIR inventory instead of directly
+  emitting raw top-level AST statements. The world/zone constructor regression
+  also uses semantic-valid source (`Clone(battle)` for explicit world
+  embedding and numeric-only `Player` construction) so the test no longer
+  exercises synthetic fallback MIR for a program the real CLI rejects.
+  `lower_program_to_mir_strict(...)` is now available for transpile cases that
+  must prove they are on the real semantic/HIR/RIR/MIR path, while
+  `lower_program_to_mir(...)` keeps the legacy synthetic fallback for the
+  remaining inventory-only tests. The full
+  domain async transpile owners now use the strict path, so the
+  domain/runtime propagation C-backend regressions in those owners cannot pass
+  through fallback MIR. Parsed-source program emission regressions in
+  `test_transpile_program_part_a.cases.h` and
+  `test_transpile_program_part_b.cases.h` also use the strict path; synthetic
+  hand-built AST fixtures keep the fallback path intentionally. Gate used:
+  `test-transpile`.
+- 2026-05-11 C backend core transpile strict-path follow-up:
+  parsed-source core transpile owners
+  (`test_transpile_core_part_a.cases.h` and
+  `test_transpile_core_part_b.cases.h`) now use
+  `lower_program_to_mir_strict(...)`, keeping fallback MIR reserved for
+  hand-built AST fixtures rather than normal parsed-source regressions. Gate
+  used: `test-transpile`.
+- 2026-05-11 C backend stdlib transpile strict-path follow-up:
+  parsed-source stdlib transpile regressions now use
+  `lower_program_to_mir_strict(...)`; synthetic hand-built AST fixtures in the
+  same owner keep the compatibility fallback. Gate used: `test-transpile`.
+- 2026-05-11 C backend parsed-source transpile fallback closure:
+  all parsed-source transpile tests now route through
+  `lower_program_to_mir_strict(...)`. Remaining uses of
+  `lower_program_to_mir(...)` are limited to synthetic hand-built AST fixtures
+  (`prog` / `make_program(...)`) that intentionally need declaration-inventory
+  fallback coverage. `transpile-strict-source-test-smoke` now gates this split,
+  is listed in the beta test-suite freeze, and is wired directly into the
+  Linux/macOS/Windows CI targets so build-only Windows runs cannot skip the
+  parsed-source source-of-truth check. The smoke also scans for
+  `parse_program_from_string(...)` followed by fallback MIR lowering, not just
+  the exact old helper-call spelling. Gates used: `test-transpile`,
+  `transpile-strict-source-test-smoke`, and `beta-test-suite-freeze-test-smoke`.
+- 2026-05-11 cross-platform MIR declaration inventory gate follow-up:
+  `mir-declaration-inventory-test-smoke` is now wired directly into macOS and
+  Windows CI in addition to Linux, keeping party/role/roster host lookup,
+  active-inventory helper use, and declaration-side MIR-only compatibility
+  seams source-gated on every beta support matrix lane. The gate is also part
+  of the beta test-suite freeze list now, so CI wiring and beta contract cannot
+  drift. Gates used:
+  `mir-declaration-inventory-test-smoke`, `transpile-strict-source-test-smoke`,
+  and `beta-test-suite-freeze-test-smoke`.
+- 2026-05-11 LLVM host-name helper dedup follow-up:
+  `llvm_current_host_decl_name(...)` now reuses `llvm_decl_node_name(...)` for
+  host declarations instead of carrying a second host-name switch. This keeps
+  party/role/roster/relation/effect/zone/world name support tied to the single
+  declaration-name helper. `llvm_current_host_class_name(...)` now follows the
+  same helper path, so self/field/projection host-name consumers cannot drift
+  from active host classification. `llvm_decl.c` now consumes that same helper
+  for implicit `self` parameter lowering instead of carrying a narrower local
+  nominal-name switch. The MIR declaration inventory smoke gates helper reuse
+  rather than duplicated switch spelling. Gate used:
+  targeted `LLVM_ENABLED=1 build/codegen/llvm_inventory_decl_lookup.o`,
+  `LLVM_ENABLED=1 build/codegen/llvm_domain_lookup.o`, and
+  `LLVM_ENABLED=1 build/codegen/llvm_decl.o`, plus
+  `mir-declaration-inventory-test-smoke`.
+- 2026-05-11 DAG source-of-truth revalidation:
+  resolver and materializer fallback seams remain at beta cap 0 after the
+  transpile strict-path and LLVM declaration-inventory cleanup. Current DAG
+  counters are `metadata_entries=3682`, `metadata_owned=260`,
+  `metadata_hits=8620`, `metadata_dead_ends=0`,
+  `materializer_unresolved=0`, `stage_materialize_calls=0`, and
+  `alias_diagnostic_resolver_calls=0`. Remaining DAG work is owner-local
+  consumer simplification, not numeric fallback cleanup. Gates used:
+  `type-resolution-resolver-inventory-test-smoke` and
+  `type-resolution-dag-test-smoke`.
+- 2026-05-11 cross-platform AIR drift gate follow-up:
+  `air-drift-test-smoke` is now wired into macOS CI and the Windows native
+  runnable lane, not Linux only. Cross-MinGW build-only Windows still keeps the
+  shell/source and JSON AIR gates, while native Windows now runs the full AIR
+  strict-evidence regression suite before `air-json-schema-test-smoke`. Gates
+  used: `air-drift-test-smoke` and `beta-test-suite-freeze-test-smoke`.
 - 2026-05-10 local-decl source-shape MIR fact follow-up:
   C MIR resource hook emission no longer checks `source_ast_type ==
   AST_LET_DECL` directly when deciding whether a Claim was already
@@ -1254,8 +1943,9 @@ Progress log, 2026-05-08:
   `air_validate(...)` no longer reads `AIRBoundaryNode.has_*_evidence` summary
   booleans directly. Boundary evidence provenance/shape checks now live in
   `air_validate_boundary_legacy_evidence_shape(...)` inside
-  `src/compiler/air_validate_evidence.c`, and `air-drift-test-smoke` rejects
-  summary-flag reads escaping the evidence / synthesis / verification owners.
+  `src/compiler/air_validate_legacy_evidence.c`, and `air-drift-test-smoke`
+  rejects summary-flag reads escaping the legacy evidence / synthesis /
+  verification owners.
   This keeps AIR validation closer to the first-class `AIREvidenceNode` source
   of truth while preserving compatibility summaries for dumps and driver
   diagnostics. Gates: `test-air` (87/0), `air-drift-test-smoke`, and
@@ -1723,6 +2413,30 @@ Progress log, 2026-05-04:
   `test-air`, `air-drift-test-smoke`, and `perf-contract-test-smoke`.
   Direct regression: `AIR rejects MIR pin cleanup without global cleanup
   evidence`.
+- Tightened AIR pin-cleanup source provenance:
+  `AIR_EVIDENCE_MIR_PIN_CLEANUP` is no longer collected or accepted for
+  synthetic pin boundaries without exact source AST provenance, even when MIR
+  carries a valid `pin-unpin-cleanup-edge`. This keeps AIR from treating
+  routine-level cleanup topology as proof for an unproven abstraction boundary.
+  Gates:
+  `test-air`, `air-drift-test-smoke`, and `cfg-body-dataflow-test-smoke`.
+  Direct regressions: `AIR requires MIR pin cleanup AST provenance` and
+  `AIR rejects pin cleanup evidence without source provenance`.
+- Tightened AIR RIR operation evidence provenance:
+  `parallel`, IO, and channel boundaries no longer fall back to scope-name RIR
+  evidence when the AIR boundary lacks source AST provenance. These
+  operation-specific boundaries must be backed by exact RIR op evidence, so
+  synthetic or under-provenanced boundaries remain unproven instead of passing
+  through a generic scope match. Gate: `test-air`. Direct regression:
+  `AIR parallel boundary requires RIR source provenance`.
+- Tightened AIR HIR CFG source provenance:
+  AST-less implementation boundaries may still collect HIR routine evidence,
+  but they no longer collect `AIR_EVIDENCE_HIR_CFG`. CFG evidence now means the
+  boundary AST is contained in the lowered HIR CFG, not merely that a same-name
+  routine has CFG. Manually constructed `AIR_EVIDENCE_HIR_CFG` nodes follow
+  the same invariant. Gate: `test-air`. Direct regressions:
+  `AIR HIR CFG requires boundary source provenance` and
+  `AIR rejects HIR CFG evidence without source provenance`.
 - Tightened AIR authority participant evidence completeness:
   strict AIR now requires every declared `authorized by` participant on a
   boundary to have matching `AIR_EVIDENCE_RIR_AUTHORITY`, not merely any
@@ -1843,6 +2557,35 @@ Progress log, 2026-05-04:
   missing await operands and failed task-handle lowering now report structured
   diagnostics instead of retuning a successful `i32 0` await value. Gates:
   `llvm-test-smoke`, `perf-contract-test-smoke`, `test-inc-size-test-smoke`.
+- Closed the LLVM await type-inference poison fallback:
+  `AST_AWAIT_EXPR` now resolves through registered `Future<T>` metadata and
+  mirrors the current local/remote await ABI shape instead of silently
+  returning `i32`. Missing metadata is a structured diagnostic. The new
+  `llvm_stmt_type_infer_await.c` owner keeps `llvm_stmt_type_infer.c` below the
+  600 LOC signal line. Gates: targeted LLVM object builds,
+  `perf-contract-test-smoke`.
+- Cleaned the LLVM public API error-result warning:
+  `llvm_result_from_ctx_error(...)` now checks the fixed-size `error_msg`
+  buffer contents instead of comparing the array address against NULL. Gate:
+  targeted `build/codegen/llvm_api.o`.
+- Hardened LLVM resource registry lookups:
+  slot/view/device-slot/future/channel/Rc/Weak register/lookup and device-slot
+  release helpers now return cleanly on NULL context, name, or required inner
+  metadata instead of storing malformed registry rows or letting malformed
+  AST/MIR compatibility payloads reach `strcmp`. DeviceSlot registry rows now
+  keep owned copies like the other resource registries instead of storing raw
+  caller pointers. Secure-token lookup now rejects truncated synthesized token
+  names instead of silently looking up the wrong binding. Gates: targeted
+  `build/codegen/llvm_registry_resources.o`, `perf-contract-test-smoke`.
+- Revalidated DAG source-of-truth after the LLVM/codegen hardening pass:
+  resolver inventory remains at `fallback seams=0`, annotation-only reads `0`,
+  nullable annotation reads `0`, and type-ref helper refs at the capped `6`.
+  DAG stats remain fallback-free with `retired_resolver_calls=0`,
+  `retired_resolver_body_fallbacks=0`, `metadata_dead_ends=0`, and
+  `materializer_unresolved=0`; metadata reuse rose to `entries=3682`,
+  `owned=260`, `hits=8620`. Gates:
+  `type-resolution-resolver-inventory-test-smoke`,
+  `type-resolution-dag-test-smoke`.
 - Hardened LLVM intent observability argument lowering:
   observability builtins with arguments now convert a failed shared call-arg
   lowering result into an explicit diagnostic recovery value instead of
@@ -2706,7 +3449,7 @@ Progress log, 2026-05-04:
 - Split LLVM identifier/slot auto-read lowering and projection-borrow literal construction out of `llvm_expr_identifier_slot_helpers.h` / `llvm_expr_host_spawn_literal_helpers.h` into compiled owners; their headers now expose only identifier, boolean, slot-target, and projection-binding seams. This also surfaced and fixed a hidden include-order dependency by making `llvm_expr_slot_device_calls.h` include `codegen_slot_type_policy.h` directly. Gates: targeted `gcc -fsyntax-only` for `llvm_expr_identifier_slot_helpers.c`, `llvm_expr_host_spawn_literal_helpers.c`, and `llvm_expr.c`; full make gates are currently blocked locally by shell/WSL permission errors.
 - Split LLVM extended collection call lowering out of `llvm_expr_call_collections_extended.h` into `llvm_expr_call_collections_extended.c`, and split queue-specific extended lowering into `llvm_expr_call_queue_extended.c` instead of letting the collection owner exceed the 600 LOC gate. The collection headers now publish only runtime/type-check helper and call-lowering seams consumed by the expression call owner. Gates: targeted `gcc -fsyntax-only` for `llvm_expr_call_collections_extended.c`, `llvm_expr_call_queue_extended.c`, and `llvm_expr.c`; `build-source-inventory-test-smoke`, `source-utf8-test-smoke`, `test-inc-size-test-smoke`, and `LLVM_ENABLED=1 pgy`.
 - Split MIR base lowering helpers out of `mir_base_helpers.h` into `mir_base_helpers.c`; the MIR helper header now publishes only append/copy/versioning/RIR-scope lookup seams consumed by the MIR lowering owner and its intenal implementation headers. Gates: targeted `gcc -fsyntax-only` for `mir.c` and `mir_base_helpers.c`; `build-source-inventory-test-smoke`, `test-inc-size-test-smoke`, `test-mir` (`41/0`), and `LLVM_ENABLED=1 pgy`.
-- Split MIR SSA rename and use-edge population out of `mir_ssa_rename.h` / `mir_ssa_use_edges.h` into `mir_ssa_rename.c`; SSA rename now has a prototype-only seam while DEF instruction construction is owned by `mir_base_helpers.c`. Gates: targeted `gcc -fsyntax-only` for `mir.c`, `mir_base_helpers.c`, and `mir_ssa_rename.c`; `build-source-inventory-test-smoke`, `test-inc-size-test-smoke`, `test-mir` (`41/0`), and `LLVM_ENABLED=1 pgy`.
+- Split MIR SSA rename out of `mir_ssa_rename.h` into `mir_ssa_rename.c`, then split versioned use-edge population into `mir_ssa_use_edges.c`; SSA rename and use-edge facts now have separate compiled owners while DEF instruction construction is owned by `mir_base_helpers.c`. Gates: targeted `gcc -fsyntax-only` for `mir.c`, `mir_base_helpers.c`, `mir_ssa_rename.c`, and `mir_ssa_use_edges.c`; `build-source-inventory-test-smoke`, `test-inc-size-test-smoke`, `test-mir`, and `LLVM_ENABLED=1 pgy`.
 - Split MIR declaration-header inventory helpers out of `mir_decl_headers.h` into `mir_decl_headers.c`; declaration metadata bootstrap now has a compiled owner and the header publishes only declaration recording/linking seams. Gates: targeted `gcc -fsyntax-only` for `mir.c`, `mir_decl_headers.c`, and `mir_ssa_rename.c`; `build-source-inventory-test-smoke`, `test-inc-size-test-smoke`, `test-mir` (`41/0`), and `LLVM_ENABLED=1 pgy`.
 - Split RIR flow-state merge policy out of `rir_flow_state.h` into `rir_flow_state.c`; RIR validation and CFG flow enrichment now consume a declaration-only state lattice seam instead of duplicating merge policy through static header bodies. Gates: targeted `gcc -fsyntax-only` for `rir_flow.c`, `rir_validation.c`, and `rir_flow_state.c`; `build-source-inventory-test-smoke`, `test-inc-size-test-smoke`, and `test-rir` (`18/0`).
 - Split formatter token spacing/layout helpers out of `fmt_layout.h` into `fmt_layout.c`; the formatter header is now guarded and declaration-only while `pgy fmt` layout policy lives in a compiled owner. Gates: targeted `gcc -fsyntax-only` for `fmt.c` and `fmt_layout.c`; `build-source-inventory-test-smoke`, `test-inc-size-test-smoke`, and `pgy`.
@@ -2770,7 +3513,7 @@ Progress log, 2026-05-04:
 - Split LLVM intent observability trace emission out of `llvm_intent.c` into `llvm_intent_trace.c`, reducing the main intent orchestration owner from 537 LOC to 499 LOC while keeping trace ABI calls behind `llvm_intent_intenal.h`. Gates: `bin/pgy.exe`, `llvm-test-smoke`, `build-source-inventory-test-smoke`, `source-utf8-test-smoke`, `production-header-size-test-smoke`.
 - Split MIR CFG edge-topology validation out of `mir_cfg_contract_validate.h` into `mir_cfg_contract_edges.h`, reducing the cleanup/pin contract validator from 538 LOC to 342 LOC while keeping predecessor/successor checks in the CFG body-safety gate. Gates: `test-mir` (`41/0`), `cfg-body-dataflow-test-smoke`, `build-source-inventory-test-smoke`, `source-utf8-test-smoke`, `production-header-size-test-smoke`.
 - Promoted MIR CFG edge-topology validation from an implementation header into `mir_cfg_contract_edges.c`; `mir_cfg_contract_edges.h` is now declaration-only, and predecessor lookup is owned by `mir_base_helpers.c`. Gates: targeted `gcc -fsyntax-only` for `mir.c`, `mir_base_helpers.c`, and `mir_cfg_contract_edges.c`; `build-source-inventory-test-smoke`, `test-inc-size-test-smoke`, `test-mir` (`41/0`).
-- Refreshed CFG/perf smoke contracts after implementation-header removal: `cfg_body_dataflow_smoke.sh` now tracks `mir_ssa_rename.c` / `mir_cfg_contract_edges.c`, and `perf_contract_smoke.sh` now checks the compiled LLVM/C/MIR owners instead of stale declaration headers. Gates: `build-source-inventory-test-smoke`, `test-inc-size-test-smoke`, `cfg-body-dataflow-test-smoke`, `perf-contract-test-smoke`.
+- Refreshed CFG/perf smoke contracts after implementation-header removal: `cfg_body_dataflow_smoke.sh` now tracks `mir_ssa_rename.c`, `mir_ssa_use_edges.c`, and `mir_cfg_contract_edges.c`, and `perf_contract_smoke.sh` now checks the compiled LLVM/C/MIR owners instead of stale declaration headers. Gates: `build-source-inventory-test-smoke`, `test-inc-size-test-smoke`, `cfg-body-dataflow-test-smoke`, `perf-contract-test-smoke`.
 - Split C backend MIR emission mapping precheck out of `transpiler_mir_emission_contract.h` into `transpiler_mir_emission_mapping_contract.h`, reducing the main MIR emission contract owner from 545 LOC to 396 LOC while keeping SSA/name mapping fallback rejection in the C backend contract gate. Gates: `test-transpile` (`717/0`), `cfg-body-dataflow-test-smoke`, `build-source-inventory-test-smoke`, `source-utf8-test-smoke`, `production-header-size-test-smoke`.
 - Split LLVM MIR ABI/type metadata helpers out of `llvm_mir_emit.c` into `llvm_mir_type_helpers.h`, reducing the main MIR function emitter from 528 LOC to 358 LOC while keeping boundary Slot/SecureSlot parameter typing shared with MIR local emission. Gates: `bin/pgy.exe`, `llvm-test-smoke`, `build-source-inventory-test-smoke`, `source-utf8-test-smoke`, `production-header-size-test-smoke`.
 - Closed a LLVM declaration inventory compatibility gap: active-inventory fallback lookup now mirrors the frozen host declaration set for class/enum/relation/effect/zone/world/party/role/roster. Gates: `perf-contract-test-smoke`, `mir-declaration-inventory-test-smoke`, `llvm-test-smoke`, and `llvm-test-backend-compare`.
@@ -3603,7 +4346,7 @@ dispatch / semantic lookup / runtime data structure 3축 결과 통합. *정확�
   MIR declaration-header and value-summary storage now uses explicit capacity
   growth.
 - ✅ `src/compiler/mir.h`, `src/compiler/mir_base_helpers.h`,
-  `src/compiler/mir_ssa_rename.h`, `src/compiler/mir_ssa_use_edges.h`,
+  `src/compiler/mir_ssa_rename.c`, `src/compiler/mir_ssa_use_edges.c`,
   `src/compiler/mir_liveness_dce.h` — MIR SSA/use/liveness name-list arrays now
   carry explicit capacities and grow geometrically. Remaining MIR reallocs in
   this owner are deliberate DCE shrink operations or fixed-size copies, not
@@ -3714,6 +4457,14 @@ dispatch / semantic lookup / runtime data structure 3축 결과 통합. *정확�
   keep ABI behavior aligned. A malformed direct runtime call with
   `subject_count > 0 && subjects == NULL` now fails through the existing intent
   enter warning path instead of reaching a later `memcpy`.
+- Runtime intent active-index insertion now reuses a remembered tombstone even
+  when the open-addressed handle table contains no empty slot. The inline
+  runtime path and exported runtime-lib path were updated together. The linear
+  active-registry scan remains a malformed-index compatibility fallback, but
+  repeated enter/exit workloads no longer permanently degrade the active lookup
+  index after tombstone saturation. Gates: `gcc -fsyntax-only` for
+  `pgy_runtime_lib.c`, `runtime-intent-observability-contract-test-smoke`, and
+  `git diff --check`.
   Gate: `gcc -fsyntax-only -std=c11 -Isrc -Ithird_party
   src/runtime/pgy_runtime_lib.c`.
 - Party runtime hot path pass kept public `PartyContext` / `WorldContext`
@@ -5185,11 +5936,17 @@ dispatch / semantic lookup / runtime data structure 3축 결과 통합. *정확�
 - Follow-up DAG consumer seam closure: the materializing type-ref helper is now
   present only at its declaration and implementation (`helper refs=2 cap=2`).
   No semantic consumer calls `semantic_type_resolution_lookup_type_ref_or_materialize(...)`
-  directly. Current DAG local stats: `graph-backed skips=2033`,
-  `metadata_entries=3498`, `metadata_owned=258`, `metadata_hits=8380`,
-  `retired_resolver_calls=0`, `materializer_fallbacks=0`, and all unresolved
-  materializer families at 0. Remaining DAG work is evidence/modeling
-  completion, not recursive fallback removal.
+  directly. Current DAG local stats after the longer DAG smoke rerun:
+  `graph-backed skips=2033`, `generic_param_nodes=102`,
+  `dag_generic_contract_evidence=165`, `dag_ability_consumer_evidence=71`,
+  `metadata_entries=3682`, `metadata_owned=260`, `metadata_hits=8620`,
+  `retired_resolver_calls=0`, `retired_resolver_unique_nodes=0`,
+  `retired_resolver_body_fallbacks=0`, `materializer_unresolved=0`, all
+  unresolved materializer families at 0, and `stage_materialize_calls=0`.
+  Remaining DAG work is evidence/modeling completion and owner-local consumer
+  simplification, not recursive fallback removal. Gates:
+  `type-resolution-dag-test-smoke`, `build-source-inventory-test-smoke`, and
+  `test-inc-size-test-smoke`.
 
 ## UTF-8 Progress Note - 2026-04-28 - AST Destroy Owner Split
 
@@ -8694,9 +9451,10 @@ Source of truth:
 - `src/semantic/type_checker_overlay_common.c` now owns overlay
   symbol/shared-field/hosted-method scope setup. The domain helper shell keeps
   only the zone/effect/relation slot helper responsibility.
-- `src/semantic/type_checker_decls_domain_helpers.c` is now 972 LOC. With the
-  previous stdlib builtin, zone declaration, and intent helper splits, semantic
-  production `.c` owners are below the 1,000 LOC hard cap.
+- `src/semantic/type_checker_decls_domain_helpers.c` has since been retired
+  from the large-owner queue; domain projection and contract responsibilities
+  live in named owners, and semantic production `.c` owners are below the
+  600 LOC split-review threshold.
 - Verified locally: `make test-semantic pgy` remains green at 2357/0, and
   `make semantic-tu-size-test-smoke production-header-size-test-smoke
   inc-sentinel-test-smoke` remains green. The active 1,000+ production `.c`
@@ -9709,3 +10467,54 @@ Local verification for this debt refresh:
   one `PgyCodegenSlotCallSpec` lookup instead of scattered direct `strcmp`
   predicates. This follows the beta code-quality rule that repeated builtin
   branching should become data/table-driven before the surface expands.
+- Tightened LLVM channel receive type inference: when the channel binding is
+  already materialized but its `Channel<T>` payload metadata is missing, LLVM
+  type inference now reports a structured diagnostic instead of silently
+  treating the receive result as `i32`. The remaining `i32` receive poison path
+  is limited to pre-registration MIR local allocation order and remains marked
+  as MIR-result-fact debt. Local MinGW verification:
+  `build/codegen/llvm_stmt_type_infer.o` and `perf-contract-test-smoke`.
+- Hardened LLVM constructed generic type parsing: oversized generic argument
+  names now fail closed instead of being truncated into a different type name.
+  This protects ABI/type identity for `List<T>` / `Result<T, E>` /
+  `Slot<T>`-style lowering while keeping the existing structured diagnostic
+  path in `llvm_required_constructed_arg_name_at(...)`; the `Result<T, E>`
+  copy buffers now match the parser scratch width so the second copy cannot
+  reintroduce truncation. Local MinGW verification:
+  `build/codegen/llvm_backend_type_map.o` and `perf-contract-test-smoke`.
+- Narrowed LLVM call-result inference lookup debt: direct functions and
+  current-host method functions now route through
+  `llvm_stmt_lookup_visible_function(...)` instead of carrying two local
+  lookup/formatting sequences. This does not claim full call-result fact
+  closure, but it reduces the next MIR result-fact migration seam to one
+  visible lookup helper. Local MinGW verification:
+  `build/codegen/llvm_stmt_type_infer.o` and `perf-contract-test-smoke`.
+- Tightened MIR local alloca fail-closed behavior: when
+  `llvm_stmt_infer_expr_type(...)` raises a structured diagnostic or cannot
+  produce a type for a value expression, `llvm_emit_mir_local_allocas(...)`
+  now stops instead of allocating the diagnostic recovery `i32`. This makes
+  recent LLVM type-inference diagnostics observable at the MIR-local owner
+  boundary instead of continuing with a poisoned local. Local MinGW
+  verification: `build/codegen/llvm_mir_local_emit.o` and
+  `perf-contract-test-smoke`.
+- Narrowed LLVM identifier type-inference poison at the MIR local boundary:
+  MIR local alloca emission now consults pass-local MIR use/result facts
+  (`inst->uses[0]`, exact MIR var names, then latest SSA base-name match)
+  before falling back to AST identifier type inference. This keeps same-pass
+  SSA/MIR values from dropping to the old identifier `i32` poison path simply
+  because LLVM scope declarations are not populated until after local alloca
+  creation. Local MinGW verification:
+  `build/codegen/llvm_mir_local_emit.o`, `perf-contract-test-smoke`, and
+  `test-inc-size-test-smoke`.
+- Tightened CFG-backed residual `MIR_INST_STMT` policy: non-intent semantic
+  carrier STMTs now need a source payload plus `source_statement_index`, and
+  `mir_instruction_source_stmt_fallback_is_allowed(...)` centralizes the
+  remaining residual statement policy instead of leaving it implicit in
+  backend emitters. C and LLVM MIR block emitters now consume the same helper
+  before emitting residual source statements, so backend parity cannot widen the
+  residual policy independently. This does not remove all residual STMT
+  lowering, but it prevents invisible source-array fallback from widening again
+  while CFG/MIR body safety is being promoted to source-of-truth. Local MinGW
+  verification:
+  `test-mir` (63/0), `cfg_body_dataflow_smoke.sh` with built `PGY_BIN`,
+  `test-inc-size-test-smoke`, and `build-source-inventory-test-smoke`.

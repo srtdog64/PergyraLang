@@ -3,6 +3,67 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
+require_literal() {
+    local rel="$1"
+    local term="$2"
+    grep -Fq -- "$term" "$ROOT_DIR/$rel" || {
+        echo "[parallel-core-contract] $rel missing: $term" >&2
+        exit 1
+    }
+}
+
+reject_literal() {
+    local rel="$1"
+    local term="$2"
+    if grep -Fq -- "$term" "$ROOT_DIR/$rel"; then
+        echo "[parallel-core-contract] $rel must not contain: $term" >&2
+        exit 1
+    fi
+}
+
+run_literal_contract_smoke() {
+    require_literal "docs/99_language_module_taxonomy.md" '`parallel` as the core execution primitive'
+    require_literal "docs/99_language_module_taxonomy.md" '`parallel`: core execution primitive'
+    require_literal "docs/99_language_module_taxonomy.md" 'user-facing language order is `parallel -> spawn -> async/await -> select/channel`.'
+    require_literal "docs/99_language_module_taxonomy.md" "fiber/coroutine"
+
+    require_literal "docs/language_module_manifest.json" '"name": "pgy.core"'
+    require_literal "docs/language_module_manifest.json" '"name": "pgy.execution"'
+    require_literal "docs/language_module_manifest.json" '"name": "pgy.runtime.scheduler"'
+    require_literal "docs/language_module_manifest.json" '"layer": "execution-family"'
+    require_literal "docs/language_module_manifest.json" '"layer": "runtime-mechanism"'
+    require_literal "docs/language_module_manifest.json" '"beta_blocker": false'
+    for surface in parallel spawn async await select channel cancellation; do
+        require_literal "docs/language_module_manifest.json" "\"$surface\""
+    done
+
+    require_literal "docs/language_module_cases.json" "tests/cases/backend_compare/parallel_channel_sum/main.pgy"
+    require_literal "docs/language_module_cases.json" '"pgy.core"'
+    require_literal "docs/language_module_cases.json" '"pgy.execution"'
+    require_literal "docs/language_module_cases.json" '"pgy.foundation"'
+
+    require_literal "tests/compare_backends.sh" "PGY_BACKEND_COMPARE_RUN_TIMEOUT_SECONDS"
+    require_literal "tests/compare_backends.sh" "tests/cases/backend_compare/parallel_channel_sum"
+    require_literal "tests/compare_backends.sh" "tests/cases/backend_compare/parallel_channel_dual"
+    require_literal "tests/compare_backends.sh" "tests/cases/backend_compare/triple_paradigm"
+
+    require_literal "src/codegen/thread_pool_usage.c" "pgy_mir_instruction_uses_thread_pool"
+    require_literal "src/codegen/thread_pool_usage.c" "pgy_mir_program_uses_thread_pool"
+    require_literal "src/codegen/thread_pool_usage.c" "mir_routine_inventory_from_program"
+    reject_literal "src/codegen/thread_pool_usage.c" "Compatibility fallback for source-only MIR blocks"
+
+    require_literal "src/codegen/transpiler_thread_pool.c" "pgy_mir_program_uses_thread_pool(ctx->mir)"
+    reject_literal "src/codegen/transpiler_thread_pool.c" "pgy_ast_uses_thread_pool("
+    require_literal "src/codegen/llvm_pipeline.c" "pgy_mir_program_uses_thread_pool(ctx->mir)"
+    reject_literal "src/codegen/llvm_pipeline.c" "pgy_ast_uses_thread_pool("
+
+    require_literal "src/tests/semantic/test_semantic_parallel_context.cases.h" "parallel-rejected: write-write slot conflict"
+    require_literal "src/tests/semantic/test_semantic_parallel_family.cases.h" "parallel-family: spawn expression returns Future<T>"
+    require_literal "docs/semantics/05_parallel_execution.md" '`parallel` as the core execution primitive.'
+    require_literal "docs/semantics/05_parallel_execution.md" "tests/parallel_core_contract_smoke.sh"
+    echo "[parallel-core-contract] ok (literal fallback)"
+}
+
 PYTHON_BIN="${PYTHON_BIN:-}"
 if [[ -z "$PYTHON_BIN" ]]; then
     if command -v python3 >/dev/null 2>&1; then
@@ -10,8 +71,8 @@ if [[ -z "$PYTHON_BIN" ]]; then
     elif command -v python >/dev/null 2>&1; then
         PYTHON_BIN="$(command -v python)"
     else
-        echo "[parallel-core-contract] requires python3 or python for JSON contract validation" >&2
-        exit 1
+        run_literal_contract_smoke
+        exit 0
     fi
 fi
 

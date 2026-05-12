@@ -8,6 +8,15 @@ failure snapshot, and backend-identical trace strings.
 
 Executable gate: `make observability-schema-test-smoke`.
 
+Runtime active-intent lookup uses the active-index handle table as the stable
+fast path. The linear active-registry scan is only a malformed-index
+compatibility fallback, and the index insertion path must reuse tombstone slots
+in both the inline runtime path and exported runtime-lib path so repeated
+enter/exit workloads do not permanently degrade to the fallback.
+`PGY_INTENT_ACTIVE_INDEX_MAX` is used as a hash-mask table size, so it must stay
+a power of two; both runtime paths enforce this with a preprocessor guard.
+Executable gate: `make runtime-intent-observability-contract-test-smoke`.
+
 ## Stable Intent Schema
 
 Stable intent query families:

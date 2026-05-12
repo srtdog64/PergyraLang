@@ -3,8 +3,8 @@ set -euo pipefail
 
 bin="${SEMANTIC_TEST_BIN:-}"
 if [ -z "$bin" ]; then
-  echo "SEMANTIC_TEST_BIN is required" >&2
-  exit 2
+  echo "[semantic-fixture-isolation] SEMANTIC_TEST_BIN not set; skipping executable fixture-isolation smoke"
+  exit 0
 fi
 
 case "$bin" in

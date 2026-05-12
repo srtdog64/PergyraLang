@@ -45,6 +45,26 @@ program_lookup_dag_intent_binding_type_or_unknown(ASTNode *binding,
     return TYPE_UNKNOWN;
 }
 
+static bool
+program_report_resolution_oom(SemanticContext *ctx,
+                              ASTNode *site,
+                              const char *what)
+{
+    semantic_error_with_hints(ctx,
+        PGY_CODE_SEM_UNKNOWN_TYPE,
+        PGY_CAUSE_RESOLUTION_OOM,
+        PGY_FIX_REDUCE_SCOPE_OR_RETRY,
+        site,
+        "Type-resolution prepass could not allocate metadata for %s.\n"
+        "Reason:\n"
+        "- graph-backed declaration prepass ran out of memory while building stable placeholder types\n"
+        "Fix:\n"
+        "- reduce this compilation unit size and retry\n"
+        "- or report the input if this happens on a small program",
+        what != NULL ? what : "a declaration");
+    return false;
+}
+
 bool
 type_check_program(ASTNode *program, SemanticContext *ctx)
 {
@@ -68,6 +88,9 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
             if (tname != NULL && scope_lookup_current(ctx->scope, tname) == NULL) {
                 Symbol *s = symbol_create_function(tname, TYPE_UNKNOWN,
                     stmt->line, stmt->column);
+                if (s == NULL)
+                    return program_report_resolution_oom(ctx, stmt,
+                        "type-alias placeholder symbol");
                 if (s != NULL)
                     s->kind = SYMBOL_CLASS;
                 scope_declare(ctx->scope, s);
@@ -76,13 +99,17 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
             const char *cname = stmt->data.class_decl.name;
             if (cname != NULL && scope_lookup_current(ctx->scope, cname) == NULL) {
                 Type *t = calloc(1, sizeof(Type));
-                if (t != NULL) {
-                    t->kind = TYPE_KIND_CLASS;
-                    t->nominal_flavor = nominal_flavor_from_decl(stmt);
-                    t->name = pergyra_strdup(cname);
-                }
+                if (t == NULL)
+                    return program_report_resolution_oom(ctx, stmt,
+                        "class placeholder type");
+                t->kind = TYPE_KIND_CLASS;
+                t->nominal_flavor = nominal_flavor_from_decl(stmt);
+                t->name = pergyra_strdup(cname);
                 Symbol *s = symbol_create_function(cname,
-                    t != NULL ? t : TYPE_UNKNOWN, stmt->line, stmt->column);
+                    t, stmt->line, stmt->column);
+                if (s == NULL)
+                    return program_report_resolution_oom(ctx, stmt,
+                        "class placeholder symbol");
                 if (s != NULL)
                     s->kind = SYMBOL_CLASS;
                 scope_declare(ctx->scope, s);
@@ -92,6 +119,9 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
             if (aname != NULL && scope_lookup_current(ctx->scope, aname) == NULL) {
                 Symbol *s = symbol_create_function(aname, TYPE_VOID,
                                                     stmt->line, stmt->column);
+                if (s == NULL)
+                    return program_report_resolution_oom(ctx, stmt,
+                        "ability placeholder symbol");
                 if (s != NULL)
                     s->kind = SYMBOL_ABILITY;
                 scope_declare(ctx->scope, s);
@@ -112,16 +142,27 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                 }
                 Type **ptypes = calloc(real_pc > 0 ? real_pc : 1,
                                          sizeof(Type *));
+                if (ptypes == NULL)
+                    return program_report_resolution_oom(ctx, stmt,
+                        "function parameters");
                 for (size_t j = 0; j < real_pc; j++)
                     ptypes[j] = TYPE_UNKNOWN;
                 Type *ret = program_lookup_dag_func_return_type_or_void(stmt, ctx);
                 Type *placeholder = type_create_function(ptypes, real_pc, ret);
+                if (placeholder == NULL) {
+                    free(ptypes);
+                    return program_report_resolution_oom(ctx, stmt,
+                        "function placeholder type");
+                }
                 if (placeholder != NULL)
                     placeholder->data.function.effect_mask =
                         declared_effects_from_function_node(stmt, ctx, NULL);
                 free(ptypes);
                 Symbol *s = symbol_create_function(fname, placeholder,
                                                     stmt->line, stmt->column);
+                if (s == NULL)
+                    return program_report_resolution_oom(ctx, stmt,
+                        "function placeholder symbol");
                 scope_declare(ctx->scope, s);
             }
         } else if (stmt->type == AST_EVENT_DECL) {
@@ -129,6 +170,9 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
             if (scope_lookup_current(ctx->scope, ename) == NULL) {
                 size_t epc = stmt->data.event_decl.param_count;
                 Type **eptypes = calloc(epc > 0 ? epc : 1, sizeof(Type *));
+                if (eptypes == NULL)
+                    return program_report_resolution_oom(ctx, stmt,
+                        "event parameters");
                 for (size_t j = 0; j < epc; j++) {
                     ASTNode *p = stmt->data.event_decl.params[j];
                     if (p != NULL
@@ -141,21 +185,33 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                     }
                 }
                 Type *evt_ft = type_create_function(eptypes, epc, TYPE_VOID);
+                if (evt_ft == NULL) {
+                    free(eptypes);
+                    return program_report_resolution_oom(ctx, stmt,
+                        "event placeholder type");
+                }
                 free(eptypes);
                 Symbol *s = symbol_create_function(ename, evt_ft,
                                                     stmt->line, stmt->column);
+                if (s == NULL)
+                    return program_report_resolution_oom(ctx, stmt,
+                        "event placeholder symbol");
                 scope_declare(ctx->scope, s);
             }
         } else if (stmt->type == AST_ENUM_DECL) {
             const char *ename = stmt->data.enum_decl.name;
             if (ename != NULL && scope_lookup_current(ctx->scope, ename) == NULL) {
                 Type *t = calloc(1, sizeof(Type));
-                if (t != NULL) {
-                    t->kind = TYPE_KIND_ENUM;
-                    t->name = pergyra_strdup(ename);
-                }
+                if (t == NULL)
+                    return program_report_resolution_oom(ctx, stmt,
+                        "enum placeholder type");
+                t->kind = TYPE_KIND_ENUM;
+                t->name = pergyra_strdup(ename);
                 Symbol *s = symbol_create_function(ename,
-                    t != NULL ? t : TYPE_UNKNOWN, stmt->line, stmt->column);
+                    t, stmt->line, stmt->column);
+                if (s == NULL)
+                    return program_report_resolution_oom(ctx, stmt,
+                        "enum placeholder symbol");
                 s->kind = SYMBOL_CLASS;
                 scope_declare(ctx->scope, s);
             }
@@ -171,20 +227,34 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                     /* Tagged union variant constructor: register as function
                      * Circle(Int) -> Shape */
                     Type **ptypes = calloc(vpc, sizeof(Type *));
+                    if (ptypes == NULL)
+                        return program_report_resolution_oom(ctx, stmt,
+                            "enum variant parameters");
                     for (size_t p = 0; p < vpc && ptypes != NULL; p++) {
                         ASTNode *pt = stmt->data.enum_decl.variant_params[j][p];
                         ptypes[p] =
                             program_lookup_dag_type_ref_or_unknown(pt, ctx);
                     }
                     Type *ft = type_create_function(ptypes, vpc, etype);
+                    if (ft == NULL) {
+                        free(ptypes);
+                        return program_report_resolution_oom(ctx, stmt,
+                            "enum variant constructor type");
+                    }
                     free(ptypes);
                     Symbol *vs = symbol_create_function(vname, ft,
                         stmt->line, stmt->column);
+                    if (vs == NULL)
+                        return program_report_resolution_oom(ctx, stmt,
+                            "enum variant constructor symbol");
                     scope_declare(ctx->scope, vs);
                 } else {
                     /* Simple variant: register as variable */
                     Symbol *vs = symbol_create_variable(vname, etype,
                         stmt->line, stmt->column);
+                    if (vs == NULL)
+                        return program_report_resolution_oom(ctx, stmt,
+                            "enum variant symbol");
                     scope_declare(ctx->scope, vs);
                 }
             }
@@ -199,8 +269,14 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                     if (placeholder != NULL)
                         placeholder->data.function.effect_mask =
                             declared_effects_from_function_node(decl, ctx, NULL);
+                    if (placeholder == NULL)
+                        return program_report_resolution_oom(ctx, decl,
+                            "extern placeholder type");
                     Symbol *s = symbol_create_function(fname, placeholder,
                                                         decl->line, decl->column);
+                    if (s == NULL)
+                        return program_report_resolution_oom(ctx, decl,
+                            "extern placeholder symbol");
                     scope_declare(ctx->scope, s);
                 }
             }
@@ -212,6 +288,9 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                     : (stmt->data.intent_decl.involve_count
                         + stmt->data.intent_decl.value_count);
                 Type **ptypes = calloc(ipc > 0 ? ipc : 1, sizeof(Type *));
+                if (ptypes == NULL)
+                    return program_report_resolution_oom(ctx, stmt,
+                        "intent bindings");
                 for (size_t j = 0; j < ipc; j++) {
                     ASTNode *binding = stmt->data.intent_decl.binding_count > 0
                         ? stmt->data.intent_decl.bindings[j]
@@ -231,9 +310,17 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                     }
                 }
                 Type *ft = type_create_function(ptypes, ipc, TYPE_BOOL);
+                if (ft == NULL) {
+                    free(ptypes);
+                    return program_report_resolution_oom(ctx, stmt,
+                        "intent placeholder type");
+                }
                 free(ptypes);
                 Symbol *s = symbol_create_function(iname,
-                    ft != NULL ? ft : TYPE_UNKNOWN, stmt->line, stmt->column);
+                    ft, stmt->line, stmt->column);
+                if (s == NULL)
+                    return program_report_resolution_oom(ctx, stmt,
+                        "intent placeholder symbol");
                 s->kind = SYMBOL_INTENT;
                 scope_declare(ctx->scope, s);
             }
@@ -260,13 +347,17 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                 dname = stmt->data.zone_decl.name;
             if (dname != NULL && scope_lookup_current(ctx->scope, dname) == NULL) {
                 Type *t = calloc(1, sizeof(Type));
-                if (t != NULL) {
-                    t->kind = TYPE_KIND_CLASS;
-                    t->nominal_flavor = TYPE_NOMINAL_CLASS;
-                    t->name = pergyra_strdup(dname);
-                }
+                if (t == NULL)
+                    return program_report_resolution_oom(ctx, stmt,
+                        "domain placeholder type");
+                t->kind = TYPE_KIND_CLASS;
+                t->nominal_flavor = TYPE_NOMINAL_CLASS;
+                t->name = pergyra_strdup(dname);
                 Symbol *s = symbol_create_function(dname,
-                    t != NULL ? t : TYPE_UNKNOWN, stmt->line, stmt->column);
+                    t, stmt->line, stmt->column);
+                if (s == NULL)
+                    return program_report_resolution_oom(ctx, stmt,
+                        "domain placeholder symbol");
                 s->kind = SYMBOL_CLASS;
                 scope_declare(ctx->scope, s);
             }
@@ -278,16 +369,9 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
     if (!type_resolution_build_topo_order(&ctx->type_resolution_graph,
                                           &topo_order,
                                           &topo_count)) {
-        semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_DEPENDENCY_CYCLE, PGY_CAUSE_TYPE_RESOLUTION_CYCLE, PGY_FIX_BREAK_CYCLE_VIA_INDIRECTION, program,
-            "Type resolution topological ordering could not be constructed.\n"
-            "Reason:\n"
-            "- the semantic type dependency graph is not acyclic or not fully materialized\n"
-            "- graph-backed staged resolution cannot trust the current declaration order\n"
-            "Fix:\n"
-            "- resolve the earlier type dependency cycle\n"
-            "- or close the missing generic/alias/ability dependency edge");
         free(topo_order);
-        return false;
+        return program_report_resolution_oom(ctx, program,
+            "type-resolution topological order");
     }
 
     semantic_run_type_resolution_worklist(program, ctx, topo_order, topo_count);

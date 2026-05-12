@@ -28,6 +28,12 @@ pgy_spsc_init_##SuffixName(PgyChannelSPSC_##SuffixName *ch, size_t capacity) \
         return; \
     } \
     capacity = pgy_runtime_channel_capacity_or_default("spsc_init_" #SuffixName, capacity); \
+    if (capacity > SIZE_MAX / sizeof(CType)) { \
+        pgy_runtime_warn_invalid_channel("spsc_init_" #SuffixName, "capacity overflows buffer size"); \
+        ch->buf = NULL; \
+        ch->cap = 0; \
+        return; \
+    } \
     ch->buf = (CType *)calloc(capacity, sizeof(CType)); \
     if (ch->buf == NULL) { \
         pgy_runtime_warn_invalid_channel("spsc_init_" #SuffixName, "buffer allocation failed"); \
@@ -43,13 +49,18 @@ pgy_spsc_init_##SuffixName(PgyChannelSPSC_##SuffixName *ch, size_t capacity) \
 static inline void \
 pgy_spsc_destroy_##SuffixName(PgyChannelSPSC_##SuffixName *ch) \
 { \
+    if (ch == NULL) \
+        return; \
     free(ch->buf); \
     ch->buf = NULL; \
+    ch->cap = 0; \
 } \
 \
 static inline void \
 pgy_spsc_close_##SuffixName(PgyChannelSPSC_##SuffixName *ch) \
 { \
+    if (ch == NULL) \
+        return; \
     atomic_store_explicit(&ch->closed, true, memory_order_release); \
 } \
 \
@@ -75,6 +86,8 @@ pgy_spsc_try_send_##SuffixName(PgyChannelSPSC_##SuffixName *ch, CType val) \
 static inline bool \
 pgy_spsc_send_##SuffixName(PgyChannelSPSC_##SuffixName *ch, CType val) \
 { \
+    if (ch == NULL || ch->buf == NULL || ch->cap == 0) \
+        return false; \
     for (;;) { \
         if (pgy_spsc_try_send_##SuffixName(ch, val)) \
             return true; \
@@ -107,6 +120,8 @@ pgy_spsc_try_recv_##SuffixName(PgyChannelSPSC_##SuffixName *ch, CType *out) \
 static inline bool \
 pgy_spsc_recv_##SuffixName(PgyChannelSPSC_##SuffixName *ch, CType *out) \
 { \
+    if (ch == NULL || out == NULL || ch->buf == NULL || ch->cap == 0) \
+        return false; \
     for (;;) { \
         if (pgy_spsc_try_recv_##SuffixName(ch, out)) \
             return true; \
@@ -123,6 +138,8 @@ pgy_spsc_recv_##SuffixName(PgyChannelSPSC_##SuffixName *ch, CType *out) \
 static inline size_t \
 pgy_spsc_space_##SuffixName(PgyChannelSPSC_##SuffixName *ch) \
 { \
+    if (ch == NULL || ch->buf == NULL || ch->cap == 0) \
+        return 0; \
     size_t t = atomic_load_explicit(&ch->tail, memory_order_relaxed); \
     size_t h = atomic_load_explicit(&ch->head, memory_order_acquire); \
     size_t used = (t >= h) ? (t - h) : 0; \
@@ -132,6 +149,8 @@ pgy_spsc_space_##SuffixName(PgyChannelSPSC_##SuffixName *ch) \
 static inline bool \
 pgy_spsc_closed_##SuffixName(PgyChannelSPSC_##SuffixName *ch) \
 { \
+    if (ch == NULL) \
+        return true; \
     return atomic_load_explicit(&ch->closed, memory_order_acquire); \
 }
 

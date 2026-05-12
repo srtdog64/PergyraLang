@@ -1,5 +1,6 @@
 #include "hir_cfg_internal.h"
 
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -123,7 +124,16 @@ hir_compute_cfg_phi_candidates(HIRRoutine *routine)
     size_t name_capacity = 0;
     if (!hir_routine_collect_ssa_names(routine, &names, &name_count, &name_capacity))
         return false;
+    if (name_count == 0) {
+        free((void *)names);
+        return true;
+    }
 
+    if (routine->cfg.block_count > SIZE_MAX / sizeof(bool)
+        || routine->cfg.block_count > SIZE_MAX / sizeof(size_t)) {
+        free((void *)names);
+        return false;
+    }
     bool *has_phi = calloc(routine->cfg.block_count, sizeof(bool));
     bool *in_work = calloc(routine->cfg.block_count, sizeof(bool));
     size_t *work = malloc(routine->cfg.block_count * sizeof(size_t));
@@ -181,6 +191,14 @@ hir_compute_cfg_phi_candidates(HIRRoutine *routine)
     for (size_t i = 0; i < routine->cfg.block_count; i++) {
         if (routine->cfg.blocks[i].phi_candidate_count > 0) {
             routine->phi_candidate_block_count++;
+            if (routine->phi_candidate_count
+                    > SIZE_MAX - routine->cfg.blocks[i].phi_candidate_count) {
+                free((void *)names);
+                free(has_phi);
+                free(in_work);
+                free(work);
+                return false;
+            }
             routine->phi_candidate_count += routine->cfg.blocks[i].phi_candidate_count;
         }
     }
@@ -211,6 +229,8 @@ hir_materialize_phi_nodes(HIRRoutine *routine)
         if (block->phi_candidate_count == 0)
             continue;
 
+        if (block->phi_candidate_count > SIZE_MAX / sizeof(HIRPhiNode))
+            return false;
         block->phi_nodes = calloc(block->phi_candidate_count, sizeof(HIRPhiNode));
         if (block->phi_nodes == NULL)
             return false;

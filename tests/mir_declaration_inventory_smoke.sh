@@ -78,9 +78,11 @@ for term in \
     "AST_ROSTER_DECL" \
     "kLLVMHostDeclTypes[i]" \
     "llvm_host_decl_type_count()" \
-    "return decl->data.party_decl.name" \
-    "return decl->data.role_decl.name" \
-    "return decl->data.roster_decl.name"; do
+    "return node->data.party_decl.name" \
+    "return node->data.role_decl.name" \
+    "return node->data.roster_decl.name" \
+    "return llvm_is_host_decl_type(decl->type)" \
+    "llvm_decl_node_name(decl)"; do
     require_term "src/codegen/llvm_inventory_decl_lookup.c" "$term"
 done
 
@@ -248,6 +250,12 @@ if grep -A8 -F "MIR-only LLVM path missing intent participant metadata" \
 fi
 require_term "src/codegen/llvm_intent_cleanup.c" "llvm_set_mir_intent_carrier_missing"
 require_term "src/codegen/llvm_intent_step_context.c" "llvm_set_mir_intent_carrier_missing"
+require_term "src/codegen/llvm_intent_step_context.c" \
+    "out->dispatch_aliases = (const char **)step->data.intent_step.who_names"
+if grep -Fq "step->data.intent_step.who_names[j]" \
+    "$ROOT_DIR/src/codegen/llvm_intent.c"; then
+    fail "LLVM intent dispatch emission must consume LLVMIntentStepContext aliases"
+fi
 if grep -RIn "llvm_set_error_with_hints(ctx" \
     "$ROOT_DIR/src/codegen/llvm_intent_cleanup.c" \
     "$ROOT_DIR/src/codegen/llvm_intent_step_context.c"; then
@@ -632,13 +640,16 @@ if grep -RIn "llvm_find_mir_method_routine_local" "$ROOT_DIR/src/codegen"; then
 fi
 
 for term in \
-    "return decl->data.party_decl.name" \
-    "return decl->data.role_decl.name" \
-    "return decl->data.roster_decl.name" \
+    "return llvm_is_host_decl_type(decl->type)" \
+    "llvm_decl_node_name(decl)" \
     "llvm_find_host_decl_header_in_context(ctx, type_name)" \
     "llvm_find_named_domain_decl(ctx, AST_ROLE_DECL, type_name)"; do
     require_term "src/codegen/llvm_domain_lookup.c" "$term"
 done
+if grep -Fq "llvm_decl_current_nominal_name" \
+    "$ROOT_DIR/src/codegen/llvm_decl.c"; then
+    fail "LLVM implicit self lowering must use the shared current host-name helper"
+fi
 if grep -Fq "routine->ast == method->source_ast" \
     "$ROOT_DIR/src/compiler/mir_decl_headers.c"; then
     fail "MIRDeclMethod routine linking must not use AST identity matching"

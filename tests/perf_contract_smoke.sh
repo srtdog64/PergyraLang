@@ -51,6 +51,7 @@ grep -Fq "party_runtime_stats.c" "$ROOT_DIR/Makefile"
 grep -Fq "indexHashes" "$ROOT_DIR/src/runtime/party_runtime_stats.c"
 grep -Fq "fiber_stats_lookup(roleId)" "$ROOT_DIR/src/runtime/party_runtime_stats.c"
 grep -Fq "fiber_stats_index_insert(stats->roleId" "$ROOT_DIR/src/runtime/party_runtime_stats.c"
+grep -Fq "return fiber_stats_lookup_linear(roleId);" "$ROOT_DIR/src/runtime/party_runtime_stats.c"
 if grep -A12 -F "pgy_intent_active_count_export(void)" \
     "$ROOT_DIR/src/runtime/pgy_runtime_lib_intent_exports.h" | \
     grep -Fq "PGY_INTENT_ACTIVE_MAX"; then
@@ -512,9 +513,9 @@ grep -Fq "MIR validator rejects CFG-backed non-CFG body fallback state" "$ROOT_D
 grep -Fq "fallback flag without fallback count" "$ROOT_DIR/src/compiler/mir_public_surface.h"
 grep -Fq "MIR validator rejects non-CFG fallback flag without count" "$ROOT_DIR/src/tests/mir/test_mir_lowering_part_c.cases.h"
 grep -Fq "cleanup block %zu is not reachable" "$ROOT_DIR/src/compiler/mir_cfg_contract_cleanup_roots.c"
-grep -Fq "MIR validator rejects unreachable cleanup root" "$ROOT_DIR/src/tests/mir/test_mir_lowering_part_a.cases.h"
+grep -Fq "MIR validator rejects unreachable cleanup root" "$ROOT_DIR/src/tests/mir/test_mir_lowering_part_e.cases.h"
 grep -Fq "unreachable block[%zu] has exceptional successor" "$ROOT_DIR/src/compiler/mir_cfg_contract_validate.c"
-grep -Fq "MIR validator rejects unreachable exceptional source" "$ROOT_DIR/src/tests/mir/test_mir_lowering_part_a.cases.h"
+grep -Fq "MIR validator rejects unreachable exceptional source" "$ROOT_DIR/src/tests/mir/test_mir_lowering_part_e.cases.h"
 grep -Fq "air_mir_cleanup_root_is_valid" "$ROOT_DIR/src/compiler/air_evidence.c"
 grep -Fq "routine->blocks[routine->cleanup_block].is_reachable" "$ROOT_DIR/src/compiler/air_evidence.c"
 grep -Fq "if (!block->is_reachable || block->is_cleanup)" "$ROOT_DIR/src/compiler/air_evidence.c"
@@ -534,10 +535,11 @@ grep -Fq "no matching MIR cleanup evidence" "$ROOT_DIR/src/compiler/air_validate
 grep -Fq "AIR rejects MIR pin cleanup without global cleanup evidence" "$ROOT_DIR/src/test_air.c"
 grep -Fq "AIR DAG evidence contains unresolved metadata dead-end" "$ROOT_DIR/src/compiler/air_verify.c"
 grep -R -Fq "sem.type_resolution_metadata_materializer_fallbacks = 0" "$ROOT_DIR/src/tests/air"
-grep -Fq "return inst->expr0" "$ROOT_DIR/src/compiler/mir_ssa_rename.c"
-grep -Fq "ASTNode *expr = inst->expr0 != NULL ? inst->expr0 : inst->expr1" "$ROOT_DIR/src/compiler/mir_ssa_rename.c"
+grep -Fq "return inst->expr0" "$ROOT_DIR/src/compiler/mir_ssa_use_edges.c"
+grep -Fq "ASTNode *expr = inst->expr0 != NULL ? inst->expr0 : inst->expr1" "$ROOT_DIR/src/compiler/mir_ssa_use_edges.c"
 ! grep -Fq "inst->ast->type" "$ROOT_DIR/src/compiler/mir_ssa_rename.c"
 ! grep -Fq "source_statement_inventory" "$ROOT_DIR/src/compiler/mir_ssa_rename.c"
+! grep -Fq "source_statement_inventory.items[inst->source_statement_index]" "$ROOT_DIR/src/compiler/mir_ssa_use_edges.c"
 grep -Fq "source_statement_inventory" "$ROOT_DIR/src/compiler/mir_stmt_population.c"
 ! grep -Fq "while (*stmt_index < block->source_statement_count)" "$ROOT_DIR/src/compiler/mir_ssa_rename.c"
 ! grep -Fq "source_statements;" "$ROOT_DIR/src/compiler/mir.h"
@@ -610,6 +612,15 @@ grep -Fq "llvm_mir_declare_recv_target(inst->arg0, inst->expr0, ctx)" "$ROOT_DIR
 grep -Fq "LLVM channel receive DEF requires registered runtime function" "$ROOT_DIR/src/codegen/llvm_mir_cfg_control.c"
 grep -Fq "llvm_emit_statement(source_payload, ctx)" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
 ! grep -R -Fq "llvm_emit_statement(inst->ast" "$ROOT_DIR/src/codegen"
+grep -Fq "llvm_emit_option_coalesce" "$ROOT_DIR/src/codegen/llvm_expr_scalar_core.c"
+grep -Fq "coalesce.fallback" "$ROOT_DIR/src/codegen/llvm_expr_scalar_core.c"
+grep -Fq "LLVMBuildPhi(ctx->builder, fields[1]" "$ROOT_DIR/src/codegen/llvm_expr_scalar_core.c"
+if grep -A95 -F "llvm_emit_option_coalesce" \
+    "$ROOT_DIR/src/codegen/llvm_expr_scalar_core.c" | \
+    grep -Fq "LLVMBuildSelect"; then
+    echo "[perf-contract] LLVM ?? lowering regressed to eager select fallback" >&2
+    exit 1
+fi
 grep -Fq "LLVMConstInt(LLVMInt1TypeInContext(ctx->context), 0, 0)" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
 grep -Fq "transpiler_mir_def_uses_source_statement_emit" "$ROOT_DIR/src/codegen/transpiler_mir_block_emit_helpers.h"
 grep -Fq "transpiler_mir_inst_is_cfg_container" "$ROOT_DIR/src/codegen/transpiler_mir_block_emit_helpers.h"
@@ -671,8 +682,8 @@ grep -Fq "branch_shape = mir_branch_shape_from_ast" "$ROOT_DIR/src/compiler/mir.
 grep -Fq "mir_branch_shape_name" "$ROOT_DIR/src/compiler/mir_names.c"
 grep -Fq "source-branch-emit" "$ROOT_DIR/src/compiler/mir_lifecycle.c"
 grep -Fq "inst.requires_source_branch_emit" "$ROOT_DIR/src/compiler/mir.c"
-grep -Fq "mir_instruction_record_surface_usage(&inst);" "$ROOT_DIR/src/compiler/mir.c"
-grep -Fq "mir_instruction_record_surface_usage(&inst)" "$ROOT_DIR/src/compiler/mir_base_helpers.c"
+grep -Fq "mir_instruction_record_surface_usage(MIRInstruction *inst)" "$ROOT_DIR/src/compiler/mir.c"
+grep -Fq "mir_instruction_record_surface_usage(&inst);" "$ROOT_DIR/src/compiler/mir_base_helpers.c"
 grep -Fq "return append_instruction(block, inst)" "$ROOT_DIR/src/compiler/mir_cleanup.c"
 grep -Fq "return append_instruction(block, inst)" "$ROOT_DIR/src/compiler/mir_intent.c"
 grep -Fq "inst.expr0 = ast" "$ROOT_DIR/src/compiler/mir_intent.c"
@@ -838,6 +849,9 @@ grep -Fq "LLVM SetAdd could not lower value expression" "$ROOT_DIR/src/codegen/l
 grep -Fq "*out = NULL;" "$ROOT_DIR/src/codegen/llvm_expr_call_collections_extended.c"
 grep -Fq "return NULL;" "$ROOT_DIR/src/codegen/llvm_backend_type_map.c"
 ! grep -A20 -F "llvm_required_constructed_arg_name_at" "$ROOT_DIR/src/codegen/llvm_backend_type_map.c" | grep -Fq 'return "Unknown";'
+grep -A40 -F "len = (size_t)(p - start);" "$ROOT_DIR/src/codegen/llvm_backend_type_render.c" | grep -Fq "return NULL;"
+grep -Fq "char ok_name_buf[256]" "$ROOT_DIR/src/codegen/llvm_backend_type_map.c"
+grep -Fq "char err_name_buf[256]" "$ROOT_DIR/src/codegen/llvm_backend_type_map.c"
 ! grep -A8 -F 'strncmp(type_name, "List<", 5)' "$ROOT_DIR/src/codegen/llvm_backend_type_map.c" | grep -Fq "return ctx->type_i32"
 ! grep -A8 -F 'strncmp(type_name, "Set<", 4)' "$ROOT_DIR/src/codegen/llvm_backend_type_map.c" | grep -Fq "return ctx->type_i32"
 ! grep -A8 -F 'strncmp(type_name, "Queue<", 6)' "$ROOT_DIR/src/codegen/llvm_backend_type_map.c" | grep -Fq "return ctx->type_i32"
@@ -891,8 +905,8 @@ grep -Fq "{ *out = NULL; return true; }" "$ROOT_DIR/src/codegen/llvm_expr_call_q
 grep -Fq "requires concrete slot type metadata" "$ROOT_DIR/src/codegen/transpiler_mir_ssa_emit.h"
 ! grep -Fq "lossy fallback" "$ROOT_DIR/src/codegen/llvm_intent.c"
 ! grep -Fq 'pergyra_strdup("Unknown")' "$ROOT_DIR/src/codegen/llvm_backend_type_map.c"
-grep -Fq "if (result == NULL)" "$ROOT_DIR/src/codegen/llvm_backend_type_map.c"
-grep -Fq "if (gp == NULL)" "$ROOT_DIR/src/codegen/llvm_backend_type_map.c"
+grep -Fq "if (result == NULL)" "$ROOT_DIR/src/codegen/llvm_backend_type_render.c"
+grep -Fq "if (gp == NULL)" "$ROOT_DIR/src/codegen/llvm_backend_type_render.c"
 ! grep -A8 -F "LLVM type '%s' is not registered in the LLVM type map" \
     "$ROOT_DIR/src/codegen/llvm_backend_type_map.c" | \
     grep -Fq "return ctx->type_i32"
@@ -973,11 +987,11 @@ grep -Fq "llvm_scalar_expr_error" "$ROOT_DIR/src/codegen/llvm_expr_scalar_core.c
 ! grep -A16 -F "llvm_scalar_expr_error(LLVMGenCtx *ctx" \
     "$ROOT_DIR/src/codegen/llvm_expr_scalar_core.c" | \
     grep -Fq "LLVMConstInt(ctx->type_i32, 0, 0)"
-grep -Fq "LLVM try operator could not lower operand expression" "$ROOT_DIR/src/codegen/llvm_expr_scalar_core.c"
-grep -Fq "LLVM try operator requires Result-like aggregate operand" "$ROOT_DIR/src/codegen/llvm_expr_scalar_core.c"
-grep -Fq "LLVM try operator cannot coerce Result error payload" "$ROOT_DIR/src/codegen/llvm_expr_scalar_core.c"
-grep -Fq "PGY_FIX_ALIGN_RESULT_ERROR_TYPE" "$ROOT_DIR/src/codegen/llvm_expr_scalar_core.c"
-! grep -Fq "err_val = LLVMConstNull(dst_ty)" "$ROOT_DIR/src/codegen/llvm_expr_scalar_core.c"
+grep -Fq "LLVM try operator could not lower operand expression" "$ROOT_DIR/src/codegen/llvm_expr_unary_core.c"
+grep -Fq "LLVM try operator requires Result-like aggregate operand" "$ROOT_DIR/src/codegen/llvm_expr_unary_core.c"
+grep -Fq "LLVM try operator cannot coerce Result error payload" "$ROOT_DIR/src/codegen/llvm_expr_unary_core.c"
+grep -Fq "PGY_FIX_ALIGN_RESULT_ERROR_TYPE" "$ROOT_DIR/src/codegen/llvm_expr_unary_core.c"
+! grep -Fq "err_val = LLVMConstNull(dst_ty)" "$ROOT_DIR/src/codegen/llvm_expr_unary_core.c"
 grep -Fq "LLVM binary expression could not lower operand expression" "$ROOT_DIR/src/codegen/llvm_expr_scalar_core.c"
 grep -Fq "llvm_math_error_out" "$ROOT_DIR/src/codegen/llvm_expr_math_calls.c"
 grep -Fq "LLVM Abs could not lower operand expression" "$ROOT_DIR/src/codegen/llvm_expr_math_calls.c"
@@ -1133,6 +1147,10 @@ grep -Fq "LLVM spawn expression requires a target expression" "$ROOT_DIR/src/cod
     grep -Fq "return ctx->type_i32"
 grep -Fq "if (ctx->has_error || alloca_type == NULL)" \
     "$ROOT_DIR/src/codegen/llvm_mir_local_emit.c"
+grep -Fq "llvm_mir_local_type_from_value_fact" \
+    "$ROOT_DIR/src/codegen/llvm_mir_local_emit.c"
+grep -Fq "llvm_mir_get_var_entry(vars, var_count, name)" \
+    "$ROOT_DIR/src/codegen/llvm_mir_local_emit.c"
 ! grep -A24 -F "llvm_decl_required_param_type(LLVMGenCtx *ctx" \
     "$ROOT_DIR/src/codegen/llvm_decl.c" | \
     grep -Fq "return ctx->type_i32"
@@ -1170,12 +1188,12 @@ grep -Fq "if (ctx->has_error || pt == NULL)" \
     "$ROOT_DIR/src/codegen/llvm_mir_local_emit.c"
 grep -Fq "could not lower argument %zu" "$ROOT_DIR/src/codegen/llvm_expr_spawn_call_helpers.c"
 grep -Fq "loaded-argument allocation failed" "$ROOT_DIR/src/codegen/llvm_expr_spawn_call_helpers.c"
-grep -Fq "llvm_member_call_error_recovery" "$ROOT_DIR/src/codegen/llvm_member_call_emit.c"
+grep -Fq "llvm_member_call_error_recovery" "$ROOT_DIR/src/codegen/llvm_member_call_support.c"
 ! grep -A16 -F "llvm_member_call_error_recovery(LLVMGenCtx *ctx" \
-    "$ROOT_DIR/src/codegen/llvm_member_call_emit.c" | \
+    "$ROOT_DIR/src/codegen/llvm_member_call_support.c" | \
     grep -Fq "LLVMConstInt(ctx->type_i32, 0, 0)"
-grep -Fq "could not lower an argument" "$ROOT_DIR/src/codegen/llvm_member_call_emit.c"
-grep -Fq "could not allocate method name" "$ROOT_DIR/src/codegen/llvm_member_call_emit.c"
+grep -Fq "could not lower an argument" "$ROOT_DIR/src/codegen/llvm_member_call_support.c"
+grep -Fq "could not allocate method name" "$ROOT_DIR/src/codegen/llvm_member_call_support.c"
 grep -Fq "requires a self receiver" "$ROOT_DIR/src/codegen/llvm_member_call_emit.c"
 grep -Fq "is not declared in the backend method registry" "$ROOT_DIR/src/codegen/llvm_member_call_emit.c"
 grep -Fq "llvm_vtable_dispatch_error" "$ROOT_DIR/src/codegen/llvm_expr_call_methods_vtable_dispatch.c"
@@ -1254,7 +1272,7 @@ grep -Fq "\"secure slot\" : \"slot\"" "$ROOT_DIR/src/codegen/llvm_expr_slot_devi
 ! grep -Fq "llvm_direct_secure_slot_read(ctx, slot_var, inner)" "$ROOT_DIR/src/codegen/llvm_expr_slot_device_calls.c"
 ! grep -Fq "llvm_direct_secure_slot_release(ctx, slot_var)" "$ROOT_DIR/src/codegen/llvm_expr_slot_device_calls.c"
 grep -Fq "LLVM with-slot cleanup requires registered runtime function" "$ROOT_DIR/src/codegen/llvm_stmt_with.c"
-grep -Fq "LLVM slot initializer requires registered runtime function" "$ROOT_DIR/src/codegen/llvm_stmt_let_with.c"
+grep -Fq "LLVM slot initializer requires registered runtime function" "$ROOT_DIR/src/codegen/llvm_stmt_let_resources.c"
 grep -Fq "LLVM auto-release requires registered runtime function" "$ROOT_DIR/src/codegen/llvm_stmt.c"
 grep -Fq "LLVM secure slot auto-release requires paired token binding" "$ROOT_DIR/src/codegen/llvm_stmt.c"
 grep -Fq "LLVM secure with-slot cleanup requires paired token binding" "$ROOT_DIR/src/codegen/llvm_stmt_with.c"
@@ -1278,6 +1296,67 @@ grep -Fq "synchronous fallback is disabled" "$ROOT_DIR/src/codegen/llvm_stmt_par
 grep -Fq "LLVM spawn expression requires registered runtime functions" "$ROOT_DIR/src/codegen/llvm_expr_spawn_call_helpers.c"
 grep -Fq "LLVM await expression requires registered runtime function" "$ROOT_DIR/src/codegen/llvm_expr_await_task.c"
 grep -Fq "LLVM await expression could not lower task handle expression" "$ROOT_DIR/src/codegen/llvm_expr_await_task.c"
+grep -Fq "llvm_stmt_type_infer_await.c" "$ROOT_DIR/Makefile"
+grep -Fq "LLVM await expression type inference requires Future<T> metadata" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer_await.c"
+grep -Fq "operand '%s' has no registered Future<T> metadata" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer_await.c"
+! grep -Fq "poison i32 until Future<T>" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
+grep -Fq "llvm_stmt_lookup_visible_function" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
+grep -Fq "channel receive '%s' has no registered Channel<T> metadata" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
+grep -A34 -F "case AST_CHANNEL_RECV" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c" | \
+    grep -Fq "ctx->expected_type_name"
+grep -A34 -F "case AST_CHANNEL_RECV" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c" | \
+    grep -Fq 'strncmp(ctx->expected_type_name, "Channel<", 8) != 0'
+grep -Fq '{ "Input", "String", PGY_BUILTIN_FLAG_NONE }' "$ROOT_DIR/src/codegen/transpiler_builtin_type_table.c"
+grep -Fq '{ "Concat", "String", PGY_BUILTIN_FLAG_NONE }' "$ROOT_DIR/src/codegen/transpiler_builtin_type_table.c"
+grep -Fq '{ "StringConcat", "String", PGY_BUILTIN_FLAG_NONE }' "$ROOT_DIR/src/codegen/transpiler_builtin_type_table.c"
+! grep -Fq 'strcmp(callee, "Input")' "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
+! grep -Fq 'strcmp(callee, "Concat")' "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
+! grep -Fq 'strcmp(callee, "StringConcat")' "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
+grep -A14 -F "case AST_NUMBER" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c" | \
+    grep -Fq "expr->data.number.is_long"
+grep -A14 -F "case AST_NUMBER" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c" | \
+    grep -Fq "return ctx->type_f64"
+grep -A6 -F "if (init->type == AST_NUMBER)" "$ROOT_DIR/src/codegen/transpiler_let_emit.h" | \
+    grep -Fq "infer_expression_type_name(ctx, init)"
+grep -A6 -F "if (init->type == AST_NUMBER)" "$ROOT_DIR/src/codegen/transpiler_let_emit.h" | \
+    grep -Fq "pergyra_type_to_c(inferred_type)"
+grep -Fq "transpiler_promote_numeric_type_name" "$ROOT_DIR/src/codegen/transpiler_expr_type_infer.h"
+grep -A28 -F "if (op == TOKEN_PLUS)" "$ROOT_DIR/src/codegen/transpiler_expr_type_infer.h" | \
+    grep -Fq "transpiler_promote_numeric_type_name(left_type, right_type)"
+grep -Fq "llvm_stmt_promote_numeric_type" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
+grep -A22 -F "if (op == TOKEN_PLUS)" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c" | \
+    grep -Fq "llvm_stmt_promote_numeric_type(ctx, left_ty, right_ty)"
+grep -Fq "llvm_stmt_lookup_declared_call_return_type" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer_helpers.c"
+grep -A14 -F "llvm_stmt_lookup_visible_function(ctx, callee)" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c" | \
+    grep -Fq "llvm_stmt_lookup_declared_call_return_type(ctx, callee)"
+grep -A12 -F "Domain helper calls can be emitted" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c" | \
+    grep -Fq "ctx->expected_type_name"
+grep -A28 -F "case AST_BINARY" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c" | \
+    grep -Fq "unsupported binary operator has no inferred LLVM type"
+grep -Fq "llvm_stmt_expected_array_elem_type" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
+grep -A10 -F "llvm_stmt_resolve_array_elem_type" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c" | \
+    grep -Fq "llvm_stmt_expected_array_elem_type(ctx)"
+grep -A8 -F "llvm_register_future_var(LLVMGenCtx *ctx" \
+    "$ROOT_DIR/src/codegen/llvm_registry_resources.c" | \
+    grep -Fq "ctx == NULL || var_name == NULL || inner_type == NULL"
+grep -A8 -F "llvm_lookup_future_inner(LLVMGenCtx *ctx" \
+    "$ROOT_DIR/src/codegen/llvm_registry_resources.c" | \
+    grep -Fq "ctx == NULL || var_name == NULL"
+grep -A8 -F "llvm_register_channel_var(LLVMGenCtx *ctx" \
+    "$ROOT_DIR/src/codegen/llvm_registry_resources.c" | \
+    grep -Fq "ctx == NULL || var_name == NULL || inner_type == NULL"
+grep -A8 -F "llvm_lookup_channel_inner(LLVMGenCtx *ctx" \
+    "$ROOT_DIR/src/codegen/llvm_registry_resources.c" | \
+    grep -Fq "ctx == NULL || var_name == NULL"
+grep -A14 -F "llvm_register_device_slot_var(LLVMGenCtx *ctx" \
+    "$ROOT_DIR/src/codegen/llvm_registry_resources.c" | \
+    grep -Fq "owned_var_name = llvm_registry_keep_string(ctx, var_name)"
+grep -A14 -F "llvm_register_device_slot_var(LLVMGenCtx *ctx" \
+    "$ROOT_DIR/src/codegen/llvm_registry_resources.c" | \
+    grep -Fq "owned_inner_type = llvm_registry_keep_string(ctx, inner_type)"
+grep -A10 -F "llvm_lookup_secure_token_var(LLVMGenCtx *ctx" \
+    "$ROOT_DIR/src/codegen/llvm_registry_resources.c" | \
+    grep -Fq "(size_t)written >= sizeof(token_name)"
 grep -Fq "LLVM thread-pool entry requires registered runtime function" "$ROOT_DIR/src/codegen/llvm_pipeline.c"
 grep -Fq "LLVM event initialization requires generated event function" "$ROOT_DIR/src/codegen/llvm_pipeline.c"
 grep -Fq "LLVM MIR select readiness requires registered runtime function" "$ROOT_DIR/src/codegen/llvm_mir_cfg_control.c"

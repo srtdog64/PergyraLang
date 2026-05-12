@@ -3,30 +3,6 @@
 #include "llvm_stmt_type_infer_helpers.h"
 
 #include <stdarg.h>
-#include <stdio.h>
-
-static bool
-llvm_stmt_format_host_method_name(LLVMGenCtx *ctx, char *out, size_t out_size,
-                                  const char *host_name, const char *method_name)
-{
-    int written;
-
-    if (out == NULL || out_size == 0 || host_name == NULL
-        || method_name == NULL) {
-        return false;
-    }
-    written = snprintf(out, out_size, "%s_%s", host_name, method_name);
-    if (written >= 0 && (size_t)written < out_size)
-        return true;
-    llvm_set_error_with_hints(ctx,
-        PGY_CODE_LLVM_SPEC_LIMIT,
-        PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
-        PGY_FIX_REFACTOR_OR_RAISE_LIMIT,
-        "LLVM host method lookup name is too long for '%s.%s'",
-        host_name, method_name);
-    return false;
-}
-
 static bool
 llvm_stmt_type_reasonf(char *out, size_t out_size, const char *fmt, ...)
 {
@@ -39,6 +15,23 @@ llvm_stmt_type_reasonf(char *out, size_t out_size, const char *fmt, ...)
     written = vsnprintf(out, out_size, fmt, ap);
     va_end(ap);
     return written >= 0 && (size_t)written < out_size;
+}
+
+static LLVMTypeRef
+llvm_stmt_expected_array_elem_type(LLVMGenCtx *ctx)
+{
+    const char *inner;
+
+    if (ctx == NULL || ctx->expected_type_name == NULL)
+        return NULL;
+    if (strncmp(ctx->expected_type_name, "Array<", 6) != 0
+        && strncmp(ctx->expected_type_name, "Slice<", 6) != 0)
+        return NULL;
+    inner = llvm_constructed_arg_name_at(ctx->expected_type_name, 0);
+    if (inner == NULL || inner[0] == '\0'
+        || strcmp(inner, "Unknown") == 0)
+        return NULL;
+    return pergyra_type_to_llvm(ctx, inner);
 }
 
 LLVMClassTypeEntry *
@@ -70,107 +63,6 @@ llvm_stmt_unknown_expr_type(LLVMGenCtx *ctx, ASTNode *expr, const char *reason)
     return ctx->type_i32;
 }
 
-const char *
-llvm_stmt_infer_nominal_name_from_init(LLVMGenCtx *ctx, ASTNode *init)
-{
-    const char *name;
-
-    if (ctx == NULL || init == NULL)
-        return NULL;
-
-    if (init->type == AST_IDENTIFIER && init->data.identifier.name != NULL) {
-        name = init->data.identifier.name;
-        {
-            LLVMVarEntry *var = llvm_scope_lookup(ctx, name);
-            if (var != NULL) {
-                LLVMClassTypeEntry *var_cls =
-                    llvm_stmt_lookup_class_by_type(ctx, var->type);
-                if (var_cls != NULL)
-                    return var_cls->class_name;
-            }
-        }
-        {
-            const char *tracked = llvm_lookup_var_class(ctx, name);
-            if (tracked != NULL)
-                return tracked;
-        }
-        if (strcmp(name, "self") != 0) {
-            ASTNode *host_decl = llvm_current_host_decl(ctx);
-            const char *host_name = llvm_decl_node_name(host_decl);
-            LLVMClassTypeEntry *host_cls =
-                host_name != NULL ? llvm_lookup_class(ctx, host_name) : NULL;
-            if (host_cls != NULL) {
-                int field_idx = llvm_class_field_index(host_cls, name);
-                if (field_idx >= 0) {
-                    LLVMClassTypeEntry *field_cls = llvm_stmt_lookup_class_by_type(
-                        ctx, host_cls->fields[field_idx].field_type);
-                    if (field_cls != NULL)
-                        return field_cls->class_name;
-                }
-            }
-        }
-        return NULL;
-    }
-
-    if (init->type == AST_CALL
-        && init->data.call.callee != NULL
-        && init->data.call.callee->type == AST_IDENTIFIER
-        && init->data.call.callee->data.identifier.name != NULL) {
-        name = init->data.call.callee->data.identifier.name;
-        if (llvm_stmt_call_returns_collection_value(name)
-            && init->data.call.arg_count >= 1
-            && init->data.call.arguments[0] != NULL
-            && init->data.call.arguments[0]->type == AST_IDENTIFIER) {
-            const char *collection = init->data.call.arguments[0]->data.identifier.name;
-            const char *inner = llvm_stmt_lookup_collection_get_inner(
-                ctx, name, collection);
-            if (inner != NULL && llvm_lookup_class(ctx, inner) != NULL)
-                return inner;
-        }
-        if (llvm_lookup_class(ctx, name) != NULL)
-            return name;
-        {
-            LLVMFuncEntry *callee_fn = llvm_lookup_function(ctx, name);
-            if (callee_fn == NULL) {
-                ASTNode *host_decl = llvm_current_host_decl(ctx);
-                const char *host_name = llvm_decl_node_name(host_decl);
-                char full_name[256];
-                if (host_name != NULL) {
-                    if (!llvm_stmt_format_host_method_name(ctx, full_name,
-                            sizeof(full_name), host_name, name))
-                        return NULL;
-                    callee_fn = llvm_lookup_function(ctx, full_name);
-                }
-            }
-            LLVMClassTypeEntry *ret_cls = callee_fn != NULL
-                ? llvm_stmt_lookup_class_by_type(ctx, callee_fn->ret_type)
-                : NULL;
-            if (ret_cls != NULL)
-                return ret_cls->class_name;
-        }
-    }
-
-    if (init->type == AST_MEMBER_ACCESS
-        && init->data.member.object != NULL
-        && init->data.member.name != NULL) {
-        const char *base_name = llvm_stmt_infer_nominal_name_from_init(
-            ctx, init->data.member.object);
-        LLVMClassTypeEntry *base_cls = base_name != NULL
-            ? llvm_lookup_class(ctx, base_name) : NULL;
-        if (base_cls != NULL) {
-            int field_idx = llvm_class_field_index(base_cls, init->data.member.name);
-            if (field_idx >= 0) {
-                LLVMClassTypeEntry *field_cls = llvm_stmt_lookup_class_by_type(
-                    ctx, base_cls->fields[field_idx].field_type);
-                if (field_cls != NULL)
-                    return field_cls->class_name;
-            }
-        }
-    }
-
-    return NULL;
-}
-
 LLVMTypeRef
 llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
 {
@@ -192,8 +84,22 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
         return ctx->type_i8ptr;
     case AST_BOOLEAN:
         return ctx->type_i1;
-    case AST_NUMBER:
-        return ctx->type_i32;
+    case AST_NUMBER: {
+        double val = expr->data.number.value;
+        if (expr->data.number.is_long)
+            return ctx->type_i64;
+        if (val == (int64_t)val
+            && val >= -2147483648.0
+            && val <= 2147483647.0) {
+            return ctx->type_i32;
+        }
+        if (val == (double)(int64_t)val
+            && val >= -9.2233720368547758e+18
+            && val <=  9.2233720368547758e+18) {
+            return ctx->type_i64;
+        }
+        return ctx->type_f64;
+    }
     case AST_ARRAY_LITERAL: {
         LLVMTypeRef elem_type = NULL;
         const char *suffix = NULL;
@@ -245,10 +151,28 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
             const char *inner = llvm_lookup_channel_inner(ctx, name);
             if (inner != NULL)
                 return pergyra_type_to_llvm(ctx, inner);
+            if (name != NULL && llvm_scope_lookup(ctx, name) != NULL) {
+                char reason[256];
+                if (!llvm_stmt_type_reasonf(reason, sizeof(reason),
+                        "channel receive '%s' has no registered Channel<T> metadata",
+                        name)) {
+                    return llvm_stmt_unknown_expr_type(ctx, expr,
+                        "channel receive has no registered Channel<T> metadata");
+                }
+                return llvm_stmt_unknown_expr_type(ctx, expr, reason);
+            }
         }
         /* Select lowering can allocate receive temporaries before channel
-         * inner metadata is registered; preserve poison i32 until MIR facts
-         * carry the receive element type directly. */
+         * inner metadata is registered. If the enclosing let/return already
+         * supplied a concrete expected value type, use that instead of
+         * inventing poison i32. */
+        if (ctx->expected_type_name != NULL
+            && strncmp(ctx->expected_type_name, "Channel<", 8) != 0) {
+            LLVMTypeRef expected = pergyra_type_to_llvm(
+                ctx, ctx->expected_type_name);
+            if (expected != NULL)
+                return expected;
+        }
         return ctx->type_i32;
     case AST_MEMBER_ACCESS: {
         const char *base_name = llvm_stmt_infer_nominal_name_from_init(
@@ -352,34 +276,20 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
                 if (inner != NULL)
                     return ctx->type_void;
             }
-            LLVMFuncEntry *fn = llvm_lookup_function(ctx, callee);
-            ASTNode *host_decl = llvm_current_host_decl(ctx);
-            const char *host_name = llvm_decl_node_name(host_decl);
-            if (fn == NULL && host_name != NULL) {
-                char full_name[256];
-                if (!llvm_stmt_format_host_method_name(ctx, full_name,
-                        sizeof(full_name), host_name, callee))
-                    return ctx->type_i32;
-                fn = llvm_lookup_function(ctx, full_name);
-            }
+            LLVMFuncEntry *fn = llvm_stmt_lookup_visible_function(ctx, callee);
             if (fn != NULL)
                 return fn->ret_type;
+            {
+                LLVMTypeRef declared_type =
+                    llvm_stmt_lookup_declared_call_return_type(ctx, callee);
+                if (declared_type != NULL)
+                    return declared_type;
+            }
             {
                 LLVMTypeRef builtin_type =
                     llvm_stmt_infer_scalar_builtin_type(ctx, callee);
                 if (builtin_type != NULL)
                     return builtin_type;
-            }
-            if (strcmp(callee, "ToString") == 0
-                || strcmp(callee, "ReadFile") == 0
-                || strcmp(callee, "Input") == 0
-                || strcmp(callee, "Upper") == 0
-                || strcmp(callee, "ToUpper") == 0
-                || strcmp(callee, "Lower") == 0
-                || strcmp(callee, "ToLower") == 0
-                || strcmp(callee, "Concat") == 0
-                || strcmp(callee, "StringConcat") == 0) {
-                return ctx->type_i8ptr;
             }
             if (llvm_stmt_call_returns_collection_value(callee)
                 && expr->data.call.arg_count >= 1
@@ -399,11 +309,20 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
                 return ctx->type_i1;
         }
         /* Domain helper calls can be emitted before their final lowered helper
-         * entry is visible in the LLVM function inventory. Keep this as poison
-         * i32 until call result facts are carried directly by MIR. */
+         * entry is visible in the LLVM function inventory. Prefer the
+         * enclosing concrete let/return context when it exists; otherwise keep
+         * poison i32 until call result facts are carried directly by MIR. */
+        if (ctx->expected_type_name != NULL) {
+            LLVMTypeRef expected = pergyra_type_to_llvm(
+                ctx, ctx->expected_type_name);
+            if (expected != NULL)
+                return expected;
+        }
         return ctx->type_i32;
     case AST_BINARY: {
         PgyTokenType op = expr->data.binary.op.type;
+        LLVMTypeRef left_ty = NULL;
+        LLVMTypeRef right_ty = NULL;
         if (op == TOKEN_EQUAL || op == TOKEN_NOT_EQUAL
             || op == TOKEN_LESS || op == TOKEN_LESS_EQUAL
             || op == TOKEN_GREATER || op == TOKEN_GREATER_EQUAL
@@ -411,19 +330,25 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
             return ctx->type_i1;
         }
         if (op == TOKEN_PLUS) {
-            LLVMTypeRef left_ty = llvm_stmt_infer_expr_type(ctx, expr->data.binary.left);
-            LLVMTypeRef right_ty = llvm_stmt_infer_expr_type(ctx, expr->data.binary.right);
+            left_ty = llvm_stmt_infer_expr_type(ctx, expr->data.binary.left);
+            right_ty = llvm_stmt_infer_expr_type(ctx, expr->data.binary.right);
             if (left_ty == ctx->type_i8ptr || right_ty == ctx->type_i8ptr)
                 return ctx->type_i8ptr;
+            return llvm_stmt_promote_numeric_type(ctx, left_ty, right_ty);
         }
-        return ctx->type_i32;
+        if (op == TOKEN_MINUS || op == TOKEN_STAR || op == TOKEN_SLASH
+            || op == TOKEN_PERCENT) {
+            left_ty = llvm_stmt_infer_expr_type(ctx, expr->data.binary.left);
+            right_ty = llvm_stmt_infer_expr_type(ctx, expr->data.binary.right);
+            return llvm_stmt_promote_numeric_type(ctx, left_ty, right_ty);
+        }
+        return llvm_stmt_unknown_expr_type(ctx, expr,
+            "unsupported binary operator has no inferred LLVM type");
     }
     case AST_SPAWN_EXPR:
         return ctx->type_task_handle;
     case AST_AWAIT_EXPR:
-        /* Await result typing is currently driven by the annotated receiving
-         * binding; keep poison i32 until Future<T> facts are carried in MIR. */
-        return ctx->type_i32;
+        return llvm_stmt_infer_await_expr_type(ctx, expr);
     case AST_ASYNC_BLOCK:
         return ctx->type_task_handle;
     case AST_TASK_GROUP:
@@ -452,8 +377,11 @@ LLVMTypeRef
 llvm_stmt_resolve_array_elem_type(LLVMGenCtx *ctx, ASTNode *expr,
                                   LLVMValueRef data_ptr)
 {
-    LLVMTypeRef elem_type = ctx->type_i32;
+    LLVMTypeRef elem_type = llvm_stmt_expected_array_elem_type(ctx);
     (void)data_ptr;
+
+    if (elem_type == NULL)
+        elem_type = ctx->type_i32;
 
     if (expr == NULL)
         return elem_type;

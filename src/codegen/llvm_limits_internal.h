@@ -8,6 +8,9 @@
 #ifndef PGY_LLVM_LIMITS_INTERNAL_H
 #define PGY_LLVM_LIMITS_INTERNAL_H
 
+#include <limits.h>
+#include <stdint.h>
+
 /* Fixed limits -- bounded by nesting depth, reasonable for any program. */
 #define MAX_SCOPE_DEPTH     64
 #define MAX_SCOPE_VARS      256
@@ -21,7 +24,15 @@
 #define PGY_DYNARR_ENSURE(arr, cnt, cap, T)                          \
     do {                                                              \
         if ((cnt) >= (cap)) {                                         \
+            if ((cap) < 0 || (cap) > INT_MAX / 2) {                  \
+                llvm_set_error(ctx, "capacity overflow growing " #arr); \
+                return;                                               \
+            }                                                         \
             int _new_cap = (cap) == 0 ? 16 : (cap) * 2;              \
+            if ((size_t)_new_cap > SIZE_MAX / sizeof(T)) {           \
+                llvm_set_error(ctx, "allocation overflow growing " #arr); \
+                return;                                               \
+            }                                                         \
             T *_new = realloc((arr), (size_t)_new_cap * sizeof(T));   \
             if (_new == NULL) {                                       \
                 llvm_set_error(ctx, "out of memory growing " #arr);   \
@@ -38,7 +49,15 @@
 #define PGY_DYNARR_ENSURE_RET(arr, cnt, cap, T)                     \
     do {                                                              \
         if ((cnt) >= (cap)) {                                         \
+            if ((cap) < 0 || (cap) > INT_MAX / 2) {                  \
+                llvm_set_error(ctx, "capacity overflow growing " #arr); \
+                return NULL;                                          \
+            }                                                         \
             int _new_cap = (cap) == 0 ? 16 : (cap) * 2;              \
+            if ((size_t)_new_cap > SIZE_MAX / sizeof(T)) {           \
+                llvm_set_error(ctx, "allocation overflow growing " #arr); \
+                return NULL;                                          \
+            }                                                         \
             T *_new = realloc((arr), (size_t)_new_cap * sizeof(T));   \
             if (_new == NULL) {                                       \
                 llvm_set_error(ctx, "out of memory growing " #arr);   \

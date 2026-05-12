@@ -37,20 +37,46 @@ mir_cleanup_append_instruction(MIRBasicBlock *block, MIRInstruction inst)
 }
 
 static bool
+mir_cleanup_commit_instruction(MIRRoutine *routine, MIRBasicBlock *block, MIRInstruction *inst)
+{
+    if (routine == NULL || block == NULL || inst == NULL)
+        return false;
+    inst->id = routine->instruction_count;
+    if (!mir_cleanup_append_instruction(block, *inst))
+        return false;
+    routine->instruction_count++;
+    routine->cleanup_instruction_count++;
+    return true;
+}
+
+static bool
 mir_cleanup_append_block(MIRRoutine *routine, MIRBasicBlock block)
 {
     return append_block(routine, block);
 }
 
 static bool
-mir_cleanup_append_index_unique(size_t **items, size_t *count, size_t *capacity, size_t value)
+mir_cleanup_index_contains(size_t *items, size_t count, size_t value)
+{
+    if (items == NULL)
+        return false;
+    for (size_t i = 0; i < count; i++) {
+        if (items[i] == value)
+            return true;
+    }
+    return false;
+}
+
+static bool
+mir_cleanup_ensure_index_unique_capacity(size_t **items,
+                                         size_t *count,
+                                         size_t *capacity,
+                                         size_t value)
 {
     if (items == NULL || count == NULL)
         return false;
-    for (size_t i = 0; i < *count; i++) {
-        if ((*items)[i] == value)
-            return true;
-    }
+    if (mir_cleanup_index_contains(*items, *count, value))
+        return true;
     if (*count == *capacity) {
         size_t next_capacity = *capacity;
         if (!mir_cleanup_next_capacity(&next_capacity, 4, sizeof(size_t)))
@@ -61,6 +87,16 @@ mir_cleanup_append_index_unique(size_t **items, size_t *count, size_t *capacity,
         *items = grown;
         *capacity = next_capacity;
     }
+    return true;
+}
+
+static bool
+mir_cleanup_append_index_unique(size_t **items, size_t *count, size_t *capacity, size_t value)
+{
+    if (!mir_cleanup_ensure_index_unique_capacity(items, count, capacity, value))
+        return false;
+    if (mir_cleanup_index_contains(*items, *count, value))
+        return true;
     (*items)[*count] = value;
     (*count)++;
     return true;
@@ -70,8 +106,9 @@ bool
 mir_add_cleanup_instruction(MIRRoutine *routine, MIRBasicBlock *block, const RIROp *op)
 {
     MIRInstruction inst;
+    if (routine == NULL || block == NULL || op == NULL)
+        return false;
     memset(&inst, 0, sizeof(inst));
-    inst.id = routine->instruction_count++;
     inst.kind = MIR_INST_CLEANUP_EDGE;
     inst.name = rir_op_kind_name(op->kind);
     inst.slot_anchor = op->slot_anchor;
@@ -79,8 +116,7 @@ mir_add_cleanup_instruction(MIRRoutine *routine, MIRBasicBlock *block, const RIR
     inst.arg1 = op->arg0;
     inst.rir_op = op;
     inst.ast = op->ast;
-    routine->cleanup_instruction_count++;
-    return mir_cleanup_append_instruction(block, inst);
+    return mir_cleanup_commit_instruction(routine, block, &inst);
 }
 
 static bool
@@ -94,14 +130,12 @@ mir_add_rollback_invalidation(MIRRoutine *routine, MIRBasicBlock *cleanup, const
         if (fact->kind != RIR_FACT_INTENT_POLICY || fact->name == NULL || strcmp(fact->name, "rollback") != 0)
             continue;
         memset(&inst, 0, sizeof(inst));
-        inst.id = routine->instruction_count++;
         inst.kind = MIR_INST_CLEANUP_EDGE;
         inst.name = "RollbackPolicy";
         inst.slot_anchor = fact->slot_anchor;
         inst.arg0 = fact->arg0;
-        if (!mir_cleanup_append_instruction(cleanup, inst))
+        if (!mir_cleanup_commit_instruction(routine, cleanup, &inst))
             return false;
-        routine->cleanup_instruction_count++;
     }
     return true;
 }
@@ -262,7 +296,6 @@ mir_materialize_pin_cleanup_edges(MIRRoutine *routine, MIRBasicBlock *block)
         return false;
 
     memset(&inst, 0, sizeof(inst));
-    inst.id = routine->instruction_count++;
     inst.kind = MIR_INST_CLEANUP_EDGE;
     inst.name = MIR_CLEANUP_FACT_PIN_UNPIN_EDGE;
     inst.slot_anchor = block->pin_source_name;
@@ -271,8 +304,7 @@ mir_materialize_pin_cleanup_edges(MIRRoutine *routine, MIRBasicBlock *block)
         ? MIR_PIN_CLEANUP_ACCESS_WRITE
         : MIR_PIN_CLEANUP_ACCESS_READ;
     inst.ast = block->pin_block_ast;
-    routine->cleanup_instruction_count++;
-    return mir_cleanup_append_instruction(block, inst);
+    return mir_cleanup_commit_instruction(routine, block, &inst);
 }
 
 bool
@@ -282,21 +314,24 @@ mir_materialize_cleanup_edges(MIRRoutine *routine)
         return true;
     for (size_t i = 0; i < routine->block_count; i++) {
         MIRBasicBlock *block = &routine->blocks[i];
+        MIRInstruction inst = {
+            .kind = MIR_INST_CLEANUP_EDGE,
+            .name = MIR_CLEANUP_FACT_EDGE,
+            .slot_anchor = MIR_CLEANUP_FACT_ANCHOR,
+            .arg0 = MIR_CLEANUP_FACT_ANCHOR,
+            .arg1 = NULL,
+            .ast = NULL,
+        };
         if (block->is_cleanup || !block->is_reachable)
             continue;
-        block->cleanup_succ = routine->cleanup_block;
-        block->has_cleanup_succ = true;
-        routine->cleanup_edge_count++;
-        if (!mir_cleanup_append_instruction(block,
-                                (MIRInstruction){
-                                    .id = routine->instruction_count++,
-                                    .kind = MIR_INST_CLEANUP_EDGE,
-                                    .name = MIR_CLEANUP_FACT_EDGE,
-                                    .slot_anchor = MIR_CLEANUP_FACT_ANCHOR,
-                                    .arg0 = MIR_CLEANUP_FACT_ANCHOR,
-                                    .arg1 = NULL,
-                                    .ast = NULL,
-                                })) {
+        if (!mir_cleanup_ensure_index_unique_capacity(
+                &routine->blocks[routine->cleanup_block].predecessors,
+                &routine->blocks[routine->cleanup_block].predecessor_count,
+                &routine->blocks[routine->cleanup_block].predecessor_capacity,
+                i)) {
+            return false;
+        }
+        if (!mir_cleanup_commit_instruction(routine, block, &inst)) {
             return false;
         }
         if (!mir_cleanup_append_index_unique(&routine->blocks[routine->cleanup_block].predecessors,
@@ -305,6 +340,9 @@ mir_materialize_cleanup_edges(MIRRoutine *routine)
                                              i)) {
             return false;
         }
+        block->cleanup_succ = routine->cleanup_block;
+        block->has_cleanup_succ = true;
+        routine->cleanup_edge_count++;
         if (!mir_materialize_pin_cleanup_edges(routine, block))
             return false;
     }
@@ -315,27 +353,28 @@ mir_materialize_cleanup_edges(MIRRoutine *routine)
         size_t rollback_cleanup_target = routine->has_invalidation_block
             ? routine->invalidation_block
             : routine->cleanup_block;
-        cleanup->rollback_succ = routine->rollback_block;
-        cleanup->has_rollback_succ = true;
-        if (!mir_cleanup_append_index_unique(&rollback->predecessors,
-                                             &rollback->predecessor_count,
-                                             &rollback->predecessor_capacity,
-                                             cleanup->id)) {
+        if (!mir_cleanup_ensure_index_unique_capacity(&rollback->predecessors,
+                                                      &rollback->predecessor_count,
+                                                      &rollback->predecessor_capacity,
+                                                      cleanup->id)) {
             return false;
         }
-        rollback->cleanup_succ = rollback_cleanup_target;
-        rollback->has_cleanup_succ = true;
-        routine->cleanup_edge_count++;
-        if (!mir_cleanup_append_instruction(rollback,
-                                (MIRInstruction){
-                                    .id = routine->instruction_count++,
-                                    .kind = MIR_INST_CLEANUP_EDGE,
-                                    .name = MIR_CLEANUP_FACT_EDGE_FROM_ROLLBACK,
-                                    .slot_anchor = MIR_CLEANUP_FACT_ANCHOR,
-                                    .arg0 = MIR_CLEANUP_FACT_ANCHOR,
-                                    .arg1 = NULL,
-                                    .ast = NULL,
-                                })) {
+        if (!mir_cleanup_ensure_index_unique_capacity(
+                &routine->blocks[rollback_cleanup_target].predecessors,
+                &routine->blocks[rollback_cleanup_target].predecessor_count,
+                &routine->blocks[rollback_cleanup_target].predecessor_capacity,
+                routine->rollback_block)) {
+            return false;
+        }
+        MIRInstruction inst = {
+            .kind = MIR_INST_CLEANUP_EDGE,
+            .name = MIR_CLEANUP_FACT_EDGE_FROM_ROLLBACK,
+            .slot_anchor = MIR_CLEANUP_FACT_ANCHOR,
+            .arg0 = MIR_CLEANUP_FACT_ANCHOR,
+            .arg1 = NULL,
+            .ast = NULL,
+        };
+        if (!mir_cleanup_commit_instruction(routine, rollback, &inst)) {
             return false;
         }
         if (!mir_cleanup_append_index_unique(&routine->blocks[rollback_cleanup_target].predecessors,
@@ -344,32 +383,37 @@ mir_materialize_cleanup_edges(MIRRoutine *routine)
                                              routine->rollback_block)) {
             return false;
         }
+        cleanup->rollback_succ = routine->rollback_block;
+        cleanup->has_rollback_succ = true;
+        rollback->cleanup_succ = rollback_cleanup_target;
+        rollback->has_cleanup_succ = true;
+        routine->cleanup_edge_count++;
     }
 
     if (routine->has_invalidation_block) {
         MIRBasicBlock *cleanup = &routine->blocks[routine->cleanup_block];
         MIRBasicBlock *invalidation = &routine->blocks[routine->invalidation_block];
-        cleanup->invalidation_succ = routine->invalidation_block;
-        cleanup->has_invalidation_succ = true;
-        if (!mir_cleanup_append_index_unique(&invalidation->predecessors,
-                                             &invalidation->predecessor_count,
-                                             &invalidation->predecessor_capacity,
-                                             cleanup->id)) {
+        if (!mir_cleanup_ensure_index_unique_capacity(&invalidation->predecessors,
+                                                      &invalidation->predecessor_count,
+                                                      &invalidation->predecessor_capacity,
+                                                      cleanup->id)) {
             return false;
         }
-        invalidation->cleanup_succ = routine->cleanup_block;
-        invalidation->has_cleanup_succ = true;
-        routine->cleanup_edge_count++;
-        if (!mir_cleanup_append_instruction(invalidation,
-                                (MIRInstruction){
-                                    .id = routine->instruction_count++,
-                                    .kind = MIR_INST_CLEANUP_EDGE,
-                                    .name = MIR_CLEANUP_FACT_EDGE_FROM_INVALIDATION,
-                                    .slot_anchor = MIR_CLEANUP_FACT_ANCHOR,
-                                    .arg0 = MIR_CLEANUP_FACT_ANCHOR,
-                                    .arg1 = NULL,
-                                    .ast = NULL,
-                                })) {
+        if (!mir_cleanup_ensure_index_unique_capacity(&cleanup->predecessors,
+                                                      &cleanup->predecessor_count,
+                                                      &cleanup->predecessor_capacity,
+                                                      routine->invalidation_block)) {
+            return false;
+        }
+        MIRInstruction inst = {
+            .kind = MIR_INST_CLEANUP_EDGE,
+            .name = MIR_CLEANUP_FACT_EDGE_FROM_INVALIDATION,
+            .slot_anchor = MIR_CLEANUP_FACT_ANCHOR,
+            .arg0 = MIR_CLEANUP_FACT_ANCHOR,
+            .arg1 = NULL,
+            .ast = NULL,
+        };
+        if (!mir_cleanup_commit_instruction(routine, invalidation, &inst)) {
             return false;
         }
         if (!mir_cleanup_append_index_unique(&cleanup->predecessors,
@@ -378,19 +422,24 @@ mir_materialize_cleanup_edges(MIRRoutine *routine)
                                              routine->invalidation_block)) {
             return false;
         }
+        cleanup->invalidation_succ = routine->invalidation_block;
+        cleanup->has_invalidation_succ = true;
+        invalidation->cleanup_succ = routine->cleanup_block;
+        invalidation->has_cleanup_succ = true;
+        routine->cleanup_edge_count++;
     }
 
     if (routine->has_rollback_block && routine->has_invalidation_block) {
         MIRBasicBlock *rollback = &routine->blocks[routine->rollback_block];
         MIRBasicBlock *invalidation = &routine->blocks[routine->invalidation_block];
-        rollback->invalidation_succ = invalidation->id;
-        rollback->has_invalidation_succ = true;
         if (!mir_cleanup_append_index_unique(&invalidation->predecessors,
                                              &invalidation->predecessor_count,
                                              &invalidation->predecessor_capacity,
                                              rollback->id)) {
             return false;
         }
+        rollback->invalidation_succ = invalidation->id;
+        rollback->has_invalidation_succ = true;
     }
     return true;
 }

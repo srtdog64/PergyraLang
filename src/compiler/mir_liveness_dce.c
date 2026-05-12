@@ -243,6 +243,10 @@ mir_build_liveness_postorder(const MIRRoutine *routine, size_t **order_out, size
         return false;
     if (routine->block_count == 0)
         return true;
+    if (routine->block_count > SIZE_MAX / sizeof(bool)
+        || routine->block_count > SIZE_MAX / sizeof(size_t)) {
+        return false;
+    }
 
     visited = calloc(routine->block_count, sizeof(bool));
     order = calloc(routine->block_count, sizeof(size_t));

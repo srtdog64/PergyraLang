@@ -25,6 +25,14 @@ void llvm_zone_sync_update_frontier_continue(ASTNode *stmt,
                                              LLVMValueRef *prev_state_addrs,
                                              LLVMValueRef *prev_layer_addrs,
                                              LLVMValueRef frontier_continue_addr);
+void llvm_zone_sync_emit_action_causes(ASTNode *stmt,
+                                       LLVMClassTypeEntry *decl_cls,
+                                       LLVMValueRef sync_fn,
+                                       LLVMGenCtx *ctx);
+void llvm_zone_sync_emit_detach_clauses(ASTNode *stmt,
+                                        LLVMClassTypeEntry *decl_cls,
+                                        LLVMValueRef sync_fn,
+                                        LLVMGenCtx *ctx);
 void llvm_zone_sync_emit_relation_clauses(ASTNode *stmt,
                                           LLVMClassTypeEntry *decl_cls,
                                           LLVMValueRef sync_fn,

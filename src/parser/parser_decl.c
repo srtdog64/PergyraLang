@@ -12,6 +12,11 @@ parser_append_func_param(Parser *parser, ASTNode *func, FuncParam *param)
         size_t next_capacity = func->data.func_decl.param_capacity == 0
             ? 4
             : func->data.func_decl.param_capacity * 2;
+        if (next_capacity < func->data.func_decl.param_capacity
+            || next_capacity > SIZE_MAX / sizeof(FuncParam *)) {
+            parser_error(parser, "Out of memory while parsing function parameters");
+            return false;
+        }
         grown = realloc(func->data.func_decl.params, next_capacity * sizeof(FuncParam *));
         if (grown == NULL) {
             parser_error(parser, "Out of memory while parsing function parameters");
@@ -25,6 +30,8 @@ parser_append_func_param(Parser *parser, ASTNode *func, FuncParam *param)
     return true;
 }
 
+#include <stdint.h>
+
 static bool
 parser_append_class_field(Parser *parser, ASTNode *class_decl, ClassField *field)
 {
@@ -37,6 +44,11 @@ parser_append_class_field(Parser *parser, ASTNode *class_decl, ClassField *field
         size_t next_capacity = class_decl->data.class_decl.field_capacity == 0
             ? 4
             : class_decl->data.class_decl.field_capacity * 2;
+        if (next_capacity < class_decl->data.class_decl.field_capacity
+            || next_capacity > SIZE_MAX / sizeof(ClassField *)) {
+            parser_error(parser, "Out of memory while parsing nominal fields");
+            return false;
+        }
         grown = realloc(class_decl->data.class_decl.fields, next_capacity * sizeof(ClassField *));
         if (grown == NULL) {
             parser_error(parser, "Out of memory while parsing nominal fields");
@@ -62,6 +74,11 @@ parser_append_class_method(Parser *parser, ASTNode *class_decl, ASTNode *method)
         size_t next_capacity = class_decl->data.class_decl.method_capacity == 0
             ? 4
             : class_decl->data.class_decl.method_capacity * 2;
+        if (next_capacity < class_decl->data.class_decl.method_capacity
+            || next_capacity > SIZE_MAX / sizeof(ASTNode *)) {
+            parser_error(parser, "Out of memory while parsing nominal methods");
+            return false;
+        }
         grown = realloc(class_decl->data.class_decl.methods, next_capacity * sizeof(ASTNode *));
         if (grown == NULL) {
             parser_error(parser, "Out of memory while parsing nominal methods");
@@ -114,6 +131,11 @@ static ASTNode* parse_function_like_declaration(Parser* parser, bool is_action) 
             parser_consume(parser, TOKEN_COLON, "Expected ':' after parameter name");
             ASTNode* param_type = parse_type(parser);
             param->type = param_type;
+        }
+        if (parser_match(parser, TOKEN_ASSIGN)) {
+            parser_error(parser,
+                "Default value arguments are reserved but not implemented; use an overload or wrapper function");
+            ast_destroy(parser_parse_expression(parser));
         }
 
         parser_append_func_param(parser, func, param);

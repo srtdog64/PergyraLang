@@ -536,6 +536,10 @@ test_intent_compression_semantics(void)
 
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(result != NULL && ctx_has_diagnostic_substring_from_result(result,
+            "cannot infer a where zone from on-call actions"));
+        EXPECT(result != NULL && ctx_has_diagnostic_substring_from_result(result,
+            "both 'Arena' and 'Camp'"));
         EXPECT(step != NULL && step->data.intent_step.derived_who_from_on_receiver);
         EXPECT(step != NULL && !step->data.intent_step.inherited_where_from_action);
         EXPECT(step != NULL && step->data.intent_step.where_type == NULL);

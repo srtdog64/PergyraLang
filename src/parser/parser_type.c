@@ -221,6 +221,13 @@ parser_append_type_node_with_capacity(Parser *parser,
     return true;
 }
 
+static bool
+parser_token_is_placeholder_type(Token token)
+{
+    return token.type == TOKEN_IDENTIFIER && token.text != NULL
+        && strcmp(token.text, "_") == 0;
+}
+
 // ============= 제네릭 파싱 =============
 
 // 제네릭 파라미터 파싱: <T, U: Trait, V = Default>
@@ -237,6 +244,11 @@ GenericParams* parse_generic_params(Parser* parser) {
 
         // 타입 파라미터 이름
         Token name = parser_consume(parser, TOKEN_IDENTIFIER, "Expected type parameter name");
+        if (parser_token_is_placeholder_type(name)) {
+            parser_error(parser,
+                "Generic parameter placeholder '_' is reserved but not implemented; "
+                "write an explicit type parameter name");
+        }
         param->name = pergyra_strdup(name.text);
 
         // 제약조건 ': Trait'
@@ -314,6 +326,11 @@ WhereClause* parse_where_clause(Parser* parser) {
 
         // 타입 파라미터
         Token param = parser_consume(parser, TOKEN_IDENTIFIER, "Expected type parameter");
+        if (parser_token_is_placeholder_type(param)) {
+            parser_error(parser,
+                "Generic parameter placeholder '_' is reserved but not implemented; "
+                "write an explicit type parameter name");
+        }
         constraint->type_param = pergyra_strdup(param.text);
 
         parser_consume(parser, TOKEN_COLON, "Expected ':' after type parameter");
@@ -418,6 +435,11 @@ ASTNode* parse_type(Parser* parser) {
     }
 
     Token type_name = parser_consume(parser, TOKEN_IDENTIFIER, "Expected type name");
+    if (parser_token_is_placeholder_type(type_name)) {
+        parser_error(parser,
+            "Generic/type argument elision '_' is reserved but not implemented; "
+            "write the type explicitly");
+    }
     char *qualified_name = pergyra_strdup(type_name.text);
 
     while (parser_check(parser, TOKEN_DOT)
@@ -426,6 +448,11 @@ ASTNode* parse_type(Parser* parser) {
         parser_advance(parser);
         Token part = parser_consume(parser, TOKEN_IDENTIFIER,
                                     "Expected type name after '.'");
+        if (parser_token_is_placeholder_type(part)) {
+            parser_error(parser,
+                "Generic/type argument elision '_' is reserved but not implemented; "
+                "write the type explicitly");
+        }
         size_t prefix_len = strlen(qualified_name);
         size_t part_len = strlen(part.text);
         char *next = malloc(prefix_len + 1 + part_len + 1);

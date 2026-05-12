@@ -3,6 +3,16 @@
  * List<Int> — dynamic array (grows automatically)
  * ================================================================= */
 
+#ifndef PGY_RUNTIME_ELEM_CAPACITY_FITS
+#define PGY_RUNTIME_ELEM_CAPACITY_FITS(capacity, CType) \
+    ((capacity) != 0 && (capacity) <= SIZE_MAX / sizeof(CType))
+#endif
+
+#ifndef PGY_RUNTIME_HASH_CAPACITY_FITS
+#define PGY_RUNTIME_HASH_CAPACITY_FITS(capacity) \
+    ((capacity) != 0 && (capacity) <= UINT32_MAX)
+#endif
+
 #define PGY_LIST_DEFINE(SuffixName, CType) \
 typedef struct \
 { \
@@ -16,6 +26,11 @@ static inline PgyList_##SuffixName pgy_list_new_##SuffixName(void) \
     PgyList_##SuffixName l; \
     l.capacity = 16; \
     l.count = 0; \
+    if (!PGY_RUNTIME_ELEM_CAPACITY_FITS(l.capacity, CType)) { \
+        l.data = NULL; l.capacity = 0; \
+        pgy_runtime_warn_invalid_collection("list_new_" #SuffixName, "allocation size overflow"); \
+        return l; \
+    } \
     l.data = (CType *)calloc(l.capacity, sizeof(CType)); \
     if (l.data == NULL) { \
         l.capacity = 0; \
@@ -31,8 +46,22 @@ static inline void pgy_list_push_##SuffixName(PgyList_##SuffixName *l, CType val
         return; \
     } \
     if (l->count >= l->capacity) { \
-        size_t new_capacity = l->capacity == 0 ? 16 : l->capacity * 2; \
-        CType *grown = (CType *)realloc(l->data, new_capacity * sizeof(CType)); \
+        size_t new_capacity; \
+        CType *grown; \
+        if (l->capacity == 0) { \
+            new_capacity = 16; \
+        } else { \
+            if (l->capacity > SIZE_MAX / 2) { \
+                pgy_runtime_warn_invalid_collection("list_push_" #SuffixName, "capacity overflow"); \
+                return; \
+            } \
+            new_capacity = l->capacity * 2; \
+        } \
+        if (!PGY_RUNTIME_ELEM_CAPACITY_FITS(new_capacity, CType)) { \
+            pgy_runtime_warn_invalid_collection("list_push_" #SuffixName, "allocation size overflow"); \
+            return; \
+        } \
+        grown = (CType *)realloc(l->data, new_capacity * sizeof(CType)); \
         if (grown == NULL) { \
             pgy_runtime_warn_invalid_collection("list_push_" #SuffixName, "realloc failed"); \
             return; \
@@ -86,6 +115,12 @@ static inline PgyList_Int pgy_list_new_int(void)
     PgyList_Int l;
     l.capacity = 16;
     l.count = 0;
+    if (!PGY_RUNTIME_ELEM_CAPACITY_FITS(l.capacity, int32_t)) {
+        l.data = NULL;
+        l.capacity = 0;
+        pgy_runtime_warn_invalid_collection("list_new_int", "allocation size overflow");
+        return l;
+    }
     l.data = (int32_t *)calloc(l.capacity, sizeof(int32_t));
     if (l.data == NULL) {
         l.capacity = 0;
@@ -101,8 +136,22 @@ static inline void pgy_list_push_int(PgyList_Int *l, int32_t val)
         return;
     }
     if (l->count >= l->capacity) {
-        size_t new_capacity = l->capacity == 0 ? 16 : l->capacity * 2;
-        int32_t *grown = (int32_t *)realloc(l->data, new_capacity * sizeof(int32_t));
+        size_t new_capacity;
+        int32_t *grown;
+        if (l->capacity == 0) {
+            new_capacity = 16;
+        } else {
+            if (l->capacity > SIZE_MAX / 2) {
+                pgy_runtime_warn_invalid_collection("list_push_int", "capacity overflow");
+                return;
+            }
+            new_capacity = l->capacity * 2;
+        }
+        if (!PGY_RUNTIME_ELEM_CAPACITY_FITS(new_capacity, int32_t)) {
+            pgy_runtime_warn_invalid_collection("list_push_int", "allocation size overflow");
+            return;
+        }
+        grown = (int32_t *)realloc(l->data, new_capacity * sizeof(int32_t));
         if (grown == NULL) {
             pgy_runtime_warn_invalid_collection("list_push_int", "realloc failed");
             return;
@@ -161,6 +210,12 @@ static inline PgyList_String pgy_list_new_string(void)
     PgyList_String l;
     l.capacity = 16;
     l.count = 0;
+    if (!PGY_RUNTIME_ELEM_CAPACITY_FITS(l.capacity, char *)) {
+        l.data = NULL;
+        l.capacity = 0;
+        pgy_runtime_warn_invalid_collection("list_new_string", "allocation size overflow");
+        return l;
+    }
     l.data = (char **)calloc(l.capacity, sizeof(char *));
     if (l.data == NULL) {
         l.capacity = 0;
@@ -176,8 +231,22 @@ static inline void pgy_list_push_string(PgyList_String *l, const char *val)
         return;
     }
     if (l->count >= l->capacity) {
-        size_t new_capacity = l->capacity == 0 ? 16 : l->capacity * 2;
-        char **grown = (char **)realloc(l->data, new_capacity * sizeof(char *));
+        size_t new_capacity;
+        char **grown;
+        if (l->capacity == 0) {
+            new_capacity = 16;
+        } else {
+            if (l->capacity > SIZE_MAX / 2) {
+                pgy_runtime_warn_invalid_collection("list_push_string", "capacity overflow");
+                return;
+            }
+            new_capacity = l->capacity * 2;
+        }
+        if (!PGY_RUNTIME_ELEM_CAPACITY_FITS(new_capacity, char *)) {
+            pgy_runtime_warn_invalid_collection("list_push_string", "allocation size overflow");
+            return;
+        }
+        grown = (char **)realloc(l->data, new_capacity * sizeof(char *));
         if (grown == NULL) {
             pgy_runtime_warn_invalid_collection("list_push_string", "realloc failed");
             return;
@@ -221,6 +290,13 @@ static inline PgySet_String pgy_set_new_string(void)
     PgySet_String s;
     s.capacity = 16;
     s.count = 0;
+    if (!PGY_RUNTIME_HASH_CAPACITY_FITS(s.capacity)
+        || !PGY_RUNTIME_ELEM_CAPACITY_FITS(s.capacity, char *)
+        || s.capacity > SIZE_MAX / sizeof(uint8_t)) {
+        s.keys = NULL; s.occupied = NULL; s.capacity = 0;
+        pgy_runtime_warn_invalid_collection("set_new_string", "allocation size overflow");
+        return s;
+    }
     s.keys = (char **)calloc(s.capacity, sizeof(char *));
     s.occupied = (uint8_t *)calloc(s.capacity, sizeof(uint8_t));
     if (s.keys == NULL || s.occupied == NULL) {
@@ -253,9 +329,26 @@ static inline void pgy_set_add_string(PgySet_String *s, const char *key)
     if (pgy_set_has_string(s, key)) return;
     if ((double)s->count / (double)s->capacity > 0.75) {
         size_t oc = s->capacity; char **ok = s->keys; uint8_t *oo = s->occupied;
-        size_t new_capacity = s->capacity == 0 ? 16 : s->capacity * 2;
-        char **new_keys = (char **)calloc(new_capacity, sizeof(char *));
-        uint8_t *new_occupied = (uint8_t *)calloc(new_capacity, sizeof(uint8_t));
+        size_t new_capacity;
+        char **new_keys;
+        uint8_t *new_occupied;
+        if (s->capacity == 0) {
+            new_capacity = 16;
+        } else {
+            if (s->capacity > SIZE_MAX / 2) {
+                pgy_runtime_warn_invalid_collection("set_add_string", "capacity overflow");
+                return;
+            }
+            new_capacity = s->capacity * 2;
+        }
+        if (!PGY_RUNTIME_HASH_CAPACITY_FITS(new_capacity)
+            || !PGY_RUNTIME_ELEM_CAPACITY_FITS(new_capacity, char *)
+            || new_capacity > SIZE_MAX / sizeof(uint8_t)) {
+            pgy_runtime_warn_invalid_collection("set_add_string", "allocation size overflow");
+            return;
+        }
+        new_keys = (char **)calloc(new_capacity, sizeof(char *));
+        new_occupied = (uint8_t *)calloc(new_capacity, sizeof(uint8_t));
         if (new_keys == NULL || new_occupied == NULL) {
             free(new_keys); free(new_occupied);
             pgy_runtime_warn_invalid_collection("set_add_string", "growth allocation failed");
@@ -325,6 +418,13 @@ static inline PgySet_##SuffixName pgy_set_new_##SuffixName(void) \
 { \
     PgySet_##SuffixName s; \
     s.capacity = 16; s.count = 0; \
+    if (!PGY_RUNTIME_HASH_CAPACITY_FITS(s.capacity) \
+        || !PGY_RUNTIME_ELEM_CAPACITY_FITS(s.capacity, CType) \
+        || s.capacity > SIZE_MAX / sizeof(uint8_t)) { \
+        s.data = NULL; s.occupied = NULL; s.capacity = 0; \
+        pgy_runtime_warn_invalid_collection("set_new_" #SuffixName, "allocation size overflow"); \
+        return s; \
+    } \
     s.data = (CType *)calloc(s.capacity, sizeof(CType)); \
     s.occupied = (uint8_t *)calloc(s.capacity, sizeof(uint8_t)); \
     if (s.data == NULL || s.occupied == NULL) { \
@@ -357,9 +457,26 @@ static inline void pgy_set_add_##SuffixName(PgySet_##SuffixName *s, CType val) \
     if (pgy_set_has_##SuffixName(s, val)) return; \
     if ((double)s->count / (double)s->capacity > 0.75) { \
         size_t oc = s->capacity; CType *od = s->data; uint8_t *oo = s->occupied; \
-        size_t nc = s->capacity == 0 ? 16 : s->capacity * 2; \
-        CType *nd = (CType *)calloc(nc, sizeof(CType)); \
-        uint8_t *no = (uint8_t *)calloc(nc, sizeof(uint8_t)); \
+        size_t nc; \
+        CType *nd; \
+        uint8_t *no; \
+        if (s->capacity == 0) { \
+            nc = 16; \
+        } else { \
+            if (s->capacity > SIZE_MAX / 2) { \
+                pgy_runtime_warn_invalid_collection("set_add_" #SuffixName, "capacity overflow"); \
+                return; \
+            } \
+            nc = s->capacity * 2; \
+        } \
+        if (!PGY_RUNTIME_HASH_CAPACITY_FITS(nc) \
+            || !PGY_RUNTIME_ELEM_CAPACITY_FITS(nc, CType) \
+            || nc > SIZE_MAX / sizeof(uint8_t)) { \
+            pgy_runtime_warn_invalid_collection("set_add_" #SuffixName, "allocation size overflow"); \
+            return; \
+        } \
+        nd = (CType *)calloc(nc, sizeof(CType)); \
+        no = (uint8_t *)calloc(nc, sizeof(uint8_t)); \
         if (nd == NULL || no == NULL) { \
             free(nd); free(no); \
             pgy_runtime_warn_invalid_collection("set_add_" #SuffixName, "rehash allocation failed"); \

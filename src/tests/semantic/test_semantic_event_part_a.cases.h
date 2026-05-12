@@ -132,6 +132,31 @@ test_event_semantics(void)
         lexer_destroy(lexer);
     }
 
+    TEST("event lambda handler rejects local capture");
+    {
+        const char *source =
+            "event OnDamage(amount: Int);\n"
+            "func Main() -> Void {\n"
+            "    let bonus: Int = 2;\n"
+            "    OnDamage += (amount: Int) => { Log(amount + bonus); };\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL
+            && result->error_count > 0
+            && ctx_has_diagnostic_substring_from_result(
+                result, "Lambda capture of local value 'bonus'"));
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("event invoke validates argument types");
     {
         const char *source =

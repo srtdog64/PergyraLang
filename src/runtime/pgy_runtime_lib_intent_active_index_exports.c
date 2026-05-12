@@ -1,6 +1,10 @@
 #ifndef PGY_RUNTIME_LIB_INTENT_ACTIVE_INDEX_EXPORTS_H
 #define PGY_RUNTIME_LIB_INTENT_ACTIVE_INDEX_EXPORTS_H
 
+#if (PGY_INTENT_ACTIVE_INDEX_MAX & (PGY_INTENT_ACTIVE_INDEX_MAX - 1)) != 0
+#error "PGY_INTENT_ACTIVE_INDEX_MAX must stay a power of two"
+#endif
+
 static uint32_t
 pgy_intent_handle_hash_export(int32_t handle)
 {
@@ -61,6 +65,10 @@ pgy_intent_active_index_set_export(int32_t handle, int32_t active_slot)
             pgy_intent_active_index_slots[slot] = active_slot;
             return;
         }
+    }
+    if (first_tombstone >= 0) {
+        pgy_intent_active_index_handles[first_tombstone] = handle;
+        pgy_intent_active_index_slots[first_tombstone] = active_slot;
     }
 }
 

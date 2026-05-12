@@ -15,14 +15,6 @@
 #include <string.h>
 
 static Type *
-constructor_call_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
-{
-    Type *resolved =
-        semantic_type_resolution_lookup_type_ref_or_materialize(ctx, type_ref);
-    return resolved != NULL ? resolved : TYPE_UNKNOWN;
-}
-
-static Type *
 constructor_call_normalize_type(Type *type)
 {
     return type != NULL ? type : TYPE_UNKNOWN;
@@ -93,7 +85,7 @@ type_check_constructor_symbol_call(ASTNode *expr,
                         }
                         if (field_type_node == NULL)
                             continue;
-                        Type *field_type = constructor_call_resolve_type_ref(
+                        Type *field_type = domain_resolve_type_ref(
                             field_type_node, ctx);
                         Type *arg_type = constructor_call_normalize_type(
                             type_check_expression(expr->data.call.arguments[i], ctx));

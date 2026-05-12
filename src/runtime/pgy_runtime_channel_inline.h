@@ -35,6 +35,12 @@ pgy_channel_init_##SuffixName(PgyChannel_##SuffixName *ch, size_t capacity) \
         return; \
     } \
     capacity = pgy_runtime_channel_capacity_or_default("init_" #SuffixName, capacity); \
+    if (capacity > SIZE_MAX / sizeof(CType)) { \
+        pgy_runtime_warn_invalid_channel("init_" #SuffixName, "capacity overflows buffer size"); \
+        ch->buf = NULL; \
+        ch->cap = 0; \
+        return; \
+    } \
     ch->buf    = (CType *)calloc(capacity, sizeof(CType)); \
     if (ch->buf == NULL) { \
         pgy_runtime_warn_invalid_channel("init_" #SuffixName, "buffer allocation failed"); \

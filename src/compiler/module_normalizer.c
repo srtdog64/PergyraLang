@@ -47,6 +47,8 @@ join_names(const char *a, const char *b)
 {
     size_t alen = a != NULL ? strlen(a) : 0;
     size_t blen = b != NULL ? strlen(b) : 0;
+    if (alen > SIZE_MAX - blen - 1)
+        return NULL;
     char *result = malloc(alen + blen + 1);
     if (result == NULL)
         return NULL;
@@ -63,6 +65,8 @@ namespace_prefix_join(const char *prefix, const char *name)
 {
     size_t plen = prefix != NULL ? strlen(prefix) : 0;
     size_t nlen = strlen(name);
+    if (plen > SIZE_MAX - nlen - 2)
+        return NULL;
     char *result = malloc(plen + nlen + 2);
     if (result == NULL)
         return NULL;

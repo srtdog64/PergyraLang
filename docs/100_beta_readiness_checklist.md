@@ -44,6 +44,13 @@ Operational mode:
   be backed by matching `AIREvidenceNode` entries before drift checking. For
   real HIR/RIR input, boundary evidence nodes must also have matching summary
   flags, keeping inventory and cached summaries bidirectionally consistent.
+  MIR cleanup, terminator, and select-receive summary counters are now treated
+  the same way: strict AIR accepts them only as observability summaries, and the
+  proof must be a matching global `AIREvidenceNode`. `test_air` now locks the
+  cleanup/terminator/select-receive counter-only negative cases, and
+  `air-drift-test-smoke` source-gates the shared diagnostic wording. When those
+  evidence nodes are present, AIR validation also rejects node-count drift
+  between the MIR summary counters and the global evidence inventory.
   DAG's remaining unresolved metadata path is now explicitly named as a
   metadata dead-end diagnostic instead of a materializer fallback recorder; the
   fallback counters remain as regression evidence, but recursive materialization
@@ -94,7 +101,10 @@ Operational mode:
   name expected for each block, and AIR only counts cleanup evidence when the
   source block carries that expected MIR cleanup-edge payload. This prevents a
   plain cleanup successor from being treated as proof without the matching MIR
-  fact.
+  fact. AIR also has a strict regression for a reachable pin boundary whose MIR
+  pin block carries a local pin cleanup fact but no registered cleanup root:
+  AIR must collect no pin cleanup evidence and must report missing strict
+  evidence, so cleanup-root truth stays owned by MIR.
 - 2026-05-04 CFG/MIR intent-step consumer tightening:
   C and LLVM intent step collection now classify step instructions through
   `mir_instruction_intent_step_name(...)` instead of rechecking
@@ -1187,6 +1197,72 @@ Operational mode:
   collection, phi-candidate placement, and phi materialization behind the
   private `hir_cfg_internal.h` seam. Current sizes are 388 LOC, 222 LOC, and 8
   LOC respectively.
+- 2026-05-11 HIR routine/CFG finish owner update: `hir_routines.c` now owns
+  declaration/routine construction and hidden method extraction only, while
+  `hir_routine_cfg.c` owns CFG shape/predecessor validation and the ordered CFG
+  finish pipeline through `hir_finish_cfg_routine(...)`. Current sizes are 454
+  LOC and 133 LOC. Local gate: `test-hir` (`19 passed, 0 failed`).
+- 2026-05-11 MIR SSA owner update: `mir_ssa_rename.c` now owns SSA version
+  assignment and PHI input materialization, while `mir_ssa_use_edges.c` owns
+  versioned use-edge population and block entry/exit value summaries through a
+  private `mir_ssa_rename_internal.h` seam. Current sizes are 343 LOC, 300 LOC,
+  and 14 LOC. Local gate: `test-mir` (`63 passed, 0 failed`).
+- 2026-05-11 LLVM statement type-inference owner update:
+  `llvm_stmt_type_infer_nominal.c` owns nominal class-name inference for
+  identifiers, calls, and member access, while `llvm_stmt_type_infer.c` owns
+  expression type and array element type inference. Current sizes are 98 LOC
+  and 490 LOC. Local gate: LLVM-enabled object build for both owners.
+- 2026-05-11 LLVM member-call owner update: `llvm_member_call_support.c` owns
+  diagnostic recovery, argument vector allocation/storage, and method-name
+  mangling, while `llvm_member_call_emit.c` owns concrete member-call dispatch
+  and lowering. Current sizes are 94 LOC, 31 LOC, and 479 LOC. Local gate:
+  LLVM-enabled object build for `llvm_member_call_emit.o` and
+  `llvm_member_call_support.o`.
+- 2026-05-11 LLVM scalar expression owner update: `llvm_expr_unary_core.c`
+  owns unary and try-operator lowering, while `llvm_expr_scalar_core.c` owns
+  callable signatures, coalesce lowering, and binary expressions. Current
+  sizes are 151 LOC and 456 LOC. Coalesce diagnostics avoid raw `??` text in C
+  string literals to prevent trigraph rewriting warnings. Local gate:
+  LLVM-enabled object build for both owners.
+- 2026-05-11 LLVM resource registry owner update:
+  `llvm_registry_resources.c` now owns slot/view/device/future/channel/Rc/Weak
+  variable registry rows, while `llvm_registry_resource_types.c` owns
+  Slot/SecureSlot/Pin/container LLVM type-shape construction and sizeof
+  constants. Current sizes are 290 LOC and 245 LOC. Local gate:
+  LLVM-enabled object build for both owners, source inventory smoke, and `.inc`
+  size smoke.
+- 2026-05-11 LLVM domain struct registration owner update:
+  `llvm_domain_struct_register.c` now owns domain struct type-body
+  construction, while `llvm_domain_struct_register_fields.c` owns generated
+  class-field inventory registration through
+  `llvm_domain_struct_register_fields.h`. Current sizes are 269 LOC, 317 LOC,
+  and 16 LOC. Local gate: LLVM-enabled object build for both owners, source
+  inventory smoke, and `.inc` size smoke.
+- 2026-05-11 LLVM let resource owner update:
+  `llvm_stmt_let_resources.c` now owns ReadView/WriteView/MoveToken alias
+  lowering and Slot/SecureSlot sugar lowering, while `llvm_stmt_let_with.c`
+  owns generic let orchestration and typed registry post-processing. Current
+  sizes are 243 LOC and 304 LOC. Local gate: LLVM-enabled object build for
+  both owners, source inventory smoke, and `.inc` size smoke.
+- 2026-05-11 LLVM zone sync clause owner update:
+  `llvm_domain_zone_sync_clauses.c` now owns action-cause and detach clause
+  lowering, while `llvm_domain_zone_sync.c` owns bounded frontier loop
+  orchestration plus apply/maintain dispatch. Current sizes are 199 LOC and
+  360 LOC. Local gate: LLVM-enabled object build for both owners, source
+  inventory smoke, and `.inc` size smoke.
+- 2026-05-11 LLVM backend type owner update:
+  `llvm_backend_type_render.c` now owns type-name rendering, constructed type
+  argument parsing, and the render context, while `llvm_backend_type_map.c`
+  owns Pergyra-to-LLVM mapping policy and concrete container/resource lowering.
+  Current sizes are 173 LOC and 351 LOC. Local gate: LLVM-enabled object build
+  for both owners, source inventory smoke, and `.inc` size smoke.
+- 2026-05-12 AIR evidence-counter owner update:
+  `air_validate_summary_counters.c` now checks DAG metadata/generic/ability,
+  observability schema, and runtime frontier policy counters against the
+  first-class `AIREvidenceNode` inventory. MIR and RIR checks remain in the
+  same owner, so summary counters stay compatibility telemetry rather than a
+  second source of truth. Local gate: object build for
+  `air_validate_summary_counters.o` and `air_validate_evidence.o`.
 - Semantic effect/helper implementation-header debt is split:
   `type_checker_helpers_effects.h` is declaration-only, while
   `type_checker_helpers_effects.c` owns effect/type helper behavior,
@@ -1478,6 +1554,16 @@ Closed now:
 - MIR validation now also rejects cleanup blocks that carry normal CFG
   successors or pin-region state. Cleanup/rollback/invalidation blocks must stay
   on the exceptional cleanup chain rather than becoming normal body-flow blocks.
+- MIR validation now also gates residual `MIR_INST_STMT` fallback through
+  `mir_instruction_source_stmt_fallback_is_allowed(...)`. Non-intent semantic
+  carriers must carry a source payload and `source_statement_index`, so
+  residual statement emission cannot silently reopen raw source-array fallback.
+  C and LLVM MIR block emitters consume the same helper before emitting
+  residual source statements, keeping backend parity tied to the validator
+  policy while CFG/body safety is being promoted to source-of-truth. `test-mir`
+  includes `MIR validator rejects residual STMT without source inventory fact`;
+  `cfg-body-dataflow-test-smoke` gates the policy owner, backend consumers, and
+  regression string.
 - Non-`Void` functions now consume the CFG body flow summary for all-path return. If any reachable normal path can fall through without a return terminator, semantic analysis emits `PGY_SEM_MISSING_RETURN` with `Reason:` and `Fix:`.
 - Semantic CFG body-flow flag consumption is centralized through named
   fallthrough/terminator helpers, so branch/join decisions are no longer
@@ -2875,6 +2961,16 @@ find src -path src/tests -prune -o -name '*.inc' -print
 - `type_checker_module_contract.c` no longer calls the recursive fallback helper for ability contract bookkeeping. It records and checks ability contract shape/provenance through ability-specific logic and only performs DAG metadata lookup for already-materialized type facts, reducing the fallback seam inventory from 39 to 38.
 - `type_checker_ability_fields.c` now follows the same lookup-only pattern for ability `fields` requirements: the ability-specific validator owns field-contract diagnostics, while DAG metadata provides already-materialized type facts without recursive fallback.
 - Domain and intent declaration resolution now converge through owner-local type-reference seams. Domain slot/shared/named refs and intent involves/value/where refs share their local owner seam, reducing the fallback seam inventory from 38 to 34.
+- Ability declaration signatures, ability `fields` requirements, and ability where-bound validation now share one `ability_resolve_type_ref(...)` owner seam. The resolver inventory smoke caps materializing type-ref helper users at 32 while fallback seams, annotation-only reads, and nullable annotation reads remain at 0.
+- Projection builtin target-field validation, domain-query projection source lookup, and recursive projection path lookup now share one `projection_resolve_type_ref(...)` owner seam. The resolver inventory smoke caps materializing type-ref helper users at 30 while fallback seams and annotation-only reads remain at 0.
+- Role host/generic-arg validation and party/roster shared-field validation now reuse declaration/domain type-ref seams instead of local materializer wrappers. The resolver inventory smoke caps materializing type-ref helper users at 27.
+- Intent action contract binding lookup, participant transfer source lookup, and transfer where/involves lookup now reuse the shared intent type-ref seam instead of local materializer wrappers. The resolver inventory smoke caps materializing type-ref helper users at 24.
+- Class field validation, constructor field validation, and current-host field/method type lookup now reuse the declaration/domain type-ref seam instead of local materializer wrappers. The resolver inventory smoke caps materializing type-ref helper users at 21.
+- Event signatures, action contract slot/param matching, and module ability contract type arguments now reuse domain/ability owner seams instead of local materializer wrappers. The resolver inventory smoke caps materializing type-ref helper users at 18.
+- World type refs, with-slot flow type refs, and late call default generic argument refs now reuse the declaration/domain type-ref seam instead of local materializer wrappers. The resolver inventory smoke caps materializing type-ref helper users at 15.
+- Method-call return type lookup, operator overload param/return type lookup, and function generic where default-argument lookup now reuse the declaration/domain type-ref seam. The resolver inventory smoke caps materializing type-ref helper users at 12.
+- Type-alias statement resolution, borrowed-boundary generic support, and destructured slot-claim generic argument resolution now reuse the declaration/domain type-ref seam. The resolver inventory smoke caps materializing type-ref helper users at 9.
+- Async spawn-boundary parameter checks and effective generic argument materialization now reuse the declaration/domain type-ref seam. Direct materializing type-ref helper users are capped at 6: the internal declaration, central metadata implementation, and the four formal owner seams (`ability`, `domain`, `intent`, `projection`).
 - Alias/generic-parameter helpers and resolution-stage diagnostic fallback now converge through owner-local seams, reducing the fallback seam inventory from 34 to 32. Ability-field validation lookup-only resolution reduced the active seam cap to 31. Projection builtin target-field resolution now follows the same lookup-only pattern: graph metadata owns the materialized target field type, while projection diagnostics own source/target field mismatch. This reduces the active fallback seam cap to 30. Program-level quiet placeholder resolution now uses precollected DAG metadata lookup only, so event/function forward placeholders no longer need recursive fallback and the active cap is 29. Domain query projection source-field resolution now follows class/vessel field metadata lookup-only and reduces the active cap to 28. Party/roster shared-field resolution now follows declaration metadata lookup-only and reduces the active cap to 26. Ability abstract method signature resolution and role host-type resolution now follow metadata lookup-only and reduce the active cap to 24. Function/action body precollect now walks expression subtrees, call type args, lambda param/return/body types, event subscription handlers, spawn/channel/return/branch expressions; event/lambda handler signature resolution now uses DAG metadata lookup-only and reduces the active cap to 23. Body flow type resolution now uses DAG metadata lookup-only and reduces the active cap to 22. Type-alias statement resolution now uses DAG metadata lookup-only and reduces the active cap to 21. Generic where/default validation moved to the shared metadata materialization API and every owner-local resolver seam now calls `semantic_type_resolution_lookup_or_materialize(...)`; the old named fallback helper is removed and its cap is 0.
 - This is not full DAG source-of-truth yet, but owner-local recursive fallback
   debt and central metadata materializer fallback are both closed:
@@ -3053,12 +3149,13 @@ grep -R "resolve_type_node" -n src/semantic
   `src/compiler/mir_intent.c`. Intent participant, step, zone alias,
   authority, check/eval, dispatch, compensation, and invalidation marker
   lowering no longer lives in the MIR orchestration file.
-- MIR CFG/body ownership is split further: SSA rename/use-edge materialization
-  lives in `src/compiler/mir_ssa_rename.h`, liveness/value summaries and DCE
-  live in `src/compiler/mir_liveness_dce.h` / `src/compiler/mir_dce.h`, and
+- MIR CFG/body ownership is split further: SSA rename materialization lives in
+  `src/compiler/mir_ssa_rename.c`, versioned use-edge population lives in
+  `src/compiler/mir_ssa_use_edges.c`, liveness/value summaries and DCE live in
+  `src/compiler/mir_liveness_dce.c` / `src/compiler/mir_dce.c`, and
   source-order statement population lives in
-  `src/compiler/mir_stmt_population.h`. `src/compiler/mir.c` is now 512 LOC
-  and only owns block construction plus pass ordering for the MIR body path.
+  `src/compiler/mir_stmt_population.c`. `src/compiler/mir.c` is now an
+  orchestration owner for block construction plus pass ordering.
   `cfg-body-dataflow-test-smoke` keeps every MIR CFG/body owner below the 600
   LOC split-review threshold.
 - AIR evidence collection is split into `src/compiler/air_evidence.c`, with
@@ -3265,9 +3362,10 @@ remains green at 2357/0 after the split.
 `src/semantic/type_checker_domain_projection.c` now owns projection contract
 diagnostics, and `src/semantic/type_checker_overlay_common.c` owns overlay
 symbol/shared-field/hosted-method scope setup.
-`type_checker_decls_domain_helpers.c` is now 972 LOC and remains the
-zone/effect/relation slot helper owner. `make test-semantic pgy` remains green
-at 2357/0 after the split.
+The former `type_checker_decls_domain_helpers.c` large-owner queue has since
+been closed; projection and contract responsibilities live in named semantic
+owners, and semantic production owners are below the 600 LOC review threshold.
+`make test-semantic pgy` remained green at 2357/0 after the original split.
 
 2026-04-28 parser domain owner update:
 `src/parser/parser_domain_roster.c`, `src/parser/parser_domain_world.c`,

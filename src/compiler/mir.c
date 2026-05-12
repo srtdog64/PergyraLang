@@ -68,6 +68,18 @@ mir_branch_shape_from_ast(const ASTNode *node)
 #include "mir_validation.h"
 
 static bool
+mir_commit_instruction(MIRRoutine *routine, MIRBasicBlock *block, MIRInstruction *inst)
+{
+    if (routine == NULL || block == NULL || inst == NULL)
+        return false;
+    inst->id = routine->instruction_count;
+    if (!append_instruction(block, *inst))
+        return false;
+    routine->instruction_count++;
+    return true;
+}
+
+static bool
 mir_add_phi_placeholders(MIRRoutine *routine, MIRBasicBlock *block)
 {
     if (routine == NULL || block == NULL)
@@ -76,12 +88,11 @@ mir_add_phi_placeholders(MIRRoutine *routine, MIRBasicBlock *block)
     for (size_t i = 0; i < block->source_phi_node_count; i++) {
         MIRInstruction inst;
         memset(&inst, 0, sizeof(inst));
-        inst.id = routine->instruction_count++;
         inst.kind = MIR_INST_PHI;
         inst.name = block->source_phi_nodes[i].name;
         inst.slot_anchor = block->source_phi_nodes[i].name;
         inst.arg0 = "phi";
-        if (!append_instruction(block, inst))
+        if (!mir_commit_instruction(routine, block, &inst))
             return false;
     }
     return true;
@@ -101,7 +112,6 @@ mir_add_terminator_instruction(MIRRoutine *routine,
         && terminator_kind != HIR_BLOCK_RETURN)
         return true;
     memset(&inst, 0, sizeof(inst));
-    inst.id = routine->instruction_count++;
     inst.kind = (terminator_kind == HIR_BLOCK_BRANCH)
                     ? MIR_INST_BRANCH
                     : MIR_INST_RETURN;
@@ -135,8 +145,7 @@ mir_add_terminator_instruction(MIRRoutine *routine,
             inst.expr1 = inst.ast->data.for_loop.range_end;
         }
     }
-    mir_instruction_record_surface_usage(&inst);
-    return append_instruction(block, inst);
+    return mir_commit_instruction(routine, block, &inst);
 }
 
 static bool
@@ -246,7 +255,6 @@ mir_add_resource_instruction(MIRRoutine *routine, MIRBasicBlock *block, const RI
     char *claim_type_name = NULL;
     const char *abi_type_name = NULL;
     memset(&inst, 0, sizeof(inst));
-    inst.id = routine->instruction_count++;
     inst.kind = MIR_INST_RESOURCE_OP;
     inst.name = rir_op_kind_name(op->kind);
     inst.slot_anchor = op->slot_anchor;
@@ -264,8 +272,7 @@ mir_add_resource_instruction(MIRRoutine *routine, MIRBasicBlock *block, const RI
         : (op->arg0 != NULL ? op->arg0 : op->subject);
     inst.type_layout = mir_abi_lookup(abi_type_name);
     free(claim_type_name);
-    mir_instruction_record_surface_usage(&inst);
-    return append_instruction(block, inst);
+    return mir_commit_instruction(routine, block, &inst);
 }
 
 #include "mir_ssa_rename.h"
@@ -333,14 +340,13 @@ mir_populate_instructions(MIRRoutine *routine)
                 continue;
             }
             memset(&inst, 0, sizeof(inst));
-            inst.id = routine->instruction_count++;
             inst.kind = MIR_INST_CLEANUP_EDGE;
             inst.name = "DetachInvalidation";
             inst.slot_anchor = fact->slot_anchor != NULL ? fact->slot_anchor : fact->name;
             inst.arg0 = fact->name;
             inst.arg1 = rir_resource_kind_name(fact->resource_kind);
             inst.ast = fact->ast;
-            if (!append_instruction(invalidation, inst))
+            if (!mir_commit_instruction(routine, invalidation, &inst))
                 return false;
             routine->cleanup_instruction_count++;
         }

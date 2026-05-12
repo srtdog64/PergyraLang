@@ -422,10 +422,15 @@ emit_lambda_expr(ASTNode *node, TranspilerCtx *ctx)
     }
     if (return_type == NULL) {
         transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "cannot determine lambda return type; explicit return type is required for non-block lambda bodies");
+        ctx->typed_var_count = saved_typed_var_count;
         return pergyra_strdup("0");
     }
 
     char *lambda_name = strdup_fmt("pgy_lambda_%d", lambda_id);
+    if (lambda_name == NULL) {
+        ctx->typed_var_count = saved_typed_var_count;
+        return pergyra_strdup("0");
+    }
 
     codebuf_write(ctx->decls, "\nstatic %s %s(",
                   return_type, lambda_name);
@@ -448,6 +453,7 @@ emit_lambda_expr(ASTNode *node, TranspilerCtx *ctx)
                 lambda_name,
                 (unsigned long long) i);
             free(lambda_name);
+            ctx->typed_var_count = saved_typed_var_count;
             return pergyra_strdup("0");
         }
         codebuf_write(ctx->decls, "%s %s", param_type, param_name);
@@ -475,6 +481,7 @@ emit_lambda_expr(ASTNode *node, TranspilerCtx *ctx)
                 lambda_name,
                 (unsigned long long) i);
             free(lambda_name);
+            ctx->typed_var_count = saved_typed_var_count;
             return pergyra_strdup("0");
         }
         codebuf_write(ctx->helpers, "%s %s", param_type, param_name);

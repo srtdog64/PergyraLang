@@ -16,13 +16,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-static Type *
-intent_action_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
-{
-    return semantic_type_resolution_lookup_type_ref_or_materialize(ctx,
-                                                                   type_ref);
-}
-
 static const char *
 intent_action_nominal_decl_name(ASTNode *decl)
 {
@@ -82,7 +75,7 @@ intent_action_binding_type_name(ASTNode *action_decl, ASTNode *subject_decl,
             || param->type == NULL) {
             continue;
         }
-        param_type = intent_action_resolve_type_ref(param->type, ctx);
+        param_type = intent_resolve_type_ref(param->type, ctx);
         return (param_type != NULL) ? param_type->name : NULL;
     }
 

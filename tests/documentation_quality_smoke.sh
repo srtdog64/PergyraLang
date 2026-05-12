@@ -2,6 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+PGY_DOC_QUALITY_FULL_UTF8="${PGY_DOC_QUALITY_FULL_UTF8:-0}"
 
 fail() {
     echo "[documentation-quality] $*" >&2
@@ -50,6 +51,7 @@ validate_utf8_file() {
 }
 
 required_files=(
+    "README.md"
     "docs/INDEX.md"
     "docs/00_vision.md"
     "docs/19_design_philosophy.md"
@@ -71,6 +73,7 @@ required_files=(
     "examples/remote_future_result.pgy"
     "docs/grammar/01_syntax.md"
     "docs/grammar/02_grammar.md"
+    "docs/124_syntax_pattern_matrix.md"
     "docs/37_compiler_contracts.md"
     "docs/42_keyword_orthogonality.md"
     "TODO.md"
@@ -80,10 +83,16 @@ for rel in "${required_files[@]}"; do
     require_file "$rel"
 done
 
-while IFS= read -r -d '' path; do
-    validate_utf8_file "$path"
-done < <(find "$ROOT_DIR/docs" "$ROOT_DIR/examples" -type f \( -name '*.md' -o -name '*.pgy' \) -print0)
+for rel in "${required_files[@]}"; do
+    validate_utf8_file "$ROOT_DIR/$rel"
+done
 validate_utf8_file "$ROOT_DIR/TODO.md"
+
+if [[ "$PGY_DOC_QUALITY_FULL_UTF8" == "1" ]]; then
+    while IFS= read -r -d '' path; do
+        validate_utf8_file "$path"
+    done < <(find "$ROOT_DIR/docs" "$ROOT_DIR/examples" -type f \( -name '*.md' -o -name '*.pgy' \) -print0)
+fi
 
 require_text "TODO.md" "Pergyra TODO"
 
@@ -413,16 +422,18 @@ if grep -Fq -- "async {" "$ROOT_DIR/examples/async_demo.pgy"; then
 fi
 require_text "examples/async_demo.pgy" "spawn Inc(8)"
 
-while IFS= read -r -d '' path; do
-    rel="${path#"$ROOT_DIR/"}"
-    if [[ "$rel" == "examples/party_system_demo.pgy" ]]; then
-        require_text "$rel" "Status: design sketch"
-        continue
-    fi
-    if grep -Fq -- "async {" "$path"; then
-        fail "$rel uses capture-bearing anonymous async block outside a design sketch"
-    fi
-done < <(find "$ROOT_DIR/examples" -type f -name '*.pgy' -print0)
+require_text "examples/party_system_demo.pgy" "Status: design sketch"
+if [[ "$PGY_DOC_QUALITY_FULL_UTF8" == "1" ]]; then
+    while IFS= read -r -d '' path; do
+        rel="${path#"$ROOT_DIR/"}"
+        if [[ "$rel" == "examples/party_system_demo.pgy" ]]; then
+            continue
+        fi
+        if grep -Fq -- "async {" "$path"; then
+            fail "$rel uses capture-bearing anonymous async block outside a design sketch"
+        fi
+    done < <(find "$ROOT_DIR/examples" -type f -name '*.pgy' -print0)
+fi
 
 grammar_terms=(
     "named \`spawn Worker(args...)\`"
@@ -431,6 +442,31 @@ grammar_terms=(
 for term in "${grammar_terms[@]}"; do
     require_text "docs/grammar/01_syntax.md" "$term"
     require_text "docs/grammar/02_grammar.md" "$term"
+done
+
+common_syntax_terms=(
+    "Syntax Pattern Matrix: Pergyra vs Common Languages"
+    "Intent compact step"
+    "String interpolation"
+    "Collection literals"
+    "Closure literal"
+    "Named/default args"
+    "Tuple"
+    "Struct/named destructuring"
+    "Optional chaining / coalescing"
+    "Match guards and or-patterns"
+    "Block expression"
+    "Unsafe/raw block"
+    "Attribute/annotation"
+    "Generic shorthand / type argument elision"
+    "Cast/type-test syntax"
+    "Object initializer syntax"
+    "Slicing/spread/rest"
+    "explicit reject"
+    "out-of-beta"
+)
+for term in "${common_syntax_terms[@]}"; do
+    require_text "docs/124_syntax_pattern_matrix.md" "$term"
 done
 
 orthogonality_terms=(

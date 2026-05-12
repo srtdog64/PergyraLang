@@ -37,6 +37,22 @@ transpiler_infer_copy_type_name(char *out, size_t out_size,
 }
 
 static const char *
+transpiler_promote_numeric_type_name(const char *left_type,
+                                     const char *right_type)
+{
+    if ((left_type != NULL && strcmp(left_type, "Double") == 0)
+        || (right_type != NULL && strcmp(right_type, "Double") == 0))
+        return "Double";
+    if ((left_type != NULL && strcmp(left_type, "Float") == 0)
+        || (right_type != NULL && strcmp(right_type, "Float") == 0))
+        return "Float";
+    if ((left_type != NULL && strcmp(left_type, "Long") == 0)
+        || (right_type != NULL && strcmp(right_type, "Long") == 0))
+        return "Long";
+    return "Int";
+}
+
+static const char *
 infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
 {
     static char derived_call_type[128];
@@ -166,7 +182,7 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                         return "String";
                 }
             }
-            return "Int";
+            return transpiler_promote_numeric_type_name(left_type, right_type);
         }
         if (op == TOKEN_EQUAL || op == TOKEN_NOT_EQUAL
             || op == TOKEN_LESS || op == TOKEN_LESS_EQUAL
@@ -176,13 +192,7 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
         }
         if (op == TOKEN_MINUS || op == TOKEN_STAR
             || op == TOKEN_SLASH || op == TOKEN_PERCENT) {
-            if ((left_type != NULL && strcmp(left_type, "Float") == 0)
-                || (right_type != NULL && strcmp(right_type, "Float") == 0))
-                return "Float";
-            if ((left_type != NULL && strcmp(left_type, "Long") == 0)
-                || (right_type != NULL && strcmp(right_type, "Long") == 0))
-                return "Long";
-            return "Int";
+            return transpiler_promote_numeric_type_name(left_type, right_type);
         }
         return "Unknown";
     }

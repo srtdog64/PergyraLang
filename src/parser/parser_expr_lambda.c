@@ -65,6 +65,11 @@ parse_lambda_expression(Parser* parser)
             ast_destroy(param);
             param = typed_param;
         }
+        if (parser_match(parser, TOKEN_ASSIGN)) {
+            parser_error(parser,
+                "Default value arguments are reserved but not implemented; use an overload or wrapper function");
+            ast_destroy(parser_parse_expression(parser));
+        }
 
         if (!parser_append_expr_node_with_capacity(parser,
                 &lambda->data.lambda_expr.params,

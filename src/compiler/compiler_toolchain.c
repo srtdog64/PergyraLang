@@ -5,6 +5,7 @@
 
 #include "compiler_toolchain.h"
 #include "path_utils.h"
+#include "../common/env_flags.h"
 
 #include <ctype.h>
 #include <stdio.h>
@@ -495,20 +496,7 @@ compiler_now_seconds(void)
 static bool
 compiler_env_truthy(const char *name)
 {
-    const char *value = getenv(name);
-
-    if (value == NULL || value[0] == '\0')
-        return false;
-    if (strcmp(value, "0") == 0
-        || strcmp(value, "false") == 0
-        || strcmp(value, "FALSE") == 0
-        || strcmp(value, "off") == 0
-        || strcmp(value, "OFF") == 0
-        || strcmp(value, "no") == 0
-        || strcmp(value, "NO") == 0) {
-        return false;
-    }
-    return true;
+    return pgy_env_value_is_truthy(getenv(name));
 }
 
 bool

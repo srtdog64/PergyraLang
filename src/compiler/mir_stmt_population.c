@@ -1,5 +1,6 @@
 #include "mir_stmt_population.h"
 
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -89,6 +90,8 @@ mir_stmt_is_control_flow(const ASTNode *stmt, const MIRBasicBlock *mir_block)
         return true;
     if (stmt->type == AST_RETURN)
         return true;
+    if (stmt->type == AST_WITH_STMT || stmt->type == AST_UNSAFE_BLOCK)
+        return true;
     if (mir_block->has_succ_true || mir_block->has_succ_false) {
         if (mir_stmt_ast_is_cfg_owned_control(stmt))
             return true;
@@ -119,6 +122,24 @@ mir_stmt_population_is_semantic_carrier(const MIRInstruction *inst)
     if (inst == NULL || inst->kind != MIR_INST_STMT || inst->name == NULL)
         return false;
     return mir_instruction_is_intent_semantic_carrier(inst);
+}
+
+static MIRInstruction
+mir_make_source_stmt_instruction(MIRRoutine *routine,
+                                 ASTNode *stmt,
+                                 size_t source_statement_index)
+{
+    MIRInstruction inst;
+
+    memset(&inst, 0, sizeof(inst));
+    if (routine != NULL)
+        inst.id = routine->instruction_count++;
+    inst.kind = MIR_INST_STMT;
+    inst.name = "stmt";
+    inst.ast = stmt;
+    mir_attach_statement_call_fact(&inst, stmt);
+    mir_set_inst_source_statement_index(&inst, source_statement_index);
+    return inst;
 }
 
 void
@@ -246,8 +267,10 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
         /* Separate existing instructions into categories */
         MIRInstruction *old_insts = block->instructions;
         size_t old_count = block->instruction_count;
-        bool *copied_flags = calloc(old_count, sizeof(bool));
-        if (copied_flags == NULL)
+        bool *copied_flags = old_count > 0
+            ? calloc(old_count, sizeof(bool))
+            : NULL;
+        if (old_count > 0 && copied_flags == NULL)
             return false;
 
         /* Count max possible new STMT instructions (worst case: all
@@ -275,7 +298,15 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
         }
 
         /* Allocate new instruction array */
+        if (old_count > SIZE_MAX - stmt_count) {
+            free(copied_flags);
+            return false;
+        }
         size_t new_cap = old_count + stmt_count;
+        if (new_cap > SIZE_MAX / sizeof(MIRInstruction)) {
+            free(copied_flags);
+            return false;
+        }
         MIRInstruction *new_insts = calloc(new_cap, sizeof(MIRInstruction));
         if (new_insts == NULL) {
             free(copied_flags);
@@ -354,14 +385,8 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
                                                      &def_cursor,
                                                      copied_flags,
                                                      mir_stmt_def_name(stmt));
-                MIRInstruction inst;
-                memset(&inst, 0, sizeof(inst));
-                inst.id = routine->instruction_count++;
-                inst.kind = MIR_INST_STMT;
-                inst.name = "stmt";
-                inst.ast = stmt;
-                mir_attach_statement_call_fact(&inst, stmt);
-                mir_set_inst_source_statement_index(&inst, s);
+                MIRInstruction inst =
+                    mir_make_source_stmt_instruction(routine, stmt, s);
                 new_insts[new_count++] = inst;
                 continue;
             }
@@ -373,14 +398,8 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
                                                      &def_cursor,
                                                      copied_flags,
                                                      mir_stmt_def_name(stmt));
-                MIRInstruction inst;
-                memset(&inst, 0, sizeof(inst));
-                inst.id = routine->instruction_count++;
-                inst.kind = MIR_INST_STMT;
-                inst.name = "stmt";
-                inst.ast = stmt;
-                mir_attach_statement_call_fact(&inst, stmt);
-                mir_set_inst_source_statement_index(&inst, s);
+                MIRInstruction inst =
+                    mir_make_source_stmt_instruction(routine, stmt, s);
                 new_insts[new_count++] = inst;
                 continue;
             }
@@ -414,12 +433,8 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
                             continue;
                         }
                         memset(&def_inst, 0, sizeof(def_inst));
-                        def_inst.id = routine->instruction_count++;
-                        def_inst.kind = MIR_INST_STMT;
-                        def_inst.name = "stmt";
-                        def_inst.ast = stmt;
-                        mir_attach_statement_call_fact(&def_inst, stmt);
-                        mir_set_inst_source_statement_index(&def_inst, s);
+                        def_inst =
+                            mir_make_source_stmt_instruction(routine, stmt, s);
                         new_insts[new_count++] = def_inst;
                         continue;
                     }
@@ -445,26 +460,14 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
                         continue;
                     }
                     def_cursor = saved_cursor;
-                    MIRInstruction inst;
-                    memset(&inst, 0, sizeof(inst));
-                    inst.id = routine->instruction_count++;
-                    inst.kind = MIR_INST_STMT;
-                    inst.name = "stmt";
-                    inst.ast = stmt;
-                    mir_attach_statement_call_fact(&inst, stmt);
-                    mir_set_inst_source_statement_index(&inst, s);
+                    MIRInstruction inst =
+                        mir_make_source_stmt_instruction(routine, stmt, s);
                     new_insts[new_count++] = inst;
                 }
             } else {
                 /* Create new STMT instruction */
-                MIRInstruction inst;
-                memset(&inst, 0, sizeof(inst));
-                inst.id = routine->instruction_count++;
-                inst.kind = MIR_INST_STMT;
-                inst.name = "stmt";
-                inst.ast = stmt;
-                mir_attach_statement_call_fact(&inst, stmt);
-                mir_set_inst_source_statement_index(&inst, s);
+                MIRInstruction inst =
+                    mir_make_source_stmt_instruction(routine, stmt, s);
                 new_insts[new_count++] = inst;
             }
         }

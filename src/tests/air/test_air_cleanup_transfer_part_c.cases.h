@@ -87,6 +87,7 @@ test_air_rejects_mismatched_mir_pin_cleanup_evidence(void)
 static bool
 test_air_rejects_pin_cleanup_evidence_without_slot_subject(void)
 {
+    ASTNode pin_ast = {.type = AST_BLOCK};
     AIRIntentNode intents[] = {
         {
             .intent_owner = "ScoreIntent",
@@ -104,6 +105,7 @@ test_air_rejects_pin_cleanup_evidence_without_slot_subject(void)
             .intent_index = 0,
             .step_index = 0,
             .sync_class = AIR_SYNC_SYNC,
+            .ast = &pin_ast,
         },
     };
     AIREvidenceNode evidence_nodes[] = {
@@ -129,6 +131,63 @@ test_air_rejects_pin_cleanup_evidence_without_slot_subject(void)
         && error != NULL
         && strstr(error, "PGY_AIR_INVARIANT_INVALID") != NULL
         && strstr(error, "has no slot anchor subject") != NULL;
+    free(error);
+    return ok;
+}
+
+static bool
+test_air_rejects_pin_cleanup_evidence_without_source_provenance(void)
+{
+    AIRIntentNode intents[] = {
+        {
+            .intent_owner = "ScoreIntent",
+            .step_name = "pin_scores",
+            .step_index = 0,
+            .sync_class = AIR_SYNC_SYNC,
+            .failure_class = AIR_FAILURE_RECOVERABLE,
+        },
+    };
+    AIRBoundaryNode boundaries[] = {
+        {
+            .kind = AIR_BOUNDARY_EXECUTION,
+            .owner_name = "ScoreIntent",
+            .source_name = "pin",
+            .intent_index = 0,
+            .step_index = 0,
+            .sync_class = AIR_SYNC_SYNC,
+        },
+    };
+    AIREvidenceNode evidence_nodes[] = {
+        {
+            .kind = AIR_EVIDENCE_MIR_CLEANUP,
+            .boundary_index = SIZE_MAX,
+            .provider_name = "pin_scores",
+            .subject_name = "cleanup-block",
+            .fact_count = 1,
+            .fallback_count = 0,
+        },
+        {
+            .kind = AIR_EVIDENCE_MIR_PIN_CLEANUP,
+            .boundary_index = 0,
+            .provider_name = "pin_scores",
+            .subject_name = "scores",
+            .fact_count = 1,
+            .fallback_count = 0,
+        },
+    };
+    AIRProgram air = {
+        .intents = intents,
+        .intent_count = 1,
+        .boundaries = boundaries,
+        .boundary_count = 1,
+        .evidence_nodes = evidence_nodes,
+        .evidence_count = 2,
+    };
+    char *error = NULL;
+    bool ok = !air_validate(&air, &error)
+        && error != NULL
+        && strstr(error, "PGY_AIR_INVARIANT_INVALID") != NULL
+        && strstr(error, "no source AST provenance") != NULL;
     free(error);
     return ok;
 }
@@ -190,6 +249,7 @@ test_air_strict_evidence_requires_mir_pin_cleanup(void)
 static bool
 test_air_rejects_pin_cleanup_evidence_fact_count_mismatch(void)
 {
+    ASTNode pin_ast = {.type = AST_BLOCK};
     AIRIntentNode intents[] = {
         {
             .intent_owner = "ScoreIntent",
@@ -207,6 +267,7 @@ test_air_rejects_pin_cleanup_evidence_fact_count_mismatch(void)
             .intent_index = 0,
             .step_index = 0,
             .sync_class = AIR_SYNC_SYNC,
+            .ast = &pin_ast,
         },
     };
     AIREvidenceNode evidence_nodes[] = {
@@ -237,6 +298,7 @@ test_air_rejects_pin_cleanup_evidence_fact_count_mismatch(void)
 static bool
 test_air_rejects_pin_cleanup_without_global_cleanup_evidence(void)
 {
+    ASTNode pin_ast = {.type = AST_BLOCK};
     AIRIntentNode intents[] = {
         {
             .intent_owner = "ScoreIntent",
@@ -254,6 +316,7 @@ test_air_rejects_pin_cleanup_without_global_cleanup_evidence(void)
             .intent_index = 0,
             .step_index = 0,
             .sync_class = AIR_SYNC_SYNC,
+            .ast = &pin_ast,
         },
     };
     AIREvidenceNode evidence_nodes[] = {

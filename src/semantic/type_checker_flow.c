@@ -44,12 +44,6 @@ flow_has_fallthrough(FlowFlags flags)
     return (flags & FLOW_FALLTHROUGH) != 0;
 }
 
-static Type *
-flow_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
-{
-    return semantic_type_resolution_lookup_type_ref_or_materialize(ctx, type_ref);
-}
-
 Type *
 flow_normalize_type(Type *type)
 {
@@ -384,7 +378,7 @@ type_check_with_stmt_flow(ASTNode *node, SemanticContext *ctx,
     const char *alias = node->data.with_stmt.alias;
     bool is_secure = node->data.with_stmt.is_secure;
 
-    Type *inner = flow_normalize_type(flow_resolve_type_ref(slot_type_node, ctx));
+    Type *inner = flow_normalize_type(domain_resolve_type_ref(slot_type_node, ctx));
     Type *slot_type = type_create_slot(inner, is_secure);
 
     Symbol *sym = symbol_create_slot(alias, slot_type, is_secure, NULL,

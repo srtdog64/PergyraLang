@@ -24,12 +24,6 @@ uint32_t
 declared_effects_from_function_node(ASTNode *node, SemanticContext *ctx,
                                     bool *has_contract_out);
 
-static Type *
-late_helper_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
-{
-    return semantic_type_resolution_lookup_type_ref_or_materialize(ctx, type_ref);
-}
-
 Type *
 type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                                 const char *display_name,
@@ -120,6 +114,21 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
     }
 
     Type **call_arg_types = calloc(provided > 0 ? provided : 1, sizeof(Type *));
+    if (call_arg_types == NULL) {
+        semantic_error_with_hints(ctx,
+            PGY_CODE_SEM_UNKNOWN_TYPE,
+            PGY_CAUSE_RESOLUTION_OOM,
+            PGY_FIX_REDUCE_SCOPE_OR_RETRY,
+            expr,
+            "Could not allocate call argument type metadata for '%s'.\n"
+            "Reason:\n"
+            "- semantic call checking ran out of memory while recording argument types\n"
+            "Fix:\n"
+            "- reduce this compilation unit size and retry\n"
+            "- or report the input if this happens on a small program",
+            display_name != NULL ? display_name : "<call>");
+        return sym->type->data.function.return_type;
+    }
     if (ctx->program_root != NULL
         && (sym->kind == SYMBOL_FUNCTION || sym->kind == SYMBOL_INTENT)) {
         callable_decl = find_callable_decl_by_name(ctx->program_root, display_name);
@@ -137,7 +146,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                     GenericParam *gp = callable_generic_params->params[gi];
                     if (gp != NULL && gp->default_type != NULL)
                         effective_generic_types[gi] =
-                            late_helper_resolve_type_ref(gp->default_type, ctx);
+                            domain_resolve_type_ref(gp->default_type, ctx);
                 }
             }
         }

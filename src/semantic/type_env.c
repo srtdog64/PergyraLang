@@ -32,9 +32,10 @@ type_env_destroy(TypeEnv *env)
 void
 type_env_add_variable(TypeEnv *env, const char *name, Type *type)
 {
-    size_t n = env->var_count;
+    size_t n;
     if (env == NULL || name == NULL)
         return;
+    n = env->var_count;
     if (env->var_count == env->var_capacity) {
         size_t next_capacity;
         if (env->var_capacity > SIZE_MAX / 2)
@@ -73,9 +74,10 @@ type_env_lookup_variable(TypeEnv *env, const char *name)
 void
 type_env_add_type(TypeEnv *env, const char *name, Type *type)
 {
-    size_t n = env->type_count;
+    size_t n;
     if (env == NULL || name == NULL)
         return;
+    n = env->type_count;
     if (env->type_count == env->type_capacity) {
         size_t next_capacity;
         if (env->type_capacity > SIZE_MAX / 2)

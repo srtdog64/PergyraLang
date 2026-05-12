@@ -26,7 +26,10 @@ party_stats_strdup(const char* text)
     if (text == NULL)
         return NULL;
 
-    length = strlen(text) + 1U;
+    length = strlen(text);
+    if (length == SIZE_MAX)
+        return NULL;
+    length++;
     copy = (char*)malloc(length);
     if (copy == NULL)
         return NULL;
@@ -59,8 +62,19 @@ fiber_stats_hash_role(const char* roleId)
 static bool fiber_stats_index_insert(const char* roleId, size_t statIndex);
 
 static bool
+party_stats_array_fits(size_t count, size_t elem_size)
+{
+    return elem_size != 0 && count <= SIZE_MAX / elem_size;
+}
+
+static bool
 fiber_stats_rebuild_index(size_t newCapacity)
 {
+    if (!party_stats_array_fits(newCapacity, sizeof(uint64_t))
+        || !party_stats_array_fits(newCapacity, sizeof(size_t))) {
+        return false;
+    }
+
     uint64_t* hashes = (uint64_t*)calloc(newCapacity, sizeof(uint64_t));
     size_t* slots = (size_t*)calloc(newCapacity, sizeof(size_t));
     uint64_t* oldHashes;
@@ -102,12 +116,23 @@ fiber_stats_ensure_index_capacity(size_t countAfterInsert)
 {
     size_t capacity = g_fiberStats.indexCapacity;
 
+    if (countAfterInsert > SIZE_MAX / 4U)
+        return false;
     if (capacity != 0 && countAfterInsert * 4U < capacity * 3U)
         return true;
 
-    capacity = capacity != 0 ? capacity * 2U : 32U;
-    while (countAfterInsert * 4U >= capacity * 3U)
+    if (capacity == 0) {
+        capacity = 32U;
+    } else {
+        if (capacity > SIZE_MAX / 2U)
+            return false;
         capacity *= 2U;
+    }
+    while (countAfterInsert * 4U >= capacity * 3U) {
+        if (capacity > SIZE_MAX / 2U)
+            return false;
+        capacity *= 2U;
+    }
     return fiber_stats_rebuild_index(capacity);
 }
 
@@ -137,7 +162,7 @@ fiber_stats_lookup(const char* roleId)
     for (size_t probe = 0; probe < g_fiberStats.indexCapacity; probe++) {
         size_t slot = (size_t)((hash + probe) & (g_fiberStats.indexCapacity - 1U));
         if (g_fiberStats.indexHashes[slot] == 0)
-            return NULL;
+            return fiber_stats_lookup_linear(roleId);
         if (g_fiberStats.indexHashes[slot] != hash)
             continue;
 
@@ -185,9 +210,23 @@ UpdateFiberStats(const char* roleId, const FiberResult* result)
     stats = fiber_stats_lookup(roleId);
     if (stats == NULL) {
         if (g_fiberStats.count >= g_fiberStats.capacity) {
-            size_t newCapacity = g_fiberStats.capacity > 0 ? g_fiberStats.capacity * 2U : 16U;
-            FiberStats* newStats =
-                (FiberStats*)realloc(g_fiberStats.stats, newCapacity * sizeof(FiberStats));
+            size_t newCapacity;
+            FiberStats* newStats;
+            if (g_fiberStats.capacity == 0) {
+                newCapacity = 16U;
+            } else {
+                if (g_fiberStats.capacity > SIZE_MAX / 2U) {
+                    party_runtime_warn("fiber_stats", "stats capacity overflow");
+                    return;
+                }
+                newCapacity = g_fiberStats.capacity * 2U;
+            }
+            if (!party_stats_array_fits(newCapacity, sizeof(FiberStats))) {
+                party_runtime_warn("fiber_stats", "stats allocation size overflow");
+                return;
+            }
+            newStats = (FiberStats*)realloc(g_fiberStats.stats,
+                                            newCapacity * sizeof(FiberStats));
             if (newStats == NULL) {
                 party_runtime_warn("fiber_stats", "stats array growth failed");
                 return;

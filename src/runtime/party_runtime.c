@@ -39,6 +39,12 @@ static size_t party_context_find_role_index_by_slot(const PartyContext* context,
                                                     uint32_t slotId);
 void* party_context_role_instance_by_slot(PartyContext* context, uint32_t slotId);
 
+static bool
+party_runtime_array_fits(size_t count, size_t elem_size)
+{
+    return elem_size != 0 && count <= SIZE_MAX / elem_size;
+}
+
 static void
 party_runtime_warn_scheduler(const char* reason, SchedulerTag tag, const char* name)
 {
@@ -68,7 +74,11 @@ party_runtime_strdup(const char* text)
         return NULL;
     }
 
-    length = strlen(text) + 1;
+    length = strlen(text);
+    if (length == SIZE_MAX) {
+        return NULL;
+    }
+    length++;
     copy = (char*)malloc(length);
     if (copy == NULL) {
         return NULL;
@@ -103,8 +113,17 @@ GenerateFiberMap(const char* partyType,
         return NULL;
     }
 
-    map->entries = (FiberMapEntry*)calloc(bindingCount, sizeof(FiberMapEntry));
-    if (map->entries == NULL) {
+    if (!party_runtime_array_fits(bindingCount, sizeof(FiberMapEntry))) {
+        free((void*)map->partyTypeName);
+        free(map);
+        party_runtime_warn("generate_fiber_map", "entry allocation size overflow");
+        return NULL;
+    }
+
+    if (bindingCount > 0) {
+        map->entries = (FiberMapEntry*)calloc(bindingCount, sizeof(FiberMapEntry));
+    }
+    if (bindingCount > 0 && map->entries == NULL) {
         free((void*)map->partyTypeName);
         free(map);
         party_runtime_warn("generate_fiber_map", "entry allocation failed");
@@ -312,11 +331,25 @@ ContextFindRoles(PartyContext* context, const char* requiredAbility)
             continue;
 
         if (result.count == capacity) {
-            size_t nextCapacity = capacity != 0 ? capacity * 2U : 4U;
-            void** nextInstances =
-                (void**)malloc(nextCapacity * sizeof(void*));
-            const char** nextSlotNames =
-                (const char**)malloc(nextCapacity * sizeof(const char*));
+            size_t nextCapacity;
+            void** nextInstances;
+            const char** nextSlotNames;
+            if (capacity == 0) {
+                nextCapacity = 4U;
+            } else {
+                if (capacity > SIZE_MAX / 2U) {
+                    party_runtime_warn("context.find_roles", "result capacity overflow");
+                    break;
+                }
+                nextCapacity = capacity * 2U;
+            }
+            if (!party_runtime_array_fits(nextCapacity, sizeof(void*))
+                || !party_runtime_array_fits(nextCapacity, sizeof(const char*))) {
+                party_runtime_warn("context.find_roles", "result allocation size overflow");
+                break;
+            }
+            nextInstances = (void**)malloc(nextCapacity * sizeof(void*));
+            nextSlotNames = (const char**)malloc(nextCapacity * sizeof(const char*));
             if (nextInstances == NULL || nextSlotNames == NULL) {
                 free(nextInstances);
                 free((void*)nextSlotNames);

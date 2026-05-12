@@ -35,13 +35,54 @@ Current first-class evidence node kinds are `hir_routine`, `hir_cfg`,
   evidence; it must not materialize generic/ability facts itself.
 - MIR cleanup/pin evidence is connected to AIR as provenance, but cleanup
   generation and validation still belong to MIR. AIR must audit the evidence,
-  not synthesize cleanup edges.
-- Remaining AIR 1.0 debt is consumer coverage: effect propagation drift,
-  module/generic ability provenance, and full runtime frontier scheduler
-  coverage must all become evidence-node-backed before AIR can be called the
-  full abstraction-boundary verifier. Trace/observability ABI evidence and the
-  runtime frontier policy source-of-truth evidence are now present as global
-  `AIREvidenceNode` entries.
+  not synthesize cleanup edges. A local `pin-unpin-cleanup-edge` fact is not
+  enough by itself; AIR only accepts pin cleanup evidence when MIR also exposes
+  a registered reachable cleanup root for the routine.
+- Remaining AIR 1.0 debt is narrower consumer coverage: module/generic ability
+  provenance edge cases and full runtime frontier scheduler coverage must become
+  evidence-node-backed before AIR can be called the full abstraction-boundary
+  verifier. RIR effect/relation propagation, trace/observability ABI evidence,
+  and runtime frontier policy source-of-truth evidence are now present as global
+  `AIREvidenceNode` entries and strict counter-only drift checks.
+- Adjacent HIR/MIR source-of-truth cleanup continues below AIR: HIR CFG finish
+  sequencing now lives in `hir_routine_cfg.c`, and MIR SSA use-edge population
+  now lives in `mir_ssa_use_edges.c`. AIR should consume their evidence and
+  summaries, not re-derive CFG shape or SSA use facts.
+- Adjacent LLVM cleanup follows the same rule: `llvm_stmt_type_infer_nominal.c`
+  owns nominal inference separately from expression type inference. AIR must
+  treat backend type-inference results as backend evidence only; semantic type
+  truth remains in the frontend/DAG pipeline.
+- LLVM member-call support is similarly split into `llvm_member_call_support.c`
+  so backend diagnostic/argument-storage mechanics do not become part of the
+  member-call dispatch source of truth.
+- LLVM scalar expression support is split into `llvm_expr_unary_core.c` for
+  unary/try lowering and `llvm_expr_scalar_core.c` for callable signatures,
+  coalesce lowering, and binary expressions. These remain backend lowering
+  owners, not AIR semantic evidence owners.
+- LLVM resource registry support is split into `llvm_registry_resources.c`
+  for variable registry rows and `llvm_registry_resource_types.c` for resource
+  and container type-shape construction. AIR must treat these as backend ABI
+  evidence consumers only; resource ownership truth remains in MIR/ABI facts.
+- LLVM domain struct registration is split into `llvm_domain_struct_register.c`
+  for type-body construction and `llvm_domain_struct_register_fields.c` for
+  generated class-field inventory. AIR must not infer domain boundary evidence
+  from these backend field inventories; it should consume RIR/MIR evidence.
+- LLVM let resource lowering is split into `llvm_stmt_let_resources.c` for
+  view/move aliases and Slot/SecureSlot sugar. AIR must consume MIR cleanup and
+  ownership evidence for these resources, not backend let-lowering branches.
+- LLVM zone sync clause lowering is split into
+  `llvm_domain_zone_sync_clauses.c` for action-cause and detach clauses, while
+  `llvm_domain_zone_sync.c` keeps bounded frontier orchestration. AIR must
+  consume RIR/MIR propagation evidence for zone behavior, not backend clause
+  lowering branches.
+- LLVM backend type rendering is split into `llvm_backend_type_render.c`, while
+  `llvm_backend_type_map.c` keeps Pergyra-to-LLVM mapping policy. AIR must not
+  infer semantic type truth from backend render strings; semantic type truth
+  remains in DAG/frontend evidence.
+- AIR summary counters are compatibility telemetry only. The validation owner
+  now checks DAG metadata/generic/ability, observability schema, and runtime
+  frontier policy counters against first-class `AIREvidenceNode` inventory so
+  these counters cannot drift into a second evidence source of truth.
 
 마지막 업데이트: 2026-05-02
 
@@ -245,10 +286,11 @@ sixth compiler core and the architecture is wrong.
 
 - Phase 1 beta contract is frozen and green.
 - `EvidenceNode` is explicit rather than a loose set of booleans.
-- HIR, RIR, and MIR pin-cleanup evidence are represented as provenance-carrying
-  references. General MIR cleanup and DAG generic/ability evidence are also
-  represented as global provenance nodes; the next closure target is deeper
-  consumer coverage, not reintroducing boolean-only proof.
+- HIR, RIR, RIR effect/relation propagation, MIR cleanup/pin-cleanup, MIR
+  terminator/select-receive, DAG generic/metadata/ability, runtime frontier, and
+  observability evidence are represented as provenance-carrying nodes. The next
+  closure target is deeper consumer coverage, not reintroducing boolean-only
+  proof.
 - `pgy --air` has a stable text dump and a stable machine-readable dump for CI /
   tooling.
 - Positive and negative dogfood fixtures exercise intent, zone/world, event,
@@ -280,6 +322,21 @@ sixth compiler core and the architecture is wrong.
   evidence inventory exists. The legacy per-boundary flags are cached summaries
   for dumps and compatibility fixtures; they do not independently satisfy
   strict evidence once inventory nodes are present.
+- MIR summary counters follow the same rule. `mir_cleanup`,
+  `mir_terminator`, and `mir_select_receive` counters are observability
+  summaries only; strict AIR requires matching global `AIREvidenceNode`
+  entries before those facts can prove abstraction-boundary safety. If MIR
+  evidence nodes are present, their node count must match the corresponding
+  summary counter; counter-only states are verifier drift, not validation
+  invariants.
+- Summary-counter consistency is owned by
+  `src/compiler/air_validate_summary_counters.c`. The main evidence validator
+  owns inventory shape; it delegates compatibility counter matching so the AIR
+  validation layer stays split by responsibility rather than file size.
+- AIR verification provenance formatting is owned by
+  `src/compiler/air_verify_provenance.c`. `air_verify.c` makes drift decisions;
+  the provenance owner renders authority lists and `source_provenance` /
+  `who_provenance` strings for diagnostics.
 - Consumers must use `air_boundary_has_evidence(...)` instead of reading those
   cached flags directly. This keeps driver diagnostics and AIR graph dumps on
   the same evidence-node source of truth as strict verification.
@@ -289,7 +346,7 @@ sixth compiler core and the architecture is wrong.
   evidence requires same-boundary `hir_routine` evidence; `rir_authority`
   evidence requires same-boundary `rir_boundary` evidence and a declared
   authority participant; `mir_pin_cleanup` evidence can attach only to a `pin`
-  execution boundary.
+  execution boundary with the same source AST provenance.
 - MIR cleanup and pin-cleanup evidence are collected through
   `air_collect_mir_evidence(...)` after MIR has produced cleanup facts. AIR does
   not create cleanup facts; it records that MIR-owned cleanup evidence exists,
@@ -297,7 +354,8 @@ sixth compiler core and the architecture is wrong.
   `pin` execution boundaries once MIR input has been attached.
   Global MIR cleanup evidence consumes CFG cleanup successors first and only
   then falls back to named cleanup-edge facts; boundary-specific pin cleanup
-  evidence remains `AIR_EVIDENCE_MIR_PIN_CLEANUP`.
+  evidence remains `AIR_EVIDENCE_MIR_PIN_CLEANUP` and is not collected for
+  synthetic pin boundaries that lack exact source AST provenance.
 - Parsed-source intent routines now have a minimal HIR CFG materializer:
   `hir_lower_intent_cfg(...)` builds ordered clause blocks for intent
   priority/success/failure expressions and each step's `where`, `using`,
@@ -336,7 +394,9 @@ sixth compiler core and the architecture is wrong.
   for/while, parallel, async, task group, spawn, call, assignment, arrays,
   tuples, await, channel ops, select, match, unsafe, defer, event invoke, and
   lambda body. AIR does not accept routine-name evidence alone for these
-  implementation boundaries.
+  implementation boundaries, and AST-less implementation boundaries can receive
+  HIR routine evidence but not HIR CFG evidence. Manually constructed
+  `AIR_EVIDENCE_HIR_CFG` nodes follow the same rule.
 - AIR boundary walking and HIR containment also descend through executable
   payload carriers that are not boundaries by themselves: `let` and
   destructuring initializers, event subscribe/unsubscribe handler payloads,
@@ -369,6 +429,10 @@ sixth compiler core and the architecture is wrong.
   `TaskGroup` operations; AIR accepts a parallel boundary only when the matching
   same-AST operation exists and HIR CFG evidence also reaches the boundary.
   `task-group` is no longer treated as HIR-only.
+- `parallel`, IO, and channel boundaries do not fall back to scope-name RIR
+  evidence when their AIR boundary lacks source AST provenance. These
+  operation-specific boundaries remain unproven until the owning layer attaches
+  a concrete boundary AST and RIR exposes the matching operation.
 - Transfer boundary synthesis is split: a step with both `where: ZoneType` and
   `transfer: from -> to` emits a `Zone` boundary for the `where` type and a
   separate `World` boundary for the handoff. The world boundary source is the
@@ -508,7 +572,7 @@ bool air_verify(AIRProgram *air, char **error_message);
 - first-class evidence nodes must match their boundary class: global evidence is
   global-only, HIR CFG evidence requires HIR routine evidence, authority evidence
   must name a declared participant, and MIR pin cleanup evidence must target a
-  pin execution boundary;
+  pin execution boundary with exact source AST provenance;
 - implementation boundaries must carry matching HIR CFG evidence;
 - evidence flags must carry provenance names, not boolean-only claims;
 - strict evidence mode computes drift/evidence failures before MIR lowering.

@@ -27,6 +27,14 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+ifeq ($(OS),Windows_NT)
+PGY_WINDOWS_GIT_BASH := C:/Progra~1/Git/bin/bash.exe
+ifneq ($(wildcard $(PGY_WINDOWS_GIT_BASH)),)
+BASH := $(PGY_WINDOWS_GIT_BASH)
+SHELL := $(BASH)
+endif
+endif
+
 CC      = gcc
 CC_DUMP_MACHINE := $(shell $(CC) -dumpmachine 2>/dev/null || echo unknown)
 CC_MACHINE := $(CC_DUMP_MACHINE)
@@ -68,9 +76,14 @@ CI_WINDOWS_BIN_DIR   := $(TMPDIR_CI)/pgy-ci-windows-bin
 CI_MACOS_CC := $(or $(shell command -v cc 2>/dev/null),$(CC))
 CI_MACOS_BUILD_DIR := $(TMPDIR_CI)/pgy-ci-macos-build
 CI_MACOS_BIN_DIR   := $(TMPDIR_CI)/pgy-ci-macos-bin
+ifeq ($(strip $(BASH)),)
 BASH := $(shell command -v bash 2>/dev/null)
+endif
 ifeq ($(strip $(BASH)),)
 BASH := bash
+endif
+ifeq ($(strip $(SHELL)),)
+SHELL := $(BASH)
 endif
 LLVM_CONFIG := $(shell command -v llvm-config 2>/dev/null || command -v llvm-config-20 2>/dev/null || command -v llvm-config-19 2>/dev/null || command -v llvm-config-18 2>/dev/null || command -v llvm-config-17 2>/dev/null || command -v llvm-config-16 2>/dev/null || command -v llvm-config-15 2>/dev/null)
 WINDOWS_LLVM_READY := $(shell if [ -n "$(LLVM_CONFIG)" ] && "$(LLVM_CONFIG)" --libs core >/dev/null 2>&1; then echo 1; else echo 0; fi)
@@ -152,6 +165,7 @@ COMMON_DIR   = $(SRC_DIR)/common
 # -----------------------------------------------------------------
 COMMON_SOURCES   = $(COMMON_DIR)/arena.c \
                    $(COMMON_DIR)/diagnostic_layer.c \
+                   $(COMMON_DIR)/env_flags.c \
                    $(COMMON_DIR)/intent_observability_names.c
 LEXER_SOURCES    = $(LEXER_DIR)/lexer.c \
                    $(LEXER_DIR)/lexer_token_debug.c
@@ -177,6 +191,7 @@ PARSER_SOURCES   = $(PARSER_DIR)/ast.c \
                    $(PARSER_DIR)/parser_enum.c \
                    $(PARSER_DIR)/parser_export.c \
                    $(PARSER_DIR)/parser_expr.c \
+                   $(PARSER_DIR)/parser_expr_call_args.c \
                    $(PARSER_DIR)/parser_expr_lambda.c \
                    $(PARSER_DIR)/parser_expr_string.c \
                    $(PARSER_DIR)/parser_expr_util.c \
@@ -328,9 +343,10 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                     $(SEMANTIC_DIR)/type_checker_builtins_projection.c \
                     $(SEMANTIC_DIR)/type_checker_resolution_retired.c \
                     $(SEMANTIC_DIR)/type_checker_type_helpers.c \
-                    $(SEMANTIC_DIR)/type_checker_expr_host.c \
+                   $(SEMANTIC_DIR)/type_checker_expr_host.c \
                    $(SEMANTIC_DIR)/type_checker_expr_call.c \
                    $(SEMANTIC_DIR)/type_checker_expr.c \
+                   $(SEMANTIC_DIR)/type_checker_lambda_capture.c \
                    $(SEMANTIC_DIR)/type_checker_expr_names.c \
                    $(SEMANTIC_DIR)/type_checker_expr_ops.c \
                    $(SEMANTIC_DIR)/type_checker_builtins.c \
@@ -468,9 +484,12 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/air_evidence.c \
                    $(COMPILER_DIR)/air_evidence_rir.c \
                    $(COMPILER_DIR)/air_validate_global_evidence.c \
+                   $(COMPILER_DIR)/air_validate_legacy_evidence.c \
+                   $(COMPILER_DIR)/air_validate_summary_counters.c \
                    $(COMPILER_DIR)/air_validate_evidence.c \
                    $(COMPILER_DIR)/air_validate.c \
                    $(COMPILER_DIR)/air_verify.c \
+                   $(COMPILER_DIR)/air_verify_provenance.c \
                    $(COMPILER_DIR)/rir.c \
                    $(COMPILER_DIR)/rir_names.c \
                     $(COMPILER_DIR)/rir_public_surface.c \
@@ -487,6 +506,7 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/hir_lower_cfg_blocks.c \
                    $(COMPILER_DIR)/hir_lower_cfg.c \
                    $(COMPILER_DIR)/hir_lower_intent_cfg.c \
+                   $(COMPILER_DIR)/hir_routine_cfg.c \
                    $(COMPILER_DIR)/mir.c \
                    $(COMPILER_DIR)/mir_source_shape.c \
                    $(COMPILER_DIR)/mir_names.c \
@@ -513,6 +533,7 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/mir_stmt_source.c \
                    $(COMPILER_DIR)/mir_non_cfg_stmt_population.c \
                    $(COMPILER_DIR)/mir_ssa_rename.c \
+                   $(COMPILER_DIR)/mir_ssa_use_edges.c \
                    $(COMPILER_DIR)/mir_liveness_dce.c \
                    $(COMPILER_DIR)/mir_liveness_summary.c \
                    $(COMPILER_DIR)/mir_dce.c \
@@ -552,6 +573,7 @@ ifneq ($(LLVM_ENABLED),0)
   LLVM_BACKEND_SOURCES = $(CODEGEN_DIR)/llvm_backend.c \
                    $(CODEGEN_DIR)/llvm_backend_ast_type.c \
                    $(CODEGEN_DIR)/llvm_backend_forward_declare.c \
+                   $(CODEGEN_DIR)/llvm_backend_type_render.c \
                    $(CODEGEN_DIR)/llvm_backend_type_map.c \
                         $(CODEGEN_DIR)/llvm_backend_type_registry.c \
                         $(CODEGEN_DIR)/llvm_boundary_slot_param.c \
@@ -568,6 +590,7 @@ ifneq ($(LLVM_ENABLED),0)
                          $(CODEGEN_DIR)/llvm_registry.c \
                          $(CODEGEN_DIR)/llvm_registry_collections.c \
                          $(CODEGEN_DIR)/llvm_registry_resources.c \
+                         $(CODEGEN_DIR)/llvm_registry_resource_types.c \
                          $(CODEGEN_DIR)/llvm_error.c \
                           $(CODEGEN_DIR)/llvm_register.c \
                           $(CODEGEN_DIR)/llvm_runtime.c \
@@ -630,6 +653,7 @@ ifneq ($(LLVM_ENABLED),0)
                         $(CODEGEN_DIR)/llvm_expr_host_spawn_literal_helpers.c \
                         $(CODEGEN_DIR)/llvm_expr_identifier_slot_helpers.c \
                         $(CODEGEN_DIR)/llvm_member_call_emit.c \
+                        $(CODEGEN_DIR)/llvm_member_call_support.c \
                         $(CODEGEN_DIR)/llvm_expr_intent_observability_calls.c \
                         $(CODEGEN_DIR)/llvm_expr_log_calls.c \
                         $(CODEGEN_DIR)/llvm_expr_math_calls.c \
@@ -638,6 +662,7 @@ ifneq ($(LLVM_ENABLED),0)
                         $(CODEGEN_DIR)/llvm_expr_rc_calls.c \
                         $(CODEGEN_DIR)/llvm_expr_result_option_calls.c \
                         $(CODEGEN_DIR)/llvm_expr_scalar_core.c \
+                        $(CODEGEN_DIR)/llvm_expr_unary_core.c \
                         $(CODEGEN_DIR)/llvm_expr_slot_device_calls.c \
                         $(CODEGEN_DIR)/llvm_expr_slot_runtime_utils.c \
                         $(CODEGEN_DIR)/llvm_expr_spawn_names.c \
@@ -649,11 +674,14 @@ ifneq ($(LLVM_ENABLED),0)
                         $(CODEGEN_DIR)/llvm_stmt_emit_support.c \
                         $(CODEGEN_DIR)/llvm_stmt_defer_scope.c \
                         $(CODEGEN_DIR)/llvm_stmt_type_infer.c \
+                        $(CODEGEN_DIR)/llvm_stmt_type_infer_nominal.c \
+                        $(CODEGEN_DIR)/llvm_stmt_type_infer_await.c \
                         $(CODEGEN_DIR)/llvm_stmt_type_infer_helpers.c \
                         $(CODEGEN_DIR)/llvm_stmt_let_callable.c \
                         $(CODEGEN_DIR)/llvm_stmt_let_collections.c \
                         $(CODEGEN_DIR)/llvm_stmt_let_helpers.c \
                         $(CODEGEN_DIR)/llvm_stmt_let_slots.c \
+                        $(CODEGEN_DIR)/llvm_stmt_let_resources.c \
                         $(CODEGEN_DIR)/llvm_stmt_let_names.c \
                         $(CODEGEN_DIR)/llvm_stmt_let_with.c \
                         $(CODEGEN_DIR)/llvm_stmt_with.c \
@@ -678,6 +706,7 @@ ifneq ($(LLVM_ENABLED),0)
                         $(CODEGEN_DIR)/llvm_domain_sync_frontier.c \
                         $(CODEGEN_DIR)/llvm_domain_zone_frontier_state.c \
                         $(CODEGEN_DIR)/llvm_domain_zone_sync.c \
+                        $(CODEGEN_DIR)/llvm_domain_zone_sync_clauses.c \
                         $(CODEGEN_DIR)/llvm_domain_zone_sync_relations.c \
                         $(CODEGEN_DIR)/llvm_domain_zone_bind_helpers.c \
                         $(CODEGEN_DIR)/llvm_domain_world_sync_directives.c \
@@ -686,6 +715,7 @@ ifneq ($(LLVM_ENABLED),0)
                          $(CODEGEN_DIR)/llvm_domain_forward.c \
                          $(CODEGEN_DIR)/llvm_domain_struct_fields.c \
                          $(CODEGEN_DIR)/llvm_domain_struct_register.c \
+                         $(CODEGEN_DIR)/llvm_domain_struct_register_fields.c \
                          $(CODEGEN_DIR)/llvm_domain.c
   RUNTIME_LIB_SOURCES  = $(RUNTIME_DIR)/pgy_runtime_lib.c
   LLVM_BACKEND_OBJECTS = $(LLVM_BACKEND_SOURCES:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
@@ -819,6 +849,7 @@ HIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/hir_analysis.o \
                    $(BUILD_DIR)/compiler/hir_lower_cfg_blocks.o \
                    $(BUILD_DIR)/compiler/hir_lower_cfg.o \
                    $(BUILD_DIR)/compiler/hir_lower_intent_cfg.o \
+                   $(BUILD_DIR)/compiler/hir_routine_cfg.o \
                    $(BUILD_DIR)/compiler/hir.o \
                    $(BUILD_DIR)/compiler/hir_routines.o \
                    $(BUILD_DIR)/compiler/hir_destroy.o \
@@ -846,6 +877,7 @@ AIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/air_names.o \
                    $(BUILD_DIR)/compiler/air_evidence_ast.o \
                    $(BUILD_DIR)/compiler/air_evidence.o \
                    $(BUILD_DIR)/compiler/mir_source_shape.o \
+                   $(BUILD_DIR)/compiler/mir_intent_fact.o \
                    $(BUILD_DIR)/compiler/mir_stmt_source.o \
                    $(BUILD_DIR)/compiler/mir_cleanup_fact_names.o \
                    $(BUILD_DIR)/compiler/mir_cfg_contract_pin.o \
@@ -854,9 +886,12 @@ AIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/air_names.o \
                    $(BUILD_DIR)/compiler/mir_cfg_contract_cleanup_root_membership.o \
                    $(BUILD_DIR)/compiler/air_evidence_rir.o \
                    $(BUILD_DIR)/compiler/air_validate_global_evidence.o \
+                   $(BUILD_DIR)/compiler/air_validate_legacy_evidence.o \
+                   $(BUILD_DIR)/compiler/air_validate_summary_counters.o \
                    $(BUILD_DIR)/compiler/air_validate_evidence.o \
                    $(BUILD_DIR)/compiler/air_validate.o \
-                   $(BUILD_DIR)/compiler/air_verify.o
+                   $(BUILD_DIR)/compiler/air_verify.o \
+                   $(BUILD_DIR)/compiler/air_verify_provenance.o
 MIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/mir.o \
                    $(BUILD_DIR)/compiler/mir_source_shape.o \
                    $(BUILD_DIR)/compiler/mir_names.o \
@@ -883,6 +918,7 @@ MIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/mir.o \
                    $(BUILD_DIR)/compiler/mir_stmt_source.o \
                    $(BUILD_DIR)/compiler/mir_non_cfg_stmt_population.o \
                    $(BUILD_DIR)/compiler/mir_ssa_rename.o \
+                   $(BUILD_DIR)/compiler/mir_ssa_use_edges.o \
                    $(BUILD_DIR)/compiler/mir_liveness_dce.o \
                    $(BUILD_DIR)/compiler/mir_liveness_summary.o \
                    $(BUILD_DIR)/compiler/mir_dce.o \
@@ -1405,6 +1441,12 @@ backend-inc-size-test-smoke:
 test-inc-size-test-smoke:
 	"$(BASH)" tests/test_inc_size_smoke.sh
 
+transpile-strict-source-test-smoke:
+	"$(BASH)" tests/transpile_strict_source_smoke.sh
+
+source-test-harness-compile-test-smoke:
+	"$(BASH)" tests/source_test_harness_compile_smoke.sh
+
 inc-sentinel-test-smoke:
 	"$(BASH)" tests/inc_sentinel_smoke.sh
 
@@ -1542,6 +1584,19 @@ check-build-tools:
 		echo "hint: install gcc/clang, or set CC=/path/to/compiler." >&2; \
 		exit 1; \
 	fi
+	@tmp_c="$$(mktemp "$${TMPDIR:-/tmp}/pgy-cc-probe.XXXXXX.c")"; \
+	tmp_o="$$(mktemp "$${TMPDIR:-/tmp}/pgy-cc-probe.XXXXXX.o")"; \
+	printf 'int main(void){return 0;}\n' > "$$tmp_c"; \
+	if ! "$(BASH)" -lc '$(CC) -x c -c "$$0" -o "$$1"' "$$tmp_c" "$$tmp_o" >/dev/null 2>&1; then \
+		rm -f "$$tmp_c" "$$tmp_o"; \
+		echo "build preflight requires CC to be runnable from the configured bash shell." >&2; \
+		echo "current BASH: $(BASH)" >&2; \
+		echo "current CC: $(CC)" >&2; \
+		echo "hint: run from MSYS2/MinGW bash, set BASH=/path/to/bash with matching Unix tools," >&2; \
+		echo "      or put compatible Unix tools before cmd tools in PATH." >&2; \
+		exit 1; \
+	fi; \
+	rm -f "$$tmp_c" "$$tmp_o"
 	@if [ "$(LLVM_ENABLED)" != "0" ]; then \
 		if [ -n "$(LLVM_CONFIG)" ] && "$(LLVM_CONFIG)" --version >/dev/null 2>&1; then \
 			exit 0; \
@@ -1608,6 +1663,8 @@ ci-linux:
 	$(MAKE) production-header-size-test-smoke
 	$(MAKE) backend-inc-size-test-smoke
 	$(MAKE) test-inc-size-test-smoke
+	$(MAKE) CC="$(CI_LINUX_CC)" source-test-harness-compile-test-smoke
+	$(MAKE) transpile-strict-source-test-smoke
 	$(MAKE) inc-sentinel-test-smoke
 	$(MAKE) semantic-core-shape-test-smoke
 	$(MAKE) CC="$(CI_LINUX_CC)" BUILD_DIR="$(CI_LINUX_BUILD_DIR)" BIN_DIR="$(CI_LINUX_BIN_DIR)" type-resolution-dag-test-smoke
@@ -1668,9 +1725,13 @@ ci-macos:
 	$(MAKE) CC="$(CI_MACOS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_MACOS_BUILD_DIR)" BIN_DIR="$(CI_MACOS_BIN_DIR)" runtime-none-contract-test-smoke
 	$(MAKE) CC="$(CI_MACOS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_MACOS_BUILD_DIR)" BIN_DIR="$(CI_MACOS_BIN_DIR)" raw-escape-contract-test-smoke
 	$(MAKE) formal-semantics-test-smoke
+	$(MAKE) CC="$(CI_MACOS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_MACOS_BUILD_DIR)" BIN_DIR="$(CI_MACOS_BIN_DIR)" air-drift-test-smoke
 	$(MAKE) CC="$(CI_MACOS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_MACOS_BUILD_DIR)" BIN_DIR="$(CI_MACOS_BIN_DIR)" air-json-schema-test-smoke
 	$(MAKE) perf-contract-test-smoke
 	$(MAKE) test-inc-size-test-smoke
+	$(MAKE) CC="$(CI_MACOS_CC)" source-test-harness-compile-test-smoke
+	$(MAKE) transpile-strict-source-test-smoke
+	$(MAKE) mir-declaration-inventory-test-smoke
 	$(MAKE) CC="$(CI_MACOS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_MACOS_BUILD_DIR)" BIN_DIR="$(CI_MACOS_BIN_DIR)" diagnostics-json-test-smoke
 	$(MAKE) CC="$(CI_MACOS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_MACOS_BUILD_DIR)" BIN_DIR="$(CI_MACOS_BIN_DIR)" cfg-body-dataflow-test-smoke
 	$(MAKE) CC="$(CI_MACOS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_MACOS_BUILD_DIR)" BIN_DIR="$(CI_MACOS_BIN_DIR)" semantic-fixture-isolation-test-smoke
@@ -1704,6 +1765,9 @@ ci-windows:
 	$(MAKE) beta-readiness-checklist-test-smoke
 	$(MAKE) layered-diagnostics-contract-test-smoke
 	$(MAKE) intent-compression-contract-test-smoke
+	$(MAKE) transpile-strict-source-test-smoke
+	$(MAKE) mir-declaration-inventory-test-smoke
+	$(MAKE) CC="$(CI_WINDOWS_CC)" source-test-harness-compile-test-smoke
 	@if [ "$(CI_WINDOWS_RUNNABLE)" = "1" ]; then \
 		echo "ci-windows: native MSYS2 runtime detected; running executable smoke/tests"; \
 		$(MAKE) CC="$(CI_WINDOWS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" test-all; \
@@ -1712,7 +1776,9 @@ ci-windows:
 		$(MAKE) CC="$(CI_WINDOWS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" dogfood-webgl-test-smoke; \
 		$(MAKE) CC="$(CI_WINDOWS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" runtime-none-contract-test-smoke; \
 		$(MAKE) CC="$(CI_WINDOWS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" raw-escape-contract-test-smoke; \
+		$(MAKE) CC="$(CI_WINDOWS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" air-drift-test-smoke; \
 		$(MAKE) CC="$(CI_WINDOWS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" air-json-schema-test-smoke; \
+		$(MAKE) CC="$(CI_WINDOWS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" cfg-body-dataflow-test-smoke; \
 		$(MAKE) CC="$(CI_WINDOWS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" semantic-fixture-isolation-test-smoke; \
 		PGY_EXAMPLE_BACKENDS=c $(MAKE) CC="$(CI_WINDOWS_CC)" LLVM_ENABLED=0 BUILD_DIR="$(CI_WINDOWS_BUILD_DIR)" BIN_DIR="$(CI_WINDOWS_BIN_DIR)" example-test-smoke; \
 		$(MAKE) test-inc-size-test-smoke; \
@@ -1785,7 +1851,7 @@ lsp: $(PGY_LSP)
 
 .PHONY: all clean clean-objects rebuild debug release analyze format memcheck \
         test test-parser test-datastructures test-security test-semantic test-transpile test-memory test-abi test-concurrency test-dir test-air test-rir test-mir test-hir test-all \
-llvm-test llvm-test-parser llvm-test-semantic llvm-test-transpile llvm-test-memory llvm-test-concurrency llvm-test-dir llvm-test-rir llvm-test-mir llvm-test-hir llvm-test-backend-compare llvm-test-all llvm-test-smoke tooling-conformance-test-smoke stdlib-test-smoke module-test-smoke module-taxonomy-test-smoke package-module-resolver-test-smoke unicode-policy-test-smoke beta-test-suite-freeze-test-smoke build-source-inventory-test-smoke observability-schema-test-smoke memory-concurrency-model-test-smoke async-model-positioning-test-smoke documentation-quality-test-smoke debug-hygiene-test-smoke memory-string-safety-test-smoke security-portability-contract-test-smoke llvm-campaign-projection-test-smoke llvm-dnd-campaign-test-smoke beta-readiness-checklist-test-smoke dogfood-webgl-test-smoke formal-semantics-test-smoke air-drift-test-smoke air-json-schema-test-smoke air-backend-nonimpact-test-smoke air-backend-nonimpact-full-test-smoke air-strict-backend-compare-test-smoke codegen-determinism-test-smoke runtime-none-contract-test-smoke raw-escape-contract-test-smoke semantic-inc-size-test-smoke semantic-tu-size-test-smoke production-header-size-test-smoke backend-inc-size-test-smoke test-inc-size-test-smoke semantic-core-shape-test-smoke type-resolution-dag-test-smoke type-resolution-resolver-inventory-test-smoke semantic-fixture-isolation-test-smoke diagnostic-registry-test-smoke layered-diagnostics-contract-test-smoke intent-compression-contract-test-smoke runtime-authority-contract-test-smoke runtime-panic-contract-test-smoke runtime-panic-abi-test-smoke runtime-panic-codegen-test-smoke projection-diagnostic-contract-test-smoke runtime-abi-lifetime-test-smoke abi-ownership-shape-test-smoke runtime-frontier-contract-test-smoke runtime-frontier-policy-test-smoke runtime-intent-observability-contract-test-smoke parallel-core-contract-test-smoke perf-contract-test-smoke parser-lexer-diagnostic-test-smoke diagnostics-json-test-smoke cfg-body-dataflow-test-smoke mir-declaration-inventory-test-smoke example-test-smoke ast-dispatch-test-smoke ci-linux ci-macos ci-windows check-build-tools check-security-toolchain check-linux-toolchain check-macos-toolchain check-windows-toolchain \
+llvm-test llvm-test-parser llvm-test-semantic llvm-test-transpile llvm-test-memory llvm-test-concurrency llvm-test-dir llvm-test-rir llvm-test-mir llvm-test-hir llvm-test-backend-compare llvm-test-all llvm-test-smoke tooling-conformance-test-smoke stdlib-test-smoke module-test-smoke module-taxonomy-test-smoke package-module-resolver-test-smoke unicode-policy-test-smoke beta-test-suite-freeze-test-smoke build-source-inventory-test-smoke observability-schema-test-smoke memory-concurrency-model-test-smoke async-model-positioning-test-smoke documentation-quality-test-smoke debug-hygiene-test-smoke memory-string-safety-test-smoke security-portability-contract-test-smoke llvm-campaign-projection-test-smoke llvm-dnd-campaign-test-smoke beta-readiness-checklist-test-smoke dogfood-webgl-test-smoke formal-semantics-test-smoke air-drift-test-smoke air-json-schema-test-smoke air-backend-nonimpact-test-smoke air-backend-nonimpact-full-test-smoke air-strict-backend-compare-test-smoke codegen-determinism-test-smoke runtime-none-contract-test-smoke raw-escape-contract-test-smoke semantic-inc-size-test-smoke semantic-tu-size-test-smoke production-header-size-test-smoke backend-inc-size-test-smoke test-inc-size-test-smoke transpile-strict-source-test-smoke source-test-harness-compile-test-smoke semantic-core-shape-test-smoke type-resolution-dag-test-smoke type-resolution-resolver-inventory-test-smoke semantic-fixture-isolation-test-smoke diagnostic-registry-test-smoke layered-diagnostics-contract-test-smoke intent-compression-contract-test-smoke runtime-authority-contract-test-smoke runtime-panic-contract-test-smoke runtime-panic-abi-test-smoke runtime-panic-codegen-test-smoke projection-diagnostic-contract-test-smoke runtime-abi-lifetime-test-smoke abi-ownership-shape-test-smoke runtime-frontier-contract-test-smoke runtime-frontier-policy-test-smoke runtime-intent-observability-contract-test-smoke parallel-core-contract-test-smoke perf-contract-test-smoke parser-lexer-diagnostic-test-smoke diagnostics-json-test-smoke cfg-body-dataflow-test-smoke mir-declaration-inventory-test-smoke example-test-smoke ast-dispatch-test-smoke ci-linux ci-macos ci-windows check-build-tools check-security-toolchain check-linux-toolchain check-macos-toolchain check-windows-toolchain \
         example-hello example-slots llvm emit-llvm-% lsp
 
 ifeq ($(filter clean clean-objects,$(MAKECMDGOALS)),)

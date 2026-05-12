@@ -1,3 +1,6 @@
+static void
+test_semantic_ownership_boundaries_part_a(void)
+{
     TEST("ref QubitSlot parameter is accepted as borrowed movable-resource boundary");
     {
         const char *source =
@@ -17,7 +20,6 @@
         parser_destroy(parser);
         lexer_destroy(lexer);
     }
-
     TEST("ref QubitSlot parameter cannot escape through return");
     {
         const char *source =
@@ -897,3 +899,4 @@
         parser_destroy(parser);
         lexer_destroy(lexer);
     }
+}

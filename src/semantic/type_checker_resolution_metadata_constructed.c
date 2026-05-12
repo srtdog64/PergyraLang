@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -171,6 +172,10 @@ try_record_generic_class_constructed_type(SemanticContext *ctx,
     if (effective_args == NULL)
         return;
 
+    if ((argc > 0 ? argc : 1) > SIZE_MAX / sizeof(Type *)) {
+        free(effective_args);
+        return;
+    }
     resolved_args = calloc(argc > 0 ? argc : 1, sizeof(Type *));
     if (resolved_args == NULL) {
         free(effective_args);
@@ -234,12 +239,15 @@ semantic_type_resolution_try_record_stable_constructed_type(SemanticContext *ctx
 
     if (type_node->type == AST_EVENT_HANDLER_TYPE) {
         size_t param_count = type_node->data.event_handler_type.param_count;
-        Type **param_types = param_count > 0
-            ? calloc(param_count, sizeof(Type *))
-            : NULL;
+        Type **param_types = NULL;
         Type *return_type = TYPE_VOID;
         Type *shell;
 
+        if (param_count > SIZE_MAX / sizeof(Type *))
+            return;
+        param_types = param_count > 0
+            ? calloc(param_count, sizeof(Type *))
+            : NULL;
         if (param_count > 0 && param_types == NULL)
             return;
         for (size_t i = 0; i < param_count; i++) {
@@ -279,9 +287,12 @@ semantic_type_resolution_try_record_stable_constructed_type(SemanticContext *ctx
     if (type_node->data.type.tuple_elements != NULL
         && type_node->data.type.tuple_element_count > 0) {
         size_t element_count = type_node->data.type.tuple_element_count;
-        Type **elements = calloc(element_count, sizeof(Type *));
+        Type **elements;
         Type *shell;
 
+        if (element_count > SIZE_MAX / sizeof(Type *))
+            return;
+        elements = calloc(element_count, sizeof(Type *));
         if (elements == NULL)
             return;
         for (size_t i = 0; i < element_count; i++) {

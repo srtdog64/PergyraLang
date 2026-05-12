@@ -292,6 +292,30 @@ mir_validate_instruction_surface_usage(const MIRRoutine *routine,
             }
             return false;
         }
+        if (inst->kind == MIR_INST_STMT
+            && !mir_instruction_is_intent_semantic_carrier(inst)
+            && (mir_instruction_source_payload(inst) == NULL
+                || !inst->has_source_statement_index)) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR routine '%s' block[%zu] instruction[%zu] STMT fallback is missing source statement inventory fact",
+                    routine->name != NULL ? routine->name : "(anonymous)",
+                    block_index,
+                    i);
+            }
+            return false;
+        }
+        if (inst->kind == MIR_INST_STMT
+            && !mir_instruction_source_stmt_fallback_is_allowed(inst)) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "MIR routine '%s' block[%zu] instruction[%zu] STMT fallback is outside allowed residual statement policy",
+                    routine->name != NULL ? routine->name : "(anonymous)",
+                    block_index,
+                    i);
+            }
+            return false;
+        }
         if (inst->kind == MIR_INST_RESOURCE_OP
             && inst->name != NULL
             && strcmp(inst->name, "Claim") == 0

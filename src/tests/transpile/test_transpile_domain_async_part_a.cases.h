@@ -99,11 +99,10 @@ test_roster_world_emit(void)
         ASTNode *program = parser_parse_program(parser);
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
-        MIRProgram *mir = lower_program_to_mir(program, &hir, &rir);
+        MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
         TranspilerCtx *ctx = transpiler_ctx_create();
         ctx->mir = mir;
-        emit_statement(program->data.program.statements[3], ctx);
-        emit_statement(program->data.program.statements[4], ctx);
+        emit_program(ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "typedef struct TrustedLink");
         EXPECT_STR_CONTAINS(ctx->out->data, "} TrustedLink;");
@@ -136,7 +135,7 @@ test_roster_world_emit(void)
     TEST("relation/effect constructors lower to compound literals and pointer-self method calls");
     {
         const char *source =
-            "subject Player { let hp: Int; let name: String; }\n"
+            "subject Player { let hp: Int; }\n"
             "relation TrustedLink for source: Player, target: Player {\n"
             "    func Show() -> Void { Log(1); }\n"
             "}\n"
@@ -144,8 +143,8 @@ test_roster_world_emit(void)
             "    func Show() -> Void { Log(2); }\n"
             "}\n"
             "func Main() -> Void {\n"
-            "    let trust = TrustedLink(Player(7, \"src\"), Player(9, \"dst\"));\n"
-            "    let poison = Poisoned(Player(5, \"bear\"));\n"
+            "    let trust = TrustedLink(Player(7), Player(9));\n"
+            "    let poison = Poisoned(Player(5));\n"
             "    trust.Show();\n"
             "    poison.Show();\n"
             "}\n";
@@ -154,7 +153,7 @@ test_roster_world_emit(void)
         ASTNode *program = parser_parse_program(parser);
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
-        MIRProgram *mir = lower_program_to_mir(program, &hir, &rir);
+        MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
         TranspilerCtx *ctx = transpiler_ctx_create();
         ctx->mir = mir;
         emit_program(ctx);
@@ -206,8 +205,9 @@ test_roster_world_emit(void)
         ASTNode *program = parser_parse_program(parser);
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
-        MIRProgram *mir = lower_program_to_mir(program, &hir, &rir);
+        MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
         TranspilerCtx *ctx = transpiler_ctx_create();
+        ctx->mir = mir;
 
         emit_program(ctx);
 
@@ -294,7 +294,7 @@ test_roster_world_emit(void)
     TEST("zone/world constructors lower to designated runtime instances");
     {
         const char *source =
-            "subject Player { let hp: Int; let name: String; }\n"
+            "subject Player { let hp: Int; }\n"
             "effect Poisoned for bearer: Player { }\n"
             "zone BattleZone {\n"
             "    subject slot player: Player\n"
@@ -310,8 +310,8 @@ test_roster_world_emit(void)
             "    func Live() -> Bool { return HasZone(liveBattle); }\n"
             "}\n"
             "func Main() -> Void {\n"
-            "    let battle = BattleZone(Player(7, \"neo\"));\n"
-            "    let world = GameWorld(battle);\n"
+            "    let battle = BattleZone(Player(7));\n"
+            "    let world = GameWorld(Clone(battle));\n"
             "    Log(world.Live());\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
@@ -319,7 +319,7 @@ test_roster_world_emit(void)
         ASTNode *program = parser_parse_program(parser);
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
-        MIRProgram *mir = lower_program_to_mir(program, &hir, &rir);
+        MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
         TranspilerCtx *ctx = transpiler_ctx_create();
         ctx->mir = mir;
 
@@ -368,7 +368,7 @@ test_roster_world_emit(void)
         ASTNode *program = parser_parse_program(parser);
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
-        MIRProgram *mir = lower_program_to_mir(program, &hir, &rir);
+        MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
         TranspilerCtx *ctx = transpiler_ctx_create();
         ctx->mir = mir;
 
@@ -405,7 +405,7 @@ test_roster_world_emit(void)
         ASTNode *program = parser_parse_program(parser);
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
-        MIRProgram *mir = lower_program_to_mir(program, &hir, &rir);
+        MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
         TranspilerCtx *ctx = transpiler_ctx_create();
         ctx->mir = mir;
 
@@ -454,7 +454,7 @@ test_roster_world_emit(void)
         ASTNode *program = parser_parse_program(parser);
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
-        MIRProgram *mir = lower_program_to_mir(program, &hir, &rir);
+        MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
         TranspilerCtx *ctx = transpiler_ctx_create();
         ctx->mir = mir;
 
@@ -506,7 +506,7 @@ test_roster_world_emit(void)
         ASTNode *program = parser_parse_program(parser);
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
-        MIRProgram *mir = lower_program_to_mir(program, &hir, &rir);
+        MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
         TranspilerCtx *ctx = transpiler_ctx_create();
         ctx->mir = mir;
 
@@ -551,7 +551,7 @@ test_roster_world_emit(void)
         ASTNode *program = parser_parse_program(parser);
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
-        MIRProgram *mir = lower_program_to_mir(program, &hir, &rir);
+        MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
         TranspilerCtx *ctx = transpiler_ctx_create();
         ctx->mir = mir;
 
@@ -590,7 +590,7 @@ test_roster_world_emit(void)
         ASTNode *program = parser_parse_program(parser);
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
-        MIRProgram *mir = lower_program_to_mir(program, &hir, &rir);
+        MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
         TranspilerCtx *ctx = transpiler_ctx_create();
         ctx->mir = mir;
 
@@ -635,7 +635,7 @@ test_roster_world_emit(void)
         ASTNode *program = parser_parse_program(parser);
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
-        MIRProgram *mir = lower_program_to_mir(program, &hir, &rir);
+        MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
         TranspilerCtx *ctx = transpiler_ctx_create();
         ctx->mir = mir;
 
@@ -674,7 +674,7 @@ test_roster_world_emit(void)
         ASTNode *program = parser_parse_program(parser);
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
-        MIRProgram *mir = lower_program_to_mir(program, &hir, &rir);
+        MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
         TranspilerCtx *ctx = transpiler_ctx_create();
         ctx->mir = mir;
 
@@ -727,7 +727,7 @@ test_roster_world_emit(void)
         ASTNode *program = parser_parse_program(parser);
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
-        MIRProgram *mir = lower_program_to_mir(program, &hir, &rir);
+        MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
         TranspilerCtx *ctx = transpiler_ctx_create();
         ctx->mir = mir;
 
@@ -769,7 +769,7 @@ test_roster_world_emit(void)
         ASTNode *program = parser_parse_program(parser);
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
-        MIRProgram *mir = lower_program_to_mir(program, &hir, &rir);
+        MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
         TranspilerCtx *ctx = transpiler_ctx_create();
         ctx->mir = mir;
 
@@ -824,7 +824,7 @@ test_roster_world_emit(void)
         ASTNode *program = parser_parse_program(parser);
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
-        MIRProgram *mir = lower_program_to_mir(program, &hir, &rir);
+        MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
         TranspilerCtx *ctx = transpiler_ctx_create();
 
         emit_program(ctx);

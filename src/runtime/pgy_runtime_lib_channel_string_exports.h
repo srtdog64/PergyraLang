@@ -19,6 +19,12 @@ void pgy_channel_init_String(PgyChannel_String_RT *ch, size_t cap)
         return;
     }
     cap = pgy_runtime_channel_capacity_or_default("init_String", cap);
+    if (cap > SIZE_MAX / sizeof(char *)) {
+        pgy_runtime_warn_invalid_channel("init_String", "capacity overflows buffer size");
+        ch->buffer = NULL;
+        ch->capacity = 0;
+        return;
+    }
     ch->buffer = (char **)calloc(cap, sizeof(char *));
     if (ch->buffer == NULL) {
         pgy_runtime_warn_invalid_channel("init_String", "buffer allocation failed");

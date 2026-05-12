@@ -81,30 +81,45 @@ metadata_key_hash(const void *key)
 }
 
 static bool
-metadata_index_insert(SemanticContext *ctx, void *key, size_t entry_index)
+metadata_index_insert_raw(void **keys,
+                          size_t *entries,
+                          size_t capacity,
+                          void *key,
+                          size_t entry_index)
 {
     size_t mask;
     size_t slot;
 
-    if (ctx == NULL || key == NULL
-        || ctx->type_resolution_metadata.index_capacity == 0) {
+    if (keys == NULL || entries == NULL || key == NULL || capacity == 0)
         return false;
-    }
 
-    mask = ctx->type_resolution_metadata.index_capacity - 1;
+    mask = capacity - 1;
     slot = metadata_key_hash(key) & mask;
-    for (size_t probe = 0;
-         probe < ctx->type_resolution_metadata.index_capacity;
-         probe++) {
-        void *existing = ctx->type_resolution_metadata.index_keys[slot];
+    for (size_t probe = 0; probe < capacity; probe++) {
+        void *existing = keys[slot];
         if (existing == NULL || existing == key) {
-            ctx->type_resolution_metadata.index_keys[slot] = key;
-            ctx->type_resolution_metadata.index_entries[slot] = entry_index + 1;
+            keys[slot] = key;
+            entries[slot] = entry_index + 1;
             return true;
         }
         slot = (slot + 1) & mask;
     }
     return false;
+}
+
+static bool
+metadata_index_insert(SemanticContext *ctx, void *key, size_t entry_index)
+{
+    if (ctx == NULL || key == NULL
+        || ctx->type_resolution_metadata.index_capacity == 0) {
+        return false;
+    }
+    return metadata_index_insert_raw(
+        ctx->type_resolution_metadata.index_keys,
+        ctx->type_resolution_metadata.index_entries,
+        ctx->type_resolution_metadata.index_capacity,
+        key,
+        entry_index);
 }
 
 static bool
@@ -124,19 +139,23 @@ metadata_rebuild_index(SemanticContext *ctx, size_t capacity)
         return false;
     }
 
+    for (size_t i = 0; i < ctx->type_resolution_metadata.count; i++) {
+        if (!metadata_index_insert_raw(keys,
+                                       entries,
+                                       capacity,
+                                       ctx->type_resolution_metadata.keys[i],
+                                       i)) {
+            free(keys);
+            free(entries);
+            return false;
+        }
+    }
+
     free(ctx->type_resolution_metadata.index_keys);
     free(ctx->type_resolution_metadata.index_entries);
     ctx->type_resolution_metadata.index_keys = keys;
     ctx->type_resolution_metadata.index_entries = entries;
     ctx->type_resolution_metadata.index_capacity = capacity;
-
-    for (size_t i = 0; i < ctx->type_resolution_metadata.count; i++) {
-        if (!metadata_index_insert(ctx,
-                                   ctx->type_resolution_metadata.keys[i],
-                                   i)) {
-            return false;
-        }
-    }
     return true;
 }
 
@@ -152,9 +171,13 @@ metadata_ensure_index_capacity(SemanticContext *ctx, size_t next_count)
         return true;
     }
 
-    new_capacity = ctx->type_resolution_metadata.index_capacity == 0
-        ? 256
-        : ctx->type_resolution_metadata.index_capacity * 2;
+    if (ctx->type_resolution_metadata.index_capacity == 0) {
+        new_capacity = 256;
+    } else {
+        if (ctx->type_resolution_metadata.index_capacity > SIZE_MAX / 2)
+            return false;
+        new_capacity = ctx->type_resolution_metadata.index_capacity * 2;
+    }
     while (next_count >= new_capacity / 2) {
         if (new_capacity > SIZE_MAX / 2)
             return false;
@@ -243,10 +266,20 @@ semantic_type_resolution_record_resolved_type_impl(SemanticContext *ctx,
         == ctx->type_resolution_metadata.capacity) {
         size_t new_cap;
         if (ctx->type_resolution_metadata.capacity > SIZE_MAX / 2)
+        {
+            if (owned)
+                semantic_type_resolution_free_owned_type(resolved_type);
             return;
+        }
         new_cap = ctx->type_resolution_metadata.capacity == 0
             ? 128
             : ctx->type_resolution_metadata.capacity * 2;
+        if (new_cap > SIZE_MAX / sizeof(void *)
+            || new_cap > SIZE_MAX / sizeof(bool)) {
+            if (owned)
+                semantic_type_resolution_free_owned_type(resolved_type);
+            return;
+        }
         new_keys = malloc(new_cap * sizeof(void *));
         new_values = malloc(new_cap * sizeof(void *));
         new_owned = malloc(new_cap * sizeof(bool));
@@ -254,6 +287,8 @@ semantic_type_resolution_record_resolved_type_impl(SemanticContext *ctx,
             free(new_keys);
             free(new_values);
             free(new_owned);
+            if (owned)
+                semantic_type_resolution_free_owned_type(resolved_type);
             return;
         }
         for (size_t i = 0; i < ctx->type_resolution_metadata.count; i++) {
@@ -272,6 +307,15 @@ semantic_type_resolution_record_resolved_type_impl(SemanticContext *ctx,
 
     if (!metadata_ensure_index_capacity(
             ctx, ctx->type_resolution_metadata.count + 1)) {
+        if (owned)
+            semantic_type_resolution_free_owned_type(resolved_type);
+        return;
+    }
+    if (!metadata_index_insert(ctx,
+                               (void *)type_node,
+                               ctx->type_resolution_metadata.count)) {
+        if (owned)
+            semantic_type_resolution_free_owned_type(resolved_type);
         return;
     }
     ctx->type_resolution_metadata.keys[ctx->type_resolution_metadata.count] =
@@ -280,11 +324,6 @@ semantic_type_resolution_record_resolved_type_impl(SemanticContext *ctx,
         resolved_type;
     ctx->type_resolution_metadata.owned[ctx->type_resolution_metadata.count] =
         owned;
-    if (!metadata_index_insert(ctx,
-                               (void *)type_node,
-                               ctx->type_resolution_metadata.count)) {
-        return;
-    }
     ctx->type_resolution_metadata.count++;
 }
 

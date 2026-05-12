@@ -1,5 +1,6 @@
 #include <stdarg.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -62,6 +63,7 @@ type_resolution_intern_node(TypeResolutionGraph *graph,
                             const char *label)
 {
     TypeResolutionNode *grown;
+    char *label_copy = NULL;
 
     if (graph == NULL)
         return (size_t)-1;
@@ -76,7 +78,12 @@ type_resolution_intern_node(TypeResolutionGraph *graph,
     }
 
     if (graph->node_count >= graph->node_capacity) {
-        size_t new_cap = graph->node_capacity == 0 ? 16 : graph->node_capacity * 2;
+        size_t new_cap;
+        if (graph->node_capacity > SIZE_MAX / 2)
+            return (size_t)-1;
+        new_cap = graph->node_capacity == 0 ? 16 : graph->node_capacity * 2;
+        if (new_cap > SIZE_MAX / sizeof(TypeResolutionNode))
+            return (size_t)-1;
         grown = realloc(graph->nodes, new_cap * sizeof(TypeResolutionNode));
         if (grown == NULL)
             return (size_t)-1;
@@ -84,10 +91,14 @@ type_resolution_intern_node(TypeResolutionGraph *graph,
         graph->node_capacity = new_cap;
     }
 
+    if (label != NULL) {
+        label_copy = pergyra_strdup(label);
+        if (label_copy == NULL)
+            return (size_t)-1;
+    }
     graph->nodes[graph->node_count].kind = kind;
     graph->nodes[graph->node_count].site = site;
-    graph->nodes[graph->node_count].label =
-        label != NULL ? pergyra_strdup(label) : NULL;
+    graph->nodes[graph->node_count].label = label_copy;
     return graph->node_count++;
 }
 
@@ -98,6 +109,7 @@ type_resolution_add_edge(TypeResolutionGraph *graph,
                          const char *reason)
 {
     TypeResolutionEdge *grown;
+    char *reason_copy = NULL;
 
     if (graph == NULL || from == (size_t)-1 || to == (size_t)-1)
         return;
@@ -112,7 +124,12 @@ type_resolution_add_edge(TypeResolutionGraph *graph,
     }
 
     if (graph->edge_count >= graph->edge_capacity) {
-        size_t new_cap = graph->edge_capacity == 0 ? 32 : graph->edge_capacity * 2;
+        size_t new_cap;
+        if (graph->edge_capacity > SIZE_MAX / 2)
+            return;
+        new_cap = graph->edge_capacity == 0 ? 32 : graph->edge_capacity * 2;
+        if (new_cap > SIZE_MAX / sizeof(TypeResolutionEdge))
+            return;
         grown = realloc(graph->edges, new_cap * sizeof(TypeResolutionEdge));
         if (grown == NULL)
             return;
@@ -120,10 +137,14 @@ type_resolution_add_edge(TypeResolutionGraph *graph,
         graph->edge_capacity = new_cap;
     }
 
+    if (reason != NULL) {
+        reason_copy = pergyra_strdup(reason);
+        if (reason_copy == NULL)
+            return;
+    }
     graph->edges[graph->edge_count].from = from;
     graph->edges[graph->edge_count].to = to;
-    graph->edges[graph->edge_count].reason =
-        reason != NULL ? pergyra_strdup(reason) : NULL;
+    graph->edges[graph->edge_count].reason = reason_copy;
     graph->edge_count++;
 }
 
@@ -269,10 +290,13 @@ semantic_type_resolution_record_named_dependency(SemanticContext *ctx,
     if (from != (size_t)-1 && to != (size_t)-1 && graph->node_count > 0) {
         /* Scratch arrays are populated for the immediate cycle check and
          * discarded with the semantic context scratch arena. */
-        visited = pgy_arena_calloc(&ctx->scratch_arena,
-            graph->node_count * sizeof(bool));
-        path = pgy_arena_calloc(&ctx->scratch_arena,
-            graph->node_count * sizeof(size_t));
+        if (graph->node_count <= SIZE_MAX / sizeof(bool)
+            && graph->node_count <= SIZE_MAX / sizeof(size_t)) {
+            visited = pgy_arena_calloc(&ctx->scratch_arena,
+                graph->node_count * sizeof(bool));
+            path = pgy_arena_calloc(&ctx->scratch_arena,
+                graph->node_count * sizeof(size_t));
+        }
         if (visited != NULL && path != NULL) {
             bool has_cycle = (from == to)
                 || type_resolution_find_path(graph,

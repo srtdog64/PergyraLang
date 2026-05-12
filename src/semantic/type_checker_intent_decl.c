@@ -28,6 +28,21 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                 + node->data.intent_decl.value_count);
         Type **ptypes = calloc(ipc > 0 ? ipc : 1, sizeof(Type *));
         Type *ft;
+        if (ptypes == NULL) {
+            semantic_error_with_hints(ctx,
+                PGY_CODE_SEM_UNKNOWN_TYPE,
+                PGY_CAUSE_RESOLUTION_OOM,
+                PGY_FIX_REDUCE_SCOPE_OR_RETRY,
+                node,
+                "Could not update duplicate intent signature for '%s'.\n"
+                "Reason:\n"
+                "- semantic type-resolution metadata allocation failed while rebuilding the intent parameter list\n"
+                "Fix:\n"
+                "- reduce this compilation unit size and retry\n"
+                "- or report the input if this happens on a small program",
+                name != NULL ? name : "<intent>");
+            return false;
+        }
         for (size_t i = 0; i < ipc; i++) {
             ASTNode *binding = node->data.intent_decl.binding_count > 0
                 ? node->data.intent_decl.bindings[i]
@@ -98,6 +113,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
         ASTNode *zone_decl = NULL;
         bool has_subintent = false;
         bool step_requires_authority_flow = false;
+        bool on_action_zone_conflict = false;
 
         if (step == NULL || step->type != AST_INTENT_STEP)
             continue;
@@ -107,13 +123,17 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
         intent_step_derive_who_from_action(node, step, ctx);
         intent_step_derive_who_from_single_participant(node, step, ctx);
         intent_step_derive_where_from_on_receiver(node, step, ctx);
+        on_action_zone_conflict =
+            intent_step_report_on_action_zone_conflict(node, step, ctx);
         intent_step_inherit_contract_from_on_receiver(node, step, ctx);
         intent_step_inherit_action_contract(node, step, ctx);
         intent_step_derive_transfer_context(node, step, ctx);
         intent_step_derive_zone_binding_context(node, step, ctx);
         intent_step_warn_redundant_action_contract(node, step, ctx);
 
-        if (step->data.intent_step.where_type == NULL && !has_subintent) {
+        if (step->data.intent_step.where_type == NULL
+            && !has_subintent
+            && !on_action_zone_conflict) {
             char contract_summary[512];
             intent_step_format_contract_source_summary(
                 node, step, ctx, contract_summary, sizeof(contract_summary));

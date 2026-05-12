@@ -1,31 +1,38 @@
 #include "parser_internal.h"
 
 static ASTNode *
-parse_interpolated_expression_fragment(const char *expr_src)
+parse_interpolated_expression_fragment(const char *expr_src, bool *ok_out)
 {
     Lexer *lexer;
     Parser *parser;
     ASTNode *expr;
+
+    if (ok_out != NULL)
+        *ok_out = false;
 
     if (expr_src == NULL)
         return ast_create_string("\"\"");
 
     lexer = lexer_create(expr_src);
     if (lexer == NULL)
-        return ast_create_identifier(expr_src);
+        return NULL;
 
     parser = parser_create(lexer);
     if (parser == NULL) {
         lexer_destroy(lexer);
-        return ast_create_identifier(expr_src);
+        return NULL;
     }
 
     expr = parser_parse_expression(parser);
+    if (parser_has_error(parser) || !parser_is_at_end(parser)) {
+        ast_destroy(expr);
+        expr = NULL;
+    }
     parser_destroy(parser);
     lexer_destroy(lexer);
 
-    if (expr == NULL)
-        return ast_create_identifier(expr_src);
+    if (expr != NULL && ok_out != NULL)
+        *ok_out = true;
     return expr;
 }
 
@@ -43,6 +50,24 @@ is_multiline_string_token(const char *value)
            && strncmp(value + len - 3, "\"\"\"", 3) == 0;
 }
 
+static bool
+interpolation_opener_is_escaped(const char *start, const char *opener)
+{
+    size_t slash_count = 0;
+    const char *p;
+
+    if (start == NULL || opener == NULL || opener <= start)
+        return false;
+
+    p = opener;
+    while (p > start && *(p - 1) == '\\') {
+        slash_count++;
+        p--;
+    }
+
+    return (slash_count % 2) == 1;
+}
+
 ASTNode *
 parse_interpolation_body(const char *raw, bool is_fstring)
 {
@@ -57,11 +82,13 @@ parse_interpolation_body(const char *raw, bool is_fstring)
 
         if (is_fstring) {
             interp = strchr(s, '{');
-            while (interp != NULL && interp > s && *(interp - 1) == '\\')
+            while (interp != NULL && interpolation_opener_is_escaped(s, interp))
                 interp = strchr(interp + 1, '{');
             delim_len = 1;
         } else {
             interp = strstr(s, "${");
+            while (interp != NULL && interpolation_opener_is_escaped(s, interp))
+                interp = strstr(interp + 2, "${");
             delim_len = 2;
         }
 
@@ -120,12 +147,19 @@ parse_interpolation_body(const char *raw, bool is_fstring)
         char *expr_str = malloc(expr_len + 1);
         ASTNode *inner_expr;
         ASTNode *to_string;
+        bool parsed = false;
         if (expr_str == NULL)
             break;
         memcpy(expr_str, expr_start, expr_len);
         expr_str[expr_len] = '\0';
 
-        inner_expr = parse_interpolated_expression_fragment(expr_str);
+        inner_expr = parse_interpolated_expression_fragment(expr_str, &parsed);
+        if (!parsed || inner_expr == NULL) {
+            free(expr_str);
+            if (result != NULL)
+                ast_destroy(result);
+            return ast_create_string(raw);
+        }
         to_string = ast_create_call(ast_create_identifier("ToString"));
         ast_add_argument(to_string, inner_expr);
         free(expr_str);

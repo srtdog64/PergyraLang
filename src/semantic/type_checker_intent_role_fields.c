@@ -154,6 +154,20 @@ resolve_ability_require_field_type_scope(ASTNode *ability_decl,
         return;
     }
 
+    if (type_node->type == AST_TYPE
+        && type_node->data.type.name != NULL
+        && type_node->data.type.generic_args == NULL) {
+        int param_index = find_generic_param_index(
+            decl_params, type_node->data.type.name);
+        if (param_index >= 0 && (size_t)param_index < effective_count
+            && effective_types[param_index] != NULL) {
+            *out_type = effective_types[param_index];
+            free(ability_text);
+            free(effective_types);
+            return;
+        }
+    }
+
     scope_enter(&ctx->scope, SCOPE_BLOCK);
     for (size_t i = 0; i < decl_params->count && i < effective_count; i++) {
         GenericParam *param = decl_params->params[i];

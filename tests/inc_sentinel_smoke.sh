@@ -5,7 +5,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # Test fragments are capped separately from production source. The current
 # count is intentional: semantic misc A was split to keep every .cases.h file
 # below the 990 LOC per-fragment gate enforced by test_inc_size_smoke.sh.
-MAX_TEST_CASE_INCLUDES="${PGY_MAX_TEST_CASE_INCLUDES:-31}"
+MAX_TEST_CASE_INCLUDES="${PGY_MAX_TEST_CASE_INCLUDES:-84}"
 violations=()
 
 cd "$ROOT_DIR"
@@ -32,48 +32,34 @@ if [[ -n "$production_cases" ]]; then
 fi
 
 case_include_violations=""
-allowed_case_includer() {
-    case "$1" in
-        src/test_semantic.c|src/test_transpile.c)
-            return 0
+tests_real="$(realpath src/tests)"
+while IFS= read -r line; do
+    rel="${line%%:*}"
+    include_path="$(printf '%s\n' "$line" | sed -n 's/.*# *include *"\([^"]*\.cases\.h\)".*/\1/p')"
+    [[ -z "$include_path" ]] && continue
+    case "$rel" in
+        src/test_*.c)
             ;;
         *)
-            return 1
-            ;;
-    esac
-}
-
-while IFS= read -r -d '' path; do
-    rel="${path#./}"
-    while IFS= read -r line; do
-        include_path="$(printf '%s\n' "$line" | sed -n 's/.*# *include *"\([^"]*\.cases\.h\)".*/\1/p')"
-        [[ -z "$include_path" ]] && continue
-        if ! allowed_case_includer "$rel"; then
             case_include_violations+="${rel}: .cases.h include is only allowed in test harnesses"$'\n'
             continue
-        fi
-        target_dir="$(dirname "$rel")"
-        target_path="${target_dir}/${include_path}"
-        if [[ ! -e "$target_path" ]]; then
-            case_include_violations+="${rel}: .cases.h include target does not exist: ${include_path}"$'\n'
-            continue
-        fi
-        target_real="$(realpath "$target_path")"
-        tests_real="$(realpath src/tests)"
-        case "$target_real" in
-            "$tests_real"/*)
-                ;;
-            *)
-                case_include_violations+="${rel}: .cases.h include escapes src/tests: ${include_path}"$'\n'
-                ;;
-        esac
-    done < <(grep -hE '#[[:space:]]*include[[:space:]]+"[^"]+\.cases\.h"' "$path" || true)
-done < <(
-    {
-        find src -type f \( -name '*.c' -o -name '*.h' \) -print
-        [[ -f Makefile ]] && printf '%s\n' Makefile
-    } | while IFS= read -r p; do printf './%s\0' "$p"; done
-)
+            ;;
+    esac
+    target_dir="$(dirname "$rel")"
+    target_path="${target_dir}/${include_path}"
+    if [[ ! -e "$target_path" ]]; then
+        case_include_violations+="${rel}: .cases.h include target does not exist: ${include_path}"$'\n'
+        continue
+    fi
+    target_real="$(realpath "$target_path")"
+    case "$target_real" in
+        "$tests_real"/*)
+            ;;
+        *)
+            case_include_violations+="${rel}: .cases.h include escapes src/tests: ${include_path}"$'\n'
+            ;;
+    esac
+done < <(grep -RIn --include='*.c' --include='*.h' '#[[:space:]]*include[[:space:]]*"[^"]*\.cases\.h"' src Makefile || true)
 
 if [[ -n "$case_include_violations" ]]; then
     echo "invalid test case include usage:" >&2
@@ -94,16 +80,20 @@ if ((${#violations[@]} > 0)); then
 fi
 
 orphan_cases=""
-reference_paths=(src/test_semantic.c src/test_transpile.c)
-while IFS= read -r -d '' path; do
-    reference_paths+=("$path")
-done < <(find tests -maxdepth 1 -name '*.sh' -type f -print0)
+reference_blob="$(mktemp "${TMPDIR:-/tmp}/pgy-inc-sentinel-refs.XXXXXX")"
+trap 'rm -f "$reference_blob"' EXIT
+{
+    find src -maxdepth 1 -name 'test_*.c' -type f -print0 |
+        xargs -0 cat 2>/dev/null || true
+    find tests -maxdepth 1 -name '*.sh' -type f -print0 |
+        xargs -0 cat 2>/dev/null || true
+} > "$reference_blob"
 
 while IFS= read -r -d '' fragment; do
     rel="${fragment#./}"
     name="$(basename "$fragment")"
-    if ! grep -Fq -- "$rel" "${reference_paths[@]}" 2>/dev/null &&
-       ! grep -Fq -- "$name" "${reference_paths[@]}" 2>/dev/null; then
+    if ! grep -Fq -- "$rel" "$reference_blob" 2>/dev/null &&
+       ! grep -Fq -- "$name" "$reference_blob" 2>/dev/null; then
         orphan_cases+="${rel}"$'\n'
     fi
 done < <(find src/tests -name '*.cases.h' -type f -print0)

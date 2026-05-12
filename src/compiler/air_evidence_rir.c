@@ -136,8 +136,9 @@ air_rir_scope_provides_boundary_evidence(const RIRScope *scope,
                                          const AIRBoundaryNode *boundary)
 {
     if (scope != NULL && boundary != NULL
-        && boundary->kind == AIR_BOUNDARY_PARALLEL
-        && boundary->ast != NULL) {
+        && boundary->kind == AIR_BOUNDARY_PARALLEL) {
+        if (boundary->ast == NULL)
+            return false;
         for (size_t i = 0; i < scope->op_count; i++) {
             if (air_rir_parallel_op_matches_boundary(&scope->ops[i], boundary))
                 return true;
@@ -146,8 +147,9 @@ air_rir_scope_provides_boundary_evidence(const RIRScope *scope,
     }
 
     if (scope != NULL && boundary != NULL
-        && boundary->kind == AIR_BOUNDARY_IO
-        && boundary->ast != NULL) {
+        && boundary->kind == AIR_BOUNDARY_IO) {
+        if (boundary->ast == NULL)
+            return false;
         for (size_t i = 0; i < scope->op_count; i++) {
             if (air_rir_io_op_matches_boundary(&scope->ops[i], boundary))
                 return true;
@@ -156,8 +158,9 @@ air_rir_scope_provides_boundary_evidence(const RIRScope *scope,
     }
 
     if (scope != NULL && boundary != NULL
-        && boundary->kind == AIR_BOUNDARY_CHANNEL
-        && boundary->ast != NULL) {
+        && boundary->kind == AIR_BOUNDARY_CHANNEL) {
+        if (boundary->ast == NULL)
+            return false;
         for (size_t i = 0; i < scope->op_count; i++) {
             if (air_rir_channel_op_matches_boundary(&scope->ops[i], boundary))
                 return true;
@@ -296,26 +299,36 @@ air_collect_rir_evidence(AIRProgram *air, const RIRProgram *rir, char **error_me
                 continue;
             if (!air_require_rir_scope_provider(scope, error_message))
                 return false;
-            if (!air_assign_first_owned_name(air,
-                                             &boundary->rir_boundary_evidence_scope,
-                                             scope_name,
-                                             error_message,
-                                             "RIR boundary")) {
-                return false;
-            }
-            boundary->has_rir_boundary_evidence = true;
-            air->rir_boundary_evidence_count++;
-            if (!air_append_evidence_node(air,
-                                          AIR_EVIDENCE_RIR_BOUNDARY,
-                                          j,
-                                          scope_name,
-                                          boundary->source_name,
-                                          error_message)) {
-                return false;
+            if (!boundary->has_rir_boundary_evidence) {
+                if (!air_assign_first_owned_name(
+                        air,
+                        &boundary->rir_boundary_evidence_scope,
+                        scope_name,
+                        error_message,
+                        "RIR boundary")) {
+                    return false;
+                }
+                if (!air_append_evidence_node(air,
+                                              AIR_EVIDENCE_RIR_BOUNDARY,
+                                              j,
+                                              scope_name,
+                                              boundary->source_name,
+                                              error_message)) {
+                    return false;
+                }
+                boundary->has_rir_boundary_evidence = true;
+                air->rir_boundary_evidence_count++;
             }
             for (size_t k = 0; k < scope->fact_count; k++) {
                 if (scope->facts[k].kind == RIR_FACT_AUTHORITY
                     && air_boundary_authority_matches(boundary, scope->facts[k].name)) {
+                    if (air_boundary_has_evidence_kind_subject(
+                            air,
+                            j,
+                            AIR_EVIDENCE_RIR_AUTHORITY,
+                            scope->facts[k].name)) {
+                        continue;
+                    }
                     if (!air_assign_first_owned_name(air,
                                                      &boundary->rir_authority_evidence_name,
                                                      scope->facts[k].name,
@@ -323,7 +336,6 @@ air_collect_rir_evidence(AIRProgram *air, const RIRProgram *rir, char **error_me
                                                      "RIR authority")) {
                         return false;
                     }
-                    boundary->has_rir_authority_evidence = true;
                     if (!air_append_evidence_node(air,
                                                   AIR_EVIDENCE_RIR_AUTHORITY,
                                                   j,
@@ -332,11 +344,19 @@ air_collect_rir_evidence(AIRProgram *air, const RIRProgram *rir, char **error_me
                                                   error_message)) {
                         return false;
                     }
+                    boundary->has_rir_authority_evidence = true;
                 }
             }
             for (size_t k = 0; k < scope->op_count; k++) {
                 if (scope->ops[k].kind == RIR_OP_AUTHORIZE
                     && air_boundary_authority_matches(boundary, scope->ops[k].subject)) {
+                    if (air_boundary_has_evidence_kind_subject(
+                            air,
+                            j,
+                            AIR_EVIDENCE_RIR_AUTHORITY,
+                            scope->ops[k].subject)) {
+                        continue;
+                    }
                     if (!air_assign_first_owned_name(air,
                                                      &boundary->rir_authority_evidence_name,
                                                      scope->ops[k].subject,
@@ -344,7 +364,6 @@ air_collect_rir_evidence(AIRProgram *air, const RIRProgram *rir, char **error_me
                                                      "RIR authority")) {
                         return false;
                     }
-                    boundary->has_rir_authority_evidence = true;
                     if (!air_append_evidence_node(air,
                                                   AIR_EVIDENCE_RIR_AUTHORITY,
                                                   j,
@@ -353,6 +372,7 @@ air_collect_rir_evidence(AIRProgram *air, const RIRProgram *rir, char **error_me
                                                   error_message)) {
                         return false;
                     }
+                    boundary->has_rir_authority_evidence = true;
                 }
             }
         }

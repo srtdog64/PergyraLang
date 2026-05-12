@@ -58,6 +58,12 @@ pgy_parallel_warn(const char *op, const char *reason)
             reason != NULL ? reason : "unknown");
 }
 
+static inline bool
+pgy_parallel_array_fits(size_t count, size_t elem_size)
+{
+    return elem_size != 0 && count <= SIZE_MAX / elem_size;
+}
+
 static inline void
 pgy_cancel_retain(PgyCancelNode *node)
 {
@@ -208,6 +214,10 @@ pgy_pool_init(size_t worker_count)
 
     if (worker_count == 0)
         worker_count = 4;
+    if (!pgy_parallel_array_fits(worker_count, sizeof(pthread_t))) {
+        pgy_parallel_warn("pool-init", "worker array size overflow");
+        return;
+    }
 
     memset(&g_pgy_pool, 0, sizeof(g_pgy_pool));
     g_pgy_pool.worker_count = worker_count;
@@ -476,8 +486,20 @@ pgy_parallel_run(void (**tasks)(void), size_t count)
         return;
     }
 
+    if (!pgy_parallel_array_fits(count, sizeof(PgyTaskHandle))
+        || !pgy_parallel_array_fits(count, sizeof(PgyParallelArg))) {
+        pgy_parallel_warn("parallel-run", "task array size overflow");
+        return;
+    }
+
     PgyTaskHandle *handles = (PgyTaskHandle *)calloc(count, sizeof(PgyTaskHandle));
     PgyParallelArg *args = (PgyParallelArg *)calloc(count, sizeof(PgyParallelArg));
+    if (handles == NULL || args == NULL) {
+        free(handles);
+        free(args);
+        pgy_parallel_warn("parallel-run", "task array allocation failed");
+        return;
+    }
 
     for (size_t i = 0; i < count; i++) {
         args[i].fn = tasks[i];

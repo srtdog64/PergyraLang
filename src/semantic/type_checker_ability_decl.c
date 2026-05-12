@@ -5,8 +5,8 @@
 
 #include <stdlib.h>
 
-static Type *
-ability_decl_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
+Type *
+ability_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
 {
     if (type_ref == NULL || ctx == NULL)
         return TYPE_UNKNOWN;
@@ -86,12 +86,12 @@ type_check_ability_decl(ASTNode *node, SemanticContext *ctx)
         } else {
             /* Abstract method — just validate the signature types */
             if (method->data.func_decl.return_type != NULL)
-                ability_decl_resolve_type_ref(
+                ability_resolve_type_ref(
                     method->data.func_decl.return_type, ctx);
             for (size_t j = 0; j < method->data.func_decl.param_count; j++) {
                 FuncParam *param = method->data.func_decl.params[j];
                 if (param != NULL && param->type != NULL)
-                    ability_decl_resolve_type_ref(
+                    ability_resolve_type_ref(
                         param->type, ctx);
             }
         }

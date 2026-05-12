@@ -29,6 +29,12 @@ void pgy_channel_init_Int(PgyChannel_Int_RT *ch, size_t cap)
         return;
     }
     cap = pgy_runtime_channel_capacity_or_default("init_Int", cap);
+    if (cap > SIZE_MAX / sizeof(int32_t)) {
+        pgy_runtime_warn_invalid_channel("init_Int", "capacity overflows buffer size");
+        ch->buffer = NULL;
+        ch->capacity = 0;
+        return;
+    }
     ch->buffer   = (int32_t *)calloc(cap, sizeof(int32_t));
     if (ch->buffer == NULL) {
         pgy_runtime_warn_invalid_channel("init_Int", "buffer allocation failed");
