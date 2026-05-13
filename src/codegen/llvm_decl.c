@@ -140,14 +140,14 @@ llvm_decl_emit_zone_authority_check(LLVMGenCtx *ctx)
         return;
     }
 
-    if (zone_decl->data.zone_decl.authority_count == 0
-        || zone_decl->data.zone_decl.authorities == NULL
-        || zone_decl->data.zone_decl.authorities[0] == NULL) {
+    size_t authority_count = 0;
+    ASTNode **authorities = ast_zone_authorities(zone_decl, &authority_count);
+    if (authority_count == 0 || authorities == NULL || authorities[0] == NULL) {
         return;
     }
 
-    authority = zone_decl->data.zone_decl.authorities[0];
-    zone_name = zone_decl->data.zone_decl.name;
+    authority = authorities[0];
+    zone_name = ast_zone_name(zone_decl);
     if (authority->type != AST_ZONE_AUTHORITY
         || authority->data.zone_authority.subject_slot_name == NULL) {
         llvm_decl_zone_authority_backend_error(ctx, zone_decl, zone_name, NULL,

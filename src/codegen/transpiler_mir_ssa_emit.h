@@ -168,16 +168,16 @@ transpiler_lookup_current_owner_member_type_name(TranspilerCtx *ctx,
             host_name = host_decl->data.class_decl.name;
             break;
         case AST_RELATION_DECL:
-            host_name = host_decl->data.relation_decl.name;
+            host_name = ast_relation_name(host_decl);
             break;
         case AST_EFFECT_DECL:
-            host_name = host_decl->data.effect_decl.name;
+            host_name = ast_effect_name(host_decl);
             break;
         case AST_ZONE_DECL:
-            host_name = host_decl->data.zone_decl.name;
+            host_name = ast_zone_name(host_decl);
             break;
         case AST_WORLD_DECL:
-            host_name = host_decl->data.world_decl.name;
+            host_name = ast_world_name(host_decl);
             break;
         default:
             break;

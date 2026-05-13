@@ -4,8 +4,13 @@
 void
 type_check_zone_projection_rules(ASTNode *node, SemanticContext *ctx)
 {
-    for (size_t i = 0; i < node->data.zone_decl.refresh_count; i++) {
-        ASTNode *refresh = node->data.zone_decl.refreshes[i];
+    size_t refresh_count = 0;
+    ASTNode **refreshes = ast_zone_refreshes(node, &refresh_count);
+    size_t authority_count = 0;
+    (void) ast_zone_authorities(node, &authority_count);
+
+    for (size_t i = 0; i < refresh_count; i++) {
+        ASTNode *refresh = refreshes[i];
         const char *object_slot_name = refresh->data.zone_refresh.object_slot_name;
         const char *source_slot_name = refresh->data.zone_refresh.source_slot_name;
         const char *participant_slot_name = refresh->data.zone_refresh.participant_slot_name;
@@ -26,7 +31,7 @@ type_check_zone_projection_rules(ASTNode *node, SemanticContext *ctx)
                 action_name,
                 object_slot_name != NULL ? object_slot_name : "<unknown>",
                 object_slot_name != NULL ? object_slot_name : "<slot>",
-                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>",
+                ast_zone_name(node) != NULL ? ast_zone_name(node) : "<zone>",
                 object_slot_name != NULL ? object_slot_name : "<slot>",
                 action_name);
         }
@@ -42,7 +47,7 @@ type_check_zone_projection_rules(ASTNode *node, SemanticContext *ctx)
                 action_name,
                 source_slot_name != NULL ? source_slot_name : "<unknown>",
                 source_slot_name != NULL ? source_slot_name : "<slot>",
-                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>",
+                ast_zone_name(node) != NULL ? ast_zone_name(node) : "<zone>",
                 source_slot_name != NULL ? source_slot_name : "<slot>",
                 action_name);
         }
@@ -52,7 +57,7 @@ type_check_zone_projection_rules(ASTNode *node, SemanticContext *ctx)
             && target_slot->data.domain_slot.is_tobject;
         type_check_zone_projection_contract(node, refresh,
             object_slot_name, source_slot_name, ctx, action_name);
-        if (node->data.zone_decl.authority_count > 0 && participant_slot_name == NULL) {
+        if (authority_count > 0 && participant_slot_name == NULL) {
             if (boundary_projection) {
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, refresh,
                     "Zone %s to boundary target '%s' must specify 'by <subjectSlot>' when authority is declared.\n"
@@ -67,7 +72,7 @@ type_check_zone_projection_rules(ASTNode *node, SemanticContext *ctx)
                     "- or publish into a non-authority zone",
                     action_name,
                     object_slot_name != NULL ? object_slot_name : "<unknown>",
-                    node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>",
+                    ast_zone_name(node) != NULL ? ast_zone_name(node) : "<zone>",
                     action_name);
             } else {
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, refresh,

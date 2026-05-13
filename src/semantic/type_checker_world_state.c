@@ -267,9 +267,11 @@ check_world_state_duplicate(ASTNode *world,
                             SemanticContext *ctx,
                             size_t state_index)
 {
-    for (size_t j = state_index + 1; j < world->data.world_decl.state_count;
-         j++) {
-        ASTNode *other = world->data.world_decl.states[j];
+    size_t state_count = 0;
+    ASTNode **states = ast_world_states(world, &state_count);
+
+    for (size_t j = state_index + 1; j < state_count; j++) {
+        ASTNode *other = states[j];
         if (other != NULL
             && other->data.world_state.state_name != NULL
             && state->data.world_state.state_name != NULL
@@ -289,8 +291,11 @@ check_world_state_duplicate(ASTNode *world,
 void
 type_check_world_states(ASTNode *world, SemanticContext *ctx)
 {
-    for (size_t i = 0; i < world->data.world_decl.state_count; i++) {
-        ASTNode *state = world->data.world_decl.states[i];
+    size_t state_count = 0;
+    ASTNode **states = ast_world_states(world, &state_count);
+
+    for (size_t i = 0; i < state_count; i++) {
+        ASTNode *state = states[i];
         const char *zone_slot_name = state->data.world_state.zone_slot_name;
         ASTNode *zone_decl = NULL;
 

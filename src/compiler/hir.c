@@ -88,23 +88,23 @@ hir_node_name(ASTNode *node)
         case AST_EXTERN_BLOCK:
             return node->data.extern_block.abi;
         case AST_ABILITY_DECL:
-            return node->data.ability_decl.name;
+            return ast_ability_name(node);
         case AST_ROLE_DECL:
-            return node->data.role_decl.name;
+            return ast_role_name(node);
         case AST_PARTY_DECL:
-            return node->data.party_decl.name;
+            return ast_party_name(node);
         case AST_ROSTER_DECL:
-            return node->data.roster_decl.name;
+            return ast_roster_name(node);
         case AST_WORLD_DECL:
-            return node->data.world_decl.name;
+            return ast_world_name(node);
         case AST_INTENT_DECL:
             return node->data.intent_decl.name;
         case AST_RELATION_DECL:
-            return node->data.relation_decl.name;
+            return ast_relation_name(node);
         case AST_EFFECT_DECL:
-            return node->data.effect_decl.name;
+            return ast_effect_name(node);
         case AST_ZONE_DECL:
-            return node->data.zone_decl.name;
+            return ast_zone_name(node);
         case AST_EVENT_DECL:
             return node->data.event_decl.name;
         case AST_LET_DECL:

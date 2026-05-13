@@ -78,9 +78,9 @@ for term in \
     "AST_ROSTER_DECL" \
     "kLLVMHostDeclTypes[i]" \
     "llvm_host_decl_type_count()" \
-    "return node->data.party_decl.name" \
-    "return node->data.role_decl.name" \
-    "return node->data.roster_decl.name" \
+    "return ast_party_name(node)" \
+    "return ast_role_name(node)" \
+    "return ast_roster_name(node)" \
     "return llvm_is_host_decl_type(decl->type)" \
     "llvm_decl_node_name(decl)"; do
     require_term "src/codegen/llvm_inventory_decl_lookup.c" "$term"
@@ -309,9 +309,9 @@ for term in \
     require_term "src/codegen/transpiler.c" "$term"
 done
 for term in \
-    "return decl->data.role_decl.name" \
-    "return decl->data.party_decl.name" \
-    "return decl->data.roster_decl.name" \
+    "return ast_role_name(decl)" \
+    "return ast_party_name(decl)" \
+    "return ast_roster_name(decl)" \
     "transpiler_is_host_decl_type" \
     "find_enum_decl(ctx, name) != NULL" \
     "find_role_decl(ctx, name) != NULL"; do
@@ -802,16 +802,77 @@ require_term "src/codegen/llvm_domain_role_emit.c" \
     "llvm_mir_decl_method_routine(ctx, method_meta)"
 require_term "src/codegen/llvm_domain_role_emit.c" \
     "llvm_role_method_name_from_ast"
+require_term "src/codegen/llvm_domain_role_lookup.c" \
+    "llvm_role_for_type_name"
+require_term "src/codegen/llvm_domain_forward.c" \
+    "llvm_role_for_type_node(stmt)"
+require_term "src/codegen/llvm_domain_role_emit.c" \
+    "llvm_role_for_type_name(stmt)"
 require_term "src/codegen/llvm_domain_role_emit.c" \
     "MIR-only LLVM path missing registered function for role method"
 require_term "src/codegen/llvm_domain_role_emit.c" \
     "MIR-only LLVM path missing vtable function for role method"
 require_term "src/codegen/transpiler_domain_nominal_emit.h" \
     "ctx != NULL && ctx->backend_error != NULL"
+require_term "src/codegen/transpiler_domain_nominal_emit.h" \
+    "ast_include_role_name(include_stmt)"
+require_term "src/codegen/transpiler_operator.c" \
+    "ast_include_role_name(include_stmt)"
+require_term "src/codegen/llvm_domain_role_lookup.c" \
+    "ast_include_role_name(inc)"
+require_term "src/codegen/transpiler_operator.c" \
+    "ast_impl_ability_method(impl, j)"
+require_term "src/codegen/llvm_domain_role_lookup.c" \
+    "ast_impl_ability_method(impl, j)"
+require_term "src/codegen/transpiler_domain_role_methods_emit.h" \
+    "ast_impl_ability_ref(impl)"
+require_term "src/codegen/transpiler_domain_role_methods_emit.h" \
+    "ast_impl_ability_method(impl, j)"
+require_term "src/codegen/llvm_domain_role_emit.c" \
+    "ast_impl_ability_name(impl)"
+require_term "src/codegen/llvm_domain_role_emit.c" \
+    "ast_impl_ability_method(impl, j)"
+require_term "src/compiler/mir_decl_headers.c" \
+    "ast_impl_ability_method(impl, j)"
+if grep -R "data\.include_stmt" "$ROOT_DIR/src/codegen" >/dev/null; then
+    fail "C/LLVM codegen include payload consumers must use AST include accessors"
+fi
+if grep -R "data\.impl_ability" \
+    "$ROOT_DIR/src/compiler/mir_decl_headers.c" >/dev/null; then
+    fail "MIR role impl method metadata must use AST impl-ability accessors"
+fi
+if grep -R "data\.role_decl\.\(for_type\|includes\|include_count\|impl_abilities\|impl_count\)" \
+    "$ROOT_DIR/src/compiler/mir_decl_headers.c" \
+    "$ROOT_DIR/src/codegen/llvm_domain_role_lookup.c" \
+    "$ROOT_DIR/src/codegen/llvm_domain_role_emit.c" \
+    "$ROOT_DIR/src/codegen/transpiler_decl_host_lookup.c" \
+    "$ROOT_DIR/src/codegen/transpiler_operator.c" \
+    "$ROOT_DIR/src/codegen/transpiler_domain_nominal_emit.h" >/dev/null; then
+    fail "MIR/C/LLVM role inventory paths must use AST role accessors"
+fi
+if grep -R "data\.ability_decl\.\(methods\|method_count\)" \
+    "$ROOT_DIR/src/codegen/llvm_domain_forward.c" \
+    "$ROOT_DIR/src/codegen/transpiler_domain_nominal_emit.h" \
+    "$ROOT_DIR/src/codegen/transpiler_domain_role_ability_emit.h" >/dev/null; then
+    fail "C/LLVM ability method inventory paths must use AST ability accessors"
+fi
+if grep -R "data\.impl_ability" \
+    "$ROOT_DIR/src/codegen/transpiler_operator.c" \
+    "$ROOT_DIR/src/codegen/transpiler_domain_role_methods_emit.h" \
+    "$ROOT_DIR/src/codegen/llvm_domain_role_lookup.c" \
+    "$ROOT_DIR/src/codegen/llvm_domain_role_emit.c" >/dev/null; then
+    fail "C/LLVM role emission compatibility paths must use AST impl-ability accessors"
+fi
 require_term "src/codegen/transpiler_domain_role_methods_emit.h" \
     "ctx != NULL && ctx->backend_error != NULL"
 require_term "src/codegen/transpiler_domain_role_methods_emit.h" \
-    "ensure_ability_ref_vtable_decl(impl->data.impl_ability.ability_ref, ctx)"
+    "ensure_ability_ref_vtable_decl(ability_ref, ctx)"
+require_term "src/codegen/transpiler_decl_host_lookup.c" \
+    "transpiler_role_subject_type_name_local"
+require_term "src/codegen/transpiler_operator.c" \
+    "transpiler_role_subject_type_name_local(role)"
+require_term "src/codegen/transpiler_domain_role_methods_emit.h" \
+    "transpiler_role_subject_type_node_local(role)"
 if grep -Fq "llvm_find_mir_method_routine_local(ctx," \
     "$ROOT_DIR/src/codegen/llvm_domain_role_emit.c"; then
     fail "LLVM role method body emission must use linked MIRDeclMethod routine indexes, not AST/name routine search"
@@ -819,6 +880,16 @@ fi
 if grep -Fq "llvm_find_mir_method_routine_local(ctx," \
     "$ROOT_DIR/src/codegen/llvm_domain_method_emit.c"; then
     fail "LLVM hosted domain method body emission must use linked MIRDeclMethod routine indexes, not AST/name routine search"
+fi
+if grep -Eq 'role_decl\.for_type' \
+    "$ROOT_DIR/src/codegen/llvm_domain_forward.c" \
+    "$ROOT_DIR/src/codegen/llvm_domain_role_emit.c"; then
+    fail "LLVM role operator emission must read role target type through llvm_domain_role_lookup helpers"
+fi
+if grep -Eq 'role_decl\.for_type' \
+    "$ROOT_DIR/src/codegen/transpiler_operator.c" \
+    "$ROOT_DIR/src/codegen/transpiler_domain_role_methods_emit.h"; then
+    fail "C role operator emission must read role target type through transpiler decl-host helpers"
 fi
 if grep -Eq 'llvm_emit_domain_method_forward_decls\([^)]*ASTNode \*\*methods|llvm_emit_domain_method_forward_decls\([^)]*size_t method_count' \
     "$ROOT_DIR/src/codegen/llvm_domain_forward.h" \

@@ -6,11 +6,21 @@ void
 semantic_type_resolution_precollect_zone_inventory(ASTNode *zone_decl,
                                                    SemanticContext *ctx)
 {
+    ASTNode **slots;
+    ASTNode **shared_fields;
+    ASTNode **layer_slots;
+    size_t slot_count;
+    size_t shared_count;
+    size_t layer_slot_count;
+
     if (zone_decl == NULL || zone_decl->type != AST_ZONE_DECL || ctx == NULL)
         return;
+    slots = ast_zone_slots(zone_decl, &slot_count);
+    shared_fields = ast_zone_shared_fields(zone_decl, &shared_count);
+    layer_slots = ast_zone_layer_slots(zone_decl, &layer_slot_count);
 
-    for (size_t i = 0; i < zone_decl->data.zone_decl.slot_count; i++) {
-        ASTNode *slot = zone_decl->data.zone_decl.slots[i];
+    for (size_t i = 0; i < slot_count; i++) {
+        ASTNode *slot = slots[i];
         char *slot_label;
 
         if (slot == NULL || slot->type != AST_DOMAIN_SLOT)
@@ -34,8 +44,8 @@ semantic_type_resolution_precollect_zone_inventory(ASTNode *zone_decl,
             "zone slot type lookup");
     }
 
-    for (size_t i = 0; i < zone_decl->data.zone_decl.shared_count; i++) {
-        ASTNode *field = zone_decl->data.zone_decl.shared_fields[i];
+    for (size_t i = 0; i < shared_count; i++) {
+        ASTNode *field = shared_fields[i];
         if (field == NULL || field->type != AST_PARTY_SHARED)
             continue;
         semantic_type_resolution_collect_type_refs(
@@ -47,8 +57,8 @@ semantic_type_resolution_precollect_zone_inventory(ASTNode *zone_decl,
             "zone shared field type lookup");
     }
 
-    for (size_t i = 0; i < zone_decl->data.zone_decl.layer_slot_count; i++) {
-        ASTNode *slot = zone_decl->data.zone_decl.layer_slots[i];
+    for (size_t i = 0; i < layer_slot_count; i++) {
+        ASTNode *slot = layer_slots[i];
         char *layer_label;
         if (slot == NULL || slot->type != AST_ZONE_LAYER_SLOT)
             continue;

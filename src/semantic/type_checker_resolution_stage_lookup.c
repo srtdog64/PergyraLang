@@ -26,19 +26,19 @@ stage_decl_label(ASTNode *stmt)
     case AST_ROLE_DECL:
         return stmt->data.role_decl.name;
     case AST_PARTY_DECL:
-        return stmt->data.party_decl.name;
+        return ast_party_name(stmt);
     case AST_ROSTER_DECL:
-        return stmt->data.roster_decl.name;
+        return ast_roster_name(stmt);
     case AST_WORLD_DECL:
-        return stmt->data.world_decl.name;
+        return ast_world_name(stmt);
     case AST_INTENT_DECL:
         return stmt->data.intent_decl.name;
     case AST_RELATION_DECL:
-        return stmt->data.relation_decl.name;
+        return ast_relation_name(stmt);
     case AST_EFFECT_DECL:
-        return stmt->data.effect_decl.name;
+        return ast_effect_name(stmt);
     case AST_ZONE_DECL:
-        return stmt->data.zone_decl.name;
+        return ast_zone_name(stmt);
     default:
         return NULL;
     }

@@ -32,11 +32,39 @@ void
 semantic_type_resolution_precollect_world_inventory(ASTNode *world_decl,
                                                     SemanticContext *ctx)
 {
+    const char *world_name;
+    ASTNode **rosters;
+    ASTNode **zones;
+    ASTNode **shared_fields;
+    ASTNode **states;
+    ASTNode **activations;
+    ASTNode **deactivations;
+    ASTNode **maintained_zones;
+    ASTNode **methods;
+    size_t roster_count;
+    size_t zone_count;
+    size_t shared_count;
+    size_t state_count;
+    size_t activate_count;
+    size_t deactivate_count;
+    size_t maintained_zone_count;
+    size_t method_count;
+
     if (world_decl == NULL || world_decl->type != AST_WORLD_DECL || ctx == NULL)
         return;
+    world_name = ast_world_name(world_decl);
+    rosters = ast_world_rosters(world_decl, &roster_count);
+    zones = ast_world_zones(world_decl, &zone_count);
+    shared_fields = ast_world_shared_fields(world_decl, &shared_count);
+    states = ast_world_states(world_decl, &state_count);
+    activations = ast_world_activations(world_decl, &activate_count);
+    deactivations = ast_world_deactivations(world_decl, &deactivate_count);
+    maintained_zones = ast_world_maintained_zones(world_decl,
+                                                  &maintained_zone_count);
+    methods = ast_world_methods(world_decl, &method_count);
 
-    for (size_t i = 0; i < world_decl->data.world_decl.zone_count; i++) {
-        ASTNode *zone = world_decl->data.world_decl.zones[i];
+    for (size_t i = 0; i < zone_count; i++) {
+        ASTNode *zone = zones[i];
         char *zone_slot_label;
 
         if (zone == NULL || zone->type != AST_WORLD_ZONE)
@@ -52,8 +80,8 @@ semantic_type_resolution_precollect_world_inventory(ASTNode *world_decl,
         }
     }
 
-    for (size_t i = 0; i < world_decl->data.world_decl.shared_count; i++) {
-        ASTNode *field = world_decl->data.world_decl.shared_fields[i];
+    for (size_t i = 0; i < shared_count; i++) {
+        ASTNode *field = shared_fields[i];
         if (field == NULL || field->type != AST_PARTY_SHARED)
             continue;
         semantic_type_resolution_collect_type_refs(
@@ -65,8 +93,8 @@ semantic_type_resolution_precollect_world_inventory(ASTNode *world_decl,
             "world shared field type lookup");
     }
 
-    for (size_t i = 0; i < world_decl->data.world_decl.roster_count; i++) {
-        ASTNode *roster = world_decl->data.world_decl.rosters[i];
+    for (size_t i = 0; i < roster_count; i++) {
+        ASTNode *roster = rosters[i];
         if (roster == NULL || roster->type != AST_WORLD_SYSTEMIC)
             continue;
         semantic_type_resolution_record_string_dependency(
@@ -78,8 +106,8 @@ semantic_type_resolution_precollect_world_inventory(ASTNode *world_decl,
             "world roster lookup");
     }
 
-    for (size_t i = 0; i < world_decl->data.world_decl.zone_count; i++) {
-        ASTNode *zone = world_decl->data.world_decl.zones[i];
+    for (size_t i = 0; i < zone_count; i++) {
+        ASTNode *zone = zones[i];
         if (zone == NULL || zone->type != AST_WORLD_ZONE)
             continue;
         semantic_type_resolution_record_string_dependency(
@@ -91,8 +119,8 @@ semantic_type_resolution_precollect_world_inventory(ASTNode *world_decl,
             "world zone lookup");
     }
 
-    for (size_t i = 0; i < world_decl->data.world_decl.state_count; i++) {
-        ASTNode *state = world_decl->data.world_decl.states[i];
+    for (size_t i = 0; i < state_count; i++) {
+        ASTNode *state = states[i];
         ASTNode *zone_slot_decl = NULL;
         char *state_label;
 
@@ -222,16 +250,16 @@ semantic_type_resolution_precollect_world_inventory(ASTNode *world_decl,
         free(state_label);
     }
 
-    for (size_t i = 0; i < world_decl->data.world_decl.activate_count; i++) {
-        ASTNode *activate = world_decl->data.world_decl.activations[i];
+    for (size_t i = 0; i < activate_count; i++) {
+        ASTNode *activate = activations[i];
         char *consumer_label;
 
         if (activate == NULL || activate->type != AST_WORLD_ACTIVATE)
             continue;
 
         consumer_label = resolution_world_strdup_fmt("world %s.activate.%s",
-                                                     world_decl->data.world_decl.name != NULL
-                                                         ? world_decl->data.world_decl.name
+                                                     world_name != NULL
+                                                         ? world_name
                                                          : "<world>",
                                                      activate->data.world_activate.state_name != NULL
                                                          ? activate->data.world_activate.state_name
@@ -272,16 +300,16 @@ semantic_type_resolution_precollect_world_inventory(ASTNode *world_decl,
         free(consumer_label);
     }
 
-    for (size_t i = 0; i < world_decl->data.world_decl.deactivate_count; i++) {
-        ASTNode *deactivate = world_decl->data.world_decl.deactivations[i];
+    for (size_t i = 0; i < deactivate_count; i++) {
+        ASTNode *deactivate = deactivations[i];
         char *consumer_label;
 
         if (deactivate == NULL || deactivate->type != AST_WORLD_DEACTIVATE)
             continue;
 
         consumer_label = resolution_world_strdup_fmt("world %s.deactivate.%s",
-                                                     world_decl->data.world_decl.name != NULL
-                                                         ? world_decl->data.world_decl.name
+                                                     world_name != NULL
+                                                         ? world_name
                                                          : "<world>",
                                                      deactivate->data.world_deactivate.state_name != NULL
                                                          ? deactivate->data.world_deactivate.state_name
@@ -322,16 +350,16 @@ semantic_type_resolution_precollect_world_inventory(ASTNode *world_decl,
         free(consumer_label);
     }
 
-    for (size_t i = 0; i < world_decl->data.world_decl.maintained_zone_count; i++) {
-        ASTNode *maintain = world_decl->data.world_decl.maintained_zones[i];
+    for (size_t i = 0; i < maintained_zone_count; i++) {
+        ASTNode *maintain = maintained_zones[i];
         char *consumer_label;
 
         if (maintain == NULL || maintain->type != AST_WORLD_MAINTAIN)
             continue;
 
         consumer_label = resolution_world_strdup_fmt("world %s.maintain.%s",
-                                                     world_decl->data.world_decl.name != NULL
-                                                         ? world_decl->data.world_decl.name
+                                                     world_name != NULL
+                                                         ? world_name
                                                          : "<world>",
                                                      maintain->data.world_maintain.state_name != NULL
                                                          ? maintain->data.world_maintain.state_name
@@ -372,10 +400,10 @@ semantic_type_resolution_precollect_world_inventory(ASTNode *world_decl,
         free(consumer_label);
     }
 
-    for (size_t i = 0; i < world_decl->data.world_decl.method_count; i++) {
+    for (size_t i = 0; i < method_count; i++) {
         semantic_type_resolution_precollect_action_contract(
-            world_decl->data.world_decl.methods[i],
+            methods[i],
             ctx,
-            world_decl->data.world_decl.name);
+            world_name);
     }
 }

@@ -7,6 +7,7 @@
 #include "llvm_domain_projection_value_helpers.h"
 #include "llvm_domain_projection_sync_body_helpers.h"
 #include "llvm_domain_zone_sync_internal.h"
+#include "parser/ast_api.h"
 
 static bool
 llvm_zone_sync_field_name(char *out,
@@ -109,12 +110,16 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
 
     llvm_zone_sync_emit_action_causes(stmt, decl_cls, sync_fn, ctx);
 
-    for (size_t i = 0; i < stmt->data.zone_decl.apply_count; i++) {
-        ASTNode *apply = stmt->data.zone_decl.applies[i];
+    size_t state_count = 0;
+    ASTNode **states = ast_zone_states(stmt, &state_count);
+    size_t apply_count = 0;
+    ASTNode **applies = ast_zone_applies(stmt, &apply_count);
+    for (size_t i = 0; i < apply_count; i++) {
+        ASTNode *apply = applies[i];
         const char *state_name = apply != NULL ? apply->data.zone_apply.state_name : NULL;
         if (state_name == NULL && apply != NULL) {
-            for (size_t j = 0; j < stmt->data.zone_decl.state_count; j++) {
-                ASTNode *state = stmt->data.zone_decl.states[j];
+            for (size_t j = 0; j < state_count; j++) {
+                ASTNode *state = states[j];
                 if (state != NULL && state->type == AST_ZONE_STATE
                     && !state->data.zone_state.is_relation
                     && state->data.zone_state.layer_slot_name != NULL
@@ -151,8 +156,8 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
             if (apply != NULL) {
                 const char *layer_name = apply->data.zone_apply.effect_slot_name;
                 if (layer_name == NULL) {
-                    for (size_t j = 0; j < stmt->data.zone_decl.state_count; j++) {
-                        ASTNode *state = stmt->data.zone_decl.states[j];
+                    for (size_t j = 0; j < state_count; j++) {
+                        ASTNode *state = states[j];
                         if (state != NULL && state->type == AST_ZONE_STATE
                             && !state->data.zone_state.is_relation
                             && state->data.zone_state.state_name != NULL
@@ -182,8 +187,8 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
                         llvm_zone_bind_effect_layer(stmt, decl_cls, sync_fn, ctx,
                             layer_name, apply->data.zone_apply.target_slot_name);
                     } else {
-                        for (size_t j = 0; j < stmt->data.zone_decl.state_count; j++) {
-                            ASTNode *state = stmt->data.zone_decl.states[j];
+                        for (size_t j = 0; j < state_count; j++) {
+                            ASTNode *state = states[j];
                             if (state != NULL && state->type == AST_ZONE_STATE
                                 && !state->data.zone_state.is_relation
                                 && state->data.zone_state.state_name != NULL
@@ -224,8 +229,11 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
         }
     }
 
-    for (size_t i = 0; i < stmt->data.zone_decl.maintained_effect_count; i++) {
-        ASTNode *maintain = stmt->data.zone_decl.maintained_effects[i];
+    size_t maintained_effect_count = 0;
+    ASTNode **maintained_effects =
+        ast_zone_maintained_effects(stmt, &maintained_effect_count);
+    for (size_t i = 0; i < maintained_effect_count; i++) {
+        ASTNode *maintain = maintained_effects[i];
         if (maintain == NULL
             || maintain->data.zone_maintain_effect.effect_slot_name == NULL
             || maintain->data.zone_maintain_effect.target_slot_name == NULL) {
@@ -261,8 +269,8 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
         llvm_zone_bind_effect_layer(stmt, decl_cls, sync_fn, ctx,
             maintain->data.zone_maintain_effect.effect_slot_name,
             maintain->data.zone_maintain_effect.target_slot_name);
-        for (size_t j = 0; j < stmt->data.zone_decl.state_count; j++) {
-            ASTNode *state = stmt->data.zone_decl.states[j];
+        for (size_t j = 0; j < state_count; j++) {
+            ASTNode *state = states[j];
             const char *state_name;
             char field_name[256];
             int field_idx;
@@ -295,8 +303,11 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
         }
     }
 
-    for (size_t i = 0; i < stmt->data.zone_decl.maintained_state_count; i++) {
-        ASTNode *maintain = stmt->data.zone_decl.maintained_states[i];
+    size_t maintained_state_count = 0;
+    ASTNode **maintained_states =
+        ast_zone_maintained_states(stmt, &maintained_state_count);
+    for (size_t i = 0; i < maintained_state_count; i++) {
+        ASTNode *maintain = maintained_states[i];
         if (maintain != NULL && maintain->data.zone_maintain_state.state_name != NULL) {
             char field_name[256];
             int field_idx;
@@ -316,8 +327,8 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
             llvm_stamp_domain_provenance(ctx, decl_cls, self_ptr, "state",
                 maintain->data.zone_maintain_state.state_name,
                 PGY_PROP_CAUSE_MAINTAIN);
-            for (size_t j = 0; j < stmt->data.zone_decl.state_count; j++) {
-                ASTNode *state = stmt->data.zone_decl.states[j];
+            for (size_t j = 0; j < state_count; j++) {
+                ASTNode *state = states[j];
                 if (state != NULL && state->type == AST_ZONE_STATE
                     && state->data.zone_state.state_name != NULL
                     && strcmp(state->data.zone_state.state_name,
@@ -373,7 +384,7 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
 
     LLVMPositionBuilderAtEnd(ctx->builder, frontier_overflow_bb);
     llvm_emit_frontier_overflow_abort(ctx,
-        "zone frontier recompute exceeded bounded pass limit");
+        PGY_FRONTIER_REASON_ZONE_OVERFLOW);
 
     LLVMPositionBuilderAtEnd(ctx->builder, frontier_exit_bb);
     LLVMBuildRetVoid(ctx->builder);

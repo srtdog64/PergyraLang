@@ -3,6 +3,40 @@
 #include "type_checker_internal.h"
 #include "type_checker_ability_match_internal.h"
 
+ASTNode *
+semantic_find_role_decl(ASTNode *program, const char *role_name)
+{
+    if (program == NULL || program->type != AST_PROGRAM || role_name == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < program->data.program.count; i++) {
+        ASTNode *stmt = program->data.program.statements[i];
+        if (stmt != NULL && stmt->type == AST_ROLE_DECL
+            && stmt->data.role_decl.name != NULL
+            && strcmp(stmt->data.role_decl.name, role_name) == 0) {
+            return stmt;
+        }
+    }
+
+    return NULL;
+}
+
+ASTNode *
+semantic_role_for_type_node(ASTNode *role_decl)
+{
+    return ast_role_for_type(role_decl);
+}
+
+const char *
+semantic_role_for_type_name(ASTNode *role_decl)
+{
+    ASTNode *for_type = semantic_role_for_type_node(role_decl);
+
+    if (for_type == NULL || for_type->type != AST_TYPE)
+        return NULL;
+    return for_type->data.type.name;
+}
+
 bool
 any_subject_role_has_ability(ASTNode *program, ASTNode *ability_ref)
 {
@@ -14,16 +48,11 @@ any_subject_role_has_ability(ASTNode *program, ASTNode *ability_ref)
     for (size_t i = 0; i < program->data.program.count; i++) {
         ASTNode *stmt = program->data.program.statements[i];
         ASTNode *type_decl;
-        const char *type_name;
+        const char *type_name = semantic_role_for_type_name(stmt);
 
-        if (stmt == NULL || stmt->type != AST_ROLE_DECL
-            || stmt->data.role_decl.for_type == NULL
-            || stmt->data.role_decl.for_type->type != AST_TYPE
-            || stmt->data.role_decl.for_type->data.type.name == NULL) {
+        if (type_name == NULL)
             continue;
-        }
 
-        type_name = stmt->data.role_decl.for_type->data.type.name;
         type_decl = find_subject_host_decl_by_name(program, type_name);
         if (!decl_is_subject_host(type_decl))
             continue;
@@ -47,32 +76,26 @@ any_subject_role_find_base_ability_impl(ASTNode *program,
     for (size_t i = 0; i < program->data.program.count; i++) {
         ASTNode *stmt = program->data.program.statements[i];
         ASTNode *type_decl;
-        const char *type_name;
+        const char *type_name = semantic_role_for_type_name(stmt);
 
-        if (stmt == NULL || stmt->type != AST_ROLE_DECL
-            || stmt->data.role_decl.for_type == NULL
-            || stmt->data.role_decl.for_type->type != AST_TYPE
-            || stmt->data.role_decl.for_type->data.type.name == NULL) {
+        if (type_name == NULL)
             continue;
-        }
 
-        type_name = stmt->data.role_decl.for_type->data.type.name;
         type_decl = find_subject_host_decl_by_name(program, type_name);
         if (!decl_is_subject_host(type_decl))
             continue;
 
-        for (size_t j = 0; j < stmt->data.role_decl.impl_count; j++) {
-            ASTNode *impl = stmt->data.role_decl.impl_abilities[j];
+        for (size_t j = 0; j < ast_role_impl_count(stmt); j++) {
+            ASTNode *impl = ast_role_impl(stmt, j);
             ASTNode *ability_ref;
 
             if (impl == NULL || impl->type != AST_IMPL_ABILITY)
                 continue;
-            ability_ref = impl->data.impl_ability.ability_ref;
-            if (ability_ref == NULL || ability_ref->type != AST_TYPE
-                || ability_ref->data.type.name == NULL) {
+            ability_ref = ast_impl_ability_ref(impl);
+            if (ast_impl_ability_name(impl) == NULL) {
                 continue;
             }
-            if (strcmp(ability_ref->data.type.name, ability_name) == 0)
+            if (strcmp(ast_impl_ability_name(impl), ability_name) == 0)
                 return ability_ref;
         }
     }

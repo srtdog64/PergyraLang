@@ -1,6 +1,8 @@
 #ifndef PGY_TRANSPILER_OVERLAY_ZONE_BIND_H
 #define PGY_TRANSPILER_OVERLAY_ZONE_BIND_H
 
+#include "parser/ast_api.h"
+
 static ASTNode *
 find_nth_bindable_domain_slot_local(ASTNode **slots, size_t slot_count,
                                     ASTNode **refreshes, size_t refresh_count,
@@ -41,8 +43,10 @@ emit_zone_bind_effect_layer(CodeBuf *out, ASTNode *zone, const char *layer_slot_
     }
 
     layer_slot = NULL;
-    for (size_t i = 0; i < zone->data.zone_decl.layer_slot_count; i++) {
-        ASTNode *slot = zone->data.zone_decl.layer_slots[i];
+    size_t layer_slot_count = 0;
+    ASTNode **layer_slots = ast_zone_layer_slots(zone, &layer_slot_count);
+    for (size_t i = 0; i < layer_slot_count; i++) {
+        ASTNode *slot = layer_slots[i];
         if (slot != NULL && slot->type == AST_ZONE_LAYER_SLOT
             && !slot->data.zone_layer_slot.is_relation
             && slot->data.zone_layer_slot.slot_name != NULL
@@ -58,10 +62,13 @@ emit_zone_bind_effect_layer(CodeBuf *out, ASTNode *zone, const char *layer_slot_
     if (effect_decl == NULL)
         return;
 
-    target_slot = find_nth_bindable_domain_slot_local(effect_decl->data.effect_decl.slots,
-        effect_decl->data.effect_decl.slot_count,
-        effect_decl->data.effect_decl.refreshes,
-        effect_decl->data.effect_decl.refresh_count, 0);
+    size_t effect_slot_count = 0;
+    ASTNode **effect_slots = ast_effect_slots(effect_decl, &effect_slot_count);
+    size_t effect_refresh_count = 0;
+    ASTNode **effect_refreshes =
+        ast_effect_refreshes(effect_decl, &effect_refresh_count);
+    target_slot = find_nth_bindable_domain_slot_local(effect_slots,
+        effect_slot_count, effect_refreshes, effect_refresh_count, 0);
     if (target_slot == NULL || target_slot->data.domain_slot.slot_name == NULL)
         return;
 
@@ -71,16 +78,16 @@ emit_zone_bind_effect_layer(CodeBuf *out, ASTNode *zone, const char *layer_slot_
         ctx->indent++;
         write_indent(ctx);
         codebuf_write(out, "%s _pgy_%s_instance = (%s){0};\n",
-            effect_decl->data.effect_decl.name,
+            ast_effect_name(effect_decl),
             layer_slot_name,
-            effect_decl->data.effect_decl.name);
+            ast_effect_name(effect_decl));
         write_indent(ctx);
         codebuf_write(out, "_pgy_%s_instance.%s = self->%s;\n",
             layer_slot_name,
             target_slot->data.domain_slot.slot_name,
             target_slot_name);
-        for (size_t i = 0; i < effect_decl->data.effect_decl.refresh_count; i++) {
-            ASTNode *refresh = effect_decl->data.effect_decl.refreshes[i];
+        for (size_t i = 0; i < effect_refresh_count; i++) {
+            ASTNode *refresh = effect_refreshes[i];
             const char *projection_name;
             const char *source_name;
 
@@ -103,7 +110,7 @@ emit_zone_bind_effect_layer(CodeBuf *out, ASTNode *zone, const char *layer_slot_
         }
         write_indent(ctx);
         codebuf_write(out, "%s_sync(&_pgy_%s_instance);\n",
-            effect_decl->data.effect_decl.name,
+            ast_effect_name(effect_decl),
             layer_slot_name);
         write_indent(ctx);
         codebuf_write(out, "PGY_EFFECT_POOL_APPLY(self->%s, _pgy_%s_instance);\n",
@@ -124,8 +131,8 @@ emit_zone_bind_effect_layer(CodeBuf *out, ASTNode *zone, const char *layer_slot_
         layer_slot_name,
         target_slot->data.domain_slot.slot_name,
         target_slot_name);
-    for (size_t i = 0; i < effect_decl->data.effect_decl.refresh_count; i++) {
-        ASTNode *refresh = effect_decl->data.effect_decl.refreshes[i];
+    for (size_t i = 0; i < effect_refresh_count; i++) {
+        ASTNode *refresh = effect_refreshes[i];
         const char *projection_name;
         const char *source_name;
 
@@ -148,7 +155,7 @@ emit_zone_bind_effect_layer(CodeBuf *out, ASTNode *zone, const char *layer_slot_
     }
     write_indent(ctx);
     codebuf_write(out, "%s_sync(&self->%s);\n",
-        effect_decl->data.effect_decl.name,
+        ast_effect_name(effect_decl),
         layer_slot_name);
 }
 
@@ -168,8 +175,10 @@ emit_zone_bind_relation_layer(CodeBuf *out, ASTNode *zone, const char *layer_slo
     }
 
     layer_slot = NULL;
-    for (size_t i = 0; i < zone->data.zone_decl.layer_slot_count; i++) {
-        ASTNode *slot = zone->data.zone_decl.layer_slots[i];
+    size_t layer_slot_count = 0;
+    ASTNode **layer_slots = ast_zone_layer_slots(zone, &layer_slot_count);
+    for (size_t i = 0; i < layer_slot_count; i++) {
+        ASTNode *slot = layer_slots[i];
         if (slot != NULL && slot->type == AST_ZONE_LAYER_SLOT
             && slot->data.zone_layer_slot.is_relation
             && slot->data.zone_layer_slot.slot_name != NULL
@@ -185,14 +194,15 @@ emit_zone_bind_relation_layer(CodeBuf *out, ASTNode *zone, const char *layer_slo
     if (relation_decl == NULL)
         return;
 
-    left_target = find_nth_bindable_domain_slot_local(relation_decl->data.relation_decl.slots,
-        relation_decl->data.relation_decl.slot_count,
-        relation_decl->data.relation_decl.refreshes,
-        relation_decl->data.relation_decl.refresh_count, 0);
-    right_target = find_nth_bindable_domain_slot_local(relation_decl->data.relation_decl.slots,
-        relation_decl->data.relation_decl.slot_count,
-        relation_decl->data.relation_decl.refreshes,
-        relation_decl->data.relation_decl.refresh_count, 1);
+    size_t relation_slot_count = 0;
+    ASTNode **relation_slots = ast_relation_slots(relation_decl, &relation_slot_count);
+    size_t relation_refresh_count = 0;
+    ASTNode **relation_refreshes =
+        ast_relation_refreshes(relation_decl, &relation_refresh_count);
+    left_target = find_nth_bindable_domain_slot_local(relation_slots,
+        relation_slot_count, relation_refreshes, relation_refresh_count, 0);
+    right_target = find_nth_bindable_domain_slot_local(relation_slots,
+        relation_slot_count, relation_refreshes, relation_refresh_count, 1);
     if (left_target == NULL || right_target == NULL
         || left_target->data.domain_slot.slot_name == NULL
         || right_target->data.domain_slot.slot_name == NULL) {
@@ -205,8 +215,8 @@ emit_zone_bind_relation_layer(CodeBuf *out, ASTNode *zone, const char *layer_slo
     write_indent(ctx);
     codebuf_write(out, "self->%s.%s = self->%s;\n",
         layer_slot_name, right_target->data.domain_slot.slot_name, right_slot_name);
-    for (size_t i = 0; i < relation_decl->data.relation_decl.refresh_count; i++) {
-        ASTNode *refresh = relation_decl->data.relation_decl.refreshes[i];
+    for (size_t i = 0; i < relation_refresh_count; i++) {
+        ASTNode *refresh = relation_refreshes[i];
         const char *projection_name;
         const char *source_name;
 
@@ -231,7 +241,7 @@ emit_zone_bind_relation_layer(CodeBuf *out, ASTNode *zone, const char *layer_slo
     }
     write_indent(ctx);
     codebuf_write(out, "%s_sync(&self->%s);\n",
-        relation_decl->data.relation_decl.name,
+        ast_relation_name(relation_decl),
         layer_slot_name);
 }
 

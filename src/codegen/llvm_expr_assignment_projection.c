@@ -11,6 +11,7 @@
 
 #include "llvm_internal_api.h"
 #include "llvm_inventory_decl_lookup.h"
+#include "parser/ast_api.h"
 
 static bool
 llvm_host_projection_source_from_assignment(ASTNode *host_decl,
@@ -32,16 +33,13 @@ llvm_host_projection_source_from_assignment(ASTNode *host_decl,
 
     switch (host_decl->type) {
     case AST_ZONE_DECL:
-        slots = host_decl->data.zone_decl.slots;
-        slot_count = host_decl->data.zone_decl.slot_count;
+        slots = ast_zone_slots(host_decl, &slot_count);
         break;
     case AST_RELATION_DECL:
-        slots = host_decl->data.relation_decl.slots;
-        slot_count = host_decl->data.relation_decl.slot_count;
+        slots = ast_relation_slots(host_decl, &slot_count);
         break;
     case AST_EFFECT_DECL:
-        slots = host_decl->data.effect_decl.slots;
-        slot_count = host_decl->data.effect_decl.slot_count;
+        slots = ast_effect_slots(host_decl, &slot_count);
         break;
     default:
         return false;
@@ -256,16 +254,13 @@ llvm_emit_host_projection_invalidations(LLVMGenCtx *ctx, ASTNode *target)
 
     switch (host_decl->type) {
     case AST_ZONE_DECL:
-        refreshes = host_decl->data.zone_decl.refreshes;
-        refresh_count = host_decl->data.zone_decl.refresh_count;
+        refreshes = ast_zone_refreshes(host_decl, &refresh_count);
         break;
     case AST_RELATION_DECL:
-        refreshes = host_decl->data.relation_decl.refreshes;
-        refresh_count = host_decl->data.relation_decl.refresh_count;
+        refreshes = ast_relation_refreshes(host_decl, &refresh_count);
         break;
     case AST_EFFECT_DECL:
-        refreshes = host_decl->data.effect_decl.refreshes;
-        refresh_count = host_decl->data.effect_decl.refresh_count;
+        refreshes = ast_effect_refreshes(host_decl, &refresh_count);
         break;
     case AST_WORLD_DECL: {
         const char *zone_slot = NULL;
@@ -283,14 +278,13 @@ llvm_emit_host_projection_invalidations(LLVMGenCtx *ctx, ASTNode *target)
             return;
         }
 
-        world_cls = llvm_lookup_class(ctx, host_decl->data.world_decl.name);
+        world_cls = llvm_lookup_class(ctx, ast_world_name(host_decl));
         self_var = llvm_scope_lookup(ctx, "self");
         if (world_cls == NULL || self_var == NULL)
             return;
 
-        host_cls = llvm_lookup_class(ctx, zone_decl->data.zone_decl.name);
-        zone_refreshes = zone_decl->data.zone_decl.refreshes;
-        zone_refresh_count = zone_decl->data.zone_decl.refresh_count;
+        host_cls = llvm_lookup_class(ctx, ast_zone_name(zone_decl));
+        zone_refreshes = ast_zone_refreshes(zone_decl, &zone_refresh_count);
         if (host_cls == NULL || zone_refreshes == NULL || zone_refresh_count == 0)
             return;
 
@@ -368,8 +362,8 @@ llvm_emit_world_embedded_assignment_sync(LLVMGenCtx *ctx, ASTNode *target)
     if (world_decl == NULL || world_decl->type != AST_WORLD_DECL)
         return;
 
-    world_cls = llvm_lookup_class(ctx, world_decl->data.world_decl.name);
-    zone_cls = llvm_lookup_class(ctx, zone_decl->data.zone_decl.name);
+    world_cls = llvm_lookup_class(ctx, ast_world_name(world_decl));
+    zone_cls = llvm_lookup_class(ctx, ast_zone_name(zone_decl));
     self_var = llvm_scope_lookup(ctx, "self");
     if (world_cls == NULL || zone_cls == NULL || self_var == NULL
         || zone_cls->sync_function_name == NULL) {

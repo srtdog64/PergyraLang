@@ -75,16 +75,23 @@ expr_current_host_field_type(SemanticContext *ctx, const char *field_name)
     }
 
     if (decl->type == AST_WORLD_DECL) {
-        for (size_t i = 0; i < decl->data.world_decl.roster_count; i++) {
-            ASTNode *slot = decl->data.world_decl.rosters[i];
+        ASTNode **rosters;
+        ASTNode **zones;
+        size_t roster_count;
+        size_t zone_count;
+
+        rosters = ast_world_rosters(decl, &roster_count);
+        zones = ast_world_zones(decl, &zone_count);
+        for (size_t i = 0; i < roster_count; i++) {
+            ASTNode *slot = rosters[i];
             if (slot != NULL && slot->data.world_roster.slot_name != NULL
                 && strcmp(slot->data.world_roster.slot_name, field_name) == 0) {
                 return expr_host_resolve_named_type_metadata_or_unknown(
                     slot->data.world_roster.roster_type, ctx, slot);
             }
         }
-        for (size_t i = 0; i < decl->data.world_decl.zone_count; i++) {
-            ASTNode *slot = decl->data.world_decl.zones[i];
+        for (size_t i = 0; i < zone_count; i++) {
+            ASTNode *slot = zones[i];
             if (slot != NULL && slot->data.world_zone.slot_name != NULL
                 && strcmp(slot->data.world_zone.slot_name, field_name) == 0) {
                 return expr_host_resolve_named_type_metadata_or_unknown(
@@ -123,20 +130,16 @@ expr_current_host_method_decl(SemanticContext *ctx, const char *method_name)
         method_count = decl->data.enum_decl.method_count;
         break;
     case AST_RELATION_DECL:
-        methods = decl->data.relation_decl.methods;
-        method_count = decl->data.relation_decl.method_count;
+        methods = ast_relation_methods(decl, &method_count);
         break;
     case AST_EFFECT_DECL:
-        methods = decl->data.effect_decl.methods;
-        method_count = decl->data.effect_decl.method_count;
+        methods = ast_effect_methods(decl, &method_count);
         break;
     case AST_ZONE_DECL:
-        methods = decl->data.zone_decl.methods;
-        method_count = decl->data.zone_decl.method_count;
+        methods = ast_zone_methods(decl, &method_count);
         break;
     case AST_WORLD_DECL:
-        methods = decl->data.world_decl.methods;
-        method_count = decl->data.world_decl.method_count;
+        methods = ast_world_methods(decl, &method_count);
         break;
     default:
         return NULL;

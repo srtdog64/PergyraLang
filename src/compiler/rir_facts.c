@@ -19,16 +19,13 @@ rir_find_domain_slot_in_owner(ASTNode *owner, const char *slot_name)
 
     switch (owner->type) {
         case AST_ZONE_DECL:
-            slots = owner->data.zone_decl.slots;
-            slot_count = owner->data.zone_decl.slot_count;
+            slots = ast_zone_slots(owner, &slot_count);
             break;
         case AST_RELATION_DECL:
-            slots = owner->data.relation_decl.slots;
-            slot_count = owner->data.relation_decl.slot_count;
+            slots = ast_relation_slots(owner, &slot_count);
             break;
         case AST_EFFECT_DECL:
-            slots = owner->data.effect_decl.slots;
-            slot_count = owner->data.effect_decl.slot_count;
+            slots = ast_effect_slots(owner, &slot_count);
             break;
         default:
             return NULL;
@@ -246,23 +243,23 @@ rir_nominal_kind_from_name(const char *name)
             continue;
         switch (node->type) {
             case AST_RELATION_DECL:
-                if (node->data.relation_decl.name != NULL
-                    && strcmp(node->data.relation_decl.name, name) == 0)
+                if (ast_relation_name(node) != NULL
+                    && strcmp(ast_relation_name(node), name) == 0)
                     return RIR_RESOURCE_RELATION_INSTANCE;
                 break;
             case AST_EFFECT_DECL:
-                if (node->data.effect_decl.name != NULL
-                    && strcmp(node->data.effect_decl.name, name) == 0)
+                if (ast_effect_name(node) != NULL
+                    && strcmp(ast_effect_name(node), name) == 0)
                     return RIR_RESOURCE_EFFECT_INSTANCE;
                 break;
             case AST_ZONE_DECL:
-                if (node->data.zone_decl.name != NULL
-                    && strcmp(node->data.zone_decl.name, name) == 0)
+                if (ast_zone_name(node) != NULL
+                    && strcmp(ast_zone_name(node), name) == 0)
                     return RIR_RESOURCE_ZONE_HANDLE;
                 break;
             case AST_WORLD_DECL:
-                if (node->data.world_decl.name != NULL
-                    && strcmp(node->data.world_decl.name, name) == 0)
+                if (ast_world_name(node) != NULL
+                    && strcmp(ast_world_name(node), name) == 0)
                     return RIR_RESOURCE_WORLD_HANDLE;
                 break;
             default:

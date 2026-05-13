@@ -94,7 +94,7 @@ llvm_emit_domain_role_method_bodies(LLVMGenCtx *ctx,
         if (stmt == NULL || stmt->type != AST_ROLE_DECL)
             continue;
 
-        const char *role_name = stmt->data.role_decl.name;
+        const char *role_name = ast_role_name(stmt);
         LLVMHostedMethodView method_view =
             llvm_hosted_method_view_from_decl(ctx, role_name, stmt);
         if (llvm_hosted_method_view_missing_mir_metadata(&method_view)) {
@@ -146,15 +146,12 @@ llvm_emit_domain_role_method_bodies(LLVMGenCtx *ctx,
             return false;
         }
 
-        for (size_t ii = 0; ii < stmt->data.role_decl.impl_count; ii++) {
-            ASTNode *impl = stmt->data.role_decl.impl_abilities[ii];
+        for (size_t ii = 0; ii < ast_role_impl_count(stmt); ii++) {
+            ASTNode *impl = ast_role_impl(stmt, ii);
             if (impl == NULL || impl->type != AST_IMPL_ABILITY)
                 continue;
 
-            const char *ab_name =
-                (impl->data.impl_ability.ability_ref != NULL
-                 && impl->data.impl_ability.ability_ref->type == AST_TYPE)
-                ? impl->data.impl_ability.ability_ref->data.type.name : NULL;
+            const char *ab_name = ast_impl_ability_name(impl);
 
             {
                 PgyTokenType ops[] = {
@@ -162,12 +159,7 @@ llvm_emit_domain_role_method_bodies(LLVMGenCtx *ctx,
                     TOKEN_PERCENT, TOKEN_EQUAL, TOKEN_NOT_EQUAL, TOKEN_LESS,
                     TOKEN_LESS_EQUAL, TOKEN_GREATER, TOKEN_GREATER_EQUAL
                 };
-                const char *for_type_name = NULL;
-                if (stmt->data.role_decl.for_type != NULL
-                    && stmt->data.role_decl.for_type->type == AST_TYPE) {
-                    for_type_name =
-                        stmt->data.role_decl.for_type->data.type.name;
-                }
+                const char *for_type_name = llvm_role_for_type_name(stmt);
 
                 for (size_t oi = 0; for_type_name != NULL
                        && oi < sizeof(ops) / sizeof(ops[0]); oi++) {
@@ -260,7 +252,7 @@ llvm_emit_domain_role_method_bodies(LLVMGenCtx *ctx,
             LLVMClassTypeEntry *vt_cls = llvm_lookup_class(ctx,
                 vt_type_name);
             if (vt_cls != NULL) {
-                size_t mc = impl->data.impl_ability.method_count;
+                size_t mc = ast_impl_ability_method_count(impl);
                 /*
                  * Vtable method value array is consumed by
                  * LLVMConstNamedStruct (copies) for the global initializer.
@@ -268,7 +260,7 @@ llvm_emit_domain_role_method_bodies(LLVMGenCtx *ctx,
                 LLVMValueRef *vals = pgy_arena_calloc(&ctx->scratch,
                     (mc > 0 ? mc : 1) * sizeof(LLVMValueRef));
                 for (size_t j = 0; j < mc; j++) {
-                    ASTNode *method = impl->data.impl_ability.methods[j];
+                    ASTNode *method = ast_impl_ability_method(impl, j);
                     const char *method_name = llvm_role_method_name_from_ast(method);
                     if (method == NULL || method->type != AST_FUNC_DECL) {
                         vals[j] = LLVMConstNull(ctx->type_i8ptr);

@@ -344,6 +344,12 @@ main(void)
     TEST("AIR rejects RIR propagation evidence counter mismatch");
     EXPECT(test_air_rejects_rir_propagation_counter_mismatch());
 
+    TEST("AIR rejects MIR pin cleanup counter mismatch");
+    EXPECT(test_air_rejects_pin_cleanup_counter_mismatch());
+
+    TEST("AIR strict evidence rejects MIR pin cleanup counter only");
+    EXPECT(test_air_strict_evidence_rejects_pin_cleanup_counter_only());
+
     TEST("AIR rejects invalid DAG evidence provider");
     EXPECT(test_air_rejects_invalid_dag_evidence_provider());
 

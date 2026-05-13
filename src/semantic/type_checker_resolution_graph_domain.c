@@ -56,34 +56,44 @@ void
 semantic_type_resolution_precollect_relation_inventory(ASTNode *relation_decl,
                                                        SemanticContext *ctx)
 {
+    ASTNode **slots;
+    ASTNode **shared_fields;
+    ASTNode **methods;
+    size_t slot_count;
+    size_t shared_count;
+    size_t method_count;
+
     if (relation_decl == NULL || relation_decl->type != AST_RELATION_DECL || ctx == NULL)
         return;
+    slots = ast_relation_slots(relation_decl, &slot_count);
+    shared_fields = ast_relation_shared_fields(relation_decl, &shared_count);
+    methods = ast_relation_methods(relation_decl, &method_count);
 
     semantic_type_resolution_collect_type_refs(
         relation_decl->data.relation_decl.between_left_type,
         ctx,
         relation_decl,
-        relation_decl->data.relation_decl.name != NULL
-            ? relation_decl->data.relation_decl.name : "<relation>",
+        ast_relation_name(relation_decl) != NULL
+            ? ast_relation_name(relation_decl) : "<relation>",
         "relation between-left type lookup");
     semantic_type_resolution_collect_type_refs(
         relation_decl->data.relation_decl.between_right_type,
         ctx,
         relation_decl,
-        relation_decl->data.relation_decl.name != NULL
-            ? relation_decl->data.relation_decl.name : "<relation>",
+        ast_relation_name(relation_decl) != NULL
+            ? ast_relation_name(relation_decl) : "<relation>",
         "relation between-right type lookup");
 
     semantic_type_resolution_precollect_domain_inventory(
-        relation_decl->data.relation_decl.slots,
-        relation_decl->data.relation_decl.slot_count,
-        relation_decl->data.relation_decl.shared_fields,
-        relation_decl->data.relation_decl.shared_count,
-        relation_decl->data.relation_decl.methods,
-        relation_decl->data.relation_decl.method_count,
+        slots,
+        slot_count,
+        shared_fields,
+        shared_count,
+        methods,
+        method_count,
         ctx,
         "relation",
-        relation_decl->data.relation_decl.name,
+        ast_relation_name(relation_decl),
         "relation slot type lookup",
         "relation shared field type lookup");
 }
@@ -92,19 +102,29 @@ void
 semantic_type_resolution_precollect_effect_inventory(ASTNode *effect_decl,
                                                      SemanticContext *ctx)
 {
+    ASTNode **slots;
+    ASTNode **shared_fields;
+    ASTNode **methods;
+    size_t slot_count;
+    size_t shared_count;
+    size_t method_count;
+
     if (effect_decl == NULL || effect_decl->type != AST_EFFECT_DECL || ctx == NULL)
         return;
+    slots = ast_effect_slots(effect_decl, &slot_count);
+    shared_fields = ast_effect_shared_fields(effect_decl, &shared_count);
+    methods = ast_effect_methods(effect_decl, &method_count);
 
     semantic_type_resolution_precollect_domain_inventory(
-        effect_decl->data.effect_decl.slots,
-        effect_decl->data.effect_decl.slot_count,
-        effect_decl->data.effect_decl.shared_fields,
-        effect_decl->data.effect_decl.shared_count,
-        effect_decl->data.effect_decl.methods,
-        effect_decl->data.effect_decl.method_count,
+        slots,
+        slot_count,
+        shared_fields,
+        shared_count,
+        methods,
+        method_count,
         ctx,
         "effect",
-        effect_decl->data.effect_decl.name,
+        ast_effect_name(effect_decl),
         "effect slot type lookup",
         "effect shared field type lookup");
 }

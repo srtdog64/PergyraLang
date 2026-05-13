@@ -155,6 +155,42 @@ air_strict_require_mir_evidence_node(AIRProgram *air,
         counter);
 }
 
+static size_t
+air_boundary_evidence_node_count_for_kind(const AIRProgram *air,
+                                          AIREvidenceKind kind)
+{
+    size_t count = 0;
+
+    if (air == NULL || !air_evidence_kind_is_boundary_scoped(kind))
+        return 0;
+    for (size_t i = 0; i < air->evidence_count; i++) {
+        const AIREvidenceNode *evidence = &air->evidence_nodes[i];
+        if (evidence->kind == kind && evidence->boundary_index != SIZE_MAX)
+            count++;
+    }
+    return count;
+}
+
+static bool
+air_strict_require_mir_boundary_evidence_node(AIRProgram *air,
+                                              AIREvidenceKind kind,
+                                              size_t counter,
+                                              char **error_message)
+{
+    if (!air->strict_evidence || counter == 0
+        || air_boundary_evidence_node_count_for_kind(air, kind) > 0) {
+        return true;
+    }
+    return air_append_driftf(air, AIR_DRIFT_BOUNDARY_EVIDENCE_MISSING,
+                             SIZE_MAX, SIZE_MAX, error_message,
+        PGY_CODE_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING
+        ": AIR MIR evidence counter has no matching boundary evidence node; kind=%s counter=%zu. "
+        "Reason: strict AIR treats MIR pin-cleanup summaries as observability only; pin cleanup safety must be carried by boundary-scoped EvidenceNode. "
+        "Fix: attach the missing MIR pin-cleanup evidence node or remove the stale counter-only summary.",
+        air_evidence_kind_name(kind),
+        counter);
+}
+
 bool
 air_verify(AIRProgram *air, char **error_message)
 {
@@ -353,6 +389,11 @@ air_verify(AIRProgram *air, char **error_message)
                 AIR_EVIDENCE_MIR_CLEANUP,
                 air->mir_cleanup_evidence_count,
                 error_message)
+            || !air_strict_require_mir_boundary_evidence_node(
+                air,
+                AIR_EVIDENCE_MIR_PIN_CLEANUP,
+                air->mir_pin_cleanup_evidence_count,
+                error_message)
             || !air_strict_require_mir_evidence_node(
                 air,
                 AIR_EVIDENCE_MIR_TERMINATOR,
@@ -478,7 +519,7 @@ air_verify(AIRProgram *air, char **error_message)
                         SIZE_MAX,
                         error_message,
                         PGY_CODE_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING
-                        ": AIR DAG evidence contains unresolved metadata dead-end; kind=%s fallback_count=%zu. "
+                        ": AIR DAG evidence contains unresolved metadata dead-end; kind=%s unresolved_count=%zu. "
                         "Reason: strict AIR requires graph-backed type evidence before abstraction-boundary verification. "
                         "Fix: resolve the type-resolution metadata dead-end or add the missing DAG evidence node.",
                         air_evidence_kind_name(evidence->kind),

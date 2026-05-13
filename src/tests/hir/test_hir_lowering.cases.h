@@ -519,6 +519,49 @@ test_hir_lowering(void)
         hir_destroy(hir);
     }
 
+    TEST("HIR validator rejects predecessor count above capacity");
+    {
+        const char *src =
+            "func BranchFlow(flag: Bool) -> Int {\n"
+            "    if flag {\n"
+            "        return 1;\n"
+            "    }\n"
+            "    return 0;\n"
+            "}\n";
+        HIRProgram *hir = lower_from_source(src);
+        HIRRoutine *routine = NULL;
+        char *error = NULL;
+        bool corrupted = false;
+        bool rejected = false;
+        if (hir != NULL) {
+            for (size_t i = 0; i < hir->routine_count; i++) {
+                if (hir->routines[i].name != NULL
+                    && strcmp(hir->routines[i].name, "BranchFlow") == 0) {
+                    routine = &hir->routines[i];
+                    break;
+                }
+            }
+        }
+        if (routine != NULL && routine->has_cfg) {
+            for (size_t i = 0; i < routine->cfg.block_count; i++) {
+                HIRBasicBlock *block = &routine->cfg.blocks[i];
+                if (block->predecessor_count == 0 || block->predecessors == NULL)
+                    continue;
+                block->predecessor_capacity = block->predecessor_count - 1;
+                corrupted = true;
+                break;
+            }
+        }
+        rejected = hir != NULL
+                   && corrupted
+                   && !hir_validate(hir, &error)
+                   && error != NULL
+                   && strstr(error, "predecessor count above predecessor capacity") != NULL;
+        EXPECT(rejected);
+        free(error);
+        hir_destroy(hir);
+    }
+
     TEST("HIR CFG lowers loop break and continue edges explicitly");
     {
         const char *src =

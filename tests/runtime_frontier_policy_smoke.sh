@@ -32,6 +32,13 @@ expect_size(const char *name, size_t actual, size_t expected)
     return actual == expected ? 0 : 1;
 }
 
+static int
+expect_nonempty_string(const char *name, const char *value)
+{
+    (void)name;
+    return value != NULL && value[0] != '\0' ? 0 : 1;
+}
+
 int
 main(void)
 {
@@ -65,7 +72,14 @@ main(void)
     failures += expect_size("domain-world-derived-null", pgy_domain_world_derived_frontier_pass_limit(NULL), 1);
     failures += expect_size("domain-world-embedded-null", pgy_domain_world_embedded_frontier_count(NULL, NULL, NULL), 0);
     failures += expect_size("domain-world-transitive-null", pgy_domain_world_transitive_frontier_pass_limit(NULL, 3), 4);
-    failures += expect_size("publish-fact-count", PGY_FRONTIER_POLICY_FACT_COUNT, 9);
+    failures += expect_size("pass-limit-fact-count", PGY_FRONTIER_PASS_LIMIT_FACT_COUNT, 9);
+    failures += expect_size("overflow-reason-fact-count", PGY_FRONTIER_OVERFLOW_REASON_FACT_COUNT, 5);
+    failures += expect_size("policy-fact-count", PGY_FRONTIER_POLICY_FACT_COUNT, 14);
+    failures += expect_nonempty_string("reason-generic", PGY_FRONTIER_REASON_GENERIC_OVERFLOW);
+    failures += expect_nonempty_string("reason-projection", PGY_FRONTIER_REASON_PROJECTION_OVERFLOW);
+    failures += expect_nonempty_string("reason-zone", PGY_FRONTIER_REASON_ZONE_OVERFLOW);
+    failures += expect_nonempty_string("reason-world-transitive", PGY_FRONTIER_REASON_WORLD_TRANSITIVE_OVERFLOW);
+    failures += expect_nonempty_string("reason-world-derived", PGY_FRONTIER_REASON_WORLD_DERIVED_OVERFLOW);
     failures += expect_size("publish-write-before-ready",
                             pgy_frontier_publish_order_is_valid(
                                 PGY_FRONTIER_PUBLISH_WRITE_VALUE,
@@ -114,8 +128,8 @@ if [[ "$compiled" != "1" ]]; then
     exit 1
 fi
 if ! "$probe_exe"; then
-    echo "[runtime-frontier-policy] frontier policy arithmetic probe failed" >&2
+    echo "[runtime-frontier-policy] frontier policy probe failed" >&2
     exit 1
 fi
 
-echo "[runtime-frontier-policy] bounded frontier pass-limit arithmetic is gated"
+echo "[runtime-frontier-policy] bounded frontier runtime policy is gated"

@@ -39,6 +39,32 @@ mir_decl_header_strdup_fmt(const char *fmt, ...)
 
 #define mir_strdup_fmt mir_decl_header_strdup_fmt
 
+static size_t
+mir_decl_ast_domain_method_count(ASTNode *ast)
+{
+    size_t method_count = 0;
+
+    if (ast == NULL)
+        return 0;
+    switch (ast->type) {
+    case AST_WORLD_DECL:
+        (void) ast_world_methods(ast, &method_count);
+        break;
+    case AST_RELATION_DECL:
+        (void) ast_relation_methods(ast, &method_count);
+        break;
+    case AST_EFFECT_DECL:
+        (void) ast_effect_methods(ast, &method_count);
+        break;
+    case AST_ZONE_DECL:
+        (void) ast_zone_methods(ast, &method_count);
+        break;
+    default:
+        break;
+    }
+    return method_count;
+}
+
 static bool
 mir_decl_header_ast_shape(const MIRDeclHeader *header,
                           const char **name_out,
@@ -76,55 +102,55 @@ mir_decl_header_ast_shape(const MIRDeclHeader *header,
         return true;
     case AST_PARTY_DECL:
         if (name_out != NULL)
-            *name_out = ast->data.party_decl.name;
+            *name_out = ast_party_name(ast);
         if (method_count_out != NULL)
-            *method_count_out = ast->data.party_decl.method_count;
+            *method_count_out = ast_party_method_count(ast);
         if (uses_pointer_self_out != NULL)
             *uses_pointer_self_out = true;
         return true;
     case AST_ROLE_DECL:
         if (name_out != NULL)
-            *name_out = ast->data.role_decl.name;
+            *name_out = ast_role_name(ast);
         if (uses_pointer_self_out != NULL)
             *uses_pointer_self_out = true;
         return true;
     case AST_ROSTER_DECL:
         if (name_out != NULL)
-            *name_out = ast->data.roster_decl.name;
+            *name_out = ast_roster_name(ast);
         if (method_count_out != NULL)
-            *method_count_out = ast->data.roster_decl.method_count;
+            *method_count_out = ast_roster_method_count(ast);
         if (uses_pointer_self_out != NULL)
             *uses_pointer_self_out = true;
         return true;
     case AST_WORLD_DECL:
         if (name_out != NULL)
-            *name_out = ast->data.world_decl.name;
+            *name_out = ast_world_name(ast);
         if (method_count_out != NULL)
-            *method_count_out = ast->data.world_decl.method_count;
+            *method_count_out = mir_decl_ast_domain_method_count(ast);
         if (uses_pointer_self_out != NULL)
             *uses_pointer_self_out = true;
         return true;
     case AST_RELATION_DECL:
         if (name_out != NULL)
-            *name_out = ast->data.relation_decl.name;
+            *name_out = ast_relation_name(ast);
         if (method_count_out != NULL)
-            *method_count_out = ast->data.relation_decl.method_count;
+            *method_count_out = mir_decl_ast_domain_method_count(ast);
         if (uses_pointer_self_out != NULL)
             *uses_pointer_self_out = true;
         return true;
     case AST_EFFECT_DECL:
         if (name_out != NULL)
-            *name_out = ast->data.effect_decl.name;
+            *name_out = ast_effect_name(ast);
         if (method_count_out != NULL)
-            *method_count_out = ast->data.effect_decl.method_count;
+            *method_count_out = mir_decl_ast_domain_method_count(ast);
         if (uses_pointer_self_out != NULL)
             *uses_pointer_self_out = true;
         return true;
     case AST_ZONE_DECL:
         if (name_out != NULL)
-            *name_out = ast->data.zone_decl.name;
+            *name_out = ast_zone_name(ast);
         if (method_count_out != NULL)
-            *method_count_out = ast->data.zone_decl.method_count;
+            *method_count_out = mir_decl_ast_domain_method_count(ast);
         if (uses_pointer_self_out != NULL)
             *uses_pointer_self_out = true;
         return true;

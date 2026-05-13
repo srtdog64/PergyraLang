@@ -215,39 +215,39 @@ module_normalizer_normalize_node_refs(ASTNode *node,
             normalize_generic_params(node->data.ability_decl.generic_params, scope, shadow);
             for (size_t i = 0; i < node->data.ability_decl.require_count; i++)
                 module_normalizer_normalize_node_refs(node->data.ability_decl.require_fields[i], scope, shadow);
-            for (size_t i = 0; i < node->data.ability_decl.method_count; i++)
-                module_normalizer_normalize_node_refs(node->data.ability_decl.methods[i], scope, shadow);
+            for (size_t i = 0; i < ast_ability_method_count(node); i++)
+                module_normalizer_normalize_node_refs(ast_ability_method(node, i), scope, shadow);
             return;
 
         case AST_ROLE_DECL:
-            module_normalizer_normalize_node_refs(node->data.role_decl.for_type, scope, shadow);
+            module_normalizer_normalize_node_refs(ast_role_for_type(node), scope, shadow);
             normalize_generic_params(node->data.role_decl.generic_params, scope, shadow);
-            for (size_t i = 0; i < node->data.role_decl.include_count; i++)
-                module_normalizer_normalize_node_refs(node->data.role_decl.includes[i], scope, shadow);
-            for (size_t i = 0; i < node->data.role_decl.impl_count; i++)
-                module_normalizer_normalize_node_refs(node->data.role_decl.impl_abilities[i], scope, shadow);
+            for (size_t i = 0; i < ast_role_include_count(node); i++)
+                module_normalizer_normalize_node_refs(ast_role_include(node, i), scope, shadow);
+            for (size_t i = 0; i < ast_role_impl_count(node); i++)
+                module_normalizer_normalize_node_refs(ast_role_impl(node, i), scope, shadow);
             module_normalizer_normalize_node_refs(node->data.role_decl.parallel_block, scope, shadow);
             return;
 
         case AST_PARTY_DECL:
             module_normalizer_normalize_node_refs(node->data.party_decl.extends, scope, shadow);
             normalize_generic_params(node->data.party_decl.generic_params, scope, shadow);
-            for (size_t i = 0; i < node->data.party_decl.role_count; i++)
-                module_normalizer_normalize_node_refs(node->data.party_decl.role_slots[i], scope, shadow);
-            for (size_t i = 0; i < node->data.party_decl.shared_count; i++)
-                module_normalizer_normalize_node_refs(node->data.party_decl.shared_fields[i], scope, shadow);
-            for (size_t i = 0; i < node->data.party_decl.method_count; i++)
-                module_normalizer_normalize_node_refs(node->data.party_decl.methods[i], scope, shadow);
+            for (size_t i = 0; i < ast_party_role_count(node); i++)
+                module_normalizer_normalize_node_refs(ast_party_role(node, i), scope, shadow);
+            for (size_t i = 0; i < ast_party_shared_count(node); i++)
+                module_normalizer_normalize_node_refs(ast_party_shared(node, i), scope, shadow);
+            for (size_t i = 0; i < ast_party_method_count(node); i++)
+                module_normalizer_normalize_node_refs(ast_party_method(node, i), scope, shadow);
             return;
 
         case AST_ROSTER_DECL:
             normalize_generic_params(node->data.roster_decl.generic_params, scope, shadow);
-            for (size_t i = 0; i < node->data.roster_decl.party_count; i++)
-                module_normalizer_normalize_node_refs(node->data.roster_decl.party_slots[i], scope, shadow);
-            for (size_t i = 0; i < node->data.roster_decl.shared_count; i++)
-                module_normalizer_normalize_node_refs(node->data.roster_decl.shared_fields[i], scope, shadow);
-            for (size_t i = 0; i < node->data.roster_decl.method_count; i++)
-                module_normalizer_normalize_node_refs(node->data.roster_decl.methods[i], scope, shadow);
+            for (size_t i = 0; i < ast_roster_party_count(node); i++)
+                module_normalizer_normalize_node_refs(ast_roster_party(node, i), scope, shadow);
+            for (size_t i = 0; i < ast_roster_shared_count(node); i++)
+                module_normalizer_normalize_node_refs(ast_roster_shared(node, i), scope, shadow);
+            for (size_t i = 0; i < ast_roster_method_count(node); i++)
+                module_normalizer_normalize_node_refs(ast_roster_method(node, i), scope, shadow);
             return;
 
         case AST_WORLD_DECL:

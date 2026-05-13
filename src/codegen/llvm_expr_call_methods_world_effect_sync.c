@@ -27,10 +27,10 @@ llvm_call_find_domain_decl(LLVMGenCtx *ctx, ASTNodeType decl_type, const char *n
             continue;
         switch (decl_type) {
         case AST_EFFECT_DECL:
-            item_name = item->data.effect_decl.name;
+            item_name = ast_effect_name(item);
             break;
         case AST_ZONE_DECL:
-            item_name = item->data.zone_decl.name;
+            item_name = ast_zone_name(item);
             break;
         default:
             break;
@@ -73,10 +73,14 @@ llvm_world_effect_sync_function_name(char *out,
 static ASTNode *
 llvm_call_find_first_effect_subject_slot(ASTNode *effect_decl)
 {
+    size_t slot_count = 0;
+    ASTNode **slots;
+
     if (effect_decl == NULL || effect_decl->type != AST_EFFECT_DECL)
         return NULL;
-    for (size_t i = 0; i < effect_decl->data.effect_decl.slot_count; i++) {
-        ASTNode *slot = effect_decl->data.effect_decl.slots[i];
+    slots = ast_effect_slots(effect_decl, &slot_count);
+    for (size_t i = 0; i < slot_count; i++) {
+        ASTNode *slot = slots[i];
         if (slot != NULL && slot->type == AST_DOMAIN_SLOT
             && slot->data.domain_slot.is_subject
             && slot->data.domain_slot.slot_name != NULL) {
@@ -121,17 +125,17 @@ llvm_emit_world_embedded_action_effect_sync(LLVMGenCtx *ctx,
     if (!llvm_world_embedded_projection_source_from_assignment(ctx, receiver,
             &zone_slot_name, &zone_decl, &source_slot_name, NULL)
         || zone_slot_name == NULL || zone_decl == NULL || source_slot_name == NULL
-        || zone_decl->data.zone_decl.name == NULL
+        || ast_zone_name(zone_decl) == NULL
         || strcmp(method_decl->data.func_decl.within_zone,
-                  zone_decl->data.zone_decl.name) != 0) {
+                  ast_zone_name(zone_decl)) != 0) {
         return;
     }
 
     effect_name = method_decl->data.func_decl.causes_effect;
     effect_decl = llvm_call_find_domain_decl(ctx, AST_EFFECT_DECL, effect_name);
     target_slot = llvm_call_find_first_effect_subject_slot(effect_decl);
-    world_cls = llvm_lookup_class(ctx, host_decl->data.world_decl.name);
-    zone_cls = llvm_lookup_class(ctx, zone_decl->data.zone_decl.name);
+    world_cls = llvm_lookup_class(ctx, ast_world_name(host_decl));
+    zone_cls = llvm_lookup_class(ctx, ast_zone_name(zone_decl));
     effect_cls = llvm_lookup_class(ctx, effect_name);
     self_var = llvm_scope_lookup(ctx, "self");
     if (effect_decl == NULL || target_slot == NULL || world_cls == NULL
@@ -152,8 +156,15 @@ llvm_emit_world_embedded_action_effect_sync(LLVMGenCtx *ctx,
             world_ptr, (unsigned)zone_idx, llvm_tmp_name(ctx));
     }
 
-    for (size_t i = 0; i < zone_decl->data.zone_decl.layer_slot_count; i++) {
-        ASTNode *layer_slot = zone_decl->data.zone_decl.layer_slots[i];
+    size_t layer_slot_count = 0;
+    ASTNode **layer_slots = ast_zone_layer_slots(zone_decl, &layer_slot_count);
+    size_t state_count = 0;
+    ASTNode **states = ast_zone_states(zone_decl, &state_count);
+    size_t refresh_count = 0;
+    ASTNode **refreshes = ast_effect_refreshes(effect_decl, &refresh_count);
+
+    for (size_t i = 0; i < layer_slot_count; i++) {
+        ASTNode *layer_slot = layer_slots[i];
         const char *layer_name;
         int active_idx;
         int layer_idx;
@@ -224,8 +235,8 @@ llvm_emit_world_embedded_action_effect_sync(LLVMGenCtx *ctx,
                 LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i32, 11, 0), cause_ptr);
             }
         }
-        for (size_t si = 0; si < zone_decl->data.zone_decl.state_count; si++) {
-            ASTNode *state = zone_decl->data.zone_decl.states[si];
+        for (size_t si = 0; si < state_count; si++) {
+            ASTNode *state = states[si];
             char state_epoch_field[256];
             char state_cause_field[256];
             int state_epoch_idx;
@@ -386,8 +397,8 @@ llvm_emit_world_embedded_action_effect_sync(LLVMGenCtx *ctx,
                 llvm_tmp_name(ctx));
             LLVMBuildStore(ctx->builder, source_value, subject_ptr);
         }
-        for (size_t ri = 0; ri < effect_decl->data.effect_decl.refresh_count; ri++) {
-            ASTNode *refresh = effect_decl->data.effect_decl.refreshes[ri];
+        for (size_t ri = 0; ri < refresh_count; ri++) {
+            ASTNode *refresh = refreshes[ri];
             const char *projection_name;
             const char *refresh_source;
             char dirty_field[256];

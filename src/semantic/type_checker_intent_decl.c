@@ -392,11 +392,11 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                 "- or remove/change the causes clause",
                 step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
                 step->data.intent_step.causes_effect,
-                zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>",
-                zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>",
+                ast_zone_name(zone_decl) != NULL ? ast_zone_name(zone_decl) : "<zone>",
+                ast_zone_name(zone_decl) != NULL ? ast_zone_name(zone_decl) : "<zone>",
                 step->data.intent_step.causes_effect,
                 step->data.intent_step.causes_effect,
-                zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>");
+                ast_zone_name(zone_decl) != NULL ? ast_zone_name(zone_decl) : "<zone>");
         }
 
         type_check_intent_step_authority_contract(

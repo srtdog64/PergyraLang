@@ -12,6 +12,12 @@
 
 bool any_subject_role_has_ability(ASTNode *program, ASTNode *ability_ref);
 
+ASTNode *semantic_find_role_decl(ASTNode *program, const char *role_name);
+
+ASTNode *semantic_role_for_type_node(ASTNode *role_decl);
+
+const char *semantic_role_for_type_name(ASTNode *role_decl);
+
 ASTNode *any_subject_role_find_base_ability_impl(ASTNode *program,
                                                  const char *ability_name);
 

@@ -1,6 +1,8 @@
 #ifndef PGY_TRANSPILER_RELATION_EFFECT_EMIT_H
 #define PGY_TRANSPILER_RELATION_EFFECT_EMIT_H
 
+#include "parser/ast_api.h"
+
 static bool
 transpiler_relation_effect_surface_desc(char *out, size_t out_size,
                                         const char *surface_kind,
@@ -35,7 +37,7 @@ transpiler_relation_effect_surface_desc_too_long(TranspilerCtx *ctx,
 void
 emit_relation_decl(ASTNode *node, TranspilerCtx *ctx)
 {
-    const char *name = node->data.relation_decl.name;
+    const char *name = ast_relation_name(node);
     ASTNode *inventory_decl = transpiler_find_decl_in_inventory_local(
         ctx, AST_RELATION_DECL, name);
 
@@ -45,8 +47,10 @@ emit_relation_decl(ASTNode *node, TranspilerCtx *ctx)
     codebuf_write(ctx->out, "\n/* Relation: %s */\n", name);
     codebuf_write(ctx->out, "typedef struct %s\n{\n", name);
 
-    for (size_t i = 0; i < node->data.relation_decl.slot_count; i++) {
-        ASTNode *slot = node->data.relation_decl.slots[i];
+    size_t slot_count = 0;
+    ASTNode **slots = ast_relation_slots(node, &slot_count);
+    for (size_t i = 0; i < slot_count; i++) {
+        ASTNode *slot = slots[i];
         const char *ft = NULL;
         char surface_desc[256];
         if (!transpiler_relation_effect_surface_desc(surface_desc,
@@ -73,8 +77,10 @@ emit_relation_decl(ASTNode *node, TranspilerCtx *ctx)
         }
     }
 
-    for (size_t i = 0; i < node->data.relation_decl.shared_count; i++) {
-        ASTNode *shared = node->data.relation_decl.shared_fields[i];
+    size_t shared_count = 0;
+    ASTNode **shared_fields = ast_relation_shared_fields(node, &shared_count);
+    for (size_t i = 0; i < shared_count; i++) {
+        ASTNode *shared = shared_fields[i];
         const char *ft = NULL;
         char surface_desc[256];
         if (!transpiler_relation_effect_surface_desc(surface_desc,
@@ -98,11 +104,13 @@ emit_relation_decl(ASTNode *node, TranspilerCtx *ctx)
     codebuf_write(ctx->out, "\nstatic inline void\n%s_sync(%s *self)\n{\n",
                   name, name);
     ctx->indent++;
+    size_t refresh_count = 0;
+    ASTNode **refreshes = ast_relation_refreshes(node, &refresh_count);
     emit_domain_projection_sync_loop(ctx,
-        node->data.relation_decl.slots,
-        node->data.relation_decl.slot_count,
-        node->data.relation_decl.refreshes,
-        node->data.relation_decl.refresh_count,
+        slots,
+        slot_count,
+        refreshes,
+        refresh_count,
         "relation_projection",
         true);
     ctx->indent--;
@@ -136,7 +144,7 @@ emit_relation_decl(ASTNode *node, TranspilerCtx *ctx)
 void
 emit_effect_decl(ASTNode *node, TranspilerCtx *ctx)
 {
-    const char *name = node->data.effect_decl.name;
+    const char *name = ast_effect_name(node);
     ASTNode *inventory_decl = transpiler_find_decl_in_inventory_local(
         ctx, AST_EFFECT_DECL, name);
 
@@ -146,8 +154,10 @@ emit_effect_decl(ASTNode *node, TranspilerCtx *ctx)
     codebuf_write(ctx->out, "\n/* Effect: %s */\n", name);
     codebuf_write(ctx->out, "typedef struct %s\n{\n", name);
 
-    for (size_t i = 0; i < node->data.effect_decl.slot_count; i++) {
-        ASTNode *slot = node->data.effect_decl.slots[i];
+    size_t slot_count = 0;
+    ASTNode **slots = ast_effect_slots(node, &slot_count);
+    for (size_t i = 0; i < slot_count; i++) {
+        ASTNode *slot = slots[i];
         const char *ft = NULL;
         char surface_desc[256];
         if (!transpiler_relation_effect_surface_desc(surface_desc,
@@ -174,8 +184,10 @@ emit_effect_decl(ASTNode *node, TranspilerCtx *ctx)
         }
     }
 
-    for (size_t i = 0; i < node->data.effect_decl.shared_count; i++) {
-        ASTNode *shared = node->data.effect_decl.shared_fields[i];
+    size_t shared_count = 0;
+    ASTNode **shared_fields = ast_effect_shared_fields(node, &shared_count);
+    for (size_t i = 0; i < shared_count; i++) {
+        ASTNode *shared = shared_fields[i];
         const char *ft = NULL;
         char surface_desc[256];
         if (!transpiler_relation_effect_surface_desc(surface_desc,
@@ -199,11 +211,13 @@ emit_effect_decl(ASTNode *node, TranspilerCtx *ctx)
     codebuf_write(ctx->out, "\nstatic inline void\n%s_sync(%s *self)\n{\n",
                   name, name);
     ctx->indent++;
+    size_t refresh_count = 0;
+    ASTNode **refreshes = ast_effect_refreshes(node, &refresh_count);
     emit_domain_projection_sync_loop(ctx,
-        node->data.effect_decl.slots,
-        node->data.effect_decl.slot_count,
-        node->data.effect_decl.refreshes,
-        node->data.effect_decl.refresh_count,
+        slots,
+        slot_count,
+        refreshes,
+        refresh_count,
         "effect_projection",
         true);
     ctx->indent--;

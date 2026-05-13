@@ -518,10 +518,13 @@ type_check_zone_projection_contract(ASTNode *zone,
                                     SemanticContext *ctx,
                                     const char *action_name)
 {
+    size_t slot_count = 0;
+    ASTNode **slots;
+
     if (zone == NULL)
         return false;
-    return type_check_projection_contract(zone->data.zone_decl.slots,
-        zone->data.zone_decl.slot_count, "Zone",
-        zone->data.zone_decl.name, site,
+    slots = ast_zone_slots(zone, &slot_count);
+    return type_check_projection_contract(slots, slot_count, "Zone",
+        ast_zone_name(zone), site,
         object_slot_name, source_slot_name, ctx, action_name);
 }

@@ -92,6 +92,15 @@ hir_validate_predecessors(const HIRRoutine *routine,
         }
         return false;
     }
+    if (block->predecessor_count > block->predecessor_capacity) {
+        if (error_message != NULL) {
+            *error_message = hir_validate_strdup_fmt(
+                "HIR routine '%s' block[%zu] has predecessor count above predecessor capacity",
+                routine->name,
+                block_index);
+        }
+        return false;
+    }
     for (size_t i = 0; i < block->predecessor_count; i++) {
         if (block->predecessors[i] < routine->cfg.block_count)
             continue;

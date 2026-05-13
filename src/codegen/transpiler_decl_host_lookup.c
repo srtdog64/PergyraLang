@@ -152,16 +152,13 @@ transpiler_find_host_decl_from_owner_local(TranspilerCtx *ctx,
     }
 
     if (owner_ast_type == AST_ROLE_DECL) {
+        const char *subject_name;
         role_decl = transpiler_find_decl_in_active_inventory_only_local(
             ctx, AST_ROLE_DECL, owner_name);
-        if (role_decl != NULL
-            && role_decl->type == AST_ROLE_DECL
-            && role_decl->data.role_decl.for_type != NULL
-            && role_decl->data.role_decl.for_type->type == AST_TYPE
-            && role_decl->data.role_decl.for_type->data.type.name != NULL) {
+        subject_name = transpiler_role_subject_type_name_local(role_decl);
+        if (subject_name != NULL) {
             return transpiler_find_decl_in_active_inventory_only_local(
-                ctx, AST_CLASS_DECL,
-                role_decl->data.role_decl.for_type->data.type.name);
+                ctx, AST_CLASS_DECL, subject_name);
         }
         return NULL;
     }
@@ -180,6 +177,22 @@ transpiler_find_host_decl_from_owner_local(TranspilerCtx *ctx,
 }
 
 const char *
+transpiler_role_subject_type_name_local(ASTNode *role_decl)
+{
+    ASTNode *for_type = transpiler_role_subject_type_node_local(role_decl);
+
+    if (for_type == NULL || for_type->type != AST_TYPE)
+        return NULL;
+    return for_type->data.type.name;
+}
+
+ASTNode *
+transpiler_role_subject_type_node_local(ASTNode *role_decl)
+{
+    return ast_role_for_type(role_decl);
+}
+
+const char *
 transpiler_role_subject_name_local(TranspilerCtx *ctx, const char *role_name)
 {
     ASTNode *role_decl;
@@ -189,15 +202,7 @@ transpiler_role_subject_name_local(TranspilerCtx *ctx, const char *role_name)
 
     role_decl = transpiler_find_decl_in_active_inventory_only_local(
         ctx, AST_ROLE_DECL, role_name);
-    if (role_decl == NULL
-        || role_decl->type != AST_ROLE_DECL
-        || role_decl->data.role_decl.for_type == NULL
-        || role_decl->data.role_decl.for_type->type != AST_TYPE
-        || role_decl->data.role_decl.for_type->data.type.name == NULL) {
-        return NULL;
-    }
-
-    return role_decl->data.role_decl.for_type->data.type.name;
+    return transpiler_role_subject_type_name_local(role_decl);
 }
 
 void

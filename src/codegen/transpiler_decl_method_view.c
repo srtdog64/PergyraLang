@@ -146,28 +146,22 @@ transpiler_hosted_method_view_from_decl(const TranspilerCtx *ctx,
             ast_compat_count = decl->data.enum_decl.method_count;
             break;
         case AST_PARTY_DECL:
-            ast_compat_methods = decl->data.party_decl.methods;
-            ast_compat_count = decl->data.party_decl.method_count;
+            ast_compat_methods = ast_party_methods(decl, &ast_compat_count);
             break;
         case AST_ROSTER_DECL:
-            ast_compat_methods = decl->data.roster_decl.methods;
-            ast_compat_count = decl->data.roster_decl.method_count;
+            ast_compat_methods = ast_roster_methods(decl, &ast_compat_count);
             break;
         case AST_WORLD_DECL:
-            ast_compat_methods = decl->data.world_decl.methods;
-            ast_compat_count = decl->data.world_decl.method_count;
+            ast_compat_methods = ast_world_methods(decl, &ast_compat_count);
             break;
         case AST_RELATION_DECL:
-            ast_compat_methods = decl->data.relation_decl.methods;
-            ast_compat_count = decl->data.relation_decl.method_count;
+            ast_compat_methods = ast_relation_methods(decl, &ast_compat_count);
             break;
         case AST_EFFECT_DECL:
-            ast_compat_methods = decl->data.effect_decl.methods;
-            ast_compat_count = decl->data.effect_decl.method_count;
+            ast_compat_methods = ast_effect_methods(decl, &ast_compat_count);
             break;
         case AST_ZONE_DECL:
-            ast_compat_methods = decl->data.zone_decl.methods;
-            ast_compat_count = decl->data.zone_decl.method_count;
+            ast_compat_methods = ast_zone_methods(decl, &ast_compat_count);
             break;
         default:
             break;

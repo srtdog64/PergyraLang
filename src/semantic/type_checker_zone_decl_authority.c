@@ -12,8 +12,12 @@
 void
 type_check_zone_authorities(ASTNode *zone, SemanticContext *ctx)
 {
-    for (size_t i = 0; i < zone->data.zone_decl.authority_count; i++) {
-        ASTNode *authority = zone->data.zone_decl.authorities[i];
+    ASTNode **authorities;
+    size_t authority_count;
+
+    authorities = ast_zone_authorities(zone, &authority_count);
+    for (size_t i = 0; i < authority_count; i++) {
+        ASTNode *authority = authorities[i];
         ASTNode *slot;
         Type *slot_type;
         if (authority == NULL
@@ -71,8 +75,8 @@ type_check_zone_authorities(ASTNode *zone, SemanticContext *ctx)
             }
             free(required_text);
         }
-        for (size_t j = i + 1; j < zone->data.zone_decl.authority_count; j++) {
-            ASTNode *other = zone->data.zone_decl.authorities[j];
+        for (size_t j = i + 1; j < authority_count; j++) {
+            ASTNode *other = authorities[j];
             if (other != NULL
                 && other->data.zone_authority.subject_slot_name != NULL
                 && strcmp(authority->data.zone_authority.subject_slot_name,
@@ -85,7 +89,7 @@ type_check_zone_authorities(ASTNode *zone, SemanticContext *ctx)
                     "Fix:\n"
                     "- keep one authority declaration for '%s'\n"
                     "- or merge the required ability list into a single authority clause",
-                    zone->data.zone_decl.name,
+                    ast_zone_name(zone),
                     authority->data.zone_authority.subject_slot_name,
                     authority->data.zone_authority.subject_slot_name);
             }
@@ -103,13 +107,15 @@ type_check_zone_lifecycle_authority_presence(ASTNode *zone,
                                              const char *primary_slot_name,
                                              const char *secondary_slot_name)
 {
-    const char *zone_name = zone != NULL && zone->data.zone_decl.name != NULL
-        ? zone->data.zone_decl.name : "<zone>";
+    size_t authority_count;
+    const char *zone_name = zone != NULL && ast_zone_name(zone) != NULL
+        ? ast_zone_name(zone) : "<zone>";
     const char *action = action_name != NULL ? action_name : "<action>";
     const char *kind = lifecycle_kind != NULL ? lifecycle_kind : "effect";
+    ast_zone_authorities(zone, &authority_count);
 
     if (zone == NULL || site == NULL || ctx == NULL
-        || zone->data.zone_decl.authority_count == 0
+        || authority_count == 0
         || participant_slot_name != NULL) {
         return;
     }
@@ -216,8 +222,12 @@ type_check_zone_lifecycle_authority_presence(ASTNode *zone,
 void
 type_check_zone_layer_slots(ASTNode *zone, SemanticContext *ctx)
 {
-    for (size_t i = 0; i < zone->data.zone_decl.layer_slot_count; i++) {
-        ASTNode *layer_slot = zone->data.zone_decl.layer_slots[i];
+    ASTNode **layer_slots;
+    size_t layer_slot_count;
+
+    layer_slots = ast_zone_layer_slots(zone, &layer_slot_count);
+    for (size_t i = 0; i < layer_slot_count; i++) {
+        ASTNode *layer_slot = layer_slots[i];
         const char *type_name = layer_slot->data.zone_layer_slot.layer_type;
         Symbol *sym = type_name != NULL ? scope_lookup(ctx->scope, type_name) : NULL;
         ASTNodeType decl_type = layer_slot->data.zone_layer_slot.is_relation
@@ -252,7 +262,7 @@ type_check_zone_layer_slots(ASTNode *zone, SemanticContext *ctx)
                 kind_name,
                 kind_name,
                 type_name != NULL ? type_name : "<unknown>",
-                zone->data.zone_decl.name != NULL ? zone->data.zone_decl.name : "<zone>",
+                ast_zone_name(zone) != NULL ? ast_zone_name(zone) : "<zone>",
                 kind_name);
         }
         if (layer_slot->data.zone_layer_slot.is_relation

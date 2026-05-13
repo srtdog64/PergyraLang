@@ -89,6 +89,8 @@ run_literal_doc_contract_smoke() {
     require_literal "src/compiler/mir_lifecycle.c" "invalid: value-summary count without value-summary inventory"
     require_literal "src/compiler/mir_cfg_contract_validate.c" "unreachable block[%zu] has exceptional successor"
     require_literal "src/compiler/mir_cfg_contract_validate.c" "instruction count without instruction inventory"
+    require_literal "src/compiler/mir_cfg_contract_edges.c" "predecessor count without predecessor inventory"
+    require_literal "src/compiler/mir_cfg_contract_edges.c" "predecessor count above predecessor capacity"
     require_literal "src/compiler/mir_lifecycle.c" "instructions != NULL"
     require_literal "src/codegen/transpiler_mir_emission_contract.h" "instruction count without instruction inventory"
     require_literal "src/codegen/llvm_mir_block_emit.c" "instruction count without instruction inventory"
@@ -245,7 +247,13 @@ run_literal_doc_contract_smoke() {
     require_literal "src/semantic/type_checker_lambda_capture.c" "beta lambdas lower to standalone callable bodies without a closure environment"
     require_literal "src/semantic/type_checker_flow_loops.c" "type_check_while_loop_flow(ASTNode *node, SemanticContext *ctx)"
     require_literal "src/semantic/type_checker_flow_loops.c" "type_check_for_loop_flow(ASTNode *node, SemanticContext *ctx)"
+    require_literal "src/semantic/type_checker_flow.c" "flow_static_bool_value"
+    require_literal "src/semantic/type_checker_flow_loops.c" "flow_static_bool_value(node->data.while_loop.condition"
     require_literal "src/semantic/type_checker_flow_loops.c" "condition_static_false"
+    if grep -Fq "AST_BOOLEAN" "$ROOT_DIR/src/semantic/type_checker_flow_loops.c"; then
+        echo "loop flow must consume static Bool through flow_static_bool_value, not AST_BOOLEAN directly" >&2
+        exit 1
+    fi
     require_literal "src/semantic/type_checker_flow.c" "restore_resource_states(&base)"
     require_literal "src/semantic/type_checker_flow_loops.c" "restore_resource_states(&merged)"
     require_literal "src/semantic/type_checker_flow_parallel.h" "restore_resource_states(&base)"
@@ -255,10 +263,12 @@ run_literal_doc_contract_smoke() {
     require_literal "src/tests/semantic/test_semantic_misc_a_part_a.cases.h" "CFG static false while does not merge unreachable resource state"
     require_literal "src/codegen/transpiler_mir_emission_contract.h" "mir_block_has_expected_cleanup_edge_fact(routine, i)"
     require_literal "src/codegen/transpiler_mir_emission_contract.h" "mir_block_has_pin_cleanup_edge(block)"
+    require_literal "src/codegen/transpiler_mir_emission_contract.h" "pin block %llu has no cleanup successor"
     require_literal "src/compiler/mir_fact_validate.c" "mir_validate_routine_emission_facts"
     require_literal "src/codegen/transpiler_mir_emission_contract.h" "mir_validate_routine_emission_facts(routine"
     require_literal "src/codegen/llvm_mir_contract.c" "llvm_mir_validate_cleanup_contract"
     require_literal "src/codegen/llvm_mir_contract.c" "mir_validate_emission_topology(routine"
+    require_literal "src/compiler/mir_public_surface.h" "mir_validate_cfg_contract_state(routine"
     require_literal "src/codegen/llvm_mir_contract.c" "mir_validate_routine_emission_facts(routine"
     require_literal "src/codegen/llvm_mir_contract.c" "mir_block_has_expected_cleanup_edge_fact(routine, i)"
     require_literal "src/codegen/llvm_mir_contract.c" "mir_block_has_pin_cleanup_edge(block)"
@@ -961,6 +971,7 @@ required_flow_terms = [
     "type_check_while_loop",
     "type_check_for_loop",
     "merge_resource_snapshots_or",
+    "flow_static_bool_value",
     "condition_static_false",
     "restore_resource_states(&base)",
     "type_check_defer_body_flow",
@@ -1011,6 +1022,7 @@ hir_routines_text = hir_routines.read_text(encoding="utf-8")
 for term in [
     "hir_validate_cfg_shape",
     "hir_validate_cfg_predecessors",
+    "predecessor count above predecessor capacity",
     "HIR_BLOCK_FALLTHROUGH",
     "hir_cfg_successor_in_range",
     "hir_cfg_block_targets",
@@ -1024,6 +1036,7 @@ for term in [
         hir_cfg_phi = root / "src" / "compiler" / "hir_cfg_phi.c"
         hir_routine_cfg = root / "src" / "compiler" / "hir_routine_cfg.c"
         hir_public = root / "src" / "compiler" / "hir_public.c"
+        hir_validate = root / "src" / "compiler" / "hir_validate.c"
         joined = (
             hir_header.read_text(encoding="utf-8")
             + "\n"
@@ -1034,6 +1047,8 @@ for term in [
             + hir_routine_cfg.read_text(encoding="utf-8")
             + "\n"
             + hir_public.read_text(encoding="utf-8")
+            + "\n"
+            + hir_validate.read_text(encoding="utf-8")
         )
         if term not in joined:
             raise SystemExit(f"HIR CFG validation/summary gate missing {term}")
@@ -1236,6 +1251,8 @@ for term in [
     "MIR validator rejects missing routine inventory",
     "MIR validator rejects missing block inventory",
     "MIR validator rejects missing value-summary inventory",
+    "MIR validator rejects predecessor count without inventory",
+    "MIR validator rejects predecessor count above capacity",
     "MIR validator rejects missing rollback and invalidation cleanup facts",
     "MIR validator rejects pin-region without cleanup root",
     "MIR validator rejects orphan cleanup-marked block",

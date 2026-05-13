@@ -8,8 +8,22 @@
 bool
 type_check_world_decl(ASTNode *node, SemanticContext *ctx)
 {
-    const char *name = node->data.world_decl.name;
+    const char *name = ast_world_name(node);
     ASTNode *saved_world = ctx->current_world;
+    ASTNode **rosters;
+    ASTNode **zones;
+    ASTNode **activations;
+    ASTNode **deactivations;
+    ASTNode **maintained_zones;
+    ASTNode **shared_fields;
+    ASTNode **methods;
+    size_t roster_count;
+    size_t zone_count;
+    size_t activate_count;
+    size_t deactivate_count;
+    size_t maintained_zone_count;
+    size_t shared_count;
+    size_t method_count;
 
     Symbol *sym = calloc(1, sizeof(Symbol));
     sym->name = pergyra_strdup(name);
@@ -37,10 +51,18 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
     }
 
     ctx->current_world = node;
+    rosters = ast_world_rosters(node, &roster_count);
+    zones = ast_world_zones(node, &zone_count);
+    activations = ast_world_activations(node, &activate_count);
+    deactivations = ast_world_deactivations(node, &deactivate_count);
+    maintained_zones = ast_world_maintained_zones(node,
+                                                  &maintained_zone_count);
+    shared_fields = ast_world_shared_fields(node, &shared_count);
+    methods = ast_world_methods(node, &method_count);
 
     /* Check roster references */
-    for (size_t i = 0; i < node->data.world_decl.roster_count; i++) {
-        ASTNode *ws = node->data.world_decl.rosters[i];
+    for (size_t i = 0; i < roster_count; i++) {
+        ASTNode *ws = rosters[i];
         if (ws->data.world_roster.roster_type != NULL) {
             Symbol *sys = scope_lookup(ctx->scope,
                 ws->data.world_roster.roster_type);
@@ -64,8 +86,8 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
         }
     }
 
-    for (size_t i = 0; i < node->data.world_decl.zone_count; i++) {
-        ASTNode *wz = node->data.world_decl.zones[i];
+    for (size_t i = 0; i < zone_count; i++) {
+        ASTNode *wz = zones[i];
         if (wz->data.world_zone.zone_type != NULL) {
             Symbol *zone = scope_lookup(ctx->scope,
                 wz->data.world_zone.zone_type);
@@ -94,8 +116,8 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
 
     type_check_world_states(node, ctx);
 
-    for (size_t i = 0; i < node->data.world_decl.activate_count; i++) {
-        ASTNode *activate = node->data.world_decl.activations[i];
+    for (size_t i = 0; i < activate_count; i++) {
+        ASTNode *activate = activations[i];
         const char *zone_slot_name = activate->data.world_activate.zone_slot_name;
         if (activate->data.world_activate.state_name != NULL) {
             if (!resolve_world_zone_state(node, activate,
@@ -116,12 +138,12 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
                 "- activate a declared world zone slot\n"
                 "- or correct the referenced zone/state alias",
                 zone_slot_name != NULL ? zone_slot_name : "<unknown>",
-                node->data.world_decl.name != NULL ? node->data.world_decl.name : "<world>",
+                name != NULL ? name : "<world>",
                 zone_slot_name != NULL ? zone_slot_name : "<unknown>",
                 zone_slot_name != NULL ? zone_slot_name : "<unknown>");
         }
-        for (size_t j = i + 1; j < node->data.world_decl.activate_count; j++) {
-            ASTNode *other = node->data.world_decl.activations[j];
+        for (size_t j = i + 1; j < activate_count; j++) {
+            ASTNode *other = activations[j];
             const char *other_zone = other->data.world_activate.zone_slot_name;
             if (other->data.world_activate.state_name != NULL) {
                 resolve_world_zone_state(node, other,
@@ -138,12 +160,12 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
                     "Fix:\n"
                     "- keep a single activate entry for zone '%s'\n"
                     "- or collapse duplicates into one lifecycle rule",
-                    node->data.world_decl.name, zone_slot_name,
+                    name, zone_slot_name,
                     zone_slot_name);
             }
         }
-        for (size_t j = 0; j < node->data.world_decl.deactivate_count; j++) {
-            ASTNode *deactivate = node->data.world_decl.deactivations[j];
+        for (size_t j = 0; j < deactivate_count; j++) {
+            ASTNode *deactivate = deactivations[j];
             const char *other_zone = deactivate->data.world_deactivate.zone_slot_name;
             if (deactivate->data.world_deactivate.state_name != NULL) {
                 resolve_world_zone_state(node, deactivate,
@@ -160,12 +182,12 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
                     "Fix:\n"
                     "- keep only activate or deactivate for zone '%s'\n"
                     "- or split the behavior into separate world-state aliases",
-                    node->data.world_decl.name, zone_slot_name,
+                    name, zone_slot_name,
                     zone_slot_name);
             }
         }
-        for (size_t j = 0; j < node->data.world_decl.maintained_zone_count; j++) {
-            ASTNode *maintain = node->data.world_decl.maintained_zones[j];
+        for (size_t j = 0; j < maintained_zone_count; j++) {
+            ASTNode *maintain = maintained_zones[j];
             const char *other_zone = maintain->data.world_maintain.zone_slot_name;
             if (maintain->data.world_maintain.state_name != NULL) {
                 resolve_world_zone_state(node, maintain,
@@ -182,14 +204,14 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
                     "Fix:\n"
                     "- keep `maintain` for zone '%s'\n"
                     "- or drop `maintain` and keep only the activate rule if that is the intended contract",
-                    node->data.world_decl.name, zone_slot_name,
+                    name, zone_slot_name,
                     zone_slot_name);
             }
         }
     }
 
-    for (size_t i = 0; i < node->data.world_decl.deactivate_count; i++) {
-        ASTNode *deactivate = node->data.world_decl.deactivations[i];
+    for (size_t i = 0; i < deactivate_count; i++) {
+        ASTNode *deactivate = deactivations[i];
         const char *zone_slot_name = deactivate->data.world_deactivate.zone_slot_name;
         if (deactivate->data.world_deactivate.state_name != NULL) {
             if (!resolve_world_zone_state(node, deactivate,
@@ -210,12 +232,12 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
                 "- deactivate a declared world zone slot\n"
                 "- or correct the referenced zone/state alias",
                 zone_slot_name != NULL ? zone_slot_name : "<unknown>",
-                node->data.world_decl.name != NULL ? node->data.world_decl.name : "<world>",
+                name != NULL ? name : "<world>",
                 zone_slot_name != NULL ? zone_slot_name : "<unknown>",
                 zone_slot_name != NULL ? zone_slot_name : "<unknown>");
         }
-        for (size_t j = i + 1; j < node->data.world_decl.deactivate_count; j++) {
-            ASTNode *other = node->data.world_decl.deactivations[j];
+        for (size_t j = i + 1; j < deactivate_count; j++) {
+            ASTNode *other = deactivations[j];
             const char *other_zone = other->data.world_deactivate.zone_slot_name;
             if (other->data.world_deactivate.state_name != NULL) {
                 resolve_world_zone_state(node, other,
@@ -232,14 +254,14 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
                     "Fix:\n"
                     "- keep a single deactivate entry for zone '%s'\n"
                     "- or collapse duplicates into one lifecycle rule",
-                    node->data.world_decl.name, zone_slot_name,
+                    name, zone_slot_name,
                     zone_slot_name);
             }
         }
     }
 
-    for (size_t i = 0; i < node->data.world_decl.maintained_zone_count; i++) {
-        ASTNode *maintain = node->data.world_decl.maintained_zones[i];
+    for (size_t i = 0; i < maintained_zone_count; i++) {
+        ASTNode *maintain = maintained_zones[i];
         const char *zone_slot_name = maintain->data.world_maintain.zone_slot_name;
         const char *state_name = maintain->data.world_maintain.state_name;
         if (state_name != NULL) {
@@ -260,12 +282,12 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
                 "- maintain a declared world zone slot\n"
                 "- or correct the referenced zone/state alias",
                 zone_slot_name != NULL ? zone_slot_name : "<unknown>",
-                node->data.world_decl.name != NULL ? node->data.world_decl.name : "<world>",
+                name != NULL ? name : "<world>",
                 zone_slot_name != NULL ? zone_slot_name : "<unknown>",
                 zone_slot_name != NULL ? zone_slot_name : "<unknown>");
         }
-        for (size_t j = i + 1; j < node->data.world_decl.maintained_zone_count; j++) {
-            ASTNode *other = node->data.world_decl.maintained_zones[j];
+        for (size_t j = i + 1; j < maintained_zone_count; j++) {
+            ASTNode *other = maintained_zones[j];
             const char *other_zone = other->data.world_maintain.zone_slot_name;
             if (other->data.world_maintain.state_name != NULL) {
                 resolve_world_zone_state(node, other,
@@ -281,12 +303,12 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
                     "Fix:\n"
                     "- keep a single maintain entry for zone '%s'\n"
                     "- or collapse duplicates into one lifecycle rule",
-                    node->data.world_decl.name, zone_slot_name,
+                    name, zone_slot_name,
                     zone_slot_name);
             }
         }
-        for (size_t j = 0; j < node->data.world_decl.deactivate_count; j++) {
-            ASTNode *deactivate = node->data.world_decl.deactivations[j];
+        for (size_t j = 0; j < deactivate_count; j++) {
+            ASTNode *deactivate = deactivations[j];
             const char *other_zone = deactivate->data.world_deactivate.zone_slot_name;
             if (deactivate->data.world_deactivate.state_name != NULL) {
                 resolve_world_zone_state(node, deactivate,
@@ -304,12 +326,12 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
                     "Fix:\n"
                     "- keep only maintain or deactivate for zone '%s'\n"
                     "- or split the behavior into separate world-state aliases",
-                    node->data.world_decl.name, zone_slot_name,
+                    name, zone_slot_name,
                     zone_slot_name);
             }
         }
-        for (size_t j = 0; j < node->data.world_decl.activate_count; j++) {
-            ASTNode *activate = node->data.world_decl.activations[j];
+        for (size_t j = 0; j < activate_count; j++) {
+            ASTNode *activate = activations[j];
             const char *other_zone = activate->data.world_activate.zone_slot_name;
             if (activate->data.world_activate.state_name != NULL) {
                 resolve_world_zone_state(node, activate,
@@ -326,15 +348,15 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
                     "Fix:\n"
                     "- keep `maintain` for zone '%s'\n"
                     "- or drop `maintain` and keep only the activate rule if that is the intended contract",
-                    node->data.world_decl.name, zone_slot_name,
+                    name, zone_slot_name,
                     zone_slot_name);
             }
         }
     }
 
     /* Check shared fields */
-    for (size_t i = 0; i < node->data.world_decl.shared_count; i++) {
-        ASTNode *shared = node->data.world_decl.shared_fields[i];
+    for (size_t i = 0; i < shared_count; i++) {
+        ASTNode *shared = shared_fields[i];
         if (shared->data.party_shared.type != NULL)
             world_resolve_type_ref(shared->data.party_shared.type, ctx);
         if (shared->data.party_shared.initializer != NULL)
@@ -343,8 +365,8 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
 
     /* Check methods */
     scope_enter(&ctx->scope, SCOPE_BLOCK);
-    for (size_t i = 0; i < node->data.world_decl.method_count; i++) {
-        type_check_func_decl(node->data.world_decl.methods[i], ctx);
+    for (size_t i = 0; i < method_count; i++) {
+        type_check_func_decl(methods[i], ctx);
     }
     scope_exit(&ctx->scope);
 

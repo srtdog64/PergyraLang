@@ -124,17 +124,14 @@ type_check_has_projection(ASTNode *call, SemanticContext *ctx)
         return TYPE_BOOL;
     }
     if (host->type == AST_RELATION_DECL) {
-        host_name = host->data.relation_decl.name;
-        refreshes = host->data.relation_decl.refreshes;
-        refresh_count = host->data.relation_decl.refresh_count;
+        host_name = ast_relation_name(host);
+        refreshes = ast_relation_refreshes(host, &refresh_count);
     } else if (host->type == AST_EFFECT_DECL) {
-        host_name = host->data.effect_decl.name;
-        refreshes = host->data.effect_decl.refreshes;
-        refresh_count = host->data.effect_decl.refresh_count;
+        host_name = ast_effect_name(host);
+        refreshes = ast_effect_refreshes(host, &refresh_count);
     } else if (host->type == AST_ZONE_DECL) {
-        host_name = host->data.zone_decl.name;
-        refreshes = host->data.zone_decl.refreshes;
-        refresh_count = host->data.zone_decl.refresh_count;
+        host_name = ast_zone_name(host);
+        refreshes = ast_zone_refreshes(host, &refresh_count);
     }
 
     arg = call->data.call.arguments[0];
@@ -252,7 +249,7 @@ type_check_has_layer(ASTNode *call, SemanticContext *ctx)
             "- declare a relation/effect slot named '%s'\n"
             "- or call HasLayer(...) with an existing zone layer slot name",
             slot_name, slot_name,
-            zone->data.zone_decl.name != NULL ? zone->data.zone_decl.name : "<zone>",
+            ast_zone_name(zone) != NULL ? ast_zone_name(zone) : "<zone>",
             slot_name,
             slot_name);
         return TYPE_BOOL;
@@ -271,6 +268,8 @@ type_check_has_state(ASTNode *call, SemanticContext *ctx)
     const char *slot_name = NULL;
     const char *left_slot_name = NULL;
     const char *right_slot_name = NULL;
+    ASTNode **states = NULL;
+    size_t state_count = 0;
 
     if (call->data.call.arg_count < 1 || call->data.call.arg_count > 3) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_PREDICATE_ARGS_INVALID,
@@ -293,6 +292,7 @@ type_check_has_state(ASTNode *call, SemanticContext *ctx)
             "- or pass the relevant state into this function explicitly");
         return TYPE_BOOL;
     }
+    states = ast_zone_states(zone, &state_count);
 
     arg = call->data.call.arguments[0];
     if (arg == NULL) {
@@ -317,8 +317,8 @@ type_check_has_state(ASTNode *call, SemanticContext *ctx)
         return TYPE_BOOL;
     }
 
-    for (size_t i = 0; i < zone->data.zone_decl.state_count; i++) {
-        state = zone->data.zone_decl.states[i];
+    for (size_t i = 0; i < state_count; i++) {
+        state = states[i];
         if (state != NULL
             && state->type == AST_ZONE_STATE
             && state->data.zone_state.state_name != NULL
@@ -340,7 +340,7 @@ type_check_has_state(ASTNode *call, SemanticContext *ctx)
             "- declare a zone state named '%s'\n"
             "- or call HasState(...) with an existing state name",
             state_name, state_name,
-            zone->data.zone_decl.name != NULL ? zone->data.zone_decl.name : "<zone>",
+            ast_zone_name(zone) != NULL ? ast_zone_name(zone) : "<zone>",
             state_name,
             state_name);
         return TYPE_BOOL;
@@ -375,7 +375,7 @@ type_check_has_state(ASTNode *call, SemanticContext *ctx)
                 "- current zone: %s\n"
                 "- state '%s' targets slot '%s'",
                 state_name,
-                zone->data.zone_decl.name != NULL ? zone->data.zone_decl.name : "<zone>",
+                ast_zone_name(zone) != NULL ? ast_zone_name(zone) : "<zone>",
                 state_name,
                 state->data.zone_state.left_or_target_slot_name != NULL
                     ? state->data.zone_state.left_or_target_slot_name : "<slot>");
@@ -392,7 +392,7 @@ type_check_has_state(ASTNode *call, SemanticContext *ctx)
                 state_name,
                 state->data.zone_state.left_or_target_slot_name,
                 slot_name,
-                zone->data.zone_decl.name != NULL ? zone->data.zone_decl.name : "<zone>",
+                ast_zone_name(zone) != NULL ? ast_zone_name(zone) : "<zone>",
                 state_name);
         }
         return TYPE_BOOL;
@@ -405,7 +405,7 @@ type_check_has_state(ASTNode *call, SemanticContext *ctx)
             "- current zone: %s\n"
             "- relation state '%s' is declared between '%s' and '%s'",
             state_name,
-            zone->data.zone_decl.name != NULL ? zone->data.zone_decl.name : "<zone>",
+            ast_zone_name(zone) != NULL ? ast_zone_name(zone) : "<zone>",
             state_name,
             state->data.zone_state.left_or_target_slot_name != NULL
                 ? state->data.zone_state.left_or_target_slot_name : "<left>",
@@ -447,7 +447,7 @@ type_check_has_state(ASTNode *call, SemanticContext *ctx)
             state->data.zone_state.right_slot_name,
             left_slot_name,
             right_slot_name,
-            zone->data.zone_decl.name != NULL ? zone->data.zone_decl.name : "<zone>",
+            ast_zone_name(zone) != NULL ? ast_zone_name(zone) : "<zone>",
             state_name);
     }
     return TYPE_BOOL;

@@ -227,7 +227,7 @@ emit_domain_projection_sync_loop(TranspilerCtx *ctx,
     ctx->indent++;
     write_indent(ctx);
     codebuf_write(ctx->out,
-        "PGY_PANIC(\"projection recompute exceeded bounded pass limit\");\n");
+        "PGY_PANIC(\"%s\");\n", PGY_FRONTIER_REASON_PROJECTION_OVERFLOW);
     ctx->indent--;
     write_indent(ctx);
     codebuf_write(ctx->out, "}\n");

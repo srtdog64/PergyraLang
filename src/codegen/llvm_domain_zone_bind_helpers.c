@@ -11,6 +11,7 @@
 
 #include "llvm_internal_api.h"
 #include "llvm_inventory_decl_lookup.h"
+#include "parser/ast_api.h"
 
 static bool
 llvm_zone_bind_sync_name(char *out, size_t out_size, const char *name)
@@ -82,8 +83,10 @@ llvm_find_zone_layer_slot(ASTNode *zone_decl,
         return NULL;
     }
 
-    for (size_t i = 0; i < zone_decl->data.zone_decl.layer_slot_count; i++) {
-        ASTNode *slot = zone_decl->data.zone_decl.layer_slots[i];
+    size_t layer_slot_count = 0;
+    ASTNode **layer_slots = ast_zone_layer_slots(zone_decl, &layer_slot_count);
+    for (size_t i = 0; i < layer_slot_count; i++) {
+        ASTNode *slot = layer_slots[i];
         if (slot != NULL && slot->type == AST_ZONE_LAYER_SLOT
             && slot->data.zone_layer_slot.is_relation == is_relation
             && slot->data.zone_layer_slot.slot_name != NULL
@@ -126,12 +129,14 @@ llvm_zone_bind_effect_layer(ASTNode *zone_decl, LLVMClassTypeEntry *zone_cls,
         layer_slot->data.zone_layer_slot.layer_type);
     if (effect_decl == NULL)
         return;
+    size_t effect_slot_count = 0;
+    ASTNode **effect_slots = ast_effect_slots(effect_decl, &effect_slot_count);
+    size_t effect_refresh_count = 0;
+    ASTNode **effect_refreshes =
+        ast_effect_refreshes(effect_decl, &effect_refresh_count);
     target_slot = llvm_find_nth_bindable_domain_slot(
-        effect_decl->data.effect_decl.slots,
-        effect_decl->data.effect_decl.slot_count,
-        effect_decl->data.effect_decl.refreshes,
-        effect_decl->data.effect_decl.refresh_count, 0);
-    effect_cls = llvm_lookup_class(ctx, effect_decl->data.effect_decl.name);
+        effect_slots, effect_slot_count, effect_refreshes, effect_refresh_count, 0);
+    effect_cls = llvm_lookup_class(ctx, ast_effect_name(effect_decl));
     if (target_slot == NULL || effect_cls == NULL
         || target_slot->data.domain_slot.slot_name == NULL) {
         return;
@@ -176,7 +181,7 @@ llvm_zone_bind_effect_layer(ASTNode *zone_decl, LLVMClassTypeEntry *zone_cls,
         LLVMBuildStore(ctx->builder, target_value, subject_ptr);
 
         if (!llvm_zone_bind_sync_name(sync_name, sizeof(sync_name),
-                effect_decl->data.effect_decl.name))
+                ast_effect_name(effect_decl)))
             return;
         sync_entry = llvm_lookup_function(ctx, sync_name);
         if (sync_entry != NULL) {
@@ -267,8 +272,8 @@ llvm_zone_bind_effect_layer(ASTNode *zone_decl, LLVMClassTypeEntry *zone_cls,
             llvm_tmp_name(ctx));
         LLVMBuildStore(ctx->builder, target_value, subject_ptr);
     }
-    for (size_t i = 0; i < effect_decl->data.effect_decl.refresh_count; i++) {
-        ASTNode *refresh = effect_decl->data.effect_decl.refreshes[i];
+    for (size_t i = 0; i < effect_refresh_count; i++) {
+        ASTNode *refresh = effect_refreshes[i];
         const char *projection_name;
         const char *source_name;
         char dirty_field[256];
@@ -313,7 +318,7 @@ llvm_zone_bind_effect_layer(ASTNode *zone_decl, LLVMClassTypeEntry *zone_cls,
         char sync_name[256];
         LLVMFuncEntry *sync_entry;
         if (!llvm_zone_bind_sync_name(sync_name, sizeof(sync_name),
-                effect_decl->data.effect_decl.name))
+                ast_effect_name(effect_decl)))
             return;
         sync_entry = llvm_lookup_function(ctx, sync_name);
         if (sync_entry != NULL) {
@@ -361,17 +366,16 @@ llvm_zone_bind_relation_layer(ASTNode *zone_decl, LLVMClassTypeEntry *zone_cls,
         layer_slot->data.zone_layer_slot.layer_type);
     if (relation_decl == NULL)
         return;
+    size_t relation_slot_count = 0;
+    ASTNode **relation_slots = ast_relation_slots(relation_decl, &relation_slot_count);
+    size_t relation_refresh_count = 0;
+    ASTNode **relation_refreshes =
+        ast_relation_refreshes(relation_decl, &relation_refresh_count);
     left_target = llvm_find_nth_bindable_domain_slot(
-        relation_decl->data.relation_decl.slots,
-        relation_decl->data.relation_decl.slot_count,
-        relation_decl->data.relation_decl.refreshes,
-        relation_decl->data.relation_decl.refresh_count, 0);
+        relation_slots, relation_slot_count, relation_refreshes, relation_refresh_count, 0);
     right_target = llvm_find_nth_bindable_domain_slot(
-        relation_decl->data.relation_decl.slots,
-        relation_decl->data.relation_decl.slot_count,
-        relation_decl->data.relation_decl.refreshes,
-        relation_decl->data.relation_decl.refresh_count, 1);
-    relation_cls = llvm_lookup_class(ctx, relation_decl->data.relation_decl.name);
+        relation_slots, relation_slot_count, relation_refreshes, relation_refresh_count, 1);
+    relation_cls = llvm_lookup_class(ctx, ast_relation_name(relation_decl));
     if (left_target == NULL || right_target == NULL || relation_cls == NULL
         || left_target->data.domain_slot.slot_name == NULL
         || right_target->data.domain_slot.slot_name == NULL) {
@@ -413,8 +417,8 @@ llvm_zone_bind_relation_layer(ASTNode *zone_decl, LLVMClassTypeEntry *zone_cls,
             llvm_tmp_name(ctx));
         LLVMBuildStore(ctx->builder, right_value, subject_ptr);
     }
-    for (size_t i = 0; i < relation_decl->data.relation_decl.refresh_count; i++) {
-        ASTNode *refresh = relation_decl->data.relation_decl.refreshes[i];
+    for (size_t i = 0; i < relation_refresh_count; i++) {
+        ASTNode *refresh = relation_refreshes[i];
         const char *projection_name;
         const char *source_name;
         char dirty_field[256];
@@ -461,7 +465,7 @@ llvm_zone_bind_relation_layer(ASTNode *zone_decl, LLVMClassTypeEntry *zone_cls,
         char sync_name[256];
         LLVMFuncEntry *sync_entry;
         if (!llvm_zone_bind_sync_name(sync_name, sizeof(sync_name),
-                relation_decl->data.relation_decl.name))
+                ast_relation_name(relation_decl)))
             return;
         sync_entry = llvm_lookup_function(ctx, sync_name);
         if (sync_entry != NULL) {

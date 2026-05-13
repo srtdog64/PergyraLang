@@ -193,8 +193,13 @@ emit_intent_step_mark_caused_effect(CodeBuf *out, TranspilerCtx *ctx,
     if (zone_decl == NULL || zone_decl->type != AST_ZONE_DECL)
         return;
 
-    for (size_t i = 0; i < zone_decl->data.zone_decl.layer_slot_count; i++) {
-        ASTNode *layer_slot = zone_decl->data.zone_decl.layer_slots[i];
+    size_t layer_slot_count = 0;
+    ASTNode **layer_slots = ast_zone_layer_slots(zone_decl, &layer_slot_count);
+    size_t state_count = 0;
+    ASTNode **states = ast_zone_states(zone_decl, &state_count);
+
+    for (size_t i = 0; i < layer_slot_count; i++) {
+        ASTNode *layer_slot = layer_slots[i];
         const char *layer_name;
 
         if (layer_slot == NULL || layer_slot->type != AST_ZONE_LAYER_SLOT
@@ -211,8 +216,8 @@ emit_intent_step_mark_caused_effect(CodeBuf *out, TranspilerCtx *ctx,
         write_indent(ctx);
         codebuf_write(out, "%s->__layer_cause_%s = 11;\n", zone_alias, layer_name);
 
-        for (size_t j = 0; j < zone_decl->data.zone_decl.state_count; j++) {
-            ASTNode *state = zone_decl->data.zone_decl.states[j];
+        for (size_t j = 0; j < state_count; j++) {
+            ASTNode *state = states[j];
             if (state == NULL || state->type != AST_ZONE_STATE
                 || state->data.zone_state.is_relation
                 || state->data.zone_state.state_name == NULL

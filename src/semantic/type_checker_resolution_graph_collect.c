@@ -267,25 +267,25 @@ semantic_type_resolution_register_top_level_decl(ASTNode *stmt,
         label = stmt->data.role_decl.name;
         break;
     case AST_PARTY_DECL:
-        label = stmt->data.party_decl.name;
+        label = ast_party_name(stmt);
         break;
     case AST_ROSTER_DECL:
-        label = stmt->data.roster_decl.name;
+        label = ast_roster_name(stmt);
         break;
     case AST_WORLD_DECL:
-        label = stmt->data.world_decl.name;
+        label = ast_world_name(stmt);
         break;
     case AST_INTENT_DECL:
         label = stmt->data.intent_decl.name;
         break;
     case AST_RELATION_DECL:
-        label = stmt->data.relation_decl.name;
+        label = ast_relation_name(stmt);
         break;
     case AST_EFFECT_DECL:
-        label = stmt->data.effect_decl.name;
+        label = ast_effect_name(stmt);
         break;
     case AST_ZONE_DECL:
-        label = stmt->data.zone_decl.name;
+        label = ast_zone_name(stmt);
         break;
     default:
         return;

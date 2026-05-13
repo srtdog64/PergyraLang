@@ -70,8 +70,12 @@ type_check_overlay_decl_common(ASTNode *node,
     scope_enter(&ctx->scope, SCOPE_BLOCK);
     /* Register domain slots so bare slot access works in hosted funcs. */
     if (node->type == AST_ZONE_DECL) {
-        for (size_t i = 0; i < node->data.zone_decl.slot_count; i++) {
-            ASTNode *slot = node->data.zone_decl.slots[i];
+        ASTNode **slots;
+        size_t slot_count;
+
+        slots = ast_zone_slots(node, &slot_count);
+        for (size_t i = 0; i < slot_count; i++) {
+            ASTNode *slot = slots[i];
             if (slot != NULL && slot->type == AST_DOMAIN_SLOT
                 && slot->data.domain_slot.slot_name != NULL
                 && slot->data.domain_slot.type != NULL) {
@@ -87,8 +91,12 @@ type_check_overlay_decl_common(ASTNode *node,
         }
     }
     if (node->type == AST_WORLD_DECL) {
-        for (size_t i = 0; i < node->data.world_decl.zone_count; i++) {
-            ASTNode *wz = node->data.world_decl.zones[i];
+        ASTNode **zones;
+        size_t zone_count;
+
+        zones = ast_world_zones(node, &zone_count);
+        for (size_t i = 0; i < zone_count; i++) {
+            ASTNode *wz = zones[i];
             if (wz != NULL && wz->type == AST_WORLD_ZONE
                 && wz->data.world_zone.slot_name != NULL
                 && wz->data.world_zone.zone_type != NULL) {

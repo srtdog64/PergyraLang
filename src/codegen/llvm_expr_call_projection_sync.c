@@ -67,8 +67,8 @@ llvm_emit_world_embedded_receiver_projection_sync(LLVMGenCtx *ctx,
         return;
     }
 
-    world_cls = llvm_lookup_class(ctx, host_decl->data.world_decl.name);
-    zone_cls = llvm_lookup_class(ctx, zone_decl->data.zone_decl.name);
+    world_cls = llvm_lookup_class(ctx, ast_world_name(host_decl));
+    zone_cls = llvm_lookup_class(ctx, ast_zone_name(zone_decl));
     self_var = llvm_scope_lookup(ctx, "self");
     if (world_cls == NULL || zone_cls == NULL || self_var == NULL
         || zone_cls->sync_function_name == NULL) {
@@ -92,8 +92,10 @@ llvm_emit_world_embedded_receiver_projection_sync(LLVMGenCtx *ctx,
     zone_ptr = LLVMBuildStructGEP2(ctx->builder, world_cls->struct_type,
         world_ptr, (unsigned)zone_field_idx, llvm_tmp_name(ctx));
 
-    for (size_t i = 0; i < zone_decl->data.zone_decl.slot_count; i++) {
-        ASTNode *slot = zone_decl->data.zone_decl.slots[i];
+    size_t slot_count = 0;
+    ASTNode **slots = ast_zone_slots(zone_decl, &slot_count);
+    for (size_t i = 0; i < slot_count; i++) {
+        ASTNode *slot = slots[i];
         char field_name[256];
         int field_idx;
         if (slot == NULL || slot->type != AST_DOMAIN_SLOT
@@ -165,8 +167,8 @@ llvm_emit_world_embedded_receiver_projection_sync(LLVMGenCtx *ctx,
         }
         if (!llvm_projection_sync_call_function_name(world_sync_name,
                 sizeof(world_sync_name),
-                host_decl->data.world_decl.name != NULL
-                    ? host_decl->data.world_decl.name : "World")) {
+                ast_world_name(host_decl) != NULL
+                    ? ast_world_name(host_decl) : "World")) {
             llvm_set_error(ctx, "world sync function name is too long");
             return;
         }
@@ -197,7 +199,7 @@ llvm_emit_current_zone_subject_projection_sync(LLVMGenCtx *ctx, ASTNode *receive
         return;
 
     source_slot_name = receiver->data.identifier.name;
-    host_name = host_decl->data.zone_decl.name;
+    host_name = ast_zone_name(host_decl);
     if (source_slot_name == NULL || host_name == NULL)
         return;
 
@@ -209,8 +211,10 @@ llvm_emit_current_zone_subject_projection_sync(LLVMGenCtx *ctx, ASTNode *receive
     if (self_ptr == NULL)
         return;
 
-    for (size_t i = 0; i < host_decl->data.zone_decl.refresh_count; i++) {
-        ASTNode *refresh = host_decl->data.zone_decl.refreshes[i];
+    size_t refresh_count = 0;
+    ASTNode **refreshes = ast_zone_refreshes(host_decl, &refresh_count);
+    for (size_t i = 0; i < refresh_count; i++) {
+        ASTNode *refresh = refreshes[i];
         const char *target_name;
         const char *refresh_source;
         char dirty_field[256];

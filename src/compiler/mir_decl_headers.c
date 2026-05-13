@@ -99,13 +99,15 @@ mir_role_impl_method_count(ASTNode *role_decl, size_t *count_out)
         *count_out = 0;
         return true;
     }
-    for (size_t i = 0; i < role_decl->data.role_decl.impl_count; i++) {
-        ASTNode *impl = role_decl->data.role_decl.impl_abilities[i];
+    for (size_t i = 0; i < ast_role_impl_count(role_decl); i++) {
+        ASTNode *impl = ast_role_impl(role_decl, i);
+        size_t method_count;
         if (impl == NULL || impl->type != AST_IMPL_ABILITY)
             continue;
-        if (impl->data.impl_ability.method_count > SIZE_MAX - count)
+        method_count = ast_impl_ability_method_count(impl);
+        if (method_count > SIZE_MAX - count)
             return false;
-        count += impl->data.impl_ability.method_count;
+        count += method_count;
     }
     *count_out = count;
     return true;
@@ -134,12 +136,12 @@ mir_decl_header_set_role_impl_methods(MIRDeclHeader *header, ASTNode *role_decl)
     if (header->method_metadata == NULL)
         return false;
 
-    for (size_t i = 0; i < role_decl->data.role_decl.impl_count; i++) {
-        ASTNode *impl = role_decl->data.role_decl.impl_abilities[i];
+    for (size_t i = 0; i < ast_role_impl_count(role_decl); i++) {
+        ASTNode *impl = ast_role_impl(role_decl, i);
         if (impl == NULL || impl->type != AST_IMPL_ABILITY)
             continue;
-        for (size_t j = 0; j < impl->data.impl_ability.method_count; j++) {
-            ASTNode *method = impl->data.impl_ability.methods[j];
+        for (size_t j = 0; j < ast_impl_ability_method_count(impl); j++) {
+            ASTNode *method = ast_impl_ability_method(impl, j);
             MIRDeclMethod *meta = &header->method_metadata[out++];
             meta->source_ast = method;
             meta->owner_name = header->name;
@@ -186,37 +188,34 @@ mir_record_decl_header(MIRProgram *mir, ASTNode *decl)
         method_count = decl->data.enum_decl.method_count;
         break;
     case AST_PARTY_DECL:
-        header.name = decl->data.party_decl.name;
-        methods = decl->data.party_decl.methods;
-        method_count = decl->data.party_decl.method_count;
+        header.name = ast_party_name(decl);
+        methods = ast_party_methods(decl, NULL);
+        method_count = ast_party_method_count(decl);
         header.uses_pointer_self = true;
         break;
     case AST_ROSTER_DECL:
-        header.name = decl->data.roster_decl.name;
-        methods = decl->data.roster_decl.methods;
-        method_count = decl->data.roster_decl.method_count;
+        header.name = ast_roster_name(decl);
+        methods = ast_roster_methods(decl, NULL);
+        method_count = ast_roster_method_count(decl);
         header.uses_pointer_self = true;
         break;
     case AST_WORLD_DECL:
-        header.name = decl->data.world_decl.name;
-        methods = decl->data.world_decl.methods;
-        method_count = decl->data.world_decl.method_count;
+        header.name = ast_world_name(decl);
+        methods = ast_world_methods(decl, &method_count);
         header.uses_pointer_self = true;
         break;
     case AST_RELATION_DECL:
-        header.name = decl->data.relation_decl.name;
-        methods = decl->data.relation_decl.methods;
-        method_count = decl->data.relation_decl.method_count;
+        header.name = ast_relation_name(decl);
+        methods = ast_relation_methods(decl, &method_count);
         header.uses_pointer_self = true;
         break;
     case AST_EFFECT_DECL:
-        header.name = decl->data.effect_decl.name;
-        methods = decl->data.effect_decl.methods;
-        method_count = decl->data.effect_decl.method_count;
+        header.name = ast_effect_name(decl);
+        methods = ast_effect_methods(decl, &method_count);
         header.uses_pointer_self = true;
         break;
     case AST_ROLE_DECL:
-        header.name = decl->data.role_decl.name;
+        header.name = ast_role_name(decl);
         header.uses_pointer_self = true;
         if (header.name == NULL)
             return true;
@@ -228,9 +227,8 @@ mir_record_decl_header(MIRProgram *mir, ASTNode *decl)
         }
         return true;
     case AST_ZONE_DECL:
-        header.name = decl->data.zone_decl.name;
-        methods = decl->data.zone_decl.methods;
-        method_count = decl->data.zone_decl.method_count;
+        header.name = ast_zone_name(decl);
+        methods = ast_zone_methods(decl, &method_count);
         header.uses_pointer_self = true;
         break;
     default:

@@ -42,8 +42,10 @@ resolve_intent_zone_slot_name_for_zone(TranspilerCtx *ctx, ASTNode *intent,
     if (zone_decl == NULL)
         return "<unbound>";
 
-    for (size_t i = 0; i < zone_decl->data.zone_decl.slot_count; i++) {
-        ASTNode *slot = zone_decl->data.zone_decl.slots[i];
+    size_t slot_count = 0;
+    ASTNode **slots = ast_zone_slots(zone_decl, &slot_count);
+    for (size_t i = 0; i < slot_count; i++) {
+        ASTNode *slot = slots[i];
         if (slot == NULL || slot->type != AST_DOMAIN_SLOT
             || !slot->data.domain_slot.is_subject
             || slot->data.domain_slot.slot_name == NULL) {

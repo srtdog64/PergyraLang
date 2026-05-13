@@ -48,26 +48,24 @@ emit_role_method_impl(const char *role_name, ASTNode *method, TranspilerCtx *ctx
 static void
 emit_role_vtable_instance(const char *role_name, ASTNode *impl, TranspilerCtx *ctx)
 {
-    const char *ability_name =
-        (impl->data.impl_ability.ability_ref != NULL
-         && impl->data.impl_ability.ability_ref->type == AST_TYPE)
-        ? impl->data.impl_ability.ability_ref->data.type.name : NULL;
+    ASTNode *ability_ref = ast_impl_ability_ref(impl);
+    const char *ability_name = ast_impl_ability_name(impl);
     char typedef_name[128];
     char *vtable_tag = NULL;
     if (ctx != NULL && ctx->backend_error != NULL)
         return;
-    if (ability_name == NULL || impl->data.impl_ability.method_count == 0)
+    if (ability_name == NULL || ast_impl_ability_method_count(impl) == 0)
         return;
 
-    ensure_ability_ref_vtable_decl(impl->data.impl_ability.ability_ref, ctx);
+    ensure_ability_ref_vtable_decl(ability_ref, ctx);
     if (ctx != NULL && ctx->backend_error != NULL)
         return;
     if (!ability_ref_vtable_typedef_name(
-            impl->data.impl_ability.ability_ref, typedef_name, sizeof(typedef_name), ctx))
+            ability_ref, typedef_name, sizeof(typedef_name), ctx))
         return;
     vtable_tag = render_effective_ability_ref_vtable_tag(
         find_ability_decl(ctx, ability_name),
-        impl->data.impl_ability.ability_ref,
+        ability_ref,
         ctx);
     if (vtable_tag == NULL) {
         transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "cannot render ability vtable tag for role '%s' impl ability '%s'",
@@ -79,8 +77,8 @@ emit_role_vtable_instance(const char *role_name, ASTNode *impl, TranspilerCtx *c
         "\nstatic const %s %s_%s_vtable_instance __attribute__((unused)) = {\n",
         typedef_name, role_name, vtable_tag);
 
-    for (size_t j = 0; j < impl->data.impl_ability.method_count; j++) {
-        ASTNode *method = impl->data.impl_ability.methods[j];
+    for (size_t j = 0; j < ast_impl_ability_method_count(impl); j++) {
+        ASTNode *method = ast_impl_ability_method(impl, j);
         if (method == NULL || method->type != AST_FUNC_DECL)
             continue;
         if (method->data.func_decl.name == NULL)
@@ -108,15 +106,14 @@ emit_role_operator_aliases(ASTNode *role, TranspilerCtx *ctx)
     if (ctx != NULL && ctx->backend_error != NULL)
         return;
     if (role == NULL || role->type != AST_ROLE_DECL
-        || role->data.role_decl.name == NULL
-        || role->data.role_decl.for_type == NULL
-        || role->data.role_decl.for_type->type != AST_TYPE
-        || role->data.role_decl.for_type->data.type.name == NULL) {
+        || ast_role_name(role) == NULL) {
         return;
     }
 
-    role_name = role->data.role_decl.name;
-    for_type = role->data.role_decl.for_type->data.type.name;
+    role_name = ast_role_name(role);
+    for_type = transpiler_role_subject_type_name_local(role);
+    if (for_type == NULL)
+        return;
 
     for (size_t i = 0; i < sizeof(ops) / sizeof(ops[0]); i++) {
         PgyTokenType op = ops[i];
@@ -158,7 +155,7 @@ emit_role_operator_aliases(ASTNode *role, TranspilerCtx *ctx)
         const char *ret_type = "void";
         const char *lhs_type = transpiler_require_ast_c_type(
             ctx,
-            role != NULL ? role->data.role_decl.for_type : NULL,
+            transpiler_role_subject_type_node_local(role),
             "role operator lhs type");
         const char *rhs_type = NULL;
         const char *rhs_name = (rhs_param != NULL && rhs_param->name != NULL)

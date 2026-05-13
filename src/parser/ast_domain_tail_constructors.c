@@ -22,6 +22,88 @@ ASTNode* ast_create_party_declaration(const char* name) {
     return node;
 }
 
+const char*
+ast_party_name(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_PARTY_DECL)
+        return NULL;
+    return node->data.party_decl.name;
+}
+
+size_t
+ast_party_role_count(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_PARTY_DECL)
+        return 0;
+    return node->data.party_decl.role_count;
+}
+
+ASTNode*
+ast_party_role(const ASTNode* node, size_t index)
+{
+    if (node == NULL || node->type != AST_PARTY_DECL
+        || index >= node->data.party_decl.role_count) {
+        return NULL;
+    }
+    return node->data.party_decl.role_slots[index];
+}
+
+size_t
+ast_party_shared_count(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_PARTY_DECL)
+        return 0;
+    return node->data.party_decl.shared_count;
+}
+
+ASTNode*
+ast_party_shared(const ASTNode* node, size_t index)
+{
+    if (node == NULL || node->type != AST_PARTY_DECL
+        || index >= node->data.party_decl.shared_count) {
+        return NULL;
+    }
+    return node->data.party_decl.shared_fields[index];
+}
+
+ASTNode**
+ast_party_shared_fields(const ASTNode* node, size_t* count_out)
+{
+    if (count_out != NULL)
+        *count_out = ast_party_shared_count(node);
+    if (node == NULL || node->type != AST_PARTY_DECL)
+        return NULL;
+    return node->data.party_decl.shared_fields;
+}
+
+size_t
+ast_party_method_count(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_PARTY_DECL)
+        return 0;
+    return node->data.party_decl.method_count;
+}
+
+ASTNode*
+ast_party_method(const ASTNode* node, size_t index)
+{
+    if (node == NULL || node->type != AST_PARTY_DECL
+        || index >= node->data.party_decl.method_count) {
+        return NULL;
+    }
+    return node->data.party_decl.methods[index];
+}
+
+ASTNode**
+ast_party_methods(const ASTNode* node, size_t* count_out)
+{
+    if (count_out != NULL)
+        *count_out = ast_party_method_count(node);
+    if (node == NULL || node->type != AST_PARTY_DECL)
+        return NULL;
+    return node->data.party_decl.methods;
+}
+
 // Role slot in party
 ASTNode* ast_create_role_slot(const char* slot_name) {
     ASTNode* node = ast_create_node(AST_ROLE_SLOT);

@@ -1,6 +1,8 @@
 #ifndef PGY_SRC_CODEGEN_TRANSPILER_ZONE_STRUCT_EMIT_H
 #define PGY_SRC_CODEGEN_TRANSPILER_ZONE_STRUCT_EMIT_H
 
+#include "parser/ast_api.h"
+
 static bool
 transpiler_zone_surface_desc(char *out, size_t out_size,
                              const char *surface_kind,
@@ -38,8 +40,10 @@ transpiler_emit_zone_struct_decl(TranspilerCtx *ctx, ASTNode *node, const char *
     codebuf_write(ctx->out, "\n/* Zone: %s */\n", name);
     codebuf_write(ctx->out, "typedef struct %s\n{\n", name);
 
-    for (size_t i = 0; i < node->data.zone_decl.slot_count; i++) {
-        ASTNode *slot = node->data.zone_decl.slots[i];
+    size_t slot_count = 0;
+    ASTNode **slots = ast_zone_slots(node, &slot_count);
+    for (size_t i = 0; i < slot_count; i++) {
+        ASTNode *slot = slots[i];
         const char *ft = NULL;
         char surface_desc[256];
         if (!transpiler_zone_surface_desc(surface_desc,
@@ -65,8 +69,10 @@ transpiler_emit_zone_struct_decl(TranspilerCtx *ctx, ASTNode *node, const char *
         }
     }
 
-    for (size_t i = 0; i < node->data.zone_decl.layer_slot_count; i++) {
-        ASTNode *slot = node->data.zone_decl.layer_slots[i];
+    size_t layer_slot_count = 0;
+    ASTNode **layer_slots = ast_zone_layer_slots(node, &layer_slot_count);
+    for (size_t i = 0; i < layer_slot_count; i++) {
+        ASTNode *slot = layer_slots[i];
         if (slot->data.zone_layer_slot.is_pool) {
             int cap = slot->data.zone_layer_slot.pool_capacity;
             if (cap <= 0)
@@ -88,8 +94,10 @@ transpiler_emit_zone_struct_decl(TranspilerCtx *ctx, ASTNode *node, const char *
             slot->data.zone_layer_slot.slot_name);
     }
 
-    for (size_t i = 0; i < node->data.zone_decl.shared_count; i++) {
-        ASTNode *shared = node->data.zone_decl.shared_fields[i];
+    size_t shared_count = 0;
+    ASTNode **shared_fields = ast_zone_shared_fields(node, &shared_count);
+    for (size_t i = 0; i < shared_count; i++) {
+        ASTNode *shared = shared_fields[i];
         const char *ft = NULL;
         char surface_desc[256];
         if (!transpiler_zone_surface_desc(surface_desc,
@@ -107,8 +115,10 @@ transpiler_emit_zone_struct_decl(TranspilerCtx *ctx, ASTNode *node, const char *
         codebuf_write(ctx->out, "    %s %s;\n", ft, shared->data.party_shared.name);
     }
 
-    for (size_t i = 0; i < node->data.zone_decl.state_count; i++) {
-        ASTNode *state = node->data.zone_decl.states[i];
+    size_t state_count = 0;
+    ASTNode **states = ast_zone_states(node, &state_count);
+    for (size_t i = 0; i < state_count; i++) {
+        ASTNode *state = states[i];
         codebuf_write(ctx->out, "    bool __state_%s;\n",
             state->data.zone_state.state_name);
         emit_hidden_provenance_fields(ctx, "state",
@@ -124,8 +134,10 @@ transpiler_emit_zone_struct_decl(TranspilerCtx *ctx, ASTNode *node, const char *
 static void
 transpiler_emit_zone_layer_accessors(TranspilerCtx *ctx, ASTNode *node, const char *name)
 {
-    for (size_t i = 0; i < node->data.zone_decl.layer_slot_count; i++) {
-        ASTNode *slot = node->data.zone_decl.layer_slots[i];
+    size_t layer_slot_count = 0;
+    ASTNode **layer_slots = ast_zone_layer_slots(node, &layer_slot_count);
+    for (size_t i = 0; i < layer_slot_count; i++) {
+        ASTNode *slot = layer_slots[i];
         const char *slot_name = slot->data.zone_layer_slot.slot_name;
 
         if (slot_name == NULL)

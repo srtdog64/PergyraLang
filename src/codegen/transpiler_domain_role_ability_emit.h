@@ -191,9 +191,8 @@ build_ability_ref_bindings(ASTNode *ability_decl,
         if (rendered == NULL) {
             transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "cannot render generic ability binding '%s' for ability '%s'",
                 formal->name != NULL ? formal->name : "<param>",
-                ability_decl->data.ability_decl.name != NULL
-                    ? ability_decl->data.ability_decl.name
-                    : "<ability>");
+                ast_ability_name(ability_decl) != NULL
+                    ? ast_ability_name(ability_decl) : "<ability>");
             return;
         }
         if (!transpiler_role_ability_copy_name(
@@ -206,9 +205,8 @@ build_ability_ref_bindings(ASTNode *ability_decl,
                 PGY_CAUSE_C_TYPE_UNSUPPORTED,
                 PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
                 "C backend: generic ability binding name is too long for ability '%s'",
-                ability_decl->data.ability_decl.name != NULL
-                    ? ability_decl->data.ability_decl.name
-                    : "<ability>");
+                ast_ability_name(ability_decl) != NULL
+                    ? ast_ability_name(ability_decl) : "<ability>");
             free(rendered);
             return;
         }
@@ -373,8 +371,8 @@ ensure_ability_ref_vtable_decl(ASTNode *ability_ref, TranspilerCtx *ctx)
     }
     codebuf_write(target, "\ntypedef struct\n{\n");
 
-    for (size_t i = 0; i < ability_decl->data.ability_decl.method_count; i++) {
-        ASTNode *method = ability_decl->data.ability_decl.methods[i];
+    for (size_t i = 0; i < ast_ability_method_count(ability_decl); i++) {
+        ASTNode *method = ast_ability_method(ability_decl, i);
         GenericBindingEntry bindings[MAX_GENERIC_BINDINGS];
         size_t binding_count = 0;
         char *ret_name = NULL;

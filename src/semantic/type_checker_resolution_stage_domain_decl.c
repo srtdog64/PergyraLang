@@ -30,24 +30,34 @@ stage_domain_decl_strdup_fmt(const char *fmt, ...)
 void
 semantic_stage_relation_decl(ASTNode *decl, SemanticContext *ctx)
 {
+    ASTNode **slots;
+    ASTNode **shared_fields;
+    ASTNode **methods;
+    size_t slot_count;
+    size_t shared_count;
+    size_t method_count;
+
     if (decl == NULL || decl->type != AST_RELATION_DECL || ctx == NULL)
         return;
 
     ctx->current_relation = decl;
+    slots = ast_relation_slots(decl, &slot_count);
+    shared_fields = ast_relation_shared_fields(decl, &shared_count);
+    methods = ast_relation_methods(decl, &method_count);
     (void)semantic_stage_resolve_type_quiet(
         decl->data.relation_decl.between_left_type,
         ctx,
         decl,
-        decl->data.relation_decl.name,
+        ast_relation_name(decl),
         "relation between-left type lookup");
     (void)semantic_stage_resolve_type_quiet(
         decl->data.relation_decl.between_right_type,
         ctx,
         decl,
-        decl->data.relation_decl.name,
+        ast_relation_name(decl),
         "relation between-right type lookup");
-    for (size_t i = 0; i < decl->data.relation_decl.slot_count; i++) {
-        ASTNode *slot = decl->data.relation_decl.slots[i];
+    for (size_t i = 0; i < slot_count; i++) {
+        ASTNode *slot = slots[i];
         if (slot == NULL || slot->type != AST_DOMAIN_SLOT)
             continue;
         if (semantic_type_resolution_lookup_metadata_type_ref(ctx,
@@ -60,8 +70,8 @@ semantic_stage_relation_decl(ASTNode *decl, SemanticContext *ctx)
                 "relation slot type lookup");
         }
     }
-    for (size_t i = 0; i < decl->data.relation_decl.shared_count; i++) {
-        ASTNode *field = decl->data.relation_decl.shared_fields[i];
+    for (size_t i = 0; i < shared_count; i++) {
+        ASTNode *field = shared_fields[i];
         if (field == NULL || field->type != AST_PARTY_SHARED)
             continue;
         if (semantic_type_resolution_lookup_metadata_type_ref(ctx,
@@ -75,21 +85,32 @@ semantic_stage_relation_decl(ASTNode *decl, SemanticContext *ctx)
         }
     }
     semantic_stage_method_array(
-        decl->data.relation_decl.methods,
-        decl->data.relation_decl.method_count,
+        methods,
+        method_count,
         ctx,
-        decl->data.relation_decl.name);
+        ast_relation_name(decl));
 }
 
 void
 semantic_stage_effect_decl(ASTNode *decl, SemanticContext *ctx)
 {
+    ASTNode **slots;
+    ASTNode **shared_fields;
+    ASTNode **methods;
+    size_t slot_count;
+    size_t shared_count;
+    size_t method_count;
+
     if (decl == NULL || decl->type != AST_EFFECT_DECL || ctx == NULL)
         return;
 
     ctx->current_effect = decl;
-    for (size_t i = 0; i < decl->data.effect_decl.slot_count; i++) {
-        ASTNode *slot = decl->data.effect_decl.slots[i];
+    slots = ast_effect_slots(decl, &slot_count);
+    shared_fields = ast_effect_shared_fields(decl, &shared_count);
+    methods = ast_effect_methods(decl, &method_count);
+
+    for (size_t i = 0; i < slot_count; i++) {
+        ASTNode *slot = slots[i];
         if (slot == NULL || slot->type != AST_DOMAIN_SLOT)
             continue;
         if (semantic_type_resolution_lookup_metadata_type_ref(ctx,
@@ -102,8 +123,8 @@ semantic_stage_effect_decl(ASTNode *decl, SemanticContext *ctx)
                 "effect slot type lookup");
         }
     }
-    for (size_t i = 0; i < decl->data.effect_decl.shared_count; i++) {
-        ASTNode *field = decl->data.effect_decl.shared_fields[i];
+    for (size_t i = 0; i < shared_count; i++) {
+        ASTNode *field = shared_fields[i];
         if (field == NULL || field->type != AST_PARTY_SHARED)
             continue;
         if (semantic_type_resolution_lookup_metadata_type_ref(ctx,
@@ -117,21 +138,38 @@ semantic_stage_effect_decl(ASTNode *decl, SemanticContext *ctx)
         }
     }
     semantic_stage_method_array(
-        decl->data.effect_decl.methods,
-        decl->data.effect_decl.method_count,
+        methods,
+        method_count,
         ctx,
-        decl->data.effect_decl.name);
+        ast_effect_name(decl));
 }
 
 void
 semantic_stage_zone_decl(ASTNode *decl, SemanticContext *ctx)
 {
+    ASTNode **slots;
+    ASTNode **layer_slots;
+    ASTNode **shared_fields;
+    ASTNode **authorities;
+    ASTNode **methods;
+    size_t slot_count;
+    size_t layer_slot_count;
+    size_t shared_count;
+    size_t authority_count;
+    size_t method_count;
+
     if (decl == NULL || decl->type != AST_ZONE_DECL || ctx == NULL)
         return;
 
     ctx->current_zone = decl;
-    for (size_t i = 0; i < decl->data.zone_decl.slot_count; i++) {
-        ASTNode *slot = decl->data.zone_decl.slots[i];
+    slots = ast_zone_slots(decl, &slot_count);
+    layer_slots = ast_zone_layer_slots(decl, &layer_slot_count);
+    shared_fields = ast_zone_shared_fields(decl, &shared_count);
+    authorities = ast_zone_authorities(decl, &authority_count);
+    methods = ast_zone_methods(decl, &method_count);
+
+    for (size_t i = 0; i < slot_count; i++) {
+        ASTNode *slot = slots[i];
         if (slot == NULL || slot->type != AST_DOMAIN_SLOT)
             continue;
         if (semantic_type_resolution_lookup_metadata_type_ref(ctx,
@@ -144,8 +182,8 @@ semantic_stage_zone_decl(ASTNode *decl, SemanticContext *ctx)
                 "zone slot type lookup");
         }
     }
-    for (size_t i = 0; i < decl->data.zone_decl.layer_slot_count; i++) {
-        ASTNode *layer = decl->data.zone_decl.layer_slots[i];
+    for (size_t i = 0; i < layer_slot_count; i++) {
+        ASTNode *layer = layer_slots[i];
         if (layer == NULL || layer->type != AST_ZONE_LAYER_SLOT)
             continue;
         (void)semantic_stage_named_decl_quiet(
@@ -156,8 +194,8 @@ semantic_stage_zone_decl(ASTNode *decl, SemanticContext *ctx)
             layer->data.zone_layer_slot.layer_type);
     }
     semantic_stage_zone_local_contracts(decl);
-    for (size_t i = 0; i < decl->data.zone_decl.shared_count; i++) {
-        ASTNode *field = decl->data.zone_decl.shared_fields[i];
+    for (size_t i = 0; i < shared_count; i++) {
+        ASTNode *field = shared_fields[i];
         if (field == NULL || field->type != AST_PARTY_SHARED)
             continue;
         if (semantic_type_resolution_lookup_metadata_type_ref(ctx,
@@ -170,15 +208,15 @@ semantic_stage_zone_decl(ASTNode *decl, SemanticContext *ctx)
                 "zone shared field type lookup");
         }
     }
-    for (size_t i = 0; i < decl->data.zone_decl.authority_count; i++) {
-        ASTNode *authority = decl->data.zone_decl.authorities[i];
+    for (size_t i = 0; i < authority_count; i++) {
+        ASTNode *authority = authorities[i];
         char *consumer_name;
         if (authority == NULL || authority->type != AST_ZONE_AUTHORITY)
             continue;
         consumer_name = stage_domain_decl_strdup_fmt(
             "zone %s.%s",
-            decl->data.zone_decl.name != NULL
-                ? decl->data.zone_decl.name : "<zone>",
+            ast_zone_name(decl) != NULL
+                ? ast_zone_name(decl) : "<zone>",
             authority->data.zone_authority.subject_slot_name != NULL
                 ? authority->data.zone_authority.subject_slot_name
                 : "<authority>");
@@ -194,8 +232,8 @@ semantic_stage_zone_decl(ASTNode *decl, SemanticContext *ctx)
         free(consumer_name);
     }
     semantic_stage_method_array(
-        decl->data.zone_decl.methods,
-        decl->data.zone_decl.method_count,
+        methods,
+        method_count,
         ctx,
-        decl->data.zone_decl.name);
+        ast_zone_name(decl));
 }

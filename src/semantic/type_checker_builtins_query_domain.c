@@ -6,11 +6,15 @@
 ASTNode *
 find_zone_domain_slot_local(ASTNode *zone, const char *slot_name)
 {
+    ASTNode **slots;
+    size_t slot_count;
+
     if (zone == NULL || zone->type != AST_ZONE_DECL || slot_name == NULL)
         return NULL;
+    slots = ast_zone_slots(zone, &slot_count);
 
-    for (size_t i = 0; i < zone->data.zone_decl.slot_count; i++) {
-        ASTNode *slot = zone->data.zone_decl.slots[i];
+    for (size_t i = 0; i < slot_count; i++) {
+        ASTNode *slot = slots[i];
         if (slot != NULL
             && slot->type == AST_DOMAIN_SLOT
             && slot->data.domain_slot.slot_name != NULL
@@ -25,11 +29,15 @@ find_zone_domain_slot_local(ASTNode *zone, const char *slot_name)
 ASTNode *
 builtin_find_zone_layer_slot_local(ASTNode *zone, const char *slot_name)
 {
+    ASTNode **layer_slots;
+    size_t layer_slot_count;
+
     if (zone == NULL || zone->type != AST_ZONE_DECL || slot_name == NULL)
         return NULL;
+    layer_slots = ast_zone_layer_slots(zone, &layer_slot_count);
 
-    for (size_t i = 0; i < zone->data.zone_decl.layer_slot_count; i++) {
-        ASTNode *slot = zone->data.zone_decl.layer_slots[i];
+    for (size_t i = 0; i < layer_slot_count; i++) {
+        ASTNode *slot = layer_slots[i];
         if (slot != NULL
             && slot->type == AST_ZONE_LAYER_SLOT
             && slot->data.zone_layer_slot.slot_name != NULL
@@ -49,11 +57,15 @@ find_domain_projection_slot_local(ASTNode **slots, size_t slot_count,
 static ASTNode *
 find_world_zone_slot_local_builtin(ASTNode *world, const char *slot_name)
 {
+    ASTNode **zones;
+    size_t zone_count;
+
     if (world == NULL || world->type != AST_WORLD_DECL || slot_name == NULL)
         return NULL;
+    zones = ast_world_zones(world, &zone_count);
 
-    for (size_t i = 0; i < world->data.world_decl.zone_count; i++) {
-        ASTNode *zone = world->data.world_decl.zones[i];
+    for (size_t i = 0; i < zone_count; i++) {
+        ASTNode *zone = zones[i];
         if (zone != NULL
             && zone->type == AST_WORLD_ZONE
             && zone->data.world_zone.slot_name != NULL
@@ -77,23 +89,23 @@ find_program_domain_decl_local(ASTNode *program, ASTNodeType decl_type, const ch
             continue;
         switch (decl_type) {
         case AST_ZONE_DECL:
-            if (stmt->data.zone_decl.name != NULL
-                && strcmp(stmt->data.zone_decl.name, name) == 0)
+            if (ast_zone_name(stmt) != NULL
+                && strcmp(ast_zone_name(stmt), name) == 0)
                 return stmt;
             break;
         case AST_RELATION_DECL:
-            if (stmt->data.relation_decl.name != NULL
-                && strcmp(stmt->data.relation_decl.name, name) == 0)
+            if (ast_relation_name(stmt) != NULL
+                && strcmp(ast_relation_name(stmt), name) == 0)
                 return stmt;
             break;
         case AST_EFFECT_DECL:
-            if (stmt->data.effect_decl.name != NULL
-                && strcmp(stmt->data.effect_decl.name, name) == 0)
+            if (ast_effect_name(stmt) != NULL
+                && strcmp(ast_effect_name(stmt), name) == 0)
                 return stmt;
             break;
         case AST_WORLD_DECL:
-            if (stmt->data.world_decl.name != NULL
-                && strcmp(stmt->data.world_decl.name, name) == 0)
+            if (ast_world_name(stmt) != NULL
+                && strcmp(ast_world_name(stmt), name) == 0)
                 return stmt;
             break;
         default:
@@ -124,23 +136,31 @@ builtin_resolve_world_zone_decl_local(SemanticContext *ctx, ASTNode *world,
 ASTNode *
 find_zone_projection_slot_local(ASTNode *zone, const char *slot_name)
 {
+    ASTNode **slots;
+    ASTNode **refreshes;
+    size_t slot_count;
+    size_t refresh_count;
+
     if (zone == NULL || zone->type != AST_ZONE_DECL)
         return NULL;
-    return find_domain_projection_slot_local(zone->data.zone_decl.slots,
-        zone->data.zone_decl.slot_count,
-        zone->data.zone_decl.refreshes,
-        zone->data.zone_decl.refresh_count,
-        slot_name);
+    slots = ast_zone_slots(zone, &slot_count);
+    refreshes = ast_zone_refreshes(zone, &refresh_count);
+    return find_domain_projection_slot_local(slots, slot_count, refreshes,
+                                             refresh_count, slot_name);
 }
 
 ASTNode *
 find_zone_state_decl_local_builtin(ASTNode *zone, const char *state_name)
 {
+    ASTNode **states;
+    size_t state_count;
+
     if (zone == NULL || zone->type != AST_ZONE_DECL || state_name == NULL)
         return NULL;
+    states = ast_zone_states(zone, &state_count);
 
-    for (size_t i = 0; i < zone->data.zone_decl.state_count; i++) {
-        ASTNode *state = zone->data.zone_decl.states[i];
+    for (size_t i = 0; i < state_count; i++) {
+        ASTNode *state = states[i];
         if (state != NULL && state->type == AST_ZONE_STATE
             && state->data.zone_state.state_name != NULL
             && strcmp(state->data.zone_state.state_name, state_name) == 0) {
@@ -200,33 +220,45 @@ current_projection_host_decl(SemanticContext *ctx, const char **label_out,
 
     if (ctx->current_relation != NULL
         && ctx->current_relation->type == AST_RELATION_DECL) {
+        ASTNode **slots;
+        size_t slot_count;
+
+        slots = ast_relation_slots(ctx->current_relation, &slot_count);
         if (label_out != NULL)
             *label_out = "relation";
         if (slots_out != NULL)
-            *slots_out = ctx->current_relation->data.relation_decl.slots;
+            *slots_out = slots;
         if (slot_count_out != NULL)
-            *slot_count_out = ctx->current_relation->data.relation_decl.slot_count;
+            *slot_count_out = slot_count;
         return ctx->current_relation;
     }
 
     if (ctx->current_effect != NULL
         && ctx->current_effect->type == AST_EFFECT_DECL) {
+        ASTNode **slots;
+        size_t slot_count;
+
+        slots = ast_effect_slots(ctx->current_effect, &slot_count);
         if (label_out != NULL)
             *label_out = "effect";
         if (slots_out != NULL)
-            *slots_out = ctx->current_effect->data.effect_decl.slots;
+            *slots_out = slots;
         if (slot_count_out != NULL)
-            *slot_count_out = ctx->current_effect->data.effect_decl.slot_count;
+            *slot_count_out = slot_count;
         return ctx->current_effect;
     }
 
     if (ctx->current_zone != NULL && ctx->current_zone->type == AST_ZONE_DECL) {
+        ASTNode **slots;
+        size_t slot_count;
+
+        slots = ast_zone_slots(ctx->current_zone, &slot_count);
         if (label_out != NULL)
             *label_out = "zone";
         if (slots_out != NULL)
-            *slots_out = ctx->current_zone->data.zone_decl.slots;
+            *slots_out = slots;
         if (slot_count_out != NULL)
-            *slot_count_out = ctx->current_zone->data.zone_decl.slot_count;
+            *slot_count_out = slot_count;
         return ctx->current_zone;
     }
     return NULL;

@@ -135,7 +135,7 @@ air_validate_dag_global_evidence(const AIREvidenceNode *evidence,
     }
     if (evidence->fallback_count != 0) {
         air_set_invariant_error(error_message,
-                                "AIR DAG evidence node %zu has fallback DAG facts",
+                                "AIR DAG evidence node %zu has unresolved metadata dead-end facts",
                                 evidence_index);
         return false;
     }
@@ -211,8 +211,10 @@ air_validate_runtime_frontier_policy_evidence(const AIREvidenceNode *evidence,
         return true;
     if (evidence->fact_count != PGY_FRONTIER_POLICY_FACT_COUNT) {
         air_set_invariant_error(error_message,
-                                "AIR runtime frontier policy evidence node %zu has invalid policy fact count",
-                                evidence_index);
+                                "AIR runtime frontier policy evidence node %zu has invalid policy fact count; expected=%zu actual=%zu",
+                                evidence_index,
+                                (size_t)PGY_FRONTIER_POLICY_FACT_COUNT,
+                                evidence->fact_count);
         return false;
     }
     if (evidence->fallback_count != 0) {

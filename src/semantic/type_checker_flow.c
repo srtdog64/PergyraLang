@@ -56,6 +56,16 @@ flow_condition_is_static_bool(const ASTNode *node)
     return node != NULL && node->type == AST_BOOLEAN;
 }
 
+bool
+flow_static_bool_value(const ASTNode *node, bool *value_out)
+{
+    if (!flow_condition_is_static_bool(node))
+        return false;
+    if (value_out != NULL)
+        *value_out = node->data.boolean.value;
+    return true;
+}
+
 static bool
 flow_expr_is_static_literal(const ASTNode *node)
 {

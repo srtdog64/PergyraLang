@@ -21,8 +21,8 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                 char *ability_name = NULL;
 
                 if (party_decl != NULL) {
-                    for (size_t i = 0; i < party_decl->data.party_decl.role_count; i++) {
-                        ASTNode *rs = party_decl->data.party_decl.role_slots[i];
+                    for (size_t i = 0; i < ast_party_role_count(party_decl); i++) {
+                        ASTNode *rs = ast_party_role(party_decl, i);
                         if (rs == NULL || strcmp(rs->data.role_slot.slot_name, slot_name) != 0)
                             continue;
                         for (size_t j = 0; j < rs->data.role_slot.ability_count; j++) {
@@ -34,8 +34,8 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                                 continue;
                             ability_decl = find_ability_decl(ctx, ab->data.type.name);
                             if (ability_decl != NULL) {
-                                for (size_t mi = 0; mi < ability_decl->data.ability_decl.method_count; mi++) {
-                                    ASTNode *m = ability_decl->data.ability_decl.methods[mi];
+                                for (size_t mi = 0; mi < ast_ability_method_count(ability_decl); mi++) {
+                                    ASTNode *m = ast_ability_method(ability_decl, mi);
                                     if (m != NULL && m->type == AST_FUNC_DECL
                                         && m->data.func_decl.name != NULL
                                         && strcmp(m->data.func_decl.name, method) == 0) {

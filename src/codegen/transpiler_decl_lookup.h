@@ -84,6 +84,8 @@ ASTNode *transpiler_find_decl_in_active_inventory_only_local(
 ASTNode *transpiler_find_host_decl_from_owner_local(TranspilerCtx *ctx,
                                                     const char *owner_name,
                                                     ASTNodeType owner_ast_type);
+ASTNode *transpiler_role_subject_type_node_local(ASTNode *role_decl);
+const char *transpiler_role_subject_type_name_local(ASTNode *role_decl);
 const char *transpiler_role_subject_name_local(TranspilerCtx *ctx,
                                                const char *role_name);
 void transpiler_bind_current_host_decl_local(TranspilerCtx *ctx, ASTNode *decl);

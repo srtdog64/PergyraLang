@@ -307,7 +307,7 @@ llvm_emit_domain_projection_sync_body(ASTNode *stmt,
 
         LLVMPositionBuilderAtEnd(ctx->builder, overflow_bb);
         llvm_emit_frontier_overflow_abort(ctx,
-            "projection recompute exceeded bounded pass limit");
+            PGY_FRONTIER_REASON_PROJECTION_OVERFLOW);
 
         LLVMPositionBuilderAtEnd(ctx->builder, exit_bb);
     }

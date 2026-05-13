@@ -299,14 +299,14 @@ type_check_while_loop_flow(ASTNode *node, SemanticContext *ctx)
     uint32_t merged_effect_delta = EFFECT_NONE;
     uint32_t previous_iter_delta = EFFECT_NONE;
     bool have_previous_iter_delta = false;
+    bool condition_static_value = false;
+    bool condition_is_static_bool =
+        flow_static_bool_value(node->data.while_loop.condition,
+                               &condition_static_value);
     bool condition_static_true =
-        node->data.while_loop.condition != NULL
-        && node->data.while_loop.condition->type == AST_BOOLEAN
-        && node->data.while_loop.condition->data.boolean.value;
+        condition_is_static_bool && condition_static_value;
     bool condition_static_false =
-        node->data.while_loop.condition != NULL
-        && node->data.while_loop.condition->type == AST_BOOLEAN
-        && !node->data.while_loop.condition->data.boolean.value;
+        condition_is_static_bool && !condition_static_value;
     bool has_break_exit = false;
     bool body_must_return = false;
     scope_enter(&ctx->scope, SCOPE_BLOCK);

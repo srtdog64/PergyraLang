@@ -8,37 +8,67 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
 {
     ASTNode *saved_zone = ctx->current_zone;
     const char *prev_module_path = ctx->current_module_path;
+    const char *zone_name = ast_zone_name(node);
+    ASTNode **slots;
+    ASTNode **shared_fields;
+    ASTNode **methods;
+    ASTNode **applies;
+    ASTNode **links;
+    ASTNode **detaches;
+    ASTNode **unlinks;
+    ASTNode **maintained_effects;
+    ASTNode **maintained_relations;
+    size_t slot_count;
+    size_t shared_count;
+    size_t method_count;
+    size_t apply_count;
+    size_t link_count;
+    size_t detach_count;
+    size_t unlink_count;
+    size_t maintained_effect_count;
+    size_t maintained_relation_count;
+    size_t authority_count;
     size_t mutation_rule_count;
     ctx->current_zone = node;
     if (node->origin_path != NULL)
         ctx->current_module_path = node->origin_path;
+    slots = ast_zone_slots(node, &slot_count);
+    shared_fields = ast_zone_shared_fields(node, &shared_count);
+    methods = ast_zone_methods(node, &method_count);
+    applies = ast_zone_applies(node, &apply_count);
+    links = ast_zone_links(node, &link_count);
+    detaches = ast_zone_detaches(node, &detach_count);
+    unlinks = ast_zone_unlinks(node, &unlink_count);
+    maintained_effects = ast_zone_maintained_effects(node,
+                                                     &maintained_effect_count);
+    maintained_relations = ast_zone_maintained_relations(node,
+        &maintained_relation_count);
+    ast_zone_authorities(node, &authority_count);
 
     bool ok = type_check_overlay_decl_common(node, ctx,
-        node->data.zone_decl.name,
+        zone_name,
         SYMBOL_ZONE,
-        node->data.zone_decl.shared_fields,
-        node->data.zone_decl.shared_count,
-        node->data.zone_decl.methods,
-        node->data.zone_decl.method_count,
+        shared_fields,
+        shared_count,
+        methods,
+        method_count,
         "zone");
 
-    ok = type_check_domain_slots(node->data.zone_decl.slots,
-        node->data.zone_decl.slot_count, ctx, "Zone") && ok;
-    ok = type_check_domain_slot_initializers(node->data.zone_decl.slots,
-        node->data.zone_decl.slot_count, ctx, "zone") && ok;
+    ok = type_check_domain_slots(slots, slot_count, ctx, "Zone") && ok;
+    ok = type_check_domain_slot_initializers(slots, slot_count, ctx, "zone") && ok;
     mutation_rule_count = type_check_zone_shape_warnings(node, ctx);
     type_check_zone_authorities(node, ctx);
 
-    if (mutation_rule_count > 0 && node->data.zone_decl.authority_count == 0) {
+    if (mutation_rule_count > 0 && authority_count == 0) {
         semantic_warning(ctx, node,
             "Zone '%s' has lifecycle-changing rules but no explicit authority set",
-            node->data.zone_decl.name);
+            zone_name);
     }
 
     type_check_zone_layer_slots(node, ctx);
 
-    for (size_t i = 0; i < node->data.zone_decl.apply_count; i++) {
-        ASTNode *apply = node->data.zone_decl.applies[i];
+    for (size_t i = 0; i < apply_count; i++) {
+        ASTNode *apply = applies[i];
         const char *effect_slot_name = apply->data.zone_apply.effect_slot_name;
         const char *target_slot_name = apply->data.zone_apply.target_slot_name;
         const char *state_name = apply->data.zone_apply.state_name;
@@ -60,10 +90,10 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
                 "- declare effect slot '%s' in zone '%s'\n"
                 "- or change this apply clause to an existing effect slot",
                 effect_slot_name != NULL ? effect_slot_name : "<unknown>",
-                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>",
+                zone_name != NULL ? zone_name : "<zone>",
                 effect_slot_name != NULL ? effect_slot_name : "<unknown>",
                 effect_slot_name != NULL ? effect_slot_name : "<unknown>",
-                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>");
+                zone_name != NULL ? zone_name : "<zone>");
         }
         if (find_zone_domain_slot(node, target_slot_name) == NULL) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, apply,
@@ -75,10 +105,10 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
                 "- declare slot '%s' in zone '%s'\n"
                 "- or change this apply clause to an existing target slot",
                 target_slot_name != NULL ? target_slot_name : "<unknown>",
-                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>",
+                zone_name != NULL ? zone_name : "<zone>",
                 target_slot_name != NULL ? target_slot_name : "<unknown>",
                 target_slot_name != NULL ? target_slot_name : "<unknown>",
-                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>");
+                zone_name != NULL ? zone_name : "<zone>");
         }
         type_check_zone_effect_contract(node, apply,
             effect_slot_name, target_slot_name, ctx, "apply");
@@ -88,8 +118,8 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         type_check_zone_participant_authority(node, apply, participant_slot_name, ctx, "apply");
     }
 
-    for (size_t i = 0; i < node->data.zone_decl.link_count; i++) {
-        ASTNode *link = node->data.zone_decl.links[i];
+    for (size_t i = 0; i < link_count; i++) {
+        ASTNode *link = links[i];
         const char *relation_slot_name = link->data.zone_link.relation_slot_name;
         const char *left_slot_name = link->data.zone_link.left_slot_name;
         const char *right_slot_name = link->data.zone_link.right_slot_name;
@@ -112,10 +142,10 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
                 "- declare relation slot '%s' in zone '%s'\n"
                 "- or change this link clause to an existing relation slot",
                 relation_slot_name != NULL ? relation_slot_name : "<unknown>",
-                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>",
+                zone_name != NULL ? zone_name : "<zone>",
                 relation_slot_name != NULL ? relation_slot_name : "<unknown>",
                 relation_slot_name != NULL ? relation_slot_name : "<unknown>",
-                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>");
+                zone_name != NULL ? zone_name : "<zone>");
         }
         if (find_zone_domain_slot(node, left_slot_name) == NULL) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, link,
@@ -127,10 +157,10 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
                 "- declare slot '%s' in zone '%s'\n"
                 "- or change this link clause to an existing left endpoint",
                 left_slot_name != NULL ? left_slot_name : "<unknown>",
-                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>",
+                zone_name != NULL ? zone_name : "<zone>",
                 left_slot_name != NULL ? left_slot_name : "<unknown>",
                 left_slot_name != NULL ? left_slot_name : "<unknown>",
-                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>");
+                zone_name != NULL ? zone_name : "<zone>");
         }
         if (find_zone_domain_slot(node, right_slot_name) == NULL) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, link,
@@ -142,10 +172,10 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
                 "- declare slot '%s' in zone '%s'\n"
                 "- or change this link clause to an existing right endpoint",
                 right_slot_name != NULL ? right_slot_name : "<unknown>",
-                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>",
+                zone_name != NULL ? zone_name : "<zone>",
                 right_slot_name != NULL ? right_slot_name : "<unknown>",
                 right_slot_name != NULL ? right_slot_name : "<unknown>",
-                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>");
+                zone_name != NULL ? zone_name : "<zone>");
         }
         type_check_zone_relation_contract(node, link,
             relation_slot_name, left_slot_name, right_slot_name, ctx, "link");
@@ -155,8 +185,8 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         type_check_zone_participant_authority(node, link, participant_slot_name, ctx, "link");
     }
 
-    for (size_t i = 0; i < node->data.zone_decl.detach_count; i++) {
-        ASTNode *detach = node->data.zone_decl.detaches[i];
+    for (size_t i = 0; i < detach_count; i++) {
+        ASTNode *detach = detaches[i];
         const char *effect_slot_name = detach->data.zone_detach.effect_slot_name;
         const char *target_slot_name = detach->data.zone_detach.target_slot_name;
         const char *state_name = detach->data.zone_detach.state_name;
@@ -178,10 +208,10 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
                 "- declare effect slot '%s' in zone '%s'\n"
                 "- or change this detach clause to an existing effect slot",
                 effect_slot_name != NULL ? effect_slot_name : "<unknown>",
-                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>",
+                zone_name != NULL ? zone_name : "<zone>",
                 effect_slot_name != NULL ? effect_slot_name : "<unknown>",
                 effect_slot_name != NULL ? effect_slot_name : "<unknown>",
-                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>");
+                zone_name != NULL ? zone_name : "<zone>");
         }
         if (find_zone_domain_slot(node, target_slot_name) == NULL) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, detach,
@@ -193,10 +223,10 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
                 "- declare slot '%s' in zone '%s'\n"
                 "- or change this detach clause to an existing target slot",
                 target_slot_name != NULL ? target_slot_name : "<unknown>",
-                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>",
+                zone_name != NULL ? zone_name : "<zone>",
                 target_slot_name != NULL ? target_slot_name : "<unknown>",
                 target_slot_name != NULL ? target_slot_name : "<unknown>",
-                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>");
+                zone_name != NULL ? zone_name : "<zone>");
         }
         type_check_zone_effect_contract(node, detach,
             effect_slot_name, target_slot_name, ctx, "detach");
@@ -206,8 +236,8 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         type_check_zone_participant_authority(node, detach, participant_slot_name, ctx, "detach");
     }
 
-    for (size_t i = 0; i < node->data.zone_decl.unlink_count; i++) {
-        ASTNode *unlink = node->data.zone_decl.unlinks[i];
+    for (size_t i = 0; i < unlink_count; i++) {
+        ASTNode *unlink = unlinks[i];
         const char *relation_slot_name = unlink->data.zone_unlink.relation_slot_name;
         const char *left_slot_name = unlink->data.zone_unlink.left_slot_name;
         const char *right_slot_name = unlink->data.zone_unlink.right_slot_name;
@@ -230,10 +260,10 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
                 "- declare relation slot '%s' in zone '%s'\n"
                 "- or change this unlink clause to an existing relation slot",
                 relation_slot_name != NULL ? relation_slot_name : "<unknown>",
-                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>",
+                zone_name != NULL ? zone_name : "<zone>",
                 relation_slot_name != NULL ? relation_slot_name : "<unknown>",
                 relation_slot_name != NULL ? relation_slot_name : "<unknown>",
-                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>");
+                zone_name != NULL ? zone_name : "<zone>");
         }
         if (find_zone_domain_slot(node, left_slot_name) == NULL) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, unlink,
@@ -245,10 +275,10 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
                 "- declare slot '%s' in zone '%s'\n"
                 "- or change this unlink clause to an existing left endpoint",
                 left_slot_name != NULL ? left_slot_name : "<unknown>",
-                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>",
+                zone_name != NULL ? zone_name : "<zone>",
                 left_slot_name != NULL ? left_slot_name : "<unknown>",
                 left_slot_name != NULL ? left_slot_name : "<unknown>",
-                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>");
+                zone_name != NULL ? zone_name : "<zone>");
         }
         if (find_zone_domain_slot(node, right_slot_name) == NULL) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, unlink,
@@ -260,10 +290,10 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
                 "- declare slot '%s' in zone '%s'\n"
                 "- or change this unlink clause to an existing right endpoint",
                 right_slot_name != NULL ? right_slot_name : "<unknown>",
-                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>",
+                zone_name != NULL ? zone_name : "<zone>",
                 right_slot_name != NULL ? right_slot_name : "<unknown>",
                 right_slot_name != NULL ? right_slot_name : "<unknown>",
-                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>");
+                zone_name != NULL ? zone_name : "<zone>");
         }
         type_check_zone_relation_contract(node, unlink,
             relation_slot_name, left_slot_name, right_slot_name, ctx, "unlink");
@@ -274,8 +304,8 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
     }
 
     type_check_zone_projection_rules(node, ctx);
-    for (size_t i = 0; i < node->data.zone_decl.maintained_effect_count; i++) {
-        ASTNode *maintain = node->data.zone_decl.maintained_effects[i];
+    for (size_t i = 0; i < maintained_effect_count; i++) {
+        ASTNode *maintain = maintained_effects[i];
         const char *effect_slot_name = maintain->data.zone_maintain_effect.effect_slot_name;
         const char *target_slot_name = maintain->data.zone_maintain_effect.target_slot_name;
         const char *participant_slot_name = maintain->data.zone_maintain_effect.participant_slot_name;
@@ -289,10 +319,10 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
                 "- declare effect slot '%s' in zone '%s'\n"
                 "- or change this maintain clause to an existing effect slot",
                 effect_slot_name != NULL ? effect_slot_name : "<unknown>",
-                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>",
+                zone_name != NULL ? zone_name : "<zone>",
                 effect_slot_name != NULL ? effect_slot_name : "<unknown>",
                 effect_slot_name != NULL ? effect_slot_name : "<unknown>",
-                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>");
+                zone_name != NULL ? zone_name : "<zone>");
         }
         if (find_zone_domain_slot(node, target_slot_name) == NULL) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, maintain,
@@ -304,10 +334,10 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
                 "- declare slot '%s' in zone '%s'\n"
                 "- or change this maintain clause to an existing target slot",
                 target_slot_name != NULL ? target_slot_name : "<unknown>",
-                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>",
+                zone_name != NULL ? zone_name : "<zone>",
                 target_slot_name != NULL ? target_slot_name : "<unknown>",
                 target_slot_name != NULL ? target_slot_name : "<unknown>",
-                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>");
+                zone_name != NULL ? zone_name : "<zone>");
         }
         type_check_zone_effect_contract(node, maintain,
             effect_slot_name, target_slot_name, ctx, "maintain");
@@ -316,8 +346,8 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
             effect_slot_name, target_slot_name);
         type_check_zone_participant_authority(node, maintain, participant_slot_name, ctx, "maintain");
 
-        for (size_t j = i + 1; j < node->data.zone_decl.maintained_effect_count; j++) {
-            ASTNode *other = node->data.zone_decl.maintained_effects[j];
+        for (size_t j = i + 1; j < maintained_effect_count; j++) {
+            ASTNode *other = maintained_effects[j];
             if (strcmp(effect_slot_name, other->data.zone_maintain_effect.effect_slot_name) == 0
                 && strcmp(target_slot_name, other->data.zone_maintain_effect.target_slot_name) == 0) {
                 semantic_warning(ctx, other,
@@ -328,15 +358,15 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
                     "Fix:\n"
                     "- keep one maintain rule for effect '%s' on '%s'\n"
                     "- or split the contract if the lifecycle targets are actually different",
-                    node->data.zone_decl.name,
+                    zone_name,
                     effect_slot_name,
                     target_slot_name,
                     effect_slot_name,
                     target_slot_name);
             }
         }
-        for (size_t j = 0; j < node->data.zone_decl.detach_count; j++) {
-            ASTNode *detach = node->data.zone_decl.detaches[j];
+        for (size_t j = 0; j < detach_count; j++) {
+            ASTNode *detach = detaches[j];
             const char *detach_effect_slot_name = detach->data.zone_detach.effect_slot_name;
             const char *detach_target_slot_name = detach->data.zone_detach.target_slot_name;
             if (detach->data.zone_detach.state_name != NULL) {
@@ -356,7 +386,7 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
                     "Fix:\n"
                     "- keep either maintain or detach for effect '%s' on '%s'\n"
                     "- or split the rules so they target different slots/states",
-                    node->data.zone_decl.name,
+                    zone_name,
                     effect_slot_name,
                     target_slot_name,
                     effect_slot_name,
@@ -365,8 +395,8 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         }
     }
 
-    for (size_t i = 0; i < node->data.zone_decl.maintained_relation_count; i++) {
-        ASTNode *maintain = node->data.zone_decl.maintained_relations[i];
+    for (size_t i = 0; i < maintained_relation_count; i++) {
+        ASTNode *maintain = maintained_relations[i];
         const char *relation_slot_name = maintain->data.zone_maintain_relation.relation_slot_name;
         const char *left_slot_name = maintain->data.zone_maintain_relation.left_slot_name;
         const char *right_slot_name = maintain->data.zone_maintain_relation.right_slot_name;
@@ -381,10 +411,10 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
                 "- declare relation slot '%s' in zone '%s'\n"
                 "- or change this maintain clause to an existing relation slot",
                 relation_slot_name != NULL ? relation_slot_name : "<unknown>",
-                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>",
+                zone_name != NULL ? zone_name : "<zone>",
                 relation_slot_name != NULL ? relation_slot_name : "<unknown>",
                 relation_slot_name != NULL ? relation_slot_name : "<unknown>",
-                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>");
+                zone_name != NULL ? zone_name : "<zone>");
         }
         if (find_zone_domain_slot(node, left_slot_name) == NULL) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, maintain,
@@ -396,10 +426,10 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
                 "- declare slot '%s' in zone '%s'\n"
                 "- or change this maintain clause to an existing left endpoint",
                 left_slot_name != NULL ? left_slot_name : "<unknown>",
-                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>",
+                zone_name != NULL ? zone_name : "<zone>",
                 left_slot_name != NULL ? left_slot_name : "<unknown>",
                 left_slot_name != NULL ? left_slot_name : "<unknown>",
-                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>");
+                zone_name != NULL ? zone_name : "<zone>");
         }
         if (find_zone_domain_slot(node, right_slot_name) == NULL) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, maintain,
@@ -411,10 +441,10 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
                 "- declare slot '%s' in zone '%s'\n"
                 "- or change this maintain clause to an existing right endpoint",
                 right_slot_name != NULL ? right_slot_name : "<unknown>",
-                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>",
+                zone_name != NULL ? zone_name : "<zone>",
                 right_slot_name != NULL ? right_slot_name : "<unknown>",
                 right_slot_name != NULL ? right_slot_name : "<unknown>",
-                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>");
+                zone_name != NULL ? zone_name : "<zone>");
         }
         type_check_zone_relation_contract(node, maintain,
             relation_slot_name, left_slot_name, right_slot_name, ctx, "maintain");
@@ -423,8 +453,8 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
             relation_slot_name, NULL);
         type_check_zone_participant_authority(node, maintain, participant_slot_name, ctx, "maintain");
 
-        for (size_t j = i + 1; j < node->data.zone_decl.maintained_relation_count; j++) {
-            ASTNode *other = node->data.zone_decl.maintained_relations[j];
+        for (size_t j = i + 1; j < maintained_relation_count; j++) {
+            ASTNode *other = maintained_relations[j];
             if (strcmp(relation_slot_name, other->data.zone_maintain_relation.relation_slot_name) == 0
                 && strcmp(left_slot_name, other->data.zone_maintain_relation.left_slot_name) == 0
                 && strcmp(right_slot_name, other->data.zone_maintain_relation.right_slot_name) == 0) {
@@ -436,7 +466,7 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
                     "Fix:\n"
                     "- keep one maintain rule for relation '%s' between '%s' and '%s'\n"
                     "- or split the contract if the relation endpoints are actually different",
-                    node->data.zone_decl.name,
+                    zone_name,
                     relation_slot_name,
                     left_slot_name,
                     right_slot_name,
@@ -445,8 +475,8 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
                     right_slot_name);
             }
         }
-        for (size_t j = 0; j < node->data.zone_decl.unlink_count; j++) {
-            ASTNode *unlink = node->data.zone_decl.unlinks[j];
+        for (size_t j = 0; j < unlink_count; j++) {
+            ASTNode *unlink = unlinks[j];
             const char *unlink_relation_slot_name = unlink->data.zone_unlink.relation_slot_name;
             const char *unlink_left_slot_name = unlink->data.zone_unlink.left_slot_name;
             const char *unlink_right_slot_name = unlink->data.zone_unlink.right_slot_name;
@@ -469,7 +499,7 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
                     "Fix:\n"
                     "- keep either maintain or unlink for relation '%s' between '%s' and '%s'\n"
                     "- or split the rules so they target different relation states",
-                    node->data.zone_decl.name,
+                    zone_name,
                     relation_slot_name,
                     left_slot_name,
                     right_slot_name,

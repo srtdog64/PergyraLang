@@ -410,16 +410,20 @@ type_check_member_access(ASTNode *expr, SemanticContext *ctx)
             }
         } else if (decl != NULL) {
             if (decl->type == AST_WORLD_DECL) {
-                for (size_t i = 0; i < decl->data.world_decl.roster_count; i++) {
-                    ASTNode *slot = decl->data.world_decl.rosters[i];
+                size_t roster_count = 0;
+                ASTNode **rosters = ast_world_rosters(decl, &roster_count);
+                for (size_t i = 0; i < roster_count; i++) {
+                    ASTNode *slot = rosters[i];
                     if (slot != NULL && slot->data.world_roster.slot_name != NULL
                         && strcmp(slot->data.world_roster.slot_name, field_name) == 0) {
                         return expr_resolve_named_type_metadata_or_unknown(
                             slot->data.world_roster.roster_type, ctx, slot);
                     }
                 }
-                for (size_t i = 0; i < decl->data.world_decl.zone_count; i++) {
-                    ASTNode *slot = decl->data.world_decl.zones[i];
+                size_t zone_count = 0;
+                ASTNode **zones = ast_world_zones(decl, &zone_count);
+                for (size_t i = 0; i < zone_count; i++) {
+                    ASTNode *slot = zones[i];
                     if (slot != NULL && slot->data.world_zone.slot_name != NULL
                         && strcmp(slot->data.world_zone.slot_name, field_name) == 0) {
                         return expr_resolve_named_type_metadata_or_unknown(

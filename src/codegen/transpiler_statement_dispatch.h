@@ -89,8 +89,8 @@ emit_statement(ASTNode *node, TranspilerCtx *ctx)
                     role != NULL ? role : "<role>");
                 break;
             }
-            for (size_t ri = 0; ri < it->data.party_decl.role_count; ri++) {
-                ASTNode *rs = it->data.party_decl.role_slots[ri];
+            for (size_t ri = 0; ri < ast_party_role_count(it); ri++) {
+                ASTNode *rs = ast_party_role(it, ri);
                 if (strcmp(rs->data.role_slot.slot_name, slot) == 0
                     && rs->data.role_slot.ability_count > 0
                     && rs->data.role_slot.required_abilities[0] != NULL) {

@@ -1,6 +1,7 @@
 #ifndef PGY_TRANSPILER_PROJECTION_SYNC_HELPERS_H
 #define PGY_TRANSPILER_PROJECTION_SYNC_HELPERS_H
 
+#include "parser/ast_api.h"
 #include "transpiler_projection_method_invalidation.h"
 
 static const char *
@@ -144,7 +145,7 @@ resolve_world_zone_subject_receiver(TranspilerCtx *ctx, ASTNode *receiver,
     if (zone_decl == NULL)
         return false;
 
-    zone_type_name = zone_decl->data.zone_decl.name;
+    zone_type_name = ast_zone_name(zone_decl);
     type_name = zone_subject_slot_type_name(zone_decl, slot_name);
     if (zone_type_name == NULL || type_name == NULL)
         return false;
@@ -182,7 +183,7 @@ emit_zone_action_effect_runtime(ASTNode *call, TranspilerCtx *ctx)
     host_decl = transpiler_current_host_decl_local(ctx);
     if (host_decl == NULL || host_decl->type != AST_ZONE_DECL)
         return;
-    active_zone_name = host_decl->data.zone_decl.name;
+    active_zone_name = ast_zone_name(host_decl);
 
     callee = call->data.call.callee;
     if (callee == NULL || callee->type != AST_MEMBER_ACCESS)
@@ -213,8 +214,10 @@ emit_zone_action_effect_runtime(ASTNode *call, TranspilerCtx *ctx)
         return;
 
     effect_name = method_decl->data.func_decl.causes_effect;
-    for (size_t i = 0; i < zone_decl->data.zone_decl.layer_slot_count; i++) {
-        ASTNode *layer_slot = zone_decl->data.zone_decl.layer_slots[i];
+    size_t layer_slot_count = 0;
+    ASTNode **layer_slots = ast_zone_layer_slots(zone_decl, &layer_slot_count);
+    for (size_t i = 0; i < layer_slot_count; i++) {
+        ASTNode *layer_slot = layer_slots[i];
         const char *layer_name;
 
         if (layer_slot == NULL || layer_slot->type != AST_ZONE_LAYER_SLOT
@@ -282,8 +285,17 @@ emit_world_embedded_action_effect_sync(TranspilerCtx *ctx,
         return NULL;
 
     buf = codebuf_create();
-    for (size_t i = 0; i < zone_decl->data.zone_decl.layer_slot_count; i++) {
-        ASTNode *layer_slot = zone_decl->data.zone_decl.layer_slots[i];
+    size_t layer_slot_count = 0;
+    ASTNode **layer_slots = ast_zone_layer_slots(zone_decl, &layer_slot_count);
+    size_t state_count = 0;
+    ASTNode **states = ast_zone_states(zone_decl, &state_count);
+    size_t effect_slot_count = 0;
+    ASTNode **effect_slots = ast_effect_slots(effect_decl, &effect_slot_count);
+    size_t effect_refresh_count = 0;
+    ASTNode **effect_refreshes =
+        ast_effect_refreshes(effect_decl, &effect_refresh_count);
+    for (size_t i = 0; i < layer_slot_count; i++) {
+        ASTNode *layer_slot = layer_slots[i];
         ASTNode *target_slot;
         const char *layer_name;
         int tmp_id;
@@ -299,11 +311,8 @@ emit_world_embedded_action_effect_sync(TranspilerCtx *ctx,
         if (layer_name == NULL)
             continue;
 
-        target_slot = find_nth_bindable_domain_slot_local(
-            effect_decl->data.effect_decl.slots,
-            effect_decl->data.effect_decl.slot_count,
-            effect_decl->data.effect_decl.refreshes,
-            effect_decl->data.effect_decl.refresh_count, 0);
+        target_slot = find_nth_bindable_domain_slot_local(effect_slots,
+            effect_slot_count, effect_refreshes, effect_refresh_count, 0);
         if (target_slot == NULL || target_slot->data.domain_slot.slot_name == NULL)
             continue;
 
@@ -314,8 +323,8 @@ emit_world_embedded_action_effect_sync(TranspilerCtx *ctx,
             "self->%s.__layer_cause_%s = 11; ",
             zone_slot_name, layer_name,
             zone_slot_name, layer_name);
-        for (size_t si = 0; si < zone_decl->data.zone_decl.state_count; si++) {
-            ASTNode *state = zone_decl->data.zone_decl.states[si];
+        for (size_t si = 0; si < state_count; si++) {
+            ASTNode *state = states[si];
             if (state == NULL || state->type != AST_ZONE_STATE
                 || state->data.zone_state.is_relation
                 || state->data.zone_state.state_name == NULL
@@ -335,12 +344,12 @@ emit_world_embedded_action_effect_sync(TranspilerCtx *ctx,
             codebuf_write(buf,
                 "{ %s _pgy_world_effect_%d = (%s){0}; "
                 "_pgy_world_effect_%d.%s = self->%s.%s; ",
-                effect_decl->data.effect_decl.name, tmp_id,
-                effect_decl->data.effect_decl.name,
+                ast_effect_name(effect_decl), tmp_id,
+                ast_effect_name(effect_decl),
                 tmp_id, target_slot->data.domain_slot.slot_name,
                 zone_slot_name, source_slot_name);
-            for (size_t ri = 0; ri < effect_decl->data.effect_decl.refresh_count; ri++) {
-                ASTNode *refresh = effect_decl->data.effect_decl.refreshes[ri];
+            for (size_t ri = 0; ri < effect_refresh_count; ri++) {
+                ASTNode *refresh = effect_refreshes[ri];
                 const char *projection_name;
                 const char *refresh_source;
                 if (refresh == NULL || refresh->type != AST_ZONE_REFRESH)
@@ -361,7 +370,7 @@ emit_world_embedded_action_effect_sync(TranspilerCtx *ctx,
                 "%s_sync(&_pgy_world_effect_%d); "
                 "PGY_EFFECT_POOL_APPLY(self->%s.%s, _pgy_world_effect_%d); "
                 "self->%s.__layer_active_%s = PGY_EFFECT_POOL_ACTIVE_COUNT(self->%s.%s) > 0; } ",
-                effect_decl->data.effect_decl.name, tmp_id,
+                ast_effect_name(effect_decl), tmp_id,
                 zone_slot_name, layer_name, tmp_id,
                 zone_slot_name, layer_name,
                 zone_slot_name, layer_name);
@@ -374,8 +383,8 @@ emit_world_embedded_action_effect_sync(TranspilerCtx *ctx,
             target_slot->data.domain_slot.slot_name,
             zone_slot_name,
             source_slot_name);
-        for (size_t ri = 0; ri < effect_decl->data.effect_decl.refresh_count; ri++) {
-            ASTNode *refresh = effect_decl->data.effect_decl.refreshes[ri];
+        for (size_t ri = 0; ri < effect_refresh_count; ri++) {
+            ASTNode *refresh = effect_refreshes[ri];
             const char *projection_name;
             const char *refresh_source;
             if (refresh == NULL || refresh->type != AST_ZONE_REFRESH)
@@ -393,7 +402,7 @@ emit_world_embedded_action_effect_sync(TranspilerCtx *ctx,
                 zone_slot_name, layer_name, projection_name);
         }
         codebuf_write(buf, "%s_sync(&self->%s.%s); ",
-            effect_decl->data.effect_decl.name,
+            ast_effect_name(effect_decl),
             zone_slot_name,
             layer_name);
     }
@@ -416,8 +425,10 @@ find_world_state_decl(ASTNode *world_decl, const char *state_name)
     if (world_decl == NULL || world_decl->type != AST_WORLD_DECL || state_name == NULL)
         return NULL;
 
-    for (size_t i = 0; i < world_decl->data.world_decl.state_count; i++) {
-        ASTNode *state = world_decl->data.world_decl.states[i];
+    size_t state_count = 0;
+    ASTNode **states = ast_world_states(world_decl, &state_count);
+    for (size_t i = 0; i < state_count; i++) {
+        ASTNode *state = states[i];
         if (state != NULL && state->type == AST_WORLD_STATE
             && state->data.world_state.state_name != NULL
             && strcmp(state->data.world_state.state_name, state_name) == 0) {

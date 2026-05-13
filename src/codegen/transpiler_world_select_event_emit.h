@@ -1,6 +1,8 @@
 #ifndef PGY_TRANSPILER_WORLD_SELECT_EVENT_EMIT_H
 #define PGY_TRANSPILER_WORLD_SELECT_EVENT_EMIT_H
 
+#include "parser/ast_api.h"
+
 static ASTNode *
 transpiler_frontier_lookup_zone(void *ctx, const char *zone_name)
 {
@@ -10,13 +12,29 @@ transpiler_frontier_lookup_zone(void *ctx, const char *zone_name)
 void
 emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
 {
-    const char *name = node->data.world_decl.name;
+    const char *name = ast_world_name(node);
     ASTNode *inventory_decl = transpiler_find_decl_in_inventory_local(
         ctx, AST_WORLD_DECL, name);
     size_t embedded_frontier_count;
 
     if (inventory_decl != NULL)
         node = inventory_decl;
+    size_t roster_count = 0;
+    ASTNode **rosters = ast_world_rosters(node, &roster_count);
+    size_t zone_count = 0;
+    ASTNode **zones = ast_world_zones(node, &zone_count);
+    size_t shared_count = 0;
+    ASTNode **shared_fields = ast_world_shared_fields(node, &shared_count);
+    size_t state_count = 0;
+    ASTNode **states = ast_world_states(node, &state_count);
+    size_t activate_count = 0;
+    ASTNode **activations = ast_world_activations(node, &activate_count);
+    size_t maintained_zone_count = 0;
+    ASTNode **maintained_zones =
+        ast_world_maintained_zones(node, &maintained_zone_count);
+    size_t deactivate_count = 0;
+    ASTNode **deactivations = ast_world_deactivations(node, &deactivate_count);
+
     embedded_frontier_count = pgy_domain_world_embedded_frontier_count(
         node, transpiler_frontier_lookup_zone, ctx);
 
@@ -24,16 +42,16 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
     codebuf_write(ctx->out, "typedef struct %s\n{\n", name);
 
     /* Roster instances */
-    for (size_t i = 0; i < node->data.world_decl.roster_count; i++) {
-        ASTNode *ws = node->data.world_decl.rosters[i];
+    for (size_t i = 0; i < roster_count; i++) {
+        ASTNode *ws = rosters[i];
         codebuf_write(ctx->out, "    %s %s;\n",
             ws->data.world_roster.roster_type,
             ws->data.world_roster.slot_name);
     }
 
     /* Zone instances */
-    for (size_t i = 0; i < node->data.world_decl.zone_count; i++) {
-        ASTNode *wz = node->data.world_decl.zones[i];
+    for (size_t i = 0; i < zone_count; i++) {
+        ASTNode *wz = zones[i];
         codebuf_write(ctx->out, "    %s %s;\n",
             wz->data.world_zone.zone_type,
             wz->data.world_zone.slot_name);
@@ -48,8 +66,8 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
     }
 
     /* Shared fields */
-    for (size_t i = 0; i < node->data.world_decl.shared_count; i++) {
-        ASTNode *shared = node->data.world_decl.shared_fields[i];
+    for (size_t i = 0; i < shared_count; i++) {
+        ASTNode *shared = shared_fields[i];
         const char *ft = NULL;
         char surface_desc[256];
         snprintf(surface_desc, sizeof(surface_desc),
@@ -67,8 +85,8 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
         codebuf_write(ctx->out, "    %s %s;\n", ft, shared->data.party_shared.name);
     }
 
-    for (size_t i = 0; i < node->data.world_decl.state_count; i++) {
-        ASTNode *state = node->data.world_decl.states[i];
+    for (size_t i = 0; i < state_count; i++) {
+        ASTNode *state = states[i];
         codebuf_write(ctx->out, "    bool __zone_state_%s;\n",
             state->data.world_state.state_name);
         emit_hidden_provenance_fields(ctx, "zone_state",
@@ -83,8 +101,8 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
     ctx->indent++;
     write_indent(ctx);
     codebuf_write(ctx->out, "/* world command pass: reset */\n");
-    for (size_t i = 0; i < node->data.world_decl.zone_count; i++) {
-        ASTNode *wz = node->data.world_decl.zones[i];
+    for (size_t i = 0; i < zone_count; i++) {
+        ASTNode *wz = zones[i];
         write_indent(ctx);
         codebuf_write(ctx->out, "bool _pgy_prev_active_%s = self->__zone_active_%s;\n",
             wz->data.world_zone.slot_name, wz->data.world_zone.slot_name);
@@ -94,8 +112,8 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
     }
     write_indent(ctx);
     codebuf_write(ctx->out, "/* world command pass: directives */\n");
-    for (size_t i = 0; i < node->data.world_decl.activate_count; i++) {
-        ASTNode *act = node->data.world_decl.activations[i];
+    for (size_t i = 0; i < activate_count; i++) {
+        ASTNode *act = activations[i];
         const char *slot_name = act->data.world_activate.zone_slot_name;
         if (slot_name == NULL && act->data.world_activate.state_name != NULL) {
             ASTNode *state = find_world_state_decl(node, act->data.world_activate.state_name);
@@ -111,8 +129,8 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
                 PGY_PROP_CAUSE_WORLD_ACTIVATE);
         }
     }
-    for (size_t i = 0; i < node->data.world_decl.maintained_zone_count; i++) {
-        ASTNode *mnt = node->data.world_decl.maintained_zones[i];
+    for (size_t i = 0; i < maintained_zone_count; i++) {
+        ASTNode *mnt = maintained_zones[i];
         const char *slot_name = mnt->data.world_maintain.zone_slot_name;
         if (slot_name == NULL && mnt->data.world_maintain.state_name != NULL) {
             ASTNode *state = find_world_state_decl(node, mnt->data.world_maintain.state_name);
@@ -128,8 +146,8 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
                 PGY_PROP_CAUSE_WORLD_MAINTAIN);
         }
     }
-    for (size_t i = 0; i < node->data.world_decl.deactivate_count; i++) {
-        ASTNode *act = node->data.world_decl.deactivations[i];
+    for (size_t i = 0; i < deactivate_count; i++) {
+        ASTNode *act = deactivations[i];
         const char *slot_name = act->data.world_deactivate.zone_slot_name;
         if (slot_name == NULL && act->data.world_deactivate.state_name != NULL) {
             ASTNode *state = find_world_state_decl(node, act->data.world_deactivate.state_name);
@@ -145,8 +163,8 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
                 PGY_PROP_CAUSE_WORLD_DEACTIVATE);
         }
     }
-    for (size_t i = 0; i < node->data.world_decl.zone_count; i++) {
-        ASTNode *wz = node->data.world_decl.zones[i];
+    for (size_t i = 0; i < zone_count; i++) {
+        ASTNode *wz = zones[i];
         const char *slot_name = wz->data.world_zone.slot_name;
         write_indent(ctx);
         codebuf_write(ctx->out, "if (self->__zone_active_%s != _pgy_prev_active_%s) {\n",
@@ -184,8 +202,8 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
     codebuf_write(ctx->out, "_pgy_world_frontier_pass++;\n");
     write_indent(ctx);
     codebuf_write(ctx->out, "/* world zone sync pass */\n");
-    for (size_t i = 0; i < node->data.world_decl.zone_count; i++) {
-        ASTNode *wz = node->data.world_decl.zones[i];
+    for (size_t i = 0; i < zone_count; i++) {
+        ASTNode *wz = zones[i];
         const char *slot_name = wz->data.world_zone.slot_name;
         write_indent(ctx);
         codebuf_write(ctx->out,
@@ -237,8 +255,8 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
     codebuf_write(ctx->out, "_pgy_world_continue = false;\n");
     write_indent(ctx);
     codebuf_write(ctx->out, "_pgy_world_pass++;\n");
-    for (size_t i = 0; i < node->data.world_decl.state_count; i++) {
-        ASTNode *state = node->data.world_decl.states[i];
+    for (size_t i = 0; i < state_count; i++) {
+        ASTNode *state = states[i];
         const char *expr_fmt = "self->__zone_active_%s";
         const char *detail_name = state->data.world_state.detail_name;
         write_indent(ctx);
@@ -333,7 +351,7 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
     ctx->indent++;
     write_indent(ctx);
     codebuf_write(ctx->out,
-        "PGY_PANIC(\"world derived recompute exceeded bounded pass limit\");\n");
+        "PGY_PANIC(\"%s\");\n", PGY_FRONTIER_REASON_WORLD_DERIVED_OVERFLOW);
     ctx->indent--;
     write_indent(ctx);
     codebuf_write(ctx->out, "}\n");
@@ -344,8 +362,8 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
     codebuf_write(ctx->out, "}\n");
     write_indent(ctx);
     codebuf_write(ctx->out, "if (_pgy_world_derived_changed_any || self->__world_derived_dirty");
-    for (size_t i = 0; i < node->data.world_decl.zone_count; i++) {
-        ASTNode *wz = node->data.world_decl.zones[i];
+    for (size_t i = 0; i < zone_count; i++) {
+        ASTNode *wz = zones[i];
         if (wz == NULL || wz->type != AST_WORLD_ZONE
             || wz->data.world_zone.slot_name == NULL) {
             continue;
@@ -368,7 +386,7 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
     ctx->indent++;
     write_indent(ctx);
     codebuf_write(ctx->out,
-        "PGY_PANIC(\"world frontier recompute exceeded bounded pass limit\");\n");
+        "PGY_PANIC(\"%s\");\n", PGY_FRONTIER_REASON_WORLD_TRANSITIVE_OVERFLOW);
     ctx->indent--;
     write_indent(ctx);
     codebuf_write(ctx->out, "}\n");

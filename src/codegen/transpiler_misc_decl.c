@@ -13,7 +13,7 @@
 void
 emit_include_stmt(ASTNode *node, TranspilerCtx *ctx)
 {
-    const char *included_role = node->data.include_stmt.role_name;
+    const char *included_role = ast_include_role_name(node);
 
     codebuf_write(ctx->out, "/* include %s */\n", included_role);
     if (find_role_decl(ctx, included_role) == NULL) {
@@ -29,10 +29,7 @@ emit_include_stmt(ASTNode *node, TranspilerCtx *ctx)
 void
 emit_impl_ability(ASTNode *node, TranspilerCtx *ctx)
 {
-    const char *ability_name =
-        (node->data.impl_ability.ability_ref != NULL
-         && node->data.impl_ability.ability_ref->type == AST_TYPE)
-        ? node->data.impl_ability.ability_ref->data.type.name : NULL;
+    const char *ability_name = ast_impl_ability_name(node);
 
     codebuf_write(ctx->out, "/* Impl ability: %s */\n", ability_name);
     /* This is handled within emit_role_decl. */

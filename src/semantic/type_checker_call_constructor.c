@@ -142,8 +142,11 @@ type_check_constructor_symbol_call(ASTNode *expr,
                                 }
                                 if (arg_type_name == NULL)
                                     continue;
-                                for (size_t zi = 0; zi < decl->data.world_decl.zone_count; zi++) {
-                                    ASTNode *zone_slot = decl->data.world_decl.zones[zi];
+                                size_t zone_count = 0;
+                                ASTNode **zones = ast_world_zones(decl,
+                                    &zone_count);
+                                for (size_t zi = 0; zi < zone_count; zi++) {
+                                    ASTNode *zone_slot = zones[zi];
                                     if (zone_slot == NULL
                                         || zone_slot->type != AST_WORLD_ZONE
                                         || zone_slot->data.world_zone.zone_type == NULL) {

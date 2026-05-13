@@ -1,5 +1,6 @@
 #ifdef PGY_LLVM_ENABLED
 #include "llvm_domain_world_sync_internal.h"
+#include "parser/ast_api.h"
 
 static bool
 llvm_world_sync_directive_field_name(char *out,
@@ -21,8 +22,10 @@ llvm_world_sync_find_state_decl(ASTNode *world_decl, const char *state_name)
     if (world_decl == NULL || world_decl->type != AST_WORLD_DECL || state_name == NULL)
         return NULL;
 
-    for (size_t i = 0; i < world_decl->data.world_decl.state_count; i++) {
-        ASTNode *state = world_decl->data.world_decl.states[i];
+    size_t state_count = 0;
+    ASTNode **states = ast_world_states(world_decl, &state_count);
+    for (size_t i = 0; i < state_count; i++) {
+        ASTNode *state = states[i];
         if (state != NULL && state->type == AST_WORLD_STATE
             && state->data.world_state.state_name != NULL
             && strcmp(state->data.world_state.state_name, state_name) == 0) {
@@ -39,8 +42,10 @@ llvm_world_sync_has_zone_slot(ASTNode *world_decl, const char *slot_name)
     if (world_decl == NULL || world_decl->type != AST_WORLD_DECL || slot_name == NULL)
         return false;
 
-    for (size_t i = 0; i < world_decl->data.world_decl.zone_count; i++) {
-        ASTNode *zone = world_decl->data.world_decl.zones[i];
+    size_t zone_count = 0;
+    ASTNode **zones = ast_world_zones(world_decl, &zone_count);
+    for (size_t i = 0; i < zone_count; i++) {
+        ASTNode *zone = zones[i];
         if (zone != NULL && zone->type == AST_WORLD_ZONE
             && zone->data.world_zone.slot_name != NULL
             && strcmp(zone->data.world_zone.slot_name, slot_name) == 0) {
@@ -104,8 +109,10 @@ llvm_world_sync_emit_directives(ASTNode *stmt,
                                 LLVMValueRef sync_fn,
                                 LLVMGenCtx *ctx)
 {
-    for (size_t i = 0; i < stmt->data.world_decl.activate_count; i++) {
-        ASTNode *act = stmt->data.world_decl.activations[i];
+    size_t activate_count = 0;
+    ASTNode **activations = ast_world_activations(stmt, &activate_count);
+    for (size_t i = 0; i < activate_count; i++) {
+        ASTNode *act = activations[i];
         const char *slot_name = act != NULL
             ? llvm_world_sync_resolve_zone_slot(stmt,
                 act->data.world_activate.zone_slot_name,
@@ -115,8 +122,11 @@ llvm_world_sync_emit_directives(ASTNode *stmt,
             LLVMConstInt(ctx->type_i1, 1, 0), PGY_PROP_CAUSE_WORLD_ACTIVATE);
     }
 
-    for (size_t i = 0; i < stmt->data.world_decl.maintained_zone_count; i++) {
-        ASTNode *mnt = stmt->data.world_decl.maintained_zones[i];
+    size_t maintained_zone_count = 0;
+    ASTNode **maintained_zones =
+        ast_world_maintained_zones(stmt, &maintained_zone_count);
+    for (size_t i = 0; i < maintained_zone_count; i++) {
+        ASTNode *mnt = maintained_zones[i];
         const char *slot_name = mnt != NULL
             ? llvm_world_sync_resolve_zone_slot(stmt,
                 mnt->data.world_maintain.zone_slot_name,
@@ -126,8 +136,10 @@ llvm_world_sync_emit_directives(ASTNode *stmt,
             LLVMConstInt(ctx->type_i1, 1, 0), PGY_PROP_CAUSE_WORLD_MAINTAIN);
     }
 
-    for (size_t i = 0; i < stmt->data.world_decl.deactivate_count; i++) {
-        ASTNode *act = stmt->data.world_decl.deactivations[i];
+    size_t deactivate_count = 0;
+    ASTNode **deactivations = ast_world_deactivations(stmt, &deactivate_count);
+    for (size_t i = 0; i < deactivate_count; i++) {
+        ASTNode *act = deactivations[i];
         const char *slot_name = act != NULL
             ? llvm_world_sync_resolve_zone_slot(stmt,
                 act->data.world_deactivate.zone_slot_name,

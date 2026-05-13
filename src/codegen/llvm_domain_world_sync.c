@@ -62,7 +62,8 @@ llvm_emit_world_sync(ASTNode *stmt, const char *decl_name,
         int derived_idx = llvm_class_field_index(decl_cls, "__world_derived_dirty");
         LLVMValueRef derived_ptr = NULL;
         LLVMValueRef derived_val = LLVMConstInt(ctx->type_i1, 0, 0);
-        size_t zone_count = stmt->data.world_decl.zone_count;
+        size_t zone_count = 0;
+        ASTNode **zones = ast_world_zones(stmt, &zone_count);
         /* Per-zone "previously active" pointer cache populated during
          * world sync emission and consumed once before this function
          * returns.  Never escapes. */
@@ -84,7 +85,7 @@ llvm_emit_world_sync(ASTNode *stmt, const char *decl_name,
 
         /* world command pass: reset */
         for (size_t i = 0; i < zone_count; i++) {
-            ASTNode *zone = stmt->data.world_decl.zones[i];
+            ASTNode *zone = zones[i];
             char active_field[256];
             char prev_name[256];
             int active_idx;
@@ -119,7 +120,7 @@ llvm_emit_world_sync(ASTNode *stmt, const char *decl_name,
         llvm_world_sync_emit_directives(stmt, decl_cls, sync_fn, ctx);
 
         for (size_t i = 0; i < zone_count; i++) {
-            ASTNode *zone = stmt->data.world_decl.zones[i];
+            ASTNode *zone = zones[i];
             const char *slot_name;
             char active_field[256];
             char dirty_field[256];

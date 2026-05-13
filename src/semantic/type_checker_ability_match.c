@@ -9,6 +9,7 @@
 #include <string.h>
 
 #include "type_checker_ability_match_internal.h"
+#include "type_checker_decls_a_helpers_internal.h"
 
 static bool
 ability_ref_type_arg_equal(ASTNode *lhs, ASTNode *rhs)
@@ -104,24 +105,6 @@ cleanup:
     return matches;
 }
 
-static ASTNode *
-find_role_decl_in_program_local(ASTNode *program, const char *role_name)
-{
-    if (program == NULL || program->type != AST_PROGRAM || role_name == NULL)
-        return NULL;
-
-    for (size_t i = 0; i < program->data.program.count; i++) {
-        ASTNode *stmt = program->data.program.statements[i];
-        if (stmt != NULL && stmt->type == AST_ROLE_DECL
-            && stmt->data.role_decl.name != NULL
-            && strcmp(stmt->data.role_decl.name, role_name) == 0) {
-            return stmt;
-        }
-    }
-
-    return NULL;
-}
-
 bool
 role_decl_has_ability(ASTNode *role, ASTNode *program,
                       ASTNode *ability_ref, int depth)
@@ -131,21 +114,24 @@ role_decl_has_ability(ASTNode *role, ASTNode *program,
         return false;
     }
 
-    for (size_t i = 0; i < role->data.role_decl.impl_count; i++) {
-        ASTNode *impl = role->data.role_decl.impl_abilities[i];
+    for (size_t i = 0; i < ast_role_impl_count(role); i++) {
+        ASTNode *impl = ast_role_impl(role, i);
+        ASTNode *impl_ability_ref = ast_impl_ability_ref(impl);
         if (impl != NULL
             && impl->type == AST_IMPL_ABILITY
-            && impl->data.impl_ability.ability_ref != NULL
             && ability_ref_matches(program,
-                impl->data.impl_ability.ability_ref, ability_ref)) {
+                impl_ability_ref, ability_ref)) {
             return true;
         }
     }
 
-    for (size_t i = 0; i < role->data.role_decl.include_count; i++) {
-        ASTNode *inc = role->data.role_decl.includes[i];
-        ASTNode *included = find_role_decl_in_program_local(program,
-            inc != NULL ? inc->data.include_stmt.role_name : NULL);
+    for (size_t i = 0; i < ast_role_include_count(role); i++) {
+        ASTNode *inc = ast_role_include(role, i);
+        const char *role_name = ast_include_role_name(inc);
+        ASTNode *included;
+        if (role_name == NULL)
+            continue;
+        included = semantic_find_role_decl(program, role_name);
         if (role_decl_has_ability(included, program, ability_ref, depth + 1))
             return true;
     }
@@ -164,11 +150,8 @@ subject_type_has_ability(ASTNode *program, const char *type_name,
 
     for (size_t i = 0; i < program->data.program.count; i++) {
         ASTNode *stmt = program->data.program.statements[i];
-        if (stmt == NULL || stmt->type != AST_ROLE_DECL
-            || stmt->data.role_decl.for_type == NULL
-            || stmt->data.role_decl.for_type->type != AST_TYPE
-            || stmt->data.role_decl.for_type->data.type.name == NULL
-            || strcmp(stmt->data.role_decl.for_type->data.type.name, type_name) != 0) {
+        const char *role_type = semantic_role_for_type_name(stmt);
+        if (role_type == NULL || strcmp(role_type, type_name) != 0) {
             continue;
         }
         if (role_decl_has_ability(stmt, program, ability_ref, 0))
@@ -189,23 +172,19 @@ subject_type_find_base_ability_impl(ASTNode *program, const char *type_name,
 
     for (size_t i = 0; i < program->data.program.count; i++) {
         ASTNode *stmt = program->data.program.statements[i];
-        if (stmt == NULL || stmt->type != AST_ROLE_DECL
-            || stmt->data.role_decl.for_type == NULL
-            || stmt->data.role_decl.for_type->type != AST_TYPE
-            || stmt->data.role_decl.for_type->data.type.name == NULL
-            || strcmp(stmt->data.role_decl.for_type->data.type.name, type_name) != 0) {
+        const char *role_type = semantic_role_for_type_name(stmt);
+        if (role_type == NULL || strcmp(role_type, type_name) != 0) {
             continue;
         }
-        for (size_t j = 0; j < stmt->data.role_decl.impl_count; j++) {
-            ASTNode *impl = stmt->data.role_decl.impl_abilities[j];
+        for (size_t j = 0; j < ast_role_impl_count(stmt); j++) {
+            ASTNode *impl = ast_role_impl(stmt, j);
+            ASTNode *impl_ability_ref = ast_impl_ability_ref(impl);
+            const char *impl_ability_name = ast_impl_ability_name(impl);
             if (impl != NULL
                 && impl->type == AST_IMPL_ABILITY
-                && impl->data.impl_ability.ability_ref != NULL
-                && impl->data.impl_ability.ability_ref->type == AST_TYPE
-                && impl->data.impl_ability.ability_ref->data.type.name != NULL
-                && strcmp(impl->data.impl_ability.ability_ref->data.type.name,
-                          ability_name) == 0) {
-                return impl->data.impl_ability.ability_ref;
+                && impl_ability_name != NULL
+                && strcmp(impl_ability_name, ability_name) == 0) {
+                return impl_ability_ref;
             }
         }
     }

@@ -22,8 +22,8 @@ llvm_find_zone_decl_by_name(LLVMGenCtx *ctx, const char *zone_type_name)
     for (size_t i = 0; i < zone_count; i++) {
         ASTNode *zone = zones[i];
         if (zone != NULL && zone->type == AST_ZONE_DECL
-            && zone->data.zone_decl.name != NULL
-            && strcmp(zone->data.zone_decl.name, zone_type_name) == 0) {
+            && ast_zone_name(zone) != NULL
+            && strcmp(ast_zone_name(zone), zone_type_name) == 0) {
             return zone;
         }
     }
@@ -72,8 +72,13 @@ llvm_emit_intent_step_mark_caused_effect(LLVMGenCtx *ctx,
     zone_ptr = LLVMBuildLoad2(ctx->builder, zone_var->type,
         zone_var->alloca, llvm_tmp_name(ctx));
 
-    for (size_t i = 0; i < zone_decl->data.zone_decl.layer_slot_count; i++) {
-        ASTNode *layer_slot = zone_decl->data.zone_decl.layer_slots[i];
+    size_t layer_slot_count = 0;
+    ASTNode **layer_slots = ast_zone_layer_slots(zone_decl, &layer_slot_count);
+    size_t state_count = 0;
+    ASTNode **states = ast_zone_states(zone_decl, &state_count);
+
+    for (size_t i = 0; i < layer_slot_count; i++) {
+        ASTNode *layer_slot = layer_slots[i];
         const char *layer_name;
         char epoch_field[256];
         char cause_field[256];
@@ -119,8 +124,8 @@ llvm_emit_intent_step_mark_caused_effect(LLVMGenCtx *ctx,
             LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i32, 11, 0), cause_ptr);
         }
 
-        for (size_t j = 0; j < zone_decl->data.zone_decl.state_count; j++) {
-            ASTNode *state = zone_decl->data.zone_decl.states[j];
+        for (size_t j = 0; j < state_count; j++) {
+            ASTNode *state = states[j];
             char state_epoch_field[256];
             char state_cause_field[256];
             int state_epoch_idx;

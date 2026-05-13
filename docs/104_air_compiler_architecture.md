@@ -345,6 +345,10 @@ sixth compiler core and the architecture is wrong.
   `runtime_frontier_policy`) must not attach to a concrete boundary; `hir_cfg`
   evidence requires same-boundary `hir_routine` evidence; `rir_authority`
   evidence requires same-boundary `rir_boundary` evidence and a declared
+  authority participant. Runtime frontier policy evidence is global and mirrors
+  the runtime policy header: `pass_limit_fact_count=9`,
+  `overflow_reason_fact_count=5`, and `fact_count=14` in
+  `pgy.air.graph.v1`.
   authority participant; `mir_pin_cleanup` evidence can attach only to a `pin`
   execution boundary with the same source AST provenance.
 - MIR cleanup and pin-cleanup evidence are collected through

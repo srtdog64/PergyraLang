@@ -60,9 +60,10 @@ semantic_validate_action_func_contract(ASTNode *node,
         /* Derive 'within' from the surrounding lexical zone */
         if (node->data.func_decl.within_zone == NULL
             && ctx->current_zone != NULL
-            && ctx->current_zone->type == AST_ZONE_DECL) {
+            && ctx->current_zone->type == AST_ZONE_DECL
+            && ast_zone_name(ctx->current_zone) != NULL) {
             node->data.func_decl.within_zone =
-                pergyra_strdup(ctx->current_zone->data.zone_decl.name);
+                pergyra_strdup(ast_zone_name(ctx->current_zone));
         }
 
         if (node->data.func_decl.within_zone != NULL
@@ -155,9 +156,13 @@ semantic_validate_action_func_contract(ASTNode *node,
         if (node->data.func_decl.within_zone != NULL) {
             ASTNode *zone_decl = find_domain_decl_by_name(ctx->program_root, AST_ZONE_DECL,
                 node->data.func_decl.within_zone);
+            ASTNode **zone_slots = NULL;
+            size_t zone_slot_count = 0;
+            if (zone_decl != NULL)
+                zone_slots = ast_zone_slots(zone_decl, &zone_slot_count);
             if (zone_decl != NULL && subject_name != NULL
-                && !domain_has_subject_slot_type(zone_decl->data.zone_decl.slots,
-                    zone_decl->data.zone_decl.slot_count, ctx, subject_name)) {
+                && !domain_has_subject_slot_type(zone_slots,
+                    zone_slot_count, ctx, subject_name)) {
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_ACTION_CONTRACT_INVALID, PGY_CAUSE_ACTION_CONTRACT, PGY_FIX_ALIGN_ACTION_SURFACE_WITH_ZONE, node,
                     "action '%s' references zone '%s', but that zone has no subject slot for '%s'",
                     name != NULL ? name : "<anonymous>",
@@ -173,8 +178,8 @@ semantic_validate_action_func_contract(ASTNode *node,
                     if (auth_type_name == NULL) {
                         continue;
                     }
-                    if (!domain_has_subject_slot_type(zone_decl->data.zone_decl.slots,
-                            zone_decl->data.zone_decl.slot_count, ctx, auth_type_name)) {
+                    if (!domain_has_subject_slot_type(zone_slots,
+                            zone_slot_count, ctx, auth_type_name)) {
                         semantic_error_with_hints(ctx, PGY_CODE_SEM_ACTION_CONTRACT_INVALID, PGY_CAUSE_ACTION_CONTRACT, PGY_FIX_ALIGN_ACTION_SURFACE_WITH_ZONE, node,
                             "action '%s' authorized subject '%s' has type '%s', but zone '%s' has no matching subject slot.\n"
                             "Reason:\n"
@@ -232,8 +237,11 @@ semantic_validate_action_func_contract(ASTNode *node,
             ASTNode *effect_decl = find_domain_decl_by_name(ctx->program_root, AST_EFFECT_DECL,
                 node->data.func_decl.causes_effect);
             if (effect_decl != NULL) {
-                for (size_t i = 0; i < effect_decl->data.effect_decl.slot_count; i++) {
-                    ASTNode *slot = effect_decl->data.effect_decl.slots[i];
+                ASTNode **effect_slots;
+                size_t effect_slot_count;
+                effect_slots = ast_effect_slots(effect_decl, &effect_slot_count);
+                for (size_t i = 0; i < effect_slot_count; i++) {
+                    ASTNode *slot = effect_slots[i];
                     Type *slot_type;
                     bool matched = false;
 

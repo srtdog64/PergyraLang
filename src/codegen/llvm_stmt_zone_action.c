@@ -52,11 +52,15 @@ llvm_stmt_find_effect_decl(LLVMGenCtx *ctx, const char *effect_name)
 static ASTNode *
 llvm_stmt_find_zone_domain_slot_decl(ASTNode *zone_decl, const char *slot_name)
 {
+    size_t slot_count = 0;
+    ASTNode **slots;
+
     if (zone_decl == NULL || zone_decl->type != AST_ZONE_DECL || slot_name == NULL)
         return NULL;
 
-    for (size_t i = 0; i < zone_decl->data.zone_decl.slot_count; i++) {
-        ASTNode *slot = zone_decl->data.zone_decl.slots[i];
+    slots = ast_zone_slots(zone_decl, &slot_count);
+    for (size_t i = 0; i < slot_count; i++) {
+        ASTNode *slot = slots[i];
         if (slot != NULL && slot->type == AST_DOMAIN_SLOT
             && slot->data.domain_slot.slot_name != NULL
             && strcmp(slot->data.domain_slot.slot_name, slot_name) == 0) {
@@ -186,13 +190,13 @@ llvm_stmt_emit_zone_action_effect_runtime(ASTNode *call, LLVMGenCtx *ctx)
         || method_decl->data.func_decl.within_zone == NULL
         || method_decl->data.func_decl.causes_effect == NULL
         || strcmp(method_decl->data.func_decl.within_zone,
-                  zone_decl->data.zone_decl.name) != 0) {
+                  ast_zone_name(zone_decl)) != 0) {
         return;
     }
 
     effect_name = method_decl->data.func_decl.causes_effect;
     effect_decl = llvm_stmt_find_effect_decl(ctx, effect_name);
-    zone_cls = llvm_lookup_class(ctx, zone_decl->data.zone_decl.name);
+    zone_cls = llvm_lookup_class(ctx, ast_zone_name(zone_decl));
     effect_cls = llvm_lookup_class(ctx, effect_name);
     self_var = llvm_scope_lookup(ctx, "self");
     if (effect_decl == NULL || zone_cls == NULL || effect_cls == NULL || self_var == NULL)
@@ -202,8 +206,15 @@ llvm_stmt_emit_zone_action_effect_runtime(ASTNode *call, LLVMGenCtx *ctx)
         LLVMPointerType(zone_cls->struct_type, 0),
         self_var->alloca, llvm_tmp_name(ctx));
 
-    for (size_t i = 0; i < zone_decl->data.zone_decl.layer_slot_count; i++) {
-        ASTNode *layer_slot = zone_decl->data.zone_decl.layer_slots[i];
+    size_t layer_slot_count = 0;
+    ASTNode **layer_slots = ast_zone_layer_slots(zone_decl, &layer_slot_count);
+    size_t effect_slot_count = 0;
+    ASTNode **effect_slots = ast_effect_slots(effect_decl, &effect_slot_count);
+    size_t refresh_count = 0;
+    ASTNode **refreshes = ast_effect_refreshes(effect_decl, &refresh_count);
+
+    for (size_t i = 0; i < layer_slot_count; i++) {
+        ASTNode *layer_slot = layer_slots[i];
         ASTNode *subject_slot;
         const char *layer_name;
         int active_idx;
@@ -239,8 +250,8 @@ llvm_stmt_emit_zone_action_effect_runtime(ASTNode *call, LLVMGenCtx *ctx)
             LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 1, 0), active_ptr);
         }
 
-        subject_slot = llvm_stmt_find_nth_subject_slot(effect_decl->data.effect_decl.slots,
-            effect_decl->data.effect_decl.slot_count, 0);
+        subject_slot = llvm_stmt_find_nth_subject_slot(effect_slots,
+            effect_slot_count, 0);
         if (subject_slot == NULL || subject_slot->data.domain_slot.slot_name == NULL)
             continue;
 
@@ -261,8 +272,8 @@ llvm_stmt_emit_zone_action_effect_runtime(ASTNode *call, LLVMGenCtx *ctx)
                 layer_ptr, (unsigned)subject_idx, llvm_tmp_name(ctx));
             LLVMBuildStore(ctx->builder, target_value, subject_ptr);
         }
-        for (size_t ri = 0; ri < effect_decl->data.effect_decl.refresh_count; ri++) {
-            ASTNode *refresh = effect_decl->data.effect_decl.refreshes[ri];
+        for (size_t ri = 0; ri < refresh_count; ri++) {
+            ASTNode *refresh = refreshes[ri];
             const char *projection_name;
             const char *source_name;
             char dirty_field[256];

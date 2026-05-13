@@ -3,6 +3,7 @@
 #include <stdlib.h>
 
 #include "type_checker_internal.h"
+#include "type_checker_decls_a_helpers_internal.h"
 
 static char *
 stage_nominal_strdup_fmt(const char *fmt, ...)
@@ -213,51 +214,54 @@ semantic_stage_role_decl(ASTNode *decl, SemanticContext *ctx)
         "role",
         decl->data.role_decl.name);
     (void)semantic_stage_resolve_type_quiet(
-        decl->data.role_decl.for_type,
+        semantic_role_for_type_node(decl),
         ctx,
         decl,
         decl->data.role_decl.name,
         "role host-type lookup");
-    for (size_t i = 0; i < decl->data.role_decl.include_count; i++) {
-        ASTNode *inc = decl->data.role_decl.includes[i];
+    for (size_t i = 0; i < ast_role_include_count(decl); i++) {
+        ASTNode *inc = ast_role_include(decl, i);
+        const char *role_name = ast_include_role_name(inc);
         ASTNode *included_role_decl;
         ASTNode **effective = NULL;
         size_t effective_count = 0;
 
-        if (inc == NULL || inc->type != AST_INCLUDE_STMT)
+        if (role_name == NULL)
             continue;
 
         included_role_decl = semantic_stage_named_decl_quiet(
             ctx,
             AST_ROLE_DECL,
-            inc->data.include_stmt.role_name);
+            role_name);
         effective = collect_effective_generic_arg_nodes(
             (included_role_decl != NULL && included_role_decl->type == AST_ROLE_DECL)
                 ? included_role_decl->data.role_decl.generic_params
                 : NULL,
-            inc->data.include_stmt.type_args,
+            ast_include_type_args(inc),
             inc,
             ctx,
             "role include",
-            inc->data.include_stmt.role_name,
+            role_name,
             &effective_count);
         free(effective);
         (void)effective_count;
     }
-    for (size_t i = 0; i < decl->data.role_decl.impl_count; i++) {
-        ASTNode *impl = decl->data.role_decl.impl_abilities[i];
+    for (size_t i = 0; i < ast_role_impl_count(decl); i++) {
+        ASTNode *impl = ast_role_impl(decl, i);
+        ASTNode *ability_ref;
+        const char *ability_name;
         if (impl == NULL || impl->type != AST_IMPL_ABILITY)
             continue;
-        if (impl->data.impl_ability.ability_ref != NULL
-            && impl->data.impl_ability.ability_ref->type == AST_TYPE
-            && impl->data.impl_ability.ability_ref->data.type.name != NULL) {
+        ability_ref = ast_impl_ability_ref(impl);
+        ability_name = ast_impl_ability_name(impl);
+        if (ability_name != NULL) {
             (void)semantic_stage_named_decl_quiet(
                 ctx,
                 AST_ABILITY_DECL,
-                impl->data.impl_ability.ability_ref->data.type.name);
+                ability_name);
         }
         (void)semantic_stage_resolve_type_quiet(
-            impl->data.impl_ability.ability_ref,
+            ability_ref,
             ctx,
             impl,
             decl->data.role_decl.name,

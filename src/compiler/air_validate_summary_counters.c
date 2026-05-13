@@ -28,6 +28,43 @@ air_validate_mir_summary_counter(const AIRProgram *air,
     return false;
 }
 
+static size_t
+air_boundary_evidence_node_count(const AIRProgram *air, AIREvidenceKind kind)
+{
+    size_t count = 0;
+
+    if (air == NULL || !air_evidence_kind_is_boundary_scoped(kind))
+        return 0;
+    for (size_t i = 0; i < air->evidence_count; i++) {
+        const AIREvidenceNode *evidence = &air->evidence_nodes[i];
+        if (evidence->kind == kind && evidence->boundary_index != SIZE_MAX)
+            count++;
+    }
+    return count;
+}
+
+static bool
+air_validate_mir_boundary_summary_counter(const AIRProgram *air,
+                                          AIREvidenceKind kind,
+                                          size_t summary_count,
+                                          const char *label,
+                                          char **error_message)
+{
+    size_t node_count;
+
+    if (air == NULL || !air->has_mir_input)
+        return true;
+    node_count = air_boundary_evidence_node_count(air, kind);
+    if (node_count == 0 || summary_count == node_count)
+        return true;
+    air_set_invariant_error(error_message,
+                            "AIR MIR %s evidence counter does not match evidence nodes; summary=%zu nodes=%zu",
+                            label,
+                            summary_count,
+                            node_count);
+    return false;
+}
+
 static bool
 air_validate_rir_propagation_summary_counter(const AIRProgram *air,
                                              AIREvidenceKind kind,
@@ -80,6 +117,12 @@ air_validate_summary_counters(const AIRProgram *air, char **error_message)
                AIR_EVIDENCE_MIR_CLEANUP,
                air != NULL ? air->mir_cleanup_evidence_count : 0,
                "cleanup",
+               error_message)
+        && air_validate_mir_boundary_summary_counter(
+               air,
+               AIR_EVIDENCE_MIR_PIN_CLEANUP,
+               air != NULL ? air->mir_pin_cleanup_evidence_count : 0,
+               "pin cleanup",
                error_message)
         && air_validate_mir_summary_counter(
                air,

@@ -165,13 +165,13 @@ llvm_domain_struct_register_roster_fields(ASTNode *stmt,
     int field_index = 0;
 
     entry->domain_kind = LLVM_DOMAIN_SYSTEMIC;
-    for (size_t j = 0; j < stmt->data.roster_decl.party_count; j++, field_index++) {
-        ASTNode *slot = stmt->data.roster_decl.party_slots[j];
+    for (size_t j = 0; j < ast_roster_party_count(stmt); j++, field_index++) {
+        ASTNode *slot = ast_roster_party(stmt, j);
         llvm_class_add_field(entry, slot->data.roster_slot.slot_name,
             ftypes[field_index], field_index);
     }
-    for (size_t j = 0; j < stmt->data.roster_decl.shared_count; j++, field_index++) {
-        ASTNode *sf = stmt->data.roster_decl.shared_fields[j];
+    for (size_t j = 0; j < ast_roster_shared_count(stmt); j++, field_index++) {
+        ASTNode *sf = ast_roster_shared(stmt, j);
         llvm_class_add_field(entry, sf->data.party_shared.name,
             ftypes[field_index], field_index);
     }
@@ -272,9 +272,7 @@ llvm_domain_struct_register_default_fields(LLVMGenCtx *ctx,
                                            ASTNode **shared_fields,
                                            size_t shared_count,
                                            ASTNode **refreshes,
-                                           size_t refresh_count,
-                                           ASTNode **role_slots,
-                                           size_t role_count)
+                                           size_t refresh_count)
 {
     int field_index = 0;
 
@@ -290,8 +288,8 @@ llvm_domain_struct_register_default_fields(LLVMGenCtx *ctx,
         llvm_class_add_field(entry, sf->data.party_shared.name,
             ftypes[field_index], field_index);
     }
-    for (size_t j = 0; j < role_count; j++) {
-        ASTNode *rs = role_slots[j];
+    for (size_t j = 0; j < ast_party_role_count(stmt); j++) {
+        ASTNode *rs = ast_party_role(stmt, j);
         if (rs == NULL || rs->type != AST_ROLE_SLOT
             || !rs->data.role_slot.is_dynamic)
             continue;
@@ -317,9 +315,7 @@ llvm_domain_struct_register_fields(LLVMGenCtx *ctx,
                                    ASTNode **shared_fields,
                                    size_t shared_count,
                                    ASTNode **refreshes,
-                                   size_t refresh_count,
-                                   ASTNode **role_slots,
-                                   size_t role_count)
+                                   size_t refresh_count)
 {
     if (ctx == NULL || stmt == NULL || entry == NULL || ftypes == NULL)
         return false;
@@ -333,7 +329,7 @@ llvm_domain_struct_register_fields(LLVMGenCtx *ctx,
         return llvm_domain_struct_register_world_fields(ctx, stmt, entry, ftypes);
     return llvm_domain_struct_register_default_fields(ctx, stmt, entry, ftypes,
         slots, slot_count, shared_fields, shared_count, refreshes,
-        refresh_count, role_slots, role_count);
+        refresh_count);
 }
 
 #endif /* PGY_LLVM_ENABLED */

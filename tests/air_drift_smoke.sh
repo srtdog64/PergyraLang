@@ -636,7 +636,7 @@ if missing_span_terms:
 
 required_dag_drift_terms = [
     (air_impl, "dag_fallback_present", "AIR DAG fallback drift JSON name"),
-    (air_impl, "AIR DAG evidence contains unresolved metadata dead-end", "AIR DAG fallback drift message"),
+    (air_impl, "AIR DAG evidence contains unresolved metadata dead-end", "AIR DAG unresolved dead-end drift message"),
     (air_impl, "strict AIR requires graph-backed type evidence", "AIR DAG fallback drift reason"),
     (air_impl, "missing DAG evidence node", "AIR DAG fallback drift fix"),
     (air_impl, "strict AIR requires authority checks to be backed by RIR authority evidence", "AIR authority drift reason"),
@@ -790,13 +790,18 @@ required_test_terms = [
     "AIR strict evidence rejects observability counter only",
     "AIR rejects invalid runtime frontier policy provider",
     "AIR rejects empty runtime frontier policy evidence",
+    "expected=14 actual=0",
     "AIR strict evidence rejects frontier counter only",
     "pgy.air.graph.v1",
     "pgy.intent.observability.v1",
     "pgy.intent.trace.v1",
     "PGY_OBSERVABILITY_SURFACE_LAST",
     "PGY_OBSERVABILITY_EVENT_INTENT_ENTER",
+    "PGY_FRONTIER_PASS_LIMIT_FACT_COUNT",
+    "PGY_FRONTIER_OVERFLOW_REASON_FACT_COUNT",
     "PGY_FRONTIER_POLICY_FACT_COUNT",
+    "pass_limit_fact_count",
+    "overflow_reason_fact_count",
     "PGY_FRONTIER_PUBLISH_READY",
     "PGY_FRONTIER_PUBLISH_CLEAR_DIRTY",
     "mir_pin_cleanup_evidence_count",
@@ -810,6 +815,8 @@ required_test_terms = [
     "AIR rejects orphan MIR pin cleanup evidence",
     "AIR strict evidence rejects pin cleanup without cleanup root",
     "AIR rejects MIR pin cleanup evidence fact-count mismatch",
+    "AIR rejects MIR pin cleanup counter mismatch",
+    "AIR strict evidence rejects MIR pin cleanup counter only",
     "AIR rejects MIR pin cleanup without global cleanup evidence",
     "AIR strict evidence requires MIR pin cleanup",
     "AIR strict evidence requires MIR terminator evidence",
@@ -833,11 +840,15 @@ required_test_terms = [
     "AIR strict evidence rejects RIR propagation counter only",
     "RIR effect propagation evidence counter does not match evidence facts",
     "RIR relation propagation evidence counter does not match evidence facts",
+    "AIR MIR pin cleanup evidence counter does not match evidence nodes",
+    "AIR MIR evidence counter has no matching boundary evidence node",
     "test_air_rejects_rir_propagation_counter_mismatch",
+    "test_air_rejects_pin_cleanup_counter_mismatch",
+    "test_air_strict_evidence_rejects_pin_cleanup_counter_only",
     "AIR rejects invalid DAG evidence provider",
     "AIR rejects empty DAG evidence",
     "AIR rejects DAG fallback evidence",
-    "DAG evidence node 0 has fallback DAG facts",
+    "DAG evidence node 0 has unresolved metadata dead-end facts",
     "AIR DAG evidence counter has no matching evidence node",
     "strict_evidence=yes hir_input=yes rir_input=yes",
     "mir_input",
@@ -910,6 +921,9 @@ required_test_terms = [
 missing_test = [term for term in required_test_terms if term not in air_test]
 if missing_test:
     raise SystemExit("AIR test missing term(s): " + ", ".join(missing_test))
+
+if "fallback DAG facts" in air_impl or "fallback DAG facts" in air_global:
+    raise SystemExit("AIR DAG validator regressed to fallback-era DAG evidence wording")
 
 required_rir_test_terms = [
     "RIR materializes parallel async and spawn boundary ops",

@@ -21,8 +21,8 @@ find_top_level_zone_named(const char *zone_name)
         ASTNode *node = g_rir_program_root->data.program.statements[i];
         if (node != NULL
             && node->type == AST_ZONE_DECL
-            && node->data.zone_decl.name != NULL
-            && strcmp(node->data.zone_decl.name, zone_name) == 0) {
+            && ast_zone_name(node) != NULL
+            && strcmp(ast_zone_name(node), zone_name) == 0) {
             return node;
         }
     }
@@ -36,8 +36,10 @@ unique_effect_slot_for_type(const char *zone_name, const char *effect_type_name)
     const char *slot_name = NULL;
     if (zone == NULL || effect_type_name == NULL)
         return NULL;
-    for (size_t i = 0; i < zone->data.zone_decl.layer_slot_count; i++) {
-        ASTNode *slot = zone->data.zone_decl.layer_slots[i];
+    size_t layer_slot_count = 0;
+    ASTNode **layer_slots = ast_zone_layer_slots(zone, &layer_slot_count);
+    for (size_t i = 0; i < layer_slot_count; i++) {
+        ASTNode *slot = layer_slots[i];
         if (slot == NULL
             || slot->type != AST_ZONE_LAYER_SLOT
             || slot->data.zone_layer_slot.is_relation

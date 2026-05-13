@@ -88,8 +88,8 @@ static const char *
 zone_name_or_placeholder(ASTNode *zone_decl)
 {
     return zone_decl != NULL && zone_decl->type == AST_ZONE_DECL
-        && zone_decl->data.zone_decl.name != NULL
-        ? zone_decl->data.zone_decl.name
+        && ast_zone_name(zone_decl) != NULL
+        ? ast_zone_name(zone_decl)
         : "<zone>";
 }
 
@@ -98,11 +98,37 @@ semantic_type_resolution_precollect_zone_command_inventory(
     ASTNode *zone_decl,
     SemanticContext *ctx)
 {
+    ASTNode **refreshes;
+    ASTNode **applies;
+    ASTNode **links;
+    ASTNode **detaches;
+    ASTNode **unlinks;
+    ASTNode **maintained_effects;
+    ASTNode **maintained_relations;
+    size_t refresh_count;
+    size_t apply_count;
+    size_t link_count;
+    size_t detach_count;
+    size_t unlink_count;
+    size_t maintained_effect_count;
+    size_t maintained_relation_count;
+
     if (zone_decl == NULL || zone_decl->type != AST_ZONE_DECL || ctx == NULL)
         return;
+    refreshes = ast_zone_refreshes(zone_decl, &refresh_count);
+    applies = ast_zone_applies(zone_decl, &apply_count);
+    links = ast_zone_links(zone_decl, &link_count);
+    detaches = ast_zone_detaches(zone_decl, &detach_count);
+    unlinks = ast_zone_unlinks(zone_decl, &unlink_count);
+    maintained_effects = ast_zone_maintained_effects(
+        zone_decl,
+        &maintained_effect_count);
+    maintained_relations = ast_zone_maintained_relations(
+        zone_decl,
+        &maintained_relation_count);
 
-    for (size_t i = 0; i < zone_decl->data.zone_decl.refresh_count; i++) {
-        ASTNode *refresh = zone_decl->data.zone_decl.refreshes[i];
+    for (size_t i = 0; i < refresh_count; i++) {
+        ASTNode *refresh = refreshes[i];
         char *consumer_label;
 
         if (refresh == NULL || refresh->type != AST_ZONE_REFRESH)
@@ -127,8 +153,8 @@ semantic_type_resolution_precollect_zone_command_inventory(
         free(consumer_label);
     }
 
-    for (size_t i = 0; i < zone_decl->data.zone_decl.apply_count; i++) {
-        ASTNode *apply = zone_decl->data.zone_decl.applies[i];
+    for (size_t i = 0; i < apply_count; i++) {
+        ASTNode *apply = applies[i];
         char *consumer_label;
 
         if (apply == NULL || apply->type != AST_ZONE_APPLY)
@@ -154,8 +180,8 @@ semantic_type_resolution_precollect_zone_command_inventory(
         free(consumer_label);
     }
 
-    for (size_t i = 0; i < zone_decl->data.zone_decl.link_count; i++) {
-        ASTNode *link = zone_decl->data.zone_decl.links[i];
+    for (size_t i = 0; i < link_count; i++) {
+        ASTNode *link = links[i];
         char *consumer_label;
 
         if (link == NULL || link->type != AST_ZONE_LINK)
@@ -184,8 +210,8 @@ semantic_type_resolution_precollect_zone_command_inventory(
         free(consumer_label);
     }
 
-    for (size_t i = 0; i < zone_decl->data.zone_decl.detach_count; i++) {
-        ASTNode *detach = zone_decl->data.zone_decl.detaches[i];
+    for (size_t i = 0; i < detach_count; i++) {
+        ASTNode *detach = detaches[i];
         char *consumer_label;
 
         if (detach == NULL || detach->type != AST_ZONE_DETACH)
@@ -211,8 +237,8 @@ semantic_type_resolution_precollect_zone_command_inventory(
         free(consumer_label);
     }
 
-    for (size_t i = 0; i < zone_decl->data.zone_decl.unlink_count; i++) {
-        ASTNode *unlink = zone_decl->data.zone_decl.unlinks[i];
+    for (size_t i = 0; i < unlink_count; i++) {
+        ASTNode *unlink = unlinks[i];
         char *consumer_label;
 
         if (unlink == NULL || unlink->type != AST_ZONE_UNLINK)
@@ -241,8 +267,8 @@ semantic_type_resolution_precollect_zone_command_inventory(
         free(consumer_label);
     }
 
-    for (size_t i = 0; i < zone_decl->data.zone_decl.maintained_effect_count; i++) {
-        ASTNode *maintain = zone_decl->data.zone_decl.maintained_effects[i];
+    for (size_t i = 0; i < maintained_effect_count; i++) {
+        ASTNode *maintain = maintained_effects[i];
         char *consumer_label;
 
         if (maintain == NULL || maintain->type != AST_ZONE_MAINTAIN_EFFECT)
@@ -265,8 +291,8 @@ semantic_type_resolution_precollect_zone_command_inventory(
         free(consumer_label);
     }
 
-    for (size_t i = 0; i < zone_decl->data.zone_decl.maintained_relation_count; i++) {
-        ASTNode *maintain = zone_decl->data.zone_decl.maintained_relations[i];
+    for (size_t i = 0; i < maintained_relation_count; i++) {
+        ASTNode *maintain = maintained_relations[i];
         char *consumer_label;
 
         if (maintain == NULL || maintain->type != AST_ZONE_MAINTAIN_RELATION)

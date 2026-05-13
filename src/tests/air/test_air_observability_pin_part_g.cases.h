@@ -69,6 +69,9 @@ test_air_dump_json_prints_stable_graph_schema(void)
         && strstr(buffer, "\"runtime_frontier_policy\"") != NULL
         && strstr(buffer, "\"" PGY_FRONTIER_POLICY_SCHEMA "\"") != NULL
         && strstr(buffer, "\"" PGY_FRONTIER_POLICY_SUBJECT "\"") != NULL
+        && strstr(buffer, "\"pass_limit_fact_count\":9") != NULL
+        && strstr(buffer, "\"overflow_reason_fact_count\":5") != NULL
+        && strstr(buffer, "\"fact_count\":14") != NULL
         && strstr(buffer, "\"abi_schema\":\"" PGY_OBSERVABILITY_ABI_SCHEMA "\"") != NULL
         && strstr(buffer, "\"trace_schema\":\"" PGY_OBSERVABILITY_TRACE_SCHEMA "\"") != NULL
         && strstr(buffer, "\"surfaces\":[\"last\",\"history\",\"active\",\"recent\"]") != NULL
@@ -178,6 +181,95 @@ test_air_rejects_empty_observability_schema_evidence(void)
         && error != NULL
         && strstr(error,
                   "observability schema evidence node 0 has no schema facts") != NULL;
+    free(error);
+    return ok;
+}
+
+static bool
+test_air_rejects_pin_cleanup_counter_mismatch(void)
+{
+    ASTNode pin_ast = {.type = AST_BLOCK};
+    AIRIntentNode intents[] = {
+        {
+            .intent_owner = "ScoreIntent",
+            .step_name = "pin_scores",
+            .step_index = 0,
+            .sync_class = AIR_SYNC_SYNC,
+            .failure_class = AIR_FAILURE_RECOVERABLE,
+        },
+    };
+    AIRBoundaryNode boundaries[] = {
+        {
+            .kind = AIR_BOUNDARY_EXECUTION,
+            .owner_name = "ScoreIntent",
+            .source_name = "pin",
+            .intent_index = 0,
+            .step_index = 0,
+            .sync_class = AIR_SYNC_SYNC,
+            .ast = &pin_ast,
+        },
+    };
+    AIREvidenceNode evidence_nodes[] = {
+        {
+            .kind = AIR_EVIDENCE_MIR_CLEANUP,
+            .boundary_index = SIZE_MAX,
+            .provider_name = "pin_scores",
+            .subject_name = "cleanup-block",
+            .fact_count = 1,
+            .fallback_count = 0,
+        },
+        {
+            .kind = AIR_EVIDENCE_MIR_PIN_CLEANUP,
+            .boundary_index = 0,
+            .provider_name = "pin_scores",
+            .subject_name = "scores",
+            .fact_count = 1,
+            .fallback_count = 0,
+        },
+    };
+    AIRProgram air = {
+        .intents = intents,
+        .intent_count = 1,
+        .boundaries = boundaries,
+        .boundary_count = 1,
+        .evidence_nodes = evidence_nodes,
+        .evidence_count = 2,
+        .mir_cleanup_evidence_count = 1,
+        .mir_pin_cleanup_evidence_count = 2,
+        .has_mir_input = true,
+    };
+    char *error = NULL;
+    bool ok = !air_validate(&air, &error)
+        && error != NULL
+        && strstr(error, "AIR MIR pin cleanup evidence counter does not match evidence nodes") != NULL;
+    free(error);
+    return ok;
+}
+
+static bool
+test_air_strict_evidence_rejects_pin_cleanup_counter_only(void)
+{
+    AIRProgram air = {
+        .mir_pin_cleanup_evidence_count = 1,
+        .strict_evidence = true,
+        .has_mir_input = true,
+    };
+    char *error = NULL;
+    bool found = false;
+    bool ok = air_verify(&air, &error);
+
+    for (size_t i = 0; ok && i < air.drift_count; i++) {
+        if (air.drifts[i].kind == AIR_DRIFT_BOUNDARY_EVIDENCE_MISSING
+            && strstr(air.drifts[i].message,
+                      "AIR MIR evidence counter has no matching boundary evidence node") != NULL
+            && strstr(air.drifts[i].message,
+                      "mir_pin_cleanup") != NULL) {
+            found = true;
+            break;
+        }
+    }
+    ok = ok && found;
+    test_air_clear_stack_drifts(&air);
     free(error);
     return ok;
 }
@@ -297,7 +389,8 @@ test_air_rejects_empty_runtime_frontier_policy_evidence(void)
     bool ok = !air_validate(&air, &error)
         && error != NULL
         && strstr(error,
-                  "runtime frontier policy evidence node 0 has invalid policy fact count") != NULL;
+                  "runtime frontier policy evidence node 0 has invalid policy fact count") != NULL
+        && strstr(error, "expected=14 actual=0") != NULL;
     free(error);
     return ok;
 }
@@ -371,7 +464,9 @@ test_air_strict_evidence_rejects_frontier_counter_only(void)
 static bool
 test_air_runtime_frontier_policy_names_publish_order(void)
 {
-    bool ok = PGY_FRONTIER_POLICY_FACT_COUNT == 9
+    bool ok = PGY_FRONTIER_PASS_LIMIT_FACT_COUNT == 9
+        && PGY_FRONTIER_OVERFLOW_REASON_FACT_COUNT == 5
+        && PGY_FRONTIER_POLICY_FACT_COUNT == 14
         && pgy_frontier_publish_order_is_valid(
             PGY_FRONTIER_PUBLISH_WRITE_VALUE,
             PGY_FRONTIER_PUBLISH_READY)

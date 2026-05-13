@@ -252,16 +252,16 @@ rir_lower(ASTNode *annotated_ast, char **error_message)
                 }
                 break;
             case AST_ZONE_DECL:
-                ok = rir_collect_zone_like_scope(rir, node, RIR_SCOPE_ZONE, node->data.zone_decl.name);
+                ok = rir_collect_zone_like_scope(rir, node, RIR_SCOPE_ZONE, ast_zone_name(node));
                 break;
             case AST_RELATION_DECL:
-                ok = rir_collect_zone_like_scope(rir, node, RIR_SCOPE_RELATION, node->data.relation_decl.name);
+                ok = rir_collect_zone_like_scope(rir, node, RIR_SCOPE_RELATION, ast_relation_name(node));
                 break;
             case AST_EFFECT_DECL:
-                ok = rir_collect_zone_like_scope(rir, node, RIR_SCOPE_EFFECT, node->data.effect_decl.name);
+                ok = rir_collect_zone_like_scope(rir, node, RIR_SCOPE_EFFECT, ast_effect_name(node));
                 break;
             case AST_WORLD_DECL:
-                ok = rir_collect_zone_like_scope(rir, node, RIR_SCOPE_WORLD, node->data.world_decl.name);
+                ok = rir_collect_zone_like_scope(rir, node, RIR_SCOPE_WORLD, ast_world_name(node));
                 break;
             case AST_INTENT_DECL:
                 ok = rir_collect_intent_scope(rir, node);

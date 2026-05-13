@@ -246,6 +246,17 @@ grep -q 'metadata_sync_dead_end_compatibility_mirror' \
   exit 1
 }
 
+if grep -RIn 'type_resolution_metadata_fallback_' src/semantic; then
+  echo "[type-resolution-resolver-inventory] DAG dead-end family counters regressed to fallback-era naming" >&2
+  exit 1
+fi
+
+grep -q 'type_resolution_metadata_unresolved_named' \
+  src/semantic/type_checker.h || {
+  echo "[type-resolution-resolver-inventory] DAG dead-end family counters no longer use unresolved naming" >&2
+  exit 1
+}
+
 grep -q 'program_lookup_dag_type_ref_or_unknown' \
   src/semantic/type_checker_program.c || {
   echo "[type-resolution-resolver-inventory] program placeholder path lost explicit DAG metadata type-ref lookup seam" >&2

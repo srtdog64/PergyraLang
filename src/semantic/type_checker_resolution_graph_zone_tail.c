@@ -32,8 +32,23 @@ semantic_type_resolution_precollect_zone_state_authority_inventory(
     ASTNode *zone_decl,
     SemanticContext *ctx)
 {
-    for (size_t i = 0; i < zone_decl->data.zone_decl.state_count; i++) {
-        ASTNode *state = zone_decl->data.zone_decl.states[i];
+    ASTNode **states;
+    ASTNode **maintained_states;
+    ASTNode **authorities;
+    ASTNode **methods;
+    size_t state_count;
+    size_t maintained_state_count;
+    size_t authority_count;
+    size_t method_count;
+
+    states = ast_zone_states(zone_decl, &state_count);
+    maintained_states = ast_zone_maintained_states(zone_decl,
+                                                   &maintained_state_count);
+    authorities = ast_zone_authorities(zone_decl, &authority_count);
+    methods = ast_zone_methods(zone_decl, &method_count);
+
+    for (size_t i = 0; i < state_count; i++) {
+        ASTNode *state = states[i];
         char *state_label;
 
         if (state == NULL || state->type != AST_ZONE_STATE)
@@ -99,8 +114,8 @@ semantic_type_resolution_precollect_zone_state_authority_inventory(
         free(state_label);
     }
 
-    for (size_t i = 0; i < zone_decl->data.zone_decl.maintained_state_count; i++) {
-        ASTNode *maintain = zone_decl->data.zone_decl.maintained_states[i];
+    for (size_t i = 0; i < maintained_state_count; i++) {
+        ASTNode *maintain = maintained_states[i];
         char *consumer_label;
 
         if (maintain == NULL || maintain->type != AST_ZONE_MAINTAIN_STATE)
@@ -108,8 +123,8 @@ semantic_type_resolution_precollect_zone_state_authority_inventory(
 
         consumer_label = tc_zone_tail_strdup_fmt(
             "zone %s.maintain-state.%s",
-            zone_decl->data.zone_decl.name != NULL
-                ? zone_decl->data.zone_decl.name : "<zone>",
+            ast_zone_name(zone_decl) != NULL
+                ? ast_zone_name(zone_decl) : "<zone>",
             maintain->data.zone_maintain_state.state_name != NULL
                 ? maintain->data.zone_maintain_state.state_name
                 : "<state>");
@@ -134,8 +149,8 @@ semantic_type_resolution_precollect_zone_state_authority_inventory(
         free(consumer_label);
     }
 
-    for (size_t i = 0; i < zone_decl->data.zone_decl.authority_count; i++) {
-        ASTNode *authority = zone_decl->data.zone_decl.authorities[i];
+    for (size_t i = 0; i < authority_count; i++) {
+        ASTNode *authority = authorities[i];
         char *consumer_name;
 
         if (authority == NULL || authority->type != AST_ZONE_AUTHORITY)
@@ -143,8 +158,8 @@ semantic_type_resolution_precollect_zone_state_authority_inventory(
 
         consumer_name = tc_zone_tail_strdup_fmt(
             "zone %s.%s",
-            zone_decl->data.zone_decl.name != NULL
-                ? zone_decl->data.zone_decl.name : "<zone>",
+            ast_zone_name(zone_decl) != NULL
+                ? ast_zone_name(zone_decl) : "<zone>",
             authority->data.zone_authority.subject_slot_name != NULL
                 ? authority->data.zone_authority.subject_slot_name
                 : "<authority>");
@@ -160,10 +175,10 @@ semantic_type_resolution_precollect_zone_state_authority_inventory(
         free(consumer_name);
     }
 
-    for (size_t i = 0; i < zone_decl->data.zone_decl.method_count; i++) {
+    for (size_t i = 0; i < method_count; i++) {
         semantic_type_resolution_precollect_action_contract(
-            zone_decl->data.zone_decl.methods[i],
+            methods[i],
             ctx,
-            zone_decl->data.zone_decl.name);
+            ast_zone_name(zone_decl));
     }
 }

@@ -49,15 +49,20 @@ type_check_intent_step_participant_contract(ASTNode *intent_decl,
                 alias != NULL ? alias : "<participant>");
             continue;
         }
-        if (zone_decl != NULL && participant_type_name != NULL
-            && !domain_has_subject_slot_type(zone_decl->data.zone_decl.slots,
-                zone_decl->data.zone_decl.slot_count, ctx, participant_type_name)) {
+        if (zone_decl != NULL && participant_type_name != NULL) {
+            ASTNode **zone_slots;
+            size_t zone_slot_count;
+            zone_slots = ast_zone_slots(zone_decl, &zone_slot_count);
+            if (!domain_has_subject_slot_type(
+                    zone_slots, zone_slot_count, ctx, participant_type_name)) {
+            const char *zone_name = ast_zone_name(zone_decl);
             semantic_error_with_hints(ctx, PGY_CODE_SEM_INTENT_STEP_INVALID, PGY_CAUSE_INTENT_STEP, PGY_FIX_ALIGN_STEP_WITH_ZONE_ACTION_CONTRACTS, step,
                 "Intent step '%s' binds participant '%s' of type '%s', but zone '%s' has no matching subject slot",
                 step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
                 alias != NULL ? alias : "<participant>",
                 participant_type_name,
-                zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>");
+                zone_name != NULL ? zone_name : "<zone>");
+            }
         }
         if (step->data.intent_step.transfer_from_alias != NULL && participant_type_name != NULL) {
             ASTNode *from_involves = find_intent_involves_local(intent_decl,
@@ -66,9 +71,15 @@ type_check_intent_step_participant_contract(ASTNode *intent_decl,
                 ? intent_resolve_involves_type(from_involves, ctx) : NULL;
             ASTNode *from_zone_decl = find_domain_decl_by_name(ctx->program_root, AST_ZONE_DECL,
                 from_type != NULL ? from_type->name : NULL);
-            if (from_zone_decl != NULL
-                && !domain_has_subject_slot_type(from_zone_decl->data.zone_decl.slots,
-                    from_zone_decl->data.zone_decl.slot_count, ctx, participant_type_name)) {
+            if (from_zone_decl != NULL) {
+                ASTNode **from_zone_slots;
+                size_t from_zone_slot_count;
+                from_zone_slots = ast_zone_slots(from_zone_decl,
+                                                 &from_zone_slot_count);
+                if (!domain_has_subject_slot_type(
+                        from_zone_slots, from_zone_slot_count, ctx,
+                        participant_type_name)) {
+                const char *from_zone_name = ast_zone_name(from_zone_decl);
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_INTENT_STEP_INVALID, PGY_CAUSE_INTENT_STEP, PGY_FIX_ALIGN_STEP_WITH_ZONE_ACTION_CONTRACTS, step,
                     "Intent step '%s' transfer source zone '%s' has no matching subject slot for participant '%s' of type '%s'.\n"
                     "Reason:\n"
@@ -80,26 +91,22 @@ type_check_intent_step_participant_contract(ASTNode *intent_decl,
                     "- or use a participant whose type matches one of zone '%s' subject slots\n"
                     "- or change the transfer source zone binding",
                     step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
-                    from_zone_decl->data.zone_decl.name != NULL
-                        ? from_zone_decl->data.zone_decl.name : "<zone>",
+                    from_zone_name != NULL ? from_zone_name : "<zone>",
                     alias != NULL ? alias : "<participant>",
                     participant_type_name,
                     step->data.intent_step.transfer_from_alias != NULL
                         ? step->data.intent_step.transfer_from_alias : "<sourceZone>",
                     step->data.intent_step.transfer_to_alias != NULL
                         ? step->data.intent_step.transfer_to_alias : "<targetZone>",
-                    from_zone_decl->data.zone_decl.name != NULL
-                        ? from_zone_decl->data.zone_decl.name : "<zone>",
+                    from_zone_name != NULL ? from_zone_name : "<zone>",
                     alias != NULL ? alias : "<participant>",
                     alias != NULL ? alias : "<participant>",
                     participant_type_name,
-                    from_zone_decl->data.zone_decl.name != NULL
-                        ? from_zone_decl->data.zone_decl.name : "<zone>",
+                    from_zone_name != NULL ? from_zone_name : "<zone>",
                     participant_type_name,
-                    from_zone_decl->data.zone_decl.name != NULL
-                        ? from_zone_decl->data.zone_decl.name : "<zone>",
-                    from_zone_decl->data.zone_decl.name != NULL
-                        ? from_zone_decl->data.zone_decl.name : "<zone>");
+                    from_zone_name != NULL ? from_zone_name : "<zone>",
+                    from_zone_name != NULL ? from_zone_name : "<zone>");
+                }
             }
         }
 

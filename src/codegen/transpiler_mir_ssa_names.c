@@ -118,22 +118,30 @@ transpiler_is_implicit_field(TranspilerCtx *ctx, const char *base_name)
     if (!in_zone_context && host_name != NULL) {
         ASTNode *zone_decl = find_zone_decl(ctx, host_name);
         if (zone_decl != NULL) {
-            for (size_t i = 0; i < zone_decl->data.zone_decl.slot_count; i++) {
-                ASTNode *slot = zone_decl->data.zone_decl.slots[i];
+            size_t slot_count = 0;
+            ASTNode **slots = ast_zone_slots(zone_decl, &slot_count);
+            for (size_t i = 0; i < slot_count; i++) {
+                ASTNode *slot = slots[i];
                 if (slot != NULL && slot->data.domain_slot.slot_name != NULL
                     && strcmp(slot->data.domain_slot.slot_name, base_name) == 0) {
                     return true;
                 }
             }
-            for (size_t i = 0; i < zone_decl->data.zone_decl.layer_slot_count; i++) {
-                ASTNode *slot = zone_decl->data.zone_decl.layer_slots[i];
+            size_t layer_slot_count = 0;
+            ASTNode **layer_slots = ast_zone_layer_slots(zone_decl,
+                &layer_slot_count);
+            for (size_t i = 0; i < layer_slot_count; i++) {
+                ASTNode *slot = layer_slots[i];
                 if (slot != NULL && slot->data.zone_layer_slot.slot_name != NULL
                     && strcmp(slot->data.zone_layer_slot.slot_name, base_name) == 0) {
                     return true;
                 }
             }
-            for (size_t i = 0; i < zone_decl->data.zone_decl.shared_count; i++) {
-                ASTNode *shared = zone_decl->data.zone_decl.shared_fields[i];
+            size_t shared_count = 0;
+            ASTNode **shared_fields = ast_zone_shared_fields(zone_decl,
+                &shared_count);
+            for (size_t i = 0; i < shared_count; i++) {
+                ASTNode *shared = shared_fields[i];
                 if (shared != NULL && shared->data.party_shared.name != NULL
                     && strcmp(shared->data.party_shared.name, base_name) == 0) {
                     return true;

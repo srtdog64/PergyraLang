@@ -5,40 +5,50 @@ bool
 type_check_relation_decl(ASTNode *node, SemanticContext *ctx)
 {
     ASTNode *saved_relation = ctx->current_relation;
+    ASTNode **slots;
+    ASTNode **refreshes;
+    ASTNode **shared_fields;
+    ASTNode **methods;
+    size_t slot_count;
+    size_t refresh_count;
+    size_t shared_count;
+    size_t method_count;
+    slots = ast_relation_slots(node, &slot_count);
+    refreshes = ast_relation_refreshes(node, &refresh_count);
+    shared_fields = ast_relation_shared_fields(node, &shared_count);
+    methods = ast_relation_methods(node, &method_count);
     ctx->current_relation = node;
 
     bool ok = type_check_overlay_decl_common(node, ctx,
-        node->data.relation_decl.name,
+        ast_relation_name(node),
         SYMBOL_RELATION,
-        node->data.relation_decl.shared_fields,
-        node->data.relation_decl.shared_count,
-        node->data.relation_decl.methods,
-        node->data.relation_decl.method_count,
+        shared_fields,
+        shared_count,
+        methods,
+        method_count,
         "relation");
 
-    ok = type_check_domain_slots(node->data.relation_decl.slots,
-        node->data.relation_decl.slot_count, ctx, "Relation") && ok;
-    ok = type_check_domain_slot_initializers(node->data.relation_decl.slots,
-        node->data.relation_decl.slot_count, ctx, "relation") && ok;
-    for (size_t i = 0; i < node->data.relation_decl.refresh_count; i++) {
-        ASTNode *refresh = node->data.relation_decl.refreshes[i];
+    ok = type_check_domain_slots(slots, slot_count, ctx, "Relation") && ok;
+    ok = type_check_domain_slot_initializers(slots, slot_count, ctx,
+        "relation") && ok;
+    for (size_t i = 0; i < refresh_count; i++) {
+        ASTNode *refresh = refreshes[i];
         if (refresh == NULL)
             continue;
         const char *action_name =
             refresh->data.zone_refresh.derive_target_kind ? "bind"
             : (refresh->data.zone_refresh.requires_dto ? "publish" : "refresh");
-        ok = type_check_projection_contract(node->data.relation_decl.slots,
-            node->data.relation_decl.slot_count, "Relation",
-            node->data.relation_decl.name, refresh,
+        ok = type_check_projection_contract(slots, slot_count, "Relation",
+            ast_relation_name(node), refresh,
             refresh->data.zone_refresh.object_slot_name,
             refresh->data.zone_refresh.source_slot_name, ctx,
             action_name) && ok;
     }
     size_t endpoint_count = count_bindable_domain_slots(
-        node->data.relation_decl.slots,
-        node->data.relation_decl.slot_count,
-        node->data.relation_decl.refreshes,
-        node->data.relation_decl.refresh_count);
+        slots,
+        slot_count,
+        refreshes,
+        refresh_count);
     if (endpoint_count == 0
         && !(node->data.relation_decl.between_left_kind != RELATION_ENDPOINT_NAMED
             || node->data.relation_decl.between_right_kind != RELATION_ENDPOINT_NAMED
@@ -54,8 +64,8 @@ type_check_relation_decl(ASTNode *node, SemanticContext *ctx)
             "Fix:\n"
             "- use 'for name: Type'\n"
             "- or declare a bindable subject/object endpoint slot",
-            node->data.relation_decl.name,
-            node->data.relation_decl.name);
+            ast_relation_name(node),
+            ast_relation_name(node));
     } else if (endpoint_count > 2) {
         semantic_warning(ctx, node,
             "Relation '%s' currently declares more than two endpoint slots.\n"
@@ -65,7 +75,7 @@ type_check_relation_decl(ASTNode *node, SemanticContext *ctx)
             "Fix:\n"
             "- reduce the relation to two endpoints\n"
             "- or move the coordination shape into party/zone",
-            node->data.relation_decl.name);
+            ast_relation_name(node));
     }
     /* Validate 'between' clause if present */
     RelationEndpointKind blk = node->data.relation_decl.between_left_kind;
@@ -86,7 +96,7 @@ type_check_relation_decl(ASTNode *node, SemanticContext *ctx)
                 "Fix:\n"
                 "- change one side of 'between' to subject\n"
                 "- or model this shape as effect/object projection instead",
-                node->data.relation_decl.name, (int)blk, (int)brk);
+                ast_relation_name(node), (int)blk, (int)brk);
             ok = false;
         }
     }

@@ -6,7 +6,20 @@
 
 #define PGY_FRONTIER_POLICY_SCHEMA "pgy.runtime.frontier-policy.v1"
 #define PGY_FRONTIER_POLICY_SUBJECT "bounded-frontier-pass-limit"
-#define PGY_FRONTIER_POLICY_FACT_COUNT 9u
+#define PGY_FRONTIER_PASS_LIMIT_FACT_COUNT 9u
+#define PGY_FRONTIER_OVERFLOW_REASON_FACT_COUNT 5u
+#define PGY_FRONTIER_POLICY_FACT_COUNT \
+    (PGY_FRONTIER_PASS_LIMIT_FACT_COUNT + PGY_FRONTIER_OVERFLOW_REASON_FACT_COUNT)
+#define PGY_FRONTIER_REASON_GENERIC_OVERFLOW \
+    "frontier recompute exceeded bounded pass limit"
+#define PGY_FRONTIER_REASON_PROJECTION_OVERFLOW \
+    "projection recompute exceeded bounded pass limit"
+#define PGY_FRONTIER_REASON_ZONE_OVERFLOW \
+    "zone frontier recompute exceeded bounded pass limit"
+#define PGY_FRONTIER_REASON_WORLD_TRANSITIVE_OVERFLOW \
+    "world frontier recompute exceeded bounded pass limit"
+#define PGY_FRONTIER_REASON_WORLD_DERIVED_OVERFLOW \
+    "world derived recompute exceeded bounded pass limit"
 
 typedef enum PgyFrontierPublishPhase {
     PGY_FRONTIER_PUBLISH_WRITE_VALUE = 0,

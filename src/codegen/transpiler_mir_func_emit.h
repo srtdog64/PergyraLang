@@ -203,13 +203,14 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
                     && resolved_host_decl->type == AST_ZONE_DECL)
                     ? resolved_host_decl
                     : NULL;
-                if (zone_decl != NULL
-                    && zone_decl->data.zone_decl.authority_count > 0
-                    && zone_decl->data.zone_decl.authorities != NULL
-                    && zone_decl->data.zone_decl.authorities[0] != NULL) {
+                size_t authority_count = 0;
+                ASTNode **authorities = ast_zone_authorities(zone_decl,
+                    &authority_count);
+                if (authority_count > 0
+                    && authorities != NULL
+                    && authorities[0] != NULL) {
                     const char *auth_slot =
-                        zone_decl->data.zone_decl.authorities[0]
-                            ->data.zone_authority.subject_slot_name;
+                        authorities[0]->data.zone_authority.subject_slot_name;
                     if (auth_slot != NULL) {
                         char *participant_expr =
                             transpiler_scratch_fmt(ctx, "&self->%s", auth_slot);

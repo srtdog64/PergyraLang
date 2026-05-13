@@ -2,6 +2,7 @@
 #include "llvm_internal.h"
 #include "llvm_domain_zone_bind_helpers.h"
 #include "llvm_domain_zone_sync_internal.h"
+#include "parser/ast_api.h"
 
 static bool
 llvm_zone_relation_sync_field_name(char *out,
@@ -23,12 +24,22 @@ llvm_zone_sync_emit_relation_clauses(ASTNode *stmt,
                                      LLVMValueRef sync_fn,
                                      LLVMGenCtx *ctx)
 {
-    for (size_t i = 0; i < stmt->data.zone_decl.link_count; i++) {
-        ASTNode *link = stmt->data.zone_decl.links[i];
+    size_t state_count = 0;
+    ASTNode **states = ast_zone_states(stmt, &state_count);
+    size_t link_count = 0;
+    ASTNode **links = ast_zone_links(stmt, &link_count);
+    size_t maintained_relation_count = 0;
+    ASTNode **maintained_relations =
+        ast_zone_maintained_relations(stmt, &maintained_relation_count);
+    size_t unlink_count = 0;
+    ASTNode **unlinks = ast_zone_unlinks(stmt, &unlink_count);
+
+    for (size_t i = 0; i < link_count; i++) {
+        ASTNode *link = links[i];
         const char *state_name = link != NULL ? link->data.zone_link.state_name : NULL;
         if (state_name == NULL && link != NULL) {
-            for (size_t j = 0; j < stmt->data.zone_decl.state_count; j++) {
-                ASTNode *state = stmt->data.zone_decl.states[j];
+            for (size_t j = 0; j < state_count; j++) {
+                ASTNode *state = states[j];
                 if (state != NULL && state->type == AST_ZONE_STATE
                     && state->data.zone_state.is_relation
                     && state->data.zone_state.layer_slot_name != NULL
@@ -69,8 +80,8 @@ llvm_zone_sync_emit_relation_clauses(ASTNode *stmt,
             if (link != NULL) {
                 const char *layer_name = link->data.zone_link.relation_slot_name;
                 if (layer_name == NULL) {
-                    for (size_t j = 0; j < stmt->data.zone_decl.state_count; j++) {
-                        ASTNode *state = stmt->data.zone_decl.states[j];
+                    for (size_t j = 0; j < state_count; j++) {
+                        ASTNode *state = states[j];
                         if (state != NULL && state->type == AST_ZONE_STATE
                             && state->data.zone_state.is_relation
                             && state->data.zone_state.state_name != NULL
@@ -103,8 +114,8 @@ llvm_zone_sync_emit_relation_clauses(ASTNode *stmt,
                             link->data.zone_link.left_slot_name,
                             link->data.zone_link.right_slot_name);
                     } else {
-                        for (size_t j = 0; j < stmt->data.zone_decl.state_count; j++) {
-                            ASTNode *state = stmt->data.zone_decl.states[j];
+                        for (size_t j = 0; j < state_count; j++) {
+                            ASTNode *state = states[j];
                             if (state != NULL && state->type == AST_ZONE_STATE
                                 && state->data.zone_state.is_relation
                                 && state->data.zone_state.state_name != NULL
@@ -150,8 +161,8 @@ llvm_zone_sync_emit_relation_clauses(ASTNode *stmt,
         }
     }
 
-    for (size_t i = 0; i < stmt->data.zone_decl.maintained_relation_count; i++) {
-        ASTNode *maintain = stmt->data.zone_decl.maintained_relations[i];
+    for (size_t i = 0; i < maintained_relation_count; i++) {
+        ASTNode *maintain = maintained_relations[i];
         if (maintain != NULL && maintain->data.zone_maintain_relation.relation_slot_name != NULL) {
             char layer_field[256];
             int layer_idx;
@@ -174,8 +185,8 @@ llvm_zone_sync_emit_relation_clauses(ASTNode *stmt,
         }
         if (maintain == NULL)
             continue;
-        for (size_t j = 0; j < stmt->data.zone_decl.state_count; j++) {
-            ASTNode *state = stmt->data.zone_decl.states[j];
+        for (size_t j = 0; j < state_count; j++) {
+            ASTNode *state = states[j];
             const char *state_name;
             char field_name[256];
             int field_idx;
@@ -213,12 +224,12 @@ llvm_zone_sync_emit_relation_clauses(ASTNode *stmt,
         }
     }
 
-    for (size_t i = 0; i < stmt->data.zone_decl.unlink_count; i++) {
-        ASTNode *unlink = stmt->data.zone_decl.unlinks[i];
+    for (size_t i = 0; i < unlink_count; i++) {
+        ASTNode *unlink = unlinks[i];
         const char *state_name = unlink != NULL ? unlink->data.zone_unlink.state_name : NULL;
         if (state_name == NULL && unlink != NULL) {
-            for (size_t j = 0; j < stmt->data.zone_decl.state_count; j++) {
-                ASTNode *state = stmt->data.zone_decl.states[j];
+            for (size_t j = 0; j < state_count; j++) {
+                ASTNode *state = states[j];
                 if (state != NULL && state->type == AST_ZONE_STATE
                     && state->data.zone_state.is_relation
                     && state->data.zone_state.layer_slot_name != NULL
@@ -259,8 +270,8 @@ llvm_zone_sync_emit_relation_clauses(ASTNode *stmt,
             if (unlink != NULL) {
                 const char *layer_name = unlink->data.zone_unlink.relation_slot_name;
                 if (layer_name == NULL) {
-                    for (size_t j = 0; j < stmt->data.zone_decl.state_count; j++) {
-                        ASTNode *state = stmt->data.zone_decl.states[j];
+                    for (size_t j = 0; j < state_count; j++) {
+                        ASTNode *state = states[j];
                         if (state != NULL && state->type == AST_ZONE_STATE
                             && state->data.zone_state.is_relation
                             && state->data.zone_state.state_name != NULL

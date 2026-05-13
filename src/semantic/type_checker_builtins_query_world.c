@@ -83,8 +83,10 @@ type_check_has_zone(ASTNode *call, SemanticContext *ctx)
         return TYPE_BOOL;
     }
 
-    for (size_t i = 0; i < world->data.world_decl.zone_count; i++) {
-        ASTNode *zone = world->data.world_decl.zones[i];
+    size_t zone_count = 0;
+    ASTNode **zones = ast_world_zones(world, &zone_count);
+    for (size_t i = 0; i < zone_count; i++) {
+        ASTNode *zone = zones[i];
         if (zone != NULL && zone->type == AST_WORLD_ZONE
             && zone->data.world_zone.slot_name != NULL
             && strcmp(zone->data.world_zone.slot_name, name) == 0) {
@@ -92,8 +94,10 @@ type_check_has_zone(ASTNode *call, SemanticContext *ctx)
         }
     }
 
-    for (size_t i = 0; i < world->data.world_decl.state_count; i++) {
-        ASTNode *state = world->data.world_decl.states[i];
+    size_t state_count = 0;
+    ASTNode **states = ast_world_states(world, &state_count);
+    for (size_t i = 0; i < state_count; i++) {
+        ASTNode *state = states[i];
         if (state != NULL && state->type == AST_WORLD_STATE
             && state->data.world_state.state_name != NULL
             && strcmp(state->data.world_state.state_name, name) == 0) {
@@ -112,9 +116,9 @@ type_check_has_zone(ASTNode *call, SemanticContext *ctx)
         "- use a declared world zone slot/state name\n"
         "- or declare '%s' on the current world",
         name,
-        world->data.world_decl.name != NULL ? world->data.world_decl.name : "<world>",
+        ast_world_name(world) != NULL ? ast_world_name(world) : "<world>",
         name,
-        world->data.world_decl.name != NULL ? world->data.world_decl.name : "<world>",
+        ast_world_name(world) != NULL ? ast_world_name(world) : "<world>",
         name,
         name);
     return TYPE_BOOL;
@@ -239,9 +243,9 @@ type_check_has_world_zone_detail(ASTNode *call, SemanticContext *ctx,
             "- use a declared world zone slot name\n"
             "- or declare zone slot '%s' on the current world",
             zone_slot_name, builtin_name,
-            world->data.world_decl.name != NULL ? world->data.world_decl.name : "<world>",
+            ast_world_name(world) != NULL ? ast_world_name(world) : "<world>",
             zone_slot_name,
-            world->data.world_decl.name != NULL ? world->data.world_decl.name : "<world>",
+            ast_world_name(world) != NULL ? ast_world_name(world) : "<world>",
             builtin_name, zone_slot_name, detail_name,
             zone_slot_name);
         return TYPE_BOOL;
@@ -261,15 +265,15 @@ type_check_has_world_zone_detail(ASTNode *call, SemanticContext *ctx,
             "- use a declared zone %s name\n"
             "- or declare '%s' on zone '%s'",
             detail_label, detail_name, builtin_name, zone_slot_name,
-            zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>",
+            ast_zone_name(zone_decl) != NULL ? ast_zone_name(zone_decl) : "<zone>",
             detail_label, detail_name,
-            world->data.world_decl.name != NULL ? world->data.world_decl.name : "<world>",
+            ast_world_name(world) != NULL ? ast_world_name(world) : "<world>",
             zone_slot_name,
-            zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>",
+            ast_zone_name(zone_decl) != NULL ? ast_zone_name(zone_decl) : "<zone>",
             builtin_name, zone_slot_name, detail_name,
             detail_label,
             detail_name,
-            zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>");
+            ast_zone_name(zone_decl) != NULL ? ast_zone_name(zone_decl) : "<zone>");
         return TYPE_BOOL;
     }
 

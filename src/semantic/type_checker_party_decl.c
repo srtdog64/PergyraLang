@@ -11,10 +11,18 @@
 bool
 type_check_party_decl(ASTNode *node, SemanticContext *ctx)
 {
-    const char *name = node->data.party_decl.name;
+    const char *name = ast_party_name(node);
     const char *prev_module_path = ctx->current_module_path;
+    ASTNode **shared_fields;
+    ASTNode **methods;
+    size_t role_count;
+    size_t shared_count;
+    size_t method_count;
     if (node->origin_path != NULL)
         ctx->current_module_path = node->origin_path;
+    role_count = ast_party_role_count(node);
+    shared_fields = ast_party_shared_fields(node, &shared_count);
+    methods = ast_party_methods(node, &method_count);
 
     Symbol *sym = calloc(1, sizeof(Symbol));
     sym->name = pergyra_strdup(name);
@@ -50,8 +58,8 @@ type_check_party_decl(ASTNode *node, SemanticContext *ctx)
     }
 
     /* Check role slot ability references */
-    for (size_t i = 0; i < node->data.party_decl.role_count; i++) {
-        ASTNode *rs = node->data.party_decl.role_slots[i];
+    for (size_t i = 0; i < role_count; i++) {
+        ASTNode *rs = ast_party_role(node, i);
 
         /* dyn slots require at least one ability for vtable dispatch */
         if (rs->data.role_slot.is_dynamic &&
@@ -137,8 +145,8 @@ type_check_party_decl(ASTNode *node, SemanticContext *ctx)
     }
 
     /* Check shared fields */
-    for (size_t i = 0; i < node->data.party_decl.shared_count; i++) {
-        ASTNode *shared = node->data.party_decl.shared_fields[i];
+    for (size_t i = 0; i < shared_count; i++) {
+        ASTNode *shared = shared_fields[i];
         if (shared->data.party_shared.type != NULL)
             domain_resolve_shared_type(shared, ctx);
         if (shared->data.party_shared.initializer != NULL)
@@ -147,8 +155,8 @@ type_check_party_decl(ASTNode *node, SemanticContext *ctx)
 
     /* Check methods */
     scope_enter(&ctx->scope, SCOPE_BLOCK);
-    for (size_t i = 0; i < node->data.party_decl.method_count; i++) {
-        type_check_func_decl(node->data.party_decl.methods[i], ctx);
+    for (size_t i = 0; i < method_count; i++) {
+        type_check_func_decl(methods[i], ctx);
     }
     scope_exit(&ctx->scope);
 

@@ -1,5 +1,6 @@
 #include "type_checker_internal.h"
 #include "type_checker_ability_ref_internal.h"
+#include "type_checker_decls_a_helpers_internal.h"
 #include "diag_codes.h"
 
 #include <stdlib.h>
@@ -273,19 +274,20 @@ validate_ability_require_fields_for_role(ASTNode *role_decl,
                                          SemanticContext *ctx)
 {
     ASTNode *bound_decl;
+    const char *bound_type_name;
     char *ability_text = NULL;
 
     if (role_decl == NULL || role_decl->type != AST_ROLE_DECL
         || ability_decl == NULL || ability_decl->type != AST_ABILITY_DECL
-        || ctx == NULL
-        || role_decl->data.role_decl.for_type == NULL
-        || role_decl->data.role_decl.for_type->type != AST_TYPE
-        || role_decl->data.role_decl.for_type->data.type.name == NULL) {
+        || ctx == NULL) {
         return;
     }
 
-    bound_decl = find_type_decl_by_name(
-        ctx->program_root, role_decl->data.role_decl.for_type->data.type.name);
+    bound_type_name = semantic_role_for_type_name(role_decl);
+    if (bound_type_name == NULL)
+        return;
+
+    bound_decl = find_type_decl_by_name(ctx->program_root, bound_type_name);
     if (bound_decl == NULL || !decl_is_subject_host(bound_decl))
         return;
 

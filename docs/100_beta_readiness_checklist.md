@@ -44,13 +44,13 @@ Operational mode:
   be backed by matching `AIREvidenceNode` entries before drift checking. For
   real HIR/RIR input, boundary evidence nodes must also have matching summary
   flags, keeping inventory and cached summaries bidirectionally consistent.
-  MIR cleanup, terminator, and select-receive summary counters are now treated
-  the same way: strict AIR accepts them only as observability summaries, and the
-  proof must be a matching global `AIREvidenceNode`. `test_air` now locks the
-  cleanup/terminator/select-receive counter-only negative cases, and
-  `air-drift-test-smoke` source-gates the shared diagnostic wording. When those
-  evidence nodes are present, AIR validation also rejects node-count drift
-  between the MIR summary counters and the global evidence inventory.
+  MIR cleanup, terminator, select-receive, and pin-cleanup summary counters are
+  now treated the same way: strict AIR accepts them only as observability
+  summaries, and the proof must be a matching `AIREvidenceNode` inventory entry.
+  Cleanup/terminator/select-receive use global evidence nodes; pin cleanup uses
+  boundary-scoped evidence nodes. `test_air` locks the counter-only and
+  counter-drift negative cases, and `air-drift-test-smoke` source-gates the
+  shared diagnostic wording.
   DAG's remaining unresolved metadata path is now explicitly named as a
   metadata dead-end diagnostic instead of a materializer fallback recorder; the
   fallback counters remain as regression evidence, but recursive materialization
@@ -85,7 +85,10 @@ Operational mode:
   the legacy `type_resolution_metadata_materializer_fallbacks` counter is synced
   from it instead of being the hidden source-of-truth. `PGY_TYPE_RES_STATS=1`
   now prints `dead_ends` before the compatibility `materializer_fallbacks`
-  mirror, and the DAG smoke gates both counters for equality. CFG/MIR DEF use-edge
+  mirror, and the DAG smoke gates both counters for equality. Internal dead-end
+  family counters now use `type_resolution_metadata_unresolved_*` naming, and
+  resolver-inventory smoke rejects fallback-era family counter names under
+  `src/semantic`. CFG/MIR DEF use-edge
   collection now consumes instruction-carried
   `inst->ast` and no longer reopens block source-statement inventory as an
   initializer fallback. MIR BRANCH/RETURN instructions also carry
@@ -331,7 +334,9 @@ Operational mode:
   `for i in 0..1 { return ... }` satisfies it only when the range is
   statically non-empty and no `break` path exits the loop. `for-in`, empty
   ranges, dynamic ranges/conditions, possible `break`, and non-returning
-  backedges remain fallthrough. Gate:
+  backedges remain fallthrough. `while` static Bool truth is now consumed
+  through `flow_static_bool_value(...)` instead of having the loop owner decode
+  `AST_BOOLEAN` payloads directly. Gate:
   `make test-semantic cfg-body-dataflow-test-smoke` (`2497/0` semantic tests).
 - 2026-05-03 DAG intent/action-contract seam tightening:
   `type_checker_intent_role_fields.c` no longer owns a second local
@@ -1846,6 +1851,15 @@ Runtime frontier scheduler closure:
   separate "derived state changed in this pass" fact, so a converged derived
   loop still feeds the outer transitive frontier once before dirty flags are
   cleared.
+- 2026-05-13 update: bounded frontier overflow reason strings moved to the
+  same runtime contract owner. C and LLVM frontier emitters now consume
+  `PGY_FRONTIER_REASON_*` constants instead of hard-coding zone/world/projection
+  overflow text locally; `runtime-frontier-contract-test-smoke` gates this.
+  AIR runtime frontier policy evidence now counts both the 9 pass-limit facts
+  and the 5 overflow-reason facts, so `pgy.air.graph.v1` publishes the same
+  runtime policy surface that codegen consumes. The JSON dump exposes both
+  sub-counts and the total count so CI/LSP consumers can detect which policy
+  family drifted.
 - Remaining blocker: the full bounded fixpoint / transitive frontier scheduler
   must broaden that same transitive frontier policy beyond the currently
   covered world/zone/projection slices and embedded zone frontier budget so the
@@ -3031,8 +3045,11 @@ find src -path src/tests -prune -o -name '*.inc' -print
   `type_checker_resolution_metadata_constructed.c`, and owned metadata cleanup
   is split into `type_checker_resolution_metadata_storage.c`. Alias-chain
   materialization and alias cycle formatting are split into
-  `type_checker_resolution_metadata_alias.c`. The DAG metadata, alias,
-  stage, declaration, body, constructed, fallback, and storage owners are all
+  `type_checker_resolution_metadata_alias.c`. Metadata cache index ownership is
+  split into `type_checker_resolution_metadata_index.c`, so hashing,
+  open-addressed lookup/insert, rebuild, and index-capacity growth no longer
+  live in the materialization policy owner. The DAG metadata, alias, stage,
+  declaration, body, constructed, fallback, index, and storage owners are all
   below the 600 LOC split-review threshold.
 - Program-level graph inventory is now a dispatcher owner:
   `type_checker_resolution_graph_inventory.c` is 98 LOC and delegates zone
@@ -3141,6 +3158,252 @@ grep -R "resolve_type_node" -n src/semantic
 - `MIRDeclMethod` now carries method `name`, `owner_name`, `is_action_like`, and `within_zone` metadata beside the temporary AST payload. LLVM host method lookup compares `MIRDeclMethod.name` before falling back to AST method arrays.
 - `MIRDeclMethod` also links to method body MIR through `has_routine` / `routine_index`, so LLVM method emission can consume the declaration-header method row before falling back to AST-method based routine lookup.
 - `MIRDeclMethod` now carries hosted method signature metadata (`params`, `param_count`, `return_type`). LLVM nominal/enum method prototype registration consumes this metadata through helper accessors before falling back to AST method payloads.
+- LLVM role target-type reads now route through the role lookup owner
+  (`llvm_role_for_type_node(...)` / `llvm_role_for_type_name(...)`). This does
+  not make role target type metadata MIR-owned yet, but it removes duplicated
+  `role_decl.for_type` reads from forward declaration and operator emission and
+  gives the eventual MIR role-target lift one compatibility seam.
+- C role operator lookup and role operator alias emission mirror the same
+  owner-boundary policy through `transpiler_role_subject_type_node_local(...)` /
+  `transpiler_role_subject_type_name_local(...)`, so C/LLVM role target-type
+  compatibility has matching helper seams while role-target metadata remains
+  AST-carried.
+- Semantic role target-type reads mirror the backend policy through
+  `semantic_role_for_type_node(...)` / `semantic_role_for_type_name(...)` in
+  `type_checker_domain_role_lookup.c`. Operator overload checks and ability
+  role matching now consume that helper instead of carrying local
+  `role_decl.for_type` filters.
+- Semantic role declaration lookup for included-role traversal is centralized
+  in the same owner as `semantic_find_role_decl(...)`; operator overload and
+  ability include traversal consume that helper instead of carrying duplicate
+  program scans. Those semantic include traversals now also guard
+  `AST_INCLUDE_STMT` shape before reading include payloads, matching the C/LLVM
+  role lookup guards.
+- Intent role-field validation also consumes `semantic_role_for_type_name(...)`
+  when binding a role to its subject type, so role contract validation shares
+  the same target-type seam as operator overload and ability matching.
+- Role declaration include validation also consumes
+  `semantic_find_role_decl(...)` instead of carrying a local program scan, and
+  it guards `AST_INCLUDE_STMT` shape before reading include payloads.
+- Role declaration host-type validation also consumes
+  `semantic_role_for_type_node(...)` / `semantic_role_for_type_name(...)`
+  instead of reading `role_decl.for_type` directly.
+- DAG graph precollect and staged nominal resolution now guard role include
+  names before recording or resolving include dependencies, aligning DAG role
+  include traversal with semantic and backend traversal guards.
+- DAG role host-type precollect and staged nominal resolution now consume
+  `semantic_role_for_type_node(...)`, so direct role target-type AST access is
+  limited to the semantic/backend role lookup owner seams.
+- Role include payload access now goes through `ast_include_role_name(...)` /
+  `ast_include_type_args(...)`. Semantic, DAG, C backend, and LLVM role
+  traversal paths no longer duplicate the include-node shape/name guard, and
+  non-parser include payload consumers are smoke-gated away from direct
+  `data.include_stmt` access.
+- Role impl ability access now has AST accessors:
+  `ast_impl_ability_ref(...)`, `ast_impl_ability_name(...)`,
+  `ast_impl_ability_method_count(...)`, and `ast_impl_ability_method(...)`.
+  Operator lookup, ability matching, role declaration validation, DAG role impl
+  precollect/staged resolution, DIR/HIR/MIR role impl collection, and C/LLVM
+  role vtable/method emission consume these accessors instead of directly
+  reading impl ability payloads. The accessors are const-correct for read-only
+  scanners, and the smoke gate rejects direct non-parser `data.impl_ability`
+  consumers under semantic/compiler/codegen.
+- Role child-list access now has AST accessors:
+  `ast_role_for_type(...)`, `ast_role_include_count(...)`,
+  `ast_role_include(...)`, `ast_role_impl_count(...)`, and
+  `ast_role_impl(...)`. Semantic, compiler, C backend, and LLVM source-of-truth
+  paths no longer read `role_decl.for_type` / include arrays / impl arrays
+  directly.
+- Ability method-list access now has AST accessors:
+  `ast_ability_name(...)`, `ast_ability_method_count(...)`, and
+  `ast_ability_method(...)`. Compiler/codegen consumers use these for ability
+  vtable/forward declaration/DIR completeness/name lookup scans instead of
+  reading ability name/method payloads directly. The module normalizer remains
+  the explicit exception because it owns mutable declaration-name rewriting.
+- Role declaration names now also have a read-only AST accessor:
+  `ast_role_name(...)`. Compiler/codegen role-name consumers use it for DIR,
+  HIR, MIR declaration headers, C declaration lookup, and LLVM declaration
+  inventory/role emission. The module normalizer is the only direct
+  compiler/codegen exception because it owns mutable declaration-name
+  rewriting, and `semantic_core_shape_smoke.sh` gates that exception.
+- Party and roster declaration names now follow the same read-only accessor
+  policy through `ast_party_name(...)` and `ast_roster_name(...)`. DIR/HIR/MIR,
+  C declaration lookup, C domain emission, and LLVM declaration inventory now
+  consume these accessors; `module_normalizer.c` remains the sole mutable-name
+  rewrite exception for compiler/codegen.
+- Party and roster child-list reads now have AST accessors:
+  `ast_party_role(...)`, `ast_party_shared(...)`, `ast_party_method(...)`,
+  `ast_roster_party(...)`, `ast_roster_shared(...)`, and
+  `ast_roster_method(...)` plus their count helpers. DIR edge collection,
+  runtime-none scanning, module reference normalization, C constructor/domain
+  emission, bind/member helper emission, and LLVM struct field registration now
+  consume these accessors. Read-only array-view helpers
+  `ast_party_methods(...)`, `ast_roster_methods(...)`,
+  `ast_party_shared_fields(...)`, and `ast_roster_shared_fields(...)` close
+  the remaining method compatibility and shared-field view owners without
+  exposing raw party/roster child-list payloads to compiler/codegen.
+- World/relation/effect/zone declaration names now have read-only AST
+  accessors: `ast_world_name(...)`, `ast_relation_name(...)`,
+  `ast_effect_name(...)`, and `ast_zone_name(...)`. DIR/HIR/MIR declaration
+  headers, RIR scope/fact collection, C declaration lookup/emission, LLVM
+  declaration inventory, and C/LLVM projection/sync hot paths now consume these
+  accessors for declaration names. `module_normalizer.c` remains the explicit
+  exception because it owns mutable declaration-name rewriting; the semantic
+  core shape smoke gates that boundary. Semantic builtin query diagnostics,
+  DAG label formatting, and domain lookup/precollect owners now also consume
+  the same accessors for the closed DAG/builtin declaration lookup paths.
+  Relation/effect/world declaration validators plus small zone shape/projection
+  validators now follow the same read-only name seam for diagnostics and
+  contract validation. DAG domain precollect/stage owners and zone command/tail
+  dependency labels also consume the accessors instead of raw declaration-name
+  payloads. Program-level domain placeholders and action-contract lexical-zone
+  derivation now also consume the same accessor seam, so forward placeholder
+  setup and inferred `within` metadata no longer rediscover domain names from
+  raw AST payloads. Projection contract diagnostics, systemic world method
+  staging, intent effect-slot diagnostics, and zone authority diagnostics are
+  also smoke-gated on the same accessor boundary. World graph precollect now
+  threads the resolved world name once through activate/deactivate/maintain and
+  action-contract dependency labels instead of reopening the AST payload.
+  Intent participant transfer diagnostics and zone state/maintain diagnostics
+  now also resolve the zone name once through `ast_zone_name(...)`. Intent
+  authority diagnostics share the same resolved zone-name value across missing,
+  ambiguous, and non-authority approval paths. The main zone declaration
+  validator now uses the accessor seam for overlay registration and all
+  lifecycle diagnostics. Zone relation/effect contract validation now resolves
+  zone/relation/effect names through accessors, closing the remaining semantic
+  raw-name payload reads for world/relation/effect/zone declarations. The same
+  boundary is now applied to party/roster names across semantic placeholder,
+  DAG precollect/stage, and declaration validation owners; only
+  `module_normalizer.c` may take mutable name slots for rewrite. Relation/effect
+  declaration slot/refresh child lists now have read-only AST accessors, and
+  zone relation/effect contract validation consumes those accessors instead of
+  opening declaration payload arrays directly. DAG domain staging also consumes
+  relation/effect/zone child-list accessors for slots, shared fields,
+  authorities, layer slots, and methods. Semantic host overlay helpers now use
+  the same child-list accessor seam for roster/world/zone/relation/effect field
+  counting, field lookup, authority scans, and effect-layer checks. DAG domain
+  local-contract staging now uses world/zone lifecycle child-list accessors for
+  state, activation, refresh, apply/link, detach/unlink, and maintain scans.
+  World declaration validation now consumes world roster/zone/lifecycle/shared/
+  method child-list accessors instead of raw payload arrays. Zone declaration
+  validation now consumes zone child-list accessors for overlay registration,
+  slot validation, lifecycle scans, authority checks, and maintain conflict
+  checks. DAG world precollect now consumes world child-list accessors for
+  roster, zone, shared field, state, lifecycle, maintain, and method scans.
+  Domain builtin query helpers now consume world/zone/relation/effect
+  child-list accessors for slot, layer-slot, refresh, state, and projection
+  host lookup seams. Relation/effect declaration validation now consumes
+  relation/effect child-list accessors for overlay registration, slot
+  validation, projection contracts, and bindable endpoint/target density
+  checks; scalar `between` endpoint metadata remains declaration-owned payload.
+  Zone state validation now consumes zone child-list accessors for maintained
+  state aliases, detach/unlink conflict scans, authority presence checks, and
+  duplicate state diagnostics. DAG zone command precollect now consumes zone
+  child-list accessors for refresh/apply/link/detach/unlink and maintain
+  command dependency scans. DAG zone state/authority tail precollect now
+  consumes zone child-list accessors for state, maintained-state, authority,
+  and method dependency scans. Zone shape warning density checks now consume
+  zone child-list accessors for slot counts, lifecycle command totals, and
+  authority presence. Shared domain declaration helpers now consume zone
+  child-list accessors for slot, layer-slot, state, authority, and participant
+  subject-slot lookup seams. DAG relation/effect precollect now consumes
+  relation/effect child-list accessors for slot/shared/method type and
+  action-contract scans; scalar relation `between` endpoint metadata remains
+  declaration-owned payload. Host expression lookup now consumes world,
+  relation, effect, and zone child-list accessors for world field resolution
+  and host method dispatch. World helper lookup now consumes world/zone
+  child-list accessors for world zone/state lookup and nested zone layer/state
+  lookup. Builtin domain query predicates now consume relation/effect/zone
+  child-list accessors for projection refresh and zone state predicate checks.
+  DAG systemic stage replay now consumes party/roster/world child-list
+  accessors for role/party slots, shared fields, world roster/zone slots, and
+  method scans. Zone authority validation now consumes zone child-list
+  accessors for authority and layer-slot scans. DAG zone inventory precollect
+  now consumes zone child-list accessors for slot, shared field, and layer-slot
+  inventory scans. DAG systemic precollect now consumes party/roster child-list
+  accessors for role/party slot, shared field, and method inventory scans.
+  Party/roster declaration validation now consumes party/roster child-list
+  accessors for role/party slot, shared field, and method checks. Action
+  contract validation now consumes zone/effect child-list accessors for
+  within-zone subject-slot checks and caused-effect target checks.
+  Intent authority validation now consumes zone child-list accessors for
+  authority-count and subject-slot matching checks.
+  Overlay hosted scope registration now consumes zone/world child-list
+  accessors for bare slot and world-zone symbol registration. Intent
+  participant validation now consumes zone child-list accessors for participant
+  subject-slot matching and transfer source-zone checks. World state validation
+  and world embedding handoff diagnostics now consume world child-list accessors
+  for state and zone-slot scans. World query/member/constructor checks and
+  zone projection contract/rule checks now consume AST child-list accessors;
+  the semantic owner raw child-list audit for world/zone/relation/effect/
+  party/roster declaration payloads is at zero. C intent/overlay zone-slot
+  helpers and RIR intent effect-slot lookup now also consume zone child-list
+  accessors instead of reopening zone declaration payload arrays. LLVM world
+  sync now consumes world zone child-list accessors for active/dirty pass
+  emission. LLVM zone authority checks, projection sync calls, intent effect
+  provenance emission, and MIR declaration-header validation now consume AST
+  child-list accessors for authority/slot/refresh/layer/state/method scans.
+  C intent effect provenance and MIR-function zone-authority guard emission now
+  use the same zone child-list accessor seam. LLVM world frontier recompute now
+  consumes world zone/state child-list accessors for transitive frontier and
+  derived-state passes. C MIR SSA implicit-field detection and RIR domain slot
+  lookup now consume zone/relation/effect child-list accessors. HIR routine
+  collection and MIR declaration-header method metadata now consume domain
+  method child-list accessors for world/relation/effect/zone methods. C/LLVM
+  hosted method views now consume the same domain method accessor seam, and LLVM
+  world/zone effect propagation consumes zone/effect child-list accessors for
+  slot, layer, state, and projection-refresh scans. Domain frontier pass-limit
+  policy now consumes world/zone child-list accessors for zone/state/layer
+  counts instead of reopening declaration payload counters. LLVM domain lookup
+  and world sync directive emission now consume world/zone child-list accessors
+  for world-zone, world-state, zone-state, zone-slot, layer-slot, and
+  activate/maintain/deactivate scans. LLVM zone sync clause emission now
+  consumes zone layer/state/detach child-list accessors for action-caused state
+  updates and detach-driven layer/state invalidation. C overlay projection
+  invalidation now consumes relation/effect/zone slot and refresh child-list
+  accessors instead of reopening host declaration payload lists. C zone struct
+  emission now consumes zone slot/layer/shared/state child-list accessors for
+  field layout and layer accessor generation. DIR collection now consumes
+  world/relation/effect/zone child-list accessors for world roster/zone edges,
+  relation/effect slot-refresh edges, and zone slot/layer/authority/refresh/state
+  edges. LLVM assignment projection invalidation now consumes
+  zone/relation/effect slot-refresh child-list accessors for host and
+  world-embedded projection scans.
+  C overlay host-field lookup now consumes zone/relation/effect slot,
+  layer-slot, and shared-field child-list accessors.
+  C projection lookup helpers now consume world/zone child-list accessors for
+  world field lookup, zone slot/state/layer lookup, and world-zone resolution.
+  LLVM zone sync now consumes zone apply/state/maintained-effect/maintained-state
+  child-list accessors for apply/maintain provenance and binding propagation.
+  C projection sync helpers now consume world/zone/effect child-list accessors
+  for zone action effects, world-embedded action/effect sync, and world-state
+  lookup.
+  C relation/effect emission now consumes relation/effect slot/shared/refresh
+  child-list accessors for struct fields and projection sync loops.
+  Runtime-none contract scanning now consumes relation/effect
+  slot/refresh/shared/method child-list accessors for no-runtime surface
+  rejection.
+  LLVM zone bind helpers now consume zone/effect/relation
+  layer/slot/refresh child-list accessors for effect/relation layer binding.
+  LLVM zone relation sync now consumes zone link/state/maintained-relation/unlink
+  child-list accessors for relation lifecycle propagation.
+  LLVM domain declaration parts now consume world/relation/effect/zone
+  shared/slot/refresh child-list accessors before handing child inventories to
+  declaration emitters.
+  LLVM zone frontier state tracking now consumes zone state/layer child-list
+  accessors for previous-state allocation, snapshot, reset, and frontier
+  continue checks.
+  LLVM constructor calls now consume world/zone/relation/effect
+  zone/slot/refresh/shared child-list accessors for constructor dirty/default
+  initialization.
+  C overlay zone bind helpers now consume zone/effect/relation
+  layer/slot/refresh child-list accessors for effect/relation layer binding.
+  C world emission now consumes world roster/zone/shared/state/directive
+  child-list accessors for struct layout, world sync, derived recompute, and
+  frontier continuation checks.
+- C backend included-role emission now guards `AST_INCLUDE_STMT` shape before
+  reading include payloads via the same AST include accessor as the C operator
+  lookup, LLVM role lookup, and semantic include traversal.
 - C backend hosted-method body emission now uses `transpiler_mir_decl_method_*` and `transpiler_hosted_method_view_routine(...)` for class, enum, generic-class, and domain hosted-method paths. AST compatibility remains for body/type payloads, but routine identity is no longer rediscovered from AST first on those paths.
 - C backend routine scans now use `TranspilerMIRRoutineInventory` and `transpiler_routine_inventory_get(...)`, so direct `ctx->mir->routines` walking is limited to helper owners and diagnostic count reporting.
 - LLVM domain sync/event/role ownership is no longer concentrated in `llvm_domain.c`: method/provenance helpers live in `llvm_domain_method_helpers.c`, event type/helper lowering lives in `llvm_domain_event.c`, role method/operator/vtable emission lives in `llvm_domain_role_emit.c`, domain sync/method body emission lives in `llvm_domain_method_emit.c`, world sync lives in `llvm_domain_world_sync.c`, zone sync lives in `llvm_domain_zone_sync.c`, and the declaration/projection/zone-binding helper families are split into focused owner headers. `llvm_domain.c` is now 895 LOC and remains backend-compare green.

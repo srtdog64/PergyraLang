@@ -7,6 +7,8 @@
 
 #include <stdio.h>
 
+#include "parser/ast_api.h"
+
 typedef struct RuntimeNoneScan
 {
     const char *surface;
@@ -47,6 +49,40 @@ runtime_none_scan_params(FuncParam *const *params, size_t count, RuntimeNoneScan
             return false;
     }
     return true;
+}
+
+static bool
+runtime_none_scan_relation_decl(const ASTNode *node, RuntimeNoneScan *scan)
+{
+    size_t count = 0;
+    ASTNode **items = ast_relation_slots(node, &count);
+    if (!runtime_none_scan_list(items, count, scan))
+        return false;
+    items = ast_relation_refreshes(node, &count);
+    if (!runtime_none_scan_list(items, count, scan))
+        return false;
+    items = ast_relation_shared_fields(node, &count);
+    if (!runtime_none_scan_list(items, count, scan))
+        return false;
+    items = ast_relation_methods(node, &count);
+    return runtime_none_scan_list(items, count, scan);
+}
+
+static bool
+runtime_none_scan_effect_decl(const ASTNode *node, RuntimeNoneScan *scan)
+{
+    size_t count = 0;
+    ASTNode **items = ast_effect_slots(node, &count);
+    if (!runtime_none_scan_list(items, count, scan))
+        return false;
+    items = ast_effect_refreshes(node, &count);
+    if (!runtime_none_scan_list(items, count, scan))
+        return false;
+    items = ast_effect_shared_fields(node, &count);
+    if (!runtime_none_scan_list(items, count, scan))
+        return false;
+    items = ast_effect_methods(node, &count);
+    return runtime_none_scan_list(items, count, scan);
 }
 
 static bool
@@ -219,36 +255,38 @@ runtime_none_scan_node(const ASTNode *node, RuntimeNoneScan *scan)
                                           node->data.type.tuple_element_count,
                                           scan);
         case AST_ROLE_DECL:
-            if (!runtime_none_scan_node(node->data.role_decl.for_type, scan))
+            if (!runtime_none_scan_node(ast_role_for_type(node), scan))
                 return false;
-            if (!runtime_none_scan_list(node->data.role_decl.includes,
-                                        node->data.role_decl.include_count,
-                                        scan))
-                return false;
-            if (!runtime_none_scan_list(node->data.role_decl.impl_abilities,
-                                        node->data.role_decl.impl_count,
-                                        scan))
-                return false;
+            for (size_t i = 0; i < ast_role_include_count(node); i++) {
+                if (!runtime_none_scan_node(ast_role_include(node, i), scan))
+                    return false;
+            }
+            for (size_t i = 0; i < ast_role_impl_count(node); i++) {
+                if (!runtime_none_scan_node(ast_role_impl(node, i), scan))
+                    return false;
+            }
             return runtime_none_scan_node(node->data.role_decl.parallel_block, scan);
         case AST_IMPL_ABILITY:
-            if (!runtime_none_scan_node(node->data.impl_ability.ability_ref, scan))
+            if (!runtime_none_scan_node(ast_impl_ability_ref(node), scan))
                 return false;
-            return runtime_none_scan_list(node->data.impl_ability.methods,
-                                          node->data.impl_ability.method_count,
-                                          scan);
+            for (size_t i = 0; i < ast_impl_ability_method_count(node); i++) {
+                if (!runtime_none_scan_node(ast_impl_ability_method(node, i), scan))
+                    return false;
+            }
+            return true;
         case AST_PARTY_DECL:
-            if (!runtime_none_scan_list(node->data.party_decl.role_slots,
-                                        node->data.party_decl.role_count,
-                                        scan))
-                return false;
-            if (!runtime_none_scan_list(node->data.party_decl.shared_fields,
-                                        node->data.party_decl.shared_count,
-                                        scan))
-                return false;
-            if (!runtime_none_scan_list(node->data.party_decl.methods,
-                                        node->data.party_decl.method_count,
-                                        scan))
-                return false;
+            for (size_t i = 0; i < ast_party_role_count(node); i++) {
+                if (!runtime_none_scan_node(ast_party_role(node, i), scan))
+                    return false;
+            }
+            for (size_t i = 0; i < ast_party_shared_count(node); i++) {
+                if (!runtime_none_scan_node(ast_party_shared(node, i), scan))
+                    return false;
+            }
+            for (size_t i = 0; i < ast_party_method_count(node); i++) {
+                if (!runtime_none_scan_node(ast_party_method(node, i), scan))
+                    return false;
+            }
             return runtime_none_scan_node(node->data.party_decl.extends, scan);
         case AST_PARTY_SHARED:
             return runtime_none_scan_node(node->data.party_shared.type, scan) &&
@@ -261,49 +299,23 @@ runtime_none_scan_node(const ASTNode *node, RuntimeNoneScan *scan)
             }
             return true;
         case AST_ROSTER_DECL:
-            if (!runtime_none_scan_list(node->data.roster_decl.party_slots,
-                                        node->data.roster_decl.party_count,
-                                        scan))
-                return false;
-            if (!runtime_none_scan_list(node->data.roster_decl.shared_fields,
-                                        node->data.roster_decl.shared_count,
-                                        scan))
-                return false;
-            return runtime_none_scan_list(node->data.roster_decl.methods,
-                                          node->data.roster_decl.method_count,
-                                          scan);
+            for (size_t i = 0; i < ast_roster_party_count(node); i++) {
+                if (!runtime_none_scan_node(ast_roster_party(node, i), scan))
+                    return false;
+            }
+            for (size_t i = 0; i < ast_roster_shared_count(node); i++) {
+                if (!runtime_none_scan_node(ast_roster_shared(node, i), scan))
+                    return false;
+            }
+            for (size_t i = 0; i < ast_roster_method_count(node); i++) {
+                if (!runtime_none_scan_node(ast_roster_method(node, i), scan))
+                    return false;
+            }
+            return true;
         case AST_RELATION_DECL:
-            if (!runtime_none_scan_list(node->data.relation_decl.slots,
-                                        node->data.relation_decl.slot_count,
-                                        scan))
-                return false;
-            if (!runtime_none_scan_list(node->data.relation_decl.refreshes,
-                                        node->data.relation_decl.refresh_count,
-                                        scan))
-                return false;
-            if (!runtime_none_scan_list(node->data.relation_decl.shared_fields,
-                                        node->data.relation_decl.shared_count,
-                                        scan))
-                return false;
-            return runtime_none_scan_list(node->data.relation_decl.methods,
-                                          node->data.relation_decl.method_count,
-                                          scan);
+            return runtime_none_scan_relation_decl(node, scan);
         case AST_EFFECT_DECL:
-            if (!runtime_none_scan_list(node->data.effect_decl.slots,
-                                        node->data.effect_decl.slot_count,
-                                        scan))
-                return false;
-            if (!runtime_none_scan_list(node->data.effect_decl.refreshes,
-                                        node->data.effect_decl.refresh_count,
-                                        scan))
-                return false;
-            if (!runtime_none_scan_list(node->data.effect_decl.shared_fields,
-                                        node->data.effect_decl.shared_count,
-                                        scan))
-                return false;
-            return runtime_none_scan_list(node->data.effect_decl.methods,
-                                          node->data.effect_decl.method_count,
-                                          scan);
+            return runtime_none_scan_effect_decl(node, scan);
         case AST_LAMBDA_EXPR:
             if (node->data.lambda_expr.is_async)
                 return runtime_none_record(scan, node, "async-lambda");

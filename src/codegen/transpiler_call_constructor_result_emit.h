@@ -46,10 +46,10 @@ emit_call_domain_constructor(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             ASTNode *party_decl = find_party_decl(ctx, fn);
             if (party_decl != NULL && party_decl->type == AST_PARTY_DECL) {
                 size_t argc = call->data.call.arg_count;
-                size_t shared_count = party_decl->data.party_decl.shared_count;
+                size_t shared_count = ast_party_shared_count(party_decl);
                 CodeBuf *fields = codebuf_create();
                 for (size_t i = 0; i < argc && i < shared_count; i++) {
-                    ASTNode *shared = party_decl->data.party_decl.shared_fields[i];
+                    ASTNode *shared = ast_party_shared(party_decl, i);
                     const char *field_name = shared != NULL ? shared->data.party_shared.name : "field";
                     char *arg = emit_expression(call->data.call.arguments[i], ctx);
                     if (i > 0)
@@ -65,7 +65,7 @@ emit_call_domain_constructor(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                     char *init_expr;
                     if (i < argc)
                         continue;
-                    shared = party_decl->data.party_decl.shared_fields[i];
+                    shared = ast_party_shared(party_decl, i);
                     if (shared == NULL || shared->data.party_shared.initializer == NULL)
                         continue;
                     field_name = shared->data.party_shared.name;
@@ -90,18 +90,19 @@ emit_call_domain_constructor(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             ASTNode *roster_decl = find_roster_decl(ctx, fn);
             if (roster_decl != NULL && roster_decl->type == AST_ROSTER_DECL) {
                 size_t argc = call->data.call.arg_count;
-                size_t exposed = roster_decl->data.roster_decl.party_count
-                    + roster_decl->data.roster_decl.shared_count;
+                size_t roster_party_count = ast_roster_party_count(roster_decl);
+                size_t exposed = roster_party_count
+                    + ast_roster_shared_count(roster_decl);
                 CodeBuf *fields = codebuf_create();
                 for (size_t i = 0; i < argc && i < exposed; i++) {
                     const char *field_name = NULL;
                     char *arg = emit_expression(call->data.call.arguments[i], ctx);
-                    if (i < roster_decl->data.roster_decl.party_count) {
-                        ASTNode *slot = roster_decl->data.roster_decl.party_slots[i];
+                    if (i < roster_party_count) {
+                        ASTNode *slot = ast_roster_party(roster_decl, i);
                         field_name = slot != NULL ? slot->data.roster_slot.slot_name : "field";
                     } else {
-                        ASTNode *shared = roster_decl->data.roster_decl.shared_fields[
-                            i - roster_decl->data.roster_decl.party_count];
+                        ASTNode *shared = ast_roster_shared(roster_decl,
+                            i - roster_party_count);
                         field_name = shared != NULL ? shared->data.party_shared.name : "field";
                     }
                     if (i > 0)
@@ -111,14 +112,14 @@ emit_call_domain_constructor(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                         arg != NULL ? arg : "0");
                     free(arg);
                 }
-                for (size_t i = 0; i < roster_decl->data.roster_decl.shared_count; i++) {
-                    size_t absolute_index = roster_decl->data.roster_decl.party_count + i;
+                for (size_t i = 0; i < ast_roster_shared_count(roster_decl); i++) {
+                    size_t absolute_index = roster_party_count + i;
                     ASTNode *shared;
                     const char *field_name;
                     char *init_expr;
                     if (absolute_index < argc)
                         continue;
-                    shared = roster_decl->data.roster_decl.shared_fields[i];
+                    shared = ast_roster_shared(roster_decl, i);
                     if (shared == NULL || shared->data.party_shared.initializer == NULL)
                         continue;
                     field_name = shared->data.party_shared.name;

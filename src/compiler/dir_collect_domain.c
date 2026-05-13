@@ -1,4 +1,5 @@
 #include "dir_internal.h"
+#include "parser/ast_api.h"
 
 #include <stdint.h>
 #include <string.h>
@@ -84,8 +85,19 @@ dir_add_projection_contract_edges(DIRProgram *dir,
 bool
 dir_collect_zone_edges(DIRProgram *dir, size_t from_id, ASTNode *node)
 {
-    for (size_t i = 0; i < node->data.zone_decl.slot_count; i++) {
-        ASTNode *slot = node->data.zone_decl.slots[i];
+    size_t slot_count = 0;
+    ASTNode **slots = ast_zone_slots(node, &slot_count);
+    size_t layer_slot_count = 0;
+    ASTNode **layer_slots = ast_zone_layer_slots(node, &layer_slot_count);
+    size_t authority_count = 0;
+    ASTNode **authorities = ast_zone_authorities(node, &authority_count);
+    size_t refresh_count = 0;
+    ASTNode **refreshes = ast_zone_refreshes(node, &refresh_count);
+    size_t state_count = 0;
+    ASTNode **states = ast_zone_states(node, &state_count);
+
+    for (size_t i = 0; i < slot_count; i++) {
+        ASTNode *slot = slots[i];
         const char *target = type_name(dir, slot->data.domain_slot.type);
         ssize_t to = dir_find_type_node_by_name(dir, target);
         ssize_t slot_node_id;
@@ -94,7 +106,7 @@ dir_collect_zone_edges(DIRProgram *dir, size_t from_id, ASTNode *node)
 
         slot_node_id = dir_ensure_qualified_slot_node(dir,
                                                       slot_kind,
-                                                      node->data.zone_decl.name,
+                                                      ast_zone_name(node),
                                                       slot->data.domain_slot.slot_name,
                                                       slot);
         if (slot_node_id < 0)
@@ -123,8 +135,8 @@ dir_collect_zone_edges(DIRProgram *dir, size_t from_id, ASTNode *node)
                                 target))
             return false;
     }
-    for (size_t i = 0; i < node->data.zone_decl.layer_slot_count; i++) {
-        ASTNode *slot = node->data.zone_decl.layer_slots[i];
+    for (size_t i = 0; i < layer_slot_count; i++) {
+        ASTNode *slot = layer_slots[i];
         ssize_t to = slot->data.zone_layer_slot.is_relation
             ? dir_find_relation_node_by_name(dir, slot->data.zone_layer_slot.layer_type)
             : dir_find_effect_node_by_name(dir, slot->data.zone_layer_slot.layer_type);
@@ -134,16 +146,16 @@ dir_collect_zone_edges(DIRProgram *dir, size_t from_id, ASTNode *node)
                                 slot->data.zone_layer_slot.layer_type))
             return false;
     }
-    for (size_t i = 0; i < node->data.zone_decl.authority_count; i++) {
-        ASTNode *auth = node->data.zone_decl.authorities[i];
+    for (size_t i = 0; i < authority_count; i++) {
+        ASTNode *auth = authorities[i];
         ssize_t auth_slot_id = dir_ensure_qualified_slot_node(dir,
                                                               DIR_NODE_AUTHORITY_SLOT,
-                                                              node->data.zone_decl.name,
+                                                              ast_zone_name(node),
                                                               auth->data.zone_authority.subject_slot_name,
                                                               auth);
         ssize_t subject_slot_id = dir_find_slot_node(dir,
                                                      DIR_NODE_ZONE_SLOT,
-                                                     node->data.zone_decl.name,
+                                                     ast_zone_name(node),
                                                      auth->data.zone_authority.subject_slot_name);
         if (auth_slot_id < 0)
             return false;
@@ -182,19 +194,19 @@ dir_collect_zone_edges(DIRProgram *dir, size_t from_id, ASTNode *node)
                 return false;
         }
     }
-    for (size_t i = 0; i < node->data.zone_decl.refresh_count; i++) {
+    for (size_t i = 0; i < refresh_count; i++) {
         if (!dir_add_projection_contract_edges(dir,
                                                from_id,
-                                               node->data.zone_decl.name,
-                                               node->data.zone_decl.refreshes[i]))
+                                               ast_zone_name(node),
+                                               refreshes[i]))
             return false;
     }
-    for (size_t i = 0; i < node->data.zone_decl.state_count; i++) {
-        ASTNode *state = node->data.zone_decl.states[i];
+    for (size_t i = 0; i < state_count; i++) {
+        ASTNode *state = states[i];
         const char *layer = state->data.zone_state.layer_slot_name;
         ssize_t to = -1;
-        for (size_t j = 0; j < node->data.zone_decl.layer_slot_count; j++) {
-            ASTNode *slot = node->data.zone_decl.layer_slots[j];
+        for (size_t j = 0; j < layer_slot_count; j++) {
+            ASTNode *slot = layer_slots[j];
             if (slot != NULL
                 && strcmp(slot->data.zone_layer_slot.slot_name, layer) == 0) {
                 to = (ssize_t)from_id;

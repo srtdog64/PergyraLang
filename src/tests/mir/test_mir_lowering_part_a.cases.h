@@ -257,6 +257,91 @@ test_mir_lowering_part_a(void)
         hir_destroy(hir);
     }
 
+    TEST("MIR validator rejects predecessor count without inventory");
+    {
+        const char *src =
+            "func Branch(flag: Bool) -> Int {\n"
+            "    if flag {\n"
+            "        return 1;\n"
+            "    }\n"
+            "    return 0;\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        MIRRoutine *branch = NULL;
+        char *mir_error = NULL;
+        bool corrupted = false;
+        bool rejected = false;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok)
+            branch = find_mir_routine_mut(mir, "Branch", MIR_SCOPE_FUNCTION);
+        if (branch != NULL) {
+            for (size_t i = 0; i < branch->block_count; i++) {
+                MIRBasicBlock *block = &branch->blocks[i];
+                if (block->predecessor_count == 0)
+                    continue;
+                free(block->predecessors);
+                block->predecessors = NULL;
+                corrupted = true;
+                break;
+            }
+        }
+        rejected = ok
+                   && branch != NULL
+                   && corrupted
+                   && !mir_validate(mir, &mir_error)
+                   && mir_error != NULL
+                   && strstr(mir_error, "predecessor count without predecessor inventory") != NULL;
+        EXPECT(rejected);
+        free(mir_error);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
+    TEST("MIR validator rejects predecessor count above capacity");
+    {
+        const char *src =
+            "func Branch(flag: Bool) -> Int {\n"
+            "    if flag {\n"
+            "        return 1;\n"
+            "    }\n"
+            "    return 0;\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        MIRRoutine *branch = NULL;
+        char *mir_error = NULL;
+        bool corrupted = false;
+        bool rejected = false;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok)
+            branch = find_mir_routine_mut(mir, "Branch", MIR_SCOPE_FUNCTION);
+        if (branch != NULL) {
+            for (size_t i = 0; i < branch->block_count; i++) {
+                MIRBasicBlock *block = &branch->blocks[i];
+                if (block->predecessor_count == 0)
+                    continue;
+                block->predecessor_capacity = block->predecessor_count - 1;
+                corrupted = true;
+                break;
+            }
+        }
+        rejected = ok
+                   && branch != NULL
+                   && corrupted
+                   && !mir_validate(mir, &mir_error)
+                   && mir_error != NULL
+                   && strstr(mir_error, "predecessor count above predecessor capacity") != NULL;
+        EXPECT(rejected);
+        free(mir_error);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
     TEST("MIR validator rejects missing rollback and invalidation cleanup facts");
     {
         const char *src =

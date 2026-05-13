@@ -41,25 +41,27 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
     }
 
     /* Check for_type exists */
-    if (node->data.role_decl.for_type != NULL) {
-        semantic_type_resolution_record_type_ref_dependency(
-            ctx,
-            node,
-            name != NULL ? name : "<role>",
-            node->data.role_decl.for_type,
-            "role host-type lookup");
-        Type *bound_type = domain_resolve_type_ref(
-            node->data.role_decl.for_type, ctx);
-        if (bound_type != NULL
-            && node->data.role_decl.for_type->type == AST_TYPE
-            && node->data.role_decl.for_type->data.type.name != NULL) {
-            ASTNode *type_decl = find_type_decl_by_name(
-                ctx->program_root, node->data.role_decl.for_type->data.type.name);
-            if (type_decl != NULL && !decl_is_subject_host(type_decl)) {
-                semantic_error_with_hints(ctx, PGY_CODE_SEM_ROLE_CONTRACT_INVALID, PGY_CAUSE_ROLE_CONTRACT, PGY_FIX_ALIGN_ROLE_IMPL_WITH_ABILITY, node->data.role_decl.for_type,
-                    "Role '%s' must be bound to a subject or primitive domain; '%s' is not a subject",
-                    name,
-                    node->data.role_decl.for_type->data.type.name);
+    {
+        ASTNode *for_type = semantic_role_for_type_node(node);
+        const char *for_type_name = semantic_role_for_type_name(node);
+        if (for_type != NULL) {
+            Type *bound_type;
+            semantic_type_resolution_record_type_ref_dependency(
+                ctx,
+                node,
+                name != NULL ? name : "<role>",
+                for_type,
+                "role host-type lookup");
+            bound_type = domain_resolve_type_ref(for_type, ctx);
+            if (bound_type != NULL && for_type_name != NULL) {
+                ASTNode *type_decl = find_type_decl_by_name(
+                    ctx->program_root, for_type_name);
+                if (type_decl != NULL && !decl_is_subject_host(type_decl)) {
+                    semantic_error_with_hints(ctx, PGY_CODE_SEM_ROLE_CONTRACT_INVALID, PGY_CAUSE_ROLE_CONTRACT, PGY_FIX_ALIGN_ROLE_IMPL_WITH_ABILITY, for_type,
+                        "Role '%s' must be bound to a subject or primitive domain; '%s' is not a subject",
+                        name,
+                        for_type_name);
+                }
             }
         }
     }
@@ -74,9 +76,13 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
         name);
 
     /* Check includes reference existing roles */
-    for (size_t i = 0; i < node->data.role_decl.include_count; i++) {
-        ASTNode *inc = node->data.role_decl.includes[i];
-        const char *role_name = inc->data.include_stmt.role_name;
+    for (size_t i = 0; i < ast_role_include_count(node); i++) {
+        ASTNode *inc = ast_role_include(node, i);
+        const char *role_name = ast_include_role_name(inc);
+        ASTNode *included_role_decl;
+
+        if (role_name == NULL)
+            continue;
         semantic_type_resolution_record_named_dependency(
             ctx,
             inc,
@@ -96,31 +102,20 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
                 "- declare role '%s'\n"
                 "- or import/export the module that defines it",
                 name != NULL ? name : "<role>",
-                role_name != NULL ? role_name : "<role>",
-                role_name != NULL ? role_name : "<role>",
-                role_name != NULL ? role_name : "<role>");
-        } else if (ctx->program_root != NULL && role_name != NULL) {
-            ASTNode *included_role_decl = NULL;
-            if (ctx->program_root->type == AST_PROGRAM) {
-                for (size_t ri = 0; ri < ctx->program_root->data.program.count; ri++) {
-                    ASTNode *candidate = ctx->program_root->data.program.statements[ri];
-                    if (candidate != NULL
-                        && candidate->type == AST_ROLE_DECL
-                        && candidate->data.role_decl.name != NULL
-                        && strcmp(candidate->data.role_decl.name, role_name) == 0) {
-                        included_role_decl = candidate;
-                        break;
-                    }
-                }
-            }
+                role_name,
+                role_name,
+                role_name);
+            continue;
+        }
 
-            if (included_role_decl != NULL
-                && included_role_decl->data.role_decl.generic_params != NULL
+        included_role_decl = semantic_find_role_decl(ctx->program_root, role_name);
+        if (included_role_decl != NULL) {
+            if (included_role_decl->data.role_decl.generic_params != NULL
                 && included_role_decl->data.role_decl.generic_params->count > 0) {
                 size_t effective_count = 0;
                 ASTNode **effective_args = collect_effective_generic_arg_nodes(
                     included_role_decl->data.role_decl.generic_params,
-                    inc->data.include_stmt.type_args,
+                    ast_include_type_args(inc),
                     inc,
                     ctx,
                     "role include",
@@ -196,21 +191,21 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
 
     /* Check impl ability blocks */
     scope_enter(&ctx->scope, SCOPE_BLOCK);
-    for (size_t i = 0; i < node->data.role_decl.impl_count; i++) {
-        ASTNode *impl = node->data.role_decl.impl_abilities[i];
+    for (size_t i = 0; i < ast_role_impl_count(node); i++) {
+        ASTNode *impl = ast_role_impl(node, i);
 
         if (impl->type == AST_IMPL_ABILITY) {
+            ASTNode *ability_ref = ast_impl_ability_ref(impl);
+            const char *ability_name = ast_impl_ability_name(impl);
+
             semantic_type_resolution_record_type_ref_dependency(
                 ctx,
                 impl,
                 name != NULL ? name : "<role>",
-                impl->data.impl_ability.ability_ref,
+                ability_ref,
                 "role impl ability lookup");
             /* Check that the ability exists */
-            if (impl->data.impl_ability.ability_ref != NULL
-                && impl->data.impl_ability.ability_ref->type == AST_TYPE
-                && impl->data.impl_ability.ability_ref->data.type.name != NULL) {
-                const char *ability_name = impl->data.impl_ability.ability_ref->data.type.name;
+            if (ability_name != NULL) {
                 ASTNode *ability_decl = find_ability_decl_by_name(
                     ctx->program_root, ability_name);
                 Symbol *ab = scope_lookup(ctx->scope,
@@ -258,15 +253,17 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
                         ability_name);
                 } else if (ability_decl != NULL
                            && ability_decl->type == AST_ABILITY_DECL) {
-                    size_t arg_count = impl->data.impl_ability.ability_ref->data.type.generic_args != NULL
-                        ? impl->data.impl_ability.ability_ref->data.type.generic_args->count : 0;
+                    GenericParams *impl_type_args =
+                        ability_ref != NULL ? ability_ref->data.type.generic_args : NULL;
+                    size_t arg_count = impl_type_args != NULL
+                        ? impl_type_args->count : 0;
                     size_t param_count = ability_decl->data.ability_decl.generic_params != NULL
                         ? ability_decl->data.ability_decl.generic_params->count : 0;
                     bool malformed_impl_args = false;
 
                     if (arg_count > 0 && param_count == 0) {
                         char *impl_text =
-                            ability_ref_display(impl->data.impl_ability.ability_ref);
+                            ability_ref_display(ability_ref);
                         char *expected_text =
                             ability_decl_signature_display(
                                 ability_name,
@@ -300,7 +297,7 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
                         size_t required_count = generic_params_required_count(
                             ability_decl->data.ability_decl.generic_params);
                         char *impl_text =
-                            ability_ref_display(impl->data.impl_ability.ability_ref);
+                            ability_ref_display(ability_ref);
                         char *expected_text =
                             ability_decl_signature_display(
                                 ability_name,
@@ -325,12 +322,11 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
                         free(impl_text);
                     } else {
                         for (size_t k = 0; k < arg_count; k++) {
-                            GenericParam *gp =
-                                impl->data.impl_ability.ability_ref->data.type.generic_args->params[k];
+                            GenericParam *gp = impl_type_args->params[k];
                             ASTNode *arg = gp != NULL ? gp->constraint : NULL;
                             if (arg == NULL) {
                                 char *impl_text =
-                                    ability_ref_display(impl->data.impl_ability.ability_ref);
+                                    ability_ref_display(ability_ref);
                                 char *expected_text =
                                     ability_decl_signature_display(
                                         ability_name,
@@ -366,7 +362,7 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
                     if (!malformed_impl_args) {
                         validate_ability_decl_where_clause_reference(
                             ability_decl,
-                            impl->data.impl_ability.ability_ref,
+                            ability_ref,
                             impl,
                             ctx,
                             "role",
@@ -374,15 +370,15 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
                         validate_ability_require_fields_for_role(
                             node,
                             ability_decl,
-                            impl->data.impl_ability.ability_ref,
+                            ability_ref,
                             ctx);
                     }
                 }
             }
 
             /* Type-check each method implementation */
-            for (size_t j = 0; j < impl->data.impl_ability.method_count; j++) {
-                type_check_func_decl(impl->data.impl_ability.methods[j], ctx);
+            for (size_t j = 0; j < ast_impl_ability_method_count(impl); j++) {
+                type_check_func_decl(ast_impl_ability_method(impl, j), ctx);
             }
         } else if (impl->type == AST_OVERRIDE_FUNC) {
             /* Type-check the overridden function */

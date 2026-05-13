@@ -44,16 +44,15 @@ llvm_register_domain_structs(LLVMGenCtx *ctx,
                 continue;
 
             size_t dyn_slot_count = 0;
-            ASTNode **role_slots = NULL;
             size_t role_count = 0;
             if (stmt->type == AST_PARTY_DECL) {
-                role_slots = stmt->data.party_decl.role_slots;
-                role_count = stmt->data.party_decl.role_count;
+                role_count = ast_party_role_count(stmt);
             }
             for (size_t j = 0; j < role_count; j++) {
-                if (role_slots[j] != NULL
-                    && role_slots[j]->type == AST_ROLE_SLOT
-                    && role_slots[j]->data.role_slot.is_dynamic)
+                ASTNode *role_slot = ast_party_role(stmt, j);
+                if (role_slot != NULL
+                    && role_slot->type == AST_ROLE_SLOT
+                    && role_slot->data.role_slot.is_dynamic)
                     dyn_slot_count++;
             }
 
@@ -133,13 +132,13 @@ llvm_register_domain_structs(LLVMGenCtx *ctx,
                 }
                 ftypes[idx++] = ctx->type_i32;
             } else if (stmt->type == AST_ROSTER_DECL) {
-                fc = stmt->data.roster_decl.party_count
-                    + stmt->data.roster_decl.shared_count;
+                fc = ast_roster_party_count(stmt)
+                    + ast_roster_shared_count(stmt);
                 ftypes = pgy_arena_calloc(&ctx->scratch,
                     (fc > 0 ? fc : 1) * sizeof(LLVMTypeRef));
                 size_t idx = 0;
-                for (size_t j = 0; j < stmt->data.roster_decl.party_count; j++, idx++) {
-                    ASTNode *slot = stmt->data.roster_decl.party_slots[j];
+                for (size_t j = 0; j < ast_roster_party_count(stmt); j++, idx++) {
+                    ASTNode *slot = ast_roster_party(stmt, j);
                     const char *party_type =
                         (slot != NULL && slot->type == AST_SYSTEMIC_SLOT)
                         ? slot->data.roster_slot.party_type : NULL;
@@ -148,8 +147,8 @@ llvm_register_domain_structs(LLVMGenCtx *ctx,
                     if (ctx->has_error || ftypes[idx] == NULL)
                         return;
                 }
-                for (size_t j = 0; j < stmt->data.roster_decl.shared_count; j++, idx++) {
-                    ASTNode *sf = stmt->data.roster_decl.shared_fields[j];
+                for (size_t j = 0; j < ast_roster_shared_count(stmt); j++, idx++) {
+                    ASTNode *sf = ast_roster_shared(stmt, j);
                     ASTNode *sf_type = sf->data.party_shared.type;
                     ftypes[idx] = llvm_domain_required_ast_type(ctx, sf, sf_type, "roster shared field");
                     if (ctx->has_error || ftypes[idx] == NULL)
@@ -260,7 +259,7 @@ llvm_register_domain_structs(LLVMGenCtx *ctx,
             if (entry != NULL
                 && !llvm_domain_struct_register_fields(ctx, stmt, entry, ftypes,
                     slots, slot_count, shared_fields, shared_count, refreshes,
-                    refresh_count, role_slots, role_count)) {
+                    refresh_count)) {
                 return;
             }
 

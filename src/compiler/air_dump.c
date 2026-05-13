@@ -323,7 +323,11 @@ air_dump_json(const AIRProgram *air, FILE *out)
     fputs(",\"subject\":", out);
     air_json_string(out, PGY_FRONTIER_POLICY_SUBJECT);
     fprintf(out,
-            ",\"fact_count\":%u}",
+            ",\"pass_limit_fact_count\":%u,"
+            "\"overflow_reason_fact_count\":%u,"
+            "\"fact_count\":%u}",
+            (unsigned)PGY_FRONTIER_PASS_LIMIT_FACT_COUNT,
+            (unsigned)PGY_FRONTIER_OVERFLOW_REASON_FACT_COUNT,
             (unsigned)PGY_FRONTIER_POLICY_FACT_COUNT);
     fputs(",\"intents\":[", out);
     for (size_t i = 0; i < air->intent_count; i++) {

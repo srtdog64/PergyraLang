@@ -120,7 +120,7 @@ emit_call_builtin_dispatch(ASTNode *call, BuiltinKind bk, TranspilerCtx *ctx, bo
                     layer_name = call->data.call.arguments[0]->data.string.value;
                 if (layer_name != NULL)
                     return strdup_fmt("%s_has_layer_%s(self, __pgy_zone_gen)",
-                        zone_decl->data.zone_decl.name, layer_name);
+                        ast_zone_name(zone_decl), layer_name);
             }
         }
         transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "C backend: HasLayer requires active zone context");

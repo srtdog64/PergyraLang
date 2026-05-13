@@ -334,17 +334,17 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
              * so that constructor-like syntax can be introduced consistently */
             const char *dname = NULL;
             if (stmt->type == AST_PARTY_DECL)
-                dname = stmt->data.party_decl.name;
+                dname = ast_party_name(stmt);
             else if (stmt->type == AST_ROSTER_DECL)
-                dname = stmt->data.roster_decl.name;
+                dname = ast_roster_name(stmt);
             else if (stmt->type == AST_WORLD_DECL)
-                dname = stmt->data.world_decl.name;
+                dname = ast_world_name(stmt);
             else if (stmt->type == AST_RELATION_DECL)
-                dname = stmt->data.relation_decl.name;
+                dname = ast_relation_name(stmt);
             else if (stmt->type == AST_EFFECT_DECL)
-                dname = stmt->data.effect_decl.name;
+                dname = ast_effect_name(stmt);
             else
-                dname = stmt->data.zone_decl.name;
+                dname = ast_zone_name(stmt);
             if (dname != NULL && scope_lookup_current(ctx->scope, dname) == NULL) {
                 Type *t = calloc(1, sizeof(Type));
                 if (t == NULL)
@@ -461,16 +461,16 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                     (unsigned long long) ctx->type_resolution_metadata_dead_ends,
                     (unsigned long long) ctx->type_resolution_metadata_materializer_fallbacks);
             fprintf(stderr, "[type-res-stats] metadata-unresolved-audit: named=%llu generic_named=%llu compound=%llu other=%llu\n",
-                    (unsigned long long) ctx->type_resolution_metadata_fallback_named,
-                    (unsigned long long) ctx->type_resolution_metadata_fallback_generic_named,
-                    (unsigned long long) ctx->type_resolution_metadata_fallback_compound,
-                    (unsigned long long) ctx->type_resolution_metadata_fallback_other);
+                    (unsigned long long) ctx->type_resolution_metadata_unresolved_named,
+                    (unsigned long long) ctx->type_resolution_metadata_unresolved_generic_named,
+                    (unsigned long long) ctx->type_resolution_metadata_unresolved_compound,
+                    (unsigned long long) ctx->type_resolution_metadata_unresolved_other);
             fprintf(stderr, "[type-res-stats] metadata-unresolved-audit-named: builtin_shell=%llu generic_class=%llu alias=%llu non_class_symbol=%llu missing_symbol=%llu\n",
-                    (unsigned long long) ctx->type_resolution_metadata_fallback_named_builtin_shell,
-                    (unsigned long long) ctx->type_resolution_metadata_fallback_named_generic_class,
-                    (unsigned long long) ctx->type_resolution_metadata_fallback_named_alias,
-                    (unsigned long long) ctx->type_resolution_metadata_fallback_named_non_class_symbol,
-                    (unsigned long long) ctx->type_resolution_metadata_fallback_named_missing_symbol);
+                    (unsigned long long) ctx->type_resolution_metadata_unresolved_named_builtin_shell,
+                    (unsigned long long) ctx->type_resolution_metadata_unresolved_named_generic_class,
+                    (unsigned long long) ctx->type_resolution_metadata_unresolved_named_alias,
+                    (unsigned long long) ctx->type_resolution_metadata_unresolved_named_non_class_symbol,
+                    (unsigned long long) ctx->type_resolution_metadata_unresolved_named_missing_symbol);
             fprintf(stderr, "[type-res-stats] stage-materialize-family: generic_contract=%llu signature=%llu ability_consumer=%llu domain_contract=%llu alias=%llu other=%llu\n",
                     (unsigned long long) ctx->type_resolution_stage_compat_generic_contract_count,
                     (unsigned long long) ctx->type_resolution_stage_compat_signature_count,

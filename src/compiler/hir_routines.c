@@ -175,6 +175,27 @@ oom:
     return false;
 }
 
+static ASTNode **
+hir_domain_methods(ASTNode *decl, size_t *method_count_out)
+{
+    if (method_count_out != NULL)
+        *method_count_out = 0;
+    if (decl == NULL)
+        return NULL;
+    switch (decl->type) {
+    case AST_WORLD_DECL:
+        return ast_world_methods(decl, method_count_out);
+    case AST_RELATION_DECL:
+        return ast_relation_methods(decl, method_count_out);
+    case AST_EFFECT_DECL:
+        return ast_effect_methods(decl, method_count_out);
+    case AST_ZONE_DECL:
+        return ast_zone_methods(decl, method_count_out);
+    default:
+        return NULL;
+    }
+}
+
 static bool
 hir_decl_method_slice(ASTNode *decl,
                       ASTNode ***methods_out,
@@ -210,51 +231,51 @@ hir_decl_method_slice(ASTNode *decl,
         return true;
     case AST_PARTY_DECL:
         if (methods_out != NULL)
-            *methods_out = decl->data.party_decl.methods;
+            *methods_out = ast_party_methods(decl, NULL);
         if (method_count_out != NULL)
-            *method_count_out = decl->data.party_decl.method_count;
+            *method_count_out = ast_party_method_count(decl);
         if (owner_name_out != NULL)
-            *owner_name_out = decl->data.party_decl.name;
+            *owner_name_out = ast_party_name(decl);
         return true;
     case AST_ROSTER_DECL:
         if (methods_out != NULL)
-            *methods_out = decl->data.roster_decl.methods;
+            *methods_out = ast_roster_methods(decl, NULL);
         if (method_count_out != NULL)
-            *method_count_out = decl->data.roster_decl.method_count;
+            *method_count_out = ast_roster_method_count(decl);
         if (owner_name_out != NULL)
-            *owner_name_out = decl->data.roster_decl.name;
+            *owner_name_out = ast_roster_name(decl);
         return true;
     case AST_WORLD_DECL:
         if (methods_out != NULL)
-            *methods_out = decl->data.world_decl.methods;
-        if (method_count_out != NULL)
-            *method_count_out = decl->data.world_decl.method_count;
+            *methods_out = hir_domain_methods(decl, method_count_out);
+        else if (method_count_out != NULL)
+            (void) hir_domain_methods(decl, method_count_out);
         if (owner_name_out != NULL)
-            *owner_name_out = decl->data.world_decl.name;
+            *owner_name_out = ast_world_name(decl);
         return true;
     case AST_RELATION_DECL:
         if (methods_out != NULL)
-            *methods_out = decl->data.relation_decl.methods;
-        if (method_count_out != NULL)
-            *method_count_out = decl->data.relation_decl.method_count;
+            *methods_out = hir_domain_methods(decl, method_count_out);
+        else if (method_count_out != NULL)
+            (void) hir_domain_methods(decl, method_count_out);
         if (owner_name_out != NULL)
-            *owner_name_out = decl->data.relation_decl.name;
+            *owner_name_out = ast_relation_name(decl);
         return true;
     case AST_EFFECT_DECL:
         if (methods_out != NULL)
-            *methods_out = decl->data.effect_decl.methods;
-        if (method_count_out != NULL)
-            *method_count_out = decl->data.effect_decl.method_count;
+            *methods_out = hir_domain_methods(decl, method_count_out);
+        else if (method_count_out != NULL)
+            (void) hir_domain_methods(decl, method_count_out);
         if (owner_name_out != NULL)
-            *owner_name_out = decl->data.effect_decl.name;
+            *owner_name_out = ast_effect_name(decl);
         return true;
     case AST_ZONE_DECL:
         if (methods_out != NULL)
-            *methods_out = decl->data.zone_decl.methods;
-        if (method_count_out != NULL)
-            *method_count_out = decl->data.zone_decl.method_count;
+            *methods_out = hir_domain_methods(decl, method_count_out);
+        else if (method_count_out != NULL)
+            (void) hir_domain_methods(decl, method_count_out);
         if (owner_name_out != NULL)
-            *owner_name_out = decl->data.zone_decl.name;
+            *owner_name_out = ast_zone_name(decl);
         return true;
     default:
         return false;
@@ -267,20 +288,20 @@ hir_append_role_impl_method_routines(HIRProgram *hir, size_t decl_id, ASTNode *r
     if (hir == NULL || role_decl == NULL || role_decl->type != AST_ROLE_DECL)
         return true;
 
-    const char *owner_name = role_decl->data.role_decl.name;
+    const char *owner_name = ast_role_name(role_decl);
     if (owner_name == NULL)
         return true;
 
-    for (size_t i = 0; i < role_decl->data.role_decl.impl_count; i++) {
-        ASTNode *impl = role_decl->data.role_decl.impl_abilities[i];
+    for (size_t i = 0; i < ast_role_impl_count(role_decl); i++) {
+        ASTNode *impl = ast_role_impl(role_decl, i);
         if (impl == NULL || impl->type != AST_IMPL_ABILITY)
             continue;
-        for (size_t j = 0; j < impl->data.impl_ability.method_count; j++) {
+        for (size_t j = 0; j < ast_impl_ability_method_count(impl); j++) {
             if (!hir_append_hidden_method_routine(hir,
                                                   decl_id,
                                                   owner_name,
                                                   AST_ROLE_DECL,
-                                                  impl->data.impl_ability.methods[j])) {
+                                                  ast_impl_ability_method(impl, j))) {
                 return false;
             }
         }

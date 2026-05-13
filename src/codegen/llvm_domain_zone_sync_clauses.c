@@ -1,6 +1,7 @@
 #ifdef PGY_LLVM_ENABLED
 #include "llvm_internal.h"
 #include "llvm_domain_zone_sync_internal.h"
+#include "parser/ast_api.h"
 
 static bool
 llvm_zone_sync_clause_field_name(char *out,
@@ -25,8 +26,13 @@ llvm_zone_sync_emit_action_causes(ASTNode *stmt,
     if (stmt == NULL || decl_cls == NULL || sync_fn == NULL || ctx == NULL)
         return;
 
-    for (size_t i = 0; i < stmt->data.zone_decl.layer_slot_count; i++) {
-        ASTNode *slot = stmt->data.zone_decl.layer_slots[i];
+    size_t layer_slot_count = 0;
+    ASTNode **layer_slots = ast_zone_layer_slots(stmt, &layer_slot_count);
+    size_t state_count = 0;
+    ASTNode **states = ast_zone_states(stmt, &state_count);
+
+    for (size_t i = 0; i < layer_slot_count; i++) {
+        ASTNode *slot = layer_slots[i];
         const char *layer_name;
         char cause_field[256];
         char active_field[256];
@@ -77,8 +83,8 @@ llvm_zone_sync_emit_action_causes(ASTNode *stmt,
                 llvm_tmp_name(ctx));
             LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 1, 0), active_ptr);
         }
-        for (size_t j = 0; j < stmt->data.zone_decl.state_count; j++) {
-            ASTNode *state = stmt->data.zone_decl.states[j];
+        for (size_t j = 0; j < state_count; j++) {
+            ASTNode *state = states[j];
             char state_field[256];
             int state_idx;
             LLVMValueRef state_ptr;
@@ -113,12 +119,17 @@ llvm_zone_sync_emit_detach_clauses(ASTNode *stmt,
     if (stmt == NULL || decl_cls == NULL || sync_fn == NULL || ctx == NULL)
         return;
 
-    for (size_t i = 0; i < stmt->data.zone_decl.detach_count; i++) {
-        ASTNode *detach = stmt->data.zone_decl.detaches[i];
+    size_t detach_count = 0;
+    ASTNode **detaches = ast_zone_detaches(stmt, &detach_count);
+    size_t state_count = 0;
+    ASTNode **states = ast_zone_states(stmt, &state_count);
+
+    for (size_t i = 0; i < detach_count; i++) {
+        ASTNode *detach = detaches[i];
         const char *state_name = detach != NULL ? detach->data.zone_detach.state_name : NULL;
         if (state_name == NULL && detach != NULL) {
-            for (size_t j = 0; j < stmt->data.zone_decl.state_count; j++) {
-                ASTNode *state = stmt->data.zone_decl.states[j];
+            for (size_t j = 0; j < state_count; j++) {
+                ASTNode *state = states[j];
                 if (state != NULL && state->type == AST_ZONE_STATE
                     && !state->data.zone_state.is_relation
                     && state->data.zone_state.layer_slot_name != NULL
@@ -155,8 +166,8 @@ llvm_zone_sync_emit_detach_clauses(ASTNode *stmt,
             if (detach != NULL) {
                 const char *layer_name = detach->data.zone_detach.effect_slot_name;
                 if (layer_name == NULL) {
-                    for (size_t j = 0; j < stmt->data.zone_decl.state_count; j++) {
-                        ASTNode *state = stmt->data.zone_decl.states[j];
+                    for (size_t j = 0; j < state_count; j++) {
+                        ASTNode *state = states[j];
                         if (state != NULL && state->type == AST_ZONE_STATE
                             && !state->data.zone_state.is_relation
                             && state->data.zone_state.state_name != NULL

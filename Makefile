@@ -85,6 +85,8 @@ endif
 ifeq ($(strip $(SHELL)),)
 SHELL := $(BASH)
 endif
+pgy_mkdir_p = $(BASH) -lc "mkdir -p $(1)"
+pgy_touch_ref = $(BASH) -lc "touch -c -r $(1) $(2)"
 LLVM_CONFIG := $(shell command -v llvm-config 2>/dev/null || command -v llvm-config-20 2>/dev/null || command -v llvm-config-19 2>/dev/null || command -v llvm-config-18 2>/dev/null || command -v llvm-config-17 2>/dev/null || command -v llvm-config-16 2>/dev/null || command -v llvm-config-15 2>/dev/null)
 WINDOWS_LLVM_READY := $(shell if [ -n "$(LLVM_CONFIG)" ] && "$(LLVM_CONFIG)" --libs core >/dev/null 2>&1; then echo 1; else echo 0; fi)
 LLD := $(shell command -v ld.lld 2>/dev/null || command -v lld 2>/dev/null)
@@ -178,8 +180,10 @@ PARSER_SOURCES   = $(PARSER_DIR)/ast.c \
                    $(PARSER_DIR)/ast_destroy_domain.c \
                    $(PARSER_DIR)/ast_clone.c \
                    $(PARSER_DIR)/ast_constructors.c \
+                   $(PARSER_DIR)/ast_domain_accessors.c \
                    $(PARSER_DIR)/ast_domain_constructors.c \
                    $(PARSER_DIR)/ast_domain_tail_constructors.c \
+                   $(PARSER_DIR)/ast_zone_accessors.c \
                    $(PARSER_DIR)/ast_print.c \
                    $(PARSER_DIR)/ast_print_domain.c \
                    $(PARSER_DIR)/ast_print_event.c \
@@ -276,6 +280,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_resolution_metadata_alias.c \
                    $(SEMANTIC_DIR)/type_checker_resolution_metadata_diagnostics.c \
                    $(SEMANTIC_DIR)/type_checker_resolution_metadata_storage.c \
+                   $(SEMANTIC_DIR)/type_checker_resolution_metadata_index.c \
                    $(SEMANTIC_DIR)/type_checker_resolution_metadata.c \
                    $(SEMANTIC_DIR)/type_checker_resolution_stage_domain.c \
                    $(SEMANTIC_DIR)/type_checker_resolution_stage_lookup.c \
@@ -938,6 +943,38 @@ MIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/mir.o \
                    $(BUILD_DIR)/compiler/mir_intent_fact.o \
                    $(BUILD_DIR)/compiler/mir_type_helpers.o
 
+ALL_BUILD_OBJECTS = $(sort \
+                   $(FRONTEND_OBJECTS) \
+                   $(MAIN_OBJECT) \
+                   $(PARSER_TEST_OBJECT) \
+                   $(TEST_DATASTRUCTURES_OBJ) \
+                   $(TEST_SECURITY_OBJ) \
+                   $(TEST_SEMANTIC_OBJ) \
+                   $(TEST_TRANSPILE_OBJ) \
+                   $(TEST_MEMORY_OBJ) \
+                   $(TEST_ABI_OBJ) \
+                   $(TEST_ABI_PIPELINE_OBJ) \
+                   $(TEST_CONCURRENCY_OBJ) \
+                   $(TEST_DIR_OBJ) \
+                   $(TEST_AIR_OBJ) \
+                   $(TEST_RIR_OBJ) \
+                   $(TEST_MIR_OBJ) \
+                   $(TEST_HIR_OBJ) \
+                   $(DRIVER_OBJ) \
+                   $(LSP_OBJECTS) \
+                   $(SEMANTIC_LINK_SUPPORT) \
+                   $(DIR_CORE_OBJECTS) \
+                   $(HIR_CORE_OBJECTS) \
+                   $(RIR_CORE_OBJECTS) \
+                   $(AIR_CORE_OBJECTS) \
+                   $(MIR_CORE_OBJECTS) \
+                   $(RUNTIME_ASM_OBJECTS))
+BUILD_ARTIFACT_GLOBS = $(BUILD_DIR)/*.o $(BUILD_DIR)/*/*.o $(BUILD_DIR)/*/*/*.o \
+                       $(BUILD_DIR)/*.d $(BUILD_DIR)/*/*.d $(BUILD_DIR)/*/*/*.d
+ALL_DEP_FILES = $(wildcard $(BUILD_DIR)/*.d) \
+                $(wildcard $(BUILD_DIR)/*/*.d) \
+                $(wildcard $(BUILD_DIR)/*/*/*.d)
+
 # -----------------------------------------------------------------
 # Executables
 # -----------------------------------------------------------------
@@ -996,7 +1033,7 @@ endef
 
 # pgy compiler driver
 $(PGY): $(FRONTEND_OBJECTS) $(DRIVER_OBJ) | $(BIN_DIR)
-	@mkdir -p $(dir $@)
+	@$(call pgy_mkdir_p,$(dir $@))
 	$(call pgy_link,$(LDFLAGS_LLVM) $(THREAD_LINK_LIB) -lm)
 
 $(REPO_BIN_DIR)/pgy$(EXEEXT): $(PGY) | $(REPO_BIN_DIR)
@@ -1014,85 +1051,85 @@ endif
 
 # Lexer smoke-test (original main.c)
 $(LEXER_TEST): $(LEXER_OBJECTS) $(MAIN_OBJECT) | $(BIN_DIR)
-	@mkdir -p $(dir $@)
+	@$(call pgy_mkdir_p,$(dir $@))
 	$(call pgy_link,)
 
 # Parser test
 $(PARSER_TEST): $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(PARSER_TEST_OBJECT) | $(BIN_DIR)
-	@mkdir -p $(dir $@)
+	@$(call pgy_mkdir_p,$(dir $@))
 	$(call pgy_link,)
 
 # Data structures test
 $(DATASTRUCTURES_TEST): $(BUILD_DIR)/runtime/slot_pool.o \
                          $(BUILD_DIR)/runtime/slot_pool_perf.o \
                          $(TEST_DATASTRUCTURES_OBJ) | $(BIN_DIR)
-	@mkdir -p $(dir $@)
+	@$(call pgy_mkdir_p,$(dir $@))
 	$(call pgy_link,$(THREAD_LINK_LIB))
 
 # Security test
 $(SECURITY_TEST): check-security-toolchain $(RUNTIME_OBJECTS) $(RUNTIME_ASM_OBJECTS) \
                    $(TEST_SECURITY_OBJ) | $(BIN_DIR)
-	@mkdir -p $(dir $@)
+	@$(call pgy_mkdir_p,$(dir $@))
 	$(call pgy_link,$(THREAD_LINK_LIB) -lssl -lcrypto)
 
 # Semantic analyzer test
 $(SEMANTIC_TEST): $(FRONTEND_OBJECTS) $(TEST_SEMANTIC_OBJ) | $(BIN_DIR)
-	@mkdir -p $(dir $@)
+	@$(call pgy_mkdir_p,$(dir $@))
 	$(call pgy_link,$(LDFLAGS_LLVM) $(THREAD_LINK_LIB) -lm)
 
 # C backend test
 $(TRANSPILE_TEST): $(FRONTEND_OBJECTS) $(TEST_TRANSPILE_OBJ) | $(BIN_DIR)
-	@mkdir -p $(dir $@)
+	@$(call pgy_mkdir_p,$(dir $@))
 	$(call pgy_link,$(LDFLAGS_LLVM) $(THREAD_LINK_LIB) -lm)
 
 # Memory layout test (runtime-only, no frontend)
 $(MEMORY_TEST): $(TEST_MEMORY_OBJ) | $(BIN_DIR)
-	@mkdir -p $(dir $@)
+	@$(call pgy_mkdir_p,$(dir $@))
 	$(call pgy_link,)
 
 # ABI spec validation test (runtime-only, includes pgy_runtime.h for cross-check)
 $(ABI_TEST): $(TEST_ABI_OBJ) | $(BIN_DIR)
-	@mkdir -p $(dir $@)
+	@$(call pgy_mkdir_p,$(dir $@))
 	$(call pgy_link,)
 
 # ABI pipeline integration test (frontend + backend + produced binary)
 $(ABI_PIPELINE_TEST): $(FRONTEND_OBJECTS) $(TEST_ABI_PIPELINE_OBJ) | $(BIN_DIR)
-	@mkdir -p $(dir $@)
+	@$(call pgy_mkdir_p,$(dir $@))
 	$(call pgy_link,$(LDFLAGS_LLVM) $(THREAD_LINK_LIB) -lm)
 
 # Concurrency runtime test
 $(CONCURRENCY_TEST): $(TEST_CONCURRENCY_OBJ) | $(BIN_DIR)
-	@mkdir -p $(dir $@)
+	@$(call pgy_mkdir_p,$(dir $@))
 	$(call pgy_link,$(THREAD_LINK_LIB))
 
 # DIR lowering test
 $(DIR_TEST): $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(SEMANTIC_LINK_SUPPORT) $(DIR_CORE_OBJECTS) $(TEST_DIR_OBJ) | $(BIN_DIR)
-	@mkdir -p $(dir $@)
+	@$(call pgy_mkdir_p,$(dir $@))
 	$(call pgy_link,$(THREAD_LINK_LIB))
 
 # AIR synthesis and drift test
 $(AIR_TEST): $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(SEMANTIC_LINK_SUPPORT) $(DIR_CORE_OBJECTS) $(HIR_CORE_OBJECTS) $(RIR_CORE_OBJECTS) $(AIR_CORE_OBJECTS) $(TEST_AIR_OBJ) | $(BIN_DIR)
-	@mkdir -p $(dir $@)
+	@$(call pgy_mkdir_p,$(dir $@))
 	$(call pgy_link,$(THREAD_LINK_LIB))
 
 # RIR lowering test
 $(RIR_TEST): $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(SEMANTIC_LINK_SUPPORT) $(DIR_CORE_OBJECTS) $(HIR_CORE_OBJECTS) $(RIR_CORE_OBJECTS) $(TEST_RIR_OBJ) | $(BIN_DIR)
-	@mkdir -p $(dir $@)
+	@$(call pgy_mkdir_p,$(dir $@))
 	$(call pgy_link,$(THREAD_LINK_LIB))
 
 # MIR lowering test
 $(MIR_TEST): $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(SEMANTIC_LINK_SUPPORT) $(HIR_CORE_OBJECTS) $(RIR_CORE_OBJECTS) $(MIR_CORE_OBJECTS) $(TEST_MIR_OBJ) | $(BIN_DIR)
-	@mkdir -p $(dir $@)
+	@$(call pgy_mkdir_p,$(dir $@))
 	$(call pgy_link,$(THREAD_LINK_LIB))
 
 # HIR lowering test
 $(HIR_TEST): $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(SEMANTIC_LINK_SUPPORT) $(HIR_CORE_OBJECTS) $(TEST_HIR_OBJ) | $(BIN_DIR)
-	@mkdir -p $(dir $@)
+	@$(call pgy_mkdir_p,$(dir $@))
 	$(call pgy_link,$(THREAD_LINK_LIB))
 
 # LSP server
 $(PGY_LSP): $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(SEMANTIC_OBJECTS) $(SEMANTIC_LINK_SUPPORT) $(LSP_OBJECTS) | $(BIN_DIR)
-	@mkdir -p $(dir $@)
+	@$(call pgy_mkdir_p,$(dir $@))
 	$(call pgy_link,$(THREAD_LINK_LIB))
 
 $(REPO_BIN_DIR)/pgy-lsp$(EXEEXT): $(PGY_LSP) | $(REPO_BIN_DIR)
@@ -1104,20 +1141,20 @@ $(REPO_BIN_DIR)/pgy-lsp$(EXEEXT): $(PGY_LSP) | $(REPO_BIN_DIR)
 
 # C sources
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c $(CONFIG_STAMP) | $(BUILD_DIR)
-	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) $(DEPFLAGS) -MF "$(@:.o=.d)" -c -o "$@" $<
-	@-sed -i -E 's#[A-Za-z]:/$(notdir $(PROJECT_ROOT))/##g; s#([A-Za-z]):/#\1\\:/#g' "$(@:.o=.d)" 2>/dev/null || true
+	@$(call pgy_mkdir_p,$(dir $@))
+	$(CC) $(CFLAGS) $(DEPFLAGS) -MF $(@:.o=.d) -c -o $@ $<
+	@-sed -i -E 's#[A-Za-z]:/$(notdir $(PROJECT_ROOT))/##g; s#([A-Za-z]):/#\1\\:/#g' $(@:.o=.d) 2>/dev/null || true
 
 # Assembly sources
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.s | $(BUILD_DIR)
-	@mkdir -p $(dir $@)
+	@$(call pgy_mkdir_p,$(dir $@))
 	$(NASM) $(ASMFLAGS) -o $@ $<
 
 # -----------------------------------------------------------------
 # Directory creation
 # -----------------------------------------------------------------
 $(BUILD_DIR):
-	mkdir -p $(BUILD_DIR) \
+	$(call pgy_mkdir_p,$(BUILD_DIR) \
 		$(BUILD_DIR)/common \
 		$(BUILD_DIR)/lexer \
 		$(BUILD_DIR)/parser \
@@ -1126,21 +1163,21 @@ $(BUILD_DIR):
 		$(BUILD_DIR)/compiler \
 		$(BUILD_DIR)/runtime \
 		$(BUILD_DIR)/runtime/async \
-		$(BUILD_DIR)/lsp
-	touch -c -r Makefile $(BUILD_DIR)
+		$(BUILD_DIR)/lsp)
+	$(call pgy_touch_ref,Makefile,$(BUILD_DIR))
 
 $(CONFIG_STAMP): | $(BUILD_DIR)
 	rm -f $(BUILD_DIR)/.config_llvm_*.stamp
-	find $(BUILD_DIR) -type f \( -name '*.o' -o -name '*.d' \) -delete
+	rm -f $(BUILD_ARTIFACT_GLOBS)
 	printf "LLVM_ENABLED=%s\nCC=%s\nCC_MACHINE=%s\n" \
 		"$(LLVM_ENABLED)" "$(CC)" "$(CC_MACHINE)" > $@
 
 $(BIN_DIR):
-	mkdir -p $(BIN_DIR)
-	touch -c -r Makefile $(BIN_DIR)
+	$(call pgy_mkdir_p,$(BIN_DIR))
+	$(call pgy_touch_ref,Makefile,$(BIN_DIR))
 
 $(REPO_BIN_DIR):
-	mkdir -p $(REPO_BIN_DIR)
+	$(call pgy_mkdir_p,$(REPO_BIN_DIR))
 
 # -----------------------------------------------------------------
 # Test execution targets
@@ -1182,11 +1219,11 @@ test-abi: $(ABI_TEST) $(PGY)
 	$(BASH) tests/abi_pipeline_smoke.sh
 
 $(ABI_PERF_RUNTIME_RELEASE_OBS0): $(RUNTIME_DIR)/pgy_runtime_lib.c $(RUNTIME_DIR)/pgy_runtime.h
-	@mkdir -p $(dir $@)
+	@$(call pgy_mkdir_p,$(dir $@))
 	$(CC) $(CFLAGS) -O3 -DPGY_LLVM_ENABLED -DPGY_INTENT_OBSERVABILITY_ENABLED=0 -c -o $@ $<
 
 $(ABI_PERF_RUNTIME_RELEASE_OBS1): $(RUNTIME_DIR)/pgy_runtime_lib.c $(RUNTIME_DIR)/pgy_runtime.h
-	@mkdir -p $(dir $@)
+	@$(call pgy_mkdir_p,$(dir $@))
 	$(CC) $(CFLAGS) -O3 -DPGY_LLVM_ENABLED -DPGY_INTENT_OBSERVABILITY_ENABLED=1 -c -o $@ $<
 
 abi-perf-runtime: $(ABI_PERF_RUNTIME_RELEASE_OBS0) $(ABI_PERF_RUNTIME_RELEASE_OBS1)
@@ -1835,7 +1872,7 @@ clean:
 	rm -rf $(BUILD_DIR) $(BIN_DIR)
 
 clean-objects:
-	find $(BUILD_DIR) -name "*.o" -delete 2>/dev/null || true
+	rm -f $(BUILD_ARTIFACT_GLOBS)
 
 # Force a full rebuild from scratch.  Use when source edits aren't
 # reflected (stale .o, broken .d, CONFIG_STAMP mismatch, etc).
@@ -1866,5 +1903,5 @@ llvm-test llvm-test-parser llvm-test-semantic llvm-test-transpile llvm-test-memo
         example-hello example-slots llvm emit-llvm-% lsp
 
 ifeq ($(filter clean clean-objects,$(MAKECMDGOALS)),)
--include $(shell find $(BUILD_DIR) -name "*.d" 2>/dev/null)
+-include $(ALL_DEP_FILES)
 endif

@@ -85,13 +85,13 @@ find_role_operator_method_decl(TranspilerCtx *ctx, ASTNode *role,
     if (ctx == NULL || role == NULL || role->type != AST_ROLE_DECL || depth > 16)
         return NULL;
 
-    for (size_t i = 0; i < role->data.role_decl.impl_count; i++) {
-        ASTNode *impl = role->data.role_decl.impl_abilities[i];
+    for (size_t i = 0; i < ast_role_impl_count(role); i++) {
+        ASTNode *impl = ast_role_impl(role, i);
         if (impl == NULL || impl->type != AST_IMPL_ABILITY)
             continue;
 
-        for (size_t j = 0; j < impl->data.impl_ability.method_count; j++) {
-            ASTNode *method = impl->data.impl_ability.methods[j];
+        for (size_t j = 0; j < ast_impl_ability_method_count(impl); j++) {
+            ASTNode *method = ast_impl_ability_method(impl, j);
             if (method != NULL && method->type == AST_FUNC_DECL
                 && method->data.func_decl.name != NULL
                 && operator_method_name_matches(op, method->data.func_decl.name)) {
@@ -100,14 +100,12 @@ find_role_operator_method_decl(TranspilerCtx *ctx, ASTNode *role,
         }
     }
 
-    for (size_t i = 0; i < role->data.role_decl.include_count; i++) {
-        ASTNode *include_stmt = role->data.role_decl.includes[i];
-        if (include_stmt == NULL || include_stmt->type != AST_INCLUDE_STMT
-            || include_stmt->data.include_stmt.role_name == NULL) {
+    for (size_t i = 0; i < ast_role_include_count(role); i++) {
+        ASTNode *include_stmt = ast_role_include(role, i);
+        const char *role_name = ast_include_role_name(include_stmt);
+        if (role_name == NULL)
             continue;
-        }
-        ASTNode *included_role = find_role_decl(ctx,
-            include_stmt->data.include_stmt.role_name);
+        ASTNode *included_role = find_role_decl(ctx, role_name);
         ASTNode *method = find_role_operator_method_decl(ctx, included_role,
             op, depth + 1);
         if (method != NULL)
@@ -137,11 +135,9 @@ find_operator_overload_decl(TranspilerCtx *ctx, const char *type_name, PgyTokenT
     if (roles != NULL) {
         for (size_t i = 0; i < role_count; i++) {
             ASTNode *role = roles[i];
-            if (role == NULL || role->type != AST_ROLE_DECL
-                || role->data.role_decl.for_type == NULL
-                || role->data.role_decl.for_type->type != AST_TYPE
-                || role->data.role_decl.for_type->data.type.name == NULL
-                || strcmp(role->data.role_decl.for_type->data.type.name, type_name) != 0) {
+            const char *role_type =
+                transpiler_role_subject_type_name_local(role);
+            if (role_type == NULL || strcmp(role_type, type_name) != 0) {
                 continue;
             }
             if (find_role_operator_method_decl(ctx, role, op, 0) != NULL)

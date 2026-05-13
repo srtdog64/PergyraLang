@@ -265,12 +265,12 @@ llvm_emit_domain_ability_vtables(LLVMGenCtx *ctx,
         if (stmt == NULL || stmt->type != AST_ABILITY_DECL)
             continue;
 
-        ab_name = stmt->data.ability_decl.name;
-        mc = stmt->data.ability_decl.method_count;
+        ab_name = ast_ability_name(stmt);
+        mc = ast_ability_method_count(stmt);
         vt_fields = pgy_arena_calloc(&ctx->scratch,
             (mc > 0 ? mc : 1) * sizeof(LLVMTypeRef));
         for (size_t j = 0; j < mc; j++) {
-            ASTNode *method = stmt->data.ability_decl.methods[j];
+            ASTNode *method = ast_ability_method(stmt, j);
             LLVMTypeRef ret;
             size_t pc;
             size_t user_pc = 0;
@@ -334,7 +334,7 @@ llvm_emit_domain_ability_vtables(LLVMGenCtx *ctx,
         entry = llvm_register_class(ctx, pergyra_strdup(vt_name), vt_struct, false, false);
         if (entry != NULL) {
             for (size_t j = 0; j < mc; j++) {
-                ASTNode *method = stmt->data.ability_decl.methods[j];
+                ASTNode *method = ast_ability_method(stmt, j);
                 if (method != NULL && method->type == AST_FUNC_DECL)
                     llvm_class_add_field(entry,
                         llvm_domain_method_name_metadata_first(NULL, method),
@@ -438,7 +438,7 @@ llvm_emit_domain_role_forward_decls(LLVMGenCtx *ctx,
         if (stmt == NULL || stmt->type != AST_ROLE_DECL)
             continue;
 
-        role_name = stmt->data.role_decl.name;
+        role_name = ast_role_name(stmt);
         {
             LLVMHostedMethodView method_view =
                 llvm_hosted_method_view_from_decl(ctx, role_name, stmt);
@@ -454,10 +454,8 @@ llvm_emit_domain_role_forward_decls(LLVMGenCtx *ctx,
                 TOKEN_EQUAL, TOKEN_NOT_EQUAL, TOKEN_LESS, TOKEN_LESS_EQUAL,
                 TOKEN_GREATER, TOKEN_GREATER_EQUAL
             };
-            const char *for_type_name = NULL;
-            if (stmt->data.role_decl.for_type != NULL
-                && stmt->data.role_decl.for_type->type == AST_TYPE)
-                for_type_name = stmt->data.role_decl.for_type->data.type.name;
+            ASTNode *for_type = llvm_role_for_type_node(stmt);
+            const char *for_type_name = llvm_role_for_type_name(stmt);
 
             for (size_t oi = 0; for_type_name != NULL
                    && oi < sizeof(ops) / sizeof(ops[0]); oi++) {
@@ -503,7 +501,7 @@ llvm_emit_domain_role_forward_decls(LLVMGenCtx *ctx,
                 if (rhs_param_count != 1)
                     continue;
 
-                lhs_type = ast_type_to_llvm(ctx, stmt->data.role_decl.for_type);
+                lhs_type = ast_type_to_llvm(ctx, for_type);
                 if (ctx->has_error || lhs_type == NULL)
                     return;
                 rhs_type = llvm_domain_forward_required_param_type(

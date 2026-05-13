@@ -18,7 +18,7 @@ metadata_record_named_dead_end_diagnostic(SemanticContext *ctx,
     name = type_node->data.type.name;
     if (semantic_type_resolution_metadata_stable_builtin_shell_arity(
             name, NULL, NULL)) {
-        ctx->type_resolution_metadata_fallback_named_builtin_shell++;
+        ctx->type_resolution_metadata_unresolved_named_builtin_shell++;
         return;
     }
 
@@ -31,21 +31,21 @@ metadata_record_named_dead_end_diagnostic(SemanticContext *ctx,
             if (decl != NULL && decl->type == AST_CLASS_DECL
                 && decl->data.class_decl.generic_params != NULL
                 && decl->data.class_decl.generic_params->count > 0) {
-                ctx->type_resolution_metadata_fallback_named_generic_class++;
+                ctx->type_resolution_metadata_unresolved_named_generic_class++;
                 return;
             }
         } else if (sym->kind != SYMBOL_TYPE_PARAM) {
-            ctx->type_resolution_metadata_fallback_named_non_class_symbol++;
+            ctx->type_resolution_metadata_unresolved_named_non_class_symbol++;
             return;
         }
     }
 
     if (ctx->program_root != NULL && find_type_alias_decl(ctx->program_root, name) != NULL) {
-        ctx->type_resolution_metadata_fallback_named_alias++;
+        ctx->type_resolution_metadata_unresolved_named_alias++;
         return;
     }
 
-    ctx->type_resolution_metadata_fallback_named_missing_symbol++;
+    ctx->type_resolution_metadata_unresolved_named_missing_symbol++;
 }
 
 static bool
@@ -145,7 +145,7 @@ semantic_type_resolution_record_metadata_dead_end_diagnostic(SemanticContext *ct
     ctx->type_resolution_metadata_dead_ends++;
     metadata_sync_dead_end_compatibility_mirror(ctx);
     if (type_node == NULL) {
-        ctx->type_resolution_metadata_fallback_other++;
+        ctx->type_resolution_metadata_unresolved_other++;
         return;
     }
 
@@ -153,16 +153,16 @@ semantic_type_resolution_record_metadata_dead_end_diagnostic(SemanticContext *ct
         if (type_node->data.type.name != NULL) {
             GenericParams *args = type_node->data.type.generic_args;
             if (args != NULL && args->count > 0) {
-                ctx->type_resolution_metadata_fallback_generic_named++;
+                ctx->type_resolution_metadata_unresolved_generic_named++;
             } else {
-                ctx->type_resolution_metadata_fallback_named++;
+                ctx->type_resolution_metadata_unresolved_named++;
                 metadata_record_named_dead_end_diagnostic(ctx, type_node);
             }
             return;
         }
         if (type_node->data.type.tuple_elements != NULL
             && type_node->data.type.tuple_element_count > 0) {
-            ctx->type_resolution_metadata_fallback_compound++;
+            ctx->type_resolution_metadata_unresolved_compound++;
             return;
         }
     }
@@ -170,9 +170,9 @@ semantic_type_resolution_record_metadata_dead_end_diagnostic(SemanticContext *ct
     if (type_node->type == AST_CHANNEL_TYPE
         || type_node->type == AST_FUTURE_TYPE
         || type_node->type == AST_EVENT_HANDLER_TYPE) {
-        ctx->type_resolution_metadata_fallback_compound++;
+        ctx->type_resolution_metadata_unresolved_compound++;
         return;
     }
 
-    ctx->type_resolution_metadata_fallback_other++;
+    ctx->type_resolution_metadata_unresolved_other++;
 }

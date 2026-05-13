@@ -1,6 +1,6 @@
 # Pergyra Source-Of-Truth Spine
 
-Last updated: 2026-05-12
+Last updated: 2026-05-13
 
 This document freezes the compiler ownership spine for beta closure. It exists
 to stop A -> B -> A refactoring loops. When a future change is unclear, use this
@@ -33,6 +33,11 @@ contract from drifting.
 | Abstraction boundary drift | AIR | Driver diagnostics, CI, LSP/JSON consumers | Backends consuming AIR for codegen |
 | Runtime pass/failure policy | Runtime policy headers | C/LLVM codegen wrappers, AIR global evidence | Duplicated pass limits or failure strings in emitters |
 | ABI surface | ABI/runtime headers | C/LLVM, tests, docs | Domain layer leaking layout changes into C FFI silently |
+| Build source inventory | Makefile source/object inventory | CI, local smoke targets, dependency inclusion | Shell `find` rediscovering build artifacts or source files on Windows paths |
+
+Runtime frontier AIR evidence must count the complete frozen runtime policy
+surface: pass-limit arithmetic facts plus bounded-overflow reason facts. A
+backend may emit those strings, but it may not own or rename them.
 
 ## 2. Layer Contracts
 
@@ -63,7 +68,9 @@ HIR CFG answers:
 - which paths exist;
 - which body region owns a boundary;
 - which source terminator produced a branch/return;
-- whether a body can be lowered into CFG-owned MIR.
+- whether a body can be lowered into CFG-owned MIR;
+- whether CFG predecessor inventory shape is internally consistent before
+  later MIR/dataflow consumers read it.
 
 HIR CFG does not answer final resource cleanup, pin safety, or backend emission
 shape. Those are MIR facts.
@@ -85,6 +92,11 @@ C and LLVM must consume MIR facts rather than duplicate their own body-safety
 rules. If C and LLVM disagree, fix the MIR fact or the consumer, not a backend
 heuristic.
 
+Reachable pin-region emission is part of that shared contract: both C and LLVM
+must reject a pin block without a cleanup successor or without the matching
+pin-unpin cleanup fact. Backend contracts may format the diagnostic locally,
+but the decision must come from MIR cleanup fact helpers.
+
 ### Type-Resolution DAG
 
 The DAG owns declaration/type dependency truth. Recursive resolver fallback is
@@ -95,8 +107,11 @@ Allowed:
 - metadata lookup;
 - owner-local materialization through the central metadata API;
 - explicit dead-end diagnostics;
-- compatibility counters that report zero fallback on beta paths.
+- compatibility mirrors that remain tied to explicit dead-end counters for old
+  stat parsers;
 - metadata-first type-ref reads for stable placeholder construction.
+- metadata index acceleration, as long as the index is a private cache over the
+  same metadata owner and validates its open-addressing capacity invariant.
 
 Forbidden:
 
@@ -105,6 +120,7 @@ Forbidden:
 - annotation-or-unknown compatibility helpers;
 - annotation-only reads outside private metadata owners;
 - using compatibility counters as semantic evidence;
+- naming explicit DAG dead-end family counters as fallback paths;
 - declaration-order success when a DAG dependency fact is missing.
 
 ### DIR/RIR
@@ -153,6 +169,7 @@ LLVM emitters.
 Examples:
 
 - bounded frontier pass-limit arithmetic;
+- bounded frontier overflow reason strings;
 - panic/failure classes;
 - observability schema;
 - Slot/Pin ABI constants;

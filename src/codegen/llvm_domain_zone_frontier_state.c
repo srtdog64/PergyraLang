@@ -4,6 +4,8 @@
 #include <stdbool.h>
 #include <stdio.h>
 
+#include "parser/ast_api.h"
+
 static bool
 llvm_zone_frontier_prev_name(char *out,
                              size_t out_size,
@@ -37,15 +39,17 @@ llvm_zone_sync_alloc_previous_state(ASTNode *stmt, LLVMGenCtx *ctx,
                                     LLVMValueRef **prev_state_addrs_out,
                                     LLVMValueRef **prev_layer_addrs_out)
 {
+    size_t state_count = 0;
+    ASTNode **states = ast_zone_states(stmt, &state_count);
+    size_t layer_slot_count = 0;
+    ASTNode **layer_slots = ast_zone_layer_slots(stmt, &layer_slot_count);
     LLVMValueRef *prev_state_addrs = pgy_arena_calloc(&ctx->scratch,
-        (stmt->data.zone_decl.state_count > 0 ? stmt->data.zone_decl.state_count : 1)
-            * sizeof(LLVMValueRef));
+        (state_count > 0 ? state_count : 1) * sizeof(LLVMValueRef));
     LLVMValueRef *prev_layer_addrs = pgy_arena_calloc(&ctx->scratch,
-        (stmt->data.zone_decl.layer_slot_count > 0 ? stmt->data.zone_decl.layer_slot_count : 1)
-            * sizeof(LLVMValueRef));
+        (layer_slot_count > 0 ? layer_slot_count : 1) * sizeof(LLVMValueRef));
 
-    for (size_t i = 0; i < stmt->data.zone_decl.state_count; i++) {
-        ASTNode *state = stmt->data.zone_decl.states[i];
+    for (size_t i = 0; i < state_count; i++) {
+        ASTNode *state = states[i];
         char prev_name[256];
         if (state == NULL || state->type != AST_ZONE_STATE
             || state->data.zone_state.state_name == NULL)
@@ -55,8 +59,8 @@ llvm_zone_sync_alloc_previous_state(ASTNode *stmt, LLVMGenCtx *ctx,
             continue;
         prev_state_addrs[i] = llvm_create_entry_alloca(ctx, ctx->type_i1, prev_name);
     }
-    for (size_t i = 0; i < stmt->data.zone_decl.layer_slot_count; i++) {
-        ASTNode *slot = stmt->data.zone_decl.layer_slots[i];
+    for (size_t i = 0; i < layer_slot_count; i++) {
+        ASTNode *slot = layer_slots[i];
         char prev_name[256];
         if (slot == NULL || slot->type != AST_ZONE_LAYER_SLOT
             || slot->data.zone_layer_slot.slot_name == NULL)
@@ -80,8 +84,13 @@ llvm_zone_sync_snapshot_previous_state(ASTNode *stmt,
                                        LLVMValueRef *prev_state_addrs,
                                        LLVMValueRef *prev_layer_addrs)
 {
-    for (size_t i = 0; i < stmt->data.zone_decl.state_count; i++) {
-        ASTNode *state = stmt->data.zone_decl.states[i];
+    size_t state_count = 0;
+    ASTNode **states = ast_zone_states(stmt, &state_count);
+    size_t layer_slot_count = 0;
+    ASTNode **layer_slots = ast_zone_layer_slots(stmt, &layer_slot_count);
+
+    for (size_t i = 0; i < state_count; i++) {
+        ASTNode *state = states[i];
         const char *state_name;
         int field_idx;
         LLVMValueRef self_ptr;
@@ -107,8 +116,8 @@ llvm_zone_sync_snapshot_previous_state(ASTNode *stmt,
             state_ptr, llvm_tmp_name(ctx));
         LLVMBuildStore(ctx->builder, state_val, prev_state_addrs[i]);
     }
-    for (size_t i = 0; i < stmt->data.zone_decl.layer_slot_count; i++) {
-        ASTNode *slot = stmt->data.zone_decl.layer_slots[i];
+    for (size_t i = 0; i < layer_slot_count; i++) {
+        ASTNode *slot = layer_slots[i];
         char field_name[256];
         int field_idx;
         LLVMValueRef self_ptr;
@@ -138,8 +147,13 @@ llvm_zone_sync_reset_state_and_layers(ASTNode *stmt,
                                       LLVMValueRef sync_fn,
                                       LLVMGenCtx *ctx)
 {
-    for (size_t i = 0; i < stmt->data.zone_decl.state_count; i++) {
-        ASTNode *state = stmt->data.zone_decl.states[i];
+    size_t state_count = 0;
+    ASTNode **states = ast_zone_states(stmt, &state_count);
+    size_t layer_slot_count = 0;
+    ASTNode **layer_slots = ast_zone_layer_slots(stmt, &layer_slot_count);
+
+    for (size_t i = 0; i < state_count; i++) {
+        ASTNode *state = states[i];
         const char *state_name;
         int field_idx;
         LLVMValueRef self_ptr;
@@ -163,8 +177,8 @@ llvm_zone_sync_reset_state_and_layers(ASTNode *stmt,
         LLVMBuildStore(ctx->builder,
             LLVMConstInt(ctx->type_i1, 0, 0), state_ptr);
     }
-    for (size_t i = 0; i < stmt->data.zone_decl.layer_slot_count; i++) {
-        ASTNode *slot = stmt->data.zone_decl.layer_slots[i];
+    for (size_t i = 0; i < layer_slot_count; i++) {
+        ASTNode *slot = layer_slots[i];
         int field_idx;
         LLVMValueRef self_ptr;
         LLVMValueRef pool_ptr;
@@ -208,8 +222,8 @@ llvm_zone_sync_reset_state_and_layers(ASTNode *stmt,
                 0),
             cap_ptr);
     }
-    for (size_t i = 0; i < stmt->data.zone_decl.layer_slot_count; i++) {
-        ASTNode *slot = stmt->data.zone_decl.layer_slots[i];
+    for (size_t i = 0; i < layer_slot_count; i++) {
+        ASTNode *slot = layer_slots[i];
         char field_name[256];
         int field_idx;
         LLVMValueRef self_ptr;
@@ -240,8 +254,13 @@ llvm_zone_sync_update_frontier_continue(ASTNode *stmt,
                                         LLVMValueRef *prev_layer_addrs,
                                         LLVMValueRef frontier_continue_addr)
 {
-    for (size_t i = 0; i < stmt->data.zone_decl.state_count; i++) {
-        ASTNode *state = stmt->data.zone_decl.states[i];
+    size_t state_count = 0;
+    ASTNode **states = ast_zone_states(stmt, &state_count);
+    size_t layer_slot_count = 0;
+    ASTNode **layer_slots = ast_zone_layer_slots(stmt, &layer_slot_count);
+
+    for (size_t i = 0; i < state_count; i++) {
+        ASTNode *state = states[i];
         const char *state_name;
         int field_idx;
         LLVMValueRef self_ptr;
@@ -278,8 +297,8 @@ llvm_zone_sync_update_frontier_continue(ASTNode *stmt,
             LLVMBuildOr(ctx->builder, pending_val, changed_val, llvm_tmp_name(ctx)),
             frontier_continue_addr);
     }
-    for (size_t i = 0; i < stmt->data.zone_decl.layer_slot_count; i++) {
-        ASTNode *slot = stmt->data.zone_decl.layer_slots[i];
+    for (size_t i = 0; i < layer_slot_count; i++) {
+        ASTNode *slot = layer_slots[i];
         char field_name[256];
         int field_idx;
         LLVMValueRef self_ptr;

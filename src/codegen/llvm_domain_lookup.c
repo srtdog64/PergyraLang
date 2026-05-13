@@ -28,12 +28,16 @@ ASTNode *
 llvm_find_zone_state_decl(LLVMGenCtx *ctx, ASTNode *zone_decl,
                           const char *state_name)
 {
+    size_t state_count = 0;
+    ASTNode **states;
+
     (void)ctx;
     if (zone_decl == NULL || zone_decl->type != AST_ZONE_DECL
         || state_name == NULL)
         return NULL;
-    for (size_t i = 0; i < zone_decl->data.zone_decl.state_count; i++) {
-        ASTNode *state = zone_decl->data.zone_decl.states[i];
+    states = ast_zone_states(zone_decl, &state_count);
+    for (size_t i = 0; i < state_count; i++) {
+        ASTNode *state = states[i];
         if (state != NULL && state->type == AST_ZONE_STATE
             && state->data.zone_state.state_name != NULL
             && strcmp(state->data.zone_state.state_name, state_name) == 0)
@@ -46,12 +50,16 @@ ASTNode *
 llvm_find_world_state_decl(LLVMGenCtx *ctx, ASTNode *world_decl,
                            const char *state_name)
 {
+    size_t state_count = 0;
+    ASTNode **states;
+
     (void)ctx;
     if (world_decl == NULL || world_decl->type != AST_WORLD_DECL
         || state_name == NULL)
         return NULL;
-    for (size_t i = 0; i < world_decl->data.world_decl.state_count; i++) {
-        ASTNode *state = world_decl->data.world_decl.states[i];
+    states = ast_world_states(world_decl, &state_count);
+    for (size_t i = 0; i < state_count; i++) {
+        ASTNode *state = states[i];
         if (state != NULL && state->type == AST_WORLD_STATE
             && state->data.world_state.state_name != NULL
             && strcmp(state->data.world_state.state_name, state_name) == 0)
@@ -63,11 +71,15 @@ llvm_find_world_state_decl(LLVMGenCtx *ctx, ASTNode *world_decl,
 static ASTNode *
 llvm_find_world_zone_slot_decl(ASTNode *world_decl, const char *slot_name)
 {
+    size_t zone_count = 0;
+    ASTNode **zones;
+
     if (world_decl == NULL || world_decl->type != AST_WORLD_DECL
         || slot_name == NULL)
         return NULL;
-    for (size_t i = 0; i < world_decl->data.world_decl.zone_count; i++) {
-        ASTNode *zone = world_decl->data.world_decl.zones[i];
+    zones = ast_world_zones(world_decl, &zone_count);
+    for (size_t i = 0; i < zone_count; i++) {
+        ASTNode *zone = zones[i];
         if (zone != NULL && zone->type == AST_WORLD_ZONE
             && zone->data.world_zone.slot_name != NULL
             && strcmp(zone->data.world_zone.slot_name, slot_name) == 0)
@@ -91,11 +103,15 @@ llvm_resolve_world_zone_decl(LLVMGenCtx *ctx, ASTNode *world_decl,
 ASTNode *
 llvm_find_zone_domain_slot_decl(ASTNode *zone_decl, const char *slot_name)
 {
+    size_t slot_count = 0;
+    ASTNode **slots;
+
     if (zone_decl == NULL || zone_decl->type != AST_ZONE_DECL
         || slot_name == NULL)
         return NULL;
-    for (size_t i = 0; i < zone_decl->data.zone_decl.slot_count; i++) {
-        ASTNode *slot = zone_decl->data.zone_decl.slots[i];
+    slots = ast_zone_slots(zone_decl, &slot_count);
+    for (size_t i = 0; i < slot_count; i++) {
+        ASTNode *slot = slots[i];
         if (slot != NULL && slot->type == AST_DOMAIN_SLOT
             && slot->data.domain_slot.slot_name != NULL
             && strcmp(slot->data.domain_slot.slot_name, slot_name) == 0)
@@ -107,11 +123,15 @@ llvm_find_zone_domain_slot_decl(ASTNode *zone_decl, const char *slot_name)
 ASTNode *
 llvm_find_zone_layer_slot_decl(ASTNode *zone_decl, const char *slot_name)
 {
+    size_t layer_slot_count = 0;
+    ASTNode **layer_slots;
+
     if (zone_decl == NULL || zone_decl->type != AST_ZONE_DECL
         || slot_name == NULL)
         return NULL;
-    for (size_t i = 0; i < zone_decl->data.zone_decl.layer_slot_count; i++) {
-        ASTNode *slot = zone_decl->data.zone_decl.layer_slots[i];
+    layer_slots = ast_zone_layer_slots(zone_decl, &layer_slot_count);
+    for (size_t i = 0; i < layer_slot_count; i++) {
+        ASTNode *slot = layer_slots[i];
         if (slot != NULL && slot->type == AST_ZONE_LAYER_SLOT
             && slot->data.zone_layer_slot.slot_name != NULL
             && strcmp(slot->data.zone_layer_slot.slot_name, slot_name) == 0)

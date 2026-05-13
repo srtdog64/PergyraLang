@@ -72,8 +72,8 @@ semantic_type_resolution_world_zone_slot_label(ASTNode *world_decl,
         "world %s.zone.%s",
         world_decl != NULL
             && world_decl->type == AST_WORLD_DECL
-            && world_decl->data.world_decl.name != NULL
-                ? world_decl->data.world_decl.name : "<world>",
+            && ast_world_name(world_decl) != NULL
+                ? ast_world_name(world_decl) : "<world>",
         slot_name != NULL ? slot_name : "<zone-slot>");
 }
 
@@ -85,8 +85,8 @@ semantic_type_resolution_world_state_label(ASTNode *world_decl,
         "world %s.state.%s",
         world_decl != NULL
             && world_decl->type == AST_WORLD_DECL
-            && world_decl->data.world_decl.name != NULL
-                ? world_decl->data.world_decl.name : "<world>",
+            && ast_world_name(world_decl) != NULL
+                ? ast_world_name(world_decl) : "<world>",
         state_name != NULL ? state_name : "<state>");
 }
 
@@ -98,8 +98,8 @@ semantic_type_resolution_zone_slot_label(ASTNode *zone_decl,
         "zone %s.slot.%s",
         zone_decl != NULL
             && zone_decl->type == AST_ZONE_DECL
-            && zone_decl->data.zone_decl.name != NULL
-                ? zone_decl->data.zone_decl.name : "<zone>",
+            && ast_zone_name(zone_decl) != NULL
+                ? ast_zone_name(zone_decl) : "<zone>",
         slot_name != NULL ? slot_name : "<slot>");
 }
 
@@ -111,8 +111,8 @@ semantic_type_resolution_zone_layer_label(ASTNode *zone_decl,
         "zone %s.layer.%s",
         zone_decl != NULL
             && zone_decl->type == AST_ZONE_DECL
-            && zone_decl->data.zone_decl.name != NULL
-                ? zone_decl->data.zone_decl.name : "<zone>",
+            && ast_zone_name(zone_decl) != NULL
+                ? ast_zone_name(zone_decl) : "<zone>",
         slot_name != NULL ? slot_name : "<layer>");
 }
 
@@ -124,8 +124,8 @@ semantic_type_resolution_zone_state_label(ASTNode *zone_decl,
         "zone %s.state.%s",
         zone_decl != NULL
             && zone_decl->type == AST_ZONE_DECL
-            && zone_decl->data.zone_decl.name != NULL
-                ? zone_decl->data.zone_decl.name : "<zone>",
+            && ast_zone_name(zone_decl) != NULL
+                ? ast_zone_name(zone_decl) : "<zone>",
         state_name != NULL ? state_name : "<state>");
 }
 
@@ -140,8 +140,8 @@ semantic_type_resolution_projection_path_label(ASTNode *zone_decl,
         "zone %s.projection.%s.%s<-%s.%s",
         zone_decl != NULL
             && zone_decl->type == AST_ZONE_DECL
-            && zone_decl->data.zone_decl.name != NULL
-                ? zone_decl->data.zone_decl.name : "<zone>",
+            && ast_zone_name(zone_decl) != NULL
+                ? ast_zone_name(zone_decl) : "<zone>",
         target_slot_name != NULL ? target_slot_name : "<target-slot>",
         target_field_name != NULL ? target_field_name : "<target-field>",
         source_slot_name != NULL ? source_slot_name : "<source-slot>",
@@ -157,8 +157,8 @@ semantic_type_resolution_projection_slot_field_label(ASTNode *zone_decl,
         "zone %s.slot.%s.field.%s",
         zone_decl != NULL
             && zone_decl->type == AST_ZONE_DECL
-            && zone_decl->data.zone_decl.name != NULL
-                ? zone_decl->data.zone_decl.name : "<zone>",
+            && ast_zone_name(zone_decl) != NULL
+                ? ast_zone_name(zone_decl) : "<zone>",
         slot_name != NULL ? slot_name : "<slot>",
         field_path != NULL ? field_path : "<field-path>");
 }

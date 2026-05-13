@@ -6,7 +6,7 @@
 void
 emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
 {
-    const char *name = node->data.zone_decl.name;
+    const char *name = ast_zone_name(node);
     ASTNode *inventory_decl = transpiler_find_decl_in_inventory_local(
         ctx, AST_ZONE_DECL, name);
 
@@ -470,7 +470,7 @@ emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)
     ctx->indent++;
     write_indent(ctx);
     codebuf_write(ctx->out,
-        "PGY_PANIC(\"zone frontier recompute exceeded bounded pass limit\");\n");
+        "PGY_PANIC(\"%s\");\n", PGY_FRONTIER_REASON_ZONE_OVERFLOW);
     ctx->indent--;
     write_indent(ctx);
     codebuf_write(ctx->out, "}\n");

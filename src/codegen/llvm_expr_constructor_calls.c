@@ -11,6 +11,7 @@
 #include <string.h>
 
 #include "llvm_internal_api.h"
+#include "parser/ast_api.h"
 
 static LLVMValueRef
 llvm_constructor_error(ASTNode *node, LLVMGenCtx *ctx, const char *message)
@@ -136,20 +137,14 @@ llvm_emit_class_constructor_projection_dirty(LLVMGenCtx *ctx,
     }
 
     if (relation_decl != NULL) {
-        slots = relation_decl->data.relation_decl.slots;
-        slot_count = relation_decl->data.relation_decl.slot_count;
-        refreshes = relation_decl->data.relation_decl.refreshes;
-        refresh_count = relation_decl->data.relation_decl.refresh_count;
+        slots = ast_relation_slots(relation_decl, &slot_count);
+        refreshes = ast_relation_refreshes(relation_decl, &refresh_count);
     } else if (effect_decl != NULL) {
-        slots = effect_decl->data.effect_decl.slots;
-        slot_count = effect_decl->data.effect_decl.slot_count;
-        refreshes = effect_decl->data.effect_decl.refreshes;
-        refresh_count = effect_decl->data.effect_decl.refresh_count;
+        slots = ast_effect_slots(effect_decl, &slot_count);
+        refreshes = ast_effect_refreshes(effect_decl, &refresh_count);
     } else if (zone_decl != NULL) {
-        slots = zone_decl->data.zone_decl.slots;
-        slot_count = zone_decl->data.zone_decl.slot_count;
-        refreshes = zone_decl->data.zone_decl.refreshes;
-        refresh_count = zone_decl->data.zone_decl.refresh_count;
+        slots = ast_zone_slots(zone_decl, &slot_count);
+        refreshes = ast_zone_refreshes(zone_decl, &refresh_count);
     }
 
     for (size_t i = 0; i < slot_count; i++) {
@@ -208,8 +203,10 @@ llvm_emit_class_constructor_world_dirty(LLVMGenCtx *ctx,
             (unsigned)derived_idx, llvm_tmp_name(ctx));
     }
 
-    for (size_t i = 0; i < world_decl->data.world_decl.zone_count; i++) {
-        ASTNode *zone = world_decl->data.world_decl.zones[i];
+    size_t zone_count = 0;
+    ASTNode **zones = ast_world_zones(world_decl, &zone_count);
+    for (size_t i = 0; i < zone_count; i++) {
+        ASTNode *zone = zones[i];
         char dirty_field[256];
         int dirty_idx;
         const char *slot_name = zone != NULL ? zone->data.world_zone.slot_name : NULL;
@@ -252,23 +249,17 @@ llvm_emit_class_constructor(ASTNode *node, LLVMGenCtx *ctx, const char *callee_n
     size_t shared_count = 0;
 
     if (party_decl != NULL) {
-        shared_fields = party_decl->data.party_decl.shared_fields;
-        shared_count = party_decl->data.party_decl.shared_count;
+        shared_fields = ast_party_shared_fields(party_decl, &shared_count);
     } else if (roster_decl != NULL) {
-        shared_fields = roster_decl->data.roster_decl.shared_fields;
-        shared_count = roster_decl->data.roster_decl.shared_count;
+        shared_fields = ast_roster_shared_fields(roster_decl, &shared_count);
     } else if (relation_decl != NULL) {
-        shared_fields = relation_decl->data.relation_decl.shared_fields;
-        shared_count = relation_decl->data.relation_decl.shared_count;
+        shared_fields = ast_relation_shared_fields(relation_decl, &shared_count);
     } else if (effect_decl != NULL) {
-        shared_fields = effect_decl->data.effect_decl.shared_fields;
-        shared_count = effect_decl->data.effect_decl.shared_count;
+        shared_fields = ast_effect_shared_fields(effect_decl, &shared_count);
     } else if (zone_decl != NULL) {
-        shared_fields = zone_decl->data.zone_decl.shared_fields;
-        shared_count = zone_decl->data.zone_decl.shared_count;
+        shared_fields = ast_zone_shared_fields(zone_decl, &shared_count);
     } else if (world_decl != NULL) {
-        shared_fields = world_decl->data.world_decl.shared_fields;
-        shared_count = world_decl->data.world_decl.shared_count;
+        shared_fields = ast_world_shared_fields(world_decl, &shared_count);
     }
 
     llvm_emit_class_constructor_shared_defaults(node, ctx, cls,

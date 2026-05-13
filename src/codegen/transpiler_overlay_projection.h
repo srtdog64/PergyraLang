@@ -7,6 +7,7 @@
 #include "transpiler_overlay_host_fields.h"
 #include "transpiler_overlay_zone_bind.h"
 #include "transpiler_projection_field_path.h"
+#include "parser/ast_api.h"
 
 static bool
 domain_slot_is_projection_target_local(ASTNode *slot,
@@ -49,21 +50,12 @@ current_overlay_refresh_list(TranspilerCtx *ctx, size_t *refresh_count_out)
         return NULL;
 
     decl = transpiler_current_host_decl_local(ctx);
-    if (decl != NULL && decl->type == AST_RELATION_DECL) {
-        if (refresh_count_out != NULL)
-            *refresh_count_out = decl->data.relation_decl.refresh_count;
-        return decl->data.relation_decl.refreshes;
-    }
-    if (decl != NULL && decl->type == AST_EFFECT_DECL) {
-        if (refresh_count_out != NULL)
-            *refresh_count_out = decl->data.effect_decl.refresh_count;
-        return decl->data.effect_decl.refreshes;
-    }
-    if (decl != NULL && decl->type == AST_ZONE_DECL) {
-        if (refresh_count_out != NULL)
-            *refresh_count_out = decl->data.zone_decl.refresh_count;
-        return decl->data.zone_decl.refreshes;
-    }
+    if (decl != NULL && decl->type == AST_RELATION_DECL)
+        return ast_relation_refreshes(decl, refresh_count_out);
+    if (decl != NULL && decl->type == AST_EFFECT_DECL)
+        return ast_effect_refreshes(decl, refresh_count_out);
+    if (decl != NULL && decl->type == AST_ZONE_DECL)
+        return ast_zone_refreshes(decl, refresh_count_out);
 
     return NULL;
 }
@@ -78,8 +70,10 @@ current_overlay_domain_slot_decl(TranspilerCtx *ctx, const char *slot_name)
 
     decl = transpiler_current_host_decl_local(ctx);
     if (decl != NULL && decl->type == AST_RELATION_DECL) {
-        for (size_t i = 0; i < decl->data.relation_decl.slot_count; i++) {
-            ASTNode *slot = decl->data.relation_decl.slots[i];
+        size_t slot_count = 0;
+        ASTNode **slots = ast_relation_slots(decl, &slot_count);
+        for (size_t i = 0; i < slot_count; i++) {
+            ASTNode *slot = slots[i];
             if (slot != NULL && slot->type == AST_DOMAIN_SLOT
                 && slot->data.domain_slot.slot_name != NULL
                 && strcmp(slot->data.domain_slot.slot_name, slot_name) == 0) {
@@ -88,8 +82,10 @@ current_overlay_domain_slot_decl(TranspilerCtx *ctx, const char *slot_name)
         }
     }
     if (decl != NULL && decl->type == AST_EFFECT_DECL) {
-        for (size_t i = 0; i < decl->data.effect_decl.slot_count; i++) {
-            ASTNode *slot = decl->data.effect_decl.slots[i];
+        size_t slot_count = 0;
+        ASTNode **slots = ast_effect_slots(decl, &slot_count);
+        for (size_t i = 0; i < slot_count; i++) {
+            ASTNode *slot = slots[i];
             if (slot != NULL && slot->type == AST_DOMAIN_SLOT
                 && slot->data.domain_slot.slot_name != NULL
                 && strcmp(slot->data.domain_slot.slot_name, slot_name) == 0) {

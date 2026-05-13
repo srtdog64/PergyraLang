@@ -21,6 +21,9 @@ mark_world_embedded_zone_arguments(ASTNode *call, SemanticContext *ctx)
     if (world_decl == NULL || world_decl->type != AST_WORLD_DECL)
         return;
 
+    size_t zone_count = 0;
+    ASTNode **zones = ast_world_zones(world_decl, &zone_count);
+
     for (size_t i = 0; i < call->data.call.arg_count; i++) {
         ASTNode *arg = call->data.call.arguments[i];
         Symbol *arg_sym;
@@ -36,8 +39,8 @@ mark_world_embedded_zone_arguments(ASTNode *call, SemanticContext *ctx)
                 continue;
         }
 
-        if (i < world_decl->data.world_decl.zone_count) {
-            ASTNode *zone_slot = world_decl->data.world_decl.zones[i];
+        if (i < zone_count) {
+            ASTNode *zone_slot = zones[i];
             if (zone_slot != NULL && zone_slot->type == AST_WORLD_ZONE
                 && zone_slot->data.world_zone.zone_type != NULL) {
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_WORLD_CONTRACT_INVALID, PGY_CAUSE_WORLD_CONTRACT, PGY_FIX_ALIGN_WORLD_ZONE_STATE_COMPOSITION, arg,
@@ -82,8 +85,8 @@ mark_world_embedded_zone_arguments(ASTNode *call, SemanticContext *ctx)
         if (matched_zone_slot)
             continue;
 
-        for (size_t zi = 0; zi < world_decl->data.world_decl.zone_count; zi++) {
-            ASTNode *zone_slot = world_decl->data.world_decl.zones[zi];
+        for (size_t zi = 0; zi < zone_count; zi++) {
+            ASTNode *zone_slot = zones[zi];
             if (zone_slot == NULL || zone_slot->type != AST_WORLD_ZONE
                 || zone_slot->data.world_zone.zone_type == NULL) {
                 continue;

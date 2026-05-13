@@ -9,6 +9,7 @@
 #include <string.h>
 
 #include "type_checker_internal.h"
+#include "type_checker_decls_a_helpers_internal.h"
 #include "type_checker_ownership_consumers_internal.h"
 #include "type_checker_ownership_diag_internal.h"
 #include "diag_codes.h"
@@ -82,37 +83,19 @@ operator_method_name_matches(PgyTokenType op, const char *name)
 }
 
 static ASTNode *
-find_role_decl_in_program(ASTNode *program, const char *role_name)
-{
-    if (program == NULL || program->type != AST_PROGRAM || role_name == NULL)
-        return NULL;
-
-    for (size_t i = 0; i < program->data.program.count; i++) {
-        ASTNode *stmt = program->data.program.statements[i];
-        if (stmt != NULL && stmt->type == AST_ROLE_DECL
-            && stmt->data.role_decl.name != NULL
-            && strcmp(stmt->data.role_decl.name, role_name) == 0) {
-            return stmt;
-        }
-    }
-
-    return NULL;
-}
-
-static ASTNode *
 find_role_operator_method(ASTNode *role, ASTNode *program, PgyTokenType op,
                           int depth)
 {
     if (role == NULL || role->type != AST_ROLE_DECL || depth > 16)
         return NULL;
 
-    for (size_t i = 0; i < role->data.role_decl.impl_count; i++) {
-        ASTNode *impl = role->data.role_decl.impl_abilities[i];
+    for (size_t i = 0; i < ast_role_impl_count(role); i++) {
+        ASTNode *impl = ast_role_impl(role, i);
         if (impl == NULL || impl->type != AST_IMPL_ABILITY)
             continue;
 
-        for (size_t j = 0; j < impl->data.impl_ability.method_count; j++) {
-            ASTNode *method = impl->data.impl_ability.methods[j];
+        for (size_t j = 0; j < ast_impl_ability_method_count(impl); j++) {
+            ASTNode *method = ast_impl_ability_method(impl, j);
             if (method != NULL && method->type == AST_FUNC_DECL
                 && operator_method_name_matches(op, method->data.func_decl.name)) {
                 return method;
@@ -120,10 +103,12 @@ find_role_operator_method(ASTNode *role, ASTNode *program, PgyTokenType op,
         }
     }
 
-    for (size_t i = 0; i < role->data.role_decl.include_count; i++) {
-        ASTNode *inc = role->data.role_decl.includes[i];
-        ASTNode *included = find_role_decl_in_program(program,
-            inc->data.include_stmt.role_name);
+    for (size_t i = 0; i < ast_role_include_count(role); i++) {
+        ASTNode *inc = ast_role_include(role, i);
+        const char *role_name = ast_include_role_name(inc);
+        if (role_name == NULL)
+            continue;
+        ASTNode *included = semantic_find_role_decl(program, role_name);
         ASTNode *method = find_role_operator_method(included, program, op, depth + 1);
         if (method != NULL)
             return method;
@@ -142,11 +127,8 @@ type_check_role_operator_overload(ASTNode *expr, SemanticContext *ctx,
     ASTNode *program = ctx->program_root;
     for (size_t i = 0; i < program->data.program.count; i++) {
         ASTNode *stmt = program->data.program.statements[i];
-        if (stmt == NULL || stmt->type != AST_ROLE_DECL
-            || stmt->data.role_decl.for_type == NULL
-            || stmt->data.role_decl.for_type->type != AST_TYPE
-            || stmt->data.role_decl.for_type->data.type.name == NULL
-            || strcmp(stmt->data.role_decl.for_type->data.type.name, left->name) != 0) {
+        const char *role_type = semantic_role_for_type_name(stmt);
+        if (role_type == NULL || strcmp(role_type, left->name) != 0) {
             continue;
         }
 

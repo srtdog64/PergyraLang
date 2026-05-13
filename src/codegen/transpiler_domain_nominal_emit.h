@@ -44,45 +44,46 @@ transpiler_domain_nominal_surface_desc_too_long(TranspilerCtx *ctx,
 static void
 emit_included_role_impls(ASTNode *role, TranspilerCtx *ctx)
 {
-    for (size_t i = 0; i < role->data.role_decl.include_count; i++) {
-        ASTNode *include_stmt = role->data.role_decl.includes[i];
-        ASTNode *included_role = find_role_decl(ctx, include_stmt->data.include_stmt.role_name);
+    for (size_t i = 0; i < ast_role_include_count(role); i++) {
+        ASTNode *include_stmt = ast_role_include(role, i);
+        const char *role_name = ast_include_role_name(include_stmt);
+        ASTNode *included_role;
+
+        if (role_name == NULL)
+            continue;
+
+        included_role = find_role_decl(ctx, role_name);
 
         if (included_role == NULL) {
             transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "cannot resolve included role '%s' while emitting role '%s'",
-                include_stmt->data.include_stmt.role_name != NULL
-                    ? include_stmt->data.include_stmt.role_name
-                    : "<role>",
-                role->data.role_decl.name != NULL
-                    ? role->data.role_decl.name
+                role_name,
+                ast_role_name(role) != NULL
+                    ? ast_role_name(role)
                     : "<role>");
             return;
         }
 
-        for (size_t j = 0; j < included_role->data.role_decl.impl_count; j++) {
-            ASTNode *impl = included_role->data.role_decl.impl_abilities[j];
+        for (size_t j = 0; j < ast_role_impl_count(included_role); j++) {
+            ASTNode *impl = ast_role_impl(included_role, j);
             if (impl == NULL || impl->type != AST_IMPL_ABILITY)
                 continue;
 
             if (role_has_ability(role,
-                    (impl->data.impl_ability.ability_ref != NULL
-                     && impl->data.impl_ability.ability_ref->type == AST_TYPE)
-                        ? impl->data.impl_ability.ability_ref->data.type.name
-                        : NULL))
+                    ast_impl_ability_name(impl)))
                 continue;
 
-            for (size_t k = 0; k < impl->data.impl_ability.method_count; k++) {
-                ASTNode *method = impl->data.impl_ability.methods[k];
+            for (size_t k = 0; k < ast_impl_ability_method_count(impl); k++) {
+                ASTNode *method = ast_impl_ability_method(impl, k);
                 if (method == NULL || method->type != AST_FUNC_DECL)
                     continue;
                 if (role_has_method(role, method->data.func_decl.name))
                     continue;
-                emit_role_method_impl(role->data.role_decl.name, method, ctx);
+                emit_role_method_impl(ast_role_name(role), method, ctx);
                 if (ctx != NULL && ctx->backend_error != NULL)
                     return;
             }
 
-            emit_role_vtable_instance(role->data.role_decl.name, impl, ctx);
+            emit_role_vtable_instance(ast_role_name(role), impl, ctx);
             if (ctx != NULL && ctx->backend_error != NULL)
                 return;
         }
@@ -100,13 +101,13 @@ emit_included_role_impls(ASTNode *role, TranspilerCtx *ctx)
 void
 emit_ability_decl(ASTNode *node, TranspilerCtx *ctx)
 {
-    const char *name = node->data.ability_decl.name;
+    const char *name = ast_ability_name(node);
 
     codebuf_write(ctx->out, "\n/* Ability: %s */\n", name);
     codebuf_write(ctx->out, "typedef struct\n{\n");
 
-    for (size_t i = 0; i < node->data.ability_decl.method_count; i++) {
-        ASTNode *method = node->data.ability_decl.methods[i];
+    for (size_t i = 0; i < ast_ability_method_count(node); i++) {
+        ASTNode *method = ast_ability_method(node, i);
         if (method == NULL || method->type != AST_FUNC_DECL)
             continue;
 
@@ -162,7 +163,7 @@ emit_ability_decl(ASTNode *node, TranspilerCtx *ctx)
 void
 emit_role_decl(ASTNode *node, TranspilerCtx *ctx)
 {
-    const char *name = node->data.role_decl.name;
+    const char *name = ast_role_name(node);
 
 
     codebuf_write(ctx->out, "\n/* Role: %s */\n", name);
@@ -170,15 +171,15 @@ emit_role_decl(ASTNode *node, TranspilerCtx *ctx)
     if (ctx != NULL && ctx->backend_error != NULL)
         return;
 
-    for (size_t i = 0; i < node->data.role_decl.impl_count; i++) {
-        ASTNode *impl = node->data.role_decl.impl_abilities[i];
+    for (size_t i = 0; i < ast_role_impl_count(node); i++) {
+        ASTNode *impl = ast_role_impl(node, i);
 
         if (impl == NULL)
             continue;
 
         if (impl->type == AST_IMPL_ABILITY) {
-            for (size_t j = 0; j < impl->data.impl_ability.method_count; j++) {
-                ASTNode *method = impl->data.impl_ability.methods[j];
+            for (size_t j = 0; j < ast_impl_ability_method_count(impl); j++) {
+                ASTNode *method = ast_impl_ability_method(impl, j);
                 if (method == NULL || method->type != AST_FUNC_DECL)
                     continue;
                 emit_role_method_impl(name, method, ctx);
@@ -249,7 +250,7 @@ emit_role_decl(ASTNode *node, TranspilerCtx *ctx)
 void
 emit_party_decl(ASTNode *node, TranspilerCtx *ctx)
 {
-    const char *name = node->data.party_decl.name;
+    const char *name = ast_party_name(node);
     ASTNode *inventory_decl = transpiler_find_decl_in_inventory_local(
         ctx, AST_PARTY_DECL, name);
 
@@ -260,8 +261,8 @@ emit_party_decl(ASTNode *node, TranspilerCtx *ctx)
     codebuf_write(ctx->out, "typedef struct %s\n{\n", name);
 
     /* Role slots as void* + vtable pointer */
-    for (size_t i = 0; i < node->data.party_decl.role_count; i++) {
-        ASTNode *rs = node->data.party_decl.role_slots[i];
+    for (size_t i = 0; i < ast_party_role_count(node); i++) {
+        ASTNode *rs = ast_party_role(node, i);
         const char *slot_name = rs->data.role_slot.slot_name;
         bool is_dyn = rs->data.role_slot.is_dynamic;
         codebuf_write(ctx->out, "    void *%s;\n", slot_name);
@@ -297,8 +298,8 @@ emit_party_decl(ASTNode *node, TranspilerCtx *ctx)
     }
 
     /* Shared fields */
-    for (size_t i = 0; i < node->data.party_decl.shared_count; i++) {
-        ASTNode *shared = node->data.party_decl.shared_fields[i];
+    for (size_t i = 0; i < ast_party_shared_count(node); i++) {
+        ASTNode *shared = ast_party_shared(node, i);
         const char *ft = NULL;
         char surface_desc[256];
         if (!transpiler_domain_nominal_surface_desc(surface_desc,
@@ -346,8 +347,8 @@ emit_party_decl(ASTNode *node, TranspilerCtx *ctx)
         "party", &method_view, ctx);
 
     /* Emit bind helpers for dyn role slots */
-    for (size_t i = 0; i < node->data.party_decl.role_count; i++) {
-        ASTNode *rs = node->data.party_decl.role_slots[i];
+    for (size_t i = 0; i < ast_party_role_count(node); i++) {
+        ASTNode *rs = ast_party_role(node, i);
         if (!rs->data.role_slot.is_dynamic)
             continue;
         const char *slot_name = rs->data.role_slot.slot_name;
@@ -390,7 +391,7 @@ emit_party_decl(ASTNode *node, TranspilerCtx *ctx)
 void
 emit_roster_decl(ASTNode *node, TranspilerCtx *ctx)
 {
-    const char *name = node->data.roster_decl.name;
+    const char *name = ast_roster_name(node);
     ASTNode *inventory_decl = transpiler_find_decl_in_inventory_local(
         ctx, AST_ROSTER_DECL, name);
 
@@ -401,16 +402,16 @@ emit_roster_decl(ASTNode *node, TranspilerCtx *ctx)
     codebuf_write(ctx->out, "typedef struct %s\n{\n", name);
 
     /* Party slots */
-    for (size_t i = 0; i < node->data.roster_decl.party_count; i++) {
-        ASTNode *ps = node->data.roster_decl.party_slots[i];
+    for (size_t i = 0; i < ast_roster_party_count(node); i++) {
+        ASTNode *ps = ast_roster_party(node, i);
         codebuf_write(ctx->out, "    %s %s;\n",
             ps->data.roster_slot.party_type,
             ps->data.roster_slot.slot_name);
     }
 
     /* Shared fields */
-    for (size_t i = 0; i < node->data.roster_decl.shared_count; i++) {
-        ASTNode *shared = node->data.roster_decl.shared_fields[i];
+    for (size_t i = 0; i < ast_roster_shared_count(node); i++) {
+        ASTNode *shared = ast_roster_shared(node, i);
         const char *ft = NULL;
         char surface_desc[256];
         if (!transpiler_domain_nominal_surface_desc(surface_desc,

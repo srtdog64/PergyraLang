@@ -3,6 +3,7 @@
 #include <stdlib.h>
 
 #include "type_checker_internal.h"
+#include "type_checker_decls_a_helpers_internal.h"
 
 static char *
 resolution_decl_strdup_fmt(const char *fmt, ...)
@@ -32,8 +33,19 @@ void
 semantic_type_resolution_precollect_party_inventory(ASTNode *party_decl,
                                                     SemanticContext *ctx)
 {
+    const char *party_name;
+    ASTNode **shared_fields;
+    ASTNode **methods;
+    size_t shared_count;
+    size_t role_count;
+    size_t method_count;
+
     if (party_decl == NULL || party_decl->type != AST_PARTY_DECL || ctx == NULL)
         return;
+    party_name = ast_party_name(party_decl);
+    shared_fields = ast_party_shared_fields(party_decl, &shared_count);
+    role_count = ast_party_role_count(party_decl);
+    methods = ast_party_methods(party_decl, &method_count);
 
     semantic_type_resolution_collect_generic_contract_inventory(
         party_decl->data.party_decl.generic_params,
@@ -41,18 +53,17 @@ semantic_type_resolution_precollect_party_inventory(ASTNode *party_decl,
         ctx,
         party_decl,
         "party",
-        party_decl->data.party_decl.name);
+        party_name);
 
     semantic_type_resolution_collect_type_refs(
         party_decl->data.party_decl.extends,
         ctx,
         party_decl,
-        party_decl->data.party_decl.name != NULL
-            ? party_decl->data.party_decl.name : "<party>",
+        party_name != NULL ? party_name : "<party>",
         "party extends lookup");
 
-    for (size_t i = 0; i < party_decl->data.party_decl.shared_count; i++) {
-        ASTNode *field = party_decl->data.party_decl.shared_fields[i];
+    for (size_t i = 0; i < shared_count; i++) {
+        ASTNode *field = shared_fields[i];
         if (field == NULL || field->type != AST_PARTY_SHARED)
             continue;
         semantic_type_resolution_collect_type_refs(
@@ -64,8 +75,8 @@ semantic_type_resolution_precollect_party_inventory(ASTNode *party_decl,
             "party shared field type lookup");
     }
 
-    for (size_t i = 0; i < party_decl->data.party_decl.role_count; i++) {
-        ASTNode *role_slot = party_decl->data.party_decl.role_slots[i];
+    for (size_t i = 0; i < role_count; i++) {
+        ASTNode *role_slot = ast_party_role(party_decl, i);
         char *consumer_name;
 
         if (role_slot == NULL || role_slot->type != AST_ROLE_SLOT)
@@ -73,8 +84,7 @@ semantic_type_resolution_precollect_party_inventory(ASTNode *party_decl,
 
         consumer_name = resolution_decl_strdup_fmt(
             "party %s.%s",
-            party_decl->data.party_decl.name != NULL
-                ? party_decl->data.party_decl.name : "<party>",
+            party_name != NULL ? party_name : "<party>",
             role_slot->data.role_slot.slot_name != NULL
                 ? role_slot->data.role_slot.slot_name : "<role-slot>");
         if (consumer_name == NULL)
@@ -89,11 +99,11 @@ semantic_type_resolution_precollect_party_inventory(ASTNode *party_decl,
         free(consumer_name);
     }
 
-    for (size_t i = 0; i < party_decl->data.party_decl.method_count; i++) {
+    for (size_t i = 0; i < method_count; i++) {
         semantic_type_resolution_precollect_action_contract(
-            party_decl->data.party_decl.methods[i],
+            methods[i],
             ctx,
-            party_decl->data.party_decl.name);
+            party_name);
     }
 }
 
@@ -101,8 +111,19 @@ void
 semantic_type_resolution_precollect_roster_inventory(ASTNode *roster_decl,
                                                      SemanticContext *ctx)
 {
+    const char *roster_name;
+    ASTNode **shared_fields;
+    ASTNode **methods;
+    size_t shared_count;
+    size_t party_count;
+    size_t method_count;
+
     if (roster_decl == NULL || roster_decl->type != AST_ROSTER_DECL || ctx == NULL)
         return;
+    roster_name = ast_roster_name(roster_decl);
+    shared_fields = ast_roster_shared_fields(roster_decl, &shared_count);
+    party_count = ast_roster_party_count(roster_decl);
+    methods = ast_roster_methods(roster_decl, &method_count);
 
     semantic_type_resolution_collect_generic_contract_inventory(
         roster_decl->data.roster_decl.generic_params,
@@ -110,10 +131,10 @@ semantic_type_resolution_precollect_roster_inventory(ASTNode *roster_decl,
         ctx,
         roster_decl,
         "roster",
-        roster_decl->data.roster_decl.name);
+        roster_name);
 
-    for (size_t i = 0; i < roster_decl->data.roster_decl.shared_count; i++) {
-        ASTNode *field = roster_decl->data.roster_decl.shared_fields[i];
+    for (size_t i = 0; i < shared_count; i++) {
+        ASTNode *field = shared_fields[i];
         if (field == NULL || field->type != AST_PARTY_SHARED)
             continue;
         semantic_type_resolution_collect_type_refs(
@@ -125,8 +146,8 @@ semantic_type_resolution_precollect_roster_inventory(ASTNode *roster_decl,
             "roster shared field type lookup");
     }
 
-    for (size_t i = 0; i < roster_decl->data.roster_decl.party_count; i++) {
-        ASTNode *slot = roster_decl->data.roster_decl.party_slots[i];
+    for (size_t i = 0; i < party_count; i++) {
+        ASTNode *slot = ast_roster_party(roster_decl, i);
         if (slot == NULL || slot->type != AST_SYSTEMIC_SLOT)
             continue;
         semantic_type_resolution_record_string_dependency(
@@ -138,11 +159,11 @@ semantic_type_resolution_precollect_roster_inventory(ASTNode *roster_decl,
             "roster party lookup");
     }
 
-    for (size_t i = 0; i < roster_decl->data.roster_decl.method_count; i++) {
+    for (size_t i = 0; i < method_count; i++) {
         semantic_type_resolution_precollect_action_contract(
-            roster_decl->data.roster_decl.methods[i],
+            methods[i],
             ctx,
-            roster_decl->data.roster_decl.name);
+            roster_name);
     }
 }
 
@@ -162,18 +183,20 @@ semantic_type_resolution_precollect_role_inventory(ASTNode *role_decl,
         role_decl->data.role_decl.name);
 
     semantic_type_resolution_collect_type_refs(
-        role_decl->data.role_decl.for_type,
+        semantic_role_for_type_node(role_decl),
         ctx,
         role_decl,
         role_decl->data.role_decl.name != NULL
             ? role_decl->data.role_decl.name : "<role>",
         "role host-type lookup");
 
-    for (size_t i = 0; i < role_decl->data.role_decl.include_count; i++) {
-        ASTNode *inc = role_decl->data.role_decl.includes[i];
+    for (size_t i = 0; i < ast_role_include_count(role_decl); i++) {
+        ASTNode *inc = ast_role_include(role_decl, i);
+        const char *role_name = ast_include_role_name(inc);
+        GenericParams *type_args = ast_include_type_args(inc);
         char *consumer_name;
 
-        if (inc == NULL || inc->type != AST_INCLUDE_STMT)
+        if (role_name == NULL)
             continue;
 
         consumer_name = resolution_decl_strdup_fmt(
@@ -187,12 +210,12 @@ semantic_type_resolution_precollect_role_inventory(ASTNode *role_decl,
             ctx,
             inc,
             consumer_name,
-            inc->data.include_stmt.role_name,
+            role_name,
             "role include lookup");
 
-        if (inc->data.include_stmt.type_args != NULL) {
-            for (size_t j = 0; j < inc->data.include_stmt.type_args->count; j++) {
-                GenericParam *arg = inc->data.include_stmt.type_args->params[j];
+        if (type_args != NULL) {
+            for (size_t j = 0; j < type_args->count; j++) {
+                GenericParam *arg = type_args->params[j];
                 if (arg != NULL && arg->constraint != NULL) {
                     semantic_type_resolution_collect_type_refs(
                         arg->constraint,
@@ -206,13 +229,13 @@ semantic_type_resolution_precollect_role_inventory(ASTNode *role_decl,
         free(consumer_name);
     }
 
-    for (size_t i = 0; i < role_decl->data.role_decl.impl_count; i++) {
-        ASTNode *impl = role_decl->data.role_decl.impl_abilities[i];
+    for (size_t i = 0; i < ast_role_impl_count(role_decl); i++) {
+        ASTNode *impl = ast_role_impl(role_decl, i);
         if (impl == NULL || impl->type != AST_IMPL_ABILITY)
             continue;
 
         semantic_type_resolution_collect_type_refs(
-            impl->data.impl_ability.ability_ref,
+            ast_impl_ability_ref(impl),
             ctx,
             impl,
             role_decl->data.role_decl.name != NULL

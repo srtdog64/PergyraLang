@@ -74,17 +74,17 @@ transpiler_named_decl_matches(ASTNode *stmt, ASTNodeType decl_type,
 
     switch (decl_type) {
     case AST_PARTY_DECL:
-        return stmt->data.party_decl.name != NULL
-            && strcmp(stmt->data.party_decl.name, name) == 0;
+        return ast_party_name(stmt) != NULL
+            && strcmp(ast_party_name(stmt), name) == 0;
     case AST_ROSTER_DECL:
-        return stmt->data.roster_decl.name != NULL
-            && strcmp(stmt->data.roster_decl.name, name) == 0;
+        return ast_roster_name(stmt) != NULL
+            && strcmp(ast_roster_name(stmt), name) == 0;
     case AST_ENUM_DECL:
         return stmt->data.enum_decl.name != NULL
             && strcmp(stmt->data.enum_decl.name, name) == 0;
     case AST_ROLE_DECL:
-        return stmt->data.role_decl.name != NULL
-            && strcmp(stmt->data.role_decl.name, name) == 0;
+        return ast_role_name(stmt) != NULL
+            && strcmp(ast_role_name(stmt), name) == 0;
     case AST_CLASS_DECL:
         return stmt->data.class_decl.name != NULL
             && strcmp(stmt->data.class_decl.name, name) == 0;
@@ -98,23 +98,23 @@ transpiler_named_decl_matches(ASTNode *stmt, ASTNodeType decl_type,
         return stmt->data.type_alias.name != NULL
             && strcmp(stmt->data.type_alias.name, name) == 0;
     case AST_ABILITY_DECL:
-        return stmt->data.ability_decl.name != NULL
-            && strcmp(stmt->data.ability_decl.name, name) == 0;
+        return ast_ability_name(stmt) != NULL
+            && strcmp(ast_ability_name(stmt), name) == 0;
     case AST_EVENT_DECL:
         return stmt->data.event_decl.name != NULL
             && strcmp(stmt->data.event_decl.name, name) == 0;
     case AST_ZONE_DECL:
-        return stmt->data.zone_decl.name != NULL
-            && strcmp(stmt->data.zone_decl.name, name) == 0;
+        return ast_zone_name(stmt) != NULL
+            && strcmp(ast_zone_name(stmt), name) == 0;
     case AST_WORLD_DECL:
-        return stmt->data.world_decl.name != NULL
-            && strcmp(stmt->data.world_decl.name, name) == 0;
+        return ast_world_name(stmt) != NULL
+            && strcmp(ast_world_name(stmt), name) == 0;
     case AST_RELATION_DECL:
-        return stmt->data.relation_decl.name != NULL
-            && strcmp(stmt->data.relation_decl.name, name) == 0;
+        return ast_relation_name(stmt) != NULL
+            && strcmp(ast_relation_name(stmt), name) == 0;
     case AST_EFFECT_DECL:
-        return stmt->data.effect_decl.name != NULL
-            && strcmp(stmt->data.effect_decl.name, name) == 0;
+        return ast_effect_name(stmt) != NULL
+            && strcmp(ast_effect_name(stmt), name) == 0;
     default:
         return false;
     }
@@ -309,19 +309,19 @@ transpiler_decl_name_local(ASTNode *decl)
     case AST_ENUM_DECL:
         return decl->data.enum_decl.name;
     case AST_ROLE_DECL:
-        return decl->data.role_decl.name;
+        return ast_role_name(decl);
     case AST_PARTY_DECL:
-        return decl->data.party_decl.name;
+        return ast_party_name(decl);
     case AST_ROSTER_DECL:
-        return decl->data.roster_decl.name;
+        return ast_roster_name(decl);
     case AST_RELATION_DECL:
-        return decl->data.relation_decl.name;
+        return ast_relation_name(decl);
     case AST_EFFECT_DECL:
-        return decl->data.effect_decl.name;
+        return ast_effect_name(decl);
     case AST_ZONE_DECL:
-        return decl->data.zone_decl.name;
+        return ast_zone_name(decl);
     case AST_WORLD_DECL:
-        return decl->data.world_decl.name;
+        return ast_world_name(decl);
     default:
         return NULL;
     }

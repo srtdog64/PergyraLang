@@ -147,17 +147,17 @@ struct SemanticContext
      * source of truth is type_resolution_metadata_dead_ends; this field must
      * not be interpreted as an active recursive materializer fallback path. */
     size_t type_resolution_metadata_materializer_fallbacks;
-    /* Dead-end family counters. Names keep fallback-era compatibility, but the
-     * values classify explicit DAG metadata dead ends, not live fallback use. */
-    size_t type_resolution_metadata_fallback_named;
-    size_t type_resolution_metadata_fallback_generic_named;
-    size_t type_resolution_metadata_fallback_compound;
-    size_t type_resolution_metadata_fallback_other;
-    size_t type_resolution_metadata_fallback_named_builtin_shell;
-    size_t type_resolution_metadata_fallback_named_generic_class;
-    size_t type_resolution_metadata_fallback_named_alias;
-    size_t type_resolution_metadata_fallback_named_non_class_symbol;
-    size_t type_resolution_metadata_fallback_named_missing_symbol;
+    /* Dead-end family counters. These classify explicit DAG metadata dead ends,
+     * not live fallback use. */
+    size_t type_resolution_metadata_unresolved_named;
+    size_t type_resolution_metadata_unresolved_generic_named;
+    size_t type_resolution_metadata_unresolved_compound;
+    size_t type_resolution_metadata_unresolved_other;
+    size_t type_resolution_metadata_unresolved_named_builtin_shell;
+    size_t type_resolution_metadata_unresolved_named_generic_class;
+    size_t type_resolution_metadata_unresolved_named_alias;
+    size_t type_resolution_metadata_unresolved_named_non_class_symbol;
+    size_t type_resolution_metadata_unresolved_named_missing_symbol;
 
     bool         has_error;
 };

@@ -2,6 +2,7 @@
 #define PERGYRA_DOMAIN_FRONTIER_POLICY_H
 
 #include "../parser/ast.h"
+#include "../runtime/pgy_frontier_policy.h"
 
 typedef ASTNode *(*PgyDomainZoneLookupFn)(void *ctx, const char *zone_name);
 

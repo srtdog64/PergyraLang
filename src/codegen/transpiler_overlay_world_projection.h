@@ -167,8 +167,10 @@ emit_world_embedded_receiver_projection_sync(TranspilerCtx *ctx, ASTNode *receiv
         return NULL;
 
     buf = codebuf_create();
-    for (size_t i = 0; i < zone_decl->data.zone_decl.slot_count; i++) {
-        ASTNode *slot = zone_decl->data.zone_decl.slots[i];
+    size_t slot_count = 0;
+    ASTNode **slots = ast_zone_slots(zone_decl, &slot_count);
+    for (size_t i = 0; i < slot_count; i++) {
+        ASTNode *slot = slots[i];
         if (slot == NULL || slot->type != AST_DOMAIN_SLOT
             || slot->data.domain_slot.slot_name == NULL
             || slot->data.domain_slot.is_subject) {
@@ -187,8 +189,8 @@ emit_world_embedded_receiver_projection_sync(TranspilerCtx *ctx, ASTNode *receiv
         "%s_sync(self); ",
         zone_type_name, zone_slot_name,
         zone_slot_name,
-        host_decl->data.world_decl.name != NULL
-            ? host_decl->data.world_decl.name : "World");
+        ast_world_name(host_decl) != NULL
+            ? ast_world_name(host_decl) : "World");
 
     {
         char *result = pergyra_strdup(buf->data);

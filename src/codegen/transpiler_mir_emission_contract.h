@@ -122,6 +122,16 @@ transpiler_validate_mir_emission_contract(const TranspilerCtx *ctx,
                          routine_name, (unsigned long long) block->id);
             return false;
         }
+        if (!block->has_cleanup_succ) {
+            if (block->is_reachable && block->is_pin_region) {
+                if (reason != NULL && reason_cap > 0)
+                    transpiler_mir_reasonf(reason, reason_cap,
+                             "MIR contract invalid for %s: pin block %llu has no cleanup successor",
+                             routine_name,
+                             (unsigned long long) block->id);
+                return false;
+            }
+        }
         if (block->has_cleanup_succ) {
             const char *cleanup_fact =
                 mir_cleanup_edge_fact_name_for_block(routine, i);

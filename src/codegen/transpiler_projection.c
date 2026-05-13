@@ -12,6 +12,7 @@
 
 #include "transpiler_decl_lookup.h"
 #include "transpiler_projection.h"
+#include "parser/ast_api.h"
 #include "../common/string_compat.h"
 
 static char *
@@ -43,8 +44,10 @@ transpiler_find_zone_domain_slot(ASTNode *zone_decl, const char *slot_name)
     if (zone_decl == NULL || zone_decl->type != AST_ZONE_DECL || slot_name == NULL)
         return NULL;
 
-    for (size_t i = 0; i < zone_decl->data.zone_decl.slot_count; i++) {
-        ASTNode *slot = zone_decl->data.zone_decl.slots[i];
+    size_t slot_count = 0;
+    ASTNode **slots = ast_zone_slots(zone_decl, &slot_count);
+    for (size_t i = 0; i < slot_count; i++) {
+        ASTNode *slot = slots[i];
         if (slot != NULL && slot->type == AST_DOMAIN_SLOT
             && slot->data.domain_slot.slot_name != NULL
             && strcmp(slot->data.domain_slot.slot_name, slot_name) == 0) {
@@ -68,22 +71,28 @@ transpiler_current_world_has_field(TranspilerCtx *ctx, const char *field_name)
     if (decl == NULL)
         return false;
 
-    for (size_t i = 0; i < decl->data.world_decl.roster_count; i++) {
-        ASTNode *slot = decl->data.world_decl.rosters[i];
+    size_t roster_count = 0;
+    ASTNode **rosters = ast_world_rosters(decl, &roster_count);
+    for (size_t i = 0; i < roster_count; i++) {
+        ASTNode *slot = rosters[i];
         if (slot != NULL && slot->data.world_roster.slot_name != NULL
             && strcmp(slot->data.world_roster.slot_name, field_name) == 0) {
             return true;
         }
     }
-    for (size_t i = 0; i < decl->data.world_decl.zone_count; i++) {
-        ASTNode *slot = decl->data.world_decl.zones[i];
+    size_t zone_count = 0;
+    ASTNode **zones = ast_world_zones(decl, &zone_count);
+    for (size_t i = 0; i < zone_count; i++) {
+        ASTNode *slot = zones[i];
         if (slot != NULL && slot->data.world_zone.slot_name != NULL
             && strcmp(slot->data.world_zone.slot_name, field_name) == 0) {
             return true;
         }
     }
-    for (size_t i = 0; i < decl->data.world_decl.shared_count; i++) {
-        ASTNode *shared = decl->data.world_decl.shared_fields[i];
+    size_t shared_count = 0;
+    ASTNode **shared_fields = ast_world_shared_fields(decl, &shared_count);
+    for (size_t i = 0; i < shared_count; i++) {
+        ASTNode *shared = shared_fields[i];
         if (shared != NULL && shared->data.party_shared.name != NULL
             && strcmp(shared->data.party_shared.name, field_name) == 0) {
             return true;
@@ -99,8 +108,10 @@ transpiler_find_zone_state_decl(ASTNode *zone_decl, const char *state_name)
     if (zone_decl == NULL || zone_decl->type != AST_ZONE_DECL || state_name == NULL)
         return NULL;
 
-    for (size_t i = 0; i < zone_decl->data.zone_decl.state_count; i++) {
-        ASTNode *state = zone_decl->data.zone_decl.states[i];
+    size_t state_count = 0;
+    ASTNode **states = ast_zone_states(zone_decl, &state_count);
+    for (size_t i = 0; i < state_count; i++) {
+        ASTNode *state = states[i];
         if (state != NULL && state->type == AST_ZONE_STATE
             && state->data.zone_state.state_name != NULL
             && strcmp(state->data.zone_state.state_name, state_name) == 0) {
@@ -116,8 +127,10 @@ transpiler_find_zone_layer_slot(ASTNode *zone_decl, const char *slot_name)
     if (zone_decl == NULL || zone_decl->type != AST_ZONE_DECL || slot_name == NULL)
         return NULL;
 
-    for (size_t i = 0; i < zone_decl->data.zone_decl.layer_slot_count; i++) {
-        ASTNode *slot = zone_decl->data.zone_decl.layer_slots[i];
+    size_t layer_slot_count = 0;
+    ASTNode **layer_slots = ast_zone_layer_slots(zone_decl, &layer_slot_count);
+    for (size_t i = 0; i < layer_slot_count; i++) {
+        ASTNode *slot = layer_slots[i];
         if (slot != NULL && slot->type == AST_ZONE_LAYER_SLOT
             && slot->data.zone_layer_slot.slot_name != NULL
             && strcmp(slot->data.zone_layer_slot.slot_name, slot_name) == 0) {
@@ -133,8 +146,10 @@ transpiler_find_world_zone_slot_decl(ASTNode *world_decl, const char *slot_name)
     if (world_decl == NULL || world_decl->type != AST_WORLD_DECL || slot_name == NULL)
         return NULL;
 
-    for (size_t i = 0; i < world_decl->data.world_decl.zone_count; i++) {
-        ASTNode *zone = world_decl->data.world_decl.zones[i];
+    size_t zone_count = 0;
+    ASTNode **zones = ast_world_zones(world_decl, &zone_count);
+    for (size_t i = 0; i < zone_count; i++) {
+        ASTNode *zone = zones[i];
         if (zone != NULL && zone->type == AST_WORLD_ZONE
             && zone->data.world_zone.slot_name != NULL
             && strcmp(zone->data.world_zone.slot_name, slot_name) == 0) {

@@ -70,6 +70,25 @@ mir_validate_block_predecessors(const MIRRoutine *routine,
 {
     const MIRBasicBlock *block = &routine->blocks[block_index];
 
+    if (block->predecessor_count > 0 && block->predecessors == NULL) {
+        if (error_message != NULL) {
+            *error_message = mir_strdup_fmt(
+                "MIR routine '%s' block[%zu] has predecessor count without predecessor inventory",
+                routine->name != NULL ? routine->name : "(anonymous)",
+                block_index);
+        }
+        return false;
+    }
+    if (block->predecessor_count > block->predecessor_capacity) {
+        if (error_message != NULL) {
+            *error_message = mir_strdup_fmt(
+                "MIR routine '%s' block[%zu] has predecessor count above predecessor capacity",
+                routine->name != NULL ? routine->name : "(anonymous)",
+                block_index);
+        }
+        return false;
+    }
+
     for (size_t p = 0; p < block->predecessor_count; p++) {
         if (block->predecessors[p] == block_index) {
             if (error_message != NULL) {

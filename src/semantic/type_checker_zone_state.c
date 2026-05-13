@@ -6,8 +6,26 @@
 void
 type_check_zone_state_aliases(ASTNode *node, SemanticContext *ctx)
 {
-    for (size_t i = 0; i < node->data.zone_decl.maintained_state_count; i++) {
-        ASTNode *maintain = node->data.zone_decl.maintained_states[i];
+    const char *zone_name = ast_zone_name(node);
+    ASTNode **states;
+    ASTNode **detaches;
+    ASTNode **unlinks;
+    ASTNode **maintained_states;
+    size_t state_count;
+    size_t detach_count;
+    size_t unlink_count;
+    size_t maintained_state_count;
+    size_t authority_count;
+
+    states = ast_zone_states(node, &state_count);
+    detaches = ast_zone_detaches(node, &detach_count);
+    unlinks = ast_zone_unlinks(node, &unlink_count);
+    maintained_states = ast_zone_maintained_states(node,
+                                                   &maintained_state_count);
+    ast_zone_authorities(node, &authority_count);
+
+    for (size_t i = 0; i < maintained_state_count; i++) {
+        ASTNode *maintain = maintained_states[i];
         ASTNode *state;
         const char *state_name = maintain->data.zone_maintain_state.state_name;
         const char *participant_slot_name = maintain->data.zone_maintain_state.participant_slot_name;
@@ -22,7 +40,7 @@ type_check_zone_state_aliases(ASTNode *node, SemanticContext *ctx)
                 "- declare state '%s' before this maintain clause\n"
                 "- or change maintain to an existing state alias",
                 state_name != NULL ? state_name : "<unknown>",
-                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>",
+                zone_name != NULL ? zone_name : "<zone>",
                 state_name != NULL ? state_name : "<unknown>",
                 state_name != NULL ? state_name : "<unknown>");
         } else if (state->data.zone_state.is_relation) {
@@ -31,8 +49,8 @@ type_check_zone_state_aliases(ASTNode *node, SemanticContext *ctx)
             const char *right_slot_name = state->data.zone_state.right_slot_name;
             type_check_zone_relation_contract(node, maintain,
                 relation_slot_name, left_slot_name, right_slot_name, ctx, "maintain");
-            for (size_t j = i + 1; j < node->data.zone_decl.maintained_state_count; j++) {
-                ASTNode *other = node->data.zone_decl.maintained_states[j];
+            for (size_t j = i + 1; j < maintained_state_count; j++) {
+                ASTNode *other = maintained_states[j];
                 if (other != NULL
                     && other->data.zone_maintain_state.state_name != NULL
                     && strcmp(state_name, other->data.zone_maintain_state.state_name) == 0) {
@@ -44,13 +62,13 @@ type_check_zone_state_aliases(ASTNode *node, SemanticContext *ctx)
                         "Fix:\n"
                         "- keep one maintain rule for state '%s'\n"
                         "- or split the contract if the state names should differ",
-                        node->data.zone_decl.name,
+                        zone_name,
                         state_name,
                         state_name);
                 }
             }
-            for (size_t j = 0; j < node->data.zone_decl.unlink_count; j++) {
-                ASTNode *unlink = node->data.zone_decl.unlinks[j];
+            for (size_t j = 0; j < unlink_count; j++) {
+                ASTNode *unlink = unlinks[j];
                 const char *unlink_relation_slot_name = unlink->data.zone_unlink.relation_slot_name;
                 const char *unlink_left_slot_name = unlink->data.zone_unlink.left_slot_name;
                 const char *unlink_right_slot_name = unlink->data.zone_unlink.right_slot_name;
@@ -73,7 +91,7 @@ type_check_zone_state_aliases(ASTNode *node, SemanticContext *ctx)
                         "Fix:\n"
                         "- keep either maintain or unlink for state '%s'\n"
                         "- or split the rules so they target different states",
-                        node->data.zone_decl.name,
+                        zone_name,
                         state_name,
                         state_name,
                         state_name);
@@ -84,8 +102,8 @@ type_check_zone_state_aliases(ASTNode *node, SemanticContext *ctx)
             const char *target_slot_name = state->data.zone_state.left_or_target_slot_name;
             type_check_zone_effect_contract(node, maintain,
                 effect_slot_name, target_slot_name, ctx, "maintain");
-            for (size_t j = i + 1; j < node->data.zone_decl.maintained_state_count; j++) {
-                ASTNode *other = node->data.zone_decl.maintained_states[j];
+            for (size_t j = i + 1; j < maintained_state_count; j++) {
+                ASTNode *other = maintained_states[j];
                 if (other != NULL
                     && other->data.zone_maintain_state.state_name != NULL
                     && strcmp(state_name, other->data.zone_maintain_state.state_name) == 0) {
@@ -97,13 +115,13 @@ type_check_zone_state_aliases(ASTNode *node, SemanticContext *ctx)
                         "Fix:\n"
                         "- keep one maintain rule for state '%s'\n"
                         "- or split the contract if the state names should differ",
-                        node->data.zone_decl.name,
+                        zone_name,
                         state_name,
                         state_name);
                 }
             }
-            for (size_t j = 0; j < node->data.zone_decl.detach_count; j++) {
-                ASTNode *detach = node->data.zone_decl.detaches[j];
+            for (size_t j = 0; j < detach_count; j++) {
+                ASTNode *detach = detaches[j];
                 const char *detach_effect_slot_name = detach->data.zone_detach.effect_slot_name;
                 const char *detach_target_slot_name = detach->data.zone_detach.target_slot_name;
                 if (detach->data.zone_detach.state_name != NULL) {
@@ -123,14 +141,14 @@ type_check_zone_state_aliases(ASTNode *node, SemanticContext *ctx)
                         "Fix:\n"
                         "- keep either maintain or detach for state '%s'\n"
                         "- or split the rules so they target different states",
-                        node->data.zone_decl.name,
+                        zone_name,
                         state_name,
                         state_name,
                         state_name);
                 }
             }
         }
-        if (node->data.zone_decl.authority_count > 0 && participant_slot_name == NULL) {
+        if (authority_count > 0 && participant_slot_name == NULL) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, maintain,
                 "Zone maintain must specify 'by <subjectSlot>' when authority is declared.\n"
                 "Reason:\n"
@@ -139,14 +157,14 @@ type_check_zone_state_aliases(ASTNode *node, SemanticContext *ctx)
                 "Fix:\n"
                 "- add 'by <subjectSlot>' to this maintain clause\n"
                 "- or remove zone authority if this maintenance rule is intentionally authority-free",
-                node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>",
+                zone_name != NULL ? zone_name : "<zone>",
                 state_name != NULL ? state_name : "<state>");
         }
         type_check_zone_participant_authority(node, maintain, participant_slot_name, ctx, "maintain");
     }
 
-    for (size_t i = 0; i < node->data.zone_decl.state_count; i++) {
-        ASTNode *state = node->data.zone_decl.states[i];
+    for (size_t i = 0; i < state_count; i++) {
+        ASTNode *state = states[i];
         const char *state_name = state->data.zone_state.state_name;
         if (state->data.zone_state.is_relation) {
             const char *relation_slot_name = state->data.zone_state.layer_slot_name;
@@ -164,7 +182,7 @@ type_check_zone_state_aliases(ASTNode *node, SemanticContext *ctx)
                     state_name != NULL ? state_name : "<unknown>",
                     relation_slot_name != NULL ? relation_slot_name : "<unknown>",
                     state_name != NULL ? state_name : "<unknown>",
-                    node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>",
+                    zone_name != NULL ? zone_name : "<zone>",
                     relation_slot_name != NULL ? relation_slot_name : "<unknown>",
                     state_name != NULL ? state_name : "<unknown>",
                     relation_slot_name != NULL ? relation_slot_name : "<unknown>");
@@ -181,7 +199,7 @@ type_check_zone_state_aliases(ASTNode *node, SemanticContext *ctx)
                     state_name != NULL ? state_name : "<unknown>",
                     left_slot_name != NULL ? left_slot_name : "<unknown>",
                     state_name != NULL ? state_name : "<unknown>",
-                    node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>",
+                    zone_name != NULL ? zone_name : "<zone>",
                     left_slot_name != NULL ? left_slot_name : "<unknown>",
                     left_slot_name != NULL ? left_slot_name : "<unknown>");
             }
@@ -197,7 +215,7 @@ type_check_zone_state_aliases(ASTNode *node, SemanticContext *ctx)
                     state_name != NULL ? state_name : "<unknown>",
                     right_slot_name != NULL ? right_slot_name : "<unknown>",
                     state_name != NULL ? state_name : "<unknown>",
-                    node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>",
+                    zone_name != NULL ? zone_name : "<zone>",
                     right_slot_name != NULL ? right_slot_name : "<unknown>",
                     right_slot_name != NULL ? right_slot_name : "<unknown>");
             }
@@ -218,7 +236,7 @@ type_check_zone_state_aliases(ASTNode *node, SemanticContext *ctx)
                     state_name != NULL ? state_name : "<unknown>",
                     effect_slot_name != NULL ? effect_slot_name : "<unknown>",
                     state_name != NULL ? state_name : "<unknown>",
-                    node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>",
+                    zone_name != NULL ? zone_name : "<zone>",
                     effect_slot_name != NULL ? effect_slot_name : "<unknown>",
                     state_name != NULL ? state_name : "<unknown>",
                     effect_slot_name != NULL ? effect_slot_name : "<unknown>");
@@ -235,7 +253,7 @@ type_check_zone_state_aliases(ASTNode *node, SemanticContext *ctx)
                     state_name != NULL ? state_name : "<unknown>",
                     target_slot_name != NULL ? target_slot_name : "<unknown>",
                     state_name != NULL ? state_name : "<unknown>",
-                    node->data.zone_decl.name != NULL ? node->data.zone_decl.name : "<zone>",
+                    zone_name != NULL ? zone_name : "<zone>",
                     target_slot_name != NULL ? target_slot_name : "<unknown>",
                     target_slot_name != NULL ? target_slot_name : "<unknown>");
             }
@@ -243,8 +261,8 @@ type_check_zone_state_aliases(ASTNode *node, SemanticContext *ctx)
                 effect_slot_name, target_slot_name, ctx, "state");
         }
 
-        for (size_t j = i + 1; j < node->data.zone_decl.state_count; j++) {
-            ASTNode *other = node->data.zone_decl.states[j];
+        for (size_t j = i + 1; j < state_count; j++) {
+            ASTNode *other = states[j];
             if (state_name != NULL
                 && other != NULL
                 && other->data.zone_state.state_name != NULL

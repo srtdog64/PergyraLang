@@ -25,11 +25,15 @@ world_resolve_domain_slot_type(ASTNode *slot, SemanticContext *ctx)
 ASTNode *
 find_world_zone_slot_local(ASTNode *world, const char *slot_name)
 {
+    ASTNode **zones;
+    size_t zone_count;
+
     if (world == NULL || world->type != AST_WORLD_DECL || slot_name == NULL)
         return NULL;
+    zones = ast_world_zones(world, &zone_count);
 
-    for (size_t i = 0; i < world->data.world_decl.zone_count; i++) {
-        ASTNode *zone = world->data.world_decl.zones[i];
+    for (size_t i = 0; i < zone_count; i++) {
+        ASTNode *zone = zones[i];
         if (zone != NULL && zone->type == AST_WORLD_ZONE
             && zone->data.world_zone.slot_name != NULL
             && strcmp(zone->data.world_zone.slot_name, slot_name) == 0) {
@@ -43,11 +47,15 @@ find_world_zone_slot_local(ASTNode *world, const char *slot_name)
 ASTNode *
 find_world_state_local(ASTNode *world, const char *state_name)
 {
+    ASTNode **states;
+    size_t state_count;
+
     if (world == NULL || world->type != AST_WORLD_DECL || state_name == NULL)
         return NULL;
+    states = ast_world_states(world, &state_count);
 
-    for (size_t i = 0; i < world->data.world_decl.state_count; i++) {
-        ASTNode *state = world->data.world_decl.states[i];
+    for (size_t i = 0; i < state_count; i++) {
+        ASTNode *state = states[i];
         if (state != NULL && state->type == AST_WORLD_STATE
             && state->data.world_state.state_name != NULL
             && strcmp(state->data.world_state.state_name, state_name) == 0) {
@@ -61,14 +69,18 @@ find_world_state_local(ASTNode *world, const char *state_name)
 ASTNode *
 find_world_state_before_local(ASTNode *world, const char *state_name, size_t limit)
 {
+    ASTNode **states;
+    size_t state_count;
+
     if (world == NULL || world->type != AST_WORLD_DECL || state_name == NULL)
         return NULL;
+    states = ast_world_states(world, &state_count);
 
-    if (limit > world->data.world_decl.state_count)
-        limit = world->data.world_decl.state_count;
+    if (limit > state_count)
+        limit = state_count;
 
     for (size_t i = 0; i < limit; i++) {
-        ASTNode *state = world->data.world_decl.states[i];
+        ASTNode *state = states[i];
         if (state != NULL && state->type == AST_WORLD_STATE
             && state->data.world_state.state_name != NULL
             && strcmp(state->data.world_state.state_name, state_name) == 0) {
@@ -119,11 +131,15 @@ resolve_world_plain_zone_input_name(ASTNode *world, const char *input_name)
 ASTNode *
 find_zone_layer_slot_local(ASTNode *zone, const char *slot_name)
 {
+    ASTNode **layer_slots;
+    size_t layer_slot_count;
+
     if (zone == NULL || zone->type != AST_ZONE_DECL || slot_name == NULL)
         return NULL;
+    layer_slots = ast_zone_layer_slots(zone, &layer_slot_count);
 
-    for (size_t i = 0; i < zone->data.zone_decl.layer_slot_count; i++) {
-        ASTNode *slot = zone->data.zone_decl.layer_slots[i];
+    for (size_t i = 0; i < layer_slot_count; i++) {
+        ASTNode *slot = layer_slots[i];
         if (slot != NULL && slot->type == AST_ZONE_LAYER_SLOT
             && slot->data.zone_layer_slot.slot_name != NULL
             && strcmp(slot->data.zone_layer_slot.slot_name, slot_name) == 0) {
@@ -137,11 +153,15 @@ find_zone_layer_slot_local(ASTNode *zone, const char *slot_name)
 ASTNode *
 find_zone_state_decl_local(ASTNode *zone, const char *state_name)
 {
+    ASTNode **states;
+    size_t state_count;
+
     if (zone == NULL || zone->type != AST_ZONE_DECL || state_name == NULL)
         return NULL;
+    states = ast_zone_states(zone, &state_count);
 
-    for (size_t i = 0; i < zone->data.zone_decl.state_count; i++) {
-        ASTNode *state = zone->data.zone_decl.states[i];
+    for (size_t i = 0; i < state_count; i++) {
+        ASTNode *state = states[i];
         if (state != NULL && state->type == AST_ZONE_STATE
             && state->data.zone_state.state_name != NULL
             && strcmp(state->data.zone_state.state_name, state_name) == 0) {

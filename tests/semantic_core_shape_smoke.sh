@@ -99,6 +99,7 @@ for path in \
     src/semantic/type_checker_builtins_stdlib_body.c \
     src/semantic/type_checker_builtins_stdlib_collections.c \
     src/semantic/type_checker_intent_ability.c \
+    src/semantic/type_checker_intent_role_fields.c \
     src/semantic/type_checker_intent_decl.c \
     src/semantic/type_checker_intent_authority.c \
     src/semantic/type_checker_intent_participants.c \
@@ -134,6 +135,555 @@ grep -q 'Retired compatibility resolver audit counters' src/semantic/type_checke
 
 grep -q 'require_assignable(Type \*from, Type \*to' src/semantic/type_checker_type_helpers.c \
     || fail "assignability helper must stay outside the retired resolver counter owner"
+
+grep -q 'semantic_role_for_type_name' src/semantic/type_checker_domain_role_lookup.c \
+    || fail "semantic role target-type helper must live in domain role lookup owner"
+
+grep -q 'semantic_find_role_decl' src/semantic/type_checker_domain_role_lookup.c \
+    || fail "semantic role declaration lookup helper must live in domain role lookup owner"
+
+grep -q 'ast_impl_ability_ref(impl)' src/semantic/type_checker_domain_role_lookup.c \
+    || fail "semantic role lookup ability scan must consume AST impl-ability accessor"
+
+grep -q 'semantic_role_for_type_name(stmt)' src/semantic/type_checker_expr_ops.c \
+    || fail "operator overload checks must consume the semantic role target-type helper"
+
+grep -q 'semantic_find_role_decl(program' src/semantic/type_checker_expr_ops.c \
+    || fail "operator overload include traversal must consume the shared semantic role lookup helper"
+
+grep -q 'ast_include_role_name(inc)' src/semantic/type_checker_expr_ops.c \
+    || fail "operator overload include traversal must consume AST include accessor"
+
+grep -q 'ast_impl_ability_method(impl, j)' src/semantic/type_checker_expr_ops.c \
+    || fail "operator overload method traversal must consume AST impl-ability accessor"
+
+grep -q 'semantic_role_for_type_name(stmt)' src/semantic/type_checker_ability_match.c \
+    || fail "ability role matching must consume the semantic role target-type helper"
+
+grep -q 'semantic_find_role_decl(program' src/semantic/type_checker_ability_match.c \
+    || fail "ability include traversal must consume the shared semantic role lookup helper"
+
+grep -q 'ast_include_role_name(inc)' src/semantic/type_checker_ability_match.c \
+    || fail "ability include traversal must consume AST include accessor"
+
+grep -q 'ast_impl_ability_ref(impl)' src/semantic/type_checker_ability_match.c \
+    || fail "ability matching must consume AST impl-ability accessor"
+
+grep -q 'semantic_role_for_type_name(role_decl)' src/semantic/type_checker_intent_role_fields.c \
+    || fail "intent role-field validation must consume the semantic role target-type helper"
+
+grep -q 'semantic_find_role_decl(ctx->program_root, role_name)' src/semantic/type_checker_role_decl.c \
+    || fail "role declaration validation must consume the shared semantic role lookup helper"
+
+grep -q 'semantic_role_for_type_node(node)' src/semantic/type_checker_role_decl.c \
+    || fail "role declaration host-type validation must consume the semantic role target-type helper"
+
+grep -q 'ast_include_role_name(inc)' src/semantic/type_checker_role_decl.c \
+    || fail "role declaration include validation must consume AST include accessor"
+
+grep -q 'ast_impl_ability_ref(impl)' src/semantic/type_checker_role_decl.c \
+    || fail "role declaration impl validation must consume AST impl-ability accessor"
+
+grep -q 'ast_impl_ability_method(impl, j)' src/semantic/type_checker_role_decl.c \
+    || fail "role declaration impl method validation must consume AST impl-ability accessor"
+
+grep -q 'ast_include_role_name(inc)' src/semantic/type_checker_resolution_graph_decl.c \
+    || fail "DAG role include precollect must consume AST include accessor"
+
+grep -q 'ast_impl_ability_ref(impl)' src/semantic/type_checker_resolution_graph_decl.c \
+    || fail "DAG role impl precollect must consume AST impl-ability accessor"
+
+grep -q 'semantic_role_for_type_node(role_decl)' src/semantic/type_checker_resolution_graph_decl.c \
+    || fail "DAG role host-type precollect must consume the semantic role target-type helper"
+
+grep -q 'ast_include_role_name(inc)' src/semantic/type_checker_resolution_stage_nominal.c \
+    || fail "DAG stage role include resolution must consume AST include accessor"
+
+grep -q 'semantic_role_for_type_node(decl)' src/semantic/type_checker_resolution_stage_nominal.c \
+    || fail "DAG stage role host-type resolution must consume the semantic role target-type helper"
+
+grep -q 'ast_impl_ability_ref(impl)' src/semantic/type_checker_resolution_stage_nominal.c \
+    || fail "DAG stage role impl resolution must consume AST impl-ability accessor"
+
+if grep -R "data\.include_stmt" src/semantic src/compiler src/codegen >/dev/null; then
+    fail "non-parser include payload consumers must use AST include accessors"
+fi
+
+grep -q 'ast_impl_ability_method(impl, i)' src/compiler/dir_collect.c \
+    || fail "DIR role ability method scan must consume AST impl-ability accessor"
+
+grep -q 'ast_impl_ability_method(impl, j)' src/compiler/hir_routines.c \
+    || fail "HIR role impl routine collection must consume AST impl-ability accessor"
+
+if grep -R "data\.impl_ability" \
+    src/semantic/type_checker_expr_ops.c \
+    src/semantic/type_checker_ability_match.c \
+    src/compiler/dir_collect.c \
+    src/compiler/hir_routines.c >/dev/null; then
+    fail "semantic/compiler role impl compatibility paths must use AST impl-ability accessors"
+fi
+
+if grep -R "data\.impl_ability" src/semantic src/compiler src/codegen >/dev/null; then
+    fail "non-parser impl ability payload consumers must use AST impl-ability accessors"
+fi
+
+if grep -R "data\.role_decl\.\(for_type\|includes\|include_count\|impl_abilities\|impl_count\)" \
+    src/semantic src/compiler src/codegen >/dev/null; then
+    fail "non-parser role child-list consumers must use AST role accessors"
+fi
+
+if grep -R "data\.ability_decl\.\(name\|methods\|method_count\)" \
+    src/compiler src/codegen \
+    | grep -v "src/compiler/module_normalizer.c" >/dev/null; then
+    fail "compiler/codegen ability consumers must use AST ability accessors"
+fi
+
+if grep -R "data\.role_decl\.name" \
+    src/compiler src/codegen \
+    | grep -v "src/compiler/module_normalizer.c" >/dev/null; then
+    fail "compiler/codegen role-name consumers must use AST role accessors"
+fi
+
+if grep -R "data\.\(party_decl\|roster_decl\)\.name" \
+    src/compiler src/codegen \
+    | grep -v "src/compiler/module_normalizer.c" >/dev/null; then
+    fail "compiler/codegen party/roster-name consumers must use AST domain name accessors"
+fi
+
+if grep -R "data\.\(party_decl\|roster_decl\)\.name" \
+    src/semantic src/compiler src/codegen \
+    | grep -v "src/compiler/module_normalizer.c" >/dev/null; then
+    fail "semantic/compiler/codegen party/roster-name consumers must use AST domain name accessors"
+fi
+
+if grep -R "data\.\(party_decl\|roster_decl\)\.\(role_slots\|role_count\|party_slots\|party_count\|shared_fields\|shared_count\|methods\|method_count\)" \
+    src/compiler src/codegen >/dev/null; then
+    fail "compiler/codegen party/roster child-list consumers must use AST domain child accessors"
+fi
+
+if grep -R "data\.\(world_decl\|relation_decl\|effect_decl\|zone_decl\)\.name" \
+    src/compiler/dir_collect.c \
+    src/compiler/dir_collect_domain.c \
+    src/compiler/hir.c \
+    src/compiler/hir_routines.c \
+    src/compiler/mir_decl_headers.c \
+    src/compiler/mir_decl_header_validate.c \
+    src/compiler/rir_builder.c \
+    src/compiler/rir_builder_intent.c \
+    src/compiler/rir_facts.c \
+    src/codegen/llvm_domain_decl_parts_helpers.c \
+    src/codegen/llvm_inventory_decl_lookup.c \
+    src/codegen/transpiler_decl_lookup.c \
+    src/codegen/transpiler_relation_effect_emit.h \
+    src/codegen/transpiler_world_select_event_emit.h \
+    src/codegen/transpiler_zone_decl_emit.h >/dev/null; then
+    fail "closed world/relation/effect/zone name consumers must use AST domain name accessors"
+fi
+
+if grep -R "data\.\(world_decl\|relation_decl\|effect_decl\|zone_decl\)\.\(shared_fields\|shared_count\|slots\|slot_count\|refreshes\|refresh_count\)" \
+    src/codegen/llvm_domain_decl_parts_helpers.c >/dev/null; then
+    fail "LLVM domain decl parts helper must use AST domain child accessors"
+fi
+
+if grep -R "data\.\(world_decl\|relation_decl\|effect_decl\|zone_decl\)\.name" \
+    src/semantic/type_checker_builtins_query.c \
+    src/semantic/type_checker_builtins_query_world.c \
+    src/semantic/type_checker_builtins_query_domain.c \
+    src/semantic/type_checker_domain_contracts.c \
+    src/semantic/type_checker_domain_projection.c \
+    src/semantic/type_checker_decls_domain_helpers.c \
+    src/semantic/type_checker_effect_decl.c \
+    src/semantic/type_checker_func_action_contract.c \
+    src/semantic/type_checker_relation_decl.c \
+    src/semantic/type_checker_resolution_graph_collect.c \
+    src/semantic/type_checker_resolution_graph_domain.c \
+    src/semantic/type_checker_resolution_graph_labels.c \
+    src/semantic/type_checker_resolution_graph_zone_commands.c \
+    src/semantic/type_checker_resolution_graph_zone_tail.c \
+    src/semantic/type_checker_resolution_graph_world.c \
+    src/semantic/type_checker_resolution_stage_domain_decl.c \
+    src/semantic/type_checker_resolution_stage_lookup.c \
+    src/semantic/type_checker_resolution_stage_systemic.c \
+    src/semantic/type_checker_world_decl.c \
+    src/semantic/type_checker_program.c \
+    src/semantic/type_checker_intent_decl.c \
+    src/semantic/type_checker_zone_decl.c \
+    src/semantic/type_checker_zone_decl_authority.c \
+    src/semantic/type_checker_zone_projection_rules.c \
+    src/semantic/type_checker_zone_state.c \
+    src/semantic/type_checker_zone_shape.c >/dev/null; then
+    fail "closed semantic domain-name lookup consumers must use AST domain name accessors"
+fi
+
+if grep -R "data\.\(relation_decl\|effect_decl\)\.\(slots\|slot_count\|refreshes\|refresh_count\)" \
+    src/semantic/type_checker_domain_contracts.c >/dev/null; then
+    fail "domain contract relation/effect slot scans must use AST domain child accessors"
+fi
+
+if grep -R "data\.\(relation_decl\|effect_decl\|zone_decl\)\.\(slots\|slot_count\|shared_fields\|shared_count\|methods\|method_count\|authorities\|authority_count\|layer_slots\|layer_slot_count\)" \
+    src/semantic/type_checker_resolution_stage_domain_decl.c >/dev/null; then
+    fail "DAG domain stage child-list scans must use AST domain child accessors"
+fi
+
+if grep -R "data\.\(world_decl\|relation_decl\|effect_decl\|zone_decl\)\.\(zones\|zone_count\|slots\|slot_count\|shared_fields\|shared_count\|methods\|method_count\|authorities\|authority_count\|layer_slots\|layer_slot_count\)" \
+    src/semantic/type_checker_host_helpers.c >/dev/null; then
+    fail "semantic host overlay helpers must use AST domain child accessors"
+fi
+
+if grep -R "data\.\(world_decl\|zone_decl\)\.\(zones\|zone_count\|states\|state_count\|layer_slots\|layer_slot_count\|refreshes\|refresh_count\|applies\|apply_count\|links\|link_count\|detaches\|detach_count\|unlinks\|unlink_count\|maintained_effects\|maintained_effect_count\|maintained_relations\|maintained_relation_count\|maintained_states\|maintained_state_count\|activations\|activate_count\|deactivations\|deactivate_count\|maintained_zones\|maintained_zone_count\)" \
+    src/semantic/type_checker_resolution_stage_domain.c >/dev/null; then
+    fail "DAG domain local-contract staging must use AST domain child accessors"
+fi
+
+if grep -R "data\.world_decl\.\(rosters\|roster_count\|zones\|zone_count\|activations\|activate_count\|deactivations\|deactivate_count\|maintained_zones\|maintained_zone_count\|shared_fields\|shared_count\|methods\|method_count\)" \
+    src/semantic/type_checker_world_decl.c >/dev/null; then
+    fail "world declaration validator must use AST world child accessors"
+fi
+
+if grep -R "data\.world_decl\.\(rosters\|roster_count\|zones\|zone_count\|shared_fields\|shared_count\|states\|state_count\|activations\|activate_count\|maintained_zones\|maintained_zone_count\|deactivations\|deactivate_count\)" \
+    src/codegen/transpiler_world_select_event_emit.h >/dev/null; then
+    fail "C world emission must use AST world child accessors"
+fi
+
+if grep -R "data\.world_decl\.\(states\|state_count\)" \
+    src/semantic/type_checker_world_state.c >/dev/null; then
+    fail "world state validator must use AST world child accessors"
+fi
+
+if grep -R "data\.world_decl\.\(zones\|zone_count\)" \
+    src/semantic/type_checker_world_embedding.c >/dev/null; then
+    fail "world embedding validation must use AST world child accessors"
+fi
+
+if grep -R "data\.world_decl\.\(rosters\|roster_count\|zones\|zone_count\|states\|state_count\|activations\|activate_count\|deactivations\|deactivate_count\|maintained_zones\|maintained_zone_count\|shared_fields\|shared_count\|methods\|method_count\)" \
+    src/semantic/type_checker_resolution_graph_world.c >/dev/null; then
+    fail "DAG world precollect must use AST world child accessors"
+fi
+
+if grep -R "data\.zone_decl\.\(slots\|slot_count\|shared_fields\|shared_count\|methods\|method_count\|authorities\|authority_count\|applies\|apply_count\|links\|link_count\|detaches\|detach_count\|unlinks\|unlink_count\|maintained_effects\|maintained_effect_count\|maintained_relations\|maintained_relation_count\)" \
+    src/semantic/type_checker_zone_decl.c >/dev/null; then
+    fail "zone declaration validator must use AST zone child accessors"
+fi
+
+if grep -R "data\.zone_decl\.\(states\|state_count\|detaches\|detach_count\|unlinks\|unlink_count\|maintained_states\|maintained_state_count\|authorities\|authority_count\)" \
+    src/semantic/type_checker_zone_state.c >/dev/null; then
+    fail "zone state validator must use AST zone child accessors"
+fi
+
+if grep -R "data\.zone_decl\.\(authorities\|authority_count\|layer_slots\|layer_slot_count\)" \
+    src/semantic/type_checker_zone_decl_authority.c >/dev/null; then
+    fail "zone authority validator must use AST zone child accessors"
+fi
+
+if grep -R "data\.zone_decl\.\(slots\|slot_count\|refreshes\|refresh_count\|applies\|apply_count\|links\|link_count\|detaches\|detach_count\|unlinks\|unlink_count\|maintained_effects\|maintained_effect_count\|maintained_relations\|maintained_relation_count\|maintained_states\|maintained_state_count\|authorities\|authority_count\)" \
+    src/semantic/type_checker_zone_shape.c >/dev/null; then
+    fail "zone shape warnings must use AST zone child accessors"
+fi
+
+if grep -R "data\.zone_decl\.\(refreshes\|refresh_count\|authorities\|authority_count\)" \
+    src/semantic/type_checker_zone_projection_rules.c >/dev/null; then
+    fail "zone projection rules must use AST zone child accessors"
+fi
+
+if grep -R "data\.zone_decl\.\(slots\|slot_count\|layer_slots\|layer_slot_count\|states\|state_count\|authorities\|authority_count\)" \
+    src/semantic/type_checker_decls_domain_helpers.c >/dev/null; then
+    fail "domain declaration helpers must use AST zone child accessors"
+fi
+
+if grep -R "data\.zone_decl\.\(refreshes\|refresh_count\|applies\|apply_count\|links\|link_count\|detaches\|detach_count\|unlinks\|unlink_count\|maintained_effects\|maintained_effect_count\|maintained_relations\|maintained_relation_count\)" \
+    src/semantic/type_checker_resolution_graph_zone_commands.c >/dev/null; then
+    fail "DAG zone command precollect must use AST zone child accessors"
+fi
+
+if grep -R "data\.zone_decl\.\(states\|state_count\|maintained_states\|maintained_state_count\|authorities\|authority_count\|methods\|method_count\)" \
+    src/semantic/type_checker_resolution_graph_zone_tail.c >/dev/null; then
+    fail "DAG zone state/authority precollect must use AST zone child accessors"
+fi
+
+if grep -R "data\.zone_decl\.\(slots\|slot_count\|shared_fields\|shared_count\|layer_slots\|layer_slot_count\)" \
+    src/semantic/type_checker_resolution_graph_zone_inventory.c >/dev/null; then
+    fail "DAG zone inventory precollect must use AST zone child accessors"
+fi
+
+if grep -R "data\.\(world_decl\|zone_decl\|relation_decl\|effect_decl\)\.\(zones\|zone_count\|slots\|slot_count\|layer_slots\|layer_slot_count\|refreshes\|refresh_count\|states\|state_count\)" \
+    src/semantic/type_checker_builtins_query_domain.c >/dev/null; then
+    fail "domain builtin query helpers must use AST domain child accessors"
+fi
+
+if grep -R "data\.relation_decl\.\(slots\|slot_count\|refreshes\|refresh_count\|shared_fields\|shared_count\|methods\|method_count\)" \
+    src/semantic/type_checker_relation_decl.c >/dev/null; then
+    fail "relation declaration validator must use AST relation child accessors"
+fi
+
+if grep -R "data\.effect_decl\.\(slots\|slot_count\|refreshes\|refresh_count\|shared_fields\|shared_count\|methods\|method_count\)" \
+    src/semantic/type_checker_effect_decl.c >/dev/null; then
+    fail "effect declaration validator must use AST effect child accessors"
+fi
+
+if grep -R "data\.\(relation_decl\|effect_decl\)\.\(slots\|slot_count\|shared_fields\|shared_count\|methods\|method_count\)" \
+    src/semantic/type_checker_resolution_graph_domain.c >/dev/null; then
+    fail "DAG relation/effect precollect must use AST domain child accessors"
+fi
+
+if grep -R "data\.zone_decl\.\(slots\|slot_count\)" \
+    src/semantic/type_checker_domain_projection.c >/dev/null; then
+    fail "domain projection contract checks must use AST zone child accessors"
+fi
+
+if grep -R "data\.\(world_decl\|relation_decl\|effect_decl\|zone_decl\)\.\(rosters\|roster_count\|zones\|zone_count\|methods\|method_count\)" \
+    src/semantic/type_checker_expr_host.c >/dev/null; then
+    fail "host expression lookup must use AST domain child accessors"
+fi
+
+if grep -R "data\.world_decl\.\(rosters\|roster_count\|zones\|zone_count\)" \
+    src/semantic/type_checker_expr.c >/dev/null; then
+    fail "world member expression lookup must use AST world child accessors"
+fi
+
+if grep -R "data\.world_decl\.\(zones\|zone_count\)" \
+    src/semantic/type_checker_call_constructor.c >/dev/null; then
+    fail "world constructor checks must use AST world child accessors"
+fi
+
+if grep -R "data\.zone_decl\.\(slots\|slot_count\)" \
+    src/codegen/transpiler_intent_zone_slot.c \
+    src/codegen/transpiler_overlay_world_projection.h >/dev/null; then
+    fail "C intent/overlay zone-slot helpers must use AST zone child accessors"
+fi
+
+if grep -R "data\.\(relation_decl\|effect_decl\|zone_decl\)\.\(slots\|slot_count\|refreshes\|refresh_count\)" \
+    src/codegen/transpiler_overlay_projection.h >/dev/null; then
+    fail "C overlay projection must use AST domain child accessors"
+fi
+
+if grep -R "data\.\(zone_decl\|relation_decl\|effect_decl\)\.\(layer_slots\|layer_slot_count\|slots\|slot_count\|refreshes\|refresh_count\)" \
+    src/codegen/transpiler_overlay_zone_bind.h >/dev/null; then
+    fail "C overlay zone bind helpers must use AST domain child accessors"
+fi
+
+if grep -R "data\.\(world_decl\|zone_decl\)\.\(rosters\|roster_count\|zones\|zone_count\|slots\|slot_count\|shared_fields\|shared_count\|states\|state_count\|layer_slots\|layer_slot_count\)" \
+    src/codegen/transpiler_projection.c >/dev/null; then
+    fail "C projection lookup helpers must use AST domain child accessors"
+fi
+
+if grep -R "data\.\(zone_decl\|relation_decl\|effect_decl\)\.\(slots\|slot_count\|layer_slots\|layer_slot_count\|shared_fields\|shared_count\)" \
+    src/codegen/transpiler_overlay_host_fields.h >/dev/null; then
+    fail "C overlay host field lookup must use AST domain child accessors"
+fi
+
+if grep -R "data\.zone_decl\.\(layer_slots\|layer_slot_count\)" \
+    src/compiler/rir_builder_intent.c >/dev/null; then
+    fail "RIR intent effect-slot lookup must use AST zone child accessors"
+fi
+
+if grep -R "data\.world_decl\.\(zones\|zone_count\)" \
+    src/codegen/llvm_domain_world_sync.c >/dev/null; then
+    fail "LLVM world sync must use AST world child accessors"
+fi
+
+if grep -R "data\.world_decl\.\(zones\|zone_count\|states\|state_count\)" \
+    src/codegen/llvm_domain_world_frontier.c >/dev/null; then
+    fail "LLVM world frontier must use AST world child accessors"
+fi
+
+if grep -R "data\.zone_decl\.\(states\|state_count\|layer_slots\|layer_slot_count\)" \
+    src/codegen/llvm_domain_zone_frontier_state.c >/dev/null; then
+    fail "LLVM zone frontier state tracking must use AST zone child accessors"
+fi
+
+if grep -R "data\.\(world_decl\|zone_decl\)\.\(zones\|zone_count\|slots\|slot_count\|layer_slots\|layer_slot_count\|states\|state_count\)" \
+    src/codegen/llvm_domain_lookup.c >/dev/null; then
+    fail "LLVM domain lookup must use AST domain child accessors"
+fi
+
+if grep -R "data\.world_decl\.\(zones\|zone_count\|states\|state_count\|activations\|activate_count\|deactivations\|deactivate_count\|maintained_zones\|maintained_zone_count\)" \
+    src/codegen/llvm_domain_world_sync_directives.c >/dev/null; then
+    fail "LLVM world sync directives must use AST world child accessors"
+fi
+
+if grep -R "data\.zone_decl\.\(authorities\|authority_count\)" \
+    src/codegen/llvm_decl.c >/dev/null; then
+    fail "LLVM zone authority checks must use AST zone child accessors"
+fi
+
+if grep -R "data\.zone_decl\.\(slots\|slot_count\|refreshes\|refresh_count\)" \
+    src/codegen/llvm_expr_call_projection_sync.c >/dev/null; then
+    fail "LLVM projection sync calls must use AST zone child accessors"
+fi
+
+if grep -R "data\.zone_decl\.\(layer_slots\|layer_slot_count\|states\|state_count\)" \
+    src/codegen/llvm_intent_effect.c >/dev/null; then
+    fail "LLVM intent effect provenance must use AST zone child accessors"
+fi
+
+if grep -R "data\.\(zone_decl\|relation_decl\|effect_decl\)\.\(slots\|slot_count\|refreshes\|refresh_count\)" \
+    src/codegen/llvm_expr_assignment_projection.c >/dev/null; then
+    fail "LLVM assignment projection invalidation must use AST domain child accessors"
+fi
+
+if grep -R "data\.zone_decl\.\(layer_slots\|layer_slot_count\|states\|state_count\)" \
+    src/codegen/transpiler_block_intent_helpers.h >/dev/null; then
+    fail "C intent effect provenance must use AST zone child accessors"
+fi
+
+if grep -R "data\.zone_decl\.\(authorities\|authority_count\)" \
+    src/codegen/transpiler_mir_func_emit.h >/dev/null; then
+    fail "C MIR function authority checks must use AST zone child accessors"
+fi
+
+if grep -R "data\.zone_decl\.\(slots\|slot_count\|layer_slots\|layer_slot_count\|shared_fields\|shared_count\|states\|state_count\)" \
+    src/codegen/transpiler_zone_struct_emit.h >/dev/null; then
+    fail "C zone struct emission must use AST zone child accessors"
+fi
+
+if grep -R "data\.\(relation_decl\|effect_decl\)\.\(slots\|slot_count\|shared_fields\|shared_count\|refreshes\|refresh_count\)" \
+    src/codegen/transpiler_relation_effect_emit.h >/dev/null; then
+    fail "C relation/effect emission must use AST domain child accessors"
+fi
+
+if grep -R "data\.zone_decl\.\(slots\|slot_count\|layer_slots\|layer_slot_count\|shared_fields\|shared_count\)" \
+    src/codegen/transpiler_mir_ssa_names.c >/dev/null; then
+    fail "C MIR SSA name rendering must use AST zone child accessors"
+fi
+
+if grep -R "data\.\(world_decl\|relation_decl\|effect_decl\|zone_decl\)\.\(methods\|method_count\)" \
+    src/compiler/mir_decl_header_validate.c >/dev/null; then
+    fail "MIR decl header validation must use AST domain child accessors"
+fi
+
+if grep -R "data\.\(world_decl\|relation_decl\|effect_decl\|zone_decl\)\.\(methods\|method_count\)" \
+    src/compiler/hir_routines.c \
+    src/compiler/mir_decl_headers.c >/dev/null; then
+    fail "HIR/MIR domain method collection must use AST domain child accessors"
+fi
+
+if grep -R "data\.\(world_decl\|relation_decl\|effect_decl\|zone_decl\)\.\(methods\|method_count\)" \
+    src/codegen/llvm_inventory_host_methods.c \
+    src/codegen/transpiler_decl_method_view.c >/dev/null; then
+    fail "C/LLVM hosted method views must use AST domain child accessors"
+fi
+
+if grep -R "data\.\(zone_decl\|effect_decl\)\.\(slots\|slot_count\|layer_slots\|layer_slot_count\|refreshes\|refresh_count\|states\|state_count\)" \
+    src/codegen/llvm_expr_call_methods_world_effect_sync.c \
+    src/codegen/llvm_stmt_zone_action.c >/dev/null; then
+    fail "LLVM world/zone effect sync must use AST domain child accessors"
+fi
+
+if grep -R "data\.\(world_decl\|zone_decl\|effect_decl\)\.\(layer_slots\|layer_slot_count\|states\|state_count\|slots\|slot_count\|refreshes\|refresh_count\)" \
+    src/codegen/transpiler_projection_sync_helpers.h >/dev/null; then
+    fail "C projection sync helpers must use AST domain child accessors"
+fi
+
+if grep -R "data\.\(zone_decl\|relation_decl\|effect_decl\)\.\(layer_slots\|layer_slot_count\|slots\|slot_count\|refreshes\|refresh_count\)" \
+    src/codegen/llvm_domain_zone_bind_helpers.c >/dev/null; then
+    fail "LLVM zone bind helpers must use AST domain child accessors"
+fi
+
+if grep -R "data\.\(world_decl\|zone_decl\|relation_decl\|effect_decl\)\.\(zones\|zone_count\|slots\|slot_count\|refreshes\|refresh_count\|shared_fields\|shared_count\)" \
+    src/codegen/llvm_expr_constructor_calls.c >/dev/null; then
+    fail "LLVM constructor calls must use AST domain child accessors"
+fi
+
+if grep -R "data\.zone_decl\.\(layer_slots\|layer_slot_count\|states\|state_count\|detaches\|detach_count\)" \
+    src/codegen/llvm_domain_zone_sync_clauses.c >/dev/null; then
+    fail "LLVM zone sync clauses must use AST zone child accessors"
+fi
+
+if grep -R "data\.zone_decl\.\(applies\|apply_count\|states\|state_count\|maintained_effects\|maintained_effect_count\|maintained_states\|maintained_state_count\)" \
+    src/codegen/llvm_domain_zone_sync.c >/dev/null; then
+    fail "LLVM zone sync must use AST zone child accessors"
+fi
+
+if grep -R "data\.zone_decl\.\(links\|link_count\|states\|state_count\|maintained_relations\|maintained_relation_count\|unlinks\|unlink_count\)" \
+    src/codegen/llvm_domain_zone_sync_relations.c >/dev/null; then
+    fail "LLVM zone relation sync must use AST zone child accessors"
+fi
+
+if grep -R "data\.\(world_decl\|zone_decl\)\.\(zones\|zone_count\|states\|state_count\|layer_slots\|layer_slot_count\)" \
+    src/codegen/domain_frontier_policy.c >/dev/null; then
+    fail "domain frontier policy must use AST domain child accessors"
+fi
+
+if grep -R "data\.\(zone_decl\|relation_decl\|effect_decl\)\.\(slots\|slot_count\)" \
+    src/compiler/rir_facts.c >/dev/null; then
+    fail "RIR domain slot lookup must use AST domain child accessors"
+fi
+
+if grep -R "data\.\(world_decl\|zone_decl\)\.\(zones\|zone_count\|states\|state_count\|layer_slots\|layer_slot_count\)" \
+    src/semantic/type_checker_world_helpers.c >/dev/null; then
+    fail "world helper lookup must use AST domain child accessors"
+fi
+
+if grep -R "data\.\(party_decl\|roster_decl\|world_decl\)\.\(role_slots\|role_count\|party_slots\|party_count\|shared_fields\|shared_count\|methods\|method_count\|rosters\|roster_count\|zones\|zone_count\)" \
+    src/semantic/type_checker_resolution_stage_systemic.c >/dev/null; then
+    fail "DAG systemic stage replay must use AST systemic child accessors"
+fi
+
+if grep -R "data\.\(world_decl\|relation_decl\|effect_decl\)\.\(rosters\|roster_count\|zones\|zone_count\|slots\|slot_count\|refreshes\|refresh_count\)" \
+    src/compiler/dir_collect.c >/dev/null; then
+    fail "DIR collection must use AST domain child accessors"
+fi
+
+if grep -R "data\.\(relation_decl\|effect_decl\)\.\(slots\|slot_count\|refreshes\|refresh_count\|shared_fields\|shared_count\|methods\|method_count\)" \
+    src/compiler/runtime_none_contract.c >/dev/null; then
+    fail "runtime-none contract scanner must use AST domain child accessors"
+fi
+
+if grep -R "data\.zone_decl\.\(slots\|slot_count\|layer_slots\|layer_slot_count\|authorities\|authority_count\|refreshes\|refresh_count\|states\|state_count\)" \
+    src/compiler/dir_collect_domain.c >/dev/null; then
+    fail "DIR zone collection must use AST zone child accessors"
+fi
+
+if grep -R "data\.\(party_decl\|roster_decl\)\.\(role_slots\|role_count\|party_slots\|party_count\|shared_fields\|shared_count\|methods\|method_count\)" \
+    src/semantic/type_checker_resolution_graph_decl.c >/dev/null; then
+    fail "DAG systemic precollect must use AST systemic child accessors"
+fi
+
+if grep -R "data\.\(zone_decl\|effect_decl\)\.\(slots\|slot_count\)" \
+    src/semantic/type_checker_func_action_contract.c >/dev/null; then
+    fail "action contract validation must use AST domain child accessors"
+fi
+
+if grep -R "data\.zone_decl\.\(slots\|slot_count\|authorities\|authority_count\)" \
+    src/semantic/type_checker_intent_authority.c >/dev/null; then
+    fail "intent authority validation must use AST zone child accessors"
+fi
+
+if grep -R "data\.\(zone_decl\|world_decl\)\.\(slots\|slot_count\|zones\|zone_count\)" \
+    src/semantic/type_checker_overlay_common.c >/dev/null; then
+    fail "overlay common hosted scope registration must use AST domain child accessors"
+fi
+
+if grep -R "data\.zone_decl\.\(slots\|slot_count\)" \
+    src/semantic/type_checker_intent_participants.c >/dev/null; then
+    fail "intent participant validation must use AST zone child accessors"
+fi
+
+if grep -R "data\.party_decl\.\(role_slots\|role_count\|shared_fields\|shared_count\|methods\|method_count\)" \
+    src/semantic/type_checker_party_decl.c >/dev/null; then
+    fail "party declaration validator must use AST party child accessors"
+fi
+
+if grep -R "data\.roster_decl\.\(party_slots\|party_count\|shared_fields\|shared_count\|methods\|method_count\)" \
+    src/semantic/type_checker_roster_decl.c >/dev/null; then
+    fail "roster declaration validator must use AST roster child accessors"
+fi
+
+if grep -R "data\.\(relation_decl\|effect_decl\|zone_decl\)\.\(refreshes\|refresh_count\|states\|state_count\)" \
+    src/semantic/type_checker_builtins_query.c >/dev/null; then
+    fail "builtin domain query predicates must use AST domain child accessors"
+fi
+
+if grep -R "data\.world_decl\.\(zones\|zone_count\|states\|state_count\)" \
+    src/semantic/type_checker_builtins_query_world.c >/dev/null; then
+    fail "world builtin query predicates must use AST world child accessors"
+fi
+
+if grep -R "data\.\(world_decl\|relation_decl\|effect_decl\|zone_decl\)\.name" \
+    src/compiler src/codegen \
+    | grep -v "src/compiler/module_normalizer.c" >/dev/null; then
+    fail "compiler/codegen world/relation/effect/zone-name consumers must use AST domain name accessors"
+fi
 
 if grep -R "resolve_type_node(" src/semantic/type_checker_resolution_graph_*.c >/dev/null; then
     fail "DAG graph core/precollect layer must not call resolve_type_node directly"

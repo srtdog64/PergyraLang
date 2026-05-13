@@ -26,6 +26,7 @@ typedef struct
 
 Type *flow_normalize_type(Type *type);
 bool flow_condition_is_static_bool(const ASTNode *node);
+bool flow_static_bool_value(const ASTNode *node, bool *value_out);
 bool flow_ast_contains_defer_stmt(const ASTNode *node);
 void flow_reject_dynamic_defer_control(SemanticContext *ctx,
                                        ASTNode *site,

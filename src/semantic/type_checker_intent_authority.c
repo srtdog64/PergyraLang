@@ -83,15 +83,18 @@ intent_step_derive_authorized_by_from_zone(ASTNode *intent_decl,
     bool ambiguous = false;
     ASTNode *authority_slot;
     const char *authority_slot_name;
+    size_t authority_count;
 
     if (intent_decl == NULL || step == NULL || zone_decl == NULL || ctx == NULL
         || zone_decl->type != AST_ZONE_DECL
-        || zone_decl->data.zone_decl.authority_count == 0
         || step->data.intent_step.authorized_by_count > 0
         || !intent_step_can_derive_zone_authority(
             step, has_subintent, step_requires_authority_flow)) {
         return;
     }
+    ast_zone_authorities(zone_decl, &authority_count);
+    if (authority_count == 0)
+        return;
 
     alias = intent_step_single_who_alias(step);
     if (alias == NULL)
@@ -126,9 +129,19 @@ type_check_intent_step_authority_contract(ASTNode *intent_decl,
                                           bool step_requires_authority_flow,
                                           SemanticContext *ctx)
 {
+    const char *zone_name;
+    ASTNode **zone_slots = NULL;
+    size_t zone_slot_count = 0;
+    size_t zone_authority_count = 0;
+
     if (intent_decl == NULL || step == NULL || step->type != AST_INTENT_STEP
         || ctx == NULL) {
         return;
+    }
+    zone_name = ast_zone_name(zone_decl);
+    if (zone_decl != NULL && zone_decl->type == AST_ZONE_DECL) {
+        zone_slots = ast_zone_slots(zone_decl, &zone_slot_count);
+        ast_zone_authorities(zone_decl, &zone_authority_count);
     }
 
     intent_step_derive_authorized_by_from_zone(
@@ -136,7 +149,7 @@ type_check_intent_step_authority_contract(ASTNode *intent_decl,
         step_requires_authority_flow, ctx);
 
     if (zone_decl != NULL
-        && zone_decl->data.zone_decl.authority_count > 0
+        && zone_authority_count > 0
         && step->data.intent_step.authorized_by_count == 0
         && !has_subintent
         && (((step->data.intent_step.where_type != NULL
@@ -173,9 +186,9 @@ type_check_intent_step_authority_contract(ASTNode *intent_decl,
                 "- or move the step to a non-authority zone\n"
                 "- or change the action contract that this step reuses",
                 step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
-                zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>",
+                zone_name != NULL ? zone_name : "<zone>",
                 authority_reason,
-                zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>",
+                zone_name != NULL ? zone_name : "<zone>",
                 inherited_summary[0] != '\0' ? "" : "- no inherited or derived zone contract provenance was recorded\n",
                 inherited_summary[0] != '\0' ? inherited_summary : "",
                 inherited_summary[0] != '\0' ? "\n" : "",
@@ -195,9 +208,9 @@ type_check_intent_step_authority_contract(ASTNode *intent_decl,
                 "- or move the step to a non-authority zone\n"
                 "- or remove the authority-sensitive operation from this step",
                 step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
-                zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>",
+                zone_name != NULL ? zone_name : "<zone>",
                 authority_reason,
-                zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>",
+                zone_name != NULL ? zone_name : "<zone>",
                 inherited_summary[0] != '\0' ? "" : "- no inherited or derived zone contract provenance was recorded\n",
                 inherited_summary[0] != '\0' ? inherited_summary : "",
                 inherited_summary[0] != '\0' ? "\n" : "",
@@ -256,8 +269,8 @@ type_check_intent_step_authority_contract(ASTNode *intent_decl,
                     alias != NULL ? alias : "<participant>");
                 continue;
             }
-            if (!domain_has_subject_slot_type(zone_decl->data.zone_decl.slots,
-                    zone_decl->data.zone_decl.slot_count, ctx, participant_type_name)) {
+            if (!domain_has_subject_slot_type(zone_slots,
+                    zone_slot_count, ctx, participant_type_name)) {
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_INTENT_STEP_INVALID, PGY_CAUSE_INTENT_STEP, PGY_FIX_ALIGN_STEP_WITH_ZONE_ACTION_CONTRACTS, step,
                     "Intent step '%s' authorized participant '%s' has type '%s', but zone '%s' has no matching subject slot.\n"
                     "Reason:\n"
@@ -274,19 +287,19 @@ type_check_intent_step_authority_contract(ASTNode *intent_decl,
                     step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
                     alias != NULL ? alias : "<participant>",
                     participant_type_name,
-                    zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>",
-                    zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>",
+                    zone_name != NULL ? zone_name : "<zone>",
+                    zone_name != NULL ? zone_name : "<zone>",
                     alias != NULL ? alias : "<participant>",
                     alias != NULL ? alias : "<participant>",
                     participant_type_name,
-                    zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>",
+                    zone_name != NULL ? zone_name : "<zone>",
                     participant_type_name,
                     contract_summary[0] != '\0' ? "" : "- no inherited/derived authority provenance was recorded\n",
                     contract_summary[0] != '\0' ? contract_summary : "",
                     contract_summary[0] != '\0' ? "\n" : "",
-                    zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>",
-                    zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>");
-            } else if (zone_decl->data.zone_decl.authority_count > 0) {
+                    zone_name != NULL ? zone_name : "<zone>",
+                    zone_name != NULL ? zone_name : "<zone>");
+            } else if (zone_authority_count > 0) {
                 bool authority_slot_ambiguous = false;
                 ASTNode *authority_slot = resolve_zone_subject_slot_for_participant(
                     zone_decl, ctx, alias, participant_type_name,
@@ -309,8 +322,8 @@ type_check_intent_step_authority_contract(ASTNode *intent_decl,
                         step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
                         alias != NULL ? alias : "<participant>",
                         participant_type_name,
-                        zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>",
-                        zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>",
+                        zone_name != NULL ? zone_name : "<zone>",
+                        zone_name != NULL ? zone_name : "<zone>",
                         participant_type_name,
                         alias != NULL ? alias : "<participant>",
                         contract_summary[0] != '\0' ? "" : "- no inherited/derived authority provenance was recorded\n",
@@ -333,19 +346,19 @@ type_check_intent_step_authority_contract(ASTNode *intent_decl,
                         step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
                         alias != NULL ? alias : "<participant>",
                         authority_slot_name != NULL ? authority_slot_name : "<unbound>",
-                        zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>",
-                        zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>",
+                        zone_name != NULL ? zone_name : "<zone>",
+                        zone_name != NULL ? zone_name : "<zone>",
                         alias != NULL ? alias : "<participant>",
                         alias != NULL ? alias : "<participant>",
                         participant_type_name,
-                        zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>",
+                        zone_name != NULL ? zone_name : "<zone>",
                         authority_slot_name != NULL ? authority_slot_name : "<unbound>",
                         contract_summary[0] != '\0' ? "" : "- no inherited/derived authority provenance was recorded\n",
                         contract_summary[0] != '\0' ? contract_summary : "",
                         contract_summary[0] != '\0' ? "\n" : "",
-                        zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>",
+                        zone_name != NULL ? zone_name : "<zone>",
                         authority_slot_name != NULL ? authority_slot_name : "<slot>",
-                        zone_decl->data.zone_decl.name != NULL ? zone_decl->data.zone_decl.name : "<zone>");
+                        zone_name != NULL ? zone_name : "<zone>");
                 }
             }
         }

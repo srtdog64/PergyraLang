@@ -163,7 +163,7 @@ require_terms "C zone frontier emitter" "$c_zone_contract" \
     "while (_pgy_zone_frontier_continue && _pgy_zone_frontier_pass < _pgy_zone_frontier_pass_limit)" \
     "_pgy_zone_frontier_continue = true" \
     "PGY_PANIC" \
-    "zone frontier recompute exceeded bounded pass limit"
+    "PGY_FRONTIER_REASON_ZONE_OVERFLOW"
 
 require_terms "C world frontier emitter" "$ROOT_DIR/src/codegen/transpiler_world_select_event_emit.h" \
     "transpiler_frontier_lookup_zone" \
@@ -175,18 +175,18 @@ require_terms "C world frontier emitter" "$ROOT_DIR/src/codegen/transpiler_world
     "_pgy_world_derived_changed_any" \
     "while (_pgy_world_frontier_continue && _pgy_world_frontier_pass < _pgy_world_frontier_pass_limit)" \
     "_pgy_world_frontier_continue = true" \
-    "world frontier recompute exceeded bounded pass limit" \
+    "PGY_FRONTIER_REASON_WORLD_TRANSITIVE_OVERFLOW" \
     "_pgy_world_pass_limit" \
     "while (_pgy_world_continue && _pgy_world_pass < _pgy_world_pass_limit)" \
     "PGY_PANIC" \
-    "world derived recompute exceeded bounded pass limit"
+    "PGY_FRONTIER_REASON_WORLD_DERIVED_OVERFLOW"
 
 require_terms "C projection frontier emitter" "$ROOT_DIR/src/codegen/transpiler_domain_provenance_emit.h" \
     "pgy_domain_projection_frontier_pass_limit" \
     "_pgy_%s_pass_limit" \
     "while (_pgy_%s_continue && _pgy_%s_pass < _pgy_%s_pass_limit)" \
     "PGY_PANIC" \
-    "projection recompute exceeded bounded pass limit"
+    "PGY_FRONTIER_REASON_PROJECTION_OVERFLOW"
 
 require_terms "LLVM world/zone frontier emitter" "$llvm_domain_contract" \
     "llvm_world_frontier_lookup_zone" \
@@ -203,16 +203,16 @@ require_terms "LLVM world/zone frontier emitter" "$llvm_domain_contract" \
     "world.frontier.overflow" \
     "world.derived.overflow" \
     "pgy_runtime_panic_internal_invariant_export" \
-    "zone frontier recompute exceeded bounded pass limit" \
-    "world frontier recompute exceeded bounded pass limit" \
-    "world derived recompute exceeded bounded pass limit" \
+    "PGY_FRONTIER_REASON_ZONE_OVERFLOW" \
+    "PGY_FRONTIER_REASON_WORLD_TRANSITIVE_OVERFLOW" \
+    "PGY_FRONTIER_REASON_WORLD_DERIVED_OVERFLOW" \
     "LLVMBuildUnreachable"
 
 require_terms "LLVM projection frontier emitter" "$llvm_projection_contract" \
     "pgy_domain_projection_frontier_pass_limit" \
     "projection.loop.overflow" \
     "pgy_runtime_panic_internal_invariant_export" \
-    "projection recompute exceeded bounded pass limit" \
+    "PGY_FRONTIER_REASON_PROJECTION_OVERFLOW" \
     "LLVMBuildUnreachable"
 
 require_terms "frontier policy source of truth" "$ROOT_DIR/src/runtime/pgy_frontier_policy.h" \
@@ -225,9 +225,15 @@ require_terms "frontier policy source of truth" "$ROOT_DIR/src/runtime/pgy_front
     "pgy_frontier_world_pass_limit" \
     "pgy_frontier_world_transitive_pass_limit" \
     "embedded_zone_frontier_count" \
-    "pgy_frontier_world_derived_pass_limit"
+    "pgy_frontier_world_derived_pass_limit" \
+    "PGY_FRONTIER_REASON_GENERIC_OVERFLOW" \
+    "PGY_FRONTIER_REASON_PROJECTION_OVERFLOW" \
+    "PGY_FRONTIER_REASON_ZONE_OVERFLOW" \
+    "PGY_FRONTIER_REASON_WORLD_TRANSITIVE_OVERFLOW" \
+    "PGY_FRONTIER_REASON_WORLD_DERIVED_OVERFLOW"
 
 require_terms "codegen frontier policy compatibility wrapper declarations" "$ROOT_DIR/src/codegen/domain_frontier_policy.h" \
+    "../runtime/pgy_frontier_policy.h" \
     "PgyDomainZoneLookupFn" \
     "pgy_domain_zone_frontier_pass_limit" \
     "pgy_domain_projection_frontier_pass_limit" \
@@ -236,7 +242,6 @@ require_terms "codegen frontier policy compatibility wrapper declarations" "$ROO
     "pgy_domain_world_transitive_frontier_pass_limit"
 
 require_terms "codegen frontier policy compatibility wrapper implementation" "$ROOT_DIR/src/codegen/domain_frontier_policy.c" \
-    "../runtime/pgy_frontier_policy.h" \
     "pgy_frontier_zone_pass_limit" \
     "pgy_frontier_projection_pass_limit" \
     "pgy_frontier_world_derived_pass_limit" \
@@ -244,10 +249,13 @@ require_terms "codegen frontier policy compatibility wrapper implementation" "$R
     "zone_decl->data.zone_decl.state_count" \
     "zone_decl->data.zone_decl.layer_slot_count"
 
-require_terms "frontier policy arithmetic smoke" "$ROOT_DIR/tests/runtime_frontier_policy_smoke.sh" \
+require_terms "frontier runtime policy smoke" "$ROOT_DIR/tests/runtime_frontier_policy_smoke.sh" \
     "pgy_frontier_pass_limit_cap" \
     "pgy_frontier_pass_limit_add" \
     "pgy_frontier_pass_limit_add_one" \
+    "PGY_FRONTIER_PASS_LIMIT_FACT_COUNT" \
+    "PGY_FRONTIER_OVERFLOW_REASON_FACT_COUNT" \
+    "PGY_FRONTIER_REASON_WORLD_TRANSITIVE_OVERFLOW" \
     "pgy_frontier_world_transitive_pass_limit" \
     "pgy_domain_zone_frontier_pass_limit" \
     "pgy_domain_projection_frontier_pass_limit" \
@@ -336,6 +344,11 @@ if grep -Fq 'llvm_lookup_or_create_function(ctx, "abort"' "$llvm_domain_contract
 fi
 if grep -Fq 'llvm_lookup_or_create_function(ctx, "abort"' "$llvm_projection_contract"; then
     fail "LLVM projection frontier emitter must use runtime panic export, not raw abort"
+fi
+if grep -E \
+    'projection recompute exceeded bounded pass limit|zone frontier recompute exceeded bounded pass limit|world frontier recompute exceeded bounded pass limit|world derived recompute exceeded bounded pass limit|frontier recompute exceeded bounded pass limit' \
+    "$ROOT_DIR"/src/codegen/* >/dev/null 2>&1; then
+    fail "frontier overflow reason strings must live in runtime policy, not codegen emitters"
 fi
 
 echo "[runtime-frontier-contract] bounded C/LLVM frontier contracts are gated"

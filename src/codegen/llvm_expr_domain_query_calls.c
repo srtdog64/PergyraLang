@@ -261,8 +261,8 @@ llvm_emit_has_zone_detail_query(ASTNode *node, LLVMGenCtx *ctx,
     }
 
     zone_decl = llvm_resolve_world_zone_decl(ctx, world_decl, zone_name);
-    zone_cls = zone_decl != NULL && zone_decl->data.zone_decl.name != NULL
-        ? llvm_lookup_class(ctx, zone_decl->data.zone_decl.name)
+    zone_cls = zone_decl != NULL && ast_zone_name(zone_decl) != NULL
+        ? llvm_lookup_class(ctx, ast_zone_name(zone_decl))
         : NULL;
     zone_idx = llvm_class_field_index(world_cls, zone_name);
     if (zone_decl == NULL || zone_cls == NULL || zone_idx < 0) {

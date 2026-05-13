@@ -661,7 +661,7 @@ test_air_reports_dag_fallback_drift(void)
         && !air_verify(air, &error)
         && error != NULL
         && strstr(error, "PGY_AIR_INVARIANT_INVALID") != NULL
-        && strstr(error, "DAG evidence node 0 has fallback DAG facts") != NULL;
+        && strstr(error, "DAG evidence node 0 has unresolved metadata dead-end facts") != NULL;
     free(error);
     air_destroy(air);
     return ok;
@@ -740,7 +740,7 @@ test_air_rejects_dag_fallback_evidence(void)
     bool ok = !air_validate(&air, &error)
         && error != NULL
         && strstr(error, "PGY_AIR_INVARIANT_INVALID") != NULL
-        && strstr(error, "DAG evidence node 0 has fallback DAG facts") != NULL;
+        && strstr(error, "DAG evidence node 0 has unresolved metadata dead-end facts") != NULL;
     free(error);
     return ok;
 }

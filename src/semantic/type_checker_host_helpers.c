@@ -46,21 +46,37 @@ overlay_field_count(ASTNode *decl)
         return 0;
     switch (decl->type) {
     case AST_ROSTER_DECL:
-        return decl->data.roster_decl.party_count
-            + decl->data.roster_decl.shared_count;
-    case AST_WORLD_DECL:
-        return decl->data.world_decl.roster_count
-            + decl->data.world_decl.zone_count
-            + decl->data.world_decl.shared_count;
-    case AST_ZONE_DECL:
-        return decl->data.zone_decl.slot_count
-            + decl->data.zone_decl.shared_count;
-    case AST_RELATION_DECL:
-        return decl->data.relation_decl.slot_count
-            + decl->data.relation_decl.shared_count;
-    case AST_EFFECT_DECL:
-        return decl->data.effect_decl.slot_count
-            + decl->data.effect_decl.shared_count;
+        return ast_roster_party_count(decl) + ast_roster_shared_count(decl);
+    case AST_WORLD_DECL: {
+        size_t roster_count;
+        size_t zone_count;
+        size_t shared_count;
+        (void)ast_world_rosters(decl, &roster_count);
+        (void)ast_world_zones(decl, &zone_count);
+        (void)ast_world_shared_fields(decl, &shared_count);
+        return roster_count + zone_count + shared_count;
+    }
+    case AST_ZONE_DECL: {
+        size_t slot_count;
+        size_t shared_count;
+        (void)ast_zone_slots(decl, &slot_count);
+        (void)ast_zone_shared_fields(decl, &shared_count);
+        return slot_count + shared_count;
+    }
+    case AST_RELATION_DECL: {
+        size_t slot_count;
+        size_t shared_count;
+        (void)ast_relation_slots(decl, &slot_count);
+        (void)ast_relation_shared_fields(decl, &shared_count);
+        return slot_count + shared_count;
+    }
+    case AST_EFFECT_DECL: {
+        size_t slot_count;
+        size_t shared_count;
+        (void)ast_effect_slots(decl, &slot_count);
+        (void)ast_effect_shared_fields(decl, &shared_count);
+        return slot_count + shared_count;
+    }
     default:
         return 0;
     }
@@ -75,76 +91,101 @@ overlay_field_decl_at(ASTNode *decl, size_t index, const char **field_name_out)
         return NULL;
 
     switch (decl->type) {
-    case AST_ROSTER_DECL:
-        if (index < decl->data.roster_decl.party_count)
+    case AST_ROSTER_DECL: {
+        size_t party_count = ast_roster_party_count(decl);
+        if (index < party_count)
             return NULL;
-        index -= decl->data.roster_decl.party_count;
-        if (index < decl->data.roster_decl.shared_count) {
-            ASTNode *shared = decl->data.roster_decl.shared_fields[index];
+        index -= party_count;
+        if (index < ast_roster_shared_count(decl)) {
+            ASTNode *shared = ast_roster_shared(decl, index);
             if (field_name_out != NULL && shared != NULL)
                 *field_name_out = shared->data.party_shared.name;
             return shared != NULL ? shared->data.party_shared.type : NULL;
         }
         break;
-    case AST_WORLD_DECL:
-        if (index < decl->data.world_decl.roster_count)
+    }
+    case AST_WORLD_DECL: {
+        size_t roster_count;
+        size_t zone_count;
+        size_t shared_count;
+        ASTNode **shared_fields;
+        (void)ast_world_rosters(decl, &roster_count);
+        (void)ast_world_zones(decl, &zone_count);
+        shared_fields = ast_world_shared_fields(decl, &shared_count);
+        if (index < roster_count)
             return NULL;
-        index -= decl->data.world_decl.roster_count;
-        if (index < decl->data.world_decl.zone_count)
+        index -= roster_count;
+        if (index < zone_count)
             return NULL;
-        index -= decl->data.world_decl.zone_count;
-        if (index < decl->data.world_decl.shared_count) {
-            ASTNode *shared = decl->data.world_decl.shared_fields[index];
+        index -= zone_count;
+        if (index < shared_count) {
+            ASTNode *shared = shared_fields[index];
             if (field_name_out != NULL && shared != NULL)
                 *field_name_out = shared->data.party_shared.name;
             return shared != NULL ? shared->data.party_shared.type : NULL;
         }
         break;
-    case AST_ZONE_DECL:
-        if (index < decl->data.zone_decl.slot_count) {
-            ASTNode *slot = decl->data.zone_decl.slots[index];
+    }
+    case AST_ZONE_DECL: {
+        size_t slot_count;
+        size_t shared_count;
+        ASTNode **slots = ast_zone_slots(decl, &slot_count);
+        ASTNode **shared_fields = ast_zone_shared_fields(decl, &shared_count);
+        if (index < slot_count) {
+            ASTNode *slot = slots[index];
             if (field_name_out != NULL && slot != NULL)
                 *field_name_out = slot->data.domain_slot.slot_name;
             return slot != NULL ? slot->data.domain_slot.type : NULL;
         }
-        index -= decl->data.zone_decl.slot_count;
-        if (index < decl->data.zone_decl.shared_count) {
-            ASTNode *shared = decl->data.zone_decl.shared_fields[index];
+        index -= slot_count;
+        if (index < shared_count) {
+            ASTNode *shared = shared_fields[index];
             if (field_name_out != NULL && shared != NULL)
                 *field_name_out = shared->data.party_shared.name;
             return shared != NULL ? shared->data.party_shared.type : NULL;
         }
         break;
-    case AST_RELATION_DECL:
-        if (index < decl->data.relation_decl.slot_count) {
-            ASTNode *slot = decl->data.relation_decl.slots[index];
+    }
+    case AST_RELATION_DECL: {
+        size_t slot_count;
+        size_t shared_count;
+        ASTNode **slots = ast_relation_slots(decl, &slot_count);
+        ASTNode **shared_fields = ast_relation_shared_fields(decl, &shared_count);
+        if (index < slot_count) {
+            ASTNode *slot = slots[index];
             if (field_name_out != NULL && slot != NULL)
                 *field_name_out = slot->data.domain_slot.slot_name;
             return slot != NULL ? slot->data.domain_slot.type : NULL;
         }
-        index -= decl->data.relation_decl.slot_count;
-        if (index < decl->data.relation_decl.shared_count) {
-            ASTNode *shared = decl->data.relation_decl.shared_fields[index];
+        index -= slot_count;
+        if (index < shared_count) {
+            ASTNode *shared = shared_fields[index];
             if (field_name_out != NULL && shared != NULL)
                 *field_name_out = shared->data.party_shared.name;
             return shared != NULL ? shared->data.party_shared.type : NULL;
         }
         break;
-    case AST_EFFECT_DECL:
-        if (index < decl->data.effect_decl.slot_count) {
-            ASTNode *slot = decl->data.effect_decl.slots[index];
+    }
+    case AST_EFFECT_DECL: {
+        size_t slot_count;
+        size_t shared_count;
+        ASTNode **slots = ast_effect_slots(decl, &slot_count);
+        ASTNode **shared_fields = ast_effect_shared_fields(decl, &shared_count);
+        if (index < slot_count) {
+            ASTNode *slot = slots[index];
             if (field_name_out != NULL && slot != NULL)
                 *field_name_out = slot->data.domain_slot.slot_name;
             return slot != NULL ? slot->data.domain_slot.type : NULL;
         }
-        index -= decl->data.effect_decl.slot_count;
-        if (index < decl->data.effect_decl.shared_count) {
-            ASTNode *shared = decl->data.effect_decl.shared_fields[index];
+        index -= slot_count;
+        if (index < shared_count) {
+            ASTNode *shared = shared_fields[index];
             if (field_name_out != NULL && shared != NULL)
                 *field_name_out = shared->data.party_shared.name;
             return shared != NULL ? shared->data.party_shared.type : NULL;
         }
         break;
+    }
     default:
         break;
     }
@@ -291,13 +332,17 @@ bool
 zone_has_authority_for_subject_type(ASTNode *zone, SemanticContext *ctx,
                                     const char *type_name)
 {
+    ASTNode **authorities;
+    size_t authority_count;
+
     if (zone == NULL || zone->type != AST_ZONE_DECL || ctx == NULL
         || type_name == NULL) {
         return false;
     }
 
-    for (size_t i = 0; i < zone->data.zone_decl.authority_count; i++) {
-        ASTNode *authority = zone->data.zone_decl.authorities[i];
+    authorities = ast_zone_authorities(zone, &authority_count);
+    for (size_t i = 0; i < authority_count; i++) {
+        ASTNode *authority = authorities[i];
         ASTNode *slot;
         Type *slot_type;
         if (authority == NULL
@@ -321,11 +366,15 @@ zone_has_authority_for_subject_type(ASTNode *zone, SemanticContext *ctx,
 bool
 zone_has_effect_layer_type(ASTNode *zone, const char *effect_name)
 {
+    ASTNode **layer_slots;
+    size_t layer_slot_count;
+
     if (zone == NULL || zone->type != AST_ZONE_DECL || effect_name == NULL)
         return false;
 
-    for (size_t i = 0; i < zone->data.zone_decl.layer_slot_count; i++) {
-        ASTNode *slot = zone->data.zone_decl.layer_slots[i];
+    layer_slots = ast_zone_layer_slots(zone, &layer_slot_count);
+    for (size_t i = 0; i < layer_slot_count; i++) {
+        ASTNode *slot = layer_slots[i];
         if (slot == NULL || slot->type != AST_ZONE_LAYER_SLOT
             || slot->data.zone_layer_slot.layer_type == NULL
             || slot->data.zone_layer_slot.is_relation) {

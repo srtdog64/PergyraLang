@@ -1,6 +1,7 @@
 #ifdef PGY_LLVM_ENABLED
 
 #include "llvm_domain_sync_frontier.h"
+#include "../runtime/pgy_frontier_policy.h"
 
 void
 llvm_emit_sync_generation_increment(LLVMGenCtx *ctx,
@@ -43,7 +44,7 @@ llvm_emit_frontier_overflow_abort(LLVMGenCtx *ctx, const char *reason)
         panic_ft, ctx->type_void);
     if (panic_fn != NULL) {
         LLVMValueRef reason_arg = LLVMBuildGlobalStringPtr(ctx->builder,
-            reason != NULL ? reason : "frontier recompute exceeded bounded pass limit",
+            reason != NULL ? reason : PGY_FRONTIER_REASON_GENERIC_OVERFLOW,
             llvm_tmp_name(ctx));
         LLVMBuildCall2(ctx->builder, panic_fn->fn_type, panic_fn->fn,
             &reason_arg, 1, "");

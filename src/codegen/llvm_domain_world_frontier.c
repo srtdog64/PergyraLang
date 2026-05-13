@@ -66,14 +66,18 @@ llvm_world_sync_emit_frontier(ASTNode *stmt, LLVMClassTypeEntry *decl_cls,
     LLVMBasicBlockRef finalize_bb;
     LLVMBasicBlockRef done_bb;
     LLVMBasicBlockRef derived_exit_bb;
-    size_t zone_count;
+    size_t zone_count = 0;
+    ASTNode **zones;
+    size_t state_count = 0;
+    ASTNode **states;
 
     if (stmt == NULL || stmt->type != AST_WORLD_DECL || decl_cls == NULL
         || sync_fn == NULL || derived_dirty_addr == NULL
         || needs_derived_addr == NULL || ctx == NULL)
         return;
 
-    zone_count = stmt->data.world_decl.zone_count;
+    zones = ast_world_zones(stmt, &zone_count);
+    states = ast_world_states(stmt, &state_count);
     frontier_pass_addr = llvm_create_entry_alloca(ctx, ctx->type_i32,
         "world.frontier.pass.addr");
     frontier_continue_addr = llvm_create_entry_alloca(ctx, ctx->type_i1,
@@ -155,7 +159,7 @@ llvm_world_sync_emit_frontier(ASTNode *stmt, LLVMClassTypeEntry *decl_cls,
     }
 
     for (size_t i = 0; i < zone_count; i++) {
-        ASTNode *zone = stmt->data.world_decl.zones[i];
+        ASTNode *zone = zones[i];
         int zone_idx;
         int dirty_idx;
         int seen_idx;
@@ -294,8 +298,8 @@ llvm_world_sync_emit_frontier(ASTNode *stmt, LLVMClassTypeEntry *decl_cls,
                 LLVMConstInt(ctx->type_i32, 1, 0), llvm_tmp_name(ctx)),
             pass_addr);
     }
-    for (size_t i = 0; i < stmt->data.world_decl.state_count; i++) {
-        ASTNode *state = stmt->data.world_decl.states[i];
+    for (size_t i = 0; i < state_count; i++) {
+        ASTNode *state = states[i];
         const char *slot_name;
         char state_field[256];
         char active_field[256];
@@ -460,7 +464,7 @@ llvm_world_sync_emit_frontier(ASTNode *stmt, LLVMClassTypeEntry *decl_cls,
 
     LLVMPositionBuilderAtEnd(ctx->builder, overflow_bb);
     llvm_emit_frontier_overflow_abort(ctx,
-        "world derived recompute exceeded bounded pass limit");
+        PGY_FRONTIER_REASON_WORLD_DERIVED_OVERFLOW);
 
     LLVMPositionBuilderAtEnd(ctx->builder, finalize_bb);
     LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 0, 0), derived_dirty_addr);
@@ -478,7 +482,7 @@ llvm_world_sync_emit_frontier(ASTNode *stmt, LLVMClassTypeEntry *decl_cls,
         pending_val = LLVMBuildOr(ctx->builder, pending_val, dirty_pending,
             llvm_tmp_name(ctx));
         for (size_t i = 0; i < zone_count; i++) {
-            ASTNode *zone = stmt->data.world_decl.zones[i];
+            ASTNode *zone = zones[i];
             char dirty_field[256];
             int dirty_idx;
             LLVMValueRef self_ptr;
@@ -515,7 +519,7 @@ llvm_world_sync_emit_frontier(ASTNode *stmt, LLVMClassTypeEntry *decl_cls,
 
     LLVMPositionBuilderAtEnd(ctx->builder, frontier_overflow_bb);
     llvm_emit_frontier_overflow_abort(ctx,
-        "world frontier recompute exceeded bounded pass limit");
+        PGY_FRONTIER_REASON_WORLD_TRANSITIVE_OVERFLOW);
 
     LLVMPositionBuilderAtEnd(ctx->builder, frontier_exit_bb);
 }

@@ -127,11 +127,14 @@ find_domain_slot_local(ASTNode **slots, size_t slot_count, const char *slot_name
 ASTNode *
 find_zone_domain_slot(ASTNode *zone, const char *slot_name)
 {
+    ASTNode **slots;
+    size_t slot_count;
+
     if (zone == NULL || slot_name == NULL)
         return NULL;
 
-    return find_domain_slot_local(zone->data.zone_decl.slots,
-        zone->data.zone_decl.slot_count, slot_name);
+    slots = ast_zone_slots(zone, &slot_count);
+    return find_domain_slot_local(slots, slot_count, slot_name);
 }
 
 ASTNode *
@@ -149,15 +152,15 @@ find_domain_decl_by_name(ASTNode *program,
 
         const char *decl_name = NULL;
         if (decl_type == AST_RELATION_DECL)
-            decl_name = stmt->data.relation_decl.name;
+            decl_name = ast_relation_name(stmt);
         else if (decl_type == AST_EFFECT_DECL)
-            decl_name = stmt->data.effect_decl.name;
+            decl_name = ast_effect_name(stmt);
         else if (decl_type == AST_ZONE_DECL)
-            decl_name = stmt->data.zone_decl.name;
+            decl_name = ast_zone_name(stmt);
         else if (decl_type == AST_WORLD_DECL)
-            decl_name = stmt->data.world_decl.name;
+            decl_name = ast_world_name(stmt);
         else if (decl_type == AST_ROSTER_DECL)
-            decl_name = stmt->data.roster_decl.name;
+            decl_name = ast_roster_name(stmt);
 
         if (decl_name != NULL && strcmp(decl_name, name) == 0)
             return stmt;
@@ -169,11 +172,15 @@ find_domain_decl_by_name(ASTNode *program,
 ASTNode *
 find_zone_effect_slot(ASTNode *zone, const char *slot_name)
 {
+    ASTNode **layer_slots;
+    size_t layer_slot_count;
+
     if (zone == NULL || slot_name == NULL)
         return NULL;
+    layer_slots = ast_zone_layer_slots(zone, &layer_slot_count);
 
-    for (size_t i = 0; i < zone->data.zone_decl.layer_slot_count; i++) {
-        ASTNode *slot = zone->data.zone_decl.layer_slots[i];
+    for (size_t i = 0; i < layer_slot_count; i++) {
+        ASTNode *slot = layer_slots[i];
         if (slot != NULL
             && slot->type == AST_ZONE_LAYER_SLOT
             && !slot->data.zone_layer_slot.is_relation
@@ -188,11 +195,15 @@ find_zone_effect_slot(ASTNode *zone, const char *slot_name)
 ASTNode *
 find_zone_relation_slot(ASTNode *zone, const char *slot_name)
 {
+    ASTNode **layer_slots;
+    size_t layer_slot_count;
+
     if (zone == NULL || slot_name == NULL)
         return NULL;
+    layer_slots = ast_zone_layer_slots(zone, &layer_slot_count);
 
-    for (size_t i = 0; i < zone->data.zone_decl.layer_slot_count; i++) {
-        ASTNode *slot = zone->data.zone_decl.layer_slots[i];
+    for (size_t i = 0; i < layer_slot_count; i++) {
+        ASTNode *slot = layer_slots[i];
         if (slot != NULL
             && slot->type == AST_ZONE_LAYER_SLOT
             && slot->data.zone_layer_slot.is_relation
@@ -207,11 +218,15 @@ find_zone_relation_slot(ASTNode *zone, const char *slot_name)
 ASTNode *
 find_zone_authority(ASTNode *zone, const char *slot_name)
 {
+    ASTNode **authorities;
+    size_t authority_count;
+
     if (zone == NULL || slot_name == NULL)
         return NULL;
+    authorities = ast_zone_authorities(zone, &authority_count);
 
-    for (size_t i = 0; i < zone->data.zone_decl.authority_count; i++) {
-        ASTNode *authority = zone->data.zone_decl.authorities[i];
+    for (size_t i = 0; i < authority_count; i++) {
+        ASTNode *authority = authorities[i];
         if (authority != NULL
             && authority->type == AST_ZONE_AUTHORITY
             && authority->data.zone_authority.subject_slot_name != NULL
@@ -266,6 +281,8 @@ resolve_zone_subject_slot_for_participant(ASTNode *zone,
                                           bool *ambiguous_out)
 {
     ASTNode *typed_match = NULL;
+    ASTNode **slots;
+    size_t slot_count;
 
     if (ambiguous_out != NULL)
         *ambiguous_out = false;
@@ -273,9 +290,10 @@ resolve_zone_subject_slot_for_participant(ASTNode *zone,
         || participant_alias == NULL || participant_type_name == NULL) {
         return NULL;
     }
+    slots = ast_zone_slots(zone, &slot_count);
 
-    for (size_t i = 0; i < zone->data.zone_decl.slot_count; i++) {
-        ASTNode *slot = zone->data.zone_decl.slots[i];
+    for (size_t i = 0; i < slot_count; i++) {
+        ASTNode *slot = slots[i];
         Type *slot_type;
         bool direct_name_match;
         bool type_name_match;
@@ -314,11 +332,15 @@ resolve_zone_subject_slot_for_participant(ASTNode *zone,
 ASTNode *
 find_zone_state(ASTNode *zone, const char *state_name)
 {
+    ASTNode **states;
+    size_t state_count;
+
     if (zone == NULL || state_name == NULL)
         return NULL;
+    states = ast_zone_states(zone, &state_count);
 
-    for (size_t i = 0; i < zone->data.zone_decl.state_count; i++) {
-        ASTNode *state = zone->data.zone_decl.states[i];
+    for (size_t i = 0; i < state_count; i++) {
+        ASTNode *state = states[i];
         if (state != NULL
             && state->type == AST_ZONE_STATE
             && state->data.zone_state.state_name != NULL
@@ -420,6 +442,7 @@ type_check_zone_participant_authority(ASTNode *zone,
 {
     ASTNode *participant_slot;
     ASTNode *authority;
+    size_t authority_count;
 
     if (zone == NULL || ctx == NULL || participant_slot_name == NULL)
         return false;
@@ -440,7 +463,8 @@ type_check_zone_participant_authority(ASTNode *zone,
     }
 
     authority = find_zone_authority(zone, participant_slot_name);
-    if (zone->data.zone_decl.authority_count > 0 && authority == NULL) {
+    ast_zone_authorities(zone, &authority_count);
+    if (authority_count > 0 && authority == NULL) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, site,
             "Zone %s participant '%s' is not declared in zone authority set",
             action_name, participant_slot_name);

@@ -9,7 +9,16 @@
 bool
 type_check_roster_decl(ASTNode *node, SemanticContext *ctx)
 {
-    const char *name = node->data.roster_decl.name;
+    const char *name = ast_roster_name(node);
+    ASTNode **shared_fields;
+    ASTNode **methods;
+    size_t party_count;
+    size_t shared_count;
+    size_t method_count;
+
+    party_count = ast_roster_party_count(node);
+    shared_fields = ast_roster_shared_fields(node, &shared_count);
+    methods = ast_roster_methods(node, &method_count);
 
     Symbol *sym = calloc(1, sizeof(Symbol));
     sym->name = pergyra_strdup(name);
@@ -43,8 +52,8 @@ type_check_roster_decl(ASTNode *node, SemanticContext *ctx)
     }
 
     /* Check party slot references */
-    for (size_t i = 0; i < node->data.roster_decl.party_count; i++) {
-        ASTNode *ps = node->data.roster_decl.party_slots[i];
+    for (size_t i = 0; i < party_count; i++) {
+        ASTNode *ps = ast_roster_party(node, i);
         if (ps->data.roster_slot.party_type != NULL) {
             Symbol *party = scope_lookup(ctx->scope,
                 ps->data.roster_slot.party_type);
@@ -69,8 +78,8 @@ type_check_roster_decl(ASTNode *node, SemanticContext *ctx)
     }
 
     /* Check shared fields */
-    for (size_t i = 0; i < node->data.roster_decl.shared_count; i++) {
-        ASTNode *shared = node->data.roster_decl.shared_fields[i];
+    for (size_t i = 0; i < shared_count; i++) {
+        ASTNode *shared = shared_fields[i];
         if (shared->data.party_shared.type != NULL)
             domain_resolve_shared_type(shared, ctx);
         if (shared->data.party_shared.initializer != NULL)
@@ -79,8 +88,8 @@ type_check_roster_decl(ASTNode *node, SemanticContext *ctx)
 
     /* Check methods */
     scope_enter(&ctx->scope, SCOPE_BLOCK);
-    for (size_t i = 0; i < node->data.roster_decl.method_count; i++) {
-        type_check_func_decl(node->data.roster_decl.methods[i], ctx);
+    for (size_t i = 0; i < method_count; i++) {
+        type_check_func_decl(methods[i], ctx);
     }
     scope_exit(&ctx->scope);
 
