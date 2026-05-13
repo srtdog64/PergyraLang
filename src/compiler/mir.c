@@ -44,6 +44,31 @@ mir_instruction_is_with_slot_claim(const MIRInstruction *inst)
     return mir_instruction_source_is_with_slot_claim(inst);
 }
 
+void
+mir_refresh_non_cfg_body_fallback_inventory(MIRProgram *mir)
+{
+    size_t fallback_total = 0;
+    size_t fallback_routines = 0;
+
+    if (mir == NULL)
+        return;
+
+    if (mir->routines != NULL) {
+        for (size_t i = 0; i < mir->routine_count; i++) {
+            const MIRRoutine *routine = &mir->routines[i];
+            fallback_total += routine->non_cfg_body_fallback_count;
+            if (routine->used_non_cfg_body_fallback
+                || routine->non_cfg_body_fallback_count > 0) {
+                fallback_routines++;
+            }
+        }
+    }
+
+    mir->has_non_cfg_body_fallback_inventory = true;
+    mir->non_cfg_body_fallback_total = fallback_total;
+    mir->non_cfg_body_fallback_routine_count = fallback_routines;
+}
+
 static MIRBranchShape
 mir_branch_shape_from_ast(const ASTNode *node)
 {
@@ -419,6 +444,7 @@ mir_build_blocks_from_hir(MIRRoutine *routine, const HIRRoutine *hir_routine)
             free(block.predecessors);
             return false;
         }
+        block.predecessor_capacity = block.predecessor_count;
         if (!mir_copy_ast_nodes(&block.source_statement_inventory.items,
                                 &block.source_statement_inventory.count,
                                 src->statements,

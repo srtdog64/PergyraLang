@@ -10,6 +10,7 @@ bool
 type_check_roster_decl(ASTNode *node, SemanticContext *ctx)
 {
     const char *name = ast_roster_name(node);
+    ASTNode *saved_roster = ctx->current_roster;
     ASTNode **shared_fields;
     ASTNode **methods;
     size_t party_count;
@@ -19,6 +20,7 @@ type_check_roster_decl(ASTNode *node, SemanticContext *ctx)
     party_count = ast_roster_party_count(node);
     shared_fields = ast_roster_shared_fields(node, &shared_count);
     methods = ast_roster_methods(node, &method_count);
+    ctx->current_roster = node;
 
     Symbol *sym = calloc(1, sizeof(Symbol));
     sym->name = pergyra_strdup(name);
@@ -40,6 +42,7 @@ type_check_roster_decl(ASTNode *node, SemanticContext *ctx)
             PGY_FIX_RENAME_OR_REMOVE_DUPLICATE,
             node, "Redeclaration of roster '%s'", name);
         symbol_destroy(sym);
+        ctx->current_roster = saved_roster;
         return false;
     } else {
         scope_declare(ctx->scope, sym);
@@ -54,9 +57,11 @@ type_check_roster_decl(ASTNode *node, SemanticContext *ctx)
     /* Check party slot references */
     for (size_t i = 0; i < party_count; i++) {
         ASTNode *ps = ast_roster_party(node, i);
-        if (ps->data.roster_slot.party_type != NULL) {
+        const char *party_type = ast_roster_slot_party_type(ps);
+        const char *slot_name = ast_roster_slot_name(ps);
+        if (party_type != NULL) {
             Symbol *party = scope_lookup(ctx->scope,
-                ps->data.roster_slot.party_type);
+                party_type);
             if (party == NULL || party->kind != SYMBOL_PARTY) {
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_UNKNOWN_TYPE,
                     PGY_CAUSE_TYPE_UNKNOWN, PGY_FIX_DECLARE_OR_IMPORT_TYPE,
@@ -68,11 +73,11 @@ type_check_roster_decl(ASTNode *node, SemanticContext *ctx)
                     "Fix:\n"
                     "- declare party '%s'\n"
                     "- or import/export the module that defines it",
-                    ps->data.roster_slot.party_type,
-                    ps->data.roster_slot.slot_name,
-                    ps->data.roster_slot.slot_name,
-                    ps->data.roster_slot.party_type,
-                    ps->data.roster_slot.party_type);
+                    party_type,
+                    slot_name,
+                    slot_name,
+                    party_type,
+                    party_type);
             }
         }
     }
@@ -80,10 +85,10 @@ type_check_roster_decl(ASTNode *node, SemanticContext *ctx)
     /* Check shared fields */
     for (size_t i = 0; i < shared_count; i++) {
         ASTNode *shared = shared_fields[i];
-        if (shared->data.party_shared.type != NULL)
+        if (ast_party_shared_type(shared) != NULL)
             domain_resolve_shared_type(shared, ctx);
-        if (shared->data.party_shared.initializer != NULL)
-            type_check_expression(shared->data.party_shared.initializer, ctx);
+        if (ast_party_shared_initializer(shared) != NULL)
+            type_check_expression(ast_party_shared_initializer(shared), ctx);
     }
 
     /* Check methods */
@@ -93,5 +98,6 @@ type_check_roster_decl(ASTNode *node, SemanticContext *ctx)
     }
     scope_exit(&ctx->scope);
 
+    ctx->current_roster = saved_roster;
     return !ctx->has_error;
 }

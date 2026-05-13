@@ -327,6 +327,9 @@ struct MIRProgram
     bool        has_inventory_surface_usage_facts;
     bool        inventory_uses_thread_pool_surface;
     bool        inventory_uses_intent_observability_surface;
+    bool        has_non_cfg_body_fallback_inventory;
+    size_t      non_cfg_body_fallback_total;
+    size_t      non_cfg_body_fallback_routine_count;
     bool        has_top_level_exec;
     bool        has_main_function;
 };
@@ -348,6 +351,16 @@ bool        mir_instruction_source_location_matches_node(
                 const ASTNode *node);
 uint32_t    mir_instruction_source_line(const MIRInstruction *inst);
 uint32_t    mir_instruction_source_column(const MIRInstruction *inst);
+bool        mir_instruction_has_source_statement_order(
+                const MIRInstruction *inst);
+bool        mir_instruction_is_first_source_statement(
+                const MIRInstruction *inst);
+size_t      mir_instruction_source_statement_index_or(
+                const MIRInstruction *inst,
+                size_t fallback_index);
+int         mir_instruction_source_statement_order_compare(
+                const MIRInstruction *left,
+                const MIRInstruction *right);
 bool        mir_instruction_branch_requires_source_emit(
                 const MIRInstruction *inst);
 bool        mir_instruction_source_branch_payload_matches_shape(
@@ -418,6 +431,7 @@ ASTNode     *mir_find_function_decl(const MIRProgram *mir, const char *name);
 const MIRDeclHeader *mir_find_decl_header(const MIRProgram *mir, const char *name);
 bool        mir_run_liveness_pass(MIRProgram *mir, char **error_message);
 bool        mir_run_dce_pass(MIRProgram *mir, char **error_message);
+void        mir_refresh_non_cfg_body_fallback_inventory(MIRProgram *mir);
 bool        mir_validate(const MIRProgram *mir, char **error_message);
 bool        mir_validate_emission_topology(const MIRRoutine *routine,
                                           bool require_cleanup,

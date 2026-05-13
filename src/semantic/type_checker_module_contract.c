@@ -226,12 +226,12 @@ validate_action_required_abilities(ASTNode *node,
 
     if (enclosing_nominal == NULL
         || enclosing_nominal->type != AST_CLASS_DECL
-        || enclosing_nominal->data.class_decl.nominal_kind != NOMINAL_DECL_SUBJECT) {
+        || ast_class_nominal_kind(enclosing_nominal) != NOMINAL_DECL_SUBJECT) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_ACTION_CONTRACT_INVALID, PGY_CAUSE_ACTION_CONTRACT, PGY_FIX_ALIGN_ACTION_SURFACE_WITH_ZONE, node,
             "action '%s' is only supported inside subject declarations",
             name != NULL ? name : "<anonymous>");
     } else {
-        subject_name = enclosing_nominal->data.class_decl.name;
+        subject_name = ast_class_name(enclosing_nominal);
     }
 
     for (size_t i = 0; i < node->data.func_decl.required_ability_count; i++) {

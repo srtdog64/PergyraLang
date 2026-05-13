@@ -102,14 +102,12 @@ type_check_let_destructure_stmt(ASTNode *node, SemanticContext *ctx)
         bool is_claim_secure =
             (strcmp(callee_name, "ClaimSecureSlot") == 0);
         if (is_claim_slot || is_claim_secure) {
+            GenericParam *inner_param =
+                init->data.call.generic_args->params[0];
             const char *inner_name =
-                init->data.call.generic_args->params[0] != NULL
-                    ? init->data.call.generic_args->params[0]->name
-                    : NULL;
+                inner_param != NULL ? inner_param->name : NULL;
             ASTNode *inner_node =
-                init->data.call.generic_args->params[0] != NULL
-                    ? init->data.call.generic_args->params[0]->constraint
-                    : NULL;
+                inner_param != NULL ? inner_param->constraint : NULL;
             Type *inner_type = NULL;
             if (inner_node != NULL)
                 inner_type = domain_resolve_type_ref(inner_node, ctx);

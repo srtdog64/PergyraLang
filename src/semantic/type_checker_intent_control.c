@@ -36,8 +36,10 @@ intent_clause_invokes_authority_sensitive_call(ASTNode *expr, SemanticContext *c
         if (class_decl == NULL || class_decl->type != AST_CLASS_DECL)
             return false;
 
-        for (size_t i = 0; i < class_decl->data.class_decl.method_count; i++) {
-            ASTNode *method = class_decl->data.class_decl.methods[i];
+        size_t method_count = 0;
+        ASTNode **methods = ast_class_methods(class_decl, &method_count);
+        for (size_t i = 0; i < method_count; i++) {
+            ASTNode *method = methods != NULL ? methods[i] : NULL;
             if (method == NULL || method->type != AST_FUNC_DECL
                 || method->data.func_decl.name == NULL) {
                 continue;

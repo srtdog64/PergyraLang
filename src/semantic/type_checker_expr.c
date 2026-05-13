@@ -365,27 +365,28 @@ type_check_member_access(ASTNode *expr, SemanticContext *ctx)
         return TYPE_INT;
     }
 
-    /* Resolve nominal/domain field types by looking up the declaration AST. */
+    if (object_type != NULL && object_type->kind == TYPE_KIND_ENUM) {
+        Type *variant_payload = expr_type_for_enum_variant_projection(ctx,
+            expr, object_type, expr->data.member.name);
+        if (variant_payload != NULL)
+            return variant_payload;
+    }
+
     if (object_type != NULL && object_type->kind == TYPE_KIND_CLASS
+        && object_type->name != NULL && strchr(object_type->name, '$') != NULL) {
+        Type *payload_field = expr_type_for_enum_payload_field(ctx, expr,
+            object_type, expr->data.member.name);
+        if (payload_field != NULL)
+            return payload_field;
+    }
+
+    /* Resolve nominal/domain field types through the shared host-decl seam. */
+    if (object_type != NULL
+        && (object_type->kind == TYPE_KIND_CLASS
+            || object_type->kind == TYPE_KIND_ENUM)
         && object_type->name != NULL && ctx->program_root != NULL) {
         const char *field_name = expr->data.member.name;
-        ASTNode *decl = find_type_decl_by_name(ctx->program_root, object_type->name);
-
-        if (decl == NULL)
-            decl = find_domain_decl_by_name(ctx->program_root, AST_ROSTER_DECL,
-                object_type->name);
-        if (decl == NULL)
-            decl = find_domain_decl_by_name(ctx->program_root, AST_WORLD_DECL,
-                object_type->name);
-        if (decl == NULL)
-            decl = find_domain_decl_by_name(ctx->program_root, AST_ZONE_DECL,
-                object_type->name);
-        if (decl == NULL)
-            decl = find_domain_decl_by_name(ctx->program_root, AST_RELATION_DECL,
-                object_type->name);
-        if (decl == NULL)
-            decl = find_domain_decl_by_name(ctx->program_root, AST_EFFECT_DECL,
-                object_type->name);
+        ASTNode *decl = semantic_host_decl_for_type(ctx, object_type);
 
         if (decl != NULL && decl->type == AST_CLASS_DECL) {
             size_t field_count = projection_source_field_count(decl);
@@ -414,20 +415,37 @@ type_check_member_access(ASTNode *expr, SemanticContext *ctx)
                 ASTNode **rosters = ast_world_rosters(decl, &roster_count);
                 for (size_t i = 0; i < roster_count; i++) {
                     ASTNode *slot = rosters[i];
-                    if (slot != NULL && slot->data.world_roster.slot_name != NULL
-                        && strcmp(slot->data.world_roster.slot_name, field_name) == 0) {
+                    const char *slot_name = ast_world_roster_slot_name(slot);
+                    if (slot != NULL && slot_name != NULL
+                        && strcmp(slot_name, field_name) == 0) {
                         return expr_resolve_named_type_metadata_or_unknown(
-                            slot->data.world_roster.roster_type, ctx, slot);
+                            ast_world_roster_type_name(slot), ctx, slot);
                     }
                 }
                 size_t zone_count = 0;
                 ASTNode **zones = ast_world_zones(decl, &zone_count);
                 for (size_t i = 0; i < zone_count; i++) {
                     ASTNode *slot = zones[i];
-                    if (slot != NULL && slot->data.world_zone.slot_name != NULL
-                        && strcmp(slot->data.world_zone.slot_name, field_name) == 0) {
+                    const char *slot_name = ast_world_zone_slot_name(slot);
+                    if (slot != NULL && slot_name != NULL
+                        && strcmp(slot_name, field_name) == 0) {
                         return expr_resolve_named_type_metadata_or_unknown(
-                            slot->data.world_zone.zone_type, ctx, slot);
+                            ast_world_zone_type_name(slot), ctx, slot);
+                    }
+                }
+            }
+            if (decl->type == AST_ZONE_DECL) {
+                size_t layer_slot_count = 0;
+                ASTNode **layer_slots = ast_zone_layer_slots(
+                    decl, &layer_slot_count);
+                for (size_t i = 0; i < layer_slot_count; i++) {
+                    ASTNode *slot = layer_slots[i];
+                    if (slot != NULL
+                        && ast_zone_layer_slot_name(slot) != NULL
+                        && strcmp(ast_zone_layer_slot_name(slot),
+                                  field_name) == 0) {
+                        return expr_resolve_named_type_metadata_or_unknown(
+                            ast_zone_layer_slot_layer_type(slot), ctx, slot);
                     }
                 }
             }

@@ -43,17 +43,17 @@ emit_intent_step_restore_bound_zone_aliases(CodeBuf *out, TranspilerCtx *ctx,
 
     if (out == NULL || ctx == NULL || intent == NULL || step == NULL
         || step->type != AST_INTENT_STEP
-        || step->data.intent_step.where_type == NULL
-        || step->data.intent_step.where_type->type != AST_TYPE) {
+        || ast_intent_step_where_type(step) == NULL
+        || ast_intent_step_where_type(step)->type != AST_TYPE) {
         return;
     }
 
-    zone_type = step->data.intent_step.where_type->data.type.name;
+    zone_type = ast_intent_step_where_type(step)->data.type.name;
     if (zone_type == NULL)
         return;
 
-    for (size_t i = 0; i < step->data.intent_step.who_count; i++) {
-        const char *alias = step->data.intent_step.who_names[i];
+    for (size_t i = 0; i < ast_intent_step_who_count(step); i++) {
+        const char *alias = ast_intent_step_who_names(step, NULL)[i];
         const char *slot_name = resolve_intent_zone_slot_name_for_zone(ctx, intent, zone_type, alias);
         ASTNode *involves = find_intent_participant_local(intent, alias);
 
@@ -150,6 +150,7 @@ emit_intent_forward_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
                     && participant_index < participant_count
                 ? participant_types[participant_index]
                 : NULL;
+            char participant_c_type_buf[256];
             alias = binding->data.intent_involves.alias != NULL
                 ? binding->data.intent_involves.alias : "participant";
             if (!transpiler_intent_binding_surface_desc(surface_desc,
@@ -162,11 +163,20 @@ emit_intent_forward_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
                 return;
             }
             if (participant_type != NULL) {
-                pt = transpiler_require_type_name_c_type(ctx, participant_type, surface_desc);
+                if (transpiler_require_type_name_c_type_copy(ctx,
+                        participant_type, surface_desc, participant_c_type_buf,
+                        sizeof(participant_c_type_buf))) {
+                    pt = participant_c_type_buf;
+                }
                 pointer_param = is_pointer_self_host_type_name(ctx, participant_type);
             } else if (binding->data.intent_involves.subject_type != NULL) {
-                pt = transpiler_require_ast_c_type(
-                    ctx, binding->data.intent_involves.subject_type, surface_desc);
+                if (transpiler_require_ast_c_type_copy(ctx,
+                        binding->data.intent_involves.subject_type,
+                        surface_desc,
+                        participant_c_type_buf,
+                        sizeof(participant_c_type_buf))) {
+                    pt = participant_c_type_buf;
+                }
                 pointer_param = intent_involves_uses_pointer_self(ctx, binding);
             }
             if (participant_aliases != NULL && participant_index < participant_count
@@ -194,16 +204,27 @@ emit_intent_forward_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
             free((void *)participant_types);
             return;
         }
-        pt = transpiler_require_ast_c_type(
-            ctx,
-            binding != NULL ? binding->data.intent_value.value_type : NULL,
-            surface_desc);
+        {
+            char value_c_type_buf[256];
+            if (transpiler_require_ast_c_type_copy(ctx,
+                    binding != NULL ? binding->data.intent_value.value_type : NULL,
+                    surface_desc,
+                    value_c_type_buf,
+                    sizeof(value_c_type_buf))) {
+                pt = value_c_type_buf;
+            }
+            if (pt == NULL) {
+                free((void *)participant_aliases);
+                free((void *)participant_types);
+                return;
+            }
+            codebuf_write(buf, "%s %s", pt, alias);
+        }
         if (pt == NULL) {
             free((void *)participant_aliases);
             free((void *)participant_types);
             return;
         }
-        codebuf_write(buf, "%s %s", pt, alias);
     }
     codebuf_write(buf, ");\n");
     free((void *)participant_aliases);

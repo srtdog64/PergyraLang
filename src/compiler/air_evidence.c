@@ -24,6 +24,25 @@ air_hir_routine_matches_boundary(const HIRRoutine *routine,
 }
 
 static bool
+air_has_boundary_evidence_provider(const AIRProgram *air,
+                                   AIREvidenceKind kind,
+                                   size_t boundary_index,
+                                   const char *provider_name)
+{
+    if (air == NULL || provider_name == NULL)
+        return false;
+    for (size_t i = 0; i < air->evidence_count; i++) {
+        const AIREvidenceNode *node = &air->evidence_nodes[i];
+        if (node->kind == kind
+            && node->boundary_index == boundary_index
+            && air_name_matches(node->provider_name, provider_name)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+static bool
 air_hir_cfg_contains_boundary_ast(const HIRRoutine *routine, const AIRBoundaryNode *boundary)
 {
     if (routine == NULL || boundary == NULL || !routine->has_cfg)
@@ -65,7 +84,10 @@ air_collect_hir_evidence(AIRProgram *air, const HIRProgram *hir, char **error_me
                 const char *routine_name = routine->name != NULL
                     ? routine->name
                     : routine->owner_name;
-                if (!boundary->has_hir_routine_evidence) {
+                if (!air_has_boundary_evidence_provider(air,
+                                                        AIR_EVIDENCE_HIR_ROUTINE,
+                                                        j,
+                                                        routine_name)) {
                     if (!air_assign_first_owned_name(
                             air,
                             &boundary->hir_routine_evidence_name,
@@ -356,6 +378,79 @@ air_has_mir_pin_cleanup_evidence(const AIRProgram *air,
     return false;
 }
 
+static const AIREvidenceNode *
+air_find_global_evidence_provider_subject(const AIRProgram *air,
+                                          AIREvidenceKind kind,
+                                          const char *provider_name,
+                                          const char *subject_name)
+{
+    if (air == NULL)
+        return NULL;
+    for (size_t i = 0; i < air->evidence_count; i++) {
+        const AIREvidenceNode *node = &air->evidence_nodes[i];
+        if (node->kind == kind
+            && node->boundary_index == SIZE_MAX
+            && air_name_matches(node->provider_name, provider_name)
+            && air_name_matches(node->subject_name, subject_name)) {
+            return node;
+        }
+    }
+    return NULL;
+}
+
+static bool
+air_has_global_evidence_provider_subject(const AIRProgram *air,
+                                         AIREvidenceKind kind,
+                                         const char *provider_name,
+                                         const char *subject_name)
+{
+    return air_find_global_evidence_provider_subject(air,
+                                                     kind,
+                                                     provider_name,
+                                                     subject_name) != NULL;
+}
+
+static bool
+air_collect_singleton_global_evidence(AIRProgram *air,
+                                      AIREvidenceKind kind,
+                                      const char *provider_name,
+                                      const char *subject_name,
+                                      size_t fact_count,
+                                      size_t *summary_counter,
+                                      char **error_message)
+{
+    const AIREvidenceNode *existing;
+
+    if (air == NULL)
+        return true;
+    existing = air_find_global_evidence_provider_subject(air,
+                                                        kind,
+                                                        provider_name,
+                                                        subject_name);
+    if (existing != NULL) {
+        if (existing->fact_count != fact_count
+            || existing->fallback_count != 0) {
+            air_set_error(error_message,
+                          "AIR singleton global evidence has conflicting counts");
+            return false;
+        }
+        return true;
+    }
+    if (!air_append_evidence_node_ex(air,
+                                     kind,
+                                     SIZE_MAX,
+                                     provider_name,
+                                     subject_name,
+                                     fact_count,
+                                     0,
+                                     error_message)) {
+        return false;
+    }
+    if (summary_counter != NULL)
+        (*summary_counter)++;
+    return true;
+}
+
 bool
 air_collect_mir_evidence(AIRProgram *air, const MIRProgram *mir, char **error_message)
 {
@@ -372,6 +467,9 @@ air_collect_mir_evidence(AIRProgram *air, const MIRProgram *mir, char **error_me
             air_mir_routine_terminator_fact_count(routine);
         size_t select_receive_fact_count =
             air_mir_routine_select_receive_fact_count(routine);
+        bool had_terminator_evidence;
+        bool had_select_receive_evidence;
+        bool had_cleanup_evidence;
         if ((terminator_fact_count > 0
              || select_receive_fact_count > 0
              || cleanup_fact_count > 0)
@@ -379,6 +477,12 @@ air_collect_mir_evidence(AIRProgram *air, const MIRProgram *mir, char **error_me
             return false;
         }
         if (terminator_fact_count > 0) {
+            had_terminator_evidence =
+                air_has_global_evidence_provider_subject(
+                    air,
+                    AIR_EVIDENCE_MIR_TERMINATOR,
+                    routine_name,
+                    "cfg-terminator");
             if (!air_append_evidence_node_ex(air,
                                              AIR_EVIDENCE_MIR_TERMINATOR,
                                              SIZE_MAX,
@@ -389,9 +493,16 @@ air_collect_mir_evidence(AIRProgram *air, const MIRProgram *mir, char **error_me
                                              error_message)) {
                 return false;
             }
-            air->mir_terminator_evidence_count++;
+            if (!had_terminator_evidence)
+                air->mir_terminator_evidence_count++;
         }
         if (select_receive_fact_count > 0) {
+            had_select_receive_evidence =
+                air_has_global_evidence_provider_subject(
+                    air,
+                    AIR_EVIDENCE_MIR_SELECT_RECEIVE,
+                    routine_name,
+                    "select-receive");
             if (!air_append_evidence_node_ex(air,
                                              AIR_EVIDENCE_MIR_SELECT_RECEIVE,
                                              SIZE_MAX,
@@ -402,10 +513,16 @@ air_collect_mir_evidence(AIRProgram *air, const MIRProgram *mir, char **error_me
                                              error_message)) {
                 return false;
             }
-            air->mir_select_receive_evidence_count++;
+            if (!had_select_receive_evidence)
+                air->mir_select_receive_evidence_count++;
         }
         if (cleanup_fact_count == 0)
             continue;
+        had_cleanup_evidence = air_has_global_evidence_provider_subject(
+            air,
+            AIR_EVIDENCE_MIR_CLEANUP,
+            routine_name,
+            "cleanup-block");
         if (!air_append_evidence_node_ex(air,
                                          AIR_EVIDENCE_MIR_CLEANUP,
                                          SIZE_MAX,
@@ -416,7 +533,8 @@ air_collect_mir_evidence(AIRProgram *air, const MIRProgram *mir, char **error_me
                                          error_message)) {
             return false;
         }
-        air->mir_cleanup_evidence_count++;
+        if (!had_cleanup_evidence)
+            air->mir_cleanup_evidence_count++;
     }
 
     for (size_t i = 0; i < mir->routine_count; i++) {
@@ -437,38 +555,26 @@ air_collect_mir_evidence(AIRProgram *air, const MIRProgram *mir, char **error_me
 bool
 air_collect_observability_schema_evidence(AIRProgram *air, char **error_message)
 {
-    if (air == NULL)
-        return true;
-    if (!air_append_evidence_node_ex(air,
-                                     AIR_EVIDENCE_OBSERVABILITY_SCHEMA,
-                                     SIZE_MAX,
-                                     "runtime-observability-schema",
-                                     PGY_OBSERVABILITY_ABI_SCHEMA,
-                                     PGY_OBSERVABILITY_SCHEMA_FACT_COUNT,
-                                     0,
-                                     error_message)) {
-        return false;
-    }
-    air->observability_schema_evidence_count++;
-    return true;
+    return air_collect_singleton_global_evidence(
+        air,
+        AIR_EVIDENCE_OBSERVABILITY_SCHEMA,
+        "runtime-observability-schema",
+        PGY_OBSERVABILITY_ABI_SCHEMA,
+        PGY_OBSERVABILITY_SCHEMA_FACT_COUNT,
+        air != NULL ? &air->observability_schema_evidence_count : NULL,
+        error_message);
 }
 
 bool
 air_collect_runtime_frontier_policy_evidence(AIRProgram *air,
                                              char **error_message)
 {
-    if (air == NULL)
-        return true;
-    if (!air_append_evidence_node_ex(air,
-                                     AIR_EVIDENCE_RUNTIME_FRONTIER_POLICY,
-                                     SIZE_MAX,
-                                     PGY_FRONTIER_POLICY_SCHEMA,
-                                     PGY_FRONTIER_POLICY_SUBJECT,
-                                     PGY_FRONTIER_POLICY_FACT_COUNT,
-                                     0,
-                                     error_message)) {
-        return false;
-    }
-    air->runtime_frontier_policy_evidence_count++;
-    return true;
+    return air_collect_singleton_global_evidence(
+        air,
+        AIR_EVIDENCE_RUNTIME_FRONTIER_POLICY,
+        PGY_FRONTIER_POLICY_SCHEMA,
+        PGY_FRONTIER_POLICY_SUBJECT,
+        PGY_FRONTIER_POLICY_FACT_COUNT,
+        air != NULL ? &air->runtime_frontier_policy_evidence_count : NULL,
+        error_message);
 }

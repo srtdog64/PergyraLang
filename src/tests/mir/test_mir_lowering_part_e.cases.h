@@ -373,6 +373,68 @@ test_mir_lowering_part_e(void)
         hir_destroy(hir);
     }
 
+    TEST("MIR keeps pin return value as SSA local definition");
+    {
+        const char *src =
+            "func PinReturnValue() -> Int {\n"
+            "    let scores: Slot<Int> = ClaimSlot<Int>();\n"
+            "    Write(scores, 8);\n"
+            "    pin scores as view: ReadView<Int> {\n"
+            "        let value: Int = Read(view);\n"
+            "        return value;\n"
+            "    }\n"
+            "    return 0;\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        const MIRRoutine *routine = NULL;
+        bool found_value_def = false;
+        bool found_return_value_use = false;
+        bool found_value_stmt_fallback = false;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+        if (ok)
+            routine = find_mir_routine(mir, "PinReturnValue", MIR_SCOPE_FUNCTION);
+        if (routine != NULL) {
+            for (size_t bi = 0; bi < routine->block_count; bi++) {
+                const MIRBasicBlock *block = &routine->blocks[bi];
+                for (size_t ii = 0; ii < block->instruction_count; ii++) {
+                    const MIRInstruction *inst = &block->instructions[ii];
+                    if (inst->kind == MIR_INST_DEF
+                        && inst->arg0 != NULL
+                        && strcmp(inst->arg0, "value") == 0
+                        && inst->result_name != NULL
+                        && strcmp(inst->result_name, "value.1") == 0
+                        && inst->requires_source_local_decl_emit) {
+                        found_value_def = true;
+                    }
+                    if (inst->kind == MIR_INST_RETURN) {
+                        for (size_t ui = 0; ui < inst->use_count; ui++) {
+                            if (inst->uses[ui] != NULL
+                                && strcmp(inst->uses[ui], "value.1") == 0) {
+                                found_return_value_use = true;
+                            }
+                        }
+                    }
+                    if (inst->kind == MIR_INST_STMT
+                        && inst->arg0 != NULL
+                        && strcmp(inst->arg0, "value") == 0) {
+                        found_value_stmt_fallback = true;
+                    }
+                }
+            }
+        }
+        EXPECT(ok
+               && mir_validate(mir, NULL)
+               && routine != NULL
+               && found_value_def
+               && found_return_value_use
+               && !found_value_stmt_fallback);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
     TEST("MIR keeps pin cleanup fact across loop break and continue");
     {
         const char *src =

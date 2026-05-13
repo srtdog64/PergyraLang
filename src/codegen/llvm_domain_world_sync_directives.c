@@ -46,9 +46,8 @@ llvm_world_sync_has_zone_slot(ASTNode *world_decl, const char *slot_name)
     ASTNode **zones = ast_world_zones(world_decl, &zone_count);
     for (size_t i = 0; i < zone_count; i++) {
         ASTNode *zone = zones[i];
-        if (zone != NULL && zone->type == AST_WORLD_ZONE
-            && zone->data.world_zone.slot_name != NULL
-            && strcmp(zone->data.world_zone.slot_name, slot_name) == 0) {
+        const char *zone_slot_name = ast_world_zone_slot_name(zone);
+        if (zone_slot_name != NULL && strcmp(zone_slot_name, slot_name) == 0) {
             return true;
         }
     }

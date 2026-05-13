@@ -12,28 +12,40 @@ emit_intent_step_rebind_bound_zone_aliases(CodeBuf *out, TranspilerCtx *ctx,
 
     if (out == NULL || ctx == NULL || intent == NULL || step == NULL
         || step->type != AST_INTENT_STEP
-        || step->data.intent_step.where_type == NULL
-        || step->data.intent_step.where_type->type != AST_TYPE) {
+        || ast_intent_step_where_type(step) == NULL
+        || ast_intent_step_where_type(step)->type != AST_TYPE) {
         return false;
     }
 
     zone_alias = intent_step_effective_zone_alias(step);
-    zone_type = step->data.intent_step.where_type->data.type.name;
+    zone_type = ast_intent_step_where_type(step)->data.type.name;
     if (zone_alias == NULL || zone_type == NULL)
         return false;
 
-    for (size_t i = 0; i < step->data.intent_step.who_count; i++) {
-        const char *alias = step->data.intent_step.who_names[i];
+    for (size_t i = 0; i < ast_intent_step_who_count(step); i++) {
+        const char *alias = ast_intent_step_who_names(step, NULL)[i];
         const char *slot_name = resolve_intent_zone_slot_name_for_zone(ctx, intent, zone_type, alias);
         ASTNode *involves = find_intent_participant_local(intent, alias);
-        const char *participant_c_type;
+        char participant_c_type_buf[256];
+        const char *participant_c_type = NULL;
+        char surface_desc[256];
 
         if (alias == NULL || slot_name == NULL || strcmp(slot_name, "<unbound>") == 0
             || involves == NULL || involves->data.intent_involves.subject_type == NULL) {
             continue;
         }
 
-        participant_c_type = pergyra_ast_type_to_c(involves->data.intent_involves.subject_type);
+        snprintf(surface_desc, sizeof(surface_desc),
+            "intent step participant '%s'", alias);
+        if (transpiler_require_ast_c_type_copy(ctx,
+                involves->data.intent_involves.subject_type,
+                surface_desc,
+                participant_c_type_buf,
+                sizeof(participant_c_type_buf))) {
+            participant_c_type = participant_c_type_buf;
+        }
+        if (participant_c_type == NULL)
+            continue;
         write_indent(ctx);
         codebuf_write(out, "%s *__intent_saved_%zu_%s = %s;\n",
             participant_c_type, step_index, alias, alias);
@@ -70,6 +82,7 @@ emit_intent_step_rebind_bound_zone_aliases_with_metadata(CodeBuf *out,
         const char *slot_name = resolve_intent_zone_slot_name_for_zone(ctx, intent, zone_type, alias);
         const char *participant_type = intent_zone_binding_type_name_with_metadata(
             intent, alias, participant_aliases, participant_types, participant_count);
+        char participant_c_type_buf[256];
         const char *participant_c_type;
 
         if (alias == NULL || slot_name == NULL || strcmp(slot_name, "<unbound>") == 0
@@ -77,7 +90,11 @@ emit_intent_step_rebind_bound_zone_aliases_with_metadata(CodeBuf *out,
             continue;
         }
 
-        participant_c_type = pergyra_type_to_c(participant_type);
+        participant_c_type = NULL;
+        if (pergyra_type_to_c_copy(participant_type, participant_c_type_buf,
+                sizeof(participant_c_type_buf))) {
+            participant_c_type = participant_c_type_buf;
+        }
         if (participant_c_type == NULL)
             continue;
         write_indent(ctx);

@@ -8,6 +8,7 @@
 #include "type_checker_internal.h"
 #include "type_checker_intent_helpers_internal.h"
 #include "diag_codes.h"
+#include "parser/ast_api.h"
 #include "../common/string_compat.h"
 
 #include <stdbool.h>
@@ -109,9 +110,7 @@ intent_step_derive_authorized_by_from_zone(ASTNode *intent_decl,
 
     authority_slot = resolve_zone_subject_slot_for_participant(
         zone_decl, ctx, alias, participant_type_name, &ambiguous);
-    authority_slot_name = authority_slot != NULL
-        ? authority_slot->data.domain_slot.slot_name
-        : NULL;
+    authority_slot_name = ast_domain_slot_name(authority_slot);
     if (ambiguous || authority_slot_name == NULL
         || find_zone_authority(zone_decl, authority_slot_name) == NULL) {
         return;
@@ -304,8 +303,7 @@ type_check_intent_step_authority_contract(ASTNode *intent_decl,
                 ASTNode *authority_slot = resolve_zone_subject_slot_for_participant(
                     zone_decl, ctx, alias, participant_type_name,
                     &authority_slot_ambiguous);
-                const char *authority_slot_name = authority_slot != NULL
-                    ? authority_slot->data.domain_slot.slot_name : NULL;
+                const char *authority_slot_name = ast_domain_slot_name(authority_slot);
                 if (authority_slot_ambiguous) {
                     semantic_error_with_hints(ctx, PGY_CODE_SEM_INTENT_STEP_INVALID, PGY_CAUSE_INTENT_STEP, PGY_FIX_ALIGN_STEP_WITH_ZONE_ACTION_CONTRACTS, step,
                         "Intent step '%s' authorized participant '%s' of type '%s' is ambiguous in zone '%s'.\n"

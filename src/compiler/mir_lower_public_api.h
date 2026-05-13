@@ -214,6 +214,7 @@ mir_lower(const HIRProgram *hir, const RIRProgram *rir, char **error_message)
         mir_destroy(mir);
         return NULL;
     }
+    mir_refresh_non_cfg_body_fallback_inventory(mir);
 
     return mir;
 }

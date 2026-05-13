@@ -23,11 +23,11 @@ semantic_type_resolution_precollect_domain_inventory(ASTNode **slots,
         if (slot == NULL || slot->type != AST_DOMAIN_SLOT)
             continue;
         semantic_type_resolution_collect_type_refs(
-            slot->data.domain_slot.type,
+            ast_domain_slot_type(slot),
             ctx,
             slot,
-            slot->data.domain_slot.slot_name != NULL
-                ? slot->data.domain_slot.slot_name : "<domain-slot>",
+            ast_domain_slot_name(slot) != NULL
+                ? ast_domain_slot_name(slot) : "<domain-slot>",
             slot_reason != NULL ? slot_reason : "domain slot type lookup");
     }
 
@@ -36,11 +36,11 @@ semantic_type_resolution_precollect_domain_inventory(ASTNode **slots,
         if (field == NULL || field->type != AST_PARTY_SHARED)
             continue;
         semantic_type_resolution_collect_type_refs(
-            field->data.party_shared.type,
+            ast_party_shared_type(field),
             ctx,
             field,
-            field->data.party_shared.name != NULL
-                ? field->data.party_shared.name : "<domain-shared>",
+            ast_party_shared_name(field) != NULL
+                ? ast_party_shared_name(field) : "<domain-shared>",
             shared_reason != NULL ? shared_reason : "domain shared field type lookup");
     }
 
@@ -146,7 +146,7 @@ semantic_type_resolution_projection_source_decl(ASTNode *zone_decl,
     if (slot == NULL || slot->type != AST_DOMAIN_SLOT)
         return NULL;
 
-    type_node = slot->data.domain_slot.type;
+    type_node = ast_domain_slot_type(slot);
     if (type_node == NULL || type_node->type != AST_TYPE
         || type_node->data.type.name == NULL) {
         return NULL;

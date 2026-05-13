@@ -19,8 +19,9 @@ domain_slot_is_projection_target_local(ASTNode *slot,
                                        ASTNode **refreshes,
                                        size_t refresh_count)
 {
+    const char *slot_name = ast_domain_slot_name(slot);
     if (slot == NULL || slot->type != AST_DOMAIN_SLOT
-        || slot->data.domain_slot.slot_name == NULL) {
+        || slot_name == NULL) {
         return false;
     }
 
@@ -30,8 +31,7 @@ domain_slot_is_projection_target_local(ASTNode *slot,
             || refresh->data.zone_refresh.object_slot_name == NULL) {
             continue;
         }
-        if (strcmp(slot->data.domain_slot.slot_name,
-                   refresh->data.zone_refresh.object_slot_name) == 0) {
+        if (strcmp(slot_name, refresh->data.zone_refresh.object_slot_name) == 0) {
             return true;
         }
     }
@@ -74,9 +74,10 @@ current_overlay_domain_slot_decl(TranspilerCtx *ctx, const char *slot_name)
         ASTNode **slots = ast_relation_slots(decl, &slot_count);
         for (size_t i = 0; i < slot_count; i++) {
             ASTNode *slot = slots[i];
+            const char *candidate_name = ast_domain_slot_name(slot);
             if (slot != NULL && slot->type == AST_DOMAIN_SLOT
-                && slot->data.domain_slot.slot_name != NULL
-                && strcmp(slot->data.domain_slot.slot_name, slot_name) == 0) {
+                && candidate_name != NULL
+                && strcmp(candidate_name, slot_name) == 0) {
                 return slot;
             }
         }
@@ -86,9 +87,10 @@ current_overlay_domain_slot_decl(TranspilerCtx *ctx, const char *slot_name)
         ASTNode **slots = ast_effect_slots(decl, &slot_count);
         for (size_t i = 0; i < slot_count; i++) {
             ASTNode *slot = slots[i];
+            const char *candidate_name = ast_domain_slot_name(slot);
             if (slot != NULL && slot->type == AST_DOMAIN_SLOT
-                && slot->data.domain_slot.slot_name != NULL
-                && strcmp(slot->data.domain_slot.slot_name, slot_name) == 0) {
+                && candidate_name != NULL
+                && strcmp(candidate_name, slot_name) == 0) {
                 return slot;
             }
         }
@@ -106,6 +108,7 @@ projection_target_mentions_source_field(TranspilerCtx *ctx,
                                         const char *source_field_name)
 {
     ASTNode *slot_decl;
+    ASTNode *slot_type;
     ASTNode *target_decl;
     const char *target_type_name;
 
@@ -115,20 +118,23 @@ projection_target_mentions_source_field(TranspilerCtx *ctx,
         return true;
 
     slot_decl = current_overlay_domain_slot_decl(ctx, target_slot_name);
+    slot_type = ast_domain_slot_type(slot_decl);
     if (slot_decl == NULL
-        || slot_decl->data.domain_slot.type == NULL
-        || slot_decl->data.domain_slot.type->type != AST_TYPE
-        || slot_decl->data.domain_slot.type->data.type.name == NULL) {
+        || slot_type == NULL
+        || slot_type->type != AST_TYPE
+        || slot_type->data.type.name == NULL) {
         return true;
     }
 
-    target_type_name = slot_decl->data.domain_slot.type->data.type.name;
+    target_type_name = slot_type->data.type.name;
     target_decl = find_class_decl(ctx, target_type_name);
     if (target_decl == NULL || target_decl->type != AST_CLASS_DECL)
         return true;
 
-    for (size_t i = 0; i < target_decl->data.class_decl.field_count; i++) {
-        ClassField *field = target_decl->data.class_decl.fields[i];
+    size_t field_count = 0;
+    ClassField **fields = ast_class_fields(target_decl, &field_count);
+    for (size_t i = 0; i < field_count; i++) {
+        ClassField *field = fields != NULL ? fields[i] : NULL;
         const char *mapped_source_name = field != NULL ? field->name : NULL;
         if (refresh != NULL && refresh->type == AST_ZONE_REFRESH && field != NULL
             && field->name != NULL) {

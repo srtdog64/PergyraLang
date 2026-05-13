@@ -328,17 +328,19 @@ type_check_statement(ASTNode *node, SemanticContext *ctx)
         return true;
     case AST_ENUM_DECL:
         {
-            const char *name = node->data.enum_decl.name;
+            const char *name = ast_enum_name(node);
             ASTNode *saved_nominal = ctx->current_nominal_decl;
+            size_t method_count = 0;
+            ASTNode **methods = ast_enum_methods(node, &method_count);
 
             scope_enter(&ctx->scope, SCOPE_CLASS);
             ctx->current_nominal_decl = node;
 
-            for (size_t i = 0; i < node->data.enum_decl.method_count; i++)
-                type_check_func_decl(node->data.enum_decl.methods[i], ctx);
+            for (size_t i = 0; i < method_count; i++)
+                type_check_func_decl(methods != NULL ? methods[i] : NULL, ctx);
 
-            for (size_t i = 0; i < node->data.enum_decl.method_count; i++) {
-                ASTNode *method = node->data.enum_decl.methods[i];
+            for (size_t i = 0; i < method_count; i++) {
+                ASTNode *method = methods != NULL ? methods[i] : NULL;
                 if (method == NULL || method->type != AST_FUNC_DECL
                     || method->data.func_decl.name == NULL || name == NULL)
                     continue;

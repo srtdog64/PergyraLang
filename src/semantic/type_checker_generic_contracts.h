@@ -200,6 +200,7 @@ validate_class_where_clause_instantiation(ASTNode *class_decl,
     WhereClause *wc;
     GenericParams *gp;
     const char *expected_text = NULL;
+    const char *class_name;
 
     if (class_decl == NULL || class_decl->type != AST_CLASS_DECL
         || constructed_type == NULL
@@ -212,10 +213,12 @@ validate_class_where_clause_instantiation(ASTNode *class_decl,
     wc = class_decl->data.class_decl.where_clause;
     if (gp == NULL || gp->count == 0 || wc == NULL || wc->count == 0)
         return;
+    class_name = ast_class_name(class_decl) != NULL
+        ? ast_class_name(class_decl)
+        : "<class>";
     expected_text = format_generic_subject_signature_scratch(
         ctx,
-        class_decl->data.class_decl.name != NULL
-            ? class_decl->data.class_decl.name : "<class>",
+        class_name,
         gp);
 
     for (size_t ci = 0; ci < wc->count; ci++) {
@@ -237,8 +240,7 @@ validate_class_where_clause_instantiation(ASTNode *class_decl,
                 "Fix:\n"
                 "- pass/supply a type argument for '%s'\n"
                 "- or fix the class generic parameter list/default arguments so '%s' is materialized",
-                class_decl->data.class_decl.name != NULL
-                    ? class_decl->data.class_decl.name : "<class>",
+                class_name,
                 tc->type_param,
                 constructed_type->name != NULL ? constructed_type->name : "<constructed>",
                 tc->type_param,
@@ -257,8 +259,7 @@ validate_class_where_clause_instantiation(ASTNode *class_decl,
                 "Fix:\n"
                 "- pass a concrete type argument for '%s'\n"
                 "- or fix the default type argument / imported type so it resolves",
-                class_decl->data.class_decl.name != NULL
-                    ? class_decl->data.class_decl.name : "<class>",
+                class_name,
                 tc->type_param,
                 tc->type_param,
                 tc->type_param);
@@ -279,8 +280,7 @@ validate_class_where_clause_instantiation(ASTNode *class_decl,
                 semantic_type_resolution_record_type_ref_dependency(
                     ctx,
                     site,
-                    class_decl->data.class_decl.name != NULL
-                        ? class_decl->data.class_decl.name : "<class>",
+                    class_name,
                     bound_node,
                     "class instantiation where-bound lookup");
             }
@@ -289,8 +289,7 @@ validate_class_where_clause_instantiation(ASTNode *class_decl,
                 semantic_report_class_generic_bound_failure(
                     ctx,
                     site,
-                    class_decl->data.class_decl.name != NULL
-                        ? class_decl->data.class_decl.name : "<class>",
+                    class_name,
                     tc->type_param,
                     bound_name,
                     bounds_text,
@@ -319,6 +318,7 @@ validate_class_where_clause_specialization_ast(ASTNode *class_decl,
     const char *expected_text = NULL;
     const char *actual_text = NULL;
     const char *site_label = "specialized";
+    const char *class_name;
 
     if (class_decl == NULL || class_decl->type != AST_CLASS_DECL
         || specialized_type == NULL || specialized_type->type != AST_TYPE
@@ -332,10 +332,12 @@ validate_class_where_clause_specialization_ast(ASTNode *class_decl,
         || wc == NULL || wc->count == 0) {
         return;
     }
+    class_name = ast_class_name(class_decl) != NULL
+        ? ast_class_name(class_decl)
+        : "<class>";
     expected_text = format_generic_subject_signature_scratch(
         ctx,
-        class_decl->data.class_decl.name != NULL
-            ? class_decl->data.class_decl.name : "<class>",
+        class_name,
         decl_params);
 
     effective_types = collect_effective_generic_arg_types(
@@ -344,8 +346,7 @@ validate_class_where_clause_specialization_ast(ASTNode *class_decl,
         specialized_type,
         ctx,
         "class",
-        class_decl->data.class_decl.name != NULL
-            ? class_decl->data.class_decl.name : "<class>",
+        class_name,
         &effective_count);
     if (effective_types == NULL)
         return;
@@ -394,8 +395,7 @@ validate_class_where_clause_specialization_ast(ASTNode *class_decl,
                 "Fix:\n"
                 "- provide/supply a type argument for '%s'\n"
                 "- or fix the class generic parameter list/default arguments so '%s' is materialized",
-                class_decl->data.class_decl.name != NULL
-                    ? class_decl->data.class_decl.name : "<class>",
+                class_name,
                 tc->type_param,
                 tc->type_param,
                 tc->type_param,
@@ -413,8 +413,7 @@ validate_class_where_clause_specialization_ast(ASTNode *class_decl,
                 "Fix:\n"
                 "- pass a concrete type argument for '%s'\n"
                 "- or fix the default type argument / imported type so it resolves",
-                class_decl->data.class_decl.name != NULL
-                    ? class_decl->data.class_decl.name : "<class>",
+                class_name,
                 tc->type_param,
                 tc->type_param,
                 tc->type_param);
@@ -435,8 +434,7 @@ validate_class_where_clause_specialization_ast(ASTNode *class_decl,
                 semantic_type_resolution_record_type_ref_dependency(
                     ctx,
                     site,
-                    class_decl->data.class_decl.name != NULL
-                        ? class_decl->data.class_decl.name : "<class>",
+                    class_name,
                     bound_node,
                     "class specialization where-bound lookup");
             }
@@ -445,8 +443,7 @@ validate_class_where_clause_specialization_ast(ASTNode *class_decl,
                 semantic_report_class_generic_bound_failure(
                     ctx,
                     site,
-                    class_decl->data.class_decl.name != NULL
-                        ? class_decl->data.class_decl.name : "<class>",
+                    class_name,
                     tc->type_param,
                     bound_name,
                     bounds_text,

@@ -44,6 +44,13 @@ parse_effect_word(const char *word)
     return UINT32_MAX;
 }
 
+static bool
+effect_separator(char c)
+{
+    return c == ',' || c == '|' || c == ' '
+        || c == '\t' || c == '\r' || c == '\n';
+}
+
 static void
 append_effect_name(char *buf, size_t buf_size, const char *name, bool *first)
 {
@@ -87,30 +94,40 @@ effects_from_structured_comment(StructuredComment *comment,
                                 const ASTNode *site)
 {
     uint32_t mask = EFFECT_NONE;
+    char token[64];
 
     for (StructuredComment *block = comment; block != NULL; block = block->next) {
         for (size_t i = 0; i < block->tag_count; i++) {
             DocTag *tag = block->tags[i];
+            const char *cursor;
             if (tag == NULL || tag->type != DOC_TAG_EFFECTS || tag->content == NULL)
                 continue;
 
-            char *copy = pergyra_strdup(tag->content);
-            char *tok = copy != NULL ? strtok(copy, ", \t\r\n|") : NULL;
-            while (tok != NULL) {
-                for (char *p = tok; *p != '\0'; p++)
-                    *p = (char)tolower((unsigned char)*p);
+            cursor = tag->content;
+            while (*cursor != '\0') {
+                size_t len = 0;
+                while (effect_separator(*cursor))
+                    cursor++;
+                while (cursor[len] != '\0' && !effect_separator(cursor[len]))
+                    len++;
+                if (len == 0)
+                    break;
+                if (len >= sizeof(token))
+                    len = sizeof(token) - 1;
+                for (size_t j = 0; j < len; j++)
+                    token[j] = (char)tolower((unsigned char)cursor[j]);
+                token[len] = '\0';
 
-                uint32_t effect = parse_effect_word(tok);
+                uint32_t effect = parse_effect_word(token);
                 if (effect == UINT32_MAX) {
                     semantic_warning(ctx, site,
                         "Unknown effect tag '%s' in structured comment; expected secure, remote, nondeterministic, collapse, or local",
-                        tok);
+                        token);
                 } else {
                     mask |= effect;
                 }
-                tok = strtok(NULL, ", \t\r\n|");
+                cursor += len;
             }
-            free(copy);
         }
     }
 
@@ -394,8 +411,8 @@ find_type_decl_by_name(ASTNode *program, const char *type_name)
         ASTNode *stmt = program->data.program.statements[i];
         if (stmt == NULL || stmt->type != AST_CLASS_DECL)
             continue;
-        if (stmt->data.class_decl.name != NULL
-            && strcmp(stmt->data.class_decl.name, type_name) == 0) {
+        if (ast_class_name(stmt) != NULL
+            && strcmp(ast_class_name(stmt), type_name) == 0) {
             return stmt;
         }
     }
@@ -427,7 +444,7 @@ nominal_flavor_from_decl(const ASTNode *decl)
     if (decl == NULL || decl->type != AST_CLASS_DECL)
         return TYPE_NOMINAL_NONE;
 
-    switch (decl->data.class_decl.nominal_kind) {
+    switch (ast_class_nominal_kind(decl)) {
     case NOMINAL_DECL_SUBJECT:
         return TYPE_NOMINAL_SUBJECT;
     case NOMINAL_DECL_VESSEL:
@@ -449,7 +466,7 @@ decl_is_subject_type(const ASTNode *decl)
 {
     return decl != NULL
         && decl->type == AST_CLASS_DECL
-        && decl->data.class_decl.nominal_kind == NOMINAL_DECL_SUBJECT;
+        && ast_class_nominal_kind(decl) == NOMINAL_DECL_SUBJECT;
 }
 
 bool
@@ -501,7 +518,7 @@ decl_is_projection_source(const ASTNode *decl)
         return true;
     return decl != NULL
         && decl->type == AST_CLASS_DECL
-        && decl->data.class_decl.nominal_kind == NOMINAL_DECL_OBJECT;
+        && ast_class_nominal_kind(decl) == NOMINAL_DECL_OBJECT;
 }
 
 ASTNode *
@@ -517,8 +534,10 @@ subject_host_field_at(ASTNode *decl, size_t index)
     if (decl == NULL)
         return NULL;
     if (decl->type == AST_CLASS_DECL) {
-        if (index < decl->data.class_decl.field_count)
-            return decl->data.class_decl.fields[index];
+        size_t field_count = 0;
+        ClassField **fields = ast_class_fields(decl, &field_count);
+        if (index < field_count && fields != NULL)
+            return fields[index];
         return NULL;
     }
     return NULL;

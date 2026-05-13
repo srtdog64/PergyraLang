@@ -9,6 +9,7 @@
 
 #include "llvm_internal.h"
 
+#include "../parser/ast_api.h"
 #include "llvm_domain_decl_parts_helpers.h"
 #include "llvm_domain_forward.h"
 #include "llvm_domain_method_emit.h"
@@ -52,77 +53,82 @@ llvm_register_domain_structs(LLVMGenCtx *ctx,
                 ASTNode *role_slot = ast_party_role(stmt, j);
                 if (role_slot != NULL
                     && role_slot->type == AST_ROLE_SLOT
-                    && role_slot->data.role_slot.is_dynamic)
+                    && ast_role_slot_is_dynamic(role_slot))
                     dyn_slot_count++;
             }
 
             size_t fc = 0;
             LLVMTypeRef *ftypes = NULL;
             if (stmt->type == AST_ZONE_DECL) {
+                size_t layer_slot_count = 0;
+                ASTNode **layer_slots = ast_zone_layer_slots(
+                    stmt, &layer_slot_count);
+                size_t state_count = 0;
+                (void) ast_zone_states(stmt, &state_count);
                 size_t projection_count =
-                    llvm_count_domain_projection_slots(stmt->data.zone_decl.slots,
-                        stmt->data.zone_decl.slot_count,
-                        stmt->data.zone_decl.refreshes,
-                        stmt->data.zone_decl.refresh_count);
-                fc = stmt->data.zone_decl.slot_count
-                    + stmt->data.zone_decl.shared_count
-                    + stmt->data.zone_decl.layer_slot_count
-                    + stmt->data.zone_decl.layer_slot_count
-                    + (stmt->data.zone_decl.layer_slot_count * 2)
-                    + stmt->data.zone_decl.state_count
-                    + (stmt->data.zone_decl.state_count * 2)
+                    llvm_count_domain_projection_slots(slots,
+                        slot_count,
+                        refreshes,
+                        refresh_count);
+                fc = slot_count
+                    + shared_count
+                    + layer_slot_count
+                    + layer_slot_count
+                    + (layer_slot_count * 2)
+                    + state_count
+                    + (state_count * 2)
                     + (projection_count * 4)
                     + 1;
                 ftypes = pgy_arena_calloc(&ctx->scratch,
                     (fc > 0 ? fc : 1) * sizeof(LLVMTypeRef));
                 size_t idx = 0;
-                for (size_t j = 0; j < stmt->data.zone_decl.slot_count; j++, idx++) {
-                    ASTNode *slot = stmt->data.zone_decl.slots[j];
-                    ASTNode *slot_type = slot->data.domain_slot.type;
+                for (size_t j = 0; j < slot_count; j++, idx++) {
+                    ASTNode *slot = slots[j];
+                    ASTNode *slot_type = ast_domain_slot_type(slot);
                     ftypes[idx] = llvm_domain_required_ast_type(ctx, slot, slot_type, "zone slot");
                     if (ctx->has_error || ftypes[idx] == NULL)
                         return;
                 }
-                for (size_t j = 0; j < stmt->data.zone_decl.shared_count; j++, idx++) {
-                    ASTNode *sf = stmt->data.zone_decl.shared_fields[j];
-                    ASTNode *sf_type = sf->data.party_shared.type;
+                for (size_t j = 0; j < shared_count; j++, idx++) {
+                    ASTNode *sf = shared_fields[j];
+                    ASTNode *sf_type = ast_party_shared_type(sf);
                     ftypes[idx] = llvm_domain_required_ast_type(ctx, sf, sf_type, "zone shared field");
                     if (ctx->has_error || ftypes[idx] == NULL)
                         return;
                 }
-                for (size_t j = 0; j < stmt->data.zone_decl.layer_slot_count; j++, idx++) {
-                    ASTNode *slot = stmt->data.zone_decl.layer_slots[j];
+                for (size_t j = 0; j < layer_slot_count; j++, idx++) {
+                    ASTNode *slot = layer_slots[j];
                     LLVMClassTypeEntry *layer_cls = NULL;
                     if (slot != NULL && slot->type == AST_ZONE_LAYER_SLOT
-                        && slot->data.zone_layer_slot.layer_type != NULL) {
+                        && ast_zone_layer_slot_layer_type(slot) != NULL) {
                         layer_cls = llvm_lookup_class(ctx,
-                            slot->data.zone_layer_slot.layer_type);
+                            ast_zone_layer_slot_layer_type(slot));
                     }
                     if (slot != NULL && slot->type == AST_ZONE_LAYER_SLOT
-                        && slot->data.zone_layer_slot.is_pool
+                        && ast_zone_layer_slot_is_pool(slot)
                         && layer_cls != NULL) {
                         ftypes[idx] = llvm_zone_effect_pool_struct_type(ctx,
                             layer_cls->struct_type,
-                            slot->data.zone_layer_slot.pool_capacity);
+                            ast_zone_layer_slot_pool_capacity(slot));
                     } else {
                         ftypes[idx] = layer_cls != NULL ? layer_cls->struct_type : ctx->type_i8ptr;
                     }
                 }
-                for (size_t j = 0; j < stmt->data.zone_decl.layer_slot_count; j++, idx++)
+                for (size_t j = 0; j < layer_slot_count; j++, idx++)
                     ftypes[idx] = ctx->type_i1;
-                for (size_t j = 0; j < stmt->data.zone_decl.layer_slot_count * 2; j++, idx++)
+                for (size_t j = 0; j < layer_slot_count * 2; j++, idx++)
                     ftypes[idx] = ctx->type_i32;
-                for (size_t j = 0; j < stmt->data.zone_decl.state_count; j++, idx++)
+                for (size_t j = 0; j < state_count; j++, idx++)
                     ftypes[idx] = ctx->type_i1;
-                for (size_t j = 0; j < stmt->data.zone_decl.state_count * 2; j++, idx++)
+                for (size_t j = 0; j < state_count * 2; j++, idx++)
                     ftypes[idx] = ctx->type_i32;
-                for (size_t j = 0; j < stmt->data.zone_decl.slot_count; j++) {
-                    ASTNode *slot = stmt->data.zone_decl.slots[j];
+                for (size_t j = 0; j < slot_count; j++) {
+                    ASTNode *slot = slots[j];
                     if (slot == NULL || slot->type != AST_DOMAIN_SLOT
-                        || (!slot->data.domain_slot.is_tobject
+                        || (!ast_domain_slot_is_tobject(slot)
                             && !llvm_domain_slot_is_projection_target(slot,
-                                stmt->data.zone_decl.refreshes,
-                                stmt->data.zone_decl.refresh_count))) {
+                                refreshes,
+                                refresh_count))) {
                         continue;
                     }
                     ftypes[idx++] = ctx->type_i1;
@@ -141,7 +147,7 @@ llvm_register_domain_structs(LLVMGenCtx *ctx,
                     ASTNode *slot = ast_roster_party(stmt, j);
                     const char *party_type =
                         (slot != NULL && slot->type == AST_SYSTEMIC_SLOT)
-                        ? slot->data.roster_slot.party_type : NULL;
+                        ? ast_roster_slot_party_type(slot) : NULL;
                     ftypes[idx] = llvm_domain_required_class_struct_type(ctx,
                         slot, party_type, "roster party slot");
                     if (ctx->has_error || ftypes[idx] == NULL)
@@ -149,61 +155,68 @@ llvm_register_domain_structs(LLVMGenCtx *ctx,
                 }
                 for (size_t j = 0; j < ast_roster_shared_count(stmt); j++, idx++) {
                     ASTNode *sf = ast_roster_shared(stmt, j);
-                    ASTNode *sf_type = sf->data.party_shared.type;
+                    ASTNode *sf_type = ast_party_shared_type(sf);
                     ftypes[idx] = llvm_domain_required_ast_type(ctx, sf, sf_type, "roster shared field");
                     if (ctx->has_error || ftypes[idx] == NULL)
                         return;
                 }
             } else if (stmt->type == AST_WORLD_DECL) {
-                fc = stmt->data.world_decl.roster_count
-                    + stmt->data.world_decl.zone_count
-                    + stmt->data.world_decl.shared_count
-                    + stmt->data.world_decl.zone_count
-                    + stmt->data.world_decl.zone_count
-                    + stmt->data.world_decl.zone_count
-                    + stmt->data.world_decl.state_count
-                    + (stmt->data.world_decl.zone_count * 2)
-                    + (stmt->data.world_decl.state_count * 2)
+                size_t roster_count = 0;
+                ASTNode **rosters = ast_world_rosters(stmt, &roster_count);
+                size_t zone_count = 0;
+                ASTNode **world_zones = ast_world_zones(stmt, &zone_count);
+                size_t world_shared_count = 0;
+                ASTNode **world_shared_fields = ast_world_shared_fields(
+                    stmt, &world_shared_count);
+                size_t state_count = 0;
+                (void) ast_world_states(stmt, &state_count);
+                fc = roster_count
+                    + zone_count
+                    + world_shared_count
+                    + zone_count
+                    + zone_count
+                    + zone_count
+                    + state_count
+                    + (zone_count * 2)
+                    + (state_count * 2)
                     + 1;
                 ftypes = pgy_arena_calloc(&ctx->scratch,
                     (fc > 0 ? fc : 1) * sizeof(LLVMTypeRef));
                 size_t idx = 0;
-                for (size_t j = 0; j < stmt->data.world_decl.roster_count; j++, idx++) {
-                    ASTNode *ws = stmt->data.world_decl.rosters[j];
-                    const char *roster_type =
-                        ws != NULL ? ws->data.world_roster.roster_type : NULL;
+                for (size_t j = 0; j < roster_count; j++, idx++) {
+                    ASTNode *ws = rosters[j];
+                    const char *roster_type = ast_world_roster_type_name(ws);
                     ftypes[idx] = llvm_domain_required_class_struct_type(ctx,
                         ws, roster_type, "world roster slot");
                     if (ctx->has_error || ftypes[idx] == NULL)
                         return;
                 }
-                for (size_t j = 0; j < stmt->data.world_decl.zone_count; j++, idx++) {
-                    ASTNode *wz = stmt->data.world_decl.zones[j];
-                    const char *zone_type =
-                        wz != NULL ? wz->data.world_zone.zone_type : NULL;
+                for (size_t j = 0; j < zone_count; j++, idx++) {
+                    ASTNode *wz = world_zones[j];
+                    const char *zone_type = ast_world_zone_type_name(wz);
                     ftypes[idx] = llvm_domain_required_class_struct_type(ctx,
                         wz, zone_type, "world zone slot");
                     if (ctx->has_error || ftypes[idx] == NULL)
                         return;
                 }
-                for (size_t j = 0; j < stmt->data.world_decl.shared_count; j++, idx++) {
-                    ASTNode *sf = stmt->data.world_decl.shared_fields[j];
-                    ASTNode *sf_type = sf->data.party_shared.type;
+                for (size_t j = 0; j < world_shared_count; j++, idx++) {
+                    ASTNode *sf = world_shared_fields[j];
+                    ASTNode *sf_type = ast_party_shared_type(sf);
                     ftypes[idx] = llvm_domain_required_ast_type(ctx, sf, sf_type, "world shared field");
                     if (ctx->has_error || ftypes[idx] == NULL)
                         return;
                 }
-                for (size_t j = 0; j < stmt->data.world_decl.zone_count; j++, idx++)
+                for (size_t j = 0; j < zone_count; j++, idx++)
                     ftypes[idx] = ctx->type_i1;
-                for (size_t j = 0; j < stmt->data.world_decl.zone_count; j++, idx++)
+                for (size_t j = 0; j < zone_count; j++, idx++)
                     ftypes[idx] = ctx->type_i1;
-                for (size_t j = 0; j < stmt->data.world_decl.zone_count; j++, idx++)
+                for (size_t j = 0; j < zone_count; j++, idx++)
                     ftypes[idx] = ctx->type_i32;
-                for (size_t j = 0; j < stmt->data.world_decl.state_count; j++, idx++)
+                for (size_t j = 0; j < state_count; j++, idx++)
                     ftypes[idx] = ctx->type_i1;
-                for (size_t j = 0; j < stmt->data.world_decl.zone_count * 2; j++, idx++)
+                for (size_t j = 0; j < zone_count * 2; j++, idx++)
                     ftypes[idx] = ctx->type_i32;
-                for (size_t j = 0; j < stmt->data.world_decl.state_count * 2; j++, idx++)
+                for (size_t j = 0; j < state_count * 2; j++, idx++)
                     ftypes[idx] = ctx->type_i32;
                 ftypes[idx] = ctx->type_i1;
             } else {
@@ -220,14 +233,14 @@ llvm_register_domain_structs(LLVMGenCtx *ctx,
                 size_t idx = 0;
                 for (size_t j = 0; j < slot_count; j++, idx++) {
                     ASTNode *slot = slots[j];
-                    ASTNode *slot_type = slot->data.domain_slot.type;
+                    ASTNode *slot_type = ast_domain_slot_type(slot);
                     ftypes[idx] = llvm_domain_required_ast_type(ctx, slot, slot_type, "domain slot");
                     if (ctx->has_error || ftypes[idx] == NULL)
                         return;
                 }
                 for (size_t j = 0; j < shared_count; j++, idx++) {
                     ASTNode *sf = shared_fields[j];
-                    ASTNode *sf_type = sf->data.party_shared.type;
+                    ASTNode *sf_type = ast_party_shared_type(sf);
                     ftypes[idx] = llvm_domain_required_ast_type(ctx, sf, sf_type, "domain shared field");
                     if (ctx->has_error || ftypes[idx] == NULL)
                         return;
@@ -238,7 +251,7 @@ llvm_register_domain_structs(LLVMGenCtx *ctx,
                     for (size_t j = 0; j < slot_count; j++) {
                         ASTNode *slot = slots[j];
                         if (slot == NULL || slot->type != AST_DOMAIN_SLOT
-                            || (!slot->data.domain_slot.is_tobject
+                            || (!ast_domain_slot_is_tobject(slot)
                                 && !llvm_domain_slot_is_projection_target(slot,
                                     refreshes, refresh_count))) {
                             continue;

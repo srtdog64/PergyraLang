@@ -63,9 +63,10 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
     /* Check roster references */
     for (size_t i = 0; i < roster_count; i++) {
         ASTNode *ws = rosters[i];
-        if (ws->data.world_roster.roster_type != NULL) {
-            Symbol *sys = scope_lookup(ctx->scope,
-                ws->data.world_roster.roster_type);
+        const char *roster_type = ast_world_roster_type_name(ws);
+        const char *slot_name = ast_world_roster_slot_name(ws);
+        if (roster_type != NULL) {
+            Symbol *sys = scope_lookup(ctx->scope, roster_type);
             if (sys == NULL || sys->kind != SYMBOL_ROSTER) {
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_UNKNOWN_TYPE,
                     PGY_CAUSE_TYPE_UNKNOWN, PGY_FIX_DECLARE_OR_IMPORT_TYPE,
@@ -77,22 +78,23 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
                     "Fix:\n"
                     "- declare roster '%s'\n"
                     "- or import/export the module that defines it",
-                    ws->data.world_roster.roster_type,
-                    ws->data.world_roster.slot_name,
-                    ws->data.world_roster.slot_name,
-                    ws->data.world_roster.roster_type,
-                    ws->data.world_roster.roster_type);
+                    roster_type,
+                    slot_name,
+                    slot_name,
+                    roster_type,
+                    roster_type);
             }
         }
     }
 
     for (size_t i = 0; i < zone_count; i++) {
         ASTNode *wz = zones[i];
-        if (wz->data.world_zone.zone_type != NULL) {
-            Symbol *zone = scope_lookup(ctx->scope,
-                wz->data.world_zone.zone_type);
+        const char *zone_type = ast_world_zone_type_name(wz);
+        const char *slot_name = ast_world_zone_slot_name(wz);
+        if (zone_type != NULL) {
+            Symbol *zone = scope_lookup(ctx->scope, zone_type);
             ASTNode *zone_decl = find_domain_decl_by_name(
-                ctx->program_root, AST_ZONE_DECL, wz->data.world_zone.zone_type);
+                ctx->program_root, AST_ZONE_DECL, zone_type);
             if ((zone == NULL || zone->kind != SYMBOL_ZONE)
                 && !(zone_decl != NULL
                      && zone_decl->type == AST_ZONE_DECL
@@ -105,11 +107,11 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
                     "Fix:\n"
                     "- declare zone '%s'\n"
                     "- or import/export the module that defines it",
-                    wz->data.world_zone.zone_type,
-                    wz->data.world_zone.slot_name,
-                    wz->data.world_zone.slot_name,
-                    wz->data.world_zone.zone_type,
-                    wz->data.world_zone.zone_type);
+                    zone_type,
+                    slot_name,
+                    slot_name,
+                    zone_type,
+                    zone_type);
             }
         }
     }
@@ -357,10 +359,10 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
     /* Check shared fields */
     for (size_t i = 0; i < shared_count; i++) {
         ASTNode *shared = shared_fields[i];
-        if (shared->data.party_shared.type != NULL)
-            world_resolve_type_ref(shared->data.party_shared.type, ctx);
-        if (shared->data.party_shared.initializer != NULL)
-            type_check_expression(shared->data.party_shared.initializer, ctx);
+        if (ast_party_shared_type(shared) != NULL)
+            world_resolve_type_ref(ast_party_shared_type(shared), ctx);
+        if (ast_party_shared_initializer(shared) != NULL)
+            type_check_expression(ast_party_shared_initializer(shared), ctx);
     }
 
     /* Check methods */

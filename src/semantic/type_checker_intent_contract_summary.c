@@ -19,7 +19,7 @@ intent_summary_nominal_decl_name(ASTNode *decl)
     if (decl == NULL)
         return NULL;
     if (decl->type == AST_CLASS_DECL)
-        return decl->data.class_decl.name;
+        return ast_class_name(decl);
     return NULL;
 }
 
@@ -27,12 +27,14 @@ static ASTNode *
 intent_summary_subject_action(ASTNode *decl, const char *action_name)
 {
     if (decl == NULL || decl->type != AST_CLASS_DECL || action_name == NULL
-        || decl->data.class_decl.nominal_kind != NOMINAL_DECL_SUBJECT) {
+        || ast_class_nominal_kind(decl) != NOMINAL_DECL_SUBJECT) {
         return NULL;
     }
 
-    for (size_t i = 0; i < decl->data.class_decl.method_count; i++) {
-        ASTNode *method = decl->data.class_decl.methods[i];
+    size_t method_count = 0;
+    ASTNode **methods = ast_class_methods(decl, &method_count);
+    for (size_t i = 0; i < method_count; i++) {
+        ASTNode *method = methods != NULL ? methods[i] : NULL;
         if (method != NULL && method->type == AST_FUNC_DECL
             && method->data.func_decl.is_action
             && method->data.func_decl.name != NULL
@@ -58,14 +60,14 @@ intent_summary_inheritable_action(ASTNode *intent_decl, ASTNode *step,
         return NULL;
     }
 
-    for (size_t i = 0; i < step->data.intent_step.who_count; i++) {
-        const char *alias = step->data.intent_step.who_names[i];
+    for (size_t i = 0; i < ast_intent_step_who_count(step); i++) {
+        const char *alias = ast_intent_step_who_names(step, NULL)[i];
         ASTNode *involves = find_intent_involves_local(intent_decl, alias);
         const char *type_name = intent_involves_type_name(involves);
         ASTNode *subject_decl = find_subject_host_decl_by_name(ctx->program_root,
                                                                type_name);
         ASTNode *action_decl = intent_summary_subject_action(
-            subject_decl, step->data.intent_step.name);
+            subject_decl, ast_intent_step_name(step));
 
         if (action_decl == NULL)
             continue;
@@ -145,7 +147,7 @@ intent_step_format_contract_source_summary(const ASTNode *intent_decl,
                 subject_name != NULL ? subject_name : "<subject>",
                 action_name != NULL ? action_name : "<action>");
             has_any = true;
-        } else if (step->data.intent_step.who_count > 0) {
+        } else if (ast_intent_step_who_count(step) > 0) {
             intent_step_summary_append(buffer, buffer_size, &used,
                 "%s- no unique matching action contract was found for this step name across current who participants",
                 has_any ? "\n" : "");
@@ -153,15 +155,15 @@ intent_step_format_contract_source_summary(const ASTNode *intent_decl,
         }
     }
 
-    if (step->data.intent_step.who_count > 0
-        && !step->data.intent_step.inherited_who_from_action
-        && !step->data.intent_step.inherited_who_from_intent
-        && !step->data.intent_step.derived_who_from_on_receiver
-        && !step->data.intent_step.derived_who_from_single_participant) {
+    if (ast_intent_step_who_count(step) > 0
+        && !ast_intent_step_inherited_who_from_action(step)
+        && !ast_intent_step_inherited_who_from_intent(step)
+        && !ast_intent_step_derived_who_from_on_receiver(step)
+        && !ast_intent_step_derived_who_from_single_participant(step)) {
         size_t alias_used = 0;
-        for (size_t i = 0; i < step->data.intent_step.who_count; i++) {
-            const char *alias = step->data.intent_step.who_names != NULL
-                ? step->data.intent_step.who_names[i] : NULL;
+        for (size_t i = 0; i < ast_intent_step_who_count(step); i++) {
+            const char *alias = ast_intent_step_who_names(step, NULL) != NULL
+                ? ast_intent_step_who_names(step, NULL)[i] : NULL;
             if (alias == NULL)
                 continue;
             intent_step_summary_append(alias_list, sizeof(alias_list), &alias_used,
@@ -175,41 +177,41 @@ intent_step_format_contract_source_summary(const ASTNode *intent_decl,
         has_any = true;
         alias_list[0] = '\0';
     }
-    if (step->data.intent_step.where_type != NULL
-        && !step->data.intent_step.inherited_where_from_action
-        && !step->data.intent_step.inherited_where_from_intent
-        && !step->data.intent_step.derived_where_from_using
-        && !step->data.intent_step.derived_where_from_transfer
-        && step->data.intent_step.where_type->type == AST_TYPE
-        && step->data.intent_step.where_type->data.type.name != NULL) {
+    if (ast_intent_step_where_type(step) != NULL
+        && !ast_intent_step_inherited_where_from_action(step)
+        && !ast_intent_step_inherited_where_from_intent(step)
+        && !ast_intent_step_derived_where_from_using(step)
+        && !ast_intent_step_derived_where_from_transfer(step)
+        && ast_intent_step_where_type(step)->type == AST_TYPE
+        && ast_intent_step_where_type(step)->data.type.name != NULL) {
         intent_step_summary_append(buffer, buffer_size, &used,
             "%s- locally declared zone on step: %s",
             has_any ? "\n" : "",
-            step->data.intent_step.where_type->data.type.name);
+            ast_intent_step_where_type(step)->data.type.name);
         has_any = true;
     }
-    if (step->data.intent_step.required_ability_count > 0
-        && !step->data.intent_step.inherited_requires_from_action) {
+    if (ast_intent_step_required_ability_count(step) > 0
+        && !ast_intent_step_inherited_requires_from_action(step)) {
         intent_step_summary_append(buffer, buffer_size, &used,
             "%s- locally declared requires on step",
             has_any ? "\n" : "");
         has_any = true;
     }
-    if (step->data.intent_step.causes_effect != NULL
-        && !step->data.intent_step.inherited_causes_from_action) {
+    if (ast_intent_step_causes_effect(step) != NULL
+        && !ast_intent_step_inherited_causes_from_action(step)) {
         intent_step_summary_append(buffer, buffer_size, &used,
             "%s- locally declared causes on step: %s",
             has_any ? "\n" : "",
-            step->data.intent_step.causes_effect);
+            ast_intent_step_causes_effect(step));
         has_any = true;
     }
-    if (step->data.intent_step.authorized_by_count > 0
-        && !step->data.intent_step.inherited_authorized_by_from_action
-        && !step->data.intent_step.derived_authorized_by_from_zone) {
+    if (ast_intent_step_authorized_by_count(step) > 0
+        && !ast_intent_step_inherited_authorized_by_from_action(step)
+        && !ast_intent_step_derived_authorized_by_from_zone(step)) {
         size_t alias_used = 0;
-        for (size_t i = 0; i < step->data.intent_step.authorized_by_count; i++) {
-            const char *alias = step->data.intent_step.authorized_by != NULL
-                ? step->data.intent_step.authorized_by[i] : NULL;
+        for (size_t i = 0; i < ast_intent_step_authorized_by_count(step); i++) {
+            const char *alias = ast_intent_step_authorized_by(step, NULL) != NULL
+                ? ast_intent_step_authorized_by(step, NULL)[i] : NULL;
             if (alias == NULL)
                 continue;
             intent_step_summary_append(alias_list, sizeof(alias_list), &alias_used,
@@ -223,28 +225,28 @@ intent_step_format_contract_source_summary(const ASTNode *intent_decl,
         has_any = true;
         alias_list[0] = '\0';
     }
-    if (step->data.intent_step.using_expr != NULL
-        && !step->data.intent_step.derived_using_from_transfer
-        && !step->data.intent_step.derived_using_from_where
-        && step->data.intent_step.using_expr->type == AST_IDENTIFIER
-        && step->data.intent_step.using_expr->data.identifier.name != NULL) {
+    if (ast_intent_step_using_expr(step) != NULL
+        && !ast_intent_step_derived_using_from_transfer(step)
+        && !ast_intent_step_derived_using_from_where(step)
+        && ast_intent_step_using_expr(step)->type == AST_IDENTIFIER
+        && ast_intent_step_using_expr(step)->data.identifier.name != NULL) {
         intent_step_summary_append(buffer, buffer_size, &used,
             "%s- locally declared using on step: %s",
             has_any ? "\n" : "",
-            step->data.intent_step.using_expr->data.identifier.name);
+            ast_intent_step_using_expr(step)->data.identifier.name);
         has_any = true;
     }
-    if (step->data.intent_step.transfer_from_alias != NULL
-        && step->data.intent_step.transfer_to_alias != NULL) {
+    if (ast_intent_step_transfer_from_alias(step) != NULL
+        && ast_intent_step_transfer_to_alias(step) != NULL) {
         intent_step_summary_append(buffer, buffer_size, &used,
             "%s- transfer handoff edge on step: %s -> %s (embedding/handoff contract source)",
             has_any ? "\n" : "",
-            step->data.intent_step.transfer_from_alias,
-            step->data.intent_step.transfer_to_alias);
+            ast_intent_step_transfer_from_alias(step),
+            ast_intent_step_transfer_to_alias(step));
         has_any = true;
     }
 
-    if (step->data.intent_step.inherited_who_from_action) {
+    if (ast_intent_step_inherited_who_from_action(step)) {
         intent_step_summary_append(buffer, buffer_size, &used,
             "%s- reused from matching action contract",
             has_any ? "\n" : "");
@@ -253,20 +255,20 @@ intent_step_format_contract_source_summary(const ASTNode *intent_decl,
             "%s- reused who from matching action contract",
             has_any ? "\n" : "");
         has_any = true;
-    } else if (step->data.intent_step.inherited_where_from_action
-               || step->data.intent_step.inherited_requires_from_action
-               || step->data.intent_step.inherited_causes_from_action
-               || step->data.intent_step.inherited_authorized_by_from_action) {
+    } else if (ast_intent_step_inherited_where_from_action(step)
+               || ast_intent_step_inherited_requires_from_action(step)
+               || ast_intent_step_inherited_causes_from_action(step)
+               || ast_intent_step_inherited_authorized_by_from_action(step)) {
         intent_step_summary_append(buffer, buffer_size, &used,
             "%s- reused from matching action contract",
             has_any ? "\n" : "");
         has_any = true;
     }
-    if (step->data.intent_step.inherited_who_from_intent) {
+    if (ast_intent_step_inherited_who_from_intent(step)) {
         size_t alias_used = 0;
-        for (size_t i = 0; i < step->data.intent_step.who_count; i++) {
-            const char *alias = step->data.intent_step.who_names != NULL
-                ? step->data.intent_step.who_names[i] : NULL;
+        for (size_t i = 0; i < ast_intent_step_who_count(step); i++) {
+            const char *alias = ast_intent_step_who_names(step, NULL) != NULL
+                ? ast_intent_step_who_names(step, NULL)[i] : NULL;
             if (alias == NULL)
                 continue;
             intent_step_summary_append(alias_list, sizeof(alias_list), &alias_used,
@@ -280,11 +282,11 @@ intent_step_format_contract_source_summary(const ASTNode *intent_decl,
         has_any = true;
         alias_list[0] = '\0';
     }
-    if (step->data.intent_step.derived_who_from_on_receiver) {
+    if (ast_intent_step_derived_who_from_on_receiver(step)) {
         size_t alias_used = 0;
-        for (size_t i = 0; i < step->data.intent_step.who_count; i++) {
-            const char *alias = step->data.intent_step.who_names != NULL
-                ? step->data.intent_step.who_names[i] : NULL;
+        for (size_t i = 0; i < ast_intent_step_who_count(step); i++) {
+            const char *alias = ast_intent_step_who_names(step, NULL) != NULL
+                ? ast_intent_step_who_names(step, NULL)[i] : NULL;
             if (alias == NULL)
                 continue;
             intent_step_summary_append(alias_list, sizeof(alias_list), &alias_used,
@@ -298,11 +300,11 @@ intent_step_format_contract_source_summary(const ASTNode *intent_decl,
         has_any = true;
         alias_list[0] = '\0';
     }
-    if (step->data.intent_step.derived_who_from_single_participant) {
+    if (ast_intent_step_derived_who_from_single_participant(step)) {
         size_t alias_used = 0;
-        for (size_t i = 0; i < step->data.intent_step.who_count; i++) {
-            const char *alias = step->data.intent_step.who_names != NULL
-                ? step->data.intent_step.who_names[i] : NULL;
+        for (size_t i = 0; i < ast_intent_step_who_count(step); i++) {
+            const char *alias = ast_intent_step_who_names(step, NULL) != NULL
+                ? ast_intent_step_who_names(step, NULL)[i] : NULL;
             if (alias == NULL)
                 continue;
             intent_step_summary_append(alias_list, sizeof(alias_list), &alias_used,
@@ -316,56 +318,56 @@ intent_step_format_contract_source_summary(const ASTNode *intent_decl,
         has_any = true;
         alias_list[0] = '\0';
     }
-    if (step->data.intent_step.inherited_where_from_action) {
+    if (ast_intent_step_inherited_where_from_action(step)) {
         const char *zone_name =
-            (step->data.intent_step.where_type != NULL
-             && step->data.intent_step.where_type->type == AST_TYPE
-             && step->data.intent_step.where_type->data.type.name != NULL)
-                ? step->data.intent_step.where_type->data.type.name
+            (ast_intent_step_where_type(step) != NULL
+             && ast_intent_step_where_type(step)->type == AST_TYPE
+             && ast_intent_step_where_type(step)->data.type.name != NULL)
+                ? ast_intent_step_where_type(step)->data.type.name
                 : "<zone>";
         intent_step_summary_append(buffer, buffer_size, &used,
             "%s- reused zone from matching action contract: %s",
             has_any ? "\n" : "", zone_name);
         has_any = true;
     }
-    if (step->data.intent_step.inherited_where_from_intent) {
+    if (ast_intent_step_inherited_where_from_intent(step)) {
         const char *zone_name =
-            (step->data.intent_step.where_type != NULL
-             && step->data.intent_step.where_type->type == AST_TYPE
-             && step->data.intent_step.where_type->data.type.name != NULL)
-                ? step->data.intent_step.where_type->data.type.name
+            (ast_intent_step_where_type(step) != NULL
+             && ast_intent_step_where_type(step)->type == AST_TYPE
+             && ast_intent_step_where_type(step)->data.type.name != NULL)
+                ? ast_intent_step_where_type(step)->data.type.name
                 : "<zone>";
         intent_step_summary_append(buffer, buffer_size, &used,
             "%s- reused zone from intent-level default: %s",
             has_any ? "\n" : "", zone_name);
         has_any = true;
     }
-    if (step->data.intent_step.inherited_requires_from_action) {
+    if (ast_intent_step_inherited_requires_from_action(step)) {
         intent_step_summary_append(buffer, buffer_size, &used,
             "%s- reused requires from matching action contract",
             has_any ? "\n" : "");
         has_any = true;
     }
-    if (step->data.intent_step.inherited_causes_from_action) {
+    if (ast_intent_step_inherited_causes_from_action(step)) {
         intent_step_summary_append(buffer, buffer_size, &used,
             "%s- reused causes from matching action contract: %s",
             has_any ? "\n" : "",
-            step->data.intent_step.causes_effect != NULL
-                ? step->data.intent_step.causes_effect
+            ast_intent_step_causes_effect(step) != NULL
+                ? ast_intent_step_causes_effect(step)
                 : "<effect>");
         has_any = true;
     }
-    if (step->data.intent_step.inherited_authorized_by_from_action) {
+    if (ast_intent_step_inherited_authorized_by_from_action(step)) {
         intent_step_summary_append(buffer, buffer_size, &used,
             "%s- reused authorized by from matching action contract (approval source comes from the action header)",
             has_any ? "\n" : "");
         has_any = true;
     }
-    if (step->data.intent_step.derived_authorized_by_from_zone) {
+    if (ast_intent_step_derived_authorized_by_from_zone(step)) {
         size_t alias_used = 0;
-        for (size_t i = 0; i < step->data.intent_step.authorized_by_count; i++) {
-            const char *alias = step->data.intent_step.authorized_by != NULL
-                ? step->data.intent_step.authorized_by[i] : NULL;
+        for (size_t i = 0; i < ast_intent_step_authorized_by_count(step); i++) {
+            const char *alias = ast_intent_step_authorized_by(step, NULL) != NULL
+                ? ast_intent_step_authorized_by(step, NULL)[i] : NULL;
             if (alias == NULL)
                 continue;
             intent_step_summary_append(alias_list, sizeof(alias_list), &alias_used,
@@ -379,62 +381,62 @@ intent_step_format_contract_source_summary(const ASTNode *intent_decl,
         has_any = true;
         alias_list[0] = '\0';
     }
-    if (step->data.intent_step.derived_where_from_transfer) {
+    if (ast_intent_step_derived_where_from_transfer(step)) {
         const char *zone_name =
-            (step->data.intent_step.where_type != NULL
-             && step->data.intent_step.where_type->type == AST_TYPE
-             && step->data.intent_step.where_type->data.type.name != NULL)
-                ? step->data.intent_step.where_type->data.type.name
+            (ast_intent_step_where_type(step) != NULL
+             && ast_intent_step_where_type(step)->type == AST_TYPE
+             && ast_intent_step_where_type(step)->data.type.name != NULL)
+                ? ast_intent_step_where_type(step)->data.type.name
                 : "<zone>";
         intent_step_summary_append(buffer, buffer_size, &used,
             "%s- derived zone from transfer target handoff: %s",
             has_any ? "\n" : "", zone_name);
         has_any = true;
     }
-    if (step->data.intent_step.derived_where_from_using) {
+    if (ast_intent_step_derived_where_from_using(step)) {
         const char *zone_name =
-            (step->data.intent_step.where_type != NULL
-             && step->data.intent_step.where_type->type == AST_TYPE
-             && step->data.intent_step.where_type->data.type.name != NULL)
-                ? step->data.intent_step.where_type->data.type.name
+            (ast_intent_step_where_type(step) != NULL
+             && ast_intent_step_where_type(step)->type == AST_TYPE
+             && ast_intent_step_where_type(step)->data.type.name != NULL)
+                ? ast_intent_step_where_type(step)->data.type.name
                 : "<zone>";
         intent_step_summary_append(buffer, buffer_size, &used,
             "%s- derived zone from using binding: %s",
             has_any ? "\n" : "", zone_name);
         has_any = true;
     }
-    if (step->data.intent_step.derived_using_from_transfer) {
+    if (ast_intent_step_derived_using_from_transfer(step)) {
         const char *using_name =
-            (step->data.intent_step.using_expr != NULL
-             && step->data.intent_step.using_expr->type == AST_IDENTIFIER
-             && step->data.intent_step.using_expr->data.identifier.name != NULL)
-                ? step->data.intent_step.using_expr->data.identifier.name
+            (ast_intent_step_using_expr(step) != NULL
+             && ast_intent_step_using_expr(step)->type == AST_IDENTIFIER
+             && ast_intent_step_using_expr(step)->data.identifier.name != NULL)
+                ? ast_intent_step_using_expr(step)->data.identifier.name
                 : "<binding>";
         intent_step_summary_append(buffer, buffer_size, &used,
             "%s- derived using from transfer target: %s",
             has_any ? "\n" : "", using_name);
         has_any = true;
     }
-    if (step->data.intent_step.derived_using_from_where) {
+    if (ast_intent_step_derived_using_from_where(step)) {
         const char *using_name =
-            (step->data.intent_step.using_expr != NULL
-             && step->data.intent_step.using_expr->type == AST_IDENTIFIER
-             && step->data.intent_step.using_expr->data.identifier.name != NULL)
-                ? step->data.intent_step.using_expr->data.identifier.name
+            (ast_intent_step_using_expr(step) != NULL
+             && ast_intent_step_using_expr(step)->type == AST_IDENTIFIER
+             && ast_intent_step_using_expr(step)->data.identifier.name != NULL)
+                ? ast_intent_step_using_expr(step)->data.identifier.name
                 : "<binding>";
         intent_step_summary_append(buffer, buffer_size, &used,
             "%s- derived using from zone type: %s",
             has_any ? "\n" : "", using_name);
         has_any = true;
     }
-    if ((step->data.intent_step.derived_where_from_transfer
-         || step->data.intent_step.derived_using_from_transfer)
-        && step->data.intent_step.transfer_from_alias != NULL
-        && step->data.intent_step.transfer_to_alias != NULL) {
+    if ((ast_intent_step_derived_where_from_transfer(step)
+         || ast_intent_step_derived_using_from_transfer(step))
+        && ast_intent_step_transfer_from_alias(step) != NULL
+        && ast_intent_step_transfer_to_alias(step) != NULL) {
         intent_step_summary_append(buffer, buffer_size, &used,
             "%s- derived from transfer edge: %s -> %s",
             has_any ? "\n" : "",
-            step->data.intent_step.transfer_from_alias,
-            step->data.intent_step.transfer_to_alias);
+            ast_intent_step_transfer_from_alias(step),
+            ast_intent_step_transfer_to_alias(step));
     }
 }

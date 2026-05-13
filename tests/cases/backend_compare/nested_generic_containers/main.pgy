@@ -1,0 +1,4 @@
+func Main() -> Void {
+    let xs: List<HashMap<String, Int>> = ListNew();
+    Log("nested");
+}

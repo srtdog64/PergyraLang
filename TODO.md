@@ -14,6 +14,236 @@ English anchor for tooling/doc gates:
   are owned by `src/runtime/pgy_frontier_policy.h`; C/LLVM emitters must consume
   the named policy constants/wrappers instead of duplicating local formulas or
   hard-coded overflow text.
+- `runtime_frontier_contract_smoke.sh` no longer treats a discovered default
+  `bin/pgy.exe` emission failure as a skip. Windows `.exe` fixture emission is
+  routed through PowerShell with `cygpath`/`wslpath` path conversion, so the
+  generated embedded-world frontier limit is checked whenever an executable is
+  present. Gate: `runtime_frontier_contract_smoke`.
+- `type_resolution_dag_smoke.sh` auto-detects local `bin/test_semantic(.exe)`
+  when `SEMANTIC_TEST_BIN` is not set, then uses the same Windows `.exe`
+  path-conversion wrapper (`cygpath` first, `wslpath` fallback) before running
+  semantic stats from Git Bash/WSL shells. Local stats remain fallback-free:
+  `retired_resolver_calls=0`, `retired_resolver_body_fallbacks=0`,
+  `metadata_dead_ends=0`, `materializer_unresolved=0`.
+- `semantic_fixture_isolation_smoke.sh` now auto-detects local
+  `bin/test_semantic(.exe)` when `SEMANTIC_TEST_BIN` is not set, so local
+  fixture-isolation checks run instead of silently skipping when a semantic test
+  binary is already present.
+- `air_backend_nonimpact_smoke.sh` now runs Windows `.exe` probes through
+  PowerShell when AIR-specific environment variables are required. The default
+  local `bin/pgy.exe` no longer skips the backend-nonimpact probe just because
+  WSL cannot pass `PGY_DEBUG_PIPELINE_STAGE` / `PGY_AIR_STRICT_EVIDENCE` into a
+  Windows process. Local gate compared strict-vs-relaxed AIR C/LLVM output for
+  the eight default frontier/authority fixtures.
+- World embedded roster/zone slot facts now have read-only AST accessors for
+  slot name, target type name, and initializer. Runtime frontier policy, LLVM
+  world-zone lookup, and semantic world-zone query paths started consuming the
+  accessor seam instead of reopening `world_zone` / `world_roster` payloads.
+  Gates: `semantic_core_shape_smoke`, targeted owner compiles,
+  `runtime_frontier_contract_smoke`, `air_backend_nonimpact_smoke`.
+- Semantic world declaration/embedding/expression/DAG-stage owners plus AIR,
+  DIR, RIR, C/LLVM field registration, constructor, nominal lookup, and
+  projection consumers now read embedded world roster/zone slot facts through
+  `ast_world_roster_*` / `ast_world_zone_*` accessors. The only remaining raw
+  payload access for these facts is parser-owned construction/destruction/
+  printing storage and test fixtures; module normalization now rewrites roster
+  type names through the AST mutator seam instead of reopening payload storage.
+  `semantic_core_shape_smoke` now gates this boundary for semantic/compiler/
+  codegen consumers so new direct readers cannot re-enter silently. Gates:
+  targeted semantic/compiler/codegen owner compiles; follow-up smoke:
+  `semantic_core_shape_smoke`, `type_resolution_dag_smoke`,
+  `air_backend_nonimpact_smoke`.
+- The module-normalizer embedded-world roster rewrite is now explicitly marked
+  as an intentional AST mutation seam and calls
+  `ast_world_roster_replace_type_name(...)`. `semantic_core_shape_smoke`
+  rejects all direct `world_roster` / `world_zone` payload readers in
+  semantic/compiler/codegen.
+- Roster slot facts now follow the same boundary: semantic/compiler/codegen
+  consumers read slot name and party type through `ast_roster_slot_*`
+  accessors, and module normalization rewrites imported party type names
+  through `ast_roster_slot_replace_party_type(...)`. The semantic core shape
+  smoke rejects direct `data.roster_slot.slot_name` / `.party_type` reads in
+  semantic/compiler/codegen, leaving raw storage access to parser-owned
+  construction/destruction/printing and test fixtures.
+- Party role slot facts now follow the same source-of-truth boundary:
+  semantic/compiler/codegen consumers read slot name, dynamic status, and
+  required ability lists through `ast_role_slot_*` accessors. The semantic core
+  shape smoke rejects direct `data.role_slot.slot_name`, `.is_dynamic`,
+  `.required_abilities`, and `.ability_count` reads outside parser-owned
+  storage/printing/test-fixture code. Gates: targeted parser/semantic/compiler/
+  C-backend owner compiles plus `semantic_core_shape_smoke`.
+- Party shared-field facts now have read-only accessors for name, type, and
+  initializer. The first converted core owners are party/roster/world shared
+  field validation, DAG precollect/stage shared-field resolution, plus C party
+  emission and LLVM domain field/type registration. The migration is now global:
+  `semantic_core_shape_smoke` rejects all direct `data.party_shared.name`,
+  `.type`, and `.initializer` reads in semantic/compiler/codegen, leaving raw
+  storage access to parser-owned construction/destruction/printing and tests.
+- Domain slot facts now have read-only accessors for slot name, type,
+  subject/object classification, vessel marker, tobject marker, binding marker,
+  and initializer. `src/semantic`, `src/compiler`, and `src/codegen` now have
+  zero direct `data.domain_slot.*` reads for those stable fields, and
+  `semantic_core_shape_smoke.sh` gates this as a global source-of-truth rule.
+- Zone layer-slot facts now have read-only accessors for slot name, layer type,
+  relation marker, pool marker, and pool capacity. `src/semantic`,
+  `src/compiler`, and `src/codegen` now have zero direct
+  `data.zone_layer_slot.*` reads for those stable fields, and
+  `semantic_core_shape_smoke.sh` gates this as a global source-of-truth rule.
+- Zone state facts now have read-only accessors for state name, relation
+  marker, layer slot, left/target slot, and right slot. `src/semantic`,
+  `src/compiler`, and `src/codegen` now have zero direct
+  `data.zone_state.*` reads for those stable fields, and
+  `semantic_core_shape_smoke.sh` gates this as a global source-of-truth rule.
+- Intent step facts now have read-only accessors for step name, clause
+  expressions, transfer aliases, participant lists, ability requirements,
+  authority lists, expectation, and provenance flags. Compiler/codegen
+  read consumers now have zero direct `data.intent_step.*` reads and
+  `semantic_core_shape_smoke.sh` gates that boundary. Read-only semantic
+  consumers for intent contract summaries, participant validation, ability
+  validation, DAG intent graph collection, and systemic stage replay also
+  consume the accessor seam. Semantic remains the mutation owner for
+  compact-intent inference and action/zone contract materialization, so
+  semantic writer paths may still update the payload directly until
+  setter/mutator APIs are introduced.
+- `backend_inc_size_smoke.sh` now gates production runtime/codegen/compiler
+  implementation-style headers at the same 600 LOC signal used for owner TUs.
+  This prevents `.inc` removal from reappearing as oversized header bodies.
+  Current near-threshold codegen headers to watch before they cross the signal:
+  `transpiler_expr_dispatch_emit.h` (585 physical LOC after splitting
+  `AST_PARTY_INSTANCE` expression emission into the 27 LOC
+  `transpiler_expr_party_instance_emit.h`), `llvm_internal.h` (574 LOC),
+  `transpiler_let_emit.h` (563 LOC after moving let type-registration
+  bookkeeping into the 34 LOC `transpiler_let_type_register_emit.h`),
+  `transpiler_mir_block_emit.h` (527 LOC),
+  `transpiler_intent_emit.h` (505 LOC),
+  `transpiler_zone_decl_emit.h` (504 LOC after moving specialization and
+  hosted-method emission to `transpiler_zone_specialization_emit.h` /
+  `transpiler_zone_methods_emit.h`),
+  `transpiler_domain_nominal_emit.h` (470 LOC after moving roster declaration
+  emission to `transpiler_roster_decl_emit.h`),
+  `transpiler_expr_stdlib_collection_builtin.h` (418 LOC after moving Queue
+  builtin lowering to `transpiler_expr_stdlib_queue_builtin.h`),
+  `transpiler_specialization_helpers.h` (520 LOC after moving collection
+  runtime suffix naming into the 22 LOC
+  `transpiler_collection_runtime_suffix.h`). Treat these as
+  split-by-responsibility candidates, not automatic mechanical splits.
+- `llvm_internal.h` is intentionally left as the LLVM context/type spine for
+  now. It is near the split-review signal, but it mainly owns declarations,
+  registry entry shapes, and `LLVMGenCtx` layout rather than implementation
+  bodies. Any future split should be a named `LLVMGenCtx`/registry layout owner
+  extraction, not a mechanical line-count cut.
+- `build_source_inventory_smoke.sh` now pins the include-chain for the new
+  responsibility-named include-only C backend helpers
+  (`transpiler_expr_party_instance_emit.h`,
+  `transpiler_let_type_register_emit.h`,
+  `transpiler_collection_runtime_suffix.h`, `transpiler_roster_decl_emit.h`,
+  `transpiler_zone_specialization_emit.h`, and
+  `transpiler_zone_methods_emit.h`,
+  `transpiler_expr_stdlib_queue_builtin.h`). This keeps responsibility splits
+  from becoming dead untracked headers while avoiding generic `_helpers`
+  naming for new owners.
+- LLVM world frontier/sync/directive owners now consume
+  `ast_world_zone_slot_name(...)` / `ast_world_zone_type_name(...)` for embedded
+  world-zone slot lookup, dirty/active field naming, zone sync function lookup,
+  and transitive frontier continuation checks. This keeps the LLVM runtime
+  propagation path on the same world-zone accessor seam as the runtime frontier
+  policy wrapper. Gates: targeted LLVM owner compiles,
+  `runtime_frontier_contract_smoke`, `air_backend_nonimpact_smoke`.
+- C world declaration/sync emission now consumes the same embedded
+  world-roster/world-zone accessors for struct fields, active/dirty state,
+  generation tracking, and zone sync calls. The C and LLVM world frontier paths
+  now share the same read-only accessor seam for embedded world slot/type facts.
+  Gates: targeted `transpiler.o` compile, `runtime_frontier_contract_smoke`,
+  `air_backend_nonimpact_smoke`.
+- Domain frontier policy now consumes world/zone child counts through AST domain
+  accessors (`ast_world_zones`, `ast_world_states`, `ast_zone_states`,
+  `ast_zone_layer_slots`) instead of reading raw declaration child arrays. Gates:
+  `semantic_core_shape_smoke`, `runtime_frontier_contract_smoke`,
+  `runtime_frontier_policy_smoke`.
+- Enum member payload projection moved out of `type_checker_expr.c` into
+  `type_checker_expr_enum.c`, keeping expression owner size below the 600 LOC
+  signal while preserving the same member-access semantics. Gate:
+  `semantic_core_shape_smoke`.
+- C zone declaration emission now consumes zone slots/shared fields/states/layer
+  slots/refreshes plus apply/link/detach/unlink/maintain command lists through
+  AST domain accessors before generating frontier and projection sync code. This
+  keeps the C emitter aligned with the same child-list source-of-truth rule used
+  by LLVM/domain frontier policy. Gates:
+  `semantic_core_shape_smoke`, targeted `transpiler.c` compile.
+- C nominal member lookup and C domain constructor emission now route
+  world/zone/relation/effect child lists through AST domain accessors instead of
+  raw declaration storage. This removes another backend-local structural
+  assumption while preserving generated C shape. Gates:
+  `semantic_core_shape_smoke`, targeted `transpiler.c` compile.
+- LLVM domain struct field registration now consumes zone/world child lists
+  through AST domain accessors before registering generated hidden fields. This
+  keeps field inventory materialization aligned with the same declaration
+  child-list source-of-truth rule. Gates: `semantic_core_shape_smoke`, targeted
+  `llvm_domain_struct_register_fields.c` compile.
+- LLVM domain struct type materialization now uses the same accessor-owned
+  zone/world child-list counts before allocating field type arrays. This narrows
+  declaration bootstrap debt without changing field order. Gates:
+  `semantic_core_shape_smoke`, targeted `llvm_domain_struct_register.c` compile.
+- RIR builder zone/relation/effect/world fact collection now consumes domain
+  slots, layer slots, authorities, command lists, refreshes, methods, and
+  embedded world zones through AST accessors. This keeps RIR fact construction
+  on the same declaration child-list source-of-truth seam as the backend
+  inventory. Gates:
+  `semantic_core_shape_smoke`, targeted `rir_builder.c` compile.
+- Module normalizer domain traversal now uses AST accessors for world/zone/
+  relation/effect children. Import-name rewriting no longer depends on raw
+  declaration child storage for those domain surfaces. Gates:
+  `semantic_core_shape_smoke`, targeted `module_normalizer_refs.c` compile.
+- Class/enum nominal declarations now have read-only AST accessors for name,
+  method lists, enum variants, class fields, and class nominal kind. The first
+  consumers are DIR collection plus HIR/MIR declaration method inventory and MIR
+  header validation, plus C/LLVM declaration lookup and hosted method views.
+  This keeps nominal declaration inventory on the same source-of-truth path as
+  domain declarations. Gates: `semantic_core_shape_smoke`, targeted
+  `ast_domain_accessors.c`, `dir_collect.c`, `hir_routines.c`,
+  `mir_decl_headers.c`, `mir_decl_header_validate.c`,
+  `llvm_inventory_decl_lookup.c`, `transpiler_decl_lookup.c`,
+  `llvm_inventory_host_methods.c`, and `transpiler_decl_method_view.c` compiles.
+- Semantic projection path helpers, domain builtin query helpers, constructor
+  field-count validation, and match coverage enum variant collection now consume
+  class/enum accessor seams instead of reopening nominal declaration payloads.
+  Gates: `semantic_core_shape_smoke`, targeted
+  `type_checker_projection_path.c`, `type_checker_builtins_query_domain.c`,
+  `type_checker_call_constructor.c`, and
+  `type_checker_flow_match_coverage.c` compiles.
+- DAG nominal stage/precollect/lookup owners now consume class/enum name, field,
+  method, variant, and enum payload-param accessors instead of reopening
+  declaration payloads. This narrows the recursive-compatibility seam around
+  nominal dependency collection without changing graph shape. Gates:
+  `semantic_core_shape_smoke`, targeted
+  `type_checker_resolution_stage_nominal.c`,
+  `type_checker_resolution_graph_decl.c`,
+  `type_checker_resolution_stage_lookup.c`, and
+  `type_checker_resolution_graph_collect.c` compiles.
+- Projection semantic, C backend, and LLVM helpers now consume class
+  name/field/kind/struct accessors instead of reopening class declaration
+  payloads. This keeps projection provenance diagnostics and C/LLVM
+  projection-path lowering on the same nominal declaration source-of-truth seam.
+  Gates:
+  `semantic_core_shape_smoke`, targeted `type_checker_domain_projection.c`,
+  `type_checker_builtins_projection.c`,
+  `llvm_domain_projection_value_helpers.c`, and
+  `llvm_expr_projection_path_helpers.c`, `transpiler_projection.c`,
+  `transpiler_projection_field_path.c`, and `transpiler.c` compiles.
+- Runtime-none contract scanning, module reference normalization, and RIR class
+  method collection now consume class field/method/name accessors. This keeps
+  system-baseline validation and RIR fact collection from depending on raw
+  nominal declaration layout. Gates: `semantic_core_shape_smoke`, targeted
+  `runtime_none_contract.c`, `module_normalizer_refs.c`, and `rir_builder.c`
+  compiles.
+- Semantic host helpers and LLVM domain lookup now consume nominal name/method/
+  field/kind/struct accessors. This keeps receiver/host resolution and LLVM
+  pointer-self/field-class fallback on the same class/enum source-of-truth seam
+  as DAG and projection. Gates: `semantic_core_shape_smoke`, targeted
+  `type_checker_host_helpers.c` and `llvm_domain_lookup.c` compiles.
+- MIR source-statement ordering is owned by the MIR source-shape owner. C/LLVM
+  backend scheduling may consume `mir_instruction_source_statement_order_compare`
+  but must not read raw `source_statement_index` fields as a backend-local fact.
 - Self-host is not a beta blocker; partial self-host is the recommended first trajectory.
 - First dogfood targets are compiler-adjacent tools: diagnostic catalog checker, AIR graph JSON validator, MIR dump diff tool, C/LLVM backend output comparator, and module/package resolver helper.
 - full self-host remains a long-term proof target, not a current capability.
@@ -46,7 +276,18 @@ English anchor for tooling/doc gates:
   `tooling_conformance_smoke.sh` still checks formatter/debugger when binaries
   exist, but skips only the LSP JSON-RPC harness if Python is absent.
   `type_resolution_resolver_inventory_smoke.sh` keeps the source-level DAG seam
-  gated in no-binary environments.
+  gated in no-binary environments. `type_resolution_dag_smoke.sh` now runs
+  Windows `.exe` semantic binaries through a small PowerShell wrapper with
+  LLVM/MinGW DLL paths pinned ahead of Git Bash's own runtime path, so the DAG
+  stats gate fails on DAG regressions instead of Git Bash loader mismatch.
+  `cfg_body_dataflow_smoke.sh` applies the same Windows runtime PATH pinning
+  before probing `pgy.exe`, so CFG/MIR source-of-truth checks fail on real
+  body-fact regressions instead of Git Bash DLL loader mismatch.
+  `runtime_frontier_contract_smoke.sh` now treats Windows `pgy.exe` emission as
+  a single PowerShell-wrapped action under Git Bash: once the generated frontier
+  fixture is emitted successfully, the smoke verifies the C contract instead of
+  falling through to a second `E:/.../pgy.exe` invocation that Git Bash cannot
+  execute directly.
 - `source-test-harness-compile-test-smoke` now gives the root `src/test_*.c`
   harnesses a cheap independent-TU compile gate. It is intentionally a compile
   smoke, not a link/run gate: its job is to catch missing standard headers,
@@ -68,6 +309,231 @@ English anchor for tooling/doc gates:
   returning `TYPE_UNKNOWN`. `obj.missing` and `obj.Missing()` now report
   `PGY_CODE_SEM_UNDEFINED_SYMBOL` with Reason/Fix text while preserving the
   normal method-call lookup path for declared methods.
+- Declared receiver method calls and value member access now consume
+  `semantic_host_decl_for_type(...)` / `semantic_host_decl_methods(...)` across
+  class, enum, party, roster, world, zone, relation, and effect declarations. This
+  keeps domain-overlay calls such as world/zone methods out of the unsupported
+  member-access fallback, preserves enum method calls on the same stable
+  surface, and removes private call/value-member duplicate host lookups. Gate:
+  `test-semantic`.
+- MIR pin-block source locals now stay SSA-owned even when their initializer is
+  a preserved source-local call such as `Read(view)`. The source-local
+  declaration emit fact remains on the `MIR_INST_DEF`; it is no longer demoted
+  to a residual STMT fallback that leaves `return value` using `value.0`.
+  Gates: `test-mir`, targeted backend compare for pin-return fixtures, and
+  full `llvm-test-backend-compare` / backend compare (`71/71` after the
+  party/roster hosted-method and role-include wrapper fixtures were added).
+- C backend MIR local type lookup no longer returns rendered local type names
+  through shared `static char rendered*` scratch buffers. Recursive/nested local
+  inference now copies rendered names into `TranspilerCtx.arena`, keeping the
+  ownership lane explicit and preventing later lookup/render calls from
+  overwriting a previously returned type string. Gates: `bin/pgy.exe`,
+  `perf-contract-test-smoke`, `test-transpile`.
+- C backend expression type inference follows the same arena-backed lifetime
+  rule. `infer_expression_type_name(...)` no longer returns constructed
+  `Array<T>`, `Slice<T>`, view, future, option, enum, or function-return type
+  names through shared `static char` scratch buffers; recursive expression
+  inference now leaves those names in `TranspilerCtx.arena`. Gates:
+  `bin/pgy.exe`, `perf-contract-test-smoke`, `test-transpile`.
+- Runtime intent active-handle lookup remains indexed on the hot path. The
+  linear scan in `pgy_intent_find_active_entry_linear*` is a compatibility
+  fallback only; both inline runtime and exported runtime-library paths must
+  probe `pgy_intent_active_index_find_slot*` first. Gate:
+  `perf-contract-test-smoke`.
+- C MIR resource op emission now snapshots slot/resource inner type names before
+  passing them through `pergyra_type_to_c(...)`. This matters for nested payloads
+  such as `Slot<Array<Int>>`: the type mapper may call `slot_inner_type_name`
+  internally, so the runtime helper suffix must not keep pointing at the shared
+  slot-inner scratch buffer. Gates: `bin/pgy.exe`, `test-transpile`,
+  `perf-contract-test-smoke`.
+- C array destructuring and array stdlib helpers follow the same inner-type
+  snapshot rule. `Array<T>` / `Slice<T>` destructuring and `ArrayReverse` copy
+  `T` before lowering it through `pergyra_type_to_c(...)`, so nested element
+  types do not clobber the source inner-name used for typed local registration
+  or helper naming. Gates: `bin/pgy.exe`, `test-transpile`,
+  `perf-contract-test-smoke`.
+- MIR source-local preservation now has one shared predicate consumed by both
+  CFG statement population and non-CFG compatibility population. The remaining
+  non-CFG fallback path also uses one source-statement append helper, so
+  preserved `Read`/`ViewRead`/`ViewWrite`/`Move` lets get the same source index,
+  call fact, and fallback accounting instead of four local copies. Gates:
+  `test-mir`, `cfg-body-dataflow-test-smoke`.
+- C backend MIR source-order scheduling now consumes
+  `mir_instruction_source_statement_order_compare(...)` and
+  `mir_instruction_has_source_statement_order(...)` from the MIR source-shape
+  owner instead of reading raw source-statement order fields. The CFG/body smoke
+  rejects reopening those raw fields in the C block scheduler. Select receive
+  call-fact marking now uses `mir_instruction_is_first_source_statement(...)`
+  from the same owner instead of reinterpreting source-statement index zero.
+- LLVM `Future<T>` annotated let registration now frees the rendered
+  `future_inner` string after `llvm_register_future_var(...)` copies it, and
+  also frees the invalid empty render path. This closes a small compiler-side
+  ownership leak in the LLVM let lowering path.
+- LLVM `ReadView<T>` / `WriteView<T>` / `MoveToken<T>` and
+  `Slot<T>` / `SecureSlot<T>` let lowering now frees heap-rendered `inner`
+  names after registry copy, including early exits. LLVM `Channel<T>` let
+  lowering follows the same rule for `channel_inner`. The perf contract gates
+  these registry-copy/free seams.
+- LLVM `ClaimSlot<T>` / `ClaimSecureSlot<T>` / `ClaimDeviceSlot<T>` let lowering
+  now uses rendered type arguments for annotation and call-site generic args
+  instead of direct `generic_args->params[0]->name` reads, then frees the owned
+  render after the LLVM registry copies it. This keeps slot lowering aligned
+  with the nested generic source-of-truth rule.
+- LLVM boundary slot parameter lookup now renders the generic payload type and
+  stores it in the LLVM context persistent arena instead of returning the raw
+  AST generic-name field. Existing callers keep their non-owning `const char *`
+  contract while nested payload text no longer depends on AST field shape. The
+  persistent copy seam is shared through `llvm_keep_rendered_persistent(...)`
+  rather than duplicated per helper.
+- LLVM identifier slot-source fallback for current function parameters now uses
+  the same persistent rendered-inner rule. `Read(slot_param)` and related slot
+  source expressions no longer recover `Slot<T>` payload text by peeking at
+  `generic_args->params[0]->name`.
+- LLVM MIR boundary-slot type helpers are now context-aware and store rendered
+  slot payload types in the LLVM persistent arena. MIR parameter type assembly
+  and local parameter emission consume the same source-of-truth string shape as
+  the non-MIR boundary helpers.
+- Frontend/backend generic argument readers no longer use direct
+  `generic_args->params[0]->name` field reads in parser/semantic/compiler/codegen
+  owners. The remaining semantic destructure path extracts the `GenericParam`
+  once, resolves its constraint AST first, and only then uses the simple-name
+  fallback for non-constructed call type args.
+- C backend slot let/destructure helpers now render `Slot<T>` call/annotation
+  generic constraints through `render_type_name(...)` into the transpiler arena
+  instead of reading `constraint->data.type.name`. This keeps `ClaimSlot<T>` and
+  `ClaimSecureSlot<T>` MIR/C lowering aligned with the constructed-generic
+  source-of-truth rule.
+- C generic class specialization keys and concrete bindings now resolve actual
+  generic arguments through one `transpiler_generic_class_effective_arg_name(...)`
+  helper. Constructed actuals/defaults use `render_type_name(...)`, so
+  monomorphization no longer collapses `Node<Array<Int>>`-style arguments to a
+  base-name-only specialization key.
+- LLVM `Array<T>` / `Slice<T>` literal lowering now renders the annotated
+  element type through `llvm_stmt_render_type_arg(...)` instead of reading
+  `generic_args->params[0]->name` directly. This preserves nested constructed
+  type text until the runtime export lookup rejects or accepts it, and frees the
+  owned render buffer on every exit path. Gate: `perf-contract-test-smoke`;
+  compile-check `llvm_stmt_let_collections.c` when LLVM headers are available.
+- AIR singleton global evidence collection is now idempotent for runtime
+  observability schema and runtime frontier policy facts. Re-collecting the
+  same schema/policy evidence no longer increments summary counters or doubles
+  exact-count facts; a duplicate singleton with conflicting counts is rejected,
+  keeping EvidenceNode inventory the proof source of truth.
+  Gates: `test-air` (`112/112`), `air-drift-test-smoke`,
+  `air-json-schema-test-smoke`, `air-backend-nonimpact-full-test-smoke`.
+- Windows/Git Bash AIR JSON schema smoke now pins the same compiler/runtime DLL
+  search paths as the CFG body-dataflow smoke before executing `pgy.exe`, so it
+  fails on AIR JSON regressions instead of loader-path mismatches.
+- MIR program-level non-CFG fallback inventory refresh now tolerates malformed
+  `routine_count > 0 && routines == NULL` shapes without dereferencing a null
+  routine array; validation still reports the missing routine inventory as the
+  owning error. The AIR singleton evidence policy is also smoke-gated through
+  `air-drift-test-smoke` and `perf-contract-test-smoke`.
+- C MIR local type lookup no longer keeps rendered member/function return type
+  names in `static char *rendered...` heap pointers that are freed and replaced
+  on later lookups. The remaining compatibility path copies rendered names into
+  bounded buffers and frees the temporary render result immediately. Gate:
+  `test-transpile`, `perf-contract-test-smoke`.
+- C MIR SSA parameter type lookup follows the same rule: rendered parameter type
+  names are copied into the typed-var inventory path instead of living in a
+  `static char *rendered_param` heap cache. This removes one more backend-local
+  mutable render cache while keeping the MIR typed-local lookup seam intact.
+  Gate: `perf-contract-test-smoke`; run `test-transpile` after the next codegen
+  slice.
+- LLVM generic container type lowering now copies constructed type arguments
+  before recursive type mapping. `llvm_constructed_arg_name_at(...)` returns a
+  static scratch pointer, so `List<HashMap<...>>`, `Queue<T>`, and
+  `HashMap<K,V>` paths must not pass that pointer into recursive lowering where
+  a nested argument parse can clobber it. Added
+  `tests/cases/backend_compare/nested_generic_containers/main.pgy` to keep the
+  nested generic container path in C/LLVM parity. Gate: `llvm-test-smoke` where
+  LLVM is available, targeted backend compare for the fixture, plus
+  `perf-contract-test-smoke`.
+- LLVM `RcNew` expected payload lowering now snapshots the expected `Rc<T>`
+  inner type before lowering the payload expression. `llvm_rc_expected_inner`
+  uses a static scratch buffer, so payload lowering must not get a chance to
+  clobber it before suffix selection and numeric coercion. Gate:
+  `llvm-test-smoke`, `perf-contract-test-smoke`.
+- LLVM empty-array expected type lowering follows the same static-scratch rule.
+  Expected `Array<T>` / `Slice<T>` inner names are copied before recursive
+  `pergyra_type_to_llvm(...)` or array-struct lowering, preventing nested
+  container type names from being clobbered by their own lowering path. Gate:
+  `llvm-test-smoke`, `perf-contract-test-smoke`.
+- LLVM `ListNew` / `SetNew` call lowering now snapshots the contextual
+  collection inner type before value-size lowering. This keeps collection base
+  call lowering aligned with the constructed-type scratch policy used by the
+  type mapper and array/RC paths. Gate: `llvm-test-smoke`,
+  `perf-contract-test-smoke`.
+- Runtime security event timestamps now use a small cross-platform localtime
+  wrapper (`localtime_s` on Windows, `localtime_r` on POSIX, copy fallback
+  otherwise) instead of holding the process-global `localtime` result pointer.
+  Gate: `memory-string-safety-test-smoke`.
+- Structured-comment effect parsing no longer uses process-global `strtok`
+  tokenizer state. The semantic helper now scans effect words directly, keeping
+  the bsearch-backed effect vocabulary while making the parser reentrant with
+  respect to nested diagnostics/tools. Gate: `test-semantic`,
+  `memory-string-safety-test-smoke`.
+- C lambda emission now snapshots the rendered return C type before rendering
+  parameter C types. `pergyra_ast_type_to_c(...)` returns a static buffer, so a
+  lambda with an explicit return type and typed parameters must not reuse that
+  pointer after parameter rendering. Gate: `test-transpile`,
+  `perf-contract-test-smoke`.
+- C Result specialization and `let` lowering now follow the same static render
+  lifetime rule. `Result<T,E>` copies both ok/error C type names before storing
+  specialization metadata, and array/SetNew/try let lowering snapshots
+  local/result C type names before recursively emitting initializer expressions
+  or collection specialization helpers. Gate: `test-transpile`,
+  `perf-contract-test-smoke`.
+- C array literal expression emission now snapshots the `Array<T>` element name
+  returned by `slot_inner_type_name(...)` before recursively emitting element
+  expressions. This prevents nested element emission from clobbering the static
+  inner-type scratch buffer used for builder helper names. Gate:
+  `test-transpile`, `perf-contract-test-smoke`.
+- C tuple literal expression emission now snapshots the rendered tuple C type
+  before recursively emitting tuple element expressions. This keeps tuple
+  compound-literal lowering under the same render-lifetime rule as lambda,
+  Result, array, and try-let lowering. Gate: `test-transpile`,
+  `perf-contract-test-smoke`.
+- C backend hosted-self parity tightened for party/roster methods:
+  `self.member` now follows the pointer-self path for party/roster hosts, matching
+  MIR declaration-header and LLVM hosted-method ABI classification. Added
+  `tests/cases/backend_compare/party_roster_host_methods/main.pgy` to keep
+  party/roster shared-field method calls in C/LLVM backend compare.
+- Party constructors now use the same semantic-owned constructor declaration
+  lookup as roster/world/zone/relation/effect constructors. This closes the
+  arity-validation hole where `Party(too, many)` skipped shared-field argument
+  checks because `SYMBOL_PARTY` was absent from the constructor lookup table.
+  Gate: `test-semantic`.
+- Party/roster method `self` now enters the semantic current-host context before
+  body checking, matching world/zone/relation/effect methods. Unknown
+  `self.member` in party/roster methods is rejected by semantic diagnostics
+  instead of surfacing later as a C/LLVM backend field-lookup failure. Gate:
+  `test-semantic`; full backend compare remains green (`71/71`).
+- C backend implicit host-field lowering now includes party/roster method fields,
+  so accepted bare fields like `round` / `tick` lower as `self->round` /
+  `self->tick` instead of leaking to C global/function lookup. The
+  `party_roster_host_methods` backend compare fixture covers both explicit
+  `self.field` and bare-field forms.
+- CFG MIR statement population now preserves source-local `Read(...)` lets only
+  when no matching SSA DEF exists. This fixes secure-slot destructuring reads
+  that previously left `Log(v)` with an undeclared `v`, while keeping pin-block
+  return values SSA-owned. Gates: `test-mir`, `test-transpile`.
+- C role include emission now creates a derived-role wrapper that forwards to
+  the included role's MIR-emitted method instead of trying to rediscover/copy
+  the included method body through AST fallback. Added
+  `tests/cases/backend_compare/role_include_methods/main.pgy`; the fixture now
+  includes a pointer-self host parameter in the inherited ability method so C
+  ability vtable signatures and derived-role wrappers consume the same host
+  self-cell ABI policy. The C backend emits nominal forward typedefs before
+  ability vtables to keep those signatures type-complete, and the wrapper
+  freezes its return C type before parameter type rendering so the shared
+  type-render static buffer cannot turn `Void` wrappers into `return expr;`.
+  Full backend compare is now `71/71`.
+- C backend role operator alias emission now follows the same return-type
+  freezing rule before rendering lhs/rhs parameter types. Any C emitter that
+  stores a pointer returned by `pergyra_ast_type_to_c(...)` and then renders a
+  second type before using the first pointer is a codegen bug; copy the string
+  into local storage or use a result-owned type rendering path.
 - Call target surface trust tightened: null/computed/unsupported callees now
   emit an explicit `PGY_CODE_SEM_TYPE_MISMATCH` diagnostic instead of silently
   returning `TYPE_UNKNOWN`. Beta-stable calls remain named functions, callable
@@ -3790,6 +4256,38 @@ Progress log, 2026-05-04:
   fixture for that state. Gates: `test-mir` (`48/0`),
   `perf-contract-test-smoke`, `cfg-body-dataflow-test-smoke`, and
   `test-inc-size-test-smoke`.
+- Lifted non-CFG fallback tracking to program inventory:
+  `MIRProgram` now records `has_non_cfg_body_fallback_inventory`,
+  `non_cfg_body_fallback_total`, and
+  `non_cfg_body_fallback_routine_count`; MIR lowering refreshes the inventory,
+  MIR dumps print the aggregate, and validation rejects stale aggregate counts.
+  This makes the remaining body-population fallback measurable at the MIR
+  program boundary instead of only per-routine. While revalidating this slice,
+  `test-mir` exposed two real CFG/MIR metadata bugs: `hir_callgraph.o` was
+  missing from `HIR_CORE_OBJECTS`, and MIR copied predecessor counts from HIR
+  without copying predecessor capacity. Exceptional cleanup edges also reserved
+  rollback/invalidation predecessor capacity without appending every reciprocal
+  predecessor. Current gates: `test-mir` (`67/0`), `test-hir` (`20/0`),
+  `build-source-inventory-test-smoke`, `cfg-body-dataflow-test-smoke`, and
+  `perf-contract-test-smoke`.
+- Revalidated AIR after the CFG/MIR inventory tightening: global
+  `AIREvidenceNode` inventory remains the verification source of truth, while
+  summary counters stay telemetry/compatibility surface. Strict counter-only
+  cases now report drift instead of becoming accepted proof, and evidence-only
+  complete global nodes remain valid. Parsed-source AIR JSON revalidation also
+  found and fixed a producer bug where a boundary could collect `HIR_CFG`
+  evidence from one HIR routine provider while only carrying `HIR_ROUTINE`
+  evidence for another provider. AIR HIR evidence collection now appends the
+  matching routine evidence for each CFG provider before adding CFG evidence.
+  The AIR JSON smoke now converts source paths for Windows `.exe` probes, so
+  MSYS/WSL shells no longer pass `/mnt/...` paths that the Windows compiler
+  cannot open. `cfg_body_dataflow_smoke.sh` now uses the stable
+  `intent_zone_binding` fixture for executable HIR/RIR/MIR probing instead of
+  the broader logistics example whose world/member-call surface is outside the
+  current beta-stable call target subset, and it converts generated C output
+  paths for Windows `.exe` probes. Gates: `test-air` (`110/0`),
+  `air-drift-smoke`, `air-json-schema-smoke`, and
+  `cfg-body-dataflow-smoke`.
 - Strengthened `pgy.air.graph.v1` as a verification-consumer surface: each AIR
   evidence JSON node now carries additive `boundary_kind`, `boundary_owner`, and
   `boundary_source` fields, so LSP/CI tools can consume evidence-to-boundary
@@ -11053,3 +11551,81 @@ Local verification for this debt refresh:
   verification:
   `test-mir` (63/0), `cfg_body_dataflow_smoke.sh` with built `PGY_BIN`,
   `test-inc-size-test-smoke`, and `build-source-inventory-test-smoke`.
+- Narrowed C type-render static-storage debt: `pergyra_type_to_c_copy(...)`
+  now provides a caller-owned copy seam, and both AST for-in lowering and MIR
+  CFG for-in lowering use copied inner/rendered element type buffers instead of
+  retaining `pergyra_type_to_c(slot_inner_type_name(...))` static pointers
+  across later emission. The same copy seam now covers AST/MIR destructuring
+  initializer/element renders, slot resource runtime formatting, and
+  `ArrayReverse` / channel receive element rendering, inferred let binding
+  rendering, let array/Set/try lowering, Result/collection specialization,
+  tuple literal emission, MIR `?` Result-temp emission, match subject
+  rendering, match payload binding rendering, MIR match payload rendering,
+  select receive binding rendering, spawn wrapper return/argument rendering,
+  inferred lambda return rendering, annotated collection constructors,
+  view-like slot declarations, MIR SSA locals, role ability vtable return
+  slots, post-sync call wrappers, await lowering, MIR role-host receiver
+  rendering, intent zone participant rebinding, and tuple destructuring element
+  rendering. The type-name requirement helper now has a caller-owned copy
+  variant, and the legacy compatibility helper delegates through the copy path
+  so direct `pergyra_type_to_c(...)` use is isolated to the type-mapping owner.
+  Await lowering also moved from a static `lookup_future_inner_type(...)`
+  scratch result to `lookup_future_inner_type_copy(...)`, keeping Future /
+  RemoteFuture payload metadata on the same caller-owned lifetime rule.
+  This is not a full removal of the legacy static-return API, but it closes the
+  highest-risk C backend clobber seams and gates the rule in
+  `perf_contract_smoke.sh`. Local MinGW verification:
+  `bin/pgy.exe`, `perf-contract-test-smoke`, `test-mir` (68/0), and
+  `test-transpile` (758/0) with the Makefile-provided `build/tmp` workspace
+  temp path. The Windows-native
+  transpile harness now ignores Makefile-exported `/tmp` and falls back to
+  `PGY_PROJECT_ROOT/build/tmp`, so local MinGW runs no longer need a manual
+  `TMPDIR` override.
+- Continued the same C type-render lifetime cleanup by removing the remaining
+  MIR SSA parameter static render cache: parameter type lookup now copies the
+  rendered name into `TranspilerCtx.arena` before returning it. Function and
+  event-handler declarator rendering also snapshots every
+  `pergyra_ast_type_to_c(...)` result before rendering the next return or
+  parameter type. This keeps function-pointer/event-handler declarators aligned
+  with the broader caller-owned render rule without changing public syntax. The
+  AST type requirement helper now has a caller-owned copy variant as well, and
+  function forward declaration parameter emission consumes it instead of
+  retaining the static `pergyra_ast_type_to_c(...)` result through later
+  signature shaping. The remaining intent prologue / zone-binding / step-rebind
+  compatibility paths now use the same AST copy seam for participant and value
+  types, keeping AST-carried fallback code under the same lifetime rule as the
+  MIR metadata path. Annotated `let` lowering also snapshots the annotated C
+  type before recursively emitting the initializer expression, so initializer
+  codegen cannot clobber the declaration type. Extern declaration emission now
+  uses the same AST copy helper for return and parameter C types, keeping FFI
+  signatures aligned with forward declarations. Local MinGW verification: `bin/pgy.exe`,
+  `perf-contract-test-smoke`, and `test-transpile` (758/0).
+- Tightened MIR CFG statement population against future capacity drift:
+  `mir_stmt_population.c` now appends rebuilt instructions through a
+  capacity-checked helper instead of raw `new_insts[new_count++]` writes. This
+  does not change the residual STMT policy, but it makes CFG/MIR source-order
+  interleaving fail closed if a later statement shape violates the calculated
+  inventory capacity. Local MinGW verification: `test-mir` (68/0),
+  `cfg-body-dataflow-test-smoke`, and `perf-contract-test-smoke`.
+- Tightened runtime frontier source-of-truth gating: C/LLVM emitters are now
+  smoke-gated against direct calls to runtime
+  `pgy_frontier_*_pass_limit(...)` helpers outside
+  `src/codegen/domain_frontier_policy.{h,c}`. The runtime header owns the
+  arithmetic vocabulary, but the codegen wrapper is the only backend-facing
+  pass-limit seam. Local MinGW verification:
+  `runtime-frontier-contract-test-smoke`.
+- Revalidated DAG source-of-truth counters after the frontier/AIR gate pass:
+  `retired_resolver_calls=0`, `retired_resolver_body_fallbacks=0`,
+  `metadata_dead_ends=0`, `materializer_unresolved=0`, and direct fallback seam
+  inventory remains zero. The remaining DAG beta work is semantic-owner
+  coverage/provenance widening, not resurrecting recursive resolver fallback.
+  Local MinGW verification: `type-resolution-dag-test-smoke`,
+  `type-resolution-resolver-inventory-test-smoke`.
+- Tightened DAG ability/authority provenance gates: resolver inventory smoke now
+  requires ability where-bound validation to keep DAG dependency provenance,
+  effective generic argument materialization, and rich mismatch diagnostics, and
+  requires zone authority validation to pass through the shared
+  `resolve_required_ability_decl(...)` owner instead of bypassing ability
+  visibility/arity/where-bound enforcement locally. Local MinGW verification:
+  `type-resolution-resolver-inventory-test-smoke`,
+  `type-resolution-dag-test-smoke`.

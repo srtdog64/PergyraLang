@@ -321,6 +321,7 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
         channel_inner = llvm_stmt_render_type_arg(
             type_ann->data.type.generic_args->params[0]);
         if (channel_inner == NULL || channel_inner[0] == '\0') {
+            free(channel_inner);
             return llvm_stmt_diag_collection(ctx, node,
                 LLVM_STMT_COLLECTION_DIAG_TYPE_ARG, name, "Channel", 0, NULL);
         }
@@ -348,12 +349,14 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
                        init_fn->fn, args, 2, "");
         llvm_scope_declare(ctx, name, alloca_val, ch_type);
         llvm_register_channel_var(ctx, name, channel_inner);
+        free(channel_inner);
         return true;
     }
 
     if (init != NULL && init->type == AST_ARRAY_LITERAL) {
         size_t count = init->data.array_literal.count;
         LLVMTypeRef elem_type = ctx->type_i32;
+        char *owned_inner_name = NULL;
         const char *inner_name = NULL;
 
         if (type_ann != NULL && type_ann->type == AST_TYPE
@@ -361,10 +364,12 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
             && (strcmp(type_ann->data.type.name, "Array") == 0
                 || strcmp(type_ann->data.type.name, "Slice") == 0)
             && type_ann->data.type.generic_args != NULL
-            && type_ann->data.type.generic_args->count > 0) {
-            inner_name = type_ann->data.type.generic_args->params[0]->name;
-            elem_type = pergyra_type_to_llvm(
-                ctx, inner_name);
+            && type_ann->data.type.generic_args->count > 0
+            && type_ann->data.type.generic_args->params[0] != NULL) {
+            owned_inner_name = llvm_stmt_render_type_arg(
+                type_ann->data.type.generic_args->params[0]);
+            inner_name = owned_inner_name;
+            elem_type = pergyra_type_to_llvm(ctx, inner_name);
         } else if (count > 0) {
             LLVMValueRef first = llvm_emit_expression(
                 init->data.array_literal.elements[0], ctx);
@@ -376,13 +381,17 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
             }
         }
         if (inner_name == NULL || inner_name[0] == '\0') {
-            return llvm_stmt_diag_collection(ctx, node,
+            bool ok = llvm_stmt_diag_collection(ctx, node,
                 LLVM_STMT_COLLECTION_DIAG_TYPE_ARG, name, "Array", 0, NULL);
+            free(owned_inner_name);
+            return ok;
         }
 
         LLVMTypeRef array_type = llvm_array_struct_type(ctx, inner_name);
-        if (ctx->has_error || array_type == NULL)
+        if (ctx->has_error || array_type == NULL) {
+            free(owned_inner_name);
             return true;
+        }
         LLVMValueRef var_alloca = llvm_create_entry_alloca(ctx, array_type, name);
         char new_fn_name[64];
         char push_fn_name[64];
@@ -390,13 +399,17 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
         LLVMFuncEntry *push_fn;
 
         if (!llvm_stmt_collection_runtime_name(ctx, node, new_fn_name,
-                sizeof(new_fn_name), "pgy_array_new_", inner_name))
+                sizeof(new_fn_name), "pgy_array_new_", inner_name)) {
+            free(owned_inner_name);
             return true;
+        }
         new_fn = llvm_lookup_function(ctx, new_fn_name);
         if (new_fn == NULL) {
-            return llvm_stmt_diag_collection(ctx, node,
+            bool ok = llvm_stmt_diag_collection(ctx, node,
                 LLVM_STMT_COLLECTION_DIAG_RUNTIME_FN, name,
                 "Array", 0, new_fn_name);
+            free(owned_inner_name);
+            return ok;
         }
         LLVMValueRef args[] = {
             LLVMConstInt(ctx->type_i64, (unsigned long long)count, 0)
@@ -406,13 +419,17 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
         LLVMBuildStore(ctx->builder, arr_val, var_alloca);
 
         if (!llvm_stmt_collection_runtime_name(ctx, node, push_fn_name,
-                sizeof(push_fn_name), "pgy_array_push_", inner_name))
+                sizeof(push_fn_name), "pgy_array_push_", inner_name)) {
+            free(owned_inner_name);
             return true;
+        }
         push_fn = llvm_lookup_function(ctx, push_fn_name);
         if (push_fn == NULL) {
-            return llvm_stmt_diag_collection(ctx, node,
+            bool ok = llvm_stmt_diag_collection(ctx, node,
                 LLVM_STMT_COLLECTION_DIAG_RUNTIME_FN, name,
                 "Array", 0, push_fn_name);
+            free(owned_inner_name);
+            return ok;
         }
 
         for (size_t i = 0; i < count; i++) {
@@ -445,6 +462,7 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
 
         llvm_scope_declare(ctx, name, var_alloca, array_type);
         llvm_register_array_var(ctx, name, elem_type, (int64_t)count);
+        free(owned_inner_name);
         return true;
     }
 

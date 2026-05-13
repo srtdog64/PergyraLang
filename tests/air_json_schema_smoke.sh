@@ -15,9 +15,83 @@ if [[ ! -x "$PGY" ]]; then
     exit 0
 fi
 
+add_path_if_dir() {
+    local dir="$1"
+    [[ -d "$dir" ]] || return 0
+    case ":${PATH}:" in
+        *":$dir:"*) ;;
+        *) PATH="$dir:$PATH" ;;
+    esac
+}
+
+prepend_path_if_dir() {
+    local dir="$1"
+    [[ -d "$dir" ]] || return 0
+    PATH="$dir:$PATH"
+}
+
+add_windows_path_candidate() {
+    local dir="$1"
+    local posix_dir=""
+
+    [[ -n "$dir" ]] || return 0
+    add_path_if_dir "$dir"
+    if command -v cygpath >/dev/null 2>&1; then
+        posix_dir="$(cygpath -u "$dir" 2>/dev/null || true)"
+        add_path_if_dir "$posix_dir"
+    fi
+}
+
+setup_windows_compiler_runtime_path() {
+    case "$(uname -s 2>/dev/null || echo unknown)" in
+        MINGW*|MSYS*|CYGWIN*)
+            add_windows_path_candidate "${MSYSTEM_PREFIX:-}/bin"
+            add_windows_path_candidate "${LLVM_INSTALL:-}"
+            add_windows_path_candidate "${LLVM_INSTALL:-}/bin"
+            prepend_path_if_dir "/c/ProgramData/mingw64/mingw64/bin"
+            prepend_path_if_dir "/c/msys64/mingw64/bin"
+            prepend_path_if_dir "/c/Program Files/LLVM/bin"
+            prepend_path_if_dir "/c/LLVM/bin"
+            add_path_if_dir "/clang64/bin"
+            add_path_if_dir "/ucrt64/bin"
+            ;;
+    esac
+}
+
+setup_windows_compiler_runtime_path
+
 TMP_BASE="${TMPDIR:-${TEMP:-/tmp}}"
+if [[ "$PGY" == *.exe ]]; then
+    TMP_BASE="$ROOT_DIR/.tmp"
+    mkdir -p "$TMP_BASE"
+fi
 WORK_DIR="$(mktemp -d "${TMP_BASE%/}/pgy_air_json_schema.XXXXXX")"
 trap 'rm -rf "$WORK_DIR"' EXIT
+
+to_native_path_for_pgy() {
+    local path="$1"
+    if [[ "$PGY" != *.exe ]]; then
+        printf '%s\n' "$path"
+        return 0
+    fi
+    if command -v cygpath >/dev/null 2>&1; then
+        cygpath -w "$path"
+        return 0
+    fi
+    if [[ "$path" =~ ^/mnt/([A-Za-z])/(.*)$ ]]; then
+        local drive="${BASH_REMATCH[1]}"
+        local rest="${BASH_REMATCH[2]//\//\\}"
+        printf '%s:\\%s\n' "${drive^^}" "$rest"
+        return 0
+    fi
+    if [[ "$path" =~ ^/([A-Za-z])/(.*)$ ]]; then
+        local drive="${BASH_REMATCH[1]}"
+        local rest="${BASH_REMATCH[2]//\//\\}"
+        printf '%s:\\%s\n' "${drive^^}" "$rest"
+        return 0
+    fi
+    printf '%s\n' "$path"
+}
 
 if ! "$PGY" --help >"$WORK_DIR/pgy-help.out" 2>"$WORK_DIR/pgy-help.err"; then
     if [[ "$PGY_EXPLICIT" -eq 0 ]]; then
@@ -49,8 +123,8 @@ func SelectReceiveAir(ch: Channel<Int>) -> Int {
 }
 EOF
 
-"$PGY" --air-json "$SOURCE" --backend=c > "$OUT" 2> "$ERR"
-"$PGY" --air-json "$SELECT_SOURCE" --backend=c > "$SELECT_OUT" 2> "$SELECT_ERR"
+"$PGY" --air-json "$(to_native_path_for_pgy "$SOURCE")" --backend=c > "$OUT" 2> "$ERR"
+"$PGY" --air-json "$(to_native_path_for_pgy "$SELECT_SOURCE")" --backend=c > "$SELECT_OUT" 2> "$SELECT_ERR"
 
 require_text() {
     local text="$1"

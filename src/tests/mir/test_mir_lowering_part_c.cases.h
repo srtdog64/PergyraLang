@@ -102,6 +102,28 @@ test_mir_lowering_part_c(void)
         hir_destroy(hir);
     }
 
+    TEST("MIR lowering records program-level non-CFG fallback inventory");
+    {
+        const char *src =
+            "func Probe() -> Int {\n"
+            "    return 1;\n"
+            "}\n";
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        bool ok = lower_mir_from_source(src, &hir, &rir, &mir);
+
+        EXPECT(ok
+               && mir != NULL
+               && mir->has_non_cfg_body_fallback_inventory
+               && mir->non_cfg_body_fallback_total == 0
+               && mir->non_cfg_body_fallback_routine_count == 0
+               && mir_validate(mir, NULL));
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+    }
+
     TEST("MIR validator rejects non-CFG fallback flag without count");
     {
         MIRRoutine routine = { 0 };
@@ -118,6 +140,39 @@ test_mir_lowering_part_c(void)
         rejected = !mir_validate(&mir, &mir_error)
             && mir_error != NULL
             && strstr(mir_error, "fallback flag without fallback count") != NULL;
+        EXPECT(rejected);
+        free(mir_error);
+    }
+
+    TEST("MIR validator rejects stale program-level non-CFG fallback inventory");
+    {
+        MIRBasicBlock block = { 0 };
+        MIRRoutine routine = { 0 };
+        MIRProgram mir = { 0 };
+        char *mir_error = NULL;
+        bool rejected;
+
+        block.id = 0;
+        block.is_entry = true;
+        block.is_reachable = true;
+        routine.name = "StaleNonCfgInventory";
+        routine.blocks = &block;
+        routine.block_count = 1;
+        routine.entry_block = 0;
+        routine.has_liveness = true;
+        routine.has_use_def_summary = true;
+        routine.has_dce = true;
+        routine.used_non_cfg_body_fallback = true;
+        routine.non_cfg_body_fallback_count = 1;
+        mir.routines = &routine;
+        mir.routine_count = 1;
+        mir.has_non_cfg_body_fallback_inventory = true;
+        mir.non_cfg_body_fallback_total = 0;
+        mir.non_cfg_body_fallback_routine_count = 0;
+
+        rejected = !mir_validate(&mir, &mir_error)
+            && mir_error != NULL
+            && strstr(mir_error, "non-CFG fallback inventory is stale") != NULL;
         EXPECT(rejected);
         free(mir_error);
     }

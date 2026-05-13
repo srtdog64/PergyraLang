@@ -271,6 +271,109 @@ test_party_decl(void)
         lexer_destroy(lexer);
     }
 
+    TEST("party shared fields are visible through party instances");
+    {
+        const char *source =
+            "ability Speakable { func Greet() -> String; }\n"
+            "subject Host { let name: String; }\n"
+            "role Greeter for Host {\n"
+            "    impl ability Speakable {\n"
+            "        func Greet() -> String { return \"hello\"; }\n"
+            "    }\n"
+            "}\n"
+            "party Speaker {\n"
+            "    role slot speaker: Speakable\n"
+            "    shared round: Int = 1\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let s: Speaker = Speaker();\n"
+            "    Log(s.round);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("party constructor validates shared field arity");
+    {
+        const char *source =
+            "party Speaker {\n"
+            "    shared round: Int = 1\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let s: Speaker = Speaker(1, 2);\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("party self member access is checked by semantic host context");
+    {
+        const char *source =
+            "party Speaker {\n"
+            "    shared round: Int = 1\n"
+            "    func Report(self) -> Int {\n"
+            "        return self.missing + 2;\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("roster self member access is checked by semantic host context");
+    {
+        const char *source =
+            "party Speaker { shared round: Int = 1 }\n"
+            "roster Board {\n"
+            "    party slot speaker: Speaker\n"
+            "    shared tick: Int = 4\n"
+            "    func Report(self) -> Int {\n"
+            "        return self.missing + 3;\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("duplicate party declaration triggers error");
     {
         SemanticContext *ctx = semantic_context_create();

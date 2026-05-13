@@ -8,6 +8,7 @@
 bool mir_stmt_is_def_source(const ASTNode *stmt);
 const char *mir_stmt_def_name(const ASTNode *stmt);
 bool mir_let_decl_requires_stmt_preservation(const ASTNode *stmt);
+bool mir_stmt_requires_source_local_preservation(const ASTNode *stmt);
 bool mir_stmt_is_control_flow(const ASTNode *stmt,
                               const MIRBasicBlock *mir_block);
 void mir_set_inst_source_statement_index(MIRInstruction *inst, size_t index);

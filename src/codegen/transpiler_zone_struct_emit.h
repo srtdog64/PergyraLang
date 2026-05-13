@@ -48,24 +48,25 @@ transpiler_emit_zone_struct_decl(TranspilerCtx *ctx, ASTNode *node, const char *
         char surface_desc[256];
         if (!transpiler_zone_surface_desc(surface_desc,
                 sizeof(surface_desc), "zone slot", name,
-                slot != NULL ? slot->data.domain_slot.slot_name : NULL)) {
+                ast_domain_slot_name(slot))) {
             transpiler_zone_surface_desc_too_long(ctx, "zone slot");
             return false;
         }
         ft = transpiler_require_ast_c_type(
             ctx,
-            slot != NULL ? slot->data.domain_slot.type : NULL,
+            ast_domain_slot_type(slot),
             surface_desc);
         if (ft == NULL)
             return false;
-        codebuf_write(ctx->out, "    %s %s;\n", ft, slot->data.domain_slot.slot_name);
-        if (!slot->data.domain_slot.is_subject) {
+        codebuf_write(ctx->out, "    %s %s;\n", ft,
+            ast_domain_slot_name(slot));
+        if (!ast_domain_slot_is_subject(slot)) {
             codebuf_write(ctx->out, "    bool __projection_ready_%s;\n",
-                slot->data.domain_slot.slot_name);
+                ast_domain_slot_name(slot));
             codebuf_write(ctx->out, "    bool __projection_dirty_%s;\n",
-                slot->data.domain_slot.slot_name);
+                ast_domain_slot_name(slot));
             emit_hidden_provenance_fields(ctx, "projection",
-                slot->data.domain_slot.slot_name);
+                ast_domain_slot_name(slot));
         }
     }
 
@@ -73,25 +74,25 @@ transpiler_emit_zone_struct_decl(TranspilerCtx *ctx, ASTNode *node, const char *
     ASTNode **layer_slots = ast_zone_layer_slots(node, &layer_slot_count);
     for (size_t i = 0; i < layer_slot_count; i++) {
         ASTNode *slot = layer_slots[i];
-        if (slot->data.zone_layer_slot.is_pool) {
-            int cap = slot->data.zone_layer_slot.pool_capacity;
+        if (ast_zone_layer_slot_is_pool(slot)) {
+            int cap = ast_zone_layer_slot_pool_capacity(slot);
             if (cap <= 0)
                 cap = 1;
             codebuf_write(ctx->out,
                 "    struct { %s items[%d]; bool active[%d]; uint8_t count; uint8_t cap; } %s;\n",
-                slot->data.zone_layer_slot.layer_type,
+                ast_zone_layer_slot_layer_type(slot),
                 cap,
                 cap,
-                slot->data.zone_layer_slot.slot_name);
+                ast_zone_layer_slot_name(slot));
         } else {
             codebuf_write(ctx->out, "    %s %s;\n",
-                slot->data.zone_layer_slot.layer_type,
-                slot->data.zone_layer_slot.slot_name);
+                ast_zone_layer_slot_layer_type(slot),
+                ast_zone_layer_slot_name(slot));
         }
         codebuf_write(ctx->out, "    bool __layer_active_%s;\n",
-            slot->data.zone_layer_slot.slot_name);
+            ast_zone_layer_slot_name(slot));
         emit_hidden_provenance_fields(ctx, "layer",
-            slot->data.zone_layer_slot.slot_name);
+            ast_zone_layer_slot_name(slot));
     }
 
     size_t shared_count = 0;
@@ -102,17 +103,18 @@ transpiler_emit_zone_struct_decl(TranspilerCtx *ctx, ASTNode *node, const char *
         char surface_desc[256];
         if (!transpiler_zone_surface_desc(surface_desc,
                 sizeof(surface_desc), "zone shared field", name,
-                shared != NULL ? shared->data.party_shared.name : NULL)) {
+                ast_party_shared_name(shared))) {
             transpiler_zone_surface_desc_too_long(ctx, "zone shared field");
             return false;
         }
         ft = transpiler_require_ast_c_type(
             ctx,
-            shared != NULL ? shared->data.party_shared.type : NULL,
+            ast_party_shared_type(shared),
             surface_desc);
         if (ft == NULL)
             return false;
-        codebuf_write(ctx->out, "    %s %s;\n", ft, shared->data.party_shared.name);
+        codebuf_write(ctx->out, "    %s %s;\n", ft,
+            ast_party_shared_name(shared));
     }
 
     size_t state_count = 0;
@@ -120,9 +122,9 @@ transpiler_emit_zone_struct_decl(TranspilerCtx *ctx, ASTNode *node, const char *
     for (size_t i = 0; i < state_count; i++) {
         ASTNode *state = states[i];
         codebuf_write(ctx->out, "    bool __state_%s;\n",
-            state->data.zone_state.state_name);
+            ast_zone_state_name(state));
         emit_hidden_provenance_fields(ctx, "state",
-            state->data.zone_state.state_name);
+            ast_zone_state_name(state));
     }
 
     codebuf_write(ctx->out, "    PGY_ZONE_LOCK_FIELD\n");
@@ -138,7 +140,7 @@ transpiler_emit_zone_layer_accessors(TranspilerCtx *ctx, ASTNode *node, const ch
     ASTNode **layer_slots = ast_zone_layer_slots(node, &layer_slot_count);
     for (size_t i = 0; i < layer_slot_count; i++) {
         ASTNode *slot = layer_slots[i];
-        const char *slot_name = slot->data.zone_layer_slot.slot_name;
+        const char *slot_name = ast_zone_layer_slot_name(slot);
 
         if (slot_name == NULL)
             continue;

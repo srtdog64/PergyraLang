@@ -67,16 +67,20 @@ semantic_type_resolution_precollect_party_inventory(ASTNode *party_decl,
         if (field == NULL || field->type != AST_PARTY_SHARED)
             continue;
         semantic_type_resolution_collect_type_refs(
-            field->data.party_shared.type,
+            ast_party_shared_type(field),
             ctx,
             field,
-            field->data.party_shared.name != NULL
-                ? field->data.party_shared.name : "<party-shared>",
+            ast_party_shared_name(field) != NULL
+                ? ast_party_shared_name(field) : "<party-shared>",
             "party shared field type lookup");
     }
 
     for (size_t i = 0; i < role_count; i++) {
         ASTNode *role_slot = ast_party_role(party_decl, i);
+        const char *slot_name = ast_role_slot_name(role_slot);
+        size_t ability_count = ast_role_slot_required_ability_count(role_slot);
+        ASTNode **abilities =
+            ast_role_slot_required_abilities(role_slot, NULL);
         char *consumer_name;
 
         if (role_slot == NULL || role_slot->type != AST_ROLE_SLOT)
@@ -85,13 +89,12 @@ semantic_type_resolution_precollect_party_inventory(ASTNode *party_decl,
         consumer_name = resolution_decl_strdup_fmt(
             "party %s.%s",
             party_name != NULL ? party_name : "<party>",
-            role_slot->data.role_slot.slot_name != NULL
-                ? role_slot->data.role_slot.slot_name : "<role-slot>");
+            slot_name != NULL ? slot_name : "<role-slot>");
         if (consumer_name == NULL)
             continue;
         semantic_type_resolution_precollect_required_abilities(
-            role_slot->data.role_slot.required_abilities,
-            role_slot->data.role_slot.ability_count,
+            abilities,
+            ability_count,
             ctx,
             role_slot,
             consumer_name,
@@ -138,11 +141,11 @@ semantic_type_resolution_precollect_roster_inventory(ASTNode *roster_decl,
         if (field == NULL || field->type != AST_PARTY_SHARED)
             continue;
         semantic_type_resolution_collect_type_refs(
-            field->data.party_shared.type,
+            ast_party_shared_type(field),
             ctx,
             field,
-            field->data.party_shared.name != NULL
-                ? field->data.party_shared.name : "<roster-shared>",
+            ast_party_shared_name(field) != NULL
+                ? ast_party_shared_name(field) : "<roster-shared>",
             "roster shared field type lookup");
     }
 
@@ -153,9 +156,9 @@ semantic_type_resolution_precollect_roster_inventory(ASTNode *roster_decl,
         semantic_type_resolution_record_string_dependency(
             ctx,
             slot,
-            slot->data.roster_slot.slot_name != NULL
-                ? slot->data.roster_slot.slot_name : "<roster-slot>",
-            slot->data.roster_slot.party_type,
+            ast_roster_slot_name(slot) != NULL
+                ? ast_roster_slot_name(slot) : "<roster-slot>",
+            ast_roster_slot_party_type(slot),
             "roster party lookup");
     }
 
@@ -257,10 +260,12 @@ semantic_type_resolution_precollect_class_inventory(ASTNode *class_decl,
         ctx,
         class_decl,
         "class",
-        class_decl->data.class_decl.name);
+        ast_class_name(class_decl));
 
-    for (size_t i = 0; i < class_decl->data.class_decl.field_count; i++) {
-        ClassField *field = class_decl->data.class_decl.fields[i];
+    size_t field_count = 0;
+    ClassField **fields = ast_class_fields(class_decl, &field_count);
+    for (size_t i = 0; i < field_count; i++) {
+        ClassField *field = fields != NULL ? fields[i] : NULL;
         char *consumer_name;
 
         if (field == NULL)
@@ -268,8 +273,8 @@ semantic_type_resolution_precollect_class_inventory(ASTNode *class_decl,
 
         consumer_name = resolution_decl_strdup_fmt(
             "class %s.%s",
-            class_decl->data.class_decl.name != NULL
-                ? class_decl->data.class_decl.name : "<class>",
+            ast_class_name(class_decl) != NULL
+                ? ast_class_name(class_decl) : "<class>",
             field->name != NULL ? field->name : "<field>");
         if (consumer_name != NULL) {
             semantic_type_resolution_collect_type_refs(
@@ -282,12 +287,14 @@ semantic_type_resolution_precollect_class_inventory(ASTNode *class_decl,
         }
     }
 
-    for (size_t i = 0; i < class_decl->data.class_decl.method_count; i++) {
-        ASTNode *method = class_decl->data.class_decl.methods[i];
+    size_t method_count = 0;
+    ASTNode **methods = ast_class_methods(class_decl, &method_count);
+    for (size_t i = 0; i < method_count; i++) {
+        ASTNode *method = methods != NULL ? methods[i] : NULL;
         semantic_type_resolution_precollect_action_contract(
             method,
             ctx,
-            class_decl->data.class_decl.name);
+            ast_class_name(class_decl));
     }
 }
 
@@ -423,29 +430,27 @@ semantic_type_resolution_precollect_enum_inventory(ASTNode *enum_decl,
     if (enum_decl == NULL || enum_decl->type != AST_ENUM_DECL || ctx == NULL)
         return;
 
-    for (size_t i = 0; i < enum_decl->data.enum_decl.variant_count; i++) {
-        ASTNode **params = enum_decl->data.enum_decl.variant_params != NULL
-            ? enum_decl->data.enum_decl.variant_params[i] : NULL;
-        size_t param_count = enum_decl->data.enum_decl.variant_param_counts != NULL
-            ? enum_decl->data.enum_decl.variant_param_counts[i] : 0;
-        const char *variant_name = enum_decl->data.enum_decl.variants != NULL
-            ? enum_decl->data.enum_decl.variants[i] : NULL;
+    size_t variant_count = 0;
+    char **variants = ast_enum_variants(enum_decl, &variant_count);
+    for (size_t i = 0; i < variant_count; i++) {
+        size_t param_count = ast_enum_variant_param_count(enum_decl, i);
+        const char *variant_name = variants != NULL ? variants[i] : NULL;
         char *consumer_name;
 
-        if (params == NULL || param_count == 0)
+        if (param_count == 0)
             continue;
 
         consumer_name = resolution_decl_strdup_fmt(
             "enum %s.%s",
-            enum_decl->data.enum_decl.name != NULL
-                ? enum_decl->data.enum_decl.name : "<enum>",
+            ast_enum_name(enum_decl) != NULL
+                ? ast_enum_name(enum_decl) : "<enum>",
             variant_name != NULL ? variant_name : "<variant>");
         if (consumer_name == NULL)
             continue;
 
         for (size_t j = 0; j < param_count; j++) {
             semantic_type_resolution_collect_type_refs(
-                params[j],
+                ast_enum_variant_param(enum_decl, i, j),
                 ctx,
                 enum_decl,
                 consumer_name,
@@ -454,11 +459,13 @@ semantic_type_resolution_precollect_enum_inventory(ASTNode *enum_decl,
         free(consumer_name);
     }
 
-    for (size_t i = 0; i < enum_decl->data.enum_decl.method_count; i++) {
+    size_t method_count = 0;
+    ASTNode **methods = ast_enum_methods(enum_decl, &method_count);
+    for (size_t i = 0; i < method_count; i++) {
         semantic_type_resolution_precollect_action_contract(
-            enum_decl->data.enum_decl.methods[i],
+            methods != NULL ? methods[i] : NULL,
             ctx,
-            enum_decl->data.enum_decl.name);
+            ast_enum_name(enum_decl));
     }
 }
 

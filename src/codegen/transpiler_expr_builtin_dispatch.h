@@ -1,6 +1,8 @@
 #ifndef PGY_TRANSPILER_EXPR_BUILTIN_DISPATCH_H
 #define PGY_TRANSPILER_EXPR_BUILTIN_DISPATCH_H
 
+#include "parser/ast_api.h"
+
 char *
 emit_unary(ASTNode *expr, TranspilerCtx *ctx)
 {
@@ -89,7 +91,7 @@ emit_call_builtin_dispatch(ASTNode *call, BuiltinKind bk, TranspilerCtx *ctx, bo
             slot_decl = current_overlay_domain_slot_decl(ctx, slot_name);
             if (slot_decl != NULL
                 && slot_decl->type == AST_DOMAIN_SLOT
-                && !slot_decl->data.domain_slot.is_subject) {
+                && !ast_domain_slot_is_subject(slot_decl)) {
                 return strdup_fmt("self->__projection_ready_%s", slot_name);
             }
             if (slot_name != NULL) {
@@ -198,7 +200,7 @@ emit_call_builtin_dispatch(ASTNode *call, BuiltinKind bk, TranspilerCtx *ctx, bo
                     ? transpiler_find_zone_domain_slot(zone_decl, slot_name)
                     : NULL;
                 if (zone_decl != NULL && slot_decl != NULL
-                    && !slot_decl->data.domain_slot.is_subject) {
+                    && !ast_domain_slot_is_subject(slot_decl)) {
                     return strdup_fmt("self->%s.__projection_ready_%s", zone_name, slot_name);
                 }
             }

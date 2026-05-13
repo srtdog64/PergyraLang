@@ -2,6 +2,7 @@
 
 #include "type_checker_internal.h"
 #include "type_checker_builtins_query_domain.h"
+#include "parser/ast_api.h"
 
 ASTNode *
 find_zone_domain_slot_local(ASTNode *zone, const char *slot_name)
@@ -15,10 +16,11 @@ find_zone_domain_slot_local(ASTNode *zone, const char *slot_name)
 
     for (size_t i = 0; i < slot_count; i++) {
         ASTNode *slot = slots[i];
+        const char *candidate_name = ast_domain_slot_name(slot);
         if (slot != NULL
             && slot->type == AST_DOMAIN_SLOT
-            && slot->data.domain_slot.slot_name != NULL
-            && strcmp(slot->data.domain_slot.slot_name, slot_name) == 0) {
+            && candidate_name != NULL
+            && strcmp(candidate_name, slot_name) == 0) {
             return slot;
         }
     }
@@ -40,8 +42,8 @@ builtin_find_zone_layer_slot_local(ASTNode *zone, const char *slot_name)
         ASTNode *slot = layer_slots[i];
         if (slot != NULL
             && slot->type == AST_ZONE_LAYER_SLOT
-            && slot->data.zone_layer_slot.slot_name != NULL
-            && strcmp(slot->data.zone_layer_slot.slot_name, slot_name) == 0) {
+            && ast_zone_layer_slot_name(slot) != NULL
+            && strcmp(ast_zone_layer_slot_name(slot), slot_name) == 0) {
             return slot;
         }
     }
@@ -66,10 +68,8 @@ find_world_zone_slot_local_builtin(ASTNode *world, const char *slot_name)
 
     for (size_t i = 0; i < zone_count; i++) {
         ASTNode *zone = zones[i];
-        if (zone != NULL
-            && zone->type == AST_WORLD_ZONE
-            && zone->data.world_zone.slot_name != NULL
-            && strcmp(zone->data.world_zone.slot_name, slot_name) == 0) {
+        const char *zone_slot_name = ast_world_zone_slot_name(zone);
+        if (zone_slot_name != NULL && strcmp(zone_slot_name, slot_name) == 0) {
             return zone;
         }
     }
@@ -126,11 +126,12 @@ builtin_resolve_world_zone_decl_local(SemanticContext *ctx, ASTNode *world,
         return NULL;
 
     zone_slot = find_world_zone_slot_local_builtin(world, slot_name);
-    if (zone_slot == NULL || zone_slot->data.world_zone.zone_type == NULL)
+    const char *zone_type_name = ast_world_zone_type_name(zone_slot);
+    if (zone_type_name == NULL)
         return NULL;
 
     return find_program_domain_decl_local(ctx->program_root, AST_ZONE_DECL,
-        zone_slot->data.world_zone.zone_type);
+        zone_type_name);
 }
 
 ASTNode *
@@ -162,8 +163,8 @@ find_zone_state_decl_local_builtin(ASTNode *zone, const char *state_name)
     for (size_t i = 0; i < state_count; i++) {
         ASTNode *state = states[i];
         if (state != NULL && state->type == AST_ZONE_STATE
-            && state->data.zone_state.state_name != NULL
-            && strcmp(state->data.zone_state.state_name, state_name) == 0) {
+            && ast_zone_state_name(state) != NULL
+            && strcmp(ast_zone_state_name(state), state_name) == 0) {
             return state;
         }
     }
@@ -181,12 +182,13 @@ find_domain_projection_slot_local(ASTNode **slots, size_t slot_count,
 
     for (size_t i = 0; i < slot_count; i++) {
         ASTNode *slot = slots[i];
+        const char *candidate_name = ast_domain_slot_name(slot);
         if (slot == NULL || slot->type != AST_DOMAIN_SLOT
-            || slot->data.domain_slot.slot_name == NULL
-            || strcmp(slot->data.domain_slot.slot_name, slot_name) != 0) {
+            || candidate_name == NULL
+            || strcmp(candidate_name, slot_name) != 0) {
             continue;
         }
-        if (!slot->data.domain_slot.is_subject) {
+        if (!ast_domain_slot_is_subject(slot)) {
             for (size_t j = 0; j < refresh_count; j++) {
                 ASTNode *refresh = refreshes[j];
                 if (refresh != NULL && refresh->type == AST_ZONE_REFRESH
@@ -196,7 +198,7 @@ find_domain_projection_slot_local(ASTNode **slots, size_t slot_count,
                     return slot;
                 }
             }
-            if (slot->data.domain_slot.is_tobject)
+            if (ast_domain_slot_is_tobject(slot))
                 return slot;
         }
         return NULL;
@@ -273,10 +275,10 @@ find_named_class_decl(ASTNode *program, const char *name)
     for (size_t i = 0; i < program->data.program.count; i++) {
         ASTNode *stmt = program->data.program.statements[i];
         if (stmt == NULL || stmt->type != AST_CLASS_DECL
-            || stmt->data.class_decl.name == NULL) {
+            || ast_class_name(stmt) == NULL) {
             continue;
         }
-        if (strcmp(stmt->data.class_decl.name, name) == 0)
+        if (strcmp(ast_class_name(stmt), name) == 0)
             return stmt;
     }
 
@@ -288,17 +290,21 @@ decl_is_subject_nominal(ASTNode *decl)
 {
     return (decl != NULL
             && decl->type == AST_CLASS_DECL
-            && !decl->data.class_decl.is_struct
-            && decl->data.class_decl.nominal_kind == NOMINAL_DECL_SUBJECT);
+            && !ast_class_is_struct(decl)
+            && ast_class_nominal_kind(decl) == NOMINAL_DECL_SUBJECT);
 }
 
 static size_t
 projection_source_field_count_local(ASTNode *decl)
 {
+    size_t field_count = 0;
+
     if (decl == NULL)
         return 0;
-    if (decl->type == AST_CLASS_DECL)
-        return decl->data.class_decl.field_count;
+    if (decl->type == AST_CLASS_DECL) {
+        (void) ast_class_fields(decl, &field_count);
+        return field_count;
+    }
     return 0;
 }
 
@@ -308,8 +314,10 @@ projection_source_field_at_local(ASTNode *decl, size_t index)
     if (decl == NULL)
         return NULL;
     if (decl->type == AST_CLASS_DECL) {
-        if (index < decl->data.class_decl.field_count)
-            return decl->data.class_decl.fields[index];
+        size_t field_count = 0;
+        ClassField **fields = ast_class_fields(decl, &field_count);
+        if (index < field_count && fields != NULL)
+            return fields[index];
         return NULL;
     }
     return NULL;
@@ -358,7 +366,7 @@ resolve_projection_source_field_type_rec(ASTNode *program,
         }
 
         vessel_decl = find_named_class_decl(program, field->type->data.type.name);
-        if (vessel_decl == NULL || vessel_decl->data.class_decl.nominal_kind != NOMINAL_DECL_VESSEL)
+        if (vessel_decl == NULL || ast_class_nominal_kind(vessel_decl) != NOMINAL_DECL_VESSEL)
             continue;
 
         nested_status = resolve_projection_source_field_type_rec(

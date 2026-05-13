@@ -82,7 +82,7 @@ hir_node_name(ASTNode *node)
         case AST_FUNC_DECL:
             return node->data.func_decl.name;
         case AST_CLASS_DECL:
-            return node->data.class_decl.name;
+            return ast_class_name(node);
         case AST_TYPE_ALIAS:
             return node->data.type_alias.name;
         case AST_EXTERN_BLOCK:

@@ -165,7 +165,7 @@ transpiler_lookup_current_owner_member_type_name(TranspilerCtx *ctx,
     if (host_decl != NULL) {
         switch (host_decl->type) {
         case AST_CLASS_DECL:
-            host_name = host_decl->data.class_decl.name;
+            host_name = ast_class_name(host_decl);
             break;
         case AST_RELATION_DECL:
             host_name = ast_relation_name(host_decl);
@@ -212,10 +212,16 @@ transpiler_find_local_type_name(TranspilerCtx *ctx,
     for (size_t i = 0; i < func_decl->data.func_decl.param_count; i++) {
         FuncParam *p = func_decl->data.func_decl.params[i];
         if (p != NULL && p->name != NULL && strcmp(p->name, base_name) == 0 && p->type != NULL) {
-            static char *rendered_param = NULL;
-            free(rendered_param);
-            rendered_param = transpiler_render_effective_local_type_name(ctx, p->type);
-            if (ctx != NULL && rendered_param != NULL)
+            char *owned_param =
+                transpiler_render_effective_local_type_name(ctx, p->type);
+            const char *rendered_param =
+                transpiler_mir_arena_copy_type_name(ctx, owned_param);
+            if (rendered_param == NULL) {
+                free(owned_param);
+                return NULL;
+            }
+            free(owned_param);
+            if (ctx != NULL)
                 register_typed_var(ctx, base_name, rendered_param);
             return rendered_param;
         }

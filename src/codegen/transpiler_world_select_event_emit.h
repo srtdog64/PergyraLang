@@ -44,25 +44,33 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
     /* Roster instances */
     for (size_t i = 0; i < roster_count; i++) {
         ASTNode *ws = rosters[i];
+        const char *roster_type = ast_world_roster_type_name(ws);
+        const char *slot_name = ast_world_roster_slot_name(ws);
+        if (roster_type == NULL || slot_name == NULL)
+            continue;
         codebuf_write(ctx->out, "    %s %s;\n",
-            ws->data.world_roster.roster_type,
-            ws->data.world_roster.slot_name);
+            roster_type,
+            slot_name);
     }
 
     /* Zone instances */
     for (size_t i = 0; i < zone_count; i++) {
         ASTNode *wz = zones[i];
+        const char *zone_type = ast_world_zone_type_name(wz);
+        const char *slot_name = ast_world_zone_slot_name(wz);
+        if (zone_type == NULL || slot_name == NULL)
+            continue;
         codebuf_write(ctx->out, "    %s %s;\n",
-            wz->data.world_zone.zone_type,
-            wz->data.world_zone.slot_name);
+            zone_type,
+            slot_name);
         codebuf_write(ctx->out, "    bool __zone_active_%s;\n",
-            wz->data.world_zone.slot_name);
+            slot_name);
         codebuf_write(ctx->out, "    bool __zone_dirty_%s;\n",
-            wz->data.world_zone.slot_name);
+            slot_name);
         codebuf_write(ctx->out, "    uint32_t __zone_seen_generation_%s;\n",
-            wz->data.world_zone.slot_name);
+            slot_name);
         emit_hidden_provenance_fields(ctx, "zone",
-            wz->data.world_zone.slot_name);
+            slot_name);
     }
 
     /* Shared fields */
@@ -73,16 +81,17 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
         snprintf(surface_desc, sizeof(surface_desc),
             "world shared field '%s.%s'",
             name != NULL ? name : "(anonymous)",
-            shared != NULL && shared->data.party_shared.name != NULL
-                ? shared->data.party_shared.name
+            ast_party_shared_name(shared) != NULL
+                ? ast_party_shared_name(shared)
                 : "(anonymous)");
         ft = transpiler_require_ast_c_type(
             ctx,
-            shared != NULL ? shared->data.party_shared.type : NULL,
+            ast_party_shared_type(shared),
             surface_desc);
         if (ft == NULL)
             return;
-        codebuf_write(ctx->out, "    %s %s;\n", ft, shared->data.party_shared.name);
+        codebuf_write(ctx->out, "    %s %s;\n", ft,
+            ast_party_shared_name(shared));
     }
 
     for (size_t i = 0; i < state_count; i++) {
@@ -103,12 +112,15 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
     codebuf_write(ctx->out, "/* world command pass: reset */\n");
     for (size_t i = 0; i < zone_count; i++) {
         ASTNode *wz = zones[i];
+        const char *slot_name = ast_world_zone_slot_name(wz);
+        if (slot_name == NULL)
+            continue;
         write_indent(ctx);
         codebuf_write(ctx->out, "bool _pgy_prev_active_%s = self->__zone_active_%s;\n",
-            wz->data.world_zone.slot_name, wz->data.world_zone.slot_name);
+            slot_name, slot_name);
         write_indent(ctx);
         codebuf_write(ctx->out, "self->__zone_active_%s = false;\n",
-            wz->data.world_zone.slot_name);
+            slot_name);
     }
     write_indent(ctx);
     codebuf_write(ctx->out, "/* world command pass: directives */\n");
@@ -165,7 +177,9 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
     }
     for (size_t i = 0; i < zone_count; i++) {
         ASTNode *wz = zones[i];
-        const char *slot_name = wz->data.world_zone.slot_name;
+        const char *slot_name = ast_world_zone_slot_name(wz);
+        if (slot_name == NULL)
+            continue;
         write_indent(ctx);
         codebuf_write(ctx->out, "if (self->__zone_active_%s != _pgy_prev_active_%s) {\n",
             slot_name, slot_name);
@@ -204,7 +218,10 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
     codebuf_write(ctx->out, "/* world zone sync pass */\n");
     for (size_t i = 0; i < zone_count; i++) {
         ASTNode *wz = zones[i];
-        const char *slot_name = wz->data.world_zone.slot_name;
+        const char *slot_name = ast_world_zone_slot_name(wz);
+        const char *zone_type = ast_world_zone_type_name(wz);
+        if (slot_name == NULL || zone_type == NULL)
+            continue;
         write_indent(ctx);
         codebuf_write(ctx->out,
             "if (self->%s.__sync_generation != self->__zone_seen_generation_%s) {\n",
@@ -222,7 +239,7 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
         ctx->indent++;
         write_indent(ctx);
         codebuf_write(ctx->out, "%s_sync(&self->%s);\n",
-            wz->data.world_zone.zone_type, slot_name);
+            zone_type, slot_name);
         write_indent(ctx);
         codebuf_write(ctx->out,
             "self->__zone_seen_generation_%s = self->%s.__sync_generation;\n",
@@ -364,12 +381,12 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
     codebuf_write(ctx->out, "if (_pgy_world_derived_changed_any || self->__world_derived_dirty");
     for (size_t i = 0; i < zone_count; i++) {
         ASTNode *wz = zones[i];
-        if (wz == NULL || wz->type != AST_WORLD_ZONE
-            || wz->data.world_zone.slot_name == NULL) {
+        const char *slot_name = ast_world_zone_slot_name(wz);
+        if (slot_name == NULL) {
             continue;
         }
         codebuf_write(ctx->out, " || self->__zone_dirty_%s",
-            wz->data.world_zone.slot_name);
+            slot_name);
     }
     codebuf_write(ctx->out, ") {\n");
     ctx->indent++;

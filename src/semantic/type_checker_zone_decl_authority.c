@@ -5,6 +5,7 @@
 #include "type_checker_module_contract_internal.h"
 #include "type_checker_visibility.h"
 #include "diag_codes.h"
+#include "parser/ast_api.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -32,7 +33,7 @@ type_check_zone_authorities(ASTNode *zone, SemanticContext *ctx)
                 authority->data.zone_authority.subject_slot_name);
             continue;
         }
-        if (!slot->data.domain_slot.is_subject) {
+        if (!ast_domain_slot_is_subject(slot)) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, authority,
                 "Zone authority '%s' must reference a subject slot",
                 authority->data.zone_authority.subject_slot_name);
@@ -228,18 +229,18 @@ type_check_zone_layer_slots(ASTNode *zone, SemanticContext *ctx)
     layer_slots = ast_zone_layer_slots(zone, &layer_slot_count);
     for (size_t i = 0; i < layer_slot_count; i++) {
         ASTNode *layer_slot = layer_slots[i];
-        const char *type_name = layer_slot->data.zone_layer_slot.layer_type;
+        const char *type_name = ast_zone_layer_slot_layer_type(layer_slot);
         Symbol *sym = type_name != NULL ? scope_lookup(ctx->scope, type_name) : NULL;
-        ASTNodeType decl_type = layer_slot->data.zone_layer_slot.is_relation
+        ASTNodeType decl_type = ast_zone_layer_slot_is_relation(layer_slot)
             ? AST_RELATION_DECL
             : AST_EFFECT_DECL;
         ASTNode *decl = type_name != NULL
             ? find_domain_decl_by_name(ctx->program_root, decl_type, type_name)
             : NULL;
-        SymbolKind expected = layer_slot->data.zone_layer_slot.is_relation
+        SymbolKind expected = ast_zone_layer_slot_is_relation(layer_slot)
             ? SYMBOL_RELATION
             : SYMBOL_EFFECT;
-        const char *kind_name = layer_slot->data.zone_layer_slot.is_relation
+        const char *kind_name = ast_zone_layer_slot_is_relation(layer_slot)
             ? "relation"
             : "effect";
         if ((sym == NULL || sym->kind != expected)
@@ -254,8 +255,8 @@ type_check_zone_layer_slots(ASTNode *zone, SemanticContext *ctx)
                 "Fix:\n"
                 "- declare %s '%s' before using it in zone '%s'\n"
                 "- or change the layer slot type to an existing %s declaration",
-                layer_slot->data.zone_layer_slot.slot_name != NULL
-                    ? layer_slot->data.zone_layer_slot.slot_name
+                ast_zone_layer_slot_name(layer_slot) != NULL
+                    ? ast_zone_layer_slot_name(layer_slot)
                     : "<slot>",
                 kind_name,
                 type_name != NULL ? type_name : "<unknown>",
@@ -265,8 +266,8 @@ type_check_zone_layer_slots(ASTNode *zone, SemanticContext *ctx)
                 ast_zone_name(zone) != NULL ? ast_zone_name(zone) : "<zone>",
                 kind_name);
         }
-        if (layer_slot->data.zone_layer_slot.is_relation
-            && layer_slot->data.zone_layer_slot.is_pool) {
+        if (ast_zone_layer_slot_is_relation(layer_slot)
+            && ast_zone_layer_slot_is_pool(layer_slot)) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, layer_slot,
                 "Zone relation pool '%s' is not supported yet.\n"
                 "Reason:\n"
@@ -276,13 +277,13 @@ type_check_zone_layer_slots(ASTNode *zone, SemanticContext *ctx)
                 "Fix:\n"
                 "- declare individual relation slots for the beta stable subset\n"
                 "- or move pooled relation semantics to beta-out-of-scope documentation",
-                layer_slot->data.zone_layer_slot.slot_name != NULL
-                    ? layer_slot->data.zone_layer_slot.slot_name
+                ast_zone_layer_slot_name(layer_slot) != NULL
+                    ? ast_zone_layer_slot_name(layer_slot)
                     : "<unknown>");
         }
-        if (!layer_slot->data.zone_layer_slot.is_relation
-            && layer_slot->data.zone_layer_slot.is_pool
-            && layer_slot->data.zone_layer_slot.pool_capacity <= 0) {
+        if (!ast_zone_layer_slot_is_relation(layer_slot)
+            && ast_zone_layer_slot_is_pool(layer_slot)
+            && ast_zone_layer_slot_pool_capacity(layer_slot) <= 0) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, layer_slot,
                 "Zone effect pool '%s' must declare a positive capacity.\n"
                 "Reason:\n"
@@ -292,8 +293,8 @@ type_check_zone_layer_slots(ASTNode *zone, SemanticContext *ctx)
                 "Fix:\n"
                 "- choose a positive pool capacity\n"
                 "- or use a non-pool effect slot for the beta stable subset",
-                layer_slot->data.zone_layer_slot.slot_name != NULL
-                    ? layer_slot->data.zone_layer_slot.slot_name
+                ast_zone_layer_slot_name(layer_slot) != NULL
+                    ? ast_zone_layer_slot_name(layer_slot)
                     : "<unknown>");
         }
     }

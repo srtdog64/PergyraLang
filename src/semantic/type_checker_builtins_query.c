@@ -321,8 +321,8 @@ type_check_has_state(ASTNode *call, SemanticContext *ctx)
         state = states[i];
         if (state != NULL
             && state->type == AST_ZONE_STATE
-            && state->data.zone_state.state_name != NULL
-            && strcmp(state->data.zone_state.state_name, state_name) == 0) {
+            && ast_zone_state_name(state) != NULL
+            && strcmp(ast_zone_state_name(state), state_name) == 0) {
             break;
         }
         state = NULL;
@@ -366,7 +366,7 @@ type_check_has_state(ASTNode *call, SemanticContext *ctx)
         return TYPE_BOOL;
     }
 
-    if (!state->data.zone_state.is_relation) {
+    if (!ast_zone_state_is_relation(state)) {
         slot_name = call->data.call.arguments[1]->data.identifier.name;
         if (call->data.call.arg_count != 2) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_PREDICATE_ARGS_INVALID, PGY_CAUSE_PREDICATE_ARGS, PGY_FIX_MATCH_PREDICATE_SIGNATURE_IN_HOST, call,
@@ -377,11 +377,11 @@ type_check_has_state(ASTNode *call, SemanticContext *ctx)
                 state_name,
                 ast_zone_name(zone) != NULL ? ast_zone_name(zone) : "<zone>",
                 state_name,
-                state->data.zone_state.left_or_target_slot_name != NULL
-                    ? state->data.zone_state.left_or_target_slot_name : "<slot>");
+                ast_zone_state_left_or_target_slot_name(state) != NULL
+                    ? ast_zone_state_left_or_target_slot_name(state) : "<slot>");
             return TYPE_BOOL;
         }
-        if (strcmp(slot_name, state->data.zone_state.left_or_target_slot_name) != 0) {
+        if (strcmp(slot_name, ast_zone_state_left_or_target_slot_name(state)) != 0) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_PREDICATE_ARGS_INVALID,
                 PGY_CAUSE_PREDICATE_ARGS, PGY_FIX_MATCH_PREDICATE_SIGNATURE_IN_HOST,
                 call->data.call.arguments[1],
@@ -390,7 +390,7 @@ type_check_has_state(ASTNode *call, SemanticContext *ctx)
                 "- current zone: %s\n"
                 "- effect state contract originates from state '%s'",
                 state_name,
-                state->data.zone_state.left_or_target_slot_name,
+                ast_zone_state_left_or_target_slot_name(state),
                 slot_name,
                 ast_zone_name(zone) != NULL ? ast_zone_name(zone) : "<zone>",
                 state_name);
@@ -407,10 +407,10 @@ type_check_has_state(ASTNode *call, SemanticContext *ctx)
             state_name,
             ast_zone_name(zone) != NULL ? ast_zone_name(zone) : "<zone>",
             state_name,
-            state->data.zone_state.left_or_target_slot_name != NULL
-                ? state->data.zone_state.left_or_target_slot_name : "<left>",
-            state->data.zone_state.right_slot_name != NULL
-                ? state->data.zone_state.right_slot_name : "<right>");
+            ast_zone_state_left_or_target_slot_name(state) != NULL
+                ? ast_zone_state_left_or_target_slot_name(state) : "<left>",
+            ast_zone_state_right_slot_name(state) != NULL
+                ? ast_zone_state_right_slot_name(state) : "<right>");
         return TYPE_BOOL;
     }
 
@@ -433,8 +433,8 @@ type_check_has_state(ASTNode *call, SemanticContext *ctx)
 
     left_slot_name = call->data.call.arguments[1]->data.identifier.name;
     right_slot_name = call->data.call.arguments[2]->data.identifier.name;
-    if (strcmp(left_slot_name, state->data.zone_state.left_or_target_slot_name) != 0
-        || strcmp(right_slot_name, state->data.zone_state.right_slot_name) != 0) {
+    if (strcmp(left_slot_name, ast_zone_state_left_or_target_slot_name(state)) != 0
+        || strcmp(right_slot_name, ast_zone_state_right_slot_name(state)) != 0) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_PREDICATE_ARGS_INVALID,
             PGY_CAUSE_PREDICATE_ARGS, PGY_FIX_MATCH_PREDICATE_SIGNATURE_IN_HOST,
             call,
@@ -443,8 +443,8 @@ type_check_has_state(ASTNode *call, SemanticContext *ctx)
             "- current zone: %s\n"
             "- relation state contract originates from state '%s'",
             state_name,
-            state->data.zone_state.left_or_target_slot_name,
-            state->data.zone_state.right_slot_name,
+            ast_zone_state_left_or_target_slot_name(state),
+            ast_zone_state_right_slot_name(state),
             left_slot_name,
             right_slot_name,
             ast_zone_name(zone) != NULL ? ast_zone_name(zone) : "<zone>",

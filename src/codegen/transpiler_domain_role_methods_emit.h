@@ -153,6 +153,7 @@ emit_role_operator_aliases(ASTNode *role, TranspilerCtx *ctx)
             continue;
 
         const char *ret_type = "void";
+        char ret_type_storage[128];
         const char *lhs_type = transpiler_require_ast_c_type(
             ctx,
             transpiler_role_subject_type_node_local(role),
@@ -162,8 +163,13 @@ emit_role_operator_aliases(ASTNode *role, TranspilerCtx *ctx)
             ? rhs_param->name : "rhs";
         char surface_desc[256];
 
-        if (method->data.func_decl.return_type != NULL)
-            ret_type = pergyra_ast_type_to_c(method->data.func_decl.return_type);
+        if (method->data.func_decl.return_type != NULL) {
+            snprintf(ret_type_storage,
+                     sizeof(ret_type_storage),
+                     "%s",
+                     pergyra_ast_type_to_c(method->data.func_decl.return_type));
+            ret_type = ret_type_storage;
+        }
         if (!transpiler_role_ability_surface_desc(surface_desc,
                 sizeof(surface_desc), "role operator parameter",
                 role_name, method->data.func_decl.name, rhs_name)) {

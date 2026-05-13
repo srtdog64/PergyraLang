@@ -97,9 +97,9 @@ llvm_decl_node_name(ASTNode *node)
     case AST_EVENT_DECL:
         return node->data.event_decl.name;
     case AST_CLASS_DECL:
-        return node->data.class_decl.name;
+        return ast_class_name(node);
     case AST_ENUM_DECL:
-        return node->data.enum_decl.name;
+        return ast_enum_name(node);
     case AST_TYPE_ALIAS:
         return node->data.type_alias.name;
     default:

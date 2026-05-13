@@ -51,7 +51,9 @@ transpiler_enum_format_too_long(TranspilerCtx *ctx, const char *surface_kind)
 static void
 emit_enum_decl_stmt(ASTNode *node, TranspilerCtx *ctx)
 {
-    const char *ename = node->data.enum_decl.name;
+    const char *ename = ast_enum_name(node);
+    size_t variant_count = 0;
+    char **variants = ast_enum_variants(node, &variant_count);
     TranspilerHostedMethodView method_view =
         transpiler_hosted_method_view_from_decl(ctx, ename, node);
     if (transpiler_hosted_method_view_missing_mir_metadata(&method_view)) {
@@ -64,9 +66,8 @@ emit_enum_decl_stmt(ASTNode *node, TranspilerCtx *ctx)
 
         /* Check if any variant has data → tagged union */
         bool has_data = false;
-        for (size_t i = 0; i < node->data.enum_decl.variant_count; i++) {
-            if (node->data.enum_decl.variant_param_counts != NULL
-                && node->data.enum_decl.variant_param_counts[i] > 0) {
+        for (size_t i = 0; i < variant_count; i++) {
+            if (ast_enum_variant_param_count(node, i) > 0) {
                 has_data = true;
                 break;
             }
@@ -75,10 +76,10 @@ emit_enum_decl_stmt(ASTNode *node, TranspilerCtx *ctx)
         if (!has_data) {
             /* Simple enum: typedef enum { Color_Red=0, ... } Color; */
             codebuf_write(ctx->out, "typedef enum {\n");
-            for (size_t i = 0; i < node->data.enum_decl.variant_count; i++) {
+            for (size_t i = 0; i < variant_count; i++) {
                 codebuf_write(ctx->out, "    %s_%s = %zu",
-                    ename, node->data.enum_decl.variants[i], i);
-                if (i + 1 < node->data.enum_decl.variant_count)
+                    ename, variants != NULL ? variants[i] : NULL, i);
+                if (i + 1 < variant_count)
                     codebuf_write(ctx->out, ",");
                 codebuf_write(ctx->out, "\n");
             }
@@ -96,10 +97,10 @@ emit_enum_decl_stmt(ASTNode *node, TranspilerCtx *ctx)
 
             /* Tag enum */
             codebuf_write(ctx->out, "typedef enum {\n");
-            for (size_t i = 0; i < node->data.enum_decl.variant_count; i++) {
+            for (size_t i = 0; i < variant_count; i++) {
                 codebuf_write(ctx->out, "    %s_TAG_%s = %zu",
-                    ename, node->data.enum_decl.variants[i], i);
-                if (i + 1 < node->data.enum_decl.variant_count)
+                    ename, variants != NULL ? variants[i] : NULL, i);
+                if (i + 1 < variant_count)
                     codebuf_write(ctx->out, ",");
                 codebuf_write(ctx->out, "\n");
             }
@@ -109,13 +110,12 @@ emit_enum_decl_stmt(ASTNode *node, TranspilerCtx *ctx)
             codebuf_write(ctx->out, "typedef struct {\n");
             codebuf_write(ctx->out, "    %s_Tag tag;\n", ename);
             codebuf_write(ctx->out, "    union {\n");
-            for (size_t i = 0; i < node->data.enum_decl.variant_count; i++) {
-                size_t pc = (node->data.enum_decl.variant_param_counts != NULL)
-                    ? node->data.enum_decl.variant_param_counts[i] : 0;
+            for (size_t i = 0; i < variant_count; i++) {
+                size_t pc = ast_enum_variant_param_count(node, i);
                 if (pc == 0) continue;
                 codebuf_write(ctx->out, "        struct { ");
                 for (size_t p = 0; p < pc; p++) {
-                    ASTNode *pt = node->data.enum_decl.variant_params[i][p];
+                    ASTNode *pt = ast_enum_variant_param(node, i, p);
                     const char *ctype = transpiler_require_ast_c_type(
                         ctx,
                         pt,
@@ -125,7 +125,7 @@ emit_enum_decl_stmt(ASTNode *node, TranspilerCtx *ctx)
                     codebuf_write(ctx->out, "%s _%zu; ", ctype, p);
                 }
                 codebuf_write(ctx->out, "} %s;\n",
-                    node->data.enum_decl.variants[i]);
+                    variants != NULL ? variants[i] : NULL);
             }
             codebuf_write(ctx->out, "    };\n");
             codebuf_write(ctx->out, "} %s;\n\n", ename);
@@ -134,10 +134,9 @@ emit_enum_decl_stmt(ASTNode *node, TranspilerCtx *ctx)
              * static inline Shape Shape_Circle(int32_t _0) {
              *     Shape v; v.tag = Shape_TAG_Circle; v.Circle._0 = _0; return v;
              * } */
-            for (size_t i = 0; i < node->data.enum_decl.variant_count; i++) {
-                size_t pc = (node->data.enum_decl.variant_param_counts != NULL)
-                    ? node->data.enum_decl.variant_param_counts[i] : 0;
-                const char *vname = node->data.enum_decl.variants[i];
+            for (size_t i = 0; i < variant_count; i++) {
+                size_t pc = ast_enum_variant_param_count(node, i);
+                const char *vname = variants != NULL ? variants[i] : NULL;
                 if (pc == 0) {
                     /* No-data variant: macro constant */
                     codebuf_write(ctx->out,
@@ -148,7 +147,7 @@ emit_enum_decl_stmt(ASTNode *node, TranspilerCtx *ctx)
                     codebuf_write(ctx->out,
                         "static inline %s %s_%s(", ename, ename, vname);
                     for (size_t p = 0; p < pc; p++) {
-                        ASTNode *pt = node->data.enum_decl.variant_params[i][p];
+                        ASTNode *pt = ast_enum_variant_param(node, i, p);
                         const char *ctype = transpiler_require_ast_c_type(
                             ctx,
                             pt,

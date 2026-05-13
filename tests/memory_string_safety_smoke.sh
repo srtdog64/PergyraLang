@@ -31,6 +31,21 @@ if [ -n "$unsafe_calls" ]; then
     fail "production code must use project-owned bounded formatting/copy/append helpers, not unsafe C string APIs"
 fi
 
+strtok_calls="$(
+    grep -RInE '\bstrtok[[:space:]]*\(' \
+        "$ROOT_DIR/src" \
+        --include='*.c' --include='*.h' || true
+)"
+strtok_calls="$(
+    printf '%s\n' "$strtok_calls" \
+        | grep -v '/src/test_' \
+        | grep -v '/src/tests/' || true
+)"
+if [ -n "$strtok_calls" ]; then
+    printf '%s\n' "$strtok_calls" >&2
+    fail "production code must not use process-global strtok tokenizer state"
+fi
+
 truncated_stack_copies="$(
     grep -RInE 'memcpy\([^;]*stack_buf,[[:space:]]*\(size_t\)len[[:space:]]*\+[[:space:]]*1\)' \
         "$ROOT_DIR/src" \
@@ -118,6 +133,12 @@ require_literal "src/codegen/llvm_stmt_parallel_async.c" \
     "llvm_select_channel_runtime_name"
 require_literal "src/codegen/llvm_stmt_parallel_names.c" \
     "written >= 0 && (size_t)written < out_size"
+require_literal "src/runtime/slot_manager_security_stats.c" \
+    "slot_security_localtime"
+require_literal "src/runtime/slot_manager_security_stats.c" \
+    "localtime_s(out, &now)"
+require_literal "src/runtime/slot_manager_security_stats.c" \
+    "localtime_r(&now, out)"
 require_literal "src/codegen/llvm_expr_slot_device_calls.c" \
     "llvm_slot_format_runtime_name"
 require_literal "src/codegen/llvm_expr_slot_device_calls.c" \

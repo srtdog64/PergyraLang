@@ -120,40 +120,40 @@ llvm_intent_step_context_load(LLVMGenCtx *ctx,
     }
 
     if (out->pre_expr == NULL)
-        out->pre_expr = step->data.intent_step.pre_expr;
+        out->pre_expr = ast_intent_step_pre_expr(step);
     if (out->guard_expr == NULL)
-        out->guard_expr = step->data.intent_step.guard_expr;
+        out->guard_expr = ast_intent_step_guard_expr(step);
     if (out->post_expr == NULL)
-        out->post_expr = step->data.intent_step.post_expr;
+        out->post_expr = ast_intent_step_post_expr(step);
     if (out->expect_expr == NULL)
-        out->expect_expr = step->data.intent_step.expect_expr;
+        out->expect_expr = ast_intent_step_expect_expr(step);
     if (out->invariant_pre_expr == NULL)
-        out->invariant_pre_expr = step->data.intent_step.invariant_expr;
+        out->invariant_pre_expr = ast_intent_step_invariant_expr(step);
     if (out->invariant_post_expr == NULL)
-        out->invariant_post_expr = step->data.intent_step.invariant_expr;
+        out->invariant_post_expr = ast_intent_step_invariant_expr(step);
     if (out->subintent_expr == NULL)
-        out->subintent_expr = step->data.intent_step.intent_expr;
+        out->subintent_expr = ast_intent_step_intent_expr(step);
     if (out->zone_type_name == NULL
-        && step->data.intent_step.where_type != NULL
-        && step->data.intent_step.where_type->type == AST_TYPE)
-        out->zone_type_name = step->data.intent_step.where_type->data.type.name;
+        && ast_intent_step_where_type(step) != NULL
+        && ast_intent_step_where_type(step)->type == AST_TYPE)
+        out->zone_type_name = ast_intent_step_where_type(step)->data.type.name;
     if (out->zone_alias == NULL)
         out->zone_alias = llvm_intent_step_effective_zone_alias(step);
     if (out->from_alias == NULL)
-        out->from_alias = step->data.intent_step.transfer_from_alias;
+        out->from_alias = ast_intent_step_transfer_from_alias(step);
     if (out->causes_effect == NULL)
-        out->causes_effect = step->data.intent_step.causes_effect;
+        out->causes_effect = ast_intent_step_causes_effect(step);
     if (out->who_alias_count == 0) {
-        out->who_alias_count = step->data.intent_step.who_count;
-        out->who_aliases = (const char **)step->data.intent_step.who_names;
+        out->who_alias_count = ast_intent_step_who_count(step);
+        out->who_aliases = (const char **)ast_intent_step_who_names(step, NULL);
     }
     if (out->authorized_alias_count == 0) {
-        out->authorized_alias_count = step->data.intent_step.authorized_by_count;
-        out->authorized_aliases = (const char **)step->data.intent_step.authorized_by;
+        out->authorized_alias_count = ast_intent_step_authorized_by_count(step);
+        out->authorized_aliases = (const char **)ast_intent_step_authorized_by(step, NULL);
     }
     if (out->dispatch_alias_count == 0) {
-        out->dispatch_alias_count = step->data.intent_step.who_count;
-        out->dispatch_aliases = (const char **)step->data.intent_step.who_names;
+        out->dispatch_alias_count = ast_intent_step_who_count(step);
+        out->dispatch_aliases = (const char **)ast_intent_step_who_names(step, NULL);
     }
     (void)intent;
     return true;

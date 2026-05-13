@@ -15,9 +15,15 @@ emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
     char *wrapper_name = strdup_fmt("pgy_spawn_wrapper_%d", wrapper_id);
     char *args_type_name = NULL;
     char *return_type_name = infer_spawn_return_type_name(ctx, node);
-    char *return_c_type = pergyra_strdup(pergyra_type_to_c(return_type_name));
+    char return_c_type_buf[256];
+    char *return_c_type = NULL;
     GenericBindingEntry bindings[MAX_GENERIC_BINDINGS];
     size_t binding_count = 0;
+
+    if (pergyra_type_to_c_copy(return_type_name, return_c_type_buf,
+            sizeof(return_c_type_buf))) {
+        return_c_type = pergyra_strdup(return_c_type_buf);
+    }
 
     if (target == NULL) {
         transpiler_set_backend_error_with_hints(ctx,
@@ -78,6 +84,7 @@ emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
     if (args_type_name != NULL) {
         codebuf_write(ctx->decls, "\ntypedef struct {\n");
         for (size_t i = 0; i < arg_count; i++) {
+            char arg_type_buf[256];
             const char *arg_type = NULL;
             if (decl != NULL && i < decl->data.func_decl.param_count
                 && decl->data.func_decl.params[i] != NULL
@@ -85,7 +92,10 @@ emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
                 if (binding_count > 0) {
                     char *bound_type = render_type_name_with_bindings(ctx,
                         decl->data.func_decl.params[i]->type, bindings, binding_count);
-                    arg_type = pergyra_type_to_c(bound_type);
+                    if (pergyra_type_to_c_copy(bound_type, arg_type_buf,
+                            sizeof(arg_type_buf))) {
+                        arg_type = arg_type_buf;
+                    }
                     if (bound_type == NULL || bound_type[0] == '\0'
                         || strcmp(bound_type, "Unknown") == 0
                         || arg_type == NULL || arg_type[0] == '\0'
@@ -110,8 +120,12 @@ emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
                 }
                 arg_type = pergyra_ast_type_to_c(decl->data.func_decl.params[i]->type);
             } else if (call != NULL) {
-                arg_type = pergyra_type_to_c(infer_expression_type_name(
-                    ctx, call->data.call.arguments[i]));
+                const char *inferred_arg_type = infer_expression_type_name(
+                    ctx, call->data.call.arguments[i]);
+                if (pergyra_type_to_c_copy(inferred_arg_type, arg_type_buf,
+                        sizeof(arg_type_buf))) {
+                    arg_type = arg_type_buf;
+                }
             }
             if (arg_type == NULL) {
                 transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "cannot determine spawn wrapper argument type for call '%s' at argument %llu",

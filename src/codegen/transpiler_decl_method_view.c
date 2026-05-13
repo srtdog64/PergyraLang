@@ -138,12 +138,10 @@ transpiler_hosted_method_view_from_decl(const TranspilerCtx *ctx,
     if (decl != NULL) {
         switch (decl->type) {
         case AST_CLASS_DECL:
-            ast_compat_methods = decl->data.class_decl.methods;
-            ast_compat_count = decl->data.class_decl.method_count;
+            ast_compat_methods = ast_class_methods(decl, &ast_compat_count);
             break;
         case AST_ENUM_DECL:
-            ast_compat_methods = decl->data.enum_decl.methods;
-            ast_compat_count = decl->data.enum_decl.method_count;
+            ast_compat_methods = ast_enum_methods(decl, &ast_compat_count);
             break;
         case AST_PARTY_DECL:
             ast_compat_methods = ast_party_methods(decl, &ast_compat_count);

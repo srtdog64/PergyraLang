@@ -329,6 +329,48 @@ grep -q 'semantic_type_resolution_reject_unknown_bare_named_type' \
   exit 1
 }
 
+grep -q 'semantic_type_resolution_record_type_ref_dependency' \
+  src/semantic/type_checker_ability_where.c || {
+  echo "[type-resolution-resolver-inventory] ability where-bound validation lost DAG dependency provenance" >&2
+  exit 1
+}
+
+grep -q 'ability consumer lookup' \
+  src/semantic/type_checker_ability_where.c || {
+  echo "[type-resolution-resolver-inventory] ability where-bound validation lost consumer-path provenance label" >&2
+  exit 1
+}
+
+grep -q 'collect_effective_generic_arg_types' \
+  src/semantic/type_checker_ability_where.c || {
+  echo "[type-resolution-resolver-inventory] ability where-bound validation lost effective generic argument materialization" >&2
+  exit 1
+}
+
+grep -q 'semantic_report_ability_generic_bound_failure' \
+  src/semantic/type_checker_ability_where.c || {
+  echo "[type-resolution-resolver-inventory] ability where-bound validation lost rich mismatch provenance diagnostic" >&2
+  exit 1
+}
+
+grep -q 'zone authority ability consumer lookup' \
+  src/semantic/type_checker_zone_decl_authority.c || {
+  echo "[type-resolution-resolver-inventory] zone authority validation lost DAG ability-consumer provenance label" >&2
+  exit 1
+}
+
+grep -q 'validate_ability_decl_where_clause_reference' \
+  src/semantic/type_checker_module_contract.c || {
+  echo "[type-resolution-resolver-inventory] required ability resolver lost ability where-bound enforcement" >&2
+  exit 1
+}
+
+grep -q 'resolve_required_ability_decl' \
+  src/semantic/type_checker_zone_decl_authority.c || {
+  echo "[type-resolution-resolver-inventory] zone authority validation no longer goes through required ability resolver" >&2
+  exit 1
+}
+
 { grep -RIn 'semantic_type_resolution_lookup_type_ref_or_materialize' src/semantic || true; } \
   >"$type_ref_helper_matches" || true
 
@@ -337,6 +379,7 @@ grep -Ev 'src/semantic/type_checker_internal\.h' "$type_ref_helper_matches" \
   | grep -Ev 'src/semantic/type_checker_decls_domain_helpers\.c' \
   | grep -Ev 'src/semantic/type_checker_intent_types\.c' \
   | grep -Ev 'src/semantic/type_checker_projection_path\.c' \
+  | grep -Ev 'src/semantic/type_checker_expr_enum\.c' \
   | grep -Ev 'src/semantic/type_checker_resolution_metadata\.c' \
   >"$bad_type_ref_helper" || true
 
@@ -348,8 +391,8 @@ if [ -s "$bad_type_ref_helper" ]; then
 fi
 
 type_ref_helper_count="$(wc -l <"$type_ref_helper_matches")"
-if [ "$type_ref_helper_count" -ne 6 ]; then
-  echo "[type-resolution-resolver-inventory] metadata-first type-ref helper inventory changed: $type_ref_helper_count != 6" >&2
+if [ "$type_ref_helper_count" -ne 7 ]; then
+  echo "[type-resolution-resolver-inventory] metadata-first type-ref helper inventory changed: $type_ref_helper_count != 7" >&2
   cat "$type_ref_helper_matches" >&2
   exit 1
 fi
@@ -583,4 +626,4 @@ for needle in \
   }
 done
 
-echo "[type-resolution-resolver-inventory] direct resolver and fallback seam inventory are gated (fallback seams=$fallback_sites cap=0 annotation-sensitive seams=$annotation_sites annotation-only reads=$annotation_or_unknown_count cap=0 nullable annotation reads=0 type-ref helper refs=$type_ref_helper_count cap=6)"
+echo "[type-resolution-resolver-inventory] direct resolver and fallback seam inventory are gated (fallback seams=$fallback_sites cap=0 annotation-sensitive seams=$annotation_sites annotation-only reads=$annotation_or_unknown_count cap=0 nullable annotation reads=0 type-ref helper refs=$type_ref_helper_count cap=7)"

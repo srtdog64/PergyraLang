@@ -66,7 +66,9 @@ emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
     if (class_has_generic_params(node))
         return;
 
-    const char *name = node->data.class_decl.name;
+    const char *name = ast_class_name(node);
+    size_t field_count = 0;
+    ClassField **fields = ast_class_fields(node, &field_count);
     TranspilerHostedMethodView method_view =
         transpiler_hosted_method_view_from_decl(ctx, name, node);
     if (transpiler_hosted_method_view_missing_mir_metadata(&method_view)) {
@@ -77,8 +79,8 @@ emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
         return;
     }
 
-    for (size_t i = 0; i < node->data.class_decl.field_count; i++) {
-        ClassField *f = node->data.class_decl.fields[i];
+    for (size_t i = 0; i < field_count; i++) {
+        ClassField *f = fields != NULL ? fields[i] : NULL;
         if (f != NULL)
             ensure_type_specializations_from_ast_to(ctx, ctx->out, f->type);
     }
@@ -91,8 +93,8 @@ emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
 
     codebuf_write(ctx->out, "\ntypedef struct %s\n{\n", name);
 
-    for (size_t i = 0; i < node->data.class_decl.field_count; i++) {
-        ClassField *f = node->data.class_decl.fields[i];
+    for (size_t i = 0; i < field_count; i++) {
+        ClassField *f = fields != NULL ? fields[i] : NULL;
         const char *ft = NULL;
         char surface_desc[256];
         if (!transpiler_class_surface_desc(surface_desc,

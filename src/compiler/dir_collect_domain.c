@@ -98,7 +98,8 @@ dir_collect_zone_edges(DIRProgram *dir, size_t from_id, ASTNode *node)
 
     for (size_t i = 0; i < slot_count; i++) {
         ASTNode *slot = slots[i];
-        const char *target = type_name(dir, slot->data.domain_slot.type);
+        const char *slot_name = ast_domain_slot_name(slot);
+        const char *target = type_name(dir, ast_domain_slot_type(slot));
         ssize_t to = dir_find_type_node_by_name(dir, target);
         ssize_t slot_node_id;
         bool is_projection = dir_domain_slot_is_projection(slot);
@@ -107,7 +108,7 @@ dir_collect_zone_edges(DIRProgram *dir, size_t from_id, ASTNode *node)
         slot_node_id = dir_ensure_qualified_slot_node(dir,
                                                       slot_kind,
                                                       ast_zone_name(node),
-                                                      slot->data.domain_slot.slot_name,
+                                                      slot_name,
                                                       slot);
         if (slot_node_id < 0)
             return false;
@@ -117,12 +118,12 @@ dir_collect_zone_edges(DIRProgram *dir, size_t from_id, ASTNode *node)
                                     : DIR_EDGE_ZONE_HAS_SLOT,
                                 from_id,
                                 (size_t)slot_node_id,
-                                slot->data.domain_slot.slot_name,
+                                slot_name,
                                 dir->nodes[(size_t)slot_node_id].name))
             return false;
         if (!dir_add_named_edge(dir, DIR_EDGE_ZONE_SLOT_TYPE, from_id,
                                 to >= 0 ? (size_t)to : SIZE_MAX,
-                                slot->data.domain_slot.slot_name,
+                                slot_name,
                                 target))
             return false;
         if (!dir_add_named_edge(dir,
@@ -131,19 +132,19 @@ dir_collect_zone_edges(DIRProgram *dir, size_t from_id, ASTNode *node)
                                     : DIR_EDGE_ZONE_SLOT_TYPE,
                                 (size_t)slot_node_id,
                                 to >= 0 ? (size_t)to : SIZE_MAX,
-                                slot->data.domain_slot.slot_name,
+                                slot_name,
                                 target))
             return false;
     }
     for (size_t i = 0; i < layer_slot_count; i++) {
         ASTNode *slot = layer_slots[i];
-        ssize_t to = slot->data.zone_layer_slot.is_relation
-            ? dir_find_relation_node_by_name(dir, slot->data.zone_layer_slot.layer_type)
-            : dir_find_effect_node_by_name(dir, slot->data.zone_layer_slot.layer_type);
+        ssize_t to = ast_zone_layer_slot_is_relation(slot)
+            ? dir_find_relation_node_by_name(dir, ast_zone_layer_slot_layer_type(slot))
+            : dir_find_effect_node_by_name(dir, ast_zone_layer_slot_layer_type(slot));
         if (!dir_add_named_edge(dir, DIR_EDGE_ZONE_LAYER_TYPE, from_id,
                                 to >= 0 ? (size_t)to : SIZE_MAX,
-                                slot->data.zone_layer_slot.slot_name,
-                                slot->data.zone_layer_slot.layer_type))
+                                ast_zone_layer_slot_name(slot),
+                                ast_zone_layer_slot_layer_type(slot)))
             return false;
     }
     for (size_t i = 0; i < authority_count; i++) {
@@ -203,19 +204,19 @@ dir_collect_zone_edges(DIRProgram *dir, size_t from_id, ASTNode *node)
     }
     for (size_t i = 0; i < state_count; i++) {
         ASTNode *state = states[i];
-        const char *layer = state->data.zone_state.layer_slot_name;
+        const char *layer = ast_zone_state_layer_slot_name(state);
         ssize_t to = -1;
         for (size_t j = 0; j < layer_slot_count; j++) {
             ASTNode *slot = layer_slots[j];
             if (slot != NULL
-                && strcmp(slot->data.zone_layer_slot.slot_name, layer) == 0) {
+                && strcmp(ast_zone_layer_slot_name(slot), layer) == 0) {
                 to = (ssize_t)from_id;
                 break;
             }
         }
         if (!dir_add_named_edge(dir, DIR_EDGE_ZONE_STATE_LAYER, from_id,
                                 to >= 0 ? (size_t)to : SIZE_MAX,
-                                state->data.zone_state.state_name,
+                                ast_zone_state_name(state),
                                 layer))
             return false;
     }
@@ -240,14 +241,14 @@ dir_collect_relation_effect_slot_edges(DIRProgram *dir,
         DIRNodeKind slot_kind;
         if (slot == NULL || slot->type != AST_DOMAIN_SLOT)
             continue;
-        target = type_name(dir, slot->data.domain_slot.type);
+        target = type_name(dir, ast_domain_slot_type(slot));
         to = dir_find_type_node_by_name(dir, target);
         is_projection = dir_domain_slot_is_projection(slot);
         slot_kind = is_projection ? DIR_NODE_PROJECTION_SLOT : DIR_NODE_ZONE_SLOT;
         slot_node_id = dir_ensure_qualified_slot_node(dir,
                                                       slot_kind,
                                                       owner_name,
-                                                      slot->data.domain_slot.slot_name,
+                                                      ast_domain_slot_name(slot),
                                                       slot);
         if (slot_node_id < 0)
             return false;
@@ -256,14 +257,14 @@ dir_collect_relation_effect_slot_edges(DIRProgram *dir,
                                     DIR_EDGE_OWNER_HAS_PROJECTION_SLOT,
                                     from_id,
                                     (size_t)slot_node_id,
-                                    slot->data.domain_slot.slot_name,
+                                    ast_domain_slot_name(slot),
                                     dir->nodes[(size_t)slot_node_id].name))
                 return false;
             if (!dir_add_named_edge(dir,
                                     DIR_EDGE_PROJECTION_SLOT_TYPE,
                                     (size_t)slot_node_id,
                                     to >= 0 ? (size_t)to : SIZE_MAX,
-                                    slot->data.domain_slot.slot_name,
+                                    ast_domain_slot_name(slot),
                                     target))
                 return false;
         } else {
@@ -271,7 +272,7 @@ dir_collect_relation_effect_slot_edges(DIRProgram *dir,
                                     DIR_EDGE_ZONE_SLOT_TYPE,
                                     (size_t)slot_node_id,
                                     to >= 0 ? (size_t)to : SIZE_MAX,
-                                    slot->data.domain_slot.slot_name,
+                                    ast_domain_slot_name(slot),
                                     target))
                 return false;
         }

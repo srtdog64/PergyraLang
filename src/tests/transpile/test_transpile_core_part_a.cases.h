@@ -105,6 +105,25 @@ test_type_mapping(void)
     TEST("Box<Array<Int>> -> PgyBoxArray_Int");
     EXPECT(strcmp(pergyra_type_to_c("Box<Array<Int>>"), "PgyBoxArray_Int") == 0);
 
+    TEST("pergyra_type_to_c_copy preserves rendered type across later mapping");
+    {
+        char copied[128];
+        bool copied_ok = pergyra_type_to_c_copy("Array<Vertex>",
+            copied, sizeof(copied));
+
+        (void)pergyra_type_to_c("Slot<Int>");
+        EXPECT(copied_ok && strcmp(copied, "PgyArray_Vertex") == 0);
+    }
+
+    TEST("pergyra_type_to_c_copy fails closed on too-small output buffer");
+    {
+        char copied[4] = {'x', 'x', 'x', '\0'};
+
+        EXPECT(!pergyra_type_to_c_copy("Array<Vertex>",
+            copied, sizeof(copied)));
+        EXPECT(copied[0] == '\0');
+    }
+
     TEST("Array<Unknown> keeps Unknown sentinel");
     EXPECT(strcmp(pergyra_type_to_c("Array<Unknown>"), "Unknown") == 0);
 

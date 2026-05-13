@@ -7,6 +7,7 @@
 
 #include <string.h>
 
+#include "../parser/ast_api.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_nominal.h"
 #include "transpiler_projection.h"
@@ -19,6 +20,146 @@ render_nominal_member_type_name(TranspilerCtx *ctx, ASTNode *type_node)
     if (ctx == NULL || type_node == NULL || type_node->type != AST_TYPE)
         return NULL;
     return transpiler_render_type_name_local(ctx, type_node);
+}
+
+static const char *
+transpiler_domain_slot_member_type_name(TranspilerCtx *ctx,
+                                        ASTNode **slots,
+                                        size_t slot_count,
+                                        const char *field_name)
+{
+    for (size_t i = 0; i < slot_count; i++) {
+        ASTNode *slot = slots[i];
+        const char *slot_name = ast_domain_slot_name(slot);
+        if (slot != NULL && slot_name != NULL
+            && strcmp(slot_name, field_name) == 0) {
+            return render_nominal_member_type_name(ctx, ast_domain_slot_type(slot));
+        }
+    }
+    return NULL;
+}
+
+static const char *
+transpiler_shared_member_type_name(TranspilerCtx *ctx,
+                                   ASTNode **shared_fields,
+                                   size_t shared_count,
+                                   const char *field_name)
+{
+    for (size_t i = 0; i < shared_count; i++) {
+        ASTNode *shared = shared_fields[i];
+        const char *shared_name = ast_party_shared_name(shared);
+        if (shared != NULL && shared_name != NULL
+            && strcmp(shared_name, field_name) == 0) {
+            return render_nominal_member_type_name(ctx,
+                ast_party_shared_type(shared));
+        }
+    }
+    return NULL;
+}
+
+static const char *
+transpiler_zone_member_type_name(TranspilerCtx *ctx,
+                                 ASTNode *decl,
+                                 const char *field_name)
+{
+    size_t slot_count = 0;
+    ASTNode **slots = ast_zone_slots(decl, &slot_count);
+    const char *slot_type = transpiler_domain_slot_member_type_name(
+        ctx, slots, slot_count, field_name);
+    if (slot_type != NULL)
+        return slot_type;
+
+    size_t layer_slot_count = 0;
+    ASTNode **layer_slots = ast_zone_layer_slots(decl, &layer_slot_count);
+    for (size_t i = 0; i < layer_slot_count; i++) {
+        ASTNode *layer = layer_slots[i];
+        if (layer != NULL && layer->type == AST_ZONE_LAYER_SLOT
+            && ast_zone_layer_slot_name(layer) != NULL
+            && strcmp(ast_zone_layer_slot_name(layer), field_name) == 0) {
+            return ast_zone_layer_slot_layer_type(layer);
+        }
+    }
+
+    size_t shared_count = 0;
+    ASTNode **shared_fields = ast_zone_shared_fields(decl, &shared_count);
+    return transpiler_shared_member_type_name(
+        ctx, shared_fields, shared_count, field_name);
+}
+
+static const char *
+transpiler_world_member_type_name(TranspilerCtx *ctx,
+                                  ASTNode *decl,
+                                  const char *field_name)
+{
+    size_t roster_count = 0;
+    ASTNode **rosters = ast_world_rosters(decl, &roster_count);
+    for (size_t i = 0; i < roster_count; i++) {
+        ASTNode *slot = rosters[i];
+        const char *slot_name = ast_world_roster_slot_name(slot);
+        if (slot != NULL && slot_name != NULL
+            && strcmp(slot_name, field_name) == 0) {
+            return ast_world_roster_type_name(slot);
+        }
+    }
+
+    size_t zone_count = 0;
+    ASTNode **zones = ast_world_zones(decl, &zone_count);
+    for (size_t i = 0; i < zone_count; i++) {
+        ASTNode *slot = zones[i];
+        const char *slot_name = ast_world_zone_slot_name(slot);
+        if (slot != NULL && slot_name != NULL
+            && strcmp(slot_name, field_name) == 0) {
+            return ast_world_zone_type_name(slot);
+        }
+    }
+
+    size_t shared_count = 0;
+    ASTNode **shared_fields = ast_world_shared_fields(decl, &shared_count);
+    return transpiler_shared_member_type_name(
+        ctx, shared_fields, shared_count, field_name);
+}
+
+static const char *
+transpiler_domain_host_member_type_name(TranspilerCtx *ctx,
+                                        ASTNode *decl,
+                                        const char *field_name,
+                                        bool include_overlay_shared)
+{
+    size_t slot_count = 0;
+    size_t shared_count = 0;
+    ASTNode **slots = NULL;
+    ASTNode **shared_fields = NULL;
+    const char *slot_type = NULL;
+
+    if (decl == NULL)
+        return NULL;
+
+    switch (decl->type) {
+    case AST_ZONE_DECL:
+        return transpiler_zone_member_type_name(ctx, decl, field_name);
+    case AST_WORLD_DECL:
+        return transpiler_world_member_type_name(ctx, decl, field_name);
+    case AST_RELATION_DECL:
+        slots = ast_relation_slots(decl, &slot_count);
+        slot_type = transpiler_domain_slot_member_type_name(
+            ctx, slots, slot_count, field_name);
+        if (slot_type != NULL || !include_overlay_shared)
+            return slot_type;
+        shared_fields = ast_relation_shared_fields(decl, &shared_count);
+        return transpiler_shared_member_type_name(
+            ctx, shared_fields, shared_count, field_name);
+    case AST_EFFECT_DECL:
+        slots = ast_effect_slots(decl, &slot_count);
+        slot_type = transpiler_domain_slot_member_type_name(
+            ctx, slots, slot_count, field_name);
+        if (slot_type != NULL || !include_overlay_shared)
+            return slot_type;
+        shared_fields = ast_effect_shared_fields(decl, &shared_count);
+        return transpiler_shared_member_type_name(
+            ctx, shared_fields, shared_count, field_name);
+    default:
+        return NULL;
+    }
 }
 
 const char *
@@ -34,77 +175,25 @@ transpiler_current_field_type_name(TranspilerCtx *ctx, const char *field_name)
         return NULL;
 
     switch (decl->type) {
-    case AST_CLASS_DECL:
-        for (size_t i = 0; i < decl->data.class_decl.field_count; i++) {
-            ClassField *field = decl->data.class_decl.fields[i];
+    case AST_CLASS_DECL: {
+        size_t field_count = 0;
+        ClassField **fields = ast_class_fields(decl, &field_count);
+        for (size_t i = 0; i < field_count; i++) {
+            ClassField *field = fields != NULL ? fields[i] : NULL;
             if (field != NULL && field->name != NULL
                 && strcmp(field->name, field_name) == 0) {
                 return render_nominal_member_type_name(ctx, field->type);
             }
         }
         break;
+    }
     case AST_ZONE_DECL: {
-        ASTNode *slot = transpiler_find_zone_domain_slot(decl, field_name);
-        if (slot != NULL)
-            return render_nominal_member_type_name(ctx, slot->data.domain_slot.type);
-        for (size_t i = 0; i < decl->data.zone_decl.layer_slot_count; i++) {
-            ASTNode *layer = decl->data.zone_decl.layer_slots[i];
-            if (layer != NULL && layer->type == AST_ZONE_LAYER_SLOT
-                && layer->data.zone_layer_slot.slot_name != NULL
-                && strcmp(layer->data.zone_layer_slot.slot_name, field_name) == 0) {
-                return layer->data.zone_layer_slot.layer_type;
-            }
-        }
-        for (size_t i = 0; i < decl->data.zone_decl.shared_count; i++) {
-            ASTNode *shared = decl->data.zone_decl.shared_fields[i];
-            if (shared != NULL && shared->data.party_shared.name != NULL
-                && strcmp(shared->data.party_shared.name, field_name) == 0) {
-                return render_nominal_member_type_name(ctx, shared->data.party_shared.type);
-            }
-        }
-        break;
+        return transpiler_domain_host_member_type_name(ctx, decl, field_name, false);
     }
     case AST_RELATION_DECL:
-        for (size_t i = 0; i < decl->data.relation_decl.slot_count; i++) {
-            ASTNode *slot = decl->data.relation_decl.slots[i];
-            if (slot != NULL && slot->data.domain_slot.slot_name != NULL
-                && strcmp(slot->data.domain_slot.slot_name, field_name) == 0) {
-                return render_nominal_member_type_name(ctx, slot->data.domain_slot.type);
-            }
-        }
-        break;
     case AST_EFFECT_DECL:
-        for (size_t i = 0; i < decl->data.effect_decl.slot_count; i++) {
-            ASTNode *slot = decl->data.effect_decl.slots[i];
-            if (slot != NULL && slot->data.domain_slot.slot_name != NULL
-                && strcmp(slot->data.domain_slot.slot_name, field_name) == 0) {
-                return render_nominal_member_type_name(ctx, slot->data.domain_slot.type);
-            }
-        }
-        break;
     case AST_WORLD_DECL:
-        for (size_t i = 0; i < decl->data.world_decl.roster_count; i++) {
-            ASTNode *slot = decl->data.world_decl.rosters[i];
-            if (slot != NULL && slot->data.world_roster.slot_name != NULL
-                && strcmp(slot->data.world_roster.slot_name, field_name) == 0) {
-                return slot->data.world_roster.roster_type;
-            }
-        }
-        for (size_t i = 0; i < decl->data.world_decl.zone_count; i++) {
-            ASTNode *slot = decl->data.world_decl.zones[i];
-            if (slot != NULL && slot->data.world_zone.slot_name != NULL
-                && strcmp(slot->data.world_zone.slot_name, field_name) == 0) {
-                return slot->data.world_zone.zone_type;
-            }
-        }
-        for (size_t i = 0; i < decl->data.world_decl.shared_count; i++) {
-            ASTNode *shared = decl->data.world_decl.shared_fields[i];
-            if (shared != NULL && shared->data.party_shared.name != NULL
-                && strcmp(shared->data.party_shared.name, field_name) == 0) {
-                return render_nominal_member_type_name(ctx, shared->data.party_shared.type);
-            }
-        }
-        break;
+        return transpiler_domain_host_member_type_name(ctx, decl, field_name, false);
     default:
         break;
     }
@@ -127,91 +216,25 @@ transpiler_lookup_nominal_host_member_type_name(TranspilerCtx *ctx,
         return NULL;
 
     switch (decl->type) {
-    case AST_CLASS_DECL:
-        for (size_t i = 0; i < decl->data.class_decl.field_count; i++) {
-            ClassField *field = decl->data.class_decl.fields[i];
+    case AST_CLASS_DECL: {
+        size_t field_count = 0;
+        ClassField **fields = ast_class_fields(decl, &field_count);
+        for (size_t i = 0; i < field_count; i++) {
+            ClassField *field = fields != NULL ? fields[i] : NULL;
             if (field != NULL && field->name != NULL
                 && strcmp(field->name, member_name) == 0) {
                 return render_nominal_member_type_name(ctx, field->type);
             }
         }
         break;
+    }
     case AST_ZONE_DECL: {
-        ASTNode *slot = transpiler_find_zone_domain_slot(decl, member_name);
-        if (slot != NULL)
-            return render_nominal_member_type_name(ctx, slot->data.domain_slot.type);
-        for (size_t i = 0; i < decl->data.zone_decl.layer_slot_count; i++) {
-            ASTNode *layer = decl->data.zone_decl.layer_slots[i];
-            if (layer != NULL && layer->type == AST_ZONE_LAYER_SLOT
-                && layer->data.zone_layer_slot.slot_name != NULL
-                && strcmp(layer->data.zone_layer_slot.slot_name, member_name) == 0) {
-                return layer->data.zone_layer_slot.layer_type;
-            }
-        }
-        for (size_t i = 0; i < decl->data.zone_decl.shared_count; i++) {
-            ASTNode *shared = decl->data.zone_decl.shared_fields[i];
-            if (shared != NULL && shared->data.party_shared.name != NULL
-                && strcmp(shared->data.party_shared.name, member_name) == 0) {
-                return render_nominal_member_type_name(ctx, shared->data.party_shared.type);
-            }
-        }
-        break;
+        return transpiler_domain_host_member_type_name(ctx, decl, member_name, true);
     }
     case AST_RELATION_DECL:
-        for (size_t i = 0; i < decl->data.relation_decl.slot_count; i++) {
-            ASTNode *slot = decl->data.relation_decl.slots[i];
-            if (slot != NULL && slot->data.domain_slot.slot_name != NULL
-                && strcmp(slot->data.domain_slot.slot_name, member_name) == 0) {
-                return render_nominal_member_type_name(ctx, slot->data.domain_slot.type);
-            }
-        }
-        for (size_t i = 0; i < decl->data.relation_decl.shared_count; i++) {
-            ASTNode *shared = decl->data.relation_decl.shared_fields[i];
-            if (shared != NULL && shared->data.party_shared.name != NULL
-                && strcmp(shared->data.party_shared.name, member_name) == 0) {
-                return render_nominal_member_type_name(ctx, shared->data.party_shared.type);
-            }
-        }
-        break;
     case AST_EFFECT_DECL:
-        for (size_t i = 0; i < decl->data.effect_decl.slot_count; i++) {
-            ASTNode *slot = decl->data.effect_decl.slots[i];
-            if (slot != NULL && slot->data.domain_slot.slot_name != NULL
-                && strcmp(slot->data.domain_slot.slot_name, member_name) == 0) {
-                return render_nominal_member_type_name(ctx, slot->data.domain_slot.type);
-            }
-        }
-        for (size_t i = 0; i < decl->data.effect_decl.shared_count; i++) {
-            ASTNode *shared = decl->data.effect_decl.shared_fields[i];
-            if (shared != NULL && shared->data.party_shared.name != NULL
-                && strcmp(shared->data.party_shared.name, member_name) == 0) {
-                return render_nominal_member_type_name(ctx, shared->data.party_shared.type);
-            }
-        }
-        break;
     case AST_WORLD_DECL:
-        for (size_t i = 0; i < decl->data.world_decl.roster_count; i++) {
-            ASTNode *slot = decl->data.world_decl.rosters[i];
-            if (slot != NULL && slot->data.world_roster.slot_name != NULL
-                && strcmp(slot->data.world_roster.slot_name, member_name) == 0) {
-                return slot->data.world_roster.roster_type;
-            }
-        }
-        for (size_t i = 0; i < decl->data.world_decl.zone_count; i++) {
-            ASTNode *slot = decl->data.world_decl.zones[i];
-            if (slot != NULL && slot->data.world_zone.slot_name != NULL
-                && strcmp(slot->data.world_zone.slot_name, member_name) == 0) {
-                return slot->data.world_zone.zone_type;
-            }
-        }
-        for (size_t i = 0; i < decl->data.world_decl.shared_count; i++) {
-            ASTNode *shared = decl->data.world_decl.shared_fields[i];
-            if (shared != NULL && shared->data.party_shared.name != NULL
-                && strcmp(shared->data.party_shared.name, member_name) == 0) {
-                return render_nominal_member_type_name(ctx, shared->data.party_shared.type);
-            }
-        }
-        break;
+        return transpiler_domain_host_member_type_name(ctx, decl, member_name, true);
     default:
         break;
     }

@@ -72,6 +72,10 @@ make_tmp_path(char *buf, size_t bufsz, const char *filename)
         tmpdir = "/tmp";
 #endif
     }
+#ifdef _WIN32
+    if (strcmp(tmpdir, "/tmp") == 0 || strcmp(tmpdir, "/tmp/") == 0)
+        tmpdir = PGY_PROJECT_ROOT "/build/tmp";
+#endif
     snprintf(buf, bufsz, "%s/%s", tmpdir, filename);
 }
 

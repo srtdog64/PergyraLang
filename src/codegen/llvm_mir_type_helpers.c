@@ -169,7 +169,8 @@ llvm_mir_param_uses_pointer_self(LLVMGenCtx *ctx, ASTNode *type_node)
 }
 
 const char *
-llvm_mir_boundary_slot_inner_name(FuncParam *param, bool *is_secure_out)
+llvm_mir_boundary_slot_inner_name(LLVMGenCtx *ctx, FuncParam *param,
+                                  bool *is_secure_out)
 {
     const char *type_name;
     GenericParams *generic_args;
@@ -192,11 +193,9 @@ llvm_mir_boundary_slot_inner_name(FuncParam *param, bool *is_secure_out)
         || generic_args->params == NULL || generic_args->params[0] == NULL)
         return NULL;
 
-    inner_name = generic_args->params[0]->name;
-    if (inner_name == NULL && generic_args->params[0]->constraint != NULL
-        && generic_args->params[0]->constraint->type == AST_TYPE) {
-        inner_name = generic_args->params[0]->constraint->data.type.name;
-    }
+    inner_name = llvm_keep_rendered_persistent(ctx,
+        llvm_stmt_render_type_arg(generic_args->params[0]),
+        "out of memory copying LLVM MIR slot type");
     if (inner_name == NULL)
         return NULL;
 

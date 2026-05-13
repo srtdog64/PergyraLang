@@ -249,7 +249,7 @@ semantic_type_resolution_register_top_level_decl(ASTNode *stmt,
         kind = TYPE_RES_NODE_ALIAS;
         break;
     case AST_CLASS_DECL:
-        label = stmt->data.class_decl.name;
+        label = ast_class_name(stmt);
         break;
     case AST_FUNC_DECL:
         label = stmt->data.func_decl.name;
@@ -258,7 +258,7 @@ semantic_type_resolution_register_top_level_decl(ASTNode *stmt,
         label = stmt->data.event_decl.name;
         break;
     case AST_ENUM_DECL:
-        label = stmt->data.enum_decl.name;
+        label = ast_enum_name(stmt);
         break;
     case AST_ABILITY_DECL:
         label = stmt->data.ability_decl.name;

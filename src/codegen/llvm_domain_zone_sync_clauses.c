@@ -46,12 +46,12 @@ llvm_zone_sync_emit_action_causes(ASTNode *stmt,
         LLVMBasicBlockRef next_bb;
 
         if (slot == NULL || slot->type != AST_ZONE_LAYER_SLOT
-            || slot->data.zone_layer_slot.is_relation
-            || slot->data.zone_layer_slot.slot_name == NULL) {
+            || ast_zone_layer_slot_is_relation(slot)
+            || ast_zone_layer_slot_name(slot) == NULL) {
             continue;
         }
 
-        layer_name = slot->data.zone_layer_slot.slot_name;
+        layer_name = ast_zone_layer_slot_name(slot);
         if (!llvm_zone_sync_clause_field_name(cause_field, sizeof(cause_field),
                 "layer_cause", layer_name))
             continue;
@@ -89,14 +89,14 @@ llvm_zone_sync_emit_action_causes(ASTNode *stmt,
             int state_idx;
             LLVMValueRef state_ptr;
             if (state == NULL || state->type != AST_ZONE_STATE
-                || state->data.zone_state.is_relation
-                || state->data.zone_state.state_name == NULL
-                || state->data.zone_state.layer_slot_name == NULL
-                || strcmp(state->data.zone_state.layer_slot_name, layer_name) != 0) {
+                || ast_zone_state_is_relation(state)
+                || ast_zone_state_name(state) == NULL
+                || ast_zone_state_layer_slot_name(state) == NULL
+                || strcmp(ast_zone_state_layer_slot_name(state), layer_name) != 0) {
                 continue;
             }
             if (!llvm_zone_sync_clause_field_name(state_field, sizeof(state_field),
-                    "state", state->data.zone_state.state_name))
+                    "state", ast_zone_state_name(state)))
                 continue;
             state_idx = llvm_class_field_index(decl_cls, state_field);
             if (state_idx < 0)
@@ -131,16 +131,16 @@ llvm_zone_sync_emit_detach_clauses(ASTNode *stmt,
             for (size_t j = 0; j < state_count; j++) {
                 ASTNode *state = states[j];
                 if (state != NULL && state->type == AST_ZONE_STATE
-                    && !state->data.zone_state.is_relation
-                    && state->data.zone_state.layer_slot_name != NULL
-                    && state->data.zone_state.left_or_target_slot_name != NULL
+                    && !ast_zone_state_is_relation(state)
+                    && ast_zone_state_layer_slot_name(state) != NULL
+                    && ast_zone_state_left_or_target_slot_name(state) != NULL
                     && detach->data.zone_detach.effect_slot_name != NULL
                     && detach->data.zone_detach.target_slot_name != NULL
-                    && strcmp(state->data.zone_state.layer_slot_name,
+                    && strcmp(ast_zone_state_layer_slot_name(state),
                               detach->data.zone_detach.effect_slot_name) == 0
-                    && strcmp(state->data.zone_state.left_or_target_slot_name,
+                    && strcmp(ast_zone_state_left_or_target_slot_name(state),
                               detach->data.zone_detach.target_slot_name) == 0) {
-                    state_name = state->data.zone_state.state_name;
+                    state_name = ast_zone_state_name(state);
                     break;
                 }
             }
@@ -169,10 +169,10 @@ llvm_zone_sync_emit_detach_clauses(ASTNode *stmt,
                     for (size_t j = 0; j < state_count; j++) {
                         ASTNode *state = states[j];
                         if (state != NULL && state->type == AST_ZONE_STATE
-                            && !state->data.zone_state.is_relation
-                            && state->data.zone_state.state_name != NULL
-                            && strcmp(state->data.zone_state.state_name, state_name) == 0) {
-                            layer_name = state->data.zone_state.layer_slot_name;
+                            && !ast_zone_state_is_relation(state)
+                            && ast_zone_state_name(state) != NULL
+                            && strcmp(ast_zone_state_name(state), state_name) == 0) {
+                            layer_name = ast_zone_state_layer_slot_name(state);
                             break;
                         }
                     }

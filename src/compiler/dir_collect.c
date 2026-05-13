@@ -47,7 +47,7 @@ dir_collect_nodes(DIRProgram *dir, ASTNode *program)
         ASTNode *node = program->data.program.statements[i];
         switch (node->type) {
             case AST_CLASS_DECL:
-                if (!dir_add_node(dir, DIR_NODE_TYPE, node->data.class_decl.name, node))
+                if (!dir_add_node(dir, DIR_NODE_TYPE, ast_class_name(node), node))
                     return false;
                 break;
             case AST_TYPE_ALIAS:
@@ -55,7 +55,7 @@ dir_collect_nodes(DIRProgram *dir, ASTNode *program)
                     return false;
                 break;
             case AST_ENUM_DECL:
-                if (!dir_add_node(dir, DIR_NODE_TYPE, node->data.enum_decl.name, node))
+                if (!dir_add_node(dir, DIR_NODE_TYPE, ast_enum_name(node), node))
                     return false;
                 break;
             case AST_ABILITY_DECL:
@@ -179,13 +179,15 @@ dir_collect_party_edges(DIRProgram *dir, size_t from_id, ASTNode *node)
 {
     for (size_t i = 0; i < ast_party_role_count(node); i++) {
         ASTNode *slot = ast_party_role(node, i);
+        const char *slot_name = ast_role_slot_name(slot);
+        size_t ability_count = ast_role_slot_required_ability_count(slot);
         ssize_t slot_id;
         if (slot == NULL)
             continue;
         slot_id = dir_ensure_qualified_slot_node(dir,
                                                  DIR_NODE_PARTY_SLOT,
                                                  ast_party_name(node),
-                                                 slot->data.role_slot.slot_name,
+                                                 slot_name,
                                                  slot);
         if (slot_id < 0)
             return false;
@@ -193,23 +195,23 @@ dir_collect_party_edges(DIRProgram *dir, size_t from_id, ASTNode *node)
                                 DIR_EDGE_PARTY_HAS_SLOT,
                                 from_id,
                                 (size_t)slot_id,
-                                slot->data.role_slot.slot_name,
+                                slot_name,
                                 dir->nodes[(size_t)slot_id].name))
             return false;
-        for (size_t j = 0; j < slot->data.role_slot.ability_count; j++) {
-            ASTNode *ability = slot->data.role_slot.required_abilities[j];
+        for (size_t j = 0; j < ability_count; j++) {
+            ASTNode *ability = ast_role_slot_required_ability(slot, j);
             const char *ability_name = type_name(dir, ability);
             ssize_t to = dir_find_ability_node_by_name(dir, ability_name);
             if (!dir_add_named_edge(dir, DIR_EDGE_PARTY_SLOT_ABILITY, from_id,
                                     to >= 0 ? (size_t)to : SIZE_MAX,
-                                    slot->data.role_slot.slot_name,
+                                    slot_name,
                                     ability_name))
                 return false;
             if (!dir_add_named_edge(dir,
                                     DIR_EDGE_PARTY_SLOT_ABILITY,
                                     (size_t)slot_id,
                                     to >= 0 ? (size_t)to : SIZE_MAX,
-                                    slot->data.role_slot.slot_name,
+                                    slot_name,
                                     ability_name))
                 return false;
         }
@@ -222,11 +224,12 @@ dir_collect_roster_edges(DIRProgram *dir, size_t from_id, ASTNode *node)
 {
     for (size_t i = 0; i < ast_roster_party_count(node); i++) {
         ASTNode *slot = ast_roster_party(node, i);
-        ssize_t to = dir_find_party_node_by_name(dir, slot->data.roster_slot.party_type);
+        const char *party_type = ast_roster_slot_party_type(slot);
+        const char *slot_name = ast_roster_slot_name(slot);
+        ssize_t to = dir_find_party_node_by_name(dir, party_type);
         if (!dir_add_named_edge(dir, DIR_EDGE_SYSTEMIC_PARTY, from_id,
                                 to >= 0 ? (size_t)to : SIZE_MAX,
-                                slot->data.roster_slot.slot_name,
-                                slot->data.roster_slot.party_type))
+                                slot_name, party_type))
             return false;
     }
     return true;
@@ -239,22 +242,26 @@ dir_collect_world_edges(DIRProgram *dir, size_t from_id, ASTNode *node)
     ASTNode **rosters = ast_world_rosters(node, &roster_count);
     for (size_t i = 0; i < roster_count; i++) {
         ASTNode *slot = rosters[i];
-        ssize_t to = dir_find_roster_node_by_name(dir, slot->data.world_roster.roster_type);
+        const char *type_name = ast_world_roster_type_name(slot);
+        const char *slot_name = ast_world_roster_slot_name(slot);
+        ssize_t to = dir_find_roster_node_by_name(dir, type_name);
         if (!dir_add_named_edge(dir, DIR_EDGE_WORLD_SYSTEMIC, from_id,
                                 to >= 0 ? (size_t)to : SIZE_MAX,
-                                slot->data.world_roster.slot_name,
-                                slot->data.world_roster.roster_type))
+                                slot_name,
+                                type_name))
             return false;
     }
     size_t zone_count = 0;
     ASTNode **zones = ast_world_zones(node, &zone_count);
     for (size_t i = 0; i < zone_count; i++) {
         ASTNode *slot = zones[i];
-        ssize_t to = dir_find_zone_node_by_name(dir, slot->data.world_zone.zone_type);
+        const char *type_name = ast_world_zone_type_name(slot);
+        const char *slot_name = ast_world_zone_slot_name(slot);
+        ssize_t to = dir_find_zone_node_by_name(dir, type_name);
         if (!dir_add_named_edge(dir, DIR_EDGE_WORLD_ZONE, from_id,
                                 to >= 0 ? (size_t)to : SIZE_MAX,
-                                slot->data.world_zone.slot_name,
-                                slot->data.world_zone.zone_type))
+                                slot_name,
+                                type_name))
             return false;
     }
     return true;

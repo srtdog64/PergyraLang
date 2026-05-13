@@ -90,7 +90,7 @@ type_check_assignment(ASTNode *expr, SemanticContext *ctx)
                 ASTNode *decl = find_type_decl_by_name(ctx->program_root,
                                                         sym->type->name);
                 if (decl != NULL && decl->type == AST_CLASS_DECL) {
-                    NominalDeclKind nk = decl->data.class_decl.nominal_kind;
+                    NominalDeclKind nk = ast_class_nominal_kind(decl);
                     if (nk == NOMINAL_DECL_OBJECT) {
                         semantic_error_with_hints(ctx, PGY_CODE_SEM_IMMUTABLE_FIELD_WRITE, PGY_CAUSE_IMMUTABLE_FIELD_WRITE, PGY_FIX_RECONSTRUCT_OR_CHANGE_HOST_KIND, expr,
                             "object '%s' fields are read-only after construction.\n"

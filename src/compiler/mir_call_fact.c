@@ -69,8 +69,7 @@ mir_mark_select_receive_statement_emit(const MIRBasicBlock *block,
         || inst == NULL
         || inst->kind != MIR_INST_DEF
         || !inst->requires_channel_receive_statement_emit
-        || !inst->has_source_statement_index
-        || inst->source_statement_index != 0) {
+        || !mir_instruction_is_first_source_statement(inst)) {
         return;
     }
     inst->requires_select_receive_statement_emit = true;

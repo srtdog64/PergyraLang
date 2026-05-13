@@ -1,0 +1,34 @@
+party Speaker {
+    shared round: Int = 1
+
+    func Report(self) -> Int {
+        return self.round + 2;
+    }
+
+    func BareReport(self) -> Int {
+        return round + 4;
+    }
+}
+
+roster Board {
+    party slot speaker: Speaker
+    shared tick: Int = 4
+
+    func Report(self) -> Int {
+        return self.tick + 3;
+    }
+
+    func BareReport(self) -> Int {
+        return tick + 5;
+    }
+}
+
+func Main() -> Void {
+    let speaker: Speaker = Speaker();
+    let board: Board = Board();
+
+    Log("party=" + ToString(speaker.Report()));
+    Log("party.bare=" + ToString(speaker.BareReport()));
+    Log("roster=" + ToString(board.Report()));
+    Log("roster.bare=" + ToString(board.BareReport()));
+}

@@ -22,7 +22,7 @@ intent_action_nominal_decl_name(ASTNode *decl)
     if (decl == NULL)
         return NULL;
     if (decl->type == AST_CLASS_DECL)
-        return decl->data.class_decl.name;
+        return ast_class_name(decl);
     return NULL;
 }
 
@@ -63,7 +63,7 @@ intent_action_binding_type_name(ASTNode *action_decl, ASTNode *subject_decl,
         return NULL;
     if (strcmp(binding_name, "self") == 0) {
         return (subject_decl != NULL && subject_decl->type == AST_CLASS_DECL)
-            ? subject_decl->data.class_decl.name
+            ? ast_class_name(subject_decl)
             : NULL;
     }
 

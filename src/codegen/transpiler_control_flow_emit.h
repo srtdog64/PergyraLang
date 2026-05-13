@@ -127,15 +127,30 @@ emit_for_loop(ASTNode *node, TranspilerCtx *ctx)
         char *coll = emit_expression(node->data.for_loop.iterable, ctx);
         const char *coll_type = infer_expression_type_name(ctx,
             node->data.for_loop.iterable);
+        char elem_inner_buf[128];
+        char elem_type_buf[128];
+        const char *elem_inner = NULL;
         const char *elem_type = NULL;
         const char *length_field = "count";
         if (coll_type != NULL
             && (strncmp(coll_type, "Array<", 6) == 0
                 || strncmp(coll_type, "Slice<", 6) == 0)) {
-            elem_type = pergyra_type_to_c(slot_inner_type_name(coll_type));
+            copy_capped_string(elem_inner_buf, sizeof(elem_inner_buf),
+                slot_inner_type_name(coll_type));
+            elem_inner = elem_inner_buf;
+            if (pergyra_type_to_c_copy(elem_inner, elem_type_buf,
+                    sizeof(elem_type_buf))) {
+                elem_type = elem_type_buf;
+            }
             length_field = "length";
         } else if (coll_type != NULL && strncmp(coll_type, "List<", 5) == 0) {
-            elem_type = pergyra_type_to_c(slot_inner_type_name(coll_type));
+            copy_capped_string(elem_inner_buf, sizeof(elem_inner_buf),
+                slot_inner_type_name(coll_type));
+            elem_inner = elem_inner_buf;
+            if (pergyra_type_to_c_copy(elem_inner, elem_type_buf,
+                    sizeof(elem_type_buf))) {
+                elem_type = elem_type_buf;
+            }
             length_field = "count";
         }
         if (elem_type == NULL) {
@@ -163,7 +178,8 @@ emit_for_loop(ASTNode *node, TranspilerCtx *ctx)
         write_indent(ctx);
         codebuf_write(ctx->out, "%s %s = %s.data[_pgy_idx_%d];\n",
             elem_type, var, coll, idx_id);
-        register_typed_var(ctx, var, slot_inner_type_name(coll_type));
+        register_typed_var(ctx, var,
+            elem_inner != NULL ? elem_inner : slot_inner_type_name(coll_type));
         if (node->data.for_loop.body != NULL)
             emit_block(node->data.for_loop.body, ctx);
         if (loop_slot < TRANSPILE_MAX_LOOP_DEPTH

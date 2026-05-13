@@ -62,27 +62,30 @@ semantic_stage_party_decl(ASTNode *decl, SemanticContext *ctx)
         if (field == NULL || field->type != AST_PARTY_SHARED)
             continue;
         (void)semantic_stage_resolve_type_quiet(
-            field->data.party_shared.type,
+            ast_party_shared_type(field),
             ctx,
             field,
-            field->data.party_shared.name,
+            ast_party_shared_name(field),
             "party shared field type lookup");
     }
     for (size_t i = 0; i < role_count; i++) {
         ASTNode *role_slot = ast_party_role(decl, i);
+        const char *slot_name = ast_role_slot_name(role_slot);
+        size_t ability_count = ast_role_slot_required_ability_count(role_slot);
+        ASTNode **abilities =
+            ast_role_slot_required_abilities(role_slot, NULL);
         char *consumer_name;
         if (role_slot == NULL || role_slot->type != AST_ROLE_SLOT)
             continue;
         consumer_name = stage_systemic_strdup_fmt(
             "party %s.%s",
             party_name != NULL ? party_name : "<party>",
-            role_slot->data.role_slot.slot_name != NULL
-                ? role_slot->data.role_slot.slot_name : "<role-slot>");
+            slot_name != NULL ? slot_name : "<role-slot>");
         if (consumer_name == NULL)
             continue;
         semantic_stage_required_abilities(
-            role_slot->data.role_slot.required_abilities,
-            role_slot->data.role_slot.ability_count,
+            abilities,
+            ability_count,
             ctx,
             role_slot,
             consumer_name,
@@ -127,17 +130,17 @@ semantic_stage_roster_decl(ASTNode *decl, SemanticContext *ctx)
         (void)semantic_stage_named_decl_quiet(
             ctx,
             AST_PARTY_DECL,
-            slot->data.roster_slot.party_type);
+            ast_roster_slot_party_type(slot));
     }
     for (size_t i = 0; i < shared_count; i++) {
         ASTNode *field = shared_fields[i];
         if (field == NULL || field->type != AST_PARTY_SHARED)
             continue;
         (void)semantic_stage_resolve_type_quiet(
-            field->data.party_shared.type,
+            ast_party_shared_type(field),
             ctx,
             field,
-            field->data.party_shared.name,
+            ast_party_shared_name(field),
             "roster shared field type lookup");
     }
     semantic_stage_method_array(
@@ -174,7 +177,7 @@ semantic_stage_world_decl(ASTNode *decl, SemanticContext *ctx)
         (void)semantic_stage_named_decl_quiet(
             ctx,
             AST_ROSTER_DECL,
-            roster->data.world_roster.roster_type);
+            ast_world_roster_type_name(roster));
     }
     for (size_t i = 0; i < zone_count; i++) {
         ASTNode *zone = zones[i];
@@ -183,7 +186,7 @@ semantic_stage_world_decl(ASTNode *decl, SemanticContext *ctx)
         (void)semantic_stage_named_decl_quiet(
             ctx,
             AST_ZONE_DECL,
-            zone->data.world_zone.zone_type);
+            ast_world_zone_type_name(zone));
     }
     semantic_stage_world_local_contracts(decl, ctx);
     for (size_t i = 0; i < shared_count; i++) {
@@ -191,12 +194,12 @@ semantic_stage_world_decl(ASTNode *decl, SemanticContext *ctx)
         if (field == NULL || field->type != AST_PARTY_SHARED)
             continue;
         if (semantic_type_resolution_lookup_metadata_type_ref(ctx,
-                field->data.party_shared.type) == NULL) {
+                ast_party_shared_type(field)) == NULL) {
             (void)semantic_stage_resolve_type_quiet(
-                field->data.party_shared.type,
+                ast_party_shared_type(field),
                 ctx,
                 field,
-                field->data.party_shared.name,
+                ast_party_shared_name(field),
                 "world shared field type lookup");
         }
     }
@@ -250,19 +253,19 @@ semantic_stage_intent_decl(ASTNode *decl, SemanticContext *ctx)
             "intent %s.%s",
             decl->data.intent_decl.name != NULL
                 ? decl->data.intent_decl.name : "<intent>",
-            step->data.intent_step.name != NULL
-                ? step->data.intent_step.name : "<step>");
+            ast_intent_step_name(step) != NULL
+                ? ast_intent_step_name(step) : "<step>");
         if (step_consumer_name == NULL)
             continue;
         (void)semantic_stage_resolve_type_quiet(
-            step->data.intent_step.where_type,
+            ast_intent_step_where_type(step),
             ctx,
             step,
             step_consumer_name,
             "intent step where-type lookup");
         semantic_stage_required_abilities(
-            step->data.intent_step.required_abilities,
-            step->data.intent_step.required_ability_count,
+            ast_intent_step_required_abilities(step, NULL),
+            ast_intent_step_required_ability_count(step),
             ctx,
             step,
             step_consumer_name,
@@ -270,7 +273,7 @@ semantic_stage_intent_decl(ASTNode *decl, SemanticContext *ctx)
         (void)semantic_stage_named_decl_quiet(
             ctx,
             AST_EFFECT_DECL,
-            step->data.intent_step.causes_effect);
+            ast_intent_step_causes_effect(step));
         free(step_consumer_name);
     }
 }

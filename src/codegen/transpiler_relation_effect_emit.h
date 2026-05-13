@@ -55,25 +55,26 @@ emit_relation_decl(ASTNode *node, TranspilerCtx *ctx)
         char surface_desc[256];
         if (!transpiler_relation_effect_surface_desc(surface_desc,
                 sizeof(surface_desc), "relation slot", name,
-                slot != NULL ? slot->data.domain_slot.slot_name : NULL)) {
+                ast_domain_slot_name(slot))) {
             transpiler_relation_effect_surface_desc_too_long(
                 ctx, "relation slot");
             return;
         }
         ft = transpiler_require_ast_c_type(
             ctx,
-            slot != NULL ? slot->data.domain_slot.type : NULL,
+            ast_domain_slot_type(slot),
             surface_desc);
         if (ft == NULL)
             return;
-        codebuf_write(ctx->out, "    %s %s;\n", ft, slot->data.domain_slot.slot_name);
-        if (!slot->data.domain_slot.is_subject) {
+        codebuf_write(ctx->out, "    %s %s;\n", ft,
+            ast_domain_slot_name(slot));
+        if (!ast_domain_slot_is_subject(slot)) {
             codebuf_write(ctx->out, "    bool __projection_ready_%s;\n",
-                slot->data.domain_slot.slot_name);
+                ast_domain_slot_name(slot));
             codebuf_write(ctx->out, "    bool __projection_dirty_%s;\n",
-                slot->data.domain_slot.slot_name);
+                ast_domain_slot_name(slot));
             emit_hidden_provenance_fields(ctx, "projection",
-                slot->data.domain_slot.slot_name);
+                ast_domain_slot_name(slot));
         }
     }
 
@@ -85,18 +86,19 @@ emit_relation_decl(ASTNode *node, TranspilerCtx *ctx)
         char surface_desc[256];
         if (!transpiler_relation_effect_surface_desc(surface_desc,
                 sizeof(surface_desc), "relation shared field", name,
-                shared != NULL ? shared->data.party_shared.name : NULL)) {
+                ast_party_shared_name(shared))) {
             transpiler_relation_effect_surface_desc_too_long(
                 ctx, "relation shared field");
             return;
         }
         ft = transpiler_require_ast_c_type(
             ctx,
-            shared != NULL ? shared->data.party_shared.type : NULL,
+            ast_party_shared_type(shared),
             surface_desc);
         if (ft == NULL)
             return;
-        codebuf_write(ctx->out, "    %s %s;\n", ft, shared->data.party_shared.name);
+        codebuf_write(ctx->out, "    %s %s;\n", ft,
+            ast_party_shared_name(shared));
     }
 
     codebuf_write(ctx->out, "} %s;\n", name);
@@ -162,25 +164,26 @@ emit_effect_decl(ASTNode *node, TranspilerCtx *ctx)
         char surface_desc[256];
         if (!transpiler_relation_effect_surface_desc(surface_desc,
                 sizeof(surface_desc), "effect slot", name,
-                slot != NULL ? slot->data.domain_slot.slot_name : NULL)) {
+                ast_domain_slot_name(slot))) {
             transpiler_relation_effect_surface_desc_too_long(
                 ctx, "effect slot");
             return;
         }
         ft = transpiler_require_ast_c_type(
             ctx,
-            slot != NULL ? slot->data.domain_slot.type : NULL,
+            ast_domain_slot_type(slot),
             surface_desc);
         if (ft == NULL)
             return;
-        codebuf_write(ctx->out, "    %s %s;\n", ft, slot->data.domain_slot.slot_name);
-        if (!slot->data.domain_slot.is_subject) {
+        codebuf_write(ctx->out, "    %s %s;\n", ft,
+            ast_domain_slot_name(slot));
+        if (!ast_domain_slot_is_subject(slot)) {
             codebuf_write(ctx->out, "    bool __projection_ready_%s;\n",
-                slot->data.domain_slot.slot_name);
+                ast_domain_slot_name(slot));
             codebuf_write(ctx->out, "    bool __projection_dirty_%s;\n",
-                slot->data.domain_slot.slot_name);
+                ast_domain_slot_name(slot));
             emit_hidden_provenance_fields(ctx, "projection",
-                slot->data.domain_slot.slot_name);
+                ast_domain_slot_name(slot));
         }
     }
 
@@ -192,18 +195,19 @@ emit_effect_decl(ASTNode *node, TranspilerCtx *ctx)
         char surface_desc[256];
         if (!transpiler_relation_effect_surface_desc(surface_desc,
                 sizeof(surface_desc), "effect shared field", name,
-                shared != NULL ? shared->data.party_shared.name : NULL)) {
+                ast_party_shared_name(shared))) {
             transpiler_relation_effect_surface_desc_too_long(
                 ctx, "effect shared field");
             return;
         }
         ft = transpiler_require_ast_c_type(
             ctx,
-            shared != NULL ? shared->data.party_shared.type : NULL,
+            ast_party_shared_type(shared),
             surface_desc);
         if (ft == NULL)
             return;
-        codebuf_write(ctx->out, "    %s %s;\n", ft, shared->data.party_shared.name);
+        codebuf_write(ctx->out, "    %s %s;\n", ft,
+            ast_party_shared_name(shared));
     }
 
     codebuf_write(ctx->out, "} %s;\n", name);

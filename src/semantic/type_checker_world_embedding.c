@@ -41,8 +41,10 @@ mark_world_embedded_zone_arguments(ASTNode *call, SemanticContext *ctx)
 
         if (i < zone_count) {
             ASTNode *zone_slot = zones[i];
+            const char *zone_type = ast_world_zone_type_name(zone_slot);
+            const char *zone_slot_name = ast_world_zone_slot_name(zone_slot);
             if (zone_slot != NULL && zone_slot->type == AST_WORLD_ZONE
-                && zone_slot->data.world_zone.zone_type != NULL) {
+                && zone_type != NULL) {
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_WORLD_CONTRACT_INVALID, PGY_CAUSE_WORLD_CONTRACT, PGY_FIX_ALIGN_WORLD_ZONE_STATE_COMPOSITION, arg,
                     "World constructor '%s' implicitly copies zone binding '%s' into slot '%s'.\n"
                     "Reason:\n"
@@ -59,25 +61,22 @@ mark_world_embedded_zone_arguments(ASTNode *call, SemanticContext *ctx)
                     world_name != NULL ? world_name : "<world>",
                     arg->data.identifier.name != NULL
                         ? arg->data.identifier.name : "<zone>",
-                    zone_slot->data.world_zone.slot_name != NULL
-                        ? zone_slot->data.world_zone.slot_name : "<slot>",
+                    zone_slot_name != NULL ? zone_slot_name : "<slot>",
                     arg->data.identifier.name != NULL
                         ? arg->data.identifier.name : "<zone>",
                     world_name != NULL ? world_name : "<world>",
-                    zone_slot->data.world_zone.slot_name != NULL
-                        ? zone_slot->data.world_zone.slot_name : "<slot>",
+                    zone_slot_name != NULL ? zone_slot_name : "<slot>",
                     arg->data.identifier.name != NULL
                         ? arg->data.identifier.name : "<zone>",
                     world_name != NULL ? world_name : "<world>",
-                    zone_slot->data.world_zone.slot_name != NULL
-                        ? zone_slot->data.world_zone.slot_name : "<slot>",
+                    zone_slot_name != NULL ? zone_slot_name : "<slot>",
                     arg->data.identifier.name != NULL
                         ? arg->data.identifier.name : "<zone>");
                 arg_sym->embedded_in_world = true;
                 semantic_ctx_mark_embedded_world_zone_name(ctx,
                     arg->data.identifier.name,
                     world_name,
-                    zone_slot->data.world_zone.slot_name);
+                    zone_slot_name);
                 matched_zone_slot = true;
             }
         }
@@ -87,12 +86,14 @@ mark_world_embedded_zone_arguments(ASTNode *call, SemanticContext *ctx)
 
         for (size_t zi = 0; zi < zone_count; zi++) {
             ASTNode *zone_slot = zones[zi];
+            const char *zone_type = ast_world_zone_type_name(zone_slot);
+            const char *zone_slot_name = ast_world_zone_slot_name(zone_slot);
             if (zone_slot == NULL || zone_slot->type != AST_WORLD_ZONE
-                || zone_slot->data.world_zone.zone_type == NULL) {
+                || zone_type == NULL) {
                 continue;
             }
             if (arg_sym->type != NULL && arg_sym->type->name != NULL
-                && strcmp(arg_sym->type->name, zone_slot->data.world_zone.zone_type) == 0) {
+                && strcmp(arg_sym->type->name, zone_type) == 0) {
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_WORLD_CONTRACT_INVALID, PGY_CAUSE_WORLD_CONTRACT, PGY_FIX_ALIGN_WORLD_ZONE_STATE_COMPOSITION, arg,
                     "World constructor '%s' implicitly copies zone binding '%s' into slot '%s'.\n"
                     "Reason:\n"
@@ -109,25 +110,22 @@ mark_world_embedded_zone_arguments(ASTNode *call, SemanticContext *ctx)
                     world_name != NULL ? world_name : "<world>",
                     arg->data.identifier.name != NULL
                         ? arg->data.identifier.name : "<zone>",
-                    zone_slot->data.world_zone.slot_name != NULL
-                        ? zone_slot->data.world_zone.slot_name : "<slot>",
+                    zone_slot_name != NULL ? zone_slot_name : "<slot>",
                     arg->data.identifier.name != NULL
                         ? arg->data.identifier.name : "<zone>",
                     world_name != NULL ? world_name : "<world>",
-                    zone_slot->data.world_zone.slot_name != NULL
-                        ? zone_slot->data.world_zone.slot_name : "<slot>",
+                    zone_slot_name != NULL ? zone_slot_name : "<slot>",
                     arg->data.identifier.name != NULL
                         ? arg->data.identifier.name : "<zone>",
                     world_name != NULL ? world_name : "<world>",
-                    zone_slot->data.world_zone.slot_name != NULL
-                        ? zone_slot->data.world_zone.slot_name : "<slot>",
+                    zone_slot_name != NULL ? zone_slot_name : "<slot>",
                     arg->data.identifier.name != NULL
                         ? arg->data.identifier.name : "<zone>");
                 arg_sym->embedded_in_world = true;
                 semantic_ctx_mark_embedded_world_zone_name(ctx,
                     arg->data.identifier.name,
                     world_name,
-                    zone_slot->data.world_zone.slot_name);
+                    zone_slot_name);
                 break;
             }
         }

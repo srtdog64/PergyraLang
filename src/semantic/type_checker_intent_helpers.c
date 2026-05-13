@@ -143,12 +143,14 @@ ASTNode *
 subject_decl_find_action_named(ASTNode *decl, const char *action_name)
 {
     if (decl == NULL || decl->type != AST_CLASS_DECL || action_name == NULL
-        || decl->data.class_decl.nominal_kind != NOMINAL_DECL_SUBJECT) {
+        || ast_class_nominal_kind(decl) != NOMINAL_DECL_SUBJECT) {
         return NULL;
     }
 
-    for (size_t i = 0; i < decl->data.class_decl.method_count; i++) {
-        ASTNode *method = decl->data.class_decl.methods[i];
+    size_t method_count = 0;
+    ASTNode **methods = ast_class_methods(decl, &method_count);
+    for (size_t i = 0; i < method_count; i++) {
+        ASTNode *method = methods != NULL ? methods[i] : NULL;
         if (method != NULL && method->type == AST_FUNC_DECL
             && method->data.func_decl.is_action
             && method->data.func_decl.name != NULL
@@ -193,8 +195,10 @@ projection_target_decl_has_field(ASTNode *target_decl, const char *field_name)
         || field_name == NULL) {
         return false;
     }
-    for (size_t i = 0; i < target_decl->data.class_decl.field_count; i++) {
-        ClassField *field = target_decl->data.class_decl.fields[i];
+    size_t field_count = 0;
+    ClassField **fields = ast_class_fields(target_decl, &field_count);
+    for (size_t i = 0; i < field_count; i++) {
+        ClassField *field = fields != NULL ? fields[i] : NULL;
         if (field != NULL && field->name != NULL
             && strcmp(field->name, field_name) == 0) {
             return true;

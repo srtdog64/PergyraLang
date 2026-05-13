@@ -377,6 +377,12 @@ mir_materialize_cleanup_edges(MIRRoutine *routine)
         if (!mir_cleanup_commit_instruction(routine, rollback, &inst)) {
             return false;
         }
+        if (!mir_cleanup_append_index_unique(&rollback->predecessors,
+                                             &rollback->predecessor_count,
+                                             &rollback->predecessor_capacity,
+                                             cleanup->id)) {
+            return false;
+        }
         if (!mir_cleanup_append_index_unique(&routine->blocks[rollback_cleanup_target].predecessors,
                                              &routine->blocks[rollback_cleanup_target].predecessor_count,
                                              &routine->blocks[rollback_cleanup_target].predecessor_capacity,
@@ -414,6 +420,12 @@ mir_materialize_cleanup_edges(MIRRoutine *routine)
             .ast = NULL,
         };
         if (!mir_cleanup_commit_instruction(routine, invalidation, &inst)) {
+            return false;
+        }
+        if (!mir_cleanup_append_index_unique(&invalidation->predecessors,
+                                             &invalidation->predecessor_count,
+                                             &invalidation->predecessor_capacity,
+                                             cleanup->id)) {
             return false;
         }
         if (!mir_cleanup_append_index_unique(&cleanup->predecessors,

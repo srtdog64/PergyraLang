@@ -132,6 +132,61 @@ test_air_synthesis_collects_observability_schema_evidence(void)
 }
 
 static bool
+test_air_collects_singleton_global_evidence_idempotently(void)
+{
+    AIRProgram *air = (AIRProgram *)calloc(1, sizeof(AIRProgram));
+    char *error = NULL;
+    bool ok;
+
+    if (air == NULL)
+        return false;
+
+    ok = air_collect_observability_schema_evidence(air, &error)
+        && air_collect_observability_schema_evidence(air, &error)
+        && air_collect_runtime_frontier_policy_evidence(air, &error)
+        && air_collect_runtime_frontier_policy_evidence(air, &error)
+        && air_validate(air, &error)
+        && air->observability_schema_evidence_count == 1
+        && air->runtime_frontier_policy_evidence_count == 1
+        && air->evidence_count == 2
+        && air->evidence_nodes[0].fact_count
+            == PGY_OBSERVABILITY_SCHEMA_FACT_COUNT
+        && air->evidence_nodes[1].fact_count
+            == PGY_FRONTIER_POLICY_FACT_COUNT;
+    free(error);
+    air_destroy(air);
+    return ok;
+}
+
+static bool
+test_air_rejects_conflicting_singleton_global_evidence(void)
+{
+    AIREvidenceNode evidence_nodes[] = {
+        {
+            .kind = AIR_EVIDENCE_RUNTIME_FRONTIER_POLICY,
+            .boundary_index = SIZE_MAX,
+            .provider_name = PGY_FRONTIER_POLICY_SCHEMA,
+            .subject_name = PGY_FRONTIER_POLICY_SUBJECT,
+            .fact_count = 1,
+            .fallback_count = 0,
+        },
+    };
+    AIRProgram air = {
+        .evidence_nodes = evidence_nodes,
+        .evidence_count = 1,
+        .evidence_capacity = 1,
+        .runtime_frontier_policy_evidence_count = 1,
+    };
+    char *error = NULL;
+    bool ok = !air_collect_runtime_frontier_policy_evidence(&air, &error)
+        && error != NULL
+        && strstr(error,
+                  "AIR singleton global evidence has conflicting counts") != NULL;
+    free(error);
+    return ok;
+}
+
+static bool
 test_air_rejects_invalid_observability_schema_provider(void)
 {
     AIREvidenceNode evidence_nodes[] = {

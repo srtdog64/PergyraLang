@@ -68,6 +68,47 @@ mir_instruction_source_column(const MIRInstruction *inst)
 }
 
 bool
+mir_instruction_has_source_statement_order(const MIRInstruction *inst)
+{
+    return inst != NULL && inst->has_source_statement_index;
+}
+
+bool
+mir_instruction_is_first_source_statement(const MIRInstruction *inst)
+{
+    return mir_instruction_has_source_statement_order(inst)
+        && inst->source_statement_index == 0;
+}
+
+size_t
+mir_instruction_source_statement_index_or(const MIRInstruction *inst,
+                                          size_t fallback_index)
+{
+    return mir_instruction_has_source_statement_order(inst)
+        ? inst->source_statement_index
+        : fallback_index;
+}
+
+int
+mir_instruction_source_statement_order_compare(const MIRInstruction *left,
+                                               const MIRInstruction *right)
+{
+    bool left_has = mir_instruction_has_source_statement_order(left);
+    bool right_has = mir_instruction_has_source_statement_order(right);
+
+    if (left_has && right_has) {
+        if (left->source_statement_index < right->source_statement_index)
+            return -1;
+        if (left->source_statement_index > right->source_statement_index)
+            return 1;
+        return 0;
+    }
+    if (left_has != right_has)
+        return left_has ? -1 : 1;
+    return 0;
+}
+
+bool
 mir_instruction_branch_requires_source_emit(const MIRInstruction *inst)
 {
     return inst != NULL

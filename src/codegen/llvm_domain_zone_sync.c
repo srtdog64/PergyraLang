@@ -121,16 +121,16 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
             for (size_t j = 0; j < state_count; j++) {
                 ASTNode *state = states[j];
                 if (state != NULL && state->type == AST_ZONE_STATE
-                    && !state->data.zone_state.is_relation
-                    && state->data.zone_state.layer_slot_name != NULL
-                    && state->data.zone_state.left_or_target_slot_name != NULL
+                    && !ast_zone_state_is_relation(state)
+                    && ast_zone_state_layer_slot_name(state) != NULL
+                    && ast_zone_state_left_or_target_slot_name(state) != NULL
                     && apply->data.zone_apply.effect_slot_name != NULL
                     && apply->data.zone_apply.target_slot_name != NULL
-                    && strcmp(state->data.zone_state.layer_slot_name,
+                    && strcmp(ast_zone_state_layer_slot_name(state),
                               apply->data.zone_apply.effect_slot_name) == 0
-                    && strcmp(state->data.zone_state.left_or_target_slot_name,
+                    && strcmp(ast_zone_state_left_or_target_slot_name(state),
                               apply->data.zone_apply.target_slot_name) == 0) {
-                    state_name = state->data.zone_state.state_name;
+                    state_name = ast_zone_state_name(state);
                     break;
                 }
             }
@@ -159,10 +159,10 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
                     for (size_t j = 0; j < state_count; j++) {
                         ASTNode *state = states[j];
                         if (state != NULL && state->type == AST_ZONE_STATE
-                            && !state->data.zone_state.is_relation
-                            && state->data.zone_state.state_name != NULL
-                            && strcmp(state->data.zone_state.state_name, state_name) == 0) {
-                            layer_name = state->data.zone_state.layer_slot_name;
+                            && !ast_zone_state_is_relation(state)
+                            && ast_zone_state_name(state) != NULL
+                            && strcmp(ast_zone_state_name(state), state_name) == 0) {
+                            layer_name = ast_zone_state_layer_slot_name(state);
                             break;
                         }
                     }
@@ -190,13 +190,13 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
                         for (size_t j = 0; j < state_count; j++) {
                             ASTNode *state = states[j];
                             if (state != NULL && state->type == AST_ZONE_STATE
-                                && !state->data.zone_state.is_relation
-                                && state->data.zone_state.state_name != NULL
-                                && strcmp(state->data.zone_state.state_name, state_name) == 0
-                                && state->data.zone_state.left_or_target_slot_name != NULL) {
+                                && !ast_zone_state_is_relation(state)
+                                && ast_zone_state_name(state) != NULL
+                                && strcmp(ast_zone_state_name(state), state_name) == 0
+                                && ast_zone_state_left_or_target_slot_name(state) != NULL) {
                                 llvm_zone_bind_effect_layer(stmt, decl_cls, sync_fn, ctx,
                                     layer_name,
-                                    state->data.zone_state.left_or_target_slot_name);
+                                    ast_zone_state_left_or_target_slot_name(state));
                                 break;
                             }
                         }
@@ -277,16 +277,16 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
             LLVMValueRef self_ptr;
             LLVMValueRef state_ptr;
             if (state == NULL || state->type != AST_ZONE_STATE
-                || state->data.zone_state.is_relation
-                || state->data.zone_state.layer_slot_name == NULL
-                || state->data.zone_state.left_or_target_slot_name == NULL
-                || strcmp(state->data.zone_state.layer_slot_name,
+                || ast_zone_state_is_relation(state)
+                || ast_zone_state_layer_slot_name(state) == NULL
+                || ast_zone_state_left_or_target_slot_name(state) == NULL
+                || strcmp(ast_zone_state_layer_slot_name(state),
                           maintain->data.zone_maintain_effect.effect_slot_name) != 0
-                || strcmp(state->data.zone_state.left_or_target_slot_name,
+                || strcmp(ast_zone_state_left_or_target_slot_name(state),
                           maintain->data.zone_maintain_effect.target_slot_name) != 0) {
                 continue;
             }
-            state_name = state->data.zone_state.state_name;
+            state_name = ast_zone_state_name(state);
             if (!llvm_zone_sync_field_name(field_name, sizeof(field_name),
                     "state", state_name))
                 continue;
@@ -330,15 +330,15 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
             for (size_t j = 0; j < state_count; j++) {
                 ASTNode *state = states[j];
                 if (state != NULL && state->type == AST_ZONE_STATE
-                    && state->data.zone_state.state_name != NULL
-                    && strcmp(state->data.zone_state.state_name,
+                    && ast_zone_state_name(state) != NULL
+                    && strcmp(ast_zone_state_name(state),
                               maintain->data.zone_maintain_state.state_name) == 0) {
                     char layer_field[256];
                     int layer_idx;
                     LLVMValueRef layer_ptr;
                     if (!llvm_zone_sync_field_name(layer_field,
                             sizeof(layer_field), "layer_active",
-                            state->data.zone_state.layer_slot_name))
+                            ast_zone_state_layer_slot_name(state)))
                         continue;
                     layer_idx = llvm_class_field_index(decl_cls, layer_field);
                     if (layer_idx >= 0) {
@@ -347,18 +347,18 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
                         LLVMBuildStore(ctx->builder,
                             LLVMConstInt(ctx->type_i1, 1, 0), layer_ptr);
                         llvm_stamp_domain_provenance(ctx, decl_cls, self_ptr,
-                            "layer", state->data.zone_state.layer_slot_name,
+                            "layer", ast_zone_state_layer_slot_name(state),
                             PGY_PROP_CAUSE_MAINTAIN);
                     }
-                    if (!state->data.zone_state.is_relation) {
+                    if (!ast_zone_state_is_relation(state)) {
                         llvm_zone_bind_effect_layer(stmt, decl_cls, sync_fn, ctx,
-                            state->data.zone_state.layer_slot_name,
-                            state->data.zone_state.left_or_target_slot_name);
-                    } else if (state->data.zone_state.right_slot_name != NULL) {
+                            ast_zone_state_layer_slot_name(state),
+                            ast_zone_state_left_or_target_slot_name(state));
+                    } else if (ast_zone_state_right_slot_name(state) != NULL) {
                         llvm_zone_bind_relation_layer(stmt, decl_cls, sync_fn, ctx,
-                            state->data.zone_state.layer_slot_name,
-                            state->data.zone_state.left_or_target_slot_name,
-                            state->data.zone_state.right_slot_name);
+                            ast_zone_state_layer_slot_name(state),
+                            ast_zone_state_left_or_target_slot_name(state),
+                            ast_zone_state_right_slot_name(state));
                     }
                     break;
                 }

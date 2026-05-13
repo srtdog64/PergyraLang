@@ -33,7 +33,21 @@ transpiler_let_slot_constructed_type_too_long(TranspilerCtx *ctx,
 }
 
 static const char *
-transpiler_let_slot_inner_from_annotation(ASTNode *ann)
+transpiler_let_slot_keep_inner(TranspilerCtx *ctx, char *owned_inner)
+{
+    char *copy;
+
+    if (owned_inner == NULL)
+        return NULL;
+    if (ctx == NULL)
+        return owned_inner;
+    copy = pgy_arena_strdup(&ctx->arena, owned_inner);
+    free(owned_inner);
+    return copy;
+}
+
+static const char *
+transpiler_let_slot_inner_from_annotation(TranspilerCtx *ctx, ASTNode *ann)
 {
     if (ann == NULL || ann->type != AST_TYPE || ann->data.type.name == NULL)
         return NULL;
@@ -43,17 +57,24 @@ transpiler_let_slot_inner_from_annotation(ASTNode *ann)
         && ann->data.type.generic_args->params[0] != NULL) {
         GenericParam *param = ann->data.type.generic_args->params[0];
         if (param->constraint != NULL
-            && param->constraint->type == AST_TYPE
-            && param->constraint->data.type.name != NULL) {
-            return param->constraint->data.type.name;
+            && param->constraint->type == AST_TYPE) {
+            return transpiler_let_slot_keep_inner(ctx,
+                render_type_name(param->constraint));
         }
-        return param->name;
+        if (ctx == NULL)
+            return param->name;
+        return pgy_arena_strdup(&ctx->arena, param->name);
     }
-    return slot_inner_type_name(ann->data.type.name);
+    {
+        const char *inner = slot_inner_type_name(ann->data.type.name);
+        if (ctx == NULL)
+            return inner;
+        return pgy_arena_strdup(&ctx->arena, inner);
+    }
 }
 
 static const char *
-transpiler_let_slot_inner_from_call_type_arg(ASTNode *call)
+transpiler_let_slot_inner_from_call_type_arg(TranspilerCtx *ctx, ASTNode *call)
 {
     GenericParam *param;
 
@@ -66,11 +87,13 @@ transpiler_let_slot_inner_from_call_type_arg(ASTNode *call)
     }
     param = call->data.call.generic_args->params[0];
     if (param->constraint != NULL
-        && param->constraint->type == AST_TYPE
-        && param->constraint->data.type.name != NULL) {
-        return param->constraint->data.type.name;
+        && param->constraint->type == AST_TYPE) {
+        return transpiler_let_slot_keep_inner(ctx,
+            render_type_name(param->constraint));
     }
-    return param->name;
+    if (ctx == NULL)
+        return param->name;
+    return pgy_arena_strdup(&ctx->arena, param->name);
 }
 
 static bool
@@ -104,9 +127,9 @@ transpiler_try_emit_let_slot_claim(ASTNode *node,
         return false;
     }
 
-    slot_inner = transpiler_let_slot_inner_from_annotation(ann);
+    slot_inner = transpiler_let_slot_inner_from_annotation(ctx, ann);
     if (slot_inner == NULL && is_slot)
-        slot_inner = transpiler_let_slot_inner_from_call_type_arg(init);
+        slot_inner = transpiler_let_slot_inner_from_call_type_arg(ctx, init);
     if (slot_inner == NULL) {
         transpiler_set_backend_error_with_hints(
             ctx,
@@ -204,7 +227,7 @@ transpiler_try_emit_let_slot_view_or_move(TranspilerCtx *ctx,
     if (!is_view_decl && !is_move_decl)
         return false;
 
-    const char *inner = transpiler_let_slot_inner_from_annotation(ann);
+    const char *inner = transpiler_let_slot_inner_from_annotation(ctx, ann);
     if (inner == NULL) {
         transpiler_set_backend_error_with_hints(
             ctx,
@@ -220,6 +243,7 @@ transpiler_try_emit_let_slot_view_or_move(TranspilerCtx *ctx,
     }
 
     bool source_secure = lookup_slot_is_secure(ctx, source_name);
+    char ctype_buf[128];
     const char *ctype = NULL;
     if (source_secure) {
         char secure_name[128];
@@ -230,7 +254,8 @@ transpiler_try_emit_let_slot_view_or_move(TranspilerCtx *ctx,
             *ann_type_name_io = NULL;
             return true;
         }
-        ctype = pergyra_type_to_c(secure_name);
+        if (pergyra_type_to_c_copy(secure_name, ctype_buf, sizeof(ctype_buf)))
+            ctype = ctype_buf;
     } else {
         char slot_name_buf[128];
         if (!transpiler_let_slot_constructed_type_name(slot_name_buf,
@@ -240,7 +265,8 @@ transpiler_try_emit_let_slot_view_or_move(TranspilerCtx *ctx,
             *ann_type_name_io = NULL;
             return true;
         }
-        ctype = pergyra_type_to_c(slot_name_buf);
+        if (pergyra_type_to_c_copy(slot_name_buf, ctype_buf, sizeof(ctype_buf)))
+            ctype = ctype_buf;
     }
     if (ctype == NULL) {
         transpiler_set_backend_error_with_hints(
@@ -307,7 +333,7 @@ transpiler_try_emit_let_slot_sugar(TranspilerCtx *ctx,
     if (!is_slot_sugar)
         return false;
 
-    sugar_inner = transpiler_let_slot_inner_from_annotation(ann);
+    sugar_inner = transpiler_let_slot_inner_from_annotation(ctx, ann);
     if (sugar_inner == NULL) {
         transpiler_set_backend_error_with_hints(
             ctx,

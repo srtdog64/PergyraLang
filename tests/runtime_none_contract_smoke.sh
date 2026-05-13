@@ -46,13 +46,31 @@ if ! "$PGY_BIN" --help >"$WORK_DIR/pgy-help.out" 2>"$WORK_DIR/pgy-help.err"; the
     exit 1
 fi
 
+pgy_path_arg() {
+    local path="$1"
+    if [[ "$PGY_BIN" == *.exe ]] && command -v cygpath >/dev/null 2>&1; then
+        cygpath -w "$path"
+        return
+    fi
+    if [[ "$PGY_BIN" == *.exe && "$path" =~ ^/mnt/([a-zA-Z])/(.*)$ ]]; then
+        local drive="${BASH_REMATCH[1]}"
+        local rest="${BASH_REMATCH[2]//\//\\}"
+        printf '%s:\\%s\n' "${drive^^}" "$rest"
+        return
+    fi
+    printf '%s\n' "$path"
+}
+
 run_reject() {
     local name="$1"
     local source="$2"
     local expected="$3"
     local log="$WORK_DIR/${name}.json"
+    local source_arg
 
-    if "$PGY_BIN" "$source" --runtime=none --error-format=json >"$WORK_DIR/${name}.out" 2>"$log"; then
+    source_arg="$(pgy_path_arg "$source")"
+
+    if "$PGY_BIN" "$source_arg" --runtime=none --error-format=json >"$WORK_DIR/${name}.out" 2>"$log"; then
         echo "[runtime-none-contract] expected rejection for $name" >&2
         exit 1
     fi

@@ -14,6 +14,19 @@ if ((${#inc_files[@]} > 0)); then
     exit 1
 fi
 
+large_impl_headers="$(
+    cd "$ROOT_DIR"
+    find src/runtime src/codegen src/compiler -name '*.h' -type f \
+        ! -path 'src/tests/*' \
+        -exec wc -l {} + \
+        | awk '$2 != "total" && $1 > 600 { print }'
+)"
+if [ -n "$large_impl_headers" ]; then
+    echo "production implementation-style headers exceeded the 600 LOC signal:" >&2
+    printf '%s\n' "$large_impl_headers" >&2
+    exit 1
+fi
+
 for legacy_header in \
     rir_builder.h \
     rir_flow.h \
@@ -62,4 +75,4 @@ do
     fi
 done
 
-echo "[backend-inc-size] runtime/codegen/compiler production .inc files = 0; legacy RIR implementation headers = 0; LLVM task/channel fallback = 0"
+echo "[backend-inc-size] runtime/codegen/compiler production .inc files = 0; production implementation headers <= 600 LOC; legacy RIR implementation headers = 0; LLVM task/channel fallback = 0"

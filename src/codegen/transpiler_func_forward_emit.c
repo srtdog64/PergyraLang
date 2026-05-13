@@ -1,5 +1,6 @@
 #include "transpiler_mir_inventory_intent.h"
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -8,6 +9,7 @@
 #include "transpiler_host_self_policy.h"
 #include "transpiler_type_declarator.h"
 #include "transpiler_type_mapping.h"
+#include "transpiler_type_require.h"
 #include "transpiler_type_render.h"
 
 void
@@ -22,14 +24,24 @@ emit_func_forward_decl_named(ASTNode *node, const char *emitted_name,
     for (size_t i = 0; i < node->data.func_decl.param_count; i++) {
         FuncParam *p = node->data.func_decl.params[i];
         const char *pt = NULL;
+        char pt_buf[256];
         char *type_name = NULL;
         char *decl = NULL;
         bool boundary_slot = false;
         bool secure_slot = false;
         if (p->type != NULL)
             ensure_type_specializations_from_ast(ctx, p->type);
-        if (p->type != NULL)
-            pt = pergyra_ast_type_to_c(p->type);
+        if (p->type != NULL) {
+            char surface_desc[256];
+            snprintf(surface_desc, sizeof(surface_desc),
+                "forward declaration parameter '%s' of '%s'",
+                p->name != NULL ? p->name : "(anonymous)",
+                name != NULL ? name : "(anonymous)");
+            if (transpiler_require_ast_c_type_copy(ctx, p->type,
+                    surface_desc, pt_buf, sizeof(pt_buf))) {
+                pt = pt_buf;
+            }
+        }
         if (pt == NULL) {
             transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "cannot determine parameter type for forward declaration '%s' at argument %llu",
                 name != NULL ? name : "<function>",

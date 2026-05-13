@@ -26,13 +26,16 @@ lookup_enum_variant_qualified_name(TranspilerCtx *ctx, const char *variant_name)
 
     for (size_t i = 0; i < type_count; i++) {
         ASTNode *stmt = types[i];
+        size_t variant_count = 0;
+        char **variants;
         if (stmt == NULL || stmt->type != AST_ENUM_DECL)
             continue;
-        for (size_t j = 0; j < stmt->data.enum_decl.variant_count; j++) {
-            const char *candidate = stmt->data.enum_decl.variants[j];
+        variants = ast_enum_variants(stmt, &variant_count);
+        for (size_t j = 0; j < variant_count; j++) {
+            const char *candidate = variants != NULL ? variants[j] : NULL;
             if (candidate != NULL && strcmp(candidate, variant_name) == 0) {
                 snprintf(qualified, sizeof(qualified), "%s_%s",
-                    stmt->data.enum_decl.name, candidate);
+                    ast_enum_name(stmt), candidate);
                 return qualified;
             }
         }

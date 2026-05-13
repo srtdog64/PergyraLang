@@ -60,12 +60,40 @@ require_terms() {
     done
 }
 
+windows_path_for() {
+    local path="$1"
+    local drive
+    local rest
+
+    if command -v cygpath >/dev/null 2>&1; then
+        cygpath -m "$path"
+        return 0
+    fi
+    if command -v wslpath >/dev/null 2>&1; then
+        wslpath -w "$path"
+        return 0
+    fi
+    case "$path" in
+        /mnt/[A-Za-z]/*)
+            drive="${path#/mnt/}"
+            drive="${drive%%/*}"
+            rest="${path#/mnt/$drive/}"
+            printf '%s:/%s\n' "$drive" "$rest"
+            return 0
+            ;;
+    esac
+    printf '%s\n' "$path"
+}
+
 require_generated_frontier_limit() {
     local pgy_bin="${PGY_BIN:-$DEFAULT_PGY}"
     local explicit_pgy=0
     local source="$ROOT_DIR/tests/cases/backend_compare/world_embedded_action_frontier/main.pgy"
     local out_c="$tmp_dir/world_embedded_action_frontier.c"
     local log="$tmp_dir/world_embedded_action_frontier.log"
+    local source_arg="$source"
+    local out_c_arg="$out_c"
+    local emitted=0
 
     if [[ -n "${PGY_BIN:-}" ]]; then
         explicit_pgy=1
@@ -80,12 +108,42 @@ require_generated_frontier_limit() {
         echo "[runtime-frontier-contract] SKIP generated frontier fixture; no default pgy executable" >&2
         return 0
     fi
-    if ! "$pgy_bin" "$source" --emit-c -o "$out_c" >"$log" 2>&1; then
+    if [[ "$pgy_bin" == *.exe ]] && command -v powershell.exe >/dev/null 2>&1; then
+        local ps1="$tmp_dir/run-frontier-fixture.ps1"
+        local win_pgy win_source win_out win_log win_ps1
+        win_pgy="$(windows_path_for "$pgy_bin")"
+        win_source="$(windows_path_for "$source")"
+        win_out="$(windows_path_for "$out_c")"
+        win_log="$(windows_path_for "$log")"
+        win_ps1="$(windows_path_for "$ps1")"
+cat >"$ps1" <<EOF
+\$ErrorActionPreference = 'Continue'
+\$env:PATH = 'C:\Program Files\LLVM\bin;C:\ProgramData\mingw64\mingw64\bin;C:\msys64\mingw64\bin;' + \$env:PATH
+& '$win_pgy' '$win_source' --emit-c -o '$win_out' 2>&1 | ForEach-Object { \$_.ToString() } | Set-Content -LiteralPath '$win_log' -Encoding utf8
+exit \$LASTEXITCODE
+EOF
+        if ! powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$win_ps1"; then
+            if [[ -f "$log" ]]; then
+                sed 's/^/[runtime-frontier-contract] pgy: /' "$log" >&2 || true
+            fi
+            if [[ "$explicit_pgy" -eq 1 ]]; then
+                fail "failed to emit generated frontier fixture with $pgy_bin"
+            fi
+            fail "failed to emit generated frontier fixture with default $pgy_bin"
+        fi
+        emitted=1
+    elif [[ "$pgy_bin" == *.exe ]] && command -v cygpath >/dev/null 2>&1; then
+        source_arg="$(cygpath -m "$source")"
+        out_c_arg="$(cygpath -m "$out_c")"
+    fi
+    if [[ "$emitted" -eq 0 ]] && ! "$pgy_bin" "$source_arg" --emit-c -o "$out_c_arg" >"$log" 2>&1; then
+        if [[ -f "$log" ]]; then
+            sed 's/^/[runtime-frontier-contract] pgy: /' "$log" >&2 || true
+        fi
         if [[ "$explicit_pgy" -eq 1 ]]; then
             fail "failed to emit generated frontier fixture with $pgy_bin"
         fi
-        echo "[runtime-frontier-contract] SKIP generated frontier fixture; default pgy failed" >&2
-        return 0
+        fail "failed to emit generated frontier fixture with default $pgy_bin"
     fi
 
     require_terms "generated embedded world frontier C" "$out_c" \
@@ -246,8 +304,10 @@ require_terms "codegen frontier policy compatibility wrapper implementation" "$R
     "pgy_frontier_projection_pass_limit" \
     "pgy_frontier_world_derived_pass_limit" \
     "pgy_frontier_world_transitive_pass_limit" \
-    "zone_decl->data.zone_decl.state_count" \
-    "zone_decl->data.zone_decl.layer_slot_count"
+    "ast_zone_states(zone_decl, &state_count)" \
+    "ast_zone_layer_slots(zone_decl, &layer_slot_count)" \
+    "ast_world_zones(world_decl, &zone_count)" \
+    "ast_world_states(world_decl, &state_count)"
 
 require_terms "frontier runtime policy smoke" "$ROOT_DIR/tests/runtime_frontier_policy_smoke.sh" \
     "pgy_frontier_pass_limit_cap" \
@@ -349,6 +409,13 @@ if grep -E \
     'projection recompute exceeded bounded pass limit|zone frontier recompute exceeded bounded pass limit|world frontier recompute exceeded bounded pass limit|world derived recompute exceeded bounded pass limit|frontier recompute exceeded bounded pass limit' \
     "$ROOT_DIR"/src/codegen/* >/dev/null 2>&1; then
     fail "frontier overflow reason strings must live in runtime policy, not codegen emitters"
+fi
+if grep -R -E \
+    'pgy_frontier_(projection|zone|world|world_transitive|world_derived)_pass_limit' \
+    "$ROOT_DIR/src/codegen" \
+    | grep -v 'src/codegen/domain_frontier_policy.c:' \
+    | grep -v 'src/codegen/domain_frontier_policy.h:' >/dev/null 2>&1; then
+    fail "codegen must consume domain_frontier_policy wrappers, not runtime frontier formulas directly"
 fi
 
 echo "[runtime-frontier-contract] bounded C/LLVM frontier contracts are gated"

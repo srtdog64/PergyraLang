@@ -24,10 +24,10 @@ transpiler_find_intent_step_source_by_name(ASTNode *intent,
     for (size_t i = 0; i < intent->data.intent_decl.step_count; i++) {
         ASTNode *step = intent->data.intent_decl.steps[i];
         if (step == NULL || step->type != AST_INTENT_STEP
-            || step->data.intent_step.name == NULL) {
+            || ast_intent_step_name(step) == NULL) {
             continue;
         }
-        if (strcmp(step->data.intent_step.name, step_name) == 0)
+        if (strcmp(ast_intent_step_name(step), step_name) == 0)
             return step;
     }
     return NULL;

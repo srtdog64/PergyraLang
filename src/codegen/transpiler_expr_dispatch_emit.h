@@ -59,6 +59,13 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
         if (strcmp(id_name, "self") != 0
             && lookup_typed_var(ctx, id_name) == NULL
             && !is_slot_var(ctx, id_name)
+            && (current_party_has_field(ctx, id_name)
+                || current_roster_has_field(ctx, id_name))) {
+            return strdup_fmt("self->%s", id_name);
+        }
+        if (strcmp(id_name, "self") != 0
+            && lookup_typed_var(ctx, id_name) == NULL
+            && !is_slot_var(ctx, id_name)
             && current_relation_has_field(ctx, id_name)) {
             return strdup_fmt("self->%s", id_name);
         }
@@ -223,7 +230,9 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
             ASTNode *host_decl = transpiler_current_host_decl_local(ctx);
             bool self_is_pointer = current_class_uses_self_cell(ctx)
                 || (host_decl != NULL
-                    && (host_decl->type == AST_RELATION_DECL
+                    && (host_decl->type == AST_PARTY_DECL
+                        || host_decl->type == AST_ROSTER_DECL
+                        || host_decl->type == AST_RELATION_DECL
                         || host_decl->type == AST_EFFECT_DECL
                         || host_decl->type == AST_ZONE_DECL
                         || host_decl->type == AST_WORLD_DECL));
@@ -336,7 +345,12 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
             (void)pergyra_str_append(tuple_name_buf, sizeof(tuple_name_buf), ")");
             tuple_name = tuple_name_buf;
         }
-        const char *ctype = pergyra_type_to_c(tuple_name);
+        char ctype_buf[256];
+        const char *ctype = NULL;
+        if (pergyra_type_to_c_copy(tuple_name, ctype_buf,
+                sizeof(ctype_buf))) {
+            ctype = ctype_buf;
+        }
         if (ctype == NULL || ctype[0] == '\0'
             || strcmp(ctype, "Unknown") == 0) {
             transpiler_set_backend_error_with_hints(ctx,
@@ -364,6 +378,7 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
     case AST_ARRAY_LITERAL: {
         const char *array_type = infer_expression_type_name(ctx, node);
         const char *inner = slot_inner_type_name(array_type);
+        char inner_buf[128];
         if (array_type == NULL || strncmp(array_type, "Array<", 6) != 0
             || inner == NULL || inner[0] == '\0'
             || strcmp(inner, "Unknown") == 0) {
@@ -374,6 +389,8 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
                 "C array literal requires concrete Array<T> element metadata");
             return pergyra_strdup("0");
         }
+        snprintf(inner_buf, sizeof(inner_buf), "%s", inner);
+        inner = inner_buf;
         int tmp_id = ++ctx->tmp_counter;
         CodeBuf *buf = codebuf_create();
         codebuf_write(buf, "({ PgyArray_%s _pgy_arr_%d = pgy_array_new_%s(%zu); ",
@@ -450,11 +467,16 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
     case AST_AWAIT_EXPR:
         {
             char *expr = emit_expression(node->data.await_expr.expression, ctx);
-            const char *inner = lookup_future_inner_type(ctx,
-                node->data.await_expr.expression);
+            char inner_buf[128];
+            const char *inner = NULL;
             bool is_remote = is_remote_future_expr(ctx,
                 node->data.await_expr.expression);
             char *result;
+            if (lookup_future_inner_type_copy(ctx,
+                    node->data.await_expr.expression,
+                    inner_buf, sizeof(inner_buf))) {
+                inner = inner_buf;
+            }
             if (expr == NULL
                 || inner == NULL || inner[0] == '\0'
                 || strcmp(inner, "Unknown") == 0) {
@@ -470,11 +492,43 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
                 result = strdup_fmt("pgy_await_void(%s)", expr);
             } else if (is_remote) {
                 /* RemoteFuture<T> ??Result<T>: wrap in PgyResult */
+                char inner_c_type_buf[256];
+                const char *inner_c_type = NULL;
+                if (pergyra_type_to_c_copy(inner, inner_c_type_buf,
+                        sizeof(inner_c_type_buf))) {
+                    inner_c_type = inner_c_type_buf;
+                }
+                if (inner_c_type == NULL) {
+                    transpiler_set_backend_error_with_hints(ctx,
+                        PGY_CODE_C_TYPE_UNSUPPORTED,
+                        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                        PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                        "C await expression cannot render RemoteFuture result type '%s'",
+                        inner);
+                    free(expr);
+                    return pergyra_strdup("0");
+                }
                 result = strdup_fmt("pgy_await_result_take(%s, %s, %s)",
-                    expr, inner, pergyra_type_to_c(inner));
+                    expr, inner, inner_c_type);
             } else {
+                char inner_c_type_buf[256];
+                const char *inner_c_type = NULL;
+                if (pergyra_type_to_c_copy(inner, inner_c_type_buf,
+                        sizeof(inner_c_type_buf))) {
+                    inner_c_type = inner_c_type_buf;
+                }
+                if (inner_c_type == NULL) {
+                    transpiler_set_backend_error_with_hints(ctx,
+                        PGY_CODE_C_TYPE_UNSUPPORTED,
+                        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                        PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                        "C await expression cannot render Future result type '%s'",
+                        inner);
+                    free(expr);
+                    return pergyra_strdup("0");
+                }
                 result = strdup_fmt("pgy_await_take(%s, %s)",
-                    expr, pergyra_type_to_c(inner));
+                    expr, inner_c_type);
             }
             free(expr);
             return result;
@@ -515,23 +569,8 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
         }
         return pergyra_strdup("self");
 
-    case AST_PARTY_INSTANCE: {
-        CodeBuf *assignments = codebuf_create();
-        for (size_t i = 0; i < node->data.party_instance.assignment_count; i++) {
-            char *value = emit_expression(node->data.party_instance.assignments[i].value, ctx);
-            if (i > 0)
-                codebuf_write(assignments, ", ");
-            codebuf_write(assignments, ".%s = %s",
-                          node->data.party_instance.assignments[i].slot_name,
-                          value);
-            free(value);
-        }
-        char *result = strdup_fmt("(%s){%s}",
-                                  node->data.party_instance.party_type,
-                                  assignments->data);
-        codebuf_destroy(assignments);
-        return result;
-    }
+    case AST_PARTY_INSTANCE:
+        return emit_party_instance_expr(node, ctx);
 
     case AST_LAMBDA_EXPR:
         return emit_lambda_expr(node, ctx);

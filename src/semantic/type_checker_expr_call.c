@@ -364,23 +364,13 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
                     method_name);
                 return TYPE_UNKNOWN;
             }
-            ASTNode *class_decl;
-
-            if (expr_type_is_nominal_host_type(object_type, ctx)
-                && object_type->name != NULL
-                && method_name != NULL) {
-                class_decl = find_type_decl_by_name(ctx->program_root,
-                    object_type->name);
-                if (class_decl != NULL) {
-                    ASTNode **methods = NULL;
+            if (object_type->name != NULL && method_name != NULL) {
+                ASTNode *host_decl =
+                    semantic_host_decl_for_type(ctx, object_type);
+                if (host_decl != NULL) {
                     size_t method_count = 0;
-                    if (class_decl->type == AST_CLASS_DECL) {
-                        methods = class_decl->data.class_decl.methods;
-                        method_count = class_decl->data.class_decl.method_count;
-                    } else if (class_decl->type == AST_ENUM_DECL) {
-                        methods = class_decl->data.enum_decl.methods;
-                        method_count = class_decl->data.enum_decl.method_count;
-                    }
+                    ASTNode **methods =
+                        semantic_host_decl_methods(host_decl, &method_count);
                     for (size_t i = 0; i < method_count; i++) {
                         ASTNode *method = methods[i];
                         if (method == NULL || method->type != AST_FUNC_DECL
@@ -389,7 +379,7 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
                         if (strcmp(method->data.func_decl.name, method_name) == 0) {
                             uint32_t method_effects =
                                 declared_effects_from_function_node(method, ctx, NULL);
-                            if (!explicit_member_access_allowed(class_decl,
+                            if (!explicit_member_access_allowed(host_decl,
                                     object_type,
                                     method->data.func_decl.access,
                                     method->data.func_decl.has_explicit_access,

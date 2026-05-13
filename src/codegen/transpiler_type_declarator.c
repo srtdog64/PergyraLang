@@ -5,13 +5,33 @@
  * C backend declarator rendering for function and event-handler types.
  */
 
+#include <stdbool.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "transpiler_type_declarator.h"
 #include "transpiler_type_render.h"
 #include "../common/string_compat.h"
+
+static bool
+declarator_ast_type_to_c_copy(ASTNode *type_node, char *out, size_t out_size)
+{
+    const char *rendered;
+    size_t len;
+
+    if (out == NULL || out_size == 0)
+        return false;
+    rendered = pergyra_ast_type_to_c(type_node);
+    if (rendered == NULL)
+        return false;
+    len = strlen(rendered);
+    if (len >= out_size)
+        return false;
+    memcpy(out, rendered, len + 1);
+    return true;
+}
 
 static char *
 declarator_strdup_fmt(const char *fmt, ...)
@@ -45,25 +65,27 @@ declarator_strdup_fmt(const char *fmt, ...)
 char *
 pergyra_ast_typed_declarator(ASTNode *type_node, const char *name)
 {
+    char type_buf[256];
+
     if (type_node == NULL)
         return declarator_strdup_fmt("void %s", name != NULL ? name : "value");
 
     if (type_node->type == AST_EVENT_HANDLER_TYPE) {
-        char *ret_type = pergyra_strdup("void");
+        char ret_type_buf[256];
+        const char *ret_type = "void";
         CodeBuf *params = codebuf_create();
         char *result;
 
         if (type_node->data.event_handler_type.return_type != NULL) {
-            const char *rendered = pergyra_ast_type_to_c(
-                type_node->data.event_handler_type.return_type);
-            free(ret_type);
-            ret_type = pergyra_strdup(rendered);
+            if (declarator_ast_type_to_c_copy(
+                    type_node->data.event_handler_type.return_type,
+                    ret_type_buf, sizeof(ret_type_buf)))
+                ret_type = ret_type_buf;
         }
 
         if (params == NULL) {
             result = declarator_strdup_fmt("%s (*%s)(void)", ret_type,
                 name != NULL ? name : "value");
-            free(ret_type);
             return result;
         }
 
@@ -71,22 +93,28 @@ pergyra_ast_typed_declarator(ASTNode *type_node, const char *name)
             codebuf_write(params, "void");
         } else {
             for (size_t i = 0; i < type_node->data.event_handler_type.param_count; i++) {
+                char param_buf[256];
                 if (i > 0)
                     codebuf_write(params, ", ");
-                codebuf_write(params, "%s",
-                    pergyra_ast_type_to_c(
-                        type_node->data.event_handler_type.param_types[i]));
+                if (declarator_ast_type_to_c_copy(
+                        type_node->data.event_handler_type.param_types[i],
+                        param_buf, sizeof(param_buf))) {
+                    codebuf_write(params, "%s", param_buf);
+                } else {
+                    codebuf_write(params, "void *");
+                }
             }
         }
 
         result = declarator_strdup_fmt("%s (*%s)(%s)", ret_type,
             name != NULL ? name : "value", params->data);
         codebuf_destroy(params);
-        free(ret_type);
         return result;
     }
 
-    return declarator_strdup_fmt("%s %s", pergyra_ast_type_to_c(type_node),
+    if (!declarator_ast_type_to_c_copy(type_node, type_buf, sizeof(type_buf)))
+        type_buf[0] = '\0';
+    return declarator_strdup_fmt("%s %s", type_buf[0] != '\0' ? type_buf : "void *",
         name != NULL ? name : "value");
 }
 
@@ -94,7 +122,8 @@ char *
 pergyra_func_pointer_declarator_from_decl(ASTNode *func_decl, const char *name)
 {
     CodeBuf *params = NULL;
-    char *ret_type = NULL;
+    char ret_type_buf[256];
+    const char *ret_type = "void";
     char *result = NULL;
 
     if (func_decl == NULL || func_decl->type != AST_FUNC_DECL)
@@ -102,17 +131,16 @@ pergyra_func_pointer_declarator_from_decl(ASTNode *func_decl, const char *name)
             name != NULL ? name : "value");
 
     params = codebuf_create();
-    ret_type = pergyra_strdup("void");
     if (func_decl->data.func_decl.return_type != NULL) {
-        const char *rendered = pergyra_ast_type_to_c(func_decl->data.func_decl.return_type);
-        free(ret_type);
-        ret_type = pergyra_strdup(rendered);
+        if (declarator_ast_type_to_c_copy(func_decl->data.func_decl.return_type,
+                                          ret_type_buf,
+                                          sizeof(ret_type_buf)))
+            ret_type = ret_type_buf;
     }
 
     if (params == NULL) {
         result = declarator_strdup_fmt("%s (*%s)(void)", ret_type,
             name != NULL ? name : "value");
-        free(ret_type);
         return result;
     }
 
@@ -121,11 +149,16 @@ pergyra_func_pointer_declarator_from_decl(ASTNode *func_decl, const char *name)
     } else {
         for (size_t i = 0; i < func_decl->data.func_decl.param_count; i++) {
             FuncParam *p = func_decl->data.func_decl.params[i];
+            char param_buf[256];
             if (i > 0)
                 codebuf_write(params, ", ");
             codebuf_write(params, "%s",
-                p != NULL && p->type != NULL
-                    ? pergyra_ast_type_to_c(p->type)
+                p != NULL
+                    && p->type != NULL
+                    && declarator_ast_type_to_c_copy(p->type,
+                        param_buf,
+                        sizeof(param_buf))
+                    ? param_buf
                     : "int32_t");
         }
     }
@@ -133,7 +166,6 @@ pergyra_func_pointer_declarator_from_decl(ASTNode *func_decl, const char *name)
     result = declarator_strdup_fmt("%s (*%s)(%s)", ret_type,
         name != NULL ? name : "value", params->data);
     codebuf_destroy(params);
-    free(ret_type);
     return result;
 }
 
@@ -144,23 +176,24 @@ pergyra_func_signature_declarator(ASTNode *return_type, const char *name,
     const char *fn_name = name != NULL ? name : "value";
     const char *sig = (params_sig != NULL && params_sig[0] != '\0')
         ? params_sig : "void";
+    char return_type_buf[256];
 
     if (return_type != NULL && return_type->type == AST_EVENT_HANDLER_TYPE) {
         CodeBuf *handler_params = codebuf_create();
-        char *ret_type = pergyra_strdup("void");
+        char ret_type_buf[256];
+        const char *ret_type = "void";
         char *result;
 
         if (return_type->data.event_handler_type.return_type != NULL) {
-            const char *rendered = pergyra_ast_type_to_c(
-                return_type->data.event_handler_type.return_type);
-            free(ret_type);
-            ret_type = pergyra_strdup(rendered);
+            if (declarator_ast_type_to_c_copy(
+                    return_type->data.event_handler_type.return_type,
+                    ret_type_buf, sizeof(ret_type_buf)))
+                ret_type = ret_type_buf;
         }
 
         if (handler_params == NULL) {
             result = declarator_strdup_fmt("%s (*%s(%s))(void)",
                 ret_type, fn_name, sig);
-            free(ret_type);
             return result;
         }
 
@@ -168,21 +201,29 @@ pergyra_func_signature_declarator(ASTNode *return_type, const char *name,
             codebuf_write(handler_params, "void");
         } else {
             for (size_t i = 0; i < return_type->data.event_handler_type.param_count; i++) {
+                char param_buf[256];
                 if (i > 0)
                     codebuf_write(handler_params, ", ");
-                codebuf_write(handler_params, "%s",
-                    pergyra_ast_type_to_c(
-                        return_type->data.event_handler_type.param_types[i]));
+                if (declarator_ast_type_to_c_copy(
+                        return_type->data.event_handler_type.param_types[i],
+                        param_buf, sizeof(param_buf))) {
+                    codebuf_write(handler_params, "%s", param_buf);
+                } else {
+                    codebuf_write(handler_params, "void *");
+                }
             }
         }
 
         result = declarator_strdup_fmt("%s (*%s(%s))(%s)", ret_type, fn_name, sig,
             handler_params->data);
         codebuf_destroy(handler_params);
-        free(ret_type);
         return result;
     }
 
+    if (!declarator_ast_type_to_c_copy(return_type, return_type_buf,
+                                       sizeof(return_type_buf))) {
+        memcpy(return_type_buf, "void", sizeof("void"));
+    }
     return declarator_strdup_fmt("%s %s(%s)",
-        pergyra_ast_type_to_c(return_type), fn_name, sig);
+        return_type_buf, fn_name, sig);
 }

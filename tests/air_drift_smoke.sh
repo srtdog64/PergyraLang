@@ -90,6 +90,8 @@ run_literal_air_drift_smoke() {
     require_literal "src/compiler/air_validate_global_evidence.c" "air_global_evidence_kind_has_validator"
     require_literal "src/compiler/air_validate_global_evidence.c" "has no global validator"
     require_literal "src/compiler/air_validate_global_evidence.c" "AIR_EVIDENCE_RUNTIME_FRONTIER_POLICY"
+    require_literal "src/compiler/air_evidence.c" "air_collect_singleton_global_evidence"
+    require_literal "src/compiler/air_evidence.c" "AIR singleton global evidence has conflicting counts"
     require_literal "src/compiler/air_validate_summary_counters.c" "air_validate_summary_counters"
     require_literal "src/compiler/driver_diag.c" "air_boundary_has_evidence("
     require_literal "src/compiler/air_verify.c" "strict AIR requires body control-flow evidence"
@@ -187,6 +189,7 @@ air_internal_path = root / "src" / "compiler" / "air_internal.h"
 air_validate_path = root / "src" / "compiler" / "air_validate.c"
 air_validate_evidence_path = root / "src" / "compiler" / "air_validate_evidence.c"
 air_validate_legacy_evidence_path = root / "src" / "compiler" / "air_validate_legacy_evidence.c"
+air_validate_global_evidence_path = root / "src" / "compiler" / "air_validate_global_evidence.c"
 air_verify_provenance_path = root / "src" / "compiler" / "air_verify_provenance.c"
 air_verify_path = root / "src" / "compiler" / "air_verify.c"
 air_test_path = root / "src" / "test_air.c"
@@ -213,7 +216,7 @@ diag_docs_path = root / "docs" / "72_diagnostic_codes.md"
 air_backend_nonimpact_path = root / "tests" / "air_backend_nonimpact_smoke.sh"
 diagnostics_json_path = root / "tests" / "diagnostics_json_smoke.sh"
 
-for path in (air_path, checklist_path, todo_path, makefile_path, air_semantics_path, io_boundary_builtin_path, compiler_header_path, driver_path, driver_diag_path, pgy_driver_path, parser_intent_path, parser_intent_step_path, dir_header_path, dir_impl_path, dir_collect_path, dir_collect_intent_path, air_header_path, air_impl_path, air_boundary_path, air_boundary_walk_path, air_dump_path, air_vocabulary_path, air_evidence_node_path, air_evidence_path, air_evidence_dag_path, air_evidence_ast_path, air_evidence_rir_path, env_flags_path, mir_cleanup_fact_names_path, air_internal_path, air_validate_path, air_validate_evidence_path, air_validate_legacy_evidence_path, air_verify_provenance_path, air_verify_path, air_test_path, *air_test_case_paths, rir_test_path, *rir_test_case_paths, diag_docs_path, air_backend_nonimpact_path, diagnostics_json_path):
+for path in (air_path, checklist_path, todo_path, makefile_path, air_semantics_path, io_boundary_builtin_path, compiler_header_path, driver_path, driver_diag_path, pgy_driver_path, parser_intent_path, parser_intent_step_path, dir_header_path, dir_impl_path, dir_collect_path, dir_collect_intent_path, air_header_path, air_impl_path, air_boundary_path, air_boundary_walk_path, air_dump_path, air_vocabulary_path, air_evidence_node_path, air_evidence_path, air_evidence_dag_path, air_evidence_ast_path, air_evidence_rir_path, env_flags_path, mir_cleanup_fact_names_path, air_internal_path, air_validate_path, air_validate_evidence_path, air_validate_legacy_evidence_path, air_validate_global_evidence_path, air_verify_provenance_path, air_verify_path, air_test_path, *air_test_case_paths, rir_test_path, *rir_test_case_paths, diag_docs_path, air_backend_nonimpact_path, diagnostics_json_path):
     if not path.exists():
         raise SystemExit(f"missing AIR gate input: {path.relative_to(root)}")
 
@@ -267,6 +270,7 @@ air_impl = "\n".join([
     air_verify_provenance_path.read_text(encoding="utf-8"),
     air_verify_path.read_text(encoding="utf-8"),
 ])
+air_global = air_validate_global_evidence_path.read_text(encoding="utf-8")
 air_test = "\n".join(
     [air_test_path.read_text(encoding="utf-8")]
     + [path.read_text(encoding="utf-8") for path in air_test_case_paths]
@@ -862,6 +866,9 @@ required_test_terms = [
     "AIR_EVIDENCE_MIR_SELECT_RECEIVE",
     "AIR_EVIDENCE_OBSERVABILITY_SCHEMA",
     "AIR_EVIDENCE_RUNTIME_FRONTIER_POLICY",
+    "AIR singleton global evidence has conflicting counts",
+    "AIR collects singleton global evidence idempotently",
+    "AIR rejects conflicting singleton global evidence",
     "AIR has no runtime observability schema evidence",
     "AIR has no runtime frontier policy evidence",
     "AIR MIR input has no CFG terminator evidence",

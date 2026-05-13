@@ -24,11 +24,11 @@ llvm_intent_step_effective_zone_alias(ASTNode *step)
 {
     if (step == NULL || step->type != AST_INTENT_STEP)
         return NULL;
-    if (step->data.intent_step.using_expr != NULL
-        && step->data.intent_step.using_expr->type == AST_IDENTIFIER) {
-        return step->data.intent_step.using_expr->data.identifier.name;
+    if (ast_intent_step_using_expr(step) != NULL
+        && ast_intent_step_using_expr(step)->type == AST_IDENTIFIER) {
+        return ast_intent_step_using_expr(step)->data.identifier.name;
     }
-    return step->data.intent_step.transfer_to_alias;
+    return ast_intent_step_transfer_to_alias(step);
 }
 
 static ASTNode *
@@ -39,10 +39,10 @@ llvm_find_intent_step_source_by_name(ASTNode *intent, const char *step_name)
     for (size_t i = 0; i < intent->data.intent_decl.step_count; i++) {
         ASTNode *step = intent->data.intent_decl.steps[i];
         if (step == NULL || step->type != AST_INTENT_STEP
-            || step->data.intent_step.name == NULL) {
+            || ast_intent_step_name(step) == NULL) {
             continue;
         }
-        if (strcmp(step->data.intent_step.name, step_name) == 0)
+        if (strcmp(ast_intent_step_name(step), step_name) == 0)
             return step;
     }
     return NULL;

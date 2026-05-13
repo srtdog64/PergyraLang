@@ -42,12 +42,49 @@ llvm_required_constructed_arg_name_at(LLVMGenCtx *ctx, const char *type_name,
 }
 
 /* Resolve inner type for generic containers: "Result<Int>" → i32 */
+static bool
+llvm_required_constructed_arg_name_copy(LLVMGenCtx *ctx,
+                                        const char *type_name,
+                                        int arg_index,
+                                        const char *container_name,
+                                        char *out,
+                                        size_t out_size)
+{
+    const char *arg = llvm_required_constructed_arg_name_at(
+        ctx, type_name, arg_index, container_name);
+    size_t len;
+
+    if (arg == NULL || out == NULL || out_size == 0)
+        return false;
+    len = strlen(arg);
+    if (len >= out_size) {
+        if (ctx != NULL && !ctx->has_error) {
+            llvm_set_error_with_hints(ctx,
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                "%s type argument %d is too long while lowering '%s'",
+                container_name != NULL ? container_name : "generic type",
+                arg_index + 1,
+                type_name != NULL ? type_name : "<null>");
+        }
+        return false;
+    }
+    memcpy(out, arg, len + 1);
+    return true;
+}
+
 LLVMTypeRef
 llvm_resolve_inner_type(LLVMGenCtx *ctx, const char *type_name)
 {
-    const char *inner = llvm_required_constructed_arg_name_at(ctx, type_name, 0,
-        "Option<T>");
-    LLVMTypeRef resolved = inner != NULL ? pergyra_type_to_llvm(ctx, inner) : NULL;
+    char inner_buf[256];
+    LLVMTypeRef resolved;
+
+    if (!llvm_required_constructed_arg_name_copy(ctx, type_name, 0,
+            "Option<T>", inner_buf, sizeof(inner_buf))) {
+        return NULL;
+    }
+    resolved = pergyra_type_to_llvm(ctx, inner_buf);
     if (resolved == NULL && ctx != NULL && !ctx->has_error) {
         llvm_set_error_with_hints(ctx,
             PGY_CODE_LLVM_TYPE_UNSUPPORTED,
@@ -197,32 +234,36 @@ pergyra_type_to_llvm(LLVMGenCtx *ctx, const char *type_name)
         return ctx->type_i8ptr;
 
     if (strncmp(type_name, "List<", 5) == 0) {
-        const char *inner = llvm_required_constructed_arg_name_at(ctx, type_name, 0,
-            "List<T>");
-        if (inner == NULL)
+        char inner_buf[256];
+        if (!llvm_required_constructed_arg_name_copy(ctx, type_name, 0,
+                "List<T>", inner_buf, sizeof(inner_buf))) {
             return NULL;
-        return llvm_list_struct_type(ctx, inner);
+        }
+        return llvm_list_struct_type(ctx, inner_buf);
     }
     if (strncmp(type_name, "Set<", 4) == 0) {
-        const char *inner = llvm_required_constructed_arg_name_at(ctx, type_name, 0,
-            "Set<T>");
-        if (inner == NULL)
+        char inner_buf[256];
+        if (!llvm_required_constructed_arg_name_copy(ctx, type_name, 0,
+                "Set<T>", inner_buf, sizeof(inner_buf))) {
             return NULL;
-        return llvm_set_struct_type(ctx, inner);
+        }
+        return llvm_set_struct_type(ctx, inner_buf);
     }
     if (strncmp(type_name, "Queue<", 6) == 0) {
-        const char *inner = llvm_required_constructed_arg_name_at(ctx, type_name, 0,
-            "Queue<T>");
-        if (inner == NULL)
+        char inner_buf[256];
+        if (!llvm_required_constructed_arg_name_copy(ctx, type_name, 0,
+                "Queue<T>", inner_buf, sizeof(inner_buf))) {
             return NULL;
-        return llvm_queue_struct_type(ctx, inner);
+        }
+        return llvm_queue_struct_type(ctx, inner_buf);
     }
     if (strncmp(type_name, "HashMap<", 8) == 0) {
-        const char *value = llvm_required_constructed_arg_name_at(ctx, type_name, 1,
-            "HashMap<K, V>");
-        if (value == NULL)
+        char value_buf[256];
+        if (!llvm_required_constructed_arg_name_copy(ctx, type_name, 1,
+                "HashMap<K, V>", value_buf, sizeof(value_buf))) {
             return NULL;
-        return llvm_hashmap_struct_type(ctx, value);
+        }
+        return llvm_hashmap_struct_type(ctx, value_buf);
     }
 
     /* Check active type substitution (monomorphization) first */

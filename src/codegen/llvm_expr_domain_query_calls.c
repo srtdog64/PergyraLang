@@ -7,6 +7,7 @@
 
 #include "llvm_internal_api.h"
 #include "llvm_inventory_decl_lookup.h"
+#include "parser/ast_api.h"
 
 static LLVMValueRef
 llvm_load_current_bool_field(LLVMGenCtx *ctx, LLVMClassTypeEntry *cls,
@@ -272,7 +273,7 @@ llvm_emit_has_zone_detail_query(ASTNode *node, LLVMGenCtx *ctx,
 
     if (strcmp(callee_name, "HasZoneProjection") == 0) {
         ASTNode *slot = llvm_find_zone_domain_slot_decl(zone_decl, detail_name);
-        if (slot != NULL && !slot->data.domain_slot.is_subject) {
+        if (slot != NULL && !ast_domain_slot_is_subject(slot)) {
             char field_name[256];
             if (!llvm_domain_query_field_name(ctx, field_name, sizeof(field_name),
                     "__projection_ready_", detail_name, "zone projection query field name")) {

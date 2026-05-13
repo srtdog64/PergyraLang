@@ -91,11 +91,13 @@ emit_statement(ASTNode *node, TranspilerCtx *ctx)
             }
             for (size_t ri = 0; ri < ast_party_role_count(it); ri++) {
                 ASTNode *rs = ast_party_role(it, ri);
-                if (strcmp(rs->data.role_slot.slot_name, slot) == 0
-                    && rs->data.role_slot.ability_count > 0
-                    && rs->data.role_slot.required_abilities[0] != NULL) {
+                const char *role_slot_name = ast_role_slot_name(rs);
+                ASTNode *first_ability = ast_role_slot_required_ability(rs, 0);
+                if (role_slot_name != NULL
+                    && strcmp(role_slot_name, slot) == 0
+                    && first_ability != NULL) {
                     ability_tag = render_ability_ref_vtable_tag(
-                        rs->data.role_slot.required_abilities[0]);
+                        first_ability);
                     ability_name = ability_tag;
                     break;
                 }

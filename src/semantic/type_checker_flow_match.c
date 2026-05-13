@@ -58,10 +58,10 @@ find_enum_decl_for_type(SemanticContext *ctx, const Type *type)
     for (size_t i = 0; i < prog->data.program.count; i++) {
         ASTNode *stmt = prog->data.program.statements[i];
         if (stmt == NULL || stmt->type != AST_ENUM_DECL
-            || stmt->data.enum_decl.name == NULL) {
+            || ast_enum_name(stmt) == NULL) {
             continue;
         }
-        if (strcmp(stmt->data.enum_decl.name, type->name) == 0)
+        if (strcmp(ast_enum_name(stmt), type->name) == 0)
             return stmt;
     }
 
@@ -210,12 +210,11 @@ type_check_special_match_pattern(ASTNode *pat, Type *subj_type,
         *handled = true;
         if (enum_decl == NULL)
             return true;
-        for (size_t i = 0; i < enum_decl->data.enum_decl.variant_count; i++) {
-            const char *enum_variant = enum_decl->data.enum_decl.variants[i];
-            size_t param_count =
-                enum_decl->data.enum_decl.variant_param_counts != NULL
-                ? enum_decl->data.enum_decl.variant_param_counts[i]
-                : 0;
+        size_t variant_count = 0;
+        char **variants = ast_enum_variants(enum_decl, &variant_count);
+        for (size_t i = 0; i < variant_count; i++) {
+            const char *enum_variant = variants != NULL ? variants[i] : NULL;
+            size_t param_count = ast_enum_variant_param_count(enum_decl, i);
 
             if (enum_variant == NULL || strcmp(enum_variant, variant) != 0)
                 continue;

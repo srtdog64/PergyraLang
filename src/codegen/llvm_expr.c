@@ -85,6 +85,7 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
     case AST_ARRAY_LITERAL: {
         size_t count = node->data.array_literal.count;
         const char *inner_name = NULL;
+        char inner_name_buf[256];
         LLVMTypeRef elem_type = ctx->type_i32;
         LLVMValueRef first_value = NULL;
         if (count > 0) {
@@ -100,7 +101,12 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
             }
         } else if (ctx->expected_type_name != NULL
                    && strncmp(ctx->expected_type_name, "Array<", 6) == 0) {
-            inner_name = llvm_constructed_arg_name_at(ctx->expected_type_name, 0);
+            const char *tmp =
+                llvm_constructed_arg_name_at(ctx->expected_type_name, 0);
+            if (tmp != NULL && strlen(tmp) < sizeof(inner_name_buf)) {
+                memcpy(inner_name_buf, tmp, strlen(tmp) + 1);
+                inner_name = inner_name_buf;
+            }
         }
         if (inner_name == NULL || inner_name[0] == '\0'
             || strcmp(inner_name, "Unknown") == 0) {

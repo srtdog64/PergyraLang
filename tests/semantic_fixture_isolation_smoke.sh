@@ -2,9 +2,16 @@
 set -euo pipefail
 
 bin="${SEMANTIC_TEST_BIN:-}"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 if [ -z "$bin" ]; then
-  echo "[semantic-fixture-isolation] SEMANTIC_TEST_BIN not set; skipping executable fixture-isolation smoke"
-  exit 0
+  if [ -x "$ROOT/bin/test_semantic" ]; then
+    bin="$ROOT/bin/test_semantic"
+  elif [ -x "$ROOT/bin/test_semantic.exe" ]; then
+    bin="$ROOT/bin/test_semantic.exe"
+  else
+    echo "[semantic-fixture-isolation] SEMANTIC_TEST_BIN not set; skipping executable fixture-isolation smoke"
+    exit 0
+  fi
 fi
 
 case "$bin" in

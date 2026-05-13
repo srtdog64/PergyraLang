@@ -119,6 +119,12 @@ add_path_if_dir() {
     esac
 }
 
+prepend_path_if_dir() {
+    local dir="$1"
+    [[ -d "$dir" ]] || return 0
+    PATH="$dir:$PATH"
+}
+
 add_windows_path_candidate() {
     local dir="$1"
     local posix_dir=""
@@ -150,8 +156,10 @@ setup_windows_llvm_runtime_path() {
             add_windows_path_candidate "${MSYSTEM_PREFIX:-}/bin"
             add_windows_path_candidate "${LLVM_INSTALL:-}"
             add_windows_path_candidate "${LLVM_INSTALL:-}/bin"
-            add_path_if_dir "/c/Program Files/LLVM/bin"
-            add_path_if_dir "/c/LLVM/bin"
+            prepend_path_if_dir "/c/ProgramData/mingw64/mingw64/bin"
+            prepend_path_if_dir "/c/msys64/mingw64/bin"
+            prepend_path_if_dir "/c/Program Files/LLVM/bin"
+            prepend_path_if_dir "/c/LLVM/bin"
             add_path_if_dir "/clang64/bin"
             add_path_if_dir "/ucrt64/bin"
             ;;
@@ -160,7 +168,22 @@ setup_windows_llvm_runtime_path() {
 
 setup_windows_llvm_runtime_path
 
+normalize_executable_path() {
+    local path="$1"
+
+    if [[ -n "$path" && -x "$path" ]] \
+        && command -v cygpath >/dev/null 2>&1; then
+        cygpath -u "$path" 2>/dev/null || printf '%s\n' "$path"
+        return 0
+    fi
+    printf '%s\n' "$path"
+}
+
 cleanup() {
+    if [[ "${PGY_BACKEND_COMPARE_KEEP_WORK:-0}" != "0" ]]; then
+        echo "backend-compare: keeping work dir $WORK_DIR" >&2
+        return 0
+    fi
     rm -rf "$WORK_DIR"
 }
 trap cleanup EXIT
@@ -184,10 +207,34 @@ setup_windows_launch_path() {
     esac
 }
 
+run_abi_pipeline_precheck() {
+    PGY_ABI_PIPELINE_SAME_PROCESS=1 \
+        PGY_ABI_PIPELINE_BACKEND=llvm \
+        "$ABI_PIPELINE_BIN"
+}
+
+run_windows_abi_pipeline_precheck_fallback() {
+    local abi_native="$ABI_PIPELINE_BIN"
+
+    case "$(uname -s 2>/dev/null || echo unknown)" in
+        MINGW*|MSYS*|CYGWIN*) ;;
+        *) return 127 ;;
+    esac
+    command -v powershell.exe >/dev/null 2>&1 || return 127
+    if command -v cygpath >/dev/null 2>&1; then
+        abi_native="$(cygpath -w "$ABI_PIPELINE_BIN" 2>/dev/null || printf '%s\n' "$ABI_PIPELINE_BIN")"
+    fi
+
+    powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \
+        "\$env:PATH='C:\\Program Files\\LLVM\\bin;C:\\ProgramData\\mingw64\\mingw64\\bin;' + \$env:PATH; \$env:PGY_ABI_PIPELINE_SAME_PROCESS='1'; \$env:PGY_ABI_PIPELINE_BACKEND='llvm'; & '${abi_native}'; exit \$LASTEXITCODE"
+}
+
 if [[ ! -x "$PGY_BIN" ]]; then
     echo "backend-compare: missing compiler binary: $PGY_BIN" >&2
     exit 1
 fi
+PGY_BIN="$(normalize_executable_path "$PGY_BIN")"
+export PGY_BIN
 
 setup_windows_launch_path "$PGY_BIN"
 
@@ -204,11 +251,17 @@ if [[ "${PGY_BACKEND_COMPARE_PRECHECK_SAME_PROCESS:-0}" != "0" ]]; then
         echo "backend-compare: missing ABI pipeline test binary: $ABI_PIPELINE_BIN" >&2
         exit 1
     fi
+    ABI_PIPELINE_BIN="$(normalize_executable_path "$ABI_PIPELINE_BIN")"
     setup_windows_launch_path "$ABI_PIPELINE_BIN"
-    if ! PGY_ABI_PIPELINE_SAME_PROCESS=1 \
-        PGY_ABI_PIPELINE_BACKEND=llvm \
-        "$ABI_PIPELINE_BIN"; then
+    set +e
+    run_abi_pipeline_precheck
+    abi_rc=$?
+    if [[ "$abi_rc" -eq 126 || "$abi_rc" -eq 127 ]]; then
+        run_windows_abi_pipeline_precheck_fallback
         abi_rc=$?
+    fi
+    set -e
+    if [[ "$abi_rc" -ne 0 ]]; then
         echo "backend-compare: ABI pipeline same-process precheck failed (exit=$abi_rc): $ABI_PIPELINE_BIN" >&2
         case "$(uname -s 2>/dev/null || echo unknown):$abi_rc" in
             MINGW*:126|MINGW*:127|MSYS*:126|MSYS*:127|CYGWIN*:126|CYGWIN*:127)
@@ -396,6 +449,8 @@ main() {
         "tests/cases/backend_compare/generic_default_contracts"
         "tests/cases/backend_compare/generic_multi_bound_defaults"
         "tests/cases/backend_compare/forward_ability_order"
+        "tests/cases/backend_compare/role_include_methods"
+        "tests/cases/backend_compare/party_roster_host_methods"
         "tests/cases/backend_compare/result_custom_error"
         "tests/cases/backend_compare/intent_header_interleaved"
         "tests/cases/backend_compare/map_keys"

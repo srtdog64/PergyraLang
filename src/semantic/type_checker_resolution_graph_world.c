@@ -72,7 +72,7 @@ semantic_type_resolution_precollect_world_inventory(ASTNode *world_decl,
 
         zone_slot_label = semantic_type_resolution_world_zone_slot_label(
             world_decl,
-            zone->data.world_zone.slot_name);
+            ast_world_zone_slot_name(zone));
         if (zone_slot_label != NULL) {
             semantic_type_resolution_register_local_contract_node(
                 ctx, zone, zone_slot_label);
@@ -85,11 +85,11 @@ semantic_type_resolution_precollect_world_inventory(ASTNode *world_decl,
         if (field == NULL || field->type != AST_PARTY_SHARED)
             continue;
         semantic_type_resolution_collect_type_refs(
-            field->data.party_shared.type,
+            ast_party_shared_type(field),
             ctx,
             field,
-            field->data.party_shared.name != NULL
-                ? field->data.party_shared.name : "<world-shared>",
+            ast_party_shared_name(field) != NULL
+                ? ast_party_shared_name(field) : "<world-shared>",
             "world shared field type lookup");
     }
 
@@ -100,9 +100,9 @@ semantic_type_resolution_precollect_world_inventory(ASTNode *world_decl,
         semantic_type_resolution_record_string_dependency(
             ctx,
             roster,
-            roster->data.world_roster.slot_name != NULL
-                ? roster->data.world_roster.slot_name : "<world-roster>",
-            roster->data.world_roster.roster_type,
+            ast_world_roster_slot_name(roster) != NULL
+                ? ast_world_roster_slot_name(roster) : "<world-roster>",
+            ast_world_roster_type_name(roster),
             "world roster lookup");
     }
 
@@ -113,9 +113,9 @@ semantic_type_resolution_precollect_world_inventory(ASTNode *world_decl,
         semantic_type_resolution_record_string_dependency(
             ctx,
             zone,
-            zone->data.world_zone.slot_name != NULL
-                ? zone->data.world_zone.slot_name : "<world-zone>",
-            zone->data.world_zone.zone_type,
+            ast_world_zone_slot_name(zone) != NULL
+                ? ast_world_zone_slot_name(zone) : "<world-zone>",
+            ast_world_zone_type_name(zone),
             "world zone lookup");
     }
 
@@ -158,12 +158,12 @@ semantic_type_resolution_precollect_world_inventory(ASTNode *world_decl,
 
         if (zone_slot_decl != NULL
             && zone_slot_decl->type == AST_WORLD_ZONE
-            && zone_slot_decl->data.world_zone.zone_type != NULL
+            && ast_world_zone_type_name(zone_slot_decl) != NULL
             && state->data.world_state.detail_name != NULL) {
             ASTNode *zone_type_decl = find_domain_decl_by_name(
                 ctx->program_root,
                 AST_ZONE_DECL,
-                zone_slot_decl->data.world_zone.zone_type);
+                ast_world_zone_type_name(zone_slot_decl));
             if (zone_type_decl != NULL) {
                 if (state->data.world_state.source_kind == WORLD_STATE_SOURCE_PROJECTION) {
                     char *projection_label = semantic_type_resolution_zone_slot_label(

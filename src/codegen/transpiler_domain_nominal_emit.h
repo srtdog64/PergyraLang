@@ -42,6 +42,82 @@ transpiler_domain_nominal_surface_desc_too_long(TranspilerCtx *ctx,
 }
 
 static void
+emit_included_role_method_wrapper(const char *role_name,
+                                  const char *included_role_name,
+                                  ASTNode *method,
+                                  TranspilerCtx *ctx)
+{
+    const char *method_name;
+    const char *ret_type = "void";
+    char ret_type_storage[128];
+
+    if (ctx != NULL && ctx->backend_error != NULL)
+        return;
+    if (role_name == NULL || included_role_name == NULL
+        || method == NULL || method->type != AST_FUNC_DECL
+        || method->data.func_decl.name == NULL) {
+        return;
+    }
+
+    method_name = method->data.func_decl.name;
+    if (method->data.func_decl.return_type != NULL) {
+        snprintf(ret_type_storage,
+                 sizeof(ret_type_storage),
+                 "%s",
+                 pergyra_ast_type_to_c(method->data.func_decl.return_type));
+        ret_type = ret_type_storage;
+    }
+
+    codebuf_write(ctx->out, "\nstatic %s\n%s_%s(void *_raw_self",
+                  ret_type, role_name, method_name);
+    for (size_t i = 0; i < method->data.func_decl.param_count; i++) {
+        FuncParam *param = method->data.func_decl.params[i];
+        const char *param_type;
+        char *param_type_name = NULL;
+        bool pointer_param = false;
+        char surface_desc[256];
+        if (param == NULL || param->name == NULL)
+            continue;
+        if (strcmp(param->name, "self") == 0 && param->type == NULL)
+            continue;
+        if (!transpiler_domain_nominal_surface_desc(surface_desc,
+                sizeof(surface_desc), "included role method parameter",
+                role_name, method_name, param->name)) {
+            transpiler_domain_nominal_surface_desc_too_long(
+                ctx, "included role method parameter");
+            return;
+        }
+        param_type = transpiler_require_ast_c_type(
+            ctx, param->type, surface_desc);
+        if (param_type == NULL)
+            return;
+        if (param->type != NULL)
+            param_type_name = render_type_name(param->type);
+        pointer_param = param_type_name != NULL
+            && is_pointer_self_host_type_name(ctx, param_type_name);
+        codebuf_write(ctx->out, ", %s%s %s",
+                      param_type, pointer_param ? " *" : "", param->name);
+        free(param_type_name);
+    }
+    codebuf_write(ctx->out, ")\n{\n    ");
+    if (method->data.func_decl.return_type != NULL
+        && strcmp(ret_type, "void") != 0) {
+        codebuf_write(ctx->out, "return ");
+    }
+    codebuf_write(ctx->out, "%s_%s(_raw_self",
+                  included_role_name, method_name);
+    for (size_t i = 0; i < method->data.func_decl.param_count; i++) {
+        FuncParam *param = method->data.func_decl.params[i];
+        if (param == NULL || param->name == NULL)
+            continue;
+        if (strcmp(param->name, "self") == 0 && param->type == NULL)
+            continue;
+        codebuf_write(ctx->out, ", %s", param->name);
+    }
+    codebuf_write(ctx->out, ");\n}\n");
+}
+
+static void
 emit_included_role_impls(ASTNode *role, TranspilerCtx *ctx)
 {
     for (size_t i = 0; i < ast_role_include_count(role); i++) {
@@ -78,7 +154,11 @@ emit_included_role_impls(ASTNode *role, TranspilerCtx *ctx)
                     continue;
                 if (role_has_method(role, method->data.func_decl.name))
                     continue;
-                emit_role_method_impl(ast_role_name(role), method, ctx);
+                emit_included_role_method_wrapper(
+                    ast_role_name(role),
+                    ast_role_name(included_role),
+                    method,
+                    ctx);
                 if (ctx != NULL && ctx->backend_error != NULL)
                     return;
             }
@@ -263,11 +343,12 @@ emit_party_decl(ASTNode *node, TranspilerCtx *ctx)
     /* Role slots as void* + vtable pointer */
     for (size_t i = 0; i < ast_party_role_count(node); i++) {
         ASTNode *rs = ast_party_role(node, i);
-        const char *slot_name = rs->data.role_slot.slot_name;
-        bool is_dyn = rs->data.role_slot.is_dynamic;
+        const char *slot_name = ast_role_slot_name(rs);
+        size_t ability_count = ast_role_slot_required_ability_count(rs);
+        bool is_dyn = ast_role_slot_is_dynamic(rs);
         codebuf_write(ctx->out, "    void *%s;\n", slot_name);
-        for (size_t j = 0; j < rs->data.role_slot.ability_count; j++) {
-            ASTNode *ab = rs->data.role_slot.required_abilities[j];
+        for (size_t j = 0; j < ability_count; j++) {
+            ASTNode *ab = ast_role_slot_required_ability(rs, j);
             if (ab != NULL && ab->data.type.name != NULL) {
                 char typedef_name[128];
                 char *vtable_tag = render_ability_ref_vtable_tag(ab);
@@ -304,7 +385,7 @@ emit_party_decl(ASTNode *node, TranspilerCtx *ctx)
         char surface_desc[256];
         if (!transpiler_domain_nominal_surface_desc(surface_desc,
                 sizeof(surface_desc), "party shared field", name,
-                shared != NULL ? shared->data.party_shared.name : NULL,
+                ast_party_shared_name(shared),
                 NULL)) {
             transpiler_domain_nominal_surface_desc_too_long(
                 ctx, "party shared field");
@@ -312,11 +393,12 @@ emit_party_decl(ASTNode *node, TranspilerCtx *ctx)
         }
         ft = transpiler_require_ast_c_type(
             ctx,
-            shared != NULL ? shared->data.party_shared.type : NULL,
+            ast_party_shared_type(shared),
             surface_desc);
         if (ft == NULL)
             return;
-        codebuf_write(ctx->out, "    %s %s;\n", ft, shared->data.party_shared.name);
+        codebuf_write(ctx->out, "    %s %s;\n", ft,
+            ast_party_shared_name(shared));
     }
 
     codebuf_write(ctx->out, "} %s;\n", name);
@@ -349,11 +431,12 @@ emit_party_decl(ASTNode *node, TranspilerCtx *ctx)
     /* Emit bind helpers for dyn role slots */
     for (size_t i = 0; i < ast_party_role_count(node); i++) {
         ASTNode *rs = ast_party_role(node, i);
-        if (!rs->data.role_slot.is_dynamic)
+        size_t ability_count = ast_role_slot_required_ability_count(rs);
+        if (!ast_role_slot_is_dynamic(rs))
             continue;
-        const char *slot_name = rs->data.role_slot.slot_name;
-        for (size_t j = 0; j < rs->data.role_slot.ability_count; j++) {
-            ASTNode *ab = rs->data.role_slot.required_abilities[j];
+        const char *slot_name = ast_role_slot_name(rs);
+        for (size_t j = 0; j < ability_count; j++) {
+            ASTNode *ab = ast_role_slot_required_ability(rs, j);
             if (ab == NULL || ab->data.type.name == NULL)
                 continue;
             char typedef_name[128];
@@ -384,81 +467,7 @@ emit_party_decl(ASTNode *node, TranspilerCtx *ctx)
     }
 }
 
-/* =================================================================
- * Roster/World system emitters
- * ================================================================= */
-
-void
-emit_roster_decl(ASTNode *node, TranspilerCtx *ctx)
-{
-    const char *name = ast_roster_name(node);
-    ASTNode *inventory_decl = transpiler_find_decl_in_inventory_local(
-        ctx, AST_ROSTER_DECL, name);
-
-    if (inventory_decl != NULL)
-        node = inventory_decl;
-
-    codebuf_write(ctx->out, "\n/* Roster: %s */\n", name);
-    codebuf_write(ctx->out, "typedef struct %s\n{\n", name);
-
-    /* Party slots */
-    for (size_t i = 0; i < ast_roster_party_count(node); i++) {
-        ASTNode *ps = ast_roster_party(node, i);
-        codebuf_write(ctx->out, "    %s %s;\n",
-            ps->data.roster_slot.party_type,
-            ps->data.roster_slot.slot_name);
-    }
-
-    /* Shared fields */
-    for (size_t i = 0; i < ast_roster_shared_count(node); i++) {
-        ASTNode *shared = ast_roster_shared(node, i);
-        const char *ft = NULL;
-        char surface_desc[256];
-        if (!transpiler_domain_nominal_surface_desc(surface_desc,
-                sizeof(surface_desc), "roster shared field", name,
-                shared != NULL ? shared->data.party_shared.name : NULL,
-                NULL)) {
-            transpiler_domain_nominal_surface_desc_too_long(
-                ctx, "roster shared field");
-            return;
-        }
-        ft = transpiler_require_ast_c_type(
-            ctx,
-            shared != NULL ? shared->data.party_shared.type : NULL,
-            surface_desc);
-        if (ft == NULL)
-            return;
-        codebuf_write(ctx->out, "    %s %s;\n", ft, shared->data.party_shared.name);
-    }
-
-    codebuf_write(ctx->out, "} %s;\n", name);
-
-    /* Methods */
-    TranspilerHostedMethodView method_view =
-        transpiler_hosted_method_view_from_decl(ctx, name, node);
-    if (transpiler_hosted_method_view_missing_mir_metadata(&method_view)) {
-        transpiler_set_mir_inventory_missing(
-            ctx,
-            "MIR-only C path missing method declaration metadata for roster '%s'",
-            name != NULL ? name : "(anonymous-roster)");
-        return;
-    }
-
-    for (size_t i = 0; i < method_view.count; i++) {
-        const MIRDeclMethod *method_meta =
-            transpiler_hosted_method_view_metadata(&method_view, i);
-        ASTNode *method =
-            transpiler_hosted_method_view_source_ast(&method_view, i);
-        if (method == NULL || method->type != AST_FUNC_DECL)
-            continue;
-        emit_hosted_method_forward_decl_from_metadata(name, method_meta,
-            method, true, ctx->out, ctx);
-    }
-
-    emit_hosted_methods_from_mir_or_error_local(name, "(anonymous-roster)",
-        "roster", &method_view, ctx);
-}
-
+#include "transpiler_roster_decl_emit.h"
 #include "transpiler_relation_effect_emit.h"
 
 #endif /* PGY_TRANSPILER_DOMAIN_NOMINAL_EMIT_H */

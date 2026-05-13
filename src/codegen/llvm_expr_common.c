@@ -253,8 +253,8 @@ llvm_find_enum_decl(LLVMGenCtx *ctx, const char *enum_name)
     for (size_t i = 0; i < type_count; i++) {
         ASTNode *stmt = types[i];
         if (stmt != NULL && stmt->type == AST_ENUM_DECL
-            && stmt->data.enum_decl.name != NULL
-            && strcmp(stmt->data.enum_decl.name, enum_name) == 0) {
+            && ast_enum_name(stmt) != NULL
+            && strcmp(ast_enum_name(stmt), enum_name) == 0) {
             return stmt;
         }
     }

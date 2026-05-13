@@ -46,29 +46,36 @@ transpiler_mir_emit_for_loop_init_inst(CodeBuf *buf,
     return true;
 }
 
-static const char *
+static bool
 transpiler_mir_for_in_element_type(TranspilerCtx *ctx,
                                    ASTNode *iterable,
-                                   const char **collection_type_out)
+                                   const char **collection_type_out,
+                                   char *element_type_buf,
+                                   size_t element_type_buf_size,
+                                   char *inner_type_buf,
+                                   size_t inner_type_buf_size)
 {
     const char *collection_type;
 
     if (collection_type_out != NULL)
         *collection_type_out = NULL;
     if (ctx == NULL || iterable == NULL)
-        return NULL;
+        return false;
 
     collection_type = infer_expression_type_name(ctx, iterable);
     if (collection_type_out != NULL)
         *collection_type_out = collection_type;
     if (collection_type == NULL)
-        return NULL;
+        return false;
     if (strncmp(collection_type, "Array<", 6) != 0
         && strncmp(collection_type, "Slice<", 6) != 0
         && strncmp(collection_type, "List<", 5) != 0) {
-        return NULL;
+        return false;
     }
-    return pergyra_type_to_c(slot_inner_type_name(collection_type));
+    copy_capped_string(inner_type_buf, inner_type_buf_size,
+        slot_inner_type_name(collection_type));
+    return pergyra_type_to_c_copy(inner_type_buf,
+        element_type_buf, element_type_buf_size);
 }
 
 static char *
@@ -91,8 +98,12 @@ transpiler_mir_render_for_loop_condition_inst(const MIRInstruction *inst,
     if (inst->branch_shape == MIR_BRANCH_FOR_IN) {
         const char *collection_type = NULL;
         const char *length_field;
+        char element_type_buf[128];
+        char inner_type_buf[128];
         char *collection;
-        (void)transpiler_mir_for_in_element_type(ctx, inst->expr0, &collection_type);
+        (void)transpiler_mir_for_in_element_type(ctx, inst->expr0,
+            &collection_type, element_type_buf, sizeof(element_type_buf),
+            inner_type_buf, sizeof(inner_type_buf));
         length_field = transpiler_mir_for_in_length_field(collection_type);
         collection = emit_expression_with_ssa_map(inst->expr0, ctx, ssa_map);
         cond = strdup_fmt("_pgy_idx_%s < %s.%s",
@@ -119,7 +130,8 @@ transpiler_mir_emit_for_in_body_binding(CodeBuf *buf,
     const MIRInstruction *branch_inst;
     const char *variable;
     const char *collection_type = NULL;
-    const char *element_type;
+    char element_type[128];
+    char inner_type[128];
     char *collection;
 
     if (buf == NULL || routine == NULL || block == NULL || ctx == NULL)
@@ -132,10 +144,11 @@ transpiler_mir_emit_for_in_body_binding(CodeBuf *buf,
     if (variable == NULL)
         return true;
 
-    element_type = transpiler_mir_for_in_element_type(
-        ctx, branch_inst->expr0, &collection_type);
-    if (element_type == NULL)
+    if (!transpiler_mir_for_in_element_type(ctx, branch_inst->expr0,
+            &collection_type, element_type, sizeof(element_type),
+            inner_type, sizeof(inner_type))) {
         return false;
+    }
 
     collection = emit_expression_with_ssa_map(branch_inst->expr0, ctx, ssa_map);
     write_indent_to(buf, ctx->indent);
@@ -144,7 +157,7 @@ transpiler_mir_emit_for_in_body_binding(CodeBuf *buf,
         variable,
         collection != NULL ? collection : "0",
         variable);
-    register_typed_var(ctx, variable, slot_inner_type_name(collection_type));
+    register_typed_var(ctx, variable, inner_type);
     free(collection);
     return true;
 }

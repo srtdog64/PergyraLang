@@ -75,6 +75,62 @@ mir_validate_program_inventory_shape(const MIRProgram *mir,
     }
     return true;
 }
+
+static void
+mir_compute_non_cfg_fallback_inventory(const MIRProgram *mir,
+                                       size_t *fallback_total,
+                                       size_t *fallback_routines)
+{
+    size_t total = 0;
+    size_t routines = 0;
+
+    if (mir != NULL && mir->routines != NULL) {
+        for (size_t i = 0; i < mir->routine_count; i++) {
+            const MIRRoutine *routine = &mir->routines[i];
+            total += routine->non_cfg_body_fallback_count;
+            if (routine->used_non_cfg_body_fallback
+                || routine->non_cfg_body_fallback_count > 0) {
+                routines++;
+            }
+        }
+    }
+
+    if (fallback_total != NULL)
+        *fallback_total = total;
+    if (fallback_routines != NULL)
+        *fallback_routines = routines;
+}
+
+static bool
+mir_validate_non_cfg_fallback_inventory(const MIRProgram *mir,
+                                        char **error_message)
+{
+    size_t fallback_total = 0;
+    size_t fallback_routines = 0;
+
+    if (mir == NULL)
+        return true;
+    if (!mir->has_non_cfg_body_fallback_inventory)
+        return true;
+
+    mir_compute_non_cfg_fallback_inventory(mir,
+                                           &fallback_total,
+                                           &fallback_routines);
+    if (mir->non_cfg_body_fallback_total != fallback_total
+        || mir->non_cfg_body_fallback_routine_count != fallback_routines) {
+        if (error_message != NULL) {
+            *error_message = mir_strdup_fmt(
+                "MIR program non-CFG fallback inventory is stale (recorded total=%zu routines=%zu, actual total=%zu routines=%zu)",
+                mir->non_cfg_body_fallback_total,
+                mir->non_cfg_body_fallback_routine_count,
+                fallback_total,
+                fallback_routines);
+        }
+        return false;
+    }
+    return true;
+}
+
 bool
 mir_validate(const MIRProgram *mir, char **error_message)
 {
@@ -216,6 +272,9 @@ mir_validate(const MIRProgram *mir, char **error_message)
                 return false;
         }
     }
+
+    if (!mir_validate_non_cfg_fallback_inventory(mir, error_message))
+        return false;
 
     return true;
 }

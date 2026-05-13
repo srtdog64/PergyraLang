@@ -81,9 +81,9 @@ mir_append_intent_check(MIRRoutine *routine,
     return mir_append_intent_stmt(routine,
                                   block,
                                   "IntentCheck",
-                                  step->data.intent_step.name,
+                                  ast_intent_step_name(step),
                                   check_name,
-                                  step->data.intent_step.name,
+                                  ast_intent_step_name(step),
                                   expr);
 }
 
@@ -99,9 +99,9 @@ mir_append_intent_eval(MIRRoutine *routine,
     return mir_append_intent_stmt(routine,
                                   block,
                                   "IntentEval",
-                                  step->data.intent_step.name,
+                                  ast_intent_step_name(step),
                                   eval_name,
-                                  step->data.intent_step.name,
+                                  ast_intent_step_name(step),
                                   expr);
 }
 
@@ -175,8 +175,8 @@ mir_append_intent_participants(MIRRoutine *routine, MIRBasicBlock *block, ASTNod
 static bool
 mir_append_intent_step_header(MIRRoutine *routine, MIRBasicBlock *block, ASTNode *step)
 {
-    const char *step_name = step->data.intent_step.name != NULL
-        ? step->data.intent_step.name
+    const char *step_name = ast_intent_step_name(step) != NULL
+        ? ast_intent_step_name(step)
         : "intent.step";
 
     if (!mir_append_intent_stmt(routine, block, step_name, NULL, NULL, NULL, step))
@@ -184,21 +184,21 @@ mir_append_intent_step_header(MIRRoutine *routine, MIRBasicBlock *block, ASTNode
     if (!mir_append_intent_stmt(routine,
                                 block,
                                 "IntentStep",
-                                step->data.intent_step.name,
+                                ast_intent_step_name(step),
                                 step_name,
-                                step->data.intent_step.name,
+                                ast_intent_step_name(step),
                                 step)) {
         return false;
     }
-    if (step->data.intent_step.where_type != NULL
-        && step->data.intent_step.where_type->type == AST_TYPE
-        && step->data.intent_step.where_type->data.type.name != NULL) {
+    if (ast_intent_step_where_type(step) != NULL
+        && ast_intent_step_where_type(step)->type == AST_TYPE
+        && ast_intent_step_where_type(step)->data.type.name != NULL) {
         if (!mir_append_intent_stmt(routine,
                                     block,
                                     "IntentZoneWhere",
-                                    step->data.intent_step.name,
-                                    step->data.intent_step.where_type->data.type.name,
-                                    step->data.intent_step.name,
+                                    ast_intent_step_name(step),
+                                    ast_intent_step_where_type(step)->data.type.name,
+                                    ast_intent_step_name(step),
                                     step)) {
             return false;
         }
@@ -212,49 +212,49 @@ mir_append_intent_step_zone(MIRRoutine *routine, MIRBasicBlock *block, ASTNode *
     const char *effective_zone_alias = NULL;
     const char *invalidation_target = NULL;
 
-    if (step->data.intent_step.using_expr != NULL
-        && step->data.intent_step.using_expr->type == AST_IDENTIFIER) {
-        effective_zone_alias = step->data.intent_step.using_expr->data.identifier.name;
-    } else if (step->data.intent_step.transfer_to_alias != NULL) {
-        effective_zone_alias = step->data.intent_step.transfer_to_alias;
+    if (ast_intent_step_using_expr(step) != NULL
+        && ast_intent_step_using_expr(step)->type == AST_IDENTIFIER) {
+        effective_zone_alias = ast_intent_step_using_expr(step)->data.identifier.name;
+    } else if (ast_intent_step_transfer_to_alias(step) != NULL) {
+        effective_zone_alias = ast_intent_step_transfer_to_alias(step);
     }
     if (effective_zone_alias != NULL) {
         if (!mir_append_intent_stmt(routine,
                                     block,
                                     "IntentZoneAlias",
-                                    step->data.intent_step.name,
+                                    ast_intent_step_name(step),
                                     effective_zone_alias,
-                                    step->data.intent_step.name,
+                                    ast_intent_step_name(step),
                                     step)) {
             return false;
         }
     }
 
-    if (step->data.intent_step.using_expr != NULL)
-        invalidation_target = mir_intent_node_name(step->data.intent_step.using_expr);
-    else if (step->data.intent_step.transfer_to_alias != NULL)
-        invalidation_target = step->data.intent_step.transfer_to_alias;
-    else if (step->data.intent_step.transfer_from_alias != NULL)
-        invalidation_target = step->data.intent_step.transfer_from_alias;
+    if (ast_intent_step_using_expr(step) != NULL)
+        invalidation_target = mir_intent_node_name(ast_intent_step_using_expr(step));
+    else if (ast_intent_step_transfer_to_alias(step) != NULL)
+        invalidation_target = ast_intent_step_transfer_to_alias(step);
+    else if (ast_intent_step_transfer_from_alias(step) != NULL)
+        invalidation_target = ast_intent_step_transfer_from_alias(step);
     if (invalidation_target != NULL) {
         if (!mir_append_intent_stmt(routine,
                                     block,
                                     "IntentInvalidationTarget",
-                                    step->data.intent_step.name,
+                                    ast_intent_step_name(step),
                                     invalidation_target,
-                                    step->data.intent_step.name,
+                                    ast_intent_step_name(step),
                                     step)) {
             return false;
         }
     }
 
-    if (step->data.intent_step.transfer_from_alias != NULL) {
+    if (ast_intent_step_transfer_from_alias(step) != NULL) {
         if (!mir_append_intent_stmt(routine,
                                     block,
                                     "IntentZoneFrom",
-                                    step->data.intent_step.name,
-                                    step->data.intent_step.transfer_from_alias,
-                                    step->data.intent_step.name,
+                                    ast_intent_step_name(step),
+                                    ast_intent_step_transfer_from_alias(step),
+                                    ast_intent_step_name(step),
                                     step)) {
             return false;
         }
@@ -265,39 +265,39 @@ mir_append_intent_step_zone(MIRRoutine *routine, MIRBasicBlock *block, ASTNode *
 static bool
 mir_append_intent_step_authority(MIRRoutine *routine, MIRBasicBlock *block, ASTNode *step)
 {
-    for (size_t j = 0; j < step->data.intent_step.who_count; j++) {
-        if (step->data.intent_step.who_names[j] == NULL)
+    for (size_t j = 0; j < ast_intent_step_who_count(step); j++) {
+        if (ast_intent_step_who_names(step, NULL)[j] == NULL)
             continue;
         if (!mir_append_intent_stmt(routine,
                                     block,
                                     "IntentWho",
-                                    step->data.intent_step.name,
-                                    step->data.intent_step.who_names[j],
-                                    step->data.intent_step.name,
+                                    ast_intent_step_name(step),
+                                    ast_intent_step_who_names(step, NULL)[j],
+                                    ast_intent_step_name(step),
                                     step)) {
             return false;
         }
     }
-    for (size_t j = 0; j < step->data.intent_step.authorized_by_count; j++) {
-        if (step->data.intent_step.authorized_by[j] == NULL)
+    for (size_t j = 0; j < ast_intent_step_authorized_by_count(step); j++) {
+        if (ast_intent_step_authorized_by(step, NULL)[j] == NULL)
             continue;
         if (!mir_append_intent_stmt(routine,
                                     block,
                                     "IntentAuthorizedBy",
-                                    step->data.intent_step.name,
-                                    step->data.intent_step.authorized_by[j],
-                                    step->data.intent_step.name,
+                                    ast_intent_step_name(step),
+                                    ast_intent_step_authorized_by(step, NULL)[j],
+                                    ast_intent_step_name(step),
                                     step)) {
             return false;
         }
     }
-    if (step->data.intent_step.causes_effect != NULL) {
+    if (ast_intent_step_causes_effect(step) != NULL) {
         if (!mir_append_intent_stmt(routine,
                                     block,
                                     "IntentCauses",
-                                    step->data.intent_step.name,
-                                    step->data.intent_step.causes_effect,
-                                    step->data.intent_step.name,
+                                    ast_intent_step_name(step),
+                                    ast_intent_step_causes_effect(step),
+                                    ast_intent_step_name(step),
                                     step)) {
             return false;
         }
@@ -308,52 +308,52 @@ mir_append_intent_step_authority(MIRRoutine *routine, MIRBasicBlock *block, ASTN
 static bool
 mir_append_intent_step_checks(MIRRoutine *routine, MIRBasicBlock *block, ASTNode *step)
 {
-    if (!mir_append_intent_check(routine, block, step, "pre", step->data.intent_step.pre_expr))
+    if (!mir_append_intent_check(routine, block, step, "pre", ast_intent_step_pre_expr(step)))
         return false;
-    if (!mir_append_intent_check(routine, block, step, "invariant-pre", step->data.intent_step.invariant_expr))
+    if (!mir_append_intent_check(routine, block, step, "invariant-pre", ast_intent_step_invariant_expr(step)))
         return false;
-    if (!mir_append_intent_check(routine, block, step, "invariant-post", step->data.intent_step.invariant_expr))
+    if (!mir_append_intent_check(routine, block, step, "invariant-post", ast_intent_step_invariant_expr(step)))
         return false;
-    if (!mir_append_intent_check(routine, block, step, "guard", step->data.intent_step.guard_expr))
+    if (!mir_append_intent_check(routine, block, step, "guard", ast_intent_step_guard_expr(step)))
         return false;
-    if (!mir_append_intent_check(routine, block, step, "expect", step->data.intent_step.expect_expr))
+    if (!mir_append_intent_check(routine, block, step, "expect", ast_intent_step_expect_expr(step)))
         return false;
-    return mir_append_intent_check(routine, block, step, "post", step->data.intent_step.post_expr);
+    return mir_append_intent_check(routine, block, step, "post", ast_intent_step_post_expr(step));
 }
 
 static bool
 mir_append_intent_step_eval(MIRRoutine *routine, MIRBasicBlock *block, ASTNode *step)
 {
-    for (size_t j = 0; j < step->data.intent_step.on_expr_count; j++) {
-        if (!mir_append_intent_eval(routine, block, step, "on", step->data.intent_step.on_exprs[j]))
+    for (size_t j = 0; j < ast_intent_step_on_expr_count(step); j++) {
+        if (!mir_append_intent_eval(routine, block, step, "on", ast_intent_step_on_exprs(step, NULL)[j]))
             return false;
     }
-    if (!mir_append_intent_eval(routine, block, step, "intent", step->data.intent_step.intent_expr))
+    if (!mir_append_intent_eval(routine, block, step, "intent", ast_intent_step_intent_expr(step)))
         return false;
 
-    if (step->data.intent_step.on_expr_count == 0
-        && step->data.intent_step.intent_expr == NULL) {
-        for (size_t j = 0; j < step->data.intent_step.who_count; j++) {
-            if (step->data.intent_step.who_names[j] == NULL)
+    if (ast_intent_step_on_expr_count(step) == 0
+        && ast_intent_step_intent_expr(step) == NULL) {
+        for (size_t j = 0; j < ast_intent_step_who_count(step); j++) {
+            if (ast_intent_step_who_names(step, NULL)[j] == NULL)
                 continue;
             if (!mir_append_intent_stmt(routine,
                                         block,
                                         "IntentDispatch",
-                                        step->data.intent_step.name,
-                                        step->data.intent_step.who_names[j],
-                                        step->data.intent_step.name,
+                                        ast_intent_step_name(step),
+                                        ast_intent_step_who_names(step, NULL)[j],
+                                        ast_intent_step_name(step),
                                         step)) {
                 return false;
             }
         }
     }
 
-    for (size_t j = 0; j < step->data.intent_step.compensate_expr_count; j++) {
+    for (size_t j = 0; j < ast_intent_step_compensate_expr_count(step); j++) {
         if (!mir_append_intent_eval(routine,
                                     block,
                                     step,
                                     "compensate",
-                                    step->data.intent_step.compensate_exprs[j])) {
+                                    ast_intent_step_compensate_exprs(step, NULL)[j])) {
             return false;
         }
     }

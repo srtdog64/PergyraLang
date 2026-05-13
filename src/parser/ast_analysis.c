@@ -325,9 +325,11 @@ ast_contains_identifier_call(const ASTNode *node,
             || ast_array_contains_identifier_call(
                 node->data.world_decl.states, node->data.world_decl.state_count, predicate, userdata);
     case AST_WORLD_SYSTEMIC:
-        return ast_contains_identifier_call(node->data.world_roster.initializer, predicate, userdata);
+        return ast_contains_identifier_call(
+            ast_world_roster_initializer(node), predicate, userdata);
     case AST_WORLD_ZONE:
-        return ast_contains_identifier_call(node->data.world_zone.initializer, predicate, userdata);
+        return ast_contains_identifier_call(
+            ast_world_zone_initializer(node), predicate, userdata);
     case AST_INTENT_DECL:
         return ast_array_contains_identifier_call(
                 node->data.intent_decl.involves, node->data.intent_decl.involve_count,

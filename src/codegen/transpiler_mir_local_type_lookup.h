@@ -3,35 +3,26 @@
 
 #include <stdbool.h>
 #include <stdio.h>
-#include <string.h>
 
 /* Consumed from transpiler_mir_ssa_names.h. Keep slot claim vocabulary in the
  * shared codegen slot policy instead of repeating raw builtin strings here. */
 
-static bool
-transpiler_mir_render_type_name(char *out, size_t out_size,
-                                const char *prefix, const char *inner)
+static const char *
+transpiler_mir_arena_copy_type_name(TranspilerCtx *ctx, const char *type_name)
 {
-    int written;
-
-    if (out == NULL || out_size == 0 || prefix == NULL || inner == NULL)
-        return false;
-    written = snprintf(out, out_size, "%s<%s>", prefix, inner);
-    return written >= 0 && (size_t)written < out_size;
+    if (ctx == NULL || type_name == NULL)
+        return NULL;
+    return pgy_arena_strdup(&ctx->arena, type_name);
 }
 
-static bool
-transpiler_mir_copy_type_name(char *out, size_t out_size, const char *type_name)
+static const char *
+transpiler_mir_arena_render_type_name(TranspilerCtx *ctx,
+                                      const char *prefix,
+                                      const char *inner)
 {
-    size_t len;
-
-    if (out == NULL || out_size == 0 || type_name == NULL)
-        return false;
-    len = strlen(type_name);
-    if (len >= out_size)
-        return false;
-    memcpy(out, type_name, len + 1);
-    return true;
+    if (ctx == NULL || prefix == NULL || inner == NULL)
+        return NULL;
+    return pgy_arena_fmt(&ctx->arena, "%s<%s>", prefix, inner);
 }
 
 static const char *
@@ -73,14 +64,17 @@ transpiler_infer_local_type_name_from_expr(TranspilerCtx *ctx,
             if (obj_type != NULL) {
                 ASTNode *obj_decl = find_class_decl(ctx, obj_type);
                 if (obj_decl != NULL) {
-                    for (size_t fi = 0; fi < obj_decl->data.class_decl.field_count; fi++) {
-                        ClassField *f = obj_decl->data.class_decl.fields[fi];
+                    size_t field_count = 0;
+                    ClassField **fields = ast_class_fields(obj_decl, &field_count);
+                    for (size_t fi = 0; fi < field_count; fi++) {
+                        ClassField *f = fields != NULL ? fields[fi] : NULL;
                         if (f != NULL && f->name != NULL && f->type != NULL
                             && strcmp(f->name, expr->data.member.name) == 0) {
-                            static char *rendered_member = NULL;
-                            free(rendered_member);
-                            rendered_member = render_type_name(f->type);
-                            return rendered_member;
+                            char *rendered = render_type_name(f->type);
+                            const char *copied =
+                                transpiler_mir_arena_copy_type_name(ctx, rendered);
+                            free(rendered);
+                            return copied;
                         }
                     }
                 }
@@ -124,23 +118,21 @@ transpiler_infer_local_type_name_from_expr(TranspilerCtx *ctx,
                 && strcmp(method_name, "Slice") == 0
                 && (strncmp(receiver_type, "Array<", 6) == 0
                     || strncmp(receiver_type, "Slice<", 6) == 0)) {
-                static char rendered_slice[128];
                 const char *inner = slot_inner_type_name(receiver_type);
                 if (inner == NULL || inner[0] == '\0')
                     return NULL;
-                if (!transpiler_mir_render_type_name(rendered_slice,
-                        sizeof(rendered_slice), "Slice", inner))
-                    return NULL;
-                return rendered_slice;
+                return transpiler_mir_arena_render_type_name(ctx, "Slice", inner);
             }
             if (receiver_type != NULL)
                 method_decl = find_nominal_host_method_decl(ctx, receiver_type, method_name);
             if (method_decl != NULL && method_decl->type == AST_FUNC_DECL
                 && method_decl->data.func_decl.return_type != NULL) {
-                static char *rendered_return = NULL;
-                free(rendered_return);
-                rendered_return = render_type_name(method_decl->data.func_decl.return_type);
-                return rendered_return;
+                char *rendered =
+                    render_type_name(method_decl->data.func_decl.return_type);
+                const char *copied =
+                    transpiler_mir_arena_copy_type_name(ctx, rendered);
+                free(rendered);
+                return copied;
             }
         }
         if (expr->data.call.callee != NULL
@@ -151,10 +143,12 @@ transpiler_infer_local_type_name_from_expr(TranspilerCtx *ctx,
             if (callee_decl != NULL
                 && callee_decl->type == AST_FUNC_DECL
                 && callee_decl->data.func_decl.return_type != NULL) {
-                static char *rendered_func_return = NULL;
-                free(rendered_func_return);
-                rendered_func_return = render_type_name(callee_decl->data.func_decl.return_type);
-                return rendered_func_return;
+                char *rendered =
+                    render_type_name(callee_decl->data.func_decl.return_type);
+                const char *copied =
+                    transpiler_mir_arena_copy_type_name(ctx, rendered);
+                free(rendered);
+                return copied;
             }
             if (find_class_decl(ctx, callee_name) != NULL
                 || find_zone_decl(ctx, callee_name) != NULL
@@ -195,11 +189,12 @@ transpiler_find_local_type_name_in_block(TranspilerCtx *ctx,
         && body->data.let_decl.name != NULL
         && strcmp(body->data.let_decl.name, base_name) == 0) {
         if (body->data.let_decl.type != NULL) {
-            static char *rendered = NULL;
-            free(rendered);
-            rendered = transpiler_render_effective_local_type_name(
+            char *effective = transpiler_render_effective_local_type_name(
                 ctx, body->data.let_decl.type);
-            return rendered;
+            const char *copied =
+                transpiler_mir_arena_copy_type_name(ctx, effective);
+            free(effective);
+            return copied;
         }
         return transpiler_infer_local_type_name_from_expr(
             ctx, func_decl, body->data.let_decl.initializer);
@@ -228,12 +223,11 @@ transpiler_find_local_type_name_in_block(TranspilerCtx *ctx,
                 && init->data.call.callee->data.identifier.name != NULL) {
                 const char *callee = init->data.call.callee->data.identifier.name;
                 if (pgy_codegen_call_name_is_claim_secure_slot(callee)) {
-                    static char rendered_secure[128];
                     const char *inner = NULL;
                     if (init->data.call.generic_args != NULL
                         && init->data.call.generic_args->count > 0
                         && init->data.call.generic_args->params[0] != NULL) {
-                        inner = transpiler_let_slot_inner_from_call_type_arg(init);
+                        inner = transpiler_let_slot_inner_from_call_type_arg(ctx, init);
                     } else {
                         const char *init_type = infer_expression_type_name(ctx, init);
                         if (init_type != NULL && strncmp(init_type, "SecureSlot<", 11) == 0) {
@@ -244,26 +238,19 @@ transpiler_find_local_type_name_in_block(TranspilerCtx *ctx,
                     }
                     if (inner == NULL || inner[0] == '\0')
                         return NULL;
-                    if (!transpiler_mir_render_type_name(rendered_secure,
-                            sizeof(rendered_secure),
-                            i == 0 ? "SecureSlot" : "Token", inner))
-                        return NULL;
-                    return rendered_secure;
+                    return transpiler_mir_arena_render_type_name(
+                        ctx, i == 0 ? "SecureSlot" : "Token", inner);
                 }
                 if (pgy_codegen_call_name_is_claim_slot(callee) && i == 0) {
-                    static char rendered_slot[128];
                     const char *inner = NULL;
                     if (init->data.call.generic_args != NULL
                         && init->data.call.generic_args->count > 0
                         && init->data.call.generic_args->params[0] != NULL) {
-                        inner = transpiler_let_slot_inner_from_call_type_arg(init);
+                        inner = transpiler_let_slot_inner_from_call_type_arg(ctx, init);
                     }
                     if (inner == NULL || inner[0] == '\0')
                         return NULL;
-                    if (!transpiler_mir_render_type_name(rendered_slot,
-                            sizeof(rendered_slot), "Slot", inner))
-                        return NULL;
-                    return rendered_slot;
+                    return transpiler_mir_arena_render_type_name(ctx, "Slot", inner);
                 }
             }
             const char *init_type = infer_expression_type_name(ctx, init);
@@ -281,11 +268,7 @@ transpiler_find_local_type_name_in_block(TranspilerCtx *ctx,
                     || strncmp(init_type, "Slice<", 6) == 0)) {
                 const char *inner = slot_inner_type_name(init_type);
                 if (inner != NULL) {
-                    static char rendered_arr[128];
-                    if (!transpiler_mir_copy_type_name(rendered_arr,
-                            sizeof(rendered_arr), inner))
-                        return NULL;
-                    return rendered_arr;
+                    return transpiler_mir_arena_copy_type_name(ctx, inner);
                 }
             }
             if (init_type != NULL && init_type[0] == '(') {
@@ -296,7 +279,7 @@ transpiler_find_local_type_name_in_block(TranspilerCtx *ctx,
                 while (pi < plen && init_type[pi] != ')') {
                     while (pi < plen && (init_type[pi] == ' ' || init_type[pi] == '\t'))
                         pi++;
-                    static char rendered_tup[128];
+                    char rendered_tup[128];
                     size_t eo = 0;
                     int depth = 0;
                     while (pi < plen && eo + 1 < sizeof(rendered_tup)) {
@@ -316,7 +299,7 @@ transpiler_find_local_type_name_in_block(TranspilerCtx *ctx,
                         rendered_tup[--eo] = '\0';
                     }
                     if (cur == idx)
-                        return rendered_tup;
+                        return transpiler_mir_arena_copy_type_name(ctx, rendered_tup);
                     cur++;
                     if (pi < plen && init_type[pi] == ',')
                         pi++;
@@ -328,17 +311,14 @@ transpiler_find_local_type_name_in_block(TranspilerCtx *ctx,
     if (body->type == AST_WITH_STMT) {
         if (body->data.with_stmt.alias != NULL
             && strcmp(body->data.with_stmt.alias, base_name) == 0) {
-            static char rendered_slot[256];
             char *inner = render_type_name(body->data.with_stmt.slot_type);
+            const char *rendered_slot;
             if (inner == NULL || inner[0] == '\0')
                 return NULL;
-            if (!transpiler_mir_render_type_name(rendered_slot,
-                    sizeof(rendered_slot),
-                    body->data.with_stmt.is_secure ? "SecureSlot" : "Slot",
-                    inner)) {
-                free(inner);
-                return NULL;
-            }
+            rendered_slot = transpiler_mir_arena_render_type_name(
+                ctx,
+                body->data.with_stmt.is_secure ? "SecureSlot" : "Slot",
+                inner);
             free(inner);
             return rendered_slot;
         }

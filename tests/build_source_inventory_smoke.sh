@@ -100,6 +100,53 @@ if [[ -n "$typo_tokens" ]]; then
     missing=1
 fi
 
+if ! grep -Fq '$(BUILD_DIR)/compiler/hir_callgraph.o' "$ROOT_DIR/Makefile"; then
+    echo "[build-source-inventory] HIR callgraph source is not linked by HIR_CORE_OBJECTS" >&2
+    missing=1
+fi
+
+if ! grep -Fq '#include "transpiler_expr_party_instance_emit.h"' \
+    "$ROOT_DIR/src/codegen/transpiler_expr_emitters.h"; then
+    echo "[build-source-inventory] party-instance expression emitter is not linked by the C expression emitter include chain" >&2
+    missing=1
+fi
+
+if ! grep -Fq '#include "transpiler_let_type_register_emit.h"' \
+    "$ROOT_DIR/src/codegen/transpiler_base_a_emitters.h"; then
+    echo "[build-source-inventory] let type-registration emitter is not linked by the C let emitter include chain" >&2
+    missing=1
+fi
+
+if ! grep -Fq '#include "transpiler_collection_runtime_suffix.h"' \
+    "$ROOT_DIR/src/codegen/transpiler_helpers_core_b.h"; then
+    echo "[build-source-inventory] collection runtime suffix helper is not linked by the C helper include chain" >&2
+    missing=1
+fi
+
+if ! grep -Fq '#include "transpiler_roster_decl_emit.h"' \
+    "$ROOT_DIR/src/codegen/transpiler_domain_nominal_emit.h"; then
+    echo "[build-source-inventory] roster declaration emitter is not linked by the C domain nominal include chain" >&2
+    missing=1
+fi
+
+if ! grep -Fq '#include "transpiler_zone_specialization_emit.h"' \
+    "$ROOT_DIR/src/codegen/transpiler_zone_decl_emit.h"; then
+    echo "[build-source-inventory] zone specialization emitter is not linked by the C zone include chain" >&2
+    missing=1
+fi
+
+if ! grep -Fq '#include "transpiler_zone_methods_emit.h"' \
+    "$ROOT_DIR/src/codegen/transpiler_zone_decl_emit.h"; then
+    echo "[build-source-inventory] zone hosted-method emitter is not linked by the C zone include chain" >&2
+    missing=1
+fi
+
+if ! grep -Fq '#include "transpiler_expr_stdlib_queue_builtin.h"' \
+    "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_collection_builtin.h"; then
+    echo "[build-source-inventory] stdlib queue builtin emitter is not linked by the C collection builtin include chain" >&2
+    missing=1
+fi
+
 if [[ "$missing" -ne 0 ]]; then
     exit 1
 fi

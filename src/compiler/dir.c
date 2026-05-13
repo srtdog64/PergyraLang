@@ -7,6 +7,7 @@
 #include <sys/types.h>
 
 #include "../common/string_compat.h"
+#include "../parser/ast_api.h"
 
 static bool
 dir_next_capacity(size_t *capacity, size_t initial, size_t elem_size)
@@ -434,8 +435,8 @@ dir_domain_slot_is_projection(ASTNode *slot)
 {
     return slot != NULL
         && slot->type == AST_DOMAIN_SLOT
-        && !slot->data.domain_slot.is_subject
-        && !slot->data.domain_slot.is_vessel;
+        && !ast_domain_slot_is_subject(slot)
+        && !ast_domain_slot_is_vessel(slot);
 }
 
 DIRProgram *

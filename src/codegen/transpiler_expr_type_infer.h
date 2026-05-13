@@ -9,31 +9,29 @@
 
 #include "codegen_slot_type_policy.h"
 
-static bool
-transpiler_infer_format_type_name(char *out, size_t out_size,
-                                  const char *prefix, const char *inner)
+static const char *
+transpiler_infer_arena_copy_type_name(TranspilerCtx *ctx,
+                                      const char *type_name)
 {
-    int written;
-
-    if (out == NULL || out_size == 0 || prefix == NULL || inner == NULL)
-        return false;
-    written = snprintf(out, out_size, "%s<%s>", prefix, inner);
-    return written >= 0 && (size_t)written < out_size;
+    if (ctx == NULL || type_name == NULL)
+        return type_name != NULL ? type_name : "Unknown";
+    {
+        char *copied = pgy_arena_strdup(&ctx->arena, type_name);
+        return copied != NULL ? copied : "Unknown";
+    }
 }
 
-static bool
-transpiler_infer_copy_type_name(char *out, size_t out_size,
-                                const char *type_name)
+static const char *
+transpiler_infer_arena_format_type_name(TranspilerCtx *ctx,
+                                        const char *prefix,
+                                        const char *inner)
 {
-    size_t len;
-
-    if (out == NULL || out_size == 0 || type_name == NULL)
-        return false;
-    len = strlen(type_name);
-    if (len >= out_size)
-        return false;
-    memcpy(out, type_name, len + 1);
-    return true;
+    if (ctx == NULL || prefix == NULL || inner == NULL)
+        return "Unknown";
+    {
+        char *formatted = pgy_arena_fmt(&ctx->arena, "%s<%s>", prefix, inner);
+        return formatted != NULL ? formatted : "Unknown";
+    }
 }
 
 static const char *
@@ -55,8 +53,6 @@ transpiler_promote_numeric_type_name(const char *left_type,
 static const char *
 infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
 {
-    static char derived_call_type[128];
-
     if (expr == NULL)
         return "Unknown";
 
@@ -82,11 +78,7 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
         }
         if (inner == NULL || inner[0] == '\0')
             inner = "Unknown";
-        static char buf[128];
-        return transpiler_infer_format_type_name(buf, sizeof(buf), "Array",
-                   inner)
-            ? buf
-            : "Unknown";
+        return transpiler_infer_arena_format_type_name(ctx, "Array", inner);
     }
     case AST_ARRAY_ACCESS: {
         const char *array_type = infer_expression_type_name(ctx, expr->data.array_access.array);
@@ -113,12 +105,12 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                 expr->data.identifier.name);
             if (enum_variant != NULL) {
                 size_t len = strcspn(enum_variant, "_");
-                static char enum_name[128];
+                char enum_name[128];
                 if (len >= sizeof(enum_name))
                     len = sizeof(enum_name) - 1;
                 memcpy(enum_name, enum_variant, len);
                 enum_name[len] = '\0';
-                return enum_name;
+                return transpiler_infer_arena_copy_type_name(ctx, enum_name);
             }
         }
         return "Unknown";
@@ -142,17 +134,18 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
 
                 ASTNode *obj_decl = find_class_decl(ctx, obj_type);
                 if (obj_decl != NULL) {
-                    for (size_t fi = 0; fi < obj_decl->data.class_decl.field_count; fi++) {
-                        ClassField *f = obj_decl->data.class_decl.fields[fi];
+                    size_t field_count = 0;
+                    ClassField **fields = ast_class_fields(obj_decl, &field_count);
+                    for (size_t fi = 0; fi < field_count; fi++) {
+                        ClassField *f = fields != NULL ? fields[fi] : NULL;
                         if (f != NULL && f->name != NULL && f->type != NULL
                             && strcmp(f->name, expr->data.member.name) == 0) {
                             char *ft = render_type_name(f->type);
                             if (ft != NULL) {
-                                static char mbuf[128];
-                                bool ok = transpiler_infer_copy_type_name(
-                                    mbuf, sizeof(mbuf), ft);
+                                const char *copied =
+                                    transpiler_infer_arena_copy_type_name(ctx, ft);
                                 free(ft);
-                                return ok ? mbuf : "Unknown";
+                                return copied != NULL ? copied : "Unknown";
                             }
                         }
                     }
@@ -220,14 +213,11 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                 if ((strncmp(receiver_type, "Array<", 6) == 0
                      || strncmp(receiver_type, "Slice<", 6) == 0)
                     && strcmp(method_name, "Slice") == 0) {
-                    static char slice_buf[128];
                     const char *inner = slot_inner_type_name(receiver_type);
                     if (inner == NULL || inner[0] == '\0')
                         return "Unknown";
-                    return transpiler_infer_format_type_name(
-                               slice_buf, sizeof(slice_buf), "Slice", inner)
-                        ? slice_buf
-                        : "Unknown";
+                    return transpiler_infer_arena_format_type_name(
+                        ctx, "Slice", inner);
                 }
             }
             ASTNode *method_decl = NULL;
@@ -239,10 +229,10 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
             if (method_decl != NULL && method_decl->type == AST_FUNC_DECL
                 && method_decl->data.func_decl.return_type != NULL) {
                 char *resolved = render_type_name(method_decl->data.func_decl.return_type);
-                bool ok = transpiler_infer_copy_type_name(
-                    derived_call_type, sizeof(derived_call_type), resolved);
+                const char *copied =
+                    transpiler_infer_arena_copy_type_name(ctx, resolved);
                 free(resolved);
-                return ok ? derived_call_type : "Unknown";
+                return copied != NULL ? copied : "Unknown";
             }
         }
         if (expr->data.call.callee != NULL
@@ -270,7 +260,6 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                 return "Unknown";
             }
             if (strcmp(name, "MapKeys") == 0 && expr->data.call.arg_count >= 1) {
-                static char map_keys_buf[128];
                 const char *map_type = infer_expression_type_name(ctx,
                     expr->data.call.arguments[0]);
                 if (map_type != NULL && strncmp(map_type, "HashMap<", 8) == 0) {
@@ -279,11 +268,8 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                         key_buf, sizeof(key_buf));
                     if (key_buf[0] == '\0')
                         return "Unknown";
-                    return transpiler_infer_format_type_name(
-                               map_keys_buf, sizeof(map_keys_buf), "Array",
-                               key_buf)
-                        ? map_keys_buf
-                        : "Unknown";
+                    return transpiler_infer_arena_format_type_name(
+                        ctx, "Array", key_buf);
                 }
                 return "Unknown";
             }
@@ -303,28 +289,22 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                 return "Unknown";
             }
             if (strcmp(name, "ViewRead") == 0 && expr->data.call.arg_count >= 1) {
-                static char read_view[128];
                 const char *slot_type = infer_expression_type_name(ctx,
                     expr->data.call.arguments[0]);
                 const char *inner = slot_inner_type_name(slot_type);
                 if (inner == NULL || inner[0] == '\0')
                     return "Unknown";
-                return transpiler_infer_format_type_name(
-                           read_view, sizeof(read_view), "ReadView", inner)
-                    ? read_view
-                    : "Unknown";
+                return transpiler_infer_arena_format_type_name(
+                    ctx, "ReadView", inner);
             }
             if (strcmp(name, "ViewWrite") == 0 && expr->data.call.arg_count >= 1) {
-                static char write_view[128];
                 const char *slot_type = infer_expression_type_name(ctx,
                     expr->data.call.arguments[0]);
                 const char *inner = slot_inner_type_name(slot_type);
                 if (inner == NULL || inner[0] == '\0')
                     return "Unknown";
-                return transpiler_infer_format_type_name(
-                           write_view, sizeof(write_view), "WriteView", inner)
-                    ? write_view
-                    : "Unknown";
+                return transpiler_infer_arena_format_type_name(
+                    ctx, "WriteView", inner);
             }
             if (strcmp(name, "Measure") == 0 || strcmp(name, "QubitState") == 0)
                 return "Int";
@@ -356,15 +336,11 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                 const char *slot_type = infer_expression_type_name(ctx,
                     expr->data.call.arguments[0]);
                 if (strncmp(slot_type, "DeviceSlot<", 11) == 0) {
-                    static char device_future[128];
                     const char *inner = slot_inner_type_name(slot_type);
                     if (inner == NULL || inner[0] == '\0')
                         return "Unknown";
-                    return transpiler_infer_format_type_name(
-                               device_future, sizeof(device_future),
-                               "RemoteFuture", inner)
-                        ? device_future
-                        : "Unknown";
+                    return transpiler_infer_arena_format_type_name(
+                        ctx, "RemoteFuture", inner);
                 }
                 return "Unknown";
             }
@@ -373,26 +349,19 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                  || strcmp(name, "TrySendStatus") == 0
                  || strcmp(name, "SendTimeoutStatus") == 0)
                 && expr->data.call.arg_count >= 1) {
-                static char opt_buf[128];
                 if (strcmp(name, "TrySendStatus") == 0
                     || strcmp(name, "SendTimeoutStatus") == 0) {
-                    return transpiler_infer_copy_type_name(
-                               opt_buf, sizeof(opt_buf), "Option<Bool>")
-                        ? opt_buf
-                        : "Unknown";
+                    return "Option<Bool>";
                 } else {
                     const char *inner = channel_inner_type_name(ctx,
                         expr->data.call.arguments[0]);
                     if (inner == NULL || inner[0] == '\0')
                         return "Unknown";
-                    return transpiler_infer_format_type_name(
-                               opt_buf, sizeof(opt_buf), "Option", inner)
-                        ? opt_buf
-                        : "Unknown";
+                    return transpiler_infer_arena_format_type_name(
+                        ctx, "Option", inner);
                 }
             }
             if (strcmp(name, "Some") == 0 && expr->data.call.arg_count == 1) {
-                static char opt_buf[128];
                 const char *inner = infer_expression_type_name(ctx, expr->data.call.arguments[0]);
                 if (inner == NULL || inner[0] == '\0'
                     || strcmp(inner, "Unknown") == 0) {
@@ -400,10 +369,8 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                 }
                 if (inner == NULL || inner[0] == '\0')
                     inner = "Unknown";
-                return transpiler_infer_format_type_name(
-                           opt_buf, sizeof(opt_buf), "Option", inner)
-                    ? opt_buf
-                    : "Unknown";
+                return transpiler_infer_arena_format_type_name(
+                    ctx, "Option", inner);
             }
             if (strcmp(name, "None") == 0) {
                 const char *context_type = transpiler_contextual_option_type_name(ctx);
@@ -452,11 +419,10 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                     && host_method->type == AST_FUNC_DECL
                     && host_method->data.func_decl.return_type != NULL) {
                     char *resolved = render_type_name(host_method->data.func_decl.return_type);
-                    bool ok = transpiler_infer_copy_type_name(
-                        derived_call_type, sizeof(derived_call_type),
-                        resolved);
+                    const char *copied =
+                        transpiler_infer_arena_copy_type_name(ctx, resolved);
                     free(resolved);
-                    return ok ? derived_call_type : "Unknown";
+                    return copied != NULL ? copied : "Unknown";
                 }
             }
 
@@ -473,11 +439,10 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                     }
                     if (resolved == NULL)
                         resolved = render_type_name(decl->data.func_decl.return_type);
-                    bool ok = transpiler_infer_copy_type_name(
-                        derived_call_type, sizeof(derived_call_type),
-                        resolved);
+                    const char *copied =
+                        transpiler_infer_arena_copy_type_name(ctx, resolved);
                     free(resolved);
-                    return ok ? derived_call_type : "Unknown";
+                    return copied != NULL ? copied : "Unknown";
                 }
             }
         }

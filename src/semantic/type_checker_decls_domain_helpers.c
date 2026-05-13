@@ -35,7 +35,7 @@ domain_resolve_slot_type(ASTNode *slot, SemanticContext *ctx)
     ASTNode *type_ref;
     if (slot == NULL || slot->type != AST_DOMAIN_SLOT)
         return TYPE_UNKNOWN;
-    type_ref = slot->data.domain_slot.type;
+    type_ref = ast_domain_slot_type(slot);
     return domain_resolve_type_ref(type_ref, ctx);
 }
 
@@ -45,7 +45,7 @@ domain_resolve_shared_type(ASTNode *shared, SemanticContext *ctx)
     ASTNode *type_ref;
     if (shared == NULL || shared->type != AST_PARTY_SHARED)
         return TYPE_UNKNOWN;
-    type_ref = shared->data.party_shared.type;
+    type_ref = ast_party_shared_type(shared);
     return domain_resolve_type_ref(type_ref, ctx);
 }
 
@@ -65,7 +65,7 @@ count_subject_domain_slots(ASTNode **slots, size_t slot_count)
     for (size_t i = 0; i < slot_count; i++) {
         ASTNode *slot = slots[i];
         if (slot != NULL && slot->type == AST_DOMAIN_SLOT
-            && slot->data.domain_slot.is_subject) {
+            && ast_domain_slot_is_subject(slot)) {
             subject_count++;
         }
     }
@@ -79,7 +79,7 @@ count_object_domain_slots(ASTNode **slots, size_t slot_count)
     for (size_t i = 0; i < slot_count; i++) {
         ASTNode *slot = slots[i];
         if (slot != NULL && slot->type == AST_DOMAIN_SLOT
-            && !slot->data.domain_slot.is_subject) {
+            && !ast_domain_slot_is_subject(slot)) {
             object_count++;
         }
     }
@@ -97,7 +97,7 @@ count_bindable_domain_slots(ASTNode **slots, size_t slot_count,
     for (size_t i = 0; i < slot_count; i++) {
         ASTNode *slot = slots[i];
         if (slot == NULL || slot->type != AST_DOMAIN_SLOT
-            || !slot->data.domain_slot.is_binding) {
+            || !ast_domain_slot_is_binding(slot)) {
             continue;
         }
         bindable_count++;
@@ -116,8 +116,8 @@ find_domain_slot_local(ASTNode **slots, size_t slot_count, const char *slot_name
         ASTNode *slot = slots[i];
         if (slot != NULL
             && slot->type == AST_DOMAIN_SLOT
-            && slot->data.domain_slot.slot_name != NULL
-            && strcmp(slot->data.domain_slot.slot_name, slot_name) == 0) {
+            && ast_domain_slot_name(slot) != NULL
+            && strcmp(ast_domain_slot_name(slot), slot_name) == 0) {
             return slot;
         }
     }
@@ -159,6 +159,8 @@ find_domain_decl_by_name(ASTNode *program,
             decl_name = ast_zone_name(stmt);
         else if (decl_type == AST_WORLD_DECL)
             decl_name = ast_world_name(stmt);
+        else if (decl_type == AST_PARTY_DECL)
+            decl_name = ast_party_name(stmt);
         else if (decl_type == AST_ROSTER_DECL)
             decl_name = ast_roster_name(stmt);
 
@@ -183,9 +185,9 @@ find_zone_effect_slot(ASTNode *zone, const char *slot_name)
         ASTNode *slot = layer_slots[i];
         if (slot != NULL
             && slot->type == AST_ZONE_LAYER_SLOT
-            && !slot->data.zone_layer_slot.is_relation
-            && slot->data.zone_layer_slot.slot_name != NULL
-            && strcmp(slot->data.zone_layer_slot.slot_name, slot_name) == 0) {
+            && !ast_zone_layer_slot_is_relation(slot)
+            && ast_zone_layer_slot_name(slot) != NULL
+            && strcmp(ast_zone_layer_slot_name(slot), slot_name) == 0) {
             return slot;
         }
     }
@@ -206,9 +208,9 @@ find_zone_relation_slot(ASTNode *zone, const char *slot_name)
         ASTNode *slot = layer_slots[i];
         if (slot != NULL
             && slot->type == AST_ZONE_LAYER_SLOT
-            && slot->data.zone_layer_slot.is_relation
-            && slot->data.zone_layer_slot.slot_name != NULL
-            && strcmp(slot->data.zone_layer_slot.slot_name, slot_name) == 0) {
+            && ast_zone_layer_slot_is_relation(slot)
+            && ast_zone_layer_slot_name(slot) != NULL
+            && strcmp(ast_zone_layer_slot_name(slot), slot_name) == 0) {
             return slot;
         }
     }
@@ -298,13 +300,13 @@ resolve_zone_subject_slot_for_participant(ASTNode *zone,
         bool direct_name_match;
         bool type_name_match;
         if (slot == NULL || slot->type != AST_DOMAIN_SLOT
-            || !slot->data.domain_slot.is_subject
-            || slot->data.domain_slot.slot_name == NULL
-            || slot->data.domain_slot.type == NULL) {
+            || !ast_domain_slot_is_subject(slot)
+            || ast_domain_slot_name(slot) == NULL
+            || ast_domain_slot_type(slot) == NULL) {
             continue;
         }
         direct_name_match = domain_slot_name_matches_alias(
-            slot->data.domain_slot.slot_name, participant_alias);
+            ast_domain_slot_name(slot), participant_alias);
         if (direct_name_match) {
             if (ambiguous_out != NULL)
                 *ambiguous_out = false;
@@ -343,8 +345,8 @@ find_zone_state(ASTNode *zone, const char *state_name)
         ASTNode *state = states[i];
         if (state != NULL
             && state->type == AST_ZONE_STATE
-            && state->data.zone_state.state_name != NULL
-            && strcmp(state->data.zone_state.state_name, state_name) == 0) {
+            && ast_zone_state_name(state) != NULL
+            && strcmp(ast_zone_state_name(state), state_name) == 0) {
             return state;
         }
     }
@@ -375,7 +377,7 @@ resolve_zone_effect_state(ASTNode *zone,
             state_name != NULL ? state_name : "<unknown>");
         return false;
     }
-    if (state->data.zone_state.is_relation) {
+    if (ast_zone_state_is_relation(state)) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, site,
             "Zone %s state '%s' is a relation state and cannot be used as an effect state",
             action_name,
@@ -384,9 +386,9 @@ resolve_zone_effect_state(ASTNode *zone,
     }
 
     if (effect_slot_name != NULL)
-        *effect_slot_name = state->data.zone_state.layer_slot_name;
+        *effect_slot_name = ast_zone_state_layer_slot_name(state);
     if (target_slot_name != NULL)
-        *target_slot_name = state->data.zone_state.left_or_target_slot_name;
+        *target_slot_name = ast_zone_state_left_or_target_slot_name(state);
     return true;
 }
 
@@ -416,7 +418,7 @@ resolve_zone_relation_state(ASTNode *zone,
             state_name != NULL ? state_name : "<unknown>");
         return false;
     }
-    if (!state->data.zone_state.is_relation) {
+    if (!ast_zone_state_is_relation(state)) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, site,
             "Zone %s state '%s' is an effect state and cannot be used as a relation state",
             action_name,
@@ -425,11 +427,11 @@ resolve_zone_relation_state(ASTNode *zone,
     }
 
     if (relation_slot_name != NULL)
-        *relation_slot_name = state->data.zone_state.layer_slot_name;
+        *relation_slot_name = ast_zone_state_layer_slot_name(state);
     if (left_slot_name != NULL)
-        *left_slot_name = state->data.zone_state.left_or_target_slot_name;
+        *left_slot_name = ast_zone_state_left_or_target_slot_name(state);
     if (right_slot_name != NULL)
-        *right_slot_name = state->data.zone_state.right_slot_name;
+        *right_slot_name = ast_zone_state_right_slot_name(state);
     return true;
 }
 
@@ -455,7 +457,7 @@ type_check_zone_participant_authority(ASTNode *zone,
         return true;
     }
 
-    if (!participant_slot->data.domain_slot.is_subject) {
+    if (!ast_domain_slot_is_subject(participant_slot)) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, site,
             "Zone %s authority '%s' must be a subject slot",
             action_name, participant_slot_name);

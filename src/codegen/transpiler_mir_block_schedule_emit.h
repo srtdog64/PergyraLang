@@ -11,7 +11,7 @@ transpiler_mir_block_has_source_order_metadata(const MIRBasicBlock *block)
         return false;
 
     for (size_t i = 0; i < block->instruction_count; i++) {
-        if (block->instructions[i].has_source_statement_index)
+        if (mir_instruction_has_source_statement_order(&block->instructions[i]))
             return true;
     }
     return false;
@@ -26,14 +26,10 @@ transpiler_mir_inst_should_precede(const MIRInstruction *left,
     if (left == NULL || right == NULL)
         return left_original_index < right_original_index;
 
-    if (left->has_source_statement_index && right->has_source_statement_index) {
-        if (left->source_statement_index != right->source_statement_index)
-            return left->source_statement_index < right->source_statement_index;
-        return left_original_index < right_original_index;
-    }
-
-    if (left->has_source_statement_index != right->has_source_statement_index)
-        return left->has_source_statement_index;
+    int source_order =
+        mir_instruction_source_statement_order_compare(left, right);
+    if (source_order != 0)
+        return source_order < 0;
 
     return left_original_index < right_original_index;
 }

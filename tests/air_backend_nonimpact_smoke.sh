@@ -34,19 +34,85 @@ if [[ ! -x "$PGY_BIN" ]]; then
     exit 0
 fi
 
+if [[ "$PGY_BIN" == *.exe ]]; then
+    for dir in \
+        "/c/Program Files/LLVM/bin" \
+        "/c/ProgramData/mingw64/mingw64/bin" \
+        "/c/msys64/mingw64/bin"; do
+        if [[ -d "$dir" ]]; then
+            PATH="$dir:$PATH"
+        fi
+    done
+    export PATH
+fi
+
+pgy_path_arg() {
+    local path="$1"
+
+    if [[ "$PGY_BIN" != *.exe ]]; then
+        printf '%s\n' "$path"
+        return 0
+    fi
+    if command -v cygpath >/dev/null 2>&1; then
+        cygpath -w "$path"
+        return 0
+    fi
+    if command -v wslpath >/dev/null 2>&1; then
+        wslpath -w "$path"
+        return 0
+    fi
+    if [[ "$path" =~ ^/mnt/([A-Za-z])/(.*)$ ]]; then
+        local drive="${BASH_REMATCH[1]}"
+        local rest="${BASH_REMATCH[2]//\//\\}"
+        printf '%s:\\%s\n' "${drive^^}" "$rest"
+        return 0
+    fi
+    printf '%s\n' "$path"
+}
+
 require_normal_backend_air_mir_gate() {
     local source_rel="tests/cases/backend_compare/intent_zone_binding/main.pgy"
     local out="$WORK_DIR/air_mir_gate.c"
     local log="$WORK_DIR/air_mir_gate.log"
+    local source_arg
+    local out_arg
 
-    if ! (cd "$ROOT_DIR" && PGY_DEBUG_PIPELINE_STAGE=1 "$PGY_BIN" "$source_rel" --emit-c -o "$out") \
-        >"$log" 2>&1; then
-        if [[ "$EXPLICIT_PGY" -eq 0 ]]; then
+    source_arg="$(pgy_path_arg "$ROOT_DIR/$source_rel")"
+    out_arg="$(pgy_path_arg "$out")"
+
+    if [[ "$PGY_BIN" == *.exe ]] && command -v powershell.exe >/dev/null 2>&1; then
+        local ps1="$WORK_DIR/air-mir-gate.ps1"
+        local win_pgy win_source win_out win_log win_ps1
+        win_pgy="$(pgy_path_arg "$PGY_BIN")"
+        win_source="$source_arg"
+        win_out="$out_arg"
+        win_log="$(pgy_path_arg "$log")"
+        win_ps1="$(pgy_path_arg "$ps1")"
+cat >"$ps1" <<EOF
+\$ErrorActionPreference = 'Continue'
+\$env:PATH = 'C:\Program Files\LLVM\bin;C:\ProgramData\mingw64\mingw64\bin;C:\msys64\mingw64\bin;' + \$env:PATH
+\$env:PGY_DEBUG_PIPELINE_STAGE = '1'
+& '$win_pgy' '$win_source' --emit-c -o '$win_out' 2>&1 | ForEach-Object { \$_.ToString() } | Set-Content -LiteralPath '$win_log' -Encoding utf8
+exit \$LASTEXITCODE
+EOF
+        if ! powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$win_ps1"; then
+            if [[ "$EXPLICIT_PGY" -eq 0 ]]; then
+                return 1
+            fi
+            echo "air-backend-nonimpact: normal backend AIR/MIR gate probe failed" >&2
+            cat "$log" >&2
             return 1
         fi
-        echo "air-backend-nonimpact: normal backend AIR/MIR gate probe failed" >&2
-        cat "$log" >&2
-        return 1
+    else
+        if ! (cd "$ROOT_DIR" && PGY_DEBUG_PIPELINE_STAGE=1 "$PGY_BIN" "$source_arg" --emit-c -o "$out_arg") \
+            >"$log" 2>&1; then
+            if [[ "$EXPLICIT_PGY" -eq 0 ]]; then
+                return 1
+            fi
+            echo "air-backend-nonimpact: normal backend AIR/MIR gate probe failed" >&2
+            cat "$log" >&2
+            return 1
+        fi
     fi
 
     if ! grep -Fq "[driver stage] air_mir_evidence" "$log"; then
@@ -66,11 +132,8 @@ require_normal_backend_air_mir_gate() {
 }
 
 if ! require_normal_backend_air_mir_gate; then
-    if [[ "$EXPLICIT_PGY" -eq 1 ]]; then
-        exit 1
-    fi
-    echo "air-backend-nonimpact: SKIP default compiler executable probe; backend non-impact remains gated when PGY_BIN is provided"
-    exit 0
+    echo "air-backend-nonimpact: compiler executable probe failed: $PGY_BIN" >&2
+    exit 1
 fi
 
 DEFAULT_SOURCES=(
@@ -174,22 +237,78 @@ run_emit_pair() {
     local strict_out
     local relaxed_log
     local strict_log
+    local source_arg
+    local relaxed_out_arg
+    local strict_out_arg
 
     case_name="$(sanitize_case_name "$source_rel")"
     relaxed_out="$WORK_DIR/${case_name}_${name}_relaxed.${ext}"
     strict_out="$WORK_DIR/${case_name}_${name}_strict.${ext}"
     relaxed_log="$WORK_DIR/${case_name}_${name}_relaxed.log"
     strict_log="$WORK_DIR/${case_name}_${name}_strict.log"
+    source_arg="$(pgy_path_arg "$ROOT_DIR/$source_rel")"
+    relaxed_out_arg="$(pgy_path_arg "$relaxed_out")"
+    strict_out_arg="$(pgy_path_arg "$strict_out")"
 
-    if ! (cd "$ROOT_DIR" && PGY_AIR_STRICT_EVIDENCE=0 "$PGY_BIN" "$source_rel" "$flag" -o "$relaxed_out") \
-        >"$relaxed_log" 2>&1; then
+    if [[ "$PGY_BIN" == *.exe ]] && command -v powershell.exe >/dev/null 2>&1; then
+        local relaxed_ps1="$WORK_DIR/${case_name}_${name}_relaxed.ps1"
+        local strict_ps1="$WORK_DIR/${case_name}_${name}_strict.ps1"
+        local win_pgy win_source win_relaxed_out win_strict_out
+        local win_relaxed_log win_strict_log win_relaxed_ps1 win_strict_ps1
+        win_pgy="$(pgy_path_arg "$PGY_BIN")"
+        win_source="$source_arg"
+        win_relaxed_out="$relaxed_out_arg"
+        win_strict_out="$strict_out_arg"
+        win_relaxed_log="$(pgy_path_arg "$relaxed_log")"
+        win_strict_log="$(pgy_path_arg "$strict_log")"
+        win_relaxed_ps1="$(pgy_path_arg "$relaxed_ps1")"
+        win_strict_ps1="$(pgy_path_arg "$strict_ps1")"
+cat >"$relaxed_ps1" <<EOF
+\$ErrorActionPreference = 'Continue'
+\$env:PATH = 'C:\Program Files\LLVM\bin;C:\ProgramData\mingw64\mingw64\bin;C:\msys64\mingw64\bin;' + \$env:PATH
+\$env:PGY_AIR_STRICT_EVIDENCE = '0'
+& '$win_pgy' '$win_source' '$flag' -o '$win_relaxed_out' 2>&1 | ForEach-Object { \$_.ToString() } | Set-Content -LiteralPath '$win_relaxed_log' -Encoding utf8
+exit \$LASTEXITCODE
+EOF
+        if ! powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$win_relaxed_ps1"; then
+            echo "air-backend-nonimpact: relaxed AIR emit failed for $name" >&2
+            cat "$relaxed_log" >&2
+            return 1
+        fi
+cat >"$strict_ps1" <<EOF
+\$ErrorActionPreference = 'Continue'
+\$env:PATH = 'C:\Program Files\LLVM\bin;C:\ProgramData\mingw64\mingw64\bin;C:\msys64\mingw64\bin;' + \$env:PATH
+Remove-Item Env:\PGY_AIR_STRICT_EVIDENCE -ErrorAction SilentlyContinue
+& '$win_pgy' '$win_source' '$flag' -o '$win_strict_out' 2>&1 | ForEach-Object { \$_.ToString() } | Set-Content -LiteralPath '$win_strict_log' -Encoding utf8
+exit \$LASTEXITCODE
+EOF
+        if ! powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$win_strict_ps1"; then
+            echo "air-backend-nonimpact: default strict AIR emit failed for $name" >&2
+            cat "$strict_log" >&2
+            return 1
+        fi
+    else
+        if ! (cd "$ROOT_DIR" && PGY_AIR_STRICT_EVIDENCE=0 "$PGY_BIN" "$source_arg" "$flag" -o "$relaxed_out_arg") \
+            >"$relaxed_log" 2>&1; then
+            echo "air-backend-nonimpact: relaxed AIR emit failed for $name" >&2
+            cat "$relaxed_log" >&2
+            return 1
+        fi
+
+        if ! (cd "$ROOT_DIR" && unset PGY_AIR_STRICT_EVIDENCE && "$PGY_BIN" "$source_arg" "$flag" -o "$strict_out_arg") \
+            >"$strict_log" 2>&1; then
+            echo "air-backend-nonimpact: default strict AIR emit failed for $name" >&2
+            cat "$strict_log" >&2
+            return 1
+        fi
+    fi
+
+    if [[ ! -f "$relaxed_out" ]]; then
         echo "air-backend-nonimpact: relaxed AIR emit failed for $name" >&2
         cat "$relaxed_log" >&2
         return 1
     fi
-
-    if ! (cd "$ROOT_DIR" && unset PGY_AIR_STRICT_EVIDENCE && "$PGY_BIN" "$source_rel" "$flag" -o "$strict_out") \
-        >"$strict_log" 2>&1; then
+    if [[ ! -f "$strict_out" ]]; then
         echo "air-backend-nonimpact: default strict AIR emit failed for $name" >&2
         cat "$strict_log" >&2
         return 1

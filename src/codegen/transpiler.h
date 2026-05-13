@@ -348,6 +348,8 @@ char *emit_unary(ASTNode *node, TranspilerCtx *ctx);
 
 /* "Int" → "int", "String" → "char*", "Slot<Int>" → "PgySlot_Int" */
 const char *pergyra_type_to_c(const char *pergyra_type_name);
+bool pergyra_type_to_c_copy(const char *pergyra_type_name,
+                            char *out, size_t out_size);
 
 /* "Int" → "int", used for slot operation suffixes */
 const char *pergyra_primitive_to_c(const char *name);

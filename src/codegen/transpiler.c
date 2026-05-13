@@ -52,7 +52,8 @@ static const char *transpiler_find_local_type_name(TranspilerCtx *ctx,
 static const char *transpiler_infer_local_type_name_from_expr(TranspilerCtx *ctx,
                                                               const ASTNode *func_decl,
                                                               ASTNode *expr);
-static const char *transpiler_let_slot_inner_from_call_type_arg(ASTNode *call);
+static const char *transpiler_let_slot_inner_from_call_type_arg(
+    TranspilerCtx *ctx, ASTNode *call);
 static bool transpiler_validate_mir_emission_contract(const TranspilerCtx *ctx,
                                                      const MIRRoutine *routine,
                                                      const ASTNode *decl,
@@ -75,6 +76,55 @@ static const char *ensure_generic_class_specialization(
 #include "transpiler_base_a_emitters.h"
 #include "transpiler_base_b_emitters.h"
 #include "transpiler_intent_emit.h"
+
+static void
+emit_c_nominal_forward_typedef(CodeBuf *out, const char *name)
+{
+    if (out == NULL || name == NULL || name[0] == '\0')
+        return;
+    codebuf_write(out, "typedef struct %s %s;\n", name, name);
+}
+
+static void
+emit_c_nominal_forward_decls(TranspilerCtx *ctx,
+                             ASTNode **types,
+                             size_t type_count,
+                             ASTNode **parties,
+                             size_t party_count,
+                             ASTNode **rosters,
+                             size_t roster_count,
+                             ASTNode **relations,
+                             size_t relation_count,
+                             ASTNode **effects,
+                             size_t effect_count,
+                             ASTNode **zones,
+                             size_t zone_count,
+                             ASTNode **worlds,
+                             size_t world_count)
+{
+    CodeBuf *out = ctx != NULL ? ctx->out : NULL;
+
+    if (out == NULL)
+        return;
+    for (size_t i = 0; i < type_count; i++) {
+        ASTNode *type_decl = types[i];
+        if (type_decl != NULL && type_decl->type == AST_CLASS_DECL)
+            emit_c_nominal_forward_typedef(out, ast_class_name(type_decl));
+    }
+    for (size_t i = 0; i < party_count; i++)
+        emit_c_nominal_forward_typedef(out, ast_party_name(parties[i]));
+    for (size_t i = 0; i < roster_count; i++)
+        emit_c_nominal_forward_typedef(out, ast_roster_name(rosters[i]));
+    for (size_t i = 0; i < relation_count; i++)
+        emit_c_nominal_forward_typedef(out, ast_relation_name(relations[i]));
+    for (size_t i = 0; i < effect_count; i++)
+        emit_c_nominal_forward_typedef(out, ast_effect_name(effects[i]));
+    for (size_t i = 0; i < zone_count; i++)
+        emit_c_nominal_forward_typedef(out, ast_zone_name(zones[i]));
+    for (size_t i = 0; i < world_count; i++)
+        emit_c_nominal_forward_typedef(out, ast_world_name(worlds[i]));
+    codebuf_write(out, "\n");
+}
 
 /* -----------------------------------------------------------------
  * Program emitter
@@ -165,6 +215,23 @@ emit_program(TranspilerCtx *ctx)
      *   Pass 4 — function declarations (file scope)
      *   Pass 5 — remaining top-level statements → wrapped in main()
      */
+
+    /* Pass 0.5: nominal forward typedefs used by ability signatures. */
+    emit_c_nominal_forward_decls(ctx,
+                                 types,
+                                 type_count,
+                                 parties,
+                                 party_count,
+                                 rosters,
+                                 roster_count,
+                                 relations,
+                                 relation_count,
+                                 effects,
+                                 effect_count,
+                                 zones,
+                                 zone_count,
+                                 worlds,
+                                 world_count);
 
     /* Pass 1: abilities (vtable typedefs) */
     for (size_t i = 0; i < ability_count; i++)
@@ -385,6 +452,8 @@ emit_lambda_expr(ASTNode *node, TranspilerCtx *ctx)
 {
     int lambda_id = ++ctx->tmp_counter;
     const char *return_type = NULL;
+    char inferred_return_c_type_buf[256];
+    char *return_type_owned = NULL;
     int saved_typed_var_count = ctx->typed_var_count;
 
     /* Expose lambda parameters to typed-var lookup so body-side type
@@ -417,17 +486,28 @@ emit_lambda_expr(ASTNode *node, TranspilerCtx *ctx)
     } else if (node->data.lambda_expr.body != NULL) {
         const char *inferred_return_type =
             infer_expression_type_name(ctx, node->data.lambda_expr.body);
-        if (inferred_return_type != NULL)
-            return_type = pergyra_type_to_c(inferred_return_type);
+        if (inferred_return_type != NULL
+            && pergyra_type_to_c_copy(inferred_return_type,
+                inferred_return_c_type_buf,
+                sizeof(inferred_return_c_type_buf))) {
+            return_type = inferred_return_c_type_buf;
+        }
     }
     if (return_type == NULL) {
         transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "cannot determine lambda return type; explicit return type is required for non-block lambda bodies");
         ctx->typed_var_count = saved_typed_var_count;
         return pergyra_strdup("0");
     }
+    return_type_owned = pergyra_strdup(return_type);
+    if (return_type_owned == NULL) {
+        ctx->typed_var_count = saved_typed_var_count;
+        return pergyra_strdup("0");
+    }
+    return_type = return_type_owned;
 
     char *lambda_name = strdup_fmt("pgy_lambda_%d", lambda_id);
     if (lambda_name == NULL) {
+        free(return_type_owned);
         ctx->typed_var_count = saved_typed_var_count;
         return pergyra_strdup("0");
     }
@@ -453,6 +533,7 @@ emit_lambda_expr(ASTNode *node, TranspilerCtx *ctx)
                 lambda_name,
                 (unsigned long long) i);
             free(lambda_name);
+            free(return_type_owned);
             ctx->typed_var_count = saved_typed_var_count;
             return pergyra_strdup("0");
         }
@@ -481,6 +562,7 @@ emit_lambda_expr(ASTNode *node, TranspilerCtx *ctx)
                 lambda_name,
                 (unsigned long long) i);
             free(lambda_name);
+            free(return_type_owned);
             ctx->typed_var_count = saved_typed_var_count;
             return pergyra_strdup("0");
         }
@@ -505,6 +587,7 @@ emit_lambda_expr(ASTNode *node, TranspilerCtx *ctx)
     }
 
     codebuf_write(ctx->helpers, "}\n");
+    free(return_type_owned);
     ctx->typed_var_count = saved_typed_var_count;
     return lambda_name;
 }

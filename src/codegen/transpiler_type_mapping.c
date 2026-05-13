@@ -545,3 +545,24 @@ pergyra_type_to_c(const char *name)
     }
     return pergyra_primitive_to_c(name);
 }
+
+bool
+pergyra_type_to_c_copy(const char *name, char *out, size_t out_size)
+{
+    const char *mapped;
+    size_t len;
+
+    if (out == NULL || out_size == 0)
+        return false;
+    out[0] = '\0';
+
+    mapped = pergyra_type_to_c(name);
+    if (mapped == NULL)
+        return false;
+
+    len = strlen(mapped);
+    if (len >= out_size)
+        return false;
+    memcpy(out, mapped, len + 1);
+    return mapped[0] != '\0';
+}

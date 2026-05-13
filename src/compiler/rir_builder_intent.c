@@ -42,14 +42,14 @@ unique_effect_slot_for_type(const char *zone_name, const char *effect_type_name)
         ASTNode *slot = layer_slots[i];
         if (slot == NULL
             || slot->type != AST_ZONE_LAYER_SLOT
-            || slot->data.zone_layer_slot.is_relation
-            || slot->data.zone_layer_slot.layer_type == NULL
-            || strcmp(slot->data.zone_layer_slot.layer_type, effect_type_name) != 0) {
+            || ast_zone_layer_slot_is_relation(slot)
+            || ast_zone_layer_slot_layer_type(slot) == NULL
+            || strcmp(ast_zone_layer_slot_layer_type(slot), effect_type_name) != 0) {
             continue;
         }
         if (slot_name != NULL)
             return NULL;
-        slot_name = slot->data.zone_layer_slot.slot_name;
+        slot_name = ast_zone_layer_slot_name(slot);
     }
     return slot_name;
 }
@@ -88,55 +88,55 @@ rir_collect_intent_scope(RIRProgram *rir, ASTNode *node)
 
     for (size_t i = 0; i < node->data.intent_decl.step_count; i++) {
         ASTNode *step = node->data.intent_decl.steps[i];
-        if (step->data.intent_step.using_expr != NULL) {
+        if (ast_intent_step_using_expr(step) != NULL) {
             if (!add_op(&scope,
                         RIR_OP_READ,
-                        expr_name(step->data.intent_step.using_expr),
-                        step->data.intent_step.name,
-                        step->data.intent_step.where_type != NULL
-                            ? type_name(step->data.intent_step.where_type) : NULL,
+                        expr_name(ast_intent_step_using_expr(step)),
+                        ast_intent_step_name(step),
+                        ast_intent_step_where_type(step) != NULL
+                            ? type_name(ast_intent_step_where_type(step)) : NULL,
                         step))
                 goto oom;
         }
-        if (step->data.intent_step.transfer_from_alias != NULL) {
+        if (ast_intent_step_transfer_from_alias(step) != NULL) {
             if (!add_op(&scope,
                         RIR_OP_MOVE,
-                        step->data.intent_step.transfer_from_alias,
-                        step->data.intent_step.transfer_to_alias,
-                        step->data.intent_step.name,
+                        ast_intent_step_transfer_from_alias(step),
+                        ast_intent_step_transfer_to_alias(step),
+                        ast_intent_step_name(step),
                         step))
                 goto oom;
         }
-        if (step->data.intent_step.transfer_to_alias != NULL) {
+        if (ast_intent_step_transfer_to_alias(step) != NULL) {
             if (!add_op(&scope,
                         RIR_OP_CLAIM,
-                        step->data.intent_step.transfer_to_alias,
-                        step->data.intent_step.transfer_from_alias,
-                        step->data.intent_step.name,
+                        ast_intent_step_transfer_to_alias(step),
+                        ast_intent_step_transfer_from_alias(step),
+                        ast_intent_step_name(step),
                         step))
                 goto oom;
         }
-        for (size_t j = 0; j < step->data.intent_step.required_ability_count; j++) {
-            ASTNode *ability_ref = step->data.intent_step.required_abilities[j];
+        for (size_t j = 0; j < ast_intent_step_required_ability_count(step); j++) {
+            ASTNode *ability_ref = ast_intent_step_required_abilities(step, NULL)[j];
             const char *ability_name = (ability_ref != NULL && ability_ref->type == AST_TYPE)
                 ? ability_ref->data.type.name : NULL;
             if (ability_name == NULL)
                 continue;
-            if (!add_authority_fact(&scope, step->data.intent_step.name,
+            if (!add_authority_fact(&scope, ast_intent_step_name(step),
                                     ability_name,
                                     step))
                 goto oom;
         }
-        if (step->data.intent_step.causes_effect != NULL) {
-            const char *where_name = step->data.intent_step.where_type != NULL
-                ? type_name(step->data.intent_step.where_type) : NULL;
+        if (ast_intent_step_causes_effect(step) != NULL) {
+            const char *where_name = ast_intent_step_where_type(step) != NULL
+                ? type_name(ast_intent_step_where_type(step)) : NULL;
             const char *effect_slot_name =
-                unique_effect_slot_for_type(where_name, step->data.intent_step.causes_effect);
+                unique_effect_slot_for_type(where_name, ast_intent_step_causes_effect(step));
             const char *effect_anchor = effect_slot_name != NULL
-                ? effect_slot_name : step->data.intent_step.causes_effect;
+                ? effect_slot_name : ast_intent_step_causes_effect(step);
             if (!add_named_resource_fact(&scope,
                                          effect_anchor,
-                                         step->data.intent_step.causes_effect,
+                                         ast_intent_step_causes_effect(step),
                                          RIR_RESOURCE_EFFECT_INSTANCE,
                                          RIR_STATE_DETACHED,
                                          step))
@@ -144,38 +144,38 @@ rir_collect_intent_scope(RIRProgram *rir, ASTNode *node)
             if (!add_op(&scope,
                         RIR_OP_ATTACH_EFFECT,
                         effect_anchor,
-                        step->data.intent_step.name,
+                        ast_intent_step_name(step),
                         where_name,
                         step))
                 goto oom;
         }
-        for (size_t j = 0; j < step->data.intent_step.authorized_by_count; j++) {
+        for (size_t j = 0; j < ast_intent_step_authorized_by_count(step); j++) {
             if (!add_op(&scope, RIR_OP_AUTHORIZE,
-                        step->data.intent_step.authorized_by[j],
-                        step->data.intent_step.name,
-                        step->data.intent_step.where_type != NULL
-                            ? type_name(step->data.intent_step.where_type) : NULL,
+                        ast_intent_step_authorized_by(step, NULL)[j],
+                        ast_intent_step_name(step),
+                        ast_intent_step_where_type(step) != NULL
+                            ? type_name(ast_intent_step_where_type(step)) : NULL,
                         step))
                 goto oom;
         }
-        for (size_t j = 0; j < step->data.intent_step.on_expr_count; j++) {
-            if (!rir_walk_node(&scope, step->data.intent_step.on_exprs[j]))
+        for (size_t j = 0; j < ast_intent_step_on_expr_count(step); j++) {
+            if (!rir_walk_node(&scope, ast_intent_step_on_exprs(step, NULL)[j]))
                 goto oom;
         }
-        for (size_t j = 0; j < step->data.intent_step.compensate_expr_count; j++) {
-            const char *comp_name = expr_name(step->data.intent_step.compensate_exprs[j]);
+        for (size_t j = 0; j < ast_intent_step_compensate_expr_count(step); j++) {
+            const char *comp_name = expr_name(ast_intent_step_compensate_exprs(step, NULL)[j]);
             if (comp_name == NULL
-                && step->data.intent_step.compensate_exprs[j] != NULL
-                && step->data.intent_step.compensate_exprs[j]->type == AST_CALL) {
-                comp_name = call_name(step->data.intent_step.compensate_exprs[j]);
+                && ast_intent_step_compensate_exprs(step, NULL)[j] != NULL
+                && ast_intent_step_compensate_exprs(step, NULL)[j]->type == AST_CALL) {
+                comp_name = call_name(ast_intent_step_compensate_exprs(step, NULL)[j]);
             }
             if (!add_op(&scope, RIR_OP_COMPENSATE_INTENT_STEP,
-                        step->data.intent_step.name,
+                        ast_intent_step_name(step),
                         comp_name,
                         NULL,
-                        step->data.intent_step.compensate_exprs[j]))
+                        ast_intent_step_compensate_exprs(step, NULL)[j]))
                 goto oom;
-            if (!rir_walk_node(&scope, step->data.intent_step.compensate_exprs[j]))
+            if (!rir_walk_node(&scope, ast_intent_step_compensate_exprs(step, NULL)[j]))
                 goto oom;
         }
     }

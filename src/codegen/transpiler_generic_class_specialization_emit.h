@@ -89,6 +89,23 @@ class_has_generic_params(ASTNode *node)
         && node->data.class_decl.generic_params->count > 0;
 }
 
+static char *
+transpiler_generic_class_effective_arg_name(GenericParam *formal,
+                                            GenericParam *arg)
+{
+    if (arg != NULL && arg->constraint != NULL
+        && arg->constraint->type == AST_TYPE) {
+        return render_type_name(arg->constraint);
+    }
+    if (arg != NULL && arg->name != NULL)
+        return pergyra_strdup(arg->name);
+    if (formal != NULL && formal->default_type != NULL
+        && formal->default_type->type == AST_TYPE) {
+        return render_type_name(formal->default_type);
+    }
+    return NULL;
+}
+
 /* Ensure a monomorphized specialization of a generic class exists.
  * Returns the specialized name (e.g. "Node_Int") that should be used
  * as the C struct type name. The struct + methods are emitted into
@@ -105,38 +122,32 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
     GenericParams *gp = class_decl->data.class_decl.generic_params;
     GenericParams *ga = ann->data.type.generic_args;
     bool has_effective_args = false;
+    const char *base_class_name = ast_class_name(class_decl);
 
     if (gp == NULL)
-        return class_decl->data.class_decl.name;
+        return base_class_name;
 
     CodeBuf *nbuf = codebuf_create();
-    codebuf_write(nbuf, "%s", class_decl->data.class_decl.name);
+    codebuf_write(nbuf, "%s", base_class_name);
     for (size_t i = 0; i < gp->count; i++) {
         GenericParam *formal = gp->params[i];
         GenericParam *garg = (ga != NULL && i < ga->count) ? ga->params[i] : NULL;
-        const char *effective_name = NULL;
-
-        if (garg != NULL && garg->name != NULL)
-            effective_name = garg->name;
-        else if (garg != NULL && garg->constraint != NULL
-                 && garg->constraint->type == AST_TYPE
-                 && garg->constraint->data.type.name != NULL)
-            effective_name = garg->constraint->data.type.name;
-        else if (formal != NULL && formal->default_type != NULL
-                 && formal->default_type->type == AST_TYPE
-                 && formal->default_type->data.type.name != NULL)
-            effective_name = formal->default_type->data.type.name;
-        else
-            return class_decl->data.class_decl.name;
+        char *effective_name =
+            transpiler_generic_class_effective_arg_name(formal, garg);
+        if (effective_name == NULL) {
+            codebuf_destroy(nbuf);
+            return base_class_name;
+        }
 
         has_effective_args = true;
         codebuf_write(nbuf, "_");
         append_mangled_type_name(nbuf, effective_name);
+        free(effective_name);
     }
 
     if (!has_effective_args) {
         codebuf_destroy(nbuf);
-        return class_decl->data.class_decl.name;
+        return base_class_name;
     }
 
     for (int i = 0; i < ctx->generic_class_spec_count; i++) {
@@ -149,7 +160,7 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
 
     if (ctx->generic_class_spec_count >= MAX_GENERIC_CLASS_SPECIALIZATIONS) {
         codebuf_destroy(nbuf);
-        return class_decl->data.class_decl.name;
+        return base_class_name;
     }
 
     GenericClassSpecEntry *entry = &ctx->generic_class_specs[ctx->generic_class_spec_count++];
@@ -164,9 +175,7 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
             PGY_CAUSE_C_TYPE_UNSUPPORTED,
             PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
             "C backend: generic class specialization name is too long for '%s'",
-            class_decl->data.class_decl.name != NULL
-                ? class_decl->data.class_decl.name
-                : "(anonymous)");
+            base_class_name != NULL ? base_class_name : "(anonymous)");
         codebuf_destroy(nbuf);
         return NULL;
     }
@@ -177,7 +186,7 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
     for (size_t i = 0; i < gp->count; i++) {
         GenericParam *formal = gp->params[i];
         GenericParam *garg = (ga != NULL && i < ga->count) ? ga->params[i] : NULL;
-        const char *effective_name = NULL;
+        char *effective_name = NULL;
 
         if (ctx->generic_binding_count >= MAX_GENERIC_BINDINGS)
             break;
@@ -197,21 +206,14 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
             codebuf_destroy(nbuf);
             return NULL;
         }
-        if (garg != NULL && garg->name != NULL)
-            effective_name = garg->name;
-        else if (garg != NULL && garg->constraint != NULL
-                 && garg->constraint->type == AST_TYPE
-                 && garg->constraint->data.type.name != NULL)
-            effective_name = garg->constraint->data.type.name;
-        else if (formal != NULL && formal->default_type != NULL
-                 && formal->default_type->type == AST_TYPE
-                 && formal->default_type->data.type.name != NULL)
-            effective_name = formal->default_type->data.type.name;
+        effective_name = transpiler_generic_class_effective_arg_name(
+            formal, garg);
 
         if (effective_name != NULL) {
             if (!transpiler_generic_class_copy_name(
                     b->concrete_type, sizeof(b->concrete_type),
                     effective_name)) {
+                free(effective_name);
                 transpiler_set_backend_error_with_hints(
                     ctx,
                     PGY_CODE_C_TYPE_UNSUPPORTED,
@@ -223,6 +225,7 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
                 codebuf_destroy(nbuf);
                 return NULL;
             }
+            free(effective_name);
         } else {
             transpiler_set_backend_error_with_hints(
                 ctx,
@@ -233,9 +236,7 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
                 gp->params[i] != NULL && gp->params[i]->name != NULL
                     ? gp->params[i]->name
                     : "(anonymous)",
-                class_decl != NULL && class_decl->data.class_decl.name != NULL
-                    ? class_decl->data.class_decl.name
-                    : "(anonymous)");
+                base_class_name != NULL ? base_class_name : "(anonymous)");
             ctx->generic_binding_count = saved_binding_count;
             codebuf_destroy(nbuf);
             return NULL;
@@ -248,8 +249,10 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
     TranspilerCtx *saved_render_ctx = transpiler_type_render_ctx_push(ctx);
 
     codebuf_write(ctx->helpers, "\ntypedef struct %s\n{\n", spec_name);
-    for (size_t i = 0; i < class_decl->data.class_decl.field_count; i++) {
-        ClassField *f = class_decl->data.class_decl.fields[i];
+    size_t field_count = 0;
+    ClassField **fields = ast_class_fields(class_decl, &field_count);
+    for (size_t i = 0; i < field_count; i++) {
+        ClassField *f = fields != NULL ? fields[i] : NULL;
         const char *ft = NULL;
         char surface_desc[256];
         if (!transpiler_generic_class_surface_desc(
@@ -287,7 +290,6 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
         spec_name, spec_name,
         spec_name, spec_name);
 
-    const char *base_class_name = class_decl->data.class_decl.name;
     TranspilerHostedMethodView method_view =
         transpiler_hosted_method_view_from_decl(ctx, base_class_name,
             class_decl);

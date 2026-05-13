@@ -27,6 +27,36 @@ llvm_clear_type_render_ctx_if(LLVMGenCtx *ctx)
 }
 
 const char *
+llvm_keep_rendered_persistent(LLVMGenCtx *ctx, char *rendered,
+                              const char *oom_context)
+{
+    size_t len;
+    char *copy;
+
+    if (rendered == NULL)
+        return NULL;
+    if (ctx == NULL) {
+        free(rendered);
+        return NULL;
+    }
+
+    len = strlen(rendered);
+    copy = pgy_arena_alloc(&ctx->persistent, len + 1);
+    if (copy == NULL) {
+        if (!ctx->has_error) {
+            llvm_set_error(ctx, "%s",
+                oom_context != NULL ? oom_context
+                                    : "out of memory copying LLVM type text");
+        }
+        free(rendered);
+        return NULL;
+    }
+    memcpy(copy, rendered, len + 1);
+    free(rendered);
+    return copy;
+}
+
+const char *
 llvm_constructed_arg_name_at(const char *type_name, int arg_index)
 {
     static char arg_buf[256];

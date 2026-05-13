@@ -17,6 +17,7 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
     const char *owner_name = is_method ? mir_routine->owner_name : NULL;
     ASTNodeType owner_ast_type = is_method ? mir_routine->owner_ast_type : AST_PROGRAM;
     const char *owner_role_subject_name = NULL;
+    char owner_role_subject_c_type_buf[256];
     const char *owner_role_subject_c_type = NULL;
     bool owner_is_zone = false;
     bool owner_is_role = owner_ast_type == AST_ROLE_DECL;
@@ -41,8 +42,11 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
             owner_role_subject_name =
                 transpiler_role_subject_name_local(ctx, owner_name);
             if (owner_role_subject_name != NULL)
-                owner_role_subject_c_type =
-                    pergyra_type_to_c(owner_role_subject_name);
+                if (pergyra_type_to_c_copy(owner_role_subject_name,
+                        owner_role_subject_c_type_buf,
+                        sizeof(owner_role_subject_c_type_buf))) {
+                    owner_role_subject_c_type = owner_role_subject_c_type_buf;
+                }
         }
     }
 

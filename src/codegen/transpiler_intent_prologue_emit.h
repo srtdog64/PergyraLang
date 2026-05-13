@@ -67,6 +67,7 @@ transpiler_emit_intent_signature_and_entry(ASTNode *node,
             const char *alias = "value";
             char *type_name = NULL;
             bool pointer_param = false;
+            char c_type_buf[256];
             char surface_desc[256];
 
             if (i > 0)
@@ -89,12 +90,22 @@ transpiler_emit_intent_signature_and_entry(ASTNode *node,
                     return false;
                 }
                 if (participant_type != NULL) {
-                    pt = transpiler_require_type_name_c_type(ctx, participant_type, surface_desc);
+                    if (transpiler_require_type_name_c_type_copy(ctx,
+                            participant_type, surface_desc,
+                            c_type_buf,
+                            sizeof(c_type_buf))) {
+                        pt = c_type_buf;
+                    }
                     type_name = pergyra_strdup(participant_type);
                     pointer_param = is_pointer_self_host_type_name(ctx, participant_type);
                 } else if (!mir_only_intent && binding->data.intent_involves.subject_type != NULL) {
-                    pt = transpiler_require_ast_c_type(
-                        ctx, binding->data.intent_involves.subject_type, surface_desc);
+                    if (transpiler_require_ast_c_type_copy(ctx,
+                            binding->data.intent_involves.subject_type,
+                            surface_desc,
+                            c_type_buf,
+                            sizeof(c_type_buf))) {
+                        pt = c_type_buf;
+                    }
                     type_name = render_type_name(binding->data.intent_involves.subject_type);
                     pointer_param = intent_involves_uses_pointer_self(ctx, binding);
                 }
@@ -110,7 +121,11 @@ transpiler_emit_intent_signature_and_entry(ASTNode *node,
                         ctx, "intent value");
                     return false;
                 }
-                pt = transpiler_require_ast_c_type(ctx, value_type, surface_desc);
+                if (transpiler_require_ast_c_type_copy(ctx, value_type,
+                        surface_desc, c_type_buf,
+                        sizeof(c_type_buf))) {
+                    pt = c_type_buf;
+                }
                 if (value_type != NULL)
                     type_name = render_type_name(value_type);
             }

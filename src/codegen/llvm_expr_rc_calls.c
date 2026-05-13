@@ -156,6 +156,17 @@ llvm_emit_rc_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
     ASTNode *arg = node->data.call.arguments[0];
     if (is_rc_new) {
         const char *expected_inner = llvm_rc_expected_inner(ctx);
+        char expected_inner_buf[128];
+        if (expected_inner != NULL) {
+            size_t len = strlen(expected_inner);
+            if (len >= sizeof(expected_inner_buf)) {
+                *out = llvm_rc_error_recovery(ctx, node,
+                    "LLVM RcNew expected payload type is too long");
+                return true;
+            }
+            memcpy(expected_inner_buf, expected_inner, len + 1);
+            expected_inner = expected_inner_buf;
+        }
         LLVMValueRef value = llvm_emit_expression(arg, ctx);
         if (value == NULL) {
             *out = llvm_rc_error_recovery(ctx, node,

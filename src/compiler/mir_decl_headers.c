@@ -175,17 +175,15 @@ mir_record_decl_header(MIRProgram *mir, ASTNode *decl)
 
     switch (decl->type) {
     case AST_CLASS_DECL:
-        header.name = decl->data.class_decl.name;
-        methods = decl->data.class_decl.methods;
-        method_count = decl->data.class_decl.method_count;
+        header.name = ast_class_name(decl);
+        methods = ast_class_methods(decl, &method_count);
         header.uses_pointer_self =
-            decl->data.class_decl.nominal_kind == NOMINAL_DECL_SUBJECT
-            || decl->data.class_decl.nominal_kind == NOMINAL_DECL_VESSEL;
+            ast_class_nominal_kind(decl) == NOMINAL_DECL_SUBJECT
+            || ast_class_nominal_kind(decl) == NOMINAL_DECL_VESSEL;
         break;
     case AST_ENUM_DECL:
-        header.name = decl->data.enum_decl.name;
-        methods = decl->data.enum_decl.methods;
-        method_count = decl->data.enum_decl.method_count;
+        header.name = ast_enum_name(decl);
+        methods = ast_enum_methods(decl, &method_count);
         break;
     case AST_PARTY_DECL:
         header.name = ast_party_name(decl);

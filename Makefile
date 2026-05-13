@@ -356,6 +356,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                     $(SEMANTIC_DIR)/type_checker_type_helpers.c \
                    $(SEMANTIC_DIR)/type_checker_expr_host.c \
                    $(SEMANTIC_DIR)/type_checker_expr_call.c \
+                   $(SEMANTIC_DIR)/type_checker_expr_enum.c \
                    $(SEMANTIC_DIR)/type_checker_expr.c \
                    $(SEMANTIC_DIR)/type_checker_lambda_capture.c \
                    $(SEMANTIC_DIR)/type_checker_expr_names.c \
@@ -544,6 +545,7 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/mir_decl_header_validate.c \
                    $(COMPILER_DIR)/mir_decl_headers.c \
                    $(COMPILER_DIR)/mir_stmt_population.c \
+                   $(COMPILER_DIR)/mir_stmt_population_resource_ops.c \
                    $(COMPILER_DIR)/mir_stmt_source.c \
                    $(COMPILER_DIR)/mir_non_cfg_stmt_population.c \
                    $(COMPILER_DIR)/mir_ssa_rename.c \
@@ -865,6 +867,7 @@ HIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/hir_analysis.o \
                    $(BUILD_DIR)/compiler/hir_lower_cfg.o \
                    $(BUILD_DIR)/compiler/hir_lower_intent_cfg.o \
                    $(BUILD_DIR)/compiler/hir_routine_cfg.o \
+                   $(BUILD_DIR)/compiler/hir_callgraph.o \
                    $(BUILD_DIR)/compiler/hir.o \
                    $(BUILD_DIR)/compiler/hir_routines.o \
                    $(BUILD_DIR)/compiler/hir_destroy.o \
@@ -931,6 +934,7 @@ MIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/mir.o \
                    $(BUILD_DIR)/compiler/mir_decl_header_validate.o \
                    $(BUILD_DIR)/compiler/mir_decl_headers.o \
                    $(BUILD_DIR)/compiler/mir_stmt_population.o \
+                   $(BUILD_DIR)/compiler/mir_stmt_population_resource_ops.o \
                    $(BUILD_DIR)/compiler/mir_stmt_source.o \
                    $(BUILD_DIR)/compiler/mir_non_cfg_stmt_population.o \
                    $(BUILD_DIR)/compiler/mir_ssa_rename.o \
@@ -1204,6 +1208,7 @@ test-semantic: $(SEMANTIC_TEST)
 
 test-transpile: $(TRANSPILE_TEST)
 	@echo "=== C Backend Test ==="
+	@$(call pgy_mkdir_p,$(abspath $(BUILD_DIR)/tmp))
 	$(TRANSPILE_TEST)
 
 test-memory: $(MEMORY_TEST)

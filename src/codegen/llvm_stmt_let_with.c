@@ -261,10 +261,12 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
             }
             if (future_inner == NULL || future_inner[0] == '\0') {
                 llvm_stmt_require_let_type_arg(ctx, node, name, ann_name);
+                free(future_inner);
                 return;
             }
             llvm_register_future_var(ctx, name, future_inner,
                 strcmp(ann_name, "RemoteFuture") == 0);
+            free(future_inner);
         }
     } else if (init != NULL && init->type == AST_CALL
                && init->data.call.callee != NULL

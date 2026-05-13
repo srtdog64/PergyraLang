@@ -34,6 +34,46 @@ program_body_resolve_func_return_type(ASTNode *func_decl, SemanticContext *ctx)
     return program_body_resolve_type_ref(func_decl->data.func_decl.return_type, ctx);
 }
 
+static const char *
+program_body_current_implicit_self_host_name(SemanticContext *ctx)
+{
+    if (ctx == NULL)
+        return NULL;
+    if (ctx->current_nominal_decl != NULL) {
+        if (ctx->current_nominal_decl->type == AST_CLASS_DECL)
+            return ast_class_name(ctx->current_nominal_decl);
+        if (ctx->current_nominal_decl->type == AST_ENUM_DECL)
+            return ast_enum_name(ctx->current_nominal_decl);
+    }
+    if (ctx->current_relation != NULL)
+        return ast_relation_name(ctx->current_relation);
+    if (ctx->current_effect != NULL)
+        return ast_effect_name(ctx->current_effect);
+    if (ctx->current_party != NULL)
+        return ast_party_name(ctx->current_party);
+    if (ctx->current_roster != NULL)
+        return ast_roster_name(ctx->current_roster);
+    if (ctx->current_zone != NULL)
+        return ast_zone_name(ctx->current_zone);
+    if (ctx->current_world != NULL)
+        return ast_world_name(ctx->current_world);
+    return NULL;
+}
+
+static bool
+program_body_symbol_is_self_host(Symbol *sym)
+{
+    if (sym == NULL || sym->type == NULL)
+        return false;
+    return sym->kind == SYMBOL_CLASS
+        || sym->kind == SYMBOL_ZONE
+        || sym->kind == SYMBOL_WORLD
+        || sym->kind == SYMBOL_RELATION
+        || sym->kind == SYMBOL_EFFECT
+        || sym->kind == SYMBOL_ROSTER
+        || sym->kind == SYMBOL_PARTY;
+}
+
 bool
 type_check_func_decl(ASTNode *node, SemanticContext *ctx)
 {
@@ -112,20 +152,16 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
          * enclosing class type. */
         if (param->type == NULL && param->name != NULL
             && strcmp(param->name, "self") == 0
-            && ctx->scope != NULL && ctx->scope->kind == SCOPE_CLASS) {
+            && ctx->scope != NULL
+            && (ctx->scope->kind == SCOPE_CLASS
+                || program_body_current_implicit_self_host_name(ctx) != NULL)) {
             Scope *parent = ctx->scope->parent;
-            const char *nominal_name = NULL;
-
-            if (ctx->current_nominal_decl != NULL) {
-                if (ctx->current_nominal_decl->type == AST_CLASS_DECL)
-                    nominal_name = ctx->current_nominal_decl->data.class_decl.name;
-                else if (ctx->current_nominal_decl->type == AST_ENUM_DECL)
-                    nominal_name = ctx->current_nominal_decl->data.enum_decl.name;
-            }
+            const char *nominal_name =
+                program_body_current_implicit_self_host_name(ctx);
 
             if (parent != NULL && nominal_name != NULL) {
                 Symbol *self_sym = scope_lookup(parent, nominal_name);
-                if (self_sym != NULL && self_sym->kind == SYMBOL_CLASS)
+                if (program_body_symbol_is_self_host(self_sym))
                     param_types[i] = self_sym->type;
             }
 

@@ -174,6 +174,7 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
                 && stmt->data.let_decl.initializer->data.unary.op.type == TOKEN_QUESTION) {
                 ASTNode *operand = stmt->data.let_decl.initializer->data.unary.operand;
                 const char *result_type = infer_expression_type_name(ctx, operand);
+                char result_c_type_buf[256];
                 const char *result_c_type = NULL;
                 char *operand_expr = NULL;
                 int try_id;
@@ -212,8 +213,23 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
                     break;
                 }
 
-                result_c_type = pergyra_type_to_c(result_type);
-                operand_expr = emit_expression_with_ssa_map(operand, ctx, ssa_map_out);
+                {
+                    if (!pergyra_type_to_c_copy(result_type,
+                            result_c_type_buf, sizeof(result_c_type_buf))) {
+                        free(lhs);
+                        free(local_type_name_owned);
+                        if (reason != NULL && reason_cap > 0) {
+                            transpiler_mir_reasonf(reason, reason_cap,
+                                 "MIR block %llu emission failed: '?' operand type '%s' has no stable C rendering",
+                                 (unsigned long long) block->id,
+                                 result_type);
+                        }
+                        ok = false;
+                        break;
+                    }
+                    result_c_type = result_c_type_buf;
+                    operand_expr = emit_expression_with_ssa_map(operand, ctx, ssa_map_out);
+                }
                 if (operand_expr == NULL) {
                     free(lhs);
                     free(local_type_name_owned);

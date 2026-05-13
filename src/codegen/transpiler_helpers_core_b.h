@@ -27,7 +27,7 @@ emit_builtin_to_dto(ASTNode *call, TranspilerCtx *ctx)
         return pergyra_strdup("/* ToTObject: need named subject source */");
 
     target_decl = find_class_decl(ctx, target_arg->data.identifier.name);
-    if (target_decl == NULL || !target_decl->data.class_decl.is_struct)
+    if (target_decl == NULL || !ast_class_is_struct(target_decl))
         return pergyra_strdup("/* ToTObject: target must be tobject/struct */");
 
     source_type_name = infer_expression_type_name(ctx, source_arg);
@@ -59,6 +59,7 @@ static char *
 render_type_name_with_bindings(TranspilerCtx *ctx, ASTNode *type_node,
                                GenericBindingEntry *bindings, size_t binding_count);
 
+#include "transpiler_collection_runtime_suffix.h"
 #include "transpiler_specialization_helpers.h"
 #include "transpiler_expr_type_infer.h"
 #include "transpiler_func_forward_metadata.h"

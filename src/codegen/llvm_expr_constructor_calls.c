@@ -101,16 +101,17 @@ llvm_emit_class_constructor_shared_defaults(ASTNode *node, LLVMGenCtx *ctx,
 
     for (size_t i = 0; i < shared_count; i++) {
         ASTNode *shared = shared_fields[i];
+        const char *shared_name = ast_party_shared_name(shared);
+        ASTNode *initializer = ast_party_shared_initializer(shared);
         int field_idx;
         LLVMValueRef init_val;
-        if (shared == NULL || shared->data.party_shared.name == NULL
-            || shared->data.party_shared.initializer == NULL) {
+        if (shared == NULL || shared_name == NULL || initializer == NULL) {
             continue;
         }
-        field_idx = llvm_class_field_index(cls, shared->data.party_shared.name);
+        field_idx = llvm_class_field_index(cls, shared_name);
         if (field_idx < 0 || (size_t)field_idx < node->data.call.arg_count)
             continue;
-        init_val = llvm_emit_expression(shared->data.party_shared.initializer, ctx);
+        init_val = llvm_emit_expression(initializer, ctx);
         if (init_val == NULL)
             continue;
         *object = LLVMBuildInsertValue(ctx->builder, *object, init_val,
@@ -149,13 +150,13 @@ llvm_emit_class_constructor_projection_dirty(LLVMGenCtx *ctx,
 
     for (size_t i = 0; i < slot_count; i++) {
         ASTNode *slot = slots != NULL ? slots[i] : NULL;
-        const char *slot_name = slot != NULL ? slot->data.domain_slot.slot_name : NULL;
+        const char *slot_name = ast_domain_slot_name(slot);
         bool projection_slot = false;
 
         if (slot == NULL || slot->type != AST_DOMAIN_SLOT || slot_name == NULL)
             continue;
 
-        if (slot->data.domain_slot.is_tobject) {
+        if (ast_domain_slot_is_tobject(slot)) {
             projection_slot = true;
         } else {
             for (size_t ri = 0; ri < refresh_count; ri++) {
@@ -209,7 +210,7 @@ llvm_emit_class_constructor_world_dirty(LLVMGenCtx *ctx,
         ASTNode *zone = zones[i];
         char dirty_field[256];
         int dirty_idx;
-        const char *slot_name = zone != NULL ? zone->data.world_zone.slot_name : NULL;
+        const char *slot_name = ast_world_zone_slot_name(zone);
         if (slot_name == NULL)
             continue;
         snprintf(dirty_field, sizeof(dirty_field), "__zone_dirty_%s", slot_name);

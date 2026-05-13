@@ -1,0 +1,26 @@
+ability Updatable {
+    func Tick() -> Void;
+    func Inspect(target: Player) -> Void;
+}
+
+subject Player {}
+
+role BaseRole for Player {
+    impl ability Updatable {
+        func Tick() -> Void {
+            Log("base.tick");
+        }
+
+        func Inspect(target: Player) -> Void {
+            Log("base.inspect");
+        }
+    }
+}
+
+role DerivedRole for Player {
+    include BaseRole;
+}
+
+func Main() -> Void {
+    Log("role.include.ready");
+}

@@ -1,6 +1,7 @@
 #include "type_checker_internal.h"
 #include "type_checker_visibility.h"
 #include "diag_codes.h"
+#include "parser/ast_api.h"
 #include "../common/string_compat.h"
 
 #include "type_checker_world_internal.h"
@@ -19,7 +20,7 @@ world_resolve_domain_slot_type(ASTNode *slot, SemanticContext *ctx)
 {
     if (slot == NULL || slot->type != AST_DOMAIN_SLOT)
         return TYPE_UNKNOWN;
-    return world_resolve_type_ref(slot->data.domain_slot.type, ctx);
+    return world_resolve_type_ref(ast_domain_slot_type(slot), ctx);
 }
 
 ASTNode *
@@ -34,9 +35,10 @@ find_world_zone_slot_local(ASTNode *world, const char *slot_name)
 
     for (size_t i = 0; i < zone_count; i++) {
         ASTNode *zone = zones[i];
+        const char *zone_slot_name = ast_world_zone_slot_name(zone);
         if (zone != NULL && zone->type == AST_WORLD_ZONE
-            && zone->data.world_zone.slot_name != NULL
-            && strcmp(zone->data.world_zone.slot_name, slot_name) == 0) {
+            && zone_slot_name != NULL
+            && strcmp(zone_slot_name, slot_name) == 0) {
             return zone;
         }
     }
@@ -101,11 +103,11 @@ resolve_world_zone_decl_local(ASTNode *world, SemanticContext *ctx, const char *
     }
 
     slot = find_world_zone_slot_local(world, slot_name);
-    if (slot == NULL || slot->data.world_zone.zone_type == NULL)
+    const char *zone_type = ast_world_zone_type_name(slot);
+    if (slot == NULL || zone_type == NULL)
         return NULL;
 
-    return find_domain_decl_by_name(ctx->program_root, AST_ZONE_DECL,
-        slot->data.world_zone.zone_type);
+    return find_domain_decl_by_name(ctx->program_root, AST_ZONE_DECL, zone_type);
 }
 
 const char *
@@ -141,8 +143,8 @@ find_zone_layer_slot_local(ASTNode *zone, const char *slot_name)
     for (size_t i = 0; i < layer_slot_count; i++) {
         ASTNode *slot = layer_slots[i];
         if (slot != NULL && slot->type == AST_ZONE_LAYER_SLOT
-            && slot->data.zone_layer_slot.slot_name != NULL
-            && strcmp(slot->data.zone_layer_slot.slot_name, slot_name) == 0) {
+            && ast_zone_layer_slot_name(slot) != NULL
+            && strcmp(ast_zone_layer_slot_name(slot), slot_name) == 0) {
             return slot;
         }
     }
@@ -163,8 +165,8 @@ find_zone_state_decl_local(ASTNode *zone, const char *state_name)
     for (size_t i = 0; i < state_count; i++) {
         ASTNode *state = states[i];
         if (state != NULL && state->type == AST_ZONE_STATE
-            && state->data.zone_state.state_name != NULL
-            && strcmp(state->data.zone_state.state_name, state_name) == 0) {
+            && ast_zone_state_name(state) != NULL
+            && strcmp(ast_zone_state_name(state), state_name) == 0) {
             return state;
         }
     }
@@ -182,7 +184,7 @@ resolve_world_zone_state(ASTNode *world, ASTNode *site, const char *state_name,
         ASTNode *zone = find_world_zone_slot_local(world, state_name);
         if (zone != NULL) {
             if (zone_slot_name_out != NULL)
-                *zone_slot_name_out = zone->data.world_zone.slot_name;
+                *zone_slot_name_out = ast_world_zone_slot_name(zone);
             return true;
         }
     }

@@ -96,7 +96,7 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                 scope_declare(ctx->scope, s);
             }
         } else if (stmt->type == AST_CLASS_DECL) {
-            const char *cname = stmt->data.class_decl.name;
+            const char *cname = ast_class_name(stmt);
             if (cname != NULL && scope_lookup_current(ctx->scope, cname) == NULL) {
                 Type *t = calloc(1, sizeof(Type));
                 if (t == NULL)
@@ -199,7 +199,9 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                 scope_declare(ctx->scope, s);
             }
         } else if (stmt->type == AST_ENUM_DECL) {
-            const char *ename = stmt->data.enum_decl.name;
+            const char *ename = ast_enum_name(stmt);
+            size_t variant_count = 0;
+            char **variants = ast_enum_variants(stmt, &variant_count);
             if (ename != NULL && scope_lookup_current(ctx->scope, ename) == NULL) {
                 Type *t = calloc(1, sizeof(Type));
                 if (t == NULL)
@@ -217,12 +219,11 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
             }
             Symbol *enum_sym = scope_lookup_current(ctx->scope, ename);
             Type *etype = enum_sym != NULL ? enum_sym->type : TYPE_UNKNOWN;
-            for (size_t j = 0; j < stmt->data.enum_decl.variant_count; j++) {
-                const char *vname = stmt->data.enum_decl.variants[j];
+            for (size_t j = 0; j < variant_count; j++) {
+                const char *vname = variants != NULL ? variants[j] : NULL;
                 if (vname == NULL || scope_lookup_current(ctx->scope, vname) != NULL)
                     continue;
-                size_t vpc = (stmt->data.enum_decl.variant_param_counts != NULL)
-                    ? stmt->data.enum_decl.variant_param_counts[j] : 0;
+                size_t vpc = ast_enum_variant_param_count(stmt, j);
                 if (vpc > 0) {
                     /* Tagged union variant constructor: register as function
                      * Circle(Int) -> Shape */
@@ -231,7 +232,7 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                         return program_report_resolution_oom(ctx, stmt,
                             "enum variant parameters");
                     for (size_t p = 0; p < vpc && ptypes != NULL; p++) {
-                        ASTNode *pt = stmt->data.enum_decl.variant_params[j][p];
+                        ASTNode *pt = ast_enum_variant_param(stmt, j, p);
                         ptypes[p] =
                             program_lookup_dag_type_ref_or_unknown(pt, ctx);
                     }

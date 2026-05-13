@@ -6,6 +6,7 @@
 #ifdef PGY_LLVM_ENABLED
 
 #include "llvm_internal.h"
+#include "parser/ast_api.h"
 
 ASTNode *
 llvm_find_named_domain_decl(LLVMGenCtx *ctx, ASTNodeType decl_type,
@@ -39,8 +40,8 @@ llvm_find_zone_state_decl(LLVMGenCtx *ctx, ASTNode *zone_decl,
     for (size_t i = 0; i < state_count; i++) {
         ASTNode *state = states[i];
         if (state != NULL && state->type == AST_ZONE_STATE
-            && state->data.zone_state.state_name != NULL
-            && strcmp(state->data.zone_state.state_name, state_name) == 0)
+            && ast_zone_state_name(state) != NULL
+            && strcmp(ast_zone_state_name(state), state_name) == 0)
             return state;
     }
     return NULL;
@@ -80,9 +81,8 @@ llvm_find_world_zone_slot_decl(ASTNode *world_decl, const char *slot_name)
     zones = ast_world_zones(world_decl, &zone_count);
     for (size_t i = 0; i < zone_count; i++) {
         ASTNode *zone = zones[i];
-        if (zone != NULL && zone->type == AST_WORLD_ZONE
-            && zone->data.world_zone.slot_name != NULL
-            && strcmp(zone->data.world_zone.slot_name, slot_name) == 0)
+        const char *zone_slot_name = ast_world_zone_slot_name(zone);
+        if (zone_slot_name != NULL && strcmp(zone_slot_name, slot_name) == 0)
             return zone;
     }
     return NULL;
@@ -93,11 +93,11 @@ llvm_resolve_world_zone_decl(LLVMGenCtx *ctx, ASTNode *world_decl,
                              const char *slot_name)
 {
     ASTNode *zone_slot = llvm_find_world_zone_slot_decl(world_decl, slot_name);
-    if (ctx == NULL || zone_slot == NULL
-        || zone_slot->data.world_zone.zone_type == NULL)
+    const char *zone_type_name = ast_world_zone_type_name(zone_slot);
+    if (ctx == NULL || zone_type_name == NULL)
         return NULL;
     return llvm_find_named_domain_decl(ctx, AST_ZONE_DECL,
-        zone_slot->data.world_zone.zone_type);
+        zone_type_name);
 }
 
 ASTNode *
@@ -112,9 +112,10 @@ llvm_find_zone_domain_slot_decl(ASTNode *zone_decl, const char *slot_name)
     slots = ast_zone_slots(zone_decl, &slot_count);
     for (size_t i = 0; i < slot_count; i++) {
         ASTNode *slot = slots[i];
+        const char *candidate_name = ast_domain_slot_name(slot);
         if (slot != NULL && slot->type == AST_DOMAIN_SLOT
-            && slot->data.domain_slot.slot_name != NULL
-            && strcmp(slot->data.domain_slot.slot_name, slot_name) == 0)
+            && candidate_name != NULL
+            && strcmp(candidate_name, slot_name) == 0)
             return slot;
     }
     return NULL;
@@ -133,8 +134,8 @@ llvm_find_zone_layer_slot_decl(ASTNode *zone_decl, const char *slot_name)
     for (size_t i = 0; i < layer_slot_count; i++) {
         ASTNode *slot = layer_slots[i];
         if (slot != NULL && slot->type == AST_ZONE_LAYER_SLOT
-            && slot->data.zone_layer_slot.slot_name != NULL
-            && strcmp(slot->data.zone_layer_slot.slot_name, slot_name) == 0)
+            && ast_zone_layer_slot_name(slot) != NULL
+            && strcmp(ast_zone_layer_slot_name(slot), slot_name) == 0)
             return slot;
     }
     return NULL;
@@ -187,8 +188,8 @@ llvm_host_decl_uses_pointer_self(ASTNode *decl)
     case AST_ZONE_DECL:
         return true;
     case AST_CLASS_DECL:
-        return decl->data.class_decl.nominal_kind == NOMINAL_DECL_SUBJECT
-            || decl->data.class_decl.nominal_kind == NOMINAL_DECL_VESSEL;
+        return ast_class_nominal_kind(decl) == NOMINAL_DECL_SUBJECT
+            || ast_class_nominal_kind(decl) == NOMINAL_DECL_VESSEL;
     default:
         return false;
     }
@@ -220,7 +221,7 @@ llvm_type_name_uses_pointer_self(LLVMGenCtx *ctx, const char *type_name)
     {
         ASTNode *stmt = llvm_find_projection_class_decl(ctx, type_name);
         return stmt != NULL && stmt->type == AST_CLASS_DECL
-            && stmt->data.class_decl.nominal_kind == NOMINAL_DECL_VESSEL;
+            && ast_class_nominal_kind(stmt) == NOMINAL_DECL_VESSEL;
     }
 }
 
@@ -254,8 +255,10 @@ llvm_current_field_class_name(LLVMGenCtx *ctx, const char *field_name)
     if (host_decl == NULL || host_decl->type != AST_CLASS_DECL)
         return NULL;
 
-    for (size_t i = 0; i < host_decl->data.class_decl.field_count; i++) {
-        ClassField *field = host_decl->data.class_decl.fields[i];
+    size_t field_count = 0;
+    ClassField **fields = ast_class_fields(host_decl, &field_count);
+    for (size_t i = 0; i < field_count; i++) {
+        ClassField *field = fields != NULL ? fields[i] : NULL;
         if (field == NULL || field->name == NULL
             || strcmp(field->name, field_name) != 0
             || field->type == NULL || field->type->type != AST_TYPE

@@ -98,7 +98,12 @@ mir_dump(const MIRProgram *mir, FILE *out)
         return;
     }
 
-    fprintf(out, "MIR Program\n  routines: %zu\n", mir->routine_count);
+    fprintf(out,
+            "MIR Program\n  routines: %zu\n  noncfg-fallbacks: total=%zu routines=%zu recorded=%s\n",
+            mir->routine_count,
+            mir->non_cfg_body_fallback_total,
+            mir->non_cfg_body_fallback_routine_count,
+            mir->has_non_cfg_body_fallback_inventory ? "yes" : "no");
     if (mir->routine_count > 0 && mir->routines == NULL) {
         fprintf(out, "  invalid: routine count without routine inventory\n");
         return;

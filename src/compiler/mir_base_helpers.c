@@ -292,6 +292,8 @@ mir_block_has_predecessor(const MIRBasicBlock *block, size_t predecessor)
 {
     if (block == NULL)
         return false;
+    if (block->predecessors == NULL)
+        return false;
     for (size_t i = 0; i < block->predecessor_count; i++) {
         if (block->predecessors[i] == predecessor)
             return true;

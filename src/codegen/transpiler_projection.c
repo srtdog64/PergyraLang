@@ -48,9 +48,10 @@ transpiler_find_zone_domain_slot(ASTNode *zone_decl, const char *slot_name)
     ASTNode **slots = ast_zone_slots(zone_decl, &slot_count);
     for (size_t i = 0; i < slot_count; i++) {
         ASTNode *slot = slots[i];
+        const char *candidate_name = ast_domain_slot_name(slot);
         if (slot != NULL && slot->type == AST_DOMAIN_SLOT
-            && slot->data.domain_slot.slot_name != NULL
-            && strcmp(slot->data.domain_slot.slot_name, slot_name) == 0) {
+            && candidate_name != NULL
+            && strcmp(candidate_name, slot_name) == 0) {
             return slot;
         }
     }
@@ -75,8 +76,9 @@ transpiler_current_world_has_field(TranspilerCtx *ctx, const char *field_name)
     ASTNode **rosters = ast_world_rosters(decl, &roster_count);
     for (size_t i = 0; i < roster_count; i++) {
         ASTNode *slot = rosters[i];
-        if (slot != NULL && slot->data.world_roster.slot_name != NULL
-            && strcmp(slot->data.world_roster.slot_name, field_name) == 0) {
+        const char *slot_name = ast_world_roster_slot_name(slot);
+        if (slot != NULL && slot_name != NULL
+            && strcmp(slot_name, field_name) == 0) {
             return true;
         }
     }
@@ -84,8 +86,9 @@ transpiler_current_world_has_field(TranspilerCtx *ctx, const char *field_name)
     ASTNode **zones = ast_world_zones(decl, &zone_count);
     for (size_t i = 0; i < zone_count; i++) {
         ASTNode *slot = zones[i];
-        if (slot != NULL && slot->data.world_zone.slot_name != NULL
-            && strcmp(slot->data.world_zone.slot_name, field_name) == 0) {
+        const char *slot_name = ast_world_zone_slot_name(slot);
+        if (slot != NULL && slot_name != NULL
+            && strcmp(slot_name, field_name) == 0) {
             return true;
         }
     }
@@ -93,8 +96,9 @@ transpiler_current_world_has_field(TranspilerCtx *ctx, const char *field_name)
     ASTNode **shared_fields = ast_world_shared_fields(decl, &shared_count);
     for (size_t i = 0; i < shared_count; i++) {
         ASTNode *shared = shared_fields[i];
-        if (shared != NULL && shared->data.party_shared.name != NULL
-            && strcmp(shared->data.party_shared.name, field_name) == 0) {
+        const char *shared_name = ast_party_shared_name(shared);
+        if (shared != NULL && shared_name != NULL
+            && strcmp(shared_name, field_name) == 0) {
             return true;
         }
     }
@@ -113,8 +117,8 @@ transpiler_find_zone_state_decl(ASTNode *zone_decl, const char *state_name)
     for (size_t i = 0; i < state_count; i++) {
         ASTNode *state = states[i];
         if (state != NULL && state->type == AST_ZONE_STATE
-            && state->data.zone_state.state_name != NULL
-            && strcmp(state->data.zone_state.state_name, state_name) == 0) {
+            && ast_zone_state_name(state) != NULL
+            && strcmp(ast_zone_state_name(state), state_name) == 0) {
             return state;
         }
     }
@@ -132,8 +136,8 @@ transpiler_find_zone_layer_slot(ASTNode *zone_decl, const char *slot_name)
     for (size_t i = 0; i < layer_slot_count; i++) {
         ASTNode *slot = layer_slots[i];
         if (slot != NULL && slot->type == AST_ZONE_LAYER_SLOT
-            && slot->data.zone_layer_slot.slot_name != NULL
-            && strcmp(slot->data.zone_layer_slot.slot_name, slot_name) == 0) {
+            && ast_zone_layer_slot_name(slot) != NULL
+            && strcmp(ast_zone_layer_slot_name(slot), slot_name) == 0) {
             return slot;
         }
     }
@@ -151,8 +155,8 @@ transpiler_find_world_zone_slot_decl(ASTNode *world_decl, const char *slot_name)
     for (size_t i = 0; i < zone_count; i++) {
         ASTNode *zone = zones[i];
         if (zone != NULL && zone->type == AST_WORLD_ZONE
-            && zone->data.world_zone.slot_name != NULL
-            && strcmp(zone->data.world_zone.slot_name, slot_name) == 0) {
+            && ast_world_zone_slot_name(zone) != NULL
+            && strcmp(ast_world_zone_slot_name(zone), slot_name) == 0) {
             return zone;
         }
     }
@@ -171,18 +175,23 @@ transpiler_resolve_world_zone_decl(TranspilerCtx *ctx, ASTNode *world_decl,
                                    const char *slot_name)
 {
     ASTNode *zone_slot = transpiler_find_world_zone_slot_decl(world_decl, slot_name);
-    if (ctx == NULL || zone_slot == NULL || zone_slot->data.world_zone.zone_type == NULL)
+    const char *zone_type = ast_world_zone_type_name(zone_slot);
+    if (ctx == NULL || zone_slot == NULL || zone_type == NULL)
         return NULL;
-    return find_zone_decl(ctx, zone_slot->data.world_zone.zone_type);
+    return find_zone_decl(ctx, zone_type);
 }
 
 static size_t
 projection_source_field_count(ASTNode *decl)
 {
+    size_t field_count = 0;
+
     if (decl == NULL)
         return 0;
-    if (decl->type == AST_CLASS_DECL)
-        return decl->data.class_decl.field_count;
+    if (decl->type == AST_CLASS_DECL) {
+        (void) ast_class_fields(decl, &field_count);
+        return field_count;
+    }
     return 0;
 }
 
@@ -192,8 +201,10 @@ projection_source_field_at(ASTNode *decl, size_t index)
     if (decl == NULL)
         return NULL;
     if (decl->type == AST_CLASS_DECL) {
-        if (index < decl->data.class_decl.field_count)
-            return decl->data.class_decl.fields[index];
+        size_t field_count = 0;
+        ClassField **fields = ast_class_fields(decl, &field_count);
+        if (index < field_count && fields != NULL)
+            return fields[index];
         return NULL;
     }
     return NULL;
@@ -239,7 +250,7 @@ resolve_projection_source_path_rec(TranspilerCtx *ctx, ASTNode *source_decl,
 
         vessel_decl = find_class_decl(ctx, field->type->data.type.name);
         if (vessel_decl == NULL
-            || vessel_decl->data.class_decl.nominal_kind != NOMINAL_DECL_VESSEL) {
+            || ast_class_nominal_kind(vessel_decl) != NOMINAL_DECL_VESSEL) {
             continue;
         }
 
@@ -298,8 +309,12 @@ emit_projection_literal(TranspilerCtx *ctx, ASTNode *target_decl, ASTNode *sourc
     buf = codebuf_create();
     codebuf_write(buf, "(%s){ ", target_type_name);
 
-    for (size_t i = 0; i < target_decl->data.class_decl.field_count; i++) {
-        ClassField *target_field = target_decl->data.class_decl.fields[i];
+    size_t target_field_count = 0;
+    ClassField **target_fields =
+        ast_class_fields(target_decl, &target_field_count);
+    for (size_t i = 0; i < target_field_count; i++) {
+        ClassField *target_field =
+            target_fields != NULL ? target_fields[i] : NULL;
         const char *source_field_name = NULL;
         char *source_path = NULL;
         int source_status;
@@ -347,13 +362,13 @@ bool
 is_subject_type_name(TranspilerCtx *ctx, const char *type_name)
 {
     ASTNode *decl = find_class_decl(ctx, type_name);
-    if (decl != NULL && !decl->data.class_decl.is_struct)
-        return decl->data.class_decl.nominal_kind == NOMINAL_DECL_SUBJECT;
+    if (decl != NULL && !ast_class_is_struct(decl))
+        return ast_class_nominal_kind(decl) == NOMINAL_DECL_SUBJECT;
     for (int i = 0; ctx != NULL && i < ctx->generic_class_spec_count; i++) {
         if (strcmp(ctx->generic_class_specs[i].specialized_name, type_name) == 0) {
             const ASTNode *orig = ctx->generic_class_specs[i].class_decl;
-            return orig != NULL && !orig->data.class_decl.is_struct
-                && orig->data.class_decl.nominal_kind == NOMINAL_DECL_SUBJECT;
+            return orig != NULL && !ast_class_is_struct(orig)
+                && ast_class_nominal_kind(orig) == NOMINAL_DECL_SUBJECT;
         }
     }
     return false;
@@ -370,9 +385,9 @@ is_nominal_host_type_name(TranspilerCtx *ctx, const char *type_name)
     if (find_enum_decl(ctx, type_name) != NULL)
         return true;
     decl = find_class_decl(ctx, type_name);
-    if (decl != NULL && (!decl->data.class_decl.is_struct
-        || decl->data.class_decl.nominal_kind == NOMINAL_DECL_VESSEL
-        || decl->data.class_decl.nominal_kind == NOMINAL_DECL_OBJECT))
+    if (decl != NULL && (!ast_class_is_struct(decl)
+        || ast_class_nominal_kind(decl) == NOMINAL_DECL_VESSEL
+        || ast_class_nominal_kind(decl) == NOMINAL_DECL_OBJECT))
         return true;
     if (find_relation_decl(ctx, type_name) != NULL
         || find_effect_decl(ctx, type_name) != NULL
@@ -385,7 +400,7 @@ is_nominal_host_type_name(TranspilerCtx *ctx, const char *type_name)
     for (int i = 0; i < ctx->generic_class_spec_count; i++) {
         if (strcmp(ctx->generic_class_specs[i].specialized_name, type_name) == 0) {
             const ASTNode *orig = ctx->generic_class_specs[i].class_decl;
-            return orig != NULL && !orig->data.class_decl.is_struct;
+            return orig != NULL && !ast_class_is_struct(orig);
         }
     }
     return false;

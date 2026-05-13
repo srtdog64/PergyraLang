@@ -86,14 +86,14 @@ llvm_emit_intent_step_mark_caused_effect(LLVMGenCtx *ctx,
         int cause_idx;
 
         if (layer_slot == NULL || layer_slot->type != AST_ZONE_LAYER_SLOT
-            || layer_slot->data.zone_layer_slot.is_relation
-            || layer_slot->data.zone_layer_slot.slot_name == NULL
-            || layer_slot->data.zone_layer_slot.layer_type == NULL
-            || strcmp(layer_slot->data.zone_layer_slot.layer_type, causes_effect) != 0) {
+            || ast_zone_layer_slot_is_relation(layer_slot)
+            || ast_zone_layer_slot_name(layer_slot) == NULL
+            || ast_zone_layer_slot_layer_type(layer_slot) == NULL
+            || strcmp(ast_zone_layer_slot_layer_type(layer_slot), causes_effect) != 0) {
             continue;
         }
 
-        layer_name = layer_slot->data.zone_layer_slot.slot_name;
+        layer_name = ast_zone_layer_slot_name(layer_slot);
         if (!llvm_intent_effect_field_name(epoch_field, sizeof(epoch_field),
                 "layer_epoch", layer_name)) {
             llvm_set_error(ctx, "intent effect layer epoch field name is too long");
@@ -131,22 +131,22 @@ llvm_emit_intent_step_mark_caused_effect(LLVMGenCtx *ctx,
             int state_epoch_idx;
             int state_cause_idx;
             if (state == NULL || state->type != AST_ZONE_STATE
-                || state->data.zone_state.is_relation
-                || state->data.zone_state.state_name == NULL
-                || state->data.zone_state.layer_slot_name == NULL
-                || strcmp(state->data.zone_state.layer_slot_name, layer_name) != 0) {
+                || ast_zone_state_is_relation(state)
+                || ast_zone_state_name(state) == NULL
+                || ast_zone_state_layer_slot_name(state) == NULL
+                || strcmp(ast_zone_state_layer_slot_name(state), layer_name) != 0) {
                 continue;
             }
             if (!llvm_intent_effect_field_name(state_epoch_field,
                     sizeof(state_epoch_field), "state_epoch",
-                    state->data.zone_state.state_name)) {
+                    ast_zone_state_name(state))) {
                 llvm_set_error(ctx,
                     "intent effect state epoch field name is too long");
                 return;
             }
             if (!llvm_intent_effect_field_name(state_cause_field,
                     sizeof(state_cause_field), "state_cause",
-                    state->data.zone_state.state_name)) {
+                    ast_zone_state_name(state))) {
                 llvm_set_error(ctx,
                     "intent effect state cause field name is too long");
                 return;

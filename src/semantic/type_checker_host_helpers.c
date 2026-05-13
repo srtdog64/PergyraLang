@@ -36,7 +36,7 @@ host_helper_resolve_domain_slot_type(ASTNode *slot, SemanticContext *ctx)
 {
     if (slot == NULL || slot->type != AST_DOMAIN_SLOT)
         return TYPE_UNKNOWN;
-    return host_helper_resolve_type_ref(slot->data.domain_slot.type, ctx);
+    return host_helper_resolve_type_ref(ast_domain_slot_type(slot), ctx);
 }
 
 size_t
@@ -45,6 +45,8 @@ overlay_field_count(ASTNode *decl)
     if (decl == NULL)
         return 0;
     switch (decl->type) {
+    case AST_PARTY_DECL:
+        return ast_party_shared_count(decl);
     case AST_ROSTER_DECL:
         return ast_roster_party_count(decl) + ast_roster_shared_count(decl);
     case AST_WORLD_DECL: {
@@ -91,6 +93,15 @@ overlay_field_decl_at(ASTNode *decl, size_t index, const char **field_name_out)
         return NULL;
 
     switch (decl->type) {
+    case AST_PARTY_DECL: {
+        if (index < ast_party_shared_count(decl)) {
+            ASTNode *shared = ast_party_shared(decl, index);
+            if (field_name_out != NULL && shared != NULL)
+                *field_name_out = ast_party_shared_name(shared);
+            return ast_party_shared_type(shared);
+        }
+        break;
+    }
     case AST_ROSTER_DECL: {
         size_t party_count = ast_roster_party_count(decl);
         if (index < party_count)
@@ -99,8 +110,8 @@ overlay_field_decl_at(ASTNode *decl, size_t index, const char **field_name_out)
         if (index < ast_roster_shared_count(decl)) {
             ASTNode *shared = ast_roster_shared(decl, index);
             if (field_name_out != NULL && shared != NULL)
-                *field_name_out = shared->data.party_shared.name;
-            return shared != NULL ? shared->data.party_shared.type : NULL;
+                *field_name_out = ast_party_shared_name(shared);
+            return ast_party_shared_type(shared);
         }
         break;
     }
@@ -121,8 +132,8 @@ overlay_field_decl_at(ASTNode *decl, size_t index, const char **field_name_out)
         if (index < shared_count) {
             ASTNode *shared = shared_fields[index];
             if (field_name_out != NULL && shared != NULL)
-                *field_name_out = shared->data.party_shared.name;
-            return shared != NULL ? shared->data.party_shared.type : NULL;
+                *field_name_out = ast_party_shared_name(shared);
+            return ast_party_shared_type(shared);
         }
         break;
     }
@@ -134,15 +145,15 @@ overlay_field_decl_at(ASTNode *decl, size_t index, const char **field_name_out)
         if (index < slot_count) {
             ASTNode *slot = slots[index];
             if (field_name_out != NULL && slot != NULL)
-                *field_name_out = slot->data.domain_slot.slot_name;
-            return slot != NULL ? slot->data.domain_slot.type : NULL;
+                *field_name_out = ast_domain_slot_name(slot);
+            return ast_domain_slot_type(slot);
         }
         index -= slot_count;
         if (index < shared_count) {
             ASTNode *shared = shared_fields[index];
             if (field_name_out != NULL && shared != NULL)
-                *field_name_out = shared->data.party_shared.name;
-            return shared != NULL ? shared->data.party_shared.type : NULL;
+                *field_name_out = ast_party_shared_name(shared);
+            return ast_party_shared_type(shared);
         }
         break;
     }
@@ -154,15 +165,15 @@ overlay_field_decl_at(ASTNode *decl, size_t index, const char **field_name_out)
         if (index < slot_count) {
             ASTNode *slot = slots[index];
             if (field_name_out != NULL && slot != NULL)
-                *field_name_out = slot->data.domain_slot.slot_name;
-            return slot != NULL ? slot->data.domain_slot.type : NULL;
+                *field_name_out = ast_domain_slot_name(slot);
+            return ast_domain_slot_type(slot);
         }
         index -= slot_count;
         if (index < shared_count) {
             ASTNode *shared = shared_fields[index];
             if (field_name_out != NULL && shared != NULL)
-                *field_name_out = shared->data.party_shared.name;
-            return shared != NULL ? shared->data.party_shared.type : NULL;
+                *field_name_out = ast_party_shared_name(shared);
+            return ast_party_shared_type(shared);
         }
         break;
     }
@@ -174,15 +185,15 @@ overlay_field_decl_at(ASTNode *decl, size_t index, const char **field_name_out)
         if (index < slot_count) {
             ASTNode *slot = slots[index];
             if (field_name_out != NULL && slot != NULL)
-                *field_name_out = slot->data.domain_slot.slot_name;
-            return slot != NULL ? slot->data.domain_slot.type : NULL;
+                *field_name_out = ast_domain_slot_name(slot);
+            return ast_domain_slot_type(slot);
         }
         index -= slot_count;
         if (index < shared_count) {
             ASTNode *shared = shared_fields[index];
             if (field_name_out != NULL && shared != NULL)
-                *field_name_out = shared->data.party_shared.name;
-            return shared != NULL ? shared->data.party_shared.type : NULL;
+                *field_name_out = ast_party_shared_name(shared);
+            return ast_party_shared_type(shared);
         }
         break;
     }
@@ -204,6 +215,10 @@ current_host_decl(SemanticContext *ctx)
         return ctx->current_relation;
     if (ctx->current_effect != NULL)
         return ctx->current_effect;
+    if (ctx->current_party != NULL)
+        return ctx->current_party;
+    if (ctx->current_roster != NULL)
+        return ctx->current_roster;
     if (ctx->current_zone != NULL)
         return ctx->current_zone;
     if (ctx->current_world != NULL)
@@ -220,6 +235,8 @@ constructor_decl_for_symbol_kind(ASTNode *program, SymbolKind kind, const char *
     switch (kind) {
     case SYMBOL_CLASS:
         return find_type_decl_by_name(program, name);
+    case SYMBOL_PARTY:
+        return find_domain_decl_by_name(program, AST_PARTY_DECL, name);
     case SYMBOL_ROSTER:
         return find_domain_decl_by_name(program, AST_ROSTER_DECL, name);
     case SYMBOL_WORLD:
@@ -230,6 +247,93 @@ constructor_decl_for_symbol_kind(ASTNode *program, SymbolKind kind, const char *
         return find_domain_decl_by_name(program, AST_RELATION_DECL, name);
     case SYMBOL_EFFECT:
         return find_domain_decl_by_name(program, AST_EFFECT_DECL, name);
+    default:
+        return NULL;
+    }
+}
+
+static ASTNode *
+semantic_enum_decl_by_name(ASTNode *program, const char *name)
+{
+    if (program == NULL || program->type != AST_PROGRAM || name == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < program->data.program.count; i++) {
+        ASTNode *stmt = program->data.program.statements[i];
+        if (stmt != NULL && stmt->type == AST_ENUM_DECL
+            && ast_enum_name(stmt) != NULL
+            && strcmp(ast_enum_name(stmt), name) == 0) {
+            return stmt;
+        }
+    }
+
+    return NULL;
+}
+
+ASTNode *
+semantic_host_decl_for_type(SemanticContext *ctx, const Type *type)
+{
+    ASTNode *decl;
+
+    if (ctx == NULL || type == NULL || type->name == NULL)
+        return NULL;
+    if (type->kind == TYPE_KIND_ENUM)
+        return semantic_enum_decl_by_name(ctx->program_root, type->name);
+    if (type->kind != TYPE_KIND_CLASS)
+        return NULL;
+
+    decl = find_type_decl_by_name(ctx->program_root, type->name);
+    if (decl != NULL)
+        return decl;
+    decl = find_domain_decl_by_name(ctx->program_root, AST_PARTY_DECL,
+                                    type->name);
+    if (decl != NULL)
+        return decl;
+    decl = find_domain_decl_by_name(ctx->program_root, AST_ROSTER_DECL,
+                                    type->name);
+    if (decl != NULL)
+        return decl;
+    decl = find_domain_decl_by_name(ctx->program_root, AST_WORLD_DECL,
+                                    type->name);
+    if (decl != NULL)
+        return decl;
+    decl = find_domain_decl_by_name(ctx->program_root, AST_ZONE_DECL,
+                                    type->name);
+    if (decl != NULL)
+        return decl;
+    decl = find_domain_decl_by_name(ctx->program_root, AST_RELATION_DECL,
+                                    type->name);
+    if (decl != NULL)
+        return decl;
+    return find_domain_decl_by_name(ctx->program_root, AST_EFFECT_DECL,
+                                    type->name);
+}
+
+ASTNode **
+semantic_host_decl_methods(ASTNode *decl, size_t *method_count)
+{
+    if (method_count != NULL)
+        *method_count = 0;
+    if (decl == NULL)
+        return NULL;
+
+    switch (decl->type) {
+    case AST_CLASS_DECL:
+        return ast_class_methods(decl, method_count);
+    case AST_ENUM_DECL:
+        return ast_enum_methods(decl, method_count);
+    case AST_PARTY_DECL:
+        return ast_party_methods(decl, method_count);
+    case AST_ROSTER_DECL:
+        return ast_roster_methods(decl, method_count);
+    case AST_ZONE_DECL:
+        return ast_zone_methods(decl, method_count);
+    case AST_WORLD_DECL:
+        return ast_world_methods(decl, method_count);
+    case AST_RELATION_DECL:
+        return ast_relation_methods(decl, method_count);
+    case AST_EFFECT_DECL:
+        return ast_effect_methods(decl, method_count);
     default:
         return NULL;
     }
@@ -280,8 +384,8 @@ find_action_binding_type_name(ASTNode *func, ASTNode *enclosing_nominal,
     if (strcmp(binding_name, "self") == 0) {
         return enclosing_nominal != NULL
             && enclosing_nominal->type == AST_CLASS_DECL
-            && enclosing_nominal->data.class_decl.name != NULL
-                ? enclosing_nominal->data.class_decl.name
+            && ast_class_name(enclosing_nominal) != NULL
+                ? ast_class_name(enclosing_nominal)
                 : NULL;
     }
 
@@ -314,8 +418,8 @@ domain_has_subject_slot_type(ASTNode **slots, size_t slot_count,
         ASTNode *slot = slots[i];
         Type *slot_type;
         if (slot == NULL || slot->type != AST_DOMAIN_SLOT
-            || !slot->data.domain_slot.is_subject
-            || slot->data.domain_slot.type == NULL) {
+            || !ast_domain_slot_is_subject(slot)
+            || ast_domain_slot_type(slot) == NULL) {
             continue;
         }
         slot_type = host_helper_resolve_domain_slot_type(slot, ctx);
@@ -351,7 +455,7 @@ zone_has_authority_for_subject_type(ASTNode *zone, SemanticContext *ctx,
         }
         slot = find_zone_domain_slot(zone,
             authority->data.zone_authority.subject_slot_name);
-        if (slot == NULL || slot->data.domain_slot.type == NULL)
+        if (slot == NULL || ast_domain_slot_type(slot) == NULL)
             continue;
         slot_type = host_helper_resolve_domain_slot_type(slot, ctx);
         if (slot_type != NULL && slot_type->name != NULL
@@ -376,11 +480,11 @@ zone_has_effect_layer_type(ASTNode *zone, const char *effect_name)
     for (size_t i = 0; i < layer_slot_count; i++) {
         ASTNode *slot = layer_slots[i];
         if (slot == NULL || slot->type != AST_ZONE_LAYER_SLOT
-            || slot->data.zone_layer_slot.layer_type == NULL
-            || slot->data.zone_layer_slot.is_relation) {
+            || ast_zone_layer_slot_layer_type(slot) == NULL
+            || ast_zone_layer_slot_is_relation(slot)) {
             continue;
         }
-        if (strcmp(slot->data.zone_layer_slot.layer_type, effect_name) == 0)
+        if (strcmp(ast_zone_layer_slot_layer_type(slot), effect_name) == 0)
             return true;
     }
 
@@ -403,7 +507,7 @@ expr_is_class_constructor_call(const ASTNode *expr, SemanticContext *ctx)
     decl = find_type_decl_by_name(ctx->program_root,
         expr->data.call.callee->data.identifier.name);
     if (decl != NULL)
-        return !decl->data.class_decl.is_struct;
+        return !ast_class_is_struct(decl);
     return false;
 }
 

@@ -41,20 +41,20 @@ llvm_zone_sync_emit_relation_clauses(ASTNode *stmt,
             for (size_t j = 0; j < state_count; j++) {
                 ASTNode *state = states[j];
                 if (state != NULL && state->type == AST_ZONE_STATE
-                    && state->data.zone_state.is_relation
-                    && state->data.zone_state.layer_slot_name != NULL
-                    && state->data.zone_state.left_or_target_slot_name != NULL
-                    && state->data.zone_state.right_slot_name != NULL
+                    && ast_zone_state_is_relation(state)
+                    && ast_zone_state_layer_slot_name(state) != NULL
+                    && ast_zone_state_left_or_target_slot_name(state) != NULL
+                    && ast_zone_state_right_slot_name(state) != NULL
                     && link->data.zone_link.relation_slot_name != NULL
                     && link->data.zone_link.left_slot_name != NULL
                     && link->data.zone_link.right_slot_name != NULL
-                    && strcmp(state->data.zone_state.layer_slot_name,
+                    && strcmp(ast_zone_state_layer_slot_name(state),
                               link->data.zone_link.relation_slot_name) == 0
-                    && strcmp(state->data.zone_state.left_or_target_slot_name,
+                    && strcmp(ast_zone_state_left_or_target_slot_name(state),
                               link->data.zone_link.left_slot_name) == 0
-                    && strcmp(state->data.zone_state.right_slot_name,
+                    && strcmp(ast_zone_state_right_slot_name(state),
                               link->data.zone_link.right_slot_name) == 0) {
-                    state_name = state->data.zone_state.state_name;
+                    state_name = ast_zone_state_name(state);
                     break;
                 }
             }
@@ -83,10 +83,10 @@ llvm_zone_sync_emit_relation_clauses(ASTNode *stmt,
                     for (size_t j = 0; j < state_count; j++) {
                         ASTNode *state = states[j];
                         if (state != NULL && state->type == AST_ZONE_STATE
-                            && state->data.zone_state.is_relation
-                            && state->data.zone_state.state_name != NULL
-                            && strcmp(state->data.zone_state.state_name, state_name) == 0) {
-                            layer_name = state->data.zone_state.layer_slot_name;
+                            && ast_zone_state_is_relation(state)
+                            && ast_zone_state_name(state) != NULL
+                            && strcmp(ast_zone_state_name(state), state_name) == 0) {
+                            layer_name = ast_zone_state_layer_slot_name(state);
                             break;
                         }
                     }
@@ -117,15 +117,15 @@ llvm_zone_sync_emit_relation_clauses(ASTNode *stmt,
                         for (size_t j = 0; j < state_count; j++) {
                             ASTNode *state = states[j];
                             if (state != NULL && state->type == AST_ZONE_STATE
-                                && state->data.zone_state.is_relation
-                                && state->data.zone_state.state_name != NULL
-                                && strcmp(state->data.zone_state.state_name, state_name) == 0
-                                && state->data.zone_state.left_or_target_slot_name != NULL
-                                && state->data.zone_state.right_slot_name != NULL) {
+                                && ast_zone_state_is_relation(state)
+                                && ast_zone_state_name(state) != NULL
+                                && strcmp(ast_zone_state_name(state), state_name) == 0
+                                && ast_zone_state_left_or_target_slot_name(state) != NULL
+                                && ast_zone_state_right_slot_name(state) != NULL) {
                                 llvm_zone_bind_relation_layer(stmt, decl_cls, sync_fn, ctx,
                                     layer_name,
-                                    state->data.zone_state.left_or_target_slot_name,
-                                    state->data.zone_state.right_slot_name);
+                                    ast_zone_state_left_or_target_slot_name(state),
+                                    ast_zone_state_right_slot_name(state));
                                 break;
                             }
                         }
@@ -193,21 +193,21 @@ llvm_zone_sync_emit_relation_clauses(ASTNode *stmt,
             LLVMValueRef self_ptr;
             LLVMValueRef state_ptr;
             if (state == NULL || state->type != AST_ZONE_STATE
-                || !state->data.zone_state.is_relation
-                || state->data.zone_state.layer_slot_name == NULL
-                || state->data.zone_state.left_or_target_slot_name == NULL
-                || state->data.zone_state.right_slot_name == NULL
+                || !ast_zone_state_is_relation(state)
+                || ast_zone_state_layer_slot_name(state) == NULL
+                || ast_zone_state_left_or_target_slot_name(state) == NULL
+                || ast_zone_state_right_slot_name(state) == NULL
                 || maintain->data.zone_maintain_relation.relation_slot_name == NULL
                 || maintain->data.zone_maintain_relation.left_slot_name == NULL
                 || maintain->data.zone_maintain_relation.right_slot_name == NULL
-                || strcmp(state->data.zone_state.layer_slot_name,
+                || strcmp(ast_zone_state_layer_slot_name(state),
                           maintain->data.zone_maintain_relation.relation_slot_name) != 0
-                || strcmp(state->data.zone_state.left_or_target_slot_name,
+                || strcmp(ast_zone_state_left_or_target_slot_name(state),
                           maintain->data.zone_maintain_relation.left_slot_name) != 0
-                || strcmp(state->data.zone_state.right_slot_name,
+                || strcmp(ast_zone_state_right_slot_name(state),
                           maintain->data.zone_maintain_relation.right_slot_name) != 0)
                 continue;
-            state_name = state->data.zone_state.state_name;
+            state_name = ast_zone_state_name(state);
             if (!llvm_zone_relation_sync_field_name(field_name,
                     sizeof(field_name), "state", state_name))
                 continue;
@@ -231,20 +231,20 @@ llvm_zone_sync_emit_relation_clauses(ASTNode *stmt,
             for (size_t j = 0; j < state_count; j++) {
                 ASTNode *state = states[j];
                 if (state != NULL && state->type == AST_ZONE_STATE
-                    && state->data.zone_state.is_relation
-                    && state->data.zone_state.layer_slot_name != NULL
-                    && state->data.zone_state.left_or_target_slot_name != NULL
-                    && state->data.zone_state.right_slot_name != NULL
+                    && ast_zone_state_is_relation(state)
+                    && ast_zone_state_layer_slot_name(state) != NULL
+                    && ast_zone_state_left_or_target_slot_name(state) != NULL
+                    && ast_zone_state_right_slot_name(state) != NULL
                     && unlink->data.zone_unlink.relation_slot_name != NULL
                     && unlink->data.zone_unlink.left_slot_name != NULL
                     && unlink->data.zone_unlink.right_slot_name != NULL
-                    && strcmp(state->data.zone_state.layer_slot_name,
+                    && strcmp(ast_zone_state_layer_slot_name(state),
                               unlink->data.zone_unlink.relation_slot_name) == 0
-                    && strcmp(state->data.zone_state.left_or_target_slot_name,
+                    && strcmp(ast_zone_state_left_or_target_slot_name(state),
                               unlink->data.zone_unlink.left_slot_name) == 0
-                    && strcmp(state->data.zone_state.right_slot_name,
+                    && strcmp(ast_zone_state_right_slot_name(state),
                               unlink->data.zone_unlink.right_slot_name) == 0) {
-                    state_name = state->data.zone_state.state_name;
+                    state_name = ast_zone_state_name(state);
                     break;
                 }
             }
@@ -273,10 +273,10 @@ llvm_zone_sync_emit_relation_clauses(ASTNode *stmt,
                     for (size_t j = 0; j < state_count; j++) {
                         ASTNode *state = states[j];
                         if (state != NULL && state->type == AST_ZONE_STATE
-                            && state->data.zone_state.is_relation
-                            && state->data.zone_state.state_name != NULL
-                            && strcmp(state->data.zone_state.state_name, state_name) == 0) {
-                            layer_name = state->data.zone_state.layer_slot_name;
+                            && ast_zone_state_is_relation(state)
+                            && ast_zone_state_name(state) != NULL
+                            && strcmp(ast_zone_state_name(state), state_name) == 0) {
+                            layer_name = ast_zone_state_layer_slot_name(state);
                             break;
                         }
                     }

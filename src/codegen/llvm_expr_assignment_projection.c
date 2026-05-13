@@ -48,10 +48,10 @@ llvm_host_projection_source_from_assignment(ASTNode *host_decl,
     if (target->type == AST_IDENTIFIER && target->data.identifier.name != NULL) {
         for (size_t i = 0; i < slot_count; i++) {
             ASTNode *slot = slots[i];
+            const char *slot_name = ast_domain_slot_name(slot);
             if (slot != NULL && slot->type == AST_DOMAIN_SLOT
-                && slot->data.domain_slot.slot_name != NULL
-                && strcmp(slot->data.domain_slot.slot_name,
-                          target->data.identifier.name) == 0) {
+                && slot_name != NULL
+                && strcmp(slot_name, target->data.identifier.name) == 0) {
                 if (source_slot_out != NULL)
                     *source_slot_out = target->data.identifier.name;
                 return true;
@@ -67,10 +67,10 @@ llvm_host_projection_source_from_assignment(ASTNode *host_decl,
             && obj->data.identifier.name != NULL) {
             for (size_t i = 0; i < slot_count; i++) {
                 ASTNode *slot = slots[i];
+                const char *slot_name = ast_domain_slot_name(slot);
                 if (slot != NULL && slot->type == AST_DOMAIN_SLOT
-                    && slot->data.domain_slot.slot_name != NULL
-                    && strcmp(slot->data.domain_slot.slot_name,
-                              obj->data.identifier.name) == 0) {
+                    && slot_name != NULL
+                    && strcmp(slot_name, obj->data.identifier.name) == 0) {
                     if (source_slot_out != NULL)
                         *source_slot_out = obj->data.identifier.name;
                     if (source_field_out != NULL)

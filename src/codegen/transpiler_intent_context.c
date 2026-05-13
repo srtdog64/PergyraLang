@@ -37,7 +37,7 @@ find_subject_action_decl(TranspilerCtx *ctx,
 
     decl = find_subject_host_decl(ctx, subject_name);
     if (decl == NULL || decl->type != AST_CLASS_DECL
-        || decl->data.class_decl.nominal_kind != NOMINAL_DECL_SUBJECT) {
+        || ast_class_nominal_kind(decl) != NOMINAL_DECL_SUBJECT) {
         return NULL;
     }
 
@@ -73,11 +73,11 @@ intent_step_effective_zone_alias(ASTNode *step)
 {
     if (step == NULL || step->type != AST_INTENT_STEP)
         return NULL;
-    if (step->data.intent_step.using_expr != NULL
-        && step->data.intent_step.using_expr->type == AST_IDENTIFIER) {
-        return step->data.intent_step.using_expr->data.identifier.name;
+    if (ast_intent_step_using_expr(step) != NULL
+        && ast_intent_step_using_expr(step)->type == AST_IDENTIFIER) {
+        return ast_intent_step_using_expr(step)->data.identifier.name;
     }
-    return step->data.intent_step.transfer_to_alias;
+    return ast_intent_step_transfer_to_alias(step);
 }
 
 const char *

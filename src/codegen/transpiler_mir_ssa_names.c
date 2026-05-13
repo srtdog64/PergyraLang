@@ -11,6 +11,7 @@
 #include <string.h>
 
 #include "../common/string_compat.h"
+#include "../parser/ast_api.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_mir_local_binding.h"
 #include "transpiler_mir_ssa_map.h"
@@ -103,6 +104,10 @@ transpiler_is_implicit_field(TranspilerCtx *ctx, const char *base_name)
     host_name = transpiler_decl_name_local(host_decl);
     if (current_class_has_field(ctx, base_name))
         return true;
+    if (current_party_has_field(ctx, base_name))
+        return true;
+    if (current_roster_has_field(ctx, base_name))
+        return true;
     if (current_relation_has_field(ctx, base_name))
         return true;
     if (current_effect_has_field(ctx, base_name))
@@ -122,8 +127,9 @@ transpiler_is_implicit_field(TranspilerCtx *ctx, const char *base_name)
             ASTNode **slots = ast_zone_slots(zone_decl, &slot_count);
             for (size_t i = 0; i < slot_count; i++) {
                 ASTNode *slot = slots[i];
-                if (slot != NULL && slot->data.domain_slot.slot_name != NULL
-                    && strcmp(slot->data.domain_slot.slot_name, base_name) == 0) {
+                const char *slot_name = ast_domain_slot_name(slot);
+                if (slot != NULL && slot_name != NULL
+                    && strcmp(slot_name, base_name) == 0) {
                     return true;
                 }
             }
@@ -132,8 +138,8 @@ transpiler_is_implicit_field(TranspilerCtx *ctx, const char *base_name)
                 &layer_slot_count);
             for (size_t i = 0; i < layer_slot_count; i++) {
                 ASTNode *slot = layer_slots[i];
-                if (slot != NULL && slot->data.zone_layer_slot.slot_name != NULL
-                    && strcmp(slot->data.zone_layer_slot.slot_name, base_name) == 0) {
+                if (slot != NULL && ast_zone_layer_slot_name(slot) != NULL
+                    && strcmp(ast_zone_layer_slot_name(slot), base_name) == 0) {
                     return true;
                 }
             }
@@ -142,8 +148,9 @@ transpiler_is_implicit_field(TranspilerCtx *ctx, const char *base_name)
                 &shared_count);
             for (size_t i = 0; i < shared_count; i++) {
                 ASTNode *shared = shared_fields[i];
-                if (shared != NULL && shared->data.party_shared.name != NULL
-                    && strcmp(shared->data.party_shared.name, base_name) == 0) {
+                const char *shared_name = ast_party_shared_name(shared);
+                if (shared != NULL && shared_name != NULL
+                    && strcmp(shared_name, base_name) == 0) {
                     return true;
                 }
             }

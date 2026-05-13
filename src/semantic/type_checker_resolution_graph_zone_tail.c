@@ -56,17 +56,17 @@ semantic_type_resolution_precollect_zone_state_authority_inventory(
 
         state_label = semantic_type_resolution_zone_state_label(
             zone_decl,
-            state->data.zone_state.state_name);
+            ast_zone_state_name(state));
         if (state_label == NULL)
             continue;
 
         semantic_type_resolution_register_local_contract_node(
             ctx, state, state_label);
 
-        if (state->data.zone_state.layer_slot_name != NULL) {
+        if (ast_zone_state_layer_slot_name(state) != NULL) {
             char *layer_label = semantic_type_resolution_zone_layer_label(
                 zone_decl,
-                state->data.zone_state.layer_slot_name);
+                ast_zone_state_layer_slot_name(state));
             if (layer_label != NULL) {
                 semantic_type_resolution_record_local_contract_dependency(
                     ctx,
@@ -79,10 +79,10 @@ semantic_type_resolution_precollect_zone_state_authority_inventory(
             }
         }
 
-        if (state->data.zone_state.left_or_target_slot_name != NULL) {
+        if (ast_zone_state_left_or_target_slot_name(state) != NULL) {
             char *target_label = semantic_type_resolution_zone_slot_label(
                 zone_decl,
-                state->data.zone_state.left_or_target_slot_name);
+                ast_zone_state_left_or_target_slot_name(state));
             if (target_label != NULL) {
                 semantic_type_resolution_record_local_contract_dependency(
                     ctx,
@@ -95,11 +95,11 @@ semantic_type_resolution_precollect_zone_state_authority_inventory(
             }
         }
 
-        if (state->data.zone_state.is_relation
-            && state->data.zone_state.right_slot_name != NULL) {
+        if (ast_zone_state_is_relation(state)
+            && ast_zone_state_right_slot_name(state) != NULL) {
             char *right_label = semantic_type_resolution_zone_slot_label(
                 zone_decl,
-                state->data.zone_state.right_slot_name);
+                ast_zone_state_right_slot_name(state));
             if (right_label != NULL) {
                 semantic_type_resolution_record_local_contract_dependency(
                     ctx,

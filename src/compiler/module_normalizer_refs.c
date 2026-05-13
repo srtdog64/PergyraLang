@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "../common/string_compat.h"
+#include "../parser/ast_api.h"
 
 static const char *module_rename_scope_lookup(const ModuleRenameScope *scope,
                                               const char *name);
@@ -201,14 +202,19 @@ module_normalizer_normalize_node_refs(ASTNode *node,
 
         case AST_CLASS_DECL:
             normalize_generic_params(node->data.class_decl.generic_params, scope, shadow);
-            for (size_t i = 0; i < node->data.class_decl.field_count; i++) {
-                if (node->data.class_decl.fields[i] != NULL) {
+            size_t field_count = 0;
+            ClassField **fields = ast_class_fields(node, &field_count);
+            for (size_t i = 0; i < field_count; i++) {
+                if (fields != NULL && fields[i] != NULL) {
                     module_normalizer_normalize_node_refs(
-                        node->data.class_decl.fields[i]->type, scope, shadow);
+                        fields[i]->type, scope, shadow);
                 }
             }
-            for (size_t i = 0; i < node->data.class_decl.method_count; i++)
-                module_normalizer_normalize_node_refs(node->data.class_decl.methods[i], scope, shadow);
+            size_t method_count = 0;
+            ASTNode **methods = ast_class_methods(node, &method_count);
+            for (size_t i = 0; i < method_count; i++)
+                module_normalizer_normalize_node_refs(
+                    methods != NULL ? methods[i] : NULL, scope, shadow);
             return;
 
         case AST_ABILITY_DECL:
@@ -251,76 +257,116 @@ module_normalizer_normalize_node_refs(ASTNode *node,
             return;
 
         case AST_WORLD_DECL:
-            for (size_t i = 0; i < node->data.world_decl.roster_count; i++)
-                module_normalizer_normalize_node_refs(node->data.world_decl.rosters[i], scope, shadow);
-            for (size_t i = 0; i < node->data.world_decl.zone_count; i++)
-                module_normalizer_normalize_node_refs(node->data.world_decl.zones[i], scope, shadow);
-            for (size_t i = 0; i < node->data.world_decl.activate_count; i++)
-                module_normalizer_normalize_node_refs(node->data.world_decl.activations[i], scope, shadow);
-            for (size_t i = 0; i < node->data.world_decl.deactivate_count; i++)
-                module_normalizer_normalize_node_refs(node->data.world_decl.deactivations[i], scope, shadow);
-            for (size_t i = 0; i < node->data.world_decl.maintained_zone_count; i++)
-                module_normalizer_normalize_node_refs(node->data.world_decl.maintained_zones[i], scope, shadow);
-            for (size_t i = 0; i < node->data.world_decl.state_count; i++)
-                module_normalizer_normalize_node_refs(node->data.world_decl.states[i], scope, shadow);
-            for (size_t i = 0; i < node->data.world_decl.shared_count; i++)
-                module_normalizer_normalize_node_refs(node->data.world_decl.shared_fields[i], scope, shadow);
-            for (size_t i = 0; i < node->data.world_decl.method_count; i++)
-                module_normalizer_normalize_node_refs(node->data.world_decl.methods[i], scope, shadow);
+        {
+            size_t count = 0;
+            ASTNode **children = ast_world_rosters(node, &count);
+            for (size_t i = 0; i < count; i++)
+                module_normalizer_normalize_node_refs(children[i], scope, shadow);
+            children = ast_world_zones(node, &count);
+            for (size_t i = 0; i < count; i++)
+                module_normalizer_normalize_node_refs(children[i], scope, shadow);
+            children = ast_world_activations(node, &count);
+            for (size_t i = 0; i < count; i++)
+                module_normalizer_normalize_node_refs(children[i], scope, shadow);
+            children = ast_world_deactivations(node, &count);
+            for (size_t i = 0; i < count; i++)
+                module_normalizer_normalize_node_refs(children[i], scope, shadow);
+            children = ast_world_maintained_zones(node, &count);
+            for (size_t i = 0; i < count; i++)
+                module_normalizer_normalize_node_refs(children[i], scope, shadow);
+            children = ast_world_states(node, &count);
+            for (size_t i = 0; i < count; i++)
+                module_normalizer_normalize_node_refs(children[i], scope, shadow);
+            children = ast_world_shared_fields(node, &count);
+            for (size_t i = 0; i < count; i++)
+                module_normalizer_normalize_node_refs(children[i], scope, shadow);
+            children = ast_world_methods(node, &count);
+            for (size_t i = 0; i < count; i++)
+                module_normalizer_normalize_node_refs(children[i], scope, shadow);
             return;
+        }
 
         case AST_RELATION_DECL:
-            for (size_t i = 0; i < node->data.relation_decl.slot_count; i++)
-                module_normalizer_normalize_node_refs(node->data.relation_decl.slots[i], scope, shadow);
-            for (size_t i = 0; i < node->data.relation_decl.shared_count; i++)
-                module_normalizer_normalize_node_refs(node->data.relation_decl.shared_fields[i], scope, shadow);
-            for (size_t i = 0; i < node->data.relation_decl.method_count; i++)
-                module_normalizer_normalize_node_refs(node->data.relation_decl.methods[i], scope, shadow);
+        {
+            size_t count = 0;
+            ASTNode **children = ast_relation_slots(node, &count);
+            for (size_t i = 0; i < count; i++)
+                module_normalizer_normalize_node_refs(children[i], scope, shadow);
+            children = ast_relation_shared_fields(node, &count);
+            for (size_t i = 0; i < count; i++)
+                module_normalizer_normalize_node_refs(children[i], scope, shadow);
+            children = ast_relation_methods(node, &count);
+            for (size_t i = 0; i < count; i++)
+                module_normalizer_normalize_node_refs(children[i], scope, shadow);
             return;
+        }
 
         case AST_EFFECT_DECL:
-            for (size_t i = 0; i < node->data.effect_decl.slot_count; i++)
-                module_normalizer_normalize_node_refs(node->data.effect_decl.slots[i], scope, shadow);
-            for (size_t i = 0; i < node->data.effect_decl.shared_count; i++)
-                module_normalizer_normalize_node_refs(node->data.effect_decl.shared_fields[i], scope, shadow);
-            for (size_t i = 0; i < node->data.effect_decl.method_count; i++)
-                module_normalizer_normalize_node_refs(node->data.effect_decl.methods[i], scope, shadow);
+        {
+            size_t count = 0;
+            ASTNode **children = ast_effect_slots(node, &count);
+            for (size_t i = 0; i < count; i++)
+                module_normalizer_normalize_node_refs(children[i], scope, shadow);
+            children = ast_effect_shared_fields(node, &count);
+            for (size_t i = 0; i < count; i++)
+                module_normalizer_normalize_node_refs(children[i], scope, shadow);
+            children = ast_effect_methods(node, &count);
+            for (size_t i = 0; i < count; i++)
+                module_normalizer_normalize_node_refs(children[i], scope, shadow);
             return;
+        }
 
         case AST_ZONE_DECL:
-            for (size_t i = 0; i < node->data.zone_decl.slot_count; i++)
-                module_normalizer_normalize_node_refs(node->data.zone_decl.slots[i], scope, shadow);
-            for (size_t i = 0; i < node->data.zone_decl.layer_slot_count; i++)
-                module_normalizer_normalize_node_refs(node->data.zone_decl.layer_slots[i], scope, shadow);
-            for (size_t i = 0; i < node->data.zone_decl.apply_count; i++)
-                module_normalizer_normalize_node_refs(node->data.zone_decl.applies[i], scope, shadow);
-            for (size_t i = 0; i < node->data.zone_decl.link_count; i++)
-                module_normalizer_normalize_node_refs(node->data.zone_decl.links[i], scope, shadow);
-            for (size_t i = 0; i < node->data.zone_decl.detach_count; i++)
-                module_normalizer_normalize_node_refs(node->data.zone_decl.detaches[i], scope, shadow);
-            for (size_t i = 0; i < node->data.zone_decl.unlink_count; i++)
-                module_normalizer_normalize_node_refs(node->data.zone_decl.unlinks[i], scope, shadow);
-            for (size_t i = 0; i < node->data.zone_decl.refresh_count; i++)
-                module_normalizer_normalize_node_refs(node->data.zone_decl.refreshes[i], scope, shadow);
-            for (size_t i = 0; i < node->data.zone_decl.maintained_effect_count; i++)
-                module_normalizer_normalize_node_refs(node->data.zone_decl.maintained_effects[i], scope, shadow);
-            for (size_t i = 0; i < node->data.zone_decl.maintained_relation_count; i++)
-                module_normalizer_normalize_node_refs(node->data.zone_decl.maintained_relations[i], scope, shadow);
-            for (size_t i = 0; i < node->data.zone_decl.maintained_state_count; i++)
-                module_normalizer_normalize_node_refs(node->data.zone_decl.maintained_states[i], scope, shadow);
-            for (size_t i = 0; i < node->data.zone_decl.authority_count; i++)
-                module_normalizer_normalize_node_refs(node->data.zone_decl.authorities[i], scope, shadow);
-            for (size_t i = 0; i < node->data.zone_decl.state_count; i++)
-                module_normalizer_normalize_node_refs(node->data.zone_decl.states[i], scope, shadow);
-            for (size_t i = 0; i < node->data.zone_decl.shared_count; i++)
-                module_normalizer_normalize_node_refs(node->data.zone_decl.shared_fields[i], scope, shadow);
-            for (size_t i = 0; i < node->data.zone_decl.method_count; i++)
-                module_normalizer_normalize_node_refs(node->data.zone_decl.methods[i], scope, shadow);
+        {
+            size_t count = 0;
+            ASTNode **children = ast_zone_slots(node, &count);
+            for (size_t i = 0; i < count; i++)
+                module_normalizer_normalize_node_refs(children[i], scope, shadow);
+            children = ast_zone_layer_slots(node, &count);
+            for (size_t i = 0; i < count; i++)
+                module_normalizer_normalize_node_refs(children[i], scope, shadow);
+            children = ast_zone_applies(node, &count);
+            for (size_t i = 0; i < count; i++)
+                module_normalizer_normalize_node_refs(children[i], scope, shadow);
+            children = ast_zone_links(node, &count);
+            for (size_t i = 0; i < count; i++)
+                module_normalizer_normalize_node_refs(children[i], scope, shadow);
+            children = ast_zone_detaches(node, &count);
+            for (size_t i = 0; i < count; i++)
+                module_normalizer_normalize_node_refs(children[i], scope, shadow);
+            children = ast_zone_unlinks(node, &count);
+            for (size_t i = 0; i < count; i++)
+                module_normalizer_normalize_node_refs(children[i], scope, shadow);
+            children = ast_zone_refreshes(node, &count);
+            for (size_t i = 0; i < count; i++)
+                module_normalizer_normalize_node_refs(children[i], scope, shadow);
+            children = ast_zone_maintained_effects(node, &count);
+            for (size_t i = 0; i < count; i++)
+                module_normalizer_normalize_node_refs(children[i], scope, shadow);
+            children = ast_zone_maintained_relations(node, &count);
+            for (size_t i = 0; i < count; i++)
+                module_normalizer_normalize_node_refs(children[i], scope, shadow);
+            children = ast_zone_maintained_states(node, &count);
+            for (size_t i = 0; i < count; i++)
+                module_normalizer_normalize_node_refs(children[i], scope, shadow);
+            children = ast_zone_authorities(node, &count);
+            for (size_t i = 0; i < count; i++)
+                module_normalizer_normalize_node_refs(children[i], scope, shadow);
+            children = ast_zone_states(node, &count);
+            for (size_t i = 0; i < count; i++)
+                module_normalizer_normalize_node_refs(children[i], scope, shadow);
+            children = ast_zone_shared_fields(node, &count);
+            for (size_t i = 0; i < count; i++)
+                module_normalizer_normalize_node_refs(children[i], scope, shadow);
+            children = ast_zone_methods(node, &count);
+            for (size_t i = 0; i < count; i++)
+                module_normalizer_normalize_node_refs(children[i], scope, shadow);
             return;
+        }
 
         case AST_DOMAIN_SLOT:
-            module_normalizer_normalize_node_refs(node->data.domain_slot.type, scope, shadow);
-            module_normalizer_normalize_node_refs(node->data.domain_slot.initializer, scope, shadow);
+            module_normalizer_normalize_node_refs(ast_domain_slot_type(node), scope, shadow);
+            module_normalizer_normalize_node_refs(ast_domain_slot_initializer(node), scope, shadow);
             return;
 
         case AST_WORLD_ZONE:
@@ -352,33 +398,48 @@ module_normalizer_normalize_node_refs(ASTNode *node,
             return;
 
         case AST_PARTY_SHARED:
-            module_normalizer_normalize_node_refs(node->data.party_shared.type, scope, shadow);
-            module_normalizer_normalize_node_refs(node->data.party_shared.initializer, scope, shadow);
+            module_normalizer_normalize_node_refs(
+                ast_party_shared_type(node), scope, shadow);
+            module_normalizer_normalize_node_refs(
+                ast_party_shared_initializer(node), scope, shadow);
             return;
 
         case AST_SYSTEMIC_SLOT:
-            if (node->data.roster_slot.party_type != NULL) {
+            /*
+             * Intentional AST mutation seam: import normalization owns
+             * renaming embedded roster slot party types through the AST
+             * mutator API. Read-only consumers must use ast_roster_slot_*
+             * accessors instead.
+             */
+            if (ast_roster_slot_party_type(node) != NULL) {
                 const char *replacement =
-                    module_rename_scope_lookup(scope, node->data.roster_slot.party_type);
+                    module_rename_scope_lookup(scope,
+                        ast_roster_slot_party_type(node));
                 if (replacement != NULL
-                    && strcmp(node->data.roster_slot.party_type, replacement) != 0) {
-                    free(node->data.roster_slot.party_type);
-                    node->data.roster_slot.party_type = pergyra_strdup(replacement);
+                    && strcmp(ast_roster_slot_party_type(node), replacement) != 0) {
+                    (void)ast_roster_slot_replace_party_type(node, replacement);
                 }
             }
             return;
 
         case AST_WORLD_SYSTEMIC:
-            if (node->data.world_roster.roster_type != NULL) {
+            /*
+             * Intentional AST mutation seam: import normalization owns
+             * renaming embedded world roster type references through the AST
+             * mutator API. Read-only consumers must use ast_world_roster_*
+             * accessors instead.
+             */
+            if (ast_world_roster_type_name(node) != NULL) {
                 const char *replacement =
-                    module_rename_scope_lookup(scope, node->data.world_roster.roster_type);
+                    module_rename_scope_lookup(scope,
+                        ast_world_roster_type_name(node));
                 if (replacement != NULL
-                    && strcmp(node->data.world_roster.roster_type, replacement) != 0) {
-                    free(node->data.world_roster.roster_type);
-                    node->data.world_roster.roster_type = pergyra_strdup(replacement);
+                    && strcmp(ast_world_roster_type_name(node), replacement) != 0) {
+                    (void)ast_world_roster_replace_type_name(node, replacement);
                 }
             }
-            module_normalizer_normalize_node_refs(node->data.world_roster.initializer, scope, shadow);
+            module_normalizer_normalize_node_refs(
+                ast_world_roster_initializer(node), scope, shadow);
             return;
 
         case AST_BLOCK:

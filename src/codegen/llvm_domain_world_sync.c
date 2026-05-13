@@ -90,14 +90,14 @@ llvm_emit_world_sync(ASTNode *stmt, const char *decl_name,
             char prev_name[256];
             int active_idx;
             LLVMValueRef self_ptr;
-            LLVMValueRef active_ptr;
-            LLVMValueRef prev_addr;
-            LLVMValueRef prev_val;
-            if (zone == NULL || zone->type != AST_WORLD_ZONE
-                || zone->data.world_zone.slot_name == NULL)
+        LLVMValueRef active_ptr;
+        LLVMValueRef prev_addr;
+        LLVMValueRef prev_val;
+            const char *slot_name = ast_world_zone_slot_name(zone);
+            if (slot_name == NULL)
                 continue;
             if (!llvm_world_sync_field_name(active_field, sizeof(active_field),
-                    "zone_active", zone->data.world_zone.slot_name))
+                    "zone_active", slot_name))
                 continue;
             active_idx = llvm_class_field_index(decl_cls, active_field);
             self_ptr = LLVMGetParam(sync_fn, 0);
@@ -106,7 +106,7 @@ llvm_emit_world_sync(ASTNode *stmt, const char *decl_name,
             active_ptr = LLVMBuildStructGEP2(ctx->builder, decl_cls->struct_type,
                 self_ptr, (unsigned)active_idx, llvm_tmp_name(ctx));
             if (!llvm_world_sync_prev_active_name(prev_name, sizeof(prev_name),
-                    zone->data.world_zone.slot_name))
+                    slot_name))
                 continue;
             prev_addr = llvm_create_entry_alloca(ctx, ctx->type_i1, prev_name);
             prev_val = LLVMBuildLoad2(ctx->builder, ctx->type_i1,
@@ -132,11 +132,9 @@ llvm_emit_world_sync(ASTNode *stmt, const char *decl_name,
             LLVMValueRef active_val;
             LLVMValueRef prev_val;
             LLVMValueRef changed_val;
-            if (zone == NULL || zone->type != AST_WORLD_ZONE
-                || zone->data.world_zone.slot_name == NULL
-                || prev_active_addrs[i] == NULL)
+            slot_name = ast_world_zone_slot_name(zone);
+            if (slot_name == NULL || prev_active_addrs[i] == NULL)
                 continue;
-            slot_name = zone->data.world_zone.slot_name;
             if (!llvm_world_sync_field_name(active_field, sizeof(active_field),
                     "zone_active", slot_name))
                 continue;

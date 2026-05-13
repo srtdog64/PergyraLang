@@ -9,6 +9,7 @@
 #include "transpiler_call_constructor_result_emit.h"
 #include "transpiler_expr_stdlib_builtin.h"
 #include "transpiler_event_builtin_emit.h"
+#include "transpiler_expr_party_instance_emit.h"
 #include "transpiler_expr_call_spawn_emit.h"
 #include "transpiler_spawn_channel_emit.h"
 #include "transpiler_expr_dispatch_emit.h"

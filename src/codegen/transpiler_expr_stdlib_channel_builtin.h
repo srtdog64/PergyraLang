@@ -82,7 +82,16 @@ emit_call_stdlib_channel_builtin(const char *fn, ASTNode *call, TranspilerCtx *c
             free(ch);
             return pergyra_strdup("0");
         }
-        const char *c_inner = pergyra_type_to_c(inner);
+        char c_inner_buf[128];
+        const char *c_inner = NULL;
+        if (pergyra_type_to_c_copy(inner, c_inner_buf,
+                sizeof(c_inner_buf))) {
+            c_inner = c_inner_buf;
+        }
+        if (c_inner == NULL) {
+            free(ch);
+            return pergyra_strdup("0");
+        }
         char *result = strdup_fmt(
             "({ %s _pgy_recv_tmp; "
             "pgy_channel_try_recv_%s(&%s, &_pgy_recv_tmp) "
@@ -103,7 +112,17 @@ emit_call_stdlib_channel_builtin(const char *fn, ASTNode *call, TranspilerCtx *c
             free(timeout);
             return pergyra_strdup("0");
         }
-        const char *c_inner = pergyra_type_to_c(inner);
+        char c_inner_buf[128];
+        const char *c_inner = NULL;
+        if (pergyra_type_to_c_copy(inner, c_inner_buf,
+                sizeof(c_inner_buf))) {
+            c_inner = c_inner_buf;
+        }
+        if (c_inner == NULL) {
+            free(ch);
+            free(timeout);
+            return pergyra_strdup("0");
+        }
         char *result = strdup_fmt(
             "({ %s _pgy_recv_tmp; "
             "pgy_channel_recv_timeout_%s(&%s, &_pgy_recv_tmp, (uint64_t)(%s)) "

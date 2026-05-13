@@ -9,7 +9,7 @@
 bool
 type_check_class_decl(ASTNode *node, SemanticContext *ctx)
 {
-    const char *name = node->data.class_decl.name;
+    const char *name = ast_class_name(node);
     ASTNode *saved_nominal = ctx->current_nominal_decl;
 
     /* Register class generic parameters as opaque metadata-visible types for
@@ -111,8 +111,10 @@ type_check_class_decl(ASTNode *node, SemanticContext *ctx)
             scope_declare(ctx->scope, s);
         }
     }
-    for (size_t i = 0; i < node->data.class_decl.field_count; i++) {
-        ClassField *field = node->data.class_decl.fields[i];
+    size_t field_count = 0;
+    ClassField **fields = ast_class_fields(node, &field_count);
+    for (size_t i = 0; i < field_count; i++) {
+        ClassField *field = fields != NULL ? fields[i] : NULL;
         Type *field_type;
         Symbol *field_sym;
 
@@ -127,7 +129,7 @@ type_check_class_decl(ASTNode *node, SemanticContext *ctx)
                 field_decl = find_type_decl_by_name(ctx->program_root, field_type->name);
             }
             if (field_decl == NULL
-                || field_decl->data.class_decl.nominal_kind != NOMINAL_DECL_VESSEL) {
+                || ast_class_nominal_kind(field_decl) != NOMINAL_DECL_VESSEL) {
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
                     PGY_CAUSE_DOMAIN_VESSEL_REQUIRED,
                     PGY_FIX_DECLARE_VESSEL_TYPE,
@@ -142,19 +144,21 @@ type_check_class_decl(ASTNode *node, SemanticContext *ctx)
             scope_declare(ctx->scope, field_sym);
     }
     /* struct declarations cannot have methods — use class or object */
-    if (node->data.class_decl.nominal_kind == NOMINAL_DECL_STRUCT
-        && node->data.class_decl.method_count > 0) {
+    size_t method_count = 0;
+    ASTNode **methods = ast_class_methods(node, &method_count);
+    if (ast_class_nominal_kind(node) == NOMINAL_DECL_STRUCT
+        && method_count > 0) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_CLASS_CONTRACT_INVALID, PGY_CAUSE_CLASS_CONTRACT, PGY_FIX_SATISFY_GENERIC_BOUND_OR_WIDEN, node,
             "struct '%s' cannot have methods; use 'class', 'subject', or 'object' instead",
             name != NULL ? name : "<struct>");
     }
 
-    for (size_t i = 0; i < node->data.class_decl.method_count; i++)
-        type_check_func_decl(node->data.class_decl.methods[i], ctx);
+    for (size_t i = 0; i < method_count; i++)
+        type_check_func_decl(methods != NULL ? methods[i] : NULL, ctx);
 
     /* Collect method signatures before the class scope is destroyed */
-    for (size_t i = 0; i < node->data.class_decl.method_count; i++) {
-        ASTNode *method = node->data.class_decl.methods[i];
+    for (size_t i = 0; i < method_count; i++) {
+        ASTNode *method = methods != NULL ? methods[i] : NULL;
         if (method == NULL || method->type != AST_FUNC_DECL)
             continue;
         const char *mname = method->data.func_decl.name;

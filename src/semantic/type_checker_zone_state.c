@@ -1,4 +1,4 @@
-﻿#include "type_checker_internal.h"
+#include "type_checker_internal.h"
 #include "diag_codes.h"
 
 #include <string.h>
@@ -43,10 +43,10 @@ type_check_zone_state_aliases(ASTNode *node, SemanticContext *ctx)
                 zone_name != NULL ? zone_name : "<zone>",
                 state_name != NULL ? state_name : "<unknown>",
                 state_name != NULL ? state_name : "<unknown>");
-        } else if (state->data.zone_state.is_relation) {
-            const char *relation_slot_name = state->data.zone_state.layer_slot_name;
-            const char *left_slot_name = state->data.zone_state.left_or_target_slot_name;
-            const char *right_slot_name = state->data.zone_state.right_slot_name;
+        } else if (ast_zone_state_is_relation(state)) {
+            const char *relation_slot_name = ast_zone_state_layer_slot_name(state);
+            const char *left_slot_name = ast_zone_state_left_or_target_slot_name(state);
+            const char *right_slot_name = ast_zone_state_right_slot_name(state);
             type_check_zone_relation_contract(node, maintain,
                 relation_slot_name, left_slot_name, right_slot_name, ctx, "maintain");
             for (size_t j = i + 1; j < maintained_state_count; j++) {
@@ -98,8 +98,8 @@ type_check_zone_state_aliases(ASTNode *node, SemanticContext *ctx)
                 }
             }
         } else {
-            const char *effect_slot_name = state->data.zone_state.layer_slot_name;
-            const char *target_slot_name = state->data.zone_state.left_or_target_slot_name;
+            const char *effect_slot_name = ast_zone_state_layer_slot_name(state);
+            const char *target_slot_name = ast_zone_state_left_or_target_slot_name(state);
             type_check_zone_effect_contract(node, maintain,
                 effect_slot_name, target_slot_name, ctx, "maintain");
             for (size_t j = i + 1; j < maintained_state_count; j++) {
@@ -165,11 +165,11 @@ type_check_zone_state_aliases(ASTNode *node, SemanticContext *ctx)
 
     for (size_t i = 0; i < state_count; i++) {
         ASTNode *state = states[i];
-        const char *state_name = state->data.zone_state.state_name;
-        if (state->data.zone_state.is_relation) {
-            const char *relation_slot_name = state->data.zone_state.layer_slot_name;
-            const char *left_slot_name = state->data.zone_state.left_or_target_slot_name;
-            const char *right_slot_name = state->data.zone_state.right_slot_name;
+        const char *state_name = ast_zone_state_name(state);
+        if (ast_zone_state_is_relation(state)) {
+            const char *relation_slot_name = ast_zone_state_layer_slot_name(state);
+            const char *left_slot_name = ast_zone_state_left_or_target_slot_name(state);
+            const char *right_slot_name = ast_zone_state_right_slot_name(state);
             if (find_zone_relation_slot(node, relation_slot_name) == NULL) {
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, state,
                     "Zone state '%s' references unknown relation slot '%s'.\n"
@@ -222,8 +222,8 @@ type_check_zone_state_aliases(ASTNode *node, SemanticContext *ctx)
             type_check_zone_relation_contract(node, state,
                 relation_slot_name, left_slot_name, right_slot_name, ctx, "state");
         } else {
-            const char *effect_slot_name = state->data.zone_state.layer_slot_name;
-            const char *target_slot_name = state->data.zone_state.left_or_target_slot_name;
+            const char *effect_slot_name = ast_zone_state_layer_slot_name(state);
+            const char *target_slot_name = ast_zone_state_left_or_target_slot_name(state);
             if (find_zone_effect_slot(node, effect_slot_name) == NULL) {
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, state,
                     "Zone state '%s' references unknown effect slot '%s'.\n"
@@ -265,8 +265,8 @@ type_check_zone_state_aliases(ASTNode *node, SemanticContext *ctx)
             ASTNode *other = states[j];
             if (state_name != NULL
                 && other != NULL
-                && other->data.zone_state.state_name != NULL
-                && strcmp(state_name, other->data.zone_state.state_name) == 0) {
+                && ast_zone_state_name(other) != NULL
+                && strcmp(state_name, ast_zone_state_name(other)) == 0) {
                 semantic_error_with_hints(ctx,
                     PGY_CODE_SEM_REDECLARATION,
                     PGY_CAUSE_ZONE_STATE_DUPLICATE_NAME,

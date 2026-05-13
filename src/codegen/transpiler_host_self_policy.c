@@ -19,7 +19,7 @@ is_pointer_self_host_type_name(TranspilerCtx *ctx, const char *type_name)
     decl = find_class_decl(ctx, type_name);
     if (decl != NULL
         && decl->type == AST_CLASS_DECL
-        && decl->data.class_decl.nominal_kind == NOMINAL_DECL_VESSEL)
+        && ast_class_nominal_kind(decl) == NOMINAL_DECL_VESSEL)
         return true;
     if (find_party_decl(ctx, type_name) != NULL
         || find_role_decl(ctx, type_name) != NULL

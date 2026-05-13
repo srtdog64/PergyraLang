@@ -78,25 +78,26 @@ llvm_register_enum_decl(LLVMGenCtx *ctx, ASTNode *stmt)
     if (ctx == NULL || stmt == NULL || stmt->type != AST_ENUM_DECL)
         return;
 
-    const char *enum_name = stmt->data.enum_decl.name;
+    const char *enum_name = ast_enum_name(stmt);
+    size_t variant_count = 0;
+    char **variants = ast_enum_variants(stmt, &variant_count);
     if (enum_name == NULL)
         return;
 
     bool has_data = false;
-    for (size_t j = 0; j < stmt->data.enum_decl.variant_count; j++) {
-        if (stmt->data.enum_decl.variant_param_counts != NULL
-            && stmt->data.enum_decl.variant_param_counts[j] > 0) {
+    for (size_t j = 0; j < variant_count; j++) {
+        const char *variant_name = variants != NULL ? variants[j] : NULL;
+        if (ast_enum_variant_param_count(stmt, j) > 0) {
             has_data = true;
         }
         if (llvm_lookup_enum_variant_qualified(ctx, enum_name,
-                stmt->data.enum_decl.variants[j]) == NULL) {
+                variant_name) == NULL) {
             llvm_register_enum_variant(ctx, enum_name,
-                stmt->data.enum_decl.variants[j], (int)j);
+                variant_name, (int)j);
         }
     }
 
     if (has_data && llvm_lookup_class(ctx, enum_name) == NULL) {
-        size_t variant_count = stmt->data.enum_decl.variant_count;
         /* Type-array buffers used to feed LLVMStructSetBody and
          * llvm_class_add_field.  LLVM copies the array contents into its
          * own type definitions, so the buffers never need to outlive this
@@ -113,9 +114,8 @@ llvm_register_enum_decl(LLVMGenCtx *ctx, ASTNode *stmt)
             llvm_class_add_field(enum_entry, "tag", ctx->type_i32, 0);
 
         for (size_t j = 0; j < variant_count; j++) {
-            const char *variant_name = stmt->data.enum_decl.variants[j];
-            size_t param_count = (stmt->data.enum_decl.variant_param_counts != NULL)
-                ? stmt->data.enum_decl.variant_param_counts[j] : 0;
+            const char *variant_name = variants != NULL ? variants[j] : NULL;
+            size_t param_count = ast_enum_variant_param_count(stmt, j);
 
             if (param_count == 0) {
                 enum_fields[j + 1] = LLVMStructTypeInContext(ctx->context, NULL, 0, 0);
@@ -132,7 +132,7 @@ llvm_register_enum_decl(LLVMGenCtx *ctx, ASTNode *stmt)
             LLVMTypeRef *payload_fields = pgy_arena_calloc(&ctx->scratch,
                 param_count * sizeof(LLVMTypeRef));
             for (size_t p = 0; p < param_count; p++) {
-                ASTNode *pt = stmt->data.enum_decl.variant_params[j][p];
+                ASTNode *pt = ast_enum_variant_param(stmt, j, p);
                 payload_fields[p] = llvm_register_required_ast_type(
                     ctx, stmt, pt, "enum variant payload");
                 if (ctx->has_error || payload_fields[p] == NULL)
@@ -252,16 +252,17 @@ llvm_register_nominal_decl(LLVMGenCtx *ctx, ASTNode *stmt)
     if (stmt->type != AST_CLASS_DECL)
         return;
 
-    const char *cls_name = stmt->data.class_decl.name;
+    const char *cls_name = ast_class_name(stmt);
     if (cls_name == NULL || llvm_lookup_class(ctx, cls_name) != NULL)
         return;
-    size_t fc = stmt->data.class_decl.field_count;
+    size_t fc = 0;
+    ClassField **fields = ast_class_fields(stmt, &fc);
     /* Field-type buffer: consumed by LLVMStructSetBody (copies) and read
      * once for llvm_class_add_field below; never retained. */
     LLVMTypeRef *field_types = pgy_arena_calloc(&ctx->scratch,
         (fc > 0 ? fc : 1) * sizeof(LLVMTypeRef));
     for (size_t j = 0; j < fc; j++) {
-        ClassField *f = stmt->data.class_decl.fields[j];
+        ClassField *f = fields != NULL ? fields[j] : NULL;
         field_types[j] = llvm_register_required_ast_type(
             ctx, stmt, f != NULL ? f->type : NULL, "class field");
         if (ctx->has_error || field_types[j] == NULL)
@@ -271,7 +272,7 @@ llvm_register_nominal_decl(LLVMGenCtx *ctx, ASTNode *stmt)
     LLVMTypeRef struct_ty = LLVMStructCreateNamed(ctx->context, cls_name);
     LLVMStructSetBody(struct_ty, field_types, (unsigned)fc, 0);
 
-    NominalDeclKind nominal_kind = stmt->data.class_decl.nominal_kind;
+    NominalDeclKind nominal_kind = ast_class_nominal_kind(stmt);
     bool is_subject = nominal_kind == NOMINAL_DECL_SUBJECT;
     bool is_pointer_self_host = is_subject || nominal_kind == NOMINAL_DECL_VESSEL;
     bool is_immutable = llvm_nominal_uses_immutable_projection_storage(nominal_kind);
@@ -282,7 +283,7 @@ llvm_register_nominal_decl(LLVMGenCtx *ctx, ASTNode *stmt)
         entry->is_immutable = is_immutable;
         entry->is_boundary_transfer_contract = is_boundary_transfer;
         for (size_t j = 0; j < fc; j++) {
-            ClassField *f = stmt->data.class_decl.fields[j];
+            ClassField *f = fields != NULL ? fields[j] : NULL;
             if (f == NULL || f->name == NULL)
                 continue;
             llvm_class_add_field(entry, f->name, field_types[j], (int)j);

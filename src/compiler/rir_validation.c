@@ -5,6 +5,7 @@
 
 #include "dir.h"
 #include "rir_flow_state.h"
+#include "parser/ast_api.h"
 #include "../common/string_compat.h"
 
 static const RIRFact *
@@ -447,11 +448,11 @@ rir_validate_against_dir(const RIRProgram *rir, const DIRProgram *dir, char **er
         summary = scope_find_state_summary((RIRScope *)scope, local_name);
 
         if (node->ast != NULL && node->ast->type == AST_DOMAIN_SLOT) {
-            if (node->ast->data.domain_slot.is_subject)
+            if (ast_domain_slot_is_subject(node->ast))
                 expected_kind = RIR_RESOURCE_SUBJECT_SLOT;
-            else if (node->ast->data.domain_slot.is_vessel)
+            else if (ast_domain_slot_is_vessel(node->ast))
                 expected_kind = RIR_RESOURCE_VESSEL_SLOT;
-            else if (node->ast->data.domain_slot.is_tobject)
+            else if (ast_domain_slot_is_tobject(node->ast))
                 expected_kind = RIR_RESOURCE_TOBJECT_SLOT;
             else
                 expected_kind = RIR_RESOURCE_OBJECT_SLOT;

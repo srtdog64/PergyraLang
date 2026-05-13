@@ -37,10 +37,14 @@ projection_path_strdup_fmt(const char *fmt, ...)
 size_t
 projection_source_field_count(ASTNode *decl)
 {
+    size_t field_count = 0;
+
     if (decl == NULL)
         return 0;
-    if (decl->type == AST_CLASS_DECL)
-        return decl->data.class_decl.field_count;
+    if (decl->type == AST_CLASS_DECL) {
+        (void) ast_class_fields(decl, &field_count);
+        return field_count;
+    }
     return 0;
 }
 
@@ -50,8 +54,10 @@ projection_source_field_at(ASTNode *decl, size_t index)
     if (decl == NULL)
         return NULL;
     if (decl->type == AST_CLASS_DECL) {
-        if (index < decl->data.class_decl.field_count)
-            return decl->data.class_decl.fields[index];
+        size_t field_count = 0;
+        ClassField **fields = ast_class_fields(decl, &field_count);
+        if (index < field_count && fields != NULL)
+            return fields[index];
         return NULL;
     }
     return NULL;
@@ -119,7 +125,7 @@ resolve_projection_source_field_path_rec(ASTNode *program_root,
 
         vessel_decl = find_type_decl_by_name(program_root, field->type->data.type.name);
         if (vessel_decl == NULL || vessel_decl->type != AST_CLASS_DECL
-            || vessel_decl->data.class_decl.nominal_kind != NOMINAL_DECL_VESSEL) {
+            || ast_class_nominal_kind(vessel_decl) != NOMINAL_DECL_VESSEL) {
             continue;
         }
 

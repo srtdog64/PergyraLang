@@ -209,6 +209,12 @@ main(void)
     TEST("AIR synthesis collects observability schema evidence");
     EXPECT(test_air_synthesis_collects_observability_schema_evidence());
 
+    TEST("AIR collects singleton global evidence idempotently");
+    EXPECT(test_air_collects_singleton_global_evidence_idempotently());
+
+    TEST("AIR rejects conflicting singleton global evidence");
+    EXPECT(test_air_rejects_conflicting_singleton_global_evidence());
+
     TEST("AIR rejects invalid observability schema provider");
     EXPECT(test_air_rejects_invalid_observability_schema_provider());
 

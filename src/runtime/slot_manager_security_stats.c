@@ -10,21 +10,40 @@
 #include <stdio.h>
 #include <time.h>
 
+static bool
+slot_security_localtime(time_t now, struct tm *out)
+{
+    if (out == NULL)
+        return false;
+#if defined(_WIN32)
+    return localtime_s(out, &now) == 0;
+#elif defined(_POSIX_VERSION)
+    return localtime_r(&now, out) != NULL;
+#else
+    {
+        struct tm *tmp = localtime(&now);
+        if (tmp == NULL)
+            return false;
+        *out = *tmp;
+        return true;
+    }
+#endif
+}
+
 void
 SlotManagerLogSecurityEvent(SlotManager *manager, const char *event,
                             uint32_t slotId, const char *details)
 {
     time_t now;
-    struct tm *tmNow;
+    struct tm tmNow;
     char timestamp[32];
 
     if (manager == NULL || event == NULL || !SlotManagerIsSecurityEnabled(manager))
         return;
 
     now = time(NULL);
-    tmNow = localtime(&now);
-    if (tmNow != NULL)
-        strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", tmNow);
+    if (slot_security_localtime(now, &tmNow))
+        strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", &tmNow);
     else
         snprintf(timestamp, sizeof(timestamp), "time-unavailable");
 

@@ -62,8 +62,10 @@ host_projection_relevant_field_exists(TranspilerCtx *ctx,
     if (host_decl == NULL || host_decl->type != AST_CLASS_DECL)
         return false;
 
-    for (size_t i = 0; i < host_decl->data.class_decl.field_count; i++) {
-        ClassField *field = host_decl->data.class_decl.fields[i];
+    size_t field_count = 0;
+    ClassField **fields = ast_class_fields(host_decl, &field_count);
+    for (size_t i = 0; i < field_count; i++) {
+        ClassField *field = fields != NULL ? fields[i] : NULL;
         if (field != NULL && field->name != NULL
             && strcmp(field->name, field_name) == 0) {
             return !field->is_vessel_field;
@@ -81,8 +83,10 @@ find_host_field_by_name_local(ASTNode *host_decl, const char *field_name)
         return NULL;
     }
 
-    for (size_t i = 0; i < host_decl->data.class_decl.field_count; i++) {
-        ClassField *field = host_decl->data.class_decl.fields[i];
+    size_t field_count = 0;
+    ClassField **fields = ast_class_fields(host_decl, &field_count);
+    for (size_t i = 0; i < field_count; i++) {
+        ClassField *field = fields != NULL ? fields[i] : NULL;
         if (field != NULL && field->name != NULL
             && strcmp(field->name, field_name) == 0) {
             return field;

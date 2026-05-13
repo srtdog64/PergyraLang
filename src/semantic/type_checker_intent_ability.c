@@ -15,29 +15,29 @@ type_check_intent_step_ability_contract(ASTNode *intent_decl,
     if (intent_decl == NULL || step == NULL || ctx == NULL)
         return;
 
-    for (size_t j = 0; j < step->data.intent_step.required_ability_count; j++) {
-        ASTNode *ability_ref = step->data.intent_step.required_abilities[j];
+    for (size_t j = 0; j < ast_intent_step_required_ability_count(step); j++) {
+        ASTNode *ability_ref = ast_intent_step_required_abilities(step, NULL)[j];
         const char *ability = ability_ref_name(ability_ref);
         char *required_text = ability_ref_display(ability_ref);
 
         semantic_type_resolution_record_type_ref_dependency(
             ctx,
             step,
-            step->data.intent_step.name != NULL
-                ? step->data.intent_step.name : "<step>",
+            ast_intent_step_name(step) != NULL
+                ? ast_intent_step_name(step) : "<step>",
             ability_ref,
             "intent step ability consumer lookup");
 
         if (resolve_required_ability_decl(
                 ability_ref, step, ctx, "Intent step",
-                step->data.intent_step.name != NULL
-                    ? step->data.intent_step.name : "<step>") == NULL) {
+                ast_intent_step_name(step) != NULL
+                    ? ast_intent_step_name(step) : "<step>") == NULL) {
             free(required_text);
             continue;
         }
 
-        for (size_t k = 0; k < step->data.intent_step.who_count; k++) {
-            const char *alias = step->data.intent_step.who_names[k];
+        for (size_t k = 0; k < ast_intent_step_who_count(step); k++) {
+            const char *alias = ast_intent_step_who_names(step, NULL)[k];
             ASTNode *involves = find_intent_involves_local(intent_decl, alias);
             const char *participant_type_name =
                 intent_involves_type_name(involves);
@@ -78,8 +78,8 @@ type_check_intent_step_ability_contract(ASTNode *intent_decl,
                     "- implement '%s' for subject type '%s'\n"
                     "- or choose a participant whose subject type satisfies the contract\n"
                     "- or override/remove the inherited step requirement",
-                    step->data.intent_step.name != NULL
-                        ? step->data.intent_step.name : "<step>",
+                    ast_intent_step_name(step) != NULL
+                        ? ast_intent_step_name(step) : "<step>",
                     required_label,
                     alias != NULL ? alias : "<participant>",
                     participant_type_name,
@@ -106,8 +106,8 @@ type_check_intent_step_ability_contract(ASTNode *intent_decl,
                     "- implement '%s' for subject type '%s'\n"
                     "- or choose a participant whose subject type satisfies the contract\n"
                     "- or override/remove the inherited step requirement",
-                    step->data.intent_step.name != NULL
-                        ? step->data.intent_step.name : "<step>",
+                    ast_intent_step_name(step) != NULL
+                        ? ast_intent_step_name(step) : "<step>",
                     required_label,
                     alias != NULL ? alias : "<participant>",
                     participant_type_name,

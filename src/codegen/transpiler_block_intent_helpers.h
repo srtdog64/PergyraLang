@@ -16,23 +16,23 @@ emit_intent_step_bind_bound_zone(CodeBuf *out, TranspilerCtx *ctx,
 
     if (out == NULL || ctx == NULL || intent == NULL || step == NULL
         || step->type != AST_INTENT_STEP
-        || step->data.intent_step.where_type == NULL
-        || step->data.intent_step.where_type->type != AST_TYPE) {
+        || ast_intent_step_where_type(step) == NULL
+        || ast_intent_step_where_type(step)->type != AST_TYPE) {
         return;
     }
 
     zone_alias = intent_step_effective_zone_alias(step);
-    zone_type = step->data.intent_step.where_type->data.type.name;
+    zone_type = ast_intent_step_where_type(step)->data.type.name;
     if (zone_alias == NULL || zone_type == NULL)
         return;
 
-    from_alias = step->data.intent_step.transfer_from_alias;
+    from_alias = ast_intent_step_transfer_from_alias(step);
     from_zone_type = intent_zone_binding_type_name(intent, from_alias);
 
     if (from_alias != NULL && from_zone_type != NULL) {
 
-        for (size_t i = 0; i < step->data.intent_step.who_count; i++) {
-            const char *alias = step->data.intent_step.who_names[i];
+        for (size_t i = 0; i < ast_intent_step_who_count(step); i++) {
+            const char *alias = ast_intent_step_who_names(step, NULL)[i];
             const char *from_slot_name = resolve_intent_zone_slot_name_for_zone(ctx, intent,
                 from_zone_type, alias);
             const char *to_slot_name = resolve_intent_zone_slot_name_for_zone(ctx, intent,
@@ -73,8 +73,8 @@ emit_intent_step_bind_bound_zone(CodeBuf *out, TranspilerCtx *ctx,
         return;
     }
 
-    for (size_t i = 0; i < step->data.intent_step.who_count; i++) {
-        const char *alias = step->data.intent_step.who_names[i];
+    for (size_t i = 0; i < ast_intent_step_who_count(step); i++) {
+        const char *alias = ast_intent_step_who_names(step, NULL)[i];
         const char *slot_name = resolve_intent_zone_slot_name(ctx, intent, step, alias);
         if (alias == NULL || slot_name == NULL || strcmp(slot_name, "<unbound>") == 0)
             continue;
@@ -203,14 +203,14 @@ emit_intent_step_mark_caused_effect(CodeBuf *out, TranspilerCtx *ctx,
         const char *layer_name;
 
         if (layer_slot == NULL || layer_slot->type != AST_ZONE_LAYER_SLOT
-            || layer_slot->data.zone_layer_slot.is_relation
-            || layer_slot->data.zone_layer_slot.slot_name == NULL
-            || layer_slot->data.zone_layer_slot.layer_type == NULL
-            || strcmp(layer_slot->data.zone_layer_slot.layer_type, causes_effect) != 0) {
+            || ast_zone_layer_slot_is_relation(layer_slot)
+            || ast_zone_layer_slot_name(layer_slot) == NULL
+            || ast_zone_layer_slot_layer_type(layer_slot) == NULL
+            || strcmp(ast_zone_layer_slot_layer_type(layer_slot), causes_effect) != 0) {
             continue;
         }
 
-        layer_name = layer_slot->data.zone_layer_slot.slot_name;
+        layer_name = ast_zone_layer_slot_name(layer_slot);
         write_indent(ctx);
         codebuf_write(out, "%s->__layer_epoch_%s++;\n", zone_alias, layer_name);
         write_indent(ctx);
@@ -219,18 +219,18 @@ emit_intent_step_mark_caused_effect(CodeBuf *out, TranspilerCtx *ctx,
         for (size_t j = 0; j < state_count; j++) {
             ASTNode *state = states[j];
             if (state == NULL || state->type != AST_ZONE_STATE
-                || state->data.zone_state.is_relation
-                || state->data.zone_state.state_name == NULL
-                || state->data.zone_state.layer_slot_name == NULL
-                || strcmp(state->data.zone_state.layer_slot_name, layer_name) != 0) {
+                || ast_zone_state_is_relation(state)
+                || ast_zone_state_name(state) == NULL
+                || ast_zone_state_layer_slot_name(state) == NULL
+                || strcmp(ast_zone_state_layer_slot_name(state), layer_name) != 0) {
                 continue;
             }
             write_indent(ctx);
             codebuf_write(out, "%s->__state_epoch_%s++;\n",
-                zone_alias, state->data.zone_state.state_name);
+                zone_alias, ast_zone_state_name(state));
             write_indent(ctx);
             codebuf_write(out, "%s->__state_cause_%s = 11;\n",
-                zone_alias, state->data.zone_state.state_name);
+                zone_alias, ast_zone_state_name(state));
         }
     }
 }
@@ -298,13 +298,13 @@ emit_intent_step_sync_effective_zone(CodeBuf *out, TranspilerCtx *ctx,
     const char *zone_type;
 
     if (out == NULL || ctx == NULL || step == NULL || step->type != AST_INTENT_STEP
-        || step->data.intent_step.where_type == NULL
-        || step->data.intent_step.where_type->type != AST_TYPE) {
+        || ast_intent_step_where_type(step) == NULL
+        || ast_intent_step_where_type(step)->type != AST_TYPE) {
         return;
     }
 
     zone_alias = intent_step_effective_zone_alias(step);
-    zone_type = step->data.intent_step.where_type->data.type.name;
+    zone_type = ast_intent_step_where_type(step)->data.type.name;
     if (zone_alias == NULL || zone_type == NULL)
         return;
 

@@ -39,31 +39,23 @@ test_ability_role_emit(void)
 
     TEST("role emits static method and vtable instance");
     {
-        ASTNode role_node; memset(&role_node, 0, sizeof(role_node));
-        role_node.type = AST_ROLE_DECL;
-        role_node.data.role_decl.name = "PlayerHeal";
-
-        ASTNode method; memset(&method, 0, sizeof(method));
-        method.type = AST_FUNC_DECL;
-        method.data.func_decl.name = "Heal";
-        method.data.func_decl.params = NULL;
-        method.data.func_decl.param_count = 0;
-        method.data.func_decl.return_type = make_type_node("Void");
-        method.data.func_decl.body = NULL;
-
-        ASTNode *impl_methods[1] = { &method };
-        ASTNode impl_node; memset(&impl_node, 0, sizeof(impl_node));
-        impl_node.type = AST_IMPL_ABILITY;
-        impl_node.data.impl_ability.ability_ref = ast_create_type("Healable");
-        impl_node.data.impl_ability.methods = impl_methods;
-        impl_node.data.impl_ability.method_count = 1;
-
-        ASTNode *impls[1] = { &impl_node };
-        role_node.data.role_decl.impl_abilities = impls;
-        role_node.data.role_decl.impl_count = 1;
-
+        const char *source =
+            "ability Healable { func Heal() -> Void; }\n"
+            "subject Player {}\n"
+            "role PlayerHeal for Player {\n"
+            "    impl ability Healable { func Heal() -> Void { return; } }\n"
+            "}\n"
+            "func Main() -> Void { return; }\n";
+        ASTNode *program = NULL;
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
         TranspilerCtx *ctx = transpiler_ctx_create();
-        emit_role_decl(&role_node, ctx);
+
+        EXPECT(ok);
+        ctx->mir = mir;
+        emit_program(ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "PlayerHeal_Heal");
         EXPECT_STR_CONTAINS(ctx->out->data, "Healable_vtable");
@@ -71,6 +63,10 @@ test_ability_role_emit(void)
         EXPECT_STR_CONTAINS(ctx->out->data, ".Heal = PlayerHeal_Heal");
 
         transpiler_ctx_destroy(ctx);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+        ast_destroy(program);
     }
 
     TEST("generic ability specialization emits canonical vtable tag");
@@ -177,51 +173,37 @@ test_ability_role_emit(void)
         transpiler_ctx_destroy(ctx);
     }
 
-    TEST("role include copies inherited impls into current role");
+    TEST("role include forwards inherited impls through derived wrappers");
     {
-        ASTNode base_method; memset(&base_method, 0, sizeof(base_method));
-        base_method.type = AST_FUNC_DECL;
-        base_method.data.func_decl.name = "Tick";
-        base_method.data.func_decl.return_type = make_type_node("Void");
-
-        ASTNode *base_methods[1] = { &base_method };
-        ASTNode base_impl; memset(&base_impl, 0, sizeof(base_impl));
-        base_impl.type = AST_IMPL_ABILITY;
-        base_impl.data.impl_ability.ability_ref = ast_create_type("Updatable");
-        base_impl.data.impl_ability.methods = base_methods;
-        base_impl.data.impl_ability.method_count = 1;
-
-        ASTNode *base_impls[1] = { &base_impl };
-        ASTNode base_role; memset(&base_role, 0, sizeof(base_role));
-        base_role.type = AST_ROLE_DECL;
-        base_role.data.role_decl.name = "BaseRole";
-        base_role.data.role_decl.impl_abilities = base_impls;
-        base_role.data.role_decl.impl_count = 1;
-
-        ASTNode include_stmt; memset(&include_stmt, 0, sizeof(include_stmt));
-        include_stmt.type = AST_INCLUDE_STMT;
-        include_stmt.data.include_stmt.role_name = "BaseRole";
-
-        ASTNode *includes[1] = { &include_stmt };
-        ASTNode derived_role; memset(&derived_role, 0, sizeof(derived_role));
-        derived_role.type = AST_ROLE_DECL;
-        derived_role.data.role_decl.name = "DerivedRole";
-        derived_role.data.role_decl.includes = includes;
-        derived_role.data.role_decl.include_count = 1;
-
-        ASTNode *roles[2] = { &base_role, &derived_role };
-        MIRProgram mir; memset(&mir, 0, sizeof(mir));
-        mir.roles = roles;
-        mir.role_count = 2;
-
+        const char *source =
+            "ability Updatable { func Tick() -> Void; }\n"
+            "subject Player {}\n"
+            "role BaseRole for Player {\n"
+            "    impl ability Updatable { func Tick() -> Void { return; } }\n"
+            "}\n"
+            "role DerivedRole for Player {\n"
+            "    include BaseRole;\n"
+            "}\n"
+            "func Main() -> Void { return; }\n";
+        ASTNode *program = NULL;
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
         TranspilerCtx *ctx = transpiler_ctx_create();
-        ctx->mir = &mir;
-        emit_role_decl(&derived_role, ctx);
+
+        EXPECT(ok);
+        ctx->mir = mir;
+        emit_program(ctx);
 
         EXPECT_STR_CONTAINS(ctx->out->data, "DerivedRole_Tick");
         EXPECT_STR_CONTAINS(ctx->out->data, "DerivedRole_Updatable_vtable_instance");
 
         transpiler_ctx_destroy(ctx);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+        ast_destroy(program);
     }
 }
 

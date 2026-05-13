@@ -1,6 +1,7 @@
 #include <string.h>
 
 #include "diag_codes.h"
+#include "parser/ast_api.h"
 #include "type_checker_internal.h"
 #include "type_checker_world_internal.h"
 
@@ -189,7 +190,7 @@ check_world_state_detail(ASTNode *state,
     detail_name = state->data.world_state.detail_name;
     if (state->data.world_state.source_kind == WORLD_STATE_SOURCE_PROJECTION) {
         detail_decl = find_zone_domain_slot(zone_decl, detail_name);
-        if (detail_decl == NULL || detail_decl->data.domain_slot.is_subject) {
+        if (detail_decl == NULL || ast_domain_slot_is_subject(detail_decl)) {
             semantic_error_with_hints(ctx,
                 PGY_CODE_SEM_WORLD_CONTRACT_INVALID,
                 PGY_CAUSE_WORLD_CONTRACT,

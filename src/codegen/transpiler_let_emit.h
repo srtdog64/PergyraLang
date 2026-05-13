@@ -162,11 +162,28 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
                 return;
             }
             if (strcmp(key, "String") == 0 && value != NULL) {
+                char map_c_type_buf[256];
+                const char *map_c_type = NULL;
+                if (pergyra_type_to_c_copy(ann_type_name, map_c_type_buf,
+                        sizeof(map_c_type_buf))) {
+                    map_c_type = map_c_type_buf;
+                }
+                if (map_c_type == NULL) {
+                    transpiler_set_backend_error_with_hints(ctx,
+                        PGY_CODE_C_TYPE_UNSUPPORTED,
+                        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                        PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                        "C backend: HashMap binding '%s' annotation cannot be rendered as a stable C type",
+                        name != NULL ? name : "<binding>");
+                    free(key);
+                    free(value);
+                    free(ann_type_name);
+                    return;
+                }
                 ensure_collection_specialization(ctx, "Map", value);
                 write_indent(ctx);
                 codebuf_write(ctx->out, "%s %s = pgy_map_new_%s();\n",
-                    pergyra_type_to_c(ann_type_name), name,
-                    collection_runtime_suffix(value));
+                    map_c_type, name, collection_runtime_suffix(value));
                 register_typed_var(ctx, name, ann_type_name);
                 free(key);
                 free(value);
@@ -178,22 +195,52 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
         }
         if (strcmp(callee_name, "ListNew") == 0
             && strcmp(type_name, "List") == 0) {
+            char list_c_type_buf[256];
+            const char *list_c_type = NULL;
+            if (pergyra_type_to_c_copy(ann_type_name, list_c_type_buf,
+                    sizeof(list_c_type_buf))) {
+                list_c_type = list_c_type_buf;
+            }
+            if (list_c_type == NULL) {
+                transpiler_set_backend_error_with_hints(ctx,
+                    PGY_CODE_C_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                    PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                    "C backend: List binding '%s' annotation cannot be rendered as a stable C type",
+                    name != NULL ? name : "<binding>");
+                free(ann_type_name);
+                return;
+            }
             ensure_collection_specialization(ctx, "List", inner);
             write_indent(ctx);
             codebuf_write(ctx->out, "%s %s = pgy_list_new_%s();\n",
-                pergyra_type_to_c(ann_type_name), name,
-                collection_runtime_suffix(inner));
+                list_c_type, name, collection_runtime_suffix(inner));
             register_typed_var(ctx, name, ann_type_name);
             free(ann_type_name);
             return;
         }
         if (strcmp(callee_name, "QueueNew") == 0
             && strcmp(type_name, "Queue") == 0) {
+            char queue_c_type_buf[256];
+            const char *queue_c_type = NULL;
+            if (pergyra_type_to_c_copy(ann_type_name, queue_c_type_buf,
+                    sizeof(queue_c_type_buf))) {
+                queue_c_type = queue_c_type_buf;
+            }
+            if (queue_c_type == NULL) {
+                transpiler_set_backend_error_with_hints(ctx,
+                    PGY_CODE_C_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                    PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                    "C backend: Queue binding '%s' annotation cannot be rendered as a stable C type",
+                    name != NULL ? name : "<binding>");
+                free(ann_type_name);
+                return;
+            }
             ensure_collection_specialization(ctx, "Queue", inner);
             write_indent(ctx);
             codebuf_write(ctx->out, "%s %s = pgy_queue_new_%s();\n",
-                pergyra_type_to_c(ann_type_name), name,
-                collection_runtime_suffix(inner));
+                queue_c_type, name, collection_runtime_suffix(inner));
             register_typed_var(ctx, name, ann_type_name);
             free(ann_type_name);
             return;
@@ -214,7 +261,7 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
         ASTNode *target_decl = find_class_decl(ctx, resolved_ann->data.type.name);
         if (target_decl != NULL
             && target_decl->type == AST_CLASS_DECL
-            && target_decl->data.class_decl.nominal_kind == NOMINAL_DECL_OBJECT) {
+            && ast_class_nominal_kind(target_decl) == NOMINAL_DECL_OBJECT) {
             const char *source_name = init->data.call.arguments[1]->data.identifier.name;
             register_projection_borrow_var(ctx, name,
                 ann_type_name != NULL ? ann_type_name : resolved_ann->data.type.name,
@@ -229,9 +276,14 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
         const char *array_type_name = ann_type_name != NULL
             ? ann_type_name
             : infer_expression_type_name(ctx, init);
-        const char *array_c_type = pergyra_type_to_c(array_type_name);
+        char array_c_type_buf[256];
+        const char *array_c_type = NULL;
         const char *saved_expected_type = ctx->expected_type;
         char *init_expr;
+        if (pergyra_type_to_c_copy(array_type_name, array_c_type_buf,
+                sizeof(array_c_type_buf))) {
+            array_c_type = array_c_type_buf;
+        }
         if (array_type_name == NULL
             || strcmp(array_type_name, "Array<Unknown>") == 0
             || array_c_type == NULL
@@ -257,29 +309,46 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
     }
 
     /* Normal variable with type inference */
+    char inferred_c_type_buf[256];
+    char annotated_c_type_buf[256];
     const char *c_type = NULL;
     if (ann != NULL) {
-        c_type = pergyra_ast_type_to_c(ann);
+        const char *ann_source_type = ann_type_name;
+        if (ann_source_type != NULL
+            && pergyra_type_to_c_copy(ann_source_type,
+                annotated_c_type_buf,
+                sizeof(annotated_c_type_buf))) {
+            c_type = annotated_c_type_buf;
+        }
     } else if (init != NULL) {
         const char *inferred_type = NULL;
         /* Type inference from initializer */
         if (init->type == AST_NUMBER) {
             inferred_type = infer_expression_type_name(ctx, init);
-            if (inferred_type != NULL)
-                c_type = pergyra_type_to_c(inferred_type);
+            if (inferred_type != NULL
+                && pergyra_type_to_c_copy(inferred_type,
+                    inferred_c_type_buf, sizeof(inferred_c_type_buf))) {
+                c_type = inferred_c_type_buf;
+            }
         }
         else if (init->type == AST_STRING)  c_type = "char*";
         else if (init->type == AST_BOOLEAN) c_type = "bool";
         else if (init->type == AST_SPAWN_EXPR) c_type = "PgyTaskHandle";
         else if (init->type == AST_CHANNEL_RECV) {
             inferred_type = infer_expression_type_name(ctx, init);
-            if (inferred_type != NULL)
-                c_type = pergyra_type_to_c(inferred_type);
+            if (inferred_type != NULL
+                && pergyra_type_to_c_copy(inferred_type,
+                    inferred_c_type_buf, sizeof(inferred_c_type_buf))) {
+                c_type = inferred_c_type_buf;
+            }
         }
         else if (init->type == AST_CALL || init->type == AST_ARRAY_LITERAL || init != NULL) {
             inferred_type = infer_expression_type_name(ctx, init);
-            if (inferred_type != NULL)
-                c_type = pergyra_type_to_c(inferred_type);
+            if (inferred_type != NULL
+                && pergyra_type_to_c_copy(inferred_type,
+                    inferred_c_type_buf, sizeof(inferred_c_type_buf))) {
+                c_type = inferred_c_type_buf;
+            }
         }
     }
 
@@ -298,8 +367,15 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
         && strcmp(init->data.call.callee->data.identifier.name, "SetNew") == 0
         && strncmp(ann_type_name, "Set<", 4) == 0) {
         const char *inner = slot_inner_type_name(ann_type_name);
-        const char *c_type = pergyra_type_to_c(ann_type_name);
+        char set_c_type_buf[256];
+        const char *c_type = NULL;
         const char *suffix = collection_runtime_suffix(inner);
+        if (pergyra_type_to_c_copy(ann_type_name, set_c_type_buf,
+                sizeof(set_c_type_buf))) {
+            c_type = set_c_type_buf;
+        }
+        if (c_type == NULL)
+            c_type = "Unknown";
         ensure_collection_specialization(ctx, "Set", inner);
         write_indent(ctx);
         codebuf_write(ctx->out, "%s %s = pgy_set_new_%s();\n",
@@ -340,7 +416,20 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
             return;
         }
 
-        result_c_type = pergyra_type_to_c(result_type);
+        char result_c_type_buf[256];
+        char c_type_buf[256];
+        if (pergyra_type_to_c_copy(result_type, result_c_type_buf,
+                sizeof(result_c_type_buf))) {
+            result_c_type = result_c_type_buf;
+        } else {
+            result_c_type = "Unknown";
+        }
+        if (c_type != NULL) {
+            copy_capped_string(c_type_buf, sizeof(c_type_buf), c_type);
+            c_type = c_type_buf;
+        } else {
+            c_type = "Unknown";
+        }
         operand_expr = emit_expression(operand, ctx);
         try_id = ctx->tmp_counter++;
         write_indent(ctx);
@@ -383,18 +472,20 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
         if (class_decl == NULL && generic_class_spec_name != NULL
             && ann->data.type.name != NULL)
             class_decl = find_class_decl(ctx, ann->data.type.name);
+        size_t field_count = 0;
+        ClassField **fields = ast_class_fields(class_decl, &field_count);
         write_indent(ctx);
         if (class_decl != NULL
             && class_decl->type == AST_CLASS_DECL
-            && class_decl->data.class_decl.field_count > 0
+            && field_count > 0
             && init->data.call.arg_count > 0) {
             codebuf_write(ctx->out, "%s %s = { ", ann_type_name, name);
             for (size_t i = 0; i < init->data.call.arg_count; i++) {
                 ClassField *field;
                 char *arg_expr;
-                if (i >= class_decl->data.class_decl.field_count)
+                if (i >= field_count)
                     break;
-                field = class_decl->data.class_decl.fields[i];
+                field = fields != NULL ? fields[i] : NULL;
                 if (field == NULL || field->name == NULL)
                     continue;
                 arg_expr = emit_expression(init->data.call.arguments[i], ctx);
@@ -466,27 +557,7 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
         codebuf_write(ctx->out, "%s %s = (%s){0};\n", c_type, name, c_type);
     }
 
-    if (ann_type_name != NULL) {
-        register_typed_var(ctx, name, ann_type_name);
-        free(ann_type_name);
-    } else if (init != NULL && init->type == AST_CALL) {
-        register_typed_var(ctx, name, infer_expression_type_name(ctx, init));
-    } else if (init != NULL && init->type == AST_SPAWN_EXPR) {
-        char *future_type = infer_spawn_return_type_name(ctx, init);
-        char *wrapped = strdup_fmt("Future<%s>", future_type);
-        register_typed_var(ctx, name, wrapped);
-        free(future_type);
-        free(wrapped);
-    } else if (init != NULL && init->type == AST_CHANNEL_RECV) {
-        const char *inner = infer_expression_type_name(ctx, init);
-        register_typed_var(ctx, name, inner);
-    } else if (init != NULL) {
-        /* Fallback: infer from any initializer (string literals, binary exprs, etc.) */
-        const char *inferred = infer_expression_type_name(ctx, init);
-        if (inferred != NULL) {
-            register_typed_var(ctx, name, inferred);
-        }
-    }
+    transpiler_register_let_type_after_emit(ctx, name, init, ann_type_name);
 }
 
 #endif /* PGY_TRANSPILER_LET_EMIT_H */

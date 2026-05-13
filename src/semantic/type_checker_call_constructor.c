@@ -49,13 +49,14 @@ type_check_constructor_symbol_call(ASTNode *expr,
                 return true;
             }
             if (decl != NULL && decl->type == AST_CLASS_DECL) {
-                field_count = decl->data.class_decl.field_count;
+                (void) ast_class_fields(decl, &field_count);
                 decl_is_generic =
                     (decl->data.class_decl.generic_params != NULL
                      && decl->data.class_decl.generic_params->count > 0);
             } else if (decl != NULL
                        && (decl->type == AST_RELATION_DECL
                            || decl->type == AST_EFFECT_DECL
+                           || decl->type == AST_PARTY_DECL
                            || decl->type == AST_ROSTER_DECL
                            || decl->type == AST_WORLD_DECL
                            || decl->type == AST_ZONE_DECL)) {
@@ -147,13 +148,16 @@ type_check_constructor_symbol_call(ASTNode *expr,
                                     &zone_count);
                                 for (size_t zi = 0; zi < zone_count; zi++) {
                                     ASTNode *zone_slot = zones[zi];
+                                    const char *zone_type =
+                                        ast_world_zone_type_name(zone_slot);
+                                    const char *zone_slot_name =
+                                        ast_world_zone_slot_name(zone_slot);
                                     if (zone_slot == NULL
                                         || zone_slot->type != AST_WORLD_ZONE
-                                        || zone_slot->data.world_zone.zone_type == NULL) {
+                                        || zone_type == NULL) {
                                         continue;
                                     }
-                                    if (strcmp(arg_type_name,
-                                            zone_slot->data.world_zone.zone_type) == 0) {
+                                    if (strcmp(arg_type_name, zone_type) == 0) {
                                         semantic_error_with_hints(ctx,
                                             PGY_CODE_SEM_ANCHORED_HANDLE_COPY,
                                             PGY_CAUSE_ANCHORED_HANDLE_COPY_ATTEMPT,
@@ -175,23 +179,20 @@ type_check_constructor_symbol_call(ASTNode *expr,
                                             expr->data.call.arguments[i]->data.identifier.name != NULL
                                                 ? expr->data.call.arguments[i]->data.identifier.name
                                                 : "<zone>",
-                                            zone_slot->data.world_zone.slot_name != NULL
-                                                ? zone_slot->data.world_zone.slot_name
-                                                : "<slot>",
+                                            zone_slot_name != NULL
+                                                ? zone_slot_name : "<slot>",
                                             expr->data.call.arguments[i]->data.identifier.name != NULL
                                                 ? expr->data.call.arguments[i]->data.identifier.name
                                                 : "<zone>",
                                             display_name != NULL ? display_name : "<world>",
-                                            zone_slot->data.world_zone.slot_name != NULL
-                                                ? zone_slot->data.world_zone.slot_name
-                                                : "<slot>",
+                                            zone_slot_name != NULL
+                                                ? zone_slot_name : "<slot>",
                                             expr->data.call.arguments[i]->data.identifier.name != NULL
                                                 ? expr->data.call.arguments[i]->data.identifier.name
                                                 : "<zone>",
                                             display_name != NULL ? display_name : "<world>",
-                                            zone_slot->data.world_zone.slot_name != NULL
-                                                ? zone_slot->data.world_zone.slot_name
-                                                : "<slot>",
+                                            zone_slot_name != NULL
+                                                ? zone_slot_name : "<slot>",
                                             expr->data.call.arguments[i]->data.identifier.name != NULL
                                                 ? expr->data.call.arguments[i]->data.identifier.name
                                                 : "<zone>");
@@ -199,7 +200,7 @@ type_check_constructor_symbol_call(ASTNode *expr,
                                         semantic_ctx_mark_embedded_world_zone_name(ctx,
                                             expr->data.call.arguments[i]->data.identifier.name,
                                             display_name,
-                                            zone_slot->data.world_zone.slot_name);
+                                            zone_slot_name);
                                         break;
                                     }
                                 }

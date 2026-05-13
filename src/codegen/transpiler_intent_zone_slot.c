@@ -8,6 +8,7 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "parser/ast_api.h"
 #include "transpiler_intent_context.h"
 
 const char *
@@ -15,13 +16,13 @@ resolve_intent_zone_slot_name(TranspilerCtx *ctx, ASTNode *intent,
                               ASTNode *step, const char *alias)
 {
     if (ctx == NULL || intent == NULL || step == NULL || alias == NULL
-        || step->data.intent_step.where_type == NULL
-        || step->data.intent_step.where_type->type != AST_TYPE
-        || step->data.intent_step.where_type->data.type.name == NULL) {
+        || ast_intent_step_where_type(step) == NULL
+        || ast_intent_step_where_type(step)->type != AST_TYPE
+        || ast_intent_step_where_type(step)->data.type.name == NULL) {
         return "<unbound>";
     }
     return resolve_intent_zone_slot_name_for_zone(ctx, intent,
-        step->data.intent_step.where_type->data.type.name, alias);
+        ast_intent_step_where_type(step)->data.type.name, alias);
 }
 
 const char *
@@ -46,20 +47,22 @@ resolve_intent_zone_slot_name_for_zone(TranspilerCtx *ctx, ASTNode *intent,
     ASTNode **slots = ast_zone_slots(zone_decl, &slot_count);
     for (size_t i = 0; i < slot_count; i++) {
         ASTNode *slot = slots[i];
+        const char *slot_name = ast_domain_slot_name(slot);
+        ASTNode *slot_type = ast_domain_slot_type(slot);
         if (slot == NULL || slot->type != AST_DOMAIN_SLOT
-            || !slot->data.domain_slot.is_subject
-            || slot->data.domain_slot.slot_name == NULL) {
+            || !ast_domain_slot_is_subject(slot)
+            || slot_name == NULL) {
             continue;
         }
-        if (strcmp(slot->data.domain_slot.slot_name, alias) == 0) {
+        if (strcmp(slot_name, alias) == 0) {
             named_match = slot;
             break;
         }
         if (participant_type != NULL
-            && slot->data.domain_slot.type != NULL
-            && slot->data.domain_slot.type->type == AST_TYPE
-            && slot->data.domain_slot.type->data.type.name != NULL
-            && strcmp(slot->data.domain_slot.type->data.type.name, participant_type) == 0) {
+            && slot_type != NULL
+            && slot_type->type == AST_TYPE
+            && slot_type->data.type.name != NULL
+            && strcmp(slot_type->data.type.name, participant_type) == 0) {
             if (typed_match != NULL)
                 typed_match = (ASTNode *)(uintptr_t)1;
             else
@@ -68,8 +71,8 @@ resolve_intent_zone_slot_name_for_zone(TranspilerCtx *ctx, ASTNode *intent,
     }
 
     if (named_match != NULL)
-        return named_match->data.domain_slot.slot_name;
+        return ast_domain_slot_name(named_match);
     if (typed_match != NULL && typed_match != (ASTNode *)(uintptr_t)1)
-        return typed_match->data.domain_slot.slot_name;
+        return ast_domain_slot_name(typed_match);
     return "<unbound>";
 }

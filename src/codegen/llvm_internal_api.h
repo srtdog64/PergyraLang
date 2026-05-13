@@ -180,6 +180,8 @@ LLVMValueRef  llvm_create_entry_alloca(LLVMGenCtx *ctx, LLVMTypeRef type,
 char         *llvm_stmt_render_type_arg(GenericParam *param);
 char         *llvm_stmt_render_type_arg_scratch(GenericParam *param,
                                                 PgyArena *arena);
+const char   *llvm_keep_rendered_persistent(LLVMGenCtx *ctx, char *rendered,
+                                            const char *oom_context);
 ASTNode      *llvm_stmt_find_function_decl_by_name(LLVMGenCtx *ctx,
                                                    const char *name);
 bool          llvm_mir_base_name_from_versioned(const char *mir_name,

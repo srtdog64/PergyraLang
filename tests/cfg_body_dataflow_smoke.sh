@@ -5,6 +5,51 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PYTHON_BIN="${PYTHON_BIN:-}"
 DOCS_CHECK_DONE=0
 
+add_path_if_dir() {
+    local dir="$1"
+    [[ -d "$dir" ]] || return 0
+    case ":${PATH}:" in
+        *":$dir:"*) ;;
+        *) PATH="$dir:$PATH" ;;
+    esac
+}
+
+prepend_path_if_dir() {
+    local dir="$1"
+    [[ -d "$dir" ]] || return 0
+    PATH="$dir:$PATH"
+}
+
+add_windows_path_candidate() {
+    local dir="$1"
+    local posix_dir=""
+
+    [[ -n "$dir" ]] || return 0
+    add_path_if_dir "$dir"
+    if command -v cygpath >/dev/null 2>&1; then
+        posix_dir="$(cygpath -u "$dir" 2>/dev/null || true)"
+        add_path_if_dir "$posix_dir"
+    fi
+}
+
+setup_windows_compiler_runtime_path() {
+    case "$(uname -s 2>/dev/null || echo unknown)" in
+        MINGW*|MSYS*|CYGWIN*)
+            add_windows_path_candidate "${MSYSTEM_PREFIX:-}/bin"
+            add_windows_path_candidate "${LLVM_INSTALL:-}"
+            add_windows_path_candidate "${LLVM_INSTALL:-}/bin"
+            prepend_path_if_dir "/c/ProgramData/mingw64/mingw64/bin"
+            prepend_path_if_dir "/c/msys64/mingw64/bin"
+            prepend_path_if_dir "/c/Program Files/LLVM/bin"
+            prepend_path_if_dir "/c/LLVM/bin"
+            add_path_if_dir "/clang64/bin"
+            add_path_if_dir "/ucrt64/bin"
+            ;;
+    esac
+}
+
+setup_windows_compiler_runtime_path
+
 require_literal() {
     local rel="$1"
     local term="$2"
@@ -181,6 +226,10 @@ run_literal_doc_contract_smoke() {
     require_literal "src/codegen/transpiler_mir_ssa_map.c" "mir_block_source_line(block)"
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_uses_source_statement_emit"
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_uses_source_local_decl_emit"
+    require_literal "src/compiler/mir_source_shape.c" "mir_instruction_has_source_statement_order"
+    require_literal "src/compiler/mir_source_shape.c" "mir_instruction_is_first_source_statement"
+    require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_statement_index_or"
+    require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_statement_order_compare"
     require_literal "src/codegen/llvm_mir_block_emit.c" "mir_instruction_uses_source_statement_emit(inst)"
     require_literal "src/codegen/llvm_mir_block_emit.c" "llvm_mir_def_uses_source_local_decl_emit"
     require_literal "src/codegen/llvm_mir_block_emit.c" "llvm_mir_def_uses_channel_receive_statement_emit"
@@ -209,6 +258,7 @@ run_literal_doc_contract_smoke() {
     require_literal "src/codegen/transpiler_mir_block_emit_helpers.h" "transpiler_mir_find_stmt_for_inst(const MIRInstruction *inst)"
     require_literal "src/codegen/transpiler_mir_block_emit_helpers.h" "return mir_instruction_source_payload(inst)"
     require_literal "src/compiler/mir_stmt_population.c" "mir_instruction_source_matches_ast_node(inst, stmt)"
+    require_literal "src/compiler/mir_stmt_population.c" "mir_stmt_population_append"
     require_literal "src/codegen/transpiler_mir_assignment_emit.h" "transpiler_mir_def_uses_source_statement_emit("
     require_literal "src/codegen/transpiler_mir_assignment_emit.h" "missing receive emit fact"
     require_literal "src/codegen/transpiler_mir_assignment_emit.h" "missing select receive emit fact"
@@ -224,6 +274,20 @@ run_literal_doc_contract_smoke() {
     if grep -RIn -- 'inst->ast\|resource_inst->ast' "$ROOT_DIR/src/codegen" >/dev/null; then
         echo "Backend MIR emission reopened raw instruction AST payload; use mir_instruction_source_payload(...)" >&2
         grep -RIn -- 'inst->ast\|resource_inst->ast' "$ROOT_DIR/src/codegen" >&2
+        exit 1
+    fi
+    if grep -RIn -- 'has_source_statement_index\|source_statement_index' \
+        "$ROOT_DIR/src/codegen/transpiler_mir_block_schedule_emit.h" >/dev/null; then
+        echo "C MIR block scheduling reopened raw source statement order fields; use MIR source-shape ordering helpers" >&2
+        grep -RIn -- 'has_source_statement_index\|source_statement_index' \
+            "$ROOT_DIR/src/codegen/transpiler_mir_block_schedule_emit.h" >&2
+        exit 1
+    fi
+    if grep -RIn -- 'has_source_statement_index\|source_statement_index' \
+        "$ROOT_DIR/src/compiler/mir_call_fact.c" >/dev/null; then
+        echo "MIR call-fact owner reopened raw source statement order fields; use MIR source-shape ordering helpers" >&2
+        grep -RIn -- 'has_source_statement_index\|source_statement_index' \
+            "$ROOT_DIR/src/compiler/mir_call_fact.c" >&2
         exit 1
     fi
     local raw_payload_hits
@@ -343,6 +407,7 @@ mir_dce_header_path = root / "src" / "compiler" / "mir_dce.h"
 mir_dce_path = root / "src" / "compiler" / "mir_dce.c"
 mir_stmt_population_header_path = root / "src" / "compiler" / "mir_stmt_population.h"
 mir_stmt_population_path = root / "src" / "compiler" / "mir_stmt_population.c"
+mir_stmt_population_resource_ops_path = root / "src" / "compiler" / "mir_stmt_population_resource_ops.c"
 mir_stmt_source_path = root / "src" / "compiler" / "mir_stmt_source.c"
 mir_source_shape_path = root / "src" / "compiler" / "mir_source_shape.c"
 mir_non_cfg_stmt_population_path = root / "src" / "compiler" / "mir_non_cfg_stmt_population.h"
@@ -432,6 +497,7 @@ for path in (
     mir_dce_path,
     mir_stmt_population_header_path,
     mir_stmt_population_path,
+    mir_stmt_population_resource_ops_path,
     mir_stmt_source_path,
     mir_source_shape_path,
     mir_non_cfg_stmt_population_path,
@@ -821,6 +887,7 @@ mir_owner_limits = {
     mir_call_fact_impl_path: 600,
     mir_stmt_population_header_path: 600,
     mir_stmt_population_path: 600,
+    mir_stmt_population_resource_ops_path: 600,
     mir_stmt_source_path: 600,
     mir_non_cfg_stmt_population_path: 600,
     mir_non_cfg_stmt_population_impl_path: 600,
@@ -892,6 +959,11 @@ required_mir_owner_terms = {
         "#include \"mir_cfg_contract_control.h\"",
         "mir_stmt_ast_is_cfg_owned_control(stmt)",
         "#include \"mir_call_fact.h\"",
+    ],
+    "src/compiler/mir_stmt_population_resource_ops.c": [
+        "mir_copy_resource_ops_for_stmt",
+        "mir_assign_resource_op_source_statement_indices",
+        "mir_resource_op_matches_source_stmt",
         "mir_set_inst_source_statement_index(&new_insts[*new_count - 1]",
     ],
     "src/compiler/mir_stmt_source.c": [
@@ -911,8 +983,10 @@ required_mir_owner_terms = {
     ],
     "src/compiler/mir_public_surface.h": [
         "mir_validate_non_cfg_fallback_state",
+        "mir_validate_non_cfg_fallback_inventory",
         "used non-CFG body fallback",
         "non_cfg_body_fallback_count",
+        "non-CFG fallback inventory is stale",
         "fallback flag without fallback count",
     ],
     "src/compiler/mir_cfg_contract_control.h": [
@@ -938,6 +1012,7 @@ mir_owner_text = {
     "src/compiler/mir_call_fact.h": mir_call_fact,
     "src/compiler/mir_call_fact.c": mir_call_fact,
     "src/compiler/mir_stmt_population.c": mir_stmt_population,
+    "src/compiler/mir_stmt_population_resource_ops.c": mir_stmt_population_resource_ops_path.read_text(encoding="utf-8"),
     "src/compiler/mir_stmt_source.c": mir_stmt_source,
     "src/compiler/mir_non_cfg_stmt_population.h": mir_non_cfg_stmt_population,
     "src/compiler/mir_non_cfg_stmt_population.c": mir_non_cfg_stmt_population,
@@ -1463,7 +1538,7 @@ else
     PGY="$DEFAULT_PGY"
 fi
 
-EXAMPLE="${1:-$ROOT_DIR/examples/logistics_intent_probe/main.pgy}"
+EXAMPLE="${1:-$ROOT_DIR/tests/cases/backend_compare/intent_zone_binding/main.pgy}"
 WORK_BASE="$ROOT_DIR/.tmp/cfg-body-dataflow"
 mkdir -p "$WORK_BASE"
 WORK_DIR="$(mktemp -d "$WORK_BASE.XXXXXX")"
@@ -1562,13 +1637,13 @@ func Main() -> Void {
 }
 EOF
 WITH_SLOT_ORDER_FOR_PGY="$(to_native_path_for_pgy "$WITH_SLOT_ORDER")"
-"$PGY" "$WITH_SLOT_ORDER_FOR_PGY" --emit-c -o "$WITH_SLOT_ORDER_C" > "$WORK_DIR/with_slot_order.out"
+WITH_SLOT_ORDER_C_FOR_PGY="$(to_native_path_for_pgy "$WITH_SLOT_ORDER_C")"
+"$PGY" "$WITH_SLOT_ORDER_FOR_PGY" --emit-c -o "$WITH_SLOT_ORDER_C_FOR_PGY" > "$WORK_DIR/with_slot_order.out"
 
 grep -Fq "HIR cfg view" "$HIR_CFG_OUT"
-grep -Fq "function MergeRouteScore" "$HIR_CFG_OUT"
-grep -Fq "blocks=6" "$HIR_CFG_OUT"
-grep -Fq "blocks-with-phi=2" "$HIR_CFG_OUT"
-grep -Fq "succ=TF" "$HIR_CFG_OUT"
+grep -Fq "intent SyncDrive" "$HIR_CFG_OUT"
+grep -Fq "blocks=2" "$HIR_CFG_OUT"
+grep -Fq "succ=T" "$HIR_CFG_OUT"
 
 grep -Fq "HIR dom view" "$HIR_DOM_OUT"
 grep -Fq "idom=" "$HIR_DOM_OUT"
@@ -1577,13 +1652,13 @@ grep -Fq "loop=" "$HIR_DOM_OUT"
 grep -Fq "rpo=" "$HIR_DOM_OUT"
 
 grep -Fq "flow-block[" "$RIR_OUT"
-grep -Fq "join=yes" "$RIR_OUT"
-grep -Fq "semantics=authority|world-handoff|invalidation|authority-loss" "$RIR_OUT"
-grep -Fq "kind=ProjectionTObject state=Published" "$RIR_OUT"
+grep -Fq "semantics=projection" "$RIR_OUT"
+grep -Fq "semantics=invalidation" "$RIR_OUT"
+grep -Fq "kind=ProjectionObject state=Dirty" "$RIR_OUT"
 
-grep -Fq "routine[02] function MergeRouteScore blocks=6" "$MIR_OUT"
-grep -Fq "phi=2" "$MIR_OUT"
-grep -Fq "value[00] score.1 slot=score" "$MIR_OUT"
+grep -Fq "routine[01] intent   SyncDrive blocks=5" "$MIR_OUT"
+grep -Fq "noncfg-fallbacks: total=0 routines=0 recorded=yes" "$MIR_OUT"
+grep -Fq "value[00] cockpit.1 slot=cockpit" "$MIR_OUT"
 grep -Fq "cleanup-block=yes rollback-block=yes invalidation-block=yes" "$MIR_OUT"
 grep -Fq "cleanup-edge" "$MIR_OUT"
 grep -Fq "DetachInvalidation" "$MIR_OUT"

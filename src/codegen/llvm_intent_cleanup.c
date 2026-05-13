@@ -90,12 +90,12 @@ llvm_emit_intent_cleanup_tail(LLVMGenCtx *ctx,
             bool has_compensate = false;
             if (step != NULL && step->type == AST_INTENT_STEP) {
                 if (step_name == NULL)
-                    step_name = step->data.intent_step.name;
+                    step_name = ast_intent_step_name(step);
                 has_compensate = mir_only_intent
                     ? llvm_mir_intent_has_stmt(
                         mir_routine, step_name,
                         "IntentEval", "compensate")
-                    : step->data.intent_step.compensate_expr_count > 0;
+                    : ast_intent_step_compensate_expr_count(step) > 0;
             }
             if (step == NULL || step->type != AST_INTENT_STEP || !has_compensate)
                 continue;
@@ -119,8 +119,8 @@ llvm_emit_intent_cleanup_tail(LLVMGenCtx *ctx,
                     "MIR-only LLVM path missing intent compensate eval carrier");
             }
             if (!mir_only_intent && compensate_expr_count == 0) {
-                compensate_expr_count = step->data.intent_step.compensate_expr_count;
-                compensate_exprs = step->data.intent_step.compensate_exprs;
+                compensate_expr_count = ast_intent_step_compensate_expr_count(step);
+                compensate_exprs = ast_intent_step_compensate_exprs(step, NULL);
             }
             if (mir_only_intent) {
                 if (llvm_mir_intent_has_stmt(mir_routine, step_name, "IntentZoneWhere", NULL)
@@ -145,17 +145,17 @@ llvm_emit_intent_cleanup_tail(LLVMGenCtx *ctx,
                 }
             } else {
                 if (zone_type_name == NULL
-                    && step->data.intent_step.where_type != NULL
-                    && step->data.intent_step.where_type->type == AST_TYPE) {
-                    zone_type_name = step->data.intent_step.where_type->data.type.name;
+                    && ast_intent_step_where_type(step) != NULL
+                    && ast_intent_step_where_type(step)->type == AST_TYPE) {
+                    zone_type_name = ast_intent_step_where_type(step)->data.type.name;
                 }
                 if (zone_alias == NULL)
                     zone_alias = llvm_intent_step_effective_zone_alias(step);
                 if (from_alias == NULL)
-                    from_alias = step->data.intent_step.transfer_from_alias;
+                    from_alias = ast_intent_step_transfer_from_alias(step);
                 if (who_alias_count == 0) {
-                    who_alias_count = step->data.intent_step.who_count;
-                    who_aliases = (const char **)step->data.intent_step.who_names;
+                    who_alias_count = ast_intent_step_who_count(step);
+                    who_aliases = (const char **)ast_intent_step_who_names(step, NULL);
                 }
             }
             {

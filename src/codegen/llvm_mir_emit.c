@@ -157,7 +157,7 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
                 continue;
             }
             bool is_secure_slot = false;
-            if (llvm_mir_boundary_slot_inner_name(p, &is_secure_slot) != NULL)
+            if (llvm_mir_boundary_slot_inner_name(ctx, p, &is_secure_slot) != NULL)
                 param_count += is_secure_slot ? 2 : 1;
             else
                 param_count++;
@@ -221,7 +221,7 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
                 seen++;
             }
             bool is_secure_slot = false;
-            const char *slot_inner = llvm_mir_boundary_slot_inner_name(p, &is_secure_slot);
+            const char *slot_inner = llvm_mir_boundary_slot_inner_name(ctx, p, &is_secure_slot);
             if (slot_inner != NULL && p != NULL && p->type != NULL) {
                 LLVMTypeRef slot_ty = llvm_mir_type_from_ast(ctx, p->type);
                 if (ctx->has_error || slot_ty == NULL)

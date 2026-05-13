@@ -7,7 +7,8 @@ emit_let_destructure_statement(ASTNode *node, TranspilerCtx *ctx)
     ASTNode *init = node->data.let_destructure.initializer;
     char *init_expr = emit_expression(init, ctx);
     const char *init_type = infer_expression_type_name(ctx, init);
-    const char *c_init_type;
+    char c_init_type_buf[128];
+    const char *c_init_type = NULL;
     int tmp_id;
 
     if ((init_type == NULL || strcmp(init_type, "Unknown") == 0)
@@ -19,7 +20,10 @@ emit_let_destructure_statement(ASTNode *node, TranspilerCtx *ctx)
         if (resolved != NULL)
             init_type = resolved;
     }
-    c_init_type = pergyra_type_to_c(init_type);
+    if (pergyra_type_to_c_copy(init_type, c_init_type_buf,
+            sizeof(c_init_type_buf))) {
+        c_init_type = c_init_type_buf;
+    }
 
     if (init_type != NULL && init_type[0] == '(') {
         char elem_names[8][64];
@@ -69,7 +73,12 @@ emit_let_destructure_statement(ASTNode *node, TranspilerCtx *ctx)
         codebuf_write(ctx->out, "%s _pgy_destr_%d = %s;\n",
             c_init_type, tmp_id, init_expr);
         for (size_t j = 0; j < arity; j++) {
-            const char *e_ctype = pergyra_type_to_c(elem_names[j]);
+            char e_ctype_buf[256];
+            const char *e_ctype = NULL;
+            if (pergyra_type_to_c_copy(elem_names[j], e_ctype_buf,
+                    sizeof(e_ctype_buf))) {
+                e_ctype = e_ctype_buf;
+            }
             write_indent(ctx);
             codebuf_write(ctx->out, "%s %s = _pgy_destr_%d.f%zu;\n",
                 e_ctype != NULL ? e_ctype : elem_names[j],
@@ -83,11 +92,18 @@ emit_let_destructure_statement(ASTNode *node, TranspilerCtx *ctx)
 
     const char *elem_c_type = NULL;
     const char *inner = NULL;
+    char inner_buf[128];
+    char elem_c_type_buf[128];
     if (init_type != NULL
         && (strncmp(init_type, "Array<", 6) == 0
             || strncmp(init_type, "Slice<", 6) == 0)) {
-        inner = slot_inner_type_name(init_type);
-        elem_c_type = pergyra_type_to_c(inner);
+        copy_capped_string(inner_buf, sizeof(inner_buf),
+            slot_inner_type_name(init_type));
+        inner = inner_buf;
+        if (pergyra_type_to_c_copy(inner, elem_c_type_buf,
+                sizeof(elem_c_type_buf))) {
+            elem_c_type = elem_c_type_buf;
+        }
     }
     if (c_init_type == NULL || elem_c_type == NULL || inner == NULL) {
         transpiler_set_backend_error_with_hints(

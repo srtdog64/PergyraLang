@@ -21,6 +21,7 @@ static LLVMTypeRef
 llvm_stmt_expected_array_elem_type(LLVMGenCtx *ctx)
 {
     const char *inner;
+    char inner_buf[256];
 
     if (ctx == NULL || ctx->expected_type_name == NULL)
         return NULL;
@@ -31,7 +32,10 @@ llvm_stmt_expected_array_elem_type(LLVMGenCtx *ctx)
     if (inner == NULL || inner[0] == '\0'
         || strcmp(inner, "Unknown") == 0)
         return NULL;
-    return pergyra_type_to_llvm(ctx, inner);
+    if (strlen(inner) >= sizeof(inner_buf))
+        return NULL;
+    memcpy(inner_buf, inner, strlen(inner) + 1);
+    return pergyra_type_to_llvm(ctx, inner_buf);
 }
 
 LLVMClassTypeEntry *
@@ -103,6 +107,7 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
     case AST_ARRAY_LITERAL: {
         LLVMTypeRef elem_type = NULL;
         const char *suffix = NULL;
+        char suffix_buf[256];
         if (expr->data.array_literal.count > 0
             && expr->data.array_literal.elements != NULL
             && expr->data.array_literal.elements[0] != NULL) {
@@ -120,6 +125,11 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
             || strcmp(suffix, "Unknown") == 0)
             return llvm_stmt_unknown_expr_type(ctx, expr,
                 "empty array literal requires an explicit Array<T> context");
+        if (strlen(suffix) >= sizeof(suffix_buf))
+            return llvm_stmt_unknown_expr_type(ctx, expr,
+                "array literal element type name is too long");
+        memcpy(suffix_buf, suffix, strlen(suffix) + 1);
+        suffix = suffix_buf;
         return llvm_array_struct_type(ctx, suffix);
     }
     case AST_IDENTIFIER: {

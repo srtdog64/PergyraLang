@@ -1860,6 +1860,12 @@ Runtime frontier scheduler closure:
   runtime policy surface that codegen consumes. The JSON dump exposes both
   sub-counts and the total count so CI/LSP consumers can detect which policy
   family drifted.
+- 2026-05-13 update: `runtime-frontier-contract-test-smoke` now also rejects
+  direct C/LLVM codegen calls to runtime `pgy_frontier_*_pass_limit(...)`
+  helpers outside `src/codegen/domain_frontier_policy.{h,c}`. The runtime
+  header remains the arithmetic owner, but the backend-facing source of truth
+  is the codegen wrapper so emitter-local domain lookup cannot bypass the
+  shared frontier policy seam.
 - Remaining blocker: the full bounded fixpoint / transitive frontier scheduler
   must broaden that same transitive frontier policy beyond the currently
   covered world/zone/projection slices and embedded zone frontier budget so the

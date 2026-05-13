@@ -4,6 +4,7 @@
  */
 
 #include "air_internal.h"
+#include "../parser/ast_api.h"
 
 bool
 air_ast_contains_node(const ASTNode *container, const ASTNode *needle)
@@ -14,21 +15,21 @@ air_ast_contains_node(const ASTNode *container, const ASTNode *needle)
         return true;
     switch (container->type) {
     case AST_INTENT_STEP:
-        if (air_ast_contains_node(container->data.intent_step.using_expr, needle)
-            || air_ast_contains_node(container->data.intent_step.intent_expr, needle)
-            || air_ast_contains_node(container->data.intent_step.pre_expr, needle)
-            || air_ast_contains_node(container->data.intent_step.guard_expr, needle)
-            || air_ast_contains_node(container->data.intent_step.post_expr, needle)
-            || air_ast_contains_node(container->data.intent_step.invariant_expr, needle)
-            || air_ast_contains_node(container->data.intent_step.expect_expr, needle)) {
+        if (air_ast_contains_node(ast_intent_step_using_expr(container), needle)
+            || air_ast_contains_node(ast_intent_step_intent_expr(container), needle)
+            || air_ast_contains_node(ast_intent_step_pre_expr(container), needle)
+            || air_ast_contains_node(ast_intent_step_guard_expr(container), needle)
+            || air_ast_contains_node(ast_intent_step_post_expr(container), needle)
+            || air_ast_contains_node(ast_intent_step_invariant_expr(container), needle)
+            || air_ast_contains_node(ast_intent_step_expect_expr(container), needle)) {
             return true;
         }
-        for (size_t i = 0; i < container->data.intent_step.on_expr_count; i++) {
-            if (air_ast_contains_node(container->data.intent_step.on_exprs[i], needle))
+        for (size_t i = 0; i < ast_intent_step_on_expr_count(container); i++) {
+            if (air_ast_contains_node(ast_intent_step_on_exprs(container, NULL)[i], needle))
                 return true;
         }
-        for (size_t i = 0; i < container->data.intent_step.compensate_expr_count; i++) {
-            if (air_ast_contains_node(container->data.intent_step.compensate_exprs[i], needle))
+        for (size_t i = 0; i < ast_intent_step_compensate_expr_count(container); i++) {
+            if (air_ast_contains_node(ast_intent_step_compensate_exprs(container, NULL)[i], needle))
                 return true;
         }
         return false;
@@ -166,7 +167,8 @@ air_ast_contains_node(const ASTNode *container, const ASTNode *needle)
         return air_ast_contains_node(container->data.event_op.event, needle)
             || air_ast_contains_node(container->data.event_op.handler, needle);
     case AST_PARTY_SHARED:
-        return air_ast_contains_node(container->data.party_shared.initializer, needle);
+        return air_ast_contains_node(
+            ast_party_shared_initializer(container), needle);
     case AST_PARTY_INSTANCE:
         for (size_t i = 0; i < container->data.party_instance.assignment_count; i++) {
             if (air_ast_contains_node(container->data.party_instance.assignments[i].value, needle))
@@ -174,11 +176,11 @@ air_ast_contains_node(const ASTNode *container, const ASTNode *needle)
         }
         return false;
     case AST_WORLD_SYSTEMIC:
-        return air_ast_contains_node(container->data.world_roster.initializer, needle);
+        return air_ast_contains_node(ast_world_roster_initializer(container), needle);
     case AST_WORLD_ZONE:
-        return air_ast_contains_node(container->data.world_zone.initializer, needle);
+        return air_ast_contains_node(ast_world_zone_initializer(container), needle);
     case AST_DOMAIN_SLOT:
-        return air_ast_contains_node(container->data.domain_slot.initializer, needle);
+        return air_ast_contains_node(ast_domain_slot_initializer(container), needle);
     case AST_LAMBDA_EXPR:
         return air_ast_contains_node(container->data.lambda_expr.body, needle);
     default:

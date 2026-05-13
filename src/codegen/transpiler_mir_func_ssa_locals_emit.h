@@ -85,6 +85,7 @@ transpiler_emit_mir_func_ssa_local_decls(TranspilerCtx *ctx,
         char base[128];
         size_t version = 0;
         const char *type_name = NULL;
+        char c_type_buf[256];
         const char *c_type = NULL;
         ASTNode *type_ast = NULL;
         char *c_name = NULL;
@@ -112,8 +113,12 @@ transpiler_emit_mir_func_ssa_local_decls(TranspilerCtx *ctx,
             free(c_name);
             continue;
         }
-        if (type_name != NULL)
-            c_type = pergyra_type_to_c(type_name);
+        if (type_name != NULL) {
+            if (pergyra_type_to_c_copy(type_name, c_type_buf,
+                    sizeof(c_type_buf))) {
+                c_type = c_type_buf;
+            }
+        }
         if (c_type == NULL
             || c_type[0] == '\0'
             || (type_name != NULL && strcmp(type_name, "Unknown") == 0)

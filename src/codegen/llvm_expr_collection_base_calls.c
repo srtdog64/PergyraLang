@@ -97,6 +97,7 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
         LLVMTypeRef list_ty;
         LLVMTypeRef elem_ty;
         const char *inner_name = NULL;
+        char inner_name_buf[256];
         LLVMValueRef tmp;
         LLVMFuncEntry *fn;
         if (ctx->current_ret_type == NULL
@@ -111,7 +112,12 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
         }
         if (ctx->expected_type_name != NULL
             && strncmp(ctx->expected_type_name, "List<", 5) == 0) {
-            inner_name = llvm_constructed_arg_name_at(ctx->expected_type_name, 0);
+            const char *tmp_inner =
+                llvm_constructed_arg_name_at(ctx->expected_type_name, 0);
+            if (tmp_inner != NULL && strlen(tmp_inner) < sizeof(inner_name_buf)) {
+                memcpy(inner_name_buf, tmp_inner, strlen(tmp_inner) + 1);
+                inner_name = inner_name_buf;
+            }
         }
         if (inner_name == NULL || inner_name[0] == '\0'
             || strcmp(inner_name, "Unknown") == 0) {
@@ -154,6 +160,7 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
         LLVMTypeRef set_ty;
         LLVMTypeRef elem_ty;
         const char *inner_name = NULL;
+        char inner_name_buf[256];
         LLVMValueRef tmp;
         LLVMFuncEntry *fn;
         if (ctx->current_ret_type == NULL
@@ -168,7 +175,12 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
         }
         if (ctx->expected_type_name != NULL
             && strncmp(ctx->expected_type_name, "Set<", 4) == 0) {
-            inner_name = llvm_constructed_arg_name_at(ctx->expected_type_name, 0);
+            const char *tmp_inner =
+                llvm_constructed_arg_name_at(ctx->expected_type_name, 0);
+            if (tmp_inner != NULL && strlen(tmp_inner) < sizeof(inner_name_buf)) {
+                memcpy(inner_name_buf, tmp_inner, strlen(tmp_inner) + 1);
+                inner_name = inner_name_buf;
+            }
         }
         if (inner_name == NULL || inner_name[0] == '\0'
             || strcmp(inner_name, "Unknown") == 0) {

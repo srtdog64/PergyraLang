@@ -20,9 +20,9 @@ nominal_decl_matches_runtime_type(ASTNode *decl, Type *object_type)
         && decl->type == AST_CLASS_DECL
         && object_type != NULL
         && object_type->kind == TYPE_KIND_CLASS
-        && decl->data.class_decl.name != NULL
+        && ast_class_name(decl) != NULL
         && object_type->name != NULL
-        && strcmp(decl->data.class_decl.name, object_type->name) == 0;
+        && strcmp(ast_class_name(decl), object_type->name) == 0;
 }
 
 bool
@@ -40,9 +40,9 @@ private_member_access_allowed(ASTNode *decl, Type *object_type, SemanticContext 
     if (host == decl)
         return true;
 
-    return host->data.class_decl.name != NULL
-        && decl->data.class_decl.name != NULL
-        && strcmp(host->data.class_decl.name, decl->data.class_decl.name) == 0;
+    return ast_class_name(host) != NULL
+        && ast_class_name(decl) != NULL
+        && strcmp(ast_class_name(host), ast_class_name(decl)) == 0;
 }
 
 bool

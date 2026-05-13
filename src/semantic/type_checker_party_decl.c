@@ -13,6 +13,7 @@ type_check_party_decl(ASTNode *node, SemanticContext *ctx)
 {
     const char *name = ast_party_name(node);
     const char *prev_module_path = ctx->current_module_path;
+    ASTNode *saved_party = ctx->current_party;
     ASTNode **shared_fields;
     ASTNode **methods;
     size_t role_count;
@@ -20,6 +21,7 @@ type_check_party_decl(ASTNode *node, SemanticContext *ctx)
     size_t method_count;
     if (node->origin_path != NULL)
         ctx->current_module_path = node->origin_path;
+    ctx->current_party = node;
     role_count = ast_party_role_count(node);
     shared_fields = ast_party_shared_fields(node, &shared_count);
     methods = ast_party_methods(node, &method_count);
@@ -45,6 +47,7 @@ type_check_party_decl(ASTNode *node, SemanticContext *ctx)
             PGY_FIX_RENAME_OR_REMOVE_DUPLICATE,
             node, "Redeclaration of party '%s'", name);
         symbol_destroy(sym);
+        ctx->current_party = saved_party;
         ctx->current_module_path = prev_module_path;
         return false;
     } else {
@@ -60,31 +63,31 @@ type_check_party_decl(ASTNode *node, SemanticContext *ctx)
     /* Check role slot ability references */
     for (size_t i = 0; i < role_count; i++) {
         ASTNode *rs = ast_party_role(node, i);
+        const char *slot_name = ast_role_slot_name(rs);
+        size_t ability_count = ast_role_slot_required_ability_count(rs);
 
         /* dyn slots require at least one ability for vtable dispatch */
-        if (rs->data.role_slot.is_dynamic &&
-            rs->data.role_slot.ability_count == 0) {
+        if (ast_role_slot_is_dynamic(rs) && ability_count == 0) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_ROLE_CONTRACT_INVALID, PGY_CAUSE_ROLE_CONTRACT, PGY_FIX_ALIGN_ROLE_IMPL_WITH_ABILITY, rs,
                 "Dynamic role slot '%s' requires at least one ability type",
-                rs->data.role_slot.slot_name);
+                slot_name);
         }
 
-        for (size_t j = 0; j < rs->data.role_slot.ability_count; j++) {
-            ASTNode *ab_type = rs->data.role_slot.required_abilities[j];
+        for (size_t j = 0; j < ability_count; j++) {
+            ASTNode *ab_type = ast_role_slot_required_ability(rs, j);
             if (ab_type != NULL && ab_type->data.type.name != NULL) {
                 const char *ability_name = ab_type->data.type.name;
                 char *required_text = ability_ref_display(ab_type);
                 semantic_type_resolution_record_type_ref_dependency(
                     ctx,
                     rs,
-                    rs->data.role_slot.slot_name != NULL
-                        ? rs->data.role_slot.slot_name : "<role-slot>",
+                    slot_name != NULL ? slot_name : "<role-slot>",
                     ab_type,
                     "party role slot ability consumer lookup");
                 if (ctx->program_root != NULL) {
                     ASTNode *ability_decl = resolve_required_ability_decl(
                         ab_type, rs, ctx, "party role slot",
-                        rs->data.role_slot.slot_name);
+                        slot_name);
                     if (ability_decl == NULL) {
                         free(required_text);
                         continue;
@@ -109,10 +112,10 @@ type_check_party_decl(ASTNode *node, SemanticContext *ctx)
                             "Fix:\n"
                             "- implement '%s' on a subject-bound role\n"
                             "- or change the role slot contract",
-                            rs->data.role_slot.slot_name,
+                            slot_name,
                             required_text != NULL ? required_text : ability_name,
                             actual_text,
-                            rs->data.role_slot.slot_name,
+                            slot_name,
                             required_text != NULL ? required_text : ability_name,
                             required_text != NULL ? required_text : ability_name,
                             actual_text,
@@ -129,9 +132,9 @@ type_check_party_decl(ASTNode *node, SemanticContext *ctx)
                             "Fix:\n"
                             "- implement '%s' on a subject-bound role\n"
                             "- or change the role slot contract",
-                            rs->data.role_slot.slot_name,
+                            slot_name,
                             required_text != NULL ? required_text : ability_name,
-                            rs->data.role_slot.slot_name,
+                            slot_name,
                             required_text != NULL ? required_text : ability_name,
                             required_text != NULL ? required_text : ability_name,
                             required_text != NULL ? required_text : ability_name,
@@ -147,10 +150,10 @@ type_check_party_decl(ASTNode *node, SemanticContext *ctx)
     /* Check shared fields */
     for (size_t i = 0; i < shared_count; i++) {
         ASTNode *shared = shared_fields[i];
-        if (shared->data.party_shared.type != NULL)
+        if (ast_party_shared_type(shared) != NULL)
             domain_resolve_shared_type(shared, ctx);
-        if (shared->data.party_shared.initializer != NULL)
-            type_check_expression(shared->data.party_shared.initializer, ctx);
+        if (ast_party_shared_initializer(shared) != NULL)
+            type_check_expression(ast_party_shared_initializer(shared), ctx);
     }
 
     /* Check methods */
@@ -160,6 +163,7 @@ type_check_party_decl(ASTNode *node, SemanticContext *ctx)
     }
     scope_exit(&ctx->scope);
 
+    ctx->current_party = saved_party;
     ctx->current_module_path = prev_module_path;
     return !ctx->has_error;
 }

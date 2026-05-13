@@ -16,14 +16,14 @@ type_check_intent_step_participant_contract(ASTNode *intent_decl,
         return;
     }
 
-    for (size_t j = 0; j < step->data.intent_step.who_count; j++) {
-        const char *alias = step->data.intent_step.who_names[j];
+    for (size_t j = 0; j < ast_intent_step_who_count(step); j++) {
+        const char *alias = ast_intent_step_who_names(step, NULL)[j];
         ASTNode *involves = find_intent_involves_local(intent_decl, alias);
         const char *participant_type_name = NULL;
         if (involves == NULL) {
-            const char *source = step->data.intent_step.inherited_who_from_intent
+            const char *source = ast_intent_step_inherited_who_from_intent(step)
                 ? " inherited from the intent-level who default"
-                : (step->data.intent_step.derived_who_from_single_participant
+                : (ast_intent_step_derived_who_from_single_participant(step)
                     ? " derived from the single subject participant"
                     : "");
             semantic_error_with_hints(ctx, PGY_CODE_SEM_INTENT_STEP_INVALID, PGY_CAUSE_INTENT_STEP, PGY_FIX_ALIGN_STEP_WITH_ZONE_ACTION_CONTRACTS, step,
@@ -34,7 +34,7 @@ type_check_intent_step_participant_contract(ASTNode *intent_decl,
                 "Fix:\n"
                 "- declare the participant with 'who %s: <Subject>;' or add it to the intent parameter list\n"
                 "- or change the intent-level who default to an existing participant alias",
-                step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
+                ast_intent_step_name(step) != NULL ? ast_intent_step_name(step) : "<step>",
                 alias != NULL ? alias : "<participant>",
                 source,
                 alias != NULL ? alias : "<participant>");
@@ -45,7 +45,7 @@ type_check_intent_step_participant_contract(ASTNode *intent_decl,
         if (!intent_involves_is_subject_host(ctx->program_root, involves)) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_INTENT_STEP_INVALID, PGY_CAUSE_INTENT_STEP, PGY_FIX_ALIGN_STEP_WITH_ZONE_ACTION_CONTRACTS, step,
                 "Intent step '%s' who participant '%s' must bind to a subject type",
-                step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
+                ast_intent_step_name(step) != NULL ? ast_intent_step_name(step) : "<step>",
                 alias != NULL ? alias : "<participant>");
             continue;
         }
@@ -58,15 +58,15 @@ type_check_intent_step_participant_contract(ASTNode *intent_decl,
             const char *zone_name = ast_zone_name(zone_decl);
             semantic_error_with_hints(ctx, PGY_CODE_SEM_INTENT_STEP_INVALID, PGY_CAUSE_INTENT_STEP, PGY_FIX_ALIGN_STEP_WITH_ZONE_ACTION_CONTRACTS, step,
                 "Intent step '%s' binds participant '%s' of type '%s', but zone '%s' has no matching subject slot",
-                step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
+                ast_intent_step_name(step) != NULL ? ast_intent_step_name(step) : "<step>",
                 alias != NULL ? alias : "<participant>",
                 participant_type_name,
                 zone_name != NULL ? zone_name : "<zone>");
             }
         }
-        if (step->data.intent_step.transfer_from_alias != NULL && participant_type_name != NULL) {
+        if (ast_intent_step_transfer_from_alias(step) != NULL && participant_type_name != NULL) {
             ASTNode *from_involves = find_intent_involves_local(intent_decl,
-                step->data.intent_step.transfer_from_alias);
+                ast_intent_step_transfer_from_alias(step));
             Type *from_type = from_involves != NULL
                 ? intent_resolve_involves_type(from_involves, ctx) : NULL;
             ASTNode *from_zone_decl = find_domain_decl_by_name(ctx->program_root, AST_ZONE_DECL,
@@ -90,14 +90,14 @@ type_check_intent_step_participant_contract(ASTNode *intent_decl,
                     "- add a subject slot of type '%s' to zone '%s'\n"
                     "- or use a participant whose type matches one of zone '%s' subject slots\n"
                     "- or change the transfer source zone binding",
-                    step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
+                    ast_intent_step_name(step) != NULL ? ast_intent_step_name(step) : "<step>",
                     from_zone_name != NULL ? from_zone_name : "<zone>",
                     alias != NULL ? alias : "<participant>",
                     participant_type_name,
-                    step->data.intent_step.transfer_from_alias != NULL
-                        ? step->data.intent_step.transfer_from_alias : "<sourceZone>",
-                    step->data.intent_step.transfer_to_alias != NULL
-                        ? step->data.intent_step.transfer_to_alias : "<targetZone>",
+                    ast_intent_step_transfer_from_alias(step) != NULL
+                        ? ast_intent_step_transfer_from_alias(step) : "<sourceZone>",
+                    ast_intent_step_transfer_to_alias(step) != NULL
+                        ? ast_intent_step_transfer_to_alias(step) : "<targetZone>",
                     from_zone_name != NULL ? from_zone_name : "<zone>",
                     alias != NULL ? alias : "<participant>",
                     alias != NULL ? alias : "<participant>",
@@ -115,7 +115,7 @@ type_check_intent_step_participant_contract(ASTNode *intent_decl,
             && involves->data.intent_involves.subject_type->data.type.name != NULL) {
             ASTNode *subject_decl = find_subject_host_decl_by_name(ctx->program_root,
                 involves->data.intent_involves.subject_type->data.type.name);
-            if (subject_decl_has_action_named(subject_decl, step->data.intent_step.name)
+            if (subject_decl_has_action_named(subject_decl, ast_intent_step_name(step))
                 && matched_action != NULL) {
                 *matched_action = true;
             }

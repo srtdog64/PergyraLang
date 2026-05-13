@@ -127,10 +127,18 @@ ensure_result_specialization_to(TranspilerCtx *ctx, CodeBuf *dst,
         return;
     }
 
-    const char *ok_ctype = pergyra_type_to_c(ok_type);
-    const char *err_ctype = pergyra_type_to_c(err_type);
-    if (ok_ctype == NULL) ok_ctype = ok_type;
-    if (err_ctype == NULL) err_ctype = err_type;
+    char ok_ctype_buf[128];
+    char err_ctype_buf[128];
+    const char *ok_ctype = ok_ctype_buf;
+    const char *err_ctype = err_ctype_buf;
+    if (!pergyra_type_to_c_copy(ok_type, ok_ctype_buf,
+            sizeof(ok_ctype_buf))) {
+        ok_ctype = ok_type;
+    }
+    if (!pergyra_type_to_c_copy(err_type, err_ctype_buf,
+            sizeof(err_ctype_buf))) {
+        err_ctype = err_type;
+    }
 
     if (!transpiler_specialization_copy_spec_name(
             ctx->result_specs_suffix[ctx->result_spec_count],
@@ -173,7 +181,8 @@ ensure_collection_specialization_to(TranspilerCtx *ctx, CodeBuf *dst,
                                     const char *kind, const char *inner_type)
 {
     char suffix[128];
-    const char *ctype;
+    char ctype_buf[128];
+    const char *ctype = ctype_buf;
 
     if (ctx == NULL || dst == NULL || kind == NULL || inner_type == NULL)
         return;
@@ -199,8 +208,7 @@ ensure_collection_specialization_to(TranspilerCtx *ctx, CodeBuf *dst,
     if (ctx->collection_spec_count >= MAX_COLLECTION_SPECIALIZATIONS)
         return;
 
-    ctype = pergyra_type_to_c(inner_type);
-    if (ctype == NULL)
+    if (!pergyra_type_to_c_copy(inner_type, ctype_buf, sizeof(ctype_buf)))
         return;
 
     if (!transpiler_specialization_copy_spec_name(
@@ -314,7 +322,10 @@ ensure_tuple_specialization_to(TranspilerCtx *ctx, CodeBuf *dst, ASTNode *tuple_
     codebuf_write(dst, "typedef struct {\n");
     for (size_t i = 0; i < n; i++) {
         char *elem = render_type_name(tuple_type->data.type.tuple_elements[i]);
-        const char *ctype = pergyra_type_to_c(elem);
+        char ctype_buf[128];
+        const char *ctype = NULL;
+        if (pergyra_type_to_c_copy(elem, ctype_buf, sizeof(ctype_buf)))
+            ctype = ctype_buf;
         codebuf_write(dst, "    %s f%zu;\n", ctype != NULL ? ctype : elem, i);
         free(elem);
     }
@@ -504,22 +515,6 @@ ensure_collection_specializations_from_stmt_to(TranspilerCtx *ctx, CodeBuf *dst,
     default:
         break;
     }
-}
-
-static const char *
-collection_runtime_suffix(const char *inner_type)
-{
-    static char suffix[128];
-
-    if (inner_type == NULL)
-        return "int";
-    if (strcmp(inner_type, "Int") == 0)
-        return "int";
-    if (strcmp(inner_type, "String") == 0)
-        return "string";
-
-    sanitize_c_suffix(inner_type, suffix, sizeof(suffix));
-    return suffix;
 }
 
 #endif /* PGY_TRANSPILER_SPECIALIZATION_HELPERS_H */

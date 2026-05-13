@@ -330,6 +330,11 @@ if grep -R "data\.\(world_decl\|relation_decl\|effect_decl\|zone_decl\)\.\(zones
     fail "semantic host overlay helpers must use AST domain child accessors"
 fi
 
+if grep -R "data\.\(class_decl\|enum_decl\)\.\(name\|methods\|method_count\|is_struct\)" \
+    src/semantic/type_checker_host_helpers.c >/dev/null; then
+    fail "semantic host helpers must use AST nominal accessors"
+fi
+
 if grep -R "data\.\(world_decl\|zone_decl\)\.\(zones\|zone_count\|states\|state_count\|layer_slots\|layer_slot_count\|refreshes\|refresh_count\|applies\|apply_count\|links\|link_count\|detaches\|detach_count\|unlinks\|unlink_count\|maintained_effects\|maintained_effect_count\|maintained_relations\|maintained_relation_count\|maintained_states\|maintained_state_count\|activations\|activate_count\|deactivations\|deactivate_count\|maintained_zones\|maintained_zone_count\)" \
     src/semantic/type_checker_resolution_stage_domain.c >/dev/null; then
     fail "DAG domain local-contract staging must use AST domain child accessors"
@@ -345,6 +350,128 @@ if grep -R "data\.world_decl\.\(rosters\|roster_count\|zones\|zone_count\|shared
     fail "C world emission must use AST world child accessors"
 fi
 
+if grep -R "data\.\(class_decl\|enum_decl\)\.name" \
+    src/compiler/dir_collect.c >/dev/null; then
+    fail "DIR nominal collection must use AST nominal name accessors"
+fi
+
+if grep -R "data\.\(class_decl\|enum_decl\)\.\(name\|methods\|method_count\)" \
+    src/compiler/hir_routines.c src/compiler/mir_decl_headers.c >/dev/null; then
+    fail "HIR/MIR nominal method collection must use AST nominal accessors"
+fi
+
+if grep -R "data\.\(class_decl\|enum_decl\)\.\(name\|method_count\|nominal_kind\)" \
+    src/compiler/mir_decl_header_validate.c >/dev/null; then
+    fail "MIR decl header nominal validation must use AST nominal accessors"
+fi
+
+if grep -R "data\.\(class_decl\|enum_decl\)\.name" \
+    src/codegen/llvm_inventory_decl_lookup.c src/codegen/transpiler_decl_lookup.c >/dev/null; then
+    fail "C/LLVM declaration lookup must use AST nominal name accessors"
+fi
+
+if grep -R "data\.\(class_decl\|enum_decl\)\.\(methods\|method_count\)" \
+    src/codegen/llvm_inventory_host_methods.c \
+    src/codegen/transpiler_decl_method_view.c >/dev/null; then
+    fail "C/LLVM hosted method views must use AST nominal method accessors"
+fi
+
+if grep -R "data\.class_decl\.\(fields\|field_count\)" \
+    src/semantic/type_checker_projection_path.c \
+    src/semantic/type_checker_builtins_query_domain.c \
+    src/semantic/type_checker_call_constructor.c >/dev/null; then
+    fail "semantic projection/constructor helpers must use AST class field accessors"
+fi
+
+if grep -R "data\.class_decl\.\(name\|fields\|field_count\|nominal_kind\|is_struct\)" \
+    src/semantic/type_checker_domain_projection.c \
+    src/semantic/type_checker_builtins_projection.c \
+    src/codegen/llvm_domain_projection_value_helpers.c \
+    src/codegen/llvm_expr_projection_path_helpers.c >/dev/null; then
+    fail "projection semantic/LLVM helpers must use AST class accessors"
+fi
+
+if grep -R "data\.class_decl\.\(fields\|field_count\|nominal_kind\|is_struct\)" \
+    src/codegen/transpiler_projection.c \
+    src/codegen/transpiler_projection_field_path.c \
+    src/codegen/transpiler_overlay_projection.h >/dev/null; then
+    fail "C projection helpers must use AST class accessors"
+fi
+
+if grep -R "data\.enum_decl\.\(variants\|variant_count\)" \
+    src/semantic/type_checker_flow_match_coverage.c >/dev/null; then
+    fail "match coverage must use AST enum variant accessors"
+fi
+
+if grep -R "data\.\(class_decl\|enum_decl\)\.\(name\|fields\|field_count\|methods\|method_count\|variants\|variant_count\)" \
+    src/semantic/type_checker_resolution_stage_nominal.c \
+    src/semantic/type_checker_resolution_graph_decl.c \
+    src/semantic/type_checker_resolution_stage_lookup.c \
+    src/semantic/type_checker_resolution_graph_collect.c >/dev/null; then
+    fail "DAG nominal resolution owners must use AST nominal accessors"
+fi
+
+if grep -R "data\.\(class_decl\|enum_decl\)\.\(name\|fields\|field_count\|methods\|method_count\|variants\|variant_count\|nominal_kind\|is_struct\)" \
+    src/compiler src/codegen src/semantic \
+    | grep -v "src/compiler/module_normalizer.c" >/dev/null; then
+    fail "semantic/compiler/codegen nominal payload readers must use AST nominal accessors"
+fi
+
+grep -q 'Intentional AST payload mutation seam' src/compiler/module_normalizer.c \
+    || fail "module_normalizer.c nominal payload exception must stay documented as the mutable-name rewrite seam"
+
+grep -q 'Intentional AST mutation seam' src/compiler/module_normalizer_refs.c \
+    || fail "module_normalizer_refs.c world-roster rewrite must stay documented as an AST mutation seam"
+
+grep -q 'ast_world_roster_replace_type_name' src/compiler/module_normalizer_refs.c \
+    || fail "module_normalizer_refs.c world-roster rewrite must use the AST world-roster mutator"
+
+grep -q 'ast_roster_slot_replace_party_type' src/compiler/module_normalizer_refs.c \
+    || fail "module_normalizer_refs.c roster-slot rewrite must use the AST roster-slot mutator"
+
+if grep -R "data\.roster_slot\.\(slot_name\|party_type\)" \
+    src/semantic src/compiler src/codegen >/dev/null; then
+    fail "semantic/compiler/codegen roster-slot consumers must use AST roster-slot accessors"
+fi
+
+if grep -R "data\.role_slot\.\(slot_name\|is_dynamic\|required_abilities\|ability_count\)" \
+    src/semantic src/compiler src/codegen >/dev/null; then
+    fail "semantic/compiler/codegen role-slot consumers must use AST role-slot accessors"
+fi
+
+if grep -R "data\.party_shared\.\(name\|type\|initializer\)" \
+    src/semantic src/compiler src/codegen >/dev/null; then
+    fail "semantic/compiler/codegen shared-field consumers must use AST party-shared accessors"
+fi
+
+if grep -R "data\.domain_slot\.\(slot_name\|type\|is_subject\|is_vessel\|is_tobject\|is_binding\|initializer\)" \
+    src/semantic src/compiler src/codegen >/dev/null; then
+    fail "semantic/compiler/codegen domain-slot consumers must use AST domain-slot accessors"
+fi
+
+if grep -R "data\.zone_layer_slot\.\(slot_name\|layer_type\|is_relation\|is_pool\|pool_capacity\)" \
+    src/semantic src/compiler src/codegen >/dev/null; then
+    fail "semantic/compiler/codegen zone-layer-slot consumers must use AST zone-layer-slot accessors"
+fi
+
+if grep -R "data\.zone_state\.\(state_name\|is_relation\|layer_slot_name\|left_or_target_slot_name\|right_slot_name\)" \
+    src/semantic src/compiler src/codegen >/dev/null; then
+    fail "semantic/compiler/codegen zone-state consumers must use AST zone-state accessors"
+fi
+
+if grep -R "data\.intent_step\." src/compiler src/codegen >/dev/null; then
+    fail "compiler/codegen intent-step read consumers must use AST intent-step accessors"
+fi
+
+if grep -R "data\.intent_step\." \
+    src/semantic/type_checker_intent_contract_summary.c \
+    src/semantic/type_checker_intent_participants.c \
+    src/semantic/type_checker_intent_ability.c \
+    src/semantic/type_checker_resolution_graph_intent.c \
+    src/semantic/type_checker_resolution_stage_systemic.c >/dev/null; then
+    fail "read-only semantic intent-step consumers must use AST intent-step accessors"
+fi
+
 if grep -R "data\.world_decl\.\(states\|state_count\)" \
     src/semantic/type_checker_world_state.c >/dev/null; then
     fail "world state validator must use AST world child accessors"
@@ -353,6 +480,11 @@ fi
 if grep -R "data\.world_decl\.\(zones\|zone_count\)" \
     src/semantic/type_checker_world_embedding.c >/dev/null; then
     fail "world embedding validation must use AST world child accessors"
+fi
+
+if grep -R "data\.world_\(roster\|zone\)\.\(slot_name\|roster_type\|zone_type\|initializer\)" \
+    src/semantic src/compiler src/codegen >/dev/null; then
+    fail "semantic/compiler/codegen embedded world slot facts must use AST world embedded accessors/mutators"
 fi
 
 if grep -R "data\.world_decl\.\(rosters\|roster_count\|zones\|zone_count\|states\|state_count\|activations\|activate_count\|deactivations\|deactivate_count\|maintained_zones\|maintained_zone_count\|shared_fields\|shared_count\|methods\|method_count\)" \
@@ -604,9 +736,60 @@ if grep -R "data\.\(world_decl\|zone_decl\)\.\(zones\|zone_count\|states\|state_
     fail "domain frontier policy must use AST domain child accessors"
 fi
 
-if grep -R "data\.\(zone_decl\|relation_decl\|effect_decl\)\.\(slots\|slot_count\)" \
+if grep -R "data\.class_decl\.\(fields\|field_count\|nominal_kind\)" \
+    src/codegen/llvm_domain_lookup.c >/dev/null; then
+    fail "LLVM domain lookup must use AST nominal accessors"
+fi
+
+if grep -R "data\.\(world_decl\|zone_decl\|relation_decl\|effect_decl\)\.\(shared_fields\|shared_count\|zones\|zone_count\|rosters\|roster_count\|slots\|slot_count\|layer_slots\|layer_slot_count\)" \
+    src/codegen/transpiler_nominal.c >/dev/null; then
+    fail "C nominal member lookup must use AST domain child accessors"
+fi
+
+if grep -R "data\.\(world_decl\|zone_decl\|relation_decl\|effect_decl\)\.\(shared_fields\|shared_count\|zones\|zone_count\|rosters\|roster_count\|slots\|slot_count\|refreshes\|refresh_count\)" \
+    src/codegen/transpiler_call_constructor_result_emit.h >/dev/null; then
+    fail "C constructor emit must use AST domain child accessors"
+fi
+
+if grep -R "data\.zone_decl\.\(applies\|apply_count\|links\|link_count\|detaches\|detach_count\|unlinks\|unlink_count\|maintained_effects\|maintained_effect_count\|maintained_relations\|maintained_relation_count\|maintained_states\|maintained_state_count\)" \
+    src/codegen/transpiler_zone_decl_emit.h >/dev/null; then
+    fail "C zone declaration sync must use AST zone child accessors"
+fi
+
+if grep -R "data\.\(world_decl\|zone_decl\)\.\(shared_fields\|shared_count\|zones\|zone_count\|rosters\|roster_count\|slots\|slot_count\|refreshes\|refresh_count\|states\|state_count\|layer_slots\|layer_slot_count\)" \
+    src/codegen/llvm_domain_struct_register_fields.c >/dev/null; then
+    fail "LLVM domain struct field registration must use AST domain child accessors"
+fi
+
+if grep -R "data\.\(world_decl\|zone_decl\)\.\(shared_fields\|shared_count\|zones\|zone_count\|rosters\|roster_count\|slots\|slot_count\|refreshes\|refresh_count\|states\|state_count\|layer_slots\|layer_slot_count\)" \
+    src/codegen/llvm_domain_struct_register.c >/dev/null; then
+    fail "LLVM domain struct type registration must use AST domain child accessors"
+fi
+
+if grep -R "data\.\(world_decl\|zone_decl\|relation_decl\|effect_decl\)\.\(slots\|slot_count\|layer_slots\|layer_slot_count\|refreshes\|refresh_count\|zones\|zone_count\|methods\|method_count\)" \
     src/compiler/rir_facts.c >/dev/null; then
     fail "RIR domain slot lookup must use AST domain child accessors"
+fi
+
+if grep -R "data\.\(world_decl\|zone_decl\|relation_decl\|effect_decl\)\.\(slots\|slot_count\|layer_slots\|layer_slot_count\|refreshes\|refresh_count\|zones\|zone_count\|methods\|method_count\|authorities\|authority_count\|applies\|apply_count\|links\|link_count\|detaches\|detach_count\|unlinks\|unlink_count\)" \
+    src/compiler/rir_builder.c >/dev/null; then
+    fail "RIR builder must use AST domain child accessors"
+fi
+
+if grep -R "data\.class_decl\.\(name\|methods\|method_count\)" \
+    src/compiler/rir_builder.c >/dev/null; then
+    fail "RIR class method collection must use AST nominal accessors"
+fi
+
+if grep -R "data\.\(world_decl\|zone_decl\|relation_decl\|effect_decl\)\.\(slots\|slot_count\|layer_slots\|layer_slot_count\|refreshes\|refresh_count\|zones\|zone_count\|methods\|method_count\|shared_fields\|shared_count\|rosters\|roster_count\|states\|state_count\)" \
+    src/compiler/module_normalizer_refs.c >/dev/null; then
+    fail "module normalizer domain traversal must use AST domain child accessors"
+fi
+
+if grep -R "data\.class_decl\.\(fields\|field_count\|methods\|method_count\)" \
+    src/compiler/module_normalizer_refs.c \
+    src/compiler/runtime_none_contract.c >/dev/null; then
+    fail "module normalizer/runtime-none class scans must use AST class accessors"
 fi
 
 if grep -R "data\.\(world_decl\|zone_decl\)\.\(zones\|zone_count\|states\|state_count\|layer_slots\|layer_slot_count\)" \

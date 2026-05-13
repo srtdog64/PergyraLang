@@ -185,52 +185,52 @@ dir_collect_intent_info(DIRProgram *dir, size_t from_id, ASTNode *node)
         DIRIntentStep step;
         memset(&step, 0, sizeof(step));
         step.index = i;
-        step.name = step_node->data.intent_step.name;
+        step.name = ast_intent_step_name(step_node);
         step.ast = step_node;
-        step.where_type_name = type_name(dir, step_node->data.intent_step.where_type);
+        step.where_type_name = type_name(dir, ast_intent_step_where_type(step_node));
         {
             ssize_t to = dir_find_zone_node_by_name(dir, step.where_type_name);
             step.where_type_node_id = to >= 0 ? (size_t)to : SIZE_MAX;
         }
-        step.using_alias = step_node->data.intent_step.using_expr != NULL
-            && step_node->data.intent_step.using_expr->type == AST_IDENTIFIER
-            ? step_node->data.intent_step.using_expr->data.identifier.name
+        step.using_alias = ast_intent_step_using_expr(step_node) != NULL
+            && ast_intent_step_using_expr(step_node)->type == AST_IDENTIFIER
+            ? ast_intent_step_using_expr(step_node)->data.identifier.name
             : NULL;
         step.predecessor_step_name = (i > 0 && node->data.intent_decl.steps[i - 1] != NULL)
-            ? node->data.intent_decl.steps[i - 1]->data.intent_step.name
+            ? ast_intent_step_name(node->data.intent_decl.steps[i - 1])
             : NULL;
         step.predecessor_step_index = i > 0 ? (i - 1) : SIZE_MAX;
-        step.transfer_from_alias = step_node->data.intent_step.transfer_from_alias;
-        step.transfer_to_alias = step_node->data.intent_step.transfer_to_alias;
+        step.transfer_from_alias = ast_intent_step_transfer_from_alias(step_node);
+        step.transfer_to_alias = ast_intent_step_transfer_to_alias(step_node);
         step.who_inherited_from_intent =
-            step_node->data.intent_step.inherited_who_from_intent;
+            ast_intent_step_inherited_who_from_intent(step_node);
         step.who_inherited_from_action =
-            step_node->data.intent_step.inherited_who_from_action;
+            ast_intent_step_inherited_who_from_action(step_node);
         step.who_derived_from_on_receiver =
-            step_node->data.intent_step.derived_who_from_on_receiver;
+            ast_intent_step_derived_who_from_on_receiver(step_node);
         step.who_derived_from_single_participant =
-            step_node->data.intent_step.derived_who_from_single_participant;
+            ast_intent_step_derived_who_from_single_participant(step_node);
         step.where_inherited_from_intent =
-            step_node->data.intent_step.inherited_where_from_intent;
+            ast_intent_step_inherited_where_from_intent(step_node);
         step.where_inherited_from_action =
-            step_node->data.intent_step.inherited_where_from_action;
+            ast_intent_step_inherited_where_from_action(step_node);
         step.where_derived_from_using =
-            step_node->data.intent_step.derived_where_from_using;
+            ast_intent_step_derived_where_from_using(step_node);
         step.where_derived_from_transfer =
-            step_node->data.intent_step.derived_where_from_transfer;
+            ast_intent_step_derived_where_from_transfer(step_node);
         step.requires_inherited_from_action =
-            step_node->data.intent_step.inherited_requires_from_action;
+            ast_intent_step_inherited_requires_from_action(step_node);
         step.causes_inherited_from_action =
-            step_node->data.intent_step.inherited_causes_from_action;
+            ast_intent_step_inherited_causes_from_action(step_node);
         step.authorized_by_derived_from_zone =
-            step_node->data.intent_step.derived_authorized_by_from_zone;
+            ast_intent_step_derived_authorized_by_from_zone(step_node);
         step.authorized_by_inherited_from_action =
-            step_node->data.intent_step.inherited_authorized_by_from_action;
+            ast_intent_step_inherited_authorized_by_from_action(step_node);
         step.using_derived_from_transfer =
-            step_node->data.intent_step.derived_using_from_transfer;
+            ast_intent_step_derived_using_from_transfer(step_node);
         step.using_derived_from_where =
-            step_node->data.intent_step.derived_using_from_where;
-        step.causes_effect_name = step_node->data.intent_step.causes_effect;
+            ast_intent_step_derived_using_from_where(step_node);
+        step.causes_effect_name = ast_intent_step_causes_effect(step_node);
         {
             ssize_t to = dir_find_effect_node_by_name(dir, step.causes_effect_name);
             step.causes_effect_node_id = to >= 0 ? (size_t)to : SIZE_MAX;
@@ -260,22 +260,22 @@ dir_collect_intent_info(DIRProgram *dir, size_t from_id, ASTNode *node)
                                     step.name))
                 goto step_oom;
         }
-        for (size_t j = 0; j < step_node->data.intent_step.who_count; j++) {
+        for (size_t j = 0; j < ast_intent_step_who_count(step_node); j++) {
             if (!append_name(&step.who_names,
                              &step.who_count,
                              &step.who_capacity,
-                             step_node->data.intent_step.who_names[j]))
+                             ast_intent_step_who_names(step_node, NULL)[j]))
                 goto step_oom;
             if (!dir_add_named_edge(dir,
                                     DIR_EDGE_INTENT_STEP_WHO,
                                     from_id,
                                     from_id,
                                     step.name,
-                                    step_node->data.intent_step.who_names[j]))
+                                    ast_intent_step_who_names(step_node, NULL)[j]))
                 goto step_oom;
         }
-        for (size_t j = 0; j < step_node->data.intent_step.required_ability_count; j++) {
-            ASTNode *ability_ref = step_node->data.intent_step.required_abilities[j];
+        for (size_t j = 0; j < ast_intent_step_required_ability_count(step_node); j++) {
+            ASTNode *ability_ref = ast_intent_step_required_abilities(step_node, NULL)[j];
             const char *ability_name = (ability_ref != NULL && ability_ref->type == AST_TYPE)
                 ? ability_ref->data.type.name : NULL;
             ssize_t ability_id;
@@ -295,18 +295,18 @@ dir_collect_intent_info(DIRProgram *dir, size_t from_id, ASTNode *node)
                                     ability_name))
                 goto step_oom;
         }
-        for (size_t j = 0; j < step_node->data.intent_step.authorized_by_count; j++) {
+        for (size_t j = 0; j < ast_intent_step_authorized_by_count(step_node); j++) {
             if (!append_name(&step.authorized_by,
                              &step.authorized_by_count,
                              &step.authorized_by_capacity,
-                             step_node->data.intent_step.authorized_by[j]))
+                             ast_intent_step_authorized_by(step_node, NULL)[j]))
                 goto step_oom;
             if (!dir_add_named_edge(dir,
                                     DIR_EDGE_INTENT_STEP_AUTHORIZED_BY,
                                     from_id,
                                     from_id,
                                     step.name,
-                                    step_node->data.intent_step.authorized_by[j]))
+                                    ast_intent_step_authorized_by(step_node, NULL)[j]))
                 goto step_oom;
         }
         if (!append_intent_step(&info.steps, &info.step_count, &info.step_capacity, step))

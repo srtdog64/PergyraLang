@@ -12,6 +12,18 @@ if [[ ! -x "$PGY" ]]; then
     exit 1
 fi
 
+if [[ "$PGY" == *.exe ]]; then
+    for dir in \
+        "/c/Program Files/LLVM/bin" \
+        "/c/ProgramData/mingw64/mingw64/bin" \
+        "/c/msys64/mingw64/bin"; do
+        if [[ -d "$dir" ]]; then
+            PATH="$dir:$PATH"
+        fi
+    done
+    export PATH
+fi
+
 TMPDIR="$(mktemp -d)"
 trap 'rm -rf "$TMPDIR"' EXIT
 

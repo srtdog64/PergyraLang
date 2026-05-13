@@ -287,9 +287,16 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                 call->data.call.arguments[0]);
             const char *inner = NULL;
             const char *c_type = NULL;
+            char inner_buf[128];
+            char c_type_buf[128];
             if (arr_type != NULL && strncmp(arr_type, "Array<", 6) == 0) {
-                inner = slot_inner_type_name(arr_type);
-                c_type = pergyra_type_to_c(inner);
+                copy_capped_string(inner_buf, sizeof(inner_buf),
+                    slot_inner_type_name(arr_type));
+                inner = inner_buf;
+                if (pergyra_type_to_c_copy(inner, c_type_buf,
+                        sizeof(c_type_buf))) {
+                    c_type = c_type_buf;
+                }
             }
             if (inner == NULL || c_type == NULL) {
                 transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "cannot determine element type for ArrayReverse; explicit concrete Array<T> input is required");

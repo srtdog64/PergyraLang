@@ -8,6 +8,7 @@
 #include "llvm_expr_assignment_projection.h"
 #include "llvm_internal_api.h"
 #include "llvm_inventory_decl_lookup.h"
+#include "parser/ast_api.h"
 
 static bool
 llvm_projection_sync_call_field_name(char *out,
@@ -96,17 +97,18 @@ llvm_emit_world_embedded_receiver_projection_sync(LLVMGenCtx *ctx,
     ASTNode **slots = ast_zone_slots(zone_decl, &slot_count);
     for (size_t i = 0; i < slot_count; i++) {
         ASTNode *slot = slots[i];
+        const char *slot_name = ast_domain_slot_name(slot);
         char field_name[256];
         int field_idx;
         if (slot == NULL || slot->type != AST_DOMAIN_SLOT
-            || slot->data.domain_slot.slot_name == NULL
-            || slot->data.domain_slot.is_subject) {
+            || slot_name == NULL
+            || ast_domain_slot_is_subject(slot)) {
             continue;
         }
 
         if (!llvm_projection_sync_call_field_name(field_name,
                 sizeof(field_name), "projection_dirty",
-                slot->data.domain_slot.slot_name)) {
+                slot_name)) {
             llvm_set_error(ctx, "projection dirty field name is too long");
             return;
         }
@@ -120,7 +122,7 @@ llvm_emit_world_embedded_receiver_projection_sync(LLVMGenCtx *ctx,
 
         if (!llvm_projection_sync_call_field_name(field_name,
                 sizeof(field_name), "projection_ready",
-                slot->data.domain_slot.slot_name)) {
+                slot_name)) {
             llvm_set_error(ctx, "projection ready field name is too long");
             return;
         }

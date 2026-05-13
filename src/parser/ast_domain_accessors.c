@@ -4,6 +4,113 @@
  */
 
 #include "ast_constructors_internal.h"
+#include "../common/string_compat.h"
+
+#include <stdlib.h>
+
+const char*
+ast_class_name(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_CLASS_DECL)
+        return NULL;
+    return node->data.class_decl.name;
+}
+
+NominalDeclKind
+ast_class_nominal_kind(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_CLASS_DECL)
+        return NOMINAL_DECL_CLASS;
+    return node->data.class_decl.nominal_kind;
+}
+
+bool
+ast_class_is_struct(const ASTNode* node)
+{
+    return node != NULL && node->type == AST_CLASS_DECL
+        && node->data.class_decl.is_struct;
+}
+
+ClassField**
+ast_class_fields(const ASTNode* node, size_t* count_out)
+{
+    if (count_out != NULL)
+        *count_out = 0;
+    if (node == NULL || node->type != AST_CLASS_DECL)
+        return NULL;
+    if (count_out != NULL)
+        *count_out = node->data.class_decl.field_count;
+    return node->data.class_decl.fields;
+}
+
+ASTNode**
+ast_class_methods(const ASTNode* node, size_t* count_out)
+{
+    if (count_out != NULL)
+        *count_out = 0;
+    if (node == NULL || node->type != AST_CLASS_DECL)
+        return NULL;
+    if (count_out != NULL)
+        *count_out = node->data.class_decl.method_count;
+    return node->data.class_decl.methods;
+}
+
+const char*
+ast_enum_name(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_ENUM_DECL)
+        return NULL;
+    return node->data.enum_decl.name;
+}
+
+char**
+ast_enum_variants(const ASTNode* node, size_t* count_out)
+{
+    if (count_out != NULL)
+        *count_out = 0;
+    if (node == NULL || node->type != AST_ENUM_DECL)
+        return NULL;
+    if (count_out != NULL)
+        *count_out = node->data.enum_decl.variant_count;
+    return node->data.enum_decl.variants;
+}
+
+size_t
+ast_enum_variant_param_count(const ASTNode* node, size_t index)
+{
+    if (node == NULL || node->type != AST_ENUM_DECL
+        || index >= node->data.enum_decl.variant_count
+        || node->data.enum_decl.variant_param_counts == NULL) {
+        return 0;
+    }
+    return node->data.enum_decl.variant_param_counts[index];
+}
+
+ASTNode*
+ast_enum_variant_param(const ASTNode* node, size_t variant_index,
+                       size_t param_index)
+{
+    if (node == NULL || node->type != AST_ENUM_DECL
+        || variant_index >= node->data.enum_decl.variant_count
+        || param_index >= ast_enum_variant_param_count(node, variant_index)
+        || node->data.enum_decl.variant_params == NULL
+        || node->data.enum_decl.variant_params[variant_index] == NULL) {
+        return NULL;
+    }
+    return node->data.enum_decl.variant_params[variant_index][param_index];
+}
+
+ASTNode**
+ast_enum_methods(const ASTNode* node, size_t* count_out)
+{
+    if (count_out != NULL)
+        *count_out = 0;
+    if (node == NULL || node->type != AST_ENUM_DECL)
+        return NULL;
+    if (count_out != NULL)
+        *count_out = node->data.enum_decl.method_count;
+    return node->data.enum_decl.methods;
+}
 
 const char*
 ast_ability_name(const ASTNode* node)
@@ -218,6 +325,106 @@ ast_roster_methods(const ASTNode* node, size_t* count_out)
 }
 
 const char*
+ast_role_slot_name(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_ROLE_SLOT)
+        return NULL;
+    return node->data.role_slot.slot_name;
+}
+
+bool
+ast_role_slot_is_dynamic(const ASTNode* node)
+{
+    return node != NULL && node->type == AST_ROLE_SLOT
+        && node->data.role_slot.is_dynamic;
+}
+
+size_t
+ast_role_slot_required_ability_count(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_ROLE_SLOT)
+        return 0;
+    return node->data.role_slot.ability_count;
+}
+
+ASTNode*
+ast_role_slot_required_ability(const ASTNode* node, size_t index)
+{
+    if (node == NULL || node->type != AST_ROLE_SLOT
+        || index >= node->data.role_slot.ability_count) {
+        return NULL;
+    }
+    return node->data.role_slot.required_abilities[index];
+}
+
+ASTNode**
+ast_role_slot_required_abilities(const ASTNode* node, size_t* count_out)
+{
+    if (count_out != NULL)
+        *count_out = ast_role_slot_required_ability_count(node);
+    if (node == NULL || node->type != AST_ROLE_SLOT)
+        return NULL;
+    return node->data.role_slot.required_abilities;
+}
+
+const char*
+ast_party_shared_name(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_PARTY_SHARED)
+        return NULL;
+    return node->data.party_shared.name;
+}
+
+ASTNode*
+ast_party_shared_type(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_PARTY_SHARED)
+        return NULL;
+    return node->data.party_shared.type;
+}
+
+ASTNode*
+ast_party_shared_initializer(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_PARTY_SHARED)
+        return NULL;
+    return node->data.party_shared.initializer;
+}
+
+const char*
+ast_roster_slot_name(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_SYSTEMIC_SLOT)
+        return NULL;
+    return node->data.roster_slot.slot_name;
+}
+
+const char*
+ast_roster_slot_party_type(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_SYSTEMIC_SLOT)
+        return NULL;
+    return node->data.roster_slot.party_type;
+}
+
+bool
+ast_roster_slot_replace_party_type(ASTNode* node, const char* party_type)
+{
+    char *copy;
+
+    if (node == NULL || node->type != AST_SYSTEMIC_SLOT)
+        return false;
+
+    copy = party_type != NULL ? pergyra_strdup(party_type) : NULL;
+    if (party_type != NULL && copy == NULL)
+        return false;
+
+    free(node->data.roster_slot.party_type);
+    node->data.roster_slot.party_type = copy;
+    return true;
+}
+
+const char*
 ast_world_name(const ASTNode* node)
 {
     if (node == NULL || node->type != AST_WORLD_DECL)
@@ -247,6 +454,71 @@ ast_world_zones(const ASTNode* node, size_t* count_out)
     if (count_out != NULL)
         *count_out = node->data.world_decl.zone_count;
     return node->data.world_decl.zones;
+}
+
+const char*
+ast_world_roster_slot_name(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_WORLD_SYSTEMIC)
+        return NULL;
+    return node->data.world_roster.slot_name;
+}
+
+const char*
+ast_world_roster_type_name(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_WORLD_SYSTEMIC)
+        return NULL;
+    return node->data.world_roster.roster_type;
+}
+
+ASTNode*
+ast_world_roster_initializer(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_WORLD_SYSTEMIC)
+        return NULL;
+    return node->data.world_roster.initializer;
+}
+
+bool
+ast_world_roster_replace_type_name(ASTNode* node, const char* type_name)
+{
+    char *owned_type_name;
+
+    if (node == NULL || node->type != AST_WORLD_SYSTEMIC || type_name == NULL)
+        return false;
+
+    owned_type_name = pergyra_strdup(type_name);
+    if (owned_type_name == NULL)
+        return false;
+
+    free(node->data.world_roster.roster_type);
+    node->data.world_roster.roster_type = owned_type_name;
+    return true;
+}
+
+const char*
+ast_world_zone_slot_name(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_WORLD_ZONE)
+        return NULL;
+    return node->data.world_zone.slot_name;
+}
+
+const char*
+ast_world_zone_type_name(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_WORLD_ZONE)
+        return NULL;
+    return node->data.world_zone.zone_type;
+}
+
+ASTNode*
+ast_world_zone_initializer(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_WORLD_ZONE)
+        return NULL;
+    return node->data.world_zone.initializer;
 }
 
 ASTNode**
@@ -431,4 +703,432 @@ ast_effect_methods(const ASTNode* node, size_t* count_out)
     if (count_out != NULL)
         *count_out = node->data.effect_decl.method_count;
     return node->data.effect_decl.methods;
+}
+
+const char*
+ast_domain_slot_name(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_DOMAIN_SLOT)
+        return NULL;
+    return node->data.domain_slot.slot_name;
+}
+
+ASTNode*
+ast_domain_slot_type(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_DOMAIN_SLOT)
+        return NULL;
+    return node->data.domain_slot.type;
+}
+
+bool
+ast_domain_slot_is_subject(const ASTNode* node)
+{
+    return node != NULL && node->type == AST_DOMAIN_SLOT
+        && node->data.domain_slot.is_subject;
+}
+
+bool
+ast_domain_slot_is_vessel(const ASTNode* node)
+{
+    return node != NULL && node->type == AST_DOMAIN_SLOT
+        && node->data.domain_slot.is_vessel;
+}
+
+bool
+ast_domain_slot_is_tobject(const ASTNode* node)
+{
+    return node != NULL && node->type == AST_DOMAIN_SLOT
+        && node->data.domain_slot.is_tobject;
+}
+
+bool
+ast_domain_slot_is_binding(const ASTNode* node)
+{
+    return node != NULL && node->type == AST_DOMAIN_SLOT
+        && node->data.domain_slot.is_binding;
+}
+
+ASTNode*
+ast_domain_slot_initializer(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_DOMAIN_SLOT)
+        return NULL;
+    return node->data.domain_slot.initializer;
+}
+
+const char*
+ast_intent_step_name(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_INTENT_STEP)
+        return NULL;
+    return node->data.intent_step.name;
+}
+
+ASTNode*
+ast_intent_step_where_type(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_INTENT_STEP)
+        return NULL;
+    return node->data.intent_step.where_type;
+}
+
+ASTNode*
+ast_intent_step_using_expr(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_INTENT_STEP)
+        return NULL;
+    return node->data.intent_step.using_expr;
+}
+
+ASTNode*
+ast_intent_step_intent_expr(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_INTENT_STEP)
+        return NULL;
+    return node->data.intent_step.intent_expr;
+}
+
+const char*
+ast_intent_step_transfer_from_alias(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_INTENT_STEP)
+        return NULL;
+    return node->data.intent_step.transfer_from_alias;
+}
+
+const char*
+ast_intent_step_transfer_to_alias(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_INTENT_STEP)
+        return NULL;
+    return node->data.intent_step.transfer_to_alias;
+}
+
+char**
+ast_intent_step_who_names(const ASTNode* node, size_t* count_out)
+{
+    if (node == NULL || node->type != AST_INTENT_STEP) {
+        if (count_out != NULL)
+            *count_out = 0;
+        return NULL;
+    }
+    if (count_out != NULL)
+        *count_out = node->data.intent_step.who_count;
+    return node->data.intent_step.who_names;
+}
+
+size_t
+ast_intent_step_who_count(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_INTENT_STEP)
+        return 0;
+    return node->data.intent_step.who_count;
+}
+
+ASTNode**
+ast_intent_step_on_exprs(const ASTNode* node, size_t* count_out)
+{
+    if (node == NULL || node->type != AST_INTENT_STEP) {
+        if (count_out != NULL)
+            *count_out = 0;
+        return NULL;
+    }
+    if (count_out != NULL)
+        *count_out = node->data.intent_step.on_expr_count;
+    return node->data.intent_step.on_exprs;
+}
+
+size_t
+ast_intent_step_on_expr_count(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_INTENT_STEP)
+        return 0;
+    return node->data.intent_step.on_expr_count;
+}
+
+ASTNode**
+ast_intent_step_compensate_exprs(const ASTNode* node, size_t* count_out)
+{
+    if (node == NULL || node->type != AST_INTENT_STEP) {
+        if (count_out != NULL)
+            *count_out = 0;
+        return NULL;
+    }
+    if (count_out != NULL)
+        *count_out = node->data.intent_step.compensate_expr_count;
+    return node->data.intent_step.compensate_exprs;
+}
+
+size_t
+ast_intent_step_compensate_expr_count(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_INTENT_STEP)
+        return 0;
+    return node->data.intent_step.compensate_expr_count;
+}
+
+ASTNode*
+ast_intent_step_pre_expr(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_INTENT_STEP)
+        return NULL;
+    return node->data.intent_step.pre_expr;
+}
+
+ASTNode*
+ast_intent_step_guard_expr(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_INTENT_STEP)
+        return NULL;
+    return node->data.intent_step.guard_expr;
+}
+
+ASTNode*
+ast_intent_step_post_expr(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_INTENT_STEP)
+        return NULL;
+    return node->data.intent_step.post_expr;
+}
+
+ASTNode*
+ast_intent_step_invariant_expr(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_INTENT_STEP)
+        return NULL;
+    return node->data.intent_step.invariant_expr;
+}
+
+ASTNode**
+ast_intent_step_required_abilities(const ASTNode* node, size_t* count_out)
+{
+    if (node == NULL || node->type != AST_INTENT_STEP) {
+        if (count_out != NULL)
+            *count_out = 0;
+        return NULL;
+    }
+    if (count_out != NULL)
+        *count_out = node->data.intent_step.required_ability_count;
+    return node->data.intent_step.required_abilities;
+}
+
+size_t
+ast_intent_step_required_ability_count(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_INTENT_STEP)
+        return 0;
+    return node->data.intent_step.required_ability_count;
+}
+
+const char*
+ast_intent_step_causes_effect(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_INTENT_STEP)
+        return NULL;
+    return node->data.intent_step.causes_effect;
+}
+
+char**
+ast_intent_step_authorized_by(const ASTNode* node, size_t* count_out)
+{
+    if (node == NULL || node->type != AST_INTENT_STEP) {
+        if (count_out != NULL)
+            *count_out = 0;
+        return NULL;
+    }
+    if (count_out != NULL)
+        *count_out = node->data.intent_step.authorized_by_count;
+    return node->data.intent_step.authorized_by;
+}
+
+size_t
+ast_intent_step_authorized_by_count(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_INTENT_STEP)
+        return 0;
+    return node->data.intent_step.authorized_by_count;
+}
+
+ASTNode*
+ast_intent_step_expect_expr(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_INTENT_STEP)
+        return NULL;
+    return node->data.intent_step.expect_expr;
+}
+
+bool
+ast_intent_step_inherited_who_from_intent(const ASTNode* node)
+{
+    return node != NULL && node->type == AST_INTENT_STEP
+        && node->data.intent_step.inherited_who_from_intent;
+}
+
+bool
+ast_intent_step_derived_who_from_on_receiver(const ASTNode* node)
+{
+    return node != NULL && node->type == AST_INTENT_STEP
+        && node->data.intent_step.derived_who_from_on_receiver;
+}
+
+bool
+ast_intent_step_derived_who_from_single_participant(const ASTNode* node)
+{
+    return node != NULL && node->type == AST_INTENT_STEP
+        && node->data.intent_step.derived_who_from_single_participant;
+}
+
+bool
+ast_intent_step_inherited_where_from_intent(const ASTNode* node)
+{
+    return node != NULL && node->type == AST_INTENT_STEP
+        && node->data.intent_step.inherited_where_from_intent;
+}
+
+bool
+ast_intent_step_inherited_who_from_action(const ASTNode* node)
+{
+    return node != NULL && node->type == AST_INTENT_STEP
+        && node->data.intent_step.inherited_who_from_action;
+}
+
+bool
+ast_intent_step_inherited_where_from_action(const ASTNode* node)
+{
+    return node != NULL && node->type == AST_INTENT_STEP
+        && node->data.intent_step.inherited_where_from_action;
+}
+
+bool
+ast_intent_step_inherited_requires_from_action(const ASTNode* node)
+{
+    return node != NULL && node->type == AST_INTENT_STEP
+        && node->data.intent_step.inherited_requires_from_action;
+}
+
+bool
+ast_intent_step_inherited_causes_from_action(const ASTNode* node)
+{
+    return node != NULL && node->type == AST_INTENT_STEP
+        && node->data.intent_step.inherited_causes_from_action;
+}
+
+bool
+ast_intent_step_inherited_authorized_by_from_action(const ASTNode* node)
+{
+    return node != NULL && node->type == AST_INTENT_STEP
+        && node->data.intent_step.inherited_authorized_by_from_action;
+}
+
+bool
+ast_intent_step_derived_authorized_by_from_zone(const ASTNode* node)
+{
+    return node != NULL && node->type == AST_INTENT_STEP
+        && node->data.intent_step.derived_authorized_by_from_zone;
+}
+
+bool
+ast_intent_step_derived_where_from_using(const ASTNode* node)
+{
+    return node != NULL && node->type == AST_INTENT_STEP
+        && node->data.intent_step.derived_where_from_using;
+}
+
+bool
+ast_intent_step_derived_where_from_transfer(const ASTNode* node)
+{
+    return node != NULL && node->type == AST_INTENT_STEP
+        && node->data.intent_step.derived_where_from_transfer;
+}
+
+bool
+ast_intent_step_derived_using_from_transfer(const ASTNode* node)
+{
+    return node != NULL && node->type == AST_INTENT_STEP
+        && node->data.intent_step.derived_using_from_transfer;
+}
+
+bool
+ast_intent_step_derived_using_from_where(const ASTNode* node)
+{
+    return node != NULL && node->type == AST_INTENT_STEP
+        && node->data.intent_step.derived_using_from_where;
+}
+
+const char*
+ast_zone_layer_slot_name(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_ZONE_LAYER_SLOT)
+        return NULL;
+    return node->data.zone_layer_slot.slot_name;
+}
+
+const char*
+ast_zone_layer_slot_layer_type(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_ZONE_LAYER_SLOT)
+        return NULL;
+    return node->data.zone_layer_slot.layer_type;
+}
+
+bool
+ast_zone_layer_slot_is_relation(const ASTNode* node)
+{
+    return node != NULL && node->type == AST_ZONE_LAYER_SLOT
+        && node->data.zone_layer_slot.is_relation;
+}
+
+bool
+ast_zone_layer_slot_is_pool(const ASTNode* node)
+{
+    return node != NULL && node->type == AST_ZONE_LAYER_SLOT
+        && node->data.zone_layer_slot.is_pool;
+}
+
+int
+ast_zone_layer_slot_pool_capacity(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_ZONE_LAYER_SLOT)
+        return 0;
+    return node->data.zone_layer_slot.pool_capacity;
+}
+
+const char*
+ast_zone_state_name(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_ZONE_STATE)
+        return NULL;
+    return node->data.zone_state.state_name;
+}
+
+bool
+ast_zone_state_is_relation(const ASTNode* node)
+{
+    return node != NULL && node->type == AST_ZONE_STATE
+        && node->data.zone_state.is_relation;
+}
+
+const char*
+ast_zone_state_layer_slot_name(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_ZONE_STATE)
+        return NULL;
+    return node->data.zone_state.layer_slot_name;
+}
+
+const char*
+ast_zone_state_left_or_target_slot_name(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_ZONE_STATE)
+        return NULL;
+    return node->data.zone_state.left_or_target_slot_name;
+}
+
+const char*
+ast_zone_state_right_slot_name(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_ZONE_STATE)
+        return NULL;
+    return node->data.zone_state.right_slot_name;
 }

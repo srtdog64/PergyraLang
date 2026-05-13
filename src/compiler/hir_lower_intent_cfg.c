@@ -12,59 +12,59 @@ intent_cfg_append_step_statements(HIRBasicBlock *block, ASTNode *step)
         || !hir_cfg_append_stmt(&block->statements,
                                 &block->statement_count,
                                 &block->statement_capacity,
-                                step->data.intent_step.where_type)
+                                ast_intent_step_where_type(step))
         || !hir_cfg_append_stmt(&block->statements,
                                 &block->statement_count,
                                 &block->statement_capacity,
-                                step->data.intent_step.using_expr)
+                                ast_intent_step_using_expr(step))
         || !hir_cfg_append_stmt(&block->statements,
                                 &block->statement_count,
                                 &block->statement_capacity,
-                                step->data.intent_step.intent_expr)
+                                ast_intent_step_intent_expr(step))
         || !hir_cfg_append_stmt(&block->statements,
                                 &block->statement_count,
                                 &block->statement_capacity,
-                                step->data.intent_step.pre_expr)
+                                ast_intent_step_pre_expr(step))
         || !hir_cfg_append_stmt(&block->statements,
                                 &block->statement_count,
                                 &block->statement_capacity,
-                                step->data.intent_step.guard_expr)
+                                ast_intent_step_guard_expr(step))
         || !hir_cfg_append_stmt(&block->statements,
                                 &block->statement_count,
                                 &block->statement_capacity,
-                                step->data.intent_step.post_expr)
+                                ast_intent_step_post_expr(step))
         || !hir_cfg_append_stmt(&block->statements,
                                 &block->statement_count,
                                 &block->statement_capacity,
-                                step->data.intent_step.invariant_expr)
+                                ast_intent_step_invariant_expr(step))
         || !hir_cfg_append_stmt(&block->statements,
                                 &block->statement_count,
                                 &block->statement_capacity,
-                                step->data.intent_step.expect_expr)) {
+                                ast_intent_step_expect_expr(step))) {
         return false;
     }
 
-    for (size_t i = 0; i < step->data.intent_step.required_ability_count; i++) {
+    for (size_t i = 0; i < ast_intent_step_required_ability_count(step); i++) {
         if (!hir_cfg_append_stmt(&block->statements,
                                  &block->statement_count,
                                  &block->statement_capacity,
-                                 step->data.intent_step.required_abilities[i])) {
+                                 ast_intent_step_required_abilities(step, NULL)[i])) {
             return false;
         }
     }
-    for (size_t i = 0; i < step->data.intent_step.on_expr_count; i++) {
+    for (size_t i = 0; i < ast_intent_step_on_expr_count(step); i++) {
         if (!hir_cfg_append_stmt(&block->statements,
                                  &block->statement_count,
                                  &block->statement_capacity,
-                                 step->data.intent_step.on_exprs[i])) {
+                                 ast_intent_step_on_exprs(step, NULL)[i])) {
             return false;
         }
     }
-    for (size_t i = 0; i < step->data.intent_step.compensate_expr_count; i++) {
+    for (size_t i = 0; i < ast_intent_step_compensate_expr_count(step); i++) {
         if (!hir_cfg_append_stmt(&block->statements,
                                  &block->statement_count,
                                  &block->statement_capacity,
-                                 step->data.intent_step.compensate_exprs[i])) {
+                                 ast_intent_step_compensate_exprs(step, NULL)[i])) {
             return false;
         }
     }

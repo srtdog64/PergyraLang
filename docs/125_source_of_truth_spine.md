@@ -39,6 +39,13 @@ Runtime frontier AIR evidence must count the complete frozen runtime policy
 surface: pass-limit arithmetic facts plus bounded-overflow reason facts. A
 backend may emit those strings, but it may not own or rename them.
 
+Runtime frontier codegen may only consume the codegen policy wrapper
+(`src/codegen/domain_frontier_policy.h`) for pass-limit selection. The runtime
+policy header owns the arithmetic vocabulary, but C/LLVM emitters must not call
+the runtime `pgy_frontier_*_pass_limit(...)` helpers directly. The wrapper is
+the backend-facing seam that keeps AST/domain declaration lookup and runtime
+frontier arithmetic from mixing in emitter-local code.
+
 ## 2. Layer Contracts
 
 ### AST
@@ -96,6 +103,133 @@ Reachable pin-region emission is part of that shared contract: both C and LLVM
 must reject a pin block without a cleanup successor or without the matching
 pin-unpin cleanup fact. Backend contracts may format the diagnostic locally,
 but the decision must come from MIR cleanup fact helpers.
+
+Pin-region source locals remain SSA definitions. A local such as
+`let value = Read(view)` inside a pin block may carry a source-local declaration
+emit fact for backend compatibility, but it must not be demoted to a residual
+`MIR_INST_STMT` fallback when later CFG returns use that value. The versioned
+definition and the return use are MIR SSA/dataflow facts; C and LLVM may only
+consume them.
+
+Source-local resource reads that have no matching SSA DEF remain compatibility
+statements owned by MIR statement population. For example, secure-slot
+destructuring may produce a `Read(slot, token)` let whose value must still be
+materialized in C. The backend may emit the assignment, but only because MIR
+kept the source-local emit fact; it must not rediscover the missing value by
+walking AST call syntax.
+
+The source-local preservation decision is shared across CFG and non-CFG
+population. `Read`/`ViewRead`/`ViewWrite`/`Move` lets are classified by the MIR
+statement-source owner, and non-CFG compatibility insertion must use the same
+source-statement append path so source indices, call facts, and fallback
+accounting cannot drift.
+
+CFG statement interleaving must append through a capacity-checked helper, not
+raw `new_insts[new_count++]` writes. The calculated capacity is a MIR
+population invariant; if a future statement shape violates it, lowering must
+fail closed instead of corrupting the instruction inventory.
+
+Backend source-order scheduling must consume MIR source-shape ordering helpers
+instead of reading `source_statement_index` or
+`has_source_statement_index` directly. The scheduling decision is an emission
+order compatibility fact, not a backend-owned interpretation of MIR source
+inventory.
+
+Instruction-local checks such as "first source statement in a select case" must
+also use MIR source-shape helpers. Validators may still compare a helper-returned
+index against the owning block's statement inventory bounds, but they should not
+spread raw source-order field interpretation into call-fact or backend owners.
+
+C backend MIR local type consumers may keep bounded stack render buffers for
+immediate formatting, but they must not return mutable `static char *` or
+`static char rendered[...]` scratch as a local type fact. If a rendered type name
+must survive a nested lookup or recursive expression emission, copy it into the
+active `TranspilerCtx.arena`. Rendered names are temporary; the typed-var
+inventory or MIR type metadata is the durable fact.
+
+The same C backend rule applies to expression type inference. Constructed names
+such as `Array<T>`, `Slice<T>`, `ReadView<T>`, `WriteView<T>`,
+`RemoteFuture<T>`, and `Option<T>` may be inferred recursively, so they must be
+arena-backed facts rather than shared `static char` scratch. Stack buffers are
+allowed only as immediate formatting inputs before the arena copy.
+
+MIR resource-operation emission must snapshot slot inner names before asking the
+C type mapper to lower them. A nested resource payload such as `Slot<Array<Int>>`
+uses `slot_inner_type_name(...)` to find `Array<Int>`, and `pergyra_type_to_c`
+may call the same helper again while lowering that nested payload. The runtime
+helper suffix and ABI lookup must therefore use a copied inner-name buffer.
+
+Array destructuring and array stdlib helpers use the same rule. When a backend
+derives an element name from `Array<T>` or `Slice<T>` and then lowers that name
+through `pergyra_type_to_c(...)`, it must copy `T` first if the original element
+name is later used for local type registration or helper naming.
+
+LLVM backend constructed-type argument parsing has the same rule. A helper that
+returns a static scratch pointer is a parser convenience only; recursive type
+lowering must copy `List<T>`, `Queue<T>`, `HashMap<K,V>`, and `Option<T>`
+arguments into caller-owned storage before asking the type mapper to lower the
+nested type.
+
+The same rule applies to expected-type helpers. If an expression emitter reads
+an expected `Rc<T>`/container inner type from a static scratch helper, it must
+copy that inner type before recursively lowering child expressions or lowering
+the nested type itself.
+
+C backend lambda emission follows the same rendered-type lifetime rule. A
+lambda helper signature uses the rendered return C type before and after
+parameter type rendering, so it must snapshot the return type into
+caller-owned storage before emitting helper prototypes or helper bodies.
+
+Result specialization and `let` lowering are recursive-emission boundaries too.
+If a C type name is needed after storing another rendered type or after calling
+`emit_expression(...)`, copy it into caller-owned storage first. This covers
+`Result<T,E>` ok/error C metadata, array literal let bindings, `SetNew`
+collection-specialization lets, and try-let lowering.
+
+Array literal expression emission also crosses a recursive-emission boundary.
+The `Array<T>` element name returned by `slot_inner_type_name(...)` must be
+copied before emitting element expressions, because element emission may render
+other constructed types and overwrite the inner-type scratch buffer.
+
+Tuple literal expression emission follows the same rule. The rendered tuple C
+type must be copied before emitting tuple element expressions, because element
+emission can recursively render other constructed types.
+
+Hosted self ABI is also a MIR/declaration-header fact. Party and roster methods
+use the same pointer-self ABI as relation/effect/zone/world methods. C and LLVM
+may choose different local names while emitting, but `self.member` inside a
+party/roster method must lower through the pointer-self path (`self->member` in
+C), not through value-object member access.
+
+Constructor arity/type validation for domain hosts is semantic-owned. The
+constructor declaration lookup table must include every constructible domain
+host kind, including party and roster, before codegen sees the call. Backends
+may emit constructors, but they must not be the first layer to discover too many
+or mistyped constructor field arguments.
+
+Domain method `self` typing is semantic-owned. Party and roster method contexts
+must set the same current-host state used by world/zone/relation/effect methods,
+so `self.member` is accepted or rejected before backend lowering. A backend
+failure on an unknown party/roster member is a source-of-truth bug, not an
+acceptable diagnostic path.
+
+Implicit host-field access is part of the same contract. If semantic accepts a
+bare party/roster method field such as `round` or `tick`, C and LLVM must both
+consume the current-host field fact and emit pointer-self access. Leaving the
+identifier as a global C symbol is backend drift.
+
+Role include method reuse is a backend wrapper fact, not an AST body-copy fact.
+The included role owns the MIR routine for the method body. A derived role that
+inherits the method may emit a thin wrapper named for the derived role and
+forward to the included role routine, but it must not clone the method body or
+invent a missing derived-role MIR routine.
+
+C ability vtable signatures must be type-complete enough before ability
+emission. Pointer-self host parameters such as `Player` in an inherited role
+method are rendered as `Player *`, so the C backend emits nominal forward
+typedefs before ability vtables. The ABI source of truth remains the host
+self-cell classification policy; ability emission must not fall back to raw
+type strings that bypass that policy.
 
 ### Type-Resolution DAG
 
@@ -161,6 +295,19 @@ AIR does not own:
 AIR may reject missing or inconsistent evidence. It must not synthesize lower
 layer facts to make evidence pass.
 
+Global `AIREvidenceNode` inventory is the verification source of truth. Summary
+counters remain telemetry and compatibility surface: counter-only evidence may
+produce strict-evidence drift, but evidence-only inventory must remain valid when
+the node payload is complete.
+
+Singleton global evidence, such as runtime observability schema and runtime
+frontier policy evidence, is idempotent. Re-collecting the same singleton
+schema/policy must not mutate fact counts or summary counters. A duplicate
+singleton with conflicting fact or fallback counts is evidence drift and must
+fail instead of being merged silently; otherwise compatibility counters would
+drift from the EvidenceNode inventory and AIR would stop being the single
+verification source of truth.
+
 ### Runtime Policy Headers
 
 Runtime policy headers own stable ABI/runtime rules that must be shared by C and
@@ -198,6 +345,11 @@ classification is unclear, do not refactor yet.
 The beta closure order is:
 
 1. CFG/MIR body safety source-of-truth.
+   Current measurable seam: `MIRProgram.has_non_cfg_body_fallback_inventory`,
+   `MIRProgram.non_cfg_body_fallback_total`, and
+   `MIRProgram.non_cfg_body_fallback_routine_count` aggregate residual
+   non-CFG body fallback usage. Consumers may inspect this aggregate; they must
+   not rescan AST bodies to rediscover the fallback path.
 2. AIR abstraction-boundary verifier coverage.
 3. Type-resolution DAG source-of-truth closure.
 4. Runtime frontier/failure policy generated-path verification.
@@ -256,6 +408,63 @@ Practical rule:
 
 If a refactor cannot name the removed compatibility seam, the source-of-truth
 owner it strengthens, and the gate that proves drift did not occur, defer it.
+
+## 5b. C Type Rendering Lifetime Rule
+
+`pergyra_type_to_c(...)` remains a compatibility API that may return static
+storage. New code must not keep that pointer across another type-rendering or
+generic-inner-name call. If the rendered C type is stored, passed through a
+later emission path, or reused after a `slot_inner_type_name(...)`/generic
+lookup call, the owner must copy it through `pergyra_type_to_c_copy(...)` or an
+arena-owned equivalent.
+
+Current closed slices:
+
+- C AST for-in lowering snapshots the iterable inner type and rendered C
+  element type before emitting the loop body.
+- C MIR CFG for-in lowering returns caller-owned element and inner type buffers
+  instead of returning a static `pergyra_type_to_c(slot_inner_type_name(...))`
+  pointer.
+- C AST/MIR destructuring snapshots both the initializer C type and the
+  element C type; the initializer render is not allowed to survive through a
+  later element render as a static pointer.
+- Slot resource op and ArrayReverse lowering copy their rendered inner C type
+  before formatting runtime calls or expression templates.
+- Channel receive builtins (`TryRecv`, `RecvTimeout`) copy the rendered payload
+  C type before formatting their expression templates.
+- Let lowering, inferred let bindings, Result/collection specialization, and
+  tuple literal emission use `pergyra_type_to_c_copy(...)` for rendered types
+  that outlive the immediate mapping expression.
+- Match subject/payload lowering, MIR match payload lowering, select receive
+  bindings, spawn wrappers, inferred lambda returns, view-like slot
+  declarations, MIR SSA local declarations, role ability vtable returns,
+  post-sync call wrappers, await lowering, MIR role-host receiver lowering,
+  intent zone participant rebinding, and tuple destructuring element
+  declarations also consume caller-owned C type buffers.
+- Await lowering consumes `lookup_future_inner_type_copy(...)` instead of
+  holding a static Future/RemoteFuture payload pointer.
+- MIR SSA parameter type lookup returns arena-owned rendered type names instead
+  of a backend-local static `rendered_param` buffer.
+- Function/event-handler declarator rendering copies each
+  `pergyra_ast_type_to_c(...)` result into caller-local storage before rendering
+  the next return or parameter type.
+- AST type-requirement helpers now expose
+  `transpiler_require_ast_c_type_copy(...)` for emitters that need a stable
+  rendered type across later declaration/signature emission. The legacy
+  pointer-return helper is compatibility surface for immediate-use callers only.
+- Intent prologue, intent zone-binding forward declarations, and intent
+  step-rebind compatibility paths use the copy helper for AST-carried participant
+  and value types. MIR metadata paths already consume type-name copy helpers; the
+  AST fallback must obey the same lifetime contract while it remains.
+- Annotated `let` lowering snapshots the annotated C type before emitting the
+  initializer expression. Initializer emission may recursively render other
+  types, so the declaration C type must be caller-owned before the initializer
+  path runs.
+- Extern declaration emission uses the AST copy helper for return and parameter
+  C types, keeping FFI signatures on the same bounded-copy rule as forward
+  declarations and intent signatures.
+- The perf contract now gates the copy API and the migrated C backend
+  consumers above.
 
 ## 6. Allowed Temporary Debt
 

@@ -376,6 +376,7 @@ ensure_ability_ref_vtable_decl(ASTNode *ability_ref, TranspilerCtx *ctx)
         GenericBindingEntry bindings[MAX_GENERIC_BINDINGS];
         size_t binding_count = 0;
         char *ret_name = NULL;
+        char ret_type_buf[256];
         const char *ret_type = "void";
 
         if (method == NULL || method->type != AST_FUNC_DECL)
@@ -389,7 +390,10 @@ ensure_ability_ref_vtable_decl(ASTNode *ability_ref, TranspilerCtx *ctx)
         if (method->data.func_decl.return_type != NULL) {
             ret_name = render_type_name_with_bindings(ctx,
                 method->data.func_decl.return_type, bindings, binding_count);
-            ret_type = pergyra_type_to_c(ret_name);
+            if (pergyra_type_to_c_copy(ret_name, ret_type_buf,
+                    sizeof(ret_type_buf))) {
+                ret_type = ret_type_buf;
+            }
         }
 
         codebuf_write(target, "    %s (*%s)(void *self",
@@ -398,6 +402,7 @@ ensure_ability_ref_vtable_decl(ASTNode *ability_ref, TranspilerCtx *ctx)
         for (size_t j = 0; j < method->data.func_decl.param_count; j++) {
             FuncParam *p = method->data.func_decl.params[j];
             char *param_name = NULL;
+            char pt_buf[256];
             const char *pt = NULL;
             bool pointer_param = false;
             char surface_desc[256];
@@ -425,7 +430,10 @@ ensure_ability_ref_vtable_decl(ASTNode *ability_ref, TranspilerCtx *ctx)
                 free(tag);
                 return;
             }
-            pt = transpiler_require_type_name_c_type(ctx, param_name, surface_desc);
+            if (transpiler_require_type_name_c_type_copy(ctx, param_name,
+                    surface_desc, pt_buf, sizeof(pt_buf))) {
+                pt = pt_buf;
+            }
             if (pt == NULL) {
                 free(param_name);
                 free(ret_name);

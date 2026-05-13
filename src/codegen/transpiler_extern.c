@@ -27,22 +27,34 @@ emit_extern_block(ASTNode *node, TranspilerCtx *ctx)
         if (name == NULL)
             continue;
         const char *ret_type = "void";
-        if (decl->data.func_decl.return_type != NULL)
-            ret_type = pergyra_ast_type_to_c(decl->data.func_decl.return_type);
+        char ret_type_buf[256];
+        if (decl->data.func_decl.return_type != NULL
+            && transpiler_require_ast_c_type_copy(ctx,
+                decl->data.func_decl.return_type,
+                "extern return type",
+                ret_type_buf,
+                sizeof(ret_type_buf))) {
+            ret_type = ret_type_buf;
+        }
 
         codebuf_write(ctx->out, "%s %s(", ret_type, name);
 
         for (size_t j = 0; j < decl->data.func_decl.param_count; j++) {
             FuncParam *p = decl->data.func_decl.params[j];
             const char *pt = NULL;
+            char pt_buf[256];
             char surface_desc[256];
             snprintf(surface_desc, sizeof(surface_desc),
                 "extern parameter '%s' of '%s'",
                 p != NULL && p->name != NULL ? p->name : "(anonymous)",
                 name != NULL ? name : "(anonymous)");
-            pt = transpiler_require_ast_c_type(ctx,
-                p != NULL ? p->type : NULL,
-                surface_desc);
+            if (transpiler_require_ast_c_type_copy(ctx,
+                    p != NULL ? p->type : NULL,
+                    surface_desc,
+                    pt_buf,
+                    sizeof(pt_buf))) {
+                pt = pt_buf;
+            }
             if (pt == NULL)
                 return;
             if (p == NULL || p->name == NULL)

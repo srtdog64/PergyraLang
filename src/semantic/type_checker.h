@@ -80,6 +80,8 @@ struct SemanticContext
     const char*  current_module_path; /* Origin module under analysis */
     ASTNode*     current_relation; /* Enclosing relation decl       */
     ASTNode*     current_effect;   /* Enclosing effect decl         */
+    ASTNode*     current_party;    /* Enclosing party decl when any */
+    ASTNode*     current_roster;   /* Enclosing roster decl when any */
     ASTNode*     current_nominal_decl; /* Enclosing nominal decl      */
     ASTNode*     current_zone;   /* Enclosing zone decl when any   */
     ASTNode*     current_world;  /* Enclosing world decl when any  */

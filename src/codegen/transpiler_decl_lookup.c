@@ -80,14 +80,14 @@ transpiler_named_decl_matches(ASTNode *stmt, ASTNodeType decl_type,
         return ast_roster_name(stmt) != NULL
             && strcmp(ast_roster_name(stmt), name) == 0;
     case AST_ENUM_DECL:
-        return stmt->data.enum_decl.name != NULL
-            && strcmp(stmt->data.enum_decl.name, name) == 0;
+        return ast_enum_name(stmt) != NULL
+            && strcmp(ast_enum_name(stmt), name) == 0;
     case AST_ROLE_DECL:
         return ast_role_name(stmt) != NULL
             && strcmp(ast_role_name(stmt), name) == 0;
     case AST_CLASS_DECL:
-        return stmt->data.class_decl.name != NULL
-            && strcmp(stmt->data.class_decl.name, name) == 0;
+        return ast_class_name(stmt) != NULL
+            && strcmp(ast_class_name(stmt), name) == 0;
     case AST_FUNC_DECL:
         return stmt->data.func_decl.name != NULL
             && strcmp(stmt->data.func_decl.name, name) == 0;
@@ -235,7 +235,7 @@ find_subject_host_decl(TranspilerCtx *ctx, const char *subject_name)
 {
     ASTNode *decl = find_class_decl(ctx, subject_name);
     if (decl != NULL && decl->type == AST_CLASS_DECL
-        && decl->data.class_decl.nominal_kind == NOMINAL_DECL_SUBJECT) {
+        && ast_class_nominal_kind(decl) == NOMINAL_DECL_SUBJECT) {
         return decl;
     }
     return NULL;
@@ -305,9 +305,9 @@ transpiler_decl_name_local(ASTNode *decl)
 
     switch (decl->type) {
     case AST_CLASS_DECL:
-        return decl->data.class_decl.name;
+        return ast_class_name(decl);
     case AST_ENUM_DECL:
-        return decl->data.enum_decl.name;
+        return ast_enum_name(decl);
     case AST_ROLE_DECL:
         return ast_role_name(decl);
     case AST_PARTY_DECL:

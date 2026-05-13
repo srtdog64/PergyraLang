@@ -87,9 +87,8 @@ type_check_has_zone(ASTNode *call, SemanticContext *ctx)
     ASTNode **zones = ast_world_zones(world, &zone_count);
     for (size_t i = 0; i < zone_count; i++) {
         ASTNode *zone = zones[i];
-        if (zone != NULL && zone->type == AST_WORLD_ZONE
-            && zone->data.world_zone.slot_name != NULL
-            && strcmp(zone->data.world_zone.slot_name, name) == 0) {
+        const char *zone_slot_name = ast_world_zone_slot_name(zone);
+        if (zone_slot_name != NULL && strcmp(zone_slot_name, name) == 0) {
             return TYPE_BOOL;
         }
     }

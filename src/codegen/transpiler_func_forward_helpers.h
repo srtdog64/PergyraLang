@@ -80,6 +80,27 @@ lookup_future_inner_type(TranspilerCtx *ctx, ASTNode *expr)
     return "Void";
 }
 
+static bool
+lookup_future_inner_type_copy(TranspilerCtx *ctx, ASTNode *expr,
+                              char *out, size_t out_size)
+{
+    const char *inner;
+
+    if (out == NULL || out_size == 0)
+        return false;
+    out[0] = '\0';
+
+    if (expr != NULL && expr->type == AST_SPAWN_EXPR) {
+        char *owned = infer_spawn_return_type_name(ctx, expr);
+        bool ok = owned != NULL && pergyra_str_copy(out, out_size, owned);
+        free(owned);
+        return ok;
+    }
+
+    inner = lookup_future_inner_type(ctx, expr);
+    return inner != NULL && pergyra_str_copy(out, out_size, inner);
+}
+
 const char *
 pergyra_ast_type_to_c(ASTNode *type_node)
 {
@@ -91,7 +112,8 @@ pergyra_ast_type_to_c(ASTNode *type_node)
         return "void *";
 
     char *type_name = render_type_name(type_node);
-    pergyra_str_copy(mapped, sizeof(mapped), pergyra_type_to_c(type_name));
+    if (!pergyra_type_to_c_copy(type_name, mapped, sizeof(mapped)))
+        mapped[0] = '\0';
     free(type_name);
     return mapped;
 }

@@ -9,6 +9,7 @@
 
 #include "type_checker_internal.h"
 #include "diag_codes.h"
+#include "parser/ast_api.h"
 
 #include <string.h>
 
@@ -24,7 +25,7 @@ find_nth_bindable_domain_slot(ASTNode **slots, size_t slot_count,
     for (size_t i = 0; i < slot_count; i++) {
         ASTNode *slot = slots[i];
         if (slot == NULL || slot->type != AST_DOMAIN_SLOT
-            || !slot->data.domain_slot.is_binding) {
+            || !ast_domain_slot_is_binding(slot)) {
             continue;
         }
 
@@ -45,10 +46,10 @@ find_named_class_decl_local(ASTNode *program, const char *name)
     for (size_t i = 0; i < program->data.program.count; i++) {
         ASTNode *stmt = program->data.program.statements[i];
         if (stmt == NULL || stmt->type != AST_CLASS_DECL
-            || stmt->data.class_decl.name == NULL) {
+            || ast_class_name(stmt) == NULL) {
             continue;
         }
-        if (strcmp(stmt->data.class_decl.name, name) == 0)
+        if (strcmp(ast_class_name(stmt), name) == 0)
             return stmt;
     }
 
@@ -106,7 +107,7 @@ type_check_zone_effect_contract(ASTNode *zone,
     zone_name = ast_zone_name(zone) != NULL ? ast_zone_name(zone) : "<zone>";
 
     effect_decl = find_domain_decl_by_name(ctx->program_root, AST_EFFECT_DECL,
-        effect_slot->data.zone_layer_slot.layer_type);
+        ast_zone_layer_slot_layer_type(effect_slot));
     if (effect_decl == NULL)
         return false;
     effect_name = ast_effect_name(effect_decl) != NULL
@@ -178,8 +179,8 @@ type_check_zone_effect_contract(ASTNode *zone,
             effect_slot_name != NULL ? effect_slot_name : "<effect-slot>",
             target_slot_name != NULL ? target_slot_name : "<unknown>",
             effect_name,
-            decl_target->data.domain_slot.slot_name != NULL
-                ? decl_target->data.domain_slot.slot_name
+            ast_domain_slot_name(decl_target) != NULL
+                ? ast_domain_slot_name(decl_target)
                 : "<target-slot>",
             decl_target_type != NULL && decl_target_type->name != NULL
                 ? decl_target_type->name
@@ -210,41 +211,41 @@ relation_slot_matches_between_kind(ASTNode *slot,
         return false;
 
     if (kind == RELATION_ENDPOINT_SUBJECT)
-        return slot->data.domain_slot.is_subject;
+        return ast_domain_slot_is_subject(slot);
 
     if (kind == RELATION_ENDPOINT_OBJECT) {
-        if (slot->data.domain_slot.is_subject)
+        if (ast_domain_slot_is_subject(slot))
             return false;
-        if (slot->data.domain_slot.is_tobject)
+        if (ast_domain_slot_is_tobject(slot))
             return false;  /* tobject slot uses "tobject" kind, not "object" */
         decl = find_named_class_decl_local(ctx->program_root,
             slot_type != NULL ? slot_type->name : NULL);
         return decl != NULL
-            && decl->data.class_decl.is_struct
-            && decl->data.class_decl.nominal_kind == NOMINAL_DECL_OBJECT;
+            && ast_class_is_struct(decl)
+            && ast_class_nominal_kind(decl) == NOMINAL_DECL_OBJECT;
     }
 
     if (kind == RELATION_ENDPOINT_TOBJECT) {
-        if (slot->data.domain_slot.is_subject)
+        if (ast_domain_slot_is_subject(slot))
             return false;
-        if (!slot->data.domain_slot.is_tobject)
+        if (!ast_domain_slot_is_tobject(slot))
             return false;
         decl = find_named_class_decl_local(ctx->program_root,
             slot_type != NULL ? slot_type->name : NULL);
         return decl != NULL
-            && decl->data.class_decl.is_struct
-            && decl->data.class_decl.nominal_kind == NOMINAL_DECL_TOBJECT;
+            && ast_class_is_struct(decl)
+            && ast_class_nominal_kind(decl) == NOMINAL_DECL_TOBJECT;
     }
 
     if (kind == RELATION_ENDPOINT_CLASS) {
-        if (slot->data.domain_slot.is_subject || slot->data.domain_slot.is_tobject)
+        if (ast_domain_slot_is_subject(slot) || ast_domain_slot_is_tobject(slot))
             return false;
         decl = find_named_class_decl_local(ctx->program_root,
             slot_type != NULL ? slot_type->name : NULL);
         if (decl == NULL)
             return true;
-        return decl->data.class_decl.nominal_kind != NOMINAL_DECL_OBJECT
-            && decl->data.class_decl.nominal_kind != NOMINAL_DECL_TOBJECT;
+        return ast_class_nominal_kind(decl) != NOMINAL_DECL_OBJECT
+            && ast_class_nominal_kind(decl) != NOMINAL_DECL_TOBJECT;
     }
 
     named_type = domain_resolve_named_type_ref(named_type_ref, ctx);
@@ -296,7 +297,7 @@ type_check_zone_relation_contract(ASTNode *zone,
     zone_name = ast_zone_name(zone) != NULL ? ast_zone_name(zone) : "<zone>";
 
     relation_decl = find_domain_decl_by_name(ctx->program_root, AST_RELATION_DECL,
-        relation_slot->data.zone_layer_slot.layer_type);
+        ast_zone_layer_slot_layer_type(relation_slot));
     if (relation_decl == NULL)
         return false;
     relation_name = ast_relation_name(relation_decl) != NULL
@@ -430,8 +431,8 @@ type_check_zone_relation_contract(ASTNode *zone,
             relation_slot_name != NULL ? relation_slot_name : "<relation-slot>",
             relation_name,
             relation_name,
-            decl_left->data.domain_slot.slot_name != NULL
-                ? decl_left->data.domain_slot.slot_name
+            ast_domain_slot_name(decl_left) != NULL
+                ? ast_domain_slot_name(decl_left)
                 : "<left-slot>",
             decl_left_type != NULL && decl_left_type->name != NULL
                 ? decl_left_type->name
@@ -475,8 +476,8 @@ type_check_zone_relation_contract(ASTNode *zone,
             relation_slot_name != NULL ? relation_slot_name : "<relation-slot>",
             right_slot_name != NULL ? right_slot_name : "<unknown>",
             relation_name,
-            decl_right->data.domain_slot.slot_name != NULL
-                ? decl_right->data.domain_slot.slot_name
+            ast_domain_slot_name(decl_right) != NULL
+                ? ast_domain_slot_name(decl_right)
                 : "<right-slot>",
             decl_right_type != NULL && decl_right_type->name != NULL
                 ? decl_right_type->name

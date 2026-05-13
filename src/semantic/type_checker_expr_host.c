@@ -84,18 +84,35 @@ expr_current_host_field_type(SemanticContext *ctx, const char *field_name)
         zones = ast_world_zones(decl, &zone_count);
         for (size_t i = 0; i < roster_count; i++) {
             ASTNode *slot = rosters[i];
-            if (slot != NULL && slot->data.world_roster.slot_name != NULL
-                && strcmp(slot->data.world_roster.slot_name, field_name) == 0) {
+            const char *slot_name = ast_world_roster_slot_name(slot);
+            if (slot != NULL && slot_name != NULL
+                && strcmp(slot_name, field_name) == 0) {
                 return expr_host_resolve_named_type_metadata_or_unknown(
-                    slot->data.world_roster.roster_type, ctx, slot);
+                    ast_world_roster_type_name(slot), ctx, slot);
             }
         }
         for (size_t i = 0; i < zone_count; i++) {
             ASTNode *slot = zones[i];
-            if (slot != NULL && slot->data.world_zone.slot_name != NULL
-                && strcmp(slot->data.world_zone.slot_name, field_name) == 0) {
+            const char *slot_name = ast_world_zone_slot_name(slot);
+            if (slot != NULL && slot_name != NULL
+                && strcmp(slot_name, field_name) == 0) {
                 return expr_host_resolve_named_type_metadata_or_unknown(
-                    slot->data.world_zone.zone_type, ctx, slot);
+                    ast_world_zone_type_name(slot), ctx, slot);
+            }
+        }
+    }
+    if (decl->type == AST_ZONE_DECL) {
+        ASTNode **layer_slots;
+        size_t layer_slot_count;
+
+        layer_slots = ast_zone_layer_slots(decl, &layer_slot_count);
+        for (size_t i = 0; i < layer_slot_count; i++) {
+            ASTNode *slot = layer_slots[i];
+            if (slot != NULL && ast_zone_layer_slot_name(slot) != NULL
+                && strcmp(ast_zone_layer_slot_name(slot),
+                          field_name) == 0) {
+                return expr_host_resolve_named_type_metadata_or_unknown(
+                    ast_zone_layer_slot_layer_type(slot), ctx, slot);
             }
         }
     }
@@ -120,31 +137,7 @@ expr_current_host_method_decl(SemanticContext *ctx, const char *method_name)
     if (decl == NULL || method_name == NULL)
         return NULL;
 
-    switch (decl->type) {
-    case AST_CLASS_DECL:
-        methods = decl->data.class_decl.methods;
-        method_count = decl->data.class_decl.method_count;
-        break;
-    case AST_ENUM_DECL:
-        methods = decl->data.enum_decl.methods;
-        method_count = decl->data.enum_decl.method_count;
-        break;
-    case AST_RELATION_DECL:
-        methods = ast_relation_methods(decl, &method_count);
-        break;
-    case AST_EFFECT_DECL:
-        methods = ast_effect_methods(decl, &method_count);
-        break;
-    case AST_ZONE_DECL:
-        methods = ast_zone_methods(decl, &method_count);
-        break;
-    case AST_WORLD_DECL:
-        methods = ast_world_methods(decl, &method_count);
-        break;
-    default:
-        return NULL;
-    }
-
+    methods = semantic_host_decl_methods(decl, &method_count);
     if (methods == NULL)
         return NULL;
 
@@ -232,21 +225,22 @@ expr_type_check_host_method_call(ASTNode *expr,
 bool
 expr_type_is_nominal_host_type(const Type *type, SemanticContext *ctx)
 {
-    ASTNode *decl;
+    ASTNode *decl = semantic_host_decl_for_type(ctx, type);
 
-    if (type == NULL
-        || (type->kind != TYPE_KIND_CLASS && type->kind != TYPE_KIND_ENUM)
-        || type->name == NULL || ctx == NULL)
+    if (decl == NULL)
         return false;
-
-    decl = find_type_decl_by_name(ctx->program_root, type->name);
-    if (decl != NULL && decl->type == AST_ENUM_DECL)
+    if (decl->type == AST_ENUM_DECL)
         return true;
-    if (decl != NULL && decl->type == AST_CLASS_DECL)
-        return !decl->data.class_decl.is_struct
-            || decl->data.class_decl.nominal_kind == NOMINAL_DECL_VESSEL
-            || decl->data.class_decl.nominal_kind == NOMINAL_DECL_OBJECT;
-    return false;
+    if (decl->type == AST_CLASS_DECL)
+        return !ast_class_is_struct(decl)
+            || ast_class_nominal_kind(decl) == NOMINAL_DECL_VESSEL
+            || ast_class_nominal_kind(decl) == NOMINAL_DECL_OBJECT;
+    return decl->type == AST_PARTY_DECL
+        || decl->type == AST_ROSTER_DECL
+        || decl->type == AST_WORLD_DECL
+        || decl->type == AST_ZONE_DECL
+        || decl->type == AST_RELATION_DECL
+        || decl->type == AST_EFFECT_DECL;
 }
 
 bool

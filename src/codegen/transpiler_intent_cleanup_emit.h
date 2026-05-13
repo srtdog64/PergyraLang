@@ -106,12 +106,12 @@ transpiler_emit_intent_cleanup_tail(ASTNode *node,
                     bool has_compensate = false;
                     if (step != NULL && step->type == AST_INTENT_STEP) {
                         if (step_name == NULL)
-                            step_name = step->data.intent_step.name;
+                            step_name = ast_intent_step_name(step);
                         has_compensate = mir_only_intent
                             ? transpiler_mir_intent_has_stmt(
                                 mir_routine, step_name,
                                 "IntentEval", "compensate")
-                            : step->data.intent_step.compensate_expr_count > 0;
+                            : ast_intent_step_compensate_expr_count(step) > 0;
                     }
                     if (step == NULL || step->type != AST_INTENT_STEP || !has_compensate)
                         continue;
@@ -136,8 +136,8 @@ transpiler_emit_intent_cleanup_tail(ASTNode *node,
                             ctx, "MIR-only C path missing intent compensate eval carrier");
                     }
                     if (!mir_only_intent && compensate_expr_count == 0) {
-                        compensate_expr_count = step->data.intent_step.compensate_expr_count;
-                        compensate_exprs = step->data.intent_step.compensate_exprs;
+                        compensate_expr_count = ast_intent_step_compensate_expr_count(step);
+                        compensate_exprs = ast_intent_step_compensate_exprs(step, NULL);
                     }
                     if (mir_only_intent) {
                         if (transpiler_mir_intent_has_stmt(
@@ -237,13 +237,13 @@ transpiler_emit_intent_cleanup_tail(ASTNode *node,
             for (size_t i = step_count; i-- > 0;) {
                 ASTNode *step = step_nodes[i];
                 if (step == NULL || step->type != AST_INTENT_STEP
-                    || step->data.intent_step.compensate_expr_count == 0)
+                    || ast_intent_step_compensate_expr_count(step) == 0)
                     continue;
                 write_indent(ctx);
                 codebuf_write(ctx->out, "if (__intent_step_completed[%zu]) {\n", i);
                 ctx->indent++;
-                for (size_t j = step->data.intent_step.compensate_expr_count; j-- > 0;) {
-                    char *expr = emit_expression(step->data.intent_step.compensate_exprs[j], ctx);
+                for (size_t j = ast_intent_step_compensate_expr_count(step); j-- > 0;) {
+                    char *expr = emit_expression(ast_intent_step_compensate_exprs(step, NULL)[j], ctx);
                     if (expr != NULL && expr[0] != '\0') {
                         write_indent(ctx);
                         codebuf_write(ctx->out, "%s;\n", expr);

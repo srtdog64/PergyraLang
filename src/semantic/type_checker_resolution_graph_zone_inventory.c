@@ -1,6 +1,7 @@
 #include <stdlib.h>
 
 #include "type_checker_internal.h"
+#include "parser/ast_api.h"
 
 void
 semantic_type_resolution_precollect_zone_inventory(ASTNode *zone_decl,
@@ -21,6 +22,7 @@ semantic_type_resolution_precollect_zone_inventory(ASTNode *zone_decl,
 
     for (size_t i = 0; i < slot_count; i++) {
         ASTNode *slot = slots[i];
+        const char *slot_name = ast_domain_slot_name(slot);
         char *slot_label;
 
         if (slot == NULL || slot->type != AST_DOMAIN_SLOT)
@@ -28,7 +30,7 @@ semantic_type_resolution_precollect_zone_inventory(ASTNode *zone_decl,
 
         slot_label = semantic_type_resolution_zone_slot_label(
             zone_decl,
-            slot->data.domain_slot.slot_name);
+            slot_name);
         if (slot_label != NULL) {
             semantic_type_resolution_register_local_contract_node(
                 ctx, slot, slot_label);
@@ -36,11 +38,10 @@ semantic_type_resolution_precollect_zone_inventory(ASTNode *zone_decl,
         }
 
         semantic_type_resolution_collect_type_refs(
-            slot->data.domain_slot.type,
+            ast_domain_slot_type(slot),
             ctx,
             slot,
-            slot->data.domain_slot.slot_name != NULL
-                ? slot->data.domain_slot.slot_name : "<zone-slot>",
+            slot_name != NULL ? slot_name : "<zone-slot>",
             "zone slot type lookup");
     }
 
@@ -49,11 +50,11 @@ semantic_type_resolution_precollect_zone_inventory(ASTNode *zone_decl,
         if (field == NULL || field->type != AST_PARTY_SHARED)
             continue;
         semantic_type_resolution_collect_type_refs(
-            field->data.party_shared.type,
+            ast_party_shared_type(field),
             ctx,
             field,
-            field->data.party_shared.name != NULL
-                ? field->data.party_shared.name : "<zone-shared>",
+            ast_party_shared_name(field) != NULL
+                ? ast_party_shared_name(field) : "<zone-shared>",
             "zone shared field type lookup");
     }
 
@@ -64,7 +65,7 @@ semantic_type_resolution_precollect_zone_inventory(ASTNode *zone_decl,
             continue;
         layer_label = semantic_type_resolution_zone_layer_label(
             zone_decl,
-            slot->data.zone_layer_slot.slot_name);
+            ast_zone_layer_slot_name(slot));
         if (layer_label != NULL) {
             semantic_type_resolution_register_local_contract_node(
                 ctx, slot, layer_label);
@@ -73,9 +74,9 @@ semantic_type_resolution_precollect_zone_inventory(ASTNode *zone_decl,
         semantic_type_resolution_record_string_dependency(
             ctx,
             slot,
-            slot->data.zone_layer_slot.slot_name != NULL
-                ? slot->data.zone_layer_slot.slot_name : "<zone-layer>",
-            slot->data.zone_layer_slot.layer_type,
+            ast_zone_layer_slot_name(slot) != NULL
+                ? ast_zone_layer_slot_name(slot) : "<zone-layer>",
+            ast_zone_layer_slot_layer_type(slot),
             "zone layer lookup");
     }
 

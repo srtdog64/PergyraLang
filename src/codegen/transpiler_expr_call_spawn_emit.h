@@ -23,10 +23,16 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                 if (party_decl != NULL) {
                     for (size_t i = 0; i < ast_party_role_count(party_decl); i++) {
                         ASTNode *rs = ast_party_role(party_decl, i);
-                        if (rs == NULL || strcmp(rs->data.role_slot.slot_name, slot_name) != 0)
+                        const char *role_slot_name = ast_role_slot_name(rs);
+                        size_t ability_count =
+                            ast_role_slot_required_ability_count(rs);
+                        if (rs == NULL
+                            || role_slot_name == NULL
+                            || strcmp(role_slot_name, slot_name) != 0)
                             continue;
-                        for (size_t j = 0; j < rs->data.role_slot.ability_count; j++) {
-                            ASTNode *ab = rs->data.role_slot.required_abilities[j];
+                        for (size_t j = 0; j < ability_count; j++) {
+                            ASTNode *ab =
+                                ast_role_slot_required_ability(rs, j);
                             ASTNode *ability_decl;
                             bool has_method = false;
                             char *ability_tag = NULL;
@@ -221,11 +227,27 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
 
                         if (ret_type_name != NULL
                             && strcmp(ret_type_name, "Void") != 0) {
+                            char ret_c_type_buf[256];
+                            const char *ret_c_type = NULL;
                             int tmp_id = ++ctx->tmp_counter;
+                            if (pergyra_type_to_c_copy(ret_type_name,
+                                    ret_c_type_buf, sizeof(ret_c_type_buf))) {
+                                ret_c_type = ret_c_type_buf;
+                            }
+                            if (ret_c_type == NULL) {
+                                transpiler_set_backend_error_with_hints(ctx,
+                                    PGY_CODE_C_TYPE_UNSUPPORTED,
+                                    PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                                    PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                                    "C method call post-sync wrapper cannot render return type '%s'",
+                                    ret_type_name);
+                                wrapped = pergyra_strdup("0");
+                            } else {
                             wrapped = strdup_fmt(
                                 "({ %s _pgy_call_%d = %s; %s%s%s_pgy_call_%d; })",
-                                pergyra_type_to_c(ret_type_name), tmp_id,
+                                ret_c_type, tmp_id,
                                 result, prefix, effect_suffix, suffix, tmp_id);
+                            }
                         } else {
                             wrapped = strdup_fmt("({ %s; %s%s%s})",
                                 result, prefix, effect_suffix, suffix);

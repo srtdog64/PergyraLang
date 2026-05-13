@@ -5,6 +5,7 @@
  * Included before role/zone/world emitters that stamp propagation state. */
 
 #include "domain_frontier_policy.h"
+#include "parser/ast_api.h"
 
 enum {
     PGY_PROP_CAUSE_NONE = 0,
@@ -68,9 +69,10 @@ emit_domain_projection_sync_loop(TranspilerCtx *ctx,
 
     for (size_t i = 0; i < slot_count; i++) {
         ASTNode *slot = slots[i];
+        const char *slot_name = ast_domain_slot_name(slot);
         if (slot == NULL || slot->type != AST_DOMAIN_SLOT
-            || slot->data.domain_slot.is_subject
-            || slot->data.domain_slot.slot_name == NULL) {
+            || ast_domain_slot_is_subject(slot)
+            || slot_name == NULL) {
             continue;
         }
         emitted_condition = true;
@@ -86,15 +88,16 @@ emit_domain_projection_sync_loop(TranspilerCtx *ctx,
         codebuf_write(ctx->out, "!(");
     for (size_t i = 0; i < slot_count; i++) {
         ASTNode *slot = slots[i];
+        const char *slot_name = ast_domain_slot_name(slot);
         if (slot == NULL || slot->type != AST_DOMAIN_SLOT
-            || slot->data.domain_slot.is_subject
-            || slot->data.domain_slot.slot_name == NULL) {
+            || ast_domain_slot_is_subject(slot)
+            || slot_name == NULL) {
             continue;
         }
         if (emitted_condition)
             codebuf_write(ctx->out, " || ");
         codebuf_write(ctx->out, "self->__projection_dirty_%s",
-            slot->data.domain_slot.slot_name);
+            slot_name);
         emitted_condition = true;
     }
     if (early_return_if_clean)
@@ -144,25 +147,30 @@ emit_domain_projection_sync_loop(TranspilerCtx *ctx,
 
         for (size_t j = 0; j < slot_count; j++) {
             ASTNode *slot = slots[j];
+            const char *slot_name = ast_domain_slot_name(slot);
             if (slot == NULL || slot->type != AST_DOMAIN_SLOT
-                || slot->data.domain_slot.slot_name == NULL) {
+                || slot_name == NULL) {
                 continue;
             }
-            if (strcmp(slot->data.domain_slot.slot_name, target_slot_name) == 0)
+            if (strcmp(slot_name, target_slot_name) == 0)
                 target_slot = slot;
-            if (strcmp(slot->data.domain_slot.slot_name,
+            if (strcmp(slot_name,
                        refresh->data.zone_refresh.source_slot_name) == 0) {
                 source_slot = slot;
             }
         }
+        ASTNode *target_slot_type = ast_domain_slot_type(target_slot);
+        ASTNode *source_slot_type = ast_domain_slot_type(source_slot);
         if (target_slot == NULL || source_slot == NULL
-            || target_slot->data.domain_slot.type == NULL
-            || source_slot->data.domain_slot.type == NULL) {
+            || target_slot_type == NULL
+            || source_slot_type == NULL
+            || target_slot_type->type != AST_TYPE
+            || source_slot_type->type != AST_TYPE) {
             continue;
         }
 
-        target_type_name = target_slot->data.domain_slot.type->data.type.name;
-        source_type_name = source_slot->data.domain_slot.type->data.type.name;
+        target_type_name = target_slot_type->data.type.name;
+        source_type_name = source_slot_type->data.type.name;
         target_decl = find_class_decl(ctx, target_type_name);
         source_decl = find_class_decl(ctx, source_type_name);
         {

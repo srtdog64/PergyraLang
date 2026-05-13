@@ -204,22 +204,22 @@ ast_print_domain_node(ASTNode *node, int indent)
 
         case AST_WORLD_SYSTEMIC:
             printf("WorldSystemic: %s: %s",
-                   node->data.world_roster.slot_name,
-                   node->data.world_roster.roster_type);
-            if (node->data.world_roster.initializer != NULL) {
+                   ast_world_roster_slot_name(node),
+                   ast_world_roster_type_name(node));
+            if (ast_world_roster_initializer(node) != NULL) {
                 printf(" = ");
-                ast_print_inline(node->data.world_roster.initializer);
+                ast_print_inline(ast_world_roster_initializer(node));
             }
             printf("\n");
             break;
 
         case AST_WORLD_ZONE:
             printf("WorldZone: %s: %s",
-                   node->data.world_zone.slot_name,
-                   node->data.world_zone.zone_type);
-            if (node->data.world_zone.initializer != NULL) {
+                   ast_world_zone_slot_name(node),
+                   ast_world_zone_type_name(node));
+            if (ast_world_zone_initializer(node) != NULL) {
                 printf(" = ");
-                ast_print_inline(node->data.world_zone.initializer);
+                ast_print_inline(ast_world_zone_initializer(node));
             }
             printf("\n");
             break;

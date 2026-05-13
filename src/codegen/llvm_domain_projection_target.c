@@ -7,6 +7,7 @@
 
 #include "llvm_internal.h"
 #include "llvm_domain_projection_target_helpers.h"
+#include "parser/ast_api.h"
 
 #include <stdbool.h>
 #include <string.h>
@@ -16,8 +17,9 @@ llvm_domain_slot_is_projection_target(ASTNode *slot,
                                       ASTNode **refreshes,
                                       size_t refresh_count)
 {
+    const char *slot_name = ast_domain_slot_name(slot);
     if (slot == NULL || slot->type != AST_DOMAIN_SLOT
-        || slot->data.domain_slot.slot_name == NULL) {
+        || slot_name == NULL) {
         return false;
     }
 
@@ -27,8 +29,7 @@ llvm_domain_slot_is_projection_target(ASTNode *slot,
             || refresh->data.zone_refresh.object_slot_name == NULL) {
             continue;
         }
-        if (strcmp(slot->data.domain_slot.slot_name,
-                   refresh->data.zone_refresh.object_slot_name) == 0) {
+        if (strcmp(slot_name, refresh->data.zone_refresh.object_slot_name) == 0) {
             return true;
         }
     }

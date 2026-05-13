@@ -155,10 +155,10 @@ hir_collect_intent_signature_refs(ASTNode *node,
         ASTNode *step = node->data.intent_decl.steps[i];
         if (step == NULL || step->type != AST_INTENT_STEP)
             continue;
-        if (!hir_collect_type_refs(step->data.intent_step.where_type, names, count, capacity))
+        if (!hir_collect_type_refs(ast_intent_step_where_type(step), names, count, capacity))
             return false;
-        if (step->data.intent_step.causes_effect != NULL
-            && !append_call_name(names, count, capacity, step->data.intent_step.causes_effect)) {
+        if (ast_intent_step_causes_effect(step) != NULL
+            && !append_call_name(names, count, capacity, ast_intent_step_causes_effect(step))) {
             return false;
         }
     }

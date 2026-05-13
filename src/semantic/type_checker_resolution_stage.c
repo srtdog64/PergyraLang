@@ -6,6 +6,8 @@ semantic_stage_top_level_decl(ASTNode *decl, SemanticContext *ctx)
     ASTNode *saved_nominal;
     ASTNode *saved_relation;
     ASTNode *saved_effect;
+    ASTNode *saved_party;
+    ASTNode *saved_roster;
     ASTNode *saved_zone;
     ASTNode *saved_world;
 
@@ -15,6 +17,8 @@ semantic_stage_top_level_decl(ASTNode *decl, SemanticContext *ctx)
     saved_nominal = ctx->current_nominal_decl;
     saved_relation = ctx->current_relation;
     saved_effect = ctx->current_effect;
+    saved_party = ctx->current_party;
+    saved_roster = ctx->current_roster;
     saved_zone = ctx->current_zone;
     saved_world = ctx->current_world;
 
@@ -49,10 +53,12 @@ semantic_stage_top_level_decl(ASTNode *decl, SemanticContext *ctx)
         break;
 
     case AST_PARTY_DECL:
+        ctx->current_party = decl;
         semantic_stage_party_decl(decl, ctx);
         break;
 
     case AST_ROSTER_DECL:
+        ctx->current_roster = decl;
         semantic_stage_roster_decl(decl, ctx);
         break;
 
@@ -83,6 +89,8 @@ semantic_stage_top_level_decl(ASTNode *decl, SemanticContext *ctx)
     ctx->current_nominal_decl = saved_nominal;
     ctx->current_relation = saved_relation;
     ctx->current_effect = saved_effect;
+    ctx->current_party = saved_party;
+    ctx->current_roster = saved_roster;
     ctx->current_zone = saved_zone;
     ctx->current_world = saved_world;
 }

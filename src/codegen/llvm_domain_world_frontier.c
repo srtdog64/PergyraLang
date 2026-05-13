@@ -170,27 +170,28 @@ llvm_world_sync_emit_frontier(ASTNode *stmt, LLVMClassTypeEntry *decl_cls,
         LLVMValueRef dirty_val;
         LLVMBasicBlockRef sync_bb;
         LLVMBasicBlockRef cont_bb;
-        if (zone == NULL || zone->type != AST_WORLD_ZONE
-            || zone->data.world_zone.slot_name == NULL)
+        const char *slot_name = ast_world_zone_slot_name(zone);
+        const char *zone_type_name = ast_world_zone_type_name(zone);
+        if (slot_name == NULL)
             continue;
-        zone_idx = llvm_class_field_index(decl_cls, zone->data.world_zone.slot_name);
+        zone_idx = llvm_class_field_index(decl_cls, slot_name);
         if (!llvm_world_frontier_field_name(dirty_field, sizeof(dirty_field),
-                "zone_dirty", zone->data.world_zone.slot_name))
+                "zone_dirty", slot_name))
             continue;
         if (!llvm_world_frontier_field_name(seen_field, sizeof(seen_field),
-                "zone_seen_generation", zone->data.world_zone.slot_name))
+                "zone_seen_generation", slot_name))
             continue;
         dirty_idx = llvm_class_field_index(decl_cls, dirty_field);
         seen_idx = llvm_class_field_index(decl_cls, seen_field);
         self_ptr = LLVMGetParam(sync_fn, 0);
-        if (zone_idx < 0 || dirty_idx < 0 || zone->data.world_zone.zone_type == NULL)
+        if (zone_idx < 0 || dirty_idx < 0 || zone_type_name == NULL)
             continue;
         {
-            LLVMClassTypeEntry *zone_cls = llvm_lookup_class(ctx, zone->data.world_zone.zone_type);
+            LLVMClassTypeEntry *zone_cls = llvm_lookup_class(ctx, zone_type_name);
             char sync_name[256];
             LLVMFuncEntry *zone_sync;
             if (!llvm_world_frontier_sync_name(sync_name, sizeof(sync_name),
-                    zone->data.world_zone.zone_type))
+                    zone_type_name))
                 continue;
             zone_sync = llvm_lookup_function(ctx, sync_name);
             if (zone_cls == NULL || zone_sync == NULL)
@@ -488,12 +489,11 @@ llvm_world_sync_emit_frontier(ASTNode *stmt, LLVMClassTypeEntry *decl_cls,
             LLVMValueRef self_ptr;
             LLVMValueRef dirty_ptr;
             LLVMValueRef dirty_val;
-            if (zone == NULL || zone->type != AST_WORLD_ZONE
-                || zone->data.world_zone.slot_name == NULL)
+            const char *slot_name = ast_world_zone_slot_name(zone);
+            if (slot_name == NULL)
                 continue;
             if (!llvm_world_frontier_field_name(dirty_field,
-                    sizeof(dirty_field), "zone_dirty",
-                    zone->data.world_zone.slot_name))
+                    sizeof(dirty_field), "zone_dirty", slot_name))
                 continue;
             dirty_idx = llvm_class_field_index(decl_cls, dirty_field);
             if (dirty_idx < 0)

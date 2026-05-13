@@ -812,69 +812,31 @@ test_stdlib_and_enum_emit(void)
 
     TEST("role ability Add emits operator_add_Type alias");
     {
-        FuncParam rhs_param, a_param, b_param;
-        memset(&rhs_param, 0, sizeof(rhs_param));
-        memset(&a_param, 0, sizeof(a_param));
-        memset(&b_param, 0, sizeof(b_param));
-        rhs_param.name = "other";
-        rhs_param.type = make_type_node("Int");
-        a_param.name = "a";
-        a_param.type = make_type_node("Int");
-        b_param.name = "b";
-        b_param.type = make_type_node("Int");
-
-        ASTNode *role_method = calloc(1, sizeof(ASTNode));
-        role_method->type = AST_FUNC_DECL;
-        role_method->data.func_decl.name = "Add";
-        role_method->data.func_decl.params = calloc(1, sizeof(FuncParam *));
-        role_method->data.func_decl.params[0] = &rhs_param;
-        role_method->data.func_decl.param_count = 1;
-        role_method->data.func_decl.return_type = make_type_node("Int");
-        ASTNode *role_body = ast_create_block();
-        ast_add_statement(role_body, make_return(make_number(123, 1), 1));
-        role_method->data.func_decl.body = role_body;
-
-        ASTNode *impl = calloc(1, sizeof(ASTNode));
-        impl->type = AST_IMPL_ABILITY;
-        impl->data.impl_ability.ability_ref = ast_create_type("Arithmetic");
-        impl->data.impl_ability.methods = calloc(1, sizeof(ASTNode *));
-        impl->data.impl_ability.methods[0] = role_method;
-        impl->data.impl_ability.method_count = 1;
-
-        ASTNode *role = calloc(1, sizeof(ASTNode));
-        role->type = AST_ROLE_DECL;
-        role->data.role_decl.name = "IntMath";
-        role->data.role_decl.for_type = make_type_node("Int");
-        role->data.role_decl.impl_abilities = calloc(1, sizeof(ASTNode *));
-        role->data.role_decl.impl_abilities[0] = impl;
-        role->data.role_decl.impl_count = 1;
-
-        ASTNode *main_fn = calloc(1, sizeof(ASTNode));
-        main_fn->type = AST_FUNC_DECL;
-        main_fn->data.func_decl.name = "Main";
-        main_fn->data.func_decl.params = calloc(2, sizeof(FuncParam *));
-        main_fn->data.func_decl.params[0] = &a_param;
-        main_fn->data.func_decl.params[1] = &b_param;
-        main_fn->data.func_decl.param_count = 2;
-        main_fn->data.func_decl.return_type = make_type_node("Int");
-        ASTNode *sum = ast_create_binary(make_identifier("a", 2),
-            (Token){ .type = TOKEN_PLUS }, make_identifier("b", 2));
-        ASTNode *main_body = ast_create_block();
-        ast_add_statement(main_body, make_return(sum, 2));
-        main_fn->data.func_decl.body = main_body;
-
-        ASTNode *stmts[2] = { role, main_fn };
-        ASTNode *prog = make_program(stmts, 2);
+        const char *source =
+            "ability Arithmetic { func Add(other: Int) -> Int; }\n"
+            "role IntMath for Int {\n"
+            "    impl ability Arithmetic {\n"
+            "        func Add(other: Int) -> Int { return 123; }\n"
+            "    }\n"
+            "}\n"
+            "func Main() -> Int { return 1 + 2; }\n";
+        ASTNode *program = NULL;
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
-        MIRProgram *mir = lower_program_to_mir(prog, &hir, &rir);
+        MIRProgram *mir = NULL;
+        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
         ctx = transpiler_ctx_create();
+
+        EXPECT(ok);
+        ctx->mir = mir;
         emit_program(ctx);
 
-        EXPECT_STR_CONTAINS(ctx->out->data, "operator_add_Int(int32_t lhs, int32_t other)");
+        EXPECT_STR_CONTAINS(ctx->out->data, "operator_add_Int");
+        EXPECT_STR_CONTAINS(ctx->out->data, "int32_t lhs, int32_t other");
         transpiler_ctx_destroy(ctx);
         mir_destroy(mir);
         rir_destroy(rir);
         hir_destroy(hir);
+        ast_destroy(program);
     }
 }

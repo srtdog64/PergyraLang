@@ -124,9 +124,9 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
         if (step != NULL && step->type == AST_INTENT_STEP
             && ((mir_only_intent && mir_routine != NULL
                  && transpiler_mir_intent_has_stmt(mir_routine,
-                     step_name != NULL ? step_name : step->data.intent_step.name,
+                     step_name != NULL ? step_name : ast_intent_step_name(step),
                      "IntentEval", "compensate"))
-                || (!mir_only_intent && step->data.intent_step.compensate_expr_count > 0))) {
+                || (!mir_only_intent && ast_intent_step_compensate_expr_count(step) > 0))) {
             has_compensate_steps = true;
             break;
         }
@@ -171,7 +171,7 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
         if (step == NULL || step->type != AST_INTENT_STEP)
             continue;
         if (step_name == NULL)
-            step_name = step->data.intent_step.name;
+            step_name = ast_intent_step_name(step);
         if (mir_routine != NULL) {
             pre_expr = transpiler_find_mir_intent_check_expr(mir_routine, step_name, "pre");
             guard_expr = transpiler_find_mir_intent_check_expr(mir_routine, step_name, "guard");
@@ -235,45 +235,45 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
             }
         } else {
             if (pre_expr == NULL)
-                pre_expr = step->data.intent_step.pre_expr;
+                pre_expr = ast_intent_step_pre_expr(step);
             if (guard_expr == NULL)
-                guard_expr = step->data.intent_step.guard_expr;
+                guard_expr = ast_intent_step_guard_expr(step);
             if (post_expr == NULL)
-                post_expr = step->data.intent_step.post_expr;
+                post_expr = ast_intent_step_post_expr(step);
             if (expect_expr == NULL)
-                expect_expr = step->data.intent_step.expect_expr;
+                expect_expr = ast_intent_step_expect_expr(step);
             if (invariant_pre_expr == NULL)
-                invariant_pre_expr = step->data.intent_step.invariant_expr;
+                invariant_pre_expr = ast_intent_step_invariant_expr(step);
             if (invariant_post_expr == NULL)
-                invariant_post_expr = step->data.intent_step.invariant_expr;
+                invariant_post_expr = ast_intent_step_invariant_expr(step);
             if (on_expr_count == 0) {
-                on_exprs = step->data.intent_step.on_exprs;
-                on_expr_count = step->data.intent_step.on_expr_count;
+                on_exprs = ast_intent_step_on_exprs(step, NULL);
+                on_expr_count = ast_intent_step_on_expr_count(step);
             }
             if (subintent_expr == NULL)
-                subintent_expr = step->data.intent_step.intent_expr;
+                subintent_expr = ast_intent_step_intent_expr(step);
             if (step_zone_name == NULL
-                && step->data.intent_step.where_type != NULL
-                && step->data.intent_step.where_type->type == AST_TYPE) {
-                step_zone_name = step->data.intent_step.where_type->data.type.name;
+                && ast_intent_step_where_type(step) != NULL
+                && ast_intent_step_where_type(step)->type == AST_TYPE) {
+                step_zone_name = ast_intent_step_where_type(step)->data.type.name;
             }
             if (step_zone_alias == NULL)
                 step_zone_alias = intent_step_effective_zone_alias(step);
             if (step_from_alias == NULL)
-                step_from_alias = step->data.intent_step.transfer_from_alias;
+                step_from_alias = ast_intent_step_transfer_from_alias(step);
             if (step_causes_effect == NULL)
-                step_causes_effect = step->data.intent_step.causes_effect;
+                step_causes_effect = ast_intent_step_causes_effect(step);
             if (who_alias_count == 0) {
-                who_aliases = (const char **)step->data.intent_step.who_names;
-                who_alias_count = step->data.intent_step.who_count;
+                who_aliases = (const char **)ast_intent_step_who_names(step, NULL);
+                who_alias_count = ast_intent_step_who_count(step);
             }
             if (authorized_alias_count == 0) {
-                authorized_aliases = (const char **)step->data.intent_step.authorized_by;
-                authorized_alias_count = step->data.intent_step.authorized_by_count;
+                authorized_aliases = (const char **)ast_intent_step_authorized_by(step, NULL);
+                authorized_alias_count = ast_intent_step_authorized_by_count(step);
             }
             if (dispatch_alias_count == 0) {
-                dispatch_aliases = (const char **)step->data.intent_step.who_names;
-                dispatch_alias_count = step->data.intent_step.who_count;
+                dispatch_aliases = (const char **)ast_intent_step_who_names(step, NULL);
+                dispatch_alias_count = ast_intent_step_who_count(step);
             }
         }
         if (step_zone_name != NULL) {

@@ -71,10 +71,14 @@ llvm_find_projection_nominal_decl(LLVMGenCtx *ctx, const char *name)
 static size_t
 llvm_projection_field_count(ASTNode *decl)
 {
+    size_t field_count = 0;
+
     if (decl == NULL)
         return 0;
-    if (decl->type == AST_CLASS_DECL)
-        return decl->data.class_decl.field_count;
+    if (decl->type == AST_CLASS_DECL) {
+        (void) ast_class_fields(decl, &field_count);
+        return field_count;
+    }
     return 0;
 }
 
@@ -84,8 +88,10 @@ llvm_projection_field_at(ASTNode *decl, size_t index)
     if (decl == NULL)
         return NULL;
     if (decl->type == AST_CLASS_DECL) {
-        if (index < decl->data.class_decl.field_count)
-            return decl->data.class_decl.fields[index];
+        size_t field_count = 0;
+        ClassField **fields = ast_class_fields(decl, &field_count);
+        if (index < field_count && fields != NULL)
+            return fields[index];
         return NULL;
     }
     return NULL;
@@ -132,7 +138,7 @@ llvm_resolve_projection_source_path_rec(LLVMGenCtx *ctx, ASTNode *source_decl,
         vessel_decl = llvm_find_projection_nominal_decl(ctx,
             field->type->data.type.name);
         if (vessel_decl == NULL || vessel_decl->type != AST_CLASS_DECL
-            || vessel_decl->data.class_decl.nominal_kind != NOMINAL_DECL_VESSEL) {
+            || ast_class_nominal_kind(vessel_decl) != NOMINAL_DECL_VESSEL) {
             continue;
         }
 

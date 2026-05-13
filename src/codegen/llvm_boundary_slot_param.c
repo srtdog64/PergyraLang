@@ -37,11 +37,9 @@ llvm_boundary_slot_inner_name(LLVMGenCtx *ctx, FuncParam *param,
         || generic_args->params == NULL || generic_args->params[0] == NULL)
         return NULL;
 
-    inner_name = generic_args->params[0]->name;
-    if (inner_name == NULL && generic_args->params[0]->constraint != NULL
-        && generic_args->params[0]->constraint->type == AST_TYPE) {
-        inner_name = generic_args->params[0]->constraint->data.type.name;
-    }
+    inner_name = llvm_keep_rendered_persistent(ctx,
+        llvm_stmt_render_type_arg(generic_args->params[0]),
+        "out of memory copying LLVM boundary slot type");
     if (inner_name == NULL)
         return NULL;
 

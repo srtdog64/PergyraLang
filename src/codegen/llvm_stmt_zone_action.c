@@ -1,5 +1,6 @@
 #ifdef PGY_LLVM_ENABLED
 #include "llvm_internal.h"
+#include "parser/ast_api.h"
 
 static bool
 llvm_zone_action_field_name(LLVMGenCtx *ctx, char *out, size_t out_size,
@@ -61,9 +62,10 @@ llvm_stmt_find_zone_domain_slot_decl(ASTNode *zone_decl, const char *slot_name)
     slots = ast_zone_slots(zone_decl, &slot_count);
     for (size_t i = 0; i < slot_count; i++) {
         ASTNode *slot = slots[i];
+        const char *candidate_name = ast_domain_slot_name(slot);
         if (slot != NULL && slot->type == AST_DOMAIN_SLOT
-            && slot->data.domain_slot.slot_name != NULL
-            && strcmp(slot->data.domain_slot.slot_name, slot_name) == 0) {
+            && candidate_name != NULL
+            && strcmp(candidate_name, slot_name) == 0) {
             return slot;
         }
     }
@@ -81,7 +83,7 @@ llvm_stmt_find_nth_subject_slot(ASTNode **slots, size_t slot_count, size_t nth)
     for (size_t i = 0; i < slot_count; i++) {
         ASTNode *slot = slots[i];
         if (slot == NULL || slot->type != AST_DOMAIN_SLOT
-            || !slot->data.domain_slot.is_subject) {
+            || !ast_domain_slot_is_subject(slot)) {
             continue;
         }
         if (seen == nth)
@@ -101,6 +103,7 @@ llvm_stmt_resolve_zone_subject_receiver(LLVMGenCtx *ctx, ASTNode *receiver,
     ASTNode *slot_decl = NULL;
     const char *slot_name = NULL;
     const char *type_name = NULL;
+    ASTNode *slot_type = NULL;
 
     if (slot_name_out != NULL)
         *slot_name_out = NULL;
@@ -127,14 +130,15 @@ llvm_stmt_resolve_zone_subject_receiver(LLVMGenCtx *ctx, ASTNode *receiver,
         slot_decl = llvm_stmt_find_zone_domain_slot_decl(zone_decl, slot_name);
     }
 
-    if (slot_decl == NULL || !slot_decl->data.domain_slot.is_subject
-        || slot_decl->data.domain_slot.type == NULL
-        || slot_decl->data.domain_slot.type->type != AST_TYPE
-        || slot_decl->data.domain_slot.type->data.type.name == NULL) {
+    slot_type = ast_domain_slot_type(slot_decl);
+    if (slot_decl == NULL || !ast_domain_slot_is_subject(slot_decl)
+        || slot_type == NULL
+        || slot_type->type != AST_TYPE
+        || slot_type->data.type.name == NULL) {
         return false;
     }
 
-    type_name = slot_decl->data.domain_slot.type->data.type.name;
+    type_name = slot_type->data.type.name;
     if (slot_name_out != NULL)
         *slot_name_out = slot_name;
     if (type_name_out != NULL)
@@ -230,13 +234,13 @@ llvm_stmt_emit_zone_action_effect_runtime(ASTNode *call, LLVMGenCtx *ctx)
         char sync_name[256];
 
         if (layer_slot == NULL || layer_slot->type != AST_ZONE_LAYER_SLOT
-            || layer_slot->data.zone_layer_slot.is_relation
-            || layer_slot->data.zone_layer_slot.layer_type == NULL
-            || strcmp(layer_slot->data.zone_layer_slot.layer_type, effect_name) != 0) {
+            || ast_zone_layer_slot_is_relation(layer_slot)
+            || ast_zone_layer_slot_layer_type(layer_slot) == NULL
+            || strcmp(ast_zone_layer_slot_layer_type(layer_slot), effect_name) != 0) {
             continue;
         }
 
-        layer_name = layer_slot->data.zone_layer_slot.slot_name;
+        layer_name = ast_zone_layer_slot_name(layer_slot);
         if (layer_name == NULL)
             continue;
 
@@ -252,12 +256,13 @@ llvm_stmt_emit_zone_action_effect_runtime(ASTNode *call, LLVMGenCtx *ctx)
 
         subject_slot = llvm_stmt_find_nth_subject_slot(effect_slots,
             effect_slot_count, 0);
-        if (subject_slot == NULL || subject_slot->data.domain_slot.slot_name == NULL)
+        const char *subject_slot_name = ast_domain_slot_name(subject_slot);
+        if (subject_slot == NULL || subject_slot_name == NULL)
             continue;
 
         layer_idx = llvm_class_field_index(zone_cls, layer_name);
         target_idx = llvm_class_field_index(zone_cls, receiver_slot_name);
-        subject_idx = llvm_class_field_index(effect_cls, subject_slot->data.domain_slot.slot_name);
+        subject_idx = llvm_class_field_index(effect_cls, subject_slot_name);
         if (layer_idx < 0 || target_idx < 0 || subject_idx < 0)
             continue;
 
@@ -286,7 +291,7 @@ llvm_stmt_emit_zone_action_effect_runtime(ASTNode *call, LLVMGenCtx *ctx)
             projection_name = refresh->data.zone_refresh.object_slot_name;
             source_name = refresh->data.zone_refresh.source_slot_name;
             if (projection_name == NULL || source_name == NULL
-                || strcmp(source_name, subject_slot->data.domain_slot.slot_name) != 0) {
+                || strcmp(source_name, subject_slot_name) != 0) {
                 continue;
             }
 

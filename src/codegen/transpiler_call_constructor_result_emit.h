@@ -1,6 +1,8 @@
 #ifndef PGY_TRANSPILER_CALL_CONSTRUCTOR_RESULT_EMIT_H
 #define PGY_TRANSPILER_CALL_CONSTRUCTOR_RESULT_EMIT_H
 
+#include "parser/ast_api.h"
+
 static char *
 emit_call_domain_constructor(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
 {
@@ -24,8 +26,10 @@ emit_call_domain_constructor(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                         ctor_type = spec_name;
                 }
             }
-            for (size_t i = 0; i < argc && i < class_decl->data.class_decl.field_count; i++) {
-                ClassField *field = class_decl->data.class_decl.fields[i];
+            size_t field_count = 0;
+            ClassField **fields_list = ast_class_fields(class_decl, &field_count);
+            for (size_t i = 0; i < argc && i < field_count; i++) {
+                ClassField *field = fields_list != NULL ? fields_list[i] : NULL;
                 char *arg = emit_expression(call->data.call.arguments[i], ctx);
                 if (i > 0)
                     codebuf_write(fields, ", ");
@@ -50,7 +54,7 @@ emit_call_domain_constructor(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                 CodeBuf *fields = codebuf_create();
                 for (size_t i = 0; i < argc && i < shared_count; i++) {
                     ASTNode *shared = ast_party_shared(party_decl, i);
-                    const char *field_name = shared != NULL ? shared->data.party_shared.name : "field";
+                    const char *field_name = ast_party_shared_name(shared);
                     char *arg = emit_expression(call->data.call.arguments[i], ctx);
                     if (i > 0)
                         codebuf_write(fields, ", ");
@@ -66,10 +70,12 @@ emit_call_domain_constructor(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                     if (i < argc)
                         continue;
                     shared = ast_party_shared(party_decl, i);
-                    if (shared == NULL || shared->data.party_shared.initializer == NULL)
+                    if (shared == NULL
+                        || ast_party_shared_initializer(shared) == NULL)
                         continue;
-                    field_name = shared->data.party_shared.name;
-                    init_expr = emit_expression(shared->data.party_shared.initializer, ctx);
+                    field_name = ast_party_shared_name(shared);
+                    init_expr = emit_expression(
+                        ast_party_shared_initializer(shared), ctx);
                     if (fields->len > 0)
                         codebuf_write(fields, ", ");
                     codebuf_write(fields, ".%s = %s",
@@ -99,11 +105,12 @@ emit_call_domain_constructor(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                     char *arg = emit_expression(call->data.call.arguments[i], ctx);
                     if (i < roster_party_count) {
                         ASTNode *slot = ast_roster_party(roster_decl, i);
-                        field_name = slot != NULL ? slot->data.roster_slot.slot_name : "field";
+                        field_name = ast_roster_slot_name(slot) != NULL
+                            ? ast_roster_slot_name(slot) : "field";
                     } else {
                         ASTNode *shared = ast_roster_shared(roster_decl,
                             i - roster_party_count);
-                        field_name = shared != NULL ? shared->data.party_shared.name : "field";
+                        field_name = ast_party_shared_name(shared);
                     }
                     if (i > 0)
                         codebuf_write(fields, ", ");
@@ -120,10 +127,12 @@ emit_call_domain_constructor(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                     if (absolute_index < argc)
                         continue;
                     shared = ast_roster_shared(roster_decl, i);
-                    if (shared == NULL || shared->data.party_shared.initializer == NULL)
+                    if (shared == NULL
+                        || ast_party_shared_initializer(shared) == NULL)
                         continue;
-                    field_name = shared->data.party_shared.name;
-                    init_expr = emit_expression(shared->data.party_shared.initializer, ctx);
+                    field_name = ast_party_shared_name(shared);
+                    init_expr = emit_expression(
+                        ast_party_shared_initializer(shared), ctx);
                     if (fields->len > 0)
                         codebuf_write(fields, ", ");
                     codebuf_write(fields, ".%s = %s",
@@ -146,26 +155,28 @@ emit_call_domain_constructor(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             ASTNode *overlay_decl = relation_decl != NULL ? relation_decl : effect_decl;
             if (overlay_decl != NULL) {
                 size_t argc = call->data.call.arg_count;
-                size_t slot_count = overlay_decl->type == AST_RELATION_DECL
-                    ? overlay_decl->data.relation_decl.slot_count
-                    : overlay_decl->data.effect_decl.slot_count;
-                size_t shared_count = overlay_decl->type == AST_RELATION_DECL
-                    ? overlay_decl->data.relation_decl.shared_count
-                    : overlay_decl->data.effect_decl.shared_count;
+                size_t slot_count = 0;
+                size_t shared_count = 0;
+                size_t refresh_count = 0;
+                ASTNode **slots = overlay_decl->type == AST_RELATION_DECL
+                    ? ast_relation_slots(overlay_decl, &slot_count)
+                    : ast_effect_slots(overlay_decl, &slot_count);
+                ASTNode **shared_fields = overlay_decl->type == AST_RELATION_DECL
+                    ? ast_relation_shared_fields(overlay_decl, &shared_count)
+                    : ast_effect_shared_fields(overlay_decl, &shared_count);
+                ASTNode **refreshes = overlay_decl->type == AST_RELATION_DECL
+                    ? ast_relation_refreshes(overlay_decl, &refresh_count)
+                    : ast_effect_refreshes(overlay_decl, &refresh_count);
                 CodeBuf *fields = codebuf_create();
                 for (size_t i = 0; i < argc && i < slot_count + shared_count; i++) {
                     const char *field_name = NULL;
                     char *arg = emit_expression(call->data.call.arguments[i], ctx);
                     if (i < slot_count) {
-                        ASTNode *slot = overlay_decl->type == AST_RELATION_DECL
-                            ? overlay_decl->data.relation_decl.slots[i]
-                            : overlay_decl->data.effect_decl.slots[i];
-                        field_name = slot != NULL ? slot->data.domain_slot.slot_name : "field";
+                        ASTNode *slot = slots[i];
+                        field_name = ast_domain_slot_name(slot);
                     } else {
-                        ASTNode *shared = overlay_decl->type == AST_RELATION_DECL
-                            ? overlay_decl->data.relation_decl.shared_fields[i - slot_count]
-                            : overlay_decl->data.effect_decl.shared_fields[i - slot_count];
-                        field_name = shared != NULL ? shared->data.party_shared.name : "field";
+                        ASTNode *shared = shared_fields[i - slot_count];
+                        field_name = ast_party_shared_name(shared);
                     }
                     if (i > 0)
                         codebuf_write(fields, ", ");
@@ -181,13 +192,13 @@ emit_call_domain_constructor(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                     char *init_expr;
                     if (absolute_index < argc)
                         continue;
-                    shared = overlay_decl->type == AST_RELATION_DECL
-                        ? overlay_decl->data.relation_decl.shared_fields[i]
-                        : overlay_decl->data.effect_decl.shared_fields[i];
-                    if (shared == NULL || shared->data.party_shared.initializer == NULL)
+                    shared = shared_fields[i];
+                    if (shared == NULL
+                        || ast_party_shared_initializer(shared) == NULL)
                         continue;
-                    field_name = shared->data.party_shared.name;
-                    init_expr = emit_expression(shared->data.party_shared.initializer, ctx);
+                    field_name = ast_party_shared_name(shared);
+                    init_expr = emit_expression(
+                        ast_party_shared_initializer(shared), ctx);
                     if (fields->len > 0)
                         codebuf_write(fields, ", ");
                     codebuf_write(fields, ".%s = %s",
@@ -196,22 +207,14 @@ emit_call_domain_constructor(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                     free(init_expr);
                 }
                 for (size_t i = 0; i < slot_count; i++) {
-                    ASTNode *slot = overlay_decl->type == AST_RELATION_DECL
-                        ? overlay_decl->data.relation_decl.slots[i]
-                        : overlay_decl->data.effect_decl.slots[i];
-                    const char *slot_name = slot != NULL
-                        ? slot->data.domain_slot.slot_name
-                        : NULL;
+                    ASTNode *slot = slots[i];
+                    const char *slot_name = ast_domain_slot_name(slot);
                     bool projection_slot = slot != NULL
-                        && (slot->data.domain_slot.is_tobject
+                        && (ast_domain_slot_is_tobject(slot)
                             || domain_slot_is_projection_target_local(
                                 slot,
-                                overlay_decl->type == AST_RELATION_DECL
-                                    ? overlay_decl->data.relation_decl.refreshes
-                                    : overlay_decl->data.effect_decl.refreshes,
-                                overlay_decl->type == AST_RELATION_DECL
-                                    ? overlay_decl->data.relation_decl.refresh_count
-                                    : overlay_decl->data.effect_decl.refresh_count));
+                                refreshes,
+                                refresh_count));
                     if (!projection_slot || slot_name == NULL)
                         continue;
                     if (fields->len > 0)
@@ -231,19 +234,24 @@ emit_call_domain_constructor(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             ASTNode *zone_decl = find_zone_decl(ctx, fn);
             if (zone_decl != NULL && zone_decl->type == AST_ZONE_DECL) {
                 size_t argc = call->data.call.arg_count;
+                size_t slot_count = 0;
+                ASTNode **slots = ast_zone_slots(zone_decl, &slot_count);
+                size_t shared_count = 0;
+                ASTNode **shared_fields =
+                    ast_zone_shared_fields(zone_decl, &shared_count);
+                size_t refresh_count = 0;
+                ASTNode **refreshes = ast_zone_refreshes(
+                    zone_decl, &refresh_count);
                 CodeBuf *fields = codebuf_create();
-                for (size_t i = 0; i < argc
-                        && i < zone_decl->data.zone_decl.slot_count
-                               + zone_decl->data.zone_decl.shared_count; i++) {
+                for (size_t i = 0; i < argc && i < slot_count + shared_count; i++) {
                     const char *field_name = NULL;
                     char *arg = emit_expression(call->data.call.arguments[i], ctx);
-                    if (i < zone_decl->data.zone_decl.slot_count) {
-                        ASTNode *slot = zone_decl->data.zone_decl.slots[i];
-                        field_name = slot != NULL ? slot->data.domain_slot.slot_name : "field";
+                    if (i < slot_count) {
+                        ASTNode *slot = slots[i];
+                        field_name = ast_domain_slot_name(slot);
                     } else {
-                        ASTNode *shared = zone_decl->data.zone_decl.shared_fields[
-                            i - zone_decl->data.zone_decl.slot_count];
-                        field_name = shared != NULL ? shared->data.party_shared.name : "field";
+                        ASTNode *shared = shared_fields[i - slot_count];
+                        field_name = ast_party_shared_name(shared);
                     }
                     if (i > 0)
                         codebuf_write(fields, ", ");
@@ -252,18 +260,20 @@ emit_call_domain_constructor(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                         arg != NULL ? arg : "0");
                     free(arg);
                 }
-                for (size_t i = 0; i < zone_decl->data.zone_decl.shared_count; i++) {
-                    size_t absolute_index = zone_decl->data.zone_decl.slot_count + i;
+                for (size_t i = 0; i < shared_count; i++) {
+                    size_t absolute_index = slot_count + i;
                     ASTNode *shared;
                     const char *field_name;
                     char *init_expr;
                     if (absolute_index < argc)
                         continue;
-                    shared = zone_decl->data.zone_decl.shared_fields[i];
-                    if (shared == NULL || shared->data.party_shared.initializer == NULL)
+                    shared = shared_fields[i];
+                    if (shared == NULL
+                        || ast_party_shared_initializer(shared) == NULL)
                         continue;
-                    field_name = shared != NULL ? shared->data.party_shared.name : "field";
-                    init_expr = emit_expression(shared->data.party_shared.initializer, ctx);
+                    field_name = ast_party_shared_name(shared);
+                    init_expr = emit_expression(
+                        ast_party_shared_initializer(shared), ctx);
                     if (fields->len > 0)
                         codebuf_write(fields, ", ");
                     codebuf_write(fields, ".%s = %s",
@@ -271,17 +281,15 @@ emit_call_domain_constructor(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                         init_expr != NULL ? init_expr : "0");
                     free(init_expr);
                 }
-                for (size_t i = 0; i < zone_decl->data.zone_decl.slot_count; i++) {
-                    ASTNode *slot = zone_decl->data.zone_decl.slots[i];
-                    const char *slot_name = slot != NULL
-                        ? slot->data.domain_slot.slot_name
-                        : NULL;
+                for (size_t i = 0; i < slot_count; i++) {
+                    ASTNode *slot = slots[i];
+                    const char *slot_name = ast_domain_slot_name(slot);
                     bool projection_slot = slot != NULL
-                        && (slot->data.domain_slot.is_tobject
+                        && (ast_domain_slot_is_tobject(slot)
                             || domain_slot_is_projection_target_local(
                                 slot,
-                                zone_decl->data.zone_decl.refreshes,
-                                zone_decl->data.zone_decl.refresh_count));
+                                refreshes,
+                                refresh_count));
                     if (!projection_slot || slot_name == NULL)
                         continue;
                     if (fields->len > 0)
@@ -302,25 +310,26 @@ emit_call_domain_constructor(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             if (world_decl != NULL && world_decl->type == AST_WORLD_DECL) {
                 size_t argc = call->data.call.arg_count;
                 CodeBuf *fields = codebuf_create();
-                size_t exposed = world_decl->data.world_decl.roster_count
-                    + world_decl->data.world_decl.zone_count
-                    + world_decl->data.world_decl.shared_count;
+                size_t roster_count = 0;
+                ASTNode **rosters = ast_world_rosters(world_decl, &roster_count);
+                size_t zone_count = 0;
+                ASTNode **zones = ast_world_zones(world_decl, &zone_count);
+                size_t shared_count = 0;
+                ASTNode **shared_fields =
+                    ast_world_shared_fields(world_decl, &shared_count);
+                size_t exposed = roster_count + zone_count + shared_count;
                 for (size_t i = 0; i < argc && i < exposed; i++) {
                     const char *field_name = NULL;
                     char *arg = emit_expression(call->data.call.arguments[i], ctx);
-                    if (i < world_decl->data.world_decl.roster_count) {
-                        ASTNode *slot = world_decl->data.world_decl.rosters[i];
-                        field_name = slot != NULL ? slot->data.world_roster.slot_name : "field";
-                    } else if (i < world_decl->data.world_decl.roster_count
-                                   + world_decl->data.world_decl.zone_count) {
-                        ASTNode *slot = world_decl->data.world_decl.zones[
-                            i - world_decl->data.world_decl.roster_count];
-                        field_name = slot != NULL ? slot->data.world_zone.slot_name : "field";
+                    if (i < roster_count) {
+                        ASTNode *slot = rosters[i];
+                        field_name = ast_world_roster_slot_name(slot);
+                    } else if (i < roster_count + zone_count) {
+                        ASTNode *slot = zones[i - roster_count];
+                        field_name = ast_world_zone_slot_name(slot);
                     } else {
-                        ASTNode *shared = world_decl->data.world_decl.shared_fields[
-                            i - world_decl->data.world_decl.roster_count
-                              - world_decl->data.world_decl.zone_count];
-                        field_name = shared != NULL ? shared->data.party_shared.name : "field";
+                        ASTNode *shared = shared_fields[i - roster_count - zone_count];
+                        field_name = ast_party_shared_name(shared);
                     }
                     if (i > 0)
                         codebuf_write(fields, ", ");
@@ -329,19 +338,20 @@ emit_call_domain_constructor(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                         arg != NULL ? arg : "0");
                     free(arg);
                 }
-                for (size_t i = 0; i < world_decl->data.world_decl.shared_count; i++) {
-                    size_t absolute_index = world_decl->data.world_decl.roster_count
-                        + world_decl->data.world_decl.zone_count + i;
+                for (size_t i = 0; i < shared_count; i++) {
+                    size_t absolute_index = roster_count + zone_count + i;
                     ASTNode *shared;
                     const char *field_name;
                     char *init_expr;
                     if (absolute_index < argc)
                         continue;
-                    shared = world_decl->data.world_decl.shared_fields[i];
-                    if (shared == NULL || shared->data.party_shared.initializer == NULL)
+                    shared = shared_fields[i];
+                    if (shared == NULL
+                        || ast_party_shared_initializer(shared) == NULL)
                         continue;
-                    field_name = shared != NULL ? shared->data.party_shared.name : "field";
-                    init_expr = emit_expression(shared->data.party_shared.initializer, ctx);
+                    field_name = ast_party_shared_name(shared);
+                    init_expr = emit_expression(
+                        ast_party_shared_initializer(shared), ctx);
                     if (fields->len > 0)
                         codebuf_write(fields, ", ");
                     codebuf_write(fields, ".%s = %s",
@@ -349,11 +359,9 @@ emit_call_domain_constructor(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                         init_expr != NULL ? init_expr : "0");
                     free(init_expr);
                 }
-                for (size_t i = 0; i < world_decl->data.world_decl.zone_count; i++) {
-                    ASTNode *zone = world_decl->data.world_decl.zones[i];
-                    const char *slot_name = zone != NULL
-                        ? zone->data.world_zone.slot_name
-                        : NULL;
+                for (size_t i = 0; i < zone_count; i++) {
+                    ASTNode *zone = zones[i];
+                    const char *slot_name = ast_world_zone_slot_name(zone);
                     if (slot_name == NULL)
                         continue;
                     if (fields->len > 0)

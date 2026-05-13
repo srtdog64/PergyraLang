@@ -11,6 +11,7 @@
 #include "llvm_domain_projection_value_helpers.h"
 #include "llvm_domain_sync_frontier.h"
 #include "llvm_internal_api.h"
+#include "parser/ast_api.h"
 
 static bool
 llvm_projection_sync_field_name(char *out,
@@ -152,27 +153,31 @@ llvm_emit_domain_projection_sync_body(ASTNode *stmt,
 
             for (size_t j = 0; j < slot_count; j++) {
                 ASTNode *slot = slots[j];
+                const char *slot_name;
                 if (slot == NULL || slot->type != AST_DOMAIN_SLOT)
                     continue;
-                if (slot->data.domain_slot.slot_name != NULL
-                    && strcmp(slot->data.domain_slot.slot_name, target_slot_name) == 0) {
+                slot_name = ast_domain_slot_name(slot);
+                if (slot_name != NULL
+                    && strcmp(slot_name, target_slot_name) == 0) {
                     target_slot_decl = slot;
                 }
-                if (slot->data.domain_slot.slot_name != NULL
-                    && strcmp(slot->data.domain_slot.slot_name, source_slot_name) == 0) {
+                if (slot_name != NULL
+                    && strcmp(slot_name, source_slot_name) == 0) {
                     source_slot_decl = slot;
                 }
             }
+            ASTNode *target_slot_type = ast_domain_slot_type(target_slot_decl);
+            ASTNode *source_slot_type = ast_domain_slot_type(source_slot_decl);
             if (target_slot_decl == NULL || source_slot_decl == NULL
-                || target_slot_decl->data.domain_slot.type == NULL
-                || source_slot_decl->data.domain_slot.type == NULL
-                || target_slot_decl->data.domain_slot.type->type != AST_TYPE
-                || source_slot_decl->data.domain_slot.type->type != AST_TYPE) {
+                || target_slot_type == NULL
+                || source_slot_type == NULL
+                || target_slot_type->type != AST_TYPE
+                || source_slot_type->type != AST_TYPE) {
                 continue;
             }
 
-            target_type_name = target_slot_decl->data.domain_slot.type->data.type.name;
-            source_type_name = source_slot_decl->data.domain_slot.type->data.type.name;
+            target_type_name = target_slot_type->data.type.name;
+            source_type_name = source_slot_type->data.type.name;
             if (target_type_name == NULL || source_type_name == NULL)
                 continue;
 

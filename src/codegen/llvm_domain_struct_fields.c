@@ -9,6 +9,7 @@
 
 #include "llvm_domain_struct_fields.h"
 #include "llvm_domain_projection_target_helpers.h"
+#include "parser/ast_api.h"
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -143,30 +144,31 @@ llvm_domain_add_projection_state_fields(LLVMGenCtx *ctx,
 
     for (size_t j = 0; j < slot_count; j++) {
         ASTNode *slot = slots[j];
+        const char *slot_name = ast_domain_slot_name(slot);
         if (slot == NULL || slot->type != AST_DOMAIN_SLOT
-            || (!slot->data.domain_slot.is_tobject
+            || (!ast_domain_slot_is_tobject(slot)
                 && !llvm_domain_slot_is_projection_target(slot, refreshes, refresh_count))
-            || slot->data.domain_slot.slot_name == NULL) {
+            || slot_name == NULL) {
             continue;
         }
         if (!llvm_domain_struct_add_projection_field(ctx, entry,
                 ftypes[*field_index], *field_index, "ready",
-                slot->data.domain_slot.slot_name))
+                slot_name))
             return;
         (*field_index)++;
         if (!llvm_domain_struct_add_projection_field(ctx, entry,
                 ftypes[*field_index], *field_index, "dirty",
-                slot->data.domain_slot.slot_name))
+                slot_name))
             return;
         (*field_index)++;
         if (!llvm_domain_struct_add_projection_field(ctx, entry,
                 ftypes[*field_index], *field_index, "epoch",
-                slot->data.domain_slot.slot_name))
+                slot_name))
             return;
         (*field_index)++;
         if (!llvm_domain_struct_add_projection_field(ctx, entry,
                 ftypes[*field_index], *field_index, "cause",
-                slot->data.domain_slot.slot_name))
+                slot_name))
             return;
         (*field_index)++;
     }

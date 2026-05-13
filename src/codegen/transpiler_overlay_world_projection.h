@@ -1,6 +1,8 @@
 #ifndef PGY_TRANSPILER_OVERLAY_WORLD_PROJECTION_H
 #define PGY_TRANSPILER_OVERLAY_WORLD_PROJECTION_H
 
+#include "parser/ast_api.h"
+
 static bool
 resolve_world_embedded_projection_invalidation(TranspilerCtx *ctx,
                                                ASTNode *target,
@@ -171,16 +173,17 @@ emit_world_embedded_receiver_projection_sync(TranspilerCtx *ctx, ASTNode *receiv
     ASTNode **slots = ast_zone_slots(zone_decl, &slot_count);
     for (size_t i = 0; i < slot_count; i++) {
         ASTNode *slot = slots[i];
+        const char *slot_name = ast_domain_slot_name(slot);
         if (slot == NULL || slot->type != AST_DOMAIN_SLOT
-            || slot->data.domain_slot.slot_name == NULL
-            || slot->data.domain_slot.is_subject) {
+            || slot_name == NULL
+            || ast_domain_slot_is_subject(slot)) {
             continue;
         }
         codebuf_write(buf,
             "self->%s.__projection_dirty_%s = true; "
             "self->%s.__projection_ready_%s = false; ",
-            zone_slot_name, slot->data.domain_slot.slot_name,
-            zone_slot_name, slot->data.domain_slot.slot_name);
+            zone_slot_name, slot_name,
+            zone_slot_name, slot_name);
     }
     codebuf_write(buf,
         "%s_sync(&self->%s); "

@@ -2,6 +2,8 @@
 
 #include <string.h>
 
+#include "../parser/ast_api.h"
+
 typedef struct
 {
     AIRProgram          *air;
@@ -223,15 +225,15 @@ air_walk_expr_boundaries(AIRBoundaryWalkCtx *ctx, ASTNode *node)
         return air_walk_child(ctx, node->data.event_op.event)
             && air_walk_child(ctx, node->data.event_op.handler);
     case AST_PARTY_SHARED:
-        return air_walk_child(ctx, node->data.party_shared.initializer);
+        return air_walk_child(ctx, ast_party_shared_initializer(node));
     case AST_PARTY_INSTANCE:
         return air_walk_party_instance_boundaries(ctx, node);
     case AST_WORLD_SYSTEMIC:
-        return air_walk_child(ctx, node->data.world_roster.initializer);
+        return air_walk_child(ctx, ast_world_roster_initializer(node));
     case AST_WORLD_ZONE:
-        return air_walk_child(ctx, node->data.world_zone.initializer);
+        return air_walk_child(ctx, ast_world_zone_initializer(node));
     case AST_DOMAIN_SLOT:
-        return air_walk_child(ctx, node->data.domain_slot.initializer);
+        return air_walk_child(ctx, ast_domain_slot_initializer(node));
     case AST_LAMBDA_EXPR:
         return air_walk_child(ctx, node->data.lambda_expr.body);
     case AST_UNSAFE_BLOCK:
@@ -251,23 +253,23 @@ air_walk_step_expr_boundaries(AIRBoundaryWalkCtx *ctx, const DIRIntentStep *step
     if (step == NULL || step->ast == NULL || step->ast->type != AST_INTENT_STEP)
         return true;
     ast = step->ast;
-    if (!air_walk_child(ctx, ast->data.intent_step.using_expr)
-        || !air_walk_child(ctx, ast->data.intent_step.intent_expr)
-        || !air_walk_child(ctx, ast->data.intent_step.pre_expr)
-        || !air_walk_child(ctx, ast->data.intent_step.guard_expr)
-        || !air_walk_child(ctx, ast->data.intent_step.post_expr)
-        || !air_walk_child(ctx, ast->data.intent_step.invariant_expr)
-        || !air_walk_child(ctx, ast->data.intent_step.expect_expr)) {
+    if (!air_walk_child(ctx, ast_intent_step_using_expr(ast))
+        || !air_walk_child(ctx, ast_intent_step_intent_expr(ast))
+        || !air_walk_child(ctx, ast_intent_step_pre_expr(ast))
+        || !air_walk_child(ctx, ast_intent_step_guard_expr(ast))
+        || !air_walk_child(ctx, ast_intent_step_post_expr(ast))
+        || !air_walk_child(ctx, ast_intent_step_invariant_expr(ast))
+        || !air_walk_child(ctx, ast_intent_step_expect_expr(ast))) {
         return false;
     }
     if (!air_walk_child_array(ctx,
-                              ast->data.intent_step.on_exprs,
-                              ast->data.intent_step.on_expr_count)) {
+                              ast_intent_step_on_exprs(ast, NULL),
+                              ast_intent_step_on_expr_count(ast))) {
         return false;
     }
     return air_walk_child_array(ctx,
-                                ast->data.intent_step.compensate_exprs,
-                                ast->data.intent_step.compensate_expr_count);
+                                ast_intent_step_compensate_exprs(ast, NULL),
+                                ast_intent_step_compensate_expr_count(ast));
 }
 
 size_t

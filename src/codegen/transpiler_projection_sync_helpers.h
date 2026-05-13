@@ -8,13 +8,15 @@ static const char *
 zone_subject_slot_type_name(ASTNode *zone_decl, const char *slot_name)
 {
     ASTNode *slot = transpiler_find_zone_domain_slot(zone_decl, slot_name);
+    ASTNode *slot_type;
     if (slot == NULL || slot->type != AST_DOMAIN_SLOT
-        || !slot->data.domain_slot.is_subject
-        || slot->data.domain_slot.type == NULL
-        || slot->data.domain_slot.type->type != AST_TYPE) {
+        || !ast_domain_slot_is_subject(slot)) {
         return NULL;
     }
-    return slot->data.domain_slot.type->data.type.name;
+    slot_type = ast_domain_slot_type(slot);
+    if (slot_type == NULL || slot_type->type != AST_TYPE)
+        return NULL;
+    return slot_type->data.type.name;
 }
 
 static ASTNode *
@@ -221,13 +223,13 @@ emit_zone_action_effect_runtime(ASTNode *call, TranspilerCtx *ctx)
         const char *layer_name;
 
         if (layer_slot == NULL || layer_slot->type != AST_ZONE_LAYER_SLOT
-            || layer_slot->data.zone_layer_slot.is_relation
-            || layer_slot->data.zone_layer_slot.layer_type == NULL
-            || strcmp(layer_slot->data.zone_layer_slot.layer_type, effect_name) != 0) {
+            || ast_zone_layer_slot_is_relation(layer_slot)
+            || ast_zone_layer_slot_layer_type(layer_slot) == NULL
+            || strcmp(ast_zone_layer_slot_layer_type(layer_slot), effect_name) != 0) {
             continue;
         }
 
-        layer_name = layer_slot->data.zone_layer_slot.slot_name;
+        layer_name = ast_zone_layer_slot_name(layer_slot);
         if (layer_name == NULL)
             continue;
 
@@ -301,19 +303,20 @@ emit_world_embedded_action_effect_sync(TranspilerCtx *ctx,
         int tmp_id;
 
         if (layer_slot == NULL || layer_slot->type != AST_ZONE_LAYER_SLOT
-            || layer_slot->data.zone_layer_slot.is_relation
-            || layer_slot->data.zone_layer_slot.layer_type == NULL
-            || strcmp(layer_slot->data.zone_layer_slot.layer_type, effect_name) != 0) {
+            || ast_zone_layer_slot_is_relation(layer_slot)
+            || ast_zone_layer_slot_layer_type(layer_slot) == NULL
+            || strcmp(ast_zone_layer_slot_layer_type(layer_slot), effect_name) != 0) {
             continue;
         }
 
-        layer_name = layer_slot->data.zone_layer_slot.slot_name;
+        layer_name = ast_zone_layer_slot_name(layer_slot);
         if (layer_name == NULL)
             continue;
 
         target_slot = find_nth_bindable_domain_slot_local(effect_slots,
             effect_slot_count, effect_refreshes, effect_refresh_count, 0);
-        if (target_slot == NULL || target_slot->data.domain_slot.slot_name == NULL)
+        const char *target_slot_name = ast_domain_slot_name(target_slot);
+        if (target_slot == NULL || target_slot_name == NULL)
             continue;
 
         codebuf_write(buf, "self->%s.__layer_active_%s = true; ",
@@ -326,27 +329,27 @@ emit_world_embedded_action_effect_sync(TranspilerCtx *ctx,
         for (size_t si = 0; si < state_count; si++) {
             ASTNode *state = states[si];
             if (state == NULL || state->type != AST_ZONE_STATE
-                || state->data.zone_state.is_relation
-                || state->data.zone_state.state_name == NULL
-                || state->data.zone_state.layer_slot_name == NULL
-                || strcmp(state->data.zone_state.layer_slot_name, layer_name) != 0) {
+                || ast_zone_state_is_relation(state)
+                || ast_zone_state_name(state) == NULL
+                || ast_zone_state_layer_slot_name(state) == NULL
+                || strcmp(ast_zone_state_layer_slot_name(state), layer_name) != 0) {
                 continue;
             }
             codebuf_write(buf,
                 "self->%s.__state_epoch_%s++; "
                 "self->%s.__state_cause_%s = 11; ",
-                zone_slot_name, state->data.zone_state.state_name,
-                zone_slot_name, state->data.zone_state.state_name);
+                zone_slot_name, ast_zone_state_name(state),
+                zone_slot_name, ast_zone_state_name(state));
         }
 
-        if (layer_slot->data.zone_layer_slot.is_pool) {
+        if (ast_zone_layer_slot_is_pool(layer_slot)) {
             tmp_id = ++ctx->tmp_counter;
             codebuf_write(buf,
                 "{ %s _pgy_world_effect_%d = (%s){0}; "
                 "_pgy_world_effect_%d.%s = self->%s.%s; ",
                 ast_effect_name(effect_decl), tmp_id,
                 ast_effect_name(effect_decl),
-                tmp_id, target_slot->data.domain_slot.slot_name,
+                tmp_id, target_slot_name,
                 zone_slot_name, source_slot_name);
             for (size_t ri = 0; ri < effect_refresh_count; ri++) {
                 ASTNode *refresh = effect_refreshes[ri];
@@ -357,7 +360,7 @@ emit_world_embedded_action_effect_sync(TranspilerCtx *ctx,
                 projection_name = refresh->data.zone_refresh.object_slot_name;
                 refresh_source = refresh->data.zone_refresh.source_slot_name;
                 if (projection_name == NULL || refresh_source == NULL
-                    || strcmp(refresh_source, target_slot->data.domain_slot.slot_name) != 0) {
+                    || strcmp(refresh_source, target_slot_name) != 0) {
                     continue;
                 }
                 codebuf_write(buf,
@@ -380,7 +383,7 @@ emit_world_embedded_action_effect_sync(TranspilerCtx *ctx,
         codebuf_write(buf, "self->%s.%s.%s = self->%s.%s; ",
             zone_slot_name,
             layer_name,
-            target_slot->data.domain_slot.slot_name,
+            target_slot_name,
             zone_slot_name,
             source_slot_name);
         for (size_t ri = 0; ri < effect_refresh_count; ri++) {
@@ -392,7 +395,7 @@ emit_world_embedded_action_effect_sync(TranspilerCtx *ctx,
             projection_name = refresh->data.zone_refresh.object_slot_name;
             refresh_source = refresh->data.zone_refresh.source_slot_name;
             if (projection_name == NULL || refresh_source == NULL
-                || strcmp(refresh_source, target_slot->data.domain_slot.slot_name) != 0) {
+                || strcmp(refresh_source, target_slot_name) != 0) {
                 continue;
             }
             codebuf_write(buf,

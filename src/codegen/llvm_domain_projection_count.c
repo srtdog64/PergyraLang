@@ -8,6 +8,7 @@
 #include "llvm_internal.h"
 #include "llvm_domain_projection_count_helpers.h"
 #include "llvm_domain_projection_target_helpers.h"
+#include "parser/ast_api.h"
 
 size_t
 llvm_count_domain_projection_slots(ASTNode **slots, size_t slot_count,
@@ -21,7 +22,7 @@ llvm_count_domain_projection_slots(ASTNode **slots, size_t slot_count,
     for (size_t i = 0; i < slot_count; i++) {
         ASTNode *slot = slots[i];
         if (slot != NULL && slot->type == AST_DOMAIN_SLOT
-            && (slot->data.domain_slot.is_tobject
+            && (ast_domain_slot_is_tobject(slot)
                 || llvm_domain_slot_is_projection_target(slot, refreshes, refresh_count))) {
             projection_count++;
         }

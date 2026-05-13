@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2025 Pergyra Language Project
  * All rights reserved.
  *
@@ -133,9 +133,9 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
         if (step != NULL && step->type == AST_INTENT_STEP
             && ((mir_only_intent && mir_routine != NULL
                  && llvm_mir_intent_has_stmt(
-                     mir_routine, step_name != NULL ? step_name : step->data.intent_step.name,
+                     mir_routine, step_name != NULL ? step_name : ast_intent_step_name(step),
                      "IntentEval", "compensate"))
-                || (!mir_only_intent && step->data.intent_step.compensate_expr_count > 0))) {
+                || (!mir_only_intent && ast_intent_step_compensate_expr_count(step) > 0))) {
             has_compensate_steps = true;
             break;
         }
@@ -248,7 +248,7 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
         if (step == NULL || step->type != AST_INTENT_STEP)
             continue;
         if (step_name == NULL)
-            step_name = step->data.intent_step.name;
+            step_name = ast_intent_step_name(step);
         if (!llvm_intent_step_context_load(ctx, node, mir_routine, step, step_name,
                 mir_only_intent, &step_ctx))
             goto intent_emit_fail;

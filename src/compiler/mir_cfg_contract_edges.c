@@ -15,6 +15,16 @@ mir_validate_edge_predecessor_link(const MIRRoutine *routine,
         return false;
 
     target_block = &routine->blocks[target_index];
+    if (target_block->predecessor_count > 0
+        && target_block->predecessors == NULL) {
+        if (error_message != NULL) {
+            *error_message = mir_strdup_fmt(
+                "MIR routine '%s' block[%zu] has predecessor count without predecessor inventory",
+                routine->name != NULL ? routine->name : "(anonymous)",
+                target_index);
+        }
+        return false;
+    }
     if (mir_block_has_predecessor(target_block, source_index))
         return true;
 

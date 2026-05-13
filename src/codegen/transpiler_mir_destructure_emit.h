@@ -44,9 +44,12 @@ transpiler_emit_mir_let_destructure_stmt(CodeBuf *buf,
 {
     ASTNode *init;
     const char *init_type_name;
-    const char *c_init_type;
+    char c_init_type_buf[128];
+    const char *c_init_type = NULL;
     const char *elem_inner = NULL;
     const char *elem_c_type = NULL;
+    char elem_inner_buf[128];
+    char elem_c_type_buf[128];
 
     if (buf == NULL || block == NULL || stmt == NULL || ctx == NULL
         || ssa_map_out == NULL || stmt->type != AST_LET_DESTRUCTURE) {
@@ -70,7 +73,7 @@ transpiler_emit_mir_let_destructure_stmt(CodeBuf *buf,
             if (init->data.call.generic_args != NULL
                 && init->data.call.generic_args->count > 0
                 && init->data.call.generic_args->params[0] != NULL) {
-                inner = transpiler_let_slot_inner_from_call_type_arg(init);
+                inner = transpiler_let_slot_inner_from_call_type_arg(ctx, init);
             }
             if (inner == NULL || inner[0] == '\0') {
                 if (reason != NULL && reason_cap > 0) {
@@ -129,7 +132,7 @@ transpiler_emit_mir_let_destructure_stmt(CodeBuf *buf,
         if (init->data.call.generic_args != NULL
             && init->data.call.generic_args->count > 0
             && init->data.call.generic_args->params[0] != NULL) {
-            inner = transpiler_let_slot_inner_from_call_type_arg(init);
+            inner = transpiler_let_slot_inner_from_call_type_arg(ctx, init);
         }
         if (inner == NULL || inner[0] == '\0') {
             if (reason != NULL && reason_cap > 0) {
@@ -175,7 +178,10 @@ transpiler_emit_mir_let_destructure_stmt(CodeBuf *buf,
         if (resolved != NULL)
             init_type_name = resolved;
     }
-    c_init_type = pergyra_type_to_c(init_type_name);
+    if (pergyra_type_to_c_copy(init_type_name, c_init_type_buf,
+            sizeof(c_init_type_buf))) {
+        c_init_type = c_init_type_buf;
+    }
 
     if (init_type_name != NULL && init_type_name[0] == '(') {
         char elem_names[8][64];
@@ -268,8 +274,13 @@ transpiler_emit_mir_let_destructure_stmt(CodeBuf *buf,
     if (init_type_name != NULL
         && (strncmp(init_type_name, "Array<", 6) == 0
             || strncmp(init_type_name, "Slice<", 6) == 0)) {
-        elem_inner = slot_inner_type_name(init_type_name);
-        elem_c_type = pergyra_type_to_c(elem_inner);
+        copy_capped_string(elem_inner_buf, sizeof(elem_inner_buf),
+            slot_inner_type_name(init_type_name));
+        elem_inner = elem_inner_buf;
+        if (pergyra_type_to_c_copy(elem_inner, elem_c_type_buf,
+                sizeof(elem_c_type_buf))) {
+            elem_c_type = elem_c_type_buf;
+        }
     }
     if (c_init_type == NULL || elem_c_type == NULL || elem_inner == NULL) {
         transpiler_set_backend_error_with_hints(

@@ -58,3 +58,11 @@ mir_let_decl_requires_stmt_preservation(const ASTNode *stmt)
         || strcmp(name, "ViewWrite") == 0
         || strcmp(name, "Move") == 0;
 }
+
+bool
+mir_stmt_requires_source_local_preservation(const ASTNode *stmt)
+{
+    return stmt != NULL
+        && stmt->type == AST_LET_DECL
+        && mir_let_decl_requires_stmt_preservation(stmt);
+}

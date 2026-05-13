@@ -6,6 +6,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "parser/ast_api.h"
+
 ASTNode *g_rir_program_root = NULL;
 
 ASTNode *
@@ -33,10 +35,11 @@ rir_find_domain_slot_in_owner(ASTNode *owner, const char *slot_name)
 
     for (size_t i = 0; i < slot_count; i++) {
         ASTNode *slot = slots[i];
+        const char *candidate_name = ast_domain_slot_name(slot);
         if (slot != NULL
             && slot->type == AST_DOMAIN_SLOT
-            && slot->data.domain_slot.slot_name != NULL
-            && strcmp(slot->data.domain_slot.slot_name, slot_name) == 0) {
+            && candidate_name != NULL
+            && strcmp(candidate_name, slot_name) == 0) {
             return slot;
         }
     }
@@ -419,13 +422,13 @@ add_domain_slot_fact(RIRScope *scope, ASTNode *slot)
     if (scope == NULL || slot == NULL || slot->type != AST_DOMAIN_SLOT)
         return true;
 
-    if (slot->data.domain_slot.is_subject) {
+    if (ast_domain_slot_is_subject(slot)) {
         kind = RIR_RESOURCE_SUBJECT_SLOT;
         state = RIR_STATE_OWNED;
-    } else if (slot->data.domain_slot.is_vessel) {
+    } else if (ast_domain_slot_is_vessel(slot)) {
         kind = RIR_RESOURCE_VESSEL_SLOT;
         state = RIR_STATE_OWNED;
-    } else if (slot->data.domain_slot.is_tobject) {
+    } else if (ast_domain_slot_is_tobject(slot)) {
         kind = RIR_RESOURCE_TOBJECT_SLOT;
         state = RIR_STATE_UNINIT;
     } else {
@@ -434,8 +437,8 @@ add_domain_slot_fact(RIRScope *scope, ASTNode *slot)
     }
 
     return add_named_resource_fact(scope,
-                                   slot->data.domain_slot.slot_name,
-                                   type_name(slot->data.domain_slot.type),
+                                   ast_domain_slot_name(slot),
+                                   type_name(ast_domain_slot_type(slot)),
                                    kind,
                                    state,
                                    slot);

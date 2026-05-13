@@ -84,6 +84,13 @@ node_name_slot(ASTNode *node)
     if (node == NULL)
         return NULL;
 
+    /* Intentional AST payload mutation seam.
+     *
+     * Normal compiler/codegen/semantic consumers must use AST accessors for
+     * declaration names. The module normalizer is the exception because it
+     * owns namespace prefix rewriting and therefore needs the address of the
+     * mutable name slot, not a read-only accessor value.
+     */
     switch (node->type) {
         case AST_FUNC_DECL: return &node->data.func_decl.name;
         case AST_CLASS_DECL: return &node->data.class_decl.name;

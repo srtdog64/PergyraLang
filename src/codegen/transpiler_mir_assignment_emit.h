@@ -17,6 +17,8 @@ transpiler_mir_assignment_target_is_field(TranspilerCtx *ctx,
     if (target_name == NULL)
         return false;
     return current_class_has_field(ctx, target_name)
+        || current_party_has_field(ctx, target_name)
+        || current_roster_has_field(ctx, target_name)
         || current_relation_has_field(ctx, target_name)
         || current_effect_has_field(ctx, target_name)
         || current_zone_has_field(ctx, target_name)

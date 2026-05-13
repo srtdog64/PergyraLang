@@ -87,8 +87,7 @@ mir_def_source_requires_select_receive_emit(const MIRBasicBlock *block,
         && block->is_select_case_body
         && inst != NULL
         && inst->kind == MIR_INST_DEF
-        && inst->has_source_statement_index
-        && inst->source_statement_index == 0
+        && mir_instruction_is_first_source_statement(inst)
         && mir_def_source_requires_channel_receive_emit(inst);
 }
 
@@ -203,16 +202,18 @@ mir_validate_statement_inventory(const MIRRoutine *routine,
 
     for (size_t i = 0; i < block->instruction_count; i++) {
         const MIRInstruction *inst = &block->instructions[i];
-        if (!inst->has_source_statement_index)
+        if (!mir_instruction_has_source_statement_order(inst))
             continue;
-        if (inst->source_statement_index >= block->source_statement_inventory.count) {
+        size_t source_statement_index =
+            mir_instruction_source_statement_index_or(inst, SIZE_MAX);
+        if (source_statement_index >= block->source_statement_inventory.count) {
             if (error_message != NULL) {
                 *error_message = mir_strdup_fmt(
                     "MIR routine '%s' block[%zu] instruction[%zu] source statement index %zu exceeds inventory count %zu",
                     routine->name != NULL ? routine->name : "(anonymous)",
                     block_index,
                     i,
-                    inst->source_statement_index,
+                    source_statement_index,
                     block->source_statement_inventory.count);
             }
             return false;
@@ -295,7 +296,7 @@ mir_validate_instruction_surface_usage(const MIRRoutine *routine,
         if (inst->kind == MIR_INST_STMT
             && !mir_instruction_is_intent_semantic_carrier(inst)
             && (mir_instruction_source_payload(inst) == NULL
-                || !inst->has_source_statement_index)) {
+                || !mir_instruction_has_source_statement_order(inst))) {
             if (error_message != NULL) {
                 *error_message = mir_strdup_fmt(
                     "MIR routine '%s' block[%zu] instruction[%zu] STMT fallback is missing source statement inventory fact",

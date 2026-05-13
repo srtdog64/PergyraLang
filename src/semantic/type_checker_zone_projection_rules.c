@@ -1,5 +1,6 @@
 ﻿#include "type_checker_internal.h"
 #include "diag_codes.h"
+#include "parser/ast_api.h"
 
 void
 type_check_zone_projection_rules(ASTNode *node, SemanticContext *ctx)
@@ -54,7 +55,7 @@ type_check_zone_projection_rules(ASTNode *node, SemanticContext *ctx)
         target_slot = find_zone_domain_slot(node, object_slot_name);
         boundary_projection = target_slot != NULL
             && target_slot->type == AST_DOMAIN_SLOT
-            && target_slot->data.domain_slot.is_tobject;
+            && ast_domain_slot_is_tobject(target_slot);
         type_check_zone_projection_contract(node, refresh,
             object_slot_name, source_slot_name, ctx, action_name);
         if (authority_count > 0 && participant_slot_name == NULL) {

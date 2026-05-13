@@ -58,8 +58,8 @@ type_check_projection_call(ASTNode *call,
     target_decl = find_named_class_decl(ctx->program_root,
         target_arg->data.identifier.name);
     if (target_decl == NULL
-        || !target_decl->data.class_decl.is_struct
-        || target_decl->data.class_decl.nominal_kind != expected_kind) {
+        || !ast_class_is_struct(target_decl)
+        || ast_class_nominal_kind(target_decl) != expected_kind) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
             PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE,
             target_arg,
@@ -103,8 +103,12 @@ type_check_projection_call(ASTNode *call,
         return TYPE_UNKNOWN;
     }
 
-    for (size_t i = 0; i < target_decl->data.class_decl.field_count; i++) {
-        ClassField *target_field = target_decl->data.class_decl.fields[i];
+    size_t target_field_count = 0;
+    ClassField **target_fields =
+        ast_class_fields(target_decl, &target_field_count);
+    for (size_t i = 0; i < target_field_count; i++) {
+        ClassField *target_field =
+            target_fields != NULL ? target_fields[i] : NULL;
         Type *target_field_type;
         Type *source_field_type;
         int source_status;

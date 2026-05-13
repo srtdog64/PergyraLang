@@ -215,19 +215,19 @@ hir_decl_method_slice(ASTNode *decl,
     switch (decl->type) {
     case AST_CLASS_DECL:
         if (methods_out != NULL)
-            *methods_out = decl->data.class_decl.methods;
+            *methods_out = ast_class_methods(decl, method_count_out);
         if (method_count_out != NULL)
-            *method_count_out = decl->data.class_decl.method_count;
+            (void) ast_class_methods(decl, method_count_out);
         if (owner_name_out != NULL)
-            *owner_name_out = decl->data.class_decl.name;
+            *owner_name_out = ast_class_name(decl);
         return true;
     case AST_ENUM_DECL:
         if (methods_out != NULL)
-            *methods_out = decl->data.enum_decl.methods;
+            *methods_out = ast_enum_methods(decl, method_count_out);
         if (method_count_out != NULL)
-            *method_count_out = decl->data.enum_decl.method_count;
+            (void) ast_enum_methods(decl, method_count_out);
         if (owner_name_out != NULL)
-            *owner_name_out = decl->data.enum_decl.name;
+            *owner_name_out = ast_enum_name(decl);
         return true;
     case AST_PARTY_DECL:
         if (methods_out != NULL)
@@ -345,45 +345,45 @@ hir_collect_intent_calls(ASTNode *intent, HIRRoutine *routine)
         ASTNode *step = intent->data.intent_decl.steps[i];
         if (step == NULL || step->type != AST_INTENT_STEP)
             continue;
-        if (!hir_collect_direct_calls(step->data.intent_step.using_expr,
+        if (!hir_collect_direct_calls(ast_intent_step_using_expr(step),
                                       &routine->direct_calls,
                                       &routine->direct_call_count,
                                       &routine->direct_call_capacity))
             return false;
-        if (!hir_collect_direct_calls(step->data.intent_step.pre_expr,
+        if (!hir_collect_direct_calls(ast_intent_step_pre_expr(step),
                                       &routine->direct_calls,
                                       &routine->direct_call_count,
                                       &routine->direct_call_capacity))
             return false;
-        if (!hir_collect_direct_calls(step->data.intent_step.guard_expr,
+        if (!hir_collect_direct_calls(ast_intent_step_guard_expr(step),
                                       &routine->direct_calls,
                                       &routine->direct_call_count,
                                       &routine->direct_call_capacity))
             return false;
-        if (!hir_collect_direct_calls(step->data.intent_step.post_expr,
+        if (!hir_collect_direct_calls(ast_intent_step_post_expr(step),
                                       &routine->direct_calls,
                                       &routine->direct_call_count,
                                       &routine->direct_call_capacity))
             return false;
-        if (!hir_collect_direct_calls(step->data.intent_step.invariant_expr,
+        if (!hir_collect_direct_calls(ast_intent_step_invariant_expr(step),
                                       &routine->direct_calls,
                                       &routine->direct_call_count,
                                       &routine->direct_call_capacity))
             return false;
-        if (!hir_collect_direct_calls(step->data.intent_step.expect_expr,
+        if (!hir_collect_direct_calls(ast_intent_step_expect_expr(step),
                                       &routine->direct_calls,
                                       &routine->direct_call_count,
                                       &routine->direct_call_capacity))
             return false;
-        for (size_t j = 0; j < step->data.intent_step.on_expr_count; j++) {
-            if (!hir_collect_direct_calls(step->data.intent_step.on_exprs[j],
+        for (size_t j = 0; j < ast_intent_step_on_expr_count(step); j++) {
+            if (!hir_collect_direct_calls(ast_intent_step_on_exprs(step, NULL)[j],
                                           &routine->direct_calls,
                                           &routine->direct_call_count,
                                           &routine->direct_call_capacity))
                 return false;
         }
-        for (size_t j = 0; j < step->data.intent_step.compensate_expr_count; j++) {
-            if (!hir_collect_direct_calls(step->data.intent_step.compensate_exprs[j],
+        for (size_t j = 0; j < ast_intent_step_compensate_expr_count(step); j++) {
+            if (!hir_collect_direct_calls(ast_intent_step_compensate_exprs(step, NULL)[j],
                                           &routine->direct_calls,
                                           &routine->direct_call_count,
                                           &routine->direct_call_capacity))

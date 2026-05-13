@@ -74,19 +74,20 @@ semantic_stage_class_decl(ASTNode *decl, SemanticContext *ctx)
         ctx,
         decl,
         "class",
-        decl->data.class_decl.name);
+        ast_class_name(decl));
 
     generic_scope_entered = stage_nominal_enter_generic_scope(
         decl->data.class_decl.generic_params, ctx);
-    for (size_t i = 0; i < decl->data.class_decl.field_count; i++) {
-        ClassField *field = decl->data.class_decl.fields[i];
+    size_t field_count = 0;
+    ClassField **fields = ast_class_fields(decl, &field_count);
+    for (size_t i = 0; i < field_count; i++) {
+        ClassField *field = fields != NULL ? fields[i] : NULL;
         char *consumer_name;
         if (field == NULL)
             continue;
         consumer_name = stage_nominal_strdup_fmt(
             "class %s.%s",
-            decl->data.class_decl.name != NULL
-                ? decl->data.class_decl.name : "<class>",
+            ast_class_name(decl) != NULL ? ast_class_name(decl) : "<class>",
             field->name != NULL ? field->name : "<field>");
         if (consumer_name == NULL)
             continue;
@@ -101,11 +102,13 @@ semantic_stage_class_decl(ASTNode *decl, SemanticContext *ctx)
         }
         free(consumer_name);
     }
+    size_t method_count = 0;
+    ASTNode **methods = ast_class_methods(decl, &method_count);
     semantic_stage_method_array(
-        decl->data.class_decl.methods,
-        decl->data.class_decl.method_count,
+        methods,
+        method_count,
         ctx,
-        decl->data.class_decl.name);
+        ast_class_name(decl));
     if (generic_scope_entered)
         scope_exit(&ctx->scope);
 }
@@ -116,29 +119,26 @@ semantic_stage_enum_decl(ASTNode *decl, SemanticContext *ctx)
     if (decl == NULL || decl->type != AST_ENUM_DECL || ctx == NULL)
         return;
 
-    for (size_t i = 0; i < decl->data.enum_decl.variant_count; i++) {
-        ASTNode **params = decl->data.enum_decl.variant_params != NULL
-            ? decl->data.enum_decl.variant_params[i] : NULL;
-        size_t param_count = decl->data.enum_decl.variant_param_counts != NULL
-            ? decl->data.enum_decl.variant_param_counts[i] : 0;
-        const char *variant_name = decl->data.enum_decl.variants != NULL
-            ? decl->data.enum_decl.variants[i] : NULL;
+    size_t variant_count = 0;
+    char **variants = ast_enum_variants(decl, &variant_count);
+    for (size_t i = 0; i < variant_count; i++) {
+        size_t param_count = ast_enum_variant_param_count(decl, i);
+        const char *variant_name = variants != NULL ? variants[i] : NULL;
         char *consumer_name;
 
-        if (params == NULL || param_count == 0)
+        if (param_count == 0)
             continue;
 
         consumer_name = stage_nominal_strdup_fmt(
             "enum %s.%s",
-            decl->data.enum_decl.name != NULL
-                ? decl->data.enum_decl.name : "<enum>",
+            ast_enum_name(decl) != NULL ? ast_enum_name(decl) : "<enum>",
             variant_name != NULL ? variant_name : "<variant>");
         if (consumer_name == NULL)
             continue;
 
         for (size_t j = 0; j < param_count; j++) {
             (void)semantic_stage_resolve_type_quiet(
-                params[j],
+                ast_enum_variant_param(decl, i, j),
                 ctx,
                 decl,
                 consumer_name,
@@ -146,11 +146,13 @@ semantic_stage_enum_decl(ASTNode *decl, SemanticContext *ctx)
         }
         free(consumer_name);
     }
+    size_t method_count = 0;
+    ASTNode **methods = ast_enum_methods(decl, &method_count);
     semantic_stage_method_array(
-        decl->data.enum_decl.methods,
-        decl->data.enum_decl.method_count,
+        methods,
+        method_count,
         ctx,
-        decl->data.enum_decl.name);
+        ast_enum_name(decl));
 }
 
 void

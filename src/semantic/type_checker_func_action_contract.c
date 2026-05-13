@@ -2,6 +2,7 @@
 #include <string.h>
 
 #include "../common/string_compat.h"
+#include "parser/ast_api.h"
 #include "type_checker_internal.h"
 #include "type_checker_visibility.h"
 #include "diag_codes.h"
@@ -52,8 +53,8 @@ semantic_validate_action_func_contract(ASTNode *node,
 
         if (enclosing_nominal != NULL
             && enclosing_nominal->type == AST_CLASS_DECL
-            && enclosing_nominal->data.class_decl.nominal_kind == NOMINAL_DECL_SUBJECT) {
-            subject_name = enclosing_nominal->data.class_decl.name;
+            && ast_class_nominal_kind(enclosing_nominal) == NOMINAL_DECL_SUBJECT) {
+            subject_name = ast_class_name(enclosing_nominal);
         }
         validate_action_required_abilities(node, enclosing_nominal, ctx);
 
@@ -246,8 +247,8 @@ semantic_validate_action_func_contract(ASTNode *node,
                     bool matched = false;
 
                     if (slot == NULL || slot->type != AST_DOMAIN_SLOT
-                        || !slot->data.domain_slot.is_binding
-                        || slot->data.domain_slot.type == NULL) {
+                        || !ast_domain_slot_is_binding(slot)
+                        || ast_domain_slot_type(slot) == NULL) {
                         continue;
                     }
                     slot_type = action_contract_resolve_domain_slot_type(slot, ctx);

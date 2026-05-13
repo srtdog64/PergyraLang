@@ -147,9 +147,21 @@ emit_select_stmt(ASTNode *node, TranspilerCtx *ctx)
             return;
         }
 
-        write_indent(ctx);
-        codebuf_write(ctx->out, "%s _sel_recv_%zu;\n",
-                      pergyra_type_to_c(inner), i);
+        {
+            char inner_c_type_buf[256];
+            const char *inner_c_type = NULL;
+            if (pergyra_type_to_c_copy(inner, inner_c_type_buf,
+                    sizeof(inner_c_type_buf))) {
+                inner_c_type = inner_c_type_buf;
+            }
+            if (inner_c_type == NULL) {
+                select_set_missing_channel_type_error(ctx, channel);
+                return;
+            }
+            write_indent(ctx);
+            codebuf_write(ctx->out, "%s _sel_recv_%zu;\n",
+                          inner_c_type, i);
+        }
     }
 
     {
@@ -191,9 +203,19 @@ emit_select_stmt(ASTNode *node, TranspilerCtx *ctx)
                 ctx->indent++;
                 if (valid_case) {
                     if (bind_name != NULL) {
+                        char inner_c_type_buf[256];
+                        const char *inner_c_type = NULL;
+                        if (pergyra_type_to_c_copy(inner, inner_c_type_buf,
+                                sizeof(inner_c_type_buf))) {
+                            inner_c_type = inner_c_type_buf;
+                        }
+                        if (inner_c_type == NULL) {
+                            select_set_missing_channel_type_error(ctx, channel);
+                            return;
+                        }
                         write_indent(ctx);
                         codebuf_write(ctx->out, "%s %s = _sel_recv_%zu;\n",
-                                      pergyra_type_to_c(inner), bind_name, i);
+                                      inner_c_type, bind_name, i);
                     } else if (channel != NULL) {
                         if (inner == NULL) {
                             select_set_missing_channel_type_error(ctx, channel);

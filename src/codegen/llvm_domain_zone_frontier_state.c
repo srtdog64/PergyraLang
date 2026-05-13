@@ -52,10 +52,10 @@ llvm_zone_sync_alloc_previous_state(ASTNode *stmt, LLVMGenCtx *ctx,
         ASTNode *state = states[i];
         char prev_name[256];
         if (state == NULL || state->type != AST_ZONE_STATE
-            || state->data.zone_state.state_name == NULL)
+            || ast_zone_state_name(state) == NULL)
             continue;
         if (!llvm_zone_frontier_prev_name(prev_name, sizeof(prev_name),
-                "state", state->data.zone_state.state_name))
+                "state", ast_zone_state_name(state)))
             continue;
         prev_state_addrs[i] = llvm_create_entry_alloca(ctx, ctx->type_i1, prev_name);
     }
@@ -63,10 +63,10 @@ llvm_zone_sync_alloc_previous_state(ASTNode *stmt, LLVMGenCtx *ctx,
         ASTNode *slot = layer_slots[i];
         char prev_name[256];
         if (slot == NULL || slot->type != AST_ZONE_LAYER_SLOT
-            || slot->data.zone_layer_slot.slot_name == NULL)
+            || ast_zone_layer_slot_name(slot) == NULL)
             continue;
         if (!llvm_zone_frontier_prev_name(prev_name, sizeof(prev_name),
-                "layer", slot->data.zone_layer_slot.slot_name))
+                "layer", ast_zone_layer_slot_name(slot)))
             continue;
         prev_layer_addrs[i] = llvm_create_entry_alloca(ctx, ctx->type_i1, prev_name);
     }
@@ -97,9 +97,9 @@ llvm_zone_sync_snapshot_previous_state(ASTNode *stmt,
         LLVMValueRef state_ptr;
         LLVMValueRef state_val;
         if (prev_state_addrs[i] == NULL || state == NULL || state->type != AST_ZONE_STATE
-            || state->data.zone_state.state_name == NULL)
+            || ast_zone_state_name(state) == NULL)
             continue;
-        state_name = state->data.zone_state.state_name;
+        state_name = ast_zone_state_name(state);
         {
             char field_name[256];
             if (!llvm_zone_frontier_field_name(field_name, sizeof(field_name),
@@ -124,10 +124,10 @@ llvm_zone_sync_snapshot_previous_state(ASTNode *stmt,
         LLVMValueRef layer_ptr;
         LLVMValueRef layer_val;
         if (prev_layer_addrs[i] == NULL || slot == NULL || slot->type != AST_ZONE_LAYER_SLOT
-            || slot->data.zone_layer_slot.slot_name == NULL)
+            || ast_zone_layer_slot_name(slot) == NULL)
             continue;
         if (!llvm_zone_frontier_field_name(field_name, sizeof(field_name),
-                "layer_active", slot->data.zone_layer_slot.slot_name))
+                "layer_active", ast_zone_layer_slot_name(slot)))
             continue;
         field_idx = llvm_class_field_index(decl_cls, field_name);
         if (field_idx < 0)
@@ -159,9 +159,9 @@ llvm_zone_sync_reset_state_and_layers(ASTNode *stmt,
         LLVMValueRef self_ptr;
         LLVMValueRef state_ptr;
         if (state == NULL || state->type != AST_ZONE_STATE
-            || state->data.zone_state.state_name == NULL)
+            || ast_zone_state_name(state) == NULL)
             continue;
-        state_name = state->data.zone_state.state_name;
+        state_name = ast_zone_state_name(state);
         {
             char field_name[256];
             if (!llvm_zone_frontier_field_name(field_name, sizeof(field_name),
@@ -190,12 +190,12 @@ llvm_zone_sync_reset_state_and_layers(ASTNode *stmt,
         LLVMTypeRef i8_ty;
 
         if (slot == NULL || slot->type != AST_ZONE_LAYER_SLOT
-            || !slot->data.zone_layer_slot.is_pool
-            || slot->data.zone_layer_slot.slot_name == NULL)
+            || !ast_zone_layer_slot_is_pool(slot)
+            || ast_zone_layer_slot_name(slot) == NULL)
             continue;
 
         field_idx = llvm_class_field_index(decl_cls,
-            slot->data.zone_layer_slot.slot_name);
+            ast_zone_layer_slot_name(slot));
         if (field_idx < 0)
             continue;
 
@@ -217,8 +217,8 @@ llvm_zone_sync_reset_state_and_layers(ASTNode *stmt,
         LLVMBuildStore(ctx->builder, LLVMConstInt(i8_ty, 0, 0), count_ptr);
         LLVMBuildStore(ctx->builder,
             LLVMConstInt(i8_ty,
-                slot->data.zone_layer_slot.pool_capacity > 0
-                    ? (unsigned)slot->data.zone_layer_slot.pool_capacity : 1,
+                ast_zone_layer_slot_pool_capacity(slot) > 0
+                    ? (unsigned)ast_zone_layer_slot_pool_capacity(slot) : 1,
                 0),
             cap_ptr);
     }
@@ -229,10 +229,10 @@ llvm_zone_sync_reset_state_and_layers(ASTNode *stmt,
         LLVMValueRef self_ptr;
         LLVMValueRef layer_ptr;
         if (slot == NULL || slot->type != AST_ZONE_LAYER_SLOT
-            || slot->data.zone_layer_slot.slot_name == NULL)
+            || ast_zone_layer_slot_name(slot) == NULL)
             continue;
         if (!llvm_zone_frontier_field_name(field_name, sizeof(field_name),
-                "layer_active", slot->data.zone_layer_slot.slot_name))
+                "layer_active", ast_zone_layer_slot_name(slot)))
             continue;
         field_idx = llvm_class_field_index(decl_cls, field_name);
         if (field_idx < 0)
@@ -270,9 +270,9 @@ llvm_zone_sync_update_frontier_continue(ASTNode *stmt,
         LLVMValueRef changed_val;
         LLVMValueRef pending_val;
         if (prev_state_addrs[i] == NULL || state == NULL || state->type != AST_ZONE_STATE
-            || state->data.zone_state.state_name == NULL)
+            || ast_zone_state_name(state) == NULL)
             continue;
-        state_name = state->data.zone_state.state_name;
+        state_name = ast_zone_state_name(state);
         {
             char field_name[256];
             if (!llvm_zone_frontier_field_name(field_name, sizeof(field_name),
@@ -308,10 +308,10 @@ llvm_zone_sync_update_frontier_continue(ASTNode *stmt,
         LLVMValueRef changed_val;
         LLVMValueRef pending_val;
         if (prev_layer_addrs[i] == NULL || slot == NULL || slot->type != AST_ZONE_LAYER_SLOT
-            || slot->data.zone_layer_slot.slot_name == NULL)
+            || ast_zone_layer_slot_name(slot) == NULL)
             continue;
         if (!llvm_zone_frontier_field_name(field_name, sizeof(field_name),
-                "layer_active", slot->data.zone_layer_slot.slot_name))
+                "layer_active", ast_zone_layer_slot_name(slot)))
             continue;
         field_idx = llvm_class_field_index(decl_cls, field_name);
         if (field_idx < 0)

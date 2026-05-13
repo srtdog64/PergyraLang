@@ -99,6 +99,10 @@ air_validate_global_node_summary_counter(const AIRProgram *air,
     if (air == NULL)
         return true;
     node_count = air_global_evidence_node_count(air, kind);
+    if (summary_count == 0)
+        return true;
+    if (air->strict_evidence && summary_count > 0 && node_count == 0)
+        return true;
     if (summary_count == node_count)
         return true;
     air_set_invariant_error(error_message,

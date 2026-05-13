@@ -166,14 +166,20 @@ runtime_none_scan_node(const ASTNode *node, RuntimeNoneScan *scan)
                                           node->data.func_decl.required_ability_count,
                                           scan);
         case AST_CLASS_DECL:
-            for (size_t i = 0; i < node->data.class_decl.field_count; i++) {
-                if (node->data.class_decl.fields[i] != NULL &&
-                    !runtime_none_scan_node(node->data.class_decl.fields[i]->type, scan))
-                    return false;
+            {
+                size_t field_count = 0;
+                ClassField **fields = ast_class_fields(node, &field_count);
+                for (size_t i = 0; i < field_count; i++) {
+                    if (fields != NULL && fields[i] != NULL &&
+                        !runtime_none_scan_node(fields[i]->type, scan))
+                        return false;
+                }
             }
-            return runtime_none_scan_list(node->data.class_decl.methods,
-                                          node->data.class_decl.method_count,
-                                          scan);
+            {
+                size_t method_count = 0;
+                ASTNode **methods = ast_class_methods(node, &method_count);
+                return runtime_none_scan_list(methods, method_count, scan);
+            }
         case AST_EXTERN_BLOCK:
             return runtime_none_scan_list(node->data.extern_block.declarations,
                                           node->data.extern_block.count,
@@ -289,8 +295,9 @@ runtime_none_scan_node(const ASTNode *node, RuntimeNoneScan *scan)
             }
             return runtime_none_scan_node(node->data.party_decl.extends, scan);
         case AST_PARTY_SHARED:
-            return runtime_none_scan_node(node->data.party_shared.type, scan) &&
-                   runtime_none_scan_node(node->data.party_shared.initializer, scan);
+            return runtime_none_scan_node(ast_party_shared_type(node), scan) &&
+                   runtime_none_scan_node(
+                       ast_party_shared_initializer(node), scan);
         case AST_PARTY_INSTANCE:
             for (size_t i = 0; i < node->data.party_instance.assignment_count; i++) {
                 if (!runtime_none_scan_node(node->data.party_instance.assignments[i].value,

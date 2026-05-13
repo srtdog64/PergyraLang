@@ -80,20 +80,20 @@ semantic_type_resolution_precollect_intent_inventory(ASTNode *intent_decl,
             "intent %s.%s",
             intent_decl->data.intent_decl.name != NULL
                 ? intent_decl->data.intent_decl.name : "<intent>",
-            step->data.intent_step.name != NULL
-                ? step->data.intent_step.name : "<step>");
+            ast_intent_step_name(step) != NULL
+                ? ast_intent_step_name(step) : "<step>");
         if (step_consumer_name == NULL)
             continue;
 
         semantic_type_resolution_collect_type_refs(
-            step->data.intent_step.where_type,
+            ast_intent_step_where_type(step),
             ctx,
             step,
             step_consumer_name,
             "intent step where-type lookup");
         semantic_type_resolution_precollect_required_abilities(
-            step->data.intent_step.required_abilities,
-            step->data.intent_step.required_ability_count,
+            ast_intent_step_required_abilities(step, NULL),
+            ast_intent_step_required_ability_count(step),
             ctx,
             step,
             step_consumer_name,
@@ -102,7 +102,7 @@ semantic_type_resolution_precollect_intent_inventory(ASTNode *intent_decl,
             ctx,
             step,
             step_consumer_name,
-            step->data.intent_step.causes_effect,
+            ast_intent_step_causes_effect(step),
             "intent step causes-effect lookup");
         free(step_consumer_name);
     }

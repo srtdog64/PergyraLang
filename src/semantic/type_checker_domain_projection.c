@@ -1,5 +1,6 @@
 #include "type_checker_internal.h"
 #include "diag_codes.h"
+#include "parser/ast_api.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -13,10 +14,10 @@ find_named_class_decl_local(ASTNode *program, const char *name)
     for (size_t i = 0; i < program->data.program.count; i++) {
         ASTNode *stmt = program->data.program.statements[i];
         if (stmt == NULL || stmt->type != AST_CLASS_DECL
-            || stmt->data.class_decl.name == NULL) {
+            || ast_class_name(stmt) == NULL) {
             continue;
         }
-        if (strcmp(stmt->data.class_decl.name, name) == 0)
+        if (strcmp(ast_class_name(stmt), name) == 0)
             return stmt;
     }
 
@@ -47,8 +48,8 @@ type_check_projection_contract(ASTNode **slots,
     if (object_slot == NULL || source_slot == NULL || ctx == NULL)
         return false;
 
-    if (object_slot->data.domain_slot.is_subject
-        || object_slot->data.domain_slot.is_vessel) {
+    if (ast_domain_slot_is_subject(object_slot)
+        || ast_domain_slot_is_vessel(object_slot)) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, site,
             "%s %s target slot '%s' is not a projection slot.\n"
             "Contract source:\n"
@@ -78,9 +79,9 @@ type_check_projection_contract(ASTNode **slots,
     requires_dto =
         site != NULL && site->type == AST_ZONE_REFRESH
         && (site->data.zone_refresh.derive_target_kind
-            ? object_slot->data.domain_slot.is_tobject
+            ? ast_domain_slot_is_tobject(object_slot)
             : site->data.zone_refresh.requires_dto);
-    if (requires_dto && !object_slot->data.domain_slot.is_tobject) {
+    if (requires_dto && !ast_domain_slot_is_tobject(object_slot)) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, site,
             "%s %s target slot '%s' must be a tobject slot.\n"
             "Contract source:\n"
@@ -115,7 +116,7 @@ type_check_projection_contract(ASTNode **slots,
     }
 
     target_decl = find_named_class_decl_local(ctx->program_root, target_type->name);
-    if (target_decl == NULL || !target_decl->data.class_decl.is_struct) {
+    if (target_decl == NULL || !ast_class_is_struct(target_decl)) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, site,
             "%s %s target slot '%s' does not use a projection declaration.\n"
             "Contract source:\n"
@@ -150,7 +151,7 @@ type_check_projection_contract(ASTNode **slots,
         const char *expected_label =
             requires_dto ? "tobject" : "object";
 
-        if (target_decl->data.class_decl.nominal_kind != expected_kind) {
+        if (ast_class_nominal_kind(target_decl) != expected_kind) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, site,
                 "%s %s target slot '%s' uses the wrong projection kind.\n"
                 "Contract source:\n"
@@ -184,7 +185,7 @@ type_check_projection_contract(ASTNode **slots,
         }
     }
 
-    if (source_slot->data.domain_slot.is_tobject) {
+    if (ast_domain_slot_is_tobject(source_slot)) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, site,
             "%s %s source slot '%s' cannot be a tobject slot.\n"
             "Contract source:\n"
@@ -338,8 +339,12 @@ type_check_projection_contract(ASTNode **slots,
         }
     }
 
-    for (size_t i = 0; i < target_decl->data.class_decl.field_count; i++) {
-        ClassField *target_field = target_decl->data.class_decl.fields[i];
+    size_t target_field_count = 0;
+    ClassField **target_fields =
+        ast_class_fields(target_decl, &target_field_count);
+    for (size_t i = 0; i < target_field_count; i++) {
+        ClassField *target_field =
+            target_fields != NULL ? target_fields[i] : NULL;
         Type *target_field_type;
         Type *source_field_type;
         const char *source_field_name;

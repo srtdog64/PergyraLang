@@ -25,10 +25,11 @@ semantic_world_find_zone_slot_local(ASTNode *world, const char *slot_name)
     zones = ast_world_zones(world, &zone_count);
     for (size_t i = 0; i < zone_count; i++) {
         ASTNode *zone = zones[i];
+        const char *zone_slot_name = ast_world_zone_slot_name(zone);
         if (zone != NULL
             && zone->type == AST_WORLD_ZONE
-            && zone->data.world_zone.slot_name != NULL
-            && strcmp(zone->data.world_zone.slot_name, slot_name) == 0) {
+            && zone_slot_name != NULL
+            && strcmp(zone_slot_name, slot_name) == 0) {
             return zone;
         }
     }
@@ -73,8 +74,8 @@ semantic_zone_find_layer_slot_local(ASTNode *zone, const char *slot_name)
         ASTNode *slot = layer_slots[i];
         if (slot != NULL
             && slot->type == AST_ZONE_LAYER_SLOT
-            && slot->data.zone_layer_slot.slot_name != NULL
-            && strcmp(slot->data.zone_layer_slot.slot_name, slot_name) == 0) {
+            && ast_zone_layer_slot_name(slot) != NULL
+            && strcmp(ast_zone_layer_slot_name(slot), slot_name) == 0) {
             return slot;
         }
     }
@@ -96,8 +97,8 @@ semantic_zone_find_state_local(ASTNode *zone, const char *state_name)
         ASTNode *state = states[i];
         if (state != NULL
             && state->type == AST_ZONE_STATE
-            && state->data.zone_state.state_name != NULL
-            && strcmp(state->data.zone_state.state_name, state_name) == 0) {
+            && ast_zone_state_name(state) != NULL
+            && strcmp(ast_zone_state_name(state), state_name) == 0) {
             return state;
         }
     }
@@ -141,7 +142,7 @@ semantic_stage_world_local_contracts(ASTNode *world_decl,
         if (zone_slot_decl != NULL) {
             zone_decl = semantic_stage_domain_find_zone_decl(
                 ctx,
-                zone_slot_decl->data.world_zone.zone_type);
+                ast_world_zone_type_name(zone_slot_decl));
         }
 
         switch (state->data.world_state.source_kind) {
@@ -245,12 +246,12 @@ semantic_stage_zone_local_contracts(ASTNode *zone_decl)
         if (state == NULL || state->type != AST_ZONE_STATE)
             continue;
         (void)semantic_zone_find_layer_slot_local(zone_decl,
-            state->data.zone_state.layer_slot_name);
+            ast_zone_state_layer_slot_name(state));
         (void)find_zone_domain_slot(zone_decl,
-            state->data.zone_state.left_or_target_slot_name);
-        if (state->data.zone_state.is_relation)
+            ast_zone_state_left_or_target_slot_name(state));
+        if (ast_zone_state_is_relation(state))
             (void)find_zone_domain_slot(zone_decl,
-                state->data.zone_state.right_slot_name);
+                ast_zone_state_right_slot_name(state));
     }
 
     for (size_t i = 0; i < maintained_state_count; i++) {
@@ -295,7 +296,7 @@ semantic_stage_world_local_contract_from_label(ASTNode *world_decl,
         if (zone_slot_decl != NULL && zone_slot_decl->type == AST_WORLD_ZONE) {
             ASTNode *zone_decl = semantic_stage_domain_find_zone_decl(
                 ctx,
-                zone_slot_decl->data.world_zone.zone_type);
+                ast_world_zone_type_name(zone_slot_decl));
             if (zone_decl != NULL && zone_decl->type == AST_ZONE_DECL
                 && state->data.world_state.detail_name != NULL) {
                 if (state->data.world_state.source_kind == WORLD_STATE_SOURCE_PROJECTION) {
@@ -399,12 +400,12 @@ semantic_stage_zone_local_contract_from_label(ASTNode *zone_decl,
         if (state == NULL || state->type != AST_ZONE_STATE)
             return;
         (void)semantic_zone_find_layer_slot_local(zone_decl,
-            state->data.zone_state.layer_slot_name);
+            ast_zone_state_layer_slot_name(state));
         (void)find_zone_domain_slot(zone_decl,
-            state->data.zone_state.left_or_target_slot_name);
-        if (state->data.zone_state.is_relation)
+            ast_zone_state_left_or_target_slot_name(state));
+        if (ast_zone_state_is_relation(state))
             (void)find_zone_domain_slot(zone_decl,
-                state->data.zone_state.right_slot_name);
+                ast_zone_state_right_slot_name(state));
         return;
     }
 

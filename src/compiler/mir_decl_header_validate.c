@@ -86,19 +86,19 @@ mir_decl_header_ast_shape(const MIRDeclHeader *header,
     switch (ast->type) {
     case AST_CLASS_DECL:
         if (name_out != NULL)
-            *name_out = ast->data.class_decl.name;
+            *name_out = ast_class_name(ast);
         if (method_count_out != NULL)
-            *method_count_out = ast->data.class_decl.method_count;
+            (void) ast_class_methods(ast, method_count_out);
         if (uses_pointer_self_out != NULL)
             *uses_pointer_self_out =
-                ast->data.class_decl.nominal_kind == NOMINAL_DECL_SUBJECT
-                || ast->data.class_decl.nominal_kind == NOMINAL_DECL_VESSEL;
+                ast_class_nominal_kind(ast) == NOMINAL_DECL_SUBJECT
+                || ast_class_nominal_kind(ast) == NOMINAL_DECL_VESSEL;
         return true;
     case AST_ENUM_DECL:
         if (name_out != NULL)
-            *name_out = ast->data.enum_decl.name;
+            *name_out = ast_enum_name(ast);
         if (method_count_out != NULL)
-            *method_count_out = ast->data.enum_decl.method_count;
+            (void) ast_enum_methods(ast, method_count_out);
         return true;
     case AST_PARTY_DECL:
         if (name_out != NULL)

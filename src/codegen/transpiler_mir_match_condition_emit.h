@@ -224,11 +224,26 @@ transpiler_mir_emit_match_payload_binding(CodeBuf *buf,
         return;
     }
 
-    payload_c_type = pergyra_type_to_c(payload_type);
+    {
+        char payload_c_type_buf[256];
+        if (!pergyra_type_to_c_copy(payload_type, payload_c_type_buf,
+                sizeof(payload_c_type_buf))) {
+            transpiler_set_backend_error_with_hints(ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED,
+                PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                "C MIR match lowering cannot render payload type '%s' for %s(%s)",
+                payload_type,
+                kind,
+                binding);
+            return;
+        }
+        payload_c_type = payload_c_type_buf;
 
-    write_indent_to(buf, ctx->indent);
-    codebuf_write(buf, "%s %s = (%s).%s;\n",
-                  payload_c_type, binding, subject, field);
+        write_indent_to(buf, ctx->indent);
+        codebuf_write(buf, "%s %s = (%s).%s;\n",
+                      payload_c_type, binding, subject, field);
+    }
 }
 
 static char *

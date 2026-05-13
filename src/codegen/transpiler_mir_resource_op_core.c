@@ -50,6 +50,7 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
     const char *suffix = NULL;
     const MIRTypeLayout *effective_layout = layout;
     char runtime_fn_buf[160];
+    char inner_name_buf[128];
     const char *slot_anchor;
     const char *typed_name = NULL;
     const char *inner_name = NULL;
@@ -90,7 +91,9 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
             && (strncmp(effective_layout->abi_type_name, "Slot<", 5) == 0
                 || strncmp(effective_layout->abi_type_name, "SecureSlot<", 11) == 0
                 || strncmp(effective_layout->abi_type_name, "DeviceSlot<", 11) == 0)) {
-            inner_name = slot_inner_type_name(effective_layout->abi_type_name);
+            copy_capped_string(inner_name_buf, sizeof(inner_name_buf),
+                slot_inner_type_name(effective_layout->abi_type_name));
+            inner_name = inner_name_buf;
         }
     }
 
@@ -126,11 +129,17 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
             if (strncmp(typed_name, "Slot<", 5) == 0
                 || is_secure_slot
                 || is_device_slot) {
-                inner_name = slot_inner_type_name(typed_name);
+                copy_capped_string(inner_name_buf, sizeof(inner_name_buf),
+                    slot_inner_type_name(typed_name));
+                inner_name = inner_name_buf;
             }
         }
         if (inner_name != NULL) {
-            inner_c = pergyra_type_to_c(inner_name);
+            char inner_c_buf[128];
+            if (pergyra_type_to_c_copy(inner_name, inner_c_buf,
+                    sizeof(inner_c_buf))) {
+                inner_c = inner_c_buf;
+            }
             if (inner_c != NULL && inner_c[0] != '\0') {
                 if (transpiler_format_slot_runtime_fn(
                         op_name, is_secure_slot, is_device_slot, inner_name,

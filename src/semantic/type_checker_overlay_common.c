@@ -1,5 +1,6 @@
 #include "type_checker_internal.h"
 #include "diag_codes.h"
+#include "parser/ast_api.h"
 #include "../common/string_compat.h"
 
 #include <stdlib.h>
@@ -61,10 +62,10 @@ type_check_overlay_decl_common(ASTNode *node,
 
     for (size_t i = 0; i < shared_count; i++) {
         ASTNode *shared = shared_fields[i];
-        if (shared->data.party_shared.type != NULL)
+        if (ast_party_shared_type(shared) != NULL)
             domain_resolve_shared_type(shared, ctx);
-        if (shared->data.party_shared.initializer != NULL)
-            type_check_expression(shared->data.party_shared.initializer, ctx);
+        if (ast_party_shared_initializer(shared) != NULL)
+            type_check_expression(ast_party_shared_initializer(shared), ctx);
     }
 
     scope_enter(&ctx->scope, SCOPE_BLOCK);
@@ -76,12 +77,13 @@ type_check_overlay_decl_common(ASTNode *node,
         slots = ast_zone_slots(node, &slot_count);
         for (size_t i = 0; i < slot_count; i++) {
             ASTNode *slot = slots[i];
+            const char *slot_name = ast_domain_slot_name(slot);
             if (slot != NULL && slot->type == AST_DOMAIN_SLOT
-                && slot->data.domain_slot.slot_name != NULL
-                && slot->data.domain_slot.type != NULL) {
+                && slot_name != NULL
+                && ast_domain_slot_type(slot) != NULL) {
                 Type *slot_type = domain_resolve_slot_type(slot, ctx);
                 Symbol *slot_sym = calloc(1, sizeof(Symbol));
-                slot_sym->name = pergyra_strdup(slot->data.domain_slot.slot_name);
+                slot_sym->name = pergyra_strdup(slot_name);
                 slot_sym->kind = SYMBOL_VARIABLE;
                 slot_sym->type = slot_type != NULL ? slot_type : TYPE_UNKNOWN;
                 slot_sym->decl_line = slot->line;
@@ -97,14 +99,16 @@ type_check_overlay_decl_common(ASTNode *node,
         zones = ast_world_zones(node, &zone_count);
         for (size_t i = 0; i < zone_count; i++) {
             ASTNode *wz = zones[i];
+            const char *slot_name = ast_world_zone_slot_name(wz);
+            const char *type_name = ast_world_zone_type_name(wz);
             if (wz != NULL && wz->type == AST_WORLD_ZONE
-                && wz->data.world_zone.slot_name != NULL
-                && wz->data.world_zone.zone_type != NULL) {
+                && slot_name != NULL
+                && type_name != NULL) {
                 Type *zone_type =
                     overlay_resolve_named_type_metadata_or_unknown(
-                        wz->data.world_zone.zone_type, ctx, wz);
+                        type_name, ctx, wz);
                 Symbol *zone_sym = calloc(1, sizeof(Symbol));
-                zone_sym->name = pergyra_strdup(wz->data.world_zone.slot_name);
+                zone_sym->name = pergyra_strdup(slot_name);
                 zone_sym->kind = SYMBOL_VARIABLE;
                 zone_sym->type = zone_type != NULL ? zone_type : TYPE_UNKNOWN;
                 zone_sym->decl_line = wz->line;
@@ -116,12 +120,13 @@ type_check_overlay_decl_common(ASTNode *node,
     /* Register shared fields so bare field access works in hosted funcs. */
     for (size_t i = 0; i < shared_count; i++) {
         ASTNode *shared = shared_fields[i];
-        if (shared != NULL && shared->data.party_shared.name != NULL) {
+        const char *shared_name = ast_party_shared_name(shared);
+        if (shared != NULL && shared_name != NULL) {
             Type *field_type = TYPE_UNKNOWN;
-            if (shared->data.party_shared.type != NULL)
+            if (ast_party_shared_type(shared) != NULL)
                 field_type = domain_resolve_shared_type(shared, ctx);
             Symbol *field_sym = calloc(1, sizeof(Symbol));
-            field_sym->name = pergyra_strdup(shared->data.party_shared.name);
+            field_sym->name = pergyra_strdup(shared_name);
             field_sym->kind = SYMBOL_VARIABLE;
             field_sym->type = field_type;
             field_sym->decl_line = shared->line;

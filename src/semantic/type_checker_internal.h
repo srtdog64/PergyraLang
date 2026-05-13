@@ -97,6 +97,16 @@ ASTNode *expr_current_host_method_decl(SemanticContext *ctx,
 Type *expr_type_check_host_method_call(ASTNode *expr,
                                        ASTNode *method,
                                        SemanticContext *ctx);
+Type *expr_type_for_enum_variant_projection(SemanticContext *ctx,
+                                            ASTNode *site,
+                                            const Type *enum_type,
+                                            const char *variant_name);
+Type *expr_type_for_enum_payload_field(SemanticContext *ctx,
+                                       ASTNode *site,
+                                       const Type *payload_type,
+                                       const char *field_name);
+ASTNode *semantic_host_decl_for_type(SemanticContext *ctx, const Type *type);
+ASTNode **semantic_host_decl_methods(ASTNode *decl, size_t *method_count);
 bool expr_type_is_nominal_host_type(const Type *type,
                                     SemanticContext *ctx);
 bool expr_member_is_static_access(const ASTNode *expr);

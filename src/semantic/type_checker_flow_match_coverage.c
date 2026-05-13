@@ -125,8 +125,9 @@ collect_match_variant_space(const Type *subj_type,
         ASTNode *enum_decl = find_enum_decl_for_type(ctx, subj_type);
         if (enum_decl == NULL)
             return 0;
-        *variants_out = (const char **)enum_decl->data.enum_decl.variants;
-        return enum_decl->data.enum_decl.variant_count;
+        size_t variant_count = 0;
+        *variants_out = (const char **)ast_enum_variants(enum_decl, &variant_count);
+        return variant_count;
     }
 
     return 0;

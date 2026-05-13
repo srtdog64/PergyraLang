@@ -50,8 +50,10 @@ find_nominal_field_by_name(ASTNode *decl, const char *field_name)
     if (decl == NULL || decl->type != AST_CLASS_DECL || field_name == NULL)
         return NULL;
 
-    for (size_t i = 0; i < decl->data.class_decl.field_count; i++) {
-        ClassField *field = decl->data.class_decl.fields[i];
+    size_t field_count = 0;
+    ClassField **fields = ast_class_fields(decl, &field_count);
+    for (size_t i = 0; i < field_count; i++) {
+        ClassField *field = fields != NULL ? fields[i] : NULL;
         if (field != NULL && field->name != NULL
             && strcmp(field->name, field_name) == 0) {
             return field;
@@ -81,8 +83,10 @@ find_subject_surface_field_by_name(ASTNode *program_root,
             return direct;
     }
 
-    for (size_t i = 0; i < subject_decl->data.class_decl.field_count; i++) {
-        ClassField *field = subject_decl->data.class_decl.fields[i];
+    size_t field_count = 0;
+    ClassField **fields = ast_class_fields(subject_decl, &field_count);
+    for (size_t i = 0; i < field_count; i++) {
+        ClassField *field = fields != NULL ? fields[i] : NULL;
         ASTNode *vessel_decl;
         ClassField *nested;
 
@@ -94,7 +98,7 @@ find_subject_surface_field_by_name(ASTNode *program_root,
 
         vessel_decl = find_type_decl_by_name(program_root, field->type->data.type.name);
         if (vessel_decl == NULL || vessel_decl->type != AST_CLASS_DECL
-            || vessel_decl->data.class_decl.nominal_kind != NOMINAL_DECL_VESSEL) {
+            || ast_class_nominal_kind(vessel_decl) != NOMINAL_DECL_VESSEL) {
             continue;
         }
 
@@ -297,6 +301,7 @@ validate_ability_require_fields_for_role(ASTNode *role_decl,
         ASTNode *req = ability_decl->data.ability_decl.require_fields[i];
         ClassField *field;
         const char *container_field_name = NULL;
+        const char *bound_name = ast_class_name(bound_decl);
         Type *required_type;
         Type *field_type;
 
@@ -324,7 +329,7 @@ validate_ability_require_fields_for_role(ASTNode *role_decl,
                                      : (ability_decl->data.ability_decl.name != NULL
                                             ? ability_decl->data.ability_decl.name
                                             : "<ability>"),
-                bound_decl->data.class_decl.name != NULL ? bound_decl->data.class_decl.name : "<subject>",
+                bound_name != NULL ? bound_name : "<subject>",
                 req->data.require_field.name,
                 ability_text != NULL ? ability_text
                                      : (ability_decl->data.ability_decl.name != NULL
@@ -335,9 +340,9 @@ validate_ability_require_fields_for_role(ASTNode *role_decl,
                                             ? ability_decl->data.ability_decl.name
                                             : "<ability>"),
                 req->data.require_field.name,
-                bound_decl->data.class_decl.name != NULL ? bound_decl->data.class_decl.name : "<subject>",
+                bound_name != NULL ? bound_name : "<subject>",
                 req->data.require_field.name,
-                bound_decl->data.class_decl.name != NULL ? bound_decl->data.class_decl.name : "<subject>",
+                bound_name != NULL ? bound_name : "<subject>",
                 ability_text != NULL ? ability_text
                                      : (ability_decl->data.ability_decl.name != NULL
                                             ? ability_decl->data.ability_decl.name
@@ -368,7 +373,7 @@ validate_ability_require_fields_for_role(ASTNode *role_decl,
                                      : (ability_decl->data.ability_decl.name != NULL
                                             ? ability_decl->data.ability_decl.name
                                             : "<ability>"),
-                bound_decl->data.class_decl.name != NULL ? bound_decl->data.class_decl.name : "<subject>",
+                bound_name != NULL ? bound_name : "<subject>",
                 container_field_name != NULL ? container_field_name : "",
                 container_field_name != NULL ? "." : "",
                 req->data.require_field.name,
@@ -376,7 +381,7 @@ validate_ability_require_fields_for_role(ASTNode *role_decl,
                                      : (ability_decl->data.ability_decl.name != NULL
                                             ? ability_decl->data.ability_decl.name
                                             : "<ability>"),
-                bound_decl->data.class_decl.name != NULL ? bound_decl->data.class_decl.name : "<subject>",
+                bound_name != NULL ? bound_name : "<subject>",
                 container_field_name != NULL ? container_field_name : "",
                 container_field_name != NULL ? "." : "",
                 req->data.require_field.name,
@@ -386,7 +391,7 @@ validate_ability_require_fields_for_role(ASTNode *role_decl,
                                             ? ability_decl->data.ability_decl.name
                                             : "<ability>"),
                 required_type->name != NULL ? required_type->name : "<type>",
-                bound_decl->data.class_decl.name != NULL ? bound_decl->data.class_decl.name : "<subject>",
+                bound_name != NULL ? bound_name : "<subject>",
                 container_field_name != NULL ? container_field_name : "",
                 container_field_name != NULL ? "." : "",
                 req->data.require_field.name,

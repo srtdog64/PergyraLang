@@ -104,22 +104,25 @@ is_enum_variant_destructor(ASTNode *pat, TranspilerCtx *ctx,
     }
     for (size_t i = 0; i < type_count; i++) {
         ASTNode *stmt = types[i];
+        size_t variant_count = 0;
+        char **variants;
         if (stmt == NULL || stmt->type != AST_ENUM_DECL)
             continue;
         bool has_data = false;
-        for (size_t j = 0; j < stmt->data.enum_decl.variant_count; j++) {
-            if (stmt->data.enum_decl.variant_param_counts != NULL
-                && stmt->data.enum_decl.variant_param_counts[j] > 0) {
+        variants = ast_enum_variants(stmt, &variant_count);
+        for (size_t j = 0; j < variant_count; j++) {
+            if (ast_enum_variant_param_count(stmt, j) > 0) {
                 has_data = true;
                 break;
             }
         }
         if (!has_data) continue;
 
-        for (size_t j = 0; j < stmt->data.enum_decl.variant_count; j++) {
-            if (strcmp(stmt->data.enum_decl.variants[j], name) == 0) {
+        for (size_t j = 0; j < variant_count; j++) {
+            const char *variant = variants != NULL ? variants[j] : NULL;
+            if (variant != NULL && strcmp(variant, name) == 0) {
                 *variant_name_out = name;
-                *enum_name_out = stmt->data.enum_decl.name;
+                *enum_name_out = ast_enum_name(stmt);
                 static const char *bindings_buf[8];
                 static ASTNode *binding_types_buf[8];
                 *binding_count_out = 0;
@@ -129,11 +132,8 @@ is_enum_variant_destructor(ASTNode *pat, TranspilerCtx *ctx,
                         bindings_buf[k] = arg->data.identifier.name;
                     else
                         bindings_buf[k] = NULL;
-                    if (stmt->data.enum_decl.variant_params != NULL
-                        && stmt->data.enum_decl.variant_params[j] != NULL
-                        && stmt->data.enum_decl.variant_param_counts != NULL
-                        && k < stmt->data.enum_decl.variant_param_counts[j]) {
-                        binding_types_buf[k] = stmt->data.enum_decl.variant_params[j][k];
+                    if (k < ast_enum_variant_param_count(stmt, j)) {
+                        binding_types_buf[k] = ast_enum_variant_param(stmt, j, k);
                     } else {
                         binding_types_buf[k] = NULL;
                     }
@@ -155,7 +155,8 @@ emit_match_stmt(ASTNode *node, TranspilerCtx *ctx)
     char *subj = emit_expression(node->data.match_stmt.subject, ctx);
     int tmp_id = ctx->tmp_counter++;
     const char *subject_type = infer_expression_type_name(ctx, node->data.match_stmt.subject);
-    const char *subject_c_type;
+    char subject_c_type_buf[256];
+    const char *subject_c_type = NULL;
     bool subject_is_option = subject_type != NULL && strncmp(subject_type, "Option<", 7) == 0;
 
     if (subject_type == NULL || subject_type[0] == '\0'
@@ -168,7 +169,20 @@ emit_match_stmt(ASTNode *node, TranspilerCtx *ctx)
         free(subj);
         return;
     }
-    subject_c_type = pergyra_type_to_c(subject_type);
+    if (pergyra_type_to_c_copy(subject_type, subject_c_type_buf,
+            sizeof(subject_c_type_buf))) {
+        subject_c_type = subject_c_type_buf;
+    }
+    if (subject_c_type == NULL) {
+        transpiler_set_backend_error_with_hints(ctx,
+            PGY_CODE_C_TYPE_UNSUPPORTED,
+            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+            PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+            "C match lowering requires a stable C rendering for subject type '%s'",
+            subject_type);
+        free(subj);
+        return;
+    }
 
     write_indent(ctx);
     codebuf_write(ctx->out, "{\n");
@@ -266,8 +280,24 @@ emit_match_stmt(ASTNode *node, TranspilerCtx *ctx)
                         "C match lowering cannot bind Some(%s) without Option<T> subject type",
                         binding);
                 } else {
+                    char inner_c_type_buf[256];
+                    const char *inner_c_type = NULL;
+                    if (pergyra_type_to_c_copy(inner, inner_c_type_buf,
+                            sizeof(inner_c_type_buf))) {
+                        inner_c_type = inner_c_type_buf;
+                    }
+                    if (inner_c_type == NULL) {
+                        transpiler_set_backend_error_with_hints(ctx,
+                            PGY_CODE_C_TYPE_UNSUPPORTED,
+                            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                            PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                            "C match lowering cannot render Some(%s) payload type '%s'",
+                            binding,
+                            inner);
+                    } else {
                     codebuf_write(ctx->out, "%s %s = __match_%d.value;\n",
-                        pergyra_type_to_c(inner), binding, tmp_id);
+                        inner_c_type, binding, tmp_id);
+                    }
                 }
             } else if (strcmp(kind, "Ok") == 0) {
                 const char *ok_type = strncmp(subject_type, "Result<", 7) == 0
@@ -280,8 +310,24 @@ emit_match_stmt(ASTNode *node, TranspilerCtx *ctx)
                         "C match lowering cannot bind Ok(%s) without Result<T,E> subject type",
                         binding);
                 } else {
+                    char ok_c_type_buf[256];
+                    const char *ok_c_type = NULL;
+                    if (pergyra_type_to_c_copy(ok_type, ok_c_type_buf,
+                            sizeof(ok_c_type_buf))) {
+                        ok_c_type = ok_c_type_buf;
+                    }
+                    if (ok_c_type == NULL) {
+                        transpiler_set_backend_error_with_hints(ctx,
+                            PGY_CODE_C_TYPE_UNSUPPORTED,
+                            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                            PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                            "C match lowering cannot render Ok(%s) payload type '%s'",
+                            binding,
+                            ok_type);
+                    } else {
                     codebuf_write(ctx->out, "%s %s = __match_%d.ok;\n",
-                        pergyra_type_to_c(ok_type), binding, tmp_id);
+                        ok_c_type, binding, tmp_id);
+                    }
                 }
             } else if (strcmp(kind, "Err") == 0) {
                 const char *err_type = "PgyError";
@@ -303,8 +349,24 @@ emit_match_stmt(ASTNode *node, TranspilerCtx *ctx)
                         "C match lowering cannot bind Err(%s) without concrete Result error type",
                         binding);
                 } else {
+                    char err_c_type_buf[256];
+                    const char *err_c_type = NULL;
+                    if (pergyra_type_to_c_copy(err_type, err_c_type_buf,
+                            sizeof(err_c_type_buf))) {
+                        err_c_type = err_c_type_buf;
+                    }
+                    if (err_c_type == NULL) {
+                        transpiler_set_backend_error_with_hints(ctx,
+                            PGY_CODE_C_TYPE_UNSUPPORTED,
+                            PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                            PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                            "C match lowering cannot render Err(%s) payload type '%s'",
+                            binding,
+                            err_type);
+                    } else {
                     codebuf_write(ctx->out, "%s %s = __match_%d.err;\n",
-                        pergyra_type_to_c(err_type), binding, tmp_id);
+                        err_c_type, binding, tmp_id);
+                    }
                 }
             }
         }

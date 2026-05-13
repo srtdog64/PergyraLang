@@ -585,6 +585,10 @@ grep -Fq "source_terminator_has_value" "$ROOT_DIR/src/compiler/mir.h"
 grep -Fq "MIRStatementInventory" "$ROOT_DIR/src/compiler/mir.h"
 grep -Fq "used_non_cfg_body_fallback" "$ROOT_DIR/src/compiler/mir.h"
 grep -Fq "non_cfg_body_fallback_count" "$ROOT_DIR/src/compiler/mir.h"
+grep -Fq "has_non_cfg_body_fallback_inventory" "$ROOT_DIR/src/compiler/mir.h"
+grep -Fq "non_cfg_body_fallback_total" "$ROOT_DIR/src/compiler/mir.h"
+grep -Fq "noncfg-fallbacks: total=%zu routines=%zu recorded=%s" "$ROOT_DIR/src/compiler/mir_lifecycle.c"
+grep -Fq "MIR validator rejects stale program-level non-CFG fallback inventory" "$ROOT_DIR/src/tests/mir/test_mir_lowering_part_c.cases.h"
 grep -Fq "noncfg=%zu" "$ROOT_DIR/src/compiler/mir_lifecycle.c"
 grep -Fq "mir_validate_non_cfg_fallback_state" "$ROOT_DIR/src/compiler/mir_public_surface.h"
 grep -Fq "used non-CFG body fallback" "$ROOT_DIR/src/compiler/mir_public_surface.h"
@@ -608,9 +612,39 @@ grep -Fq "AIR synthesis collects all RIR authority evidence" "$ROOT_DIR/src/test
 grep -Fq "AIR strict evidence requires all authority participants" "$ROOT_DIR/src/test_air.c"
 grep -Fq "AIR_EVIDENCE_RUNTIME_FRONTIER_POLICY" "$ROOT_DIR/src/compiler/air.h"
 grep -Fq "air_collect_runtime_frontier_policy_evidence" "$ROOT_DIR/src/compiler/air_evidence.c"
+grep -Fq "air_collect_singleton_global_evidence" "$ROOT_DIR/src/compiler/air_evidence.c"
+grep -Fq "AIR singleton global evidence has conflicting counts" "$ROOT_DIR/src/compiler/air_evidence.c"
 grep -Fq "PGY_FRONTIER_POLICY_SCHEMA" "$ROOT_DIR/src/runtime/pgy_frontier_policy.h"
 grep -Fq "AIR rejects invalid runtime frontier policy provider" "$ROOT_DIR/src/test_air.c"
+grep -Fq "AIR collects singleton global evidence idempotently" "$ROOT_DIR/src/test_air.c"
+grep -Fq "AIR rejects conflicting singleton global evidence" "$ROOT_DIR/src/test_air.c"
 grep -Fq "no matching MIR cleanup evidence" "$ROOT_DIR/src/compiler/air_validate_evidence.c"
+! grep -Fq "static char *rendered" "$ROOT_DIR/src/codegen/transpiler_mir_local_type_lookup.h"
+! grep -Fq "static char rendered" "$ROOT_DIR/src/codegen/transpiler_mir_local_type_lookup.h"
+! grep -Fq "transpiler_mir_copy_type_name" "$ROOT_DIR/src/codegen/transpiler_mir_local_type_lookup.h"
+grep -Fq "transpiler_mir_arena_copy_type_name" "$ROOT_DIR/src/codegen/transpiler_mir_local_type_lookup.h"
+grep -Fq "transpiler_mir_arena_render_type_name" "$ROOT_DIR/src/codegen/transpiler_mir_local_type_lookup.h"
+! grep -Fq "static char" "$ROOT_DIR/src/codegen/transpiler_expr_type_infer.h"
+grep -Fq "transpiler_infer_arena_copy_type_name" "$ROOT_DIR/src/codegen/transpiler_expr_type_infer.h"
+grep -Fq "transpiler_infer_arena_format_type_name" "$ROOT_DIR/src/codegen/transpiler_expr_type_infer.h"
+grep -Fq "pergyra_type_to_c_copy" "$ROOT_DIR/src/codegen/transpiler_type_mapping.c"
+grep -Fq "pergyra_type_to_c_copy(elem_inner" "$ROOT_DIR/src/codegen/transpiler_control_flow_emit.h"
+grep -Fq "pergyra_type_to_c_copy(inner_type_buf" "$ROOT_DIR/src/codegen/transpiler_mir_cfg_control_emit.h"
+grep -Fq "pergyra_type_to_c_copy(init_type" "$ROOT_DIR/src/codegen/transpiler_destructure_emit.h"
+grep -Fq "pergyra_type_to_c_copy(init_type_name" "$ROOT_DIR/src/codegen/transpiler_mir_destructure_emit.h"
+grep -Fq "char inner_name_buf[128]" "$ROOT_DIR/src/codegen/transpiler_mir_resource_op_core.c"
+grep -Fq "copy_capped_string(inner_name_buf" "$ROOT_DIR/src/codegen/transpiler_mir_resource_op_core.c"
+grep -Fq "pergyra_type_to_c_copy(inner_name" "$ROOT_DIR/src/codegen/transpiler_mir_resource_op_core.c"
+grep -Fq "char inner_buf[128]" "$ROOT_DIR/src/codegen/transpiler_destructure_emit.h"
+grep -Fq "char elem_inner_buf[128]" "$ROOT_DIR/src/codegen/transpiler_mir_destructure_emit.h"
+grep -Fq "copy_capped_string(inner_buf" "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_builtin.h"
+grep -Fq "pergyra_type_to_c_copy(inner" "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_builtin.h"
+grep -Fq "pergyra_type_to_c_copy(inner, c_inner_buf" "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_channel_builtin.h"
+grep -Fq "PGY_INTENT_ACTIVE_INDEX_MAX" "$ROOT_DIR/src/runtime/pgy_runtime_intent_trace_inline.h"
+grep -Fq "pgy_intent_active_index_find_slot" "$ROOT_DIR/src/runtime/pgy_runtime_intent_active_index_inline.h"
+grep -Fq "return pgy_intent_find_active_entry_linear(handle)" "$ROOT_DIR/src/runtime/pgy_runtime_intent_active_index_inline.h"
+grep -Fq "pgy_intent_active_index_find_slot_export" "$ROOT_DIR/src/runtime/pgy_runtime_lib_intent_active_index_exports.c"
+grep -Fq "return pgy_intent_find_active_entry_linear_export(handle)" "$ROOT_DIR/src/runtime/pgy_runtime_lib_intent_active_index_exports.c"
 grep -Fq "AIR rejects MIR pin cleanup without global cleanup evidence" "$ROOT_DIR/src/test_air.c"
 grep -Fq "AIR DAG evidence contains unresolved metadata dead-end" "$ROOT_DIR/src/compiler/air_verify.c"
 grep -R -Fq "sem.type_resolution_metadata_materializer_fallbacks = 0" "$ROOT_DIR/src/tests/air"
@@ -1026,8 +1060,80 @@ grep -Fq "{ *out = NULL; return true; }" "$ROOT_DIR/src/codegen/llvm_expr_call_q
     grep -Fq "LLVMConstInt(ctx->type_i32, 0, 0)"
 ! grep -Fq "Slot<Unknown>" "$ROOT_DIR/src/codegen/transpiler_mir_ssa_emit.h"
 grep -Fq "requires concrete slot type metadata" "$ROOT_DIR/src/codegen/transpiler_mir_ssa_emit.h"
+! grep -Fq "static char *rendered_param" "$ROOT_DIR/src/codegen/transpiler_mir_ssa_emit.h"
+! grep -Fq "static char rendered_param" "$ROOT_DIR/src/codegen/transpiler_mir_ssa_emit.h"
+grep -Fq "transpiler_mir_arena_copy_type_name(ctx, owned_param" "$ROOT_DIR/src/codegen/transpiler_mir_ssa_emit.h"
+grep -Fq "declarator_ast_type_to_c_copy" "$ROOT_DIR/src/codegen/transpiler_type_declarator.c"
+grep -Fq "char param_buf[256]" "$ROOT_DIR/src/codegen/transpiler_type_declarator.c"
 ! grep -Fq "lossy fallback" "$ROOT_DIR/src/codegen/llvm_intent.c"
 ! grep -Fq 'pergyra_strdup("Unknown")' "$ROOT_DIR/src/codegen/llvm_backend_type_map.c"
+grep -Fq "llvm_required_constructed_arg_name_copy" "$ROOT_DIR/src/codegen/llvm_backend_type_map.c"
+grep -Fq "return llvm_list_struct_type(ctx, inner_buf)" "$ROOT_DIR/src/codegen/llvm_backend_type_map.c"
+grep -Fq "return llvm_hashmap_struct_type(ctx, value_buf)" "$ROOT_DIR/src/codegen/llvm_backend_type_map.c"
+grep -Fq "List<HashMap<String, Int>>" "$ROOT_DIR/tests/cases/backend_compare/nested_generic_containers/main.pgy"
+grep -Fq "expected_inner_buf" "$ROOT_DIR/src/codegen/llvm_expr_rc_calls.c"
+grep -Fq "expected_inner = expected_inner_buf" "$ROOT_DIR/src/codegen/llvm_expr_rc_calls.c"
+grep -Fq "inner_name_buf" "$ROOT_DIR/src/codegen/llvm_expr.c"
+grep -Fq "suffix_buf" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
+grep -Fq "return pergyra_type_to_llvm(ctx, inner_buf)" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
+grep -Fq "tmp_inner" "$ROOT_DIR/src/codegen/llvm_expr_collection_base_calls.c"
+grep -Fq "inner_name = inner_name_buf" "$ROOT_DIR/src/codegen/llvm_expr_collection_base_calls.c"
+grep -Fq "return_type_owned = pergyra_strdup(return_type)" "$ROOT_DIR/src/codegen/transpiler.c"
+grep -Fq "pergyra_type_to_c_copy(inferred_return_type" "$ROOT_DIR/src/codegen/transpiler.c"
+grep -Fq "char ok_ctype_buf[128]" "$ROOT_DIR/src/codegen/transpiler_specialization_helpers.h"
+grep -Fq "pergyra_type_to_c_copy(ok_type" "$ROOT_DIR/src/codegen/transpiler_specialization_helpers.h"
+grep -Fq "pergyra_type_to_c_copy(err_type" "$ROOT_DIR/src/codegen/transpiler_specialization_helpers.h"
+grep -Fq "pergyra_type_to_c_copy(inner_type, ctype_buf" "$ROOT_DIR/src/codegen/transpiler_specialization_helpers.h"
+grep -Fq "char array_c_type_buf[256]" "$ROOT_DIR/src/codegen/transpiler_let_emit.h"
+grep -Fq "char inferred_c_type_buf[256]" "$ROOT_DIR/src/codegen/transpiler_let_emit.h"
+grep -Fq "char annotated_c_type_buf[256]" "$ROOT_DIR/src/codegen/transpiler_let_emit.h"
+grep -Fq "pergyra_type_to_c_copy(inferred_type" "$ROOT_DIR/src/codegen/transpiler_let_emit.h"
+grep -Fq "pergyra_type_to_c_copy(ann_source_type" "$ROOT_DIR/src/codegen/transpiler_let_emit.h"
+grep -Fq "pergyra_type_to_c_copy(array_type_name" "$ROOT_DIR/src/codegen/transpiler_let_emit.h"
+grep -Fq "char set_c_type_buf[256]" "$ROOT_DIR/src/codegen/transpiler_let_emit.h"
+grep -Fq "pergyra_type_to_c_copy(ann_type_name" "$ROOT_DIR/src/codegen/transpiler_let_emit.h"
+grep -Fq "pergyra_type_to_c_copy(ann_type_name, map_c_type_buf" "$ROOT_DIR/src/codegen/transpiler_let_emit.h"
+grep -Fq "pergyra_type_to_c_copy(ann_type_name, list_c_type_buf" "$ROOT_DIR/src/codegen/transpiler_let_emit.h"
+grep -Fq "pergyra_type_to_c_copy(ann_type_name, queue_c_type_buf" "$ROOT_DIR/src/codegen/transpiler_let_emit.h"
+grep -Fq "result_c_type = result_c_type_buf" "$ROOT_DIR/src/codegen/transpiler_let_emit.h"
+grep -Fq "pergyra_type_to_c_copy(result_type" "$ROOT_DIR/src/codegen/transpiler_let_emit.h"
+grep -Fq "char ctype_buf[256]" "$ROOT_DIR/src/codegen/transpiler_expr_dispatch_emit.h"
+grep -Fq "pergyra_type_to_c_copy(tuple_name" "$ROOT_DIR/src/codegen/transpiler_expr_dispatch_emit.h"
+grep -Fq "pergyra_type_to_c_copy(result_type" "$ROOT_DIR/src/codegen/transpiler_mir_block_emit.h"
+grep -Fq "pergyra_type_to_c_copy(subject_type" "$ROOT_DIR/src/codegen/transpiler_match_emit.h"
+grep -Fq "pergyra_type_to_c_copy(inner, inner_c_type_buf" "$ROOT_DIR/src/codegen/transpiler_match_emit.h"
+grep -Fq "pergyra_type_to_c_copy(ok_type" "$ROOT_DIR/src/codegen/transpiler_match_emit.h"
+grep -Fq "pergyra_type_to_c_copy(err_type" "$ROOT_DIR/src/codegen/transpiler_match_emit.h"
+grep -Fq "pergyra_type_to_c_copy(payload_type" "$ROOT_DIR/src/codegen/transpiler_mir_match_condition_emit.h"
+grep -Fq "pergyra_type_to_c_copy(inner, inner_c_type_buf" "$ROOT_DIR/src/codegen/transpiler_select.c"
+grep -Fq "pergyra_type_to_c_copy(return_type_name" "$ROOT_DIR/src/codegen/transpiler_spawn_channel_emit.h"
+grep -Fq "pergyra_type_to_c_copy(bound_type" "$ROOT_DIR/src/codegen/transpiler_spawn_channel_emit.h"
+grep -Fq "pergyra_type_to_c_copy(inferred_arg_type" "$ROOT_DIR/src/codegen/transpiler_spawn_channel_emit.h"
+grep -Fq "pergyra_type_to_c_copy(secure_name" "$ROOT_DIR/src/codegen/transpiler_let_slot_emit.h"
+grep -Fq "pergyra_type_to_c_copy(slot_name_buf" "$ROOT_DIR/src/codegen/transpiler_let_slot_emit.h"
+grep -Fq "pergyra_type_to_c_copy(type_name, c_type_buf" "$ROOT_DIR/src/codegen/transpiler_mir_func_ssa_locals_emit.h"
+grep -Fq "pergyra_type_to_c_copy(ret_name" "$ROOT_DIR/src/codegen/transpiler_domain_role_ability_emit.h"
+grep -Fq "pergyra_type_to_c_copy(ret_type_name" "$ROOT_DIR/src/codegen/transpiler_expr_call_spawn_emit.h"
+grep -Fq "pergyra_type_to_c_copy(inner, inner_c_type_buf" "$ROOT_DIR/src/codegen/transpiler_expr_dispatch_emit.h"
+grep -Fq "pergyra_type_to_c_copy(owner_role_subject_name" "$ROOT_DIR/src/codegen/transpiler_mir_func_emit.h"
+grep -Fq "pergyra_type_to_c_copy(participant_type" "$ROOT_DIR/src/codegen/transpiler_block_intent_rebind_helpers.h"
+grep -Fq "pergyra_type_to_c_copy(elem_names[j]" "$ROOT_DIR/src/codegen/transpiler_destructure_emit.h"
+grep -Fq "pergyra_type_to_c_copy(type_name, mapped" "$ROOT_DIR/src/codegen/transpiler_func_forward_helpers.h"
+grep -Fq "lookup_future_inner_type_copy" "$ROOT_DIR/src/codegen/transpiler_func_forward_helpers.h"
+grep -Fq "lookup_future_inner_type_copy(ctx" "$ROOT_DIR/src/codegen/transpiler_expr_dispatch_emit.h"
+grep -Fq "transpiler_require_type_name_c_type_copy" "$ROOT_DIR/src/codegen/transpiler_type_require.c"
+grep -Fq "transpiler_require_ast_c_type_copy" "$ROOT_DIR/src/codegen/transpiler_type_require.c"
+grep -Fq "pergyra_type_to_c_copy(type_name, out" "$ROOT_DIR/src/codegen/transpiler_type_require.c"
+grep -Fq "pergyra_type_to_c_copy(type_name, c_type" "$ROOT_DIR/src/codegen/transpiler_type_require.c"
+grep -Fq "transpiler_require_ast_c_type_copy(ctx, p->type" "$ROOT_DIR/src/codegen/transpiler_func_forward_emit.c"
+grep -Fq "transpiler_require_ast_c_type_copy(ctx" "$ROOT_DIR/src/codegen/transpiler_extern.c"
+grep -Fq "transpiler_require_ast_c_type_copy(ctx" "$ROOT_DIR/src/codegen/transpiler_block_intent_rebind_helpers.h"
+grep -Fq "transpiler_require_ast_c_type_copy(ctx" "$ROOT_DIR/src/codegen/transpiler_intent_prologue_emit.h"
+grep -Fq "transpiler_require_ast_c_type_copy(ctx" "$ROOT_DIR/src/codegen/transpiler_intent_zone_binding_emit.h"
+grep -Fq "transpiler_require_type_name_c_type_copy(ctx" "$ROOT_DIR/src/codegen/transpiler_intent_zone_binding_emit.h"
+grep -Fq "transpiler_require_type_name_c_type_copy(ctx" "$ROOT_DIR/src/codegen/transpiler_intent_prologue_emit.h"
+grep -Fq "transpiler_require_type_name_c_type_copy(ctx" "$ROOT_DIR/src/codegen/transpiler_domain_role_ability_emit.h"
+grep -Fq "snprintf(inner_buf, sizeof(inner_buf), \"%s\", inner)" "$ROOT_DIR/src/codegen/transpiler_expr_dispatch_emit.h"
 grep -Fq "if (result == NULL)" "$ROOT_DIR/src/codegen/llvm_backend_type_render.c"
 grep -Fq "if (gp == NULL)" "$ROOT_DIR/src/codegen/llvm_backend_type_render.c"
 ! grep -A8 -F "LLVM type '%s' is not registered in the LLVM type map" \
@@ -1531,7 +1637,7 @@ grep -A14 -F "case AST_NUMBER" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c" | 
 grep -A6 -F "if (init->type == AST_NUMBER)" "$ROOT_DIR/src/codegen/transpiler_let_emit.h" | \
     grep -Fq "infer_expression_type_name(ctx, init)"
 grep -A6 -F "if (init->type == AST_NUMBER)" "$ROOT_DIR/src/codegen/transpiler_let_emit.h" | \
-    grep -Fq "pergyra_type_to_c(inferred_type)"
+    grep -Fq "pergyra_type_to_c_copy(inferred_type"
 grep -Fq "transpiler_promote_numeric_type_name" "$ROOT_DIR/src/codegen/transpiler_expr_type_infer.h"
 grep -A28 -F "if (op == TOKEN_PLUS)" "$ROOT_DIR/src/codegen/transpiler_expr_type_infer.h" | \
     grep -Fq "transpiler_promote_numeric_type_name(left_type, right_type)"
@@ -1551,6 +1657,63 @@ grep -A10 -F "llvm_stmt_resolve_array_elem_type" "$ROOT_DIR/src/codegen/llvm_stm
 grep -A8 -F "llvm_register_future_var(LLVMGenCtx *ctx" \
     "$ROOT_DIR/src/codegen/llvm_registry_resources.c" | \
     grep -Fq "ctx == NULL || var_name == NULL || inner_type == NULL"
+grep -A14 -F "llvm_register_future_var(ctx, name, future_inner" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_let_with.c" | \
+    grep -Fq "free(future_inner)"
+grep -A10 -F "llvm_register_view_var(ctx, name, source_name, inner" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_let_resources.c" | \
+    grep -Fq "free(inner)"
+grep -A10 -F "llvm_register_slot_var(ctx, name, inner, is_secure)" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_let_resources.c" | \
+    grep -Fq "free(inner)"
+grep -A10 -F "llvm_register_slot_var(ctx, name, inner, is_secure)" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_let_slots.c" | \
+    grep -Fq "free(inner)"
+grep -A10 -F "llvm_register_device_slot_var(ctx, name, inner)" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_let_slots.c" | \
+    grep -Fq "free(inner)"
+! grep -Fq "generic_args->params[0]->name" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_let_slots.c"
+grep -Fq "llvm_keep_rendered_persistent" \
+    "$ROOT_DIR/src/codegen/llvm_backend_type_render.c"
+grep -Fq "llvm_keep_rendered_persistent(ctx" \
+    "$ROOT_DIR/src/codegen/llvm_boundary_slot_param.c"
+! grep -Fq "generic_args->params[0]->name" \
+    "$ROOT_DIR/src/codegen/llvm_boundary_slot_param.c"
+grep -Fq "llvm_keep_rendered_persistent(ctx" \
+    "$ROOT_DIR/src/codegen/llvm_expr_identifier_slot_helpers.c"
+! grep -Fq "generic_args->params[0]->name" \
+    "$ROOT_DIR/src/codegen/llvm_expr_identifier_slot_helpers.c"
+grep -Fq "llvm_keep_rendered_persistent(ctx" \
+    "$ROOT_DIR/src/codegen/llvm_mir_type_helpers.c"
+! grep -Fq "generic_args->params[0]->name" \
+    "$ROOT_DIR/src/codegen/llvm_mir_type_helpers.c"
+if command -v rg >/dev/null 2>&1 && rg --version >/dev/null 2>&1; then
+    if rg -Fq "generic_args->params[0]->name" \
+        "$ROOT_DIR/src/codegen" "$ROOT_DIR/src/compiler" \
+        "$ROOT_DIR/src/semantic" "$ROOT_DIR/src/parser"; then
+        echo "[perf-contract] generic type lowering regressed to direct params[0]->name field reads" >&2
+        exit 1
+    fi
+fi
+grep -Fq "render_type_name(param->constraint)" \
+    "$ROOT_DIR/src/codegen/transpiler_let_slot_emit.h"
+! grep -Fq "constraint->data.type.name" \
+    "$ROOT_DIR/src/codegen/transpiler_let_slot_emit.h"
+grep -Fq "transpiler_generic_class_effective_arg_name" \
+    "$ROOT_DIR/src/codegen/transpiler_generic_class_specialization_emit.h"
+grep -Fq "render_type_name(arg->constraint)" \
+    "$ROOT_DIR/src/codegen/transpiler_generic_class_specialization_emit.h"
+! grep -Fq "garg->constraint->data.type.name" \
+    "$ROOT_DIR/src/codegen/transpiler_generic_class_specialization_emit.h"
+grep -A10 -F "llvm_register_channel_var(ctx, name, channel_inner)" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_let_collections.c" | \
+    grep -Fq "free(channel_inner)"
+grep -Fq "owned_inner_name = llvm_stmt_render_type_arg" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_let_collections.c"
+grep -A10 -F "llvm_register_array_var(ctx, name, elem_type" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_let_collections.c" | \
+    grep -Fq "free(owned_inner_name)"
 grep -A8 -F "llvm_lookup_future_inner(LLVMGenCtx *ctx" \
     "$ROOT_DIR/src/codegen/llvm_registry_resources.c" | \
     grep -Fq "ctx == NULL || var_name == NULL"
@@ -1951,5 +2114,15 @@ if grep -Fq "pgy_mir_resource_op_export" \
     echo "[perf-contract] MIR trace exports regressed into the intent trace owner" >&2
     exit 1
 fi
+grep -Fq "char ret_type_storage[128]" \
+    "$ROOT_DIR/src/codegen/transpiler_domain_nominal_emit.h" || {
+    echo "[perf-contract] included-role wrapper stopped freezing return C type" >&2
+    exit 1
+}
+grep -Fq "char ret_type_storage[128]" \
+    "$ROOT_DIR/src/codegen/transpiler_domain_role_methods_emit.h" || {
+    echo "[perf-contract] role operator alias stopped freezing return C type" >&2
+    exit 1
+}
 
 echo "[perf-contract] perf summary contract is smoke-gated"
