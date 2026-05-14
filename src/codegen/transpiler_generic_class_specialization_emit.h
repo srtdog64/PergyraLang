@@ -253,7 +253,7 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
     ClassField **fields = ast_class_fields(class_decl, &field_count);
     for (size_t i = 0; i < field_count; i++) {
         ClassField *f = fields != NULL ? fields[i] : NULL;
-        const char *ft = NULL;
+        char ft[256];
         char surface_desc[256];
         if (!transpiler_generic_class_surface_desc(
                 surface_desc, sizeof(surface_desc),
@@ -268,8 +268,11 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
             codebuf_destroy(nbuf);
             return NULL;
         }
-        ft = transpiler_require_ast_c_type(ctx, f != NULL ? f->type : NULL, surface_desc);
-        if (ft == NULL) {
+        if (!transpiler_require_ast_c_type_copy(ctx,
+                f != NULL ? f->type : NULL,
+                surface_desc,
+                ft,
+                sizeof(ft))) {
             transpiler_type_render_ctx_restore(saved_render_ctx);
             ctx->generic_binding_count = saved_binding_count;
             codebuf_destroy(nbuf);
@@ -371,9 +374,14 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
             continue;
         }
 
+        char ret_type_buf[256];
         const char *ret_type = "void";
-        if (method->data.func_decl.return_type != NULL)
-            ret_type = pergyra_ast_type_to_c(method->data.func_decl.return_type);
+        if (method->data.func_decl.return_type != NULL
+            && pergyra_ast_type_to_c_copy(method->data.func_decl.return_type,
+                ret_type_buf,
+                sizeof(ret_type_buf))) {
+            ret_type = ret_type_buf;
+        }
 
         if (use_self_cell) {
             codebuf_write(ctx->helpers, "\n%s\n%s_%s(%s *self",
@@ -389,7 +397,7 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
                 continue;
             if (strcmp(p->name, "self") == 0)
                 continue;
-            const char *pt = NULL;
+            char pt[256];
             char surface_desc[256];
             if (!transpiler_generic_class_surface_desc(
                     surface_desc, sizeof(surface_desc),
@@ -404,8 +412,11 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
                 codebuf_destroy(nbuf);
                 return NULL;
             }
-            pt = transpiler_require_ast_c_type(ctx, p != NULL ? p->type : NULL, surface_desc);
-            if (pt == NULL) {
+            if (!transpiler_require_ast_c_type_copy(ctx,
+                    p != NULL ? p->type : NULL,
+                    surface_desc,
+                    pt,
+                    sizeof(pt))) {
                 transpiler_type_render_ctx_restore(saved_render_ctx);
                 ctx->generic_binding_count = saved_binding_count;
                 codebuf_destroy(nbuf);

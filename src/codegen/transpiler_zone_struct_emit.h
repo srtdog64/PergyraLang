@@ -44,7 +44,7 @@ transpiler_emit_zone_struct_decl(TranspilerCtx *ctx, ASTNode *node, const char *
     ASTNode **slots = ast_zone_slots(node, &slot_count);
     for (size_t i = 0; i < slot_count; i++) {
         ASTNode *slot = slots[i];
-        const char *ft = NULL;
+        char ft[256];
         char surface_desc[256];
         if (!transpiler_zone_surface_desc(surface_desc,
                 sizeof(surface_desc), "zone slot", name,
@@ -52,12 +52,14 @@ transpiler_emit_zone_struct_decl(TranspilerCtx *ctx, ASTNode *node, const char *
             transpiler_zone_surface_desc_too_long(ctx, "zone slot");
             return false;
         }
-        ft = transpiler_require_ast_c_type(
-            ctx,
-            ast_domain_slot_type(slot),
-            surface_desc);
-        if (ft == NULL)
+        if (!transpiler_require_ast_c_type_copy(
+                ctx,
+                ast_domain_slot_type(slot),
+                surface_desc,
+                ft,
+                sizeof(ft))) {
             return false;
+        }
         codebuf_write(ctx->out, "    %s %s;\n", ft,
             ast_domain_slot_name(slot));
         if (!ast_domain_slot_is_subject(slot)) {
@@ -99,7 +101,7 @@ transpiler_emit_zone_struct_decl(TranspilerCtx *ctx, ASTNode *node, const char *
     ASTNode **shared_fields = ast_zone_shared_fields(node, &shared_count);
     for (size_t i = 0; i < shared_count; i++) {
         ASTNode *shared = shared_fields[i];
-        const char *ft = NULL;
+        char ft[256];
         char surface_desc[256];
         if (!transpiler_zone_surface_desc(surface_desc,
                 sizeof(surface_desc), "zone shared field", name,
@@ -107,12 +109,14 @@ transpiler_emit_zone_struct_decl(TranspilerCtx *ctx, ASTNode *node, const char *
             transpiler_zone_surface_desc_too_long(ctx, "zone shared field");
             return false;
         }
-        ft = transpiler_require_ast_c_type(
-            ctx,
-            ast_party_shared_type(shared),
-            surface_desc);
-        if (ft == NULL)
+        if (!transpiler_require_ast_c_type_copy(
+                ctx,
+                ast_party_shared_type(shared),
+                surface_desc,
+                ft,
+                sizeof(ft))) {
             return false;
+        }
         codebuf_write(ctx->out, "    %s %s;\n", ft,
             ast_party_shared_name(shared));
     }

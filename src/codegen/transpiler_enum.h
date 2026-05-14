@@ -10,7 +10,9 @@
 
 #include "transpiler.h"
 
-const char *lookup_enum_variant_qualified_name(TranspilerCtx *ctx,
-                                               const char *variant_name);
+bool lookup_enum_variant_qualified_name_copy(TranspilerCtx *ctx,
+                                             const char *variant_name,
+                                             char *out,
+                                             size_t out_size);
 
 #endif /* PERGYRA_TRANSPILER_ENUM_H */

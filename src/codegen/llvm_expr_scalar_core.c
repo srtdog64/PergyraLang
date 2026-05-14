@@ -7,9 +7,12 @@
 
 #include "llvm_expr_scalar_core.h"
 
+#include <limits.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 
+#include "codegen_scalar_arithmetic_policy.h"
 #include "llvm_expr_string_coerce.h"
 #include "llvm_internal_api.h"
 
@@ -32,6 +35,15 @@ llvm_function_signature_from_event_type(LLVMGenCtx *ctx, ASTNode *type_node)
     }
 
     if (param_count > 0) {
+        if (param_count > (size_t)UINT_MAX
+            || param_count > SIZE_MAX / sizeof(LLVMTypeRef)) {
+            llvm_set_error_at_with_hints(ctx, type_node,
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                PGY_FIX_ALIGN_GENERIC_ARG_LIST,
+                "LLVM event-handler signature parameter count exceeds backend ABI limits");
+            return NULL;
+        }
         param_types = pgy_arena_calloc(&ctx->scratch, param_count * sizeof(LLVMTypeRef));
         if (param_types == NULL) {
             llvm_set_error_at_with_hints(ctx, type_node,
@@ -372,30 +384,35 @@ llvm_emit_binary(ASTNode *node, LLVMGenCtx *ctx)
     if (!is_float && (node->data.binary.op.type == TOKEN_SLASH
         || node->data.binary.op.type == TOKEN_PERCENT)) {
         bool use_i64 = left_type == ctx->type_i64 || right_type == ctx->type_i64;
-        const char *helper = node->data.binary.op.type == TOKEN_SLASH
-            ? (use_i64 ? "pgy_checked_div_i64_export"
-                       : "pgy_checked_div_i32_export")
-            : (use_i64 ? "pgy_checked_mod_i64_export"
-                       : "pgy_checked_mod_i32_export");
-        LLVMFuncEntry *fn = llvm_required_checked_math_function(ctx, node,
-            helper);
-        if (fn != NULL) {
-            LLVMValueRef args[2];
-            if (use_i64) {
-                if (left_type == ctx->type_i32)
-                    left = LLVMBuildSExt(ctx->builder, left, ctx->type_i64,
-                                         llvm_tmp_name(ctx));
-                if (right_type == ctx->type_i32)
-                    right = LLVMBuildSExt(ctx->builder, right, ctx->type_i64,
-                                          llvm_tmp_name(ctx));
+        bool rhs_is_nonzero_literal = !use_i64
+            && pgy_codegen_ast_number_is_nonzero_i32_literal(
+                node->data.binary.right);
+        if (!rhs_is_nonzero_literal) {
+            const char *helper = node->data.binary.op.type == TOKEN_SLASH
+                ? (use_i64 ? "pgy_checked_div_i64_export"
+                           : "pgy_checked_div_i32_export")
+                : (use_i64 ? "pgy_checked_mod_i64_export"
+                           : "pgy_checked_mod_i32_export");
+            LLVMFuncEntry *fn = llvm_required_checked_math_function(ctx, node,
+                helper);
+            if (fn != NULL) {
+                LLVMValueRef args[2];
+                if (use_i64) {
+                    if (left_type == ctx->type_i32)
+                        left = LLVMBuildSExt(ctx->builder, left, ctx->type_i64,
+                                             llvm_tmp_name(ctx));
+                    if (right_type == ctx->type_i32)
+                        right = LLVMBuildSExt(ctx->builder, right, ctx->type_i64,
+                                              llvm_tmp_name(ctx));
+                }
+                args[0] = left;
+                args[1] = right;
+                return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn,
+                                      args, 2, llvm_tmp_name(ctx));
             }
-            args[0] = left;
-            args[1] = right;
-            return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn,
-                                  args, 2, llvm_tmp_name(ctx));
+            return llvm_scalar_expr_error(ctx, node,
+                "LLVM checked arithmetic requires runtime helper lowering");
         }
-        return llvm_scalar_expr_error(ctx, node,
-            "LLVM checked arithmetic requires runtime helper lowering");
     }
 
     const char *tmp = llvm_tmp_name(ctx);

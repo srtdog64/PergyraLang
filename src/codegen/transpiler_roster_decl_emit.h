@@ -23,7 +23,7 @@ emit_roster_decl(ASTNode *node, TranspilerCtx *ctx)
 
     for (size_t i = 0; i < ast_roster_shared_count(node); i++) {
         ASTNode *shared = ast_roster_shared(node, i);
-        const char *field_type = NULL;
+        char field_type[256];
         char surface_desc[256];
         if (!transpiler_domain_nominal_surface_desc(surface_desc,
                 sizeof(surface_desc), "roster shared field", name,
@@ -33,12 +33,14 @@ emit_roster_decl(ASTNode *node, TranspilerCtx *ctx)
                 ctx, "roster shared field");
             return;
         }
-        field_type = transpiler_require_ast_c_type(
-            ctx,
-            ast_party_shared_type(shared),
-            surface_desc);
-        if (field_type == NULL)
+        if (!transpiler_require_ast_c_type_copy(
+                ctx,
+                ast_party_shared_type(shared),
+                surface_desc,
+                field_type,
+                sizeof(field_type))) {
             return;
+        }
         codebuf_write(ctx->out, "    %s %s;\n",
             field_type, ast_party_shared_name(shared));
     }

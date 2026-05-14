@@ -128,15 +128,26 @@ bool
 dir_collect_intent_info(DIRProgram *dir, size_t from_id, ASTNode *node)
 {
     DIRIntentInfo info;
+    ASTNode **involves_nodes;
+    ASTNode **values;
+    ASTNode **steps;
+    size_t involve_count;
+    size_t value_count;
+    size_t step_count;
     memset(&info, 0, sizeof(info));
     info.node_id = from_id;
 
-    for (size_t i = 0; i < node->data.intent_decl.involve_count; i++) {
-        ASTNode *inv = node->data.intent_decl.involves[i];
+    involves_nodes = ast_intent_decl_involves(node, &involve_count);
+    values = ast_intent_decl_values(node, &value_count);
+    steps = ast_intent_decl_steps(node, &step_count);
+
+    for (size_t i = 0; i < involve_count; i++) {
+        ASTNode *inv = involves_nodes[i];
         DIRIntentParticipant participant;
         memset(&participant, 0, sizeof(participant));
-        participant.alias = inv->data.intent_involves.alias;
-        participant.subject_type_name = type_name(dir, inv->data.intent_involves.subject_type);
+        participant.alias = ast_intent_involves_alias(inv);
+        participant.subject_type_name = type_name(
+            dir, ast_intent_involves_subject_type(inv));
         {
             ssize_t to = dir_find_any_node_by_name(dir, participant.subject_type_name);
             participant.subject_type_node_id = to >= 0 ? (size_t)to : SIZE_MAX;
@@ -155,12 +166,13 @@ dir_collect_intent_info(DIRProgram *dir, size_t from_id, ASTNode *node)
             goto oom;
     }
 
-    for (size_t i = 0; i < node->data.intent_decl.value_count; i++) {
-        ASTNode *value = node->data.intent_decl.values[i];
+    for (size_t i = 0; i < value_count; i++) {
+        ASTNode *value = values[i];
         DIRIntentParticipant participant;
         memset(&participant, 0, sizeof(participant));
-        participant.alias = value->data.intent_value.alias;
-        participant.subject_type_name = type_name(dir, value->data.intent_value.value_type);
+        participant.alias = ast_intent_value_alias(value);
+        participant.subject_type_name = type_name(
+            dir, ast_intent_value_type(value));
         participant.is_value_binding = true;
         {
             ssize_t to = dir_find_any_node_by_name(dir, participant.subject_type_name);
@@ -180,8 +192,8 @@ dir_collect_intent_info(DIRProgram *dir, size_t from_id, ASTNode *node)
             goto oom;
     }
 
-    for (size_t i = 0; i < node->data.intent_decl.step_count; i++) {
-        ASTNode *step_node = node->data.intent_decl.steps[i];
+    for (size_t i = 0; i < step_count; i++) {
+        ASTNode *step_node = steps[i];
         DIRIntentStep step;
         memset(&step, 0, sizeof(step));
         step.index = i;
@@ -196,8 +208,8 @@ dir_collect_intent_info(DIRProgram *dir, size_t from_id, ASTNode *node)
             && ast_intent_step_using_expr(step_node)->type == AST_IDENTIFIER
             ? ast_intent_step_using_expr(step_node)->data.identifier.name
             : NULL;
-        step.predecessor_step_name = (i > 0 && node->data.intent_decl.steps[i - 1] != NULL)
-            ? ast_intent_step_name(node->data.intent_decl.steps[i - 1])
+        step.predecessor_step_name = (i > 0 && steps[i - 1] != NULL)
+            ? ast_intent_step_name(steps[i - 1])
             : NULL;
         step.predecessor_step_index = i > 0 ? (i - 1) : SIZE_MAX;
         step.transfer_from_alias = ast_intent_step_transfer_from_alias(step_node);

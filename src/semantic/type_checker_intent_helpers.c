@@ -49,52 +49,19 @@ intent_semantic_append_name(char ***items, size_t *count, size_t *capacity,
     return true;
 }
 
-bool
-intent_step_append_required_ability_clone(ASTNode *step, ASTNode *ability)
-{
-    ASTNode **grown;
-    ASTNode *ability_copy;
-
-    if (step == NULL || ability == NULL || step->type != AST_INTENT_STEP)
-        return false;
-    ability_copy = ast_clone(ability);
-    if (ability_copy == NULL)
-        return false;
-    if (step->data.intent_step.required_ability_count
-        == step->data.intent_step.required_ability_capacity) {
-        size_t next_capacity =
-            step->data.intent_step.required_ability_capacity == 0
-                ? 4
-                : step->data.intent_step.required_ability_capacity * 2;
-        if (next_capacity < step->data.intent_step.required_ability_capacity
-            || next_capacity > SIZE_MAX / sizeof(ASTNode *)) {
-            ast_destroy(ability_copy);
-            return false;
-        }
-        grown = realloc(step->data.intent_step.required_abilities,
-            next_capacity * sizeof(ASTNode *));
-        if (grown == NULL) {
-            ast_destroy(ability_copy);
-            return false;
-        }
-        step->data.intent_step.required_abilities = grown;
-        step->data.intent_step.required_ability_capacity = next_capacity;
-    }
-    step->data.intent_step.required_abilities[
-        step->data.intent_step.required_ability_count++] = ability_copy;
-    return true;
-}
-
 const char *
 intent_step_single_who_alias(const ASTNode *step)
 {
+    char **who_names;
+    size_t who_count;
+
     if (step == NULL || step->type != AST_INTENT_STEP)
         return NULL;
-    if (step->data.intent_step.who_count != 1
-        || step->data.intent_step.who_names == NULL) {
+    who_names = ast_intent_step_who_names(step, &who_count);
+    if (who_count != 1 || who_names == NULL) {
         return NULL;
     }
-    return step->data.intent_step.who_names[0];
+    return who_names[0];
 }
 
 bool
@@ -119,12 +86,14 @@ intent_condition_is_bool(ASTNode *expr, SemanticContext *ctx, const char *label)
 const char *
 intent_involves_type_name(ASTNode *involves)
 {
+    ASTNode *subject_type = ast_intent_involves_subject_type(involves);
+
     if (involves == NULL || involves->type != AST_INTENT_INVOLVES
-        || involves->data.intent_involves.subject_type == NULL
-        || involves->data.intent_involves.subject_type->type != AST_TYPE) {
+        || subject_type == NULL
+        || subject_type->type != AST_TYPE) {
         return NULL;
     }
-    return involves->data.intent_involves.subject_type->data.type.name;
+    return subject_type->data.type.name;
 }
 
 bool

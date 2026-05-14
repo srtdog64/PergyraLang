@@ -118,12 +118,25 @@ static inline void *
 pgy_alloc(PgyAllocator *alloc, size_t size, size_t align)
 {
     if (alloc != NULL && alloc->kind == PGY_ALLOC_POOL) {
-        size_t offset = (alloc->pool->offset + align - 1) & ~(align - 1);
+        size_t align_mask;
+        size_t offset;
         void *ptr;
-        if (offset + size > alloc->pool->capacity)
+        if (alloc->pool == NULL || align == 0 || (align & (align - 1)) != 0)
+            PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                              "invalid pool allocator state or alignment");
+        align_mask = align - 1;
+        if (alloc->pool->offset > SIZE_MAX - align_mask)
             PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OOM,
                               PGY_RUNTIME_PANIC_REASON_POOL_OUT_OF_MEMORY);
-        ptr = alloc->pool->buffer + offset;
+        offset = (alloc->pool->offset + align_mask) & ~align_mask;
+        if (offset > alloc->pool->capacity
+            || size > alloc->pool->capacity - offset)
+            PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OOM,
+                              PGY_RUNTIME_PANIC_REASON_POOL_OUT_OF_MEMORY);
+        if (alloc->pool->buffer == NULL && size > 0)
+            PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                              "pool allocator has no backing buffer");
+        ptr = size == 0 ? NULL : alloc->pool->buffer + offset;
         alloc->pool->offset = offset + size;
         pgy_allocator_record_alloc(alloc, size);
         if (alloc->debug_enabled)

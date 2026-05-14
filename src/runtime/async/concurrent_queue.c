@@ -120,7 +120,7 @@ ConcurrentQueueDestroy(ConcurrentQueue *queue)
     free(queue);
 }
 
-void
+bool
 ConcurrentQueuePush(ConcurrentQueue *queue, void *data)
 {
     ConcurrentQueueState *state = queue_state(queue);
@@ -128,13 +128,13 @@ ConcurrentQueuePush(ConcurrentQueue *queue, void *data)
 
     if (state == NULL) {
         concurrent_queue_warn("push", "queue state is null", queue);
-        return;
+        return false;
     }
 
     node = queue_node_create(data);
     if (node == NULL) {
         concurrent_queue_warn("push", "node allocation failed", queue);
-        return;
+        return false;
     }
 
     pthread_mutex_lock(&state->mutex);
@@ -142,6 +142,7 @@ ConcurrentQueuePush(ConcurrentQueue *queue, void *data)
     state->tail = node;
     atomic_fetch_add_explicit(&queue->size, 1, memory_order_acq_rel);
     pthread_mutex_unlock(&state->mutex);
+    return true;
 }
 
 void *

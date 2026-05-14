@@ -17,7 +17,8 @@ void register_slot_var(TranspilerCtx *ctx, const char *name,
                        bool is_indirect);
 void set_slot_token_name(TranspilerCtx *ctx, const char *slot_name,
                          const char *token_name);
-const char *lookup_slot_type(TranspilerCtx *ctx, const char *var_name);
+bool lookup_slot_type_copy(TranspilerCtx *ctx, const char *var_name,
+                           char *out, size_t out_size);
 bool lookup_slot_is_secure(TranspilerCtx *ctx, const char *var_name);
 const char *lookup_slot_token_name(TranspilerCtx *ctx, const char *var_name);
 const char *require_slot_token_name(TranspilerCtx *ctx,

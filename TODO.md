@@ -2,6 +2,44 @@
 
 English anchor for tooling/doc gates:
 
+- Intent-step `authorized by` derived/inherited mutation is now parser-AST API
+  owned: semantic compact-intent and zone-authority inference paths append,
+  clear, and mark `authorized_by` provenance through
+  `ast_intent_step_append_authorized_by_copy(...)`,
+  `ast_intent_step_clear_authorized_by(...)`, and matching provenance mutators
+  instead of reopening the internal array/capacity fields. The semantic core
+  shape smoke rejects new direct `authorized_by` array/provenance writes in
+  semantic owners.
+- Intent-step `who` derived/inherited mutation now follows the same parser-AST
+  API boundary. Action-contract inheritance, single-participant inference, and
+  on-receiver inference append `who` aliases through
+  `ast_intent_step_append_who_name_copy(...)` and mark provenance through the
+  matching AST mutators. The semantic core shape smoke rejects new direct
+  `who_names` array/provenance writes in semantic owners.
+- Intent-step `requires` inheritance now uses
+  `ast_intent_step_append_required_ability_clone(...)` and
+  `ast_intent_step_mark_inherited_requires_from_action(...)`; the semantic-local
+  clone/append helper was removed. The semantic core shape smoke rejects new
+  direct `required_abilities` array/provenance writes in semantic owners.
+- Compact intent semantic owners for action-contract inheritance, on-receiver
+  inference, zone-authority inference, and role/zone binding context no longer
+  read or write `data.intent_step.*` directly. They consume the AST accessor /
+  mutator seam for `where`, `using`, `requires`, `causes`, `who`, and
+  `authorized by`; `semantic_core_shape_smoke` now gates these four owners as
+  zero direct-payload consumers.
+- Intent helper/transfer/type seams now also avoid direct `data.intent_step.*`
+  access. Transfer target shorthand canonicalization uses
+  `ast_intent_step_replace_transfer_to_alias_copy(...)`, and transfer/type
+  validation reads transfer aliases, using expressions, where type, and
+  provenance through accessors.
+- Intent AST source-of-truth closure is now global outside parser-owned
+  storage/printing/destruction: semantic, compiler, and codegen consumers have
+  zero direct `data.intent_*` reads/writes. The orchestration owner
+  `type_checker_intent_decl.c`, DIR/HIR/RIR/MIR consumers, C intent emitters,
+  and LLVM intent declaration/call paths now snapshot intent declaration,
+  participant, value, and step facts through parser-owned AST accessors.
+  `semantic_core_shape_smoke` gates the whole semantic/compiler/codegen
+  boundary so codegen cannot reintroduce AST-payload ownership drift.
 - Self-host work begins after BETA closure and final dogfood.
 - Self-host handoff docs live in `docs/self_hosted/README.md`; future agents should start there only after reading the beta source-of-truth docs.
 - Exact beta-exit handoff criteria live in `docs/self_hosted/04_beta_exit_handoff.md`.
@@ -105,6 +143,27 @@ English anchor for tooling/doc gates:
   compact-intent inference and action/zone contract materialization, so
   semantic writer paths may still update the payload directly until
   setter/mutator APIs are introduced.
+- Intent step mutation closure started with explicit parser-owned mutators for
+  inferred `where`, inferred `using`, copied `causes`, and the corresponding
+  provenance marks. Action-contract inheritance, on-receiver inference, and
+  transfer/zone-binding inference now use those setter/mark seams for simple
+  field materialization. `who`, `requires`, and `authorized by`
+  append/provenance writes now use parser-owned mutators too.
+- Slot boilerplate surface trust closure: `examples/hello.pgy` now uses the
+  ordinary value/log path and no longer presents `ClaimSlot` / `Write` / `Read`
+  / `Release` as Hello World. README and `docs/118_slot_model_rigor_audit.md`
+  now state that Slot is the explicit resource-boundary model, not the default
+  value model. `documentation_quality_smoke.sh` gates this wording and forbids
+  `ClaimSlot` / `Release(` from re-entering `examples/hello.pgy`. The same
+  positioning now applies to `examples/basic.pgy`, which is an ordinary-value
+  syntax sample and intentionally avoids Slot lifecycle APIs; explicit resource
+  lifecycle examples stay in `examples/slots_simple.pgy` and related resource
+  probes. README stable example guidance now separates ordinary entry examples,
+  domain examples, resource-boundary examples, and dogfood bridge examples so
+  resource semantics are visible without being presented as the default entry
+  path. `docs/65_stable_example_surface_board.md` now carries the same tier
+  contract and `documentation_quality_smoke.sh` gates that ordinary entry
+  examples must not present Slot lifecycle as the default value model.
 - `backend_inc_size_smoke.sh` now gates production runtime/codegen/compiler
   implementation-style headers at the same 600 LOC signal used for owner TUs.
   This prevents `.inc` removal from reappearing as oversized header bodies.
@@ -323,6 +382,21 @@ English anchor for tooling/doc gates:
   Gates: `test-mir`, targeted backend compare for pin-return fixtures, and
   full `llvm-test-backend-compare` / backend compare (`71/71` after the
   party/roster hosted-method and role-include wrapper fixtures were added).
+- C-vs-Pergyra generated-C performance now has a concrete baseline fixture.
+  `tests/perf_c_baseline_smoke.sh` compiles the same bounded arithmetic loop as
+  hand-written C (`gcc -O3`) and as Pergyra C backend output (`--backend=c
+  --opt=release`), checks identical output, and records `pgy_over_c_ratio`
+  instead of claiming faster-than-C. This is a near-C baseline with run-to-run
+  noise, not evidence of a stable faster-than-C result; CI output owns the
+  current ratio. Gate: `perf-c-baseline-test-smoke`; local native Windows
+  spot-checks can run `tests/perf_c_baseline_smoke.ps1`. The gate also inspects
+  emitted C and rejects
+  `pgy_checked_mod_i32_export` / `pgy_checked_div_i32_export` for the fixture's
+  `i % 97` / `i / 97`; constant nonzero integer divisor/modulus operands now
+  lower to direct arithmetic in both C and LLVM because divide-by-zero panic is
+  statically impossible. The shared decision lives in
+  `codegen_scalar_arithmetic_policy.c` so backend parity is not maintained by
+  duplicated literal predicates.
 - C backend MIR local type lookup no longer returns rendered local type names
   through shared `static char rendered*` scratch buffers. Recursive/nested local
   inference now copies rendered names into `TranspilerCtx.arena`, keeping the
@@ -341,14 +415,13 @@ English anchor for tooling/doc gates:
   probe `pgy_intent_active_index_find_slot*` first. Gate:
   `perf-contract-test-smoke`.
 - C MIR resource op emission now snapshots slot/resource inner type names before
-  passing them through `pergyra_type_to_c(...)`. This matters for nested payloads
-  such as `Slot<Array<Int>>`: the type mapper may call `slot_inner_type_name`
-  internally, so the runtime helper suffix must not keep pointing at the shared
-  slot-inner scratch buffer. Gates: `bin/pgy.exe`, `test-transpile`,
-  `perf-contract-test-smoke`.
+  passing them through `pergyra_type_to_c_copy(...)`. This matters for nested
+  payloads such as `Slot<Array<Int>>`: type mapping is copy-only, so runtime
+  helper suffixes must stay in caller-owned storage. Gates: `bin/pgy.exe`,
+  `test-transpile`, `perf-contract-test-smoke`.
 - C array destructuring and array stdlib helpers follow the same inner-type
   snapshot rule. `Array<T>` / `Slice<T>` destructuring and `ArrayReverse` copy
-  `T` before lowering it through `pergyra_type_to_c(...)`, so nested element
+  `T` before lowering it through `pergyra_type_to_c_copy(...)`, so nested element
   types do not clobber the source inner-name used for typed local registration
   or helper naming. Gates: `bin/pgy.exe`, `test-transpile`,
   `perf-contract-test-smoke`.
@@ -620,11 +693,273 @@ English anchor for tooling/doc gates:
   `pthread_mutex_init`, avoiding a runtime handle manager with unusable table or
   mutex state. The payload-size comment was normalized to ASCII to keep source
   UTF/encoding gates honest.
+- Slot manager table allocation and secure scope handle/token arrays now guard
+  `count * sizeof(T)` sizing before `calloc` and before token wiping. This keeps
+  the Slot/Pin runtime ABI on the same fail-closed allocation policy as the
+  world/roster and party runtime arrays.
+- Async scheduler worker allocation now uses the existing scheduler array-size
+  guard before `calloc`, so worker-count scaling cannot wrap the backing worker
+  array size before thread initialization.
+- LLVM call/spawn/event/callable lowering now guards scratch arena argument
+  arrays against `size_t` multiplication overflow and LLVM C API `unsigned`
+  arity truncation before building argument vectors.
+- LLVM Rc lowering no longer returns the expected inner type through a static
+  scratch buffer; `llvm_rc_expected_inner_copy(...)` writes into caller-owned
+  storage before payload lowering can trigger nested type rendering.
+- C backend MIR intent metadata collectors now share a checked capacity-growth
+  helper before allocating eval/participant/alias scratch arrays, removing the
+  repeated unchecked `capacity * 2` / `new_capacity * sizeof(T)` pattern from
+  that owner.
+- C backend enum-constructor lowering now guards argument pointer-array sizing
+  and generated call-buffer length accumulation before emitting the constructor
+  call string; `test-transpile` covers the changed emitter path.
+- Inline `List` / `Queue` capacity growth is now bounded by both allocation
+  sizing and `INT32_MAX`, keeping the runtime collection capacity contract
+  aligned with the stable `Int`-returning size APIs.
+- LLVM raw List/Queue/HashMap/Set exports and inline HashMap growth now follow
+  the same `INT32_MAX` capacity ceiling, so `Size(...) -> Int` cannot silently
+  truncate after large collection growth.
 - Slot manager plain-payload storage helpers now live in
   `slot_manager_storage.c`, because plain write, secure-slot flows, and pin
   views all consume the same storage/checksum/free helpers. `slot_manager.c`
   stays focused on manager lifecycle, claim/read/write/release, and scope
   release instead of owning shared payload mechanics.
+- Secure slot scope destruction now fails closed when any scoped slot is still
+  pinned. `SecureSlotScopeDestroyChecked(...)` returns `SLOT_ERROR_PINNED`
+  without wiping/freeing the scope-owned handle/token arrays, so callers can
+  unpin and retry. The legacy `SecureSlotScopeDestroy(...)` wrapper treats that
+  condition as an internal-invariant panic instead of silently destroying the
+  release capability and leaving a pinned secure slot unreleasable.
+- Runtime pointer arithmetic hardening pass: pool/arena allocators now reject
+  invalid alignment and offset arithmetic overflow before deriving a pointer,
+  return `NULL` for zero-size pool/arena allocations instead of doing pointer
+  arithmetic on a null backing buffer, `PGY_ARENA_ALLOC_ARRAY` routes through a
+  checked array-size helper, array slicing uses `start > length || len >
+  length - start` instead of `start + len`, and fused `Box<Array<T>>`
+  allocation checks header-plus-storage overflow before allocating.
+- SlotPool creation now rejects capacities outside the 32-bit `PoolIndex`
+  range and guards cache-line alignment, data-array, occupancy-bitmap, and
+  free-list allocation sizes before deriving pool pointers. This keeps the
+  low-level pool runtime aligned with the same pointer-arithmetic contract as
+  Slot and collection storage.
+- AsyncScope spawning now enqueues the exact `Fiber` that the scope tracks.
+  Previously the scope created and tracked one fiber, then called the scheduler
+  API that created a second fiber over the same wrapper data. That could leave
+  the scope waiting on a fiber that never ran while the scheduled fiber was not
+  scope-owned. `SchedulerEnqueueFiberWithPriority(...)` now owns the existing
+  fiber enqueue path, `ConcurrentQueuePush(...)` reports allocation failure,
+  and scope tracking rolls back without fabricating completion stats when
+  enqueue fails.
+- Runtime string/file ABI hardening pass: inline and LLVM-linkable string
+  helpers now release resolved file paths on every error exit, guard
+  `Substring`, `StringReplace`, `StringConcat`, and `StringJoin` length
+  arithmetic before allocation, and keep file descriptor reuse parity between
+  inline and exported runtimes. `runtime-abi-lifetime-test-smoke` now gates the
+  ownership and overflow guard vocabulary so this does not regress silently.
+- LLVM-linkable raw array slice export now uses `start > length || len > length
+  - start` and returns an empty null-backed slice for zero-length slices before
+  deriving a backing pointer. This removes the last exported `start + len`
+  pointer-range check found in the runtime audit.
+- Inline `pgy_input` now returns a duplicated result-owned string instead of a
+  static borrowed buffer, matching the LLVM-linkable `pgy_input` ABI and
+  removing a C/LLVM ownership drift for interactive input.
+- `Queue<String>` storage now has an explicit owned-copy contract on both
+  backends. Generated-C inline queue push duplicates strings, and LLVM raw queue
+  lowering uses `pgy_queue_push_string_raw_export` /
+  `pgy_queue_pop_string_raw_export` instead of the generic pointer-memcpy path.
+  This prevents stack/temporary string pointers from becoming queue-owned
+  dangling pointers.
+- LLVM-linkable `Channel<String>` export now mirrors that owned-message rule:
+  send duplicates the source string into channel-owned storage, receive clears
+  the channel slot and transfers the owned payload, and destroy frees any
+  pending unreceived payloads.
+- `List<String>` now uses string-specific LLVM raw exports too. Push/set
+  duplicate incoming string values, get returns a list-borrowed pointer, and
+  remove frees the list-owned payload before shifting the tail, matching the
+  generated-C inline string list ownership model.
+- `Set<String>` now mirrors that owned-copy contract on the LLVM raw path:
+  add duplicates input strings, has uses borrowed probes only for the call, and
+  remove frees the set-owned payload before tombstoning the slot. This also
+  fixes the raw set deletion seam so linear-probing chains are not broken by a
+  cleared slot.
+- Raw `Set<T>` no longer treats every pointer-sized element as `String`.
+  Generic set hash/equality now stays byte-based, while `Set<String>` owns a
+  separate string hash/equality/rehash path. This keeps `Set<Long>` on 64-bit
+  targets from interpreting integer bits as `char *`.
+- LLVM raw `HashMap<K,String>` now uses string-value-specific exports for the
+  stable key subset. `MapSet` duplicates incoming string values, `MapGet`
+  returns the map-owned borrowed value pointer, and `MapRemove` frees both the
+  key and value while preserving the tombstone probe chain.
+- Added `docs/128_pointer_risk_register.md` as the pointer/lifetime risk source
+  of truth. The register classifies ABI and container pointers as
+  `borrowed` / `result-owned` / `runtime-owned` / `container-owned` /
+  `scratch`, records the now-gated `Channel<String>` and
+  `HashMap<K,String>` closures, fixes `Array<String>` as a narrow beta
+  Option A policy, and keeps static scratch helper returns as explicit open
+  audit items rather than implicit promises.
+- LLVM constructed generic type arguments now have
+  `llvm_constructed_arg_name_copy(...)` as the caller-owned copy seam. Empty
+  array/list/set contextual lowering and statement type inference use the copy
+  helper instead of retaining the old static scratch pointer; the old
+  `llvm_constructed_arg_name_at(...)` compatibility helper was removed.
+- Follow-up tightening: `llvm_backend_type_map.c` no longer calls
+  `llvm_constructed_arg_name_at(...)` directly. Slot/SecureSlot/DeviceSlot,
+  Array/Slice, Result, List/Set/Queue, and HashMap type-map paths now copy
+  constructed type arguments into caller-owned stack buffers before recursive
+  LLVM type lowering. Gates: targeted object compile,
+  `runtime-abi-lifetime-test-smoke`, `perf-contract-test-smoke`.
+- C backend constructed generic type arguments also moved the remaining
+  expression-inference and match-lowering direct `constructed_arg_name_at(...)`
+  consumers to `copy_constructed_arg_name_at(...)`. `MapGet` inference now
+  returns an arena-owned value type copy, and `match Ok/Err` payload lowering
+  uses local buffers before C type rendering. Gates: `test-transpile`,
+  `perf-contract-test-smoke`.
+- C and LLVM constructed generic argument copy seams now parse directly into
+  caller-owned buffers instead of routing through compatibility static scratch
+  helpers first. The C static `constructed_arg_name_at(...)` API was removed;
+  `copy_constructed_arg_name_at(...)` is the only C constructed-argument seam.
+  LLVM also removed `llvm_constructed_arg_name_at(...)`; the stable seam is
+  `llvm_constructed_arg_name_copy(...)`. `perf-contract-test-smoke` gates that
+  the copy seams do not call back into static seams.
+- C backend nested type-body extraction now has
+  `slot_inner_type_name_copy(...)` as the only public seam. The old
+  static-return `slot_inner_type_name(...)` helper was removed after tests and
+  codegen consumers moved to caller-owned buffers. `perf-contract-test-smoke`
+  gates against reintroducing the static declaration.
+- C backend slot-target resolution now has caller-owned copy seams:
+  `lookup_slot_type_copy(...)`, `transpiler_resolve_slot_target_copy(...)`, and
+  `transpiler_resolve_device_slot_inner_copy_or_error(...)`. Slot builtin
+  emission and user-call slot argument lowering consume those seams instead of
+  caching compatibility static-return payload names. The older pointer-returning
+  lookup/resolver APIs were removed; `perf-contract-test-smoke` gates the stable
+  builtin emission path.
+- C backend contextual `Option<T>` inner-type rendering now has
+  `transpiler_contextual_option_inner_type_copy(...)`, and `Some` / `None` /
+  `UnwrapOption` inference/emission consume that copy seam rather than returning
+  the static `slot_inner_type_name(...)` scratch pointer through the contextual
+  helper. The old pointer-returning contextual inner helper was removed.
+- C backend future/channel/select inner-type helper debt was narrowed:
+  `lookup_future_inner_type_copy(...)`, `channel_inner_type_name_copy(...)`, and
+  `select_channel_inner_type_copy(...)` now write into caller-owned buffers, and
+  the previous pointer-returning intermediate helpers were removed.
+- C backend function signature and slot-parameter metadata paths now copy slot
+  payload names before secure token parameter emission or slot-var
+  registration. Forward declarations, AST fallback body emission, and MIR body
+  emission no longer pass the static `slot_inner_type_name(...)` result directly
+  into `register_slot_var(...)`.
+- C backend expression type inference now copies nested inner-type extraction
+  into `TranspilerCtx.arena` through
+  `transpiler_infer_slot_inner_type_name(...)`. The inference API no longer
+  returns the static `slot_inner_type_name(...)` scratch pointer for
+  Array/Slice/Channel/Slot/View/DeviceSlot/List read-like inference paths.
+- C backend expression and MIR emission now route remaining concrete
+  `Slot<T>` / `Array<T>` / `Channel<T>` / `Option<T>` body extraction through
+  caller-owned buffers. Core Rc/Weak/Box builtins, stdlib collection helpers,
+  for-in/destructuring, match payload binding, channel send/receive, MIR local
+  type lookup, MIR resource op emission, and MIR SSA slot registration no
+  longer call the static `slot_inner_type_name(...)` compatibility helper
+  directly. `perf-contract-test-smoke` gates that direct calls stay confined to
+  the compatibility mapper and the arena-owning inference wrapper.
+- C backend type-name requirement emission no longer exposes the static-return
+  `transpiler_require_type_name_c_type(...)` wrapper. Parallel/async capture
+  structs use `transpiler_require_type_name_c_type_copy(...)`, and role
+  operator alias emission uses `transpiler_require_ast_c_type_copy(...)` for
+  both lhs and rhs so the second type lookup cannot overwrite the first before
+  code emission.
+- C backend AST-type requirement emission no longer exposes the static-return
+  `transpiler_require_ast_c_type(...)` wrapper. Class, enum, domain nominal,
+  relation/effect, zone/world, roster, generic class, hosted metadata forward
+  declaration, and function fallback emitters now use
+  `transpiler_require_ast_c_type_copy(...)`, so required C type names are owned
+  by the emitting scope instead of a shared scratch buffer.
+- C backend generic result suffix generation now has
+  `generic_args_to_c_suffix_copy(...)` as the caller-owned seam. Result mapping
+  and result specialization helpers use the copy seam instead of caching the
+  static `generic_args_to_c_suffix(...)` return across later type rendering.
+  The old static-return `generic_args_to_c_suffix(...)` helper was removed; the
+  copy helper is the only public C suffix seam.
+- C backend collection runtime suffixes now have
+  `collection_runtime_suffix_copy(...)` for call sites that keep the suffix
+  across type rendering or specialization. The Set constructor let-emission path
+  now copies both the inner type and runtime suffix before emitting. List and
+  Queue constructor let-emission paths use the same copy seam, and the
+  HashMap<String, T> constructor path now copies the value suffix too. Stable
+  collection constructor emission no longer stores the static runtime suffix.
+  Follow-up: List/Set/Queue/Map stdlib call lowering now also uses stack-owned
+  suffix buffers, and the old static-return `collection_runtime_suffix(...)`
+  helper was removed.
+- C backend enum variant lookup no longer exposes a static qualified-name
+  buffer. `lookup_enum_variant_qualified_name_copy(...)` is the only seam, and
+  expression dispatch, enum-constructor lowering, expression type inference,
+  and MIR SSA contract checks all use caller-owned buffers. Gate:
+  `test-transpile`, `perf-contract-test-smoke`.
+- C backend match enum destructuring no longer uses static payload binding
+  arrays. `is_enum_variant_destructor(...)` now fills caller-owned stack arrays
+  supplied by each match-emission phase. Gate: `test-transpile`,
+  `perf-contract-test-smoke`.
+- C backend `BoxArray` let-emission no longer uses a static inner-type buffer
+  for local `Box<Array<T>>` lowering. The inner name is stack-owned for the
+  duration of the emission path, and `perf-contract-test-smoke` gates against
+  reintroducing the static scratch buffer.
+- C backend AST type rendering now has `pergyra_ast_type_to_c_copy(...)` as the
+  only public seam. The old static-return `pergyra_ast_type_to_c(...)` helper
+  was removed, while `transpiler_require_ast_c_type_copy(...)` now renders
+  directly into caller-owned storage and avoids the static seam. Typed
+  declarator rendering, MIR signature eligibility, event declaration emission,
+  type alias emission, hosted-method metadata forward declarations, MIR function
+  parameter emission, spawn wrapper parameter emission, and lambda emission now
+  consume the same copy seam instead of wrapping the compatibility static
+  return. Class, enum, domain role/ability, generic class specialization, and
+  match destructor payload emission also use the copy seam. Direct
+  `pergyra_ast_type_to_c(...)` use is now limited to the compatibility function
+  itself and its public declaration.
+- C backend concrete type-name mapping now treats `pergyra_type_to_c_copy(...)`
+  as the only public implementation. The older static-return
+  `pergyra_type_to_c(...)` compatibility entrypoint was removed after tests and
+  codegen callers moved to the fail-closed copy contract. `transpiler_type_mapping.c`
+  now has no static scratch buffers for C type mapping.
+- LLVM expected-type context no longer stores or exposes the static result of
+  type annotation rendering while lowering return or let initializer
+  expressions. `llvm_stmt_render_type_annotation_copy(...)` now renders through
+  a stack buffer and writes the final annotation into `LLVMGenCtx.scratch`, so
+  nested expression lowering cannot clobber the expected type through another
+  static render call. The old `llvm_stmt_render_type_annotation_static(...)`
+  API was removed. Gates: targeted object compiles,
+  `perf-contract-test-smoke`.
+- LLVM spawn future inner-type inference no longer returns a static local
+  buffer while the initializer is still pending. Generic spawned return
+  inference now stores the inferred inner type in `LLVMGenCtx.scratch` before
+  expression lowering and later persistent future-var registration. Gates:
+  targeted object compile, `perf-contract-test-smoke`.
+- `Array<String>` beta ownership policy is now gated as Option A:
+  generic `Array<String>` remains pointer-storage, while stable result producers
+  such as `StringSplit` and `MapKeys` must duplicate string payloads before
+  pushing. `runtime-abi-lifetime-test-smoke` checks both sides of the contract.
+  Option B (globally owned `Array<String>` with string-specific push/set/drop)
+  is beta+ only because it requires ABI/codegen migration and double-copy /
+  double-free analysis.
+- C backend generated `Slice<T>.Slice(start, len)` expressions now use
+  subtract-form bounds (`start > length || len > length - start`) and return a
+  null data pointer for zero-length slices instead of deriving `data + start`.
+  `runtime-abi-lifetime-test-smoke` rejects the previous `start + len` emitted
+  code pattern.
+- LLVM temporary value names now use a small static ring buffer instead of a
+  single static buffer. LLVM builder calls still consume names immediately, but
+  repeated `llvm_tmp_name(ctx)` calls inside one C expression no longer share
+  the same address before the C API can read them.
+- World/roster runtime dynamic arrays now guard count growth, result-array
+  allocation sizes, execution-plan/stat arrays, aggregate role counts, and
+  visualization buffer sizing before `realloc` / `calloc`, matching the
+  pointer-size hardening already present in party runtime arrays.
+- World/roster copied-name helpers now guard `strlen + 1` before allocation,
+  keeping name ownership paths on the same fail-closed pointer policy as
+  `world_roster_plan_stats.c`.
+- Raw `HashMap` removal now follows the same tombstone rule. The key payload is
+  still freed, but the occupied state becomes deleted rather than empty, so
+  later entries in the same linear-probing chain remain reachable after remove.
+- Generated-C inline `HashMap` and `Set` removals now follow the same tombstone
+  rule, and inline `List<String>` now has explicit set/remove ownership helpers
+  instead of relying on generic list symbols that did not exist for string lists.
 - Debugger command aliases now use one sorted alias table instead of repeated
   `strcmp` command checks. This is not DWARF support; it is a small fixed-
   vocabulary cleanup that keeps tooling command dispatch aligned with the same
@@ -1412,7 +1747,7 @@ English anchor for tooling/doc gates:
   `perf-contract-test-smoke`.
 - 2026-05-11 C/LLVM numeric let parity follow-up:
   C backend unannotated `let` emission now routes numeric initializer typing
-  through `infer_expression_type_name(...)` and `pergyra_type_to_c(...)`
+  through `infer_expression_type_name(...)` and `pergyra_type_to_c_copy(...)`
   instead of hardcoding `AST_NUMBER` to `int32_t`. This keeps `Long` and
   fractional numeric literals aligned with the LLVM inference/emission path.
   Gates: targeted `transpiler.o` build and `perf-contract-test-smoke`.
@@ -3777,11 +4112,11 @@ Progress log, 2026-05-04:
   succeeded. Gates: `llvm-test-smoke`, `test-inc-size-test-smoke`.
 - Stopped materializing backend-local `Unknown` constructed generic layouts in
   LLVM type mapping:
-  `llvm_required_constructed_arg_name_at(...)` now retuns `NULL` after setting
-  a structured diagnostic, and `pergyra_type_to_llvm(...)` exits through the
-  recovery type without registering `List<Unknown>` / `Slot<Unknown>` /
-  similar constructed placeholders. The perf contract gates that this helper
-  does not retun `"Unknown"` again. Gates: `llvm-test-smoke`,
+  `llvm_required_constructed_arg_name_copy(...)` now returns `false` after
+  setting a structured diagnostic, and `pergyra_type_to_llvm(...)` exits
+  without registering `List<Unknown>` / `Slot<Unknown>` / similar constructed
+  placeholders. The perf contract gates that this helper does not return
+  `"Unknown"` again. Gates: `llvm-test-smoke`,
   `perf-contract-test-smoke`.
 - Replaced LLVM Array builtin silent `0` fallbacks with structured diagnostics:
   `ArrayPush`, `ArraySet`, and `ArrayPop` now require identifier receivers,
@@ -11511,7 +11846,7 @@ Local verification for this debt refresh:
   names now fail closed instead of being truncated into a different type name.
   This protects ABI/type identity for `List<T>` / `Result<T, E>` /
   `Slot<T>`-style lowering while keeping the existing structured diagnostic
-  path in `llvm_required_constructed_arg_name_at(...)`; the `Result<T, E>`
+  path in `llvm_required_constructed_arg_name_copy(...)`; the `Result<T, E>`
   copy buffers now match the parser scratch width so the second copy cannot
   reintroduce truncation. Local MinGW verification:
   `build/codegen/llvm_backend_type_map.o` and `perf-contract-test-smoke`.
@@ -11554,7 +11889,7 @@ Local verification for this debt refresh:
 - Narrowed C type-render static-storage debt: `pergyra_type_to_c_copy(...)`
   now provides a caller-owned copy seam, and both AST for-in lowering and MIR
   CFG for-in lowering use copied inner/rendered element type buffers instead of
-  retaining `pergyra_type_to_c(slot_inner_type_name(...))` static pointers
+  retaining legacy static type-mapping pointers
   across later emission. The same copy seam now covers AST/MIR destructuring
   initializer/element renders, slot resource runtime formatting, and
   `ArrayReverse` / channel receive element rendering, inferred let binding
@@ -11567,8 +11902,8 @@ Local verification for this debt refresh:
   slots, post-sync call wrappers, await lowering, MIR role-host receiver
   rendering, intent zone participant rebinding, and tuple destructuring element
   rendering. The type-name requirement helper now has a caller-owned copy
-  variant, and the legacy compatibility helper delegates through the copy path
-  so direct `pergyra_type_to_c(...)` use is isolated to the type-mapping owner.
+  variant, and direct `pergyra_type_to_c(...)` use has been removed in favor of
+  the copy-only type-mapping owner.
   Await lowering also moved from a static `lookup_future_inner_type(...)`
   scratch result to `lookup_future_inner_type_copy(...)`, keeping Future /
   RemoteFuture payload metadata on the same caller-owned lifetime rule.

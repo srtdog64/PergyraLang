@@ -115,9 +115,15 @@ PgySlice_##Suffix pgy_array_slice_##Suffix(PgyArray_##Suffix *arr,              
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,            \
                           "array slice on null array");                          \
     }                                                                            \
-    if (start + len > arr->length) {                                             \
+    if (start > arr->length || len > arr->length - start) {                      \
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS,                 \
                           PGY_RUNTIME_PANIC_REASON_SLICE_OUT_OF_BOUNDS);         \
+    }                                                                            \
+    if (len == 0)                                                                \
+        return slice;                                                            \
+    if (arr->data == NULL) {                                                     \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,            \
+                          "array slice on null backing storage");                \
     }                                                                            \
     slice.data = arr->data + start;                                              \
     slice.length = len;                                                          \

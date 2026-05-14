@@ -32,7 +32,9 @@ bool transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
                                      const MIRTypeLayout *layout,
                                      const char *ssa_result_name);
 const char *transpiler_contextual_option_type_name(TranspilerCtx *ctx);
-const char *transpiler_contextual_option_inner_type_name(TranspilerCtx *ctx);
+bool transpiler_contextual_option_inner_type_copy(TranspilerCtx *ctx,
+                                                  char *out,
+                                                  size_t out_size);
 char *transpiler_emit_none_with_context(TranspilerCtx *ctx, ASTNode *site);
 TranspilerCtx *transpiler_type_render_ctx_current(void);
 void transpiler_type_render_ctx_bind(TranspilerCtx *ctx);

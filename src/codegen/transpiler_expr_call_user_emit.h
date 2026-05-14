@@ -51,20 +51,25 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
         char *arg = NULL;
 
         if (decl != NULL && decl->type == AST_INTENT_DECL) {
-            size_t binding_count = decl->data.intent_decl.binding_count > 0
-                ? decl->data.intent_decl.binding_count
-                : (decl->data.intent_decl.involve_count
-                    + decl->data.intent_decl.value_count);
+            size_t explicit_binding_count = ast_intent_decl_binding_count(decl);
+            size_t involve_count = ast_intent_decl_involve_count(decl);
+            size_t value_count = ast_intent_decl_value_count(decl);
+            size_t binding_count = explicit_binding_count > 0
+                ? explicit_binding_count
+                : (involve_count + value_count);
+            ASTNode **bindings = ast_intent_decl_bindings(decl, NULL);
+            ASTNode **involves = ast_intent_decl_involves(decl, NULL);
+            ASTNode **values = ast_intent_decl_values(decl, NULL);
             if (i < binding_count) {
-                ASTNode *binding = decl->data.intent_decl.binding_count > 0
-                    ? decl->data.intent_decl.bindings[i]
-                    : (i < decl->data.intent_decl.involve_count
-                        ? decl->data.intent_decl.involves[i]
-                        : decl->data.intent_decl.values[i - decl->data.intent_decl.involve_count]);
+                ASTNode *binding = explicit_binding_count > 0
+                    ? bindings[i]
+                    : (i < involve_count
+                        ? involves[i]
+                        : values[i - involve_count]);
                 if (binding != NULL && binding->type == AST_INTENT_INVOLVES)
-                    intent_param_type = binding->data.intent_involves.subject_type;
+                    intent_param_type = ast_intent_involves_subject_type(binding);
                 else if (binding != NULL && binding->type == AST_INTENT_VALUE)
-                    intent_param_type = binding->data.intent_value.value_type;
+                    intent_param_type = ast_intent_value_type(binding);
             }
         }
 
@@ -77,15 +82,16 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             bool secure_param = param_type != NULL
                 && strncmp(param_type, "SecureSlot<", 11) == 0;
             if (slot_param) {
-                const char *inner = NULL;
+                char inner_buf[128];
                 const char *slot_name = NULL;
                 bool secure = false;
                 bool saved_suppress = ctx->suppress_slot_auto_read;
                 ctx->suppress_slot_auto_read = true;
                 arg = emit_expression(call->data.call.arguments[i], ctx);
                 ctx->suppress_slot_auto_read = saved_suppress;
-                transpiler_resolve_slot_target(ctx, call->data.call.arguments[i],
-                    &inner, &slot_name, &secure);
+                (void)transpiler_resolve_slot_target_copy(ctx,
+                    call->data.call.arguments[i], inner_buf,
+                    sizeof(inner_buf), &slot_name, &secure);
                 if (i > 0)
                     codebuf_write(args_buf, ", ");
                 if (slot_name != NULL) {

@@ -39,7 +39,7 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
                      "MIR emission failed for block %llu in %s: missing SSA entry map",
                      (unsigned long long) block->id, func_decl->type == AST_FUNC_DECL
                      ? func_decl->data.func_decl.name
-                     : func_decl->data.intent_decl.name);
+                     : ast_intent_decl_name(func_decl));
         return false;
     }
     if (!transpiler_mir_emit_for_in_body_binding(buf, mir_routine, block, ctx,

@@ -44,6 +44,42 @@ llvm_required_hashmap_raw_export(LLVMGenCtx *ctx,
     return fn;
 }
 
+static LLVMFuncEntry *
+llvm_required_hashmap_raw_string_value_export(LLVMGenCtx *ctx,
+                                              ASTNode *node,
+                                              const char *callee_name,
+                                              const char *operation,
+                                              const char *key_name)
+{
+    char export_name[80];
+    LLVMFuncEntry *fn;
+
+    if (!pgy_hashmap_key_raw_string_value_export_name(operation, key_name,
+            export_name, sizeof(export_name))) {
+        if (ctx != NULL && !ctx->has_error) {
+            llvm_set_error_at_with_hints(ctx, node,
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                "LLVM collection operation '%s' requires stable HashMap<Int|String, String> key metadata",
+                callee_name != NULL ? callee_name : "HashMap operation");
+        }
+        return NULL;
+    }
+
+    fn = llvm_lookup_function(ctx, export_name);
+    if (fn == NULL && ctx != NULL && !ctx->has_error) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "LLVM collection operation '%s' requires registered runtime function '%s'",
+            callee_name != NULL ? callee_name : "HashMap operation",
+            export_name);
+    }
+    return fn;
+}
+
 static bool
 llvm_collection_extended_error_out(LLVMGenCtx *ctx, ASTNode *node,
                                    LLVMValueRef *out, LLVMValueRef recovery,
@@ -124,6 +160,20 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
                 && (LLVMTypeOf(value) == ctx->type_i32 || LLVMTypeOf(value) == ctx->type_i64))
                 value = LLVMBuildSIToFP(ctx->builder, value, elem_ty, llvm_tmp_name(ctx));
         }
+        if (inner_name != NULL && strcmp(inner_name, "String") == 0) {
+            fn = llvm_required_collection_function(ctx, node, callee_name,
+                "pgy_list_push_string_raw_export");
+            if (fn == NULL) {
+                *out = NULL;
+                return true;
+            }
+            LLVMValueRef args[] = {
+                LLVMBuildBitCast(ctx->builder, list_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+                value
+            };
+            LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, "");
+            { *out = LLVMConstInt(ctx->type_i32, 0, 0); return true; }
+        }
         tmp = llvm_create_entry_alloca(ctx, elem_ty, llvm_tmp_name(ctx));
         if (tmp == NULL)
             return llvm_collection_extended_error_out(ctx, node, out,
@@ -174,6 +224,19 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
                 LLVMConstNull(elem_ty),
                 "LLVM ListGet could not allocate result temporary");
         LLVMBuildStore(ctx->builder, LLVMConstNull(elem_ty), tmp);
+        if (inner_name != NULL && strcmp(inner_name, "String") == 0) {
+            fn = llvm_required_collection_function(ctx, node, callee_name,
+                "pgy_list_get_string_raw_export");
+            if (fn == NULL)
+                { *out = NULL; return true; }
+            LLVMValueRef args[] = {
+                LLVMBuildBitCast(ctx->builder, list_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+                idx,
+                LLVMBuildBitCast(ctx->builder, tmp, ctx->type_i8ptr, llvm_tmp_name(ctx))
+            };
+            LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 3, "");
+            { *out = LLVMBuildLoad2(ctx->builder, elem_ty, tmp, llvm_tmp_name(ctx)); return true; }
+        }
         fn = llvm_required_collection_function(ctx, node, callee_name,
             "pgy_list_get_raw_export");
         if (fn == NULL)
@@ -220,6 +283,21 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
             else if ((elem_ty == ctx->type_f32 || elem_ty == ctx->type_f64)
                 && (LLVMTypeOf(value) == ctx->type_i32 || LLVMTypeOf(value) == ctx->type_i64))
                 value = LLVMBuildSIToFP(ctx->builder, value, elem_ty, llvm_tmp_name(ctx));
+        }
+        if (inner_name != NULL && strcmp(inner_name, "String") == 0) {
+            fn = llvm_required_collection_function(ctx, node, callee_name,
+                "pgy_list_set_string_raw_export");
+            if (fn == NULL) {
+                *out = NULL;
+                return true;
+            }
+            LLVMValueRef args[] = {
+                LLVMBuildBitCast(ctx->builder, list_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+                idx,
+                value
+            };
+            LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 3, "");
+            { *out = LLVMConstInt(ctx->type_i32, 0, 0); return true; }
         }
         tmp = llvm_create_entry_alloca(ctx, elem_ty, llvm_tmp_name(ctx));
         if (tmp == NULL)
@@ -284,6 +362,20 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
                 "LLVM ListRemove could not lower index expression");
         if (LLVMTypeOf(idx) != ctx->type_i32)
             idx = LLVMBuildTruncOrBitCast(ctx->builder, idx, ctx->type_i32, llvm_tmp_name(ctx));
+        if (inner_name != NULL && strcmp(inner_name, "String") == 0) {
+            fn = llvm_required_collection_function(ctx, node, callee_name,
+                "pgy_list_remove_string_raw_export");
+            if (fn == NULL) {
+                *out = NULL;
+                return true;
+            }
+            LLVMValueRef args[] = {
+                LLVMBuildBitCast(ctx->builder, list_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+                idx
+            };
+            LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, "");
+            { *out = LLVMConstInt(ctx->type_i32, 0, 0); return true; }
+        }
         fn = llvm_required_collection_function(ctx, node, callee_name,
             "pgy_list_remove_raw_export");
         if (fn == NULL) {
@@ -331,6 +423,21 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
             else if ((value_ty == ctx->type_f32 || value_ty == ctx->type_f64)
                 && (LLVMTypeOf(value) == ctx->type_i32 || LLVMTypeOf(value) == ctx->type_i64))
                 value = LLVMBuildSIToFP(ctx->builder, value, value_ty, llvm_tmp_name(ctx));
+        }
+        if (value_name != NULL && strcmp(value_name, "String") == 0) {
+            fn = llvm_required_hashmap_raw_string_value_export(ctx, node,
+                callee_name, "set", key_name);
+            if (fn == NULL) {
+                *out = NULL;
+                return true;
+            }
+            LLVMValueRef args[] = {
+                LLVMBuildBitCast(ctx->builder, map_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+                key,
+                value
+            };
+            LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 3, "");
+            { *out = LLVMConstInt(ctx->type_i32, 0, 0); return true; }
         }
         tmp = llvm_create_entry_alloca(ctx, value_ty, llvm_tmp_name(ctx));
         if (tmp == NULL)
@@ -382,6 +489,19 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
                 LLVMConstNull(value_ty),
                 "LLVM MapGet could not allocate result temporary");
         LLVMBuildStore(ctx->builder, LLVMConstNull(value_ty), tmp);
+        if (value_name != NULL && strcmp(value_name, "String") == 0) {
+            fn = llvm_required_hashmap_raw_string_value_export(ctx, node,
+                callee_name, "get", key_name);
+            if (fn == NULL)
+                { *out = NULL; return true; }
+            LLVMValueRef args[] = {
+                LLVMBuildBitCast(ctx->builder, map_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+                key,
+                LLVMBuildBitCast(ctx->builder, tmp, ctx->type_i8ptr, llvm_tmp_name(ctx))
+            };
+            LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 3, "");
+            { *out = LLVMBuildLoad2(ctx->builder, value_ty, tmp, llvm_tmp_name(ctx)); return true; }
+        }
         fn = llvm_required_hashmap_raw_export(ctx, node, callee_name, "get", key_name);
         if (fn == NULL)
             { *out = NULL; return true; }
@@ -440,11 +560,25 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         if (value_ty == NULL)
             return true;
         key = llvm_emit_expression(node->data.call.arguments[1], ctx);
-        fn = llvm_required_hashmap_raw_export(ctx, node, callee_name, "remove", key_name);
         if (key == NULL)
             return llvm_collection_extended_error_out(ctx, node, out,
                 LLVMConstInt(ctx->type_i32, 0, 0),
                 "LLVM MapRemove could not lower key expression");
+        if (value_name != NULL && strcmp(value_name, "String") == 0) {
+            fn = llvm_required_hashmap_raw_string_value_export(ctx, node,
+                callee_name, "remove", key_name);
+            if (fn == NULL)
+                { *out = NULL; return true; }
+            {
+                LLVMValueRef args[] = {
+                    LLVMBuildBitCast(ctx->builder, map_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+                    key
+                };
+                LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, "");
+            }
+            { *out = LLVMConstInt(ctx->type_i32, 0, 0); return true; }
+        }
+        fn = llvm_required_hashmap_raw_export(ctx, node, callee_name, "remove", key_name);
         if (fn == NULL)
             { *out = NULL; return true; }
         {

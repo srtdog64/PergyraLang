@@ -1,16 +1,24 @@
 
+#include <stdint.h>
+
 /* =================================================================
  * List<Int> — dynamic array (grows automatically)
  * ================================================================= */
 
 #ifndef PGY_RUNTIME_ELEM_CAPACITY_FITS
 #define PGY_RUNTIME_ELEM_CAPACITY_FITS(capacity, CType) \
-    ((capacity) != 0 && (capacity) <= SIZE_MAX / sizeof(CType))
+    ((capacity) != 0 \
+        && (capacity) <= (size_t)INT32_MAX \
+        && (capacity) <= SIZE_MAX / sizeof(CType))
 #endif
+
+#define PGY_SET_INLINE_EMPTY 0u
+#define PGY_SET_INLINE_LIVE 1u
+#define PGY_SET_INLINE_DELETED 2u
 
 #ifndef PGY_RUNTIME_HASH_CAPACITY_FITS
 #define PGY_RUNTIME_HASH_CAPACITY_FITS(capacity) \
-    ((capacity) != 0 && (capacity) <= UINT32_MAX)
+    ((capacity) != 0 && (capacity) <= (size_t)INT32_MAX)
 #endif
 
 #define PGY_LIST_DEFINE(SuffixName, CType) \
@@ -271,6 +279,39 @@ static inline char *pgy_list_get_string(PgyList_String *l, int32_t index)
     return l->data[index] ? l->data[index] : "";
 }
 
+static inline void pgy_list_set_string(PgyList_String *l, int32_t index, const char *val)
+{
+    char *owned;
+
+    if (l == NULL)
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "list set on null list");
+    if (index < 0 || (size_t)index >= l->count)
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS, "list set index out of bounds");
+    owned = pgy_runtime_strdup(val ? val : "");
+    if (owned == NULL)
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OOM, "list set string duplication failed");
+    free(l->data[index]);
+    l->data[index] = owned;
+}
+
+static inline void pgy_list_remove_string(PgyList_String *l, int32_t index)
+{
+    size_t tail_count;
+
+    if (l == NULL)
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, "list remove on null list");
+    if (index < 0 || (size_t)index >= l->count)
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS, "list remove index out of bounds");
+    free(l->data[index]);
+    l->data[index] = NULL;
+    tail_count = l->count - (size_t)index - 1;
+    if (tail_count > 0) {
+        memmove(&l->data[index], &l->data[index + 1], tail_count * sizeof(char *));
+        l->data[l->count - 1] = NULL;
+    }
+    l->count--;
+}
+
 static inline int32_t pgy_list_size_string(PgyList_String *l) { return (int32_t)l->count; }
 
 /* =================================================================
@@ -314,7 +355,8 @@ static inline bool pgy_set_has_string(PgySet_String *s, const char *key)
     uint32_t h = pgy_hash_string(key) % (uint32_t)s->capacity;
     size_t p = 0;
     while (s->occupied[h] && p < s->capacity) {
-        if (s->keys[h] && strcmp(s->keys[h], key) == 0) return true;
+        if (s->occupied[h] == PGY_SET_INLINE_LIVE
+            && s->keys[h] && strcmp(s->keys[h], key) == 0) return true;
         h = (h + 1) % (uint32_t)s->capacity; p++;
     }
     return false;
@@ -359,18 +401,24 @@ static inline void pgy_set_add_string(PgySet_String *s, const char *key)
         s->occupied = new_occupied;
         s->count = 0;
         for (size_t i = 0; i < oc; i++) {
-            if (oo[i]) { pgy_set_add_string(s, ok[i]); free(ok[i]); }
+            if (oo[i] == PGY_SET_INLINE_LIVE) { pgy_set_add_string(s, ok[i]); free(ok[i]); }
         }
         free(ok); free(oo);
     }
     uint32_t h = pgy_hash_string(key) % (uint32_t)s->capacity;
-    while (s->occupied[h]) h = (h + 1) % (uint32_t)s->capacity;
+    uint32_t first_deleted = UINT32_MAX;
+    size_t p = 0;
+    while (s->occupied[h] && p < s->capacity) {
+        if (s->occupied[h] == PGY_SET_INLINE_DELETED && first_deleted == UINT32_MAX) first_deleted = h;
+        h = (h + 1) % (uint32_t)s->capacity; p++;
+    }
+    if (first_deleted != UINT32_MAX) h = first_deleted;
     s->keys[h] = pgy_runtime_strdup(key);
     if (s->keys[h] == NULL) {
         pgy_runtime_warn_invalid_collection("set_add_string", "string duplication failed");
         return;
     }
-    s->occupied[h] = 1; s->count++;
+    s->occupied[h] = PGY_SET_INLINE_LIVE; s->count++;
 }
 
 static inline void pgy_set_remove_string(PgySet_String *s, const char *key)
@@ -380,8 +428,9 @@ static inline void pgy_set_remove_string(PgySet_String *s, const char *key)
     uint32_t h = pgy_hash_string(key) % (uint32_t)s->capacity;
     size_t p = 0;
     while (s->occupied[h] && p < s->capacity) {
-        if (s->keys[h] && strcmp(s->keys[h], key) == 0) {
-            free(s->keys[h]); s->keys[h] = NULL; s->occupied[h] = 0; s->count--;
+        if (s->occupied[h] == PGY_SET_INLINE_LIVE
+            && s->keys[h] && strcmp(s->keys[h], key) == 0) {
+            free(s->keys[h]); s->keys[h] = NULL; s->occupied[h] = PGY_SET_INLINE_DELETED; s->count--;
             return;
         }
         h = (h + 1) % (uint32_t)s->capacity; p++;
@@ -442,7 +491,8 @@ static inline bool pgy_set_has_##SuffixName(PgySet_##SuffixName *s, CType val) \
     uint32_t h = pgy_set_hash_##SuffixName(val) % (uint32_t)s->capacity; \
     size_t p = 0; \
     while (s->occupied[h] && p < s->capacity) { \
-        if (memcmp(&s->data[h], &val, sizeof(CType)) == 0) return true; \
+        if (s->occupied[h] == PGY_SET_INLINE_LIVE \
+            && memcmp(&s->data[h], &val, sizeof(CType)) == 0) return true; \
         h = (h + 1) % (uint32_t)s->capacity; p++; \
     } \
     return false; \
@@ -486,12 +536,18 @@ static inline void pgy_set_add_##SuffixName(PgySet_##SuffixName *s, CType val) \
         s->data = nd; \
         s->occupied = no; \
         s->count = 0; \
-        for (size_t i = 0; i < oc; i++) { if (oo[i]) pgy_set_add_##SuffixName(s, od[i]); } \
+        for (size_t i = 0; i < oc; i++) { if (oo[i] == PGY_SET_INLINE_LIVE) pgy_set_add_##SuffixName(s, od[i]); } \
         free(od); free(oo); \
     } \
     uint32_t h = pgy_set_hash_##SuffixName(val) % (uint32_t)s->capacity; \
-    while (s->occupied[h]) h = (h + 1) % (uint32_t)s->capacity; \
-    s->data[h] = val; s->occupied[h] = 1; s->count++; \
+    uint32_t first_deleted = UINT32_MAX; \
+    size_t p = 0; \
+    while (s->occupied[h] && p < s->capacity) { \
+        if (s->occupied[h] == PGY_SET_INLINE_DELETED && first_deleted == UINT32_MAX) first_deleted = h; \
+        h = (h + 1) % (uint32_t)s->capacity; p++; \
+    } \
+    if (first_deleted != UINT32_MAX) h = first_deleted; \
+    s->data[h] = val; s->occupied[h] = PGY_SET_INLINE_LIVE; s->count++; \
 } \
 \
 static inline void pgy_set_remove_##SuffixName(PgySet_##SuffixName *s, CType val) \
@@ -500,9 +556,10 @@ static inline void pgy_set_remove_##SuffixName(PgySet_##SuffixName *s, CType val
     uint32_t h = pgy_set_hash_##SuffixName(val) % (uint32_t)s->capacity; \
     size_t p = 0; \
     while (s->occupied[h] && p < s->capacity) { \
-        if (memcmp(&s->data[h], &val, sizeof(CType)) == 0) { \
+        if (s->occupied[h] == PGY_SET_INLINE_LIVE \
+            && memcmp(&s->data[h], &val, sizeof(CType)) == 0) { \
             memset(&s->data[h], 0, sizeof(CType)); \
-            s->occupied[h] = 0; s->count--; return; \
+            s->occupied[h] = PGY_SET_INLINE_DELETED; s->count--; return; \
         } \
         h = (h + 1) % (uint32_t)s->capacity; p++; \
     } \

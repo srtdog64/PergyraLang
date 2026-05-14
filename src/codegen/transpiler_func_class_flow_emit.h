@@ -105,7 +105,7 @@ emit_func_decl_named(ASTNode *node, const char *emitted_name,
 
     for (size_t i = 0; i < node->data.func_decl.param_count; i++) {
         FuncParam *p = node->data.func_decl.params[i];
-        const char *pt = NULL;
+        char pt[256];
         char *type_name = NULL;
         char *decl = NULL;
         bool boundary_slot = false;
@@ -118,9 +118,13 @@ emit_func_decl_named(ASTNode *node, const char *emitted_name,
                 ctx, "function parameter diagnostic surface");
             goto emit_func_decl_named_fail;
         }
-        pt = transpiler_require_ast_c_type(ctx, p != NULL ? p->type : NULL, surface_desc);
-        if (pt == NULL)
+        if (!transpiler_require_ast_c_type_copy(ctx,
+                p != NULL ? p->type : NULL,
+                surface_desc,
+                pt,
+                sizeof(pt))) {
             goto emit_func_decl_named_fail;
+        }
         if (p == NULL || p->name == NULL)
             goto emit_func_decl_named_fail;
         if (i > 0) codebuf_write(params_sig, ", ");
@@ -132,7 +136,16 @@ emit_func_decl_named(ASTNode *node, const char *emitted_name,
             && (p->mode == PARAM_MODE_OWN || p->mode == PARAM_MODE_REF);
         secure_slot = type_name != NULL && strncmp(type_name, "SecureSlot<", 11) == 0;
         if (boundary_slot) {
-            const char *inner = slot_inner_type_name(type_name);
+            char inner_buf[128];
+            const char *inner = inner_buf;
+            if (!slot_inner_type_name_copy(type_name, inner_buf,
+                    sizeof(inner_buf))) {
+                free(decl);
+                free(type_name);
+                transpiler_func_format_too_long(ctx,
+                    "function parameter slot payload type");
+                goto emit_func_decl_named_fail;
+            }
             codebuf_write(params_sig, "%s *%s", pt, p->name);
             if (secure_slot)
                 codebuf_write(params_sig, ", PgyToken_%s %s_token", inner, p->name);
@@ -177,10 +190,20 @@ emit_func_decl_named(ASTNode *node, const char *emitted_name,
                 if (entry != NULL)
                     entry->is_subject_ref = true;
             }
-            if (strncmp(type_name, "Slot<", 5) == 0)
-                register_slot_var(ctx, p->name, slot_inner_type_name(type_name), false, boundary_slot);
-            else if (strncmp(type_name, "SecureSlot<", 11) == 0)
-                register_slot_var(ctx, p->name, slot_inner_type_name(type_name), true, boundary_slot);
+            if (strncmp(type_name, "Slot<", 5) == 0
+                || strncmp(type_name, "SecureSlot<", 11) == 0) {
+                char inner_buf[128];
+                bool secure_slot = strncmp(type_name, "SecureSlot<", 11) == 0;
+                if (!slot_inner_type_name_copy(type_name, inner_buf,
+                        sizeof(inner_buf))) {
+                    free(type_name);
+                    transpiler_func_format_too_long(ctx,
+                        "function parameter slot payload type");
+                    goto emit_func_decl_named_fail;
+                }
+                register_slot_var(ctx, p->name, inner_buf, secure_slot,
+                    boundary_slot);
+            }
             free(type_name);
         }
     }
@@ -329,8 +352,18 @@ emit_return_stmt(ASTNode *node, TranspilerCtx *ctx)
     if (node->data.return_stmt.value != NULL) {
         if (ctx->current_return_type[0] != '\0'
             && strncmp(ctx->current_return_type, "Option<", 7) == 0) {
-            const char *inner = slot_inner_type_name(ctx->current_return_type);
+            char inner_buf[128];
+            const char *inner = inner_buf;
             ASTNode *value = node->data.return_stmt.value;
+            if (!slot_inner_type_name_copy(ctx->current_return_type, inner_buf,
+                    sizeof(inner_buf))) {
+                transpiler_set_backend_error_with_hints(ctx,
+                    PGY_CODE_C_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                    PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                    "return Option<T> requires concrete payload type during C emission");
+                return;
+            }
             if (value->type == AST_CALL
                 && value->data.call.callee != NULL
                 && value->data.call.callee->type == AST_IDENTIFIER) {

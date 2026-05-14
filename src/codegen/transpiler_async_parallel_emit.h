@@ -62,8 +62,13 @@ emit_parallel_block(ASTNode *node, TranspilerCtx *ctx)
             "typedef struct {\n");
         for (int i = 0; i < capture_slot_count; i++) {
             const char *name = capture_slot_names[i];
-            const char *inner = lookup_slot_type(ctx, name);
+            char inner_buf[128];
+            const char *inner = NULL;
             bool secure = lookup_slot_is_secure(ctx, name);
+            if (lookup_slot_type_copy(ctx, name, inner_buf,
+                    sizeof(inner_buf))) {
+                inner = inner_buf;
+            }
             if (inner == NULL || inner[0] == '\0') {
                 transpiler_set_backend_error_with_hints(ctx,
                     PGY_CODE_C_TYPE_UNSUPPORTED,
@@ -80,7 +85,8 @@ emit_parallel_block(ASTNode *node, TranspilerCtx *ctx)
         for (int i = 0; i < capture_typed_count; i++) {
             TypedVarEntry *entry = lookup_typed_entry(ctx, capture_typed_names[i]);
             char surface_desc[256];
-            const char *c_type;
+            char c_type_buf[128];
+            const char *c_type = NULL;
             const char *type_name = entry != NULL ? entry->type_name : NULL;
             if ((type_name == NULL || strcmp(type_name, "Unknown") == 0)
                 && ctx->current_func_decl != NULL) {
@@ -124,10 +130,14 @@ emit_parallel_block(ASTNode *node, TranspilerCtx *ctx)
                 }
             }
 
-            c_type = transpiler_require_type_name_c_type(
+            if (transpiler_require_type_name_c_type_copy(
                 ctx,
                 type_name,
-                surface_desc);
+                surface_desc,
+                c_type_buf,
+                sizeof(c_type_buf))) {
+                c_type = c_type_buf;
+            }
             if (c_type == NULL)
                 return;
             codebuf_write(ctx->helpers,
@@ -274,8 +284,13 @@ emit_async_block(ASTNode *node, TranspilerCtx *ctx)
         codebuf_write(ctx->helpers, "typedef struct {\n");
         for (int i = 0; i < capture_slot_count; i++) {
             const char *name = capture_slot_names[i];
-            const char *inner = lookup_slot_type(ctx, name);
+            char inner_buf[128];
+            const char *inner = NULL;
             bool secure = lookup_slot_is_secure(ctx, name);
+            if (lookup_slot_type_copy(ctx, name, inner_buf,
+                    sizeof(inner_buf))) {
+                inner = inner_buf;
+            }
             if (inner == NULL || inner[0] == '\0') {
                 transpiler_set_backend_error_with_hints(ctx,
                     PGY_CODE_C_TYPE_UNSUPPORTED,
@@ -293,17 +308,22 @@ emit_async_block(ASTNode *node, TranspilerCtx *ctx)
         for (int i = 0; i < capture_typed_count; i++) {
             TypedVarEntry *entry = lookup_typed_entry(ctx, capture_typed_names[i]);
             char surface_desc[256];
-            const char *c_type;
+            char c_type_buf[128];
+            const char *c_type = NULL;
             if (!transpiler_capture_surface_desc(surface_desc,
                     sizeof(surface_desc), "async",
                     capture_typed_names[i])) {
                 transpiler_capture_surface_desc_too_long(ctx, "async");
                 return;
             }
-            c_type = transpiler_require_type_name_c_type(
+            if (transpiler_require_type_name_c_type_copy(
                 ctx,
                 entry != NULL ? entry->type_name : NULL,
-                surface_desc);
+                surface_desc,
+                c_type_buf,
+                sizeof(c_type_buf))) {
+                c_type = c_type_buf;
+            }
             if (c_type == NULL)
                 return;
             codebuf_write(ctx->helpers, "    %s *%s;\n",

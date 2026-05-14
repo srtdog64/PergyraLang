@@ -1,5 +1,19 @@
 # Stable Example Surface Board
 
+Current example tier contract:
+
+- ordinary entry examples: `examples/hello.pgy`, `examples/basic.pgy`
+- domain examples: `examples/logistics_intent_probe/`, `examples/order_analytics/`,
+  `examples/battle_simulator/`, `examples/biome_simulator/`
+- resource-boundary examples: `examples/slots_simple.pgy`,
+  `examples/resource_scheduler_async_probe/`,
+  `examples/ownership_forwarding_probe/`
+- dogfood bridge examples: `examples/wasm_hello/`
+
+Ordinary entry examples must not present Slot lifecycle APIs as the default
+value model. Slot examples are stable only as explicit resource-boundary
+examples.
+
 WebGL dogfood boundary (2026-05-04): `examples/wasm_hello/` is a stable dogfood
 bridge example, not a stable WebGL language surface. The smoke covers emitted C
 host-import/frame-callback preservation and optional Emscripten linking only.

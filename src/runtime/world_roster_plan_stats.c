@@ -1,6 +1,7 @@
 #include "world_roster.h"
 #include "../common/string_compat.h"
 
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -14,6 +15,12 @@ world_roster_warn(const char* op, const char* reason)
             reason != NULL ? reason : "unknown");
 }
 
+static bool
+world_roster_array_fits(size_t count, size_t elem_size)
+{
+    return elem_size != 0 && count <= SIZE_MAX / elem_size;
+}
+
 static char*
 world_roster_strdup(const char* text)
 {
@@ -23,7 +30,10 @@ world_roster_strdup(const char* text)
     if (text == NULL)
         return NULL;
 
-    len = strlen(text) + 1U;
+    len = strlen(text);
+    if (len > SIZE_MAX - 1U)
+        return NULL;
+    len++;
     copy = (char*)malloc(len);
     if (copy != NULL)
         memcpy(copy, text, len);
@@ -53,6 +63,11 @@ GenerateWorldExecutionPlan(WorldContext* world)
     }
     plan->rosterCount = world->rosterCount;
     plan->canParallelizeRosters = (world->rosterCount > 1);
+    if (!world_roster_array_fits(world->rosterCount, sizeof(*plan->rosters))) {
+        FreeExecutionPlan(plan);
+        world_roster_warn("generate_world_execution_plan", "roster plan size overflow");
+        return NULL;
+    }
     plan->rosters = calloc(world->rosterCount, sizeof(*plan->rosters));
     if (plan->rosters == NULL && world->rosterCount > 0) {
         FreeExecutionPlan(plan);
@@ -69,9 +84,20 @@ GenerateWorldExecutionPlan(WorldContext* world)
             return NULL;
         }
         plan->rosters[i].partyCount = roster != NULL ? roster->partyCount : 0;
+        if (plan->rosters[i].partyCount > SIZE_MAX - plan->totalParties) {
+            FreeExecutionPlan(plan);
+            world_roster_warn("generate_world_execution_plan", "party count overflow");
+            return NULL;
+        }
         plan->totalParties += plan->rosters[i].partyCount;
         plan->canParallelizeParties = plan->canParallelizeParties || plan->rosters[i].partyCount > 1;
 
+        if (!world_roster_array_fits(plan->rosters[i].partyCount,
+                                     sizeof(*plan->rosters[i].parties))) {
+            FreeExecutionPlan(plan);
+            world_roster_warn("generate_world_execution_plan", "party plan size overflow");
+            return NULL;
+        }
         plan->rosters[i].parties =
             calloc(plan->rosters[i].partyCount, sizeof(*plan->rosters[i].parties));
         if (plan->rosters[i].parties == NULL && plan->rosters[i].partyCount > 0) {
@@ -91,6 +117,12 @@ GenerateWorldExecutionPlan(WorldContext* world)
             }
             plan->rosters[i].parties[j].fiberMap = map;
             plan->rosters[i].parties[j].roleCount = map != NULL ? map->entryCount : 0;
+            if (plan->rosters[i].parties[j].roleCount > SIZE_MAX - plan->totalRoles
+                || plan->rosters[i].parties[j].roleCount > SIZE_MAX - plan->totalFibers) {
+                FreeExecutionPlan(plan);
+                world_roster_warn("generate_world_execution_plan", "role count overflow");
+                return NULL;
+            }
             plan->totalRoles += plan->rosters[i].parties[j].roleCount;
             plan->totalFibers += plan->rosters[i].parties[j].roleCount;
         }
@@ -144,6 +176,11 @@ GetWorldStatistics(WorldContext* world)
 
     stats->totalFrames = world->frameCount;
     stats->rosterCount = world->rosterCount;
+    if (!world_roster_array_fits(world->rosterCount, sizeof(*stats->rosterStats))) {
+        FreeWorldStatistics(stats);
+        world_roster_warn("get_world_statistics", "roster stats size overflow");
+        return NULL;
+    }
     stats->rosterStats = calloc(world->rosterCount, sizeof(*stats->rosterStats));
     if (stats->rosterStats == NULL && world->rosterCount > 0) {
         FreeWorldStatistics(stats);
@@ -159,6 +196,12 @@ GetWorldStatistics(WorldContext* world)
             return NULL;
         }
         stats->rosterStats[i].partyCount = roster != NULL ? roster->partyCount : 0;
+        if (!world_roster_array_fits(stats->rosterStats[i].partyCount,
+                                     sizeof(*stats->rosterStats[i].partyStats))) {
+            FreeWorldStatistics(stats);
+            world_roster_warn("get_world_statistics", "party stats size overflow");
+            return NULL;
+        }
         stats->rosterStats[i].partyStats =
             calloc(stats->rosterStats[i].partyCount,
                    sizeof(*stats->rosterStats[i].partyStats));
@@ -181,6 +224,11 @@ GetWorldStatistics(WorldContext* world)
             }
             stats->rosterStats[i].partyStats[j].roleCount = map != NULL ? map->entryCount : 0;
             if (map != NULL && map->entryCount > 0) {
+                if (!world_roster_array_fits(map->entryCount, sizeof(FiberStats))) {
+                    FreeWorldStatistics(stats);
+                    world_roster_warn("get_world_statistics", "role stats size overflow");
+                    return NULL;
+                }
                 stats->rosterStats[i].partyStats[j].roleStats =
                     (FiberStats*)calloc(map->entryCount, sizeof(FiberStats));
                 if (stats->rosterStats[i].partyStats[j].roleStats == NULL) {
@@ -271,6 +319,10 @@ GenerateWorldVisualization(WorldContext* world, const char* format)
     }
 
     const char* mode = format != NULL ? format : "text";
+    if (world->rosterCount > (SIZE_MAX - 1024U) / 256U) {
+        world_roster_warn("generate_world_visualization", "buffer size overflow");
+        return NULL;
+    }
     size_t capacity = 1024U + (world->rosterCount * 256U);
     char* out = (char*)calloc(capacity, 1);
     if (out == NULL) {

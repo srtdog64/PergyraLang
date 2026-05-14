@@ -38,10 +38,10 @@ program_lookup_dag_intent_binding_type_or_unknown(ASTNode *binding,
         return TYPE_UNKNOWN;
     if (binding->type == AST_INTENT_INVOLVES)
         return program_lookup_dag_type_ref_or_unknown(
-            binding->data.intent_involves.subject_type, ctx);
+            ast_intent_involves_subject_type(binding), ctx);
     if (binding->type == AST_INTENT_VALUE)
         return program_lookup_dag_type_ref_or_unknown(
-            binding->data.intent_value.value_type, ctx);
+            ast_intent_value_type(binding), ctx);
     return TYPE_UNKNOWN;
 }
 
@@ -282,28 +282,33 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                 }
             }
         } else if (stmt->type == AST_INTENT_DECL) {
-            const char *iname = stmt->data.intent_decl.name;
+            const char *iname = ast_intent_decl_name(stmt);
             if (iname != NULL && scope_lookup_current(ctx->scope, iname) == NULL) {
-                size_t ipc = stmt->data.intent_decl.binding_count > 0
-                    ? stmt->data.intent_decl.binding_count
-                    : (stmt->data.intent_decl.involve_count
-                        + stmt->data.intent_decl.value_count);
+                size_t binding_count = ast_intent_decl_binding_count(stmt);
+                size_t involve_count = ast_intent_decl_involve_count(stmt);
+                size_t value_count = ast_intent_decl_value_count(stmt);
+                size_t ipc = binding_count > 0
+                    ? binding_count
+                    : (involve_count + value_count);
+                ASTNode **bindings = ast_intent_decl_bindings(stmt, NULL);
+                ASTNode **involves = ast_intent_decl_involves(stmt, NULL);
+                ASTNode **values = ast_intent_decl_values(stmt, NULL);
                 Type **ptypes = calloc(ipc > 0 ? ipc : 1, sizeof(Type *));
                 if (ptypes == NULL)
                     return program_report_resolution_oom(ctx, stmt,
                         "intent bindings");
                 for (size_t j = 0; j < ipc; j++) {
-                    ASTNode *binding = stmt->data.intent_decl.binding_count > 0
-                        ? stmt->data.intent_decl.bindings[j]
-                        : (j < stmt->data.intent_decl.involve_count
-                            ? stmt->data.intent_decl.involves[j]
-                            : stmt->data.intent_decl.values[j - stmt->data.intent_decl.involve_count]);
+                    ASTNode *binding = binding_count > 0
+                        ? bindings[j]
+                        : (j < involve_count
+                            ? involves[j]
+                            : values[j - involve_count]);
                     if (binding != NULL && binding->type == AST_INTENT_INVOLVES
-                        && binding->data.intent_involves.subject_type != NULL) {
+                        && ast_intent_involves_subject_type(binding) != NULL) {
                         ptypes[j] = program_lookup_dag_intent_binding_type_or_unknown(
                             binding, ctx);
                     } else if (binding != NULL && binding->type == AST_INTENT_VALUE
-                        && binding->data.intent_value.value_type != NULL) {
+                        && ast_intent_value_type(binding) != NULL) {
                         ptypes[j] = program_lookup_dag_intent_binding_type_or_unknown(
                             binding, ctx);
                     } else {

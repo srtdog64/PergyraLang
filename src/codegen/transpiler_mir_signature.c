@@ -31,7 +31,7 @@ bool
 transpiler_mir_ast_type_supported(TranspilerCtx *ctx, const ASTNode *type_node)
 {
     const char *type_name = NULL;
-    const char *c_type = NULL;
+    char c_type[256];
 
     if (type_node == NULL)
         return true;
@@ -56,9 +56,12 @@ transpiler_mir_ast_type_supported(TranspilerCtx *ctx, const ASTNode *type_node)
     if (transpiler_mir_type_supported(type_name))
         return true;
 
-    c_type = pergyra_ast_type_to_c((ASTNode *)type_node);
-    if (c_type == NULL || c_type[0] == '\0')
+    if (!pergyra_ast_type_to_c_copy((ASTNode *)type_node,
+            c_type,
+            sizeof(c_type))
+        || c_type[0] == '\0') {
         return false;
+    }
     if (strcmp(type_name, "Unknown") == 0 || strcmp(c_type, "Unknown") == 0)
         return false;
 

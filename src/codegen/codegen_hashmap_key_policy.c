@@ -69,3 +69,19 @@ pgy_hashmap_key_raw_export_name(const char *operation,
                        operation, pgy_hashmap_key_c_infix(key_name));
     return written >= 0 && (size_t)written < out_size;
 }
+
+bool
+pgy_hashmap_key_raw_string_value_export_name(const char *operation,
+                                             const char *key_name,
+                                             char *out,
+                                             size_t out_size)
+{
+    int written;
+
+    if (operation == NULL || out == NULL || out_size == 0)
+        return false;
+
+    written = snprintf(out, out_size, "pgy_map_%s_string_value_raw%s_export",
+                       operation, pgy_hashmap_key_c_infix(key_name));
+    return written >= 0 && (size_t)written < out_size;
+}

@@ -25,8 +25,16 @@ pgy_file_open(const char *path, const char *mode)
     if (_pgy_ftable[0] == NULL) _pgy_io_init();
     FILE *fp = fopen(path, mode);
     if (fp == NULL) return -1;
-    if (_pgy_ftable_next >= PGY_MAX_OPEN_FILES) { fclose(fp); return -1; }
-    int fd = _pgy_ftable_next++;
+    int fd = -1;
+    for (int i = 3; i < PGY_MAX_OPEN_FILES; i++) {
+        if (_pgy_ftable[i] == NULL) {
+            fd = i;
+            break;
+        }
+    }
+    if (fd < 0) { fclose(fp); return -1; }
+    if (fd >= _pgy_ftable_next)
+        _pgy_ftable_next = fd + 1;
     _pgy_ftable[fd] = fp;
     return (int32_t)fd;
 }
@@ -73,22 +81,32 @@ pgy_read_file(const char *path)
     if (resolved == NULL)
         return pgy_runtime_strdup("");
     FILE *fp = fopen(resolved, "rb");
-    if (fp == NULL) return pgy_runtime_strdup("");
+    if (fp == NULL) {
+        free(resolved);
+        return pgy_runtime_strdup("");
+    }
     if (fseek(fp, 0, SEEK_END) != 0) {
         fclose(fp);
+        free(resolved);
         return pgy_runtime_strdup("");
     }
     long len = ftell(fp);
     if (len < 0 || (unsigned long)len > (unsigned long)PGY_RUNTIME_MAX_FILE_BYTES) {
         fclose(fp);
+        free(resolved);
         return pgy_runtime_strdup("");
     }
     if (fseek(fp, 0, SEEK_SET) != 0) {
         fclose(fp);
+        free(resolved);
         return pgy_runtime_strdup("");
     }
     char *buf = (char *)malloc((size_t)len + 1);
-    if (buf == NULL) { fclose(fp); return pgy_runtime_strdup(""); }
+    if (buf == NULL) {
+        fclose(fp);
+        free(resolved);
+        return pgy_runtime_strdup("");
+    }
     size_t read_len = fread(buf, 1, (size_t)len, fp);
     if (read_len != (size_t)len) {
         fclose(fp);
@@ -110,7 +128,10 @@ pgy_write_file(const char *path, const char *data)
     if (resolved == NULL)
         return;
     FILE *fp = fopen(resolved, "wb");
-    if (fp == NULL) return;
+    if (fp == NULL) {
+        free(resolved);
+        return;
+    }
     if (data != NULL) {
         size_t len = strlen(data);
         (void)fwrite(data, 1, len, fp);
@@ -123,17 +144,17 @@ pgy_write_file(const char *path, const char *data)
 static inline char *
 pgy_input(const char *prompt)
 {
+    char tmp[4096];
     if (prompt != NULL && prompt[0] != '\0')
         printf("%s", prompt);
     fflush(stdout);
-    static char _pgy_input_buf[4096];
-    _pgy_input_buf[0] = '\0';
-    if (fgets(_pgy_input_buf, sizeof(_pgy_input_buf), stdin) == NULL)
-        return _pgy_input_buf;
-    size_t len = strlen(_pgy_input_buf);
-    if (len > 0 && _pgy_input_buf[len - 1] == '\n')
-        _pgy_input_buf[len - 1] = '\0';
-    return _pgy_input_buf;
+    tmp[0] = '\0';
+    if (fgets(tmp, sizeof(tmp), stdin) == NULL)
+        return pgy_runtime_strdup("");
+    size_t len = strlen(tmp);
+    if (len > 0 && tmp[len - 1] == '\n')
+        tmp[len - 1] = '\0';
+    return pgy_runtime_strdup(tmp);
 }
 
 /* Print(msg) → stdout without newline */
@@ -194,8 +215,9 @@ Substring(const char *s, int32_t start, int32_t len)
     if (s == NULL) return pgy_runtime_strdup("");
     int32_t slen = (int32_t)strlen(s);
     if (start < 0 || start >= slen || len <= 0) return pgy_runtime_strdup("");
-    if (start + len > slen) len = slen - start;
+    if (len > slen - start) len = slen - start;
     char *buf = (char *)malloc((size_t)len + 1);
+    if (buf == NULL) return pgy_runtime_strdup("");
     memcpy(buf, s + start, (size_t)len);
     buf[len] = '\0';
     return buf;
@@ -215,8 +237,21 @@ StringReplace(const char *s, const char *old_str, const char *new_str)
     const char *p = s;
     while ((p = strstr(p, old_str)) != NULL) { count++; p += old_len; }
 
-    size_t result_len = strlen(s) + (size_t)count * (new_len - old_len);
+    size_t source_len = strlen(s);
+    size_t result_len;
+    if (new_len > old_len) {
+        size_t delta = new_len - old_len;
+        if ((size_t)count > (((size_t)-1) - source_len) / delta)
+            return pgy_runtime_strdup("");
+        result_len = source_len + (size_t)count * delta;
+    } else if (new_len == old_len) {
+        result_len = source_len;
+    } else {
+        size_t delta = old_len - new_len;
+        result_len = source_len - (size_t)count * delta;
+    }
     char *result = (char *)malloc(result_len + 1);
+    if (result == NULL) return pgy_runtime_strdup("");
     char *dst = result;
     p = s;
     while (*p) {
@@ -242,6 +277,7 @@ StringTrim(const char *s)
     while (len > 0 && (s[len-1] == ' ' || s[len-1] == '\t' || s[len-1] == '\n' || s[len-1] == '\r'))
         len--;
     char *buf = (char *)malloc(len + 1);
+    if (buf == NULL) return pgy_runtime_strdup("");
     memcpy(buf, s, len);
     buf[len] = '\0';
     return buf;
@@ -254,6 +290,7 @@ ToUpper(const char *s)
     if (s == NULL) return pgy_runtime_strdup("");
     size_t len = strlen(s);
     char *buf = (char *)malloc(len + 1);
+    if (buf == NULL) return pgy_runtime_strdup("");
     for (size_t i = 0; i <= len; i++)
         buf[i] = (s[i] >= 'a' && s[i] <= 'z') ? (char)(s[i] - 32) : s[i];
     return buf;
@@ -266,6 +303,7 @@ ToLower(const char *s)
     if (s == NULL) return pgy_runtime_strdup("");
     size_t len = strlen(s);
     char *buf = (char *)malloc(len + 1);
+    if (buf == NULL) return pgy_runtime_strdup("");
     for (size_t i = 0; i <= len; i++)
         buf[i] = (s[i] >= 'A' && s[i] <= 'Z') ? (char)(s[i] + 32) : s[i];
     return buf;
@@ -278,7 +316,10 @@ StringConcat(const char *a, const char *b)
     if (a == NULL) a = "";
     if (b == NULL) b = "";
     size_t la = strlen(a), lb = strlen(b);
+    if (la > ((size_t)-1) - lb || la + lb > ((size_t)-1) - 1)
+        return pgy_runtime_strdup("");
     char *buf = (char *)malloc(la + lb + 1);
+    if (buf == NULL) return pgy_runtime_strdup("");
     memcpy(buf, a, la);
     memcpy(buf + la, b, lb + 1);
     return buf;
@@ -321,12 +362,20 @@ StringSplit(const char *s, const char *delim)
         /* No delimiter found — return single element */
         result.capacity = 1;
         result.data = (char **)calloc(1, sizeof(char *));
+        if (result.data == NULL) {
+            result.capacity = 0;
+            return result;
+        }
         result.data[0] = pgy_runtime_strdup(s);
         result.length = 1;
         return result;
     }
     result.capacity = count;
     result.data = (char **)calloc(count, sizeof(char *));
+    if (result.data == NULL) {
+        result.capacity = 0;
+        return result;
+    }
     result.length = 0;
     tmp = s;
     while (*tmp && result.length < count) {
@@ -338,6 +387,10 @@ StringSplit(const char *s, const char *delim)
         size_t token_len = (size_t)(found - tmp);
         if (token_len > 0) {
             char *token = (char *)malloc(token_len + 1);
+            if (token == NULL) {
+                tmp = found + strlen(delim);
+                continue;
+            }
             memcpy(token, tmp, token_len);
             token[token_len] = '\0';
             result.data[result.length++] = token;
@@ -358,10 +411,23 @@ StringJoin(PgyArray_String *arr, const char *sep)
     /* Calculate total length */
     size_t total = 0;
     for (size_t i = 0; i < arr->length; i++) {
-        if (arr->data[i]) total += strlen(arr->data[i]);
-        if (i < arr->length - 1) total += sep_len;
+        if (arr->data[i]) {
+            size_t sl = strlen(arr->data[i]);
+            if (sl > ((size_t)-1) - total)
+                return pgy_runtime_strdup("");
+            total += sl;
+        }
+        if (i < arr->length - 1) {
+            if (sep_len > ((size_t)-1) - total)
+                return pgy_runtime_strdup("");
+            total += sep_len;
+        }
     }
+    if (total == (size_t)-1)
+        return pgy_runtime_strdup("");
     char *result = (char *)malloc(total + 1);
+    if (result == NULL)
+        return pgy_runtime_strdup("");
     size_t pos = 0;
     for (size_t i = 0; i < arr->length; i++) {
         if (arr->data[i]) {

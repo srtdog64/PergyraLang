@@ -1,6 +1,7 @@
 #ifndef PGY_SRC_CODEGEN_TRANSPILER_EXPR_CORE_EMIT_H
 #define PGY_SRC_CODEGEN_TRANSPILER_EXPR_CORE_EMIT_H
 
+#include "codegen_scalar_arithmetic_policy.h"
 #include "transpiler_expr_core_builtins_emit.h"
 
 static const char *
@@ -141,7 +142,11 @@ emit_binary(ASTNode *expr, TranspilerCtx *ctx)
                 && (strcmp(rt, "Float") == 0 || strcmp(rt, "Double") == 0));
         bool is_long_div = (lt != NULL && strcmp(lt, "Long") == 0)
             || (rt != NULL && strcmp(rt, "Long") == 0);
-        if (!is_float_div) {
+        bool rhs_is_nonzero_literal =
+            !is_long_div
+            && pgy_codegen_ast_number_is_nonzero_i32_literal(
+                expr->data.binary.right);
+        if (!is_float_div && !rhs_is_nonzero_literal) {
             const char *helper = expr->data.binary.op.type == TOKEN_SLASH
                 ? (is_long_div ? "pgy_checked_div_i64_export"
                                : "pgy_checked_div_i32_export")

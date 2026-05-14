@@ -67,11 +67,13 @@ emit_builtin_write(ASTNode *call, TranspilerCtx *ctx)
     }
 
     /* Resolve slot inner type from tracking table */
-    const char *inner = NULL;
+    char inner_buf[128];
+    const char *inner = inner_buf;
     const char *slot_name = NULL;
     bool secure = false;
     ASTNode *slot_arg = call->data.call.arguments[0];
-    if (!transpiler_resolve_slot_target(ctx, slot_arg, &inner, &slot_name, &secure))
+    if (!transpiler_resolve_slot_target_copy(ctx, slot_arg,
+            inner_buf, sizeof(inner_buf), &slot_name, &secure))
         return pergyra_strdup("0");
 
     bool saved_suppress = ctx->suppress_slot_auto_read;
@@ -139,11 +141,13 @@ emit_builtin_read(ASTNode *call, TranspilerCtx *ctx)
     }
 
     /* Resolve slot inner type from tracking table */
-    const char *inner = NULL;
+    char inner_buf[128];
+    const char *inner = inner_buf;
     const char *slot_name = NULL;
     bool secure = false;
     ASTNode *slot_arg = call->data.call.arguments[0];
-    if (!transpiler_resolve_slot_target(ctx, slot_arg, &inner, &slot_name, &secure))
+    if (!transpiler_resolve_slot_target_copy(ctx, slot_arg,
+            inner_buf, sizeof(inner_buf), &slot_name, &secure))
         return pergyra_strdup("0");
 
     bool saved_suppress = ctx->suppress_slot_auto_read;
@@ -188,11 +192,13 @@ emit_builtin_release(ASTNode *call, TranspilerCtx *ctx)
     }
 
     /* Resolve slot inner type from tracking table */
-    const char *inner = NULL;
+    char inner_buf[128];
+    const char *inner = inner_buf;
     const char *slot_name = NULL;
     bool secure = false;
     ASTNode *slot_arg = call->data.call.arguments[0];
-    if (!transpiler_resolve_slot_target(ctx, slot_arg, &inner, &slot_name, &secure))
+    if (!transpiler_resolve_slot_target_copy(ctx, slot_arg,
+            inner_buf, sizeof(inner_buf), &slot_name, &secure))
         return pergyra_strdup("0");
 
     bool saved_suppress = ctx->suppress_slot_auto_read;
@@ -243,9 +249,10 @@ char *
 emit_builtin_device_write(ASTNode *call, TranspilerCtx *ctx)
 {
     ASTNode *slot_arg = call->data.call.arguments[0];
-    const char *inner = transpiler_resolve_device_slot_inner_or_error(ctx, slot_arg,
-        "DeviceWrite");
-    if (inner == NULL)
+    char inner_buf[128];
+    const char *inner = inner_buf;
+    if (!transpiler_resolve_device_slot_inner_copy_or_error(ctx, slot_arg,
+            "DeviceWrite", inner_buf, sizeof(inner_buf)))
         return pergyra_strdup("0");
     bool saved_suppress = ctx->suppress_slot_auto_read;
     ctx->suppress_slot_auto_read = true;
@@ -264,9 +271,10 @@ char *
 emit_builtin_device_read(ASTNode *call, TranspilerCtx *ctx)
 {
     ASTNode *slot_arg = call->data.call.arguments[0];
-    const char *inner = transpiler_resolve_device_slot_inner_or_error(ctx, slot_arg,
-        "DeviceRead");
-    if (inner == NULL)
+    char inner_buf[128];
+    const char *inner = inner_buf;
+    if (!transpiler_resolve_device_slot_inner_copy_or_error(ctx, slot_arg,
+            "DeviceRead", inner_buf, sizeof(inner_buf)))
         return pergyra_strdup("0");
     bool saved_suppress = ctx->suppress_slot_auto_read;
     ctx->suppress_slot_auto_read = true;
@@ -283,9 +291,10 @@ char *
 emit_builtin_release_device_slot(ASTNode *call, TranspilerCtx *ctx)
 {
     ASTNode *slot_arg = call->data.call.arguments[0];
-    const char *inner = transpiler_resolve_device_slot_inner_or_error(ctx, slot_arg,
-        "ReleaseDeviceSlot");
-    if (inner == NULL)
+    char inner_buf[128];
+    const char *inner = inner_buf;
+    if (!transpiler_resolve_device_slot_inner_copy_or_error(ctx, slot_arg,
+            "ReleaseDeviceSlot", inner_buf, sizeof(inner_buf)))
         return pergyra_strdup("0");
     bool saved_suppress = ctx->suppress_slot_auto_read;
     ctx->suppress_slot_auto_read = true;
@@ -302,9 +311,10 @@ char *
 emit_builtin_submit_device_read(ASTNode *call, TranspilerCtx *ctx)
 {
     ASTNode *slot_arg = call->data.call.arguments[0];
-    const char *inner = transpiler_resolve_device_slot_inner_or_error(ctx, slot_arg,
-        "SubmitDeviceRead");
-    if (inner == NULL)
+    char inner_buf[128];
+    const char *inner = inner_buf;
+    if (!transpiler_resolve_device_slot_inner_copy_or_error(ctx, slot_arg,
+            "SubmitDeviceRead", inner_buf, sizeof(inner_buf)))
         return pergyra_strdup("0");
     bool saved_suppress = ctx->suppress_slot_auto_read;
     ctx->suppress_slot_auto_read = true;

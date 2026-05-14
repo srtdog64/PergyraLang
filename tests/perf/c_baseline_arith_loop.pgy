@@ -1,0 +1,12 @@
+func Main() -> Void {
+    let acc: Int = 0;
+    let i: Int = 0;
+
+    while i < 10000000 {
+        acc = acc + (i % 97);
+        acc = acc + (i / 97);
+        i = i + 1;
+    }
+
+    Log(acc);
+}

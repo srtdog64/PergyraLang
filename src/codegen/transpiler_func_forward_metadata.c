@@ -23,6 +23,7 @@ emit_hosted_method_forward_decl_from_metadata(const char *host_name,
     const char *method_name;
     ASTNode *return_type;
     size_t param_count;
+    char ret_type_buf[256];
     const char *ret_type = "void";
 
     if (host_name == NULL || method == NULL || buf == NULL || ctx == NULL
@@ -41,8 +42,12 @@ emit_hosted_method_forward_decl_from_metadata(const char *host_name,
     if (method_name == NULL)
         return;
     ensure_type_specializations_from_ast(ctx, return_type);
-    if (return_type != NULL)
-        ret_type = pergyra_ast_type_to_c(return_type);
+    if (return_type != NULL
+        && pergyra_ast_type_to_c_copy(return_type,
+            ret_type_buf,
+            sizeof(ret_type_buf))) {
+        ret_type = ret_type_buf;
+    }
 
     codebuf_write(buf, "\n%s\n%s_%s(%s%s",
                   ret_type, host_name, method_name, host_name,
@@ -50,7 +55,7 @@ emit_hosted_method_forward_decl_from_metadata(const char *host_name,
 
     for (size_t j = 0; j < param_count; j++) {
         FuncParam *p = transpiler_mir_decl_method_param(method_meta, j);
-        const char *pt = NULL;
+        char pt[256];
         char surface_desc[256];
 
         if (p == NULL && method_meta == NULL)
@@ -67,9 +72,10 @@ emit_hosted_method_forward_decl_from_metadata(const char *host_name,
             host_name != NULL ? host_name : "(anonymous)",
             method_name != NULL ? method_name : "(anonymous)",
             p->name != NULL ? p->name : "(anonymous)");
-        pt = transpiler_require_ast_c_type(ctx, p->type, surface_desc);
-        if (pt == NULL)
+        if (!transpiler_require_ast_c_type_copy(ctx,
+                p->type, surface_desc, pt, sizeof(pt))) {
             return;
+        }
         {
             const char *ptn = p->type != NULL
                 ? transpiler_render_type_name_local(ctx, p->type)

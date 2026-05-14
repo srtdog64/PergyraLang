@@ -91,9 +91,9 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
             && (strncmp(effective_layout->abi_type_name, "Slot<", 5) == 0
                 || strncmp(effective_layout->abi_type_name, "SecureSlot<", 11) == 0
                 || strncmp(effective_layout->abi_type_name, "DeviceSlot<", 11) == 0)) {
-            copy_capped_string(inner_name_buf, sizeof(inner_name_buf),
-                slot_inner_type_name(effective_layout->abi_type_name));
-            inner_name = inner_name_buf;
+            if (slot_inner_type_name_copy(effective_layout->abi_type_name,
+                    inner_name_buf, sizeof(inner_name_buf)))
+                inner_name = inner_name_buf;
         }
     }
 
@@ -129,9 +129,9 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
             if (strncmp(typed_name, "Slot<", 5) == 0
                 || is_secure_slot
                 || is_device_slot) {
-                copy_capped_string(inner_name_buf, sizeof(inner_name_buf),
-                    slot_inner_type_name(typed_name));
-                inner_name = inner_name_buf;
+                if (slot_inner_type_name_copy(typed_name, inner_name_buf,
+                        sizeof(inner_name_buf)))
+                    inner_name = inner_name_buf;
             }
         }
         if (inner_name != NULL) {

@@ -70,6 +70,25 @@ runtime-validated. Future contributors should treat any change to Slot
 semantics as automatically requiring re-audit of every higher
 abstraction's claimed guarantees.
 
+## 0-entry. Slot Is Not The Default Value Model
+
+Slot is the explicit resource-boundary model, not the ordinary value model.
+Pergyra programs should not need `ClaimSlot` / `Write` / `Read` / `Release`
+for a trivial value, a pure calculation, or a log statement.
+
+```pergyra
+func Main() -> Void
+{
+    Log("Hello, Pergyra!");
+}
+```
+
+Use `Slot<T>`, `SecureSlot<T>`, `DeviceSlot<T>`, pin/view syntax, and
+explicit release paths when the code crosses a resource, authority,
+backend-handle, lifetime, or runtime boundary. This distinction is part of
+the beta surface trust contract: examples must not present Slot lifecycle
+boilerplate as the default way to write ordinary code.
+
 ## 0a. Positive Thesis — Slot Is A Modular Resource Boundary
 
 Slot should not be judged as "a weaker Rust borrow checker". It is solving the
@@ -314,12 +333,25 @@ These checks fire at runtime and produce panics or returned errors.
 | Secure slot token forgery | runtime reject | `make test-security` (142/142) |
 | Authority token mismatch | runtime reject | `make runtime-authority-contract-test-smoke` |
 | TTL cleanup of stale slot | runtime cleanup | `make test-security` |
+| Secure scope destroy while pinned | `SLOT_ERROR_PINNED` via checked destroy; void destroy panics | `make test-security` fixture coverage; local object compile when OpenSSL is unavailable |
 | Release/move of source while typed view is live | static reject + runtime reject | `make diagnostics-json-test-smoke`, `runtime-panic-abi-test-smoke` |
+| Result-owned file/string helper lifetime | resolved paths are freed on error exits; string length arithmetic is checked before allocation | `make runtime-abi-lifetime-test-smoke` |
+| Inline/export input ABI parity | `pgy_input` returns result-owned strings on both C inline and LLVM-linkable surfaces | `make runtime-abi-lifetime-test-smoke` |
+| Exported array slice pointer derivation | zero-length slices return before pointer arithmetic; range checks use subtract form | `make runtime-abi-lifetime-test-smoke` |
+| `List<String>` payload ownership | raw list push/set duplicate strings; get returns list-borrowed pointer; remove frees owned payloads | `make runtime-abi-lifetime-test-smoke` |
+| `Queue<String>` payload ownership | queue push duplicates strings; LLVM uses string-specific raw queue exports instead of pointer memcpy | `make runtime-abi-lifetime-test-smoke` |
+| LLVM `Channel<String>` payload ownership | send duplicates strings into channel-owned storage; receive clears the slot and transfers the owned payload; destroy frees pending payloads | `make runtime-abi-lifetime-test-smoke` |
+| `Set<String>` payload ownership | raw set add duplicates strings; has uses borrowed probes; remove frees owned payloads and tombstones the slot | `make runtime-abi-lifetime-test-smoke` |
+| LLVM raw `HashMap<K,String>` value ownership | set duplicates string values; get returns map-borrowed values; remove frees both key and value while keeping tombstones | `make runtime-abi-lifetime-test-smoke` |
+| Raw `HashMap` probe-chain integrity | remove frees the runtime-owned key and leaves a tombstone so later linear-probe entries remain reachable | `make runtime-abi-lifetime-test-smoke` |
+| Inline collection probe-chain integrity | generated-C `HashMap` and `Set` removals use tombstones rather than empty slots | `make runtime-abi-lifetime-test-smoke` |
 | Direct owner/slot-sugar access bypassing live view | static reject | `make diagnostics-json-test-smoke` |
 | Helper-boundary owner bypass while typed view is live | static reject | `make diagnostics-json-test-smoke` |
 | Container-store owner bypass while typed view is live | static reject | `make diagnostics-json-test-smoke` |
 | Return-boundary owner bypass while typed view is live | static reject | `make diagnostics-json-test-smoke` |
 | Box resource-handle payload | static reject | `make diagnostics-json-test-smoke` |
+| Runtime pointer arithmetic overflow | pool/arena/slice/BoxArray/SlotPool panic or reject before deriving an invalid pointer | direct runtime-lib, SlotPool, and data-structure object compile |
+| Async scope tracked/scheduled fiber mismatch | scheduler enqueues the same fiber that the scope owns; failed enqueue rolls back tracking | direct async runtime object compile |
 | Double release | `released-slot` panic class | `runtime-panic-abi-test-smoke` |
 | Use after release | `released-slot` panic class | `runtime-panic-abi-test-smoke` |
 

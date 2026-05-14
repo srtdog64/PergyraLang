@@ -172,8 +172,10 @@ LLVMEventTypeEntry *llvm_register_event(LLVMGenCtx *ctx, const char *name,
 LLVMTypeRef   pergyra_type_to_llvm(LLVMGenCtx *ctx, const char *type_name);
 LLVMTypeRef   ast_type_to_llvm(LLVMGenCtx *ctx, ASTNode *type_node);
 LLVMTypeRef   llvm_resolve_inner_type(LLVMGenCtx *ctx, const char *type_name);
-const char   *llvm_constructed_arg_name_at(const char *type_name,
-                                           int arg_index);
+bool          llvm_constructed_arg_name_copy(const char *type_name,
+                                             int arg_index,
+                                             char *out,
+                                             size_t out_size);
 const char   *llvm_tmp_name(LLVMGenCtx *ctx);
 LLVMValueRef  llvm_create_entry_alloca(LLVMGenCtx *ctx, LLVMTypeRef type,
                                         const char *name);
@@ -402,7 +404,8 @@ bool llvm_stmt_emit_view_or_move_let(ASTNode *node, LLVMGenCtx *ctx);
 bool llvm_stmt_emit_slot_sugar_let(ASTNode *node, LLVMGenCtx *ctx);
 bool llvm_stmt_register_callable_let_binding(ASTNode *node, LLVMGenCtx *ctx);
 void llvm_emit_with_stmt(ASTNode *node, LLVMGenCtx *ctx);
-const char *llvm_stmt_render_type_annotation_static(ASTNode *type_ann);
+const char *llvm_stmt_render_type_annotation_copy(LLVMGenCtx *ctx,
+                                                  ASTNode *type_ann);
 LLVMTypeRef llvm_stmt_lambda_signature_type(LLVMGenCtx *ctx, ASTNode *expr);
 const char *llvm_infer_spawn_future_inner(LLVMGenCtx *ctx, ASTNode *spawn_expr);
 LLVMValueRef llvm_stmt_create_slot_alloca(LLVMGenCtx *ctx, LLVMTypeRef type,

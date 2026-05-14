@@ -12,7 +12,7 @@ intent_role_resolve_involves_type(ASTNode *involves, SemanticContext *ctx)
     if (involves == NULL || involves->type != AST_INTENT_INVOLVES)
         return NULL;
     return intent_normalize_type(intent_resolve_type_ref(
-        involves->data.intent_involves.subject_type, ctx));
+        ast_intent_involves_subject_type(involves), ctx));
 }
 
 static Type *intent_role_resolve_value_type(ASTNode *value, SemanticContext *ctx)
@@ -20,7 +20,7 @@ static Type *intent_role_resolve_value_type(ASTNode *value, SemanticContext *ctx
     if (value == NULL || value->type != AST_INTENT_VALUE)
         return NULL;
     return intent_normalize_type(intent_resolve_type_ref(
-        value->data.intent_value.value_type, ctx));
+        ast_intent_value_type(value), ctx));
 }
 
 static Type *
@@ -410,12 +410,17 @@ static const char *find_unique_intent_binding_alias_by_type_name(
     ASTNode *intent, const char *type_name, SemanticContext *ctx)
 {
     const char *matched_alias = NULL;
+    ASTNode **involves_nodes;
+    size_t involve_count;
+    ASTNode **values;
+    size_t value_count;
 
     if (intent == NULL || intent->type != AST_INTENT_DECL || type_name == NULL)
         return NULL;
 
-    for (size_t i = 0; i < intent->data.intent_decl.involve_count; i++) {
-        ASTNode *involves = intent->data.intent_decl.involves[i];
+    involves_nodes = ast_intent_decl_involves(intent, &involve_count);
+    for (size_t i = 0; i < involve_count; i++) {
+        ASTNode *involves = involves_nodes[i];
         Type *participant_type = intent_role_resolve_involves_type(involves, ctx);
 
         if (participant_type == NULL || participant_type->name == NULL
@@ -424,11 +429,12 @@ static const char *find_unique_intent_binding_alias_by_type_name(
         }
         if (matched_alias != NULL)
             return NULL;
-        matched_alias = involves->data.intent_involves.alias;
+        matched_alias = ast_intent_involves_alias(involves);
     }
 
-    for (size_t i = 0; i < intent->data.intent_decl.value_count; i++) {
-        ASTNode *value = intent->data.intent_decl.values[i];
+    values = ast_intent_decl_values(intent, &value_count);
+    for (size_t i = 0; i < value_count; i++) {
+        ASTNode *value = values[i];
         Type *value_type = intent_role_resolve_value_type(value, ctx);
 
         if (value_type == NULL || value_type->name == NULL
@@ -437,7 +443,7 @@ static const char *find_unique_intent_binding_alias_by_type_name(
         }
         if (matched_alias != NULL)
             return NULL;
-        matched_alias = value->data.intent_value.alias;
+        matched_alias = ast_intent_value_alias(value);
     }
 
     return matched_alias;
@@ -462,16 +468,17 @@ intent_step_derive_transfer_context(ASTNode *intent_decl, ASTNode *step,
 
     to_type = intent_role_resolve_involves_type(to_involves, ctx);
 
-    if (step->data.intent_step.using_expr == NULL) {
-        step->data.intent_step.using_expr = ast_create_identifier(to_alias);
-        step->data.intent_step.derived_using_from_transfer = true;
+    if (ast_intent_step_using_expr(step) == NULL
+        && ast_intent_step_set_using_expr(step, ast_create_identifier(to_alias))) {
+        ast_intent_step_mark_derived_using_from_transfer(step);
     }
 
-    if (step->data.intent_step.where_type == NULL
+    if (ast_intent_step_where_type(step) == NULL
         && to_type != NULL
         && to_type->name != NULL) {
-        step->data.intent_step.where_type = ast_create_type(to_type->name);
-        step->data.intent_step.derived_where_from_transfer = true;
+        if (ast_intent_step_set_where_type(step, ast_create_type(to_type->name))) {
+            ast_intent_step_mark_derived_where_from_transfer(step);
+        }
     }
 }
 
@@ -479,28 +486,35 @@ void
 intent_step_derive_zone_binding_context(ASTNode *intent_decl, ASTNode *step,
                                         SemanticContext *ctx)
 {
+    ASTNode *using_expr;
+    ASTNode *where_type;
+
     if (intent_decl == NULL || step == NULL || ctx == NULL
         || step->type != AST_INTENT_STEP) {
         return;
     }
+    using_expr = ast_intent_step_using_expr(step);
+    where_type = ast_intent_step_where_type(step);
 
-    if (step->data.intent_step.where_type == NULL
-        && step->data.intent_step.using_expr != NULL
-        && step->data.intent_step.using_expr->type == AST_IDENTIFIER) {
+    if (where_type == NULL
+        && using_expr != NULL
+        && using_expr->type == AST_IDENTIFIER) {
         Type *using_type = intent_role_resolve_binding_type(intent_decl,
-            step->data.intent_step.using_expr->data.identifier.name, ctx);
+            using_expr->data.identifier.name, ctx);
         ASTNode *zone_decl = find_domain_decl_by_name(ctx->program_root,
             AST_ZONE_DECL, using_type != NULL ? using_type->name : NULL);
         if (zone_decl != NULL && using_type != NULL && using_type->name != NULL) {
-            step->data.intent_step.where_type = ast_create_type(using_type->name);
-            step->data.intent_step.derived_where_from_using = true;
+            if (ast_intent_step_set_where_type(step, ast_create_type(using_type->name))) {
+                ast_intent_step_mark_derived_where_from_using(step);
+            }
         }
     }
 
-    if (step->data.intent_step.using_expr == NULL
-        && step->data.intent_step.where_type != NULL) {
+    using_expr = ast_intent_step_using_expr(step);
+    where_type = ast_intent_step_where_type(step);
+    if (using_expr == NULL && where_type != NULL) {
         Type *zone_type = intent_normalize_type(
-            intent_resolve_type_ref(step->data.intent_step.where_type, ctx));
+            intent_resolve_type_ref(where_type, ctx));
 
         if (zone_type == NULL || zone_type->name == NULL)
             return;
@@ -508,9 +522,10 @@ intent_step_derive_zone_binding_context(ASTNode *intent_decl, ASTNode *step,
         const char *matched_alias = find_unique_intent_binding_alias_by_type_name(
             intent_decl, zone_type->name, ctx);
         if (matched_alias != NULL) {
-            step->data.intent_step.using_expr = ast_create_identifier(matched_alias);
-            step->data.intent_step.derived_using_from_where =
-                step->data.intent_step.using_expr != NULL;
+            if (ast_intent_step_set_using_expr(step,
+                    ast_create_identifier(matched_alias))) {
+                ast_intent_step_mark_derived_using_from_where(step);
+            }
         }
     }
 }

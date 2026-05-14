@@ -15,7 +15,9 @@ emit_call_stdlib_queue_builtin(TranspilerCollectionOp op,
             return pergyra_strdup("0");
         }
         ensure_collection_specialization(ctx, "Queue", inner);
-        return strdup_fmt("pgy_queue_new_%s()", collection_runtime_suffix(inner));
+        char suffix_buf[128];
+        collection_runtime_suffix_copy(inner, suffix_buf, sizeof(suffix_buf));
+        return strdup_fmt("pgy_queue_new_%s()", suffix_buf);
     }
     if (op == TRANSPILER_COLLECTION_OP_QUEUE_PUSH) {
         char *q = emit_expression(call->data.call.arguments[0], ctx);
@@ -31,8 +33,10 @@ emit_call_stdlib_queue_builtin(TranspilerCollectionOp op,
             return pergyra_strdup("0");
         }
         ensure_collection_specialization(ctx, "Queue", inner);
+        char suffix_buf[128];
+        collection_runtime_suffix_copy(inner, suffix_buf, sizeof(suffix_buf));
         char *r = strdup_fmt("pgy_queue_push_%s(&%s, %s)",
-            collection_runtime_suffix(inner), q, v);
+            suffix_buf, q, v);
         free(q);
         free(v);
         return r;
@@ -49,8 +53,10 @@ emit_call_stdlib_queue_builtin(TranspilerCollectionOp op,
             return pergyra_strdup("0");
         }
         ensure_collection_specialization(ctx, "Queue", inner);
+        char suffix_buf[128];
+        collection_runtime_suffix_copy(inner, suffix_buf, sizeof(suffix_buf));
         char *r = strdup_fmt("pgy_queue_pop_%s(&%s)",
-            collection_runtime_suffix(inner), q);
+            suffix_buf, q);
         free(q);
         return r;
     }
@@ -66,8 +72,10 @@ emit_call_stdlib_queue_builtin(TranspilerCollectionOp op,
             return pergyra_strdup("0");
         }
         ensure_collection_specialization(ctx, "Queue", inner);
+        char suffix_buf[128];
+        collection_runtime_suffix_copy(inner, suffix_buf, sizeof(suffix_buf));
         char *r = strdup_fmt("pgy_queue_size_%s(&%s)",
-            collection_runtime_suffix(inner), q);
+            suffix_buf, q);
         free(q);
         return r;
     }
@@ -83,8 +91,10 @@ emit_call_stdlib_queue_builtin(TranspilerCollectionOp op,
             return pergyra_strdup("0");
         }
         ensure_collection_specialization(ctx, "Queue", inner);
+        char suffix_buf[128];
+        collection_runtime_suffix_copy(inner, suffix_buf, sizeof(suffix_buf));
         char *r = strdup_fmt("pgy_queue_empty_%s(&%s)",
-            collection_runtime_suffix(inner), q);
+            suffix_buf, q);
         free(q);
         return r;
     }

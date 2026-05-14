@@ -110,11 +110,12 @@ type_check_intent_step_participant_contract(ASTNode *intent_decl,
             }
         }
 
-        if (involves->data.intent_involves.subject_type != NULL
-            && involves->data.intent_involves.subject_type->type == AST_TYPE
-            && involves->data.intent_involves.subject_type->data.type.name != NULL) {
+        ASTNode *subject_type = ast_intent_involves_subject_type(involves);
+        if (subject_type != NULL
+            && subject_type->type == AST_TYPE
+            && subject_type->data.type.name != NULL) {
             ASTNode *subject_decl = find_subject_host_decl_by_name(ctx->program_root,
-                involves->data.intent_involves.subject_type->data.type.name);
+                subject_type->data.type.name);
             if (subject_decl_has_action_named(subject_decl, ast_intent_step_name(step))
                 && matched_action != NULL) {
                 *matched_action = true;

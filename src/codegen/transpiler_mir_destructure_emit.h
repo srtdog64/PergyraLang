@@ -274,9 +274,9 @@ transpiler_emit_mir_let_destructure_stmt(CodeBuf *buf,
     if (init_type_name != NULL
         && (strncmp(init_type_name, "Array<", 6) == 0
             || strncmp(init_type_name, "Slice<", 6) == 0)) {
-        copy_capped_string(elem_inner_buf, sizeof(elem_inner_buf),
-            slot_inner_type_name(init_type_name));
-        elem_inner = elem_inner_buf;
+        if (slot_inner_type_name_copy(init_type_name, elem_inner_buf,
+                sizeof(elem_inner_buf)))
+            elem_inner = elem_inner_buf;
         if (pergyra_type_to_c_copy(elem_inner, elem_c_type_buf,
                 sizeof(elem_c_type_buf))) {
             elem_c_type = elem_c_type_buf;

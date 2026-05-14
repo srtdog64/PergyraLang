@@ -43,9 +43,6 @@ bool intent_semantic_append_name(char ***items,
                                  size_t *capacity,
                                  const char *name);
 
-bool intent_step_append_required_ability_clone(ASTNode *step,
-                                               ASTNode *ability);
-
 void intent_step_derive_who_from_action(ASTNode *intent_decl,
                                         ASTNode *step,
                                         SemanticContext *ctx);

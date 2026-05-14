@@ -276,7 +276,7 @@ semantic_type_resolution_register_top_level_decl(ASTNode *stmt,
         label = ast_world_name(stmt);
         break;
     case AST_INTENT_DECL:
-        label = stmt->data.intent_decl.name;
+        label = ast_intent_decl_name(stmt);
         break;
     case AST_RELATION_DECL:
         label = ast_relation_name(stmt);

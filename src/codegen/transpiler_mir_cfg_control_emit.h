@@ -72,8 +72,9 @@ transpiler_mir_for_in_element_type(TranspilerCtx *ctx,
         && strncmp(collection_type, "List<", 5) != 0) {
         return false;
     }
-    copy_capped_string(inner_type_buf, inner_type_buf_size,
-        slot_inner_type_name(collection_type));
+    if (!slot_inner_type_name_copy(collection_type, inner_type_buf,
+            inner_type_buf_size))
+        return false;
     return pergyra_type_to_c_copy(inner_type_buf,
         element_type_buf, element_type_buf_size);
 }

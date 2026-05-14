@@ -1,9 +1,13 @@
 #ifndef PGY_RUNTIME_QUEUE_INLINE_H
 #define PGY_RUNTIME_QUEUE_INLINE_H
 
+#include <stdint.h>
+
 #ifndef PGY_RUNTIME_ELEM_CAPACITY_FITS
 #define PGY_RUNTIME_ELEM_CAPACITY_FITS(capacity, CType) \
-    ((capacity) != 0 && (capacity) <= SIZE_MAX / sizeof(CType))
+    ((capacity) != 0 \
+        && (capacity) <= (size_t)INT32_MAX \
+        && (capacity) <= SIZE_MAX / sizeof(CType))
 #endif
 
 #define PGY_QUEUE_DEFINE(SuffixName, CType) \
@@ -260,7 +264,11 @@ static inline void pgy_queue_push_string(PgyQueue_String *q, const char *val)
         q->tail = q->count;
         q->capacity = nc;
     }
-    q->data[q->tail] = (char *)val;
+    q->data[q->tail] = pgy_runtime_strdup(val != NULL ? val : "");
+    if (q->data[q->tail] == NULL) {
+        pgy_runtime_warn_invalid_collection("queue_push_string", "string duplication failed");
+        return;
+    }
     q->tail = (q->tail + 1) % q->capacity;
     q->count++;
 }
@@ -275,6 +283,7 @@ static inline char *pgy_queue_pop_string(PgyQueue_String *q)
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS,
                           "queue pop from empty queue");
     out = q->data[q->head];
+    q->data[q->head] = NULL;
     q->head = (q->head + 1) % q->capacity;
     q->count--;
     return out;

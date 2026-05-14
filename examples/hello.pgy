@@ -1,14 +1,9 @@
-// hello.pgy — Hello World in Pergyra
+// hello.pgy - ordinary value/log path.
 //
-// Expected C output:
-//   PgySlot_String msg = pgy_claim_String();
-//   pgy_write_String(&msg, "Hello, Pergyra!");
-//   pgy_log(pgy_read_String(&msg));
-//   pgy_release_String(&msg);
+// Slot is not the default value model. Use Slot/SecureSlot/DeviceSlot only
+// when code crosses an explicit resource, authority, or backend-handle
+// boundary. See examples/slots_simple.pgy for the explicit Slot lifecycle.
 
 func Main() -> Void {
-    let msg: Slot<String> = ClaimSlot<String>();
-    Write(msg, "Hello, Pergyra!");
-    Log(Read(msg));
-    Release(msg);
+    Log("Hello, Pergyra!");
 }

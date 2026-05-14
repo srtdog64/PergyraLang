@@ -101,10 +101,8 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
             }
         } else if (ctx->expected_type_name != NULL
                    && strncmp(ctx->expected_type_name, "Array<", 6) == 0) {
-            const char *tmp =
-                llvm_constructed_arg_name_at(ctx->expected_type_name, 0);
-            if (tmp != NULL && strlen(tmp) < sizeof(inner_name_buf)) {
-                memcpy(inner_name_buf, tmp, strlen(tmp) + 1);
+            if (llvm_constructed_arg_name_copy(ctx->expected_type_name, 0,
+                    inner_name_buf, sizeof(inner_name_buf))) {
                 inner_name = inner_name_buf;
             }
         }

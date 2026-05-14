@@ -92,8 +92,8 @@ transpiler_named_decl_matches(ASTNode *stmt, ASTNodeType decl_type,
         return stmt->data.func_decl.name != NULL
             && strcmp(stmt->data.func_decl.name, name) == 0;
     case AST_INTENT_DECL:
-        return stmt->data.intent_decl.name != NULL
-            && strcmp(stmt->data.intent_decl.name, name) == 0;
+        return ast_intent_decl_name(stmt) != NULL
+            && strcmp(ast_intent_decl_name(stmt), name) == 0;
     case AST_TYPE_ALIAS:
         return stmt->data.type_alias.name != NULL
             && strcmp(stmt->data.type_alias.name, name) == 0;

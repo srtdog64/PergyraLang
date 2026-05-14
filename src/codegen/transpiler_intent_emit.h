@@ -25,9 +25,21 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
     size_t participant_count = 0;
     const MIRRoutine *mir_routine = NULL;
     bool emit_cleanup_from_mir = false;
+    const char *intent_name = NULL;
+    ASTNode **decl_steps = NULL;
+    size_t decl_step_count = 0;
+    size_t involve_count = 0;
+    IntentRollbackPolicy rollback_policy = INTENT_ROLLBACK_NONE;
+    ASTNode *success_expr = NULL;
 
     if (node == NULL || node->type != AST_INTENT_DECL || buf == NULL || ctx == NULL)
         return;
+
+    intent_name = ast_intent_decl_name(node);
+    decl_steps = ast_intent_decl_steps(node, &decl_step_count);
+    involve_count = ast_intent_decl_involve_count(node);
+    rollback_policy = ast_intent_decl_rollback_policy(node);
+    success_expr = ast_intent_decl_success_expr(node);
 
     transpiler_capture_mir_emit_state_local(ctx, &saved_emit_state);
     ctx->out = buf;
@@ -44,36 +56,32 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
             node, mir_step_names, step_count);
     }
     if (step_count == 0) {
-        step_nodes = node->data.intent_decl.steps;
-        step_count = node->data.intent_decl.step_count;
+        step_nodes = decl_steps;
+        step_count = decl_step_count;
     } else {
         step_nodes = mir_steps;
     }
-    if (mir_only_intent && node->data.intent_decl.step_count > 0 && mir_routine == NULL) {
+    if (mir_only_intent && decl_step_count > 0 && mir_routine == NULL) {
         transpiler_set_mir_inventory_missing(
             ctx,
             "MIR-only C path missing routine for intent '%s'",
-            node->data.intent_decl.name != NULL
-                ? node->data.intent_decl.name
-                : "(anonymous-intent)");
+            intent_name != NULL ? intent_name : "(anonymous-intent)");
         transpiler_free_intent_emit_metadata(
             mir_steps, participant_aliases, participant_types, mir_step_names);
         transpiler_restore_mir_emit_state_from_snapshot_local(ctx, &saved_emit_state);
         return;
     }
-    if (mir_only_intent && node->data.intent_decl.step_count > 0 && step_count == 0) {
+    if (mir_only_intent && decl_step_count > 0 && step_count == 0) {
         transpiler_set_mir_inventory_missing(
             ctx,
             "MIR-only C path missing intent step sequence for '%s'",
-            node->data.intent_decl.name != NULL
-                ? node->data.intent_decl.name
-                : "(anonymous-intent)");
+            intent_name != NULL ? intent_name : "(anonymous-intent)");
         transpiler_free_intent_emit_metadata(
             mir_steps, participant_aliases, participant_types, mir_step_names);
         transpiler_restore_mir_emit_state_from_snapshot_local(ctx, &saved_emit_state);
         return;
     }
-    if (mir_only_intent && node->data.intent_decl.step_count > 0) {
+    if (mir_only_intent && decl_step_count > 0) {
         for (size_t i = 0; i < step_count; i++) {
             if (mir_steps != NULL && mir_steps[i] != NULL)
                 continue;
@@ -89,28 +97,24 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
             return;
         }
     }
-    if (mir_only_intent && node->data.intent_decl.involve_count > 0) {
-        if (participant_count < node->data.intent_decl.involve_count) {
+    if (mir_only_intent && involve_count > 0) {
+        if (participant_count < involve_count) {
             transpiler_set_mir_inventory_missing(
                 ctx,
                 "MIR-only C path missing intent participant metadata for '%s'",
-                node->data.intent_decl.name != NULL
-                    ? node->data.intent_decl.name
-                    : "(anonymous-intent)");
+                intent_name != NULL ? intent_name : "(anonymous-intent)");
             transpiler_free_intent_emit_metadata(
                 mir_steps, participant_aliases, participant_types, mir_step_names);
             transpiler_restore_mir_emit_state_from_snapshot_local(ctx, &saved_emit_state);
             return;
         }
-        for (size_t i = 0; i < node->data.intent_decl.involve_count; i++) {
+        for (size_t i = 0; i < involve_count; i++) {
             if (participant_aliases == NULL || participant_types == NULL
                 || participant_aliases[i] == NULL || participant_types[i] == NULL) {
                 transpiler_set_mir_inventory_missing(
                     ctx,
                     "MIR-only C path has incomplete intent participant metadata for '%s'",
-                    node->data.intent_decl.name != NULL
-                        ? node->data.intent_decl.name
-                        : "(anonymous-intent)");
+                    intent_name != NULL ? intent_name : "(anonymous-intent)");
                 transpiler_free_intent_emit_metadata(
                     mir_steps, participant_aliases, participant_types, mir_step_names);
                 transpiler_restore_mir_emit_state_from_snapshot_local(ctx, &saved_emit_state);
@@ -131,10 +135,10 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
             break;
         }
     }
-    if (node->data.intent_decl.rollback_policy == INTENT_ROLLBACK_NONE)
+    if (rollback_policy == INTENT_ROLLBACK_NONE)
         has_compensate_steps = false;
     needs_cleanup_done_label = !emit_cleanup_from_mir && has_compensate_steps
-        && node->data.intent_decl.rollback_policy == INTENT_ROLLBACK_CURRENT;
+        && rollback_policy == INTENT_ROLLBACK_CURRENT;
 
     if (!transpiler_emit_intent_signature_and_entry(
             node, ctx, mir_only_intent, has_compensate_steps, step_count,
@@ -303,7 +307,7 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
             }
         }
         emit_intent_step_validate_authority(ctx->out, ctx,
-            node->data.intent_decl.name, step_name, step_zone_name, step_zone_alias,
+            intent_name, step_name, step_zone_name, step_zone_alias,
             authorized_aliases, authorized_alias_count,
             emit_cleanup_from_mir,
             mir_routine != NULL ? mir_routine->cleanup_block : 0);
@@ -324,7 +328,7 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
         if (pre_expr != NULL) {
             char *pre = emit_expression(pre_expr, ctx);
             emit_intent_step_condition_failure(ctx->out, ctx, pre, "pre",
-                step_name, node->data.intent_decl.name, emit_cleanup_from_mir,
+                step_name, intent_name, emit_cleanup_from_mir,
                 mir_routine != NULL ? mir_routine->cleanup_block : 0);
             free(pre);
         }
@@ -332,7 +336,7 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
         if (invariant_pre_expr != NULL) {
             char *invariant = emit_expression(invariant_pre_expr, ctx);
             emit_intent_step_condition_failure(ctx->out, ctx, invariant,
-                "invariant-pre", step_name, node->data.intent_decl.name,
+                "invariant-pre", step_name, intent_name,
                 emit_cleanup_from_mir,
                 mir_routine != NULL ? mir_routine->cleanup_block : 0);
             free(invariant);
@@ -351,7 +355,7 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
         if (subintent_expr != NULL) {
             char *intent_expr = emit_expression(subintent_expr, ctx);
             emit_intent_step_condition_failure(ctx->out, ctx, intent_expr,
-                "intent", step_name, node->data.intent_decl.name,
+                "intent", step_name, intent_name,
                 emit_cleanup_from_mir,
                 mir_routine != NULL ? mir_routine->cleanup_block : 0);
             free(intent_expr);
@@ -365,9 +369,9 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
                         node, alias, participant_aliases, participant_types, participant_count);
                 } else {
                     ASTNode *involves = find_intent_participant_local(node, alias);
-                    if (involves != NULL && involves->data.intent_involves.subject_type != NULL
-                        && involves->data.intent_involves.subject_type->type == AST_TYPE) {
-                        subject_name = involves->data.intent_involves.subject_type->data.type.name;
+                    ASTNode *subject_type = ast_intent_involves_subject_type(involves);
+                    if (subject_type != NULL && subject_type->type == AST_TYPE) {
+                        subject_name = subject_type->data.type.name;
                     }
                 }
                 action_decl = find_subject_action_decl(ctx,
@@ -416,7 +420,7 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
         if (guard_expr != NULL) {
             char *guard = emit_expression(guard_expr, ctx);
             emit_intent_step_condition_failure(ctx->out, ctx, guard,
-                "guard", step_name, node->data.intent_decl.name,
+                "guard", step_name, intent_name,
                 emit_cleanup_from_mir,
                 mir_routine != NULL ? mir_routine->cleanup_block : 0);
             free(guard);
@@ -425,7 +429,7 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
         if (expect_expr != NULL) {
             char *expect = emit_expression(expect_expr, ctx);
             emit_intent_step_condition_failure(ctx->out, ctx, expect,
-                "expect", step_name, node->data.intent_decl.name,
+                "expect", step_name, intent_name,
                 emit_cleanup_from_mir,
                 mir_routine != NULL ? mir_routine->cleanup_block : 0);
             free(expect);
@@ -434,7 +438,7 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
         if (post_expr != NULL) {
             char *post = emit_expression(post_expr, ctx);
             emit_intent_step_condition_failure(ctx->out, ctx, post,
-                "post", step_name, node->data.intent_decl.name,
+                "post", step_name, intent_name,
                 emit_cleanup_from_mir,
                 mir_routine != NULL ? mir_routine->cleanup_block : 0);
             free(post);
@@ -443,7 +447,7 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
         if (invariant_post_expr != NULL) {
             char *invariant = emit_expression(invariant_post_expr, ctx);
             emit_intent_step_condition_failure(ctx->out, ctx, invariant,
-                "invariant-post", step_name, node->data.intent_decl.name,
+                "invariant-post", step_name, intent_name,
                 emit_cleanup_from_mir,
                 mir_routine != NULL ? mir_routine->cleanup_block : 0);
             free(invariant);
@@ -463,8 +467,8 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
     }
 
     write_indent(ctx);
-    if (node->data.intent_decl.success_expr != NULL) {
-        char *success = emit_expression(node->data.intent_decl.success_expr, ctx);
+    if (success_expr != NULL) {
+        char *success = emit_expression(success_expr, ctx);
         codebuf_write(ctx->out, "__intent_result = %s;\n", success != NULL ? success : "true");
         free(success);
     } else {
@@ -473,7 +477,7 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
     write_indent(ctx);
     if (emit_cleanup_from_mir) {
         codebuf_write(ctx->out, "goto _pgy_mir_bb_%s_%zu;\n",
-            node->data.intent_decl.name, mir_routine->cleanup_block);
+            intent_name, mir_routine->cleanup_block);
     } else {
         codebuf_write(ctx->out, "goto __intent_cleanup;\n");
     }

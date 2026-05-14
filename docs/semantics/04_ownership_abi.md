@@ -167,6 +167,44 @@ Current evidence:
   literals, stack buffers, or source input pointers.
 - The same smoke verifies that `pgy_file_open` reuses released runtime-owned
   handle slots and that `pgy_file_close` clears the runtime table entry.
+- File/string helper error exits must preserve ownership as well as success
+  exits: resolved file paths are freed on every `pgy_read_file`/`pgy_write_file`
+  failure path, and string helpers guard length arithmetic before allocating
+  result-owned buffers. The lifetime smoke now checks these guard terms for both
+  inline and LLVM-linkable runtime surfaces.
+- Interactive input is also result-owned on both surfaces: inline `pgy_input`
+  duplicates the stack buffer before returning, matching the LLVM-linkable
+  export instead of returning a static borrowed buffer.
+- Exported array slice helpers must not derive a backing pointer for zero-length
+  slices and must use subtract-form range checks (`start > length || len >
+  length - start`) so overflow cannot turn an invalid slice into an apparently
+  valid pointer range.
+- `Queue<String>` stores result-owned string payloads, not borrowed input
+  pointers. Generated-C inline queue push duplicates the string, and LLVM raw
+  queue lowering routes `Queue<String>` through string-specific raw exports
+  instead of generic pointer `memcpy`.
+- LLVM-linkable `Channel<String>` follows the same message-payload transfer
+  rule: send duplicates the input string into channel-owned storage, receive
+  transfers that owned payload out of the channel slot, and channel destroy
+  frees any unreceived pending payloads.
+- `List<String>` uses the same string-specific raw export rule on LLVM: push
+  and set duplicate incoming strings, get returns the list-owned borrowed
+  pointer, and remove frees the list-owned element before shifting later
+  entries. The generated-C inline string list exposes the same set/remove
+  ownership behavior.
+- `Set<String>` follows the same owned-copy rule on the LLVM raw path. Add
+  duplicates string input, membership probes borrow only for the duration of the
+  call, and remove frees the set-owned payload before tombstoning the slot so
+  probe chains remain valid after deletion.
+- LLVM raw `HashMap<K, String>` uses string-value-specific exports for the
+  stable key subset. `MapSet` duplicates the value payload, `MapGet` returns a
+  map-owned borrowed pointer, and `MapRemove` frees both the runtime-owned key
+  and runtime-owned string value while preserving the tombstone probe chain.
+- Raw `HashMap<K, V>` removal must also tombstone deleted key slots instead of
+  clearing the occupancy flag. Keys are runtime-owned strings internally; a
+  cleared slot would truncate the linear-probing chain and make later keys
+  unreachable after a remove. The same tombstone rule applies to generated-C
+  inline `HashMap` and `Set` specializations.
 
 Remaining proof obligation:
 
@@ -185,6 +223,9 @@ Current evidence:
   allocation/copy smoke gate.
 - The file-descriptor runtime-owned handle table now has an explicit release and
   reuse smoke gate.
+- Result-owned file/string helpers now have explicit failure-path release and
+  allocation-size guard gates, reducing pointer lifetime drift between C and
+  LLVM runtime surfaces.
 
 Remaining proof obligation:
 

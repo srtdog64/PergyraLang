@@ -56,19 +56,22 @@ llvm_keep_rendered_persistent(LLVMGenCtx *ctx, char *rendered,
     return copy;
 }
 
-const char *
-llvm_constructed_arg_name_at(const char *type_name, int arg_index)
+static bool
+llvm_constructed_arg_name_write(const char *type_name, int arg_index,
+                                char *out, size_t out_size)
 {
-    static char arg_buf[256];
     const char *lt;
     const char *p;
     int current = 0;
 
+    if (out == NULL || out_size == 0)
+        return false;
+    out[0] = '\0';
     if (type_name == NULL || arg_index < 0)
-        return NULL;
+        return false;
     lt = strchr(type_name, '<');
     if (lt == NULL)
-        return NULL;
+        return false;
 
     p = lt + 1;
     while (*p != '\0' && *p != '>') {
@@ -93,11 +96,11 @@ llvm_constructed_arg_name_at(const char *type_name, int arg_index)
             while (p > start && p[-1] == ' ')
                 p--;
             len = (size_t)(p - start);
-            if (len >= sizeof(arg_buf))
-                return NULL;
-            memcpy(arg_buf, start, len);
-            arg_buf[len] = '\0';
-            return arg_buf;
+            if (len == 0 || len >= out_size)
+                return false;
+            memcpy(out, start, len);
+            out[len] = '\0';
+            return true;
         }
         if (*p == ',')
             p++;
@@ -106,7 +109,14 @@ llvm_constructed_arg_name_at(const char *type_name, int arg_index)
         current++;
     }
 
-    return NULL;
+    return false;
+}
+
+bool
+llvm_constructed_arg_name_copy(const char *type_name, int arg_index,
+                               char *out, size_t out_size)
+{
+    return llvm_constructed_arg_name_write(type_name, arg_index, out, out_size);
 }
 
 char *

@@ -52,16 +52,22 @@ select_case_parts(ASTNode *case_node, ASTNode **channel_out,
     return false;
 }
 
-static const char *
-select_channel_inner_type(ASTNode *channel, TranspilerCtx *ctx)
+static bool
+select_channel_inner_type_copy(ASTNode *channel, TranspilerCtx *ctx,
+                               char *out, size_t out_size)
 {
-    if (channel == NULL || channel->type != AST_IDENTIFIER)
-        return NULL;
+    const char *type_name;
 
-    const char *type_name = lookup_typed_var(ctx, channel->data.identifier.name);
+    if (out == NULL || out_size == 0)
+        return false;
+    out[0] = '\0';
+    if (channel == NULL || channel->type != AST_IDENTIFIER)
+        return false;
+
+    type_name = lookup_typed_var(ctx, channel->data.identifier.name);
     if (type_name != NULL && strncmp(type_name, "Channel<", 8) == 0)
-        return slot_inner_type_name(type_name);
-    return NULL;
+        return slot_inner_type_name_copy(type_name, out, out_size);
+    return false;
 }
 
 static void
@@ -135,14 +141,15 @@ emit_select_stmt(ASTNode *node, TranspilerCtx *ctx)
         ASTNode *body = NULL;
         const char *bind_name = NULL;
         bool valid_case = select_case_parts(c, &channel, &bind_name, &body);
-        const char *inner = NULL;
+        char inner_buf[128];
+        const char *inner = inner_buf;
 
         if (!valid_case || bind_name == NULL || channel == NULL
             || channel->type != AST_IDENTIFIER)
             continue;
 
-        inner = select_channel_inner_type(channel, ctx);
-        if (inner == NULL) {
+        if (!select_channel_inner_type_copy(channel, ctx, inner_buf,
+                sizeof(inner_buf))) {
             select_set_missing_channel_type_error(ctx, channel);
             return;
         }
@@ -188,9 +195,13 @@ emit_select_stmt(ASTNode *node, TranspilerCtx *ctx)
                 ASTNode *body = NULL;
                 const char *bind_name = NULL;
                 bool valid_case = select_case_parts(c, &channel, &bind_name, &body);
-                const char *inner = NULL;
+                char inner_buf[128];
+                const char *inner = inner_buf;
 
-                inner = select_channel_inner_type(channel, ctx);
+                if (!select_channel_inner_type_copy(channel, ctx, inner_buf,
+                        sizeof(inner_buf))) {
+                    inner = NULL;
+                }
                 if (valid_case && channel != NULL && channel->type == AST_IDENTIFIER
                     && inner == NULL) {
                     select_set_missing_channel_type_error(ctx, channel);

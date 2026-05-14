@@ -91,7 +91,7 @@ dir_collect_nodes(DIRProgram *dir, ASTNode *program)
                     return false;
                 break;
             case AST_INTENT_DECL:
-                if (!dir_add_node(dir, DIR_NODE_INTENT, node->data.intent_decl.name, node))
+                if (!dir_add_node(dir, DIR_NODE_INTENT, ast_intent_decl_name(node), node))
                     return false;
                 break;
             default:
@@ -334,7 +334,8 @@ dir_collect_edges_and_intents(DIRProgram *dir, ASTNode *program)
                     return false;
                 break;
             case AST_INTENT_DECL:
-                from = dir_find_node_by_name_kind(dir, node->data.intent_decl.name, DIR_NODE_INTENT);
+                from = dir_find_node_by_name_kind(
+                    dir, ast_intent_decl_name(node), DIR_NODE_INTENT);
                 if (from >= 0 && !dir_collect_intent_info(dir, (size_t)from, node))
                     return false;
                 break;

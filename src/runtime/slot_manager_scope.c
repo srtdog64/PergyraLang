@@ -6,7 +6,11 @@
  */
 
 #include "slot_manager.h"
+#include "slot_manager_internal.h"
+#include "pgy_runtime_panic_contract.h"
 
+#include <pthread.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -26,6 +30,12 @@ struct PergyraSlotScope
     SlotManager *manager;
 };
 
+static bool
+secure_slot_scope_array_fits(size_t count, size_t elem_size)
+{
+    return elem_size != 0 && count <= SIZE_MAX / elem_size;
+}
+
 SecureSlotScope *
 SecureSlotScopeCreate(SlotManager *manager, size_t capacity)
 {
@@ -33,13 +43,19 @@ SecureSlotScopeCreate(SlotManager *manager, size_t capacity)
 
     if (manager == NULL || !SlotManagerIsSecurityEnabled(manager))
         return NULL;
+    if (!secure_slot_scope_array_fits(capacity, sizeof(SlotHandle))
+        || !secure_slot_scope_array_fits(capacity, sizeof(TokenCapability))) {
+        return NULL;
+    }
 
     scope = calloc(1, sizeof(*scope));
     if (scope == NULL)
         return NULL;
 
-    scope->handles = calloc(capacity, sizeof(*scope->handles));
-    scope->tokens = calloc(capacity, sizeof(*scope->tokens));
+    if (capacity > 0) {
+        scope->handles = calloc(capacity, sizeof(*scope->handles));
+        scope->tokens = calloc(capacity, sizeof(*scope->tokens));
+    }
     if (scope->handles == NULL || scope->tokens == NULL) {
         free(scope->handles);
         free(scope->tokens);
@@ -80,23 +96,67 @@ SecureSlotScopeClaimSlot(SecureSlotScope *scope, TypeTag type,
 void
 SecureSlotScopeDestroy(SecureSlotScope *scope)
 {
+    SlotError result = SecureSlotScopeDestroyChecked(scope);
+
+    if (result != SLOT_SUCCESS) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "secure slot scope destroyed while a slot is pinned");
+    }
+}
+
+static SlotError
+secure_scope_validate_destroyable(SecureSlotScope *scope)
+{
+    SlotError result = SLOT_SUCCESS;
+
+    if (scope == NULL || scope->manager == NULL)
+        return SLOT_SUCCESS;
+
+    pthread_mutex_lock(manager_mutex(scope->manager));
+    for (size_t i = 0; i < scope->count; i++) {
+        SlotEntry *entry = find_slot_entry_locked(scope->manager,
+                                                  &scope->handles[i]);
+        if (entry != NULL && entry->pinCount > 0) {
+            result = SLOT_ERROR_PINNED;
+            break;
+        }
+    }
+    pthread_mutex_unlock(manager_mutex(scope->manager));
+    return result;
+}
+
+SlotError
+SecureSlotScopeDestroyChecked(SecureSlotScope *scope)
+{
     size_t i;
+    SlotError result;
 
     if (scope == NULL)
-        return;
+        return SLOT_SUCCESS;
+
+    result = secure_scope_validate_destroyable(scope);
+    if (result != SLOT_SUCCESS)
+        return result;
 
     if (scope->autoCleanup) {
-        for (i = 0; i < scope->count; i++)
-            SlotReleaseSecure(scope->manager, &scope->handles[i], &scope->tokens[i]);
+        for (i = 0; i < scope->count; i++) {
+            result = SlotReleaseSecure(scope->manager, &scope->handles[i],
+                                       &scope->tokens[i]);
+            if (result != SLOT_SUCCESS)
+                return result;
+        }
     }
 
     if (scope->tokens != NULL) {
-        SecureMemoryWipe(scope->tokens, scope->capacity * sizeof(*scope->tokens));
+        if (secure_slot_scope_array_fits(scope->capacity, sizeof(*scope->tokens))) {
+            SecureMemoryWipe(scope->tokens, scope->capacity * sizeof(*scope->tokens));
+        }
         free(scope->tokens);
     }
 
     free(scope->handles);
     free(scope);
+    return SLOT_SUCCESS;
 }
 
 PergyraSecureSlot *

@@ -268,12 +268,17 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
         }
 
         if (is_slot_method && obj->type == AST_IDENTIFIER) {
-            const char *inner = lookup_slot_type(ctx, obj->data.identifier.name);
+            char inner_buf[128];
+            const char *inner = NULL;
             bool is_secure = lookup_slot_is_secure(ctx, obj->data.identifier.name);
             bool saved_suppress = ctx->suppress_slot_auto_read;
             ctx->suppress_slot_auto_read = true;
             char *obj_expr = emit_expression(obj, ctx);
             ctx->suppress_slot_auto_read = saved_suppress;
+            if (lookup_slot_type_copy(ctx, obj->data.identifier.name,
+                    inner_buf, sizeof(inner_buf))) {
+                inner = inner_buf;
+            }
             if (inner == NULL) {
                 transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "cannot determine slot payload type for method call on '%s'",
                     obj->data.identifier.name != NULL
@@ -369,11 +374,15 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                 && (strncmp(receiver_type, "Array<", 6) == 0
                     || strncmp(receiver_type, "Slice<", 6) == 0)
                 && call->data.call.arg_count == 2) {
-                const char *inner = slot_inner_type_name(receiver_type);
+                char inner_buf[128];
+                const char *inner = NULL;
                 char *start_expr = emit_expression(call->data.call.arguments[0], ctx);
                 char *len_expr = emit_expression(call->data.call.arguments[1], ctx);
                 char *result = NULL;
                 int tmp_id = ++ctx->tmp_counter;
+                if (slot_inner_type_name_copy(receiver_type, inner_buf,
+                        sizeof(inner_buf)))
+                    inner = inner_buf;
 
                 if (inner == NULL) {
                     transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "cannot determine slice element type for receiver '%s'",
@@ -392,12 +401,12 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                 } else {
                     char *obj_expr = emit_expression(obj, ctx);
                     result = strdup_fmt(
-                        "({ PgySlice_%s _pgy_slice_%d = %s; size_t _pgy_start_%d = (size_t)(%s); size_t _pgy_len_%d = (size_t)(%s); if (_pgy_start_%d + _pgy_len_%d > _pgy_slice_%d.length) PGY_PANIC(\"Slice out of bounds\"); (PgySlice_%s){ _pgy_slice_%d.data + _pgy_start_%d, _pgy_len_%d }; })",
+                        "({ PgySlice_%s _pgy_slice_%d = %s; size_t _pgy_start_%d = (size_t)(%s); size_t _pgy_len_%d = (size_t)(%s); if (_pgy_start_%d > _pgy_slice_%d.length || _pgy_len_%d > _pgy_slice_%d.length - _pgy_start_%d) PGY_PANIC(\"Slice out of bounds\"); (PgySlice_%s){ _pgy_len_%d == 0 ? NULL : _pgy_slice_%d.data + _pgy_start_%d, _pgy_len_%d }; })",
                         inner, tmp_id, obj_expr,
                         tmp_id, start_expr,
                         tmp_id, len_expr,
-                        tmp_id, tmp_id, tmp_id,
-                        inner, tmp_id, tmp_id, tmp_id);
+                        tmp_id, tmp_id, tmp_id, tmp_id, tmp_id,
+                        inner, tmp_id, tmp_id, tmp_id, tmp_id);
                     free(obj_expr);
                 }
 

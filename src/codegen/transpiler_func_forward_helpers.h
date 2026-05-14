@@ -55,40 +55,26 @@ is_remote_future_expr(TranspilerCtx *ctx, ASTNode *expr)
     return false;
 }
 
-static const char *
-lookup_future_inner_type(TranspilerCtx *ctx, ASTNode *expr)
-{
-    if (expr == NULL)
-        return "Void";
-
-    if (expr->type == AST_IDENTIFIER) {
-        const char *type_name = lookup_typed_var(ctx, expr->data.identifier.name);
-        if (type_name != NULL && strncmp(type_name, "Future<", 7) == 0)
-            return slot_inner_type_name(type_name);
-        if (type_name != NULL && strncmp(type_name, "RemoteFuture<", 13) == 0)
-            return slot_inner_type_name(type_name);
-    }
-
-    if (expr->type == AST_SPAWN_EXPR) {
-        char *inner = infer_spawn_return_type_name(ctx, expr);
-        static char buf[128];
-        pergyra_str_copy(buf, sizeof(buf), inner);
-        free(inner);
-        return buf;
-    }
-
-    return "Void";
-}
-
 static bool
 lookup_future_inner_type_copy(TranspilerCtx *ctx, ASTNode *expr,
                               char *out, size_t out_size)
 {
-    const char *inner;
-
     if (out == NULL || out_size == 0)
         return false;
     out[0] = '\0';
+
+    if (expr == NULL)
+        return pergyra_str_copy(out, out_size, "Void");
+
+    if (expr->type == AST_IDENTIFIER) {
+        const char *type_name = lookup_typed_var(ctx,
+            expr->data.identifier.name);
+        if (type_name != NULL
+            && (strncmp(type_name, "Future<", 7) == 0
+                || strncmp(type_name, "RemoteFuture<", 13) == 0)) {
+            return slot_inner_type_name_copy(type_name, out, out_size);
+        }
+    }
 
     if (expr != NULL && expr->type == AST_SPAWN_EXPR) {
         char *owned = infer_spawn_return_type_name(ctx, expr);
@@ -97,25 +83,31 @@ lookup_future_inner_type_copy(TranspilerCtx *ctx, ASTNode *expr,
         return ok;
     }
 
-    inner = lookup_future_inner_type(ctx, expr);
-    return inner != NULL && pergyra_str_copy(out, out_size, inner);
+    return pergyra_str_copy(out, out_size, "Void");
 }
 
-const char *
-pergyra_ast_type_to_c(ASTNode *type_node)
+bool
+pergyra_ast_type_to_c_copy(ASTNode *type_node, char *out, size_t out_size)
 {
-    static char mapped[128];
+    char *type_name;
+    bool ok;
+
+    if (out == NULL || out_size == 0)
+        return false;
+    out[0] = '\0';
+
     if (type_node == NULL)
-        return "void";
+        return pergyra_str_copy(out, out_size, "void");
 
     if (type_node->type == AST_EVENT_HANDLER_TYPE)
-        return "void *";
+        return pergyra_str_copy(out, out_size, "void *");
 
-    char *type_name = render_type_name(type_node);
-    if (!pergyra_type_to_c_copy(type_name, mapped, sizeof(mapped)))
-        mapped[0] = '\0';
+    type_name = render_type_name(type_node);
+    ok = pergyra_type_to_c_copy(type_name, out, out_size);
     free(type_name);
-    return mapped;
+    if (!ok)
+        out[0] = '\0';
+    return ok;
 }
 
 static int

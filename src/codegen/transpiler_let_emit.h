@@ -73,8 +73,23 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
     }
 
     if (ann_type_name != NULL && strncmp(ann_type_name, "Channel<", 8) == 0) {
-        const char *inner = slot_inner_type_name(ann_type_name);
+        char inner_buf[128];
+        const char *inner = NULL;
         char *capacity = pergyra_strdup("16");
+        if (slot_inner_type_name_copy(ann_type_name, inner_buf,
+                sizeof(inner_buf)))
+            inner = inner_buf;
+        if (inner == NULL || inner[0] == '\0') {
+            transpiler_set_backend_error_with_hints(ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED,
+                PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                "C backend: Channel binding '%s' requires concrete Channel<T> annotation",
+                name != NULL ? name : "<binding>");
+            free(capacity);
+            free(ann_type_name);
+            return;
+        }
 
         if (init != NULL && init->type == AST_CALL
             && init->data.call.arg_count > 0) {
@@ -94,7 +109,21 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
     }
 
     if (ann_type_name != NULL && strncmp(ann_type_name, "Option<", 7) == 0) {
-        const char *inner = slot_inner_type_name(ann_type_name);
+        char inner_buf[128];
+        const char *inner = NULL;
+        if (slot_inner_type_name_copy(ann_type_name, inner_buf,
+                sizeof(inner_buf)))
+            inner = inner_buf;
+        if (inner == NULL || inner[0] == '\0') {
+            transpiler_set_backend_error_with_hints(ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED,
+                PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                "C backend: Option binding '%s' requires concrete Option<T> annotation",
+                name != NULL ? name : "<binding>");
+            free(ann_type_name);
+            return;
+        }
         if (init != NULL
             && init->type == AST_CALL
             && init->data.call.callee != NULL
@@ -133,7 +162,11 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
         && init->data.call.callee->type == AST_IDENTIFIER) {
         const char *callee_name = init->data.call.callee->data.identifier.name;
         const char *type_name = resolved_ann->data.type.name;
-        const char *inner = slot_inner_type_name(ann_type_name);
+        char inner_buf[128];
+        const char *inner = NULL;
+        if (slot_inner_type_name_copy(ann_type_name, inner_buf,
+                sizeof(inner_buf)))
+            inner = inner_buf;
         if (strcmp(callee_name, "MapNew") == 0
             && strcmp(type_name, "HashMap") == 0
             && resolved_ann->data.type.generic_args != NULL
@@ -163,6 +196,7 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
             }
             if (strcmp(key, "String") == 0 && value != NULL) {
                 char map_c_type_buf[256];
+                char suffix_buf[128];
                 const char *map_c_type = NULL;
                 if (pergyra_type_to_c_copy(ann_type_name, map_c_type_buf,
                         sizeof(map_c_type_buf))) {
@@ -181,9 +215,10 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
                     return;
                 }
                 ensure_collection_specialization(ctx, "Map", value);
+                collection_runtime_suffix_copy(value, suffix_buf, sizeof(suffix_buf));
                 write_indent(ctx);
                 codebuf_write(ctx->out, "%s %s = pgy_map_new_%s();\n",
-                    map_c_type, name, collection_runtime_suffix(value));
+                    map_c_type, name, suffix_buf);
                 register_typed_var(ctx, name, ann_type_name);
                 free(key);
                 free(value);
@@ -196,6 +231,7 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
         if (strcmp(callee_name, "ListNew") == 0
             && strcmp(type_name, "List") == 0) {
             char list_c_type_buf[256];
+            char suffix_buf[128];
             const char *list_c_type = NULL;
             if (pergyra_type_to_c_copy(ann_type_name, list_c_type_buf,
                     sizeof(list_c_type_buf))) {
@@ -212,9 +248,10 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
                 return;
             }
             ensure_collection_specialization(ctx, "List", inner);
+            collection_runtime_suffix_copy(inner, suffix_buf, sizeof(suffix_buf));
             write_indent(ctx);
             codebuf_write(ctx->out, "%s %s = pgy_list_new_%s();\n",
-                list_c_type, name, collection_runtime_suffix(inner));
+                list_c_type, name, suffix_buf);
             register_typed_var(ctx, name, ann_type_name);
             free(ann_type_name);
             return;
@@ -222,6 +259,7 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
         if (strcmp(callee_name, "QueueNew") == 0
             && strcmp(type_name, "Queue") == 0) {
             char queue_c_type_buf[256];
+            char suffix_buf[128];
             const char *queue_c_type = NULL;
             if (pergyra_type_to_c_copy(ann_type_name, queue_c_type_buf,
                     sizeof(queue_c_type_buf))) {
@@ -238,9 +276,10 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
                 return;
             }
             ensure_collection_specialization(ctx, "Queue", inner);
+            collection_runtime_suffix_copy(inner, suffix_buf, sizeof(suffix_buf));
             write_indent(ctx);
             codebuf_write(ctx->out, "%s %s = pgy_queue_new_%s();\n",
-                queue_c_type, name, collection_runtime_suffix(inner));
+                queue_c_type, name, suffix_buf);
             register_typed_var(ctx, name, ann_type_name);
             free(ann_type_name);
             return;
@@ -366,10 +405,14 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
         && ann_type_name != NULL
         && strcmp(init->data.call.callee->data.identifier.name, "SetNew") == 0
         && strncmp(ann_type_name, "Set<", 4) == 0) {
-        const char *inner = slot_inner_type_name(ann_type_name);
+        char inner_buf[128];
+        const char *inner = inner_buf;
+        char suffix_buf[128];
         char set_c_type_buf[256];
         const char *c_type = NULL;
-        const char *suffix = collection_runtime_suffix(inner);
+        const char *suffix = suffix_buf;
+        slot_inner_type_name_copy(ann_type_name, inner_buf, sizeof(inner_buf));
+        collection_runtime_suffix_copy(inner, suffix_buf, sizeof(suffix_buf));
         if (pergyra_type_to_c_copy(ann_type_name, set_c_type_buf,
                 sizeof(set_c_type_buf))) {
             c_type = set_c_type_buf;

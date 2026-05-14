@@ -213,46 +213,57 @@ semantic_stage_world_decl(ASTNode *decl, SemanticContext *ctx)
 void
 semantic_stage_intent_decl(ASTNode *decl, SemanticContext *ctx)
 {
+    ASTNode **involves_nodes;
+    size_t involve_count;
+    ASTNode **values;
+    size_t value_count;
+    ASTNode **steps;
+    size_t step_count;
+    const char *intent_name;
+
     if (decl == NULL || decl->type != AST_INTENT_DECL || ctx == NULL)
         return;
+    intent_name = ast_intent_decl_name(decl);
 
-    for (size_t i = 0; i < decl->data.intent_decl.involve_count; i++) {
-        ASTNode *binding = decl->data.intent_decl.involves[i];
+    involves_nodes = ast_intent_decl_involves(decl, &involve_count);
+    for (size_t i = 0; i < involve_count; i++) {
+        ASTNode *binding = involves_nodes[i];
         if (binding == NULL || binding->type != AST_INTENT_INVOLVES)
             continue;
         (void)semantic_stage_resolve_type_quiet(
-            binding->data.intent_involves.subject_type,
+            ast_intent_involves_subject_type(binding),
             ctx,
             binding,
-            binding->data.intent_involves.alias,
+            ast_intent_involves_alias(binding),
             "intent involves type lookup");
     }
-    for (size_t i = 0; i < decl->data.intent_decl.value_count; i++) {
-        ASTNode *binding = decl->data.intent_decl.values[i];
+    values = ast_intent_decl_values(decl, &value_count);
+    for (size_t i = 0; i < value_count; i++) {
+        ASTNode *binding = values[i];
         if (binding == NULL || binding->type != AST_INTENT_VALUE)
             continue;
         (void)semantic_stage_resolve_type_quiet(
-            binding->data.intent_value.value_type,
+            ast_intent_value_type(binding),
             ctx,
             binding,
-            binding->data.intent_value.alias,
+            ast_intent_value_alias(binding),
             "intent value type lookup");
     }
     (void)semantic_stage_resolve_type_quiet(
-        decl->data.intent_decl.default_where_type,
+        ast_intent_decl_default_where_type(decl),
         ctx,
         decl,
-        decl->data.intent_decl.name,
+        intent_name,
         "intent default where-type lookup");
-    for (size_t i = 0; i < decl->data.intent_decl.step_count; i++) {
-        ASTNode *step = decl->data.intent_decl.steps[i];
+    steps = ast_intent_decl_steps(decl, &step_count);
+    for (size_t i = 0; i < step_count; i++) {
+        ASTNode *step = steps[i];
         char *step_consumer_name;
         if (step == NULL || step->type != AST_INTENT_STEP)
             continue;
         step_consumer_name = stage_systemic_strdup_fmt(
             "intent %s.%s",
-            decl->data.intent_decl.name != NULL
-                ? decl->data.intent_decl.name : "<intent>",
+            intent_name != NULL ? intent_name : "<intent>",
             ast_intent_step_name(step) != NULL
                 ? ast_intent_step_name(step) : "<step>");
         if (step_consumer_name == NULL)

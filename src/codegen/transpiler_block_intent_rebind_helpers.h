@@ -31,14 +31,14 @@ emit_intent_step_rebind_bound_zone_aliases(CodeBuf *out, TranspilerCtx *ctx,
         char surface_desc[256];
 
         if (alias == NULL || slot_name == NULL || strcmp(slot_name, "<unbound>") == 0
-            || involves == NULL || involves->data.intent_involves.subject_type == NULL) {
+            || involves == NULL || ast_intent_involves_subject_type(involves) == NULL) {
             continue;
         }
 
         snprintf(surface_desc, sizeof(surface_desc),
             "intent step participant '%s'", alias);
         if (transpiler_require_ast_c_type_copy(ctx,
-                involves->data.intent_involves.subject_type,
+                ast_intent_involves_subject_type(involves),
                 surface_desc,
                 participant_c_type_buf,
                 sizeof(participant_c_type_buf))) {

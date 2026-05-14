@@ -12,47 +12,6 @@
 #include "../common/string_compat.h"
 
 #include <stdbool.h>
-#include <stdint.h>
-#include <stdlib.h>
-
-static bool
-intent_step_append_authorized_by(ASTNode *step, const char *alias)
-{
-    char **grown;
-    char *owned_alias;
-    size_t next_capacity;
-
-    if (step == NULL || step->type != AST_INTENT_STEP || alias == NULL)
-        return false;
-
-    owned_alias = pergyra_strdup(alias);
-    if (owned_alias == NULL)
-        return false;
-
-    if (step->data.intent_step.authorized_by_count
-        == step->data.intent_step.authorized_by_capacity) {
-        next_capacity = step->data.intent_step.authorized_by_capacity == 0
-            ? 4
-            : step->data.intent_step.authorized_by_capacity * 2;
-        if (next_capacity < step->data.intent_step.authorized_by_capacity
-            || next_capacity > SIZE_MAX / sizeof(char *)) {
-            free(owned_alias);
-            return false;
-        }
-        grown = realloc(step->data.intent_step.authorized_by,
-            next_capacity * sizeof(char *));
-        if (grown == NULL) {
-            free(owned_alias);
-            return false;
-        }
-        step->data.intent_step.authorized_by = grown;
-        step->data.intent_step.authorized_by_capacity = next_capacity;
-    }
-
-    step->data.intent_step.authorized_by[
-        step->data.intent_step.authorized_by_count++] = owned_alias;
-    return true;
-}
 
 static bool
 intent_step_can_derive_zone_authority(ASTNode *step,
@@ -61,12 +20,12 @@ intent_step_can_derive_zone_authority(ASTNode *step,
 {
     if (step == NULL || step->type != AST_INTENT_STEP || has_subintent)
         return false;
-    return (step->data.intent_step.inherited_where_from_action
-            || step->data.intent_step.inherited_where_from_intent
-            || step->data.intent_step.derived_where_from_transfer
-            || step->data.intent_step.causes_effect != NULL
-            || step->data.intent_step.transfer_from_alias != NULL
-            || step->data.intent_step.transfer_to_alias != NULL
+    return (ast_intent_step_inherited_where_from_action(step)
+            || ast_intent_step_inherited_where_from_intent(step)
+            || ast_intent_step_derived_where_from_transfer(step)
+            || ast_intent_step_causes_effect(step) != NULL
+            || ast_intent_step_transfer_from_alias(step) != NULL
+            || ast_intent_step_transfer_to_alias(step) != NULL
             || step_requires_authority_flow);
 }
 
@@ -88,7 +47,7 @@ intent_step_derive_authorized_by_from_zone(ASTNode *intent_decl,
 
     if (intent_decl == NULL || step == NULL || zone_decl == NULL || ctx == NULL
         || zone_decl->type != AST_ZONE_DECL
-        || step->data.intent_step.authorized_by_count > 0
+        || ast_intent_step_authorized_by_count(step) > 0
         || !intent_step_can_derive_zone_authority(
             step, has_subintent, step_requires_authority_flow)) {
         return;
@@ -116,8 +75,8 @@ intent_step_derive_authorized_by_from_zone(ASTNode *intent_decl,
         return;
     }
 
-    if (intent_step_append_authorized_by(step, alias))
-        step->data.intent_step.derived_authorized_by_from_zone = true;
+    if (ast_intent_step_append_authorized_by_copy(step, alias))
+        ast_intent_step_mark_derived_authorized_by_from_zone(step);
 }
 
 void
@@ -129,15 +88,25 @@ type_check_intent_step_authority_contract(ASTNode *intent_decl,
                                           SemanticContext *ctx)
 {
     const char *zone_name;
+    const char *step_name;
+    const char *step_causes;
+    const char *transfer_from;
+    const char *transfer_to;
     ASTNode **zone_slots = NULL;
     size_t zone_slot_count = 0;
     size_t zone_authority_count = 0;
+    char **authorized_by;
+    size_t authorized_by_count = 0;
 
     if (intent_decl == NULL || step == NULL || step->type != AST_INTENT_STEP
         || ctx == NULL) {
         return;
     }
     zone_name = ast_zone_name(zone_decl);
+    step_name = ast_intent_step_name(step);
+    step_causes = ast_intent_step_causes_effect(step);
+    transfer_from = ast_intent_step_transfer_from_alias(step);
+    transfer_to = ast_intent_step_transfer_to_alias(step);
     if (zone_decl != NULL && zone_decl->type == AST_ZONE_DECL) {
         zone_slots = ast_zone_slots(zone_decl, &zone_slot_count);
         ast_zone_authorities(zone_decl, &zone_authority_count);
@@ -149,28 +118,28 @@ type_check_intent_step_authority_contract(ASTNode *intent_decl,
 
     if (zone_decl != NULL
         && zone_authority_count > 0
-        && step->data.intent_step.authorized_by_count == 0
+        && ast_intent_step_authorized_by_count(step) == 0
         && !has_subintent
-        && (((step->data.intent_step.where_type != NULL
-              && !step->data.intent_step.derived_where_from_using)
-             || step->data.intent_step.inherited_where_from_action
-             || step->data.intent_step.derived_where_from_transfer)
-            || step->data.intent_step.causes_effect != NULL
-            || step->data.intent_step.transfer_from_alias != NULL
-            || step->data.intent_step.transfer_to_alias != NULL
+        && (((ast_intent_step_where_type(step) != NULL
+              && !ast_intent_step_derived_where_from_using(step))
+             || ast_intent_step_inherited_where_from_action(step)
+             || ast_intent_step_derived_where_from_transfer(step))
+            || step_causes != NULL
+            || transfer_from != NULL
+            || transfer_to != NULL
             || step_requires_authority_flow)) {
         char inherited_summary[512];
         const char *suggested_authorizer = intent_step_single_who_alias(step);
         const char *authority_reason =
-            (step->data.intent_step.causes_effect != NULL
-             || step->data.intent_step.transfer_from_alias != NULL
-             || step->data.intent_step.transfer_to_alias != NULL
+            (step_causes != NULL
+             || transfer_from != NULL
+             || transfer_to != NULL
              || step_requires_authority_flow)
                 ? "- the step causes effects, transfers zone state, or invokes authority-sensitive helpers"
                 : "- zone authority requires explicit approval even for declarative steps in this zone";
         intent_step_format_contract_source_summary(
             intent_decl, step, ctx, inherited_summary, sizeof(inherited_summary));
-        if (step->data.intent_step.inherited_where_from_action) {
+        if (ast_intent_step_inherited_where_from_action(step)) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_INTENT_STEP_INVALID, PGY_CAUSE_INTENT_STEP, PGY_FIX_ALIGN_STEP_WITH_ZONE_ACTION_CONTRACTS, step,
                 "Intent step '%s' cannot run in authority-bearing zone '%s' without 'authorized by'.\n"
                 "Reason:\n"
@@ -184,7 +153,7 @@ type_check_intent_step_authority_contract(ASTNode *intent_decl,
                 "- add 'authorized by: %s;' to the step\n"
                 "- or move the step to a non-authority zone\n"
                 "- or change the action contract that this step reuses",
-                step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
+                step_name != NULL ? step_name : "<step>",
                 zone_name != NULL ? zone_name : "<zone>",
                 authority_reason,
                 zone_name != NULL ? zone_name : "<zone>",
@@ -206,7 +175,7 @@ type_check_intent_step_authority_contract(ASTNode *intent_decl,
                 "- add 'authorized by: %s;' to the step\n"
                 "- or move the step to a non-authority zone\n"
                 "- or remove the authority-sensitive operation from this step",
-                step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
+                step_name != NULL ? step_name : "<step>",
                 zone_name != NULL ? zone_name : "<zone>",
                 authority_reason,
                 zone_name != NULL ? zone_name : "<zone>",
@@ -217,8 +186,9 @@ type_check_intent_step_authority_contract(ASTNode *intent_decl,
         }
     }
 
-    for (size_t j = 0; j < step->data.intent_step.authorized_by_count; j++) {
-        const char *alias = step->data.intent_step.authorized_by[j];
+    authorized_by = ast_intent_step_authorized_by(step, &authorized_by_count);
+    for (size_t j = 0; j < authorized_by_count; j++) {
+        const char *alias = authorized_by[j];
         ASTNode *involves = find_intent_involves_local(intent_decl, alias);
         const char *participant_type_name = intent_involves_type_name(involves);
         char contract_summary[512];
@@ -236,7 +206,7 @@ type_check_intent_step_authority_contract(ASTNode *intent_decl,
                 "Fix:\n"
                 "- add 'involves %s: <Subject>' to the intent\n"
                 "- or change 'authorized by' to one of the declared participants",
-                step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
+                step_name != NULL ? step_name : "<step>",
                 alias != NULL ? alias : "<participant>",
                 contract_summary[0] != '\0' ? "" : "- no inherited/derived authority provenance was recorded\n",
                 contract_summary[0] != '\0' ? contract_summary : "",
@@ -259,7 +229,7 @@ type_check_intent_step_authority_contract(ASTNode *intent_decl,
                     "Fix:\n"
                     "- authorize a subject participant instead\n"
                     "- or change the intent binding so '%s' is a subject type",
-                    step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
+                    step_name != NULL ? step_name : "<step>",
                     alias != NULL ? alias : "<participant>",
                     alias != NULL ? alias : "<participant>",
                     contract_summary[0] != '\0' ? "" : "- no inherited/derived authority provenance was recorded\n",
@@ -283,7 +253,7 @@ type_check_intent_step_authority_contract(ASTNode *intent_decl,
                     "Fix:\n"
                     "- authorize a participant whose subject type exists in zone '%s'\n"
                     "- or add a matching subject slot to zone '%s'",
-                    step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
+                    step_name != NULL ? step_name : "<step>",
                     alias != NULL ? alias : "<participant>",
                     participant_type_name,
                     zone_name != NULL ? zone_name : "<zone>",
@@ -317,7 +287,7 @@ type_check_intent_step_authority_contract(ASTNode *intent_decl,
                         "- rename the participant alias to the intended authority slot name\n"
                         "- or authorize a participant whose alias directly names the authority slot\n"
                         "- or split the zone contract so authority is not ambiguous",
-                        step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
+                        step_name != NULL ? step_name : "<step>",
                         alias != NULL ? alias : "<participant>",
                         participant_type_name,
                         zone_name != NULL ? zone_name : "<zone>",
@@ -341,7 +311,7 @@ type_check_intent_step_authority_contract(ASTNode *intent_decl,
                         "Fix:\n"
                         "- authorize the participant mapped to an authority slot in zone '%s'\n"
                         "- or add an authority declaration for slot '%s' in zone '%s'",
-                        step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
+                        step_name != NULL ? step_name : "<step>",
                         alias != NULL ? alias : "<participant>",
                         authority_slot_name != NULL ? authority_slot_name : "<unbound>",
                         zone_name != NULL ? zone_name : "<zone>",

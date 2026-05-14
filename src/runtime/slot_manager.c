@@ -360,6 +360,8 @@ SlotManagerCreate(size_t maxSlots, size_t memoryPoolSize)
 
     if (maxSlots == 0)
         return NULL;
+    if (maxSlots > SIZE_MAX / sizeof(SlotEntry))
+        return NULL;
 
     manager = calloc(1, sizeof(*manager));
     if (manager == NULL)

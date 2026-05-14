@@ -29,6 +29,30 @@
 #include "llvm_inventory_decl_lookup.h"
 #include "llvm_member_call_emit.h"
 
+static ASTNode *
+llvm_intent_call_binding_at(ASTNode *intent_decl, size_t index,
+                            size_t *binding_count_out)
+{
+    size_t binding_count = 0;
+    size_t involve_count = 0;
+    size_t value_count = 0;
+    ASTNode **bindings = ast_intent_decl_bindings(intent_decl, &binding_count);
+    ASTNode **involves = ast_intent_decl_involves(intent_decl, &involve_count);
+    ASTNode **values = ast_intent_decl_values(intent_decl, &value_count);
+
+    if (binding_count_out != NULL) {
+        *binding_count_out = binding_count > 0
+            ? binding_count
+            : (involve_count + value_count);
+    }
+    if (binding_count > 0)
+        return (bindings != NULL && index < binding_count) ? bindings[index] : NULL;
+    if (index < involve_count)
+        return involves != NULL ? involves[index] : NULL;
+    index -= involve_count;
+    return (values != NULL && index < value_count) ? values[index] : NULL;
+}
+
 LLVMValueRef
 llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
 {
@@ -270,25 +294,21 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                 ASTNode *arg_node = node->data.call.arguments[i];
 
                 {
-                    size_t binding_count = intent_decl->data.intent_decl.binding_count > 0
-                        ? intent_decl->data.intent_decl.binding_count
-                        : (intent_decl->data.intent_decl.involve_count
-                            + intent_decl->data.intent_decl.value_count);
+                    size_t binding_count = 0;
+                    ASTNode *binding = llvm_intent_call_binding_at(
+                        intent_decl, i, &binding_count);
                     if (i < binding_count) {
-                        ASTNode *binding = intent_decl->data.intent_decl.binding_count > 0
-                            ? intent_decl->data.intent_decl.bindings[i]
-                            : (i < intent_decl->data.intent_decl.involve_count
-                                ? intent_decl->data.intent_decl.involves[i]
-                                : intent_decl->data.intent_decl.values[
-                                    i - intent_decl->data.intent_decl.involve_count]);
+                        ASTNode *binding_type = NULL;
                         if (binding != NULL && binding->type == AST_INTENT_INVOLVES
-                            && binding->data.intent_involves.subject_type != NULL
-                            && binding->data.intent_involves.subject_type->type == AST_TYPE) {
-                            type_name = binding->data.intent_involves.subject_type->data.type.name;
+                            && ast_intent_involves_subject_type(binding) != NULL
+                            && ast_intent_involves_subject_type(binding)->type == AST_TYPE) {
+                            binding_type = ast_intent_involves_subject_type(binding);
+                            type_name = binding_type->data.type.name;
                         } else if (binding != NULL && binding->type == AST_INTENT_VALUE
-                            && binding->data.intent_value.value_type != NULL
-                            && binding->data.intent_value.value_type->type == AST_TYPE) {
-                            type_name = binding->data.intent_value.value_type->data.type.name;
+                            && ast_intent_value_type(binding) != NULL
+                            && ast_intent_value_type(binding)->type == AST_TYPE) {
+                            binding_type = ast_intent_value_type(binding);
+                            type_name = binding_type->data.type.name;
                         }
                     }
                 }
@@ -359,13 +379,8 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         LLVMValueRef fn;
         size_t forward_param_count = 0;
 
-        if (intent_decl->data.intent_decl.binding_count > 0
-            || intent_decl->data.intent_decl.involve_count > 0
-            || intent_decl->data.intent_decl.value_count > 0) {
-            forward_param_count = intent_decl->data.intent_decl.binding_count > 0
-                ? intent_decl->data.intent_decl.binding_count
-                : (intent_decl->data.intent_decl.involve_count
-                    + intent_decl->data.intent_decl.value_count);
+        (void)llvm_intent_call_binding_at(intent_decl, 0, &forward_param_count);
+        if (forward_param_count > 0) {
             param_types = pgy_arena_calloc(&ctx->scratch,
                 forward_param_count * sizeof(LLVMTypeRef));
             if (param_types == NULL) {
@@ -374,27 +389,26 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
             }
             for (size_t i = 0; i < forward_param_count; i++) {
                 LLVMTypeRef pt = ctx->type_i8ptr;
-                ASTNode *binding = intent_decl->data.intent_decl.binding_count > 0
-                    ? intent_decl->data.intent_decl.bindings[i]
-                    : (i < intent_decl->data.intent_decl.involve_count
-                        ? intent_decl->data.intent_decl.involves[i]
-                        : intent_decl->data.intent_decl.values[
-                            i - intent_decl->data.intent_decl.involve_count]);
+                ASTNode *binding = llvm_intent_call_binding_at(
+                    intent_decl, i, NULL);
                 const char *type_name = NULL;
+                ASTNode *binding_type = NULL;
 
                 if (binding != NULL && binding->type == AST_INTENT_INVOLVES
-                    && binding->data.intent_involves.subject_type != NULL
-                    && binding->data.intent_involves.subject_type->type == AST_TYPE) {
-                    type_name = binding->data.intent_involves.subject_type->data.type.name;
-                    pt = ast_type_to_llvm(ctx, binding->data.intent_involves.subject_type);
+                    && ast_intent_involves_subject_type(binding) != NULL
+                    && ast_intent_involves_subject_type(binding)->type == AST_TYPE) {
+                    binding_type = ast_intent_involves_subject_type(binding);
+                    type_name = binding_type->data.type.name;
+                    pt = ast_type_to_llvm(ctx, binding_type);
                     if (ctx->has_error || pt == NULL)
                         return llvm_call_error_recovery(ctx, node,
                             "LLVM intent forward declaration could not lower participant type");
                     if (llvm_type_name_uses_pointer_self(ctx, type_name))
                         pt = LLVMPointerType(pt, 0);
                 } else if (binding != NULL && binding->type == AST_INTENT_VALUE
-                    && binding->data.intent_value.value_type != NULL) {
-                    pt = ast_type_to_llvm(ctx, binding->data.intent_value.value_type);
+                    && ast_intent_value_type(binding) != NULL) {
+                    binding_type = ast_intent_value_type(binding);
+                    pt = ast_type_to_llvm(ctx, binding_type);
                     if (ctx->has_error || pt == NULL)
                         return llvm_call_error_recovery(ctx, node,
                             "LLVM intent forward declaration could not lower value type");

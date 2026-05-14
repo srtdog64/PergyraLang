@@ -66,9 +66,15 @@ transpiler_let_slot_inner_from_annotation(TranspilerCtx *ctx, ASTNode *ann)
         return pgy_arena_strdup(&ctx->arena, param->name);
     }
     {
-        const char *inner = slot_inner_type_name(ann->data.type.name);
+        char inner_buf[128];
+        const char *inner = NULL;
+        if (slot_inner_type_name_copy(ann->data.type.name, inner_buf,
+                sizeof(inner_buf)))
+            inner = inner_buf;
         if (ctx == NULL)
-            return inner;
+            return inner != NULL ? pergyra_strdup(inner) : NULL;
+        if (inner == NULL)
+            return NULL;
         return pgy_arena_strdup(&ctx->arena, inner);
     }
 }

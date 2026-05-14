@@ -62,7 +62,24 @@ emit_func_forward_decl_named(ASTNode *node, const char *emitted_name,
             && (p->mode == PARAM_MODE_OWN || p->mode == PARAM_MODE_REF);
         secure_slot = type_name != NULL && strncmp(type_name, "SecureSlot<", 11) == 0;
         if (boundary_slot) {
-            const char *inner = slot_inner_type_name(type_name);
+            char inner_buf[128];
+            const char *inner = inner_buf;
+            if (!slot_inner_type_name_copy(type_name, inner_buf,
+                    sizeof(inner_buf))) {
+                transpiler_set_backend_error_with_hints(ctx,
+                    PGY_CODE_C_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                    PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                    "cannot determine slot payload type for forward declaration '%s' parameter '%s'",
+                    name != NULL ? name : "<function>",
+                    p->name != NULL ? p->name : "<param>");
+                free(type_name);
+                if (params_sig != NULL)
+                    codebuf_destroy(params_sig);
+                free(header_decl);
+                transpiler_type_render_ctx_restore(saved_render_ctx);
+                return;
+            }
             codebuf_write(params_sig, "%s *%s", pt, p->name);
             if (secure_slot)
                 codebuf_write(params_sig, ", PgyToken_%s %s_token", inner, p->name);

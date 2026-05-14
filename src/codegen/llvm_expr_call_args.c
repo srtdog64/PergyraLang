@@ -7,6 +7,9 @@
 
 #include "llvm_internal.h"
 
+#include <limits.h>
+#include <stdint.h>
+
 LLVMValueRef
 llvm_emit_function_call_args(LLVMGenCtx *ctx, LLVMFuncEntry *func,
                              ASTNode **arg_nodes, size_t argc)
@@ -16,6 +19,16 @@ llvm_emit_function_call_args(LLVMGenCtx *ctx, LLVMFuncEntry *func,
 
     if (ctx == NULL || func == NULL)
         return NULL;
+
+    if (argc > (size_t)UINT_MAX || argc > SIZE_MAX / sizeof(LLVMValueRef)) {
+        llvm_set_error_with_hints(ctx,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_ALIGN_GENERIC_ARG_LIST,
+            "LLVM call helper argument count exceeds backend ABI limits for '%s'",
+            LLVMGetValueName(func->fn));
+        return NULL;
+    }
 
     if (argc > 0) {
         if (arg_nodes == NULL) {

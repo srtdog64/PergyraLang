@@ -18,5 +18,9 @@ bool pgy_hashmap_key_raw_export_name(const char *operation,
                                      const char *key_name,
                                      char *out,
                                      size_t out_size);
+bool pgy_hashmap_key_raw_string_value_export_name(const char *operation,
+                                                  const char *key_name,
+                                                  char *out,
+                                                  size_t out_size);
 
 #endif /* PERGYRA_CODEGEN_HASHMAP_KEY_POLICY_H */

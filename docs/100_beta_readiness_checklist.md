@@ -2047,6 +2047,17 @@ Performance gate:
 - Compile/runtime perf baselines must be captured before major CFG/DAG/runtime propagation rewrites.
 - Regressions beyond the chosen threshold must block beta unless explicitly waived.
 - `make perf-contract-test-smoke` gates the `perf_summary` log grammar and C/LLVM average/worst-case summary output so `test-abi-perf` evidence remains machine-readable.
+- `make perf-c-baseline-test-smoke` compares one stable arithmetic-loop fixture
+  against hand-written native C. The gate checks output equality and records
+  `pgy_over_c_ratio`; it does not claim Pergyra is faster than C. The honest
+  baseline is near-C with run-to-run noise, and CI output is the source of truth
+  for the active ratio. Local native Windows spot-checks can run
+  `tests/perf_c_baseline_smoke.ps1`. The same gate also rejects regressions
+  where `i % 97` or `i / 97` lower through checked div/mod helpers; constant
+  nonzero integer divisors/moduli must emit direct arithmetic in both C and LLVM
+  lowering because divide-by-zero panic is statically impossible. The shared
+  source of truth is `codegen_scalar_arithmetic_policy.c`, not separate C/LLVM
+  predicates.
 - `make tooling-conformance-test-smoke` gates the tested formatter/LSP/debugger beta subset so tool maturity is not inferred from binaries merely existing.
 
 Observability/tracing schema gate:

@@ -47,22 +47,29 @@ transpiler_has_mapping_for_all_emitted_blocks(const TranspilerCtx *ctx,
                 transpiler_register_with_alias_bindings_in_block(&ssa_map,
                     func_decl->data.func_decl.body);
             } else if (func_decl->type == AST_INTENT_DECL) {
-                for (size_t p = 0; p < func_decl->data.intent_decl.involve_count; p++) {
-                    ASTNode *involves = func_decl->data.intent_decl.involves[p];
+                ASTNode **involves_nodes;
+                size_t involve_count;
+                ASTNode **values;
+                size_t value_count;
+
+                involves_nodes = ast_intent_decl_involves(func_decl, &involve_count);
+                for (size_t p = 0; p < involve_count; p++) {
+                    ASTNode *involves = involves_nodes[p];
                     if (involves != NULL && involves->type == AST_INTENT_INVOLVES
-                        && involves->data.intent_involves.alias != NULL) {
+                        && ast_intent_involves_alias(involves) != NULL) {
                         transpiler_ssa_name_map_set(&ssa_map,
-                            involves->data.intent_involves.alias,
-                            involves->data.intent_involves.alias);
+                            ast_intent_involves_alias(involves),
+                            ast_intent_involves_alias(involves));
                     }
                 }
-                for (size_t p = 0; p < func_decl->data.intent_decl.value_count; p++) {
-                    ASTNode *value = func_decl->data.intent_decl.values[p];
+                values = ast_intent_decl_values(func_decl, &value_count);
+                for (size_t p = 0; p < value_count; p++) {
+                    ASTNode *value = values[p];
                     if (value != NULL && value->type == AST_INTENT_VALUE
-                        && value->data.intent_value.alias != NULL) {
+                        && ast_intent_value_alias(value) != NULL) {
                         transpiler_ssa_name_map_set(&ssa_map,
-                            value->data.intent_value.alias,
-                            value->data.intent_value.alias);
+                            ast_intent_value_alias(value),
+                            ast_intent_value_alias(value));
                     }
                 }
             }

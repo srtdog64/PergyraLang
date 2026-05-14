@@ -14,30 +14,32 @@ llvm_rc_suffix_from_inner(LLVMGenCtx *ctx, const char *inner)
     return suffix;
 }
 
-static const char *
-llvm_rc_expected_inner(LLVMGenCtx *ctx)
+static bool
+llvm_rc_expected_inner_copy(LLVMGenCtx *ctx, char *out, size_t out_size)
 {
-    static char inner[128];
     const char *type_name;
     const char *open;
     const char *close;
     size_t len;
 
+    if (out == NULL || out_size == 0)
+        return false;
+    out[0] = '\0';
     if (ctx == NULL || ctx->expected_type_name == NULL)
-        return NULL;
+        return true;
     type_name = ctx->expected_type_name;
     if (strncmp(type_name, "Rc<", 3) != 0)
-        return NULL;
+        return true;
     open = strchr(type_name, '<');
     close = strrchr(type_name, '>');
     if (open == NULL || close == NULL || close <= open + 1)
-        return NULL;
+        return true;
     len = (size_t)(close - open - 1);
-    if (len >= sizeof(inner))
-        len = sizeof(inner) - 1;
-    memcpy(inner, open + 1, len);
-    inner[len] = '\0';
-    return inner;
+    if (len >= out_size)
+        return false;
+    memcpy(out, open + 1, len);
+    out[len] = '\0';
+    return true;
 }
 
 static LLVMValueRef
@@ -155,18 +157,16 @@ llvm_emit_rc_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
 
     ASTNode *arg = node->data.call.arguments[0];
     if (is_rc_new) {
-        const char *expected_inner = llvm_rc_expected_inner(ctx);
         char expected_inner_buf[128];
-        if (expected_inner != NULL) {
-            size_t len = strlen(expected_inner);
-            if (len >= sizeof(expected_inner_buf)) {
-                *out = llvm_rc_error_recovery(ctx, node,
-                    "LLVM RcNew expected payload type is too long");
-                return true;
-            }
-            memcpy(expected_inner_buf, expected_inner, len + 1);
-            expected_inner = expected_inner_buf;
+        const char *expected_inner = NULL;
+        if (!llvm_rc_expected_inner_copy(ctx, expected_inner_buf,
+                                         sizeof(expected_inner_buf))) {
+            *out = llvm_rc_error_recovery(ctx, node,
+                "LLVM RcNew expected payload type is too long");
+            return true;
         }
+        if (expected_inner_buf[0] != '\0')
+            expected_inner = expected_inner_buf;
         LLVMValueRef value = llvm_emit_expression(arg, ctx);
         if (value == NULL) {
             *out = llvm_rc_error_recovery(ctx, node,

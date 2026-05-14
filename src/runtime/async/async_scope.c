@@ -122,8 +122,10 @@ void AsyncScopeDestroy(AsyncScope* scope)
 }
 
 /* Internal function to add fiber to scope */
-static void AsyncScopeAddFiber(AsyncScope* scope, Fiber* fiber)
+static bool AsyncScopeAddFiber(AsyncScope* scope, Fiber* fiber)
 {
+    bool added = false;
+
     pthread_mutex_lock(&scope->fiberListMutex);
     
     /* Resize array if needed */
@@ -135,7 +137,7 @@ static void AsyncScopeAddFiber(AsyncScope* scope, Fiber* fiber)
             || scope->fiberCapacity > SIZE_MAX / (2 * sizeof(Fiber*))) {
             async_scope_warn("add_fiber", "fiber list capacity overflow", scope);
             pthread_mutex_unlock(&scope->fiberListMutex);
-            return;
+            return false;
         }
         newCapacity = scope->fiberCapacity * 2;
         newFibers = (Fiber**)realloc(scope->fibers,
@@ -153,9 +155,11 @@ static void AsyncScopeAddFiber(AsyncScope* scope, Fiber* fiber)
     if (scope->fiberCount < scope->fiberCapacity) {
         scope->fibers[scope->fiberCount++] = fiber;
         atomic_fetch_add(&scope->totalSpawned, 1);
+        added = true;
     }
     
     pthread_mutex_unlock(&scope->fiberListMutex);
+    return added;
 }
 
 /* Internal function to remove fiber from scope */
@@ -186,6 +190,19 @@ static void AsyncScopeRemoveFiber(AsyncScope* scope, Fiber* fiber)
         }
     }
     
+    pthread_mutex_unlock(&scope->fiberListMutex);
+}
+
+static void AsyncScopeForgetFiber(AsyncScope* scope, Fiber* fiber)
+{
+    pthread_mutex_lock(&scope->fiberListMutex);
+    for (size_t i = 0; i < scope->fiberCount; i++) {
+        if (scope->fibers[i] == fiber) {
+            scope->fibers[i] = scope->fibers[scope->fiberCount - 1];
+            scope->fiberCount--;
+            break;
+        }
+    }
     pthread_mutex_unlock(&scope->fiberListMutex);
 }
 
@@ -276,13 +293,22 @@ Fiber* AsyncScopeSpawnWithPriority(AsyncScope* scope, FiberStartRoutine work, vo
         FiberAttachChild(currentFiber, fiber);
     }
     
-    /* Add to scope tracking */
-    AsyncScopeAddFiber(scope, fiber);
+    /* Add to scope tracking before enqueueing the exact same fiber. */
+    if (!AsyncScopeAddFiber(scope, fiber)) {
+        async_scope_warn("spawn", "scope tracking failed", scope);
+        FiberDestroy(fiber);
+        free(data);
+        return NULL;
+    }
     
     /* Schedule the fiber */
-    fiber->scheduler = scheduler;
-    fiber->priority = priority;
-    SchedulerSpawnWithPriority(scheduler, fiber->startRoutine, fiber->arg, priority);
+    if (!SchedulerEnqueueFiberWithPriority(scheduler, fiber, priority)) {
+        async_scope_warn("spawn", "scheduler enqueue failed", scope);
+        AsyncScopeForgetFiber(scope, fiber);
+        FiberDestroy(fiber);
+        free(data);
+        return NULL;
+    }
     
     return fiber;
 }

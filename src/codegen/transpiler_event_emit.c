@@ -16,9 +16,14 @@ emit_event_decl(ASTNode *node, TranspilerCtx *ctx)
 
     for (size_t i = 0; i < node->data.event_decl.param_count; i++) {
         ASTNode *param = node->data.event_decl.params[i];
+        char pt_buf[256];
         const char *pt = "void*";
-        if (param->data.let_decl.type != NULL)
-            pt = pergyra_ast_type_to_c(param->data.let_decl.type);
+        if (param->data.let_decl.type != NULL
+            && pergyra_ast_type_to_c_copy(param->data.let_decl.type,
+                pt_buf,
+                sizeof(pt_buf))) {
+            pt = pt_buf;
+        }
         if (i > 0)
             codebuf_write(ctx->out, ", ");
         codebuf_write(ctx->out, "%s %s", pt, param->data.let_decl.name);
@@ -59,9 +64,14 @@ emit_event_decl(ASTNode *node, TranspilerCtx *ctx)
     codebuf_write(ctx->out, "static inline void %s_INVOKE(%s* e", name, event_type);
     for (size_t i = 0; i < node->data.event_decl.param_count; i++) {
         ASTNode *param = node->data.event_decl.params[i];
+        char pt_buf[256];
         const char *pt = "void*";
-        if (param->data.let_decl.type != NULL)
-            pt = pergyra_ast_type_to_c(param->data.let_decl.type);
+        if (param->data.let_decl.type != NULL
+            && pergyra_ast_type_to_c_copy(param->data.let_decl.type,
+                pt_buf,
+                sizeof(pt_buf))) {
+            pt = pt_buf;
+        }
         codebuf_write(ctx->out, ", %s %s", pt, param->data.let_decl.name);
     }
     codebuf_write(ctx->out, ") {\n");

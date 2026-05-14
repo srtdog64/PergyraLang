@@ -283,7 +283,7 @@ check_macro_borrowed_exports "llvm-intent-active-step" "$llvm_text" \
 
 check_result_owned_strings "inline-string-helpers" "$inline_string_text" \
     pgy_runtime_strdup \
-    Substring StringReplace StringTrim ToUpper ToLower StringConcat StringJoin
+    pgy_input Substring StringReplace StringTrim ToUpper ToLower StringConcat StringJoin
 
 check_result_owned_strings "llvm-string-helpers" "$llvm_string_text" \
     pgy_runtime_lib_strdup \
@@ -295,6 +295,24 @@ check_result_owned_arrays "inline-string-array-helpers" "$inline_string_text" \
 
 check_result_owned_arrays "llvm-string-array-helpers" "$llvm_string_text" \
     pgy_runtime_lib_strdup StringSplit pgy_map_keys_raw_export
+
+for term in \
+    "PGY_ARRAY_DEFINE(String, char*)" \
+    "arr->data[arr->length++] = value" \
+    "arr->data[index] = value"; do
+    grep -Fq "$term" "$ROOT_DIR/src/runtime/pgy_runtime_memory_array_slot_inline.h" \
+        "$ROOT_DIR/src/runtime/pgy_runtime_builtin_storage_inline.h" \
+        "$ROOT_DIR/src/runtime/pgy_runtime_lib_array_map_exports.h" ||
+        fail "generic Array<String> must remain pointer-storage unless a producer explicitly copies payloads: $term"
+done
+if grep -Fq "pgy_array_push_String(&result, s)" \
+    "$ROOT_DIR/src/runtime/pgy_runtime_io_qubit_inline.h" \
+    "$ROOT_DIR/src/runtime/pgy_runtime_lib_io_string_exports.h"; then
+    fail "StringSplit must not push borrowed input strings into result-owned arrays"
+fi
+grep -Fq "dup_key = pgy_runtime_strdup" \
+    "$ROOT_DIR/src/runtime/pgy_runtime_map_string_inline.h" ||
+    fail "inline MapKeys<String> must duplicate keys before pushing into Array<String>"
 
 file_open_body="$(extract_function_body "$llvm_string_text" pgy_file_open)"
 file_close_body="$(extract_function_body "$llvm_string_text" pgy_file_close)"
@@ -310,6 +328,265 @@ for term in \
 done
 grep -Fq "pgy_runtime_ftable[fd] = NULL" <<< "$file_close_body" ||
     fail "pgy_file_close must release the runtime-owned handle slot"
+
+read_file_body="$(extract_function_body "$llvm_string_text" pgy_read_file)"
+write_file_body="$(extract_function_body "$llvm_string_text" pgy_write_file)"
+[[ -n "$read_file_body" ]] || fail "missing pgy_read_file"
+[[ -n "$write_file_body" ]] || fail "missing pgy_write_file"
+grep -Fq "free(resolved)" <<< "$read_file_body" ||
+    fail "pgy_read_file must release resolved paths on all result-owned exits"
+grep -Fq "free(resolved)" <<< "$write_file_body" ||
+    fail "pgy_write_file must release resolved paths on all exits"
+
+for term in \
+    "if (len > slen - start)" \
+    "if (new_len > old_len)" \
+    "result_len = source_len" \
+    "if (la > ((size_t)-1) - lb || la + lb > ((size_t)-1) - 1)"; do
+    grep -Fq "$term" "$ROOT_DIR/src/runtime/pgy_runtime_lib_io_string_exports.h" ||
+        fail "LLVM string helper missing overflow/lifetime guard: $term"
+    grep -Fq "$term" "$ROOT_DIR/src/runtime/pgy_runtime_io_qubit_inline.h" ||
+        fail "inline string helper missing overflow/lifetime guard: $term"
+done
+
+grep -Fq "if (item_len > ((size_t)-1) - total)" \
+    "$ROOT_DIR/src/runtime/pgy_runtime_lib_std_exports.h" ||
+    fail "LLVM StringJoin must guard result length overflow"
+grep -Fq "if (sl > ((size_t)-1) - total)" \
+    "$ROOT_DIR/src/runtime/pgy_runtime_io_qubit_inline.h" ||
+    fail "inline StringJoin must guard result length overflow"
+grep -Fq "if (start > arr->length || len > arr->length - start)" \
+    "$ROOT_DIR/src/runtime/pgy_runtime_lib_array_map_exports.h" ||
+    fail "LLVM array slice export must avoid start+len overflow"
+grep -Fq "_pgy_start_%d > _pgy_slice_%d.length || _pgy_len_%d > _pgy_slice_%d.length - _pgy_start_%d" \
+    "$ROOT_DIR/src/codegen/transpiler_expr_call_spawn_emit.h" ||
+    fail "C backend generated Slice<T>.Slice code must avoid start+len overflow"
+if grep -Fq "_pgy_start_%d + _pgy_len_%d > _pgy_slice_%d.length" \
+    "$ROOT_DIR/src/codegen/transpiler_expr_call_spawn_emit.h"; then
+    fail "C backend generated Slice<T>.Slice code reintroduced start+len overflow"
+fi
+for term in \
+    "pgy_queue_push_string_raw_export" \
+    "pgy_runtime_strdup_export(value != NULL ? value : \"\")" \
+    "pgy_queue_pop_string_raw_export"; do
+    grep -Fq "$term" "$ROOT_DIR/src/runtime/pgy_runtime_lib_raw_queue_exports.h" ||
+        fail "raw Queue<String> export missing result-owned string term: $term"
+done
+grep -Fq "\"pgy_queue_push_string_raw_export\"" \
+    "$ROOT_DIR/src/codegen/llvm_expr_call_queue_extended.c" ||
+    fail "LLVM Queue<String> push must use string-owned raw queue export"
+grep -Fq "\"pgy_queue_pop_string_raw_export\"" \
+    "$ROOT_DIR/src/codegen/llvm_expr_call_queue_extended.c" ||
+    fail "LLVM Queue<String> pop must use string-owned raw queue export"
+for term in \
+    "pgy_channel_dup_String" \
+    "pgy_channel_free_pending_String" \
+    "ch->buffer[ch->head] = NULL"; do
+    grep -Fq "$term" "$ROOT_DIR/src/runtime/pgy_runtime_lib_channel_string_exports.h" ||
+        fail "LLVM Channel<String> export missing owned-transfer term: $term"
+done
+for term in \
+    "pgy_map_set_string_value_raw_export" \
+    "pgy_map_get_string_value_raw_export" \
+    "pgy_map_remove_string_value_raw_export" \
+    "pgy_runtime_strdup_export(value != NULL ? value : \"\")"; do
+    grep -Fq "$term" "$ROOT_DIR/src/runtime/pgy_runtime_lib_raw_map_exports.h" ||
+        fail "raw HashMap<K,String> export missing owned string-value term: $term"
+done
+for term in \
+    "pgy_hashmap_key_raw_string_value_export_name" \
+    "pgy_map_set_string_value_raw_i32_export" \
+    "pgy_map_get_string_value_raw_bool_export"; do
+    grep -Fq "$term" "$ROOT_DIR/src/codegen"/*.c "$ROOT_DIR/src/codegen"/*.h ||
+        fail "LLVM HashMap<K,String> lowering missing string-value export term: $term"
+done
+for term in \
+    "llvm_constructed_arg_name_copy" \
+    "llvm_constructed_arg_name_write" \
+    "out[0] = '\\0'" \
+    "return llvm_constructed_arg_name_write(type_name, arg_index, out, out_size)"; do
+    grep -Fq "$term" "$ROOT_DIR/src/codegen/llvm_backend_type_render.c" \
+        "$ROOT_DIR/src/codegen/llvm_internal_api.h" ||
+        fail "LLVM constructed type arg helper must expose caller-owned copy seam: $term"
+done
+grep -Fq "llvm_required_constructed_arg_name_copy" \
+    "$ROOT_DIR/src/codegen/llvm_backend_type_map.c" ||
+    fail "LLVM type map must consume constructed generic args through caller-owned copy seam"
+if grep -Fq "llvm_constructed_arg_name_at(type_name" \
+    "$ROOT_DIR/src/codegen/llvm_backend_type_map.c"; then
+    fail "LLVM type map must not retain static constructed generic arg pointers"
+fi
+if grep -Fq "llvm_constructed_arg_name_at(const char" \
+    "$ROOT_DIR/src/codegen/llvm_backend_type_render.c"; then
+    fail "LLVM constructed type arg helper must not expose static-return compatibility seam"
+fi
+for term in \
+    "argc > (size_t)UINT_MAX" \
+    "argc > SIZE_MAX / sizeof(LLVMValueRef)" \
+    "argument count exceeds backend ABI limits"; do
+    grep -Fq "$term" "$ROOT_DIR/src/codegen/llvm_expr_call_args.c" \
+        "$ROOT_DIR/src/codegen/llvm_expr_spawn_call_helpers.c" ||
+        fail "LLVM argument lowering must guard arena sizing and unsigned ABI arity: $term"
+done
+for term in \
+    "arg_count > (size_t)UINT_MAX - 1U" \
+    "arg_count > (SIZE_MAX / sizeof(LLVMValueRef)) - 1U" \
+    "param_count > SIZE_MAX / sizeof(LLVMTypeRef)"; do
+    grep -Fq "$term" "$ROOT_DIR/src/codegen/llvm_expr_event_calls.c" \
+        "$ROOT_DIR/src/codegen/llvm_expr_scalar_core.c" ||
+        fail "LLVM event/callable lowering must guard arena sizing and unsigned ABI arity: $term"
+done
+for term in \
+    "static char bufs[8][32]" \
+    "slot++ %" \
+    "ctx->tmp_counter++"; do
+    grep -Fq "$term" "$ROOT_DIR/src/codegen/llvm_backend_generic.c" ||
+        fail "LLVM tmp name helper must use a small ring buffer: $term"
+done
+for term in \
+    "world_roster_array_fits" \
+    "len > SIZE_MAX - 1U" \
+    "party slot size overflow" \
+    "roster slot size overflow" \
+    "result allocation size overflow"; do
+    grep -Fq "$term" "$ROOT_DIR/src/runtime/world_roster.c" ||
+        fail "world/roster runtime dynamic arrays must guard allocation sizes: $term"
+done
+for term in \
+    "world_roster_array_fits" \
+    "roster plan size overflow" \
+    "party plan size overflow" \
+    "role count overflow" \
+    "roster stats size overflow" \
+    "role stats size overflow" \
+    "buffer size overflow"; do
+    grep -Fq "$term" "$ROOT_DIR/src/runtime/world_roster_plan_stats.c" ||
+        fail "world/roster plan/stat dynamic arrays must guard allocation sizes: $term"
+done
+for term in \
+    "secure_slot_scope_array_fits" \
+    "sizeof(SlotHandle)" \
+    "sizeof(TokenCapability)" \
+    "SecureMemoryWipe(scope->tokens, scope->capacity * sizeof(*scope->tokens))"; do
+    grep -Fq "$term" "$ROOT_DIR/src/runtime/slot_manager_scope.c" ||
+        fail "secure slot scope arrays must guard allocation and wipe sizes: $term"
+done
+for term in \
+    "maxSlots > SIZE_MAX / sizeof(SlotEntry)" \
+    "manager->slotTable = calloc(maxSlots, sizeof(SlotEntry))"; do
+    grep -Fq "$term" "$ROOT_DIR/src/runtime/slot_manager.c" ||
+        fail "slot manager table allocation must guard maxSlots sizing: $term"
+done
+for term in \
+    "scheduler_array_fits" \
+    "worker array size overflow" \
+    "scheduler->workers = (WorkerThread*)calloc(scheduler->numWorkers, sizeof(WorkerThread))"; do
+    grep -Fq "$term" "$ROOT_DIR/src/runtime/async/scheduler.c" ||
+        fail "async scheduler worker arrays must guard allocation sizes: $term"
+done
+for term in \
+    "PGY_RUNTIME_ELEM_CAPACITY_FITS" \
+    "(capacity) <= (size_t)INT32_MAX" \
+    "(capacity) <= SIZE_MAX / sizeof(CType)"; do
+    grep -Fq "$term" "$ROOT_DIR/src/runtime/pgy_runtime_list_set_inline.h" \
+        "$ROOT_DIR/src/runtime/pgy_runtime_queue_inline.h" ||
+        fail "inline List/Queue capacity must stay within Int size API and element allocation bounds: $term"
+done
+grep -Fq "((capacity) != 0 && (capacity) <= (size_t)INT32_MAX)" \
+    "$ROOT_DIR/src/runtime/pgy_runtime_list_set_inline.h" ||
+    fail "inline Set capacity must stay within Int size API range"
+for term in \
+    "capacity <= (size_t)INT32_MAX" \
+    "elem_size <= SIZE_MAX / capacity"; do
+    grep -Fq "$term" "$ROOT_DIR/src/runtime/pgy_runtime_lib_list_raw_exports.h" \
+        "$ROOT_DIR/src/runtime/pgy_runtime_lib_raw_queue_exports.h" \
+        "$ROOT_DIR/src/runtime/pgy_runtime_lib_raw_map_exports.h" \
+        "$ROOT_DIR/src/runtime/pgy_runtime_lib_raw_set_exports.h" ||
+        fail "LLVM raw collection capacity must stay within Int size API and element allocation bounds: $term"
+done
+for term in \
+    "(capacity) <= (size_t)INT32_MAX" \
+    "capacity <= (size_t)INT32_MAX"; do
+    grep -Fq "$term" "$ROOT_DIR/src/runtime/pgy_runtime_builtin_hashmap_inline.h" \
+        "$ROOT_DIR/src/runtime/pgy_runtime_map_string_inline.h" ||
+        fail "inline HashMap capacity must stay within Int size API range: $term"
+done
+for term in \
+    "pgy_set_add_string_raw_export" \
+    "pgy_runtime_strdup_export(value != NULL ? value : \"\")"; do
+    grep -Fq "$term" "$ROOT_DIR/src/runtime/pgy_runtime_lib_raw_set_exports.h" ||
+        fail "raw Set<String> add export missing result-owned string term: $term"
+done
+for term in \
+    "pgy_set_raw_string_hash_value" \
+    "pgy_set_raw_string_slot_eq" \
+    "pgy_set_raw_rehash_string"; do
+    grep -Fq "$term" "$ROOT_DIR/src/runtime/pgy_runtime_lib_raw_set_exports.h" ||
+        fail "raw Set<String> must use string-specific hash/equality/rehash: $term"
+done
+if grep -Fq "elem_size == (int64_t)sizeof(char *)" \
+    "$ROOT_DIR/src/runtime/pgy_runtime_lib_raw_set_exports.h"; then
+    fail "generic raw Set<T> must not classify pointer-sized values as String"
+fi
+if grep -Fq "pgy_set_add_raw_export(set_ptr, &owned" \
+    "$ROOT_DIR/src/runtime/pgy_runtime_lib_raw_set_exports.h"; then
+    fail "raw Set<String> add must not route through pointer-sized generic raw set add"
+fi
+for term in \
+    "pgy_set_has_string_raw_export" \
+    "pgy_set_remove_string_raw_export" \
+    "free(*owned)" \
+    "PGY_SET_RAW_DELETED"; do
+    grep -Fq "$term" "$ROOT_DIR/src/runtime/pgy_runtime_lib_set_raw_exports.h" ||
+        fail "raw Set<String> query/remove export missing ownership/tombstone term: $term"
+done
+for term in \
+    "\"pgy_set_add_string_raw_export\"" \
+    "\"pgy_set_has_string_raw_export\"" \
+    "\"pgy_set_remove_string_raw_export\""; do
+    grep -Fq "$term" "$ROOT_DIR/src/codegen/llvm_expr_collection_base_calls.c" ||
+        fail "LLVM Set<String> lowering must use string-owned raw set export: $term"
+done
+for term in \
+    "PGY_MAP_RAW_DELETED" \
+    "map->occupied[h] = PGY_MAP_RAW_DELETED" \
+    "map->occupied[h] == PGY_MAP_RAW_LIVE"; do
+    grep -Fq "$term" "$ROOT_DIR/src/runtime/pgy_runtime_lib_raw_map_exports.h" ||
+        fail "raw HashMap removal must preserve probe chains with tombstones: $term"
+done
+for term in \
+    "pgy_list_push_string_raw_export" \
+    "pgy_list_get_string_raw_export" \
+    "pgy_list_set_string_raw_export" \
+    "pgy_list_remove_string_raw_export" \
+    "pgy_runtime_strdup_export(value != NULL ? value : \"\")" \
+    "free(*slot)"; do
+    grep -Fq "$term" "$ROOT_DIR/src/runtime/pgy_runtime_lib_list_raw_exports.h" ||
+        fail "raw List<String> export missing ownership term: $term"
+done
+for term in \
+    "pgy_list_set_string" \
+    "pgy_list_remove_string" \
+    "free(l->data[index])" \
+    "PGY_SET_INLINE_DELETED"; do
+    grep -Fq "$term" "$ROOT_DIR/src/runtime/pgy_runtime_list_set_inline.h" ||
+        fail "inline List/Set string ownership or tombstone term missing: $term"
+done
+for term in \
+    "PGY_HASHMAP_DELETED" \
+    "m->occupied[h] = PGY_HASHMAP_DELETED" \
+    "m->occupied[h] == PGY_HASHMAP_LIVE"; do
+    grep -Fq "$term" "$ROOT_DIR/src/runtime/pgy_runtime_builtin_hashmap_inline.h" ||
+        fail "inline HashMap removal must preserve probe chains with tombstones: $term"
+done
+for term in \
+    "\"pgy_list_push_string_raw_export\"" \
+    "\"pgy_list_get_string_raw_export\"" \
+    "\"pgy_list_set_string_raw_export\"" \
+    "\"pgy_list_remove_string_raw_export\""; do
+    grep -Fq "$term" "$ROOT_DIR/src/codegen/llvm_expr_call_collections_extended.c" ||
+        fail "LLVM List<String> lowering must use string-owned raw list export: $term"
+done
 
 require_file "docs/semantics/04_ownership_abi.md"
 for term in \

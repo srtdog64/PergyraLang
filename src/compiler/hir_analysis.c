@@ -128,14 +128,22 @@ hir_collect_intent_signature_refs(ASTNode *node,
                                   size_t *count,
                                   size_t *capacity)
 {
+    ASTNode **bindings;
+    ASTNode **steps;
+    size_t binding_count;
+    size_t step_count;
+
     if (node == NULL || node->type != AST_INTENT_DECL)
         return true;
 
-    for (size_t i = 0; i < node->data.intent_decl.binding_count; i++) {
-        ASTNode *binding = node->data.intent_decl.bindings[i];
+    bindings = ast_intent_decl_bindings(node, &binding_count);
+    steps = ast_intent_decl_steps(node, &step_count);
+
+    for (size_t i = 0; i < binding_count; i++) {
+        ASTNode *binding = bindings[i];
         if (binding != NULL
             && binding->type == AST_INTENT_INVOLVES
-            && !hir_collect_type_refs(binding->data.intent_involves.subject_type,
+            && !hir_collect_type_refs(ast_intent_involves_subject_type(binding),
                                       names,
                                       count,
                                       capacity)) {
@@ -143,7 +151,7 @@ hir_collect_intent_signature_refs(ASTNode *node,
         }
         if (binding != NULL
             && binding->type == AST_INTENT_VALUE
-            && !hir_collect_type_refs(binding->data.intent_value.value_type,
+            && !hir_collect_type_refs(ast_intent_value_type(binding),
                                       names,
                                       count,
                                       capacity)) {
@@ -151,8 +159,8 @@ hir_collect_intent_signature_refs(ASTNode *node,
         }
     }
 
-    for (size_t i = 0; i < node->data.intent_decl.step_count; i++) {
-        ASTNode *step = node->data.intent_decl.steps[i];
+    for (size_t i = 0; i < step_count; i++) {
+        ASTNode *step = steps[i];
         if (step == NULL || step->type != AST_INTENT_STEP)
             continue;
         if (!hir_collect_type_refs(ast_intent_step_where_type(step), names, count, capacity))

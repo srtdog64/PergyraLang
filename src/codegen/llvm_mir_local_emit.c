@@ -287,25 +287,32 @@ llvm_emit_mir_param_allocas(const MIRRoutine *routine, ASTNode *func_decl,
 
     for (size_t i = 0; i < param_count; i++) {
         if (is_intent) {
-            ASTNode *binding = func_decl->data.intent_decl.binding_count > 0
-                ? func_decl->data.intent_decl.bindings[i]
-                : (i < func_decl->data.intent_decl.involve_count
-                    ? func_decl->data.intent_decl.involves[i]
-                    : func_decl->data.intent_decl.values[i
-                        - func_decl->data.intent_decl.involve_count]);
+            size_t binding_count = 0;
+            size_t involve_count = 0;
+            size_t value_count = 0;
+            ASTNode **bindings = ast_intent_decl_bindings(func_decl, &binding_count);
+            ASTNode **involves = ast_intent_decl_involves(func_decl, &involve_count);
+            ASTNode **values = ast_intent_decl_values(func_decl, &value_count);
+            ASTNode *binding = binding_count > 0
+                ? (i < binding_count ? bindings[i] : NULL)
+                : (i < involve_count
+                    ? involves[i]
+                    : (i - involve_count < value_count
+                        ? values[i - involve_count]
+                        : NULL));
             const char *alias = NULL;
             ASTNode *type_node = NULL;
             const char *type_name = NULL;
             LLVMTypeRef pt = ctx->type_i32;
             bool pointer_param = false;
             if (binding != NULL && binding->type == AST_INTENT_INVOLVES) {
-                alias = binding->data.intent_involves.alias;
-                type_node = binding->data.intent_involves.subject_type;
+                alias = ast_intent_involves_alias(binding);
+                type_node = ast_intent_involves_subject_type(binding);
                 pointer_param = llvm_intent_involves_uses_pointer_self(ctx,
                     binding);
             } else if (binding != NULL && binding->type == AST_INTENT_VALUE) {
-                alias = binding->data.intent_value.alias;
-                type_node = binding->data.intent_value.value_type;
+                alias = ast_intent_value_alias(binding);
+                type_node = ast_intent_value_type(binding);
             }
             if (type_node != NULL && type_node->type == AST_TYPE)
                 type_name = type_node->data.type.name;

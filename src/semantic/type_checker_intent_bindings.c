@@ -7,14 +7,18 @@
 ASTNode *
 find_intent_involves_local(ASTNode *intent, const char *alias)
 {
+    ASTNode **involves_nodes;
+    size_t involve_count;
+
     if (intent == NULL || intent->type != AST_INTENT_DECL || alias == NULL)
         return NULL;
 
-    for (size_t i = 0; i < intent->data.intent_decl.involve_count; i++) {
-        ASTNode *involves = intent->data.intent_decl.involves[i];
+    involves_nodes = ast_intent_decl_involves(intent, &involve_count);
+    for (size_t i = 0; i < involve_count; i++) {
+        ASTNode *involves = involves_nodes[i];
         if (involves != NULL && involves->type == AST_INTENT_INVOLVES
-            && involves->data.intent_involves.alias != NULL
-            && strcmp(involves->data.intent_involves.alias, alias) == 0) {
+            && ast_intent_involves_alias(involves) != NULL
+            && strcmp(ast_intent_involves_alias(involves), alias) == 0) {
             return involves;
         }
     }
@@ -24,14 +28,18 @@ find_intent_involves_local(ASTNode *intent, const char *alias)
 ASTNode *
 find_intent_value_local(ASTNode *intent, const char *alias)
 {
+    ASTNode **values;
+    size_t value_count;
+
     if (intent == NULL || intent->type != AST_INTENT_DECL || alias == NULL)
         return NULL;
 
-    for (size_t i = 0; i < intent->data.intent_decl.value_count; i++) {
-        ASTNode *value = intent->data.intent_decl.values[i];
+    values = ast_intent_decl_values(intent, &value_count);
+    for (size_t i = 0; i < value_count; i++) {
+        ASTNode *value = values[i];
         if (value != NULL && value->type == AST_INTENT_VALUE
-            && value->data.intent_value.alias != NULL
-            && strcmp(value->data.intent_value.alias, alias) == 0) {
+            && ast_intent_value_alias(value) != NULL
+            && strcmp(ast_intent_value_alias(value), alias) == 0) {
             return value;
         }
     }
@@ -44,14 +52,17 @@ find_unique_intent_involves_by_type_name(ASTNode *intent,
                                          const char **alias_out)
 {
     ASTNode *matched = NULL;
+    ASTNode **involves_nodes;
+    size_t involve_count;
 
     if (alias_out != NULL)
         *alias_out = NULL;
     if (intent == NULL || intent->type != AST_INTENT_DECL || type_name == NULL)
         return NULL;
 
-    for (size_t i = 0; i < intent->data.intent_decl.involve_count; i++) {
-        ASTNode *involves = intent->data.intent_decl.involves[i];
+    involves_nodes = ast_intent_decl_involves(intent, &involve_count);
+    for (size_t i = 0; i < involve_count; i++) {
+        ASTNode *involves = involves_nodes[i];
         const char *participant_type_name = intent_involves_type_name(involves);
 
         if (participant_type_name == NULL
@@ -65,7 +76,7 @@ find_unique_intent_involves_by_type_name(ASTNode *intent,
     }
 
     if (matched != NULL && alias_out != NULL)
-        *alias_out = matched->data.intent_involves.alias;
+        *alias_out = ast_intent_involves_alias(matched);
     return matched;
 }
 
@@ -83,7 +94,7 @@ intent_step_resolve_transfer_target_involves(ASTNode *intent_decl,
     if (intent_decl == NULL || step == NULL || step->type != AST_INTENT_STEP)
         return NULL;
 
-    to_name = step->data.intent_step.transfer_to_alias;
+    to_name = ast_intent_step_transfer_to_alias(step);
     if (to_name == NULL)
         return NULL;
 
@@ -92,9 +103,8 @@ intent_step_resolve_transfer_target_involves(ASTNode *intent_decl,
         to_involves = find_unique_intent_involves_by_type_name(
             intent_decl, to_name, &resolved_alias);
         if (to_involves != NULL && resolved_alias != NULL) {
-            free(step->data.intent_step.transfer_to_alias);
-            step->data.intent_step.transfer_to_alias =
-                pergyra_strdup(resolved_alias);
+            (void)ast_intent_step_replace_transfer_to_alias_copy(
+                step, resolved_alias);
         }
     } else {
         resolved_alias = to_name;

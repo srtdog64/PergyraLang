@@ -6,7 +6,7 @@
 static inline bool pgy_map_string_capacity_fits(size_t capacity)
 {
     return capacity != 0
-        && capacity <= UINT32_MAX
+        && capacity <= (size_t)INT32_MAX
         && capacity <= SIZE_MAX / sizeof(char *)
         && capacity <= SIZE_MAX / sizeof(uint8_t);
 }

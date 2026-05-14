@@ -118,7 +118,12 @@ emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
                     free(bound_type);
                     continue;
                 }
-                arg_type = pergyra_ast_type_to_c(decl->data.func_decl.params[i]->type);
+                if (pergyra_ast_type_to_c_copy(
+                        decl->data.func_decl.params[i]->type,
+                        arg_type_buf,
+                        sizeof(arg_type_buf))) {
+                    arg_type = arg_type_buf;
+                }
             } else if (call != NULL) {
                 const char *inferred_arg_type = infer_expression_type_name(
                     ctx, call->data.call.arguments[i]);
@@ -243,13 +248,16 @@ emit_channel_send(ASTNode *node, TranspilerCtx *ctx)
     char *ch  = emit_expression(node->data.channel_send.channel, ctx);
     char *val = emit_expression(node->data.channel_send.value, ctx);
     const char *inner = NULL;
+    char inner_buf[128];
 
     if (node->data.channel_send.channel != NULL
         && node->data.channel_send.channel->type == AST_IDENTIFIER) {
         const char *type_name = lookup_typed_var(ctx,
             node->data.channel_send.channel->data.identifier.name);
         if (type_name != NULL && strncmp(type_name, "Channel<", 8) == 0)
-            inner = slot_inner_type_name(type_name);
+            if (slot_inner_type_name_copy(type_name, inner_buf,
+                    sizeof(inner_buf)))
+                inner = inner_buf;
     }
     if (inner == NULL || inner[0] == '\0') {
         transpiler_set_backend_error_with_hints(ctx,
@@ -283,13 +291,16 @@ emit_channel_recv(ASTNode *node, TranspilerCtx *ctx)
 {
     char *ch = emit_expression(node->data.channel_recv.channel, ctx);
     const char *inner = NULL;
+    char inner_buf[128];
 
     if (node->data.channel_recv.channel != NULL
         && node->data.channel_recv.channel->type == AST_IDENTIFIER) {
         const char *type_name = lookup_typed_var(ctx,
             node->data.channel_recv.channel->data.identifier.name);
         if (type_name != NULL && strncmp(type_name, "Channel<", 8) == 0)
-            inner = slot_inner_type_name(type_name);
+            if (slot_inner_type_name_copy(type_name, inner_buf,
+                    sizeof(inner_buf)))
+                inner = inner_buf;
     }
     if (inner == NULL || inner[0] == '\0') {
         transpiler_set_backend_error_with_hints(ctx,

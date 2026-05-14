@@ -36,15 +36,27 @@ static void world_roster_warn(const char* op, const char* reason)
 
 static char* world_roster_strdup(const char* text)
 {
+    size_t len;
+    char* copy;
+
     if (text == NULL) {
         return NULL;
     }
-    size_t len = strlen(text) + 1U;
-    char* copy = (char*)malloc(len);
+    len = strlen(text);
+    if (len > SIZE_MAX - 1U) {
+        return NULL;
+    }
+    len++;
+    copy = (char*)malloc(len);
     if (copy != NULL) {
         memcpy(copy, text, len);
     }
     return copy;
+}
+
+static bool world_roster_array_fits(size_t count, size_t elem_size)
+{
+    return elem_size != 0 && count <= SIZE_MAX / elem_size;
 }
 
 static uint64_t world_roster_now_ns(void)
@@ -192,6 +204,14 @@ RosterAddParty(RosterContext* roster,
         return false;
     }
 
+    if (roster->partyCount == SIZE_MAX
+        || !world_roster_array_fits(roster->partyCount + 1U,
+            sizeof(*roster->partySlots))) {
+        free(ownedSlotName);
+        free(ownedPartyType);
+        world_roster_warn("roster_add_party", "party slot size overflow");
+        return false;
+    }
     size_t newCount = roster->partyCount + 1U;
     void* grown = realloc(roster->partySlots, newCount * sizeof(*roster->partySlots));
     if (grown == NULL) {
@@ -223,6 +243,11 @@ ExecuteRoster(RosterContext* roster,
         return result;
     }
 
+    if (!world_roster_array_fits(roster->partyCount,
+            sizeof(RosterPartyResult))) {
+        world_roster_warn("execute_roster", "result allocation size overflow");
+        return result;
+    }
     result.partyResults =
         (RosterPartyResult*)calloc(roster->partyCount, sizeof(RosterPartyResult));
     if (result.partyResults == NULL && roster->partyCount > 0) {
@@ -381,6 +406,14 @@ WorldAddRoster(WorldContext* world, const char* slotName, RosterContext* roster)
         return false;
     }
 
+    if (world->rosterCount == SIZE_MAX
+        || !world_roster_array_fits(world->rosterCount + 1U,
+            sizeof(*world->rosters))) {
+        free(ownedSlotName);
+        free(ownedRosterType);
+        world_roster_warn("world_add_roster", "roster slot size overflow");
+        return false;
+    }
     size_t newCount = world->rosterCount + 1U;
     void* grown = realloc(world->rosters, newCount * sizeof(*world->rosters));
     if (grown == NULL) {
@@ -407,6 +440,12 @@ ExecuteWorldFrame(WorldContext* world, DispatcherConfig* config)
         return result;
     }
 
+    if (!world_roster_array_fits(world->rosterCount,
+            sizeof(WorldRosterResult))) {
+        world_roster_warn("execute_world_frame",
+            "result allocation size overflow");
+        return result;
+    }
     result.rosterResults =
         (WorldRosterResult*)calloc(world->rosterCount, sizeof(WorldRosterResult));
     if (result.rosterResults == NULL && world->rosterCount > 0) {

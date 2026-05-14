@@ -204,13 +204,19 @@ WebGL note: `examples/wasm_hello/` is a dogfood host-bridge example over C
 post-beta `pgy.render.webgl` module track.
 
 - smoke-covered examples: see [docs/65_stable_example_surface_board.md](docs/65_stable_example_surface_board.md)
-- current stable entry examples include:
+- ordinary entry examples:
+  - `examples/hello.pgy` — smallest ordinary log/value path
+  - `examples/basic.pgy` — basic ordinary-value syntax; no Slot lifecycle APIs
+- domain examples:
   - `examples/logistics_intent_probe/`
-  - `examples/resource_scheduler_async_probe/`
   - `examples/order_analytics/`
   - `examples/battle_simulator/`
   - `examples/biome_simulator/`
-  - `examples/wasm_hello/` — dogfood WebGL/WASM bridge via C `--emit-c`
+- resource-boundary examples:
+  - `examples/slots_simple.pgy`
+  - `examples/resource_scheduler_async_probe/`
+- dogfood bridge examples:
+  - `examples/wasm_hello/` — WebGL/WASM host bridge via C `--emit-c`, not stable WebGL language surface
 - contract compression canonical pairs:
   - `examples/intent_contract_pair_minimal.pgy`
   - `examples/authority_contract_pair_minimal.pgy`
@@ -251,6 +257,23 @@ func main()
     PrintInt(result);
 }
 ```
+
+### Slot Is Explicit Resource Boundary, Not Hello World
+
+Ordinary values, pure computations, and logs do not require
+`ClaimSlot` / `Write` / `Read` / `Release`.
+
+```pergyra
+func Main() -> Void
+{
+    Log("Hello, Pergyra!");
+}
+```
+
+Use `Slot<T>`, `SecureSlot<T>`, `DeviceSlot<T>`, and pin/view syntax when
+code crosses an explicit resource, authority, backend-handle, or lifecycle
+boundary. Slot is the resource-boundary model; it is not the default value
+model.
 
 ### Control Flow
 
@@ -553,13 +576,22 @@ Source of truth:
 
 - [Stable Example Surface Board](docs/65_stable_example_surface_board.md)
 
-Recommended stable examples to start from:
+Recommended examples to start from:
 
+- `examples/hello.pgy` — smallest ordinary log/value path
+- `examples/basic.pgy` — ordinary values, functions, control flow, and logging
 - `examples/logistics_intent_probe/` — IR/domain pipeline probe
-- `examples/resource_scheduler_async_probe/` — async/parallel/resource probe
 - `examples/order_analytics/` — larger compile-smoke covered application example
 - `examples/subject_object_tobject/` — nominal/projection baseline
+
+Resource-boundary examples are intentionally separate:
+
+- `examples/slots_simple.pgy` — explicit Slot lifecycle and scoped `with slot`
+- `examples/resource_scheduler_async_probe/` — async/parallel/resource probe
 - `examples/ownership_forwarding_probe/` — current `own/ref` anchored-slot boundary subset
+
+Dogfood bridge examples:
+
 - `examples/wasm_hello/` — beta dogfood bridge: C `--emit-c` plus optional Emscripten
 
 Design-sketch examples:

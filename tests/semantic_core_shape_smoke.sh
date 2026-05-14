@@ -459,8 +459,16 @@ if grep -R "data\.zone_state\.\(state_name\|is_relation\|layer_slot_name\|left_o
     fail "semantic/compiler/codegen zone-state consumers must use AST zone-state accessors"
 fi
 
-if grep -R "data\.intent_step\." src/compiler src/codegen >/dev/null; then
-    fail "compiler/codegen intent-step read consumers must use AST intent-step accessors"
+if grep -R "data\.intent_step\." src/semantic src/compiler src/codegen >/dev/null; then
+    fail "semantic/compiler/codegen intent-step consumers must use AST intent-step accessors/mutators"
+fi
+
+if grep -R "data\.intent_\(decl\|involves\|value\)\." src/semantic src/compiler src/codegen >/dev/null; then
+    fail "semantic/compiler/codegen intent declaration consumers must use AST intent declaration accessors"
+fi
+
+if grep -R "data\.intent_" src/semantic src/compiler src/codegen >/dev/null; then
+    fail "semantic/compiler/codegen intent payload consumers must use AST intent accessors/mutators"
 fi
 
 if grep -R "data\.intent_step\." \
@@ -470,6 +478,42 @@ if grep -R "data\.intent_step\." \
     src/semantic/type_checker_resolution_graph_intent.c \
     src/semantic/type_checker_resolution_stage_systemic.c >/dev/null; then
     fail "read-only semantic intent-step consumers must use AST intent-step accessors"
+fi
+
+if grep -R "data\.intent_step\.\(where_type\|using_expr\|causes_effect\|inherited_where_from_action\|inherited_causes_from_action\|derived_where_from_using\|derived_where_from_transfer\|derived_using_from_transfer\|derived_using_from_where\)[[:space:]]*=[^=]" \
+    src/semantic >/dev/null; then
+    fail "semantic intent-step simple inferred field writes must use AST intent-step mutators"
+fi
+
+if grep -R "data\.intent_step\.\(authorized_by\|authorized_by_count\|authorized_by_capacity\|inherited_authorized_by_from_action\|derived_authorized_by_from_zone\)[[:space:]]*=[^=]" \
+    src/semantic >/dev/null; then
+    fail "semantic intent-step authorized-by writes must use AST intent-step mutators"
+fi
+
+if grep -R "data\.intent_step\.\(who_names\|who_count\|who_capacity\|inherited_who_from_action\|derived_who_from_on_receiver\|derived_who_from_single_participant\)[[:space:]]*=[^=]" \
+    src/semantic >/dev/null; then
+    fail "semantic intent-step who writes must use AST intent-step mutators"
+fi
+
+if grep -R "data\.intent_step\.\(required_abilities\|required_ability_count\|required_ability_capacity\|inherited_requires_from_action\)[[:space:]]*=[^=]" \
+    src/semantic >/dev/null; then
+    fail "semantic intent-step required-ability writes must use AST intent-step mutators"
+fi
+
+if grep -R "data\.intent_step\." \
+    src/semantic/type_checker_intent_action_contract.c \
+    src/semantic/type_checker_intent_on_inference.c \
+    src/semantic/type_checker_intent_authority.c \
+    src/semantic/type_checker_intent_role_fields.c >/dev/null; then
+    fail "compact intent semantic owners must use AST intent-step accessors/mutators"
+fi
+
+if grep -R "data\.intent_step\." \
+    src/semantic/type_checker_intent_bindings.c \
+    src/semantic/type_checker_intent_helpers.c \
+    src/semantic/type_checker_intent_transfer.c \
+    src/semantic/type_checker_intent_types.c >/dev/null; then
+    fail "intent semantic helper/transfer/type owners must use AST intent-step accessors/mutators"
 fi
 
 if grep -R "data\.world_decl\.\(states\|state_count\)" \

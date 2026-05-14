@@ -178,7 +178,7 @@ llvm_emit_intent_cleanup_tail(LLVMGenCtx *ctx,
                 llvm_emit_intent_step_bind_bound_zone(
                     ctx, node, zone_type_name, zone_alias, from_alias,
                     who_aliases, who_alias_count);
-                if (node->data.intent_decl.rollback_policy == INTENT_ROLLBACK_CURRENT)
+                if (ast_intent_decl_rollback_policy(node) == INTENT_ROLLBACK_CURRENT)
                     LLVMBuildBr(ctx->builder, maybe_exit_bb);
                 else
                     LLVMBuildBr(ctx->builder, next_bb);

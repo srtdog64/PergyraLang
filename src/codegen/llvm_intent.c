@@ -49,9 +49,28 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
     size_t step_count = 0;
     bool has_compensate_steps = false;
     bool mir_only_intent = false;
+    const char *intent_name = NULL;
+    ASTNode **decl_steps = NULL;
+    size_t decl_step_count = 0;
+    size_t involve_count = 0;
+    size_t binding_count = 0;
+    size_t value_count = 0;
+    IntentRollbackPolicy rollback_policy = INTENT_ROLLBACK_NONE;
+    ASTNode *priority_expr = NULL;
+    ASTNode *success_expr = NULL;
+    bool is_concurrent = false;
 
     if (node == NULL || node->type != AST_INTENT_DECL || ctx == NULL)
         return;
+    intent_name = ast_intent_decl_name(node);
+    decl_steps = ast_intent_decl_steps(node, &decl_step_count);
+    involve_count = ast_intent_decl_involve_count(node);
+    binding_count = ast_intent_decl_binding_count(node);
+    value_count = ast_intent_decl_value_count(node);
+    rollback_policy = ast_intent_decl_rollback_policy(node);
+    priority_expr = ast_intent_decl_priority_expr(node);
+    success_expr = ast_intent_decl_success_expr(node);
+    is_concurrent = ast_intent_decl_is_concurrent(node);
     mir_routine = llvm_find_mir_intent_routine(ctx, node);
     if (mir_routine != NULL) {
         step_count = llvm_collect_mir_intent_step_names(
@@ -59,21 +78,17 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
         mir_steps = llvm_build_mir_intent_step_sources(
             node, mir_step_names, step_count, ctx);
     }
-    if (ctx->mir != NULL && node->data.intent_decl.step_count > 0) {
+    if (ctx->mir != NULL && decl_step_count > 0) {
         if (mir_routine == NULL) {
             llvm_set_mir_inventory_missing(ctx,
                 "MIR-only LLVM path missing intent routine for '%s'",
-                node->data.intent_decl.name != NULL
-                    ? node->data.intent_decl.name
-                    : "(anonymous)");
+                intent_name != NULL ? intent_name : "(anonymous)");
             return;
         }
         if (step_count == 0) {
             llvm_set_mir_inventory_missing(ctx,
                 "MIR-only LLVM path missing intent step sequence for '%s'",
-                node->data.intent_decl.name != NULL
-                    ? node->data.intent_decl.name
-                    : "(anonymous)");
+                intent_name != NULL ? intent_name : "(anonymous)");
             return;
         }
         for (size_t i = 0; i < step_count; i++) {
@@ -91,39 +106,33 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
     if (step_count > 0) {
         step_nodes = mir_steps;
     } else {
-        step_count = node->data.intent_decl.step_count;
-        step_nodes = node->data.intent_decl.steps;
+        step_count = decl_step_count;
+        step_nodes = decl_steps;
     }
     if (mir_routine != NULL) {
         participant_count = llvm_collect_mir_intent_participants(
             mir_routine, ctx, &participant_aliases, &participant_types);
     }
-    if (mir_only_intent && node->data.intent_decl.involve_count > 0) {
-        if (participant_count < node->data.intent_decl.involve_count) {
+    if (mir_only_intent && involve_count > 0) {
+        if (participant_count < involve_count) {
             llvm_set_mir_inventory_missing(ctx,
                 "MIR-only LLVM path missing intent participant metadata for '%s'",
-                node->data.intent_decl.name != NULL
-                    ? node->data.intent_decl.name
-                    : "(anonymous)");
+                intent_name != NULL ? intent_name : "(anonymous)");
             return;
         }
-        for (size_t i = 0; i < node->data.intent_decl.involve_count; i++) {
+        for (size_t i = 0; i < involve_count; i++) {
             if (participant_aliases == NULL || participant_types == NULL
                 || participant_aliases[i] == NULL || participant_types[i] == NULL) {
                 llvm_set_mir_inventory_missing(ctx,
                     "MIR-only LLVM path has incomplete intent participant metadata for '%s'",
-                    node->data.intent_decl.name != NULL
-                        ? node->data.intent_decl.name
-                        : "(anonymous)");
+                    intent_name != NULL ? intent_name : "(anonymous)");
                 return;
             }
         }
     }
     if (participant_count == 0)
-        participant_count = node->data.intent_decl.involve_count;
-    param_count = node->data.intent_decl.binding_count > 0
-        ? node->data.intent_decl.binding_count
-        : (node->data.intent_decl.involve_count + node->data.intent_decl.value_count);
+        participant_count = involve_count;
+    param_count = binding_count > 0 ? binding_count : (involve_count + value_count);
     if (param_count == 0)
         param_count = participant_count;
 
@@ -140,9 +149,9 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
             break;
         }
     }
-    if (node->data.intent_decl.rollback_policy == INTENT_ROLLBACK_NONE)
+    if (rollback_policy == INTENT_ROLLBACK_NONE)
         has_compensate_steps = false;
-    entry = llvm_lookup_function(ctx, node->data.intent_decl.name);
+    entry = llvm_lookup_function(ctx, intent_name);
     if (entry == NULL)
         return;
     enter_fn = llvm_lookup_function(ctx, "pgy_intent_enter_export");
@@ -207,15 +216,15 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
     }
 
     {
-        LLVMValueRef priority = node->data.intent_decl.priority_expr != NULL
-            ? llvm_emit_expression(node->data.intent_decl.priority_expr, ctx)
+        LLVMValueRef priority = priority_expr != NULL
+            ? llvm_emit_expression(priority_expr, ctx)
             : LLVMConstInt(ctx->type_i32, 0, 0);
         LLVMValueRef enter_args[] = {
-            LLVMBuildGlobalStringPtr(ctx->builder, node->data.intent_decl.name,
+            LLVMBuildGlobalStringPtr(ctx->builder, intent_name,
                 llvm_tmp_name(ctx)),
             subjects_ptr,
             LLVMConstInt(ctx->type_i32, (unsigned)subject_count, 0),
-            LLVMConstInt(ctx->type_i1, node->data.intent_decl.is_concurrent ? 1 : 0, 0),
+            LLVMConstInt(ctx->type_i1, is_concurrent ? 1 : 0, 0),
             priority
         };
         LLVMValueRef handle = LLVMBuildCall2(ctx->builder, enter_fn->fn_type, enter_fn->fn,
@@ -456,19 +465,18 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
          * unsupported LLVM intent-success expressions must fail with a
          * diagnostic until the predicate can lower through real LLVM facts. */
         LLVMValueRef success = NULL;
-        if (node->data.intent_decl.success_expr != NULL)
-            success = llvm_emit_expression(node->data.intent_decl.success_expr, ctx);
+        if (success_expr != NULL)
+            success = llvm_emit_expression(success_expr, ctx);
         else
             success = LLVMConstInt(ctx->type_i1, 1, 0);
         if (success == NULL) {
             llvm_set_error_at_with_hints(ctx,
-                node->data.intent_decl.success_expr,
+                success_expr,
                 PGY_CODE_LLVM_TYPE_UNSUPPORTED,
                 PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
                 PGY_FIX_MATCH_PREDICATE_SIGNATURE_IN_HOST,
                 "LLVM intent '%s' cannot lower its success predicate; silent true fallback is disabled",
-                node->data.intent_decl.name != NULL
-                    ? node->data.intent_decl.name : "<intent>");
+                intent_name != NULL ? intent_name : "<intent>");
             goto intent_emit_fail;
         }
         LLVMBuildStore(ctx->builder, success, result_alloca);

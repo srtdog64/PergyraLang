@@ -221,6 +221,17 @@ Scheduler* SchedulerCreate(const SchedulerConfig* config)
     pthread_cond_init(&scheduler->parkCondition, NULL);
     
     /* Allocate workers */
+    if (!scheduler_array_fits(scheduler->numWorkers, sizeof(WorkerThread))) {
+        scheduler_warn("create", "worker array size overflow", scheduler);
+#ifndef _WIN32
+        close(scheduler->epollFd);
+#endif
+        ConcurrentQueueDestroy(scheduler->globalRunQueue);
+        pthread_mutex_destroy(&scheduler->parkMutex);
+        pthread_cond_destroy(&scheduler->parkCondition);
+        free(scheduler);
+        return NULL;
+    }
     scheduler->workers = (WorkerThread*)calloc(scheduler->numWorkers, sizeof(WorkerThread));
     if (scheduler->workers == NULL) {
         scheduler_warn("create", "worker array allocation failed", scheduler);
@@ -398,6 +409,8 @@ void SchedulerSpawn(Scheduler* scheduler, FiberStartRoutine routine, void* arg)
 
 void SchedulerSpawnWithPriority(Scheduler* scheduler, FiberStartRoutine routine, void* arg, uint32_t priority)
 {
+    Fiber* fiber;
+
     if (scheduler == NULL) {
         scheduler_warn("spawn", "scheduler is null", scheduler);
         return;
@@ -407,10 +420,25 @@ void SchedulerSpawnWithPriority(Scheduler* scheduler, FiberStartRoutine routine,
         return;
     }
     
-    Fiber* fiber = FiberCreate(routine, arg);
+    fiber = FiberCreate(routine, arg);
     if (fiber == NULL) {
         scheduler_warn("spawn", "fiber creation failed", scheduler);
         return;
+    }
+
+    if (!SchedulerEnqueueFiberWithPriority(scheduler, fiber, priority))
+        FiberDestroy(fiber);
+}
+
+bool SchedulerEnqueueFiberWithPriority(Scheduler* scheduler, Fiber* fiber, uint32_t priority)
+{
+    if (scheduler == NULL) {
+        scheduler_warn("enqueue", "scheduler is null", scheduler);
+        return false;
+    }
+    if (fiber == NULL) {
+        scheduler_warn("enqueue", "fiber is null", scheduler);
+        return false;
     }
     
     fiber->scheduler = scheduler;
@@ -421,7 +449,11 @@ void SchedulerSpawnWithPriority(Scheduler* scheduler, FiberStartRoutine routine,
     atomic_fetch_add(&scheduler->activeFibers, 1);
     
     /* Add to global queue */
-    ConcurrentQueuePush(scheduler->globalRunQueue, fiber);
+    if (!ConcurrentQueuePush(scheduler->globalRunQueue, fiber)) {
+        atomic_fetch_sub(&scheduler->totalFibers, 1);
+        atomic_fetch_sub(&scheduler->activeFibers, 1);
+        return false;
+    }
     
     /* Wake a parked worker if available */
     if (atomic_load(&scheduler->parkedWorkers) > 0) {
@@ -429,6 +461,8 @@ void SchedulerSpawnWithPriority(Scheduler* scheduler, FiberStartRoutine routine,
         pthread_cond_signal(&scheduler->parkCondition);
         pthread_mutex_unlock(&scheduler->parkMutex);
     }
+
+    return true;
 }
 
 void SchedulerYield(void)

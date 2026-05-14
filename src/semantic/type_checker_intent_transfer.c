@@ -9,16 +9,20 @@ type_check_intent_step_transfer_contract(ASTNode *node,
                                          ASTNode *step,
                                          SemanticContext *ctx)
 {
+    const char *step_name;
+    const char *from_alias;
+    ASTNode *using_expr;
+
     if (node == NULL || step == NULL || step->type != AST_INTENT_STEP
         || ctx == NULL) {
         return;
     }
-    if (step->data.intent_step.transfer_from_alias == NULL
-        && step->data.intent_step.transfer_to_alias == NULL) {
+    step_name = ast_intent_step_name(step);
+    from_alias = ast_intent_step_transfer_from_alias(step);
+    if (from_alias == NULL && ast_intent_step_transfer_to_alias(step) == NULL) {
         return;
     }
 
-    const char *from_alias = step->data.intent_step.transfer_from_alias;
     const char *to_alias = NULL;
     ASTNode *from_involves = find_intent_involves_local(node, from_alias);
     ASTNode *to_involves = intent_step_resolve_transfer_target_involves(
@@ -44,7 +48,7 @@ type_check_intent_step_transfer_contract(ASTNode *node,
             "Fix:\n"
             "- provide 'transfer: <sourceZoneAlias> -> <targetZoneAlias>;'\n"
             "- or remove the incomplete transfer clause",
-            step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>");
+            step_name != NULL ? step_name : "<step>");
     }
     if (from_alias != NULL && from_involves == NULL) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_INTENT_STEP_INVALID, PGY_CAUSE_INTENT_STEP, PGY_FIX_ALIGN_STEP_WITH_ZONE_ACTION_CONTRACTS, step,
@@ -58,7 +62,7 @@ type_check_intent_step_transfer_contract(ASTNode *node,
             "Fix:\n"
             "- use a declared zone binding as the transfer source\n"
             "- or add '%s' as an intent binding before using it in transfer",
-            step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
+            step_name != NULL ? step_name : "<step>",
             from_alias,
             from_alias,
             to_alias != NULL ? to_alias : "<target>",
@@ -78,7 +82,7 @@ type_check_intent_step_transfer_contract(ASTNode *node,
             "Fix:\n"
             "- use a declared zone binding alias as the transfer target\n"
             "- or make the target zone type unique within this intent",
-            step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
+            step_name != NULL ? step_name : "<step>",
             to_alias,
             from_alias != NULL ? from_alias : "<source>",
             to_alias,
@@ -96,7 +100,7 @@ type_check_intent_step_transfer_contract(ASTNode *node,
             "Fix:\n"
             "- use a zone binding as the transfer source\n"
             "- or move ordinary participant movement into 'who'/'on' instead of 'transfer'",
-            step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
+            step_name != NULL ? step_name : "<step>",
             from_alias != NULL ? from_alias : "<source>",
             from_alias != NULL ? from_alias : "<source>",
             to_alias != NULL ? to_alias : "<target>",
@@ -114,7 +118,7 @@ type_check_intent_step_transfer_contract(ASTNode *node,
             "Fix:\n"
             "- use a zone binding as the transfer target\n"
             "- or change the step contract so the handoff target is a declared zone",
-            step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
+            step_name != NULL ? step_name : "<step>",
             to_alias != NULL ? to_alias : "<target>",
             from_alias != NULL ? from_alias : "<source>",
             to_alias != NULL ? to_alias : "<target>",
@@ -138,7 +142,7 @@ type_check_intent_step_transfer_contract(ASTNode *node,
             "Fix:\n"
             "- change the transfer target to a '%s' binding\n"
             "- or override the step zone to '%s'",
-            step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
+            step_name != NULL ? step_name : "<step>",
             to_alias != NULL ? to_alias : "<target>",
             from_alias != NULL ? from_alias : "<source>",
             to_alias != NULL ? to_alias : "<target>",
@@ -152,14 +156,15 @@ type_check_intent_step_transfer_contract(ASTNode *node,
             where_zone_type->name != NULL ? where_zone_type->name : "<zone>",
             to_type->name != NULL ? to_type->name : "<zone>");
     }
-    if (step->data.intent_step.using_expr != NULL
-        && step->data.intent_step.using_expr->type == AST_IDENTIFIER
+    using_expr = ast_intent_step_using_expr(step);
+    if (using_expr != NULL
+        && using_expr->type == AST_IDENTIFIER
         && to_alias != NULL
-        && strcmp(step->data.intent_step.using_expr->data.identifier.name, to_alias) != 0) {
+        && strcmp(using_expr->data.identifier.name, to_alias) != 0) {
         char contract_summary[512];
         intent_step_format_contract_source_summary(
             node, step, ctx, contract_summary, sizeof(contract_summary));
-        semantic_error_with_hints(ctx, PGY_CODE_SEM_INTENT_STEP_INVALID, PGY_CAUSE_INTENT_STEP, PGY_FIX_ALIGN_STEP_WITH_ZONE_ACTION_CONTRACTS, step->data.intent_step.using_expr,
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_INTENT_STEP_INVALID, PGY_CAUSE_INTENT_STEP, PGY_FIX_ALIGN_STEP_WITH_ZONE_ACTION_CONTRACTS, using_expr,
             "Intent step '%s' using binding does not match the transfer target.\n"
             "Reason:\n"
             "- transfer target derivation and explicit using binding choose different zones\n"
@@ -173,18 +178,18 @@ type_check_intent_step_transfer_contract(ASTNode *node,
             "Fix:\n"
             "- change 'using' to '%s'\n"
             "- or change the transfer target to '%s'",
-            step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
+            step_name != NULL ? step_name : "<step>",
             from_alias != NULL ? from_alias : "<source>",
             to_alias != NULL ? to_alias : "<target>",
-            step->data.intent_step.using_expr->data.identifier.name != NULL
-                ? step->data.intent_step.using_expr->data.identifier.name : "<binding>",
+            using_expr->data.identifier.name != NULL
+                ? using_expr->data.identifier.name : "<binding>",
             to_alias,
             to_alias,
             to_alias,
             contract_summary[0] != '\0' ? "" : "- no additional step contract provenance was recorded\n",
             contract_summary[0] != '\0' ? contract_summary : "",
             contract_summary[0] != '\0' ? "\n" : "",
-            step->data.intent_step.using_expr->data.identifier.name != NULL
-                ? step->data.intent_step.using_expr->data.identifier.name : "<binding>");
+            using_expr->data.identifier.name != NULL
+                ? using_expr->data.identifier.name : "<binding>");
     }
 }

@@ -4,21 +4,27 @@
 char *emit_builtin_allocator(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx);
 
 static const char *
-lookup_wrapped_inner_type(TranspilerCtx *ctx, ASTNode *arg, const char *wrapper)
+lookup_wrapped_inner_type(TranspilerCtx *ctx, ASTNode *arg, const char *wrapper,
+                          char *inner_buf, size_t inner_buf_size)
 {
     if (arg != NULL && arg->type == AST_IDENTIFIER) {
         const char *type_name = lookup_typed_var(ctx, arg->data.identifier.name);
         size_t wrapper_len = strlen(wrapper);
         if (type_name != NULL && strncmp(type_name, wrapper, wrapper_len) == 0
             && type_name[wrapper_len] == '<') {
-            return slot_inner_type_name(type_name);
+            if (slot_inner_type_name_copy(type_name, inner_buf,
+                    inner_buf_size)) {
+                return inner_buf;
+            }
+            return NULL;
         }
     }
     return NULL;
 }
 
 static const char *
-expected_wrapped_inner_type(TranspilerCtx *ctx, const char *wrapper)
+expected_wrapped_inner_type(TranspilerCtx *ctx, const char *wrapper,
+                            char *inner_buf, size_t inner_buf_size)
 {
     size_t wrapper_len;
 
@@ -26,8 +32,12 @@ expected_wrapped_inner_type(TranspilerCtx *ctx, const char *wrapper)
         return NULL;
     wrapper_len = strlen(wrapper);
     if (strncmp(ctx->expected_type, wrapper, wrapper_len) == 0
-        && ctx->expected_type[wrapper_len] == '<')
-        return slot_inner_type_name(ctx->expected_type);
+        && ctx->expected_type[wrapper_len] == '<') {
+        if (slot_inner_type_name_copy(ctx->expected_type, inner_buf,
+                inner_buf_size)) {
+            return inner_buf;
+        }
+    }
     return NULL;
 }
 
@@ -35,6 +45,7 @@ char *
 emit_builtin_rc(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
 {
     const char *inner = NULL;
+    char inner_buf[128];
     ASTNode *arg = call->data.call.arg_count > 0 ? call->data.call.arguments[0] : NULL;
 
     switch (kind) {
@@ -45,7 +56,8 @@ emit_builtin_rc(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
         }
         {
             const char *expected_inner =
-                expected_wrapped_inner_type(ctx, "Rc");
+                expected_wrapped_inner_type(ctx, "Rc", inner_buf,
+                    sizeof(inner_buf));
             const char *arg_type = NULL;
             if (expected_inner != NULL)
                 inner = expected_inner;
@@ -68,7 +80,8 @@ emit_builtin_rc(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
     case BUILTIN_RC_DROP:
     case BUILTIN_RC_GET:
     case BUILTIN_RC_DOWNGRADE:
-        inner = lookup_wrapped_inner_type(ctx, arg, "Rc");
+        inner = lookup_wrapped_inner_type(ctx, arg, "Rc", inner_buf,
+            sizeof(inner_buf));
         if (inner == NULL || inner[0] == '\0') {
             transpiler_set_backend_error_with_hints(ctx,
                 PGY_CODE_C_TYPE_UNSUPPORTED,
@@ -80,7 +93,8 @@ emit_builtin_rc(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
         break;
     case BUILTIN_WEAK_UPGRADE:
     case BUILTIN_WEAK_DROP:
-        inner = lookup_wrapped_inner_type(ctx, arg, "Weak");
+        inner = lookup_wrapped_inner_type(ctx, arg, "Weak", inner_buf,
+            sizeof(inner_buf));
         if (inner == NULL || inner[0] == '\0') {
             transpiler_set_backend_error_with_hints(ctx,
                 PGY_CODE_C_TYPE_UNSUPPORTED,
@@ -151,6 +165,7 @@ char *
 emit_builtin_box(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
 {
     const char *inner = NULL;
+    char inner_buf[128];
     ASTNode *arg = call->data.call.arg_count > 0 ? call->data.call.arguments[0] : NULL;
 
     switch (kind) {
@@ -197,7 +212,8 @@ emit_builtin_box(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
     case BUILTIN_BOX_SET:
     case BUILTIN_BOX_DROP:
     case BUILTIN_BOX_IS_VALID:
-        inner = lookup_wrapped_inner_type(ctx, arg, "Box");
+        inner = lookup_wrapped_inner_type(ctx, arg, "Box", inner_buf,
+            sizeof(inner_buf));
         if (inner == NULL || inner[0] == '\0') {
             transpiler_set_backend_error_with_hints(ctx,
                 PGY_CODE_C_TYPE_UNSUPPORTED,
@@ -273,7 +289,19 @@ emit_builtin_box(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
             return pergyra_strdup("0");
         }
         char *arr_expr = emit_expression(call->data.call.arguments[0], ctx);
-        const char *elem = slot_inner_type_name(inner);
+        char elem_buf[128];
+        const char *elem = NULL;
+        if (slot_inner_type_name_copy(inner, elem_buf, sizeof(elem_buf)))
+            elem = elem_buf;
+        if (elem == NULL || elem[0] == '\0') {
+            free(arr_expr);
+            transpiler_set_backend_error_with_hints(ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED,
+                PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                "C backend: BoxArray requires concrete Array<T> metadata");
+            return pergyra_strdup("0");
+        }
         char *result = strdup_fmt("pgy_box_new_Array_%s(%s)", elem, arr_expr);
         free(arr_expr);
         return result;

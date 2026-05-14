@@ -64,8 +64,7 @@ transpiler_result_suffix_from_type_name(const char *type_name,
     if (strchr(inner, ',') == NULL) {
         copy_capped_string(out, out_size, inner);
     } else {
-        const char *sanitized = generic_args_to_c_suffix(inner);
-        copy_capped_string(out, out_size, sanitized);
+        generic_args_to_c_suffix_copy(inner, out, out_size);
     }
 
     return out[0] != '\0';

@@ -197,19 +197,9 @@ transpiler_require_unary_collection_type(TranspilerCtx *ctx,
         && family_len > 0
         && strncmp(resolved_type, family, family_len) == 0
         && resolved_type[family_len] == '<') {
-        const char *inner = slot_inner_type_name(resolved_type);
-        if (inner != NULL && inner[0] != '\0') {
-            if (!transpiler_collection_copy_type_name(inner_buf,
-                    inner_buf_size, inner)) {
-                transpiler_set_backend_error_with_hints(ctx,
-                    PGY_CODE_C_TYPE_UNSUPPORTED,
-                    PGY_CAUSE_C_TYPE_UNSUPPORTED,
-                    PGY_FIX_ANNOTATE_CONCRETE_TYPE,
-                    "C backend: %s inner %s type is too long",
-                    operation != NULL ? operation : "collection operation",
-                    family != NULL ? family : "collection");
-                return false;
-            }
+        if (slot_inner_type_name_copy(resolved_type, inner_buf,
+                inner_buf_size)
+            && inner_buf[0] != '\0') {
             if (inner_out != NULL)
                 *inner_out = inner_buf;
             return true;
@@ -249,7 +239,9 @@ emit_call_stdlib_collection_builtin(const char *fn, ASTNode *call, TranspilerCtx
             return pergyra_strdup("0");
         }
         ensure_collection_specialization(ctx, "List", inner);
-        return strdup_fmt("pgy_list_new_%s()", collection_runtime_suffix(inner));
+        char suffix_buf[128];
+        collection_runtime_suffix_copy(inner, suffix_buf, sizeof(suffix_buf));
+        return strdup_fmt("pgy_list_new_%s()", suffix_buf);
     }
     if (op == TRANSPILER_COLLECTION_OP_LIST_PUSH) {
         char *l = emit_expression(call->data.call.arguments[0], ctx);
@@ -263,8 +255,10 @@ emit_call_stdlib_collection_builtin(const char *fn, ASTNode *call, TranspilerCtx
             return pergyra_strdup("0");
         }
         ensure_collection_specialization(ctx, "List", inner);
+        char suffix_buf[128];
+        collection_runtime_suffix_copy(inner, suffix_buf, sizeof(suffix_buf));
         char *r = strdup_fmt("pgy_list_push_%s(&%s, %s)",
-            collection_runtime_suffix(inner), l, v);
+            suffix_buf, l, v);
         free(l); free(v); return r;
     }
     if (op == TRANSPILER_COLLECTION_OP_LIST_GET) {
@@ -279,8 +273,10 @@ emit_call_stdlib_collection_builtin(const char *fn, ASTNode *call, TranspilerCtx
             return pergyra_strdup("0");
         }
         ensure_collection_specialization(ctx, "List", inner);
+        char suffix_buf[128];
+        collection_runtime_suffix_copy(inner, suffix_buf, sizeof(suffix_buf));
         char *r = strdup_fmt("pgy_list_get_%s(&%s, %s)",
-            collection_runtime_suffix(inner), l, i);
+            suffix_buf, l, i);
         free(l); free(i); return r;
     }
     if (op == TRANSPILER_COLLECTION_OP_LIST_SET) {
@@ -296,8 +292,10 @@ emit_call_stdlib_collection_builtin(const char *fn, ASTNode *call, TranspilerCtx
             return pergyra_strdup("0");
         }
         ensure_collection_specialization(ctx, "List", inner);
+        char suffix_buf[128];
+        collection_runtime_suffix_copy(inner, suffix_buf, sizeof(suffix_buf));
         char *r = strdup_fmt("pgy_list_set_%s(&%s, %s, %s)",
-            collection_runtime_suffix(inner), l, i, v);
+            suffix_buf, l, i, v);
         free(l); free(i); free(v); return r;
     }
     if (op == TRANSPILER_COLLECTION_OP_LIST_SIZE) {
@@ -311,8 +309,10 @@ emit_call_stdlib_collection_builtin(const char *fn, ASTNode *call, TranspilerCtx
             return pergyra_strdup("0");
         }
         ensure_collection_specialization(ctx, "List", inner);
+        char suffix_buf[128];
+        collection_runtime_suffix_copy(inner, suffix_buf, sizeof(suffix_buf));
         char *r = strdup_fmt("pgy_list_size_%s(&%s)",
-            collection_runtime_suffix(inner), l);
+            suffix_buf, l);
         free(l); return r;
     }
     if (op == TRANSPILER_COLLECTION_OP_LIST_REMOVE) {
@@ -327,8 +327,10 @@ emit_call_stdlib_collection_builtin(const char *fn, ASTNode *call, TranspilerCtx
             return pergyra_strdup("0");
         }
         ensure_collection_specialization(ctx, "List", inner);
+        char suffix_buf[128];
+        collection_runtime_suffix_copy(inner, suffix_buf, sizeof(suffix_buf));
         char *r = strdup_fmt("pgy_list_remove_%s(&%s, %s)",
-            collection_runtime_suffix(inner), l, i);
+            suffix_buf, l, i);
         free(l); free(i); return r;
     }
 
@@ -341,7 +343,9 @@ emit_call_stdlib_collection_builtin(const char *fn, ASTNode *call, TranspilerCtx
             return pergyra_strdup("0");
         }
         ensure_collection_specialization(ctx, "Set", set_inner);
-        return strdup_fmt("pgy_set_new_%s()", collection_runtime_suffix(set_inner));
+        char suffix_buf[128];
+        collection_runtime_suffix_copy(set_inner, suffix_buf, sizeof(suffix_buf));
+        return strdup_fmt("pgy_set_new_%s()", suffix_buf);
     }
     if (op == TRANSPILER_COLLECTION_OP_SET_ADD) {
         const char *set_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
@@ -355,8 +359,10 @@ emit_call_stdlib_collection_builtin(const char *fn, ASTNode *call, TranspilerCtx
             return pergyra_strdup("0");
         }
         ensure_collection_specialization(ctx, "Set", set_inner);
+        char suffix_buf[128];
+        collection_runtime_suffix_copy(set_inner, suffix_buf, sizeof(suffix_buf));
         char *r = strdup_fmt("pgy_set_add_%s(&%s, %s)",
-            collection_runtime_suffix(set_inner), s, k);
+            suffix_buf, s, k);
         free(s); free(k); return r;
     }
     if (op == TRANSPILER_COLLECTION_OP_SET_HAS) {
@@ -371,8 +377,10 @@ emit_call_stdlib_collection_builtin(const char *fn, ASTNode *call, TranspilerCtx
             return pergyra_strdup("0");
         }
         ensure_collection_specialization(ctx, "Set", set_inner);
+        char suffix_buf[128];
+        collection_runtime_suffix_copy(set_inner, suffix_buf, sizeof(suffix_buf));
         char *r = strdup_fmt("pgy_set_has_%s(&%s, %s)",
-            collection_runtime_suffix(set_inner), s, k);
+            suffix_buf, s, k);
         free(s); free(k); return r;
     }
     if (op == TRANSPILER_COLLECTION_OP_SET_REMOVE) {
@@ -387,8 +395,10 @@ emit_call_stdlib_collection_builtin(const char *fn, ASTNode *call, TranspilerCtx
             return pergyra_strdup("0");
         }
         ensure_collection_specialization(ctx, "Set", set_inner);
+        char suffix_buf[128];
+        collection_runtime_suffix_copy(set_inner, suffix_buf, sizeof(suffix_buf));
         char *r = strdup_fmt("pgy_set_remove_%s(&%s, %s)",
-            collection_runtime_suffix(set_inner), s, k);
+            suffix_buf, s, k);
         free(s); free(k); return r;
     }
     if (op == TRANSPILER_COLLECTION_OP_SET_SIZE) {
@@ -402,8 +412,10 @@ emit_call_stdlib_collection_builtin(const char *fn, ASTNode *call, TranspilerCtx
             return pergyra_strdup("0");
         }
         ensure_collection_specialization(ctx, "Set", set_inner);
+        char suffix_buf[128];
+        collection_runtime_suffix_copy(set_inner, suffix_buf, sizeof(suffix_buf));
         char *r = strdup_fmt("pgy_set_size_%s(&%s)",
-            collection_runtime_suffix(set_inner), s);
+            suffix_buf, s);
         free(s); return r;
     }
 

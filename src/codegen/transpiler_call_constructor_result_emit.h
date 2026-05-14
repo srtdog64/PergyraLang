@@ -1,6 +1,8 @@
 #ifndef PGY_TRANSPILER_CALL_CONSTRUCTOR_RESULT_EMIT_H
 #define PGY_TRANSPILER_CALL_CONSTRUCTOR_RESULT_EMIT_H
 
+#include <stdint.h>
+
 #include "parser/ast_api.h"
 
 static char *
@@ -381,11 +383,16 @@ emit_call_domain_constructor(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             }
         }
 
-        const char *qualified = lookup_enum_variant_qualified_name(ctx, fn);
-        if (qualified != NULL) {
+        char qualified[128];
+        if (lookup_enum_variant_qualified_name_copy(ctx, fn,
+                qualified, sizeof(qualified))) {
             /* Emit: EnumName_VariantName(args...) */
             size_t argc = call->data.call.arg_count;
+            if (argc > SIZE_MAX / sizeof(char *))
+                return NULL;
             char **arg_strs = calloc(argc > 0 ? argc : 1, sizeof(char *));
+            if (arg_strs == NULL)
+                return NULL;
             for (size_t i = 0; i < argc; i++)
                 arg_strs[i] = emit_expression(call->data.call.arguments[i], ctx);
             /* Build argument list string */
@@ -393,6 +400,14 @@ emit_call_domain_constructor(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             for (size_t i = 0; i < argc; i++) {
                 if (arg_strs[i] == NULL) {
                     for (size_t j = 0; j < i; j++)
+                        free(arg_strs[j]);
+                    free(arg_strs);
+                    return NULL;
+                }
+                if (strlen(arg_strs[i]) > SIZE_MAX - buf_len - 2) {
+                    for (size_t j = 0; j <= i; j++)
+                        free(arg_strs[j]);
+                    for (size_t j = i + 1; j < argc; j++)
                         free(arg_strs[j]);
                     free(arg_strs);
                     return NULL;

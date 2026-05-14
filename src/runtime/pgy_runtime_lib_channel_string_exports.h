@@ -12,6 +12,26 @@ typedef struct {
     pthread_cond_t cond_not_empty;
 } PgyChannel_String_RT;
 
+static char *
+pgy_channel_dup_String(const char *value)
+{
+    return pgy_runtime_lib_strdup(value != NULL ? value : "");
+}
+
+static void
+pgy_channel_free_pending_String(PgyChannel_String_RT *ch)
+{
+    if (ch == NULL || ch->buffer == NULL || ch->capacity == 0)
+        return;
+    for (size_t i = 0; i < ch->capacity; i++) {
+        free(ch->buffer[i]);
+        ch->buffer[i] = NULL;
+    }
+    ch->head = 0;
+    ch->tail = 0;
+    ch->count = 0;
+}
+
 void pgy_channel_init_String(PgyChannel_String_RT *ch, size_t cap)
 {
     if (ch == NULL) {
@@ -44,6 +64,9 @@ void pgy_channel_init_String(PgyChannel_String_RT *ch, size_t cap)
 void pgy_channel_destroy_String(PgyChannel_String_RT *ch)
 {
     if (ch == NULL) return;
+    pthread_mutex_lock(&ch->mutex);
+    pgy_channel_free_pending_String(ch);
+    pthread_mutex_unlock(&ch->mutex);
     pthread_mutex_destroy(&ch->mutex);
     pthread_cond_destroy(&ch->cond_not_full);
     pthread_cond_destroy(&ch->cond_not_empty);
@@ -63,6 +86,7 @@ void pgy_channel_close_String(PgyChannel_String_RT *ch)
 
 bool pgy_channel_send_String(PgyChannel_String_RT *ch, char *v)
 {
+    char *owned = NULL;
     if (ch == NULL) {
         pgy_runtime_warn_invalid_channel("send_String", "null channel");
         return false;
@@ -79,7 +103,13 @@ bool pgy_channel_send_String(PgyChannel_String_RT *ch, char *v)
         pthread_mutex_unlock(&ch->mutex);
         return false;
     }
-    ch->buffer[ch->tail] = v;
+    owned = pgy_channel_dup_String(v);
+    if (owned == NULL) {
+        pgy_runtime_warn_invalid_channel("send_String", "payload duplication failed");
+        pthread_mutex_unlock(&ch->mutex);
+        return false;
+    }
+    ch->buffer[ch->tail] = owned;
     ch->tail = (ch->tail + 1) % ch->capacity;
     ch->count++;
     pthread_cond_signal(&ch->cond_not_empty);
@@ -89,6 +119,7 @@ bool pgy_channel_send_String(PgyChannel_String_RT *ch, char *v)
 
 bool pgy_channel_try_send_String(PgyChannel_String_RT *ch, char *v)
 {
+    char *owned = NULL;
     if (ch == NULL) {
         pgy_runtime_warn_invalid_channel("try_send_String", "null channel");
         return false;
@@ -104,7 +135,13 @@ bool pgy_channel_try_send_String(PgyChannel_String_RT *ch, char *v)
         pthread_mutex_unlock(&ch->mutex);
         return false;
     }
-    ch->buffer[ch->tail] = v;
+    owned = pgy_channel_dup_String(v);
+    if (owned == NULL) {
+        pgy_runtime_warn_invalid_channel("try_send_String", "payload duplication failed");
+        pthread_mutex_unlock(&ch->mutex);
+        return false;
+    }
+    ch->buffer[ch->tail] = owned;
     ch->tail = (ch->tail + 1) % ch->capacity;
     ch->count++;
     pthread_cond_signal(&ch->cond_not_empty);
@@ -115,6 +152,7 @@ bool pgy_channel_try_send_String(PgyChannel_String_RT *ch, char *v)
 bool pgy_channel_send_timeout_String(PgyChannel_String_RT *ch, char *v,
                                      uint64_t timeout_ns)
 {
+    char *owned = NULL;
     if (ch == NULL) {
         pgy_runtime_warn_invalid_channel("send_timeout_String", "null channel");
         return false;
@@ -138,7 +176,13 @@ bool pgy_channel_send_timeout_String(PgyChannel_String_RT *ch, char *v,
         pthread_mutex_unlock(&ch->mutex);
         return false;
     }
-    ch->buffer[ch->tail] = v;
+    owned = pgy_channel_dup_String(v);
+    if (owned == NULL) {
+        pgy_runtime_warn_invalid_channel("send_timeout_String", "payload duplication failed");
+        pthread_mutex_unlock(&ch->mutex);
+        return false;
+    }
+    ch->buffer[ch->tail] = owned;
     ch->tail = (ch->tail + 1) % ch->capacity;
     ch->count++;
     pthread_cond_signal(&ch->cond_not_empty);
@@ -153,6 +197,7 @@ bool pgy_channel_recv_String(PgyChannel_String_RT *ch, char **out)
             ch == NULL ? "null channel" : "null output pointer");
         return false;
     }
+    *out = NULL;
     if (ch->buffer == NULL || ch->capacity == 0) {
         pgy_runtime_warn_invalid_channel("recv_String", "channel is not initialized");
         return false;
@@ -179,6 +224,7 @@ bool pgy_channel_recv_String(PgyChannel_String_RT *ch, char **out)
         return false;
     }
     *out = ch->buffer[ch->head];
+    ch->buffer[ch->head] = NULL;
     ch->head = (ch->head + 1) % ch->capacity;
     ch->count--;
     pthread_cond_signal(&ch->cond_not_full);
@@ -194,6 +240,7 @@ bool pgy_channel_recv_timeout_String(PgyChannel_String_RT *ch, char **out,
             ch == NULL ? "null channel" : "null output pointer");
         return false;
     }
+    *out = NULL;
     if (ch->buffer == NULL || ch->capacity == 0) {
         pgy_runtime_warn_invalid_channel("recv_timeout_String", "channel is not initialized");
         return false;
@@ -226,6 +273,7 @@ bool pgy_channel_recv_timeout_String(PgyChannel_String_RT *ch, char **out,
         return false;
     }
     *out = ch->buffer[ch->head];
+    ch->buffer[ch->head] = NULL;
     ch->head = (ch->head + 1) % ch->capacity;
     ch->count--;
     pthread_cond_signal(&ch->cond_not_full);
@@ -240,6 +288,7 @@ bool pgy_channel_try_recv_String(PgyChannel_String_RT *ch, char **out)
             ch == NULL ? "null channel" : "null output pointer");
         return false;
     }
+    *out = NULL;
     if (ch->buffer == NULL || ch->capacity == 0) {
         pgy_runtime_warn_invalid_channel("try_recv_String", "channel is not initialized");
         return false;
@@ -253,6 +302,7 @@ bool pgy_channel_try_recv_String(PgyChannel_String_RT *ch, char **out)
         return false;
     }
     *out = ch->buffer[ch->head];
+    ch->buffer[ch->head] = NULL;
     ch->head = (ch->head + 1) % ch->capacity;
     ch->count--;
     pthread_cond_signal(&ch->cond_not_full);

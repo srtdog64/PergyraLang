@@ -79,8 +79,13 @@ transpiler_register_explicit_local_bindings_in_block(TranspilerCtx *ctx,
                 if (!registered_view_like)
                     register_typed_var(ctx, stmt->data.let_decl.name, type_name);
                 if (transpiler_type_name_is_slot_like(type_name)) {
+                    char slot_inner_buf[128];
+                    const char *slot_inner = NULL;
+                    if (slot_inner_type_name_copy(type_name, slot_inner_buf,
+                            sizeof(slot_inner_buf)))
+                        slot_inner = slot_inner_buf;
                     register_slot_var(ctx, stmt->data.let_decl.name,
-                        slot_inner_type_name(type_name),
+                        slot_inner,
                         strncmp(type_name, "SecureSlot<", 11) == 0,
                         false);
                 }

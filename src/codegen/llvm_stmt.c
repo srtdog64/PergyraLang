@@ -41,7 +41,7 @@ llvm_emit_return_stmt(ASTNode *node, LLVMGenCtx *ctx)
         if (ctx->current_func_decl != NULL
             && ctx->current_func_decl->type == AST_FUNC_DECL
             && ctx->current_func_decl->data.func_decl.return_type != NULL) {
-            ctx->expected_type_name = llvm_stmt_render_type_annotation_static(
+            ctx->expected_type_name = llvm_stmt_render_type_annotation_copy(ctx,
                 ctx->current_func_decl->data.func_decl.return_type);
         }
         val = llvm_emit_expression(node->data.return_stmt.value, ctx);

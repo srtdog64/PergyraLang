@@ -503,8 +503,8 @@ find_callable_decl_by_name(ASTNode *program, const char *name)
             && strcmp(stmt->data.event_decl.name, name) == 0)
             return stmt;
         if (stmt->type == AST_INTENT_DECL
-            && stmt->data.intent_decl.name != NULL
-            && strcmp(stmt->data.intent_decl.name, name) == 0)
+            && ast_intent_decl_name(stmt) != NULL
+            && strcmp(ast_intent_decl_name(stmt), name) == 0)
             return stmt;
     }
 

@@ -26,17 +26,30 @@ transpiler_contextual_option_type_name(TranspilerCtx *ctx)
     return NULL;
 }
 
-const char *
-transpiler_contextual_option_inner_type_name(TranspilerCtx *ctx)
+bool
+transpiler_contextual_option_inner_type_copy(TranspilerCtx *ctx,
+                                             char *out,
+                                             size_t out_size)
 {
     const char *option_type = transpiler_contextual_option_type_name(ctx);
-    return option_type != NULL ? slot_inner_type_name(option_type) : NULL;
+
+    if (out == NULL || out_size == 0)
+        return false;
+    out[0] = '\0';
+    if (option_type == NULL)
+        return false;
+    return slot_inner_type_name_copy(option_type, out, out_size);
 }
 
 char *
 transpiler_emit_none_with_context(TranspilerCtx *ctx, ASTNode *site)
 {
-    const char *inner = transpiler_contextual_option_inner_type_name(ctx);
+    char inner_buf[128];
+    const char *inner = NULL;
+    if (transpiler_contextual_option_inner_type_copy(ctx, inner_buf,
+            sizeof(inner_buf))) {
+        inner = inner_buf;
+    }
     if (inner == NULL) {
         transpiler_set_backend_error_with_hints(ctx,
             PGY_CODE_C_TYPE_UNSUPPORTED,

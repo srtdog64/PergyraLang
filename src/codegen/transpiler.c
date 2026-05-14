@@ -402,25 +402,31 @@ emit_program(TranspilerCtx *ctx)
 
 #include "transpiler_domain_role_emit.h"
 
-static const char *
-transpiler_infer_lambda_param_c_type(ASTNode *lambda_node, ASTNode *param_node)
+static bool
+transpiler_infer_lambda_param_c_type_copy(ASTNode *lambda_node,
+                                          ASTNode *param_node,
+                                          char *out,
+                                          size_t out_size)
 {
     const char *param_name = NULL;
     ASTNode *body = NULL;
     ASTNode *ret_value = NULL;
 
+    if (out == NULL || out_size == 0)
+        return false;
+    out[0] = '\0';
     if (lambda_node == NULL || param_node == NULL)
-        return NULL;
+        return false;
     if (param_node->type == AST_IDENTIFIER)
         param_name = param_node->data.identifier.name;
     else if (param_node->type == AST_LET_DECL)
         param_name = param_node->data.let_decl.name;
     if (param_name == NULL || lambda_node->data.lambda_expr.return_type == NULL)
-        return NULL;
+        return false;
 
     body = lambda_node->data.lambda_expr.body;
     if (body == NULL)
-        return NULL;
+        return false;
     if (body->type == AST_IDENTIFIER) {
         ret_value = body;
     } else if (body->type == AST_BLOCK
@@ -434,9 +440,12 @@ transpiler_infer_lambda_param_c_type(ASTNode *lambda_node, ASTNode *param_node)
         && ret_value->type == AST_IDENTIFIER
         && ret_value->data.identifier.name != NULL
         && strcmp(ret_value->data.identifier.name, param_name) == 0) {
-        return pergyra_ast_type_to_c(lambda_node->data.lambda_expr.return_type);
+        return pergyra_ast_type_to_c_copy(
+            lambda_node->data.lambda_expr.return_type,
+            out,
+            out_size);
     }
-    return NULL;
+    return false;
 }
 
 void
@@ -479,7 +488,11 @@ emit_lambda_expr(ASTNode *node, TranspilerCtx *ctx)
     }
 
     if (node->data.lambda_expr.return_type != NULL) {
-        return_type = pergyra_ast_type_to_c(node->data.lambda_expr.return_type);
+        if (pergyra_ast_type_to_c_copy(node->data.lambda_expr.return_type,
+                inferred_return_c_type_buf,
+                sizeof(inferred_return_c_type_buf))) {
+            return_type = inferred_return_c_type_buf;
+        }
     } else if (node->data.lambda_expr.body != NULL
                && node->data.lambda_expr.body->type == AST_BLOCK) {
         return_type = "void";
@@ -517,16 +530,26 @@ emit_lambda_expr(ASTNode *node, TranspilerCtx *ctx)
     for (size_t i = 0; i < node->data.lambda_expr.param_count; i++) {
         ASTNode *param = node->data.lambda_expr.params[i];
         const char *param_name = NULL;
+        char param_type_buf[256];
         const char *param_type = NULL;
         if (i > 0)
             codebuf_write(ctx->decls, ", ");
         if (param->type == AST_LET_DECL) {
             param_name = param->data.let_decl.name;
-            if (param->data.let_decl.type != NULL)
-                param_type = pergyra_ast_type_to_c(param->data.let_decl.type);
+            if (param->data.let_decl.type != NULL
+                && pergyra_ast_type_to_c_copy(param->data.let_decl.type,
+                    param_type_buf,
+                    sizeof(param_type_buf))) {
+                param_type = param_type_buf;
+            }
         } else {
             param_name = param->data.identifier.name;
-            param_type = transpiler_infer_lambda_param_c_type(node, param);
+            if (transpiler_infer_lambda_param_c_type_copy(node,
+                    param,
+                    param_type_buf,
+                    sizeof(param_type_buf))) {
+                param_type = param_type_buf;
+            }
         }
         if (param_type == NULL) {
             transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "cannot determine lambda parameter type for '%s' at argument %llu",
@@ -546,16 +569,26 @@ emit_lambda_expr(ASTNode *node, TranspilerCtx *ctx)
     for (size_t i = 0; i < node->data.lambda_expr.param_count; i++) {
         ASTNode *param = node->data.lambda_expr.params[i];
         const char *param_name = NULL;
+        char param_type_buf[256];
         const char *param_type = NULL;
         if (i > 0)
             codebuf_write(ctx->helpers, ", ");
         if (param->type == AST_LET_DECL) {
             param_name = param->data.let_decl.name;
-            if (param->data.let_decl.type != NULL)
-                param_type = pergyra_ast_type_to_c(param->data.let_decl.type);
+            if (param->data.let_decl.type != NULL
+                && pergyra_ast_type_to_c_copy(param->data.let_decl.type,
+                    param_type_buf,
+                    sizeof(param_type_buf))) {
+                param_type = param_type_buf;
+            }
         } else {
             param_name = param->data.identifier.name;
-            param_type = transpiler_infer_lambda_param_c_type(node, param);
+            if (transpiler_infer_lambda_param_c_type_copy(node,
+                    param,
+                    param_type_buf,
+                    sizeof(param_type_buf))) {
+                param_type = param_type_buf;
+            }
         }
         if (param_type == NULL) {
             transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "cannot determine lambda parameter type for '%s' at argument %llu",

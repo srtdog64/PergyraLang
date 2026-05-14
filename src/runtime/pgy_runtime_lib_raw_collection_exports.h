@@ -7,3 +7,4 @@
 #include "pgy_runtime_lib_raw_queue_exports.h"
 #include "pgy_runtime_lib_raw_map_exports.h"
 #include "pgy_runtime_lib_raw_set_exports.h"
+#include "pgy_runtime_lib_set_raw_exports.h"

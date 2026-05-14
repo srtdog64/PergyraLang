@@ -10,9 +10,20 @@ char *StringJoin(PgyArray_String *arr, const char *sep)
     size_t slen = (sep != NULL) ? strlen(sep) : 0;
     size_t total = 0;
     for (size_t i = 0; i < arr->length; i++) {
-        if (arr->data[i] != NULL) total += strlen(arr->data[i]);
-        if (i > 0) total += slen;
+        if (arr->data[i] != NULL) {
+            size_t item_len = strlen(arr->data[i]);
+            if (item_len > ((size_t)-1) - total)
+                return pgy_runtime_lib_strdup("");
+            total += item_len;
+        }
+        if (i > 0) {
+            if (slen > ((size_t)-1) - total)
+                return pgy_runtime_lib_strdup("");
+            total += slen;
+        }
     }
+    if (total == (size_t)-1)
+        return pgy_runtime_lib_strdup("");
     char *buf = (char *)malloc(total + 1);
     if (buf == NULL) return pgy_runtime_lib_strdup("");
     char *wp = buf;

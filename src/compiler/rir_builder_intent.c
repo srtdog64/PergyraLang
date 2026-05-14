@@ -58,36 +58,46 @@ bool
 rir_collect_intent_scope(RIRProgram *rir, ASTNode *node)
 {
     RIRScope scope;
+    ASTNode **involves_nodes;
+    ASTNode **steps;
+    size_t involve_count;
+    size_t step_count;
+    const char *intent_name;
+    IntentRollbackPolicy rollback_policy;
     memset(&scope, 0, sizeof(scope));
+    intent_name = ast_intent_decl_name(node);
+    rollback_policy = ast_intent_decl_rollback_policy(node);
+    involves_nodes = ast_intent_decl_involves(node, &involve_count);
+    steps = ast_intent_decl_steps(node, &step_count);
     scope.id = rir->scope_count;
     scope.kind = RIR_SCOPE_INTENT;
-    scope.name = node->data.intent_decl.name;
+    scope.name = intent_name;
     scope.ast = node;
 
     if (!add_intent_policy_fact(&scope,
                                 "concurrency",
-                                node->data.intent_decl.is_concurrent ? "concurrent" : "exclusive",
+                                ast_intent_decl_is_concurrent(node) ? "concurrent" : "exclusive",
                                 node))
         goto oom;
     if (!add_intent_policy_fact(&scope,
                                 "rollback",
-                                rollback_policy_name(node->data.intent_decl.rollback_policy),
+                                rollback_policy_name(rollback_policy),
                                 node))
         goto oom;
 
-    for (size_t i = 0; i < node->data.intent_decl.involve_count; i++) {
-        ASTNode *involves = node->data.intent_decl.involves[i];
+    for (size_t i = 0; i < involve_count; i++) {
+        ASTNode *involves = involves_nodes[i];
         if (involves == NULL || involves->type != AST_INTENT_INVOLVES)
             continue;
         if (!add_param_resource_fact(&scope,
-                                     involves->data.intent_involves.alias,
-                                     involves->data.intent_involves.subject_type,
+                                     ast_intent_involves_alias(involves),
+                                     ast_intent_involves_subject_type(involves),
                                      involves))
             goto oom;
     }
 
-    for (size_t i = 0; i < node->data.intent_decl.step_count; i++) {
-        ASTNode *step = node->data.intent_decl.steps[i];
+    for (size_t i = 0; i < step_count; i++) {
+        ASTNode *step = steps[i];
         if (ast_intent_step_using_expr(step) != NULL) {
             if (!add_op(&scope,
                         RIR_OP_READ,
@@ -181,12 +191,12 @@ rir_collect_intent_scope(RIRProgram *rir, ASTNode *node)
     }
 
     if (!add_op(&scope, RIR_OP_ABORT_INTENT,
-                node->data.intent_decl.name,
-                rollback_policy_name(node->data.intent_decl.rollback_policy),
+                intent_name,
+                rollback_policy_name(rollback_policy),
                 NULL,
                 node))
         goto oom;
-    if (!add_op(&scope, RIR_OP_COMMIT_INTENT, node->data.intent_decl.name, NULL, NULL, node))
+    if (!add_op(&scope, RIR_OP_COMMIT_INTENT, intent_name, NULL, NULL, node))
         goto oom;
 
     if (!rir_normalize_scope_shared(&scope))

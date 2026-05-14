@@ -77,7 +77,7 @@ llvm_decl_node_name(ASTNode *node)
     case AST_FUNC_DECL:
         return node->data.func_decl.name;
     case AST_INTENT_DECL:
-        return node->data.intent_decl.name;
+        return ast_intent_decl_name(node);
     case AST_ABILITY_DECL:
         return ast_ability_name(node);
     case AST_ROLE_DECL:

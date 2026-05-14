@@ -13,10 +13,15 @@ typedef struct {
     size_t  capacity;
 } PgyListRaw;
 
+static char *pgy_runtime_strdup_export(const char *src);
+
 static bool
 pgy_list_raw_shape_fits(size_t capacity, size_t elem_size)
 {
-    return capacity != 0 && elem_size != 0 && elem_size <= SIZE_MAX / capacity;
+    return capacity != 0
+        && capacity <= (size_t)INT32_MAX
+        && elem_size != 0
+        && elem_size <= SIZE_MAX / capacity;
 }
 
 void
@@ -96,6 +101,28 @@ pgy_list_push_raw_export(void *list_ptr, void *value_ptr, int64_t elem_size)
 }
 
 void
+pgy_list_push_string_raw_export(void *list_ptr, const char *value)
+{
+    PgyListRaw *list = (PgyListRaw *)list_ptr;
+    size_t before_count;
+    char *owned;
+
+    if (list == NULL) {
+        pgy_runtime_warn_invalid_collection("list_push_string", "null list");
+        return;
+    }
+    owned = pgy_runtime_strdup_export(value != NULL ? value : "");
+    if (owned == NULL) {
+        pgy_runtime_warn_invalid_collection("list_push_string", "string duplication failed");
+        return;
+    }
+    before_count = list->count;
+    pgy_list_push_raw_export(list_ptr, &owned, (int64_t)sizeof(char *));
+    if (list->count == before_count)
+        free(owned);
+}
+
+void
 pgy_list_get_raw_export(void *list_ptr, int32_t index, void *out_ptr, int64_t elem_size)
 {
     PgyListRaw *list = (PgyListRaw *)list_ptr;
@@ -122,6 +149,18 @@ pgy_list_get_raw_export(void *list_ptr, int32_t index, void *out_ptr, int64_t el
 }
 
 void
+pgy_list_get_string_raw_export(void *list_ptr, int32_t index, char **out_ptr)
+{
+    if (out_ptr == NULL) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "list get string on null output");
+    }
+    pgy_list_get_raw_export(list_ptr, index, out_ptr, (int64_t)sizeof(char *));
+    if (*out_ptr == NULL)
+        *out_ptr = "";
+}
+
+void
 pgy_list_set_raw_export(void *list_ptr, int32_t index, void *value_ptr, int64_t elem_size)
 {
     PgyListRaw *list = (PgyListRaw *)list_ptr;
@@ -143,6 +182,31 @@ pgy_list_set_raw_export(void *list_ptr, int32_t index, void *value_ptr, int64_t 
     }
     memcpy((char *)list->data + ((size_t)index * (size_t)elem_size),
            value_ptr, (size_t)elem_size);
+}
+
+void
+pgy_list_set_string_raw_export(void *list_ptr, int32_t index, const char *value)
+{
+    PgyListRaw *list = (PgyListRaw *)list_ptr;
+    char *owned;
+    char **slot;
+
+    if (list == NULL) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "list set string on null list");
+    }
+    if (index < 0 || (size_t)index >= list->count) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS,
+                          "list set string index out of bounds");
+    }
+    owned = pgy_runtime_strdup_export(value != NULL ? value : "");
+    if (owned == NULL) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OOM,
+                          "list set string duplication failed");
+    }
+    slot = (char **)((char *)list->data + ((size_t)index * sizeof(char *)));
+    free(*slot);
+    *slot = owned;
 }
 
 int32_t
@@ -178,6 +242,32 @@ pgy_list_remove_raw_export(void *list_ptr, int32_t index, int64_t elem_size)
         memmove((char *)list->data + ((size_t)index * (size_t)elem_size),
                 (char *)list->data + (((size_t)index + 1) * (size_t)elem_size),
                 tail_count * (size_t)elem_size);
+    }
+    list->count--;
+}
+
+void
+pgy_list_remove_string_raw_export(void *list_ptr, int32_t index)
+{
+    PgyListRaw *list = (PgyListRaw *)list_ptr;
+    char **slot;
+    size_t tail_count;
+
+    if (list == NULL) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "list remove string on null list");
+    }
+    if (index < 0 || (size_t)index >= list->count) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS,
+                          "list remove string index out of bounds");
+    }
+    slot = (char **)((char *)list->data + ((size_t)index * sizeof(char *)));
+    free(*slot);
+    *slot = NULL;
+    tail_count = list->count - (size_t)index - 1;
+    if (tail_count > 0) {
+        memmove(slot, slot + 1, tail_count * sizeof(char *));
+        ((char **)list->data)[list->count - 1] = NULL;
     }
     list->count--;
 }

@@ -32,7 +32,7 @@ ConcurrentQueue* ConcurrentQueueCreate(void);
 void ConcurrentQueueDestroy(ConcurrentQueue* queue);
 
 /* Enqueue/Dequeue */
-void ConcurrentQueuePush(ConcurrentQueue* queue, void* data);
+bool ConcurrentQueuePush(ConcurrentQueue* queue, void* data);
 void* ConcurrentQueuePop(ConcurrentQueue* queue);
 void* ConcurrentQueueTryPop(ConcurrentQueue* queue);
 

@@ -84,7 +84,9 @@ emit_call_stdlib_map_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx)
         }
         (void)key;
         ensure_collection_specialization(ctx, "Map", value);
-        return strdup_fmt("pgy_map_new_%s()", collection_runtime_suffix(value));
+        char suffix_buf[128];
+        collection_runtime_suffix_copy(value, suffix_buf, sizeof(suffix_buf));
+        return strdup_fmt("pgy_map_new_%s()", suffix_buf);
     }
     if (map_op == TRANSPILER_MAP_OP_SET) {
         char *m = emit_expression(call->data.call.arguments[0], ctx);
@@ -103,10 +105,12 @@ emit_call_stdlib_map_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx)
             return pergyra_strdup("0");
         }
         ensure_collection_specialization(ctx, "Map", value);
+        char suffix_buf[128];
+        collection_runtime_suffix_copy(value, suffix_buf, sizeof(suffix_buf));
         char *result = strdup_fmt(
             "pgy_map_set%s_%s(&%s, %s, %s)",
             pgy_hashmap_key_c_infix(key),
-            collection_runtime_suffix(value), m, k, v);
+            suffix_buf, m, k, v);
         free(m); free(k); free(v);
         return result;
     }
@@ -126,10 +130,12 @@ emit_call_stdlib_map_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx)
             return pergyra_strdup("0");
         }
         ensure_collection_specialization(ctx, "Map", value);
+        char suffix_buf[128];
+        collection_runtime_suffix_copy(value, suffix_buf, sizeof(suffix_buf));
         char *result = strdup_fmt(
             "pgy_map_get%s_%s(&%s, %s)",
             pgy_hashmap_key_c_infix(key),
-            collection_runtime_suffix(value), m, k);
+            suffix_buf, m, k);
         free(m); free(k);
         return result;
     }
@@ -149,10 +155,12 @@ emit_call_stdlib_map_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx)
             return pergyra_strdup("0");
         }
         ensure_collection_specialization(ctx, "Map", value);
+        char suffix_buf[128];
+        collection_runtime_suffix_copy(value, suffix_buf, sizeof(suffix_buf));
         char *result = strdup_fmt(
             "pgy_map_has%s_%s(&%s, %s)",
             pgy_hashmap_key_c_infix(key),
-            collection_runtime_suffix(value), m, k);
+            suffix_buf, m, k);
         free(m); free(k);
         return result;
     }
@@ -172,10 +180,12 @@ emit_call_stdlib_map_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx)
             return pergyra_strdup("0");
         }
         ensure_collection_specialization(ctx, "Map", value);
+        char suffix_buf[128];
+        collection_runtime_suffix_copy(value, suffix_buf, sizeof(suffix_buf));
         char *result = strdup_fmt(
             "pgy_map_remove%s_%s(&%s, %s)",
             pgy_hashmap_key_c_infix(key),
-            collection_runtime_suffix(value), m, k);
+            suffix_buf, m, k);
         free(m); free(k);
         return result;
     }
@@ -195,8 +205,10 @@ emit_call_stdlib_map_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx)
         }
         (void)key;
         ensure_collection_specialization(ctx, "Map", value);
+        char suffix_buf[128];
+        collection_runtime_suffix_copy(value, suffix_buf, sizeof(suffix_buf));
         char *result = strdup_fmt("pgy_map_size_%s(&%s)",
-            collection_runtime_suffix(value), m);
+            suffix_buf, m);
         free(m);
         return result;
     }
@@ -215,10 +227,12 @@ emit_call_stdlib_map_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx)
             return pergyra_strdup("0");
         }
         ensure_collection_specialization(ctx, "Map", value);
+        char suffix_buf[128];
+        collection_runtime_suffix_copy(value, suffix_buf, sizeof(suffix_buf));
         char *result = strdup_fmt(
             "pgy_map_keys%s_%s(&%s)",
             pgy_hashmap_key_c_infix(key),
-            collection_runtime_suffix(value), m);
+            suffix_buf, m);
         free(m);
         return result;
     }

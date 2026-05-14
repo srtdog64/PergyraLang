@@ -28,13 +28,13 @@ llvm_stmt_expected_array_elem_type(LLVMGenCtx *ctx)
     if (strncmp(ctx->expected_type_name, "Array<", 6) != 0
         && strncmp(ctx->expected_type_name, "Slice<", 6) != 0)
         return NULL;
-    inner = llvm_constructed_arg_name_at(ctx->expected_type_name, 0);
-    if (inner == NULL || inner[0] == '\0'
-        || strcmp(inner, "Unknown") == 0)
+    if (!llvm_constructed_arg_name_copy(ctx->expected_type_name, 0,
+            inner_buf, sizeof(inner_buf))) {
         return NULL;
-    if (strlen(inner) >= sizeof(inner_buf))
+    }
+    inner = inner_buf;
+    if (strcmp(inner, "Unknown") == 0)
         return NULL;
-    memcpy(inner_buf, inner, strlen(inner) + 1);
     return pergyra_type_to_llvm(ctx, inner_buf);
 }
 
@@ -119,7 +119,10 @@ llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
                     "array literal element type is unresolved");
         } else if (ctx->expected_type_name != NULL
                    && strncmp(ctx->expected_type_name, "Array<", 6) == 0) {
-            suffix = llvm_constructed_arg_name_at(ctx->expected_type_name, 0);
+            if (llvm_constructed_arg_name_copy(ctx->expected_type_name, 0,
+                    suffix_buf, sizeof(suffix_buf))) {
+                suffix = suffix_buf;
+            }
         }
         if (suffix == NULL || suffix[0] == '\0'
             || strcmp(suffix, "Unknown") == 0)

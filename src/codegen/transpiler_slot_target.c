@@ -61,15 +61,19 @@ transpiler_refine_slot_target_from_emitted_expr(TranspilerCtx *ctx,
 }
 
 bool
-transpiler_resolve_slot_target(TranspilerCtx *ctx,
-                               ASTNode *slot_arg,
-                               const char **inner_out,
-                               const char **slot_name_out,
-                               bool *secure_out)
+transpiler_resolve_slot_target_copy(TranspilerCtx *ctx,
+                                    ASTNode *slot_arg,
+                                    char *inner_out,
+                                    size_t inner_out_size,
+                                    const char **slot_name_out,
+                                    bool *secure_out)
 {
-    const char *inner = NULL;
     const char *slot_name = NULL;
     bool secure = false;
+
+    if (inner_out == NULL || inner_out_size == 0)
+        return false;
+    inner_out[0] = '\0';
 
     if (slot_arg == NULL)
         return false;
@@ -89,10 +93,12 @@ transpiler_resolve_slot_target(TranspilerCtx *ctx,
                     secure = true;
                 }
             }
-            inner = slot_inner_type_name(entry->type_name);
+            (void)slot_inner_type_name_copy(entry->type_name,
+                inner_out,
+                inner_out_size);
         } else {
             slot_name = id;
-            inner = lookup_slot_type(ctx, id);
+            (void)lookup_slot_type_copy(ctx, id, inner_out, inner_out_size);
             secure = lookup_slot_is_secure(ctx, id);
         }
     } else if (slot_arg->type == AST_CALL
@@ -105,12 +111,12 @@ transpiler_resolve_slot_target(TranspilerCtx *ctx,
         const char *src = slot_arg->data.call.arguments[0]->data.identifier.name;
         if (pgy_codegen_call_name_is_slot_source(callee)) {
             slot_name = src;
-            inner = lookup_slot_type(ctx, src);
+            (void)lookup_slot_type_copy(ctx, src, inner_out, inner_out_size);
             secure = lookup_slot_is_secure(ctx, src);
         }
     }
 
-    if (inner == NULL) {
+    if (inner_out[0] == '\0') {
         transpiler_set_backend_error_with_hints(
             ctx,
             PGY_CODE_C_TYPE_UNSUPPORTED,
@@ -120,8 +126,6 @@ transpiler_resolve_slot_target(TranspilerCtx *ctx,
             slot_name != NULL ? slot_name : "<slot>");
         return false;
     }
-    if (inner_out != NULL)
-        *inner_out = inner;
     if (slot_name_out != NULL)
         *slot_name_out = slot_name;
     if (secure_out != NULL)
@@ -129,25 +133,32 @@ transpiler_resolve_slot_target(TranspilerCtx *ctx,
     return slot_name != NULL;
 }
 
-const char *
-transpiler_resolve_device_slot_inner_or_error(TranspilerCtx *ctx,
-                                              ASTNode *slot_arg,
-                                              const char *operation)
+bool
+transpiler_resolve_device_slot_inner_copy_or_error(TranspilerCtx *ctx,
+                                                   ASTNode *slot_arg,
+                                                   const char *operation,
+                                                   char *inner_out,
+                                                   size_t inner_out_size)
 {
-    const char *inner = NULL;
-    if (slot_arg != NULL && slot_arg->type == AST_IDENTIFIER) {
-        const char *type_name = lookup_typed_var(ctx, slot_arg->data.identifier.name);
-        if (type_name != NULL && strncmp(type_name, "DeviceSlot<", 11) == 0)
-            inner = slot_inner_type_name(type_name);
-    }
-    if (inner == NULL || inner[0] == '\0') {
+    const char *type_name = NULL;
+
+    if (inner_out == NULL || inner_out_size == 0)
+        return false;
+    inner_out[0] = '\0';
+
+    if (slot_arg != NULL && slot_arg->type == AST_IDENTIFIER)
+        type_name = lookup_typed_var(ctx, slot_arg->data.identifier.name);
+    if (type_name != NULL && strncmp(type_name, "DeviceSlot<", 11) == 0)
+        (void)slot_inner_type_name_copy(type_name, inner_out, inner_out_size);
+
+    if (inner_out[0] == '\0') {
         transpiler_set_backend_error_with_hints(ctx,
             PGY_CODE_C_TYPE_UNSUPPORTED,
             PGY_CAUSE_C_TYPE_UNSUPPORTED,
             PGY_FIX_ANNOTATE_CONCRETE_TYPE,
             "C backend: %s requires concrete DeviceSlot<T> metadata",
             operation != NULL ? operation : "DeviceSlot operation");
-        return NULL;
+        return false;
     }
-    return inner;
+    return true;
 }

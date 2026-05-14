@@ -108,6 +108,20 @@ llvm_emit_queue_extended_call(ASTNode *node, LLVMGenCtx *ctx,
             return llvm_queue_error_out(ctx, node, out,
                 LLVMConstInt(ctx->type_i32, 0, 0),
                 "LLVM QueuePush could not lower value expression");
+        if (inner_name != NULL && strcmp(inner_name, "String") == 0) {
+            fn = llvm_required_collection_function(ctx, node, callee_name,
+                "pgy_queue_push_string_raw_export");
+            if (fn == NULL) {
+                *out = NULL;
+                return true;
+            }
+            LLVMValueRef args[] = {
+                LLVMBuildBitCast(ctx->builder, queue_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+                value
+            };
+            LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, "");
+            { *out = LLVMConstInt(ctx->type_i32, 0, 0); return true; }
+        }
         if (LLVMTypeOf(value) != elem_ty) {
             if ((elem_ty == ctx->type_i32 || elem_ty == ctx->type_i64)
                 && (LLVMTypeOf(value) == ctx->type_f32 || LLVMTypeOf(value) == ctx->type_f64))
@@ -159,6 +173,18 @@ llvm_emit_queue_extended_call(ASTNode *node, LLVMGenCtx *ctx,
                 LLVMConstNull(elem_ty),
                 "LLVM QueuePop could not allocate result temporary");
         LLVMBuildStore(ctx->builder, LLVMConstNull(elem_ty), tmp);
+        if (inner_name != NULL && strcmp(inner_name, "String") == 0) {
+            fn = llvm_required_collection_function(ctx, node, callee_name,
+                "pgy_queue_pop_string_raw_export");
+            if (fn == NULL)
+                { *out = NULL; return true; }
+            LLVMValueRef args[] = {
+                LLVMBuildBitCast(ctx->builder, queue_var->alloca, ctx->type_i8ptr, llvm_tmp_name(ctx)),
+                LLVMBuildBitCast(ctx->builder, tmp, ctx->type_i8ptr, llvm_tmp_name(ctx))
+            };
+            LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, "");
+            { *out = LLVMBuildLoad2(ctx->builder, elem_ty, tmp, llvm_tmp_name(ctx)); return true; }
+        }
         fn = llvm_required_collection_function(ctx, node, callee_name,
             "pgy_queue_pop_raw_export");
         if (fn == NULL)

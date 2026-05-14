@@ -101,6 +101,11 @@ SlotPoolCreate(size_t elementSize, size_t capacity, bool cacheOptimized)
                        capacity, NULL_INDEX);
         return NULL;
     }
+    if (capacity > UINT32_MAX) {
+        slot_pool_warn("create", "capacity exceeds PoolIndex range",
+                       capacity, NULL_INDEX);
+        return NULL;
+    }
     
     pool = malloc(sizeof(SlotPool));
     if (pool == NULL)
@@ -108,6 +113,12 @@ SlotPoolCreate(size_t elementSize, size_t capacity, bool cacheOptimized)
     
     /* Cache-align element size if requested */
     if (cacheOptimized) {
+        if (elementSize > SIZE_MAX - (CACHE_LINE_SIZE - 1)) {
+            free(pool);
+            slot_pool_warn("create", "element size alignment overflow",
+                           capacity, NULL_INDEX);
+            return NULL;
+        }
         alignedElementSize = ((elementSize + CACHE_LINE_SIZE - 1) / CACHE_LINE_SIZE) * CACHE_LINE_SIZE;
         pool->cacheLineSize = CACHE_LINE_SIZE;
     } else {
@@ -121,6 +132,14 @@ SlotPoolCreate(size_t elementSize, size_t capacity, bool cacheOptimized)
     pool->cacheOptimized = cacheOptimized;
     
     /* Allocate aligned data array */
+    if (alignedElementSize > SIZE_MAX / capacity
+        || capacity > SIZE_MAX / sizeof(bool)
+        || capacity > SIZE_MAX / sizeof(PoolIndex)) {
+        free(pool);
+        slot_pool_warn("create", "allocation size overflow",
+                       capacity, NULL_INDEX);
+        return NULL;
+    }
     totalDataSize = alignedElementSize * capacity;
     pool->data = slot_pool_alloc_data(CACHE_LINE_SIZE, totalDataSize,
                                       cacheOptimized);

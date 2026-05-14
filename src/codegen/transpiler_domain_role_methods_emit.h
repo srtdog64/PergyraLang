@@ -154,21 +154,28 @@ emit_role_operator_aliases(ASTNode *role, TranspilerCtx *ctx)
 
         const char *ret_type = "void";
         char ret_type_storage[128];
-        const char *lhs_type = transpiler_require_ast_c_type(
+        char lhs_type_storage[128];
+        char rhs_type_storage[128];
+        const char *lhs_type = NULL;
+        if (transpiler_require_ast_c_type_copy(
             ctx,
             transpiler_role_subject_type_node_local(role),
-            "role operator lhs type");
+            "role operator lhs type",
+            lhs_type_storage,
+            sizeof(lhs_type_storage))) {
+            lhs_type = lhs_type_storage;
+        }
         const char *rhs_type = NULL;
         const char *rhs_name = (rhs_param != NULL && rhs_param->name != NULL)
             ? rhs_param->name : "rhs";
         char surface_desc[256];
 
         if (method->data.func_decl.return_type != NULL) {
-            snprintf(ret_type_storage,
-                     sizeof(ret_type_storage),
-                     "%s",
-                     pergyra_ast_type_to_c(method->data.func_decl.return_type));
-            ret_type = ret_type_storage;
+            if (pergyra_ast_type_to_c_copy(method->data.func_decl.return_type,
+                    ret_type_storage,
+                    sizeof(ret_type_storage))) {
+                ret_type = ret_type_storage;
+            }
         }
         if (!transpiler_role_ability_surface_desc(surface_desc,
                 sizeof(surface_desc), "role operator parameter",
@@ -180,10 +187,14 @@ emit_role_operator_aliases(ASTNode *role, TranspilerCtx *ctx)
                 "C backend: role operator parameter diagnostic is too long");
             return;
         }
-        rhs_type = transpiler_require_ast_c_type(
+        if (transpiler_require_ast_c_type_copy(
             ctx,
             rhs_param != NULL ? rhs_param->type : NULL,
-            surface_desc);
+            surface_desc,
+            rhs_type_storage,
+            sizeof(rhs_type_storage))) {
+            rhs_type = rhs_type_storage;
+        }
         if (lhs_type == NULL || rhs_type == NULL)
             return;
 

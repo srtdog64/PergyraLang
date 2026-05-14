@@ -303,6 +303,7 @@ SecureSlotScope *SecureSlotScopeCreate(SlotManager *manager, size_t capacity);
 SlotError        SecureSlotScopeClaimSlot(SecureSlotScope *scope, TypeTag type,
                                          SecurityLevel level, SlotHandle **handle,
                                          TokenCapability **token);
+SlotError        SecureSlotScopeDestroyChecked(SecureSlotScope *scope);
 void             SecureSlotScopeDestroy(SecureSlotScope *scope);
 
 PergyraSecureSlot *pergyra_claim_secure_slot(SlotManager *manager, const char *typeName,

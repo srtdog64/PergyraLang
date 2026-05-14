@@ -98,6 +98,7 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
 
     for (size_t i = 0; i < node->data.func_decl.param_count; i++) {
         FuncParam *p = node->data.func_decl.params[i];
+        char pt_buf[256];
         const char *pt = NULL;
         char *type_name = NULL;
         char *decl = NULL;
@@ -109,9 +110,10 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
             && strcmp(p->name, "self") == 0 && p->type == NULL) {
             continue;
         }
-        if (p->type != NULL)
-            pt = pergyra_ast_type_to_c(p->type);
-        else if (p->name != NULL
+        if (p->type != NULL) {
+            if (pergyra_ast_type_to_c_copy(p->type, pt_buf, sizeof(pt_buf)))
+                pt = pt_buf;
+        } else if (p->name != NULL
                  && strcmp(p->name, "self") == 0
                  && mir_routine != NULL
                  && mir_routine->owner_name != NULL) {
@@ -142,7 +144,26 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
             && (p->mode == PARAM_MODE_OWN || p->mode == PARAM_MODE_REF);
         secure_slot = type_name != NULL && strncmp(type_name, "SecureSlot<", 11) == 0;
         if (boundary_slot) {
-            const char *inner = slot_inner_type_name(type_name);
+            char inner_buf[128];
+            const char *inner = inner_buf;
+            if (!slot_inner_type_name_copy(type_name, inner_buf,
+                    sizeof(inner_buf))) {
+                transpiler_set_backend_error_with_hints(
+                    ctx,
+                    PGY_CODE_C_TYPE_UNSUPPORTED,
+                    PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                    PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                    "cannot determine slot payload type for MIR-emitted function '%s' parameter '%s'",
+                    name != NULL ? name : "<function>",
+                    p->name != NULL ? p->name : "<param>");
+                codebuf_destroy(params_sig);
+                free(header_decl);
+                free(decl);
+                free(type_name);
+                transpiler_restore_mir_emit_state_from_snapshot_local(ctx,
+                    &saved_emit_state);
+                return;
+            }
             codebuf_write(params_sig, "%s *%s", pt, p->name);
             if (secure_slot)
                 codebuf_write(params_sig, ", PgyToken_%s %s_token", inner, p->name);
@@ -263,10 +284,28 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
                 if (entry != NULL)
                     entry->is_subject_ref = true;
             }
-            if (strncmp(type_name, "Slot<", 5) == 0)
-                register_slot_var(ctx, p->name, slot_inner_type_name(type_name), false, boundary_slot);
-            else if (strncmp(type_name, "SecureSlot<", 11) == 0)
-                register_slot_var(ctx, p->name, slot_inner_type_name(type_name), true, boundary_slot);
+            if (strncmp(type_name, "Slot<", 5) == 0
+                || strncmp(type_name, "SecureSlot<", 11) == 0) {
+                char inner_buf[128];
+                bool secure_slot = strncmp(type_name, "SecureSlot<", 11) == 0;
+                if (!slot_inner_type_name_copy(type_name, inner_buf,
+                        sizeof(inner_buf))) {
+                    transpiler_set_backend_error_with_hints(
+                        ctx,
+                        PGY_CODE_C_TYPE_UNSUPPORTED,
+                        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                        PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                        "cannot register slot parameter metadata for MIR-emitted function '%s' parameter '%s'",
+                        name != NULL ? name : "<function>",
+                        p->name != NULL ? p->name : "<param>");
+                    free(type_name);
+                    transpiler_restore_mir_emit_state_from_snapshot_local(ctx,
+                        &saved_emit_state);
+                    return;
+                }
+                register_slot_var(ctx, p->name, inner_buf, secure_slot,
+                    boundary_slot);
+            }
             free(type_name);
         }
     }

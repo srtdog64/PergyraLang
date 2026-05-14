@@ -117,8 +117,13 @@ transpiler_expr_identifiers_mapped(const TranspilerCtx *ctx,
         }
         if (ctx != NULL && find_enum_decl((TranspilerCtx *)ctx, name) != NULL)
             return true;
-        if (ctx != NULL && lookup_enum_variant_qualified_name((TranspilerCtx *)ctx, name) != NULL)
-            return true;
+        if (ctx != NULL) {
+            char enum_variant[128];
+            if (lookup_enum_variant_qualified_name_copy((TranspilerCtx *)ctx,
+                    name, enum_variant, sizeof(enum_variant))) {
+                return true;
+            }
+        }
         if (ctx != NULL && find_function_decl((TranspilerCtx *)ctx, name) != NULL)
             return true;
         if (reason != NULL && reason_cap > 0) {

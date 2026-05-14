@@ -11,6 +11,20 @@ typedef struct {
     size_t    capacity;
 } PgyHashMapRaw;
 
+#define PGY_MAP_RAW_EMPTY 0u
+#define PGY_MAP_RAW_LIVE 1u
+#define PGY_MAP_RAW_DELETED 2u
+
+static bool
+pgy_map_raw_shape_fits(size_t capacity, size_t elem_size)
+{
+    return capacity != 0
+        && capacity <= (size_t)INT32_MAX
+        && capacity <= SIZE_MAX / sizeof(char *)
+        && capacity <= SIZE_MAX / sizeof(uint8_t)
+        && elem_size != 0
+        && elem_size <= SIZE_MAX / capacity;
+}
 
 void
 pgy_map_new_raw_export(void *map_ptr, int64_t value_size)
@@ -27,7 +41,7 @@ pgy_map_new_raw_export(void *map_ptr, int64_t value_size)
     }
     elem_size = (size_t)value_size;
     map->capacity = 16;
-    if (elem_size > SIZE_MAX / map->capacity) {
+    if (!pgy_map_raw_shape_fits(map->capacity, elem_size)) {
         map->capacity = 0;
         pgy_runtime_warn_invalid_collection("map_new", "value size overflow");
         return;
@@ -67,10 +81,7 @@ pgy_map_grow_raw_export(PgyHashMapRaw *map, int64_t value_size)
         return;
     }
     size_t new_capacity = map->capacity == 0 ? 16 : map->capacity * 2;
-    if (new_capacity == 0 || new_capacity > UINT32_MAX
-        || new_capacity > SIZE_MAX / sizeof(char *)
-        || new_capacity > SIZE_MAX / sizeof(uint8_t)
-        || elem_size > SIZE_MAX / new_capacity) {
+    if (!pgy_map_raw_shape_fits(new_capacity, elem_size)) {
         pgy_runtime_warn_invalid_collection("map_grow", "allocation size overflow");
         return;
     }
@@ -91,17 +102,17 @@ pgy_map_grow_raw_export(PgyHashMapRaw *map, int64_t value_size)
     map->count = 0;
 
     for (size_t i = 0; i < old_capacity; i++) {
-        if (!old_occupied[i] || old_keys[i] == NULL)
+        if (old_occupied[i] != PGY_MAP_RAW_LIVE || old_keys[i] == NULL)
             continue;
         {
             uint32_t h = pgy_hash_string_export(old_keys[i]) % (uint32_t)map->capacity;
-            while (map->occupied[h])
+            while (map->occupied[h] == PGY_MAP_RAW_LIVE)
                 h = (h + 1) % (uint32_t)map->capacity;
             map->keys[h] = old_keys[i];
             memcpy((char *)map->values + (h * elem_size),
                    (char *)old_values + (i * elem_size),
                    elem_size);
-            map->occupied[h] = 1;
+            map->occupied[h] = PGY_MAP_RAW_LIVE;
             map->count++;
         }
     }
@@ -116,6 +127,8 @@ pgy_map_set_raw_export(void *map_ptr, const char *key, void *value_ptr, int64_t 
 {
     PgyHashMapRaw *map = (PgyHashMapRaw *)map_ptr;
     uint32_t h;
+    uint32_t first_deleted = UINT32_MAX;
+    size_t probes = 0;
     if (map == NULL) {
         pgy_runtime_warn_invalid_collection("map_set", "null map");
         return;
@@ -145,14 +158,20 @@ pgy_map_set_raw_export(void *map_ptr, const char *key, void *value_ptr, int64_t 
         return;
     }
     h = pgy_hash_string_export(key) % (uint32_t)map->capacity;
-    while (map->occupied[h]) {
-        if (map->keys[h] != NULL && strcmp(map->keys[h], key) == 0) {
+    while (map->occupied[h] && probes < map->capacity) {
+        if (map->occupied[h] == PGY_MAP_RAW_LIVE
+            && map->keys[h] != NULL && strcmp(map->keys[h], key) == 0) {
             memcpy((char *)map->values + (h * (size_t)value_size),
                    value_ptr, (size_t)value_size);
             return;
         }
+        if (map->occupied[h] == PGY_MAP_RAW_DELETED && first_deleted == UINT32_MAX)
+            first_deleted = h;
         h = (h + 1) % (uint32_t)map->capacity;
+        probes++;
     }
+    if (first_deleted != UINT32_MAX)
+        h = first_deleted;
     map->keys[h] = pgy_runtime_strdup_export(key);
     if (map->keys[h] == NULL) {
         pgy_runtime_warn_invalid_collection("map_set", "key duplication failed");
@@ -160,7 +179,7 @@ pgy_map_set_raw_export(void *map_ptr, const char *key, void *value_ptr, int64_t 
     }
     memcpy((char *)map->values + (h * (size_t)value_size),
            value_ptr, (size_t)value_size);
-    map->occupied[h] = 1;
+    map->occupied[h] = PGY_MAP_RAW_LIVE;
     map->count++;
 }
 
@@ -198,7 +217,8 @@ pgy_map_get_raw_export(void *map_ptr, const char *key, void *out_ptr, int64_t va
     }
     h = pgy_hash_string_export(key) % (uint32_t)map->capacity;
     while (map->occupied[h] && probes < map->capacity) {
-        if (map->keys[h] != NULL && strcmp(map->keys[h], key) == 0) {
+        if (map->occupied[h] == PGY_MAP_RAW_LIVE
+            && map->keys[h] != NULL && strcmp(map->keys[h], key) == 0) {
             memcpy(out_ptr,
                    (char *)map->values + (h * (size_t)value_size),
                    (size_t)value_size);
@@ -229,7 +249,8 @@ pgy_map_has_raw_export(void *map_ptr, const char *key)
         return false;
     h = pgy_hash_string_export(key) % (uint32_t)map->capacity;
     while (map->occupied[h] && probes < map->capacity) {
-        if (map->keys[h] != NULL && strcmp(map->keys[h], key) == 0)
+        if (map->occupied[h] == PGY_MAP_RAW_LIVE
+            && map->keys[h] != NULL && strcmp(map->keys[h], key) == 0)
             return true;
         h = (h + 1) % (uint32_t)map->capacity;
         probes++;
@@ -261,11 +282,155 @@ pgy_map_remove_raw_export(void *map_ptr, const char *key, int64_t value_size)
     }
     h = pgy_hash_string_export(key) % (uint32_t)map->capacity;
     while (map->occupied[h] && probes < map->capacity) {
-        if (map->keys[h] != NULL && strcmp(map->keys[h], key) == 0) {
+        if (map->occupied[h] == PGY_MAP_RAW_LIVE
+            && map->keys[h] != NULL && strcmp(map->keys[h], key) == 0) {
             free(map->keys[h]);
             map->keys[h] = NULL;
             memset((char *)map->values + (h * (size_t)value_size), 0, (size_t)value_size);
-            map->occupied[h] = 0;
+            map->occupied[h] = PGY_MAP_RAW_DELETED;
+            map->count--;
+            return;
+        }
+        h = (h + 1) % (uint32_t)map->capacity;
+        probes++;
+    }
+    PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS,
+                      "map remove key not found");
+}
+
+void
+pgy_map_set_string_value_raw_export(void *map_ptr, const char *key, const char *value)
+{
+    PgyHashMapRaw *map = (PgyHashMapRaw *)map_ptr;
+    uint32_t h;
+    uint32_t first_deleted = UINT32_MAX;
+    size_t probes = 0;
+    char *owned = NULL;
+    if (map == NULL) {
+        pgy_runtime_warn_invalid_collection("map_set_string_value", "null map");
+        return;
+    }
+    if (key == NULL) {
+        pgy_runtime_warn_invalid_collection("map_set_string_value", "null key");
+        return;
+    }
+    if (map->capacity == 0 || map->keys == NULL || map->values == NULL
+        || map->occupied == NULL) {
+        pgy_runtime_warn_invalid_collection("map_set_string_value", "map is not initialized");
+        return;
+    }
+    if ((double)map->count / (double)map->capacity > 0.75)
+        pgy_map_grow_raw_export(map, (int64_t)sizeof(char *));
+    if (map->capacity == 0 || map->keys == NULL || map->values == NULL
+        || map->occupied == NULL) {
+        pgy_runtime_warn_invalid_collection("map_set_string_value", "map growth failed");
+        return;
+    }
+    h = pgy_hash_string_export(key) % (uint32_t)map->capacity;
+    while (map->occupied[h] && probes < map->capacity) {
+        if (map->occupied[h] == PGY_MAP_RAW_LIVE
+            && map->keys[h] != NULL && strcmp(map->keys[h], key) == 0) {
+            char **slot = (char **)((char *)map->values + (h * sizeof(char *)));
+            owned = pgy_runtime_strdup_export(value != NULL ? value : "");
+            if (owned == NULL) {
+                pgy_runtime_warn_invalid_collection("map_set_string_value", "value duplication failed");
+                return;
+            }
+            free(*slot);
+            *slot = owned;
+            return;
+        }
+        if (map->occupied[h] == PGY_MAP_RAW_DELETED && first_deleted == UINT32_MAX)
+            first_deleted = h;
+        h = (h + 1) % (uint32_t)map->capacity;
+        probes++;
+    }
+    if (first_deleted != UINT32_MAX)
+        h = first_deleted;
+    map->keys[h] = pgy_runtime_strdup_export(key);
+    owned = pgy_runtime_strdup_export(value != NULL ? value : "");
+    if (map->keys[h] == NULL || owned == NULL) {
+        free(map->keys[h]);
+        free(owned);
+        map->keys[h] = NULL;
+        pgy_runtime_warn_invalid_collection("map_set_string_value", "key/value duplication failed");
+        return;
+    }
+    *(char **)((char *)map->values + (h * sizeof(char *))) = owned;
+    map->occupied[h] = PGY_MAP_RAW_LIVE;
+    map->count++;
+}
+
+void
+pgy_map_get_string_value_raw_export(void *map_ptr, const char *key, char **out_ptr)
+{
+    PgyHashMapRaw *map = (PgyHashMapRaw *)map_ptr;
+    uint32_t h;
+    size_t probes = 0;
+    if (out_ptr == NULL) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "map string get on null output");
+    }
+    *out_ptr = NULL;
+    if (map == NULL) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "map string get on null map");
+    }
+    if (key == NULL) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "map string get with null key");
+    }
+    if (map->capacity == 0 || map->keys == NULL || map->values == NULL
+        || map->occupied == NULL) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "map string get on uninitialized map");
+    }
+    if (map->count == 0) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS,
+                          "map key not found");
+    }
+    h = pgy_hash_string_export(key) % (uint32_t)map->capacity;
+    while (map->occupied[h] && probes < map->capacity) {
+        if (map->occupied[h] == PGY_MAP_RAW_LIVE
+            && map->keys[h] != NULL && strcmp(map->keys[h], key) == 0) {
+            *out_ptr = *(char **)((char *)map->values + (h * sizeof(char *)));
+            return;
+        }
+        h = (h + 1) % (uint32_t)map->capacity;
+        probes++;
+    }
+    PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS,
+                      "map key not found");
+}
+
+void
+pgy_map_remove_string_value_raw_export(void *map_ptr, const char *key)
+{
+    PgyHashMapRaw *map = (PgyHashMapRaw *)map_ptr;
+    uint32_t h;
+    size_t probes = 0;
+    if (map == NULL) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "map string remove on null map");
+    }
+    if (key == NULL) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "map string remove with null key");
+    }
+    if (map->count == 0) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS,
+                          "map remove key not found");
+    }
+    h = pgy_hash_string_export(key) % (uint32_t)map->capacity;
+    while (map->occupied[h] && probes < map->capacity) {
+        if (map->occupied[h] == PGY_MAP_RAW_LIVE
+            && map->keys[h] != NULL && strcmp(map->keys[h], key) == 0) {
+            char **slot = (char **)((char *)map->values + (h * sizeof(char *)));
+            free(map->keys[h]);
+            free(*slot);
+            map->keys[h] = NULL;
+            *slot = NULL;
+            map->occupied[h] = PGY_MAP_RAW_DELETED;
             map->count--;
             return;
         }
@@ -465,5 +630,119 @@ pgy_map_remove_raw_i32_export(void *map_ptr, int32_t key, int64_t value_size)
         return;
     }
     pgy_map_remove_raw_export(map_ptr, key_str, value_size);
+    free(key_str);
+}
+
+void
+pgy_map_set_string_value_raw_i32_export(void *map_ptr, int32_t key, const char *value)
+{
+    char *key_str = pgy_map_i32_key_string_export(key);
+    if (key_str == NULL) {
+        pgy_runtime_warn_invalid_collection("map_set_string_value_i32", "key formatting failed");
+        return;
+    }
+    pgy_map_set_string_value_raw_export(map_ptr, key_str, value);
+    free(key_str);
+}
+
+void
+pgy_map_get_string_value_raw_i32_export(void *map_ptr, int32_t key, char **out_ptr)
+{
+    char *key_str = pgy_map_i32_key_string_export(key);
+    if (key_str == NULL) {
+        pgy_runtime_warn_invalid_collection("map_get_string_value_i32", "key formatting failed");
+        if (out_ptr != NULL)
+            *out_ptr = NULL;
+        return;
+    }
+    pgy_map_get_string_value_raw_export(map_ptr, key_str, out_ptr);
+    free(key_str);
+}
+
+void
+pgy_map_remove_string_value_raw_i32_export(void *map_ptr, int32_t key)
+{
+    char *key_str = pgy_map_i32_key_string_export(key);
+    if (key_str == NULL) {
+        pgy_runtime_warn_invalid_collection("map_remove_string_value_i32", "key formatting failed");
+        return;
+    }
+    pgy_map_remove_string_value_raw_export(map_ptr, key_str);
+    free(key_str);
+}
+
+void
+pgy_map_set_string_value_raw_i64_export(void *map_ptr, int64_t key, const char *value)
+{
+    char *key_str = pgy_map_i64_key_string_export(key);
+    if (key_str == NULL) {
+        pgy_runtime_warn_invalid_collection("map_set_string_value_i64", "key formatting failed");
+        return;
+    }
+    pgy_map_set_string_value_raw_export(map_ptr, key_str, value);
+    free(key_str);
+}
+
+void
+pgy_map_get_string_value_raw_i64_export(void *map_ptr, int64_t key, char **out_ptr)
+{
+    char *key_str = pgy_map_i64_key_string_export(key);
+    if (key_str == NULL) {
+        pgy_runtime_warn_invalid_collection("map_get_string_value_i64", "key formatting failed");
+        if (out_ptr != NULL)
+            *out_ptr = NULL;
+        return;
+    }
+    pgy_map_get_string_value_raw_export(map_ptr, key_str, out_ptr);
+    free(key_str);
+}
+
+void
+pgy_map_remove_string_value_raw_i64_export(void *map_ptr, int64_t key)
+{
+    char *key_str = pgy_map_i64_key_string_export(key);
+    if (key_str == NULL) {
+        pgy_runtime_warn_invalid_collection("map_remove_string_value_i64", "key formatting failed");
+        return;
+    }
+    pgy_map_remove_string_value_raw_export(map_ptr, key_str);
+    free(key_str);
+}
+
+void
+pgy_map_set_string_value_raw_bool_export(void *map_ptr, bool key, const char *value)
+{
+    char *key_str = pgy_map_bool_key_string_export(key);
+    if (key_str == NULL) {
+        pgy_runtime_warn_invalid_collection("map_set_string_value_bool", "key formatting failed");
+        return;
+    }
+    pgy_map_set_string_value_raw_export(map_ptr, key_str, value);
+    free(key_str);
+}
+
+void
+pgy_map_get_string_value_raw_bool_export(void *map_ptr, bool key, char **out_ptr)
+{
+    char *key_str = pgy_map_bool_key_string_export(key);
+    if (key_str == NULL) {
+        pgy_runtime_warn_invalid_collection("map_get_string_value_bool", "key formatting failed");
+        if (out_ptr != NULL)
+            *out_ptr = NULL;
+        return;
+    }
+    pgy_map_get_string_value_raw_export(map_ptr, key_str, out_ptr);
+    free(key_str);
+}
+
+void
+pgy_map_remove_string_value_raw_bool_export(void *map_ptr, bool key)
+{
+    char *key_str = pgy_map_bool_key_string_export(key);
+    if (key_str == NULL) {
+        pgy_runtime_warn_invalid_collection("map_remove_string_value_bool", "key formatting failed");
+        return;
+    }
+    pgy_map_remove_string_value_raw_export(map_ptr, key_str);
     free(key_str);
 }

@@ -145,17 +145,22 @@ mir_append_intent_invalidation_markers(MIRRoutine *routine, MIRBasicBlock *block
 static bool
 mir_append_intent_participants(MIRRoutine *routine, MIRBasicBlock *block, ASTNode *intent)
 {
-    for (size_t i = 0; i < intent->data.intent_decl.involve_count; i++) {
-        ASTNode *involves = intent->data.intent_decl.involves[i];
+    ASTNode **involves_nodes;
+    size_t involve_count;
+
+    involves_nodes = ast_intent_decl_involves(intent, &involve_count);
+    for (size_t i = 0; i < involve_count; i++) {
+        ASTNode *involves = involves_nodes[i];
+        ASTNode *subject_type;
         const char *alias = NULL;
         const char *type_name = NULL;
 
         if (involves == NULL || involves->type != AST_INTENT_INVOLVES)
             continue;
-        alias = involves->data.intent_involves.alias;
-        if (involves->data.intent_involves.subject_type != NULL
-            && involves->data.intent_involves.subject_type->type == AST_TYPE) {
-            type_name = involves->data.intent_involves.subject_type->data.type.name;
+        alias = ast_intent_involves_alias(involves);
+        subject_type = ast_intent_involves_subject_type(involves);
+        if (subject_type != NULL && subject_type->type == AST_TYPE) {
+            type_name = subject_type->data.type.name;
         }
         if (alias == NULL || type_name == NULL)
             continue;
@@ -374,8 +379,13 @@ mir_append_intent_step_instructions(MIRRoutine *routine, MIRBasicBlock *block)
     if (!mir_append_intent_participants(routine, block, intent))
         return false;
 
-    for (size_t i = 0; i < intent->data.intent_decl.step_count; i++) {
-        ASTNode *step = intent->data.intent_decl.steps[i];
+    {
+        ASTNode **steps;
+        size_t step_count;
+
+        steps = ast_intent_decl_steps(intent, &step_count);
+        for (size_t i = 0; i < step_count; i++) {
+            ASTNode *step = steps[i];
         if (step == NULL || step->type != AST_INTENT_STEP)
             continue;
         if (!mir_append_intent_step_header(routine, block, step))
@@ -388,6 +398,7 @@ mir_append_intent_step_instructions(MIRRoutine *routine, MIRBasicBlock *block)
             return false;
         if (!mir_append_intent_step_eval(routine, block, step))
             return false;
+        }
     }
     return true;
 }

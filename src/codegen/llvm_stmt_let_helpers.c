@@ -3,17 +3,20 @@
 #include "../semantic/slot_summary.h"
 
 const char *
-llvm_stmt_render_type_annotation_static(ASTNode *type_ann)
+llvm_stmt_render_type_annotation_copy(LLVMGenCtx *ctx, ASTNode *type_ann)
 {
-    static char buf[256];
+    char buf[256];
     size_t offset;
 
     if (type_ann == NULL || type_ann->type != AST_TYPE
         || type_ann->data.type.name == NULL)
         return NULL;
     if (type_ann->data.type.generic_args == NULL
-        || type_ann->data.type.generic_args->count == 0)
-        return type_ann->data.type.name;
+        || type_ann->data.type.generic_args->count == 0) {
+        if (ctx == NULL)
+            return type_ann->data.type.name;
+        return pgy_arena_strdup(&ctx->scratch, type_ann->data.type.name);
+    }
 
     {
         int written = snprintf(buf, sizeof(buf), "%s<",
@@ -45,7 +48,9 @@ llvm_stmt_render_type_annotation_static(ASTNode *type_ann)
     } else {
         return NULL;
     }
-    return buf;
+    if (ctx == NULL)
+        return NULL;
+    return pgy_arena_strdup(&ctx->scratch, buf);
 }
 
 static const char *
@@ -243,7 +248,6 @@ llvm_infer_spawn_future_inner(LLVMGenCtx *ctx, ASTNode *spawn_expr)
     ASTNode *call = NULL;
     ASTNode *callee = target;
     const char *callee_name = NULL;
-    static char buf[128];
 
     if (target != NULL && target->type == AST_CALL) {
         call = target;
@@ -279,10 +283,9 @@ llvm_infer_spawn_future_inner(LLVMGenCtx *ctx, ASTNode *spawn_expr)
                 call->data.call.arguments[i]);
             if (actual_type == NULL || actual_type[0] == '\0')
                 continue;
-            if (strlen(actual_type) >= sizeof(buf))
-                return NULL;
-            memcpy(buf, actual_type, strlen(actual_type) + 1);
-            return buf;
+            return ctx != NULL
+                ? pgy_arena_strdup(&ctx->scratch, actual_type)
+                : actual_type;
         }
     }
 

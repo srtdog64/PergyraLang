@@ -3,10 +3,33 @@
  * C backend MIR intent metadata collectors.
  */
 
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "transpiler_mir_inventory_intent_collect.h"
+
+static bool
+transpiler_collect_next_capacity(size_t capacity,
+                                 size_t elem_size,
+                                 size_t *new_capacity)
+{
+    size_t next;
+
+    if (new_capacity == NULL || elem_size == 0)
+        return false;
+    if (capacity == 0) {
+        next = 4;
+    } else {
+        if (capacity > SIZE_MAX / 2)
+            return false;
+        next = capacity * 2;
+    }
+    if (next > SIZE_MAX / elem_size)
+        return false;
+    *new_capacity = next;
+    return true;
+}
 
 const MIRRoutine *
 transpiler_find_mir_function(const TranspilerCtx *ctx,
@@ -54,7 +77,7 @@ transpiler_find_mir_intent(const TranspilerCtx *ctx,
 
     if (ctx == NULL || ctx->mir == NULL || intent_decl == NULL
         || intent_decl->type != AST_INTENT_DECL
-        || intent_decl->data.intent_decl.name == NULL) {
+        || ast_intent_decl_name(intent_decl) == NULL) {
         return NULL;
     }
 
@@ -67,7 +90,7 @@ transpiler_find_mir_intent(const TranspilerCtx *ctx,
         if (routine->kind != MIR_SCOPE_INTENT
             || routine->name == NULL
             || strcmp(routine->name,
-                      intent_decl->data.intent_decl.name) != 0) {
+                      ast_intent_decl_name(intent_decl)) != 0) {
             continue;
         }
         return routine;
@@ -207,7 +230,13 @@ transpiler_collect_mir_intent_eval_exprs(const MIRRoutine *routine,
                 continue;
 
             if (count >= capacity) {
-                size_t new_capacity = capacity == 0 ? 4 : capacity * 2;
+                size_t new_capacity;
+                if (!transpiler_collect_next_capacity(capacity,
+                                                      sizeof(ASTNode *),
+                                                      &new_capacity)) {
+                    free(exprs);
+                    return 0;
+                }
                 grown = realloc(exprs, new_capacity * sizeof(ASTNode *));
                 if (grown == NULL) {
                     free(exprs);
@@ -270,7 +299,13 @@ transpiler_collect_mir_intent_who_aliases(const MIRRoutine *routine,
                 continue;
 
             if (count >= capacity) {
-                size_t new_capacity = capacity == 0 ? 4 : capacity * 2;
+                size_t new_capacity;
+                if (!transpiler_collect_next_capacity(capacity,
+                                                      sizeof(const char *),
+                                                      &new_capacity)) {
+                    free((void *)aliases);
+                    return 0;
+                }
                 grown = realloc((void *)aliases,
                                 new_capacity * sizeof(const char *));
                 if (grown == NULL) {
@@ -320,7 +355,13 @@ transpiler_collect_mir_intent_authorized_aliases(
                 continue;
 
             if (count >= capacity) {
-                size_t new_capacity = capacity == 0 ? 4 : capacity * 2;
+                size_t new_capacity;
+                if (!transpiler_collect_next_capacity(capacity,
+                                                      sizeof(const char *),
+                                                      &new_capacity)) {
+                    free((void *)aliases);
+                    return 0;
+                }
                 grown = realloc((void *)aliases,
                                 new_capacity * sizeof(const char *));
                 if (grown == NULL) {
@@ -371,7 +412,14 @@ transpiler_collect_mir_intent_participants(const MIRRoutine *routine,
                 continue;
 
             if (count >= capacity) {
-                size_t new_capacity = capacity == 0 ? 4 : capacity * 2;
+                size_t new_capacity;
+                if (!transpiler_collect_next_capacity(capacity,
+                                                      sizeof(const char *),
+                                                      &new_capacity)) {
+                    free((void *)aliases);
+                    free((void *)types);
+                    return 0;
+                }
                 grown_aliases = malloc(new_capacity * sizeof(const char *));
                 grown_types = malloc(new_capacity * sizeof(const char *));
                 if (grown_aliases == NULL || grown_types == NULL) {
@@ -435,7 +483,13 @@ transpiler_collect_mir_intent_dispatch_aliases(const MIRRoutine *routine,
                 continue;
 
             if (count >= capacity) {
-                size_t new_capacity = capacity == 0 ? 4 : capacity * 2;
+                size_t new_capacity;
+                if (!transpiler_collect_next_capacity(capacity,
+                                                      sizeof(const char *),
+                                                      &new_capacity)) {
+                    free((void *)aliases);
+                    return 0;
+                }
                 grown = realloc((void *)aliases,
                                 new_capacity * sizeof(const char *));
                 if (grown == NULL) {

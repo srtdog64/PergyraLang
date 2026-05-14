@@ -81,7 +81,7 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
         if (type_ann != NULL && type_ann->type == AST_TYPE
             && type_ann->data.type.name != NULL)
             ctx->expected_type_name =
-                llvm_stmt_render_type_annotation_static(type_ann);
+                llvm_stmt_render_type_annotation_copy(ctx, type_ann);
         LLVMValueRef val = llvm_emit_expression(init, ctx);
         if (getenv("PGY_DEBUG_LLVM_DETAIL") != NULL)
             fprintf(stderr, "[llvm let] name=%s phase=after-init val=%p\n",

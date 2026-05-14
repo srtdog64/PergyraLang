@@ -16,11 +16,13 @@ transpiler_emit_intent_mir_resource_block(ASTNode *node,
                                           const MIRRoutine *mir_routine,
                                           const MIRBasicBlock *block)
 {
+    const char *intent_name = ast_intent_decl_name(node);
+
     if (node == NULL || ctx == NULL || mir_routine == NULL || block == NULL)
         return true;
 
     transpiler_emit_mir_block_mapping_comment(ctx->out, ctx->indent,
-        node->data.intent_decl.name, mir_routine, block);
+        intent_name, mir_routine, block);
     for (size_t i = 0; i < block->instruction_count; i++) {
         const MIRInstruction *inst = &block->instructions[i];
         if (inst->kind == MIR_INST_CLEANUP_EDGE || inst->kind == MIR_INST_RESOURCE_OP) {
@@ -48,6 +50,10 @@ transpiler_emit_intent_cleanup_tail(ASTNode *node,
                                     const char **participant_types,
                                     size_t participant_count)
 {
+    const char *intent_name = ast_intent_decl_name(node);
+    IntentRollbackPolicy rollback_policy =
+        ast_intent_decl_rollback_policy(node);
+
     if (node == NULL || ctx == NULL)
         return false;
 
@@ -61,7 +67,7 @@ transpiler_emit_intent_cleanup_tail(ASTNode *node,
         codebuf_write(ctx->out, "/* cleanup-emitted-from-mir */\n");
         write_indent(ctx);
         codebuf_write(ctx->out, "_pgy_mir_bb_%s_%zu:\n",
-            node->data.intent_decl.name, mir_routine->cleanup_block);
+            intent_name, mir_routine->cleanup_block);
         ctx->indent++;
         if (!transpiler_emit_intent_mir_resource_block(node, ctx, mir_routine, cleanup_block))
             return false;
@@ -70,14 +76,14 @@ transpiler_emit_intent_cleanup_tail(ASTNode *node,
             codebuf_write(ctx->out, "if (__intent_failed) {\n");
             write_indent_to(ctx->out, ctx->indent + 1);
             codebuf_write(ctx->out, "goto _pgy_mir_bb_%s_%zu;\n",
-                node->data.intent_decl.name, mir_routine->rollback_block);
+                intent_name, mir_routine->rollback_block);
             write_indent(ctx);
             codebuf_write(ctx->out, "}\n");
         }
         if (mir_routine->has_invalidation_block) {
             write_indent(ctx);
             codebuf_write(ctx->out, "goto _pgy_mir_bb_%s_%zu;\n",
-                node->data.intent_decl.name, mir_routine->invalidation_block);
+                intent_name, mir_routine->invalidation_block);
         } else {
             write_indent(ctx);
             codebuf_write(ctx->out, "if (__intent_handle != 0) pgy_intent_exit_export(__intent_handle);\n");
@@ -88,7 +94,7 @@ transpiler_emit_intent_cleanup_tail(ASTNode *node,
         if (mir_routine->has_rollback_block) {
             write_indent(ctx);
             codebuf_write(ctx->out, "_pgy_mir_bb_%s_%zu:\n",
-                node->data.intent_decl.name, mir_routine->rollback_block);
+                intent_name, mir_routine->rollback_block);
             ctx->indent++;
             if (!transpiler_emit_intent_mir_resource_block(node, ctx, mir_routine, rollback_block))
                 return false;
@@ -180,11 +186,11 @@ transpiler_emit_intent_cleanup_tail(ASTNode *node,
                     } else {
                         emit_intent_step_bind_bound_zone(ctx->out, ctx, node, step);
                     }
-                    if (node->data.intent_decl.rollback_policy == INTENT_ROLLBACK_CURRENT) {
+                    if (rollback_policy == INTENT_ROLLBACK_CURRENT) {
                         if (mir_routine->has_invalidation_block) {
                             write_indent(ctx);
                             codebuf_write(ctx->out, "goto _pgy_mir_bb_%s_%zu;\n",
-                                node->data.intent_decl.name, mir_routine->invalidation_block);
+                                intent_name, mir_routine->invalidation_block);
                         } else {
                             write_indent(ctx);
                             codebuf_write(ctx->out, "if (__intent_handle != 0) pgy_intent_exit_export(__intent_handle);\n");
@@ -204,7 +210,7 @@ transpiler_emit_intent_cleanup_tail(ASTNode *node,
             if (mir_routine->has_invalidation_block) {
                 write_indent(ctx);
                 codebuf_write(ctx->out, "goto _pgy_mir_bb_%s_%zu;\n",
-                    node->data.intent_decl.name, mir_routine->invalidation_block);
+                    intent_name, mir_routine->invalidation_block);
             } else {
                 write_indent(ctx);
                 codebuf_write(ctx->out, "if (__intent_handle != 0) pgy_intent_exit_export(__intent_handle);\n");
@@ -216,7 +222,7 @@ transpiler_emit_intent_cleanup_tail(ASTNode *node,
         if (mir_routine->has_invalidation_block) {
             write_indent(ctx);
             codebuf_write(ctx->out, "_pgy_mir_bb_%s_%zu:\n",
-                node->data.intent_decl.name, mir_routine->invalidation_block);
+                intent_name, mir_routine->invalidation_block);
             ctx->indent++;
             if (!transpiler_emit_intent_mir_resource_block(node, ctx, mir_routine, invalidation_block))
                 return false;
@@ -251,7 +257,7 @@ transpiler_emit_intent_cleanup_tail(ASTNode *node,
                     free(expr);
                 }
                 emit_intent_step_bind_bound_zone(ctx->out, ctx, node, step);
-                if (node->data.intent_decl.rollback_policy == INTENT_ROLLBACK_CURRENT) {
+                if (rollback_policy == INTENT_ROLLBACK_CURRENT) {
                     write_indent(ctx);
                     codebuf_write(ctx->out, "goto __intent_cleanup_done;\n");
                 }

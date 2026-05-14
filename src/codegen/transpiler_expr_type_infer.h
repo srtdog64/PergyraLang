@@ -35,6 +35,23 @@ transpiler_infer_arena_format_type_name(TranspilerCtx *ctx,
 }
 
 static const char *
+transpiler_infer_slot_inner_type_name(TranspilerCtx *ctx,
+                                      const char *type_name)
+{
+    char inner_buf[128];
+    char *copied;
+
+    if (ctx == NULL || type_name == NULL)
+        return "Unknown";
+    if (!slot_inner_type_name_copy(type_name, inner_buf, sizeof(inner_buf)))
+        return "Unknown";
+    if (inner_buf[0] == '\0')
+        return "Unknown";
+    copied = pgy_arena_strdup(&ctx->arena, inner_buf);
+    return copied != NULL ? copied : "Unknown";
+}
+
+static const char *
 transpiler_promote_numeric_type_name(const char *left_type,
                                      const char *right_type)
 {
@@ -74,7 +91,8 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
         } else if (ctx != NULL
                    && ctx->expected_type != NULL
                    && strncmp(ctx->expected_type, "Array<", 6) == 0) {
-            inner = slot_inner_type_name(ctx->expected_type);
+            inner = transpiler_infer_slot_inner_type_name(ctx,
+                ctx->expected_type);
         }
         if (inner == NULL || inner[0] == '\0')
             inner = "Unknown";
@@ -83,7 +101,7 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
     case AST_ARRAY_ACCESS: {
         const char *array_type = infer_expression_type_name(ctx, expr->data.array_access.array);
         if (strncmp(array_type, "Array<", 6) == 0 || strncmp(array_type, "Slice<", 6) == 0)
-            return slot_inner_type_name(array_type);
+            return transpiler_infer_slot_inner_type_name(ctx, array_type);
         return "Unknown";
     }
     case AST_IDENTIFIER: {
@@ -101,9 +119,10 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
         if (type_name != NULL)
             return type_name;
         {
-            const char *enum_variant = lookup_enum_variant_qualified_name(ctx,
-                expr->data.identifier.name);
-            if (enum_variant != NULL) {
+            char enum_variant[128];
+            if (lookup_enum_variant_qualified_name_copy(ctx,
+                    expr->data.identifier.name,
+                    enum_variant, sizeof(enum_variant))) {
                 size_t len = strcspn(enum_variant, "_");
                 char enum_name[128];
                 if (len >= sizeof(enum_name))
@@ -120,7 +139,7 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
         if (channel != NULL && channel->type == AST_IDENTIFIER) {
             const char *type_name = lookup_typed_var(ctx, channel->data.identifier.name);
             if (type_name != NULL && strncmp(type_name, "Channel<", 8) == 0)
-                return slot_inner_type_name(type_name);
+                return transpiler_infer_slot_inner_type_name(ctx, type_name);
         }
         return "Unknown";
     }
@@ -199,11 +218,13 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
             if (receiver_type != NULL && method_name != NULL) {
                 if (pgy_codegen_type_name_is_slot_or_view(receiver_type)
                     && strcmp(method_name, "Read") == 0) {
-                    return slot_inner_type_name(receiver_type);
+                    return transpiler_infer_slot_inner_type_name(ctx,
+                        receiver_type);
                 }
                 if (pgy_codegen_type_name_is_device_slot(receiver_type)
                     && strcmp(method_name, "Read") == 0) {
-                    return slot_inner_type_name(receiver_type);
+                    return transpiler_infer_slot_inner_type_name(ctx,
+                        receiver_type);
                 }
                 if (pgy_codegen_type_name_is_slot_family(receiver_type)
                     && (strcmp(method_name, "Write") == 0
@@ -211,9 +232,10 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                     return "Void";
                 }
                 if ((strncmp(receiver_type, "Array<", 6) == 0
-                     || strncmp(receiver_type, "Slice<", 6) == 0)
+                    || strncmp(receiver_type, "Slice<", 6) == 0)
                     && strcmp(method_name, "Slice") == 0) {
-                    const char *inner = slot_inner_type_name(receiver_type);
+                    const char *inner = transpiler_infer_slot_inner_type_name(
+                        ctx, receiver_type);
                     if (inner == NULL || inner[0] == '\0')
                         return "Unknown";
                     return transpiler_infer_arena_format_type_name(
@@ -255,8 +277,14 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
             if (strcmp(name, "MapGet") == 0 && expr->data.call.arg_count >= 1) {
                 const char *map_type = infer_expression_type_name(ctx,
                     expr->data.call.arguments[0]);
-                if (map_type != NULL && strncmp(map_type, "HashMap<", 8) == 0)
-                    return constructed_arg_name_at(map_type, 1);
+                if (map_type != NULL && strncmp(map_type, "HashMap<", 8) == 0) {
+                    char value_buf[64];
+                    copy_constructed_arg_name_at(map_type, 1,
+                        value_buf, sizeof(value_buf));
+                    if (value_buf[0] == '\0')
+                        return "Unknown";
+                    return transpiler_infer_arena_copy_type_name(ctx, value_buf);
+                }
                 return "Unknown";
             }
             if (strcmp(name, "MapKeys") == 0 && expr->data.call.arg_count >= 1) {
@@ -277,7 +305,8 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                 const char *list_type = infer_expression_type_name(ctx,
                     expr->data.call.arguments[0]);
                 if (list_type != NULL && strncmp(list_type, "List<", 5) == 0)
-                    return slot_inner_type_name(list_type);
+                    return transpiler_infer_slot_inner_type_name(ctx,
+                        list_type);
                 return "Unknown";
             }
             if (pgy_codegen_call_name_is_claim_device_slot(name)) {
@@ -291,7 +320,8 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
             if (strcmp(name, "ViewRead") == 0 && expr->data.call.arg_count >= 1) {
                 const char *slot_type = infer_expression_type_name(ctx,
                     expr->data.call.arguments[0]);
-                const char *inner = slot_inner_type_name(slot_type);
+                const char *inner = transpiler_infer_slot_inner_type_name(ctx,
+                    slot_type);
                 if (inner == NULL || inner[0] == '\0')
                     return "Unknown";
                 return transpiler_infer_arena_format_type_name(
@@ -300,7 +330,8 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
             if (strcmp(name, "ViewWrite") == 0 && expr->data.call.arg_count >= 1) {
                 const char *slot_type = infer_expression_type_name(ctx,
                     expr->data.call.arguments[0]);
-                const char *inner = slot_inner_type_name(slot_type);
+                const char *inner = transpiler_infer_slot_inner_type_name(ctx,
+                    slot_type);
                 if (inner == NULL || inner[0] == '\0')
                     return "Unknown";
                 return transpiler_infer_arena_format_type_name(
@@ -312,7 +343,8 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                 const char *slot_type = infer_expression_type_name(ctx,
                     expr->data.call.arguments[0]);
                 if (pgy_codegen_type_name_is_slot_family(slot_type)) {
-                    const char *inner = slot_inner_type_name(slot_type);
+                    const char *inner = transpiler_infer_slot_inner_type_name(
+                        ctx, slot_type);
                     return (inner != NULL && inner[0] != '\0') ? inner : "Unknown";
                 }
             }
@@ -328,7 +360,8 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                 const char *slot_type = infer_expression_type_name(ctx,
                     expr->data.call.arguments[0]);
                 if (strncmp(slot_type, "DeviceSlot<", 11) == 0) {
-                    const char *inner = slot_inner_type_name(slot_type);
+                    const char *inner = transpiler_infer_slot_inner_type_name(
+                        ctx, slot_type);
                     return (inner != NULL && inner[0] != '\0') ? inner : "Unknown";
                 }
             }
@@ -336,7 +369,8 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                 const char *slot_type = infer_expression_type_name(ctx,
                     expr->data.call.arguments[0]);
                 if (strncmp(slot_type, "DeviceSlot<", 11) == 0) {
-                    const char *inner = slot_inner_type_name(slot_type);
+                    const char *inner = transpiler_infer_slot_inner_type_name(
+                        ctx, slot_type);
                     if (inner == NULL || inner[0] == '\0')
                         return "Unknown";
                     return transpiler_infer_arena_format_type_name(
@@ -353,8 +387,11 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                     || strcmp(name, "SendTimeoutStatus") == 0) {
                     return "Option<Bool>";
                 } else {
-                    const char *inner = channel_inner_type_name(ctx,
-                        expr->data.call.arguments[0]);
+                    char inner_buf[128];
+                    const char *inner = inner_buf;
+                    (void)channel_inner_type_name_copy(ctx,
+                        expr->data.call.arguments[0], inner_buf,
+                        sizeof(inner_buf));
                     if (inner == NULL || inner[0] == '\0')
                         return "Unknown";
                     return transpiler_infer_arena_format_type_name(
@@ -363,9 +400,13 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
             }
             if (strcmp(name, "Some") == 0 && expr->data.call.arg_count == 1) {
                 const char *inner = infer_expression_type_name(ctx, expr->data.call.arguments[0]);
+                char inner_buf[128];
                 if (inner == NULL || inner[0] == '\0'
                     || strcmp(inner, "Unknown") == 0) {
-                    inner = transpiler_contextual_option_inner_type_name(ctx);
+                    if (transpiler_contextual_option_inner_type_copy(ctx,
+                            inner_buf, sizeof(inner_buf))) {
+                        inner = inner_buf;
+                    }
                 }
                 if (inner == NULL || inner[0] == '\0')
                     inner = "Unknown";
@@ -384,8 +425,14 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                 return simple_type;
             if (strcmp(name, "UnwrapOption") == 0 && expr->data.call.arg_count == 1) {
                 const char *opt_type = infer_expression_type_name(ctx, expr->data.call.arguments[0]);
-                if (strncmp(opt_type, "Option<", 7) == 0)
-                    return slot_inner_type_name(opt_type);
+                if (strncmp(opt_type, "Option<", 7) == 0) {
+                    char inner_buf[128];
+                    if (slot_inner_type_name_copy(opt_type, inner_buf,
+                            sizeof(inner_buf))) {
+                        return transpiler_infer_arena_copy_type_name(ctx,
+                            inner_buf);
+                    }
+                }
             }
             if (strcmp(name, "ToTObject") == 0 && expr->data.call.arg_count >= 1
                 && expr->data.call.arguments[0] != NULL

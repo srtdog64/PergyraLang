@@ -5,11 +5,14 @@
 
 #define PGY_HASHMAP_INIT_CAP 16
 #define PGY_HASHMAP_LOAD_FACTOR 0.75
+#define PGY_HASHMAP_EMPTY 0u
+#define PGY_HASHMAP_LIVE 1u
+#define PGY_HASHMAP_DELETED 2u
 
 #ifndef PGY_RUNTIME_HASHMAP_CAPACITY_FITS
 #define PGY_RUNTIME_HASHMAP_CAPACITY_FITS(capacity, CType) \
     ((capacity) != 0 \
-        && (capacity) <= UINT32_MAX \
+        && (capacity) <= (size_t)INT32_MAX \
         && (capacity) <= SIZE_MAX / sizeof(char *) \
         && (capacity) <= SIZE_MAX / sizeof(CType) \
         && (capacity) <= SIZE_MAX / sizeof(uint8_t))
@@ -117,12 +120,12 @@ static inline void pgy_map_grow_##SuffixName(PgyHashMap_##SuffixName *m) \
     m->occupied = new_occupied; \
     m->count = 0; \
     for (size_t i = 0; i < old_cap; i++) { \
-        if (old_occ[i]) { \
+        if (old_occ[i] == PGY_HASHMAP_LIVE) { \
             uint32_t h = pgy_hash_string(old_keys[i]) % (uint32_t)m->capacity; \
-            while (m->occupied[h]) h = (h + 1) % (uint32_t)m->capacity; \
+            while (m->occupied[h] == PGY_HASHMAP_LIVE) h = (h + 1) % (uint32_t)m->capacity; \
             m->keys[h] = old_keys[i]; \
             m->values[h] = old_vals[i]; \
-            m->occupied[h] = 1; \
+            m->occupied[h] = PGY_HASHMAP_LIVE; \
             m->count++; \
         } \
     } \
@@ -142,20 +145,25 @@ static inline void pgy_map_set_##SuffixName(PgyHashMap_##SuffixName *m, const ch
         return; \
     } \
     uint32_t h = pgy_hash_string(key) % (uint32_t)m->capacity; \
-    while (m->occupied[h]) { \
-        if (m->keys[h] != NULL && strcmp(m->keys[h], key) == 0) { \
+    uint32_t first_deleted = UINT32_MAX; \
+    size_t probes = 0; \
+    while (m->occupied[h] && probes < m->capacity) { \
+        if (m->occupied[h] == PGY_HASHMAP_LIVE && m->keys[h] != NULL && strcmp(m->keys[h], key) == 0) { \
             m->values[h] = val; \
             return; \
         } \
+        if (m->occupied[h] == PGY_HASHMAP_DELETED && first_deleted == UINT32_MAX) first_deleted = h; \
         h = (h + 1) % (uint32_t)m->capacity; \
+        probes++; \
     } \
+    if (first_deleted != UINT32_MAX) h = first_deleted; \
     m->keys[h] = pgy_runtime_strdup(key); \
     if (m->keys[h] == NULL) { \
         pgy_runtime_warn_invalid_collection("map_set_" #SuffixName, "key duplication failed"); \
         return; \
     } \
     m->values[h] = val; \
-    m->occupied[h] = 1; \
+    m->occupied[h] = PGY_HASHMAP_LIVE; \
     m->count++; \
 } \
 \
@@ -170,7 +178,7 @@ static inline CType pgy_map_get_##SuffixName(PgyHashMap_##SuffixName *m, const c
     uint32_t h = pgy_hash_string(key) % (uint32_t)m->capacity; \
     size_t probes = 0; \
     while (m->occupied[h] && probes < m->capacity) { \
-        if (m->keys[h] != NULL && strcmp(m->keys[h], key) == 0) \
+        if (m->occupied[h] == PGY_HASHMAP_LIVE && m->keys[h] != NULL && strcmp(m->keys[h], key) == 0) \
             return m->values[h]; \
         h = (h + 1) % (uint32_t)m->capacity; \
         probes++; \
@@ -186,7 +194,7 @@ static inline bool pgy_map_has_##SuffixName(PgyHashMap_##SuffixName *m, const ch
     uint32_t h = pgy_hash_string(key) % (uint32_t)m->capacity; \
     size_t probes = 0; \
     while (m->occupied[h] && probes < m->capacity) { \
-        if (m->keys[h] != NULL && strcmp(m->keys[h], key) == 0) \
+        if (m->occupied[h] == PGY_HASHMAP_LIVE && m->keys[h] != NULL && strcmp(m->keys[h], key) == 0) \
             return true; \
         h = (h + 1) % (uint32_t)m->capacity; \
         probes++; \
@@ -205,11 +213,11 @@ static inline void pgy_map_remove_##SuffixName(PgyHashMap_##SuffixName *m, const
     uint32_t h = pgy_hash_string(key) % (uint32_t)m->capacity; \
     size_t probes = 0; \
     while (m->occupied[h] && probes < m->capacity) { \
-        if (m->keys[h] != NULL && strcmp(m->keys[h], key) == 0) { \
+        if (m->occupied[h] == PGY_HASHMAP_LIVE && m->keys[h] != NULL && strcmp(m->keys[h], key) == 0) { \
             free(m->keys[h]); \
             m->keys[h] = NULL; \
             memset(&m->values[h], 0, sizeof(CType)); \
-            m->occupied[h] = 0; \
+            m->occupied[h] = PGY_HASHMAP_DELETED; \
             m->count--; \
             return; \
         } \

@@ -85,6 +85,8 @@ bool
 hir_lower_intent_cfg(ASTNode *intent, HIRRoutine *routine)
 {
     HIRBasicBlock *blocks = NULL;
+    ASTNode **steps;
+    size_t step_count;
     size_t block_count = 0;
     size_t block_capacity = 0;
     ssize_t entry;
@@ -92,6 +94,7 @@ hir_lower_intent_cfg(ASTNode *intent, HIRRoutine *routine)
 
     if (intent == NULL || routine == NULL || intent->type != AST_INTENT_DECL)
         return true;
+    steps = ast_intent_decl_steps(intent, &step_count);
 
     entry = hir_cfg_new_block(&blocks, &block_count, &block_capacity);
     if (entry < 0)
@@ -101,21 +104,21 @@ hir_lower_intent_cfg(ASTNode *intent, HIRRoutine *routine)
     if (!hir_cfg_append_stmt(&blocks[(size_t)current].statements,
                              &blocks[(size_t)current].statement_count,
                              &blocks[(size_t)current].statement_capacity,
-                             intent->data.intent_decl.priority_expr)
+                             ast_intent_decl_priority_expr(intent))
         || !hir_cfg_append_stmt(&blocks[(size_t)current].statements,
                                 &blocks[(size_t)current].statement_count,
                                 &blocks[(size_t)current].statement_capacity,
-                                intent->data.intent_decl.success_expr)
+                                ast_intent_decl_success_expr(intent))
         || !hir_cfg_append_stmt(&blocks[(size_t)current].statements,
                                 &blocks[(size_t)current].statement_count,
                                 &blocks[(size_t)current].statement_capacity,
-                                intent->data.intent_decl.failure_expr)) {
+                                ast_intent_decl_failure_expr(intent))) {
         intent_cfg_free_blocks(blocks, block_count);
         return false;
     }
 
-    for (size_t i = 0; i < intent->data.intent_decl.step_count; i++) {
-        ASTNode *step = intent->data.intent_decl.steps[i];
+    for (size_t i = 0; i < step_count; i++) {
+        ASTNode *step = steps[i];
         if (step == NULL || step->type != AST_INTENT_STEP)
             continue;
         if (blocks[(size_t)current].statement_count > 0) {

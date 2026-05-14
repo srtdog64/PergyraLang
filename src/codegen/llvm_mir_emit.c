@@ -144,10 +144,10 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
         owner_sync = llvm_lookup_function(ctx, owner_cls->sync_function_name);
     }
     param_count = is_intent
-        ? (func_decl->data.intent_decl.binding_count > 0
-            ? func_decl->data.intent_decl.binding_count
-            : (func_decl->data.intent_decl.involve_count
-                + func_decl->data.intent_decl.value_count))
+        ? (ast_intent_decl_binding_count(func_decl) > 0
+            ? ast_intent_decl_binding_count(func_decl)
+            : (ast_intent_decl_involve_count(func_decl)
+                + ast_intent_decl_value_count(func_decl)))
         : (is_method ? 1 : 0);
     if (!is_intent) {
         for (size_t i = 0; i < func_decl->data.func_decl.param_count; i++) {
@@ -167,23 +167,32 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
         (param_count > 0 ? param_count : 1) * sizeof(LLVMTypeRef));
     for (size_t i = 0; i < param_count; i++) {
         if (is_intent) {
-            ASTNode *binding = func_decl->data.intent_decl.binding_count > 0
-                ? func_decl->data.intent_decl.bindings[i]
-                : (i < func_decl->data.intent_decl.involve_count
-                    ? func_decl->data.intent_decl.involves[i]
-                    : func_decl->data.intent_decl.values[i - func_decl->data.intent_decl.involve_count]);
+            size_t binding_count = 0;
+            size_t involve_count = 0;
+            size_t value_count = 0;
+            ASTNode **bindings = ast_intent_decl_bindings(func_decl, &binding_count);
+            ASTNode **involves = ast_intent_decl_involves(func_decl, &involve_count);
+            ASTNode **values = ast_intent_decl_values(func_decl, &value_count);
+            ASTNode *binding = binding_count > 0
+                ? (i < binding_count ? bindings[i] : NULL)
+                : (i < involve_count
+                    ? involves[i]
+                    : (i - involve_count < value_count
+                        ? values[i - involve_count]
+                        : NULL));
+            ASTNode *binding_type = NULL;
             if (binding != NULL && binding->type == AST_INTENT_INVOLVES
-                && binding->data.intent_involves.subject_type != NULL) {
-                param_types[i] = llvm_mir_type_from_ast(
-                    ctx, binding->data.intent_involves.subject_type);
+                && ast_intent_involves_subject_type(binding) != NULL) {
+                binding_type = ast_intent_involves_subject_type(binding);
+                param_types[i] = llvm_mir_type_from_ast(ctx, binding_type);
                 if (ctx->has_error || param_types[i] == NULL)
                     return NULL;
                 if (llvm_intent_involves_uses_pointer_self(ctx, binding))
                     param_types[i] = LLVMPointerType(param_types[i], 0);
             } else if (binding != NULL && binding->type == AST_INTENT_VALUE
-                && binding->data.intent_value.value_type != NULL) {
-                param_types[i] = llvm_mir_type_from_ast(
-                    ctx, binding->data.intent_value.value_type);
+                && ast_intent_value_type(binding) != NULL) {
+                binding_type = ast_intent_value_type(binding);
+                param_types[i] = llvm_mir_type_from_ast(ctx, binding_type);
                 if (ctx->has_error || param_types[i] == NULL)
                     return NULL;
             } else {

@@ -347,7 +347,6 @@ char *emit_unary(ASTNode *node, TranspilerCtx *ctx);
  * ----------------------------------------------------------------- */
 
 /* "Int" → "int", "String" → "char*", "Slot<Int>" → "PgySlot_Int" */
-const char *pergyra_type_to_c(const char *pergyra_type_name);
 bool pergyra_type_to_c_copy(const char *pergyra_type_name,
                             char *out, size_t out_size);
 
@@ -355,7 +354,9 @@ bool pergyra_type_to_c_copy(const char *pergyra_type_name,
 const char *pergyra_primitive_to_c(const char *name);
 
 /* "Slot<Int>" → "Int",  "SecureSlot<String>" → "String" */
-const char *slot_inner_type_name(const char *slot_type_name);
+bool slot_inner_type_name_copy(const char *slot_type_name,
+                               char *out,
+                               size_t out_size);
 
 /* -----------------------------------------------------------------
  * Built-in call emitters

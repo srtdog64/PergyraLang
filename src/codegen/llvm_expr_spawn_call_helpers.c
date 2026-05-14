@@ -7,6 +7,8 @@
 #include "llvm_expr_spawn_call_helpers.h"
 #include "llvm_expr_spawn_names.h"
 
+#include <limits.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -330,6 +332,14 @@ llvm_emit_spawn_expr(ASTNode *node, LLVMGenCtx *ctx)
     }
 
     if (argc > 0) {
+        if (argc > (size_t)UINT_MAX || argc > SIZE_MAX / sizeof(LLVMValueRef)) {
+            llvm_set_error_at_with_hints(ctx, node,
+                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                PGY_FIX_ALIGN_GENERIC_ARG_LIST,
+                "LLVM spawn expression argument count exceeds backend ABI limits");
+            return NULL;
+        }
         args = pgy_arena_calloc(&ctx->scratch, argc * sizeof(LLVMValueRef));
         if (args == NULL) {
             llvm_set_error_at_with_hints(ctx, node,

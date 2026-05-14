@@ -76,7 +76,7 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
     /* Shared fields */
     for (size_t i = 0; i < shared_count; i++) {
         ASTNode *shared = shared_fields[i];
-        const char *ft = NULL;
+        char ft[256];
         char surface_desc[256];
         snprintf(surface_desc, sizeof(surface_desc),
             "world shared field '%s.%s'",
@@ -84,12 +84,14 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
             ast_party_shared_name(shared) != NULL
                 ? ast_party_shared_name(shared)
                 : "(anonymous)");
-        ft = transpiler_require_ast_c_type(
-            ctx,
-            ast_party_shared_type(shared),
-            surface_desc);
-        if (ft == NULL)
+        if (!transpiler_require_ast_c_type_copy(
+                ctx,
+                ast_party_shared_type(shared),
+                surface_desc,
+                ft,
+                sizeof(ft))) {
             return;
+        }
         codebuf_write(ctx->out, "    %s %s;\n", ft,
             ast_party_shared_name(shared));
     }

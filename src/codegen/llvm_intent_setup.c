@@ -12,12 +12,12 @@
 const char *
 llvm_intent_involves_type_name(ASTNode *involves)
 {
+    ASTNode *subject_type = ast_intent_involves_subject_type(involves);
     if (involves == NULL || involves->type != AST_INTENT_INVOLVES
-        || involves->data.intent_involves.subject_type == NULL
-        || involves->data.intent_involves.subject_type->type != AST_TYPE) {
+        || subject_type == NULL || subject_type->type != AST_TYPE) {
         return NULL;
     }
-    return involves->data.intent_involves.subject_type->data.type.name;
+    return subject_type->data.type.name;
 }
 
 static bool
@@ -53,22 +53,31 @@ llvm_emit_intent_entry_bindings(LLVMGenCtx *ctx,
     if (ctx == NULL || node == NULL || fn == NULL)
         return;
 
+    size_t binding_count = 0;
+    size_t involve_count = 0;
+    size_t value_count = 0;
+    ASTNode **bindings = ast_intent_decl_bindings(node, &binding_count);
+    ASTNode **involves_nodes = ast_intent_decl_involves(node, &involve_count);
+    ASTNode **values = ast_intent_decl_values(node, &value_count);
+
     for (size_t i = 0, participant_index = 0; i < param_count; i++) {
         LLVMTypeRef pt = ctx->type_i8ptr;
         const char *alias = NULL;
         const char *type_name = NULL;
-        ASTNode *binding = node->data.intent_decl.binding_count > 0
-            ? node->data.intent_decl.bindings[i]
-            : (i < node->data.intent_decl.involve_count
-                ? node->data.intent_decl.involves[i]
-                : node->data.intent_decl.values[i - node->data.intent_decl.involve_count]);
+        ASTNode *binding = binding_count > 0
+            ? (i < binding_count ? bindings[i] : NULL)
+            : (i < involve_count
+                ? involves_nodes[i]
+                : (i - involve_count < value_count
+                    ? values[i - involve_count]
+                    : NULL));
         if (binding != NULL && binding->type == AST_INTENT_INVOLVES) {
             ASTNode *involves = binding;
             alias = (mir_only_intent && participant_aliases != NULL && participant_index < participant_count)
                 ? participant_aliases[participant_index]
                 : (participant_aliases != NULL && participant_index < participant_count
                     ? participant_aliases[participant_index]
-                    : (involves != NULL ? involves->data.intent_involves.alias : NULL));
+                    : ast_intent_involves_alias(involves));
             type_name = (mir_only_intent && participant_types != NULL && participant_index < participant_count)
                 ? participant_types[participant_index]
                 : (participant_types != NULL && participant_index < participant_count
@@ -82,8 +91,8 @@ llvm_emit_intent_entry_bindings(LLVMGenCtx *ctx,
                     pt = LLVMPointerType(pt, 0);
             } else if (!mir_only_intent
                        && involves != NULL
-                       && involves->data.intent_involves.subject_type != NULL) {
-                pt = ast_type_to_llvm(ctx, involves->data.intent_involves.subject_type);
+                       && ast_intent_involves_subject_type(involves) != NULL) {
+                pt = ast_type_to_llvm(ctx, ast_intent_involves_subject_type(involves));
                 if (ctx->has_error || pt == NULL)
                     return;
                 if (llvm_intent_involves_uses_pointer_self(ctx, involves))
@@ -92,12 +101,12 @@ llvm_emit_intent_entry_bindings(LLVMGenCtx *ctx,
             participant_index++;
         } else if (binding != NULL && binding->type == AST_INTENT_VALUE) {
             ASTNode *value = binding;
-            alias = value->data.intent_value.alias;
-            type_name = (value->data.intent_value.value_type != NULL
-                && value->data.intent_value.value_type->type == AST_TYPE)
-                ? value->data.intent_value.value_type->data.type.name : NULL;
-            if (value->data.intent_value.value_type != NULL) {
-                pt = ast_type_to_llvm(ctx, value->data.intent_value.value_type);
+            ASTNode *value_type = ast_intent_value_type(value);
+            alias = ast_intent_value_alias(value);
+            type_name = (value_type != NULL && value_type->type == AST_TYPE)
+                ? value_type->data.type.name : NULL;
+            if (value_type != NULL) {
+                pt = ast_type_to_llvm(ctx, value_type);
                 if (ctx->has_error || pt == NULL)
                     return;
             }
@@ -110,8 +119,8 @@ llvm_emit_intent_entry_bindings(LLVMGenCtx *ctx,
     }
 
     for (size_t i = 0; i < participant_count; i++) {
-        ASTNode *involves = i < node->data.intent_decl.involve_count
-            ? node->data.intent_decl.involves[i]
+        ASTNode *involves = i < involve_count
+            ? involves_nodes[i]
             : NULL;
         const char *type_name = (mir_only_intent && participant_types != NULL && i < participant_count)
             ? participant_types[i]
@@ -131,14 +140,14 @@ llvm_emit_intent_entry_bindings(LLVMGenCtx *ctx,
         unsigned subject_index = 0;
 
         for (size_t i = 0; i < participant_count; i++) {
-            ASTNode *involves = i < node->data.intent_decl.involve_count
-                ? node->data.intent_decl.involves[i]
+            ASTNode *involves = i < involve_count
+                ? involves_nodes[i]
                 : NULL;
             const char *alias = (mir_only_intent && participant_aliases != NULL && i < participant_count)
                 ? participant_aliases[i]
                 : (participant_aliases != NULL && i < participant_count
                     ? participant_aliases[i]
-                    : (involves != NULL ? involves->data.intent_involves.alias : NULL));
+                    : ast_intent_involves_alias(involves));
             const char *type_name = (mir_only_intent && participant_types != NULL && i < participant_count)
                 ? participant_types[i]
                 : (participant_types != NULL && i < participant_count

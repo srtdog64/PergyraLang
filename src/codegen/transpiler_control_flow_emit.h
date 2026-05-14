@@ -135,18 +135,18 @@ emit_for_loop(ASTNode *node, TranspilerCtx *ctx)
         if (coll_type != NULL
             && (strncmp(coll_type, "Array<", 6) == 0
                 || strncmp(coll_type, "Slice<", 6) == 0)) {
-            copy_capped_string(elem_inner_buf, sizeof(elem_inner_buf),
-                slot_inner_type_name(coll_type));
-            elem_inner = elem_inner_buf;
+            if (slot_inner_type_name_copy(coll_type, elem_inner_buf,
+                    sizeof(elem_inner_buf)))
+                elem_inner = elem_inner_buf;
             if (pergyra_type_to_c_copy(elem_inner, elem_type_buf,
                     sizeof(elem_type_buf))) {
                 elem_type = elem_type_buf;
             }
             length_field = "length";
         } else if (coll_type != NULL && strncmp(coll_type, "List<", 5) == 0) {
-            copy_capped_string(elem_inner_buf, sizeof(elem_inner_buf),
-                slot_inner_type_name(coll_type));
-            elem_inner = elem_inner_buf;
+            if (slot_inner_type_name_copy(coll_type, elem_inner_buf,
+                    sizeof(elem_inner_buf)))
+                elem_inner = elem_inner_buf;
             if (pergyra_type_to_c_copy(elem_inner, elem_type_buf,
                     sizeof(elem_type_buf))) {
                 elem_type = elem_type_buf;
@@ -178,8 +178,7 @@ emit_for_loop(ASTNode *node, TranspilerCtx *ctx)
         write_indent(ctx);
         codebuf_write(ctx->out, "%s %s = %s.data[_pgy_idx_%d];\n",
             elem_type, var, coll, idx_id);
-        register_typed_var(ctx, var,
-            elem_inner != NULL ? elem_inner : slot_inner_type_name(coll_type));
+        register_typed_var(ctx, var, elem_inner);
         if (node->data.for_loop.body != NULL)
             emit_block(node->data.for_loop.body, ctx);
         if (loop_slot < TRANSPILE_MAX_LOOP_DEPTH

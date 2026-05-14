@@ -13,7 +13,10 @@ typedef struct {
 static bool
 pgy_queue_raw_shape_fits(size_t capacity, size_t elem_size)
 {
-    return capacity != 0 && elem_size != 0 && elem_size <= SIZE_MAX / capacity;
+    return capacity != 0
+        && capacity <= (size_t)INT32_MAX
+        && elem_size != 0
+        && elem_size <= SIZE_MAX / capacity;
 }
 
 void
@@ -104,6 +107,28 @@ pgy_queue_push_raw_export(void *queue_ptr, void *value_ptr, int64_t elem_size)
 }
 
 void
+pgy_queue_push_string_raw_export(void *queue_ptr, const char *value)
+{
+    PgyQueueRaw *queue = (PgyQueueRaw *)queue_ptr;
+    size_t before_count;
+    char *owned;
+
+    if (queue == NULL) {
+        pgy_runtime_warn_invalid_collection("queue_push_string", "null queue");
+        return;
+    }
+    owned = pgy_runtime_strdup_export(value != NULL ? value : "");
+    if (owned == NULL) {
+        pgy_runtime_warn_invalid_collection("queue_push_string", "string duplication failed");
+        return;
+    }
+    before_count = queue->count;
+    pgy_queue_push_raw_export(queue_ptr, &owned, (int64_t)sizeof(char *));
+    if (queue->count == before_count)
+        free(owned);
+}
+
+void
 pgy_queue_pop_raw_export(void *queue_ptr, void *out_ptr, int64_t elem_size)
 {
     PgyQueueRaw *queue = (PgyQueueRaw *)queue_ptr;
@@ -129,6 +154,19 @@ pgy_queue_pop_raw_export(void *queue_ptr, void *out_ptr, int64_t elem_size)
            (size_t)elem_size);
     queue->head = (queue->head + 1) % queue->capacity;
     queue->count--;
+}
+
+void
+pgy_queue_pop_string_raw_export(void *queue_ptr, char **out_ptr)
+{
+    char *owned = NULL;
+
+    if (out_ptr == NULL) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "queue pop string on null output");
+    }
+    pgy_queue_pop_raw_export(queue_ptr, &owned, (int64_t)sizeof(char *));
+    *out_ptr = owned != NULL ? owned : pgy_runtime_strdup_export("");
 }
 
 int32_t

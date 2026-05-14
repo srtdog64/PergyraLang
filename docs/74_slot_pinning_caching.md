@@ -271,6 +271,10 @@ Runtime invariants:
   unpin.
 - Secure lease buffers are wiped after unpin.
 - Pinned entries cannot be released or cleaned by TTL while the pin is active.
+- Secure scope destruction must not wipe scope-owned handles/tokens while any
+  scoped secure slot is pinned. Checked destruction returns `SLOT_ERROR_PINNED`;
+  the legacy void destructor panics because losing the token would make the
+  pinned secure slot unreleasable.
 
 ## 8. CFG / AIR / Backend Interaction
 

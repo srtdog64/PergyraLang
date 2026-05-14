@@ -8,6 +8,8 @@
 #include "llvm_internal.h"
 #include "llvm_expr_event_calls.h"
 
+#include <limits.h>
+#include <stdint.h>
 #include <stdio.h>
 
 static LLVMValueRef
@@ -73,6 +75,12 @@ llvm_emit_event_invocation_call(ASTNode *node, LLVMGenCtx *ctx,
     }
 
     arg_count = node->data.call.arg_count;
+    if (arg_count > (size_t)UINT_MAX - 1U
+        || arg_count > (SIZE_MAX / sizeof(LLVMValueRef)) - 1U) {
+        *out = llvm_event_expr_error(ctx, node,
+            "LLVM event invocation argument count exceeds backend ABI limits");
+        return true;
+    }
     args = pgy_arena_calloc(&ctx->scratch, (arg_count + 1) * sizeof(LLVMValueRef));
     if (args == NULL) {
         *out = llvm_event_expr_error(ctx, node,

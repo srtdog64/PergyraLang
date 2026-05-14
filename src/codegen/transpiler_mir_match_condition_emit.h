@@ -172,8 +172,8 @@ transpiler_mir_match_payload_type_name(TranspilerCtx *ctx,
     if (strcmp(kind, "Some") == 0) {
         if (strncmp(subject_type, "Option<", 7) != 0)
             return false;
-        snprintf(buf, buf_size, "%s", slot_inner_type_name(subject_type));
-        return buf[0] != '\0';
+        return slot_inner_type_name_copy(subject_type, buf, buf_size)
+            && buf[0] != '\0';
     }
     if (strcmp(kind, "Ok") == 0) {
         if (strncmp(subject_type, "Result<", 7) != 0)

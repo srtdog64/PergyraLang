@@ -50,8 +50,13 @@ transpiler_infer_local_type_name_from_expr(TranspilerCtx *ctx,
     case AST_CHANNEL_RECV: {
         const char *channel_type = transpiler_infer_local_type_name_from_expr(
             ctx, func_decl, expr->data.channel_recv.channel);
-        const char *inner = slot_inner_type_name(channel_type);
-        return (inner != NULL && inner[0] != '\0') ? inner : NULL;
+        char inner_buf[128];
+        if (slot_inner_type_name_copy(channel_type, inner_buf,
+                sizeof(inner_buf))
+            && inner_buf[0] != '\0') {
+            return transpiler_mir_arena_copy_type_name(ctx, inner_buf);
+        }
+        return NULL;
     }
     case AST_MEMBER_ACCESS: {
         const char *resolved =
@@ -118,10 +123,13 @@ transpiler_infer_local_type_name_from_expr(TranspilerCtx *ctx,
                 && strcmp(method_name, "Slice") == 0
                 && (strncmp(receiver_type, "Array<", 6) == 0
                     || strncmp(receiver_type, "Slice<", 6) == 0)) {
-                const char *inner = slot_inner_type_name(receiver_type);
-                if (inner == NULL || inner[0] == '\0')
+                char inner_buf[128];
+                if (!slot_inner_type_name_copy(receiver_type, inner_buf,
+                        sizeof(inner_buf))
+                    || inner_buf[0] == '\0')
                     return NULL;
-                return transpiler_mir_arena_render_type_name(ctx, "Slice", inner);
+                return transpiler_mir_arena_render_type_name(
+                    ctx, "Slice", inner_buf);
             }
             if (receiver_type != NULL)
                 method_decl = find_nominal_host_method_decl(ctx, receiver_type, method_name);
@@ -231,9 +239,14 @@ transpiler_find_local_type_name_in_block(TranspilerCtx *ctx,
                     } else {
                         const char *init_type = infer_expression_type_name(ctx, init);
                         if (init_type != NULL && strncmp(init_type, "SecureSlot<", 11) == 0) {
-                            const char *resolved_inner = slot_inner_type_name(init_type);
-                            if (resolved_inner != NULL && resolved_inner[0] != '\0')
-                                inner = resolved_inner;
+                            char resolved_inner_buf[128];
+                            if (slot_inner_type_name_copy(init_type,
+                                    resolved_inner_buf,
+                                    sizeof(resolved_inner_buf))
+                                && resolved_inner_buf[0] != '\0') {
+                                inner = transpiler_mir_arena_copy_type_name(
+                                    ctx, resolved_inner_buf);
+                            }
                         }
                     }
                     if (inner == NULL || inner[0] == '\0')
@@ -266,9 +279,10 @@ transpiler_find_local_type_name_in_block(TranspilerCtx *ctx,
             if (init_type != NULL
                 && (strncmp(init_type, "Array<", 6) == 0
                     || strncmp(init_type, "Slice<", 6) == 0)) {
-                const char *inner = slot_inner_type_name(init_type);
-                if (inner != NULL) {
-                    return transpiler_mir_arena_copy_type_name(ctx, inner);
+                char inner_buf[128];
+                if (slot_inner_type_name_copy(init_type, inner_buf,
+                        sizeof(inner_buf))) {
+                    return transpiler_mir_arena_copy_type_name(ctx, inner_buf);
                 }
             }
             if (init_type != NULL && init_type[0] == '(') {

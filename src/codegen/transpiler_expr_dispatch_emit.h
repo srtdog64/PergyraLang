@@ -99,8 +99,12 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
             }
             if (slot_type != NULL && transpiler_type_name_is_slot_like(slot_type)
                 && !ctx->suppress_slot_auto_read) {
-                const char *inner = slot_inner_type_name(slot_type);
+                char inner_buf[128];
+                const char *inner = NULL;
                 bool secure = strncmp(slot_type, "SecureSlot<", 11) == 0;
+                if (slot_inner_type_name_copy(slot_type, inner_buf,
+                        sizeof(inner_buf)))
+                    inner = inner_buf;
                 if (inner == NULL || inner[0] == '\0'
                     || strcmp(inner, "Unknown") == 0) {
                     transpiler_set_backend_error_with_hints(ctx,
@@ -135,8 +139,13 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
         TypedVarEntry *projection_entry = lookup_typed_entry(ctx, id_name);
         /* Slot sugar: auto-Read ??emit pgy_read_T(&x) instead of x */
         if (!ctx->suppress_slot_auto_read && is_slot_var(ctx, id_name)) {
-            const char *inner = lookup_slot_type(ctx, id_name);
+            char inner_buf[128];
+            const char *inner = NULL;
             bool secure = lookup_slot_is_secure(ctx, id_name);
+            if (lookup_slot_type_copy(ctx, id_name, inner_buf,
+                    sizeof(inner_buf))) {
+                inner = inner_buf;
+            }
             if (inner == NULL || inner[0] == '\0'
                 || strcmp(inner, "Unknown") == 0) {
                 transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "cannot determine slot payload type for auto-read of '%s'",
@@ -159,9 +168,11 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
             return result;
         }
         {
-            const char *enum_variant = lookup_enum_variant_qualified_name(ctx, id_name);
-            if (enum_variant != NULL)
+            char enum_variant[128];
+            if (lookup_enum_variant_qualified_name_copy(ctx, id_name,
+                    enum_variant, sizeof(enum_variant))) {
                 return pergyra_strdup(enum_variant);
+            }
         }
         if (projection_entry != NULL && projection_entry->is_projection_borrow) {
             const char *source_type = lookup_typed_var(ctx, projection_entry->source_slot);
@@ -263,7 +274,11 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
         const char *array_type = infer_expression_type_name(ctx, node->data.array_access.array);
         char *result;
         if (array_type != NULL && strncmp(array_type, "Array<", 6) == 0) {
-            const char *inner = slot_inner_type_name(array_type);
+            char inner_buf[128];
+            const char *inner = NULL;
+            if (slot_inner_type_name_copy(array_type, inner_buf,
+                    sizeof(inner_buf)))
+                inner = inner_buf;
             if (inner == NULL || inner[0] == '\0'
                 || strcmp(inner, "Unknown") == 0) {
                 transpiler_set_backend_error_with_hints(ctx,
@@ -281,7 +296,11 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
                 "pgy_array_get_%s(&_pgy_arr_get_%d, %s); })",
                 inner, tmp_id, array, inner, tmp_id, index);
         } else if (array_type != NULL && strncmp(array_type, "Slice<", 6) == 0) {
-            const char *inner = slot_inner_type_name(array_type);
+            char inner_buf[128];
+            const char *inner = NULL;
+            if (slot_inner_type_name_copy(array_type, inner_buf,
+                    sizeof(inner_buf)))
+                inner = inner_buf;
             if (inner == NULL || inner[0] == '\0'
                 || strcmp(inner, "Unknown") == 0) {
                 transpiler_set_backend_error_with_hints(ctx,
@@ -377,8 +396,11 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
 
     case AST_ARRAY_LITERAL: {
         const char *array_type = infer_expression_type_name(ctx, node);
-        const char *inner = slot_inner_type_name(array_type);
         char inner_buf[128];
+        const char *inner = NULL;
+        if (slot_inner_type_name_copy(array_type, inner_buf,
+                sizeof(inner_buf)))
+            inner = inner_buf;
         if (array_type == NULL || strncmp(array_type, "Array<", 6) != 0
             || inner == NULL || inner[0] == '\0'
             || strcmp(inner, "Unknown") == 0) {
@@ -389,8 +411,6 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
                 "C array literal requires concrete Array<T> element metadata");
             return pergyra_strdup("0");
         }
-        snprintf(inner_buf, sizeof(inner_buf), "%s", inner);
-        inner = inner_buf;
         int tmp_id = ++ctx->tmp_counter;
         CodeBuf *buf = codebuf_create();
         codebuf_write(buf, "({ PgyArray_%s _pgy_arr_%d = pgy_array_new_%s(%zu); ",
@@ -412,8 +432,13 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
         if (node->data.assignment.target->type == AST_IDENTIFIER) {
             const char *tgt_name = node->data.assignment.target->data.identifier.name;
             if (is_slot_var(ctx, tgt_name)) {
-                const char *inner = lookup_slot_type(ctx, tgt_name);
+                char inner_buf[128];
+                const char *inner = NULL;
                 bool secure = lookup_slot_is_secure(ctx, tgt_name);
+                if (lookup_slot_type_copy(ctx, tgt_name, inner_buf,
+                        sizeof(inner_buf))) {
+                    inner = inner_buf;
+                }
                 if (inner == NULL || inner[0] == '\0'
                     || strcmp(inner, "Unknown") == 0) {
                     transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "cannot determine slot payload type for assignment to '%s'",

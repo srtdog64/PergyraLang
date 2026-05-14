@@ -150,6 +150,9 @@ for term in "${readiness_snapshot_terms[@]}"; do
 done
 
 slot_rigor_terms=(
+    "Slot Is Not The Default Value Model"
+    "Slot is the explicit resource-boundary model, not the ordinary value model."
+    "examples must not present Slot lifecycle"
     "Handle Expiration Is A Layered Contract, Not Pin Alone"
     "Non-pin stale-handle scenarios"
     "arena lane checks, CFG/body dataflow"
@@ -164,6 +167,19 @@ slot_rigor_terms=(
 for term in "${slot_rigor_terms[@]}"; do
     require_text "docs/118_slot_model_rigor_audit.md" "$term"
 done
+
+require_text "README.md" "Slot Is Explicit Resource Boundary, Not Hello World"
+require_text "README.md" "Slot is the resource-boundary model; it is not the default value"
+require_text "README.md" "ordinary entry examples"
+require_text "README.md" "resource-boundary examples"
+require_text "README.md" "Resource-boundary examples are intentionally separate"
+require_text "examples/hello.pgy" "Log(\"Hello, Pergyra!\");"
+require_text "examples/basic.pgy" "basic ordinary-value syntax"
+require_text "examples/basic.pgy" "This file intentionally avoids Slot lifecycle APIs."
+forbid_text "examples/hello.pgy" "ClaimSlot"
+forbid_text "examples/hello.pgy" "Release("
+forbid_text "examples/basic.pgy" "ClaimSlot"
+forbid_text "examples/basic.pgy" "Release("
 
 vision_audit_terms=(
     "Anti-hype rule (2026-04-29)"
@@ -348,6 +364,11 @@ for term in "${stable_subset_slot_terms[@]}"; do
 done
 
 require_terms "docs/65_stable_example_surface_board.md" <<'EOF'
+Current example tier contract
+ordinary entry examples
+resource-boundary examples
+Ordinary entry examples must not present Slot lifecycle APIs as the default
+Slot examples are stable only as explicit resource-boundary
 tests/dogfood_webgl_smoke.sh
 examples/wasm_hello/
 stable dogfood bridge

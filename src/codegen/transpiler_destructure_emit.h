@@ -97,9 +97,9 @@ emit_let_destructure_statement(ASTNode *node, TranspilerCtx *ctx)
     if (init_type != NULL
         && (strncmp(init_type, "Array<", 6) == 0
             || strncmp(init_type, "Slice<", 6) == 0)) {
-        copy_capped_string(inner_buf, sizeof(inner_buf),
-            slot_inner_type_name(init_type));
-        inner = inner_buf;
+        if (slot_inner_type_name_copy(init_type, inner_buf,
+                sizeof(inner_buf)))
+            inner = inner_buf;
         if (pergyra_type_to_c_copy(inner, elem_c_type_buf,
                 sizeof(elem_c_type_buf))) {
             elem_c_type = elem_c_type_buf;

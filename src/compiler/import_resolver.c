@@ -398,7 +398,18 @@ import_resolver_load_internal(const char *source_path,
         size_t imp_count = imp_ast->data.program.count;
         if (imp_count > 0) {
             size_t old_count = ast->data.program.count;
-            size_t new_count = old_count - 1 + imp_count;
+            size_t new_count;
+            if (old_count == 0 || imp_count > SIZE_MAX - (old_count - 1)) {
+                ast_destroy(imp_ast);
+                set_error(error_message, "import merge statement count overflow");
+                goto fail;
+            }
+            new_count = old_count - 1 + imp_count;
+            if (new_count > SIZE_MAX / sizeof(ASTNode *)) {
+                ast_destroy(imp_ast);
+                set_error(error_message, "import merge allocation size overflow");
+                goto fail;
+            }
             ASTNode **new_stmts = malloc(new_count * sizeof(ASTNode *));
             if (new_stmts == NULL) {
                 ast_destroy(imp_ast);

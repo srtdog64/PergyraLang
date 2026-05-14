@@ -32,7 +32,7 @@ stage_decl_label(ASTNode *stmt)
     case AST_WORLD_DECL:
         return ast_world_name(stmt);
     case AST_INTENT_DECL:
-        return stmt->data.intent_decl.name;
+        return ast_intent_decl_name(stmt);
     case AST_RELATION_DECL:
         return ast_relation_name(stmt);
     case AST_EFFECT_DECL:

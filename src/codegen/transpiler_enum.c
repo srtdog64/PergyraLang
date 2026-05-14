@@ -10,19 +10,24 @@
 
 #include "transpiler_enum.h"
 
-const char *
-lookup_enum_variant_qualified_name(TranspilerCtx *ctx, const char *variant_name)
+bool
+lookup_enum_variant_qualified_name_copy(TranspilerCtx *ctx,
+                                        const char *variant_name,
+                                        char *out,
+                                        size_t out_size)
 {
-    static char qualified[128];
     ASTNode **types = NULL;
     size_t type_count = 0;
 
+    if (out == NULL || out_size == 0)
+        return false;
+    out[0] = '\0';
     if (ctx == NULL || variant_name == NULL)
-        return NULL;
+        return false;
 
     transpiler_active_inventory(ctx, AST_ENUM_DECL, &types, &type_count);
     if (types == NULL)
-        return NULL;
+        return false;
 
     for (size_t i = 0; i < type_count; i++) {
         ASTNode *stmt = types[i];
@@ -34,12 +39,16 @@ lookup_enum_variant_qualified_name(TranspilerCtx *ctx, const char *variant_name)
         for (size_t j = 0; j < variant_count; j++) {
             const char *candidate = variants != NULL ? variants[j] : NULL;
             if (candidate != NULL && strcmp(candidate, variant_name) == 0) {
-                snprintf(qualified, sizeof(qualified), "%s_%s",
+                int written = snprintf(out, out_size, "%s_%s",
                     ast_enum_name(stmt), candidate);
-                return qualified;
+                if (written < 0 || (size_t)written >= out_size) {
+                    out[0] = '\0';
+                    return false;
+                }
+                return true;
             }
         }
     }
 
-    return NULL;
+    return false;
 }

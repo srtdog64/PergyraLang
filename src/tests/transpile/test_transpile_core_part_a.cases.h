@@ -43,67 +43,85 @@ test_codebuf(void)
  * Tests: type mapping
  * ----------------------------------------------------------------- */
 
+static bool
+expect_type_to_c_copy(const char *input, const char *expected)
+{
+    char out[256];
+
+    return pergyra_type_to_c_copy(input, out, sizeof(out))
+        && strcmp(out, expected) == 0;
+}
+
+static bool
+expect_type_to_c_rejects(const char *input)
+{
+    char out[256];
+
+    out[0] = 'x';
+    return !pergyra_type_to_c_copy(input, out, sizeof(out));
+}
+
 static void
 test_type_mapping(void)
 {
     printf("\n[type_mapping]\n");
 
     TEST("Int -> int32_t");
-    EXPECT(strcmp(pergyra_type_to_c("Int"), "int32_t") == 0);
+    EXPECT(expect_type_to_c_copy("Int", "int32_t"));
 
     TEST("Long -> int64_t");
-    EXPECT(strcmp(pergyra_type_to_c("Long"), "int64_t") == 0);
+    EXPECT(expect_type_to_c_copy("Long", "int64_t"));
 
     TEST("Float -> float");
-    EXPECT(strcmp(pergyra_type_to_c("Float"), "float") == 0);
+    EXPECT(expect_type_to_c_copy("Float", "float"));
 
     TEST("Bool -> bool");
-    EXPECT(strcmp(pergyra_type_to_c("Bool"), "bool") == 0);
+    EXPECT(expect_type_to_c_copy("Bool", "bool"));
 
     TEST("String -> char*");
-    EXPECT(strcmp(pergyra_type_to_c("String"), "char*") == 0);
+    EXPECT(expect_type_to_c_copy("String", "char*"));
 
     TEST("Void -> void");
-    EXPECT(strcmp(pergyra_type_to_c("Void"), "void") == 0);
+    EXPECT(expect_type_to_c_copy("Void", "void"));
 
     TEST("Slot<Int> -> PgySlot_Int");
-    EXPECT(strcmp(pergyra_type_to_c("Slot<Int>"), "PgySlot_Int") == 0);
+    EXPECT(expect_type_to_c_copy("Slot<Int>", "PgySlot_Int"));
 
     TEST("Slot<String> -> PgySlot_String");
-    EXPECT(strcmp(pergyra_type_to_c("Slot<String>"), "PgySlot_String") == 0);
+    EXPECT(expect_type_to_c_copy("Slot<String>", "PgySlot_String"));
 
     TEST("Slot<Vec2> -> PgySlot_Vec2");
-    EXPECT(strcmp(pergyra_type_to_c("Slot<Vec2>"), "PgySlot_Vec2") == 0);
+    EXPECT(expect_type_to_c_copy("Slot<Vec2>", "PgySlot_Vec2"));
 
     TEST("SecureSlot<Int> -> PgySecureSlot_Int");
-    EXPECT(strcmp(pergyra_type_to_c("SecureSlot<Int>"), "PgySecureSlot_Int") == 0);
+    EXPECT(expect_type_to_c_copy("SecureSlot<Int>", "PgySecureSlot_Int"));
 
     TEST("SecureSlot<Vec2> -> PgySecureSlot_Vec2");
-    EXPECT(strcmp(pergyra_type_to_c("SecureSlot<Vec2>"), "PgySecureSlot_Vec2") == 0);
+    EXPECT(expect_type_to_c_copy("SecureSlot<Vec2>", "PgySecureSlot_Vec2"));
 
     TEST("Array<Vertex> -> PgyArray_Vertex");
-    EXPECT(strcmp(pergyra_type_to_c("Array<Vertex>"), "PgyArray_Vertex") == 0);
+    EXPECT(expect_type_to_c_copy("Array<Vertex>", "PgyArray_Vertex"));
 
     TEST("Slice<Vertex> -> PgySlice_Vertex");
-    EXPECT(strcmp(pergyra_type_to_c("Slice<Vertex>"), "PgySlice_Vertex") == 0);
+    EXPECT(expect_type_to_c_copy("Slice<Vertex>", "PgySlice_Vertex"));
 
     TEST("List<Vertex> -> PgyList_Vertex");
-    EXPECT(strcmp(pergyra_type_to_c("List<Vertex>"), "PgyList_Vertex") == 0);
+    EXPECT(expect_type_to_c_copy("List<Vertex>", "PgyList_Vertex"));
 
     TEST("Queue<Vertex> -> PgyQueue_Vertex");
-    EXPECT(strcmp(pergyra_type_to_c("Queue<Vertex>"), "PgyQueue_Vertex") == 0);
+    EXPECT(expect_type_to_c_copy("Queue<Vertex>", "PgyQueue_Vertex"));
 
     TEST("Rc<Int> -> PgyRc_Int");
-    EXPECT(strcmp(pergyra_type_to_c("Rc<Int>"), "PgyRc_Int") == 0);
+    EXPECT(expect_type_to_c_copy("Rc<Int>", "PgyRc_Int"));
 
     TEST("Weak<Int> -> PgyWeak_Int");
-    EXPECT(strcmp(pergyra_type_to_c("Weak<Int>"), "PgyWeak_Int") == 0);
+    EXPECT(expect_type_to_c_copy("Weak<Int>", "PgyWeak_Int"));
 
     TEST("Allocator -> PgyAllocator");
-    EXPECT(strcmp(pergyra_type_to_c("Allocator"), "PgyAllocator") == 0);
+    EXPECT(expect_type_to_c_copy("Allocator", "PgyAllocator"));
 
     TEST("Box<Array<Int>> -> PgyBoxArray_Int");
-    EXPECT(strcmp(pergyra_type_to_c("Box<Array<Int>>"), "PgyBoxArray_Int") == 0);
+    EXPECT(expect_type_to_c_copy("Box<Array<Int>>", "PgyBoxArray_Int"));
 
     TEST("pergyra_type_to_c_copy preserves rendered type across later mapping");
     {
@@ -111,7 +129,10 @@ test_type_mapping(void)
         bool copied_ok = pergyra_type_to_c_copy("Array<Vertex>",
             copied, sizeof(copied));
 
-        (void)pergyra_type_to_c("Slot<Int>");
+        {
+            char later[128];
+            (void)pergyra_type_to_c_copy("Slot<Int>", later, sizeof(later));
+        }
         EXPECT(copied_ok && strcmp(copied, "PgyArray_Vertex") == 0);
     }
 
@@ -124,26 +145,35 @@ test_type_mapping(void)
         EXPECT(copied[0] == '\0');
     }
 
-    TEST("Array<Unknown> keeps Unknown sentinel");
-    EXPECT(strcmp(pergyra_type_to_c("Array<Unknown>"), "Unknown") == 0);
+    TEST("Array<Unknown> fails closed");
+    EXPECT(expect_type_to_c_rejects("Array<Unknown>"));
 
-    TEST("Array<Unknown > keeps Unknown sentinel");
-    EXPECT(strcmp(pergyra_type_to_c("Array<Unknown >"), "Unknown") == 0);
+    TEST("Array<Unknown > fails closed");
+    EXPECT(expect_type_to_c_rejects("Array<Unknown >"));
 
-    TEST("HashMap<String, Unknown> keeps Unknown sentinel");
-    EXPECT(strcmp(pergyra_type_to_c("HashMap<String, Unknown>"), "Unknown") == 0);
+    TEST("HashMap<String, Unknown> fails closed");
+    EXPECT(expect_type_to_c_rejects("HashMap<String, Unknown>"));
 
-    TEST("Box<Array<Unknown>> keeps Unknown sentinel");
-    EXPECT(strcmp(pergyra_type_to_c("Box<Array<Unknown>>"), "Unknown") == 0);
+    TEST("Box<Array<Unknown>> fails closed");
+    EXPECT(expect_type_to_c_rejects("Box<Array<Unknown>>"));
 
     TEST("Box<Array<UnknownError>> keeps user type name");
-    EXPECT(strcmp(pergyra_type_to_c("Box<Array<UnknownError>>"), "PgyBoxArray_UnknownError") == 0);
+    EXPECT(expect_type_to_c_copy("Box<Array<UnknownError>>",
+        "PgyBoxArray_UnknownError"));
 
-    TEST("slot_inner_type_name(Slot<Float>) -> Float");
-    EXPECT(strcmp(slot_inner_type_name("Slot<Float>"), "Float") == 0);
+    TEST("slot_inner_type_name_copy(Slot<Float>) -> Float");
+    {
+        char inner[128];
+        EXPECT(slot_inner_type_name_copy("Slot<Float>", inner, sizeof(inner)));
+        EXPECT(strcmp(inner, "Float") == 0);
+    }
 
-    TEST("slot_inner_type_name(SecureSlot<Long>) -> Long");
-    EXPECT(strcmp(slot_inner_type_name("SecureSlot<Long>"), "Long") == 0);
+    TEST("slot_inner_type_name_copy(SecureSlot<Long>) -> Long");
+    {
+        char inner[128];
+        EXPECT(slot_inner_type_name_copy("SecureSlot<Long>", inner, sizeof(inner)));
+        EXPECT(strcmp(inner, "Long") == 0);
+    }
 }
 
 /* -----------------------------------------------------------------

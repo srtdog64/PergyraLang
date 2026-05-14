@@ -5,9 +5,12 @@ static bool
 transpiler_option_type_has_concrete_inner(const char *opt_type)
 {
     const char *inner = NULL;
+    char inner_buf[128];
     if (opt_type == NULL || strncmp(opt_type, "Option<", 7) != 0)
         return false;
-    inner = slot_inner_type_name(opt_type);
+    if (!slot_inner_type_name_copy(opt_type, inner_buf, sizeof(inner_buf)))
+        return false;
+    inner = inner_buf;
     return inner != NULL
         && inner[0] != '\0'
         && strcmp(inner, "Unknown") != 0;
@@ -89,9 +92,13 @@ emit_call_result_option_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *c
         if (strcmp(fn, "Some") == 0 && call->data.call.arg_count == 1) {
             char *arg = emit_expression(call->data.call.arguments[0], ctx);
             const char *inner = infer_expression_type_name(ctx, call->data.call.arguments[0]);
+            char inner_buf[128];
             if (inner == NULL || inner[0] == '\0'
                 || strcmp(inner, "Unknown") == 0) {
-                inner = transpiler_contextual_option_inner_type_name(ctx);
+                if (transpiler_contextual_option_inner_type_copy(ctx,
+                        inner_buf, sizeof(inner_buf))) {
+                    inner = inner_buf;
+                }
             }
             if (inner == NULL || inner[0] == '\0'
                 || strcmp(inner, "Unknown") == 0) {
@@ -122,7 +129,10 @@ emit_call_result_option_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *c
                 return pergyra_strdup("false");
             }
             char *arg = emit_expression(call->data.call.arguments[0], ctx);
-            const char *inner = slot_inner_type_name(opt_type);
+            char inner_buf[128];
+            const char *inner = inner_buf;
+            (void)slot_inner_type_name_copy(opt_type, inner_buf,
+                sizeof(inner_buf));
             char *result = strdup_fmt("IsSome_%s(%s)", inner, arg);
             free(arg);
             return result;
@@ -139,7 +149,10 @@ emit_call_result_option_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *c
                 return pergyra_strdup("false");
             }
             char *arg = emit_expression(call->data.call.arguments[0], ctx);
-            const char *inner = slot_inner_type_name(opt_type);
+            char inner_buf[128];
+            const char *inner = inner_buf;
+            (void)slot_inner_type_name_copy(opt_type, inner_buf,
+                sizeof(inner_buf));
             char *result = strdup_fmt("IsNone_%s(%s)", inner, arg);
             free(arg);
             return result;
@@ -156,7 +169,10 @@ emit_call_result_option_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *c
                 return pergyra_strdup("0");
             }
             char *arg = emit_expression(call->data.call.arguments[0], ctx);
-            const char *inner = slot_inner_type_name(opt_type);
+            char inner_buf[128];
+            const char *inner = inner_buf;
+            (void)slot_inner_type_name_copy(opt_type, inner_buf,
+                sizeof(inner_buf));
             char *result = strdup_fmt("UnwrapOption_%s(%s)", inner, arg);
             free(arg);
             return result;

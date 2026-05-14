@@ -98,7 +98,7 @@ hir_node_name(ASTNode *node)
         case AST_WORLD_DECL:
             return ast_world_name(node);
         case AST_INTENT_DECL:
-            return node->data.intent_decl.name;
+            return ast_intent_decl_name(node);
         case AST_RELATION_DECL:
             return ast_relation_name(node);
         case AST_EFFECT_DECL:

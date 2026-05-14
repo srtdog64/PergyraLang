@@ -116,12 +116,15 @@ emit_enum_decl_stmt(ASTNode *node, TranspilerCtx *ctx)
                 codebuf_write(ctx->out, "        struct { ");
                 for (size_t p = 0; p < pc; p++) {
                     ASTNode *pt = ast_enum_variant_param(node, i, p);
-                    const char *ctype = transpiler_require_ast_c_type(
-                        ctx,
-                        pt,
-                        "enum variant payload field");
-                    if (ctype == NULL)
+                    char ctype[256];
+                    if (!transpiler_require_ast_c_type_copy(
+                            ctx,
+                            pt,
+                            "enum variant payload field",
+                            ctype,
+                            sizeof(ctype))) {
                         return;
+                    }
                     codebuf_write(ctx->out, "%s _%zu; ", ctype, p);
                 }
                 codebuf_write(ctx->out, "} %s;\n",
@@ -148,12 +151,15 @@ emit_enum_decl_stmt(ASTNode *node, TranspilerCtx *ctx)
                         "static inline %s %s_%s(", ename, ename, vname);
                     for (size_t p = 0; p < pc; p++) {
                         ASTNode *pt = ast_enum_variant_param(node, i, p);
-                        const char *ctype = transpiler_require_ast_c_type(
-                            ctx,
-                            pt,
-                            "enum variant constructor parameter");
-                        if (ctype == NULL)
+                        char ctype[256];
+                        if (!transpiler_require_ast_c_type_copy(
+                                ctx,
+                                pt,
+                                "enum variant constructor parameter",
+                                ctype,
+                                sizeof(ctype))) {
                             return;
+                        }
                         if (p > 0) codebuf_write(ctx->out, ", ");
                         codebuf_write(ctx->out, "%s _%zu", ctype, p);
                     }
@@ -213,9 +219,14 @@ emit_enum_decl_stmt(ASTNode *node, TranspilerCtx *ctx)
                 continue;
             }
 
+            char ret_type_buf[256];
             const char *ret_type = "void";
-            if (method->data.func_decl.return_type != NULL)
-                ret_type = pergyra_ast_type_to_c(method->data.func_decl.return_type);
+            if (method->data.func_decl.return_type != NULL
+                && pergyra_ast_type_to_c_copy(method->data.func_decl.return_type,
+                    ret_type_buf,
+                    sizeof(ret_type_buf))) {
+                ret_type = ret_type_buf;
+            }
 
             codebuf_write(ctx->out, "\n%s\n%s_%s(%s self",
                           ret_type, ename, method_name, ename);
@@ -223,7 +234,7 @@ emit_enum_decl_stmt(ASTNode *node, TranspilerCtx *ctx)
                 FuncParam *p = method->data.func_decl.params[j];
                 if (p == NULL || p->name == NULL || strcmp(p->name, "self") == 0)
                     continue;
-                const char *pt = NULL;
+                char pt[256];
                 char surface_desc[256];
                 if (!transpiler_enum_method_surface_desc(surface_desc,
                         sizeof(surface_desc), ename, method_name,
@@ -232,9 +243,13 @@ emit_enum_decl_stmt(ASTNode *node, TranspilerCtx *ctx)
                         ctx, "enum method parameter diagnostic surface");
                     return;
                 }
-                pt = transpiler_require_ast_c_type(ctx, p != NULL ? p->type : NULL, surface_desc);
-                if (pt == NULL)
+                if (!transpiler_require_ast_c_type_copy(ctx,
+                        p != NULL ? p->type : NULL,
+                        surface_desc,
+                        pt,
+                        sizeof(pt))) {
                     return;
+                }
                 codebuf_write(ctx->out, ", %s %s", pt, p->name);
             }
             codebuf_write(ctx->out, ")\n{\n");

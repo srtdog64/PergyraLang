@@ -313,36 +313,43 @@ hir_append_role_impl_method_routines(HIRProgram *hir, size_t decl_id, ASTNode *r
 static bool
 hir_collect_intent_calls(ASTNode *intent, HIRRoutine *routine)
 {
+    ASTNode *priority_expr = ast_intent_decl_priority_expr(intent);
+    ASTNode *success_expr = ast_intent_decl_success_expr(intent);
+    ASTNode *failure_expr = ast_intent_decl_failure_expr(intent);
+    ASTNode **steps;
+    size_t step_count;
+
     if (!hir_collect_intent_signature_refs(intent,
                                            &routine->signature_type_refs,
                                            &routine->signature_type_ref_count,
                                            &routine->signature_type_ref_capacity)) {
         return false;
     }
-    if (intent->data.intent_decl.priority_expr != NULL
-        && !hir_collect_direct_calls(intent->data.intent_decl.priority_expr,
+    steps = ast_intent_decl_steps(intent, &step_count);
+    if (priority_expr != NULL
+        && !hir_collect_direct_calls(priority_expr,
                                      &routine->direct_calls,
                                      &routine->direct_call_count,
                                      &routine->direct_call_capacity)) {
         return false;
     }
-    if (intent->data.intent_decl.success_expr != NULL
-        && !hir_collect_direct_calls(intent->data.intent_decl.success_expr,
+    if (success_expr != NULL
+        && !hir_collect_direct_calls(success_expr,
                                      &routine->direct_calls,
                                      &routine->direct_call_count,
                                      &routine->direct_call_capacity)) {
         return false;
     }
-    if (intent->data.intent_decl.failure_expr != NULL
-        && !hir_collect_direct_calls(intent->data.intent_decl.failure_expr,
+    if (failure_expr != NULL
+        && !hir_collect_direct_calls(failure_expr,
                                      &routine->direct_calls,
                                      &routine->direct_call_count,
                                      &routine->direct_call_capacity)) {
         return false;
     }
 
-    for (size_t i = 0; i < intent->data.intent_decl.step_count; i++) {
-        ASTNode *step = intent->data.intent_decl.steps[i];
+    for (size_t i = 0; i < step_count; i++) {
+        ASTNode *step = steps[i];
         if (step == NULL || step->type != AST_INTENT_STEP)
             continue;
         if (!hir_collect_direct_calls(ast_intent_step_using_expr(step),
@@ -390,7 +397,7 @@ hir_collect_intent_calls(ASTNode *intent, HIRRoutine *routine)
                 return false;
         }
     }
-    routine->has_control_flow = intent->data.intent_decl.step_count > 1
+    routine->has_control_flow = step_count > 1
                                 || routine->direct_call_count > 0;
     if (!hir_lower_intent_cfg(intent, routine))
         return false;

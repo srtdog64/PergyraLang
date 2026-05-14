@@ -32,45 +32,56 @@ void
 semantic_type_resolution_precollect_intent_inventory(ASTNode *intent_decl,
                                                      SemanticContext *ctx)
 {
+    ASTNode **involves_nodes;
+    size_t involve_count;
+    ASTNode **values;
+    size_t value_count;
+    ASTNode **steps;
+    size_t step_count;
+    const char *intent_name;
+
     if (intent_decl == NULL || intent_decl->type != AST_INTENT_DECL || ctx == NULL)
         return;
+    intent_name = ast_intent_decl_name(intent_decl);
 
-    for (size_t i = 0; i < intent_decl->data.intent_decl.involve_count; i++) {
-        ASTNode *involves = intent_decl->data.intent_decl.involves[i];
+    involves_nodes = ast_intent_decl_involves(intent_decl, &involve_count);
+    for (size_t i = 0; i < involve_count; i++) {
+        ASTNode *involves = involves_nodes[i];
         if (involves == NULL || involves->type != AST_INTENT_INVOLVES)
             continue;
         semantic_type_resolution_collect_type_refs(
-            involves->data.intent_involves.subject_type,
+            ast_intent_involves_subject_type(involves),
             ctx,
             involves,
-            involves->data.intent_involves.alias != NULL
-                ? involves->data.intent_involves.alias : "<intent-binding>",
+            ast_intent_involves_alias(involves) != NULL
+                ? ast_intent_involves_alias(involves) : "<intent-binding>",
             "intent involves type lookup");
     }
 
-    for (size_t i = 0; i < intent_decl->data.intent_decl.value_count; i++) {
-        ASTNode *value = intent_decl->data.intent_decl.values[i];
+    values = ast_intent_decl_values(intent_decl, &value_count);
+    for (size_t i = 0; i < value_count; i++) {
+        ASTNode *value = values[i];
         if (value == NULL || value->type != AST_INTENT_VALUE)
             continue;
         semantic_type_resolution_collect_type_refs(
-            value->data.intent_value.value_type,
+            ast_intent_value_type(value),
             ctx,
             value,
-            value->data.intent_value.alias != NULL
-                ? value->data.intent_value.alias : "<intent-value>",
+            ast_intent_value_alias(value) != NULL
+                ? ast_intent_value_alias(value) : "<intent-value>",
             "intent value type lookup");
     }
 
     semantic_type_resolution_collect_type_refs(
-        intent_decl->data.intent_decl.default_where_type,
+        ast_intent_decl_default_where_type(intent_decl),
         ctx,
         intent_decl,
-        intent_decl->data.intent_decl.name != NULL
-            ? intent_decl->data.intent_decl.name : "<intent>",
+        intent_name != NULL ? intent_name : "<intent>",
         "intent default where-type lookup");
 
-    for (size_t i = 0; i < intent_decl->data.intent_decl.step_count; i++) {
-        ASTNode *step = intent_decl->data.intent_decl.steps[i];
+    steps = ast_intent_decl_steps(intent_decl, &step_count);
+    for (size_t i = 0; i < step_count; i++) {
+        ASTNode *step = steps[i];
         char *step_consumer_name;
 
         if (step == NULL || step->type != AST_INTENT_STEP)
@@ -78,8 +89,7 @@ semantic_type_resolution_precollect_intent_inventory(ASTNode *intent_decl,
 
         step_consumer_name = resolution_intent_strdup_fmt(
             "intent %s.%s",
-            intent_decl->data.intent_decl.name != NULL
-                ? intent_decl->data.intent_decl.name : "<intent>",
+            intent_name != NULL ? intent_name : "<intent>",
             ast_intent_step_name(step) != NULL
                 ? ast_intent_step_name(step) : "<step>");
         if (step_consumer_name == NULL)

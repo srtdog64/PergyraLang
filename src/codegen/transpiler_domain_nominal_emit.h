@@ -61,18 +61,18 @@ emit_included_role_method_wrapper(const char *role_name,
 
     method_name = method->data.func_decl.name;
     if (method->data.func_decl.return_type != NULL) {
-        snprintf(ret_type_storage,
-                 sizeof(ret_type_storage),
-                 "%s",
-                 pergyra_ast_type_to_c(method->data.func_decl.return_type));
-        ret_type = ret_type_storage;
+        if (pergyra_ast_type_to_c_copy(method->data.func_decl.return_type,
+                ret_type_storage,
+                sizeof(ret_type_storage))) {
+            ret_type = ret_type_storage;
+        }
     }
 
     codebuf_write(ctx->out, "\nstatic %s\n%s_%s(void *_raw_self",
                   ret_type, role_name, method_name);
     for (size_t i = 0; i < method->data.func_decl.param_count; i++) {
         FuncParam *param = method->data.func_decl.params[i];
-        const char *param_type;
+        char param_type[256];
         char *param_type_name = NULL;
         bool pointer_param = false;
         char surface_desc[256];
@@ -87,10 +87,11 @@ emit_included_role_method_wrapper(const char *role_name,
                 ctx, "included role method parameter");
             return;
         }
-        param_type = transpiler_require_ast_c_type(
-            ctx, param->type, surface_desc);
-        if (param_type == NULL)
+        if (!transpiler_require_ast_c_type_copy(
+                ctx, param->type, surface_desc,
+                param_type, sizeof(param_type))) {
             return;
+        }
         if (param->type != NULL)
             param_type_name = render_type_name(param->type);
         pointer_param = param_type_name != NULL
@@ -192,9 +193,14 @@ emit_ability_decl(ASTNode *node, TranspilerCtx *ctx)
             continue;
 
         const char *method_name = method->data.func_decl.name;
+        char ret_type_buf[256];
         const char *ret_type = "void";
-        if (method->data.func_decl.return_type != NULL)
-            ret_type = pergyra_ast_type_to_c(method->data.func_decl.return_type);
+        if (method->data.func_decl.return_type != NULL
+            && pergyra_ast_type_to_c_copy(method->data.func_decl.return_type,
+                ret_type_buf,
+                sizeof(ret_type_buf))) {
+            ret_type = ret_type_buf;
+        }
 
         codebuf_write(ctx->out, "    %s (*%s)(void *self", ret_type, method_name);
 
@@ -205,7 +211,7 @@ emit_ability_decl(ASTNode *node, TranspilerCtx *ctx)
                 continue;
             if (strcmp(p->name, "self") == 0 && p->type == NULL)
                 continue;
-            const char *pt = NULL;
+            char pt[256];
             bool pointer_param = false;
             char surface_desc[256];
             if (!transpiler_domain_nominal_surface_desc(surface_desc,
@@ -216,9 +222,13 @@ emit_ability_decl(ASTNode *node, TranspilerCtx *ctx)
                     ctx, "ability method parameter");
                 return;
             }
-            pt = transpiler_require_ast_c_type(ctx, p != NULL ? p->type : NULL, surface_desc);
-            if (pt == NULL)
+            if (!transpiler_require_ast_c_type_copy(ctx,
+                    p != NULL ? p->type : NULL,
+                    surface_desc,
+                    pt,
+                    sizeof(pt))) {
                 return;
+            }
             if (p != NULL && p->type != NULL)
                 param_name = render_type_name(p->type);
             pointer_param = param_name != NULL
@@ -277,9 +287,14 @@ emit_role_decl(ASTNode *node, TranspilerCtx *ctx)
                 continue;
 
             const char *method_name = func->data.func_decl.name;
+            char ret_type_buf[256];
             const char *ret_type = "void";
-            if (func->data.func_decl.return_type != NULL)
-                ret_type = pergyra_ast_type_to_c(func->data.func_decl.return_type);
+            if (func->data.func_decl.return_type != NULL
+                && pergyra_ast_type_to_c_copy(func->data.func_decl.return_type,
+                    ret_type_buf,
+                    sizeof(ret_type_buf))) {
+                ret_type = ret_type_buf;
+            }
 
             codebuf_write(ctx->out, "\nstatic %s\n%s_%s(void *self",
                           ret_type, name, method_name);
@@ -290,7 +305,7 @@ emit_role_decl(ASTNode *node, TranspilerCtx *ctx)
                     continue;
                 if (strcmp(p->name, "self") == 0 && p->type == NULL)
                     continue;
-                const char *pt = NULL;
+                char pt[256];
                 char surface_desc[256];
                 if (!transpiler_domain_nominal_surface_desc(surface_desc,
                         sizeof(surface_desc), "role override parameter",
@@ -300,9 +315,13 @@ emit_role_decl(ASTNode *node, TranspilerCtx *ctx)
                         ctx, "role override parameter");
                     return;
                 }
-                pt = transpiler_require_ast_c_type(ctx, p != NULL ? p->type : NULL, surface_desc);
-                if (pt == NULL)
+                if (!transpiler_require_ast_c_type_copy(ctx,
+                        p != NULL ? p->type : NULL,
+                        surface_desc,
+                        pt,
+                        sizeof(pt))) {
                     return;
+                }
                 codebuf_write(ctx->out, ", %s %s", pt, p->name);
             }
             codebuf_write(ctx->out, ")\n{\n");
@@ -381,7 +400,7 @@ emit_party_decl(ASTNode *node, TranspilerCtx *ctx)
     /* Shared fields */
     for (size_t i = 0; i < ast_party_shared_count(node); i++) {
         ASTNode *shared = ast_party_shared(node, i);
-        const char *ft = NULL;
+        char ft[256];
         char surface_desc[256];
         if (!transpiler_domain_nominal_surface_desc(surface_desc,
                 sizeof(surface_desc), "party shared field", name,
@@ -391,12 +410,14 @@ emit_party_decl(ASTNode *node, TranspilerCtx *ctx)
                 ctx, "party shared field");
             return;
         }
-        ft = transpiler_require_ast_c_type(
-            ctx,
-            ast_party_shared_type(shared),
-            surface_desc);
-        if (ft == NULL)
+        if (!transpiler_require_ast_c_type_copy(
+                ctx,
+                ast_party_shared_type(shared),
+                surface_desc,
+                ft,
+                sizeof(ft))) {
             return;
+        }
         codebuf_write(ctx->out, "    %s %s;\n", ft,
             ast_party_shared_name(shared));
     }

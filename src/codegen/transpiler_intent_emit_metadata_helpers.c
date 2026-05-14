@@ -19,10 +19,14 @@ ASTNode *
 transpiler_find_intent_step_source_by_name(ASTNode *intent,
                                            const char *step_name)
 {
+    ASTNode **steps;
+    size_t step_count;
+
     if (intent == NULL || intent->type != AST_INTENT_DECL || step_name == NULL)
         return NULL;
-    for (size_t i = 0; i < intent->data.intent_decl.step_count; i++) {
-        ASTNode *step = intent->data.intent_decl.steps[i];
+    steps = ast_intent_decl_steps(intent, &step_count);
+    for (size_t i = 0; i < step_count; i++) {
+        ASTNode *step = steps[i];
         if (step == NULL || step->type != AST_INTENT_STEP
             || ast_intent_step_name(step) == NULL) {
             continue;

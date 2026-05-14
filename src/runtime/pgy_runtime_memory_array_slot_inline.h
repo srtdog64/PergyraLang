@@ -101,37 +101,71 @@ pgy_arena_create(size_t capacity)
 static inline void
 pgy_arena_destroy(PgyArena* arena)
 {
+    if (arena == NULL)
+        return;
     if (arena->buffer != NULL) {
         free(arena->buffer);
         arena->buffer = NULL;
     }
+    arena->capacity = 0;
+    arena->offset = 0;
 }
 
 static inline void*
 pgy_arena_alloc(PgyArena* arena, size_t size, size_t align)
 {
-    /* Align the current offset */
-    size_t aligned_offset = (arena->offset + align - 1) & ~(align - 1);
+    size_t align_mask;
+    size_t aligned_offset;
 
-    if (aligned_offset + size > arena->capacity) {
+    if (arena == NULL || align == 0 || (align & (align - 1)) != 0) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "invalid arena or alignment");
+    }
+
+    align_mask = align - 1;
+    if (arena->offset > SIZE_MAX - align_mask) {
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OOM,
                           PGY_RUNTIME_PANIC_REASON_ARENA_OUT_OF_MEMORY);
     }
 
-    void* ptr = arena->buffer + aligned_offset;
+    aligned_offset = (arena->offset + align_mask) & ~align_mask;
+    if (aligned_offset > arena->capacity ||
+        size > arena->capacity - aligned_offset) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OOM,
+                          PGY_RUNTIME_PANIC_REASON_ARENA_OUT_OF_MEMORY);
+    }
+    if (arena->buffer == NULL && size > 0) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT,
+                          "arena has no backing buffer");
+    }
+
+    void* ptr = size == 0 ? NULL : arena->buffer + aligned_offset;
     arena->offset = aligned_offset + size;
     return ptr;
+}
+
+static inline void*
+pgy_arena_alloc_array(PgyArena* arena, size_t elem_size, size_t align,
+                      size_t count)
+{
+    if (count > 0 && elem_size > SIZE_MAX / count) {
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OOM,
+                          PGY_RUNTIME_PANIC_REASON_ARENA_OUT_OF_MEMORY);
+    }
+    return pgy_arena_alloc(arena, elem_size * count, align);
 }
 
 #define PGY_ARENA_ALLOC(arena, Type) \
     ((Type*)pgy_arena_alloc((arena), sizeof(Type), _Alignof(Type)))
 
 #define PGY_ARENA_ALLOC_ARRAY(arena, Type, count) \
-    ((Type*)pgy_arena_alloc((arena), sizeof(Type) * (count), _Alignof(Type)))
+    ((Type*)pgy_arena_alloc_array((arena), sizeof(Type), _Alignof(Type), (count)))
 
 static inline void
 pgy_arena_reset(PgyArena* arena)
 {
+    if (arena == NULL)
+        return;
     arena->offset = 0;
 }
 
@@ -265,10 +299,16 @@ static inline PgySlice_##SuffixName \
 pgy_array_slice_##SuffixName(PgyArray_##SuffixName *arr, size_t start, size_t len) \
 { \
     PgySlice_##SuffixName slice; \
-    if (start + len > arr->length) \
+    if (arr == NULL) \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, \
+                          "slice on null array"); \
+    if (start > arr->length || len > arr->length - start) \
         PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OUT_OF_BOUNDS, \
                           PGY_RUNTIME_PANIC_REASON_SLICE_OUT_OF_BOUNDS); \
-    slice.data = arr->data + start; \
+    if (len > 0 && arr->data == NULL) \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_INTERNAL_INVARIANT, \
+                          "slice on array without backing storage"); \
+    slice.data = len == 0 ? NULL : arr->data + start; \
     slice.length = len; \
     return slice; \
 }
@@ -392,7 +432,11 @@ typedef struct { \
 static inline PgyBoxArray_##SuffixName \
 pgy_box_array_new_##SuffixName(size_t capacity, PgyAllocator *alloc) \
 { \
-    size_t bytes = sizeof(PgyBoxArrayStorage_##SuffixName) + sizeof(CType) * capacity; \
+    size_t bytes; \
+    if (capacity > (SIZE_MAX - sizeof(PgyBoxArrayStorage_##SuffixName)) / sizeof(CType)) \
+        PGY_RUNTIME_PANIC(PGY_RUNTIME_PANIC_CLASS_OOM, \
+                          PGY_RUNTIME_PANIC_REASON_ALLOCATION_FAILED); \
+    bytes = sizeof(PgyBoxArrayStorage_##SuffixName) + sizeof(CType) * capacity; \
     PgyBoxArrayStorage_##SuffixName *storage = \
         (PgyBoxArrayStorage_##SuffixName*)pgy_alloc(alloc, bytes, _Alignof(PgyBoxArrayStorage_##SuffixName)); \
     storage->array.data = storage->storage; \

@@ -60,40 +60,48 @@ set_slot_token_name(TranspilerCtx *ctx, const char *slot_name,
     }
 }
 
-const char *
-lookup_slot_type(TranspilerCtx *ctx, const char *var_name)
+bool
+lookup_slot_type_copy(TranspilerCtx *ctx, const char *var_name,
+                      char *out, size_t out_size)
 {
-    const char *typed_name;
+    const char *type_name;
+
+    if (out == NULL || out_size == 0)
+        return false;
+    out[0] = '\0';
 
     if (ctx == NULL || var_name == NULL)
-        return NULL;
+        return false;
 
     if (ctx->last_slot_var_index >= 0
         && ctx->last_slot_var_index < ctx->slot_var_count
         && strcmp(ctx->slot_vars[ctx->last_slot_var_index].name, var_name) == 0) {
-        return ctx->slot_vars[ctx->last_slot_var_index].inner_type;
+        return pergyra_str_copy(out, out_size,
+            ctx->slot_vars[ctx->last_slot_var_index].inner_type);
     }
 
     for (int i = 0; i < ctx->slot_var_count; i++) {
         if (strcmp(ctx->slot_vars[i].name, var_name) == 0) {
             ctx->last_slot_var_index = i;
-            return ctx->slot_vars[i].inner_type;
+            return pergyra_str_copy(out, out_size,
+                ctx->slot_vars[i].inner_type);
         }
     }
-    typed_name = lookup_typed_var(ctx, var_name);
-    if (typed_name != NULL) {
-        if (pgy_codegen_type_name_is_slot_family(typed_name)) {
-            return slot_inner_type_name(typed_name);
-        }
-        return typed_name;
+    type_name = lookup_typed_var(ctx, var_name);
+    if (type_name != NULL) {
+        if (pgy_codegen_type_name_is_slot_family(type_name))
+            return slot_inner_type_name_copy(type_name, out, out_size);
+        return pergyra_str_copy(out, out_size, type_name);
     }
     if (ctx->active_type_hint != NULL) {
         if (pgy_codegen_type_name_is_slot_family(ctx->active_type_hint)) {
-            return slot_inner_type_name(ctx->active_type_hint);
+            return slot_inner_type_name_copy(ctx->active_type_hint,
+                out,
+                out_size);
         }
-        return ctx->active_type_hint;
+        return pergyra_str_copy(out, out_size, ctx->active_type_hint);
     }
-    return NULL;
+    return false;
 }
 
 bool

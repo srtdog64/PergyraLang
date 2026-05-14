@@ -95,7 +95,7 @@ emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
 
     for (size_t i = 0; i < field_count; i++) {
         ClassField *f = fields != NULL ? fields[i] : NULL;
-        const char *ft = NULL;
+        char ft[256];
         char surface_desc[256];
         if (!transpiler_class_surface_desc(surface_desc,
                 sizeof(surface_desc), "class field", name,
@@ -103,9 +103,13 @@ emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
             transpiler_class_format_too_long(ctx, "class field diagnostic surface");
             return;
         }
-        ft = transpiler_require_ast_c_type(ctx, f != NULL ? f->type : NULL, surface_desc);
-        if (ft == NULL)
+        if (!transpiler_require_ast_c_type_copy(ctx,
+                f != NULL ? f->type : NULL,
+                surface_desc,
+                ft,
+                sizeof(ft))) {
             return;
+        }
         codebuf_write(ctx->out, "    %s %s;\n", ft, f->name);
     }
 
@@ -172,9 +176,14 @@ emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
             continue;
         }
 
+        char ret_type_buf[256];
         const char *ret_type = "void";
-        if (method->data.func_decl.return_type != NULL)
-            ret_type = pergyra_ast_type_to_c(method->data.func_decl.return_type);
+        if (method->data.func_decl.return_type != NULL
+            && pergyra_ast_type_to_c_copy(method->data.func_decl.return_type,
+                ret_type_buf,
+                sizeof(ret_type_buf))) {
+            ret_type = ret_type_buf;
+        }
 
         if (use_self_cell) {
             codebuf_write(ctx->out, "\n%s\n%s_%s(%s *self",
@@ -190,7 +199,7 @@ emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
                 continue;
             if (strcmp(p->name, "self") == 0)
                 continue;
-            const char *pt = NULL;
+            char pt[256];
             char surface_desc[256];
             if (!transpiler_class_surface_desc(surface_desc,
                     sizeof(surface_desc), "class method parameter", name,
@@ -199,9 +208,13 @@ emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
                     ctx, "class method parameter diagnostic surface");
                 return;
             }
-            pt = transpiler_require_ast_c_type(ctx, p != NULL ? p->type : NULL, surface_desc);
-            if (pt == NULL)
+            if (!transpiler_require_ast_c_type_copy(ctx,
+                    p != NULL ? p->type : NULL,
+                    surface_desc,
+                    pt,
+                    sizeof(pt))) {
                 return;
+            }
             {
                 char *ptn = (p->type != NULL) ? render_type_name(p->type) : NULL;
                 bool subj_param = ptn != NULL && is_pointer_self_host_type_name(ctx, ptn);

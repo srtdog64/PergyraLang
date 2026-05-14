@@ -96,26 +96,32 @@ char *pgy_read_file(const char *path)
         return pgy_runtime_lib_strdup("");
 
     FILE *fp = fopen(resolved, "rb");
-    if (fp == NULL)
+    if (fp == NULL) {
+        free(resolved);
         return pgy_runtime_lib_strdup("");
+    }
 
     if (fseek(fp, 0, SEEK_END) != 0) {
         fclose(fp);
+        free(resolved);
         return pgy_runtime_lib_strdup("");
     }
     long len = ftell(fp);
     if (len < 0 || (unsigned long)len > (unsigned long)PGY_RUNTIME_MAX_FILE_BYTES) {
         fclose(fp);
+        free(resolved);
         return pgy_runtime_lib_strdup("");
     }
     if (fseek(fp, 0, SEEK_SET) != 0) {
         fclose(fp);
+        free(resolved);
         return pgy_runtime_lib_strdup("");
     }
 
     char *buf = (char *)malloc((size_t)len + 1);
     if (buf == NULL) {
         fclose(fp);
+        free(resolved);
         return pgy_runtime_lib_strdup("");
     }
 
@@ -138,8 +144,10 @@ void pgy_write_file(const char *path, const char *data)
     if (resolved == NULL)
         return;
     FILE *fp = fopen(resolved, "wb");
-    if (fp == NULL)
+    if (fp == NULL) {
+        free(resolved);
         return;
+    }
     if (data != NULL) {
         size_t len = strlen(data);
         (void)fwrite(data, 1, len, fp);
@@ -189,7 +197,7 @@ char *Substring(const char *s, int32_t start, int32_t len)
     int32_t slen = (int32_t)strlen(s);
     if (start < 0 || start >= slen || len <= 0)
         return pgy_runtime_lib_strdup("");
-    if (start + len > slen)
+    if (len > slen - start)
         len = slen - start;
 
     char *buf = (char *)malloc((size_t)len + 1);
@@ -217,7 +225,19 @@ char *StringReplace(const char *s, const char *old_str, const char *new_str)
         p += old_len;
     }
 
-    size_t result_len = strlen(s) + (size_t)count * (new_len - old_len);
+    size_t source_len = strlen(s);
+    size_t result_len;
+    if (new_len > old_len) {
+        size_t delta = new_len - old_len;
+        if ((size_t)count > (((size_t)-1) - source_len) / delta)
+            return pgy_runtime_lib_strdup("");
+        result_len = source_len + (size_t)count * delta;
+    } else if (new_len == old_len) {
+        result_len = source_len;
+    } else {
+        size_t delta = old_len - new_len;
+        result_len = source_len - (size_t)count * delta;
+    }
     char *result = (char *)malloc(result_len + 1);
     char *dst = result;
 
@@ -297,6 +317,8 @@ char *StringConcat(const char *a, const char *b)
 
     size_t la = strlen(a);
     size_t lb = strlen(b);
+    if (la > ((size_t)-1) - lb || la + lb > ((size_t)-1) - 1)
+        return pgy_runtime_lib_strdup("");
     char *buf = (char *)malloc(la + lb + 1);
     if (buf == NULL)
         return pgy_runtime_lib_strdup("");

@@ -7,6 +7,7 @@
 #define PERGYRA_TRANSPILER_SLOT_TARGET_H
 
 #include <stdbool.h>
+#include <stddef.h>
 
 #include "transpiler.h"
 
@@ -15,14 +16,17 @@ void transpiler_refine_slot_target_from_emitted_expr(TranspilerCtx *ctx,
                                                      const char *slot_expr,
                                                      const char **slot_name_io,
                                                      bool *secure_io);
-bool transpiler_resolve_slot_target(TranspilerCtx *ctx,
-                                    ASTNode *slot_arg,
-                                    const char **inner_out,
-                                    const char **slot_name_out,
-                                    bool *secure_out);
-const char *transpiler_resolve_device_slot_inner_or_error(
+bool transpiler_resolve_slot_target_copy(TranspilerCtx *ctx,
+                                         ASTNode *slot_arg,
+                                         char *inner_out,
+                                         size_t inner_out_size,
+                                         const char **slot_name_out,
+                                         bool *secure_out);
+bool transpiler_resolve_device_slot_inner_copy_or_error(
     TranspilerCtx *ctx,
     ASTNode *slot_arg,
-    const char *operation);
+    const char *operation,
+    char *inner_out,
+    size_t inner_out_size);
 
 #endif /* PERGYRA_TRANSPILER_SLOT_TARGET_H */

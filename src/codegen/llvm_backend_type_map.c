@@ -21,26 +21,6 @@ LLVMTypeRef pergyra_type_to_llvm(LLVMGenCtx *ctx, const char *type_name);
  * Pergyra type → LLVM type mapping
  * ================================================================= */
 
-static const char *
-llvm_required_constructed_arg_name_at(LLVMGenCtx *ctx, const char *type_name,
-                                      int arg_index, const char *container_name)
-{
-    const char *arg = llvm_constructed_arg_name_at(type_name, arg_index);
-    if (arg != NULL && arg[0] != '\0')
-        return arg;
-    if (ctx != NULL && !ctx->has_error) {
-        llvm_set_error_with_hints(ctx,
-            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
-            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
-            PGY_FIX_ANNOTATE_CONCRETE_TYPE,
-            "%s requires explicit concrete type argument %d while lowering '%s'",
-            container_name != NULL ? container_name : "generic type",
-            arg_index + 1,
-            type_name != NULL ? type_name : "<null>");
-    }
-    return NULL;
-}
-
 /* Resolve inner type for generic containers: "Result<Int>" → i32 */
 static bool
 llvm_required_constructed_arg_name_copy(LLVMGenCtx *ctx,
@@ -50,14 +30,11 @@ llvm_required_constructed_arg_name_copy(LLVMGenCtx *ctx,
                                         char *out,
                                         size_t out_size)
 {
-    const char *arg = llvm_required_constructed_arg_name_at(
-        ctx, type_name, arg_index, container_name);
-    size_t len;
-
-    if (arg == NULL || out == NULL || out_size == 0)
+    if (out == NULL || out_size == 0)
         return false;
-    len = strlen(arg);
-    if (len >= out_size) {
+    out[0] = '\0';
+
+    if (!llvm_constructed_arg_name_copy(type_name, arg_index, out, out_size)) {
         if (ctx != NULL && !ctx->has_error) {
             llvm_set_error_with_hints(ctx,
                 PGY_CODE_LLVM_TYPE_UNSUPPORTED,
@@ -70,8 +47,20 @@ llvm_required_constructed_arg_name_copy(LLVMGenCtx *ctx,
         }
         return false;
     }
-    memcpy(out, arg, len + 1);
-    return true;
+    if (out[0] != '\0')
+        return true;
+
+    if (ctx != NULL && !ctx->has_error) {
+        llvm_set_error_with_hints(ctx,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+            "%s requires explicit concrete type argument %d while lowering '%s'",
+            container_name != NULL ? container_name : "generic type",
+            arg_index + 1,
+            type_name != NULL ? type_name : "<null>");
+    }
+    return false;
 }
 
 LLVMTypeRef
@@ -295,17 +284,14 @@ pergyra_type_to_llvm(LLVMGenCtx *ctx, const char *type_name)
     /* Generic container types */
     switch (kind) {
     case PGY_TK_RESULT: {
-        /* llvm_constructed_arg_name_at returns a pointer into a static
-         * scratch buffer; copy each arg immediately before the next call
-         * clobbers it. */
         char ok_name_buf[256]  = {0};
         char err_name_buf[256] = {0};
-        const char *ok_tmp  = llvm_constructed_arg_name_at(type_name, 0);
-        if (ok_tmp != NULL)
-            snprintf(ok_name_buf, sizeof(ok_name_buf), "%s", ok_tmp);
-        const char *err_tmp = llvm_constructed_arg_name_at(type_name, 1);
-        if (err_tmp != NULL)
-            snprintf(err_name_buf, sizeof(err_name_buf), "%s", err_tmp);
+        (void)llvm_constructed_arg_name_copy(type_name, 0,
+                                             ok_name_buf,
+                                             sizeof(ok_name_buf));
+        (void)llvm_constructed_arg_name_copy(type_name, 1,
+                                             err_name_buf,
+                                             sizeof(err_name_buf));
         const char *ok_name  = ok_name_buf[0]  != '\0' ? ok_name_buf  : NULL;
         const char *err_name = err_name_buf[0] != '\0' ? err_name_buf : NULL;
 
@@ -357,41 +343,46 @@ pergyra_type_to_llvm(LLVMGenCtx *ctx, const char *type_name)
         return LLVMStructTypeInContext(ctx->context, fields, 2, 0);
     }
     case PGY_TK_SLOT: {
-        const char *inner = llvm_required_constructed_arg_name_at(ctx, type_name, 0,
-            "Slot<T>");
-        if (inner == NULL)
+        char inner_buf[256];
+        if (!llvm_required_constructed_arg_name_copy(ctx, type_name, 0,
+                "Slot<T>", inner_buf, sizeof(inner_buf))) {
             return NULL;
-        return llvm_slot_struct_type(ctx, inner);
+        }
+        return llvm_slot_struct_type(ctx, inner_buf);
     }
     case PGY_TK_SECURE_SLOT: {
-        const char *inner = llvm_required_constructed_arg_name_at(ctx, type_name, 0,
-            "SecureSlot<T>");
-        if (inner == NULL)
+        char inner_buf[256];
+        if (!llvm_required_constructed_arg_name_copy(ctx, type_name, 0,
+                "SecureSlot<T>", inner_buf, sizeof(inner_buf))) {
             return NULL;
-        return llvm_secure_slot_struct_type(ctx, inner);
+        }
+        return llvm_secure_slot_struct_type(ctx, inner_buf);
     }
     case PGY_TK_DEVICE_SLOT: {
-        const char *inner = llvm_required_constructed_arg_name_at(ctx, type_name, 0,
-            "DeviceSlot<T>");
-        if (inner == NULL)
+        char inner_buf[256];
+        if (!llvm_required_constructed_arg_name_copy(ctx, type_name, 0,
+                "DeviceSlot<T>", inner_buf, sizeof(inner_buf))) {
             return NULL;
-        return llvm_slot_struct_type(ctx, inner);
+        }
+        return llvm_slot_struct_type(ctx, inner_buf);
     }
     case PGY_TK_REMOTE_FUTURE:
         return ctx->type_task_handle;
     case PGY_TK_ARRAY: {
-        const char *inner = llvm_required_constructed_arg_name_at(ctx, type_name, 0,
-            "Array<T>");
-        if (inner == NULL)
+        char inner_buf[256];
+        if (!llvm_required_constructed_arg_name_copy(ctx, type_name, 0,
+                "Array<T>", inner_buf, sizeof(inner_buf))) {
             return NULL;
-        return llvm_array_struct_type(ctx, inner);
+        }
+        return llvm_array_struct_type(ctx, inner_buf);
     }
     case PGY_TK_SLICE: {
-        const char *inner = llvm_required_constructed_arg_name_at(ctx, type_name, 0,
-            "Slice<T>");
-        if (inner == NULL)
+        char inner_buf[256];
+        if (!llvm_required_constructed_arg_name_copy(ctx, type_name, 0,
+                "Slice<T>", inner_buf, sizeof(inner_buf))) {
             return NULL;
-        return llvm_slice_struct_type(ctx, inner);
+        }
+        return llvm_slice_struct_type(ctx, inner_buf);
     }
     case PGY_TK_CHANNEL:
     case PGY_TK_BOX:

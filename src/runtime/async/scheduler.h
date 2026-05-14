@@ -91,6 +91,7 @@ void SchedulerStop(Scheduler* scheduler);
 /* Fiber scheduling */
 void SchedulerSpawn(Scheduler* scheduler, FiberStartRoutine routine, void* arg);
 void SchedulerSpawnWithPriority(Scheduler* scheduler, FiberStartRoutine routine, void* arg, uint32_t priority);
+bool SchedulerEnqueueFiberWithPriority(Scheduler* scheduler, Fiber* fiber, uint32_t priority);
 
 /* Called by fibers */
 void SchedulerYield(void);

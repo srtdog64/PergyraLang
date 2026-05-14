@@ -12,6 +12,7 @@ transpiler_try_emit_box_array_let(TranspilerCtx *ctx,
 {
     char *ann_type_name;
     const char *inner = NULL;
+    char inner_buf[64];
     char *capacity;
     char *allocator;
 
@@ -27,7 +28,6 @@ transpiler_try_emit_box_array_let(TranspilerCtx *ctx,
 
     if (ann_type_name != NULL && strncmp(ann_type_name, "Box<Array<", 10) == 0) {
         const char *close;
-        static char inner_buf[64];
         size_t len;
 
         inner = ann_type_name + 10;

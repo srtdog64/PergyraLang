@@ -68,6 +68,8 @@ intent_single_on_action(ASTNode *intent_decl,
 {
     ASTNode *matched_action = NULL;
     const char *matched_alias = NULL;
+    ASTNode **on_exprs;
+    size_t on_expr_count;
 
     if (alias_out != NULL)
         *alias_out = NULL;
@@ -75,11 +77,12 @@ intent_single_on_action(ASTNode *intent_decl,
         || step->type != AST_INTENT_STEP) {
         return NULL;
     }
+    on_exprs = ast_intent_step_on_exprs(step, &on_expr_count);
 
-    for (size_t i = 0; i < step->data.intent_step.on_expr_count; i++) {
+    for (size_t i = 0; i < on_expr_count; i++) {
         const char *alias = NULL;
         ASTNode *action_decl = intent_on_call_action(
-            intent_decl, ctx, step->data.intent_step.on_exprs[i], &alias);
+            intent_decl, ctx, on_exprs[i], &alias);
 
         if (action_decl == NULL || alias == NULL)
             return NULL;
@@ -100,11 +103,16 @@ intent_single_on_action(ASTNode *intent_decl,
 static ASTNode *
 intent_single_on_call(ASTNode *step)
 {
+    ASTNode **on_exprs;
+    size_t on_expr_count;
+
     if (step == NULL || step->type != AST_INTENT_STEP
-        || step->data.intent_step.on_expr_count != 1) {
+        || ast_intent_step_on_expr_count(step) != 1) {
         return NULL;
     }
-    return step->data.intent_step.on_exprs[0];
+    on_exprs = ast_intent_step_on_exprs(step, &on_expr_count);
+    (void)on_expr_count;
+    return on_exprs != NULL ? on_exprs[0] : NULL;
 }
 
 static bool
@@ -196,17 +204,20 @@ intent_step_derive_who_from_on_receiver(ASTNode *intent_decl,
                                         SemanticContext *ctx)
 {
     const char *matched_alias = NULL;
+    ASTNode **on_exprs;
+    size_t on_expr_count;
 
     if (intent_decl == NULL || step == NULL || ctx == NULL
         || step->type != AST_INTENT_STEP
-        || step->data.intent_step.who_count != 0) {
+        || ast_intent_step_who_count(step) != 0) {
         return;
     }
+    on_exprs = ast_intent_step_on_exprs(step, &on_expr_count);
 
-    for (size_t i = 0; i < step->data.intent_step.on_expr_count; i++) {
+    for (size_t i = 0; i < on_expr_count; i++) {
         const char *alias = NULL;
         ASTNode *action_decl = intent_on_call_action(
-            intent_decl, ctx, step->data.intent_step.on_exprs[i], &alias);
+            intent_decl, ctx, on_exprs[i], &alias);
 
         if (alias == NULL || action_decl == NULL)
             continue;
@@ -216,11 +227,8 @@ intent_step_derive_who_from_on_receiver(ASTNode *intent_decl,
     }
 
     if (matched_alias != NULL
-        && intent_semantic_append_name(&step->data.intent_step.who_names,
-               &step->data.intent_step.who_count,
-               &step->data.intent_step.who_capacity,
-               matched_alias)) {
-        step->data.intent_step.derived_who_from_on_receiver = true;
+        && ast_intent_step_append_who_name_copy(step, matched_alias)) {
+        ast_intent_step_mark_derived_who_from_on_receiver(step);
     }
 }
 
@@ -236,38 +244,37 @@ intent_step_inherit_contract_from_on_receiver(ASTNode *intent_decl,
     if (action_decl == NULL || action_decl->type != AST_FUNC_DECL)
         return;
 
-    if (step->data.intent_step.required_ability_count == 0
+    if (ast_intent_step_required_ability_count(step) == 0
         && action_decl->data.func_decl.required_ability_count > 0) {
         bool copied_all = true;
         for (size_t i = 0; i < action_decl->data.func_decl.required_ability_count; i++) {
-            if (!intent_step_append_required_ability_clone(
+            if (!ast_intent_step_append_required_ability_clone(
                     step, action_decl->data.func_decl.required_abilities[i])) {
                 copied_all = false;
                 break;
             }
         }
-        step->data.intent_step.inherited_requires_from_action = copied_all;
+        if (copied_all)
+            ast_intent_step_mark_inherited_requires_from_action(step);
     }
 
-    if (step->data.intent_step.causes_effect == NULL
+    if (ast_intent_step_causes_effect(step) == NULL
         && action_decl->data.func_decl.causes_effect != NULL) {
-        step->data.intent_step.causes_effect =
-            pergyra_strdup(action_decl->data.func_decl.causes_effect);
-        step->data.intent_step.inherited_causes_from_action =
-            (step->data.intent_step.causes_effect != NULL);
+        if (ast_intent_step_set_causes_effect_copy(step,
+                action_decl->data.func_decl.causes_effect)) {
+            ast_intent_step_mark_inherited_causes_from_action(step);
+        }
     }
 
-    if (step->data.intent_step.authorized_by_count == 0
+    if (ast_intent_step_authorized_by_count(step) == 0
         && receiver_alias != NULL) {
         const char *authorized_alias =
             intent_step_authorized_by_alias_from_action(
                 intent_decl, step, action_decl, receiver_alias);
         if (authorized_alias != NULL
-            && intent_semantic_append_name(&step->data.intent_step.authorized_by,
-               &step->data.intent_step.authorized_by_count,
-               &step->data.intent_step.authorized_by_capacity,
-               authorized_alias)) {
-            step->data.intent_step.inherited_authorized_by_from_action = true;
+            && ast_intent_step_append_authorized_by_copy(
+                step, authorized_alias)) {
+            ast_intent_step_mark_inherited_authorized_by_from_action(step);
         }
     }
 }
@@ -278,16 +285,19 @@ intent_step_derive_where_from_on_receiver(ASTNode *intent_decl,
                                           SemanticContext *ctx)
 {
     const char *matched_zone = NULL;
+    ASTNode **on_exprs;
+    size_t on_expr_count;
 
     if (intent_decl == NULL || step == NULL || ctx == NULL
         || step->type != AST_INTENT_STEP
-        || step->data.intent_step.where_type != NULL) {
+        || ast_intent_step_where_type(step) != NULL) {
         return;
     }
+    on_exprs = ast_intent_step_on_exprs(step, &on_expr_count);
 
-    for (size_t i = 0; i < step->data.intent_step.on_expr_count; i++) {
+    for (size_t i = 0; i < on_expr_count; i++) {
         ASTNode *action_decl = intent_on_call_action(
-            intent_decl, ctx, step->data.intent_step.on_exprs[i], NULL);
+            intent_decl, ctx, on_exprs[i], NULL);
         const char *zone_name;
 
         if (action_decl == NULL || action_decl->type != AST_FUNC_DECL)
@@ -300,9 +310,9 @@ intent_step_derive_where_from_on_receiver(ASTNode *intent_decl,
         matched_zone = zone_name;
     }
 
-    if (matched_zone != NULL) {
-        step->data.intent_step.where_type = ast_create_type(matched_zone);
-        step->data.intent_step.inherited_where_from_action = true;
+    if (matched_zone != NULL
+        && ast_intent_step_set_where_type(step, ast_create_type(matched_zone))) {
+        ast_intent_step_mark_inherited_where_from_action(step);
     }
 }
 
@@ -313,16 +323,19 @@ intent_step_report_on_action_zone_conflict(ASTNode *intent_decl,
 {
     const char *first_zone = NULL;
     const char *second_zone = NULL;
+    ASTNode **on_exprs;
+    size_t on_expr_count;
 
     if (intent_decl == NULL || step == NULL || ctx == NULL
         || step->type != AST_INTENT_STEP
-        || step->data.intent_step.where_type != NULL) {
+        || ast_intent_step_where_type(step) != NULL) {
         return false;
     }
+    on_exprs = ast_intent_step_on_exprs(step, &on_expr_count);
 
-    for (size_t i = 0; i < step->data.intent_step.on_expr_count; i++) {
+    for (size_t i = 0; i < on_expr_count; i++) {
         ASTNode *action_decl = intent_on_call_action(
-            intent_decl, ctx, step->data.intent_step.on_exprs[i], NULL);
+            intent_decl, ctx, on_exprs[i], NULL);
         const char *zone_name;
 
         if (action_decl == NULL || action_decl->type != AST_FUNC_DECL)
@@ -355,7 +368,8 @@ intent_step_report_on_action_zone_conflict(ASTNode *intent_decl,
         "Fix:\n"
         "- add an explicit 'where: <Zone>;' and matching 'using: <zoneAlias>;'\n"
         "- or split the on-calls into separate intent steps with one zone each",
-        step->data.intent_step.name != NULL ? step->data.intent_step.name : "<step>",
+        ast_intent_step_name(step) != NULL
+            ? ast_intent_step_name(step) : "<step>",
         first_zone,
         second_zone);
     return true;

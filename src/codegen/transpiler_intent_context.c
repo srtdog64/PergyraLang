@@ -11,13 +11,17 @@
 ASTNode *
 find_intent_participant_local(ASTNode *intent, const char *alias)
 {
+    ASTNode **involves_nodes;
+    size_t involve_count;
+
     if (intent == NULL || intent->type != AST_INTENT_DECL || alias == NULL)
         return NULL;
-    for (size_t i = 0; i < intent->data.intent_decl.involve_count; i++) {
-        ASTNode *involves = intent->data.intent_decl.involves[i];
+    involves_nodes = ast_intent_decl_involves(intent, &involve_count);
+    for (size_t i = 0; i < involve_count; i++) {
+        ASTNode *involves = involves_nodes[i];
         if (involves != NULL && involves->type == AST_INTENT_INVOLVES
-            && involves->data.intent_involves.alias != NULL
-            && strcmp(involves->data.intent_involves.alias, alias) == 0) {
+            && ast_intent_involves_alias(involves) != NULL
+            && strcmp(ast_intent_involves_alias(involves), alias) == 0) {
             return involves;
         }
     }
@@ -60,10 +64,11 @@ const char *
 intent_participant_type_name(ASTNode *intent, const char *alias)
 {
     ASTNode *involves = find_intent_participant_local(intent, alias);
+    ASTNode *subject_type = ast_intent_involves_subject_type(involves);
     if (involves != NULL
-        && involves->data.intent_involves.subject_type != NULL
-        && involves->data.intent_involves.subject_type->type == AST_TYPE) {
-        return involves->data.intent_involves.subject_type->data.type.name;
+        && subject_type != NULL
+        && subject_type->type == AST_TYPE) {
+        return subject_type->data.type.name;
     }
     return NULL;
 }
@@ -84,10 +89,11 @@ const char *
 intent_zone_binding_type_name(ASTNode *intent, const char *alias)
 {
     ASTNode *involves = find_intent_participant_local(intent, alias);
+    ASTNode *subject_type = ast_intent_involves_subject_type(involves);
     if (involves != NULL
-        && involves->data.intent_involves.subject_type != NULL
-        && involves->data.intent_involves.subject_type->type == AST_TYPE) {
-        return involves->data.intent_involves.subject_type->data.type.name;
+        && subject_type != NULL
+        && subject_type->type == AST_TYPE) {
+        return subject_type->data.type.name;
     }
     return NULL;
 }

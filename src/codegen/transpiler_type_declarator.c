@@ -18,19 +18,9 @@
 static bool
 declarator_ast_type_to_c_copy(ASTNode *type_node, char *out, size_t out_size)
 {
-    const char *rendered;
-    size_t len;
-
     if (out == NULL || out_size == 0)
         return false;
-    rendered = pergyra_ast_type_to_c(type_node);
-    if (rendered == NULL)
-        return false;
-    len = strlen(rendered);
-    if (len >= out_size)
-        return false;
-    memcpy(out, rendered, len + 1);
-    return true;
+    return pergyra_ast_type_to_c_copy(type_node, out, out_size);
 }
 
 static char *

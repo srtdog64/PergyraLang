@@ -185,6 +185,7 @@ void test_scope_based_slots()
     /* Claim multiple slots in scope */
     SlotHandle *handle1, *handle2;
     TokenCapability *token1, *token2;
+    PgyPinnedView scopeView;
 
     SlotError result1 = SecureSlotScopeClaimSlot(scope, TYPE_INT,
                                                SECURITY_LEVEL_BASIC,
@@ -207,6 +208,18 @@ void test_scope_based_slots()
 
     TEST_ASSERT(writeResult1 == SLOT_SUCCESS, "Scoped slot write 1");
     TEST_ASSERT(writeResult2 == SLOT_SUCCESS, "Scoped slot write 2");
+
+    memset(&scopeView, 0, sizeof(scopeView));
+    SlotError pinResult = PergyraSlotPin(manager, handle1, PGY_SLOT_PIN_READ,
+                                         token1, &scopeView);
+    TEST_ASSERT(pinResult == SLOT_SUCCESS && scopeView.valid,
+                "Scoped secure slot pin succeeds before scope destroy");
+    SlotError destroyPinnedResult = SecureSlotScopeDestroyChecked(scope);
+    TEST_SECURITY_VIOLATION(destroyPinnedResult == SLOT_ERROR_PINNED,
+                            "Scope destroy rejects live pinned secure slots");
+    SlotError unpinResult = PergyraSlotUnpin(manager, &scopeView);
+    TEST_ASSERT(unpinResult == SLOT_SUCCESS,
+                "Scoped secure slot unpin succeeds after destroy rejection");
 
     /* Destroy scope (should auto-release all slots) */
     SecureSlotScopeDestroy(scope);

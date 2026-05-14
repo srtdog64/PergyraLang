@@ -23,8 +23,8 @@ transpiler_validate_mir_emission_contract(const TranspilerCtx *ctx,
     if (decl != NULL) {
         if (decl->type == AST_FUNC_DECL && decl->data.func_decl.name != NULL)
             decl_name = decl->data.func_decl.name;
-        if (decl->type == AST_INTENT_DECL && decl->data.intent_decl.name != NULL)
-            decl_name = decl->data.intent_decl.name;
+        if (decl->type == AST_INTENT_DECL && ast_intent_decl_name(decl) != NULL)
+            decl_name = ast_intent_decl_name(decl);
     }
     routine_name = decl_name != NULL ? decl_name
         : (routine != NULL && routine->name != NULL ? routine->name : "<routine>");
@@ -420,7 +420,7 @@ transpiler_can_emit_intent_cleanup_from_mir_with_reason(const TranspilerCtx *ctx
         if (reason != NULL && reason_cap > 0)
             transpiler_mir_reasonf(reason, reason_cap,
                 "intent %s has no MIR cleanup section (kind=%d, has_ast=%d, has_cleanup_block=%d)",
-                intent_decl->data.intent_decl.name,
+                ast_intent_decl_name(intent_decl),
                 routine->kind,
                 routine->ast != NULL,
                 routine->has_cleanup_block);
@@ -434,12 +434,12 @@ transpiler_can_emit_intent_cleanup_from_mir_with_reason(const TranspilerCtx *ctx
                                                    reason,
                                                    reason_cap)) {
         if (reason != NULL && reason_cap > 0 && reason[0] == '\0')
-            transpiler_mir_reasonf(reason, reason_cap, "intent %s MIR emission contract validation failed", intent_decl->data.intent_decl.name);
+            transpiler_mir_reasonf(reason, reason_cap, "intent %s MIR emission contract validation failed", ast_intent_decl_name(intent_decl));
         return false;
     }
     if (!transpiler_has_mapping_for_all_emitted_blocks(ctx, routine, intent_decl, false, reason, reason_cap)) {
         if (reason != NULL && reason_cap > 0 && reason[0] == '\0')
-            transpiler_mir_reasonf(reason, reason_cap, "intent %s SSA mapping incomplete", intent_decl->data.intent_decl.name);
+            transpiler_mir_reasonf(reason, reason_cap, "intent %s SSA mapping incomplete", ast_intent_decl_name(intent_decl));
         return false;
     }
     if (mir_routine_out != NULL)

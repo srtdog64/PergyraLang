@@ -66,19 +66,10 @@ transpiler_resolve_unary_constructed_inner(TranspilerCtx *ctx,
         && family_len > 0
         && strncmp(resolved_type, family, family_len) == 0
         && resolved_type[family_len] == '<') {
-        const char *inner = slot_inner_type_name(resolved_type);
-        if (inner != NULL && inner[0] != '\0'
-            && strcmp(inner, "Unknown") != 0) {
-            if (!transpiler_stdlib_copy_type_name(inner_buf,
-                    inner_buf_size, inner)) {
-                transpiler_set_backend_error_with_hints(ctx,
-                    PGY_CODE_C_TYPE_UNSUPPORTED,
-                    PGY_CAUSE_C_TYPE_UNSUPPORTED,
-                    PGY_FIX_ANNOTATE_CONCRETE_TYPE,
-                    "C backend: %s inner type is too long",
-                    family != NULL ? family : "constructed");
-                return false;
-            }
+        if (slot_inner_type_name_copy(resolved_type, inner_buf,
+                inner_buf_size)
+            && inner_buf[0] != '\0'
+            && strcmp(inner_buf, "Unknown") != 0) {
             if (inner_out != NULL)
                 *inner_out = inner_buf;
             return true;
@@ -290,9 +281,9 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             char inner_buf[128];
             char c_type_buf[128];
             if (arr_type != NULL && strncmp(arr_type, "Array<", 6) == 0) {
-                copy_capped_string(inner_buf, sizeof(inner_buf),
-                    slot_inner_type_name(arr_type));
-                inner = inner_buf;
+                if (slot_inner_type_name_copy(arr_type, inner_buf,
+                        sizeof(inner_buf)))
+                    inner = inner_buf;
                 if (pergyra_type_to_c_copy(inner, c_type_buf,
                         sizeof(c_type_buf))) {
                     c_type = c_type_buf;
@@ -321,7 +312,19 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             const char *tn = infer_expression_type_name(
                 ctx, call->data.call.arguments[0]);
             if (tn != NULL && strncmp(tn, "Slot<", 5) == 0) {
-                const char *inner = slot_inner_type_name(tn);
+                char inner_buf[128];
+                const char *inner = NULL;
+                if (slot_inner_type_name_copy(tn, inner_buf, sizeof(inner_buf)))
+                    inner = inner_buf;
+                if (inner == NULL || inner[0] == '\0') {
+                    free(src);
+                    transpiler_set_backend_error_with_hints(ctx,
+                        PGY_CODE_C_TYPE_UNSUPPORTED,
+                        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                        PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                        "C backend: Clone requires concrete Slot<T> metadata");
+                    return pergyra_strdup("0");
+                }
                 char *result = strdup_fmt(
                     "({ PgySlot_%s _c = pgy_claim_%s(); "
                     "pgy_write_%s(&_c, pgy_read_%s(&%s)); _c; })",
