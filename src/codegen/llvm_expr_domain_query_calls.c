@@ -325,18 +325,20 @@ bool
 llvm_emit_domain_query_call(ASTNode *node, LLVMGenCtx *ctx,
                             const char *callee_name, LLVMValueRef *out)
 {
-    if (strcmp(callee_name, "HasProjection") == 0 && node->data.call.arg_count == 1)
+    size_t arg_count = ast_call_arg_count(node);
+
+    if (strcmp(callee_name, "HasProjection") == 0 && arg_count == 1)
         return llvm_emit_has_projection_query(node, ctx, out);
-    if (strcmp(callee_name, "HasLayer") == 0 && node->data.call.arg_count == 1)
+    if (strcmp(callee_name, "HasLayer") == 0 && arg_count == 1)
         return llvm_emit_has_layer_query(node, ctx, out);
-    if (strcmp(callee_name, "HasState") == 0 && node->data.call.arg_count >= 1)
+    if (strcmp(callee_name, "HasState") == 0 && arg_count >= 1)
         return llvm_emit_has_state_query(node, ctx, out);
-    if (strcmp(callee_name, "HasZone") == 0 && node->data.call.arg_count == 1)
+    if (strcmp(callee_name, "HasZone") == 0 && arg_count == 1)
         return llvm_emit_has_zone_query(node, ctx, out);
     if ((strcmp(callee_name, "HasZoneProjection") == 0
          || strcmp(callee_name, "HasZoneLayer") == 0
          || strcmp(callee_name, "HasZoneState") == 0)
-        && node->data.call.arg_count == 2) {
+        && arg_count == 2) {
         return llvm_emit_has_zone_detail_query(node, ctx, callee_name, out);
     }
     return false;

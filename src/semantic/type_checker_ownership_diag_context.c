@@ -12,8 +12,8 @@ semantic_current_consumer_name(SemanticContext *ctx)
 {
     if (ctx != NULL
         && ctx->current_function_decl != NULL
-        && ctx->current_function_decl->data.func_decl.name != NULL) {
-        return ctx->current_function_decl->data.func_decl.name;
+        && ast_declaration_name(ctx->current_function_decl) != NULL) {
+        return ast_declaration_name(ctx->current_function_decl);
     }
     return "<anonymous>";
 }

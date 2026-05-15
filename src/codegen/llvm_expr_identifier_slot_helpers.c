@@ -13,6 +13,7 @@
 #include "llvm_expr_boundary_projection_helpers.h"
 #include "llvm_expr_host_spawn_literal_helpers.h"
 #include "llvm_internal_api.h"
+#include "parser/ast_api.h"
 
 LLVMValueRef
 llvm_emit_boolean(ASTNode *node, LLVMGenCtx *ctx)
@@ -53,25 +54,25 @@ llvm_derive_slot_inner_from_current_decl(LLVMGenCtx *ctx,
     if (current_decl == NULL || current_decl->type != AST_FUNC_DECL)
         return NULL;
 
-    for (size_t i = 0; i < current_decl->data.func_decl.param_count; i++) {
-        FuncParam *p = current_decl->data.func_decl.params[i];
+    for (size_t i = 0; i < ast_func_param_count(current_decl); i++) {
+        FuncParam *p = ast_func_param(current_decl, i);
         const char *type_name;
         GenericParams *generic_args;
         const char *inner_name;
 
         if (p == NULL || p->name == NULL || strcmp(p->name, source_name) != 0
             || p->type == NULL || p->type->type != AST_TYPE
-            || p->type->data.type.name == NULL) {
+            || ast_type_name(p->type) == NULL) {
             continue;
         }
 
-        type_name = p->type->data.type.name;
+        type_name = ast_type_name(p->type);
         if (strcmp(type_name, "Slot") != 0
             && strcmp(type_name, "SecureSlot") != 0) {
             continue;
         }
 
-        generic_args = p->type->data.type.generic_args;
+        generic_args = ast_type_generic_args(p->type);
         if (generic_args == NULL || generic_args->count == 0
             || generic_args->params == NULL
             || generic_args->params[0] == NULL) {
@@ -118,14 +119,15 @@ llvm_resolve_slot_target(LLVMGenCtx *ctx, ASTNode *slot_arg,
             is_secure = llvm_lookup_slot_is_secure(ctx, source_name);
         }
     } else if (slot_arg->type == AST_CALL
-               && slot_arg->data.call.callee != NULL
-               && slot_arg->data.call.callee->type == AST_IDENTIFIER
-               && slot_arg->data.call.arg_count >= 1
-               && slot_arg->data.call.arguments[0] != NULL
-               && slot_arg->data.call.arguments[0]->type == AST_IDENTIFIER) {
-        const char *callee = slot_arg->data.call.callee->data.identifier.name;
+               && ast_call_callee(slot_arg) != NULL
+               && ast_call_callee(slot_arg)->type == AST_IDENTIFIER
+               && ast_call_arg_count(slot_arg) >= 1
+               && ast_call_argument(slot_arg, 0) != NULL
+               && ast_call_argument(slot_arg, 0)->type == AST_IDENTIFIER) {
+        const char *callee = ast_call_callee(slot_arg)->data.identifier.name;
         if (pgy_codegen_call_name_is_slot_source(callee)) {
-            source_name = slot_arg->data.call.arguments[0]->data.identifier.name;
+            source_name =
+                ast_call_argument(slot_arg, 0)->data.identifier.name;
             inner = llvm_lookup_slot_inner(ctx, source_name);
             is_secure = llvm_lookup_slot_is_secure(ctx, source_name);
         }

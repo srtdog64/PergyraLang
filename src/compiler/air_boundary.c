@@ -1,5 +1,6 @@
 #include "air_internal.h"
 #include "io_boundary_builtin.h"
+#include "../parser/ast_api.h"
 
 typedef struct
 {
@@ -40,12 +41,13 @@ air_step_has_world_boundary(const DIRIntentStep *step)
 static const char *
 air_call_callee_name(const ASTNode *node)
 {
-    if (node == NULL || node->type != AST_CALL || node->data.call.callee == NULL)
+    ASTNode *callee = ast_call_callee(node);
+    if (callee == NULL)
         return NULL;
-    if (node->data.call.callee->type == AST_IDENTIFIER)
-        return node->data.call.callee->data.identifier.name;
-    if (node->data.call.callee->type == AST_MEMBER_ACCESS)
-        return node->data.call.callee->data.member.name;
+    if (callee->type == AST_IDENTIFIER)
+        return callee->data.identifier.name;
+    if (callee->type == AST_MEMBER_ACCESS)
+        return ast_member_name(callee);
     return NULL;
 }
 

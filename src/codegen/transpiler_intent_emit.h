@@ -259,7 +259,7 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
             if (step_zone_name == NULL
                 && ast_intent_step_where_type(step) != NULL
                 && ast_intent_step_where_type(step)->type == AST_TYPE) {
-                step_zone_name = ast_intent_step_where_type(step)->data.type.name;
+                step_zone_name = ast_type_name(ast_intent_step_where_type(step));
             }
             if (step_zone_alias == NULL)
                 step_zone_alias = intent_step_effective_zone_alias(step);
@@ -371,7 +371,7 @@ emit_intent_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
                     ASTNode *involves = find_intent_participant_local(node, alias);
                     ASTNode *subject_type = ast_intent_involves_subject_type(involves);
                     if (subject_type != NULL && subject_type->type == AST_TYPE) {
-                        subject_name = subject_type->data.type.name;
+                        subject_name = ast_type_name(subject_type);
                     }
                 }
                 action_decl = find_subject_action_decl(ctx,

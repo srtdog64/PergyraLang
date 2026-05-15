@@ -16,6 +16,58 @@ rediscover or reinterpret it.
 Smoke tests are not source of truth. A smoke test only prevents a frozen owner
 contract from drifting.
 
+### 0.1 Mismatch Containment During Lowering
+
+When a real system has an unavoidable mismatch between business meaning and
+machine/runtime constraints, the mismatch must be contained at the IR lowering
+boundary. It must not leak upward as business logic boilerplate.
+
+The mismatch appears where two worlds cross: continuous sensor or UI inputs
+enter finite program state, DTOs become domain values, or HIR business meaning
+is lowered into MIR memory/register/control-flow facts. The architect's job is
+not to pretend this projection error is zero. The job is to isolate it so that
+domain code does not accumulate `try`/`catch`, null checks, tolerance checks,
+manual cleanup, and backend-shaped helper calls.
+
+The rule is:
+
+- business code states the domain fact, intent, resource boundary, or authority
+  requirement once;
+- the owning IR stage expands that fact into explicit lower-level operations;
+- later stages consume the lowered fact and may attach diagnostics/provenance;
+- no backend or runtime helper may require the user to restate the lowered
+  mechanics in source code.
+
+The placement rule is:
+
+1. **Compiler/language boundary: HIR -> MIR lowering.** If a high-level intent,
+   zone, projection, resource, or ownership fact cannot be lowered safely, the
+   compiler must either reject it with a diagnostic or require an explicit
+   source boundary such as `unsafe`. It must not silently patch the gap with
+   backend-local helpers.
+2. **Application boundary: DTO -> value-object conversion.** External noise,
+   tolerance, missing data, and platform shape mismatch belong at the API,
+   sensor, host-import, or module boundary. Once accepted as a domain value, the
+   inner domain function should not revalidate the same projection friction.
+3. **Control-flow boundary: `Result<Success, Failure>`.** Predictable mismatch
+   is recoverable failure, not hidden exception flow. Boundary operations that
+   can fail must carry that failure in the type/contract path so callers handle
+   it explicitly.
+
+Examples:
+
+- `intent`/`zone` source code should not hand-author scheduler frontier loops;
+  RIR/AIR/MIR owns propagation evidence and bounded recompute facts.
+- Slot/Pin source code should not manually duplicate every cleanup edge; MIR
+  cleanup facts own exit-edge materialization and C/LLVM only emit it.
+- Domain ownership, authority, and projection freshness should not be encoded
+  as ad-hoc helper calls in business code; DIR/RIR/AIR owns the mismatch and
+  presents stable diagnostics when it cannot lower safely.
+
+This is the answer to the architect's question: if the mismatch cannot be
+eliminated, lowering must make it explicit in IR, prove or reject it there, and
+keep the source-level business vocabulary clean.
+
 ## 1. Ownership Table
 
 | Concern | Source of truth | Consumers | Forbidden pattern |

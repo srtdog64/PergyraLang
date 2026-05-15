@@ -14,10 +14,10 @@ llvm_intent_involves_type_name(ASTNode *involves)
 {
     ASTNode *subject_type = ast_intent_involves_subject_type(involves);
     if (involves == NULL || involves->type != AST_INTENT_INVOLVES
-        || subject_type == NULL || subject_type->type != AST_TYPE) {
+        || subject_type == NULL) {
         return NULL;
     }
-    return subject_type->data.type.name;
+    return ast_type_name(subject_type);
 }
 
 static bool
@@ -103,8 +103,7 @@ llvm_emit_intent_entry_bindings(LLVMGenCtx *ctx,
             ASTNode *value = binding;
             ASTNode *value_type = ast_intent_value_type(value);
             alias = ast_intent_value_alias(value);
-            type_name = (value_type != NULL && value_type->type == AST_TYPE)
-                ? value_type->data.type.name : NULL;
+            type_name = ast_type_name(value_type);
             if (value_type != NULL) {
                 pt = ast_type_to_llvm(ctx, value_type);
                 if (ctx->has_error || pt == NULL)

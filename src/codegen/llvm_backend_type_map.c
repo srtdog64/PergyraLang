@@ -113,22 +113,22 @@ llvm_generic_default_from_decl(ASTNode *decl, const char *type_name)
     switch (decl->type) {
     case AST_FUNC_DECL:
         return llvm_generic_default_from_params(
-            decl->data.func_decl.generic_params, type_name);
+            ast_func_generic_params(decl), type_name);
     case AST_CLASS_DECL:
         return llvm_generic_default_from_params(
-            decl->data.class_decl.generic_params, type_name);
+            ast_class_generic_params(decl), type_name);
     case AST_ABILITY_DECL:
         return llvm_generic_default_from_params(
-            decl->data.ability_decl.generic_params, type_name);
+            ast_ability_generic_params(decl), type_name);
     case AST_ROLE_DECL:
         return llvm_generic_default_from_params(
-            decl->data.role_decl.generic_params, type_name);
+            ast_role_generic_params(decl), type_name);
     case AST_PARTY_DECL:
         return llvm_generic_default_from_params(
-            decl->data.party_decl.generic_params, type_name);
+            ast_party_generic_params(decl), type_name);
     case AST_ROSTER_DECL:
         return llvm_generic_default_from_params(
-            decl->data.roster_decl.generic_params, type_name);
+            ast_roster_generic_params(decl), type_name);
     default:
         return NULL;
     }
@@ -192,10 +192,10 @@ llvm_resolve_alias_type(LLVMGenCtx *ctx, const char *type_name)
         return NULL;
 
     alias_decl = llvm_find_decl_in_active_inventory(ctx, AST_TYPE_ALIAS, type_name);
-    if (alias_decl == NULL || alias_decl->data.type_alias.target_type == NULL)
+    if (alias_decl == NULL || ast_type_alias_target_type(alias_decl) == NULL)
         return NULL;
 
-    return ast_type_to_llvm(ctx, alias_decl->data.type_alias.target_type);
+    return ast_type_to_llvm(ctx, ast_type_alias_target_type(alias_decl));
 }
 
 static LLVMTypeRef

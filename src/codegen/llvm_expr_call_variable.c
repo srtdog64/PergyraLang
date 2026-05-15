@@ -25,8 +25,8 @@ llvm_emit_callable_variable_call(ASTNode *node,
     LLVMValueRef result;
 
     if (node == NULL || ctx == NULL || callee_name == NULL
-        || node->data.call.callee == NULL
-        || node->data.call.callee->type != AST_IDENTIFIER)
+        || ast_call_callee(node) == NULL
+        || ast_call_callee(node)->type != AST_IDENTIFIER)
         return NULL;
 
     callee_var = llvm_scope_lookup(ctx, callee_name);
@@ -53,19 +53,20 @@ llvm_emit_callable_variable_call(ASTNode *node,
         ASTNode *current_decl = current_name != NULL
             ? llvm_find_function_decl(ctx, current_name) : NULL;
         if (current_decl != NULL && current_decl->type == AST_FUNC_DECL) {
-            for (size_t i = 0; i < current_decl->data.func_decl.param_count; i++) {
-                FuncParam *p = current_decl->data.func_decl.params[i];
+            for (size_t i = 0; i < ast_func_param_count(current_decl); i++) {
+                FuncParam *p = ast_func_param(current_decl, i);
                 if (p == NULL || p->name == NULL || p->type == NULL)
                     continue;
                 if (strcmp(p->name, callee_name) != 0)
                     continue;
                 if (p->type->type == AST_EVENT_HANDLER_TYPE) {
-                    size_t pc = p->type->data.event_handler_type.param_count;
+                    size_t pc = ast_event_handler_param_count(p->type);
                     LLVMTypeRef *pts = NULL;
                     LLVMTypeRef ret = ctx->type_void;
-                    if (p->type->data.event_handler_type.return_type != NULL) {
+                    ASTNode *return_type = ast_event_handler_return_type(p->type);
+                    if (return_type != NULL) {
                         ret = ast_type_to_llvm(ctx,
-                            p->type->data.event_handler_type.return_type);
+                            return_type);
                         if (ctx->has_error || ret == NULL)
                             return llvm_call_error_recovery(ctx, node,
                                 "LLVM event-handler callable could not lower return type");
@@ -79,7 +80,7 @@ llvm_emit_callable_variable_call(ASTNode *node,
                         }
                         for (size_t pi = 0; pi < pc; pi++) {
                             pts[pi] = ast_type_to_llvm(ctx,
-                                p->type->data.event_handler_type.param_types[pi]);
+                                ast_event_handler_param_type(p->type, pi));
                             if (ctx->has_error || pts[pi] == NULL)
                                 return llvm_call_error_recovery(ctx, node,
                                     "LLVM event-handler callable could not lower parameter type");
@@ -111,7 +112,7 @@ llvm_emit_callable_variable_call(ASTNode *node,
         callable_ptr_ty = LLVMPointerType(fn_type, 0);
     }
 
-    fn_ptr = llvm_emit_expression(node->data.call.callee, ctx);
+    fn_ptr = llvm_emit_expression(ast_call_callee(node), ctx);
     if (fn_ptr == NULL)
         return llvm_call_error_recovery(ctx, node,
             "LLVM callable variable call could not lower callee expression");

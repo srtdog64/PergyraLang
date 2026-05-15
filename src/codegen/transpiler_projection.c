@@ -244,11 +244,11 @@ resolve_projection_source_path_rec(TranspilerCtx *ctx, ASTNode *source_decl,
 
         if (field == NULL
             || field->type == NULL || field->type->type != AST_TYPE
-            || field->type->data.type.name == NULL) {
+            || ast_type_name(field->type) == NULL) {
             continue;
         }
 
-        vessel_decl = find_class_decl(ctx, field->type->data.type.name);
+        vessel_decl = find_class_decl(ctx, ast_type_name(field->type));
         if (vessel_decl == NULL
             || ast_class_nominal_kind(vessel_decl) != NOMINAL_DECL_VESSEL) {
             continue;

@@ -83,27 +83,27 @@ mir_collect_expr_identifier_uses(ASTNode *node,
         return append_name_unique(uses, use_count, use_capacity,
                                   node->data.identifier.name);
     case AST_BINARY:
-        return mir_collect_expr_identifier_uses(node->data.binary.left,
+        return mir_collect_expr_identifier_uses(ast_binary_left(node),
                                                 uses,
                                                 use_count,
                                                 use_capacity)
-            && mir_collect_expr_identifier_uses(node->data.binary.right,
+            && mir_collect_expr_identifier_uses(ast_binary_right(node),
                                                 uses,
                                                 use_count,
                                                 use_capacity);
     case AST_UNARY:
-        return mir_collect_expr_identifier_uses(node->data.unary.operand,
+        return mir_collect_expr_identifier_uses(ast_unary_operand(node),
                                                 uses,
                                                 use_count,
                                                 use_capacity);
     case AST_CALL:
-        if (!mir_collect_expr_identifier_uses(node->data.call.callee,
+        if (!mir_collect_expr_identifier_uses(ast_call_callee(node),
                                               uses,
                                               use_count,
                                               use_capacity))
             return false;
-        for (size_t i = 0; i < node->data.call.arg_count; i++) {
-            if (!mir_collect_expr_identifier_uses(node->data.call.arguments[i],
+        for (size_t i = 0; i < ast_call_arg_count(node); i++) {
+            if (!mir_collect_expr_identifier_uses(ast_call_argument(node, i),
                                                   uses,
                                                   use_count,
                                                   use_capacity))
@@ -111,25 +111,25 @@ mir_collect_expr_identifier_uses(ASTNode *node,
         }
         return true;
     case AST_MEMBER_ACCESS:
-        return mir_collect_expr_identifier_uses(node->data.member.object,
+        return mir_collect_expr_identifier_uses(ast_member_object(node),
                                                 uses,
                                                 use_count,
                                                 use_capacity);
     case AST_ARRAY_ACCESS:
-        return mir_collect_expr_identifier_uses(node->data.array_access.array,
+        return mir_collect_expr_identifier_uses(ast_array_access_array(node),
                                                 uses,
                                                 use_count,
                                                 use_capacity)
-            && mir_collect_expr_identifier_uses(node->data.array_access.index,
+            && mir_collect_expr_identifier_uses(ast_array_access_index(node),
                                                 uses,
                                                 use_count,
                                                 use_capacity);
     case AST_ASSIGNMENT:
-        return mir_collect_expr_identifier_uses(node->data.assignment.target,
+        return mir_collect_expr_identifier_uses(ast_assignment_target(node),
                                                 uses,
                                                 use_count,
                                                 use_capacity)
-            && mir_collect_expr_identifier_uses(node->data.assignment.value,
+            && mir_collect_expr_identifier_uses(ast_assignment_value(node),
                                                 uses,
                                                 use_count,
                                                 use_capacity);

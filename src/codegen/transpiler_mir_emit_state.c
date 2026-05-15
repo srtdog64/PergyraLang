@@ -115,8 +115,8 @@ transpiler_emit_host_method_body_local(TranspilerCtx *ctx, ASTNode *host_decl,
             ctx,
             "MIR-only transpiler missing declaration inventory for host-scoped method '%s.%s'",
             self_type_name,
-            method->type == AST_FUNC_DECL && method->data.func_decl.name != NULL
-                ? method->data.func_decl.name : "<method>");
+            method->type == AST_FUNC_DECL && ast_declaration_name(method) != NULL
+                ? ast_declaration_name(method) : "<method>");
         return;
     }
 
@@ -127,8 +127,9 @@ transpiler_emit_host_method_body_local(TranspilerCtx *ctx, ASTNode *host_decl,
         ctx->out = body_out;
     register_typed_var(ctx, "self", self_type_name);
 
-    for (size_t j = 0; j < method->data.func_decl.param_count; j++) {
-        FuncParam *p = method->data.func_decl.params[j];
+    size_t param_count = ast_func_param_count(method);
+    for (size_t j = 0; j < param_count; j++) {
+        FuncParam *p = ast_func_param(method, j);
         char *type_name;
 
         if (p == NULL || p->name == NULL
@@ -150,8 +151,9 @@ transpiler_emit_host_method_body_local(TranspilerCtx *ctx, ASTNode *host_decl,
     }
 
     ctx->indent++;
-    if (method->data.func_decl.body != NULL)
-        emit_block(method->data.func_decl.body, ctx);
+    ASTNode *body = ast_func_body(method);
+    if (body != NULL)
+        emit_block(body, ctx);
     ctx->indent--;
 
     transpiler_restore_mir_emit_state_from_snapshot_local(

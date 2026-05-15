@@ -115,7 +115,7 @@ emit_hosted_methods_from_mir_or_error_local(const char *host_name,
 
         method_name = transpiler_mir_decl_method_name(method_meta);
         if (method_name == NULL)
-            method_name = method->data.func_decl.name;
+            method_name = ast_declaration_name(method);
 
         mir_method = transpiler_mir_decl_method_routine(ctx, method_meta);
         if (mir_method == NULL) {
@@ -155,30 +155,31 @@ build_ability_ref_bindings(ASTNode *ability_decl,
                            size_t *binding_count)
 {
     size_t out = 0;
+    GenericParams *ability_generics = ast_ability_generic_params(ability_decl);
 
     if (binding_count != NULL)
         *binding_count = 0;
     if (ability_decl == NULL || ability_ref == NULL
         || ability_decl->type != AST_ABILITY_DECL
         || ability_ref->type != AST_TYPE
-        || ability_decl->data.ability_decl.generic_params == NULL) {
+        || ability_generics == NULL) {
         return;
     }
 
     for (size_t i = 0;
-         i < ability_decl->data.ability_decl.generic_params->count
+         i < ability_generics->count
          && out < MAX_GENERIC_BINDINGS;
          i++) {
-        GenericParam *formal = ability_decl->data.ability_decl.generic_params->params[i];
+        GenericParam *formal = ability_generics->params[i];
         GenericParam *actual = NULL;
         ASTNode *actual_type = NULL;
         char *rendered = NULL;
 
         if (formal == NULL || formal->name == NULL)
             continue;
-        if (ability_ref->data.type.generic_args != NULL
-            && i < ability_ref->data.type.generic_args->count) {
-            actual = ability_ref->data.type.generic_args->params[i];
+        if (ast_type_generic_args(ability_ref) != NULL
+            && i < ast_type_generic_args(ability_ref)->count) {
+            actual = ast_type_generic_args(ability_ref)->params[i];
             if (actual != NULL)
                 actual_type = actual->constraint;
         }
@@ -228,13 +229,14 @@ render_effective_ability_ref_vtable_tag(ASTNode *ability_decl,
     char *rendered = NULL;
     char suffix[128];
     size_t len;
+    GenericParams *ability_generics = ast_ability_generic_params(ability_decl);
 
     if (ability_ref == NULL)
         return NULL;
 
     if (ability_decl != NULL && ability_decl->type == AST_ABILITY_DECL
-        && ability_decl->data.ability_decl.generic_params != NULL
-        && ability_decl->data.ability_decl.generic_params->count > 0) {
+        && ability_generics != NULL
+        && ability_generics->count > 0) {
         CodeBuf *buf = codebuf_create();
         if (buf == NULL)
             return NULL;
@@ -243,8 +245,8 @@ render_effective_ability_ref_vtable_tag(ASTNode *ability_decl,
             codebuf_destroy(buf);
             return NULL;
         }
-        codebuf_write(buf, "%s", ability_ref->data.type.name != NULL
-                               ? ability_ref->data.type.name
+        codebuf_write(buf, "%s", ast_type_name(ability_ref) != NULL
+                               ? ast_type_name(ability_ref)
                                : "Ability");
         if (binding_count > 0) {
             codebuf_write(buf, "<");
@@ -286,7 +288,7 @@ ability_ref_vtable_typedef_name(ASTNode *ability_ref,
         return false;
 
     if (ctx != NULL && ability_ref != NULL && ability_ref->type == AST_TYPE)
-        ability_decl = find_ability_decl(ctx, ability_ref->data.type.name);
+        ability_decl = find_ability_decl(ctx, ast_type_name(ability_ref));
     tag = render_effective_ability_ref_vtable_tag(ability_decl, ability_ref, ctx);
     if (tag == NULL) {
         transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "cannot render ability vtable tag for ability reference");
@@ -314,22 +316,23 @@ ensure_ability_ref_vtable_decl(ASTNode *ability_ref, TranspilerCtx *ctx)
     char *tag = NULL;
     bool already_emitted = false;
     CodeBuf *target;
+    GenericParams *ability_generics = NULL;
 
     if (ctx == NULL || ability_ref == NULL
-        || ability_ref->type != AST_TYPE || ability_ref->data.type.name == NULL) {
+        || ability_ref->type != AST_TYPE || ast_type_name(ability_ref) == NULL) {
         return;
     }
     target = ctx->out != NULL ? ctx->out : ctx->decls;
     if (target == NULL)
         return;
 
-    ability_name = ability_ref->data.type.name;
+    ability_name = ast_type_name(ability_ref);
     ability_decl = find_ability_decl(ctx, ability_name);
     if (ability_decl == NULL || ability_decl->type != AST_ABILITY_DECL)
         return;
 
-    if (ability_decl->data.ability_decl.generic_params == NULL
-        || ability_decl->data.ability_decl.generic_params->count == 0) {
+    ability_generics = ast_ability_generic_params(ability_decl);
+    if (ability_generics == NULL || ability_generics->count == 0) {
         return;
     }
 
@@ -378,8 +381,9 @@ ensure_ability_ref_vtable_decl(ASTNode *ability_ref, TranspilerCtx *ctx)
         char *ret_name = NULL;
         char ret_type_buf[256];
         const char *ret_type = "void";
+        const char *method_name = ast_declaration_name(method);
 
-        if (method == NULL || method->type != AST_FUNC_DECL)
+        if (method == NULL || method->type != AST_FUNC_DECL || method_name == NULL)
             continue;
 
         build_ability_ref_bindings(ability_decl, ability_ref, ctx, bindings, &binding_count);
@@ -387,9 +391,9 @@ ensure_ability_ref_vtable_decl(ASTNode *ability_ref, TranspilerCtx *ctx)
             free(tag);
             return;
         }
-        if (method->data.func_decl.return_type != NULL) {
+        if (ast_func_return_type(method) != NULL) {
             ret_name = render_type_name_with_bindings(ctx,
-                method->data.func_decl.return_type, bindings, binding_count);
+                ast_func_return_type(method), bindings, binding_count);
             if (pergyra_type_to_c_copy(ret_name, ret_type_buf,
                     sizeof(ret_type_buf))) {
                 ret_type = ret_type_buf;
@@ -397,10 +401,10 @@ ensure_ability_ref_vtable_decl(ASTNode *ability_ref, TranspilerCtx *ctx)
         }
 
         codebuf_write(target, "    %s (*%s)(void *self",
-            ret_type, method->data.func_decl.name);
+            ret_type, method_name);
 
-        for (size_t j = 0; j < method->data.func_decl.param_count; j++) {
-            FuncParam *p = method->data.func_decl.params[j];
+        for (size_t j = 0; j < ast_func_param_count(method); j++) {
+            FuncParam *p = ast_func_param(method, j);
             char *param_name = NULL;
             char pt_buf[256];
             const char *pt = NULL;
@@ -419,7 +423,7 @@ ensure_ability_ref_vtable_decl(ASTNode *ability_ref, TranspilerCtx *ctx)
             }
             if (!transpiler_role_ability_surface_desc(surface_desc,
                     sizeof(surface_desc), "ability vtable parameter",
-                    ability_name, method->data.func_decl.name, p->name)) {
+                    ability_name, method_name, p->name)) {
                 transpiler_set_backend_error_with_hints(ctx,
                     PGY_CODE_C_TYPE_UNSUPPORTED,
                     PGY_CAUSE_C_TYPE_UNSUPPORTED,

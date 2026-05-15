@@ -56,7 +56,7 @@ llvm_domain_method_name_metadata_first(const MIRDeclMethod *method_meta,
     if (name != NULL)
         return name;
     if (method != NULL && method->type == AST_FUNC_DECL)
-        return method->data.func_decl.name;
+        return ast_declaration_name(method);
     return NULL;
 }
 
@@ -67,7 +67,7 @@ llvm_domain_method_param_count_metadata_first(const MIRDeclMethod *method_meta,
     if (method_meta != NULL)
         return llvm_mir_decl_method_param_count(method_meta);
     if (method != NULL && method->type == AST_FUNC_DECL)
-        return method->data.func_decl.param_count;
+        return ast_func_param_count(method);
     return 0;
 }
 
@@ -79,10 +79,8 @@ llvm_domain_method_param_metadata_first(const MIRDeclMethod *method_meta,
     FuncParam *param = llvm_mir_decl_method_param(method_meta, index);
     if (param != NULL)
         return param;
-    if (method != NULL && method->type == AST_FUNC_DECL
-        && index < method->data.func_decl.param_count) {
-        return method->data.func_decl.params[index];
-    }
+    if (method != NULL && method->type == AST_FUNC_DECL)
+        return ast_func_param(method, index);
     return NULL;
 }
 
@@ -94,7 +92,7 @@ llvm_domain_method_return_type_metadata_first(const MIRDeclMethod *method_meta,
     if (return_type != NULL)
         return return_type;
     if (method != NULL && method->type == AST_FUNC_DECL)
-        return method->data.func_decl.return_type;
+        return ast_func_return_type(method);
     return NULL;
 }
 
@@ -216,8 +214,8 @@ llvm_emit_domain_method_forward_decls(LLVMGenCtx *ctx,
             LLVMClassTypeEntry *param_cls = NULL;
             if (llvm_param_is_implicit_self_local(p))
                 continue;
-            if (p != NULL && p->type != NULL && p->type->type == AST_TYPE)
-                type_name = p->type->data.type.name;
+            if (p != NULL && p->type != NULL)
+                type_name = ast_type_name(p->type);
             param_cls = type_name != NULL ? llvm_lookup_class(ctx, type_name) : NULL;
             if (param_cls != NULL && param_cls->is_pointer_self_host) {
                 ptypes[pidx++] = LLVMPointerType(param_cls->struct_type, 0);

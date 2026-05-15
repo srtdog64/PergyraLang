@@ -70,14 +70,14 @@ semantic_type_resolution_precollect_relation_inventory(ASTNode *relation_decl,
     methods = ast_relation_methods(relation_decl, &method_count);
 
     semantic_type_resolution_collect_type_refs(
-        relation_decl->data.relation_decl.between_left_type,
+        ast_relation_between_left_type(relation_decl),
         ctx,
         relation_decl,
         ast_relation_name(relation_decl) != NULL
             ? ast_relation_name(relation_decl) : "<relation>",
         "relation between-left type lookup");
     semantic_type_resolution_collect_type_refs(
-        relation_decl->data.relation_decl.between_right_type,
+        ast_relation_between_right_type(relation_decl),
         ctx,
         relation_decl,
         ast_relation_name(relation_decl) != NULL
@@ -147,10 +147,9 @@ semantic_type_resolution_projection_source_decl(ASTNode *zone_decl,
         return NULL;
 
     type_node = ast_domain_slot_type(slot);
-    if (type_node == NULL || type_node->type != AST_TYPE
-        || type_node->data.type.name == NULL) {
+    if (ast_type_name(type_node) == NULL) {
         return NULL;
     }
 
-    return find_type_decl_by_name(ctx->program_root, type_node->data.type.name);
+    return find_type_decl_by_name(ctx->program_root, ast_type_name(type_node));
 }

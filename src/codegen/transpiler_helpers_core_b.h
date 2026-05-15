@@ -14,11 +14,11 @@ emit_builtin_to_dto(ASTNode *call, TranspilerCtx *ctx)
     char *source_expr;
     char *result;
 
-    if (call->data.call.arg_count != 2)
+    if (ast_call_arg_count(call) != 2)
         return pergyra_strdup("/* ToTObject: invalid args */");
 
-    target_arg = call->data.call.arguments[0];
-    source_arg = call->data.call.arguments[1];
+    target_arg = ast_call_argument(call, 0);
+    source_arg = ast_call_argument(call, 1);
     if (target_arg == NULL || target_arg->type != AST_IDENTIFIER
         || target_arg->data.identifier.name == NULL) {
         return pergyra_strdup("/* ToTObject: need target tobject type */");
@@ -47,8 +47,8 @@ func_has_generic_params(ASTNode *node)
 {
     return node != NULL
         && node->type == AST_FUNC_DECL
-        && node->data.func_decl.generic_params != NULL
-        && node->data.func_decl.generic_params->count > 0;
+        && ast_func_generic_params(node) != NULL
+        && ast_func_generic_params(node)->count > 0;
 }
 
 static bool

@@ -31,8 +31,8 @@ llvm_emit_member_call_vtable_dispatch(ASTNode *node, LLVMGenCtx *ctx,
 {
     if (obj_node != NULL && obj_node->type == AST_MEMBER_ACCESS
         && method_name != NULL) {
-        ASTNode *party_node = obj_node->data.member.object;
-        const char *slot_name = obj_node->data.member.name;
+        ASTNode *party_node = ast_member_object(obj_node);
+        const char *slot_name = ast_member_name(obj_node);
 
         if (party_node != NULL && party_node->type == AST_IDENTIFIER
             && slot_name != NULL) {
@@ -79,7 +79,7 @@ llvm_emit_member_call_vtable_dispatch(ASTNode *node, LLVMGenCtx *ctx,
                         LLVMTypeRef vt_ptr_ty;
                         LLVMValueRef vt_typed;
                         LLVMValueRef fn_ptr_field;
-                        size_t argc = node->data.call.arg_count;
+                        size_t argc = ast_call_arg_count(node);
                         LLVMTypeRef fn_ptr_ty;
                         LLVMTypeRef fn_type;
                         LLVMTypeRef ret_type;
@@ -127,7 +127,7 @@ llvm_emit_member_call_vtable_dispatch(ASTNode *node, LLVMGenCtx *ctx,
                             llvm_tmp_name(ctx));
                         for (size_t ai = 0; ai < argc; ai++) {
                             args[ai + 1] = llvm_emit_expression(
-                                node->data.call.arguments[ai], ctx);
+                                ast_call_argument(node, ai), ctx);
                             if (args[ai + 1] == NULL) {
                                 return llvm_vtable_dispatch_error(node, ctx,
                                     method_name,

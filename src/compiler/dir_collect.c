@@ -30,10 +30,11 @@ dir_impl_has_method_named(ASTNode *impl, const char *method_name)
 
     for (size_t i = 0; i < ast_impl_ability_method_count(impl); i++) {
         ASTNode *method = ast_impl_ability_method(impl, i);
+        const char *declared_name = ast_declaration_name(method);
         if (method != NULL
             && method->type == AST_FUNC_DECL
-            && method->data.func_decl.name != NULL
-            && strcmp(method->data.func_decl.name, method_name) == 0) {
+            && declared_name != NULL
+            && strcmp(declared_name, method_name) == 0) {
             return true;
         }
     }
@@ -51,7 +52,7 @@ dir_collect_nodes(DIRProgram *dir, ASTNode *program)
                     return false;
                 break;
             case AST_TYPE_ALIAS:
-                if (!dir_add_node(dir, DIR_NODE_TYPE, node->data.type_alias.name, node))
+                if (!dir_add_node(dir, DIR_NODE_TYPE, ast_type_alias_name(node), node))
                     return false;
                 break;
             case AST_ENUM_DECL:
@@ -145,7 +146,7 @@ dir_collect_role_edges(DIRProgram *dir, ASTNode *program, size_t from_id, ASTNod
             for (size_t j = 0; j < ast_ability_method_count(ability_decl); j++) {
                 ASTNode *ability_method = ast_ability_method(ability_decl, j);
                 const char *method_name = ability_method != NULL
-                    ? ability_method->data.func_decl.name
+                    ? ast_declaration_name(ability_method)
                     : NULL;
                 if (method_name == NULL)
                     continue;

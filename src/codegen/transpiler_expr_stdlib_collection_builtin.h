@@ -109,9 +109,9 @@ transpiler_require_hashmap_type(TranspilerCtx *ctx, const char *map_type,
 
     if (resolved_type != NULL && strncmp(resolved_type, "HashMap<", 8) != 0) {
         ASTNode *alias_decl = transpiler_find_type_alias_decl(ctx, resolved_type);
-        if (alias_decl != NULL && alias_decl->data.type_alias.target_type != NULL) {
+        if (alias_decl != NULL && ast_type_alias_target_type(alias_decl) != NULL) {
             ASTNode *target = resolve_type_alias_target(
-                ctx, alias_decl->data.type_alias.target_type);
+                ctx, ast_type_alias_target_type(alias_decl));
             char *rendered = render_type_name(target);
             if (rendered != NULL) {
                 bool copied = transpiler_collection_copy_type_name(
@@ -170,9 +170,9 @@ transpiler_require_unary_collection_type(TranspilerCtx *ctx,
              && strncmp(resolved_type, family, family_len) == 0
              && resolved_type[family_len] == '<')) {
         ASTNode *alias_decl = transpiler_find_type_alias_decl(ctx, resolved_type);
-        if (alias_decl != NULL && alias_decl->data.type_alias.target_type != NULL) {
+        if (alias_decl != NULL && ast_type_alias_target_type(alias_decl) != NULL) {
             ASTNode *target = resolve_type_alias_target(
-                ctx, alias_decl->data.type_alias.target_type);
+                ctx, ast_type_alias_target_type(alias_decl));
             char *rendered = render_type_name(target);
             if (rendered != NULL) {
                 bool copied = transpiler_collection_copy_type_name(
@@ -222,7 +222,7 @@ transpiler_require_unary_collection_type(TranspilerCtx *ctx,
 static char *
 emit_call_stdlib_collection_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx)
 {
-    size_t argc = call != NULL ? call->data.call.arg_count : 0;
+    size_t argc = call != NULL ? ast_call_arg_count(call) : 0;
     TranspilerCollectionOp op;
     char *map_builtin = emit_call_stdlib_map_builtin(fn, call, ctx);
     if (map_builtin != NULL)
@@ -244,9 +244,10 @@ emit_call_stdlib_collection_builtin(const char *fn, ASTNode *call, TranspilerCtx
         return strdup_fmt("pgy_list_new_%s()", suffix_buf);
     }
     if (op == TRANSPILER_COLLECTION_OP_LIST_PUSH) {
-        char *l = emit_expression(call->data.call.arguments[0], ctx);
-        char *v = emit_expression(call->data.call.arguments[1], ctx);
-        const char *list_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
+        ASTNode *list_arg = ast_call_argument(call, 0);
+        char *l = emit_expression(list_arg, ctx);
+        char *v = emit_expression(ast_call_argument(call, 1), ctx);
+        const char *list_type = infer_expression_type_name(ctx, list_arg);
         char inner_buf[64];
         const char *inner = NULL;
         if (!transpiler_require_unary_collection_type(ctx, list_type,
@@ -262,9 +263,10 @@ emit_call_stdlib_collection_builtin(const char *fn, ASTNode *call, TranspilerCtx
         free(l); free(v); return r;
     }
     if (op == TRANSPILER_COLLECTION_OP_LIST_GET) {
-        char *l = emit_expression(call->data.call.arguments[0], ctx);
-        char *i = emit_expression(call->data.call.arguments[1], ctx);
-        const char *list_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
+        ASTNode *list_arg = ast_call_argument(call, 0);
+        char *l = emit_expression(list_arg, ctx);
+        char *i = emit_expression(ast_call_argument(call, 1), ctx);
+        const char *list_type = infer_expression_type_name(ctx, list_arg);
         char inner_buf[64];
         const char *inner = NULL;
         if (!transpiler_require_unary_collection_type(ctx, list_type,
@@ -280,10 +282,11 @@ emit_call_stdlib_collection_builtin(const char *fn, ASTNode *call, TranspilerCtx
         free(l); free(i); return r;
     }
     if (op == TRANSPILER_COLLECTION_OP_LIST_SET) {
-        char *l = emit_expression(call->data.call.arguments[0], ctx);
-        char *i = emit_expression(call->data.call.arguments[1], ctx);
-        char *v = emit_expression(call->data.call.arguments[2], ctx);
-        const char *list_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
+        ASTNode *list_arg = ast_call_argument(call, 0);
+        char *l = emit_expression(list_arg, ctx);
+        char *i = emit_expression(ast_call_argument(call, 1), ctx);
+        char *v = emit_expression(ast_call_argument(call, 2), ctx);
+        const char *list_type = infer_expression_type_name(ctx, list_arg);
         char inner_buf[64];
         const char *inner = NULL;
         if (!transpiler_require_unary_collection_type(ctx, list_type,
@@ -299,8 +302,9 @@ emit_call_stdlib_collection_builtin(const char *fn, ASTNode *call, TranspilerCtx
         free(l); free(i); free(v); return r;
     }
     if (op == TRANSPILER_COLLECTION_OP_LIST_SIZE) {
-        char *l = emit_expression(call->data.call.arguments[0], ctx);
-        const char *list_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
+        ASTNode *list_arg = ast_call_argument(call, 0);
+        char *l = emit_expression(list_arg, ctx);
+        const char *list_type = infer_expression_type_name(ctx, list_arg);
         char inner_buf[64];
         const char *inner = NULL;
         if (!transpiler_require_unary_collection_type(ctx, list_type,
@@ -316,9 +320,10 @@ emit_call_stdlib_collection_builtin(const char *fn, ASTNode *call, TranspilerCtx
         free(l); return r;
     }
     if (op == TRANSPILER_COLLECTION_OP_LIST_REMOVE) {
-        char *l = emit_expression(call->data.call.arguments[0], ctx);
-        char *i = emit_expression(call->data.call.arguments[1], ctx);
-        const char *list_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
+        ASTNode *list_arg = ast_call_argument(call, 0);
+        char *l = emit_expression(list_arg, ctx);
+        char *i = emit_expression(ast_call_argument(call, 1), ctx);
+        const char *list_type = infer_expression_type_name(ctx, list_arg);
         char inner_buf[64];
         const char *inner = NULL;
         if (!transpiler_require_unary_collection_type(ctx, list_type,
@@ -348,11 +353,12 @@ emit_call_stdlib_collection_builtin(const char *fn, ASTNode *call, TranspilerCtx
         return strdup_fmt("pgy_set_new_%s()", suffix_buf);
     }
     if (op == TRANSPILER_COLLECTION_OP_SET_ADD) {
-        const char *set_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
+        ASTNode *set_arg = ast_call_argument(call, 0);
+        const char *set_type = infer_expression_type_name(ctx, set_arg);
         char inner_buf[64];
         const char *set_inner = NULL;
-        char *s = emit_expression(call->data.call.arguments[0], ctx);
-        char *k = emit_expression(call->data.call.arguments[1], ctx);
+        char *s = emit_expression(set_arg, ctx);
+        char *k = emit_expression(ast_call_argument(call, 1), ctx);
         if (!transpiler_require_unary_collection_type(ctx, set_type,
                 "Set", "SetAdd", inner_buf, sizeof(inner_buf), &set_inner)) {
             free(s); free(k);
@@ -366,11 +372,12 @@ emit_call_stdlib_collection_builtin(const char *fn, ASTNode *call, TranspilerCtx
         free(s); free(k); return r;
     }
     if (op == TRANSPILER_COLLECTION_OP_SET_HAS) {
-        const char *set_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
+        ASTNode *set_arg = ast_call_argument(call, 0);
+        const char *set_type = infer_expression_type_name(ctx, set_arg);
         char inner_buf[64];
         const char *set_inner = NULL;
-        char *s = emit_expression(call->data.call.arguments[0], ctx);
-        char *k = emit_expression(call->data.call.arguments[1], ctx);
+        char *s = emit_expression(set_arg, ctx);
+        char *k = emit_expression(ast_call_argument(call, 1), ctx);
         if (!transpiler_require_unary_collection_type(ctx, set_type,
                 "Set", "SetHas", inner_buf, sizeof(inner_buf), &set_inner)) {
             free(s); free(k);
@@ -384,11 +391,12 @@ emit_call_stdlib_collection_builtin(const char *fn, ASTNode *call, TranspilerCtx
         free(s); free(k); return r;
     }
     if (op == TRANSPILER_COLLECTION_OP_SET_REMOVE) {
-        const char *set_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
+        ASTNode *set_arg = ast_call_argument(call, 0);
+        const char *set_type = infer_expression_type_name(ctx, set_arg);
         char inner_buf[64];
         const char *set_inner = NULL;
-        char *s = emit_expression(call->data.call.arguments[0], ctx);
-        char *k = emit_expression(call->data.call.arguments[1], ctx);
+        char *s = emit_expression(set_arg, ctx);
+        char *k = emit_expression(ast_call_argument(call, 1), ctx);
         if (!transpiler_require_unary_collection_type(ctx, set_type,
                 "Set", "SetRemove", inner_buf, sizeof(inner_buf), &set_inner)) {
             free(s); free(k);
@@ -402,10 +410,11 @@ emit_call_stdlib_collection_builtin(const char *fn, ASTNode *call, TranspilerCtx
         free(s); free(k); return r;
     }
     if (op == TRANSPILER_COLLECTION_OP_SET_SIZE) {
-        const char *set_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
+        ASTNode *set_arg = ast_call_argument(call, 0);
+        const char *set_type = infer_expression_type_name(ctx, set_arg);
         char inner_buf[64];
         const char *set_inner = NULL;
-        char *s = emit_expression(call->data.call.arguments[0], ctx);
+        char *s = emit_expression(set_arg, ctx);
         if (!transpiler_require_unary_collection_type(ctx, set_type,
                 "Set", "SetSize", inner_buf, sizeof(inner_buf), &set_inner)) {
             free(s);

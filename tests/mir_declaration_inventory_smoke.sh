@@ -251,7 +251,7 @@ fi
 require_term "src/codegen/llvm_intent_cleanup.c" "llvm_set_mir_intent_carrier_missing"
 require_term "src/codegen/llvm_intent_step_context.c" "llvm_set_mir_intent_carrier_missing"
 require_term "src/codegen/llvm_intent_step_context.c" \
-    "out->dispatch_aliases = (const char **)step->data.intent_step.who_names"
+    "out->dispatch_aliases = (const char **)ast_intent_step_who_names(step, NULL)"
 if grep -Fq "step->data.intent_step.who_names[j]" \
     "$ROOT_DIR/src/codegen/llvm_intent.c"; then
     fail "LLVM intent dispatch emission must consume LLVMIntentStepContext aliases"
@@ -464,18 +464,24 @@ if grep -Fq "fallback_count" "$ROOT_DIR/src/codegen/transpiler_decl_lookup.h" \
 fi
 for rel in \
     "src/codegen/transpiler_domain_nominal_emit.h" \
-    "src/codegen/transpiler_zone_decl_emit.h" \
     "src/codegen/transpiler_world_select_event_emit.h"; do
     require_term "$rel" "transpiler_hosted_method_view_from_decl(ctx"
     require_term "$rel" "transpiler_hosted_method_view_source_ast(&method_view, i)"
     require_term "$rel" "transpiler_hosted_method_view_missing_mir_metadata(&method_view)"
     require_term "$rel" "emit_hosted_method_forward_decl_from_metadata"
 done
-for term in \
-    "MIR-only C path missing method declaration metadata for party" \
-    "MIR-only C path missing method declaration metadata for roster"; do
-    require_term "src/codegen/transpiler_domain_nominal_emit.h" "$term"
-done
+require_term "src/codegen/transpiler_zone_decl_emit.h" \
+    "transpiler_hosted_method_view_from_decl(ctx"
+require_term "src/codegen/transpiler_zone_decl_emit.h" \
+    "transpiler_hosted_method_view_missing_mir_metadata(&method_view)"
+require_term "src/codegen/transpiler_zone_methods_emit.h" \
+    "transpiler_hosted_method_view_source_ast(method_view, i)"
+require_term "src/codegen/transpiler_zone_methods_emit.h" \
+    "emit_hosted_method_forward_decl_from_metadata"
+require_term "src/codegen/transpiler_domain_nominal_emit.h" \
+    "MIR-only C path missing method declaration metadata for party"
+require_term "src/codegen/transpiler_roster_decl_emit.h" \
+    "MIR-only C path missing method declaration metadata for roster"
 for term in \
     "MIR-only C path missing method declaration metadata for relation" \
     "MIR-only C path missing method declaration metadata for effect"; do

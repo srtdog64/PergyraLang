@@ -48,10 +48,9 @@ type_check_roster_decl(ASTNode *node, SemanticContext *ctx)
         scope_declare(ctx->scope, sym);
     }
 
-    if (node->data.roster_decl.generic_params != NULL
-        && node->data.roster_decl.generic_params->count > 0) {
-        validate_generic_param_defaults(node->data.roster_decl.generic_params,
-            ctx, node, "roster");
+    GenericParams *generic_params = ast_roster_generic_params(node);
+    if (generic_params != NULL && generic_params->count > 0) {
+        validate_generic_param_defaults(generic_params, ctx, node, "roster");
     }
 
     /* Check party slot references */

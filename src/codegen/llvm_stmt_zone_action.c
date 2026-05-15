@@ -121,12 +121,12 @@ llvm_stmt_resolve_zone_subject_receiver(LLVMGenCtx *ctx, ASTNode *receiver,
         slot_name = receiver->data.identifier.name;
         slot_decl = llvm_stmt_find_zone_domain_slot_decl(zone_decl, slot_name);
     } else if (receiver->type == AST_MEMBER_ACCESS
-               && receiver->data.member.object != NULL
-               && receiver->data.member.object->type == AST_IDENTIFIER
-               && receiver->data.member.object->data.identifier.name != NULL
-               && strcmp(receiver->data.member.object->data.identifier.name, "self") == 0
-               && receiver->data.member.name != NULL) {
-        slot_name = receiver->data.member.name;
+               && ast_member_object(receiver) != NULL
+               && ast_member_object(receiver)->type == AST_IDENTIFIER
+               && ast_member_object(receiver)->data.identifier.name != NULL
+               && strcmp(ast_member_object(receiver)->data.identifier.name, "self") == 0
+               && ast_member_name(receiver) != NULL) {
+        slot_name = ast_member_name(receiver);
         slot_decl = llvm_stmt_find_zone_domain_slot_decl(zone_decl, slot_name);
     }
 
@@ -134,11 +134,11 @@ llvm_stmt_resolve_zone_subject_receiver(LLVMGenCtx *ctx, ASTNode *receiver,
     if (slot_decl == NULL || !ast_domain_slot_is_subject(slot_decl)
         || slot_type == NULL
         || slot_type->type != AST_TYPE
-        || slot_type->data.type.name == NULL) {
+        || ast_type_name(slot_type) == NULL) {
         return false;
     }
 
-    type_name = slot_type->data.type.name;
+    type_name = ast_type_name(slot_type);
     if (slot_name_out != NULL)
         *slot_name_out = slot_name;
     if (type_name_out != NULL)
@@ -172,12 +172,12 @@ llvm_stmt_emit_zone_action_effect_runtime(ASTNode *call, LLVMGenCtx *ctx)
     if (zone_decl == NULL || zone_decl->type != AST_ZONE_DECL)
         return;
 
-    callee = call->data.call.callee;
+    callee = ast_call_callee(call);
     if (callee == NULL || callee->type != AST_MEMBER_ACCESS)
         return;
 
-    receiver = callee->data.member.object;
-    method_name = callee->data.member.name;
+    receiver = ast_member_object(callee);
+    method_name = ast_member_name(callee);
     if (receiver == NULL || method_name == NULL)
         return;
 

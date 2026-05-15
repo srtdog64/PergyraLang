@@ -179,16 +179,16 @@ llvm_mir_boundary_slot_inner_name(LLVMGenCtx *ctx, FuncParam *param,
     if (is_secure_out != NULL)
         *is_secure_out = false;
     if (param == NULL || param->type == NULL || param->type->type != AST_TYPE
-        || param->type->data.type.name == NULL)
+        || ast_type_name(param->type) == NULL)
         return NULL;
     if (param->mode != PARAM_MODE_OWN && param->mode != PARAM_MODE_REF)
         return NULL;
 
-    type_name = param->type->data.type.name;
+    type_name = ast_type_name(param->type);
     if (strcmp(type_name, "Slot") != 0 && strcmp(type_name, "SecureSlot") != 0)
         return NULL;
 
-    generic_args = param->type->data.type.generic_args;
+    generic_args = ast_type_generic_args(param->type);
     if (generic_args == NULL || generic_args->count == 0
         || generic_args->params == NULL || generic_args->params[0] == NULL)
         return NULL;

@@ -10,8 +10,8 @@ mir_stmt_is_def_source(const ASTNode *stmt)
     if (stmt->type == AST_LET_DECL)
         return true;
     if (stmt->type == AST_ASSIGNMENT
-        && stmt->data.assignment.target != NULL
-        && stmt->data.assignment.target->type == AST_IDENTIFIER)
+        && ast_assignment_target(stmt) != NULL
+        && ast_assignment_target(stmt)->type == AST_IDENTIFIER)
         return true;
     return false;
 }
@@ -24,9 +24,9 @@ mir_stmt_def_name(const ASTNode *stmt)
     if (stmt->type == AST_LET_DECL)
         return stmt->data.let_decl.name;
     if (stmt->type == AST_ASSIGNMENT
-        && stmt->data.assignment.target != NULL
-        && stmt->data.assignment.target->type == AST_IDENTIFIER) {
-        return stmt->data.assignment.target->data.identifier.name;
+        && ast_assignment_target(stmt) != NULL
+        && ast_assignment_target(stmt)->type == AST_IDENTIFIER) {
+        return ast_assignment_target(stmt)->data.identifier.name;
     }
     return NULL;
 }
@@ -45,7 +45,7 @@ mir_let_decl_requires_stmt_preservation(const ASTNode *stmt)
     if (init == NULL || init->type != AST_CALL)
         return false;
 
-    callee = init->data.call.callee;
+    callee = ast_call_callee(init);
     if (callee == NULL
         || callee->type != AST_IDENTIFIER
         || callee->data.identifier.name == NULL) {

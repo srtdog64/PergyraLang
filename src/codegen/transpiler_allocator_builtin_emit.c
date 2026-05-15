@@ -24,7 +24,7 @@ emit_builtin_allocator(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
     case BUILTIN_ALLOCATOR_DEBUG:
         return pergyra_strdup("pgy_allocator_debug()");
     case BUILTIN_ALLOCATOR_POOL:
-        if (call->data.call.arg_count != 1) {
+        if (ast_call_arg_count(call) != 1) {
             transpiler_set_backend_error_with_hints(
                 ctx,
                 PGY_CODE_C_TYPE_UNSUPPORTED,
@@ -34,7 +34,7 @@ emit_builtin_allocator(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
             return pergyra_strdup("0");
         }
         {
-            char *cap = emit_expression(call->data.call.arguments[0], ctx);
+            char *cap = emit_expression(ast_call_argument(call, 0), ctx);
             char *result = strdup_fmt("pgy_allocator_pool(%s)", cap);
             free(cap);
             return result;

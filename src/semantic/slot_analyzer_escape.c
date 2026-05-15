@@ -99,36 +99,36 @@ collect_slot_escapes(ASTNode *node, SlotEscapeEntry **entries,
                 count, capacity, program_root, depth);
         break;
     case AST_IF_STMT:
-        collect_slot_escapes(node->data.if_stmt.condition, entries, count,
+        collect_slot_escapes(ast_if_condition(node), entries, count,
             capacity, program_root, depth);
-        collect_slot_escapes(node->data.if_stmt.then_branch, entries, count,
+        collect_slot_escapes(ast_if_then_branch(node), entries, count,
             capacity, program_root, depth);
-        collect_slot_escapes(node->data.if_stmt.else_branch, entries, count,
+        collect_slot_escapes(ast_if_else_branch(node), entries, count,
             capacity, program_root, depth);
         break;
     case AST_WITH_STMT:
-        collect_slot_escapes(node->data.with_stmt.body, entries, count,
+        collect_slot_escapes(ast_with_body(node), entries, count,
             capacity, program_root, depth);
         break;
     case AST_FOR_LOOP:
-        collect_slot_escapes(node->data.for_loop.range_start, entries, count,
+        collect_slot_escapes(ast_for_range_start(node), entries, count,
             capacity, program_root, depth);
-        collect_slot_escapes(node->data.for_loop.range_end, entries, count,
+        collect_slot_escapes(ast_for_range_end(node), entries, count,
             capacity, program_root, depth);
-        collect_slot_escapes(node->data.for_loop.iterable, entries, count,
+        collect_slot_escapes(ast_for_iterable(node), entries, count,
             capacity, program_root, depth);
-        collect_slot_escapes(node->data.for_loop.body, entries, count,
+        collect_slot_escapes(ast_for_body(node), entries, count,
             capacity, program_root, depth);
         break;
     case AST_WHILE_LOOP:
-        collect_slot_escapes(node->data.while_loop.condition, entries, count,
+        collect_slot_escapes(ast_while_condition(node), entries, count,
             capacity, program_root, depth);
-        collect_slot_escapes(node->data.while_loop.body, entries, count,
+        collect_slot_escapes(ast_while_body(node), entries, count,
             capacity, program_root, depth);
         break;
     case AST_PARALLEL_BLOCK:
-        for (size_t i = 0; i < node->data.parallel.task_count; i++)
-            collect_slot_escapes(node->data.parallel.tasks[i], entries, count,
+        for (size_t i = 0; i < ast_parallel_task_count(node); i++)
+            collect_slot_escapes(ast_parallel_task(node, i), entries, count,
                 capacity, program_root, depth);
         break;
     case AST_LET_DECL:
@@ -136,9 +136,9 @@ collect_slot_escapes(ASTNode *node, SlotEscapeEntry **entries,
             capacity, program_root, depth);
         break;
     case AST_ASSIGNMENT:
-        collect_slot_escapes(node->data.assignment.target, entries, count,
+        collect_slot_escapes(ast_assignment_target(node), entries, count,
             capacity, program_root, depth);
-        collect_slot_escapes(node->data.assignment.value, entries, count,
+        collect_slot_escapes(ast_assignment_value(node), entries, count,
             capacity, program_root, depth);
         break;
     case AST_CALL: {
@@ -146,37 +146,38 @@ collect_slot_escapes(ASTNode *node, SlotEscapeEntry **entries,
         size_t param_count = 0;
         FuncParam **params = NULL;
         ASTNode *body = NULL;
+        ASTNode *callee = ast_call_callee(node);
 
-        collect_slot_escapes(node->data.call.callee, entries, count, capacity,
+        collect_slot_escapes(callee, entries, count, capacity,
             program_root, depth);
-        if (node->data.call.callee != NULL
-            && node->data.call.callee->type == AST_IDENTIFIER
-            && node->data.call.callee->data.identifier.name != NULL
+        if (callee != NULL
+            && callee->type == AST_IDENTIFIER
+            && callee->data.identifier.name != NULL
             && program_root != NULL) {
             callee_decl = slot_analyzer_find_function_decl(
-                program_root, node->data.call.callee->data.identifier.name);
+                program_root, callee->data.identifier.name);
             if (callee_decl != NULL) {
                 if (callee_decl->is_async_decl) {
-                    param_count = callee_decl->data.async_func_decl.param_count;
-                    params = callee_decl->data.async_func_decl.params;
-                    body = callee_decl->data.async_func_decl.body;
+                    params = ast_async_func_params(callee_decl, &param_count);
+                    body = ast_async_func_body(callee_decl);
                 } else {
-                    param_count = callee_decl->data.func_decl.param_count;
-                    params = callee_decl->data.func_decl.params;
-                    body = callee_decl->data.func_decl.body;
+                    param_count = ast_func_param_count(callee_decl);
+                    body = ast_func_body(callee_decl);
                 }
             }
         }
 
-        for (size_t i = 0; i < node->data.call.arg_count; i++) {
-            ASTNode *arg = node->data.call.arguments[i];
+        for (size_t i = 0; i < ast_call_arg_count(node); i++) {
+            ASTNode *arg = ast_call_argument(node, i);
             if (arg != NULL && arg->type == AST_IDENTIFIER
-                && !slot_call_is_non_escape_builtin(node->data.call.callee)
+                && !slot_call_is_non_escape_builtin(callee)
                 && arg->data.identifier.name != NULL) {
                 bool handled = false;
 
                 if (body != NULL && i < param_count) {
-                    FuncParam *param = params != NULL ? params[i] : NULL;
+                    FuncParam *param = params != NULL
+                        ? params[i]
+                        : ast_func_param(callee_decl, i);
                     if (param != NULL && param->name != NULL) {
                         if (param->mode == PARAM_MODE_REF) {
                             unsigned callee_mask = slot_param_summary_in_program(
@@ -212,27 +213,27 @@ collect_slot_escapes(ASTNode *node, SlotEscapeEntry **entries,
         break;
     }
     case AST_CHANNEL_SEND:
-        collect_slot_escapes(node->data.channel_send.channel, entries, count,
+        collect_slot_escapes(ast_channel_send_channel(node), entries, count,
             capacity, program_root, depth);
-        if (node->data.channel_send.value != NULL
-            && node->data.channel_send.value->type == AST_IDENTIFIER
-            && node->data.channel_send.value->data.identifier.name != NULL) {
+        if (ast_channel_send_value(node) != NULL
+            && ast_channel_send_value(node)->type == AST_IDENTIFIER
+            && ast_channel_send_value(node)->data.identifier.name != NULL) {
             slot_escape_record(entries, count, capacity,
-                node->data.channel_send.value->data.identifier.name,
+                ast_channel_send_value(node)->data.identifier.name,
                 SLOT_ESCAPE_CHANNEL);
         }
-        collect_slot_escapes(node->data.channel_send.value, entries, count,
+        collect_slot_escapes(ast_channel_send_value(node), entries, count,
             capacity, program_root, depth);
         break;
     case AST_RETURN:
-        if (node->data.return_stmt.value != NULL
-            && node->data.return_stmt.value->type == AST_IDENTIFIER
-            && node->data.return_stmt.value->data.identifier.name != NULL) {
+        if (ast_return_value(node) != NULL
+            && ast_return_value(node)->type == AST_IDENTIFIER
+            && ast_return_value(node)->data.identifier.name != NULL) {
             slot_escape_record(entries, count, capacity,
-                node->data.return_stmt.value->data.identifier.name,
+                ast_return_value(node)->data.identifier.name,
                 SLOT_ESCAPE_RETURN);
         }
-        collect_slot_escapes(node->data.return_stmt.value, entries, count,
+        collect_slot_escapes(ast_return_value(node), entries, count,
             capacity, program_root, depth);
         break;
     default:

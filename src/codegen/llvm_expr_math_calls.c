@@ -7,6 +7,7 @@
 
 #include "llvm_internal.h"
 #include "llvm_expr_math_calls.h"
+#include "parser/ast_api.h"
 
 #include <string.h>
 
@@ -35,8 +36,8 @@ llvm_emit_scalar_math_call(ASTNode *node, LLVMGenCtx *ctx,
     if (out == NULL)
         return false;
 
-    if (strcmp(callee_name, "Abs") == 0 && node->data.call.arg_count == 1) {
-        LLVMValueRef x = llvm_emit_expression(node->data.call.arguments[0], ctx);
+    if (strcmp(callee_name, "Abs") == 0 && ast_call_arg_count(node) == 1) {
+        LLVMValueRef x = llvm_emit_expression(ast_call_argument(node, 0), ctx);
         if (x == NULL)
             return llvm_math_error_out(ctx, node, out,
                 "LLVM Abs could not lower operand expression");
@@ -48,9 +49,9 @@ llvm_emit_scalar_math_call(ASTNode *node, LLVMGenCtx *ctx,
         return true;
     }
 
-    if (strcmp(callee_name, "Min") == 0 && node->data.call.arg_count == 2) {
-        LLVMValueRef a = llvm_emit_expression(node->data.call.arguments[0], ctx);
-        LLVMValueRef b = llvm_emit_expression(node->data.call.arguments[1], ctx);
+    if (strcmp(callee_name, "Min") == 0 && ast_call_arg_count(node) == 2) {
+        LLVMValueRef a = llvm_emit_expression(ast_call_argument(node, 0), ctx);
+        LLVMValueRef b = llvm_emit_expression(ast_call_argument(node, 1), ctx);
         if (a == NULL || b == NULL)
             return llvm_math_error_out(ctx, node, out,
                 "LLVM Min could not lower operand expression");
@@ -60,9 +61,9 @@ llvm_emit_scalar_math_call(ASTNode *node, LLVMGenCtx *ctx,
         return true;
     }
 
-    if (strcmp(callee_name, "Max") == 0 && node->data.call.arg_count == 2) {
-        LLVMValueRef a = llvm_emit_expression(node->data.call.arguments[0], ctx);
-        LLVMValueRef b = llvm_emit_expression(node->data.call.arguments[1], ctx);
+    if (strcmp(callee_name, "Max") == 0 && ast_call_arg_count(node) == 2) {
+        LLVMValueRef a = llvm_emit_expression(ast_call_argument(node, 0), ctx);
+        LLVMValueRef b = llvm_emit_expression(ast_call_argument(node, 1), ctx);
         if (a == NULL || b == NULL)
             return llvm_math_error_out(ctx, node, out,
                 "LLVM Max could not lower operand expression");

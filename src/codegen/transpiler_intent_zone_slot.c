@@ -18,11 +18,11 @@ resolve_intent_zone_slot_name(TranspilerCtx *ctx, ASTNode *intent,
     if (ctx == NULL || intent == NULL || step == NULL || alias == NULL
         || ast_intent_step_where_type(step) == NULL
         || ast_intent_step_where_type(step)->type != AST_TYPE
-        || ast_intent_step_where_type(step)->data.type.name == NULL) {
+        || ast_type_name(ast_intent_step_where_type(step)) == NULL) {
         return "<unbound>";
     }
     return resolve_intent_zone_slot_name_for_zone(ctx, intent,
-        ast_intent_step_where_type(step)->data.type.name, alias);
+        ast_type_name(ast_intent_step_where_type(step)), alias);
 }
 
 const char *
@@ -61,8 +61,8 @@ resolve_intent_zone_slot_name_for_zone(TranspilerCtx *ctx, ASTNode *intent,
         if (participant_type != NULL
             && slot_type != NULL
             && slot_type->type == AST_TYPE
-            && slot_type->data.type.name != NULL
-            && strcmp(slot_type->data.type.name, participant_type) == 0) {
+            && ast_type_name(slot_type) != NULL
+            && strcmp(ast_type_name(slot_type), participant_type) == 0) {
             if (typed_match != NULL)
                 typed_match = (ASTNode *)(uintptr_t)1;
             else

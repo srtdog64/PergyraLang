@@ -53,11 +53,14 @@ find_extern_function_decl(TranspilerCtx *ctx, const char *function_name)
         ASTNode *block = decls[i];
         if (block == NULL || block->type != AST_EXTERN_BLOCK)
             continue;
-        for (size_t j = 0; j < block->data.extern_block.count; j++) {
-            ASTNode *stmt = block->data.extern_block.declarations[j];
+        size_t extern_count = 0;
+        (void)ast_extern_block_declarations(block, &extern_count);
+        for (size_t j = 0; j < extern_count; j++) {
+            ASTNode *stmt = ast_extern_block_declaration(block, j);
+            const char *stmt_name = ast_declaration_name(stmt);
             if (stmt != NULL && stmt->type == AST_FUNC_DECL
-                && stmt->data.func_decl.name != NULL
-                && strcmp(stmt->data.func_decl.name, function_name) == 0) {
+                && stmt_name != NULL
+                && strcmp(stmt_name, function_name) == 0) {
                 return stmt;
             }
         }
@@ -89,20 +92,20 @@ transpiler_named_decl_matches(ASTNode *stmt, ASTNodeType decl_type,
         return ast_class_name(stmt) != NULL
             && strcmp(ast_class_name(stmt), name) == 0;
     case AST_FUNC_DECL:
-        return stmt->data.func_decl.name != NULL
-            && strcmp(stmt->data.func_decl.name, name) == 0;
+        return ast_declaration_name(stmt) != NULL
+            && strcmp(ast_declaration_name(stmt), name) == 0;
     case AST_INTENT_DECL:
         return ast_intent_decl_name(stmt) != NULL
             && strcmp(ast_intent_decl_name(stmt), name) == 0;
     case AST_TYPE_ALIAS:
-        return stmt->data.type_alias.name != NULL
-            && strcmp(stmt->data.type_alias.name, name) == 0;
+        return ast_type_alias_name(stmt) != NULL
+            && strcmp(ast_type_alias_name(stmt), name) == 0;
     case AST_ABILITY_DECL:
         return ast_ability_name(stmt) != NULL
             && strcmp(ast_ability_name(stmt), name) == 0;
     case AST_EVENT_DECL:
-        return stmt->data.event_decl.name != NULL
-            && strcmp(stmt->data.event_decl.name, name) == 0;
+        return ast_event_name(stmt) != NULL
+            && strcmp(ast_event_name(stmt), name) == 0;
     case AST_ZONE_DECL:
         return ast_zone_name(stmt) != NULL
             && strcmp(ast_zone_name(stmt), name) == 0;
@@ -217,13 +220,13 @@ resolve_type_alias_target(TranspilerCtx *ctx, ASTNode *type_node)
 
     while (ctx != NULL && type_node != NULL
            && type_node->type == AST_TYPE
-           && type_node->data.type.name != NULL
+           && ast_type_name(type_node) != NULL
            && depth < 32) {
         ASTNode *alias_decl = transpiler_find_type_alias_decl(
-            ctx, type_node->data.type.name);
-        if (alias_decl == NULL || alias_decl->data.type_alias.target_type == NULL)
+            ctx, ast_type_name(type_node));
+        if (alias_decl == NULL || ast_type_alias_target_type(alias_decl) == NULL)
             break;
-        type_node = alias_decl->data.type_alias.target_type;
+        type_node = ast_type_alias_target_type(alias_decl);
         depth++;
     }
 

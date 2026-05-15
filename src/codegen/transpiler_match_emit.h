@@ -6,18 +6,23 @@
 static bool
 is_result_destructor(ASTNode *pat, const char **kind, const char **binding)
 {
+    ASTNode *callee;
+    ASTNode *payload;
+
     if (pat == NULL || pat->type != AST_CALL)
         return false;
-    if (pat->data.call.callee == NULL || pat->data.call.callee->type != AST_IDENTIFIER)
+    callee = ast_call_callee(pat);
+    if (callee == NULL || callee->type != AST_IDENTIFIER)
         return false;
-    const char *name = pat->data.call.callee->data.identifier.name;
+    const char *name = callee->data.identifier.name;
     if (strcmp(name, "Ok") != 0 && strcmp(name, "Err") != 0)
         return false;
     *kind = name;
-    if (pat->data.call.arg_count > 0
-        && pat->data.call.arguments[0] != NULL
-        && pat->data.call.arguments[0]->type == AST_IDENTIFIER) {
-        *binding = pat->data.call.arguments[0]->data.identifier.name;
+    payload = ast_call_argument(pat, 0);
+    if (ast_call_arg_count(pat) > 0
+        && payload != NULL
+        && payload->type == AST_IDENTIFIER) {
+        *binding = payload->data.identifier.name;
     } else {
         *binding = NULL;
     }
@@ -27,6 +32,10 @@ is_result_destructor(ASTNode *pat, const char **kind, const char **binding)
 static bool
 is_option_destructor(ASTNode *pat, const char **kind, const char **binding)
 {
+    ASTNode *callee;
+    ASTNode *payload;
+    size_t arg_count;
+
     *kind = NULL;
     *binding = NULL;
 
@@ -42,25 +51,28 @@ is_option_destructor(ASTNode *pat, const char **kind, const char **binding)
         return false;
     }
 
+    callee = ast_call_callee(pat);
+    arg_count = ast_call_arg_count(pat);
     if (pat->type != AST_CALL
-        || pat->data.call.callee == NULL
-        || pat->data.call.callee->type != AST_IDENTIFIER) {
+        || callee == NULL
+        || callee->type != AST_IDENTIFIER) {
         return false;
     }
 
-    const char *name = pat->data.call.callee->data.identifier.name;
+    const char *name = callee->data.identifier.name;
     if (name == NULL)
         return false;
 
-    if (strcmp(name, "None") == 0 && pat->data.call.arg_count == 0) {
+    if (strcmp(name, "None") == 0 && arg_count == 0) {
         *kind = "None";
         return true;
     }
-    if (strcmp(name, "Some") == 0 && pat->data.call.arg_count == 1) {
+    if (strcmp(name, "Some") == 0 && arg_count == 1) {
         *kind = "Some";
-        if (pat->data.call.arguments[0] != NULL
-            && pat->data.call.arguments[0]->type == AST_IDENTIFIER) {
-            *binding = pat->data.call.arguments[0]->data.identifier.name;
+        payload = ast_call_argument(pat, 0);
+        if (payload != NULL
+            && payload->type == AST_IDENTIFIER) {
+            *binding = payload->data.identifier.name;
         }
         return true;
     }
@@ -82,14 +94,16 @@ is_enum_variant_destructor(ASTNode *pat, TranspilerCtx *ctx,
 {
     const char *name = NULL;
     size_t argc = 0;
+    ASTNode *callee;
 
     if (pat == NULL) return false;
 
+    callee = ast_call_callee(pat);
     if (pat->type == AST_CALL
-        && pat->data.call.callee != NULL
-        && pat->data.call.callee->type == AST_IDENTIFIER) {
-        name = pat->data.call.callee->data.identifier.name;
-        argc = pat->data.call.arg_count;
+        && callee != NULL
+        && callee->type == AST_IDENTIFIER) {
+        name = callee->data.identifier.name;
+        argc = ast_call_arg_count(pat);
     } else if (pat->type == AST_IDENTIFIER) {
         name = pat->data.identifier.name;
         argc = 0;
@@ -130,7 +144,7 @@ is_enum_variant_destructor(ASTNode *pat, TranspilerCtx *ctx,
                 *enum_name_out = ast_enum_name(stmt);
                 *binding_count_out = 0;
                 for (size_t k = 0; k < argc && k < binding_cap; k++) {
-                    ASTNode *arg = pat->data.call.arguments[k];
+                    ASTNode *arg = ast_call_argument(pat, k);
                     if (arg != NULL && arg->type == AST_IDENTIFIER)
                         bindings_buf[k] = arg->data.identifier.name;
                     else

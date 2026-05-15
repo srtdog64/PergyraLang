@@ -138,24 +138,24 @@ transpiler_emit_mir_func_ssa_local_decls(TranspilerCtx *ctx,
         if (version == 0) {
             bool has_param = false;
             bool has_top_level = false;
-            for (size_t p = 0; p < node->data.func_decl.param_count; p++) {
-                FuncParam *param = node->data.func_decl.params[p];
+            size_t param_count = ast_func_param_count(node);
+            for (size_t p = 0; p < param_count; p++) {
+                FuncParam *param = ast_func_param(node, p);
                 if (param != NULL && param->name != NULL
                     && strcmp(param->name, base) == 0) {
                     has_param = true;
                     break;
                 }
             }
-            if (!has_param && node->data.func_decl.body != NULL
-                && node->data.func_decl.body->type == AST_BLOCK) {
-                ASTNode *body = node->data.func_decl.body;
+            ASTNode *body = ast_func_body(node);
+            if (!has_param && body != NULL && body->type == AST_BLOCK) {
                 for (size_t s = 0; s < body->data.block.count; s++) {
                     ASTNode *stmt = body->data.block.statements[s];
                     if (stmt == NULL)
                         continue;
                     if (stmt->type == AST_WITH_STMT
-                        && stmt->data.with_stmt.alias != NULL
-                        && strcmp(stmt->data.with_stmt.alias, base) == 0) {
+                        && ast_with_alias(stmt) != NULL
+                        && strcmp(ast_with_alias(stmt), base) == 0) {
                         has_top_level = true;
                         break;
                     }

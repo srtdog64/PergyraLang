@@ -8,14 +8,14 @@
 void
 emit_event_decl(ASTNode *node, TranspilerCtx *ctx)
 {
-    const char *name = node->data.event_decl.name;
+    const char *name = ast_event_name(node);
     const char *event_type = transpiler_scratch_fmt(ctx, "%s_Event", name);
 
     codebuf_write(ctx->out, "\n/* Event: %s */\n", name);
     codebuf_write(ctx->out, "typedef void (*%s_Handler)(", name);
 
-    for (size_t i = 0; i < node->data.event_decl.param_count; i++) {
-        ASTNode *param = node->data.event_decl.params[i];
+    for (size_t i = 0; i < ast_event_param_count(node); i++) {
+        ASTNode *param = ast_event_param(node, i);
         char pt_buf[256];
         const char *pt = "void*";
         if (param->data.let_decl.type != NULL
@@ -62,8 +62,8 @@ emit_event_decl(ASTNode *node, TranspilerCtx *ctx)
     codebuf_write(ctx->out, "}\n");
 
     codebuf_write(ctx->out, "static inline void %s_INVOKE(%s* e", name, event_type);
-    for (size_t i = 0; i < node->data.event_decl.param_count; i++) {
-        ASTNode *param = node->data.event_decl.params[i];
+    for (size_t i = 0; i < ast_event_param_count(node); i++) {
+        ASTNode *param = ast_event_param(node, i);
         char pt_buf[256];
         const char *pt = "void*";
         if (param->data.let_decl.type != NULL
@@ -78,10 +78,11 @@ emit_event_decl(ASTNode *node, TranspilerCtx *ctx)
     codebuf_write(ctx->out, "    e->is_invoking = true;\n");
     codebuf_write(ctx->out, "    for (size_t i = 0; i < e->count; i++) {\n");
     codebuf_write(ctx->out, "        e->handlers[i](");
-    for (size_t i = 0; i < node->data.event_decl.param_count; i++) {
+    for (size_t i = 0; i < ast_event_param_count(node); i++) {
+        ASTNode *param = ast_event_param(node, i);
         if (i > 0)
             codebuf_write(ctx->out, ", ");
-        codebuf_write(ctx->out, "%s", node->data.event_decl.params[i]->data.let_decl.name);
+        codebuf_write(ctx->out, "%s", param->data.let_decl.name);
     }
     codebuf_write(ctx->out, ");\n");
     codebuf_write(ctx->out, "    }\n");

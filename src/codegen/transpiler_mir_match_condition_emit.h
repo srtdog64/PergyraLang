@@ -33,21 +33,21 @@ transpiler_mir_find_match_subject_for_case(ASTNode *node, ASTNode *case_node)
         break;
     case AST_IF_STMT: {
         ASTNode *found = transpiler_mir_find_match_subject_for_case(
-            node->data.if_stmt.then_branch, case_node);
+            ast_if_then_branch(node), case_node);
         if (found != NULL)
             return found;
         return transpiler_mir_find_match_subject_for_case(
-            node->data.if_stmt.else_branch, case_node);
+            ast_if_else_branch(node), case_node);
     }
     case AST_FOR_LOOP:
         return transpiler_mir_find_match_subject_for_case(
-            node->data.for_loop.body, case_node);
+            ast_for_body(node), case_node);
     case AST_WHILE_LOOP:
         return transpiler_mir_find_match_subject_for_case(
-            node->data.while_loop.body, case_node);
+            ast_while_body(node), case_node);
     case AST_WITH_STMT:
         return transpiler_mir_find_match_subject_for_case(
-            node->data.with_stmt.body, case_node);
+            ast_with_body(node), case_node);
     default:
         break;
     }
@@ -59,6 +59,10 @@ transpiler_mir_is_option_destructor(ASTNode *pat,
                                     const char **kind,
                                     const char **binding)
 {
+    ASTNode *callee;
+    ASTNode *payload;
+    size_t arg_count;
+
     if (kind != NULL)
         *kind = NULL;
     if (binding != NULL)
@@ -76,28 +80,31 @@ transpiler_mir_is_option_destructor(ASTNode *pat,
         return false;
     }
 
+    callee = ast_call_callee(pat);
+    arg_count = ast_call_arg_count(pat);
     if (pat->type != AST_CALL
-        || pat->data.call.callee == NULL
-        || pat->data.call.callee->type != AST_IDENTIFIER) {
+        || callee == NULL
+        || callee->type != AST_IDENTIFIER) {
         return false;
     }
 
-    const char *name = pat->data.call.callee->data.identifier.name;
+    const char *name = callee->data.identifier.name;
     if (name == NULL)
         return false;
 
-    if (strcmp(name, "None") == 0 && pat->data.call.arg_count == 0) {
+    if (strcmp(name, "None") == 0 && arg_count == 0) {
         if (kind != NULL)
             *kind = "None";
         return true;
     }
-    if (strcmp(name, "Some") == 0 && pat->data.call.arg_count == 1) {
+    if (strcmp(name, "Some") == 0 && arg_count == 1) {
         if (kind != NULL)
             *kind = "Some";
+        payload = ast_call_argument(pat, 0);
         if (binding != NULL
-            && pat->data.call.arguments[0] != NULL
-            && pat->data.call.arguments[0]->type == AST_IDENTIFIER) {
-            *binding = pat->data.call.arguments[0]->data.identifier.name;
+            && payload != NULL
+            && payload->type == AST_IDENTIFIER) {
+            *binding = payload->data.identifier.name;
         }
         return true;
     }
@@ -109,27 +116,34 @@ transpiler_mir_is_result_destructor(ASTNode *pat,
                                     const char **kind,
                                     const char **binding)
 {
+    ASTNode *callee;
+    ASTNode *payload;
+    size_t arg_count;
+
     if (kind != NULL)
         *kind = NULL;
     if (binding != NULL)
         *binding = NULL;
+    callee = ast_call_callee(pat);
+    arg_count = ast_call_arg_count(pat);
     if (pat == NULL || pat->type != AST_CALL
-        || pat->data.call.callee == NULL
-        || pat->data.call.callee->type != AST_IDENTIFIER) {
+        || callee == NULL
+        || callee->type != AST_IDENTIFIER) {
         return false;
     }
 
-    const char *name = pat->data.call.callee->data.identifier.name;
+    const char *name = callee->data.identifier.name;
     if (name == NULL)
         return false;
     if ((strcmp(name, "Ok") == 0 || strcmp(name, "Err") == 0)
-        && pat->data.call.arg_count == 1) {
+        && arg_count == 1) {
         if (kind != NULL)
             *kind = name;
+        payload = ast_call_argument(pat, 0);
         if (binding != NULL
-            && pat->data.call.arguments[0] != NULL
-            && pat->data.call.arguments[0]->type == AST_IDENTIFIER) {
-            *binding = pat->data.call.arguments[0]->data.identifier.name;
+            && payload != NULL
+            && payload->type == AST_IDENTIFIER) {
+            *binding = payload->data.identifier.name;
         }
         return true;
     }
@@ -263,7 +277,7 @@ transpiler_mir_render_match_case_condition(ASTNode *func_decl,
     }
 
     subject_node = transpiler_mir_find_match_subject_for_case(
-        func_decl->data.func_decl.body, case_node);
+        ast_func_body(func_decl), case_node);
     if (subject_node == NULL)
         return NULL;
 

@@ -11,6 +11,7 @@
 
 #include "llvm_internal_api.h"
 #include "llvm_mir_type_helpers.h"
+#include "parser/ast_api.h"
 #include "../common/string_compat.h"
 
 static LLVMTypeRef
@@ -131,23 +132,23 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                     && value_expr != NULL
                     && value_expr->type == AST_ARRAY_LITERAL) {
                     LLVMTypeRef elem_type = ctx->type_i32;
-                    if (value_expr->data.array_literal.count > 0
-                        && value_expr->data.array_literal.elements != NULL
-                        && value_expr->data.array_literal.elements[0] != NULL) {
+                    if (ast_array_literal_count(value_expr) > 0
+                        && ast_array_literal_element(value_expr, 0) != NULL) {
                         elem_type = llvm_stmt_infer_expr_type(ctx,
-                            value_expr->data.array_literal.elements[0]);
+                            ast_array_literal_element(value_expr, 0));
                     }
                     llvm_register_array_var(ctx, pergyra_strdup(base_name),
-                        elem_type, (int64_t)value_expr->data.array_literal.count);
+                        elem_type, (int64_t)ast_array_literal_count(value_expr));
                 } else if (has_base_name
                     && value_expr != NULL
                     && value_expr->type == AST_CALL
-                    && value_expr->data.call.callee != NULL
-                    && value_expr->data.call.callee->type == AST_MEMBER_ACCESS
-                    && value_expr->data.call.callee->data.member.name != NULL
-                    && strcmp(value_expr->data.call.callee->data.member.name,
+                    && ast_call_callee(value_expr) != NULL
+                    && ast_call_callee(value_expr)->type == AST_MEMBER_ACCESS
+                    && ast_member_name(ast_call_callee(value_expr)) != NULL
+                    && strcmp(ast_member_name(ast_call_callee(value_expr)),
                         "Slice") == 0) {
-                    ASTNode *receiver = value_expr->data.call.callee->data.member.object;
+                    ASTNode *receiver =
+                        ast_member_object(ast_call_callee(value_expr));
                     LLVMTypeRef elem_type = ctx->type_i32;
                     if (receiver != NULL
                         && receiver->type == AST_IDENTIFIER
@@ -158,20 +159,21 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                             elem_type = entry->elem_type;
                     } else if (receiver != NULL
                         && receiver->type == AST_CALL
-                        && receiver->data.call.callee != NULL
-                        && receiver->data.call.callee->type == AST_IDENTIFIER
-                        && receiver->data.call.callee->data.identifier.name != NULL) {
+                        && ast_call_callee(receiver) != NULL
+                        && ast_call_callee(receiver)->type == AST_IDENTIFIER
+                        && ast_call_callee(receiver)->data.identifier.name != NULL) {
                         ASTNode *decl = llvm_stmt_find_function_decl_by_name(
-                            ctx, receiver->data.call.callee->data.identifier.name);
-                        if (decl != NULL
-                            && decl->type == AST_FUNC_DECL
-                            && decl->data.func_decl.return_type != NULL
-                            && decl->data.func_decl.return_type->type == AST_TYPE
-                            && decl->data.func_decl.return_type->data.type.generic_args != NULL
-                            && decl->data.func_decl.return_type->data.type.generic_args->count >= 1
-                            && decl->data.func_decl.return_type->data.type.generic_args->params[0] != NULL) {
+                            ctx, ast_call_callee(receiver)->data.identifier.name);
+                        ASTNode *return_type = ast_func_return_type(decl);
+                        GenericParams *return_generic_args =
+                            ast_type_generic_args(return_type);
+                        if (return_type != NULL
+                            && return_type->type == AST_TYPE
+                            && return_generic_args != NULL
+                            && return_generic_args->count >= 1
+                            && return_generic_args->params[0] != NULL) {
                             char *elem_name = llvm_stmt_render_type_arg_scratch(
-                                decl->data.func_decl.return_type->data.type.generic_args->params[0],
+                                return_generic_args->params[0],
                                 &ctx->scratch);
                             if (elem_name == NULL || elem_name[0] == '\0') {
                                 if (!ctx->has_error) {
@@ -180,7 +182,7 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                                         PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
                                         PGY_FIX_ANNOTATE_CONCRETE_TYPE,
                                         "LLVM MIR Slice receiver '%s' requires concrete element type metadata",
-                                        receiver->data.call.callee->data.identifier.name);
+                                        ast_call_callee(receiver)->data.identifier.name);
                                 }
                             } else {
                                 elem_type = pergyra_type_to_llvm(ctx, elem_name);
@@ -225,10 +227,10 @@ llvm_emit_mir_param_allocas(const MIRRoutine *routine, ASTNode *func_decl,
             emitted_index = 1;
         }
 
-        for (size_t param_index = 0;
-             param_index < func_decl->data.func_decl.param_count;
+        size_t func_param_count = ast_func_param_count(func_decl);
+        for (size_t param_index = 0; param_index < func_param_count;
              param_index++) {
-            FuncParam *p = func_decl->data.func_decl.params[param_index];
+            FuncParam *p = ast_func_param(func_decl, param_index);
             bool is_secure_slot = false;
             const char *slot_inner;
             LLVMTypeRef pt;
@@ -315,7 +317,7 @@ llvm_emit_mir_param_allocas(const MIRRoutine *routine, ASTNode *func_decl,
                 type_node = ast_intent_value_type(binding);
             }
             if (type_node != NULL && type_node->type == AST_TYPE)
-                type_name = type_node->data.type.name;
+                type_name = ast_type_name(type_node);
             pt = llvm_mir_required_type_from_ast(ctx, binding, type_node,
                 "intent binding");
             if (ctx->has_error || pt == NULL)
@@ -349,11 +351,11 @@ llvm_emit_mir_param_allocas(const MIRRoutine *routine, ASTNode *func_decl,
                 size_t logical_index = is_method ? (i - 1) : i;
                 size_t seen = 0;
                 FuncParam *p = NULL;
-                for (size_t param_index = 0;
-                     param_index < func_decl->data.func_decl.param_count;
+                size_t func_param_count = ast_func_param_count(func_decl);
+                for (size_t param_index = 0; param_index < func_param_count;
                      param_index++) {
-                    FuncParam *candidate =
-                        func_decl->data.func_decl.params[param_index];
+                    FuncParam *candidate = ast_func_param(func_decl,
+                        param_index);
                     if (candidate != NULL
                         && candidate->type == NULL
                         && candidate->name != NULL

@@ -224,8 +224,8 @@ semantic_record_callable_decl_summary(SemanticContext *ctx,
     if (callable_decl->data.func_decl.within_zone != NULL)
         semantic_record_body_summary(ctx, BODY_SUMMARY_REQUIRES_ZONE);
 
-    for (size_t i = 0; i < callable_decl->data.func_decl.param_count; i++) {
-        FuncParam *param = callable_decl->data.func_decl.params[i];
+    for (size_t i = 0; i < ast_func_param_count(callable_decl); i++) {
+        FuncParam *param = ast_func_param(callable_decl, i);
         if (param == NULL)
             continue;
         if (param->mode == PARAM_MODE_OWN)
@@ -428,10 +428,11 @@ find_ability_decl_by_name(ASTNode *program, const char *name)
 
     for (size_t i = 0; i < program->data.program.count; i++) {
         ASTNode *stmt = program->data.program.statements[i];
+        const char *ability_name = ast_ability_name(stmt);
         if (stmt == NULL || stmt->type != AST_ABILITY_DECL
-            || stmt->data.ability_decl.name == NULL)
+            || ability_name == NULL)
             continue;
-        if (strcmp(stmt->data.ability_decl.name, name) == 0)
+        if (strcmp(ability_name, name) == 0)
             return stmt;
     }
 
@@ -494,13 +495,14 @@ find_callable_decl_by_name(ASTNode *program, const char *name)
         ASTNode *stmt = program->data.program.statements[i];
         if (stmt == NULL)
             continue;
+        const char *stmt_name = ast_declaration_name(stmt);
         if (stmt->type == AST_FUNC_DECL
-            && stmt->data.func_decl.name != NULL
-            && strcmp(stmt->data.func_decl.name, name) == 0)
+            && stmt_name != NULL
+            && strcmp(stmt_name, name) == 0)
             return stmt;
         if (stmt->type == AST_EVENT_DECL
-            && stmt->data.event_decl.name != NULL
-            && strcmp(stmt->data.event_decl.name, name) == 0)
+            && ast_event_name(stmt) != NULL
+            && strcmp(ast_event_name(stmt), name) == 0)
             return stmt;
         if (stmt->type == AST_INTENT_DECL
             && ast_intent_decl_name(stmt) != NULL

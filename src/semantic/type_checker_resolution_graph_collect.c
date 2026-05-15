@@ -61,16 +61,16 @@ semantic_type_resolution_collect_type_refs(ASTNode *type_node,
         return;
 
     case AST_EVENT_HANDLER_TYPE:
-        for (size_t i = 0; i < type_node->data.event_handler_type.param_count; i++) {
+        for (size_t i = 0; i < ast_event_handler_param_count(type_node); i++) {
             semantic_type_resolution_collect_type_refs(
-                type_node->data.event_handler_type.param_types[i],
+                ast_event_handler_param_type(type_node, i),
                 ctx,
                 consumer_site,
                 consumer_name,
                 reason);
         }
         semantic_type_resolution_collect_type_refs(
-            type_node->data.event_handler_type.return_type,
+            ast_event_handler_return_type(type_node),
             ctx,
             consumer_site,
             consumer_name,
@@ -91,7 +91,7 @@ semantic_type_resolution_collect_type_refs(ASTNode *type_node,
             semantic_type_resolution_try_record_stable_constructed_type(ctx, type_node);
             return;
         }
-        if (type_node->data.type.name != NULL) {
+        if (ast_type_name(type_node) != NULL) {
             semantic_type_resolution_record_type_ref_dependency(
                 ctx,
                 consumer_site != NULL ? consumer_site : type_node,
@@ -99,9 +99,9 @@ semantic_type_resolution_collect_type_refs(ASTNode *type_node,
                 type_node,
                 reason != NULL ? reason : "type dependency");
         }
-        if (type_node->data.type.generic_args != NULL) {
-            for (size_t i = 0; i < type_node->data.type.generic_args->count; i++) {
-                GenericParam *gp = type_node->data.type.generic_args->params[i];
+        if (ast_type_generic_args(type_node) != NULL) {
+            for (size_t i = 0; i < ast_type_generic_args(type_node)->count; i++) {
+                GenericParam *gp = ast_type_generic_args(type_node)->params[i];
                 if (gp != NULL && gp->constraint != NULL) {
                     semantic_type_resolution_collect_type_refs(
                         gp->constraint,
@@ -245,26 +245,26 @@ semantic_type_resolution_register_top_level_decl(ASTNode *stmt,
 
     switch (stmt->type) {
     case AST_TYPE_ALIAS:
-        label = stmt->data.type_alias.name;
+        label = ast_type_alias_name(stmt);
         kind = TYPE_RES_NODE_ALIAS;
         break;
     case AST_CLASS_DECL:
         label = ast_class_name(stmt);
         break;
     case AST_FUNC_DECL:
-        label = stmt->data.func_decl.name;
+        label = ast_declaration_name(stmt);
         break;
     case AST_EVENT_DECL:
-        label = stmt->data.event_decl.name;
+        label = ast_event_name(stmt);
         break;
     case AST_ENUM_DECL:
         label = ast_enum_name(stmt);
         break;
     case AST_ABILITY_DECL:
-        label = stmt->data.ability_decl.name;
+        label = ast_ability_name(stmt);
         break;
     case AST_ROLE_DECL:
-        label = stmt->data.role_decl.name;
+        label = ast_role_name(stmt);
         break;
     case AST_PARTY_DECL:
         label = ast_party_name(stmt);

@@ -28,12 +28,12 @@ hir_stmt_collect_local_defs(ASTNode *node,
             return true;
 
         case AST_ASSIGNMENT:
-            if (node->data.assignment.target != NULL
-                && node->data.assignment.target->type == AST_IDENTIFIER) {
+            if (ast_assignment_target(node) != NULL
+                && ast_assignment_target(node)->type == AST_IDENTIFIER) {
                 return hir_cfg_append_name_unique(names,
                                                   count,
                                                   capacity,
-                                                  node->data.assignment.target->data.identifier.name);
+                                                  ast_assignment_target(node)->data.identifier.name);
             }
             return true;
 

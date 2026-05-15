@@ -61,7 +61,7 @@ emit_builtin_claim_device_slot(ASTNode *call, TranspilerCtx *ctx)
 char *
 emit_builtin_write(ASTNode *call, TranspilerCtx *ctx)
 {
-    if (call->data.call.arg_count < 2) {
+    if (ast_call_arg_count(call) < 2) {
         transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "C backend: Write requires slot and value");
         return pergyra_strdup("0");
     }
@@ -71,7 +71,7 @@ emit_builtin_write(ASTNode *call, TranspilerCtx *ctx)
     const char *inner = inner_buf;
     const char *slot_name = NULL;
     bool secure = false;
-    ASTNode *slot_arg = call->data.call.arguments[0];
+    ASTNode *slot_arg = ast_call_argument(call, 0);
     if (!transpiler_resolve_slot_target_copy(ctx, slot_arg,
             inner_buf, sizeof(inner_buf), &slot_name, &secure))
         return pergyra_strdup("0");
@@ -82,12 +82,12 @@ emit_builtin_write(ASTNode *call, TranspilerCtx *ctx)
     ctx->suppress_slot_auto_read = saved_suppress;
     transpiler_refine_slot_target_from_emitted_expr(ctx, slot_expr, &slot_name, &secure);
     char *slot_ref = slot_ref_expr(ctx, slot_name, slot_expr);
-    char *value_expr = emit_expression(call->data.call.arguments[1], ctx);
+    char *value_expr = emit_expression(ast_call_argument(call, 1), ctx);
 
     char *result;
-    if (call->data.call.arg_count >= 3) {
+    if (ast_call_arg_count(call) >= 3) {
         /* SecureSlot: Write(slot, value, token) */
-        char *token_expr = emit_expression(call->data.call.arguments[2], ctx);
+        char *token_expr = emit_expression(ast_call_argument(call, 2), ctx);
         result = slot_builtin_strdup_fmt(
             "pgy_secure_write_%s(%s, %s, &%s)",
             inner, slot_ref, value_expr, token_expr);
@@ -120,14 +120,14 @@ emit_builtin_write(ASTNode *call, TranspilerCtx *ctx)
 char *
 emit_builtin_view(ASTNode *call, TranspilerCtx *ctx)
 {
-    if (call->data.call.arg_count < 1) {
+    if (ast_call_arg_count(call) < 1) {
         transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "C backend: View requires source slot");
         return pergyra_strdup("0");
     }
 
     bool saved_suppress = ctx->suppress_slot_auto_read;
     ctx->suppress_slot_auto_read = true;
-    char *slot_expr = emit_expression(call->data.call.arguments[0], ctx);
+    char *slot_expr = emit_expression(ast_call_argument(call, 0), ctx);
     ctx->suppress_slot_auto_read = saved_suppress;
     return slot_expr;
 }
@@ -135,7 +135,7 @@ emit_builtin_view(ASTNode *call, TranspilerCtx *ctx)
 char *
 emit_builtin_read(ASTNode *call, TranspilerCtx *ctx)
 {
-    if (call->data.call.arg_count < 1) {
+    if (ast_call_arg_count(call) < 1) {
         transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "C backend: Read requires slot");
         return pergyra_strdup("0");
     }
@@ -145,7 +145,7 @@ emit_builtin_read(ASTNode *call, TranspilerCtx *ctx)
     const char *inner = inner_buf;
     const char *slot_name = NULL;
     bool secure = false;
-    ASTNode *slot_arg = call->data.call.arguments[0];
+    ASTNode *slot_arg = ast_call_argument(call, 0);
     if (!transpiler_resolve_slot_target_copy(ctx, slot_arg,
             inner_buf, sizeof(inner_buf), &slot_name, &secure))
         return pergyra_strdup("0");
@@ -158,8 +158,8 @@ emit_builtin_read(ASTNode *call, TranspilerCtx *ctx)
     char *slot_ref = slot_ref_expr(ctx, slot_name, slot_expr);
     char *result;
 
-    if (call->data.call.arg_count >= 2) {
-        char *token_expr = emit_expression(call->data.call.arguments[1], ctx);
+    if (ast_call_arg_count(call) >= 2) {
+        char *token_expr = emit_expression(ast_call_argument(call, 1), ctx);
         result = slot_builtin_strdup_fmt(
             "pgy_secure_read_%s(%s, &%s)",
             inner, slot_ref, token_expr);
@@ -186,7 +186,7 @@ emit_builtin_read(ASTNode *call, TranspilerCtx *ctx)
 char *
 emit_builtin_release(ASTNode *call, TranspilerCtx *ctx)
 {
-    if (call->data.call.arg_count < 1) {
+    if (ast_call_arg_count(call) < 1) {
         transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "C backend: Release requires slot");
         return pergyra_strdup("0");
     }
@@ -196,7 +196,7 @@ emit_builtin_release(ASTNode *call, TranspilerCtx *ctx)
     const char *inner = inner_buf;
     const char *slot_name = NULL;
     bool secure = false;
-    ASTNode *slot_arg = call->data.call.arguments[0];
+    ASTNode *slot_arg = ast_call_argument(call, 0);
     if (!transpiler_resolve_slot_target_copy(ctx, slot_arg,
             inner_buf, sizeof(inner_buf), &slot_name, &secure))
         return pergyra_strdup("0");
@@ -209,8 +209,8 @@ emit_builtin_release(ASTNode *call, TranspilerCtx *ctx)
     char *slot_ref = slot_ref_expr(ctx, slot_name, slot_expr);
     char *result;
 
-    if (call->data.call.arg_count >= 2) {
-        char *token_expr = emit_expression(call->data.call.arguments[1], ctx);
+    if (ast_call_arg_count(call) >= 2) {
+        char *token_expr = emit_expression(ast_call_argument(call, 1), ctx);
         result = slot_builtin_strdup_fmt(
             "pgy_secure_release_%s(%s, &%s)",
             inner, slot_ref, token_expr);
@@ -248,7 +248,7 @@ emit_builtin_release(ASTNode *call, TranspilerCtx *ctx)
 char *
 emit_builtin_device_write(ASTNode *call, TranspilerCtx *ctx)
 {
-    ASTNode *slot_arg = call->data.call.arguments[0];
+    ASTNode *slot_arg = ast_call_argument(call, 0);
     char inner_buf[128];
     const char *inner = inner_buf;
     if (!transpiler_resolve_device_slot_inner_copy_or_error(ctx, slot_arg,
@@ -258,7 +258,7 @@ emit_builtin_device_write(ASTNode *call, TranspilerCtx *ctx)
     ctx->suppress_slot_auto_read = true;
     char *slot_expr = emit_expression(slot_arg, ctx);
     ctx->suppress_slot_auto_read = saved_suppress;
-    char *value_expr = emit_expression(call->data.call.arguments[1], ctx);
+    char *value_expr = emit_expression(ast_call_argument(call, 1), ctx);
     char *result;
 
     result = slot_builtin_strdup_fmt("pgy_device_write_%s(&%s, %s)", inner, slot_expr, value_expr);
@@ -270,7 +270,7 @@ emit_builtin_device_write(ASTNode *call, TranspilerCtx *ctx)
 char *
 emit_builtin_device_read(ASTNode *call, TranspilerCtx *ctx)
 {
-    ASTNode *slot_arg = call->data.call.arguments[0];
+    ASTNode *slot_arg = ast_call_argument(call, 0);
     char inner_buf[128];
     const char *inner = inner_buf;
     if (!transpiler_resolve_device_slot_inner_copy_or_error(ctx, slot_arg,
@@ -290,7 +290,7 @@ emit_builtin_device_read(ASTNode *call, TranspilerCtx *ctx)
 char *
 emit_builtin_release_device_slot(ASTNode *call, TranspilerCtx *ctx)
 {
-    ASTNode *slot_arg = call->data.call.arguments[0];
+    ASTNode *slot_arg = ast_call_argument(call, 0);
     char inner_buf[128];
     const char *inner = inner_buf;
     if (!transpiler_resolve_device_slot_inner_copy_or_error(ctx, slot_arg,
@@ -310,7 +310,7 @@ emit_builtin_release_device_slot(ASTNode *call, TranspilerCtx *ctx)
 char *
 emit_builtin_submit_device_read(ASTNode *call, TranspilerCtx *ctx)
 {
-    ASTNode *slot_arg = call->data.call.arguments[0];
+    ASTNode *slot_arg = ast_call_argument(call, 0);
     char inner_buf[128];
     const char *inner = inner_buf;
     if (!transpiler_resolve_device_slot_inner_copy_or_error(ctx, slot_arg,

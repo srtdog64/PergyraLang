@@ -33,18 +33,20 @@ llvm_stmt_find_labeled_loop_depth(LLVMGenCtx *ctx, const char *label)
 static void
 llvm_emit_return_stmt(ASTNode *node, LLVMGenCtx *ctx)
 {
+    ASTNode *value = ast_return_value(node);
+
     llvm_emit_defers_from(ctx, 0);
 
-    if (node->data.return_stmt.value != NULL) {
+    if (value != NULL) {
         const char *saved_expected_type_name = ctx->expected_type_name;
         LLVMValueRef val;
         if (ctx->current_func_decl != NULL
             && ctx->current_func_decl->type == AST_FUNC_DECL
-            && ctx->current_func_decl->data.func_decl.return_type != NULL) {
+            && ast_func_return_type(ctx->current_func_decl) != NULL) {
             ctx->expected_type_name = llvm_stmt_render_type_annotation_copy(ctx,
-                ctx->current_func_decl->data.func_decl.return_type);
+                ast_func_return_type(ctx->current_func_decl));
         }
-        val = llvm_emit_expression(node->data.return_stmt.value, ctx);
+        val = llvm_emit_expression(value, ctx);
         ctx->expected_type_name = saved_expected_type_name;
         if (val != NULL) {
             /* Coerce to expected return type */
@@ -87,7 +89,7 @@ llvm_emit_return_stmt(ASTNode *node, LLVMGenCtx *ctx)
 static void
 llvm_emit_if_stmt(ASTNode *node, LLVMGenCtx *ctx)
 {
-    LLVMValueRef cond = llvm_emit_expression(node->data.if_stmt.condition, ctx);
+    LLVMValueRef cond = llvm_emit_expression(ast_if_condition(node), ctx);
     if (cond == NULL)
         return;
 
@@ -109,16 +111,16 @@ llvm_emit_if_stmt(ASTNode *node, LLVMGenCtx *ctx)
 
     /* Then block */
     LLVMPositionBuilderAtEnd(ctx->builder, then_bb);
-    if (node->data.if_stmt.then_branch != NULL)
-        llvm_emit_statement(node->data.if_stmt.then_branch, ctx);
+    if (ast_if_then_branch(node) != NULL)
+        llvm_emit_statement(ast_if_then_branch(node), ctx);
     /* Only branch to merge if no terminator (return) was emitted */
     if (LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(ctx->builder)) == NULL)
         LLVMBuildBr(ctx->builder, merge_bb);
 
     /* Else block */
     LLVMPositionBuilderAtEnd(ctx->builder, else_bb);
-    if (node->data.if_stmt.else_branch != NULL)
-        llvm_emit_statement(node->data.if_stmt.else_branch, ctx);
+    if (ast_if_else_branch(node) != NULL)
+        llvm_emit_statement(ast_if_else_branch(node), ctx);
     if (LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(ctx->builder)) == NULL)
         LLVMBuildBr(ctx->builder, merge_bb);
 
@@ -306,9 +308,9 @@ llvm_emit_statement(ASTNode *node, LLVMGenCtx *ctx)
     case AST_BREAK:
         if (ctx->loop_depth > 0) {
             int target_depth = ctx->loop_depth - 1;
-            if (node->data.break_stmt.label != NULL) {
+            if (ast_break_label(node) != NULL) {
                 int found = llvm_stmt_find_labeled_loop_depth(
-                    ctx, node->data.break_stmt.label);
+                    ctx, ast_break_label(node));
                 if (found >= 0)
                     target_depth = found;
             }
@@ -324,9 +326,9 @@ llvm_emit_statement(ASTNode *node, LLVMGenCtx *ctx)
     case AST_CONTINUE:
         if (ctx->loop_depth > 0) {
             int target_depth = ctx->loop_depth - 1;
-            if (node->data.continue_stmt.label != NULL) {
+            if (ast_continue_label(node) != NULL) {
                 int found = llvm_stmt_find_labeled_loop_depth(
-                    ctx, node->data.continue_stmt.label);
+                    ctx, ast_continue_label(node));
                 if (found >= 0)
                     target_depth = found;
             }
@@ -407,13 +409,13 @@ llvm_emit_statement(ASTNode *node, LLVMGenCtx *ctx)
 
     case AST_UNSAFE_BLOCK:
         /* unsafe { ... } ??emit body directly, no safety wrappers */
-        if (node->data.unsafe_block.body != NULL)
-            llvm_emit_block(node->data.unsafe_block.body, ctx);
+        if (ast_unsafe_block_body(node) != NULL)
+            llvm_emit_block(ast_unsafe_block_body(node), ctx);
         break;
 
     case AST_DEFER_STMT:
-        if (node->data.defer_stmt.body != NULL)
-            llvm_register_defer(node->data.defer_stmt.body, ctx);
+        if (ast_defer_body(node) != NULL)
+            llvm_register_defer(ast_defer_body(node), ctx);
         break;
 
     case AST_BIND_STMT: {

@@ -25,6 +25,9 @@ emit_call_result_option_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *c
      *   operand when the surrounding expression context is not specific. */
     if (callee->type == AST_IDENTIFIER) {
         const char *fn = callee->data.identifier.name;
+        size_t argc = ast_call_arg_count(call);
+        ASTNode *arg0 = ast_call_argument(call, 0);
+        ASTNode *arg1 = ast_call_argument(call, 1);
         bool is_result_ctor = false;
         bool is_result_consumer = false;
         char result_suffix[128] = {0};
@@ -37,10 +40,10 @@ emit_call_result_option_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *c
             || strcmp(fn, "UnwrapOr") == 0;
 
         if (!have_result_suffix && is_result_consumer
-            && call->data.call.arg_count >= 1
-            && call->data.call.arguments[0] != NULL) {
+            && argc >= 1
+            && arg0 != NULL) {
             const char *arg_type = infer_expression_type_name(
-                ctx, call->data.call.arguments[0]);
+                ctx, arg0);
             have_result_suffix = transpiler_result_suffix_from_type_name(
                 arg_type, result_suffix, sizeof(result_suffix));
         }
@@ -51,47 +54,47 @@ emit_call_result_option_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *c
             return pergyra_strdup("0");
         }
 
-        if (strcmp(fn, "Ok") == 0 && call->data.call.arg_count == 1) {
-            char *arg = emit_expression(call->data.call.arguments[0], ctx);
+        if (strcmp(fn, "Ok") == 0 && argc == 1) {
+            char *arg = emit_expression(arg0, ctx);
             char *result = strdup_fmt("Ok_%s(%s)", result_suffix, arg);
             free(arg);
             return result;
         }
-        if (strcmp(fn, "Err") == 0 && call->data.call.arg_count == 1) {
-            char *arg = emit_expression(call->data.call.arguments[0], ctx);
+        if (strcmp(fn, "Err") == 0 && argc == 1) {
+            char *arg = emit_expression(arg0, ctx);
             char *result = strdup_fmt("Err_%s(%s)", result_suffix, arg);
             free(arg);
             return result;
         }
-        if (strcmp(fn, "IsOk") == 0 && call->data.call.arg_count == 1) {
-            char *arg = emit_expression(call->data.call.arguments[0], ctx);
+        if (strcmp(fn, "IsOk") == 0 && argc == 1) {
+            char *arg = emit_expression(arg0, ctx);
             char *result = strdup_fmt("IsOk_%s(%s)", result_suffix, arg);
             free(arg);
             return result;
         }
-        if (strcmp(fn, "IsErr") == 0 && call->data.call.arg_count == 1) {
-            char *arg = emit_expression(call->data.call.arguments[0], ctx);
+        if (strcmp(fn, "IsErr") == 0 && argc == 1) {
+            char *arg = emit_expression(arg0, ctx);
             char *result = strdup_fmt("IsErr_%s(%s)", result_suffix, arg);
             free(arg);
             return result;
         }
-        if (strcmp(fn, "Unwrap") == 0 && call->data.call.arg_count == 1) {
-            char *arg = emit_expression(call->data.call.arguments[0], ctx);
+        if (strcmp(fn, "Unwrap") == 0 && argc == 1) {
+            char *arg = emit_expression(arg0, ctx);
             char *result = strdup_fmt("Unwrap_%s(%s)", result_suffix, arg);
             free(arg);
             return result;
         }
-        if (strcmp(fn, "UnwrapOr") == 0 && call->data.call.arg_count == 2) {
-            char *arg = emit_expression(call->data.call.arguments[0], ctx);
-            char *fallback = emit_expression(call->data.call.arguments[1], ctx);
+        if (strcmp(fn, "UnwrapOr") == 0 && argc == 2) {
+            char *arg = emit_expression(arg0, ctx);
+            char *fallback = emit_expression(arg1, ctx);
             char *result = strdup_fmt("UnwrapOr_%s(%s, %s)", result_suffix, arg, fallback);
             free(arg);
             free(fallback);
             return result;
         }
-        if (strcmp(fn, "Some") == 0 && call->data.call.arg_count == 1) {
-            char *arg = emit_expression(call->data.call.arguments[0], ctx);
-            const char *inner = infer_expression_type_name(ctx, call->data.call.arguments[0]);
+        if (strcmp(fn, "Some") == 0 && argc == 1) {
+            char *arg = emit_expression(arg0, ctx);
+            const char *inner = infer_expression_type_name(ctx, arg0);
             char inner_buf[128];
             if (inner == NULL || inner[0] == '\0'
                 || strcmp(inner, "Unknown") == 0) {
@@ -114,11 +117,11 @@ emit_call_result_option_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *c
             free(arg);
             return result;
         }
-        if (strcmp(fn, "None") == 0 && call->data.call.arg_count == 0) {
+        if (strcmp(fn, "None") == 0 && argc == 0) {
             return transpiler_emit_none_with_context(ctx, call);
         }
-        if (strcmp(fn, "IsSome") == 0 && call->data.call.arg_count == 1) {
-            const char *opt_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
+        if (strcmp(fn, "IsSome") == 0 && argc == 1) {
+            const char *opt_type = infer_expression_type_name(ctx, arg0);
             if (!transpiler_option_type_has_concrete_inner(opt_type)) {
                 transpiler_set_backend_error_with_hints(ctx,
                     PGY_CODE_C_TYPE_UNSUPPORTED,
@@ -128,7 +131,7 @@ emit_call_result_option_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *c
                     opt_type != NULL ? opt_type : "<unknown>");
                 return pergyra_strdup("false");
             }
-            char *arg = emit_expression(call->data.call.arguments[0], ctx);
+            char *arg = emit_expression(arg0, ctx);
             char inner_buf[128];
             const char *inner = inner_buf;
             (void)slot_inner_type_name_copy(opt_type, inner_buf,
@@ -137,8 +140,8 @@ emit_call_result_option_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *c
             free(arg);
             return result;
         }
-        if (strcmp(fn, "IsNone") == 0 && call->data.call.arg_count == 1) {
-            const char *opt_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
+        if (strcmp(fn, "IsNone") == 0 && argc == 1) {
+            const char *opt_type = infer_expression_type_name(ctx, arg0);
             if (!transpiler_option_type_has_concrete_inner(opt_type)) {
                 transpiler_set_backend_error_with_hints(ctx,
                     PGY_CODE_C_TYPE_UNSUPPORTED,
@@ -148,7 +151,7 @@ emit_call_result_option_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *c
                     opt_type != NULL ? opt_type : "<unknown>");
                 return pergyra_strdup("false");
             }
-            char *arg = emit_expression(call->data.call.arguments[0], ctx);
+            char *arg = emit_expression(arg0, ctx);
             char inner_buf[128];
             const char *inner = inner_buf;
             (void)slot_inner_type_name_copy(opt_type, inner_buf,
@@ -157,8 +160,8 @@ emit_call_result_option_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *c
             free(arg);
             return result;
         }
-        if (strcmp(fn, "UnwrapOption") == 0 && call->data.call.arg_count == 1) {
-            const char *opt_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
+        if (strcmp(fn, "UnwrapOption") == 0 && argc == 1) {
+            const char *opt_type = infer_expression_type_name(ctx, arg0);
             if (!transpiler_option_type_has_concrete_inner(opt_type)) {
                 transpiler_set_backend_error_with_hints(ctx,
                     PGY_CODE_C_TYPE_UNSUPPORTED,
@@ -168,7 +171,7 @@ emit_call_result_option_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *c
                     opt_type != NULL ? opt_type : "<unknown>");
                 return pergyra_strdup("0");
             }
-            char *arg = emit_expression(call->data.call.arguments[0], ctx);
+            char *arg = emit_expression(arg0, ctx);
             char inner_buf[128];
             const char *inner = inner_buf;
             (void)slot_inner_type_name_copy(opt_type, inner_buf,

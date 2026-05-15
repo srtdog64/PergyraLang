@@ -50,10 +50,10 @@ type_check_relation_decl(ASTNode *node, SemanticContext *ctx)
         refreshes,
         refresh_count);
     if (endpoint_count == 0
-        && !(node->data.relation_decl.between_left_kind != RELATION_ENDPOINT_NAMED
-            || node->data.relation_decl.between_right_kind != RELATION_ENDPOINT_NAMED
-            || node->data.relation_decl.between_left_type != NULL
-            || node->data.relation_decl.between_right_type != NULL)) {
+        && !(ast_relation_between_left_kind(node) != RELATION_ENDPOINT_NAMED
+            || ast_relation_between_right_kind(node) != RELATION_ENDPOINT_NAMED
+            || ast_relation_between_left_type(node) != NULL
+            || ast_relation_between_right_type(node) != NULL)) {
         semantic_warning(ctx, node,
             "Relation '%s' should declare at least one endpoint slot.\n"
             "Reason:\n"
@@ -78,10 +78,10 @@ type_check_relation_decl(ASTNode *node, SemanticContext *ctx)
             ast_relation_name(node));
     }
     /* Validate 'between' clause if present */
-    RelationEndpointKind blk = node->data.relation_decl.between_left_kind;
-    RelationEndpointKind brk = node->data.relation_decl.between_right_kind;
-    ASTNode *blt = node->data.relation_decl.between_left_type;
-    ASTNode *brt = node->data.relation_decl.between_right_type;
+    RelationEndpointKind blk = ast_relation_between_left_kind(node);
+    RelationEndpointKind brk = ast_relation_between_right_kind(node);
+    ASTNode *blt = ast_relation_between_left_type(node);
+    ASTNode *brt = ast_relation_between_right_type(node);
     if (blk != RELATION_ENDPOINT_NAMED || brk != RELATION_ENDPOINT_NAMED
         || blt != NULL || brt != NULL) {
         /* At least one side must be 'subject' */

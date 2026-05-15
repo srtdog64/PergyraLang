@@ -49,6 +49,27 @@ test_undefined_symbol(void)
         ast_destroy(log_call);
     }
 
+    TEST("Raw namespace declaration is semantically traversed");
+    {
+        const char *source =
+            "namespace Math {\n"
+            "    func Id(x: Int) -> Int { return x; }\n"
+            "}\n"
+            "func Main() -> Void { return; }\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
     TEST("duplicate stdlib use emits warning");
     {
         const char *source =

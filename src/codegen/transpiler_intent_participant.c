@@ -18,7 +18,7 @@ intent_involves_type_name_local(ASTNode *involves)
         || subject_type->type != AST_TYPE) {
         return NULL;
     }
-    return subject_type->data.type.name;
+    return ast_type_name(subject_type);
 }
 
 bool

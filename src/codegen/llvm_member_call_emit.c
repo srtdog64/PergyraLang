@@ -15,8 +15,14 @@
 LLVMValueRef
 llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
 {
-    ASTNode *obj_node = node->data.call.callee->data.member.object;
-    const char *method_name = node->data.call.callee->data.member.name;
+    ASTNode *callee_node = ast_call_callee(node);
+    ASTNode *obj_node = callee_node != NULL && callee_node->type == AST_MEMBER_ACCESS
+        ? ast_member_object(callee_node)
+        : NULL;
+    const char *method_name = callee_node != NULL
+        && callee_node->type == AST_MEMBER_ACCESS
+        ? ast_member_name(callee_node)
+        : NULL;
     LLVMValueRef handled;
 
     handled = llvm_emit_member_call_vtable_dispatch(node, ctx, obj_node, method_name);
@@ -47,7 +53,7 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
             LLVMFuncEntry *fn = llvm_lookup_function(ctx, full_name);
             if (fn != NULL) {
                 return llvm_emit_function_call_args(ctx, fn,
-                    node->data.call.arguments, node->data.call.arg_count);
+                    ast_call_arguments(node, NULL), ast_call_arg_count(node));
             }
         }
 
@@ -94,7 +100,7 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
                     class_name, method_name);
                 if (fn_value != NULL && fn_type != NULL && ret_type != NULL) {
                     /* subject methods receive a self pointer; class methods a self value */
-                    size_t argc = node->data.call.arg_count;
+                    size_t argc = ast_call_arg_count(node);
                     LLVMValueRef *args = llvm_member_call_alloc_args(
                         ctx, node, class_name, method_name, argc);
                     if (args == NULL)
@@ -143,13 +149,15 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
                         }
                     }
                     for (size_t i = 0; i < argc; i++) {
+                        ASTNode *arg_node = ast_call_argument(node, i);
                         LLVMValueRef arg_val = llvm_emit_expression(
-                            node->data.call.arguments[i], ctx);
+                            arg_node, ctx);
                         if (method_decl != NULL) {
                             size_t logical_idx = 0;
-                            for (size_t pk = 0;
-                                 pk < method_decl->data.func_decl.param_count; pk++) {
-                                FuncParam *p = method_decl->data.func_decl.params[pk];
+                            size_t method_param_count =
+                                ast_func_param_count(method_decl);
+                            for (size_t pk = 0; pk < method_param_count; pk++) {
+                                FuncParam *p = ast_func_param(method_decl, pk);
                                 const char *ptn = NULL;
                                 LLVMClassTypeEntry *param_cls = NULL;
                                 if (p == NULL || p->name == NULL)
@@ -160,14 +168,14 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
                                 }
                                 if (logical_idx == i) {
                                     if (p->type != NULL && p->type->type == AST_TYPE)
-                                        ptn = p->type->data.type.name;
+                                        ptn = ast_type_name(p->type);
                                     param_cls = ptn != NULL
                                         ? llvm_lookup_class(ctx, ptn) : NULL;
                                     if (param_cls != NULL && param_cls->is_pointer_self_host
-                                        && node->data.call.arguments[i] != NULL
-                                        && node->data.call.arguments[i]->type == AST_IDENTIFIER) {
+                                        && arg_node != NULL
+                                        && arg_node->type == AST_IDENTIFIER) {
                                         const char *arg_name =
-                                            node->data.call.arguments[i]->data.identifier.name;
+                                            arg_node->data.identifier.name;
                                         LLVMVarEntry *arg_var = llvm_scope_lookup(ctx, arg_name);
                                         if (arg_var != NULL) {
                                             if (arg_var->type == LLVMPointerType(param_cls->struct_type, 0))
@@ -221,7 +229,7 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
                     ? fn->ret_type
                     : (fn_type != NULL ? LLVMGetReturnType(fn_type) : NULL);
                 if (fn_value != NULL && fn_type != NULL && ret_type != NULL) {
-                    size_t argc = node->data.call.arg_count;
+                    size_t argc = ast_call_arg_count(node);
                     LLVMValueRef *args = llvm_member_call_alloc_args(
                         ctx, node, class_name, method_name, argc);
                     if (args == NULL)
@@ -232,7 +240,7 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
                             class_name, method_name, "could not lower receiver");
                     for (size_t i = 0; i < argc; i++) {
                         LLVMValueRef arg_val = llvm_emit_expression(
-                            node->data.call.arguments[i], ctx);
+                            ast_call_argument(node, i), ctx);
                         if (!llvm_member_call_store_arg(ctx, node, class_name,
                                 method_name, args, i, arg_val))
                             return NULL;
@@ -264,7 +272,6 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
             LLVMTypeRef fn_type;
             LLVMTypeRef ret_type;
             ASTNode *method_decl;
-            size_t argc = node->data.call.arg_count;
             LLVMValueRef *args;
             LLVMValueRef self_ptr;
             char *full_name = llvm_member_call_mangle_method_name(ctx, node,
@@ -284,6 +291,7 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
             method_decl = llvm_find_nominal_host_method_decl(ctx,
                 class_name, method_name);
             if (fn_value != NULL && fn_type != NULL && ret_type != NULL) {
+                size_t argc = ast_call_arg_count(node);
                 args = llvm_member_call_alloc_args(ctx, node, class_name,
                     method_name, argc);
                 if (args == NULL)
@@ -302,13 +310,15 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
                 }
 
                 for (size_t i = 0; i < argc; i++) {
+                    ASTNode *arg_node = ast_call_argument(node, i);
                     LLVMValueRef arg_val = llvm_emit_expression(
-                        node->data.call.arguments[i], ctx);
+                        arg_node, ctx);
                     if (method_decl != NULL) {
                         size_t logical_idx = 0;
-                        for (size_t pk = 0;
-                             pk < method_decl->data.func_decl.param_count; pk++) {
-                            FuncParam *p = method_decl->data.func_decl.params[pk];
+                        size_t method_param_count =
+                            ast_func_param_count(method_decl);
+                        for (size_t pk = 0; pk < method_param_count; pk++) {
+                            FuncParam *p = ast_func_param(method_decl, pk);
                             const char *ptn = NULL;
                             LLVMClassTypeEntry *param_cls = NULL;
                             if (p == NULL || p->name == NULL)
@@ -319,14 +329,14 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
                             }
                             if (logical_idx == i) {
                                 if (p->type != NULL && p->type->type == AST_TYPE)
-                                    ptn = p->type->data.type.name;
+                                    ptn = ast_type_name(p->type);
                                 param_cls = ptn != NULL
                                     ? llvm_lookup_class(ctx, ptn) : NULL;
                                 if (param_cls != NULL && param_cls->is_pointer_self_host
-                                    && node->data.call.arguments[i] != NULL
-                                    && node->data.call.arguments[i]->type == AST_IDENTIFIER) {
+                                    && arg_node != NULL
+                                    && arg_node->type == AST_IDENTIFIER) {
                                     const char *arg_name =
-                                        node->data.call.arguments[i]->data.identifier.name;
+                                        arg_node->data.identifier.name;
                                     LLVMVarEntry *arg_var = llvm_scope_lookup(ctx, arg_name);
                                     if (arg_var != NULL) {
                                         if (arg_var->type == LLVMPointerType(param_cls->struct_type, 0))
@@ -367,15 +377,15 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
     }
 
     if (obj_node != NULL && obj_node->type == AST_MEMBER_ACCESS
-        && obj_node->data.member.object != NULL
-        && obj_node->data.member.object->type == AST_IDENTIFIER
-        && obj_node->data.member.object->data.identifier.name != NULL
-        && strcmp(obj_node->data.member.object->data.identifier.name, "self") == 0
-        && obj_node->data.member.name != NULL
+        && ast_member_object(obj_node) != NULL
+        && ast_member_object(obj_node)->type == AST_IDENTIFIER
+        && ast_member_object(obj_node)->data.identifier.name != NULL
+        && strcmp(ast_member_object(obj_node)->data.identifier.name, "self") == 0
+        && ast_member_name(obj_node) != NULL
         && method_name != NULL) {
         ASTNode *host_decl = llvm_current_host_decl(ctx);
         const char *host_name = llvm_decl_node_name(host_decl);
-        const char *field_name = obj_node->data.member.name;
+        const char *field_name = ast_member_name(obj_node);
         const char *class_name = llvm_current_field_class_name(ctx, field_name);
         LLVMClassTypeEntry *parent_cls = host_name != NULL
             ? llvm_lookup_class(ctx, host_name) : NULL;
@@ -391,7 +401,7 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
                 return NULL;
             LLVMFuncEntry *fn = llvm_lookup_function(ctx, full_name);
             if (fn != NULL) {
-                size_t argc = node->data.call.arg_count;
+                size_t argc = ast_call_arg_count(node);
                 LLVMValueRef *args = llvm_member_call_alloc_args(ctx, node,
                     class_name, method_name, argc);
                 if (args == NULL)
@@ -413,13 +423,15 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
                         host_cls->struct_type, field_ptr, llvm_tmp_name(ctx));
 
                 for (size_t i = 0; i < argc; i++) {
+                    ASTNode *arg_node = ast_call_argument(node, i);
                     LLVMValueRef arg_val = llvm_emit_expression(
-                        node->data.call.arguments[i], ctx);
+                        arg_node, ctx);
                     if (method_decl != NULL) {
                         size_t logical_idx = 0;
-                        for (size_t pk = 0;
-                             pk < method_decl->data.func_decl.param_count; pk++) {
-                            FuncParam *p = method_decl->data.func_decl.params[pk];
+                        size_t method_param_count =
+                            ast_func_param_count(method_decl);
+                        for (size_t pk = 0; pk < method_param_count; pk++) {
+                            FuncParam *p = ast_func_param(method_decl, pk);
                             const char *ptn = NULL;
                             LLVMClassTypeEntry *param_cls = NULL;
                             if (p == NULL || p->name == NULL)
@@ -430,14 +442,14 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
                             }
                             if (logical_idx == i) {
                                 if (p->type != NULL && p->type->type == AST_TYPE)
-                                    ptn = p->type->data.type.name;
+                                    ptn = ast_type_name(p->type);
                                 param_cls = ptn != NULL
                                     ? llvm_lookup_class(ctx, ptn) : NULL;
                                 if (param_cls != NULL && param_cls->is_pointer_self_host
-                                    && node->data.call.arguments[i] != NULL
-                                    && node->data.call.arguments[i]->type == AST_IDENTIFIER) {
+                                    && arg_node != NULL
+                                    && arg_node->type == AST_IDENTIFIER) {
                                     const char *arg_name =
-                                        node->data.call.arguments[i]->data.identifier.name;
+                                        arg_node->data.identifier.name;
                                     LLVMVarEntry *arg_var = llvm_scope_lookup(ctx, arg_name);
                                     if (arg_var != NULL) {
                                         if (arg_var->type == LLVMPointerType(param_cls->struct_type, 0))

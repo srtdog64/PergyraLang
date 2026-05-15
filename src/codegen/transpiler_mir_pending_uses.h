@@ -147,10 +147,10 @@ transpiler_materialize_pending_inst_uses(CodeBuf *buf,
             continue;
         }
         if (initializer->type == AST_CALL
-            && initializer->data.call.callee != NULL
-            && initializer->data.call.callee->type == AST_IDENTIFIER
-            && initializer->data.call.callee->data.identifier.name != NULL
-            && strncmp(initializer->data.call.callee->data.identifier.name,
+            && ast_call_callee(initializer) != NULL
+            && ast_call_callee(initializer)->type == AST_IDENTIFIER
+            && ast_call_callee(initializer)->data.identifier.name != NULL
+            && strncmp(ast_call_callee(initializer)->data.identifier.name,
                        "Claim", 5) == 0) {
             continue;
         }

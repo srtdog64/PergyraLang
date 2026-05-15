@@ -90,41 +90,44 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
 
     if (type_ann != NULL
         && type_ann->type == AST_TYPE
-        && type_ann->data.type.name != NULL
+        && ast_type_name(type_ann) != NULL
         && init != NULL
         && init->type == AST_CALL
-        && init->data.call.callee != NULL
-        && init->data.call.callee->type == AST_IDENTIFIER
-        && strcmp(init->data.call.callee->data.identifier.name, "ToObject") == 0
-        && init->data.call.arg_count >= 2
-        && init->data.call.arguments[1] != NULL
-        && init->data.call.arguments[1]->type == AST_IDENTIFIER) {
-        LLVMClassTypeEntry *target_cls = llvm_lookup_class(ctx, type_ann->data.type.name);
+        && ast_call_callee(init) != NULL
+        && ast_call_callee(init)->type == AST_IDENTIFIER
+        && strcmp(ast_call_callee(init)->data.identifier.name, "ToObject") == 0
+        && ast_call_arg_count(init) >= 2
+        && ast_call_argument(init, 1) != NULL
+        && ast_call_argument(init, 1)->type == AST_IDENTIFIER) {
+        const char *type_name = ast_type_name(type_ann);
+        LLVMClassTypeEntry *target_cls = llvm_lookup_class(ctx, type_name);
         if (target_cls != NULL
             && target_cls->is_immutable
             && !target_cls->is_boundary_transfer_contract) {
-            const char *source_name = init->data.call.arguments[1]->data.identifier.name;
-            llvm_register_var_class(ctx, name, type_ann->data.type.name);
-            llvm_register_projection_borrow(ctx, name, type_ann->data.type.name, source_name);
+            const char *source_name =
+                ast_call_argument(init, 1)->data.identifier.name;
+            llvm_register_var_class(ctx, name, type_name);
+            llvm_register_projection_borrow(ctx, name, type_name, source_name);
             return true;
         }
     }
 
     if (type_ann != NULL
         && type_ann->type == AST_TYPE
-        && type_ann->data.type.name != NULL
+        && ast_type_name(type_ann) != NULL
         && init != NULL
         && init->type == AST_CALL
-        && init->data.call.callee != NULL
-        && init->data.call.callee->type == AST_IDENTIFIER) {
-        const char *ann_name = type_ann->data.type.name;
-        const char *callee = init->data.call.callee->data.identifier.name;
+        && ast_call_callee(init) != NULL
+        && ast_call_callee(init)->type == AST_IDENTIFIER) {
+        const char *ann_name = ast_type_name(type_ann);
+        GenericParams *generic_args = ast_type_generic_args(type_ann);
+        const char *callee = ast_call_callee(init)->data.identifier.name;
         char *inner = NULL;
 
-        if (type_ann->data.type.generic_args != NULL
-            && type_ann->data.type.generic_args->count > 0
-            && type_ann->data.type.generic_args->params[0] != NULL) {
-            inner = llvm_stmt_render_type_arg(type_ann->data.type.generic_args->params[0]);
+        if (generic_args != NULL
+            && generic_args->count > 0
+            && generic_args->params[0] != NULL) {
+            inner = llvm_stmt_render_type_arg(generic_args->params[0]);
         }
 
         if (strcmp(ann_name, "List") == 0 && strcmp(callee, "ListNew") == 0) {
@@ -237,17 +240,17 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
             LLVMValueRef alloca_val;
             LLVMFuncEntry *new_fn;
 
-            if (type_ann->data.type.generic_args != NULL
-                && type_ann->data.type.generic_args->count > 0
-                && type_ann->data.type.generic_args->params[0] != NULL) {
+            if (generic_args != NULL
+                && generic_args->count > 0
+                && generic_args->params[0] != NULL) {
                 key_type = llvm_stmt_render_type_arg(
-                    type_ann->data.type.generic_args->params[0]);
+                    generic_args->params[0]);
             }
-            if (type_ann->data.type.generic_args != NULL
-                && type_ann->data.type.generic_args->count > 1
-                && type_ann->data.type.generic_args->params[1] != NULL) {
+            if (generic_args != NULL
+                && generic_args->count > 1
+                && generic_args->params[1] != NULL) {
                 value_type = llvm_stmt_render_type_arg(
-                    type_ann->data.type.generic_args->params[1]);
+                    generic_args->params[1]);
             }
             if (key_type == NULL || key_type[0] == '\0') {
                 bool ok = llvm_stmt_diag_collection(ctx, node,
@@ -301,9 +304,10 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
     }
 
     if (init != NULL && init->type == AST_CALL
-        && init->data.call.callee != NULL
-        && init->data.call.callee->type == AST_IDENTIFIER
-        && strcmp(init->data.call.callee->data.identifier.name, "Channel") == 0) {
+        && ast_call_callee(init) != NULL
+        && ast_call_callee(init)->type == AST_IDENTIFIER
+        && strcmp(ast_call_callee(init)->data.identifier.name, "Channel") == 0) {
+        GenericParams *generic_args = ast_type_generic_args(type_ann);
         char *channel_inner = NULL;
         char init_fn_name[128];
         LLVMTypeRef ch_type = LLVMArrayType(
@@ -311,15 +315,15 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
         LLVMValueRef alloca_val = llvm_create_entry_alloca(ctx, ch_type, name);
 
         if (type_ann == NULL || type_ann->type != AST_TYPE
-            || type_ann->data.type.generic_args == NULL
-            || type_ann->data.type.generic_args->count == 0
-            || type_ann->data.type.generic_args->params[0] == NULL) {
+            || generic_args == NULL
+            || generic_args->count == 0
+            || generic_args->params[0] == NULL) {
             return llvm_stmt_diag_collection(ctx, node,
                 LLVM_STMT_COLLECTION_DIAG_TYPE_ARG, name, "Channel", 0, NULL);
         }
 
         channel_inner = llvm_stmt_render_type_arg(
-            type_ann->data.type.generic_args->params[0]);
+            generic_args->params[0]);
         if (channel_inner == NULL || channel_inner[0] == '\0') {
             free(channel_inner);
             return llvm_stmt_diag_collection(ctx, node,
@@ -340,9 +344,9 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
             return ok;
         }
         LLVMValueRef cap = LLVMConstInt(ctx->type_i64, 16, 0);
-        if (init->data.call.arg_count > 0)
+        if (ast_call_arg_count(init) > 0)
             cap = LLVMBuildZExt(ctx->builder,
-                llvm_emit_expression(init->data.call.arguments[0], ctx),
+                llvm_emit_expression(ast_call_argument(init, 0), ctx),
                 ctx->type_i64, llvm_tmp_name(ctx));
         LLVMValueRef args[] = { alloca_val, cap };
         LLVMBuildCall2(ctx->builder, init_fn->fn_type,
@@ -354,25 +358,26 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
     }
 
     if (init != NULL && init->type == AST_ARRAY_LITERAL) {
-        size_t count = init->data.array_literal.count;
+        size_t count = ast_array_literal_count(init);
         LLVMTypeRef elem_type = ctx->type_i32;
         char *owned_inner_name = NULL;
         const char *inner_name = NULL;
 
         if (type_ann != NULL && type_ann->type == AST_TYPE
-            && type_ann->data.type.name != NULL
-            && (strcmp(type_ann->data.type.name, "Array") == 0
-                || strcmp(type_ann->data.type.name, "Slice") == 0)
-            && type_ann->data.type.generic_args != NULL
-            && type_ann->data.type.generic_args->count > 0
-            && type_ann->data.type.generic_args->params[0] != NULL) {
+            && ast_type_name(type_ann) != NULL
+            && (strcmp(ast_type_name(type_ann), "Array") == 0
+                || strcmp(ast_type_name(type_ann), "Slice") == 0)
+            && ast_type_generic_args(type_ann) != NULL
+            && ast_type_generic_args(type_ann)->count > 0
+            && ast_type_generic_args(type_ann)->params[0] != NULL) {
+            GenericParams *generic_args = ast_type_generic_args(type_ann);
             owned_inner_name = llvm_stmt_render_type_arg(
-                type_ann->data.type.generic_args->params[0]);
+                generic_args->params[0]);
             inner_name = owned_inner_name;
             elem_type = pergyra_type_to_llvm(ctx, inner_name);
         } else if (count > 0) {
             LLVMValueRef first = llvm_emit_expression(
-                init->data.array_literal.elements[0], ctx);
+                ast_array_literal_element(init, 0), ctx);
             if (first != NULL) {
                 elem_type = LLVMTypeOf(first);
                 const char *suffix = llvm_type_to_suffix(ctx, elem_type);
@@ -434,7 +439,7 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
 
         for (size_t i = 0; i < count; i++) {
             LLVMValueRef element = llvm_emit_expression(
-                init->data.array_literal.elements[i], ctx);
+                ast_array_literal_element(init, i), ctx);
             if (element != NULL && LLVMTypeOf(element) != elem_type) {
                 LLVMTypeRef element_type = LLVMTypeOf(element);
                 bool target_is_int = (elem_type == ctx->type_i32

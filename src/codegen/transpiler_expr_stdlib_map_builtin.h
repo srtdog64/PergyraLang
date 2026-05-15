@@ -59,8 +59,8 @@ transpiler_map_lookup(const char *fn, size_t argc)
 static char *
 emit_call_stdlib_map_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx)
 {
-    TranspilerMapOp map_op = transpiler_map_lookup(fn,
-        call != NULL ? call->data.call.arg_count : 0);
+    size_t arg_count = ast_call_arg_count(call);
+    TranspilerMapOp map_op = transpiler_map_lookup(fn, arg_count);
 
     if (map_op == TRANSPILER_MAP_OP_NEW) {
         const char *hint = ctx->active_type_hint;
@@ -89,11 +89,14 @@ emit_call_stdlib_map_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx)
         return strdup_fmt("pgy_map_new_%s()", suffix_buf);
     }
     if (map_op == TRANSPILER_MAP_OP_SET) {
-        char *m = emit_expression(call->data.call.arguments[0], ctx);
-        char *k = emit_expression(call->data.call.arguments[1], ctx);
-        char *v = emit_expression(call->data.call.arguments[2], ctx);
+        ASTNode *map_arg = ast_call_argument(call, 0);
+        ASTNode *key_arg = ast_call_argument(call, 1);
+        ASTNode *value_arg = ast_call_argument(call, 2);
+        char *m = emit_expression(map_arg, ctx);
+        char *k = emit_expression(key_arg, ctx);
+        char *v = emit_expression(value_arg, ctx);
         const char *map_type = infer_expression_type_name(ctx,
-            call->data.call.arguments[0]);
+            map_arg);
         char key_buf[64];
         char value_buf[64];
         const char *key = NULL;
@@ -115,10 +118,12 @@ emit_call_stdlib_map_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx)
         return result;
     }
     if (map_op == TRANSPILER_MAP_OP_GET) {
-        char *m = emit_expression(call->data.call.arguments[0], ctx);
-        char *k = emit_expression(call->data.call.arguments[1], ctx);
+        ASTNode *map_arg = ast_call_argument(call, 0);
+        ASTNode *key_arg = ast_call_argument(call, 1);
+        char *m = emit_expression(map_arg, ctx);
+        char *k = emit_expression(key_arg, ctx);
         const char *map_type = infer_expression_type_name(ctx,
-            call->data.call.arguments[0]);
+            map_arg);
         char key_buf[64];
         char value_buf[64];
         const char *key = NULL;
@@ -140,10 +145,12 @@ emit_call_stdlib_map_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx)
         return result;
     }
     if (map_op == TRANSPILER_MAP_OP_HAS) {
-        char *m = emit_expression(call->data.call.arguments[0], ctx);
-        char *k = emit_expression(call->data.call.arguments[1], ctx);
+        ASTNode *map_arg = ast_call_argument(call, 0);
+        ASTNode *key_arg = ast_call_argument(call, 1);
+        char *m = emit_expression(map_arg, ctx);
+        char *k = emit_expression(key_arg, ctx);
         const char *map_type = infer_expression_type_name(ctx,
-            call->data.call.arguments[0]);
+            map_arg);
         char key_buf[64];
         char value_buf[64];
         const char *key = NULL;
@@ -165,10 +172,12 @@ emit_call_stdlib_map_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx)
         return result;
     }
     if (map_op == TRANSPILER_MAP_OP_REMOVE) {
-        char *m = emit_expression(call->data.call.arguments[0], ctx);
-        char *k = emit_expression(call->data.call.arguments[1], ctx);
+        ASTNode *map_arg = ast_call_argument(call, 0);
+        ASTNode *key_arg = ast_call_argument(call, 1);
+        char *m = emit_expression(map_arg, ctx);
+        char *k = emit_expression(key_arg, ctx);
         const char *map_type = infer_expression_type_name(ctx,
-            call->data.call.arguments[0]);
+            map_arg);
         char key_buf[64];
         char value_buf[64];
         const char *key = NULL;
@@ -190,9 +199,10 @@ emit_call_stdlib_map_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx)
         return result;
     }
     if (map_op == TRANSPILER_MAP_OP_SIZE) {
-        char *m = emit_expression(call->data.call.arguments[0], ctx);
+        ASTNode *map_arg = ast_call_argument(call, 0);
+        char *m = emit_expression(map_arg, ctx);
         const char *map_type = infer_expression_type_name(ctx,
-            call->data.call.arguments[0]);
+            map_arg);
         char key_buf[64];
         char value_buf[64];
         const char *key = NULL;
@@ -213,9 +223,10 @@ emit_call_stdlib_map_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx)
         return result;
     }
     if (map_op == TRANSPILER_MAP_OP_KEYS) {
-        char *m = emit_expression(call->data.call.arguments[0], ctx);
+        ASTNode *map_arg = ast_call_argument(call, 0);
+        char *m = emit_expression(map_arg, ctx);
         const char *map_type = infer_expression_type_name(ctx,
-            call->data.call.arguments[0]);
+            map_arg);
         char key_buf[64];
         char value_buf[64];
         const char *key = NULL;

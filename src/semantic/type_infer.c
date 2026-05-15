@@ -45,15 +45,15 @@ type_infer_expression(const ASTNode *expr, TypeEnv *env)
     }
 
     case AST_TYPE: {
-        Type *named_type = type_env_lookup_type(env, expr->data.type.name);
+        Type *named_type = type_env_lookup_type(env, ast_type_name((ASTNode *)expr));
         return named_type != NULL ? named_type : TYPE_UNKNOWN;
     }
 
     case AST_MEMBER_ACCESS: {
-        Type *object_type = type_infer_expression(expr->data.member.object, env);
+        Type *object_type = type_infer_expression(ast_member_object(expr), env);
         if (object_type != NULL
             && object_type->kind == TYPE_KIND_CONSTRUCTED
-            && strcmp(expr->data.member.name, "Length") == 0
+            && strcmp(ast_member_name(expr), "Length") == 0
             && (type_equals(object_type->data.constructed.constructor, TYPE_ARRAY)
                 || type_equals(object_type->data.constructed.constructor, TYPE_SLICE))) {
             return TYPE_INT;
@@ -62,7 +62,7 @@ type_infer_expression(const ASTNode *expr, TypeEnv *env)
     }
 
     case AST_ARRAY_ACCESS: {
-        Type *array_type = type_infer_expression(expr->data.array_access.array, env);
+        Type *array_type = type_infer_expression(ast_array_access_array(expr), env);
         if (array_type != NULL
             && array_type->kind == TYPE_KIND_CONSTRUCTED
             && array_type->data.constructed.arg_count >= 1) {
@@ -72,12 +72,12 @@ type_infer_expression(const ASTNode *expr, TypeEnv *env)
     }
 
     case AST_ASSIGNMENT:
-        return type_infer_expression(expr->data.assignment.target, env);
+        return type_infer_expression(ast_assignment_target(expr), env);
 
     case AST_BINARY: {
-        Type *left = type_infer_expression(expr->data.binary.left, env);
-        Type *right = type_infer_expression(expr->data.binary.right, env);
-        PgyTokenType op = expr->data.binary.op.type;
+        Type *left = type_infer_expression(ast_binary_left(expr), env);
+        Type *right = type_infer_expression(ast_binary_right(expr), env);
+        PgyTokenType op = ast_binary_operator(expr).type;
 
         switch (op) {
         case TOKEN_AND:
@@ -113,20 +113,20 @@ type_infer_expression(const ASTNode *expr, TypeEnv *env)
     }
 
     case AST_UNARY: {
-        Type *operand = type_infer_expression(expr->data.unary.operand, env);
-        if (expr->data.unary.op.type == TOKEN_NOT)
+        Type *operand = type_infer_expression(ast_unary_operand(expr), env);
+        if (ast_unary_operator(expr).type == TOKEN_NOT)
             return TYPE_BOOL;
         return operand != NULL ? operand : TYPE_UNKNOWN;
     }
 
     case AST_CALL:
-        if (expr->data.call.callee != NULL
-            && expr->data.call.callee->type == AST_MEMBER_ACCESS
-            && expr->data.call.callee->data.member.object != NULL
-            && expr->data.call.callee->data.member.name != NULL
-            && strcmp(expr->data.call.callee->data.member.name, "Slice") == 0) {
+        if (ast_call_callee(expr) != NULL
+            && ast_call_callee(expr)->type == AST_MEMBER_ACCESS
+            && ast_member_object(ast_call_callee(expr)) != NULL
+            && ast_member_name(ast_call_callee(expr)) != NULL
+            && strcmp(ast_member_name(ast_call_callee(expr)), "Slice") == 0) {
             Type *receiver = type_infer_expression(
-                expr->data.call.callee->data.member.object, env);
+                ast_member_object(ast_call_callee(expr)), env);
             if (receiver != NULL
                 && receiver->kind == TYPE_KIND_CONSTRUCTED
                 && receiver->data.constructed.arg_count >= 1
@@ -136,26 +136,28 @@ type_infer_expression(const ASTNode *expr, TypeEnv *env)
                     receiver->data.constructed.args, 1);
             }
         }
-        if (expr->data.call.callee != NULL
-            && expr->data.call.callee->type == AST_IDENTIFIER) {
-            const char *callee = expr->data.call.callee->data.identifier.name;
+        if (ast_call_callee(expr) != NULL
+            && ast_call_callee(expr)->type == AST_IDENTIFIER) {
+            const char *callee = ast_call_callee(expr)->data.identifier.name;
+            ASTNode *first_arg = ast_call_argument(expr, 0);
+            size_t arg_count = ast_call_arg_count(expr);
 
-            if (strcmp(callee, "Read") == 0 && expr->data.call.arg_count >= 1) {
-                Type *slot_type = type_infer_expression(expr->data.call.arguments[0], env);
+            if (strcmp(callee, "Read") == 0 && arg_count >= 1) {
+                Type *slot_type = type_infer_expression(first_arg, env);
                 if (slot_type != NULL && slot_type->kind == TYPE_KIND_SLOT)
                     return slot_type->data.slot.inner_type;
             }
             if ((strcmp(callee, "ClaimSlot") == 0 || strcmp(callee, "ClaimSecureSlot") == 0)
-                && expr->data.call.arg_count >= 1) {
-                Type *inner = type_infer_expression(expr->data.call.arguments[0], env);
+                && arg_count >= 1) {
+                Type *inner = type_infer_expression(first_arg, env);
                 if (inner != NULL && inner != TYPE_UNKNOWN)
                     return type_create_slot(inner, strcmp(callee, "ClaimSecureSlot") == 0);
             }
             if ((strcmp(callee, "Clone") == 0 || strcmp(callee, "RcClone") == 0)
-                && expr->data.call.arg_count >= 1)
-                return type_infer_expression(expr->data.call.arguments[0], env);
-            if (strcmp(callee, "RcDowngrade") == 0 && expr->data.call.arg_count >= 1) {
-                Type *rc_type = type_infer_expression(expr->data.call.arguments[0], env);
+                && arg_count >= 1)
+                return type_infer_expression(first_arg, env);
+            if (strcmp(callee, "RcDowngrade") == 0 && arg_count >= 1) {
+                Type *rc_type = type_infer_expression(first_arg, env);
                 if (rc_type != NULL
                     && rc_type->kind == TYPE_KIND_CONSTRUCTED
                     && type_equals(rc_type->data.constructed.constructor, TYPE_RC)
@@ -165,8 +167,8 @@ type_infer_expression(const ASTNode *expr, TypeEnv *env)
                         rc_type->data.constructed.arg_count);
                 }
             }
-            if (strcmp(callee, "WeakUpgrade") == 0 && expr->data.call.arg_count >= 1) {
-                Type *weak_type = type_infer_expression(expr->data.call.arguments[0], env);
+            if (strcmp(callee, "WeakUpgrade") == 0 && arg_count >= 1) {
+                Type *weak_type = type_infer_expression(first_arg, env);
                 if (weak_type != NULL
                     && weak_type->kind == TYPE_KIND_CONSTRUCTED
                     && type_equals(weak_type->data.constructed.constructor, TYPE_WEAK)
@@ -195,7 +197,7 @@ type_infer_expression(const ASTNode *expr, TypeEnv *env)
         return TYPE_UNKNOWN;
 
     case AST_AWAIT_EXPR: {
-        Type *inner = type_infer_expression(expr->data.await_expr.expression, env);
+        Type *inner = type_infer_expression(ast_await_expression(expr), env);
         if (inner != NULL
             && inner->kind == TYPE_KIND_CONSTRUCTED
             && inner->data.constructed.arg_count == 1) {
@@ -205,13 +207,13 @@ type_infer_expression(const ASTNode *expr, TypeEnv *env)
     }
 
     case AST_SPAWN_EXPR: {
-        Type *inner = type_infer_expression(expr->data.spawn_expr.function, env);
+        Type *inner = type_infer_expression(ast_spawn_function(expr), env);
         Type *args[1] = { inner != NULL ? inner : TYPE_UNKNOWN };
         return type_create_constructed(TYPE_FUTURE, args, 1);
     }
 
     case AST_CHANNEL_RECV: {
-        Type *channel_type = type_infer_expression(expr->data.channel_recv.channel, env);
+        Type *channel_type = type_infer_expression(ast_channel_recv_channel(expr), env);
         if (channel_type != NULL
             && channel_type->kind == TYPE_KIND_CONSTRUCTED
             && channel_type->data.constructed.arg_count == 1) {
@@ -251,4 +253,3 @@ type_unify(Type *a, Type *b, TypeEnv *env)
     (void)env;
     return type_equals(a, b);
 }
-

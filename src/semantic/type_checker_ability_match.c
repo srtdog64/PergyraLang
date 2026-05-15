@@ -20,23 +20,24 @@ ability_ref_type_arg_equal(ASTNode *lhs, ASTNode *rhs)
         return false;
     if (lhs->type != AST_TYPE || rhs->type != AST_TYPE)
         return false;
-    if ((lhs->data.type.name == NULL) != (rhs->data.type.name == NULL))
+    const char *lhs_name = ast_type_name(lhs);
+    const char *rhs_name = ast_type_name(rhs);
+    if ((lhs_name == NULL) != (rhs_name == NULL))
         return false;
-    if (lhs->data.type.name != NULL
-        && strcmp(lhs->data.type.name, rhs->data.type.name) != 0) {
+    if (lhs_name != NULL && strcmp(lhs_name, rhs_name) != 0) {
         return false;
     }
 
     {
-        size_t lhs_count = lhs->data.type.generic_args != NULL
-            ? lhs->data.type.generic_args->count : 0;
-        size_t rhs_count = rhs->data.type.generic_args != NULL
-            ? rhs->data.type.generic_args->count : 0;
+        GenericParams *lhs_args = ast_type_generic_args(lhs);
+        GenericParams *rhs_args = ast_type_generic_args(rhs);
+        size_t lhs_count = lhs_args != NULL ? lhs_args->count : 0;
+        size_t rhs_count = rhs_args != NULL ? rhs_args->count : 0;
         if (lhs_count != rhs_count)
             return false;
         for (size_t i = 0; i < lhs_count; i++) {
-            GenericParam *lhs_gp = lhs->data.type.generic_args->params[i];
-            GenericParam *rhs_gp = rhs->data.type.generic_args->params[i];
+            GenericParam *lhs_gp = lhs_args->params[i];
+            GenericParam *rhs_gp = rhs_args->params[i];
             ASTNode *lhs_arg = lhs_gp != NULL ? lhs_gp->constraint : NULL;
             ASTNode *rhs_arg = rhs_gp != NULL ? rhs_gp->constraint : NULL;
             if (!ability_ref_type_arg_equal(lhs_arg, rhs_arg))
@@ -56,36 +57,38 @@ ability_ref_matches(ASTNode *program, ASTNode *impl_ref, ASTNode *required_ref)
     ASTNode **required_effective = NULL;
     size_t impl_count = 0;
     size_t required_count = 0;
+    const char *ability_name;
     bool matches = false;
 
     if (impl_ref == NULL || required_ref == NULL)
         return false;
     if (impl_ref->type != AST_TYPE || required_ref->type != AST_TYPE)
         return false;
-    if (impl_ref->data.type.name == NULL || required_ref->data.type.name == NULL)
+    const char *impl_name = ast_type_name(impl_ref);
+    const char *required_name = ast_type_name(required_ref);
+    if (impl_name == NULL || required_name == NULL)
         return false;
-    if (strcmp(impl_ref->data.type.name, required_ref->data.type.name) != 0)
+    if (strcmp(impl_name, required_name) != 0)
         return false;
 
-    ability_decl = find_ability_decl_by_name(program, impl_ref->data.type.name);
+    ability_decl = find_ability_decl_by_name(program, impl_name);
     if (ability_decl == NULL || ability_decl->type != AST_ABILITY_DECL)
         return ability_ref_type_arg_equal(impl_ref, required_ref);
 
-    decl_params = ability_decl->data.ability_decl.generic_params;
+    decl_params = ast_ability_generic_params(ability_decl);
     if (decl_params == NULL || decl_params->count == 0)
         return true;
+    ability_name = ast_ability_name(ability_decl);
 
     impl_effective = collect_effective_generic_arg_nodes(
-        decl_params, impl_ref->data.type.generic_args, NULL, NULL,
+        decl_params, ast_type_generic_args(impl_ref), NULL, NULL,
         "Ability",
-        ability_decl->data.ability_decl.name != NULL
-            ? ability_decl->data.ability_decl.name : "<ability>",
+        ability_name != NULL ? ability_name : "<ability>",
         &impl_count);
     required_effective = collect_effective_generic_arg_nodes(
-        decl_params, required_ref->data.type.generic_args, NULL, NULL,
+        decl_params, ast_type_generic_args(required_ref), NULL, NULL,
         "Ability",
-        ability_decl->data.ability_decl.name != NULL
-            ? ability_decl->data.ability_decl.name : "<ability>",
+        ability_name != NULL ? ability_name : "<ability>",
         &required_count);
 
     if (impl_effective == NULL || required_effective == NULL || impl_count != required_count)

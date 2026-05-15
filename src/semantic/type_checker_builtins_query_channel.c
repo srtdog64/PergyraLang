@@ -23,12 +23,12 @@ channel_builtin_element_type(ASTNode *expr, size_t channel_arg_index,
                              const char *name, SemanticContext *ctx)
 {
     Type *ch_type = channel_builtin_normalize_type(type_check_expression(
-        expr->data.call.arguments[channel_arg_index], ctx));
+        ast_call_argument(expr, channel_arg_index), ctx));
     if (!type_is_constructed_named(ch_type, "Channel")) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_CHANNEL_TRANSPORT_INVALID,
             PGY_CAUSE_CHANNEL_TRANSPORT_RULE_VIOLATION,
             PGY_FIX_ALIGN_CHANNEL_ELEMENT_TYPE,
-            expr->data.call.arguments[channel_arg_index],
+            ast_call_argument(expr, channel_arg_index),
             "%s requires Channel<T>, got '%s'", name,
             builtin_type_name_or_unknown(ch_type));
         return TYPE_UNKNOWN;
@@ -90,7 +90,7 @@ type_check_channel_send_builtin(ASTNode *expr, const char *name,
     }
     Type *element_type = channel_builtin_element_type(expr, 0, name, ctx);
     Type *value_type = channel_builtin_normalize_type(
-        type_check_expression(expr->data.call.arguments[1], ctx));
+        type_check_expression(ast_call_argument(expr, 1), ctx));
     OwnershipTypeClass element_ownership =
         semantic_classify_ownership_type(element_type, ctx);
     OwnershipTypeClass value_ownership =
@@ -98,9 +98,9 @@ type_check_channel_send_builtin(ASTNode *expr, const char *name,
 
     if (has_timeout) {
         Type *timeout_type = channel_builtin_normalize_type(
-            type_check_expression(expr->data.call.arguments[2], ctx));
+            type_check_expression(ast_call_argument(expr, 2), ctx));
         require_assignable(timeout_type, TYPE_INT,
-            expr->data.call.arguments[2], ctx);
+            ast_call_argument(expr, 2), ctx);
     }
 
     if (element_type == TYPE_UNKNOWN) {
@@ -114,7 +114,7 @@ type_check_channel_send_builtin(ASTNode *expr, const char *name,
         snprintf(message, sizeof(message),
             "%s cannot transport Token values yet", name);
         semantic_report_channel_transport_policy(
-            expr->data.call.arguments[1], ctx, message,
+            ast_call_argument(expr, 1), ctx, message,
             "authority-bearing token state must stay local to the authorized flow at this channel surface",
             "keep the token local to the authorized flow\n"
             "- or send a plain projection/value instead");
@@ -128,7 +128,7 @@ type_check_channel_send_builtin(ASTNode *expr, const char *name,
         snprintf(message, sizeof(message),
             "%s does not support slot handle (movable) sends yet", name);
         semantic_report_channel_transport_policy(
-            expr->data.call.arguments[1], ctx, message,
+            ast_call_argument(expr, 1), ctx, message,
             "slot handle (movable) transfer on this builtin channel surface is still restricted",
             "use blocking 'ch <- value' so ownership transfer stays explicit");
         return detailed_status ? wrap_constructed(TYPE_OPTION, TYPE_BOOL)
@@ -138,7 +138,7 @@ type_check_channel_send_builtin(ASTNode *expr, const char *name,
     if (element_ownership == OWNERSHIP_TYPE_SUBJECT_IDENTITY
         || value_ownership == OWNERSHIP_TYPE_SUBJECT_IDENTITY) {
         if (semantic_validate_channel_transport_ownership(
-                expr->data.call.arguments[1], value_type, ctx,
+                ast_call_argument(expr, 1), value_type, ctx,
                 name,
                 OWNERSHIP_TYPE_SUBJECT_IDENTITY,
                 element_ownership, value_ownership,
@@ -157,7 +157,7 @@ type_check_channel_send_builtin(ASTNode *expr, const char *name,
     if (element_ownership == OWNERSHIP_TYPE_BORROW_TRACKED
         || value_ownership == OWNERSHIP_TYPE_BORROW_TRACKED) {
         if (semantic_validate_channel_transport_ownership(
-                expr->data.call.arguments[1], value_type, ctx,
+                ast_call_argument(expr, 1), value_type, ctx,
                 name,
                 OWNERSHIP_TYPE_BORROW_TRACKED,
                 element_ownership, value_ownership,
@@ -174,7 +174,7 @@ type_check_channel_send_builtin(ASTNode *expr, const char *name,
     if (element_ownership == OWNERSHIP_TYPE_ANCHORED_HANDLE
         || value_ownership == OWNERSHIP_TYPE_ANCHORED_HANDLE) {
         if (semantic_validate_channel_transport_ownership(
-                expr->data.call.arguments[1], value_type, ctx,
+                ast_call_argument(expr, 1), value_type, ctx,
                 name,
                 OWNERSHIP_TYPE_ANCHORED_HANDLE,
                 element_ownership, value_ownership,
@@ -188,7 +188,7 @@ type_check_channel_send_builtin(ASTNode *expr, const char *name,
         }
     }
 
-    require_assignable(value_type, element_type, expr->data.call.arguments[1], ctx);
+    require_assignable(value_type, element_type, ast_call_argument(expr, 1), ctx);
     return detailed_status ? wrap_constructed(TYPE_OPTION, TYPE_BOOL)
                            : TYPE_BOOL;
 }
@@ -210,14 +210,14 @@ type_check_channel_recv_builtin(ASTNode *expr, const char *name,
     Type *element_type = channel_builtin_element_type(expr, 0, name, ctx);
     if (has_timeout) {
         Type *timeout_type = channel_builtin_normalize_type(
-            type_check_expression(expr->data.call.arguments[1], ctx));
+            type_check_expression(ast_call_argument(expr, 1), ctx));
         require_assignable(timeout_type, TYPE_INT,
-            expr->data.call.arguments[1], ctx);
+            ast_call_argument(expr, 1), ctx);
     }
     /* Token / movable / anchored / capability rejection lives in
      * channel_builtin_recv_result so the rule lives in one place. */
     return channel_builtin_recv_result(
-        element_type, name, expr->data.call.arguments[0], ctx);
+        element_type, name, ast_call_argument(expr, 0), ctx);
 }
 
 Type *
@@ -242,7 +242,7 @@ type_check_channel_close_builtin(ASTNode *expr, SemanticContext *ctx)
 
     if (type_is_constructed_named(element_type, "Token")) {
         semantic_report_channel_transport_policy(
-            expr->data.call.arguments[0], ctx,
+            ast_call_argument(expr, 0), ctx,
             "ChannelClose cannot close Token channels yet",
             "closing a channel may discard queued authority-bearing token state",
             "keep token channels local and drain/handle token state explicitly");
@@ -260,10 +260,11 @@ type_check_channel_close_builtin(ASTNode *expr, SemanticContext *ctx)
             "closing a channel may discard queued %s without a cleanup summary",
             semantic_ownership_provenance_label(element_ownership));
         semantic_report_channel_transport_policy(
-            expr->data.call.arguments[0], ctx, message, reason,
+            ast_call_argument(expr, 0), ctx, message, reason,
             "drain the channel with blocking '<-' into named bindings first");
         return TYPE_UNKNOWN;
     }
 
     return TYPE_VOID;
 }
+

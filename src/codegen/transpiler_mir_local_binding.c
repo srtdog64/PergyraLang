@@ -6,6 +6,7 @@
 #include <string.h>
 
 #include "transpiler_mir_local_binding.h"
+#include "../parser/ast_api.h"
 
 static bool
 transpiler_select_case_has_receive_binding(ASTNode *node,
@@ -22,14 +23,17 @@ transpiler_select_case_has_receive_binding(ASTNode *node,
         }
         return false;
     }
-    return node->type == AST_ASSIGNMENT
-        && node->data.assignment.target != NULL
-        && node->data.assignment.target->type == AST_IDENTIFIER
-        && node->data.assignment.target->data.identifier.name != NULL
-        && strcmp(node->data.assignment.target->data.identifier.name,
-                  base_name) == 0
-        && node->data.assignment.value != NULL
-        && node->data.assignment.value->type == AST_CHANNEL_RECV;
+    if (node->type == AST_ASSIGNMENT) {
+        ASTNode *target = ast_assignment_target(node);
+        ASTNode *value = ast_assignment_value(node);
+        return target != NULL
+            && target->type == AST_IDENTIFIER
+            && target->data.identifier.name != NULL
+            && strcmp(target->data.identifier.name, base_name) == 0
+            && value != NULL
+            && value->type == AST_CHANNEL_RECV;
+    }
+    return false;
 }
 
 bool
@@ -52,38 +56,38 @@ transpiler_has_local_binding_in_block(ASTNode *body, const char *base_name)
         return true;
     }
     if (body->type == AST_WITH_STMT) {
-        if (body->data.with_stmt.alias != NULL
-            && strcmp(body->data.with_stmt.alias, base_name) == 0) {
+        if (ast_with_alias(body) != NULL
+            && strcmp(ast_with_alias(body), base_name) == 0) {
             return true;
         }
-        return transpiler_has_local_binding_in_block(body->data.with_stmt.body, base_name);
+        return transpiler_has_local_binding_in_block(ast_with_body(body), base_name);
     }
     if (body->type == AST_IF_STMT) {
-        return transpiler_has_local_binding_in_block(body->data.if_stmt.then_branch, base_name)
-            || transpiler_has_local_binding_in_block(body->data.if_stmt.else_branch, base_name);
+        return transpiler_has_local_binding_in_block(ast_if_then_branch(body), base_name)
+            || transpiler_has_local_binding_in_block(ast_if_else_branch(body), base_name);
     }
     if (body->type == AST_WHILE_LOOP)
-        return transpiler_has_local_binding_in_block(body->data.while_loop.body, base_name);
+        return transpiler_has_local_binding_in_block(ast_while_body(body), base_name);
     if (body->type == AST_FOR_LOOP) {
-        if (body->data.for_loop.variable != NULL
-            && strcmp(body->data.for_loop.variable, base_name) == 0) {
+        if (ast_for_variable(body) != NULL
+            && strcmp(ast_for_variable(body), base_name) == 0) {
             return true;
         }
-        return transpiler_has_local_binding_in_block(body->data.for_loop.body, base_name);
+        return transpiler_has_local_binding_in_block(ast_for_body(body), base_name);
     }
     if (body->type == AST_SELECT_STMT) {
-        for (size_t i = 0; i < body->data.select_stmt.case_count; i++) {
+        for (size_t i = 0; i < ast_select_case_count(body); i++) {
             if (transpiler_select_case_has_receive_binding(
-                    body->data.select_stmt.cases[i], base_name)) {
+                    ast_select_case(body, i), base_name)) {
                 return true;
             }
             if (transpiler_has_local_binding_in_block(
-                    body->data.select_stmt.cases[i], base_name)) {
+                    ast_select_case(body, i), base_name)) {
                 return true;
             }
         }
         return transpiler_has_local_binding_in_block(
-            body->data.select_stmt.default_case, base_name);
+            ast_select_default_case(body), base_name);
     }
     return false;
 }
@@ -94,12 +98,12 @@ transpiler_has_explicit_local_binding(const ASTNode *func_decl,
 {
     if (func_decl == NULL || func_decl->type != AST_FUNC_DECL || base_name == NULL)
         return false;
-    for (size_t i = 0; i < func_decl->data.func_decl.param_count; i++) {
-        FuncParam *p = func_decl->data.func_decl.params[i];
+    for (size_t i = 0; i < ast_func_param_count(func_decl); i++) {
+        FuncParam *p = ast_func_param(func_decl, i);
         if (p != NULL && p->name != NULL && strcmp(p->name, base_name) == 0)
             return true;
     }
-    return transpiler_has_local_binding_in_block(func_decl->data.func_decl.body,
+    return transpiler_has_local_binding_in_block(ast_func_body(func_decl),
         base_name);
 }
 
@@ -116,11 +120,11 @@ transpiler_register_with_alias_bindings_in_block(TranspilerSSANameMap *ssa_map,
         return;
     }
     if (body->type == AST_WITH_STMT) {
-        if (body->data.with_stmt.alias != NULL)
+        if (ast_with_alias(body) != NULL)
             transpiler_ssa_name_map_set(ssa_map,
-                body->data.with_stmt.alias, body->data.with_stmt.alias);
+                ast_with_alias(body), ast_with_alias(body));
         transpiler_register_with_alias_bindings_in_block(ssa_map,
-            body->data.with_stmt.body);
+            ast_with_body(body));
         return;
     }
     if (body->type == AST_LET_DESTRUCTURE) {
@@ -133,23 +137,23 @@ transpiler_register_with_alias_bindings_in_block(TranspilerSSANameMap *ssa_map,
     }
     if (body->type == AST_IF_STMT) {
         transpiler_register_with_alias_bindings_in_block(ssa_map,
-            body->data.if_stmt.then_branch);
+            ast_if_then_branch(body));
         transpiler_register_with_alias_bindings_in_block(ssa_map,
-            body->data.if_stmt.else_branch);
+            ast_if_else_branch(body));
         return;
     }
     if (body->type == AST_WHILE_LOOP) {
         transpiler_register_with_alias_bindings_in_block(ssa_map,
-            body->data.while_loop.body);
+            ast_while_body(body));
         return;
     }
     if (body->type == AST_FOR_LOOP) {
-        if (body->data.for_loop.variable != NULL) {
+        if (ast_for_variable(body) != NULL) {
             transpiler_ssa_name_map_set(ssa_map,
-                body->data.for_loop.variable,
-                body->data.for_loop.variable);
+                ast_for_variable(body),
+                ast_for_variable(body));
         }
         transpiler_register_with_alias_bindings_in_block(ssa_map,
-            body->data.for_loop.body);
+            ast_for_body(body));
     }
 }

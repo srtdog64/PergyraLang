@@ -8,8 +8,8 @@ semantic_event_expr_name(ASTNode *expr)
         return "<event>";
     if (expr->type == AST_IDENTIFIER && expr->data.identifier.name != NULL)
         return expr->data.identifier.name;
-    if (expr->type == AST_MEMBER_ACCESS && expr->data.member.name != NULL)
-        return expr->data.member.name;
+    if (expr->type == AST_MEMBER_ACCESS && ast_member_name(expr) != NULL)
+        return ast_member_name(expr);
     return "<event>";
 }
 
@@ -23,12 +23,14 @@ bool
 type_check_event_decl(ASTNode *node, SemanticContext *ctx)
 {
     bool ok = true;
+    const char *event_name;
 
     if (node == NULL || ctx == NULL || node->type != AST_EVENT_DECL)
         return false;
 
-    for (size_t i = 0; i < node->data.event_decl.param_count; i++) {
-        ASTNode *param = node->data.event_decl.params[i];
+    event_name = ast_event_name(node);
+    for (size_t i = 0; i < ast_event_param_count(node); i++) {
+        ASTNode *param = ast_event_param(node, i);
         if (param == NULL)
             continue;
 
@@ -36,8 +38,7 @@ type_check_event_decl(ASTNode *node, SemanticContext *ctx)
             semantic_error_with_hints(ctx, PGY_CODE_SEM_EVENT_CONTRACT_INVALID,
                 PGY_CAUSE_EVENT_SIGNATURE, PGY_FIX_ALIGN_EVENT_SIGNATURE, param,
                 "Event '%s' parameter %llu must be a typed binding",
-                node->data.event_decl.name != NULL
-                    ? node->data.event_decl.name : "<event>",
+                event_name != NULL ? event_name : "<event>",
                 (unsigned long long)(i + 1));
             ok = false;
             continue;
@@ -47,8 +48,7 @@ type_check_event_decl(ASTNode *node, SemanticContext *ctx)
             semantic_error_with_hints(ctx, PGY_CODE_SEM_EVENT_CONTRACT_INVALID,
                 PGY_CAUSE_EVENT_SIGNATURE, PGY_FIX_ALIGN_EVENT_SIGNATURE, param,
                 "Event '%s' parameter '%s' requires an explicit type",
-                node->data.event_decl.name != NULL
-                    ? node->data.event_decl.name : "<event>",
+                event_name != NULL ? event_name : "<event>",
                 param->data.let_decl.name != NULL
                     ? param->data.let_decl.name : "<param>");
             ok = false;
@@ -59,16 +59,15 @@ type_check_event_decl(ASTNode *node, SemanticContext *ctx)
             ok = false;
     }
 
-    if (node->data.event_decl.return_type != NULL) {
+    if (ast_event_return_type(node) != NULL) {
         Type *return_type = domain_resolve_type_ref(
-            node->data.event_decl.return_type, ctx);
+            ast_event_return_type(node), ctx);
         if (return_type != NULL && !type_equals(return_type, TYPE_VOID)) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_EVENT_CONTRACT_INVALID,
                 PGY_CAUSE_EVENT_SIGNATURE, PGY_FIX_ALIGN_EVENT_SIGNATURE,
-                node->data.event_decl.return_type,
+                ast_event_return_type(node),
                 "Event '%s' must return Void, got '%s'",
-                node->data.event_decl.name != NULL
-                    ? node->data.event_decl.name : "<event>",
+                event_name != NULL ? event_name : "<event>",
                 type_name_or_unknown(return_type));
             ok = false;
         }

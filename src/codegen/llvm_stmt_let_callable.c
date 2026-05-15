@@ -42,34 +42,35 @@ llvm_stmt_register_callable_let_binding(ASTNode *node, LLVMGenCtx *ctx)
             init->data.identifier.name);
         if (decl != NULL && decl->type == AST_FUNC_DECL) {
             ASTNode **param_types = NULL;
-            if (decl->data.func_decl.param_count > 0) {
+            size_t param_count = ast_func_param_count(decl);
+            if (param_count > 0) {
                 param_types = pgy_arena_calloc(&ctx->scratch,
-                    decl->data.func_decl.param_count * sizeof(ASTNode *));
+                    param_count * sizeof(ASTNode *));
                 if (param_types == NULL) {
                     llvm_set_error(ctx,
                         "out of memory registering function callable");
                     return false;
                 }
-                for (size_t i = 0; i < decl->data.func_decl.param_count; i++) {
-                    FuncParam *p = decl->data.func_decl.params[i];
+                for (size_t i = 0; i < param_count; i++) {
+                    FuncParam *p = ast_func_param(decl, i);
                     param_types[i] = p != NULL ? p->type : NULL;
                 }
             }
             llvm_register_callable_signature(ctx, name,
-                decl->data.func_decl.param_count,
+                param_count,
                 param_types,
-                decl->data.func_decl.return_type);
+                ast_func_return_type(decl));
         }
     } else if (init != NULL && init->type == AST_CALL
-               && init->data.call.callee != NULL
-               && init->data.call.callee->type == AST_IDENTIFIER
-               && init->data.call.callee->data.identifier.name != NULL) {
+               && ast_call_callee(init) != NULL
+               && ast_call_callee(init)->type == AST_IDENTIFIER
+               && ast_call_callee(init)->data.identifier.name != NULL) {
         ASTNode *decl = llvm_stmt_find_function_decl_by_name(ctx,
-            init->data.call.callee->data.identifier.name);
+            ast_call_callee(init)->data.identifier.name);
         if (decl != NULL && decl->type == AST_FUNC_DECL
-            && decl->data.func_decl.return_type != NULL
-            && decl->data.func_decl.return_type->type == AST_EVENT_HANDLER_TYPE) {
-            llvm_register_callable_var(ctx, name, decl->data.func_decl.return_type);
+            && ast_func_return_type(decl) != NULL
+            && ast_func_return_type(decl)->type == AST_EVENT_HANDLER_TYPE) {
+            llvm_register_callable_var(ctx, name, ast_func_return_type(decl));
         }
     }
 

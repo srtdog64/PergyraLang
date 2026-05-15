@@ -33,7 +33,7 @@ semantic_stage_top_level_decl(ASTNode *decl, SemanticContext *ctx)
         break;
 
     case AST_FUNC_DECL:
-        semantic_stage_function_signature(decl, ctx, decl->data.func_decl.name);
+        semantic_stage_function_signature(decl, ctx, ast_declaration_name(decl));
         break;
 
     case AST_EVENT_DECL:

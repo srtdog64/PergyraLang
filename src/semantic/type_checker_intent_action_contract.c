@@ -70,8 +70,8 @@ intent_action_binding_type_name(ASTNode *action_decl, ASTNode *subject_decl,
             : NULL;
     }
 
-    for (size_t i = 0; i < action_decl->data.func_decl.param_count; i++) {
-        FuncParam *param = action_decl->data.func_decl.params[i];
+    for (size_t i = 0; i < ast_func_param_count(action_decl); i++) {
+        FuncParam *param = ast_func_param(action_decl, i);
         Type *param_type;
         if (param == NULL || param->name == NULL
             || strcmp(param->name, binding_name) != 0
@@ -258,8 +258,8 @@ intent_step_warn_redundant_action_contract(ASTNode *intent_decl,
     redundant[0] = '\0';
     step_name = ast_intent_step_name(step) != NULL
         ? ast_intent_step_name(step) : "<step>";
-    action_name = action_decl->data.func_decl.name != NULL
-        ? action_decl->data.func_decl.name : "<action>";
+    action_name = ast_declaration_name(action_decl) != NULL
+        ? ast_declaration_name(action_decl) : "<action>";
     subject_name = intent_action_nominal_decl_name(action_subject_decl);
     step_where = ast_intent_step_where_type(step);
     step_causes = ast_intent_step_causes_effect(step);
@@ -270,8 +270,8 @@ intent_step_warn_redundant_action_contract(ASTNode *intent_decl,
         && !ast_intent_step_derived_where_from_transfer(step)
         && action_decl->data.func_decl.within_zone != NULL
         && step_where->type == AST_TYPE
-        && step_where->data.type.name != NULL
-        && strcmp(step_where->data.type.name,
+        && ast_type_name(step_where) != NULL
+        && strcmp(ast_type_name(step_where),
             action_decl->data.func_decl.within_zone) == 0) {
         (void)pergyra_str_appendf(redundant, sizeof(redundant),
                                   "%s- where", has_any ? "\n" : "");

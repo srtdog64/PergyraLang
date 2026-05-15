@@ -20,6 +20,15 @@ ownership_let_normalize_type(Type *type)
     return type != NULL ? type : TYPE_UNKNOWN;
 }
 
+static const char *
+ownership_let_call_callee_name(const ASTNode *node)
+{
+    ASTNode *callee = ast_call_callee(node);
+    if (callee == NULL || callee->type != AST_IDENTIFIER)
+        return NULL;
+    return callee->data.identifier.name;
+}
+
 bool
 type_check_let_decl(ASTNode *node, SemanticContext *ctx)
 {
@@ -62,10 +71,9 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
         if (decl_type == NULL)
             decl_type = TYPE_UNKNOWN;
         if (ctx->program_root != NULL
-            && ann->type == AST_TYPE
-            && ann->data.type.name != NULL) {
+            && ast_type_name(ann) != NULL) {
             ASTNode *class_decl = find_type_decl_by_name(ctx->program_root,
-                                                         ann->data.type.name);
+                                                         ast_type_name(ann));
             if (class_decl != NULL && class_decl->type == AST_CLASS_DECL) {
                 validate_class_where_clause_specialization_ast(class_decl,
                                                                ann,
@@ -91,35 +99,32 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
                 "- the backends diverge on uninitialized reads\n"
                 "Fix:\n"
                 "- provide an initializer directly: 'let %s: %s = ...'\n"
-                "- or use a conditional expression as the initializer",
+            "- or use a conditional expression as the initializer",
                 name != NULL ? name : "<binding>",
                 name != NULL ? name : "<binding>",
-                (ann->type == AST_TYPE && ann->data.type.name != NULL)
-                    ? ann->data.type.name : "T");
+                ast_type_name(ann) != NULL ? ast_type_name(ann) : "T");
         } else {
+            const char *init_callee_name =
+                ownership_let_call_callee_name(init);
             if (init->type == AST_CALL
-                && init->data.call.callee->type == AST_IDENTIFIER
-                && strcmp(init->data.call.callee->data.identifier.name,
-                          "BoxArray") == 0) {
+                && init_callee_name != NULL
+                && strcmp(init_callee_name, "BoxArray") == 0) {
                 init_type = decl_type;
             } else if (init->type == AST_CALL
-                       && init->data.call.callee != NULL
-                       && init->data.call.callee->type == AST_IDENTIFIER
-                       && ann->type == AST_TYPE
-                       && ann->data.type.name != NULL
-                       && strcmp(init->data.call.callee->data.identifier.name,
-                                 ann->data.type.name) == 0
+                       && ast_type_name(ann) != NULL
+                       && init_callee_name != NULL
+                       && strcmp(init_callee_name,
+                                 ast_type_name(ann)) == 0
                        && decl_type != NULL
                        && decl_type->kind == TYPE_KIND_CONSTRUCTED) {
                 init_type = decl_type;
             } else if (init->type == AST_ARRAY_LITERAL
-                       && init->data.array_literal.count == 0
+                       && ast_array_literal_count(init) == 0
                        && type_is_constructed_named(decl_type, "Array")) {
                 init_type = decl_type;
             } else if (init->type == AST_CALL
-                       && init->data.call.callee != NULL
-                       && init->data.call.callee->type == AST_IDENTIFIER
-                       && strcmp(init->data.call.callee->data.identifier.name,
+                       && init_callee_name != NULL
+                       && strcmp(init_callee_name,
                                  "ClaimDeviceSlot") == 0
                        && type_is_constructed_named(decl_type, "DeviceSlot")) {
                 init_type = decl_type;
@@ -182,10 +187,8 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
         }
 
         if (init->type == AST_CALL
-            && init->data.call.callee != NULL
-            && init->data.call.callee->type == AST_IDENTIFIER
             && init_type == TYPE_UNKNOWN) {
-            const char *callee_name = init->data.call.callee->data.identifier.name;
+            const char *callee_name = ownership_let_call_callee_name(init);
             if (callee_name != NULL
                 && (strcmp(callee_name, "ListNew") == 0
                     || strcmp(callee_name, "SetNew") == 0
@@ -341,17 +344,15 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
         bool new_write_view = false;
         bool view_init = false;
         if (init != NULL && init->type == AST_CALL
-            && init->data.call.callee != NULL
-            && init->data.call.callee->type == AST_IDENTIFIER
-            && init->data.call.arg_count >= 1
-            && init->data.call.arguments[0] != NULL
-            && init->data.call.arguments[0]->type == AST_IDENTIFIER) {
-            const char *callee_name = init->data.call.callee->data.identifier.name;
+            && ast_call_arg_count(init) >= 1
+            && ast_call_argument(init, 0) != NULL
+            && ast_call_argument(init, 0)->type == AST_IDENTIFIER) {
+            const char *callee_name = ownership_let_call_callee_name(init);
             if (callee_name != NULL
                 && (strcmp(callee_name, "ViewRead") == 0
                     || strcmp(callee_name, "ViewWrite") == 0
                     || strcmp(callee_name, "Move") == 0)) {
-                source_slot = init->data.call.arguments[0]->data.identifier.name;
+                source_slot = ast_call_argument(init, 0)->data.identifier.name;
             }
         }
         view_init = ownership_let_view_init_info(init, &source_slot,

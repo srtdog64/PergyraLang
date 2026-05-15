@@ -26,16 +26,17 @@ llvm_stmt_render_type_arg_scratch(GenericParam *param, PgyArena *arena)
         return NULL;
 
     type = param->constraint;
-    if (type != NULL && type->type == AST_TYPE && type->data.type.name != NULL) {
-        if (type->data.type.generic_args == NULL || type->data.type.generic_args->count == 0)
-            return pgy_arena_strdup(arena, type->data.type.name);
+    if (ast_type_name(type) != NULL) {
+        GenericParams *generic_args = ast_type_generic_args(type);
+        if (generic_args == NULL || generic_args->count == 0)
+            return pgy_arena_strdup(arena, ast_type_name(type));
 
-        char *result = pgy_arena_strdup(arena, type->data.type.name);
+        char *result = pgy_arena_strdup(arena, ast_type_name(type));
         if (result == NULL)
             return NULL;
-        for (size_t i = 0; i < type->data.type.generic_args->count; i++) {
+        for (size_t i = 0; i < generic_args->count; i++) {
             char *arg = llvm_stmt_render_type_arg_scratch(
-                type->data.type.generic_args->params[i], arena);
+                generic_args->params[i], arena);
             if (arg == NULL || arg[0] == '\0')
                 return NULL;
             size_t cur_len = strlen(result);

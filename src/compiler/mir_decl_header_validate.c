@@ -303,9 +303,10 @@ mir_validate_decl_method_metadata(const MIRProgram *mir,
 
         if (ast == NULL || ast->type != AST_FUNC_DECL)
             continue;
-        if (method->name != ast->data.func_decl.name
-            && (method->name == NULL || ast->data.func_decl.name == NULL
-                || strcmp(method->name, ast->data.func_decl.name) != 0)) {
+        const char *ast_name = ast_declaration_name(ast);
+        if (method->name != ast_name
+            && (method->name == NULL || ast_name == NULL
+                || strcmp(method->name, ast_name) != 0)) {
             if (error_message != NULL) {
                 *error_message = mir_strdup_fmt(
                     "MIR declaration header[%zu] method[%zu] name metadata drift",
@@ -313,9 +314,11 @@ mir_validate_decl_method_metadata(const MIRProgram *mir,
             }
             return false;
         }
-        if (method->params != ast->data.func_decl.params
-            || method->param_count != ast->data.func_decl.param_count
-            || method->return_type != ast->data.func_decl.return_type) {
+        size_t ast_param_count = 0;
+        FuncParam **ast_params = ast_func_params(ast, &ast_param_count);
+        if (method->params != ast_params
+            || method->param_count != ast_param_count
+            || method->return_type != ast_func_return_type(ast)) {
             if (error_message != NULL) {
                 *error_message = mir_strdup_fmt(
                     "MIR declaration header[%zu] method[%zu] signature metadata drift",

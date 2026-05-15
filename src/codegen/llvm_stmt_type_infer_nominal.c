@@ -1,6 +1,7 @@
 #ifdef PGY_LLVM_ENABLED
 #include "llvm_internal.h"
 #include "llvm_stmt_type_infer_helpers.h"
+#include "parser/ast_api.h"
 
 #include <string.h>
 
@@ -47,15 +48,16 @@ llvm_stmt_infer_nominal_name_from_init(LLVMGenCtx *ctx, ASTNode *init)
     }
 
     if (init->type == AST_CALL
-        && init->data.call.callee != NULL
-        && init->data.call.callee->type == AST_IDENTIFIER
-        && init->data.call.callee->data.identifier.name != NULL) {
-        name = init->data.call.callee->data.identifier.name;
+        && ast_call_callee(init) != NULL
+        && ast_call_callee(init)->type == AST_IDENTIFIER
+        && ast_call_callee(init)->data.identifier.name != NULL) {
+        name = ast_call_callee(init)->data.identifier.name;
         if (llvm_stmt_call_returns_collection_value(name)
-            && init->data.call.arg_count >= 1
-            && init->data.call.arguments[0] != NULL
-            && init->data.call.arguments[0]->type == AST_IDENTIFIER) {
-            const char *collection = init->data.call.arguments[0]->data.identifier.name;
+            && ast_call_arg_count(init) >= 1
+            && ast_call_argument(init, 0) != NULL
+            && ast_call_argument(init, 0)->type == AST_IDENTIFIER) {
+            const char *collection =
+                ast_call_argument(init, 0)->data.identifier.name;
             const char *inner = llvm_stmt_lookup_collection_get_inner(
                 ctx, name, collection);
             if (inner != NULL && llvm_lookup_class(ctx, inner) != NULL)
@@ -75,14 +77,14 @@ llvm_stmt_infer_nominal_name_from_init(LLVMGenCtx *ctx, ASTNode *init)
     }
 
     if (init->type == AST_MEMBER_ACCESS
-        && init->data.member.object != NULL
-        && init->data.member.name != NULL) {
+        && ast_member_object(init) != NULL
+        && ast_member_name(init) != NULL) {
         const char *base_name = llvm_stmt_infer_nominal_name_from_init(
-            ctx, init->data.member.object);
+            ctx, ast_member_object(init));
         LLVMClassTypeEntry *base_cls = base_name != NULL
             ? llvm_lookup_class(ctx, base_name) : NULL;
         if (base_cls != NULL) {
-            int field_idx = llvm_class_field_index(base_cls, init->data.member.name);
+            int field_idx = llvm_class_field_index(base_cls, ast_member_name(init));
             if (field_idx >= 0) {
                 LLVMClassTypeEntry *field_cls = llvm_stmt_lookup_class_by_type(
                     ctx, base_cls->fields[field_idx].field_type);

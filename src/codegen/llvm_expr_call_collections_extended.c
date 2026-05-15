@@ -8,77 +8,7 @@
 #include "codegen_slot_type_policy.h"
 #include "llvm_expr_call_queue_extended.h"
 #include "llvm_internal_api.h"
-static LLVMFuncEntry *
-llvm_required_hashmap_raw_export(LLVMGenCtx *ctx,
-                                 ASTNode *node,
-                                 const char *callee_name,
-                                 const char *operation,
-                                 const char *key_name)
-{
-    char export_name[64];
-    LLVMFuncEntry *fn;
-
-    if (!pgy_hashmap_key_raw_export_name(operation, key_name,
-            export_name, sizeof(export_name))) {
-        if (ctx != NULL && !ctx->has_error) {
-            llvm_set_error_at_with_hints(ctx, node,
-                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
-                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
-                PGY_FIX_ANNOTATE_CONCRETE_TYPE,
-                "LLVM collection operation '%s' requires stable HashMap<Int|String, T> key metadata",
-                callee_name != NULL ? callee_name : "HashMap operation");
-        }
-        return NULL;
-    }
-
-    fn = llvm_lookup_function(ctx, export_name);
-    if (fn == NULL && ctx != NULL && !ctx->has_error) {
-        llvm_set_error_at_with_hints(ctx, node,
-            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
-            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
-            PGY_FIX_INSPECT_MIR_INVENTORY,
-            "LLVM collection operation '%s' requires registered runtime function '%s'",
-            callee_name != NULL ? callee_name : "HashMap operation",
-            export_name);
-    }
-    return fn;
-}
-
-static LLVMFuncEntry *
-llvm_required_hashmap_raw_string_value_export(LLVMGenCtx *ctx,
-                                              ASTNode *node,
-                                              const char *callee_name,
-                                              const char *operation,
-                                              const char *key_name)
-{
-    char export_name[80];
-    LLVMFuncEntry *fn;
-
-    if (!pgy_hashmap_key_raw_string_value_export_name(operation, key_name,
-            export_name, sizeof(export_name))) {
-        if (ctx != NULL && !ctx->has_error) {
-            llvm_set_error_at_with_hints(ctx, node,
-                PGY_CODE_LLVM_TYPE_UNSUPPORTED,
-                PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
-                PGY_FIX_ANNOTATE_CONCRETE_TYPE,
-                "LLVM collection operation '%s' requires stable HashMap<Int|String, String> key metadata",
-                callee_name != NULL ? callee_name : "HashMap operation");
-        }
-        return NULL;
-    }
-
-    fn = llvm_lookup_function(ctx, export_name);
-    if (fn == NULL && ctx != NULL && !ctx->has_error) {
-        llvm_set_error_at_with_hints(ctx, node,
-            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
-            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
-            PGY_FIX_INSPECT_MIR_INVENTORY,
-            "LLVM collection operation '%s' requires registered runtime function '%s'",
-            callee_name != NULL ? callee_name : "HashMap operation",
-            export_name);
-    }
-    return fn;
-}
+#include "llvm_expr_call_collections_map_exports.h"
 
 static bool
 llvm_collection_extended_error_out(LLVMGenCtx *ctx, ASTNode *node,
@@ -101,23 +31,6 @@ llvm_collection_extended_error_out(LLVMGenCtx *ctx, ASTNode *node,
     return true;
 }
 
-static LLVMTypeRef
-llvm_hashmap_key_array_type(LLVMGenCtx *ctx, const char *key_name)
-{
-    switch (pgy_hashmap_key_kind_from_name(key_name)) {
-    case PGY_HASHMAP_KEY_INT:
-        return ctx->array_type_Int;
-    case PGY_HASHMAP_KEY_LONG:
-        return ctx->array_type_Long;
-    case PGY_HASHMAP_KEY_BOOL:
-        return ctx->array_type_Bool;
-    case PGY_HASHMAP_KEY_STRING:
-    case PGY_HASHMAP_KEY_UNKNOWN:
-        return ctx->array_type_String;
-    }
-    return ctx->array_type_String;
-}
-
 bool
 llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
                                    const char *callee_name,
@@ -130,8 +43,10 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
     if (llvm_emit_queue_extended_call(node, ctx, callee_name, out))
         return true;
 
-    if (strcmp(callee_name, "ListPush") == 0 && node->data.call.arg_count == 2) {
-        ASTNode *list_arg = node->data.call.arguments[0];
+    size_t argc = ast_call_arg_count(node);
+
+    if (strcmp(callee_name, "ListPush") == 0 && argc == 2) {
+        ASTNode *list_arg = ast_call_argument(node, 0);
         LLVMVarEntry *list_var;
         const char *inner_name;
         LLVMTypeRef elem_ty;
@@ -147,7 +62,7 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
             list_arg->data.identifier.name, inner_name, out);
         if (elem_ty == NULL)
             return true;
-        value = llvm_emit_expression(node->data.call.arguments[1], ctx);
+        value = llvm_emit_expression(ast_call_argument(node, 1), ctx);
         if (value == NULL)
             return llvm_collection_extended_error_out(ctx, node, out,
                 LLVMConstInt(ctx->type_i32, 0, 0),
@@ -194,8 +109,8 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 3, "");
         { *out = LLVMConstInt(ctx->type_i32, 0, 0); return true; }
     }
-    if (strcmp(callee_name, "ListGet") == 0 && node->data.call.arg_count == 2) {
-        ASTNode *list_arg = node->data.call.arguments[0];
+    if (strcmp(callee_name, "ListGet") == 0 && argc == 2) {
+        ASTNode *list_arg = ast_call_argument(node, 0);
         LLVMVarEntry *list_var;
         const char *inner_name;
         LLVMTypeRef elem_ty;
@@ -211,7 +126,7 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
             list_arg->data.identifier.name, inner_name, out);
         if (elem_ty == NULL)
             return true;
-        idx = llvm_emit_expression(node->data.call.arguments[1], ctx);
+        idx = llvm_emit_expression(ast_call_argument(node, 1), ctx);
         if (idx == NULL)
             return llvm_collection_extended_error_out(ctx, node, out,
                 LLVMConstInt(ctx->type_i32, 0, 0),
@@ -250,8 +165,8 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 4, "");
         { *out = LLVMBuildLoad2(ctx->builder, elem_ty, tmp, llvm_tmp_name(ctx)); return true; }
     }
-    if (strcmp(callee_name, "ListSet") == 0 && node->data.call.arg_count == 3) {
-        ASTNode *list_arg = node->data.call.arguments[0];
+    if (strcmp(callee_name, "ListSet") == 0 && argc == 3) {
+        ASTNode *list_arg = ast_call_argument(node, 0);
         LLVMVarEntry *list_var;
         const char *inner_name;
         LLVMTypeRef elem_ty;
@@ -268,8 +183,8 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
             list_arg->data.identifier.name, inner_name, out);
         if (elem_ty == NULL)
             return true;
-        idx = llvm_emit_expression(node->data.call.arguments[1], ctx);
-        value = llvm_emit_expression(node->data.call.arguments[2], ctx);
+        idx = llvm_emit_expression(ast_call_argument(node, 1), ctx);
+        value = llvm_emit_expression(ast_call_argument(node, 2), ctx);
         if (idx == NULL || value == NULL)
             return llvm_collection_extended_error_out(ctx, node, out,
                 LLVMConstInt(ctx->type_i32, 0, 0),
@@ -320,8 +235,8 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 4, "");
         { *out = LLVMConstInt(ctx->type_i32, 0, 0); return true; }
     }
-    if (strcmp(callee_name, "ListSize") == 0 && node->data.call.arg_count == 1) {
-        ASTNode *list_arg = node->data.call.arguments[0];
+    if (strcmp(callee_name, "ListSize") == 0 && argc == 1) {
+        ASTNode *list_arg = ast_call_argument(node, 0);
         LLVMVarEntry *list_var;
         LLVMFuncEntry *fn;
         list_var = llvm_collection_required_receiver_var(ctx, node, list_arg,
@@ -339,8 +254,8 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
             { *out = LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 1, llvm_tmp_name(ctx)); return true; }
         }
     }
-    if (strcmp(callee_name, "ListRemove") == 0 && node->data.call.arg_count == 2) {
-        ASTNode *list_arg = node->data.call.arguments[0];
+    if (strcmp(callee_name, "ListRemove") == 0 && argc == 2) {
+        ASTNode *list_arg = ast_call_argument(node, 0);
         LLVMVarEntry *list_var;
         const char *inner_name;
         LLVMTypeRef elem_ty;
@@ -355,7 +270,7 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
             list_arg->data.identifier.name, inner_name, out);
         if (elem_ty == NULL)
             return true;
-        idx = llvm_emit_expression(node->data.call.arguments[1], ctx);
+        idx = llvm_emit_expression(ast_call_argument(node, 1), ctx);
         if (idx == NULL)
             return llvm_collection_extended_error_out(ctx, node, out,
                 LLVMConstInt(ctx->type_i32, 0, 0),
@@ -390,8 +305,8 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 3, "");
         { *out = LLVMConstInt(ctx->type_i32, 0, 0); return true; }
     }
-    if (strcmp(callee_name, "MapSet") == 0 && node->data.call.arg_count == 3) {
-        ASTNode *map_arg = node->data.call.arguments[0];
+    if (strcmp(callee_name, "MapSet") == 0 && argc == 3) {
+        ASTNode *map_arg = ast_call_argument(node, 0);
         LLVMVarEntry *map_var;
         const char *key_name;
         const char *value_name;
@@ -410,8 +325,8 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
             map_arg->data.identifier.name, value_name, out);
         if (value_ty == NULL)
             return true;
-        key = llvm_emit_expression(node->data.call.arguments[1], ctx);
-        value = llvm_emit_expression(node->data.call.arguments[2], ctx);
+        key = llvm_emit_expression(ast_call_argument(node, 1), ctx);
+        value = llvm_emit_expression(ast_call_argument(node, 2), ctx);
         if (key == NULL || value == NULL)
             return llvm_collection_extended_error_out(ctx, node, out,
                 LLVMConstInt(ctx->type_i32, 0, 0),
@@ -459,8 +374,8 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 4, "");
         { *out = LLVMConstInt(ctx->type_i32, 0, 0); return true; }
     }
-    if (strcmp(callee_name, "MapGet") == 0 && node->data.call.arg_count == 2) {
-        ASTNode *map_arg = node->data.call.arguments[0];
+    if (strcmp(callee_name, "MapGet") == 0 && argc == 2) {
+        ASTNode *map_arg = ast_call_argument(node, 0);
         LLVMVarEntry *map_var;
         const char *key_name;
         const char *value_name;
@@ -478,7 +393,7 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
             map_arg->data.identifier.name, value_name, out);
         if (value_ty == NULL)
             return true;
-        key = llvm_emit_expression(node->data.call.arguments[1], ctx);
+        key = llvm_emit_expression(ast_call_argument(node, 1), ctx);
         if (key == NULL)
             return llvm_collection_extended_error_out(ctx, node, out,
                 LLVMConstInt(ctx->type_i32, 0, 0),
@@ -514,8 +429,8 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 4, "");
         { *out = LLVMBuildLoad2(ctx->builder, value_ty, tmp, llvm_tmp_name(ctx)); return true; }
     }
-    if (strcmp(callee_name, "MapHas") == 0 && node->data.call.arg_count == 2) {
-        ASTNode *map_arg = node->data.call.arguments[0];
+    if (strcmp(callee_name, "MapHas") == 0 && argc == 2) {
+        ASTNode *map_arg = ast_call_argument(node, 0);
         LLVMVarEntry *map_var;
         const char *key_name;
         LLVMValueRef key;
@@ -525,7 +440,7 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         if (map_var == NULL)
             return true;
         key_name = llvm_lookup_map_key(ctx, map_arg->data.identifier.name);
-        key = llvm_emit_expression(node->data.call.arguments[1], ctx);
+        key = llvm_emit_expression(ast_call_argument(node, 1), ctx);
         fn = llvm_required_hashmap_raw_export(ctx, node, callee_name, "has", key_name);
         if (key == NULL)
             return llvm_collection_extended_error_out(ctx, node, out,
@@ -541,8 +456,8 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
             { *out = LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 2, llvm_tmp_name(ctx)); return true; }
         }
     }
-    if (strcmp(callee_name, "MapRemove") == 0 && node->data.call.arg_count == 2) {
-        ASTNode *map_arg = node->data.call.arguments[0];
+    if (strcmp(callee_name, "MapRemove") == 0 && argc == 2) {
+        ASTNode *map_arg = ast_call_argument(node, 0);
         LLVMVarEntry *map_var;
         const char *key_name;
         const char *value_name;
@@ -559,7 +474,7 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
             map_arg->data.identifier.name, value_name, out);
         if (value_ty == NULL)
             return true;
-        key = llvm_emit_expression(node->data.call.arguments[1], ctx);
+        key = llvm_emit_expression(ast_call_argument(node, 1), ctx);
         if (key == NULL)
             return llvm_collection_extended_error_out(ctx, node, out,
                 LLVMConstInt(ctx->type_i32, 0, 0),
@@ -591,8 +506,8 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         }
         { *out = LLVMConstInt(ctx->type_i32, 0, 0); return true; }
     }
-    if (strcmp(callee_name, "MapSize") == 0 && node->data.call.arg_count == 1) {
-        ASTNode *map_arg = node->data.call.arguments[0];
+    if (strcmp(callee_name, "MapSize") == 0 && argc == 1) {
+        ASTNode *map_arg = ast_call_argument(node, 0);
         LLVMVarEntry *map_var;
         LLVMFuncEntry *fn;
         map_var = llvm_collection_required_receiver_var(ctx, node, map_arg,
@@ -610,8 +525,8 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
             { *out = LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 1, llvm_tmp_name(ctx)); return true; }
         }
     }
-    if (strcmp(callee_name, "MapKeys") == 0 && node->data.call.arg_count == 1) {
-        ASTNode *map_arg = node->data.call.arguments[0];
+    if (strcmp(callee_name, "MapKeys") == 0 && argc == 1) {
+        ASTNode *map_arg = ast_call_argument(node, 0);
         LLVMVarEntry *map_var;
         const char *key_name;
         LLVMTypeRef array_ty;
@@ -640,8 +555,8 @@ llvm_emit_collection_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         { *out = LLVMBuildLoad2(ctx->builder, array_ty, tmp, llvm_tmp_name(ctx)); return true; }
     }
     if (pgy_codegen_call_name_is_slot_source(callee_name)
-        && node->data.call.arg_count == 1) {
-        { *out = llvm_emit_expression(node->data.call.arguments[0], ctx); return true; }
+        && argc == 1) {
+        { *out = llvm_emit_expression(ast_call_argument(node, 0), ctx); return true; }
     }
     return false;
 }

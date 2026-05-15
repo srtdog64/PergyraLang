@@ -59,6 +59,7 @@ llvm_register_typed_var(LLVMGenCtx *ctx, const char *var_name,
                         ASTNode *type_node)
 {
     const char *type_name;
+    GenericParams *generic_args;
 
     if (ctx == NULL || var_name == NULL || type_node == NULL)
         return;
@@ -68,18 +69,19 @@ llvm_register_typed_var(LLVMGenCtx *ctx, const char *var_name,
         return;
     }
 
-    if (type_node->type != AST_TYPE || type_node->data.type.name == NULL)
+    if (ast_type_name(type_node) == NULL)
         return;
 
-    type_name = type_node->data.type.name;
+    type_name = ast_type_name(type_node);
+    generic_args = ast_type_generic_args(type_node);
 
     if ((strcmp(type_name, "Array") == 0 || strcmp(type_name, "Slice") == 0)
-        && type_node->data.type.generic_args != NULL
-        && type_node->data.type.generic_args->count > 0
-        && type_node->data.type.generic_args->params[0] != NULL
-        && type_node->data.type.generic_args->params[0]->constraint != NULL) {
+        && generic_args != NULL
+        && generic_args->count > 0
+        && generic_args->params[0] != NULL
+        && generic_args->params[0]->constraint != NULL) {
         char *elem_name = llvm_render_type_name_scratch(
-            type_node->data.type.generic_args->params[0]->constraint,
+            generic_args->params[0]->constraint,
             &ctx->scratch);
         if (elem_name == NULL || elem_name[0] == '\0') {
             llvm_set_error_at_with_hints(ctx, type_node,
@@ -96,12 +98,12 @@ llvm_register_typed_var(LLVMGenCtx *ctx, const char *var_name,
     }
 
     if (strcmp(type_name, "List") == 0
-        && type_node->data.type.generic_args != NULL
-        && type_node->data.type.generic_args->count > 0
-        && type_node->data.type.generic_args->params[0] != NULL
-        && type_node->data.type.generic_args->params[0]->constraint != NULL) {
+        && generic_args != NULL
+        && generic_args->count > 0
+        && generic_args->params[0] != NULL
+        && generic_args->params[0]->constraint != NULL) {
         char *inner_name = llvm_registry_render_required_type_name(ctx,
-            type_node, type_node->data.type.generic_args->params[0]->constraint,
+            type_node, generic_args->params[0]->constraint,
             "List<T>");
         if (inner_name == NULL)
             return;
@@ -111,12 +113,12 @@ llvm_register_typed_var(LLVMGenCtx *ctx, const char *var_name,
     }
 
     if (strcmp(type_name, "Set") == 0
-        && type_node->data.type.generic_args != NULL
-        && type_node->data.type.generic_args->count > 0
-        && type_node->data.type.generic_args->params[0] != NULL
-        && type_node->data.type.generic_args->params[0]->constraint != NULL) {
+        && generic_args != NULL
+        && generic_args->count > 0
+        && generic_args->params[0] != NULL
+        && generic_args->params[0]->constraint != NULL) {
         char *inner_name = llvm_registry_render_required_type_name(ctx,
-            type_node, type_node->data.type.generic_args->params[0]->constraint,
+            type_node, generic_args->params[0]->constraint,
             "Set<T>");
         if (inner_name == NULL)
             return;
@@ -126,12 +128,12 @@ llvm_register_typed_var(LLVMGenCtx *ctx, const char *var_name,
     }
 
     if (strcmp(type_name, "Queue") == 0
-        && type_node->data.type.generic_args != NULL
-        && type_node->data.type.generic_args->count > 0
-        && type_node->data.type.generic_args->params[0] != NULL
-        && type_node->data.type.generic_args->params[0]->constraint != NULL) {
+        && generic_args != NULL
+        && generic_args->count > 0
+        && generic_args->params[0] != NULL
+        && generic_args->params[0]->constraint != NULL) {
         char *inner_name = llvm_registry_render_required_type_name(ctx,
-            type_node, type_node->data.type.generic_args->params[0]->constraint,
+            type_node, generic_args->params[0]->constraint,
             "Queue<T>");
         if (inner_name == NULL)
             return;
@@ -141,17 +143,17 @@ llvm_register_typed_var(LLVMGenCtx *ctx, const char *var_name,
     }
 
     if (strcmp(type_name, "HashMap") == 0
-        && type_node->data.type.generic_args != NULL
-        && type_node->data.type.generic_args->count > 1
-        && type_node->data.type.generic_args->params[0] != NULL
-        && type_node->data.type.generic_args->params[0]->constraint != NULL
-        && type_node->data.type.generic_args->params[1] != NULL
-        && type_node->data.type.generic_args->params[1]->constraint != NULL) {
+        && generic_args != NULL
+        && generic_args->count > 1
+        && generic_args->params[0] != NULL
+        && generic_args->params[0]->constraint != NULL
+        && generic_args->params[1] != NULL
+        && generic_args->params[1]->constraint != NULL) {
         char *key_name = llvm_registry_render_required_type_name(ctx,
-            type_node, type_node->data.type.generic_args->params[0]->constraint,
+            type_node, generic_args->params[0]->constraint,
             "HashMap<K, V> key");
         char *value_name = llvm_registry_render_required_type_name(ctx,
-            type_node, type_node->data.type.generic_args->params[1]->constraint,
+            type_node, generic_args->params[1]->constraint,
             "HashMap<K, V> value");
         if (key_name == NULL || value_name == NULL) {
             free(key_name);
@@ -165,12 +167,12 @@ llvm_register_typed_var(LLVMGenCtx *ctx, const char *var_name,
     }
 
     if ((strcmp(type_name, "Future") == 0 || strcmp(type_name, "RemoteFuture") == 0)
-        && type_node->data.type.generic_args != NULL
-        && type_node->data.type.generic_args->count > 0
-        && type_node->data.type.generic_args->params[0] != NULL
-        && type_node->data.type.generic_args->params[0]->constraint != NULL) {
+        && generic_args != NULL
+        && generic_args->count > 0
+        && generic_args->params[0] != NULL
+        && generic_args->params[0]->constraint != NULL) {
         char *inner_name = llvm_registry_render_required_type_name(ctx,
-            type_node, type_node->data.type.generic_args->params[0]->constraint,
+            type_node, generic_args->params[0]->constraint,
             "Future<T>");
         if (inner_name == NULL)
             return;
@@ -181,12 +183,12 @@ llvm_register_typed_var(LLVMGenCtx *ctx, const char *var_name,
     }
 
     if (strcmp(type_name, "Channel") == 0
-        && type_node->data.type.generic_args != NULL
-        && type_node->data.type.generic_args->count > 0
-        && type_node->data.type.generic_args->params[0] != NULL
-        && type_node->data.type.generic_args->params[0]->constraint != NULL) {
+        && generic_args != NULL
+        && generic_args->count > 0
+        && generic_args->params[0] != NULL
+        && generic_args->params[0]->constraint != NULL) {
         char *inner_name = llvm_registry_render_required_type_name(ctx,
-            type_node, type_node->data.type.generic_args->params[0]->constraint,
+            type_node, generic_args->params[0]->constraint,
             "Channel<T>");
         if (inner_name == NULL)
             return;
@@ -200,13 +202,13 @@ llvm_register_typed_var(LLVMGenCtx *ctx, const char *var_name,
         || strncmp(type_name, "Weak<", 5) == 0) {
         char *inner_name = NULL;
         bool free_inner_name = false;
-        if (type_node->data.type.generic_args != NULL
-            && type_node->data.type.generic_args->count > 0
-            && type_node->data.type.generic_args->params[0] != NULL
-            && type_node->data.type.generic_args->params[0]->constraint != NULL) {
+        if (generic_args != NULL
+            && generic_args->count > 0
+            && generic_args->params[0] != NULL
+            && generic_args->params[0]->constraint != NULL) {
             inner_name = llvm_registry_render_required_type_name(ctx,
                 type_node,
-                type_node->data.type.generic_args->params[0]->constraint,
+                generic_args->params[0]->constraint,
                 type_name);
             free_inner_name = true;
         } else {

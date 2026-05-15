@@ -78,7 +78,7 @@ append_type_name(CodeBuf *buf, ASTNode *type_node)
 {
     if (type_node == NULL
         || type_node->type != AST_TYPE
-        || type_node->data.type.name == NULL) {
+        || ast_type_name(type_node) == NULL) {
         codebuf_write(buf, "Int");
         return;
     }
@@ -100,16 +100,17 @@ append_type_name(CodeBuf *buf, ASTNode *type_node)
         TranspilerCtx *render_ctx = transpiler_type_render_ctx_current();
         if (render_ctx != NULL) {
             bound = transpiler_type_render_lookup_generic_binding(
-                render_ctx, type_node->data.type.name);
+                render_ctx, ast_type_name(type_node));
         }
         codebuf_write(buf, "%s",
-                      bound != NULL ? bound : type_node->data.type.name);
+                      bound != NULL ? bound : ast_type_name(type_node));
     }
-    if (type_node->data.type.generic_args != NULL
-        && type_node->data.type.generic_args->count > 0) {
+    if (ast_type_generic_args(type_node) != NULL
+        && ast_type_generic_args(type_node)->count > 0) {
+        GenericParams *generic_args = ast_type_generic_args(type_node);
         codebuf_write(buf, "<");
-        for (size_t i = 0; i < type_node->data.type.generic_args->count; i++) {
-            GenericParam *param = type_node->data.type.generic_args->params[i];
+        for (size_t i = 0; i < generic_args->count; i++) {
+            GenericParam *param = generic_args->params[i];
             if (i > 0)
                 codebuf_write(buf, ", ");
             if (param != NULL && param->constraint != NULL) {

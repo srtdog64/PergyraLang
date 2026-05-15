@@ -79,14 +79,14 @@ semantic_type_resolution_precollect_expr_type_refs(ASTNode *expr,
 
     case AST_CALL:
         semantic_type_resolution_precollect_expr_type_refs(
-            expr->data.call.callee, ctx, owner, owner_name);
-        for (size_t i = 0; i < expr->data.call.arg_count; i++) {
+            ast_call_callee(expr), ctx, owner, owner_name);
+        for (size_t i = 0; i < ast_call_arg_count(expr); i++) {
             semantic_type_resolution_precollect_expr_type_refs(
-                expr->data.call.arguments[i], ctx, owner, owner_name);
+                ast_call_argument(expr, i), ctx, owner, owner_name);
         }
-        if (expr->data.call.generic_args != NULL) {
-            for (size_t i = 0; i < expr->data.call.generic_args->count; i++) {
-                GenericParam *arg = expr->data.call.generic_args->params[i];
+        if (ast_call_generic_args(expr) != NULL) {
+            for (size_t i = 0; i < ast_call_generic_arg_count(expr); i++) {
+                GenericParam *arg = ast_call_generic_arg(expr, i);
                 if (arg != NULL) {
                     semantic_type_resolution_collect_type_refs(
                         arg->constraint,
@@ -101,72 +101,72 @@ semantic_type_resolution_precollect_expr_type_refs(ASTNode *expr,
 
     case AST_BINARY:
         semantic_type_resolution_precollect_expr_type_refs(
-            expr->data.binary.left, ctx, owner, owner_name);
+            ast_binary_left(expr), ctx, owner, owner_name);
         semantic_type_resolution_precollect_expr_type_refs(
-            expr->data.binary.right, ctx, owner, owner_name);
+            ast_binary_right(expr), ctx, owner, owner_name);
         return;
 
     case AST_UNARY:
         semantic_type_resolution_precollect_expr_type_refs(
-            expr->data.unary.operand, ctx, owner, owner_name);
+            ast_unary_operand(expr), ctx, owner, owner_name);
         return;
 
     case AST_MEMBER_ACCESS:
         semantic_type_resolution_precollect_expr_type_refs(
-            expr->data.member.object, ctx, owner, owner_name);
+            ast_member_object(expr), ctx, owner, owner_name);
         return;
 
     case AST_ARRAY_ACCESS:
         semantic_type_resolution_precollect_expr_type_refs(
-            expr->data.array_access.array, ctx, owner, owner_name);
+            ast_array_access_array(expr), ctx, owner, owner_name);
         semantic_type_resolution_precollect_expr_type_refs(
-            expr->data.array_access.index, ctx, owner, owner_name);
+            ast_array_access_index(expr), ctx, owner, owner_name);
         return;
 
     case AST_ARRAY_LITERAL:
-        for (size_t i = 0; i < expr->data.array_literal.count; i++) {
+        for (size_t i = 0; i < ast_array_literal_count(expr); i++) {
             semantic_type_resolution_precollect_expr_type_refs(
-                expr->data.array_literal.elements[i], ctx, owner, owner_name);
+                ast_array_literal_element(expr, i), ctx, owner, owner_name);
         }
         return;
 
     case AST_TUPLE_LITERAL:
-        for (size_t i = 0; i < expr->data.tuple_literal.count; i++) {
+        for (size_t i = 0; i < ast_tuple_literal_count(expr); i++) {
             semantic_type_resolution_precollect_expr_type_refs(
-                expr->data.tuple_literal.elements[i], ctx, owner, owner_name);
+                ast_tuple_literal_element(expr, i), ctx, owner, owner_name);
         }
         return;
 
     case AST_ASSIGNMENT:
         semantic_type_resolution_precollect_expr_type_refs(
-            expr->data.assignment.target, ctx, owner, owner_name);
+            ast_assignment_target(expr), ctx, owner, owner_name);
         semantic_type_resolution_precollect_expr_type_refs(
-            expr->data.assignment.value, ctx, owner, owner_name);
+            ast_assignment_value(expr), ctx, owner, owner_name);
         return;
 
     case AST_AWAIT_EXPR:
         semantic_type_resolution_precollect_expr_type_refs(
-            expr->data.await_expr.expression, ctx, owner, owner_name);
+            ast_await_expression(expr), ctx, owner, owner_name);
         return;
 
     case AST_CHANNEL_SEND:
         semantic_type_resolution_precollect_expr_type_refs(
-            expr->data.channel_send.channel, ctx, owner, owner_name);
+            ast_channel_send_channel(expr), ctx, owner, owner_name);
         semantic_type_resolution_precollect_expr_type_refs(
-            expr->data.channel_send.value, ctx, owner, owner_name);
+            ast_channel_send_value(expr), ctx, owner, owner_name);
         return;
 
     case AST_CHANNEL_RECV:
         semantic_type_resolution_precollect_expr_type_refs(
-            expr->data.channel_recv.channel, ctx, owner, owner_name);
+            ast_channel_recv_channel(expr), ctx, owner, owner_name);
         return;
 
     case AST_SPAWN_EXPR:
         semantic_type_resolution_precollect_expr_type_refs(
-            expr->data.spawn_expr.function, ctx, owner, owner_name);
-        for (size_t i = 0; i < expr->data.spawn_expr.arg_count; i++) {
+            ast_spawn_function(expr), ctx, owner, owner_name);
+        for (size_t i = 0; i < ast_spawn_arg_count(expr); i++) {
             semantic_type_resolution_precollect_expr_type_refs(
-                expr->data.spawn_expr.arguments[i], ctx, owner, owner_name);
+                ast_spawn_argument(expr, i), ctx, owner, owner_name);
         }
         return;
 
@@ -239,11 +239,11 @@ semantic_type_resolution_precollect_body_type_refs(ASTNode *stmt,
         consumer_name = resolution_body_strdup_fmt(
             "body %s.%s",
             owner_name != NULL ? owner_name : "<body>",
-            stmt->data.with_stmt.alias != NULL
-                ? stmt->data.with_stmt.alias : "<with>");
+            ast_with_alias(stmt) != NULL
+                ? ast_with_alias(stmt) : "<with>");
         if (consumer_name != NULL) {
             semantic_type_resolution_collect_type_refs(
-                stmt->data.with_stmt.slot_type,
+                ast_with_slot_type(stmt),
                 ctx,
                 stmt,
                 consumer_name,
@@ -251,54 +251,54 @@ semantic_type_resolution_precollect_body_type_refs(ASTNode *stmt,
             free(consumer_name);
         }
         semantic_type_resolution_precollect_body_type_refs(
-            stmt->data.with_stmt.body, ctx, owner, owner_name);
+            ast_with_body(stmt), ctx, owner, owner_name);
         return;
 
     case AST_IF_STMT:
         semantic_type_resolution_precollect_expr_type_refs(
-            stmt->data.if_stmt.condition, ctx, owner, owner_name);
+            ast_if_condition(stmt), ctx, owner, owner_name);
         semantic_type_resolution_precollect_body_type_refs(
-            stmt->data.if_stmt.then_branch, ctx, owner, owner_name);
+            ast_if_then_branch(stmt), ctx, owner, owner_name);
         semantic_type_resolution_precollect_body_type_refs(
-            stmt->data.if_stmt.else_branch, ctx, owner, owner_name);
+            ast_if_else_branch(stmt), ctx, owner, owner_name);
         return;
 
     case AST_WHILE_LOOP:
         semantic_type_resolution_precollect_expr_type_refs(
-            stmt->data.while_loop.condition, ctx, owner, owner_name);
+            ast_while_condition(stmt), ctx, owner, owner_name);
         semantic_type_resolution_precollect_body_type_refs(
-            stmt->data.while_loop.body, ctx, owner, owner_name);
+            ast_while_body(stmt), ctx, owner, owner_name);
         return;
 
     case AST_FOR_LOOP:
         semantic_type_resolution_precollect_expr_type_refs(
-            stmt->data.for_loop.range_start, ctx, owner, owner_name);
+            ast_for_range_start(stmt), ctx, owner, owner_name);
         semantic_type_resolution_precollect_expr_type_refs(
-            stmt->data.for_loop.range_end, ctx, owner, owner_name);
+            ast_for_range_end(stmt), ctx, owner, owner_name);
         semantic_type_resolution_precollect_expr_type_refs(
-            stmt->data.for_loop.iterable, ctx, owner, owner_name);
+            ast_for_iterable(stmt), ctx, owner, owner_name);
         semantic_type_resolution_precollect_body_type_refs(
-            stmt->data.for_loop.body, ctx, owner, owner_name);
+            ast_for_body(stmt), ctx, owner, owner_name);
         return;
 
     case AST_PARALLEL_BLOCK:
-        for (size_t i = 0; i < stmt->data.parallel.task_count; i++) {
+        for (size_t i = 0; i < ast_parallel_task_count(stmt); i++) {
             semantic_type_resolution_precollect_body_type_refs(
-                stmt->data.parallel.tasks[i], ctx, owner, owner_name);
+                ast_parallel_task(stmt, i), ctx, owner, owner_name);
         }
         return;
 
     case AST_ASYNC_BLOCK:
-        for (size_t i = 0; i < stmt->data.async_block.statement_count; i++) {
+        for (size_t i = 0; i < ast_async_block_statement_count(stmt); i++) {
             semantic_type_resolution_precollect_body_type_refs(
-                stmt->data.async_block.statements[i], ctx, owner, owner_name);
+                ast_async_block_statement(stmt, i), ctx, owner, owner_name);
         }
         return;
 
     case AST_TASK_GROUP:
-        for (size_t i = 0; i < stmt->data.task_group.task_count; i++) {
+        for (size_t i = 0; i < ast_task_group_task_count(stmt); i++) {
             semantic_type_resolution_precollect_body_type_refs(
-                stmt->data.task_group.tasks[i], ctx, owner, owner_name);
+                ast_task_group_task(stmt, i), ctx, owner, owner_name);
         }
         return;
 
@@ -322,17 +322,17 @@ semantic_type_resolution_precollect_body_type_refs(ASTNode *stmt,
 
     case AST_UNSAFE_BLOCK:
         semantic_type_resolution_precollect_body_type_refs(
-            stmt->data.unsafe_block.body, ctx, owner, owner_name);
+            ast_unsafe_block_body(stmt), ctx, owner, owner_name);
         return;
 
     case AST_DEFER_STMT:
         semantic_type_resolution_precollect_body_type_refs(
-            stmt->data.defer_stmt.body, ctx, owner, owner_name);
+            ast_defer_body(stmt), ctx, owner, owner_name);
         return;
 
     case AST_RETURN:
         semantic_type_resolution_precollect_expr_type_refs(
-            stmt->data.return_stmt.value, ctx, owner, owner_name);
+            ast_return_value(stmt), ctx, owner, owner_name);
         return;
 
     case AST_ASSIGNMENT:

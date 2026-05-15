@@ -25,17 +25,18 @@ semantic_validate_function_call_generic_where(ASTNode *expr,
     ASTNode *prog = ctx->program_root;
     for (size_t si = 0; si < prog->data.program.count; si++) {
         ASTNode *stmt = prog->data.program.statements[si];
+        const char *stmt_name = ast_declaration_name(stmt);
+        GenericParams *decl_gp = ast_func_generic_params(stmt);
+        WhereClause *wc = ast_func_where_clause(stmt);
         if (stmt == NULL || stmt->type != AST_FUNC_DECL
-            || stmt->data.func_decl.name == NULL
-            || strcmp(stmt->data.func_decl.name, display_name) != 0
-            || stmt->data.func_decl.generic_params == NULL
-            || stmt->data.func_decl.generic_params->count == 0
-            || stmt->data.func_decl.where_clause == NULL) {
+            || stmt_name == NULL
+            || strcmp(stmt_name, display_name) != 0
+            || decl_gp == NULL
+            || decl_gp->count == 0
+            || wc == NULL) {
             continue;
         }
 
-        GenericParams *decl_gp = stmt->data.func_decl.generic_params;
-        WhereClause *wc = stmt->data.func_decl.where_clause;
         char *expected_sig = format_generic_subject_signature(display_name, decl_gp);
         Type **effective_generic_types =
             calloc(decl_gp->count > 0 ? decl_gp->count : 1, sizeof(Type *));
@@ -52,16 +53,15 @@ semantic_validate_function_call_generic_where(ASTNode *expr,
             }
         }
         for (size_t ai = 0; ai < provided; ai++) {
-            FuncParam *fp = (ai < stmt->data.func_decl.param_count)
-                ? stmt->data.func_decl.params[ai] : NULL;
+            FuncParam *fp = ai < ast_func_param_count(stmt)
+                ? ast_func_param(stmt, ai) : NULL;
             int param_index;
             if (fp == NULL || fp->type == NULL
-                || fp->type->type != AST_TYPE
-                || fp->type->data.type.name == NULL) {
+                || ast_type_name(fp->type) == NULL) {
                 continue;
             }
             param_index = find_generic_param_index(
-                decl_gp, fp->type->data.type.name);
+                decl_gp, ast_type_name(fp->type));
             if (param_index < 0)
                 continue;
             effective_generic_types[param_index] =
@@ -130,10 +130,8 @@ semantic_validate_function_call_generic_where(ASTNode *expr,
             for (size_t bi = 0; bi < tc->bound_count; bi++) {
                 char *bounds_text = format_type_constraint_bounds(tc);
                 const char *bound_name =
-                    (tc->bounds[bi] != NULL
-                     && tc->bounds[bi]->type == AST_TYPE
-                     && tc->bounds[bi]->data.type.name != NULL)
-                        ? tc->bounds[bi]->data.type.name
+                    ast_type_name(tc->bounds[bi]) != NULL
+                        ? ast_type_name(tc->bounds[bi])
                         : NULL;
                 bool satisfies = concrete_type_satisfies_bound(
                     concrete_type, tc->bounds[bi], ctx);

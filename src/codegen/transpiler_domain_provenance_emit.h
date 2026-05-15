@@ -169,8 +169,8 @@ emit_domain_projection_sync_loop(TranspilerCtx *ctx,
             continue;
         }
 
-        target_type_name = target_slot_type->data.type.name;
-        source_type_name = source_slot_type->data.type.name;
+        target_type_name = ast_type_name(target_slot_type);
+        source_type_name = ast_type_name(source_slot_type);
         target_decl = find_class_decl(ctx, target_type_name);
         source_decl = find_class_decl(ctx, source_type_name);
         {

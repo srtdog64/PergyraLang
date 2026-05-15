@@ -27,12 +27,15 @@ llvm_assignment_error(LLVMGenCtx *ctx, ASTNode *node, const char *message)
 LLVMValueRef
 llvm_emit_assignment(ASTNode *node, LLVMGenCtx *ctx)
 {
-    if (node->data.assignment.target == NULL)
+    ASTNode *target = ast_assignment_target(node);
+    ASTNode *value = ast_assignment_value(node);
+
+    if (target == NULL)
         return llvm_assignment_error(ctx, node,
             "LLVM assignment requires a target expression");
 
-    if (node->data.assignment.target->type == AST_ARRAY_ACCESS) {
-        ASTNode *array_node = node->data.assignment.target->data.array_access.array;
+    if (target->type == AST_ARRAY_ACCESS) {
+        ASTNode *array_node = ast_array_access_array(target);
         if (array_node == NULL || array_node->type != AST_IDENTIFIER)
             return llvm_assignment_error(ctx, node,
                 "LLVM indexed array assignment requires an identifier receiver");
@@ -41,8 +44,8 @@ llvm_emit_assignment(ASTNode *node, LLVMGenCtx *ctx)
             LLVMVarEntry *arr_var = llvm_scope_lookup(ctx, name);
             LLVMArrayVarEntry *entry = llvm_lookup_array_var(ctx, name);
             LLVMValueRef idx = llvm_emit_expression(
-                node->data.assignment.target->data.array_access.index, ctx);
-            LLVMValueRef val = llvm_emit_expression(node->data.assignment.value, ctx);
+                ast_array_access_index(target), ctx);
+            LLVMValueRef val = llvm_emit_expression(value, ctx);
             const char *suffix;
             char fn_name[64];
             LLVMFuncEntry *fn;
@@ -98,15 +101,15 @@ llvm_emit_assignment(ASTNode *node, LLVMGenCtx *ctx)
         }
     }
 
-    if (node->data.assignment.target->type == AST_MEMBER_ACCESS) {
+    if (target->type == AST_MEMBER_ACCESS) {
         LLVMTypeRef field_type = NULL;
         LLVMValueRef gep = llvm_emit_member_lvalue_ptr(
-            node->data.assignment.target, ctx, &field_type);
+            target, ctx, &field_type);
         LLVMValueRef val;
         if (gep == NULL || field_type == NULL)
             return llvm_assignment_error(ctx, node,
                 "LLVM member assignment requires a writable member lvalue");
-        val = llvm_emit_expression(node->data.assignment.value, ctx);
+        val = llvm_emit_expression(value, ctx);
         if (val == NULL)
             return llvm_assignment_error(ctx, node,
                 "LLVM member assignment could not lower value expression");
@@ -125,14 +128,14 @@ llvm_emit_assignment(ASTNode *node, LLVMGenCtx *ctx)
             }
         }
         LLVMBuildStore(ctx->builder, val, gep);
-        llvm_emit_host_projection_invalidations(ctx, node->data.assignment.target);
-        llvm_emit_world_embedded_assignment_sync(ctx, node->data.assignment.target);
+        llvm_emit_host_projection_invalidations(ctx, target);
+        llvm_emit_world_embedded_assignment_sync(ctx, target);
         return val;
     }
 
     const char *name = NULL;
-    if (node->data.assignment.target->type == AST_IDENTIFIER)
-        name = node->data.assignment.target->data.identifier.name;
+    if (target->type == AST_IDENTIFIER)
+        name = target->data.identifier.name;
 
     if (name == NULL)
         return llvm_assignment_error(ctx, node,
@@ -146,7 +149,7 @@ llvm_emit_assignment(ASTNode *node, LLVMGenCtx *ctx)
         if (cls != NULL && self_var != NULL) {
             int field_idx = llvm_class_field_index(cls, name);
             if (field_idx >= 0) {
-                LLVMValueRef val = llvm_emit_expression(node->data.assignment.value, ctx);
+                LLVMValueRef val = llvm_emit_expression(value, ctx);
                 LLVMValueRef base_ptr;
                 LLVMValueRef gep;
                 if (val == NULL)
@@ -159,8 +162,8 @@ llvm_emit_assignment(ASTNode *node, LLVMGenCtx *ctx)
                 gep = LLVMBuildStructGEP2(ctx->builder, cls->struct_type, base_ptr,
                     (unsigned)field_idx, llvm_tmp_name(ctx));
                 LLVMBuildStore(ctx->builder, val, gep);
-                llvm_emit_host_projection_invalidations(ctx, node->data.assignment.target);
-                llvm_emit_world_embedded_assignment_sync(ctx, node->data.assignment.target);
+                llvm_emit_host_projection_invalidations(ctx, target);
+                llvm_emit_world_embedded_assignment_sync(ctx, target);
                 return val;
             }
         }
@@ -173,7 +176,7 @@ llvm_emit_assignment(ASTNode *node, LLVMGenCtx *ctx)
         const char *slot_inner = llvm_lookup_slot_inner(ctx, name);
         if (slot_inner != NULL) {
             bool is_secure = llvm_lookup_slot_is_secure(ctx, name);
-            LLVMValueRef val = llvm_emit_expression(node->data.assignment.value, ctx);
+            LLVMValueRef val = llvm_emit_expression(value, ctx);
             if (val == NULL)
                 return llvm_assignment_error(ctx, node,
                     "LLVM slot assignment could not lower value expression");
@@ -212,7 +215,7 @@ llvm_emit_assignment(ASTNode *node, LLVMGenCtx *ctx)
     }
 
     {
-        LLVMValueRef val = llvm_emit_expression(node->data.assignment.value, ctx);
+        LLVMValueRef val = llvm_emit_expression(value, ctx);
         if (val == NULL)
             return llvm_assignment_error(ctx, node,
                 "LLVM assignment could not lower value expression");

@@ -60,9 +60,9 @@ llvm_host_projection_source_from_assignment(ASTNode *host_decl,
     }
 
     while (cursor != NULL && cursor->type == AST_MEMBER_ACCESS) {
-        ASTNode *obj = cursor->data.member.object;
+        ASTNode *obj = ast_member_object(cursor);
         if (source_field == NULL)
-            source_field = cursor->data.member.name;
+            source_field = ast_member_name(cursor);
         if (obj != NULL && obj->type == AST_IDENTIFIER
             && obj->data.identifier.name != NULL) {
             for (size_t i = 0; i < slot_count; i++) {
@@ -188,8 +188,8 @@ llvm_world_embedded_projection_source_from_assignment(LLVMGenCtx *ctx,
         return false;
 
     while (cursor != NULL && cursor->type == AST_MEMBER_ACCESS) {
-        ASTNode *receiver = cursor->data.member.object;
-        const char *slot_name = cursor->data.member.name;
+        ASTNode *receiver = ast_member_object(cursor);
+        const char *slot_name = ast_member_name(cursor);
         const char *zone_slot_name = NULL;
         ASTNode *zone_decl = NULL;
 
@@ -198,13 +198,13 @@ llvm_world_embedded_projection_source_from_assignment(LLVMGenCtx *ctx,
                 && receiver->data.identifier.name != NULL) {
                 zone_slot_name = receiver->data.identifier.name;
             } else if (receiver->type == AST_MEMBER_ACCESS
-                       && receiver->data.member.object != NULL
-                       && receiver->data.member.object->type == AST_IDENTIFIER
-                       && receiver->data.member.object->data.identifier.name != NULL
-                       && strcmp(receiver->data.member.object->data.identifier.name,
+                       && ast_member_object(receiver) != NULL
+                       && ast_member_object(receiver)->type == AST_IDENTIFIER
+                       && ast_member_object(receiver)->data.identifier.name != NULL
+                       && strcmp(ast_member_object(receiver)->data.identifier.name,
                            "self") == 0
-                       && receiver->data.member.name != NULL) {
-                zone_slot_name = receiver->data.member.name;
+                       && ast_member_name(receiver) != NULL) {
+                zone_slot_name = ast_member_name(receiver);
             }
 
             if (zone_slot_name != NULL) {
@@ -226,8 +226,8 @@ llvm_world_embedded_projection_source_from_assignment(LLVMGenCtx *ctx,
             }
         }
 
-        source_field = cursor->data.member.name;
-        cursor = cursor->data.member.object;
+        source_field = ast_member_name(cursor);
+        cursor = ast_member_object(cursor);
     }
 
     return false;

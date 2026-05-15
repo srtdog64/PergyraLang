@@ -55,13 +55,13 @@ emit_included_role_method_wrapper(const char *role_name,
         return;
     if (role_name == NULL || included_role_name == NULL
         || method == NULL || method->type != AST_FUNC_DECL
-        || method->data.func_decl.name == NULL) {
+        || ast_declaration_name(method) == NULL) {
         return;
     }
 
-    method_name = method->data.func_decl.name;
-    if (method->data.func_decl.return_type != NULL) {
-        if (pergyra_ast_type_to_c_copy(method->data.func_decl.return_type,
+    method_name = ast_declaration_name(method);
+    if (ast_func_return_type(method) != NULL) {
+        if (pergyra_ast_type_to_c_copy(ast_func_return_type(method),
                 ret_type_storage,
                 sizeof(ret_type_storage))) {
             ret_type = ret_type_storage;
@@ -70,8 +70,8 @@ emit_included_role_method_wrapper(const char *role_name,
 
     codebuf_write(ctx->out, "\nstatic %s\n%s_%s(void *_raw_self",
                   ret_type, role_name, method_name);
-    for (size_t i = 0; i < method->data.func_decl.param_count; i++) {
-        FuncParam *param = method->data.func_decl.params[i];
+    for (size_t i = 0; i < ast_func_param_count(method); i++) {
+        FuncParam *param = ast_func_param(method, i);
         char param_type[256];
         char *param_type_name = NULL;
         bool pointer_param = false;
@@ -101,14 +101,14 @@ emit_included_role_method_wrapper(const char *role_name,
         free(param_type_name);
     }
     codebuf_write(ctx->out, ")\n{\n    ");
-    if (method->data.func_decl.return_type != NULL
+    if (ast_func_return_type(method) != NULL
         && strcmp(ret_type, "void") != 0) {
         codebuf_write(ctx->out, "return ");
     }
     codebuf_write(ctx->out, "%s_%s(_raw_self",
                   included_role_name, method_name);
-    for (size_t i = 0; i < method->data.func_decl.param_count; i++) {
-        FuncParam *param = method->data.func_decl.params[i];
+    for (size_t i = 0; i < ast_func_param_count(method); i++) {
+        FuncParam *param = ast_func_param(method, i);
         if (param == NULL || param->name == NULL)
             continue;
         if (strcmp(param->name, "self") == 0 && param->type == NULL)
@@ -153,7 +153,7 @@ emit_included_role_impls(ASTNode *role, TranspilerCtx *ctx)
                 ASTNode *method = ast_impl_ability_method(impl, k);
                 if (method == NULL || method->type != AST_FUNC_DECL)
                     continue;
-                if (role_has_method(role, method->data.func_decl.name))
+                if (role_has_method(role, ast_declaration_name(method)))
                     continue;
                 emit_included_role_method_wrapper(
                     ast_role_name(role),
@@ -192,11 +192,11 @@ emit_ability_decl(ASTNode *node, TranspilerCtx *ctx)
         if (method == NULL || method->type != AST_FUNC_DECL)
             continue;
 
-        const char *method_name = method->data.func_decl.name;
+        const char *method_name = ast_declaration_name(method);
         char ret_type_buf[256];
         const char *ret_type = "void";
-        if (method->data.func_decl.return_type != NULL
-            && pergyra_ast_type_to_c_copy(method->data.func_decl.return_type,
+        if (ast_func_return_type(method) != NULL
+            && pergyra_ast_type_to_c_copy(ast_func_return_type(method),
                 ret_type_buf,
                 sizeof(ret_type_buf))) {
             ret_type = ret_type_buf;
@@ -204,8 +204,8 @@ emit_ability_decl(ASTNode *node, TranspilerCtx *ctx)
 
         codebuf_write(ctx->out, "    %s (*%s)(void *self", ret_type, method_name);
 
-        for (size_t j = 0; j < method->data.func_decl.param_count; j++) {
-            FuncParam *p = method->data.func_decl.params[j];
+        for (size_t j = 0; j < ast_func_param_count(method); j++) {
+            FuncParam *p = ast_func_param(method, j);
             char *param_name = NULL;
             if (p == NULL || p->name == NULL)
                 continue;
@@ -286,11 +286,11 @@ emit_role_decl(ASTNode *node, TranspilerCtx *ctx)
             if (func == NULL || func->type != AST_FUNC_DECL)
                 continue;
 
-            const char *method_name = func->data.func_decl.name;
+            const char *method_name = ast_declaration_name(func);
             char ret_type_buf[256];
             const char *ret_type = "void";
-            if (func->data.func_decl.return_type != NULL
-                && pergyra_ast_type_to_c_copy(func->data.func_decl.return_type,
+            if (ast_func_return_type(func) != NULL
+                && pergyra_ast_type_to_c_copy(ast_func_return_type(func),
                     ret_type_buf,
                     sizeof(ret_type_buf))) {
                 ret_type = ret_type_buf;
@@ -299,8 +299,8 @@ emit_role_decl(ASTNode *node, TranspilerCtx *ctx)
             codebuf_write(ctx->out, "\nstatic %s\n%s_%s(void *self",
                           ret_type, name, method_name);
 
-            for (size_t k = 0; k < func->data.func_decl.param_count; k++) {
-                FuncParam *p = func->data.func_decl.params[k];
+            for (size_t k = 0; k < ast_func_param_count(func); k++) {
+                FuncParam *p = ast_func_param(func, k);
                 if (p == NULL || p->name == NULL)
                     continue;
                 if (strcmp(p->name, "self") == 0 && p->type == NULL)
@@ -327,8 +327,8 @@ emit_role_decl(ASTNode *node, TranspilerCtx *ctx)
             codebuf_write(ctx->out, ")\n{\n");
 
             ctx->indent++;
-            if (func->data.func_decl.body != NULL)
-                emit_block(func->data.func_decl.body, ctx);
+            if (ast_func_body(func) != NULL)
+                emit_block(ast_func_body(func), ctx);
             ctx->indent--;
 
             codebuf_write(ctx->out, "}\n");
@@ -368,7 +368,7 @@ emit_party_decl(ASTNode *node, TranspilerCtx *ctx)
         codebuf_write(ctx->out, "    void *%s;\n", slot_name);
         for (size_t j = 0; j < ability_count; j++) {
             ASTNode *ab = ast_role_slot_required_ability(rs, j);
-            if (ab != NULL && ab->data.type.name != NULL) {
+            if (ast_type_name(ab) != NULL) {
                 char typedef_name[128];
                 char *vtable_tag = render_ability_ref_vtable_tag(ab);
                 ensure_ability_ref_vtable_decl(ab, ctx);
@@ -458,7 +458,7 @@ emit_party_decl(ASTNode *node, TranspilerCtx *ctx)
         const char *slot_name = ast_role_slot_name(rs);
         for (size_t j = 0; j < ability_count; j++) {
             ASTNode *ab = ast_role_slot_required_ability(rs, j);
-            if (ab == NULL || ab->data.type.name == NULL)
+            if (ast_type_name(ab) == NULL)
                 continue;
             char typedef_name[128];
             char *vtable_tag = render_ability_ref_vtable_tag(ab);

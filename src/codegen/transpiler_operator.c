@@ -92,9 +92,10 @@ find_role_operator_method_decl(TranspilerCtx *ctx, ASTNode *role,
 
         for (size_t j = 0; j < ast_impl_ability_method_count(impl); j++) {
             ASTNode *method = ast_impl_ability_method(impl, j);
+            const char *method_name = ast_declaration_name(method);
             if (method != NULL && method->type == AST_FUNC_DECL
-                && method->data.func_decl.name != NULL
-                && operator_method_name_matches(op, method->data.func_decl.name)) {
+                && method_name != NULL
+                && operator_method_name_matches(op, method_name)) {
                 return method;
             }
         }

@@ -105,22 +105,26 @@ normalize_type_node(ASTNode *node,
                     ModuleRenameScope *scope,
                     ModuleShadowNames *shadow)
 {
+    const char *type_name;
+    GenericParams *generic_args;
+
     if (node == NULL || node->type != AST_TYPE)
         return;
 
-    if (node->data.type.name != NULL
-        && !module_shadow_contains(shadow, node->data.type.name)) {
+    type_name = ast_type_name(node);
+    if (type_name != NULL
+        && !module_shadow_contains(shadow, type_name)) {
         const char *replacement =
-            module_rename_scope_lookup(scope, node->data.type.name);
-        if (replacement != NULL && strcmp(node->data.type.name, replacement) != 0) {
-            free(node->data.type.name);
-            node->data.type.name = pergyra_strdup(replacement);
+            module_rename_scope_lookup(scope, type_name);
+        if (replacement != NULL && strcmp(type_name, replacement) != 0) {
+            (void)ast_replace_type_name_copy(node, replacement);
         }
     }
 
-    if (node->data.type.generic_args != NULL) {
-        for (size_t i = 0; i < node->data.type.generic_args->count; i++) {
-            GenericParam *arg = node->data.type.generic_args->params[i];
+    generic_args = ast_type_generic_args(node);
+    if (generic_args != NULL) {
+        for (size_t i = 0; i < generic_args->count; i++) {
+            GenericParam *arg = generic_args->params[i];
             if (arg == NULL)
                 continue;
             module_normalizer_normalize_node_refs(arg->constraint, scope, shadow);
@@ -177,31 +181,32 @@ module_normalizer_normalize_node_refs(ASTNode *node,
             return;
 
         case AST_FUNC_DECL: {
-            normalize_generic_params(node->data.func_decl.generic_params, scope, shadow);
+            GenericParams *generic_params = ast_func_generic_params(node);
+            normalize_generic_params(generic_params, scope, shadow);
             size_t saved = shadow->count;
-            if (node->data.func_decl.generic_params != NULL) {
-                for (size_t i = 0; i < node->data.func_decl.generic_params->count; i++) {
-                    GenericParam *gp = node->data.func_decl.generic_params->params[i];
+            if (generic_params != NULL) {
+                for (size_t i = 0; i < generic_params->count; i++) {
+                    GenericParam *gp = generic_params->params[i];
                     if (gp != NULL && gp->name != NULL)
                         module_shadow_push(shadow, gp->name);
                 }
             }
-            for (size_t i = 0; i < node->data.func_decl.param_count; i++) {
-                FuncParam *param = node->data.func_decl.params[i];
+            for (size_t i = 0; i < ast_func_param_count(node); i++) {
+                FuncParam *param = ast_func_param(node, i);
                 if (param == NULL)
                     continue;
                 module_normalizer_normalize_node_refs(param->type, scope, shadow);
                 module_normalizer_normalize_node_refs(param->default_value, scope, shadow);
                 module_shadow_push(shadow, param->name);
             }
-            module_normalizer_normalize_node_refs(node->data.func_decl.return_type, scope, shadow);
-            module_normalizer_normalize_node_refs(node->data.func_decl.body, scope, shadow);
+            module_normalizer_normalize_node_refs(ast_func_return_type(node), scope, shadow);
+            module_normalizer_normalize_node_refs(ast_func_body(node), scope, shadow);
             module_shadow_pop_to(shadow, saved);
             return;
         }
 
         case AST_CLASS_DECL:
-            normalize_generic_params(node->data.class_decl.generic_params, scope, shadow);
+            normalize_generic_params(ast_class_generic_params(node), scope, shadow);
             size_t field_count = 0;
             ClassField **fields = ast_class_fields(node, &field_count);
             for (size_t i = 0; i < field_count; i++) {
@@ -218,26 +223,28 @@ module_normalizer_normalize_node_refs(ASTNode *node,
             return;
 
         case AST_ABILITY_DECL:
-            normalize_generic_params(node->data.ability_decl.generic_params, scope, shadow);
-            for (size_t i = 0; i < node->data.ability_decl.require_count; i++)
-                module_normalizer_normalize_node_refs(node->data.ability_decl.require_fields[i], scope, shadow);
+            normalize_generic_params(ast_ability_generic_params(node), scope, shadow);
+            for (size_t i = 0; i < ast_ability_require_field_count(node); i++)
+                module_normalizer_normalize_node_refs(
+                    ast_ability_require_field(node, i), scope, shadow);
             for (size_t i = 0; i < ast_ability_method_count(node); i++)
                 module_normalizer_normalize_node_refs(ast_ability_method(node, i), scope, shadow);
             return;
 
         case AST_ROLE_DECL:
             module_normalizer_normalize_node_refs(ast_role_for_type(node), scope, shadow);
-            normalize_generic_params(node->data.role_decl.generic_params, scope, shadow);
+            normalize_generic_params(ast_role_generic_params(node), scope, shadow);
             for (size_t i = 0; i < ast_role_include_count(node); i++)
                 module_normalizer_normalize_node_refs(ast_role_include(node, i), scope, shadow);
             for (size_t i = 0; i < ast_role_impl_count(node); i++)
                 module_normalizer_normalize_node_refs(ast_role_impl(node, i), scope, shadow);
-            module_normalizer_normalize_node_refs(node->data.role_decl.parallel_block, scope, shadow);
+            module_normalizer_normalize_node_refs(ast_role_parallel_block(node), scope, shadow);
             return;
 
         case AST_PARTY_DECL:
-            module_normalizer_normalize_node_refs(node->data.party_decl.extends, scope, shadow);
-            normalize_generic_params(node->data.party_decl.generic_params, scope, shadow);
+            module_normalizer_normalize_node_refs(
+                ast_party_extends(node), scope, shadow);
+            normalize_generic_params(ast_party_generic_params(node), scope, shadow);
             for (size_t i = 0; i < ast_party_role_count(node); i++)
                 module_normalizer_normalize_node_refs(ast_party_role(node, i), scope, shadow);
             for (size_t i = 0; i < ast_party_shared_count(node); i++)
@@ -247,7 +254,7 @@ module_normalizer_normalize_node_refs(ASTNode *node,
             return;
 
         case AST_ROSTER_DECL:
-            normalize_generic_params(node->data.roster_decl.generic_params, scope, shadow);
+            normalize_generic_params(ast_roster_generic_params(node), scope, shadow);
             for (size_t i = 0; i < ast_roster_party_count(node); i++)
                 module_normalizer_normalize_node_refs(ast_roster_party(node, i), scope, shadow);
             for (size_t i = 0; i < ast_roster_shared_count(node); i++)
@@ -388,13 +395,13 @@ module_normalizer_normalize_node_refs(ASTNode *node,
             return;
 
         case AST_EVENT_DECL:
-            for (size_t i = 0; i < node->data.event_decl.param_count; i++)
-                module_normalizer_normalize_node_refs(node->data.event_decl.params[i], scope, shadow);
-            module_normalizer_normalize_node_refs(node->data.event_decl.return_type, scope, shadow);
+            for (size_t i = 0; i < ast_event_param_count(node); i++)
+                module_normalizer_normalize_node_refs(ast_event_param(node, i), scope, shadow);
+            module_normalizer_normalize_node_refs(ast_event_return_type(node), scope, shadow);
             return;
 
         case AST_REQUIRE_FIELD:
-            module_normalizer_normalize_node_refs(node->data.require_field.type, scope, shadow);
+            module_normalizer_normalize_node_refs(ast_require_field_type(node), scope, shadow);
             return;
 
         case AST_PARTY_SHARED:
@@ -447,106 +454,111 @@ module_normalizer_normalize_node_refs(ASTNode *node,
             size_t saved = shadow->count;
             ASTNode **stmts = node->type == AST_BLOCK
                 ? node->data.block.statements
-                : node->data.async_block.statements;
+                : ast_async_block_statements(node, NULL);
             size_t count = node->type == AST_BLOCK
                 ? node->data.block.count
-                : node->data.async_block.statement_count;
+                : ast_async_block_statement_count(node);
             for (size_t i = 0; i < count; i++) {
                 ASTNode *stmt = stmts[i];
                 module_normalizer_normalize_node_refs(stmt, scope, shadow);
                 if (stmt != NULL && stmt->type == AST_LET_DECL)
                     module_shadow_push(shadow, stmt->data.let_decl.name);
                 if (stmt != NULL && stmt->type == AST_FOR_LOOP
-                    && stmt->data.for_loop.variable != NULL)
-                    module_shadow_push(shadow, stmt->data.for_loop.variable);
+                    && ast_for_variable(stmt) != NULL)
+                    module_shadow_push(shadow, ast_for_variable(stmt));
             }
             module_shadow_pop_to(shadow, saved);
             return;
         }
 
         case AST_WITH_STMT: {
-            module_normalizer_normalize_node_refs(node->data.with_stmt.slot_type, scope, shadow);
+            module_normalizer_normalize_node_refs(ast_with_slot_type(node), scope, shadow);
             size_t saved = shadow->count;
-            if (node->data.with_stmt.alias != NULL)
-                module_shadow_push(shadow, node->data.with_stmt.alias);
-            module_normalizer_normalize_node_refs(node->data.with_stmt.body, scope, shadow);
+            if (ast_with_alias(node) != NULL)
+                module_shadow_push(shadow, ast_with_alias(node));
+            module_normalizer_normalize_node_refs(ast_with_body(node), scope, shadow);
             module_shadow_pop_to(shadow, saved);
             return;
         }
 
         case AST_FOR_LOOP: {
-            module_normalizer_normalize_node_refs(node->data.for_loop.range_start, scope, shadow);
-            module_normalizer_normalize_node_refs(node->data.for_loop.range_end, scope, shadow);
+            module_normalizer_normalize_node_refs(ast_for_range_start(node), scope, shadow);
+            module_normalizer_normalize_node_refs(ast_for_range_end(node), scope, shadow);
             size_t saved = shadow->count;
-            module_shadow_push(shadow, node->data.for_loop.variable);
-            module_normalizer_normalize_node_refs(node->data.for_loop.body, scope, shadow);
+            module_shadow_push(shadow, ast_for_variable(node));
+            module_normalizer_normalize_node_refs(ast_for_body(node), scope, shadow);
             module_shadow_pop_to(shadow, saved);
             return;
         }
 
         case AST_WHILE_LOOP:
-            module_normalizer_normalize_node_refs(node->data.while_loop.condition, scope, shadow);
-            module_normalizer_normalize_node_refs(node->data.while_loop.body, scope, shadow);
+            module_normalizer_normalize_node_refs(ast_while_condition(node), scope, shadow);
+            module_normalizer_normalize_node_refs(ast_while_body(node), scope, shadow);
             return;
 
         case AST_IF_STMT:
-            module_normalizer_normalize_node_refs(node->data.if_stmt.condition, scope, shadow);
-            module_normalizer_normalize_node_refs(node->data.if_stmt.then_branch, scope, shadow);
-            module_normalizer_normalize_node_refs(node->data.if_stmt.else_branch, scope, shadow);
+            module_normalizer_normalize_node_refs(ast_if_condition(node), scope, shadow);
+            module_normalizer_normalize_node_refs(ast_if_then_branch(node), scope, shadow);
+            module_normalizer_normalize_node_refs(ast_if_else_branch(node), scope, shadow);
             return;
 
         case AST_RETURN:
-            module_normalizer_normalize_node_refs(node->data.return_stmt.value, scope, shadow);
+            module_normalizer_normalize_node_refs(ast_return_value(node), scope, shadow);
             return;
 
         case AST_BINARY:
-            module_normalizer_normalize_node_refs(node->data.binary.left, scope, shadow);
-            module_normalizer_normalize_node_refs(node->data.binary.right, scope, shadow);
+            module_normalizer_normalize_node_refs(ast_binary_left(node), scope, shadow);
+            module_normalizer_normalize_node_refs(ast_binary_right(node), scope, shadow);
             return;
 
         case AST_UNARY:
-            module_normalizer_normalize_node_refs(node->data.unary.operand, scope, shadow);
+            module_normalizer_normalize_node_refs(ast_unary_operand(node), scope, shadow);
             return;
 
         case AST_CALL:
-            module_normalizer_normalize_node_refs(node->data.call.callee, scope, shadow);
-            normalize_call_args(node->data.call.arguments, node->data.call.arg_count, scope, shadow);
+            {
+                size_t arg_count = 0;
+                ASTNode **args = ast_call_arguments(node, &arg_count);
+                module_normalizer_normalize_node_refs(ast_call_callee(node), scope, shadow);
+                normalize_call_args(args, arg_count, scope, shadow);
+            }
             return;
 
         case AST_MEMBER_ACCESS:
-            module_normalizer_normalize_node_refs(node->data.member.object, scope, shadow);
+            module_normalizer_normalize_node_refs(ast_member_object(node), scope, shadow);
             return;
 
         case AST_ARRAY_ACCESS:
-            module_normalizer_normalize_node_refs(node->data.array_access.array, scope, shadow);
-            module_normalizer_normalize_node_refs(node->data.array_access.index, scope, shadow);
+            module_normalizer_normalize_node_refs(ast_array_access_array(node), scope, shadow);
+            module_normalizer_normalize_node_refs(ast_array_access_index(node), scope, shadow);
             return;
 
         case AST_ARRAY_LITERAL:
-            normalize_call_args(node->data.array_literal.elements, node->data.array_literal.count, scope, shadow);
+            for (size_t i = 0; i < ast_array_literal_count(node); i++)
+                module_normalizer_normalize_node_refs(ast_array_literal_element(node, i), scope, shadow);
             return;
 
         case AST_ASSIGNMENT:
-            module_normalizer_normalize_node_refs(node->data.assignment.target, scope, shadow);
-            module_normalizer_normalize_node_refs(node->data.assignment.value, scope, shadow);
+            module_normalizer_normalize_node_refs(ast_assignment_target(node), scope, shadow);
+            module_normalizer_normalize_node_refs(ast_assignment_value(node), scope, shadow);
             return;
 
         case AST_AWAIT_EXPR:
-            module_normalizer_normalize_node_refs(node->data.await_expr.expression, scope, shadow);
+            module_normalizer_normalize_node_refs(ast_await_expression(node), scope, shadow);
             return;
 
         case AST_CHANNEL_SEND:
-            module_normalizer_normalize_node_refs(node->data.channel_send.channel, scope, shadow);
-            module_normalizer_normalize_node_refs(node->data.channel_send.value, scope, shadow);
+            module_normalizer_normalize_node_refs(ast_channel_send_channel(node), scope, shadow);
+            module_normalizer_normalize_node_refs(ast_channel_send_value(node), scope, shadow);
             return;
 
         case AST_CHANNEL_RECV:
-            module_normalizer_normalize_node_refs(node->data.channel_recv.channel, scope, shadow);
+            module_normalizer_normalize_node_refs(ast_channel_recv_channel(node), scope, shadow);
             return;
 
         case AST_SELECT_STMT:
-            normalize_call_args(node->data.select_stmt.cases, node->data.select_stmt.case_count, scope, shadow);
-            module_normalizer_normalize_node_refs(node->data.select_stmt.default_case, scope, shadow);
+            normalize_call_args(ast_select_cases(node, NULL), ast_select_case_count(node), scope, shadow);
+            module_normalizer_normalize_node_refs(ast_select_default_case(node), scope, shadow);
             return;
 
         case AST_MATCH_STMT:
@@ -573,11 +585,11 @@ module_normalizer_normalize_node_refs(ASTNode *node,
             return;
 
         case AST_UNSAFE_BLOCK:
-            module_normalizer_normalize_node_refs(node->data.unsafe_block.body, scope, shadow);
+            module_normalizer_normalize_node_refs(ast_unsafe_block_body(node), scope, shadow);
             return;
 
         case AST_DEFER_STMT:
-            module_normalizer_normalize_node_refs(node->data.defer_stmt.body, scope, shadow);
+            module_normalizer_normalize_node_refs(ast_defer_body(node), scope, shadow);
             return;
 
         case AST_NUMBER:

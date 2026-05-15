@@ -60,11 +60,12 @@ type_check_parallel_block_flow(ASTNode *node, SemanticContext *ctx)
     ctx->in_parallel = true;
     base = snapshot_resource_states(ctx);
 
-    for (size_t i = 0; i < node->data.parallel.task_count; i++) {
+    for (size_t i = 0; i < ast_parallel_task_count(node); i++) {
+        ASTNode *task = ast_parallel_task(node, i);
         ResourceConsumeSnapshot task_snap = {0};
         restore_resource_states(&base);
         scope_enter(&ctx->scope, SCOPE_BLOCK);
-        (void)type_check_statement_flow(node->data.parallel.tasks[i], ctx, NULL);
+        (void)type_check_statement_flow(task, ctx, NULL);
         task_snap = snapshot_resource_states(ctx);
         restore_resource_states(&base);
         scope_exit(&ctx->scope);
@@ -76,7 +77,7 @@ type_check_parallel_block_flow(ASTNode *node, SemanticContext *ctx)
                     PGY_CODE_SEM_PARALLEL_SLOT_CONFLICT,
                     PGY_CAUSE_PARALLEL_RESOURCE_CONFLICT,
                     PGY_FIX_SERIALIZE_OUTSIDE_PARALLEL,
-                    node->data.parallel.tasks[i],
+                    task,
                     "Parallel tasks cannot consume the same resource/boundary '%s'.\n"
                     "Reason:\n"
                     "- each parallel task is checked from the same entry ownership snapshot\n"

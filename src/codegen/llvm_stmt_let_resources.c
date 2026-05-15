@@ -2,6 +2,7 @@
 #include "llvm_internal.h"
 #include "codegen_slot_type_policy.h"
 #include "llvm_stmt_let_names.h"
+#include "parser/ast_api.h"
 
 #include <string.h>
 
@@ -11,20 +12,21 @@ llvm_stmt_emit_view_or_move_let(ASTNode *node, LLVMGenCtx *ctx)
     const char *name = node->data.let_decl.name;
     ASTNode *type_ann = node->data.let_decl.type;
     ASTNode *init = node->data.let_decl.initializer;
+    GenericParams *generic_args = ast_type_generic_args(type_ann);
 
-    if (type_ann == NULL || type_ann->type != AST_TYPE
-        || type_ann->data.type.name == NULL
+    if (ast_type_name(type_ann) == NULL
         || init == NULL || init->type != AST_CALL
-        || init->data.call.callee == NULL
-        || init->data.call.callee->type != AST_IDENTIFIER
-        || init->data.call.arg_count < 1
-        || init->data.call.arguments[0] == NULL
-        || init->data.call.arguments[0]->type != AST_IDENTIFIER)
+        || ast_call_callee(init) == NULL
+        || ast_call_callee(init)->type != AST_IDENTIFIER
+        || ast_call_arg_count(init) < 1
+        || ast_call_argument(init, 0) == NULL
+        || ast_call_argument(init, 0)->type != AST_IDENTIFIER)
         return false;
 
-    const char *ann_name = type_ann->data.type.name;
-    const char *callee = init->data.call.callee->data.identifier.name;
-    const char *source_name = init->data.call.arguments[0]->data.identifier.name;
+    const char *ann_name = ast_type_name(type_ann);
+    const char *callee = ast_call_callee(init)->data.identifier.name;
+    const char *source_name =
+        ast_call_argument(init, 0)->data.identifier.name;
     bool alias_decl =
         (pgy_codegen_type_name_is_read_view(ann_name)
          && pgy_codegen_call_name_is_view_read(callee))
@@ -37,11 +39,11 @@ llvm_stmt_emit_view_or_move_let(ASTNode *node, LLVMGenCtx *ctx)
         return false;
 
     char *inner = NULL;
-    if (type_ann->data.type.generic_args != NULL
-        && type_ann->data.type.generic_args->count > 0
-        && type_ann->data.type.generic_args->params[0] != NULL)
+    if (generic_args != NULL
+        && generic_args->count > 0
+        && generic_args->params[0] != NULL)
         inner = llvm_stmt_render_type_arg(
-            type_ann->data.type.generic_args->params[0]);
+            generic_args->params[0]);
     if (inner == NULL || inner[0] == '\0') {
         llvm_stmt_require_let_type_arg(ctx, node, name, ann_name);
         free(inner);
@@ -126,12 +128,12 @@ llvm_stmt_emit_slot_sugar_let(ASTNode *node, LLVMGenCtx *ctx)
     const char *name = node->data.let_decl.name;
     ASTNode *type_ann = node->data.let_decl.type;
     ASTNode *init = node->data.let_decl.initializer;
+    GenericParams *generic_args = ast_type_generic_args(type_ann);
 
-    if (type_ann == NULL || type_ann->type != AST_TYPE
-        || type_ann->data.type.name == NULL)
+    if (ast_type_name(type_ann) == NULL)
         return false;
 
-    const char *ann_name = type_ann->data.type.name;
+    const char *ann_name = ast_type_name(type_ann);
     bool is_slot_sugar = (strcmp(ann_name, "Slot") == 0
                        || strncmp(ann_name, "Slot<", 5) == 0);
     bool is_secure_slot_sugar = (strcmp(ann_name, "SecureSlot") == 0
@@ -141,11 +143,11 @@ llvm_stmt_emit_slot_sugar_let(ASTNode *node, LLVMGenCtx *ctx)
 
     char *inner = NULL;
     bool is_secure = is_secure_slot_sugar;
-    if (type_ann->data.type.generic_args != NULL
-        && type_ann->data.type.generic_args->count > 0
-        && type_ann->data.type.generic_args->params[0] != NULL)
+    if (generic_args != NULL
+        && generic_args->count > 0
+        && generic_args->params[0] != NULL)
         inner = llvm_stmt_render_type_arg(
-            type_ann->data.type.generic_args->params[0]);
+            generic_args->params[0]);
     if (inner == NULL || inner[0] == '\0') {
         llvm_stmt_require_let_type_arg(ctx, node, name, ann_name);
         free(inner);

@@ -49,10 +49,10 @@ type_check_constructor_symbol_call(ASTNode *expr,
                 return true;
             }
             if (decl != NULL && decl->type == AST_CLASS_DECL) {
+                GenericParams *class_generics = ast_class_generic_params(decl);
                 (void) ast_class_fields(decl, &field_count);
                 decl_is_generic =
-                    (decl->data.class_decl.generic_params != NULL
-                     && decl->data.class_decl.generic_params->count > 0);
+                    (class_generics != NULL && class_generics->count > 0);
             } else if (decl != NULL
                        && (decl->type == AST_RELATION_DECL
                            || decl->type == AST_EFFECT_DECL
@@ -63,7 +63,7 @@ type_check_constructor_symbol_call(ASTNode *expr,
                 field_count = overlay_field_count(decl);
             }
             if (decl != NULL) {
-                size_t provided = expr->data.call.arg_count;
+                size_t provided = ast_call_arg_count(expr);
                 /* Skip field-type validation for generic classes — the
                  * generic params (T, U) aren't in scope at the call site.
                  * Type safety is handled by the let-annotation type. */
@@ -88,21 +88,22 @@ type_check_constructor_symbol_call(ASTNode *expr,
                             continue;
                         Type *field_type = domain_resolve_type_ref(
                             field_type_node, ctx);
+                        ASTNode *arg = ast_call_argument(expr, i);
                         Type *arg_type = constructor_call_normalize_type(
-                            type_check_expression(expr->data.call.arguments[i], ctx));
+                            type_check_expression(arg, ctx));
                         if (field_type != NULL
                             && !type_is_assignable(arg_type, field_type)) {
-                            semantic_error_with_hints(ctx, PGY_CODE_SEM_CLASS_CONTRACT_INVALID, PGY_CAUSE_CLASS_CONTRACT, PGY_FIX_SATISFY_GENERIC_BOUND_OR_WIDEN, expr->data.call.arguments[i],
+                            semantic_error_with_hints(ctx, PGY_CODE_SEM_CLASS_CONTRACT_INVALID, PGY_CAUSE_CLASS_CONTRACT, PGY_FIX_SATISFY_GENERIC_BOUND_OR_WIDEN, arg,
                                 "Constructor '%s' argument %llu initializes field '%s' of type '%s', got '%s'",
                                 display_name, (unsigned long long) (i + 1),
                                 field_name != NULL ? field_name : "<field>",
                                 field_type->name != NULL ? field_type->name : "<type>",
                                 arg_type->name != NULL ? arg_type->name : "<type>");
                         }
-                        if (expr->data.call.arguments[i] != NULL) {
+                        if (arg != NULL) {
                             const char *borrowed_name =
                                 semantic_borrowed_boundary_root_name(
-                                    expr->data.call.arguments[i], ctx);
+                                    arg, ctx);
                             const char *constructor_name =
                                 display_name != NULL ? display_name : "<constructor>";
                             const char *constructor_field =
@@ -110,8 +111,8 @@ type_check_constructor_symbol_call(ASTNode *expr,
 
                             if (borrowed_name != NULL) {
                                 semantic_validate_borrowed_escape(
-                                    expr->data.call.arguments[i],
-                                    expr->data.call.arguments[i],
+                                    arg,
+                                    arg,
                                     ctx,
                                     arg_type,
                                     borrowed_name,
@@ -126,10 +127,10 @@ type_check_constructor_symbol_call(ASTNode *expr,
                         }
                         if (sym->kind == SYMBOL_WORLD
                             && decl->type == AST_WORLD_DECL
-                            && expr->data.call.arguments[i] != NULL
-                            && expr->data.call.arguments[i]->type == AST_IDENTIFIER) {
+                            && arg != NULL
+                            && arg->type == AST_IDENTIFIER) {
                             Symbol *arg_sym = scope_lookup(ctx->scope,
-                                expr->data.call.arguments[i]->data.identifier.name);
+                                arg->data.identifier.name);
                             if (arg_sym != NULL && arg_sym->kind == SYMBOL_VARIABLE) {
                                 const char *arg_type_name = NULL;
                                 if (arg_sym->type != NULL
@@ -162,7 +163,7 @@ type_check_constructor_symbol_call(ASTNode *expr,
                                             PGY_CODE_SEM_ANCHORED_HANDLE_COPY,
                                             PGY_CAUSE_ANCHORED_HANDLE_COPY_ATTEMPT,
                                             PGY_FIX_USE_MOVE_OR_RETAIN_BINDING,
-                                            expr->data.call.arguments[i],
+                                            arg,
                                             "World constructor '%s' implicitly copies zone binding '%s' into slot '%s'.\n"
                                             "Reason:\n"
                                             "- origin binding is '%s'\n"
@@ -176,29 +177,29 @@ type_check_constructor_symbol_call(ASTNode *expr,
                                             "- use Clone(%s) for an explicit copy\n"
                                             "- or construct the zone inline / mutate it through the owning world after embedding",
                                             display_name != NULL ? display_name : "<world>",
-                                            expr->data.call.arguments[i]->data.identifier.name != NULL
-                                                ? expr->data.call.arguments[i]->data.identifier.name
+                                            arg->data.identifier.name != NULL
+                                                ? arg->data.identifier.name
                                                 : "<zone>",
                                             zone_slot_name != NULL
                                                 ? zone_slot_name : "<slot>",
-                                            expr->data.call.arguments[i]->data.identifier.name != NULL
-                                                ? expr->data.call.arguments[i]->data.identifier.name
-                                                : "<zone>",
-                                            display_name != NULL ? display_name : "<world>",
-                                            zone_slot_name != NULL
-                                                ? zone_slot_name : "<slot>",
-                                            expr->data.call.arguments[i]->data.identifier.name != NULL
-                                                ? expr->data.call.arguments[i]->data.identifier.name
+                                            arg->data.identifier.name != NULL
+                                                ? arg->data.identifier.name
                                                 : "<zone>",
                                             display_name != NULL ? display_name : "<world>",
                                             zone_slot_name != NULL
                                                 ? zone_slot_name : "<slot>",
-                                            expr->data.call.arguments[i]->data.identifier.name != NULL
-                                                ? expr->data.call.arguments[i]->data.identifier.name
+                                            arg->data.identifier.name != NULL
+                                                ? arg->data.identifier.name
+                                                : "<zone>",
+                                            display_name != NULL ? display_name : "<world>",
+                                            zone_slot_name != NULL
+                                                ? zone_slot_name : "<slot>",
+                                            arg->data.identifier.name != NULL
+                                                ? arg->data.identifier.name
                                                 : "<zone>");
                                         arg_sym->embedded_in_world = true;
                                         semantic_ctx_mark_embedded_world_zone_name(ctx,
-                                            expr->data.call.arguments[i]->data.identifier.name,
+                                            arg->data.identifier.name,
                                             display_name,
                                             zone_slot_name);
                                         break;
@@ -210,7 +211,7 @@ type_check_constructor_symbol_call(ASTNode *expr,
                 } else {
                     /* For generic classes, still type-check expressions */
                     for (size_t i = 0; i < provided; i++)
-                        type_check_expression(expr->data.call.arguments[i], ctx);
+                        type_check_expression(ast_call_argument(expr, i), ctx);
                 }
             }
         }

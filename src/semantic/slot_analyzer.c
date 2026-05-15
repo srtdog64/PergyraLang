@@ -183,7 +183,7 @@ slot_analyze_func_body(ASTNode *func, SlotAnalyzer *sa)
     if (func == NULL)
         return true;
 
-    ASTNode *body = func->data.func_decl.body;
+    ASTNode *body = ast_func_body(func);
     if (body == NULL)
         return true;
 
@@ -284,10 +284,10 @@ slot_analyze_with_stmt(ASTNode *with, SlotAnalyzer *sa)
      * it RELEASED when the with-scope was destroyed.
      * Here we just recurse into the body.
      */
-    if (with == NULL || with->data.with_stmt.body == NULL)
+    if (with == NULL || ast_with_body(with) == NULL)
         return true;
 
-    return slot_analyze_block(with->data.with_stmt.body, sa);
+    return slot_analyze_block(ast_with_body(with), sa);
 }
 
 bool
@@ -308,20 +308,20 @@ slot_analyze_if_stmt(ASTNode *ifstmt, SlotAnalyzer *sa)
     symbol_ptr_array_sort(snap, snap_count);
 
     /* Then-branch */
-    slot_analyze_block(ifstmt->data.if_stmt.then_branch, sa);
+    slot_analyze_block(ast_if_then_branch(ifstmt), sa);
 
     size_t   after_then_count = 0;
     Symbol **after_then = collect_live_slots(sa->ctx->scope, &after_then_count);
     symbol_ptr_array_sort(after_then, after_then_count);
 
     /* Else-branch (if present) */
-    if (ifstmt->data.if_stmt.else_branch != NULL) {
+    if (ast_if_else_branch(ifstmt) != NULL) {
         /*
          * Restore snapshot states so else-branch sees the original
          * state ??but we can't easily restore without a deep copy.
          * For now we detect divergence by comparing released sets.
          */
-        slot_analyze_block(ifstmt->data.if_stmt.else_branch, sa);
+        slot_analyze_block(ast_if_else_branch(ifstmt), sa);
 
         size_t   after_else_count = 0;
         Symbol **after_else = collect_live_slots(sa->ctx->scope,
@@ -364,7 +364,7 @@ slot_analyze_parallel_block(ASTNode *parallel, SlotAnalyzer *sa)
     if (parallel == NULL)
         return true;
 
-    size_t n = parallel->data.parallel.task_count;
+    size_t n = ast_parallel_task_count(parallel);
     /* Outer arrays are pass-local scratch: populated, read, and discarded
      * before the function returns.  The per-task inner arrays are still
      * heap-owned by collect_slot_accesses and freed explicitly below. */
@@ -381,7 +381,7 @@ slot_analyze_parallel_block(ASTNode *parallel, SlotAnalyzer *sa)
         return false;
 
     for (size_t i = 0; i < n; i++)
-        collect_slot_accesses(parallel->data.parallel.tasks[i],
+        collect_slot_accesses(ast_parallel_task(parallel, i),
             &task_accesses[i], &task_counts[i], &task_caps[i], sa->program_root);
 
     for (size_t i = 0; i < n; i++) {
@@ -414,7 +414,7 @@ slot_analyze_parallel_block(ASTNode *parallel, SlotAnalyzer *sa)
 
     /* Recurse into each task */
     for (size_t i = 0; i < n; i++)
-        slot_analyze_block(parallel->data.parallel.tasks[i], sa);
+        slot_analyze_block(ast_parallel_task(parallel, i), sa);
 
     for (size_t i = 0; i < n; i++)
         free(task_accesses[i]);

@@ -7,6 +7,7 @@
 #include <string.h>
 
 #include "llvm_internal_api.h"
+#include "parser/ast_api.h"
 
 static LLVMValueRef
 llvm_domain_slice_error(ASTNode *node, LLVMGenCtx *ctx, const char *message)
@@ -72,8 +73,10 @@ llvm_emit_member_call_slot_method(ASTNode *node, LLVMGenCtx *ctx,
             return NULL;
         }
         if (inner != NULL && slot_var != NULL) {
-            if (strcmp(method_name, "Write") == 0 && node->data.call.arg_count >= 1) {
-                LLVMValueRef val = llvm_emit_expression(node->data.call.arguments[0], ctx);
+            if (strcmp(method_name, "Write") == 0
+                && ast_call_arg_count(node) >= 1) {
+                LLVMValueRef val = llvm_emit_expression(
+                    ast_call_argument(node, 0), ctx);
                 if (val == NULL)
                     return llvm_domain_slice_error(node, ctx,
                         "LLVM slot Write() could not lower value expression");
@@ -249,7 +252,7 @@ llvm_emit_member_call_slice(ASTNode *node, LLVMGenCtx *ctx,
 {
     if (obj_node != NULL && method_name != NULL
         && strcmp(method_name, "Slice") == 0
-        && node->data.call.arg_count == 2) {
+        && ast_call_arg_count(node) == 2) {
         LLVMValueRef receiver;
         LLVMValueRef start;
         LLVMValueRef len;
@@ -266,8 +269,8 @@ llvm_emit_member_call_slice(ASTNode *node, LLVMGenCtx *ctx,
         if (getenv("PGY_DEBUG_LLVM_DETAIL") != NULL)
             fprintf(stderr, "[llvm slice] phase=begin\n");
         receiver = llvm_emit_expression(obj_node, ctx);
-        start = llvm_emit_expression(node->data.call.arguments[0], ctx);
-        len = llvm_emit_expression(node->data.call.arguments[1], ctx);
+        start = llvm_emit_expression(ast_call_argument(node, 0), ctx);
+        len = llvm_emit_expression(ast_call_argument(node, 1), ctx);
 
         if (receiver == NULL || start == NULL || len == NULL)
             return llvm_domain_slice_error(node, ctx,

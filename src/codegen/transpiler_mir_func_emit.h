@@ -8,7 +8,7 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
                               const char *emitted_name, CodeBuf *buf,
                               TranspilerCtx *ctx)
 {
-    const char *name = emitted_name != NULL ? emitted_name : node->data.func_decl.name;
+    const char *name = emitted_name != NULL ? emitted_name : ast_declaration_name(node);
     TranspilerMirEmitState saved_emit_state;
     CodeBuf *params_sig = codebuf_create();
     char *header_decl = NULL;
@@ -77,8 +77,9 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
 
     ensure_collection_specializations_from_stmt_to(ctx, ctx->decls, node);
 
-    if (node->data.func_decl.return_type != NULL) {
-        char *rendered = render_type_name(node->data.func_decl.return_type);
+    ASTNode *return_type = ast_func_return_type(node);
+    if (return_type != NULL) {
+        char *rendered = render_type_name(return_type);
         transpiler_set_current_return_type_local(ctx, rendered);
         free(rendered);
     } else {
@@ -96,8 +97,9 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
         }
     }
 
-    for (size_t i = 0; i < node->data.func_decl.param_count; i++) {
-        FuncParam *p = node->data.func_decl.params[i];
+    size_t func_param_count = ast_func_param_count(node);
+    for (size_t i = 0; i < func_param_count; i++) {
+        FuncParam *p = ast_func_param(node, i);
         char pt_buf[256];
         const char *pt = NULL;
         char *type_name = NULL;
@@ -185,7 +187,7 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
         free(type_name);
     }
 
-    header_decl = pergyra_func_signature_declarator(node->data.func_decl.return_type,
+    header_decl = pergyra_func_signature_declarator(return_type,
         name, params_sig != NULL ? params_sig->data : "void");
     codebuf_write(ctx->out, "\n%s\n{\n", header_decl);
     free(header_decl);
@@ -255,8 +257,8 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
             }
         }
     }
-    for (size_t i = 0; i < node->data.func_decl.param_count; i++) {
-        FuncParam *p = node->data.func_decl.params[i];
+    for (size_t i = 0; i < func_param_count; i++) {
+        FuncParam *p = ast_func_param(node, i);
         char *type_name = NULL;
         if (p == NULL || p->name == NULL)
             continue;
@@ -310,7 +312,7 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
         }
     }
     transpiler_register_explicit_local_bindings_in_block(ctx, node,
-        node->data.func_decl.body);
+        ast_func_body(node));
 
     if (!transpiler_emit_mir_func_ssa_local_decls(ctx, node, mir_routine, name)) {
         transpiler_restore_mir_emit_state_from_snapshot_local(ctx, &saved_emit_state);
@@ -364,8 +366,8 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
         }
 
         /* Ensure function parameters are in SSA map for expression resolution in branches/returns */
-        for (size_t p = 0; p < node->data.func_decl.param_count; p++) {
-            FuncParam *param = node->data.func_decl.params[p];
+        for (size_t p = 0; p < func_param_count; p++) {
+            FuncParam *param = ast_func_param(node, p);
             if (param != NULL && param->name != NULL) {
                 if (transpiler_resolve_ssa_name(&block_ssa_map, param->name) == NULL) {
                     transpiler_ssa_name_map_set(&block_ssa_map, param->name, param->name);

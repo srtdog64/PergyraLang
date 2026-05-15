@@ -11,9 +11,10 @@ semantic_find_role_decl(ASTNode *program, const char *role_name)
 
     for (size_t i = 0; i < program->data.program.count; i++) {
         ASTNode *stmt = program->data.program.statements[i];
+        const char *stmt_role_name = ast_role_name(stmt);
         if (stmt != NULL && stmt->type == AST_ROLE_DECL
-            && stmt->data.role_decl.name != NULL
-            && strcmp(stmt->data.role_decl.name, role_name) == 0) {
+            && stmt_role_name != NULL
+            && strcmp(stmt_role_name, role_name) == 0) {
             return stmt;
         }
     }
@@ -32,9 +33,7 @@ semantic_role_for_type_name(ASTNode *role_decl)
 {
     ASTNode *for_type = semantic_role_for_type_node(role_decl);
 
-    if (for_type == NULL || for_type->type != AST_TYPE)
-        return NULL;
-    return for_type->data.type.name;
+    return ast_type_name(for_type);
 }
 
 bool

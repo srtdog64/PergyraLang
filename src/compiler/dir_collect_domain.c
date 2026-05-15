@@ -176,8 +176,7 @@ dir_collect_zone_edges(DIRProgram *dir, size_t from_id, ASTNode *node)
             return false;
         for (size_t j = 0; j < auth->data.zone_authority.ability_count; j++) {
             ASTNode *ability_ref = auth->data.zone_authority.required_abilities[j];
-            const char *ability_name = (ability_ref != NULL && ability_ref->type == AST_TYPE)
-                ? ability_ref->data.type.name : NULL;
+            const char *ability_name = ast_type_name(ability_ref);
             if (ability_name == NULL)
                 continue;
             ssize_t to = dir_find_ability_node_by_name(dir, ability_name);

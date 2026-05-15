@@ -145,10 +145,6 @@ struct SemanticContext
     size_t type_resolution_metadata_hits;
     size_t type_resolution_metadata_misses;
     size_t type_resolution_metadata_dead_ends;
-    /* Compatibility mirror for existing stats/smoke parsers. The DAG owner
-     * source of truth is type_resolution_metadata_dead_ends; this field must
-     * not be interpreted as an active recursive materializer fallback path. */
-    size_t type_resolution_metadata_materializer_fallbacks;
     /* Dead-end family counters. These classify explicit DAG metadata dead ends,
      * not live fallback use. */
     size_t type_resolution_metadata_unresolved_named;

@@ -23,11 +23,11 @@ program_lookup_dag_func_return_type_or_void(ASTNode *func_decl,
                                             SemanticContext *ctx)
 {
     if (func_decl == NULL || func_decl->type != AST_FUNC_DECL
-        || func_decl->data.func_decl.return_type == NULL) {
+        || ast_func_return_type(func_decl) == NULL) {
         return TYPE_VOID;
     }
     return program_lookup_dag_type_ref_or_unknown(
-        func_decl->data.func_decl.return_type, ctx);
+        ast_func_return_type(func_decl), ctx);
 }
 
 static Type *
@@ -84,7 +84,7 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
     for (size_t i = 0; i < program->data.program.count; i++) {
         ASTNode *stmt = program->data.program.statements[i];
         if (stmt->type == AST_TYPE_ALIAS) {
-            const char *tname = stmt->data.type_alias.name;
+            const char *tname = ast_type_alias_name(stmt);
             if (tname != NULL && scope_lookup_current(ctx->scope, tname) == NULL) {
                 Symbol *s = symbol_create_function(tname, TYPE_UNKNOWN,
                     stmt->line, stmt->column);
@@ -115,7 +115,7 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                 scope_declare(ctx->scope, s);
             }
         } else if (stmt->type == AST_ABILITY_DECL) {
-            const char *aname = stmt->data.ability_decl.name;
+            const char *aname = ast_ability_name(stmt);
             if (aname != NULL && scope_lookup_current(ctx->scope, aname) == NULL) {
                 Symbol *s = symbol_create_function(aname, TYPE_VOID,
                                                     stmt->line, stmt->column);
@@ -127,16 +127,21 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                 scope_declare(ctx->scope, s);
             }
         } else if (stmt->type == AST_FUNC_DECL) {
-            const char *fname = stmt->data.func_decl.name;
+            const char *fname = ast_declaration_name(stmt);
+            if (fname == NULL)
+                continue;
             if (scope_lookup_current(ctx->scope, fname) == NULL) {
                 /* Forward-declare with correct param count so that
                  * call-site arity checks pass before Pass 2. */
-                size_t fpc = stmt->data.func_decl.param_count;
+                size_t fpc = ast_func_param_count(stmt);
                 /* Exclude implicit 'self' param from count */
                 size_t real_pc = 0;
                 for (size_t j = 0; j < fpc; j++) {
-                    FuncParam *p = stmt->data.func_decl.params[j];
-                    if (p->type == NULL && strcmp(p->name, "self") == 0)
+                    FuncParam *p = ast_func_param(stmt, j);
+                    if (p == NULL)
+                        continue;
+                    if (p->type == NULL && p->name != NULL
+                        && strcmp(p->name, "self") == 0)
                         continue;
                     real_pc++;
                 }
@@ -166,15 +171,15 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                 scope_declare(ctx->scope, s);
             }
         } else if (stmt->type == AST_EVENT_DECL) {
-            const char *ename = stmt->data.event_decl.name;
+            const char *ename = ast_event_name(stmt);
             if (scope_lookup_current(ctx->scope, ename) == NULL) {
-                size_t epc = stmt->data.event_decl.param_count;
+                size_t epc = ast_event_param_count(stmt);
                 Type **eptypes = calloc(epc > 0 ? epc : 1, sizeof(Type *));
                 if (eptypes == NULL)
                     return program_report_resolution_oom(ctx, stmt,
                         "event parameters");
                 for (size_t j = 0; j < epc; j++) {
-                    ASTNode *p = stmt->data.event_decl.params[j];
+                    ASTNode *p = ast_event_param(stmt, j);
                     if (p != NULL
                         && p->type == AST_LET_DECL
                         && p->data.let_decl.type != NULL) {
@@ -260,11 +265,15 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                 }
             }
         } else if (stmt->type == AST_EXTERN_BLOCK) {
-            for (size_t j = 0; j < stmt->data.extern_block.count; j++) {
-                ASTNode *decl = stmt->data.extern_block.declarations[j];
+            size_t extern_count = 0;
+            (void)ast_extern_block_declarations(stmt, &extern_count);
+            for (size_t j = 0; j < extern_count; j++) {
+                ASTNode *decl = ast_extern_block_declaration(stmt, j);
                 if (decl == NULL || decl->type != AST_FUNC_DECL)
                     continue;
-                const char *fname = decl->data.func_decl.name;
+                const char *fname = ast_declaration_name(decl);
+                if (fname == NULL)
+                    continue;
                 if (scope_lookup_current(ctx->scope, fname) == NULL) {
                     Type *placeholder = type_create_function(NULL, 0, TYPE_VOID);
                     if (placeholder != NULL)
@@ -459,13 +468,12 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                 if (ctx->type_resolution_metadata.owned[i])
                     metadata_owned_count++;
             }
-            fprintf(stderr, "[type-res-stats] metadata: entries=%llu owned=%llu hits=%llu misses=%llu dead_ends=%llu materializer_fallbacks=%llu\n",
+            fprintf(stderr, "[type-res-stats] metadata: entries=%llu owned=%llu hits=%llu misses=%llu dead_ends=%llu\n",
                     (unsigned long long) ctx->type_resolution_metadata.count,
                     (unsigned long long) metadata_owned_count,
                     (unsigned long long) ctx->type_resolution_metadata_hits,
                     (unsigned long long) ctx->type_resolution_metadata_misses,
-                    (unsigned long long) ctx->type_resolution_metadata_dead_ends,
-                    (unsigned long long) ctx->type_resolution_metadata_materializer_fallbacks);
+                    (unsigned long long) ctx->type_resolution_metadata_dead_ends);
             fprintf(stderr, "[type-res-stats] metadata-unresolved-audit: named=%llu generic_named=%llu compound=%llu other=%llu\n",
                     (unsigned long long) ctx->type_resolution_metadata_unresolved_named,
                     (unsigned long long) ctx->type_resolution_metadata_unresolved_generic_named,

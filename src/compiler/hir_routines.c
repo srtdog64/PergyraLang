@@ -85,14 +85,14 @@ hir_routine_body(ASTNode *node)
     if (node == NULL)
         return NULL;
     if (node->type == AST_FUNC_DECL)
-        return node->data.func_decl.body;
+        return ast_func_body(node);
     return NULL;
 }
 
 static bool
 hir_finish_func_routine(HIRRoutine *routine, ASTNode *func)
 {
-    if (!hir_lower_func_body_cfg(func->data.func_decl.body, routine))
+    if (!hir_lower_func_body_cfg(ast_func_body(func), routine))
         return false;
     if (!hir_finish_cfg_routine(routine))
         return false;
@@ -102,7 +102,7 @@ hir_finish_func_routine(HIRRoutine *routine, ASTNode *func)
                                          &routine->signature_type_ref_capacity)) {
         return false;
     }
-    return hir_collect_direct_calls(func->data.func_decl.body,
+    return hir_collect_direct_calls(ast_func_body(func),
                                     &routine->direct_calls,
                                     &routine->direct_call_count,
                                     &routine->direct_call_capacity);
@@ -154,7 +154,7 @@ hir_append_hidden_method_routine(HIRProgram *hir,
     pgy_arena_init(&routine.scratch, 0);
     routine.decl_id = decl_id;
     routine.kind = HIR_TOPLEVEL_FUNCTION;
-    routine.name = method->data.func_decl.name;
+    routine.name = ast_declaration_name(method);
     routine.owner_name = owner_name;
     routine.owner_ast_type = owner_ast_type;
     routine.ast = method;
@@ -432,8 +432,8 @@ hir_append_decl_and_routine(HIRProgram *hir, HIRTopLevelItem item, char **error_
         routine.body = hir_routine_body(item.ast);
         routine.is_hosted = (item.ast != NULL
                              && item.ast->type == AST_FUNC_DECL
-                             && item.ast->data.func_decl.name != NULL
-                             && strchr(item.ast->data.func_decl.name, '.') != NULL);
+                             && ast_declaration_name(item.ast) != NULL
+                             && strchr(ast_declaration_name(item.ast), '.') != NULL);
         routine.is_action_like = (item.ast != NULL
                                   && item.ast->type == AST_FUNC_DECL
                                   && item.ast->data.func_decl.is_action);

@@ -16,13 +16,14 @@ void
 emit_func_forward_decl_named(ASTNode *node, const char *emitted_name,
                              CodeBuf *buf, TranspilerCtx *ctx)
 {
-    const char *name = emitted_name != NULL ? emitted_name : node->data.func_decl.name;
+    const char *name = emitted_name != NULL ? emitted_name : ast_declaration_name(node);
     TranspilerCtx *saved_render_ctx = transpiler_type_render_ctx_push(ctx);
     CodeBuf *params_sig = codebuf_create();
     char *header_decl = NULL;
-    ensure_type_specializations_from_ast(ctx, node->data.func_decl.return_type);
-    for (size_t i = 0; i < node->data.func_decl.param_count; i++) {
-        FuncParam *p = node->data.func_decl.params[i];
+    ASTNode *return_type = ast_func_return_type(node);
+    ensure_type_specializations_from_ast(ctx, return_type);
+    for (size_t i = 0; i < ast_func_param_count(node); i++) {
+        FuncParam *p = ast_func_param(node, i);
         const char *pt = NULL;
         char pt_buf[256];
         char *type_name = NULL;
@@ -96,7 +97,7 @@ emit_func_forward_decl_named(ASTNode *node, const char *emitted_name,
         free(decl);
         free(type_name);
     }
-    header_decl = pergyra_func_signature_declarator(node->data.func_decl.return_type,
+    header_decl = pergyra_func_signature_declarator(return_type,
         name, params_sig != NULL ? params_sig->data : "void");
     codebuf_write(buf, "%s;\n", header_decl);
     free(header_decl);
@@ -107,5 +108,5 @@ emit_func_forward_decl_named(ASTNode *node, const char *emitted_name,
 void
 emit_func_forward_decl(ASTNode *node, CodeBuf *buf, TranspilerCtx *ctx)
 {
-    emit_func_forward_decl_named(node, node->data.func_decl.name, buf, ctx);
+    emit_func_forward_decl_named(node, ast_declaration_name(node), buf, ctx);
 }

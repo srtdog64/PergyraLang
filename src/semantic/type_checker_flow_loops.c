@@ -45,18 +45,20 @@ for_loop_known_iteration_cap(const ASTNode *node, bool *known)
 {
     if (known != NULL)
         *known = false;
+    ASTNode *range_start = ast_for_range_start(node);
+    ASTNode *range_end = ast_for_range_end(node);
     if (node == NULL
-        || node->data.for_loop.range_start == NULL
-        || node->data.for_loop.range_end == NULL) {
+        || range_start == NULL
+        || range_end == NULL) {
         return 0;
     }
-    if (node->data.for_loop.range_start->type != AST_NUMBER
-        || node->data.for_loop.range_end->type != AST_NUMBER) {
+    if (range_start->type != AST_NUMBER
+        || range_end->type != AST_NUMBER) {
         return 0;
     }
 
-    double start = node->data.for_loop.range_start->data.number.value;
-    double end = node->data.for_loop.range_end->data.number.value;
+    double start = range_start->data.number.value;
+    double end = range_end->data.number.value;
     if (known != NULL)
         *known = true;
     if (end <= start)
@@ -159,15 +161,19 @@ type_check_for_loop_flow(ASTNode *node, SemanticContext *ctx)
     uint32_t merged_effect_delta = EFFECT_NONE;
     uint32_t previous_iter_delta = EFFECT_NONE;
     bool have_previous_iter_delta = false;
+    ASTNode *iterable = ast_for_iterable(node);
+    ASTNode *range_start = ast_for_range_start(node);
+    ASTNode *range_end = ast_for_range_end(node);
+    ASTNode *body = ast_for_body(node);
     scope_enter(&ctx->scope, SCOPE_BLOCK);
     if (ctx->loop_depth < SEMANTIC_MAX_LOOP_DEPTH)
-        ctx->loop_labels[ctx->loop_depth] = node->data.for_loop.label;
+        ctx->loop_labels[ctx->loop_depth] = ast_for_label(node);
     ctx->loop_depth++;
 
     Type *var_type = TYPE_INT;
-    if (node->data.for_loop.iterable != NULL) {
+    if (iterable != NULL) {
         Type *coll_type = flow_normalize_type(
-            type_check_expression(node->data.for_loop.iterable, ctx));
+            type_check_expression(iterable, ctx));
         if (type_is_constructed_named(coll_type, "Array")
             || type_is_constructed_named(coll_type, "Slice")
             || type_is_constructed_named(coll_type, "List")) {
@@ -175,25 +181,25 @@ type_check_for_loop_flow(ASTNode *node, SemanticContext *ctx)
         } else if (coll_type != TYPE_UNKNOWN) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
                 PGY_CAUSE_FOR_IN_NON_ITERABLE, PGY_FIX_USE_ARRAY_SLICE_OR_LIST,
-                node->data.for_loop.iterable,
+                iterable,
                 "for-in requires Array<T>, Slice<T>, or List<T>, got '%s'",
                 type_name_or_unknown(coll_type));
         }
     }
 
     Symbol *loop_var = symbol_create_variable(
-        node->data.for_loop.variable, var_type, node->line, node->column);
+        ast_for_variable(node), var_type, node->line, node->column);
     scope_declare(ctx->scope, loop_var);
 
-    if (node->data.for_loop.range_start != NULL) {
+    if (range_start != NULL) {
         Type *t = flow_normalize_type(
-            type_check_expression(node->data.for_loop.range_start, ctx));
-        require_assignable(t, TYPE_INT, node->data.for_loop.range_start, ctx);
+            type_check_expression(range_start, ctx));
+        require_assignable(t, TYPE_INT, range_start, ctx);
     }
-    if (node->data.for_loop.range_end != NULL) {
+    if (range_end != NULL) {
         Type *t = flow_normalize_type(
-            type_check_expression(node->data.for_loop.range_end, ctx));
-        require_assignable(t, TYPE_INT, node->data.for_loop.range_end, ctx);
+            type_check_expression(range_end, ctx));
+        require_assignable(t, TYPE_INT, range_end, ctx);
     }
 
     ResourceConsumeSnapshot base = snapshot_resource_states(ctx);
@@ -203,7 +209,7 @@ type_check_for_loop_flow(ASTNode *node, SemanticContext *ctx)
     size_t known_cap = for_loop_known_iteration_cap(node, &known_iterations);
     bool has_break_exit = false;
     bool body_must_return = false;
-    if (flow_ast_contains_defer_stmt(node->data.for_loop.body)
+    if (flow_ast_contains_defer_stmt(body)
         && (!known_iterations || known_cap > 1)) {
         flow_reject_dynamic_defer_control(ctx, node, "for");
     }
@@ -225,7 +231,7 @@ type_check_for_loop_flow(ASTNode *node, SemanticContext *ctx)
         restore_resource_states(&entry);
         ctx->current_function_effects = effect_base;
         scope_enter(&ctx->scope, SCOPE_BLOCK);
-        body_flags = type_check_block_flow(node->data.for_loop.body, ctx, &loop_flow);
+        body_flags = type_check_block_flow(body, ctx, &loop_flow);
         scope_exit(&ctx->scope);
         iter_effect_delta =
             effect_delta_from_baseline(effect_base, ctx->current_function_effects);
@@ -301,7 +307,7 @@ type_check_while_loop_flow(ASTNode *node, SemanticContext *ctx)
     bool have_previous_iter_delta = false;
     bool condition_static_value = false;
     bool condition_is_static_bool =
-        flow_static_bool_value(node->data.while_loop.condition,
+        flow_static_bool_value(ast_while_condition(node),
                                &condition_static_value);
     bool condition_static_true =
         condition_is_static_bool && condition_static_value;
@@ -311,12 +317,12 @@ type_check_while_loop_flow(ASTNode *node, SemanticContext *ctx)
     bool body_must_return = false;
     scope_enter(&ctx->scope, SCOPE_BLOCK);
     if (ctx->loop_depth < SEMANTIC_MAX_LOOP_DEPTH)
-        ctx->loop_labels[ctx->loop_depth] = node->data.while_loop.label;
+        ctx->loop_labels[ctx->loop_depth] = ast_while_label(node);
     ctx->loop_depth++;
 
     if (condition_static_false) {
         Type *cond = flow_normalize_type(
-            type_check_expression(node->data.while_loop.condition, ctx));
+            type_check_expression(ast_while_condition(node), ctx));
         if (!type_equals(cond, TYPE_BOOL)) {
             semantic_error_with_hints(ctx,
                 PGY_CODE_SEM_TYPE_MISMATCH,
@@ -337,8 +343,8 @@ type_check_while_loop_flow(ASTNode *node, SemanticContext *ctx)
     ResourceConsumeSnapshot base = snapshot_resource_states(ctx);
     ResourceConsumeSnapshot merged = copy_resource_snapshot(&base);
     ResourceConsumeSnapshot entry = copy_resource_snapshot(&base);
-    if (flow_ast_contains_defer_stmt(node->data.while_loop.body)
-        && !flow_condition_is_static_bool(node->data.while_loop.condition)) {
+    if (flow_ast_contains_defer_stmt(ast_while_body(node))
+        && !flow_condition_is_static_bool(ast_while_condition(node))) {
         flow_reject_dynamic_defer_control(ctx, node, "while");
     }
     size_t max_iterations = base.count + 1;
@@ -357,7 +363,7 @@ type_check_while_loop_flow(ASTNode *node, SemanticContext *ctx)
         restore_resource_states(&entry);
         ctx->current_function_effects = effect_base;
         Type *cond = flow_normalize_type(
-            type_check_expression(node->data.while_loop.condition, ctx));
+            type_check_expression(ast_while_condition(node), ctx));
         if (!type_equals(cond, TYPE_BOOL)) {
             semantic_error_with_hints(ctx,
                 PGY_CODE_SEM_TYPE_MISMATCH,
@@ -369,7 +375,7 @@ type_check_while_loop_flow(ASTNode *node, SemanticContext *ctx)
         }
 
         scope_enter(&ctx->scope, SCOPE_BLOCK);
-        body_flags = type_check_block_flow(node->data.while_loop.body, ctx, &loop_flow);
+        body_flags = type_check_block_flow(ast_while_body(node), ctx, &loop_flow);
         scope_exit(&ctx->scope);
         iter_effect_delta =
             effect_delta_from_baseline(effect_base, ctx->current_function_effects);

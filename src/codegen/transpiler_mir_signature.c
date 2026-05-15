@@ -38,12 +38,12 @@ transpiler_mir_ast_type_supported(TranspilerCtx *ctx, const ASTNode *type_node)
 
     if (type_node->type == AST_EVENT_HANDLER_TYPE) {
         if (!transpiler_mir_ast_type_supported(
-                ctx, type_node->data.event_handler_type.return_type)) {
+                ctx, ast_event_handler_return_type(type_node))) {
             return false;
         }
-        for (size_t i = 0; i < type_node->data.event_handler_type.param_count; i++) {
+        for (size_t i = 0; i < ast_event_handler_param_count(type_node); i++) {
             if (!transpiler_mir_ast_type_supported(
-                    ctx, type_node->data.event_handler_type.param_types[i])) {
+                    ctx, ast_event_handler_param_type(type_node, i))) {
                 return false;
             }
         }
@@ -75,11 +75,12 @@ transpiler_mir_function_signature_supported(TranspilerCtx *ctx,
     if (func_decl == NULL || func_decl->type != AST_FUNC_DECL)
         return false;
 
-    if (!transpiler_mir_ast_type_supported(ctx, func_decl->data.func_decl.return_type))
+    if (!transpiler_mir_ast_type_supported(ctx, ast_func_return_type(func_decl)))
         return false;
 
-    for (size_t i = 0; i < func_decl->data.func_decl.param_count; i++) {
-        FuncParam *param = func_decl->data.func_decl.params[i];
+    size_t param_count = ast_func_param_count(func_decl);
+    for (size_t i = 0; i < param_count; i++) {
+        FuncParam *param = ast_func_param(func_decl, i);
         if (param == NULL || param->type == NULL)
             continue;
         if (!transpiler_mir_ast_type_supported(ctx, param->type))

@@ -59,14 +59,15 @@ mir_lower(const HIRProgram *hir, const RIRProgram *rir, char **error_message)
     mir->has_main_function = false;
     for (size_t i = 0; i < mir->function_count; i++) {
         ASTNode *fn = mir->functions[i];
+        const char *fn_name = ast_declaration_name(fn);
         if (fn == NULL || fn->type != AST_FUNC_DECL
-            || fn->data.func_decl.name == NULL) {
+            || fn_name == NULL) {
             continue;
         }
-        if (strcmp(fn->data.func_decl.name, "__pgy_top_level_exec") == 0) {
+        if (strcmp(fn_name, "__pgy_top_level_exec") == 0) {
             mir->has_top_level_exec = true;
         }
-        if (strcmp(fn->data.func_decl.name, "Main") == 0) {
+        if (strcmp(fn_name, "Main") == 0) {
             mir->has_main_function = true;
         }
     }
@@ -227,11 +228,12 @@ mir_find_function_decl(const MIRProgram *mir, const char *name)
 
     for (size_t i = 0; i < mir->function_count; i++) {
         ASTNode *fn = mir->functions[i];
+        const char *fn_name = ast_declaration_name(fn);
         if (fn == NULL || fn->type != AST_FUNC_DECL
-            || fn->data.func_decl.name == NULL) {
+            || fn_name == NULL) {
             continue;
         }
-        if (strcmp(fn->data.func_decl.name, name) == 0)
+        if (strcmp(fn_name, name) == 0)
             return fn;
     }
 

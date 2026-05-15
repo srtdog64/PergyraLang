@@ -80,6 +80,7 @@ bool        air_evidence_inventory_is_authoritative(const AIRProgram *air);
 bool        air_evidence_kind_is_known(AIREvidenceKind kind);
 bool        air_evidence_kind_is_boundary_scoped(AIREvidenceKind kind);
 bool        air_evidence_kind_is_global(AIREvidenceKind kind);
+bool        air_evidence_kind_has_global_validator(AIREvidenceKind kind);
 size_t      air_global_evidence_node_count(const AIRProgram *air,
                                            AIREvidenceKind kind);
 size_t      air_global_evidence_fact_count(const AIRProgram *air,

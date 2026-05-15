@@ -77,7 +77,7 @@ test_direct="$(
 if [ -n "$test_direct" ]; then
   echo "[type-resolution-resolver-inventory] semantic regression test reintroduced direct resolver call(s):" >&2
   printf '%s\n' "$test_direct" >&2
-  echo "Use semantic_type_resolution_lookup_type_ref_or_materialize(...) so DAG tests exercise the metadata-first API." >&2
+  echo "Use semantic_type_resolution_lookup_metadata_type_ref(...) so DAG tests exercise the metadata-only API." >&2
   exit 1
 fi
 
@@ -186,7 +186,7 @@ annotation_nullable_consumers="$(
 if [ -n "$annotation_nullable_consumers" ]; then
   echo "[type-resolution-resolver-inventory] unclassified nullable annotation read(s):" >&2
   echo "$annotation_nullable_consumers" >&2
-  echo "Boundary/contract paths should use semantic_type_resolution_lookup_type_ref_or_materialize(...); keep nullable reads private to metadata owners." >&2
+  echo "Boundary/contract paths should use semantic_type_resolution_lookup_metadata_type_ref(...); keep nullable reads private to metadata owners." >&2
   exit 1
 fi
 
@@ -234,17 +234,17 @@ grep -q 'type_resolution_metadata_dead_ends' \
   exit 1
 }
 
-grep -q 'dead_ends=%llu materializer_fallbacks=%llu' \
+grep -q 'dead_ends=%llu' \
   src/semantic/type_checker_program.c || {
-  echo "[type-resolution-resolver-inventory] type-resolution stats do not expose dead_ends before compatibility materializer_fallbacks" >&2
+  echo "[type-resolution-resolver-inventory] type-resolution stats do not expose dead_ends" >&2
   exit 1
 }
 
-grep -q 'metadata_sync_dead_end_compatibility_mirror' \
-  src/semantic/type_checker_resolution_metadata_dead_end.c || {
-  echo "[type-resolution-resolver-inventory] materializer_fallbacks mirror is not isolated from DAG dead-end owner" >&2
+if grep -RIn 'type_resolution_metadata_materializer_fallbacks\|materializer_fallbacks=%llu' \
+  src/semantic; then
+  echo "[type-resolution-resolver-inventory] materializer_fallbacks compatibility mirror reappeared" >&2
   exit 1
-}
+fi
 
 if grep -RIn 'type_resolution_metadata_fallback_' src/semantic; then
   echo "[type-resolution-resolver-inventory] DAG dead-end family counters regressed to fallback-era naming" >&2
@@ -305,9 +305,9 @@ grep -q 'resolved = semantic_type_resolution_lookup_metadata_type_ref(ctx, type_
   exit 1
 }
 
-grep -q 'semantic_type_resolution_lookup_metadata_type_ref(ctx,' \
+grep -q 'semantic_type_resolution_lookup_metadata_type_ref' \
   src/semantic/type_checker_resolution_metadata.c || {
-  echo "[type-resolution-resolver-inventory] type-ref-or-materialize helper lost metadata preflight" >&2
+  echo "[type-resolution-resolver-inventory] central metadata type-ref lookup owner disappeared" >&2
   exit 1
 }
 
@@ -375,8 +375,6 @@ grep -q 'resolve_required_ability_decl' \
   >"$type_ref_helper_matches" || true
 
 grep -Ev 'src/semantic/type_checker_internal\.h' "$type_ref_helper_matches" \
-  | grep -Ev 'src/semantic/type_checker_ability_decl\.c' \
-  | grep -Ev 'src/semantic/type_checker_decls_domain_helpers\.c' \
   | grep -Ev 'src/semantic/type_checker_intent_types\.c' \
   | grep -Ev 'src/semantic/type_checker_projection_path\.c' \
   | grep -Ev 'src/semantic/type_checker_expr_enum\.c' \
@@ -391,8 +389,8 @@ if [ -s "$bad_type_ref_helper" ]; then
 fi
 
 type_ref_helper_count="$(wc -l <"$type_ref_helper_matches")"
-if [ "$type_ref_helper_count" -ne 7 ]; then
-  echo "[type-resolution-resolver-inventory] metadata-first type-ref helper inventory changed: $type_ref_helper_count != 7" >&2
+if [ "$type_ref_helper_count" -ne 0 ]; then
+  echo "[type-resolution-resolver-inventory] metadata-first type-ref helper inventory changed: $type_ref_helper_count != 0" >&2
   cat "$type_ref_helper_matches" >&2
   exit 1
 fi
@@ -404,10 +402,14 @@ direct_metadata_type_ref_users="$(
     | grep -Ev 'src/semantic/type_checker_generic_validation\.c' \
     | grep -Ev 'src/semantic/type_checker_program\.c' \
     | grep -Ev 'src/semantic/type_checker_expr\.c' \
+    | grep -Ev 'src/semantic/type_checker_expr_enum\.c' \
+    | grep -Ev 'src/semantic/type_checker_ability_decl\.c' \
+    | grep -Ev 'src/semantic/type_checker_decls_domain_helpers\.c' \
     | grep -Ev 'src/semantic/type_checker_func_decl\.c' \
     | grep -Ev 'src/semantic/type_checker_host_helpers\.c' \
     | grep -Ev 'src/semantic/type_checker_intent_types\.c' \
     | grep -Ev 'src/semantic/type_checker_ownership_let_helpers\.c' \
+    | grep -Ev 'src/semantic/type_checker_projection_path\.c' \
     | grep -Ev 'src/semantic/type_checker_resolution_metadata\.c' \
     | grep -Ev 'src/semantic/type_checker_resolution_metadata_constructed\.c' \
     | grep -Ev 'src/semantic/type_checker_resolution_metadata_diagnostics\.c' \
@@ -439,8 +441,8 @@ direct_metadata_materializer_count="$(
   grep -c 'semantic_type_resolution_lookup_or_materialize(ctx' \
     src/semantic/type_checker_resolution_metadata.c || true
 )"
-if [ "$direct_metadata_materializer_count" != "1" ]; then
-  echo "[type-resolution-resolver-inventory] central metadata owner must keep exactly one type-ref helper materializer fallback (found $direct_metadata_materializer_count)" >&2
+if [ "$direct_metadata_materializer_count" != "0" ]; then
+  echo "[type-resolution-resolver-inventory] central metadata owner must not keep type-ref materializer fallback calls (found $direct_metadata_materializer_count)" >&2
   exit 1
 fi
 
@@ -626,4 +628,4 @@ for needle in \
   }
 done
 
-echo "[type-resolution-resolver-inventory] direct resolver and fallback seam inventory are gated (fallback seams=$fallback_sites cap=0 annotation-sensitive seams=$annotation_sites annotation-only reads=$annotation_or_unknown_count cap=0 nullable annotation reads=0 type-ref helper refs=$type_ref_helper_count cap=7)"
+echo "[type-resolution-resolver-inventory] direct resolver and fallback seam inventory are gated (fallback seams=$fallback_sites cap=0 annotation-sensitive seams=$annotation_sites annotation-only reads=$annotation_or_unknown_count cap=0 nullable annotation reads=0 type-ref helper refs=$type_ref_helper_count cap=0)"

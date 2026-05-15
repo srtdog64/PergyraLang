@@ -5,6 +5,7 @@
  * Included inside transpiler.c before transpiler_let_emit.h. */
 
 #include "codegen_slot_type_policy.h"
+#include "../parser/ast_api.h"
 
 static bool
 transpiler_let_slot_constructed_type_name(char *out, size_t out_size,
@@ -49,13 +50,16 @@ transpiler_let_slot_keep_inner(TranspilerCtx *ctx, char *owned_inner)
 static const char *
 transpiler_let_slot_inner_from_annotation(TranspilerCtx *ctx, ASTNode *ann)
 {
-    if (ann == NULL || ann->type != AST_TYPE || ann->data.type.name == NULL)
+    GenericParams *generic_args;
+
+    if (ann == NULL || ann->type != AST_TYPE || ast_type_name(ann) == NULL)
         return NULL;
-    if (ann->data.type.generic_args != NULL
-        && ann->data.type.generic_args->count > 0
-        && ann->data.type.generic_args->params != NULL
-        && ann->data.type.generic_args->params[0] != NULL) {
-        GenericParam *param = ann->data.type.generic_args->params[0];
+    generic_args = ast_type_generic_args(ann);
+    if (generic_args != NULL
+        && generic_args->count > 0
+        && generic_args->params != NULL
+        && generic_args->params[0] != NULL) {
+        GenericParam *param = generic_args->params[0];
         if (param->constraint != NULL
             && param->constraint->type == AST_TYPE) {
             return transpiler_let_slot_keep_inner(ctx,
@@ -68,7 +72,7 @@ transpiler_let_slot_inner_from_annotation(TranspilerCtx *ctx, ASTNode *ann)
     {
         char inner_buf[128];
         const char *inner = NULL;
-        if (slot_inner_type_name_copy(ann->data.type.name, inner_buf,
+        if (slot_inner_type_name_copy(ast_type_name(ann), inner_buf,
                 sizeof(inner_buf)))
             inner = inner_buf;
         if (ctx == NULL)
@@ -85,13 +89,11 @@ transpiler_let_slot_inner_from_call_type_arg(TranspilerCtx *ctx, ASTNode *call)
     GenericParam *param;
 
     if (call == NULL || call->type != AST_CALL
-        || call->data.call.generic_args == NULL
-        || call->data.call.generic_args->count < 1
-        || call->data.call.generic_args->params == NULL
-        || call->data.call.generic_args->params[0] == NULL) {
+        || ast_call_generic_arg_count(call) < 1
+        || ast_call_generic_arg(call, 0) == NULL) {
         return NULL;
     }
-    param = call->data.call.generic_args->params[0];
+    param = ast_call_generic_arg(call, 0);
     if (param->constraint != NULL
         && param->constraint->type == AST_TYPE) {
         return transpiler_let_slot_keep_inner(ctx,
@@ -116,12 +118,12 @@ transpiler_try_emit_let_slot_claim(ASTNode *node,
     const char *slot_inner = NULL;
 
     if (init == NULL || init->type != AST_CALL
-        || init->data.call.callee == NULL
-        || init->data.call.callee->type != AST_IDENTIFIER) {
+        || ast_call_callee(init) == NULL
+        || ast_call_callee(init)->type != AST_IDENTIFIER) {
         return false;
     }
 
-    const char *callee_name = init->data.call.callee->data.identifier.name;
+    const char *callee_name = ast_call_callee(init)->data.identifier.name;
     if (pgy_codegen_call_name_is_claim_slot(callee_name)) {
         is_slot = true;
     } else if (pgy_codegen_call_name_is_claim_secure_slot(callee_name)) {
@@ -210,24 +212,24 @@ transpiler_try_emit_let_slot_view_or_move(TranspilerCtx *ctx,
                                          ASTNode *ann,
                                          char **ann_type_name_io)
 {
-    if (ann == NULL || ann->type != AST_TYPE || ann->data.type.name == NULL)
+    if (ann == NULL || ann->type != AST_TYPE || ast_type_name(ann) == NULL)
         return false;
 
-    const char *ann_name = ann->data.type.name;
+    const char *ann_name = ast_type_name(ann);
     if (!(pgy_codegen_type_name_is_view(ann_name)
-          || strcmp(ann_name, "MoveToken") == 0
-          || strncmp(ann_name, "MoveToken<", 10) == 0)
+        || strcmp(ann_name, "MoveToken") == 0
+        || strncmp(ann_name, "MoveToken<", 10) == 0)
         || init == NULL || init->type != AST_CALL
-        || init->data.call.callee == NULL
-        || init->data.call.callee->type != AST_IDENTIFIER
-        || init->data.call.arg_count < 1
-        || init->data.call.arguments[0] == NULL
-        || init->data.call.arguments[0]->type != AST_IDENTIFIER) {
+        || ast_call_callee(init) == NULL
+        || ast_call_callee(init)->type != AST_IDENTIFIER
+        || ast_call_arg_count(init) < 1
+        || ast_call_argument(init, 0) == NULL
+        || ast_call_argument(init, 0)->type != AST_IDENTIFIER) {
         return false;
     }
 
-    const char *callee_name = init->data.call.callee->data.identifier.name;
-    const char *source_name = init->data.call.arguments[0]->data.identifier.name;
+    const char *callee_name = ast_call_callee(init)->data.identifier.name;
+    const char *source_name = ast_call_argument(init, 0)->data.identifier.name;
     bool is_view_decl = pgy_codegen_call_name_is_view_constructor(callee_name);
     bool is_move_decl = strcmp(callee_name, "Move") == 0;
     if (!is_view_decl && !is_move_decl)
@@ -326,7 +328,7 @@ transpiler_try_emit_let_slot_sugar(TranspilerCtx *ctx,
 
     if (ann == NULL || ann->type != AST_TYPE)
         return false;
-    ann_name = ann->data.type.name;
+    ann_name = ast_type_name(ann);
     if (ann_name == NULL)
         return false;
     if (strcmp(ann_name, "Slot") == 0 || strncmp(ann_name, "Slot<", 5) == 0) {

@@ -187,28 +187,34 @@ semantic_assignment_target_path_impl(ASTNode *expr,
             ? PGY_SEM_PATH_DUP(expr->data.identifier.name)
             : PGY_SEM_PATH_DUP("<target>");
     case AST_MEMBER_ACCESS:
-        if (expr->data.member.name == NULL)
+    {
+        ASTNode *object_node = ast_member_object(expr);
+        const char *member_name = ast_member_name(expr);
+        if (member_name == NULL)
             return PGY_SEM_PATH_DUP("<target>");
-        base = semantic_assignment_target_path_impl(expr->data.member.object, ctx, scratch);
+        base = semantic_assignment_target_path_impl(object_node, ctx, scratch);
         if (base == NULL)
-            return PGY_SEM_PATH_FMT("<target>.%s", expr->data.member.name);
+            return PGY_SEM_PATH_FMT("<target>.%s", member_name);
         {
-            char *result = PGY_SEM_PATH_FMT("%s.%s", base, expr->data.member.name);
+            char *result = PGY_SEM_PATH_FMT("%s.%s", base, member_name);
             if (!scratch)
                 free(base);
             return result != NULL ? result : PGY_SEM_PATH_DUP("<target>");
         }
+    }
     case AST_ARRAY_ACCESS:
-        base = semantic_assignment_target_path_impl(expr->data.array_access.array, ctx, scratch);
-        if (expr->data.array_access.index != NULL
-            && expr->data.array_access.index->type == AST_NUMBER) {
+    {
+        ASTNode *array_node = ast_array_access_array(expr);
+        ASTNode *index_node = ast_array_access_index(expr);
+        base = semantic_assignment_target_path_impl(array_node, ctx, scratch);
+        if (index_node != NULL && index_node->type == AST_NUMBER) {
             snprintf(index_buf, sizeof(index_buf), "%g",
-                expr->data.array_access.index->data.number.value);
-        } else if (expr->data.array_access.index != NULL
-                   && expr->data.array_access.index->type == AST_IDENTIFIER
-                   && expr->data.array_access.index->data.identifier.name != NULL) {
+                index_node->data.number.value);
+        } else if (index_node != NULL
+                   && index_node->type == AST_IDENTIFIER
+                   && index_node->data.identifier.name != NULL) {
             snprintf(index_buf, sizeof(index_buf), "%s",
-                expr->data.array_access.index->data.identifier.name);
+                index_node->data.identifier.name);
         } else {
             snprintf(index_buf, sizeof(index_buf), "?");
         }
@@ -220,6 +226,7 @@ semantic_assignment_target_path_impl(ASTNode *expr,
                 free(base);
             return result != NULL ? result : PGY_SEM_PATH_DUP("<target>");
         }
+    }
     default:
         return PGY_SEM_PATH_DUP("<target>");
     }
@@ -255,10 +262,10 @@ semantic_borrowed_boundary_root_name(ASTNode *expr, SemanticContext *ctx)
             : NULL;
     case AST_MEMBER_ACCESS:
         return semantic_borrowed_boundary_root_name(
-            expr->data.member.object, ctx);
+            ast_member_object(expr), ctx);
     case AST_ARRAY_ACCESS:
         return semantic_borrowed_boundary_root_name(
-            expr->data.array_access.array, ctx);
+            ast_array_access_array(expr), ctx);
     default:
         return NULL;
     }
@@ -280,9 +287,9 @@ type_check_statement(ASTNode *node, SemanticContext *ctx)
     case AST_EVENT_DECL:
         return type_check_event_decl(node, ctx);
     case AST_TYPE_ALIAS:
-        if (node->data.type_alias.target_type != NULL)
+        if (ast_type_alias_target_type(node) != NULL)
             (void)domain_resolve_type_ref(
-                node->data.type_alias.target_type, ctx);
+                ast_type_alias_target_type(node), ctx);
         return !ctx->has_error;
     case AST_CLASS_DECL:
         return type_check_class_decl(node, ctx);
@@ -303,12 +310,12 @@ type_check_statement(ASTNode *node, SemanticContext *ctx)
             semantic_error_with_hints(ctx, PGY_CODE_SEM_LOOP_CONTROL_INVALID, PGY_CAUSE_LOOP_CONTROL, PGY_FIX_MOVE_INTO_LOOP_OR_FIX_LABEL, node, "'break' used outside of loop");
             return false;
         }
-        if (node->data.break_stmt.label != NULL
+        if (ast_break_label(node) != NULL
             && semantic_find_labeled_loop_depth(ctx,
-                node->data.break_stmt.label) < 0) {
+                ast_break_label(node)) < 0) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_LOOP_CONTROL_INVALID, PGY_CAUSE_LOOP_CONTROL, PGY_FIX_MOVE_INTO_LOOP_OR_FIX_LABEL, node,
                 "Unknown loop label '%s' in break",
-                node->data.break_stmt.label);
+                ast_break_label(node));
             return false;
         }
         return true;
@@ -317,12 +324,12 @@ type_check_statement(ASTNode *node, SemanticContext *ctx)
             semantic_error_with_hints(ctx, PGY_CODE_SEM_LOOP_CONTROL_INVALID, PGY_CAUSE_LOOP_CONTROL, PGY_FIX_MOVE_INTO_LOOP_OR_FIX_LABEL, node, "'continue' used outside of loop");
             return false;
         }
-        if (node->data.continue_stmt.label != NULL
+        if (ast_continue_label(node) != NULL
             && semantic_find_labeled_loop_depth(ctx,
-                node->data.continue_stmt.label) < 0) {
+                ast_continue_label(node)) < 0) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_LOOP_CONTROL_INVALID, PGY_CAUSE_LOOP_CONTROL, PGY_FIX_MOVE_INTO_LOOP_OR_FIX_LABEL, node,
                 "Unknown loop label '%s' in continue",
-                node->data.continue_stmt.label);
+                ast_continue_label(node));
             return false;
         }
         return true;
@@ -341,17 +348,18 @@ type_check_statement(ASTNode *node, SemanticContext *ctx)
 
             for (size_t i = 0; i < method_count; i++) {
                 ASTNode *method = methods != NULL ? methods[i] : NULL;
+                const char *method_name = ast_declaration_name(method);
                 if (method == NULL || method->type != AST_FUNC_DECL
-                    || method->data.func_decl.name == NULL || name == NULL)
+                    || method_name == NULL || name == NULL)
                     continue;
-                Symbol *msym = scope_lookup_current(ctx->scope, method->data.func_decl.name);
+                Symbol *msym = scope_lookup_current(ctx->scope, method_name);
                 if (msym == NULL || msym->kind != SYMBOL_FUNCTION)
                     continue;
                 /* Mangled name is a scratch string: symbol_create_function
                  * duplicates it into the symbol, so the arena allocation
                  * never escapes beyond this block. */
                 char *mangled = pgy_arena_fmt(&ctx->scratch_arena,
-                    "%s_%s", name, method->data.func_decl.name);
+                    "%s_%s", name, method_name);
                 if (mangled == NULL)
                     continue;
                 Symbol *mangled_sym = symbol_create_function(
@@ -407,13 +415,17 @@ type_check_statement(ASTNode *node, SemanticContext *ctx)
     case AST_USE_DECL:
         validate_stdlib_use_decl(node, ctx);
         return !ctx->has_error;
+    case AST_NAMESPACE_DECL:
+        for (size_t i = 0; i < node->data.namespace_decl.count; i++)
+            type_check_statement(node->data.namespace_decl.statements[i], ctx);
+        return !ctx->has_error;
     case AST_UNSAFE_BLOCK:
         /* Type-check body normally; safety constraints relaxed at codegen */
-        if (node->data.unsafe_block.body != NULL)
-            type_check_block(node->data.unsafe_block.body, ctx);
+        if (ast_unsafe_block_body(node) != NULL)
+            type_check_block(ast_unsafe_block_body(node), ctx);
         return !ctx->has_error;
     case AST_DEFER_STMT:
-        return type_check_defer_body_flow(node->data.defer_stmt.body, ctx);
+        return type_check_defer_body_flow(ast_defer_body(node), ctx);
     case AST_BIND_STMT:
         /* bind party.slot = Role; — validated at codegen level */
         return true;

@@ -14,13 +14,13 @@ type_check_class_decl(ASTNode *node, SemanticContext *ctx)
 
     /* Register class generic parameters as opaque metadata-visible types for
      * field and method signature resolution. */
-    bool has_generics = (node->data.class_decl.generic_params != NULL
-                         && node->data.class_decl.generic_params->count > 0);
+    GenericParams *class_generics = ast_class_generic_params(node);
+    WhereClause *class_where = ast_class_where_clause(node);
+    bool has_generics = (class_generics != NULL && class_generics->count > 0);
     if (has_generics) {
-        validate_generic_param_defaults(node->data.class_decl.generic_params,
-            ctx, node, "class");
+        validate_generic_param_defaults(class_generics, ctx, node, "class");
         scope_enter(&ctx->scope, SCOPE_BLOCK);
-        GenericParams *gp = node->data.class_decl.generic_params;
+        GenericParams *gp = class_generics;
         for (size_t gi = 0; gi < gp->count; gi++) {
             if (gp->params[gi] == NULL || gp->params[gi]->name == NULL)
                 continue;
@@ -81,10 +81,10 @@ type_check_class_decl(ASTNode *node, SemanticContext *ctx)
     if (has_generics)
         scope_exit(&ctx->scope);
 
-    validate_where_clause_bounds(node->data.class_decl.where_clause, ctx, node);
+    validate_where_clause_bounds(class_where, ctx, node);
     validate_generic_param_default_bounds(
-        node->data.class_decl.generic_params,
-        node->data.class_decl.where_clause,
+        class_generics,
+        class_where,
         ctx,
         node,
         "class",
@@ -98,7 +98,7 @@ type_check_class_decl(ASTNode *node, SemanticContext *ctx)
 
     /* Re-register generic type params inside the class scope */
     if (has_generics) {
-        GenericParams *gp = node->data.class_decl.generic_params;
+        GenericParams *gp = class_generics;
         for (size_t gi = 0; gi < gp->count; gi++) {
             if (gp->params[gi] == NULL || gp->params[gi]->name == NULL)
                 continue;
@@ -161,7 +161,7 @@ type_check_class_decl(ASTNode *node, SemanticContext *ctx)
         ASTNode *method = methods != NULL ? methods[i] : NULL;
         if (method == NULL || method->type != AST_FUNC_DECL)
             continue;
-        const char *mname = method->data.func_decl.name;
+        const char *mname = ast_declaration_name(method);
         if (mname == NULL)
             continue;
         Symbol *msym = scope_lookup_current(ctx->scope, mname);
@@ -205,8 +205,11 @@ type_check_class_decl(ASTNode *node, SemanticContext *ctx)
 bool
 type_check_extern_block(ASTNode *node, SemanticContext *ctx)
 {
-    for (size_t i = 0; i < node->data.extern_block.count; i++) {
-        ASTNode *decl = node->data.extern_block.declarations[i];
+    size_t decl_count = 0;
+
+    (void)ast_extern_block_declarations(node, &decl_count);
+    for (size_t i = 0; i < decl_count; i++) {
+        ASTNode *decl = ast_extern_block_declaration(node, i);
         if (decl != NULL && decl->type == AST_FUNC_DECL)
             type_check_func_decl(decl, ctx);
     }

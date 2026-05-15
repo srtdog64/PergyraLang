@@ -348,8 +348,7 @@ semantic_type_resolution_record_type_ref_dependency(SemanticContext *ctx,
     if (ctx == NULL || provider_type_ref == NULL)
         return;
 
-    if (provider_type_ref->type != AST_TYPE
-        || provider_type_ref->data.type.name == NULL) {
+    if (ast_type_name(provider_type_ref) == NULL) {
         semantic_type_resolution_record_named_dependency(
             ctx,
             consumer_site,
@@ -361,11 +360,11 @@ semantic_type_resolution_record_type_ref_dependency(SemanticContext *ctx,
         return;
     }
 
-    provider_name = provider_type_ref->data.type.name;
+    provider_name = ast_type_name(provider_type_ref);
     if (type_name_is_builtin_provider(provider_name)) {
         Type *builtin = type_resolution_builtin_singleton(provider_name);
         if (builtin != NULL
-            && provider_type_ref->data.type.generic_args == NULL) {
+            && ast_type_generic_args(provider_type_ref) == NULL) {
             semantic_type_resolution_record_resolved_type(
                 ctx,
                 (ASTNode *)provider_type_ref,

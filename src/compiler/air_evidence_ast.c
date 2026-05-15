@@ -34,50 +34,50 @@ air_ast_contains_node(const ASTNode *container, const ASTNode *needle)
         }
         return false;
     case AST_CALL:
-        if (air_ast_contains_node(container->data.call.callee, needle))
+        if (air_ast_contains_node(ast_call_callee(container), needle))
             return true;
-        for (size_t i = 0; i < container->data.call.arg_count; i++) {
-            if (air_ast_contains_node(container->data.call.arguments[i], needle))
+        for (size_t i = 0; i < ast_call_arg_count(container); i++) {
+            if (air_ast_contains_node(ast_call_argument(container, i), needle))
                 return true;
         }
         return false;
     case AST_MEMBER_ACCESS:
-        return air_ast_contains_node(container->data.member.object, needle);
+        return air_ast_contains_node(ast_member_object(container), needle);
     case AST_ARRAY_ACCESS:
-        return air_ast_contains_node(container->data.array_access.array, needle)
-            || air_ast_contains_node(container->data.array_access.index, needle);
+        return air_ast_contains_node(ast_array_access_array(container), needle)
+            || air_ast_contains_node(ast_array_access_index(container), needle);
     case AST_ARRAY_LITERAL:
-        for (size_t i = 0; i < container->data.array_literal.count; i++) {
-            if (air_ast_contains_node(container->data.array_literal.elements[i], needle))
+        for (size_t i = 0; i < ast_array_literal_count(container); i++) {
+            if (air_ast_contains_node(ast_array_literal_element(container, i), needle))
                 return true;
         }
         return false;
     case AST_TUPLE_LITERAL:
-        for (size_t i = 0; i < container->data.tuple_literal.count; i++) {
-            if (air_ast_contains_node(container->data.tuple_literal.elements[i], needle))
+        for (size_t i = 0; i < ast_tuple_literal_count(container); i++) {
+            if (air_ast_contains_node(ast_tuple_literal_element(container, i), needle))
                 return true;
         }
         return false;
     case AST_ASSIGNMENT:
-        return air_ast_contains_node(container->data.assignment.target, needle)
-            || air_ast_contains_node(container->data.assignment.value, needle);
+        return air_ast_contains_node(ast_assignment_target(container), needle)
+            || air_ast_contains_node(ast_assignment_value(container), needle);
     case AST_BINARY:
-        return air_ast_contains_node(container->data.binary.left, needle)
-            || air_ast_contains_node(container->data.binary.right, needle);
+        return air_ast_contains_node(ast_binary_left(container), needle)
+            || air_ast_contains_node(ast_binary_right(container), needle);
     case AST_UNARY:
-        return air_ast_contains_node(container->data.unary.operand, needle);
+        return air_ast_contains_node(ast_unary_operand(container), needle);
     case AST_CHANNEL_SEND:
-        return air_ast_contains_node(container->data.channel_send.channel, needle)
-            || air_ast_contains_node(container->data.channel_send.value, needle);
+        return air_ast_contains_node(ast_channel_send_channel(container), needle)
+            || air_ast_contains_node(ast_channel_send_value(container), needle);
     case AST_CHANNEL_RECV:
-        return air_ast_contains_node(container->data.channel_recv.channel, needle);
+        return air_ast_contains_node(ast_channel_recv_channel(container), needle);
     case AST_AWAIT_EXPR:
-        return air_ast_contains_node(container->data.await_expr.expression, needle);
+        return air_ast_contains_node(ast_await_expression(container), needle);
     case AST_SPAWN_EXPR:
-        if (air_ast_contains_node(container->data.spawn_expr.function, needle))
+        if (air_ast_contains_node(ast_spawn_function(container), needle))
             return true;
-        for (size_t i = 0; i < container->data.spawn_expr.arg_count; i++) {
-            if (air_ast_contains_node(container->data.spawn_expr.arguments[i], needle))
+        for (size_t i = 0; i < ast_spawn_arg_count(container); i++) {
+            if (air_ast_contains_node(ast_spawn_argument(container, i), needle))
                 return true;
         }
         return false;
@@ -92,49 +92,49 @@ air_ast_contains_node(const ASTNode *container, const ASTNode *needle)
     case AST_LET_DESTRUCTURE:
         return air_ast_contains_node(container->data.let_destructure.initializer, needle);
     case AST_WITH_STMT:
-        return air_ast_contains_node(container->data.with_stmt.body, needle);
+        return air_ast_contains_node(ast_with_body(container), needle);
     case AST_FOR_LOOP:
-        return air_ast_contains_node(container->data.for_loop.range_start, needle)
-            || air_ast_contains_node(container->data.for_loop.range_end, needle)
-            || air_ast_contains_node(container->data.for_loop.iterable, needle)
-            || air_ast_contains_node(container->data.for_loop.body, needle);
+        return air_ast_contains_node(ast_for_range_start(container), needle)
+            || air_ast_contains_node(ast_for_range_end(container), needle)
+            || air_ast_contains_node(ast_for_iterable(container), needle)
+            || air_ast_contains_node(ast_for_body(container), needle);
     case AST_WHILE_LOOP:
-        return air_ast_contains_node(container->data.while_loop.condition, needle)
-            || air_ast_contains_node(container->data.while_loop.body, needle);
+        return air_ast_contains_node(ast_while_condition(container), needle)
+            || air_ast_contains_node(ast_while_body(container), needle);
     case AST_PARALLEL_BLOCK:
-        for (size_t i = 0; i < container->data.parallel.task_count; i++) {
-            if (air_ast_contains_node(container->data.parallel.tasks[i], needle))
+        for (size_t i = 0; i < ast_parallel_task_count(container); i++) {
+            if (air_ast_contains_node(ast_parallel_task(container, i), needle))
                 return true;
         }
         return false;
     case AST_ASYNC_BLOCK:
-        for (size_t i = 0; i < container->data.async_block.statement_count; i++) {
-            if (air_ast_contains_node(container->data.async_block.statements[i], needle))
+        for (size_t i = 0; i < ast_async_block_statement_count(container); i++) {
+            if (air_ast_contains_node(ast_async_block_statement(container, i), needle))
                 return true;
         }
         return false;
     case AST_TASK_GROUP:
-        for (size_t i = 0; i < container->data.task_group.task_count; i++) {
-            if (air_ast_contains_node(container->data.task_group.tasks[i], needle))
+        for (size_t i = 0; i < ast_task_group_task_count(container); i++) {
+            if (air_ast_contains_node(ast_task_group_task(container, i), needle))
                 return true;
         }
         return false;
     case AST_UNSAFE_BLOCK:
-        return air_ast_contains_node(container->data.unsafe_block.body, needle);
+        return air_ast_contains_node(ast_unsafe_block_body(container), needle);
     case AST_DEFER_STMT:
-        return air_ast_contains_node(container->data.defer_stmt.body, needle);
+        return air_ast_contains_node(ast_defer_body(container), needle);
     case AST_RETURN:
-        return air_ast_contains_node(container->data.return_stmt.value, needle);
+        return air_ast_contains_node(ast_return_value(container), needle);
     case AST_IF_STMT:
-        return air_ast_contains_node(container->data.if_stmt.condition, needle)
-            || air_ast_contains_node(container->data.if_stmt.then_branch, needle)
-            || air_ast_contains_node(container->data.if_stmt.else_branch, needle);
+        return air_ast_contains_node(ast_if_condition(container), needle)
+            || air_ast_contains_node(ast_if_then_branch(container), needle)
+            || air_ast_contains_node(ast_if_else_branch(container), needle);
     case AST_SELECT_STMT:
-        for (size_t i = 0; i < container->data.select_stmt.case_count; i++) {
-            if (air_ast_contains_node(container->data.select_stmt.cases[i], needle))
+        for (size_t i = 0; i < ast_select_case_count(container); i++) {
+            if (air_ast_contains_node(ast_select_case(container, i), needle))
                 return true;
         }
-        return air_ast_contains_node(container->data.select_stmt.default_case, needle);
+        return air_ast_contains_node(ast_select_default_case(container), needle);
     case AST_MATCH_STMT:
         if (air_ast_contains_node(container->data.match_stmt.subject, needle))
             return true;

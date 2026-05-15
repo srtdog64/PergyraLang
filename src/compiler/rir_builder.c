@@ -18,16 +18,16 @@ rir_collect_func_scope(RIRProgram *rir,
     scope.id = rir->scope_count;
     scope.kind = kind;
     scope.owner_name = owner_name;
-    scope.name = func->data.func_decl.name;
+    scope.name = ast_declaration_name(func);
     scope.ast = func;
-    for (size_t i = 0; i < func->data.func_decl.param_count; i++) {
-        FuncParam *param = func->data.func_decl.params[i];
+    for (size_t i = 0; i < ast_func_param_count(func); i++) {
+        FuncParam *param = ast_func_param(func, i);
         if (param == NULL)
             continue;
         if (!add_param_resource_fact(&scope, param->name, param->type, func))
             goto oom;
     }
-    if (!rir_walk_node(&scope, func->data.func_decl.body)) {
+    if (!rir_walk_node(&scope, ast_func_body(func))) {
 oom:
         free(scope.facts);
         free(scope.ops);
@@ -88,7 +88,7 @@ rir_collect_zone_like_scope(RIRProgram *rir, ASTNode *node, RIRScopeKind kind, c
             for (size_t j = 0; j < auth->data.zone_authority.ability_count; j++) {
                 ASTNode *ability_ref = auth->data.zone_authority.required_abilities[j];
                 const char *ability_name = (ability_ref != NULL && ability_ref->type == AST_TYPE)
-                    ? ability_ref->data.type.name : NULL;
+                    ? ast_type_name(ability_ref) : NULL;
                 if (ability_name == NULL)
                     continue;
                 if (!add_authority_fact(&scope,

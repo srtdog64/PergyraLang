@@ -25,8 +25,8 @@ llvm_emit_member_lvalue_ptr(ASTNode *node, LLVMGenCtx *ctx,
     if (node == NULL || node->type != AST_MEMBER_ACCESS)
         return NULL;
 
-    obj_node = node->data.member.object;
-    field_name = node->data.member.name;
+    obj_node = ast_member_object(node);
+    field_name = ast_member_name(node);
     if (obj_node == NULL || field_name == NULL)
         return NULL;
 

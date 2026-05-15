@@ -32,10 +32,8 @@ validate_where_clause_bounds(WhereClause *wc, SemanticContext *ctx, ASTNode *own
                 bool saved_err = ctx->has_error;
                 Type *bound_type = generic_validation_resolve_type_ref(
                     tc->bounds[b], ctx);
-                if (tc->bounds[b]->type == AST_TYPE
-                    && tc->bounds[b]->data.type.name != NULL) {
-                    bound_sym = scope_lookup(ctx->scope,
-                                             tc->bounds[b]->data.type.name);
+                if (ast_type_name(tc->bounds[b]) != NULL) {
+                    bound_sym = scope_lookup(ctx->scope, ast_type_name(tc->bounds[b]));
                 }
                 if (ctx->diagnostic_count > saved_diag
                     || bound_type == NULL
@@ -43,12 +41,11 @@ validate_where_clause_bounds(WhereClause *wc, SemanticContext *ctx, ASTNode *own
                     ctx->diagnostic_count = saved_diag;
                     ctx->has_error = saved_err;
                     if ((bound_sym != NULL && bound_sym->kind == SYMBOL_ABILITY)
-                        || (tc->bounds[b]->type == AST_TYPE
-                            && tc->bounds[b]->data.type.name != NULL
+                        || (ast_type_name(tc->bounds[b]) != NULL
                             && ctx->program_root != NULL
                             && find_ability_decl_by_name(
                                    ctx->program_root,
-                                   tc->bounds[b]->data.type.name) != NULL)) {
+                                   ast_type_name(tc->bounds[b])) != NULL)) {
                         continue;
                     }
                     semantic_error_with_hints(ctx, PGY_CODE_SEM_UNKNOWN_TYPE,
@@ -61,8 +58,10 @@ validate_where_clause_bounds(WhereClause *wc, SemanticContext *ctx, ASTNode *own
                         "Fix:\n"
                         "- declare or import '%s'\n"
                         "- or remove the unresolved bound from the where-clause",
-                        tc->bounds[b]->data.type.name,
-                        tc->bounds[b]->data.type.name);
+                        ast_type_name(tc->bounds[b]) != NULL
+                            ? ast_type_name(tc->bounds[b]) : "<type>",
+                        ast_type_name(tc->bounds[b]) != NULL
+                            ? ast_type_name(tc->bounds[b]) : "<type>");
                 }
             }
         }
@@ -129,16 +128,14 @@ validate_generic_param_defaults(GenericParams *gp, SemanticContext *ctx,
                     "Fix:\n"
                     "- replace '%s' with a resolvable concrete type\n"
                     "- or remove the default and require the caller to supply it",
-                    param->default_type->type == AST_TYPE
-                        && param->default_type->data.type.name != NULL
-                            ? param->default_type->data.type.name
-                            : "<type>",
+                    ast_type_name(param->default_type) != NULL
+                        ? ast_type_name(param->default_type)
+                        : "<type>",
                     kind_name != NULL ? kind_name : "generic",
                     param->name != NULL ? param->name : "<type-param>",
-                    param->default_type->type == AST_TYPE
-                        && param->default_type->data.type.name != NULL
-                            ? param->default_type->data.type.name
-                            : "<type>");
+                    ast_type_name(param->default_type) != NULL
+                        ? ast_type_name(param->default_type)
+                        : "<type>");
             }
         }
     }

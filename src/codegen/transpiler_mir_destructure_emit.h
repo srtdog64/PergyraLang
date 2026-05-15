@@ -4,6 +4,8 @@
 #include <stdbool.h>
 #include <stdio.h>
 
+#include "../parser/ast_api.h"
+
 #include "codegen_slot_type_policy.h"
 #include "transpiler_mir_expr_ssa.h"
 #include "transpiler_mir_reason.h"
@@ -58,11 +60,11 @@ transpiler_emit_mir_let_destructure_stmt(CodeBuf *buf,
 
     init = stmt->data.let_destructure.initializer;
     if (init != NULL && init->type == AST_CALL
-        && init->data.call.callee != NULL
-        && init->data.call.callee->type == AST_IDENTIFIER
-        && init->data.call.callee->data.identifier.name != NULL
+        && ast_call_callee(init) != NULL
+        && ast_call_callee(init)->type == AST_IDENTIFIER
+        && ast_call_callee(init)->data.identifier.name != NULL
         && stmt->data.let_destructure.name_count == 2) {
-        const char *cname = init->data.call.callee->data.identifier.name;
+        const char *cname = ast_call_callee(init)->data.identifier.name;
         if (pgy_codegen_call_name_is_claim_secure_slot(cname)) {
             const char *inner = NULL;
             const char *slot_name;
@@ -70,9 +72,7 @@ transpiler_emit_mir_let_destructure_stmt(CodeBuf *buf,
             char typed_tok[64];
             char typed_slot[64];
 
-            if (init->data.call.generic_args != NULL
-                && init->data.call.generic_args->count > 0
-                && init->data.call.generic_args->params[0] != NULL) {
+            if (ast_call_generic_arg(init, 0) != NULL) {
                 inner = transpiler_let_slot_inner_from_call_type_arg(ctx, init);
             }
             if (inner == NULL || inner[0] == '\0') {
@@ -119,19 +119,17 @@ transpiler_emit_mir_let_destructure_stmt(CodeBuf *buf,
     }
 
     if (init != NULL && init->type == AST_CALL
-        && init->data.call.callee != NULL
-        && init->data.call.callee->type == AST_IDENTIFIER
-        && init->data.call.callee->data.identifier.name != NULL
+        && ast_call_callee(init) != NULL
+        && ast_call_callee(init)->type == AST_IDENTIFIER
+        && ast_call_callee(init)->data.identifier.name != NULL
         && stmt->data.let_destructure.name_count == 1
         && pgy_codegen_call_name_is_claim_slot(
-               init->data.call.callee->data.identifier.name)) {
+               ast_call_callee(init)->data.identifier.name)) {
         const char *inner = NULL;
         const char *slot_name;
         char typed_slot[64];
 
-        if (init->data.call.generic_args != NULL
-            && init->data.call.generic_args->count > 0
-            && init->data.call.generic_args->params[0] != NULL) {
+        if (ast_call_generic_arg(init, 0) != NULL) {
             inner = transpiler_let_slot_inner_from_call_type_arg(ctx, init);
         }
         if (inner == NULL || inner[0] == '\0') {

@@ -15,14 +15,15 @@ ast_type_to_llvm(LLVMGenCtx *ctx, ASTNode *type_node)
         return ctx->type_void;
 
     if (type_node->type == AST_EVENT_HANDLER_TYPE) {
-        size_t param_count = type_node->data.event_handler_type.param_count;
+        size_t param_count = ast_event_handler_param_count(type_node);
         LLVMTypeRef *param_types = NULL;
         LLVMTypeRef ret_type = ctx->type_void;
         LLVMTypeRef fn_type;
 
-        if (type_node->data.event_handler_type.return_type != NULL) {
+        ASTNode *return_type = ast_event_handler_return_type(type_node);
+        if (return_type != NULL) {
             ret_type = ast_type_to_llvm(ctx,
-                type_node->data.event_handler_type.return_type);
+                return_type);
             if (ctx->has_error || ret_type == NULL)
                 return NULL;
         }
@@ -42,7 +43,7 @@ ast_type_to_llvm(LLVMGenCtx *ctx, ASTNode *type_node)
             }
             for (size_t i = 0; i < param_count; i++) {
                 param_types[i] = ast_type_to_llvm(ctx,
-                    type_node->data.event_handler_type.param_types[i]);
+                    ast_event_handler_param_type(type_node, i));
                 if (ctx->has_error || param_types[i] == NULL)
                     return NULL;
             }
@@ -81,7 +82,7 @@ ast_type_to_llvm(LLVMGenCtx *ctx, ASTNode *type_node)
         return result;
     }
 
-    if (type_node->type == AST_TYPE && type_node->data.type.name != NULL) {
+    if (ast_type_name(type_node) != NULL) {
         char *full_name = llvm_render_type_name_scratch(type_node, &ctx->scratch);
         if (full_name == NULL || full_name[0] == '\0') {
             llvm_set_error_at_with_hints(ctx, type_node,

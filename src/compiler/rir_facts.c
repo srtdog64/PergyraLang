@@ -229,9 +229,7 @@ type_name(ASTNode *type_node)
 {
     if (type_node == NULL)
         return NULL;
-    if (type_node->type == AST_TYPE)
-        return type_node->data.type.name;
-    return NULL;
+    return ast_type_name(type_node);
 }
 
 static RIRResourceKind
@@ -288,9 +286,9 @@ expr_name(ASTNode *node)
         case AST_IDENTIFIER:
             return node->data.identifier.name;
         case AST_MEMBER_ACCESS:
-            return node->data.member.name;
+            return ast_member_name(node);
         case AST_TYPE:
-            return node->data.type.name;
+            return ast_type_name(node);
         default:
             return NULL;
     }
@@ -307,7 +305,7 @@ call_name(ASTNode *call)
 {
     if (call == NULL || call->type != AST_CALL)
         return NULL;
-    return expr_name(call->data.call.callee);
+    return expr_name(ast_call_callee(call));
 }
 
 const char *

@@ -259,13 +259,13 @@ llvm_current_field_class_name(LLVMGenCtx *ctx, const char *field_name)
     ClassField **fields = ast_class_fields(host_decl, &field_count);
     for (size_t i = 0; i < field_count; i++) {
         ClassField *field = fields != NULL ? fields[i] : NULL;
+        const char *field_type_name = field != NULL ? ast_type_name(field->type) : NULL;
         if (field == NULL || field->name == NULL
             || strcmp(field->name, field_name) != 0
-            || field->type == NULL || field->type->type != AST_TYPE
-            || field->type->data.type.name == NULL)
+            || field_type_name == NULL)
             continue;
-        if (llvm_lookup_class(ctx, field->type->data.type.name) != NULL)
-            return field->type->data.type.name;
+        if (llvm_lookup_class(ctx, field_type_name) != NULL)
+            return field_type_name;
     }
 
     return NULL;

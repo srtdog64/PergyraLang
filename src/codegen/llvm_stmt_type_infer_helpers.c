@@ -113,9 +113,9 @@ llvm_stmt_lookup_declared_call_return_type(LLVMGenCtx *ctx, const char *callee)
         return NULL;
     decl = llvm_stmt_find_function_decl_by_name(ctx, callee);
     if (decl == NULL || decl->type != AST_FUNC_DECL
-        || decl->data.func_decl.return_type == NULL)
+        || ast_func_return_type(decl) == NULL)
         return NULL;
-    return ast_type_to_llvm(ctx, decl->data.func_decl.return_type);
+    return ast_type_to_llvm(ctx, ast_func_return_type(decl));
 }
 
 LLVMTypeRef

@@ -122,11 +122,11 @@ projection_target_mentions_source_field(TranspilerCtx *ctx,
     if (slot_decl == NULL
         || slot_type == NULL
         || slot_type->type != AST_TYPE
-        || slot_type->data.type.name == NULL) {
+        || ast_type_name(slot_type) == NULL) {
         return true;
     }
 
-    target_type_name = slot_type->data.type.name;
+    target_type_name = ast_type_name(slot_type);
     target_decl = find_class_decl(ctx, target_type_name);
     if (target_decl == NULL || target_decl->type != AST_CLASS_DECL)
         return true;

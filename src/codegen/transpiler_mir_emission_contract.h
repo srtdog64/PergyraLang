@@ -21,8 +21,8 @@ transpiler_validate_mir_emission_contract(const TranspilerCtx *ctx,
     const char *decl_name = NULL;
 
     if (decl != NULL) {
-        if (decl->type == AST_FUNC_DECL && decl->data.func_decl.name != NULL)
-            decl_name = decl->data.func_decl.name;
+        if (decl->type == AST_FUNC_DECL && ast_declaration_name(decl) != NULL)
+            decl_name = ast_declaration_name(decl);
         if (decl->type == AST_INTENT_DECL && ast_intent_decl_name(decl) != NULL)
             decl_name = ast_intent_decl_name(decl);
     }
@@ -344,18 +344,18 @@ transpiler_can_emit_function_from_mir_with_reason(const TranspilerCtx *ctx,
     }
     if (routine->kind != MIR_SCOPE_FUNCTION) {
         if (reason != NULL && reason_cap > 0)
-            transpiler_mir_reasonf(reason, reason_cap, "function %s has wrong MIR kind: %d", func_decl->data.func_decl.name, routine->kind);
+            transpiler_mir_reasonf(reason, reason_cap, "function %s has wrong MIR kind: %d", ast_declaration_name(func_decl), routine->kind);
         return false;
     }
     if (routine->ast == NULL) {
         if (reason != NULL && reason_cap > 0)
-            transpiler_mir_reasonf(reason, reason_cap, "function %s has no declaration AST in MIR", func_decl->data.func_decl.name);
+            transpiler_mir_reasonf(reason, reason_cap, "function %s has no declaration AST in MIR", ast_declaration_name(func_decl));
         return false;
     }
     /* cleanup blocks are now fully supported - removed restriction */
     if (!transpiler_mir_function_signature_supported((TranspilerCtx *)ctx, func_decl)) {
         if (reason != NULL && reason_cap > 0)
-            transpiler_mir_reasonf(reason, reason_cap, "function %s has unsupported MIR signature", func_decl->data.func_decl.name);
+            transpiler_mir_reasonf(reason, reason_cap, "function %s has unsupported MIR signature", ast_declaration_name(func_decl));
         return false;
     }
     const bool requires_cleanup = routine->has_cleanup_block;

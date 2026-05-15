@@ -88,10 +88,10 @@ stable_constructed_type_node_is_builtin_constructed(const ASTNode *type_node)
         && type_node->data.type.tuple_element_count > 0) {
         return true;
     }
-    name = type_node->data.type.name;
-    if (name == NULL || type_node->data.type.generic_args == NULL)
+    name = ast_type_name(type_node);
+    if (name == NULL || ast_type_generic_args(type_node) == NULL)
         return false;
-    argc = type_node->data.type.generic_args->count;
+    argc = ast_type_generic_args(type_node)->count;
     if (semantic_type_resolution_metadata_stable_constructed_shell(name, argc)
         != NULL) {
         return true;
@@ -143,7 +143,7 @@ try_record_generic_class_constructed_type(SemanticContext *ctx,
         || ctx->program_root == NULL)
         return;
 
-    name = type_node->data.type.name;
+    name = ast_type_name(type_node);
     if (name == NULL)
         return;
     sym = scope_lookup(ctx->scope, name);
@@ -152,16 +152,15 @@ try_record_generic_class_constructed_type(SemanticContext *ctx,
         return;
 
     class_decl = find_type_decl_by_name(ctx->program_root, name);
+    GenericParams *decl_params = ast_class_generic_params(class_decl);
     if (class_decl == NULL || class_decl->type != AST_CLASS_DECL
-        || class_decl->data.class_decl.generic_params == NULL
-        || class_decl->data.class_decl.generic_params->count == 0)
+        || decl_params == NULL || decl_params->count == 0)
         return;
 
-    provided_count = type_node->data.type.generic_args != NULL
-        ? type_node->data.type.generic_args->count
+    provided_count = ast_type_generic_args(type_node) != NULL
+        ? ast_type_generic_args(type_node)->count
         : 0;
     if (provided_count == 0) {
-        GenericParams *decl_params = class_decl->data.class_decl.generic_params;
         for (size_t i = 0; i < decl_params->count; i++) {
             GenericParam *param = decl_params->params[i];
             if (param == NULL || param->default_type == NULL)
@@ -170,8 +169,8 @@ try_record_generic_class_constructed_type(SemanticContext *ctx,
     }
 
     effective_args = collect_effective_generic_arg_nodes(
-        class_decl->data.class_decl.generic_params,
-        type_node->data.type.generic_args,
+        decl_params,
+        ast_type_generic_args(type_node),
         type_node,
         ctx,
         "class",
@@ -246,7 +245,7 @@ semantic_type_resolution_try_record_stable_constructed_type(SemanticContext *ctx
     }
 
     if (type_node->type == AST_EVENT_HANDLER_TYPE) {
-        size_t param_count = type_node->data.event_handler_type.param_count;
+        size_t param_count = ast_event_handler_param_count(type_node);
         Type **param_types = NULL;
         Type *return_type = TYPE_VOID;
         Type *shell;
@@ -260,15 +259,16 @@ semantic_type_resolution_try_record_stable_constructed_type(SemanticContext *ctx
             return;
         for (size_t i = 0; i < param_count; i++) {
             param_types[i] = semantic_type_resolution_lookup_metadata_type_ref(
-                ctx, type_node->data.event_handler_type.param_types[i]);
+                ctx, ast_event_handler_param_type(type_node, i));
             if (param_types[i] == NULL) {
                 free(param_types);
                 return;
             }
         }
-        if (type_node->data.event_handler_type.return_type != NULL) {
+        ASTNode *return_type_node = ast_event_handler_return_type(type_node);
+        if (return_type_node != NULL) {
             return_type = semantic_type_resolution_lookup_metadata_type_ref(
-                ctx, type_node->data.event_handler_type.return_type);
+                ctx, return_type_node);
             if (return_type == NULL) {
                 free(param_types);
                 return;
@@ -284,9 +284,9 @@ semantic_type_resolution_try_record_stable_constructed_type(SemanticContext *ctx
     if (type_node->type != AST_TYPE)
         return;
 
-    args_node = type_node->data.type.generic_args;
+    args_node = ast_type_generic_args(type_node);
     if ((args_node == NULL || args_node->count == 0)
-        && type_node->data.type.name != NULL) {
+        && ast_type_name(type_node) != NULL) {
         try_record_generic_class_constructed_type(ctx, type_node);
         if (semantic_type_resolution_lookup_resolved_type(ctx, type_node) != NULL)
             return;
@@ -319,13 +319,13 @@ semantic_type_resolution_try_record_stable_constructed_type(SemanticContext *ctx
     }
 
     if (semantic_type_resolution_metadata_stable_slot_like_shell(
-            type_node->data.type.name)) {
+            ast_type_name(type_node))) {
         Type *inner;
         const StableSlotShellSpec *slot_spec =
-            stable_slot_shell_spec(type_node->data.type.name);
+            stable_slot_shell_spec(ast_type_name(type_node));
         Type *slot_type;
 
-        args_node = type_node->data.type.generic_args;
+        args_node = ast_type_generic_args(type_node);
         if (slot_spec == NULL)
             return;
         if (args_node == NULL || args_node->count != 1)
@@ -346,7 +346,7 @@ semantic_type_resolution_try_record_stable_constructed_type(SemanticContext *ctx
         return;
 
     constructor = semantic_type_resolution_metadata_stable_constructed_shell(
-        type_node->data.type.name,
+        ast_type_name(type_node),
         args_node->count);
     if (constructor == NULL) {
         try_record_generic_class_constructed_type(ctx, type_node);

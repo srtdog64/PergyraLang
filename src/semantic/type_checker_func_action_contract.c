@@ -128,8 +128,8 @@ semantic_validate_action_func_contract(ASTNode *node,
             bool found = auth_name != NULL && strcmp(auth_name, "self") == 0;
             const char *auth_type_name = NULL;
 
-            for (size_t j = 0; !found && j < node->data.func_decl.param_count; j++) {
-                FuncParam *param = node->data.func_decl.params[j];
+            for (size_t j = 0; !found && j < ast_func_param_count(node); j++) {
+                FuncParam *param = ast_func_param(node, j);
                 if (param != NULL && param->name != NULL
                     && strcmp(param->name, auth_name) == 0) {
                     found = true;
@@ -258,8 +258,8 @@ semantic_validate_action_func_contract(ASTNode *node,
                     if (subject_name != NULL && strcmp(subject_name, slot_type->name) == 0) {
                         matched = true;
                     } else {
-                        for (size_t j = 0; j < node->data.func_decl.param_count; j++) {
-                            FuncParam *param = node->data.func_decl.params[j];
+                        for (size_t j = 0; j < ast_func_param_count(node); j++) {
+                            FuncParam *param = ast_func_param(node, j);
                             Type *param_type;
                             if (param == NULL || param->type == NULL)
                                 continue;

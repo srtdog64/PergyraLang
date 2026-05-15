@@ -138,7 +138,8 @@ llvm_coerce_result_option_payload(LLVMGenCtx *ctx,
 LLVMValueRef
 llvm_emit_result_option_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_name)
 {    /* Built-in: Ok(value) ??Result<T, E>; prefer active expected layout. */
-    if (strcmp(callee_name, "Ok") == 0 && node->data.call.arg_count == 1) {
+    size_t argc = ast_call_arg_count(node);
+    if (strcmp(callee_name, "Ok") == 0 && argc == 1) {
         LLVMValueRef val;
         LLVMTypeRef result_ty = NULL;
         LLVMTypeRef fields[3];
@@ -152,7 +153,7 @@ llvm_emit_result_option_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_
                 "LLVM Ok(value) requires contextual Result<T, E>; anonymous Result layout fallback is disabled");
             return NULL;
         }
-        val = llvm_emit_expression(node->data.call.arguments[0], ctx);
+        val = llvm_emit_expression(ast_call_argument(node, 0), ctx);
         if (val == NULL)
             return llvm_result_option_error(ctx, node,
                 "LLVM Ok(value) could not lower payload expression");
@@ -184,7 +185,7 @@ llvm_emit_result_option_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_
     }
 
     /* Built-in: Err(value) ??Result<T, E>; prefer active expected layout. */
-    if (strcmp(callee_name, "Err") == 0 && node->data.call.arg_count == 1) {
+    if (strcmp(callee_name, "Err") == 0 && argc == 1) {
         LLVMValueRef val;
         LLVMTypeRef result_ty = NULL;
         LLVMTypeRef fields[3];
@@ -198,7 +199,7 @@ llvm_emit_result_option_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_
                 "LLVM Err(value) requires contextual Result<T, E>; anonymous Result layout fallback is disabled");
             return NULL;
         }
-        val = llvm_emit_expression(node->data.call.arguments[0], ctx);
+        val = llvm_emit_expression(ast_call_argument(node, 0), ctx);
         if (val == NULL)
             return llvm_result_option_error(ctx, node,
                 "LLVM Err(value) could not lower payload expression");
@@ -230,8 +231,8 @@ llvm_emit_result_option_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_
     }
 
     /* Built-in: IsOk(result) ??extract ok field */
-    if (strcmp(callee_name, "IsOk") == 0 && node->data.call.arg_count == 1) {
-        LLVMValueRef r = llvm_emit_expression(node->data.call.arguments[0], ctx);
+    if (strcmp(callee_name, "IsOk") == 0 && argc == 1) {
+        LLVMValueRef r = llvm_emit_expression(ast_call_argument(node, 0), ctx);
         LLVMTypeRef fields[3];
         if (!llvm_result_option_value_struct(r, 3, fields)
             || fields[0] != ctx->type_i32) {
@@ -248,8 +249,8 @@ llvm_emit_result_option_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_
     }
 
     /* Built-in: IsErr(result) ??!ok */
-    if (strcmp(callee_name, "IsErr") == 0 && node->data.call.arg_count == 1) {
-        LLVMValueRef r = llvm_emit_expression(node->data.call.arguments[0], ctx);
+    if (strcmp(callee_name, "IsErr") == 0 && argc == 1) {
+        LLVMValueRef r = llvm_emit_expression(ast_call_argument(node, 0), ctx);
         LLVMTypeRef fields[3];
         if (!llvm_result_option_value_struct(r, 3, fields)
             || fields[0] != ctx->type_i32) {
@@ -266,8 +267,8 @@ llvm_emit_result_option_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_
     }
 
     /* Built-in: Unwrap(result) ??extract value field */
-    if (strcmp(callee_name, "Unwrap") == 0 && node->data.call.arg_count == 1) {
-        LLVMValueRef r = llvm_emit_expression(node->data.call.arguments[0], ctx);
+    if (strcmp(callee_name, "Unwrap") == 0 && argc == 1) {
+        LLVMValueRef r = llvm_emit_expression(ast_call_argument(node, 0), ctx);
         LLVMTypeRef fields[3];
         if (!llvm_result_option_value_struct(r, 3, fields)
             || fields[0] != ctx->type_i32) {
@@ -283,9 +284,9 @@ llvm_emit_result_option_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_
     }
 
     /* Built-in: UnwrapOr(result, default) ??ok ? value : default */
-    if (strcmp(callee_name, "UnwrapOr") == 0 && node->data.call.arg_count == 2) {
-        LLVMValueRef r = llvm_emit_expression(node->data.call.arguments[0], ctx);
-        LLVMValueRef def = llvm_emit_expression(node->data.call.arguments[1], ctx);
+    if (strcmp(callee_name, "UnwrapOr") == 0 && argc == 2) {
+        LLVMValueRef r = llvm_emit_expression(ast_call_argument(node, 0), ctx);
+        LLVMValueRef def = llvm_emit_expression(ast_call_argument(node, 1), ctx);
         LLVMTypeRef fields[3];
         if (r == NULL || def == NULL)
             return llvm_result_option_error(ctx, node,
@@ -308,7 +309,7 @@ llvm_emit_result_option_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_
     }
 
     /* Built-in: Some(value) ??{ .tag=PgyOptionSome, .value=value } */
-    if (strcmp(callee_name, "Some") == 0 && node->data.call.arg_count == 1) {
+    if (strcmp(callee_name, "Some") == 0 && argc == 1) {
         LLVMValueRef val;
         LLVMTypeRef option_ty = NULL;
         LLVMTypeRef fields[2];
@@ -321,7 +322,7 @@ llvm_emit_result_option_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_
                 "LLVM Some(value) requires contextual Option<T>; anonymous Option layout fallback is disabled");
             return NULL;
         }
-        val = llvm_emit_expression(node->data.call.arguments[0], ctx);
+        val = llvm_emit_expression(ast_call_argument(node, 0), ctx);
         if (val == NULL)
             return llvm_result_option_error(ctx, node,
                 "LLVM Some(value) could not lower payload expression");
@@ -335,7 +336,7 @@ llvm_emit_result_option_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_
     }
 
     /* Built-in: None() ??{ .tag=PgyOptionNone, .value=zero } */
-    if (strcmp(callee_name, "None") == 0 && node->data.call.arg_count == 0) {
+    if (strcmp(callee_name, "None") == 0 && argc == 0) {
         LLVMTypeRef fields[2];
         if (!llvm_result_option_context_struct(ctx, 2, fields)
             || fields[0] != ctx->type_i32) {
@@ -359,8 +360,8 @@ llvm_emit_result_option_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_
 
     /* Built-in: IsSome(option) / IsNone(option) */
     if ((strcmp(callee_name, "IsSome") == 0 || strcmp(callee_name, "IsNone") == 0)
-        && node->data.call.arg_count == 1) {
-        LLVMValueRef o = llvm_emit_expression(node->data.call.arguments[0], ctx);
+        && argc == 1) {
+        LLVMValueRef o = llvm_emit_expression(ast_call_argument(node, 0), ctx);
         LLVMTypeRef fields[2];
         if (!llvm_result_option_value_struct(o, 2, fields)
             || fields[0] != ctx->type_i32) {
@@ -380,8 +381,8 @@ llvm_emit_result_option_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_
     }
 
     /* Built-in: UnwrapOption(option) ??extract value field */
-    if (strcmp(callee_name, "UnwrapOption") == 0 && node->data.call.arg_count == 1) {
-        LLVMValueRef o = llvm_emit_expression(node->data.call.arguments[0], ctx);
+    if (strcmp(callee_name, "UnwrapOption") == 0 && argc == 1) {
+        LLVMValueRef o = llvm_emit_expression(ast_call_argument(node, 0), ctx);
         LLVMTypeRef fields[2];
         if (!llvm_result_option_value_struct(o, 2, fields)
             || fields[0] != ctx->type_i32) {

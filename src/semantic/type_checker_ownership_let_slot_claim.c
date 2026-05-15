@@ -30,12 +30,12 @@ ownership_let_try_claim_slot_decl(ASTNode *node,
     if (handled != NULL)
         *handled = false;
     if (init == NULL || init->type != AST_CALL
-        || init->data.call.callee == NULL
-        || init->data.call.callee->type != AST_IDENTIFIER) {
+        || ast_call_callee(init) == NULL
+        || ast_call_callee(init)->type != AST_IDENTIFIER) {
         return true;
     }
 
-    callee_name = init->data.call.callee->data.identifier.name;
+    callee_name = ast_call_callee(init)->data.identifier.name;
     bk = builtin_resolve(callee_name);
     if (bk != BUILTIN_CLAIM_SLOT && bk != BUILTIN_CLAIM_SECURE_SLOT)
         return true;

@@ -46,13 +46,15 @@ emit_call_stdlib_channel_query_builtin(const char *fn, ASTNode *call,
     char inner_buf[64];
     const char *inner;
     char *result;
+    ASTNode *channel_arg;
 
-    if (spec == NULL || call->data.call.arg_count != 1)
+    if (spec == NULL || ast_call_arg_count(call) != 1)
         return NULL;
 
-    ch = emit_expression(call->data.call.arguments[0], ctx);
+    channel_arg = ast_call_argument(call, 0);
+    ch = emit_expression(channel_arg, ctx);
     inner = transpiler_require_channel_inner_type(ctx,
-        call->data.call.arguments[0], spec->name, inner_buf,
+        channel_arg, spec->name, inner_buf,
         sizeof(inner_buf));
     if (inner == NULL) {
         free(ch);
@@ -72,11 +74,14 @@ emit_call_stdlib_channel_builtin(const char *fn, ASTNode *call, TranspilerCtx *c
     if (query_builtin != NULL)
         return query_builtin;
 
-    if (strcmp(fn, "TryRecv") == 0 && call->data.call.arg_count == 1) {
-        char *ch = emit_expression(call->data.call.arguments[0], ctx);
+    size_t argc = ast_call_arg_count(call);
+
+    if (strcmp(fn, "TryRecv") == 0 && argc == 1) {
+        ASTNode *channel_arg = ast_call_argument(call, 0);
+        char *ch = emit_expression(channel_arg, ctx);
         char inner_buf[64];
         const char *inner = transpiler_require_channel_inner_type(ctx,
-            call->data.call.arguments[0], "TryRecv",
+            channel_arg, "TryRecv",
             inner_buf, sizeof(inner_buf));
         if (inner == NULL) {
             free(ch);
@@ -100,12 +105,13 @@ emit_call_stdlib_channel_builtin(const char *fn, ASTNode *call, TranspilerCtx *c
         free(ch);
         return result;
     }
-    if (strcmp(fn, "RecvTimeout") == 0 && call->data.call.arg_count == 2) {
-        char *ch = emit_expression(call->data.call.arguments[0], ctx);
-        char *timeout = emit_expression(call->data.call.arguments[1], ctx);
+    if (strcmp(fn, "RecvTimeout") == 0 && argc == 2) {
+        ASTNode *channel_arg = ast_call_argument(call, 0);
+        char *ch = emit_expression(channel_arg, ctx);
+        char *timeout = emit_expression(ast_call_argument(call, 1), ctx);
         char inner_buf[64];
         const char *inner = transpiler_require_channel_inner_type(ctx,
-            call->data.call.arguments[0], "RecvTimeout",
+            channel_arg, "RecvTimeout",
             inner_buf, sizeof(inner_buf));
         if (inner == NULL) {
             free(ch);
@@ -132,12 +138,13 @@ emit_call_stdlib_channel_builtin(const char *fn, ASTNode *call, TranspilerCtx *c
         free(timeout);
         return result;
     }
-    if (strcmp(fn, "TrySend") == 0 && call->data.call.arg_count == 2) {
-        char *ch = emit_expression(call->data.call.arguments[0], ctx);
-        char *val = emit_expression(call->data.call.arguments[1], ctx);
+    if (strcmp(fn, "TrySend") == 0 && argc == 2) {
+        ASTNode *channel_arg = ast_call_argument(call, 0);
+        char *ch = emit_expression(channel_arg, ctx);
+        char *val = emit_expression(ast_call_argument(call, 1), ctx);
         char inner_buf[64];
         const char *inner = transpiler_require_channel_inner_type(ctx,
-            call->data.call.arguments[0], "TrySend",
+            channel_arg, "TrySend",
             inner_buf, sizeof(inner_buf));
         if (inner == NULL) {
             free(ch);
@@ -150,12 +157,13 @@ emit_call_stdlib_channel_builtin(const char *fn, ASTNode *call, TranspilerCtx *c
         free(val);
         return result;
     }
-    if (strcmp(fn, "TrySendStatus") == 0 && call->data.call.arg_count == 2) {
-        char *ch = emit_expression(call->data.call.arguments[0], ctx);
-        char *val = emit_expression(call->data.call.arguments[1], ctx);
+    if (strcmp(fn, "TrySendStatus") == 0 && argc == 2) {
+        ASTNode *channel_arg = ast_call_argument(call, 0);
+        char *ch = emit_expression(channel_arg, ctx);
+        char *val = emit_expression(ast_call_argument(call, 1), ctx);
         char inner_buf[64];
         const char *inner = transpiler_require_channel_inner_type(ctx,
-            call->data.call.arguments[0], "TrySendStatus",
+            channel_arg, "TrySendStatus",
             inner_buf, sizeof(inner_buf));
         if (inner == NULL) {
             free(ch);
@@ -168,13 +176,14 @@ emit_call_stdlib_channel_builtin(const char *fn, ASTNode *call, TranspilerCtx *c
         free(val);
         return result;
     }
-    if (strcmp(fn, "SendTimeout") == 0 && call->data.call.arg_count == 3) {
-        char *ch = emit_expression(call->data.call.arguments[0], ctx);
-        char *val = emit_expression(call->data.call.arguments[1], ctx);
-        char *timeout = emit_expression(call->data.call.arguments[2], ctx);
+    if (strcmp(fn, "SendTimeout") == 0 && argc == 3) {
+        ASTNode *channel_arg = ast_call_argument(call, 0);
+        char *ch = emit_expression(channel_arg, ctx);
+        char *val = emit_expression(ast_call_argument(call, 1), ctx);
+        char *timeout = emit_expression(ast_call_argument(call, 2), ctx);
         char inner_buf[64];
         const char *inner = transpiler_require_channel_inner_type(ctx,
-            call->data.call.arguments[0], "SendTimeout",
+            channel_arg, "SendTimeout",
             inner_buf, sizeof(inner_buf));
         if (inner == NULL) {
             free(ch);
@@ -190,13 +199,14 @@ emit_call_stdlib_channel_builtin(const char *fn, ASTNode *call, TranspilerCtx *c
         free(timeout);
         return result;
     }
-    if (strcmp(fn, "SendTimeoutStatus") == 0 && call->data.call.arg_count == 3) {
-        char *ch = emit_expression(call->data.call.arguments[0], ctx);
-        char *val = emit_expression(call->data.call.arguments[1], ctx);
-        char *timeout = emit_expression(call->data.call.arguments[2], ctx);
+    if (strcmp(fn, "SendTimeoutStatus") == 0 && argc == 3) {
+        ASTNode *channel_arg = ast_call_argument(call, 0);
+        char *ch = emit_expression(channel_arg, ctx);
+        char *val = emit_expression(ast_call_argument(call, 1), ctx);
+        char *timeout = emit_expression(ast_call_argument(call, 2), ctx);
         char inner_buf[64];
         const char *inner = transpiler_require_channel_inner_type(ctx,
-            call->data.call.arguments[0], "SendTimeoutStatus",
+            channel_arg, "SendTimeoutStatus",
             inner_buf, sizeof(inner_buf));
         if (inner == NULL) {
             free(ch);
@@ -212,20 +222,21 @@ emit_call_stdlib_channel_builtin(const char *fn, ASTNode *call, TranspilerCtx *c
         free(timeout);
         return result;
     }
-    if (strcmp(fn, "Cancel") == 0 && call->data.call.arg_count == 1) {
-        char *task = emit_expression(call->data.call.arguments[0], ctx);
+    if (strcmp(fn, "Cancel") == 0 && argc == 1) {
+        char *task = emit_expression(ast_call_argument(call, 0), ctx);
         char *result = strdup_fmt("pgy_task_cancel(%s)", task);
         free(task);
         return result;
     }
-    if (strcmp(fn, "IsCancelled") == 0 && call->data.call.arg_count == 0) {
+    if (strcmp(fn, "IsCancelled") == 0 && argc == 0) {
         return strdup_fmt("pgy_task_is_cancelled()");
     }
-    if (strcmp(fn, "ChannelClose") == 0 && call->data.call.arg_count == 1) {
-        char *ch = emit_expression(call->data.call.arguments[0], ctx);
+    if (strcmp(fn, "ChannelClose") == 0 && argc == 1) {
+        ASTNode *channel_arg = ast_call_argument(call, 0);
+        char *ch = emit_expression(channel_arg, ctx);
         char inner_buf[64];
         const char *inner = transpiler_require_channel_inner_type(ctx,
-            call->data.call.arguments[0], "ChannelClose",
+            channel_arg, "ChannelClose",
             inner_buf, sizeof(inner_buf));
         if (inner == NULL) {
             free(ch);

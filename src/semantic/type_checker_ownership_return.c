@@ -22,7 +22,7 @@ ownership_return_apply_context(ASTNode *value, Type *value_type,
     if (value == NULL || expected_type == NULL || expected_type == TYPE_UNKNOWN)
         return value_type;
     if (value->type == AST_ARRAY_LITERAL
-        && value->data.array_literal.count == 0
+        && ast_array_literal_count(value) == 0
         && type_is_constructed_named(expected_type, "Array")) {
         return expected_type;
     }
@@ -33,22 +33,22 @@ bool
 type_check_return_stmt(ASTNode *node, SemanticContext *ctx)
 {
     Type *ret_type = TYPE_VOID;
+    ASTNode *value = ast_return_value(node);
 
     semantic_record_body_summary(ctx, BODY_SUMMARY_MAY_RETURN);
 
-    if (node->data.return_stmt.value != NULL)
+    if (value != NULL)
         ret_type = ownership_return_normalize_type(
-            type_check_expression(node->data.return_stmt.value, ctx));
-    ret_type = ownership_return_apply_context(node->data.return_stmt.value,
-                                              ret_type,
+            type_check_expression(value, ctx));
+    ret_type = ownership_return_apply_context(value, ret_type,
                                               ctx->current_return);
 
     if (ctx->current_return != NULL)
         require_assignable(ret_type, ctx->current_return, node, ctx);
 
-    if (node->data.return_stmt.value != NULL) {
+    if (value != NULL) {
         if (semantic_reject_active_slot_owner_escape(
-                node->data.return_stmt.value, ctx, "return", "return")) {
+                value, ctx, "return", "return")) {
             return false;
         }
         if (type_is_read_view(ret_type) || type_is_write_view(ret_type)) {
@@ -56,7 +56,7 @@ type_check_return_stmt(ASTNode *node, SemanticContext *ctx)
                 PGY_CODE_SEM_PIN_ESCAPE,
                 PGY_CAUSE_PIN_ESCAPE,
                 PGY_FIX_CHANGE_REF_TO_OWN_OR_STOP_ESCAPE,
-                node->data.return_stmt.value,
+                value,
                 "Pinned view cannot escape through return.\n"
                 "Reason:\n"
                 "- %s is a lexical capability lease over an owning slot\n"
@@ -68,15 +68,15 @@ type_check_return_stmt(ASTNode *node, SemanticContext *ctx)
             return false;
         }
         semantic_validate_borrowed_escape(
-            node, node->data.return_stmt.value, ctx, ret_type, NULL,
+            node, value, ctx, ret_type, NULL,
             OWNERSHIP_CONSUMER_RETURN, NULL, NULL, NULL,
             false, NULL, NULL);
     }
 
-    if (node->data.return_stmt.value != NULL
+    if (value != NULL
         && type_is_qubit(ret_type)
-        && node->data.return_stmt.value->type == AST_IDENTIFIER) {
-        consume_qubit_value(node->data.return_stmt.value, ctx, "returned");
+        && value->type == AST_IDENTIFIER) {
+        consume_qubit_value(value, ctx, "returned");
     }
 
     return !ctx->has_error;

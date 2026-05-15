@@ -27,9 +27,10 @@ llvm_function_signature_from_event_type(LLVMGenCtx *ctx, ASTNode *type_node)
     if (ctx == NULL || type_node == NULL || type_node->type != AST_EVENT_HANDLER_TYPE)
         return NULL;
 
-    param_count = type_node->data.event_handler_type.param_count;
-    if (type_node->data.event_handler_type.return_type != NULL) {
-        ret_type = ast_type_to_llvm(ctx, type_node->data.event_handler_type.return_type);
+    param_count = ast_event_handler_param_count(type_node);
+    ASTNode *return_type = ast_event_handler_return_type(type_node);
+    if (return_type != NULL) {
+        ret_type = ast_type_to_llvm(ctx, return_type);
         if (ctx->has_error || ret_type == NULL)
             return NULL;
     }
@@ -55,7 +56,7 @@ llvm_function_signature_from_event_type(LLVMGenCtx *ctx, ASTNode *type_node)
         }
         for (size_t i = 0; i < param_count; i++) {
             param_types[i] = ast_type_to_llvm(ctx,
-                type_node->data.event_handler_type.param_types[i]);
+                ast_event_handler_param_type(type_node, i));
             if (ctx->has_error || param_types[i] == NULL)
                 return NULL;
         }
@@ -199,7 +200,7 @@ llvm_emit_option_coalesce(ASTNode *node, LLVMGenCtx *ctx)
     LLVMValueRef fallback;
     LLVMValueRef phi;
 
-    left = llvm_emit_expression(node->data.binary.left, ctx);
+    left = llvm_emit_expression(ast_binary_left(node), ctx);
     if (left == NULL)
         return llvm_scalar_expr_error(ctx, node,
             "LLVM coalesce operator could not lower left Option operand");
@@ -244,7 +245,7 @@ llvm_emit_option_coalesce(ASTNode *node, LLVMGenCtx *ctx)
     }
 
     LLVMPositionBuilderAtEnd(ctx->builder, fallback_bb);
-    fallback = llvm_emit_expression(node->data.binary.right, ctx);
+    fallback = llvm_emit_expression(ast_binary_right(node), ctx);
     if (fallback == NULL)
         return llvm_scalar_expr_error(ctx, node,
             "LLVM coalesce operator could not lower fallback expression");
@@ -271,11 +272,15 @@ llvm_emit_option_coalesce(ASTNode *node, LLVMGenCtx *ctx)
 LLVMValueRef
 llvm_emit_binary(ASTNode *node, LLVMGenCtx *ctx)
 {
-    if (node->data.binary.op.type == TOKEN_COALESCE)
+    PgyTokenType op_type = ast_binary_operator(node).type;
+    ASTNode *left_expr = ast_binary_left(node);
+    ASTNode *right_expr = ast_binary_right(node);
+
+    if (op_type == TOKEN_COALESCE)
         return llvm_emit_option_coalesce(node, ctx);
 
-    LLVMValueRef left  = llvm_emit_expression(node->data.binary.left, ctx);
-    LLVMValueRef right = llvm_emit_expression(node->data.binary.right, ctx);
+    LLVMValueRef left  = llvm_emit_expression(left_expr, ctx);
+    LLVMValueRef right = llvm_emit_expression(right_expr, ctx);
     if (left == NULL || right == NULL)
         return llvm_scalar_expr_error(ctx, node,
             "LLVM binary expression could not lower operand expression");
@@ -285,9 +290,9 @@ llvm_emit_binary(ASTNode *node, LLVMGenCtx *ctx)
 
     {
         const char *suffix = llvm_operator_overload_suffix(
-            node->data.binary.op.type);
+            op_type);
         const char *type_name = llvm_expr_custom_type_name(
-            node->data.binary.left, ctx);
+            left_expr, ctx);
 
         if (type_name == NULL && left_type == right_type) {
             const char *primitive_suffix = llvm_type_to_suffix(ctx, left_type);
@@ -327,7 +332,7 @@ llvm_emit_binary(ASTNode *node, LLVMGenCtx *ctx)
         }
     }
 
-    if (node->data.binary.op.type == TOKEN_PLUS
+    if (op_type == TOKEN_PLUS
         && (left_type == ctx->type_i8ptr || right_type == ctx->type_i8ptr)) {
         LLVMFuncEntry *fn = llvm_required_scalar_runtime_function(ctx, node,
             "string concatenation", "StringConcat");
@@ -346,8 +351,8 @@ llvm_emit_binary(ASTNode *node, LLVMGenCtx *ctx)
             "LLVM string concatenation could not lower/coerce operands");
     }
 
-    if ((node->data.binary.op.type == TOKEN_EQUAL
-         || node->data.binary.op.type == TOKEN_NOT_EQUAL)
+    if ((op_type == TOKEN_EQUAL
+         || op_type == TOKEN_NOT_EQUAL)
         && (left_type == ctx->type_i8ptr || right_type == ctx->type_i8ptr)) {
         LLVMFuncEntry *fn = llvm_required_scalar_runtime_function(ctx, node,
             "string comparison", "pgy_string_equals");
@@ -361,7 +366,7 @@ llvm_emit_binary(ASTNode *node, LLVMGenCtx *ctx)
             LLVMValueRef args[] = { left, right };
             LLVMValueRef eq = LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn,
                                              args, 2, llvm_tmp_name(ctx));
-            if (node->data.binary.op.type == TOKEN_EQUAL)
+            if (op_type == TOKEN_EQUAL)
                 return eq;
             return LLVMBuildNot(ctx->builder, eq, llvm_tmp_name(ctx));
         }
@@ -381,14 +386,14 @@ llvm_emit_binary(ASTNode *node, LLVMGenCtx *ctx)
                                      llvm_tmp_name(ctx));
     }
 
-    if (!is_float && (node->data.binary.op.type == TOKEN_SLASH
-        || node->data.binary.op.type == TOKEN_PERCENT)) {
+    if (!is_float && (op_type == TOKEN_SLASH
+        || op_type == TOKEN_PERCENT)) {
         bool use_i64 = left_type == ctx->type_i64 || right_type == ctx->type_i64;
         bool rhs_is_nonzero_literal = !use_i64
             && pgy_codegen_ast_number_is_nonzero_i32_literal(
-                node->data.binary.right);
+                right_expr);
         if (!rhs_is_nonzero_literal) {
-            const char *helper = node->data.binary.op.type == TOKEN_SLASH
+            const char *helper = op_type == TOKEN_SLASH
                 ? (use_i64 ? "pgy_checked_div_i64_export"
                            : "pgy_checked_div_i32_export")
                 : (use_i64 ? "pgy_checked_mod_i64_export"
@@ -417,7 +422,7 @@ llvm_emit_binary(ASTNode *node, LLVMGenCtx *ctx)
 
     const char *tmp = llvm_tmp_name(ctx);
 
-    switch (node->data.binary.op.type) {
+    switch (op_type) {
     case TOKEN_PLUS:
         return is_float
             ? LLVMBuildFAdd(ctx->builder, left, right, tmp)

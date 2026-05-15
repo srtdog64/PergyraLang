@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2026 Pergyra Language Project
  * Read-only AST accessors for domain declarations.
  */
@@ -8,6 +8,73 @@
 
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
+
+static char**
+ast_declaration_name_slot(ASTNode* node)
+{
+    if (node == NULL)
+        return NULL;
+
+    switch (node->type) {
+    case AST_FUNC_DECL:
+        return &node->data.func_decl.name;
+    case AST_CLASS_DECL:
+        return &node->data.class_decl.name;
+    case AST_LET_DECL:
+        return &node->data.let_decl.name;
+    case AST_TYPE_ALIAS:
+        return &node->data.type_alias.name;
+    case AST_ABILITY_DECL:
+        return &node->data.ability_decl.name;
+    case AST_ROLE_DECL:
+        return &node->data.role_decl.name;
+    case AST_PARTY_DECL:
+        return &node->data.party_decl.name;
+    case AST_ROSTER_DECL:
+        return &node->data.roster_decl.name;
+    case AST_WORLD_DECL:
+        return &node->data.world_decl.name;
+    case AST_RELATION_DECL:
+        return &node->data.relation_decl.name;
+    case AST_EFFECT_DECL:
+        return &node->data.effect_decl.name;
+    case AST_ZONE_DECL:
+        return &node->data.zone_decl.name;
+    case AST_EVENT_DECL:
+        return &node->data.event_decl.name;
+    case AST_ENUM_DECL:
+        return &node->data.enum_decl.name;
+    default:
+        return NULL;
+    }
+}
+
+const char*
+ast_declaration_name(const ASTNode* node)
+{
+    char **slot = ast_declaration_name_slot((ASTNode*)node);
+    return slot != NULL ? *slot : NULL;
+}
+
+bool
+ast_replace_declaration_name_copy(ASTNode* node, const char* name)
+{
+    char **slot;
+    char *copy;
+
+    if (name == NULL)
+        return false;
+    slot = ast_declaration_name_slot(node);
+    if (slot == NULL)
+        return false;
+    copy = pergyra_strdup(name);
+    if (copy == NULL)
+        return false;
+    free(*slot);
+    *slot = copy;
+    return true;
+}
 
 const char*
 ast_class_name(const ASTNode* node)
@@ -224,6 +291,22 @@ ast_class_is_struct(const ASTNode* node)
         && node->data.class_decl.is_struct;
 }
 
+GenericParams*
+ast_class_generic_params(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_CLASS_DECL)
+        return NULL;
+    return node->data.class_decl.generic_params;
+}
+
+WhereClause*
+ast_class_where_clause(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_CLASS_DECL)
+        return NULL;
+    return node->data.class_decl.where_clause;
+}
+
 ClassField**
 ast_class_fields(const ASTNode* node, size_t* count_out)
 {
@@ -306,11 +389,149 @@ ast_enum_methods(const ASTNode* node, size_t* count_out)
 }
 
 const char*
+ast_extern_block_abi(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_EXTERN_BLOCK)
+        return NULL;
+    return node->data.extern_block.abi;
+}
+
+ASTNode**
+ast_extern_block_declarations(const ASTNode* node, size_t* count_out)
+{
+    if (count_out != NULL)
+        *count_out = 0;
+    if (node == NULL || node->type != AST_EXTERN_BLOCK)
+        return NULL;
+    if (count_out != NULL)
+        *count_out = node->data.extern_block.count;
+    return node->data.extern_block.declarations;
+}
+
+ASTNode*
+ast_extern_block_declaration(const ASTNode* node, size_t index)
+{
+    if (node == NULL || node->type != AST_EXTERN_BLOCK
+        || index >= node->data.extern_block.count) {
+        return NULL;
+    }
+    return node->data.extern_block.declarations[index];
+}
+
+const char*
+ast_type_alias_name(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_TYPE_ALIAS)
+        return NULL;
+    return node->data.type_alias.name;
+}
+
+ASTNode*
+ast_type_alias_target_type(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_TYPE_ALIAS)
+        return NULL;
+    return node->data.type_alias.target_type;
+}
+
+const char*
+ast_event_name(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_EVENT_DECL)
+        return NULL;
+    return node->data.event_decl.name;
+}
+
+size_t
+ast_event_param_count(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_EVENT_DECL)
+        return 0;
+    return node->data.event_decl.param_count;
+}
+
+ASTNode*
+ast_event_param(const ASTNode* node, size_t index)
+{
+    if (node == NULL || node->type != AST_EVENT_DECL
+        || index >= node->data.event_decl.param_count) {
+        return NULL;
+    }
+    return node->data.event_decl.params[index];
+}
+
+ASTNode*
+ast_event_return_type(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_EVENT_DECL)
+        return NULL;
+    return node->data.event_decl.return_type;
+}
+
+const char*
 ast_ability_name(const ASTNode* node)
 {
     if (node == NULL || node->type != AST_ABILITY_DECL)
         return NULL;
     return node->data.ability_decl.name;
+}
+
+AccessModifier
+ast_ability_access(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_ABILITY_DECL)
+        return ACCESS_PRIVATE;
+    return node->data.ability_decl.access;
+}
+
+bool
+ast_ability_has_explicit_access(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_ABILITY_DECL)
+        return false;
+    return node->data.ability_decl.has_explicit_access;
+}
+
+bool
+ast_ability_is_innate(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_ABILITY_DECL)
+        return false;
+    return node->data.ability_decl.is_innate;
+}
+
+GenericParams*
+ast_ability_generic_params(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_ABILITY_DECL)
+        return NULL;
+    return node->data.ability_decl.generic_params;
+}
+
+WhereClause*
+ast_ability_where_clause(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_ABILITY_DECL)
+        return NULL;
+    return node->data.ability_decl.where_clause;
+}
+
+size_t
+ast_ability_require_field_count(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_ABILITY_DECL)
+        return 0;
+    return node->data.ability_decl.require_count;
+}
+
+ASTNode*
+ast_ability_require_field(const ASTNode* node, size_t index)
+{
+    if (node == NULL || node->type != AST_ABILITY_DECL
+        || index >= node->data.ability_decl.require_count) {
+        return NULL;
+    }
+    return node->data.ability_decl.require_fields[index];
 }
 
 size_t
@@ -345,6 +566,30 @@ ast_role_for_type(const ASTNode* node)
     if (node == NULL || node->type != AST_ROLE_DECL)
         return NULL;
     return node->data.role_decl.for_type;
+}
+
+GenericParams*
+ast_role_generic_params(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_ROLE_DECL)
+        return NULL;
+    return node->data.role_decl.generic_params;
+}
+
+WhereClause*
+ast_role_where_clause(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_ROLE_DECL)
+        return NULL;
+    return node->data.role_decl.where_clause;
+}
+
+ASTNode*
+ast_role_parallel_block(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_ROLE_DECL)
+        return NULL;
+    return node->data.role_decl.parallel_block;
 }
 
 size_t
@@ -441,6 +686,14 @@ ast_roster_name(const ASTNode* node)
     if (node == NULL || node->type != AST_ROSTER_DECL)
         return NULL;
     return node->data.roster_decl.name;
+}
+
+GenericParams*
+ast_roster_generic_params(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_ROSTER_DECL)
+        return NULL;
+    return node->data.roster_decl.generic_params;
 }
 
 size_t
@@ -585,990 +838,686 @@ ast_party_shared_initializer(const ASTNode* node)
 }
 
 const char*
-ast_roster_slot_name(const ASTNode* node)
+ast_require_field_name(const ASTNode* node)
 {
-    if (node == NULL || node->type != AST_SYSTEMIC_SLOT)
+    if (node == NULL || node->type != AST_REQUIRE_FIELD)
         return NULL;
-    return node->data.roster_slot.slot_name;
-}
-
-const char*
-ast_roster_slot_party_type(const ASTNode* node)
-{
-    if (node == NULL || node->type != AST_SYSTEMIC_SLOT)
-        return NULL;
-    return node->data.roster_slot.party_type;
-}
-
-bool
-ast_roster_slot_replace_party_type(ASTNode* node, const char* party_type)
-{
-    char *copy;
-
-    if (node == NULL || node->type != AST_SYSTEMIC_SLOT)
-        return false;
-
-    copy = party_type != NULL ? pergyra_strdup(party_type) : NULL;
-    if (party_type != NULL && copy == NULL)
-        return false;
-
-    free(node->data.roster_slot.party_type);
-    node->data.roster_slot.party_type = copy;
-    return true;
-}
-
-const char*
-ast_world_name(const ASTNode* node)
-{
-    if (node == NULL || node->type != AST_WORLD_DECL)
-        return NULL;
-    return node->data.world_decl.name;
-}
-
-ASTNode**
-ast_world_rosters(const ASTNode* node, size_t* count_out)
-{
-    if (count_out != NULL)
-        *count_out = 0;
-    if (node == NULL || node->type != AST_WORLD_DECL)
-        return NULL;
-    if (count_out != NULL)
-        *count_out = node->data.world_decl.roster_count;
-    return node->data.world_decl.rosters;
-}
-
-ASTNode**
-ast_world_zones(const ASTNode* node, size_t* count_out)
-{
-    if (count_out != NULL)
-        *count_out = 0;
-    if (node == NULL || node->type != AST_WORLD_DECL)
-        return NULL;
-    if (count_out != NULL)
-        *count_out = node->data.world_decl.zone_count;
-    return node->data.world_decl.zones;
-}
-
-const char*
-ast_world_roster_slot_name(const ASTNode* node)
-{
-    if (node == NULL || node->type != AST_WORLD_SYSTEMIC)
-        return NULL;
-    return node->data.world_roster.slot_name;
-}
-
-const char*
-ast_world_roster_type_name(const ASTNode* node)
-{
-    if (node == NULL || node->type != AST_WORLD_SYSTEMIC)
-        return NULL;
-    return node->data.world_roster.roster_type;
+    return node->data.require_field.name;
 }
 
 ASTNode*
-ast_world_roster_initializer(const ASTNode* node)
+ast_require_field_type(const ASTNode* node)
 {
-    if (node == NULL || node->type != AST_WORLD_SYSTEMIC)
+    if (node == NULL || node->type != AST_REQUIRE_FIELD)
         return NULL;
-    return node->data.world_roster.initializer;
+    return node->data.require_field.type;
+}
+
+const char*
+ast_type_name(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_TYPE)
+        return NULL;
+    return node->data.type.name;
+}
+
+GenericParams*
+ast_type_generic_args(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_TYPE)
+        return NULL;
+    return node->data.type.generic_args;
 }
 
 bool
-ast_world_roster_replace_type_name(ASTNode* node, const char* type_name)
+ast_replace_type_name_copy(ASTNode* node, const char* type_name)
 {
     char *owned_type_name;
 
-    if (node == NULL || node->type != AST_WORLD_SYSTEMIC || type_name == NULL)
+    if (node == NULL || node->type != AST_TYPE || type_name == NULL)
         return false;
-
     owned_type_name = pergyra_strdup(type_name);
     if (owned_type_name == NULL)
         return false;
-
-    free(node->data.world_roster.roster_type);
-    node->data.world_roster.roster_type = owned_type_name;
+    free(node->data.type.name);
+    node->data.type.name = owned_type_name;
     return true;
 }
 
-const char*
-ast_world_zone_slot_name(const ASTNode* node)
+GenericParams*
+ast_call_generic_args(const ASTNode* node)
 {
-    if (node == NULL || node->type != AST_WORLD_ZONE)
+    if (node == NULL || node->type != AST_CALL)
         return NULL;
-    return node->data.world_zone.slot_name;
-}
-
-const char*
-ast_world_zone_type_name(const ASTNode* node)
-{
-    if (node == NULL || node->type != AST_WORLD_ZONE)
-        return NULL;
-    return node->data.world_zone.zone_type;
-}
-
-ASTNode*
-ast_world_zone_initializer(const ASTNode* node)
-{
-    if (node == NULL || node->type != AST_WORLD_ZONE)
-        return NULL;
-    return node->data.world_zone.initializer;
-}
-
-ASTNode**
-ast_world_shared_fields(const ASTNode* node, size_t* count_out)
-{
-    if (count_out != NULL)
-        *count_out = 0;
-    if (node == NULL || node->type != AST_WORLD_DECL)
-        return NULL;
-    if (count_out != NULL)
-        *count_out = node->data.world_decl.shared_count;
-    return node->data.world_decl.shared_fields;
-}
-
-ASTNode**
-ast_world_states(const ASTNode* node, size_t* count_out)
-{
-    if (count_out != NULL)
-        *count_out = 0;
-    if (node == NULL || node->type != AST_WORLD_DECL)
-        return NULL;
-    if (count_out != NULL)
-        *count_out = node->data.world_decl.state_count;
-    return node->data.world_decl.states;
-}
-
-ASTNode**
-ast_world_activations(const ASTNode* node, size_t* count_out)
-{
-    if (count_out != NULL)
-        *count_out = 0;
-    if (node == NULL || node->type != AST_WORLD_DECL)
-        return NULL;
-    if (count_out != NULL)
-        *count_out = node->data.world_decl.activate_count;
-    return node->data.world_decl.activations;
-}
-
-ASTNode**
-ast_world_deactivations(const ASTNode* node, size_t* count_out)
-{
-    if (count_out != NULL)
-        *count_out = 0;
-    if (node == NULL || node->type != AST_WORLD_DECL)
-        return NULL;
-    if (count_out != NULL)
-        *count_out = node->data.world_decl.deactivate_count;
-    return node->data.world_decl.deactivations;
-}
-
-ASTNode**
-ast_world_maintained_zones(const ASTNode* node, size_t* count_out)
-{
-    if (count_out != NULL)
-        *count_out = 0;
-    if (node == NULL || node->type != AST_WORLD_DECL)
-        return NULL;
-    if (count_out != NULL)
-        *count_out = node->data.world_decl.maintained_zone_count;
-    return node->data.world_decl.maintained_zones;
-}
-
-ASTNode**
-ast_world_methods(const ASTNode* node, size_t* count_out)
-{
-    if (count_out != NULL)
-        *count_out = 0;
-    if (node == NULL || node->type != AST_WORLD_DECL)
-        return NULL;
-    if (count_out != NULL)
-        *count_out = node->data.world_decl.method_count;
-    return node->data.world_decl.methods;
-}
-
-const char*
-ast_relation_name(const ASTNode* node)
-{
-    if (node == NULL || node->type != AST_RELATION_DECL)
-        return NULL;
-    return node->data.relation_decl.name;
-}
-
-ASTNode**
-ast_relation_slots(const ASTNode* node, size_t* count_out)
-{
-    if (count_out != NULL)
-        *count_out = 0;
-    if (node == NULL || node->type != AST_RELATION_DECL)
-        return NULL;
-    if (count_out != NULL)
-        *count_out = node->data.relation_decl.slot_count;
-    return node->data.relation_decl.slots;
-}
-
-ASTNode**
-ast_relation_refreshes(const ASTNode* node, size_t* count_out)
-{
-    if (count_out != NULL)
-        *count_out = 0;
-    if (node == NULL || node->type != AST_RELATION_DECL)
-        return NULL;
-    if (count_out != NULL)
-        *count_out = node->data.relation_decl.refresh_count;
-    return node->data.relation_decl.refreshes;
-}
-
-ASTNode**
-ast_relation_shared_fields(const ASTNode* node, size_t* count_out)
-{
-    if (count_out != NULL)
-        *count_out = 0;
-    if (node == NULL || node->type != AST_RELATION_DECL)
-        return NULL;
-    if (count_out != NULL)
-        *count_out = node->data.relation_decl.shared_count;
-    return node->data.relation_decl.shared_fields;
-}
-
-ASTNode**
-ast_relation_methods(const ASTNode* node, size_t* count_out)
-{
-    if (count_out != NULL)
-        *count_out = 0;
-    if (node == NULL || node->type != AST_RELATION_DECL)
-        return NULL;
-    if (count_out != NULL)
-        *count_out = node->data.relation_decl.method_count;
-    return node->data.relation_decl.methods;
-}
-
-const char*
-ast_effect_name(const ASTNode* node)
-{
-    if (node == NULL || node->type != AST_EFFECT_DECL)
-        return NULL;
-    return node->data.effect_decl.name;
-}
-
-ASTNode**
-ast_effect_slots(const ASTNode* node, size_t* count_out)
-{
-    if (count_out != NULL)
-        *count_out = 0;
-    if (node == NULL || node->type != AST_EFFECT_DECL)
-        return NULL;
-    if (count_out != NULL)
-        *count_out = node->data.effect_decl.slot_count;
-    return node->data.effect_decl.slots;
-}
-
-ASTNode**
-ast_effect_refreshes(const ASTNode* node, size_t* count_out)
-{
-    if (count_out != NULL)
-        *count_out = 0;
-    if (node == NULL || node->type != AST_EFFECT_DECL)
-        return NULL;
-    if (count_out != NULL)
-        *count_out = node->data.effect_decl.refresh_count;
-    return node->data.effect_decl.refreshes;
-}
-
-ASTNode**
-ast_effect_shared_fields(const ASTNode* node, size_t* count_out)
-{
-    if (count_out != NULL)
-        *count_out = 0;
-    if (node == NULL || node->type != AST_EFFECT_DECL)
-        return NULL;
-    if (count_out != NULL)
-        *count_out = node->data.effect_decl.shared_count;
-    return node->data.effect_decl.shared_fields;
-}
-
-ASTNode**
-ast_effect_methods(const ASTNode* node, size_t* count_out)
-{
-    if (count_out != NULL)
-        *count_out = 0;
-    if (node == NULL || node->type != AST_EFFECT_DECL)
-        return NULL;
-    if (count_out != NULL)
-        *count_out = node->data.effect_decl.method_count;
-    return node->data.effect_decl.methods;
-}
-
-const char*
-ast_domain_slot_name(const ASTNode* node)
-{
-    if (node == NULL || node->type != AST_DOMAIN_SLOT)
-        return NULL;
-    return node->data.domain_slot.slot_name;
-}
-
-ASTNode*
-ast_domain_slot_type(const ASTNode* node)
-{
-    if (node == NULL || node->type != AST_DOMAIN_SLOT)
-        return NULL;
-    return node->data.domain_slot.type;
-}
-
-bool
-ast_domain_slot_is_subject(const ASTNode* node)
-{
-    return node != NULL && node->type == AST_DOMAIN_SLOT
-        && node->data.domain_slot.is_subject;
-}
-
-bool
-ast_domain_slot_is_vessel(const ASTNode* node)
-{
-    return node != NULL && node->type == AST_DOMAIN_SLOT
-        && node->data.domain_slot.is_vessel;
-}
-
-bool
-ast_domain_slot_is_tobject(const ASTNode* node)
-{
-    return node != NULL && node->type == AST_DOMAIN_SLOT
-        && node->data.domain_slot.is_tobject;
-}
-
-bool
-ast_domain_slot_is_binding(const ASTNode* node)
-{
-    return node != NULL && node->type == AST_DOMAIN_SLOT
-        && node->data.domain_slot.is_binding;
-}
-
-ASTNode*
-ast_domain_slot_initializer(const ASTNode* node)
-{
-    if (node == NULL || node->type != AST_DOMAIN_SLOT)
-        return NULL;
-    return node->data.domain_slot.initializer;
-}
-
-const char*
-ast_intent_step_name(const ASTNode* node)
-{
-    if (node == NULL || node->type != AST_INTENT_STEP)
-        return NULL;
-    return node->data.intent_step.name;
-}
-
-ASTNode*
-ast_intent_step_where_type(const ASTNode* node)
-{
-    if (node == NULL || node->type != AST_INTENT_STEP)
-        return NULL;
-    return node->data.intent_step.where_type;
-}
-
-ASTNode*
-ast_intent_step_using_expr(const ASTNode* node)
-{
-    if (node == NULL || node->type != AST_INTENT_STEP)
-        return NULL;
-    return node->data.intent_step.using_expr;
-}
-
-ASTNode*
-ast_intent_step_intent_expr(const ASTNode* node)
-{
-    if (node == NULL || node->type != AST_INTENT_STEP)
-        return NULL;
-    return node->data.intent_step.intent_expr;
-}
-
-const char*
-ast_intent_step_transfer_from_alias(const ASTNode* node)
-{
-    if (node == NULL || node->type != AST_INTENT_STEP)
-        return NULL;
-    return node->data.intent_step.transfer_from_alias;
-}
-
-const char*
-ast_intent_step_transfer_to_alias(const ASTNode* node)
-{
-    if (node == NULL || node->type != AST_INTENT_STEP)
-        return NULL;
-    return node->data.intent_step.transfer_to_alias;
-}
-
-bool
-ast_intent_step_replace_transfer_to_alias_copy(ASTNode* node, const char* alias)
-{
-    char *owned_alias;
-
-    if (node == NULL || node->type != AST_INTENT_STEP || alias == NULL)
-        return false;
-    owned_alias = pergyra_strdup(alias);
-    if (owned_alias == NULL)
-        return false;
-    free(node->data.intent_step.transfer_to_alias);
-    node->data.intent_step.transfer_to_alias = owned_alias;
-    return true;
-}
-
-char**
-ast_intent_step_who_names(const ASTNode* node, size_t* count_out)
-{
-    if (node == NULL || node->type != AST_INTENT_STEP) {
-        if (count_out != NULL)
-            *count_out = 0;
-        return NULL;
-    }
-    if (count_out != NULL)
-        *count_out = node->data.intent_step.who_count;
-    return node->data.intent_step.who_names;
+    return node->data.call.generic_args;
 }
 
 size_t
-ast_intent_step_who_count(const ASTNode* node)
+ast_call_generic_arg_count(const ASTNode* node)
 {
-    if (node == NULL || node->type != AST_INTENT_STEP)
+    GenericParams *generic_args = ast_call_generic_args(node);
+    return generic_args != NULL ? generic_args->count : 0;
+}
+
+GenericParam*
+ast_call_generic_arg(const ASTNode* node, size_t index)
+{
+    GenericParams *generic_args = ast_call_generic_args(node);
+    if (generic_args == NULL
+        || generic_args->params == NULL
+        || index >= generic_args->count) {
+        return NULL;
+    }
+    return generic_args->params[index];
+}
+
+ASTNode*
+ast_call_callee(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_CALL)
+        return NULL;
+    return node->data.call.callee;
+}
+
+size_t
+ast_call_arg_count(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_CALL)
         return 0;
-    return node->data.intent_step.who_count;
+    return node->data.call.arg_count;
 }
 
 ASTNode**
-ast_intent_step_on_exprs(const ASTNode* node, size_t* count_out)
+ast_call_arguments(const ASTNode* node, size_t* count_out)
 {
-    if (node == NULL || node->type != AST_INTENT_STEP) {
-        if (count_out != NULL)
-            *count_out = 0;
-        return NULL;
-    }
     if (count_out != NULL)
-        *count_out = node->data.intent_step.on_expr_count;
-    return node->data.intent_step.on_exprs;
-}
-
-size_t
-ast_intent_step_on_expr_count(const ASTNode* node)
-{
-    if (node == NULL || node->type != AST_INTENT_STEP)
-        return 0;
-    return node->data.intent_step.on_expr_count;
-}
-
-ASTNode**
-ast_intent_step_compensate_exprs(const ASTNode* node, size_t* count_out)
-{
-    if (node == NULL || node->type != AST_INTENT_STEP) {
-        if (count_out != NULL)
-            *count_out = 0;
+        *count_out = ast_call_arg_count(node);
+    if (node == NULL || node->type != AST_CALL)
         return NULL;
-    }
-    if (count_out != NULL)
-        *count_out = node->data.intent_step.compensate_expr_count;
-    return node->data.intent_step.compensate_exprs;
-}
-
-size_t
-ast_intent_step_compensate_expr_count(const ASTNode* node)
-{
-    if (node == NULL || node->type != AST_INTENT_STEP)
-        return 0;
-    return node->data.intent_step.compensate_expr_count;
+    return node->data.call.arguments;
 }
 
 ASTNode*
-ast_intent_step_pre_expr(const ASTNode* node)
+ast_call_argument(const ASTNode* node, size_t index)
 {
-    if (node == NULL || node->type != AST_INTENT_STEP)
-        return NULL;
-    return node->data.intent_step.pre_expr;
-}
-
-ASTNode*
-ast_intent_step_guard_expr(const ASTNode* node)
-{
-    if (node == NULL || node->type != AST_INTENT_STEP)
-        return NULL;
-    return node->data.intent_step.guard_expr;
-}
-
-ASTNode*
-ast_intent_step_post_expr(const ASTNode* node)
-{
-    if (node == NULL || node->type != AST_INTENT_STEP)
-        return NULL;
-    return node->data.intent_step.post_expr;
-}
-
-ASTNode*
-ast_intent_step_invariant_expr(const ASTNode* node)
-{
-    if (node == NULL || node->type != AST_INTENT_STEP)
-        return NULL;
-    return node->data.intent_step.invariant_expr;
-}
-
-ASTNode**
-ast_intent_step_required_abilities(const ASTNode* node, size_t* count_out)
-{
-    if (node == NULL || node->type != AST_INTENT_STEP) {
-        if (count_out != NULL)
-            *count_out = 0;
+    if (node == NULL || node->type != AST_CALL
+        || index >= node->data.call.arg_count) {
         return NULL;
     }
-    if (count_out != NULL)
-        *count_out = node->data.intent_step.required_ability_count;
-    return node->data.intent_step.required_abilities;
-}
-
-size_t
-ast_intent_step_required_ability_count(const ASTNode* node)
-{
-    if (node == NULL || node->type != AST_INTENT_STEP)
-        return 0;
-    return node->data.intent_step.required_ability_count;
-}
-
-const char*
-ast_intent_step_causes_effect(const ASTNode* node)
-{
-    if (node == NULL || node->type != AST_INTENT_STEP)
-        return NULL;
-    return node->data.intent_step.causes_effect;
-}
-
-char**
-ast_intent_step_authorized_by(const ASTNode* node, size_t* count_out)
-{
-    if (node == NULL || node->type != AST_INTENT_STEP) {
-        if (count_out != NULL)
-            *count_out = 0;
-        return NULL;
-    }
-    if (count_out != NULL)
-        *count_out = node->data.intent_step.authorized_by_count;
-    return node->data.intent_step.authorized_by;
-}
-
-size_t
-ast_intent_step_authorized_by_count(const ASTNode* node)
-{
-    if (node == NULL || node->type != AST_INTENT_STEP)
-        return 0;
-    return node->data.intent_step.authorized_by_count;
-}
-
-ASTNode*
-ast_intent_step_expect_expr(const ASTNode* node)
-{
-    if (node == NULL || node->type != AST_INTENT_STEP)
-        return NULL;
-    return node->data.intent_step.expect_expr;
-}
-
-bool
-ast_intent_step_inherited_who_from_intent(const ASTNode* node)
-{
-    return node != NULL && node->type == AST_INTENT_STEP
-        && node->data.intent_step.inherited_who_from_intent;
-}
-
-bool
-ast_intent_step_derived_who_from_on_receiver(const ASTNode* node)
-{
-    return node != NULL && node->type == AST_INTENT_STEP
-        && node->data.intent_step.derived_who_from_on_receiver;
-}
-
-bool
-ast_intent_step_derived_who_from_single_participant(const ASTNode* node)
-{
-    return node != NULL && node->type == AST_INTENT_STEP
-        && node->data.intent_step.derived_who_from_single_participant;
-}
-
-bool
-ast_intent_step_inherited_where_from_intent(const ASTNode* node)
-{
-    return node != NULL && node->type == AST_INTENT_STEP
-        && node->data.intent_step.inherited_where_from_intent;
-}
-
-bool
-ast_intent_step_inherited_who_from_action(const ASTNode* node)
-{
-    return node != NULL && node->type == AST_INTENT_STEP
-        && node->data.intent_step.inherited_who_from_action;
-}
-
-bool
-ast_intent_step_inherited_where_from_action(const ASTNode* node)
-{
-    return node != NULL && node->type == AST_INTENT_STEP
-        && node->data.intent_step.inherited_where_from_action;
-}
-
-bool
-ast_intent_step_inherited_requires_from_action(const ASTNode* node)
-{
-    return node != NULL && node->type == AST_INTENT_STEP
-        && node->data.intent_step.inherited_requires_from_action;
-}
-
-bool
-ast_intent_step_inherited_causes_from_action(const ASTNode* node)
-{
-    return node != NULL && node->type == AST_INTENT_STEP
-        && node->data.intent_step.inherited_causes_from_action;
-}
-
-bool
-ast_intent_step_inherited_authorized_by_from_action(const ASTNode* node)
-{
-    return node != NULL && node->type == AST_INTENT_STEP
-        && node->data.intent_step.inherited_authorized_by_from_action;
-}
-
-bool
-ast_intent_step_derived_authorized_by_from_zone(const ASTNode* node)
-{
-    return node != NULL && node->type == AST_INTENT_STEP
-        && node->data.intent_step.derived_authorized_by_from_zone;
-}
-
-bool
-ast_intent_step_derived_where_from_using(const ASTNode* node)
-{
-    return node != NULL && node->type == AST_INTENT_STEP
-        && node->data.intent_step.derived_where_from_using;
-}
-
-bool
-ast_intent_step_derived_where_from_transfer(const ASTNode* node)
-{
-    return node != NULL && node->type == AST_INTENT_STEP
-        && node->data.intent_step.derived_where_from_transfer;
-}
-
-bool
-ast_intent_step_derived_using_from_transfer(const ASTNode* node)
-{
-    return node != NULL && node->type == AST_INTENT_STEP
-        && node->data.intent_step.derived_using_from_transfer;
-}
-
-bool
-ast_intent_step_derived_using_from_where(const ASTNode* node)
-{
-    return node != NULL && node->type == AST_INTENT_STEP
-        && node->data.intent_step.derived_using_from_where;
-}
-
-bool
-ast_intent_step_set_where_type(ASTNode* node, ASTNode* where_type)
-{
-    if (node == NULL || node->type != AST_INTENT_STEP)
-        return false;
-    node->data.intent_step.where_type = where_type;
-    return true;
-}
-
-bool
-ast_intent_step_set_using_expr(ASTNode* node, ASTNode* using_expr)
-{
-    if (node == NULL || node->type != AST_INTENT_STEP)
-        return false;
-    node->data.intent_step.using_expr = using_expr;
-    return true;
-}
-
-bool
-ast_intent_step_set_causes_effect_copy(ASTNode* node, const char* causes_effect)
-{
-    if (node == NULL || node->type != AST_INTENT_STEP || causes_effect == NULL)
-        return false;
-    node->data.intent_step.causes_effect = pergyra_strdup(causes_effect);
-    return node->data.intent_step.causes_effect != NULL;
-}
-
-bool
-ast_intent_step_append_authorized_by_copy(ASTNode* node, const char* alias)
-{
-    char **grown;
-    char *owned_alias;
-    size_t next_capacity;
-
-    if (node == NULL || node->type != AST_INTENT_STEP || alias == NULL)
-        return false;
-    owned_alias = pergyra_strdup(alias);
-    if (owned_alias == NULL)
-        return false;
-    if (node->data.intent_step.authorized_by_count
-        == node->data.intent_step.authorized_by_capacity) {
-        next_capacity = node->data.intent_step.authorized_by_capacity == 0
-            ? 4
-            : node->data.intent_step.authorized_by_capacity * 2;
-        if (next_capacity < node->data.intent_step.authorized_by_capacity
-            || next_capacity > SIZE_MAX / sizeof(char *)) {
-            free(owned_alias);
-            return false;
-        }
-        grown = realloc(node->data.intent_step.authorized_by,
-            next_capacity * sizeof(char *));
-        if (grown == NULL) {
-            free(owned_alias);
-            return false;
-        }
-        node->data.intent_step.authorized_by = grown;
-        node->data.intent_step.authorized_by_capacity = next_capacity;
-    }
-    node->data.intent_step.authorized_by[
-        node->data.intent_step.authorized_by_count++] = owned_alias;
-    return true;
-}
-
-bool
-ast_intent_step_append_who_name_copy(ASTNode* node, const char* alias)
-{
-    char **grown;
-    char *owned_alias;
-    size_t next_capacity;
-
-    if (node == NULL || node->type != AST_INTENT_STEP || alias == NULL)
-        return false;
-    owned_alias = pergyra_strdup(alias);
-    if (owned_alias == NULL)
-        return false;
-    if (node->data.intent_step.who_count
-        == node->data.intent_step.who_capacity) {
-        next_capacity = node->data.intent_step.who_capacity == 0
-            ? 4
-            : node->data.intent_step.who_capacity * 2;
-        if (next_capacity < node->data.intent_step.who_capacity
-            || next_capacity > SIZE_MAX / sizeof(char *)) {
-            free(owned_alias);
-            return false;
-        }
-        grown = realloc(node->data.intent_step.who_names,
-            next_capacity * sizeof(char *));
-        if (grown == NULL) {
-            free(owned_alias);
-            return false;
-        }
-        node->data.intent_step.who_names = grown;
-        node->data.intent_step.who_capacity = next_capacity;
-    }
-    node->data.intent_step.who_names[
-        node->data.intent_step.who_count++] = owned_alias;
-    return true;
-}
-
-bool
-ast_intent_step_append_required_ability_clone(ASTNode* node, ASTNode* ability)
-{
-    ASTNode **grown;
-    ASTNode *ability_copy;
-    size_t next_capacity;
-
-    if (node == NULL || node->type != AST_INTENT_STEP || ability == NULL)
-        return false;
-    ability_copy = ast_clone(ability);
-    if (ability_copy == NULL)
-        return false;
-    if (node->data.intent_step.required_ability_count
-        == node->data.intent_step.required_ability_capacity) {
-        next_capacity = node->data.intent_step.required_ability_capacity == 0
-            ? 4
-            : node->data.intent_step.required_ability_capacity * 2;
-        if (next_capacity < node->data.intent_step.required_ability_capacity
-            || next_capacity > SIZE_MAX / sizeof(ASTNode *)) {
-            ast_destroy(ability_copy);
-            return false;
-        }
-        grown = realloc(node->data.intent_step.required_abilities,
-            next_capacity * sizeof(ASTNode *));
-        if (grown == NULL) {
-            ast_destroy(ability_copy);
-            return false;
-        }
-        node->data.intent_step.required_abilities = grown;
-        node->data.intent_step.required_ability_capacity = next_capacity;
-    }
-    node->data.intent_step.required_abilities[
-        node->data.intent_step.required_ability_count++] = ability_copy;
-    return true;
+    return node->data.call.arguments[index];
 }
 
 void
-ast_intent_step_clear_authorized_by(ASTNode* node)
+ast_init_call_borrowed_view(ASTNode* node, ASTNode* callee,
+                            ASTNode** arguments, size_t arg_count)
 {
-    if (node == NULL || node->type != AST_INTENT_STEP)
+    if (node == NULL)
         return;
-    for (size_t i = 0; i < node->data.intent_step.authorized_by_count; i++)
-        free(node->data.intent_step.authorized_by[i]);
-    free(node->data.intent_step.authorized_by);
-    node->data.intent_step.authorized_by = NULL;
-    node->data.intent_step.authorized_by_count = 0;
-    node->data.intent_step.authorized_by_capacity = 0;
+    memset(node, 0, sizeof(*node));
+    node->type = AST_CALL;
+    node->data.call.callee = callee;
+    node->data.call.arguments = arguments;
+    node->data.call.arg_count = arg_count;
 }
 
-void
-ast_intent_step_mark_inherited_who_from_action(ASTNode* node)
+ASTNode*
+ast_member_object(const ASTNode* node)
 {
-    if (node != NULL && node->type == AST_INTENT_STEP)
-        node->data.intent_step.inherited_who_from_action = true;
-}
-
-void
-ast_intent_step_mark_derived_who_from_on_receiver(ASTNode* node)
-{
-    if (node != NULL && node->type == AST_INTENT_STEP)
-        node->data.intent_step.derived_who_from_on_receiver = true;
-}
-
-void
-ast_intent_step_mark_derived_who_from_single_participant(ASTNode* node)
-{
-    if (node != NULL && node->type == AST_INTENT_STEP)
-        node->data.intent_step.derived_who_from_single_participant = true;
-}
-
-void
-ast_intent_step_mark_inherited_where_from_action(ASTNode* node)
-{
-    if (node != NULL && node->type == AST_INTENT_STEP)
-        node->data.intent_step.inherited_where_from_action = true;
-}
-
-void
-ast_intent_step_mark_inherited_requires_from_action(ASTNode* node)
-{
-    if (node != NULL && node->type == AST_INTENT_STEP)
-        node->data.intent_step.inherited_requires_from_action = true;
-}
-
-void
-ast_intent_step_mark_inherited_causes_from_action(ASTNode* node)
-{
-    if (node != NULL && node->type == AST_INTENT_STEP)
-        node->data.intent_step.inherited_causes_from_action = true;
-}
-
-void
-ast_intent_step_mark_inherited_authorized_by_from_action(ASTNode* node)
-{
-    if (node != NULL && node->type == AST_INTENT_STEP)
-        node->data.intent_step.inherited_authorized_by_from_action = true;
-}
-
-void
-ast_intent_step_mark_derived_authorized_by_from_zone(ASTNode* node)
-{
-    if (node != NULL && node->type == AST_INTENT_STEP)
-        node->data.intent_step.derived_authorized_by_from_zone = true;
-}
-
-void
-ast_intent_step_mark_derived_where_from_using(ASTNode* node)
-{
-    if (node != NULL && node->type == AST_INTENT_STEP)
-        node->data.intent_step.derived_where_from_using = true;
-}
-
-void
-ast_intent_step_mark_derived_where_from_transfer(ASTNode* node)
-{
-    if (node != NULL && node->type == AST_INTENT_STEP)
-        node->data.intent_step.derived_where_from_transfer = true;
-}
-
-void
-ast_intent_step_mark_derived_using_from_transfer(ASTNode* node)
-{
-    if (node != NULL && node->type == AST_INTENT_STEP)
-        node->data.intent_step.derived_using_from_transfer = true;
-}
-
-void
-ast_intent_step_mark_derived_using_from_where(ASTNode* node)
-{
-    if (node != NULL && node->type == AST_INTENT_STEP)
-        node->data.intent_step.derived_using_from_where = true;
+    if (node == NULL || node->type != AST_MEMBER_ACCESS)
+        return NULL;
+    return node->data.member.object;
 }
 
 const char*
-ast_zone_layer_slot_name(const ASTNode* node)
+ast_member_name(const ASTNode* node)
 {
-    if (node == NULL || node->type != AST_ZONE_LAYER_SLOT)
+    if (node == NULL || node->type != AST_MEMBER_ACCESS)
         return NULL;
-    return node->data.zone_layer_slot.slot_name;
+    return node->data.member.name;
 }
 
-const char*
-ast_zone_layer_slot_layer_type(const ASTNode* node)
+ASTNode*
+ast_array_access_array(const ASTNode* node)
 {
-    if (node == NULL || node->type != AST_ZONE_LAYER_SLOT)
+    if (node == NULL || node->type != AST_ARRAY_ACCESS)
         return NULL;
-    return node->data.zone_layer_slot.layer_type;
+    return node->data.array_access.array;
 }
 
-bool
-ast_zone_layer_slot_is_relation(const ASTNode* node)
+ASTNode*
+ast_array_access_index(const ASTNode* node)
 {
-    return node != NULL && node->type == AST_ZONE_LAYER_SLOT
-        && node->data.zone_layer_slot.is_relation;
+    if (node == NULL || node->type != AST_ARRAY_ACCESS)
+        return NULL;
+    return node->data.array_access.index;
 }
 
-bool
-ast_zone_layer_slot_is_pool(const ASTNode* node)
+ASTNode*
+ast_assignment_target(const ASTNode* node)
 {
-    return node != NULL && node->type == AST_ZONE_LAYER_SLOT
-        && node->data.zone_layer_slot.is_pool;
+    if (node == NULL || node->type != AST_ASSIGNMENT)
+        return NULL;
+    return node->data.assignment.target;
 }
 
-int
-ast_zone_layer_slot_pool_capacity(const ASTNode* node)
+ASTNode*
+ast_assignment_value(const ASTNode* node)
 {
-    if (node == NULL || node->type != AST_ZONE_LAYER_SLOT)
+    if (node == NULL || node->type != AST_ASSIGNMENT)
+        return NULL;
+    return node->data.assignment.value;
+}
+
+ASTNode*
+ast_await_expression(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_AWAIT_EXPR)
+        return NULL;
+    return node->data.await_expr.expression;
+}
+
+ASTNode*
+ast_channel_send_channel(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_CHANNEL_SEND)
+        return NULL;
+    return node->data.channel_send.channel;
+}
+
+ASTNode*
+ast_channel_send_value(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_CHANNEL_SEND)
+        return NULL;
+    return node->data.channel_send.value;
+}
+
+ASTNode*
+ast_channel_recv_channel(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_CHANNEL_RECV)
+        return NULL;
+    return node->data.channel_recv.channel;
+}
+
+ASTNode*
+ast_unary_operand(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_UNARY)
+        return NULL;
+    return node->data.unary.operand;
+}
+
+Token
+ast_unary_operator(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_UNARY)
+        return (Token){0};
+    return node->data.unary.op;
+}
+
+ASTNode*
+ast_binary_left(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_BINARY)
+        return NULL;
+    return node->data.binary.left;
+}
+
+ASTNode*
+ast_binary_right(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_BINARY)
+        return NULL;
+    return node->data.binary.right;
+}
+
+Token
+ast_binary_operator(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_BINARY)
+        return (Token){0};
+    return node->data.binary.op;
+}
+
+size_t
+ast_array_literal_count(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_ARRAY_LITERAL)
         return 0;
-    return node->data.zone_layer_slot.pool_capacity;
+    return node->data.array_literal.count;
+}
+
+ASTNode*
+ast_array_literal_element(const ASTNode* node, size_t index)
+{
+    if (node == NULL || node->type != AST_ARRAY_LITERAL
+        || index >= node->data.array_literal.count)
+        return NULL;
+    return node->data.array_literal.elements[index];
+}
+
+size_t
+ast_tuple_literal_count(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_TUPLE_LITERAL)
+        return 0;
+    return node->data.tuple_literal.count;
+}
+
+ASTNode*
+ast_tuple_literal_element(const ASTNode* node, size_t index)
+{
+    if (node == NULL || node->type != AST_TUPLE_LITERAL
+        || index >= node->data.tuple_literal.count)
+        return NULL;
+    return node->data.tuple_literal.elements[index];
 }
 
 const char*
-ast_zone_state_name(const ASTNode* node)
+ast_break_label(const ASTNode* node)
 {
-    if (node == NULL || node->type != AST_ZONE_STATE)
+    if (node == NULL || node->type != AST_BREAK)
         return NULL;
-    return node->data.zone_state.state_name;
+    return node->data.break_stmt.label;
+}
+
+const char*
+ast_continue_label(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_CONTINUE)
+        return NULL;
+    return node->data.continue_stmt.label;
+}
+
+const char*
+ast_for_label(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_FOR_LOOP)
+        return NULL;
+    return node->data.for_loop.label;
+}
+
+const char*
+ast_for_variable(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_FOR_LOOP)
+        return NULL;
+    return node->data.for_loop.variable;
+}
+
+ASTNode*
+ast_for_range_start(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_FOR_LOOP)
+        return NULL;
+    return node->data.for_loop.range_start;
+}
+
+ASTNode*
+ast_for_range_end(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_FOR_LOOP)
+        return NULL;
+    return node->data.for_loop.range_end;
+}
+
+ASTNode*
+ast_for_iterable(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_FOR_LOOP)
+        return NULL;
+    return node->data.for_loop.iterable;
+}
+
+ASTNode*
+ast_for_body(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_FOR_LOOP)
+        return NULL;
+    return node->data.for_loop.body;
+}
+
+ASTNode*
+ast_if_condition(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_IF_STMT)
+        return NULL;
+    return node->data.if_stmt.condition;
+}
+
+ASTNode*
+ast_if_then_branch(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_IF_STMT)
+        return NULL;
+    return node->data.if_stmt.then_branch;
+}
+
+ASTNode*
+ast_if_else_branch(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_IF_STMT)
+        return NULL;
+    return node->data.if_stmt.else_branch;
+}
+
+const char*
+ast_while_label(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_WHILE_LOOP)
+        return NULL;
+    return node->data.while_loop.label;
+}
+
+ASTNode*
+ast_while_condition(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_WHILE_LOOP)
+        return NULL;
+    return node->data.while_loop.condition;
+}
+
+ASTNode*
+ast_while_body(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_WHILE_LOOP)
+        return NULL;
+    return node->data.while_loop.body;
+}
+
+ASTNode*
+ast_unsafe_block_body(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_UNSAFE_BLOCK)
+        return NULL;
+    return node->data.unsafe_block.body;
+}
+
+ASTNode*
+ast_defer_body(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_DEFER_STMT)
+        return NULL;
+    return node->data.defer_stmt.body;
+}
+
+ASTNode*
+ast_return_value(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_RETURN)
+        return NULL;
+    return node->data.return_stmt.value;
+}
+
+size_t
+ast_event_handler_param_count(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_EVENT_HANDLER_TYPE)
+        return 0;
+    return node->data.event_handler_type.param_count;
+}
+
+ASTNode**
+ast_event_handler_param_types(const ASTNode* node, size_t* count_out)
+{
+    if (count_out != NULL)
+        *count_out = ast_event_handler_param_count(node);
+    if (node == NULL || node->type != AST_EVENT_HANDLER_TYPE)
+        return NULL;
+    return node->data.event_handler_type.param_types;
+}
+
+ASTNode*
+ast_event_handler_param_type(const ASTNode* node, size_t index)
+{
+    if (node == NULL || node->type != AST_EVENT_HANDLER_TYPE)
+        return NULL;
+    if (index >= node->data.event_handler_type.param_count)
+        return NULL;
+    return node->data.event_handler_type.param_types != NULL
+        ? node->data.event_handler_type.param_types[index]
+        : NULL;
+}
+
+ASTNode**
+ast_task_group_tasks(const ASTNode* node, size_t* count_out)
+{
+    if (node == NULL || node->type != AST_TASK_GROUP) {
+        if (count_out != NULL)
+            *count_out = 0;
+        return NULL;
+    }
+    if (count_out != NULL)
+        *count_out = node->data.task_group.task_count;
+    return node->data.task_group.tasks;
+}
+
+size_t
+ast_task_group_task_count(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_TASK_GROUP)
+        return 0;
+    return node->data.task_group.task_count;
+}
+
+ASTNode*
+ast_task_group_task(const ASTNode* node, size_t index)
+{
+    if (node == NULL || node->type != AST_TASK_GROUP)
+        return NULL;
+    if (index >= node->data.task_group.task_count)
+        return NULL;
+    return node->data.task_group.tasks != NULL
+        ? node->data.task_group.tasks[index]
+        : NULL;
 }
 
 bool
-ast_zone_state_is_relation(const ASTNode* node)
+ast_task_group_wait_all(const ASTNode* node)
 {
-    return node != NULL && node->type == AST_ZONE_STATE
-        && node->data.zone_state.is_relation;
+    return node != NULL && node->type == AST_TASK_GROUP
+        && node->data.task_group.wait_all;
+}
+
+ASTNode*
+ast_spawn_function(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_SPAWN_EXPR)
+        return NULL;
+    return node->data.spawn_expr.function;
+}
+
+ASTNode**
+ast_spawn_arguments(const ASTNode* node, size_t* count_out)
+{
+    if (node == NULL || node->type != AST_SPAWN_EXPR) {
+        if (count_out != NULL)
+            *count_out = 0;
+        return NULL;
+    }
+    if (count_out != NULL)
+        *count_out = node->data.spawn_expr.arg_count;
+    return node->data.spawn_expr.arguments;
+}
+
+size_t
+ast_spawn_arg_count(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_SPAWN_EXPR)
+        return 0;
+    return node->data.spawn_expr.arg_count;
+}
+
+ASTNode*
+ast_spawn_argument(const ASTNode* node, size_t index)
+{
+    if (node == NULL || node->type != AST_SPAWN_EXPR)
+        return NULL;
+    if (index >= node->data.spawn_expr.arg_count)
+        return NULL;
+    return node->data.spawn_expr.arguments != NULL
+        ? node->data.spawn_expr.arguments[index]
+        : NULL;
+}
+
+bool
+ast_spawn_is_blocking(const ASTNode* node)
+{
+    return node != NULL && node->type == AST_SPAWN_EXPR
+        && node->data.spawn_expr.is_blocking;
+}
+
+ASTNode**
+ast_async_block_statements(const ASTNode* node, size_t* count_out)
+{
+    if (node == NULL || node->type != AST_ASYNC_BLOCK) {
+        if (count_out != NULL)
+            *count_out = 0;
+        return NULL;
+    }
+    if (count_out != NULL)
+        *count_out = node->data.async_block.statement_count;
+    return node->data.async_block.statements;
+}
+
+size_t
+ast_async_block_statement_count(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_ASYNC_BLOCK)
+        return 0;
+    return node->data.async_block.statement_count;
+}
+
+ASTNode*
+ast_async_block_statement(const ASTNode* node, size_t index)
+{
+    if (node == NULL || node->type != AST_ASYNC_BLOCK)
+        return NULL;
+    if (index >= node->data.async_block.statement_count)
+        return NULL;
+    return node->data.async_block.statements != NULL
+        ? node->data.async_block.statements[index]
+        : NULL;
+}
+
+ASTNode**
+ast_parallel_tasks(const ASTNode* node, size_t* count_out)
+{
+    if (node == NULL || node->type != AST_PARALLEL_BLOCK) {
+        if (count_out != NULL)
+            *count_out = 0;
+        return NULL;
+    }
+    if (count_out != NULL)
+        *count_out = node->data.parallel.task_count;
+    return node->data.parallel.tasks;
+}
+
+size_t
+ast_parallel_task_count(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_PARALLEL_BLOCK)
+        return 0;
+    return node->data.parallel.task_count;
+}
+
+ASTNode*
+ast_parallel_task(const ASTNode* node, size_t index)
+{
+    if (node == NULL || node->type != AST_PARALLEL_BLOCK)
+        return NULL;
+    if (index >= node->data.parallel.task_count)
+        return NULL;
+    return node->data.parallel.tasks != NULL
+        ? node->data.parallel.tasks[index]
+        : NULL;
+}
+
+ASTNode*
+ast_with_slot_type(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_WITH_STMT)
+        return NULL;
+    return node->data.with_stmt.slot_type;
 }
 
 const char*
-ast_zone_state_layer_slot_name(const ASTNode* node)
+ast_with_alias(const ASTNode* node)
 {
-    if (node == NULL || node->type != AST_ZONE_STATE)
+    if (node == NULL || node->type != AST_WITH_STMT)
         return NULL;
-    return node->data.zone_state.layer_slot_name;
+    return node->data.with_stmt.alias;
+}
+
+ASTNode*
+ast_with_body(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_WITH_STMT)
+        return NULL;
+    return node->data.with_stmt.body;
+}
+
+bool
+ast_with_is_secure(const ASTNode* node)
+{
+    return node != NULL && node->type == AST_WITH_STMT
+        && node->data.with_stmt.is_secure;
 }
 
 const char*
-ast_zone_state_left_or_target_slot_name(const ASTNode* node)
+ast_with_security_level(const ASTNode* node)
 {
-    if (node == NULL || node->type != AST_ZONE_STATE)
+    if (node == NULL || node->type != AST_WITH_STMT)
         return NULL;
-    return node->data.zone_state.left_or_target_slot_name;
+    return node->data.with_stmt.security_level;
 }
 
-const char*
-ast_zone_state_right_slot_name(const ASTNode* node)
+ASTNode**
+ast_select_cases(const ASTNode* node, size_t* count_out)
 {
-    if (node == NULL || node->type != AST_ZONE_STATE)
+    if (node == NULL || node->type != AST_SELECT_STMT) {
+        if (count_out != NULL)
+            *count_out = 0;
         return NULL;
-    return node->data.zone_state.right_slot_name;
+    }
+    if (count_out != NULL)
+        *count_out = node->data.select_stmt.case_count;
+    return node->data.select_stmt.cases;
+}
+
+size_t
+ast_select_case_count(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_SELECT_STMT)
+        return 0;
+    return node->data.select_stmt.case_count;
+}
+
+ASTNode*
+ast_select_case(const ASTNode* node, size_t index)
+{
+    if (node == NULL || node->type != AST_SELECT_STMT)
+        return NULL;
+    if (index >= node->data.select_stmt.case_count)
+        return NULL;
+    return node->data.select_stmt.cases != NULL
+        ? node->data.select_stmt.cases[index]
+        : NULL;
+}
+
+ASTNode*
+ast_select_default_case(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_SELECT_STMT)
+        return NULL;
+    return node->data.select_stmt.default_case;
+}
+
+ASTNode*
+ast_event_handler_return_type(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_EVENT_HANDLER_TYPE)
+        return NULL;
+    return node->data.event_handler_type.return_type;
 }

@@ -35,7 +35,7 @@ reject_qubit_view(ASTNode *call, Type *slot_type, const char *view_name,
         PGY_CODE_SEM_PIN_QUBIT_REJECT,
         PGY_CAUSE_PIN_QUBIT_REJECT,
         PGY_FIX_DO_NOT_PIN_QUBIT,
-        call->data.call.arguments[0],
+        ast_call_argument(call, 0),
         "%s cannot pin QubitSlot resources.\n"
         "Reason:\n"
         "- QubitSlot has a movable quantum state machine, not a stable resource-boundary lease\n"
@@ -58,7 +58,7 @@ require_owned_slot_view_source(ASTNode *call, Type *slot_type,
         PGY_CODE_SEM_TYPE_MISMATCH,
         PGY_CAUSE_BUILTIN_SLOT_TYPE_REQUIRED,
         PGY_FIX_PASS_OWNING_SLOT,
-        call->data.call.arguments[0],
+        ast_call_argument(call, 0),
         "%s requires owning Slot<T>, got '%s'",
         view_name,
         slot_type != NULL ? slot_type->name : "<null>");
@@ -73,7 +73,7 @@ type_check_view_read(ASTNode *call, SemanticContext *ctx)
     if (!check_call_arity(call, 1, "ViewRead", ctx))
         return TYPE_UNKNOWN;
 
-    slot_type = type_check_view_source_type(call->data.call.arguments[0],
+    slot_type = type_check_view_source_type(ast_call_argument(call, 0),
                                             ctx);
     if (reject_qubit_view(call, slot_type, "ViewRead", ctx))
         return TYPE_UNKNOWN;
@@ -90,7 +90,7 @@ type_check_view_write(ASTNode *call, SemanticContext *ctx)
     if (!check_call_arity(call, 1, "ViewWrite", ctx))
         return TYPE_UNKNOWN;
 
-    slot_type = type_check_view_source_type(call->data.call.arguments[0],
+    slot_type = type_check_view_source_type(ast_call_argument(call, 0),
                                             ctx);
     if (reject_qubit_view(call, slot_type, "ViewWrite", ctx))
         return TYPE_UNKNOWN;

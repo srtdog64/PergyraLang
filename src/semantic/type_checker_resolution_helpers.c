@@ -13,11 +13,12 @@ find_type_alias_decl(ASTNode *program, const char *name)
 
     for (size_t i = 0; i < program->data.program.count; i++) {
         ASTNode *stmt = program->data.program.statements[i];
+        const char *alias_name = ast_type_alias_name(stmt);
         if (stmt == NULL || stmt->type != AST_TYPE_ALIAS
-            || stmt->data.type_alias.name == NULL) {
+            || alias_name == NULL) {
             continue;
         }
-        if (strcmp(stmt->data.type_alias.name, name) == 0)
+        if (strcmp(alias_name, name) == 0)
             return stmt;
     }
 
@@ -99,9 +100,9 @@ root_identifier_name(ASTNode *expr)
     case AST_IDENTIFIER:
         return expr->data.identifier.name;
     case AST_MEMBER_ACCESS:
-        return root_identifier_name(expr->data.member.object);
+        return root_identifier_name(ast_member_object(expr));
     case AST_ARRAY_ACCESS:
-        return root_identifier_name(expr->data.array_access.array);
+        return root_identifier_name(ast_array_access_array(expr));
     default:
         return NULL;
     }

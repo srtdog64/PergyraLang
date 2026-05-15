@@ -1,6 +1,7 @@
 #include "rir.h"
 #include "rir_internal.h"
 #include "io_boundary_builtin.h"
+#include "parser/ast_api.h"
 
 #include <string.h>
 
@@ -16,11 +17,11 @@ rir_walk_call(RIRScope *scope, ASTNode *node)
     if (node == NULL || node->type != AST_CALL)
         return true;
 
-    if (node->data.call.callee != NULL
-        && node->data.call.callee->type == AST_MEMBER_ACCESS) {
-        ASTNode *member = node->data.call.callee;
-        ASTNode *receiver = member->data.member.object;
-        const char *method = member->data.member.name;
+    if (ast_call_callee(node) != NULL
+        && ast_call_callee(node)->type == AST_MEMBER_ACCESS) {
+        ASTNode *member = ast_call_callee(node);
+        ASTNode *receiver = ast_member_object(member);
+        const char *method = ast_member_name(member);
         const char *receiver_name = expr_name(receiver);
 
         if (receiver_name != NULL && method != NULL) {
@@ -29,8 +30,8 @@ rir_walk_call(RIRScope *scope, ASTNode *node)
                     return false;
                 member_slot_op_handled = true;
             } else if (strcmp(method, "Write") == 0) {
-                const char *value_name = node->data.call.arg_count >= 1
-                    ? expr_name(node->data.call.arguments[0])
+                const char *value_name = ast_call_arg_count(node) >= 1
+                    ? expr_name(ast_call_argument(node, 0))
                     : NULL;
                 if (!add_op(scope, RIR_OP_WRITE, receiver_name, value_name, NULL, node))
                     return false;
@@ -49,38 +50,48 @@ rir_walk_call(RIRScope *scope, ASTNode *node)
 
     name = member_slot_op_handled ? NULL : call_name(node);
     if (name != NULL) {
-        ASTNode **args = node->data.call.arguments;
-        size_t argc = node->data.call.arg_count;
+        size_t argc = ast_call_arg_count(node);
 
         if (pgy_compiler_io_boundary_builtin_is_stable(name)) {
-            const char *first_arg = argc >= 1 ? expr_name(args[0]) : NULL;
+            const char *first_arg =
+                argc >= 1 ? expr_name(ast_call_argument(node, 0)) : NULL;
             if (!add_op(scope, RIR_OP_IO, name, first_arg, NULL, node))
                 return false;
         } else if (strcmp(name, "Read") == 0 && argc >= 1) {
-            if (!add_op(scope, RIR_OP_READ, expr_name(args[0]), NULL, NULL, node))
+            if (!add_op(scope, RIR_OP_READ,
+                        expr_name(ast_call_argument(node, 0)), NULL, NULL, node))
                 return false;
         } else if (strcmp(name, "Write") == 0 && argc >= 1) {
-            if (!add_op(scope, RIR_OP_WRITE, expr_name(args[0]), argc >= 2 ? expr_name(args[1]) : NULL, NULL, node))
+            if (!add_op(scope, RIR_OP_WRITE,
+                        expr_name(ast_call_argument(node, 0)),
+                        argc >= 2 ? expr_name(ast_call_argument(node, 1)) : NULL,
+                        NULL, node))
                 return false;
         } else if (strcmp(name, "Release") == 0 && argc >= 1) {
-            if (!add_op(scope, RIR_OP_RELEASE, expr_name(args[0]), NULL, NULL, node))
+            if (!add_op(scope, RIR_OP_RELEASE,
+                        expr_name(ast_call_argument(node, 0)), NULL, NULL, node))
                 return false;
         } else if (strcmp(name, "Move") == 0 && argc >= 1) {
-            if (!add_op(scope, RIR_OP_MOVE, expr_name(args[0]), NULL, NULL, node))
+            if (!add_op(scope, RIR_OP_MOVE,
+                        expr_name(ast_call_argument(node, 0)), NULL, NULL, node))
                 return false;
         } else if (strcmp(name, "ToObject") == 0 && argc >= 2) {
-            if (!add_op(scope, RIR_OP_PROJECT_REFRESH, expr_name(args[1]), expr_name(args[0]), NULL, node))
+            if (!add_op(scope, RIR_OP_PROJECT_REFRESH,
+                        expr_name(ast_call_argument(node, 1)),
+                        expr_name(ast_call_argument(node, 0)), NULL, node))
                 return false;
         } else if (strcmp(name, "ToTObject") == 0 && argc >= 2) {
-            if (!add_op(scope, RIR_OP_PROJECT_PUBLISH, expr_name(args[1]), expr_name(args[0]), NULL, node))
+            if (!add_op(scope, RIR_OP_PROJECT_PUBLISH,
+                        expr_name(ast_call_argument(node, 1)),
+                        expr_name(ast_call_argument(node, 0)), NULL, node))
                 return false;
         }
     }
 
-    if (!rir_walk_node(scope, node->data.call.callee))
+    if (!rir_walk_node(scope, ast_call_callee(node)))
         return false;
-    for (size_t i = 0; i < node->data.call.arg_count; i++) {
-        if (!rir_walk_node(scope, node->data.call.arguments[i]))
+    for (size_t i = 0; i < ast_call_arg_count(node); i++) {
+        if (!rir_walk_node(scope, ast_call_argument(node, i)))
             return false;
     }
     return true;
@@ -125,19 +136,21 @@ rir_walk_node(RIRScope *scope, ASTNode *node)
                                 node->data.let_decl.initializer))
                         return false;
                 } else if (strcmp(init_name, "ViewRead") == 0
-                           && node->data.let_decl.initializer->data.call.arg_count >= 1) {
+                           && ast_call_arg_count(node->data.let_decl.initializer) >= 1) {
                     if (!add_op(scope,
                                 RIR_OP_BORROW_READ,
-                                expr_name(node->data.let_decl.initializer->data.call.arguments[0]),
+                                expr_name(ast_call_argument(
+                                    node->data.let_decl.initializer, 0)),
                                 node->data.let_decl.name,
                                 NULL,
                                 node->data.let_decl.initializer))
                         return false;
                 } else if (strcmp(init_name, "ViewWrite") == 0
-                           && node->data.let_decl.initializer->data.call.arg_count >= 1) {
+                           && ast_call_arg_count(node->data.let_decl.initializer) >= 1) {
                     if (!add_op(scope,
                                 RIR_OP_BORROW_WRITE,
-                                expr_name(node->data.let_decl.initializer->data.call.arguments[0]),
+                                expr_name(ast_call_argument(
+                                    node->data.let_decl.initializer, 0)),
                                 node->data.let_decl.name,
                                 NULL,
                                 node->data.let_decl.initializer))
@@ -156,38 +169,38 @@ rir_walk_node(RIRScope *scope, ASTNode *node)
 
         case AST_WITH_STMT:
             if (!add_resource_fact(scope,
-                                   node->data.with_stmt.alias,
-                                   node->data.with_stmt.slot_type,
+                                   ast_with_alias(node),
+                                   ast_with_slot_type(node),
                                    RIR_STATE_OWNED,
                                    node))
                 return false;
             if (!add_op(scope, RIR_OP_CLAIM,
-                        node->data.with_stmt.alias,
-                        node->data.with_stmt.is_secure ? "SecureSlot" : "Slot",
+                        ast_with_alias(node),
+                        ast_with_is_secure(node) ? "SecureSlot" : "Slot",
                         NULL,
                         node))
                 return false;
-            return rir_walk_node(scope, node->data.with_stmt.body);
+            return rir_walk_node(scope, ast_with_body(node));
 
         case AST_ASSIGNMENT:
-            if (!rir_walk_node(scope, node->data.assignment.target))
+            if (!rir_walk_node(scope, ast_assignment_target(node)))
                 return false;
-            return rir_walk_node(scope, node->data.assignment.value);
+            return rir_walk_node(scope, ast_assignment_value(node));
 
         case AST_AWAIT_EXPR:
             if (!add_op(scope, RIR_OP_AWAIT_REMOTE,
-                        expr_name(node->data.await_expr.expression),
+                        expr_name(ast_await_expression(node)),
                         NULL, NULL, node))
                 return false;
-            return rir_walk_node(scope, node->data.await_expr.expression);
+            return rir_walk_node(scope, ast_await_expression(node));
 
         case AST_SPAWN_EXPR:
             if (!add_op(scope, RIR_OP_SPAWN, "spawn", NULL, NULL, node))
                 return false;
-            if (!rir_walk_node(scope, node->data.spawn_expr.function))
+            if (!rir_walk_node(scope, ast_spawn_function(node)))
                 return false;
-            for (size_t i = 0; i < node->data.spawn_expr.arg_count; i++) {
-                if (!rir_walk_node(scope, node->data.spawn_expr.arguments[i]))
+            for (size_t i = 0; i < ast_spawn_arg_count(node); i++) {
+                if (!rir_walk_node(scope, ast_spawn_argument(node, i)))
                     return false;
             }
             return true;
@@ -195,60 +208,60 @@ rir_walk_node(RIRScope *scope, ASTNode *node)
         case AST_CHANNEL_SEND:
             if (!add_op(scope,
                         RIR_OP_CHANNEL_SEND,
-                        expr_name(node->data.channel_send.channel),
-                        expr_name(node->data.channel_send.value),
+                        expr_name(ast_channel_send_channel(node)),
+                        expr_name(ast_channel_send_value(node)),
                         NULL,
                         node))
                 return false;
-            if (!rir_walk_node(scope, node->data.channel_send.channel))
+            if (!rir_walk_node(scope, ast_channel_send_channel(node)))
                 return false;
-            return rir_walk_node(scope, node->data.channel_send.value);
+            return rir_walk_node(scope, ast_channel_send_value(node));
 
         case AST_CHANNEL_RECV:
             if (!add_op(scope,
                         RIR_OP_CHANNEL_RECV,
-                        expr_name(node->data.channel_recv.channel),
+                        expr_name(ast_channel_recv_channel(node)),
                         NULL,
                         NULL,
                         node))
                 return false;
-            return rir_walk_node(scope, node->data.channel_recv.channel);
+            return rir_walk_node(scope, ast_channel_recv_channel(node));
 
         case AST_SELECT_STMT:
             if (!add_op(scope, RIR_OP_CHANNEL_SELECT, "select", NULL, NULL, node))
                 return false;
-            for (size_t i = 0; i < node->data.select_stmt.case_count; i++) {
-                if (!rir_walk_node(scope, node->data.select_stmt.cases[i]))
+            for (size_t i = 0; i < ast_select_case_count(node); i++) {
+                if (!rir_walk_node(scope, ast_select_case(node, i)))
                     return false;
             }
-            return rir_walk_node(scope, node->data.select_stmt.default_case);
+            return rir_walk_node(scope, ast_select_default_case(node));
 
         case AST_CALL:
             return rir_walk_call(scope, node);
 
         case AST_IF_STMT:
-            if (!rir_walk_node(scope, node->data.if_stmt.condition))
+            if (!rir_walk_node(scope, ast_if_condition(node)))
                 return false;
-            if (!rir_walk_node(scope, node->data.if_stmt.then_branch))
+            if (!rir_walk_node(scope, ast_if_then_branch(node)))
                 return false;
-            return rir_walk_node(scope, node->data.if_stmt.else_branch);
+            return rir_walk_node(scope, ast_if_else_branch(node));
 
         case AST_FOR_LOOP:
-            if (!rir_walk_node(scope, node->data.for_loop.range_start))
+            if (!rir_walk_node(scope, ast_for_range_start(node)))
                 return false;
-            if (!rir_walk_node(scope, node->data.for_loop.range_end))
+            if (!rir_walk_node(scope, ast_for_range_end(node)))
                 return false;
-            if (!rir_walk_node(scope, node->data.for_loop.iterable))
+            if (!rir_walk_node(scope, ast_for_iterable(node)))
                 return false;
-            return rir_walk_node(scope, node->data.for_loop.body);
+            return rir_walk_node(scope, ast_for_body(node));
 
         case AST_WHILE_LOOP:
-            if (!rir_walk_node(scope, node->data.while_loop.condition))
+            if (!rir_walk_node(scope, ast_while_condition(node)))
                 return false;
-            return rir_walk_node(scope, node->data.while_loop.body);
+            return rir_walk_node(scope, ast_while_body(node));
 
         case AST_RETURN:
-            return rir_walk_node(scope, node->data.return_stmt.value);
+            return rir_walk_node(scope, ast_return_value(node));
 
         case AST_MATCH_STMT:
             if (!rir_walk_node(scope, node->data.match_stmt.subject))
@@ -271,8 +284,8 @@ rir_walk_node(RIRScope *scope, ASTNode *node)
         case AST_PARALLEL_BLOCK:
             if (!add_op(scope, RIR_OP_PARALLEL, "parallel", NULL, NULL, node))
                 return false;
-            for (size_t i = 0; i < node->data.parallel.task_count; i++) {
-                if (!rir_walk_node(scope, node->data.parallel.tasks[i]))
+            for (size_t i = 0; i < ast_parallel_task_count(node); i++) {
+                if (!rir_walk_node(scope, ast_parallel_task(node, i)))
                     return false;
             }
             return true;
@@ -280,8 +293,8 @@ rir_walk_node(RIRScope *scope, ASTNode *node)
         case AST_ASYNC_BLOCK:
             if (!add_op(scope, RIR_OP_ASYNC, "async", NULL, NULL, node))
                 return false;
-            for (size_t i = 0; i < node->data.async_block.statement_count; i++) {
-                if (!rir_walk_node(scope, node->data.async_block.statements[i]))
+            for (size_t i = 0; i < ast_async_block_statement_count(node); i++) {
+                if (!rir_walk_node(scope, ast_async_block_statement(node, i)))
                     return false;
             }
             return true;
@@ -289,8 +302,8 @@ rir_walk_node(RIRScope *scope, ASTNode *node)
         case AST_TASK_GROUP:
             if (!add_op(scope, RIR_OP_TASK_GROUP, "task-group", NULL, NULL, node))
                 return false;
-            for (size_t i = 0; i < node->data.task_group.task_count; i++) {
-                if (!rir_walk_node(scope, node->data.task_group.tasks[i]))
+            for (size_t i = 0; i < ast_task_group_task_count(node); i++) {
+                if (!rir_walk_node(scope, ast_task_group_task(node, i)))
                     return false;
             }
             return true;
@@ -308,13 +321,13 @@ rir_walk_block_node(RIRScope *scope, ASTNode *node)
 
     switch (node->type) {
         case AST_IF_STMT:
-            return rir_walk_block_node(scope, node->data.if_stmt.condition);
+            return rir_walk_block_node(scope, ast_if_condition(node));
         case AST_FOR_LOOP:
-            return rir_walk_block_node(scope, node->data.for_loop.range_start)
-                   && rir_walk_block_node(scope, node->data.for_loop.range_end)
-                   && rir_walk_block_node(scope, node->data.for_loop.iterable);
+            return rir_walk_block_node(scope, ast_for_range_start(node))
+                   && rir_walk_block_node(scope, ast_for_range_end(node))
+                   && rir_walk_block_node(scope, ast_for_iterable(node));
         case AST_WHILE_LOOP:
-            return rir_walk_block_node(scope, node->data.while_loop.condition);
+            return rir_walk_block_node(scope, ast_while_condition(node));
         case AST_MATCH_STMT:
             if (!rir_walk_block_node(scope, node->data.match_stmt.subject))
                 return false;

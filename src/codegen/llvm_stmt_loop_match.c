@@ -4,6 +4,10 @@
 static bool
 llvm_is_option_destructor(ASTNode *pat, const char **kind, const char **binding)
 {
+    ASTNode *callee;
+    ASTNode *payload;
+    size_t arg_count;
+
     *kind = NULL;
     *binding = NULL;
 
@@ -19,25 +23,28 @@ llvm_is_option_destructor(ASTNode *pat, const char **kind, const char **binding)
         return false;
     }
 
+    callee = ast_call_callee(pat);
+    arg_count = ast_call_arg_count(pat);
     if (pat->type != AST_CALL
-        || pat->data.call.callee == NULL
-        || pat->data.call.callee->type != AST_IDENTIFIER) {
+        || callee == NULL
+        || callee->type != AST_IDENTIFIER) {
         return false;
     }
 
-    const char *name = pat->data.call.callee->data.identifier.name;
+    const char *name = callee->data.identifier.name;
     if (name == NULL)
         return false;
 
-    if (strcmp(name, "None") == 0 && pat->data.call.arg_count == 0) {
+    if (strcmp(name, "None") == 0 && arg_count == 0) {
         *kind = "None";
         return true;
     }
-    if (strcmp(name, "Some") == 0 && pat->data.call.arg_count == 1) {
+    if (strcmp(name, "Some") == 0 && arg_count == 1) {
         *kind = "Some";
-        if (pat->data.call.arguments[0] != NULL
-            && pat->data.call.arguments[0]->type == AST_IDENTIFIER) {
-            *binding = pat->data.call.arguments[0]->data.identifier.name;
+        payload = ast_call_argument(pat, 0);
+        if (payload != NULL
+            && payload->type == AST_IDENTIFIER) {
+            *binding = payload->data.identifier.name;
         }
         return true;
     }
@@ -48,24 +55,31 @@ llvm_is_option_destructor(ASTNode *pat, const char **kind, const char **binding)
 static bool
 llvm_is_result_destructor(ASTNode *pat, const char **kind, const char **binding)
 {
+    ASTNode *callee;
+    ASTNode *payload;
+    size_t arg_count;
+
     *kind = NULL;
     *binding = NULL;
 
+    callee = ast_call_callee(pat);
+    arg_count = ast_call_arg_count(pat);
     if (pat == NULL || pat->type != AST_CALL
-        || pat->data.call.callee == NULL
-        || pat->data.call.callee->type != AST_IDENTIFIER)
+        || callee == NULL
+        || callee->type != AST_IDENTIFIER)
         return false;
 
-    const char *name = pat->data.call.callee->data.identifier.name;
+    const char *name = callee->data.identifier.name;
     if (name == NULL)
         return false;
 
     if ((strcmp(name, "Ok") == 0 || strcmp(name, "Err") == 0)
-        && pat->data.call.arg_count == 1) {
+        && arg_count == 1) {
         *kind = name;
-        if (pat->data.call.arguments[0] != NULL
-            && pat->data.call.arguments[0]->type == AST_IDENTIFIER)
-            *binding = pat->data.call.arguments[0]->data.identifier.name;
+        payload = ast_call_argument(pat, 0);
+        if (payload != NULL
+            && payload->type == AST_IDENTIFIER)
+            *binding = payload->data.identifier.name;
         return true;
     }
 
@@ -108,7 +122,7 @@ llvm_emit_while_loop(ASTNode *node, LLVMGenCtx *ctx)
 
     /* Condition */
     LLVMPositionBuilderAtEnd(ctx->builder, cond_bb);
-    LLVMValueRef cond = llvm_emit_expression(node->data.while_loop.condition,
+    LLVMValueRef cond = llvm_emit_expression(ast_while_condition(node),
                                               ctx);
     if (cond != NULL && LLVMTypeOf(cond) != ctx->type_i1)
         cond = LLVMBuildICmp(ctx->builder, LLVMIntNE, cond,
@@ -122,14 +136,14 @@ llvm_emit_while_loop(ASTNode *node, LLVMGenCtx *ctx)
     /* Body */
     LLVMPositionBuilderAtEnd(ctx->builder, body_bb);
     if (ctx->loop_depth < MAX_SCOPE_DEPTH) {
-        ctx->loop_labels[ctx->loop_depth] = node->data.while_loop.label;
+        ctx->loop_labels[ctx->loop_depth] = ast_while_label(node);
         ctx->loop_continue_blocks[ctx->loop_depth] = cond_bb;
         ctx->loop_break_blocks[ctx->loop_depth] = exit_bb;
         ctx->loop_defer_base_depth[ctx->loop_depth] = ctx->defer_scope_depth;
         ctx->loop_depth++;
     }
-    if (node->data.while_loop.body != NULL)
-        llvm_emit_statement(node->data.while_loop.body, ctx);
+    if (ast_while_body(node) != NULL)
+        llvm_emit_statement(ast_while_body(node), ctx);
     if (ctx->loop_depth > 0) {
         ctx->loop_depth--;
         ctx->loop_labels[ctx->loop_depth] = NULL;
@@ -144,11 +158,13 @@ llvm_emit_while_loop(ASTNode *node, LLVMGenCtx *ctx)
 void
 llvm_emit_for_loop(ASTNode *node, LLVMGenCtx *ctx)
 {
-    const char *var_name = node->data.for_loop.variable;
+    const char *var_name = ast_for_variable(node);
+    ASTNode *iterable_node = ast_for_iterable(node);
+    ASTNode *body_node = ast_for_body(node);
 
-    if (node->data.for_loop.iterable != NULL) {
-        if (node->data.for_loop.iterable->type == AST_IDENTIFIER) {
-            const char *iter_name = node->data.for_loop.iterable->data.identifier.name;
+    if (iterable_node != NULL) {
+        if (iterable_node->type == AST_IDENTIFIER) {
+            const char *iter_name = iterable_node->data.identifier.name;
             const char *list_inner = llvm_lookup_list_inner(ctx, iter_name);
             LLVMVarEntry *list_var = llvm_scope_lookup(ctx, iter_name);
             if (list_inner != NULL && list_var != NULL) {
@@ -217,14 +233,14 @@ llvm_emit_for_loop(ASTNode *node, LLVMGenCtx *ctx)
                     }
                 }
                 if (ctx->loop_depth < MAX_SCOPE_DEPTH) {
-                    ctx->loop_labels[ctx->loop_depth] = node->data.for_loop.label;
+                    ctx->loop_labels[ctx->loop_depth] = ast_for_label(node);
                     ctx->loop_continue_blocks[ctx->loop_depth] = incr_bb;
                     ctx->loop_break_blocks[ctx->loop_depth] = exit_bb;
                     ctx->loop_defer_base_depth[ctx->loop_depth] = ctx->defer_scope_depth;
                     ctx->loop_depth++;
                 }
-                if (node->data.for_loop.body != NULL)
-                    llvm_emit_statement(node->data.for_loop.body, ctx);
+                if (body_node != NULL)
+                    llvm_emit_statement(body_node, ctx);
                 if (ctx->loop_depth > 0) {
                     ctx->loop_depth--;
                     ctx->loop_labels[ctx->loop_depth] = NULL;
@@ -246,7 +262,7 @@ llvm_emit_for_loop(ASTNode *node, LLVMGenCtx *ctx)
             }
         }
 
-        LLVMValueRef iterable = llvm_emit_expression(node->data.for_loop.iterable, ctx);
+        LLVMValueRef iterable = llvm_emit_expression(iterable_node, ctx);
         LLVMTypeRef iterable_ty;
         LLVMTypeRef field_types[5];
         LLVMTypeRef elem_ty;
@@ -311,14 +327,14 @@ llvm_emit_for_loop(ASTNode *node, LLVMGenCtx *ctx)
                 LLVMBuildStore(ctx->builder, item, loop_var->alloca);
         }
         if (ctx->loop_depth < MAX_SCOPE_DEPTH) {
-            ctx->loop_labels[ctx->loop_depth] = node->data.for_loop.label;
+            ctx->loop_labels[ctx->loop_depth] = ast_for_label(node);
             ctx->loop_continue_blocks[ctx->loop_depth] = incr_bb;
             ctx->loop_break_blocks[ctx->loop_depth] = exit_bb;
             ctx->loop_defer_base_depth[ctx->loop_depth] = ctx->defer_scope_depth;
             ctx->loop_depth++;
         }
-        if (node->data.for_loop.body != NULL)
-            llvm_emit_statement(node->data.for_loop.body, ctx);
+        if (body_node != NULL)
+            llvm_emit_statement(body_node, ctx);
         if (ctx->loop_depth > 0) {
             ctx->loop_depth--;
             ctx->loop_labels[ctx->loop_depth] = NULL;
@@ -345,8 +361,7 @@ llvm_emit_for_loop(ASTNode *node, LLVMGenCtx *ctx)
     /* Create loop variable */
     LLVMValueRef var_alloca = llvm_create_entry_alloca(ctx, ctx->type_i32,
                                                         var_name);
-    LLVMValueRef start = llvm_emit_expression(node->data.for_loop.range_start,
-                                               ctx);
+    LLVMValueRef start = llvm_emit_expression(ast_for_range_start(node), ctx);
     if (start == NULL)
         start = LLVMConstInt(ctx->type_i32, 0, 0);
     LLVMBuildStore(ctx->builder, start, var_alloca);
@@ -368,7 +383,7 @@ llvm_emit_for_loop(ASTNode *node, LLVMGenCtx *ctx)
     LLVMPositionBuilderAtEnd(ctx->builder, cond_bb);
     LLVMValueRef current = LLVMBuildLoad2(ctx->builder, ctx->type_i32,
                                            var_alloca, llvm_tmp_name(ctx));
-    LLVMValueRef end = llvm_emit_expression(node->data.for_loop.range_end, ctx);
+    LLVMValueRef end = llvm_emit_expression(ast_for_range_end(node), ctx);
     if (end == NULL)
         end = LLVMConstInt(ctx->type_i32, 0, 0);
     LLVMValueRef cond = LLVMBuildICmp(ctx->builder, LLVMIntSLT, current, end,
@@ -378,14 +393,14 @@ llvm_emit_for_loop(ASTNode *node, LLVMGenCtx *ctx)
     /* Body */
     LLVMPositionBuilderAtEnd(ctx->builder, body_bb);
     if (ctx->loop_depth < MAX_SCOPE_DEPTH) {
-        ctx->loop_labels[ctx->loop_depth] = node->data.for_loop.label;
+        ctx->loop_labels[ctx->loop_depth] = ast_for_label(node);
         ctx->loop_continue_blocks[ctx->loop_depth] = incr_bb;
         ctx->loop_break_blocks[ctx->loop_depth] = exit_bb;
         ctx->loop_defer_base_depth[ctx->loop_depth] = ctx->defer_scope_depth;
         ctx->loop_depth++;
     }
-    if (node->data.for_loop.body != NULL)
-        llvm_emit_statement(node->data.for_loop.body, ctx);
+    if (body_node != NULL)
+        llvm_emit_statement(body_node, ctx);
     if (ctx->loop_depth > 0) {
         ctx->loop_depth--;
         ctx->loop_labels[ctx->loop_depth] = NULL;

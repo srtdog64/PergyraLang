@@ -35,10 +35,11 @@ intent_summary_subject_action(ASTNode *decl, const char *action_name)
     ASTNode **methods = ast_class_methods(decl, &method_count);
     for (size_t i = 0; i < method_count; i++) {
         ASTNode *method = methods != NULL ? methods[i] : NULL;
+        const char *method_name = ast_declaration_name(method);
         if (method != NULL && method->type == AST_FUNC_DECL
             && method->data.func_decl.is_action
-            && method->data.func_decl.name != NULL
-            && strcmp(method->data.func_decl.name, action_name) == 0) {
+            && method_name != NULL
+            && strcmp(method_name, action_name) == 0) {
             return method;
         }
     }
@@ -110,6 +111,15 @@ intent_step_summary_append(char *buffer, size_t buffer_size, size_t *used,
     *used += (size_t)written;
 }
 
+static const char *
+intent_step_summary_where_type_name(ASTNode *step)
+{
+    ASTNode *where_type = ast_intent_step_where_type(step);
+    if (where_type == NULL || where_type->type != AST_TYPE)
+        return NULL;
+    return ast_type_name(where_type);
+}
+
 void
 intent_step_format_contract_source_summary(const ASTNode *intent_decl,
                                            const ASTNode *step,
@@ -139,7 +149,7 @@ intent_step_format_contract_source_summary(const ASTNode *intent_decl,
                 ? intent_summary_nominal_decl_name(matched_subject_decl)
                 : NULL;
             const char *action_name = matched_action->type == AST_FUNC_DECL
-                ? matched_action->data.func_decl.name
+                ? ast_declaration_name(matched_action)
                 : NULL;
             intent_step_summary_append(buffer, buffer_size, &used,
                 "%s- matching action contract: %s.%s",
@@ -183,11 +193,11 @@ intent_step_format_contract_source_summary(const ASTNode *intent_decl,
         && !ast_intent_step_derived_where_from_using(step)
         && !ast_intent_step_derived_where_from_transfer(step)
         && ast_intent_step_where_type(step)->type == AST_TYPE
-        && ast_intent_step_where_type(step)->data.type.name != NULL) {
+        && intent_step_summary_where_type_name((ASTNode *)step) != NULL) {
         intent_step_summary_append(buffer, buffer_size, &used,
             "%s- locally declared zone on step: %s",
             has_any ? "\n" : "",
-            ast_intent_step_where_type(step)->data.type.name);
+            intent_step_summary_where_type_name((ASTNode *)step));
         has_any = true;
     }
     if (ast_intent_step_required_ability_count(step) > 0
@@ -322,8 +332,8 @@ intent_step_format_contract_source_summary(const ASTNode *intent_decl,
         const char *zone_name =
             (ast_intent_step_where_type(step) != NULL
              && ast_intent_step_where_type(step)->type == AST_TYPE
-             && ast_intent_step_where_type(step)->data.type.name != NULL)
-                ? ast_intent_step_where_type(step)->data.type.name
+             && intent_step_summary_where_type_name((ASTNode *)step) != NULL)
+                ? intent_step_summary_where_type_name((ASTNode *)step)
                 : "<zone>";
         intent_step_summary_append(buffer, buffer_size, &used,
             "%s- reused zone from matching action contract: %s",
@@ -334,8 +344,8 @@ intent_step_format_contract_source_summary(const ASTNode *intent_decl,
         const char *zone_name =
             (ast_intent_step_where_type(step) != NULL
              && ast_intent_step_where_type(step)->type == AST_TYPE
-             && ast_intent_step_where_type(step)->data.type.name != NULL)
-                ? ast_intent_step_where_type(step)->data.type.name
+             && intent_step_summary_where_type_name((ASTNode *)step) != NULL)
+                ? intent_step_summary_where_type_name((ASTNode *)step)
                 : "<zone>";
         intent_step_summary_append(buffer, buffer_size, &used,
             "%s- reused zone from intent-level default: %s",
@@ -385,8 +395,8 @@ intent_step_format_contract_source_summary(const ASTNode *intent_decl,
         const char *zone_name =
             (ast_intent_step_where_type(step) != NULL
              && ast_intent_step_where_type(step)->type == AST_TYPE
-             && ast_intent_step_where_type(step)->data.type.name != NULL)
-                ? ast_intent_step_where_type(step)->data.type.name
+             && intent_step_summary_where_type_name((ASTNode *)step) != NULL)
+                ? intent_step_summary_where_type_name((ASTNode *)step)
                 : "<zone>";
         intent_step_summary_append(buffer, buffer_size, &used,
             "%s- derived zone from transfer target handoff: %s",
@@ -397,8 +407,8 @@ intent_step_format_contract_source_summary(const ASTNode *intent_decl,
         const char *zone_name =
             (ast_intent_step_where_type(step) != NULL
              && ast_intent_step_where_type(step)->type == AST_TYPE
-             && ast_intent_step_where_type(step)->data.type.name != NULL)
-                ? ast_intent_step_where_type(step)->data.type.name
+             && intent_step_summary_where_type_name((ASTNode *)step) != NULL)
+                ? intent_step_summary_where_type_name((ASTNode *)step)
                 : "<zone>";
         intent_step_summary_append(buffer, buffer_size, &used,
             "%s- derived zone from using binding: %s",

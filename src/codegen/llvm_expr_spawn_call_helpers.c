@@ -109,7 +109,7 @@ llvm_resolve_callee_entry(LLVMGenCtx *ctx, const char *callee_name,
 
         llvm_register_mono(ctx, mangled);
 
-        gp = generic_ast->data.func_decl.generic_params;
+        gp = ast_func_generic_params(generic_ast);
         saved_subst = ctx->type_subst_count;
         ctx->type_subst_count = 0;
         for (size_t gi = 0; gi < gp->count && gi < 8; gi++) {
@@ -146,10 +146,11 @@ llvm_resolve_callee_entry(LLVMGenCtx *ctx, const char *callee_name,
         saved_fn = ctx->current_function;
         saved_ret = ctx->current_ret_type;
 
-        if (generic_ast->data.func_decl.return_type != NULL)
-            ret = ast_type_to_llvm(ctx, generic_ast->data.func_decl.return_type);
+        ASTNode *return_type = ast_func_return_type(generic_ast);
+        if (return_type != NULL)
+            ret = ast_type_to_llvm(ctx, return_type);
 
-        pc = generic_ast->data.func_decl.param_count;
+        pc = ast_func_param_count(generic_ast);
         ptypes = pgy_arena_calloc(&ctx->scratch,
             ((pc * 2) > 0 ? (pc * 2) : 1) * sizeof(LLVMTypeRef));
         if (ptypes == NULL) {
@@ -164,7 +165,7 @@ llvm_resolve_callee_entry(LLVMGenCtx *ctx, const char *callee_name,
         }
         real_pc = 0;
         for (size_t k = 0; k < pc; k++) {
-            FuncParam *p = generic_ast->data.func_decl.params[k];
+            FuncParam *p = ast_func_param(generic_ast, k);
             if (llvm_param_is_implicit_self(p))
                 continue;
             if (p == NULL || p->name == NULL)
@@ -200,7 +201,7 @@ llvm_resolve_callee_entry(LLVMGenCtx *ctx, const char *callee_name,
 
         real_pc = 0;
         for (size_t k = 0; k < pc; k++) {
-            FuncParam *p = generic_ast->data.func_decl.params[k];
+            FuncParam *p = ast_func_param(generic_ast, k);
             if (llvm_param_is_implicit_self(p))
                 continue;
             if (p == NULL || p->name == NULL)
@@ -256,19 +257,20 @@ llvm_resolve_callee_entry(LLVMGenCtx *ctx, const char *callee_name,
                         LLVMGetParam(mono_fn, (unsigned)real_pc), alloca);
                     llvm_scope_declare(ctx, p->name, alloca, pt);
                     if (p->type != NULL && p->type->type == AST_TYPE
-                        && p->type->data.type.name != NULL
+                        && ast_type_name(p->type) != NULL
                         && llvm_lookup_class(ctx,
-                            p->type->data.type.name) != NULL) {
+                            ast_type_name(p->type)) != NULL) {
                         llvm_register_var_class(ctx, p->name,
-                            p->type->data.type.name);
+                            ast_type_name(p->type));
                     }
                     real_pc++;
                 }
             }
         }
 
-        if (generic_ast->data.func_decl.body != NULL)
-            llvm_emit_block(generic_ast->data.func_decl.body, ctx);
+        ASTNode *body = ast_func_body(generic_ast);
+        if (body != NULL)
+            llvm_emit_block(body, ctx);
 
         if (LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(ctx->builder)) == NULL) {
             if (ret == ctx->type_void)
@@ -291,7 +293,7 @@ llvm_resolve_callee_entry(LLVMGenCtx *ctx, const char *callee_name,
 LLVMValueRef
 llvm_emit_spawn_expr(ASTNode *node, LLVMGenCtx *ctx)
 {
-    ASTNode *target = node->data.spawn_expr.function;
+    ASTNode *target = ast_spawn_function(node);
     ASTNode *call = NULL;
     ASTNode *callee = NULL;
     const char *callee_name = NULL;
@@ -314,8 +316,8 @@ llvm_emit_spawn_expr(ASTNode *node, LLVMGenCtx *ctx)
 
     if (target->type == AST_CALL) {
         call = target;
-        callee = target->data.call.callee;
-        argc = target->data.call.arg_count;
+        callee = ast_call_callee(target);
+        argc = ast_call_arg_count(target);
     } else {
         callee = target;
     }
@@ -350,7 +352,7 @@ llvm_emit_spawn_expr(ASTNode *node, LLVMGenCtx *ctx)
             return NULL;
         }
         for (size_t i = 0; i < argc; i++) {
-            args[i] = llvm_emit_expression(call->data.call.arguments[i], ctx);
+            args[i] = llvm_emit_expression(ast_call_argument(call, i), ctx);
             if (args[i] == NULL) {
                 llvm_set_error_at_with_hints(ctx, node,
                     PGY_CODE_LLVM_TYPE_UNSUPPORTED,
@@ -366,7 +368,7 @@ llvm_emit_spawn_expr(ASTNode *node, LLVMGenCtx *ctx)
 
     callee_entry = llvm_resolve_callee_entry(ctx, callee_name, args, argc);
     spawn_fn = llvm_lookup_function(ctx,
-        node->data.spawn_expr.is_blocking
+        ast_spawn_is_blocking(node)
             ? "pgy_spawn_blocking_export"
             : "pgy_async_spawn_export");
     malloc_fn = llvm_lookup_function(ctx, "malloc");
@@ -377,7 +379,7 @@ llvm_emit_spawn_expr(ASTNode *node, LLVMGenCtx *ctx)
             PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
             PGY_FIX_INSPECT_MIR_INVENTORY,
             "LLVM spawn expression requires registered runtime functions '%s', 'malloc', and 'free'",
-            node->data.spawn_expr.is_blocking
+            ast_spawn_is_blocking(node)
                 ? "pgy_spawn_blocking_export"
                 : "pgy_async_spawn_export");
         return NULL;

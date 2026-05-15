@@ -8,6 +8,7 @@
 #include "mir_cfg_contract_control.h"
 #include "mir_stmt_population_internal.h"
 #include "mir_type_helpers.h"
+#include "../parser/ast_api.h"
 
 /* ---------------------------------------------------------------------------
  * mir_populate_stmt_instructions
@@ -302,17 +303,17 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
                 inst.kind = MIR_INST_LOOP_INIT;
                 inst.name = "loop-init";
                 inst.ast = stmt;
-                inst.arg0 = stmt->data.for_loop.variable;
-                inst.branch_shape = stmt->data.for_loop.iterable != NULL
+                inst.arg0 = ast_for_variable(stmt);
+                inst.branch_shape = ast_for_iterable(stmt) != NULL
                     ? MIR_BRANCH_FOR_IN
                     : MIR_BRANCH_FOR_RANGE;
                 mir_set_inst_source_statement_index(&inst, s);
-                if (stmt->data.for_loop.iterable != NULL) {
-                    inst.expr0 = stmt->data.for_loop.iterable;
-                    inst.expr1 = stmt->data.for_loop.iterable;
+                if (ast_for_iterable(stmt) != NULL) {
+                    inst.expr0 = ast_for_iterable(stmt);
+                    inst.expr1 = ast_for_iterable(stmt);
                 } else {
-                    inst.expr0 = stmt->data.for_loop.range_start;
-                    inst.expr1 = stmt->data.for_loop.range_end;
+                    inst.expr0 = ast_for_range_start(stmt);
+                    inst.expr1 = ast_for_range_end(stmt);
                 }
                 if (!mir_stmt_population_append(new_insts,
                                                 new_cap,

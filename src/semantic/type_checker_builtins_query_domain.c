@@ -358,14 +358,14 @@ resolve_projection_source_field_type_rec(ASTNode *program,
         ASTNode *vessel_decl;
         Type *nested_type = NULL;
         int nested_status;
+        const char *field_type_name = field != NULL ? ast_type_name(field->type) : NULL;
 
         if (field == NULL || !field->is_vessel_field
-            || field->type == NULL || field->type->type != AST_TYPE
-            || field->type->data.type.name == NULL) {
+            || field_type_name == NULL) {
             continue;
         }
 
-        vessel_decl = find_named_class_decl(program, field->type->data.type.name);
+        vessel_decl = find_named_class_decl(program, field_type_name);
         if (vessel_decl == NULL || ast_class_nominal_kind(vessel_decl) != NOMINAL_DECL_VESSEL)
             continue;
 

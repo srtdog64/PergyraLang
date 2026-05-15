@@ -236,7 +236,7 @@ hir_lower_stmt_node_to_cfg(ASTNode *node,
         case AST_RETURN:
             if (!hir_cfg_append_block_stmt(&(*blocks)[(size_t)current_block], node))
                 return -1;
-            hir_cfg_set_return(&(*blocks)[(size_t)current_block], node->data.return_stmt.value);
+            hir_cfg_set_return(&(*blocks)[(size_t)current_block], ast_return_value(node));
             return -1;
 
         case AST_IF_STMT: {
@@ -248,17 +248,17 @@ hir_lower_stmt_node_to_cfg(ASTNode *node,
             if (then_block < 0 || join_block < 0)
                 return -1;
 
-            if (node->data.if_stmt.else_branch != NULL) {
+            if (ast_if_else_branch(node) != NULL) {
                 ssize_t else_block = hir_cfg_new_region_block(blocks, block_count, block_capacity, pin);
                 if (else_block < 0)
                     return -1;
                 block = &(*blocks)[(size_t)current_block];
                 hir_cfg_set_branch(block,
-                               node->data.if_stmt.condition,
+                               ast_if_condition(node),
                                (size_t)then_block,
                                (size_t)else_block);
 
-                ssize_t then_open = hir_lower_block_body_to_cfg(node->data.if_stmt.then_branch,
+                ssize_t then_open = hir_lower_block_body_to_cfg(ast_if_then_branch(node),
                                                                 blocks,
                                                                 block_count,
                                                                 block_capacity,
@@ -268,7 +268,7 @@ hir_lower_stmt_node_to_cfg(ASTNode *node,
                 if (then_open >= 0)
                     hir_cfg_set_goto(&(*blocks)[(size_t)then_open], (size_t)join_block);
 
-                ssize_t else_open = hir_lower_block_body_to_cfg(node->data.if_stmt.else_branch,
+                ssize_t else_open = hir_lower_block_body_to_cfg(ast_if_else_branch(node),
                                                                 blocks,
                                                                 block_count,
                                                                 block_capacity,
@@ -280,11 +280,11 @@ hir_lower_stmt_node_to_cfg(ASTNode *node,
             } else {
                 block = &(*blocks)[(size_t)current_block];
                 hir_cfg_set_branch(block,
-                               node->data.if_stmt.condition,
+                               ast_if_condition(node),
                                (size_t)then_block,
                                (size_t)join_block);
 
-                ssize_t then_open = hir_lower_block_body_to_cfg(node->data.if_stmt.then_branch,
+                ssize_t then_open = hir_lower_block_body_to_cfg(ast_if_then_branch(node),
                                                                 blocks,
                                                                 block_count,
                                                                 block_capacity,
@@ -311,17 +311,17 @@ hir_lower_stmt_node_to_cfg(ASTNode *node,
             hir_cfg_set_goto(block, (size_t)cond_block);
             (*blocks)[(size_t)cond_block].is_loop_header = true;
             hir_cfg_set_branch(&(*blocks)[(size_t)cond_block],
-                           node->data.while_loop.condition,
+                           ast_while_condition(node),
                            (size_t)body_block,
                            (size_t)exit_block);
             HIRLoopContext nested_loop = {
                 .active = true,
-                .label = node->data.while_loop.label,
+                .label = ast_while_label(node),
                 .break_target = (size_t)exit_block,
                 .continue_target = (size_t)cond_block,
                 .parent = loop
             };
-            ssize_t body_open = hir_lower_block_body_to_cfg(node->data.while_loop.body,
+            ssize_t body_open = hir_lower_block_body_to_cfg(ast_while_body(node),
                                                             blocks,
                                                             block_count,
                                                             block_capacity,
@@ -353,12 +353,12 @@ hir_lower_stmt_node_to_cfg(ASTNode *node,
 
             HIRLoopContext nested_loop = {
                 .active = true,
-                .label = node->data.for_loop.label,
+                .label = ast_for_label(node),
                 .break_target = (size_t)exit_block,
                 .continue_target = (size_t)header_block,
                 .parent = loop
             };
-            ssize_t body_open = hir_lower_block_body_to_cfg(node->data.for_loop.body,
+            ssize_t body_open = hir_lower_block_body_to_cfg(ast_for_body(node),
                                                             blocks,
                                                             block_count,
                                                             block_capacity,
@@ -372,9 +372,9 @@ hir_lower_stmt_node_to_cfg(ASTNode *node,
 
         case AST_SELECT_STMT:
             return hir_lower_choice_to_cfg(node,
-                                           node->data.select_stmt.cases,
-                                           node->data.select_stmt.case_count,
-                                           node->data.select_stmt.default_case,
+                                           ast_select_cases(node, NULL),
+                                           ast_select_case_count(node),
+                                           ast_select_default_case(node),
                                            false,
                                            blocks,
                                            block_count,
@@ -400,7 +400,7 @@ hir_lower_stmt_node_to_cfg(ASTNode *node,
             {
                 size_t target = 0;
                 HIRBasicBlock *block = &(*blocks)[(size_t)current_block];
-                if (hir_cfg_resolve_loop_target(loop, node->data.break_stmt.label, false, &target)) {
+                if (hir_cfg_resolve_loop_target(loop, ast_break_label(node), false, &target)) {
                     if (!hir_cfg_append_block_stmt(block, node))
                         return -1;
                     hir_cfg_set_goto(block, target);
@@ -415,7 +415,7 @@ hir_lower_stmt_node_to_cfg(ASTNode *node,
             {
                 size_t target = 0;
                 HIRBasicBlock *block = &(*blocks)[(size_t)current_block];
-                if (hir_cfg_resolve_loop_target(loop, node->data.continue_stmt.label, true, &target)) {
+                if (hir_cfg_resolve_loop_target(loop, ast_continue_label(node), true, &target)) {
                     if (!hir_cfg_append_block_stmt(block, node))
                         return -1;
                     hir_cfg_set_goto(block, target);
@@ -430,7 +430,7 @@ hir_lower_stmt_node_to_cfg(ASTNode *node,
             if (!hir_cfg_append_block_stmt(&(*blocks)[(size_t)current_block], node)) {
                 return -1;
             }
-            return hir_lower_block_body_to_cfg(node->data.with_stmt.body,
+            return hir_lower_block_body_to_cfg(ast_with_body(node),
                                                blocks,
                                                block_count,
                                                block_capacity,
@@ -442,7 +442,7 @@ hir_lower_stmt_node_to_cfg(ASTNode *node,
             if (!hir_cfg_append_block_stmt(&(*blocks)[(size_t)current_block], node)) {
                 return -1;
             }
-            return hir_lower_block_body_to_cfg(node->data.unsafe_block.body,
+            return hir_lower_block_body_to_cfg(ast_unsafe_block_body(node),
                                                blocks,
                                                block_count,
                                                block_capacity,

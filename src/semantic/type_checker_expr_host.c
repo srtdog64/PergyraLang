@@ -41,10 +41,10 @@ static Type *
 expr_host_resolve_func_return_type(ASTNode *method, SemanticContext *ctx)
 {
     if (method == NULL || method->type != AST_FUNC_DECL
-        || method->data.func_decl.return_type == NULL) {
+        || ast_func_return_type(method) == NULL) {
         return TYPE_VOID;
     }
-    return domain_resolve_type_ref(method->data.func_decl.return_type, ctx);
+    return domain_resolve_type_ref(ast_func_return_type(method), ctx);
 }
 
 static Type *
@@ -143,9 +143,10 @@ expr_current_host_method_decl(SemanticContext *ctx, const char *method_name)
 
     for (size_t i = 0; i < method_count; i++) {
         ASTNode *method = methods[i];
+        const char *candidate_name = ast_declaration_name(method);
         if (method != NULL && method->type == AST_FUNC_DECL
-            && method->data.func_decl.name != NULL
-            && strcmp(method->data.func_decl.name, method_name) == 0) {
+            && candidate_name != NULL
+            && strcmp(candidate_name, method_name) == 0) {
             return method;
         }
     }
@@ -159,8 +160,10 @@ expr_type_check_host_method_call(ASTNode *expr,
                                  SemanticContext *ctx)
 {
     size_t implicit_self = 0;
+    size_t param_count;
     size_t expected;
     size_t provided;
+    FuncParam *first_param;
     uint32_t declared_effects;
 
     if (expr == NULL || method == NULL || method->type != AST_FUNC_DECL)
@@ -174,46 +177,50 @@ expr_type_check_host_method_call(ASTNode *expr,
             PGY_CAUSE_PARALLEL_SECURE_IN_TASK,
             PGY_FIX_SERIALIZE_OUTSIDE_PARALLEL, expr,
             "Parallel context does not permit calling secure-effect method '%s'; serialize authority-bearing operations outside the parallel block",
-            method->data.func_decl.name != NULL
-                ? method->data.func_decl.name : "<method>");
+            ast_declaration_name(method) != NULL
+                ? ast_declaration_name(method) : "<method>");
         return expr_host_resolve_func_return_type(method, ctx);
     }
 
-    if (method->data.func_decl.param_count > 0
-        && method->data.func_decl.params[0] != NULL
-        && method->data.func_decl.params[0]->name != NULL
-        && strcmp(method->data.func_decl.params[0]->name, "self") == 0
-        && method->data.func_decl.params[0]->type == NULL) {
+    param_count = ast_func_param_count(method);
+    first_param = ast_func_param(method, 0);
+
+    if (param_count > 0
+        && first_param != NULL
+        && first_param->name != NULL
+        && strcmp(first_param->name, "self") == 0
+        && first_param->type == NULL) {
         implicit_self = 1;
     }
 
-    expected = method->data.func_decl.param_count - implicit_self;
-    provided = expr->data.call.arg_count;
+    expected = param_count - implicit_self;
+    provided = ast_call_arg_count(expr);
     if (provided != expected) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
             PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,
             PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr,
             "'%s' expects %llu argument(s), got %llu",
-            method->data.func_decl.name != NULL
-                ? method->data.func_decl.name : "<method>",
+            ast_declaration_name(method) != NULL
+                ? ast_declaration_name(method) : "<method>",
             (unsigned long long) expected, (unsigned long long) provided);
         return expr_host_resolve_func_return_type(method, ctx);
     }
 
     for (size_t i = 0; i < provided; i++) {
-        FuncParam *param = method->data.func_decl.params[i + implicit_self];
+        FuncParam *param = ast_func_param(method, i + implicit_self);
+        ASTNode *arg = ast_call_argument(expr, i);
         Type *param_type = expr_host_resolve_func_param_type(param, ctx);
         Type *arg_type = expr_host_normalize_type(
-            type_check_expression(expr->data.call.arguments[i], ctx));
+            type_check_expression(arg, ctx));
         if (param_type != NULL
             && !type_is_assignable(arg_type, param_type)) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
                 PGY_CAUSE_CALL_ARG_TYPE_MISMATCH, PGY_FIX_ALIGN_ARG_TYPE,
-                expr->data.call.arguments[i],
+                arg,
                 "Argument %llu for '%s' expects '%s', got '%s'",
                 (unsigned long long) (i + 1),
-                method->data.func_decl.name != NULL
-                    ? method->data.func_decl.name : "<method>",
+                ast_declaration_name(method) != NULL
+                    ? ast_declaration_name(method) : "<method>",
                 type_name_or_unknown(param_type),
                 type_name_or_unknown(arg_type));
         }
@@ -247,14 +254,14 @@ bool
 expr_member_is_static_access(const ASTNode *expr)
 {
     if (expr == NULL || expr->type != AST_MEMBER_ACCESS
-        || expr->data.member.object == NULL) {
+        || ast_member_object(expr) == NULL) {
         return false;
     }
 
-    if (expr->data.member.object->type == AST_IDENTIFIER) {
-        const char *name = expr->data.member.object->data.identifier.name;
+    if (ast_member_object(expr)->type == AST_IDENTIFIER) {
+        const char *name = ast_member_object(expr)->data.identifier.name;
         return name != NULL && name[0] >= 'A' && name[0] <= 'Z';
     }
 
-    return expr_member_is_static_access(expr->data.member.object);
+    return expr_member_is_static_access(ast_member_object(expr));
 }

@@ -269,17 +269,17 @@ debug_walk_statements(DebugCtx *ctx, ASTNode *node)
             debug_walk_statements(ctx, node->data.block.statements[i]);
         break;
     case AST_IF_STMT:
-        debug_walk_statements(ctx, node->data.if_stmt.then_branch);
-        debug_walk_statements(ctx, node->data.if_stmt.else_branch);
+        debug_walk_statements(ctx, ast_if_then_branch(node));
+        debug_walk_statements(ctx, ast_if_else_branch(node));
         break;
     case AST_WHILE_LOOP:
-        debug_walk_statements(ctx, node->data.while_loop.body);
+        debug_walk_statements(ctx, ast_while_body(node));
         break;
     case AST_FUNC_DECL:
-        if (node->data.func_decl.name &&
-            strcmp(node->data.func_decl.name, "Main") == 0) {
+        if (ast_declaration_name(node) != NULL &&
+            strcmp(ast_declaration_name(node), "Main") == 0) {
             printf("[debug] entering Main()\n");
-            debug_walk_statements(ctx, node->data.func_decl.body);
+            debug_walk_statements(ctx, ast_func_body(node));
         }
         break;
     default:

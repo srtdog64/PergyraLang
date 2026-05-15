@@ -14,7 +14,7 @@ test_air_strict_evidence_rejects_dag_counter_only(void)
     bool ok = air_verify(&air, &error);
 
     for (size_t i = 0; ok && i < air.drift_count; i++) {
-        if (air.drifts[i].kind != AIR_DRIFT_DAG_FALLBACK_PRESENT
+        if (air.drifts[i].kind != AIR_DRIFT_DAG_DEAD_END_PRESENT
             || strstr(air.drifts[i].message,
                       "AIR DAG evidence counter has no matching evidence node") == NULL) {
             continue;

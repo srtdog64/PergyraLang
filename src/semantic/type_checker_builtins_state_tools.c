@@ -16,10 +16,10 @@ state_tool_check_prefix_args(ASTNode *expr, SemanticContext *ctx, size_t count)
 {
     if (expr == NULL)
         return;
-    if (expr->data.call.arg_count < count)
+    if (ast_call_arg_count(expr) < count)
         return;
     for (size_t i = 0; i < count; i++)
-        type_check_expression(expr->data.call.arguments[i], ctx);
+        type_check_expression(ast_call_argument(expr, i), ctx);
 }
 
 typedef enum

@@ -2,6 +2,7 @@
 #include "llvm_internal.h"
 #include "codegen_slot_type_policy.h"
 #include "llvm_stmt_let_names.h"
+#include "parser/ast_api.h"
 
 void
 llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
@@ -25,9 +26,9 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
 
     /* Detect class constructor: let v = ClassName(args...) */
     if (init != NULL && init->type == AST_CALL
-        && init->data.call.callee != NULL
-        && init->data.call.callee->type == AST_IDENTIFIER) {
-        const char *callee = init->data.call.callee->data.identifier.name;
+        && ast_call_callee(init) != NULL
+        && ast_call_callee(init)->type == AST_IDENTIFIER) {
+        const char *callee = ast_call_callee(init)->data.identifier.name;
         LLVMClassTypeEntry *cls = llvm_lookup_class(ctx, callee);
         if (cls != NULL) {
             LLVMValueRef alloca_val = llvm_create_entry_alloca(
@@ -79,7 +80,7 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
          * let binding context (parity with C backend's expected_type). */
         const char *saved_expected_name = ctx->expected_type_name;
         if (type_ann != NULL && type_ann->type == AST_TYPE
-            && type_ann->data.type.name != NULL)
+            && ast_type_name(type_ann) != NULL)
             ctx->expected_type_name =
                 llvm_stmt_render_type_annotation_copy(ctx, type_ann);
         LLVMValueRef val = llvm_emit_expression(init, ctx);
@@ -142,10 +143,11 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
     }
 
     if (type_ann != NULL && type_ann->type == AST_TYPE
-        && type_ann->data.type.name != NULL) {
-        LLVMClassTypeEntry *ann_cls = llvm_lookup_class(ctx, type_ann->data.type.name);
+        && ast_type_name(type_ann) != NULL) {
+        const char *ann_name = ast_type_name(type_ann);
+        LLVMClassTypeEntry *ann_cls = llvm_lookup_class(ctx, ann_name);
         if (ann_cls != NULL)
-            llvm_register_var_class(ctx, name, type_ann->data.type.name);
+            llvm_register_var_class(ctx, name, ann_name);
     } else if (init != NULL) {
         const char *inferred_nominal = llvm_stmt_infer_nominal_name_from_init(ctx, init);
         LLVMClassTypeEntry *inferred_cls = inferred_nominal != NULL
@@ -155,30 +157,32 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
     }
 
     if (type_ann != NULL && type_ann->type == AST_TYPE
-        && type_ann->data.type.name != NULL
-        && (strcmp(type_ann->data.type.name, "Array") == 0
-            || strcmp(type_ann->data.type.name, "Slice") == 0)
-        && type_ann->data.type.generic_args != NULL
-        && type_ann->data.type.generic_args->count > 0) {
+        && ast_type_name(type_ann) != NULL
+        && (strcmp(ast_type_name(type_ann), "Array") == 0
+            || strcmp(ast_type_name(type_ann), "Slice") == 0)
+        && ast_type_generic_args(type_ann) != NULL
+        && ast_type_generic_args(type_ann)->count > 0) {
+        const char *ann_name = ast_type_name(type_ann);
+        GenericParams *generic_args = ast_type_generic_args(type_ann);
         char *elem_name = llvm_stmt_render_type_arg_scratch(
-            type_ann->data.type.generic_args->params[0],
+            generic_args->params[0],
             &ctx->scratch);
         if (elem_name == NULL || elem_name[0] == '\0') {
             llvm_stmt_require_let_type_arg(ctx, node, name,
-                type_ann->data.type.name);
+                ann_name);
             return;
         }
         LLVMTypeRef elem_type = pergyra_type_to_llvm(ctx, elem_name);
         llvm_register_array_var(ctx, name, elem_type, -1);
     } else if (init != NULL
         && init->type == AST_CALL
-        && init->data.call.callee != NULL
-        && init->data.call.callee->type == AST_MEMBER_ACCESS
-        && init->data.call.callee->data.member.name != NULL
-        && strcmp(init->data.call.callee->data.member.name, "Slice") == 0
-        && init->data.call.callee->data.member.object != NULL) {
+        && ast_call_callee(init) != NULL
+        && ast_call_callee(init)->type == AST_MEMBER_ACCESS
+        && ast_member_name(ast_call_callee(init)) != NULL
+        && strcmp(ast_member_name(ast_call_callee(init)), "Slice") == 0
+        && ast_member_object(ast_call_callee(init)) != NULL) {
         LLVMTypeRef elem_type = llvm_stmt_resolve_array_elem_type(
-            ctx, init->data.call.callee->data.member.object, NULL);
+            ctx, ast_member_object(ast_call_callee(init)), NULL);
         llvm_register_array_var(ctx, name, elem_type, -1);
         if (getenv("PGY_DEBUG_LLVM_DETAIL") != NULL)
             fprintf(stderr, "[llvm let] name=%s phase=after-slice-register\n",
@@ -186,14 +190,15 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
     }
 
     if (type_ann != NULL && type_ann->type == AST_TYPE
-        && type_ann->data.type.name != NULL) {
-        const char *ann_name = type_ann->data.type.name;
+        && ast_type_name(type_ann) != NULL) {
+        const char *ann_name = ast_type_name(type_ann);
+        GenericParams *generic_args = ast_type_generic_args(type_ann);
         if (strcmp(ann_name, "List") == 0
-            && type_ann->data.type.generic_args != NULL
-            && type_ann->data.type.generic_args->count > 0
-            && type_ann->data.type.generic_args->params[0] != NULL) {
+            && generic_args != NULL
+            && generic_args->count > 0
+            && generic_args->params[0] != NULL) {
             char *inner_name = llvm_stmt_render_type_arg(
-                type_ann->data.type.generic_args->params[0]);
+                generic_args->params[0]);
             if (inner_name == NULL || inner_name[0] == '\0') {
                 llvm_stmt_require_let_type_arg(ctx, node, name, ann_name);
                 free(inner_name);
@@ -202,11 +207,11 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
             llvm_register_list_var(ctx, name, inner_name);
             free(inner_name);
         } else if (strcmp(ann_name, "Queue") == 0
-            && type_ann->data.type.generic_args != NULL
-            && type_ann->data.type.generic_args->count > 0
-            && type_ann->data.type.generic_args->params[0] != NULL) {
+            && generic_args != NULL
+            && generic_args->count > 0
+            && generic_args->params[0] != NULL) {
             char *inner_name = llvm_stmt_render_type_arg(
-                type_ann->data.type.generic_args->params[0]);
+                generic_args->params[0]);
             if (inner_name == NULL || inner_name[0] == '\0') {
                 llvm_stmt_require_let_type_arg(ctx, node, name, ann_name);
                 free(inner_name);
@@ -215,14 +220,14 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
             llvm_register_queue_var(ctx, name, inner_name);
             free(inner_name);
         } else if (strcmp(ann_name, "HashMap") == 0
-            && type_ann->data.type.generic_args != NULL
-            && type_ann->data.type.generic_args->count > 1
-            && type_ann->data.type.generic_args->params[0] != NULL
-            && type_ann->data.type.generic_args->params[1] != NULL) {
+            && generic_args != NULL
+            && generic_args->count > 1
+            && generic_args->params[0] != NULL
+            && generic_args->params[1] != NULL) {
             char *key_name = llvm_stmt_render_type_arg(
-                type_ann->data.type.generic_args->params[0]);
+                generic_args->params[0]);
             char *value_name = llvm_stmt_render_type_arg(
-                type_ann->data.type.generic_args->params[1]);
+                generic_args->params[1]);
             if (key_name == NULL || key_name[0] == '\0') {
                 llvm_stmt_require_let_type_arg(ctx, node, name, ann_name);
                 free(key_name);
@@ -247,17 +252,18 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
     }
 
     if (type_ann != NULL && type_ann->type == AST_TYPE
-        && type_ann->data.type.name != NULL
-        && type_ann->data.type.generic_args != NULL
-        && type_ann->data.type.generic_args->count > 0) {
-        const char *ann_name = type_ann->data.type.name;
+        && ast_type_name(type_ann) != NULL) {
+        const char *ann_name = ast_type_name(type_ann);
+        GenericParams *generic_args = ast_type_generic_args(type_ann);
         if (strcmp(ann_name, "Future") == 0
             || strcmp(ann_name, "RemoteFuture") == 0) {
             char *future_inner = NULL;
-            if (type_ann->data.type.generic_args->params != NULL
-                && type_ann->data.type.generic_args->params[0] != NULL) {
+            if (generic_args != NULL
+                && generic_args->count > 0
+                && generic_args->params != NULL
+                && generic_args->params[0] != NULL) {
                 future_inner = llvm_stmt_render_type_arg(
-                    type_ann->data.type.generic_args->params[0]);
+                    generic_args->params[0]);
             }
             if (future_inner == NULL || future_inner[0] == '\0') {
                 llvm_stmt_require_let_type_arg(ctx, node, name, ann_name);
@@ -269,12 +275,12 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
             free(future_inner);
         }
     } else if (init != NULL && init->type == AST_CALL
-               && init->data.call.callee != NULL
-               && init->data.call.callee->type == AST_IDENTIFIER
-               && strcmp(init->data.call.callee->data.identifier.name,
+               && ast_call_callee(init) != NULL
+               && ast_call_callee(init)->type == AST_IDENTIFIER
+               && strcmp(ast_call_callee(init)->data.identifier.name,
                          "SubmitDeviceRead") == 0) {
         const char *inner = NULL;
-        ASTNode *slot_arg = init->data.call.arguments[0];
+        ASTNode *slot_arg = ast_call_argument(init, 0);
         if (slot_arg != NULL && slot_arg->type == AST_IDENTIFIER) {
             const char *tracked = llvm_lookup_device_slot_inner(
                 ctx, slot_arg->data.identifier.name);
@@ -310,11 +316,12 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
 
     /* Track class type for member access */
     if (type_ann != NULL && type_ann->type == AST_TYPE
-        && type_ann->data.type.name != NULL) {
+        && ast_type_name(type_ann) != NULL) {
+        const char *ann_name = ast_type_name(type_ann);
         LLVMClassTypeEntry *cls = llvm_lookup_class(ctx,
-            type_ann->data.type.name);
+            ann_name);
         if (cls != NULL)
-            llvm_register_var_class(ctx, name, type_ann->data.type.name);
+            llvm_register_var_class(ctx, name, ann_name);
     } else if (init != NULL) {
         const char *nominal_name = llvm_stmt_infer_nominal_name_from_init(ctx, init);
         LLVMClassTypeEntry *nominal_cls = nominal_name != NULL

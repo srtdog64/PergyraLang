@@ -30,9 +30,9 @@ semantic_check_assignment_borrow_rebind(ASTNode *expr,
 
     if (handle_or_move_boundary) {
         if (semantic_validate_borrowed_escape(
-                expr, expr->data.assignment.value, ctx, value_type, NULL,
+                expr, ast_assignment_value(expr), ctx, value_type, NULL,
                 OWNERSHIP_CONSUMER_ASSIGNMENT_REBIND,
-                expr->data.assignment.target, NULL, NULL,
+                ast_assignment_target(expr), NULL, NULL,
                 false, NULL, NULL)) {
             return true;
         }
@@ -64,9 +64,9 @@ semantic_check_assignment_borrow_rebind(ASTNode *expr,
     }
 
     if (semantic_validate_borrowed_escape(
-            expr, expr->data.assignment.value, ctx, value_type, NULL,
+            expr, ast_assignment_value(expr), ctx, value_type, NULL,
             OWNERSHIP_CONSUMER_ASSIGNMENT_REBIND,
-            expr->data.assignment.target, NULL, NULL,
+            ast_assignment_target(expr), NULL, NULL,
             false, NULL, NULL)) {
         return true;
     }

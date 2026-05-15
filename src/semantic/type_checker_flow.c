@@ -3,6 +3,8 @@
 #include <string.h>
 #include "type_checker_internal.h"
 #include "type_checker_ownership_internal.h"
+#include "type_checker_ownership_consumers_internal.h"
+#include "type_checker_stdlib_use_internal.h"
 #include "diag_codes.h"
 #include "type_checker_flow_internal.h"
 #include "type_checker_flow_effects.h"
@@ -18,6 +20,9 @@ static FlowFlags type_check_match_stmt_flow(ASTNode *node,
                                             SemanticContext *ctx,
                                             LoopFlowState *loop_flow);
 static FlowFlags type_check_with_stmt_flow(ASTNode *node,
+                                           SemanticContext *ctx,
+                                           LoopFlowState *loop_flow);
+static FlowFlags type_check_namespace_flow(ASTNode *node,
                                            SemanticContext *ctx,
                                            LoopFlowState *loop_flow);
 
@@ -108,12 +113,12 @@ flow_ast_contains_defer_stmt(const ASTNode *node)
         }
         return false;
     case AST_IF_STMT:
-        return flow_ast_contains_defer_stmt(node->data.if_stmt.then_branch)
-            || flow_ast_contains_defer_stmt(node->data.if_stmt.else_branch);
+        return flow_ast_contains_defer_stmt(ast_if_then_branch(node))
+            || flow_ast_contains_defer_stmt(ast_if_else_branch(node));
     case AST_WHILE_LOOP:
-        return flow_ast_contains_defer_stmt(node->data.while_loop.body);
+        return flow_ast_contains_defer_stmt(ast_while_body(node));
     case AST_FOR_LOOP:
-        return flow_ast_contains_defer_stmt(node->data.for_loop.body);
+        return flow_ast_contains_defer_stmt(ast_for_body(node));
     case AST_MATCH_STMT:
         for (size_t i = 0; i < node->data.match_stmt.case_count; i++) {
             if (flow_ast_contains_defer_stmt(node->data.match_stmt.cases[i]))
@@ -174,7 +179,7 @@ type_check_if_stmt_flow(ASTNode *node, SemanticContext *ctx,
                         LoopFlowState *loop_flow)
 {
     Type *cond = flow_normalize_type(
-        type_check_expression(node->data.if_stmt.condition, ctx));
+        type_check_expression(ast_if_condition(node), ctx));
     uint32_t effect_base = ctx->current_function_effects;
     ResourceConsumeSnapshot base = snapshot_resource_states(ctx);
     ResourceConsumeSnapshot fallthrough = {0};
@@ -184,9 +189,9 @@ type_check_if_stmt_flow(ASTNode *node, SemanticContext *ctx,
     uint32_t then_effect_delta = EFFECT_NONE;
     uint32_t else_effect_delta = EFFECT_NONE;
 
-    if (!flow_condition_is_static_bool(node->data.if_stmt.condition)
-        && (flow_ast_contains_defer_stmt(node->data.if_stmt.then_branch)
-            || flow_ast_contains_defer_stmt(node->data.if_stmt.else_branch))) {
+    if (!flow_condition_is_static_bool(ast_if_condition(node))
+        && (flow_ast_contains_defer_stmt(ast_if_then_branch(node))
+            || flow_ast_contains_defer_stmt(ast_if_else_branch(node)))) {
         flow_reject_dynamic_defer_control(ctx, node, "if");
     }
 
@@ -200,7 +205,7 @@ type_check_if_stmt_flow(ASTNode *node, SemanticContext *ctx,
     restore_resource_states(&base);
     ctx->current_function_effects = effect_base;
     scope_enter(&ctx->scope, SCOPE_BLOCK);
-    then_flags = type_check_block_flow(node->data.if_stmt.then_branch, ctx, loop_flow);
+    then_flags = type_check_block_flow(ast_if_then_branch(node), ctx, loop_flow);
     scope_exit(&ctx->scope);
     then_effect_delta = effect_delta_from_baseline(effect_base,
         ctx->current_function_effects);
@@ -212,13 +217,13 @@ type_check_if_stmt_flow(ASTNode *node, SemanticContext *ctx,
         flags |= FLOW_FALLTHROUGH;
     }
 
-    if (node->data.if_stmt.else_branch != NULL) {
+    if (ast_if_else_branch(node) != NULL) {
         FlowFlags else_flags = FLOW_NONE;
         restore_resource_states(&base);
         ctx->current_function_effects = effect_base;
         scope_enter(&ctx->scope, SCOPE_BLOCK);
         else_flags =
-            type_check_statement_flow(node->data.if_stmt.else_branch, ctx, loop_flow);
+            type_check_statement_flow(ast_if_else_branch(node), ctx, loop_flow);
         scope_exit(&ctx->scope);
         else_effect_delta = effect_delta_from_baseline(effect_base,
             ctx->current_function_effects);
@@ -238,7 +243,7 @@ type_check_if_stmt_flow(ASTNode *node, SemanticContext *ctx,
     flow_record_branch_effect_conflict_labeled(ctx, node,
         then_effect_delta, "then branch",
         else_effect_delta,
-        node->data.if_stmt.else_branch != NULL ? "else branch" : "implicit fallthrough path");
+        ast_if_else_branch(node) != NULL ? "else branch" : "implicit fallthrough path");
     ctx->current_function_effects = type_effect_mask_join(
         effect_base,
         type_effect_mask_join(then_effect_delta, else_effect_delta));
@@ -384,9 +389,9 @@ type_check_with_stmt_flow(ASTNode *node, SemanticContext *ctx,
 {
     scope_enter(&ctx->scope, SCOPE_WITH);
 
-    ASTNode *slot_type_node = node->data.with_stmt.slot_type;
-    const char *alias = node->data.with_stmt.alias;
-    bool is_secure = node->data.with_stmt.is_secure;
+    ASTNode *slot_type_node = ast_with_slot_type(node);
+    const char *alias = ast_with_alias(node);
+    bool is_secure = ast_with_is_secure(node);
 
     Type *inner = flow_normalize_type(domain_resolve_type_ref(slot_type_node, ctx));
     Type *slot_type = type_create_slot(inner, is_secure);
@@ -396,7 +401,7 @@ type_check_with_stmt_flow(ASTNode *node, SemanticContext *ctx,
     scope_declare(ctx->scope, sym);
     scope_register_slot(ctx->scope, sym);
 
-    FlowFlags flags = type_check_block_flow(node->data.with_stmt.body, ctx, loop_flow);
+    FlowFlags flags = type_check_block_flow(ast_with_body(node), ctx, loop_flow);
 
     scope_auto_release_slots(ctx->scope);
     scope_exit(&ctx->scope);
@@ -432,11 +437,23 @@ type_check_statement_flow(ASTNode *node, SemanticContext *ctx,
         (void)type_check_parallel_block_flow(node, ctx);
         return FLOW_FALLTHROUGH;
     case AST_UNSAFE_BLOCK:
-        if (node->data.unsafe_block.body != NULL)
-            return type_check_block_flow(node->data.unsafe_block.body, ctx, loop_flow);
+        if (ast_unsafe_block_body(node) != NULL)
+            return type_check_block_flow(ast_unsafe_block_body(node), ctx, loop_flow);
         return FLOW_FALLTHROUGH;
     case AST_DEFER_STMT:
-        (void)type_check_defer_body_flow(node->data.defer_stmt.body, ctx);
+        (void)type_check_defer_body_flow(ast_defer_body(node), ctx);
+        return FLOW_FALLTHROUGH;
+    case AST_ASYNC_BLOCK:
+        (void)type_check_async_block(node, ctx);
+        return FLOW_FALLTHROUGH;
+    case AST_SELECT_STMT:
+        (void)type_check_select_stmt(node, ctx);
+        return FLOW_FALLTHROUGH;
+    case AST_LET_DECL:
+        (void)type_check_let_decl(node, ctx);
+        return FLOW_FALLTHROUGH;
+    case AST_LET_DESTRUCTURE:
+        (void)type_check_let_destructure_stmt(node, ctx);
         return FLOW_FALLTHROUGH;
     case AST_RETURN:
         type_check_return_stmt(node, ctx);
@@ -445,10 +462,56 @@ type_check_statement_flow(ASTNode *node, SemanticContext *ctx,
         return type_check_loop_control_flow(node, ctx, loop_flow, true);
     case AST_CONTINUE:
         return type_check_loop_control_flow(node, ctx, loop_flow, false);
+    case AST_EVENT_SUBSCRIBE:
+        (void)type_check_event_subscription(node, ctx, "subscription");
+        return FLOW_FALLTHROUGH;
+    case AST_EVENT_UNSUBSCRIBE:
+        (void)type_check_event_subscription(node, ctx, "unsubscription");
+        return FLOW_FALLTHROUGH;
+    case AST_EVENT_INVOKE:
+        (void)type_check_event_invoke_stmt(node, ctx);
+        return FLOW_FALLTHROUGH;
+    case AST_USE_DECL:
+        validate_stdlib_use_decl(node, ctx);
+        return FLOW_FALLTHROUGH;
+    case AST_NAMESPACE_DECL:
+        return type_check_namespace_flow(node, ctx, loop_flow);
+    case AST_BIND_STMT:
+    case AST_IMPORT_DECL:
+        return FLOW_FALLTHROUGH;
     default:
-        type_check_statement(node, ctx);
+        type_check_expression(node, ctx);
         return FLOW_FALLTHROUGH;
     }
+}
+
+static FlowFlags
+type_check_namespace_flow(ASTNode *node, SemanticContext *ctx,
+                          LoopFlowState *loop_flow)
+{
+    FlowFlags flags = FLOW_FALLTHROUGH;
+
+    if (node == NULL || node->type != AST_NAMESPACE_DECL)
+        return flags;
+    for (size_t i = 0; i < node->data.namespace_decl.count; i++) {
+        if (!flow_has_fallthrough(flags)) {
+            flow_record_unreachable_statement(ctx,
+                node->data.namespace_decl.statements[i]);
+            break;
+        }
+        flags = flow_record_statement_result(
+            flags,
+            type_check_statement_flow(node->data.namespace_decl.statements[i],
+                                      ctx,
+                                      loop_flow));
+    }
+    return flags;
+}
+
+FlowFlags
+type_check_statement_flow_boundary(ASTNode *node, SemanticContext *ctx)
+{
+    return type_check_statement_flow(node, ctx, NULL);
 }
 
 #include "type_checker_flow_parallel.h"

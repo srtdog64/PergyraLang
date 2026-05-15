@@ -11,6 +11,7 @@
 #include "transpiler.h"
 #include "transpiler_context.h"
 #include "transpiler_symbols.h"
+#include "../parser/ast_api.h"
 #include "../semantic/diag_codes.h"
 
 static bool
@@ -27,7 +28,7 @@ select_case_parts(ASTNode *case_node, ASTNode **channel_out,
 
     if (first->type == AST_CHANNEL_RECV) {
         if (channel_out != NULL)
-            *channel_out = first->data.channel_recv.channel;
+            *channel_out = ast_channel_recv_channel(first);
         if (bind_name_out != NULL)
             *bind_name_out = NULL;
         if (body_out != NULL)
@@ -36,14 +37,14 @@ select_case_parts(ASTNode *case_node, ASTNode **channel_out,
     }
 
     if (first->type == AST_ASSIGNMENT
-        && first->data.assignment.target != NULL
-        && first->data.assignment.target->type == AST_IDENTIFIER
-        && first->data.assignment.value != NULL
-        && first->data.assignment.value->type == AST_CHANNEL_RECV) {
+        && ast_assignment_target(first) != NULL
+        && ast_assignment_target(first)->type == AST_IDENTIFIER
+        && ast_assignment_value(first) != NULL
+        && ast_assignment_value(first)->type == AST_CHANNEL_RECV) {
         if (channel_out != NULL)
-            *channel_out = first->data.assignment.value->data.channel_recv.channel;
+            *channel_out = ast_channel_recv_channel(ast_assignment_value(first));
         if (bind_name_out != NULL)
-            *bind_name_out = first->data.assignment.target->data.identifier.name;
+            *bind_name_out = ast_assignment_target(first)->data.identifier.name;
         if (body_out != NULL)
             *body_out = body;
         return true;
@@ -123,20 +124,20 @@ select_emit_unbound_consume(ASTNode *channel, const char *inner,
 void
 emit_select_stmt(ASTNode *node, TranspilerCtx *ctx)
 {
-    size_t case_count = node->data.select_stmt.case_count;
+    size_t case_count = ast_select_case_count(node);
 
     codebuf_write(ctx->out, "\n");
     write_indent(ctx);
     codebuf_write(ctx->out, "/* select */\n");
 
     if (case_count == 0) {
-        if (node->data.select_stmt.default_case != NULL)
-            emit_statement(node->data.select_stmt.default_case, ctx);
+        if (ast_select_default_case(node) != NULL)
+            emit_statement(ast_select_default_case(node), ctx);
         return;
     }
 
     for (size_t i = 0; i < case_count; i++) {
-        ASTNode *c = node->data.select_stmt.cases[i];
+        ASTNode *c = ast_select_case(node, i);
         ASTNode *channel = NULL;
         ASTNode *body = NULL;
         const char *bind_name = NULL;
@@ -190,7 +191,7 @@ emit_select_stmt(ASTNode *node, TranspilerCtx *ctx)
 
             for (size_t offset = 0; offset < case_count; offset++) {
                 size_t i = (start + offset) % case_count;
-                ASTNode *c = node->data.select_stmt.cases[i];
+                ASTNode *c = ast_select_case(node, i);
                 ASTNode *channel = NULL;
                 ASTNode *body = NULL;
                 const char *bind_name = NULL;
@@ -242,11 +243,11 @@ emit_select_stmt(ASTNode *node, TranspilerCtx *ctx)
                 ctx->indent--;
             }
 
-            if (node->data.select_stmt.default_case != NULL) {
+            if (ast_select_default_case(node) != NULL) {
                 write_indent(ctx);
                 codebuf_write(ctx->out, "} else { /* default */\n");
                 ctx->indent++;
-                emit_statement(node->data.select_stmt.default_case, ctx);
+                emit_statement(ast_select_default_case(node), ctx);
                 ctx->indent--;
             }
 

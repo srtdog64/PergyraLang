@@ -129,15 +129,15 @@ llvm_resolve_domain_projection_source_path_rec(LLVMGenCtx *ctx,
         char *nested_path = NULL;
         char *prefixed_path;
         int nested_status;
+        const char *field_type_name = field != NULL ? ast_type_name(field->type) : NULL;
 
         if (field == NULL || !field->is_vessel_field
-            || field->type == NULL || field->type->type != AST_TYPE
-            || field->type->data.type.name == NULL) {
+            || field_type_name == NULL) {
             continue;
         }
 
         vessel_decl = llvm_find_domain_projection_nominal_decl(
-            ctx, field->type->data.type.name);
+            ctx, field_type_name);
         if (vessel_decl == NULL || vessel_decl->type != AST_CLASS_DECL
             || ast_class_nominal_kind(vessel_decl) != NOMINAL_DECL_VESSEL) {
             continue;
@@ -237,15 +237,15 @@ llvm_load_domain_projection_path_value(LLVMGenCtx *ctx,
 
         for (size_t i = 0; i < llvm_domain_projection_field_count(current_decl); i++) {
             ClassField *field = llvm_domain_projection_field_at(current_decl, i);
+            const char *field_type_name = field != NULL ? ast_type_name(field->type) : NULL;
             if (field == NULL || field->name == NULL
                 || strcmp(field->name, segment) != 0
-                || field->type == NULL || field->type->type != AST_TYPE
-                || field->type->data.type.name == NULL) {
+                || field_type_name == NULL) {
                 continue;
             }
             current_decl = llvm_find_domain_projection_nominal_decl(
-                ctx, field->type->data.type.name);
-            current_cls = llvm_lookup_class(ctx, field->type->data.type.name);
+                ctx, field_type_name);
+            current_cls = llvm_lookup_class(ctx, field_type_name);
             current_ptr = field_ptr;
             if (current_decl == NULL || current_cls == NULL)
                 return llvm_domain_projection_value_error(ctx,

@@ -41,8 +41,8 @@ format_type_constraint_bounds(TypeConstraint *tc)
         const char *bound_name =
             (bound != NULL
              && bound->type == AST_TYPE
-             && bound->data.type.name != NULL)
-                ? bound->data.type.name
+             && ast_type_name(bound) != NULL)
+                ? ast_type_name(bound)
                 : "<constraint>";
         char *next;
 

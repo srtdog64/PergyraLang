@@ -147,7 +147,7 @@ llvm_emit_intent_cleanup_tail(LLVMGenCtx *ctx,
                 if (zone_type_name == NULL
                     && ast_intent_step_where_type(step) != NULL
                     && ast_intent_step_where_type(step)->type == AST_TYPE) {
-                    zone_type_name = ast_intent_step_where_type(step)->data.type.name;
+                    zone_type_name = ast_type_name(ast_intent_step_where_type(step));
                 }
                 if (zone_alias == NULL)
                     zone_alias = llvm_intent_step_effective_zone_alias(step);

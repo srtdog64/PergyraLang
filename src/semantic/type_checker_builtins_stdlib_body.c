@@ -26,22 +26,24 @@ stdlib_body_normalize_type(Type *type)
 static Type *
 type_check_builtin_print(ASTNode *expr, SemanticContext *ctx)
 {
+    ASTNode *arg0 = ast_call_argument(expr, 0);
     if (!check_call_arity(expr, 1, "Print", ctx))
         return TYPE_UNKNOWN;
     require_assignable(stdlib_body_normalize_type(
-            type_check_expression(expr->data.call.arguments[0], ctx)),
-        TYPE_STRING, expr->data.call.arguments[0], ctx);
+            type_check_expression(arg0, ctx)),
+        TYPE_STRING, arg0, ctx);
     return TYPE_VOID;
 }
 
 static Type *
 type_check_builtin_sleep(ASTNode *expr, SemanticContext *ctx)
 {
+    ASTNode *arg0 = ast_call_argument(expr, 0);
     if (!check_call_arity(expr, 1, "Sleep", ctx))
         return TYPE_UNKNOWN;
     require_assignable(stdlib_body_normalize_type(
-            type_check_expression(expr->data.call.arguments[0], ctx)),
-        TYPE_INT, expr->data.call.arguments[0], ctx);
+            type_check_expression(arg0, ctx)),
+        TYPE_INT, arg0, ctx);
     semantic_record_effect(ctx, EFFECT_NONDETERMINISTIC);
     return TYPE_VOID;
 }
@@ -53,7 +55,7 @@ type_check_builtin_device_read(ASTNode *expr, const char *name,
     if (!check_call_arity(expr, 1, name, ctx))
         return TYPE_UNKNOWN;
     return stdlib_body_normalize_type(type_get_constructed_arg(
-        type_check_device_handle_arg(expr->data.call.arguments[0],
+        type_check_device_handle_arg(ast_call_argument(expr, 0),
             ctx, name, false), 0));
 }
 
@@ -68,11 +70,11 @@ type_check_builtin_device_write(ASTNode *expr, const char *name,
         return TYPE_UNKNOWN;
 
     slot_type = type_check_device_handle_arg(
-        expr->data.call.arguments[0], ctx, name, false);
+        ast_call_argument(expr, 0), ctx, name, false);
     inner = stdlib_body_normalize_type(type_get_constructed_arg(slot_type, 0));
     require_assignable(stdlib_body_normalize_type(
-            type_check_expression(expr->data.call.arguments[1], ctx)),
-        inner, expr->data.call.arguments[1], ctx);
+            type_check_expression(ast_call_argument(expr, 1), ctx)),
+        inner, ast_call_argument(expr, 1), ctx);
     return TYPE_VOID;
 }
 
@@ -87,7 +89,7 @@ type_check_builtin_release_device_slot(ASTNode *expr, const char *name,
         return TYPE_UNKNOWN;
 
     semantic_record_body_summary(ctx, BODY_SUMMARY_DROPS_RESOURCE);
-    slot_arg = expr->data.call.arguments[0];
+    slot_arg = ast_call_argument(expr, 0);
     slot_type = type_check_device_handle_arg(slot_arg, ctx, name, true);
     if (slot_type == TYPE_UNKNOWN)
         return TYPE_UNKNOWN;
@@ -119,7 +121,7 @@ type_check_builtin_submit_device_read(ASTNode *expr, const char *name,
         return TYPE_UNKNOWN;
 
     slot_type = type_check_device_handle_arg(
-        expr->data.call.arguments[0], ctx, name, false);
+        ast_call_argument(expr, 0), ctx, name, false);
     return wrap_constructed(TYPE_REMOTE_FUTURE,
         stdlib_body_normalize_type(type_get_constructed_arg(slot_type, 0)));
 }
@@ -133,7 +135,7 @@ type_check_builtin_clone(ASTNode *expr, SemanticContext *ctx)
         return TYPE_UNKNOWN;
 
     arg_type = stdlib_body_normalize_type(
-        type_check_expression(expr->data.call.arguments[0], ctx));
+        type_check_expression(ast_call_argument(expr, 0), ctx));
     return arg_type;
 }
 
@@ -270,11 +272,13 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
     }
 
     body_builtin = stdlib_body_builtin_lookup(name);
+    ASTNode *arg0 = ast_call_argument(expr, 0);
+    ASTNode *arg1 = ast_call_argument(expr, 1);
     switch (body_builtin) {
     case STDLIB_BODY_TO_STRING:
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;
-        type_check_expression(expr->data.call.arguments[0], ctx);
+        type_check_expression(arg0, ctx);
         return TYPE_STRING;
 
     case STDLIB_BODY_CLAIM_QUBIT:
@@ -322,14 +326,14 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
             return TYPE_UNKNOWN;
         }
         task_type = stdlib_body_normalize_type(
-            type_check_expression(expr->data.call.arguments[0], ctx));
+            type_check_expression(arg0, ctx));
         if (!type_is_future_like(task_type)) {
-            semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr->data.call.arguments[0],
+            semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, arg0,
                 "Cancel requires Future<T> or RemoteFuture<T>, got '%s'",
                 type_name_or_unknown(task_type));
             return TYPE_UNKNOWN;
         }
-        if (type_check_cancel_rejects_payload(expr->data.call.arguments[0],
+        if (type_check_cancel_rejects_payload(arg0,
                 task_type, ctx)) {
             return TYPE_UNKNOWN;
         }
@@ -346,23 +350,23 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;
         semantic_record_effect(ctx, EFFECT_COLLAPSE);
-        require_assignable(type_check_qubit_use(expr->data.call.arguments[0], ctx),
-            TYPE_QUBIT, expr->data.call.arguments[0], ctx);
+        require_assignable(type_check_qubit_use(arg0, ctx),
+            TYPE_QUBIT, arg0, ctx);
         /* State validation: CLASSICAL qubits cannot be measured */
         {
             QubitSemanticState qs = get_qubit_semantic_state(
-                expr->data.call.arguments[0], ctx);
+                arg0, ctx);
             if (qs == QUBIT_STATE_CLASSICAL)
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr,
                     "Cannot Measure() a qubit in CLASSICAL state "
                     "(already converted via IntoClassical)");
         }
-        set_qubit_semantic_state(expr->data.call.arguments[0], ctx,
+        set_qubit_semantic_state(arg0, ctx,
                                  QUBIT_STATE_COLLAPSED);
         /* Propagate collapse to all qubits in the same entanglement pool */
         {
             int32_t pool = get_qubit_entangle_pool(
-                expr->data.call.arguments[0], ctx);
+                arg0, ctx);
             if (pool >= 0)
                 propagate_collapse_to_pool(ctx, pool);
         }
@@ -371,16 +375,16 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
     case STDLIB_BODY_ENTANGLE:
         if (!check_call_arity(expr, 2, name, ctx))
             return TYPE_UNKNOWN;
-        require_assignable(type_check_qubit_use(expr->data.call.arguments[0], ctx),
-            TYPE_QUBIT, expr->data.call.arguments[0], ctx);
-        require_assignable(type_check_qubit_use(expr->data.call.arguments[1], ctx),
-            TYPE_QUBIT, expr->data.call.arguments[1], ctx);
+        require_assignable(type_check_qubit_use(arg0, ctx),
+            TYPE_QUBIT, arg0, ctx);
+        require_assignable(type_check_qubit_use(arg1, ctx),
+            TYPE_QUBIT, arg1, ctx);
         /* State validation: only SUPERPOSITION/NONE qubits can be entangled */
         {
             QubitSemanticState sa = get_qubit_semantic_state(
-                expr->data.call.arguments[0], ctx);
+                arg0, ctx);
             QubitSemanticState sb = get_qubit_semantic_state(
-                expr->data.call.arguments[1], ctx);
+                arg1, ctx);
             if (sa == QUBIT_STATE_COLLAPSED || sa == QUBIT_STATE_CLASSICAL)
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr,
                     "Cannot Entangle() a qubit in %s state",
@@ -390,28 +394,28 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
                     "Cannot Entangle() a qubit in %s state",
                     qubit_state_name(sb));
         }
-        set_qubit_semantic_state(expr->data.call.arguments[0], ctx,
+        set_qubit_semantic_state(arg0, ctx,
                                  QUBIT_STATE_ENTANGLED);
-        set_qubit_semantic_state(expr->data.call.arguments[1], ctx,
+        set_qubit_semantic_state(arg1, ctx,
                                  QUBIT_STATE_ENTANGLED);
         /* Compile-time entanglement pool: allocate / merge */
         {
             int32_t pa = get_qubit_entangle_pool(
-                expr->data.call.arguments[0], ctx);
+                arg0, ctx);
             int32_t pb = get_qubit_entangle_pool(
-                expr->data.call.arguments[1], ctx);
+                arg1, ctx);
             if (pa >= 0 && pb >= 0) {
                 if (pa != pb)
                     merge_entangle_pools(ctx, pa, pb);
             } else if (pa >= 0) {
-                set_qubit_entangle_pool(expr->data.call.arguments[1], ctx, pa);
+                set_qubit_entangle_pool(arg1, ctx, pa);
             } else if (pb >= 0) {
-                set_qubit_entangle_pool(expr->data.call.arguments[0], ctx, pb);
+                set_qubit_entangle_pool(arg0, ctx, pb);
             } else {
                 int32_t new_pool = alloc_entangle_pool(ctx);
-                set_qubit_entangle_pool(expr->data.call.arguments[0], ctx,
+                set_qubit_entangle_pool(arg0, ctx,
                                         new_pool);
-                set_qubit_entangle_pool(expr->data.call.arguments[1], ctx,
+                set_qubit_entangle_pool(arg1, ctx,
                                         new_pool);
             }
         }
@@ -420,62 +424,62 @@ type_check_stdlib_call(ASTNode *expr, const char *name, SemanticContext *ctx)
     case STDLIB_BODY_QUBIT_STATE:
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;
-        require_assignable(type_check_qubit_use(expr->data.call.arguments[0], ctx),
-            TYPE_QUBIT, expr->data.call.arguments[0], ctx);
+        require_assignable(type_check_qubit_use(arg0, ctx),
+            TYPE_QUBIT, arg0, ctx);
         return TYPE_INT;
 
     case STDLIB_BODY_IS_COLLAPSED:
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;
-        require_assignable(type_check_qubit_use(expr->data.call.arguments[0], ctx),
-            TYPE_QUBIT, expr->data.call.arguments[0], ctx);
+        require_assignable(type_check_qubit_use(arg0, ctx),
+            TYPE_QUBIT, arg0, ctx);
         return TYPE_BOOL;
 
     case STDLIB_BODY_RELEASE_QUBIT:
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;
         semantic_record_body_summary(ctx, BODY_SUMMARY_DROPS_RESOURCE);
-        require_assignable(type_check_qubit_use(expr->data.call.arguments[0], ctx),
-            TYPE_QUBIT, expr->data.call.arguments[0], ctx);
-        consume_qubit_value(expr->data.call.arguments[0], ctx, "released");
+        require_assignable(type_check_qubit_use(arg0, ctx),
+            TYPE_QUBIT, arg0, ctx);
+        consume_qubit_value(arg0, ctx, "released");
         return TYPE_VOID;
 
     case STDLIB_BODY_H:
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;
-        require_assignable(type_check_qubit_use(expr->data.call.arguments[0], ctx),
-            TYPE_QUBIT, expr->data.call.arguments[0], ctx);
+        require_assignable(type_check_qubit_use(arg0, ctx),
+            TYPE_QUBIT, arg0, ctx);
         /* State validation: CLASSICAL qubits cannot receive gate operations */
         {
             QubitSemanticState qs = get_qubit_semantic_state(
-                expr->data.call.arguments[0], ctx);
+                arg0, ctx);
             if (qs == QUBIT_STATE_CLASSICAL)
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr,
                     "Cannot apply H() to a qubit in CLASSICAL state "
                     "(already converted via IntoClassical)");
         }
-        set_qubit_semantic_state(expr->data.call.arguments[0], ctx,
+        set_qubit_semantic_state(arg0, ctx,
                                  QUBIT_STATE_SUPERPOSITION);
         return TYPE_VOID;
 
     case STDLIB_BODY_INTO_CLASSICAL:
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;
-        require_assignable(type_check_qubit_use(expr->data.call.arguments[0], ctx),
-            TYPE_QUBIT, expr->data.call.arguments[0], ctx);
+        require_assignable(type_check_qubit_use(arg0, ctx),
+            TYPE_QUBIT, arg0, ctx);
         /* State validation: only COLLAPSED qubits can be converted.
          * Unmeasured/unknown states (NONE) must be rejected. */
         {
             QubitSemanticState qs = get_qubit_semantic_state(
-                expr->data.call.arguments[0], ctx);
+                arg0, ctx);
             if (qs != QUBIT_STATE_COLLAPSED)
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr,
                     "IntoClassical() requires a COLLAPSED qubit (after Measure) "
                     "got %s", qubit_state_name(qs));
         }
-        set_qubit_semantic_state(expr->data.call.arguments[0], ctx,
+        set_qubit_semantic_state(arg0, ctx,
                                  QUBIT_STATE_CLASSICAL);
-        consume_qubit_value(expr->data.call.arguments[0], ctx,
+        consume_qubit_value(arg0, ctx,
                             "converted to classical");
         return TYPE_BOOL;
 

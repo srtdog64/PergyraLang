@@ -10,6 +10,7 @@
 
 #include "transpiler_mir_cfg_policy.h"
 #include "transpiler_mir_expr_ssa.h"
+#include "../parser/ast_api.h"
 
 static bool
 transpiler_mir_emit_for_loop_init_inst(CodeBuf *buf,
@@ -209,7 +210,7 @@ transpiler_mir_recv_expr_channel(ASTNode *node)
 {
     if (node == NULL || node->type != AST_CHANNEL_RECV)
         return NULL;
-    return node->data.channel_recv.channel;
+    return ast_channel_recv_channel(node);
 }
 
 static ASTNode *
@@ -217,7 +218,7 @@ transpiler_mir_assignment_recv_channel(ASTNode *node)
 {
     if (node == NULL || node->type != AST_ASSIGNMENT)
         return NULL;
-    return transpiler_mir_recv_expr_channel(node->data.assignment.value);
+    return transpiler_mir_recv_expr_channel(ast_assignment_value(node));
 }
 
 static ASTNode *
@@ -231,7 +232,7 @@ transpiler_mir_select_case_channel(ASTNode *node)
     if (first == NULL)
         return NULL;
     if (first->type == AST_CHANNEL_RECV)
-        return first->data.channel_recv.channel;
+        return ast_channel_recv_channel(first);
     return transpiler_mir_assignment_recv_channel(first);
 }
 

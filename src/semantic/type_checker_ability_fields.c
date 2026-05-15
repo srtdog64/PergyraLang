@@ -19,12 +19,13 @@ validate_ability_require_fields(ASTNode *node, SemanticContext *ctx)
     if (node == NULL || node->type != AST_ABILITY_DECL || ctx == NULL)
         return;
 
-    name = node->data.ability_decl.name;
+    name = ast_ability_name(node);
 
-    for (size_t i = 0; i < node->data.ability_decl.require_count; i++) {
-        ASTNode *req = node->data.ability_decl.require_fields[i];
-        if (req == NULL || req->data.require_field.name == NULL
-            || req->data.require_field.type == NULL) {
+    for (size_t i = 0; i < ast_ability_require_field_count(node); i++) {
+        ASTNode *req = ast_ability_require_field(node, i);
+        const char *req_name = ast_require_field_name(req);
+        ASTNode *req_type = ast_require_field_type(req);
+        if (req_name == NULL || req_type == NULL) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_ABILITY_CONTRACT_INVALID,
                 PGY_CAUSE_ABILITY_CONTRACT, PGY_FIX_ALIGN_ABILITY_GENERICS_OR_FIELDS,
                 node,
@@ -33,26 +34,24 @@ validate_ability_require_fields(ASTNode *node, SemanticContext *ctx)
             continue;
         }
         for (size_t j = 0; j < i; j++) {
-            ASTNode *prev = node->data.ability_decl.require_fields[j];
-            if (prev != NULL && prev->data.require_field.name != NULL
-                && strcmp(prev->data.require_field.name,
-                          req->data.require_field.name) == 0) {
+            ASTNode *prev = ast_ability_require_field(node, j);
+            const char *prev_name = ast_require_field_name(prev);
+            if (prev_name != NULL && strcmp(prev_name, req_name) == 0) {
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_ABILITY_CONTRACT_INVALID,
                     PGY_CAUSE_ABILITY_CONTRACT,
                     PGY_FIX_ALIGN_ABILITY_GENERICS_OR_FIELDS,
                     req,
                     "Ability '%s' declares duplicate field '%s' in fields",
                     name != NULL ? name : "<ability>",
-                    req->data.require_field.name);
+                    req_name);
                 break;
             }
         }
-        ability_resolve_type_ref(req->data.require_field.type, ctx);
-        if (req->data.require_field.type != NULL
-            && req->data.require_field.type->type == AST_TYPE
-            && req->data.require_field.type->data.type.name != NULL) {
+        ability_resolve_type_ref(req_type, ctx);
+        if (req_type != NULL && req_type->type == AST_TYPE
+            && ast_type_name(req_type) != NULL) {
             ASTNode *type_decl = find_type_decl_by_name(
-                ctx->program_root, req->data.require_field.type->data.type.name);
+                ctx->program_root, ast_type_name(req_type));
             if (type_decl != NULL
                 && !explicit_type_reference_allowed(type_decl, node, ctx)) {
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_ABILITY_CONTRACT_INVALID,
@@ -61,8 +60,8 @@ validate_ability_require_fields(ASTNode *node, SemanticContext *ctx)
                     req,
                     "Ability '%s' cannot declare field '%s' in fields with non-exported type '%s' from another module",
                     name != NULL ? name : "<ability>",
-                    req->data.require_field.name,
-                    req->data.require_field.type->data.type.name);
+                    req_name,
+                    ast_type_name(req_type));
             }
         }
     }

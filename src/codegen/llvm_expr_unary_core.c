@@ -25,8 +25,8 @@ llvm_unary_expr_error(LLVMGenCtx *ctx, ASTNode *node, const char *message)
 LLVMValueRef
 llvm_emit_unary(ASTNode *node, LLVMGenCtx *ctx)
 {
-    if (node->data.unary.op.type == TOKEN_QUESTION) {
-        LLVMValueRef result = llvm_emit_expression(node->data.unary.operand, ctx);
+    if (ast_unary_operator(node).type == TOKEN_QUESTION) {
+        LLVMValueRef result = llvm_emit_expression(ast_unary_operand(node), ctx);
         LLVMTypeRef result_ty;
         unsigned field_count;
 
@@ -74,9 +74,9 @@ llvm_emit_unary(ASTNode *node, LLVMGenCtx *ctx)
         LLVMTypeRef fn_ret_type = ctx->current_ret_type;
         if (ctx->current_func_decl != NULL
             && ctx->current_func_decl->type == AST_FUNC_DECL
-            && ctx->current_func_decl->data.func_decl.return_type != NULL) {
+            && ast_func_return_type(ctx->current_func_decl) != NULL) {
             LLVMTypeRef declared = ast_type_to_llvm(ctx,
-                ctx->current_func_decl->data.func_decl.return_type);
+                ast_func_return_type(ctx->current_func_decl));
             if (declared != NULL)
                 fn_ret_type = declared;
         }
@@ -128,14 +128,14 @@ llvm_emit_unary(ASTNode *node, LLVMGenCtx *ctx)
         return LLVMBuildLoad2(ctx->builder, fields[1], ok_alloca, llvm_tmp_name(ctx));
     }
 
-    LLVMValueRef operand = llvm_emit_expression(node->data.unary.operand, ctx);
+    LLVMValueRef operand = llvm_emit_expression(ast_unary_operand(node), ctx);
     if (operand == NULL)
         return llvm_unary_expr_error(ctx, node,
             "LLVM unary expression could not lower operand expression");
 
     const char *tmp = llvm_tmp_name(ctx);
 
-    switch (node->data.unary.op.type) {
+    switch (ast_unary_operator(node).type) {
     case TOKEN_MINUS:
         if (LLVMTypeOf(operand) == ctx->type_f64 ||
             LLVMTypeOf(operand) == ctx->type_f32)

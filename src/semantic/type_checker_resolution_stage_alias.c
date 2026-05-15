@@ -68,7 +68,7 @@ semantic_stage_resolve_alias_target_quiet(ASTNode *alias_decl,
     if (alias_decl == NULL || alias_decl->type != AST_TYPE_ALIAS || ctx == NULL)
         return TYPE_UNKNOWN;
 
-    target_type = alias_decl->data.type_alias.target_type;
+    target_type = ast_type_alias_target_type(alias_decl);
     if (target_type == NULL)
         return TYPE_UNKNOWN;
 
@@ -142,7 +142,7 @@ semantic_stage_record_alias_diagnostic_unresolved(ASTNode *alias_decl,
     if (alias_decl == NULL || ctx == NULL || alias_decl->type != AST_TYPE_ALIAS)
         return;
 
-    alias_name = alias_decl->data.type_alias.name;
+    alias_name = ast_type_alias_name(alias_decl);
     unique_diagnostic = stage_record_unique_alias_diagnostic(ctx, alias_name);
     if (unique_diagnostic) {
         ctx->type_resolution_stage_alias_diagnostic_unresolved_count++;
@@ -167,10 +167,10 @@ semantic_stage_type_alias_decl(ASTNode *decl, SemanticContext *ctx)
 
     if (decl == NULL || decl->type != AST_TYPE_ALIAS || ctx == NULL)
         return;
-    if (decl->data.type_alias.name == NULL)
+    if (ast_type_alias_name(decl) == NULL)
         return;
 
-    sym = scope_lookup_current(ctx->scope, decl->data.type_alias.name);
+    sym = scope_lookup_current(ctx->scope, ast_type_alias_name(decl));
     if (sym == NULL)
         return;
 

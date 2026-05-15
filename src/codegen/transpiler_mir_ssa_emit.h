@@ -1,6 +1,8 @@
 #ifndef PGY_TRANSPILER_MIR_SSA_EMIT_H
 #define PGY_TRANSPILER_MIR_SSA_EMIT_H
 
+#include "../parser/ast_api.h"
+
 #include "transpiler_mir_local_type_ast_lookup.h"
 
 static char *
@@ -8,12 +10,12 @@ transpiler_render_effective_local_type_name(TranspilerCtx *ctx, ASTNode *type_no
 {
     if (type_node != NULL
         && type_node->type == AST_TYPE
-        && type_node->data.type.name != NULL) {
-        ASTNode *class_decl = find_class_decl(ctx, type_node->data.type.name);
+        && ast_type_name(type_node) != NULL) {
+        ASTNode *class_decl = find_class_decl(ctx, ast_type_name(type_node));
         if (class_decl != NULL && class_has_generic_params(class_decl)) {
             const char *spec_name =
                 ensure_generic_class_specialization(ctx, class_decl, type_node);
-            if (spec_name != NULL && strcmp(spec_name, type_node->data.type.name) != 0)
+            if (spec_name != NULL && strcmp(spec_name, ast_type_name(type_node)) != 0)
                 return pergyra_strdup(spec_name);
         }
     }
@@ -51,15 +53,15 @@ transpiler_register_explicit_local_bindings_in_block(TranspilerCtx *ctx,
                 if (transpiler_type_name_is_view_like(type_name)
                     && stmt->data.let_decl.initializer != NULL
                     && stmt->data.let_decl.initializer->type == AST_CALL
-                    && stmt->data.let_decl.initializer->data.call.callee != NULL
-                    && stmt->data.let_decl.initializer->data.call.callee->type == AST_IDENTIFIER
-                    && stmt->data.let_decl.initializer->data.call.arg_count >= 1
-                    && stmt->data.let_decl.initializer->data.call.arguments[0] != NULL
-                    && stmt->data.let_decl.initializer->data.call.arguments[0]->type == AST_IDENTIFIER) {
+                    && ast_call_callee(stmt->data.let_decl.initializer) != NULL
+                    && ast_call_callee(stmt->data.let_decl.initializer)->type == AST_IDENTIFIER
+                    && ast_call_arg_count(stmt->data.let_decl.initializer) >= 1
+                    && ast_call_argument(stmt->data.let_decl.initializer, 0) != NULL
+                    && ast_call_argument(stmt->data.let_decl.initializer, 0)->type == AST_IDENTIFIER) {
                     const char *callee =
-                        stmt->data.let_decl.initializer->data.call.callee->data.identifier.name;
+                        ast_call_callee(stmt->data.let_decl.initializer)->data.identifier.name;
                     const char *source =
-                        stmt->data.let_decl.initializer->data.call.arguments[0]->data.identifier.name;
+                        ast_call_argument(stmt->data.let_decl.initializer, 0)->data.identifier.name;
                     if (callee != NULL
                         && source != NULL
                         && pgy_codegen_call_name_is_view_constructor(callee)) {
@@ -93,8 +95,8 @@ transpiler_register_explicit_local_bindings_in_block(TranspilerCtx *ctx,
             free(rendered_type);
             continue;
         }
-        if (stmt->type == AST_WITH_STMT && stmt->data.with_stmt.alias != NULL) {
-            char *inner = render_type_name(stmt->data.with_stmt.slot_type);
+        if (stmt->type == AST_WITH_STMT && ast_with_alias(stmt) != NULL) {
+            char *inner = render_type_name(ast_with_slot_type(stmt));
             if (inner == NULL || inner[0] == '\0'
                 || strcmp(inner, "Unknown") == 0) {
                 if (ctx->backend_error == NULL) {
@@ -103,13 +105,13 @@ transpiler_register_explicit_local_bindings_in_block(TranspilerCtx *ctx,
                         PGY_CAUSE_C_TYPE_UNSUPPORTED,
                         PGY_FIX_ANNOTATE_CONCRETE_TYPE,
                         "C MIR with-slot alias '%s' requires concrete slot type metadata",
-                        stmt->data.with_stmt.alias);
+                        ast_with_alias(stmt));
                 }
                 free(inner);
                 continue;
             }
             char *slot_type = strdup_fmt("%s<%s>",
-                stmt->data.with_stmt.is_secure ? "SecureSlot" : "Slot",
+                ast_with_is_secure(stmt) ? "SecureSlot" : "Slot",
                 inner);
             if (slot_type == NULL) {
                 if (ctx->backend_error == NULL) {
@@ -118,39 +120,39 @@ transpiler_register_explicit_local_bindings_in_block(TranspilerCtx *ctx,
                         PGY_CAUSE_C_TYPE_UNSUPPORTED,
                         PGY_FIX_ANNOTATE_CONCRETE_TYPE,
                         "C MIR with-slot alias '%s' cannot synthesize slot type metadata",
-                        stmt->data.with_stmt.alias);
+                        ast_with_alias(stmt));
                 }
                 free(inner);
                 continue;
             }
-            register_typed_var(ctx, stmt->data.with_stmt.alias, slot_type);
-            register_slot_var(ctx, stmt->data.with_stmt.alias,
+            register_typed_var(ctx, ast_with_alias(stmt), slot_type);
+            register_slot_var(ctx, ast_with_alias(stmt),
                 inner,
-                stmt->data.with_stmt.is_secure, false);
+                ast_with_is_secure(stmt), false);
             free(slot_type);
             free(inner);
             transpiler_register_explicit_local_bindings_in_block(ctx, func_decl,
-                stmt->data.with_stmt.body);
+                ast_with_body(stmt));
             continue;
         }
         if (stmt->type == AST_IF_STMT) {
             transpiler_register_explicit_local_bindings_in_block(ctx, func_decl,
-                stmt->data.if_stmt.then_branch);
+                ast_if_then_branch(stmt));
             transpiler_register_explicit_local_bindings_in_block(ctx, func_decl,
-                stmt->data.if_stmt.else_branch);
+                ast_if_else_branch(stmt));
             continue;
         }
         if (stmt->type == AST_WHILE_LOOP) {
             transpiler_register_explicit_local_bindings_in_block(ctx, func_decl,
-                stmt->data.while_loop.body);
+                ast_while_body(stmt));
             continue;
         }
         if (stmt->type == AST_FOR_LOOP) {
-            if (stmt->data.for_loop.variable != NULL) {
-                register_typed_var(ctx, stmt->data.for_loop.variable, "Int");
+            if (ast_for_variable(stmt) != NULL) {
+                register_typed_var(ctx, ast_for_variable(stmt), "Int");
             }
             transpiler_register_explicit_local_bindings_in_block(ctx, func_decl,
-                stmt->data.for_loop.body);
+                ast_for_body(stmt));
         }
     }
 }
@@ -214,8 +216,9 @@ transpiler_find_local_type_name(TranspilerCtx *ctx,
     }
     if (func_decl == NULL || func_decl->type != AST_FUNC_DECL)
         return transpiler_lookup_current_owner_member_type_name(ctx, base_name);
-    for (size_t i = 0; i < func_decl->data.func_decl.param_count; i++) {
-        FuncParam *p = func_decl->data.func_decl.params[i];
+    size_t param_count = ast_func_param_count(func_decl);
+    for (size_t i = 0; i < param_count; i++) {
+        FuncParam *p = ast_func_param(func_decl, i);
         if (p != NULL && p->name != NULL && strcmp(p->name, base_name) == 0 && p->type != NULL) {
             char *owned_param =
                 transpiler_render_effective_local_type_name(ctx, p->type);
@@ -232,7 +235,7 @@ transpiler_find_local_type_name(TranspilerCtx *ctx,
         }
     }
     typed_name = transpiler_find_local_type_name_in_block(ctx, func_decl,
-        func_decl->data.func_decl.body, base_name);
+        ast_func_body(func_decl), base_name);
     if (typed_name != NULL) {
         if (ctx != NULL)
             register_typed_var(ctx, base_name, typed_name);

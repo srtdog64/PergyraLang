@@ -136,7 +136,7 @@ llvm_intent_step_context_load(LLVMGenCtx *ctx,
     if (out->zone_type_name == NULL
         && ast_intent_step_where_type(step) != NULL
         && ast_intent_step_where_type(step)->type == AST_TYPE)
-        out->zone_type_name = ast_intent_step_where_type(step)->data.type.name;
+        out->zone_type_name = ast_type_name(ast_intent_step_where_type(step));
     if (out->zone_alias == NULL)
         out->zone_alias = llvm_intent_step_effective_zone_alias(step);
     if (out->from_alias == NULL)

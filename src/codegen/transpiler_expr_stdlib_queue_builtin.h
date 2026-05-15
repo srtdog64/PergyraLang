@@ -1,6 +1,8 @@
 #ifndef PGY_TRANSPILER_EXPR_STDLIB_QUEUE_BUILTIN_H
 #define PGY_TRANSPILER_EXPR_STDLIB_QUEUE_BUILTIN_H
 
+#include "../parser/ast_api.h"
+
 static char *
 emit_call_stdlib_queue_builtin(TranspilerCollectionOp op,
                                ASTNode *call,
@@ -20,10 +22,10 @@ emit_call_stdlib_queue_builtin(TranspilerCollectionOp op,
         return strdup_fmt("pgy_queue_new_%s()", suffix_buf);
     }
     if (op == TRANSPILER_COLLECTION_OP_QUEUE_PUSH) {
-        char *q = emit_expression(call->data.call.arguments[0], ctx);
-        char *v = emit_expression(call->data.call.arguments[1], ctx);
+        char *q = emit_expression(ast_call_argument(call, 0), ctx);
+        char *v = emit_expression(ast_call_argument(call, 1), ctx);
         const char *queue_type = infer_expression_type_name(ctx,
-            call->data.call.arguments[0]);
+            ast_call_argument(call, 0));
         char inner_buf[64];
         const char *inner = NULL;
         if (!transpiler_require_unary_collection_type(ctx, queue_type,
@@ -42,9 +44,9 @@ emit_call_stdlib_queue_builtin(TranspilerCollectionOp op,
         return r;
     }
     if (op == TRANSPILER_COLLECTION_OP_QUEUE_POP) {
-        char *q = emit_expression(call->data.call.arguments[0], ctx);
+        char *q = emit_expression(ast_call_argument(call, 0), ctx);
         const char *queue_type = infer_expression_type_name(ctx,
-            call->data.call.arguments[0]);
+            ast_call_argument(call, 0));
         char inner_buf[64];
         const char *inner = NULL;
         if (!transpiler_require_unary_collection_type(ctx, queue_type,
@@ -61,9 +63,9 @@ emit_call_stdlib_queue_builtin(TranspilerCollectionOp op,
         return r;
     }
     if (op == TRANSPILER_COLLECTION_OP_QUEUE_SIZE) {
-        char *q = emit_expression(call->data.call.arguments[0], ctx);
+        char *q = emit_expression(ast_call_argument(call, 0), ctx);
         const char *queue_type = infer_expression_type_name(ctx,
-            call->data.call.arguments[0]);
+            ast_call_argument(call, 0));
         char inner_buf[64];
         const char *inner = NULL;
         if (!transpiler_require_unary_collection_type(ctx, queue_type,
@@ -80,9 +82,9 @@ emit_call_stdlib_queue_builtin(TranspilerCollectionOp op,
         return r;
     }
     if (op == TRANSPILER_COLLECTION_OP_QUEUE_EMPTY) {
-        char *q = emit_expression(call->data.call.arguments[0], ctx);
+        char *q = emit_expression(ast_call_argument(call, 0), ctx);
         const char *queue_type = infer_expression_type_name(ctx,
-            call->data.call.arguments[0]);
+            ast_call_argument(call, 0));
         char inner_buf[64];
         const char *inner = NULL;
         if (!transpiler_require_unary_collection_type(ctx, queue_type,

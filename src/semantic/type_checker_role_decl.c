@@ -12,7 +12,9 @@
 bool
 type_check_role_decl(ASTNode *node, SemanticContext *ctx)
 {
-    const char *name = node->data.role_decl.name;
+    const char *name = ast_role_name(node);
+    GenericParams *role_generics = ast_role_generic_params(node);
+    WhereClause *role_where = ast_role_where_clause(node);
 
     /* Register role as a symbol */
     Symbol *sym = calloc(1, sizeof(Symbol));
@@ -34,10 +36,8 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
     }
     scope_declare(ctx->scope, sym);
 
-    if (node->data.role_decl.generic_params != NULL
-        && node->data.role_decl.generic_params->count > 0) {
-        validate_generic_param_defaults(node->data.role_decl.generic_params,
-            ctx, node, "role");
+    if (role_generics != NULL && role_generics->count > 0) {
+        validate_generic_param_defaults(role_generics, ctx, node, "role");
     }
 
     /* Check for_type exists */
@@ -66,10 +66,10 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
         }
     }
 
-    validate_where_clause_bounds(node->data.role_decl.where_clause, ctx, node);
+    validate_where_clause_bounds(role_where, ctx, node);
     validate_generic_param_default_bounds(
-        node->data.role_decl.generic_params,
-        node->data.role_decl.where_clause,
+        role_generics,
+        role_where,
         ctx,
         node,
         "role",
@@ -110,23 +110,25 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
 
         included_role_decl = semantic_find_role_decl(ctx->program_root, role_name);
         if (included_role_decl != NULL) {
-            if (included_role_decl->data.role_decl.generic_params != NULL
-                && included_role_decl->data.role_decl.generic_params->count > 0) {
+            GenericParams *included_generics =
+                ast_role_generic_params(included_role_decl);
+            WhereClause *included_where =
+                ast_role_where_clause(included_role_decl);
+            if (included_generics != NULL && included_generics->count > 0) {
                 size_t effective_count = 0;
                 ASTNode **effective_args = collect_effective_generic_arg_nodes(
-                    included_role_decl->data.role_decl.generic_params,
+                    included_generics,
                     ast_include_type_args(inc),
                     inc,
                     ctx,
                     "role include",
                     role_name,
                     &effective_count);
-                if (effective_args != NULL
-                    && included_role_decl->data.role_decl.where_clause != NULL) {
+                if (effective_args != NULL && included_where != NULL) {
                     char *expected_text = format_generic_subject_signature(
                         role_name,
-                        included_role_decl->data.role_decl.generic_params);
-                    WhereClause *wc = included_role_decl->data.role_decl.where_clause;
+                        included_generics);
+                    WhereClause *wc = included_where;
                     for (size_t ci = 0; ci < wc->count; ci++) {
                         TypeConstraint *tc = wc->constraints[ci];
                         int param_index;
@@ -134,7 +136,7 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
                         if (tc == NULL || tc->type_param == NULL)
                             continue;
                         param_index = find_generic_param_index(
-                            included_role_decl->data.role_decl.generic_params,
+                            included_generics,
                             tc->type_param);
                         if (param_index < 0 || (size_t)param_index >= effective_count)
                             continue;
@@ -148,8 +150,8 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
                             const char *bound_name =
                                 (bound_node != NULL
                                  && bound_node->type == AST_TYPE
-                                 && bound_node->data.type.name != NULL)
-                                    ? bound_node->data.type.name
+                                 && ast_type_name(bound_node) != NULL)
+                                    ? ast_type_name(bound_node)
                                     : "<constraint>";
                             if (!concrete_type_satisfies_bound(
                                     concrete_type, bound_node, ctx)) {
@@ -243,7 +245,7 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
                         ability_name);
                 } else if (ability_decl != NULL
                            && ability_decl->type == AST_ABILITY_DECL
-                           && ability_decl->data.ability_decl.is_innate
+                           && ast_ability_is_innate(ability_decl)
                            && ability_decl->origin_path != NULL
                            && node->origin_path != NULL
                            && strcmp(ability_decl->origin_path,
@@ -254,11 +256,13 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
                 } else if (ability_decl != NULL
                            && ability_decl->type == AST_ABILITY_DECL) {
                     GenericParams *impl_type_args =
-                        ability_ref != NULL ? ability_ref->data.type.generic_args : NULL;
+                        ability_ref != NULL ? ast_type_generic_args(ability_ref) : NULL;
+                    GenericParams *ability_generics =
+                        ast_ability_generic_params(ability_decl);
                     size_t arg_count = impl_type_args != NULL
                         ? impl_type_args->count : 0;
-                    size_t param_count = ability_decl->data.ability_decl.generic_params != NULL
-                        ? ability_decl->data.ability_decl.generic_params->count : 0;
+                    size_t param_count = ability_generics != NULL
+                        ? ability_generics->count : 0;
                     bool malformed_impl_args = false;
 
                     if (arg_count > 0 && param_count == 0) {
@@ -267,7 +271,7 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
                         char *expected_text =
                             ability_decl_signature_display(
                                 ability_name,
-                                ability_decl->data.ability_decl.generic_params);
+                                ability_generics);
                         semantic_error_with_hints(ctx, PGY_CODE_SEM_ABILITY_CONTRACT_INVALID, PGY_CAUSE_ABILITY_CONTRACT, PGY_FIX_ALIGN_ABILITY_GENERICS_OR_FIELDS, impl,
                             "Ability '%s' does not accept generic type arguments in impl clauses.\n"
                             "Reason:\n"
@@ -293,15 +297,15 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
                         free(impl_text);
                     } else if (arg_count > param_count
                                || arg_count < generic_params_required_count(
-                                      ability_decl->data.ability_decl.generic_params)) {
+                                      ability_generics)) {
                         size_t required_count = generic_params_required_count(
-                            ability_decl->data.ability_decl.generic_params);
+                            ability_generics);
                         char *impl_text =
                             ability_ref_display(ability_ref);
                         char *expected_text =
                             ability_decl_signature_display(
                                 ability_name,
-                                ability_decl->data.ability_decl.generic_params);
+                                ability_generics);
                         semantic_error_with_hints(ctx, PGY_CODE_SEM_ABILITY_CONTRACT_INVALID, PGY_CAUSE_ABILITY_CONTRACT, PGY_FIX_ALIGN_ABILITY_GENERICS_OR_FIELDS, impl,
                             "Ability '%s' requires between %llu and %llu generic argument(s) in impl clauses, got %llu.\n"
                             "Reason:\n"
@@ -330,7 +334,7 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
                                 char *expected_text =
                                     ability_decl_signature_display(
                                         ability_name,
-                                        ability_decl->data.ability_decl.generic_params);
+                                        ability_generics);
                                 semantic_error_with_hints(ctx, PGY_CODE_SEM_ABILITY_CONTRACT_INVALID, PGY_CAUSE_ABILITY_CONTRACT, PGY_FIX_ALIGN_ABILITY_GENERICS_OR_FIELDS, impl,
                                     "Ability '%s' has an invalid generic argument in impl clause.\n"
                                     "Reason:\n"

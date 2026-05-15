@@ -30,6 +30,22 @@ ast_party_name(const ASTNode* node)
     return node->data.party_decl.name;
 }
 
+GenericParams*
+ast_party_generic_params(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_PARTY_DECL)
+        return NULL;
+    return node->data.party_decl.generic_params;
+}
+
+ASTNode*
+ast_party_extends(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_PARTY_DECL)
+        return NULL;
+    return node->data.party_decl.extends;
+}
+
 size_t
 ast_party_role_count(const ASTNode* node)
 {

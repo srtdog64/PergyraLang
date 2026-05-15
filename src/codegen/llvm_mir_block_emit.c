@@ -189,10 +189,10 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block, const MIRRoutine 
                 LLVMValueRef val;
                 if (ctx->current_func_decl != NULL
                     && ctx->current_func_decl->type == AST_FUNC_DECL
-                    && ctx->current_func_decl->data.func_decl.return_type != NULL) {
+                    && ast_func_return_type(ctx->current_func_decl) != NULL) {
                     ctx->expected_type_name =
                         llvm_stmt_render_type_annotation_copy(ctx,
-                            ctx->current_func_decl->data.func_decl.return_type);
+                            ast_func_return_type(ctx->current_func_decl));
                 }
                 val = llvm_emit_expression(return_expr, ctx);
                 ctx->expected_type_name = saved_expected_type_name;

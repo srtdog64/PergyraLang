@@ -2,6 +2,7 @@
 #define PGY_TRANSPILER_MIR_SSA_CONTRACT_H
 
 #include "transpiler_mir_reason.h"
+#include "../parser/ast_api.h"
 
 static bool
 transpiler_seed_expr_identifier_mappings(const MIRBasicBlock *block,
@@ -30,58 +31,62 @@ transpiler_seed_expr_identifier_mappings(const MIRBasicBlock *block,
     switch (expr->type) {
         case AST_BINARY:
             return transpiler_seed_expr_identifier_mappings(
-                       block, inst_index, expr->data.binary.left, ssa_map_out)
+                       block, inst_index, ast_binary_left(expr), ssa_map_out)
                 && transpiler_seed_expr_identifier_mappings(
-                       block, inst_index, expr->data.binary.right, ssa_map_out);
+                       block, inst_index, ast_binary_right(expr), ssa_map_out);
         case AST_UNARY:
             return transpiler_seed_expr_identifier_mappings(
-                block, inst_index, expr->data.unary.operand, ssa_map_out);
-        case AST_CALL:
-            if (expr->data.call.callee != NULL
-                && expr->data.call.callee->type != AST_IDENTIFIER
+                block, inst_index, ast_unary_operand(expr), ssa_map_out);
+        case AST_CALL: {
+            const ASTNode *callee = ast_call_callee(expr);
+            size_t arg_count = ast_call_arg_count(expr);
+            if (callee != NULL
+                && callee->type != AST_IDENTIFIER
                 && !transpiler_seed_expr_identifier_mappings(
-                       block, inst_index, expr->data.call.callee, ssa_map_out)) {
+                       block, inst_index, callee, ssa_map_out)) {
                 return false;
             }
-            for (size_t i = 0; i < expr->data.call.arg_count; i++) {
+            for (size_t i = 0; i < arg_count; i++) {
                 if (!transpiler_seed_expr_identifier_mappings(
-                        block, inst_index, expr->data.call.arguments[i], ssa_map_out)) {
+                        block, inst_index, ast_call_argument(expr, i),
+                        ssa_map_out)) {
                     return false;
                 }
             }
             return true;
+        }
         case AST_MEMBER_ACCESS:
             return transpiler_seed_expr_identifier_mappings(
-                block, inst_index, expr->data.member.object, ssa_map_out);
+                block, inst_index, ast_member_object(expr), ssa_map_out);
         case AST_ARRAY_ACCESS:
             return transpiler_seed_expr_identifier_mappings(
-                       block, inst_index, expr->data.array_access.array, ssa_map_out)
+                       block, inst_index, ast_array_access_array(expr), ssa_map_out)
                 && transpiler_seed_expr_identifier_mappings(
-                       block, inst_index, expr->data.array_access.index, ssa_map_out);
+                       block, inst_index, ast_array_access_index(expr), ssa_map_out);
         case AST_ARRAY_LITERAL:
-            for (size_t i = 0; i < expr->data.array_literal.count; i++) {
+            for (size_t i = 0; i < ast_array_literal_count(expr); i++) {
                 if (!transpiler_seed_expr_identifier_mappings(
-                        block, inst_index, expr->data.array_literal.elements[i], ssa_map_out)) {
+                        block, inst_index, ast_array_literal_element(expr, i), ssa_map_out)) {
                     return false;
                 }
             }
             return true;
         case AST_ASSIGNMENT:
             return transpiler_seed_expr_identifier_mappings(
-                       block, inst_index, expr->data.assignment.target, ssa_map_out)
+                       block, inst_index, ast_assignment_target(expr), ssa_map_out)
                 && transpiler_seed_expr_identifier_mappings(
-                       block, inst_index, expr->data.assignment.value, ssa_map_out);
+                       block, inst_index, ast_assignment_value(expr), ssa_map_out);
         case AST_AWAIT_EXPR:
             return transpiler_seed_expr_identifier_mappings(
-                block, inst_index, expr->data.await_expr.expression, ssa_map_out);
+                block, inst_index, ast_await_expression(expr), ssa_map_out);
         case AST_CHANNEL_SEND:
             return transpiler_seed_expr_identifier_mappings(
-                       block, inst_index, expr->data.channel_send.channel, ssa_map_out)
+                       block, inst_index, ast_channel_send_channel(expr), ssa_map_out)
                 && transpiler_seed_expr_identifier_mappings(
-                       block, inst_index, expr->data.channel_send.value, ssa_map_out);
+                       block, inst_index, ast_channel_send_value(expr), ssa_map_out);
         case AST_CHANNEL_RECV:
             return transpiler_seed_expr_identifier_mappings(
-                block, inst_index, expr->data.channel_recv.channel, ssa_map_out);
+                block, inst_index, ast_channel_recv_channel(expr), ssa_map_out);
         default:
             return true;
     }
@@ -138,79 +143,84 @@ transpiler_expr_identifiers_mapped(const TranspilerCtx *ctx,
 
     switch (expr->type) {
         case AST_BINARY:
-            if (!transpiler_expr_identifiers_mapped(ctx, expr->data.binary.left, ssa_map,
+            if (!transpiler_expr_identifiers_mapped(ctx, ast_binary_left(expr), ssa_map,
                                                    routine_name, reason, reason_cap))
                 return false;
-            return transpiler_expr_identifiers_mapped(ctx, expr->data.binary.right, ssa_map,
+            return transpiler_expr_identifiers_mapped(ctx, ast_binary_right(expr), ssa_map,
                                                      routine_name, reason, reason_cap);
         case AST_UNARY:
-            return transpiler_expr_identifiers_mapped(ctx, expr->data.unary.operand, ssa_map,
+            return transpiler_expr_identifiers_mapped(ctx, ast_unary_operand(expr), ssa_map,
                                                      routine_name, reason, reason_cap);
-        case AST_CALL:
-            if (expr->data.call.callee != NULL
-                && expr->data.call.callee->type == AST_IDENTIFIER
-                && expr->data.call.callee->data.identifier.name != NULL
-                && (strcmp(expr->data.call.callee->data.identifier.name, "ToObject") == 0
-                    || strcmp(expr->data.call.callee->data.identifier.name, "ToTObject") == 0)) {
-                for (size_t i = 1; i < expr->data.call.arg_count; i++) {
-                    if (!transpiler_expr_identifiers_mapped(ctx, expr->data.call.arguments[i], ssa_map,
+        case AST_CALL: {
+            const ASTNode *callee = ast_call_callee(expr);
+            size_t arg_count = ast_call_arg_count(expr);
+            if (callee != NULL
+                && callee->type == AST_IDENTIFIER
+                && callee->data.identifier.name != NULL
+                && (strcmp(callee->data.identifier.name, "ToObject") == 0
+                    || strcmp(callee->data.identifier.name, "ToTObject") == 0)) {
+                for (size_t i = 1; i < arg_count; i++) {
+                    if (!transpiler_expr_identifiers_mapped(ctx,
+                                                           ast_call_argument(expr, i), ssa_map,
                                                            routine_name, reason, reason_cap))
                         return false;
                 }
                 return true;
             }
-            if (expr->data.call.callee != NULL
-                && expr->data.call.callee->type != AST_IDENTIFIER) {
-                if (!transpiler_expr_identifiers_mapped(ctx, expr->data.call.callee, ssa_map,
+            if (callee != NULL
+                && callee->type != AST_IDENTIFIER) {
+                if (!transpiler_expr_identifiers_mapped(ctx, callee, ssa_map,
                                                        routine_name, reason, reason_cap))
                     return false;
-            } else if (expr->data.call.callee != NULL
-                       && expr->data.call.callee->type == AST_IDENTIFIER
-                       && expr->data.call.callee->data.identifier.name != NULL) {
-                const char *call_target = expr->data.call.callee->data.identifier.name;
+            } else if (callee != NULL
+                       && callee->type == AST_IDENTIFIER
+                       && callee->data.identifier.name != NULL) {
+                const char *call_target = callee->data.identifier.name;
                 if (transpiler_resolve_ssa_name(ssa_map, call_target) != NULL
-                    && !transpiler_expr_identifiers_mapped(ctx, expr->data.call.callee, ssa_map,
+                    && !transpiler_expr_identifiers_mapped(ctx, callee, ssa_map,
                                                           routine_name, reason, reason_cap))
                     return false;
             }
-            for (size_t i = 0; i < expr->data.call.arg_count; i++) {
-                if (!transpiler_expr_identifiers_mapped(ctx, expr->data.call.arguments[i], ssa_map,
+            for (size_t i = 0; i < arg_count; i++) {
+                if (!transpiler_expr_identifiers_mapped(ctx,
+                                                       ast_call_argument(expr, i), ssa_map,
                                                        routine_name, reason, reason_cap))
                     return false;
             }
             return true;
+        }
         case AST_MEMBER_ACCESS:
-            return transpiler_expr_identifiers_mapped(ctx, expr->data.member.object, ssa_map,
+            return transpiler_expr_identifiers_mapped(ctx, ast_member_object(expr), ssa_map,
                                                      routine_name, reason, reason_cap);
         case AST_ARRAY_ACCESS:
-            if (!transpiler_expr_identifiers_mapped(ctx, expr->data.array_access.array, ssa_map,
+            if (!transpiler_expr_identifiers_mapped(ctx, ast_array_access_array(expr), ssa_map,
                                                    routine_name, reason, reason_cap))
                 return false;
-            return transpiler_expr_identifiers_mapped(ctx, expr->data.array_access.index, ssa_map,
+            return transpiler_expr_identifiers_mapped(ctx, ast_array_access_index(expr), ssa_map,
                                                      routine_name, reason, reason_cap);
         case AST_ARRAY_LITERAL: {
-            for (size_t i = 0; i < expr->data.array_literal.count; i++) {
-                if (!transpiler_expr_identifiers_mapped(ctx, expr->data.array_literal.elements[i], ssa_map,
+            for (size_t i = 0; i < ast_array_literal_count(expr); i++) {
+                if (!transpiler_expr_identifiers_mapped(ctx, ast_array_literal_element(expr, i), ssa_map,
                                                        routine_name, reason, reason_cap))
                     return false;
             }
             return true;
         }
         case AST_ASSIGNMENT:
-            return transpiler_expr_identifiers_mapped(ctx, expr->data.assignment.target, ssa_map,
+            return transpiler_expr_identifiers_mapped(ctx, ast_assignment_target(expr), ssa_map,
                                                      routine_name, reason, reason_cap)
-                && transpiler_expr_identifiers_mapped(ctx, expr->data.assignment.value, ssa_map,
+                && transpiler_expr_identifiers_mapped(ctx, ast_assignment_value(expr), ssa_map,
                                                      routine_name, reason, reason_cap);
         case AST_AWAIT_EXPR:
-            return transpiler_expr_identifiers_mapped(ctx, expr->data.await_expr.expression, ssa_map,
+            return transpiler_expr_identifiers_mapped(ctx, ast_await_expression(expr), ssa_map,
                                                      routine_name, reason, reason_cap);
         case AST_CHANNEL_SEND:
-            return transpiler_expr_identifiers_mapped(ctx, expr->data.channel_send.channel, ssa_map,
+            return transpiler_expr_identifiers_mapped(ctx, ast_channel_send_channel(expr), ssa_map,
                                                      routine_name, reason, reason_cap)
-                && transpiler_expr_identifiers_mapped(ctx, expr->data.channel_send.value, ssa_map,
+                && transpiler_expr_identifiers_mapped(ctx, ast_channel_send_value(expr), ssa_map,
                                                      routine_name, reason, reason_cap);
         case AST_CHANNEL_RECV:
-            return transpiler_expr_identifiers_mapped(ctx, expr->data.channel_recv.channel, ssa_map,
+            return transpiler_expr_identifiers_mapped(ctx, ast_channel_recv_channel(expr), ssa_map,
                                                      routine_name, reason, reason_cap);
         default:
             return true;

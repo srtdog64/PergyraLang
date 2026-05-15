@@ -48,7 +48,7 @@ emit_intent_step_restore_bound_zone_aliases(CodeBuf *out, TranspilerCtx *ctx,
         return;
     }
 
-    zone_type = ast_intent_step_where_type(step)->data.type.name;
+    zone_type = ast_type_name(ast_intent_step_where_type(step));
     if (zone_type == NULL)
         return;
 
@@ -100,8 +100,8 @@ intent_action_has_only_self(ASTNode *action_decl)
     size_t real_pc = 0;
     if (action_decl == NULL || action_decl->type != AST_FUNC_DECL)
         return false;
-    for (size_t i = 0; i < action_decl->data.func_decl.param_count; i++) {
-        FuncParam *p = action_decl->data.func_decl.params[i];
+    for (size_t i = 0; i < ast_func_param_count(action_decl); i++) {
+        FuncParam *p = ast_func_param(action_decl, i);
         if (p == NULL || p->name == NULL)
             continue;
         if (p->type == NULL && strcmp(p->name, "self") == 0)

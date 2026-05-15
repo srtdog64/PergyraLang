@@ -27,9 +27,7 @@ llvm_role_for_type_name(ASTNode *role)
 {
     ASTNode *for_type = llvm_role_for_type_node(role);
 
-    if (for_type == NULL || for_type->type != AST_TYPE)
-        return NULL;
-    return for_type->data.type.name;
+    return ast_type_name(for_type);
 }
 
 ASTNode *
@@ -45,9 +43,10 @@ llvm_find_role_operator_method(LLVMGenCtx *ctx, ASTNode *role,
             continue;
         for (size_t j = 0; j < ast_impl_ability_method_count(impl); j++) {
             ASTNode *method = ast_impl_ability_method(impl, j);
+            const char *method_name = ast_declaration_name(method);
             if (method != NULL && method->type == AST_FUNC_DECL
-                && method->data.func_decl.name != NULL
-                && llvm_operator_method_name_matches(op, method->data.func_decl.name)) {
+                && method_name != NULL
+                && llvm_operator_method_name_matches(op, method_name)) {
                 return method;
             }
         }

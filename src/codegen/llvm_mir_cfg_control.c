@@ -8,6 +8,7 @@
 #ifdef PGY_LLVM_ENABLED
 
 #include "llvm_internal.h"
+#include "../parser/ast_api.h"
 
 bool
 llvm_mir_ast_type_is_cfg_container(ASTNodeType type)
@@ -68,21 +69,21 @@ llvm_mir_find_match_subject_for_case(ASTNode *node, ASTNode *case_node)
         break;
     case AST_IF_STMT: {
         ASTNode *found = llvm_mir_find_match_subject_for_case(
-            node->data.if_stmt.then_branch, case_node);
+            ast_if_then_branch(node), case_node);
         if (found != NULL)
             return found;
         return llvm_mir_find_match_subject_for_case(
-            node->data.if_stmt.else_branch, case_node);
+            ast_if_else_branch(node), case_node);
     }
     case AST_FOR_LOOP:
         return llvm_mir_find_match_subject_for_case(
-            node->data.for_loop.body, case_node);
+            ast_for_body(node), case_node);
     case AST_WHILE_LOOP:
         return llvm_mir_find_match_subject_for_case(
-            node->data.while_loop.body, case_node);
+            ast_while_body(node), case_node);
     case AST_WITH_STMT:
         return llvm_mir_find_match_subject_for_case(
-            node->data.with_stmt.body, case_node);
+            ast_with_body(node), case_node);
     default:
         break;
     }
@@ -93,6 +94,10 @@ static bool
 llvm_mir_is_option_destructor(ASTNode *pat, const char **kind,
                               const char **binding)
 {
+    ASTNode *callee;
+    ASTNode *payload;
+    size_t arg_count;
+
     if (kind != NULL)
         *kind = NULL;
     if (binding != NULL)
@@ -110,28 +115,31 @@ llvm_mir_is_option_destructor(ASTNode *pat, const char **kind,
         return false;
     }
 
+    callee = ast_call_callee(pat);
+    arg_count = ast_call_arg_count(pat);
     if (pat->type != AST_CALL
-        || pat->data.call.callee == NULL
-        || pat->data.call.callee->type != AST_IDENTIFIER) {
+        || callee == NULL
+        || callee->type != AST_IDENTIFIER) {
         return false;
     }
 
-    const char *name = pat->data.call.callee->data.identifier.name;
+    const char *name = callee->data.identifier.name;
     if (name == NULL)
         return false;
 
-    if (strcmp(name, "None") == 0 && pat->data.call.arg_count == 0) {
+    if (strcmp(name, "None") == 0 && arg_count == 0) {
         if (kind != NULL)
             *kind = "None";
         return true;
     }
-    if (strcmp(name, "Some") == 0 && pat->data.call.arg_count == 1) {
+    if (strcmp(name, "Some") == 0 && arg_count == 1) {
         if (kind != NULL)
             *kind = "Some";
+        payload = ast_call_argument(pat, 0);
         if (binding != NULL
-            && pat->data.call.arguments[0] != NULL
-            && pat->data.call.arguments[0]->type == AST_IDENTIFIER) {
-            *binding = pat->data.call.arguments[0]->data.identifier.name;
+            && payload != NULL
+            && payload->type == AST_IDENTIFIER) {
+            *binding = payload->data.identifier.name;
         }
         return true;
     }
@@ -143,28 +151,35 @@ static bool
 llvm_mir_is_result_destructor(ASTNode *pat, const char **kind,
                               const char **binding)
 {
+    ASTNode *callee;
+    ASTNode *payload;
+    size_t arg_count;
+
     if (kind != NULL)
         *kind = NULL;
     if (binding != NULL)
         *binding = NULL;
+    callee = ast_call_callee(pat);
+    arg_count = ast_call_arg_count(pat);
     if (pat == NULL || pat->type != AST_CALL
-        || pat->data.call.callee == NULL
-        || pat->data.call.callee->type != AST_IDENTIFIER) {
+        || callee == NULL
+        || callee->type != AST_IDENTIFIER) {
         return false;
     }
 
-    const char *name = pat->data.call.callee->data.identifier.name;
+    const char *name = callee->data.identifier.name;
     if (name == NULL)
         return false;
 
     if ((strcmp(name, "Ok") == 0 || strcmp(name, "Err") == 0)
-        && pat->data.call.arg_count == 1) {
+        && arg_count == 1) {
         if (kind != NULL)
             *kind = name;
+        payload = ast_call_argument(pat, 0);
         if (binding != NULL
-            && pat->data.call.arguments[0] != NULL
-            && pat->data.call.arguments[0]->type == AST_IDENTIFIER) {
-            *binding = pat->data.call.arguments[0]->data.identifier.name;
+            && payload != NULL
+            && payload->type == AST_IDENTIFIER) {
+            *binding = payload->data.identifier.name;
         }
         return true;
     }
@@ -186,7 +201,8 @@ llvm_mir_emit_match_case_condition(ASTNode *func_decl, ASTNode *case_node,
     }
 
     subject_node = func_decl->type == AST_FUNC_DECL
-        ? llvm_mir_find_match_subject_for_case(func_decl->data.func_decl.body, case_node)
+        ? llvm_mir_find_match_subject_for_case(ast_func_body(func_decl),
+              case_node)
         : NULL;
     if (subject_node == NULL)
         return NULL;
@@ -272,7 +288,7 @@ llvm_mir_recv_expr_channel(ASTNode *node)
 {
     if (node == NULL || node->type != AST_CHANNEL_RECV)
         return NULL;
-    return node->data.channel_recv.channel;
+    return ast_channel_recv_channel(node);
 }
 
 static ASTNode *
@@ -280,11 +296,11 @@ llvm_mir_assignment_recv_channel(ASTNode *node)
 {
     if (node == NULL || node->type != AST_ASSIGNMENT)
         return NULL;
-    if (node->data.assignment.value == NULL
-        || node->data.assignment.value->type != AST_CHANNEL_RECV) {
+    if (ast_assignment_value(node) == NULL
+        || ast_assignment_value(node)->type != AST_CHANNEL_RECV) {
         return NULL;
     }
-    return llvm_mir_recv_expr_channel(node->data.assignment.value);
+    return llvm_mir_recv_expr_channel(ast_assignment_value(node));
 }
 
 static ASTNode *
@@ -299,7 +315,7 @@ llvm_mir_select_case_channel(ASTNode *node)
     if (first == NULL)
         return NULL;
     if (first->type == AST_CHANNEL_RECV)
-        return first->data.channel_recv.channel;
+        return ast_channel_recv_channel(first);
     return llvm_mir_assignment_recv_channel(first);
 }
 

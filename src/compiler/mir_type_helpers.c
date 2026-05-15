@@ -6,6 +6,7 @@
 #include <string.h>
 
 #include "../common/string_compat.h"
+#include "../parser/ast_api.h"
 
 static char *
 mir_type_strdup_fmt(const char *fmt, ...)
@@ -69,9 +70,9 @@ mir_type_node_is_slot_like(const ASTNode *type_node)
 {
     const char *name;
 
-    if (type_node == NULL || type_node->type != AST_TYPE)
+    if (type_node == NULL)
         return false;
-    name = type_node->data.type.name;
+    name = ast_type_name(type_node);
     if (name == NULL)
         return false;
     return strcmp(name, "Slot") == 0
@@ -111,12 +112,12 @@ mir_expr_is_claim_like(const ASTNode *expr)
     const char *callee;
 
     if (expr == NULL || expr->type != AST_CALL
-        || expr->data.call.callee == NULL
-        || expr->data.call.callee->type != AST_IDENTIFIER
-        || expr->data.call.callee->data.identifier.name == NULL)
+        || ast_call_callee(expr) == NULL
+        || ast_call_callee(expr)->type != AST_IDENTIFIER
+        || ast_call_callee(expr)->data.identifier.name == NULL)
         return false;
 
-    callee = expr->data.call.callee->data.identifier.name;
+    callee = ast_call_callee(expr)->data.identifier.name;
     return mir_claim_kind_from_callee(callee) != NULL;
 }
 
@@ -131,8 +132,8 @@ mir_binding_name_is_slot_like(const ASTNode *func_decl,
         return false;
 
     if (func_decl != NULL && func_decl->type == AST_FUNC_DECL) {
-        for (size_t i = 0; i < func_decl->data.func_decl.param_count; i++) {
-            FuncParam *param = func_decl->data.func_decl.params[i];
+        for (size_t i = 0; i < ast_func_param_count(func_decl); i++) {
+            FuncParam *param = ast_func_param(func_decl, i);
             if (param == NULL || param->name == NULL)
                 continue;
             if (strcmp(param->name, binding_name) != 0)
@@ -172,12 +173,12 @@ mir_assignment_requires_stmt_preservation(const ASTNode *func_decl,
     const char *target_name;
 
     if (stmt == NULL || stmt->type != AST_ASSIGNMENT
-        || stmt->data.assignment.target == NULL
-        || stmt->data.assignment.target->type != AST_IDENTIFIER
-        || stmt->data.assignment.target->data.identifier.name == NULL)
+        || ast_assignment_target(stmt) == NULL
+        || ast_assignment_target(stmt)->type != AST_IDENTIFIER
+        || ast_assignment_target(stmt)->data.identifier.name == NULL)
         return false;
 
-    target_name = stmt->data.assignment.target->data.identifier.name;
+    target_name = ast_assignment_target(stmt)->data.identifier.name;
     return mir_binding_name_is_slot_like(func_decl,
                                          statements,
                                          statement_count,
@@ -191,18 +192,18 @@ mir_render_type_name(ASTNode *type_node)
     if (type_node == NULL)
         return pergyra_strdup("Int");
     if (type_node->type == AST_TYPE) {
-        char *result = pergyra_strdup(type_node->data.type.name != NULL
-            ? type_node->data.type.name : "Int");
+        GenericParams *generic_args = ast_type_generic_args(type_node);
+        char *result = pergyra_strdup(ast_type_name(type_node) != NULL
+            ? ast_type_name(type_node) : "Int");
         if (result == NULL)
             return NULL;
-        if (type_node->data.type.generic_args != NULL
-            && type_node->data.type.generic_args->count > 0) {
+        if (generic_args != NULL && generic_args->count > 0) {
             if (!mir_type_append_owned(&result, "<")) {
                 free(result);
                 return NULL;
             }
-            for (size_t i = 0; i < type_node->data.type.generic_args->count; i++) {
-                GenericParam *param = type_node->data.type.generic_args->params[i];
+            for (size_t i = 0; i < generic_args->count; i++) {
+                GenericParam *param = generic_args->params[i];
                 char *inner = mir_render_type_name(
                     param != NULL ? param->constraint : NULL);
                 if ((i > 0 && !mir_type_append_owned(&result, ","))
@@ -245,21 +246,21 @@ mir_claim_abi_type_name_from_ast(const ASTNode *ast)
     if (ast == NULL)
         return NULL;
     if (ast->type == AST_WITH_STMT) {
-        char *inner = mir_render_type_name(ast->data.with_stmt.slot_type);
+        char *inner = mir_render_type_name(ast_with_slot_type(ast));
         char *result = mir_type_strdup_fmt("%s<%s>",
-                                  ast->data.with_stmt.is_secure ? "SecureSlot" : "Slot",
+                                  ast_with_is_secure(ast) ? "SecureSlot" : "Slot",
                                   inner != NULL ? inner : "Int");
         free(inner);
         return result;
     }
     if (ast->type == AST_CALL
-        && ast->data.call.callee != NULL
-        && ast->data.call.callee->type == AST_IDENTIFIER
-        && ast->data.call.callee->data.identifier.name != NULL) {
-        const char *callee = ast->data.call.callee->data.identifier.name;
-        if (ast->data.call.arg_count >= 1 && ast->data.call.arguments[0] != NULL) {
+        && ast_call_callee(ast) != NULL
+        && ast_call_callee(ast)->type == AST_IDENTIFIER
+        && ast_call_callee(ast)->data.identifier.name != NULL) {
+        const char *callee = ast_call_callee(ast)->data.identifier.name;
+        if (ast_call_arg_count(ast) >= 1 && ast_call_argument(ast, 0) != NULL) {
             const MIRClaimKindSpec *claim = mir_claim_kind_from_callee(callee);
-            char *inner = mir_render_type_name(ast->data.call.arguments[0]);
+            char *inner = mir_render_type_name(ast_call_argument(ast, 0));
             char *result = NULL;
             if (claim != NULL) {
                 result = mir_type_strdup_fmt("%s<%s>",

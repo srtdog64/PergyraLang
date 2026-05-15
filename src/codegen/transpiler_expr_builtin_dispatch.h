@@ -7,7 +7,7 @@ char *
 emit_unary(ASTNode *expr, TranspilerCtx *ctx)
 {
     /* Postfix ? ??try/propagate: expr? ??early return on error */
-    if (expr->data.unary.op.type == TOKEN_QUESTION) {
+    if (ast_unary_operator(expr).type == TOKEN_QUESTION) {
         transpiler_set_backend_error_with_hints(ctx,
             PGY_CODE_C_TYPE_UNSUPPORTED,
             PGY_CAUSE_C_TYPE_UNSUPPORTED,
@@ -16,8 +16,8 @@ emit_unary(ASTNode *expr, TranspilerCtx *ctx)
         return pergyra_strdup("0");
     }
 
-    char *operand = emit_expression(expr->data.unary.operand, ctx);
-    const char *op = (expr->data.unary.op.type == TOKEN_NOT) ? "!" : "-";
+    char *operand = emit_expression(ast_unary_operand(expr), ctx);
+    const char *op = (ast_unary_operator(expr).type == TOKEN_NOT) ? "!" : "-";
     char *result = strdup_fmt("(%s%s)", op, operand);
     free(operand);
     return result;
@@ -25,6 +25,9 @@ emit_unary(ASTNode *expr, TranspilerCtx *ctx)
 static char *
 emit_call_builtin_dispatch(ASTNode *call, BuiltinKind bk, TranspilerCtx *ctx, bool *handled)
 {
+    size_t argc = ast_call_arg_count(call);
+    ASTNode *arg0 = ast_call_argument(call, 0);
+    ASTNode *arg1 = ast_call_argument(call, 1);
     *handled = true;
     switch (bk) {
     case BUILTIN_CLAIM_SLOT:
@@ -58,8 +61,8 @@ emit_call_builtin_dispatch(ASTNode *call, BuiltinKind bk, TranspilerCtx *ctx, bo
     case BUILTIN_LOG_BLOCK:
         return emit_builtin_log_banner(call, ctx);
     case BUILTIN_CLONE:
-        if (call->data.call.arg_count >= 1 && call->data.call.arguments[0] != NULL)
-            return emit_expression(call->data.call.arguments[0], ctx);
+        if (argc >= 1 && arg0 != NULL)
+            return emit_expression(arg0, ctx);
         return pergyra_strdup("0");
     case BUILTIN_RC_NEW:
     case BUILTIN_RC_CLONE:
@@ -81,13 +84,13 @@ emit_call_builtin_dispatch(ASTNode *call, BuiltinKind bk, TranspilerCtx *ctx, bo
     case BUILTIN_TO_TOBJECT:
         return emit_builtin_to_dto(call, ctx);
     case BUILTIN_HAS_PROJECTION:
-        if (call->data.call.arg_count == 1 && call->data.call.arguments[0] != NULL) {
+        if (argc == 1 && arg0 != NULL) {
             const char *slot_name = NULL;
             ASTNode *slot_decl = NULL;
-            if (call->data.call.arguments[0]->type == AST_IDENTIFIER)
-                slot_name = call->data.call.arguments[0]->data.identifier.name;
-            else if (call->data.call.arguments[0]->type == AST_STRING)
-                slot_name = call->data.call.arguments[0]->data.string.value;
+            if (arg0->type == AST_IDENTIFIER)
+                slot_name = arg0->data.identifier.name;
+            else if (arg0->type == AST_STRING)
+                slot_name = arg0->data.string.value;
             slot_decl = current_overlay_domain_slot_decl(ctx, slot_name);
             if (slot_decl != NULL
                 && slot_decl->type == AST_DOMAIN_SLOT
@@ -113,13 +116,13 @@ emit_call_builtin_dispatch(ASTNode *call, BuiltinKind bk, TranspilerCtx *ctx, bo
             if (host_decl != NULL && host_decl->type == AST_ZONE_DECL)
                 zone_decl = host_decl;
             if (zone_decl != NULL
-            && call->data.call.arg_count == 1
-            && call->data.call.arguments[0] != NULL) {
+            && argc == 1
+            && arg0 != NULL) {
                 const char *layer_name = NULL;
-                if (call->data.call.arguments[0]->type == AST_IDENTIFIER)
-                    layer_name = call->data.call.arguments[0]->data.identifier.name;
-                else if (call->data.call.arguments[0]->type == AST_STRING)
-                    layer_name = call->data.call.arguments[0]->data.string.value;
+                if (arg0->type == AST_IDENTIFIER)
+                    layer_name = arg0->data.identifier.name;
+                else if (arg0->type == AST_STRING)
+                    layer_name = arg0->data.string.value;
                 if (layer_name != NULL)
                     return strdup_fmt("%s_has_layer_%s(self, __pgy_zone_gen)",
                         ast_zone_name(zone_decl), layer_name);
@@ -134,14 +137,14 @@ emit_call_builtin_dispatch(ASTNode *call, BuiltinKind bk, TranspilerCtx *ctx, bo
             if (host_decl != NULL && host_decl->type == AST_ZONE_DECL)
                 zone_decl = host_decl;
             if (zone_decl != NULL
-            && call->data.call.arg_count >= 1
-            && call->data.call.arguments[0] != NULL) {
+            && argc >= 1
+            && arg0 != NULL) {
                 const char *state_name = NULL;
                 ASTNode *state_decl;
-                if (call->data.call.arguments[0]->type == AST_IDENTIFIER)
-                    state_name = call->data.call.arguments[0]->data.identifier.name;
-                else if (call->data.call.arguments[0]->type == AST_STRING)
-                    state_name = call->data.call.arguments[0]->data.string.value;
+                if (arg0->type == AST_IDENTIFIER)
+                    state_name = arg0->data.identifier.name;
+                else if (arg0->type == AST_STRING)
+                    state_name = arg0->data.string.value;
                 state_decl = transpiler_find_zone_state_decl(zone_decl, state_name);
                 if (state_decl != NULL && state_name != NULL)
                     return strdup_fmt("self->__state_%s", state_name);
@@ -156,14 +159,14 @@ emit_call_builtin_dispatch(ASTNode *call, BuiltinKind bk, TranspilerCtx *ctx, bo
             if (host_decl != NULL && host_decl->type == AST_WORLD_DECL)
                 world_decl = host_decl;
             if (world_decl != NULL
-            && call->data.call.arg_count >= 1
-            && call->data.call.arguments[0] != NULL) {
+            && argc >= 1
+            && arg0 != NULL) {
                 const char *name = NULL;
                 ASTNode *state_decl;
-                if (call->data.call.arguments[0]->type == AST_IDENTIFIER)
-                    name = call->data.call.arguments[0]->data.identifier.name;
-                else if (call->data.call.arguments[0]->type == AST_STRING)
-                    name = call->data.call.arguments[0]->data.string.value;
+                if (arg0->type == AST_IDENTIFIER)
+                    name = arg0->data.identifier.name;
+                else if (arg0->type == AST_STRING)
+                    name = arg0->data.string.value;
                 state_decl = find_world_state_decl(world_decl, name);
                 if (state_decl != NULL && name != NULL)
                     return strdup_fmt("self->__zone_state_%s", name);
@@ -180,21 +183,21 @@ emit_call_builtin_dispatch(ASTNode *call, BuiltinKind bk, TranspilerCtx *ctx, bo
             if (host_decl != NULL && host_decl->type == AST_WORLD_DECL)
                 world_decl = host_decl;
             if (world_decl != NULL
-            && call->data.call.arg_count == 2
-            && call->data.call.arguments[0] != NULL
-            && call->data.call.arguments[1] != NULL) {
+            && argc == 2
+            && arg0 != NULL
+            && arg1 != NULL) {
                 const char *zone_name = NULL;
                 const char *slot_name = NULL;
                 ASTNode *zone_decl;
                 ASTNode *slot_decl;
-                if (call->data.call.arguments[0]->type == AST_IDENTIFIER)
-                    zone_name = call->data.call.arguments[0]->data.identifier.name;
-                else if (call->data.call.arguments[0]->type == AST_STRING)
-                    zone_name = call->data.call.arguments[0]->data.string.value;
-                if (call->data.call.arguments[1]->type == AST_IDENTIFIER)
-                    slot_name = call->data.call.arguments[1]->data.identifier.name;
-                else if (call->data.call.arguments[1]->type == AST_STRING)
-                    slot_name = call->data.call.arguments[1]->data.string.value;
+                if (arg0->type == AST_IDENTIFIER)
+                    zone_name = arg0->data.identifier.name;
+                else if (arg0->type == AST_STRING)
+                    zone_name = arg0->data.string.value;
+                if (arg1->type == AST_IDENTIFIER)
+                    slot_name = arg1->data.identifier.name;
+                else if (arg1->type == AST_STRING)
+                    slot_name = arg1->data.string.value;
                 zone_decl = transpiler_resolve_world_zone_decl(ctx, world_decl, zone_name);
                 slot_decl = zone_decl != NULL && slot_name != NULL
                     ? transpiler_find_zone_domain_slot(zone_decl, slot_name)
@@ -214,20 +217,20 @@ emit_call_builtin_dispatch(ASTNode *call, BuiltinKind bk, TranspilerCtx *ctx, bo
             if (host_decl != NULL && host_decl->type == AST_WORLD_DECL)
                 world_decl = host_decl;
             if (world_decl != NULL
-            && call->data.call.arg_count == 2
-            && call->data.call.arguments[0] != NULL
-            && call->data.call.arguments[1] != NULL) {
+            && argc == 2
+            && arg0 != NULL
+            && arg1 != NULL) {
                 const char *zone_name = NULL;
                 const char *layer_name = NULL;
                 ASTNode *zone_decl;
-                if (call->data.call.arguments[0]->type == AST_IDENTIFIER)
-                    zone_name = call->data.call.arguments[0]->data.identifier.name;
-                else if (call->data.call.arguments[0]->type == AST_STRING)
-                    zone_name = call->data.call.arguments[0]->data.string.value;
-                if (call->data.call.arguments[1]->type == AST_IDENTIFIER)
-                    layer_name = call->data.call.arguments[1]->data.identifier.name;
-                else if (call->data.call.arguments[1]->type == AST_STRING)
-                    layer_name = call->data.call.arguments[1]->data.string.value;
+                if (arg0->type == AST_IDENTIFIER)
+                    zone_name = arg0->data.identifier.name;
+                else if (arg0->type == AST_STRING)
+                    zone_name = arg0->data.string.value;
+                if (arg1->type == AST_IDENTIFIER)
+                    layer_name = arg1->data.identifier.name;
+                else if (arg1->type == AST_STRING)
+                    layer_name = arg1->data.string.value;
                 zone_decl = transpiler_resolve_world_zone_decl(ctx, world_decl, zone_name);
                 if (zone_decl != NULL && layer_name != NULL
                     && transpiler_find_zone_layer_slot(zone_decl, layer_name) != NULL) {
@@ -244,20 +247,20 @@ emit_call_builtin_dispatch(ASTNode *call, BuiltinKind bk, TranspilerCtx *ctx, bo
             if (host_decl != NULL && host_decl->type == AST_WORLD_DECL)
                 world_decl = host_decl;
             if (world_decl != NULL
-            && call->data.call.arg_count == 2
-            && call->data.call.arguments[0] != NULL
-            && call->data.call.arguments[1] != NULL) {
+            && argc == 2
+            && arg0 != NULL
+            && arg1 != NULL) {
                 const char *zone_name = NULL;
                 const char *state_name = NULL;
                 ASTNode *zone_decl;
-                if (call->data.call.arguments[0]->type == AST_IDENTIFIER)
-                    zone_name = call->data.call.arguments[0]->data.identifier.name;
-                else if (call->data.call.arguments[0]->type == AST_STRING)
-                    zone_name = call->data.call.arguments[0]->data.string.value;
-                if (call->data.call.arguments[1]->type == AST_IDENTIFIER)
-                    state_name = call->data.call.arguments[1]->data.identifier.name;
-                else if (call->data.call.arguments[1]->type == AST_STRING)
-                    state_name = call->data.call.arguments[1]->data.string.value;
+                if (arg0->type == AST_IDENTIFIER)
+                    zone_name = arg0->data.identifier.name;
+                else if (arg0->type == AST_STRING)
+                    zone_name = arg0->data.string.value;
+                if (arg1->type == AST_IDENTIFIER)
+                    state_name = arg1->data.identifier.name;
+                else if (arg1->type == AST_STRING)
+                    state_name = arg1->data.string.value;
                 zone_decl = transpiler_resolve_world_zone_decl(ctx, world_decl, zone_name);
                 if (zone_decl != NULL && state_name != NULL
                     && transpiler_find_zone_state_decl(zone_decl, state_name) != NULL) {
@@ -275,77 +278,77 @@ emit_call_builtin_dispatch(ASTNode *call, BuiltinKind bk, TranspilerCtx *ctx, bo
     /* I/O built-ins */
     case BUILTIN_FILE_OPEN: {
         /* FileOpen(path, mode) ??pgy_file_open(path, mode) */
-        if (call->data.call.arg_count < 2) {
+        if (argc < 2) {
             transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "C backend: FileOpen requires path and mode");
             return pergyra_strdup("0");
         }
-        char *path = emit_expression(call->data.call.arguments[0], ctx);
-        char *mode = emit_expression(call->data.call.arguments[1], ctx);
+        char *path = emit_expression(arg0, ctx);
+        char *mode = emit_expression(arg1, ctx);
         char *result = strdup_fmt("pgy_file_open(%s, %s)", path, mode);
         free(path); free(mode);
         return result;
     }
     case BUILTIN_FILE_READ: {
         /* FileRead(fd) ??pgy_file_read(fd) */
-        if (call->data.call.arg_count < 1) {
+        if (argc < 1) {
             transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "C backend: FileRead requires file descriptor");
             return pergyra_strdup("0");
         }
-        char *fd = emit_expression(call->data.call.arguments[0], ctx);
+        char *fd = emit_expression(arg0, ctx);
         char *result = strdup_fmt("pgy_file_read(%s)", fd);
         free(fd);
         return result;
     }
     case BUILTIN_FILE_WRITE: {
         /* FileWrite(fd, data) ??pgy_file_write(fd, data) */
-        if (call->data.call.arg_count < 2) {
+        if (argc < 2) {
             transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "C backend: FileWrite requires file descriptor and data");
             return pergyra_strdup("0");
         }
-        char *fd   = emit_expression(call->data.call.arguments[0], ctx);
-        char *data = emit_expression(call->data.call.arguments[1], ctx);
+        char *fd   = emit_expression(arg0, ctx);
+        char *data = emit_expression(arg1, ctx);
         char *result = strdup_fmt("pgy_file_write(%s, %s)", fd, data);
         free(fd); free(data);
         return result;
     }
     case BUILTIN_FILE_CLOSE: {
         /* FileClose(fd) ??pgy_file_close(fd) */
-        if (call->data.call.arg_count < 1) {
+        if (argc < 1) {
             transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "C backend: FileClose requires file descriptor");
             return pergyra_strdup("0");
         }
-        char *fd = emit_expression(call->data.call.arguments[0], ctx);
+        char *fd = emit_expression(arg0, ctx);
         char *result = strdup_fmt("pgy_file_close(%s)", fd);
         free(fd);
         return result;
     }
     case BUILTIN_READ_FILE: {
         /* ReadFile(path) ??pgy_read_file(path) */
-        if (call->data.call.arg_count < 1) {
+        if (argc < 1) {
             transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "C backend: ReadFile requires path");
             return pergyra_strdup("0");
         }
-        char *path = emit_expression(call->data.call.arguments[0], ctx);
+        char *path = emit_expression(arg0, ctx);
         char *result = strdup_fmt("pgy_read_file(%s)", path);
         free(path);
         return result;
     }
     case BUILTIN_WRITE_FILE: {
         /* WriteFile(path, data) ??pgy_write_file(path, data) */
-        if (call->data.call.arg_count < 2) {
+        if (argc < 2) {
             transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "C backend: WriteFile requires path and data");
             return pergyra_strdup("0");
         }
-        char *path = emit_expression(call->data.call.arguments[0], ctx);
-        char *data = emit_expression(call->data.call.arguments[1], ctx);
+        char *path = emit_expression(arg0, ctx);
+        char *data = emit_expression(arg1, ctx);
         char *result = strdup_fmt("pgy_write_file(%s, %s)", path, data);
         free(path); free(data);
         return result;
     }
     case BUILTIN_INPUT: {
         /* Input(prompt) ??pgy_input(prompt) */
-        char *prompt = (call->data.call.arg_count >= 1)
-            ? emit_expression(call->data.call.arguments[0], ctx)
+        char *prompt = (argc >= 1)
+            ? emit_expression(arg0, ctx)
             : pergyra_strdup("\"\"");
         char *result = strdup_fmt("pgy_input(%s)", prompt);
         free(prompt);
@@ -353,11 +356,11 @@ emit_call_builtin_dispatch(ASTNode *call, BuiltinKind bk, TranspilerCtx *ctx, bo
     }
     case BUILTIN_PRINT: {
         /* Print(msg) ??pgy_print(msg) */
-        if (call->data.call.arg_count < 1) {
+        if (argc < 1) {
             transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "C backend: Print requires message");
             return pergyra_strdup("0");
         }
-        char *msg = emit_expression(call->data.call.arguments[0], ctx);
+        char *msg = emit_expression(arg0, ctx);
         char *result = strdup_fmt("pgy_print(%s)", msg);
         free(msg);
         return result;
@@ -367,11 +370,11 @@ emit_call_builtin_dispatch(ASTNode *call, BuiltinKind bk, TranspilerCtx *ctx, bo
     case BUILTIN_NOW:
         return pergyra_strdup("pgy_now_ms()");
     case BUILTIN_SLEEP: {
-        if (call->data.call.arg_count < 1) {
+        if (argc < 1) {
             transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "C backend: Sleep requires milliseconds");
             return pergyra_strdup("0");
         }
-        char *ms = emit_expression(call->data.call.arguments[0], ctx);
+        char *ms = emit_expression(arg0, ctx);
         char *result = strdup_fmt("pgy_sleep_ms(%s)", ms);
         free(ms);
         return result;

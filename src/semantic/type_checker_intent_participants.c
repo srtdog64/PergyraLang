@@ -113,9 +113,9 @@ type_check_intent_step_participant_contract(ASTNode *intent_decl,
         ASTNode *subject_type = ast_intent_involves_subject_type(involves);
         if (subject_type != NULL
             && subject_type->type == AST_TYPE
-            && subject_type->data.type.name != NULL) {
+            && ast_type_name(subject_type) != NULL) {
             ASTNode *subject_decl = find_subject_host_decl_by_name(ctx->program_root,
-                subject_type->data.type.name);
+                ast_type_name(subject_type));
             if (subject_decl_has_action_named(subject_decl, ast_intent_step_name(step))
                 && matched_action != NULL) {
                 *matched_action = true;

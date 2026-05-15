@@ -39,13 +39,14 @@ transpiler_has_mapping_for_all_emitted_blocks(const TranspilerCtx *ctx,
         }
         if (func_decl != NULL) {
             if (func_decl->type == AST_FUNC_DECL) {
-                for (size_t p = 0; p < func_decl->data.func_decl.param_count; p++) {
-                    FuncParam *param = func_decl->data.func_decl.params[p];
+                size_t param_count = ast_func_param_count(func_decl);
+                for (size_t p = 0; p < param_count; p++) {
+                    FuncParam *param = ast_func_param(func_decl, p);
                     if (param != NULL && param->name != NULL)
                         transpiler_ssa_name_map_set(&ssa_map, param->name, param->name);
                 }
                 transpiler_register_with_alias_bindings_in_block(&ssa_map,
-                    func_decl->data.func_decl.body);
+                    ast_func_body(func_decl));
             } else if (func_decl->type == AST_INTENT_DECL) {
                 ASTNode **involves_nodes;
                 size_t involve_count;

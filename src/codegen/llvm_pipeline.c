@@ -44,9 +44,11 @@ llvm_register_generic_template_decl(LLVMGenCtx *ctx, ASTNode *func_decl)
 {
     if (ctx == NULL || func_decl == NULL || func_decl->type != AST_FUNC_DECL)
         return false;
-    if (func_decl->data.func_decl.name == NULL)
+    const char *name = ast_declaration_name(func_decl);
+
+    if (name == NULL)
         return false;
-    if (llvm_lookup_generic_template(ctx, func_decl->data.func_decl.name) != NULL)
+    if (llvm_lookup_generic_template(ctx, name) != NULL)
         return true;
 
     if (ctx->generic_template_count >= ctx->generic_template_capacity) {
@@ -67,8 +69,7 @@ llvm_register_generic_template_decl(LLVMGenCtx *ctx, ASTNode *func_decl)
         ctx->generic_template_capacity = new_capacity;
     }
 
-    ctx->generic_templates[ctx->generic_template_count].name =
-        func_decl->data.func_decl.name;
+    ctx->generic_templates[ctx->generic_template_count].name = name;
     ctx->generic_templates[ctx->generic_template_count].ast = func_decl;
     ctx->generic_template_count++;
     return true;
@@ -289,13 +290,13 @@ llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx)
             || stmt == NULL
             || stmt->type != AST_FUNC_DECL)
             continue;
-        if (stmt->data.func_decl.generic_params != NULL
-            && stmt->data.func_decl.generic_params->count > 0) {
+        GenericParams *generic_params = ast_func_generic_params(stmt);
+        if (generic_params != NULL && generic_params->count > 0) {
             if (!llvm_register_generic_template_decl(ctx, stmt))
                 return false;
             continue;
         }
-        if (llvm_lookup_function(ctx, stmt->data.func_decl.name) == NULL)
+        if (llvm_lookup_function(ctx, ast_declaration_name(stmt)) == NULL)
             llvm_forward_declare_func(stmt, ctx);
     }
 
@@ -318,10 +319,8 @@ llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx)
             continue;
 
         ASTNode *func_decl = routine->ast;
-        if (func_decl != NULL
-            && func_decl->type == AST_FUNC_DECL
-            && func_decl->data.func_decl.generic_params != NULL
-            && func_decl->data.func_decl.generic_params->count > 0) {
+        GenericParams *generic_params = ast_func_generic_params(func_decl);
+        if (generic_params != NULL && generic_params->count > 0) {
             continue;
         }
         if (llvm_mir_routine_has_instructions(routine))
@@ -335,15 +334,15 @@ llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx)
         if (routine->kind == MIR_SCOPE_FUNCTION
             && stmt != NULL
             && stmt->type == AST_FUNC_DECL) {
-            if (stmt->data.func_decl.generic_params != NULL
-                && stmt->data.func_decl.generic_params->count > 0) {
+            GenericParams *generic_params = ast_func_generic_params(stmt);
+            if (generic_params != NULL && generic_params->count > 0) {
                 continue;
             }
             if (!llvm_mir_routine_has_instructions(routine)) {
                 llvm_set_mir_inventory_missing(ctx,
                     "MIR-only LLVM path missing routine for function '%s'",
-                    stmt->data.func_decl.name != NULL
-                        ? stmt->data.func_decl.name
+                    ast_declaration_name(stmt) != NULL
+                        ? ast_declaration_name(stmt)
                         : "(anonymous)");
                 return false;
             }

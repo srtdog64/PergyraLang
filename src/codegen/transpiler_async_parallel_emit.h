@@ -33,7 +33,7 @@ transpiler_capture_surface_desc_too_long(TranspilerCtx *ctx,
 void
 emit_parallel_block(ASTNode *node, TranspilerCtx *ctx)
 {
-    size_t count = node->data.parallel.task_count;
+    size_t count = ast_parallel_task_count(node);
     if (count == 0)
         return;
 
@@ -50,7 +50,7 @@ emit_parallel_block(ASTNode *node, TranspilerCtx *ctx)
     int capture_typed_count = 0;
 
     for (size_t i = 0; i < count; i++) {
-        transpiler_parallel_collect_stmt_captures(node->data.parallel.tasks[i], ctx,
+        transpiler_parallel_collect_stmt_captures(ast_parallel_task(node, i), ctx,
             capture_slot_names, &capture_slot_count,
             capture_typed_names, &capture_typed_count);
     }
@@ -111,7 +111,7 @@ emit_parallel_block(ASTNode *node, TranspilerCtx *ctx)
              * function pointer (not a primitive deref). */
             ASTNode *local_type_node = ctx->current_func_decl != NULL
                 ? transpiler_find_local_let_type_node(
-                      ctx->current_func_decl->data.func_decl.body,
+                      ast_func_body(ctx->current_func_decl),
                       capture_typed_names[i])
                 : NULL;
             if (local_type_node != NULL
@@ -184,7 +184,7 @@ emit_parallel_block(ASTNode *node, TranspilerCtx *ctx)
         ctx->par_capture_slot_count = capture_slot_count;
         ctx->par_capture_typed_count = capture_typed_count;
 
-        emit_statement(node->data.parallel.tasks[i], ctx);
+        emit_statement(ast_parallel_task(node, i), ctx);
 
         ctx->out = saved;
         ctx->indent = saved_indent;
@@ -272,8 +272,8 @@ emit_async_block(ASTNode *node, TranspilerCtx *ctx)
     int capture_slot_count = 0;
     int capture_typed_count = 0;
 
-    for (size_t i = 0; i < node->data.async_block.statement_count; i++) {
-        transpiler_parallel_collect_stmt_captures(node->data.async_block.statements[i], ctx,
+    for (size_t i = 0; i < ast_async_block_statement_count(node); i++) {
+        transpiler_parallel_collect_stmt_captures(ast_async_block_statement(node, i), ctx,
             capture_slot_names, &capture_slot_count,
             capture_typed_names, &capture_typed_count);
     }
@@ -362,8 +362,8 @@ emit_async_block(ASTNode *node, TranspilerCtx *ctx)
     ctx->par_capture_slot_count = capture_slot_count;
     ctx->par_capture_typed_count = capture_typed_count;
 
-    for (size_t i = 0; i < node->data.async_block.statement_count; i++)
-        emit_statement(node->data.async_block.statements[i], ctx);
+    for (size_t i = 0; i < ast_async_block_statement_count(node); i++)
+        emit_statement(ast_async_block_statement(node, i), ctx);
 
     ctx->out = saved;
     ctx->indent = saved_indent;

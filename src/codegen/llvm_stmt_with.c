@@ -56,14 +56,14 @@ llvm_with_release_name(LLVMGenCtx *ctx, ASTNode *node,
 void
 llvm_emit_with_stmt(ASTNode *node, LLVMGenCtx *ctx)
 {
-    const char *alias = node->data.with_stmt.alias;
-    bool is_secure    = node->data.with_stmt.is_secure;
+    const char *alias = ast_with_alias(node);
+    bool is_secure    = ast_with_is_secure(node);
 
     const char *inner = NULL;
-    if (node->data.with_stmt.slot_type != NULL
-        && node->data.with_stmt.slot_type->type == AST_TYPE
-        && node->data.with_stmt.slot_type->data.type.name != NULL)
-        inner = node->data.with_stmt.slot_type->data.type.name;
+    if (ast_with_slot_type(node) != NULL
+        && ast_with_slot_type(node)->type == AST_TYPE
+        && ast_type_name(ast_with_slot_type(node)) != NULL)
+        inner = ast_type_name(ast_with_slot_type(node));
     if (inner == NULL || inner[0] == '\0') {
         llvm_set_error_at_with_hints(ctx, node,
             PGY_CODE_LLVM_TYPE_UNSUPPORTED,
@@ -127,8 +127,8 @@ llvm_emit_with_stmt(ASTNode *node, LLVMGenCtx *ctx)
     llvm_scope_declare(ctx, alias, alloca_val, slot_ty);
     llvm_register_slot_var(ctx, alias, inner, is_secure);
 
-    if (node->data.with_stmt.body != NULL)
-        llvm_emit_block(node->data.with_stmt.body, ctx);
+    if (ast_with_body(node) != NULL)
+        llvm_emit_block(ast_with_body(node), ctx);
 
     if (LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(ctx->builder)) == NULL) {
         LLVMFuncEntry *release_fn = NULL;

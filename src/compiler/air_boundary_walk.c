@@ -84,12 +84,13 @@ air_walk_match_case_boundaries(AIRBoundaryWalkCtx *ctx, ASTNode *node)
 static bool
 air_walk_select_boundaries(AIRBoundaryWalkCtx *ctx, ASTNode *node)
 {
-    if (!air_walk_child_array(ctx,
-                              node->data.select_stmt.cases,
-                              node->data.select_stmt.case_count)) {
+    size_t case_count = 0;
+    ASTNode **cases = ast_select_cases(node, &case_count);
+
+    if (!air_walk_child_array(ctx, cases, case_count)) {
         return false;
     }
-    return air_walk_child(ctx, node->data.select_stmt.default_case);
+    return air_walk_child(ctx, ast_select_default_case(node));
 }
 
 static bool
@@ -141,63 +142,74 @@ air_walk_expr_boundaries(AIRBoundaryWalkCtx *ctx, ASTNode *node)
     case AST_LET_DESTRUCTURE:
         return air_walk_child(ctx, node->data.let_destructure.initializer);
     case AST_WITH_STMT:
-        return air_walk_child(ctx, node->data.with_stmt.body);
+        return air_walk_child(ctx, ast_with_body(node));
     case AST_FOR_LOOP:
-        return air_walk_child(ctx, node->data.for_loop.range_start)
-            && air_walk_child(ctx, node->data.for_loop.range_end)
-            && air_walk_child(ctx, node->data.for_loop.iterable)
-            && air_walk_child(ctx, node->data.for_loop.body);
+        return air_walk_child(ctx, ast_for_range_start(node))
+            && air_walk_child(ctx, ast_for_range_end(node))
+            && air_walk_child(ctx, ast_for_iterable(node))
+            && air_walk_child(ctx, ast_for_body(node));
     case AST_WHILE_LOOP:
-        return air_walk_child(ctx, node->data.while_loop.condition)
-            && air_walk_child(ctx, node->data.while_loop.body);
+        return air_walk_child(ctx, ast_while_condition(node))
+            && air_walk_child(ctx, ast_while_body(node));
     case AST_PARALLEL_BLOCK:
-        return air_walk_child_array(ctx,
-                                    node->data.parallel.tasks,
-                                    node->data.parallel.task_count);
+        {
+            size_t task_count = 0;
+            ASTNode **tasks = ast_parallel_tasks(node, &task_count);
+            return air_walk_child_array(ctx, tasks, task_count);
+        }
     case AST_ASYNC_BLOCK:
-        return air_walk_child_array(ctx,
-                                    node->data.async_block.statements,
-                                    node->data.async_block.statement_count);
+        {
+            size_t statement_count = 0;
+            ASTNode **statements =
+                ast_async_block_statements(node, &statement_count);
+            return air_walk_child_array(ctx, statements, statement_count);
+        }
     case AST_SPAWN_EXPR:
-        if (!air_walk_child(ctx, node->data.spawn_expr.function))
+        if (!air_walk_child(ctx, ast_spawn_function(node)))
             return false;
-        return air_walk_child_array(ctx,
-                                    node->data.spawn_expr.arguments,
-                                    node->data.spawn_expr.arg_count);
+        {
+            size_t arg_count = 0;
+            ASTNode **args = ast_spawn_arguments(node, &arg_count);
+            return air_walk_child_array(ctx, args, arg_count);
+        }
     case AST_CALL:
-        if (!air_walk_child(ctx, node->data.call.callee))
+        if (!air_walk_child(ctx, ast_call_callee(node)))
             return false;
         return air_walk_child_array(ctx,
-                                    node->data.call.arguments,
-                                    node->data.call.arg_count);
+                                    ast_call_arguments(node, NULL),
+                                    ast_call_arg_count(node));
     case AST_MEMBER_ACCESS:
-        return air_walk_child(ctx, node->data.member.object);
+        return air_walk_child(ctx, ast_member_object(node));
     case AST_ARRAY_ACCESS:
-        return air_walk_child(ctx, node->data.array_access.array)
-            && air_walk_child(ctx, node->data.array_access.index);
+        return air_walk_child(ctx, ast_array_access_array(node))
+            && air_walk_child(ctx, ast_array_access_index(node));
     case AST_ARRAY_LITERAL:
-        return air_walk_child_array(ctx,
-                                    node->data.array_literal.elements,
-                                    node->data.array_literal.count);
+        for (size_t i = 0; i < ast_array_literal_count(node); i++) {
+            if (!air_walk_child(ctx, ast_array_literal_element(node, i)))
+                return false;
+        }
+        return true;
     case AST_TUPLE_LITERAL:
-        return air_walk_child_array(ctx,
-                                    node->data.tuple_literal.elements,
-                                    node->data.tuple_literal.count);
+        for (size_t i = 0; i < ast_tuple_literal_count(node); i++) {
+            if (!air_walk_child(ctx, ast_tuple_literal_element(node, i)))
+                return false;
+        }
+        return true;
     case AST_ASSIGNMENT:
-        return air_walk_child(ctx, node->data.assignment.target)
-            && air_walk_child(ctx, node->data.assignment.value);
+        return air_walk_child(ctx, ast_assignment_target(node))
+            && air_walk_child(ctx, ast_assignment_value(node));
     case AST_BINARY:
-        return air_walk_child(ctx, node->data.binary.left)
-            && air_walk_child(ctx, node->data.binary.right);
+        return air_walk_child(ctx, ast_binary_left(node))
+            && air_walk_child(ctx, ast_binary_right(node));
     case AST_UNARY:
-        return air_walk_child(ctx, node->data.unary.operand);
+        return air_walk_child(ctx, ast_unary_operand(node));
     case AST_AWAIT_EXPR:
-        return air_walk_child(ctx, node->data.await_expr.expression);
+        return air_walk_child(ctx, ast_await_expression(node));
     case AST_CHANNEL_SEND:
-        return air_walk_child(ctx, node->data.channel_send.channel)
-            && air_walk_child(ctx, node->data.channel_send.value);
+        return air_walk_child(ctx, ast_channel_send_channel(node))
+            && air_walk_child(ctx, ast_channel_send_value(node));
     case AST_CHANNEL_RECV:
-        return air_walk_child(ctx, node->data.channel_recv.channel);
+        return air_walk_child(ctx, ast_channel_recv_channel(node));
     case AST_SELECT_STMT:
         return air_walk_select_boundaries(ctx, node);
     case AST_MATCH_STMT:
@@ -205,15 +217,17 @@ air_walk_expr_boundaries(AIRBoundaryWalkCtx *ctx, ASTNode *node)
     case AST_MATCH_CASE:
         return air_walk_match_case_boundaries(ctx, node);
     case AST_IF_STMT:
-        return air_walk_child(ctx, node->data.if_stmt.condition)
-            && air_walk_child(ctx, node->data.if_stmt.then_branch)
-            && air_walk_child(ctx, node->data.if_stmt.else_branch);
+        return air_walk_child(ctx, ast_if_condition(node))
+            && air_walk_child(ctx, ast_if_then_branch(node))
+            && air_walk_child(ctx, ast_if_else_branch(node));
     case AST_RETURN:
-        return air_walk_child(ctx, node->data.return_stmt.value);
+        return air_walk_child(ctx, ast_return_value(node));
     case AST_TASK_GROUP:
-        return air_walk_child_array(ctx,
-                                    node->data.task_group.tasks,
-                                    node->data.task_group.task_count);
+        {
+            size_t task_count = 0;
+            ASTNode **tasks = ast_task_group_tasks(node, &task_count);
+            return air_walk_child_array(ctx, tasks, task_count);
+        }
     case AST_EVENT_INVOKE:
         if (!air_walk_child(ctx, node->data.event_invoke.event))
             return false;
@@ -237,9 +251,9 @@ air_walk_expr_boundaries(AIRBoundaryWalkCtx *ctx, ASTNode *node)
     case AST_LAMBDA_EXPR:
         return air_walk_child(ctx, node->data.lambda_expr.body);
     case AST_UNSAFE_BLOCK:
-        return air_walk_child(ctx, node->data.unsafe_block.body);
+        return air_walk_child(ctx, ast_unsafe_block_body(node));
     case AST_DEFER_STMT:
-        return air_walk_child(ctx, node->data.defer_stmt.body);
+        return air_walk_child(ctx, ast_defer_body(node));
     default:
         return true;
     }

@@ -1,5 +1,6 @@
 #ifdef PGY_LLVM_ENABLED
 #include "llvm_internal.h"
+#include "parser/ast_api.h"
 #include "../semantic/slot_summary.h"
 
 const char *
@@ -7,27 +8,27 @@ llvm_stmt_render_type_annotation_copy(LLVMGenCtx *ctx, ASTNode *type_ann)
 {
     char buf[256];
     size_t offset;
+    GenericParams *generic_args;
 
-    if (type_ann == NULL || type_ann->type != AST_TYPE
-        || type_ann->data.type.name == NULL)
+    if (ast_type_name(type_ann) == NULL)
         return NULL;
-    if (type_ann->data.type.generic_args == NULL
-        || type_ann->data.type.generic_args->count == 0) {
+    generic_args = ast_type_generic_args(type_ann);
+    if (generic_args == NULL || generic_args->count == 0) {
         if (ctx == NULL)
-            return type_ann->data.type.name;
-        return pgy_arena_strdup(&ctx->scratch, type_ann->data.type.name);
+            return ast_type_name(type_ann);
+        return pgy_arena_strdup(&ctx->scratch, ast_type_name(type_ann));
     }
 
     {
         int written = snprintf(buf, sizeof(buf), "%s<",
-                               type_ann->data.type.name);
+                               ast_type_name(type_ann));
         if (written < 0 || (size_t)written >= sizeof(buf))
             return NULL;
         offset = (size_t)written;
     }
-    for (size_t i = 0; i < type_ann->data.type.generic_args->count; i++) {
+    for (size_t i = 0; i < generic_args->count; i++) {
         char *arg = llvm_stmt_render_type_arg(
-            type_ann->data.type.generic_args->params[i]);
+            generic_args->params[i]);
         if (arg == NULL || arg[0] == '\0') {
             free(arg);
             return NULL;
@@ -62,14 +63,12 @@ llvm_stmt_declared_return_type_name(LLVMGenCtx *ctx, const char *name)
         return NULL;
 
     decl = llvm_stmt_find_function_decl_by_name(ctx, name);
-    if (decl == NULL
-        || decl->data.func_decl.return_type == NULL
-        || decl->data.func_decl.return_type->type != AST_TYPE
-        || decl->data.func_decl.return_type->data.type.name == NULL) {
+    ASTNode *return_type = ast_func_return_type(decl);
+    if (ast_type_name(return_type) == NULL) {
         return NULL;
     }
 
-    return decl->data.func_decl.return_type->data.type.name;
+    return ast_type_name(return_type);
 }
 
 static bool
@@ -77,11 +76,11 @@ llvm_stmt_slot_can_sink_locally(LLVMGenCtx *ctx, const char *name)
 {
     if (ctx == NULL || name == NULL || ctx->current_func_decl == NULL)
         return false;
-    if (ctx->current_func_decl->type != AST_FUNC_DECL
-        || ctx->current_func_decl->data.func_decl.body == NULL)
+    ASTNode *body = ast_func_body(ctx->current_func_decl);
+    if (ctx->current_func_decl->type != AST_FUNC_DECL || body == NULL)
         return false;
     return (slot_analyze_param_summary_in_program(
-                ctx->current_func_decl->data.func_decl.body, name, NULL)
+                body, name, NULL)
             & (SLOT_PARAM_SUMMARY_RETURN_ESCAPE
                | SLOT_PARAM_SUMMARY_CALL_ESCAPE
                | SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE))
@@ -161,12 +160,12 @@ llvm_simple_expr_type_name(LLVMGenCtx *ctx, ASTNode *expr)
         return NULL;
     }
     case AST_CALL:
-        callee = expr->data.call.callee;
+        callee = ast_call_callee(expr);
         if (callee != NULL
             && callee->type == AST_MEMBER_ACCESS
-            && callee->data.member.name != NULL) {
-            receiver = callee->data.member.object;
-            method_name = callee->data.member.name;
+            && ast_member_name(callee) != NULL) {
+            receiver = ast_member_object(callee);
+            method_name = ast_member_name(callee);
             if (receiver != NULL && receiver->type == AST_IDENTIFIER) {
                 const char *name = receiver->data.identifier.name;
                 const char *inner = llvm_lookup_slot_inner(ctx, name);
@@ -195,11 +194,9 @@ llvm_simple_expr_type_name(LLVMGenCtx *ctx, ASTNode *expr)
                 if (receiver_type != NULL) {
                     method_decl = llvm_find_host_method_decl_in_context(
                         ctx, receiver_type, method_name);
-                    if (method_decl != NULL
-                        && method_decl->data.func_decl.return_type != NULL
-                        && method_decl->data.func_decl.return_type->type == AST_TYPE
-                        && method_decl->data.func_decl.return_type->data.type.name != NULL) {
-                        return method_decl->data.func_decl.return_type->data.type.name;
+                    ASTNode *method_return_type = ast_func_return_type(method_decl);
+                    if (ast_type_name(method_return_type) != NULL) {
+                        return ast_type_name(method_return_type);
                     }
                 }
             }
@@ -208,10 +205,11 @@ llvm_simple_expr_type_name(LLVMGenCtx *ctx, ASTNode *expr)
             && callee->type == AST_IDENTIFIER
             && callee->data.identifier.name != NULL) {
             const char *callee_name = callee->data.identifier.name;
-            if (expr->data.call.arg_count >= 1
-                && expr->data.call.arguments[0] != NULL
-                && expr->data.call.arguments[0]->type == AST_IDENTIFIER) {
-                const char *name = expr->data.call.arguments[0]->data.identifier.name;
+            if (ast_call_arg_count(expr) >= 1
+                && ast_call_argument(expr, 0) != NULL
+                && ast_call_argument(expr, 0)->type == AST_IDENTIFIER) {
+                const char *name =
+                    ast_call_argument(expr, 0)->data.identifier.name;
                 const char *inner = NULL;
                 if (strcmp(callee_name, "Read") == 0
                     || strcmp(callee_name, "Write") == 0
@@ -244,14 +242,14 @@ llvm_simple_expr_type_name(LLVMGenCtx *ctx, ASTNode *expr)
 const char *
 llvm_infer_spawn_future_inner(LLVMGenCtx *ctx, ASTNode *spawn_expr)
 {
-    ASTNode *target = spawn_expr != NULL ? spawn_expr->data.spawn_expr.function : NULL;
+    ASTNode *target = ast_spawn_function(spawn_expr);
     ASTNode *call = NULL;
     ASTNode *callee = target;
     const char *callee_name = NULL;
 
     if (target != NULL && target->type == AST_CALL) {
         call = target;
-        callee = target->data.call.callee;
+        callee = ast_call_callee(target);
     }
     if (callee != NULL && callee->type == AST_IDENTIFIER)
         callee_name = callee->data.identifier.name;
@@ -259,28 +257,26 @@ llvm_infer_spawn_future_inner(LLVMGenCtx *ctx, ASTNode *spawn_expr)
         return NULL;
 
     ASTNode *decl = llvm_stmt_find_function_decl_by_name(ctx, callee_name);
-    if (decl == NULL || decl->data.func_decl.return_type == NULL
-        || decl->data.func_decl.return_type->type != AST_TYPE
-        || decl->data.func_decl.return_type->data.type.name == NULL) {
+    ASTNode *return_type = ast_func_return_type(decl);
+    if (ast_type_name(return_type) == NULL) {
         return NULL;
     }
 
-    const char *ret_name = decl->data.func_decl.return_type->data.type.name;
+    const char *ret_name = ast_type_name(return_type);
     if (!(ret_name[0] >= 'A' && ret_name[0] <= 'Z' && ret_name[1] == '\0'))
         return ret_name;
 
     if (call == NULL)
         return NULL;
 
-    for (size_t i = 0; i < decl->data.func_decl.param_count
-         && i < call->data.call.arg_count; i++) {
-        FuncParam *param = decl->data.func_decl.params[i];
-        if (param == NULL || param->type == NULL || param->type->type != AST_TYPE
-            || param->type->data.type.name == NULL)
+    size_t param_count = ast_func_param_count(decl);
+    for (size_t i = 0; i < param_count && i < ast_call_arg_count(call); i++) {
+        FuncParam *param = ast_func_param(decl, i);
+        if (param == NULL || ast_type_name(param->type) == NULL)
             continue;
-        if (strcmp(param->type->data.type.name, ret_name) == 0) {
+        if (strcmp(ast_type_name(param->type), ret_name) == 0) {
             const char *actual_type = llvm_simple_expr_type_name(ctx,
-                call->data.call.arguments[i]);
+                ast_call_argument(call, i));
             if (actual_type == NULL || actual_type[0] == '\0')
                 continue;
             return ctx != NULL

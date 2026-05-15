@@ -30,15 +30,15 @@ static RIRResourceKind
 rir_direct_projection_kind_from_ast(const ASTNode *ast)
 {
     if (ast == NULL || ast->type != AST_CALL
-        || ast->data.call.callee == NULL
-        || ast->data.call.callee->type != AST_IDENTIFIER
-        || ast->data.call.callee->data.identifier.name == NULL) {
+        || ast_call_callee(ast) == NULL
+        || ast_call_callee(ast)->type != AST_IDENTIFIER
+        || ast_call_callee(ast)->data.identifier.name == NULL) {
         return RIR_RESOURCE_UNKNOWN;
     }
 
-    if (strcmp(ast->data.call.callee->data.identifier.name, "ToObject") == 0)
+    if (strcmp(ast_call_callee(ast)->data.identifier.name, "ToObject") == 0)
         return RIR_RESOURCE_PROJECTION_OBJECT;
-    if (strcmp(ast->data.call.callee->data.identifier.name, "ToTObject") == 0)
+    if (strcmp(ast_call_callee(ast)->data.identifier.name, "ToTObject") == 0)
         return RIR_RESOURCE_PROJECTION_TOBJECT;
     return RIR_RESOURCE_UNKNOWN;
 }

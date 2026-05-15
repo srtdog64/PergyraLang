@@ -53,7 +53,7 @@ air_drift_kind_name(AIRDriftKind kind)
     case AIR_DRIFT_BOUNDARY_EVIDENCE_MISSING: return "boundary_evidence_missing";
     case AIR_DRIFT_EFFECT_PROPAGATION_MISSING: return "effect_propagation_missing";
     case AIR_DRIFT_RELATION_PROPAGATION_MISSING: return "relation_propagation_missing";
-    case AIR_DRIFT_DAG_FALLBACK_PRESENT: return "dag_fallback_present";
+    case AIR_DRIFT_DAG_DEAD_END_PRESENT: return "dag_dead_end_present";
     }
     return "invalid";
 }
@@ -77,6 +77,7 @@ air_evidence_kind_name(AIREvidenceKind kind)
     case AIR_EVIDENCE_RIR_RELATION_PROPAGATION: return "rir_relation_propagation";
     case AIR_EVIDENCE_OBSERVABILITY_SCHEMA: return "observability_schema";
     case AIR_EVIDENCE_RUNTIME_FRONTIER_POLICY: return "runtime_frontier_policy";
+    case AIR_EVIDENCE_KIND_COUNT: break;
     }
     return "invalid";
 }

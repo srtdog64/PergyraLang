@@ -97,9 +97,9 @@ explicit_type_reference_allowed(ASTNode *decl, const ASTNode *site, SemanticCont
     if (same_module_origin(site_module, decl->origin_path))
         return true;
     if (decl->type == AST_ABILITY_DECL) {
-        if (!decl->data.ability_decl.has_explicit_access)
+        if (!ast_ability_has_explicit_access(decl))
             return true;
-        return decl->data.ability_decl.access == ACCESS_PUBLIC;
+        return ast_ability_access(decl) == ACCESS_PUBLIC;
     }
     return decl->is_exported;
 }

@@ -265,6 +265,21 @@ The migration should be incremental and gated:
 - Done: the legacy `type_check_statement()` fallback path now reuses the same
   `defer` cleanup snapshot helper, so direct AST semantic tests and full body
   flow share one cleanup-resource contract.
+- Done: async and select bodies now consume the CFG body-flow boundary instead
+  of reopening broad `type_check_statement()` directly. `AST_ASYNC_BLOCK` and
+  `AST_SELECT_STMT` are explicit flow cases, and select recovery/default paths
+  enter `type_check_statement_flow_boundary(...)`.
+- Done: raw namespace shells now traverse through the semantic and CFG
+  body-flow owners directly. `semantic_analyze()` does not rely on module
+  normalization to see nested namespace statements, and
+  `AST_NAMESPACE_DECL` enters `type_check_namespace_flow(...)` instead of the
+  residual expression-only path.
+- Done: the body-flow owner no longer falls back to the broad
+  `type_check_statement(node, ctx)` dispatcher for residual body statements.
+  Non-control statements such as `let`, destructuring, event operations, `use`,
+  `import`, and `bind` are classified locally, and the residual default is
+  expression-only. `cfg-body-dataflow-test-smoke` rejects reintroducing the
+  broad dispatcher in `type_checker_flow.c`.
 - Done: resource snapshots now include anchored slot state (`Slot<T>`,
   `SecureSlot<T>`, and `DeviceSlot<T>`) in addition to `QubitSlot` consumption
   state. A release on a terminating branch no longer poisons the reachable

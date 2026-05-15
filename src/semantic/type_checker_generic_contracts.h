@@ -43,13 +43,12 @@ concrete_type_satisfies_bound(Type *concrete_type, ASTNode *bound_node,
     }
 
     if (ctx->program_root == NULL
-        || bound_node->type != AST_TYPE
-        || bound_node->data.type.name == NULL
+        || ast_type_name(bound_node) == NULL
         || concrete_type->name == NULL) {
         return false;
     }
 
-    bound_name = bound_node->data.type.name;
+    bound_name = ast_type_name(bound_node);
     bound_sym = scope_lookup(ctx->scope, bound_name);
     if ((bound_sym != NULL && bound_sym->kind == SYMBOL_ABILITY)
         || (ctx->program_root != NULL
@@ -138,10 +137,8 @@ validate_generic_param_default_bounds(GenericParams *gp,
             ASTNode *bound_node = tc->bounds[bi];
             char *bounds_text = format_type_constraint_bounds(tc);
             const char *bound_name =
-                (bound_node != NULL
-                 && bound_node->type == AST_TYPE
-                 && bound_node->data.type.name != NULL)
-                    ? bound_node->data.type.name
+                ast_type_name(bound_node) != NULL
+                    ? ast_type_name(bound_node)
                     : "<constraint>";
 
             if (bound_node != NULL) {
@@ -209,8 +206,8 @@ validate_class_where_clause_instantiation(ASTNode *class_decl,
         return;
     }
 
-    gp = class_decl->data.class_decl.generic_params;
-    wc = class_decl->data.class_decl.where_clause;
+    gp = ast_class_generic_params(class_decl);
+    wc = ast_class_where_clause(class_decl);
     if (gp == NULL || gp->count == 0 || wc == NULL || wc->count == 0)
         return;
     class_name = ast_class_name(class_decl) != NULL
@@ -270,10 +267,8 @@ validate_class_where_clause_instantiation(ASTNode *class_decl,
             ASTNode *bound_node = tc->bounds[bi];
             char *bounds_text = format_type_constraint_bounds(tc);
             const char *bound_name =
-                (bound_node != NULL
-                 && bound_node->type == AST_TYPE
-                 && bound_node->data.type.name != NULL)
-                    ? bound_node->data.type.name
+                ast_type_name(bound_node) != NULL
+                    ? ast_type_name(bound_node)
                     : "<constraint>";
 
             if (bound_node != NULL) {
@@ -326,8 +321,8 @@ validate_class_where_clause_specialization_ast(ASTNode *class_decl,
         return;
     }
 
-    decl_params = class_decl->data.class_decl.generic_params;
-    wc = class_decl->data.class_decl.where_clause;
+    decl_params = ast_class_generic_params(class_decl);
+    wc = ast_class_where_clause(class_decl);
     if (decl_params == NULL || decl_params->count == 0
         || wc == NULL || wc->count == 0) {
         return;
@@ -342,7 +337,7 @@ validate_class_where_clause_specialization_ast(ASTNode *class_decl,
 
     effective_types = collect_effective_generic_arg_types(
         decl_params,
-        specialized_type->data.type.generic_args,
+        ast_type_generic_args(specialized_type),
         specialized_type,
         ctx,
         "class",
@@ -350,8 +345,8 @@ validate_class_where_clause_specialization_ast(ASTNode *class_decl,
         &effective_count);
     if (effective_types == NULL)
         return;
-    if ((specialized_type->data.type.generic_args == NULL
-         || specialized_type->data.type.generic_args->count < effective_count)
+    if ((ast_type_generic_args(specialized_type) == NULL
+         || ast_type_generic_args(specialized_type)->count < effective_count)
         && effective_count > 0) {
         site_label = "instantiated";
     }
@@ -366,15 +361,15 @@ validate_class_where_clause_specialization_ast(ASTNode *class_decl,
         if (all_effective_types_resolved) {
             actual_text = format_effective_generic_type_list_scratch(
                 ctx,
-                specialized_type->data.type.name != NULL
-                    ? specialized_type->data.type.name : "<specialized>",
+                ast_type_name(specialized_type) != NULL
+                    ? ast_type_name(specialized_type) : "<specialized>",
                 effective_types,
                 effective_count);
         }
     }
     if (actual_text == NULL) {
-        actual_text = specialized_type->data.type.name != NULL
-            ? specialized_type->data.type.name : "<specialized>";
+        actual_text = ast_type_name(specialized_type) != NULL
+            ? ast_type_name(specialized_type) : "<specialized>";
     }
 
     for (size_t ci = 0; ci < wc->count; ci++) {
@@ -424,10 +419,8 @@ validate_class_where_clause_specialization_ast(ASTNode *class_decl,
             ASTNode *bound_node = tc->bounds[bi];
             char *bounds_text = format_type_constraint_bounds(tc);
             const char *bound_name =
-                (bound_node != NULL
-                 && bound_node->type == AST_TYPE
-                 && bound_node->data.type.name != NULL)
-                    ? bound_node->data.type.name
+                ast_type_name(bound_node) != NULL
+                    ? ast_type_name(bound_node)
                     : "<constraint>";
 
             if (bound_node != NULL) {

@@ -67,8 +67,10 @@ run_literal_doc_contract_smoke() {
         "TODO.md"
         "Makefile"
         "src/semantic/type_checker_flow.c"
+        "src/semantic/type_checker_flow_internal.h"
         "src/semantic/type_checker_flow_resources.h"
         "src/semantic/type_checker_flow_parallel.h"
+        "src/semantic/type_checker_async_decl.c"
         "src/semantic/type_checker_lambda_capture.c"
         "src/compiler/mir_cleanup.c"
         "src/compiler/mir_call_fact.h"
@@ -115,6 +117,20 @@ run_literal_doc_contract_smoke() {
     require_literal "src/compiler/mir_cfg_contract_pin.c" "pin cleanup fact does not match source slot, view, and access mode"
     require_literal "src/compiler/mir_cfg_contract_edges.c" "mir_validate_edge_predecessor_link"
     require_literal "src/compiler/mir_cfg_contract_edges.c" "mir_validate_successor_index"
+    require_literal "src/semantic/type_checker_flow_internal.h" "type_check_statement_flow_boundary"
+    require_literal "src/semantic/type_checker_flow.c" "case AST_ASYNC_BLOCK"
+    require_literal "src/semantic/type_checker_flow.c" "case AST_SELECT_STMT"
+    require_literal "src/semantic/type_checker_flow.c" "case AST_NAMESPACE_DECL"
+    require_literal "src/semantic/type_checker_flow.c" "type_check_namespace_flow"
+    if grep -n "type_check_statement(node, ctx)" "$ROOT_DIR/src/semantic/type_checker_flow.c"; then
+        echo "CFG body flow must not fall back to the broad statement dispatcher" >&2
+        exit 1
+    fi
+    require_literal "src/semantic/type_checker_async_decl.c" "type_check_statement_flow_boundary"
+    if grep -n "type_check_statement(" "$ROOT_DIR/src/semantic/type_checker_async_decl.c"; then
+        echo "async/select body checking must consume CFG flow boundary, not broad type_check_statement" >&2
+        exit 1
+    fi
     require_literal "src/compiler/mir_cfg_contract_cleanup_root_membership.c" "mir_cleanup_block_is_registered_root"
     require_literal "src/compiler/mir_cfg_contract_validate.c" "not registered as a cleanup root"
     require_literal "src/compiler/mir_cfg_contract_cleanup_roots.c" "cleanup block %zu is not reachable"
@@ -1198,8 +1214,8 @@ for term in [
         raise SystemExit(f"HIR routine capacity guard missing {term}")
 for term in [
     "intent_cfg_append_step_statements",
-    "step->data.intent_step.using_expr",
-    "step->data.intent_step.compensate_exprs",
+    "ast_intent_step_using_expr(step)",
+    "ast_intent_step_compensate_exprs(step, NULL)",
 ]:
     if term not in hir_lower_intent_cfg_text:
         raise SystemExit(f"HIR intent CFG owner missing {term}")

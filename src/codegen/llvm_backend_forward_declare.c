@@ -19,10 +19,10 @@ llvm_can_forward_declare_type_early(LLVMGenCtx *ctx, ASTNode *type_node)
 
     if (ctx == NULL || type_node == NULL)
         return true;
-    if (type_node->type != AST_TYPE || type_node->data.type.name == NULL)
+    if (ast_type_name(type_node) == NULL)
         return true;
 
-    name = type_node->data.type.name;
+    name = ast_type_name(type_node);
     kind = pgy_classify_type(name);
     if (pgy_kind_to_llvm(ctx, kind) != NULL)
         return true;
@@ -55,13 +55,13 @@ llvm_can_forward_declare_func_early(LLVMGenCtx *ctx, ASTNode *func)
 {
     if (ctx == NULL || func == NULL || func->type != AST_FUNC_DECL)
         return false;
-    if (func->data.func_decl.generic_params != NULL
-        && func->data.func_decl.generic_params->count > 0)
+    GenericParams *generic_params = ast_func_generic_params(func);
+    if (generic_params != NULL && generic_params->count > 0)
         return false;
-    if (!llvm_can_forward_declare_type_early(ctx, func->data.func_decl.return_type))
+    if (!llvm_can_forward_declare_type_early(ctx, ast_func_return_type(func)))
         return false;
-    for (size_t i = 0; i < func->data.func_decl.param_count; i++) {
-        FuncParam *param = func->data.func_decl.params[i];
+    for (size_t i = 0; i < ast_func_param_count(func); i++) {
+        FuncParam *param = ast_func_param(func, i);
         if (param == NULL || param->type == NULL)
             continue;
         if (!llvm_can_forward_declare_type_early(ctx, param->type))

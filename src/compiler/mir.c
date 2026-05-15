@@ -10,6 +10,7 @@
 #include "../common/arena.h"
 #include "../runtime/pgy_abi_spec.h"
 #include "../parser/ast_analysis.h"
+#include "../parser/ast_api.h"
 
 void
 mir_instruction_record_surface_usage(MIRInstruction *inst)
@@ -75,7 +76,7 @@ mir_branch_shape_from_ast(const ASTNode *node)
     if (node == NULL)
         return MIR_BRANCH_EXPR;
     if (node->type == AST_FOR_LOOP)
-        return node->data.for_loop.iterable != NULL
+        return ast_for_iterable(node) != NULL
             ? MIR_BRANCH_FOR_IN
             : MIR_BRANCH_FOR_RANGE;
     if (node->type == AST_MATCH_CASE)
@@ -161,13 +162,13 @@ mir_add_terminator_instruction(MIRRoutine *routine,
     if (inst.kind == MIR_INST_BRANCH
         && inst.ast != NULL
         && inst.ast->type == AST_FOR_LOOP) {
-        inst.arg0 = inst.ast->data.for_loop.variable;
-        if (inst.ast->data.for_loop.iterable != NULL) {
-            inst.expr0 = inst.ast->data.for_loop.iterable;
-            inst.expr1 = inst.ast->data.for_loop.iterable;
+        inst.arg0 = ast_for_variable(inst.ast);
+        if (ast_for_iterable(inst.ast) != NULL) {
+            inst.expr0 = ast_for_iterable(inst.ast);
+            inst.expr1 = ast_for_iterable(inst.ast);
         } else {
-            inst.expr0 = inst.ast->data.for_loop.range_start;
-            inst.expr1 = inst.ast->data.for_loop.range_end;
+            inst.expr0 = ast_for_range_start(inst.ast);
+            inst.expr1 = ast_for_range_end(inst.ast);
         }
     }
     return mir_commit_instruction(routine, block, &inst);
@@ -255,20 +256,20 @@ mir_resource_write_value_expr_from_call(ASTNode *call)
 
     if (call == NULL || call->type != AST_CALL)
         return NULL;
-    callee = call->data.call.callee;
+    callee = ast_call_callee(call);
     if (callee == NULL)
         return NULL;
     if (callee->type == AST_IDENTIFIER
         && callee->data.identifier.name != NULL
         && strcmp(callee->data.identifier.name, "Write") == 0
-        && call->data.call.arg_count >= 2) {
-        return call->data.call.arguments[1];
+        && ast_call_arg_count(call) >= 2) {
+        return ast_call_argument(call, 1);
     }
     if (callee->type == AST_MEMBER_ACCESS
-        && callee->data.member.name != NULL
-        && strcmp(callee->data.member.name, "Write") == 0
-        && call->data.call.arg_count >= 1) {
-        return call->data.call.arguments[0];
+        && ast_member_name(callee) != NULL
+        && strcmp(ast_member_name(callee), "Write") == 0
+        && ast_call_arg_count(call) >= 1) {
+        return ast_call_argument(call, 0);
     }
     return NULL;
 }

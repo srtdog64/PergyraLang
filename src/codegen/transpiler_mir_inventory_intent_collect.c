@@ -40,11 +40,11 @@ transpiler_find_mir_function(const TranspilerCtx *ctx,
 
     if (ctx == NULL || ctx->mir == NULL || func_decl == NULL
         || func_decl->type != AST_FUNC_DECL
-        || func_decl->data.func_decl.name == NULL) {
+        || ast_declaration_name(func_decl) == NULL) {
         return NULL;
     }
 
-    target = func_decl->data.func_decl.name;
+    target = ast_declaration_name(func_decl);
     transpiler_active_routine_inventory(ctx, &inventory);
     for (size_t i = 0; i < inventory.count; i++) {
         const MIRRoutine *routine =

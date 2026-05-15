@@ -16,13 +16,14 @@ assignment_target_root_slot_name(ASTNode *target)
     if (target->type == AST_IDENTIFIER)
         return target->data.identifier.name;
     if (target->type == AST_MEMBER_ACCESS) {
-        if (target->data.member.object != NULL
-            && target->data.member.object->type == AST_IDENTIFIER
-            && target->data.member.object->data.identifier.name != NULL
-            && strcmp(target->data.member.object->data.identifier.name, "self") == 0) {
-            return target->data.member.name;
+        ASTNode *member_object = ast_member_object(target);
+        if (member_object != NULL
+            && member_object->type == AST_IDENTIFIER
+            && member_object->data.identifier.name != NULL
+            && strcmp(member_object->data.identifier.name, "self") == 0) {
+            return ast_member_name(target);
         }
-        return assignment_target_root_slot_name(target->data.member.object);
+        return assignment_target_root_slot_name(member_object);
     }
     return NULL;
 }
@@ -33,14 +34,15 @@ assignment_target_root_subfield_name(ASTNode *target)
     if (target == NULL || target->type != AST_MEMBER_ACCESS)
         return NULL;
 
-    if (target->data.member.object != NULL
-        && target->data.member.object->type == AST_MEMBER_ACCESS) {
-        ASTNode *inner = target->data.member.object;
-        if (inner->data.member.object != NULL
-            && inner->data.member.object->type == AST_IDENTIFIER
-            && inner->data.member.object->data.identifier.name != NULL
-            && strcmp(inner->data.member.object->data.identifier.name, "self") == 0) {
-            return target->data.member.name;
+    if (ast_member_object(target) != NULL
+        && ast_member_object(target)->type == AST_MEMBER_ACCESS) {
+        ASTNode *inner = ast_member_object(target);
+        ASTNode *inner_object = ast_member_object(inner);
+        if (inner_object != NULL
+            && inner_object->type == AST_IDENTIFIER
+            && inner_object->data.identifier.name != NULL
+            && strcmp(inner_object->data.identifier.name, "self") == 0) {
+            return ast_member_name(target);
         }
         return assignment_target_root_subfield_name(inner);
     }
@@ -118,14 +120,14 @@ method_assignment_projection_field_name(TranspilerCtx *ctx,
     }
 
     while (cursor != NULL && cursor->type == AST_MEMBER_ACCESS) {
-        ASTNode *obj = cursor->data.member.object;
+        ASTNode *obj = ast_member_object(cursor);
         if (obj != NULL && obj->type == AST_IDENTIFIER
             && obj->data.identifier.name != NULL) {
             ClassField *field = find_host_field_by_name_local(
                 host_decl, obj->data.identifier.name);
             if (field != NULL) {
                 if (field->is_vessel_field)
-                    return cursor->data.member.name;
+                    return ast_member_name(cursor);
                 return obj->data.identifier.name;
             }
         }

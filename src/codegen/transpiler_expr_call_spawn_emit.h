@@ -6,12 +6,12 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
 {
     /* Method-call style slot operations: slot.Write(val), slot.Read(), slot.Release() */
     if (callee->type == AST_MEMBER_ACCESS) {
-        const char *method = callee->data.member.name;
-        ASTNode *obj = callee->data.member.object;
+        const char *method = ast_member_name(callee);
+        ASTNode *obj = ast_member_object(callee);
 
         if (obj != NULL && obj->type == AST_MEMBER_ACCESS && method != NULL) {
-            ASTNode *party_node = obj->data.member.object;
-            const char *slot_name = obj->data.member.name;
+            ASTNode *party_node = ast_member_object(obj);
+            const char *slot_name = ast_member_name(obj);
 
             if (party_node != NULL && party_node->type == AST_IDENTIFIER
                 && slot_name != NULL) {
@@ -36,15 +36,16 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                             ASTNode *ability_decl;
                             bool has_method = false;
                             char *ability_tag = NULL;
-                            if (ab == NULL || ab->data.type.name == NULL)
+                            if (ast_type_name(ab) == NULL)
                                 continue;
-                            ability_decl = find_ability_decl(ctx, ab->data.type.name);
+                            ability_decl = find_ability_decl(ctx, ast_type_name(ab));
                             if (ability_decl != NULL) {
                                 for (size_t mi = 0; mi < ast_ability_method_count(ability_decl); mi++) {
                                     ASTNode *m = ast_ability_method(ability_decl, mi);
+                                    const char *candidate_name = ast_declaration_name(m);
                                     if (m != NULL && m->type == AST_FUNC_DECL
-                                        && m->data.func_decl.name != NULL
-                                        && strcmp(m->data.func_decl.name, method) == 0) {
+                                        && candidate_name != NULL
+                                        && strcmp(candidate_name, method) == 0) {
                                         has_method = true;
                                         break;
                                     }
@@ -67,8 +68,8 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                 if (ability_name != NULL) {
                     CodeBuf *args_buf = codebuf_create();
                     codebuf_write(args_buf, "%s.%s", party_var, slot_name);
-                    for (size_t i = 0; i < call->data.call.arg_count; i++) {
-                        char *arg = emit_expression(call->data.call.arguments[i], ctx);
+                    for (size_t i = 0; i < ast_call_arg_count(call); i++) {
+                        char *arg = emit_expression(ast_call_argument(call, i), ctx);
                         codebuf_write(args_buf, ", %s", arg);
                         free(arg);
                     }
@@ -121,20 +122,20 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                     free(obj_expr);
                 }
 
-                for (size_t i = 0; i < call->data.call.arg_count; i++) {
-                    ASTNode *arg_node = call->data.call.arguments[i];
+                for (size_t i = 0; i < ast_call_arg_count(call); i++) {
+                    ASTNode *arg_node = ast_call_argument(call, i);
                     char *arg = emit_expression(arg_node, ctx);
                     bool pass_by_ptr = false;
                     if (method_decl != NULL) {
                         size_t param_index = i;
-                        if (method_decl->data.func_decl.param_count > 0) {
-                            FuncParam *first = method_decl->data.func_decl.params[0];
+                        if (ast_func_param_count(method_decl) > 0) {
+                            FuncParam *first = ast_func_param(method_decl, 0);
                             if (first != NULL && first->name != NULL
                                 && strcmp(first->name, "self") == 0)
                                 param_index++;
                         }
-                        if (param_index < method_decl->data.func_decl.param_count) {
-                            FuncParam *param = method_decl->data.func_decl.params[param_index];
+                        if (param_index < ast_func_param_count(method_decl)) {
+                            FuncParam *param = ast_func_param(method_decl, param_index);
                             char *ptn = (param != NULL && param->type != NULL)
                                 ? render_type_name(param->type)
                                 : NULL;
@@ -221,9 +222,9 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                         const char *effect_suffix = action_sync != NULL ? action_sync : "";
                         const char *suffix = post_sync != NULL ? post_sync : "";
 
-                        if (method_decl->data.func_decl.return_type != NULL)
+                        if (ast_func_return_type(method_decl) != NULL)
                             ret_type_name = render_type_name(
-                                method_decl->data.func_decl.return_type);
+                                ast_func_return_type(method_decl));
 
                         if (ret_type_name != NULL
                             && strcmp(ret_type_name, "Void") != 0) {
@@ -290,11 +291,11 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             char *slot_ref = slot_ref_expr(ctx, obj->data.identifier.name, obj_expr);
 
             if (pgy_codegen_call_name_is_write(method)
-                && call->data.call.arg_count >= 1) {
-                char *val_expr = emit_expression(call->data.call.arguments[0], ctx);
+                && ast_call_arg_count(call) >= 1) {
+                char *val_expr = emit_expression(ast_call_argument(call, 0), ctx);
                 char *result;
-                if (is_secure && call->data.call.arg_count >= 2) {
-                    char *tok = emit_expression(call->data.call.arguments[1], ctx);
+                if (is_secure && ast_call_arg_count(call) >= 2) {
+                    char *tok = emit_expression(ast_call_argument(call, 1), ctx);
                     result = strdup_fmt("pgy_secure_write_%s(%s, %s, &%s)",
                                         inner, slot_ref, val_expr, tok);
                     free(tok);
@@ -373,11 +374,11 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                 && receiver_type != NULL
                 && (strncmp(receiver_type, "Array<", 6) == 0
                     || strncmp(receiver_type, "Slice<", 6) == 0)
-                && call->data.call.arg_count == 2) {
+                && ast_call_arg_count(call) == 2) {
                 char inner_buf[128];
                 const char *inner = NULL;
-                char *start_expr = emit_expression(call->data.call.arguments[0], ctx);
-                char *len_expr = emit_expression(call->data.call.arguments[1], ctx);
+                char *start_expr = emit_expression(ast_call_argument(call, 0), ctx);
+                char *len_expr = emit_expression(ast_call_argument(call, 1), ctx);
                 char *result = NULL;
                 int tmp_id = ++ctx->tmp_counter;
                 if (slot_inner_type_name_copy(receiver_type, inner_buf,
@@ -425,7 +426,7 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
 char *
 emit_call(ASTNode *call, TranspilerCtx *ctx)
 {
-    ASTNode    *callee = call->data.call.callee;
+    ASTNode    *callee = ast_call_callee(call);
     BuiltinKind bk     = BUILTIN_NOT_BUILTIN;
 
     if (callee->type == AST_IDENTIFIER) {
@@ -461,3 +462,4 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
 }
 
 #endif /* PGY_TRANSPILER_EXPR_CALL_SPAWN_EMIT_H */
+

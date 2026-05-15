@@ -68,7 +68,7 @@ intent_participant_type_name(ASTNode *intent, const char *alias)
     if (involves != NULL
         && subject_type != NULL
         && subject_type->type == AST_TYPE) {
-        return subject_type->data.type.name;
+        return ast_type_name(subject_type);
     }
     return NULL;
 }
@@ -93,7 +93,7 @@ intent_zone_binding_type_name(ASTNode *intent, const char *alias)
     if (involves != NULL
         && subject_type != NULL
         && subject_type->type == AST_TYPE) {
-        return subject_type->data.type.name;
+        return ast_type_name(subject_type);
     }
     return NULL;
 }

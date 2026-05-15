@@ -146,7 +146,7 @@ llvm_emit_rc_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         return true;
     *out = NULL;
 
-    if (node->data.call.arg_count != 1) {
+    if (ast_call_arg_count(node) != 1) {
         llvm_set_error_at_with_hints(ctx, node,
             PGY_CODE_LLVM_TYPE_UNSUPPORTED,
             PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
@@ -155,7 +155,7 @@ llvm_emit_rc_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         return true;
     }
 
-    ASTNode *arg = node->data.call.arguments[0];
+    ASTNode *arg = ast_call_argument(node, 0);
     if (is_rc_new) {
         char expected_inner_buf[128];
         const char *expected_inner = NULL;

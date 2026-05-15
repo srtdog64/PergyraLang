@@ -8,7 +8,7 @@ static Type *
 expr_enum_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
 {
     Type *resolved =
-        semantic_type_resolution_lookup_type_ref_or_materialize(ctx, type_ref);
+        semantic_type_resolution_lookup_metadata_type_ref(ctx, type_ref);
     return resolved != NULL ? resolved : TYPE_UNKNOWN;
 }
 
@@ -66,8 +66,7 @@ expr_type_for_enum_variant_projection(SemanticContext *ctx, ASTNode *site,
     char **variants = ast_enum_variants(decl, &variant_count);
     for (size_t i = 0; i < variant_count; i++) {
         const char *candidate = variants != NULL ? variants[i] : NULL;
-        size_t param_count = decl->data.enum_decl.variant_param_counts != NULL
-            ? decl->data.enum_decl.variant_param_counts[i] : 0;
+        size_t param_count = ast_enum_variant_param_count(decl, i);
         int written;
 
         if (candidate == NULL || strcmp(candidate, variant_name) != 0)
@@ -132,14 +131,12 @@ expr_type_for_enum_payload_field(SemanticContext *ctx, ASTNode *site,
         char **variants = ast_enum_variants(decl, &variant_count);
         for (size_t v = 0; v < variant_count; v++) {
             const char *candidate = variants != NULL ? variants[v] : NULL;
-            size_t param_count = decl->data.enum_decl.variant_param_counts != NULL
-                ? decl->data.enum_decl.variant_param_counts[v] : 0;
+            size_t param_count = ast_enum_variant_param_count(decl, v);
 
             if (candidate == NULL || strcmp(candidate, variant_name) != 0)
                 continue;
             if (field_index >= param_count
-                || decl->data.enum_decl.variant_params == NULL
-                || decl->data.enum_decl.variant_params[v] == NULL) {
+                || ast_enum_variant_param(decl, v, field_index) == NULL) {
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_UNDEFINED_SYMBOL,
                     PGY_CAUSE_SYMBOL_UNDEFINED,
                     PGY_FIX_MATCH_BUILTIN_SIGNATURE, site,
@@ -148,7 +145,7 @@ expr_type_for_enum_payload_field(SemanticContext *ctx, ASTNode *site,
                 return TYPE_UNKNOWN;
             }
             return expr_enum_resolve_type_ref(
-                decl->data.enum_decl.variant_params[v][field_index], ctx);
+                ast_enum_variant_param(decl, v, field_index), ctx);
         }
     }
 

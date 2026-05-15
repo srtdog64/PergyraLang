@@ -90,10 +90,10 @@ intent_involves_type_name(ASTNode *involves)
 
     if (involves == NULL || involves->type != AST_INTENT_INVOLVES
         || subject_type == NULL
-        || subject_type->type != AST_TYPE) {
+        || ast_type_name(subject_type) == NULL) {
         return NULL;
     }
-    return subject_type->data.type.name;
+    return ast_type_name(subject_type);
 }
 
 bool
@@ -120,10 +120,11 @@ subject_decl_find_action_named(ASTNode *decl, const char *action_name)
     ASTNode **methods = ast_class_methods(decl, &method_count);
     for (size_t i = 0; i < method_count; i++) {
         ASTNode *method = methods != NULL ? methods[i] : NULL;
+        const char *method_name = ast_declaration_name(method);
         if (method != NULL && method->type == AST_FUNC_DECL
             && method->data.func_decl.is_action
-            && method->data.func_decl.name != NULL
-            && strcmp(method->data.func_decl.name, action_name) == 0) {
+            && method_name != NULL
+            && strcmp(method_name, action_name) == 0) {
             return method;
         }
     }

@@ -64,11 +64,11 @@ mir_append_non_cfg_body_statements(MIRRoutine *routine, MIRBasicBlock *entry)
 
     func_decl = routine->ast;
     if (func_decl->type != AST_FUNC_DECL
-        || func_decl->data.func_decl.body == NULL) {
+        || ast_func_body(func_decl) == NULL) {
         return true;
     }
 
-    body = func_decl->data.func_decl.body;
+    body = ast_func_body(func_decl);
     if (body->type != AST_BLOCK) {
         if (!mir_append_non_cfg_source_statement(routine, entry, body, 0))
             return false;

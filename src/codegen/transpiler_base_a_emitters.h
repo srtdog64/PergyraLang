@@ -7,6 +7,7 @@
 #include "transpiler_let_slot_emit.h"
 #include "transpiler_let_box_emit.h"
 #include "transpiler_let_type_register_emit.h"
+#include "transpiler_let_channel_emit.h"
 #include "transpiler_let_emit.h"
 #include "transpiler_mir_pending_uses.h"
 #include "transpiler_mir_cfg_control_emit.h"

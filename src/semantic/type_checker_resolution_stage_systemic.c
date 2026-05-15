@@ -45,14 +45,14 @@ semantic_stage_party_decl(ASTNode *decl, SemanticContext *ctx)
     methods = ast_party_methods(decl, &method_count);
 
     semantic_stage_generic_contract_nodes(
-        decl->data.party_decl.generic_params,
+        ast_party_generic_params(decl),
         NULL,
         ctx,
         decl,
         "party",
         party_name);
     (void)semantic_stage_resolve_type_quiet(
-        decl->data.party_decl.extends,
+        ast_party_extends(decl),
         ctx,
         decl,
         party_name,
@@ -117,7 +117,7 @@ semantic_stage_roster_decl(ASTNode *decl, SemanticContext *ctx)
     methods = ast_roster_methods(decl, &method_count);
 
     semantic_stage_generic_contract_nodes(
-        decl->data.roster_decl.generic_params,
+        ast_roster_generic_params(decl),
         NULL,
         ctx,
         decl,

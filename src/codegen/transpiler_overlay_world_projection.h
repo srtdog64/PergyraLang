@@ -49,8 +49,8 @@ resolve_world_embedded_projection_invalidation(TranspilerCtx *ctx,
             return true;
         }
 
-        source_field_name = cursor->data.member.name;
-        cursor = cursor->data.member.object;
+        source_field_name = ast_member_name(cursor);
+        cursor = ast_member_object(cursor);
     }
 
     return false;

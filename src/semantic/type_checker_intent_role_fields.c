@@ -89,14 +89,14 @@ find_subject_surface_field_by_name(ASTNode *program_root,
         ClassField *field = fields != NULL ? fields[i] : NULL;
         ASTNode *vessel_decl;
         ClassField *nested;
+        const char *field_type_name = field != NULL ? ast_type_name(field->type) : NULL;
 
         if (field == NULL || !field->is_vessel_field || field->type == NULL
-            || field->type->type != AST_TYPE
-            || field->type->data.type.name == NULL) {
+            || field_type_name == NULL) {
             continue;
         }
 
-        vessel_decl = find_type_decl_by_name(program_root, field->type->data.type.name);
+        vessel_decl = find_type_decl_by_name(program_root, field_type_name);
         if (vessel_decl == NULL || vessel_decl->type != AST_CLASS_DECL
             || ast_class_nominal_kind(vessel_decl) != NOMINAL_DECL_VESSEL) {
             continue;
@@ -125,6 +125,8 @@ resolve_ability_require_field_type_scope(ASTNode *ability_decl,
     Type **effective_types = NULL;
     size_t effective_count = 0;
     char *ability_text = NULL;
+    const char *ability_name;
+    const char *ability_label;
 
     if (out_type != NULL)
         *out_type = TYPE_UNKNOWN;
@@ -136,22 +138,23 @@ resolve_ability_require_field_type_scope(ASTNode *ability_decl,
         return;
     }
 
-    decl_params = ability_decl->data.ability_decl.generic_params;
+    decl_params = ast_ability_generic_params(ability_decl);
     if (decl_params == NULL || decl_params->count == 0) {
         *out_type = intent_normalize_type(intent_resolve_type_ref(type_node, ctx));
         return;
     }
 
+    ability_name = ast_ability_name(ability_decl);
+    ability_label = ability_name != NULL ? ability_name : "<ability>";
     ability_text = ability_ref_display(ability_ref);
 
     effective_types = collect_effective_generic_arg_types(
         decl_params,
-        ability_ref->data.type.generic_args,
+        ast_type_generic_args(ability_ref),
         site != NULL ? site : type_node,
         ctx,
         "ability",
-        ability_decl->data.ability_decl.name != NULL
-            ? ability_decl->data.ability_decl.name : "<ability>",
+        ability_label,
         &effective_count);
     if (effective_types == NULL) {
         free(ability_text);
@@ -159,11 +162,10 @@ resolve_ability_require_field_type_scope(ASTNode *ability_decl,
         return;
     }
 
-    if (type_node->type == AST_TYPE
-        && type_node->data.type.name != NULL
-        && type_node->data.type.generic_args == NULL) {
+    if (ast_type_name(type_node) != NULL
+        && ast_type_generic_args(type_node) == NULL) {
         int param_index = find_generic_param_index(
-            decl_params, type_node->data.type.name);
+            decl_params, ast_type_name(type_node));
         if (param_index >= 0 && (size_t)param_index < effective_count
             && effective_types[param_index] != NULL) {
             *out_type = effective_types[param_index];
@@ -195,24 +197,16 @@ resolve_ability_require_field_type_scope(ASTNode *ability_decl,
                 "Fix:\n"
                 "- provide/supply a type argument for '%s'\n"
                 "- or fix the ability generic/default parameter list so '%s' is materialized",
-                ability_decl->data.ability_decl.name != NULL
-                    ? ability_decl->data.ability_decl.name : "<ability>",
+                ability_label,
                 param->name,
-                ability_decl->data.ability_decl.name != NULL
-                    ? ability_decl->data.ability_decl.name : "<ability>",
+                ability_label,
                 ability_text != NULL ? ability_text
-                                     : (ability_decl->data.ability_decl.name != NULL
-                                            ? ability_decl->data.ability_decl.name
-                                            : "<ability>"),
+                                     : ability_label,
                 ability_text != NULL ? ability_text
-                                     : (ability_decl->data.ability_decl.name != NULL
-                                            ? ability_decl->data.ability_decl.name
-                                            : "<ability>"),
+                                     : ability_label,
                 param->name,
                 ability_text != NULL ? ability_text
-                                     : (ability_decl->data.ability_decl.name != NULL
-                                            ? ability_decl->data.ability_decl.name
-                                            : "<ability>"),
+                                     : ability_label,
                 param->name,
                 param->name);
             continue;
@@ -233,24 +227,16 @@ resolve_ability_require_field_type_scope(ASTNode *ability_decl,
                 "Fix:\n"
                 "- provide a concrete type argument for '%s'\n"
                 "- or fix the default type argument / imported type so '%s' resolves",
-                ability_decl->data.ability_decl.name != NULL
-                    ? ability_decl->data.ability_decl.name : "<ability>",
+                ability_label,
                 param->name,
-                ability_decl->data.ability_decl.name != NULL
-                    ? ability_decl->data.ability_decl.name : "<ability>",
+                ability_label,
                 ability_text != NULL ? ability_text
-                                     : (ability_decl->data.ability_decl.name != NULL
-                                            ? ability_decl->data.ability_decl.name
-                                            : "<ability>"),
+                                     : ability_label,
                 ability_text != NULL ? ability_text
-                                     : (ability_decl->data.ability_decl.name != NULL
-                                            ? ability_decl->data.ability_decl.name
-                                            : "<ability>"),
+                                     : ability_label,
                 param->name,
                 ability_text != NULL ? ability_text
-                                     : (ability_decl->data.ability_decl.name != NULL
-                                            ? ability_decl->data.ability_decl.name
-                                            : "<ability>"),
+                                     : ability_label,
                 param->name,
                 param->name);
             continue;
@@ -280,6 +266,10 @@ validate_ability_require_fields_for_role(ASTNode *role_decl,
     ASTNode *bound_decl;
     const char *bound_type_name;
     char *ability_text = NULL;
+    const char *ability_name;
+    const char *ability_label;
+    const char *role_name;
+    const char *role_label;
 
     if (role_decl == NULL || role_decl->type != AST_ROLE_DECL
         || ability_decl == NULL || ability_decl->type != AST_ABILITY_DECL
@@ -287,6 +277,10 @@ validate_ability_require_fields_for_role(ASTNode *role_decl,
         return;
     }
 
+    ability_name = ast_ability_name(ability_decl);
+    ability_label = ability_name != NULL ? ability_name : "<ability>";
+    role_name = ast_role_name(role_decl);
+    role_label = role_name != NULL ? role_name : "<role>";
     bound_type_name = semantic_role_for_type_name(role_decl);
     if (bound_type_name == NULL)
         return;
@@ -297,22 +291,22 @@ validate_ability_require_fields_for_role(ASTNode *role_decl,
 
     ability_text = ability_ref_display(ability_ref);
 
-    for (size_t i = 0; i < ability_decl->data.ability_decl.require_count; i++) {
-        ASTNode *req = ability_decl->data.ability_decl.require_fields[i];
+    for (size_t i = 0; i < ast_ability_require_field_count(ability_decl); i++) {
+        ASTNode *req = ast_ability_require_field(ability_decl, i);
+        const char *req_name = ast_require_field_name(req);
+        ASTNode *req_type = ast_require_field_type(req);
         ClassField *field;
         const char *container_field_name = NULL;
         const char *bound_name = ast_class_name(bound_decl);
         Type *required_type;
         Type *field_type;
 
-        if (req == NULL || req->type != AST_REQUIRE_FIELD
-            || req->data.require_field.name == NULL
-            || req->data.require_field.type == NULL) {
+        if (req_name == NULL || req_type == NULL) {
             continue;
         }
 
         field = find_subject_surface_field_by_name(
-            ctx->program_root, bound_decl, req->data.require_field.name,
+            ctx->program_root, bound_decl, req_name,
             &container_field_name);
         if (field == NULL) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_ROLE_CONTRACT_INVALID, PGY_CAUSE_ROLE_CONTRACT, PGY_FIX_ALIGN_ROLE_IMPL_WITH_ABILITY, role_decl,
@@ -324,35 +318,23 @@ validate_ability_require_fields_for_role(ASTNode *role_decl,
                 "Fix:\n"
                 "- add field '%s' to subject '%s'\n"
                 "- or relax/remove the require-field from ability '%s'",
-                role_decl->data.role_decl.name != NULL ? role_decl->data.role_decl.name : "<role>",
-                ability_text != NULL ? ability_text
-                                     : (ability_decl->data.ability_decl.name != NULL
-                                            ? ability_decl->data.ability_decl.name
-                                            : "<ability>"),
+                role_label,
+                ability_text != NULL ? ability_text : ability_label,
                 bound_name != NULL ? bound_name : "<subject>",
-                req->data.require_field.name,
-                ability_text != NULL ? ability_text
-                                     : (ability_decl->data.ability_decl.name != NULL
-                                            ? ability_decl->data.ability_decl.name
-                                            : "<ability>"),
-                ability_text != NULL ? ability_text
-                                     : (ability_decl->data.ability_decl.name != NULL
-                                            ? ability_decl->data.ability_decl.name
-                                            : "<ability>"),
-                req->data.require_field.name,
+                req_name,
+                ability_text != NULL ? ability_text : ability_label,
+                ability_text != NULL ? ability_text : ability_label,
+                req_name,
                 bound_name != NULL ? bound_name : "<subject>",
-                req->data.require_field.name,
+                req_name,
                 bound_name != NULL ? bound_name : "<subject>",
-                ability_text != NULL ? ability_text
-                                     : (ability_decl->data.ability_decl.name != NULL
-                                            ? ability_decl->data.ability_decl.name
-                                            : "<ability>"));
+                ability_text != NULL ? ability_text : ability_label);
             continue;
         }
 
         resolve_ability_require_field_type_scope(ability_decl,
                                                  ability_ref,
-                                                 req->data.require_field.type,
+                                                 req_type,
                                                  role_decl,
                                                  ctx,
                                                  &required_type);
@@ -368,38 +350,26 @@ validate_ability_require_fields_for_role(ASTNode *role_decl,
                 "Fix:\n"
                 "- change field '%s.%s%s%s' to type '%s'\n"
                 "- or relax/remove the require-field from ability '%s'",
-                role_decl->data.role_decl.name != NULL ? role_decl->data.role_decl.name : "<role>",
-                ability_text != NULL ? ability_text
-                                     : (ability_decl->data.ability_decl.name != NULL
-                                            ? ability_decl->data.ability_decl.name
-                                            : "<ability>"),
+                role_label,
+                ability_text != NULL ? ability_text : ability_label,
                 bound_name != NULL ? bound_name : "<subject>",
                 container_field_name != NULL ? container_field_name : "",
                 container_field_name != NULL ? "." : "",
-                req->data.require_field.name,
-                ability_text != NULL ? ability_text
-                                     : (ability_decl->data.ability_decl.name != NULL
-                                            ? ability_decl->data.ability_decl.name
-                                            : "<ability>"),
+                req_name,
+                ability_text != NULL ? ability_text : ability_label,
                 bound_name != NULL ? bound_name : "<subject>",
                 container_field_name != NULL ? container_field_name : "",
                 container_field_name != NULL ? "." : "",
-                req->data.require_field.name,
+                req_name,
                 field_type->name != NULL ? field_type->name : "<type>",
-                ability_text != NULL ? ability_text
-                                     : (ability_decl->data.ability_decl.name != NULL
-                                            ? ability_decl->data.ability_decl.name
-                                            : "<ability>"),
+                ability_text != NULL ? ability_text : ability_label,
                 required_type->name != NULL ? required_type->name : "<type>",
                 bound_name != NULL ? bound_name : "<subject>",
                 container_field_name != NULL ? container_field_name : "",
                 container_field_name != NULL ? "." : "",
-                req->data.require_field.name,
+                req_name,
                 required_type->name != NULL ? required_type->name : "<type>",
-                ability_text != NULL ? ability_text
-                                     : (ability_decl->data.ability_decl.name != NULL
-                                            ? ability_decl->data.ability_decl.name
-                                            : "<ability>"));
+                ability_text != NULL ? ability_text : ability_label);
         }
     }
 

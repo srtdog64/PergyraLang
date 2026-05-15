@@ -150,8 +150,8 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
                 + ast_intent_decl_value_count(func_decl)))
         : (is_method ? 1 : 0);
     if (!is_intent) {
-        for (size_t i = 0; i < func_decl->data.func_decl.param_count; i++) {
-            FuncParam *p = func_decl->data.func_decl.params[i];
+        for (size_t i = 0; i < ast_func_param_count(func_decl); i++) {
+            FuncParam *p = ast_func_param(func_decl, i);
             if (is_method && p != NULL && p->type == NULL
                 && p->name != NULL && strcmp(p->name, "self") == 0) {
                 continue;
@@ -214,9 +214,9 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
             size_t seen = 0;
             FuncParam *p = NULL;
             for (size_t param_index = 0;
-                 param_index < func_decl->data.func_decl.param_count;
+                 param_index < ast_func_param_count(func_decl);
                  param_index++) {
-                FuncParam *candidate = func_decl->data.func_decl.params[param_index];
+                FuncParam *candidate = ast_func_param(func_decl, param_index);
                 if (candidate != NULL
                     && candidate->type == NULL
                     && candidate->name != NULL
@@ -256,8 +256,8 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
         }
     }
     LLVMTypeRef ret_type = is_intent ? ctx->type_i1 : ctx->type_i32;
-    if (!is_intent && func_decl->data.func_decl.return_type != NULL)
-        ret_type = llvm_mir_type_from_ast(ctx, func_decl->data.func_decl.return_type);
+    if (!is_intent && ast_func_return_type(func_decl) != NULL)
+        ret_type = llvm_mir_type_from_ast(ctx, ast_func_return_type(func_decl));
     if (ctx->has_error || ret_type == NULL)
         return NULL;
 

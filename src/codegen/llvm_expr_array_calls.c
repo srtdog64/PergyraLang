@@ -6,6 +6,7 @@
 #include <string.h>
 
 #include "llvm_internal_api.h"
+#include "parser/ast_api.h"
 
 static LLVMVarEntry *
 llvm_array_required_receiver_var(LLVMGenCtx *ctx, ASTNode *node,
@@ -96,8 +97,9 @@ llvm_emit_array_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
     if (out == NULL)
         return false;
 
-    if (strcmp(callee_name, "ArrayLength") == 0 && node->data.call.arg_count == 1) {
-        LLVMValueRef arr = llvm_emit_expression(node->data.call.arguments[0], ctx);
+    if (strcmp(callee_name, "ArrayLength") == 0
+        && ast_call_arg_count(node) == 1) {
+        LLVMValueRef arr = llvm_emit_expression(ast_call_argument(node, 0), ctx);
         if (arr != NULL && LLVMGetTypeKind(LLVMTypeOf(arr)) == LLVMStructTypeKind) {
             LLVMValueRef len = llvm_array_length_i64(ctx, arr);
             *out = LLVMBuildTrunc(ctx->builder, len, ctx->type_i32, llvm_tmp_name(ctx));
@@ -112,8 +114,9 @@ llvm_emit_array_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         return true;
     }
 
-    if (strcmp(callee_name, "ArrayPush") == 0 && node->data.call.arg_count == 2) {
-        ASTNode *arr_arg = node->data.call.arguments[0];
+    if (strcmp(callee_name, "ArrayPush") == 0
+        && ast_call_arg_count(node) == 2) {
+        ASTNode *arr_arg = ast_call_argument(node, 0);
         LLVMArrayVarEntry *entry = NULL;
         LLVMVarEntry *arr_var = llvm_array_required_receiver_var(
             ctx, node, arr_arg, callee_name, &entry);
@@ -126,7 +129,7 @@ llvm_emit_array_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         if (suffix == NULL)
             return true;
 
-        LLVMValueRef value = llvm_emit_expression(node->data.call.arguments[1], ctx);
+        LLVMValueRef value = llvm_emit_expression(ast_call_argument(node, 1), ctx);
         if (value == NULL) {
             *out = NULL;
             return true;
@@ -156,8 +159,9 @@ llvm_emit_array_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         return true;
     }
 
-    if (strcmp(callee_name, "ArraySet") == 0 && node->data.call.arg_count == 3) {
-        ASTNode *arr_arg = node->data.call.arguments[0];
+    if (strcmp(callee_name, "ArraySet") == 0
+        && ast_call_arg_count(node) == 3) {
+        ASTNode *arr_arg = ast_call_argument(node, 0);
         LLVMArrayVarEntry *entry = NULL;
         LLVMVarEntry *arr_var = llvm_array_required_receiver_var(
             ctx, node, arr_arg, callee_name, &entry);
@@ -170,8 +174,8 @@ llvm_emit_array_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         if (suffix == NULL)
             return true;
 
-        LLVMValueRef idx = llvm_emit_expression(node->data.call.arguments[1], ctx);
-        LLVMValueRef value = llvm_emit_expression(node->data.call.arguments[2], ctx);
+        LLVMValueRef idx = llvm_emit_expression(ast_call_argument(node, 1), ctx);
+        LLVMValueRef value = llvm_emit_expression(ast_call_argument(node, 2), ctx);
         if (idx == NULL || value == NULL) {
             *out = NULL;
             return true;
@@ -186,6 +190,7 @@ llvm_emit_array_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
                 value = LLVMBuildSIToFP(ctx->builder, value, entry->elem_type, llvm_tmp_name(ctx));
         }
         char fn_name[64];
+        /* Contract: checked ArraySet lowers to pgy_array_set_<suffix>. */
         if (!llvm_array_format_runtime_name(fn_name, sizeof(fn_name),
                 "pgy_array_set", suffix))
             return llvm_array_runtime_name_error(node, ctx, callee_name, out);
@@ -205,8 +210,9 @@ llvm_emit_array_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         return true;
     }
 
-    if (strcmp(callee_name, "ArrayPop") == 0 && node->data.call.arg_count == 1) {
-        ASTNode *arr_arg = node->data.call.arguments[0];
+    if (strcmp(callee_name, "ArrayPop") == 0
+        && ast_call_arg_count(node) == 1) {
+        ASTNode *arr_arg = ast_call_argument(node, 0);
         LLVMArrayVarEntry *entry = NULL;
         LLVMVarEntry *arr_var = llvm_array_required_receiver_var(
             ctx, node, arr_arg, callee_name, &entry);

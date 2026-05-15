@@ -288,8 +288,8 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
             intent_clause_rejects_control_transfer(intent_expr, ctx,
                 step_name, "intent");
             if (intent_expr->type != AST_CALL
-                || intent_expr->data.call.callee == NULL
-                || intent_expr->data.call.callee->type != AST_IDENTIFIER) {
+                || ast_call_callee(intent_expr) == NULL
+                || ast_call_callee(intent_expr)->type != AST_IDENTIFIER) {
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_INTENT_STEP_INVALID, PGY_CAUSE_INTENT_STEP, PGY_FIX_ALIGN_STEP_WITH_ZONE_ACTION_CONTRACTS, intent_expr,
                     "Intent step '%s' intent clause must call a named intent before lowering to Bool-gated orchestration.\n"
                     "Reason:\n"
@@ -301,7 +301,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                     step_name != NULL ? step_name : "<step>");
             } else {
                 const char *resolved_name =
-                    intent_expr->data.call.callee->data.identifier.name;
+                    ast_call_callee(intent_expr)->data.identifier.name;
                 callee_name = resolved_name != NULL ? resolved_name : callee_name;
                 Symbol *intent_sym = callee_name != NULL
                     ? scope_lookup(ctx->scope, callee_name)

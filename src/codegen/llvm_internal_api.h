@@ -313,10 +313,10 @@ llvm_ast_type_uses_pointer_self(LLVMGenCtx *ctx, ASTNode *type_node)
 {
     if (ctx == NULL || type_node == NULL
         || type_node->type != AST_TYPE
-        || type_node->data.type.name == NULL) {
+        || ast_type_name(type_node) == NULL) {
         return false;
     }
-    return llvm_type_name_uses_pointer_self(ctx, type_node->data.type.name);
+    return llvm_type_name_uses_pointer_self(ctx, ast_type_name(type_node));
 }
 
 /* =================================================================

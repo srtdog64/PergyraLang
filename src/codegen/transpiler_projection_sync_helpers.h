@@ -16,7 +16,7 @@ zone_subject_slot_type_name(ASTNode *zone_decl, const char *slot_name)
     slot_type = ast_domain_slot_type(slot);
     if (slot_type == NULL || slot_type->type != AST_TYPE)
         return NULL;
-    return slot_type->data.type.name;
+    return ast_type_name(slot_type);
 }
 
 static ASTNode *
@@ -71,12 +71,12 @@ resolve_zone_subject_receiver(TranspilerCtx *ctx, ASTNode *receiver,
                 type_name = var_type;
         }
     } else if (receiver->type == AST_MEMBER_ACCESS
-               && receiver->data.member.object != NULL
-               && receiver->data.member.object->type == AST_IDENTIFIER
-               && receiver->data.member.object->data.identifier.name != NULL
-               && strcmp(receiver->data.member.object->data.identifier.name, "self") == 0
-               && receiver->data.member.name != NULL) {
-        slot_name = receiver->data.member.name;
+               && ast_member_object(receiver) != NULL
+               && ast_member_object(receiver)->type == AST_IDENTIFIER
+               && ast_member_object(receiver)->data.identifier.name != NULL
+               && strcmp(ast_member_object(receiver)->data.identifier.name, "self") == 0
+               && ast_member_name(receiver) != NULL) {
+        slot_name = ast_member_name(receiver);
         type_name = zone_subject_slot_type_name(zone_decl, slot_name);
     }
 
@@ -119,20 +119,20 @@ resolve_world_zone_subject_receiver(TranspilerCtx *ctx, ASTNode *receiver,
         return false;
     }
 
-    zone_expr = receiver->data.member.object;
-    slot_name = receiver->data.member.name;
+    zone_expr = ast_member_object(receiver);
+    slot_name = ast_member_name(receiver);
     if (zone_expr == NULL || slot_name == NULL)
         return false;
 
     if (zone_expr->type == AST_IDENTIFIER && zone_expr->data.identifier.name != NULL) {
         zone_slot_name = zone_expr->data.identifier.name;
     } else if (zone_expr->type == AST_MEMBER_ACCESS
-               && zone_expr->data.member.object != NULL
-               && zone_expr->data.member.object->type == AST_IDENTIFIER
-               && zone_expr->data.member.object->data.identifier.name != NULL
-               && strcmp(zone_expr->data.member.object->data.identifier.name, "self") == 0
-               && zone_expr->data.member.name != NULL) {
-        zone_slot_name = zone_expr->data.member.name;
+               && ast_member_object(zone_expr) != NULL
+               && ast_member_object(zone_expr)->type == AST_IDENTIFIER
+               && ast_member_object(zone_expr)->data.identifier.name != NULL
+               && strcmp(ast_member_object(zone_expr)->data.identifier.name, "self") == 0
+               && ast_member_name(zone_expr) != NULL) {
+        zone_slot_name = ast_member_name(zone_expr);
     } else {
         return false;
     }
@@ -187,12 +187,12 @@ emit_zone_action_effect_runtime(ASTNode *call, TranspilerCtx *ctx)
         return;
     active_zone_name = ast_zone_name(host_decl);
 
-    callee = call->data.call.callee;
+    callee = ast_call_callee(call);
     if (callee == NULL || callee->type != AST_MEMBER_ACCESS)
         return;
 
-    receiver = callee->data.member.object;
-    method_name = callee->data.member.name;
+    receiver = ast_member_object(callee);
+    method_name = ast_member_name(callee);
     if (receiver == NULL || method_name == NULL)
         return;
 

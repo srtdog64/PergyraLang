@@ -1,6 +1,7 @@
 #ifdef PGY_LLVM_ENABLED
 #include "llvm_internal.h"
 #include "llvm_stmt_parallel_names.h"
+#include "../parser/ast_api.h"
 
 /* =================================================================
  * Parallel / async / select statement emission
@@ -9,7 +10,7 @@
 void
 llvm_emit_parallel_block(ASTNode *node, LLVMGenCtx *ctx)
 {
-    size_t count = node->data.parallel.task_count;
+    size_t count = ast_parallel_task_count(node);
     if (count == 0)
         return;
 
@@ -96,7 +97,7 @@ llvm_emit_parallel_block(ASTNode *node, LLVMGenCtx *ctx)
             llvm_scope_declare(ctx, captured[c].name, var_ptr, captured[c].type);
         }
 
-        llvm_emit_statement(node->data.parallel.tasks[i], ctx);
+        llvm_emit_statement(ast_parallel_task(node, i), ctx);
 
         if (LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(ctx->builder))
                 == NULL)
@@ -157,7 +158,7 @@ llvm_select_case_parts(ASTNode *case_node, ASTNode **channel_out,
 
     if (first->type == AST_CHANNEL_RECV) {
         if (channel_out != NULL)
-            *channel_out = first->data.channel_recv.channel;
+            *channel_out = ast_channel_recv_channel(first);
         if (bind_name_out != NULL)
             *bind_name_out = NULL;
         if (body_out != NULL)
@@ -166,14 +167,14 @@ llvm_select_case_parts(ASTNode *case_node, ASTNode **channel_out,
     }
 
     if (first->type == AST_ASSIGNMENT
-        && first->data.assignment.target != NULL
-        && first->data.assignment.target->type == AST_IDENTIFIER
-        && first->data.assignment.value != NULL
-        && first->data.assignment.value->type == AST_CHANNEL_RECV) {
+        && ast_assignment_target(first) != NULL
+        && ast_assignment_target(first)->type == AST_IDENTIFIER
+        && ast_assignment_value(first) != NULL
+        && ast_assignment_value(first)->type == AST_CHANNEL_RECV) {
         if (channel_out != NULL)
-            *channel_out = first->data.assignment.value->data.channel_recv.channel;
+            *channel_out = ast_channel_recv_channel(ast_assignment_value(first));
         if (bind_name_out != NULL)
-            *bind_name_out = first->data.assignment.target->data.identifier.name;
+            *bind_name_out = ast_assignment_target(first)->data.identifier.name;
         if (body_out != NULL)
             *body_out = body;
         return true;
@@ -335,9 +336,11 @@ void
 llvm_emit_async_block(ASTNode *node, LLVMGenCtx *ctx)
 {
     ASTNode fake_block = {0};
+    size_t statement_count = 0;
+    ASTNode **statements = ast_async_block_statements(node, &statement_count);
     fake_block.type = AST_BLOCK;
-    fake_block.data.block.statements = node->data.async_block.statements;
-    fake_block.data.block.count = node->data.async_block.statement_count;
+    fake_block.data.block.statements = statements;
+    fake_block.data.block.count = statement_count;
 
     LLVMValueRef saved_fn = ctx->current_function;
     LLVMTypeRef saved_ret = ctx->current_ret_type;
@@ -442,14 +445,14 @@ llvm_emit_async_block(ASTNode *node, LLVMGenCtx *ctx)
 void
 llvm_emit_select_stmt(ASTNode *node, LLVMGenCtx *ctx)
 {
-    size_t case_count = node->data.select_stmt.case_count;
+    size_t case_count = ast_select_case_count(node);
     LLVMValueRef fn = ctx->current_function;
     LLVMBasicBlockRef merge_bb = LLVMAppendBasicBlockInContext(
         ctx->context, fn, "select.end");
 
     if (case_count == 0) {
-        if (node->data.select_stmt.default_case != NULL)
-            llvm_emit_statement(node->data.select_stmt.default_case, ctx);
+        if (ast_select_default_case(node) != NULL)
+            llvm_emit_statement(ast_select_default_case(node), ctx);
         if (LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(ctx->builder)) == NULL)
             LLVMBuildBr(ctx->builder, merge_bb);
         LLVMPositionBuilderAtEnd(ctx->builder, merge_bb);
@@ -499,7 +502,7 @@ llvm_emit_select_stmt(ASTNode *node, LLVMGenCtx *ctx)
 
             for (size_t offset = 0; offset < case_count; offset++) {
                 size_t i = (start_idx + offset) % case_count;
-                ASTNode *case_node = node->data.select_stmt.cases[i];
+                ASTNode *case_node = ast_select_case(node, i);
                 LLVMSelectCaseInfo info;
                 if (!llvm_select_case_info(case_node, ctx, &info))
                     return;
@@ -543,8 +546,8 @@ llvm_emit_select_stmt(ASTNode *node, LLVMGenCtx *ctx)
         LLVMPositionBuilderAtEnd(ctx->builder, default_bb);
     }
 
-    if (node->data.select_stmt.default_case != NULL)
-        llvm_emit_statement(node->data.select_stmt.default_case, ctx);
+    if (ast_select_default_case(node) != NULL)
+        llvm_emit_statement(ast_select_default_case(node), ctx);
     if (LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(ctx->builder)) == NULL)
         LLVMBuildBr(ctx->builder, merge_bb);
 

@@ -85,8 +85,8 @@ class_has_generic_params(ASTNode *node)
 {
     return node != NULL
         && node->type == AST_CLASS_DECL
-        && node->data.class_decl.generic_params != NULL
-        && node->data.class_decl.generic_params->count > 0;
+        && ast_class_generic_params(node) != NULL
+        && ast_class_generic_params(node)->count > 0;
 }
 
 static char *
@@ -119,8 +119,8 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
                                      ASTNode *class_decl,
                                      ASTNode *ann)
 {
-    GenericParams *gp = class_decl->data.class_decl.generic_params;
-    GenericParams *ga = ann->data.type.generic_args;
+    GenericParams *gp = ast_class_generic_params(class_decl);
+    GenericParams *ga = ast_type_generic_args(ann);
     bool has_effective_args = false;
     const char *base_class_name = ast_class_name(class_decl);
 
@@ -332,7 +332,7 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
             continue;
         method_name = transpiler_mir_decl_method_name(method_meta);
         if (method_name == NULL)
-            method_name = method->data.func_decl.name;
+            method_name = ast_declaration_name(method);
         mir_method = transpiler_hosted_method_view_routine(ctx,
             &method_view, i);
 
@@ -376,8 +376,8 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
 
         char ret_type_buf[256];
         const char *ret_type = "void";
-        if (method->data.func_decl.return_type != NULL
-            && pergyra_ast_type_to_c_copy(method->data.func_decl.return_type,
+        if (ast_func_return_type(method) != NULL
+            && pergyra_ast_type_to_c_copy(ast_func_return_type(method),
                 ret_type_buf,
                 sizeof(ret_type_buf))) {
             ret_type = ret_type_buf;
@@ -391,8 +391,8 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
                           ret_type, spec_name, method_name, spec_name);
         }
 
-        for (size_t j = 0; j < method->data.func_decl.param_count; j++) {
-            FuncParam *p = method->data.func_decl.params[j];
+        for (size_t j = 0; j < ast_func_param_count(method); j++) {
+            FuncParam *p = ast_func_param(method, j);
             if (p == NULL || p->name == NULL)
                 continue;
             if (strcmp(p->name, "self") == 0)

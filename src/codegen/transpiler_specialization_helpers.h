@@ -339,17 +339,18 @@ ensure_type_specializations_from_ast_to(TranspilerCtx *ctx, CodeBuf *dst, ASTNod
         return;
 
     if (type_node->type == AST_EVENT_HANDLER_TYPE) {
-        if (type_node->data.event_handler_type.return_type != NULL)
+        ASTNode *return_type = ast_event_handler_return_type(type_node);
+        if (return_type != NULL)
             ensure_type_specializations_from_ast_to(ctx, dst,
-                type_node->data.event_handler_type.return_type);
-        for (size_t i = 0; i < type_node->data.event_handler_type.param_count; i++) {
+                return_type);
+        for (size_t i = 0; i < ast_event_handler_param_count(type_node); i++) {
             ensure_type_specializations_from_ast_to(ctx, dst,
-                type_node->data.event_handler_type.param_types[i]);
+                ast_event_handler_param_type(type_node, i));
         }
         return;
     }
 
-    if (type_node->type != AST_TYPE || type_node->data.type.name == NULL)
+    if (type_node->type != AST_TYPE || ast_type_name(type_node) == NULL)
         return;
 
     /* Tuple type: recurse into each element then emit struct typedef once.
@@ -366,50 +367,54 @@ ensure_type_specializations_from_ast_to(TranspilerCtx *ctx, CodeBuf *dst, ASTNod
 
     {
         ASTNode *alias_decl = transpiler_find_type_alias_decl(
-            ctx, type_node->data.type.name);
-        if (alias_decl != NULL && alias_decl->data.type_alias.target_type != NULL) {
+            ctx, ast_type_name(type_node));
+        if (alias_decl != NULL && ast_type_alias_target_type(alias_decl) != NULL) {
             ensure_type_specializations_from_ast_to(ctx, dst,
-                alias_decl->data.type_alias.target_type);
+                ast_type_alias_target_type(alias_decl));
             return;
         }
     }
 
-    if (type_node->data.type.generic_args != NULL) {
-        for (size_t i = 0; i < type_node->data.type.generic_args->count; i++) {
-            GenericParam *arg = type_node->data.type.generic_args->params[i];
+    if (ast_type_generic_args(type_node) != NULL) {
+        GenericParams *generic_args = ast_type_generic_args(type_node);
+        for (size_t i = 0; i < generic_args->count; i++) {
+            GenericParam *arg = generic_args->params[i];
             if (arg != NULL && arg->constraint != NULL)
                 ensure_type_specializations_from_ast_to(ctx, dst, arg->constraint);
         }
     }
 
-    if (strcmp(type_node->data.type.name, "List") == 0
-        && type_node->data.type.generic_args != NULL
-        && type_node->data.type.generic_args->count > 0
-        && type_node->data.type.generic_args->params[0] != NULL
-        && type_node->data.type.generic_args->params[0]->constraint != NULL) {
-        char *inner = render_type_name(type_node->data.type.generic_args->params[0]->constraint);
+    if (strcmp(ast_type_name(type_node), "List") == 0
+        && ast_type_generic_args(type_node) != NULL
+        && ast_type_generic_args(type_node)->count > 0
+        && ast_type_generic_args(type_node)->params[0] != NULL
+        && ast_type_generic_args(type_node)->params[0]->constraint != NULL) {
+        GenericParams *generic_args = ast_type_generic_args(type_node);
+        char *inner = render_type_name(generic_args->params[0]->constraint);
         ensure_collection_specialization_to(ctx, dst, "List", inner);
         free(inner);
         return;
     }
 
-    if (strcmp(type_node->data.type.name, "Queue") == 0
-        && type_node->data.type.generic_args != NULL
-        && type_node->data.type.generic_args->count > 0
-        && type_node->data.type.generic_args->params[0] != NULL
-        && type_node->data.type.generic_args->params[0]->constraint != NULL) {
-        char *inner = render_type_name(type_node->data.type.generic_args->params[0]->constraint);
+    if (strcmp(ast_type_name(type_node), "Queue") == 0
+        && ast_type_generic_args(type_node) != NULL
+        && ast_type_generic_args(type_node)->count > 0
+        && ast_type_generic_args(type_node)->params[0] != NULL
+        && ast_type_generic_args(type_node)->params[0]->constraint != NULL) {
+        GenericParams *generic_args = ast_type_generic_args(type_node);
+        char *inner = render_type_name(generic_args->params[0]->constraint);
         ensure_collection_specialization_to(ctx, dst, "Queue", inner);
         free(inner);
         return;
     }
 
-    if (strcmp(type_node->data.type.name, "HashMap") == 0
-        && type_node->data.type.generic_args != NULL
-        && type_node->data.type.generic_args->count > 1
-        && type_node->data.type.generic_args->params[1] != NULL
-        && type_node->data.type.generic_args->params[1]->constraint != NULL) {
-        char *value = render_type_name(type_node->data.type.generic_args->params[1]->constraint);
+    if (strcmp(ast_type_name(type_node), "HashMap") == 0
+        && ast_type_generic_args(type_node) != NULL
+        && ast_type_generic_args(type_node)->count > 1
+        && ast_type_generic_args(type_node)->params[1] != NULL
+        && ast_type_generic_args(type_node)->params[1]->constraint != NULL) {
+        GenericParams *generic_args = ast_type_generic_args(type_node);
+        char *value = render_type_name(generic_args->params[1]->constraint);
         ensure_collection_specialization_to(ctx, dst, "Map", value);
         free(value);
         return;
@@ -418,15 +423,16 @@ ensure_type_specializations_from_ast_to(TranspilerCtx *ctx, CodeBuf *dst, ASTNod
     /* Result<T, E> with custom error type: emit PGY_RESULT_DEFINE(T_E, ...).
      * Use ctx->out rather than the caller's dst so the typedef precedes any
      * forward declarations that reference PgyResult_<T>_<E>. */
-    if (strcmp(type_node->data.type.name, "Result") == 0
-        && type_node->data.type.generic_args != NULL
-        && type_node->data.type.generic_args->count == 2
-        && type_node->data.type.generic_args->params[0] != NULL
-        && type_node->data.type.generic_args->params[0]->constraint != NULL
-        && type_node->data.type.generic_args->params[1] != NULL
-        && type_node->data.type.generic_args->params[1]->constraint != NULL) {
-        char *ok_type  = render_type_name(type_node->data.type.generic_args->params[0]->constraint);
-        char *err_type = render_type_name(type_node->data.type.generic_args->params[1]->constraint);
+    if (strcmp(ast_type_name(type_node), "Result") == 0
+        && ast_type_generic_args(type_node) != NULL
+        && ast_type_generic_args(type_node)->count == 2
+        && ast_type_generic_args(type_node)->params[0] != NULL
+        && ast_type_generic_args(type_node)->params[0]->constraint != NULL
+        && ast_type_generic_args(type_node)->params[1] != NULL
+        && ast_type_generic_args(type_node)->params[1]->constraint != NULL) {
+        GenericParams *generic_args = ast_type_generic_args(type_node);
+        char *ok_type  = render_type_name(generic_args->params[0]->constraint);
+        char *err_type = render_type_name(generic_args->params[1]->constraint);
         ensure_result_specialization_to(ctx, ctx->out, ok_type, err_type);
         (void)dst;
         free(ok_type);
@@ -449,13 +455,16 @@ ensure_collection_specializations_from_stmt_to(TranspilerCtx *ctx, CodeBuf *dst,
 
     switch (node->type) {
     case AST_FUNC_DECL:
-        ensure_type_specializations_from_ast_to(ctx, dst, node->data.func_decl.return_type);
-        for (size_t i = 0; i < node->data.func_decl.param_count; i++) {
-            FuncParam *p = node->data.func_decl.params[i];
+        ensure_type_specializations_from_ast_to(ctx, dst,
+            ast_func_return_type(node));
+        size_t param_count = ast_func_param_count(node);
+        for (size_t i = 0; i < param_count; i++) {
+            FuncParam *p = ast_func_param(node, i);
             if (p != NULL)
                 ensure_type_specializations_from_ast_to(ctx, dst, p->type);
         }
-        ensure_collection_specializations_from_stmt_to(ctx, dst, node->data.func_decl.body);
+        ensure_collection_specializations_from_stmt_to(ctx, dst,
+            ast_func_body(node));
         break;
     case AST_BLOCK:
         for (size_t i = 0; i < node->data.block.count; i++)
@@ -472,23 +481,23 @@ ensure_collection_specializations_from_stmt_to(TranspilerCtx *ctx, CodeBuf *dst,
             node->data.let_destructure.initializer);
         break;
     case AST_WITH_STMT:
-        ensure_type_specializations_from_ast_to(ctx, dst, node->data.with_stmt.slot_type);
-        ensure_collection_specializations_from_stmt_to(ctx, dst, node->data.with_stmt.body);
+        ensure_type_specializations_from_ast_to(ctx, dst, ast_with_slot_type(node));
+        ensure_collection_specializations_from_stmt_to(ctx, dst, ast_with_body(node));
         break;
     case AST_IF_STMT:
-        ensure_collection_specializations_from_stmt_to(ctx, dst, node->data.if_stmt.condition);
-        ensure_collection_specializations_from_stmt_to(ctx, dst, node->data.if_stmt.then_branch);
-        ensure_collection_specializations_from_stmt_to(ctx, dst, node->data.if_stmt.else_branch);
+        ensure_collection_specializations_from_stmt_to(ctx, dst, ast_if_condition(node));
+        ensure_collection_specializations_from_stmt_to(ctx, dst, ast_if_then_branch(node));
+        ensure_collection_specializations_from_stmt_to(ctx, dst, ast_if_else_branch(node));
         break;
     case AST_WHILE_LOOP:
-        ensure_collection_specializations_from_stmt_to(ctx, dst, node->data.while_loop.condition);
-        ensure_collection_specializations_from_stmt_to(ctx, dst, node->data.while_loop.body);
+        ensure_collection_specializations_from_stmt_to(ctx, dst, ast_while_condition(node));
+        ensure_collection_specializations_from_stmt_to(ctx, dst, ast_while_body(node));
         break;
     case AST_FOR_LOOP:
-        ensure_collection_specializations_from_stmt_to(ctx, dst, node->data.for_loop.range_start);
-        ensure_collection_specializations_from_stmt_to(ctx, dst, node->data.for_loop.range_end);
-        ensure_collection_specializations_from_stmt_to(ctx, dst, node->data.for_loop.iterable);
-        ensure_collection_specializations_from_stmt_to(ctx, dst, node->data.for_loop.body);
+        ensure_collection_specializations_from_stmt_to(ctx, dst, ast_for_range_start(node));
+        ensure_collection_specializations_from_stmt_to(ctx, dst, ast_for_range_end(node));
+        ensure_collection_specializations_from_stmt_to(ctx, dst, ast_for_iterable(node));
+        ensure_collection_specializations_from_stmt_to(ctx, dst, ast_for_body(node));
         break;
     case AST_MATCH_STMT:
         ensure_collection_specializations_from_stmt_to(ctx, dst, node->data.match_stmt.subject);
@@ -503,14 +512,14 @@ ensure_collection_specializations_from_stmt_to(TranspilerCtx *ctx, CodeBuf *dst,
         ensure_collection_specializations_from_stmt_to(ctx, dst, node->data.match_case.body);
         break;
     case AST_ASYNC_BLOCK:
-        for (size_t i = 0; i < node->data.async_block.statement_count; i++)
+        for (size_t i = 0; i < ast_async_block_statement_count(node); i++)
             ensure_collection_specializations_from_stmt_to(ctx, dst,
-                node->data.async_block.statements[i]);
+                ast_async_block_statement(node, i));
         break;
     case AST_PARALLEL_BLOCK:
-        for (size_t i = 0; i < node->data.parallel.task_count; i++)
+        for (size_t i = 0; i < ast_parallel_task_count(node); i++)
             ensure_collection_specializations_from_stmt_to(ctx, dst,
-                node->data.parallel.tasks[i]);
+                ast_parallel_task(node, i));
         break;
     default:
         break;

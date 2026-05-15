@@ -78,14 +78,323 @@ Operational mode:
   hosted method emission no longer calls a generic method lookup after reading a
   hosted-method view; the only remaining method lookup helper is explicitly
   named for the role-include copy seam.
-  DAG evidence now exposes `type_resolution_metadata_dead_ends` to AIR while
-  retaining `materializer_fallbacks` as a compatibility metric name for existing
-  stat parsers. `SemanticContext` also owns
-  `type_resolution_metadata_dead_ends` directly now;
-  the legacy `type_resolution_metadata_materializer_fallbacks` counter is synced
-  from it instead of being the hidden source-of-truth. `PGY_TYPE_RES_STATS=1`
-  now prints `dead_ends` before the compatibility `materializer_fallbacks`
-  mirror, and the DAG smoke gates both counters for equality. Internal dead-end
+  Type-alias and event declaration metadata are now on the same parser-owned
+  accessor boundary as nominal/domain declarations: DAG metadata/stage
+  resolution, DIR/HIR naming, runtime-none scans, C stdlib/specialization/event
+  emission, and LLVM type/event lookup consume `ast_type_alias_*` and
+  `ast_event_*` accessors. Namespace prefix rewriting now uses
+  `ast_declaration_name(...)` / `ast_replace_declaration_name_copy(...)`, so
+  `module_normalizer.c` no longer owns a raw declaration-name slot exception.
+  `semantic-core-shape-test-smoke` rejects semantic/compiler/codegen payload
+  reads for these declaration names and metadata fields. Extern ABI labels and
+  declaration lists are now consumed through `ast_extern_block_abi(...)`,
+  `ast_extern_block_declarations(...)`, and
+  `ast_extern_block_declaration(...)` as part of the same boundary.
+  Function declaration names are also closed across semantic, compiler, C
+  backend, and LLVM consumers through `ast_declaration_name(...)`; the only raw
+  `data.func_decl.name` access left is parser-owned destruction in
+  `src/compiler/hir_destroy.c`. Parameter, return, and body payloads remain
+  separate closure work. The parser-owned seam for that next slice now exists:
+  `ast_func_param_count(...)`, `ast_func_params(...)`, `ast_func_param(...)`,
+  `ast_func_generic_params(...)`, `ast_func_where_clause(...)`,
+  `ast_func_return_type(...)`, and `ast_func_body(...)` are built as
+  `src/parser/ast_func_accessors.c`, with semantic call-contract,
+  async spawn, ability declaration, generic where-call, host/operator method,
+  action-contract, compact-intent `on` inference, ownership param-summary,
+  effect/host helper, program prepass, module-normalizer/runtime-none scans,
+  slot analyzer, HIR/RIR signature/body, DAG precollect/stage signatures,
+  MIR non-CFG/type-helper, MIR declaration header/validation, C forward
+  declarations, C MIR function/local emission, C specialization/type-inference
+  helpers, and LLVM declaration/domain forward, boundary projection, callable
+  variable, extern registration, member/spawn calls, return typing,
+  let-callable, type inference, and MIR function emission consumers moved onto
+  it. The global smoke now rejects raw function signature/body payload reads in
+  semantic/codegen, rejects function generic/where payload reads across
+  semantic/compiler/codegen, and rejects compiler reads outside parser-owned
+  HIR construction/destruction.
+  Async function metadata uses the same parser-owned seam via
+  `ast_async_func_name(...)`, `ast_async_func_param_count(...)`,
+  `ast_async_func_params(...)`, `ast_async_func_param(...)`, and
+  `ast_async_func_body(...)` for the existing `AST_FUNC_DECL + is_async_decl`
+  shape. Slot analyzer summaries and async channel spawn checks consume those
+  accessors, and the semantic core shape smoke rejects raw
+  `data.async_func_decl.*` metadata reads in semantic/compiler/codegen.
+  Event-handler function-pointer type metadata is also behind parser-owned
+  accessors: `ast_event_handler_param_count(...)`,
+  `ast_event_handler_param_types(...)`, `ast_event_handler_param_type(...)`,
+  and `ast_event_handler_return_type(...)`. DAG type-reference collection,
+  constructed-type metadata materialization, C declarator/signature rendering,
+  C specialization scans, MIR signature eligibility, and LLVM callable/type
+  lowering consume those accessors; the shape smoke rejects raw
+  `data.event_handler_type.*` metadata reads in semantic/compiler/codegen.
+  Ability contract type-reference helpers now consume `ast_type_name(...)` and
+  `ast_type_generic_args(...)` for ability display, matching, and where-clause
+  validation, so generic/ability mismatch provenance cannot depend on raw type
+  payload reads in those semantic owners.
+  Ability require-field metadata is also parser-owned through
+  `ast_require_field_name(...)` and `ast_require_field_type(...)`; role-field
+  validation, module normalization, DAG graph precollect, and staged nominal
+  resolution consume those accessors, and the semantic core shape smoke rejects
+  raw `data.require_field.*` reads in semantic/compiler/codegen.
+  LLVM/DIR/MIR type rendering and registry helpers consume `ast_type_name(...)`
+  and `ast_type_generic_args(...)` for AST type names and generic arguments. The
+  closed slice covers LLVM AST type lowering, early forward-declare eligibility,
+  variable type registry, type rendering, boundary slot parameter lowering, DIR
+  type rendering, and MIR claim type rendering. It also covers LLVM
+  function/domain forward signatures, intent participant/value setup, role target
+  lookup, DIR ability edges, RIR type facts, async token-boundary checks,
+  projection nested-vessel lookup, and intent role-field generic substitution,
+  plus generic contract validation and DAG metadata
+  named/alias/constructed/dead-end/diagnostic materialization pure-read paths.
+  DAG graph collect/core/domain precollect paths also use that seam for
+  type-ref dependency recording and zone-slot target lookup. Function call
+  generic where-clause validation, late generic argument inference, semantic role
+  target lookup, and intent participant type-name helpers also consume the
+  accessor seam. Module ability contract arity checks, let-binding ownership
+  annotation checks, and party role-slot ability validation now consume that
+  seam. LLVM statement type rendering, let helper inference, Slot/View/MoveToken
+  resource lets, collection/channel/array let specializations, and generic let
+  post-registration now also read annotated type names/generic args only through
+  the accessor seam. LLVM ClaimSlot/DeviceSlot let lowering, expression type
+  inference, MIR local type recovery, MIR boundary slot parameter helpers,
+  with-slot lowering, zone-action subject slot lookup, and Result return-type
+  inference are on the same seam. HIR call/type-reference collection, MIR
+  intent participant/where facts, and RIR authority/intent ability facts now
+  also consume the accessor seam. LLVM function-call dispatch, identifier slot
+  source recovery, spawn generic function lowering, and hosted member-call
+  argument coercion now also read parameter/binding types through the accessor
+  seam. Intent action redundancy diagnostics, contract-source summaries, LLVM
+  intent cleanup/context carriers, and C intent zone binding/sync emission now
+  read step `where` and participant subject types through the same accessor
+  seam. LLVM/C projection sync provenance and C intent zone-slot lookup now
+  also read domain slot types through that seam, with a shape-smoke gate against
+  raw type payload reads in those owners. Intent participant action matching,
+  DAG staged ability evidence/stats, role generic-bound validation,
+  type-constraint formatting, and lightweight type inference now consume the
+  same accessor seam. C backend declaration host lookup, type-alias target
+  resolution, function forward-declaration policy, and generic function forward
+  helper binding inference now also consume that seam. C backend type rendering
+  and generic/collection/Result specialization discovery now consume the same
+  seam instead of reopening `AST_TYPE` storage. C backend Slot, SecureSlot,
+  DeviceSlot, View/MoveToken, Box, BoxArray, and Rc let-specialized owners now
+  also consume the accessor seam for annotated type names and generic
+  arguments. General C let lowering for generic class specialization,
+  collection constructors, projection borrows, and constructor matching now also
+  consumes the same accessor seam. LLVM pointer-self checks and C domain
+  nominal/role ability vtable, spawn role-call, with-slot, generic class
+  specialization, MIR SSA local type, intent participant, and projection helper
+  owners are now on that seam as well. `ast_replace_type_name_copy(...)` now
+  owns module-normalizer type-name rewrites, and short-lived synthetic type refs
+  are created through `ast_create_type(...)`; semantic/compiler/codegen now have
+  a global shape gate against raw `data.type.name` and
+  `data.type.generic_args` access. Call generic-argument reads now go through
+  `ast_call_generic_args(...)`, `ast_call_generic_arg_count(...)`, and
+  `ast_call_generic_arg(...)`; semantic/compiler/codegen have a global shape
+  gate against raw `data.call.generic_args` consumption. AIR call-boundary,
+  traversal, and evidence containment now consume `ast_call_callee(...)`,
+  `ast_call_arg_count(...)`, `ast_call_arguments(...)`, and
+  `ast_call_argument(...)`, with a shape gate against reopening call payloads in
+  those verification owners. Slot analyzer escape/access summary owners now use
+  the same call accessor seam for callee and argument traversal. HIR control-flow
+  and direct-call analysis now use the same seam for callee/argument traversal.
+  MIR source preservation, RIR call naming, module-normalizer reference rewrite,
+  runtime-none scanning, MIR call facts, MIR source side-effect shape, and MIR
+  SSA identifier-use collection now use the same seam. MIR resource write value
+  extraction and RIR projection validation now use the same seam. Semantic async
+  spawn-boundary, channel-state builtin, and intent-observability builtin owners
+  now consume the same call accessor seam for callee/argument reads. Lambda
+  capture rejection now traverses call callee/arguments through the same seam.
+  Host method call checking, intent target validation, compressed on-clause
+  argument inference, intent control-transfer scans, ClaimSlot ownership
+  let/destructure handling, world embedding handoff scans, and DAG body
+  type-reference precollection now use the same seam. Ownership let binding
+  checks, ownership let helper paths, stdlib variant checks, flow match checks,
+  and host traversal helpers now use the same seam.
+  C user-call emission and LLVM callable let registration now consume that seam
+  as well. C constructor/result/option/domain call emission and C
+  member/spawn-style call emission are now gated on the same accessor seam.
+  LLVM zone-action sync and C projection-sync helpers now use the same seam for
+  member-call callee reads. LLVM event, intent-observability, Rc builtin
+  lowering and C allocator builtin lowering now use the same seam for arity and
+  argument reads. LLVM domain-query utilities, vtable dispatch, C event builtin
+  emission, and C channel let lowering now use the same seam.
+  LLVM callable-variable lowering, expression result-type probing, spawn target
+  lowering, subject projection, ClaimSlot let lowering, C intent observability
+  emission, C ToTObject helper emission, C MIR local type lookup, pending-use
+  filtering, and spawn wrapper argument emission are also on that seam.
+  C parallel capture discovery, C spawn forward generic-return inference, LLVM
+  domain-slice methods, LLVM constructor lowering, and LLVM domain query
+  dispatch now use the same seam. C Option-return flow emission, C MIR SSA
+  local registration, C slot target resolution, LLVM queue/log builtin
+  lowering, LLVM slot-source identifier resolution, and LLVM resource let
+  lowering now use the same seam. C MIR destructuring, C overlay projection
+  invalidation walks, LLVM collection-base/math builtin lowering, LLVM let
+  helper type inference, and LLVM nominal type inference now use the same seam.
+  MIR claim ABI type helpers, C Queue builtin emission, C Slot/Pin let
+  emission, and LLVM MIR local alloca emission now use the same seam. C
+  Rc/Box/array core builtin emission, LLVM Array builtin lowering, LLVM
+  Slot/Device builtin lowering, and LLVM let metadata registration now use the
+  same seam. C MIR local type lookup, C Box/Rc let lowering, C
+  Log/LogRaw/LogBanner lowering, and RIR builder call walking now use the same
+  seam.
+  Semantic projection/query builtin owners now consume the call accessor seam
+  for arity and argument reads. Semantic channel query/send/recv/close builtin
+  owner now uses the same seam for channel/value/timeout argument reads. Semantic
+  world query builtin owner now uses that seam for world zone/detail argument
+  reads. Semantic nominal builtin owner now uses the same seam for nominal/box/string scalar
+  builtin arity, callee, and argument reads. Semantic Slot/Pin builtin owners
+  now use the same seam for slot/value/token/view argument reads. Semantic
+  state-tool builtin owner now uses the same seam for prefix argument reads.
+  Semantic stdlib scalar/string/math builtin owner now uses the same seam for
+  argument arity and type-checking reads. Semantic stdlib HashMap builtin owner
+  now uses the same seam for map/key/value argument reads. Semantic stdlib
+  collection and body builtin owners now use the same seam for List/Set/Queue,
+  Array, Print/Sleep, device-slot, Clone, ToString, cancellation, and qubit
+  state/effect argument reads. Core semantic call
+  dispatch now uses the same seam for callee, arity, member-call argument,
+  Slice argument, Slot method, and synthetic borrowed-call view construction.
+  Array access receiver/index facts now have parser-owned accessors, and
+  semantic, AIR, HIR, MIR SSA, module normalization, runtime-none, C, and LLVM
+  consumers no longer read `data.array_access.*` directly.
+  Member access receiver/name facts now have parser-owned accessors. Semantic
+  compiler, and codegen consumers are closed on that seam; member-call,
+  projection sync/invalidation, type inference, C dispatch, and LLVM assignment
+  paths no longer read `data.member.*` directly.
+  Assignment target/value facts now have parser-owned accessors. Semantic,
+  compiler/AIR, HIR CFG, MIR SSA/source/call-fact/type-helper, RIR walk,
+  runtime-none, module-normalizer, C, and LLVM consumers are closed on that
+  seam; the shape smoke now rejects non-parser `data.assignment.*` reads.
+  Await operand facts now have the same parser-owned seam across semantic,
+  AIR evidence/boundary walks, RIR, module normalization, C, and LLVM; the
+  shape smoke rejects non-parser `data.await_expr.*` reads.
+  Channel send/recv channel/value facts now use parser-owned accessors across
+  semantic transport checks, slot escape/access summaries, AIR, RIR, module
+  normalization, C select/spawn/MIR SSA, and LLVM channel/select/type-infer
+  paths; the shape smoke rejects non-parser `data.channel_send.*` and
+  `data.channel_recv.*` reads.
+  Unary operand/operator facts now use parser-owned accessors across semantic
+  operator/type inference, slot summaries, AIR/HIR/MIR/module/runtime-none,
+  C emission/type inference, and LLVM unary lowering; the shape smoke rejects
+  non-parser `data.unary.*` reads.
+  Binary left/right/operator facts now use parser-owned accessors across
+  semantic operator/type inference, slot summaries, AIR/HIR/MIR/module/runtime-
+  none, C binary emission/type inference, MIR SSA/local type, parallel capture,
+  and LLVM scalar/type-infer lowering; the shape smoke rejects non-parser
+  `data.binary.*` reads.
+  Array/tuple literal count and element facts now use parser-owned accessors
+  across semantic tuple/array checks, ownership exceptions, AIR/HIR/module/
+  runtime-none, C/LLVM literal emission, collection let lowering, MIR SSA, and
+  parallel capture; the shape smoke rejects non-parser literal payload reads.
+  Defer statement body facts now use a parser-owned accessor across semantic
+  flow, DAG body precollect, lambda/intent checks, AIR, MIR call facts,
+  module normalization, runtime-none, and C/LLVM defer registration; the shape
+  smoke rejects non-parser `data.defer_stmt.*` reads.
+  Return statement value facts now use a parser-owned accessor across semantic
+  ownership/escape summaries, CFG/HIR/AIR/RIR/module/runtime-none scans, lambda
+  inference, parallel capture, and C/LLVM return lowering; the shape smoke
+  rejects non-parser `data.return_stmt.*` reads.
+  Unsafe block body facts now use a parser-owned accessor across semantic flow,
+  DAG body precollect, lambda checks, AIR/CFG/module/runtime-none scans, and
+  C/LLVM unsafe lowering; the shape smoke rejects non-parser
+  `data.unsafe_block.*` reads.
+  Break/continue loop labels now use parser-owned accessors across semantic
+  loop-label validation, CFG lowering, flow snapshots, and C/LLVM loop-control
+  emission; the shape smoke rejects non-parser `data.break_stmt.*` and
+  `data.continue_stmt.*` reads.
+  While-loop label/condition/body facts now use parser-owned accessors across
+  semantic flow/slot/lambda/DAG checks, AIR/HIR/RIR/module/runtime-none scans,
+  CFG lowering, and C/LLVM loop lowering/local-binding helpers; the shape smoke
+  rejects non-parser `data.while_loop.*` reads.
+  For-loop label/variable/range/iterable/body facts now use parser-owned
+  accessors across semantic flow/slot/lambda/DAG checks, AIR/HIR/RIR/module/
+  runtime-none scans, CFG/MIR population, and C/LLVM loop lowering/local-
+  binding helpers; the shape smoke rejects non-parser `data.for_loop.*` reads.
+  Task-group task-list/wait policy facts now use parser-owned accessors across
+  semantic lambda/DAG checks and AIR/HIR/RIR scans; the shape smoke rejects
+  non-parser `data.task_group.*` reads.
+  Spawn function/argument/blocking facts now use parser-owned accessors across
+  semantic async boundary checks, lambda/DAG/type inference, AIR/HIR/RIR scans,
+  parallel capture, and C/LLVM spawn lowering; the shape smoke rejects non-
+  parser `data.spawn_expr.*` reads.
+  Async-block statement-list facts now use parser-owned accessors across
+  semantic async/lambda/DAG/slot checks, AIR/HIR/RIR/module scans, C/LLVM async
+  lowering, parallel capture, projection invalidation, and specialization
+  discovery; the shape smoke rejects non-parser `data.async_block.*` reads.
+  Select case/default facts now use parser-owned accessors across semantic
+  async/lambda/slot checks, AIR/HIR/RIR/module/CFG scans, C/LLVM select
+  lowering, local-binding/type lookup, and projection invalidation; the shape
+  smoke rejects non-parser `data.select_stmt.*` reads.
+  Parallel task-list facts now use parser-owned accessors across semantic
+  flow/slot/lambda/DAG checks, AIR/HIR/RIR scans, C/LLVM parallel lowering,
+  capture discovery, and specialization discovery; the shape smoke rejects
+  non-parser `data.parallel.*` reads.
+  With-statement slot type/alias/body/security facts now use parser-owned
+  accessors across semantic flow/slot/lambda/DAG checks, AIR/HIR/RIR/module/
+  runtime-none scans, MIR resource/type helpers, and C/LLVM with-slot/local-
+  binding/type lookup emission; the shape smoke rejects non-parser
+  `data.with_stmt.*` reads.
+  If-statement condition/then/else facts now use parser-owned accessors across
+  semantic flow/slot/lambda/intent/DAG checks, AIR/HIR/RIR/module/runtime-none
+  scans, CFG lowering, debugger traversal, parallel capture, specialization,
+  and C/LLVM branch lowering; the shape smoke rejects non-parser
+  `data.if_stmt.*` reads.
+  Lightweight semantic type inference now also uses the seam for Slice,
+  Slot/Rc/Weak, Clone, and allocator builtin call inference. Semantic
+  constructor validation now uses the seam for positional field arity,
+  field-argument typing, borrowed-boundary checks, and world embedding
+  diagnostics. C MIR match condition lowering now uses the seam for
+  Option/Result destructor pattern callee and payload binding reads. C HashMap
+  stdlib builtin lowering now uses the seam for map/key/value argument
+  rendering and type inference. C AST match lowering now uses the same seam for
+  Result/Option and enum-variant destructor pattern callee/payload reads. C
+  Slot/SecureSlot/DeviceSlot builtin lowering now uses the seam for
+  slot/value/token argument reads. LLVM MIR CFG match conditions and LLVM
+  statement match lowering now use the same seam for Option/Result destructor
+  pattern callee and payload binding reads. LLVM collection/channel let
+  lowering now uses the seam for ToObject, collection constructor, Channel, and
+  capacity argument reads. LLVM stdlib scalar/string/file/time IO lowering now
+  uses the seam for arity checks, runtime argument arrays, and value arguments.
+  LLVM call dispatch now uses the seam for callee classification, Clone,
+  projection arity, hosted-method arguments, boundary calls, intent calls, and
+  pointer-argument adjustment. LLVM Result/Option lowering now uses the seam
+  for Ok/Err/Some payloads, None arity, unwrap/default arguments, and predicate
+  operands. LLVM task/channel builtin lowering now uses the seam for
+  task/channel/value/timeout arguments and query arity checks. LLVM member-call
+  lowering now uses the seam for receiver callee access, static/nominal/member
+  chain call arguments, and pointer-self argument adjustment. C backend MIR SSA
+  contract checks now use the seam for callee traversal, ToObject/TObject
+  payloads, and identifier-mapping argument walks. C stdlib List/Set collection
+  lowering now uses the seam for arity, receiver/type inference arguments, and
+  emitted value/index/key operands. C `let` lowering now uses the seam for
+  callable initializer detection, Option constructors, collection constructors,
+  projection borrows, SetNew, and struct/class constructor arguments. C
+  Result/Option builtin lowering now uses the seam for Result suffix inference,
+  Ok/Err predicates, unwrap/default operands, Some payload type inference, and
+  Option consumer arguments. Semantic function-call checking now uses the seam
+  for arity, argument type checking, generic actual capture, borrowed-boundary
+  validation, ownership transfer, and assignability diagnostics. LLVM extended
+  List/Map collection call lowering now uses the seam for arity, receiver
+  lookup, key/index/value emission, MapKeys, and slot-source pass-through. C
+  channel/task stdlib lowering now uses the seam for query arity, channel
+  receiver typing, send/receive values, timeout operands, cancellation, and
+  ChannelClose. LLVM statement type inference now uses the seam for member-call
+  receivers, nested Slice receiver calls, slot builtin receivers, collection
+  value receivers, and declared call return lookup. C stdlib parent builtin
+  lowering now uses the seam for Array operations, Clone, Print, and ToString
+  arity/operand/type inference. C misc stdlib lowering now uses the seam for
+  FSM, timer, cooldown, and string-map wrapper arity/operand emission. C
+  expression type inference now uses the seam for member-call receiver types,
+  builtin arity, collection/slot/channel/device/Option operands, and ToObject
+  nominal inference. C scalar/string/math stdlib lowering now uses the seam for
+  arity and operands across numeric, string, random, and conversion wrappers.
+  C builtin dispatch now uses the seam for Clone, domain/world/zone query
+  arguments, and file/input/print/sleep operands.
+  DAG evidence now exposes `type_resolution_metadata_dead_ends` to AIR as the
+  only active metadata dead-end counter. The older `materializer_fallbacks`
+  stats label and `type_resolution_metadata_materializer_fallbacks` mirror have
+  been removed from production semantic state instead of remaining as
+  compatibility aliases. `PGY_TYPE_RES_STATS=1` now prints `dead_ends` directly,
+  and the DAG smoke gates it at zero. Internal dead-end
   family counters now use `type_resolution_metadata_unresolved_*` naming, and
   resolver-inventory smoke rejects fallback-era family counter names under
   `src/semantic`. CFG/MIR DEF use-edge
@@ -108,6 +417,54 @@ Operational mode:
   pin block carries a local pin cleanup fact but no registered cleanup root:
   AIR must collect no pin cleanup evidence and must report missing strict
   evidence, so cleanup-root truth stays owned by MIR.
+- 2026-05-14 owner-size/source-inventory checkpoint:
+  production owner size is back under the 600 LOC signal without reintroducing
+  `.inc` files or implementation-style header blocks. The latest slices are
+  responsibility-named rather than `_helpers`-named: AST domain/world and intent
+  step accessors, C lambda emission, C array access emission, C Channel let
+  emission, LLVM HashMap raw export lookup, and runtime raw map key exports now
+  have their own owners. The smoke contracts were updated to track the new
+  owners instead of stale monolith paths. Gates: `test-inc-size-test-smoke`,
+  `production-header-size-test-smoke`, `build-source-inventory-test-smoke`,
+  `test-parser`, `test-transpile`, `perf-contract-test-smoke`, and
+  `mir-declaration-inventory-test-smoke`.
+- 2026-05-14 relation endpoint source-of-truth tightening:
+  relation `between` endpoint kind/type facts are now read through AST accessors
+  by semantic relation validation, zone relation contract checks, and DAG
+  relation precollect/stage consumers. Parser-owned storage/printing/destruction
+  still owns the raw payload, but semantic/compiler/codegen consumers are
+  shape-gated against reopening `data.relation_decl.between_*` directly.
+  Gates: `test-semantic`, `type-resolution-dag-test-smoke`,
+  `type-resolution-resolver-inventory-test-smoke`, and
+  `semantic-core-shape-test-smoke`.
+- 2026-05-14 party/roster metadata source-of-truth tightening:
+  party generic params, party `extends`, and roster generic params now flow
+  through `ast_party_generic_params(...)`, `ast_party_extends(...)`, and
+  `ast_roster_generic_params(...)` for semantic declaration validation, DAG
+  inventory/stage replay, runtime-none scans, module normalization, and LLVM
+  generic-default lookup. The semantic core shape smoke now blocks direct
+  metadata payload reads from semantic/compiler/codegen owners.
+- 2026-05-14 class metadata source-of-truth tightening:
+  class generic params and where clauses now flow through
+  `ast_class_generic_params(...)` and `ast_class_where_clause(...)` across
+  semantic validation, generic contracts, DAG metadata/dead-end accounting,
+  stage replay, module normalization, C specialization, and LLVM generic
+  default lookup. The same smoke blocks direct class metadata payload reads
+  from semantic/compiler/codegen owners. Enum payload parameter consumers now
+  use `ast_enum_variant_param_count(...)` and `ast_enum_variant_param(...)` in
+  semantic projection and LLVM constructor lowering.
+- 2026-05-14 ability/role metadata source-of-truth tightening:
+  ability generic params, where clauses, required fields, and method lists now
+  flow through AST accessors, and role generic params, where clauses, and
+  parallel blocks use the same boundary. Semantic validation, module contracts,
+  DAG precollect/stage replay, module normalization, runtime-none scanning, C
+  ability vtable emission, and LLVM generic-default lookup no longer reopen
+  those declaration payloads directly. Ability/role declaration names also use
+  read-only accessors outside the explicit mutable-name owner
+  `module_normalizer.c`. Ability visibility/innate policy now uses
+  `ast_ability_access(...)`, `ast_ability_has_explicit_access(...)`, and
+  `ast_ability_is_innate(...)`, and the semantic core shape gate rejects all
+  non-parser ability/role payload reads outside that mutable-name owner.
 - 2026-05-04 CFG/MIR intent-step consumer tightening:
   C and LLVM intent step collection now classify step instructions through
   `mir_instruction_intent_step_name(...)` instead of rechecking
@@ -138,8 +495,8 @@ Operational mode:
   instruction provenance instead of MIR block source statement arrays, while
   MIR lowering still carries HIR source arrays as construction input. AIR evidence inventory is the preferred consumer API for covered
   facts, but not every abstraction boundary is fully evidence-node driven.
-  DAG fallback counters are still zero; the remaining DAG debt is recursive
-  resolver compatibility removal from semantic judgement paths, not another
+  DAG metadata dead-ends remain zero; the remaining DAG debt is evidence/model
+  coverage and semantic-owner provenance widening, not another compatibility
   fallback counter cleanup. C/LLVM hosted-method declaration views now reject
   silent AST fallback when MIR metadata is required, but declaration payloads
   inside `MIRProgram` are still AST-backed. Runtime intent exit uses active
@@ -514,9 +871,10 @@ Operational mode:
 - 2026-05-08 AIR evidence-kind classification owner:
   AIR evidence-kind knowledge and boundary/global scoping now flow through
   `air_evidence_kind_is_known(...)` and
-  `air_evidence_kind_is_boundary_scoped(...)`. Inventory validation and global
-  evidence validation consume the same classification helpers, reducing drift
-  when new first-class evidence nodes are added. Gate: native MinGW
+  `air_evidence_kind_is_boundary_scoped(...)`; global-validator availability
+  flows through `air_evidence_kind_has_global_validator(...)`. Inventory
+  validation and global evidence validation consume the same metadata owner,
+  reducing drift when new first-class evidence nodes are added. Gate: native MinGW
   `test-air` (`87/0`), `air-drift-test-smoke`, `air-json-schema-test-smoke`,
   and `perf-contract-test-smoke`.
 - 2026-05-08 AIR/RIR IO boundary vocabulary owner:
@@ -984,12 +1342,11 @@ Operational mode:
   reconstruction, so participant/zone/authority/causes metadata remains MIR
   inventory instead of being treated as disposable AST fallback emission.
 - 2026-04-29 DAG compatibility inventory update:
-  type-resolution DAG fallback remains closed (`materializer_fallbacks=0`,
+  type-resolution DAG fallback remains closed (`metadata_dead_ends=0`,
   alias/non-alias stage metadata materialization 0). The
   `retired-compatibility-resolver` audit calls are now AST-kind accounted by
   smoke, and the current semantic-suite max inventory is 0 calls after public
-  semantic regression helpers moved to
-  `semantic_type_resolution_lookup_type_ref_or_materialize(...)`. The same gate
+  semantic regression helpers moved to metadata-only type-ref lookup. The same gate
   reads the global retired counters as max/last inventory rather than summing
   repeated per-context stats lines, caps retired compatibility API calls at 0,
   and requires retired compatibility body fallbacks (`cache misses`) to remain
@@ -1590,6 +1947,15 @@ Closed now:
 - The direct `type_check_statement()` fallback path delegates `defer` body
   checking to the same cleanup snapshot helper as CFG body flow, closing the
   previous split-brain semantic path.
+- Async/select semantic body checking now consumes the CFG body-flow boundary:
+  `AST_ASYNC_BLOCK` and `AST_SELECT_STMT` are explicit flow cases, and
+  `type_checker_async_decl.c` uses `type_check_statement_flow_boundary(...)`
+  for async statements, select case tails, recovery, and defaults.
+- Raw `namespace Name { ... }` shells are now semantically traversed even when
+  `semantic_analyze()` receives parser output before module-normalizer
+  flattening. CFG body flow has an explicit `AST_NAMESPACE_DECL` case and the
+  regression is covered by `test-semantic` plus
+  `cfg-body-dataflow-test-smoke`.
 - Resource snapshots now cover anchored slot state (`Slot<T>`, `SecureSlot<T>`,
   `DeviceSlot<T>`) as well as `QubitSlot` consumption facts. This closes the
   branch/join case where a release on a terminating branch used to leak into the
@@ -2953,27 +3319,39 @@ find src -path src/tests -prune -o -name '*.inc' -print
 - Graph precollect now materializes context-independent builtin type refs (`Int`, `Long`, `Float`, `Double`, `Bool`, `String`, `QubitSlot`, `Void`) into `SemanticContext.type_resolution_metadata`.
 - Graph metadata now materializes resolver-stable constructed and anchored-handle shells (`Array<T>`, `Slice<T>`, `List<T>`, `Queue<T>`, `Set<T>`, `Box<T>`, `Rc<T>`, `Weak<T>`, `Channel<T>`, `Future<T>`, `RemoteFuture<T>`, `Token<T>`, `DeviceSlot<T>`, `HashMap<String|Int|Long|Bool, T>`, `Option<T>`, `Result<T,E>`, `Slot<T>`, `SecureSlot<T>`, `ReadView<T>`, `WriteView<T>`, `MoveToken<T>`) when the argument facts are already available. Metadata-owned `Type` shells are released on semantic context destroy.
 - Graph metadata now also materializes tuple shells and event-handler/function shells when all element/parameter/return facts are available. Channel/future AST nodes now record their constructed shell during graph collect instead of waiting for recursive fallback.
-- Pass-2 owner resolver seams now query DAG metadata through the shared
-  materializer instead of owning recursive fallback seams.
+- Pass-2 owner resolver seams now query DAG metadata through metadata-only
+  owner helpers instead of owning recursive fallback seams.
 - The recursive `resolve_type_node(...)` evaluator is removed from the beta
   owner path. Retired counters remain only as audit signals, and beta owner
   paths are gated so they cannot re-enter a recursive resolver through metadata
   materialization.
-- Owner-local resolver seams now converge through `semantic_type_resolution_lookup_or_materialize(...)`; direct `resolve_type_node(...)` calls are statically blocked outside explicit audit/test references, and the central metadata materializer no longer has a recursive escape hatch.
+- Owner-local resolver seams now converge through
+  `semantic_type_resolution_lookup_metadata_type_ref(...)`; direct
+  `resolve_type_node(...)` calls are statically blocked outside explicit
+  audit/test references, and the central metadata materializer compatibility
+  API has been removed.
 - The retired compatibility audit path stays at 0 calls. Bare builtin/named
   stable refs stay on the metadata owner path through
   `semantic_type_resolution_lookup_metadata_type_ref(...)` instead of reopening
   a compatibility resolver body.
-- The type-ref metadata API also records stable constructed refs before
-  returning unresolved, and the signature-stage quiet resolver consumes that API
-  before compatibility fallback accounting. `type-resolution-resolver-inventory-test-smoke`
-  gates both seams.
+- The type-ref metadata API records stable constructed refs before returning
+  unresolved, and the signature-stage quiet resolver consumes that API without
+  compatibility fallback accounting. `type-resolution-resolver-inventory-test-smoke`
+  gates the metadata-only seam.
 - Semantic owner helpers that still require unresolved-ref diagnostics now
-  consume `semantic_type_resolution_lookup_type_ref_or_materialize(...)`, which
-  centralizes the metadata type-ref preflight before diagnostic materialization.
+  consume metadata facts only and leave diagnostics to their local owner instead
+  of entering a materializing type-ref helper.
 - Direct `semantic_type_resolution_lookup_or_materialize(...)` calls are now
-  blocked outside central metadata/diagnostic compatibility owners by
-  `type-resolution-resolver-inventory-test-smoke`.
+  blocked everywhere by `type-resolution-resolver-inventory-test-smoke`.
+- Enum payload projection lookup and recursive projection-path field lookup are
+  now metadata-only DAG consumers. They use
+  `semantic_type_resolution_lookup_metadata_type_ref(...)` and leave missing
+  graph facts to their existing enum/projection diagnostics instead of entering
+  the materializing type-ref seam. The active materializing helper inventory is
+  capped at 0 after ability declaration signatures, ability `fields`
+  requirements, ability where-bound validation, intent involves/value/where
+  resolution, and domain slot/shared/named refs moved to metadata-only lookup.
+  The unused materializing type-ref compatibility APIs were removed.
 - `resolve_generic_type_arg(...)` is also metadata-first, so constructed builtin and generic consumer paths reuse graph facts before recursive fallback.
 - `make type-resolution-dag-test-smoke` now gates graph-backed stage skips, retired compatibility resolver calls (`retired_resolver_calls<=0`), metadata entries, metadata owned entries, metadata hits, metadata materializer fallback count, zero stage metadata materialization, and alias-stage split accounting. Current local stats for this slice are `graph-backed skips=2033 retired_resolver_calls=0 retired_resolver_unique_nodes=0 metadata_entries=3498 metadata_owned=258 metadata_hits=8380 materializer_unresolved=0 metadata_unresolved_named=0 metadata_unresolved_generic_named=0 metadata_unresolved_compound=0 metadata_unresolved_other=0 metadata_unresolved_builtin_shell=0 metadata_unresolved_generic_class=0 metadata_unresolved_alias=0 metadata_unresolved_non_class_symbol=0 metadata_unresolved_missing_symbol=0 stage_materialize_calls=0 stage_materialize_failed=0 stage_materialize_suppressed=0 stage_materialize_alias=0 stage_materialize_non_alias=0 alias_materialized=6 alias_diagnostic_unresolved=78 alias_diagnostic_resolver_calls=0 alias_diagnostic_resolved=0 alias_diagnostic_cycle_unresolved=78`.
 - The DAG smoke now enforces beta floors for graph-backed usage and metadata materialization instead of accepting any non-zero metadata activity.
@@ -2996,7 +3374,7 @@ find src -path src/tests -prune -o -name '*.inc' -print
 - `type_checker_module_contract.c` no longer calls the recursive fallback helper for ability contract bookkeeping. It records and checks ability contract shape/provenance through ability-specific logic and only performs DAG metadata lookup for already-materialized type facts, reducing the fallback seam inventory from 39 to 38.
 - `type_checker_ability_fields.c` now follows the same lookup-only pattern for ability `fields` requirements: the ability-specific validator owns field-contract diagnostics, while DAG metadata provides already-materialized type facts without recursive fallback.
 - Domain and intent declaration resolution now converge through owner-local type-reference seams. Domain slot/shared/named refs and intent involves/value/where refs share their local owner seam, reducing the fallback seam inventory from 38 to 34.
-- Ability declaration signatures, ability `fields` requirements, and ability where-bound validation now share one `ability_resolve_type_ref(...)` owner seam. The resolver inventory smoke caps materializing type-ref helper users at 32 while fallback seams, annotation-only reads, and nullable annotation reads remain at 0.
+- Ability declaration signatures, ability `fields` requirements, and ability where-bound validation now share one metadata-only `ability_resolve_type_ref(...)` owner seam. They no longer consume the materializing type-ref helper, and the resolver inventory smoke keeps fallback seams, annotation-only reads, and nullable annotation reads at 0.
 - Projection builtin target-field validation, domain-query projection source lookup, and recursive projection path lookup now share one `projection_resolve_type_ref(...)` owner seam. The resolver inventory smoke caps materializing type-ref helper users at 30 while fallback seams and annotation-only reads remain at 0.
 - Role host/generic-arg validation and party/roster shared-field validation now reuse declaration/domain type-ref seams instead of local materializer wrappers. The resolver inventory smoke caps materializing type-ref helper users at 27.
 - Intent action contract binding lookup, participant transfer source lookup, and transfer where/involves lookup now reuse the shared intent type-ref seam instead of local materializer wrappers. The resolver inventory smoke caps materializing type-ref helper users at 24.
@@ -3006,7 +3384,7 @@ find src -path src/tests -prune -o -name '*.inc' -print
 - Method-call return type lookup, operator overload param/return type lookup, and function generic where default-argument lookup now reuse the declaration/domain type-ref seam. The resolver inventory smoke caps materializing type-ref helper users at 12.
 - Type-alias statement resolution, borrowed-boundary generic support, and destructured slot-claim generic argument resolution now reuse the declaration/domain type-ref seam. The resolver inventory smoke caps materializing type-ref helper users at 9.
 - Async spawn-boundary parameter checks and effective generic argument materialization now reuse the declaration/domain type-ref seam. Direct materializing type-ref helper users are capped at 6: the internal declaration, central metadata implementation, and the four formal owner seams (`ability`, `domain`, `intent`, `projection`).
-- Alias/generic-parameter helpers and resolution-stage diagnostic fallback now converge through owner-local seams, reducing the fallback seam inventory from 34 to 32. Ability-field validation lookup-only resolution reduced the active seam cap to 31. Projection builtin target-field resolution now follows the same lookup-only pattern: graph metadata owns the materialized target field type, while projection diagnostics own source/target field mismatch. This reduces the active fallback seam cap to 30. Program-level quiet placeholder resolution now uses precollected DAG metadata lookup only, so event/function forward placeholders no longer need recursive fallback and the active cap is 29. Domain query projection source-field resolution now follows class/vessel field metadata lookup-only and reduces the active cap to 28. Party/roster shared-field resolution now follows declaration metadata lookup-only and reduces the active cap to 26. Ability abstract method signature resolution and role host-type resolution now follow metadata lookup-only and reduce the active cap to 24. Function/action body precollect now walks expression subtrees, call type args, lambda param/return/body types, event subscription handlers, spawn/channel/return/branch expressions; event/lambda handler signature resolution now uses DAG metadata lookup-only and reduces the active cap to 23. Body flow type resolution now uses DAG metadata lookup-only and reduces the active cap to 22. Type-alias statement resolution now uses DAG metadata lookup-only and reduces the active cap to 21. Generic where/default validation moved to the shared metadata materialization API and every owner-local resolver seam now calls `semantic_type_resolution_lookup_or_materialize(...)`; the old named fallback helper is removed and its cap is 0.
+- Alias/generic-parameter helpers and resolution-stage diagnostic fallback now converge through owner-local seams, reducing the fallback seam inventory from 34 to 32. Ability-field validation lookup-only resolution reduced the active seam cap to 31. Projection builtin target-field resolution now follows the same lookup-only pattern: graph metadata owns the materialized target field type, while projection diagnostics own source/target field mismatch. This reduces the active fallback seam cap to 30. Program-level quiet placeholder resolution now uses precollected DAG metadata lookup only, so event/function forward placeholders no longer need recursive fallback and the active cap is 29. Domain query projection source-field resolution now follows class/vessel field metadata lookup-only and reduces the active cap to 28. Party/roster shared-field resolution now follows declaration metadata lookup-only and reduces the active cap to 26. Ability abstract method signature resolution and role host-type resolution now follow metadata lookup-only and reduce the active cap to 24. Function/action body precollect now walks expression subtrees, call type args, lambda param/return/body types, event subscription handlers, spawn/channel/return/branch expressions; event/lambda handler signature resolution now uses DAG metadata lookup-only and reduces the active cap to 23. Body flow type resolution now uses DAG metadata lookup-only and reduces the active cap to 22. Type-alias statement resolution now uses DAG metadata lookup-only and reduces the active cap to 21. Generic where/default validation moved to the shared metadata path, and every current owner-local resolver seam now uses `semantic_type_resolution_lookup_metadata_type_ref(...)`; the old named fallback helper and materializing type-ref helper are removed and capped at 0.
 - This is not full DAG source-of-truth yet, but owner-local recursive fallback
   debt and central metadata materializer fallback are both closed:
   `type-resolution-resolver-inventory-test-smoke` caps direct fallback seams at

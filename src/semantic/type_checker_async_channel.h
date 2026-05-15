@@ -8,7 +8,7 @@ spawn_direct_callee_name(ASTNode *spawned)
 
     if (spawned == NULL || spawned->type != AST_CALL)
         return NULL;
-    callee = spawned->data.call.callee;
+    callee = ast_call_callee(spawned);
     if (callee == NULL || callee->type != AST_IDENTIFIER)
         return NULL;
     return callee->data.identifier.name;
@@ -20,13 +20,9 @@ spawn_callable_param_at(ASTNode *decl, size_t index)
     if (decl == NULL || decl->type != AST_FUNC_DECL)
         return NULL;
     if (decl->is_async_decl) {
-        if (index >= decl->data.async_func_decl.param_count)
-            return NULL;
-        return decl->data.async_func_decl.params[index];
+        return ast_async_func_param(decl, index);
     }
-    if (index >= decl->data.func_decl.param_count)
-        return NULL;
-    return decl->data.func_decl.params[index];
+    return ast_func_param(decl, index);
 }
 
 static ASTNode *
@@ -40,13 +36,13 @@ spawn_find_callable_decl(ASTNode *program, const char *name)
         if (stmt == NULL || stmt->type != AST_FUNC_DECL)
             continue;
         if (stmt->is_async_decl) {
-            if (stmt->data.async_func_decl.name != NULL
-                && strcmp(stmt->data.async_func_decl.name, name) == 0)
+            const char *async_name = ast_async_func_name(stmt);
+            if (async_name != NULL && strcmp(async_name, name) == 0)
                 return stmt;
             continue;
         }
-        if (stmt->data.func_decl.name != NULL
-            && strcmp(stmt->data.func_decl.name, name) == 0)
+        const char *stmt_name = ast_declaration_name(stmt);
+        if (stmt_name != NULL && strcmp(stmt_name, name) == 0)
             return stmt;
     }
     return NULL;
@@ -67,8 +63,8 @@ semantic_type_ref_names_token(ASTNode *type_ref)
     if (type_ref == NULL)
         return false;
     if (type_ref->type == AST_TYPE)
-        return type_ref->data.type.name != NULL
-            && strcmp(type_ref->data.type.name, "Token") == 0;
+        return ast_type_name(type_ref) != NULL
+            && strcmp(ast_type_name(type_ref), "Token") == 0;
     if (type_ref->type == AST_IDENTIFIER)
         return type_ref->data.identifier.name != NULL
             && strcmp(type_ref->data.identifier.name, "Token") == 0;
@@ -86,7 +82,7 @@ semantic_validate_spawn_token_boundary(ASTNode *expr, SemanticContext *ctx)
     if (expr == NULL || ctx == NULL)
         return false;
 
-    spawned = expr->data.spawn_expr.function;
+    spawned = ast_spawn_function(expr);
     callee_name = spawn_direct_callee_name(spawned);
     if (callee_name == NULL)
         return false;
@@ -95,8 +91,8 @@ semantic_validate_spawn_token_boundary(ASTNode *expr, SemanticContext *ctx)
     if (decl == NULL || decl->type != AST_FUNC_DECL)
         return false;
 
-    for (size_t i = 0; i < spawned->data.call.arg_count; i++) {
-        ASTNode *arg = spawned->data.call.arguments[i];
+    for (size_t i = 0; i < ast_call_arg_count(spawned); i++) {
+        ASTNode *arg = ast_call_argument(spawned, i);
         FuncParam *param = spawn_callable_param_at(decl, i);
         Type *param_type = NULL;
         bool param_is_token;
@@ -144,7 +140,7 @@ semantic_validate_spawn_ref_boundary(ASTNode *expr,
     if (expr == NULL || ctx == NULL)
         return;
 
-    spawned = expr->data.spawn_expr.function;
+    spawned = ast_spawn_function(expr);
     callee_name = spawn_direct_callee_name(spawned);
     if (callee_name == NULL)
         return;
@@ -153,8 +149,8 @@ semantic_validate_spawn_ref_boundary(ASTNode *expr,
     if (decl == NULL || decl->type != AST_FUNC_DECL)
         return;
 
-    for (size_t i = 0; i < spawned->data.call.arg_count; i++) {
-        ASTNode *arg = spawned->data.call.arguments[i];
+    for (size_t i = 0; i < ast_call_arg_count(spawned); i++) {
+        ASTNode *arg = ast_call_argument(spawned, i);
         FuncParam *param = spawn_callable_param_at(decl, i);
         Type *param_type;
         OwnershipTypeClass ownership_class;
@@ -200,7 +196,7 @@ semantic_reject_anonymous_async_spawn(ASTNode *expr, SemanticContext *ctx)
 
     if (expr == NULL || ctx == NULL)
         return false;
-    spawned = expr->data.spawn_expr.function;
+    spawned = ast_spawn_function(expr);
     if (spawned == NULL
         || spawned->type != AST_FUNC_DECL
         || !spawned->is_async_decl)
@@ -249,7 +245,7 @@ type_check_spawn_expr(ASTNode *expr, SemanticContext *ctx)
     }
     /* Type-check the spawned function/expression */
     inner = async_channel_normalize_type(
-        type_check_expression(expr->data.spawn_expr.function, ctx));
+        type_check_expression(ast_spawn_function(expr), ctx));
     semantic_validate_spawn_ref_boundary(expr, ctx, inner);
     args[0] = inner;
     return type_create_constructed(TYPE_FUTURE, args, 1);
@@ -264,6 +260,9 @@ semantic_channel_type_is_token(const Type *type)
 Type *
 type_check_channel_send(ASTNode *expr, SemanticContext *ctx)
 {
+    ASTNode *channel = ast_channel_send_channel(expr);
+    ASTNode *value = ast_channel_send_value(expr);
+
     semantic_record_body_summary(ctx, BODY_SUMMARY_SENDS_CHANNEL);
     semantic_record_effect(ctx, EFFECT_REMOTE);
     if (semantic_reject_active_slot_view_boundary(expr, ctx,
@@ -274,16 +273,16 @@ type_check_channel_send(ASTNode *expr, SemanticContext *ctx)
     }
     /* Check channel and value types */
     Type *channel_type = async_channel_normalize_type(
-        type_check_expression(expr->data.channel_send.channel, ctx));
+        type_check_expression(channel, ctx));
     Type *value_type = async_channel_normalize_type(
-        type_check_expression(expr->data.channel_send.value, ctx));
+        type_check_expression(value, ctx));
     if (channel_type->kind != TYPE_KIND_CONSTRUCTED
         || !type_equals(channel_type->data.constructed.constructor, TYPE_CHANNEL)
         || channel_type->data.constructed.arg_count != 1) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_CHANNEL_TRANSPORT_INVALID,
             PGY_CAUSE_CHANNEL_TRANSPORT_RULE_VIOLATION,
             PGY_FIX_ALIGN_CHANNEL_ELEMENT_TYPE,
-            expr->data.channel_send.channel,
+            channel,
             "Channel send requires Channel<T>, got '%s'",
             type_name_or_unknown(channel_type));
         return TYPE_VOID;
@@ -299,7 +298,7 @@ type_check_channel_send(ASTNode *expr, SemanticContext *ctx)
     if (semantic_channel_type_is_token(element_type)
         || semantic_channel_type_is_token(value_type)) {
         semantic_report_channel_transport_policy(
-            expr->data.channel_send.value, ctx,
+            value, ctx,
             "Channels cannot transport Token values yet",
             "token transfer would cross the channel boundary without a closed authority contract\n"
             "- authority-bearing token state must remain local for now",
@@ -311,7 +310,7 @@ type_check_channel_send(ASTNode *expr, SemanticContext *ctx)
     if (element_ownership == OWNERSHIP_TYPE_SUBJECT_IDENTITY
         || value_ownership == OWNERSHIP_TYPE_SUBJECT_IDENTITY) {
         if (semantic_validate_channel_transport_ownership(
-                expr->data.channel_send.value, value_type, ctx,
+                value, value_type, ctx,
                 "Channel send",
                 OWNERSHIP_TYPE_SUBJECT_IDENTITY,
                 element_ownership, value_ownership,
@@ -322,7 +321,7 @@ type_check_channel_send(ASTNode *expr, SemanticContext *ctx)
                 "bind the subject first in a local variable")) {
             return TYPE_VOID;
         }
-        consume_qubit_value(expr->data.channel_send.value, ctx, "sent through channel");
+        consume_qubit_value(value, ctx, "sent through channel");
         return TYPE_VOID;
     }
 
@@ -333,7 +332,7 @@ type_check_channel_send(ASTNode *expr, SemanticContext *ctx)
             semantic_error_with_hints(ctx, PGY_CODE_SEM_CHANNEL_TRANSPORT_INVALID,
                 PGY_CAUSE_CHANNEL_TRANSPORT_RULE_VIOLATION,
                 PGY_FIX_ALIGN_CHANNEL_ELEMENT_TYPE,
-                expr->data.channel_send.value,
+                value,
                 "Channel send slot-handle (movable) mismatch: expected '%s', got '%s'.\n"
                 "Reason:\n"
                 "- channel element type and sent value must agree on the slot handle (movable) contract\n"
@@ -350,21 +349,21 @@ type_check_channel_send(ASTNode *expr, SemanticContext *ctx)
             return TYPE_VOID;
         }
         if (semantic_check_channel_send_borrowed_transfer(
-                expr->data.channel_send.value, ctx,
+                value, ctx,
                 "slot handle (movable)",
                 "slot-handle (movable) provenance",
                 "copied/value/projection result",
                 "bind the value first by storing the slot handle (movable) in a local variable")) {
             return TYPE_VOID;
         }
-        consume_qubit_value(expr->data.channel_send.value, ctx, "sent through channel");
+        consume_qubit_value(value, ctx, "sent through channel");
         return TYPE_VOID;
     }
 
     if (element_ownership == OWNERSHIP_TYPE_ANCHORED_HANDLE
         || value_ownership == OWNERSHIP_TYPE_ANCHORED_HANDLE) {
         if (semantic_validate_channel_transport_ownership(
-                expr->data.channel_send.value, value_type, ctx,
+                value, value_type, ctx,
                 "Channel send",
                 OWNERSHIP_TYPE_ANCHORED_HANDLE,
                 element_ownership, value_ownership,
@@ -381,7 +380,7 @@ type_check_channel_send(ASTNode *expr, SemanticContext *ctx)
     if (element_ownership == OWNERSHIP_TYPE_BORROW_TRACKED
         || value_ownership == OWNERSHIP_TYPE_BORROW_TRACKED) {
         if (semantic_validate_channel_transport_ownership(
-                expr->data.channel_send.value, value_type, ctx,
+                value, value_type, ctx,
                 "Channel send",
                 OWNERSHIP_TYPE_BORROW_TRACKED,
                 element_ownership, value_ownership,
@@ -392,17 +391,19 @@ type_check_channel_send(ASTNode *expr, SemanticContext *ctx)
                 "bind the value first in a local variable")) {
             return TYPE_VOID;
         }
-        consume_qubit_value(expr->data.channel_send.value, ctx, "sent through channel");
+        consume_qubit_value(value, ctx, "sent through channel");
         return TYPE_VOID;
     }
 
-    require_assignable(value_type, element_type, expr->data.channel_send.value, ctx);
+    require_assignable(value_type, element_type, value, ctx);
     return TYPE_VOID;
 }
 
 Type *
 type_check_channel_recv(ASTNode *expr, SemanticContext *ctx)
 {
+    ASTNode *channel = ast_channel_recv_channel(expr);
+
     semantic_record_effect(ctx, EFFECT_REMOTE);
     if (semantic_reject_active_slot_view_boundary(expr, ctx,
             "channel handoff boundary",
@@ -411,14 +412,14 @@ type_check_channel_recv(ASTNode *expr, SemanticContext *ctx)
         return TYPE_UNKNOWN;
     }
     Type *channel_type = async_channel_normalize_type(
-        type_check_expression(expr->data.channel_recv.channel, ctx));
+        type_check_expression(channel, ctx));
     if (channel_type->kind != TYPE_KIND_CONSTRUCTED
         || !type_equals(channel_type->data.constructed.constructor, TYPE_CHANNEL)
         || channel_type->data.constructed.arg_count != 1) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_CHANNEL_TRANSPORT_INVALID,
             PGY_CAUSE_CHANNEL_TRANSPORT_RULE_VIOLATION,
             PGY_FIX_ALIGN_CHANNEL_ELEMENT_TYPE,
-            expr->data.channel_recv.channel,
+            channel,
             "Channel recv requires Channel<T>, got '%s'",
             type_name_or_unknown(channel_type));
         return TYPE_UNKNOWN;
@@ -428,7 +429,7 @@ type_check_channel_recv(ASTNode *expr, SemanticContext *ctx)
         channel_type->data.constructed.args[0]);
     if (semantic_channel_type_is_token(element_type)) {
         semantic_report_channel_transport_policy(
-            expr->data.channel_recv.channel, ctx,
+            channel, ctx,
             "Channels cannot yield Token values yet",
             "receive would materialize token state outside the closed authority flow\n"
             "- authority-bearing token state remains local-only at channel boundaries under the current authority contract",

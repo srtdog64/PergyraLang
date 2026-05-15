@@ -90,10 +90,10 @@ metadata_alias_decl_target_type(SemanticContext *ctx,
 
     if (ctx == NULL || alias_decl == NULL || alias_decl->type != AST_TYPE_ALIAS)
         return NULL;
-    if (alias_decl->data.type_alias.target_type == NULL)
+    if (ast_type_alias_target_type(alias_decl) == NULL)
         return NULL;
 
-    alias_name = alias_decl->data.type_alias.name;
+    alias_name = ast_type_alias_name(alias_decl);
     if (alias_name == NULL)
         return NULL;
     if (alias_stack_count >= 32) {
@@ -146,7 +146,7 @@ metadata_alias_decl_target_type(SemanticContext *ctx,
     next_stack[alias_stack_count] = alias_name;
 
     return metadata_type_ref_with_alias_stack(ctx,
-                                             alias_decl->data.type_alias.target_type,
+                                             ast_type_alias_target_type(alias_decl),
                                              next_stack,
                                              alias_stack_count + 1);
 }
@@ -184,9 +184,9 @@ metadata_type_from_name_with_alias_stack(SemanticContext *ctx,
         ASTNode *decl = ctx->program_root != NULL
             ? find_type_decl_by_name(ctx->program_root, name)
             : NULL;
+        GenericParams *class_generics = ast_class_generic_params(decl);
         if (decl != NULL && decl->type == AST_CLASS_DECL
-            && decl->data.class_decl.generic_params != NULL
-            && decl->data.class_decl.generic_params->count > 0) {
+            && class_generics != NULL && class_generics->count > 0) {
             return NULL;
         }
     }
@@ -206,10 +206,10 @@ metadata_record_alias_type_ref(SemanticContext *ctx,
         || resolved == NULL || resolved == TYPE_UNKNOWN) {
         return NULL;
     }
-    if (type_node->type != AST_TYPE || type_node->data.type.name == NULL)
+    if (ast_type_name(type_node) == NULL)
         return NULL;
 
-    name = type_node->data.type.name;
+    name = ast_type_name(type_node);
     semantic_type_resolution_record_named_dependency(
         ctx, type_node, name, TYPE_RES_NODE_ALIAS, alias_decl, name,
         "metadata type-alias lookup");
@@ -238,7 +238,7 @@ metadata_type_ref_with_alias_stack(SemanticContext *ctx,
         return resolved;
 
     if (type_node->type == AST_TYPE) {
-        const char *name = type_node->data.type.name;
+        const char *name = ast_type_name(type_node);
         if (name != NULL
             && semantic_type_resolution_metadata_type_ref_has_no_generic_args(
                 type_node)) {
@@ -285,16 +285,16 @@ semantic_type_resolution_metadata_alias_type(SemanticContext *ctx,
 
     if (ctx == NULL || type_node == NULL || type_node->type != AST_TYPE)
         return NULL;
-    if (type_node->data.type.generic_args != NULL
-        && type_node->data.type.generic_args->count > 0)
+    if (ast_type_generic_args(type_node) != NULL
+        && ast_type_generic_args(type_node)->count > 0)
         return NULL;
 
-    name = type_node->data.type.name;
+    name = ast_type_name(type_node);
     if (name == NULL || ctx->program_root == NULL)
         return NULL;
 
     alias_decl = find_type_alias_decl(ctx->program_root, name);
-    if (alias_decl == NULL || alias_decl->data.type_alias.target_type == NULL)
+    if (alias_decl == NULL || ast_type_alias_target_type(alias_decl) == NULL)
         return NULL;
 
     resolved = metadata_alias_decl_target_type(ctx, alias_decl, alias_stack, 0);

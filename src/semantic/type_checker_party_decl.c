@@ -54,10 +54,9 @@ type_check_party_decl(ASTNode *node, SemanticContext *ctx)
         scope_declare(ctx->scope, sym);
     }
 
-    if (node->data.party_decl.generic_params != NULL
-        && node->data.party_decl.generic_params->count > 0) {
-        validate_generic_param_defaults(node->data.party_decl.generic_params,
-            ctx, node, "party");
+    GenericParams *generic_params = ast_party_generic_params(node);
+    if (generic_params != NULL && generic_params->count > 0) {
+        validate_generic_param_defaults(generic_params, ctx, node, "party");
     }
 
     /* Check role slot ability references */
@@ -75,8 +74,8 @@ type_check_party_decl(ASTNode *node, SemanticContext *ctx)
 
         for (size_t j = 0; j < ability_count; j++) {
             ASTNode *ab_type = ast_role_slot_required_ability(rs, j);
-            if (ab_type != NULL && ab_type->data.type.name != NULL) {
-                const char *ability_name = ab_type->data.type.name;
+            if (ast_type_name(ab_type) != NULL) {
+                const char *ability_name = ast_type_name(ab_type);
                 char *required_text = ability_ref_display(ab_type);
                 semantic_type_resolution_record_type_ref_dependency(
                     ctx,

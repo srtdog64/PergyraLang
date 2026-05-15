@@ -1,6 +1,8 @@
 #ifndef PGY_TRANSPILER_FUNC_CLASS_FLOW_EMIT_H
 #define PGY_TRANSPILER_FUNC_CLASS_FLOW_EMIT_H
 
+#include "../parser/ast_api.h"
+
 #include "transpiler_mir_reason_classifier.h"
 
 static bool
@@ -60,9 +62,10 @@ emit_func_decl_named(ASTNode *node, const char *emitted_name,
                 ctx, node, &mir_routine, reason, sizeof(reason))) {
             emit_func_decl_from_mir_named(node, mir_routine, emitted_name, buf, ctx);
         } else if (ctx->backend_error == NULL) {
+            const char *decl_name = ast_declaration_name(node);
             const char *func_name = (node != NULL && node->type == AST_FUNC_DECL
-                                     && node->data.func_decl.name != NULL)
-                ? node->data.func_decl.name
+                                     && decl_name != NULL)
+                ? decl_name
                 : "(anonymous)";
             TranspilerMirReasonDiagnostic diag =
                 transpiler_classify_mir_function_reason(reason);
@@ -78,16 +81,16 @@ emit_func_decl_named(ASTNode *node, const char *emitted_name,
         emit_func_decl_from_mir_named(node, mir_routine, emitted_name, buf, ctx);
         return;
     }
-    const char *name = emitted_name != NULL ? emitted_name : node->data.func_decl.name;
+    const char *name = emitted_name != NULL ? emitted_name : ast_declaration_name(node);
     TranspilerMirEmitState saved_emit_state;
     CodeBuf *params_sig = codebuf_create();
     char *header_decl = NULL;
     transpiler_capture_mir_emit_state_local(ctx, &saved_emit_state);
     ctx->out = buf;
     transpiler_type_render_ctx_bind(ctx);
-    if (node->data.func_decl.return_type != NULL) {
+    if (ast_func_return_type(node) != NULL) {
         {
-            char *rendered = render_type_name(node->data.func_decl.return_type);
+            char *rendered = render_type_name(ast_func_return_type(node));
             if (rendered == NULL
                 || !transpiler_func_copy_current_return_type(ctx, rendered)) {
                 free(rendered);
@@ -103,8 +106,8 @@ emit_func_decl_named(ASTNode *node, const char *emitted_name,
         }
     }
 
-    for (size_t i = 0; i < node->data.func_decl.param_count; i++) {
-        FuncParam *p = node->data.func_decl.params[i];
+    for (size_t i = 0; i < ast_func_param_count(node); i++) {
+        FuncParam *p = ast_func_param(node, i);
         char pt[256];
         char *type_name = NULL;
         char *decl = NULL;
@@ -163,7 +166,7 @@ emit_func_decl_named(ASTNode *node, const char *emitted_name,
         free(decl);
         free(type_name);
     }
-    header_decl = pergyra_func_signature_declarator(node->data.func_decl.return_type,
+    header_decl = pergyra_func_signature_declarator(ast_func_return_type(node),
         name, params_sig != NULL ? params_sig->data : "void");
     codebuf_write(ctx->out, "\n%s\n{\n", header_decl);
     opened_body = true;
@@ -173,8 +176,8 @@ emit_func_decl_named(ASTNode *node, const char *emitted_name,
     params_sig = NULL;
 
     ctx->indent++;
-    for (size_t i = 0; i < node->data.func_decl.param_count; i++) {
-        FuncParam *p = node->data.func_decl.params[i];
+    for (size_t i = 0; i < ast_func_param_count(node); i++) {
+        FuncParam *p = ast_func_param(node, i);
         if (p == NULL || p->name == NULL || p->type == NULL)
             continue;
         char *type_name = render_type_name(p->type);
@@ -207,8 +210,8 @@ emit_func_decl_named(ASTNode *node, const char *emitted_name,
             free(type_name);
         }
     }
-    if (node->data.func_decl.body != NULL)
-        emit_block(node->data.func_decl.body, ctx);
+    if (ast_func_body(node) != NULL)
+        emit_block(ast_func_body(node), ctx);
     if (ctx->backend_error != NULL)
         goto emit_func_decl_named_fail;
 
@@ -242,7 +245,7 @@ emit_func_decl_named_fail:
 void
 emit_func_decl(ASTNode *node, TranspilerCtx *ctx)
 {
-    emit_func_decl_named(node, node->data.func_decl.name, ctx->out, ctx);
+    emit_func_decl_named(node, ast_declaration_name(node), ctx->out, ctx);
 }
 
 /* -----------------------------------------------------------------
@@ -260,14 +263,14 @@ emit_func_decl(ASTNode *node, TranspilerCtx *ctx)
 void
 emit_with_stmt(ASTNode *node, TranspilerCtx *ctx)
 {
-    const char *alias = node->data.with_stmt.alias;
-    bool is_secure    = node->data.with_stmt.is_secure;
+    const char *alias = ast_with_alias(node);
+    bool is_secure    = ast_with_is_secure(node);
     int saved_slot_count = ctx->slot_var_count;
     int saved_typed_count = ctx->typed_var_count;
 
     const char *inner = NULL;
-    if (node->data.with_stmt.slot_type != NULL)
-        inner = node->data.with_stmt.slot_type->data.type.name;
+    if (ast_with_slot_type(node) != NULL)
+        inner = ast_type_name(ast_with_slot_type(node));
     if (inner == NULL) {
         transpiler_set_backend_error_with_hints(
             ctx,
@@ -305,8 +308,8 @@ emit_with_stmt(ASTNode *node, TranspilerCtx *ctx)
         codebuf_write(ctx->out, "(void)%s;\n", alias);
     }
 
-    if (node->data.with_stmt.body != NULL)
-        emit_block(node->data.with_stmt.body, ctx);
+    if (ast_with_body(node) != NULL)
+        emit_block(ast_with_body(node), ctx);
 
     /* Auto-release */
     write_indent(ctx);
@@ -347,14 +350,15 @@ emit_with_stmt(ASTNode *node, TranspilerCtx *ctx)
 void
 emit_return_stmt(ASTNode *node, TranspilerCtx *ctx)
 {
+    ASTNode *value = ast_return_value(node);
+
     transpiler_emit_defers_from(ctx, 0);
     write_indent(ctx);
-    if (node->data.return_stmt.value != NULL) {
+    if (value != NULL) {
         if (ctx->current_return_type[0] != '\0'
             && strncmp(ctx->current_return_type, "Option<", 7) == 0) {
             char inner_buf[128];
             const char *inner = inner_buf;
-            ASTNode *value = node->data.return_stmt.value;
             if (!slot_inner_type_name_copy(ctx->current_return_type, inner_buf,
                     sizeof(inner_buf))) {
                 transpiler_set_backend_error_with_hints(ctx,
@@ -365,16 +369,19 @@ emit_return_stmt(ASTNode *node, TranspilerCtx *ctx)
                 return;
             }
             if (value->type == AST_CALL
-                && value->data.call.callee != NULL
-                && value->data.call.callee->type == AST_IDENTIFIER) {
-                const char *callee_name = value->data.call.callee->data.identifier.name;
-                if (strcmp(callee_name, "Some") == 0 && value->data.call.arg_count == 1) {
-                    char *arg = emit_expression(value->data.call.arguments[0], ctx);
+                && ast_call_callee(value) != NULL
+                && ast_call_callee(value)->type == AST_IDENTIFIER) {
+                const char *callee_name =
+                    ast_call_callee(value)->data.identifier.name;
+                if (strcmp(callee_name, "Some") == 0
+                    && ast_call_arg_count(value) == 1) {
+                    char *arg = emit_expression(ast_call_argument(value, 0), ctx);
                     codebuf_write(ctx->out, "return Some_%s(%s);\n", inner, arg);
                     free(arg);
                     return;
                 }
-                if (strcmp(callee_name, "None") == 0 && value->data.call.arg_count == 0) {
+                if (strcmp(callee_name, "None") == 0
+                    && ast_call_arg_count(value) == 0) {
                     codebuf_write(ctx->out, "return None_%s();\n", inner);
                     return;
                 }
@@ -393,7 +400,7 @@ emit_return_stmt(ASTNode *node, TranspilerCtx *ctx)
             && strcmp(ctx->current_return_type, "void") != 0) {
             ctx->expected_type = ctx->current_return_type;
         }
-        val = emit_expression(node->data.return_stmt.value, ctx);
+        val = emit_expression(value, ctx);
         ctx->expected_type = saved_expected_type;
         codebuf_write(ctx->out, "return %s;\n", val);
         free(val);

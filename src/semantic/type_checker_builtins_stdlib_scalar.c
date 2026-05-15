@@ -40,8 +40,8 @@ static void
 stdlib_scalar_require_string_arg(ASTNode *expr, size_t index,
                                  SemanticContext *ctx)
 {
-    require_assignable(type_check_expression(expr->data.call.arguments[index], ctx),
-        TYPE_STRING, expr->data.call.arguments[index], ctx);
+    ASTNode *arg = ast_call_argument(expr, index);
+    require_assignable(type_check_expression(arg, ctx), TYPE_STRING, arg, ctx);
 }
 
 static Type *
@@ -50,7 +50,7 @@ stdlib_scalar_check_abs(ASTNode *expr, const char *name, SemanticContext *ctx)
     if (!check_call_arity(expr, 1, name, ctx))
         return TYPE_UNKNOWN;
     return stdlib_scalar_normalize_type(
-        type_check_expression(expr->data.call.arguments[0], ctx));
+        type_check_expression(ast_call_argument(expr, 0), ctx));
 }
 
 static Type *
@@ -62,10 +62,10 @@ stdlib_scalar_check_minmax(ASTNode *expr, const char *name,
     if (!check_call_arity(expr, 2, name, ctx))
         return TYPE_UNKNOWN;
     a = stdlib_scalar_normalize_type(
-        type_check_expression(expr->data.call.arguments[0], ctx));
+        type_check_expression(ast_call_argument(expr, 0), ctx));
     b = stdlib_scalar_normalize_type(
-        type_check_expression(expr->data.call.arguments[1], ctx));
-    require_assignable(b, a, expr->data.call.arguments[1], ctx);
+        type_check_expression(ast_call_argument(expr, 1), ctx));
+    require_assignable(b, a, ast_call_argument(expr, 1), ctx);
     return a;
 }
 
@@ -77,11 +77,11 @@ stdlib_scalar_check_string_join(ASTNode *expr, const char *name,
     if (!check_call_arity(expr, 2, name, ctx))
         return TYPE_UNKNOWN;
     arr_type = stdlib_scalar_normalize_type(
-        type_check_expression(expr->data.call.arguments[0], ctx));
+        type_check_expression(ast_call_argument(expr, 0), ctx));
     if (!type_is_constructed_named(arr_type, "Array")) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
             PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,
-            PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr->data.call.arguments[0],
+            PGY_FIX_MATCH_BUILTIN_SIGNATURE, ast_call_argument(expr, 0),
             "StringJoin requires Array<String> as first argument");
     }
     stdlib_scalar_require_string_arg(expr, 1, ctx);
@@ -127,10 +127,10 @@ stdlib_scalar_check_string_substring(ASTNode *expr, const char *name,
     if (!check_call_arity(expr, 3, name, ctx))
         return TYPE_UNKNOWN;
     stdlib_scalar_require_string_arg(expr, 0, ctx);
-    require_assignable(type_check_expression(expr->data.call.arguments[1], ctx),
-        TYPE_INT, expr->data.call.arguments[1], ctx);
-    require_assignable(type_check_expression(expr->data.call.arguments[2], ctx),
-        TYPE_INT, expr->data.call.arguments[2], ctx);
+    require_assignable(type_check_expression(ast_call_argument(expr, 1), ctx),
+        TYPE_INT, ast_call_argument(expr, 1), ctx);
+    require_assignable(type_check_expression(ast_call_argument(expr, 2), ctx),
+        TYPE_INT, ast_call_argument(expr, 2), ctx);
     return TYPE_STRING;
 }
 
@@ -173,7 +173,7 @@ stdlib_scalar_check_to_int(ASTNode *expr, const char *name,
 {
     if (!check_call_arity(expr, 1, name, ctx))
         return TYPE_UNKNOWN;
-    type_check_expression(expr->data.call.arguments[0], ctx);
+    type_check_expression(ast_call_argument(expr, 0), ctx);
     return TYPE_INT;
 }
 
@@ -183,7 +183,7 @@ stdlib_scalar_check_to_float(ASTNode *expr, const char *name,
 {
     if (!check_call_arity(expr, 1, name, ctx))
         return TYPE_UNKNOWN;
-    type_check_expression(expr->data.call.arguments[0], ctx);
+    type_check_expression(ast_call_argument(expr, 0), ctx);
     return TYPE_FLOAT;
 }
 
@@ -193,7 +193,7 @@ stdlib_scalar_check_math_unary_float(ASTNode *expr, const char *name,
 {
     if (!check_call_arity(expr, 1, name, ctx))
         return TYPE_UNKNOWN;
-    type_check_expression(expr->data.call.arguments[0], ctx);
+    type_check_expression(ast_call_argument(expr, 0), ctx);
     return TYPE_FLOAT;
 }
 
@@ -203,8 +203,8 @@ stdlib_scalar_check_atan2(ASTNode *expr, const char *name,
 {
     if (!check_call_arity(expr, 2, name, ctx))
         return TYPE_UNKNOWN;
-    type_check_expression(expr->data.call.arguments[0], ctx);
-    type_check_expression(expr->data.call.arguments[1], ctx);
+    type_check_expression(ast_call_argument(expr, 0), ctx);
+    type_check_expression(ast_call_argument(expr, 1), ctx);
     return TYPE_FLOAT;
 }
 
@@ -216,9 +216,9 @@ stdlib_scalar_check_clamp(ASTNode *expr, const char *name,
     if (!check_call_arity(expr, 3, name, ctx))
         return TYPE_UNKNOWN;
     val = stdlib_scalar_normalize_type(
-        type_check_expression(expr->data.call.arguments[0], ctx));
-    type_check_expression(expr->data.call.arguments[1], ctx);
-    type_check_expression(expr->data.call.arguments[2], ctx);
+        type_check_expression(ast_call_argument(expr, 0), ctx));
+    type_check_expression(ast_call_argument(expr, 1), ctx);
+    type_check_expression(ast_call_argument(expr, 2), ctx);
     return val;
 }
 
@@ -237,8 +237,8 @@ stdlib_scalar_check_pow(ASTNode *expr, const char *name, SemanticContext *ctx)
 {
     if (!check_call_arity(expr, 2, name, ctx))
         return TYPE_UNKNOWN;
-    type_check_expression(expr->data.call.arguments[0], ctx);
-    type_check_expression(expr->data.call.arguments[1], ctx);
+    type_check_expression(ast_call_argument(expr, 0), ctx);
+    type_check_expression(ast_call_argument(expr, 1), ctx);
     return TYPE_FLOAT;
 }
 
@@ -246,8 +246,8 @@ static Type *
 stdlib_scalar_check_random(ASTNode *expr, const char *name, SemanticContext *ctx)
 {
     (void)name;
-    if (expr->data.call.arg_count > 0)
-        type_check_expression(expr->data.call.arguments[0], ctx);
+    if (ast_call_arg_count(expr) > 0)
+        type_check_expression(ast_call_argument(expr, 0), ctx);
     return TYPE_INT;
 }
 
@@ -257,8 +257,8 @@ stdlib_scalar_check_seed_random(ASTNode *expr, const char *name,
 {
     if (!check_call_arity(expr, 1, name, ctx))
         return TYPE_UNKNOWN;
-    require_assignable(type_check_expression(expr->data.call.arguments[0], ctx),
-        TYPE_INT, expr->data.call.arguments[0], ctx);
+    require_assignable(type_check_expression(ast_call_argument(expr, 0), ctx),
+        TYPE_INT, ast_call_argument(expr, 0), ctx);
     semantic_record_effect(ctx, EFFECT_NONDETERMINISTIC);
     return TYPE_VOID;
 }

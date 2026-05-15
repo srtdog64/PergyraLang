@@ -20,7 +20,8 @@ type_check_has_zone(ASTNode *call, SemanticContext *ctx)
     ASTNode *arg;
     const char *name = NULL;
 
-    if (call->data.call.arg_count != 1) {
+    size_t arg_count = ast_call_arg_count(call);
+    if (arg_count != 1) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, call,
             "'HasZone' expects exactly 1 argument, got %llu.\n"
             "Reason:\n"
@@ -28,7 +29,7 @@ type_check_has_zone(ASTNode *call, SemanticContext *ctx)
             "Fix:\n"
             "- call HasZone(zoneOrState)\n"
             "- or remove the extra argument(s)",
-            (unsigned long long) call->data.call.arg_count);
+            (unsigned long long) arg_count);
         return TYPE_BOOL;
     }
 
@@ -45,7 +46,7 @@ type_check_has_zone(ASTNode *call, SemanticContext *ctx)
         return TYPE_BOOL;
     }
 
-    arg = call->data.call.arguments[0];
+    arg = ast_call_argument(call, 0);
     if (arg == NULL) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_PREDICATE_ARGS_INVALID, PGY_CAUSE_PREDICATE_ARGS, PGY_FIX_MATCH_PREDICATE_SIGNATURE_IN_HOST, call,
             "HasZone(...) requires a zone slot or world state name.\n"
@@ -137,7 +138,8 @@ type_check_has_world_zone_detail(ASTNode *call, SemanticContext *ctx,
     const char *detail_name = NULL;
     ASTNode *detail_decl;
 
-    if (call->data.call.arg_count != 2) {
+    size_t arg_count = ast_call_arg_count(call);
+    if (arg_count != 2) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, call,
             "'%s' expects exactly 2 argument(s), got %llu.\n"
             "Reason:\n"
@@ -145,7 +147,7 @@ type_check_has_world_zone_detail(ASTNode *call, SemanticContext *ctx,
             "Fix:\n"
             "- call %s(zoneSlot, %sName)\n"
             "- or remove the extra argument(s)",
-            builtin_name, (unsigned long long) call->data.call.arg_count,
+            builtin_name, (unsigned long long) arg_count,
             builtin_name, detail_label,
             builtin_name, detail_label);
         return TYPE_BOOL;
@@ -167,8 +169,8 @@ type_check_has_world_zone_detail(ASTNode *call, SemanticContext *ctx,
         return TYPE_BOOL;
     }
 
-    zone_arg = call->data.call.arguments[0];
-    detail_arg = call->data.call.arguments[1];
+    zone_arg = ast_call_argument(call, 0);
+    detail_arg = ast_call_argument(call, 1);
     if (zone_arg == NULL || detail_arg == NULL) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_WORLD_CONTRACT_INVALID,
             PGY_CAUSE_WORLD_CONTRACT, PGY_FIX_ALIGN_WORLD_ZONE_STATE_COMPOSITION,

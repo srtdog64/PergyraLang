@@ -43,9 +43,7 @@ llvm_emit_enum_variant_constructor(ASTNode *node, LLVMGenCtx *ctx,
             "LLVM enum variant constructor requires enum declaration and class metadata");
 
     size_t variant_index = (size_t)variant->value;
-    size_t param_count =
-        (enum_decl->data.enum_decl.variant_param_counts != NULL)
-        ? enum_decl->data.enum_decl.variant_param_counts[variant_index] : 0;
+    size_t param_count = ast_enum_variant_param_count(enum_decl, variant_index);
     LLVMValueRef enum_val = LLVMGetUndef(enum_cls->struct_type);
     enum_val = LLVMBuildInsertValue(ctx->builder, enum_val,
         LLVMConstInt(ctx->type_i32, (unsigned long long)variant->value, 0),
@@ -58,8 +56,10 @@ llvm_emit_enum_variant_constructor(ASTNode *node, LLVMGenCtx *ctx,
             LLVMValueRef payload = LLVMGetUndef(payload_ty);
             LLVMClassTypeEntry *payload_cls = llvm_lookup_class_by_type(ctx, payload_ty);
 
-            for (size_t i = 0; i < param_count && i < node->data.call.arg_count; i++) {
-                LLVMValueRef arg = llvm_emit_expression(node->data.call.arguments[i], ctx);
+            for (size_t i = 0; i < param_count
+                && i < ast_call_arg_count(node); i++) {
+                LLVMValueRef arg = llvm_emit_expression(
+                    ast_call_argument(node, i), ctx);
                 if (arg == NULL)
                     return llvm_constructor_error(node, ctx,
                         "LLVM enum variant constructor could not lower payload argument");
@@ -109,7 +109,7 @@ llvm_emit_class_constructor_shared_defaults(ASTNode *node, LLVMGenCtx *ctx,
             continue;
         }
         field_idx = llvm_class_field_index(cls, shared_name);
-        if (field_idx < 0 || (size_t)field_idx < node->data.call.arg_count)
+        if (field_idx < 0 || (size_t)field_idx < ast_call_arg_count(node))
             continue;
         init_val = llvm_emit_expression(initializer, ctx);
         if (init_val == NULL)
@@ -231,8 +231,9 @@ llvm_emit_class_constructor(ASTNode *node, LLVMGenCtx *ctx, const char *callee_n
         return NULL;
 
     LLVMValueRef object = LLVMConstNull(cls->struct_type);
-    for (size_t i = 0; i < node->data.call.arg_count && i < (size_t)cls->field_count; i++) {
-        LLVMValueRef arg = llvm_emit_expression(node->data.call.arguments[i], ctx);
+    for (size_t i = 0; i < ast_call_arg_count(node)
+        && i < (size_t)cls->field_count; i++) {
+        LLVMValueRef arg = llvm_emit_expression(ast_call_argument(node, i), ctx);
         if (arg == NULL)
             return llvm_constructor_error(node, ctx,
                 "LLVM class constructor could not lower field argument");

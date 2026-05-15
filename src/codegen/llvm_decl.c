@@ -7,9 +7,9 @@ llvm_function_emitted_param_count(LLVMGenCtx *ctx, ASTNode *node)
 {
     unsigned count = 0;
 
-    for (size_t i = 0; i < node->data.func_decl.param_count; i++) {
+    for (size_t i = 0; i < ast_func_param_count(node); i++) {
         bool is_secure = false;
-        FuncParam *p = node->data.func_decl.params[i];
+        FuncParam *p = ast_func_param(node, i);
         if (p == NULL || p->name == NULL) {
             llvm_set_error_at_with_hints(ctx, node,
                 PGY_CODE_LLVM_TYPE_UNSUPPORTED,
@@ -216,14 +216,14 @@ llvm_decl_emit_zone_authority_check(LLVMGenCtx *ctx)
 void
 llvm_forward_declare_func(ASTNode *node, LLVMGenCtx *ctx)
 {
-    const char *name = node->data.func_decl.name;
-    size_t param_count = node->data.func_decl.param_count;
+    const char *name = ast_declaration_name(node);
+    size_t param_count = ast_func_param_count(node);
     unsigned emitted_param_count = llvm_function_emitted_param_count(ctx, node);
 
     /* Return type */
     LLVMTypeRef ret_type = ctx->type_void;
-    if (node->data.func_decl.return_type != NULL)
-        ret_type = ast_type_to_llvm(ctx, node->data.func_decl.return_type);
+    if (ast_func_return_type(node) != NULL)
+        ret_type = ast_type_to_llvm(ctx, ast_func_return_type(node));
     if (ctx->has_error || ret_type == NULL)
         return;
 
@@ -235,7 +235,7 @@ llvm_forward_declare_func(ASTNode *node, LLVMGenCtx *ctx)
         unsigned pidx = 0;
         for (size_t i = 0; i < param_count; i++) {
             bool is_secure = false;
-            FuncParam *p = node->data.func_decl.params[i];
+            FuncParam *p = ast_func_param(node, i);
             if (p == NULL || p->name == NULL)
                 continue;
             LLVMTypeRef pt = llvm_decl_required_param_type(ctx, node, p);
@@ -243,9 +243,8 @@ llvm_forward_declare_func(ASTNode *node, LLVMGenCtx *ctx)
                 return;
             if (p != NULL
                 && p->type != NULL
-                && p->type->type == AST_TYPE
-                && p->type->data.type.name != NULL
-                && llvm_type_name_uses_pointer_self(ctx, p->type->data.type.name)) {
+                && ast_type_name(p->type) != NULL
+                && llvm_type_name_uses_pointer_self(ctx, ast_type_name(p->type))) {
                 pt = LLVMPointerType(pt, 0);
             }
             if (llvm_boundary_slot_inner_name(ctx, p, &is_secure) != NULL) {
@@ -270,7 +269,7 @@ llvm_forward_declare_func(ASTNode *node, LLVMGenCtx *ctx)
 void
 llvm_emit_func_decl(ASTNode *node, LLVMGenCtx *ctx)
 {
-    const char *name = node->data.func_decl.name;
+    const char *name = ast_declaration_name(node);
 
     LLVMFuncEntry *entry = llvm_lookup_function(ctx, name);
     if (entry == NULL)
@@ -310,8 +309,8 @@ llvm_emit_func_decl(ASTNode *node, LLVMGenCtx *ctx)
 
     /* Create allocas for parameters and store incoming values */
     unsigned llvm_pidx = 0;
-    for (size_t i = 0; i < node->data.func_decl.param_count; i++) {
-        FuncParam *p = node->data.func_decl.params[i];
+    for (size_t i = 0; i < ast_func_param_count(node); i++) {
+        FuncParam *p = ast_func_param(node, i);
         bool is_secure = false;
         if (p == NULL || p->name == NULL)
             continue;
@@ -334,9 +333,8 @@ llvm_emit_func_decl(ASTNode *node, LLVMGenCtx *ctx)
             goto cleanup;
         if (p != NULL
             && p->type != NULL
-            && p->type->type == AST_TYPE
-            && p->type->data.type.name != NULL
-            && llvm_type_name_uses_pointer_self(ctx, p->type->data.type.name)) {
+            && ast_type_name(p->type) != NULL
+            && llvm_type_name_uses_pointer_self(ctx, ast_type_name(p->type))) {
             pt = LLVMPointerType(pt, 0);
         }
         if (inner != NULL) {
@@ -368,8 +366,8 @@ llvm_emit_func_decl(ASTNode *node, LLVMGenCtx *ctx)
         goto cleanup;
 
     /* Emit body */
-    if (node->data.func_decl.body != NULL)
-        llvm_emit_block(node->data.func_decl.body, ctx);
+    if (ast_func_body(node) != NULL)
+        llvm_emit_block(ast_func_body(node), ctx);
 
     /* Add implicit return if no terminator */
     if (LLVMGetBasicBlockTerminator(LLVMGetInsertBlock(ctx->builder)) == NULL) {

@@ -98,7 +98,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
     }
 
     size_t expected = sym->type->data.function.param_count;
-    size_t provided = expr->data.call.arg_count;
+    size_t provided = ast_call_arg_count(expr);
     GenericParams *callable_generic_params = NULL;
     Type **effective_generic_types = NULL;
     if (provided != expected) {
@@ -132,11 +132,9 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
     if (ctx->program_root != NULL
         && (sym->kind == SYMBOL_FUNCTION || sym->kind == SYMBOL_INTENT)) {
         callable_decl = find_callable_decl_by_name(ctx->program_root, display_name);
-        if (callable_decl != NULL
-            && callable_decl->type == AST_FUNC_DECL
-            && callable_decl->data.func_decl.generic_params != NULL
-            && callable_decl->data.func_decl.generic_params->count > 0) {
-            callable_generic_params = callable_decl->data.func_decl.generic_params;
+        callable_generic_params = ast_func_generic_params(callable_decl);
+        if (callable_generic_params != NULL
+            && callable_generic_params->count > 0) {
             effective_generic_types = calloc(
                 callable_generic_params->count > 0
                     ? callable_generic_params->count : 1,
@@ -153,23 +151,23 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
     }
 
     for (size_t i = 0; i < provided; i++) {
+        ASTNode *arg_expr = ast_call_argument(expr, i);
         Type *param_type = sym->type->data.function.param_types[i];
         OwnershipTypeClass declared_param_ownership =
             semantic_classify_ownership_type(param_type, ctx);
         Type *arg_type = declared_param_ownership == OWNERSHIP_TYPE_MOVE_ONLY
-            ? type_check_qubit_use(expr->data.call.arguments[i], ctx)
-            : type_check_expression(expr->data.call.arguments[i], ctx);
+            ? type_check_qubit_use(arg_expr, ctx)
+            : type_check_expression(arg_expr, ctx);
         if (effective_generic_types != NULL
             && callable_decl != NULL
-            && i < callable_decl->data.func_decl.param_count) {
-            FuncParam *fp = callable_decl->data.func_decl.params[i];
+            && i < ast_func_param_count(callable_decl)) {
+            FuncParam *fp = ast_func_param(callable_decl, i);
             int param_index = -1;
             if (fp != NULL && fp->type != NULL
-                && fp->type->type == AST_TYPE
-                && fp->type->data.type.name != NULL) {
+                && ast_type_name(fp->type) != NULL) {
                 param_index = find_generic_param_index(
                     callable_generic_params,
-                    fp->type->data.type.name);
+                    ast_type_name(fp->type));
             }
             if (param_index >= 0
                 && (size_t)param_index < callable_generic_params->count) {
@@ -195,18 +193,18 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                 || param_ownership != OWNERSHIP_TYPE_MOVE_ONLY) {
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
                     PGY_CAUSE_TYPE_MOVABLE_HANDLE_REQUIRED, PGY_FIX_PROVIDE_MOVABLE_HANDLE,
-                    expr->data.call.arguments[i],
+                    arg_expr,
                     "Movable resource argument type mismatch: expected '%s', got '%s'",
                     resource_handle_display_name(param_type),
                     resource_handle_display_name(arg_type));
                 continue;
             }
-            if (expr->data.call.arguments[i]->type != AST_IDENTIFIER
+            if (arg_expr->type != AST_IDENTIFIER
                 && semantic_borrowed_boundary_root_name(
-                       expr->data.call.arguments[i], ctx) == NULL) {
+                       arg_expr, ctx) == NULL) {
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
                     PGY_CAUSE_MOVE_SOURCE_NOT_NAMED, PGY_FIX_BIND_TO_NAMED_VARIABLE_BEFORE_MOVE,
-                    expr->data.call.arguments[i],
+                    arg_expr,
                     "%s arguments must be moved from a named variable; bind the value first, then pass that variable",
                     resource_handle_display_name(param_type));
                 continue;
@@ -215,10 +213,10 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                 ctx, display_name, i, &pmode);
             if (pmode == PARAM_MODE_REF
                 && callee_decl != NULL
-                && callee_decl->data.func_decl.body != NULL) {
+                && ast_func_body(callee_decl) != NULL) {
                 const char *borrowed_name =
                     semantic_borrowed_boundary_root_name(
-                        expr->data.call.arguments[i], ctx);
+                        arg_expr, ctx);
                 unsigned callee_mask = semantic_callable_param_escape_summary(
                     callee_decl, i, ctx);
                 if (borrowed_name != NULL
@@ -226,8 +224,8 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                                        | SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE
                                        | SLOT_PARAM_SUMMARY_CALL_ESCAPE)) != 0) {
                     semantic_validate_borrowed_escape(
-                        expr->data.call.arguments[i],
-                        expr->data.call.arguments[i],
+                        arg_expr,
+                        arg_expr,
                         ctx,
                         arg_type,
                         borrowed_name,
@@ -244,11 +242,11 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
             if (pmode != PARAM_MODE_REF) {
                 const char *borrowed_name =
                     semantic_borrowed_boundary_root_name(
-                        expr->data.call.arguments[i], ctx);
+                        arg_expr, ctx);
                 if (borrowed_name != NULL) {
                     semantic_validate_borrowed_escape(
-                        expr->data.call.arguments[i],
-                        expr->data.call.arguments[i],
+                        arg_expr,
+                        arg_expr,
                         ctx,
                         arg_type,
                         borrowed_name,
@@ -264,7 +262,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
             }
             if (pmode == PARAM_MODE_REF)
                 continue;
-            consume_qubit_value(expr->data.call.arguments[i], ctx, "moved");
+            consume_qubit_value(arg_expr, ctx, "moved");
             continue;
         }
 
@@ -274,7 +272,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
             if (arg_ownership != OWNERSHIP_TYPE_SUBJECT_IDENTITY) {
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
                     PGY_CAUSE_TYPE_SUBJECT_ARG_MISMATCH, PGY_FIX_ALIGN_SUBJECT_ARG_TYPE,
-                    expr->data.call.arguments[i],
+                    arg_expr,
                     "Subject argument type mismatch: expected '%s', got '%s'.\n"
                     "Reason:\n"
                     "- subject boundary passing requires the caller value and callee contract to agree on the same subject type\n"
@@ -291,7 +289,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
             callee_decl = semantic_lookup_function_param_contract(
                 ctx, display_name, i, &pmode);
             if (!semantic_validate_borrowed_boundary_call_argument(
-                    expr->data.call.arguments[i],
+                    arg_expr,
                     ctx,
                     callee_decl,
                     display_name,
@@ -303,7 +301,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                 continue;
             }
             if (pmode == PARAM_MODE_OWN) {
-                consume_qubit_value(expr->data.call.arguments[i], ctx, "moved");
+                consume_qubit_value(arg_expr, ctx, "moved");
             }
             continue;
         }
@@ -319,7 +317,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                 || !type_is_assignable(param_type, arg_type)) {
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
                     PGY_CAUSE_TYPE_BOUNDARY_ARG_MISMATCH, PGY_FIX_ALIGN_BOUNDARY_ARG_TYPE,
-                    expr->data.call.arguments[i],
+                    arg_expr,
                     "Boundary value argument type mismatch: expected '%s', got '%s'.\n"
                     "Reason:\n"
                     "- own/ref value boundaries require the caller value and callee contract to agree on the same boundary value type\n"
@@ -336,7 +334,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
             callee_decl = semantic_lookup_function_param_contract(
                 ctx, display_name, i, &pmode);
             if (!semantic_validate_borrowed_boundary_call_argument(
-                    expr->data.call.arguments[i],
+                    arg_expr,
                     ctx,
                     callee_decl,
                     display_name,
@@ -350,9 +348,9 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
             if (pmode == PARAM_MODE_OWN) {
                 const char *borrowed_name =
                     semantic_borrowed_boundary_root_name(
-                        expr->data.call.arguments[i], ctx);
+                        arg_expr, ctx);
                 if (track_boundary_borrow || borrowed_name == NULL)
-                    consume_qubit_value(expr->data.call.arguments[i], ctx, "moved");
+                    consume_qubit_value(arg_expr, ctx, "moved");
             }
             continue;
         }
@@ -363,7 +361,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                 || param_ownership != OWNERSHIP_TYPE_ANCHORED_HANDLE) {
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
                     PGY_CAUSE_TYPE_RESOURCE_HANDLE_ARG_MISMATCH, PGY_FIX_ALIGN_RESOURCE_HANDLE_ARG,
-                    expr->data.call.arguments[i],
+                    arg_expr,
                     "Resource handle argument type mismatch: expected '%s', got '%s'",
                     resource_handle_display_name(param_type),
                     resource_handle_display_name(arg_type));
@@ -377,7 +375,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                     semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
                         PGY_CAUSE_SLOT_PARAM_QUALIFIER_MISSING,
                         PGY_FIX_ANNOTATE_SLOT_PARAM_QUALIFIER,
-                        expr->data.call.arguments[i],
+                        arg_expr,
                         "Slot-handle (anchored) arguments require 'own' or 'ref' in the callee signature.\n"
                         "Reason:\n"
                         "- slot-handle (anchored) boundaries must declare whether the call borrows or transfers ownership\n"
@@ -387,8 +385,8 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                         "- or use 'ref' to borrow it");
                     continue;
                 }
-                if (expr->data.call.arguments[i]->type == AST_IDENTIFIER) {
-                    const char *src = expr->data.call.arguments[i]->data.identifier.name;
+                if (arg_expr->type == AST_IDENTIFIER) {
+                    const char *src = arg_expr->data.identifier.name;
                     Symbol *src_sym = scope_lookup(ctx->scope, src);
                     const char *active_view_name = NULL;
                     const char *active_view_kind = NULL;
@@ -403,7 +401,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                             PGY_CODE_SEM_PIN_PARALLEL_CONFLICT,
                             PGY_CAUSE_PIN_PARALLEL_CONFLICT,
                             PGY_FIX_SERIALIZE_PIN_ACCESS,
-                            expr->data.call.arguments[i],
+                            arg_expr,
                             "Cannot pass slot '%s' to '%s' while %s '%s' is live.\n"
                             "Reason:\n"
                             "- slot helper calls may read, write, release, or forward the owner handle\n"
@@ -420,7 +418,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                     }
                 }
                 if (!semantic_validate_borrowed_boundary_call_argument(
-                        expr->data.call.arguments[i],
+                        arg_expr,
                         ctx,
                         callee_decl,
                         display_name,
@@ -431,13 +429,13 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                         true)) {
                     continue;
                 }
-                if (expr->data.call.arguments[i]->type == AST_IDENTIFIER) {
-                    const char *src = expr->data.call.arguments[i]->data.identifier.name;
+                if (arg_expr->type == AST_IDENTIFIER) {
+                    const char *src = arg_expr->data.identifier.name;
                     Symbol *src_sym = scope_lookup(ctx->scope, src);
                     if (pmode == PARAM_MODE_OWN) {
                         if (src_sym != NULL && src_sym->kind == SYMBOL_SLOT) {
                             if (src_sym->slot_info.state == SLOT_STATE_RELEASED) {
-                                semantic_error_with_hints(ctx, PGY_CODE_SEM_MOVE_FROM_RELEASED, PGY_CAUSE_MOVE_FROM_RELEASED, PGY_FIX_RECLAIM_OR_TRACE_EARLIER_MOVE, expr->data.call.arguments[i],
+                                semantic_error_with_hints(ctx, PGY_CODE_SEM_MOVE_FROM_RELEASED, PGY_CAUSE_MOVE_FROM_RELEASED, PGY_FIX_RECLAIM_OR_TRACE_EARLIER_MOVE, arg_expr,
                                     "Cannot move from released slot '%s'", src);
                             } else {
                                 src_sym->slot_info.state = SLOT_STATE_RELEASED;
@@ -451,7 +449,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                             semantic_error_with_hints(ctx, PGY_CODE_SEM_SLOT_RELEASED,
                                 PGY_CAUSE_SLOT_BORROW_RELEASED,
                                 PGY_FIX_RECLAIM_SOURCE_OR_TRACE_EARLIER_RELEASE,
-                                expr->data.call.arguments[i],
+                                arg_expr,
                                 "Cannot borrow released slot '%s'.\n"
                                 "Reason:\n"
                                 "- slot '%s' was already released or invalidated earlier in this scope\n"
@@ -468,7 +466,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
             }
         }
 
-        require_assignable(arg_type, param_type, expr->data.call.arguments[i], ctx);
+        require_assignable(arg_type, param_type, arg_expr, ctx);
     }
 
     semantic_validate_function_call_generic_where(
@@ -478,12 +476,11 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
     if (effective_generic_types != NULL
         && callable_decl != NULL
         && callable_decl->type == AST_FUNC_DECL
-        && callable_decl->data.func_decl.return_type != NULL
-        && callable_decl->data.func_decl.return_type->type == AST_TYPE
-        && callable_decl->data.func_decl.return_type->data.type.name != NULL) {
+        && ast_func_return_type(callable_decl) != NULL
+        && ast_type_name(ast_func_return_type(callable_decl)) != NULL) {
         int return_index = find_generic_param_index(
             callable_generic_params,
-            callable_decl->data.func_decl.return_type->data.type.name);
+            ast_type_name(ast_func_return_type(callable_decl)));
         if (return_index >= 0
             && (size_t)return_index < callable_generic_params->count
             && effective_generic_types[return_index] != NULL) {

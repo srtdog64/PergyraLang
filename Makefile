@@ -180,9 +180,13 @@ PARSER_SOURCES   = $(PARSER_DIR)/ast.c \
                    $(PARSER_DIR)/ast_destroy_domain.c \
                    $(PARSER_DIR)/ast_clone.c \
                    $(PARSER_DIR)/ast_constructors.c \
+                   $(PARSER_DIR)/ast_func_accessors.c \
                    $(PARSER_DIR)/ast_domain_accessors.c \
+                   $(PARSER_DIR)/ast_domain_accessors_world.c \
                    $(PARSER_DIR)/ast_domain_constructors.c \
                    $(PARSER_DIR)/ast_domain_tail_constructors.c \
+                   $(PARSER_DIR)/ast_intent_step_accessors.c \
+                   $(PARSER_DIR)/ast_intent_step_mutators.c \
                    $(PARSER_DIR)/ast_zone_accessors.c \
                    $(PARSER_DIR)/ast_print.c \
                    $(PARSER_DIR)/ast_print_domain.c \
@@ -818,6 +822,7 @@ BUILD_CONTRACT_INVENTORY_FILES = \
                    $(RUNTIME_DIR)/pgy_runtime_lib_qubit_state_exports.h \
                    $(RUNTIME_DIR)/pgy_runtime_lib_raw_collection_common_exports.h \
                    $(RUNTIME_DIR)/pgy_runtime_lib_raw_map_exports.h \
+                   $(RUNTIME_DIR)/pgy_runtime_lib_raw_map_key_exports.h \
                    $(RUNTIME_DIR)/pgy_runtime_lib_raw_queue_exports.h \
                    $(RUNTIME_DIR)/pgy_runtime_lib_raw_set_exports.h \
                    $(RUNTIME_DIR)/pgy_runtime_lib_intent_active_index_exports.c \

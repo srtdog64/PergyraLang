@@ -19,17 +19,18 @@ flatten_static_member_access(const ASTNode *expr, char separator)
             ? pergyra_strdup(expr->data.identifier.name) : NULL;
 
     if (expr->type != AST_MEMBER_ACCESS
-        || expr->data.member.object == NULL
-        || expr->data.member.name == NULL) {
+        || ast_member_object(expr) == NULL
+        || ast_member_name(expr) == NULL) {
         return NULL;
     }
 
-    char *lhs = flatten_static_member_access(expr->data.member.object, separator);
+    char *lhs = flatten_static_member_access(ast_member_object(expr), separator);
     if (lhs == NULL)
         return NULL;
 
     size_t lhs_len = strlen(lhs);
-    size_t rhs_len = strlen(expr->data.member.name);
+    const char *member_name = ast_member_name(expr);
+    size_t rhs_len = strlen(member_name);
     char *result = malloc(lhs_len + rhs_len + 2);
     if (result == NULL) {
         free(lhs);
@@ -38,7 +39,7 @@ flatten_static_member_access(const ASTNode *expr, char separator)
 
     memcpy(result, lhs, lhs_len);
     result[lhs_len] = separator;
-    memcpy(result + lhs_len + 1, expr->data.member.name, rhs_len);
+    memcpy(result + lhs_len + 1, member_name, rhs_len);
     result[lhs_len + rhs_len + 1] = '\0';
     free(lhs);
     return result;

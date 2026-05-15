@@ -84,7 +84,7 @@ llvm_emit_intent_observability_call(ASTNode *node, LLVMGenCtx *ctx,
     builtin = (const LLVMIntentObservabilityBuiltin *)bsearch(
         callee_name, builtins, sizeof(builtins) / sizeof(builtins[0]),
         sizeof(builtins[0]), llvm_intent_observability_builtin_compare);
-    if (builtin == NULL || node->data.call.arg_count != builtin->arg_count)
+    if (builtin == NULL || ast_call_arg_count(node) != builtin->arg_count)
         return false;
 
     ctx->uses_intent_observability = true;
@@ -108,7 +108,7 @@ llvm_emit_intent_observability_call(ASTNode *node, LLVMGenCtx *ctx,
             llvm_tmp_name(ctx));
     else {
         LLVMValueRef result = llvm_emit_function_call_args(ctx, fn,
-            node->data.call.arguments, builtin->arg_count);
+            ast_call_arguments(node, NULL), builtin->arg_count);
         if (result == NULL) {
             if (ctx != NULL && !ctx->has_error) {
                 llvm_set_error_at_with_hints(ctx, node,

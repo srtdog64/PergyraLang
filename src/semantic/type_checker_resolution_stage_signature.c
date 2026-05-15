@@ -106,12 +106,12 @@ semantic_stage_required_abilities(ASTNode **ability_refs,
 
         if (ability_ref != NULL
             && ability_ref->type == AST_TYPE
-            && ability_ref->data.type.name != NULL) {
+            && ast_type_name(ability_ref) != NULL) {
             ctx->type_resolution_dag_ability_evidence_count++;
             (void)semantic_stage_named_decl_quiet(
                 ctx,
                 AST_ABILITY_DECL,
-                ability_ref->data.type.name);
+                ast_type_name(ability_ref));
         }
 
         (void)semantic_stage_resolve_type_quiet(
@@ -224,20 +224,20 @@ semantic_stage_function_signature(ASTNode *func_decl,
     if (func_decl == NULL || func_decl->type != AST_FUNC_DECL || ctx == NULL)
         return;
 
-    consumer_name = func_decl->data.func_decl.name != NULL
-        ? func_decl->data.func_decl.name
+    consumer_name = ast_declaration_name(func_decl) != NULL
+        ? ast_declaration_name(func_decl)
         : (fallback_name != NULL ? fallback_name : "<func>");
 
     semantic_stage_generic_contract_nodes(
-        func_decl->data.func_decl.generic_params,
-        func_decl->data.func_decl.where_clause,
+        ast_func_generic_params(func_decl),
+        ast_func_where_clause(func_decl),
         ctx,
         func_decl,
         "func",
         consumer_name);
 
-    for (size_t i = 0; i < func_decl->data.func_decl.param_count; i++) {
-        FuncParam *param = func_decl->data.func_decl.params[i];
+    for (size_t i = 0; i < ast_func_param_count(func_decl); i++) {
+        FuncParam *param = ast_func_param(func_decl, i);
         char *param_consumer_name;
 
         if (param == NULL)
@@ -260,7 +260,7 @@ semantic_stage_function_signature(ASTNode *func_decl,
     }
 
     (void)semantic_stage_resolve_type_quiet(
-        func_decl->data.func_decl.return_type,
+        ast_func_return_type(func_decl),
         ctx,
         func_decl,
         consumer_name,
@@ -303,8 +303,8 @@ semantic_stage_event_signature(ASTNode *event_decl,
     if (event_decl == NULL || event_decl->type != AST_EVENT_DECL || ctx == NULL)
         return;
 
-    for (size_t i = 0; i < event_decl->data.event_decl.param_count; i++) {
-        ASTNode *param = event_decl->data.event_decl.params[i];
+    for (size_t i = 0; i < ast_event_param_count(event_decl); i++) {
+        ASTNode *param = ast_event_param(event_decl, i);
         char *consumer_name;
 
         if (param == NULL || param->type != AST_LET_DECL)
@@ -312,8 +312,8 @@ semantic_stage_event_signature(ASTNode *event_decl,
 
         consumer_name = tc_stage_signature_strdup_fmt(
             "event %s.%s",
-            event_decl->data.event_decl.name != NULL
-                ? event_decl->data.event_decl.name : "<event>",
+            ast_event_name(event_decl) != NULL
+                ? ast_event_name(event_decl) : "<event>",
             param->data.let_decl.name != NULL
                 ? param->data.let_decl.name : "<param>");
         if (consumer_name == NULL)
@@ -329,9 +329,9 @@ semantic_stage_event_signature(ASTNode *event_decl,
     }
 
     (void)semantic_stage_resolve_type_quiet(
-        event_decl->data.event_decl.return_type,
+        ast_event_return_type(event_decl),
         ctx,
         event_decl,
-        event_decl->data.event_decl.name,
+        ast_event_name(event_decl),
         "event return type lookup");
 }

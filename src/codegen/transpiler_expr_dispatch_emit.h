@@ -198,11 +198,13 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
         return emit_call(node, ctx);
 
     case AST_MEMBER_ACCESS: {
-        if (node->data.member.object != NULL
-            && node->data.member.object->type == AST_IDENTIFIER
-            && node->data.member.name != NULL) {
+        ASTNode *member_object = ast_member_object(node);
+        const char *member_name = ast_member_name(node);
+        if (member_object != NULL
+            && member_object->type == AST_IDENTIFIER
+            && member_name != NULL) {
             TypedVarEntry *entry = lookup_typed_entry(ctx,
-                node->data.member.object->data.identifier.name);
+                member_object->data.identifier.name);
             if (entry != NULL && entry->is_projection_borrow) {
                 const char *source_type = lookup_typed_var(ctx, entry->source_slot);
                 ASTNode *source_decl = source_type != NULL
@@ -212,7 +214,7 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
                 int source_status = 0;
                 if (source_decl != NULL) {
                     source_status = resolve_projection_source_path_rec(
-                        ctx, source_decl, node->data.member.name, 0, &source_path);
+                        ctx, source_decl, member_name, 0, &source_path);
                 }
                 if (source_status == 1 && source_path != NULL) {
                     TypedVarEntry *source_entry = lookup_typed_entry(ctx, entry->source_slot);
@@ -227,17 +229,17 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
                 free(source_path);
             }
         }
-        char *obj = emit_expression(node->data.member.object, ctx);
+        char *obj = emit_expression(member_object, ctx);
         /* Enum variant access: Color.Red ??Color_Red */
-        if (node->data.member.object->type == AST_IDENTIFIER
-            && node->data.member.object->data.identifier.name[0] >= 'A'
-            && node->data.member.object->data.identifier.name[0] <= 'Z') {
-            char *result = strdup_fmt("%s_%s", obj, node->data.member.name);
+        if (member_object->type == AST_IDENTIFIER
+            && member_object->data.identifier.name[0] >= 'A'
+            && member_object->data.identifier.name[0] <= 'Z') {
+            char *result = strdup_fmt("%s_%s", obj, member_name);
             free(obj);
             return result;
         }
-        if (node->data.member.object->type == AST_IDENTIFIER
-            && strcmp(node->data.member.object->data.identifier.name, "self") == 0) {
+        if (member_object->type == AST_IDENTIFIER
+            && strcmp(member_object->data.identifier.name, "self") == 0) {
             ASTNode *host_decl = transpiler_current_host_decl_local(ctx);
             bool self_is_pointer = current_class_uses_self_cell(ctx)
                 || (host_decl != NULL
@@ -249,80 +251,27 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
                         || host_decl->type == AST_WORLD_DECL));
             char *result = strdup_fmt(self_is_pointer
                 ? "%s->%s"
-                : "%s.%s", obj, node->data.member.name);
+                : "%s.%s", obj, member_name);
             free(obj);
             return result;
         }
         /* Subject-ref parameter: use -> for member access */
-        if (node->data.member.object->type == AST_IDENTIFIER) {
+        if (member_object->type == AST_IDENTIFIER) {
             TypedVarEntry *entry = lookup_typed_entry(ctx,
-                node->data.member.object->data.identifier.name);
+                member_object->data.identifier.name);
             if (entry != NULL && entry->is_subject_ref) {
-                char *result = strdup_fmt("%s->%s", obj, node->data.member.name);
+                char *result = strdup_fmt("%s->%s", obj, member_name);
                 free(obj);
                 return result;
             }
         }
-        char *result = strdup_fmt("%s.%s", obj, node->data.member.name);
+        char *result = strdup_fmt("%s.%s", obj, member_name);
         free(obj);
         return result;
     }
 
     case AST_ARRAY_ACCESS: {
-        char *array = emit_expression(node->data.array_access.array, ctx);
-        char *index = emit_expression(node->data.array_access.index, ctx);
-        const char *array_type = infer_expression_type_name(ctx, node->data.array_access.array);
-        char *result;
-        if (array_type != NULL && strncmp(array_type, "Array<", 6) == 0) {
-            char inner_buf[128];
-            const char *inner = NULL;
-            if (slot_inner_type_name_copy(array_type, inner_buf,
-                    sizeof(inner_buf)))
-                inner = inner_buf;
-            if (inner == NULL || inner[0] == '\0'
-                || strcmp(inner, "Unknown") == 0) {
-                transpiler_set_backend_error_with_hints(ctx,
-                    PGY_CODE_C_TYPE_UNSUPPORTED,
-                    PGY_CAUSE_C_TYPE_UNSUPPORTED,
-                    PGY_FIX_ANNOTATE_CONCRETE_TYPE,
-                    "C array access requires concrete Array<T> element metadata");
-                free(array);
-                free(index);
-                return pergyra_strdup("0");
-            }
-            int tmp_id = ++ctx->tmp_counter;
-            result = strdup_fmt(
-                "({ PgyArray_%s _pgy_arr_get_%d = %s; "
-                "pgy_array_get_%s(&_pgy_arr_get_%d, %s); })",
-                inner, tmp_id, array, inner, tmp_id, index);
-        } else if (array_type != NULL && strncmp(array_type, "Slice<", 6) == 0) {
-            char inner_buf[128];
-            const char *inner = NULL;
-            if (slot_inner_type_name_copy(array_type, inner_buf,
-                    sizeof(inner_buf)))
-                inner = inner_buf;
-            if (inner == NULL || inner[0] == '\0'
-                || strcmp(inner, "Unknown") == 0) {
-                transpiler_set_backend_error_with_hints(ctx,
-                    PGY_CODE_C_TYPE_UNSUPPORTED,
-                    PGY_CAUSE_C_TYPE_UNSUPPORTED,
-                    PGY_FIX_ANNOTATE_CONCRETE_TYPE,
-                    "C slice access requires concrete Slice<T> element metadata");
-                free(array);
-                free(index);
-                return pergyra_strdup("0");
-            }
-            int tmp_id = ++ctx->tmp_counter;
-            result = strdup_fmt(
-                "({ PgySlice_%s _pgy_slice_get_%d = %s; "
-                "pgy_slice_get_%s(&_pgy_slice_get_%d, %s); })",
-                inner, tmp_id, array, inner, tmp_id, index);
-        } else {
-            result = strdup_fmt("%s[%s]", array, index);
-        }
-        free(array);
-        free(index);
-        return result;
+        return emit_array_access_expression(node, ctx);
     }
 
     case AST_TUPLE_LITERAL: {
@@ -341,9 +290,9 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
             size_t off = 0;
             tuple_name_buf[0] = '\0';
             off = pergyra_str_append(tuple_name_buf, sizeof(tuple_name_buf), "(");
-            for (size_t i = 0; i < node->data.tuple_literal.count; i++) {
+            for (size_t i = 0; i < ast_tuple_literal_count(node); i++) {
                 const char *et =
-                    infer_expression_type_name(ctx, node->data.tuple_literal.elements[i]);
+                    infer_expression_type_name(ctx, ast_tuple_literal_element(node, i));
                 if (et == NULL || et[0] == '\0'
                     || strcmp(et, "Unknown") == 0) {
                     transpiler_set_backend_error_with_hints(ctx,
@@ -381,8 +330,8 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
         }
         CodeBuf *out = codebuf_create();
         codebuf_write(out, "((%s){", ctype);
-        for (size_t i = 0; i < node->data.tuple_literal.count; i++) {
-            char *v = emit_expression(node->data.tuple_literal.elements[i], ctx);
+        for (size_t i = 0; i < ast_tuple_literal_count(node); i++) {
+            char *v = emit_expression(ast_tuple_literal_element(node, i), ctx);
             if (i > 0)
                 codebuf_write(out, ", ");
             codebuf_write(out, ".f%zu = %s", i, v);
@@ -414,9 +363,9 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
         int tmp_id = ++ctx->tmp_counter;
         CodeBuf *buf = codebuf_create();
         codebuf_write(buf, "({ PgyArray_%s _pgy_arr_%d = pgy_array_new_%s(%zu); ",
-            inner, tmp_id, inner, node->data.array_literal.count);
-        for (size_t i = 0; i < node->data.array_literal.count; i++) {
-            char *elem = emit_expression(node->data.array_literal.elements[i], ctx);
+            inner, tmp_id, inner, ast_array_literal_count(node));
+        for (size_t i = 0; i < ast_array_literal_count(node); i++) {
+            char *elem = emit_expression(ast_array_literal_element(node, i), ctx);
             codebuf_write(buf, "pgy_array_push_%s(&_pgy_arr_%d, %s); ",
                 inner, tmp_id, elem);
             free(elem);
@@ -428,9 +377,11 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
     }
 
     case AST_ASSIGNMENT: {
+        ASTNode *target_node = ast_assignment_target(node);
+        ASTNode *value_node = ast_assignment_value(node);
         /* Slot sugar: x = 5 ??pgy_write_T(&x, 5) */
-        if (node->data.assignment.target->type == AST_IDENTIFIER) {
-            const char *tgt_name = node->data.assignment.target->data.identifier.name;
+        if (target_node != NULL && target_node->type == AST_IDENTIFIER) {
+            const char *tgt_name = target_node->data.identifier.name;
             if (is_slot_var(ctx, tgt_name)) {
                 char inner_buf[128];
                 const char *inner = NULL;
@@ -445,7 +396,7 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
                         tgt_name != NULL ? tgt_name : "<slot>");
                     return pergyra_strdup("0");
                 }
-                char *value = emit_expression(node->data.assignment.value, ctx);
+                char *value = emit_expression(value_node, ctx);
                 char *slot_ref = slot_ref_expr(ctx, tgt_name, tgt_name);
                 char *result;
                 if (secure) {
@@ -467,12 +418,12 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
                 return result;
             }
         }
-        char *target = emit_expression(node->data.assignment.target, ctx);
-        char *value  = emit_expression(node->data.assignment.value,  ctx);
+        char *target = emit_expression(target_node, ctx);
+        char *value  = emit_expression(value_node,  ctx);
         char *invalidation = emit_assignment_projection_invalidation(
-            ctx, node->data.assignment.target);
+            ctx, target_node);
         char *post_sync = emit_world_embedded_assignment_sync(
-            ctx, node->data.assignment.target);
+            ctx, target_node);
         char *result;
         if (post_sync != NULL)
             result = strdup_fmt("({ %s%s = %s; %s%s; })",
@@ -491,14 +442,15 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
 
     case AST_AWAIT_EXPR:
         {
-            char *expr = emit_expression(node->data.await_expr.expression, ctx);
+            ASTNode *awaited = ast_await_expression(node);
+            char *expr = emit_expression(awaited, ctx);
             char inner_buf[128];
             const char *inner = NULL;
             bool is_remote = is_remote_future_expr(ctx,
-                node->data.await_expr.expression);
+                awaited);
             char *result;
             if (lookup_future_inner_type_copy(ctx,
-                    node->data.await_expr.expression,
+                    awaited,
                     inner_buf, sizeof(inner_buf))) {
                 inner = inner_buf;
             }

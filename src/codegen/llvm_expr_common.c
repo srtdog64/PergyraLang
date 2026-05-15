@@ -161,23 +161,23 @@ llvm_expr_custom_type_name(ASTNode *node, LLVMGenCtx *ctx)
         return NULL;
     }
     case AST_MEMBER_ACCESS:
-        if (llvm_is_upper_ident(node->data.member.object)) {
+        if (llvm_is_upper_ident(ast_member_object(node))) {
             LLVMEnumVariantEntry *variant =
                 llvm_lookup_enum_variant_qualified(ctx,
-                    node->data.member.object->data.identifier.name,
-                    node->data.member.name);
+                    ast_member_object(node)->data.identifier.name,
+                    ast_member_name(node));
             if (variant != NULL)
                 return variant->enum_name;
         }
         {
             const char *base_name =
-                llvm_expr_custom_type_name(node->data.member.object, ctx);
+                llvm_expr_custom_type_name(ast_member_object(node), ctx);
             LLVMClassTypeEntry *base_cls = NULL;
             if (base_name != NULL)
                 base_cls = llvm_lookup_class(ctx, base_name);
             if (base_cls != NULL) {
                 int field_idx = llvm_class_field_index(base_cls,
-                    node->data.member.name);
+                    ast_member_name(node));
                 if (field_idx >= 0) {
                     LLVMTypeRef field_ty = base_cls->fields[field_idx].field_type;
                     for (int i = 0; i < ctx->class_type_count; i++) {
@@ -189,9 +189,9 @@ llvm_expr_custom_type_name(ASTNode *node, LLVMGenCtx *ctx)
         }
         return NULL;
     case AST_CALL:
-        if (node->data.call.callee != NULL
-            && node->data.call.callee->type == AST_IDENTIFIER) {
-            const char *callee = node->data.call.callee->data.identifier.name;
+        if (ast_call_callee(node) != NULL
+            && ast_call_callee(node)->type == AST_IDENTIFIER) {
+            const char *callee = ast_call_callee(node)->data.identifier.name;
             if (llvm_lookup_class(ctx, callee) != NULL)
                 return callee;
             {

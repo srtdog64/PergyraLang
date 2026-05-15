@@ -42,8 +42,8 @@ emit_call_event_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             CodeBuf *args_buf = codebuf_create();
             if (args_buf == NULL)
                 return NULL;
-            for (size_t i = 0; i < call->data.call.arg_count; i++) {
-                char *arg = emit_expression(call->data.call.arguments[i], ctx);
+            for (size_t i = 0; i < ast_call_arg_count(call); i++) {
+                char *arg = emit_expression(ast_call_argument(call, i), ctx);
                 if (i > 0)
                     codebuf_write(args_buf, ", ");
                 codebuf_write(args_buf, "%s", arg);

@@ -8,6 +8,7 @@
 #ifdef PGY_LLVM_ENABLED
 
 #include "llvm_internal.h"
+#include "../parser/ast_api.h"
 
 #include <stdio.h>
 
@@ -102,11 +103,11 @@ llvm_emit_channel_send_expr(ASTNode *node, LLVMGenCtx *ctx)
 {
     const char *suffix = NULL;
     LLVMVarEntry *ch_var = llvm_channel_required_binding(ctx, node,
-        node->data.channel_send.channel, "channel send expression", &suffix);
+        ast_channel_send_channel(node), "channel send expression", &suffix);
     if (ch_var == NULL)
         return NULL;
 
-    LLVMValueRef val = llvm_emit_expression(node->data.channel_send.value, ctx);
+    LLVMValueRef val = llvm_emit_expression(ast_channel_send_value(node), ctx);
     char fname[128];
     if (!llvm_channel_format_runtime_name(fname, sizeof(fname),
             "pgy_channel_send", suffix)) {
@@ -133,7 +134,7 @@ llvm_emit_channel_recv_expr(ASTNode *node, LLVMGenCtx *ctx)
 {
     const char *suffix = NULL;
     LLVMVarEntry *ch_var = llvm_channel_required_binding(ctx, node,
-        node->data.channel_recv.channel, "channel receive expression", &suffix);
+        ast_channel_recv_channel(node), "channel receive expression", &suffix);
     if (ch_var == NULL)
         return NULL;
 

@@ -25,14 +25,15 @@ semantic_lookup_function_param_contract(SemanticContext *ctx,
     ASTNode *prog = ctx->program_root;
     for (size_t si = 0; si < prog->data.program.count; si++) {
         ASTNode *stmt = prog->data.program.statements[si];
+        const char *stmt_name = ast_declaration_name(stmt);
         if (stmt == NULL || stmt->type != AST_FUNC_DECL
-            || stmt->data.func_decl.name == NULL
-            || strcmp(stmt->data.func_decl.name, display_name) != 0
-            || arg_index >= stmt->data.func_decl.param_count) {
+            || stmt_name == NULL
+            || strcmp(stmt_name, display_name) != 0
+            || arg_index >= ast_func_param_count(stmt)) {
             continue;
         }
-        if (mode_out != NULL && stmt->data.func_decl.params[arg_index] != NULL)
-            *mode_out = stmt->data.func_decl.params[arg_index]->mode;
+        if (mode_out != NULL && ast_func_param(stmt, arg_index) != NULL)
+            *mode_out = ast_func_param(stmt, arg_index)->mode;
         return stmt;
     }
 
@@ -46,15 +47,15 @@ semantic_callable_param_escape_summary(ASTNode *callee_decl,
 {
     if (callee_decl == NULL
         || callee_decl->type != AST_FUNC_DECL
-        || callee_decl->data.func_decl.body == NULL
-        || arg_index >= callee_decl->data.func_decl.param_count) {
+        || ast_func_body(callee_decl) == NULL
+        || arg_index >= ast_func_param_count(callee_decl)) {
         return 0u;
     }
 
     return slot_analyze_param_summary_in_program(
-        callee_decl->data.func_decl.body,
-        callee_decl->data.func_decl.params[arg_index] != NULL
-            ? callee_decl->data.func_decl.params[arg_index]->name
+        ast_func_body(callee_decl),
+        ast_func_param(callee_decl, arg_index) != NULL
+            ? ast_func_param(callee_decl, arg_index)->name
             : NULL,
         ctx != NULL ? ctx->program_root : NULL);
 }

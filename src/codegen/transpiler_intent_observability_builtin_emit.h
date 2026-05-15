@@ -146,7 +146,7 @@ emit_builtin_intent_observability(ASTNode *call, BuiltinKind bk,
 
     one_export = intent_observability_one_arg_export(bk);
     if (one_export != NULL) {
-        char *index = emit_expression(call->data.call.arguments[0], ctx);
+        char *index = emit_expression(ast_call_argument(call, 0), ctx);
         char *result = strdup_fmt("%s(%s)", one_export, index);
         free(index);
         return result;
@@ -154,8 +154,8 @@ emit_builtin_intent_observability(ASTNode *call, BuiltinKind bk,
 
     two_export = intent_observability_two_arg_export(bk);
     if (two_export != NULL) {
-        char *intent_index = emit_expression(call->data.call.arguments[0], ctx);
-        char *step_index = emit_expression(call->data.call.arguments[1], ctx);
+        char *intent_index = emit_expression(ast_call_argument(call, 0), ctx);
+        char *step_index = emit_expression(ast_call_argument(call, 1), ctx);
         char *result = strdup_fmt("%s(%s, %s)", two_export, intent_index,
                                   step_index);
         free(intent_index);

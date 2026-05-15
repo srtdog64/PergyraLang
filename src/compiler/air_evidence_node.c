@@ -9,41 +9,56 @@
 #include <stdlib.h>
 #include <string.h>
 
-static int
-air_evidence_kind_scope(AIREvidenceKind kind)
+typedef struct
 {
-    switch (kind) {
-    case AIR_EVIDENCE_HIR_ROUTINE:
-    case AIR_EVIDENCE_HIR_CFG:
-    case AIR_EVIDENCE_RIR_BOUNDARY:
-    case AIR_EVIDENCE_RIR_AUTHORITY:
-    case AIR_EVIDENCE_MIR_PIN_CLEANUP:
-        return 1;
-    case AIR_EVIDENCE_MIR_CLEANUP:
-    case AIR_EVIDENCE_MIR_TERMINATOR:
-    case AIR_EVIDENCE_MIR_SELECT_RECEIVE:
-    case AIR_EVIDENCE_DAG_METADATA:
-    case AIR_EVIDENCE_DAG_GENERIC:
-    case AIR_EVIDENCE_DAG_ABILITY:
-    case AIR_EVIDENCE_RIR_EFFECT_PROPAGATION:
-    case AIR_EVIDENCE_RIR_RELATION_PROPAGATION:
-    case AIR_EVIDENCE_OBSERVABILITY_SCHEMA:
-    case AIR_EVIDENCE_RUNTIME_FRONTIER_POLICY:
-        return 0;
-    }
-    return -1;
+    bool boundary_scoped;
+    bool has_global_validator;
+} AIREvidenceKindMeta;
+
+static const AIREvidenceKindMeta kEvidenceKindMeta[AIR_EVIDENCE_KIND_COUNT] = {
+    [AIR_EVIDENCE_HIR_ROUTINE] = { true, false },
+    [AIR_EVIDENCE_HIR_CFG] = { true, false },
+    [AIR_EVIDENCE_RIR_BOUNDARY] = { true, false },
+    [AIR_EVIDENCE_RIR_AUTHORITY] = { true, false },
+    [AIR_EVIDENCE_MIR_CLEANUP] = { false, true },
+    [AIR_EVIDENCE_MIR_PIN_CLEANUP] = { true, false },
+    [AIR_EVIDENCE_MIR_TERMINATOR] = { false, true },
+    [AIR_EVIDENCE_MIR_SELECT_RECEIVE] = { false, true },
+    [AIR_EVIDENCE_DAG_METADATA] = { false, true },
+    [AIR_EVIDENCE_DAG_GENERIC] = { false, true },
+    [AIR_EVIDENCE_DAG_ABILITY] = { false, true },
+    [AIR_EVIDENCE_RIR_EFFECT_PROPAGATION] = { false, true },
+    [AIR_EVIDENCE_RIR_RELATION_PROPAGATION] = { false, true },
+    [AIR_EVIDENCE_OBSERVABILITY_SCHEMA] = { false, true },
+    [AIR_EVIDENCE_RUNTIME_FRONTIER_POLICY] = { false, true },
+};
+
+static const AIREvidenceKindMeta *
+air_evidence_kind_meta(AIREvidenceKind kind)
+{
+    if ((int)kind < 0 || kind >= AIR_EVIDENCE_KIND_COUNT)
+        return NULL;
+    return &kEvidenceKindMeta[kind];
 }
 
 bool
 air_evidence_kind_is_boundary_scoped(AIREvidenceKind kind)
 {
-    return air_evidence_kind_scope(kind) == 1;
+    const AIREvidenceKindMeta *meta = air_evidence_kind_meta(kind);
+    return meta != NULL && meta->boundary_scoped;
 }
 
 bool
 air_evidence_kind_is_known(AIREvidenceKind kind)
 {
-    return air_evidence_kind_scope(kind) >= 0;
+    return air_evidence_kind_meta(kind) != NULL;
+}
+
+bool
+air_evidence_kind_has_global_validator(AIREvidenceKind kind)
+{
+    const AIREvidenceKindMeta *meta = air_evidence_kind_meta(kind);
+    return meta != NULL && meta->has_global_validator;
 }
 
 static bool

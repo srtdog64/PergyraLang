@@ -90,14 +90,14 @@ type_check_stdlib_variant_builtin_call(ASTNode *expr, const char *name,
     case STDLIB_VARIANT_IS_ERR:
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;
-        type_check_expression(expr->data.call.arguments[0], ctx);
+        type_check_expression(ast_call_argument(expr, 0), ctx);
         return TYPE_BOOL;
     case STDLIB_VARIANT_SOME:
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;
         return wrap_constructed(TYPE_OPTION,
             stdlib_variant_normalize_type(type_check_expression(
-                expr->data.call.arguments[0], ctx)));
+                ast_call_argument(expr, 0), ctx)));
     case STDLIB_VARIANT_NONE:
         if (!check_call_arity(expr, 0, name, ctx))
             return TYPE_UNKNOWN;
@@ -108,11 +108,11 @@ type_check_stdlib_variant_builtin_call(ASTNode *expr, const char *name,
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;
         ot = stdlib_variant_normalize_type(
-            type_check_expression(expr->data.call.arguments[0], ctx));
+            type_check_expression(ast_call_argument(expr, 0), ctx));
         if (!type_is_constructed_named(ot, "Option")) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
                 PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,
-                PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr->data.call.arguments[0],
+                PGY_FIX_MATCH_BUILTIN_SIGNATURE, ast_call_argument(expr, 0),
                 "%s requires Option<T>, got '%s'", name,
                 type_name_or_unknown(ot));
             return TYPE_UNKNOWN;
@@ -124,12 +124,12 @@ type_check_stdlib_variant_builtin_call(ASTNode *expr, const char *name,
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;
         ot = stdlib_variant_normalize_type(
-            type_check_expression(expr->data.call.arguments[0], ctx));
+            type_check_expression(ast_call_argument(expr, 0), ctx));
         if (type_is_constructed_named(ot, "Option"))
             return stdlib_variant_normalize_type(type_get_constructed_arg(ot, 0));
         semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
             PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,
-            PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr->data.call.arguments[0],
+            PGY_FIX_MATCH_BUILTIN_SIGNATURE, ast_call_argument(expr, 0),
             "UnwrapOption requires Option<T>, got '%s'",
             type_name_or_unknown(ot));
         return TYPE_UNKNOWN;
@@ -139,7 +139,7 @@ type_check_stdlib_variant_builtin_call(ASTNode *expr, const char *name,
         if (!check_call_arity(expr, 1, name, ctx))
             return TYPE_UNKNOWN;
         rt = stdlib_variant_normalize_type(
-            type_check_expression(expr->data.call.arguments[0], ctx));
+            type_check_expression(ast_call_argument(expr, 0), ctx));
         if (type_is_constructed_named(rt, "Result"))
             return stdlib_variant_normalize_type(type_get_constructed_arg(rt, 0));
         return TYPE_UNKNOWN;
@@ -149,8 +149,8 @@ type_check_stdlib_variant_builtin_call(ASTNode *expr, const char *name,
         if (!check_call_arity(expr, 2, name, ctx))
             return TYPE_UNKNOWN;
         rt = stdlib_variant_normalize_type(
-            type_check_expression(expr->data.call.arguments[0], ctx));
-        type_check_expression(expr->data.call.arguments[1], ctx);
+            type_check_expression(ast_call_argument(expr, 0), ctx));
+        type_check_expression(ast_call_argument(expr, 1), ctx);
         if (type_is_constructed_named(rt, "Result"))
             return stdlib_variant_normalize_type(type_get_constructed_arg(rt, 0));
         return TYPE_UNKNOWN;

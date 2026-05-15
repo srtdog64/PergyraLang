@@ -440,6 +440,8 @@ air_evidence_node_matches_boundary_shape(const AIRProgram *air,
     case AIR_EVIDENCE_OBSERVABILITY_SCHEMA:
     case AIR_EVIDENCE_RUNTIME_FRONTIER_POLICY:
         return true;
+    case AIR_EVIDENCE_KIND_COUNT:
+        break;
     }
 
     return false;

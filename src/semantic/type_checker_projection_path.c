@@ -67,7 +67,7 @@ Type *
 projection_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
 {
     Type *resolved =
-        semantic_type_resolution_lookup_type_ref_or_materialize(ctx, type_ref);
+        semantic_type_resolution_lookup_metadata_type_ref(ctx, type_ref);
     return resolved != NULL ? resolved : TYPE_UNKNOWN;
 }
 
@@ -115,15 +115,14 @@ resolve_projection_source_field_path_rec(ASTNode *program_root,
         Type *nested_type = NULL;
         char *prefixed_path;
         int nested_status;
+        const char *field_type_name = field != NULL ? ast_type_name(field->type) : NULL;
 
         if (field == NULL || !field->is_vessel_field
-            || field->name == NULL || field->type == NULL
-            || field->type->type != AST_TYPE
-            || field->type->data.type.name == NULL) {
+            || field->name == NULL || field_type_name == NULL) {
             continue;
         }
 
-        vessel_decl = find_type_decl_by_name(program_root, field->type->data.type.name);
+        vessel_decl = find_type_decl_by_name(program_root, field_type_name);
         if (vessel_decl == NULL || vessel_decl->type != AST_CLASS_DECL
             || ast_class_nominal_kind(vessel_decl) != NOMINAL_DECL_VESSEL) {
             continue;

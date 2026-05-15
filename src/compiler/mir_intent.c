@@ -32,9 +32,9 @@ mir_intent_node_name(ASTNode *node)
         case AST_IDENTIFIER:
             return node->data.identifier.name;
         case AST_MEMBER_ACCESS:
-            return node->data.member.name;
+            return ast_member_name(node);
         case AST_TYPE:
-            return node->data.type.name;
+            return ast_type_name(node);
         default:
             return NULL;
     }
@@ -160,7 +160,7 @@ mir_append_intent_participants(MIRRoutine *routine, MIRBasicBlock *block, ASTNod
         alias = ast_intent_involves_alias(involves);
         subject_type = ast_intent_involves_subject_type(involves);
         if (subject_type != NULL && subject_type->type == AST_TYPE) {
-            type_name = subject_type->data.type.name;
+            type_name = ast_type_name(subject_type);
         }
         if (alias == NULL || type_name == NULL)
             continue;
@@ -197,12 +197,12 @@ mir_append_intent_step_header(MIRRoutine *routine, MIRBasicBlock *block, ASTNode
     }
     if (ast_intent_step_where_type(step) != NULL
         && ast_intent_step_where_type(step)->type == AST_TYPE
-        && ast_intent_step_where_type(step)->data.type.name != NULL) {
+        && ast_type_name(ast_intent_step_where_type(step)) != NULL) {
         if (!mir_append_intent_stmt(routine,
                                     block,
                                     "IntentZoneWhere",
                                     ast_intent_step_name(step),
-                                    ast_intent_step_where_type(step)->data.type.name,
+                                    ast_type_name(ast_intent_step_where_type(step)),
                                     ast_intent_step_name(step),
                                     step)) {
             return false;

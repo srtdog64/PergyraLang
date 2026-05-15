@@ -92,6 +92,7 @@ test_semantic_enter_isolated_cwd(void)
 #include "tests/semantic/test_semantic_ownership_boundaries_part_b.cases.h"
 #include "tests/semantic/test_semantic_domain_part_a.cases.h"
 #include "tests/semantic/test_semantic_domain_part_b.cases.h"
+#include "tests/semantic/test_semantic_domain_part_c.cases.h"
 #include "tests/semantic/test_semantic_event_part_a.cases.h"
 #include "tests/semantic/test_semantic_projection_diagnostics.cases.h"
 #include "tests/semantic/test_semantic_intent_observability.cases.h"

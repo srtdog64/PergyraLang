@@ -139,10 +139,10 @@ llvm_render_type_name_scratch(ASTNode *type_node, PgyArena *arena)
 
     if (type_node == NULL)
         return pgy_arena_strdup(arena, "Void");
-    if (type_node->type != AST_TYPE || type_node->data.type.name == NULL)
+    if (ast_type_name(type_node) == NULL)
         return NULL;
-    if (type_node->data.type.generic_args == NULL
-        || type_node->data.type.generic_args->count == 0) {
+    if (ast_type_generic_args(type_node) == NULL
+        || ast_type_generic_args(type_node)->count == 0) {
         ASTNode **types = NULL;
         size_t type_count = 0;
         if (g_llvm_type_render_ctx != NULL) {
@@ -153,23 +153,23 @@ llvm_render_type_name_scratch(ASTNode *type_node, PgyArena *arena)
             for (size_t i = 0; i < type_count; i++) {
                 ASTNode *stmt = types[i];
                 if (stmt != NULL && stmt->type == AST_TYPE_ALIAS
-                    && stmt->data.type_alias.name != NULL
-                    && strcmp(stmt->data.type_alias.name, type_node->data.type.name) == 0) {
+                    && ast_type_alias_name(stmt) != NULL
+                    && strcmp(ast_type_alias_name(stmt), ast_type_name(type_node)) == 0) {
                     alias_decl = stmt;
                     break;
                 }
             }
         }
-        if (alias_decl != NULL && alias_decl->data.type_alias.target_type != NULL)
-            return llvm_render_type_name_scratch(alias_decl->data.type_alias.target_type, arena);
-        return pgy_arena_strdup(arena, type_node->data.type.name);
+        if (alias_decl != NULL && ast_type_alias_target_type(alias_decl) != NULL)
+            return llvm_render_type_name_scratch(ast_type_alias_target_type(alias_decl), arena);
+        return pgy_arena_strdup(arena, ast_type_name(type_node));
     }
 
-    char *result = pgy_arena_strdup(arena, type_node->data.type.name);
+    char *result = pgy_arena_strdup(arena, ast_type_name(type_node));
     if (result == NULL)
         return NULL;
-    for (size_t i = 0; i < type_node->data.type.generic_args->count; i++) {
-        GenericParam *gp = type_node->data.type.generic_args->params[i];
+    for (size_t i = 0; i < ast_type_generic_args(type_node)->count; i++) {
+        GenericParam *gp = ast_type_generic_args(type_node)->params[i];
         char *arg_name = NULL;
         char *grown;
         size_t need;

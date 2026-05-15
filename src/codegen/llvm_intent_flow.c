@@ -35,10 +35,10 @@ llvm_forward_intent_involves_type_name(ASTNode *involves)
 {
     ASTNode *subject_type = ast_intent_involves_subject_type(involves);
     if (involves == NULL || involves->type != AST_INTENT_INVOLVES
-        || subject_type == NULL || subject_type->type != AST_TYPE) {
+        || subject_type == NULL) {
         return NULL;
     }
-    return subject_type->data.type.name;
+    return ast_type_name(subject_type);
 }
 
 const MIRRoutine *

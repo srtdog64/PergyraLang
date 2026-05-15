@@ -155,7 +155,7 @@ emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
             continue;
         method_name = transpiler_mir_decl_method_name(method_meta);
         if (method_name == NULL)
-            method_name = method->data.func_decl.name;
+            method_name = ast_declaration_name(method);
         mir_method = transpiler_hosted_method_view_routine(ctx, &method_view, i);
         if (ctx != NULL && ctx->mir != NULL && mir_method == NULL) {
             transpiler_set_mir_inventory_missing(
@@ -178,8 +178,8 @@ emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
 
         char ret_type_buf[256];
         const char *ret_type = "void";
-        if (method->data.func_decl.return_type != NULL
-            && pergyra_ast_type_to_c_copy(method->data.func_decl.return_type,
+        if (ast_func_return_type(method) != NULL
+            && pergyra_ast_type_to_c_copy(ast_func_return_type(method),
                 ret_type_buf,
                 sizeof(ret_type_buf))) {
             ret_type = ret_type_buf;
@@ -193,8 +193,8 @@ emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
                           ret_type, name, method_name, name);
         }
 
-        for (size_t j = 0; j < method->data.func_decl.param_count; j++) {
-            FuncParam *p = method->data.func_decl.params[j];
+        for (size_t j = 0; j < ast_func_param_count(method); j++) {
+            FuncParam *p = ast_func_param(method, j);
             if (p == NULL || p->name == NULL)
                 continue;
             if (strcmp(p->name, "self") == 0)

@@ -45,13 +45,13 @@ semantic_stage_relation_decl(ASTNode *decl, SemanticContext *ctx)
     shared_fields = ast_relation_shared_fields(decl, &shared_count);
     methods = ast_relation_methods(decl, &method_count);
     (void)semantic_stage_resolve_type_quiet(
-        decl->data.relation_decl.between_left_type,
+        ast_relation_between_left_type(decl),
         ctx,
         decl,
         ast_relation_name(decl),
         "relation between-left type lookup");
     (void)semantic_stage_resolve_type_quiet(
-        decl->data.relation_decl.between_right_type,
+        ast_relation_between_right_type(decl),
         ctx,
         decl,
         ast_relation_name(decl),

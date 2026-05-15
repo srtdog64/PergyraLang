@@ -32,8 +32,8 @@ type_check_projection_call(ASTNode *call,
             || ctx->current_zone != NULL
             || ctx->current_world != NULL);
 
-    target_arg = call->data.call.arguments[0];
-    source_arg = call->data.call.arguments[1];
+    target_arg = ast_call_argument(call, 0);
+    source_arg = ast_call_argument(call, 1);
 
     if (target_arg == NULL || target_arg->type != AST_IDENTIFIER
         || target_arg->data.identifier.name == NULL) {

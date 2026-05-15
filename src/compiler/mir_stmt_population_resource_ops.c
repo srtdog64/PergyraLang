@@ -21,8 +21,8 @@ mir_resource_op_matches_source_stmt(const MIRInstruction *inst,
     }
     anchor = inst->slot_anchor != NULL ? inst->slot_anchor : inst->arg0;
     return anchor != NULL
-        && stmt->data.with_stmt.alias != NULL
-        && strcmp(anchor, stmt->data.with_stmt.alias) == 0;
+        && ast_with_alias(stmt) != NULL
+        && strcmp(anchor, ast_with_alias(stmt)) == 0;
 }
 
 bool

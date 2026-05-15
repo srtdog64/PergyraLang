@@ -323,12 +323,9 @@ llvm_result_suffix_from_context(LLVMGenCtx *ctx,
     const char *candidates[2];
     candidates[0] = ctx->expected_type_name;
     candidates[1] = NULL;
-    if (ctx->current_func_decl != NULL
-        && ctx->current_func_decl->type == AST_FUNC_DECL
-        && ctx->current_func_decl->data.func_decl.return_type != NULL
-        && ctx->current_func_decl->data.func_decl.return_type->type == AST_TYPE) {
-        candidates[1] =
-            ctx->current_func_decl->data.func_decl.return_type->data.type.name;
+    ASTNode *current_return_type = ast_func_return_type(ctx->current_func_decl);
+    if (current_return_type != NULL && current_return_type->type == AST_TYPE) {
+        candidates[1] = ast_type_name(current_return_type);
     }
 
     char inner[256];

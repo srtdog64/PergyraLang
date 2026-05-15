@@ -615,7 +615,6 @@ test_air_collects_dag_generic_ability_evidence(void)
     sem.type_resolution_metadata_entries = 33;
     sem.type_resolution_metadata_hits = 49;
     sem.type_resolution_metadata_dead_ends = 0;
-    sem.type_resolution_metadata_materializer_fallbacks = 0;
     sem.type_resolution_dag_generic_contract_evidence_count = 7;
     sem.type_resolution_dag_ability_consumer_evidence_count = 5;
 
@@ -641,7 +640,7 @@ test_air_collects_dag_generic_ability_evidence(void)
 }
 
 static bool
-test_air_reports_dag_fallback_drift(void)
+test_air_reports_dag_dead_end_drift(void)
 {
     AIRProgram *air = (AIRProgram *)calloc(1, sizeof(AIRProgram));
     SemanticResult sem;
@@ -655,7 +654,6 @@ test_air_reports_dag_fallback_drift(void)
     sem.type_resolution_dag_generic_contract_evidence_count = 1;
     sem.type_resolution_dag_ability_consumer_evidence_count = 1;
     sem.type_resolution_metadata_dead_ends = 2;
-    sem.type_resolution_metadata_materializer_fallbacks = 0;
 
     ok = air_collect_dag_evidence(air, &sem, &error)
         && !air_verify(air, &error)
@@ -720,7 +718,7 @@ test_air_rejects_empty_dag_evidence(void)
 }
 
 static bool
-test_air_rejects_dag_fallback_evidence(void)
+test_air_rejects_dag_dead_end_evidence(void)
 {
     AIREvidenceNode evidence_nodes[] = {
         {

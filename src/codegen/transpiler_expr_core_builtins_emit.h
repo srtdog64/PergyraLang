@@ -1,6 +1,8 @@
 #ifndef PGY_TRANSPILER_EXPR_CORE_BUILTINS_EMIT_H
 #define PGY_TRANSPILER_EXPR_CORE_BUILTINS_EMIT_H
 
+#include "../parser/ast_api.h"
+
 char *emit_builtin_allocator(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx);
 
 static const char *
@@ -46,11 +48,11 @@ emit_builtin_rc(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
 {
     const char *inner = NULL;
     char inner_buf[128];
-    ASTNode *arg = call->data.call.arg_count > 0 ? call->data.call.arguments[0] : NULL;
+    ASTNode *arg = ast_call_arg_count(call) > 0 ? ast_call_argument(call, 0) : NULL;
 
     switch (kind) {
     case BUILTIN_RC_NEW:
-        if (call->data.call.arg_count != 1) {
+        if (ast_call_arg_count(call) != 1) {
             transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "C backend: RcNew requires exactly one argument");
             return pergyra_strdup("0");
         }
@@ -166,11 +168,11 @@ emit_builtin_box(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
 {
     const char *inner = NULL;
     char inner_buf[128];
-    ASTNode *arg = call->data.call.arg_count > 0 ? call->data.call.arguments[0] : NULL;
+    ASTNode *arg = ast_call_arg_count(call) > 0 ? ast_call_argument(call, 0) : NULL;
 
     switch (kind) {
     case BUILTIN_BOX:
-        if (call->data.call.arg_count != 1) {
+        if (ast_call_arg_count(call) != 1) {
             transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "C backend: Box requires exactly one argument");
             return pergyra_strdup("0");
         }
@@ -178,9 +180,9 @@ emit_builtin_box(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
         else if (arg->type == AST_STRING) inner = "String";
         else if (arg->type == AST_BOOLEAN) inner = "Bool";
         else if (arg->type == AST_CALL
-                 && arg->data.call.callee != NULL
-                 && arg->data.call.callee->type == AST_IDENTIFIER) {
-            const char *callee_name = arg->data.call.callee->data.identifier.name;
+                 && ast_call_callee(arg) != NULL
+                 && ast_call_callee(arg)->type == AST_IDENTIFIER) {
+            const char *callee_name = ast_call_callee(arg)->data.identifier.name;
             ASTNode *class_decl = find_class_decl(ctx, callee_name);
             if (class_decl != NULL && class_decl->type == AST_CLASS_DECL)
                 inner = callee_name;
@@ -224,12 +226,13 @@ emit_builtin_box(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
         }
         break;
     case BUILTIN_BOX_ARRAY:
-        if (call->data.call.arg_count < 1) {
+        if (ast_call_arg_count(call) < 1) {
             transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "C backend: BoxArray requires an array argument");
             return pergyra_strdup("0");
         }
         {
-            const char *arr_type = infer_expression_type_name(ctx, call->data.call.arguments[0]);
+            const char *arr_type =
+                infer_expression_type_name(ctx, ast_call_argument(call, 0));
             if (arr_type != NULL && strncmp(arr_type, "Array<", 6) == 0)
                 inner = arr_type;
             if (inner == NULL || inner[0] == '\0') {
@@ -262,7 +265,7 @@ emit_builtin_box(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
 
     if (kind == BUILTIN_BOX_SET) {
         char *box_expr = emit_expression(arg, ctx);
-        char *value = emit_expression(call->data.call.arguments[1], ctx);
+        char *value = emit_expression(ast_call_argument(call, 1), ctx);
         char *result = strdup_fmt("pgy_box_set_%s(&%s, %s)", inner, box_expr, value);
         free(box_expr);
         free(value);
@@ -284,11 +287,11 @@ emit_builtin_box(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
     }
 
     if (kind == BUILTIN_BOX_ARRAY) {
-        if (call->data.call.arg_count < 1) {
+        if (ast_call_arg_count(call) < 1) {
             transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "C backend: BoxArray requires an array argument");
             return pergyra_strdup("0");
         }
-        char *arr_expr = emit_expression(call->data.call.arguments[0], ctx);
+        char *arr_expr = emit_expression(ast_call_argument(call, 0), ctx);
         char elem_buf[128];
         const char *elem = NULL;
         if (slot_inner_type_name_copy(inner, elem_buf, sizeof(elem_buf)))

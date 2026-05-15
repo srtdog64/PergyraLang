@@ -288,8 +288,7 @@ dir_collect_intent_info(DIRProgram *dir, size_t from_id, ASTNode *node)
         }
         for (size_t j = 0; j < ast_intent_step_required_ability_count(step_node); j++) {
             ASTNode *ability_ref = ast_intent_step_required_abilities(step_node, NULL)[j];
-            const char *ability_name = (ability_ref != NULL && ability_ref->type == AST_TYPE)
-                ? ability_ref->data.type.name : NULL;
+            const char *ability_name = ast_type_name(ability_ref);
             ssize_t ability_id;
             if (ability_name == NULL)
                 continue;

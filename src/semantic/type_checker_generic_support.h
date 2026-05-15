@@ -223,8 +223,8 @@ identifier_is_borrowed_boundary_param(ASTNode *expr, SemanticContext *ctx)
         return false;
 
     ident_name = expr->data.identifier.name;
-    for (size_t i = 0; i < func_decl->data.func_decl.param_count; i++) {
-        FuncParam *param = func_decl->data.func_decl.params[i];
+    for (size_t i = 0; i < ast_func_param_count(func_decl); i++) {
+        FuncParam *param = ast_func_param(func_decl, i);
         Type *param_type;
 
         if (param == NULL || param->name == NULL || param->type == NULL)

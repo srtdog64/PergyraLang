@@ -44,7 +44,7 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
     case AST_ASSIGNMENT:    return llvm_emit_assignment(node, ctx);
     case AST_MEMBER_ACCESS: return llvm_emit_member_access(node, ctx);
     case AST_TUPLE_LITERAL: {
-        size_t n = node->data.tuple_literal.count;
+        size_t n = ast_tuple_literal_count(node);
         if (n == 0)
             return LLVMConstInt(ctx->type_i32, 0, 0);
         /* Tuple element values + type refs — LLVMStructTypeInContext copies
@@ -58,7 +58,7 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
             return llvm_expression_error(ctx, node,
                 "LLVM tuple literal allocation failed");
         for (size_t i = 0; i < n; i++) {
-            vals[i] = llvm_emit_expression(node->data.tuple_literal.elements[i], ctx);
+            vals[i] = llvm_emit_expression(ast_tuple_literal_element(node, i), ctx);
             if (vals[i] == NULL) {
                 if (ctx != NULL && !ctx->has_error) {
                     llvm_set_error_at_with_hints(ctx, node,
@@ -83,13 +83,13 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
     }
 
     case AST_ARRAY_LITERAL: {
-        size_t count = node->data.array_literal.count;
+        size_t count = ast_array_literal_count(node);
         const char *inner_name = NULL;
         char inner_name_buf[256];
         LLVMTypeRef elem_type = ctx->type_i32;
         LLVMValueRef first_value = NULL;
         if (count > 0) {
-            first_value = llvm_emit_expression(node->data.array_literal.elements[0], ctx);
+            first_value = llvm_emit_expression(ast_array_literal_element(node, 0), ctx);
             if (first_value == NULL)
                 return llvm_expression_error(ctx, node,
                     "LLVM array literal could not lower element 0");
@@ -134,7 +134,7 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
         LLVMBuildStore(ctx->builder, LLVMConstNull(array_type), tmp);
         for (size_t i = 0; i < count; i++) {
             LLVMValueRef elem = i == 0 ? first_value
-                : llvm_emit_expression(node->data.array_literal.elements[i], ctx);
+                : llvm_emit_expression(ast_array_literal_element(node, i), ctx);
             if (elem == NULL) {
                 if (ctx != NULL && !ctx->has_error) {
                     llvm_set_error_at_with_hints(ctx, node,
@@ -153,10 +153,9 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
     }
 
     case AST_ARRAY_ACCESS: {
-        ASTNode *array_node = node->data.array_access.array;
+        ASTNode *array_node = ast_array_access_array(node);
         LLVMValueRef arr = llvm_emit_expression(array_node, ctx);
-        LLVMValueRef idx = llvm_emit_expression(
-            node->data.array_access.index, ctx);
+        LLVMValueRef idx = llvm_emit_expression(ast_array_access_index(node), ctx);
         if (arr == NULL || idx == NULL)
             return llvm_expression_error(ctx, node,
                 "LLVM array access could not lower receiver or index expression");
@@ -336,8 +335,8 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
         return llvm_emit_spawn_expr(node, ctx);
 
     case AST_AWAIT_EXPR:
-        if (node->data.await_expr.expression != NULL) {
-            ASTNode *inner_expr = node->data.await_expr.expression;
+        if (ast_await_expression(node) != NULL) {
+            ASTNode *inner_expr = ast_await_expression(node);
             const char *inner = NULL;
             bool is_remote = false;
             if (inner_expr->type == AST_IDENTIFIER)

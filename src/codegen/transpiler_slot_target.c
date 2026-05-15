@@ -9,6 +9,7 @@
 #include "transpiler_context.h"
 #include "transpiler_slot_target.h"
 #include "transpiler_symbols.h"
+#include "../parser/ast_api.h"
 #include "../semantic/diag_codes.h"
 
 bool
@@ -102,13 +103,13 @@ transpiler_resolve_slot_target_copy(TranspilerCtx *ctx,
             secure = lookup_slot_is_secure(ctx, id);
         }
     } else if (slot_arg->type == AST_CALL
-               && slot_arg->data.call.callee != NULL
-               && slot_arg->data.call.callee->type == AST_IDENTIFIER
-               && slot_arg->data.call.arg_count >= 1
-               && slot_arg->data.call.arguments[0] != NULL
-               && slot_arg->data.call.arguments[0]->type == AST_IDENTIFIER) {
-        const char *callee = slot_arg->data.call.callee->data.identifier.name;
-        const char *src = slot_arg->data.call.arguments[0]->data.identifier.name;
+               && ast_call_callee(slot_arg) != NULL
+               && ast_call_callee(slot_arg)->type == AST_IDENTIFIER
+               && ast_call_arg_count(slot_arg) >= 1
+               && ast_call_argument(slot_arg, 0) != NULL
+               && ast_call_argument(slot_arg, 0)->type == AST_IDENTIFIER) {
+        const char *callee = ast_call_callee(slot_arg)->data.identifier.name;
+        const char *src = ast_call_argument(slot_arg, 0)->data.identifier.name;
         if (pgy_codegen_call_name_is_slot_source(callee)) {
             slot_name = src;
             (void)lookup_slot_type_copy(ctx, src, inner_out, inner_out_size);

@@ -17,27 +17,27 @@ match_pattern_is_named_variant(ASTNode *pat, const char **name_out,
         return *name_out != NULL;
     }
     if (pat->type == AST_MEMBER_ACCESS
-        && pat->data.member.object != NULL
-        && pat->data.member.object->type == AST_IDENTIFIER
-        && pat->data.member.name != NULL) {
-        *name_out = pat->data.member.name;
+        && ast_member_object(pat) != NULL
+        && ast_member_object(pat)->type == AST_IDENTIFIER
+        && ast_member_name(pat) != NULL) {
+        *name_out = ast_member_name(pat);
         return true;
     }
-    if (pat->type != AST_CALL || pat->data.call.callee == NULL)
+    if (pat->type != AST_CALL || ast_call_callee(pat) == NULL)
         return false;
-    if (pat->data.call.callee->type == AST_IDENTIFIER
-        && pat->data.call.callee->data.identifier.name != NULL) {
-        *name_out = pat->data.call.callee->data.identifier.name;
-    } else if (pat->data.call.callee->type == AST_MEMBER_ACCESS
-        && pat->data.call.callee->data.member.object != NULL
-        && pat->data.call.callee->data.member.object->type == AST_IDENTIFIER
-        && pat->data.call.callee->data.member.name != NULL) {
-        *name_out = pat->data.call.callee->data.member.name;
+    ASTNode *callee = ast_call_callee(pat);
+    if (callee->type == AST_IDENTIFIER
+        && callee->data.identifier.name != NULL) {
+        *name_out = callee->data.identifier.name;
+    } else if (callee->type == AST_MEMBER_ACCESS
+        && ast_member_object(callee) != NULL
+        && ast_member_object(callee)->type == AST_IDENTIFIER
+        && ast_member_name(callee) != NULL) {
+        *name_out = ast_member_name(callee);
     } else {
         return false;
     }
-    *args_out = pat->data.call.arguments;
-    *arg_count_out = pat->data.call.arg_count;
+    *args_out = ast_call_arguments(pat, arg_count_out);
     return true;
 }
 

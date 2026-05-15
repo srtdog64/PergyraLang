@@ -14,7 +14,7 @@ static const char *
 llvm_role_method_name_from_ast(ASTNode *method)
 {
     if (method != NULL && method->type == AST_FUNC_DECL)
-        return method->data.func_decl.name;
+        return ast_declaration_name(method);
     return NULL;
 }
 

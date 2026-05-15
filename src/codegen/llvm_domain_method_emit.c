@@ -76,7 +76,7 @@ llvm_emit_domain_sync_and_method_bodies(LLVMGenCtx *ctx,
                 const MIRRoutine *mir_method = NULL;
                 if (method_name == NULL && method != NULL
                     && method->type == AST_FUNC_DECL)
-                    method_name = method->data.func_decl.name;
+                    method_name = ast_declaration_name(method);
                 if (method_meta == NULL
                     && (method == NULL || method->type != AST_FUNC_DECL)) {
                     continue;

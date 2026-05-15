@@ -75,7 +75,7 @@ llvm_decl_node_name(ASTNode *node)
 
     switch (node->type) {
     case AST_FUNC_DECL:
-        return node->data.func_decl.name;
+        return ast_declaration_name(node);
     case AST_INTENT_DECL:
         return ast_intent_decl_name(node);
     case AST_ABILITY_DECL:
@@ -95,13 +95,13 @@ llvm_decl_node_name(ASTNode *node)
     case AST_ZONE_DECL:
         return ast_zone_name(node);
     case AST_EVENT_DECL:
-        return node->data.event_decl.name;
+        return ast_event_name(node);
     case AST_CLASS_DECL:
         return ast_class_name(node);
     case AST_ENUM_DECL:
         return ast_enum_name(node);
     case AST_TYPE_ALIAS:
-        return node->data.type_alias.name;
+        return ast_type_alias_name(node);
     default:
         return NULL;
     }

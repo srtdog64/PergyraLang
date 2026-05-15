@@ -77,10 +77,9 @@ mir_decl_header_set_methods(MIRDeclHeader *header,
         meta->source_ast = method;
         meta->owner_name = header->name;
         if (method != NULL && method->type == AST_FUNC_DECL) {
-            meta->name = method->data.func_decl.name;
-            meta->params = method->data.func_decl.params;
-            meta->param_count = method->data.func_decl.param_count;
-            meta->return_type = method->data.func_decl.return_type;
+            meta->name = ast_declaration_name(method);
+            meta->params = ast_func_params(method, &meta->param_count);
+            meta->return_type = ast_func_return_type(method);
             meta->is_action_like = method->data.func_decl.is_action;
             meta->within_zone = method->data.func_decl.within_zone;
         }
@@ -146,10 +145,9 @@ mir_decl_header_set_role_impl_methods(MIRDeclHeader *header, ASTNode *role_decl)
             meta->source_ast = method;
             meta->owner_name = header->name;
             if (method != NULL && method->type == AST_FUNC_DECL) {
-                meta->name = method->data.func_decl.name;
-                meta->params = method->data.func_decl.params;
-                meta->param_count = method->data.func_decl.param_count;
-                meta->return_type = method->data.func_decl.return_type;
+                meta->name = ast_declaration_name(method);
+                meta->params = ast_func_params(method, &meta->param_count);
+                meta->return_type = ast_func_return_type(method);
                 meta->is_action_like = method->data.func_decl.is_action;
                 meta->within_zone = method->data.func_decl.within_zone;
             }

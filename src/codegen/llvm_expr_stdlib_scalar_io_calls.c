@@ -39,7 +39,7 @@ llvm_emit_required_runtime_call_result(ASTNode *node, LLVMGenCtx *ctx,
         return true;
     }
     *out_result = llvm_emit_function_call_args(ctx, fn,
-        node->data.call.arguments, arg_count);
+        ast_call_arguments(node, NULL), arg_count);
     if (*out_result == NULL)
         *out_result = llvm_stdlib_error_value(node, ctx, callee_name,
             "could not lower runtime call arguments");
@@ -104,8 +104,8 @@ llvm_emit_stdlib_string_file_call(ASTNode *node, LLVMGenCtx *ctx,
     if (node == NULL || ctx == NULL || callee_name == NULL || out_result == NULL)
         return false;
 
-    if (strcmp(callee_name, "StringLength") == 0 && node->data.call.arg_count == 1) {
-        LLVMValueRef s = llvm_emit_expression(node->data.call.arguments[0], ctx);
+    if (strcmp(callee_name, "StringLength") == 0 && ast_call_arg_count(node) == 1) {
+        LLVMValueRef s = llvm_emit_expression(ast_call_argument(node, 0), ctx);
         LLVMFuncEntry *strlen_fn = llvm_lookup_function(ctx, "strlen");
         LLVMValueRef args[] = { s };
         LLVMValueRef len;
@@ -129,8 +129,8 @@ llvm_emit_stdlib_string_file_call(ASTNode *node, LLVMGenCtx *ctx,
     }
 
     if (strcmp(callee_name, "ToString") == 0
-        && node->data.call.arg_count == 1) {
-        LLVMValueRef value = llvm_emit_expression(node->data.call.arguments[0], ctx);
+        && ast_call_arg_count(node) == 1) {
+        LLVMValueRef value = llvm_emit_expression(ast_call_argument(node, 0), ctx);
         if (value == NULL) {
             *out_result = llvm_stdlib_error_value(node, ctx, callee_name,
                 "could not lower value argument");
@@ -146,7 +146,7 @@ llvm_emit_stdlib_string_file_call(ASTNode *node, LLVMGenCtx *ctx,
     {
         const LLVMStdlibRuntimeCallSpec *spec =
             llvm_stdlib_string_file_runtime_call_lookup(callee_name);
-        if (spec != NULL && node->data.call.arg_count == spec->arg_count) {
+        if (spec != NULL && ast_call_arg_count(node) == spec->arg_count) {
             return llvm_emit_required_runtime_call_result(node, ctx,
                 spec->family, callee_name, spec->runtime_name,
                 spec->arg_count, out_result);
@@ -165,37 +165,37 @@ llvm_emit_stdlib_runtime_io_call(ASTNode *node, LLVMGenCtx *ctx,
         return false;
 
     if (strcmp(callee_name, "SeedRandom") == 0
-        && node->data.call.arg_count == 1) {
+        && ast_call_arg_count(node) == 1) {
         return llvm_emit_required_runtime_call_result(node, ctx,
             "stdlib runtime", callee_name, "SeedRandom", 1, out_result);
     }
 
     if (strcmp(callee_name, "FileOpen") == 0
-        && node->data.call.arg_count == 2) {
+        && ast_call_arg_count(node) == 2) {
         return llvm_emit_required_runtime_call_result(node, ctx,
             "stdlib file", callee_name, "pgy_file_open", 2, out_result);
     }
 
     if (strcmp(callee_name, "FileRead") == 0
-        && node->data.call.arg_count == 1) {
+        && ast_call_arg_count(node) == 1) {
         return llvm_emit_required_runtime_call_result(node, ctx,
             "stdlib file", callee_name, "pgy_file_read", 1, out_result);
     }
 
     if (strcmp(callee_name, "FileWrite") == 0
-        && node->data.call.arg_count == 2) {
+        && ast_call_arg_count(node) == 2) {
         return llvm_emit_required_runtime_call_result(node, ctx,
             "stdlib file", callee_name, "pgy_file_write", 2, out_result);
     }
 
     if (strcmp(callee_name, "FileClose") == 0
-        && node->data.call.arg_count == 1) {
+        && ast_call_arg_count(node) == 1) {
         return llvm_emit_required_runtime_call_result(node, ctx,
             "stdlib file", callee_name, "pgy_file_close", 1, out_result);
     }
 
-    if (strcmp(callee_name, "Print") == 0 && node->data.call.arg_count == 1) {
-        LLVMValueRef val = llvm_emit_expression(node->data.call.arguments[0], ctx);
+    if (strcmp(callee_name, "Print") == 0 && ast_call_arg_count(node) == 1) {
+        LLVMValueRef val = llvm_emit_expression(ast_call_argument(node, 0), ctx);
         LLVMTypeRef vt;
         LLVMFuncEntry *pf = llvm_required_runtime_function(ctx, node,
             "stdlib io", callee_name, "printf");
@@ -224,7 +224,7 @@ llvm_emit_stdlib_runtime_io_call(ASTNode *node, LLVMGenCtx *ctx,
         return true;
     }
 
-    if (strcmp(callee_name, "ReadLine") == 0 && node->data.call.arg_count == 0) {
+    if (strcmp(callee_name, "ReadLine") == 0 && ast_call_arg_count(node) == 0) {
         LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
             "stdlib io", callee_name, "pgy_input");
         if (fn != NULL) {
@@ -239,7 +239,7 @@ llvm_emit_stdlib_runtime_io_call(ASTNode *node, LLVMGenCtx *ctx,
         return true;
     }
 
-    if (strcmp(callee_name, "Now") == 0 && node->data.call.arg_count == 0) {
+    if (strcmp(callee_name, "Now") == 0 && ast_call_arg_count(node) == 0) {
         LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
             "stdlib time", callee_name, "pgy_now_ms");
         if (fn != NULL) {
@@ -251,7 +251,7 @@ llvm_emit_stdlib_runtime_io_call(ASTNode *node, LLVMGenCtx *ctx,
         return true;
     }
 
-    if (strcmp(callee_name, "Sleep") == 0 && node->data.call.arg_count == 1) {
+    if (strcmp(callee_name, "Sleep") == 0 && ast_call_arg_count(node) == 1) {
         LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
             "stdlib time", callee_name, "pgy_sleep_ms");
         if (fn == NULL) {
@@ -259,7 +259,7 @@ llvm_emit_stdlib_runtime_io_call(ASTNode *node, LLVMGenCtx *ctx,
             return true;
         }
         {
-            LLVMValueRef arg = llvm_emit_expression(node->data.call.arguments[0], ctx);
+            LLVMValueRef arg = llvm_emit_expression(ast_call_argument(node, 0), ctx);
             if (arg == NULL) {
                 *out_result = llvm_stdlib_error_value(node, ctx, callee_name,
                     "could not lower sleep duration argument");

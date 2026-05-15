@@ -6,6 +6,7 @@
 
 #include "llvm_expr_call_collections_extended.h"
 #include "llvm_internal_api.h"
+#include "parser/ast_api.h"
 
 typedef enum {
     LLVM_QUEUE_EXT_NONE = 0,
@@ -84,10 +85,10 @@ llvm_emit_queue_extended_call(ASTNode *node, LLVMGenCtx *ctx,
     if (node == NULL || node->type != AST_CALL)
         return false;
     op = llvm_queue_extended_lookup(callee_name,
-        (unsigned)node->data.call.arg_count);
+        (unsigned)ast_call_arg_count(node));
 
     if (op == LLVM_QUEUE_EXT_PUSH) {
-        ASTNode *queue_arg = node->data.call.arguments[0];
+        ASTNode *queue_arg = ast_call_argument(node, 0);
         LLVMVarEntry *queue_var;
         const char *inner_name;
         LLVMTypeRef elem_ty;
@@ -103,7 +104,7 @@ llvm_emit_queue_extended_call(ASTNode *node, LLVMGenCtx *ctx,
             queue_arg->data.identifier.name, inner_name, out);
         if (elem_ty == NULL)
             return true;
-        value = llvm_emit_expression(node->data.call.arguments[1], ctx);
+        value = llvm_emit_expression(ast_call_argument(node, 1), ctx);
         if (value == NULL)
             return llvm_queue_error_out(ctx, node, out,
                 LLVMConstInt(ctx->type_i32, 0, 0),
@@ -152,7 +153,7 @@ llvm_emit_queue_extended_call(ASTNode *node, LLVMGenCtx *ctx,
     }
 
     if (op == LLVM_QUEUE_EXT_POP) {
-        ASTNode *queue_arg = node->data.call.arguments[0];
+        ASTNode *queue_arg = ast_call_argument(node, 0);
         LLVMVarEntry *queue_var;
         const char *inner_name;
         LLVMTypeRef elem_ty;
@@ -199,7 +200,7 @@ llvm_emit_queue_extended_call(ASTNode *node, LLVMGenCtx *ctx,
     }
 
     if (op == LLVM_QUEUE_EXT_SIZE) {
-        ASTNode *queue_arg = node->data.call.arguments[0];
+        ASTNode *queue_arg = ast_call_argument(node, 0);
         LLVMVarEntry *queue_var;
         LLVMFuncEntry *fn;
         queue_var = llvm_collection_required_receiver_var(ctx, node, queue_arg,
@@ -219,7 +220,7 @@ llvm_emit_queue_extended_call(ASTNode *node, LLVMGenCtx *ctx,
     }
 
     if (op == LLVM_QUEUE_EXT_EMPTY) {
-        ASTNode *queue_arg = node->data.call.arguments[0];
+        ASTNode *queue_arg = ast_call_argument(node, 0);
         LLVMVarEntry *queue_var;
         LLVMFuncEntry *fn;
         queue_var = llvm_collection_required_receiver_var(ctx, node, queue_arg,

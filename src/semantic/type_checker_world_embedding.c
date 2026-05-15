@@ -10,12 +10,12 @@ mark_world_embedded_zone_arguments(ASTNode *call, SemanticContext *ctx)
     const char *world_name = NULL;
 
     if (call == NULL || call->type != AST_CALL || ctx == NULL
-        || call->data.call.callee == NULL
-        || call->data.call.callee->type != AST_IDENTIFIER) {
+        || ast_call_callee(call) == NULL
+        || ast_call_callee(call)->type != AST_IDENTIFIER) {
         return;
     }
 
-    world_name = call->data.call.callee->data.identifier.name;
+    world_name = ast_call_callee(call)->data.identifier.name;
     world_decl = find_domain_decl_by_name(ctx->program_root, AST_WORLD_DECL,
         world_name);
     if (world_decl == NULL || world_decl->type != AST_WORLD_DECL)
@@ -24,8 +24,8 @@ mark_world_embedded_zone_arguments(ASTNode *call, SemanticContext *ctx)
     size_t zone_count = 0;
     ASTNode **zones = ast_world_zones(world_decl, &zone_count);
 
-    for (size_t i = 0; i < call->data.call.arg_count; i++) {
-        ASTNode *arg = call->data.call.arguments[i];
+    for (size_t i = 0; i < ast_call_arg_count(call); i++) {
+        ASTNode *arg = ast_call_argument(call, i);
         Symbol *arg_sym;
         bool matched_zone_slot = false;
 

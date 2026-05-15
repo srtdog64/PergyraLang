@@ -24,14 +24,14 @@ intent_on_call_receiver_alias(ASTNode *expr, const char **method_name_out)
         *method_name_out = NULL;
     if (expr == NULL || expr->type != AST_CALL)
         return NULL;
-    callee = expr->data.call.callee;
+    callee = ast_call_callee(expr);
     if (callee == NULL || callee->type != AST_MEMBER_ACCESS)
         return NULL;
-    receiver = callee->data.member.object;
+    receiver = ast_member_object(callee);
     if (receiver == NULL || receiver->type != AST_IDENTIFIER)
         return NULL;
     if (method_name_out != NULL)
-        *method_name_out = callee->data.member.name;
+        *method_name_out = ast_member_name(callee);
     return receiver->data.identifier.name;
 }
 
@@ -121,11 +121,10 @@ func_decl_first_param_is_implicit_self(ASTNode *action_decl)
     FuncParam *param;
 
     if (action_decl == NULL || action_decl->type != AST_FUNC_DECL
-        || action_decl->data.func_decl.param_count == 0
-        || action_decl->data.func_decl.params == NULL) {
+        || ast_func_param_count(action_decl) == 0) {
         return false;
     }
-    param = action_decl->data.func_decl.params[0];
+    param = ast_func_param(action_decl, 0);
     return param != NULL
         && param->name != NULL
         && strcmp(param->name, "self") == 0
@@ -147,9 +146,8 @@ intent_on_call_arg_for_action_param(ASTNode *on_expr,
     }
 
     has_implicit_self = func_decl_first_param_is_implicit_self(action_decl);
-    for (size_t i = 0; i < action_decl->data.func_decl.param_count; i++) {
-        FuncParam *param = action_decl->data.func_decl.params != NULL
-            ? action_decl->data.func_decl.params[i] : NULL;
+    for (size_t i = 0; i < ast_func_param_count(action_decl); i++) {
+        FuncParam *param = ast_func_param(action_decl, i);
 
         if (param == NULL || param->name == NULL
             || strcmp(param->name, param_name) != 0) {
@@ -158,9 +156,9 @@ intent_on_call_arg_for_action_param(ASTNode *on_expr,
         if (i == 0 && has_implicit_self)
             return NULL;
         arg_index = has_implicit_self ? i - 1 : i;
-        if (arg_index >= on_expr->data.call.arg_count)
+        if (arg_index >= ast_call_arg_count(on_expr))
             return NULL;
-        return on_expr->data.call.arguments[arg_index];
+        return ast_call_argument(on_expr, arg_index);
     }
 
     return NULL;

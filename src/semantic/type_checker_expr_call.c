@@ -54,14 +54,15 @@ expr_call_report_unsupported_callee(SemanticContext *ctx, ASTNode *site,
 Type *
 type_check_call(ASTNode *expr, SemanticContext *ctx)
 {
-    ASTNode *callee = expr->data.call.callee;
+    ASTNode *callee = ast_call_callee(expr);
+    size_t arg_count = ast_call_arg_count(expr);
 
     if (callee == NULL) {
         expr_call_report_unsupported_callee(ctx, expr, "<missing>");
         return TYPE_UNKNOWN;
     }
 
-    for (size_t i = 0; i < expr->data.call.arg_count; i++) {
+    for (size_t i = 0; i < arg_count; i++) {
         if (expr->data.call.arg_names != NULL
             && expr->data.call.arg_names[i] != NULL) {
             semantic_error_with_hints(ctx,
@@ -104,8 +105,8 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
     }
 
     if (callee->type == AST_MEMBER_ACCESS) {
-        ASTNode *object = callee->data.member.object;
-        const char *method_name = callee->data.member.name;
+        ASTNode *object = ast_member_object(callee);
+        const char *method_name = ast_member_name(callee);
 
         if (object != NULL && method_name != NULL
             && (strcmp(method_name, "Write") == 0
@@ -114,7 +115,7 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
             Type *slot_type = expr_call_normalize_type(
                 type_check_expression(object, ctx));
             if (slot_type->kind == TYPE_KIND_SLOT) {
-                size_t orig_argc = expr->data.call.arg_count;
+                size_t orig_argc = arg_count;
                 bool inject_token = false;
                 char token_name_buf[256];
                 const char *token_name = NULL;
@@ -156,16 +157,14 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
                 if (new_argc <= sizeof(synthetic_args) / sizeof(synthetic_args[0])) {
                     synthetic_args[0] = object;
                     for (size_t i = 0; i < orig_argc; i++)
-                        synthetic_args[i + 1] = expr->data.call.arguments[i];
+                        synthetic_args[i + 1] = ast_call_argument(expr, i);
                     if (inject_token)
                         synthetic_args[new_argc - 1] = &token_arg;
 
-                    fake_call.type = AST_CALL;
+                    ast_init_call_borrowed_view(&fake_call, callee,
+                        synthetic_args, new_argc);
                     fake_call.line = expr->line;
                     fake_call.column = expr->column;
-                    fake_call.data.call.callee = callee;
-                    fake_call.data.call.arguments = synthetic_args;
-                    fake_call.data.call.arg_count = new_argc;
 
                     if (strcmp(method_name, "Write") == 0) {
                         (void)type_check_write_slot(&fake_call, ctx);
@@ -186,8 +185,8 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
             Symbol *sym = flat_name != NULL
                 ? scope_lookup(ctx->scope, flat_name)
                 : NULL;
-            if (sym == NULL && callee->data.member.name != NULL)
-                sym = scope_lookup(ctx->scope, callee->data.member.name);
+            if (sym == NULL && method_name != NULL)
+                sym = scope_lookup(ctx->scope, method_name);
             Type *result = type_check_function_symbol_call(
                 expr, sym, display_name != NULL ? display_name : "<member>", ctx);
             free(flat_name);
@@ -208,7 +207,9 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
                 && strcmp(method_name, "Slice") == 0
                 && (type_is_constructed_named(object_type, "Array")
                     || type_is_constructed_named(object_type, "Slice"))) {
-                if (expr->data.call.arg_count != 2) {
+                ASTNode *start_arg = ast_call_argument(expr, 0);
+                ASTNode *len_arg = ast_call_argument(expr, 1);
+                if (arg_count != 2) {
                     semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr,
                         "%s.%s(start, len) requires exactly two Int arguments",
                         type_is_constructed_named(object_type, "Array")
@@ -219,12 +220,12 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
 
                 require_assignable(
                     expr_call_normalize_type(
-                        type_check_expression(expr->data.call.arguments[0], ctx)),
-                    TYPE_INT, expr->data.call.arguments[0], ctx);
+                        type_check_expression(start_arg, ctx)),
+                    TYPE_INT, start_arg, ctx);
                 require_assignable(
                     expr_call_normalize_type(
-                        type_check_expression(expr->data.call.arguments[1], ctx)),
-                    TYPE_INT, expr->data.call.arguments[1], ctx);
+                        type_check_expression(len_arg, ctx)),
+                    TYPE_INT, len_arg, ctx);
 
                 if (object_type->kind == TYPE_KIND_CONSTRUCTED
                     && object_type->data.constructed.arg_count >= 1
@@ -244,7 +245,8 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
                     sym = scope_lookup(ctx->scope, object->data.identifier.name);
 
                 if (strcmp(method_name, "Write") == 0) {
-                    if (expr->data.call.arg_count < 1) {
+                    ASTNode *value_arg = ast_call_argument(expr, 0);
+                    if (arg_count < 1) {
                         semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr,
                             "slot.Write(value) requires a value argument");
                         return TYPE_UNKNOWN;
@@ -291,9 +293,9 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
                     }
                     require_assignable(
                         expr_call_normalize_type(
-                            type_check_expression(expr->data.call.arguments[0], ctx)),
+                            type_check_expression(value_arg, ctx)),
                         object_type->data.slot.inner_type,
-                        expr->data.call.arguments[0], ctx);
+                        value_arg, ctx);
                     return TYPE_VOID;
                 }
 
@@ -373,10 +375,11 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
                         semantic_host_decl_methods(host_decl, &method_count);
                     for (size_t i = 0; i < method_count; i++) {
                         ASTNode *method = methods[i];
+                        const char *candidate_name = ast_declaration_name(method);
                         if (method == NULL || method->type != AST_FUNC_DECL
-                            || method->data.func_decl.name == NULL)
+                            || candidate_name == NULL)
                             continue;
-                        if (strcmp(method->data.func_decl.name, method_name) == 0) {
+                        if (strcmp(candidate_name, method_name) == 0) {
                             uint32_t method_effects =
                                 declared_effects_from_function_node(method, ctx, NULL);
                             if (!explicit_member_access_allowed(host_decl,
@@ -401,9 +404,9 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
                                     method_name);
                                 return TYPE_UNKNOWN;
                             }
-                            if (method->data.func_decl.return_type != NULL)
+                            if (ast_func_return_type(method) != NULL)
                                 return domain_resolve_type_ref(
-                                    method->data.func_decl.return_type, ctx);
+                                    ast_func_return_type(method), ctx);
                             return TYPE_VOID;
                         }
                     }

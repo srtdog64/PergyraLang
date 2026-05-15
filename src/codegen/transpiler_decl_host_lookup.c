@@ -183,7 +183,7 @@ transpiler_role_subject_type_name_local(ASTNode *role_decl)
 
     if (for_type == NULL || for_type->type != AST_TYPE)
         return NULL;
-    return for_type->data.type.name;
+    return ast_type_name(for_type);
 }
 
 ASTNode *
@@ -276,9 +276,10 @@ current_host_method_decl(TranspilerCtx *ctx, const char *method_name)
     for (size_t i = 0; i < method_view.count; i++) {
         ASTNode *method =
             transpiler_hosted_method_view_source_ast(&method_view, i);
+        const char *candidate_name = ast_declaration_name(method);
         if (method != NULL && method->type == AST_FUNC_DECL
-            && method->data.func_decl.name != NULL
-            && strcmp(method->data.func_decl.name, method_name) == 0) {
+            && candidate_name != NULL
+            && strcmp(candidate_name, method_name) == 0) {
             return method;
         }
     }
@@ -324,9 +325,10 @@ find_nominal_host_method_decl(TranspilerCtx *ctx, const char *host_type_name,
     for (size_t i = 0; i < method_view.count; i++) {
         ASTNode *method =
             transpiler_hosted_method_view_source_ast(&method_view, i);
+        const char *candidate_name = ast_declaration_name(method);
         if (method != NULL && method->type == AST_FUNC_DECL
-            && method->data.func_decl.name != NULL
-            && strcmp(method->data.func_decl.name, method_name) == 0) {
+            && candidate_name != NULL
+            && strcmp(candidate_name, method_name) == 0) {
             transpiler_cache_nominal_method_decl(ctx, host_type_name,
                 method_name, method);
             return method;

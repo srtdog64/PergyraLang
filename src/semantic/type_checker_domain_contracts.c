@@ -307,10 +307,10 @@ type_check_zone_relation_contract(ASTNode *zone,
     relation_refreshes = ast_relation_refreshes(relation_decl,
                                                 &relation_refresh_count);
 
-    between_left_kind = relation_decl->data.relation_decl.between_left_kind;
-    between_right_kind = relation_decl->data.relation_decl.between_right_kind;
-    between_left_type = relation_decl->data.relation_decl.between_left_type;
-    between_right_type = relation_decl->data.relation_decl.between_right_type;
+    between_left_kind = ast_relation_between_left_kind(relation_decl);
+    between_right_kind = ast_relation_between_right_kind(relation_decl);
+    between_left_type = ast_relation_between_left_type(relation_decl);
+    between_right_type = ast_relation_between_right_type(relation_decl);
     left_type = domain_resolve_slot_type(left_slot, ctx);
     right_type = domain_resolve_slot_type(right_slot, ctx);
 

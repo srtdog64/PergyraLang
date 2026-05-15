@@ -306,9 +306,9 @@ mir_source_ast_stmt_has_side_effect_hint(const ASTNode *stmt)
     if (stmt == NULL)
         return false;
     if (stmt->type == AST_CALL
-        && stmt->data.call.callee != NULL
-        && stmt->data.call.callee->type == AST_IDENTIFIER) {
-        callee = stmt->data.call.callee->data.identifier.name;
+        && ast_call_callee(stmt) != NULL
+        && ast_call_callee(stmt)->type == AST_IDENTIFIER) {
+        callee = ast_call_callee(stmt)->data.identifier.name;
     }
     return mir_source_ast_type_stmt_has_side_effect_hint(stmt->type, callee);
 }

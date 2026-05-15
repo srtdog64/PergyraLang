@@ -37,6 +37,8 @@ transpiler_emit_mir_assignment_def_inst(CodeBuf *buf,
                                         char *reason,
                                         size_t reason_cap)
 {
+    ASTNode *target = ast_assignment_target(stmt);
+    ASTNode *value = ast_assignment_value(stmt);
     const char *target_name;
     char *lhs = NULL;
     char *rhs = NULL;
@@ -47,20 +49,19 @@ transpiler_emit_mir_assignment_def_inst(CodeBuf *buf,
 
     if (!transpiler_mir_def_uses_source_statement_emit(
             inst, stmt, AST_ASSIGNMENT)
-        || stmt->data.assignment.target == NULL
-        || stmt->data.assignment.target->type != AST_IDENTIFIER
+        || target == NULL
+        || target->type != AST_IDENTIFIER
         || inst->arg0 == NULL
         || inst->result_name == NULL) {
         return TRANSPILE_MIR_ASSIGNMENT_NOT_HANDLED;
     }
 
-    target_name = stmt->data.assignment.target->data.identifier.name;
+    target_name = target->data.identifier.name;
     if (target_name == NULL || strcmp(inst->arg0, target_name) != 0)
         return TRANSPILE_MIR_ASSIGNMENT_HANDLED;
 
     is_channel_receive_assignment =
-        stmt->data.assignment.value != NULL
-        && stmt->data.assignment.value->type == AST_CHANNEL_RECV;
+        value != NULL && value->type == AST_CHANNEL_RECV;
     is_select_receive_assignment =
         is_channel_receive_assignment
         && transpiler_mir_def_uses_select_receive_statement_emit(
@@ -101,26 +102,26 @@ transpiler_emit_mir_assignment_def_inst(CodeBuf *buf,
         char *field_lhs = NULL;
         char *field_rhs = NULL;
 
-        if (stmt->data.assignment.value != NULL
-            && stmt->data.assignment.value->type == AST_IDENTIFIER
-            && stmt->data.assignment.value->data.identifier.name != NULL
+        if (value != NULL
+            && value->type == AST_IDENTIFIER
+            && value->data.identifier.name != NULL
             && transpiler_resolve_ssa_name(
                    (const TranspilerSSANameMap *)ssa_map_out,
-                   stmt->data.assignment.value->data.identifier.name) == NULL) {
+                   value->data.identifier.name) == NULL) {
             const char *prior_ssa = transpiler_find_prior_block_ssa_name(
                 block, inst_index,
-                stmt->data.assignment.value->data.identifier.name);
+                value->data.identifier.name);
             if (prior_ssa != NULL) {
                 transpiler_ssa_name_map_set(
                     ssa_map_out,
-                    stmt->data.assignment.value->data.identifier.name,
+                    value->data.identifier.name,
                     prior_ssa);
             }
         }
         field_lhs = emit_expression_with_ssa_map(
-            stmt->data.assignment.target, ctx, ssa_map_out);
+            target, ctx, ssa_map_out);
         field_rhs = emit_expression_with_ssa_map(
-            stmt->data.assignment.value, ctx, ssa_map_out);
+            value, ctx, ssa_map_out);
         if (field_lhs == NULL || field_rhs == NULL) {
             free(field_lhs);
             free(field_rhs);
@@ -149,8 +150,7 @@ transpiler_emit_mir_assignment_def_inst(CodeBuf *buf,
     }
 
     lhs = transpiler_render_ssa_name(ctx, inst->result_name);
-    rhs = emit_expression_with_ssa_map(stmt->data.assignment.value, ctx,
-                                       ssa_map_out);
+    rhs = emit_expression_with_ssa_map(value, ctx, ssa_map_out);
     if (rhs == NULL) {
         free(lhs);
         if (reason != NULL && reason_cap > 0) {

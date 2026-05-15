@@ -1,6 +1,8 @@
 #ifndef PGY_TRANSPILER_PROJECTION_METHOD_INVALIDATION_H
 #define PGY_TRANSPILER_PROJECTION_METHOD_INVALIDATION_H
 
+#include "../parser/ast_api.h"
+
 static void
 append_overlay_method_projection_invalidations(CodeBuf *buf,
                                                TranspilerCtx *ctx,
@@ -25,20 +27,20 @@ append_overlay_method_projection_invalidations(CodeBuf *buf,
     case AST_IF_STMT:
         append_overlay_method_projection_invalidations(
             buf, ctx, source_slot_name, host_type_name,
-            node->data.if_stmt.then_branch, depth + 1);
+            ast_if_then_branch(node), depth + 1);
         append_overlay_method_projection_invalidations(
             buf, ctx, source_slot_name, host_type_name,
-            node->data.if_stmt.else_branch, depth + 1);
+            ast_if_else_branch(node), depth + 1);
         break;
     case AST_FOR_LOOP:
         append_overlay_method_projection_invalidations(
             buf, ctx, source_slot_name, host_type_name,
-            node->data.for_loop.body, depth + 1);
+            ast_for_body(node), depth + 1);
         break;
     case AST_WHILE_LOOP:
         append_overlay_method_projection_invalidations(
             buf, ctx, source_slot_name, host_type_name,
-            node->data.while_loop.body, depth + 1);
+            ast_while_body(node), depth + 1);
         break;
     case AST_MATCH_STMT:
         for (size_t i = 0; i < node->data.match_stmt.case_count; i++) {
@@ -56,25 +58,25 @@ append_overlay_method_projection_invalidations(CodeBuf *buf,
             node->data.match_case.body, depth + 1);
         break;
     case AST_SELECT_STMT:
-        for (size_t i = 0; i < node->data.select_stmt.case_count; i++) {
+        for (size_t i = 0; i < ast_select_case_count(node); i++) {
             append_overlay_method_projection_invalidations(
                 buf, ctx, source_slot_name, host_type_name,
-                node->data.select_stmt.cases[i], depth + 1);
+                ast_select_case(node, i), depth + 1);
         }
         append_overlay_method_projection_invalidations(
             buf, ctx, source_slot_name, host_type_name,
-            node->data.select_stmt.default_case, depth + 1);
+            ast_select_default_case(node), depth + 1);
         break;
     case AST_ASYNC_BLOCK:
-        for (size_t i = 0; i < node->data.async_block.statement_count; i++) {
+        for (size_t i = 0; i < ast_async_block_statement_count(node); i++) {
             append_overlay_method_projection_invalidations(
                 buf, ctx, source_slot_name, host_type_name,
-                node->data.async_block.statements[i], depth + 1);
+                ast_async_block_statement(node, i), depth + 1);
         }
         break;
     case AST_ASSIGNMENT: {
         const char *field_name = method_assignment_projection_field_name(
-            ctx, host_type_name, node->data.assignment.target);
+            ctx, host_type_name, ast_assignment_target(node));
         if (field_name != NULL) {
             char *invalidation = emit_current_overlay_projection_invalidation(
                 ctx, source_slot_name, field_name);
@@ -86,31 +88,31 @@ append_overlay_method_projection_invalidations(CodeBuf *buf,
         break;
     }
     case AST_CALL:
-        if (node->data.call.callee != NULL
-            && node->data.call.callee->type == AST_MEMBER_ACCESS
-            && node->data.call.callee->data.member.object != NULL
-            && node->data.call.callee->data.member.object->type == AST_IDENTIFIER
-            && node->data.call.callee->data.member.object->data.identifier.name != NULL
-            && node->data.call.callee->data.member.name != NULL) {
+        if (ast_call_callee(node) != NULL
+            && ast_call_callee(node)->type == AST_MEMBER_ACCESS
+            && ast_member_object(ast_call_callee(node)) != NULL
+            && ast_member_object(ast_call_callee(node))->type == AST_IDENTIFIER
+            && ast_member_object(ast_call_callee(node))->data.identifier.name != NULL
+            && ast_member_name(ast_call_callee(node)) != NULL) {
             ASTNode *host_decl = find_class_decl(ctx, host_type_name);
             ClassField *field = NULL;
 
             if (host_decl != NULL && host_decl->type == AST_CLASS_DECL) {
                 field = find_host_field_by_name_local(host_decl,
-                    node->data.call.callee->data.member.object->data.identifier.name);
+                    ast_member_object(ast_call_callee(node))->data.identifier.name);
             }
             if (field != NULL && field->is_vessel_field
                 && field->type != NULL
                 && field->type->type == AST_TYPE
-                && field->type->data.type.name != NULL) {
+                && ast_type_name(field->type) != NULL) {
                 ASTNode *method_decl = find_nominal_host_method_decl(
-                    ctx, field->type->data.type.name,
-                    node->data.call.callee->data.member.name);
+                    ctx, ast_type_name(field->type),
+                    ast_member_name(ast_call_callee(node)));
                 if (method_decl != NULL) {
                     append_overlay_method_projection_invalidations(
                         buf, ctx, source_slot_name,
-                        field->type->data.type.name,
-                        method_decl->data.func_decl.body, depth + 1);
+                        ast_type_name(field->type),
+                        ast_func_body(method_decl), depth + 1);
                 }
             }
         }
@@ -128,16 +130,16 @@ emit_current_overlay_method_projection_invalidation(TranspilerCtx *ctx,
 {
     CodeBuf *buf;
 
+    ASTNode *body = ast_func_body(method_decl);
     if (ctx == NULL || source_slot_name == NULL || host_type_name == NULL
-        || method_decl == NULL || method_decl->type != AST_FUNC_DECL
-        || method_decl->data.func_decl.body == NULL) {
+        || body == NULL) {
         return NULL;
     }
 
     buf = codebuf_create();
     append_overlay_method_projection_invalidations(
         buf, ctx, source_slot_name, host_type_name,
-        method_decl->data.func_decl.body, 0);
+        body, 0);
 
     if (buf->len == 0) {
         codebuf_destroy(buf);

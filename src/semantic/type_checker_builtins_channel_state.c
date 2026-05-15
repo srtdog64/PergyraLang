@@ -75,12 +75,12 @@ type_check_channel_state_builtin(ASTNode *expr, const char *name,
         return TYPE_UNKNOWN;
     semantic_record_effect(ctx, EFFECT_REMOTE);
     ch_type = channel_state_normalize_type(
-        type_check_expression(expr->data.call.arguments[0], ctx));
+        type_check_expression(ast_call_argument(expr, 0), ctx));
     if (!type_is_constructed_named(ch_type, "Channel")) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
             PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,
             PGY_FIX_MATCH_BUILTIN_SIGNATURE,
-            expr->data.call.arguments[0],
+            ast_call_argument(expr, 0),
             "%s requires Channel<T>, got '%s'",
             name,
             type_name_or_unknown(ch_type));

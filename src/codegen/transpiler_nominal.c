@@ -259,17 +259,17 @@ transpiler_resolve_nominal_host_expr_type_name(TranspilerCtx *ctx, ASTNode *expr
     }
 
     if (expr->type == AST_MEMBER_ACCESS
-        && expr->data.member.object != NULL
-        && expr->data.member.name != NULL) {
-        if (expr->data.member.object->type == AST_IDENTIFIER
-            && strcmp(expr->data.member.object->data.identifier.name, "self") == 0) {
-            return transpiler_current_field_type_name(ctx, expr->data.member.name);
+        && ast_member_object(expr) != NULL
+        && ast_member_name(expr) != NULL) {
+        if (ast_member_object(expr)->type == AST_IDENTIFIER
+            && strcmp(ast_member_object(expr)->data.identifier.name, "self") == 0) {
+            return transpiler_current_field_type_name(ctx, ast_member_name(expr));
         }
         {
             const char *obj_type = transpiler_resolve_nominal_host_expr_type_name(
-                ctx, expr->data.member.object);
+                ctx, ast_member_object(expr));
             return transpiler_lookup_nominal_host_member_type_name(
-                ctx, obj_type, expr->data.member.name);
+                ctx, obj_type, ast_member_name(expr));
         }
     }
 

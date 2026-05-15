@@ -13,8 +13,8 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
         if (host_method != NULL && host_name != NULL) {
             CodeBuf *args_buf = codebuf_create();
             codebuf_write(args_buf, "self");
-            for (size_t i = 0; i < call->data.call.arg_count; i++) {
-                char *arg = emit_expression(call->data.call.arguments[i], ctx);
+            for (size_t i = 0; i < ast_call_arg_count(call); i++) {
+                char *arg = emit_expression(ast_call_argument(call, i), ctx);
                 codebuf_write(args_buf, ", %s", arg);
                 free(arg);
             }
@@ -42,10 +42,10 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
     CodeBuf *args_buf = codebuf_create();
     ASTNode *decl = (callee->type == AST_IDENTIFIER)
         ? find_callable_decl(ctx, callee->data.identifier.name) : NULL;
-    for (size_t i = 0; i < call->data.call.arg_count; i++) {
+    for (size_t i = 0; i < ast_call_arg_count(call); i++) {
         FuncParam *param = (decl != NULL && decl->type == AST_FUNC_DECL
-                            && i < decl->data.func_decl.param_count)
-            ? decl->data.func_decl.params[i] : NULL;
+                            && i < ast_func_param_count(decl))
+            ? ast_func_param(decl, i) : NULL;
         ASTNode *intent_param_type = NULL;
         bool handled = false;
         char *arg = NULL;
@@ -87,10 +87,11 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                 bool secure = false;
                 bool saved_suppress = ctx->suppress_slot_auto_read;
                 ctx->suppress_slot_auto_read = true;
-                arg = emit_expression(call->data.call.arguments[i], ctx);
+                ASTNode *call_arg = ast_call_argument(call, i);
+                arg = emit_expression(call_arg, ctx);
                 ctx->suppress_slot_auto_read = saved_suppress;
                 (void)transpiler_resolve_slot_target_copy(ctx,
-                    call->data.call.arguments[i], inner_buf,
+                    call_arg, inner_buf,
                     sizeof(inner_buf), &slot_name, &secure);
                 if (i > 0)
                     codebuf_write(args_buf, ", ");
@@ -107,7 +108,7 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
         }
 
         if (!handled)
-            arg = emit_expression(call->data.call.arguments[i], ctx);
+            arg = emit_expression(ast_call_argument(call, i), ctx);
         if (!handled && i > 0)
             codebuf_write(args_buf, ", ");
         if (!handled) {
@@ -127,7 +128,7 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             }
             if (is_subject_arg) {
                 bool already_ptr = false;
-                ASTNode *arg_node = call->data.call.arguments[i];
+                ASTNode *arg_node = ast_call_argument(call, i);
                 if (arg_node != NULL && arg_node->type == AST_IDENTIFIER) {
                     TypedVarEntry *entry = lookup_typed_entry(ctx,
                         arg_node->data.identifier.name);

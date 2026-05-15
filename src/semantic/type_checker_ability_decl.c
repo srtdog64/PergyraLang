@@ -8,19 +8,23 @@
 Type *
 ability_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
 {
+    Type *resolved;
+
     if (type_ref == NULL || ctx == NULL)
         return TYPE_UNKNOWN;
 
-    return semantic_type_resolution_lookup_type_ref_or_materialize(ctx,
-                                                                   type_ref);
+    resolved = semantic_type_resolution_lookup_metadata_type_ref(ctx, type_ref);
+    return resolved != NULL ? resolved : TYPE_UNKNOWN;
 }
 
 bool
 type_check_ability_decl(ASTNode *node, SemanticContext *ctx)
 {
-    const char *name = node->data.ability_decl.name;
-    bool has_generics = (node->data.ability_decl.generic_params != NULL
-                         && node->data.ability_decl.generic_params->count > 0);
+    const char *name = ast_ability_name(node);
+    GenericParams *ability_generics = ast_ability_generic_params(node);
+    WhereClause *ability_where = ast_ability_where_clause(node);
+    bool has_generics = (ability_generics != NULL
+                         && ability_generics->count > 0);
 
     Symbol *existing = scope_lookup_current(ctx->scope, name);
     if (existing != NULL) {
@@ -47,10 +51,9 @@ type_check_ability_decl(ASTNode *node, SemanticContext *ctx)
     }
 
     if (has_generics) {
-        validate_generic_param_defaults(node->data.ability_decl.generic_params,
-            ctx, node, "ability");
+        validate_generic_param_defaults(ability_generics, ctx, node, "ability");
         scope_enter(&ctx->scope, SCOPE_BLOCK);
-        GenericParams *gp = node->data.ability_decl.generic_params;
+        GenericParams *gp = ability_generics;
         for (size_t gi = 0; gi < gp->count; gi++) {
             if (gp->params[gi] == NULL || gp->params[gi]->name == NULL)
                 continue;
@@ -64,10 +67,10 @@ type_check_ability_decl(ASTNode *node, SemanticContext *ctx)
         }
     }
 
-    validate_where_clause_bounds(node->data.ability_decl.where_clause, ctx, node);
+    validate_where_clause_bounds(ability_where, ctx, node);
     validate_generic_param_default_bounds(
-        node->data.ability_decl.generic_params,
-        node->data.ability_decl.where_clause,
+        ability_generics,
+        ability_where,
         ctx,
         node,
         "ability",
@@ -76,20 +79,20 @@ type_check_ability_decl(ASTNode *node, SemanticContext *ctx)
 
     /* Check method signatures */
     scope_enter(&ctx->scope, SCOPE_BLOCK);
-    for (size_t i = 0; i < node->data.ability_decl.method_count; i++) {
-        ASTNode *method = node->data.ability_decl.methods[i];
+    for (size_t i = 0; i < ast_ability_method_count(node); i++) {
+        ASTNode *method = ast_ability_method(node, i);
         if (method == NULL || method->type != AST_FUNC_DECL)
             continue;
         /* Only type-check methods that have a body */
-        if (method->data.func_decl.body != NULL) {
+        if (ast_func_body(method) != NULL) {
             type_check_func_decl(method, ctx);
         } else {
             /* Abstract method — just validate the signature types */
-            if (method->data.func_decl.return_type != NULL)
+            if (ast_func_return_type(method) != NULL)
                 ability_resolve_type_ref(
-                    method->data.func_decl.return_type, ctx);
-            for (size_t j = 0; j < method->data.func_decl.param_count; j++) {
-                FuncParam *param = method->data.func_decl.params[j];
+                    ast_func_return_type(method), ctx);
+            for (size_t j = 0; j < ast_func_param_count(method); j++) {
+                FuncParam *param = ast_func_param(method, j);
                 if (param != NULL && param->type != NULL)
                     ability_resolve_type_ref(
                         param->type, ctx);

@@ -128,15 +128,15 @@ llvm_resolve_projection_source_path_rec(LLVMGenCtx *ctx, ASTNode *source_decl,
         char *nested_path = NULL;
         char *prefixed_path;
         int nested_status;
+        const char *field_type_name = field != NULL ? ast_type_name(field->type) : NULL;
 
         if (field == NULL || !field->is_vessel_field
-            || field->type == NULL || field->type->type != AST_TYPE
-            || field->type->data.type.name == NULL) {
+            || field_type_name == NULL) {
             continue;
         }
 
         vessel_decl = llvm_find_projection_nominal_decl(ctx,
-            field->type->data.type.name);
+            field_type_name);
         if (vessel_decl == NULL || vessel_decl->type != AST_CLASS_DECL
             || ast_class_nominal_kind(vessel_decl) != NOMINAL_DECL_VESSEL) {
             continue;
@@ -247,15 +247,15 @@ llvm_load_projection_path_value(LLVMGenCtx *ctx,
 
         for (size_t i = 0; i < llvm_projection_field_count(current_decl); i++) {
             ClassField *field = llvm_projection_field_at(current_decl, i);
+            const char *field_type_name = field != NULL ? ast_type_name(field->type) : NULL;
             if (field == NULL || field->name == NULL
                 || strcmp(field->name, segment) != 0
-                || field->type == NULL || field->type->type != AST_TYPE
-                || field->type->data.type.name == NULL) {
+                || field_type_name == NULL) {
                 continue;
             }
             current_decl = llvm_find_projection_nominal_decl(ctx,
-                field->type->data.type.name);
-            current_cls = llvm_lookup_class(ctx, field->type->data.type.name);
+                field_type_name);
+            current_cls = llvm_lookup_class(ctx, field_type_name);
             if (current_decl == NULL || current_cls == NULL)
                 return llvm_projection_error_recovery(ctx, field->type,
                     "LLVM projection nested path requires vessel class metadata");
@@ -282,12 +282,12 @@ llvm_emit_subject_projection(ASTNode *node, LLVMGenCtx *ctx)
     LLVMValueRef source_base;
     LLVMValueRef projected;
 
-    if (node == NULL || node->data.call.arg_count != 2)
+    if (node == NULL || ast_call_arg_count(node) != 2)
         return llvm_projection_error_recovery(ctx, node,
             "LLVM subject projection requires target and source arguments");
 
-    target_arg = node->data.call.arguments[0];
-    source_arg = node->data.call.arguments[1];
+    target_arg = ast_call_argument(node, 0);
+    source_arg = ast_call_argument(node, 1);
     if (target_arg == NULL || target_arg->type != AST_IDENTIFIER
         || target_arg->data.identifier.name == NULL
         || source_arg == NULL || source_arg->type != AST_IDENTIFIER

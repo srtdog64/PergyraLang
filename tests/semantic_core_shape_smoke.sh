@@ -42,6 +42,9 @@ for path in \
     src/semantic/type_checker_builtins_secure_token.c \
     src/semantic/type_checker_builtins_slotops.c \
     src/semantic/type_checker_builtins_slotops.h \
+    src/semantic/type_checker_builtins_state_tools.c \
+    src/semantic/type_checker_builtins_stdlib_scalar.c \
+    src/semantic/type_checker_builtins_stdlib_map.c \
     src/semantic/type_checker_builtins_stdlib_collections.c \
     src/semantic/type_checker_resolution_stage_alias.c \
     src/semantic/type_checker_resolution_stage_nominal.c \
@@ -96,6 +99,9 @@ for path in \
     src/semantic/type_checker_builtins_secure_token.c \
     src/semantic/type_checker_builtins_slotops.c \
     src/semantic/type_checker_builtins_slotops.h \
+    src/semantic/type_checker_builtins_state_tools.c \
+    src/semantic/type_checker_builtins_stdlib_scalar.c \
+    src/semantic/type_checker_builtins_stdlib_map.c \
     src/semantic/type_checker_builtins_stdlib_body.c \
     src/semantic/type_checker_builtins_stdlib_collections.c \
     src/semantic/type_checker_intent_ability.c \
@@ -209,6 +215,90 @@ if grep -R "data\.include_stmt" src/semantic src/compiler src/codegen >/dev/null
     fail "non-parser include payload consumers must use AST include accessors"
 fi
 
+if grep -R "data\.array_access" src/semantic src/compiler src/codegen >/dev/null; then
+    fail "non-parser array-access payload consumers must use AST array-access accessors"
+fi
+
+if grep -R "data\.member\." src/semantic src/compiler src/codegen >/dev/null; then
+    fail "non-parser member-access payload consumers must use AST member accessors"
+fi
+
+if grep -R "data\.assignment\." src/semantic src/compiler src/codegen >/dev/null; then
+    fail "non-parser assignment payload consumers must use AST assignment accessors"
+fi
+
+if grep -R "data\.await_expr\." src/semantic src/compiler src/codegen >/dev/null; then
+    fail "non-parser await-expression payload consumers must use AST await accessors"
+fi
+
+if grep -R "data\.channel_\(send\|recv\)\." src/semantic src/compiler src/codegen >/dev/null; then
+    fail "non-parser channel payload consumers must use AST channel accessors"
+fi
+
+if grep -R "data\.unary\." src/semantic src/compiler src/codegen >/dev/null; then
+    fail "non-parser unary payload consumers must use AST unary accessors"
+fi
+
+if grep -R "data\.binary\." src/semantic src/compiler src/codegen >/dev/null; then
+    fail "non-parser binary payload consumers must use AST binary accessors"
+fi
+
+if grep -R "data\.\(array_literal\|tuple_literal\)\." src/semantic src/compiler src/codegen >/dev/null; then
+    fail "non-parser literal payload consumers must use AST literal accessors"
+fi
+
+if grep -R "data\.defer_stmt\." src/semantic src/compiler src/codegen >/dev/null; then
+    fail "non-parser defer payload consumers must use AST defer accessors"
+fi
+
+if grep -R "data\.return_stmt\." src/semantic src/compiler src/codegen >/dev/null; then
+    fail "non-parser return payload consumers must use AST return accessors"
+fi
+
+if grep -R "data\.unsafe_block\." src/semantic src/compiler src/codegen >/dev/null; then
+    fail "non-parser unsafe-block payload consumers must use AST unsafe-block accessors"
+fi
+
+if grep -R "data\.\(break_stmt\|continue_stmt\)\." src/semantic src/compiler src/codegen >/dev/null; then
+    fail "non-parser loop-control payload consumers must use AST loop-control accessors"
+fi
+
+if grep -R "data\.while_loop\." src/semantic src/compiler src/codegen >/dev/null; then
+    fail "non-parser while-loop payload consumers must use AST while-loop accessors"
+fi
+
+if grep -R "data\.for_loop\." src/semantic src/compiler src/codegen >/dev/null; then
+    fail "non-parser for-loop payload consumers must use AST for-loop accessors"
+fi
+
+if grep -R "data\.task_group\." src/semantic src/compiler src/codegen >/dev/null; then
+    fail "non-parser task-group payload consumers must use AST task-group accessors"
+fi
+
+if grep -R "data\.spawn_expr\." src/semantic src/compiler src/codegen >/dev/null; then
+    fail "non-parser spawn-expression payload consumers must use AST spawn accessors"
+fi
+
+if grep -R "data\.async_block\." src/semantic src/compiler src/codegen >/dev/null; then
+    fail "non-parser async-block payload consumers must use AST async-block accessors"
+fi
+
+if grep -R "data\.select_stmt\." src/semantic src/compiler src/codegen >/dev/null; then
+    fail "non-parser select-statement payload consumers must use AST select accessors"
+fi
+
+if grep -R "data\.parallel\." src/semantic src/compiler src/codegen >/dev/null; then
+    fail "non-parser parallel-block payload consumers must use AST parallel accessors"
+fi
+
+if grep -R "data\.with_stmt\." src/semantic src/compiler src/codegen >/dev/null; then
+    fail "non-parser with-statement payload consumers must use AST with-statement accessors"
+fi
+
+if grep -R "data\.if_stmt\." src/semantic src/compiler src/codegen >/dev/null; then
+    fail "non-parser if-statement payload consumers must use AST if-statement accessors"
+fi
+
 grep -q 'ast_impl_ability_method(impl, i)' src/compiler/dir_collect.c \
     || fail "DIR role ability method scan must consume AST impl-ability accessor"
 
@@ -233,26 +323,517 @@ if grep -R "data\.role_decl\.\(for_type\|includes\|include_count\|impl_abilities
 fi
 
 if grep -R "data\.ability_decl\.\(name\|methods\|method_count\)" \
-    src/compiler src/codegen \
-    | grep -v "src/compiler/module_normalizer.c" >/dev/null; then
+    src/compiler src/codegen >/dev/null; then
     fail "compiler/codegen ability consumers must use AST ability accessors"
 fi
 
+if grep -R "data\.ability_decl\.\(generic_params\|where_clause\|require_fields\|require_count\|methods\|method_count\)" \
+    src/semantic src/compiler src/codegen >/dev/null; then
+    fail "semantic/compiler/codegen ability metadata consumers must use AST ability accessors"
+fi
+
+if grep -R "data\.\(ability_decl\|role_decl\)\.name" \
+    src/semantic src/compiler src/codegen >/dev/null; then
+    fail "semantic/compiler/codegen ability/role-name consumers must use AST accessors"
+fi
+
+if grep -R "data\.\(ability_decl\|role_decl\)" \
+    src/semantic src/compiler src/codegen >/dev/null; then
+    fail "semantic/compiler/codegen ability/role payload consumers must use AST accessors"
+fi
+
+if grep -R "data\.type_alias\.\(name\|target_type\)" \
+    src/semantic src/compiler src/codegen >/dev/null; then
+    fail "semantic/compiler/codegen type-alias consumers must use AST type-alias accessors"
+fi
+
+if grep -R "data\.event_decl\.\(name\|params\|param_count\|return_type\)" \
+    src/semantic src/compiler src/codegen >/dev/null; then
+    fail "semantic/compiler/codegen event consumers must use AST event accessors"
+fi
+
+if grep -R "data\.extern_block\.\(abi\|declarations\|count\)" \
+    src/semantic src/compiler src/codegen >/dev/null; then
+    fail "semantic/compiler/codegen extern block consumers must use AST extern accessors"
+fi
+
+if grep -R "data\.func_decl\.name" \
+    src/compiler/hir.c \
+    src/compiler/hir_routines.c \
+    src/compiler/mir_decl_headers.c \
+    src/compiler/mir_decl_header_validate.c \
+    src/codegen/llvm_inventory_decl_lookup.c \
+    src/semantic/type_checker_resolution_graph_collect.c \
+    src/semantic/type_checker_resolution_graph_inventory.c \
+    src/semantic/type_checker_resolution_stage_lookup.c >/dev/null; then
+    fail "closed HIR/MIR/DAG/LLVM declaration-name consumers must use AST declaration-name accessors"
+fi
+
+if grep -R "data\.func_decl\.name" src/semantic src/codegen >/dev/null; then
+    fail "semantic/codegen function-name consumers must use AST declaration-name accessors"
+fi
+
+if grep -R "data\.func_decl\.name" src/compiler \
+    | grep -v "src/compiler/hir_destroy.c" >/dev/null; then
+    fail "compiler function-name consumers must use AST declaration-name accessors outside parser-owned destruction"
+fi
+
+if grep -R "data\.func_decl\.\(param_count\|params\|return_type\|body\)" \
+    src/semantic/slot_analyzer.c \
+    src/semantic/slot_analyzer_escape.c \
+    src/semantic/slot_analyzer_summary.c \
+    src/semantic/type_checker_ability_decl.c \
+    src/semantic/type_checker_call_contract_helpers.c \
+    src/semantic/type_checker_call_generic_where.c \
+    src/semantic/type_checker_async_channel.h \
+    src/semantic/type_checker_expr_host.c \
+    src/semantic/type_checker_expr_call.c \
+    src/semantic/type_checker_expr_ops.c \
+    src/semantic/type_checker_func_action_contract.c \
+    src/semantic/type_checker_func_decl.c \
+    src/semantic/type_checker_generic_support.h \
+    src/semantic/type_checker_helpers_effects.c \
+    src/semantic/type_checker_helpers_late.c \
+    src/semantic/type_checker_host_helpers.c \
+    src/semantic/type_checker_intent_action_contract.c \
+    src/semantic/type_checker_intent_on_inference.c \
+    src/semantic/type_checker_ownership_param_summary.c \
+    src/semantic/type_checker_program.c \
+    src/semantic/type_checker_resolution_graph_decl.c \
+    src/semantic/type_checker_resolution_stage_signature.c \
+    src/compiler/debugger.c \
+    src/compiler/hir_analysis.c \
+    src/compiler/hir_routines.c \
+    src/compiler/mir_decl_header_validate.c \
+    src/compiler/mir_decl_headers.c \
+    src/compiler/mir_non_cfg_stmt_population.c \
+    src/compiler/mir_type_helpers.c \
+    src/compiler/module_normalizer_refs.c \
+    src/compiler/rir_builder.c \
+    src/compiler/runtime_none_contract.c \
+    src/codegen/llvm_backend_forward_declare.c \
+    src/codegen/llvm_decl.c \
+    src/codegen/llvm_domain_forward.c \
+    src/codegen/llvm_expr_boundary_projection_helpers.c \
+    src/codegen/llvm_expr_call_dispatch.c \
+    src/codegen/llvm_expr_call_variable.c \
+    src/codegen/llvm_expr_identifier_slot_helpers.c \
+    src/codegen/llvm_expr_spawn_call_helpers.c \
+    src/codegen/llvm_expr_unary_core.c \
+    src/codegen/llvm_member_call_emit.c \
+    src/codegen/llvm_mir_block_emit.c \
+    src/codegen/llvm_mir_cfg_control.c \
+    src/codegen/llvm_mir_emit.c \
+    src/codegen/llvm_mir_local_emit.c \
+    src/codegen/llvm_register.c \
+    src/codegen/llvm_stmt.c \
+    src/codegen/llvm_stmt_let_helpers.c \
+    src/codegen/llvm_stmt_let_callable.c \
+    src/codegen/llvm_stmt_type_infer_helpers.c \
+    src/codegen/llvm_stmt_type_infer.c \
+    src/codegen/llvm_type.c \
+    src/codegen/transpiler_async_parallel_emit.h \
+    src/codegen/transpiler_extern.c \
+    src/codegen/transpiler_class_decl_emit.h \
+    src/codegen/transpiler_domain_nominal_emit.h \
+    src/codegen/transpiler_domain_role_ability_emit.h \
+    src/codegen/transpiler_domain_role_methods_emit.h \
+    src/codegen/transpiler_enum_decl_emit.h \
+    src/codegen/transpiler_expr_call_spawn_emit.h \
+    src/codegen/transpiler_expr_call_user_emit.h \
+    src/codegen/transpiler_expr_type_infer.h \
+    src/codegen/transpiler_func_class_flow_emit.h \
+    src/codegen/transpiler_func_forward_emit.c \
+    src/codegen/transpiler_func_forward_helpers.h \
+    src/codegen/transpiler_func_forward_metadata.c \
+    src/codegen/transpiler_func_forward_policy.c \
+    src/codegen/transpiler_generic_class_specialization_emit.h \
+    src/codegen/transpiler_let_emit.h \
+    src/codegen/transpiler_intent_zone_binding_emit.h \
+    src/codegen/transpiler_mir_emission_mapping_contract.h \
+    src/codegen/transpiler_mir_emit_state.c \
+    src/codegen/transpiler_mir_func_emit.h \
+    src/codegen/transpiler_mir_func_ssa_locals_emit.h \
+    src/codegen/transpiler_mir_local_binding.c \
+    src/codegen/transpiler_mir_local_type_ast_lookup.c \
+    src/codegen/transpiler_mir_local_type_lookup.h \
+    src/codegen/transpiler_mir_match_condition_emit.h \
+    src/codegen/transpiler_mir_signature.c \
+    src/codegen/transpiler_mir_ssa_emit.h \
+    src/codegen/transpiler_projection_method_invalidation.h \
+    src/codegen/transpiler_spawn_channel_emit.h \
+    src/codegen/transpiler_specialization_helpers.h \
+    src/codegen/transpiler_type_declarator.c >/dev/null; then
+    fail "closed function signature/body slice must use AST function accessors"
+fi
+
+if grep -R "data\.func_decl\.\(param_count\|params\|return_type\|body\)" \
+    src/semantic src/codegen >/dev/null; then
+    fail "semantic/codegen function signature/body consumers must use AST function accessors"
+fi
+
+if grep -R "data\.func_decl\.\(param_count\|params\|return_type\|body\)" src/compiler \
+    | grep -v "src/compiler/hir.c" \
+    | grep -v "src/compiler/hir_destroy.c" >/dev/null; then
+    fail "compiler function signature/body consumers must use AST function accessors outside parser-owned HIR construction/destruction"
+fi
+
+if grep -R "data\.func_decl\.\(generic_params\|where_clause\)" \
+    src/semantic src/compiler src/codegen >/dev/null; then
+    fail "semantic/compiler/codegen function generic/where consumers must use AST function accessors"
+fi
+
+if grep -R "data\.async_func_decl\.\(name\|param_count\|params\|return_type\|body\|generic_params\)" \
+    src/semantic src/compiler src/codegen >/dev/null; then
+    fail "semantic/compiler/codegen async function metadata consumers must use AST async function accessors"
+fi
+
+if grep -R "data\.event_handler_type\.\(param_count\|param_types\|return_type\)" \
+    src/semantic src/compiler src/codegen >/dev/null; then
+    fail "semantic/compiler/codegen event-handler type consumers must use AST event-handler type accessors"
+fi
+
+if grep -R "data\.type\.\(name\|generic_args\)" \
+    src/semantic/type_checker_ability_ref.c \
+    src/semantic/type_checker_ability_match.c \
+    src/semantic/type_checker_ability_where.c >/dev/null; then
+    fail "ability contract helpers must use AST type accessors for type-ref names and generic args"
+fi
+
+if grep -R "data\.type\.\(name\|generic_args\)" \
+    src/semantic src/compiler src/codegen >/dev/null; then
+    fail "semantic/compiler/codegen AST_TYPE consumers must use AST type accessors"
+fi
+
+if grep -R "data\.call\.generic_args" \
+    src/semantic src/compiler src/codegen >/dev/null; then
+    fail "semantic/compiler/codegen call generic-argument consumers must use AST call accessors"
+fi
+
+if grep -R "data\.call\.\(callee\|arguments\|arg_count\)" \
+    src/compiler/air_boundary.c \
+    src/compiler/air_boundary_walk.c \
+    src/compiler/air_evidence_ast.c >/dev/null; then
+    fail "AIR call traversal owners must use AST call accessors"
+fi
+
+if grep -R "data\.call\.\(callee\|arguments\|arg_count\)" \
+    src/compiler/hir_analysis.c >/dev/null; then
+    fail "HIR analysis call traversal owner must use AST call accessors"
+fi
+
+if grep -R "data\.call\.\(callee\|arguments\|arg_count\)" \
+    src/compiler/mir_stmt_source.c \
+    src/compiler/mir.c \
+    src/compiler/mir_call_fact.c \
+    src/compiler/mir_source_shape.c \
+    src/compiler/mir_ssa_rename.c \
+    src/compiler/mir_type_helpers.c \
+    src/compiler/module_normalizer_refs.c \
+    src/compiler/rir_builder_walk.c \
+    src/compiler/rir_facts.c \
+    src/compiler/rir_validation.c \
+    src/compiler/runtime_none_contract.c >/dev/null; then
+    fail "compiler source/runtime scanning call owners must use AST call accessors"
+fi
+
+if grep -R "data\.call\.\(callee\|arguments\|arg_count\)" \
+    src/semantic/slot_analyzer_escape.c \
+    src/semantic/slot_analyzer_summary.c >/dev/null; then
+    fail "slot analyzer call traversal owners must use AST call accessors"
+fi
+
+if grep -R "data\.call\.\(callee\|arguments\|arg_count\)" \
+    src/semantic/type_checker_async_channel.h \
+    src/semantic/type_checker_builtins_channel_state.c \
+    src/semantic/type_checker_builtins_intent_observability.c >/dev/null; then
+    fail "semantic async/channel/observability call owners must use AST call accessors"
+fi
+
+if grep -R "data\.call\.\(callee\|arguments\|arg_count\)" \
+    src/semantic/type_checker_builtins_projection.c \
+    src/semantic/type_checker_builtins_query.c >/dev/null; then
+    fail "semantic projection/query builtin call owners must use AST call accessors"
+fi
+
+if grep -R "data\.call\.\(callee\|arguments\|arg_count\)" \
+    src/semantic/type_checker_builtins_query_channel.c >/dev/null; then
+    fail "semantic channel query builtin call owner must use AST call accessors"
+fi
+
+if grep -R "data\.call\.\(callee\|arguments\|arg_count\)" \
+    src/semantic/type_checker_builtins_query_world.c >/dev/null; then
+    fail "semantic world query builtin call owner must use AST call accessors"
+fi
+
+if grep -R "data\.call\.\(callee\|arguments\|arg_count\)" \
+    src/semantic/type_checker_builtins_nominal.c >/dev/null; then
+    fail "semantic nominal builtin call owner must use AST call accessors"
+fi
+
+if grep -R "data\.call\.\(callee\|arguments\|arg_count\)" \
+    src/semantic/type_checker_builtins_slotops.c \
+    src/semantic/type_checker_builtins_slotops_view.c >/dev/null; then
+    fail "semantic slotops builtin call owners must use AST call accessors"
+fi
+
+if grep -R "data\.call\.\(callee\|arguments\|arg_count\)" \
+    src/semantic/type_checker_builtins_state_tools.c >/dev/null; then
+    fail "semantic state-tool builtin call owner must use AST call accessors"
+fi
+
+if grep -R "data\.call\.\(callee\|arguments\|arg_count\)" \
+    src/semantic/type_checker_builtins_stdlib_scalar.c >/dev/null; then
+    fail "semantic stdlib scalar builtin call owner must use AST call accessors"
+fi
+
+if grep -R "data\.call\.\(callee\|arguments\|arg_count\)" \
+    src/semantic/type_checker_builtins_stdlib_map.c >/dev/null; then
+    fail "semantic stdlib map builtin call owner must use AST call accessors"
+fi
+
+if grep -R "data\.call\.\(callee\|arguments\|arg_count\)" \
+    src/semantic/type_checker_lambda_capture.c >/dev/null; then
+    fail "semantic lambda capture call owner must use AST call accessors"
+fi
+
+if grep -R "data\.call\.\(callee\|arguments\|arg_count\)" \
+    src/semantic/type_checker_expr_call.c \
+    src/semantic/type_checker_expr_host.c \
+    src/semantic/type_checker_builtins_stdlib_variant.c \
+    src/semantic/type_checker_call_constructor.c \
+    src/semantic/type_checker_flow_match.c \
+    src/semantic/type_checker_host_helpers.c \
+    src/semantic/type_checker_intent_decl.c \
+    src/semantic/type_checker_intent_control.c \
+    src/semantic/type_checker_intent_on_inference.c \
+    src/semantic/type_checker_ownership_destructure.c \
+    src/semantic/type_checker_ownership_let.c \
+    src/semantic/type_checker_ownership_let_helpers.c \
+    src/semantic/type_checker_ownership_let_slot_claim.c \
+    src/semantic/type_checker_resolution_graph_body.c \
+    src/semantic/type_checker_world_embedding.c \
+    src/semantic/type_infer.c >/dev/null; then
+    fail "semantic intent/ownership/DAG call owners must use AST call accessors"
+fi
+
+if grep -R "data\.call\.\(callee\|arguments\|arg_count\)" \
+    src/codegen/llvm_stmt_let_callable.c \
+    src/codegen/transpiler_call_constructor_result_emit.h \
+    src/codegen/transpiler_expr_call_spawn_emit.h \
+    src/codegen/transpiler_expr_call_user_emit.h >/dev/null; then
+    fail "codegen callable call owners must use AST call accessors"
+fi
+
+if grep -R "data\.call\.\(callee\|arguments\|arg_count\)" \
+    src/codegen/llvm_stmt_zone_action.c \
+    src/codegen/transpiler_projection_sync_helpers.h >/dev/null; then
+    fail "codegen zone/projection sync call owners must use AST call accessors"
+fi
+
+if grep -R "data\.call\.\(callee\|arguments\|arg_count\)" \
+    src/codegen/llvm_expr_event_calls.c \
+    src/codegen/llvm_expr_intent_observability_calls.c \
+    src/codegen/llvm_expr_rc_calls.c \
+    src/codegen/transpiler_allocator_builtin_emit.c >/dev/null; then
+    fail "codegen event/intent-observability/Rc/allocator call owners must use AST call accessors"
+fi
+
+if grep -R "data\.call\.\(callee\|arguments\|arg_count\)" \
+    src/codegen/llvm_expr_call_methods_domain_slice.c \
+    src/codegen/llvm_expr_call_dispatch.c \
+    src/codegen/llvm_expr_call_collections_extended.c \
+    src/codegen/llvm_expr_call_queue_extended.c \
+    src/codegen/llvm_expr_call_methods_vtable_dispatch.c \
+    src/codegen/llvm_expr_call_variable.c \
+    src/codegen/llvm_expr_array_calls.c \
+    src/codegen/llvm_expr_collection_base_calls.c \
+    src/codegen/llvm_expr_common.c \
+    src/codegen/llvm_expr_constructor_calls.c \
+    src/codegen/llvm_expr_domain_query_calls.c \
+    src/codegen/llvm_expr_domain_query_utils.c \
+    src/codegen/llvm_expr_identifier_slot_helpers.c \
+    src/codegen/llvm_expr_log_calls.c \
+    src/codegen/llvm_expr_math_calls.c \
+    src/codegen/llvm_expr_result_option_calls.c \
+    src/codegen/llvm_expr_stdlib_scalar_io_calls.c \
+    src/codegen/llvm_expr_slot_device_calls.c \
+    src/codegen/llvm_expr_task_channel_calls.c \
+    src/codegen/llvm_expr_projection_path_helpers.c \
+    src/codegen/llvm_expr_spawn_call_helpers.c \
+    src/codegen/llvm_member_call_emit.c \
+    src/codegen/llvm_mir_cfg_control.c \
+    src/codegen/llvm_stmt_let_collections.c \
+    src/codegen/llvm_stmt_let_helpers.c \
+    src/codegen/llvm_stmt_let_resources.c \
+    src/codegen/llvm_stmt_let_slots.c \
+    src/codegen/llvm_stmt_let_with.c \
+    src/codegen/llvm_stmt_loop_match.c \
+    src/codegen/llvm_stmt_type_infer_nominal.c \
+    src/codegen/llvm_mir_local_emit.c \
+    src/codegen/transpiler_event_builtin_emit.c \
+    src/codegen/transpiler_call_result_option_builtin_emit.h \
+    src/codegen/transpiler_expr_core_builtins_emit.h \
+    src/codegen/transpiler_expr_builtin_dispatch.h \
+    src/codegen/transpiler_expr_stdlib_builtin.h \
+    src/codegen/transpiler_func_class_flow_emit.h \
+    src/codegen/transpiler_func_forward_helpers.h \
+    src/codegen/transpiler_helpers_core_b.h \
+    src/codegen/transpiler_intent_observability_builtin_emit.h \
+    src/codegen/transpiler_expr_stdlib_collection_builtin.h \
+    src/codegen/transpiler_expr_stdlib_channel_builtin.h \
+    src/codegen/transpiler_expr_stdlib_map_builtin.h \
+    src/codegen/transpiler_expr_stdlib_misc_builtin.c \
+    src/codegen/transpiler_expr_stdlib_queue_builtin.h \
+    src/codegen/transpiler_expr_stdlib_scalar_builtin.h \
+    src/codegen/transpiler_log_builtin_emit.c \
+    src/codegen/transpiler_let_channel_emit.h \
+    src/codegen/transpiler_let_box_emit.h \
+    src/codegen/transpiler_let_slot_emit.h \
+    src/codegen/transpiler_match_emit.h \
+    src/codegen/transpiler_mir_destructure_emit.h \
+    src/codegen/transpiler_mir_match_condition_emit.h \
+    src/codegen/transpiler_mir_local_type_lookup.h \
+    src/codegen/transpiler_mir_ssa_emit.h \
+    src/codegen/transpiler_mir_ssa_contract.h \
+    src/codegen/transpiler_parallel_capture.h \
+    src/codegen/transpiler_projection_method_invalidation.h \
+    src/codegen/transpiler_slot_builtin_emit.c \
+    src/codegen/transpiler_slot_target.c >/dev/null; then
+    fail "codegen domain/vtable/event/channel/slot call owners must use AST call accessors"
+fi
+
+if grep -R "data\.call\.\(callee\|arguments\|arg_count\)" \
+    src/codegen/transpiler_mir_local_type_ast_lookup.c \
+    src/codegen/transpiler_mir_pending_uses.h \
+    src/codegen/transpiler_spawn_channel_emit.h >/dev/null; then
+    fail "C backend MIR/spawn call owners must use AST call accessors"
+fi
+
+if grep -R "data\.type\.\(name\|generic_args\)" \
+    src/codegen/llvm_internal_api.h \
+    src/codegen/llvm_backend_ast_type.c \
+    src/codegen/llvm_backend_forward_declare.c \
+    src/codegen/llvm_backend_type_registry.c \
+    src/codegen/llvm_backend_type_render.c \
+    src/codegen/llvm_boundary_slot_param.c \
+    src/codegen/llvm_decl.c \
+    src/codegen/llvm_domain_forward.c \
+    src/codegen/llvm_domain_lookup.c \
+    src/codegen/llvm_domain_projection_value_helpers.c \
+    src/codegen/llvm_domain_projection_sync_body_helpers.c \
+    src/codegen/llvm_domain_role_lookup.c \
+    src/codegen/llvm_expr_call_dispatch.c \
+    src/codegen/llvm_expr_identifier_slot_helpers.c \
+    src/codegen/llvm_expr_projection_path_helpers.c \
+    src/codegen/llvm_expr_spawn_call_helpers.c \
+    src/codegen/llvm_intent_flow.c \
+    src/codegen/llvm_intent_cleanup.c \
+    src/codegen/llvm_intent_setup.c \
+    src/codegen/llvm_intent_step_context.c \
+    src/codegen/llvm_member_call_emit.c \
+    src/codegen/llvm_mir_local_emit.c \
+    src/codegen/llvm_mir_type_helpers.c \
+    src/codegen/llvm_stmt_let_collections.c \
+    src/codegen/llvm_stmt_let_helpers.c \
+    src/codegen/llvm_stmt_let_resources.c \
+    src/codegen/llvm_stmt_let_slots.c \
+    src/codegen/llvm_stmt_let_with.c \
+    src/codegen/llvm_stmt_type_render.c \
+    src/codegen/llvm_stmt_type_infer.c \
+    src/codegen/llvm_stmt_with.c \
+    src/codegen/llvm_stmt_zone_action.c \
+    src/codegen/llvm_type.c \
+    src/compiler/dir.c \
+    src/compiler/dir_collect_domain.c \
+    src/compiler/dir_collect_intent.c \
+    src/compiler/hir_analysis.c \
+    src/compiler/mir_intent.c \
+    src/compiler/mir_type_helpers.c \
+    src/compiler/rir_builder.c \
+    src/compiler/rir_builder_intent.c \
+    src/compiler/rir_facts.c \
+    src/codegen/transpiler_block_intent_helpers.h \
+    src/codegen/transpiler_block_intent_rebind_helpers.h \
+    src/codegen/transpiler_decl_host_lookup.c \
+    src/codegen/transpiler_decl_lookup.c \
+    src/codegen/transpiler_domain_nominal_emit.h \
+    src/codegen/transpiler_domain_role_ability_emit.h \
+    src/codegen/transpiler_expr_call_spawn_emit.h \
+    src/codegen/transpiler_func_class_flow_emit.h \
+    src/codegen/transpiler_func_forward_helpers.h \
+    src/codegen/transpiler_func_forward_policy.c \
+    src/codegen/transpiler_generic_class_specialization_emit.h \
+    src/codegen/transpiler_intent_context.c \
+    src/codegen/transpiler_intent_emit.h \
+    src/codegen/transpiler_intent_participant.c \
+    src/codegen/transpiler_domain_provenance_emit.h \
+    src/codegen/transpiler_intent_zone_slot.c \
+    src/codegen/transpiler_intent_zone_binding_emit.h \
+    src/codegen/transpiler_let_emit.h \
+    src/codegen/transpiler_let_box_emit.h \
+    src/codegen/transpiler_let_slot_emit.h \
+    src/codegen/transpiler_mir_ssa_emit.h \
+    src/codegen/transpiler_overlay_projection.h \
+    src/codegen/transpiler_projection.c \
+    src/codegen/transpiler_projection_method_invalidation.h \
+    src/codegen/transpiler_projection_sync_helpers.h \
+    src/codegen/transpiler_specialization_helpers.h \
+    src/codegen/transpiler_type_render.c \
+    src/semantic/type_checker_async_channel.h \
+    src/semantic/type_checker_builtins_query_domain.c \
+    src/semantic/type_checker_call_generic_where.c \
+    src/semantic/type_checker_domain_role_lookup.c \
+    src/semantic/type_checker_generic_contracts.h \
+    src/semantic/type_checker_generic_validation.c \
+    src/semantic/type_checker_helpers_late.c \
+    src/semantic/type_checker_intent_helpers.c \
+    src/semantic/type_checker_intent_action_contract.c \
+    src/semantic/type_checker_intent_contract_summary.c \
+    src/semantic/type_checker_intent_participants.c \
+    src/semantic/type_checker_intent_role_fields.c \
+    src/semantic/type_checker_module_contract.c \
+    src/semantic/type_checker_ownership_let.c \
+    src/semantic/type_checker_party_decl.c \
+    src/semantic/type_checker_projection_path.c \
+    src/semantic/type_checker_role_decl.c \
+    src/semantic/type_checker_resolution_metadata.c \
+    src/semantic/type_checker_resolution_metadata_alias.c \
+    src/semantic/type_checker_resolution_metadata_constructed.c \
+    src/semantic/type_checker_resolution_metadata_dead_end.c \
+    src/semantic/type_checker_resolution_metadata_diagnostics.c \
+    src/semantic/type_checker_resolution_graph_collect.c \
+    src/semantic/type_checker_resolution_graph_core.c \
+    src/semantic/type_checker_resolution_graph_domain.c \
+    src/semantic/type_checker_resolution_stage_signature.c \
+    src/semantic/type_checker_resolution_stage_stats.c \
+    src/semantic/type_checker_type_constraint.c \
+    src/semantic/type_infer.c >/dev/null; then
+    fail "LLVM/DIR/MIR type rendering and registry helpers must use AST type accessors"
+fi
+
+if grep -R "data\.require_field\.\(name\|type\)" \
+    src/semantic src/compiler src/codegen >/dev/null; then
+    fail "semantic/compiler/codegen require-field consumers must use AST require-field accessors"
+fi
+
+if grep -R "data\.role_decl\.\(generic_params\|where_clause\|parallel_block\)" \
+    src/semantic src/compiler src/codegen >/dev/null; then
+    fail "semantic/compiler/codegen role metadata consumers must use AST role accessors"
+fi
+
 if grep -R "data\.role_decl\.name" \
-    src/compiler src/codegen \
-    | grep -v "src/compiler/module_normalizer.c" >/dev/null; then
+    src/compiler src/codegen >/dev/null; then
     fail "compiler/codegen role-name consumers must use AST role accessors"
 fi
 
 if grep -R "data\.\(party_decl\|roster_decl\)\.name" \
-    src/compiler src/codegen \
-    | grep -v "src/compiler/module_normalizer.c" >/dev/null; then
+    src/compiler src/codegen >/dev/null; then
     fail "compiler/codegen party/roster-name consumers must use AST domain name accessors"
 fi
 
 if grep -R "data\.\(party_decl\|roster_decl\)\.name" \
-    src/semantic src/compiler src/codegen \
-    | grep -v "src/compiler/module_normalizer.c" >/dev/null; then
+    src/semantic src/compiler src/codegen >/dev/null; then
     fail "semantic/compiler/codegen party/roster-name consumers must use AST domain name accessors"
 fi
 
@@ -411,14 +992,13 @@ if grep -R "data\.\(class_decl\|enum_decl\)\.\(name\|fields\|field_count\|method
     fail "DAG nominal resolution owners must use AST nominal accessors"
 fi
 
-if grep -R "data\.\(class_decl\|enum_decl\)\.\(name\|fields\|field_count\|methods\|method_count\|variants\|variant_count\|nominal_kind\|is_struct\)" \
-    src/compiler src/codegen src/semantic \
-    | grep -v "src/compiler/module_normalizer.c" >/dev/null; then
+if grep -R "data\.\(class_decl\|enum_decl\)\.\(name\|fields\|field_count\|methods\|method_count\|variants\|variant_count\|variant_params\|variant_param_counts\|nominal_kind\|is_struct\)" \
+    src/compiler src/codegen src/semantic >/dev/null; then
     fail "semantic/compiler/codegen nominal payload readers must use AST nominal accessors"
 fi
 
-grep -q 'Intentional AST payload mutation seam' src/compiler/module_normalizer.c \
-    || fail "module_normalizer.c nominal payload exception must stay documented as the mutable-name rewrite seam"
+grep -q 'ast_replace_declaration_name_copy(stmt, final_name)' src/compiler/module_normalizer.c \
+    || fail "module_normalizer.c namespace rewrite must use the AST declaration-name mutator"
 
 grep -q 'Intentional AST mutation seam' src/compiler/module_normalizer_refs.c \
     || fail "module_normalizer_refs.c world-roster rewrite must stay documented as an AST mutation seam"
@@ -589,6 +1169,26 @@ fi
 if grep -R "data\.relation_decl\.\(slots\|slot_count\|refreshes\|refresh_count\|shared_fields\|shared_count\|methods\|method_count\)" \
     src/semantic/type_checker_relation_decl.c >/dev/null; then
     fail "relation declaration validator must use AST relation child accessors"
+fi
+
+if grep -R "data\.relation_decl\.between_\(left\|right\)_\(kind\|type\)" \
+    src/semantic src/compiler src/codegen >/dev/null; then
+    fail "relation endpoint consumers must use AST relation endpoint accessors"
+fi
+
+if grep -R "data\.party_decl\.\(generic_params\|extends\)" \
+    src/semantic src/compiler src/codegen >/dev/null; then
+    fail "party generic/extends consumers must use AST party metadata accessors"
+fi
+
+if grep -R "data\.roster_decl\.generic_params" \
+    src/semantic src/compiler src/codegen >/dev/null; then
+    fail "roster generic consumers must use AST roster metadata accessors"
+fi
+
+if grep -R "data\.class_decl\.\(generic_params\|where_clause\)" \
+    src/semantic src/compiler src/codegen >/dev/null; then
+    fail "class generic/where consumers must use AST class metadata accessors"
 fi
 
 if grep -R "data\.effect_decl\.\(slots\|slot_count\|refreshes\|refresh_count\|shared_fields\|shared_count\|methods\|method_count\)" \
@@ -907,8 +1507,7 @@ if grep -R "data\.world_decl\.\(zones\|zone_count\|states\|state_count\)" \
 fi
 
 if grep -R "data\.\(world_decl\|relation_decl\|effect_decl\|zone_decl\)\.name" \
-    src/compiler src/codegen \
-    | grep -v "src/compiler/module_normalizer.c" >/dev/null; then
+    src/compiler src/codegen >/dev/null; then
     fail "compiler/codegen world/relation/effect/zone-name consumers must use AST domain name accessors"
 fi
 

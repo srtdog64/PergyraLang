@@ -124,7 +124,7 @@ air_drift_kind_valid(AIRDriftKind kind)
     case AIR_DRIFT_BOUNDARY_EVIDENCE_MISSING:
     case AIR_DRIFT_EFFECT_PROPAGATION_MISSING:
     case AIR_DRIFT_RELATION_PROPAGATION_MISSING:
-    case AIR_DRIFT_DAG_FALLBACK_PRESENT:
+    case AIR_DRIFT_DAG_DEAD_END_PRESENT:
         return true;
     case AIR_DRIFT_NONE:
     default:
@@ -138,7 +138,7 @@ air_drift_kind_is_global(AIRDriftKind kind)
     return kind == AIR_DRIFT_BOUNDARY_EVIDENCE_MISSING
         || kind == AIR_DRIFT_EFFECT_PROPAGATION_MISSING
         || kind == AIR_DRIFT_RELATION_PROPAGATION_MISSING
-        || kind == AIR_DRIFT_DAG_FALLBACK_PRESENT;
+        || kind == AIR_DRIFT_DAG_DEAD_END_PRESENT;
 }
 
 bool

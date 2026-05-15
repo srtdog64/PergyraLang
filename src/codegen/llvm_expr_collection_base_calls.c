@@ -7,6 +7,7 @@
 
 #include "llvm_expr_call_collections_extended.h"
 #include "llvm_internal_api.h"
+#include "parser/ast_api.h"
 
 static bool
 llvm_collection_base_error_out(LLVMGenCtx *ctx, ASTNode *node,
@@ -91,7 +92,7 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
     if (out == NULL)
         return false;
 
-    op = llvm_collection_base_lookup(callee_name, node->data.call.arg_count);
+    op = llvm_collection_base_lookup(callee_name, ast_call_arg_count(node));
 
     if (op == LLVM_COLLECTION_BASE_OP_LIST_NEW) {
         LLVMTypeRef list_ty;
@@ -216,7 +217,7 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
     }
 
     if (op == LLVM_COLLECTION_BASE_OP_SET_ADD) {
-        ASTNode *set_arg = node->data.call.arguments[0];
+        ASTNode *set_arg = ast_call_argument(node, 0);
         LLVMVarEntry *set_var;
         const char *inner_name;
         LLVMTypeRef elem_ty;
@@ -234,7 +235,7 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
             *out = NULL;
             return true;
         }
-        value = llvm_emit_expression(node->data.call.arguments[1], ctx);
+        value = llvm_emit_expression(ast_call_argument(node, 1), ctx);
         if (value == NULL)
             return llvm_collection_base_error_out(ctx, node, out,
                 LLVMConstInt(ctx->type_i32, 0, 0),
@@ -285,7 +286,7 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
     }
 
     if (op == LLVM_COLLECTION_BASE_OP_SET_HAS) {
-        ASTNode *set_arg = node->data.call.arguments[0];
+        ASTNode *set_arg = ast_call_argument(node, 0);
         LLVMVarEntry *set_var;
         const char *inner_name;
         LLVMTypeRef elem_ty;
@@ -303,7 +304,7 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
             *out = NULL;
             return true;
         }
-        value = llvm_emit_expression(node->data.call.arguments[1], ctx);
+        value = llvm_emit_expression(ast_call_argument(node, 1), ctx);
         if (value == NULL)
             return llvm_collection_base_error_out(ctx, node, out,
                 LLVMConstInt(ctx->type_i1, 0, 0),
@@ -358,7 +359,7 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
     }
 
     if (op == LLVM_COLLECTION_BASE_OP_SET_REMOVE) {
-        ASTNode *set_arg = node->data.call.arguments[0];
+        ASTNode *set_arg = ast_call_argument(node, 0);
         LLVMVarEntry *set_var;
         const char *inner_name;
         LLVMTypeRef elem_ty;
@@ -376,7 +377,7 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
             *out = NULL;
             return true;
         }
-        value = llvm_emit_expression(node->data.call.arguments[1], ctx);
+        value = llvm_emit_expression(ast_call_argument(node, 1), ctx);
         if (value == NULL)
             return llvm_collection_base_error_out(ctx, node, out,
                 LLVMConstInt(ctx->type_i32, 0, 0),
@@ -427,7 +428,7 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
     }
 
     if (op == LLVM_COLLECTION_BASE_OP_SET_SIZE) {
-        ASTNode *set_arg = node->data.call.arguments[0];
+        ASTNode *set_arg = ast_call_argument(node, 0);
         LLVMVarEntry *set_var;
         LLVMFuncEntry *fn;
         set_var = llvm_collection_required_receiver_var(ctx, node, set_arg,

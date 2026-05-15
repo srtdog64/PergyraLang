@@ -40,12 +40,15 @@ runtime_none_scan_list(ASTNode *const *items, size_t count, RuntimeNoneScan *sca
 }
 
 static bool
-runtime_none_scan_params(FuncParam *const *params, size_t count, RuntimeNoneScan *scan)
+runtime_none_scan_func_params(const ASTNode *func_decl, RuntimeNoneScan *scan)
 {
+    size_t count = ast_func_param_count(func_decl);
+
     for (size_t i = 0; i < count; i++) {
-        if (params[i] != NULL && !runtime_none_scan_node(params[i]->type, scan))
+        FuncParam *param = ast_func_param(func_decl, i);
+        if (param != NULL && !runtime_none_scan_node(param->type, scan))
             return false;
-        if (params[i] != NULL && !runtime_none_scan_node(params[i]->default_value, scan))
+        if (param != NULL && !runtime_none_scan_node(param->default_value, scan))
             return false;
     }
     return true;
@@ -154,13 +157,11 @@ runtime_none_scan_node(const ASTNode *node, RuntimeNoneScan *scan)
         case AST_FUNC_DECL:
             if (node->is_async_decl)
                 return runtime_none_record(scan, node, "async-func");
-            if (!runtime_none_scan_params(node->data.func_decl.params,
-                                          node->data.func_decl.param_count,
-                                          scan))
+            if (!runtime_none_scan_func_params(node, scan))
                 return false;
-            if (!runtime_none_scan_node(node->data.func_decl.return_type, scan))
+            if (!runtime_none_scan_node(ast_func_return_type(node), scan))
                 return false;
-            if (!runtime_none_scan_node(node->data.func_decl.body, scan))
+            if (!runtime_none_scan_node(ast_func_body(node), scan))
                 return false;
             return runtime_none_scan_list(node->data.func_decl.required_abilities,
                                           node->data.func_decl.required_ability_count,
@@ -181,37 +182,40 @@ runtime_none_scan_node(const ASTNode *node, RuntimeNoneScan *scan)
                 return runtime_none_scan_list(methods, method_count, scan);
             }
         case AST_EXTERN_BLOCK:
-            return runtime_none_scan_list(node->data.extern_block.declarations,
-                                          node->data.extern_block.count,
-                                          scan);
+            {
+                size_t extern_count = 0;
+                ASTNode **extern_decls =
+                    ast_extern_block_declarations(node, &extern_count);
+                return runtime_none_scan_list(extern_decls, extern_count, scan);
+            }
         case AST_LET_DECL:
             return runtime_none_scan_node(node->data.let_decl.type, scan) &&
                    runtime_none_scan_node(node->data.let_decl.initializer, scan);
         case AST_LET_DESTRUCTURE:
             return runtime_none_scan_node(node->data.let_destructure.initializer, scan);
         case AST_TYPE_ALIAS:
-            return runtime_none_scan_node(node->data.type_alias.target_type, scan);
+            return runtime_none_scan_node(ast_type_alias_target_type(node), scan);
         case AST_WITH_STMT:
-            return runtime_none_scan_node(node->data.with_stmt.slot_type, scan) &&
-                   runtime_none_scan_node(node->data.with_stmt.body, scan);
+            return runtime_none_scan_node(ast_with_slot_type(node), scan) &&
+                   runtime_none_scan_node(ast_with_body(node), scan);
         case AST_BLOCK:
             return runtime_none_scan_list(node->data.block.statements,
                                           node->data.block.count,
                                           scan);
         case AST_FOR_LOOP:
-            return runtime_none_scan_node(node->data.for_loop.range_start, scan) &&
-                   runtime_none_scan_node(node->data.for_loop.range_end, scan) &&
-                   runtime_none_scan_node(node->data.for_loop.iterable, scan) &&
-                   runtime_none_scan_node(node->data.for_loop.body, scan);
+            return runtime_none_scan_node(ast_for_range_start(node), scan) &&
+                   runtime_none_scan_node(ast_for_range_end(node), scan) &&
+                   runtime_none_scan_node(ast_for_iterable(node), scan) &&
+                   runtime_none_scan_node(ast_for_body(node), scan);
         case AST_WHILE_LOOP:
-            return runtime_none_scan_node(node->data.while_loop.condition, scan) &&
-                   runtime_none_scan_node(node->data.while_loop.body, scan);
+            return runtime_none_scan_node(ast_while_condition(node), scan) &&
+                   runtime_none_scan_node(ast_while_body(node), scan);
         case AST_IF_STMT:
-            return runtime_none_scan_node(node->data.if_stmt.condition, scan) &&
-                   runtime_none_scan_node(node->data.if_stmt.then_branch, scan) &&
-                   runtime_none_scan_node(node->data.if_stmt.else_branch, scan);
+            return runtime_none_scan_node(ast_if_condition(node), scan) &&
+                   runtime_none_scan_node(ast_if_then_branch(node), scan) &&
+                   runtime_none_scan_node(ast_if_else_branch(node), scan);
         case AST_RETURN:
-            return runtime_none_scan_node(node->data.return_stmt.value, scan);
+            return runtime_none_scan_node(ast_return_value(node), scan);
         case AST_MATCH_STMT:
             if (!runtime_none_scan_node(node->data.match_stmt.subject, scan))
                 return false;
@@ -230,32 +234,38 @@ runtime_none_scan_node(const ASTNode *node, RuntimeNoneScan *scan)
             return runtime_none_scan_node(node->data.match_case.guard, scan) &&
                    runtime_none_scan_node(node->data.match_case.body, scan);
         case AST_BINARY:
-            return runtime_none_scan_node(node->data.binary.left, scan) &&
-                   runtime_none_scan_node(node->data.binary.right, scan);
+            return runtime_none_scan_node(ast_binary_left(node), scan) &&
+                   runtime_none_scan_node(ast_binary_right(node), scan);
         case AST_UNARY:
-            return runtime_none_scan_node(node->data.unary.operand, scan);
+            return runtime_none_scan_node(ast_unary_operand(node), scan);
         case AST_CALL:
-            if (!runtime_none_scan_node(node->data.call.callee, scan))
-                return false;
-            return runtime_none_scan_list(node->data.call.arguments,
-                                          node->data.call.arg_count,
-                                          scan);
-        case AST_MEMBER_ACCESS:
-            return runtime_none_scan_node(node->data.member.object, scan);
-        case AST_ARRAY_ACCESS:
-            return runtime_none_scan_node(node->data.array_access.array, scan) &&
-                   runtime_none_scan_node(node->data.array_access.index, scan);
+            {
+                size_t arg_count = 0;
+                ASTNode **args = ast_call_arguments(node, &arg_count);
+                if (!runtime_none_scan_node(ast_call_callee(node), scan))
+                    return false;
+                return runtime_none_scan_list(args, arg_count, scan);
+            }
+    case AST_MEMBER_ACCESS:
+            return runtime_none_scan_node(ast_member_object(node), scan);
+    case AST_ARRAY_ACCESS:
+            return runtime_none_scan_node(ast_array_access_array(node), scan) &&
+                   runtime_none_scan_node(ast_array_access_index(node), scan);
         case AST_ARRAY_LITERAL:
-            return runtime_none_scan_list(node->data.array_literal.elements,
-                                          node->data.array_literal.count,
-                                          scan);
+            for (size_t i = 0; i < ast_array_literal_count(node); i++) {
+                if (runtime_none_scan_node(ast_array_literal_element(node, i), scan))
+                    return true;
+            }
+            return false;
         case AST_TUPLE_LITERAL:
-            return runtime_none_scan_list(node->data.tuple_literal.elements,
-                                          node->data.tuple_literal.count,
-                                          scan);
+            for (size_t i = 0; i < ast_tuple_literal_count(node); i++) {
+                if (runtime_none_scan_node(ast_tuple_literal_element(node, i), scan))
+                    return true;
+            }
+            return false;
         case AST_ASSIGNMENT:
-            return runtime_none_scan_node(node->data.assignment.target, scan) &&
-                   runtime_none_scan_node(node->data.assignment.value, scan);
+            return runtime_none_scan_node(ast_assignment_target(node), scan) &&
+                   runtime_none_scan_node(ast_assignment_value(node), scan);
         case AST_TYPE:
             return runtime_none_scan_list(node->data.type.tuple_elements,
                                           node->data.type.tuple_element_count,
@@ -271,7 +281,7 @@ runtime_none_scan_node(const ASTNode *node, RuntimeNoneScan *scan)
                 if (!runtime_none_scan_node(ast_role_impl(node, i), scan))
                     return false;
             }
-            return runtime_none_scan_node(node->data.role_decl.parallel_block, scan);
+            return runtime_none_scan_node(ast_role_parallel_block(node), scan);
         case AST_IMPL_ABILITY:
             if (!runtime_none_scan_node(ast_impl_ability_ref(node), scan))
                 return false;
@@ -293,7 +303,7 @@ runtime_none_scan_node(const ASTNode *node, RuntimeNoneScan *scan)
                 if (!runtime_none_scan_node(ast_party_method(node, i), scan))
                     return false;
             }
-            return runtime_none_scan_node(node->data.party_decl.extends, scan);
+            return runtime_none_scan_node(ast_party_extends(node), scan);
         case AST_PARTY_SHARED:
             return runtime_none_scan_node(ast_party_shared_type(node), scan) &&
                    runtime_none_scan_node(
@@ -336,9 +346,9 @@ runtime_none_scan_node(const ASTNode *node, RuntimeNoneScan *scan)
                                           node->data.namespace_decl.count,
                                           scan);
         case AST_UNSAFE_BLOCK:
-            return runtime_none_scan_node(node->data.unsafe_block.body, scan);
+            return runtime_none_scan_node(ast_unsafe_block_body(node), scan);
         case AST_DEFER_STMT:
-            return runtime_none_scan_node(node->data.defer_stmt.body, scan);
+            return runtime_none_scan_node(ast_defer_body(node), scan);
         default:
             return true;
     }

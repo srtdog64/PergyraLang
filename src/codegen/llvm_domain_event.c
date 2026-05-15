@@ -74,8 +74,8 @@ llvm_emit_domain_event_helpers(LLVMGenCtx *ctx,
         if (stmt == NULL || stmt->type != AST_EVENT_DECL)
             continue;
 
-        const char *ename = stmt->data.event_decl.name;
-        int pc = (int)stmt->data.event_decl.param_count;
+        const char *ename = ast_event_name(stmt);
+        int pc = (int)ast_event_param_count(stmt);
 
         /* Event struct: { [16 x ptr], i64 } handlers + count */
         LLVMTypeRef handler_arr = LLVMArrayType(ctx->type_i8ptr,
@@ -98,7 +98,7 @@ llvm_emit_domain_event_helpers(LLVMGenCtx *ctx,
         LLVMTypeRef *ptypes = pgy_arena_calloc(&ctx->scratch,
             ptype_count * sizeof(LLVMTypeRef));
         for (int j = 0; j < pc; j++) {
-            ASTNode *p = stmt->data.event_decl.params[j];
+            ASTNode *p = ast_event_param(stmt, (size_t)j);
             ASTNode *param_type = (p != NULL) ? p->data.let_decl.type : NULL;
             ptypes[j] = llvm_domain_event_required_param_type(
                 ctx, stmt, param_type, ename);

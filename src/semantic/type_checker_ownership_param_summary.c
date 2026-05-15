@@ -17,12 +17,12 @@ semantic_check_param_summary_escapes(ASTNode *node,
                                      SemanticContext *ctx)
 {
     if (node == NULL || ctx == NULL || param_types == NULL
-        || node->data.func_decl.body == NULL) {
+        || ast_func_body(node) == NULL) {
         return;
     }
 
     for (size_t i = 0; i < param_count; i++) {
-        FuncParam *param = node->data.func_decl.params[i];
+        FuncParam *param = ast_func_param(node, i);
         unsigned summary_mask;
         OwnershipTypeClass ownership_class;
 
@@ -36,7 +36,7 @@ semantic_check_param_summary_escapes(ASTNode *node,
             continue;
 
         summary_mask = slot_analyze_param_summary_in_program(
-            node->data.func_decl.body, param->name, ctx->program_root);
+            ast_func_body(node), param->name, ctx->program_root);
         if ((summary_mask & (SLOT_PARAM_SUMMARY_RETURN_ESCAPE
                 | SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE
                 | SLOT_PARAM_SUMMARY_CALL_ESCAPE)) != 0) {
@@ -58,8 +58,8 @@ semantic_check_param_summary_escapes(ASTNode *node,
             semantic_validate_borrowed_escape(
                 node, node, ctx, param_types[i], param->name,
                 OWNERSHIP_CONSUMER_HELPER_CALL, NULL,
-                node->data.func_decl.name != NULL
-                    ? node->data.func_decl.name : "<anonymous>",
+                ast_declaration_name(node) != NULL
+                    ? ast_declaration_name(node) : "<anonymous>",
                 NULL, true, NULL,
                 ownership_class == OWNERSHIP_TYPE_MOVE_ONLY ? "slot handle (movable)"
                     : (ownership_class == OWNERSHIP_TYPE_SUBJECT_IDENTITY ? "subject"

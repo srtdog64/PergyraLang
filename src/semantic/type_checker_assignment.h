@@ -6,17 +6,16 @@ type_check_assignment(ASTNode *expr, SemanticContext *ctx)
 {
     Type *value_type;
     Type *target_type;
+    ASTNode *target = ast_assignment_target(expr);
+    ASTNode *value = ast_assignment_value(expr);
 
-    reject_if_embedded_world_zone_mutation(ctx, expr,
-        expr->data.assignment.target, "assignment");
-    value_type = type_check_expression(expr->data.assignment.value, ctx);
+    reject_if_embedded_world_zone_mutation(ctx, expr, target, "assignment");
+    value_type = type_check_expression(value, ctx);
     if (value_type == NULL)
         value_type = TYPE_UNKNOWN;
 
-    if (expr->data.assignment.target != NULL
-        && expr->data.assignment.target->type == AST_IDENTIFIER) {
-        const char *target_name =
-            expr->data.assignment.target->data.identifier.name;
+    if (target != NULL && target->type == AST_IDENTIFIER) {
+        const char *target_name = target->data.identifier.name;
         Symbol *target_sym = scope_lookup(ctx->scope, target_name);
         if (target_sym != NULL && target_sym->kind == SYMBOL_SLOT
             && target_sym->type != NULL && type_is_owned_slot_handle(target_sym->type)
@@ -33,7 +32,7 @@ type_check_assignment(ASTNode *expr, SemanticContext *ctx)
                     PGY_CODE_SEM_PIN_PARALLEL_CONFLICT,
                     PGY_CAUSE_PIN_PARALLEL_CONFLICT,
                     PGY_FIX_SERIALIZE_PIN_ACCESS,
-                    expr->data.assignment.target,
+                    target,
                     "Cannot assign to slot '%s' while %s '%s' is live.\n"
                     "Reason:\n"
                     "- slot assignment sugar lowers to a slot write\n"
@@ -50,7 +49,7 @@ type_check_assignment(ASTNode *expr, SemanticContext *ctx)
         }
     }
 
-    target_type = type_check_expression(expr->data.assignment.target, ctx);
+    target_type = type_check_expression(target, ctx);
     if (target_type == NULL)
         target_type = TYPE_UNKNOWN;
 
@@ -78,9 +77,8 @@ type_check_assignment(ASTNode *expr, SemanticContext *ctx)
 
     /* Reject field assignment on object/tobject; projection sync uses a
      * separate refresh/publish path and is not affected by this check. */
-    if (expr->data.assignment.target != NULL
-        && expr->data.assignment.target->type == AST_MEMBER_ACCESS) {
-        ASTNode *obj_node = expr->data.assignment.target->data.member.object;
+    if (target != NULL && target->type == AST_MEMBER_ACCESS) {
+        ASTNode *obj_node = ast_member_object(target);
         if (obj_node != NULL && obj_node->type == AST_IDENTIFIER) {
             const char *var_name = obj_node->data.identifier.name;
             Symbol *sym = scope_lookup(ctx->scope, var_name);

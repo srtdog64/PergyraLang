@@ -12,5 +12,6 @@
 #include "transpiler_expr_party_instance_emit.h"
 #include "transpiler_expr_call_spawn_emit.h"
 #include "transpiler_spawn_channel_emit.h"
+#include "transpiler_expr_array_access_emit.h"
 #include "transpiler_expr_dispatch_emit.h"
 #endif /* PGY_SRC_CODEGEN_TRANSPILER_EXPR_EMITTERS_H */

@@ -16,14 +16,14 @@ emit_type_alias_decl(ASTNode *node, TranspilerCtx *ctx)
     char target_c_type[256];
 
     if (node == NULL || ctx == NULL || node->type != AST_TYPE_ALIAS
-        || node->data.type_alias.name == NULL
-        || node->data.type_alias.target_type == NULL) {
+        || ast_type_alias_name(node) == NULL
+        || ast_type_alias_target_type(node) == NULL) {
         return;
     }
 
-    alias_name = node->data.type_alias.name;
-    ensure_type_specializations_from_ast(ctx, node->data.type_alias.target_type);
-    if (!pergyra_ast_type_to_c_copy(node->data.type_alias.target_type,
+    alias_name = ast_type_alias_name(node);
+    ensure_type_specializations_from_ast(ctx, ast_type_alias_target_type(node));
+    if (!pergyra_ast_type_to_c_copy(ast_type_alias_target_type(node),
             target_c_type,
             sizeof(target_c_type))) {
         target_c_type[0] = 'U';

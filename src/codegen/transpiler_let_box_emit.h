@@ -4,6 +4,8 @@
 /* Box/BoxArray/Rc let-declaration lowering helpers.
  * Included inside transpiler.c before transpiler_let_emit.h. */
 
+#include "../parser/ast_api.h"
+
 static bool
 transpiler_try_emit_box_array_let(TranspilerCtx *ctx,
                                   const char *name,
@@ -20,9 +22,9 @@ transpiler_try_emit_box_array_let(TranspilerCtx *ctx,
         return false;
     ann_type_name = *ann_type_name_ptr;
     if (init->type != AST_CALL
-        || init->data.call.callee == NULL
-        || init->data.call.callee->type != AST_IDENTIFIER
-        || strcmp(init->data.call.callee->data.identifier.name, "BoxArray") != 0) {
+        || ast_call_callee(init) == NULL
+        || ast_call_callee(init)->type != AST_IDENTIFIER
+        || strcmp(ast_call_callee(init)->data.identifier.name, "BoxArray") != 0) {
         return false;
     }
 
@@ -52,11 +54,11 @@ transpiler_try_emit_box_array_let(TranspilerCtx *ctx,
         return true;
     }
 
-    capacity = (init->data.call.arg_count > 0)
-        ? emit_expression(init->data.call.arguments[0], ctx)
+    capacity = (ast_call_arg_count(init) > 0)
+        ? emit_expression(ast_call_argument(init, 0), ctx)
         : pergyra_strdup("0");
-    allocator = (init->data.call.arg_count > 1)
-        ? emit_expression(init->data.call.arguments[1], ctx)
+    allocator = (ast_call_arg_count(init) > 1)
+        ? emit_expression(ast_call_argument(init, 1), ctx)
         : pergyra_strdup("NULL");
     write_indent(ctx);
     codebuf_write(ctx->out,
@@ -79,14 +81,16 @@ transpiler_try_emit_box_array_let(TranspilerCtx *ctx,
 static char *
 transpiler_box_inner_from_annotation(ASTNode *ann)
 {
+    GenericParams *generic_args = ast_type_generic_args(ann);
+
     if (ann == NULL
         || ann->type != AST_TYPE
-        || ann->data.type.generic_args == NULL
-        || ann->data.type.generic_args->count == 0) {
+        || generic_args == NULL
+        || generic_args->count == 0) {
         return NULL;
     }
 
-    GenericParam *param = ann->data.type.generic_args->params[0];
+    GenericParam *param = generic_args->params[0];
     if (param != NULL && param->constraint != NULL)
         return render_type_name(param->constraint);
     if (param != NULL && param->name != NULL)
@@ -100,9 +104,9 @@ transpiler_box_inner_from_init_arg(TranspilerCtx *ctx, ASTNode *init)
     ASTNode *arg;
     const char *inferred_arg;
 
-    if (init == NULL || init->type != AST_CALL || init->data.call.arg_count == 0)
+    if (init == NULL || init->type != AST_CALL || ast_call_arg_count(init) == 0)
         return NULL;
-    arg = init->data.call.arguments[0];
+    arg = ast_call_argument(init, 0);
     inferred_arg = infer_expression_type_name(ctx, arg);
     if (inferred_arg != NULL && strcmp(inferred_arg, "Unknown") != 0)
         return pergyra_strdup(inferred_arg);
@@ -124,12 +128,12 @@ transpiler_try_emit_box_or_rc_let(TranspilerCtx *ctx,
     if (ctx == NULL || name == NULL || init == NULL || ann_type_name_ptr == NULL)
         return false;
     if (init->type != AST_CALL
-        || init->data.call.callee == NULL
-        || init->data.call.callee->type != AST_IDENTIFIER) {
+        || ast_call_callee(init) == NULL
+        || ast_call_callee(init)->type != AST_IDENTIFIER) {
         return false;
     }
 
-    callee_name = init->data.call.callee->data.identifier.name;
+    callee_name = ast_call_callee(init)->data.identifier.name;
     if (callee_name == NULL
         || ((strcmp(callee_name, "Box") != 0 || find_class_decl(ctx, callee_name) != NULL)
             && (strcmp(callee_name, "Rc") != 0 || find_class_decl(ctx, callee_name) != NULL))) {
@@ -157,8 +161,8 @@ transpiler_try_emit_box_or_rc_let(TranspilerCtx *ctx,
     write_indent(ctx);
     codebuf_write(ctx->out, "PgyBox_%s %s = pgy_box_new_%s(",
                   box_inner, name, box_inner);
-    if (init->data.call.arg_count > 0) {
-        char *arg = emit_expression(init->data.call.arguments[0], ctx);
+    if (ast_call_arg_count(init) > 0) {
+        char *arg = emit_expression(ast_call_argument(init, 0), ctx);
         codebuf_write(ctx->out, "%s", arg);
         free(arg);
     }

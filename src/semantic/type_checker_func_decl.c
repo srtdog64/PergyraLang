@@ -28,10 +28,10 @@ static Type *
 program_body_resolve_func_return_type(ASTNode *func_decl, SemanticContext *ctx)
 {
     if (func_decl == NULL || func_decl->type != AST_FUNC_DECL
-        || func_decl->data.func_decl.return_type == NULL) {
+        || ast_func_return_type(func_decl) == NULL) {
         return TYPE_VOID;
     }
-    return program_body_resolve_type_ref(func_decl->data.func_decl.return_type, ctx);
+    return program_body_resolve_type_ref(ast_func_return_type(func_decl), ctx);
 }
 
 static const char *
@@ -77,7 +77,7 @@ program_body_symbol_is_self_host(Symbol *sym)
 bool
 type_check_func_decl(ASTNode *node, SemanticContext *ctx)
 {
-    const char *name = node->data.func_decl.name;
+    const char *name = ast_declaration_name(node);
     bool is_action = (!node->is_async_decl && node->data.func_decl.is_action);
     ASTNode *enclosing_nominal = ctx->current_nominal_decl;
     ASTNode *prev_function_decl = ctx->current_function_decl;
@@ -97,13 +97,13 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
 
     /* Register function generic parameters as opaque metadata-visible types for
      * parameter and return type resolution. */
-    bool has_generics = (node->data.func_decl.generic_params != NULL
-                         && node->data.func_decl.generic_params->count > 0);
+    GenericParams *func_generics = ast_func_generic_params(node);
+    WhereClause *func_where_clause = ast_func_where_clause(node);
+    bool has_generics = (func_generics != NULL && func_generics->count > 0);
     if (has_generics) {
-        validate_generic_param_defaults(node->data.func_decl.generic_params,
-            ctx, node, "function");
+        validate_generic_param_defaults(func_generics, ctx, node, "function");
         scope_enter(&ctx->scope, SCOPE_BLOCK);
-        GenericParams *gp = node->data.func_decl.generic_params;
+        GenericParams *gp = func_generics;
         for (size_t gi = 0; gi < gp->count; gi++) {
             if (gp->params[gi] == NULL || gp->params[gi]->name == NULL)
                 continue;
@@ -118,7 +118,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
     }
 
     /* Build parameter types for the function type */
-    size_t   param_count = node->data.func_decl.param_count;
+    size_t   param_count = ast_func_param_count(node);
     Type   **param_types = NULL;
 
     if (param_count > 0) {
@@ -134,7 +134,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
         semantic_error_with_hints(ctx, PGY_CODE_SEM_ANCHORED_HANDLE_COPY,
             PGY_CAUSE_ANCHORED_HANDLE_RETURN_BOUNDARY,
             PGY_FIX_RETURN_PROJECTION_OR_KEEP_LOCAL,
-            node->data.func_decl.return_type,
+            ast_func_return_type(node),
             "Returning subjects by value is not supported yet.\n"
             "Reason:\n"
             "- return type '%s' is a subject, and subject values are zone/world slot handles (anchored)\n"
@@ -146,7 +146,11 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
     }
 
     for (size_t i = 0; i < param_count; i++) {
-        FuncParam *param = node->data.func_decl.params[i];
+        FuncParam *param = ast_func_param(node, i);
+        if (param == NULL) {
+            param_types[i] = TYPE_UNKNOWN;
+            continue;
+        }
         /* Implicit 'self' type: if a parameter named "self" has no
          * type annotation and we're inside a class scope, infer the
          * enclosing class type. */
@@ -178,8 +182,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                     "Fix:\n"
                     "- route class/subject/enum method checking through the nominal owner pass\n"
                     "- or add an explicit self type annotation",
-                    node->data.func_decl.name != NULL
-                        ? node->data.func_decl.name : "<anonymous>");
+                    name != NULL ? name : "<anonymous>");
                 param_types[i] = TYPE_UNKNOWN;
             }
         } else {
@@ -209,7 +212,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                     param->mode == PARAM_MODE_OWN ? "own" : "ref",
                     param->name != NULL ? param->name : "<param>",
                     param->mode == PARAM_MODE_OWN ? "own" : "ref",
-                    node->data.func_decl.name != NULL ? node->data.func_decl.name : "<anonymous>",
+                    name != NULL ? name : "<anonymous>",
                     param_types[i] != NULL && param_types[i]->name != NULL
                         ? param_types[i]->name : "<type>",
                     param->mode == PARAM_MODE_OWN ? "own" : "ref");
@@ -262,10 +265,10 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
     if (has_generics)
         scope_exit(&ctx->scope);
 
-    validate_where_clause_bounds(node->data.func_decl.where_clause, ctx, node);
+    validate_where_clause_bounds(func_where_clause, ctx, node);
     validate_generic_param_default_bounds(
-        node->data.func_decl.generic_params,
-        node->data.func_decl.where_clause,
+        func_generics,
+        func_where_clause,
         ctx,
         node,
         "function",
@@ -278,7 +281,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
 
     /* Re-register generic type params inside the function scope */
     if (has_generics) {
-        GenericParams *gp = node->data.func_decl.generic_params;
+        GenericParams *gp = func_generics;
         for (size_t gi = 0; gi < gp->count; gi++) {
             if (gp->params[gi] == NULL || gp->params[gi]->name == NULL)
                 continue;
@@ -308,10 +311,11 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
     /* Register parameters */
     for (size_t i = 0; i < param_count; i++) {
         Type *pt = func_type->data.function.param_types[i];
-        const char *param_name = node->data.func_decl.params[i]->name;
-        if (node->data.func_decl.params[i]->mode == PARAM_MODE_OWN)
+        FuncParam *param = ast_func_param(node, i);
+        const char *param_name = param != NULL ? param->name : NULL;
+        if (param != NULL && param->mode == PARAM_MODE_OWN)
             semantic_record_body_summary(ctx, BODY_SUMMARY_MOVES_PARAM);
-        else if (node->data.func_decl.params[i]->mode == PARAM_MODE_REF)
+        else if (param != NULL && param->mode == PARAM_MODE_REF)
             semantic_record_body_summary(ctx, BODY_SUMMARY_BORROWS_PARAM);
         if (pt != NULL && pt->kind == TYPE_KIND_SLOT && pt->data.slot.is_secure)
             semantic_record_effect(ctx, EFFECT_SECURE);
@@ -353,9 +357,9 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
         scope_declare(ctx->scope, p);
     }
 
-    if (node->data.func_decl.body != NULL) {
+    if (ast_func_body(node) != NULL) {
         bool body_must_return = false;
-        semantic_check_body_flow(node->data.func_decl.body, ctx, &body_must_return);
+        semantic_check_body_flow(ast_func_body(node), ctx, &body_must_return);
         if (!type_equals(return_type, TYPE_VOID)
             && return_type != TYPE_UNKNOWN
             && !body_must_return) {

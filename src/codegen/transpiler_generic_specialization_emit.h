@@ -9,8 +9,9 @@ ensure_generic_specialization(TranspilerCtx *ctx, ASTNode *decl, ASTNode *call)
     GenericBindingEntry bindings[MAX_GENERIC_BINDINGS];
     size_t binding_count = 0;
 
+    const char *decl_name = ast_declaration_name(decl);
     if (ctx == NULL || decl == NULL || decl->type != AST_FUNC_DECL
-        || decl->data.func_decl.name == NULL) {
+        || decl_name == NULL) {
         return NULL;
     }
     if (!infer_generic_call_bindings(ctx, decl, call, bindings, &binding_count))
@@ -20,7 +21,7 @@ ensure_generic_specialization(TranspilerCtx *ctx, ASTNode *decl, ASTNode *call)
     if (name_buf == NULL)
         return NULL;
 
-    codebuf_write(name_buf, "%s", decl->data.func_decl.name);
+    codebuf_write(name_buf, "%s", decl_name);
     for (size_t i = 0; i < binding_count; i++) {
         codebuf_write(name_buf, "_");
         append_mangled_type_name(name_buf, bindings[i].concrete_type);

@@ -18,10 +18,10 @@ transpiler_can_forward_declare_type_early(TranspilerCtx *ctx,
 
     if (ctx == NULL || type_node == NULL)
         return true;
-    if (type_node->type != AST_TYPE || type_node->data.type.name == NULL)
+    if (type_node->type != AST_TYPE || ast_type_name(type_node) == NULL)
         return true;
 
-    name = type_node->data.type.name;
+    name = ast_type_name(type_node);
     if (strcmp(name, "Int") == 0
         || strcmp(name, "Float") == 0
         || strcmp(name, "Bool") == 0
@@ -55,14 +55,14 @@ transpiler_can_forward_declare_func_early(TranspilerCtx *ctx, ASTNode *func)
 {
     if (ctx == NULL || func == NULL || func->type != AST_FUNC_DECL)
         return false;
-    if (func->data.func_decl.generic_params != NULL
-        && func->data.func_decl.generic_params->count > 0)
+    GenericParams *generic_params = ast_func_generic_params(func);
+    if (generic_params != NULL && generic_params->count > 0)
         return false;
     if (!transpiler_can_forward_declare_type_early(ctx,
-            func->data.func_decl.return_type))
+            ast_func_return_type(func)))
         return false;
-    for (size_t i = 0; i < func->data.func_decl.param_count; i++) {
-        FuncParam *p = func->data.func_decl.params[i];
+    for (size_t i = 0; i < ast_func_param_count(func); i++) {
+        FuncParam *p = ast_func_param(func, i);
         if (p == NULL || p->type == NULL)
             continue;
         if (!transpiler_can_forward_declare_type_early(ctx, p->type))
@@ -80,10 +80,10 @@ transpiler_can_forward_declare_type_after_zones(TranspilerCtx *ctx,
     if (transpiler_can_forward_declare_type_early(ctx, type_node))
         return true;
     if (ctx == NULL || type_node == NULL || type_node->type != AST_TYPE
-        || type_node->data.type.name == NULL)
+        || ast_type_name(type_node) == NULL)
         return false;
 
-    name = type_node->data.type.name;
+    name = ast_type_name(type_node);
     if (find_world_decl(ctx, name) != NULL)
         return false;
     return transpiler_has_known_nominal_type(ctx, name);
@@ -95,14 +95,14 @@ transpiler_can_forward_declare_func_after_zones(TranspilerCtx *ctx,
 {
     if (ctx == NULL || func == NULL || func->type != AST_FUNC_DECL)
         return false;
-    if (func->data.func_decl.generic_params != NULL
-        && func->data.func_decl.generic_params->count > 0)
+    GenericParams *generic_params = ast_func_generic_params(func);
+    if (generic_params != NULL && generic_params->count > 0)
         return false;
     if (!transpiler_can_forward_declare_type_after_zones(ctx,
-            func->data.func_decl.return_type))
+            ast_func_return_type(func)))
         return false;
-    for (size_t i = 0; i < func->data.func_decl.param_count; i++) {
-        FuncParam *p = func->data.func_decl.params[i];
+    for (size_t i = 0; i < ast_func_param_count(func); i++) {
+        FuncParam *p = ast_func_param(func, i);
         if (p == NULL || p->type == NULL)
             continue;
         if (!transpiler_can_forward_declare_type_after_zones(ctx, p->type))

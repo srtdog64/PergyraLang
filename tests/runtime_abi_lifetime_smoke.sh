@@ -176,6 +176,7 @@ concat_runtime_text "$llvm_text" \
     "src/runtime/pgy_runtime_lib_raw_collection_common_exports.h" \
     "src/runtime/pgy_runtime_lib_raw_collection_exports.h" \
     "src/runtime/pgy_runtime_lib_raw_map_exports.h" \
+    "src/runtime/pgy_runtime_lib_raw_map_key_exports.h" \
     "src/runtime/pgy_runtime_lib_raw_queue_exports.h" \
     "src/runtime/pgy_runtime_lib_raw_set_exports.h" \
     "src/runtime/pgy_runtime_lib_set_intent_trace_exports.h" \

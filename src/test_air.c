@@ -326,8 +326,8 @@ main(void)
     TEST("AIR collects DAG generic ability evidence");
     EXPECT(test_air_collects_dag_generic_ability_evidence());
 
-    TEST("AIR reports DAG fallback drift");
-    EXPECT(test_air_reports_dag_fallback_drift());
+    TEST("AIR reports DAG dead-end drift");
+    EXPECT(test_air_reports_dag_dead_end_drift());
 
     TEST("AIR strict evidence rejects DAG counter only");
     EXPECT(test_air_strict_evidence_rejects_dag_counter_only());
@@ -362,8 +362,8 @@ main(void)
     TEST("AIR rejects empty DAG evidence");
     EXPECT(test_air_rejects_empty_dag_evidence());
 
-    TEST("AIR rejects DAG fallback evidence");
-    EXPECT(test_air_rejects_dag_fallback_evidence());
+    TEST("AIR rejects DAG dead-end evidence");
+    EXPECT(test_air_rejects_dag_dead_end_evidence());
 
     TEST("AIR rejects invalid DAG evidence subject");
     EXPECT(test_air_rejects_invalid_dag_evidence_subject());

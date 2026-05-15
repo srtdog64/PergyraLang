@@ -126,7 +126,7 @@ air_strict_require_dag_evidence_node(AIRProgram *air,
     if (!air->strict_evidence || counter == 0
         || air_global_has_evidence_kind(air, kind))
         return true;
-    return air_append_driftf(air, AIR_DRIFT_DAG_FALLBACK_PRESENT,
+    return air_append_driftf(air, AIR_DRIFT_DAG_DEAD_END_PRESENT,
                              SIZE_MAX, SIZE_MAX, error_message,
         PGY_CODE_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING
         ": AIR DAG evidence counter has no matching evidence node; kind=%s counter=%zu. "
@@ -514,7 +514,7 @@ air_verify(AIRProgram *air, char **error_message)
                 && evidence->fallback_count > 0) {
                 if (!air_append_driftf(
                         air,
-                        AIR_DRIFT_DAG_FALLBACK_PRESENT,
+                        AIR_DRIFT_DAG_DEAD_END_PRESENT,
                         SIZE_MAX,
                         SIZE_MAX,
                         error_message,

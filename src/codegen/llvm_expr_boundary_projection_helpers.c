@@ -82,13 +82,14 @@ llvm_build_boundary_call_args(LLVMGenCtx *ctx, ASTNode *decl,
         *out_count = 0;
     if (ctx == NULL || decl == NULL || decl->type != AST_FUNC_DECL)
         return NULL;
-    if (argc != decl->data.func_decl.param_count)
+    size_t param_count = ast_func_param_count(decl);
+    if (argc != param_count)
         return llvm_boundary_args_error(ctx, decl,
             "LLVM boundary call source argument count does not match function signature");
 
-    for (size_t i = 0; i < decl->data.func_decl.param_count; i++) {
+    for (size_t i = 0; i < param_count; i++) {
         bool is_secure = false;
-        FuncParam *p = decl->data.func_decl.params[i];
+        FuncParam *p = ast_func_param(decl, i);
         emitted_count++;
         if (llvm_boundary_slot_inner_name(ctx, p, &is_secure) != NULL && is_secure)
             emitted_count++;
@@ -102,9 +103,9 @@ llvm_build_boundary_call_args(LLVMGenCtx *ctx, ASTNode *decl,
 
     unsigned arg_idx = 0;
     unsigned emitted_idx = 0;
-    for (size_t i = 0; i < decl->data.func_decl.param_count && arg_idx < argc; i++) {
+    for (size_t i = 0; i < param_count && arg_idx < argc; i++) {
         bool is_secure = false;
-        FuncParam *p = decl->data.func_decl.params[i];
+        FuncParam *p = ast_func_param(decl, i);
         const char *inner = llvm_boundary_slot_inner_name(ctx, p, &is_secure);
         ASTNode *arg_node = arg_nodes[arg_idx++];
         bool pointer_self = llvm_boundary_param_uses_pointer_self(ctx, p);

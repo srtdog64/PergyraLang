@@ -40,9 +40,9 @@ transpiler_resolve_unary_constructed_inner(TranspilerCtx *ctx,
              && strncmp(resolved_type, family, family_len) == 0
              && resolved_type[family_len] == '<')) {
         ASTNode *alias_decl = transpiler_find_type_alias_decl(ctx, resolved_type);
-        if (alias_decl != NULL && alias_decl->data.type_alias.target_type != NULL) {
+        if (alias_decl != NULL && ast_type_alias_target_type(alias_decl) != NULL) {
             ASTNode *target = resolve_type_alias_target(
-                ctx, alias_decl->data.type_alias.target_type);
+                ctx, ast_type_alias_target_type(alias_decl));
             char *rendered = render_type_name(target);
             if (rendered != NULL) {
                 bool copied = transpiler_stdlib_copy_type_name(
@@ -136,16 +136,20 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
     /* Standard library built-in functions */
     if (callee->type == AST_IDENTIFIER) {
         const char *fn = callee->data.identifier.name;
+        size_t argc = ast_call_arg_count(call);
+        ASTNode *arg0 = ast_call_argument(call, 0);
+        ASTNode *arg1 = ast_call_argument(call, 1);
+        ASTNode *arg2 = ast_call_argument(call, 2);
         char *scalar_builtin = emit_call_stdlib_scalar_builtin(fn, call, ctx);
         if (scalar_builtin != NULL)
             return scalar_builtin;
 
-        if (strcmp(fn, "ArrayLength") == 0 && call->data.call.arg_count == 1) {
-            char *arg = emit_expression(call->data.call.arguments[0], ctx);
+        if (strcmp(fn, "ArrayLength") == 0 && argc == 1) {
+            char *arg = emit_expression(arg0, ctx);
             const char *inner = NULL;
             char inner_buf[64];
             if (!transpiler_require_array_inner_type(ctx,
-                    call->data.call.arguments[0], "ArrayLength", true,
+                    arg0, "ArrayLength", true,
                     inner_buf, sizeof(inner_buf), &inner)) {
                 free(arg);
                 return pergyra_strdup("0");
@@ -154,13 +158,13 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             free(arg);
             return result;
         }
-        if (strcmp(fn, "ArrayPush") == 0 && call->data.call.arg_count == 2) {
-            char *arr = emit_expression(call->data.call.arguments[0], ctx);
-            char *val = emit_expression(call->data.call.arguments[1], ctx);
+        if (strcmp(fn, "ArrayPush") == 0 && argc == 2) {
+            char *arr = emit_expression(arg0, ctx);
+            char *val = emit_expression(arg1, ctx);
             const char *suffix = NULL;
             char inner_buf[64];
             if (!transpiler_require_array_inner_type(ctx,
-                    call->data.call.arguments[0], "ArrayPush", false,
+                    arg0, "ArrayPush", false,
                     inner_buf, sizeof(inner_buf), &suffix)) {
                 free(arr);
                 free(val);
@@ -171,14 +175,14 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             free(arr); free(val);
             return result;
         }
-        if (strcmp(fn, "ArraySet") == 0 && call->data.call.arg_count == 3) {
-            char *arr = emit_expression(call->data.call.arguments[0], ctx);
-            char *idx = emit_expression(call->data.call.arguments[1], ctx);
-            char *val = emit_expression(call->data.call.arguments[2], ctx);
+        if (strcmp(fn, "ArraySet") == 0 && argc == 3) {
+            char *arr = emit_expression(arg0, ctx);
+            char *idx = emit_expression(arg1, ctx);
+            char *val = emit_expression(arg2, ctx);
             const char *inner = NULL;
             char inner_buf[64];
             if (!transpiler_require_array_inner_type(ctx,
-                    call->data.call.arguments[0], "ArraySet", false,
+                    arg0, "ArraySet", false,
                     inner_buf, sizeof(inner_buf), &inner)) {
                 free(arr); free(idx); free(val);
                 return pergyra_strdup("0");
@@ -188,12 +192,12 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             free(arr); free(idx); free(val);
             return result;
         }
-        if (strcmp(fn, "ArrayPop") == 0 && call->data.call.arg_count == 1) {
-            char *arr = emit_expression(call->data.call.arguments[0], ctx);
+        if (strcmp(fn, "ArrayPop") == 0 && argc == 1) {
+            char *arr = emit_expression(arg0, ctx);
             const char *inner = NULL;
             char inner_buf[64];
             if (!transpiler_require_array_inner_type(ctx,
-                    call->data.call.arguments[0], "ArrayPop", false,
+                    arg0, "ArrayPop", false,
                     inner_buf, sizeof(inner_buf), &inner)) {
                 free(arr);
                 return pergyra_strdup("0");
@@ -203,12 +207,12 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             return result;
         }
         /* ArraySort ??hybrid sort using AlphaDev kernels for small arrays */
-        if (strcmp(fn, "ArraySort") == 0 && call->data.call.arg_count == 1) {
-            char *arr = emit_expression(call->data.call.arguments[0], ctx);
+        if (strcmp(fn, "ArraySort") == 0 && argc == 1) {
+            char *arr = emit_expression(arg0, ctx);
             const char *inner = NULL;
             char inner_buf[64];
             if (!transpiler_require_array_inner_type(ctx,
-                    call->data.call.arguments[0], "ArraySort", false,
+                    arg0, "ArraySort", false,
                     inner_buf, sizeof(inner_buf), &inner)) {
                 free(arr);
                 return pergyra_strdup("0");
@@ -220,13 +224,13 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             return result;
         }
         /* ArrayMap ??apply function to each element, return new array */
-        if (strcmp(fn, "ArrayMap") == 0 && call->data.call.arg_count == 2) {
-            char *arr = emit_expression(call->data.call.arguments[0], ctx);
-            char *fn_arg = emit_expression(call->data.call.arguments[1], ctx);
+        if (strcmp(fn, "ArrayMap") == 0 && argc == 2) {
+            char *arr = emit_expression(arg0, ctx);
+            char *fn_arg = emit_expression(arg1, ctx);
             const char *inner = NULL;
             char inner_buf[64];
             if (!transpiler_require_array_inner_type(ctx,
-                    call->data.call.arguments[0], "ArrayMap", false,
+                    arg0, "ArrayMap", false,
                     inner_buf, sizeof(inner_buf), &inner)) {
                 free(arr); free(fn_arg);
                 return pergyra_strdup("0");
@@ -245,13 +249,13 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             return result;
         }
         /* ArrayFilter ??keep elements where predicate returns true */
-        if (strcmp(fn, "ArrayFilter") == 0 && call->data.call.arg_count == 2) {
-            char *arr = emit_expression(call->data.call.arguments[0], ctx);
-            char *fn_arg = emit_expression(call->data.call.arguments[1], ctx);
+        if (strcmp(fn, "ArrayFilter") == 0 && argc == 2) {
+            char *arr = emit_expression(arg0, ctx);
+            char *fn_arg = emit_expression(arg1, ctx);
             const char *inner = NULL;
             char inner_buf[64];
             if (!transpiler_require_array_inner_type(ctx,
-                    call->data.call.arguments[0], "ArrayFilter", false,
+                    arg0, "ArrayFilter", false,
                     inner_buf, sizeof(inner_buf), &inner)) {
                 free(arr); free(fn_arg);
                 return pergyra_strdup("0");
@@ -272,10 +276,10 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             return result;
         }
         /* ArrayReverse ??in-place reverse */
-        if (strcmp(fn, "ArrayReverse") == 0 && call->data.call.arg_count == 1) {
-            char *arr = emit_expression(call->data.call.arguments[0], ctx);
+        if (strcmp(fn, "ArrayReverse") == 0 && argc == 1) {
+            char *arr = emit_expression(arg0, ctx);
             const char *arr_type = infer_expression_type_name(ctx,
-                call->data.call.arguments[0]);
+                arg0);
             const char *inner = NULL;
             const char *c_type = NULL;
             char inner_buf[128];
@@ -307,10 +311,10 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
         if (channel_builtin != NULL)
             return channel_builtin;
         /* Clone: explicit copy of Slot */
-        if (strcmp(fn, "Clone") == 0 && call->data.call.arg_count == 1) {
-            char *src = emit_expression(call->data.call.arguments[0], ctx);
+        if (strcmp(fn, "Clone") == 0 && argc == 1) {
+            char *src = emit_expression(arg0, ctx);
             const char *tn = infer_expression_type_name(
-                ctx, call->data.call.arguments[0]);
+                ctx, arg0);
             if (tn != NULL && strncmp(tn, "Slot<", 5) == 0) {
                 char inner_buf[128];
                 const char *inner = NULL;
@@ -335,17 +339,17 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             return src;
         }
         /* Print (no newline) vs Log (with newline) */
-        if (strcmp(fn, "Print") == 0 && call->data.call.arg_count == 1) {
-            char *arg = emit_expression(call->data.call.arguments[0], ctx);
+        if (strcmp(fn, "Print") == 0 && argc == 1) {
+            char *arg = emit_expression(arg0, ctx);
             char *result = strdup_fmt("printf(\"%%s\", %s)", arg);
             free(arg);
             return result;
         }
         /* ToString */
-        if (strcmp(fn, "ToString") == 0 && call->data.call.arg_count == 1) {
-            char *arg = emit_expression(call->data.call.arguments[0], ctx);
+        if (strcmp(fn, "ToString") == 0 && argc == 1) {
+            char *arg = emit_expression(arg0, ctx);
             const char *arg_type = infer_expression_type_name(ctx,
-                call->data.call.arguments[0]);
+                arg0);
             char *result = NULL;
             if (arg_type != NULL && strcmp(arg_type, "String") == 0) {
                 result = pergyra_strdup(arg);

@@ -26,11 +26,11 @@ metadata_scope_named_type(SemanticContext *ctx, ASTNode *type_node)
 
     if (ctx == NULL || type_node == NULL || type_node->type != AST_TYPE)
         return NULL;
-    if (type_node->data.type.generic_args != NULL
-        && type_node->data.type.generic_args->count > 0)
+    if (ast_type_generic_args(type_node) != NULL
+        && ast_type_generic_args(type_node)->count > 0)
         return NULL;
 
-    name = type_node->data.type.name;
+    name = ast_type_name(type_node);
     if (name == NULL)
         return NULL;
 
@@ -49,9 +49,9 @@ metadata_scope_named_type(SemanticContext *ctx, ASTNode *type_node)
         ASTNode *decl = ctx->program_root != NULL
             ? find_type_decl_by_name(ctx->program_root, name)
             : NULL;
+        GenericParams *class_generics = ast_class_generic_params(decl);
         if (decl != NULL && decl->type == AST_CLASS_DECL
-            && decl->data.class_decl.generic_params != NULL
-            && decl->data.class_decl.generic_params->count > 0) {
+            && class_generics != NULL && class_generics->count > 0) {
             return NULL;
         }
         semantic_type_resolution_record_named_dependency(
@@ -221,57 +221,6 @@ semantic_type_resolution_lookup_annotation_nullable(SemanticContext *ctx,
 }
 
 Type *
-semantic_type_resolution_lookup_or_materialize(SemanticContext *ctx,
-                                               ASTNode *type_node)
-{
-    Type *resolved;
-
-    if (type_node == NULL)
-        return NULL;
-
-    resolved = semantic_type_resolution_lookup_resolved_type(ctx, type_node);
-    if (resolved != NULL)
-        return resolved;
-
-    if (type_node->type == AST_TYPE)
-        resolved = semantic_type_resolution_metadata_builtin_singleton(
-            type_node->data.type.name);
-    if (resolved != NULL) {
-        semantic_type_resolution_record_resolved_type(ctx, type_node, resolved);
-        return resolved;
-    }
-
-    if (semantic_type_resolution_reject_invalid_stable_shell_arity(ctx,
-                                                                   type_node))
-        return TYPE_UNKNOWN;
-
-    resolved = metadata_scope_named_type(ctx, type_node);
-    if (resolved != NULL)
-        return resolved;
-
-    semantic_type_resolution_try_record_stable_constructed_type(ctx,
-                                                                type_node);
-    resolved = semantic_type_resolution_lookup_resolved_type(ctx, type_node);
-    if (resolved != NULL)
-        return resolved;
-
-    if (semantic_type_resolution_reject_invalid_stable_constructed_type(ctx,
-                                                                        type_node))
-        return TYPE_UNKNOWN;
-
-    if (semantic_type_resolution_reject_unknown_bare_named_type(ctx,
-                                                               type_node))
-        return TYPE_UNKNOWN;
-
-    /* Strict beta keeps unresolved metadata materialization explicit. Current
-     * DAG smoke requires this path to be dormant (materializer_fallbacks == 0);
-     * resolver-inventory smoke rejects recursive fallback reintroduction.
-     */
-    semantic_type_resolution_record_metadata_dead_end_diagnostic(ctx, type_node);
-    return NULL;
-}
-
-Type *
 semantic_type_resolution_lookup_metadata_type_ref(SemanticContext *ctx,
                                                   ASTNode *type_node)
 {
@@ -286,7 +235,7 @@ semantic_type_resolution_lookup_metadata_type_ref(SemanticContext *ctx,
 
     if (type_node->type == AST_TYPE)
         resolved = semantic_type_resolution_metadata_builtin_singleton(
-            type_node->data.type.name);
+            ast_type_name(type_node));
     if (resolved != NULL) {
         semantic_type_resolution_record_resolved_type(ctx, type_node, resolved);
         return resolved;
@@ -302,17 +251,6 @@ semantic_type_resolution_lookup_metadata_type_ref(SemanticContext *ctx,
         return resolved;
 
     return NULL;
-}
-
-Type *
-semantic_type_resolution_lookup_type_ref_or_materialize(SemanticContext *ctx,
-                                                        ASTNode *type_node)
-{
-    Type *resolved = semantic_type_resolution_lookup_metadata_type_ref(ctx,
-                                                                       type_node);
-    return resolved != NULL
-        ? resolved
-        : semantic_type_resolution_lookup_or_materialize(ctx, type_node);
 }
 
 Type *

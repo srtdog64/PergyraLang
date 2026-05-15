@@ -90,20 +90,19 @@ type_check_let_destructure_stmt(ASTNode *node, SemanticContext *ctx)
 
     if (init != NULL
         && init->type == AST_CALL
-        && init->data.call.callee != NULL
-        && init->data.call.callee->type == AST_IDENTIFIER
-        && init->data.call.callee->data.identifier.name != NULL
-        && init->data.call.generic_args != NULL
-        && init->data.call.generic_args->count >= 1) {
+        && ast_call_callee(init) != NULL
+        && ast_call_callee(init)->type == AST_IDENTIFIER
+        && ast_call_callee(init)->data.identifier.name != NULL
+        && ast_call_generic_arg_count(init) >= 1) {
         const char *callee_name =
-            init->data.call.callee->data.identifier.name;
+            ast_call_callee(init)->data.identifier.name;
         bool is_claim_slot =
             (strcmp(callee_name, "ClaimSlot") == 0);
         bool is_claim_secure =
             (strcmp(callee_name, "ClaimSecureSlot") == 0);
         if (is_claim_slot || is_claim_secure) {
             GenericParam *inner_param =
-                init->data.call.generic_args->params[0];
+                ast_call_generic_arg(init, 0);
             const char *inner_name =
                 inner_param != NULL ? inner_param->name : NULL;
             ASTNode *inner_node =
@@ -112,10 +111,11 @@ type_check_let_destructure_stmt(ASTNode *node, SemanticContext *ctx)
             if (inner_node != NULL)
                 inner_type = domain_resolve_type_ref(inner_node, ctx);
             if (inner_type == NULL && inner_name != NULL) {
-                ASTNode synth = {0};
-                synth.type = AST_TYPE;
-                synth.data.type.name = (char *)inner_name;
-                inner_type = domain_resolve_type_ref(&synth, ctx);
+                ASTNode *synth = ast_create_type(inner_name);
+                if (synth != NULL) {
+                    inner_type = domain_resolve_type_ref(synth, ctx);
+                    ast_destroy(synth);
+                }
             }
             if (inner_type == NULL)
                 inner_type = TYPE_UNKNOWN;

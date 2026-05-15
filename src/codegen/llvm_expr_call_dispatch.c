@@ -56,25 +56,29 @@ llvm_intent_call_binding_at(ASTNode *intent_decl, size_t index,
 LLVMValueRef
 llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
 {
-    if (node->data.call.callee == NULL)
+    ASTNode *callee_node = ast_call_callee(node);
+    size_t argc = ast_call_arg_count(node);
+    ASTNode **call_args = ast_call_arguments(node, NULL);
+
+    if (callee_node == NULL)
         return llvm_call_error_recovery(ctx, node,
             "LLVM call expression requires a callee");
 
     /* Method call: obj.method(args) */
-    if (node->data.call.callee->type == AST_MEMBER_ACCESS)
+    if (callee_node->type == AST_MEMBER_ACCESS)
         return llvm_emit_member_call(node, ctx);
 
     /* Get callee name */
     const char *callee_name = NULL;
-    if (node->data.call.callee->type == AST_IDENTIFIER)
-        callee_name = node->data.call.callee->data.identifier.name;
+    if (callee_node->type == AST_IDENTIFIER)
+        callee_name = callee_node->data.identifier.name;
 
     if (callee_name == NULL)
         return llvm_call_error_recovery(ctx, node,
             "LLVM call expression requires an identifier or member callee");
 
-    if (strcmp(callee_name, "Clone") == 0 && node->data.call.arg_count == 1) {
-        return llvm_emit_expression(node->data.call.arguments[0], ctx);
+    if (strcmp(callee_name, "Clone") == 0 && argc == 1) {
+        return llvm_emit_expression(ast_call_argument(node, 0), ctx);
     }
 
     {
@@ -87,7 +91,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
     }
 
     if ((strcmp(callee_name, "ToTObject") == 0 || strcmp(callee_name, "ToObject") == 0)
-        && node->data.call.arg_count == 2) {
+        && argc == 2) {
         LLVMValueRef projection = llvm_emit_subject_projection(node, ctx);
         if (ctx->has_error)
             return NULL;
@@ -199,7 +203,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         if (task_channel_call != NULL)
             return task_channel_call;
     }
-    if (node->data.call.callee->type == AST_IDENTIFIER) {
+    if (callee_node->type == AST_IDENTIFIER) {
         ASTNode *host_decl = llvm_current_host_decl(ctx);
         const char *host_name = llvm_decl_node_name(host_decl);
         ASTNode *host_method = llvm_current_host_method_decl(ctx, callee_name);
@@ -208,7 +212,6 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
             snprintf(full_name, sizeof(full_name), "%s_%s", host_name, callee_name);
             LLVMFuncEntry *fn = llvm_lookup_function(ctx, full_name);
             if (fn != NULL) {
-                size_t argc = node->data.call.arg_count;
                 LLVMValueRef *args = pgy_arena_calloc(&ctx->scratch,
                     (argc + 1) * sizeof(LLVMValueRef));
                 if (args == NULL)
@@ -219,10 +222,11 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                     return llvm_call_error_recovery(ctx, node,
                         "LLVM hosted method call requires a self receiver");
                 for (size_t i = 0; i < argc; i++) {
-                    LLVMValueRef arg_val = llvm_emit_expression(node->data.call.arguments[i], ctx);
+                    ASTNode *arg_node = ast_call_argument(node, i);
+                    LLVMValueRef arg_val = llvm_emit_expression(arg_node, ctx);
                     size_t logical_idx = 0;
-                    for (size_t pk = 0; pk < host_method->data.func_decl.param_count; pk++) {
-                        FuncParam *p = host_method->data.func_decl.params[pk];
+                    for (size_t pk = 0; pk < ast_func_param_count(host_method); pk++) {
+                        FuncParam *p = ast_func_param(host_method, pk);
                         const char *ptn = NULL;
                         LLVMClassTypeEntry *param_cls = NULL;
                         if (p == NULL || p->name == NULL)
@@ -231,13 +235,13 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                             continue;
                         if (logical_idx == i) {
                             if (p->type != NULL && p->type->type == AST_TYPE)
-                                ptn = p->type->data.type.name;
+                                ptn = ast_type_name(p->type);
                             param_cls = ptn != NULL ? llvm_lookup_class(ctx, ptn) : NULL;
                             if (param_cls != NULL && param_cls->is_pointer_self_host
-                                && node->data.call.arguments[i] != NULL
-                                && node->data.call.arguments[i]->type == AST_IDENTIFIER) {
+                                && arg_node != NULL
+                                && arg_node->type == AST_IDENTIFIER) {
                                 const char *arg_name =
-                                    node->data.call.arguments[i]->data.identifier.name;
+                                    arg_node->data.identifier.name;
                                 LLVMVarEntry *arg_var = llvm_scope_lookup(ctx, arg_name);
                                 if (arg_var != NULL) {
                                     if (LLVMGetTypeKind(arg_var->type) == LLVMPointerTypeKind)
@@ -272,14 +276,13 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         }
     }
 
-    size_t argc = node->data.call.arg_count;
     ASTNode *decl = llvm_find_function_decl(ctx, callee_name);
     ASTNode *intent_decl = decl == NULL ? llvm_find_intent_decl(ctx, callee_name) : NULL;
     unsigned emitted_argc = 0;
     LLVMValueRef *args = NULL;
 
     if (decl != NULL)
-        args = llvm_build_boundary_call_args(ctx, decl, node->data.call.arguments,
+        args = llvm_build_boundary_call_args(ctx, decl, call_args,
             argc, &emitted_argc);
     if (args == NULL && decl != NULL && ctx->has_error)
         return llvm_call_error_recovery(ctx, node,
@@ -291,7 +294,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
             for (size_t i = 0; i < argc; i++) {
                 const char *type_name = NULL;
                 bool pointer_self = false;
-                ASTNode *arg_node = node->data.call.arguments[i];
+                ASTNode *arg_node = ast_call_argument(node, i);
 
                 {
                     size_t binding_count = 0;
@@ -303,12 +306,12 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                             && ast_intent_involves_subject_type(binding) != NULL
                             && ast_intent_involves_subject_type(binding)->type == AST_TYPE) {
                             binding_type = ast_intent_involves_subject_type(binding);
-                            type_name = binding_type->data.type.name;
+                            type_name = ast_type_name(binding_type);
                         } else if (binding != NULL && binding->type == AST_INTENT_VALUE
                             && ast_intent_value_type(binding) != NULL
                             && ast_intent_value_type(binding)->type == AST_TYPE) {
                             binding_type = ast_intent_value_type(binding);
-                            type_name = binding_type->data.type.name;
+                            type_name = ast_type_name(binding_type);
                         }
                     }
                 }
@@ -360,7 +363,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
             return llvm_call_error_recovery(ctx, node,
                 "LLVM call argument allocation failed");
         for (size_t i = 0; i < argc; i++) {
-            args[i] = llvm_emit_expression(node->data.call.arguments[i], ctx);
+            args[i] = llvm_emit_expression(ast_call_argument(node, i), ctx);
             if (args[i] == NULL)
                 return llvm_call_arg_error_recovery(ctx, node,
                     callee_name, i);
@@ -398,7 +401,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                     && ast_intent_involves_subject_type(binding) != NULL
                     && ast_intent_involves_subject_type(binding)->type == AST_TYPE) {
                     binding_type = ast_intent_involves_subject_type(binding);
-                    type_name = binding_type->data.type.name;
+                    type_name = ast_type_name(binding_type);
                     pt = ast_type_to_llvm(ctx, binding_type);
                     if (ctx->has_error || pt == NULL)
                         return llvm_call_error_recovery(ctx, node,
@@ -443,7 +446,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
     }
 
     for (size_t i = 0; decl == NULL && i < argc; i++) {
-        ASTNode *arg_node = node->data.call.arguments[i];
+        ASTNode *arg_node = ast_call_argument(node, i);
         unsigned param_count = LLVMCountParams(func->fn);
         LLVMTypeRef param_ty = (i < param_count)
             ? LLVMTypeOf(LLVMGetParam(func->fn, (unsigned)i))

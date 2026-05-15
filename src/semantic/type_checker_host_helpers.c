@@ -389,8 +389,8 @@ find_action_binding_type_name(ASTNode *func, ASTNode *enclosing_nominal,
                 : NULL;
     }
 
-    for (size_t i = 0; i < func->data.func_decl.param_count; i++) {
-        FuncParam *param = func->data.func_decl.params[i];
+    for (size_t i = 0; i < ast_func_param_count(func); i++) {
+        FuncParam *param = ast_func_param(func, i);
         Type *param_type;
         if (param == NULL || param->name == NULL
             || strcmp(param->name, binding_name) != 0) {
@@ -494,18 +494,19 @@ zone_has_effect_layer_type(ASTNode *zone, const char *effect_name)
 bool
 expr_is_class_constructor_call(const ASTNode *expr, SemanticContext *ctx)
 {
+    ASTNode *callee;
     ASTNode *decl;
 
-    if (expr == NULL || expr->type != AST_CALL
-        || expr->data.call.callee == NULL
-        || expr->data.call.callee->type != AST_IDENTIFIER
-        || expr->data.call.callee->data.identifier.name == NULL
-        || ctx == NULL) {
+    if (expr == NULL || expr->type != AST_CALL || ctx == NULL)
+        return false;
+
+    callee = ast_call_callee(expr);
+    if (callee == NULL || callee->type != AST_IDENTIFIER
+        || callee->data.identifier.name == NULL) {
         return false;
     }
 
-    decl = find_type_decl_by_name(ctx->program_root,
-        expr->data.call.callee->data.identifier.name);
+    decl = find_type_decl_by_name(ctx->program_root, callee->data.identifier.name);
     if (decl != NULL)
         return !ast_class_is_struct(decl);
     return false;
@@ -514,23 +515,31 @@ expr_is_class_constructor_call(const ASTNode *expr, SemanticContext *ctx)
 bool
 expr_is_qubit_claim(const ASTNode *expr)
 {
+    ASTNode *callee = (expr != NULL && expr->type == AST_CALL)
+        ? ast_call_callee(expr)
+        : NULL;
+
     return expr != NULL
         && expr->type == AST_CALL
-        && expr->data.call.callee != NULL
-        && expr->data.call.callee->type == AST_IDENTIFIER
-        && expr->data.call.callee->data.identifier.name != NULL
-        && strcmp(expr->data.call.callee->data.identifier.name, "ClaimQubit") == 0;
+        && callee != NULL
+        && callee->type == AST_IDENTIFIER
+        && callee->data.identifier.name != NULL
+        && strcmp(callee->data.identifier.name, "ClaimQubit") == 0;
 }
 
 bool
 expr_is_device_slot_claim(const ASTNode *expr)
 {
+    ASTNode *callee = (expr != NULL && expr->type == AST_CALL)
+        ? ast_call_callee(expr)
+        : NULL;
+
     return expr != NULL
         && expr->type == AST_CALL
-        && expr->data.call.callee != NULL
-        && expr->data.call.callee->type == AST_IDENTIFIER
-        && expr->data.call.callee->data.identifier.name != NULL
-        && strcmp(expr->data.call.callee->data.identifier.name, "ClaimDeviceSlot") == 0;
+        && callee != NULL
+        && callee->type == AST_IDENTIFIER
+        && callee->data.identifier.name != NULL
+        && strcmp(callee->data.identifier.name, "ClaimDeviceSlot") == 0;
 }
 
 bool

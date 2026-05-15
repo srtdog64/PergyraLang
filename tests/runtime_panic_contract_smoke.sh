@@ -332,6 +332,7 @@ export_collection_text = "\n".join([
     (root / "src" / "runtime" / "pgy_runtime_lib_list_raw_exports.h").read_text(encoding="utf-8"),
     (root / "src" / "runtime" / "pgy_runtime_lib_raw_collection_exports.h").read_text(encoding="utf-8"),
     (root / "src" / "runtime" / "pgy_runtime_lib_raw_map_exports.h").read_text(encoding="utf-8"),
+    (root / "src" / "runtime" / "pgy_runtime_lib_raw_map_key_exports.h").read_text(encoding="utf-8"),
     (root / "src" / "runtime" / "pgy_runtime_lib_raw_queue_exports.h").read_text(encoding="utf-8"),
     (root / "src" / "runtime" / "pgy_runtime_lib_raw_set_exports.h").read_text(encoding="utf-8"),
 ])
@@ -408,7 +409,7 @@ for path, tokens in unwrap_lowering_paths.items():
 
 array_lowering_paths = {
     root / "src" / "codegen" / "transpiler_expr_stdlib_builtin.h": ["pgy_array_set_"],
-    root / "src" / "codegen" / "transpiler_expr_dispatch_emit.h": ["pgy_array_get_", "pgy_slice_get_"],
+    root / "src" / "codegen" / "transpiler_expr_array_access_emit.h": ["pgy_array_get_", "pgy_slice_get_"],
     root / "src" / "codegen" / "llvm_expr.c": ["pgy_array_get_", "pgy_slice_get_", "llvm_emit_checked_collection_get"],
     root / "src" / "codegen" / "llvm_expr_array_calls.c": ["pgy_array_set_"],
     root / "src" / "codegen" / "llvm_runtime.c": ["array_get", "array_set", "slice_get"],

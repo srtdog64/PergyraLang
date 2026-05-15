@@ -13,7 +13,7 @@ slotops_normalize_type(Type *type)
 Type *
 type_check_claim_slot(ASTNode *call, SemanticContext *ctx)
 {
-    if (call->data.call.arg_count != 0) {
+    if (ast_call_arg_count(call) != 0) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, call, "ClaimSlot takes no arguments");
         return TYPE_UNKNOWN;
     }
@@ -27,7 +27,7 @@ type_check_move_token(ASTNode *call, SemanticContext *ctx)
     if (!check_call_arity(call, 1, "Move", ctx))
         return TYPE_UNKNOWN;
 
-    ASTNode *slot_arg = call->data.call.arguments[0];
+    ASTNode *slot_arg = ast_call_argument(call, 0);
     if (slot_arg == NULL || slot_arg->type != AST_IDENTIFIER) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, call,
             "Move requires a named owning Slot<T>/SecureSlot<T> binding");
@@ -85,7 +85,7 @@ type_check_move_token(ASTNode *call, SemanticContext *ctx)
 bool
 type_check_write_slot(ASTNode *call, SemanticContext *ctx)
 {
-    size_t arg_count = call->data.call.arg_count;
+    size_t arg_count = ast_call_arg_count(call);
 
     if (arg_count < 2) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, call,
@@ -93,7 +93,7 @@ type_check_write_slot(ASTNode *call, SemanticContext *ctx)
         return false;
     }
 
-    ASTNode *slot_arg = call->data.call.arguments[0];
+    ASTNode *slot_arg = ast_call_argument(call, 0);
     if (slot_arg != NULL && slot_arg->type == AST_IDENTIFIER) {
         Symbol *target_sym = scope_lookup(ctx->scope,
             slot_arg->data.identifier.name);
@@ -182,7 +182,7 @@ type_check_write_slot(ASTNode *call, SemanticContext *ctx)
                     return false;
                 }
 
-                ASTNode *token_arg = call->data.call.arguments[2];
+                ASTNode *token_arg = ast_call_argument(call, 2);
                 if (!builtin_validate_secure_token_arg(token_arg, sym, slot_type, ctx))
                     return false;
             } else if (arg_count > 2) {
@@ -204,7 +204,7 @@ type_check_write_slot(ASTNode *call, SemanticContext *ctx)
         }
     }
 
-    ASTNode *value_arg = call->data.call.arguments[1];
+    ASTNode *value_arg = ast_call_argument(call, 1);
     Type *value_type = slotops_normalize_type(type_check_expression(value_arg, ctx));
     Type *inner_type = slotops_normalize_type(slot_type->data.slot.inner_type);
 
@@ -226,7 +226,7 @@ type_check_write_slot(ASTNode *call, SemanticContext *ctx)
 Type *
 type_check_read_slot(ASTNode *call, SemanticContext *ctx)
 {
-    size_t arg_count = call->data.call.arg_count;
+    size_t arg_count = ast_call_arg_count(call);
 
     if (arg_count < 1) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, call,
@@ -234,7 +234,7 @@ type_check_read_slot(ASTNode *call, SemanticContext *ctx)
         return TYPE_UNKNOWN;
     }
 
-    ASTNode *slot_arg = call->data.call.arguments[0];
+    ASTNode *slot_arg = ast_call_argument(call, 0);
     Type *slot_type = slotops_normalize_type(type_check_expression(slot_arg, ctx));
 
     if (type_is_constructed_named(slot_type, "RemoteFuture")) {
@@ -313,7 +313,7 @@ type_check_read_slot(ASTNode *call, SemanticContext *ctx)
                         sym->name);
                     return TYPE_UNKNOWN;
                 }
-                ASTNode *token_arg = call->data.call.arguments[1];
+                ASTNode *token_arg = ast_call_argument(call, 1);
                 if (!builtin_validate_secure_token_arg(token_arg, sym, slot_type, ctx))
                     return TYPE_UNKNOWN;
             }
@@ -339,7 +339,7 @@ type_check_release_slot(ASTNode *call, SemanticContext *ctx)
 {
     semantic_record_body_summary(ctx, BODY_SUMMARY_DROPS_RESOURCE);
 
-    if (call->data.call.arg_count < 1) {
+    if (ast_call_arg_count(call) < 1) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
             PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE,
             call,
@@ -347,7 +347,7 @@ type_check_release_slot(ASTNode *call, SemanticContext *ctx)
         return false;
     }
 
-    ASTNode *slot_arg = call->data.call.arguments[0];
+    ASTNode *slot_arg = ast_call_argument(call, 0);
     if (slot_arg == NULL) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
             PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE,
@@ -430,7 +430,7 @@ type_check_release_slot(ASTNode *call, SemanticContext *ctx)
         return false;
     }
 
-    if (sym->slot_info.is_secure && call->data.call.arg_count < 2) {
+    if (sym->slot_info.is_secure && ast_call_arg_count(call) < 2) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
             PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE,
             call,
@@ -439,7 +439,7 @@ type_check_release_slot(ASTNode *call, SemanticContext *ctx)
         return false;
     }
     if (sym->slot_info.is_secure
-        && !builtin_validate_secure_token_arg(call->data.call.arguments[1], sym, sym->type, ctx)) {
+        && !builtin_validate_secure_token_arg(ast_call_argument(call, 1), sym, sym->type, ctx)) {
         return false;
     }
 

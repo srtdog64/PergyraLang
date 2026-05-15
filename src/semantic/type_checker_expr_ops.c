@@ -96,8 +96,9 @@ find_role_operator_method(ASTNode *role, ASTNode *program, PgyTokenType op,
 
         for (size_t j = 0; j < ast_impl_ability_method_count(impl); j++) {
             ASTNode *method = ast_impl_ability_method(impl, j);
+            const char *method_name = ast_declaration_name(method);
             if (method != NULL && method->type == AST_FUNC_DECL
-                && operator_method_name_matches(op, method->data.func_decl.name)) {
+                && operator_method_name_matches(op, method_name)) {
                 return method;
             }
         }
@@ -133,14 +134,14 @@ type_check_role_operator_overload(ASTNode *expr, SemanticContext *ctx,
         }
 
         ASTNode *method = find_role_operator_method(
-            stmt, ctx->program_root, expr->data.binary.op.type, 0);
+            stmt, ctx->program_root, ast_binary_operator(expr).type, 0);
         if (method == NULL)
             continue;
 
         FuncParam *rhs_param = NULL;
         size_t rhs_param_count = 0;
-        for (size_t j = 0; j < method->data.func_decl.param_count; j++) {
-            FuncParam *p = method->data.func_decl.params[j];
+        for (size_t j = 0; j < ast_func_param_count(method); j++) {
+            FuncParam *p = ast_func_param(method, j);
             if (p != NULL && !(p->type == NULL && strcmp(p->name, "self") == 0)) {
                 rhs_param = p;
                 rhs_param_count++;
@@ -155,9 +156,9 @@ type_check_role_operator_overload(ASTNode *expr, SemanticContext *ctx,
         if (!type_is_assignable(right, rhs_type))
             continue;
 
-        if (method->data.func_decl.return_type != NULL)
+        if (ast_func_return_type(method) != NULL)
             return domain_resolve_type_ref(
-                method->data.func_decl.return_type, ctx);
+                ast_func_return_type(method), ctx);
         return TYPE_VOID;
     }
 
@@ -168,7 +169,7 @@ static Type *
 type_check_operator_overload(ASTNode *expr, SemanticContext *ctx,
                              Type *left, Type *right)
 {
-    const char *suffix = operator_overload_suffix(expr->data.binary.op.type);
+    const char *suffix = operator_overload_suffix(ast_binary_operator(expr).type);
     if (suffix == NULL || left == NULL || right == NULL || left->name == NULL)
         return NULL;
 
@@ -202,9 +203,9 @@ Type *
 type_check_binary(ASTNode *expr, SemanticContext *ctx)
 {
     Type *left  = expr_ops_normalize_type(
-        type_check_expression(expr->data.binary.left,  ctx));
+        type_check_expression(ast_binary_left(expr),  ctx));
     Type *right = expr_ops_normalize_type(
-        type_check_expression(expr->data.binary.right, ctx));
+        type_check_expression(ast_binary_right(expr), ctx));
 
     if (type_is_slot_handle(left) && left->data.slot.inner_type != NULL)
         left = left->data.slot.inner_type;
@@ -218,7 +219,7 @@ type_check_binary(ASTNode *expr, SemanticContext *ctx)
         return overloaded;
 
     if (left == TYPE_UNKNOWN || right == TYPE_UNKNOWN) {
-        PgyTokenType op = expr->data.binary.op.type;
+        PgyTokenType op = ast_binary_operator(expr).type;
         if (op == TOKEN_EQUAL || op == TOKEN_NOT_EQUAL
             || op == TOKEN_LESS     || op == TOKEN_LESS_EQUAL
             || op == TOKEN_GREATER  || op == TOKEN_GREATER_EQUAL)
@@ -226,7 +227,7 @@ type_check_binary(ASTNode *expr, SemanticContext *ctx)
         return (left != TYPE_UNKNOWN) ? left : right;
     }
 
-    PgyTokenType op = expr->data.binary.op.type;
+    PgyTokenType op = ast_binary_operator(expr).type;
     if (op == TOKEN_COALESCE) {
         Type *inner;
         if (!type_is_constructed_named(left, "Option")) {
@@ -286,9 +287,9 @@ Type *
 type_check_unary(ASTNode *expr, SemanticContext *ctx)
 {
     Type *operand = expr_ops_normalize_type(
-        type_check_expression(expr->data.unary.operand, ctx));
+        type_check_expression(ast_unary_operand(expr), ctx));
 
-    PgyTokenType op = expr->data.unary.op.type;
+    PgyTokenType op = ast_unary_operator(expr).type;
     if (op == TOKEN_NOT) {
         if (!type_equals(operand, TYPE_BOOL)) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_UNOP_TYPE_MISMATCH,
@@ -330,24 +331,24 @@ type_check_unary(ASTNode *expr, SemanticContext *ctx)
 Type *
 type_check_array_literal(ASTNode *expr, SemanticContext *ctx)
 {
-    if (expr->data.array_literal.count == 0)
+    if (ast_array_literal_count(expr) == 0)
         return wrap_constructed(TYPE_ARRAY, TYPE_UNKNOWN);
 
-    Type *elem_type = type_check_expression(expr->data.array_literal.elements[0], ctx);
+    Type *elem_type = type_check_expression(ast_array_literal_element(expr, 0), ctx);
     reject_borrowed_array_literal_store(
-        expr->data.array_literal.elements[0], elem_type, ctx);
+        ast_array_literal_element(expr, 0), elem_type, ctx);
     if (elem_type == NULL)
         elem_type = TYPE_UNKNOWN;
 
-    for (size_t i = 1; i < expr->data.array_literal.count; i++) {
-        Type *next = type_check_expression(expr->data.array_literal.elements[i], ctx);
+    for (size_t i = 1; i < ast_array_literal_count(expr); i++) {
+        Type *next = type_check_expression(ast_array_literal_element(expr, i), ctx);
         reject_borrowed_array_literal_store(
-            expr->data.array_literal.elements[i], next, ctx);
+            ast_array_literal_element(expr, i), next, ctx);
         if (!type_is_assignable(next, elem_type) && !type_is_assignable(elem_type, next)) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
                 PGY_CAUSE_ARRAY_LITERAL_ELEMENT_TYPE_MISMATCH,
                 PGY_FIX_ALIGN_ARRAY_ELEMENT_TYPES,
-                expr->data.array_literal.elements[i],
+                ast_array_literal_element(expr, i),
                 "Array literal element type mismatch: expected '%s', got '%s'",
                 elem_type->name, next->name);
             elem_type = TYPE_UNKNOWN;
@@ -360,15 +361,17 @@ type_check_array_literal(ASTNode *expr, SemanticContext *ctx)
 Type *
 type_check_array_access(ASTNode *expr, SemanticContext *ctx)
 {
+    ASTNode *array_node = ast_array_access_array(expr);
+    ASTNode *index_node = ast_array_access_index(expr);
     Type *object_type = expr_ops_normalize_type(
-        type_check_expression(expr->data.array_access.array, ctx));
+        type_check_expression(array_node, ctx));
     Type *index_type  = expr_ops_normalize_type(
-        type_check_expression(expr->data.array_access.index, ctx));
+        type_check_expression(index_node, ctx));
 
     if (!type_equals(index_type, TYPE_INT)) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
             PGY_CAUSE_ARRAY_ACCESS_INDEX_NON_INT, PGY_FIX_USE_INT_INDEX,
-            expr->data.array_access.index,
+            index_node,
             "Array index must be Int, got '%s'",
             type_name_or_unknown(index_type));
         return TYPE_UNKNOWN;
@@ -381,7 +384,7 @@ type_check_array_access(ASTNode *expr, SemanticContext *ctx)
 
     semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
         PGY_CAUSE_ARRAY_ACCESS_TARGET_NOT_INDEXABLE, PGY_FIX_USE_ARRAY_OR_SLICE,
-        expr->data.array_access.array,
+        array_node,
         "Index access requires Array<T> or Slice<T>, got '%s'",
         type_name_or_unknown(object_type));
     return TYPE_UNKNOWN;

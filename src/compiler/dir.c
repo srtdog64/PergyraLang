@@ -352,21 +352,21 @@ dir_render_type_name_dup(ASTNode *type_node)
 
     switch (type_node->type) {
     case AST_TYPE: {
-        const char *base_name = type_node->data.type.name != NULL
-            ? type_node->data.type.name
+        const char *base_name = ast_type_name(type_node) != NULL
+            ? ast_type_name(type_node)
             : "Int";
         result = pergyra_strdup(base_name);
         if (result == NULL)
             return NULL;
-        if (type_node->data.type.generic_args != NULL
-            && type_node->data.type.generic_args->count > 0) {
+        if (ast_type_generic_args(type_node) != NULL
+            && ast_type_generic_args(type_node)->count > 0) {
             char *next = dir_strdup_fmt("%s<", result);
             free(result);
             result = next;
             if (result == NULL)
                 return NULL;
-            for (size_t i = 0; i < type_node->data.type.generic_args->count; i++) {
-                GenericParam *param = type_node->data.type.generic_args->params[i];
+            for (size_t i = 0; i < ast_type_generic_args(type_node)->count; i++) {
+                GenericParam *param = ast_type_generic_args(type_node)->params[i];
                 char *arg_text = NULL;
                 if (param != NULL && param->constraint != NULL) {
                     arg_text = dir_render_type_name_dup(param->constraint);

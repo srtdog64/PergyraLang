@@ -6,7 +6,7 @@ mir_attach_statement_call_fact(MIRInstruction *inst, const ASTNode *stmt)
     if (inst == NULL || stmt == NULL)
         return;
     if (stmt->type == AST_DEFER_STMT) {
-        inst->expr0 = stmt->data.defer_stmt.body;
+        inst->expr0 = ast_defer_body(stmt);
         return;
     }
     if (stmt->type == AST_LET_DECL) {
@@ -16,20 +16,20 @@ mir_attach_statement_call_fact(MIRInstruction *inst, const ASTNode *stmt)
         return;
     }
     if (stmt->type == AST_ASSIGNMENT) {
-        ASTNode *target = stmt->data.assignment.target;
+        ASTNode *target = ast_assignment_target(stmt);
         if (target != NULL
             && target->type == AST_IDENTIFIER)
             inst->arg0 = target->data.identifier.name;
-        inst->expr0 = stmt->data.assignment.value;
+        inst->expr0 = ast_assignment_value(stmt);
         return;
     }
     if (stmt->type != AST_CALL)
         return;
-    if (stmt->data.call.callee == NULL
-        || stmt->data.call.callee->type != AST_IDENTIFIER) {
+    if (ast_call_callee(stmt) == NULL
+        || ast_call_callee(stmt)->type != AST_IDENTIFIER) {
         return;
     }
-    inst->arg0 = stmt->data.call.callee->data.identifier.name;
+    inst->arg0 = ast_call_callee(stmt)->data.identifier.name;
 }
 
 void
@@ -45,7 +45,7 @@ mir_attach_def_initializer_call_fact(MIRInstruction *inst, const ASTNode *stmt)
         inst->requires_source_statement_emit = true;
         inst->requires_source_local_decl_emit = true;
     } else if (stmt->type == AST_ASSIGNMENT) {
-        expr = stmt->data.assignment.value;
+        expr = ast_assignment_value(stmt);
         inst->requires_source_statement_emit = true;
     }
     if (expr != NULL && expr->type == AST_CHANNEL_RECV)
@@ -53,11 +53,11 @@ mir_attach_def_initializer_call_fact(MIRInstruction *inst, const ASTNode *stmt)
     inst->expr0 = expr;
     if (expr == NULL || expr->type != AST_CALL)
         return;
-    if (expr->data.call.callee == NULL
-        || expr->data.call.callee->type != AST_IDENTIFIER) {
+    if (ast_call_callee(expr) == NULL
+        || ast_call_callee(expr)->type != AST_IDENTIFIER) {
         return;
     }
-    inst->arg1 = expr->data.call.callee->data.identifier.name;
+    inst->arg1 = ast_call_callee(expr)->data.identifier.name;
 }
 
 void

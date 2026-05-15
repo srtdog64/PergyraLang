@@ -65,8 +65,8 @@ semantic_type_resolution_metadata_type_ref_has_no_generic_args(
 {
     return type_node != NULL
         && type_node->type == AST_TYPE
-        && (type_node->data.type.generic_args == NULL
-            || type_node->data.type.generic_args->count == 0);
+        && (ast_type_generic_args(type_node) == NULL
+            || ast_type_generic_args(type_node)->count == 0);
 }
 
 bool
@@ -137,15 +137,15 @@ semantic_type_resolution_reject_invalid_stable_shell_arity(
 
     if (ctx == NULL || type_node == NULL || type_node->type != AST_TYPE)
         return false;
-    name = type_node->data.type.name;
+    name = ast_type_name(type_node);
     if (!semantic_type_resolution_metadata_stable_builtin_shell_arity(
             name, &min_args, &max_args))
         return false;
     if (semantic_type_resolution_metadata_name_is_shadowed_class(ctx, name))
         return false;
 
-    provided = type_node->data.type.generic_args != NULL
-        ? type_node->data.type.generic_args->count
+    provided = ast_type_generic_args(type_node) != NULL
+        ? ast_type_generic_args(type_node)->count
         : 0;
     if (provided >= min_args && provided <= max_args)
         return false;
@@ -201,13 +201,13 @@ semantic_type_resolution_reject_invalid_stable_constructed_type(
 
     if (ctx == NULL || type_node == NULL || type_node->type != AST_TYPE)
         return false;
-    name = type_node->data.type.name;
+    name = ast_type_name(type_node);
     if (!semantic_type_resolution_metadata_stable_builtin_shell_arity(
             name, &min_args, &max_args))
         return false;
     if (semantic_type_resolution_metadata_name_is_shadowed_class(ctx, name))
         return false;
-    args_node = type_node->data.type.generic_args;
+    args_node = ast_type_generic_args(type_node);
     argc = args_node != NULL ? args_node->count : 0;
     if (argc < min_args || argc > max_args || argc > 2)
         return false;
@@ -247,7 +247,7 @@ semantic_type_resolution_reject_unknown_bare_named_type(SemanticContext *ctx,
     if (!semantic_type_resolution_metadata_type_ref_has_no_generic_args(
             type_node))
         return false;
-    name = type_node->data.type.name;
+    name = ast_type_name(type_node);
     if (name == NULL)
         return false;
     if (semantic_type_resolution_metadata_builtin_singleton(name) != NULL)

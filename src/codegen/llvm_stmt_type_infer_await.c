@@ -42,7 +42,7 @@ llvm_stmt_infer_await_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
         return llvm_stmt_await_unknown_type(ctx, expr,
             "expected an await expression");
 
-    operand = expr->data.await_expr.expression;
+    operand = ast_await_expression(expr);
     if (operand == NULL)
         return llvm_stmt_await_unknown_type(ctx, expr,
             "missing Future<T> operand");

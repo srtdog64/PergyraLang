@@ -18,11 +18,12 @@
 #ifndef PERGYRA_LLVM_BACKEND_H
 #define PERGYRA_LLVM_BACKEND_H
 
-#ifdef PGY_LLVM_ENABLED
-
 #include <stdbool.h>
 #include <stddef.h>
 #include "../common/arena.h"
+
+#ifdef PGY_LLVM_ENABLED
+
 #include "../compiler/hir.h"
 #include "../compiler/mir.h"
 

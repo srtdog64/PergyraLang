@@ -1,4 +1,5 @@
 #include "type_checker_internal.h"
+#include "type_checker_flow_internal.h"
 #include "diag_codes.h"
 
 static Type *
@@ -21,8 +22,9 @@ type_check_async_block(ASTNode *node, SemanticContext *ctx)
 
     ctx->in_async_func = true;
 
-    for (size_t i = 0; i < node->data.async_block.statement_count; i++) {
-        type_check_statement(node->data.async_block.statements[i], ctx);
+    for (size_t i = 0; i < ast_async_block_statement_count(node); i++) {
+        (void)type_check_statement_flow_boundary(
+            ast_async_block_statement(node, i), ctx);
     }
 
     ctx->in_async_func = saved_async;
@@ -32,8 +34,8 @@ type_check_async_block(ASTNode *node, SemanticContext *ctx)
 bool
 type_check_select_stmt(ASTNode *node, SemanticContext *ctx)
 {
-    for (size_t i = 0; i < node->data.select_stmt.case_count; i++) {
-        ASTNode *c = node->data.select_stmt.cases[i];
+    for (size_t i = 0; i < ast_select_case_count(node); i++) {
+        ASTNode *c = ast_select_case(node, i);
         if (c != NULL) {
             bool valid_case = false;
             if (c->type == AST_BLOCK && c->data.block.count > 0) {
@@ -45,19 +47,19 @@ type_check_select_stmt(ASTNode *node, SemanticContext *ctx)
                     valid_case = true;
                     recv_expr = first;
                 } else if (first != NULL && first->type == AST_ASSIGNMENT
-                           && first->data.assignment.target != NULL
-                           && first->data.assignment.target->type == AST_IDENTIFIER
-                           && first->data.assignment.value != NULL
-                           && first->data.assignment.value->type == AST_CHANNEL_RECV) {
+                           && ast_assignment_target(first) != NULL
+                           && ast_assignment_target(first)->type == AST_IDENTIFIER
+                           && ast_assignment_value(first) != NULL
+                           && ast_assignment_value(first)->type == AST_CHANNEL_RECV) {
                     valid_case = true;
-                    bind_name = first->data.assignment.target->data.identifier.name;
-                    recv_expr = first->data.assignment.value;
+                    bind_name = ast_assignment_target(first)->data.identifier.name;
+                    recv_expr = ast_assignment_value(first);
                 }
 
                 if (!valid_case) {
                     semantic_error_with_hints(ctx, PGY_CODE_SEM_SELECT_CASE_INVALID, PGY_CAUSE_SELECT_CASE_SHAPE, PGY_FIX_START_WITH_CHANNEL_RECV, c,
                         "select case must begin with a channel receive pattern");
-                    type_check_statement(c, ctx);
+                    (void)type_check_statement_flow_boundary(c, ctx);
                     continue;
                 }
 
@@ -72,18 +74,20 @@ type_check_select_stmt(ASTNode *node, SemanticContext *ctx)
                     }
                 }
                 for (size_t j = 1; j < c->data.block.count; j++)
-                    type_check_statement(c->data.block.statements[j], ctx);
+                    (void)type_check_statement_flow_boundary(
+                        c->data.block.statements[j], ctx);
                 scope_exit(&ctx->scope);
             } else {
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_SELECT_CASE_INVALID, PGY_CAUSE_SELECT_CASE_SHAPE, PGY_FIX_START_WITH_CHANNEL_RECV, c,
                     "select case must begin with a channel receive pattern");
-                type_check_statement(c, ctx);
+                (void)type_check_statement_flow_boundary(c, ctx);
             }
         }
     }
 
-    if (node->data.select_stmt.default_case)
-        type_check_statement(node->data.select_stmt.default_case, ctx);
+    if (ast_select_default_case(node))
+        (void)type_check_statement_flow_boundary(
+            ast_select_default_case(node), ctx);
 
     return !ctx->has_error;
 }

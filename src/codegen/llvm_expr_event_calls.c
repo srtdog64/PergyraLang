@@ -74,7 +74,7 @@ llvm_emit_event_invocation_call(ASTNode *node, LLVMGenCtx *ctx,
         return true;
     }
 
-    arg_count = node->data.call.arg_count;
+    arg_count = ast_call_arg_count(node);
     if (arg_count > (size_t)UINT_MAX - 1U
         || arg_count > (SIZE_MAX / sizeof(LLVMValueRef)) - 1U) {
         *out = llvm_event_expr_error(ctx, node,
@@ -89,7 +89,7 @@ llvm_emit_event_invocation_call(ASTNode *node, LLVMGenCtx *ctx,
     }
     args[0] = ev_ptr;
     for (size_t j = 0; j < arg_count; j++) {
-        args[j + 1] = llvm_emit_expression(node->data.call.arguments[j], ctx);
+        args[j + 1] = llvm_emit_expression(ast_call_argument(node, j), ctx);
         if (args[j + 1] == NULL) {
             *out = llvm_event_expr_error(ctx, node,
                 "LLVM event invocation call could not lower argument expression");

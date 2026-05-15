@@ -16,12 +16,12 @@ bool
 check_call_arity(ASTNode *expr, size_t expected, const char *name,
                  SemanticContext *ctx)
 {
-    if (expr->data.call.arg_count != expected) {
+    if (ast_call_arg_count(expr) != expected) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr,
             "'%s' expects %llu argument(s), got %llu",
             name,
             (unsigned long long) expected,
-            (unsigned long long) expr->data.call.arg_count);
+            (unsigned long long) ast_call_arg_count(expr));
         return false;
     }
     return true;
@@ -41,11 +41,11 @@ builtin_borrowed_boundary_root_name(ASTNode *value_expr,
             return cursor->data.identifier.name;
         }
         if (cursor->type == AST_MEMBER_ACCESS) {
-            cursor = cursor->data.member.object;
+            cursor = ast_member_object(cursor);
             continue;
         }
         if (cursor->type == AST_ARRAY_ACCESS) {
-            cursor = cursor->data.array_access.array;
+            cursor = ast_array_access_array(cursor);
             continue;
         }
         break;
@@ -104,10 +104,10 @@ type_check_has_projection(ASTNode *call, SemanticContext *ctx)
     ASTNode *slot;
     const char *host_name = NULL;
 
-    if (call->data.call.arg_count != 1) {
+    if (ast_call_arg_count(call) != 1) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, call,
             "'HasProjection' expects exactly 1 argument, got %llu",
-            (unsigned long long) call->data.call.arg_count);
+            (unsigned long long) ast_call_arg_count(call));
         return TYPE_BOOL;
     }
 
@@ -134,7 +134,7 @@ type_check_has_projection(ASTNode *call, SemanticContext *ctx)
         refreshes = ast_zone_refreshes(host, &refresh_count);
     }
 
-    arg = call->data.call.arguments[0];
+    arg = ast_call_argument(call, 0);
     if (arg == NULL) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_PREDICATE_ARGS_INVALID, PGY_CAUSE_PREDICATE_ARGS, PGY_FIX_MATCH_PREDICATE_SIGNATURE_IN_HOST, call,
             "HasProjection(...) requires an object/tobject slot name");
@@ -193,10 +193,10 @@ type_check_has_layer(ASTNode *call, SemanticContext *ctx)
     const char *slot_name = NULL;
     ASTNode *layer_slot;
 
-    if (call->data.call.arg_count != 1) {
+    if (ast_call_arg_count(call) != 1) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_PREDICATE_ARGS_INVALID, PGY_CAUSE_PREDICATE_ARGS, PGY_FIX_MATCH_PREDICATE_SIGNATURE_IN_HOST, call,
             "'HasLayer' expects exactly 1 argument, got %llu",
-            (unsigned long long) call->data.call.arg_count);
+            (unsigned long long) ast_call_arg_count(call));
         return TYPE_BOOL;
     }
 
@@ -213,7 +213,7 @@ type_check_has_layer(ASTNode *call, SemanticContext *ctx)
         return TYPE_BOOL;
     }
 
-    arg = call->data.call.arguments[0];
+    arg = ast_call_argument(call, 0);
     if (arg == NULL) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_PREDICATE_ARGS_INVALID, PGY_CAUSE_PREDICATE_ARGS, PGY_FIX_MATCH_PREDICATE_SIGNATURE_IN_HOST, call,
             "HasLayer(...) requires a relation/effect slot name");
@@ -271,12 +271,12 @@ type_check_has_state(ASTNode *call, SemanticContext *ctx)
     ASTNode **states = NULL;
     size_t state_count = 0;
 
-    if (call->data.call.arg_count < 1 || call->data.call.arg_count > 3) {
+    if (ast_call_arg_count(call) < 1 || ast_call_arg_count(call) > 3) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_PREDICATE_ARGS_INVALID,
             PGY_CAUSE_PREDICATE_ARGS, PGY_FIX_MATCH_PREDICATE_SIGNATURE_IN_HOST,
             call,
             "'HasState' expects 1 to 3 argument(s), got %llu",
-            (unsigned long long) call->data.call.arg_count);
+            (unsigned long long) ast_call_arg_count(call));
         return TYPE_BOOL;
     }
 
@@ -294,7 +294,7 @@ type_check_has_state(ASTNode *call, SemanticContext *ctx)
     }
     states = ast_zone_states(zone, &state_count);
 
-    arg = call->data.call.arguments[0];
+    arg = ast_call_argument(call, 0);
     if (arg == NULL) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_PREDICATE_ARGS_INVALID, PGY_CAUSE_PREDICATE_ARGS, PGY_FIX_MATCH_PREDICATE_SIGNATURE_IN_HOST, call,
             "HasState(...) requires a zone state name");
@@ -346,29 +346,29 @@ type_check_has_state(ASTNode *call, SemanticContext *ctx)
         return TYPE_BOOL;
     }
 
-    if (call->data.call.arg_count == 1)
+    if (ast_call_arg_count(call) == 1)
         return TYPE_BOOL;
 
-    if (call->data.call.arguments[1] == NULL
-        || call->data.call.arguments[1]->type != AST_IDENTIFIER
-        || call->data.call.arguments[1]->data.identifier.name == NULL) {
-        semantic_error_with_hints(ctx, PGY_CODE_SEM_PREDICATE_ARGS_INVALID, PGY_CAUSE_PREDICATE_ARGS, PGY_FIX_MATCH_PREDICATE_SIGNATURE_IN_HOST, call->data.call.arguments[1],
+    if (ast_call_argument(call, 1) == NULL
+        || ast_call_argument(call, 1)->type != AST_IDENTIFIER
+        || ast_call_argument(call, 1)->data.identifier.name == NULL) {
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_PREDICATE_ARGS_INVALID, PGY_CAUSE_PREDICATE_ARGS, PGY_FIX_MATCH_PREDICATE_SIGNATURE_IN_HOST, ast_call_argument(call, 1),
             "HasState(...) slot arguments must be zone slot identifiers");
         return TYPE_BOOL;
     }
     if (find_zone_domain_slot_local(zone,
-            call->data.call.arguments[1]->data.identifier.name) == NULL) {
+            ast_call_argument(call, 1)->data.identifier.name) == NULL) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_PREDICATE_ARGS_INVALID,
             PGY_CAUSE_PREDICATE_ARGS, PGY_FIX_MATCH_PREDICATE_SIGNATURE_IN_HOST,
-            call->data.call.arguments[1],
+            ast_call_argument(call, 1),
             "Unknown zone slot '%s' in HasState(...)",
-            call->data.call.arguments[1]->data.identifier.name);
+            ast_call_argument(call, 1)->data.identifier.name);
         return TYPE_BOOL;
     }
 
     if (!ast_zone_state_is_relation(state)) {
-        slot_name = call->data.call.arguments[1]->data.identifier.name;
-        if (call->data.call.arg_count != 2) {
+        slot_name = ast_call_argument(call, 1)->data.identifier.name;
+        if (ast_call_arg_count(call) != 2) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_PREDICATE_ARGS_INVALID, PGY_CAUSE_PREDICATE_ARGS, PGY_FIX_MATCH_PREDICATE_SIGNATURE_IN_HOST, call,
                 "Effect state '%s' in HasState(...) accepts at most one zone slot target.\n"
                 "Contract source:\n"
@@ -384,7 +384,7 @@ type_check_has_state(ASTNode *call, SemanticContext *ctx)
         if (strcmp(slot_name, ast_zone_state_left_or_target_slot_name(state)) != 0) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_PREDICATE_ARGS_INVALID,
                 PGY_CAUSE_PREDICATE_ARGS, PGY_FIX_MATCH_PREDICATE_SIGNATURE_IN_HOST,
-                call->data.call.arguments[1],
+                ast_call_argument(call, 1),
                 "State '%s' is declared on slot '%s', not '%s'.\n"
                 "Contract source:\n"
                 "- current zone: %s\n"
@@ -398,7 +398,7 @@ type_check_has_state(ASTNode *call, SemanticContext *ctx)
         return TYPE_BOOL;
     }
 
-    if (call->data.call.arg_count != 3) {
+    if (ast_call_arg_count(call) != 3) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_PREDICATE_ARGS_INVALID, PGY_CAUSE_PREDICATE_ARGS, PGY_FIX_MATCH_PREDICATE_SIGNATURE_IN_HOST, call,
             "Relation state '%s' in HasState(...) requires exactly two endpoint slots.\n"
             "Contract source:\n"
@@ -414,25 +414,25 @@ type_check_has_state(ASTNode *call, SemanticContext *ctx)
         return TYPE_BOOL;
     }
 
-    if (call->data.call.arguments[2] == NULL
-        || call->data.call.arguments[2]->type != AST_IDENTIFIER
-        || call->data.call.arguments[2]->data.identifier.name == NULL) {
-        semantic_error_with_hints(ctx, PGY_CODE_SEM_PREDICATE_ARGS_INVALID, PGY_CAUSE_PREDICATE_ARGS, PGY_FIX_MATCH_PREDICATE_SIGNATURE_IN_HOST, call->data.call.arguments[2],
+    if (ast_call_argument(call, 2) == NULL
+        || ast_call_argument(call, 2)->type != AST_IDENTIFIER
+        || ast_call_argument(call, 2)->data.identifier.name == NULL) {
+        semantic_error_with_hints(ctx, PGY_CODE_SEM_PREDICATE_ARGS_INVALID, PGY_CAUSE_PREDICATE_ARGS, PGY_FIX_MATCH_PREDICATE_SIGNATURE_IN_HOST, ast_call_argument(call, 2),
             "HasState(...) relation endpoint arguments must be zone slot identifiers");
         return TYPE_BOOL;
     }
     if (find_zone_domain_slot_local(zone,
-            call->data.call.arguments[2]->data.identifier.name) == NULL) {
+            ast_call_argument(call, 2)->data.identifier.name) == NULL) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_PREDICATE_ARGS_INVALID,
             PGY_CAUSE_PREDICATE_ARGS, PGY_FIX_MATCH_PREDICATE_SIGNATURE_IN_HOST,
-            call->data.call.arguments[2],
+            ast_call_argument(call, 2),
             "Unknown zone slot '%s' in HasState(...)",
-            call->data.call.arguments[2]->data.identifier.name);
+            ast_call_argument(call, 2)->data.identifier.name);
         return TYPE_BOOL;
     }
 
-    left_slot_name = call->data.call.arguments[1]->data.identifier.name;
-    right_slot_name = call->data.call.arguments[2]->data.identifier.name;
+    left_slot_name = ast_call_argument(call, 1)->data.identifier.name;
+    right_slot_name = ast_call_argument(call, 2)->data.identifier.name;
     if (strcmp(left_slot_name, ast_zone_state_left_or_target_slot_name(state)) != 0
         || strcmp(right_slot_name, ast_zone_state_right_slot_name(state)) != 0) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_PREDICATE_ARGS_INVALID,
@@ -452,4 +452,5 @@ type_check_has_state(ASTNode *call, SemanticContext *ctx)
     }
     return TYPE_BOOL;
 }
+
 

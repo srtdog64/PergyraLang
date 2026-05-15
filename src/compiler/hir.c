@@ -80,13 +80,13 @@ hir_node_name(ASTNode *node)
 
     switch (node->type) {
         case AST_FUNC_DECL:
-            return node->data.func_decl.name;
+            return ast_declaration_name(node);
         case AST_CLASS_DECL:
             return ast_class_name(node);
         case AST_TYPE_ALIAS:
-            return node->data.type_alias.name;
+            return ast_type_alias_name(node);
         case AST_EXTERN_BLOCK:
-            return node->data.extern_block.abi;
+            return ast_extern_block_abi(node);
         case AST_ABILITY_DECL:
             return ast_ability_name(node);
         case AST_ROLE_DECL:
@@ -106,7 +106,7 @@ hir_node_name(ASTNode *node)
         case AST_ZONE_DECL:
             return ast_zone_name(node);
         case AST_EVENT_DECL:
-            return node->data.event_decl.name;
+            return ast_event_name(node);
         case AST_LET_DECL:
             return node->data.let_decl.name;
         default:
@@ -225,8 +225,8 @@ hir_classify_top_level(HIRProgram *hir, ASTNode *node, char **error_message)
             item.kind = HIR_TOPLEVEL_FUNCTION;
             if (!append_ast(&hir->functions, &hir->function_count, &hir->function_capacity, node))
                 goto oom;
-            if (node->data.func_decl.name != NULL
-                && strcmp(node->data.func_decl.name, "Main") == 0) {
+            if (ast_declaration_name(node) != NULL
+                && strcmp(ast_declaration_name(node), "Main") == 0) {
                 hir->has_main_function = true;
             }
             break;
@@ -338,7 +338,7 @@ hir_append_synthetic_executable_routine(HIRProgram *hir, char **error_message)
     memset(&item, 0, sizeof(item));
     item.kind = HIR_TOPLEVEL_EXECUTABLE;
     item.ast = func;
-    item.name = func->data.func_decl.name;
+    item.name = ast_declaration_name(func);
 
     if (!append_item(&hir->items, &hir->item_count, &hir->item_capacity, item)) {
         if (error_message != NULL)

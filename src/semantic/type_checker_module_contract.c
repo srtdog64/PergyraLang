@@ -82,8 +82,8 @@ resolve_required_ability_decl(ASTNode *ability_ref,
             || ((site_module == NULL
                  || ability_decl->origin_path == NULL
                 || !same_module_origin(site_module, ability_decl->origin_path))
-                && ability_decl->data.ability_decl.has_explicit_access
-                && ability_decl->data.ability_decl.access != ACCESS_PUBLIC))) {
+                && ast_ability_has_explicit_access(ability_decl)
+                && ast_ability_access(ability_decl) != ACCESS_PUBLIC))) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_VISIBILITY_BOUNDARY,
             PGY_CAUSE_VISIBILITY_BOUNDARY_CROSS, PGY_FIX_WIDEN_VISIBILITY_OR_MOVE_CALLER,
             site,
@@ -107,13 +107,14 @@ resolve_required_ability_decl(ASTNode *ability_ref,
         return NULL;
     }
 
-    if (ability_ref->type == AST_TYPE
-        && ability_ref->data.type.generic_args != NULL) {
-        size_t arg_count = ability_ref->data.type.generic_args->count;
-        size_t param_count = ability_decl->data.ability_decl.generic_params != NULL
-            ? ability_decl->data.ability_decl.generic_params->count : 0;
+    if (ast_type_generic_args(ability_ref) != NULL) {
+        size_t arg_count = ast_type_generic_args(ability_ref)->count;
+        GenericParams *ability_generics =
+            ast_ability_generic_params(ability_decl);
+        size_t param_count = ability_generics != NULL
+            ? ability_generics->count : 0;
         char *expected_text = ability_decl_signature_display(
-            ability, ability_decl->data.ability_decl.generic_params);
+            ability, ability_generics);
 
         if (arg_count > 0 && param_count == 0) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_ABILITY_CONTRACT_INVALID, PGY_CAUSE_ABILITY_CONTRACT, PGY_FIX_ALIGN_ABILITY_GENERICS_OR_FIELDS, site,
@@ -144,10 +145,9 @@ resolve_required_ability_decl(ASTNode *ability_ref,
         }
 
         if (arg_count > param_count
-            || arg_count < generic_params_required_count(
-                ability_decl->data.ability_decl.generic_params)) {
+            || arg_count < generic_params_required_count(ability_generics)) {
             size_t required_count = generic_params_required_count(
-                ability_decl->data.ability_decl.generic_params);
+                ability_generics);
             semantic_error_with_hints(ctx, PGY_CODE_SEM_ABILITY_CONTRACT_INVALID, PGY_CAUSE_ABILITY_CONTRACT, PGY_FIX_ALIGN_ABILITY_GENERICS_OR_FIELDS, site,
                 "Ability '%s' requires between %llu and %llu generic argument(s) in requires clauses, got %llu.\n"
                 "Reason:\n"
@@ -171,7 +171,7 @@ resolve_required_ability_decl(ASTNode *ability_ref,
         }
 
         for (size_t i = 0; i < arg_count; i++) {
-            GenericParam *gp = ability_ref->data.type.generic_args->params[i];
+            GenericParam *gp = ast_type_generic_args(ability_ref)->params[i];
             ASTNode *arg = gp != NULL ? gp->constraint : NULL;
             if (arg == NULL) {
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_ABILITY_CONTRACT_INVALID, PGY_CAUSE_ABILITY_CONTRACT, PGY_FIX_ALIGN_ABILITY_GENERICS_OR_FIELDS, site,
@@ -222,7 +222,7 @@ validate_action_required_abilities(ASTNode *node,
     if (node == NULL || node->type != AST_FUNC_DECL || ctx == NULL)
         return;
 
-    name = node->data.func_decl.name;
+    name = ast_declaration_name(node);
 
     if (enclosing_nominal == NULL
         || enclosing_nominal->type != AST_CLASS_DECL

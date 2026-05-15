@@ -69,15 +69,15 @@ semantic_stage_class_decl(ASTNode *decl, SemanticContext *ctx)
         return;
 
     semantic_stage_generic_contract_nodes(
-        decl->data.class_decl.generic_params,
-        decl->data.class_decl.where_clause,
+        ast_class_generic_params(decl),
+        ast_class_where_clause(decl),
         ctx,
         decl,
         "class",
         ast_class_name(decl));
 
     generic_scope_entered = stage_nominal_enter_generic_scope(
-        decl->data.class_decl.generic_params, ctx);
+        ast_class_generic_params(decl), ctx);
     size_t field_count = 0;
     ClassField **fields = ast_class_fields(decl, &field_count);
     for (size_t i = 0; i < field_count; i++) {
@@ -164,40 +164,44 @@ semantic_stage_ability_decl(ASTNode *decl, SemanticContext *ctx)
         return;
 
     semantic_stage_generic_contract_nodes(
-        decl->data.ability_decl.generic_params,
-        decl->data.ability_decl.where_clause,
+        ast_ability_generic_params(decl),
+        ast_ability_where_clause(decl),
         ctx,
         decl,
         "ability",
-        decl->data.ability_decl.name);
+        ast_ability_name(decl));
     generic_scope_entered = stage_nominal_enter_generic_scope(
-        decl->data.ability_decl.generic_params, ctx);
-    for (size_t i = 0; i < decl->data.ability_decl.require_count; i++) {
-        ASTNode *req = decl->data.ability_decl.require_fields[i];
+        ast_ability_generic_params(decl), ctx);
+    for (size_t i = 0; i < ast_ability_require_field_count(decl); i++) {
+        ASTNode *req = ast_ability_require_field(decl, i);
+        const char *req_name = ast_require_field_name(req);
+        ASTNode *req_type = ast_require_field_type(req);
         char *consumer_name;
-        if (req == NULL || req->type != AST_REQUIRE_FIELD)
+        if (req_name == NULL || req_type == NULL)
             continue;
         consumer_name = stage_nominal_strdup_fmt(
             "ability %s.%s",
-            decl->data.ability_decl.name != NULL
-                ? decl->data.ability_decl.name : "<ability>",
-            req->data.require_field.name != NULL
-                ? req->data.require_field.name : "<require-field>");
+            ast_ability_name(decl) != NULL
+                ? ast_ability_name(decl) : "<ability>",
+            req_name);
         if (consumer_name == NULL)
             continue;
         (void)semantic_stage_resolve_type_quiet(
-            req->data.require_field.type,
+            req_type,
             ctx,
             req,
             consumer_name,
             "ability require-field type lookup");
         free(consumer_name);
     }
-    semantic_stage_method_array(
-        decl->data.ability_decl.methods,
-        decl->data.ability_decl.method_count,
-        ctx,
-        decl->data.ability_decl.name);
+    for (size_t i = 0; i < ast_ability_method_count(decl); i++) {
+        ASTNode *method = ast_ability_method(decl, i);
+        semantic_stage_method_array(
+            &method,
+            1,
+            ctx,
+            ast_ability_name(decl));
+    }
     if (generic_scope_entered)
         scope_exit(&ctx->scope);
 }
@@ -209,17 +213,17 @@ semantic_stage_role_decl(ASTNode *decl, SemanticContext *ctx)
         return;
 
     semantic_stage_generic_contract_nodes(
-        decl->data.role_decl.generic_params,
-        decl->data.role_decl.where_clause,
+        ast_role_generic_params(decl),
+        ast_role_where_clause(decl),
         ctx,
         decl,
         "role",
-        decl->data.role_decl.name);
+        ast_role_name(decl));
     (void)semantic_stage_resolve_type_quiet(
         semantic_role_for_type_node(decl),
         ctx,
         decl,
-        decl->data.role_decl.name,
+        ast_role_name(decl),
         "role host-type lookup");
     for (size_t i = 0; i < ast_role_include_count(decl); i++) {
         ASTNode *inc = ast_role_include(decl, i);
@@ -237,7 +241,7 @@ semantic_stage_role_decl(ASTNode *decl, SemanticContext *ctx)
             role_name);
         effective = collect_effective_generic_arg_nodes(
             (included_role_decl != NULL && included_role_decl->type == AST_ROLE_DECL)
-                ? included_role_decl->data.role_decl.generic_params
+                ? ast_role_generic_params(included_role_decl)
                 : NULL,
             ast_include_type_args(inc),
             inc,
@@ -266,7 +270,7 @@ semantic_stage_role_decl(ASTNode *decl, SemanticContext *ctx)
             ability_ref,
             ctx,
             impl,
-            decl->data.role_decl.name,
+            ast_role_name(decl),
             "role impl ability lookup");
     }
 }

@@ -51,7 +51,7 @@ semantic_stage_should_defer_to_graph(ASTNode *type_node,
 {
     if (type_node == NULL || type_node->type != AST_TYPE)
         return false;
-    if (type_node->data.type.name == NULL)
+    if (ast_type_name(type_node) == NULL)
         return false;
     return stage_has_graph_dependency(ctx, consumer_site, consumer_name, reason);
 }

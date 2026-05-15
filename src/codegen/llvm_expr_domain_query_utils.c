@@ -13,9 +13,9 @@ const char *
 llvm_call_name_or_string_arg(ASTNode *node, size_t index)
 {
     ASTNode *arg;
-    if (node == NULL || index >= node->data.call.arg_count)
+    if (node == NULL || index >= ast_call_arg_count(node))
         return NULL;
-    arg = node->data.call.arguments[index];
+    arg = ast_call_argument(node, index);
     if (arg == NULL)
         return NULL;
     if (arg->type == AST_IDENTIFIER)

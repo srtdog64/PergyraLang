@@ -124,10 +124,10 @@ type_check_intent_observability_builtin(ASTNode *call, BuiltinKind kind,
 
     check_call_arity(call, spec->arity, spec->name, ctx);
     for (size_t i = 0;
-         call != NULL && i < spec->arity && i < call->data.call.arg_count;
+         call != NULL && i < spec->arity && i < ast_call_arg_count(call);
          i++) {
-        require_assignable(type_check_expression(call->data.call.arguments[i], ctx),
-            TYPE_INT, call->data.call.arguments[i], ctx);
+        ASTNode *arg = ast_call_argument(call, i);
+        require_assignable(type_check_expression(arg, ctx), TYPE_INT, arg, ctx);
     }
     return intent_observability_return_type(spec->return_kind);
 }

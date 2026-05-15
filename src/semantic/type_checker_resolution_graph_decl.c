@@ -48,7 +48,7 @@ semantic_type_resolution_precollect_party_inventory(ASTNode *party_decl,
     methods = ast_party_methods(party_decl, &method_count);
 
     semantic_type_resolution_collect_generic_contract_inventory(
-        party_decl->data.party_decl.generic_params,
+        ast_party_generic_params(party_decl),
         NULL,
         ctx,
         party_decl,
@@ -56,7 +56,7 @@ semantic_type_resolution_precollect_party_inventory(ASTNode *party_decl,
         party_name);
 
     semantic_type_resolution_collect_type_refs(
-        party_decl->data.party_decl.extends,
+        ast_party_extends(party_decl),
         ctx,
         party_decl,
         party_name != NULL ? party_name : "<party>",
@@ -129,7 +129,7 @@ semantic_type_resolution_precollect_roster_inventory(ASTNode *roster_decl,
     methods = ast_roster_methods(roster_decl, &method_count);
 
     semantic_type_resolution_collect_generic_contract_inventory(
-        roster_decl->data.roster_decl.generic_params,
+        ast_roster_generic_params(roster_decl),
         NULL,
         ctx,
         roster_decl,
@@ -178,19 +178,19 @@ semantic_type_resolution_precollect_role_inventory(ASTNode *role_decl,
         return;
 
     semantic_type_resolution_collect_generic_contract_inventory(
-        role_decl->data.role_decl.generic_params,
-        role_decl->data.role_decl.where_clause,
+        ast_role_generic_params(role_decl),
+        ast_role_where_clause(role_decl),
         ctx,
         role_decl,
         "role",
-        role_decl->data.role_decl.name);
+        ast_role_name(role_decl));
 
     semantic_type_resolution_collect_type_refs(
         semantic_role_for_type_node(role_decl),
         ctx,
         role_decl,
-        role_decl->data.role_decl.name != NULL
-            ? role_decl->data.role_decl.name : "<role>",
+        ast_role_name(role_decl) != NULL
+            ? ast_role_name(role_decl) : "<role>",
         "role host-type lookup");
 
     for (size_t i = 0; i < ast_role_include_count(role_decl); i++) {
@@ -204,8 +204,8 @@ semantic_type_resolution_precollect_role_inventory(ASTNode *role_decl,
 
         consumer_name = resolution_decl_strdup_fmt(
             "role %s.include",
-            role_decl->data.role_decl.name != NULL
-                ? role_decl->data.role_decl.name : "<role>");
+            ast_role_name(role_decl) != NULL
+                ? ast_role_name(role_decl) : "<role>");
         if (consumer_name == NULL)
             continue;
 
@@ -241,8 +241,8 @@ semantic_type_resolution_precollect_role_inventory(ASTNode *role_decl,
             ast_impl_ability_ref(impl),
             ctx,
             impl,
-            role_decl->data.role_decl.name != NULL
-                ? role_decl->data.role_decl.name : "<role>",
+            ast_role_name(role_decl) != NULL
+                ? ast_role_name(role_decl) : "<role>",
             "role impl ability lookup");
     }
 }
@@ -255,8 +255,8 @@ semantic_type_resolution_precollect_class_inventory(ASTNode *class_decl,
         return;
 
     semantic_type_resolution_collect_generic_contract_inventory(
-        class_decl->data.class_decl.generic_params,
-        class_decl->data.class_decl.where_clause,
+        ast_class_generic_params(class_decl),
+        ast_class_where_clause(class_decl),
         ctx,
         class_decl,
         "class",
@@ -308,20 +308,20 @@ semantic_type_resolution_precollect_action_contract(ASTNode *method,
     if (method == NULL || method->type != AST_FUNC_DECL || ctx == NULL)
         return;
 
-    consumer_name = method->data.func_decl.name != NULL
-        ? method->data.func_decl.name
+    consumer_name = ast_declaration_name(method) != NULL
+        ? ast_declaration_name(method)
         : (fallback_name != NULL ? fallback_name : "<action>");
 
     semantic_type_resolution_collect_generic_contract_inventory(
-        method->data.func_decl.generic_params,
-        method->data.func_decl.where_clause,
+        ast_func_generic_params(method),
+        ast_func_where_clause(method),
         ctx,
         method,
         "func",
         consumer_name);
 
-    for (size_t i = 0; i < method->data.func_decl.param_count; i++) {
-        FuncParam *param = method->data.func_decl.params[i];
+    for (size_t i = 0; i < ast_func_param_count(method); i++) {
+        FuncParam *param = ast_func_param(method, i);
         char *param_consumer_name;
 
         if (param == NULL)
@@ -343,7 +343,7 @@ semantic_type_resolution_precollect_action_contract(ASTNode *method,
     }
 
     semantic_type_resolution_collect_type_refs(
-        method->data.func_decl.return_type,
+        ast_func_return_type(method),
         ctx,
         method,
         consumer_name,
@@ -370,7 +370,7 @@ semantic_type_resolution_precollect_action_contract(ASTNode *method,
         "action causes-effect lookup");
 
     semantic_type_resolution_precollect_body_type_refs(
-        method->data.func_decl.body,
+        ast_func_body(method),
         ctx,
         method,
         consumer_name);
@@ -384,29 +384,30 @@ semantic_type_resolution_precollect_ability_inventory(ASTNode *ability_decl,
         return;
 
     semantic_type_resolution_collect_generic_contract_inventory(
-        ability_decl->data.ability_decl.generic_params,
-        ability_decl->data.ability_decl.where_clause,
+        ast_ability_generic_params(ability_decl),
+        ast_ability_where_clause(ability_decl),
         ctx,
         ability_decl,
         "ability",
-        ability_decl->data.ability_decl.name);
+        ast_ability_name(ability_decl));
 
-    for (size_t i = 0; i < ability_decl->data.ability_decl.require_count; i++) {
-        ASTNode *req = ability_decl->data.ability_decl.require_fields[i];
+    for (size_t i = 0; i < ast_ability_require_field_count(ability_decl); i++) {
+        ASTNode *req = ast_ability_require_field(ability_decl, i);
+        const char *req_name = ast_require_field_name(req);
+        ASTNode *req_type = ast_require_field_type(req);
         char *consumer_name;
 
-        if (req == NULL || req->type != AST_REQUIRE_FIELD)
+        if (req_name == NULL || req_type == NULL)
             continue;
 
         consumer_name = resolution_decl_strdup_fmt(
             "ability %s.%s",
-            ability_decl->data.ability_decl.name != NULL
-                ? ability_decl->data.ability_decl.name : "<ability>",
-            req->data.require_field.name != NULL
-                ? req->data.require_field.name : "<require-field>");
+            ast_ability_name(ability_decl) != NULL
+                ? ast_ability_name(ability_decl) : "<ability>",
+            req_name);
         if (consumer_name != NULL) {
             semantic_type_resolution_collect_type_refs(
-                req->data.require_field.type,
+                req_type,
                 ctx,
                 req,
                 consumer_name,
@@ -415,11 +416,11 @@ semantic_type_resolution_precollect_ability_inventory(ASTNode *ability_decl,
         }
     }
 
-    for (size_t i = 0; i < ability_decl->data.ability_decl.method_count; i++) {
+    for (size_t i = 0; i < ast_ability_method_count(ability_decl); i++) {
         semantic_type_resolution_precollect_action_contract(
-            ability_decl->data.ability_decl.methods[i],
+            ast_ability_method(ability_decl, i),
             ctx,
-            ability_decl->data.ability_decl.name);
+            ast_ability_name(ability_decl));
     }
 }
 
@@ -476,8 +477,8 @@ semantic_type_resolution_precollect_event_inventory(ASTNode *event_decl,
     if (event_decl == NULL || event_decl->type != AST_EVENT_DECL || ctx == NULL)
         return;
 
-    for (size_t i = 0; i < event_decl->data.event_decl.param_count; i++) {
-        ASTNode *param = event_decl->data.event_decl.params[i];
+    for (size_t i = 0; i < ast_event_param_count(event_decl); i++) {
+        ASTNode *param = ast_event_param(event_decl, i);
         char *consumer_name;
 
         if (param == NULL || param->type != AST_LET_DECL)
@@ -485,8 +486,8 @@ semantic_type_resolution_precollect_event_inventory(ASTNode *event_decl,
 
         consumer_name = resolution_decl_strdup_fmt(
             "event %s.%s",
-            event_decl->data.event_decl.name != NULL
-                ? event_decl->data.event_decl.name : "<event>",
+            ast_event_name(event_decl) != NULL
+                ? ast_event_name(event_decl) : "<event>",
             param->data.let_decl.name != NULL
                 ? param->data.let_decl.name : "<param>");
         if (consumer_name == NULL)
@@ -502,10 +503,10 @@ semantic_type_resolution_precollect_event_inventory(ASTNode *event_decl,
     }
 
     semantic_type_resolution_collect_type_refs(
-        event_decl->data.event_decl.return_type,
+        ast_event_return_type(event_decl),
         ctx,
         event_decl,
-        event_decl->data.event_decl.name != NULL
-            ? event_decl->data.event_decl.name : "<event>",
+        ast_event_name(event_decl) != NULL
+            ? ast_event_name(event_decl) : "<event>",
         "event return type lookup");
 }

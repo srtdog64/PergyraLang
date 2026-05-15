@@ -129,7 +129,7 @@ rir_collect_intent_scope(RIRProgram *rir, ASTNode *node)
         for (size_t j = 0; j < ast_intent_step_required_ability_count(step); j++) {
             ASTNode *ability_ref = ast_intent_step_required_abilities(step, NULL)[j];
             const char *ability_name = (ability_ref != NULL && ability_ref->type == AST_TYPE)
-                ? ability_ref->data.type.name : NULL;
+                ? ast_type_name(ability_ref) : NULL;
             if (ability_name == NULL)
                 continue;
             if (!add_authority_fact(&scope, ast_intent_step_name(step),

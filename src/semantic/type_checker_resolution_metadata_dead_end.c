@@ -15,7 +15,7 @@ metadata_record_named_dead_end_diagnostic(SemanticContext *ctx,
     if (ctx == NULL || type_node == NULL || type_node->type != AST_TYPE)
         return;
 
-    name = type_node->data.type.name;
+    name = ast_type_name(type_node);
     if (semantic_type_resolution_metadata_stable_builtin_shell_arity(
             name, NULL, NULL)) {
         ctx->type_resolution_metadata_unresolved_named_builtin_shell++;
@@ -28,9 +28,9 @@ metadata_record_named_dead_end_diagnostic(SemanticContext *ctx,
             ASTNode *decl = ctx->program_root != NULL
                 ? find_type_decl_by_name(ctx->program_root, name)
                 : NULL;
+            GenericParams *class_generics = ast_class_generic_params(decl);
             if (decl != NULL && decl->type == AST_CLASS_DECL
-                && decl->data.class_decl.generic_params != NULL
-                && decl->data.class_decl.generic_params->count > 0) {
+                && class_generics != NULL && class_generics->count > 0) {
                 ctx->type_resolution_metadata_unresolved_named_generic_class++;
                 return;
             }
@@ -88,9 +88,9 @@ metadata_trace_dead_end_diagnostic(ASTNode *type_node)
     if (!metadata_trace_dead_end_diagnostic_enabled())
         return;
     if (type_node != NULL && type_node->type == AST_TYPE) {
-        name = type_node->data.type.name;
-        if (type_node->data.type.generic_args != NULL)
-            generic_count = type_node->data.type.generic_args->count;
+        name = ast_type_name(type_node);
+        if (ast_type_generic_args(type_node) != NULL)
+            generic_count = ast_type_generic_args(type_node)->count;
     }
     fprintf(stderr,
             "[type-res-dead-end] kind=%s name=%s generic_args=%llu line=%u column=%u\n",
@@ -106,23 +106,9 @@ metadata_dead_end_type_name(ASTNode *type_node)
 {
     if (type_node == NULL)
         return "<null>";
-    if (type_node->type == AST_TYPE && type_node->data.type.name != NULL)
-        return type_node->data.type.name;
+    if (ast_type_name(type_node) != NULL)
+        return ast_type_name(type_node);
     return metadata_dead_end_ast_kind(type_node);
-}
-
-static void
-metadata_sync_dead_end_compatibility_mirror(SemanticContext *ctx)
-{
-    if (ctx == NULL)
-        return;
-    /*
-     * Keep the historical stats label stable for scripts while making the
-     * ownership explicit: dead_ends is the source of truth; materializer_fallbacks
-     * is only a compatibility mirror and must not imply recursive fallback use.
-     */
-    ctx->type_resolution_metadata_materializer_fallbacks =
-        ctx->type_resolution_metadata_dead_ends;
 }
 
 void
@@ -143,15 +129,14 @@ semantic_type_resolution_record_metadata_dead_end_diagnostic(SemanticContext *ct
         "Fix: stage this type in the declaration graph or add an owner-local metadata materializer before using it.",
         metadata_dead_end_type_name(type_node));
     ctx->type_resolution_metadata_dead_ends++;
-    metadata_sync_dead_end_compatibility_mirror(ctx);
     if (type_node == NULL) {
         ctx->type_resolution_metadata_unresolved_other++;
         return;
     }
 
     if (type_node->type == AST_TYPE) {
-        if (type_node->data.type.name != NULL) {
-            GenericParams *args = type_node->data.type.generic_args;
+        if (ast_type_name(type_node) != NULL) {
+            GenericParams *args = ast_type_generic_args(type_node);
             if (args != NULL && args->count > 0) {
                 ctx->type_resolution_metadata_unresolved_generic_named++;
             } else {

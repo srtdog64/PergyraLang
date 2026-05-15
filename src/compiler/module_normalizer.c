@@ -11,6 +11,7 @@
 #include <string.h>
 
 #include "../common/string_compat.h"
+#include "../parser/ast_api.h"
 
 typedef struct
 {
@@ -78,37 +79,6 @@ namespace_prefix_join(const char *prefix, const char *name)
     return result;
 }
 
-static char **
-node_name_slot(ASTNode *node)
-{
-    if (node == NULL)
-        return NULL;
-
-    /* Intentional AST payload mutation seam.
-     *
-     * Normal compiler/codegen/semantic consumers must use AST accessors for
-     * declaration names. The module normalizer is the exception because it
-     * owns namespace prefix rewriting and therefore needs the address of the
-     * mutable name slot, not a read-only accessor value.
-     */
-    switch (node->type) {
-        case AST_FUNC_DECL: return &node->data.func_decl.name;
-        case AST_CLASS_DECL: return &node->data.class_decl.name;
-        case AST_LET_DECL: return &node->data.let_decl.name;
-        case AST_ABILITY_DECL: return &node->data.ability_decl.name;
-        case AST_ROLE_DECL: return &node->data.role_decl.name;
-        case AST_PARTY_DECL: return &node->data.party_decl.name;
-        case AST_ROSTER_DECL: return &node->data.roster_decl.name;
-        case AST_WORLD_DECL: return &node->data.world_decl.name;
-        case AST_RELATION_DECL: return &node->data.relation_decl.name;
-        case AST_EFFECT_DECL: return &node->data.effect_decl.name;
-        case AST_ZONE_DECL: return &node->data.zone_decl.name;
-        case AST_EVENT_DECL: return &node->data.event_decl.name;
-        case AST_ENUM_DECL: return &node->data.enum_decl.name;
-        default: return NULL;
-    }
-}
-
 static bool
 module_has_explicit_exports_in_stmt(ASTNode *node)
 {
@@ -168,14 +138,14 @@ normalize_statement_list(ASTNode **statements,
 
     for (size_t i = 0; i < count; i++) {
         ASTNode *stmt = statements[i];
-        char **name_slot;
+        const char *name;
         if (stmt == NULL || stmt->type == AST_NAMESPACE_DECL)
             continue;
-        name_slot = node_name_slot(stmt);
-        if (name_slot == NULL || *name_slot == NULL)
+        name = ast_declaration_name(stmt);
+        if (name == NULL)
             continue;
 
-        char *public_name = join_names(public_prefix, *name_slot);
+        char *public_name = join_names(public_prefix, name);
         bool visible = !imported || !has_explicit_exports
             || inherited_export || stmt->is_exported;
         bool explicit_private =
@@ -192,16 +162,15 @@ normalize_statement_list(ASTNode **statements,
             return false;
         }
 
-        if (strcmp(*name_slot, final_name) != 0) {
-            if (!module_rename_scope_add(&scope, *name_slot, final_name)) {
+        if (strcmp(name, final_name) != 0) {
+            if (!module_rename_scope_add(&scope, name, final_name)
+                || !ast_replace_declaration_name_copy(stmt, final_name)) {
                 free(public_name);
                 free(final_name);
                 module_rename_scope_destroy(&scope);
                 module_shadow_destroy(&shadow);
                 return false;
             }
-            free(*name_slot);
-            *name_slot = pergyra_strdup(final_name);
         }
 
         free(public_name);

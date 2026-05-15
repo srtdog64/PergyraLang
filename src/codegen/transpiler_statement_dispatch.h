@@ -43,11 +43,11 @@ emit_statement(ASTNode *node, TranspilerCtx *ctx)
         /* unsafe { ... } → emit body directly (no safety wrappers) */
         write_indent(ctx);
         codebuf_write(ctx->out, "/* unsafe */\n");
-        if (node->data.unsafe_block.body != NULL)
-            emit_block(node->data.unsafe_block.body, ctx);
+        if (ast_unsafe_block_body(node) != NULL)
+            emit_block(ast_unsafe_block_body(node), ctx);
         break;
     case AST_DEFER_STMT: {
-        transpiler_register_defer(node->data.defer_stmt.body, ctx);
+        transpiler_register_defer(ast_defer_body(node), ctx);
         break;
     }
     case AST_BIND_STMT: {
@@ -167,9 +167,9 @@ emit_statement(ASTNode *node, TranspilerCtx *ctx)
         emit_return_stmt(node, ctx);
         break;
     case AST_BREAK:
-        if (node->data.break_stmt.label != NULL) {
+        if (ast_break_label(node) != NULL) {
             int target = transpiler_find_loop_label_depth(
-                ctx, node->data.break_stmt.label);
+                ctx, ast_break_label(node));
             if (target >= 0) {
                 ctx->loop_break_label_used[target] = true;
                 transpiler_emit_defers_from(ctx,
@@ -195,9 +195,9 @@ emit_statement(ASTNode *node, TranspilerCtx *ctx)
         emit_enum_decl_stmt(node, ctx);
         break;
     case AST_CONTINUE:
-        if (node->data.continue_stmt.label != NULL) {
+        if (ast_continue_label(node) != NULL) {
             int target = transpiler_find_loop_label_depth(
-                ctx, node->data.continue_stmt.label);
+                ctx, ast_continue_label(node));
             if (target >= 0) {
                 ctx->loop_continue_label_used[target] = true;
                 transpiler_emit_defers_from(ctx,

@@ -12,19 +12,19 @@ stage_decl_label(ASTNode *stmt)
 
     switch (stmt->type) {
     case AST_TYPE_ALIAS:
-        return stmt->data.type_alias.name;
+        return ast_type_alias_name(stmt);
     case AST_CLASS_DECL:
         return ast_class_name(stmt);
     case AST_FUNC_DECL:
-        return stmt->data.func_decl.name;
+        return ast_declaration_name(stmt);
     case AST_EVENT_DECL:
-        return stmt->data.event_decl.name;
+        return ast_event_name(stmt);
     case AST_ENUM_DECL:
         return ast_enum_name(stmt);
     case AST_ABILITY_DECL:
-        return stmt->data.ability_decl.name;
+        return ast_ability_name(stmt);
     case AST_ROLE_DECL:
-        return stmt->data.role_decl.name;
+        return ast_role_name(stmt);
     case AST_PARTY_DECL:
         return ast_party_name(stmt);
     case AST_ROSTER_DECL:

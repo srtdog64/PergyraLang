@@ -4,7 +4,7 @@
 char *
 emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
 {
-    ASTNode *target = node->data.spawn_expr.function;
+    ASTNode *target = ast_spawn_function(node);
     ASTNode *call = NULL;
     ASTNode *callee = NULL;
     const char *function_name = NULL;
@@ -39,8 +39,8 @@ emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
 
     if (target->type == AST_CALL) {
         call = target;
-        callee = target->data.call.callee;
-        arg_count = target->data.call.arg_count;
+        callee = ast_call_callee(target);
+        arg_count = ast_call_arg_count(target);
     } else {
         callee = target;
     }
@@ -86,12 +86,11 @@ emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
         for (size_t i = 0; i < arg_count; i++) {
             char arg_type_buf[256];
             const char *arg_type = NULL;
-            if (decl != NULL && i < decl->data.func_decl.param_count
-                && decl->data.func_decl.params[i] != NULL
-                && decl->data.func_decl.params[i]->type != NULL) {
+            FuncParam *param = ast_func_param(decl, i);
+            if (param != NULL && param->type != NULL) {
                 if (binding_count > 0) {
                     char *bound_type = render_type_name_with_bindings(ctx,
-                        decl->data.func_decl.params[i]->type, bindings, binding_count);
+                        param->type, bindings, binding_count);
                     if (pergyra_type_to_c_copy(bound_type, arg_type_buf,
                             sizeof(arg_type_buf))) {
                         arg_type = arg_type_buf;
@@ -119,14 +118,14 @@ emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
                     continue;
                 }
                 if (pergyra_ast_type_to_c_copy(
-                        decl->data.func_decl.params[i]->type,
+                        param->type,
                         arg_type_buf,
                         sizeof(arg_type_buf))) {
                     arg_type = arg_type_buf;
                 }
             } else if (call != NULL) {
                 const char *inferred_arg_type = infer_expression_type_name(
-                    ctx, call->data.call.arguments[i]);
+                    ctx, ast_call_argument(call, i));
                 if (pergyra_type_to_c_copy(inferred_arg_type, arg_type_buf,
                         sizeof(arg_type_buf))) {
                     arg_type = arg_type_buf;
@@ -215,7 +214,7 @@ emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
     }
 
     {
-        const char *spawn_fn = node->data.spawn_expr.is_blocking
+        const char *spawn_fn = ast_spawn_is_blocking(node)
             ? "pgy_spawn_blocking" : "pgy_async_spawn";
         if (args_type_name == NULL) {
             codebuf_write(expr, "%s(%s, NULL)", spawn_fn, wrapper_name);
@@ -225,7 +224,7 @@ emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
                 "if (_pgy_args == NULL) { PGY_PANIC(\"spawn arg allocation failed\"); } ",
                 args_type_name, args_type_name, args_type_name);
             for (size_t i = 0; i < arg_count; i++) {
-                char *arg = emit_expression(call->data.call.arguments[i], ctx);
+                char *arg = emit_expression(ast_call_argument(call, i), ctx);
                 codebuf_write(expr, "_pgy_args->arg%zu = %s; ", i, arg);
                 free(arg);
             }
@@ -245,15 +244,17 @@ emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
 char *
 emit_channel_send(ASTNode *node, TranspilerCtx *ctx)
 {
-    char *ch  = emit_expression(node->data.channel_send.channel, ctx);
-    char *val = emit_expression(node->data.channel_send.value, ctx);
+    ASTNode *channel = ast_channel_send_channel(node);
+    ASTNode *value = ast_channel_send_value(node);
+    char *ch  = emit_expression(channel, ctx);
+    char *val = emit_expression(value, ctx);
     const char *inner = NULL;
     char inner_buf[128];
 
-    if (node->data.channel_send.channel != NULL
-        && node->data.channel_send.channel->type == AST_IDENTIFIER) {
+    if (channel != NULL
+        && channel->type == AST_IDENTIFIER) {
         const char *type_name = lookup_typed_var(ctx,
-            node->data.channel_send.channel->data.identifier.name);
+            channel->data.identifier.name);
         if (type_name != NULL && strncmp(type_name, "Channel<", 8) == 0)
             if (slot_inner_type_name_copy(type_name, inner_buf,
                     sizeof(inner_buf)))
@@ -289,14 +290,15 @@ emit_channel_send(ASTNode *node, TranspilerCtx *ctx)
 char *
 emit_channel_recv(ASTNode *node, TranspilerCtx *ctx)
 {
-    char *ch = emit_expression(node->data.channel_recv.channel, ctx);
+    ASTNode *channel = ast_channel_recv_channel(node);
+    char *ch = emit_expression(channel, ctx);
     const char *inner = NULL;
     char inner_buf[128];
 
-    if (node->data.channel_recv.channel != NULL
-        && node->data.channel_recv.channel->type == AST_IDENTIFIER) {
+    if (channel != NULL
+        && channel->type == AST_IDENTIFIER) {
         const char *type_name = lookup_typed_var(ctx,
-            node->data.channel_recv.channel->data.identifier.name);
+            channel->data.identifier.name);
         if (type_name != NULL && strncmp(type_name, "Channel<", 8) == 0)
             if (slot_inner_type_name_copy(type_name, inner_buf,
                     sizeof(inner_buf)))

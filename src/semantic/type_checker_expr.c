@@ -263,7 +263,7 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
         return type_check_array_literal(expr, ctx);
 
     case AST_TUPLE_LITERAL: {
-        size_t n = expr->data.tuple_literal.count;
+        size_t n = ast_tuple_literal_count(expr);
         if (n < 2) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, expr,
                 "Tuple literal requires at least 2 elements");
@@ -274,7 +274,7 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
             return TYPE_UNKNOWN;
         for (size_t i = 0; i < n; i++)
             elems[i] = expr_normalize_type(type_check_expression(
-                expr->data.tuple_literal.elements[i], ctx));
+                ast_tuple_literal_element(expr, i), ctx));
         Type *tup = type_create_tuple(elems, n);
         free(elems);
         return tup != NULL ? tup : TYPE_UNKNOWN;
@@ -296,7 +296,8 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
             "move await");
         semantic_record_effect(ctx, EFFECT_REMOTE);
         {
-            Type *future_type = type_check_expression(expr->data.await_expr.expression, ctx);
+            ASTNode *awaited = ast_await_expression(expr);
+            Type *future_type = type_check_expression(awaited, ctx);
             if (future_type != NULL
                 && future_type->kind == TYPE_KIND_CONSTRUCTED
                 && (type_equals(future_type->data.constructed.constructor, TYPE_FUTURE)
@@ -314,7 +315,7 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
             }
             semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
                 PGY_CAUSE_AWAIT_NON_FUTURE, PGY_FIX_AWAIT_FUTURE_TYPE,
-                expr->data.await_expr.expression,
+                awaited,
                 "'await' requires Future<T> or RemoteFuture<T>");
             return TYPE_UNKNOWN;
         }
@@ -337,12 +338,15 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
 Type *
 type_check_member_access(ASTNode *expr, SemanticContext *ctx)
 {
+    ASTNode *member_object = ast_member_object(expr);
+    const char *member_name = ast_member_name(expr);
+
     if (expr_member_is_static_access(expr)) {
         char *flat_name = flatten_static_member_access(expr, '_');
         char *display_name = flatten_static_member_access(expr, '.');
         Symbol *sym = flat_name != NULL ? scope_lookup(ctx->scope, flat_name) : NULL;
-        if (sym == NULL && expr->data.member.name != NULL)
-            sym = scope_lookup(ctx->scope, expr->data.member.name);
+        if (sym == NULL && member_name != NULL)
+            sym = scope_lookup(ctx->scope, member_name);
         if (sym != NULL) {
             sym->is_used = true;
             free(flat_name);
@@ -357,17 +361,17 @@ type_check_member_access(ASTNode *expr, SemanticContext *ctx)
         return TYPE_UNKNOWN;
     }
 
-    Type *object_type = type_check_expression(expr->data.member.object, ctx);
+    Type *object_type = type_check_expression(member_object, ctx);
 
     if ((type_is_constructed_named(object_type, "Array")
          || type_is_constructed_named(object_type, "Slice"))
-        && strcmp(expr->data.member.name, "Length") == 0) {
+        && strcmp(member_name, "Length") == 0) {
         return TYPE_INT;
     }
 
     if (object_type != NULL && object_type->kind == TYPE_KIND_ENUM) {
         Type *variant_payload = expr_type_for_enum_variant_projection(ctx,
-            expr, object_type, expr->data.member.name);
+            expr, object_type, member_name);
         if (variant_payload != NULL)
             return variant_payload;
     }
@@ -375,7 +379,7 @@ type_check_member_access(ASTNode *expr, SemanticContext *ctx)
     if (object_type != NULL && object_type->kind == TYPE_KIND_CLASS
         && object_type->name != NULL && strchr(object_type->name, '$') != NULL) {
         Type *payload_field = expr_type_for_enum_payload_field(ctx, expr,
-            object_type, expr->data.member.name);
+            object_type, member_name);
         if (payload_field != NULL)
             return payload_field;
     }
@@ -385,7 +389,7 @@ type_check_member_access(ASTNode *expr, SemanticContext *ctx)
         && (object_type->kind == TYPE_KIND_CLASS
             || object_type->kind == TYPE_KIND_ENUM)
         && object_type->name != NULL && ctx->program_root != NULL) {
-        const char *field_name = expr->data.member.name;
+        const char *field_name = member_name;
         ASTNode *decl = semantic_host_decl_for_type(ctx, object_type);
 
         if (decl != NULL && decl->type == AST_CLASS_DECL) {
@@ -469,7 +473,7 @@ type_check_member_access(ASTNode *expr, SemanticContext *ctx)
         && (object_type->kind == TYPE_KIND_CLASS
             || object_type->kind == TYPE_KIND_ENUM)) {
         expr_report_unknown_member(ctx, expr, object_type,
-            expr->data.member.name);
+            member_name);
         return TYPE_UNKNOWN;
     }
 

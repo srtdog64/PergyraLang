@@ -40,6 +40,8 @@ void loop_flow_record(LoopFlowState *loop_flow,
 FlowFlags type_check_block_flow(ASTNode *node,
                                 SemanticContext *ctx,
                                 LoopFlowState *loop_flow);
+FlowFlags type_check_statement_flow_boundary(ASTNode *node,
+                                             SemanticContext *ctx);
 FlowFlags type_check_loop_control_flow(ASTNode *node,
                                        SemanticContext *ctx,
                                        LoopFlowState *loop_flow,

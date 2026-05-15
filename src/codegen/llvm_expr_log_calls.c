@@ -12,6 +12,7 @@
 #include "llvm_expr_banner_string_helpers.h"
 #include "llvm_expr_string_coerce.h"
 #include "llvm_internal_api.h"
+#include "parser/ast_api.h"
 
 static LLVMValueRef
 llvm_log_error(LLVMGenCtx *ctx, ASTNode *node, const char *message)
@@ -76,11 +77,11 @@ llvm_emit_log_call(ASTNode *node, LLVMGenCtx *ctx)
     LLVMFuncEntry *log_fn;
     LLVMValueRef args[1];
 
-    if (node->data.call.arg_count < 1)
+    if (ast_call_arg_count(node) < 1)
         return llvm_log_error(ctx, node,
             "LLVM Log requires at least one argument");
 
-    arg_node = node->data.call.arguments[0];
+    arg_node = ast_call_argument(node, 0);
     if (arg_node != NULL && arg_node->type == AST_STRING
         && arg_node->data.string.value != NULL) {
         const char *raw = arg_node->data.string.value;
@@ -126,11 +127,11 @@ llvm_emit_log_raw_call(ASTNode *node, LLVMGenCtx *ctx)
     LLVMFuncEntry *log_fn;
     LLVMValueRef args[1];
 
-    if (node->data.call.arg_count < 1)
+    if (ast_call_arg_count(node) < 1)
         return llvm_log_error(ctx, node,
             "LLVM LogRaw requires at least one argument");
 
-    arg_node = node->data.call.arguments[0];
+    arg_node = ast_call_argument(node, 0);
     if (arg_node != NULL && arg_node->type == AST_STRING
         && arg_node->data.string.value != NULL) {
         arg = LLVMBuildGlobalStringPtr(ctx->builder,
@@ -161,11 +162,11 @@ llvm_emit_log_banner_call(ASTNode *node, LLVMGenCtx *ctx)
     LLVMFuncEntry *log_fn;
     LLVMValueRef args[1];
 
-    if (node->data.call.arg_count < 1)
+    if (ast_call_arg_count(node) < 1)
         return llvm_log_error(ctx, node,
             "LLVM LogBanner requires at least one argument");
 
-    arg = node->data.call.arguments[0];
+    arg = ast_call_argument(node, 0);
     if (arg == NULL)
         return llvm_log_error(ctx, node,
             "LLVM LogBanner requires a non-null argument");

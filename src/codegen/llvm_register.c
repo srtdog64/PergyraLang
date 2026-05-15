@@ -405,29 +405,31 @@ llvm_register_active_extern_prototypes(LLVMGenCtx *ctx)
         if (stmt == NULL || stmt->type != AST_EXTERN_BLOCK)
             continue;
 
-        for (size_t j = 0; j < stmt->data.extern_block.count; j++) {
-            ASTNode *decl = stmt->data.extern_block.declarations[j];
+        size_t extern_decl_count = 0;
+        (void)ast_extern_block_declarations(stmt, &extern_decl_count);
+        for (size_t j = 0; j < extern_decl_count; j++) {
+            ASTNode *decl = ast_extern_block_declaration(stmt, j);
             if (decl == NULL || decl->type != AST_FUNC_DECL)
                 continue;
 
-            const char *fname = decl->data.func_decl.name;
+            const char *fname = ast_declaration_name(decl);
             if (fname == NULL)
                 continue;
             if (llvm_lookup_function(ctx, fname) != NULL)
                 continue;
 
             LLVMTypeRef ret = ctx->type_void;
-            if (decl->data.func_decl.return_type != NULL)
-                ret = ast_type_to_llvm(ctx, decl->data.func_decl.return_type);
+            if (ast_func_return_type(decl) != NULL)
+                ret = ast_type_to_llvm(ctx, ast_func_return_type(decl));
             if (ctx->has_error || ret == NULL)
                 return;
 
-            size_t pc = decl->data.func_decl.param_count;
+            size_t pc = ast_func_param_count(decl);
             /* Extern param-type buffer: consumed by LLVMFunctionType. */
             LLVMTypeRef *ptypes = pgy_arena_calloc(&ctx->scratch,
                 (pc > 0 ? pc : 1) * sizeof(LLVMTypeRef));
             for (size_t k = 0; k < pc; k++) {
-                FuncParam *p = decl->data.func_decl.params[k];
+                FuncParam *p = ast_func_param(decl, k);
                 ptypes[k] = llvm_register_required_ast_type(
                     ctx, decl, p != NULL ? p->type : NULL, "extern parameter");
                 if (ctx->has_error || ptypes[k] == NULL)

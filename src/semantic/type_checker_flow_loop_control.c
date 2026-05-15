@@ -36,8 +36,8 @@ type_check_loop_control_flow(ASTNode *node, SemanticContext *ctx,
 {
     const char *kind = is_break ? "break" : "continue";
     const char *label = is_break
-        ? node->data.break_stmt.label
-        : node->data.continue_stmt.label;
+        ? ast_break_label(node)
+        : ast_continue_label(node);
     ResourceConsumeSnapshot snap;
 
     if (!flow_validate_loop_control(ctx, node, kind, label))

@@ -13,7 +13,7 @@ emit_role_method_impl(const char *role_name, ASTNode *method, TranspilerCtx *ctx
         return;
 
     mir_method = transpiler_find_role_impl_mir_method(ctx, role_name, method);
-    method_name = method->data.func_decl.name;
+    method_name = ast_declaration_name(method);
     if (ctx != NULL && ctx->mir != NULL && mir_method == NULL) {
         transpiler_set_mir_inventory_missing(
             ctx,
@@ -79,13 +79,14 @@ emit_role_vtable_instance(const char *role_name, ASTNode *impl, TranspilerCtx *c
 
     for (size_t j = 0; j < ast_impl_ability_method_count(impl); j++) {
         ASTNode *method = ast_impl_ability_method(impl, j);
+        const char *method_name = ast_declaration_name(method);
         if (method == NULL || method->type != AST_FUNC_DECL)
             continue;
-        if (method->data.func_decl.name == NULL)
+        if (method_name == NULL)
             continue;
         codebuf_write(ctx->out, "    .%s = %s_%s,\n",
-                      method->data.func_decl.name,
-                      role_name, method->data.func_decl.name);
+                      method_name,
+                      role_name, method_name);
     }
 
     codebuf_write(ctx->out, "};\n");
@@ -119,10 +120,11 @@ emit_role_operator_aliases(ASTNode *role, TranspilerCtx *ctx)
         PgyTokenType op = ops[i];
         const char *suffix = operator_overload_suffix(op);
         ASTNode *method = find_role_operator_method_decl(ctx, role, op, 0);
+        const char *method_name = ast_declaration_name(method);
         char fn_name[256];
         if (suffix == NULL || method == NULL
             || method->type != AST_FUNC_DECL
-            || method->data.func_decl.name == NULL
+            || method_name == NULL
             ) {
             continue;
         }
@@ -141,8 +143,8 @@ emit_role_operator_aliases(ASTNode *role, TranspilerCtx *ctx)
 
         FuncParam *rhs_param = NULL;
         size_t rhs_param_count = 0;
-        for (size_t j = 0; j < method->data.func_decl.param_count; j++) {
-            FuncParam *p = method->data.func_decl.params[j];
+        for (size_t j = 0; j < ast_func_param_count(method); j++) {
+            FuncParam *p = ast_func_param(method, j);
             if (p != NULL && p->name != NULL
                 && !(p->type == NULL && strcmp(p->name, "self") == 0)) {
                 rhs_param = p;
@@ -170,8 +172,8 @@ emit_role_operator_aliases(ASTNode *role, TranspilerCtx *ctx)
             ? rhs_param->name : "rhs";
         char surface_desc[256];
 
-        if (method->data.func_decl.return_type != NULL) {
-            if (pergyra_ast_type_to_c_copy(method->data.func_decl.return_type,
+        if (ast_func_return_type(method) != NULL) {
+            if (pergyra_ast_type_to_c_copy(ast_func_return_type(method),
                     ret_type_storage,
                     sizeof(ret_type_storage))) {
                 ret_type = ret_type_storage;
@@ -179,7 +181,7 @@ emit_role_operator_aliases(ASTNode *role, TranspilerCtx *ctx)
         }
         if (!transpiler_role_ability_surface_desc(surface_desc,
                 sizeof(surface_desc), "role operator parameter",
-                role_name, method->data.func_decl.name, rhs_name)) {
+                role_name, method_name, rhs_name)) {
             transpiler_set_backend_error_with_hints(ctx,
                 PGY_CODE_C_TYPE_UNSUPPORTED,
                 PGY_CAUSE_C_TYPE_UNSUPPORTED,
@@ -204,10 +206,10 @@ emit_role_operator_aliases(ASTNode *role, TranspilerCtx *ctx)
         codebuf_write(ctx->out, "    %s lhs_copy = lhs;\n", lhs_type);
         if (strcmp(ret_type, "void") == 0) {
             codebuf_write(ctx->out, "    %s_%s(&lhs_copy, %s);\n",
-                role_name, method->data.func_decl.name, rhs_name);
+                role_name, method_name, rhs_name);
         } else {
             codebuf_write(ctx->out, "    return %s_%s(&lhs_copy, %s);\n",
-                role_name, method->data.func_decl.name, rhs_name);
+                role_name, method_name, rhs_name);
         }
         codebuf_write(ctx->out, "}\n");
     }

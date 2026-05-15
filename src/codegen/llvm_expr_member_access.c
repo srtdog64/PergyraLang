@@ -24,8 +24,8 @@ llvm_member_access_error(LLVMGenCtx *ctx, ASTNode *node, const char *message)
 LLVMValueRef
 llvm_emit_member_access(ASTNode *node, LLVMGenCtx *ctx)
 {
-    ASTNode *obj_node = node->data.member.object;
-    const char *field_name = node->data.member.name;
+    ASTNode *obj_node = ast_member_object(node);
+    const char *field_name = ast_member_name(node);
 
     if (obj_node == NULL || field_name == NULL)
         return llvm_member_access_error(ctx, node,

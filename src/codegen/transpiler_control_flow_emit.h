@@ -52,7 +52,7 @@ transpiler_write_condition_head(TranspilerCtx *ctx,
 void
 emit_if_stmt(ASTNode *node, TranspilerCtx *ctx)
 {
-    char *cond = emit_expression(node->data.if_stmt.condition, ctx);
+    char *cond = emit_expression(ast_if_condition(node), ctx);
     write_indent(ctx);
     transpiler_write_condition_head(ctx, "if", cond, "\n");
     free(cond);
@@ -60,19 +60,19 @@ emit_if_stmt(ASTNode *node, TranspilerCtx *ctx)
     write_indent(ctx);
     codebuf_write(ctx->out, "{\n");
     ctx->indent++;
-    if (node->data.if_stmt.then_branch != NULL)
-        emit_block(node->data.if_stmt.then_branch, ctx);
+    if (ast_if_then_branch(node) != NULL)
+        emit_block(ast_if_then_branch(node), ctx);
     ctx->indent--;
     write_indent(ctx);
     codebuf_write(ctx->out, "}\n");
 
-    if (node->data.if_stmt.else_branch != NULL) {
+    if (ast_if_else_branch(node) != NULL) {
         write_indent(ctx);
         codebuf_write(ctx->out, "else\n");
         write_indent(ctx);
         codebuf_write(ctx->out, "{\n");
         ctx->indent++;
-        emit_statement(node->data.if_stmt.else_branch, ctx);
+        emit_statement(ast_if_else_branch(node), ctx);
         ctx->indent--;
         write_indent(ctx);
         codebuf_write(ctx->out, "}\n");
@@ -98,12 +98,14 @@ transpiler_find_loop_label_depth(const TranspilerCtx *ctx, const char *label)
 void
 emit_for_loop(ASTNode *node, TranspilerCtx *ctx)
 {
-    const char *var = node->data.for_loop.variable;
+    const char *var = ast_for_variable(node);
+    ASTNode *iterable = ast_for_iterable(node);
+    ASTNode *body = ast_for_body(node);
     int loop_slot = ctx->loop_depth;
     int loop_id = ++ctx->tmp_counter;
 
     if (loop_slot < TRANSPILE_MAX_LOOP_DEPTH) {
-        ctx->loop_labels[loop_slot] = node->data.for_loop.label;
+        ctx->loop_labels[loop_slot] = ast_for_label(node);
         if (!transpiler_loop_label_name(ctx->loop_break_labels[loop_slot],
                 sizeof(ctx->loop_break_labels[loop_slot]), "break", loop_id)
             || !transpiler_loop_label_name(ctx->loop_continue_labels[loop_slot],
@@ -123,10 +125,10 @@ emit_for_loop(ASTNode *node, TranspilerCtx *ctx)
         ctx->loop_depth++;
     }
 
-    if (node->data.for_loop.iterable != NULL) {
-        char *coll = emit_expression(node->data.for_loop.iterable, ctx);
+    if (iterable != NULL) {
+        char *coll = emit_expression(iterable, ctx);
         const char *coll_type = infer_expression_type_name(ctx,
-            node->data.for_loop.iterable);
+            iterable);
         char elem_inner_buf[128];
         char elem_type_buf[128];
         const char *elem_inner = NULL;
@@ -179,8 +181,8 @@ emit_for_loop(ASTNode *node, TranspilerCtx *ctx)
         codebuf_write(ctx->out, "%s %s = %s.data[_pgy_idx_%d];\n",
             elem_type, var, coll, idx_id);
         register_typed_var(ctx, var, elem_inner);
-        if (node->data.for_loop.body != NULL)
-            emit_block(node->data.for_loop.body, ctx);
+        if (body != NULL)
+            emit_block(body, ctx);
         if (loop_slot < TRANSPILE_MAX_LOOP_DEPTH
             && ctx->loop_continue_label_used[loop_slot]) {
             write_indent(ctx);
@@ -204,8 +206,8 @@ emit_for_loop(ASTNode *node, TranspilerCtx *ctx)
         return;
     }
 
-    char *start = emit_expression(node->data.for_loop.range_start, ctx);
-    char *end   = emit_expression(node->data.for_loop.range_end,   ctx);
+    char *start = emit_expression(ast_for_range_start(node), ctx);
+    char *end   = emit_expression(ast_for_range_end(node),   ctx);
 
     write_indent(ctx);
     codebuf_write(ctx->out,
@@ -217,8 +219,8 @@ emit_for_loop(ASTNode *node, TranspilerCtx *ctx)
     write_indent(ctx);
     codebuf_write(ctx->out, "{\n");
     ctx->indent++;
-    if (node->data.for_loop.body != NULL)
-        emit_block(node->data.for_loop.body, ctx);
+    if (body != NULL)
+        emit_block(body, ctx);
     if (loop_slot < TRANSPILE_MAX_LOOP_DEPTH
         && ctx->loop_continue_label_used[loop_slot]) {
         write_indent(ctx);
@@ -243,11 +245,11 @@ emit_for_loop(ASTNode *node, TranspilerCtx *ctx)
 void
 emit_while_loop(ASTNode *node, TranspilerCtx *ctx)
 {
-    char *cond = emit_expression(node->data.while_loop.condition, ctx);
+    char *cond = emit_expression(ast_while_condition(node), ctx);
     int loop_slot = ctx->loop_depth;
     int loop_id = ++ctx->tmp_counter;
     if (loop_slot < TRANSPILE_MAX_LOOP_DEPTH) {
-        ctx->loop_labels[loop_slot] = node->data.while_loop.label;
+        ctx->loop_labels[loop_slot] = ast_while_label(node);
         if (!transpiler_loop_label_name(ctx->loop_break_labels[loop_slot],
                 sizeof(ctx->loop_break_labels[loop_slot]), "break", loop_id)
             || !transpiler_loop_label_name(ctx->loop_continue_labels[loop_slot],
@@ -274,8 +276,8 @@ emit_while_loop(ASTNode *node, TranspilerCtx *ctx)
     write_indent(ctx);
     codebuf_write(ctx->out, "{\n");
     ctx->indent++;
-    if (node->data.while_loop.body != NULL)
-        emit_block(node->data.while_loop.body, ctx);
+    if (ast_while_body(node) != NULL)
+        emit_block(ast_while_body(node), ctx);
     if (loop_slot < TRANSPILE_MAX_LOOP_DEPTH
         && ctx->loop_continue_label_used[loop_slot]) {
         write_indent(ctx);

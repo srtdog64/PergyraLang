@@ -44,15 +44,15 @@ ability_generic_arg_satisfies_bound(Type *concrete_type, ASTNode *bound_node,
 
     if (ctx->program_root == NULL
         || bound_node->type != AST_TYPE
-        || bound_node->data.type.name == NULL
+        || ast_type_name(bound_node) == NULL
         || concrete_type->name == NULL) {
         return false;
     }
 
-    bound_sym = scope_lookup(ctx->scope, bound_node->data.type.name);
+    bound_sym = scope_lookup(ctx->scope, ast_type_name(bound_node));
     if ((bound_sym != NULL && bound_sym->kind == SYMBOL_ABILITY)
         || find_ability_decl_by_name(ctx->program_root,
-                                     bound_node->data.type.name) != NULL) {
+                                     ast_type_name(bound_node)) != NULL) {
         return subject_type_has_ability(ctx->program_root,
                                         concrete_type->name,
                                         bound_node);
@@ -74,6 +74,7 @@ validate_ability_decl_where_clause_reference(ASTNode *ability_decl,
     char *required_text;
     Type **effective_types;
     size_t effective_count = 0;
+    const char *ability_name;
 
     if (ability_decl == NULL || ability_decl->type != AST_ABILITY_DECL
         || ability_ref == NULL || ability_ref->type != AST_TYPE
@@ -88,22 +89,21 @@ validate_ability_decl_where_clause_reference(ASTNode *ability_decl,
         ability_ref,
         "ability consumer lookup");
 
-    decl_params = ability_decl->data.ability_decl.generic_params;
-    wc = ability_decl->data.ability_decl.where_clause;
+    decl_params = ast_ability_generic_params(ability_decl);
+    wc = ast_ability_where_clause(ability_decl);
     if (decl_params == NULL || decl_params->count == 0
         || wc == NULL || wc->count == 0) {
         return true;
     }
+    ability_name = ast_ability_name(ability_decl);
 
     effective_types = collect_effective_generic_arg_types(
         decl_params,
-        ability_ref->data.type.generic_args,
+        ast_type_generic_args(ability_ref),
         site,
         ctx,
         "Ability",
-        ability_decl->data.ability_decl.name != NULL
-            ? ability_decl->data.ability_decl.name
-            : "<ability>",
+        ability_name != NULL ? ability_name : "<ability>",
         &effective_count);
     if (effective_types == NULL)
         return !ctx->has_error;
@@ -135,13 +135,11 @@ validate_ability_decl_where_clause_reference(ASTNode *ability_decl,
                 owner_label != NULL ? owner_label : "construct",
                 owner_name != NULL ? owner_name : "<anonymous>",
                 tc->type_param,
-                ability_decl->data.ability_decl.name != NULL
-                    ? ability_decl->data.ability_decl.name : "<ability>",
+                ability_name != NULL ? ability_name : "<ability>",
                 owner_label != NULL ? owner_label : "construct",
                 owner_name != NULL ? owner_name : "<anonymous>",
                 tc->type_param,
-                ability_decl->data.ability_decl.name != NULL
-                    ? ability_decl->data.ability_decl.name : "<ability>");
+                ability_name != NULL ? ability_name : "<ability>");
             free(required_text);
             free(effective_types);
             return false;
@@ -162,8 +160,7 @@ validate_ability_decl_where_clause_reference(ASTNode *ability_decl,
                 owner_label != NULL ? owner_label : "construct",
                 owner_name != NULL ? owner_name : "<anonymous>",
                 tc->type_param,
-                ability_decl->data.ability_decl.name != NULL
-                    ? ability_decl->data.ability_decl.name : "<ability>",
+                ability_name != NULL ? ability_name : "<ability>",
                 owner_label != NULL ? owner_label : "construct",
                 owner_name != NULL ? owner_name : "<anonymous>",
                 tc->type_param,
@@ -179,8 +176,8 @@ validate_ability_decl_where_clause_reference(ASTNode *ability_decl,
             const char *bound_name =
                 (bound_node != NULL
                  && bound_node->type == AST_TYPE
-                 && bound_node->data.type.name != NULL)
-                    ? bound_node->data.type.name
+                 && ast_type_name(bound_node) != NULL)
+                    ? ast_type_name(bound_node)
                     : "<constraint>";
 
             if (!ability_generic_arg_satisfies_bound(concrete_type, bound_node, ctx)) {
@@ -189,8 +186,7 @@ validate_ability_decl_where_clause_reference(ASTNode *ability_decl,
                     site,
                     owner_label,
                     owner_name,
-                    ability_decl->data.ability_decl.name != NULL
-                        ? ability_decl->data.ability_decl.name : "<ability>",
+                    ability_name != NULL ? ability_name : "<ability>",
                     tc->type_param,
                     bound_name,
                     bounds_text,

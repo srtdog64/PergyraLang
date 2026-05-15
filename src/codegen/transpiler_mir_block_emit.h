@@ -10,6 +10,7 @@
 #include "transpiler_mir_block_emit_helpers.h"
 #include "transpiler_mir_assignment_emit.h"
 #include "transpiler_mir_reason.h"
+#include "../parser/ast_api.h"
 static bool
 transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
                                      const MIRRoutine *mir_routine,
@@ -38,7 +39,7 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
             transpiler_mir_reasonf(reason, reason_cap,
                      "MIR emission failed for block %llu in %s: missing SSA entry map",
                      (unsigned long long) block->id, func_decl->type == AST_FUNC_DECL
-                     ? func_decl->data.func_decl.name
+                     ? ast_declaration_name(func_decl)
                      : ast_intent_decl_name(func_decl));
         return false;
     }
@@ -171,8 +172,8 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
             lhs = transpiler_render_ssa_name(ctx, inst->result_name);
             if (stmt->data.let_decl.initializer != NULL
                 && stmt->data.let_decl.initializer->type == AST_UNARY
-                && stmt->data.let_decl.initializer->data.unary.op.type == TOKEN_QUESTION) {
-                ASTNode *operand = stmt->data.let_decl.initializer->data.unary.operand;
+                && ast_unary_operator(stmt->data.let_decl.initializer).type == TOKEN_QUESTION) {
+                ASTNode *operand = ast_unary_operand(stmt->data.let_decl.initializer);
                 const char *result_type = infer_expression_type_name(ctx, operand);
                 char result_c_type_buf[256];
                 const char *result_c_type = NULL;
@@ -429,56 +430,57 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
         }
         if (transpiler_mir_stmt_is_mirrored_resource(ctx, block, stmt))
             continue;
-        if (stmt->type == AST_ASSIGNMENT
-            && stmt->data.assignment.target != NULL
-            && stmt->data.assignment.target->type == AST_IDENTIFIER
-            && stmt->data.assignment.target->data.identifier.name != NULL
-            && transpiler_is_implicit_field(ctx,
-                stmt->data.assignment.target->data.identifier.name)) {
-            char map_reason[256];
-            if (!transpiler_expr_identifiers_mapped(
-                    ctx,
-                    stmt->data.assignment.value,
-                    ssa_map_out,
-                    mir_routine->name,
-                    map_reason,
-                    sizeof(map_reason))) {
-                continue;
+        if (stmt->type == AST_ASSIGNMENT) {
+            ASTNode *target = ast_assignment_target(stmt);
+            ASTNode *value = ast_assignment_value(stmt);
+            if (target != NULL
+                && target->type == AST_IDENTIFIER
+                && target->data.identifier.name != NULL
+                && transpiler_is_implicit_field(ctx,
+                    target->data.identifier.name)) {
+                char map_reason[256];
+                if (!transpiler_expr_identifiers_mapped(
+                        ctx,
+                        value,
+                        ssa_map_out,
+                        mir_routine->name,
+                        map_reason,
+                        sizeof(map_reason))) {
+                    continue;
+                }
             }
-        }
-        if (stmt->type == AST_ASSIGNMENT
-            && stmt->data.assignment.target != NULL
-            && stmt->data.assignment.target->type == AST_IDENTIFIER
-            && stmt->data.assignment.target->data.identifier.name != NULL
-            && !transpiler_is_implicit_field(
-                   ctx, stmt->data.assignment.target->data.identifier.name)) {
-            const char *target_name =
-                stmt->data.assignment.target->data.identifier.name;
-            const char *mapped_target = transpiler_resolve_ssa_name(
-                (const TranspilerSSANameMap *)ssa_map_out,
-                target_name);
-            if (mapped_target != NULL) {
-                char *lhs = transpiler_render_ssa_name(ctx, mapped_target);
-                char *rhs = emit_expression_with_ssa_map(
-                    stmt->data.assignment.value, ctx, ssa_map_out);
+            if (target != NULL
+                && target->type == AST_IDENTIFIER
+                && target->data.identifier.name != NULL
+                && !transpiler_is_implicit_field(
+                       ctx, target->data.identifier.name)) {
+                const char *target_name = target->data.identifier.name;
+                const char *mapped_target = transpiler_resolve_ssa_name(
+                    (const TranspilerSSANameMap *)ssa_map_out,
+                    target_name);
+                if (mapped_target != NULL) {
+                    char *lhs = transpiler_render_ssa_name(ctx, mapped_target);
+                    char *rhs = emit_expression_with_ssa_map(
+                        value, ctx, ssa_map_out);
 
-                if (lhs == NULL || rhs == NULL) {
+                    if (lhs == NULL || rhs == NULL) {
+                        free(lhs);
+                        free(rhs);
+                        if (reason != NULL && reason_cap > 0) {
+                            transpiler_mir_reasonf(reason, reason_cap,
+                                     "MIR block %llu emission failed: unable to render local assignment to '%s'",
+                                     (unsigned long long) block->id,
+                                     target_name);
+                        }
+                        ok = false;
+                        break;
+                    }
+                    write_indent_to(buf, ctx->indent);
+                    codebuf_write(buf, "%s = %s;\n", lhs, rhs);
                     free(lhs);
                     free(rhs);
-                    if (reason != NULL && reason_cap > 0) {
-                        transpiler_mir_reasonf(reason, reason_cap,
-                                 "MIR block %llu emission failed: unable to render local assignment to '%s'",
-                                 (unsigned long long) block->id,
-                                 target_name);
-                    }
-                    ok = false;
-                    break;
+                    continue;
                 }
-                write_indent_to(buf, ctx->indent);
-                codebuf_write(buf, "%s = %s;\n", lhs, rhs);
-                free(lhs);
-                free(rhs);
-                continue;
             }
         }
         if (transpiler_mir_routine_has_explicit_cfg(mir_routine)

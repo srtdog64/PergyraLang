@@ -22,7 +22,7 @@ emit_intent_step_bind_bound_zone(CodeBuf *out, TranspilerCtx *ctx,
     }
 
     zone_alias = intent_step_effective_zone_alias(step);
-    zone_type = ast_intent_step_where_type(step)->data.type.name;
+    zone_type = ast_type_name(ast_intent_step_where_type(step));
     if (zone_alias == NULL || zone_type == NULL)
         return;
 
@@ -304,7 +304,7 @@ emit_intent_step_sync_effective_zone(CodeBuf *out, TranspilerCtx *ctx,
     }
 
     zone_alias = intent_step_effective_zone_alias(step);
-    zone_type = ast_intent_step_where_type(step)->data.type.name;
+    zone_type = ast_type_name(ast_intent_step_where_type(step));
     if (zone_alias == NULL || zone_type == NULL)
         return;
 

@@ -332,8 +332,7 @@
         SemanticContext *ctx = semantic_context_create();
         scope_enter(&ctx->scope, SCOPE_GLOBAL);
         ASTNode *opt = make_generic_type("Option", "Int");
-        Type *t = semantic_type_resolution_lookup_type_ref_or_materialize(ctx,
-                                                                          opt);
+        Type *t = semantic_type_resolution_lookup_metadata_type_ref(ctx, opt);
         EXPECT(!ctx->has_error);
         EXPECT(t != NULL
             && t->kind == TYPE_KIND_CONSTRUCTED

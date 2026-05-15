@@ -16,12 +16,12 @@ semantic_type_resolution_precollect_program(ASTNode *program,
 
         switch (stmt->type) {
         case AST_TYPE_ALIAS:
-            if (stmt->data.type_alias.name != NULL) {
+            if (ast_type_alias_name(stmt) != NULL) {
                 semantic_type_resolution_collect_type_refs(
-                    stmt->data.type_alias.target_type,
+                    ast_type_alias_target_type(stmt),
                     ctx,
                     stmt,
-                    stmt->data.type_alias.name,
+                    ast_type_alias_name(stmt),
                     "type-alias target lookup");
             }
             break;
@@ -34,7 +34,7 @@ semantic_type_resolution_precollect_program(ASTNode *program,
             semantic_type_resolution_precollect_action_contract(
                 stmt,
                 ctx,
-                stmt->data.func_decl.name);
+                ast_declaration_name(stmt));
             break;
 
         case AST_LET_DECL:

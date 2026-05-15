@@ -106,7 +106,9 @@ run_literal_air_drift_smoke() {
     require_literal "src/compiler/air_internal.h" "air_next_capacity"
     require_literal "src/compiler/air_names.c" "air_next_capacity"
     require_literal "src/compiler/air_evidence_node.c" "air_next_capacity(&new_capacity"
-    require_literal "src/compiler/air_evidence_node.c" "air_evidence_kind_scope"
+    require_literal "src/compiler/air_evidence_node.c" "kEvidenceKindMeta"
+    require_literal "src/compiler/air_evidence_node.c" "air_evidence_kind_has_global_validator"
+    require_literal "src/compiler/air_validate_global_evidence.c" "air_evidence_kind_has_global_validator"
     require_literal "src/compiler/air_evidence_node.c" "AIR evidence append requires a known evidence kind"
     require_literal "src/compiler/air_verify.c" "air_next_capacity(&new_capacity"
     require_literal "src/compiler/air_evidence_node.c" "node->fact_count += fact_count"
@@ -639,10 +641,10 @@ if missing_span_terms:
     raise SystemExit("AIR source span gate missing term(s): " + ", ".join(missing_span_terms))
 
 required_dag_drift_terms = [
-    (air_impl, "dag_fallback_present", "AIR DAG fallback drift JSON name"),
+    (air_impl, "dag_dead_end_present", "AIR DAG dead-end drift JSON name"),
     (air_impl, "AIR DAG evidence contains unresolved metadata dead-end", "AIR DAG unresolved dead-end drift message"),
-    (air_impl, "strict AIR requires graph-backed type evidence", "AIR DAG fallback drift reason"),
-    (air_impl, "missing DAG evidence node", "AIR DAG fallback drift fix"),
+    (air_impl, "strict AIR requires graph-backed type evidence", "AIR DAG dead-end drift reason"),
+    (air_impl, "missing DAG evidence node", "AIR DAG dead-end drift fix"),
     (air_impl, "strict AIR requires authority checks to be backed by RIR authority evidence", "AIR authority drift reason"),
     (air_impl, "strict AIR requires every authorized participant to be backed by RIR authority evidence", "AIR authority participant-complete drift reason"),
     (air_impl, "strict AIR requires every effect propagation op to carry resource/state evidence", "AIR effect propagation drift reason"),
@@ -835,7 +837,7 @@ required_test_terms = [
     "AIR collects DAG generic ability evidence",
     "AIR collects RIR effect relation propagation evidence",
     "AIR rejects RIR evidence without scope provider",
-    "AIR reports DAG fallback drift",
+    "AIR reports DAG dead-end drift",
     "AIR strict evidence rejects DAG counter only",
     "AIR RIR evidence requires scope name or owner provenance",
     "test_air_rejects_rir_evidence_without_scope_provider",
@@ -851,7 +853,7 @@ required_test_terms = [
     "test_air_strict_evidence_rejects_pin_cleanup_counter_only",
     "AIR rejects invalid DAG evidence provider",
     "AIR rejects empty DAG evidence",
-    "AIR rejects DAG fallback evidence",
+    "AIR rejects DAG dead-end evidence",
     "DAG evidence node 0 has unresolved metadata dead-end facts",
     "AIR DAG evidence counter has no matching evidence node",
     "strict_evidence=yes hir_input=yes rir_input=yes",
@@ -877,7 +879,7 @@ required_test_terms = [
     "AIR_EVIDENCE_DAG_GENERIC",
     "AIR_EVIDENCE_DAG_METADATA",
     "AIR_EVIDENCE_DAG_ABILITY",
-    "AIR_DRIFT_DAG_FALLBACK_PRESENT",
+    "AIR_DRIFT_DAG_DEAD_END_PRESENT",
     "air_collect_mir_evidence",
     "air_collect_dag_evidence",
     "mir_pin_cleanup_evidence_count",

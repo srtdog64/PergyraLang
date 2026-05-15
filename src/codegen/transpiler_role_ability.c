@@ -66,10 +66,11 @@ role_has_method(ASTNode *role, const char *method_name)
 
         for (size_t j = 0; j < ast_impl_ability_method_count(impl); j++) {
             ASTNode *method = ast_impl_ability_method(impl, j);
+            const char *candidate_name = ast_declaration_name(method);
             if (method != NULL
                 && method->type == AST_FUNC_DECL
-                && method->data.func_decl.name != NULL
-                && strcmp(method->data.func_decl.name, method_name) == 0) {
+                && candidate_name != NULL
+                && strcmp(candidate_name, method_name) == 0) {
                 return true;
             }
         }

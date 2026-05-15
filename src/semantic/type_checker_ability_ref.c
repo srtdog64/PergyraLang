@@ -48,7 +48,7 @@ ability_ref_name(ASTNode *ability_ref)
 {
     if (ability_ref == NULL || ability_ref->type != AST_TYPE)
         return NULL;
-    return ability_ref->data.type.name;
+    return ast_type_name(ability_ref);
 }
 
 char *
@@ -56,23 +56,24 @@ ability_ref_display(ASTNode *ability_ref)
 {
     if (ability_ref == NULL || ability_ref->type != AST_TYPE)
         return pergyra_strdup("<ability>");
-    if (ability_ref->data.type.name == NULL)
+    const char *ability_name = ast_type_name(ability_ref);
+    GenericParams *generic_args = ast_type_generic_args(ability_ref);
+    if (ability_name == NULL)
         return pergyra_strdup("<ability>");
-    if (ability_ref->data.type.generic_args == NULL
-        || ability_ref->data.type.generic_args->count == 0) {
-        return pergyra_strdup(ability_ref->data.type.name);
+    if (generic_args == NULL || generic_args->count == 0) {
+        return pergyra_strdup(ability_name);
     }
 
-    char *result = ability_ref_strdup_fmt("%s<", ability_ref->data.type.name);
+    char *result = ability_ref_strdup_fmt("%s<", ability_name);
     if (result == NULL)
-        return pergyra_strdup(ability_ref->data.type.name);
+        return pergyra_strdup(ability_name);
 
-    for (size_t i = 0; i < ability_ref->data.type.generic_args->count; i++) {
-        GenericParam *gp = ability_ref->data.type.generic_args->params[i];
+    for (size_t i = 0; i < generic_args->count; i++) {
+        GenericParam *gp = generic_args->params[i];
         ASTNode *arg = gp != NULL ? gp->constraint : NULL;
         char *arg_text = ability_ref_display(arg);
         char *next;
-        if (i + 1 < ability_ref->data.type.generic_args->count) {
+        if (i + 1 < generic_args->count) {
             next = ability_ref_strdup_fmt("%s%s, ", result,
                                           arg_text != NULL ? arg_text : "<type>");
         } else {
@@ -83,7 +84,7 @@ ability_ref_display(ASTNode *ability_ref)
         free(result);
         result = next;
         if (result == NULL)
-            return pergyra_strdup(ability_ref->data.type.name);
+            return pergyra_strdup(ability_name);
     }
 
     return result;
@@ -133,18 +134,18 @@ ability_ref_effective_display(ASTNode *ability_decl, ASTNode *ability_ref)
     if (ability_ref == NULL || ability_ref->type != AST_TYPE)
         return ability_ref_display(ability_ref);
 
-    ability_name = ability_ref->data.type.name;
+    ability_name = ast_type_name(ability_ref);
     if (ability_name == NULL)
         return ability_ref_display(ability_ref);
 
     if (ability_decl == NULL || ability_decl->type != AST_ABILITY_DECL)
         return ability_ref_display(ability_ref);
 
-    decl_params = ability_decl->data.ability_decl.generic_params;
+    decl_params = ast_ability_generic_params(ability_decl);
     if (decl_params == NULL || decl_params->count == 0)
         return pergyra_strdup(ability_name);
 
-    provided_args = ability_ref->data.type.generic_args;
+    provided_args = ast_type_generic_args(ability_ref);
     result = ability_ref_strdup_fmt("%s<", ability_name);
     if (result == NULL)
         return pergyra_strdup(ability_name);

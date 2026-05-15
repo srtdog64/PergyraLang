@@ -1,8 +1,10 @@
 ﻿# Build artifacts
 build/
+build*/
 bin/
 .tmp/
 *.o
+*.d
 *.exe
 
 # Generated C files from transpiler
