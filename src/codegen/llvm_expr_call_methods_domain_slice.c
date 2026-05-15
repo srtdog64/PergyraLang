@@ -59,7 +59,7 @@ llvm_emit_member_call_slot_method(ASTNode *node, LLVMGenCtx *ctx,
         && (strcmp(method_name, "Write") == 0
             || strcmp(method_name, "Read") == 0
             || strcmp(method_name, "Release") == 0)) {
-        const char *slot_name = obj_node->data.identifier.name;
+        const char *slot_name = ast_identifier_name(obj_node);
         const char *inner = llvm_lookup_slot_inner(ctx, slot_name);
         bool is_secure = llvm_lookup_slot_is_secure(ctx, slot_name);
         LLVMVarEntry *slot_var = inner != NULL ? llvm_scope_lookup(ctx, slot_name) : NULL;

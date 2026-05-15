@@ -42,7 +42,7 @@ semantic_type_resolution_collect_type_refs(ASTNode *type_node,
     switch (type_node->type) {
     case AST_CHANNEL_TYPE:
         semantic_type_resolution_collect_type_refs(
-            type_node->data.channel_type.element_type,
+            ast_channel_type_element_type(type_node),
             ctx,
             consumer_site,
             consumer_name,
@@ -52,7 +52,7 @@ semantic_type_resolution_collect_type_refs(ASTNode *type_node,
 
     case AST_FUTURE_TYPE:
         semantic_type_resolution_collect_type_refs(
-            type_node->data.future_type.value_type,
+            ast_future_type_value_type(type_node),
             ctx,
             consumer_site,
             consumer_name,
@@ -79,10 +79,11 @@ semantic_type_resolution_collect_type_refs(ASTNode *type_node,
         return;
 
     case AST_TYPE:
-        if (type_node->data.type.tuple_elements != NULL) {
-            for (size_t i = 0; i < type_node->data.type.tuple_element_count; i++) {
+        if (ast_type_tuple_element_count(type_node) > 0) {
+            size_t element_count = ast_type_tuple_element_count(type_node);
+            for (size_t i = 0; i < element_count; i++) {
                 semantic_type_resolution_collect_type_refs(
-                    type_node->data.type.tuple_elements[i],
+                    ast_type_tuple_element(type_node, i),
                     ctx,
                     consumer_site,
                     consumer_name,
@@ -100,11 +101,14 @@ semantic_type_resolution_collect_type_refs(ASTNode *type_node,
                 reason != NULL ? reason : "type dependency");
         }
         if (ast_type_generic_args(type_node) != NULL) {
-            for (size_t i = 0; i < ast_type_generic_args(type_node)->count; i++) {
-                GenericParam *gp = ast_type_generic_args(type_node)->params[i];
-                if (gp != NULL && gp->constraint != NULL) {
+            GenericParams *generic_args = ast_type_generic_args(type_node);
+            size_t generic_count = ast_generic_param_count(generic_args);
+            for (size_t i = 0; i < generic_count; i++) {
+                GenericParam *gp = ast_generic_param_at(generic_args, i);
+                ASTNode *constraint = ast_generic_param_constraint(gp);
+                if (constraint != NULL) {
                     semantic_type_resolution_collect_type_refs(
-                        gp->constraint,
+                        constraint,
                         ctx,
                         consumer_site,
                         consumer_name,
@@ -132,8 +136,12 @@ semantic_type_resolution_collect_generic_contract_inventory(GenericParams *gp,
         return;
 
     if (gp != NULL) {
-        for (size_t i = 0; i < gp->count; i++) {
-            GenericParam *param = gp->params[i];
+        size_t generic_count = ast_generic_param_count(gp);
+        for (size_t i = 0; i < generic_count; i++) {
+            GenericParam *param = ast_generic_param_at(gp, i);
+            const char *param_name = ast_generic_param_name(param);
+            ASTNode *default_type = ast_generic_param_default_type(param);
+            ASTNode *constraint = ast_generic_param_constraint(param);
             char *consumer_name;
 
             if (param == NULL)
@@ -143,18 +151,18 @@ semantic_type_resolution_collect_generic_contract_inventory(GenericParams *gp,
                 "%s %s.%s",
                 owner_kind != NULL ? owner_kind : "decl",
                 owner_name != NULL ? owner_name : "<anon>",
-                param->name != NULL ? param->name : "<type-param>");
+                param_name != NULL ? param_name : "<type-param>");
             if (consumer_name == NULL)
                 continue;
 
             semantic_type_resolution_collect_type_refs(
-                param->default_type,
+                default_type,
                 ctx,
                 owner,
                 consumer_name,
                 "default-type lookup");
             semantic_type_resolution_collect_type_refs(
-                param->constraint,
+                constraint,
                 ctx,
                 owner,
                 consumer_name,

@@ -108,25 +108,28 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
         }
 
         if (transpiler_mir_def_uses_source_local_decl_emit(inst, stmt)
-            && stmt->data.let_decl.name != NULL
+            && ast_let_name(stmt) != NULL
             && inst->arg0 != NULL
             && inst->result_name != NULL
-            && strcmp(inst->arg0, stmt->data.let_decl.name) == 0) {
+            && strcmp(inst->arg0, ast_let_name(stmt)) == 0) {
             const char *saved_type_hint = ctx->active_type_hint;
+            const char *let_name = ast_let_name(stmt);
+            ASTNode *let_type = ast_let_type(stmt);
+            ASTNode *let_init = ast_let_initializer(stmt);
             char *rendered_type_hint = NULL;
             char *local_type_name_owned = NULL;
             char *lhs = NULL;
             char *rhs = NULL;
 
-            if (stmt->data.let_decl.type != NULL) {
-                rendered_type_hint = render_type_name(stmt->data.let_decl.type);
+            if (let_type != NULL) {
+                rendered_type_hint = render_type_name(let_type);
                 ctx->active_type_hint = rendered_type_hint;
             }
             if (rendered_type_hint != NULL)
                 local_type_name_owned = pergyra_strdup(rendered_type_hint);
-            else if (stmt->data.let_decl.initializer != NULL) {
+            else if (let_init != NULL) {
                 const char *inferred =
-                    infer_expression_type_name(ctx, stmt->data.let_decl.initializer);
+                    infer_expression_type_name(ctx, let_init);
                 if (inferred != NULL)
                     local_type_name_owned = pergyra_strdup(inferred);
             }
@@ -139,7 +142,7 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
                     continue;
                 }
                 bool claim_backed_slot = transpiler_block_has_claim_for_slot_local(
-                    block, stmt->data.let_decl.name);
+                    block, let_name);
                 if (claim_backed_slot) {
                     ctx->active_type_hint = saved_type_hint;
                     free(rendered_type_hint);
@@ -161,19 +164,19 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
                 continue;
             }
 
-            if (stmt->data.let_decl.type != NULL) {
+            if (let_type != NULL) {
                 ensure_type_specializations_from_ast_to(ctx, ctx->out,
-                                                        stmt->data.let_decl.type);
+                                                        let_type);
             } else if (local_type_name_owned != NULL) {
                 ensure_result_specialization_from_type_name_to(ctx, ctx->out,
                                                                local_type_name_owned);
             }
 
             lhs = transpiler_render_ssa_name(ctx, inst->result_name);
-            if (stmt->data.let_decl.initializer != NULL
-                && stmt->data.let_decl.initializer->type == AST_UNARY
-                && ast_unary_operator(stmt->data.let_decl.initializer).type == TOKEN_QUESTION) {
-                ASTNode *operand = ast_unary_operand(stmt->data.let_decl.initializer);
+            if (let_init != NULL
+                && let_init->type == AST_UNARY
+                && ast_unary_operator(let_init).type == TOKEN_QUESTION) {
+                ASTNode *operand = ast_unary_operand(let_init);
                 const char *result_type = infer_expression_type_name(ctx, operand);
                 char result_c_type_buf[256];
                 const char *result_c_type = NULL;
@@ -191,8 +194,8 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
                         transpiler_mir_reasonf(reason, reason_cap,
                                  "MIR block %llu emission failed: '?' let binding '%s' requires Result<T,E> operand",
                                  (unsigned long long) block->id,
-                                 stmt->data.let_decl.name != NULL
-                                     ? stmt->data.let_decl.name
+                                 let_name != NULL
+                                     ? let_name
                                      : "<binding>");
                     }
                     ok = false;
@@ -206,8 +209,8 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
                         transpiler_mir_reasonf(reason, reason_cap,
                                  "MIR block %llu emission failed: '?' let binding '%s' requires a Result-returning function",
                                  (unsigned long long) block->id,
-                                 stmt->data.let_decl.name != NULL
-                                     ? stmt->data.let_decl.name
+                                 let_name != NULL
+                                     ? let_name
                                      : "<binding>");
                     }
                     ok = false;
@@ -238,8 +241,8 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
                         transpiler_mir_reasonf(reason, reason_cap,
                                  "MIR block %llu emission failed: unable to render '?' operand for '%s'",
                                  (unsigned long long) block->id,
-                                 stmt->data.let_decl.name != NULL
-                                     ? stmt->data.let_decl.name
+                                 let_name != NULL
+                                     ? let_name
                                      : "<binding>");
                     }
                     ok = false;
@@ -259,14 +262,14 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
                 free(lhs);
 
                 if (!transpiler_ssa_name_map_set(ssa_map_out,
-                                                 stmt->data.let_decl.name,
+                                                 let_name,
                                                  inst->result_name)) {
                     free(local_type_name_owned);
                     ok = false;
                     break;
                 }
                 if (local_type_name_owned != NULL)
-                    register_typed_var(ctx, stmt->data.let_decl.name,
+                    register_typed_var(ctx, let_name,
                                        local_type_name_owned);
                 free(local_type_name_owned);
                 continue;
@@ -274,8 +277,7 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
             {
                 const char *saved_expected_type = ctx->expected_type;
                 ctx->expected_type = local_type_name_owned;
-                rhs = emit_expression_with_ssa_map(stmt->data.let_decl.initializer,
-                                                   ctx, ssa_map_out);
+                rhs = emit_expression_with_ssa_map(let_init, ctx, ssa_map_out);
                 ctx->expected_type = saved_expected_type;
             }
             ctx->active_type_hint = saved_type_hint;
@@ -288,8 +290,8 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
                     transpiler_mir_reasonf(reason, reason_cap,
                              "MIR block %llu emission failed: unable to render initializer for '%s'",
                              (unsigned long long) block->id,
-                             stmt->data.let_decl.name != NULL
-                                 ? stmt->data.let_decl.name
+                             let_name != NULL
+                                 ? let_name
                                  : "<binding>");
                 }
                 ok = false;
@@ -301,14 +303,14 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
             free(lhs);
             free(rhs);
 
-            if (!transpiler_ssa_name_map_set(ssa_map_out, stmt->data.let_decl.name,
+            if (!transpiler_ssa_name_map_set(ssa_map_out, let_name,
                                              inst->result_name)) {
                 free(local_type_name_owned);
                 ok = false;
                 break;
             }
             if (local_type_name_owned != NULL)
-                register_typed_var(ctx, stmt->data.let_decl.name, local_type_name_owned);
+                register_typed_var(ctx, let_name, local_type_name_owned);
             free(local_type_name_owned);
             continue;
         }
@@ -421,11 +423,11 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
             break;
         }
         if (stmt->type == AST_LET_DECL
-            && stmt->data.let_decl.name != NULL
-            && stmt->data.let_decl.initializer != NULL
-            && stmt->data.let_decl.initializer->type != AST_CALL
+            && ast_let_name(stmt) != NULL
+            && ast_let_initializer(stmt) != NULL
+            && ast_let_initializer(stmt)->type != AST_CALL
             && transpiler_find_routine_exit_ssa_name(
-                   mir_routine, stmt->data.let_decl.name) != NULL) {
+                   mir_routine, ast_let_name(stmt)) != NULL) {
             continue;
         }
         if (transpiler_mir_stmt_is_mirrored_resource(ctx, block, stmt))
@@ -435,9 +437,9 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
             ASTNode *value = ast_assignment_value(stmt);
             if (target != NULL
                 && target->type == AST_IDENTIFIER
-                && target->data.identifier.name != NULL
+                && ast_identifier_name(target) != NULL
                 && transpiler_is_implicit_field(ctx,
-                    target->data.identifier.name)) {
+                    ast_identifier_name(target))) {
                 char map_reason[256];
                 if (!transpiler_expr_identifiers_mapped(
                         ctx,
@@ -451,10 +453,10 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
             }
             if (target != NULL
                 && target->type == AST_IDENTIFIER
-                && target->data.identifier.name != NULL
+                && ast_identifier_name(target) != NULL
                 && !transpiler_is_implicit_field(
-                       ctx, target->data.identifier.name)) {
-                const char *target_name = target->data.identifier.name;
+                       ctx, ast_identifier_name(target))) {
+                const char *target_name = ast_identifier_name(target);
                 const char *mapped_target = transpiler_resolve_ssa_name(
                     (const TranspilerSSANameMap *)ssa_map_out,
                     target_name);
@@ -507,8 +509,8 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
         }
         if (stmt != NULL
             && stmt->type == AST_LET_DECL
-            && stmt->data.let_decl.name != NULL
-            && stmt->data.let_decl.initializer != NULL) {
+            && ast_let_name(stmt) != NULL
+            && ast_let_initializer(stmt) != NULL) {
             bool handled_let = false;
             if (!transpiler_emit_mir_preserved_let_stmt(
                     buf, func_decl, mir_routine, block, stmt, ctx,

@@ -410,6 +410,9 @@ required_header_terms = [
     "air_check_drift",
     "air_boundary_requires_hir_evidence",
     "air_boundary_requires_rir_evidence",
+    "air_boundary_evidence_node",
+    "air_boundary_evidence_provider",
+    "air_boundary_evidence_subject",
 ]
 missing_header = [term for term in required_header_terms if term not in air_header]
 if missing_header:
@@ -748,8 +751,30 @@ if "air_global_evidence_node_count(const AIRProgram *air" not in air_validate_ev
     raise SystemExit("AIR evidence owner must expose global evidence node counting")
 if "air_global_has_evidence_kind(const AIRProgram *air" not in air_validate_evidence_text:
     raise SystemExit("AIR evidence owner must expose global evidence presence lookup")
+for accessor in [
+    "air_boundary_evidence_node(const AIRProgram *air",
+    "air_boundary_evidence_provider(const AIRProgram *air",
+    "air_boundary_evidence_subject(const AIRProgram *air",
+]:
+    if accessor not in air_validate_evidence_text:
+        raise SystemExit("AIR evidence owner must expose boundary evidence accessor: " + accessor)
 if "air_global_has_evidence_kind" not in air_verify_text:
     raise SystemExit("AIR verify must consume global evidence through evidence owner")
+
+for rel in [
+    "src/compiler/air_dump.c",
+    "src/compiler/driver_diag.c",
+]:
+    text = (root / rel).read_text(encoding="utf-8", errors="ignore")
+    for field in [
+        "hir_routine_evidence_name",
+        "rir_boundary_evidence_scope",
+        "rir_authority_evidence_name",
+    ]:
+        if field in text:
+            raise SystemExit(
+                f"AIR user-facing evidence surface must use EvidenceNode accessor: {rel} uses {field}"
+            )
 
 required_test_terms = [
     "AIR synthesis creates intent and boundary nodes",
@@ -921,9 +946,11 @@ required_test_terms = [
     "air->boundary_count == 14",
     "AIR parsed IO boundary accepts exact RIR evidence",
     "AIR parsed transfer emits zone and world boundaries",
+    "AIR parsed transfer reports world missing transfer evidence",
     "AIR parsed transfer reports zone missing authority evidence",
     "found_zone_evidence",
     "found_world_evidence",
+    "found_world_drift",
     "found_zone_authority_drift",
     "found_world_transfer_evidence",
 ]

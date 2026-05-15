@@ -4,13 +4,16 @@
 int
 find_generic_param_index(GenericParams *gp, const char *param_name)
 {
+    size_t param_count;
+
     if (gp == NULL || param_name == NULL)
         return -1;
 
-    for (size_t i = 0; i < gp->count; i++) {
-        if (gp->params[i] != NULL
-            && gp->params[i]->name != NULL
-            && strcmp(gp->params[i]->name, param_name) == 0) {
+    param_count = ast_generic_param_count(gp);
+    for (size_t i = 0; i < param_count; i++) {
+        GenericParam *param = ast_generic_param_at(gp, i);
+        const char *name = ast_generic_param_name(param);
+        if (name != NULL && strcmp(name, param_name) == 0) {
             return (int)i;
         }
     }
@@ -82,7 +85,8 @@ validate_generic_param_default_bounds(GenericParams *gp,
             continue;
 
         param_index = find_generic_param_index(gp, tc->type_param);
-        if (param_index < 0 || (size_t)param_index >= gp->count) {
+        if (param_index < 0
+            || (size_t)param_index >= ast_generic_param_count(gp)) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_INFER_GENERIC,
                 PGY_CAUSE_GENERIC_ARGS_INVALID, PGY_FIX_ALIGN_GENERIC_ARG_LIST,
                 owner != NULL ? owner : (ASTNode *)wc,
@@ -103,22 +107,23 @@ validate_generic_param_default_bounds(GenericParams *gp,
             continue;
         }
 
-        param = gp->params[param_index];
-        if (param == NULL || param->default_type == NULL)
+        param = ast_generic_param_at(gp, (size_t)param_index);
+        ASTNode *default_type_node = ast_generic_param_default_type(param);
+        if (default_type_node == NULL)
             continue;
 
         semantic_type_resolution_record_type_ref_dependency(
             ctx,
-            owner != NULL ? owner : param->default_type,
+            owner != NULL ? owner : default_type_node,
             tc->type_param != NULL ? tc->type_param : "<type-param>",
-            param->default_type,
+            default_type_node,
             "default-bound subject lookup");
 
-        default_type = generic_contract_resolve_type_ref(param->default_type, ctx);
+        default_type = generic_contract_resolve_type_ref(default_type_node, ctx);
         if (default_type == NULL || default_type == TYPE_UNKNOWN) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_INFER_GENERIC,
                 PGY_CAUSE_GENERIC_ARGS_INVALID, PGY_FIX_ALIGN_GENERIC_ARG_LIST,
-                owner != NULL ? owner : param->default_type,
+                owner != NULL ? owner : default_type_node,
                 "Default generic type argument for parameter '%s' in %s '%s' could not be resolved.\n"
                 "Reason:\n"
                 "- default type argument participates in effective generic argument derivation\n"
@@ -157,7 +162,7 @@ validate_generic_param_default_bounds(GenericParams *gp,
 
             semantic_error_with_hints(ctx, PGY_CODE_SEM_INFER_GENERIC,
                 PGY_CAUSE_GENERIC_ARGS_INVALID, PGY_FIX_ALIGN_GENERIC_ARG_LIST,
-                owner != NULL ? owner : param->default_type,
+                owner != NULL ? owner : default_type_node,
                 "Default generic type argument '%s' does not satisfy constraint '%s' for parameter '%s' in %s '%s'.\n"
                 "Reason:\n"
                 "- %s '%s' declares '%s = %s'\n"
@@ -208,7 +213,8 @@ validate_class_where_clause_instantiation(ASTNode *class_decl,
 
     gp = ast_class_generic_params(class_decl);
     wc = ast_class_where_clause(class_decl);
-    if (gp == NULL || gp->count == 0 || wc == NULL || wc->count == 0)
+    if (gp == NULL || ast_generic_param_count(gp) == 0
+        || wc == NULL || wc->count == 0)
         return;
     class_name = ast_class_name(class_decl) != NULL
         ? ast_class_name(class_decl)
@@ -228,7 +234,7 @@ validate_class_where_clause_instantiation(ASTNode *class_decl,
 
         param_index = find_generic_param_index(gp, tc->type_param);
         if (param_index < 0
-            || (size_t)param_index >= constructed_type->data.constructed.arg_count) {
+            || (size_t)param_index >= type_constructed_arg_count(constructed_type)) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_CLASS_CONTRACT_INVALID, PGY_CAUSE_CLASS_CONTRACT, PGY_FIX_SATISFY_GENERIC_BOUND_OR_WIDEN, site,
                 "Class '%s' could not validate where-clause parameter '%s' during instantiation.\n"
                 "Reason:\n"
@@ -246,7 +252,7 @@ validate_class_where_clause_instantiation(ASTNode *class_decl,
             continue;
         }
 
-        concrete_type = constructed_type->data.constructed.args[param_index];
+        concrete_type = type_constructed_arg(constructed_type, (size_t)param_index);
         if (concrete_type == NULL) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_CLASS_CONTRACT_INVALID, PGY_CAUSE_CLASS_CONTRACT, PGY_FIX_SATISFY_GENERIC_BOUND_OR_WIDEN, site,
                 "Class '%s' could not resolve instantiated type argument for '%s'.\n"
@@ -323,7 +329,7 @@ validate_class_where_clause_specialization_ast(ASTNode *class_decl,
 
     decl_params = ast_class_generic_params(class_decl);
     wc = ast_class_where_clause(class_decl);
-    if (decl_params == NULL || decl_params->count == 0
+    if (decl_params == NULL || ast_generic_param_count(decl_params) == 0
         || wc == NULL || wc->count == 0) {
         return;
     }
@@ -346,7 +352,7 @@ validate_class_where_clause_specialization_ast(ASTNode *class_decl,
     if (effective_types == NULL)
         return;
     if ((ast_type_generic_args(specialized_type) == NULL
-         || ast_type_generic_args(specialized_type)->count < effective_count)
+         || ast_generic_param_count(ast_type_generic_args(specialized_type)) < effective_count)
         && effective_count > 0) {
         site_label = "instantiated";
     }

@@ -83,8 +83,8 @@ find_program_domain_decl_local(ASTNode *program, ASTNodeType decl_type, const ch
     if (program == NULL || program->type != AST_PROGRAM || name == NULL)
         return NULL;
 
-    for (size_t i = 0; i < program->data.program.count; i++) {
-        ASTNode *stmt = program->data.program.statements[i];
+    for (size_t i = 0; i < ast_program_statement_count(program); i++) {
+        ASTNode *stmt = ast_program_statement(program, i);
         if (stmt == NULL || stmt->type != decl_type)
             continue;
         switch (decl_type) {
@@ -192,8 +192,8 @@ find_domain_projection_slot_local(ASTNode **slots, size_t slot_count,
             for (size_t j = 0; j < refresh_count; j++) {
                 ASTNode *refresh = refreshes[j];
                 if (refresh != NULL && refresh->type == AST_ZONE_REFRESH
-                    && refresh->data.zone_refresh.object_slot_name != NULL
-                    && strcmp(refresh->data.zone_refresh.object_slot_name,
+                    && ast_zone_refresh_object_slot_name(refresh) != NULL
+                    && strcmp(ast_zone_refresh_object_slot_name(refresh),
                               slot_name) == 0) {
                     return slot;
                 }
@@ -272,8 +272,8 @@ find_named_class_decl(ASTNode *program, const char *name)
     if (program == NULL || program->type != AST_PROGRAM || name == NULL)
         return NULL;
 
-    for (size_t i = 0; i < program->data.program.count; i++) {
-        ASTNode *stmt = program->data.program.statements[i];
+    for (size_t i = 0; i < ast_program_statement_count(program); i++) {
+        ASTNode *stmt = ast_program_statement(program, i);
         if (stmt == NULL || stmt->type != AST_CLASS_DECL
             || ast_class_name(stmt) == NULL) {
             continue;

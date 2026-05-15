@@ -41,8 +41,8 @@ ownership_let_resolve_first_call_type_arg(ASTNode *call, SemanticContext *ctx)
     }
 
     param = ast_call_generic_arg(call, 0);
-    inner_node = param->constraint;
-    inner_name = param->name;
+    inner_node = ast_generic_param_constraint(param);
+    inner_name = ast_generic_param_name(param);
     if (inner_node != NULL)
         return ownership_let_resolve_type_ref(inner_node, ctx);
     if (inner_name != NULL) {
@@ -81,7 +81,7 @@ ownership_let_view_init_info(ASTNode *init,
         return false;
     }
 
-    callee_name = callee->data.identifier.name;
+    callee_name = ast_identifier_name(callee);
     if (callee_name == NULL)
         return false;
     if (strcmp(callee_name, "ViewRead") != 0
@@ -90,7 +90,7 @@ ownership_let_view_init_info(ASTNode *init,
     }
 
     if (source_slot != NULL)
-        *source_slot = source_arg->data.identifier.name;
+        *source_slot = ast_identifier_name(source_arg);
     if (is_write_view != NULL)
         *is_write_view = strcmp(callee_name, "ViewWrite") == 0;
     return true;
@@ -135,27 +135,23 @@ bool
 ownership_let_is_unresolved_none_option(const Type *type)
 {
     return type != NULL
-        && type->kind == TYPE_KIND_CONSTRUCTED
-        && type->data.constructed.constructor == TYPE_OPTION
-        && type->data.constructed.arg_count == 1
-        && type->data.constructed.args != NULL
-        && type->data.constructed.args[0] == TYPE_UNKNOWN;
+        && type_constructed_constructor(type) == TYPE_OPTION
+        && type_constructed_arg_count(type) == 1
+        && type_constructed_arg(type, 0) == TYPE_UNKNOWN;
 }
 
 bool
 ownership_let_is_unresolved_empty_array(const Type *type)
 {
     return type_is_constructed_named(type, "Array")
-        && type->data.constructed.arg_count == 1
-        && type->data.constructed.args != NULL
-        && type->data.constructed.args[0] == TYPE_UNKNOWN;
+        && type_constructed_arg_count(type) == 1
+        && type_constructed_arg(type, 0) == TYPE_UNKNOWN;
 }
 
 bool
 ownership_let_is_unresolved_device_slot(const Type *type)
 {
     return type_is_constructed_named(type, "DeviceSlot")
-        && type->data.constructed.arg_count == 1
-        && type->data.constructed.args != NULL
-        && type->data.constructed.args[0] == TYPE_UNKNOWN;
+        && type_constructed_arg_count(type) == 1
+        && type_constructed_arg(type, 0) == TYPE_UNKNOWN;
 }

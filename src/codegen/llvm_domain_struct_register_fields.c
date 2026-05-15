@@ -245,7 +245,7 @@ llvm_domain_struct_register_world_fields(LLVMGenCtx *ctx,
         ASTNode *state = states[j];
         if (!llvm_domain_struct_add_generated_field(ctx, entry,
                 ftypes[field_index], field_index, "zone_state",
-                state->data.world_state.state_name))
+                ast_world_state_name(state)))
             return false;
     }
     for (size_t j = 0; j < zone_count; j++, field_index++) {
@@ -266,14 +266,14 @@ llvm_domain_struct_register_world_fields(LLVMGenCtx *ctx,
         ASTNode *state = states[j];
         if (!llvm_domain_struct_add_generated_field(ctx, entry,
                 ftypes[field_index], field_index, "zone_state_epoch",
-                state->data.world_state.state_name))
+                ast_world_state_name(state)))
             return false;
     }
     for (size_t j = 0; j < state_count; j++, field_index++) {
         ASTNode *state = states[j];
         if (!llvm_domain_struct_add_generated_field(ctx, entry,
                 ftypes[field_index], field_index, "zone_state_cause",
-                state->data.world_state.state_name))
+                ast_world_state_name(state)))
             return false;
     }
     llvm_class_add_field(entry, pergyra_strdup("__world_derived_dirty"),

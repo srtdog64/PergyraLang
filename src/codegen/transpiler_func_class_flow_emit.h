@@ -372,23 +372,25 @@ emit_return_stmt(ASTNode *node, TranspilerCtx *ctx)
                 && ast_call_callee(value) != NULL
                 && ast_call_callee(value)->type == AST_IDENTIFIER) {
                 const char *callee_name =
-                    ast_call_callee(value)->data.identifier.name;
-                if (strcmp(callee_name, "Some") == 0
+                    ast_identifier_name(ast_call_callee(value));
+                if (callee_name != NULL
+                    && strcmp(callee_name, "Some") == 0
                     && ast_call_arg_count(value) == 1) {
                     char *arg = emit_expression(ast_call_argument(value, 0), ctx);
                     codebuf_write(ctx->out, "return Some_%s(%s);\n", inner, arg);
                     free(arg);
                     return;
                 }
-                if (strcmp(callee_name, "None") == 0
+                if (callee_name != NULL
+                    && strcmp(callee_name, "None") == 0
                     && ast_call_arg_count(value) == 0) {
                     codebuf_write(ctx->out, "return None_%s();\n", inner);
                     return;
                 }
             }
             if (value->type == AST_IDENTIFIER
-                && value->data.identifier.name != NULL
-                && strcmp(value->data.identifier.name, "None") == 0) {
+                && ast_identifier_name(value) != NULL
+                && strcmp(ast_identifier_name(value), "None") == 0) {
                 codebuf_write(ctx->out, "return None_%s();\n", inner);
                 return;
             }

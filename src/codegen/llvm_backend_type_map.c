@@ -89,15 +89,16 @@ llvm_generic_default_from_params(GenericParams *params, const char *type_name)
 {
     if (params == NULL || type_name == NULL)
         return NULL;
-    for (size_t i = 0; i < params->count; i++) {
-        GenericParam *param = params->params[i];
-        if (param == NULL || param->name == NULL)
+    size_t param_count = ast_generic_param_count(params);
+    for (size_t i = 0; i < param_count; i++) {
+        GenericParam *param = ast_generic_param_at(params, i);
+        if (param == NULL || ast_generic_param_name(param) == NULL)
             continue;
-        if (strcmp(param->name, type_name) == 0) {
-            if (param->default_type != NULL)
-                return param->default_type;
-            if (param->constraint != NULL)
-                return param->constraint;
+        if (strcmp(ast_generic_param_name(param), type_name) == 0) {
+            if (ast_generic_param_default_type(param) != NULL)
+                return ast_generic_param_default_type(param);
+            if (ast_generic_param_constraint(param) != NULL)
+                return ast_generic_param_constraint(param);
             return NULL;
         }
     }

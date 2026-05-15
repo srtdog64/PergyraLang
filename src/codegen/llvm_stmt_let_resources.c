@@ -9,9 +9,9 @@
 bool
 llvm_stmt_emit_view_or_move_let(ASTNode *node, LLVMGenCtx *ctx)
 {
-    const char *name = node->data.let_decl.name;
-    ASTNode *type_ann = node->data.let_decl.type;
-    ASTNode *init = node->data.let_decl.initializer;
+    const char *name = ast_let_name(node);
+    ASTNode *type_ann = ast_let_type(node);
+    ASTNode *init = ast_let_initializer(node);
     GenericParams *generic_args = ast_type_generic_args(type_ann);
 
     if (ast_type_name(type_ann) == NULL
@@ -24,9 +24,9 @@ llvm_stmt_emit_view_or_move_let(ASTNode *node, LLVMGenCtx *ctx)
         return false;
 
     const char *ann_name = ast_type_name(type_ann);
-    const char *callee = ast_call_callee(init)->data.identifier.name;
+    const char *callee = ast_identifier_name(ast_call_callee(init));
     const char *source_name =
-        ast_call_argument(init, 0)->data.identifier.name;
+        ast_identifier_name(ast_call_argument(init, 0));
     bool alias_decl =
         (pgy_codegen_type_name_is_read_view(ann_name)
          && pgy_codegen_call_name_is_view_read(callee))
@@ -39,11 +39,10 @@ llvm_stmt_emit_view_or_move_let(ASTNode *node, LLVMGenCtx *ctx)
         return false;
 
     char *inner = NULL;
-    if (generic_args != NULL
-        && generic_args->count > 0
-        && generic_args->params[0] != NULL)
+    GenericParam *inner_param = ast_generic_param_at(generic_args, 0);
+    if (inner_param != NULL)
         inner = llvm_stmt_render_type_arg(
-            generic_args->params[0]);
+            inner_param);
     if (inner == NULL || inner[0] == '\0') {
         llvm_stmt_require_let_type_arg(ctx, node, name, ann_name);
         free(inner);
@@ -125,9 +124,9 @@ llvm_stmt_emit_slot_token_alloca(ASTNode *node,
 bool
 llvm_stmt_emit_slot_sugar_let(ASTNode *node, LLVMGenCtx *ctx)
 {
-    const char *name = node->data.let_decl.name;
-    ASTNode *type_ann = node->data.let_decl.type;
-    ASTNode *init = node->data.let_decl.initializer;
+    const char *name = ast_let_name(node);
+    ASTNode *type_ann = ast_let_type(node);
+    ASTNode *init = ast_let_initializer(node);
     GenericParams *generic_args = ast_type_generic_args(type_ann);
 
     if (ast_type_name(type_ann) == NULL)
@@ -143,11 +142,10 @@ llvm_stmt_emit_slot_sugar_let(ASTNode *node, LLVMGenCtx *ctx)
 
     char *inner = NULL;
     bool is_secure = is_secure_slot_sugar;
-    if (generic_args != NULL
-        && generic_args->count > 0
-        && generic_args->params[0] != NULL)
+    GenericParam *inner_param = ast_generic_param_at(generic_args, 0);
+    if (inner_param != NULL)
         inner = llvm_stmt_render_type_arg(
-            generic_args->params[0]);
+            inner_param);
     if (inner == NULL || inner[0] == '\0') {
         llvm_stmt_require_let_type_arg(ctx, node, name, ann_name);
         free(inner);
@@ -156,7 +154,7 @@ llvm_stmt_emit_slot_sugar_let(ASTNode *node, LLVMGenCtx *ctx)
 
     if (init != NULL && init->type == AST_IDENTIFIER) {
         LLVMViewVarEntry *move_entry = llvm_lookup_view_var(ctx,
-            init->data.identifier.name);
+            ast_identifier_name(init));
         if (move_entry != NULL && move_entry->is_move_token) {
             LLVMTypeRef slot_ty = is_secure
                 ? llvm_secure_slot_struct_type(ctx, inner)
@@ -168,7 +166,7 @@ llvm_stmt_emit_slot_sugar_let(ASTNode *node, LLVMGenCtx *ctx)
             LLVMValueRef alloca_val =
                 llvm_stmt_create_slot_alloca(ctx, slot_ty, name);
             LLVMVarEntry *source = llvm_scope_lookup(ctx,
-                init->data.identifier.name);
+                ast_identifier_name(init));
             if (source == NULL) {
                 free(inner);
                 return true;

@@ -246,8 +246,9 @@ GenericParams* parse_generic_params(Parser* parser) {
         Token name = parser_consume(parser, TOKEN_IDENTIFIER, "Expected type parameter name");
         if (parser_token_is_placeholder_type(name)) {
             parser_error(parser,
-                "Generic parameter placeholder '_' is reserved but not implemented; "
-                "write an explicit type parameter name");
+                "Generic parameter placeholder '_' is reserved but not implemented.\n"
+                "Reason: generic parameter elision needs DAG-owned ambiguity diagnostics before it can be beta-stable.\n"
+                "Fix: write an explicit type parameter name.");
         }
         param->name = pergyra_strdup(name.text);
 
@@ -328,8 +329,9 @@ WhereClause* parse_where_clause(Parser* parser) {
         Token param = parser_consume(parser, TOKEN_IDENTIFIER, "Expected type parameter");
         if (parser_token_is_placeholder_type(param)) {
             parser_error(parser,
-                "Generic parameter placeholder '_' is reserved but not implemented; "
-                "write an explicit type parameter name");
+                "Generic parameter placeholder '_' is reserved but not implemented.\n"
+                "Reason: generic parameter elision needs DAG-owned ambiguity diagnostics before it can be beta-stable.\n"
+                "Fix: write an explicit type parameter name.");
         }
         constraint->type_param = pergyra_strdup(param.text);
 
@@ -437,8 +439,9 @@ ASTNode* parse_type(Parser* parser) {
     Token type_name = parser_consume(parser, TOKEN_IDENTIFIER, "Expected type name");
     if (parser_token_is_placeholder_type(type_name)) {
         parser_error(parser,
-            "Generic/type argument elision '_' is reserved but not implemented; "
-            "write the type explicitly");
+            "Generic/type argument elision '_' is reserved but not implemented.\n"
+            "Reason: type-argument elision must be backed by DAG evidence and stable ambiguity diagnostics.\n"
+            "Fix: write the type explicitly.");
     }
     char *qualified_name = pergyra_strdup(type_name.text);
 
@@ -450,8 +453,9 @@ ASTNode* parse_type(Parser* parser) {
                                     "Expected type name after '.'");
         if (parser_token_is_placeholder_type(part)) {
             parser_error(parser,
-                "Generic/type argument elision '_' is reserved but not implemented; "
-                "write the type explicitly");
+                "Generic/type argument elision '_' is reserved but not implemented.\n"
+                "Reason: type-argument elision must be backed by DAG evidence and stable ambiguity diagnostics.\n"
+                "Fix: write the type explicitly.");
         }
         size_t prefix_len = strlen(qualified_name);
         size_t part_len = strlen(part.text);

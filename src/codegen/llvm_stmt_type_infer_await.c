@@ -50,7 +50,7 @@ llvm_stmt_infer_await_expr_type(LLVMGenCtx *ctx, ASTNode *expr)
         return llvm_stmt_await_unknown_type(ctx, expr,
             "operand must be a named Future<T> binding");
 
-    future_name = operand->data.identifier.name;
+    future_name = ast_identifier_name(operand);
     if (future_name == NULL || future_name[0] == '\0')
         return llvm_stmt_await_unknown_type(ctx, expr,
             "operand identifier is missing a Future<T> binding name");

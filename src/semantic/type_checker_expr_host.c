@@ -259,7 +259,7 @@ expr_member_is_static_access(const ASTNode *expr)
     }
 
     if (ast_member_object(expr)->type == AST_IDENTIFIER) {
-        const char *name = ast_member_object(expr)->data.identifier.name;
+        const char *name = ast_identifier_name(ast_member_object(expr));
         return name != NULL && name[0] >= 'A' && name[0] <= 'Z';
     }
 

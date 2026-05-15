@@ -112,10 +112,14 @@ llvm_resolve_callee_entry(LLVMGenCtx *ctx, const char *callee_name,
         gp = ast_func_generic_params(generic_ast);
         saved_subst = ctx->type_subst_count;
         ctx->type_subst_count = 0;
-        for (size_t gi = 0; gi < gp->count && gi < 8; gi++) {
+        size_t generic_count = ast_generic_param_count(gp);
+        for (size_t gi = 0; gi < generic_count && gi < 8; gi++) {
+            GenericParam *generic_param = ast_generic_param_at(gp, gi);
+            const char *param_name = ast_generic_param_name(generic_param);
             const char *suffix;
             LLVMTypeRef concrete;
-            if (gi >= argc || args == NULL || args[gi] == NULL) {
+            if (param_name == NULL || gi >= argc || args == NULL
+                || args[gi] == NULL) {
                 llvm_set_error_at_with_hints(ctx, generic_ast,
                     PGY_CODE_LLVM_TYPE_UNSUPPORTED,
                     PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
@@ -123,8 +127,7 @@ llvm_resolve_callee_entry(LLVMGenCtx *ctx, const char *callee_name,
                     "LLVM generic call '%s' requires argument %zu to bind generic parameter '%s'",
                     callee_name != NULL ? callee_name : "<anonymous>",
                     gi + 1,
-                    gp->params[gi] != NULL && gp->params[gi]->name != NULL
-                        ? gp->params[gi]->name : "<anonymous>");
+                    param_name != NULL ? param_name : "<anonymous>");
                 ctx->type_subst_count = saved_subst;
                 return NULL;
             }
@@ -136,7 +139,7 @@ llvm_resolve_callee_entry(LLVMGenCtx *ctx, const char *callee_name,
                 return NULL;
             }
             ctx->type_subst[ctx->type_subst_count].param_name =
-                gp->params[gi]->name;
+                param_name;
             ctx->type_subst[ctx->type_subst_count].llvm_type = concrete;
             ctx->type_subst[ctx->type_subst_count].type_name = suffix;
             ctx->type_subst_count++;
@@ -323,7 +326,7 @@ llvm_emit_spawn_expr(ASTNode *node, LLVMGenCtx *ctx)
     }
 
     if (callee != NULL && callee->type == AST_IDENTIFIER)
-        callee_name = callee->data.identifier.name;
+        callee_name = ast_identifier_name(callee);
     if (callee_name == NULL) {
         llvm_set_error_at_with_hints(ctx, node,
             PGY_CODE_LLVM_TYPE_UNSUPPORTED,

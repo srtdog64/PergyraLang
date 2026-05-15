@@ -225,7 +225,12 @@ The migration should be incremental and gated:
   is a direct initializer call. The probe also consumes HIR routine
   `direct_calls` before walking MIR blocks, so routine-level nested call
   summaries no longer require a routine AST rediscovery pass.
-- Done: non-`Void` function all-path return now consumes the semantic CFG body flow summary and emits `PGY_SEM_MISSING_RETURN` when a reachable normal path can fall through.
+- Done: non-`Void` function all-path return now consumes the semantic CFG body
+  flow summary and emits `PGY_SEM_MISSING_RETURN` when a reachable normal path
+  can fall through. The function declaration checker now reads
+  `SemanticBodyFlowSummary` through `semantic_check_body_flow_summary(...)`, and
+  the diagnostic reports `fallthrough`, `return`, `break`, `continue`, and
+  `defer` facts instead of collapsing the CFG result to an opaque boolean.
 - Done: `while true { return ... }` now propagates the loop body's terminating
   return fact through `type_check_while_loop_flow(...)` instead of being
   flattened into a generic fallthrough statement. Loops with possible `break`,
@@ -262,6 +267,9 @@ The migration should be incremental and gated:
   and cleanup-only `break`/`continue` facts inside `defer` are checked, but they
   do not consume the surrounding path's current resource state or outer loop
   flow.
+- Done: dynamic-control `defer` rejection now consumes the CFG body-flow
+  `FLOW_HAS_DEFER` fact. `if`/`match`/loop checks no longer pre-scan nested AST
+  bodies with a separate `flow_ast_contains_defer_stmt(...)` helper.
 - Done: the legacy `type_check_statement()` fallback path now reuses the same
   `defer` cleanup snapshot helper, so direct AST semantic tests and full body
   flow share one cleanup-resource contract.

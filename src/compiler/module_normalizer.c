@@ -87,9 +87,9 @@ module_has_explicit_exports_in_stmt(ASTNode *node)
     if (node->has_explicit_export)
         return true;
     if (node->type == AST_NAMESPACE_DECL) {
-        for (size_t i = 0; i < node->data.namespace_decl.count; i++) {
+        for (size_t i = 0; i < ast_namespace_statement_count(node); i++) {
             if (module_has_explicit_exports_in_stmt(
-                    node->data.namespace_decl.statements[i])) {
+                    ast_namespace_statement(node, i))) {
                 return true;
             }
         }
@@ -102,24 +102,13 @@ module_has_explicit_exports(ASTNode *program)
 {
     if (program == NULL || program->type != AST_PROGRAM)
         return false;
-    for (size_t i = 0; i < program->data.program.count; i++) {
-        if (module_has_explicit_exports_in_stmt(program->data.program.statements[i]))
+    for (size_t i = 0; i < ast_program_statement_count(program); i++) {
+        if (module_has_explicit_exports_in_stmt(
+                ast_program_statement(program, i))) {
             return true;
+        }
     }
     return false;
-}
-
-static void
-free_namespace_shell(ASTNode *node)
-{
-    if (node == NULL || node->type != AST_NAMESPACE_DECL)
-        return;
-    free(node->data.namespace_decl.name);
-    free(node->data.namespace_decl.statements);
-    node->data.namespace_decl.name = NULL;
-    node->data.namespace_decl.statements = NULL;
-    node->data.namespace_decl.count = 0;
-    free(node);
 }
 
 static bool
@@ -186,11 +175,13 @@ normalize_statement_list(ASTNode **statements,
             continue;
         if (stmt->type == AST_NAMESPACE_DECL) {
             char *child_prefix =
-                namespace_prefix_join(public_prefix, stmt->data.namespace_decl.name);
+                namespace_prefix_join(public_prefix, ast_namespace_name(stmt));
+            size_t child_count = 0;
+            ASTNode **children = ast_namespace_statements(stmt, &child_count);
             bool child_export = inherited_export || stmt->is_exported;
             if (child_prefix == NULL
-                || !normalize_statement_list(stmt->data.namespace_decl.statements,
-                                             stmt->data.namespace_decl.count,
+                || !normalize_statement_list(children,
+                                             child_count,
                                              child_prefix,
                                              private_prefix,
                                              imported,
@@ -204,7 +195,7 @@ normalize_statement_list(ASTNode **statements,
                 return false;
             }
             free(child_prefix);
-            free_namespace_shell(stmt);
+            ast_destroy_namespace_shell_only(stmt);
             continue;
         }
 
@@ -229,8 +220,10 @@ module_normalize_ast(ASTNode *program, bool imported, const char *private_prefix
 
     ASTVec flat = {0};
     bool has_explicit = imported && module_has_explicit_exports(program);
-    bool ok = normalize_statement_list(program->data.program.statements,
-                                       program->data.program.count,
+    size_t statement_count = 0;
+    ASTNode **statements = ast_program_statements(program, &statement_count);
+    bool ok = normalize_statement_list(statements,
+                                       statement_count,
                                        "",
                                        private_prefix != NULL ? private_prefix : "",
                                        imported,
@@ -243,8 +236,12 @@ module_normalize_ast(ASTNode *program, bool imported, const char *private_prefix
         return false;
     }
 
-    free(program->data.program.statements);
-    program->data.program.statements = flat.items;
-    program->data.program.count = flat.count;
+    if (!ast_program_replace_statements(program,
+                                        flat.items,
+                                        flat.count,
+                                        flat.capacity)) {
+        free(flat.items);
+        return false;
+    }
     return true;
 }

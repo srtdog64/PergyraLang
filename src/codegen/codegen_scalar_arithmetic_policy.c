@@ -10,14 +10,15 @@
 #include <stdint.h>
 
 #include "../parser/ast.h"
+#include "../parser/ast_api.h"
 
 bool
 pgy_codegen_ast_number_is_nonzero_i32_literal(const ASTNode *node)
 {
-    if (node == NULL || node->type != AST_NUMBER || node->data.number.is_long)
+    if (node == NULL || node->type != AST_NUMBER || ast_number_is_long(node))
         return false;
 
-    double value = node->data.number.value;
+    double value = ast_number_value(node);
     int64_t as_int = (int64_t)value;
     return value != 0.0
         && value == (double)as_int

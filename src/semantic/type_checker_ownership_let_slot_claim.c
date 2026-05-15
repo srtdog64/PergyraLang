@@ -35,7 +35,7 @@ ownership_let_try_claim_slot_decl(ASTNode *node,
         return true;
     }
 
-    callee_name = ast_call_callee(init)->data.identifier.name;
+    callee_name = ast_identifier_name(ast_call_callee(init));
     bk = builtin_resolve(callee_name);
     if (bk != BUILTIN_CLAIM_SLOT && bk != BUILTIN_CLAIM_SECURE_SLOT)
         return true;
@@ -52,7 +52,7 @@ ownership_let_try_claim_slot_decl(ASTNode *node,
             ann_type = TYPE_UNKNOWN;
         if (ann_type->kind == TYPE_KIND_SLOT) {
             slot_type = ann_type;
-            is_secure = ann_type->data.slot.is_secure;
+            is_secure = type_slot_is_secure(ann_type);
         } else {
             slot_type = type_create_slot(ann_type, is_secure);
         }
@@ -98,7 +98,7 @@ ownership_let_try_claim_slot_decl(ASTNode *node,
                                           node->line, node->column);
         if (tok != NULL && slot_type != NULL
             && slot_type->kind == TYPE_KIND_SLOT) {
-            Type *token_args[1] = { slot_type->data.slot.inner_type };
+            Type *token_args[1] = { type_slot_inner_type(slot_type) };
             tok->type = type_create_constructed(TYPE_TOKEN, token_args, 1);
         }
         if (!scope_declare(ctx->scope, tok))

@@ -58,13 +58,13 @@ transpiler_emit_mir_let_destructure_stmt(CodeBuf *buf,
         return false;
     }
 
-    init = stmt->data.let_destructure.initializer;
+    init = ast_let_destructure_initializer(stmt);
     if (init != NULL && init->type == AST_CALL
         && ast_call_callee(init) != NULL
         && ast_call_callee(init)->type == AST_IDENTIFIER
-        && ast_call_callee(init)->data.identifier.name != NULL
-        && stmt->data.let_destructure.name_count == 2) {
-        const char *cname = ast_call_callee(init)->data.identifier.name;
+        && ast_identifier_name(ast_call_callee(init)) != NULL
+        && ast_let_destructure_name_count(stmt) == 2) {
+        const char *cname = ast_identifier_name(ast_call_callee(init));
         if (pgy_codegen_call_name_is_claim_secure_slot(cname)) {
             const char *inner = NULL;
             const char *slot_name;
@@ -87,8 +87,8 @@ transpiler_emit_mir_let_destructure_stmt(CodeBuf *buf,
                     "C backend: ClaimSecureSlot destructuring requires concrete SecureSlot<T> metadata");
                 return false;
             }
-            slot_name = stmt->data.let_destructure.names[0];
-            token_name = stmt->data.let_destructure.names[1];
+            slot_name = ast_let_destructure_name(stmt, 0);
+            token_name = ast_let_destructure_name(stmt, 1);
             write_indent_to(buf, ctx->indent);
             codebuf_write(buf, "PgyToken_%s %s;\n", inner, token_name);
             write_indent_to(buf, ctx->indent);
@@ -121,10 +121,10 @@ transpiler_emit_mir_let_destructure_stmt(CodeBuf *buf,
     if (init != NULL && init->type == AST_CALL
         && ast_call_callee(init) != NULL
         && ast_call_callee(init)->type == AST_IDENTIFIER
-        && ast_call_callee(init)->data.identifier.name != NULL
-        && stmt->data.let_destructure.name_count == 1
+        && ast_identifier_name(ast_call_callee(init)) != NULL
+        && ast_let_destructure_name_count(stmt) == 1
         && pgy_codegen_call_name_is_claim_slot(
-               ast_call_callee(init)->data.identifier.name)) {
+               ast_identifier_name(ast_call_callee(init)))) {
         const char *inner = NULL;
         const char *slot_name;
         char typed_slot[64];
@@ -144,7 +144,7 @@ transpiler_emit_mir_let_destructure_stmt(CodeBuf *buf,
                 "C backend: ClaimSlot destructuring requires concrete Slot<T> metadata");
             return false;
         }
-        slot_name = stmt->data.let_destructure.names[0];
+        slot_name = ast_let_destructure_name(stmt, 0);
         write_indent_to(buf, ctx->indent);
         codebuf_write(buf, "PgySlot_%s %s = pgy_claim_%s();\n",
                       inner, slot_name, inner);
@@ -169,10 +169,10 @@ transpiler_emit_mir_let_destructure_stmt(CodeBuf *buf,
     if ((init_type_name == NULL || strcmp(init_type_name, "Unknown") == 0)
         && init != NULL
         && init->type == AST_IDENTIFIER
-        && init->data.identifier.name != NULL
+        && ast_identifier_name(init) != NULL
         && ctx->current_func_decl != NULL) {
         const char *resolved = transpiler_find_local_type_name(
-            ctx, ctx->current_func_decl, init->data.identifier.name);
+            ctx, ctx->current_func_decl, ast_identifier_name(init));
         if (resolved != NULL)
             init_type_name = resolved;
     }
@@ -220,11 +220,11 @@ transpiler_emit_mir_let_destructure_stmt(CodeBuf *buf,
                     ti++;
             }
         }
-        if (arity != stmt->data.let_destructure.name_count) {
+        if (arity != ast_let_destructure_name_count(stmt)) {
             transpiler_set_mir_topology_invalid(
                 ctx,
                 "tuple destructuring arity mismatch: binding %llu, tuple arity %llu",
-                (unsigned long long) stmt->data.let_destructure.name_count,
+                (unsigned long long) ast_let_destructure_name_count(stmt),
                 (unsigned long long) arity);
             return false;
         }
@@ -236,8 +236,8 @@ transpiler_emit_mir_let_destructure_stmt(CodeBuf *buf,
         codebuf_write(buf, "%s _pgy_destr_%d = %s;\n",
                       c_init_type, tmp_id, rhs_t);
         free(rhs_t);
-        for (size_t dn = 0; dn < stmt->data.let_destructure.name_count; dn++) {
-            const char *bname = stmt->data.let_destructure.names[dn];
+        for (size_t dn = 0; dn < ast_let_destructure_name_count(stmt); dn++) {
+            const char *bname = ast_let_destructure_name(stmt, dn);
             char ssa_versioned_tmp[192];
             char *ssa_versioned;
             char *ssa_lhs;
@@ -308,8 +308,8 @@ transpiler_emit_mir_let_destructure_stmt(CodeBuf *buf,
         codebuf_write(buf, "%s _pgy_destr_%d = %s;\n",
                       c_init_type, tmp_id, rhs);
         free(rhs);
-        for (size_t dn = 0; dn < stmt->data.let_destructure.name_count; dn++) {
-            const char *bname = stmt->data.let_destructure.names[dn];
+        for (size_t dn = 0; dn < ast_let_destructure_name_count(stmt); dn++) {
+            const char *bname = ast_let_destructure_name(stmt, dn);
             char ssa_versioned_tmp[192];
             char *ssa_versioned;
             char *ssa_lhs;

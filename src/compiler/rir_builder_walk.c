@@ -105,8 +105,8 @@ rir_walk_node(RIRScope *scope, ASTNode *node)
 
     switch (node->type) {
         case AST_BLOCK:
-            for (size_t i = 0; i < node->data.block.count; i++) {
-                if (!rir_walk_node(scope, node->data.block.statements[i]))
+            for (size_t i = 0; i < ast_block_statement_count(node); i++) {
+                if (!rir_walk_node(scope, ast_block_statement(node, i)))
                     return false;
             }
             return true;
@@ -114,57 +114,58 @@ rir_walk_node(RIRScope *scope, ASTNode *node)
         case AST_LET_DECL: {
             const char *init_name = NULL;
             RIRResourceState state = RIR_STATE_UNINIT;
-            if (node->data.let_decl.initializer != NULL
-                && node->data.let_decl.initializer->type == AST_CALL) {
-                init_name = call_name(node->data.let_decl.initializer);
+            ASTNode *initializer = ast_let_initializer(node);
+            const char *name = ast_let_name(node);
+            if (initializer != NULL && initializer->type == AST_CALL) {
+                init_name = call_name(initializer);
             }
 
             if (init_name != NULL) {
                 if (strcmp(init_name, "ClaimSlot") == 0) {
                     state = RIR_STATE_OWNED;
-                    if (!add_op(scope, RIR_OP_CLAIM, node->data.let_decl.name, "Slot", NULL,
-                                node->data.let_decl.initializer))
+                    if (!add_op(scope, RIR_OP_CLAIM, name, "Slot", NULL,
+                                initializer))
                         return false;
                 } else if (strcmp(init_name, "ClaimSecureSlot") == 0) {
                     state = RIR_STATE_OWNED;
-                    if (!add_op(scope, RIR_OP_CLAIM, node->data.let_decl.name, "SecureSlot", NULL,
-                                node->data.let_decl.initializer))
+                    if (!add_op(scope, RIR_OP_CLAIM, name, "SecureSlot", NULL,
+                                initializer))
                         return false;
                 } else if (strcmp(init_name, "ClaimDeviceSlot") == 0) {
                     state = RIR_STATE_OWNED;
-                    if (!add_op(scope, RIR_OP_CLAIM, node->data.let_decl.name, "DeviceSlot", NULL,
-                                node->data.let_decl.initializer))
+                    if (!add_op(scope, RIR_OP_CLAIM, name, "DeviceSlot", NULL,
+                                initializer))
                         return false;
                 } else if (strcmp(init_name, "ViewRead") == 0
-                           && ast_call_arg_count(node->data.let_decl.initializer) >= 1) {
+                           && ast_call_arg_count(initializer) >= 1) {
                     if (!add_op(scope,
                                 RIR_OP_BORROW_READ,
                                 expr_name(ast_call_argument(
-                                    node->data.let_decl.initializer, 0)),
-                                node->data.let_decl.name,
+                                    initializer, 0)),
+                                name,
                                 NULL,
-                                node->data.let_decl.initializer))
+                                initializer))
                         return false;
                 } else if (strcmp(init_name, "ViewWrite") == 0
-                           && ast_call_arg_count(node->data.let_decl.initializer) >= 1) {
+                           && ast_call_arg_count(initializer) >= 1) {
                     if (!add_op(scope,
                                 RIR_OP_BORROW_WRITE,
                                 expr_name(ast_call_argument(
-                                    node->data.let_decl.initializer, 0)),
-                                node->data.let_decl.name,
+                                    initializer, 0)),
+                                name,
                                 NULL,
-                                node->data.let_decl.initializer))
+                                initializer))
                         return false;
                 }
             }
 
             if (!add_resource_fact(scope,
-                                   node->data.let_decl.name,
-                                   node->data.let_decl.type,
+                                   name,
+                                   ast_let_type(node),
                                    state,
                                    node))
                 return false;
-            return rir_walk_node(scope, node->data.let_decl.initializer);
+            return rir_walk_node(scope, initializer);
         }
 
         case AST_WITH_STMT:
@@ -264,22 +265,22 @@ rir_walk_node(RIRScope *scope, ASTNode *node)
             return rir_walk_node(scope, ast_return_value(node));
 
         case AST_MATCH_STMT:
-            if (!rir_walk_node(scope, node->data.match_stmt.subject))
+            if (!rir_walk_node(scope, ast_match_subject(node)))
                 return false;
-            for (size_t i = 0; i < node->data.match_stmt.case_count; i++) {
-                if (!rir_walk_node(scope, node->data.match_stmt.cases[i]))
+            for (size_t i = 0; i < ast_match_case_count(node); i++) {
+                if (!rir_walk_node(scope, ast_match_case_at(node, i)))
                     return false;
             }
-            if (!rir_walk_node(scope, node->data.match_stmt.default_body))
+            if (!rir_walk_node(scope, ast_match_default_body(node)))
                 return false;
             return true;
 
         case AST_MATCH_CASE:
-            if (!rir_walk_node(scope, node->data.match_case.pattern))
+            if (!rir_walk_node(scope, ast_match_case_pattern(node)))
                 return false;
-            if (!rir_walk_node(scope, node->data.match_case.guard))
+            if (!rir_walk_node(scope, ast_match_case_guard(node)))
                 return false;
-            return rir_walk_node(scope, node->data.match_case.body);
+            return rir_walk_node(scope, ast_match_case_body(node));
 
         case AST_PARALLEL_BLOCK:
             if (!add_op(scope, RIR_OP_PARALLEL, "parallel", NULL, NULL, node))
@@ -329,21 +330,21 @@ rir_walk_block_node(RIRScope *scope, ASTNode *node)
         case AST_WHILE_LOOP:
             return rir_walk_block_node(scope, ast_while_condition(node));
         case AST_MATCH_STMT:
-            if (!rir_walk_block_node(scope, node->data.match_stmt.subject))
+            if (!rir_walk_block_node(scope, ast_match_subject(node)))
                 return false;
-            for (size_t i = 0; i < node->data.match_stmt.case_count; i++) {
-                ASTNode *match_case = node->data.match_stmt.cases[i];
+            for (size_t i = 0; i < ast_match_case_count(node); i++) {
+                ASTNode *match_case = ast_match_case_at(node, i);
                 if (match_case == NULL)
                     continue;
-                if (!rir_walk_block_node(scope, match_case->data.match_case.pattern)
-                    || !rir_walk_block_node(scope, match_case->data.match_case.guard)) {
+                if (!rir_walk_block_node(scope, ast_match_case_pattern(match_case))
+                    || !rir_walk_block_node(scope, ast_match_case_guard(match_case))) {
                     return false;
                 }
             }
             return true;
         case AST_BLOCK:
-            for (size_t i = 0; i < node->data.block.count; i++) {
-                if (!rir_walk_block_node(scope, node->data.block.statements[i]))
+            for (size_t i = 0; i < ast_block_statement_count(node); i++) {
+                if (!rir_walk_block_node(scope, ast_block_statement(node, i)))
                     return false;
             }
             return true;

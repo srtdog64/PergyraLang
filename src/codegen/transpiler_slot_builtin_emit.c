@@ -231,7 +231,8 @@ emit_builtin_release(ASTNode *call, TranspilerCtx *ctx)
 
     /* Mark slot as explicitly released -> prevents auto-release at scope exit */
     if (slot_arg->type == AST_IDENTIFIER) {
-        const char *sname = slot_name != NULL ? slot_name : slot_arg->data.identifier.name;
+        const char *sname = slot_name != NULL
+            ? slot_name : ast_identifier_name(slot_arg);
         for (int i = 0; i < ctx->slot_var_count; i++) {
             if (strcmp(ctx->slot_vars[i].name, sname) == 0) {
                 ctx->slot_vars[i].released = true;

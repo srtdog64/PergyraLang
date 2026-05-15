@@ -3,6 +3,7 @@
 
 #include "transpiler_mir_expr_ssa.h"
 #include "transpiler_mir_reason.h"
+#include "../parser/ast_api.h"
 
 /* Preserved source let emission owner for MIR blocks. */
 static bool
@@ -18,31 +19,37 @@ transpiler_emit_mir_preserved_let_stmt(CodeBuf *buf,
                                        size_t reason_cap)
 {
     const char *versioned_local;
+    const char *let_name;
+    ASTNode *let_type;
+    ASTNode *let_init;
 
     if (handled_out != NULL)
         *handled_out = false;
     if (buf == NULL || func_decl == NULL || mir_routine == NULL
         || block == NULL || stmt == NULL || ctx == NULL
-        || ssa_map_out == NULL || stmt->type != AST_LET_DECL
-        || stmt->data.let_decl.name == NULL
-        || stmt->data.let_decl.initializer == NULL) {
+        || ssa_map_out == NULL || stmt->type != AST_LET_DECL) {
         return true;
     }
+    let_name = ast_let_name(stmt);
+    let_type = ast_let_type(stmt);
+    let_init = ast_let_initializer(stmt);
+    if (let_name == NULL || let_init == NULL)
+        return true;
 
     versioned_local = transpiler_find_block_exit_ssa_name(
-        block, stmt->data.let_decl.name);
+        block, let_name);
     if (versioned_local == NULL) {
         versioned_local = transpiler_find_block_renamed_ssa_name(
-            block, stmt->data.let_decl.name);
+            block, let_name);
     }
     if (versioned_local == NULL) {
         versioned_local = transpiler_resolve_ssa_name(
             (const TranspilerSSANameMap *)ssa_map_out,
-            stmt->data.let_decl.name);
+            let_name);
     }
     if (versioned_local == NULL) {
         if (transpiler_find_routine_exit_ssa_name(
-                mir_routine, stmt->data.let_decl.name) != NULL) {
+                mir_routine, let_name) != NULL) {
             if (handled_out != NULL)
                 *handled_out = true;
         }
@@ -51,24 +58,21 @@ transpiler_emit_mir_preserved_let_stmt(CodeBuf *buf,
 
     {
         char *lhs = transpiler_render_ssa_name(ctx, versioned_local);
-        char *rhs = emit_expression_with_ssa_map(
-            stmt->data.let_decl.initializer, ctx, ssa_map_out);
+        char *rhs = emit_expression_with_ssa_map(let_init, ctx, ssa_map_out);
         char *rendered_type = NULL;
         const char *value_type = NULL;
 
-        if (stmt->data.let_decl.type != NULL) {
+        if (let_type != NULL) {
             rendered_type = transpiler_render_effective_local_type_name(
-                ctx, stmt->data.let_decl.type);
+                ctx, let_type);
             value_type = rendered_type;
         } else {
-            value_type = infer_expression_type_name(
-                ctx, stmt->data.let_decl.initializer);
+            value_type = infer_expression_type_name(ctx, let_init);
         }
 
         if (value_type != NULL && strcmp(value_type, "Unknown") != 0) {
             ASTNode *binding_type_ast =
-                transpiler_find_local_type_ast(ctx, func_decl,
-                                               stmt->data.let_decl.name);
+                transpiler_find_local_type_ast(ctx, func_decl, let_name);
             char *binding_type_name = NULL;
             if (binding_type_ast != NULL) {
                 binding_type_name =
@@ -86,7 +90,7 @@ transpiler_emit_mir_preserved_let_stmt(CodeBuf *buf,
                     *handled_out = true;
                 return true;
             }
-            if (is_slot_var(ctx, stmt->data.let_decl.name)
+            if (is_slot_var(ctx, let_name)
                 || (binding_type_name != NULL
                     && (transpiler_type_name_is_slot_like(binding_type_name)
                         || transpiler_type_name_is_claim_shape(binding_type_name)
@@ -113,7 +117,7 @@ transpiler_emit_mir_preserved_let_stmt(CodeBuf *buf,
             if (reason != NULL && reason_cap > 0) {
                 transpiler_mir_reasonf(reason, reason_cap,
                          "MIR block %zu emission failed: unable to materialize preserved let-binding '%s'",
-                         block->id, stmt->data.let_decl.name);
+                         block->id, let_name);
             }
             return false;
         }
@@ -124,13 +128,12 @@ transpiler_emit_mir_preserved_let_stmt(CodeBuf *buf,
         free(rhs);
 
         if (!transpiler_ssa_name_map_set(ssa_map_out,
-                                         stmt->data.let_decl.name,
-                                         versioned_local)) {
+                                         let_name, versioned_local)) {
             free(rendered_type);
             return false;
         }
         if (value_type != NULL && value_type[0] != '\0')
-            register_typed_var(ctx, stmt->data.let_decl.name, value_type);
+            register_typed_var(ctx, let_name, value_type);
         free(rendered_type);
     }
 

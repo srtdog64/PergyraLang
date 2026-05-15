@@ -137,16 +137,6 @@ semantic_find_labeled_loop_depth(SemanticContext *ctx, const char *label)
 
 #include "type_checker_generic_support.h"
 
-Type *
-type_get_constructed_arg(const Type *type, size_t index)
-{
-    if (type == NULL || type->kind != TYPE_KIND_CONSTRUCTED)
-        return TYPE_UNKNOWN;
-    if (index >= type->data.constructed.arg_count)
-        return TYPE_UNKNOWN;
-    return type->data.constructed.args[index];
-}
-
 #include "type_checker_expr.h"
 #include "type_checker_assignment.h"
 
@@ -183,8 +173,8 @@ semantic_assignment_target_path_impl(ASTNode *expr,
 
     switch (expr->type) {
     case AST_IDENTIFIER:
-        return expr->data.identifier.name != NULL
-            ? PGY_SEM_PATH_DUP(expr->data.identifier.name)
+        return ast_identifier_name(expr) != NULL
+            ? PGY_SEM_PATH_DUP(ast_identifier_name(expr))
             : PGY_SEM_PATH_DUP("<target>");
     case AST_MEMBER_ACCESS:
     {
@@ -209,12 +199,12 @@ semantic_assignment_target_path_impl(ASTNode *expr,
         base = semantic_assignment_target_path_impl(array_node, ctx, scratch);
         if (index_node != NULL && index_node->type == AST_NUMBER) {
             snprintf(index_buf, sizeof(index_buf), "%g",
-                index_node->data.number.value);
+                ast_number_value(index_node));
         } else if (index_node != NULL
                    && index_node->type == AST_IDENTIFIER
-                   && index_node->data.identifier.name != NULL) {
+                   && ast_identifier_name(index_node) != NULL) {
             snprintf(index_buf, sizeof(index_buf), "%s",
-                index_node->data.identifier.name);
+                ast_identifier_name(index_node));
         } else {
             snprintf(index_buf, sizeof(index_buf), "?");
         }
@@ -258,7 +248,7 @@ semantic_borrowed_boundary_root_name(ASTNode *expr, SemanticContext *ctx)
     switch (expr->type) {
     case AST_IDENTIFIER:
         return identifier_is_borrowed_boundary_param(expr, ctx)
-            ? expr->data.identifier.name
+            ? ast_identifier_name(expr)
             : NULL;
     case AST_MEMBER_ACCESS:
         return semantic_borrowed_boundary_root_name(
@@ -416,8 +406,8 @@ type_check_statement(ASTNode *node, SemanticContext *ctx)
         validate_stdlib_use_decl(node, ctx);
         return !ctx->has_error;
     case AST_NAMESPACE_DECL:
-        for (size_t i = 0; i < node->data.namespace_decl.count; i++)
-            type_check_statement(node->data.namespace_decl.statements[i], ctx);
+        for (size_t i = 0; i < ast_namespace_statement_count(node); i++)
+            type_check_statement(ast_namespace_statement(node, i), ctx);
         return !ctx->has_error;
     case AST_UNSAFE_BLOCK:
         /* Type-check body normally; safety constraints relaxed at codegen */

@@ -99,15 +99,16 @@ type_check_builtin_release_device_slot(ASTNode *expr, const char *name,
         return TYPE_UNKNOWN;
     }
     {
-        Symbol *sym = scope_lookup(ctx->scope, slot_arg->data.identifier.name);
+        const char *slot_name = ast_identifier_name(slot_arg);
+        Symbol *sym = scope_lookup(ctx->scope, slot_name);
         if (sym != NULL && sym->slot_info.state == SLOT_STATE_RELEASED) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, slot_arg,
                 "DeviceSlot '%s' has already been released",
-                slot_arg->data.identifier.name);
+                slot_name);
             return TYPE_UNKNOWN;
         }
     }
-    scope_release_slot(ctx->scope, slot_arg->data.identifier.name);
+    scope_release_slot(ctx->scope, ast_identifier_name(slot_arg));
     return TYPE_VOID;
 }
 

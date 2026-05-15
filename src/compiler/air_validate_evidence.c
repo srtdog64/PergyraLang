@@ -90,19 +90,51 @@ air_evidence_inventory_is_authoritative(const AIRProgram *air)
             || air->has_mir_input);
 }
 
+const AIREvidenceNode *
+air_boundary_evidence_node(const AIRProgram *air,
+                           size_t boundary_index,
+                           AIREvidenceKind kind)
+{
+    if (air == NULL || boundary_index >= air->boundary_count)
+        return NULL;
+    for (size_t i = 0; i < air->evidence_count; i++) {
+        const AIREvidenceNode *evidence = &air->evidence_nodes[i];
+        if (evidence->kind == kind && evidence->boundary_index == boundary_index)
+            return evidence;
+    }
+    return NULL;
+}
+
+const char *
+air_boundary_evidence_provider(const AIRProgram *air,
+                               size_t boundary_index,
+                               AIREvidenceKind kind)
+{
+    const AIREvidenceNode *evidence =
+        air_boundary_evidence_node(air, boundary_index, kind);
+    return evidence != NULL && evidence->provider_name != NULL
+        ? evidence->provider_name
+        : "<none>";
+}
+
+const char *
+air_boundary_evidence_subject(const AIRProgram *air,
+                              size_t boundary_index,
+                              AIREvidenceKind kind)
+{
+    const AIREvidenceNode *evidence =
+        air_boundary_evidence_node(air, boundary_index, kind);
+    return evidence != NULL && evidence->subject_name != NULL
+        ? evidence->subject_name
+        : "<none>";
+}
+
 bool
 air_boundary_has_evidence_kind(const AIRProgram *air,
                                size_t boundary_index,
                                AIREvidenceKind kind)
 {
-    if (air == NULL || boundary_index >= air->boundary_count)
-        return false;
-    for (size_t i = 0; i < air->evidence_count; i++) {
-        const AIREvidenceNode *evidence = &air->evidence_nodes[i];
-        if (evidence->kind == kind && evidence->boundary_index == boundary_index)
-            return true;
-    }
-    return false;
+    return air_boundary_evidence_node(air, boundary_index, kind) != NULL;
 }
 
 bool

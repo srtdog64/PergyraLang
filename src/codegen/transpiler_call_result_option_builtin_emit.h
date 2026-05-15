@@ -24,7 +24,7 @@ emit_call_result_option_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *c
      * - IsOk/IsErr/Unwrap/UnwrapOr may also derive suffix from their Result
      *   operand when the surrounding expression context is not specific. */
     if (callee->type == AST_IDENTIFIER) {
-        const char *fn = callee->data.identifier.name;
+        const char *fn = ast_identifier_name(callee);
         size_t argc = ast_call_arg_count(call);
         ASTNode *arg0 = ast_call_argument(call, 0);
         ASTNode *arg1 = ast_call_argument(call, 1);

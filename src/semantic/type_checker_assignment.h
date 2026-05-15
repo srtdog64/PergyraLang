@@ -15,14 +15,14 @@ type_check_assignment(ASTNode *expr, SemanticContext *ctx)
         value_type = TYPE_UNKNOWN;
 
     if (target != NULL && target->type == AST_IDENTIFIER) {
-        const char *target_name = target->data.identifier.name;
+        const char *target_name = ast_identifier_name(target);
         Symbol *target_sym = scope_lookup(ctx->scope, target_name);
         if (target_sym != NULL && target_sym->kind == SYMBOL_SLOT
             && target_sym->type != NULL && type_is_owned_slot_handle(target_sym->type)
-            && target_sym->type->data.slot.inner_type != NULL
+            && type_slot_inner_type(target_sym->type) != NULL
             && !type_is_resource_handle(value_type)
             && type_is_assignable(value_type,
-                target_sym->type->data.slot.inner_type)) {
+                type_slot_inner_type(target_sym->type))) {
             const char *active_view_name = NULL;
             const char *active_view_kind = NULL;
             if (semantic_find_active_slot_view_for_source(ctx->scope,
@@ -54,9 +54,9 @@ type_check_assignment(ASTNode *expr, SemanticContext *ctx)
         target_type = TYPE_UNKNOWN;
 
     if (type_is_slot_handle(target_type)
-        && target_type->data.slot.inner_type != NULL
+        && type_slot_inner_type(target_type) != NULL
         && !type_is_resource_handle(value_type)
-        && type_is_assignable(value_type, target_type->data.slot.inner_type)) {
+        && type_is_assignable(value_type, type_slot_inner_type(target_type))) {
         return target_type;
     }
 
@@ -80,7 +80,7 @@ type_check_assignment(ASTNode *expr, SemanticContext *ctx)
     if (target != NULL && target->type == AST_MEMBER_ACCESS) {
         ASTNode *obj_node = ast_member_object(target);
         if (obj_node != NULL && obj_node->type == AST_IDENTIFIER) {
-            const char *var_name = obj_node->data.identifier.name;
+            const char *var_name = ast_identifier_name(obj_node);
             Symbol *sym = scope_lookup(ctx->scope, var_name);
             if (sym != NULL && sym->type != NULL
                 && sym->type->kind == TYPE_KIND_CLASS

@@ -45,7 +45,7 @@ air_call_callee_name(const ASTNode *node)
     if (callee == NULL)
         return NULL;
     if (callee->type == AST_IDENTIFIER)
-        return callee->data.identifier.name;
+        return ast_identifier_name(callee);
     if (callee->type == AST_MEMBER_ACCESS)
         return ast_member_name(callee);
     return NULL;
@@ -77,7 +77,7 @@ air_boundary_kind_from_ast(const ASTNode *node)
 
     if (node == NULL)
         return AIR_BOUNDARY_UNKNOWN;
-    if (node->type == AST_BLOCK && node->data.block.is_pin_block)
+    if (node->type == AST_BLOCK && ast_block_is_pin_block(node))
         return AIR_BOUNDARY_EXECUTION;
     if (node->type == AST_CALL)
         return air_call_is_io_boundary(node)
@@ -121,7 +121,7 @@ air_boundary_source_from_ast(const ASTNode *node)
     if (kind == AIR_BOUNDARY_EXECUTION
         && node != NULL
         && node->type == AST_BLOCK
-        && node->data.block.is_pin_block) {
+        && ast_block_is_pin_block(node)) {
         return "pin";
     }
     rule = air_ast_boundary_rule_for_node(node);

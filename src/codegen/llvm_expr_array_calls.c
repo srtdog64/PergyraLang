@@ -16,7 +16,7 @@ llvm_array_required_receiver_var(LLVMGenCtx *ctx, ASTNode *node,
     if (entry_out != NULL)
         *entry_out = NULL;
     if (receiver == NULL || receiver->type != AST_IDENTIFIER
-        || receiver->data.identifier.name == NULL) {
+        || ast_identifier_name(receiver) == NULL) {
         llvm_set_error_at_with_hints(ctx, node,
             PGY_CODE_LLVM_TYPE_UNSUPPORTED,
             PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
@@ -26,7 +26,7 @@ llvm_array_required_receiver_var(LLVMGenCtx *ctx, ASTNode *node,
         return NULL;
     }
 
-    const char *name = receiver->data.identifier.name;
+    const char *name = ast_identifier_name(receiver);
     LLVMVarEntry *var = llvm_scope_lookup(ctx, name);
     LLVMArrayVarEntry *entry = llvm_lookup_array_var(ctx, name);
     if (var == NULL || entry == NULL) {

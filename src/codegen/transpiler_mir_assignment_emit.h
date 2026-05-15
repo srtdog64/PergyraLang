@@ -3,6 +3,7 @@
 
 #include "transpiler_mir_expr_ssa.h"
 #include "transpiler_mir_reason.h"
+#include "../parser/ast_api.h"
 
 typedef enum TranspilerMIRAssignmentEmitResult {
     TRANSPILE_MIR_ASSIGNMENT_NOT_HANDLED = 0,
@@ -56,7 +57,7 @@ transpiler_emit_mir_assignment_def_inst(CodeBuf *buf,
         return TRANSPILE_MIR_ASSIGNMENT_NOT_HANDLED;
     }
 
-    target_name = target->data.identifier.name;
+    target_name = ast_identifier_name(target);
     if (target_name == NULL || strcmp(inst->arg0, target_name) != 0)
         return TRANSPILE_MIR_ASSIGNMENT_HANDLED;
 
@@ -104,17 +105,17 @@ transpiler_emit_mir_assignment_def_inst(CodeBuf *buf,
 
         if (value != NULL
             && value->type == AST_IDENTIFIER
-            && value->data.identifier.name != NULL
+            && ast_identifier_name(value) != NULL
             && transpiler_resolve_ssa_name(
                    (const TranspilerSSANameMap *)ssa_map_out,
-                   value->data.identifier.name) == NULL) {
+                   ast_identifier_name(value)) == NULL) {
             const char *prior_ssa = transpiler_find_prior_block_ssa_name(
                 block, inst_index,
-                value->data.identifier.name);
+                ast_identifier_name(value));
             if (prior_ssa != NULL) {
                 transpiler_ssa_name_map_set(
                     ssa_map_out,
-                    value->data.identifier.name,
+                    ast_identifier_name(value),
                     prior_ssa);
             }
         }

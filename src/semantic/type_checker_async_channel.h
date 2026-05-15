@@ -11,7 +11,7 @@ spawn_direct_callee_name(ASTNode *spawned)
     callee = ast_call_callee(spawned);
     if (callee == NULL || callee->type != AST_IDENTIFIER)
         return NULL;
-    return callee->data.identifier.name;
+    return ast_identifier_name(callee);
 }
 
 static FuncParam *
@@ -31,8 +31,8 @@ spawn_find_callable_decl(ASTNode *program, const char *name)
     if (program == NULL || program->type != AST_PROGRAM || name == NULL)
         return NULL;
 
-    for (size_t i = 0; i < program->data.program.count; i++) {
-        ASTNode *stmt = program->data.program.statements[i];
+    for (size_t i = 0; i < ast_program_statement_count(program); i++) {
+        ASTNode *stmt = ast_program_statement(program, i);
         if (stmt == NULL || stmt->type != AST_FUNC_DECL)
             continue;
         if (stmt->is_async_decl) {
@@ -66,8 +66,8 @@ semantic_type_ref_names_token(ASTNode *type_ref)
         return ast_type_name(type_ref) != NULL
             && strcmp(ast_type_name(type_ref), "Token") == 0;
     if (type_ref->type == AST_IDENTIFIER)
-        return type_ref->data.identifier.name != NULL
-            && strcmp(type_ref->data.identifier.name, "Token") == 0;
+        return ast_identifier_name(type_ref) != NULL
+            && strcmp(ast_identifier_name(type_ref), "Token") == 0;
     return false;
 }
 
@@ -165,8 +165,8 @@ semantic_validate_spawn_ref_boundary(ASTNode *expr,
             continue;
 
         arg_label = "<argument>";
-        if (arg->type == AST_IDENTIFIER && arg->data.identifier.name != NULL)
-            arg_label = arg->data.identifier.name;
+        if (arg->type == AST_IDENTIFIER && ast_identifier_name(arg) != NULL)
+            arg_label = ast_identifier_name(arg);
 
         semantic_error_with_hints(ctx,
             PGY_CODE_SEM_BORROW_ESCAPE,
@@ -276,9 +276,7 @@ type_check_channel_send(ASTNode *expr, SemanticContext *ctx)
         type_check_expression(channel, ctx));
     Type *value_type = async_channel_normalize_type(
         type_check_expression(value, ctx));
-    if (channel_type->kind != TYPE_KIND_CONSTRUCTED
-        || !type_equals(channel_type->data.constructed.constructor, TYPE_CHANNEL)
-        || channel_type->data.constructed.arg_count != 1) {
+    if (!type_constructed_is(channel_type, TYPE_CHANNEL, 1)) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_CHANNEL_TRANSPORT_INVALID,
             PGY_CAUSE_CHANNEL_TRANSPORT_RULE_VIOLATION,
             PGY_FIX_ALIGN_CHANNEL_ELEMENT_TYPE,
@@ -289,7 +287,7 @@ type_check_channel_send(ASTNode *expr, SemanticContext *ctx)
     }
 
     Type *element_type = async_channel_normalize_type(
-        channel_type->data.constructed.args[0]);
+        type_get_constructed_arg(channel_type, 0));
     OwnershipTypeClass element_ownership =
         semantic_classify_ownership_type(element_type, ctx);
     OwnershipTypeClass value_ownership =
@@ -413,9 +411,7 @@ type_check_channel_recv(ASTNode *expr, SemanticContext *ctx)
     }
     Type *channel_type = async_channel_normalize_type(
         type_check_expression(channel, ctx));
-    if (channel_type->kind != TYPE_KIND_CONSTRUCTED
-        || !type_equals(channel_type->data.constructed.constructor, TYPE_CHANNEL)
-        || channel_type->data.constructed.arg_count != 1) {
+    if (!type_constructed_is(channel_type, TYPE_CHANNEL, 1)) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_CHANNEL_TRANSPORT_INVALID,
             PGY_CAUSE_CHANNEL_TRANSPORT_RULE_VIOLATION,
             PGY_FIX_ALIGN_CHANNEL_ELEMENT_TYPE,
@@ -426,7 +422,7 @@ type_check_channel_recv(ASTNode *expr, SemanticContext *ctx)
     }
 
     Type *element_type = async_channel_normalize_type(
-        channel_type->data.constructed.args[0]);
+        type_get_constructed_arg(channel_type, 0));
     if (semantic_channel_type_is_token(element_type)) {
         semantic_report_channel_transport_policy(
             channel, ctx,

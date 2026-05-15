@@ -171,10 +171,14 @@ type_create_constructed(Type *constructor, Type **args, size_t arg_count)
     if (t == NULL)
         return NULL;
 
-    if (constructor == NULL || constructor->name == NULL)
+    if (constructor == NULL || constructor->name == NULL) {
+        free(t);
         return NULL;
-    if (arg_count > 0 && args == NULL)
+    }
+    if (arg_count > 0 && args == NULL) {
+        free(t);
         return NULL;
+    }
 
     /* Name: "Constructor<Arg0, Arg1, ...>" */
     size_t name_len = strlen(constructor->name);
@@ -252,6 +256,50 @@ type_create_constructed(Type *constructor, Type **args, size_t arg_count)
     if (arg_count > 0)
         memcpy(t->data.constructed.args, args, arg_count * sizeof(Type *));
     return t;
+}
+
+Type *
+type_constructed_constructor(const Type *type)
+{
+    if (type == NULL || type->kind != TYPE_KIND_CONSTRUCTED)
+        return NULL;
+    return type->data.constructed.constructor;
+}
+
+size_t
+type_constructed_arg_count(const Type *type)
+{
+    if (type == NULL || type->kind != TYPE_KIND_CONSTRUCTED)
+        return 0;
+    return type->data.constructed.arg_count;
+}
+
+Type *
+type_constructed_arg(const Type *type, size_t index)
+{
+    if (type == NULL || type->kind != TYPE_KIND_CONSTRUCTED)
+        return NULL;
+    if (index >= type->data.constructed.arg_count)
+        return NULL;
+    return type->data.constructed.args[index];
+}
+
+Type *
+type_get_constructed_arg(const Type *type, size_t index)
+{
+    Type *arg = type_constructed_arg(type, index);
+    return arg != NULL ? arg : TYPE_UNKNOWN;
+}
+
+bool
+type_constructed_is(const Type *type, const Type *constructor, size_t arg_count)
+{
+    Type *actual_constructor = type_constructed_constructor(type);
+
+    if (actual_constructor == NULL || constructor == NULL)
+        return false;
+    return type_constructed_arg_count(type) == arg_count
+        && type_equals(actual_constructor, constructor);
 }
 
 Type *
@@ -343,6 +391,48 @@ type_create_function(Type **params, size_t param_count, Type *return_type)
 }
 
 Type *
+type_function_return_type(const Type *type)
+{
+    if (type == NULL || type->kind != TYPE_KIND_FUNCTION)
+        return NULL;
+    return type->data.function.return_type;
+}
+
+size_t
+type_function_param_count(const Type *type)
+{
+    if (type == NULL || type->kind != TYPE_KIND_FUNCTION)
+        return 0;
+    return type->data.function.param_count;
+}
+
+Type *
+type_function_param_type(const Type *type, size_t index)
+{
+    if (type == NULL || type->kind != TYPE_KIND_FUNCTION)
+        return NULL;
+    if (index >= type->data.function.param_count)
+        return NULL;
+    return type->data.function.param_types[index];
+}
+
+void
+type_function_set_effects(Type *type, uint32_t effect_mask)
+{
+    if (type == NULL || type->kind != TYPE_KIND_FUNCTION)
+        return;
+    type->data.function.effect_mask = effect_mask;
+}
+
+void
+type_function_set_body_summary(Type *type, uint32_t body_summary_mask)
+{
+    if (type == NULL || type->kind != TYPE_KIND_FUNCTION)
+        return;
+    type->data.function.body_summary_mask = body_summary_mask;
+}
+
+Type *
 type_create_tuple(Type **elements, size_t element_count)
 {
     Type *t = calloc(1, sizeof(Type));
@@ -350,6 +440,10 @@ type_create_tuple(Type **elements, size_t element_count)
         return NULL;
 
     t->kind = TYPE_KIND_TUPLE;
+    if (element_count > 0 && elements == NULL) {
+        free(t);
+        return NULL;
+    }
 
     /* Name: "(T0, T1, T2)" */
     size_t name_len = 3; /* "()" + '\0' */
@@ -430,78 +524,4 @@ type_tuple_get_element(const Type *t, size_t index)
     if (index >= t->data.tuple.element_count)
         return NULL;
     return t->data.tuple.elements[index];
-}
-
-Type *
-type_create_slot(Type *inner_type, bool is_secure)
-{
-    return type_create_slot_access(inner_type, is_secure, SLOT_ACCESS_OWNED);
-}
-
-Type *
-type_create_slot_access(Type *inner_type, bool is_secure, SlotAccessMode access_mode)
-{
-    Type *t;
-    const char *prefix = "Slot<";
-    size_t prefix_len;
-    size_t inner_len;
-    size_t name_len;
-
-    if (inner_type == NULL || inner_type->name == NULL)
-        return NULL;
-
-    t = calloc(1, sizeof(Type));
-    if (t == NULL)
-        return NULL;
-
-    t->kind = TYPE_KIND_SLOT;
-
-    if (access_mode == SLOT_ACCESS_READ_VIEW)
-        prefix = "ReadView<";
-    else if (access_mode == SLOT_ACCESS_WRITE_VIEW)
-        prefix = "WriteView<";
-    else if (access_mode == SLOT_ACCESS_MOVE_TOKEN)
-        prefix = "MoveToken<";
-    else if (is_secure)
-        prefix = "SecureSlot<";
-
-    prefix_len = strlen(prefix);
-    inner_len = strlen(inner_type->name);
-    if (inner_len > ((size_t)-1) - prefix_len - 2) {
-        free(t);
-        return NULL;
-    }
-    name_len = prefix_len + inner_len + 2;
-    t->name = malloc(name_len);
-    if (t->name == NULL) {
-        free(t);
-        return NULL;
-    }
-    {
-        size_t offset = 0;
-        memcpy(t->name + offset, prefix, prefix_len);
-        offset += prefix_len;
-        memcpy(t->name + offset, inner_type->name, inner_len);
-        offset += inner_len;
-        t->name[offset++] = '>';
-        t->name[offset] = '\0';
-    }
-
-    t->data.slot.inner_type    = inner_type;
-    t->data.slot.is_secure     = is_secure;
-    t->data.slot.security_level = 0;
-    t->data.slot.access_mode   = access_mode;
-    return t;
-}
-
-Type *
-type_create_read_view(Type *inner_type)
-{
-    return type_create_slot_access(inner_type, false, SLOT_ACCESS_READ_VIEW);
-}
-
-Type *
-type_create_write_view(Type *inner_type)
-{
-    return type_create_slot_access(inner_type, false, SLOT_ACCESS_WRITE_VIEW);
 }

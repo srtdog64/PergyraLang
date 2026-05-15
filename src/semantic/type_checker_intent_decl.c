@@ -238,9 +238,10 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                     "- or write an explicit step where clause instead of deriving it from using",
                     step_name != NULL ? step_name : "<step>");
             } else if (find_intent_involves_local(node,
-                    using_expr->data.identifier.name) == NULL
+                    ast_identifier_name(using_expr)) == NULL
                 && find_intent_value_local(node,
-                    using_expr->data.identifier.name) == NULL) {
+                    ast_identifier_name(using_expr)) == NULL) {
+                const char *using_name = ast_identifier_name(using_expr);
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_INTENT_STEP_INVALID, PGY_CAUSE_INTENT_STEP, PGY_FIX_ALIGN_STEP_WITH_ZONE_ACTION_CONTRACTS, using_expr,
                     "Intent step '%s' using clause refers to unknown binding '%s'.\n"
                     "Reason:\n"
@@ -250,12 +251,9 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                     "- declare '%s' in the intent participant/value list\n"
                     "- or change the using clause to an existing binding alias",
                     step_name != NULL ? step_name : "<step>",
-                    using_expr->data.identifier.name != NULL
-                        ? using_expr->data.identifier.name : "<binding>",
-                    using_expr->data.identifier.name != NULL
-                        ? using_expr->data.identifier.name : "<binding>",
-                    using_expr->data.identifier.name != NULL
-                        ? using_expr->data.identifier.name : "<binding>");
+                    using_name != NULL ? using_name : "<binding>",
+                    using_name != NULL ? using_name : "<binding>",
+                    using_name != NULL ? using_name : "<binding>");
             }
             if (using_type != TYPE_UNKNOWN && zone_type != TYPE_UNKNOWN
                 && !type_equals(using_type, zone_type)) {
@@ -301,7 +299,7 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
                     step_name != NULL ? step_name : "<step>");
             } else {
                 const char *resolved_name =
-                    ast_call_callee(intent_expr)->data.identifier.name;
+                    ast_identifier_name(ast_call_callee(intent_expr));
                 callee_name = resolved_name != NULL ? resolved_name : callee_name;
                 Symbol *intent_sym = callee_name != NULL
                     ? scope_lookup(ctx->scope, callee_name)

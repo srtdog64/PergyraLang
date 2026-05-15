@@ -39,7 +39,8 @@ flow_record_statement_result(FlowFlags current, FlowFlags statement)
     current |= statement & (FLOW_FALLTHROUGH
                           | FLOW_BREAK
                           | FLOW_CONTINUE
-                          | FLOW_RETURN);
+                          | FLOW_RETURN
+                          | FLOW_HAS_DEFER);
     return current;
 }
 
@@ -67,7 +68,7 @@ flow_static_bool_value(const ASTNode *node, bool *value_out)
     if (!flow_condition_is_static_bool(node))
         return false;
     if (value_out != NULL)
-        *value_out = node->data.boolean.value;
+        *value_out = ast_boolean_value(node);
     return true;
 }
 
@@ -97,41 +98,6 @@ flow_match_subject_is_beta_supported(const Type *type)
     return false;
 }
 
-bool
-flow_ast_contains_defer_stmt(const ASTNode *node)
-{
-    if (node == NULL)
-        return false;
-
-    switch (node->type) {
-    case AST_DEFER_STMT:
-        return true;
-    case AST_BLOCK:
-        for (size_t i = 0; i < node->data.block.count; i++) {
-            if (flow_ast_contains_defer_stmt(node->data.block.statements[i]))
-                return true;
-        }
-        return false;
-    case AST_IF_STMT:
-        return flow_ast_contains_defer_stmt(ast_if_then_branch(node))
-            || flow_ast_contains_defer_stmt(ast_if_else_branch(node));
-    case AST_WHILE_LOOP:
-        return flow_ast_contains_defer_stmt(ast_while_body(node));
-    case AST_FOR_LOOP:
-        return flow_ast_contains_defer_stmt(ast_for_body(node));
-    case AST_MATCH_STMT:
-        for (size_t i = 0; i < node->data.match_stmt.case_count; i++) {
-            if (flow_ast_contains_defer_stmt(node->data.match_stmt.cases[i]))
-                return true;
-        }
-        return flow_ast_contains_defer_stmt(node->data.match_stmt.default_body);
-    case AST_MATCH_CASE:
-        return flow_ast_contains_defer_stmt(node->data.match_case.body);
-    default:
-        return false;
-    }
-}
-
 void
 flow_reject_dynamic_defer_control(SemanticContext *ctx,
                                   ASTNode *site,
@@ -159,14 +125,14 @@ type_check_block_flow(ASTNode *node, SemanticContext *ctx,
         return type_check_statement_flow(node, ctx, loop_flow);
 
     FlowFlags flags = FLOW_FALLTHROUGH;
-    for (size_t i = 0; i < node->data.block.count; i++) {
+    for (size_t i = 0; i < ast_block_statement_count(node); i++) {
         if (!flow_has_fallthrough(flags)) {
-            flow_record_unreachable_statement(ctx, node->data.block.statements[i]);
+            flow_record_unreachable_statement(ctx, ast_block_statement(node, i));
             break;
         }
 
         FlowFlags stmt_flags =
-            type_check_statement_flow(node->data.block.statements[i], ctx, loop_flow);
+            type_check_statement_flow(ast_block_statement(node, i), ctx, loop_flow);
 
         flags = flow_record_statement_result(flags, stmt_flags);
     }
@@ -184,16 +150,11 @@ type_check_if_stmt_flow(ASTNode *node, SemanticContext *ctx,
     ResourceConsumeSnapshot base = snapshot_resource_states(ctx);
     ResourceConsumeSnapshot fallthrough = {0};
     bool has_fallthrough = false;
+    bool branch_has_defer = false;
     FlowFlags flags = FLOW_NONE;
     FlowFlags then_flags = FLOW_NONE;
     uint32_t then_effect_delta = EFFECT_NONE;
     uint32_t else_effect_delta = EFFECT_NONE;
-
-    if (!flow_condition_is_static_bool(ast_if_condition(node))
-        && (flow_ast_contains_defer_stmt(ast_if_then_branch(node))
-            || flow_ast_contains_defer_stmt(ast_if_else_branch(node)))) {
-        flow_reject_dynamic_defer_control(ctx, node, "if");
-    }
 
     if (!type_equals(cond, TYPE_BOOL)) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
@@ -209,6 +170,8 @@ type_check_if_stmt_flow(ASTNode *node, SemanticContext *ctx,
     scope_exit(&ctx->scope);
     then_effect_delta = effect_delta_from_baseline(effect_base,
         ctx->current_function_effects);
+    if ((then_flags & FLOW_HAS_DEFER) != 0)
+        branch_has_defer = true;
     flags |= flow_terminating_flags(then_flags);
     if (flow_has_fallthrough(then_flags)) {
         ResourceConsumeSnapshot then_snap = snapshot_resource_states(ctx);
@@ -227,6 +190,8 @@ type_check_if_stmt_flow(ASTNode *node, SemanticContext *ctx,
         scope_exit(&ctx->scope);
         else_effect_delta = effect_delta_from_baseline(effect_base,
             ctx->current_function_effects);
+        if ((else_flags & FLOW_HAS_DEFER) != 0)
+            branch_has_defer = true;
         flags |= flow_terminating_flags(else_flags);
         if (flow_has_fallthrough(else_flags)) {
             ResourceConsumeSnapshot else_snap = snapshot_resource_states(ctx);
@@ -238,6 +203,11 @@ type_check_if_stmt_flow(ASTNode *node, SemanticContext *ctx,
         merge_resource_snapshots_or(&fallthrough, &has_fallthrough, &base);
         flags |= FLOW_FALLTHROUGH;
         else_effect_delta = EFFECT_NONE;
+    }
+
+    if (!flow_condition_is_static_bool(ast_if_condition(node))
+        && branch_has_defer) {
+        flow_reject_dynamic_defer_control(ctx, node, "if");
     }
 
     flow_record_branch_effect_conflict_labeled(ctx, node,
@@ -262,7 +232,8 @@ static FlowFlags
 type_check_match_stmt_flow(ASTNode *node, SemanticContext *ctx,
                            LoopFlowState *loop_flow)
 {
-    Type *subj_type = type_check_expression(node->data.match_stmt.subject, ctx);
+    ASTNode *subject = ast_match_subject(node);
+    Type *subj_type = type_check_expression(subject, ctx);
     uint32_t effect_base = ctx->current_function_effects;
     uint32_t merged_effect_delta = EFFECT_NONE;
     uint32_t previous_case_delta = EFFECT_NONE;
@@ -270,48 +241,46 @@ type_check_match_stmt_flow(ASTNode *node, SemanticContext *ctx,
     ResourceConsumeSnapshot base = snapshot_resource_states(ctx);
     ResourceConsumeSnapshot fallthrough = {0};
     bool has_fallthrough = false;
+    bool match_has_defer = false;
     FlowFlags flags = FLOW_NONE;
-
-    if (flow_ast_contains_defer_stmt(node)
-        && !flow_expr_is_static_literal(node->data.match_stmt.subject)) {
-        flow_reject_dynamic_defer_control(ctx, node, "match");
-    }
 
     if (!flow_match_subject_is_beta_supported(subj_type)) {
         semantic_error_with_hints(ctx,
             PGY_CODE_SEM_MATCH_PATTERN_INVALID,
             PGY_CAUSE_MATCH_PATTERN_SHAPE,
             PGY_FIX_ALIGN_PATTERN_ARITY_OR_KIND,
-            node->data.match_stmt.subject,
+            subject,
             "Match subject type '%s' is not beta-stable; supported subjects are Int, Long, Bool, enum, Option<T>, and Result<T>",
             subj_type != NULL && subj_type->name != NULL ? subj_type->name : "<unknown>");
     }
 
-    for (size_t i = 0; i < node->data.match_stmt.case_count; i++) {
-        ASTNode *mc = node->data.match_stmt.cases[i];
+    for (size_t i = 0; i < ast_match_case_count(node); i++) {
+        ASTNode *mc = ast_match_case_at(node, i);
         uint32_t case_effect_delta = EFFECT_NONE;
         restore_resource_states(&base);
         ctx->current_function_effects = effect_base;
         scope_enter(&ctx->scope, SCOPE_BLOCK);
 
-        if (mc->data.match_case.pattern != NULL) {
+        if (ast_match_case_pattern(mc) != NULL) {
             type_check_match_case_patterns(mc, subj_type, ctx);
         }
 
-        if (mc->data.match_case.guard != NULL) {
+        if (ast_match_case_guard(mc) != NULL) {
             Type *guard_type = flow_normalize_type(
-                type_check_expression(mc->data.match_case.guard, ctx));
+                type_check_expression(ast_match_case_guard(mc), ctx));
             if (!type_equals(guard_type, TYPE_BOOL)) {
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
                     PGY_CAUSE_CONDITION_NON_BOOL, PGY_FIX_CONVERT_CONDITION_TO_BOOL,
-                    mc->data.match_case.guard,
+                    ast_match_case_guard(mc),
                     "Case guard must be Bool, got '%s'", guard_type->name);
             }
         }
 
         FlowFlags case_flags =
-            type_check_block_flow(mc->data.match_case.body, ctx, loop_flow);
+            type_check_block_flow(ast_match_case_body(mc), ctx, loop_flow);
         scope_exit(&ctx->scope);
+        if ((case_flags & FLOW_HAS_DEFER) != 0)
+            match_has_defer = true;
         case_effect_delta = effect_delta_from_baseline(effect_base,
             ctx->current_function_effects);
         if (merged_effect_delta != EFFECT_NONE)
@@ -335,15 +304,17 @@ type_check_match_stmt_flow(ASTNode *node, SemanticContext *ctx,
         }
     }
 
-    if (node->data.match_stmt.default_body != NULL) {
+    if (ast_match_default_body(node) != NULL) {
         FlowFlags default_flags = FLOW_NONE;
         uint32_t default_effect_delta = EFFECT_NONE;
         restore_resource_states(&base);
         ctx->current_function_effects = effect_base;
         scope_enter(&ctx->scope, SCOPE_BLOCK);
         default_flags =
-            type_check_block_flow(node->data.match_stmt.default_body, ctx, loop_flow);
+            type_check_block_flow(ast_match_default_body(node), ctx, loop_flow);
         scope_exit(&ctx->scope);
+        if ((default_flags & FLOW_HAS_DEFER) != 0)
+            match_has_defer = true;
         default_effect_delta = effect_delta_from_baseline(effect_base,
             ctx->current_function_effects);
         if (merged_effect_delta != EFFECT_NONE)
@@ -367,6 +338,9 @@ type_check_match_stmt_flow(ASTNode *node, SemanticContext *ctx,
         merge_resource_snapshots_or(&fallthrough, &has_fallthrough, &base);
         flags |= FLOW_FALLTHROUGH;
     }
+
+    if (match_has_defer && !flow_expr_is_static_literal(subject))
+        flow_reject_dynamic_defer_control(ctx, node, "match");
 
     check_match_redundancy(node, subj_type, ctx);
     check_match_exhaustiveness(node, subj_type, ctx);
@@ -442,7 +416,7 @@ type_check_statement_flow(ASTNode *node, SemanticContext *ctx,
         return FLOW_FALLTHROUGH;
     case AST_DEFER_STMT:
         (void)type_check_defer_body_flow(ast_defer_body(node), ctx);
-        return FLOW_FALLTHROUGH;
+        return FLOW_FALLTHROUGH | FLOW_HAS_DEFER;
     case AST_ASYNC_BLOCK:
         (void)type_check_async_block(node, ctx);
         return FLOW_FALLTHROUGH;
@@ -493,17 +467,15 @@ type_check_namespace_flow(ASTNode *node, SemanticContext *ctx,
 
     if (node == NULL || node->type != AST_NAMESPACE_DECL)
         return flags;
-    for (size_t i = 0; i < node->data.namespace_decl.count; i++) {
+    for (size_t i = 0; i < ast_namespace_statement_count(node); i++) {
+        ASTNode *stmt = ast_namespace_statement(node, i);
         if (!flow_has_fallthrough(flags)) {
-            flow_record_unreachable_statement(ctx,
-                node->data.namespace_decl.statements[i]);
+            flow_record_unreachable_statement(ctx, stmt);
             break;
         }
         flags = flow_record_statement_result(
             flags,
-            type_check_statement_flow(node->data.namespace_decl.statements[i],
-                                      ctx,
-                                      loop_flow));
+            type_check_statement_flow(stmt, ctx, loop_flow));
     }
     return flags;
 }
@@ -527,15 +499,32 @@ type_check_block(ASTNode *node, SemanticContext *ctx)
 }
 
 bool
+semantic_check_body_flow_summary(ASTNode *body,
+                                 SemanticContext *ctx,
+                                 SemanticBodyFlowSummary *summary_out)
+{
+    FlowFlags flags = type_check_block_flow(body, ctx, NULL);
+    if (summary_out != NULL) {
+        summary_out->has_fallthrough = flow_has_fallthrough(flags);
+        summary_out->has_return = (flags & FLOW_RETURN) != 0;
+        summary_out->has_break = (flags & FLOW_BREAK) != 0;
+        summary_out->has_continue = (flags & FLOW_CONTINUE) != 0;
+        summary_out->has_defer = (flags & FLOW_HAS_DEFER) != 0;
+        summary_out->must_return =
+            summary_out->has_return && !summary_out->has_fallthrough;
+    }
+    return !ctx->has_error;
+}
+
+bool
 semantic_check_body_flow(ASTNode *body, SemanticContext *ctx,
                          bool *must_return_out)
 {
-    FlowFlags flags = type_check_block_flow(body, ctx, NULL);
+    SemanticBodyFlowSummary summary = {0};
+    bool ok = semantic_check_body_flow_summary(body, ctx, &summary);
     if (must_return_out != NULL)
-        *must_return_out =
-            ((flags & FLOW_RETURN) != 0)
-            && !flow_has_fallthrough(flags);
-    return !ctx->has_error;
+        *must_return_out = summary.must_return;
+    return ok;
 }
 
 bool

@@ -463,6 +463,126 @@ if grep -q 'semantic_type_resolution_lookup_type_ref_or_materialize' \
   exit 1
 fi
 
+if grep -nE '(^|[^A-Za-z0-9_])(args_node|decl_params|gp)->(count|params|name|constraint|default_type)\b' \
+  src/semantic/type_checker_resolution_metadata_constructed.c; then
+  echo "[type-resolution-resolver-inventory] constructed metadata owner reopened GenericParams storage directly" >&2
+  exit 1
+fi
+
+grep -q 'ast_generic_param_count' \
+  src/semantic/type_checker_resolution_metadata_constructed.c || {
+  echo "[type-resolution-resolver-inventory] constructed metadata owner lost GenericParams accessor seam" >&2
+  exit 1
+}
+
+for generic_owner in \
+  src/semantic/type_checker_generic_support.h \
+  src/semantic/type_checker_generic_contracts.h \
+  src/semantic/type_checker_ability_ref.c \
+  src/semantic/type_checker_ability_match.c \
+  src/semantic/type_checker_ability_where.c; do
+  if grep -nE '(^|[^A-Za-z0-9_])(params|provided_args|decl_params|generic_args|gp|lhs_args|rhs_args|decl_gp|provided_gp)->(count|params|name|constraint|default_type)\b' \
+    "$generic_owner"; then
+    echo "[type-resolution-resolver-inventory] $generic_owner reopened GenericParams storage directly" >&2
+    exit 1
+  fi
+done
+
+grep -q 'ast_generic_param_count' \
+  src/semantic/type_checker_generic_support.h || {
+  echo "[type-resolution-resolver-inventory] generic support lost GenericParams accessor seam" >&2
+  exit 1
+}
+
+if grep -nE 'ast_type_generic_args\([^)]*\)->(count|params)\b' \
+  src/semantic/type_checker_generic_contracts.h; then
+  echo "[type-resolution-resolver-inventory] generic contracts reopened type generic-args storage directly" >&2
+  exit 1
+fi
+
+if grep -nE '(^|[^A-Za-z0-9_])(gp|param)->(count|params|name|constraint|default_type)\b' \
+  src/semantic/type_checker_generic_validation.c; then
+  echo "[type-resolution-resolver-inventory] generic validation reopened GenericParams storage directly" >&2
+  exit 1
+fi
+
+grep -q 'ast_generic_param_default_type' \
+  src/semantic/type_checker_generic_validation.c || {
+  echo "[type-resolution-resolver-inventory] generic validation lost GenericParams accessor seam" >&2
+  exit 1
+}
+
+for generic_decl_owner in \
+  src/semantic/type_checker_ability_decl.c \
+  src/semantic/type_checker_class_decl.c \
+  src/semantic/type_checker_func_decl.c \
+  src/semantic/type_checker_call_generic_where.c; do
+  if grep -nE '(^|[^A-Za-z0-9_])(ability_generics|class_generics|func_generics|decl_gp|gp)->(count|params|name|constraint|default_type)\b' \
+    "$generic_decl_owner"; then
+    echo "[type-resolution-resolver-inventory] $generic_decl_owner reopened GenericParams storage directly" >&2
+    exit 1
+  fi
+done
+
+for generic_contract_owner in \
+  src/semantic/type_checker_module_contract.c \
+  src/semantic/type_checker_intent_role_fields.c \
+  src/semantic/type_checker_resolution_graph_collect.c \
+  src/semantic/type_checker_party_decl.c \
+  src/semantic/type_checker_call_constructor.c \
+  src/semantic/type_checker_role_decl.c \
+  src/semantic/type_checker_roster_decl.c \
+  src/semantic/type_checker_helpers_late.c; do
+  if grep -nE '(^|[^A-Za-z0-9_])(ability_generics|ability_args|generic_args|generic_params|class_generics|role_generics|included_generics|impl_type_args|decl_params|callable_generic_params|gp|param)->(count|params|name|constraint|default_type)\b' \
+    "$generic_contract_owner"; then
+    echo "[type-resolution-resolver-inventory] $generic_contract_owner reopened GenericParams storage directly" >&2
+    exit 1
+  fi
+done
+
+for generic_stage_owner in \
+  src/semantic/type_checker_resolution_stage_nominal.c \
+  src/semantic/type_checker_resolution_stage_signature.c \
+  src/semantic/type_checker_resolution_metadata.c \
+  src/semantic/type_checker_resolution_metadata_alias.c \
+  src/semantic/type_checker_resolution_metadata_dead_end.c \
+  src/semantic/type_checker_resolution_metadata_diagnostics.c \
+  src/semantic/type_checker_resolution_graph_decl.c; do
+  if grep -nE '(^|[^A-Za-z0-9_])(gp|generic_params|class_generics|args|args_node|type_args|arg)->(count|params|name|constraint|default_type)\b' \
+    "$generic_stage_owner"; then
+    echo "[type-resolution-resolver-inventory] $generic_stage_owner reopened GenericParams storage directly" >&2
+    exit 1
+  fi
+done
+
+if grep -nE 'ast_type_generic_args\([^)]*\)->(count|params)\b' \
+  src/semantic/type_checker_resolution_metadata.c \
+  src/semantic/type_checker_resolution_metadata_alias.c \
+  src/semantic/type_checker_resolution_metadata_dead_end.c \
+  src/semantic/type_checker_resolution_metadata_diagnostics.c; then
+  echo "[type-resolution-resolver-inventory] metadata owner reopened type generic-args storage directly" >&2
+  exit 1
+fi
+
+if grep -nE 'ast_type_generic_args\([^)]*\)->(count|params)\b' \
+  src/semantic/type_checker_module_contract.c \
+  src/semantic/type_checker_resolution_graph_collect.c; then
+  echo "[type-resolution-resolver-inventory] generic contract/graph owner reopened type generic-args storage directly" >&2
+  exit 1
+fi
+
+if grep -RInE 'ast_type_generic_args\([^)]*\)->(count|params)|[A-Za-z0-9_]+->params\[[^]]+\]|[A-Za-z0-9_]+->default_type' \
+  src/semantic; then
+  echo "[type-resolution-resolver-inventory] semantic reopened GenericParams storage directly" >&2
+  exit 1
+fi
+
+if grep -RInE 'ast_type_generic_args\([^)]*\)->(count|params)|(^|[^A-Za-z0-9_])(generic_args|generic_params|ability_generics|return_generic_args|resolved_generic_args|gp|ga)->(count|params)|->default_type|->constraint' \
+  src/compiler src/codegen; then
+  echo "[type-resolution-resolver-inventory] compiler/codegen reopened GenericParams storage directly" >&2
+  exit 1
+fi
+
 grep -q 'typedef struct TypeNameSlot' \
   src/semantic/type_checker_resolution_metadata.c || {
   echo "[type-resolution-resolver-inventory] metadata builtin/shell lookup lost dispatch-table entry type" >&2
@@ -575,7 +695,7 @@ for needle in \
   'stable_slot_shell_create' \
   'type_node->type == AST_EVENT_HANDLER_TYPE' \
   'type_create_function(param_types, param_count, return_type)' \
-  'type_node->data.type.tuple_elements != NULL' \
+  'ast_type_tuple_element_count(type_node) > 0' \
   'type_create_tuple(elements, element_count)' \
   'TYPE_LONG' \
   'TYPE_BOOL'; do
@@ -621,7 +741,7 @@ for needle in \
   'case AST_FUTURE_TYPE:' \
   'case AST_EVENT_HANDLER_TYPE:' \
   'semantic_type_resolution_try_record_stable_constructed_type(ctx, type_node)' \
-  'type_node->data.type.tuple_elements != NULL'; do
+  'ast_type_tuple_element_count(type_node) > 0'; do
   grep -q "$needle" src/semantic/type_checker_resolution_graph_collect.c || {
     echo "[type-resolution-resolver-inventory] graph collect materializer coverage missing: $needle" >&2
     exit 1

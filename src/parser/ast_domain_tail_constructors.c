@@ -149,6 +149,30 @@ ASTNode* ast_create_context_access(const char* method_name, const char* slot_nam
     return node;
 }
 
+const char*
+ast_context_access_method_name(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_CONTEXT_ACCESS)
+        return NULL;
+    return node->data.context_access.method_name;
+}
+
+const char*
+ast_context_access_role_slot_name(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_CONTEXT_ACCESS)
+        return NULL;
+    return node->data.context_access.role_slot_name;
+}
+
+ASTNode*
+ast_context_access_ability_type(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_CONTEXT_ACCESS)
+        return NULL;
+    return node->data.context_access.ability_type;
+}
+
 // Party instance creation
 ASTNode* ast_create_party_instance(const char* party_type) {
     ASTNode* node = ast_create_node(AST_PARTY_INSTANCE);
@@ -156,6 +180,40 @@ ASTNode* ast_create_party_instance(const char* party_type) {
     node->data.party_instance.assignments = NULL;
     node->data.party_instance.assignment_count = 0;
     return node;
+}
+
+const char*
+ast_party_instance_party_type(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_PARTY_INSTANCE)
+        return NULL;
+    return node->data.party_instance.party_type;
+}
+
+size_t
+ast_party_instance_assignment_count(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_PARTY_INSTANCE)
+        return 0;
+    return node->data.party_instance.assignment_count;
+}
+
+const char*
+ast_party_instance_assignment_slot_name(const ASTNode* node, size_t index)
+{
+    if (node == NULL || node->type != AST_PARTY_INSTANCE
+        || index >= node->data.party_instance.assignment_count)
+        return NULL;
+    return node->data.party_instance.assignments[index].slot_name;
+}
+
+ASTNode*
+ast_party_instance_assignment_value(const ASTNode* node, size_t index)
+{
+    if (node == NULL || node->type != AST_PARTY_INSTANCE
+        || index >= node->data.party_instance.assignment_count)
+        return NULL;
+    return node->data.party_instance.assignments[index].value;
 }
 
 // Event declaration

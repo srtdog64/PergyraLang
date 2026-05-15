@@ -1,6 +1,7 @@
 #ifdef PGY_LLVM_ENABLED
 #include "llvm_internal.h"
 #include "codegen_slot_type_policy.h"
+#include "parser/ast_api.h"
 
 static char *
 llvm_stmt_first_call_type_arg_name(ASTNode *call)
@@ -13,8 +14,8 @@ llvm_stmt_first_call_type_arg_name(ASTNode *call)
         return NULL;
     }
     param = ast_call_generic_arg(call, 0);
-    if (param->constraint != NULL
-        && param->constraint->type == AST_TYPE) {
+    ASTNode *constraint = ast_generic_param_constraint(param);
+    if (constraint != NULL && constraint->type == AST_TYPE) {
         return llvm_stmt_render_type_arg(param);
     }
     return llvm_stmt_render_type_arg(param);
@@ -83,9 +84,9 @@ llvm_stmt_emit_claim_slot_let(ASTNode *node, LLVMGenCtx *ctx)
     if (node == NULL || node->type != AST_LET_DECL || ctx == NULL)
         return false;
 
-    name = node->data.let_decl.name;
-    type_ann = node->data.let_decl.type;
-    init = node->data.let_decl.initializer;
+    name = ast_let_name(node);
+    type_ann = ast_let_type(node);
+    init = ast_let_initializer(node);
 
     if (init == NULL || init->type != AST_CALL
         || ast_call_callee(init) == NULL
@@ -93,18 +94,16 @@ llvm_stmt_emit_claim_slot_let(ASTNode *node, LLVMGenCtx *ctx)
         return false;
     }
 
-    const char *callee = ast_call_callee(init)->data.identifier.name;
+    const char *callee = ast_identifier_name(ast_call_callee(init));
     if (pgy_codegen_call_name_is_claim_slot(callee)
         || pgy_codegen_call_name_is_claim_secure_slot(callee)) {
         char *inner = NULL;
         bool is_secure = pgy_codegen_call_name_is_claim_secure_slot(callee);
         GenericParams *generic_args = ast_type_generic_args(type_ann);
+        GenericParam *inner_param = ast_generic_param_at(generic_args, 0);
         if (type_ann != NULL && type_ann->type == AST_TYPE
-            && generic_args != NULL
-            && generic_args->count > 0
-            && generic_args->params[0] != NULL) {
-            inner = llvm_stmt_render_type_arg(
-                generic_args->params[0]);
+            && inner_param != NULL) {
+            inner = llvm_stmt_render_type_arg(inner_param);
         }
         if (inner == NULL)
             inner = llvm_stmt_first_call_type_arg_name(init);
@@ -141,12 +140,10 @@ llvm_stmt_emit_claim_slot_let(ASTNode *node, LLVMGenCtx *ctx)
     if (pgy_codegen_call_name_is_claim_device_slot(callee)) {
         char *inner = NULL;
         GenericParams *generic_args = ast_type_generic_args(type_ann);
+        GenericParam *inner_param = ast_generic_param_at(generic_args, 0);
         if (type_ann != NULL && type_ann->type == AST_TYPE
-            && generic_args != NULL
-            && generic_args->count > 0
-            && generic_args->params[0] != NULL) {
-            inner = llvm_stmt_render_type_arg(
-                generic_args->params[0]);
+            && inner_param != NULL) {
+            inner = llvm_stmt_render_type_arg(inner_param);
         }
         if (inner == NULL) {
             llvm_set_error_at_with_hints(ctx, node,

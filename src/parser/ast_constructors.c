@@ -80,6 +80,33 @@ ASTNode* ast_create_program(void) {
     return node;
 }
 
+size_t
+ast_program_statement_count(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_PROGRAM)
+        return 0;
+    return node->data.program.count;
+}
+
+ASTNode**
+ast_program_statements(const ASTNode* node, size_t* count_out)
+{
+    if (count_out != NULL)
+        *count_out = ast_program_statement_count(node);
+    if (node == NULL || node->type != AST_PROGRAM)
+        return NULL;
+    return node->data.program.statements;
+}
+
+ASTNode*
+ast_program_statement(const ASTNode* node, size_t index)
+{
+    if (node == NULL || node->type != AST_PROGRAM
+        || index >= node->data.program.count)
+        return NULL;
+    return node->data.program.statements[index];
+}
+
 // Function declaration
 ASTNode* ast_create_function(const char* name) {
     ASTNode* node = ast_create_node(AST_FUNC_DECL);
@@ -300,6 +327,30 @@ ASTNode* ast_create_bind_statement(const char* party_var, const char* slot_name,
     node->data.bind_stmt.slot_name = pergyra_strdup(slot_name);
     node->data.bind_stmt.role_name = pergyra_strdup(role_name);
     return node;
+}
+
+const char*
+ast_bind_statement_party_var(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_BIND_STMT)
+        return NULL;
+    return node->data.bind_stmt.party_var;
+}
+
+const char*
+ast_bind_statement_slot_name(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_BIND_STMT)
+        return NULL;
+    return node->data.bind_stmt.slot_name;
+}
+
+const char*
+ast_bind_statement_role_name(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_BIND_STMT)
+        return NULL;
+    return node->data.bind_stmt.role_name;
 }
 
 // If statement

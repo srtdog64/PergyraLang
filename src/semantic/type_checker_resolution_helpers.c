@@ -11,8 +11,8 @@ find_type_alias_decl(ASTNode *program, const char *name)
     if (program == NULL || program->type != AST_PROGRAM || name == NULL)
         return NULL;
 
-    for (size_t i = 0; i < program->data.program.count; i++) {
-        ASTNode *stmt = program->data.program.statements[i];
+    for (size_t i = 0; i < ast_program_statement_count(program); i++) {
+        ASTNode *stmt = ast_program_statement(program, i);
         const char *alias_name = ast_type_alias_name(stmt);
         if (stmt == NULL || stmt->type != AST_TYPE_ALIAS
             || alias_name == NULL) {
@@ -76,9 +76,9 @@ semantic_format_function_signature(const Type *type, char *out, size_t out_cap)
         return;
 
     pos = pergyra_str_append(out, out_cap, "fn(");
-    for (size_t i = 0; i < type->data.function.param_count; i++) {
+    for (size_t i = 0; i < type_function_param_count(type); i++) {
         const char *param_name =
-            type_name_or_unknown(type->data.function.param_types[i]);
+            type_name_or_unknown(type_function_param_type(type, i));
         if (i > 0)
             pos = pergyra_str_append(out, out_cap, ", ");
         pos = pergyra_str_append(out, out_cap, param_name);
@@ -87,7 +87,7 @@ semantic_format_function_signature(const Type *type, char *out, size_t out_cap)
     }
     if (pos < out_cap)
         (void)pergyra_str_appendf(out, out_cap, ")->%s",
-                                  type_name_or_unknown(type->data.function.return_type));
+                                  type_name_or_unknown(type_function_return_type(type)));
 }
 
 static const char *
@@ -98,7 +98,7 @@ root_identifier_name(ASTNode *expr)
 
     switch (expr->type) {
     case AST_IDENTIFIER:
-        return expr->data.identifier.name;
+        return ast_identifier_name(expr);
     case AST_MEMBER_ACCESS:
         return root_identifier_name(ast_member_object(expr));
     case AST_ARRAY_ACCESS:

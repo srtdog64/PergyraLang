@@ -84,14 +84,13 @@ stable_constructed_type_node_is_builtin_constructed(const ASTNode *type_node)
     }
     if (type_node->type != AST_TYPE)
         return false;
-    if (type_node->data.type.tuple_elements != NULL
-        && type_node->data.type.tuple_element_count > 0) {
+    if (ast_type_tuple_element_count(type_node) > 0) {
         return true;
     }
     name = ast_type_name(type_node);
     if (name == NULL || ast_type_generic_args(type_node) == NULL)
         return false;
-    argc = ast_type_generic_args(type_node)->count;
+    argc = ast_generic_param_count(ast_type_generic_args(type_node));
     if (semantic_type_resolution_metadata_stable_constructed_shell(name, argc)
         != NULL) {
         return true;
@@ -108,21 +107,22 @@ stable_constructed_resolve_arg(SemanticContext *ctx,
 
     if (ctx == NULL || gp == NULL)
         return NULL;
-    if (gp->constraint != NULL) {
+    ASTNode *constraint = ast_generic_param_constraint(gp);
+    if (constraint != NULL) {
         resolved = semantic_type_resolution_lookup_metadata_type_ref(ctx,
-                                                                     gp->constraint);
+                                                                     constraint);
         if (resolved != NULL)
             return resolved;
-        if (stable_constructed_type_node_is_builtin_constructed(gp->constraint)) {
+        if (stable_constructed_type_node_is_builtin_constructed(constraint)) {
             semantic_type_resolution_try_record_stable_constructed_type(
-                ctx, gp->constraint);
+                ctx, constraint);
             return semantic_type_resolution_lookup_metadata_type_ref(
-                ctx, gp->constraint);
+                ctx, constraint);
         }
         return NULL;
     }
     resolved = semantic_type_resolution_lookup_metadata_name_or_alias(ctx,
-                                                                      gp->name);
+                                                                      ast_generic_param_name(gp));
     return resolved != TYPE_UNKNOWN ? resolved : NULL;
 }
 
@@ -154,16 +154,16 @@ try_record_generic_class_constructed_type(SemanticContext *ctx,
     class_decl = find_type_decl_by_name(ctx->program_root, name);
     GenericParams *decl_params = ast_class_generic_params(class_decl);
     if (class_decl == NULL || class_decl->type != AST_CLASS_DECL
-        || decl_params == NULL || decl_params->count == 0)
+        || ast_generic_param_count(decl_params) == 0)
         return;
 
     provided_count = ast_type_generic_args(type_node) != NULL
-        ? ast_type_generic_args(type_node)->count
+        ? ast_generic_param_count(ast_type_generic_args(type_node))
         : 0;
     if (provided_count == 0) {
-        for (size_t i = 0; i < decl_params->count; i++) {
-            GenericParam *param = decl_params->params[i];
-            if (param == NULL || param->default_type == NULL)
+        for (size_t i = 0; i < ast_generic_param_count(decl_params); i++) {
+            GenericParam *param = ast_generic_param_at(decl_params, i);
+            if (param == NULL || ast_generic_param_default_type(param) == NULL)
                 return;
         }
     }
@@ -227,8 +227,8 @@ semantic_type_resolution_try_record_stable_constructed_type(SemanticContext *ctx
 
     if (type_node->type == AST_CHANNEL_TYPE || type_node->type == AST_FUTURE_TYPE) {
         ASTNode *inner_node = type_node->type == AST_CHANNEL_TYPE
-            ? type_node->data.channel_type.element_type
-            : type_node->data.future_type.value_type;
+            ? ast_channel_type_element_type(type_node)
+            : ast_future_type_value_type(type_node);
         Type *inner = semantic_type_resolution_lookup_metadata_type_ref(
             ctx, inner_node);
         Type *shell;
@@ -285,16 +285,15 @@ semantic_type_resolution_try_record_stable_constructed_type(SemanticContext *ctx
         return;
 
     args_node = ast_type_generic_args(type_node);
-    if ((args_node == NULL || args_node->count == 0)
+    if ((args_node == NULL || ast_generic_param_count(args_node) == 0)
         && ast_type_name(type_node) != NULL) {
         try_record_generic_class_constructed_type(ctx, type_node);
         if (semantic_type_resolution_lookup_resolved_type(ctx, type_node) != NULL)
             return;
     }
 
-    if (type_node->data.type.tuple_elements != NULL
-        && type_node->data.type.tuple_element_count > 0) {
-        size_t element_count = type_node->data.type.tuple_element_count;
+    if (ast_type_tuple_element_count(type_node) > 0) {
+        size_t element_count = ast_type_tuple_element_count(type_node);
         Type **elements;
         Type *shell;
 
@@ -305,7 +304,7 @@ semantic_type_resolution_try_record_stable_constructed_type(SemanticContext *ctx
             return;
         for (size_t i = 0; i < element_count; i++) {
             elements[i] = semantic_type_resolution_lookup_metadata_type_ref(
-                ctx, type_node->data.type.tuple_elements[i]);
+                ctx, ast_type_tuple_element(type_node, i));
             if (elements[i] == NULL) {
                 free(elements);
                 return;
@@ -328,11 +327,12 @@ semantic_type_resolution_try_record_stable_constructed_type(SemanticContext *ctx
         args_node = ast_type_generic_args(type_node);
         if (slot_spec == NULL)
             return;
-        if (args_node == NULL || args_node->count != 1)
+        if (args_node == NULL || ast_generic_param_count(args_node) != 1)
             return;
-        if (args_node->params[0] == NULL)
+        if (ast_generic_param_at(args_node, 0) == NULL)
             return;
-        inner = stable_constructed_resolve_arg(ctx, args_node->params[0]);
+        inner = stable_constructed_resolve_arg(ctx,
+                                               ast_generic_param_at(args_node, 0));
         if (inner == NULL)
             return;
 
@@ -342,19 +342,22 @@ semantic_type_resolution_try_record_stable_constructed_type(SemanticContext *ctx
         return;
     }
 
-    if (args_node == NULL || args_node->count == 0 || args_node->count > 2)
+    if (args_node == NULL
+        || ast_generic_param_count(args_node) == 0
+        || ast_generic_param_count(args_node) > 2)
         return;
 
     constructor = semantic_type_resolution_metadata_stable_constructed_shell(
         ast_type_name(type_node),
-        args_node->count);
+        ast_generic_param_count(args_node));
     if (constructor == NULL) {
         try_record_generic_class_constructed_type(ctx, type_node);
         return;
     }
 
-    for (size_t i = 0; i < args_node->count; i++) {
-        args[i] = stable_constructed_resolve_arg(ctx, args_node->params[i]);
+    for (size_t i = 0; i < ast_generic_param_count(args_node); i++) {
+        args[i] = stable_constructed_resolve_arg(
+            ctx, ast_generic_param_at(args_node, i));
         if (args[i] == NULL)
             return;
     }
@@ -364,7 +367,9 @@ semantic_type_resolution_try_record_stable_constructed_type(SemanticContext *ctx
         return;
     }
 
-    result = type_create_constructed(constructor, args, args_node->count);
+    result = type_create_constructed(constructor,
+                                     args,
+                                     ast_generic_param_count(args_node));
     if (result == NULL)
         return;
     semantic_type_resolution_record_owned_resolved_type(ctx, type_node, result);

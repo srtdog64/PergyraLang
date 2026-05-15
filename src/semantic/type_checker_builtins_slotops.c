@@ -34,7 +34,7 @@ type_check_move_token(ASTNode *call, SemanticContext *ctx)
         return TYPE_UNKNOWN;
     }
 
-    Symbol *sym = scope_lookup(ctx->scope, slot_arg->data.identifier.name);
+    Symbol *sym = scope_lookup(ctx->scope, ast_identifier_name(slot_arg));
     Type *slot_type = sym != NULL ? sym->type : TYPE_UNKNOWN;
     if (!type_is_owned_slot_handle(slot_type)) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, slot_arg,
@@ -78,8 +78,8 @@ type_check_move_token(ASTNode *call, SemanticContext *ctx)
     }
 
     scope_release_slot(ctx->scope, sym->name);
-    return type_create_slot_access(slot_type->data.slot.inner_type,
-        slot_type->data.slot.is_secure, SLOT_ACCESS_MOVE_TOKEN);
+    return type_create_slot_access(type_slot_inner_type(slot_type),
+        type_slot_is_secure(slot_type), SLOT_ACCESS_MOVE_TOKEN);
 }
 
 bool
@@ -96,7 +96,7 @@ type_check_write_slot(ASTNode *call, SemanticContext *ctx)
     ASTNode *slot_arg = ast_call_argument(call, 0);
     if (slot_arg != NULL && slot_arg->type == AST_IDENTIFIER) {
         Symbol *target_sym = scope_lookup(ctx->scope,
-            slot_arg->data.identifier.name);
+            ast_identifier_name(slot_arg));
         if (target_sym != NULL && target_sym->kind == SYMBOL_SLOT) {
             const char *active_view_name = NULL;
             const char *active_view_kind = NULL;
@@ -148,17 +148,17 @@ type_check_write_slot(ASTNode *call, SemanticContext *ctx)
         return false;
     }
 
-    if (slot_type->data.slot.is_secure)
+    if (type_slot_is_secure(slot_type))
         semantic_record_effect(ctx, EFFECT_SECURE);
 
-    if (ctx->in_parallel && slot_type->data.slot.is_secure) {
+    if (ctx->in_parallel && type_slot_is_secure(slot_type)) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_PARALLEL_SECURE_FORBIDDEN, PGY_CAUSE_PARALLEL_SECURE_IN_TASK, PGY_FIX_SERIALIZE_OUTSIDE_PARALLEL, slot_arg,
             "Parallel context does not permit SecureSlot access yet; serialize authority-bearing slot reads/writes/releases outside the parallel block");
         return false;
     }
 
     if (slot_arg->type == AST_IDENTIFIER) {
-        Symbol *sym = scope_lookup(ctx->scope, slot_arg->data.identifier.name);
+        Symbol *sym = scope_lookup(ctx->scope, ast_identifier_name(slot_arg));
         if (sym != NULL && sym->kind == SYMBOL_SLOT) {
             if (sym->slot_info.state == SLOT_STATE_RELEASED) {
                 semantic_error_with_hints(ctx,
@@ -206,7 +206,7 @@ type_check_write_slot(ASTNode *call, SemanticContext *ctx)
 
     ASTNode *value_arg = ast_call_argument(call, 1);
     Type *value_type = slotops_normalize_type(type_check_expression(value_arg, ctx));
-    Type *inner_type = slotops_normalize_type(slot_type->data.slot.inner_type);
+    Type *inner_type = slotops_normalize_type(type_slot_inner_type(slot_type));
 
     if (!type_is_assignable(value_type, inner_type)) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
@@ -260,17 +260,17 @@ type_check_read_slot(ASTNode *call, SemanticContext *ctx)
         return TYPE_UNKNOWN;
     }
 
-    if (slot_type->data.slot.is_secure)
+    if (type_slot_is_secure(slot_type))
         semantic_record_effect(ctx, EFFECT_SECURE);
 
-    if (ctx->in_parallel && slot_type->data.slot.is_secure) {
+    if (ctx->in_parallel && type_slot_is_secure(slot_type)) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_PARALLEL_SECURE_FORBIDDEN, PGY_CAUSE_PARALLEL_SECURE_IN_TASK, PGY_FIX_SERIALIZE_OUTSIDE_PARALLEL, slot_arg,
             "Parallel context does not permit SecureSlot access yet; serialize authority-bearing slot reads/writes/releases outside the parallel block");
         return TYPE_UNKNOWN;
     }
 
     if (slot_arg->type == AST_IDENTIFIER) {
-        Symbol *sym = scope_lookup(ctx->scope, slot_arg->data.identifier.name);
+        Symbol *sym = scope_lookup(ctx->scope, ast_identifier_name(slot_arg));
         if (sym != NULL && sym->kind == SYMBOL_SLOT) {
             if (sym->slot_info.state == SLOT_STATE_RELEASED) {
                 semantic_error_with_hints(ctx,
@@ -331,7 +331,7 @@ type_check_read_slot(ASTNode *call, SemanticContext *ctx)
         }
     }
 
-    return slotops_normalize_type(slot_type->data.slot.inner_type);
+    return slotops_normalize_type(type_slot_inner_type(slot_type));
 }
 
 bool
@@ -358,7 +358,7 @@ type_check_release_slot(ASTNode *call, SemanticContext *ctx)
 
     /* RemoteFuture has no Release ??it is consumed by await */
     if (slot_arg->type == AST_IDENTIFIER) {
-        Symbol *rsym = scope_lookup(ctx->scope, slot_arg->data.identifier.name);
+        Symbol *rsym = scope_lookup(ctx->scope, ast_identifier_name(slot_arg));
         if (rsym != NULL && rsym->type != NULL
             && type_is_constructed_named(rsym->type, "RemoteFuture")) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_REMOTE_FUTURE_MISUSE, PGY_CAUSE_REMOTE_FUTURE_DIRECT_ACCESS, PGY_FIX_AWAIT_FUTURE, slot_arg,
@@ -374,7 +374,7 @@ type_check_release_slot(ASTNode *call, SemanticContext *ctx)
         return false;
     }
 
-    const char *slot_name = slot_arg->data.identifier.name;
+    const char *slot_name = ast_identifier_name(slot_arg);
     Symbol *sym = scope_lookup(ctx->scope, slot_name);
 
     if (sym == NULL || sym->kind != SYMBOL_SLOT) {

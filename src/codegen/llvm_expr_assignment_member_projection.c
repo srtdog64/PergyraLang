@@ -40,7 +40,7 @@ llvm_emit_assignment(ASTNode *node, LLVMGenCtx *ctx)
             return llvm_assignment_error(ctx, node,
                 "LLVM indexed array assignment requires an identifier receiver");
         {
-            const char *name = array_node->data.identifier.name;
+            const char *name = ast_identifier_name(array_node);
             LLVMVarEntry *arr_var = llvm_scope_lookup(ctx, name);
             LLVMArrayVarEntry *entry = llvm_lookup_array_var(ctx, name);
             LLVMValueRef idx = llvm_emit_expression(
@@ -135,7 +135,7 @@ llvm_emit_assignment(ASTNode *node, LLVMGenCtx *ctx)
 
     const char *name = NULL;
     if (target->type == AST_IDENTIFIER)
-        name = target->data.identifier.name;
+        name = ast_identifier_name(target);
 
     if (name == NULL)
         return llvm_assignment_error(ctx, node,

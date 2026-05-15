@@ -27,6 +27,24 @@ run_literal_contract_smoke() {
     require_literal "src/compiler/driver_diag.c" "driver_diag_code_from_message"
     require_literal "src/compiler/driver_diag.c" "driver_diag_cause_from_code"
     require_literal "src/compiler/driver_diag.c" "driver_diag_fix_from_code"
+    require_literal "src/parser/parser_expr.c" "Optional chaining '?.' is reserved but not implemented."
+    require_literal "src/parser/parser_expr.c" "optional member provenance is not frozen"
+    require_literal "src/parser/parser_expr.c" "Slicing 'xs[a..b]' is reserved but not implemented."
+    require_literal "src/parser/parser_expr.c" "public slice ABI and ownership policy are not frozen"
+    require_literal "src/parser/parser_expr.c" "Object/map literal syntax '{ ... }' is reserved but not implemented."
+    require_literal "src/parser/parser_expr.c" "object/map literal ABI, field ownership, and collection key policy"
+    require_literal "src/parser/parser_expr.c" "Spread/rest syntax '...' is reserved but not implemented."
+    require_literal "src/parser/parser_expr.c" "spread/rest needs call ABI, ownership, and collection lowering policy"
+    require_literal "src/parser/parser_type.c" "Generic parameter placeholder '_' is reserved but not implemented."
+    require_literal "src/parser/parser_type.c" "generic parameter elision needs DAG-owned ambiguity diagnostics"
+    require_literal "src/parser/parser_type.c" "Generic/type argument elision '_' is reserved but not implemented."
+    require_literal "src/parser/parser_type.c" "type-argument elision must be backed by DAG evidence"
+    require_literal "src/parser/parser_statement_dispatch.c" "Attribute syntax '@...' is reserved but not implemented."
+    require_literal "src/parser/parser_statement_dispatch.c" "attribute metadata ownership is not frozen"
+    require_literal "src/parser/parser_decl.c" "Default value arguments are reserved but not implemented."
+    require_literal "src/parser/parser_decl.c" "value defaults need call ABI, overload/dispatch, and named-argument interaction policy"
+    require_literal "src/parser/parser_async.c" "value defaults need call ABI, overload/dispatch, and named-argument interaction policy"
+    require_literal "src/parser/parser_expr_lambda.c" "value defaults need call ABI, overload/dispatch, and named-argument interaction policy"
     echo "[parser-lexer-diagnostic] stage codes and routing are source-gated (literal fallback)"
 }
 
@@ -95,6 +113,42 @@ for literal in ("driver_diag_code_from_message", "driver_diag_cause_from_code",
                 "driver_diag_fix_from_code", '"lex"', '"parse"'):
     if literal not in driver_text:
         violations.append(f"driver diagnostic owners missing parser/lexer JSON routing term {literal}")
+
+parser_expr = (root / "src" / "parser" / "parser_expr.c").read_text(encoding="utf-8", errors="ignore")
+parser_type = (root / "src" / "parser" / "parser_type.c").read_text(encoding="utf-8", errors="ignore")
+parser_stmt = (root / "src" / "parser" / "parser_statement_dispatch.c").read_text(encoding="utf-8", errors="ignore")
+parser_decl = (root / "src" / "parser" / "parser_decl.c").read_text(encoding="utf-8", errors="ignore")
+parser_async = (root / "src" / "parser" / "parser_async.c").read_text(encoding="utf-8", errors="ignore")
+parser_lambda = (root / "src" / "parser" / "parser_expr_lambda.c").read_text(encoding="utf-8", errors="ignore")
+reserved_expr_terms = (
+    "Optional chaining '?.' is reserved but not implemented.",
+    "optional member provenance is not frozen",
+    "Slicing 'xs[a..b]' is reserved but not implemented.",
+    "public slice ABI and ownership policy are not frozen",
+    "Object/map literal syntax '{ ... }' is reserved but not implemented.",
+    "object/map literal ABI, field ownership, and collection key policy",
+    "Spread/rest syntax '...' is reserved but not implemented.",
+    "spread/rest needs call ABI, ownership, and collection lowering policy",
+)
+for literal in reserved_expr_terms:
+    if literal not in parser_expr:
+        violations.append(f"parser_expr.c missing reserved-syntax Reason/Fix term {literal}")
+
+reserved_other_terms = (
+    (parser_type, "parser_type.c", "Generic parameter placeholder '_' is reserved but not implemented."),
+    (parser_type, "parser_type.c", "generic parameter elision needs DAG-owned ambiguity diagnostics"),
+    (parser_type, "parser_type.c", "Generic/type argument elision '_' is reserved but not implemented."),
+    (parser_type, "parser_type.c", "type-argument elision must be backed by DAG evidence"),
+    (parser_stmt, "parser_statement_dispatch.c", "Attribute syntax '@...' is reserved but not implemented."),
+    (parser_stmt, "parser_statement_dispatch.c", "attribute metadata ownership is not frozen"),
+    (parser_decl, "parser_decl.c", "Default value arguments are reserved but not implemented."),
+    (parser_decl, "parser_decl.c", "value defaults need call ABI, overload/dispatch, and named-argument interaction policy"),
+    (parser_async, "parser_async.c", "value defaults need call ABI, overload/dispatch, and named-argument interaction policy"),
+    (parser_lambda, "parser_expr_lambda.c", "value defaults need call ABI, overload/dispatch, and named-argument interaction policy"),
+)
+for text, label, literal in reserved_other_terms:
+    if literal not in text:
+        violations.append(f"{label} missing reserved-syntax Reason/Fix term {literal}")
 
 if violations:
     raise SystemExit("parser/lexer diagnostic smoke violations:\n" + "\n".join(violations))

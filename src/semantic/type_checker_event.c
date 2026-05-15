@@ -6,8 +6,8 @@ semantic_event_expr_name(ASTNode *expr)
 {
     if (expr == NULL)
         return "<event>";
-    if (expr->type == AST_IDENTIFIER && expr->data.identifier.name != NULL)
-        return expr->data.identifier.name;
+    if (expr->type == AST_IDENTIFIER && ast_identifier_name(expr) != NULL)
+        return ast_identifier_name(expr);
     if (expr->type == AST_MEMBER_ACCESS && ast_member_name(expr) != NULL)
         return ast_member_name(expr);
     return "<event>";
@@ -44,18 +44,18 @@ type_check_event_decl(ASTNode *node, SemanticContext *ctx)
             continue;
         }
 
-        if (param->data.let_decl.type == NULL) {
+        if (ast_let_type(param) == NULL) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_EVENT_CONTRACT_INVALID,
                 PGY_CAUSE_EVENT_SIGNATURE, PGY_FIX_ALIGN_EVENT_SIGNATURE, param,
                 "Event '%s' parameter '%s' requires an explicit type",
                 event_name != NULL ? event_name : "<event>",
-                param->data.let_decl.name != NULL
-                    ? param->data.let_decl.name : "<param>");
+                ast_let_name(param) != NULL
+                    ? ast_let_name(param) : "<param>");
             ok = false;
             continue;
         }
 
-        if (domain_resolve_type_ref(param->data.let_decl.type, ctx) == NULL)
+        if (domain_resolve_type_ref(ast_let_type(param), ctx) == NULL)
             ok = false;
     }
 
@@ -93,12 +93,17 @@ type_check_event_subscription(ASTNode *node, SemanticContext *ctx,
     Type *handler_type;
     const char *event_name;
     bool ok = true;
+    ASTNode *event_node;
+    ASTNode *handler_node;
 
     if (node == NULL || ctx == NULL)
         return false;
 
-    if (node->data.event_op.handler != NULL
-        && node->data.event_op.handler->type == AST_LAMBDA_EXPR
+    event_node = ast_event_op_event(node);
+    handler_node = ast_event_op_handler(node);
+
+    if (handler_node != NULL
+        && handler_node->type == AST_LAMBDA_EXPR
         && semantic_reject_active_slot_view_boundary(node, ctx,
             "event callback boundary",
             "event lambda handlers may run after the current synchronous frame advances",
@@ -107,26 +112,26 @@ type_check_event_subscription(ASTNode *node, SemanticContext *ctx,
     }
 
     event_type = semantic_event_normalize_type(
-        type_check_expression(node->data.event_op.event, ctx));
+        type_check_expression(event_node, ctx));
     handler_type = semantic_event_normalize_type(
-        semantic_event_handler_signature(node->data.event_op.handler, ctx));
-    event_name = semantic_event_expr_name(node->data.event_op.event);
+        semantic_event_handler_signature(handler_node, ctx));
+    event_name = semantic_event_expr_name(event_node);
 
     if (event_type->kind != TYPE_KIND_FUNCTION) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_EVENT_CONTRACT_INVALID,
             PGY_CAUSE_EVENT_SIGNATURE, PGY_FIX_ALIGN_EVENT_SIGNATURE,
-            node->data.event_op.event,
+            event_node,
             "Event %s target '%s' must be an event-compatible callable",
             op_name != NULL ? op_name : "operation",
             event_name);
         return false;
     }
 
-    if (event_type->data.function.return_type != NULL
-        && !type_equals(event_type->data.function.return_type, TYPE_VOID)) {
+    if (type_function_return_type(event_type) != NULL
+        && !type_equals(type_function_return_type(event_type), TYPE_VOID)) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_EVENT_CONTRACT_INVALID,
             PGY_CAUSE_EVENT_SIGNATURE, PGY_FIX_ALIGN_EVENT_SIGNATURE,
-            node->data.event_op.event,
+            event_node,
             "Event '%s' must return Void to support %s",
             event_name, op_name != NULL ? op_name : "subscription");
         ok = false;
@@ -135,40 +140,40 @@ type_check_event_subscription(ASTNode *node, SemanticContext *ctx,
     if (handler_type->kind != TYPE_KIND_FUNCTION) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_EVENT_CONTRACT_INVALID,
             PGY_CAUSE_EVENT_SIGNATURE, PGY_FIX_ALIGN_EVENT_SIGNATURE,
-            node->data.event_op.handler,
+            handler_node,
             "Event %s handler for '%s' must be a function or typed lambda",
             op_name != NULL ? op_name : "operation",
             event_name);
         return false;
     }
 
-    if (handler_type->data.function.return_type != NULL
-        && !type_equals(handler_type->data.function.return_type, TYPE_VOID)) {
+    if (type_function_return_type(handler_type) != NULL
+        && !type_equals(type_function_return_type(handler_type), TYPE_VOID)) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_EVENT_CONTRACT_INVALID,
             PGY_CAUSE_EVENT_SIGNATURE, PGY_FIX_ALIGN_EVENT_SIGNATURE,
-            node->data.event_op.handler,
+            handler_node,
             "Event %s handler for '%s' must return Void, got '%s'",
             op_name != NULL ? op_name : "operation",
             event_name,
-            type_name_or_unknown(handler_type->data.function.return_type));
+            type_name_or_unknown(type_function_return_type(handler_type)));
         ok = false;
     }
 
-    if (event_type->data.function.param_count != handler_type->data.function.param_count) {
+    if (type_function_param_count(event_type) != type_function_param_count(handler_type)) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_EVENT_CONTRACT_INVALID,
             PGY_CAUSE_EVENT_SIGNATURE, PGY_FIX_ALIGN_EVENT_SIGNATURE,
-            node->data.event_op.handler,
+            handler_node,
             "Event %s handler for '%s' has parameter count mismatch: expected %llu, got %llu",
             op_name != NULL ? op_name : "operation",
             event_name,
-            (unsigned long long)event_type->data.function.param_count,
-            (unsigned long long)handler_type->data.function.param_count);
+            (unsigned long long)type_function_param_count(event_type),
+            (unsigned long long)type_function_param_count(handler_type));
         return false;
     }
 
-    for (size_t i = 0; i < event_type->data.function.param_count; i++) {
-        Type *expected = event_type->data.function.param_types[i];
-        Type *actual = handler_type->data.function.param_types[i];
+    for (size_t i = 0; i < type_function_param_count(event_type); i++) {
+        Type *expected = type_function_param_type(event_type, i);
+        Type *actual = type_function_param_type(handler_type, i);
 
         if (expected == NULL || actual == NULL
             || expected == TYPE_UNKNOWN || actual == TYPE_UNKNOWN) {
@@ -178,7 +183,7 @@ type_check_event_subscription(ASTNode *node, SemanticContext *ctx,
         if (!type_equals(expected, actual)) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_EVENT_CONTRACT_INVALID,
                 PGY_CAUSE_EVENT_SIGNATURE, PGY_FIX_ALIGN_EVENT_SIGNATURE,
-                node->data.event_op.handler,
+                handler_node,
                 "Event %s handler for '%s' parameter %llu mismatch: expected '%s', got '%s'",
                 op_name != NULL ? op_name : "operation",
                 event_name,
@@ -198,37 +203,39 @@ type_check_event_invoke_stmt(ASTNode *node, SemanticContext *ctx)
     Type *event_type;
     const char *event_name;
     bool ok = true;
+    ASTNode *event_node;
 
     if (node == NULL || ctx == NULL || node->type != AST_EVENT_INVOKE)
         return false;
 
+    event_node = ast_event_invoke_event(node);
     event_type = semantic_event_normalize_type(
-        type_check_expression(node->data.event_invoke.event, ctx));
-    event_name = semantic_event_expr_name(node->data.event_invoke.event);
+        type_check_expression(event_node, ctx));
+    event_name = semantic_event_expr_name(event_node);
 
     if (event_type->kind != TYPE_KIND_FUNCTION) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_EVENT_CONTRACT_INVALID,
             PGY_CAUSE_EVENT_SIGNATURE, PGY_FIX_ALIGN_EVENT_SIGNATURE,
-            node->data.event_invoke.event,
+            event_node,
             "Event invoke target '%s' must be an event-compatible callable",
             event_name);
         return false;
     }
 
-    if (event_type->data.function.param_count != node->data.event_invoke.arg_count) {
+    if (type_function_param_count(event_type) != ast_event_invoke_arg_count(node)) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_EVENT_CONTRACT_INVALID,
             PGY_CAUSE_EVENT_SIGNATURE, PGY_FIX_ALIGN_EVENT_SIGNATURE, node,
             "Event '%s' invoke argument count mismatch: expected %llu, got %llu",
             event_name,
-            (unsigned long long)event_type->data.function.param_count,
-            (unsigned long long)node->data.event_invoke.arg_count);
+            (unsigned long long)type_function_param_count(event_type),
+            (unsigned long long)ast_event_invoke_arg_count(node));
         return false;
     }
 
-    for (size_t i = 0; i < node->data.event_invoke.arg_count; i++) {
-        Type *expected = event_type->data.function.param_types[i];
+    for (size_t i = 0; i < ast_event_invoke_arg_count(node); i++) {
+        Type *expected = type_function_param_type(event_type, i);
         Type *actual = semantic_event_normalize_type(
-            type_check_expression(node->data.event_invoke.arguments[i], ctx));
+            type_check_expression(ast_event_invoke_argument(node, i), ctx));
 
         if (expected == NULL || actual == NULL
             || expected == TYPE_UNKNOWN || actual == TYPE_UNKNOWN) {
@@ -238,7 +245,7 @@ type_check_event_invoke_stmt(ASTNode *node, SemanticContext *ctx)
         if (!type_is_assignable(actual, expected)) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_EVENT_CONTRACT_INVALID,
                 PGY_CAUSE_EVENT_SIGNATURE, PGY_FIX_ALIGN_EVENT_SIGNATURE,
-                node->data.event_invoke.arguments[i],
+                ast_event_invoke_argument(node, i),
                 "Event '%s' invoke argument %llu mismatch: expected '%s', got '%s'",
                 event_name,
                 (unsigned long long)(i + 1),

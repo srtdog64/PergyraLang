@@ -49,7 +49,7 @@ type_check_roster_decl(ASTNode *node, SemanticContext *ctx)
     }
 
     GenericParams *generic_params = ast_roster_generic_params(node);
-    if (generic_params != NULL && generic_params->count > 0) {
+    if (ast_generic_param_count(generic_params) > 0) {
         validate_generic_param_defaults(generic_params, ctx, node, "roster");
     }
 

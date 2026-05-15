@@ -141,8 +141,9 @@ llvm_render_type_name_scratch(ASTNode *type_node, PgyArena *arena)
         return pgy_arena_strdup(arena, "Void");
     if (ast_type_name(type_node) == NULL)
         return NULL;
-    if (ast_type_generic_args(type_node) == NULL
-        || ast_type_generic_args(type_node)->count == 0) {
+    GenericParams *generic_args = ast_type_generic_args(type_node);
+    size_t generic_count = ast_generic_param_count(generic_args);
+    if (generic_count == 0) {
         ASTNode **types = NULL;
         size_t type_count = 0;
         if (g_llvm_type_render_ctx != NULL) {
@@ -168,18 +169,19 @@ llvm_render_type_name_scratch(ASTNode *type_node, PgyArena *arena)
     char *result = pgy_arena_strdup(arena, ast_type_name(type_node));
     if (result == NULL)
         return NULL;
-    for (size_t i = 0; i < ast_type_generic_args(type_node)->count; i++) {
-        GenericParam *gp = ast_type_generic_args(type_node)->params[i];
+    for (size_t i = 0; i < generic_count; i++) {
+        GenericParam *gp = ast_generic_param_at(generic_args, i);
         char *arg_name = NULL;
         char *grown;
         size_t need;
 
         if (gp == NULL)
             return NULL;
-        if (gp->constraint != NULL)
-            arg_name = llvm_render_type_name_scratch(gp->constraint, arena);
-        else if (gp->name != NULL)
-            arg_name = pgy_arena_strdup(arena, gp->name);
+        if (ast_generic_param_constraint(gp) != NULL)
+            arg_name = llvm_render_type_name_scratch(
+                ast_generic_param_constraint(gp), arena);
+        else if (ast_generic_param_name(gp) != NULL)
+            arg_name = pgy_arena_strdup(arena, ast_generic_param_name(gp));
         else
             return NULL;
         if (arg_name == NULL || arg_name[0] == '\0')

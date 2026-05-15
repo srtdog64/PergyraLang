@@ -13,8 +13,8 @@ transpiler_seed_expr_identifier_mappings(const MIRBasicBlock *block,
     if (block == NULL || expr == NULL || ssa_map_out == NULL)
         return true;
 
-    if (expr->type == AST_IDENTIFIER && expr->data.identifier.name != NULL) {
-        const char *name = expr->data.identifier.name;
+    if (expr->type == AST_IDENTIFIER && ast_identifier_name(expr) != NULL) {
+        const char *name = ast_identifier_name(expr);
         const char *mapped_value;
         if (transpiler_resolve_ssa_name(
                 (const TranspilerSSANameMap *)ssa_map_out, name) != NULL) {
@@ -102,10 +102,10 @@ transpiler_expr_identifiers_mapped(const TranspilerCtx *ctx,
 {
     if (expr == NULL)
         return true;
-    if (expr->type == AST_IDENTIFIER && expr->data.identifier.name != NULL) {
-        const char *name = expr->data.identifier.name;
+    if (expr->type == AST_IDENTIFIER && ast_identifier_name(expr) != NULL) {
+        const char *name = ast_identifier_name(expr);
         const char *existing_type = NULL;
-        if (transpiler_resolve_ssa_name(ssa_map, expr->data.identifier.name) != NULL)
+        if (transpiler_resolve_ssa_name(ssa_map, name) != NULL)
             return true;
         if (transpiler_name_is_token_local(name))
             return true;
@@ -136,7 +136,7 @@ transpiler_expr_identifiers_mapped(const TranspilerCtx *ctx,
                      "MIR contract breach in %s at line %u: unresolved identifier `%s` (expected SSA-mapped local)",
                      routine_name != NULL ? routine_name : "<routine>",
                      expr->line,
-                     expr->data.identifier.name);
+                     name);
         }
         return false;
     }
@@ -156,9 +156,9 @@ transpiler_expr_identifiers_mapped(const TranspilerCtx *ctx,
             size_t arg_count = ast_call_arg_count(expr);
             if (callee != NULL
                 && callee->type == AST_IDENTIFIER
-                && callee->data.identifier.name != NULL
-                && (strcmp(callee->data.identifier.name, "ToObject") == 0
-                    || strcmp(callee->data.identifier.name, "ToTObject") == 0)) {
+                && ast_identifier_name(callee) != NULL
+                && (strcmp(ast_identifier_name(callee), "ToObject") == 0
+                    || strcmp(ast_identifier_name(callee), "ToTObject") == 0)) {
                 for (size_t i = 1; i < arg_count; i++) {
                     if (!transpiler_expr_identifiers_mapped(ctx,
                                                            ast_call_argument(expr, i), ssa_map,
@@ -174,8 +174,8 @@ transpiler_expr_identifiers_mapped(const TranspilerCtx *ctx,
                     return false;
             } else if (callee != NULL
                        && callee->type == AST_IDENTIFIER
-                       && callee->data.identifier.name != NULL) {
-                const char *call_target = callee->data.identifier.name;
+                       && ast_identifier_name(callee) != NULL) {
+                const char *call_target = ast_identifier_name(callee);
                 if (transpiler_resolve_ssa_name(ssa_map, call_target) != NULL
                     && !transpiler_expr_identifiers_mapped(ctx, callee, ssa_map,
                                                           routine_name, reason, reason_cap))

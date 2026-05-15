@@ -15,9 +15,9 @@ transpiler_select_case_has_receive_binding(ASTNode *node,
     if (node == NULL || base_name == NULL)
         return false;
     if (node->type == AST_BLOCK) {
-        for (size_t i = 0; i < node->data.block.count; i++) {
+        for (size_t i = 0; i < ast_block_statement_count(node); i++) {
             if (transpiler_select_case_has_receive_binding(
-                    node->data.block.statements[i], base_name)) {
+                    ast_block_statement(node, i), base_name)) {
                 return true;
             }
         }
@@ -28,8 +28,8 @@ transpiler_select_case_has_receive_binding(ASTNode *node,
         ASTNode *value = ast_assignment_value(node);
         return target != NULL
             && target->type == AST_IDENTIFIER
-            && target->data.identifier.name != NULL
-            && strcmp(target->data.identifier.name, base_name) == 0
+            && ast_identifier_name(target) != NULL
+            && strcmp(ast_identifier_name(target), base_name) == 0
             && value != NULL
             && value->type == AST_CHANNEL_RECV;
     }
@@ -42,17 +42,17 @@ transpiler_has_local_binding_in_block(ASTNode *body, const char *base_name)
     if (body == NULL || base_name == NULL)
         return false;
     if (body->type == AST_BLOCK) {
-        for (size_t i = 0; i < body->data.block.count; i++) {
+        for (size_t i = 0; i < ast_block_statement_count(body); i++) {
             if (transpiler_has_local_binding_in_block(
-                    body->data.block.statements[i], base_name)) {
+                    ast_block_statement(body, i), base_name)) {
                 return true;
             }
         }
         return false;
     }
     if (body->type == AST_LET_DECL
-        && body->data.let_decl.name != NULL
-        && strcmp(body->data.let_decl.name, base_name) == 0) {
+        && ast_let_name(body) != NULL
+        && strcmp(ast_let_name(body), base_name) == 0) {
         return true;
     }
     if (body->type == AST_WITH_STMT) {
@@ -114,9 +114,9 @@ transpiler_register_with_alias_bindings_in_block(TranspilerSSANameMap *ssa_map,
     if (ssa_map == NULL || body == NULL)
         return;
     if (body->type == AST_BLOCK) {
-        for (size_t i = 0; i < body->data.block.count; i++)
+        for (size_t i = 0; i < ast_block_statement_count(body); i++)
             transpiler_register_with_alias_bindings_in_block(ssa_map,
-                body->data.block.statements[i]);
+                ast_block_statement(body, i));
         return;
     }
     if (body->type == AST_WITH_STMT) {
@@ -128,8 +128,8 @@ transpiler_register_with_alias_bindings_in_block(TranspilerSSANameMap *ssa_map,
         return;
     }
     if (body->type == AST_LET_DESTRUCTURE) {
-        for (size_t i = 0; i < body->data.let_destructure.name_count; i++) {
-            const char *pname = body->data.let_destructure.names[i];
+        for (size_t i = 0; i < ast_let_destructure_name_count(body); i++) {
+            const char *pname = ast_let_destructure_name(body, i);
             if (pname != NULL)
                 transpiler_ssa_name_map_set(ssa_map, pname, pname);
         }

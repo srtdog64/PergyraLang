@@ -352,6 +352,112 @@ test_air_parsed_transfer_emits_zone_and_world_boundaries(void)
     return ok;
 }
 
+static void
+test_air_remove_boundary_evidence(AIRProgram *air,
+                                  size_t boundary_index,
+                                  AIREvidenceKind kind)
+{
+    size_t write = 0;
+    size_t removed = 0;
+
+    if (air == NULL)
+        return;
+    for (size_t read = 0; read < air->evidence_count; read++) {
+        const AIREvidenceNode *evidence = &air->evidence_nodes[read];
+        if (evidence->kind == kind && evidence->boundary_index == boundary_index) {
+            removed++;
+            continue;
+        }
+        if (write != read)
+            air->evidence_nodes[write] = air->evidence_nodes[read];
+        write++;
+    }
+    air->evidence_count = write;
+    if (kind == AIR_EVIDENCE_RIR_BOUNDARY) {
+        air->rir_boundary_evidence_count =
+            air->rir_boundary_evidence_count > removed
+                ? air->rir_boundary_evidence_count - removed
+                : 0;
+    } else if (kind == AIR_EVIDENCE_RIR_AUTHORITY) {
+        air->rir_authority_evidence_count =
+            air->rir_authority_evidence_count > removed
+                ? air->rir_authority_evidence_count - removed
+                : 0;
+    }
+}
+
+static bool
+test_air_parsed_transfer_reports_world_missing_transfer_evidence(void)
+{
+    const char *source =
+        "subject Buyer { let hp: Int; action Promote(self) -> Void { hp = hp + 1; } }\n"
+        "zone CartZone {\n"
+        "    subject slot buyer: Buyer\n"
+        "    authority buyer\n"
+        "}\n"
+        "zone PaymentZone {\n"
+        "    subject slot buyer: Buyer\n"
+        "    authority buyer\n"
+        "}\n"
+        "intent Checkout(cart: CartZone, payment: PaymentZone, buyer: Buyer) {\n"
+        "    step Handoff {\n"
+        "        transfer: cart -> payment;\n"
+        "        who: buyer;\n"
+        "        authorized by: buyer;\n"
+        "        on: buyer.Promote();\n"
+        "        expect: true;\n"
+        "    }\n"
+        "    success: true;\n"
+        "    failure: false;\n"
+        "}\n";
+    AIRProgram *air = lower_air_from_source(source);
+    bool found_world = false;
+    bool found_world_drift = false;
+    bool verified = false;
+    char *error = NULL;
+
+    if (air != NULL) {
+        for (size_t i = 0; i < air->boundary_count; i++) {
+            AIRBoundaryNode *boundary = &air->boundaries[i];
+            if (boundary->kind == AIR_BOUNDARY_WORLD
+                && boundary->source_name != NULL
+                && strcmp(boundary->source_name, "payment") == 0
+                && boundary->source_from_transfer
+                && boundary->ast != NULL
+                && boundary->ast->line > 0) {
+                found_world = true;
+                boundary->has_rir_boundary_evidence = false;
+                boundary->has_rir_authority_evidence = false;
+                boundary->rir_boundary_evidence_scope = NULL;
+                boundary->rir_authority_evidence_name = NULL;
+                test_air_remove_boundary_evidence(air, i, AIR_EVIDENCE_RIR_AUTHORITY);
+                test_air_remove_boundary_evidence(air, i, AIR_EVIDENCE_RIR_BOUNDARY);
+                break;
+            }
+        }
+        verified = air_verify(air, &error);
+        for (size_t i = 0; i < air->drift_count; i++) {
+            const AIRDrift *drift = &air->drifts[i];
+            if (drift->kind == AIR_DRIFT_BOUNDARY_EVIDENCE_MISSING
+                && drift->boundary_index < air->boundary_count
+                && air->boundaries[drift->boundary_index].kind == AIR_BOUNDARY_WORLD
+                && drift->message != NULL
+                && strstr(drift->message, "source_provenance=transfer") != NULL
+                && strstr(drift->message, "payment") != NULL) {
+                found_world_drift = true;
+            }
+        }
+    }
+
+    bool ok = air != NULL
+        && found_world
+        && verified
+        && found_world_drift;
+    free(error);
+    air_destroy(air);
+    return ok;
+}
+
 static bool
 test_air_parsed_transfer_reports_zone_missing_authority_evidence(void)
 {

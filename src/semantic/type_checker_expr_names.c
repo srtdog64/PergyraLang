@@ -15,8 +15,8 @@ flatten_static_member_access(const ASTNode *expr, char separator)
         return NULL;
 
     if (expr->type == AST_IDENTIFIER)
-        return expr->data.identifier.name != NULL
-            ? pergyra_strdup(expr->data.identifier.name) : NULL;
+        return ast_identifier_name(expr) != NULL
+            ? pergyra_strdup(ast_identifier_name(expr)) : NULL;
 
     if (expr->type != AST_MEMBER_ACCESS
         || ast_member_object(expr) == NULL
@@ -49,10 +49,10 @@ Symbol *
 lookup_identifier_symbol(ASTNode *expr, SemanticContext *ctx)
 {
     if (expr == NULL || expr->type != AST_IDENTIFIER
-        || expr->data.identifier.name == NULL) {
+        || ast_identifier_name(expr) == NULL) {
         return NULL;
     }
-    return scope_lookup(ctx->scope, expr->data.identifier.name);
+    return scope_lookup(ctx->scope, ast_identifier_name(expr));
 }
 
 bool

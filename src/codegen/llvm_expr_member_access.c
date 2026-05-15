@@ -34,7 +34,7 @@ llvm_emit_member_access(ASTNode *node, LLVMGenCtx *ctx)
     if (llvm_is_upper_ident(obj_node)) {
         LLVMEnumVariantEntry *variant =
             llvm_lookup_enum_variant_qualified(ctx,
-                obj_node->data.identifier.name, field_name);
+                ast_identifier_name(obj_node), field_name);
         if (variant != NULL)
             return LLVMConstInt(ctx->type_i32,
                 (unsigned long long)variant->value, 0);
@@ -60,7 +60,7 @@ llvm_emit_member_access(ASTNode *node, LLVMGenCtx *ctx)
                 "LLVM member access requires a registered field on the receiver type");
 
         if (obj_node->type == AST_IDENTIFIER) {
-            const char *var_name = obj_node->data.identifier.name;
+            const char *var_name = ast_identifier_name(obj_node);
             LLVMProjectionBorrowEntry *projection_borrow =
                 llvm_lookup_projection_borrow(ctx, var_name);
             if (projection_borrow != NULL) {

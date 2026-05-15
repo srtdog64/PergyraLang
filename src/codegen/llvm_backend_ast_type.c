@@ -56,9 +56,8 @@ ast_type_to_llvm(LLVMGenCtx *ctx, ASTNode *type_node)
 
     /* Tuple type: anonymous struct { T0, T1, ... } */
     if (type_node->type == AST_TYPE
-        && type_node->data.type.tuple_elements != NULL
-        && type_node->data.type.tuple_element_count > 0) {
-        size_t n = type_node->data.type.tuple_element_count;
+        && ast_type_tuple_element_count(type_node) > 0) {
+        size_t n = ast_type_tuple_element_count(type_node);
         /* Field-type buffer is consumed by LLVMStructTypeInContext (copies). */
         LLVMTypeRef *fields = pgy_arena_calloc(&ctx->scratch,
             n * sizeof(LLVMTypeRef));
@@ -72,7 +71,7 @@ ast_type_to_llvm(LLVMGenCtx *ctx, ASTNode *type_node)
         }
         for (size_t i = 0; i < n; i++) {
             fields[i] = ast_type_to_llvm(ctx,
-                type_node->data.type.tuple_elements[i]);
+                ast_type_tuple_element(type_node, i));
             if (ctx->has_error || fields[i] == NULL)
                 return NULL;
         }

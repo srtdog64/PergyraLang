@@ -24,12 +24,12 @@ builtin_validate_secure_token_arg(ASTNode *token_arg,
     const char *token_name;
 
     if (token_arg == NULL || slot_sym == NULL || slot_type == NULL
-        || slot_type->kind != TYPE_KIND_SLOT || !slot_type->data.slot.is_secure) {
+        || !type_slot_is_secure(slot_type)) {
         return false;
     }
 
     if (token_arg->type != AST_IDENTIFIER
-        || token_arg->data.identifier.name == NULL) {
+        || ast_identifier_name(token_arg) == NULL) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
             PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,
             PGY_FIX_MATCH_BUILTIN_SIGNATURE, token_arg,
@@ -38,7 +38,7 @@ builtin_validate_secure_token_arg(ASTNode *token_arg,
         return false;
     }
 
-    token_name = token_arg->data.identifier.name;
+    token_name = ast_identifier_name(token_arg);
     token_sym = scope_lookup(ctx->scope, token_name);
     if (token_sym == NULL || token_sym->kind != SYMBOL_TOKEN) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
@@ -59,8 +59,8 @@ builtin_validate_secure_token_arg(ASTNode *token_arg,
         return false;
     }
 
-    token_args[0] = slot_type->data.slot.inner_type != NULL
-        ? slot_type->data.slot.inner_type
+    token_args[0] = type_slot_inner_type(slot_type) != NULL
+        ? type_slot_inner_type(slot_type)
         : TYPE_UNKNOWN;
     expected_token_type = type_create_constructed(TYPE_TOKEN, token_args, 1);
     if (token_sym->type != NULL && expected_token_type != NULL

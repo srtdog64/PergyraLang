@@ -12,6 +12,7 @@
 #include <string.h>
 
 #include "llvm_internal_api.h"
+#include "llvm_expr_task_calls.h"
 
 static const char *
 llvm_required_channel_inner(LLVMGenCtx *ctx, ASTNode *node,
@@ -53,7 +54,7 @@ llvm_required_channel_var(LLVMGenCtx *ctx, ASTNode *channel,
         return NULL;
     }
 
-    name = channel->data.identifier.name;
+    name = ast_identifier_name(channel);
     entry = llvm_scope_lookup(ctx, name);
     if (entry == NULL && ctx != NULL && !ctx->has_error) {
         llvm_set_error_at_with_hints(ctx, channel,
@@ -82,26 +83,6 @@ llvm_required_channel_function(LLVMGenCtx *ctx, ASTNode *node,
             PGY_FIX_INSPECT_MIR_INVENTORY,
             "LLVM %s requires registered runtime function '%s'",
             callee_name != NULL ? callee_name : "channel operation",
-            function_name != NULL ? function_name : "<missing>");
-    }
-    return fn;
-}
-
-static LLVMFuncEntry *
-llvm_required_task_function(LLVMGenCtx *ctx, ASTNode *node,
-                            const char *callee_name,
-                            const char *function_name)
-{
-    LLVMFuncEntry *fn = function_name != NULL
-        ? llvm_lookup_function(ctx, function_name)
-        : NULL;
-    if (fn == NULL && ctx != NULL && !ctx->has_error) {
-        llvm_set_error_at_with_hints(ctx, node,
-            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
-            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
-            PGY_FIX_INSPECT_MIR_INVENTORY,
-            "LLVM %s requires registered task runtime function '%s'",
-            callee_name != NULL ? callee_name : "task operation",
             function_name != NULL ? function_name : "<missing>");
     }
     return fn;
@@ -181,7 +162,6 @@ static bool
 llvm_is_task_channel_builtin_name(const char *callee_name)
 {
     static const LLVMTaskChannelNameSpec specs[] = {
-        { "Cancel" },
         { "ChannelCapacity" },
         { "ChannelClose" },
         { "ChannelClosed" },
@@ -189,7 +169,6 @@ llvm_is_task_channel_builtin_name(const char *callee_name)
         { "ChannelLength" },
         { "ChannelReady" },
         { "ChannelSpace" },
-        { "IsCancelled" },
         { "RecvTimeout" },
         { "SendTimeout" },
         { "SendTimeoutStatus" },
@@ -245,7 +224,7 @@ llvm_channel_arg(LLVMGenCtx *ctx, ASTNode *node, const char *callee_name,
     if (var == NULL)
         return false;
 
-    name = channel->data.identifier.name;
+    name = ast_identifier_name(channel);
     inner = llvm_lookup_channel_inner(ctx, name);
     inner = llvm_required_channel_inner(ctx, channel, callee_name, name, inner);
     if (inner == NULL)
@@ -265,28 +244,8 @@ llvm_emit_task_channel_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_n
 {
     size_t argc = ast_call_arg_count(node);
 
-    if (strcmp(callee_name, "Cancel") == 0 && argc == 1) {
-        LLVMFuncEntry *fn = llvm_required_task_function(ctx, node, callee_name,
-            "pgy_task_cancel_export");
-        LLVMValueRef task = llvm_emit_expression(ast_call_argument(node, 0), ctx);
-        if (fn == NULL)
-            return NULL;
-        if (task == NULL)
-            return llvm_task_channel_error(ctx, node, callee_name,
-                "could not lower task handle expression");
-
-        LLVMValueRef args[] = { task };
-        return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 1, "");
-    }
-
-    if (strcmp(callee_name, "IsCancelled") == 0 && argc == 0) {
-        LLVMFuncEntry *fn = llvm_required_task_function(ctx, node, callee_name,
-            "pgy_task_is_cancelled_export");
-        if (fn == NULL)
-            return NULL;
-        return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn,
-            NULL, 0, llvm_tmp_name(ctx));
-    }
+    if (llvm_is_task_runtime_builtin_name(callee_name))
+        return llvm_emit_task_runtime_call(node, ctx, callee_name);
 
     if (strcmp(callee_name, "ChannelClose") == 0 && argc == 1) {
         ASTNode *channel = NULL;

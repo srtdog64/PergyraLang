@@ -283,11 +283,11 @@ llvm_build_domain_projection_value(LLVMGenCtx *ctx,
             continue;
 
         if (refresh != NULL && refresh->type == AST_ZONE_REFRESH) {
-            for (size_t j = 0; j < refresh->data.zone_refresh.field_map_count; j++) {
+            for (size_t j = 0; j < ast_zone_refresh_field_map_count(refresh); j++) {
                 const char *mapped_target =
-                    refresh->data.zone_refresh.mapped_target_fields[j];
+                    ast_zone_refresh_mapped_target_field(refresh, j);
                 const char *mapped_source =
-                    refresh->data.zone_refresh.mapped_source_fields[j];
+                    ast_zone_refresh_mapped_source_field(refresh, j);
                 if (mapped_target != NULL && mapped_source != NULL
                     && strcmp(mapped_target, target_field->field_name) == 0) {
                     source_field_name = mapped_source;

@@ -15,15 +15,13 @@ semantic_type_resolution_precollect_zone_refresh_projection_map(
         return;
     }
 
-    for (size_t map_i = 0; map_i < refresh->data.zone_refresh.field_map_count; map_i++) {
-        const char *target_field = refresh->data.zone_refresh.mapped_target_fields != NULL
-            ? refresh->data.zone_refresh.mapped_target_fields[map_i] : NULL;
-        const char *source_field = refresh->data.zone_refresh.mapped_source_fields != NULL
-            ? refresh->data.zone_refresh.mapped_source_fields[map_i] : NULL;
+    for (size_t map_i = 0; map_i < ast_zone_refresh_field_map_count(refresh); map_i++) {
+        const char *target_field = ast_zone_refresh_mapped_target_field(refresh, map_i);
+        const char *source_field = ast_zone_refresh_mapped_source_field(refresh, map_i);
         char *projection_label = semantic_type_resolution_projection_path_label(
             zone_decl,
-            refresh->data.zone_refresh.object_slot_name,
-            refresh->data.zone_refresh.source_slot_name,
+            ast_zone_refresh_object_slot_name(refresh),
+            ast_zone_refresh_source_slot_name(refresh),
             target_field,
             source_field);
         if (projection_label == NULL)
@@ -42,10 +40,10 @@ semantic_type_resolution_precollect_zone_refresh_projection_map(
             projection_label,
             "zone refresh projection-path lookup");
 
-        if (refresh->data.zone_refresh.object_slot_name != NULL) {
+        if (ast_zone_refresh_object_slot_name(refresh) != NULL) {
             char *target_slot_label = semantic_type_resolution_zone_slot_label(
                 zone_decl,
-                refresh->data.zone_refresh.object_slot_name);
+                ast_zone_refresh_object_slot_name(refresh));
             if (target_slot_label != NULL) {
                 semantic_type_resolution_record_named_dependency(
                     ctx,
@@ -59,10 +57,10 @@ semantic_type_resolution_precollect_zone_refresh_projection_map(
             }
         }
 
-        if (refresh->data.zone_refresh.source_slot_name != NULL) {
+        if (ast_zone_refresh_source_slot_name(refresh) != NULL) {
             char *source_slot_label = semantic_type_resolution_zone_slot_label(
                 zone_decl,
-                refresh->data.zone_refresh.source_slot_name);
+                ast_zone_refresh_source_slot_name(refresh));
             if (source_slot_label != NULL) {
                 semantic_type_resolution_record_named_dependency(
                     ctx,
@@ -79,7 +77,7 @@ semantic_type_resolution_precollect_zone_refresh_projection_map(
         if (target_field != NULL) {
             char *target_field_label = semantic_type_resolution_projection_slot_field_label(
                 zone_decl,
-                refresh->data.zone_refresh.object_slot_name,
+                ast_zone_refresh_object_slot_name(refresh),
                 target_field);
             if (target_field_label != NULL) {
                 (void)type_resolution_intern_node(&ctx->type_resolution_graph,
@@ -101,7 +99,7 @@ semantic_type_resolution_precollect_zone_refresh_projection_map(
         if (source_field != NULL) {
             ASTNode *source_decl = semantic_type_resolution_projection_source_decl(
                 zone_decl,
-                refresh->data.zone_refresh.source_slot_name,
+                ast_zone_refresh_source_slot_name(refresh),
                 ctx);
             char *resolved_source_path = NULL;
             const char *source_path_text = source_field;
@@ -129,7 +127,7 @@ semantic_type_resolution_precollect_zone_refresh_projection_map(
             if (source_path_text != NULL) {
                 char *source_field_label = semantic_type_resolution_projection_slot_field_label(
                     zone_decl,
-                    refresh->data.zone_refresh.source_slot_name,
+                    ast_zone_refresh_source_slot_name(refresh),
                     source_path_text);
                 if (source_field_label != NULL) {
                     (void)type_resolution_intern_node(&ctx->type_resolution_graph,

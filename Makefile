@@ -180,8 +180,13 @@ PARSER_SOURCES   = $(PARSER_DIR)/ast.c \
                    $(PARSER_DIR)/ast_destroy_domain.c \
                    $(PARSER_DIR)/ast_clone.c \
                    $(PARSER_DIR)/ast_constructors.c \
+                   $(PARSER_DIR)/ast_decl_accessors.c \
                    $(PARSER_DIR)/ast_func_accessors.c \
                    $(PARSER_DIR)/ast_domain_accessors.c \
+                   $(PARSER_DIR)/ast_block_match_event_accessors.c \
+                   $(PARSER_DIR)/ast_role_type_accessors.c \
+                   $(PARSER_DIR)/ast_expr_control_accessors.c \
+                   $(PARSER_DIR)/ast_async_lambda_accessors.c \
                    $(PARSER_DIR)/ast_domain_accessors_world.c \
                    $(PARSER_DIR)/ast_domain_constructors.c \
                    $(PARSER_DIR)/ast_domain_tail_constructors.c \
@@ -242,17 +247,22 @@ RUNTIME_SOURCES  = $(RUNTIME_DIR)/slot_manager.c \
                    $(RUNTIME_DIR)/slot_manager_security_stats.c \
                    $(RUNTIME_DIR)/slot_manager_scope.c \
                    $(RUNTIME_DIR)/party_runtime.c \
+                   $(RUNTIME_DIR)/party_runtime_scheduler.c \
                    $(RUNTIME_DIR)/party_runtime_stats.c \
                    $(RUNTIME_DIR)/party_runtime_dispatch.c \
                    $(RUNTIME_DIR)/world_roster.c \
+                   $(RUNTIME_DIR)/world_roster_lookup.c \
                    $(RUNTIME_DIR)/world_roster_plan_stats.c
 ASYNC_SOURCES    = $(ASYNC_DIR)/concurrent_queue.c \
                    $(ASYNC_DIR)/async_scope.c \
+                   $(ASYNC_DIR)/async_scope_patterns.c \
                    $(ASYNC_DIR)/fiber.c \
+                   $(ASYNC_DIR)/scheduler_fiber_ops.c \
                    $(ASYNC_DIR)/scheduler.c
 RUNTIME_SOURCES  += $(ASYNC_SOURCES)
 RUNTIME_ASM_SOURCES = $(RUNTIME_DIR)/slot_asm.s
 SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
+                   $(SEMANTIC_DIR)/type_system_slot.c \
                    $(SEMANTIC_DIR)/type_system_compat.c \
                    $(SEMANTIC_DIR)/type_effects.c \
                    $(SEMANTIC_DIR)/type_infer.c \
@@ -287,6 +297,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_resolution_metadata_index.c \
                    $(SEMANTIC_DIR)/type_checker_resolution_metadata.c \
                    $(SEMANTIC_DIR)/type_checker_resolution_stage_domain.c \
+                   $(SEMANTIC_DIR)/type_checker_resolution_stage_domain_label.c \
                    $(SEMANTIC_DIR)/type_checker_resolution_stage_lookup.c \
                    $(SEMANTIC_DIR)/type_checker_resolution_stage_stats.c \
                    $(SEMANTIC_DIR)/type_checker_resolution_stage_signature.c \
@@ -296,6 +307,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_resolution_stage_domain_decl.c \
                    $(SEMANTIC_DIR)/type_checker_resolution_stage.c \
                    $(SEMANTIC_DIR)/type_checker_class_decl.c \
+                   $(SEMANTIC_DIR)/type_checker_host_overlay.c \
                    $(SEMANTIC_DIR)/type_checker_host_helpers.c \
                    $(SEMANTIC_DIR)/type_checker_program.c \
                    $(SEMANTIC_DIR)/type_checker_func_decl.c \
@@ -368,6 +380,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_builtins.c \
                    $(SEMANTIC_DIR)/type_checker_builtins_intent_observability.c \
                    $(SEMANTIC_DIR)/type_checker_builtins_nominal.c \
+                   $(SEMANTIC_DIR)/type_checker_builtins_ownership_nominal.c \
                    $(SEMANTIC_DIR)/type_checker_builtins_query.c \
                    $(SEMANTIC_DIR)/type_checker_builtins_query_channel.c \
                    $(SEMANTIC_DIR)/type_checker_builtins_channel_state.c \
@@ -398,6 +411,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_call_contract_helpers.c \
                    $(SEMANTIC_DIR)/type_checker_call_generic_where.c \
                    $(SEMANTIC_DIR)/type_checker_helpers_effects.c \
+                   $(SEMANTIC_DIR)/type_checker_helpers_resources.c \
                    $(SEMANTIC_DIR)/type_checker_helpers_late.c \
                    $(SEMANTIC_DIR)/type_checker_slot_view_active.c \
                    $(SEMANTIC_DIR)/type_checker_slot_view_boundary.c \
@@ -479,6 +493,7 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_allocator_builtin_emit.c \
                    $(CODEGEN_DIR)/transpiler_type_alias.c \
                    $(CODEGEN_DIR)/transpiler_type_declarator.c \
                    $(CODEGEN_DIR)/transpiler_type_mapping.c \
+                   $(CODEGEN_DIR)/transpiler_type_name_utils.c \
                    $(CODEGEN_DIR)/transpiler_type_render.c \
                    $(CODEGEN_DIR)/transpiler_type_require.c \
                    $(CODEGEN_DIR)/transpiler.c
@@ -500,6 +515,7 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/air_evidence_node.c \
                    $(COMPILER_DIR)/air_evidence_ast.c \
                    $(COMPILER_DIR)/air_evidence.c \
+                   $(COMPILER_DIR)/air_evidence_runtime.c \
                    $(COMPILER_DIR)/air_evidence_dag.c \
                    $(COMPILER_DIR)/air_evidence_rir.c \
                    $(COMPILER_DIR)/air_validate_global_evidence.c \
@@ -551,6 +567,7 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/mir_decl_headers.c \
                    $(COMPILER_DIR)/mir_stmt_population.c \
                    $(COMPILER_DIR)/mir_stmt_population_resource_ops.c \
+                   $(COMPILER_DIR)/mir_stmt_source_inventory.c \
                    $(COMPILER_DIR)/mir_stmt_source.c \
                    $(COMPILER_DIR)/mir_non_cfg_stmt_population.c \
                    $(COMPILER_DIR)/mir_ssa_rename.c \
@@ -570,6 +587,8 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/module_loader.c \
                    $(COMPILER_DIR)/module_normalizer.c \
                    $(COMPILER_DIR)/module_normalizer_refs.c \
+                   $(COMPILER_DIR)/module_normalizer_domain_refs.c \
+                   $(COMPILER_DIR)/module_normalizer_scope.c \
                    $(COMPILER_DIR)/module_normalizer_shadow.c \
                    $(COMPILER_DIR)/import_resolver.c \
                    $(COMPILER_DIR)/driver_app.c \
@@ -633,6 +652,7 @@ ifneq ($(LLVM_ENABLED),0)
                         $(CODEGEN_DIR)/llvm_mir_vars.c \
                         $(CODEGEN_DIR)/llvm_mir_phi.c \
                         $(CODEGEN_DIR)/llvm_mir_cfg_control.c \
+                        $(CODEGEN_DIR)/llvm_mir_match_condition.c \
                         $(CODEGEN_DIR)/llvm_mir_for_in_control.c \
                         $(CODEGEN_DIR)/llvm_mir_loop_control.c \
                         $(CODEGEN_DIR)/llvm_intent_mir_meta.c \
@@ -654,6 +674,7 @@ ifneq ($(LLVM_ENABLED),0)
                         $(CODEGEN_DIR)/llvm_expr_array_calls.c \
                         $(CODEGEN_DIR)/llvm_expr_call_args.c \
                         $(CODEGEN_DIR)/llvm_expr_call_collections_extended.c \
+                        $(CODEGEN_DIR)/llvm_expr_call_list_extended.c \
                         $(CODEGEN_DIR)/llvm_expr_call_collections_require.c \
                         $(CODEGEN_DIR)/llvm_expr_call_dispatch.c \
                         $(CODEGEN_DIR)/llvm_expr_call_errors.c \
@@ -690,6 +711,7 @@ ifneq ($(LLVM_ENABLED),0)
                         $(CODEGEN_DIR)/llvm_expr_spawn_call_helpers.c \
                         $(CODEGEN_DIR)/llvm_expr_stdlib_scalar_io_calls.c \
                         $(CODEGEN_DIR)/llvm_expr_string_coerce.c \
+                        $(CODEGEN_DIR)/llvm_expr_task_calls.c \
                         $(CODEGEN_DIR)/llvm_expr_task_channel_calls.c \
                         $(CODEGEN_DIR)/llvm_stmt.c \
                         $(CODEGEN_DIR)/llvm_stmt_emit_support.c \
@@ -705,9 +727,12 @@ ifneq ($(LLVM_ENABLED),0)
                         $(CODEGEN_DIR)/llvm_stmt_let_resources.c \
                         $(CODEGEN_DIR)/llvm_stmt_let_names.c \
                         $(CODEGEN_DIR)/llvm_stmt_let_with.c \
+                        $(CODEGEN_DIR)/llvm_stmt_destructure.c \
                         $(CODEGEN_DIR)/llvm_stmt_with.c \
                         $(CODEGEN_DIR)/llvm_stmt_loop_match.c \
+                        $(CODEGEN_DIR)/llvm_stmt_match.c \
                         $(CODEGEN_DIR)/llvm_stmt_parallel_async.c \
+                        $(CODEGEN_DIR)/llvm_stmt_select.c \
                         $(CODEGEN_DIR)/llvm_stmt_parallel_names.c \
                         $(CODEGEN_DIR)/llvm_stmt_type_render.c \
                         $(CODEGEN_DIR)/llvm_stmt_zone_action.c \
@@ -859,6 +884,8 @@ FRONTEND_OBJECTS = $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) \
 SEMANTIC_LINK_SUPPORT = $(BUILD_DIR)/compiler/import_resolver.o \
                         $(BUILD_DIR)/compiler/module_normalizer.o \
                         $(BUILD_DIR)/compiler/module_normalizer_refs.o \
+                        $(BUILD_DIR)/compiler/module_normalizer_domain_refs.o \
+                        $(BUILD_DIR)/compiler/module_normalizer_scope.o \
                         $(BUILD_DIR)/compiler/module_normalizer_shadow.o \
                         $(BUILD_DIR)/compiler/path_utils.o
 DIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/dir.o \
@@ -900,6 +927,7 @@ AIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/air_names.o \
                    $(BUILD_DIR)/compiler/air_evidence_node.o \
                    $(BUILD_DIR)/compiler/air_evidence_ast.o \
                    $(BUILD_DIR)/compiler/air_evidence.o \
+                   $(BUILD_DIR)/compiler/air_evidence_runtime.o \
                    $(BUILD_DIR)/compiler/air_evidence_dag.o \
                    $(BUILD_DIR)/compiler/mir_source_shape.o \
                    $(BUILD_DIR)/compiler/mir_intent_fact.o \
@@ -941,6 +969,7 @@ MIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/mir.o \
                    $(BUILD_DIR)/compiler/mir_decl_headers.o \
                    $(BUILD_DIR)/compiler/mir_stmt_population.o \
                    $(BUILD_DIR)/compiler/mir_stmt_population_resource_ops.o \
+                   $(BUILD_DIR)/compiler/mir_stmt_source_inventory.o \
                    $(BUILD_DIR)/compiler/mir_stmt_source.o \
                    $(BUILD_DIR)/compiler/mir_non_cfg_stmt_population.o \
                    $(BUILD_DIR)/compiler/mir_ssa_rename.o \

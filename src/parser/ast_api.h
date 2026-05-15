@@ -10,6 +10,15 @@
 
 /* AST creation functions */
 ASTNode* ast_create_program(void);
+size_t ast_program_statement_count(const ASTNode* node);
+ASTNode** ast_program_statements(const ASTNode* node, size_t* count_out);
+ASTNode* ast_program_statement(const ASTNode* node, size_t index);
+bool ast_program_append_statement(ASTNode* node, ASTNode* statement);
+ASTNode* ast_program_detach_statement(ASTNode* node, size_t index);
+bool ast_program_replace_statements(ASTNode* node,
+                                    ASTNode** statements,
+                                    size_t count,
+                                    size_t capacity);
 const char* ast_declaration_name(const ASTNode* node);
 bool ast_replace_declaration_name_copy(ASTNode* node, const char* name);
 ASTNode* ast_create_function(const char* name);
@@ -20,6 +29,22 @@ GenericParams* ast_func_generic_params(const ASTNode* node);
 WhereClause* ast_func_where_clause(const ASTNode* node);
 ASTNode* ast_func_return_type(const ASTNode* node);
 ASTNode* ast_func_body(const ASTNode* node);
+bool ast_func_attach_body(ASTNode* node, ASTNode* body);
+ASTNode* ast_func_detach_body(ASTNode* node);
+bool ast_func_is_action(const ASTNode* node);
+AccessModifier ast_func_access(const ASTNode* node);
+bool ast_func_has_explicit_access(const ASTNode* node);
+bool ast_func_has_effects_clause(const ASTNode* node);
+uint32_t ast_func_declared_effects(const ASTNode* node);
+StructuredComment* ast_func_doc_comment(const ASTNode* node);
+size_t ast_func_required_ability_count(const ASTNode* node);
+ASTNode** ast_func_required_abilities(const ASTNode* node, size_t* count_out);
+ASTNode* ast_func_required_ability(const ASTNode* node, size_t index);
+const char* ast_func_within_zone(const ASTNode* node);
+bool ast_func_set_within_zone_copy(ASTNode* node, const char* within_zone);
+const char* ast_func_causes_effect(const ASTNode* node);
+size_t ast_func_authorized_by_count(const ASTNode* node);
+const char* ast_func_authorized_by(const ASTNode* node, size_t index);
 ASTNode* ast_create_class(const char* name);
 const char* ast_class_name(const ASTNode* node);
 NominalDeclKind ast_class_nominal_kind(const ASTNode* node);
@@ -43,13 +68,30 @@ ASTNode* ast_create_extern_block(const char* abi);
 const char* ast_extern_block_abi(const ASTNode* node);
 ASTNode** ast_extern_block_declarations(const ASTNode* node, size_t* count_out);
 ASTNode* ast_extern_block_declaration(const ASTNode* node, size_t index);
+const char* ast_use_module_name(const ASTNode* node);
 ASTNode* ast_create_let_declaration(const char* name);
+const char* ast_let_name(const ASTNode* node);
+ASTNode* ast_let_type(const ASTNode* node);
+ASTNode* ast_let_initializer(const ASTNode* node);
+bool ast_let_is_mutable(const ASTNode* node);
+bool ast_let_is_alias(const ASTNode* node);
+size_t ast_let_destructure_name_count(const ASTNode* node);
+const char* ast_let_destructure_name(const ASTNode* node, size_t index);
+ASTNode* ast_let_destructure_initializer(const ASTNode* node);
 ASTNode* ast_create_type_alias(const char* name, ASTNode* target_type);
 const char* ast_type_alias_name(const ASTNode* node);
 ASTNode* ast_type_alias_target_type(const ASTNode* node);
 ASTNode* ast_create_with_statement(void);
 ASTNode* ast_create_parallel_block(void);
 ASTNode* ast_create_block(void);
+ASTNode** ast_block_statements(const ASTNode* node, size_t* count_out);
+size_t ast_block_statement_count(const ASTNode* node);
+ASTNode* ast_block_statement(const ASTNode* node, size_t index);
+ASTNode** ast_block_detach_statements(ASTNode* node, size_t* count_out);
+bool ast_block_is_pin_block(const ASTNode* node);
+bool ast_block_pin_view_is_write(const ASTNode* node);
+const char* ast_block_pin_source_name(const ASTNode* node);
+const char* ast_block_pin_view_name(const ASTNode* node);
 ASTNode* ast_create_for_loop(void);
 const char* ast_for_label(const ASTNode* node);
 const char* ast_for_variable(const ASTNode* node);
@@ -60,6 +102,17 @@ ASTNode* ast_for_body(const ASTNode* node);
 ASTNode* ast_create_while_loop(void);
 ASTNode* ast_create_match_statement(void);
 ASTNode* ast_create_match_case(void);
+ASTNode* ast_match_subject(const ASTNode* node);
+ASTNode** ast_match_cases(const ASTNode* node, size_t* count_out);
+size_t ast_match_case_count(const ASTNode* node);
+ASTNode* ast_match_case_at(const ASTNode* node, size_t index);
+ASTNode* ast_match_default_body(const ASTNode* node);
+ASTNode* ast_match_case_pattern(const ASTNode* node);
+ASTNode** ast_match_case_patterns(const ASTNode* node, size_t* count_out);
+size_t ast_match_case_pattern_count(const ASTNode* node);
+ASTNode* ast_match_case_pattern_at(const ASTNode* node, size_t index);
+ASTNode* ast_match_case_guard(const ASTNode* node);
+ASTNode* ast_match_case_body(const ASTNode* node);
 ASTNode* ast_create_if_statement(void);
 ASTNode* ast_create_return_statement(void);
 ASTNode* ast_create_binary(ASTNode* left, Token op, ASTNode* right);
@@ -74,6 +127,10 @@ ASTNode* ast_array_access_index(const ASTNode* node);
 ASTNode* ast_create_assignment(ASTNode* target, ASTNode* value);
 ASTNode* ast_assignment_target(const ASTNode* node);
 ASTNode* ast_assignment_value(const ASTNode* node);
+double ast_number_value(const ASTNode* node);
+bool ast_number_is_long(const ASTNode* node);
+const char* ast_string_value(const ASTNode* node);
+bool ast_boolean_value(const ASTNode* node);
 ASTNode* ast_await_expression(const ASTNode* node);
 ASTNode* ast_channel_send_channel(const ASTNode* node);
 ASTNode* ast_channel_send_value(const ASTNode* node);
@@ -102,9 +159,18 @@ ASTNode* ast_create_number(const char* value);
 ASTNode* ast_create_string(const char* value);
 ASTNode* ast_create_boolean(bool value);
 ASTNode* ast_create_identifier(const char* name);
+const char* ast_identifier_name(const ASTNode* node);
+bool ast_replace_identifier_name_copy(ASTNode* node, const char* name);
 ASTNode* ast_create_type(const char* name);
 const char* ast_type_name(const ASTNode* node);
 GenericParams* ast_type_generic_args(const ASTNode* node);
+size_t ast_generic_param_count(const GenericParams* params);
+GenericParam* ast_generic_param_at(const GenericParams* params, size_t index);
+const char* ast_generic_param_name(const GenericParam* param);
+ASTNode* ast_generic_param_constraint(const GenericParam* param);
+ASTNode* ast_generic_param_default_type(const GenericParam* param);
+size_t ast_type_tuple_element_count(const ASTNode* node);
+ASTNode* ast_type_tuple_element(const ASTNode* node, size_t index);
 bool ast_replace_type_name_copy(ASTNode* node, const char* type_name);
 GenericParams* ast_call_generic_args(const ASTNode* node);
 size_t ast_call_generic_arg_count(const ASTNode* node);
@@ -113,6 +179,7 @@ ASTNode* ast_call_callee(const ASTNode* node);
 size_t ast_call_arg_count(const ASTNode* node);
 ASTNode** ast_call_arguments(const ASTNode* node, size_t* count_out);
 ASTNode* ast_call_argument(const ASTNode* node, size_t index);
+const char* ast_call_argument_name(const ASTNode* node, size_t index);
 void ast_init_call_borrowed_view(ASTNode* node, ASTNode* callee,
                                  ASTNode** arguments, size_t arg_count);
 
@@ -146,7 +213,10 @@ size_t ast_spawn_arg_count(const ASTNode* node);
 ASTNode* ast_spawn_argument(const ASTNode* node, size_t index);
 bool ast_spawn_is_blocking(const ASTNode* node);
 ASTNode* ast_create_channel_type(ASTNode* element_type);
+ASTNode* ast_channel_type_element_type(const ASTNode* node);
+ASTNode* ast_channel_type_capacity(const ASTNode* node);
 ASTNode* ast_create_future_type(ASTNode* value_type);
+ASTNode* ast_future_type_value_type(const ASTNode* node);
 ASTNode* ast_create_task_group(bool wait_all);
 ASTNode** ast_task_group_tasks(const ASTNode* node, size_t* count_out);
 size_t ast_task_group_task_count(const ASTNode* node);
@@ -202,6 +272,8 @@ const char* ast_impl_ability_name(const ASTNode* node);
 size_t ast_impl_ability_method_count(const ASTNode* node);
 ASTNode* ast_impl_ability_method(const ASTNode* node, size_t index);
 ASTNode* ast_create_override_func(ASTNode* func_decl);
+ASTNode* ast_override_func_decl(const ASTNode* node);
+bool ast_override_calls_super(const ASTNode* node);
 
 /* Roster/World system AST creation functions */
 ASTNode* ast_create_roster_declaration(const char* name);
@@ -241,6 +313,8 @@ ASTNode* ast_create_world_zone(const char* slot_name, const char* zone_type);
 ASTNode* ast_create_world_activate(const char* zone_slot_name);
 ASTNode* ast_create_world_deactivate(const char* zone_slot_name);
 ASTNode* ast_create_world_maintain(const char* zone_slot_name);
+const char* ast_world_directive_zone_slot_name(const ASTNode* node);
+const char* ast_world_directive_state_name(const ASTNode* node);
 ASTNode* ast_create_world_state(const char* state_name, const char* zone_slot_name,
                                 WorldStateSourceKind source_kind,
                                 const char* detail_name);
@@ -248,6 +322,12 @@ ASTNode* ast_create_world_state_compose(const char* state_name,
                                         WorldStateSourceKind source_kind,
                                         const char** input_names,
                                         size_t input_count);
+const char* ast_world_state_name(const ASTNode* node);
+const char* ast_world_state_zone_slot_name(const ASTNode* node);
+WorldStateSourceKind ast_world_state_source_kind(const ASTNode* node);
+const char* ast_world_state_detail_name(const ASTNode* node);
+size_t ast_world_state_input_count(const ASTNode* node);
+const char* ast_world_state_input_name(const ASTNode* node, size_t index);
 ASTNode* ast_create_intent_declaration(const char* name);
 ASTNode* ast_create_intent_involves(const char* alias);
 ASTNode* ast_create_intent_value(const char* alias);
@@ -380,10 +460,33 @@ ASTNode* ast_create_zone_link(const char* relation_slot_name, const char* left_s
 ASTNode* ast_create_zone_detach(const char* effect_slot_name, const char* target_slot_name);
 ASTNode* ast_create_zone_unlink(const char* relation_slot_name, const char* left_slot_name, const char* right_slot_name);
 ASTNode* ast_create_zone_refresh(const char* object_slot_name, const char* source_slot_name);
+const char* ast_zone_refresh_object_slot_name(const ASTNode* node);
+const char* ast_zone_refresh_source_slot_name(const ASTNode* node);
+const char* ast_zone_refresh_participant_slot_name(const ASTNode* node);
+bool ast_zone_refresh_requires_dto(const ASTNode* node);
+bool ast_zone_refresh_derives_target_kind(const ASTNode* node);
+size_t ast_zone_refresh_field_map_count(const ASTNode* node);
+const char* ast_zone_refresh_mapped_target_field(const ASTNode* node,
+                                                 size_t index);
+const char* ast_zone_refresh_mapped_source_field(const ASTNode* node,
+                                                 size_t index);
 ASTNode* ast_create_zone_maintain_effect(const char* effect_slot_name, const char* target_slot_name);
 ASTNode* ast_create_zone_maintain_relation(const char* relation_slot_name, const char* left_slot_name, const char* right_slot_name);
 ASTNode* ast_create_zone_maintain_state(const char* state_name);
+const char* ast_zone_effect_slot_name(const ASTNode* node);
+const char* ast_zone_effect_target_slot_name(const ASTNode* node);
+const char* ast_zone_relation_slot_name(const ASTNode* node);
+const char* ast_zone_relation_left_slot_name(const ASTNode* node);
+const char* ast_zone_relation_right_slot_name(const ASTNode* node);
+const char* ast_zone_directive_state_name(const ASTNode* node);
+const char* ast_zone_directive_participant_slot_name(const ASTNode* node);
 ASTNode* ast_create_zone_authority(const char* subject_slot_name);
+const char* ast_zone_authority_subject_slot_name(const ASTNode* node);
+size_t ast_zone_authority_ability_count(const ASTNode* node);
+ASTNode** ast_zone_authority_required_abilities(const ASTNode* node,
+                                                size_t* count_out);
+ASTNode* ast_zone_authority_required_ability(const ASTNode* node,
+                                             size_t index);
 ASTNode* ast_create_zone_state(const char* state_name, bool is_relation,
                                const char* layer_slot_name,
                                const char* left_or_target_slot_name,
@@ -420,7 +523,15 @@ ASTNode* ast_party_shared_initializer(const ASTNode* node);
 const char* ast_require_field_name(const ASTNode* node);
 ASTNode* ast_require_field_type(const ASTNode* node);
 ASTNode* ast_create_context_access(const char* method_name, const char* slot_name);
+const char* ast_context_access_method_name(const ASTNode* node);
+const char* ast_context_access_role_slot_name(const ASTNode* node);
+ASTNode* ast_context_access_ability_type(const ASTNode* node);
 ASTNode* ast_create_party_instance(const char* party_type);
+const char* ast_party_instance_party_type(const ASTNode* node);
+size_t ast_party_instance_assignment_count(const ASTNode* node);
+const char* ast_party_instance_assignment_slot_name(const ASTNode* node,
+                                                   size_t index);
+ASTNode* ast_party_instance_assignment_value(const ASTNode* node, size_t index);
 
 /* Event system AST creation functions */
 ASTNode* ast_create_event_declaration(const char* name);
@@ -431,6 +542,12 @@ ASTNode* ast_event_return_type(const ASTNode* node);
 ASTNode* ast_create_event_subscribe(ASTNode* event, ASTNode* handler);
 ASTNode* ast_create_event_unsubscribe(ASTNode* event, ASTNode* handler);
 ASTNode* ast_create_event_invoke(ASTNode* event);
+ASTNode* ast_event_op_event(const ASTNode* node);
+ASTNode* ast_event_op_handler(const ASTNode* node);
+ASTNode* ast_event_invoke_event(const ASTNode* node);
+ASTNode** ast_event_invoke_arguments(const ASTNode* node, size_t* count_out);
+size_t ast_event_invoke_arg_count(const ASTNode* node);
+ASTNode* ast_event_invoke_argument(const ASTNode* node, size_t index);
 ASTNode* ast_create_event_handler_type(void);
 size_t ast_event_handler_param_count(const ASTNode* node);
 ASTNode** ast_event_handler_param_types(const ASTNode* node,
@@ -439,12 +556,27 @@ ASTNode* ast_event_handler_param_type(const ASTNode* node, size_t index);
 ASTNode* ast_event_handler_return_type(const ASTNode* node);
 ASTNode* ast_clone(ASTNode* node);
 ASTNode* ast_create_lambda_expression(void);
+ASTNode** ast_lambda_params(const ASTNode* node, size_t* count_out);
+size_t ast_lambda_param_count(const ASTNode* node);
+ASTNode* ast_lambda_param(const ASTNode* node, size_t index);
+ASTNode* ast_lambda_body(const ASTNode* node);
+ASTNode* ast_lambda_return_type(const ASTNode* node);
+bool ast_lambda_is_async(const ASTNode* node);
 
 /* Module system AST creation */
 ASTNode* ast_create_import_declaration(const char* path);
+const char* ast_import_path(const ASTNode* node);
 ASTNode* ast_create_namespace_declaration(const char* name);
+const char* ast_namespace_name(const ASTNode* node);
+ASTNode** ast_namespace_statements(const ASTNode* node, size_t* count_out);
+size_t ast_namespace_statement_count(const ASTNode* node);
+ASTNode* ast_namespace_statement(const ASTNode* node, size_t index);
+void ast_destroy_namespace_shell_only(ASTNode* node);
 ASTNode* ast_create_unsafe_block(ASTNode* body);
 ASTNode* ast_create_defer_statement(ASTNode* body);
 ASTNode* ast_create_bind_statement(const char* party_var, const char* slot_name, const char* role_name);
+const char* ast_bind_statement_party_var(const ASTNode* node);
+const char* ast_bind_statement_slot_name(const ASTNode* node);
+const char* ast_bind_statement_role_name(const ASTNode* node);
 
 #endif /* PERGYRA_AST_API_H */

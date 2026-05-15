@@ -10,8 +10,8 @@ dir_find_ability_decl_ast(ASTNode *program, const char *name)
     if (program == NULL || name == NULL || program->type != AST_PROGRAM)
         return NULL;
 
-    for (size_t i = 0; i < program->data.program.count; i++) {
-        ASTNode *stmt = program->data.program.statements[i];
+    for (size_t i = 0; i < ast_program_statement_count(program); i++) {
+        ASTNode *stmt = ast_program_statement(program, i);
         if (stmt != NULL
             && stmt->type == AST_ABILITY_DECL
             && ast_ability_name(stmt) != NULL
@@ -44,8 +44,8 @@ dir_impl_has_method_named(ASTNode *impl, const char *method_name)
 bool
 dir_collect_nodes(DIRProgram *dir, ASTNode *program)
 {
-    for (size_t i = 0; i < program->data.program.count; i++) {
-        ASTNode *node = program->data.program.statements[i];
+    for (size_t i = 0; i < ast_program_statement_count(program); i++) {
+        ASTNode *node = ast_program_statement(program, i);
         switch (node->type) {
             case AST_CLASS_DECL:
                 if (!dir_add_node(dir, DIR_NODE_TYPE, ast_class_name(node), node))
@@ -271,8 +271,8 @@ dir_collect_world_edges(DIRProgram *dir, size_t from_id, ASTNode *node)
 bool
 dir_collect_edges_and_intents(DIRProgram *dir, ASTNode *program)
 {
-    for (size_t i = 0; i < program->data.program.count; i++) {
-        ASTNode *node = program->data.program.statements[i];
+    for (size_t i = 0; i < ast_program_statement_count(program); i++) {
+        ASTNode *node = ast_program_statement(program, i);
         ssize_t from = -1;
         switch (node->type) {
             case AST_ROLE_DECL:

@@ -163,6 +163,58 @@ ast_world_states(const ASTNode* node, size_t* count_out)
     return node->data.world_decl.states;
 }
 
+const char*
+ast_world_state_name(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_WORLD_STATE)
+        return NULL;
+    return node->data.world_state.state_name;
+}
+
+const char*
+ast_world_state_zone_slot_name(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_WORLD_STATE)
+        return NULL;
+    return node->data.world_state.zone_slot_name;
+}
+
+WorldStateSourceKind
+ast_world_state_source_kind(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_WORLD_STATE)
+        return WORLD_STATE_SOURCE_ZONE;
+    return node->data.world_state.source_kind;
+}
+
+const char*
+ast_world_state_detail_name(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_WORLD_STATE)
+        return NULL;
+    return node->data.world_state.detail_name;
+}
+
+size_t
+ast_world_state_input_count(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_WORLD_STATE)
+        return 0;
+    return node->data.world_state.input_count;
+}
+
+const char*
+ast_world_state_input_name(const ASTNode* node, size_t index)
+{
+    if (node == NULL || node->type != AST_WORLD_STATE
+        || index >= node->data.world_state.input_count) {
+        return NULL;
+    }
+    return node->data.world_state.input_names != NULL
+        ? node->data.world_state.input_names[index]
+        : NULL;
+}
+
 ASTNode**
 ast_world_activations(const ASTNode* node, size_t* count_out)
 {
@@ -197,6 +249,40 @@ ast_world_maintained_zones(const ASTNode* node, size_t* count_out)
     if (count_out != NULL)
         *count_out = node->data.world_decl.maintained_zone_count;
     return node->data.world_decl.maintained_zones;
+}
+
+const char*
+ast_world_directive_zone_slot_name(const ASTNode* node)
+{
+    if (node == NULL)
+        return NULL;
+    switch (node->type) {
+    case AST_WORLD_ACTIVATE:
+        return node->data.world_activate.zone_slot_name;
+    case AST_WORLD_DEACTIVATE:
+        return node->data.world_deactivate.zone_slot_name;
+    case AST_WORLD_MAINTAIN:
+        return node->data.world_maintain.zone_slot_name;
+    default:
+        return NULL;
+    }
+}
+
+const char*
+ast_world_directive_state_name(const ASTNode* node)
+{
+    if (node == NULL)
+        return NULL;
+    switch (node->type) {
+    case AST_WORLD_ACTIVATE:
+        return node->data.world_activate.state_name;
+    case AST_WORLD_DEACTIVATE:
+        return node->data.world_deactivate.state_name;
+    case AST_WORLD_MAINTAIN:
+        return node->data.world_maintain.state_name;
+    default:
+        return NULL;
+    }
 }
 
 ASTNode**

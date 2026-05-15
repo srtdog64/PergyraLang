@@ -12,7 +12,8 @@ typedef enum
     FLOW_FALLTHROUGH = 1 << 0,
     FLOW_BREAK       = 1 << 1,
     FLOW_CONTINUE    = 1 << 2,
-    FLOW_RETURN      = 1 << 3
+    FLOW_RETURN      = 1 << 3,
+    FLOW_HAS_DEFER   = 1 << 4
 } FlowFlags;
 
 typedef struct
@@ -27,7 +28,6 @@ typedef struct
 Type *flow_normalize_type(Type *type);
 bool flow_condition_is_static_bool(const ASTNode *node);
 bool flow_static_bool_value(const ASTNode *node, bool *value_out);
-bool flow_ast_contains_defer_stmt(const ASTNode *node);
 void flow_reject_dynamic_defer_control(SemanticContext *ctx,
                                        ASTNode *site,
                                        const char *control_kind);

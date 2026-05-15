@@ -23,6 +23,33 @@ Current first-class evidence node kinds are `hir_routine`, `hir_cfg`,
 `dag_ability`, `rir_effect_propagation`, `rir_relation_propagation`, and
 `observability_schema`.
 
+## 0a. Epsilon-Loss Isolation Contract
+
+AIR does not pretend that abstraction lowering is lossless. When a domain,
+business, or mathematical model is lowered into runtime, ABI, memory, backend,
+or platform facts, some epsilon-loss is unavoidable: projection freshness can
+become stale, authority evidence can be incomplete, a runtime boundary can
+defer failure, ABI layout can force representation choices, and async/world
+frontiers can reorder observable state.
+
+AIR's job is to isolate that epsilon-loss at the boundary. It must not let the
+loss leak back into business logic as ad-hoc defensive code, backend guesses, or
+hidden semantic fallbacks. Every accepted loss must have explicit evidence:
+
+- the boundary where the loss is introduced
+- the source fact that made the loss unavoidable
+- the owner that remains responsible for the original truth
+- the decision: compile-time reject, conservative reject, runtime check, or
+  accepted bounded approximation
+- the user-facing diagnostic or trace schema that exposes the decision
+
+This makes AIR an epsilon quarantine layer, not an epsilon elimination layer.
+Semantic truth remains with the owning layer: CFG owns body-flow facts, DAG owns
+type/generic/ability facts, RIR owns relation/effect/resource propagation facts,
+MIR owns cleanup/pin/codegen-shape facts, and ABI/runtime owners define physical
+representation and failure behavior. AIR verifies that those facts survive the
+cross-layer boundary with explicit evidence or rejects the drift.
+
 2026-05-02 debt status:
 
 - AIR should be treated as the cross-layer verifier, not the owner of CFG, DAG,
@@ -490,8 +517,9 @@ report `authority_provenance=zone-derived|explicit|none`.
 
 ### Phase 2 (post-beta, toward 1.0)
 
-- `EvidenceNode` 도입: HIR/RIR/MIR/DAG provenance를 boolean flag가 아니라
-  first-class evidence reference로 표현한다.
+- `EvidenceNode` is no longer a post-beta TODO. HIR/RIR/MIR/DAG provenance is
+  already represented as first-class evidence inventory, while legacy
+  per-boundary flags remain cached compatibility summaries.
 - Constraint Node, Effect Node 도입.
 - Drift fact 종류 확장: failure-class mismatch, transactional-scope mismatch,
   persistence mismatch.

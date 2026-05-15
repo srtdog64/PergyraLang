@@ -10,16 +10,18 @@ format_generic_subject_signature(const char *name, GenericParams *params)
 
     if (name == NULL)
         return tc_strdup_fmt("<generic>");
-    if (params == NULL || params->count == 0)
+    size_t param_count = ast_generic_param_count(params);
+    if (param_count == 0)
         return tc_strdup_fmt("%s", name);
 
     total_len = strlen(name) + 2; /* '<' + '>' */
-    for (size_t i = 0; i < params->count; i++) {
-        GenericParam *gp = params->params[i];
-        const char *param_name =
-            (gp != NULL && gp->name != NULL) ? gp->name : "<type>";
+    for (size_t i = 0; i < param_count; i++) {
+        GenericParam *gp = ast_generic_param_at(params, i);
+        const char *param_name = ast_generic_param_name(gp);
+        if (param_name == NULL)
+            param_name = "<type>";
         total_len += strlen(param_name);
-        if (i + 1 < params->count)
+        if (i + 1 < param_count)
             total_len += 2; /* ", " */
     }
 
@@ -32,14 +34,15 @@ format_generic_subject_signature(const char *name, GenericParams *params)
     cursor += strlen(name);
     *cursor++ = '<';
 
-    for (size_t i = 0; i < params->count; i++) {
-        GenericParam *gp = params->params[i];
-        const char *param_name =
-            (gp != NULL && gp->name != NULL) ? gp->name : "<type>";
+    for (size_t i = 0; i < param_count; i++) {
+        GenericParam *gp = ast_generic_param_at(params, i);
+        const char *param_name = ast_generic_param_name(gp);
+        if (param_name == NULL)
+            param_name = "<type>";
 
         memcpy(cursor, param_name, strlen(param_name));
         cursor += strlen(param_name);
-        if (i + 1 < params->count) {
+        if (i + 1 < param_count) {
             memcpy(cursor, ", ", 2);
             cursor += 2;
         }
@@ -63,16 +66,18 @@ format_generic_subject_signature_scratch(SemanticContext *ctx,
         return format_generic_subject_signature(name, params);
     if (name == NULL)
         return pgy_arena_strdup(&ctx->scratch_arena, "<generic>");
-    if (params == NULL || params->count == 0)
+    size_t param_count = ast_generic_param_count(params);
+    if (param_count == 0)
         return pgy_arena_strdup(&ctx->scratch_arena, name);
 
     total_len = strlen(name) + 2;
-    for (size_t i = 0; i < params->count; i++) {
-        GenericParam *gp = params->params[i];
-        const char *param_name =
-            (gp != NULL && gp->name != NULL) ? gp->name : "<type>";
+    for (size_t i = 0; i < param_count; i++) {
+        GenericParam *gp = ast_generic_param_at(params, i);
+        const char *param_name = ast_generic_param_name(gp);
+        if (param_name == NULL)
+            param_name = "<type>";
         total_len += strlen(param_name);
-        if (i + 1 < params->count)
+        if (i + 1 < param_count)
             total_len += 2;
     }
 
@@ -85,14 +90,15 @@ format_generic_subject_signature_scratch(SemanticContext *ctx,
     cursor += strlen(name);
     *cursor++ = '<';
 
-    for (size_t i = 0; i < params->count; i++) {
-        GenericParam *gp = params->params[i];
-        const char *param_name =
-            (gp != NULL && gp->name != NULL) ? gp->name : "<type>";
+    for (size_t i = 0; i < param_count; i++) {
+        GenericParam *gp = ast_generic_param_at(params, i);
+        const char *param_name = ast_generic_param_name(gp);
+        if (param_name == NULL)
+            param_name = "<type>";
 
         memcpy(cursor, param_name, strlen(param_name));
         cursor += strlen(param_name);
-        if (i + 1 < params->count) {
+        if (i + 1 < param_count) {
             memcpy(cursor, ", ", 2);
             cursor += 2;
         }
@@ -214,7 +220,7 @@ identifier_is_borrowed_boundary_param(ASTNode *expr, SemanticContext *ctx)
 
     if (expr == NULL || ctx == NULL
         || expr->type != AST_IDENTIFIER
-        || expr->data.identifier.name == NULL) {
+        || ast_identifier_name(expr) == NULL) {
         return false;
     }
 
@@ -222,7 +228,7 @@ identifier_is_borrowed_boundary_param(ASTNode *expr, SemanticContext *ctx)
     if (func_decl == NULL || func_decl->type != AST_FUNC_DECL)
         return false;
 
-    ident_name = expr->data.identifier.name;
+    ident_name = ast_identifier_name(expr);
     for (size_t i = 0; i < ast_func_param_count(func_decl); i++) {
         FuncParam *param = ast_func_param(func_decl, i);
         Type *param_type;
@@ -245,11 +251,10 @@ size_t
 generic_params_required_count(GenericParams *params)
 {
     size_t required = 0;
-    if (params == NULL)
-        return 0;
-    for (size_t i = 0; i < params->count; i++) {
-        GenericParam *param = params->params[i];
-        if (param != NULL && param->default_type == NULL)
+    size_t param_count = ast_generic_param_count(params);
+    for (size_t i = 0; i < param_count; i++) {
+        GenericParam *param = ast_generic_param_at(params, i);
+        if (param != NULL && ast_generic_param_default_type(param) == NULL)
             required++;
     }
     return required;
@@ -274,8 +279,8 @@ collect_effective_generic_arg_nodes(GenericParams *decl_params,
     if (decl_params == NULL)
         return NULL;
 
-    decl_count = decl_params->count;
-    provided_count = provided_args != NULL ? provided_args->count : 0;
+    decl_count = ast_generic_param_count(decl_params);
+    provided_count = ast_generic_param_count(provided_args);
     required_count = generic_params_required_count(decl_params);
 
     if (decl_count == 0) {
@@ -348,9 +353,9 @@ collect_effective_generic_arg_nodes(GenericParams *decl_params,
 
     for (size_t i = 0; i < decl_count; i++) {
         ASTNode *arg = NULL;
-        if (provided_args != NULL && i < provided_args->count) {
-            GenericParam *provided = provided_args->params[i];
-            arg = provided != NULL ? provided->constraint : NULL;
+        if (provided_args != NULL && i < provided_count) {
+            GenericParam *provided = ast_generic_param_at(provided_args, i);
+            arg = ast_generic_param_constraint(provided);
             if (arg != NULL)
                 semantic_type_resolution_record_type_ref_dependency(
                     ctx,
@@ -358,8 +363,9 @@ collect_effective_generic_arg_nodes(GenericParams *decl_params,
                     owner_name != NULL ? owner_name : "<anonymous>",
                     arg,
                     "provided generic argument lookup");
-        } else if (decl_params->params[i] != NULL) {
-            arg = decl_params->params[i]->default_type;
+        } else {
+            GenericParam *decl_param = ast_generic_param_at(decl_params, i);
+            arg = ast_generic_param_default_type(decl_param);
             if (arg != NULL)
                 semantic_type_resolution_record_type_ref_dependency(
                     ctx,
@@ -371,10 +377,10 @@ collect_effective_generic_arg_nodes(GenericParams *decl_params,
 
         if (arg == NULL) {
             if (ctx != NULL) {
-                const char *param_name =
-                    decl_params->params[i] != NULL && decl_params->params[i]->name != NULL
-                        ? decl_params->params[i]->name
-                        : "<type-param>";
+                GenericParam *decl_param = ast_generic_param_at(decl_params, i);
+                const char *param_name = ast_generic_param_name(decl_param);
+                if (param_name == NULL)
+                    param_name = "<type-param>";
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_INFER_GENERIC,
                     PGY_CAUSE_GENERIC_ARGS_INVALID, PGY_FIX_ALIGN_GENERIC_ARG_LIST,
                     site,

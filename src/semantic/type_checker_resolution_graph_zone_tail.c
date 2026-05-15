@@ -125,16 +125,16 @@ semantic_type_resolution_precollect_zone_state_authority_inventory(
             "zone %s.maintain-state.%s",
             ast_zone_name(zone_decl) != NULL
                 ? ast_zone_name(zone_decl) : "<zone>",
-            maintain->data.zone_maintain_state.state_name != NULL
-                ? maintain->data.zone_maintain_state.state_name
+            ast_zone_directive_state_name(maintain) != NULL
+                ? ast_zone_directive_state_name(maintain)
                 : "<state>");
         if (consumer_label == NULL)
             continue;
 
-        if (maintain->data.zone_maintain_state.state_name != NULL) {
+        if (ast_zone_directive_state_name(maintain) != NULL) {
             char *state_label = semantic_type_resolution_zone_state_label(
                 zone_decl,
-                maintain->data.zone_maintain_state.state_name);
+                ast_zone_directive_state_name(maintain));
             if (state_label != NULL) {
                 semantic_type_resolution_record_local_contract_dependency(
                     ctx,
@@ -151,6 +151,8 @@ semantic_type_resolution_precollect_zone_state_authority_inventory(
 
     for (size_t i = 0; i < authority_count; i++) {
         ASTNode *authority = authorities[i];
+        const char *subject_slot =
+            ast_zone_authority_subject_slot_name(authority);
         char *consumer_name;
 
         if (authority == NULL || authority->type != AST_ZONE_AUTHORITY)
@@ -160,14 +162,12 @@ semantic_type_resolution_precollect_zone_state_authority_inventory(
             "zone %s.%s",
             ast_zone_name(zone_decl) != NULL
                 ? ast_zone_name(zone_decl) : "<zone>",
-            authority->data.zone_authority.subject_slot_name != NULL
-                ? authority->data.zone_authority.subject_slot_name
-                : "<authority>");
+            subject_slot != NULL ? subject_slot : "<authority>");
         if (consumer_name == NULL)
             continue;
         semantic_type_resolution_precollect_required_abilities(
-            authority->data.zone_authority.required_abilities,
-            authority->data.zone_authority.ability_count,
+            ast_zone_authority_required_abilities(authority, NULL),
+            ast_zone_authority_ability_count(authority),
             ctx,
             authority,
             consumer_name,

@@ -27,8 +27,8 @@ type_check_zone_state_aliases(ASTNode *node, SemanticContext *ctx)
     for (size_t i = 0; i < maintained_state_count; i++) {
         ASTNode *maintain = maintained_states[i];
         ASTNode *state;
-        const char *state_name = maintain->data.zone_maintain_state.state_name;
-        const char *participant_slot_name = maintain->data.zone_maintain_state.participant_slot_name;
+        const char *state_name = ast_zone_directive_state_name(maintain);
+        const char *participant_slot_name = ast_zone_directive_participant_slot_name(maintain);
         state = find_zone_state(node, state_name);
         if (state == NULL) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, maintain,
@@ -52,8 +52,8 @@ type_check_zone_state_aliases(ASTNode *node, SemanticContext *ctx)
             for (size_t j = i + 1; j < maintained_state_count; j++) {
                 ASTNode *other = maintained_states[j];
                 if (other != NULL
-                    && other->data.zone_maintain_state.state_name != NULL
-                    && strcmp(state_name, other->data.zone_maintain_state.state_name) == 0) {
+                    && ast_zone_directive_state_name(other) != NULL
+                    && strcmp(state_name, ast_zone_directive_state_name(other)) == 0) {
                     semantic_warning(ctx, other,
                         "Zone '%s' maintains state '%s' more than once.\n"
                         "Reason:\n"
@@ -69,12 +69,12 @@ type_check_zone_state_aliases(ASTNode *node, SemanticContext *ctx)
             }
             for (size_t j = 0; j < unlink_count; j++) {
                 ASTNode *unlink = unlinks[j];
-                const char *unlink_relation_slot_name = unlink->data.zone_unlink.relation_slot_name;
-                const char *unlink_left_slot_name = unlink->data.zone_unlink.left_slot_name;
-                const char *unlink_right_slot_name = unlink->data.zone_unlink.right_slot_name;
-                if (unlink->data.zone_unlink.state_name != NULL) {
+                const char *unlink_relation_slot_name = ast_zone_relation_slot_name(unlink);
+                const char *unlink_left_slot_name = ast_zone_relation_left_slot_name(unlink);
+                const char *unlink_right_slot_name = ast_zone_relation_right_slot_name(unlink);
+                if (ast_zone_directive_state_name(unlink) != NULL) {
                     resolve_zone_relation_state(node, unlink,
-                        unlink->data.zone_unlink.state_name, ctx, "unlink",
+                        ast_zone_directive_state_name(unlink), ctx, "unlink",
                         &unlink_relation_slot_name, &unlink_left_slot_name, &unlink_right_slot_name);
                 }
                 if (unlink_relation_slot_name != NULL
@@ -105,8 +105,8 @@ type_check_zone_state_aliases(ASTNode *node, SemanticContext *ctx)
             for (size_t j = i + 1; j < maintained_state_count; j++) {
                 ASTNode *other = maintained_states[j];
                 if (other != NULL
-                    && other->data.zone_maintain_state.state_name != NULL
-                    && strcmp(state_name, other->data.zone_maintain_state.state_name) == 0) {
+                    && ast_zone_directive_state_name(other) != NULL
+                    && strcmp(state_name, ast_zone_directive_state_name(other)) == 0) {
                     semantic_warning(ctx, other,
                         "Zone '%s' maintains state '%s' more than once.\n"
                         "Reason:\n"
@@ -122,11 +122,11 @@ type_check_zone_state_aliases(ASTNode *node, SemanticContext *ctx)
             }
             for (size_t j = 0; j < detach_count; j++) {
                 ASTNode *detach = detaches[j];
-                const char *detach_effect_slot_name = detach->data.zone_detach.effect_slot_name;
-                const char *detach_target_slot_name = detach->data.zone_detach.target_slot_name;
-                if (detach->data.zone_detach.state_name != NULL) {
+                const char *detach_effect_slot_name = ast_zone_effect_slot_name(detach);
+                const char *detach_target_slot_name = ast_zone_effect_target_slot_name(detach);
+                if (ast_zone_directive_state_name(detach) != NULL) {
                     resolve_zone_effect_state(node, detach,
-                        detach->data.zone_detach.state_name, ctx, "detach",
+                        ast_zone_directive_state_name(detach), ctx, "detach",
                         &detach_effect_slot_name, &detach_target_slot_name);
                 }
                 if (detach_effect_slot_name != NULL

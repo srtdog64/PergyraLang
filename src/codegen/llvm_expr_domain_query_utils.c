@@ -19,9 +19,9 @@ llvm_call_name_or_string_arg(ASTNode *node, size_t index)
     if (arg == NULL)
         return NULL;
     if (arg->type == AST_IDENTIFIER)
-        return arg->data.identifier.name;
+        return ast_identifier_name(arg);
     if (arg->type == AST_STRING)
-        return arg->data.string.value;
+        return ast_string_value(arg);
     return NULL;
 }
 

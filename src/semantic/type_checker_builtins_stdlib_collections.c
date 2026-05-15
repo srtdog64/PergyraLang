@@ -131,9 +131,9 @@ type_check_stdlib_collection_call(ASTNode *expr,
         reject_borrowed_boundary_container_store(
             arg1, value_type, "list", "ListPush", ctx);
         if (type_is_constructed_named(list_type, "List")
-            && list_type->data.constructed.arg_count == 1) {
+            && type_constructed_arg_count(list_type) == 1) {
             require_assignable(value_type,
-                list_type->data.constructed.args[0],
+                type_constructed_arg(list_type, 0),
                 arg1, ctx);
         } else if (list_type != NULL && list_type != TYPE_UNKNOWN) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
@@ -155,9 +155,9 @@ type_check_stdlib_collection_call(ASTNode *expr,
             type_check_expression(arg1, ctx));
         require_assignable(index_type, TYPE_INT, arg1, ctx);
         if (type_is_constructed_named(list_type, "List")
-            && list_type->data.constructed.arg_count == 1) {
+            && type_constructed_arg_count(list_type) == 1) {
             return stdlib_collection_normalize_type(
-                list_type->data.constructed.args[0]);
+                type_constructed_arg(list_type, 0));
         }
         if (list_type != NULL && list_type != TYPE_UNKNOWN) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
@@ -184,9 +184,9 @@ type_check_stdlib_collection_call(ASTNode *expr,
             arg2, value_type, "list", "ListSet", ctx);
         require_assignable(index_type, TYPE_INT, arg1, ctx);
         if (type_is_constructed_named(list_type, "List")
-            && list_type->data.constructed.arg_count == 1) {
+            && type_constructed_arg_count(list_type) == 1) {
             require_assignable(value_type,
-                list_type->data.constructed.args[0],
+                type_constructed_arg(list_type, 0),
                 arg2, ctx);
         } else if (list_type != NULL && list_type != TYPE_UNKNOWN) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
@@ -253,9 +253,9 @@ type_check_stdlib_collection_call(ASTNode *expr,
                 arg1, value_type, "set", "SetAdd", ctx);
         }
         if (type_is_constructed_named(set_type, "Set")
-            && set_type->data.constructed.arg_count == 1) {
+            && type_constructed_arg_count(set_type) == 1) {
             require_assignable(value_type,
-                set_type->data.constructed.args[0],
+                type_constructed_arg(set_type, 0),
                 arg1, ctx);
         } else if (set_type != NULL && set_type != TYPE_UNKNOWN) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
@@ -277,9 +277,9 @@ type_check_stdlib_collection_call(ASTNode *expr,
         value_type = stdlib_collection_normalize_type(
             type_check_expression(arg1, ctx));
         if (type_is_constructed_named(set_type, "Set")
-            && set_type->data.constructed.arg_count == 1) {
+            && type_constructed_arg_count(set_type) == 1) {
             require_assignable(value_type,
-                set_type->data.constructed.args[0],
+                type_constructed_arg(set_type, 0),
                 arg1, ctx);
         } else if (set_type != NULL && set_type != TYPE_UNKNOWN) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
@@ -323,9 +323,9 @@ type_check_stdlib_collection_call(ASTNode *expr,
         reject_borrowed_boundary_container_store(
             arg1, value_type, "queue", "QueuePush", ctx);
         if (type_is_constructed_named(queue_type, "Queue")
-            && queue_type->data.constructed.arg_count == 1) {
+            && type_constructed_arg_count(queue_type) == 1) {
             require_assignable(value_type,
-                queue_type->data.constructed.args[0],
+                type_constructed_arg(queue_type, 0),
                 arg1, ctx);
         } else if (queue_type != NULL && queue_type != TYPE_UNKNOWN) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
@@ -343,9 +343,9 @@ type_check_stdlib_collection_call(ASTNode *expr,
         queue_type = stdlib_collection_normalize_type(
             type_check_expression(arg0, ctx));
         if (type_is_constructed_named(queue_type, "Queue")
-            && queue_type->data.constructed.arg_count == 1) {
+            && type_constructed_arg_count(queue_type) == 1) {
             return stdlib_collection_normalize_type(
-                queue_type->data.constructed.args[0]);
+                type_constructed_arg(queue_type, 0));
         }
         if (queue_type != NULL && queue_type != TYPE_UNKNOWN) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,

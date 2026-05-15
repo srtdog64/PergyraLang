@@ -74,6 +74,22 @@ ASTNode* ast_create_override_func(ASTNode* func_decl) {
     return node;
 }
 
+ASTNode*
+ast_override_func_decl(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_OVERRIDE_FUNC)
+        return NULL;
+    return node->data.override_func.func_decl;
+}
+
+bool
+ast_override_calls_super(const ASTNode* node)
+{
+    if (node == NULL || node->type != AST_OVERRIDE_FUNC)
+        return false;
+    return node->data.override_func.calls_super;
+}
+
 // Roster declaration
 ASTNode* ast_create_roster_declaration(const char* name) {
     ASTNode* node = ast_create_node(AST_ROSTER_DECL);

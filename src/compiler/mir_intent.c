@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "parser/ast_api.h"
+
 static bool
 mir_intent_append_instruction(MIRBasicBlock *block, MIRInstruction inst)
 {
@@ -30,7 +32,7 @@ mir_intent_node_name(ASTNode *node)
         return NULL;
     switch (node->type) {
         case AST_IDENTIFIER:
-            return node->data.identifier.name;
+            return ast_identifier_name(node);
         case AST_MEMBER_ACCESS:
             return ast_member_name(node);
         case AST_TYPE:
@@ -219,7 +221,7 @@ mir_append_intent_step_zone(MIRRoutine *routine, MIRBasicBlock *block, ASTNode *
 
     if (ast_intent_step_using_expr(step) != NULL
         && ast_intent_step_using_expr(step)->type == AST_IDENTIFIER) {
-        effective_zone_alias = ast_intent_step_using_expr(step)->data.identifier.name;
+        effective_zone_alias = ast_identifier_name(ast_intent_step_using_expr(step));
     } else if (ast_intent_step_transfer_to_alias(step) != NULL) {
         effective_zone_alias = ast_intent_step_transfer_to_alias(step);
     }

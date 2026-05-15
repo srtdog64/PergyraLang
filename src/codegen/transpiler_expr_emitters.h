@@ -4,6 +4,8 @@
 /* Expression emitter helpers split on top-level function boundaries. */
 #include "transpiler_slot_builtin_emit.h"
 #include "transpiler_expr_core_emit.h"
+#include "transpiler_expr_literal_emit.h"
+#include "transpiler_expr_composite_literal_emit.h"
 #include "transpiler_intent_observability_builtin_emit.h"
 #include "transpiler_expr_builtin_dispatch.h"
 #include "transpiler_call_constructor_result_emit.h"

@@ -62,8 +62,8 @@ resolve_zone_subject_receiver(TranspilerCtx *ctx, ASTNode *receiver,
     if (zone_decl == NULL)
         return false;
 
-    if (receiver->type == AST_IDENTIFIER && receiver->data.identifier.name != NULL) {
-        slot_name = receiver->data.identifier.name;
+    if (receiver->type == AST_IDENTIFIER && ast_identifier_name(receiver) != NULL) {
+        slot_name = ast_identifier_name(receiver);
         type_name = zone_subject_slot_type_name(zone_decl, slot_name);
         if (type_name == NULL) {
             const char *var_type = lookup_typed_var(ctx, slot_name);
@@ -73,8 +73,8 @@ resolve_zone_subject_receiver(TranspilerCtx *ctx, ASTNode *receiver,
     } else if (receiver->type == AST_MEMBER_ACCESS
                && ast_member_object(receiver) != NULL
                && ast_member_object(receiver)->type == AST_IDENTIFIER
-               && ast_member_object(receiver)->data.identifier.name != NULL
-               && strcmp(ast_member_object(receiver)->data.identifier.name, "self") == 0
+               && ast_identifier_name(ast_member_object(receiver)) != NULL
+               && strcmp(ast_identifier_name(ast_member_object(receiver)), "self") == 0
                && ast_member_name(receiver) != NULL) {
         slot_name = ast_member_name(receiver);
         type_name = zone_subject_slot_type_name(zone_decl, slot_name);
@@ -124,13 +124,13 @@ resolve_world_zone_subject_receiver(TranspilerCtx *ctx, ASTNode *receiver,
     if (zone_expr == NULL || slot_name == NULL)
         return false;
 
-    if (zone_expr->type == AST_IDENTIFIER && zone_expr->data.identifier.name != NULL) {
-        zone_slot_name = zone_expr->data.identifier.name;
+    if (zone_expr->type == AST_IDENTIFIER && ast_identifier_name(zone_expr) != NULL) {
+        zone_slot_name = ast_identifier_name(zone_expr);
     } else if (zone_expr->type == AST_MEMBER_ACCESS
                && ast_member_object(zone_expr) != NULL
                && ast_member_object(zone_expr)->type == AST_IDENTIFIER
-               && ast_member_object(zone_expr)->data.identifier.name != NULL
-               && strcmp(ast_member_object(zone_expr)->data.identifier.name, "self") == 0
+               && ast_identifier_name(ast_member_object(zone_expr)) != NULL
+               && strcmp(ast_identifier_name(ast_member_object(zone_expr)), "self") == 0
                && ast_member_name(zone_expr) != NULL) {
         zone_slot_name = ast_member_name(zone_expr);
     } else {
@@ -204,10 +204,10 @@ emit_zone_action_effect_runtime(ASTNode *call, TranspilerCtx *ctx)
     method_decl = find_subject_host_method_decl(ctx, receiver_type_name, method_name);
     if (method_decl == NULL || method_decl->type != AST_FUNC_DECL
         || method_decl->is_async_decl
-        || !method_decl->data.func_decl.is_action
-        || method_decl->data.func_decl.within_zone == NULL
-        || method_decl->data.func_decl.causes_effect == NULL
-        || strcmp(method_decl->data.func_decl.within_zone, active_zone_name) != 0) {
+        || !ast_func_is_action(method_decl)
+        || ast_func_within_zone(method_decl) == NULL
+        || ast_func_causes_effect(method_decl) == NULL
+        || strcmp(ast_func_within_zone(method_decl), active_zone_name) != 0) {
         return;
     }
 
@@ -215,7 +215,7 @@ emit_zone_action_effect_runtime(ASTNode *call, TranspilerCtx *ctx)
     if (zone_decl == NULL)
         return;
 
-    effect_name = method_decl->data.func_decl.causes_effect;
+    effect_name = ast_func_causes_effect(method_decl);
     size_t layer_slot_count = 0;
     ASTNode **layer_slots = ast_zone_layer_slots(zone_decl, &layer_slot_count);
     for (size_t i = 0; i < layer_slot_count; i++) {
@@ -258,9 +258,9 @@ emit_world_embedded_action_effect_sync(TranspilerCtx *ctx,
     if (ctx == NULL || receiver == NULL || method_decl == NULL
         || method_decl->type != AST_FUNC_DECL
         || method_decl->is_async_decl
-        || !method_decl->data.func_decl.is_action
-        || method_decl->data.func_decl.within_zone == NULL
-        || method_decl->data.func_decl.causes_effect == NULL) {
+        || !ast_func_is_action(method_decl)
+        || ast_func_within_zone(method_decl) == NULL
+        || ast_func_causes_effect(method_decl) == NULL) {
         return NULL;
     }
 
@@ -273,7 +273,7 @@ emit_world_embedded_action_effect_sync(TranspilerCtx *ctx,
             &source_slot_name, &source_type_name)
         || zone_slot_name == NULL || zone_type_name == NULL
         || source_slot_name == NULL
-        || strcmp(method_decl->data.func_decl.within_zone, zone_type_name) != 0) {
+        || strcmp(ast_func_within_zone(method_decl), zone_type_name) != 0) {
         return NULL;
     }
 
@@ -281,7 +281,7 @@ emit_world_embedded_action_effect_sync(TranspilerCtx *ctx,
     if (zone_decl == NULL || zone_decl->type != AST_ZONE_DECL)
         return NULL;
 
-    effect_name = method_decl->data.func_decl.causes_effect;
+    effect_name = ast_func_causes_effect(method_decl);
     effect_decl = find_effect_decl(ctx, effect_name);
     if (effect_decl == NULL || effect_decl->type != AST_EFFECT_DECL)
         return NULL;
@@ -357,8 +357,8 @@ emit_world_embedded_action_effect_sync(TranspilerCtx *ctx,
                 const char *refresh_source;
                 if (refresh == NULL || refresh->type != AST_ZONE_REFRESH)
                     continue;
-                projection_name = refresh->data.zone_refresh.object_slot_name;
-                refresh_source = refresh->data.zone_refresh.source_slot_name;
+                projection_name = ast_zone_refresh_object_slot_name(refresh);
+                refresh_source = ast_zone_refresh_source_slot_name(refresh);
                 if (projection_name == NULL || refresh_source == NULL
                     || strcmp(refresh_source, target_slot_name) != 0) {
                     continue;
@@ -392,8 +392,8 @@ emit_world_embedded_action_effect_sync(TranspilerCtx *ctx,
             const char *refresh_source;
             if (refresh == NULL || refresh->type != AST_ZONE_REFRESH)
                 continue;
-            projection_name = refresh->data.zone_refresh.object_slot_name;
-            refresh_source = refresh->data.zone_refresh.source_slot_name;
+            projection_name = ast_zone_refresh_object_slot_name(refresh);
+            refresh_source = ast_zone_refresh_source_slot_name(refresh);
             if (projection_name == NULL || refresh_source == NULL
                 || strcmp(refresh_source, target_slot_name) != 0) {
                 continue;
@@ -433,8 +433,8 @@ find_world_state_decl(ASTNode *world_decl, const char *state_name)
     for (size_t i = 0; i < state_count; i++) {
         ASTNode *state = states[i];
         if (state != NULL && state->type == AST_WORLD_STATE
-            && state->data.world_state.state_name != NULL
-            && strcmp(state->data.world_state.state_name, state_name) == 0) {
+            && ast_world_state_name(state) != NULL
+            && strcmp(ast_world_state_name(state), state_name) == 0) {
             return state;
         }
     }

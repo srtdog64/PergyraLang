@@ -358,22 +358,25 @@ dir_render_type_name_dup(ASTNode *type_node)
         result = pergyra_strdup(base_name);
         if (result == NULL)
             return NULL;
-        if (ast_type_generic_args(type_node) != NULL
-            && ast_type_generic_args(type_node)->count > 0) {
+        GenericParams *generic_args = ast_type_generic_args(type_node);
+        size_t generic_count = ast_generic_param_count(generic_args);
+        if (generic_count > 0) {
             char *next = dir_strdup_fmt("%s<", result);
             free(result);
             result = next;
             if (result == NULL)
                 return NULL;
-            for (size_t i = 0; i < ast_type_generic_args(type_node)->count; i++) {
-                GenericParam *param = ast_type_generic_args(type_node)->params[i];
+            for (size_t i = 0; i < generic_count; i++) {
+                GenericParam *param = ast_generic_param_at(generic_args, i);
                 char *arg_text = NULL;
-                if (param != NULL && param->constraint != NULL) {
-                    arg_text = dir_render_type_name_dup(param->constraint);
-                } else if (param != NULL && param->name != NULL) {
-                    arg_text = pergyra_strdup(param->name);
-                } else if (param != NULL && param->default_type != NULL) {
-                    arg_text = dir_render_type_name_dup(param->default_type);
+                if (ast_generic_param_constraint(param) != NULL) {
+                    arg_text = dir_render_type_name_dup(
+                        ast_generic_param_constraint(param));
+                } else if (ast_generic_param_name(param) != NULL) {
+                    arg_text = pergyra_strdup(ast_generic_param_name(param));
+                } else if (ast_generic_param_default_type(param) != NULL) {
+                    arg_text = dir_render_type_name_dup(
+                        ast_generic_param_default_type(param));
                 } else {
                     arg_text = pergyra_strdup("Int");
                 }
@@ -394,13 +397,15 @@ dir_render_type_name_dup(ASTNode *type_node)
         return result;
     }
     case AST_CHANNEL_TYPE: {
-        char *inner = dir_render_type_name_dup(type_node->data.channel_type.element_type);
+        char *inner = dir_render_type_name_dup(
+            ast_channel_type_element_type(type_node));
         result = dir_strdup_fmt("Channel<%s>", inner != NULL ? inner : "Int");
         free(inner);
         return result;
     }
     case AST_FUTURE_TYPE: {
-        char *inner = dir_render_type_name_dup(type_node->data.future_type.value_type);
+        char *inner = dir_render_type_name_dup(
+            ast_future_type_value_type(type_node));
         result = dir_strdup_fmt("Future<%s>", inner != NULL ? inner : "Int");
         free(inner);
         return result;

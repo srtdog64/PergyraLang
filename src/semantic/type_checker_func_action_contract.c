@@ -35,10 +35,10 @@ callable_contract_is_externally_visible(ASTNode *node, SemanticContext *ctx)
         return true;
     if (host == NULL || !host->is_exported)
         return false;
-    if (!node->data.func_decl.has_explicit_access)
+    if (!ast_func_has_explicit_access(node))
         return true;
-    return node->data.func_decl.access == ACCESS_PUBLIC
-        || node->data.func_decl.access == ACCESS_PROTECTED;
+    return ast_func_access(node) == ACCESS_PUBLIC
+        || ast_func_access(node) == ACCESS_PROTECTED;
 }
 
 void
@@ -50,6 +50,8 @@ semantic_validate_action_func_contract(ASTNode *node,
 {
     if (is_action) {
         const char *subject_name = NULL;
+        const char *within_zone = NULL;
+        const char *causes_effect = NULL;
 
         if (enclosing_nominal != NULL
             && enclosing_nominal->type == AST_CLASS_DECL
@@ -59,31 +61,34 @@ semantic_validate_action_func_contract(ASTNode *node,
         validate_action_required_abilities(node, enclosing_nominal, ctx);
 
         /* Derive 'within' from the surrounding lexical zone */
-        if (node->data.func_decl.within_zone == NULL
+        if (ast_func_within_zone(node) == NULL
             && ctx->current_zone != NULL
             && ctx->current_zone->type == AST_ZONE_DECL
             && ast_zone_name(ctx->current_zone) != NULL) {
-            node->data.func_decl.within_zone =
-                pergyra_strdup(ast_zone_name(ctx->current_zone));
+            (void)ast_func_set_within_zone_copy(
+                node, ast_zone_name(ctx->current_zone));
         }
 
-        if (node->data.func_decl.within_zone != NULL
+        within_zone = ast_func_within_zone(node);
+        causes_effect = ast_func_causes_effect(node);
+
+        if (within_zone != NULL
             && find_domain_decl_by_name(ctx->program_root, AST_ZONE_DECL,
-                node->data.func_decl.within_zone) == NULL) {
+                within_zone) == NULL) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_ACTION_CONTRACT_INVALID, PGY_CAUSE_ACTION_CONTRACT, PGY_FIX_ALIGN_ACTION_SURFACE_WITH_ZONE, node,
                 "action '%s' references unknown zone '%s'",
                 name != NULL ? name : "<anonymous>",
-                node->data.func_decl.within_zone);
+                within_zone);
         }
-        if (node->data.func_decl.within_zone != NULL) {
+        if (within_zone != NULL) {
             ASTNode *zone_decl = find_domain_decl_by_name(ctx->program_root, AST_ZONE_DECL,
-                node->data.func_decl.within_zone);
+                within_zone);
             if (zone_decl != NULL
                 && !explicit_type_reference_allowed(zone_decl, node, ctx)) {
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_ACTION_CONTRACT_INVALID, PGY_CAUSE_ACTION_CONTRACT, PGY_FIX_ALIGN_ACTION_SURFACE_WITH_ZONE, node,
                     "action '%s' cannot reference non-exported zone '%s' from another module",
                     name != NULL ? name : "<anonymous>",
-                    node->data.func_decl.within_zone);
+                    within_zone);
             }
             if (zone_decl != NULL
                 && !zone_decl->is_exported
@@ -91,27 +96,27 @@ semantic_validate_action_func_contract(ASTNode *node,
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_ACTION_CONTRACT_INVALID, PGY_CAUSE_ACTION_CONTRACT, PGY_FIX_ALIGN_ACTION_SURFACE_WITH_ZONE, node,
                     "action '%s' cannot reference non-exported zone '%s' in an externally visible contract",
                     name != NULL ? name : "<anonymous>",
-                    node->data.func_decl.within_zone);
+                    within_zone);
             }
         }
 
-        if (node->data.func_decl.causes_effect != NULL
+        if (causes_effect != NULL
             && find_domain_decl_by_name(ctx->program_root, AST_EFFECT_DECL,
-                node->data.func_decl.causes_effect) == NULL) {
+                causes_effect) == NULL) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_ACTION_CONTRACT_INVALID, PGY_CAUSE_ACTION_CONTRACT, PGY_FIX_ALIGN_ACTION_SURFACE_WITH_ZONE, node,
                 "action '%s' references unknown effect '%s'",
                 name != NULL ? name : "<anonymous>",
-                node->data.func_decl.causes_effect);
+                causes_effect);
         }
-        if (node->data.func_decl.causes_effect != NULL) {
+        if (causes_effect != NULL) {
             ASTNode *effect_decl = find_domain_decl_by_name(ctx->program_root, AST_EFFECT_DECL,
-                node->data.func_decl.causes_effect);
+                causes_effect);
             if (effect_decl != NULL
                 && !explicit_type_reference_allowed(effect_decl, node, ctx)) {
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_ACTION_CONTRACT_INVALID, PGY_CAUSE_ACTION_CONTRACT, PGY_FIX_ALIGN_ACTION_SURFACE_WITH_ZONE, node,
                     "action '%s' cannot reference non-exported effect '%s' from another module",
                     name != NULL ? name : "<anonymous>",
-                    node->data.func_decl.causes_effect);
+                    causes_effect);
             }
             if (effect_decl != NULL
                 && !effect_decl->is_exported
@@ -119,12 +124,12 @@ semantic_validate_action_func_contract(ASTNode *node,
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_ACTION_CONTRACT_INVALID, PGY_CAUSE_ACTION_CONTRACT, PGY_FIX_ALIGN_ACTION_SURFACE_WITH_ZONE, node,
                     "action '%s' cannot reference non-exported effect '%s' in an externally visible contract",
                     name != NULL ? name : "<anonymous>",
-                    node->data.func_decl.causes_effect);
+                    causes_effect);
             }
         }
 
-        for (size_t i = 0; i < node->data.func_decl.authorized_by_count; i++) {
-            const char *auth_name = node->data.func_decl.authorized_by[i];
+        for (size_t i = 0; i < ast_func_authorized_by_count(node); i++) {
+            const char *auth_name = ast_func_authorized_by(node, i);
             bool found = auth_name != NULL && strcmp(auth_name, "self") == 0;
             const char *auth_type_name = NULL;
 
@@ -154,9 +159,9 @@ semantic_validate_action_func_contract(ASTNode *node,
             }
         }
 
-        if (node->data.func_decl.within_zone != NULL) {
+        if (within_zone != NULL) {
             ASTNode *zone_decl = find_domain_decl_by_name(ctx->program_root, AST_ZONE_DECL,
-                node->data.func_decl.within_zone);
+                within_zone);
             ASTNode **zone_slots = NULL;
             size_t zone_slot_count = 0;
             if (zone_decl != NULL)
@@ -167,13 +172,13 @@ semantic_validate_action_func_contract(ASTNode *node,
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_ACTION_CONTRACT_INVALID, PGY_CAUSE_ACTION_CONTRACT, PGY_FIX_ALIGN_ACTION_SURFACE_WITH_ZONE, node,
                     "action '%s' references zone '%s', but that zone has no subject slot for '%s'",
                     name != NULL ? name : "<anonymous>",
-                    node->data.func_decl.within_zone,
+                    within_zone,
                     subject_name);
             }
 
             if (zone_decl != NULL) {
-                for (size_t i = 0; i < node->data.func_decl.authorized_by_count; i++) {
-                    const char *auth_name = node->data.func_decl.authorized_by[i];
+                for (size_t i = 0; i < ast_func_authorized_by_count(node); i++) {
+                    const char *auth_name = ast_func_authorized_by(node, i);
                     const char *auth_type_name = find_action_binding_type_name(
                         node, enclosing_nominal, ctx, auth_name);
                     if (auth_type_name == NULL) {
@@ -193,14 +198,14 @@ semantic_validate_action_func_contract(ASTNode *node,
                             name != NULL ? name : "<anonymous>",
                             auth_name != NULL ? auth_name : "<subject>",
                             auth_type_name,
-                            node->data.func_decl.within_zone,
+                            within_zone,
                             auth_name != NULL ? auth_name : "<subject>",
                             auth_name != NULL ? auth_name : "<subject>",
                             auth_type_name,
-                            node->data.func_decl.within_zone,
+                            within_zone,
                             auth_type_name,
-                            node->data.func_decl.within_zone,
-                            node->data.func_decl.within_zone);
+                            within_zone,
+                            within_zone);
                     } else if (!zone_has_authority_for_subject_type(zone_decl, ctx, auth_type_name)) {
                         semantic_error_with_hints(ctx, PGY_CODE_SEM_ACTION_CONTRACT_INVALID, PGY_CAUSE_ACTION_CONTRACT, PGY_FIX_ALIGN_ACTION_SURFACE_WITH_ZONE, node,
                             "action '%s' authorized subject '%s' has type '%s', but zone '%s' declares no matching authority.\n"
@@ -216,17 +221,17 @@ semantic_validate_action_func_contract(ASTNode *node,
                             name != NULL ? name : "<anonymous>",
                             auth_name != NULL ? auth_name : "<subject>",
                             auth_type_name,
-                            node->data.func_decl.within_zone,
-                            node->data.func_decl.within_zone,
+                            within_zone,
+                            within_zone,
                             auth_name != NULL ? auth_name : "<subject>",
                             auth_name != NULL ? auth_name : "<subject>",
                             auth_type_name,
                             name != NULL ? name : "<anonymous>",
-                            node->data.func_decl.within_zone,
+                            within_zone,
                             auth_name != NULL ? auth_name : "<subject>",
-                            node->data.func_decl.within_zone,
+                            within_zone,
                             auth_type_name,
-                            node->data.func_decl.within_zone,
+                            within_zone,
                             auth_name != NULL ? auth_name : "<subject>",
                             name != NULL ? name : "<anonymous>");
                     }
@@ -234,9 +239,9 @@ semantic_validate_action_func_contract(ASTNode *node,
             }
         }
 
-        if (node->data.func_decl.causes_effect != NULL) {
+        if (causes_effect != NULL) {
             ASTNode *effect_decl = find_domain_decl_by_name(ctx->program_root, AST_EFFECT_DECL,
-                node->data.func_decl.causes_effect);
+                causes_effect);
             if (effect_decl != NULL) {
                 ASTNode **effect_slots;
                 size_t effect_slot_count;
@@ -277,17 +282,17 @@ semantic_validate_action_func_contract(ASTNode *node,
                         semantic_error_with_hints(ctx, PGY_CODE_SEM_ACTION_CONTRACT_INVALID, PGY_CAUSE_ACTION_CONTRACT, PGY_FIX_ALIGN_ACTION_SURFACE_WITH_ZONE, node,
                             "action '%s' causes effect '%s', but no self/parameter matches effect target type '%s'",
                             name != NULL ? name : "<anonymous>",
-                            node->data.func_decl.causes_effect,
+                            causes_effect,
                             slot_type->name);
                     }
                 }
             }
 
-            if (node->data.func_decl.within_zone != NULL) {
+            if (within_zone != NULL) {
                 ASTNode *zone_decl = find_domain_decl_by_name(ctx->program_root, AST_ZONE_DECL,
-                    node->data.func_decl.within_zone);
+                    within_zone);
                 if (zone_decl != NULL
-                    && !zone_has_effect_layer_type(zone_decl, node->data.func_decl.causes_effect)) {
+                    && !zone_has_effect_layer_type(zone_decl, causes_effect)) {
                     semantic_error_with_hints(ctx, PGY_CODE_SEM_ACTION_CONTRACT_INVALID, PGY_CAUSE_ACTION_CONTRACT, PGY_FIX_ALIGN_ACTION_SURFACE_WITH_ZONE, node,
                         "action '%s' causes effect '%s', but zone '%s' has no matching effect slot.\n"
                         "Reason:\n"
@@ -297,12 +302,12 @@ semantic_validate_action_func_contract(ASTNode *node,
                         "- add an effect slot of type '%s' to zone '%s'\n"
                         "- or remove/change the causes clause on action '%s'",
                         name != NULL ? name : "<anonymous>",
-                        node->data.func_decl.causes_effect,
-                        node->data.func_decl.within_zone,
-                        node->data.func_decl.causes_effect,
-                        node->data.func_decl.within_zone,
-                        node->data.func_decl.causes_effect,
-                        node->data.func_decl.within_zone,
+                        causes_effect,
+                        within_zone,
+                        causes_effect,
+                        within_zone,
+                        causes_effect,
+                        within_zone,
                         name != NULL ? name : "<anonymous>");
                 }
             }

@@ -37,7 +37,7 @@ emit_call_event_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
         return NULL;
 
     if (callee->type == AST_IDENTIFIER) {
-        const char *name = callee->data.identifier.name;
+        const char *name = ast_identifier_name(callee);
         if (find_event_decl(ctx, name) != NULL) {
             CodeBuf *args_buf = codebuf_create();
             if (args_buf == NULL)

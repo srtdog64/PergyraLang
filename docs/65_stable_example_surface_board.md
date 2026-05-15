@@ -68,7 +68,7 @@ module ecosystem tracks after beta closure.
 | `examples/transfer_move_minimal/` | stable | transfer shorthand subset |
 | `examples/transfer_move_typed_minimal/` | stable | typed transfer subset |
 | `examples/surface_compression_maximal/` | stable | compressed authoring surface |
-| `examples/zone_context_minimal/` | stable | lexical zone context subset |
+| `examples/zone_context_minimal.pgy` | stable | lexical zone context / zone-first entry subset |
 | `examples/projection_bind_group_minimal/` | stable | bind-group subset |
 | `examples/projection_refresh_publish_group_minimal/` | stable | refresh/publish-group subset |
 | `examples/six_item_alignment_demo/` | stable | alignment/authoring demo |

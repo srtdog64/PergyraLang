@@ -36,8 +36,8 @@ emit_statement(ASTNode *node, TranspilerCtx *ctx)
          * Runtime functions are always available via pgy_runtime.h.
          * Future: emit module-specific includes/initializers here. */
         codebuf_write(ctx->out, "/* use %s */\n",
-            node->data.use_decl.module_name != NULL
-                ? node->data.use_decl.module_name : "unknown");
+            ast_use_module_name(node) != NULL
+                ? ast_use_module_name(node) : "unknown");
         break;
     case AST_UNSAFE_BLOCK:
         /* unsafe { ... } → emit body directly (no safety wrappers) */
@@ -55,9 +55,9 @@ emit_statement(ASTNode *node, TranspilerCtx *ctx)
          * → lookup party's typed_var to get PartyType,
          *   then emit PartyType_bind_slot(&party, NULL, &Role_Ability_vtable_instance)
          * For now: use the typed_var mapping to find the party type. */
-        const char *pvar = node->data.bind_stmt.party_var;
-        const char *slot = node->data.bind_stmt.slot_name;
-        const char *role = node->data.bind_stmt.role_name;
+        const char *pvar = ast_bind_statement_party_var(node);
+        const char *slot = ast_bind_statement_slot_name(node);
+        const char *role = ast_bind_statement_role_name(node);
         const char *party_type = NULL;
         for (int ti = 0; ti < ctx->typed_var_count; ti++) {
             if (strcmp(ctx->typed_vars[ti].name, pvar) == 0) {

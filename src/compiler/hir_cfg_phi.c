@@ -15,14 +15,14 @@ hir_stmt_collect_local_defs(ASTNode *node,
 
     switch (node->type) {
         case AST_LET_DECL:
-            return hir_cfg_append_name_unique(names, count, capacity, node->data.let_decl.name);
+            return hir_cfg_append_name_unique(names, count, capacity, ast_let_name(node));
 
         case AST_LET_DESTRUCTURE:
-            for (size_t i = 0; i < node->data.let_destructure.name_count; i++) {
+            for (size_t i = 0; i < ast_let_destructure_name_count(node); i++) {
                 if (!hir_cfg_append_name_unique(names,
                                                 count,
                                                 capacity,
-                                                node->data.let_destructure.names[i]))
+                                                ast_let_destructure_name(node, i)))
                     return false;
             }
             return true;
@@ -33,7 +33,7 @@ hir_stmt_collect_local_defs(ASTNode *node,
                 return hir_cfg_append_name_unique(names,
                                                   count,
                                                   capacity,
-                                                  ast_assignment_target(node)->data.identifier.name);
+                                                  ast_identifier_name(ast_assignment_target(node)));
             }
             return true;
 

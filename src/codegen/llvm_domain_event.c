@@ -99,7 +99,7 @@ llvm_emit_domain_event_helpers(LLVMGenCtx *ctx,
             ptype_count * sizeof(LLVMTypeRef));
         for (int j = 0; j < pc; j++) {
             ASTNode *p = ast_event_param(stmt, (size_t)j);
-            ASTNode *param_type = (p != NULL) ? p->data.let_decl.type : NULL;
+            ASTNode *param_type = (p != NULL) ? ast_let_type(p) : NULL;
             ptypes[j] = llvm_domain_event_required_param_type(
                 ctx, stmt, param_type, ename);
             if (ctx->has_error || ptypes[j] == NULL)

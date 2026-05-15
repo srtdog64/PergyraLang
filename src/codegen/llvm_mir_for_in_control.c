@@ -100,7 +100,7 @@ llvm_mir_emit_for_in_loop_condition(const MIRInstruction *inst, LLVMGenCtx *ctx)
     size_call = LLVMConstInt(ctx->type_i32, 0, 0);
     iterable = inst->expr0;
     if (iterable != NULL && iterable->type == AST_IDENTIFIER) {
-        const char *iter_name = iterable->data.identifier.name;
+        const char *iter_name = ast_identifier_name(iterable);
         LLVMVarEntry *list_var = llvm_scope_lookup(ctx, iter_name);
         LLVMFuncEntry *size_fn = llvm_mir_for_in_required_runtime(ctx, inst,
             "pgy_list_size_raw_export");
@@ -213,7 +213,7 @@ llvm_mir_emit_for_in_body_binding(const MIRRoutine *routine,
     if (iterable == NULL || iterable->type != AST_IDENTIFIER || variable == NULL)
         return true;
 
-    iter_name = iterable->data.identifier.name;
+    iter_name = ast_identifier_name(iterable);
     list_inner = llvm_lookup_list_inner(ctx, iter_name);
     list_var = llvm_scope_lookup(ctx, iter_name);
     if (list_inner == NULL || list_var == NULL)

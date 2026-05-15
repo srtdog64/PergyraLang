@@ -166,38 +166,37 @@ build_ability_ref_bindings(ASTNode *ability_decl,
         return;
     }
 
+    size_t ability_generic_count = ast_generic_param_count(ability_generics);
+    GenericParams *actual_args = ast_type_generic_args(ability_ref);
     for (size_t i = 0;
-         i < ability_generics->count
-         && out < MAX_GENERIC_BINDINGS;
+         i < ability_generic_count && out < MAX_GENERIC_BINDINGS;
          i++) {
-        GenericParam *formal = ability_generics->params[i];
+        GenericParam *formal = ast_generic_param_at(ability_generics, i);
         GenericParam *actual = NULL;
         ASTNode *actual_type = NULL;
         char *rendered = NULL;
 
-        if (formal == NULL || formal->name == NULL)
+        if (ast_generic_param_name(formal) == NULL)
             continue;
-        if (ast_type_generic_args(ability_ref) != NULL
-            && i < ast_type_generic_args(ability_ref)->count) {
-            actual = ast_type_generic_args(ability_ref)->params[i];
-            if (actual != NULL)
-                actual_type = actual->constraint;
-        }
+        actual = ast_generic_param_at(actual_args, i);
+        actual_type = ast_generic_param_constraint(actual);
         if (actual_type == NULL)
-            actual_type = formal->default_type;
+            actual_type = ast_generic_param_default_type(formal);
         if (actual_type == NULL)
             continue;
 
         rendered = render_type_name(actual_type);
         if (rendered == NULL) {
             transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "cannot render generic ability binding '%s' for ability '%s'",
-                formal->name != NULL ? formal->name : "<param>",
+                ast_generic_param_name(formal) != NULL
+                    ? ast_generic_param_name(formal) : "<param>",
                 ast_ability_name(ability_decl) != NULL
                     ? ast_ability_name(ability_decl) : "<ability>");
             return;
         }
         if (!transpiler_role_ability_copy_name(
-                bindings[out].name, sizeof(bindings[out].name), formal->name)
+                bindings[out].name, sizeof(bindings[out].name),
+                ast_generic_param_name(formal))
             || !transpiler_role_ability_copy_name(
                 bindings[out].concrete_type,
                 sizeof(bindings[out].concrete_type), rendered)) {
@@ -236,7 +235,7 @@ render_effective_ability_ref_vtable_tag(ASTNode *ability_decl,
 
     if (ability_decl != NULL && ability_decl->type == AST_ABILITY_DECL
         && ability_generics != NULL
-        && ability_generics->count > 0) {
+        && ast_generic_param_count(ability_generics) > 0) {
         CodeBuf *buf = codebuf_create();
         if (buf == NULL)
             return NULL;
@@ -332,7 +331,7 @@ ensure_ability_ref_vtable_decl(ASTNode *ability_ref, TranspilerCtx *ctx)
         return;
 
     ability_generics = ast_ability_generic_params(ability_decl);
-    if (ability_generics == NULL || ability_generics->count == 0) {
+    if (ast_generic_param_count(ability_generics) == 0) {
         return;
     }
 

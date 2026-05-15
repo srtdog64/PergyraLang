@@ -17,38 +17,6 @@
 #include "../compiler/import_resolver.h"
 
 static bool
-semantic_program_append_statement(ASTNode *program, ASTNode *stmt)
-{
-    ASTNode **grown;
-    size_t new_capacity;
-
-    if (program == NULL || program->type != AST_PROGRAM || stmt == NULL)
-        return false;
-
-    if (program->data.program.count >= program->data.program.capacity) {
-        if (program->data.program.capacity == 0) {
-            new_capacity = 8;
-        } else {
-            if (program->data.program.capacity > SIZE_MAX / 2)
-                return false;
-            new_capacity = program->data.program.capacity * 2;
-        }
-        if (new_capacity > SIZE_MAX / sizeof(ASTNode *)) {
-            return false;
-        }
-        grown = realloc(program->data.program.statements,
-            sizeof(ASTNode *) * new_capacity);
-        if (grown == NULL)
-            return false;
-        program->data.program.statements = grown;
-        program->data.program.capacity = new_capacity;
-    }
-
-    program->data.program.statements[program->data.program.count++] = stmt;
-    return true;
-}
-
-static bool
 semantic_loaded_modules_append(char ***module_names,
                                size_t *count,
                                size_t *capacity,
@@ -119,24 +87,24 @@ semantic_preload_stdlib_uses(ASTNode *ast)
      * arena batches the allocations and removes N malloc/free pairs. */
     pgy_arena_init(&path_arena, 0);
 
-    for (size_t i = 0; i < ast->data.program.count; i++) {
-        ASTNode *stmt = ast->data.program.statements[i];
+    for (size_t i = 0; i < ast_program_statement_count(ast); i++) {
+        ASTNode *stmt = ast_program_statement(ast, i);
         char *module_path = NULL;
         ASTNode *loaded = NULL;
         char *error_message = NULL;
 
         if (stmt == NULL || stmt->type != AST_USE_DECL
-            || stmt->data.use_decl.module_name == NULL) {
+            || ast_use_module_name(stmt) == NULL) {
             continue;
         }
 
         if (semantic_program_has_module_name(loaded_modules, loaded_count,
-                stmt->data.use_decl.module_name)) {
+                ast_use_module_name(stmt))) {
             continue;
         }
 
         module_path = pgy_arena_fmt(&path_arena, "%s/stdlib/%s.pgy",
-            PGY_PROJECT_ROOT, stmt->data.use_decl.module_name);
+            PGY_PROJECT_ROOT, ast_use_module_name(stmt));
         if (module_path == NULL)
             continue;
 
@@ -151,10 +119,10 @@ semantic_preload_stdlib_uses(ASTNode *ast)
         (void)semantic_loaded_modules_append(&loaded_modules,
                                              &loaded_count,
                                              &loaded_capacity,
-                                             stmt->data.use_decl.module_name);
+                                             ast_use_module_name(stmt));
 
-        for (size_t j = 0; j < loaded->data.program.count; j++) {
-            ASTNode *imported_stmt = loaded->data.program.statements[j];
+        for (size_t j = 0; j < ast_program_statement_count(loaded); j++) {
+            ASTNode *imported_stmt = ast_program_statement(loaded, j);
             bool explicit_private = false;
 
             if (imported_stmt == NULL
@@ -168,10 +136,10 @@ semantic_preload_stdlib_uses(ASTNode *ast)
                     || imported_stmt->access == ACCESS_PROTECTED);
             imported_stmt->is_exported = !explicit_private;
 
-            if (!semantic_program_append_statement(ast, imported_stmt)) {
+            if (!ast_program_append_statement(ast, imported_stmt)) {
                 break;
             }
-            loaded->data.program.statements[j] = NULL;
+            (void)ast_program_detach_statement(loaded, j);
         }
 
         ast_destroy(loaded);

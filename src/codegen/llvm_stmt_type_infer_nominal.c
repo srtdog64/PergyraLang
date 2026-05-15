@@ -13,8 +13,8 @@ llvm_stmt_infer_nominal_name_from_init(LLVMGenCtx *ctx, ASTNode *init)
     if (ctx == NULL || init == NULL)
         return NULL;
 
-    if (init->type == AST_IDENTIFIER && init->data.identifier.name != NULL) {
-        name = init->data.identifier.name;
+    if (init->type == AST_IDENTIFIER && ast_identifier_name(init) != NULL) {
+        name = ast_identifier_name(init);
         {
             LLVMVarEntry *var = llvm_scope_lookup(ctx, name);
             if (var != NULL) {
@@ -50,14 +50,14 @@ llvm_stmt_infer_nominal_name_from_init(LLVMGenCtx *ctx, ASTNode *init)
     if (init->type == AST_CALL
         && ast_call_callee(init) != NULL
         && ast_call_callee(init)->type == AST_IDENTIFIER
-        && ast_call_callee(init)->data.identifier.name != NULL) {
-        name = ast_call_callee(init)->data.identifier.name;
+        && ast_identifier_name(ast_call_callee(init)) != NULL) {
+        name = ast_identifier_name(ast_call_callee(init));
         if (llvm_stmt_call_returns_collection_value(name)
             && ast_call_arg_count(init) >= 1
             && ast_call_argument(init, 0) != NULL
             && ast_call_argument(init, 0)->type == AST_IDENTIFIER) {
             const char *collection =
-                ast_call_argument(init, 0)->data.identifier.name;
+                ast_identifier_name(ast_call_argument(init, 0));
             const char *inner = llvm_stmt_lookup_collection_get_inner(
                 ctx, name, collection);
             if (inner != NULL && llvm_lookup_class(ctx, inner) != NULL)

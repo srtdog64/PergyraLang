@@ -7,9 +7,9 @@
 void
 llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
 {
-    const char *name = node->data.let_decl.name;
-    ASTNode *type_ann = node->data.let_decl.type;
-    ASTNode *init     = node->data.let_decl.initializer;
+    const char *name = ast_let_name(node);
+    ASTNode *type_ann = ast_let_type(node);
+    ASTNode *init     = ast_let_initializer(node);
     const char *spawn_future_inner = NULL;
 
     if (llvm_stmt_emit_claim_slot_let(node, ctx))
@@ -28,7 +28,7 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
     if (init != NULL && init->type == AST_CALL
         && ast_call_callee(init) != NULL
         && ast_call_callee(init)->type == AST_IDENTIFIER) {
-        const char *callee = ast_call_callee(init)->data.identifier.name;
+        const char *callee = ast_identifier_name(ast_call_callee(init));
         LLVMClassTypeEntry *cls = llvm_lookup_class(ctx, callee);
         if (cls != NULL) {
             LLVMValueRef alloca_val = llvm_create_entry_alloca(
@@ -160,12 +160,11 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
         && ast_type_name(type_ann) != NULL
         && (strcmp(ast_type_name(type_ann), "Array") == 0
             || strcmp(ast_type_name(type_ann), "Slice") == 0)
-        && ast_type_generic_args(type_ann) != NULL
-        && ast_type_generic_args(type_ann)->count > 0) {
+        && ast_generic_param_count(ast_type_generic_args(type_ann)) > 0) {
         const char *ann_name = ast_type_name(type_ann);
         GenericParams *generic_args = ast_type_generic_args(type_ann);
         char *elem_name = llvm_stmt_render_type_arg_scratch(
-            generic_args->params[0],
+            ast_generic_param_at(generic_args, 0),
             &ctx->scratch);
         if (elem_name == NULL || elem_name[0] == '\0') {
             llvm_stmt_require_let_type_arg(ctx, node, name,
@@ -194,11 +193,9 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
         const char *ann_name = ast_type_name(type_ann);
         GenericParams *generic_args = ast_type_generic_args(type_ann);
         if (strcmp(ann_name, "List") == 0
-            && generic_args != NULL
-            && generic_args->count > 0
-            && generic_args->params[0] != NULL) {
+            && ast_generic_param_at(generic_args, 0) != NULL) {
             char *inner_name = llvm_stmt_render_type_arg(
-                generic_args->params[0]);
+                ast_generic_param_at(generic_args, 0));
             if (inner_name == NULL || inner_name[0] == '\0') {
                 llvm_stmt_require_let_type_arg(ctx, node, name, ann_name);
                 free(inner_name);
@@ -207,11 +204,9 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
             llvm_register_list_var(ctx, name, inner_name);
             free(inner_name);
         } else if (strcmp(ann_name, "Queue") == 0
-            && generic_args != NULL
-            && generic_args->count > 0
-            && generic_args->params[0] != NULL) {
+            && ast_generic_param_at(generic_args, 0) != NULL) {
             char *inner_name = llvm_stmt_render_type_arg(
-                generic_args->params[0]);
+                ast_generic_param_at(generic_args, 0));
             if (inner_name == NULL || inner_name[0] == '\0') {
                 llvm_stmt_require_let_type_arg(ctx, node, name, ann_name);
                 free(inner_name);
@@ -220,14 +215,12 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
             llvm_register_queue_var(ctx, name, inner_name);
             free(inner_name);
         } else if (strcmp(ann_name, "HashMap") == 0
-            && generic_args != NULL
-            && generic_args->count > 1
-            && generic_args->params[0] != NULL
-            && generic_args->params[1] != NULL) {
+            && ast_generic_param_at(generic_args, 0) != NULL
+            && ast_generic_param_at(generic_args, 1) != NULL) {
             char *key_name = llvm_stmt_render_type_arg(
-                generic_args->params[0]);
+                ast_generic_param_at(generic_args, 0));
             char *value_name = llvm_stmt_render_type_arg(
-                generic_args->params[1]);
+                ast_generic_param_at(generic_args, 1));
             if (key_name == NULL || key_name[0] == '\0') {
                 llvm_stmt_require_let_type_arg(ctx, node, name, ann_name);
                 free(key_name);
@@ -258,12 +251,9 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
         if (strcmp(ann_name, "Future") == 0
             || strcmp(ann_name, "RemoteFuture") == 0) {
             char *future_inner = NULL;
-            if (generic_args != NULL
-                && generic_args->count > 0
-                && generic_args->params != NULL
-                && generic_args->params[0] != NULL) {
+            if (ast_generic_param_at(generic_args, 0) != NULL) {
                 future_inner = llvm_stmt_render_type_arg(
-                    generic_args->params[0]);
+                    ast_generic_param_at(generic_args, 0));
             }
             if (future_inner == NULL || future_inner[0] == '\0') {
                 llvm_stmt_require_let_type_arg(ctx, node, name, ann_name);
@@ -277,13 +267,14 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
     } else if (init != NULL && init->type == AST_CALL
                && ast_call_callee(init) != NULL
                && ast_call_callee(init)->type == AST_IDENTIFIER
-               && strcmp(ast_call_callee(init)->data.identifier.name,
+               && ast_identifier_name(ast_call_callee(init)) != NULL
+               && strcmp(ast_identifier_name(ast_call_callee(init)),
                          "SubmitDeviceRead") == 0) {
         const char *inner = NULL;
         ASTNode *slot_arg = ast_call_argument(init, 0);
         if (slot_arg != NULL && slot_arg->type == AST_IDENTIFIER) {
             const char *tracked = llvm_lookup_device_slot_inner(
-                ctx, slot_arg->data.identifier.name);
+                ctx, ast_identifier_name(slot_arg));
             if (tracked != NULL)
                 inner = tracked;
         }

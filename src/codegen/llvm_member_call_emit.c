@@ -11,6 +11,7 @@
 #include "llvm_expr_member_lvalue.h"
 #include "llvm_internal_api.h"
 #include "llvm_member_call_internal.h"
+#include "parser/ast_api.h"
 
 LLVMValueRef
 llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
@@ -47,7 +48,7 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
         && method_name != NULL) {
         if (llvm_is_upper_ident(obj_node)) {
             char *full_name = llvm_member_call_mangle_method_name(ctx, node,
-                obj_node->data.identifier.name, method_name);
+                ast_identifier_name(obj_node), method_name);
             if (full_name == NULL)
                 return NULL;
             LLVMFuncEntry *fn = llvm_lookup_function(ctx, full_name);
@@ -57,7 +58,7 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
             }
         }
 
-        const char *var_name = obj_node->data.identifier.name;
+        const char *var_name = ast_identifier_name(obj_node);
         LLVMVarEntry *var = llvm_scope_lookup(ctx, var_name);
         const char *class_name = llvm_lookup_var_class(ctx, var_name);
         if (class_name == NULL)
@@ -175,7 +176,7 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
                                         && arg_node != NULL
                                         && arg_node->type == AST_IDENTIFIER) {
                                         const char *arg_name =
-                                            arg_node->data.identifier.name;
+                                            ast_identifier_name(arg_node);
                                         LLVMVarEntry *arg_var = llvm_scope_lookup(ctx, arg_name);
                                         if (arg_var != NULL) {
                                             if (arg_var->type == LLVMPointerType(param_cls->struct_type, 0))
@@ -336,7 +337,7 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
                                     && arg_node != NULL
                                     && arg_node->type == AST_IDENTIFIER) {
                                     const char *arg_name =
-                                        arg_node->data.identifier.name;
+                                        ast_identifier_name(arg_node);
                                     LLVMVarEntry *arg_var = llvm_scope_lookup(ctx, arg_name);
                                     if (arg_var != NULL) {
                                         if (arg_var->type == LLVMPointerType(param_cls->struct_type, 0))
@@ -379,8 +380,8 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
     if (obj_node != NULL && obj_node->type == AST_MEMBER_ACCESS
         && ast_member_object(obj_node) != NULL
         && ast_member_object(obj_node)->type == AST_IDENTIFIER
-        && ast_member_object(obj_node)->data.identifier.name != NULL
-        && strcmp(ast_member_object(obj_node)->data.identifier.name, "self") == 0
+        && ast_identifier_name(ast_member_object(obj_node)) != NULL
+        && strcmp(ast_identifier_name(ast_member_object(obj_node)), "self") == 0
         && ast_member_name(obj_node) != NULL
         && method_name != NULL) {
         ASTNode *host_decl = llvm_current_host_decl(ctx);
@@ -449,7 +450,7 @@ llvm_emit_member_call(ASTNode *node, LLVMGenCtx *ctx)
                                     && arg_node != NULL
                                     && arg_node->type == AST_IDENTIFIER) {
                                     const char *arg_name =
-                                        arg_node->data.identifier.name;
+                                        ast_identifier_name(arg_node);
                                     LLVMVarEntry *arg_var = llvm_scope_lookup(ctx, arg_name);
                                     if (arg_var != NULL) {
                                         if (arg_var->type == LLVMPointerType(param_cls->struct_type, 0))

@@ -175,8 +175,16 @@ ASTNode *resolve_zone_subject_slot_for_participant(ASTNode *zone,
                                                    const char *participant_alias,
                                                    const char *participant_type_name,
                                                    bool *ambiguous_out);
+ASTNode *semantic_stage_domain_find_zone_decl(SemanticContext *ctx,
+                                             const char *zone_name);
 ASTNode *semantic_world_find_zone_slot_local(ASTNode *world,
                                              const char *slot_name);
+ASTNode *semantic_world_find_state_local(ASTNode *world,
+                                         const char *state_name);
+ASTNode *semantic_zone_find_layer_slot_local(ASTNode *zone,
+                                             const char *slot_name);
+ASTNode *semantic_zone_find_state_local(ASTNode *zone,
+                                        const char *state_name);
 const char *resource_handle_display_name(const Type *type);
 const char *format_effective_generic_type_list_scratch(SemanticContext *ctx,
                                                        const char *name,
@@ -393,6 +401,17 @@ bool type_check_event_decl(ASTNode *node, SemanticContext *ctx);
 bool type_check_event_subscription(ASTNode *node, SemanticContext *ctx,
                                    const char *op_name);
 bool type_check_event_invoke_stmt(ASTNode *node, SemanticContext *ctx);
+typedef struct SemanticBodyFlowSummary {
+    bool has_fallthrough;
+    bool has_return;
+    bool has_break;
+    bool has_continue;
+    bool has_defer;
+    bool must_return;
+} SemanticBodyFlowSummary;
+bool semantic_check_body_flow_summary(ASTNode *body,
+                                      SemanticContext *ctx,
+                                      SemanticBodyFlowSummary *summary_out);
 bool semantic_check_body_flow(ASTNode *body,
                               SemanticContext *ctx,
                               bool *must_return_out);
@@ -449,7 +468,6 @@ QubitSemanticState get_qubit_semantic_state(ASTNode *expr, SemanticContext *ctx)
 bool set_qubit_semantic_state(ASTNode *expr, SemanticContext *ctx,
                               QubitSemanticState new_state);
 const char *qubit_state_name(QubitSemanticState state);
-Type *type_get_constructed_arg(const Type *type, size_t index);
 Type *wrap_constructed(Type *constructor, Type *inner);
 
 /* Compile-time entanglement pool tracking */

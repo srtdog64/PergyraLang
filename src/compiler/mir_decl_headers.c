@@ -80,8 +80,8 @@ mir_decl_header_set_methods(MIRDeclHeader *header,
             meta->name = ast_declaration_name(method);
             meta->params = ast_func_params(method, &meta->param_count);
             meta->return_type = ast_func_return_type(method);
-            meta->is_action_like = method->data.func_decl.is_action;
-            meta->within_zone = method->data.func_decl.within_zone;
+            meta->is_action_like = ast_func_is_action(method);
+            meta->within_zone = ast_func_within_zone(method);
         }
     }
     header->method_metadata_count = method_count;
@@ -148,8 +148,8 @@ mir_decl_header_set_role_impl_methods(MIRDeclHeader *header, ASTNode *role_decl)
                 meta->name = ast_declaration_name(method);
                 meta->params = ast_func_params(method, &meta->param_count);
                 meta->return_type = ast_func_return_type(method);
-                meta->is_action_like = method->data.func_decl.is_action;
-                meta->within_zone = method->data.func_decl.within_zone;
+                meta->is_action_like = ast_func_is_action(method);
+                meta->within_zone = ast_func_within_zone(method);
             }
         }
     }

@@ -19,12 +19,12 @@ select_case_parts(ASTNode *case_node, ASTNode **channel_out,
                   const char **bind_name_out, ASTNode **body_out)
 {
     if (case_node == NULL || case_node->type != AST_BLOCK
-        || case_node->data.block.count == 0)
+        || ast_block_statement_count(case_node) == 0)
         return false;
 
-    ASTNode *first = case_node->data.block.statements[0];
-    ASTNode *body = case_node->data.block.count >= 2
-        ? case_node->data.block.statements[1] : NULL;
+    ASTNode *first = ast_block_statement(case_node, 0);
+    ASTNode *body = ast_block_statement_count(case_node) >= 2
+        ? ast_block_statement(case_node, 1) : NULL;
 
     if (first->type == AST_CHANNEL_RECV) {
         if (channel_out != NULL)
@@ -44,7 +44,7 @@ select_case_parts(ASTNode *case_node, ASTNode **channel_out,
         if (channel_out != NULL)
             *channel_out = ast_channel_recv_channel(ast_assignment_value(first));
         if (bind_name_out != NULL)
-            *bind_name_out = ast_assignment_target(first)->data.identifier.name;
+            *bind_name_out = ast_identifier_name(ast_assignment_target(first));
         if (body_out != NULL)
             *body_out = body;
         return true;
@@ -65,7 +65,7 @@ select_channel_inner_type_copy(ASTNode *channel, TranspilerCtx *ctx,
     if (channel == NULL || channel->type != AST_IDENTIFIER)
         return false;
 
-    type_name = lookup_typed_var(ctx, channel->data.identifier.name);
+    type_name = lookup_typed_var(ctx, ast_identifier_name(channel));
     if (type_name != NULL && strncmp(type_name, "Channel<", 8) == 0)
         return slot_inner_type_name_copy(type_name, out, out_size);
     return false;
@@ -80,8 +80,8 @@ select_set_missing_channel_type_error(TranspilerCtx *ctx, ASTNode *channel)
         PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
         "cannot derive receive type for select case channel '%s'",
         channel != NULL && channel->type == AST_IDENTIFIER
-            && channel->data.identifier.name != NULL
-                ? channel->data.identifier.name
+            && ast_identifier_name(channel) != NULL
+                ? ast_identifier_name(channel)
                 : "(anonymous)");
 }
 
@@ -91,8 +91,11 @@ select_write_case_guard(TranspilerCtx *ctx, size_t offset, size_t index,
                         const char *inner)
 {
     const char *prefix = offset == 0 ? "if" : "} else if";
+    const char *channel_name = channel != NULL && channel->type == AST_IDENTIFIER
+        ? ast_identifier_name(channel)
+        : NULL;
 
-    if (channel == NULL || channel->type != AST_IDENTIFIER) {
+    if (channel_name == NULL) {
         codebuf_write(ctx->out, "%s (1) { /* select case %zu */\n",
                       prefix, index);
         return;
@@ -101,13 +104,13 @@ select_write_case_guard(TranspilerCtx *ctx, size_t offset, size_t index,
     if (bind_name != NULL) {
         codebuf_write(ctx->out,
             "%s (pgy_channel_try_recv_%s(&%s, &_sel_recv_%zu)) { /* select case %zu */\n",
-            prefix, inner, channel->data.identifier.name, index, index);
+            prefix, inner, channel_name, index, index);
         return;
     }
 
     codebuf_write(ctx->out,
         "%s (pgy_channel_ready_%s(&%s)) { /* select case %zu */\n",
-        prefix, inner, channel->data.identifier.name, index);
+        prefix, inner, channel_name, index);
 }
 
 static void

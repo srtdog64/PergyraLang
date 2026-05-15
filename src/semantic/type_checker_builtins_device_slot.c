@@ -35,7 +35,8 @@ type_check_device_handle_arg(ASTNode *expr, SemanticContext *ctx,
     }
 
     if (expr->type == AST_IDENTIFIER) {
-        sym = scope_lookup(ctx->scope, expr->data.identifier.name);
+        const char *slot_name = ast_identifier_name(expr);
+        sym = scope_lookup(ctx->scope, slot_name);
         if (!allow_released
             && sym != NULL
             && sym->slot_info.state == SLOT_STATE_RELEASED) {
@@ -43,7 +44,7 @@ type_check_device_handle_arg(ASTNode *expr, SemanticContext *ctx,
                 PGY_CAUSE_DEVICE_SLOT_USE_AFTER_RELEASE,
                 PGY_FIX_RECLAIM_BEFORE_USE, expr,
                 "Cannot use released DeviceSlot '%s' in %s",
-                expr->data.identifier.name, builtin_name);
+                slot_name, builtin_name);
             return TYPE_UNKNOWN;
         }
     }

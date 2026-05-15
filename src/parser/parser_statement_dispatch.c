@@ -10,7 +10,9 @@ ASTNode* parser_parse_statement(Parser* parser) {
 
     if (parser_match(parser, TOKEN_AT)) {
         parser_error(parser,
-            "Attribute syntax '@...' is reserved but not implemented; use structured comments for metadata");
+            "Attribute syntax '@...' is reserved but not implemented.\n"
+            "Reason: attribute metadata ownership is not frozen; annotations must not become a hidden semantic escape hatch.\n"
+            "Fix: use structured comments for metadata.");
         parser_synchronize(parser);
         return NULL;
     }

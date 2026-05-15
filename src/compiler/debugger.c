@@ -261,12 +261,12 @@ debug_walk_statements(DebugCtx *ctx, ASTNode *node)
     /* Walk children based on node type */
     switch (node->type) {
     case AST_PROGRAM:
-        for (size_t i = 0; i < node->data.program.count; i++)
-            debug_walk_statements(ctx, node->data.program.statements[i]);
+        for (size_t i = 0; i < ast_program_statement_count(node); i++)
+            debug_walk_statements(ctx, ast_program_statement(node, i));
         break;
     case AST_BLOCK:
-        for (size_t i = 0; i < node->data.block.count; i++)
-            debug_walk_statements(ctx, node->data.block.statements[i]);
+        for (size_t i = 0; i < ast_block_statement_count(node); i++)
+            debug_walk_statements(ctx, ast_block_statement(node, i));
         break;
     case AST_IF_STMT:
         debug_walk_statements(ctx, ast_if_then_branch(node));

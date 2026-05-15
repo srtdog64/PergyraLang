@@ -11,7 +11,7 @@ const char *
 llvm_call_arg_device_inner(LLVMGenCtx *ctx, ASTNode *node)
 {
     if (node != NULL && node->type == AST_IDENTIFIER)
-        return llvm_lookup_device_slot_inner(ctx, node->data.identifier.name);
+        return llvm_lookup_device_slot_inner(ctx, ast_identifier_name(node));
     return NULL;
 }
 

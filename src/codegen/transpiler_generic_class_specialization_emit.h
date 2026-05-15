@@ -86,22 +86,22 @@ class_has_generic_params(ASTNode *node)
     return node != NULL
         && node->type == AST_CLASS_DECL
         && ast_class_generic_params(node) != NULL
-        && ast_class_generic_params(node)->count > 0;
+        && ast_generic_param_count(ast_class_generic_params(node)) > 0;
 }
 
 static char *
 transpiler_generic_class_effective_arg_name(GenericParam *formal,
                                             GenericParam *arg)
 {
-    if (arg != NULL && arg->constraint != NULL
-        && arg->constraint->type == AST_TYPE) {
-        return render_type_name(arg->constraint);
+    ASTNode *arg_constraint = ast_generic_param_constraint(arg);
+    ASTNode *formal_default = ast_generic_param_default_type(formal);
+    if (arg_constraint != NULL && arg_constraint->type == AST_TYPE) {
+        return render_type_name(arg_constraint);
     }
-    if (arg != NULL && arg->name != NULL)
-        return pergyra_strdup(arg->name);
-    if (formal != NULL && formal->default_type != NULL
-        && formal->default_type->type == AST_TYPE) {
-        return render_type_name(formal->default_type);
+    if (ast_generic_param_name(arg) != NULL)
+        return pergyra_strdup(ast_generic_param_name(arg));
+    if (formal_default != NULL && formal_default->type == AST_TYPE) {
+        return render_type_name(formal_default);
     }
     return NULL;
 }
@@ -129,9 +129,10 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
 
     CodeBuf *nbuf = codebuf_create();
     codebuf_write(nbuf, "%s", base_class_name);
-    for (size_t i = 0; i < gp->count; i++) {
-        GenericParam *formal = gp->params[i];
-        GenericParam *garg = (ga != NULL && i < ga->count) ? ga->params[i] : NULL;
+    size_t formal_count = ast_generic_param_count(gp);
+    for (size_t i = 0; i < formal_count; i++) {
+        GenericParam *formal = ast_generic_param_at(gp, i);
+        GenericParam *garg = ast_generic_param_at(ga, i);
         char *effective_name =
             transpiler_generic_class_effective_arg_name(formal, garg);
         if (effective_name == NULL) {
@@ -183,9 +184,9 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
     const char *spec_name = entry->specialized_name;
 
     int saved_binding_count = ctx->generic_binding_count;
-    for (size_t i = 0; i < gp->count; i++) {
-        GenericParam *formal = gp->params[i];
-        GenericParam *garg = (ga != NULL && i < ga->count) ? ga->params[i] : NULL;
+    for (size_t i = 0; i < formal_count; i++) {
+        GenericParam *formal = ast_generic_param_at(gp, i);
+        GenericParam *garg = ast_generic_param_at(ga, i);
         char *effective_name = NULL;
 
         if (ctx->generic_binding_count >= MAX_GENERIC_BINDINGS)
@@ -193,9 +194,8 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
         GenericBindingEntry *b = &ctx->generic_bindings[ctx->generic_binding_count++];
         if (!transpiler_generic_class_copy_name(
                 b->name, sizeof(b->name),
-                gp->params[i] != NULL && gp->params[i]->name != NULL
-                    ? gp->params[i]->name
-                    : "T")) {
+                ast_generic_param_name(formal) != NULL
+                    ? ast_generic_param_name(formal) : "T")) {
             transpiler_set_backend_error_with_hints(
                 ctx,
                 PGY_CODE_C_TYPE_UNSUPPORTED,
@@ -233,9 +233,8 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
                 PGY_CAUSE_C_TYPE_UNSUPPORTED,
                 PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
                 "cannot resolve generic class binding '%s' for specialization '%s'",
-                gp->params[i] != NULL && gp->params[i]->name != NULL
-                    ? gp->params[i]->name
-                    : "(anonymous)",
+                ast_generic_param_name(formal) != NULL
+                    ? ast_generic_param_name(formal) : "(anonymous)",
                 base_class_name != NULL ? base_class_name : "(anonymous)");
             ctx->generic_binding_count = saved_binding_count;
             codebuf_destroy(nbuf);
@@ -244,7 +243,7 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
 
         entry->bindings[i] = *b;
     }
-    entry->binding_count = gp->count;
+    entry->binding_count = formal_count;
 
     TranspilerCtx *saved_render_ctx = transpiler_type_render_ctx_push(ctx);
 

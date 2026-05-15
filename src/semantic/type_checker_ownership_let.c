@@ -26,15 +26,15 @@ ownership_let_call_callee_name(const ASTNode *node)
     ASTNode *callee = ast_call_callee(node);
     if (callee == NULL || callee->type != AST_IDENTIFIER)
         return NULL;
-    return callee->data.identifier.name;
+    return ast_identifier_name(callee);
 }
 
 bool
 type_check_let_decl(ASTNode *node, SemanticContext *ctx)
 {
-    const char *name = node->data.let_decl.name;
-    ASTNode *init = node->data.let_decl.initializer;
-    ASTNode *ann = node->data.let_decl.type;
+    const char *name = ast_let_name(node);
+    ASTNode *init = ast_let_initializer(node);
+    ASTNode *ann = ast_let_type(node);
     bool handled_slot_claim = false;
     Type *init_type;
     Type *decl_type;
@@ -309,12 +309,12 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
     /* Slot<T> move semantics: when assigning from another Slot variable,
      * consume (invalidate) the source.  ClaimSlot() creates fresh. */
     if (decl_type != NULL && decl_type->kind == TYPE_KIND_SLOT
-        && decl_type->data.slot.access_mode == SLOT_ACCESS_OWNED
+        && type_slot_access_mode(decl_type) == SLOT_ACCESS_OWNED
         && init != NULL && init->type == AST_IDENTIFIER
         && init_type != NULL && init_type->kind == TYPE_KIND_SLOT
-        && init_type->data.slot.access_mode == SLOT_ACCESS_OWNED) {
+        && type_slot_access_mode(init_type) == SLOT_ACCESS_OWNED) {
         /* Move: source Slot becomes invalid after this point */
-        const char *src_name = init->data.identifier.name;
+        const char *src_name = ast_identifier_name(init);
         Symbol *src_sym = scope_lookup(ctx->scope, src_name);
         if (src_sym != NULL && src_sym->kind == SYMBOL_SLOT) {
             if (src_sym->slot_info.state == SLOT_STATE_RELEASED) {
@@ -339,7 +339,7 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
     }
 
     if (decl_type != NULL && decl_type->kind == TYPE_KIND_SLOT
-        && decl_type->data.slot.access_mode != SLOT_ACCESS_OWNED) {
+        && type_slot_access_mode(decl_type) != SLOT_ACCESS_OWNED) {
         const char *source_slot = NULL;
         bool new_write_view = false;
         bool view_init = false;
@@ -352,7 +352,7 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
                 && (strcmp(callee_name, "ViewRead") == 0
                     || strcmp(callee_name, "ViewWrite") == 0
                     || strcmp(callee_name, "Move") == 0)) {
-                source_slot = ast_call_argument(init, 0)->data.identifier.name;
+                source_slot = ast_identifier_name(ast_call_argument(init, 0));
             }
         }
         view_init = ownership_let_view_init_info(init, &source_slot,
@@ -413,12 +413,12 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
         const char *paired_token = NULL;
         Symbol *sym;
 
-        if (decl_type->data.slot.is_secure)
+        if (type_slot_is_secure(decl_type))
             semantic_record_effect(ctx, EFFECT_SECURE);
         if (slot_transfer_compatible(init_type, decl_type)) {
             if (init != NULL && init->type == AST_IDENTIFIER) {
                 Symbol *move_sym = scope_lookup(ctx->scope,
-                    init->data.identifier.name);
+                    ast_identifier_name(init));
                 if (move_sym != NULL)
                     move_sym->is_consumed = true;
             }
@@ -440,20 +440,20 @@ type_check_let_decl(ASTNode *node, SemanticContext *ctx)
                 "- or pass the handle through an explicit ownership boundary");
         }
 
-        if (decl_type->data.slot.is_secure) {
+        if (type_slot_is_secure(decl_type)) {
             if (!semantic_format_secure_token_name(
                     token_name_buf, sizeof(token_name_buf), name, node, ctx))
                 return !ctx->has_error;
             paired_token = token_name_buf;
         }
         sym = symbol_create_slot(name, decl_type,
-            decl_type->data.slot.is_secure, paired_token, node->line, node->column);
+            type_slot_is_secure(decl_type), paired_token, node->line, node->column);
         scope_declare(ctx->scope, sym);
-        if (decl_type->data.slot.is_secure) {
+        if (type_slot_is_secure(decl_type)) {
             Symbol *tok = symbol_create_token(paired_token, name,
                                               node->line, node->column);
             if (tok != NULL) {
-                Type *token_args[1] = { decl_type->data.slot.inner_type };
+                Type *token_args[1] = { type_slot_inner_type(decl_type) };
                 tok->type = type_create_constructed(TYPE_TOKEN, token_args, 1);
             }
             if (!scope_declare(ctx->scope, tok))

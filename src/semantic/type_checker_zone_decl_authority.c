@@ -19,40 +19,38 @@ type_check_zone_authorities(ASTNode *zone, SemanticContext *ctx)
     authorities = ast_zone_authorities(zone, &authority_count);
     for (size_t i = 0; i < authority_count; i++) {
         ASTNode *authority = authorities[i];
+        const char *subject_slot = ast_zone_authority_subject_slot_name(authority);
         ASTNode *slot;
         Type *slot_type;
-        if (authority == NULL
-            || authority->data.zone_authority.subject_slot_name == NULL) {
+        if (authority == NULL || subject_slot == NULL) {
             continue;
         }
-        slot = find_zone_domain_slot(zone,
-            authority->data.zone_authority.subject_slot_name);
+        slot = find_zone_domain_slot(zone, subject_slot);
         if (slot == NULL) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, authority,
                 "Zone authority references unknown subject slot '%s'",
-                authority->data.zone_authority.subject_slot_name);
+                subject_slot);
             continue;
         }
         if (!ast_domain_slot_is_subject(slot)) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, authority,
                 "Zone authority '%s' must reference a subject slot",
-                authority->data.zone_authority.subject_slot_name);
+                subject_slot);
         }
         slot_type = domain_resolve_slot_type(slot, ctx);
-        for (size_t j = 0; j < authority->data.zone_authority.ability_count; j++) {
-            ASTNode *ability_ref = authority->data.zone_authority.required_abilities[j];
+        for (size_t j = 0; j < ast_zone_authority_ability_count(authority); j++) {
+            ASTNode *ability_ref = ast_zone_authority_required_ability(authority, j);
             const char *ability_name = ability_ref_name(ability_ref);
             char *required_text = ability_ref_display(ability_ref);
             semantic_type_resolution_record_type_ref_dependency(
                 ctx,
                 authority,
-                authority->data.zone_authority.subject_slot_name != NULL
-                    ? authority->data.zone_authority.subject_slot_name : "<authority>",
+                subject_slot != NULL ? subject_slot : "<authority>",
                 ability_ref,
                 "zone authority ability consumer lookup");
             if (resolve_required_ability_decl(
                     ability_ref, authority, ctx, "Zone authority",
-                    authority->data.zone_authority.subject_slot_name) == NULL) {
+                    subject_slot) == NULL) {
                 free(required_text);
                 continue;
             }
@@ -67,7 +65,7 @@ type_check_zone_authorities(ASTNode *zone, SemanticContext *ctx)
                 char *actual_text = actual_impl != NULL ? ability_ref_display(actual_impl) : NULL;
                 report_subject_ability_requirement_mismatch(
                     ctx, authority, "Zone authority",
-                    authority->data.zone_authority.subject_slot_name,
+                    subject_slot,
                     "subject type", slot_type->name,
                     required_text != NULL ? required_text : ability_name,
                     actual_text,
@@ -78,10 +76,11 @@ type_check_zone_authorities(ASTNode *zone, SemanticContext *ctx)
         }
         for (size_t j = i + 1; j < authority_count; j++) {
             ASTNode *other = authorities[j];
+            const char *other_subject_slot =
+                ast_zone_authority_subject_slot_name(other);
             if (other != NULL
-                && other->data.zone_authority.subject_slot_name != NULL
-                && strcmp(authority->data.zone_authority.subject_slot_name,
-                          other->data.zone_authority.subject_slot_name) == 0) {
+                && other_subject_slot != NULL
+                && strcmp(subject_slot, other_subject_slot) == 0) {
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, other,
                     "Zone '%s' declares authority '%s' more than once.\n"
                     "Reason:\n"
@@ -91,8 +90,8 @@ type_check_zone_authorities(ASTNode *zone, SemanticContext *ctx)
                     "- keep one authority declaration for '%s'\n"
                     "- or merge the required ability list into a single authority clause",
                     ast_zone_name(zone),
-                    authority->data.zone_authority.subject_slot_name,
-                    authority->data.zone_authority.subject_slot_name);
+                    subject_slot,
+                    subject_slot);
             }
         }
     }

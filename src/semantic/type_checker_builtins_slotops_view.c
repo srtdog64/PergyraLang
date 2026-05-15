@@ -13,8 +13,8 @@ static Type *
 type_check_view_source_type(ASTNode *arg, SemanticContext *ctx)
 {
     if (arg != NULL && arg->type == AST_IDENTIFIER
-        && arg->data.identifier.name != NULL) {
-        Symbol *sym = scope_lookup(ctx->scope, arg->data.identifier.name);
+        && ast_identifier_name(arg) != NULL) {
+        Symbol *sym = scope_lookup(ctx->scope, ast_identifier_name(arg));
         if (sym != NULL && sym->kind == SYMBOL_SLOT && sym->type != NULL) {
             sym->is_used = true;
             return sym->type;
@@ -79,7 +79,7 @@ type_check_view_read(ASTNode *call, SemanticContext *ctx)
         return TYPE_UNKNOWN;
     if (!require_owned_slot_view_source(call, slot_type, "ViewRead", ctx))
         return TYPE_UNKNOWN;
-    return type_create_read_view(slot_type->data.slot.inner_type);
+    return type_create_read_view(type_slot_inner_type(slot_type));
 }
 
 Type *
@@ -96,5 +96,5 @@ type_check_view_write(ASTNode *call, SemanticContext *ctx)
         return TYPE_UNKNOWN;
     if (!require_owned_slot_view_source(call, slot_type, "ViewWrite", ctx))
         return TYPE_UNKNOWN;
-    return type_create_write_view(slot_type->data.slot.inner_type);
+    return type_create_write_view(type_slot_inner_type(slot_type));
 }

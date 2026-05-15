@@ -148,8 +148,8 @@ find_domain_decl_by_name(ASTNode *program,
     if (program == NULL || program->type != AST_PROGRAM || name == NULL)
         return NULL;
 
-    for (size_t i = 0; i < program->data.program.count; i++) {
-        ASTNode *stmt = program->data.program.statements[i];
+    for (size_t i = 0; i < ast_program_statement_count(program); i++) {
+        ASTNode *stmt = ast_program_statement(program, i);
         if (stmt == NULL || stmt->type != decl_type)
             continue;
 
@@ -232,10 +232,11 @@ find_zone_authority(ASTNode *zone, const char *slot_name)
 
     for (size_t i = 0; i < authority_count; i++) {
         ASTNode *authority = authorities[i];
+        const char *subject_slot = ast_zone_authority_subject_slot_name(authority);
         if (authority != NULL
             && authority->type == AST_ZONE_AUTHORITY
-            && authority->data.zone_authority.subject_slot_name != NULL
-            && strcmp(authority->data.zone_authority.subject_slot_name, slot_name) == 0) {
+            && subject_slot != NULL
+            && strcmp(subject_slot, slot_name) == 0) {
             return authority;
         }
     }

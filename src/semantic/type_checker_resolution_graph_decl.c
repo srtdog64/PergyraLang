@@ -217,11 +217,13 @@ semantic_type_resolution_precollect_role_inventory(ASTNode *role_decl,
             "role include lookup");
 
         if (type_args != NULL) {
-            for (size_t j = 0; j < type_args->count; j++) {
-                GenericParam *arg = type_args->params[j];
-                if (arg != NULL && arg->constraint != NULL) {
+            size_t type_arg_count = ast_generic_param_count(type_args);
+            for (size_t j = 0; j < type_arg_count; j++) {
+                GenericParam *arg = ast_generic_param_at(type_args, j);
+                ASTNode *constraint = ast_generic_param_constraint(arg);
+                if (constraint != NULL) {
                     semantic_type_resolution_collect_type_refs(
-                        arg->constraint,
+                        constraint,
                         ctx,
                         inc,
                         consumer_name,
@@ -350,8 +352,8 @@ semantic_type_resolution_precollect_action_contract(ASTNode *method,
         "function return type lookup");
 
     semantic_type_resolution_precollect_required_abilities(
-        method->data.func_decl.required_abilities,
-        method->data.func_decl.required_ability_count,
+        ast_func_required_abilities(method, NULL),
+        ast_func_required_ability_count(method),
         ctx,
         method,
         consumer_name,
@@ -360,13 +362,13 @@ semantic_type_resolution_precollect_action_contract(ASTNode *method,
         ctx,
         method,
         consumer_name,
-        method->data.func_decl.within_zone,
+        ast_func_within_zone(method),
         "action within-zone lookup");
     semantic_type_resolution_record_string_dependency(
         ctx,
         method,
         consumer_name,
-        method->data.func_decl.causes_effect,
+        ast_func_causes_effect(method),
         "action causes-effect lookup");
 
     semantic_type_resolution_precollect_body_type_refs(
@@ -488,13 +490,13 @@ semantic_type_resolution_precollect_event_inventory(ASTNode *event_decl,
             "event %s.%s",
             ast_event_name(event_decl) != NULL
                 ? ast_event_name(event_decl) : "<event>",
-            param->data.let_decl.name != NULL
-                ? param->data.let_decl.name : "<param>");
+            ast_let_name(param) != NULL
+                ? ast_let_name(param) : "<param>");
         if (consumer_name == NULL)
             continue;
 
         semantic_type_resolution_collect_type_refs(
-            param->data.let_decl.type,
+            ast_let_type(param),
             ctx,
             event_decl,
             consumer_name,

@@ -53,8 +53,8 @@ slot_analyzer_find_function_decl(ASTNode *program, const char *name)
     if (program == NULL || program->type != AST_PROGRAM || name == NULL)
         return NULL;
 
-    for (size_t i = 0; i < program->data.program.count; i++) {
-        ASTNode *stmt = program->data.program.statements[i];
+    for (size_t i = 0; i < ast_program_statement_count(program); i++) {
+        ASTNode *stmt = ast_program_statement(program, i);
         if (stmt == NULL || stmt->type != AST_FUNC_DECL)
             continue;
 
@@ -110,7 +110,7 @@ slot_access_record_function_aliases(ASTNode *call, ASTNode *func_decl,
         unsigned mask = 0;
 
         if (param == NULL || arg == NULL || arg->type != AST_IDENTIFIER
-            || arg->data.identifier.name == NULL)
+            || ast_identifier_name(arg) == NULL)
             continue;
         if (param->mode != PARAM_MODE_REF && param->mode != PARAM_MODE_OWN)
             continue;
@@ -119,15 +119,15 @@ slot_access_record_function_aliases(ASTNode *call, ASTNode *func_decl,
             body, param->name, program_root, depth + 1);
         if ((mask & SLOT_PARAM_SUMMARY_READ) != 0) {
             slot_access_record(entries, count, capacity,
-                arg->data.identifier.name, SLOT_ACCESS_READ);
+                ast_identifier_name(arg), SLOT_ACCESS_READ);
         }
         if ((mask & SLOT_PARAM_SUMMARY_WRITE) != 0) {
             slot_access_record(entries, count, capacity,
-                arg->data.identifier.name, SLOT_ACCESS_WRITE);
+                ast_identifier_name(arg), SLOT_ACCESS_WRITE);
         }
         if ((mask & SLOT_PARAM_SUMMARY_RELEASE) != 0) {
             slot_access_record(entries, count, capacity,
-                arg->data.identifier.name, SLOT_ACCESS_RELEASE);
+                ast_identifier_name(arg), SLOT_ACCESS_RELEASE);
         }
     }
 }
@@ -143,14 +143,14 @@ slot_access_mask_for_named_symbol(ASTNode *node, const char *symbol_name,
 
     switch (node->type) {
     case AST_BLOCK:
-        for (size_t i = 0; i < node->data.block.count; i++)
+        for (size_t i = 0; i < ast_block_statement_count(node); i++)
             mask |= slot_access_mask_for_named_symbol(
-                node->data.block.statements[i], symbol_name, program_root, depth);
+                ast_block_statement(node, i), symbol_name, program_root, depth);
         break;
 
     case AST_LET_DECL:
         mask |= slot_access_mask_for_named_symbol(
-            node->data.let_decl.initializer, symbol_name, program_root, depth);
+            ast_let_initializer(node), symbol_name, program_root, depth);
         break;
 
     case AST_IF_STMT:
@@ -207,21 +207,21 @@ slot_access_mask_for_named_symbol(ASTNode *node, const char *symbol_name,
 
     case AST_MATCH_STMT:
         mask |= slot_access_mask_for_named_symbol(
-            node->data.match_stmt.subject, symbol_name, program_root, depth);
-        for (size_t i = 0; i < node->data.match_stmt.case_count; i++)
+            ast_match_subject(node), symbol_name, program_root, depth);
+        for (size_t i = 0; i < ast_match_case_count(node); i++)
             mask |= slot_access_mask_for_named_symbol(
-                node->data.match_stmt.cases[i], symbol_name, program_root, depth);
+                ast_match_case_at(node, i), symbol_name, program_root, depth);
         mask |= slot_access_mask_for_named_symbol(
-            node->data.match_stmt.default_body, symbol_name, program_root, depth);
+            ast_match_default_body(node), symbol_name, program_root, depth);
         break;
 
     case AST_MATCH_CASE:
         mask |= slot_access_mask_for_named_symbol(
-            node->data.match_case.pattern, symbol_name, program_root, depth);
+            ast_match_case_pattern(node), symbol_name, program_root, depth);
         mask |= slot_access_mask_for_named_symbol(
-            node->data.match_case.guard, symbol_name, program_root, depth);
+            ast_match_case_guard(node), symbol_name, program_root, depth);
         mask |= slot_access_mask_for_named_symbol(
-            node->data.match_case.body, symbol_name, program_root, depth);
+            ast_match_case_body(node), symbol_name, program_root, depth);
         break;
 
     case AST_ASSIGNMENT:
@@ -246,13 +246,14 @@ slot_access_mask_for_named_symbol(ASTNode *node, const char *symbol_name,
     case AST_CALL:
         if (ast_call_callee(node) != NULL
             && ast_call_callee(node)->type == AST_IDENTIFIER) {
-            const char *name = ast_call_callee(node)->data.identifier.name;
+            const char *name = ast_identifier_name(ast_call_callee(node));
             unsigned access_mask = slot_builtin_access_mask(name);
             if (access_mask != 0
                 && ast_call_arg_count(node) >= 1
                 && ast_call_argument(node, 0) != NULL
                 && ast_call_argument(node, 0)->type == AST_IDENTIFIER
-                && strcmp(ast_call_argument(node, 0)->data.identifier.name,
+                && ast_identifier_name(ast_call_argument(node, 0)) != NULL
+                && strcmp(ast_identifier_name(ast_call_argument(node, 0)),
                           symbol_name) == 0) {
                 mask |= access_mask;
             } else if (program_root != NULL) {
@@ -277,7 +278,8 @@ slot_access_mask_for_named_symbol(ASTNode *node, const char *symbol_name,
                             ASTNode *arg = ast_call_argument(node, i);
                             if (param == NULL || param->name == NULL || arg == NULL
                                 || arg->type != AST_IDENTIFIER
-                                || strcmp(arg->data.identifier.name, symbol_name) != 0)
+                                || ast_identifier_name(arg) == NULL
+                                || strcmp(ast_identifier_name(arg), symbol_name) != 0)
                                 continue;
                             if (param->mode != PARAM_MODE_REF && param->mode != PARAM_MODE_OWN)
                                 continue;
@@ -342,12 +344,12 @@ collect_slot_accesses(ASTNode *node, SlotAccessEntry **entries,
 
     switch (node->type) {
     case AST_BLOCK:
-        for (size_t i = 0; i < node->data.block.count; i++)
-            collect_slot_accesses(node->data.block.statements[i], entries, count, capacity, program_root);
+        for (size_t i = 0; i < ast_block_statement_count(node); i++)
+            collect_slot_accesses(ast_block_statement(node, i), entries, count, capacity, program_root);
         break;
 
     case AST_LET_DECL:
-        collect_slot_accesses(node->data.let_decl.initializer, entries, count, capacity, program_root);
+        collect_slot_accesses(ast_let_initializer(node), entries, count, capacity, program_root);
         break;
 
     case AST_IF_STMT:
@@ -389,16 +391,16 @@ collect_slot_accesses(ASTNode *node, SlotAccessEntry **entries,
         break;
 
     case AST_MATCH_STMT:
-        collect_slot_accesses(node->data.match_stmt.subject, entries, count, capacity, program_root);
-        for (size_t i = 0; i < node->data.match_stmt.case_count; i++)
-            collect_slot_accesses(node->data.match_stmt.cases[i], entries, count, capacity, program_root);
-        collect_slot_accesses(node->data.match_stmt.default_body, entries, count, capacity, program_root);
+        collect_slot_accesses(ast_match_subject(node), entries, count, capacity, program_root);
+        for (size_t i = 0; i < ast_match_case_count(node); i++)
+            collect_slot_accesses(ast_match_case_at(node, i), entries, count, capacity, program_root);
+        collect_slot_accesses(ast_match_default_body(node), entries, count, capacity, program_root);
         break;
 
     case AST_MATCH_CASE:
-        collect_slot_accesses(node->data.match_case.pattern, entries, count, capacity, program_root);
-        collect_slot_accesses(node->data.match_case.guard, entries, count, capacity, program_root);
-        collect_slot_accesses(node->data.match_case.body, entries, count, capacity, program_root);
+        collect_slot_accesses(ast_match_case_pattern(node), entries, count, capacity, program_root);
+        collect_slot_accesses(ast_match_case_guard(node), entries, count, capacity, program_root);
+        collect_slot_accesses(ast_match_case_body(node), entries, count, capacity, program_root);
         break;
 
     case AST_ASSIGNMENT:
@@ -418,14 +420,15 @@ collect_slot_accesses(ASTNode *node, SlotAccessEntry **entries,
     case AST_CALL:
         if (ast_call_callee(node) != NULL
             && ast_call_callee(node)->type == AST_IDENTIFIER) {
-            const char *name = ast_call_callee(node)->data.identifier.name;
+            const char *name = ast_identifier_name(ast_call_callee(node));
             unsigned access_mask = slot_builtin_access_mask(name);
             if (access_mask != 0
                 && ast_call_arg_count(node) >= 1
                 && ast_call_argument(node, 0) != NULL
-                && ast_call_argument(node, 0)->type == AST_IDENTIFIER) {
+                && ast_call_argument(node, 0)->type == AST_IDENTIFIER
+                && ast_identifier_name(ast_call_argument(node, 0)) != NULL) {
                 slot_access_record(entries, count, capacity,
-                    ast_call_argument(node, 0)->data.identifier.name,
+                    ast_identifier_name(ast_call_argument(node, 0)),
                     access_mask);
             }
         }
@@ -433,7 +436,7 @@ collect_slot_accesses(ASTNode *node, SlotAccessEntry **entries,
             && ast_call_callee(node)->type == AST_IDENTIFIER
             && program_root != NULL) {
             ASTNode *callee_decl = slot_analyzer_find_function_decl(
-                program_root, ast_call_callee(node)->data.identifier.name);
+                program_root, ast_identifier_name(ast_call_callee(node)));
             if (callee_decl != NULL) {
                 slot_access_record_function_aliases(node, callee_decl,
                     entries, count, capacity, program_root, 0);

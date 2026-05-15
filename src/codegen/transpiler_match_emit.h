@@ -1,6 +1,8 @@
 #ifndef PGY_TRANSPILER_MATCH_EMIT_H
 #define PGY_TRANSPILER_MATCH_EMIT_H
 
+#include "../parser/ast_api.h"
+
 /* Check if a match-case pattern is a destructor like Ok(x), Err(x),
  * or a tagged union variant like Circle(r), Rect(w, h) */
 static bool
@@ -14,7 +16,7 @@ is_result_destructor(ASTNode *pat, const char **kind, const char **binding)
     callee = ast_call_callee(pat);
     if (callee == NULL || callee->type != AST_IDENTIFIER)
         return false;
-    const char *name = callee->data.identifier.name;
+    const char *name = ast_identifier_name(callee);
     if (strcmp(name, "Ok") != 0 && strcmp(name, "Err") != 0)
         return false;
     *kind = name;
@@ -22,7 +24,7 @@ is_result_destructor(ASTNode *pat, const char **kind, const char **binding)
     if (ast_call_arg_count(pat) > 0
         && payload != NULL
         && payload->type == AST_IDENTIFIER) {
-        *binding = payload->data.identifier.name;
+        *binding = ast_identifier_name(payload);
     } else {
         *binding = NULL;
     }
@@ -43,7 +45,7 @@ is_option_destructor(ASTNode *pat, const char **kind, const char **binding)
         return false;
 
     if (pat->type == AST_IDENTIFIER) {
-        const char *name = pat->data.identifier.name;
+        const char *name = ast_identifier_name(pat);
         if (name != NULL && strcmp(name, "None") == 0) {
             *kind = "None";
             return true;
@@ -59,7 +61,7 @@ is_option_destructor(ASTNode *pat, const char **kind, const char **binding)
         return false;
     }
 
-    const char *name = callee->data.identifier.name;
+    const char *name = ast_identifier_name(callee);
     if (name == NULL)
         return false;
 
@@ -72,7 +74,7 @@ is_option_destructor(ASTNode *pat, const char **kind, const char **binding)
         payload = ast_call_argument(pat, 0);
         if (payload != NULL
             && payload->type == AST_IDENTIFIER) {
-            *binding = payload->data.identifier.name;
+            *binding = ast_identifier_name(payload);
         }
         return true;
     }
@@ -102,10 +104,10 @@ is_enum_variant_destructor(ASTNode *pat, TranspilerCtx *ctx,
     if (pat->type == AST_CALL
         && callee != NULL
         && callee->type == AST_IDENTIFIER) {
-        name = callee->data.identifier.name;
+        name = ast_identifier_name(callee);
         argc = ast_call_arg_count(pat);
     } else if (pat->type == AST_IDENTIFIER) {
-        name = pat->data.identifier.name;
+        name = ast_identifier_name(pat);
         argc = 0;
     } else {
         return false;
@@ -146,7 +148,7 @@ is_enum_variant_destructor(ASTNode *pat, TranspilerCtx *ctx,
                 for (size_t k = 0; k < argc && k < binding_cap; k++) {
                     ASTNode *arg = ast_call_argument(pat, k);
                     if (arg != NULL && arg->type == AST_IDENTIFIER)
-                        bindings_buf[k] = arg->data.identifier.name;
+                        bindings_buf[k] = ast_identifier_name(arg);
                     else
                         bindings_buf[k] = NULL;
                     if (k < ast_enum_variant_param_count(stmt, j)) {
@@ -169,9 +171,10 @@ is_enum_variant_destructor(ASTNode *pat, TranspilerCtx *ctx,
 void
 emit_match_stmt(ASTNode *node, TranspilerCtx *ctx)
 {
-    char *subj = emit_expression(node->data.match_stmt.subject, ctx);
+    ASTNode *subject_node = ast_match_subject(node);
+    char *subj = emit_expression(subject_node, ctx);
     int tmp_id = ctx->tmp_counter++;
-    const char *subject_type = infer_expression_type_name(ctx, node->data.match_stmt.subject);
+    const char *subject_type = infer_expression_type_name(ctx, subject_node);
     char subject_c_type_buf[256];
     const char *subject_c_type = NULL;
     bool subject_is_option = subject_type != NULL && strncmp(subject_type, "Option<", 7) == 0;
@@ -209,22 +212,23 @@ emit_match_stmt(ASTNode *node, TranspilerCtx *ctx)
     codebuf_write(ctx->out, "%s __match_%d = %s;\n", subject_c_type, tmp_id, subj);
     free(subj);
 
-    for (size_t i = 0; i < node->data.match_stmt.case_count; i++) {
-        ASTNode *mc = node->data.match_stmt.cases[i];
+    for (size_t i = 0; i < ast_match_case_count(node); i++) {
+        ASTNode *mc = ast_match_case_at(node, i);
         const char *kind = NULL, *binding = NULL;
+        ASTNode *pattern_node = ast_match_case_pattern(mc);
         bool option_case = subject_is_option
-            && is_option_destructor(mc->data.match_case.pattern, &kind, &binding);
+            && is_option_destructor(pattern_node, &kind, &binding);
 
         write_indent(ctx);
 
-        if (mc->data.match_case.patterns != NULL
-            && mc->data.match_case.pattern_count > 1) {
+        if (ast_match_case_patterns(mc, NULL) != NULL
+            && ast_match_case_pattern_count(mc) > 1) {
             if (i == 0)
                 codebuf_write(ctx->out, "if (");
             else
                 codebuf_write(ctx->out, "else if (");
-            for (size_t p = 0; p < mc->data.match_case.pattern_count; p++) {
-                char *pat = emit_expression(mc->data.match_case.patterns[p], ctx);
+            for (size_t p = 0; p < ast_match_case_pattern_count(mc); p++) {
+                char *pat = emit_expression(ast_match_case_pattern_at(mc, p), ctx);
                 if (p > 0)
                     codebuf_write(ctx->out, " || ");
                 codebuf_write(ctx->out, "__match_%d == %s", tmp_id, pat);
@@ -239,7 +243,7 @@ emit_match_stmt(ASTNode *node, TranspilerCtx *ctx)
             else
                 codebuf_write(ctx->out, "else if (__match_%d.tag == %s",
                     tmp_id, tag_val);
-        } else if (is_result_destructor(mc->data.match_case.pattern, &kind, &binding)) {
+        } else if (is_result_destructor(pattern_node, &kind, &binding)) {
             const char *tag_val = (strcmp(kind, "Ok") == 0)
                 ? "PgyResultOk" : "PgyResultErr";
             if (i == 0)
@@ -255,7 +259,7 @@ emit_match_stmt(ASTNode *node, TranspilerCtx *ctx)
             size_t bind_count = 0;
             const char *bindings_buf[8];
             ASTNode *binding_types_buf[8];
-            if (is_enum_variant_destructor(mc->data.match_case.pattern, ctx,
+            if (is_enum_variant_destructor(pattern_node, ctx,
                                             &vname, &ename, &bindings,
                                             &binding_types, &bind_count,
                                             bindings_buf, binding_types_buf,
@@ -268,7 +272,7 @@ emit_match_stmt(ASTNode *node, TranspilerCtx *ctx)
                         tmp_id, ename, vname);
                 kind = vname;
             } else {
-                char *pat = emit_expression(mc->data.match_case.pattern, ctx);
+                char *pat = emit_expression(pattern_node, ctx);
                 if (i == 0)
                     codebuf_write(ctx->out, "if (__match_%d == %s", tmp_id, pat);
                 else
@@ -277,8 +281,8 @@ emit_match_stmt(ASTNode *node, TranspilerCtx *ctx)
             }
         }
 
-        if (mc->data.match_case.guard != NULL) {
-            char *guard = emit_expression(mc->data.match_case.guard, ctx);
+        if (ast_match_case_guard(mc) != NULL) {
+            char *guard = emit_expression(ast_match_case_guard(mc), ctx);
             codebuf_write(ctx->out, " && %s", guard);
             free(guard);
         }
@@ -418,7 +422,7 @@ emit_match_stmt(ASTNode *node, TranspilerCtx *ctx)
             size_t bc2 = 0;
             const char *bindings_buf[8];
             ASTNode *binding_types_buf[8];
-            if (is_enum_variant_destructor(mc->data.match_case.pattern, ctx,
+            if (is_enum_variant_destructor(pattern_node, ctx,
                                             &vn2, &en2, &bs2, &bt2, &bc2,
                                             bindings_buf, binding_types_buf,
                                             sizeof(bindings_buf) / sizeof(bindings_buf[0]))) {
@@ -441,19 +445,19 @@ emit_match_stmt(ASTNode *node, TranspilerCtx *ctx)
             }
         }
 
-        emit_block(mc->data.match_case.body, ctx);
+        emit_block(ast_match_case_body(mc), ctx);
         ctx->indent--;
         write_indent(ctx);
         codebuf_write(ctx->out, "}\n");
     }
 
-    if (node->data.match_stmt.default_body != NULL) {
+    if (ast_match_default_body(node) != NULL) {
         write_indent(ctx);
         codebuf_write(ctx->out, "else\n");
         write_indent(ctx);
         codebuf_write(ctx->out, "{\n");
         ctx->indent++;
-        emit_block(node->data.match_stmt.default_body, ctx);
+        emit_block(ast_match_default_body(node), ctx);
         ctx->indent--;
         write_indent(ctx);
         codebuf_write(ctx->out, "}\n");

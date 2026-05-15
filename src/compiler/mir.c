@@ -260,8 +260,8 @@ mir_resource_write_value_expr_from_call(ASTNode *call)
     if (callee == NULL)
         return NULL;
     if (callee->type == AST_IDENTIFIER
-        && callee->data.identifier.name != NULL
-        && strcmp(callee->data.identifier.name, "Write") == 0
+        && ast_identifier_name(callee) != NULL
+        && strcmp(ast_identifier_name(callee), "Write") == 0
         && ast_call_arg_count(call) >= 2) {
         return ast_call_argument(call, 1);
     }

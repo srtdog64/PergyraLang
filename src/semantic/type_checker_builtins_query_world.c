@@ -59,9 +59,9 @@ type_check_has_zone(ASTNode *call, SemanticContext *ctx)
     }
 
     if (arg->type == AST_IDENTIFIER) {
-        name = arg->data.identifier.name;
+        name = ast_identifier_name(arg);
     } else if (arg->type == AST_STRING) {
-        name = arg->data.string.value;
+        name = ast_string_value(arg);
     } else {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_PREDICATE_ARGS_INVALID, PGY_CAUSE_PREDICATE_ARGS, PGY_FIX_MATCH_PREDICATE_SIGNATURE_IN_HOST, arg,
             "HasZone(...) expects a zone/state identifier or string literal.\n"
@@ -99,8 +99,8 @@ type_check_has_zone(ASTNode *call, SemanticContext *ctx)
     for (size_t i = 0; i < state_count; i++) {
         ASTNode *state = states[i];
         if (state != NULL && state->type == AST_WORLD_STATE
-            && state->data.world_state.state_name != NULL
-            && strcmp(state->data.world_state.state_name, name) == 0) {
+            && ast_world_state_name(state) != NULL
+            && strcmp(ast_world_state_name(state), name) == 0) {
             return TYPE_BOOL;
         }
     }
@@ -186,9 +186,9 @@ type_check_has_world_zone_detail(ASTNode *call, SemanticContext *ctx,
     }
 
     if (zone_arg->type == AST_IDENTIFIER)
-        zone_slot_name = zone_arg->data.identifier.name;
+        zone_slot_name = ast_identifier_name(zone_arg);
     else if (zone_arg->type == AST_STRING)
-        zone_slot_name = zone_arg->data.string.value;
+        zone_slot_name = ast_string_value(zone_arg);
     else {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, zone_arg,
             "%s(...) expects a world zone-slot identifier or string literal as the first argument.\n"
@@ -202,9 +202,9 @@ type_check_has_world_zone_detail(ASTNode *call, SemanticContext *ctx,
     }
 
     if (detail_arg->type == AST_IDENTIFIER)
-        detail_name = detail_arg->data.identifier.name;
+        detail_name = ast_identifier_name(detail_arg);
     else if (detail_arg->type == AST_STRING)
-        detail_name = detail_arg->data.string.value;
+        detail_name = ast_string_value(detail_arg);
     else {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID, PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE, detail_arg,
             "%s(...) expects a zone %s identifier or string literal as the second argument.\n"

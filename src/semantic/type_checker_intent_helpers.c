@@ -122,7 +122,7 @@ subject_decl_find_action_named(ASTNode *decl, const char *action_name)
         ASTNode *method = methods != NULL ? methods[i] : NULL;
         const char *method_name = ast_declaration_name(method);
         if (method != NULL && method->type == AST_FUNC_DECL
-            && method->data.func_decl.is_action
+            && ast_func_is_action(method)
             && method_name != NULL
             && strcmp(method_name, action_name) == 0) {
             return method;
@@ -144,11 +144,11 @@ projection_refresh_source_field_name(ASTNode *refresh,
     if (target_field_name == NULL)
         return NULL;
     if (refresh != NULL && refresh->type == AST_ZONE_REFRESH) {
-        for (size_t i = 0; i < refresh->data.zone_refresh.field_map_count; i++) {
+        for (size_t i = 0; i < ast_zone_refresh_field_map_count(refresh); i++) {
             const char *mapped_target =
-                refresh->data.zone_refresh.mapped_target_fields[i];
+                ast_zone_refresh_mapped_target_field(refresh, i);
             const char *mapped_source =
-                refresh->data.zone_refresh.mapped_source_fields[i];
+                ast_zone_refresh_mapped_source_field(refresh, i);
             if (mapped_target != NULL && mapped_source != NULL
                 && strcmp(mapped_target, target_field_name) == 0) {
                 return mapped_source;

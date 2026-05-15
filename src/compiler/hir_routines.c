@@ -160,7 +160,7 @@ hir_append_hidden_method_routine(HIRProgram *hir,
     routine.ast = method;
     routine.body = hir_routine_body(method);
     routine.is_hosted = true;
-    routine.is_action_like = method->data.func_decl.is_action;
+    routine.is_action_like = ast_func_is_action(method);
     routine.is_exported = method->is_exported;
     routine.has_control_flow = hir_ast_contains_control_flow(routine.body);
 
@@ -434,9 +434,7 @@ hir_append_decl_and_routine(HIRProgram *hir, HIRTopLevelItem item, char **error_
                              && item.ast->type == AST_FUNC_DECL
                              && ast_declaration_name(item.ast) != NULL
                              && strchr(ast_declaration_name(item.ast), '.') != NULL);
-        routine.is_action_like = (item.ast != NULL
-                                  && item.ast->type == AST_FUNC_DECL
-                                  && item.ast->data.func_decl.is_action);
+        routine.is_action_like = ast_func_is_action(item.ast);
         routine.is_exported = (item.ast != NULL && item.ast->is_exported);
         routine.has_control_flow = hir_ast_contains_control_flow(routine.body);
 

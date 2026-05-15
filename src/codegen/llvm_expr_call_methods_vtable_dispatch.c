@@ -36,7 +36,7 @@ llvm_emit_member_call_vtable_dispatch(ASTNode *node, LLVMGenCtx *ctx,
 
         if (party_node != NULL && party_node->type == AST_IDENTIFIER
             && slot_name != NULL) {
-            const char *party_var = party_node->data.identifier.name;
+            const char *party_var = ast_identifier_name(party_node);
             const char *party_class = llvm_lookup_var_class(ctx, party_var);
             LLVMClassTypeEntry *cls = party_class
                 ? llvm_lookup_class(ctx, party_class) : NULL;

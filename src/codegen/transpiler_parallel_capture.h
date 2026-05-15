@@ -12,18 +12,18 @@ transpiler_find_local_let_type_node(ASTNode *body, const char *base_name)
     if (body == NULL || base_name == NULL)
         return NULL;
     if (body->type == AST_BLOCK) {
-        for (size_t i = 0; i < body->data.block.count; i++) {
+        for (size_t i = 0; i < ast_block_statement_count(body); i++) {
             ASTNode *found = transpiler_find_local_let_type_node(
-                body->data.block.statements[i], base_name);
+                ast_block_statement(body, i), base_name);
             if (found != NULL)
                 return found;
         }
         return NULL;
     }
     if (body->type == AST_LET_DECL
-        && body->data.let_decl.name != NULL
-        && strcmp(body->data.let_decl.name, base_name) == 0) {
-        return body->data.let_decl.type;
+        && ast_let_name(body) != NULL
+        && strcmp(ast_let_name(body), base_name) == 0) {
+        return ast_let_type(body);
     }
     return NULL;
 }
@@ -124,11 +124,11 @@ transpiler_parallel_collect_stmt_captures(ASTNode *node,
 
     switch (node->type) {
     case AST_IDENTIFIER:
-        transpiler_parallel_add_capture_name(ctx, node->data.identifier.name,
+        transpiler_parallel_add_capture_name(ctx, ast_identifier_name(node),
             slot_names, slot_count, typed_names, typed_count);
         break;
     case AST_LET_DECL:
-        transpiler_parallel_collect_stmt_captures(node->data.let_decl.initializer,
+        transpiler_parallel_collect_stmt_captures(ast_let_initializer(node),
             ctx, slot_names, slot_count, typed_names, typed_count);
         break;
     case AST_ASSIGNMENT:
@@ -206,8 +206,8 @@ transpiler_parallel_collect_stmt_captures(ASTNode *node,
             ctx, slot_names, slot_count, typed_names, typed_count);
         break;
     case AST_BLOCK:
-        for (size_t i = 0; i < node->data.block.count; i++) {
-            transpiler_parallel_collect_stmt_captures(node->data.block.statements[i],
+        for (size_t i = 0; i < ast_block_statement_count(node); i++) {
+            transpiler_parallel_collect_stmt_captures(ast_block_statement(node, i),
                 ctx, slot_names, slot_count, typed_names, typed_count);
         }
         break;

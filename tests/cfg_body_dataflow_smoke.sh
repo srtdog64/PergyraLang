@@ -181,9 +181,9 @@ run_literal_doc_contract_smoke() {
     require_literal "src/compiler/mir_stmt_population.c" "mir_set_inst_source_statement_index(&new_insts[*new_count - 1]"
     require_literal "src/compiler/mir_non_cfg_stmt_population.c" "routine->hir_routine != NULL && routine->hir_routine->has_cfg"
     require_literal "src/compiler/mir_call_fact.h" "mir_attach_statement_call_fact"
-    require_literal "src/compiler/mir_call_fact.c" "inst->arg0 = stmt->data.call.callee->data.identifier.name"
+    require_literal "src/compiler/mir_call_fact.c" "inst->arg0 = ast_identifier_name(ast_call_callee(stmt))"
     require_literal "src/compiler/mir_call_fact.h" "mir_attach_def_initializer_call_fact"
-    require_literal "src/compiler/mir_call_fact.c" "inst->arg1 = expr->data.call.callee->data.identifier.name"
+    require_literal "src/compiler/mir_call_fact.c" "inst->arg1 = ast_identifier_name(ast_call_callee(expr))"
     require_literal "src/compiler/mir_call_fact.c" "inst->requires_source_statement_emit = true"
     require_literal "src/compiler/mir_call_fact.c" "inst->requires_source_local_decl_emit = true"
     require_literal "src/compiler/mir_call_fact.c" "inst->requires_channel_receive_statement_emit = true"
@@ -328,10 +328,14 @@ run_literal_doc_contract_smoke() {
     require_literal "src/semantic/type_checker_flow_loops.c" "type_check_while_loop_flow(ASTNode *node, SemanticContext *ctx)"
     require_literal "src/semantic/type_checker_flow_loops.c" "type_check_for_loop_flow(ASTNode *node, SemanticContext *ctx)"
     require_literal "src/semantic/type_checker_flow.c" "flow_static_bool_value"
-    require_literal "src/semantic/type_checker_flow_loops.c" "flow_static_bool_value(node->data.while_loop.condition"
+    require_literal "src/semantic/type_checker_flow_loops.c" "flow_static_bool_value(ast_while_condition(node)"
     require_literal "src/semantic/type_checker_flow_loops.c" "condition_static_false"
     if grep -Fq "AST_BOOLEAN" "$ROOT_DIR/src/semantic/type_checker_flow_loops.c"; then
         echo "loop flow must consume static Bool through flow_static_bool_value, not AST_BOOLEAN directly" >&2
+        exit 1
+    fi
+    if grep -RIn "flow_ast_contains_defer_stmt" "$ROOT_DIR/src/semantic"; then
+        echo "dynamic defer control must consume FLOW_HAS_DEFER facts, not AST pre-scan helpers" >&2
         exit 1
     fi
     require_literal "src/semantic/type_checker_flow.c" "restore_resource_states(&base)"
@@ -962,8 +966,8 @@ required_mir_owner_terms = {
     ],
     "src/compiler/mir_call_fact.c": [
         "#include \"mir_call_fact.h\"",
-        "inst->arg0 = stmt->data.call.callee->data.identifier.name",
-        "inst->arg1 = expr->data.call.callee->data.identifier.name",
+        "inst->arg0 = ast_identifier_name(ast_call_callee(stmt))",
+        "inst->arg1 = ast_identifier_name(ast_call_callee(expr))",
     ],
     "src/compiler/mir_stmt_population.c": [
         "mir_populate_stmt_instructions",
@@ -1049,6 +1053,7 @@ for owner, terms in required_mir_owner_terms.items():
 required_flow_terms = [
     "FLOW_FALLTHROUGH",
     "FLOW_RETURN",
+    "FLOW_HAS_DEFER",
     "type_check_if_stmt_flow",
     "type_check_match_stmt_flow",
     "semantic_check_body_flow",
@@ -1093,7 +1098,7 @@ required_flow_terms = [
     "PGY_CODE_SEM_BORROW_ESCAPE",
     "SlotState",
     "ResourceConsumeSnapshot before_defer",
-    "type_check_defer_body_flow(node->data.defer_stmt.body, ctx)",
+    "type_check_defer_body_flow(ast_defer_body(node), ctx)",
     "type_check_block_flow(body, ctx, NULL)",
     "restore_resource_states(&before_defer)",
 ]
@@ -1228,11 +1233,16 @@ for term in [
 
 for term in [
     "semantic_check_body_flow",
+    "semantic_check_body_flow_summary",
+    "SemanticBodyFlowSummary",
     "PGY_CODE_SEM_MISSING_RETURN",
     "PGY_CAUSE_CFG_MISSING_RETURN",
 ]:
     if term not in program:
         raise SystemExit(f"function declaration checker is not wired to {term}")
+
+if "summary: fallthrough=%s return=%s break=%s continue=%s defer=%s" not in program:
+    raise SystemExit("missing-return diagnostic must expose CFG summary facts")
 
 for term in [
     "PGY_CODE_SEM_MISSING_RETURN",

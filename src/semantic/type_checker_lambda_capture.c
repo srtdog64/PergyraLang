@@ -67,7 +67,7 @@ reject_identifier_capture(ASTNode *node, SemanticContext *ctx,
     if (node == NULL || node->type != AST_IDENTIFIER
         || ctx == NULL || lambda_scope == NULL)
         return false;
-    name = node->data.identifier.name;
+    name = ast_identifier_name(node);
     if (name == NULL || capture_state_has_local(state, name)
         || scope_lookup_current(lambda_scope, name) != NULL)
         return false;
@@ -112,13 +112,14 @@ static bool
 reject_match_case_captures(ASTNode *node, SemanticContext *ctx,
     const CaptureState *state)
 {
-    if (reject_lambda_captures(node->data.match_case.pattern, ctx, state))
+    size_t pattern_count = 0;
+    ASTNode **patterns = ast_match_case_patterns(node, &pattern_count);
+    if (reject_lambda_captures(ast_match_case_pattern(node), ctx, state))
         return true;
-    if (reject_list(node->data.match_case.patterns,
-            node->data.match_case.pattern_count, ctx, state))
+    if (reject_list(patterns, pattern_count, ctx, state))
         return true;
-    return reject_lambda_captures(node->data.match_case.guard, ctx, state)
-        || reject_lambda_captures(node->data.match_case.body, ctx, state);
+    return reject_lambda_captures(ast_match_case_guard(node), ctx, state)
+        || reject_lambda_captures(ast_match_case_body(node), ctx, state);
 }
 
 static bool reject_block_from(ASTNode *const *items, size_t count, size_t index,
@@ -126,19 +127,22 @@ static bool reject_block_from(ASTNode *const *items, size_t count, size_t index,
 
 static bool
 reject_block_after_destructure_names(ASTNode *const *items, size_t count,
-    size_t index, char *const *names, size_t name_count, size_t name_index,
+    size_t index, const ASTNode *destructure, size_t name_index,
     SemanticContext *ctx, const CaptureState *state)
 {
-    if (name_index >= name_count)
+    if (name_index >= ast_let_destructure_name_count(destructure))
         return reject_block_from(items, count, index, ctx, state);
 
-    CaptureLocal local = { names[name_index], state != NULL ? state->locals : NULL };
+    CaptureLocal local = {
+        ast_let_destructure_name(destructure, name_index),
+        state != NULL ? state->locals : NULL
+    };
     CaptureState next = {
         state != NULL ? state->lambda_scope : NULL,
         &local,
     };
-    return reject_block_after_destructure_names(items, count, index, names,
-        name_count, name_index + 1, ctx, &next);
+    return reject_block_after_destructure_names(items, count, index,
+        destructure, name_index + 1, ctx, &next);
 }
 
 static bool
@@ -150,9 +154,9 @@ reject_block_from(ASTNode *const *items, size_t count, size_t index,
 
     ASTNode *stmt = items[index];
     if (stmt != NULL && stmt->type == AST_LET_DECL) {
-        if (reject_lambda_captures(stmt->data.let_decl.initializer, ctx, state))
+        if (reject_lambda_captures(ast_let_initializer(stmt), ctx, state))
             return true;
-        CaptureLocal local = { stmt->data.let_decl.name,
+        CaptureLocal local = { ast_let_name(stmt),
             state != NULL ? state->locals : NULL };
         CaptureState next = {
             state != NULL ? state->lambda_scope : NULL,
@@ -161,12 +165,11 @@ reject_block_from(ASTNode *const *items, size_t count, size_t index,
         return reject_block_from(items, count, index + 1, ctx, &next);
     }
     if (stmt != NULL && stmt->type == AST_LET_DESTRUCTURE) {
-        if (reject_lambda_captures(stmt->data.let_destructure.initializer,
+        if (reject_lambda_captures(ast_let_destructure_initializer(stmt),
                 ctx, state))
             return true;
         return reject_block_after_destructure_names(items, count, index + 1,
-            stmt->data.let_destructure.names,
-            stmt->data.let_destructure.name_count, 0, ctx, state);
+            stmt, 0, ctx, state);
     }
     if (reject_lambda_captures(stmt, ctx, state))
         return true;
@@ -184,8 +187,11 @@ reject_lambda_captures(ASTNode *node, SemanticContext *ctx,
     case AST_IDENTIFIER:
         return reject_identifier_capture(node, ctx, state);
     case AST_BLOCK:
-        return reject_block_from(node->data.block.statements,
-            node->data.block.count, 0, ctx, state);
+        {
+            size_t statement_count = 0;
+            ASTNode **statements = ast_block_statements(node, &statement_count);
+            return reject_block_from(statements, statement_count, 0, ctx, state);
+        }
     case AST_ASYNC_BLOCK:
         {
             size_t statement_count = 0;
@@ -209,10 +215,10 @@ reject_lambda_captures(ASTNode *node, SemanticContext *ctx,
         return reject_lambda_captures(ast_with_slot_type(node), ctx, state)
             || reject_lambda_captures(ast_with_body(node), ctx, state);
     case AST_LET_DECL:
-        return reject_lambda_captures(node->data.let_decl.initializer, ctx, state);
+        return reject_lambda_captures(ast_let_initializer(node), ctx, state);
     case AST_LET_DESTRUCTURE:
-        return reject_lambda_captures(node->data.let_destructure.initializer,
-            ctx, state);
+        return reject_lambda_captures(
+            ast_let_destructure_initializer(node), ctx, state);
     case AST_RETURN:
         return reject_lambda_captures(ast_return_value(node), ctx, state);
     case AST_BINARY:
@@ -268,10 +274,10 @@ reject_lambda_captures(ASTNode *node, SemanticContext *ctx,
             return reject_lambda_captures(ast_for_body(node), ctx, &next);
         }
     case AST_MATCH_STMT:
-        return reject_lambda_captures(node->data.match_stmt.subject, ctx, state)
-            || reject_list(node->data.match_stmt.cases, node->data.match_stmt.case_count,
+        return reject_lambda_captures(ast_match_subject(node), ctx, state)
+            || reject_list(ast_match_cases(node, NULL), ast_match_case_count(node),
                 ctx, state)
-            || reject_lambda_captures(node->data.match_stmt.default_body, ctx, state);
+            || reject_lambda_captures(ast_match_default_body(node), ctx, state);
     case AST_MATCH_CASE:
         return reject_match_case_captures(node, ctx, state);
     case AST_SELECT_STMT:
@@ -297,12 +303,12 @@ reject_lambda_captures(ASTNode *node, SemanticContext *ctx,
         }
     case AST_EVENT_SUBSCRIBE:
     case AST_EVENT_UNSUBSCRIBE:
-        return reject_lambda_captures(node->data.event_op.event, ctx, state)
-            || reject_lambda_captures(node->data.event_op.handler, ctx, state);
+        return reject_lambda_captures(ast_event_op_event(node), ctx, state)
+            || reject_lambda_captures(ast_event_op_handler(node), ctx, state);
     case AST_EVENT_INVOKE:
-        return reject_lambda_captures(node->data.event_invoke.event, ctx, state)
-            || reject_list(node->data.event_invoke.arguments,
-                node->data.event_invoke.arg_count, ctx, state);
+        return reject_lambda_captures(ast_event_invoke_event(node), ctx, state)
+            || reject_list(ast_event_invoke_arguments(node, NULL),
+                ast_event_invoke_arg_count(node), ctx, state);
     case AST_UNSAFE_BLOCK:
         return reject_lambda_captures(ast_unsafe_block_body(node), ctx, state);
     case AST_DEFER_STMT:

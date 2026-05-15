@@ -99,9 +99,9 @@ llvm_emit_queue_extended_call(ASTNode *node, LLVMGenCtx *ctx,
             callee_name, "queue", LLVMConstInt(ctx->type_i32, 0, 0), out);
         if (queue_var == NULL)
             return true;
-        inner_name = llvm_lookup_queue_inner(ctx, queue_arg->data.identifier.name);
+        inner_name = llvm_lookup_queue_inner(ctx, ast_identifier_name(queue_arg));
         elem_ty = llvm_collection_required_value_type(ctx, node, "Queue",
-            queue_arg->data.identifier.name, inner_name, out);
+            ast_identifier_name(queue_arg), inner_name, out);
         if (elem_ty == NULL)
             return true;
         value = llvm_emit_expression(ast_call_argument(node, 1), ctx);
@@ -163,9 +163,9 @@ llvm_emit_queue_extended_call(ASTNode *node, LLVMGenCtx *ctx,
             callee_name, "queue", LLVMConstInt(ctx->type_i32, 0, 0), out);
         if (queue_var == NULL)
             return true;
-        inner_name = llvm_lookup_queue_inner(ctx, queue_arg->data.identifier.name);
+        inner_name = llvm_lookup_queue_inner(ctx, ast_identifier_name(queue_arg));
         elem_ty = llvm_collection_required_value_type(ctx, node, "Queue",
-            queue_arg->data.identifier.name, inner_name, out);
+            ast_identifier_name(queue_arg), inner_name, out);
         if (elem_ty == NULL)
             return true;
         tmp = llvm_create_entry_alloca(ctx, elem_ty, llvm_tmp_name(ctx));

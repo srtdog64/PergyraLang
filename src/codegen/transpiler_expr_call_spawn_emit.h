@@ -1,6 +1,8 @@
 #ifndef PGY_TRANSPILER_EXPR_CALL_SPAWN_EMIT_H
 #define PGY_TRANSPILER_EXPR_CALL_SPAWN_EMIT_H
 
+#include "../parser/ast_api.h"
+
 static char *
 emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
 {
@@ -15,7 +17,7 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
 
             if (party_node != NULL && party_node->type == AST_IDENTIFIER
                 && slot_name != NULL) {
-                const char *party_var = party_node->data.identifier.name;
+                const char *party_var = ast_identifier_name(party_node);
                 const char *party_type = lookup_typed_var(ctx, party_var);
                 ASTNode *party_decl = find_party_decl(ctx, party_type);
                 char *ability_name = NULL;
@@ -94,8 +96,8 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                 const char *owned_type_name = type_name;
                 bool use_self_cell = is_pointer_self_host_type_name(ctx, owned_type_name);
                 bool is_self_ident = (obj->type == AST_IDENTIFIER
-                    && obj->data.identifier.name != NULL
-                    && strcmp(obj->data.identifier.name, "self") == 0);
+                    && ast_identifier_name(obj) != NULL
+                    && strcmp(ast_identifier_name(obj), "self") == 0);
                 ASTNode *method_decl = find_nominal_host_method_decl(ctx, owned_type_name, method);
 
                 snprintf(stable_type_name, sizeof(stable_type_name), "%s",
@@ -111,7 +113,7 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                     bool already_pointer = false;
                     if (obj->type == AST_IDENTIFIER) {
                         TypedVarEntry *entry = lookup_typed_entry(ctx,
-                            obj->data.identifier.name);
+                            ast_identifier_name(obj));
                         if (entry != NULL && entry->is_subject_ref)
                             already_pointer = true;
                     }
@@ -148,11 +150,11 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                         bool already_pointer = false;
                         bool is_self_arg = (arg_node != NULL
                             && arg_node->type == AST_IDENTIFIER
-                            && arg_node->data.identifier.name != NULL
-                            && strcmp(arg_node->data.identifier.name, "self") == 0);
+                            && ast_identifier_name(arg_node) != NULL
+                            && strcmp(ast_identifier_name(arg_node), "self") == 0);
                         if (arg_node != NULL && arg_node->type == AST_IDENTIFIER) {
                             TypedVarEntry *entry = lookup_typed_entry(ctx,
-                                arg_node->data.identifier.name);
+                                ast_identifier_name(arg_node));
                             if (entry != NULL && entry->is_subject_ref)
                                 already_pointer = true;
                         }
@@ -271,24 +273,25 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
         if (is_slot_method && obj->type == AST_IDENTIFIER) {
             char inner_buf[128];
             const char *inner = NULL;
-            bool is_secure = lookup_slot_is_secure(ctx, obj->data.identifier.name);
+            const char *obj_name = ast_identifier_name(obj);
+            bool is_secure = lookup_slot_is_secure(ctx, obj_name);
             bool saved_suppress = ctx->suppress_slot_auto_read;
             ctx->suppress_slot_auto_read = true;
             char *obj_expr = emit_expression(obj, ctx);
             ctx->suppress_slot_auto_read = saved_suppress;
-            if (lookup_slot_type_copy(ctx, obj->data.identifier.name,
+            if (lookup_slot_type_copy(ctx, obj_name,
                     inner_buf, sizeof(inner_buf))) {
                 inner = inner_buf;
             }
             if (inner == NULL) {
                 transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "cannot determine slot payload type for method call on '%s'",
-                    obj->data.identifier.name != NULL
-                        ? obj->data.identifier.name
+                    obj_name != NULL
+                        ? obj_name
                         : "<slot>");
                 free(obj_expr);
                 return pergyra_strdup("0");
             }
-            char *slot_ref = slot_ref_expr(ctx, obj->data.identifier.name, obj_expr);
+            char *slot_ref = slot_ref_expr(ctx, obj_name, obj_expr);
 
             if (pgy_codegen_call_name_is_write(method)
                 && ast_call_arg_count(call) >= 1) {
@@ -301,7 +304,7 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                     free(tok);
                 } else if (is_secure) {
                     const char *token_name = require_slot_token_name(
-                        ctx, obj->data.identifier.name, "SecureSlot method Write");
+                        ctx, obj_name, "SecureSlot method Write");
                     if (token_name == NULL) {
                         free(val_expr);
                         free(slot_ref);
@@ -322,7 +325,7 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                 char *result;
                 if (is_secure) {
                     const char *token_name = require_slot_token_name(
-                        ctx, obj->data.identifier.name, "SecureSlot method Read");
+                        ctx, obj_name, "SecureSlot method Read");
                     if (token_name == NULL) {
                         free(slot_ref);
                         free(obj_expr);
@@ -340,7 +343,7 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                 char *result;
                 if (is_secure) {
                     const char *token_name = require_slot_token_name(
-                        ctx, obj->data.identifier.name, "SecureSlot method Release");
+                        ctx, obj_name, "SecureSlot method Release");
                     if (token_name == NULL) {
                         free(slot_ref);
                         free(obj_expr);
@@ -354,7 +357,7 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                 /* Mark as released */
                 for (int ri = 0; ri < ctx->slot_var_count; ri++) {
                     if (strcmp(ctx->slot_vars[ri].name,
-                              obj->data.identifier.name) == 0) {
+                              obj_name) == 0) {
                         ctx->slot_vars[ri].released = true;
                         break;
                     }
@@ -430,7 +433,7 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
     BuiltinKind bk     = BUILTIN_NOT_BUILTIN;
 
     if (callee->type == AST_IDENTIFIER) {
-        const char *callee_name = callee->data.identifier.name;
+        const char *callee_name = ast_identifier_name(callee);
         bk = builtin_resolve(callee_name);
         if ((bk == BUILTIN_BOX || bk == BUILTIN_RC_NEW)
             && find_class_decl(ctx, callee_name) != NULL) {

@@ -21,6 +21,151 @@ abstraction safety + dogfood-first path**. Feature feel is about 70%, while
 strict beta readiness is about 63%. When the CFG/AIR/DAG/MIR/ABI
 source-of-truth closures are complete, reassess in the 75-80% range.
 
+Current DAG tightening (2026-05-15): Generic parameter storage is now closed
+behind parser-owned accessors for the main semantic contract path. Generic
+support/contracts, default validation, ability ref/match/where diagnostics,
+declaration generic-scope setup, constructed metadata materialization, and
+function call where-bound validation consume `ast_generic_param_*` accessors.
+Module ability-contract validation, intent require-field generic scope
+resolution, DAG graph generic-contract collection, DAG stage nominal/signature
+replay, and metadata/dead-end/diagnostic owners are included in the same guard.
+Late callable generic effective-type derivation now consumes the same
+accessors. Role include type-arg precollection and ownership ClaimSlot
+generic-arg resolution are also closed. Compiler/codegen consumers for
+DIR/HIR/MIR type rendering, module normalization, LLVM type
+rendering/registry/forward declaration/pipeline, LLVM Slot/collection/resource
+let lowering, LLVM expression type inference, spawn generic substitution, C
+generic class specialization, C role ability specialization, and C
+forward-declare policy are now on the same read-only seam.
+`type-resolution-resolver-inventory-test-smoke` now has broad semantic plus
+compiler/codegen guards rejecting direct `GenericParams` storage reopenings
+(`->params[...]`, `->default_type`, `->constraint`, and direct
+`ast_type_generic_args(...)->count/params`); `type-resolution-dag-test-smoke`
+still reports zero retired resolver calls and zero metadata dead-ends after the
+slice.
+
+Current parser owner cleanup (2026-05-15): declaration-name mutation, let,
+scalar literal, identifier, extern/use/import/namespace, type-alias, and event
+accessors now live in `src/parser/ast_decl_accessors.c`. The domain accessor
+owner is reduced to the intent/class/enum slice, and `build-source-inventory`
+plus parser smoke confirm the new owner is part of the build inventory rather
+than a loose split artifact.
+
+Current semantic owner cleanup (2026-05-15): overlay nominal type creation and
+overlay field count/type lookup now live in
+`src/semantic/type_checker_host_overlay.c`. `type_checker_host_helpers.c` is
+reduced to host-boundary lookup, subject-slot/authority checks, and
+movable-resource helper facts; `test_semantic`, `semantic_core_shape_smoke`,
+`build-source-inventory`, and `test_inc_size_smoke` gate the split.
+
+Current C backend owner cleanup (2026-05-15): `Option<T>` let constructors and
+`HashMap<String,T>` / `List<T>` / `Queue<T>` constructor lowering now live in
+`src/codegen/transpiler_let_collection_emit.h`. `transpiler_let_emit.h` is back
+to the let orchestration path, while collection constructor dispatch has a
+responsibility-named owner. `test_transpile`, source inventory, and owner-size
+smokes gate the split.
+
+Current C type mapping cleanup (2026-05-15): constructed type argument parsing,
+inner-type extraction, suffix sanitization, and capped string copy helpers now
+live in `src/codegen/transpiler_type_name_utils.c`. `transpiler_type_mapping.c`
+is reduced to mapping policy, which narrows the later ABI/type-layout-first
+mapping pass.
+
+Current LLVM task/channel owner cleanup (2026-05-15): task-runtime builtins
+(`Cancel`, `IsCancelled`) now live in `src/codegen/llvm_expr_task_calls.c`.
+`src/codegen/llvm_expr_task_channel_calls.c` is reduced to `Channel<T>`
+metadata, send/receive, timeout, close, and query lowering, keeping task
+cancellation separate from channel dispatch before deeper LLVM parity work.
+
+Current LLVM MIR CFG owner cleanup (2026-05-15): match subject discovery and
+Option/Result destructor-pattern condition lowering now live in
+`src/codegen/llvm_mir_match_condition.c`. `llvm_mir_cfg_control.c` is reduced to
+CFG-container classification, select readiness, and channel receive DEF
+lowering, so match semantics no longer share the channel/select control owner.
+
+Current LLVM statement owner cleanup (2026-05-15): select statement readiness
+and round-robin lowering now lives in `src/codegen/llvm_stmt_select.c`.
+`llvm_stmt_parallel_async.c` keeps parallel and async wrapper emission, so
+select policy no longer shares the parallel/async owner.
+
+Current LLVM collection owner cleanup (2026-05-15): extended collection call
+diagnostic recovery now goes through the collection-require owner instead of
+living in the mixed extended-call body. `llvm_expr_call_collections_extended.c`
+is reduced to extended collection call lowering and can be split by container
+family later without duplicating diagnostic strings.
+
+Current LLVM List/Map collection split (2026-05-15): `ListPush`, `ListGet`,
+`ListSet`, `ListSize`, and `ListRemove` lowering now live in
+`src/codegen/llvm_expr_call_list_extended.c`. The mixed extended collection
+owner delegates queue and List first, then owns HashMap extended calls, keeping
+List and Map policy from growing in one owner.
+
+Current C expression owner cleanup (2026-05-15): scalar literal expression
+emission now lives in `src/codegen/transpiler_expr_literal_emit.h`.
+`transpiler_expr_dispatch_emit.h` dispatches literals through that owner and
+keeps the remaining dispatcher focused on expression-form routing.
+
+Current C composite literal owner cleanup (2026-05-15): tuple and Array literal
+emission now lives in `src/codegen/transpiler_expr_composite_literal_emit.h`.
+The expression dispatcher no longer owns tuple layout name construction or
+Array builder emission directly; `test_transpile` gates the split.
+
+Current runtime roster owner cleanup (2026-05-15): roster/world lookup APIs now
+live in `src/runtime/world_roster_lookup.c`. `world_roster.c` is reduced to
+roster/world lifecycle and mutation, while `RosterFindParty`, `WorldFindRoster`,
+and `WorldFindParty` share one lookup owner.
+
+Current runtime collection owner cleanup (2026-05-15): the generic List macro
+now lives in `src/runtime/pgy_runtime_list_generic_inline.h`, leaving
+`pgy_runtime_list_set_inline.h` focused on concrete List/Set instantiations and
+Set macro policy.
+
+Current runtime async owner cleanup (2026-05-15): `AsyncScopeParallelFor` and
+`AsyncScopeRace` now live in `src/runtime/async/async_scope_patterns.c`.
+`async_scope.c` keeps scope lifecycle, spawn, wait, cancellation, and error
+state ownership without carrying higher-level pattern helpers.
+
+Current runtime scheduler owner cleanup (2026-05-15): spawn/enqueue/yield/
+block/unblock/steal operations now live in
+`src/runtime/async/scheduler_fiber_ops.c`. `scheduler.c` keeps scheduler
+lifecycle, worker startup/shutdown, I/O worker bootstrap, and thread-local
+current-scheduler ownership.
+
+Current MIR statement population cleanup (2026-05-15): source statement index
+tagging and source-inventory count/items accessors now live in
+`src/compiler/mir_stmt_source_inventory.c`. `mir_stmt_population.c` keeps the
+CFG source-order reconstruction algorithm and local inventory lookup, with
+`test_mir` gating the split.
+
+Current module normalizer owner cleanup (2026-05-15): domain/world/zone/
+relation/effect reference traversal now lives in
+`src/compiler/module_normalizer_domain_refs.c`. `module_normalizer_refs.c` keeps
+general declaration/expression reference normalization, while domain graph
+normalization has its own owner.
+
+Current LLVM collection owner cleanup (2026-05-15): extended collection
+diagnostics now live with collection-require helpers in
+`src/codegen/llvm_expr_call_collections_require.c`. The List/HashMap dispatcher
+is smaller and has a shared diagnostic seam ready for a later List-vs-Map split.
+
+Current C expression owner cleanup (2026-05-15): number/string/bool literal
+rendering now lives in `src/codegen/transpiler_expr_literal_emit.h`.
+`transpiler_expr_dispatch_emit.h` is reduced to expression-family dispatch and
+non-literal lowering while preserving `test_transpile` behavior.
+
+Current runtime owner cleanup (2026-05-15): world/roster lookup APIs now live in
+`src/runtime/world_roster_lookup.c`. `world_roster.c` keeps creation, execution,
+async wait, frame loop, and cleanup behavior, while `RosterFindParty`,
+`WorldFindRoster`, and `WorldFindParty` have a separate lookup owner.
+Party scheduler registry and debug dump behavior now lives in
+`src/runtime/party_runtime_scheduler.c`; `party_runtime.c` keeps fiber-map
+generation and context role/shared lookup behavior.
+
+Current runtime collection owner cleanup (2026-05-15): generic List macro
+generation now lives in `src/runtime/pgy_runtime_list_generic_inline.h`.
+`pgy_runtime_list_set_inline.h` keeps concrete List/String and Set bodies, while
+`PGY_LIST_DEFINE(...)` has a separate inline owner.
+
 Beta closure asks one practical question: **can the core survive a one-year
 freeze while dogfood starts?** If AIR/CFG/runtime invariants are still
 incomplete, documentation alone does not count as closure.
@@ -192,9 +337,12 @@ Operational mode:
   `ast_call_generic_arg(...)`; semantic/compiler/codegen have a global shape
   gate against raw `data.call.generic_args` consumption. AIR call-boundary,
   traversal, and evidence containment now consume `ast_call_callee(...)`,
-  `ast_call_arg_count(...)`, `ast_call_arguments(...)`, and
-  `ast_call_argument(...)`, with a shape gate against reopening call payloads in
-  those verification owners. Slot analyzer escape/access summary owners now use
+  `ast_call_arg_count(...)`, `ast_call_arguments(...)`,
+  `ast_call_argument(...)`, and `ast_call_argument_name(...)`, with a shape
+  gate against reopening call payloads in semantic/compiler/codegen. This keeps
+  reserved named-argument diagnostics on the same parser-owned seam before
+  default/named argument implementation is widened. Slot analyzer escape/access
+  summary owners now use
   the same call accessor seam for callee and argument traversal. HIR control-flow
   and direct-call analysis now use the same seam for callee/argument traversal.
   MIR source preservation, RIR call naming, module-normalizer reference rewrite,
@@ -333,6 +481,35 @@ Operational mode:
   runtime-none scans, MIR resource/type helpers, and C/LLVM with-slot/local-
   binding/type lookup emission; the shape smoke rejects non-parser
   `data.with_stmt.*` reads.
+  Block statement-list and pin metadata facts now use parser-owned accessors
+  across semantic flow/slot/lambda/intent/DAG checks, AIR/HIR/RIR/module/
+  runtime-none scans, CFG lowering, debugger traversal, and C/LLVM block,
+  async, select, local-binding, projection invalidation, and specialization
+  paths. The only remaining raw `data.block.*` access is the explicit
+  parser-owned HIR teardown slot in `src/compiler/hir_destroy.c`; the shape
+  smoke rejects all other semantic/compiler/codegen block payload reads.
+  Match subject/case/default and match-case pattern/guard/body facts now use
+  parser-owned accessors across semantic flow/coverage/lambda/DAG/intent checks,
+  AIR/HIR/RIR/module/runtime-none scans, CFG lowering, C/LLVM match lowering,
+  projection invalidation, and specialization discovery; the shape smoke rejects
+  non-parser `data.match_stmt.*` and `data.match_case.*` reads.
+  Lambda parameter/body/return/async facts now use parser-owned accessors across
+  semantic expression typing, type inference, DAG precollect, intent control,
+  AIR/runtime-none scans, callable registration, and C/LLVM lambda lowering; the
+  shape smoke rejects non-parser `data.lambda_expr.*` reads.
+  Event subscribe/unsubscribe and invoke target/argument facts now use
+  parser-owned accessors across semantic event contracts, lambda capture, DAG
+  precollect, AIR/module scans, and C/LLVM event lowering; the shape smoke
+  rejects non-parser `data.event_op.*` and `data.event_invoke.*` reads.
+  Let-binding name/type/initializer/mutability/alias facts now use parser-owned
+  accessors across semantic event/lambda/ownership/DAG checks, slot analysis,
+  AIR/HIR/RIR/module/runtime-none scans, MIR local-binding/pending-use facts,
+  parallel capture, C let emission, and LLVM let/lambda/event lowering; the
+  shape smoke rejects all non-parser `data.let_decl.*` reads.
+  Scalar literal value facts now use parser-owned accessors across semantic
+  type/flow/builtin query checks and C/LLVM literal/log/type inference
+  lowering; the shape smoke rejects non-parser `data.number.*`,
+  `data.string.*`, and `data.boolean.*` reads.
   If-statement condition/then/else facts now use parser-owned accessors across
   semantic flow/slot/lambda/intent/DAG checks, AIR/HIR/RIR/module/runtime-none
   scans, CFG lowering, debugger traversal, parallel capture, specialization,
@@ -547,7 +724,10 @@ Operational mode:
   self` maps to the receiver alias. `authorized by <action-param>` also maps
   to the corresponding single `on` call argument when that argument is a
   declared intent participant identifier. Non-identifier arguments, missing
-  parameter bindings, and multiple `on` calls stay explicit.
+  parameter bindings, and multiple `on` calls stay explicit. The on-inference
+  owner reads those action contracts through parser-owned function contract
+  accessors, so compact syntax does not reopen raw `func_decl` payloads while
+  materializing explicit facts for DIR/AIR.
 - 2026-05-02 AIR authority provenance lift:
   derived approval is no longer semantic-only. DIR carries
   `authorized_by_derived_from_zone` and
@@ -1421,8 +1601,8 @@ Operational mode:
   threshold by splitting private API declarations into `llvm_internal_api.h`
   and fixed limits / dynamic-array helpers into `llvm_limits_internal.h`. The
   LLVM registry owner is also below the threshold after splitting resource/type
-  registry behavior into `llvm_registry_resources.c`. The
-  world semantic owner family is below the threshold after moving lookup/
+  registry behavior into `llvm_registry_resources.c`. The world semantic owner
+  family is below the threshold after moving lookup/
   lifecycle helpers to `type_checker_world_helpers.c` and shared domain slot
   validation to `type_checker_domain_slots.c`. The
   AST print/constructor/type split and
@@ -1471,6 +1651,31 @@ Operational mode:
   from these closed owner families to the next remaining source-of-truth seams:
   CFG consumers, AIR boundary consumers, DAG evaluator fallback seams, and
   MIR/LLVM declaration bootstrap parity.
+- 2026-05-15 type-system slot owner split: `src/semantic/type_system_slot.c`
+  now owns Slot/SecureSlot/View/MoveToken type construction and slot type
+  accessors. `src/semantic/type_system.c` is 519 LOC and the new slot owner is
+  110 LOC, so the type-system family is back below the 600 LOC split-review
+  threshold without hiding raw `Type->data.slot` access in non-type-system
+  owners. Gates: `test-inc-size-test-smoke`, `semantic-core-shape-test-smoke`,
+  `build-source-inventory-test-smoke`, and `test-semantic`.
+- 2026-05-15 DAG domain-stage owner split: local world/zone contract scans stay
+  in `type_checker_resolution_stage_domain.c`, while world/zone label replay
+  moved to `type_checker_resolution_stage_domain_label.c`. The old 591 LOC
+  owner is now split into 264 LOC local-contract and 334 LOC label-replay
+  owners without changing the stage API. Gates: direct object build,
+  `semantic-core-shape-test-smoke`, `type-resolution-dag-test-smoke`, and
+  `test-semantic`.
+- 2026-05-15 semantic shape gate runtime fix: `semantic_core_shape_smoke` now
+  caches the broad source payload scan for `data.*` / `resolve_type_node(...)`
+  checks instead of rescanning `src/semantic`, `src/compiler`, and `src/codegen`
+  for every individual pattern. The gate still rejects reopened AST/Type
+  payload seams, but no longer burns a full tree walk for each check on
+  Windows/Git Bash.
+- 2026-05-15 AIR runtime evidence owner split: observability-schema and runtime
+  frontier-policy evidence collection moved to
+  `src/compiler/air_evidence_runtime.c`. `air_evidence.c` now stays focused on
+  HIR/MIR evidence collection at 509 LOC, while `test_air` keeps singleton
+  global evidence behavior and diagnostics unchanged.
 - LLVM MIR CFG control owner debt is partially closed: CFG-expanded range
   `for`, `select`, and `match` lowering now lives in
   `src/codegen/llvm_mir_cfg_control.c`, and `llvm_mir_block_emit.h` is below
@@ -1479,9 +1684,13 @@ Operational mode:
   backend emitters remain in the review band.
 - LLVM statement ownership is also below the 600 LOC review threshold:
   `llvm_stmt.c` owns statement dispatch, defers, return/if/block emission, and
-  expression-statement forwarding; `llvm_stmt_zone_action.c` owns zone-action
-  effect runtime propagation; `llvm_stmt_type_render.c` owns generic
-  type-argument rendering; `llvm_stmt_let_collections.c` owns
+  expression-statement forwarding; `llvm_stmt_destructure.c` owns tuple and
+  array-like let-destructure lowering; `llvm_stmt_select.c` owns select
+  readiness and round-robin lowering; `llvm_stmt_loop_match.c` owns while,
+  numeric for, and for-in loop lowering; `llvm_stmt_match.c` owns match pattern
+  comparison and Option/Result payload binding; `llvm_stmt_zone_action.c` owns
+  zone-action effect runtime propagation; `llvm_stmt_type_render.c` owns
+  generic type-argument rendering; `llvm_stmt_let_collections.c` owns
   collection/channel/array let specializations; and
   `llvm_stmt_let_callable.c` owns callable/lambda let registration.
 - LLVM MIR CFG match destructor parity is closed for the direct ABI probe:
@@ -1629,11 +1838,13 @@ Operational mode:
   `air_validate_summary_counters.o` and `air_validate_evidence.o`.
 - Semantic effect/helper implementation-header debt is split:
   `type_checker_helpers_effects.h` is declaration-only, while
-  `type_checker_helpers_effects.c` owns effect/type helper behavior,
+  `type_checker_helpers_effects.c` owns effect word parsing, declared effect
+  contracts, and body-summary recording,
+  `type_checker_helpers_resources.c` owns resource handles, nominal flavor
+  lookup, and subject-host helpers,
   `type_checker_projection_path.c` owns projection source field-path
   resolution, and `type_checker_world_embedding.c` owns world constructor
-  zone-embedding handoff diagnostics. Current sizes are 504 LOC, 177 LOC, 132
-  LOC, and 11 LOC respectively.
+  zone-embedding handoff diagnostics.
 - Expression resolver implementation-header debt is split:
   `type_checker_expr.h` is declaration-only, the obsolete
   `type_checker_resolve.c` / `type_checker_resolve.h` compatibility owner is
@@ -1659,8 +1870,10 @@ Operational mode:
 - Nominal builtin dispatch no longer lives in an implementation header:
   `type_checker_builtins_nominal.c` owns the main dispatcher and
   `type_checker_builtins_intent_observability.c` owns the intent
-  observability builtin family. `type_checker_builtins_nominal.h` is
-  declaration-only and both owners remain under the 600 LOC review threshold.
+  observability builtin family. `type_checker_builtins_ownership_nominal.c`
+  owns Rc/Weak/Allocator/Box validation and beta payload policy.
+  `type_checker_builtins_nominal.h` is declaration-only and these owners
+  remain under the 600 LOC review threshold.
 - Slot analyzer summary/escape behavior is split:
   `slot_analyzer_summary.c` owns access/function-alias/parameter summaries and
   `slot_analyzer_escape.c` owns escape collection/mask materialization. The
@@ -1928,7 +2141,13 @@ Closed now:
   includes `MIR validator rejects residual STMT without source inventory fact`;
   `cfg-body-dataflow-test-smoke` gates the policy owner, backend consumers, and
   regression string.
-- Non-`Void` functions now consume the CFG body flow summary for all-path return. If any reachable normal path can fall through without a return terminator, semantic analysis emits `PGY_SEM_MISSING_RETURN` with `Reason:` and `Fix:`.
+- Non-`Void` functions now consume the CFG body flow summary for all-path
+  return. If any reachable normal path can fall through without a return
+  terminator, semantic analysis emits `PGY_SEM_MISSING_RETURN` with `Reason:`
+  and `Fix:`. The consumer now reads `SemanticBodyFlowSummary` through
+  `semantic_check_body_flow_summary(...)`, and the diagnostic exposes the
+  `fallthrough`, `return`, `break`, `continue`, and `defer` facts that drove the
+  all-path-return decision.
 - Semantic CFG body-flow flag consumption is centralized through named
   fallthrough/terminator helpers, so branch/join decisions are no longer
   repeated as open-coded flag masks in each consumer.
@@ -1944,6 +2163,9 @@ Closed now:
 - `defer` cleanup-body resource facts are isolated by snapshot/restore:
   cleanup moves, releases, and cleanup-only loop terminators are checked without
   consuming the surrounding path's live resource state or outer loop flow.
+- Dynamic-control `defer` rejection now consumes the CFG body-flow
+  `FLOW_HAS_DEFER` fact. `if`/`match`/loop checks no longer reopen nested AST
+  bodies through a separate pre-scan helper.
 - The direct `type_check_statement()` fallback path delegates `defer` body
   checking to the same cleanup snapshot helper as CFG body flow, closing the
   previous split-brain semantic path.
@@ -2694,7 +2916,16 @@ Strict evidence update:
 
 Remaining (Phase 1 — beta 진입 전 반드시 실 구현):
 
-- HIR + DIR + RIR synthesis edge coverage: stable intent subset evidence 누락은 default strict hard-fail로 승격됐다. Direct AST-backed execution-boundary coverage now exists for `spawn` and IO. Direct AIR coverage now verifies world boundaries require source-specific RIR transfer op evidence. Parsed-source positive coverage now verifies `where + transfer` emits both zone and world boundaries with owned source names. Parsed-source negative baseline now exists for missing authority evidence and missing IO execution-boundary evidence through the full driver JSON path. Remaining work is expanding source-backed negatives to transfer/world boundary drift and any later parsed execution-boundary drift that becomes semantically valid instead of pre-AIR rejected.
+- HIR + DIR + RIR synthesis edge coverage: stable intent subset evidence 누락은 default strict hard-fail로 승격됐다. Direct AST-backed execution-boundary coverage now exists for `spawn` and IO. Direct AIR coverage now verifies world boundaries require source-specific RIR transfer op evidence. Parsed-source positive coverage now verifies `where + transfer` emits both zone and world boundaries with owned source names. Parsed-source negative baseline now exists for missing authority evidence, missing IO execution-boundary evidence through the full driver JSON path, and missing world-transfer RIR evidence after source lowering. Remaining work is any later parsed execution-boundary drift that becomes semantically valid instead of pre-AIR rejected.
+- Parsed-source AIR transfer negative coverage now exists: a source-lowered
+  `transfer` world boundary fails strict AIR when its boundary-scoped RIR
+  transfer evidence is removed, and the drift keeps
+  `source_provenance=transfer` plus the boundary source.
+- AIR text dump and driver diagnostic evidence summaries now read provider /
+  subject provenance from `AIREvidenceNode` inventory instead of the legacy
+  boundary summary-name fields through the shared
+  `air_boundary_evidence_node/provider/subject` read seam, keeping user-facing
+  evidence details on the same source of truth as strict verification.
 - backend non-consumption regression: source scanning and generated C/LLVM
   non-impact smoke now cover the full frozen backend-compare fixture set in
   Linux CI. Strict evidence also runs through the backend execution compare.
@@ -2704,8 +2935,9 @@ Remaining (Phase 1 — beta 진입 전 반드시 실 구현):
 - Phase 1 invariant docs exist in `docs/semantics/07_air_abstraction_safety.md`
   for drift detection soundness, synthesis read-only, codegen non-impact,
   intent node coverage, boundary closure, and strict evidence failure
-  soundness. Remaining work is expanding source-backed transfer/world boundary
-  negative regressions, not writing the first invariant section.
+  soundness. Source-backed transfer/world boundary negative coverage now
+  exists; remaining invariant work is later parsed execution-boundary drift
+  that becomes semantically valid instead of pre-AIR rejected.
 - Phase 1 schema 가 Phase 2 (Constraint Node, Effect Node) 와 Phase 3 (drift fact 종류 확장) 를 막지 않도록 **future-compatible 하게 enum/struct** 설계 (`drift_kind` 가 enum 1 종에서 시작해 추가 가능, Boundary `kind` 가 5 종에서 시작해 추가 가능).
 - AIR 를 codegen path 에 연결하지 않는다. AIR drift 검사는 semantic/compiler validation 단계에 머물고 C / LLVM output을 직접 바꾸지 않는다.
 
@@ -2875,10 +3107,10 @@ Closed now:
   `type-resolution-resolver-inventory-test-smoke`.
 - Central metadata materializer fallback is dormant in the semantic suite:
   `materializer_fallbacks=0`.
-- Current local stats are `graph-backed skips=2033`,
+- Current local stats are `graph-backed skips=2058`,
   `resolve_calls=0`, `resolve_unique_nodes=0`,
-  `metadata_entries=3498`, `metadata_owned=258`,
-  `metadata_hits=8380`, and `materializer_fallbacks=0`.
+  `metadata_entries=3718`, `metadata_owned=261`,
+  `metadata_hits=8695`, and `materializer_fallbacks=0`.
 - Metadata fallback families are all zero, including named, generic-named,
   compound, other, builtin shell, generic class, alias, non-class symbol, and
   missing-symbol fallback.
@@ -3084,10 +3316,13 @@ make test-semantic
   `transpiler_helpers_core_{a,b}.h`, `transpiler_domain_role_emit.h`, and
   `pgy_runtime_inline_core.h`.
 - Remaining backend debt is no longer pass-through `.inc` debt; it is owner
-  extraction inside named headers/TUs. LLVM statement parallel/async/select
-  lowering is now isolated in `llvm_stmt_parallel_async.c`, and LLVM intent
-  MIR metadata, zone binding/sync helpers, effect provenance helpers, and
-  MIR-backed intent flow/signature helpers are isolated in
+  extraction inside named headers/TUs. LLVM statement parallel/async lowering
+  is isolated in `llvm_stmt_parallel_async.c`, select lowering is isolated in
+  `llvm_stmt_select.c`, let-destructure lowering is isolated in
+  `llvm_stmt_destructure.c`, match lowering is isolated in
+  `llvm_stmt_match.c`, and LLVM intent MIR metadata, zone binding/sync helpers,
+  effect provenance helpers, and MIR-backed intent flow/signature helpers are
+  isolated in
   `llvm_intent_mir_meta.c`, `llvm_intent_zone.c`, `llvm_intent_effect.c`, and
   `llvm_intent_flow.c`. Parser orchestration/declaration debt is no longer a
   1,000+ LOC blocker: `parser.c` is 977 LOC and `parser_decl.c` is 887 LOC
@@ -3353,7 +3588,7 @@ find src -path src/tests -prune -o -name '*.inc' -print
   resolution, and domain slot/shared/named refs moved to metadata-only lookup.
   The unused materializing type-ref compatibility APIs were removed.
 - `resolve_generic_type_arg(...)` is also metadata-first, so constructed builtin and generic consumer paths reuse graph facts before recursive fallback.
-- `make type-resolution-dag-test-smoke` now gates graph-backed stage skips, retired compatibility resolver calls (`retired_resolver_calls<=0`), metadata entries, metadata owned entries, metadata hits, metadata materializer fallback count, zero stage metadata materialization, and alias-stage split accounting. Current local stats for this slice are `graph-backed skips=2033 retired_resolver_calls=0 retired_resolver_unique_nodes=0 metadata_entries=3498 metadata_owned=258 metadata_hits=8380 materializer_unresolved=0 metadata_unresolved_named=0 metadata_unresolved_generic_named=0 metadata_unresolved_compound=0 metadata_unresolved_other=0 metadata_unresolved_builtin_shell=0 metadata_unresolved_generic_class=0 metadata_unresolved_alias=0 metadata_unresolved_non_class_symbol=0 metadata_unresolved_missing_symbol=0 stage_materialize_calls=0 stage_materialize_failed=0 stage_materialize_suppressed=0 stage_materialize_alias=0 stage_materialize_non_alias=0 alias_materialized=6 alias_diagnostic_unresolved=78 alias_diagnostic_resolver_calls=0 alias_diagnostic_resolved=0 alias_diagnostic_cycle_unresolved=78`.
+- `make type-resolution-dag-test-smoke` now gates graph-backed stage skips, retired compatibility resolver calls (`retired_resolver_calls<=0`), metadata entries, metadata owned entries, metadata hits, metadata materializer fallback count, zero stage metadata materialization, and alias-stage split accounting. Current local stats for this slice are `graph-backed skips=2058 generic_param_nodes=102 dag_generic_contract_evidence=165 dag_ability_consumer_evidence=72 retired_resolver_calls=0 retired_resolver_unique_nodes=0 retired_resolver_kind_sum=0 retired_resolver_kind_ast_type=0 retired_resolver_kind_compound_or_other=0 retired_resolver_body_fallbacks=0 metadata_entries=3718 metadata_owned=261 metadata_hits=8695 metadata_dead_ends=0 materializer_unresolved=0 metadata_unresolved_named=0 metadata_unresolved_generic_named=0 metadata_unresolved_compound=0 metadata_unresolved_other=0 metadata_unresolved_builtin_shell=0 metadata_unresolved_generic_class=0 metadata_unresolved_alias=0 metadata_unresolved_non_class_symbol=0 metadata_unresolved_missing_symbol=0 stage_materialize_calls=0 stage_materialize_failed=0 stage_materialize_suppressed=0 stage_materialize_alias=0 stage_materialize_non_alias=0 alias_materialized=6 alias_diagnostic_unresolved=78 alias_diagnostic_resolver_calls=0 alias_diagnostic_resolved=0 alias_diagnostic_cycle_unresolved=78`.
 - The DAG smoke now enforces beta floors for graph-backed usage and metadata materialization instead of accepting any non-zero metadata activity.
 - The central metadata materializer fallback is closed, not merely capped:
   `materializer_fallbacks==0` and every metadata unresolved audit family must stay at

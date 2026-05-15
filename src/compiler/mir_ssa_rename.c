@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "../common/arena.h"
+#include "../parser/ast_api.h"
 #include "mir_base_helpers.h"
 #include "mir_ssa_rename_internal.h"
 
@@ -81,7 +82,7 @@ mir_collect_expr_identifier_uses(ASTNode *node,
     switch (node->type) {
     case AST_IDENTIFIER:
         return append_name_unique(uses, use_count, use_capacity,
-                                  node->data.identifier.name);
+                                  ast_identifier_name(node));
     case AST_BINARY:
         return mir_collect_expr_identifier_uses(ast_binary_left(node),
                                                 uses,

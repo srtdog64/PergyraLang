@@ -1,5 +1,6 @@
 #ifdef PGY_LLVM_ENABLED
 #include "llvm_internal.h"
+#include "parser/ast_api.h"
 
 typedef enum
 {
@@ -84,9 +85,9 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
     if (node == NULL || node->type != AST_LET_DECL || ctx == NULL)
         return false;
 
-    name = node->data.let_decl.name;
-    type_ann = node->data.let_decl.type;
-    init = node->data.let_decl.initializer;
+    name = ast_let_name(node);
+    type_ann = ast_let_type(node);
+    init = ast_let_initializer(node);
 
     if (type_ann != NULL
         && type_ann->type == AST_TYPE
@@ -95,7 +96,8 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
         && init->type == AST_CALL
         && ast_call_callee(init) != NULL
         && ast_call_callee(init)->type == AST_IDENTIFIER
-        && strcmp(ast_call_callee(init)->data.identifier.name, "ToObject") == 0
+        && ast_identifier_name(ast_call_callee(init)) != NULL
+        && strcmp(ast_identifier_name(ast_call_callee(init)), "ToObject") == 0
         && ast_call_arg_count(init) >= 2
         && ast_call_argument(init, 1) != NULL
         && ast_call_argument(init, 1)->type == AST_IDENTIFIER) {
@@ -105,7 +107,7 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
             && target_cls->is_immutable
             && !target_cls->is_boundary_transfer_contract) {
             const char *source_name =
-                ast_call_argument(init, 1)->data.identifier.name;
+                ast_identifier_name(ast_call_argument(init, 1));
             llvm_register_var_class(ctx, name, type_name);
             llvm_register_projection_borrow(ctx, name, type_name, source_name);
             return true;
@@ -121,13 +123,16 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
         && ast_call_callee(init)->type == AST_IDENTIFIER) {
         const char *ann_name = ast_type_name(type_ann);
         GenericParams *generic_args = ast_type_generic_args(type_ann);
-        const char *callee = ast_call_callee(init)->data.identifier.name;
+        const char *callee = ast_identifier_name(ast_call_callee(init));
         char *inner = NULL;
 
-        if (generic_args != NULL
-            && generic_args->count > 0
-            && generic_args->params[0] != NULL) {
-            inner = llvm_stmt_render_type_arg(generic_args->params[0]);
+        GenericParam *inner_param = ast_generic_param_at(generic_args, 0);
+        if (inner_param != NULL) {
+            inner = llvm_stmt_render_type_arg(inner_param);
+        }
+        if (callee == NULL) {
+            free(inner);
+            return false;
         }
 
         if (strcmp(ann_name, "List") == 0 && strcmp(callee, "ListNew") == 0) {
@@ -240,17 +245,13 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
             LLVMValueRef alloca_val;
             LLVMFuncEntry *new_fn;
 
-            if (generic_args != NULL
-                && generic_args->count > 0
-                && generic_args->params[0] != NULL) {
+            if (ast_generic_param_at(generic_args, 0) != NULL) {
                 key_type = llvm_stmt_render_type_arg(
-                    generic_args->params[0]);
+                    ast_generic_param_at(generic_args, 0));
             }
-            if (generic_args != NULL
-                && generic_args->count > 1
-                && generic_args->params[1] != NULL) {
+            if (ast_generic_param_at(generic_args, 1) != NULL) {
                 value_type = llvm_stmt_render_type_arg(
-                    generic_args->params[1]);
+                    ast_generic_param_at(generic_args, 1));
             }
             if (key_type == NULL || key_type[0] == '\0') {
                 bool ok = llvm_stmt_diag_collection(ctx, node,
@@ -306,7 +307,8 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
     if (init != NULL && init->type == AST_CALL
         && ast_call_callee(init) != NULL
         && ast_call_callee(init)->type == AST_IDENTIFIER
-        && strcmp(ast_call_callee(init)->data.identifier.name, "Channel") == 0) {
+        && ast_identifier_name(ast_call_callee(init)) != NULL
+        && strcmp(ast_identifier_name(ast_call_callee(init)), "Channel") == 0) {
         GenericParams *generic_args = ast_type_generic_args(type_ann);
         char *channel_inner = NULL;
         char init_fn_name[128];
@@ -315,15 +317,13 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
         LLVMValueRef alloca_val = llvm_create_entry_alloca(ctx, ch_type, name);
 
         if (type_ann == NULL || type_ann->type != AST_TYPE
-            || generic_args == NULL
-            || generic_args->count == 0
-            || generic_args->params[0] == NULL) {
+            || ast_generic_param_at(generic_args, 0) == NULL) {
             return llvm_stmt_diag_collection(ctx, node,
                 LLVM_STMT_COLLECTION_DIAG_TYPE_ARG, name, "Channel", 0, NULL);
         }
 
         channel_inner = llvm_stmt_render_type_arg(
-            generic_args->params[0]);
+            ast_generic_param_at(generic_args, 0));
         if (channel_inner == NULL || channel_inner[0] == '\0') {
             free(channel_inner);
             return llvm_stmt_diag_collection(ctx, node,
@@ -367,12 +367,10 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
             && ast_type_name(type_ann) != NULL
             && (strcmp(ast_type_name(type_ann), "Array") == 0
                 || strcmp(ast_type_name(type_ann), "Slice") == 0)
-            && ast_type_generic_args(type_ann) != NULL
-            && ast_type_generic_args(type_ann)->count > 0
-            && ast_type_generic_args(type_ann)->params[0] != NULL) {
+            && ast_generic_param_at(ast_type_generic_args(type_ann), 0) != NULL) {
             GenericParams *generic_args = ast_type_generic_args(type_ann);
             owned_inner_name = llvm_stmt_render_type_arg(
-                generic_args->params[0]);
+                ast_generic_param_at(generic_args, 0));
             inner_name = owned_inner_name;
             elem_type = pergyra_type_to_llvm(ctx, inner_name);
         } else if (count > 0) {

@@ -31,15 +31,15 @@ ability_ref_type_arg_equal(ASTNode *lhs, ASTNode *rhs)
     {
         GenericParams *lhs_args = ast_type_generic_args(lhs);
         GenericParams *rhs_args = ast_type_generic_args(rhs);
-        size_t lhs_count = lhs_args != NULL ? lhs_args->count : 0;
-        size_t rhs_count = rhs_args != NULL ? rhs_args->count : 0;
+        size_t lhs_count = ast_generic_param_count(lhs_args);
+        size_t rhs_count = ast_generic_param_count(rhs_args);
         if (lhs_count != rhs_count)
             return false;
         for (size_t i = 0; i < lhs_count; i++) {
-            GenericParam *lhs_gp = lhs_args->params[i];
-            GenericParam *rhs_gp = rhs_args->params[i];
-            ASTNode *lhs_arg = lhs_gp != NULL ? lhs_gp->constraint : NULL;
-            ASTNode *rhs_arg = rhs_gp != NULL ? rhs_gp->constraint : NULL;
+            GenericParam *lhs_gp = ast_generic_param_at(lhs_args, i);
+            GenericParam *rhs_gp = ast_generic_param_at(rhs_args, i);
+            ASTNode *lhs_arg = ast_generic_param_constraint(lhs_gp);
+            ASTNode *rhs_arg = ast_generic_param_constraint(rhs_gp);
             if (!ability_ref_type_arg_equal(lhs_arg, rhs_arg))
                 return false;
         }
@@ -76,7 +76,7 @@ ability_ref_matches(ASTNode *program, ASTNode *impl_ref, ASTNode *required_ref)
         return ability_ref_type_arg_equal(impl_ref, required_ref);
 
     decl_params = ast_ability_generic_params(ability_decl);
-    if (decl_params == NULL || decl_params->count == 0)
+    if (decl_params == NULL || ast_generic_param_count(decl_params) == 0)
         return true;
     ability_name = ast_ability_name(ability_decl);
 
@@ -151,8 +151,8 @@ subject_type_has_ability(ASTNode *program, const char *type_name,
         return false;
     }
 
-    for (size_t i = 0; i < program->data.program.count; i++) {
-        ASTNode *stmt = program->data.program.statements[i];
+    for (size_t i = 0; i < ast_program_statement_count(program); i++) {
+        ASTNode *stmt = ast_program_statement(program, i);
         const char *role_type = semantic_role_for_type_name(stmt);
         if (role_type == NULL || strcmp(role_type, type_name) != 0) {
             continue;
@@ -173,8 +173,8 @@ subject_type_find_base_ability_impl(ASTNode *program, const char *type_name,
         return NULL;
     }
 
-    for (size_t i = 0; i < program->data.program.count; i++) {
-        ASTNode *stmt = program->data.program.statements[i];
+    for (size_t i = 0; i < ast_program_statement_count(program); i++) {
+        ASTNode *stmt = ast_program_statement(program, i);
         const char *role_type = semantic_role_for_type_name(stmt);
         if (role_type == NULL || strcmp(role_type, type_name) != 0) {
             continue;

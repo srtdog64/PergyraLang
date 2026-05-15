@@ -36,9 +36,9 @@ builtin_borrowed_boundary_root_name(ASTNode *value_expr,
 
     while (cursor != NULL) {
         if (cursor->type == AST_IDENTIFIER
-            && cursor->data.identifier.name != NULL
+            && ast_identifier_name(cursor) != NULL
             && identifier_is_borrowed_boundary_param(cursor, ctx)) {
-            return cursor->data.identifier.name;
+            return ast_identifier_name(cursor);
         }
         if (cursor->type == AST_MEMBER_ACCESS) {
             cursor = ast_member_object(cursor);
@@ -142,9 +142,9 @@ type_check_has_projection(ASTNode *call, SemanticContext *ctx)
     }
 
     if (arg->type == AST_IDENTIFIER) {
-        slot_name = arg->data.identifier.name;
+        slot_name = ast_identifier_name(arg);
     } else if (arg->type == AST_STRING) {
-        slot_name = arg->data.string.value;
+        slot_name = ast_string_value(arg);
     } else {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_PREDICATE_ARGS_INVALID, PGY_CAUSE_PREDICATE_ARGS, PGY_FIX_MATCH_PREDICATE_SIGNATURE_IN_HOST, arg,
             "HasProjection(...) expects an object/tobject slot identifier or string literal");
@@ -221,9 +221,9 @@ type_check_has_layer(ASTNode *call, SemanticContext *ctx)
     }
 
     if (arg->type == AST_IDENTIFIER) {
-        slot_name = arg->data.identifier.name;
+        slot_name = ast_identifier_name(arg);
     } else if (arg->type == AST_STRING) {
-        slot_name = arg->data.string.value;
+        slot_name = ast_string_value(arg);
     } else {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_PREDICATE_ARGS_INVALID, PGY_CAUSE_PREDICATE_ARGS, PGY_FIX_MATCH_PREDICATE_SIGNATURE_IN_HOST, arg,
             "HasLayer(...) expects a layer-slot identifier or string literal");
@@ -302,9 +302,9 @@ type_check_has_state(ASTNode *call, SemanticContext *ctx)
     }
 
     if (arg->type == AST_IDENTIFIER) {
-        state_name = arg->data.identifier.name;
+        state_name = ast_identifier_name(arg);
     } else if (arg->type == AST_STRING) {
-        state_name = arg->data.string.value;
+        state_name = ast_string_value(arg);
     } else {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_PREDICATE_ARGS_INVALID, PGY_CAUSE_PREDICATE_ARGS, PGY_FIX_MATCH_PREDICATE_SIGNATURE_IN_HOST, arg,
             "HasState(...) expects a state identifier or string literal");
@@ -351,23 +351,23 @@ type_check_has_state(ASTNode *call, SemanticContext *ctx)
 
     if (ast_call_argument(call, 1) == NULL
         || ast_call_argument(call, 1)->type != AST_IDENTIFIER
-        || ast_call_argument(call, 1)->data.identifier.name == NULL) {
+        || ast_identifier_name(ast_call_argument(call, 1)) == NULL) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_PREDICATE_ARGS_INVALID, PGY_CAUSE_PREDICATE_ARGS, PGY_FIX_MATCH_PREDICATE_SIGNATURE_IN_HOST, ast_call_argument(call, 1),
             "HasState(...) slot arguments must be zone slot identifiers");
         return TYPE_BOOL;
     }
     if (find_zone_domain_slot_local(zone,
-            ast_call_argument(call, 1)->data.identifier.name) == NULL) {
+            ast_identifier_name(ast_call_argument(call, 1))) == NULL) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_PREDICATE_ARGS_INVALID,
             PGY_CAUSE_PREDICATE_ARGS, PGY_FIX_MATCH_PREDICATE_SIGNATURE_IN_HOST,
             ast_call_argument(call, 1),
             "Unknown zone slot '%s' in HasState(...)",
-            ast_call_argument(call, 1)->data.identifier.name);
+            ast_identifier_name(ast_call_argument(call, 1)));
         return TYPE_BOOL;
     }
 
     if (!ast_zone_state_is_relation(state)) {
-        slot_name = ast_call_argument(call, 1)->data.identifier.name;
+        slot_name = ast_identifier_name(ast_call_argument(call, 1));
         if (ast_call_arg_count(call) != 2) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_PREDICATE_ARGS_INVALID, PGY_CAUSE_PREDICATE_ARGS, PGY_FIX_MATCH_PREDICATE_SIGNATURE_IN_HOST, call,
                 "Effect state '%s' in HasState(...) accepts at most one zone slot target.\n"
@@ -416,23 +416,23 @@ type_check_has_state(ASTNode *call, SemanticContext *ctx)
 
     if (ast_call_argument(call, 2) == NULL
         || ast_call_argument(call, 2)->type != AST_IDENTIFIER
-        || ast_call_argument(call, 2)->data.identifier.name == NULL) {
+        || ast_identifier_name(ast_call_argument(call, 2)) == NULL) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_PREDICATE_ARGS_INVALID, PGY_CAUSE_PREDICATE_ARGS, PGY_FIX_MATCH_PREDICATE_SIGNATURE_IN_HOST, ast_call_argument(call, 2),
             "HasState(...) relation endpoint arguments must be zone slot identifiers");
         return TYPE_BOOL;
     }
     if (find_zone_domain_slot_local(zone,
-            ast_call_argument(call, 2)->data.identifier.name) == NULL) {
+            ast_identifier_name(ast_call_argument(call, 2))) == NULL) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_PREDICATE_ARGS_INVALID,
             PGY_CAUSE_PREDICATE_ARGS, PGY_FIX_MATCH_PREDICATE_SIGNATURE_IN_HOST,
             ast_call_argument(call, 2),
             "Unknown zone slot '%s' in HasState(...)",
-            ast_call_argument(call, 2)->data.identifier.name);
+            ast_identifier_name(ast_call_argument(call, 2)));
         return TYPE_BOOL;
     }
 
-    left_slot_name = ast_call_argument(call, 1)->data.identifier.name;
-    right_slot_name = ast_call_argument(call, 2)->data.identifier.name;
+    left_slot_name = ast_identifier_name(ast_call_argument(call, 1));
+    right_slot_name = ast_identifier_name(ast_call_argument(call, 2));
     if (strcmp(left_slot_name, ast_zone_state_left_or_target_slot_name(state)) != 0
         || strcmp(right_slot_name, ast_zone_state_right_slot_name(state)) != 0) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_PREDICATE_ARGS_INVALID,

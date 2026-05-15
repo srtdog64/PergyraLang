@@ -62,8 +62,8 @@ llvm_find_world_state_decl(LLVMGenCtx *ctx, ASTNode *world_decl,
     for (size_t i = 0; i < state_count; i++) {
         ASTNode *state = states[i];
         if (state != NULL && state->type == AST_WORLD_STATE
-            && state->data.world_state.state_name != NULL
-            && strcmp(state->data.world_state.state_name, state_name) == 0)
+            && ast_world_state_name(state) != NULL
+            && strcmp(ast_world_state_name(state), state_name) == 0)
             return state;
     }
     return NULL;

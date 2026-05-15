@@ -210,6 +210,8 @@ semantic_stage_zone_decl(ASTNode *decl, SemanticContext *ctx)
     }
     for (size_t i = 0; i < authority_count; i++) {
         ASTNode *authority = authorities[i];
+        const char *subject_slot =
+            ast_zone_authority_subject_slot_name(authority);
         char *consumer_name;
         if (authority == NULL || authority->type != AST_ZONE_AUTHORITY)
             continue;
@@ -217,14 +219,12 @@ semantic_stage_zone_decl(ASTNode *decl, SemanticContext *ctx)
             "zone %s.%s",
             ast_zone_name(decl) != NULL
                 ? ast_zone_name(decl) : "<zone>",
-            authority->data.zone_authority.subject_slot_name != NULL
-                ? authority->data.zone_authority.subject_slot_name
-                : "<authority>");
+            subject_slot != NULL ? subject_slot : "<authority>");
         if (consumer_name == NULL)
             continue;
         semantic_stage_required_abilities(
-            authority->data.zone_authority.required_abilities,
-            authority->data.zone_authority.ability_count,
+            ast_zone_authority_required_abilities(authority, NULL),
+            ast_zone_authority_ability_count(authority),
             ctx,
             authority,
             consumer_name,

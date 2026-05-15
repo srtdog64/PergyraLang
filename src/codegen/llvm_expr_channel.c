@@ -71,12 +71,12 @@ llvm_channel_required_binding(LLVMGenCtx *ctx, ASTNode *node,
     if (suffix_out != NULL)
         *suffix_out = NULL;
     if (channel == NULL || channel->type != AST_IDENTIFIER
-        || channel->data.identifier.name == NULL) {
+        || ast_identifier_name(channel) == NULL) {
         llvm_expr_set_missing_type_error(ctx, node, operation_name);
         return NULL;
     }
 
-    const char *name = channel->data.identifier.name;
+    const char *name = ast_identifier_name(channel);
     LLVMVarEntry *ch_var = llvm_scope_lookup(ctx, name);
     const char *inner = llvm_lookup_channel_inner(ctx, name);
     if (inner == NULL || inner[0] == '\0') {

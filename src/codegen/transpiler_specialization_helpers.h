@@ -261,11 +261,10 @@ ensure_tuple_specialization_to(TranspilerCtx *ctx, CodeBuf *dst, ASTNode *tuple_
 {
     if (ctx == NULL || dst == NULL || tuple_type == NULL)
         return;
-    if (tuple_type->data.type.tuple_elements == NULL
-        || tuple_type->data.type.tuple_element_count == 0)
+    if (ast_type_tuple_element_count(tuple_type) == 0)
         return;
 
-    size_t n = tuple_type->data.type.tuple_element_count;
+    size_t n = ast_type_tuple_element_count(tuple_type);
 
     /* Build suffix and element-name list */
     char suffix[256];
@@ -273,7 +272,7 @@ ensure_tuple_specialization_to(TranspilerCtx *ctx, CodeBuf *dst, ASTNode *tuple_
     suffix[0] = '\0';
     elem_names[0] = '\0';
     for (size_t i = 0; i < n; i++) {
-        char *elem = render_type_name(tuple_type->data.type.tuple_elements[i]);
+        char *elem = render_type_name(ast_type_tuple_element(tuple_type, i));
         char sane[96];
         sanitize_c_suffix(elem, sane, sizeof(sane));
         if (i > 0) {
@@ -321,7 +320,7 @@ ensure_tuple_specialization_to(TranspilerCtx *ctx, CodeBuf *dst, ASTNode *tuple_
     codebuf_write(dst, "\n/* PGY_TUPLE_%s */\n", suffix);
     codebuf_write(dst, "typedef struct {\n");
     for (size_t i = 0; i < n; i++) {
-        char *elem = render_type_name(tuple_type->data.type.tuple_elements[i]);
+        char *elem = render_type_name(ast_type_tuple_element(tuple_type, i));
         char ctype_buf[128];
         const char *ctype = NULL;
         if (pergyra_type_to_c_copy(elem, ctype_buf, sizeof(ctype_buf)))
@@ -355,11 +354,11 @@ ensure_type_specializations_from_ast_to(TranspilerCtx *ctx, CodeBuf *dst, ASTNod
 
     /* Tuple type: recurse into each element then emit struct typedef once.
      * Use ctx->out like Result so the typedef precedes forward declarations. */
-    if (type_node->data.type.tuple_elements != NULL
-        && type_node->data.type.tuple_element_count > 0) {
-        for (size_t i = 0; i < type_node->data.type.tuple_element_count; i++)
+    if (ast_type_tuple_element_count(type_node) > 0) {
+        size_t element_count = ast_type_tuple_element_count(type_node);
+        for (size_t i = 0; i < element_count; i++)
             ensure_type_specializations_from_ast_to(ctx, dst,
-                type_node->data.type.tuple_elements[i]);
+                ast_type_tuple_element(type_node, i));
         ensure_tuple_specialization_to(ctx, ctx->out, type_node);
         (void)dst;
         return;
@@ -377,44 +376,40 @@ ensure_type_specializations_from_ast_to(TranspilerCtx *ctx, CodeBuf *dst, ASTNod
 
     if (ast_type_generic_args(type_node) != NULL) {
         GenericParams *generic_args = ast_type_generic_args(type_node);
-        for (size_t i = 0; i < generic_args->count; i++) {
-            GenericParam *arg = generic_args->params[i];
-            if (arg != NULL && arg->constraint != NULL)
-                ensure_type_specializations_from_ast_to(ctx, dst, arg->constraint);
+        size_t generic_count = ast_generic_param_count(generic_args);
+        for (size_t i = 0; i < generic_count; i++) {
+            GenericParam *arg = ast_generic_param_at(generic_args, i);
+            ASTNode *constraint = ast_generic_param_constraint(arg);
+            if (constraint != NULL)
+                ensure_type_specializations_from_ast_to(ctx, dst, constraint);
         }
     }
 
+    GenericParams *generic_args = ast_type_generic_args(type_node);
+    ASTNode *arg0_type = ast_generic_param_constraint(
+        ast_generic_param_at(generic_args, 0));
+    ASTNode *arg1_type = ast_generic_param_constraint(
+        ast_generic_param_at(generic_args, 1));
+
     if (strcmp(ast_type_name(type_node), "List") == 0
-        && ast_type_generic_args(type_node) != NULL
-        && ast_type_generic_args(type_node)->count > 0
-        && ast_type_generic_args(type_node)->params[0] != NULL
-        && ast_type_generic_args(type_node)->params[0]->constraint != NULL) {
-        GenericParams *generic_args = ast_type_generic_args(type_node);
-        char *inner = render_type_name(generic_args->params[0]->constraint);
+        && arg0_type != NULL) {
+        char *inner = render_type_name(arg0_type);
         ensure_collection_specialization_to(ctx, dst, "List", inner);
         free(inner);
         return;
     }
 
     if (strcmp(ast_type_name(type_node), "Queue") == 0
-        && ast_type_generic_args(type_node) != NULL
-        && ast_type_generic_args(type_node)->count > 0
-        && ast_type_generic_args(type_node)->params[0] != NULL
-        && ast_type_generic_args(type_node)->params[0]->constraint != NULL) {
-        GenericParams *generic_args = ast_type_generic_args(type_node);
-        char *inner = render_type_name(generic_args->params[0]->constraint);
+        && arg0_type != NULL) {
+        char *inner = render_type_name(arg0_type);
         ensure_collection_specialization_to(ctx, dst, "Queue", inner);
         free(inner);
         return;
     }
 
     if (strcmp(ast_type_name(type_node), "HashMap") == 0
-        && ast_type_generic_args(type_node) != NULL
-        && ast_type_generic_args(type_node)->count > 1
-        && ast_type_generic_args(type_node)->params[1] != NULL
-        && ast_type_generic_args(type_node)->params[1]->constraint != NULL) {
-        GenericParams *generic_args = ast_type_generic_args(type_node);
-        char *value = render_type_name(generic_args->params[1]->constraint);
+        && arg1_type != NULL) {
+        char *value = render_type_name(arg1_type);
         ensure_collection_specialization_to(ctx, dst, "Map", value);
         free(value);
         return;
@@ -424,15 +419,11 @@ ensure_type_specializations_from_ast_to(TranspilerCtx *ctx, CodeBuf *dst, ASTNod
      * Use ctx->out rather than the caller's dst so the typedef precedes any
      * forward declarations that reference PgyResult_<T>_<E>. */
     if (strcmp(ast_type_name(type_node), "Result") == 0
-        && ast_type_generic_args(type_node) != NULL
-        && ast_type_generic_args(type_node)->count == 2
-        && ast_type_generic_args(type_node)->params[0] != NULL
-        && ast_type_generic_args(type_node)->params[0]->constraint != NULL
-        && ast_type_generic_args(type_node)->params[1] != NULL
-        && ast_type_generic_args(type_node)->params[1]->constraint != NULL) {
-        GenericParams *generic_args = ast_type_generic_args(type_node);
-        char *ok_type  = render_type_name(generic_args->params[0]->constraint);
-        char *err_type = render_type_name(generic_args->params[1]->constraint);
+        && ast_generic_param_count(generic_args) == 2
+        && arg0_type != NULL
+        && arg1_type != NULL) {
+        char *ok_type  = render_type_name(arg0_type);
+        char *err_type = render_type_name(arg1_type);
         ensure_result_specialization_to(ctx, ctx->out, ok_type, err_type);
         (void)dst;
         free(ok_type);
@@ -467,18 +458,18 @@ ensure_collection_specializations_from_stmt_to(TranspilerCtx *ctx, CodeBuf *dst,
             ast_func_body(node));
         break;
     case AST_BLOCK:
-        for (size_t i = 0; i < node->data.block.count; i++)
+        for (size_t i = 0; i < ast_block_statement_count(node); i++)
             ensure_collection_specializations_from_stmt_to(ctx, dst,
-                node->data.block.statements[i]);
+                ast_block_statement(node, i));
         break;
     case AST_LET_DECL:
-        ensure_type_specializations_from_ast_to(ctx, dst, node->data.let_decl.type);
+        ensure_type_specializations_from_ast_to(ctx, dst, ast_let_type(node));
         ensure_collection_specializations_from_stmt_to(ctx, dst,
-            node->data.let_decl.initializer);
+            ast_let_initializer(node));
         break;
     case AST_LET_DESTRUCTURE:
         ensure_collection_specializations_from_stmt_to(ctx, dst,
-            node->data.let_destructure.initializer);
+            ast_let_destructure_initializer(node));
         break;
     case AST_WITH_STMT:
         ensure_type_specializations_from_ast_to(ctx, dst, ast_with_slot_type(node));
@@ -500,16 +491,16 @@ ensure_collection_specializations_from_stmt_to(TranspilerCtx *ctx, CodeBuf *dst,
         ensure_collection_specializations_from_stmt_to(ctx, dst, ast_for_body(node));
         break;
     case AST_MATCH_STMT:
-        ensure_collection_specializations_from_stmt_to(ctx, dst, node->data.match_stmt.subject);
-        for (size_t i = 0; i < node->data.match_stmt.case_count; i++)
+        ensure_collection_specializations_from_stmt_to(ctx, dst, ast_match_subject(node));
+        for (size_t i = 0; i < ast_match_case_count(node); i++)
             ensure_collection_specializations_from_stmt_to(ctx, dst,
-                node->data.match_stmt.cases[i]);
+                ast_match_case_at(node, i));
         ensure_collection_specializations_from_stmt_to(ctx, dst,
-            node->data.match_stmt.default_body);
+            ast_match_default_body(node));
         break;
     case AST_MATCH_CASE:
-        ensure_collection_specializations_from_stmt_to(ctx, dst, node->data.match_case.guard);
-        ensure_collection_specializations_from_stmt_to(ctx, dst, node->data.match_case.body);
+        ensure_collection_specializations_from_stmt_to(ctx, dst, ast_match_case_guard(node));
+        ensure_collection_specializations_from_stmt_to(ctx, dst, ast_match_case_body(node));
         break;
     case AST_ASYNC_BLOCK:
         for (size_t i = 0; i < ast_async_block_statement_count(node); i++)

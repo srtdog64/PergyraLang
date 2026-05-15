@@ -88,9 +88,9 @@ emit_call_builtin_dispatch(ASTNode *call, BuiltinKind bk, TranspilerCtx *ctx, bo
             const char *slot_name = NULL;
             ASTNode *slot_decl = NULL;
             if (arg0->type == AST_IDENTIFIER)
-                slot_name = arg0->data.identifier.name;
+                slot_name = ast_identifier_name(arg0);
             else if (arg0->type == AST_STRING)
-                slot_name = arg0->data.string.value;
+                slot_name = ast_string_value(arg0);
             slot_decl = current_overlay_domain_slot_decl(ctx, slot_name);
             if (slot_decl != NULL
                 && slot_decl->type == AST_DOMAIN_SLOT
@@ -120,9 +120,9 @@ emit_call_builtin_dispatch(ASTNode *call, BuiltinKind bk, TranspilerCtx *ctx, bo
             && arg0 != NULL) {
                 const char *layer_name = NULL;
                 if (arg0->type == AST_IDENTIFIER)
-                    layer_name = arg0->data.identifier.name;
+                    layer_name = ast_identifier_name(arg0);
                 else if (arg0->type == AST_STRING)
-                    layer_name = arg0->data.string.value;
+                    layer_name = ast_string_value(arg0);
                 if (layer_name != NULL)
                     return strdup_fmt("%s_has_layer_%s(self, __pgy_zone_gen)",
                         ast_zone_name(zone_decl), layer_name);
@@ -142,9 +142,9 @@ emit_call_builtin_dispatch(ASTNode *call, BuiltinKind bk, TranspilerCtx *ctx, bo
                 const char *state_name = NULL;
                 ASTNode *state_decl;
                 if (arg0->type == AST_IDENTIFIER)
-                    state_name = arg0->data.identifier.name;
+                    state_name = ast_identifier_name(arg0);
                 else if (arg0->type == AST_STRING)
-                    state_name = arg0->data.string.value;
+                    state_name = ast_string_value(arg0);
                 state_decl = transpiler_find_zone_state_decl(zone_decl, state_name);
                 if (state_decl != NULL && state_name != NULL)
                     return strdup_fmt("self->__state_%s", state_name);
@@ -164,9 +164,9 @@ emit_call_builtin_dispatch(ASTNode *call, BuiltinKind bk, TranspilerCtx *ctx, bo
                 const char *name = NULL;
                 ASTNode *state_decl;
                 if (arg0->type == AST_IDENTIFIER)
-                    name = arg0->data.identifier.name;
+                    name = ast_identifier_name(arg0);
                 else if (arg0->type == AST_STRING)
-                    name = arg0->data.string.value;
+                    name = ast_string_value(arg0);
                 state_decl = find_world_state_decl(world_decl, name);
                 if (state_decl != NULL && name != NULL)
                     return strdup_fmt("self->__zone_state_%s", name);
@@ -191,13 +191,13 @@ emit_call_builtin_dispatch(ASTNode *call, BuiltinKind bk, TranspilerCtx *ctx, bo
                 ASTNode *zone_decl;
                 ASTNode *slot_decl;
                 if (arg0->type == AST_IDENTIFIER)
-                    zone_name = arg0->data.identifier.name;
+                    zone_name = ast_identifier_name(arg0);
                 else if (arg0->type == AST_STRING)
-                    zone_name = arg0->data.string.value;
+                    zone_name = ast_string_value(arg0);
                 if (arg1->type == AST_IDENTIFIER)
-                    slot_name = arg1->data.identifier.name;
+                    slot_name = ast_identifier_name(arg1);
                 else if (arg1->type == AST_STRING)
-                    slot_name = arg1->data.string.value;
+                    slot_name = ast_string_value(arg1);
                 zone_decl = transpiler_resolve_world_zone_decl(ctx, world_decl, zone_name);
                 slot_decl = zone_decl != NULL && slot_name != NULL
                     ? transpiler_find_zone_domain_slot(zone_decl, slot_name)
@@ -224,13 +224,13 @@ emit_call_builtin_dispatch(ASTNode *call, BuiltinKind bk, TranspilerCtx *ctx, bo
                 const char *layer_name = NULL;
                 ASTNode *zone_decl;
                 if (arg0->type == AST_IDENTIFIER)
-                    zone_name = arg0->data.identifier.name;
+                    zone_name = ast_identifier_name(arg0);
                 else if (arg0->type == AST_STRING)
-                    zone_name = arg0->data.string.value;
+                    zone_name = ast_string_value(arg0);
                 if (arg1->type == AST_IDENTIFIER)
-                    layer_name = arg1->data.identifier.name;
+                    layer_name = ast_identifier_name(arg1);
                 else if (arg1->type == AST_STRING)
-                    layer_name = arg1->data.string.value;
+                    layer_name = ast_string_value(arg1);
                 zone_decl = transpiler_resolve_world_zone_decl(ctx, world_decl, zone_name);
                 if (zone_decl != NULL && layer_name != NULL
                     && transpiler_find_zone_layer_slot(zone_decl, layer_name) != NULL) {
@@ -254,13 +254,13 @@ emit_call_builtin_dispatch(ASTNode *call, BuiltinKind bk, TranspilerCtx *ctx, bo
                 const char *state_name = NULL;
                 ASTNode *zone_decl;
                 if (arg0->type == AST_IDENTIFIER)
-                    zone_name = arg0->data.identifier.name;
+                    zone_name = ast_identifier_name(arg0);
                 else if (arg0->type == AST_STRING)
-                    zone_name = arg0->data.string.value;
+                    zone_name = ast_string_value(arg0);
                 if (arg1->type == AST_IDENTIFIER)
-                    state_name = arg1->data.identifier.name;
+                    state_name = ast_identifier_name(arg1);
                 else if (arg1->type == AST_STRING)
-                    state_name = arg1->data.string.value;
+                    state_name = ast_string_value(arg1);
                 zone_decl = transpiler_resolve_world_zone_decl(ctx, world_decl, zone_name);
                 if (zone_decl != NULL && state_name != NULL
                     && transpiler_find_zone_state_decl(zone_decl, state_name) != NULL) {

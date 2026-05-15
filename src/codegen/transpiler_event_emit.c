@@ -4,6 +4,7 @@
 
 #include "transpiler_context.h"
 #include "transpiler_type_render.h"
+#include "../parser/ast_api.h"
 
 void
 emit_event_decl(ASTNode *node, TranspilerCtx *ctx)
@@ -16,17 +17,18 @@ emit_event_decl(ASTNode *node, TranspilerCtx *ctx)
 
     for (size_t i = 0; i < ast_event_param_count(node); i++) {
         ASTNode *param = ast_event_param(node, i);
+        ASTNode *param_type = ast_let_type(param);
         char pt_buf[256];
         const char *pt = "void*";
-        if (param->data.let_decl.type != NULL
-            && pergyra_ast_type_to_c_copy(param->data.let_decl.type,
+        if (param_type != NULL
+            && pergyra_ast_type_to_c_copy(param_type,
                 pt_buf,
                 sizeof(pt_buf))) {
             pt = pt_buf;
         }
         if (i > 0)
             codebuf_write(ctx->out, ", ");
-        codebuf_write(ctx->out, "%s %s", pt, param->data.let_decl.name);
+        codebuf_write(ctx->out, "%s %s", pt, ast_let_name(param));
     }
 
     codebuf_write(ctx->out, ");\n");
@@ -64,15 +66,16 @@ emit_event_decl(ASTNode *node, TranspilerCtx *ctx)
     codebuf_write(ctx->out, "static inline void %s_INVOKE(%s* e", name, event_type);
     for (size_t i = 0; i < ast_event_param_count(node); i++) {
         ASTNode *param = ast_event_param(node, i);
+        ASTNode *param_type = ast_let_type(param);
         char pt_buf[256];
         const char *pt = "void*";
-        if (param->data.let_decl.type != NULL
-            && pergyra_ast_type_to_c_copy(param->data.let_decl.type,
+        if (param_type != NULL
+            && pergyra_ast_type_to_c_copy(param_type,
                 pt_buf,
                 sizeof(pt_buf))) {
             pt = pt_buf;
         }
-        codebuf_write(ctx->out, ", %s %s", pt, param->data.let_decl.name);
+        codebuf_write(ctx->out, ", %s %s", pt, ast_let_name(param));
     }
     codebuf_write(ctx->out, ") {\n");
     codebuf_write(ctx->out, "    e->is_invoking = true;\n");
@@ -82,7 +85,7 @@ emit_event_decl(ASTNode *node, TranspilerCtx *ctx)
         ASTNode *param = ast_event_param(node, i);
         if (i > 0)
             codebuf_write(ctx->out, ", ");
-        codebuf_write(ctx->out, "%s", param->data.let_decl.name);
+        codebuf_write(ctx->out, "%s", ast_let_name(param));
     }
     codebuf_write(ctx->out, ");\n");
     codebuf_write(ctx->out, "    }\n");
@@ -93,8 +96,8 @@ emit_event_decl(ASTNode *node, TranspilerCtx *ctx)
 void
 emit_event_subscribe(ASTNode *node, TranspilerCtx *ctx)
 {
-    char *event_expr = emit_expression(node->data.event_op.event, ctx);
-    char *handler_expr = emit_expression(node->data.event_op.handler, ctx);
+    char *event_expr = emit_expression(ast_event_op_event(node), ctx);
+    char *handler_expr = emit_expression(ast_event_op_handler(node), ctx);
 
     write_indent(ctx);
     codebuf_write(ctx->out, "%s_SUBSCRIBE(&%s, %s);\n",
@@ -107,8 +110,8 @@ emit_event_subscribe(ASTNode *node, TranspilerCtx *ctx)
 void
 emit_event_unsubscribe(ASTNode *node, TranspilerCtx *ctx)
 {
-    char *event_expr = emit_expression(node->data.event_op.event, ctx);
-    char *handler_expr = emit_expression(node->data.event_op.handler, ctx);
+    char *event_expr = emit_expression(ast_event_op_event(node), ctx);
+    char *handler_expr = emit_expression(ast_event_op_handler(node), ctx);
 
     write_indent(ctx);
     codebuf_write(ctx->out, "%s_UNSUBSCRIBE(&%s, %s);\n",

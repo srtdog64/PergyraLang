@@ -1,7 +1,8 @@
 // zone_context_minimal.pgy
 //
-// 현재 구현된 lexical zone context 예제:
-// - within Zone { ... } block이 내부 subject action에 기본 within을 주입
+// Stable zone-first entry example:
+// - a lexical `within Zone { ... }` block injects the default action zone
+// - authority is introduced only where the zone needs an audited boundary
 
 within BattleZone {
     subject Hero {

@@ -60,10 +60,11 @@ llvm_mir_local_type_from_value_fact(const MIRInstruction *inst,
 
     value_expr = inst->expr0;
     if (value_expr != NULL
-        && value_expr->type == AST_IDENTIFIER
-        && value_expr->data.identifier.name != NULL) {
-        return llvm_mir_local_type_from_vars(
-            vars, var_count, value_expr->data.identifier.name);
+        && value_expr->type == AST_IDENTIFIER) {
+        const char *value_name = ast_identifier_name(value_expr);
+        if (value_name != NULL) {
+            return llvm_mir_local_type_from_vars(vars, var_count, value_name);
+        }
     }
 
     return NULL;
@@ -150,42 +151,45 @@ llvm_emit_mir_local_allocas(const MIRRoutine *routine, LLVMGenCtx *ctx,
                     ASTNode *receiver =
                         ast_member_object(ast_call_callee(value_expr));
                     LLVMTypeRef elem_type = ctx->type_i32;
-                    if (receiver != NULL
-                        && receiver->type == AST_IDENTIFIER
-                        && receiver->data.identifier.name != NULL) {
+                    const char *receiver_name = ast_identifier_name(receiver);
+                    if (receiver_name != NULL) {
                         LLVMArrayVarEntry *entry = llvm_lookup_array_var(
-                            ctx, receiver->data.identifier.name);
+                            ctx, receiver_name);
                         if (entry != NULL && entry->elem_type != NULL)
                             elem_type = entry->elem_type;
                     } else if (receiver != NULL
                         && receiver->type == AST_CALL
                         && ast_call_callee(receiver) != NULL
-                        && ast_call_callee(receiver)->type == AST_IDENTIFIER
-                        && ast_call_callee(receiver)->data.identifier.name != NULL) {
-                        ASTNode *decl = llvm_stmt_find_function_decl_by_name(
-                            ctx, ast_call_callee(receiver)->data.identifier.name);
-                        ASTNode *return_type = ast_func_return_type(decl);
-                        GenericParams *return_generic_args =
-                            ast_type_generic_args(return_type);
-                        if (return_type != NULL
-                            && return_type->type == AST_TYPE
-                            && return_generic_args != NULL
-                            && return_generic_args->count >= 1
-                            && return_generic_args->params[0] != NULL) {
-                            char *elem_name = llvm_stmt_render_type_arg_scratch(
-                                return_generic_args->params[0],
-                                &ctx->scratch);
-                            if (elem_name == NULL || elem_name[0] == '\0') {
-                                if (!ctx->has_error) {
-                                    llvm_set_error_at_with_hints(ctx, value_expr,
-                                        PGY_CODE_LLVM_TYPE_UNSUPPORTED,
-                                        PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
-                                        PGY_FIX_ANNOTATE_CONCRETE_TYPE,
-                                        "LLVM MIR Slice receiver '%s' requires concrete element type metadata",
-                                        ast_call_callee(receiver)->data.identifier.name);
+                        && ast_call_callee(receiver)->type == AST_IDENTIFIER) {
+                        const char *callee_name =
+                            ast_identifier_name(ast_call_callee(receiver));
+                        if (callee_name != NULL) {
+                            ASTNode *decl = llvm_stmt_find_function_decl_by_name(
+                                ctx, callee_name);
+                            ASTNode *return_type = ast_func_return_type(decl);
+                            GenericParams *return_generic_args =
+                                ast_type_generic_args(return_type);
+                            if (return_type != NULL
+                                && return_type->type == AST_TYPE
+                                && ast_generic_param_at(return_generic_args, 0) != NULL) {
+                                char *elem_name =
+                                    llvm_stmt_render_type_arg_scratch(
+                                        ast_generic_param_at(return_generic_args, 0),
+                                        &ctx->scratch);
+                                if (elem_name == NULL || elem_name[0] == '\0') {
+                                    if (!ctx->has_error) {
+                                        llvm_set_error_at_with_hints(ctx,
+                                            value_expr,
+                                            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                                            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                                            PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                                            "LLVM MIR Slice receiver '%s' requires concrete element type metadata",
+                                            callee_name);
+                                    }
+                                } else {
+                                    elem_type = pergyra_type_to_llvm(
+                                        ctx, elem_name);
                                 }
-                            } else {
-                                elem_type = pergyra_type_to_llvm(ctx, elem_name);
                             }
                         }
                     }

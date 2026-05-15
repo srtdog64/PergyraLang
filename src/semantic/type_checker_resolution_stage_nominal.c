@@ -33,21 +33,23 @@ stage_nominal_enter_generic_scope(GenericParams *gp, SemanticContext *ctx)
 {
     bool entered = false;
 
-    if (gp == NULL || gp->count == 0 || ctx == NULL)
+    size_t generic_count = ast_generic_param_count(gp);
+    if (generic_count == 0 || ctx == NULL)
         return false;
 
     scope_enter(&ctx->scope, SCOPE_BLOCK);
     entered = true;
-    for (size_t i = 0; i < gp->count; i++) {
-        GenericParam *param = gp->params[i];
+    for (size_t i = 0; i < generic_count; i++) {
+        GenericParam *param = ast_generic_param_at(gp, i);
+        const char *param_name = ast_generic_param_name(param);
         Type *type;
         Symbol *sym;
 
-        if (param == NULL || param->name == NULL)
+        if (param_name == NULL)
             continue;
 
-        type = type_create_generic(param->name);
-        sym = symbol_create_variable(param->name,
+        type = type_create_generic(param_name);
+        sym = symbol_create_variable(param_name,
                                      type != NULL ? type : TYPE_UNKNOWN,
                                      0,
                                      0);

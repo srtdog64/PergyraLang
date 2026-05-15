@@ -108,7 +108,7 @@ hir_node_name(ASTNode *node)
         case AST_EVENT_DECL:
             return ast_event_name(node);
         case AST_LET_DECL:
-            return node->data.let_decl.name;
+            return ast_let_name(node);
         default:
             return NULL;
     }
@@ -332,7 +332,13 @@ hir_append_synthetic_executable_routine(HIRProgram *hir, char **error_message)
 
     for (size_t i = 0; i < hir->executable_count; i++)
         ast_add_statement(body, hir->executables[i]);
-    func->data.func_decl.body = body;
+    if (!ast_func_attach_body(func, body)) {
+        ast_destroy(func);
+        ast_destroy(body);
+        if (error_message != NULL)
+            *error_message = pergyra_strdup("Internal HIR synthetic body error");
+        return false;
+    }
     hir->synthetic_executable_func = func;
 
     memset(&item, 0, sizeof(item));
@@ -375,9 +381,9 @@ hir_lower(ASTNode *annotated_ast, char **error_message)
         return NULL;
     }
 
-    for (size_t i = 0; i < annotated_ast->data.program.count; i++) {
+    for (size_t i = 0; i < ast_program_statement_count(annotated_ast); i++) {
         if (!hir_classify_top_level(hir,
-                                    annotated_ast->data.program.statements[i],
+                                    ast_program_statement(annotated_ast, i),
                                     error_message)) {
             hir_destroy(hir);
             return NULL;

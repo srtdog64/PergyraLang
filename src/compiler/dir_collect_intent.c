@@ -206,7 +206,7 @@ dir_collect_intent_info(DIRProgram *dir, size_t from_id, ASTNode *node)
         }
         step.using_alias = ast_intent_step_using_expr(step_node) != NULL
             && ast_intent_step_using_expr(step_node)->type == AST_IDENTIFIER
-            ? ast_intent_step_using_expr(step_node)->data.identifier.name
+            ? ast_identifier_name(ast_intent_step_using_expr(step_node))
             : NULL;
         step.predecessor_step_name = (i > 0 && steps[i - 1] != NULL)
             ? ast_intent_step_name(steps[i - 1])

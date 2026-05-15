@@ -70,15 +70,15 @@ air_append_current_boundary(AIRBoundaryWalkCtx *ctx,
 static bool
 air_walk_match_case_boundaries(AIRBoundaryWalkCtx *ctx, ASTNode *node)
 {
-    if (!air_walk_child(ctx, node->data.match_case.pattern))
+    size_t pattern_count = 0;
+    ASTNode **patterns = ast_match_case_patterns(node, &pattern_count);
+    if (!air_walk_child(ctx, ast_match_case_pattern(node)))
         return false;
-    if (!air_walk_child_array(ctx,
-                              node->data.match_case.patterns,
-                              node->data.match_case.pattern_count)) {
+    if (!air_walk_child_array(ctx, patterns, pattern_count)) {
         return false;
     }
-    return air_walk_child(ctx, node->data.match_case.guard)
-        && air_walk_child(ctx, node->data.match_case.body);
+    return air_walk_child(ctx, ast_match_case_guard(node))
+        && air_walk_child(ctx, ast_match_case_body(node));
 }
 
 static bool
@@ -96,22 +96,22 @@ air_walk_select_boundaries(AIRBoundaryWalkCtx *ctx, ASTNode *node)
 static bool
 air_walk_match_boundaries(AIRBoundaryWalkCtx *ctx, ASTNode *node)
 {
-    if (!air_walk_child(ctx, node->data.match_stmt.subject))
+    size_t case_count = 0;
+    ASTNode **cases = ast_match_cases(node, &case_count);
+    if (!air_walk_child(ctx, ast_match_subject(node)))
         return false;
-    if (!air_walk_child_array(ctx,
-                              node->data.match_stmt.cases,
-                              node->data.match_stmt.case_count)) {
+    if (!air_walk_child_array(ctx, cases, case_count)) {
         return false;
     }
-    return air_walk_child(ctx, node->data.match_stmt.default_body);
+    return air_walk_child(ctx, ast_match_default_body(node));
 }
 
 static bool
 air_walk_party_instance_boundaries(AIRBoundaryWalkCtx *ctx, ASTNode *node)
 {
-    for (size_t i = 0; i < node->data.party_instance.assignment_count; i++) {
+    for (size_t i = 0; i < ast_party_instance_assignment_count(node); i++) {
         if (!air_walk_child(ctx,
-                            node->data.party_instance.assignments[i].value)) {
+                            ast_party_instance_assignment_value(node, i))) {
             return false;
         }
     }
@@ -134,13 +134,15 @@ air_walk_expr_boundaries(AIRBoundaryWalkCtx *ctx, ASTNode *node)
 
     switch (node->type) {
     case AST_BLOCK:
-        return air_walk_child_array(ctx,
-                                    node->data.block.statements,
-                                    node->data.block.count);
+        {
+            size_t statement_count = 0;
+            ASTNode **statements = ast_block_statements(node, &statement_count);
+            return air_walk_child_array(ctx, statements, statement_count);
+        }
     case AST_LET_DECL:
-        return air_walk_child(ctx, node->data.let_decl.initializer);
+        return air_walk_child(ctx, ast_let_initializer(node));
     case AST_LET_DESTRUCTURE:
-        return air_walk_child(ctx, node->data.let_destructure.initializer);
+        return air_walk_child(ctx, ast_let_destructure_initializer(node));
     case AST_WITH_STMT:
         return air_walk_child(ctx, ast_with_body(node));
     case AST_FOR_LOOP:
@@ -229,15 +231,15 @@ air_walk_expr_boundaries(AIRBoundaryWalkCtx *ctx, ASTNode *node)
             return air_walk_child_array(ctx, tasks, task_count);
         }
     case AST_EVENT_INVOKE:
-        if (!air_walk_child(ctx, node->data.event_invoke.event))
+        if (!air_walk_child(ctx, ast_event_invoke_event(node)))
             return false;
         return air_walk_child_array(ctx,
-                                    node->data.event_invoke.arguments,
-                                    node->data.event_invoke.arg_count);
+                                    ast_event_invoke_arguments(node, NULL),
+                                    ast_event_invoke_arg_count(node));
     case AST_EVENT_SUBSCRIBE:
     case AST_EVENT_UNSUBSCRIBE:
-        return air_walk_child(ctx, node->data.event_op.event)
-            && air_walk_child(ctx, node->data.event_op.handler);
+        return air_walk_child(ctx, ast_event_op_event(node))
+            && air_walk_child(ctx, ast_event_op_handler(node));
     case AST_PARTY_SHARED:
         return air_walk_child(ctx, ast_party_shared_initializer(node));
     case AST_PARTY_INSTANCE:
@@ -249,7 +251,7 @@ air_walk_expr_boundaries(AIRBoundaryWalkCtx *ctx, ASTNode *node)
     case AST_DOMAIN_SLOT:
         return air_walk_child(ctx, ast_domain_slot_initializer(node));
     case AST_LAMBDA_EXPR:
-        return air_walk_child(ctx, node->data.lambda_expr.body);
+        return air_walk_child(ctx, ast_lambda_body(node));
     case AST_UNSAFE_BLOCK:
         return air_walk_child(ctx, ast_unsafe_block_body(node));
     case AST_DEFER_STMT:

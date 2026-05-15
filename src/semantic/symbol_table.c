@@ -25,10 +25,9 @@ symbol_tracks_slot_state(const Symbol *sym)
     if (sym->kind == SYMBOL_SLOT)
         return true;
 
-    if (sym->type->kind == TYPE_KIND_CONSTRUCTED
-        && sym->type->data.constructed.constructor != NULL
-        && sym->type->data.constructed.constructor->name != NULL
-        && strcmp(sym->type->data.constructed.constructor->name, "DeviceSlot") == 0)
+    Type *constructor = type_constructed_constructor(sym->type);
+    if (constructor != NULL && constructor->name != NULL
+        && strcmp(constructor->name, "DeviceSlot") == 0)
         return true;
 
     return false;

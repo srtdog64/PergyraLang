@@ -171,17 +171,17 @@ llvm_emit_has_zone_query(ASTNode *node, LLVMGenCtx *ctx, LLVMValueRef *out)
 
     state_decl = llvm_find_world_state_decl(ctx, world_decl, name);
     if (state_decl != NULL) {
-        if (state_decl->data.world_state.source_kind == WORLD_STATE_SOURCE_ALL
-            || state_decl->data.world_state.source_kind == WORLD_STATE_SOURCE_ANY) {
+        if (ast_world_state_source_kind(state_decl) == WORLD_STATE_SOURCE_ALL
+            || ast_world_state_source_kind(state_decl) == WORLD_STATE_SOURCE_ANY) {
             LLVMValueRef result = LLVMConstInt(ctx->type_i1,
-                state_decl->data.world_state.source_kind == WORLD_STATE_SOURCE_ALL ? 1 : 0, 0);
+                ast_world_state_source_kind(state_decl) == WORLD_STATE_SOURCE_ALL ? 1 : 0, 0);
             base_ptr = llvm_current_self_base_ptr(ctx, cls);
             if (base_ptr == NULL) {
                 *out = llvm_domain_query_false(ctx);
                 return true;
             }
-            for (size_t i = 0; i < state_decl->data.world_state.input_count; i++) {
-                const char *input_name = state_decl->data.world_state.input_names[i];
+            for (size_t i = 0; i < ast_world_state_input_count(state_decl); i++) {
+                const char *input_name = ast_world_state_input_name(state_decl, i);
                 int input_idx = -1;
                 char field_name[256];
                 LLVMValueRef input_ptr;
@@ -202,7 +202,7 @@ llvm_emit_has_zone_query(ASTNode *node, LLVMGenCtx *ctx, LLVMValueRef *out)
                     (unsigned)input_idx, llvm_tmp_name(ctx));
                 input_val = LLVMBuildLoad2(ctx->builder, ctx->type_i1,
                     input_ptr, llvm_tmp_name(ctx));
-                if (state_decl->data.world_state.source_kind == WORLD_STATE_SOURCE_ALL)
+                if (ast_world_state_source_kind(state_decl) == WORLD_STATE_SOURCE_ALL)
                     result = LLVMBuildAnd(ctx->builder, result, input_val, llvm_tmp_name(ctx));
                 else
                     result = LLVMBuildOr(ctx->builder, result, input_val, llvm_tmp_name(ctx));

@@ -18,7 +18,7 @@
 LLVMValueRef
 llvm_emit_boolean(ASTNode *node, LLVMGenCtx *ctx)
 {
-    return LLVMConstInt(ctx->type_i1, node->data.boolean.value ? 1 : 0, 0);
+    return LLVMConstInt(ctx->type_i1, ast_boolean_value(node) ? 1 : 0, 0);
 }
 
 static LLVMValueRef
@@ -73,14 +73,13 @@ llvm_derive_slot_inner_from_current_decl(LLVMGenCtx *ctx,
         }
 
         generic_args = ast_type_generic_args(p->type);
-        if (generic_args == NULL || generic_args->count == 0
-            || generic_args->params == NULL
-            || generic_args->params[0] == NULL) {
+        GenericParam *inner_param = ast_generic_param_at(generic_args, 0);
+        if (inner_param == NULL) {
             continue;
         }
 
         inner_name = llvm_keep_rendered_persistent(ctx,
-            llvm_stmt_render_type_arg(generic_args->params[0]),
+            llvm_stmt_render_type_arg(inner_param),
             "out of memory copying LLVM slot source type");
         if (inner_name == NULL)
             continue;
@@ -108,13 +107,13 @@ llvm_resolve_slot_target(LLVMGenCtx *ctx, ASTNode *slot_arg,
 
     if (slot_arg->type == AST_IDENTIFIER) {
         LLVMViewVarEntry *view = llvm_lookup_view_var(ctx,
-            slot_arg->data.identifier.name);
+            ast_identifier_name(slot_arg));
         if (view != NULL) {
             source_name = view->source_slot;
             inner = view->inner_type;
             is_secure = llvm_lookup_slot_is_secure(ctx, source_name);
         } else {
-            source_name = slot_arg->data.identifier.name;
+            source_name = ast_identifier_name(slot_arg);
             inner = llvm_lookup_slot_inner(ctx, source_name);
             is_secure = llvm_lookup_slot_is_secure(ctx, source_name);
         }
@@ -124,10 +123,10 @@ llvm_resolve_slot_target(LLVMGenCtx *ctx, ASTNode *slot_arg,
                && ast_call_arg_count(slot_arg) >= 1
                && ast_call_argument(slot_arg, 0) != NULL
                && ast_call_argument(slot_arg, 0)->type == AST_IDENTIFIER) {
-        const char *callee = ast_call_callee(slot_arg)->data.identifier.name;
+        const char *callee = ast_identifier_name(ast_call_callee(slot_arg));
         if (pgy_codegen_call_name_is_slot_source(callee)) {
             source_name =
-                ast_call_argument(slot_arg, 0)->data.identifier.name;
+                ast_identifier_name(ast_call_argument(slot_arg, 0));
             inner = llvm_lookup_slot_inner(ctx, source_name);
             is_secure = llvm_lookup_slot_is_secure(ctx, source_name);
         }
@@ -182,7 +181,7 @@ llvm_resolve_slot_target(LLVMGenCtx *ctx, ASTNode *slot_arg,
 LLVMValueRef
 llvm_emit_identifier(ASTNode *node, LLVMGenCtx *ctx)
 {
-    const char *name = node->data.identifier.name;
+    const char *name = ast_identifier_name(node);
     LLVMProjectionBorrowEntry *projection_borrow;
     LLVMVarEntry *entry;
     LLVMFuncEntry *fn;

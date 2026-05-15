@@ -214,9 +214,9 @@ llvm_current_host_decl(const LLVMGenCtx *ctx)
 
     if (ctx->current_func_decl != NULL
         && ctx->current_func_decl->type == AST_FUNC_DECL
-        && ctx->current_func_decl->data.func_decl.within_zone != NULL) {
+        && ast_func_within_zone(ctx->current_func_decl) != NULL) {
         decl = llvm_find_decl_in_active_inventory(
-            ctx, AST_ZONE_DECL, ctx->current_func_decl->data.func_decl.within_zone);
+            ctx, AST_ZONE_DECL, ast_func_within_zone(ctx->current_func_decl));
         if (decl != NULL)
             return decl;
     }
@@ -236,8 +236,8 @@ llvm_current_host_decl_name(const LLVMGenCtx *ctx)
     if (decl == NULL) {
         if (ctx->current_func_decl != NULL
             && ctx->current_func_decl->type == AST_FUNC_DECL
-            && ctx->current_func_decl->data.func_decl.within_zone != NULL) {
-            return ctx->current_func_decl->data.func_decl.within_zone;
+            && ast_func_within_zone(ctx->current_func_decl) != NULL) {
+            return ast_func_within_zone(ctx->current_func_decl);
         }
         return NULL;
     }

@@ -32,7 +32,7 @@ intent_on_call_receiver_alias(ASTNode *expr, const char **method_name_out)
         return NULL;
     if (method_name_out != NULL)
         *method_name_out = ast_member_name(callee);
-    return receiver->data.identifier.name;
+    return ast_identifier_name(receiver);
 }
 
 static ASTNode *
@@ -176,13 +176,12 @@ intent_step_authorized_by_alias_from_action(ASTNode *intent_decl,
 
     if (intent_decl == NULL || step == NULL || action_decl == NULL
         || action_decl->type != AST_FUNC_DECL
-        || action_decl->data.func_decl.authorized_by_count != 1
-        || action_decl->data.func_decl.authorized_by == NULL
-        || action_decl->data.func_decl.authorized_by[0] == NULL) {
+        || ast_func_authorized_by_count(action_decl) != 1
+        || ast_func_authorized_by(action_decl, 0) == NULL) {
         return NULL;
     }
 
-    auth_name = action_decl->data.func_decl.authorized_by[0];
+    auth_name = ast_func_authorized_by(action_decl, 0);
     if (strcmp(auth_name, "self") == 0)
         return receiver_alias;
 
@@ -190,10 +189,10 @@ intent_step_authorized_by_alias_from_action(ASTNode *intent_decl,
     arg = intent_on_call_arg_for_action_param(on_expr, action_decl, auth_name);
     if (arg == NULL || arg->type != AST_IDENTIFIER
         || find_intent_involves_local(intent_decl,
-               arg->data.identifier.name) == NULL) {
+               ast_identifier_name(arg)) == NULL) {
         return NULL;
     }
-    return arg->data.identifier.name;
+    return ast_identifier_name(arg);
 }
 
 void
@@ -243,11 +242,11 @@ intent_step_inherit_contract_from_on_receiver(ASTNode *intent_decl,
         return;
 
     if (ast_intent_step_required_ability_count(step) == 0
-        && action_decl->data.func_decl.required_ability_count > 0) {
+        && ast_func_required_ability_count(action_decl) > 0) {
         bool copied_all = true;
-        for (size_t i = 0; i < action_decl->data.func_decl.required_ability_count; i++) {
+        for (size_t i = 0; i < ast_func_required_ability_count(action_decl); i++) {
             if (!ast_intent_step_append_required_ability_clone(
-                    step, action_decl->data.func_decl.required_abilities[i])) {
+                    step, ast_func_required_ability(action_decl, i))) {
                 copied_all = false;
                 break;
             }
@@ -257,9 +256,9 @@ intent_step_inherit_contract_from_on_receiver(ASTNode *intent_decl,
     }
 
     if (ast_intent_step_causes_effect(step) == NULL
-        && action_decl->data.func_decl.causes_effect != NULL) {
+        && ast_func_causes_effect(action_decl) != NULL) {
         if (ast_intent_step_set_causes_effect_copy(step,
-                action_decl->data.func_decl.causes_effect)) {
+                ast_func_causes_effect(action_decl))) {
             ast_intent_step_mark_inherited_causes_from_action(step);
         }
     }
@@ -300,7 +299,7 @@ intent_step_derive_where_from_on_receiver(ASTNode *intent_decl,
 
         if (action_decl == NULL || action_decl->type != AST_FUNC_DECL)
             continue;
-        zone_name = action_decl->data.func_decl.within_zone;
+        zone_name = ast_func_within_zone(action_decl);
         if (zone_name == NULL)
             continue;
         if (matched_zone != NULL && strcmp(matched_zone, zone_name) != 0)
@@ -338,7 +337,7 @@ intent_step_report_on_action_zone_conflict(ASTNode *intent_decl,
 
         if (action_decl == NULL || action_decl->type != AST_FUNC_DECL)
             continue;
-        zone_name = action_decl->data.func_decl.within_zone;
+        zone_name = ast_func_within_zone(action_decl);
         if (zone_name == NULL)
             continue;
         if (first_zone == NULL) {

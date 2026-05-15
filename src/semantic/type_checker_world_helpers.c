@@ -59,8 +59,8 @@ find_world_state_local(ASTNode *world, const char *state_name)
     for (size_t i = 0; i < state_count; i++) {
         ASTNode *state = states[i];
         if (state != NULL && state->type == AST_WORLD_STATE
-            && state->data.world_state.state_name != NULL
-            && strcmp(state->data.world_state.state_name, state_name) == 0) {
+            && ast_world_state_name(state) != NULL
+            && strcmp(ast_world_state_name(state), state_name) == 0) {
             return state;
         }
     }
@@ -84,8 +84,8 @@ find_world_state_before_local(ASTNode *world, const char *state_name, size_t lim
     for (size_t i = 0; i < limit; i++) {
         ASTNode *state = states[i];
         if (state != NULL && state->type == AST_WORLD_STATE
-            && state->data.world_state.state_name != NULL
-            && strcmp(state->data.world_state.state_name, state_name) == 0) {
+            && ast_world_state_name(state) != NULL
+            && strcmp(ast_world_state_name(state), state_name) == 0) {
             return state;
         }
     }
@@ -123,8 +123,8 @@ resolve_world_plain_zone_input_name(ASTNode *world, const char *input_name)
 
     state = find_world_state_local(world, input_name);
     if (state != NULL && state->type == AST_WORLD_STATE
-        && state->data.world_state.source_kind == WORLD_STATE_SOURCE_ZONE) {
-        return state->data.world_state.zone_slot_name;
+        && ast_world_state_source_kind(state) == WORLD_STATE_SOURCE_ZONE) {
+        return ast_world_state_zone_slot_name(state);
     }
 
     return NULL;
@@ -195,7 +195,7 @@ resolve_world_zone_state(ASTNode *world, ASTNode *site, const char *state_name,
         return false;
     }
 
-    if (state->data.world_state.source_kind != WORLD_STATE_SOURCE_ZONE) {
+    if (ast_world_state_source_kind(state) != WORLD_STATE_SOURCE_ZONE) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_WORLD_CONTRACT_INVALID, PGY_CAUSE_WORLD_CONTRACT, PGY_FIX_ALIGN_WORLD_ZONE_STATE_COMPOSITION, site,
             "World %s cannot target derived state '%s'; use the underlying zone slot or a plain 'state name: zone slot' alias",
             action_name, state_name != NULL ? state_name : "<unknown>");
@@ -203,6 +203,6 @@ resolve_world_zone_state(ASTNode *world, ASTNode *site, const char *state_name,
     }
 
     if (zone_slot_name_out != NULL)
-        *zone_slot_name_out = state->data.world_state.zone_slot_name;
+        *zone_slot_name_out = ast_world_state_zone_slot_name(state);
     return true;
 }

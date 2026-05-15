@@ -10,13 +10,13 @@ transpiler_mir_find_match_subject_for_case(ASTNode *node, ASTNode *case_node)
         return NULL;
 
     if (node->type == AST_MATCH_STMT) {
-        for (size_t i = 0; i < node->data.match_stmt.case_count; i++) {
-            if (node->data.match_stmt.cases[i] == case_node)
-                return node->data.match_stmt.subject;
+        for (size_t i = 0; i < ast_match_case_count(node); i++) {
+            if (ast_match_case_at(node, i) == case_node)
+                return ast_match_subject(node);
         }
-        if (node->data.match_stmt.default_body != NULL) {
+        if (ast_match_default_body(node) != NULL) {
             ASTNode *found = transpiler_mir_find_match_subject_for_case(
-                node->data.match_stmt.default_body, case_node);
+                ast_match_default_body(node), case_node);
             if (found != NULL)
                 return found;
         }
@@ -24,9 +24,9 @@ transpiler_mir_find_match_subject_for_case(ASTNode *node, ASTNode *case_node)
 
     switch (node->type) {
     case AST_BLOCK:
-        for (size_t i = 0; i < node->data.block.count; i++) {
+        for (size_t i = 0; i < ast_block_statement_count(node); i++) {
             ASTNode *found = transpiler_mir_find_match_subject_for_case(
-                node->data.block.statements[i], case_node);
+                ast_block_statement(node, i), case_node);
             if (found != NULL)
                 return found;
         }
@@ -71,7 +71,7 @@ transpiler_mir_is_option_destructor(ASTNode *pat,
         return false;
 
     if (pat->type == AST_IDENTIFIER) {
-        const char *name = pat->data.identifier.name;
+        const char *name = ast_identifier_name(pat);
         if (name != NULL && strcmp(name, "None") == 0) {
             if (kind != NULL)
                 *kind = "None";
@@ -88,7 +88,7 @@ transpiler_mir_is_option_destructor(ASTNode *pat,
         return false;
     }
 
-    const char *name = callee->data.identifier.name;
+    const char *name = ast_identifier_name(callee);
     if (name == NULL)
         return false;
 
@@ -104,7 +104,7 @@ transpiler_mir_is_option_destructor(ASTNode *pat,
         if (binding != NULL
             && payload != NULL
             && payload->type == AST_IDENTIFIER) {
-            *binding = payload->data.identifier.name;
+            *binding = ast_identifier_name(payload);
         }
         return true;
     }
@@ -132,7 +132,7 @@ transpiler_mir_is_result_destructor(ASTNode *pat,
         return false;
     }
 
-    const char *name = callee->data.identifier.name;
+    const char *name = ast_identifier_name(callee);
     if (name == NULL)
         return false;
     if ((strcmp(name, "Ok") == 0 || strcmp(name, "Err") == 0)
@@ -143,7 +143,7 @@ transpiler_mir_is_result_destructor(ASTNode *pat,
         if (binding != NULL
             && payload != NULL
             && payload->type == AST_IDENTIFIER) {
-            *binding = payload->data.identifier.name;
+            *binding = ast_identifier_name(payload);
         }
         return true;
     }
@@ -285,11 +285,11 @@ transpiler_mir_render_match_case_condition(ASTNode *func_decl,
     if (subject == NULL)
         return NULL;
 
-    if (case_node->data.match_case.patterns != NULL
-        && case_node->data.match_case.pattern_count > 1) {
-        for (size_t i = 0; i < case_node->data.match_case.pattern_count; i++) {
+    if (ast_match_case_patterns(case_node, NULL) != NULL
+        && ast_match_case_pattern_count(case_node) > 1) {
+        for (size_t i = 0; i < ast_match_case_pattern_count(case_node); i++) {
             char *pat = emit_expression_with_ssa_map(
-                case_node->data.match_case.patterns[i], ctx, ssa_map);
+                ast_match_case_pattern_at(case_node, i), ctx, ssa_map);
             char *next = NULL;
             if (pat == NULL)
                 continue;
@@ -300,11 +300,12 @@ transpiler_mir_render_match_case_condition(ASTNode *func_decl,
             free(pat);
             cond = next;
         }
-    } else if (case_node->data.match_case.pattern != NULL) {
+    } else if (ast_match_case_pattern(case_node) != NULL) {
         const char *kind = NULL;
         const char *binding = NULL;
+        ASTNode *pattern_node = ast_match_case_pattern(case_node);
         if (transpiler_mir_is_option_destructor(
-                case_node->data.match_case.pattern, &kind, &binding)) {
+                pattern_node, &kind, &binding)) {
             const char *tag = strcmp(kind, "Some") == 0
                 ? "PgyOptionSome" : "PgyOptionNone";
             transpiler_mir_emit_match_payload_binding(ctx->out, ctx,
@@ -312,7 +313,7 @@ transpiler_mir_render_match_case_condition(ASTNode *func_decl,
                                                       subject, kind, binding);
             cond = strdup_fmt("(%s).tag == %s", subject, tag);
         } else if (transpiler_mir_is_result_destructor(
-                       case_node->data.match_case.pattern, &kind, &binding)) {
+                       pattern_node, &kind, &binding)) {
             const char *tag = strcmp(kind, "Ok") == 0
                 ? "PgyResultOk" : "PgyResultErr";
             transpiler_mir_emit_match_payload_binding(ctx->out, ctx,
@@ -321,15 +322,15 @@ transpiler_mir_render_match_case_condition(ASTNode *func_decl,
             cond = strdup_fmt("(%s).tag == %s", subject, tag);
         } else {
             char *pat = emit_expression_with_ssa_map(
-                case_node->data.match_case.pattern, ctx, ssa_map);
+                pattern_node, ctx, ssa_map);
             if (pat != NULL)
                 cond = strdup_fmt("%s == %s", subject, pat);
             free(pat);
         }
     }
 
-    if (case_node->data.match_case.guard != NULL) {
-        guard = emit_expression_with_ssa_map(case_node->data.match_case.guard,
+    if (ast_match_case_guard(case_node) != NULL) {
+        guard = emit_expression_with_ssa_map(ast_match_case_guard(case_node),
                                              ctx, ssa_map);
         if (guard != NULL && cond != NULL) {
             char *with_guard = strdup_fmt("(%s) && (%s)", cond, guard);

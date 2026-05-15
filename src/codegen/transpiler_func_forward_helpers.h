@@ -18,9 +18,9 @@ infer_spawn_return_type_name(TranspilerCtx *ctx, ASTNode *spawn_expr)
         && ast_call_callee(target) != NULL
         && ast_call_callee(target)->type == AST_IDENTIFIER) {
         call = target;
-        function_name = ast_call_callee(target)->data.identifier.name;
+        function_name = ast_identifier_name(ast_call_callee(target));
     } else if (target->type == AST_IDENTIFIER) {
-        function_name = target->data.identifier.name;
+        function_name = ast_identifier_name(target);
     } else if (target->type == AST_FUNC_DECL) {
         if (ast_func_return_type(target) != NULL)
             return render_type_name(ast_func_return_type(target));
@@ -50,7 +50,7 @@ is_remote_future_expr(TranspilerCtx *ctx, ASTNode *expr)
 {
     if (expr == NULL) return false;
     if (expr->type == AST_IDENTIFIER) {
-        const char *type_name = lookup_typed_var(ctx, expr->data.identifier.name);
+        const char *type_name = lookup_typed_var(ctx, ast_identifier_name(expr));
         return type_name != NULL && strncmp(type_name, "RemoteFuture<", 13) == 0;
     }
     return false;
@@ -69,7 +69,7 @@ lookup_future_inner_type_copy(TranspilerCtx *ctx, ASTNode *expr,
 
     if (expr->type == AST_IDENTIFIER) {
         const char *type_name = lookup_typed_var(ctx,
-            expr->data.identifier.name);
+            ast_identifier_name(expr));
         if (type_name != NULL
             && (strncmp(type_name, "Future<", 7) == 0
                 || strncmp(type_name, "RemoteFuture<", 13) == 0)) {
@@ -118,9 +118,11 @@ find_generic_param_index(ASTNode *decl, const char *name)
         return -1;
 
     GenericParams *generic_params = ast_func_generic_params(decl);
-    for (size_t i = 0; generic_params != NULL && i < generic_params->count; i++) {
-        GenericParam *param = generic_params->params[i];
-        if (param != NULL && param->name != NULL && strcmp(param->name, name) == 0)
+    size_t generic_count = ast_generic_param_count(generic_params);
+    for (size_t i = 0; i < generic_count; i++) {
+        GenericParam *param = ast_generic_param_at(generic_params, i);
+        if (ast_generic_param_name(param) != NULL
+            && strcmp(ast_generic_param_name(param), name) == 0)
             return (int)i;
     }
 
@@ -141,14 +143,14 @@ infer_generic_call_bindings(TranspilerCtx *ctx, ASTNode *decl, ASTNode *call,
     }
 
     GenericParams *generic_params = ast_func_generic_params(decl);
-    size_t generic_count = generic_params != NULL ? generic_params->count : 0;
+    size_t generic_count = ast_generic_param_count(generic_params);
     memset(bindings, 0, sizeof(GenericBindingEntry) * generic_count);
 
     for (size_t i = 0; i < generic_count; i++) {
-        GenericParam *param = generic_params->params[i];
-        if (param != NULL && param->name != NULL) {
+        GenericParam *param = ast_generic_param_at(generic_params, i);
+        if (ast_generic_param_name(param) != NULL) {
             pergyra_str_copy(bindings[i].name,
-                sizeof(bindings[i].name), param->name);
+                sizeof(bindings[i].name), ast_generic_param_name(param));
         }
     }
 

@@ -431,6 +431,9 @@ main(void)
     TEST("AIR parsed transfer emits zone and world boundaries");
     EXPECT(test_air_parsed_transfer_emits_zone_and_world_boundaries());
 
+    TEST("AIR parsed transfer reports world missing transfer evidence");
+    EXPECT(test_air_parsed_transfer_reports_world_missing_transfer_evidence());
+
     TEST("AIR parsed transfer reports zone missing authority evidence");
     EXPECT(test_air_parsed_transfer_reports_zone_missing_authority_evidence());
 

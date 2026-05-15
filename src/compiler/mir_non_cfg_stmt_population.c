@@ -80,8 +80,7 @@ mir_append_non_cfg_body_statements(MIRRoutine *routine, MIRBasicBlock *entry)
         statements = mir_block_source_inventory_items(entry);
         statement_count = mir_block_source_inventory_count(entry);
     } else {
-        statements = body->data.block.statements;
-        statement_count = body->data.block.count;
+        statements = ast_block_statements(body, &statement_count);
     }
 
     for (size_t i = 0; i < statement_count; i++) {

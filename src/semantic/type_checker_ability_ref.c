@@ -58,9 +58,10 @@ ability_ref_display(ASTNode *ability_ref)
         return pergyra_strdup("<ability>");
     const char *ability_name = ast_type_name(ability_ref);
     GenericParams *generic_args = ast_type_generic_args(ability_ref);
+    size_t generic_count = ast_generic_param_count(generic_args);
     if (ability_name == NULL)
         return pergyra_strdup("<ability>");
-    if (generic_args == NULL || generic_args->count == 0) {
+    if (generic_count == 0) {
         return pergyra_strdup(ability_name);
     }
 
@@ -68,12 +69,12 @@ ability_ref_display(ASTNode *ability_ref)
     if (result == NULL)
         return pergyra_strdup(ability_name);
 
-    for (size_t i = 0; i < generic_args->count; i++) {
-        GenericParam *gp = generic_args->params[i];
-        ASTNode *arg = gp != NULL ? gp->constraint : NULL;
+    for (size_t i = 0; i < generic_count; i++) {
+        GenericParam *gp = ast_generic_param_at(generic_args, i);
+        ASTNode *arg = ast_generic_param_constraint(gp);
         char *arg_text = ability_ref_display(arg);
         char *next;
-        if (i + 1 < generic_args->count) {
+        if (i + 1 < generic_count) {
             next = ability_ref_strdup_fmt("%s%s, ", result,
                                           arg_text != NULL ? arg_text : "<type>");
         } else {
@@ -94,23 +95,26 @@ char *
 ability_decl_signature_display(const char *ability_name, GenericParams *params)
 {
     char *result;
+    size_t param_count = ast_generic_param_count(params);
 
     if (ability_name == NULL)
         return pergyra_strdup("<ability>");
-    if (params == NULL || params->count == 0)
+    if (param_count == 0)
         return pergyra_strdup(ability_name);
 
     result = ability_ref_strdup_fmt("%s<", ability_name);
     if (result == NULL)
         return pergyra_strdup(ability_name);
 
-    for (size_t i = 0; i < params->count; i++) {
-        GenericParam *gp = params->params[i];
-        const char *param_name =
-            (gp != NULL && gp->name != NULL) ? gp->name : "<type>";
+    for (size_t i = 0; i < param_count; i++) {
+        GenericParam *gp = ast_generic_param_at(params, i);
+        const char *param_name = ast_generic_param_name(gp);
         char *next;
 
-        if (i + 1 < params->count)
+        if (param_name == NULL)
+            param_name = "<type>";
+
+        if (i + 1 < param_count)
             next = ability_ref_strdup_fmt("%s%s, ", result, param_name);
         else
             next = ability_ref_strdup_fmt("%s%s>", result, param_name);
@@ -130,6 +134,8 @@ ability_ref_effective_display(ASTNode *ability_decl, ASTNode *ability_ref)
     GenericParams *decl_params;
     GenericParams *provided_args;
     char *result;
+    size_t decl_count;
+    size_t provided_count;
 
     if (ability_ref == NULL || ability_ref->type != AST_TYPE)
         return ability_ref_display(ability_ref);
@@ -142,35 +148,38 @@ ability_ref_effective_display(ASTNode *ability_decl, ASTNode *ability_ref)
         return ability_ref_display(ability_ref);
 
     decl_params = ast_ability_generic_params(ability_decl);
-    if (decl_params == NULL || decl_params->count == 0)
+    decl_count = ast_generic_param_count(decl_params);
+    if (decl_count == 0)
         return pergyra_strdup(ability_name);
 
     provided_args = ast_type_generic_args(ability_ref);
+    provided_count = ast_generic_param_count(provided_args);
     result = ability_ref_strdup_fmt("%s<", ability_name);
     if (result == NULL)
         return pergyra_strdup(ability_name);
 
-    for (size_t i = 0; i < decl_params->count; i++) {
-        GenericParam *decl_gp = decl_params->params[i];
+    for (size_t i = 0; i < decl_count; i++) {
+        GenericParam *decl_gp = ast_generic_param_at(decl_params, i);
         GenericParam *provided_gp =
-            (provided_args != NULL && i < provided_args->count)
-                ? provided_args->params[i]
+            (provided_args != NULL && i < provided_count)
+                ? ast_generic_param_at(provided_args, i)
                 : NULL;
         ASTNode *arg_node =
-            provided_gp != NULL && provided_gp->constraint != NULL
-                ? provided_gp->constraint
-                : (decl_gp != NULL ? decl_gp->default_type : NULL);
+            ast_generic_param_constraint(provided_gp) != NULL
+                ? ast_generic_param_constraint(provided_gp)
+                : ast_generic_param_default_type(decl_gp);
         char *arg_text = NULL;
         char *next;
+        const char *decl_name = ast_generic_param_name(decl_gp);
 
         if (arg_node != NULL)
             arg_text = ability_ref_display(arg_node);
-        if (arg_text == NULL && decl_gp != NULL && decl_gp->name != NULL)
-            arg_text = pergyra_strdup(decl_gp->name);
+        if (arg_text == NULL && decl_name != NULL)
+            arg_text = pergyra_strdup(decl_name);
         if (arg_text == NULL)
             arg_text = pergyra_strdup("<type>");
 
-        if (i + 1 < decl_params->count) {
+        if (i + 1 < decl_count) {
             next = ability_ref_strdup_fmt("%s%s, ", result,
                                           arg_text != NULL ? arg_text : "<type>");
         } else {

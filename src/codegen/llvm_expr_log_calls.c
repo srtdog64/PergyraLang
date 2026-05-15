@@ -83,8 +83,8 @@ llvm_emit_log_call(ASTNode *node, LLVMGenCtx *ctx)
 
     arg_node = ast_call_argument(node, 0);
     if (arg_node != NULL && arg_node->type == AST_STRING
-        && arg_node->data.string.value != NULL) {
-        const char *raw = arg_node->data.string.value;
+        && ast_string_value(arg_node) != NULL) {
+        const char *raw = ast_string_value(arg_node);
         multiline_log = (strchr(raw, '\n') != NULL) || (strchr(raw, '\r') != NULL);
         if (multiline_log) {
             char *normalized = llvm_normalize_banner_string_literal_scratch(
@@ -133,9 +133,9 @@ llvm_emit_log_raw_call(ASTNode *node, LLVMGenCtx *ctx)
 
     arg_node = ast_call_argument(node, 0);
     if (arg_node != NULL && arg_node->type == AST_STRING
-        && arg_node->data.string.value != NULL) {
+        && ast_string_value(arg_node) != NULL) {
         arg = LLVMBuildGlobalStringPtr(ctx->builder,
-            arg_node->data.string.value, llvm_tmp_name(ctx));
+            ast_string_value(arg_node), llvm_tmp_name(ctx));
     } else {
         arg = llvm_emit_expression(arg_node, ctx);
         if (arg == NULL)
@@ -173,7 +173,7 @@ llvm_emit_log_banner_call(ASTNode *node, LLVMGenCtx *ctx)
 
     if (arg->type == AST_STRING) {
         char *normalized = llvm_normalize_banner_string_literal_scratch(
-            arg->data.string.value, &ctx->scratch);
+            ast_string_value(arg), &ctx->scratch);
         if (normalized != NULL) {
             log_arg = LLVMBuildGlobalStringPtr(ctx->builder, normalized,
                                                llvm_tmp_name(ctx));

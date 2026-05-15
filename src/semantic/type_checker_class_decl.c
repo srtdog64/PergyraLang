@@ -16,17 +16,20 @@ type_check_class_decl(ASTNode *node, SemanticContext *ctx)
      * field and method signature resolution. */
     GenericParams *class_generics = ast_class_generic_params(node);
     WhereClause *class_where = ast_class_where_clause(node);
-    bool has_generics = (class_generics != NULL && class_generics->count > 0);
+    bool has_generics = (ast_generic_param_count(class_generics) > 0);
     if (has_generics) {
         validate_generic_param_defaults(class_generics, ctx, node, "class");
         scope_enter(&ctx->scope, SCOPE_BLOCK);
         GenericParams *gp = class_generics;
-        for (size_t gi = 0; gi < gp->count; gi++) {
-            if (gp->params[gi] == NULL || gp->params[gi]->name == NULL)
+        size_t generic_count = ast_generic_param_count(gp);
+        for (size_t gi = 0; gi < generic_count; gi++) {
+            GenericParam *param = ast_generic_param_at(gp, gi);
+            const char *param_name = ast_generic_param_name(param);
+            if (param_name == NULL)
                 continue;
-            Type *tp = type_create_generic(gp->params[gi]->name);
+            Type *tp = type_create_generic(param_name);
             Symbol *s = symbol_create_variable(
-                gp->params[gi]->name,
+                param_name,
                 tp != NULL ? tp : TYPE_UNKNOWN,
                 node->line, node->column);
             s->kind = SYMBOL_TYPE_PARAM;
@@ -99,12 +102,15 @@ type_check_class_decl(ASTNode *node, SemanticContext *ctx)
     /* Re-register generic type params inside the class scope */
     if (has_generics) {
         GenericParams *gp = class_generics;
-        for (size_t gi = 0; gi < gp->count; gi++) {
-            if (gp->params[gi] == NULL || gp->params[gi]->name == NULL)
+        size_t generic_count = ast_generic_param_count(gp);
+        for (size_t gi = 0; gi < generic_count; gi++) {
+            GenericParam *param = ast_generic_param_at(gp, gi);
+            const char *param_name = ast_generic_param_name(param);
+            if (param_name == NULL)
                 continue;
-            Type *tp = type_create_generic(gp->params[gi]->name);
+            Type *tp = type_create_generic(param_name);
             Symbol *s = symbol_create_variable(
-                gp->params[gi]->name,
+                param_name,
                 tp != NULL ? tp : TYPE_UNKNOWN,
                 node->line, node->column);
             s->kind = SYMBOL_TYPE_PARAM;

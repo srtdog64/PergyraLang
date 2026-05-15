@@ -237,13 +237,17 @@ ASTNode* parser_parse_call(Parser* parser) {
             Token name = consume_member_name_token(parser,
                 "Expected property name after '?.'");
             parser_error(parser,
-                "Optional chaining '?.' is reserved but not implemented; use explicit Option matching or helper functions");
+                "Optional chaining '?.' is reserved but not implemented.\n"
+                "Reason: optional member provenance is not frozen across semantic, AIR, MIR, and diagnostics.\n"
+                "Fix: use explicit Option matching or helper functions.");
             expr = ast_create_member_access(expr, name.text);
         } else if (parser_match(parser, TOKEN_LBRACKET)) {
             ASTNode* index;
             if (parser_token_is_range_separator(parser->current_token)) {
                 parser_error(parser,
-                    "Slicing 'xs[..]' is reserved but not implemented; use explicit slice helper functions");
+                    "Slicing 'xs[..]' is reserved but not implemented.\n"
+                    "Reason: public slice ABI and ownership policy are not frozen for beta.\n"
+                    "Fix: use explicit slice helper functions.");
                 parser_advance(parser);
                 if (!parser_check(parser, TOKEN_RBRACKET))
                     (void)parser_parse_expression(parser);
@@ -253,7 +257,9 @@ ASTNode* parser_parse_call(Parser* parser) {
             index = parser_parse_expression(parser);
             if (parser_token_is_range_separator(parser->current_token)) {
                 parser_error(parser,
-                    "Slicing 'xs[a..b]' is reserved but not implemented; use explicit slice helper functions");
+                    "Slicing 'xs[a..b]' is reserved but not implemented.\n"
+                    "Reason: public slice ABI and ownership policy are not frozen for beta.\n"
+                    "Fix: use explicit slice helper functions.");
                 parser_advance(parser);
                 if (!parser_check(parser, TOKEN_RBRACKET))
                     (void)parser_parse_expression(parser);
@@ -384,13 +390,17 @@ ASTNode* parser_parse_primary(Parser* parser) {
 
     if (parser_check(parser, TOKEN_LBRACE)) {
         parser_error(parser,
-            "Object/map literal syntax '{ ... }' is reserved but not implemented; use constructors, factory functions, or collection APIs");
+            "Object/map literal syntax '{ ... }' is reserved but not implemented.\n"
+            "Reason: object/map literal ABI, field ownership, and collection key policy are not frozen for beta.\n"
+            "Fix: use constructors, factory functions, or collection APIs.");
         return NULL;
     }
 
     if (parser_match(parser, TOKEN_ELLIPSIS)) {
         parser_error(parser,
-            "Spread/rest syntax '...' is reserved but not implemented; pass values explicitly");
+            "Spread/rest syntax '...' is reserved but not implemented.\n"
+            "Reason: spread/rest needs call ABI, ownership, and collection lowering policy.\n"
+            "Fix: pass values explicitly.");
         return NULL;
     }
 

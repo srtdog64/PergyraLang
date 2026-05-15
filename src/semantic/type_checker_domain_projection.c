@@ -11,8 +11,8 @@ find_named_class_decl_local(ASTNode *program, const char *name)
     if (program == NULL || program->type != AST_PROGRAM || name == NULL)
         return NULL;
 
-    for (size_t i = 0; i < program->data.program.count; i++) {
-        ASTNode *stmt = program->data.program.statements[i];
+    for (size_t i = 0; i < ast_program_statement_count(program); i++) {
+        ASTNode *stmt = ast_program_statement(program, i);
         if (stmt == NULL || stmt->type != AST_CLASS_DECL
             || ast_class_name(stmt) == NULL) {
             continue;
@@ -78,9 +78,9 @@ type_check_projection_contract(ASTNode **slots,
     }
     requires_dto =
         site != NULL && site->type == AST_ZONE_REFRESH
-        && (site->data.zone_refresh.derive_target_kind
+        && (ast_zone_refresh_derives_target_kind(site)
             ? ast_domain_slot_is_tobject(object_slot)
-            : site->data.zone_refresh.requires_dto);
+            : ast_zone_refresh_requires_dto(site));
     if (requires_dto && !ast_domain_slot_is_tobject(object_slot)) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, site,
             "%s %s target slot '%s' must be a tobject slot.\n"
@@ -256,10 +256,10 @@ type_check_projection_contract(ASTNode **slots,
     }
 
     if (site != NULL && site->type == AST_ZONE_REFRESH
-        && site->data.zone_refresh.field_map_count > 0) {
-        for (size_t i = 0; i < site->data.zone_refresh.field_map_count; i++) {
+        && ast_zone_refresh_field_map_count(site) > 0) {
+        for (size_t i = 0; i < ast_zone_refresh_field_map_count(site); i++) {
             const char *mapped_target =
-                site->data.zone_refresh.mapped_target_fields[i];
+                ast_zone_refresh_mapped_target_field(site, i);
 
             if (!projection_target_decl_has_field(target_decl, mapped_target)) {
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, site,
@@ -306,9 +306,9 @@ type_check_projection_contract(ASTNode **slots,
                     mapped_target != NULL ? mapped_target : "<field>");
             }
 
-            for (size_t j = i + 1; j < site->data.zone_refresh.field_map_count; j++) {
+            for (size_t j = i + 1; j < ast_zone_refresh_field_map_count(site); j++) {
                 const char *other_target =
-                    site->data.zone_refresh.mapped_target_fields[j];
+                    ast_zone_refresh_mapped_target_field(site, j);
                 if (mapped_target != NULL && other_target != NULL
                     && strcmp(mapped_target, other_target) == 0) {
                     semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, site,

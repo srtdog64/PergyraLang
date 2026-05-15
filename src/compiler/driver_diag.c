@@ -261,29 +261,30 @@ driver_format_air_evidence_summary(const AIRProgram *air,
                                    size_t out_size)
 {
     int written;
-    const AIRBoundaryNode *boundary;
 
     if (out == NULL || out_size == 0)
         return false;
     out[0] = '\0';
     if (air == NULL || boundary_index >= air->boundary_count)
         return false;
-    boundary = &air->boundaries[boundary_index];
 
     written = snprintf(out,
                        out_size,
                        "evidence hir=%s hir_cfg=%s rir_boundary=%s rir_authority=%s",
-                       boundary->hir_routine_evidence_name != NULL
-                           ? boundary->hir_routine_evidence_name
-                           : "<none>",
+                       air_boundary_evidence_provider(
+                           air,
+                           boundary_index,
+                           AIR_EVIDENCE_HIR_ROUTINE),
                        air_boundary_has_evidence(
                            air, boundary_index, AIR_EVIDENCE_HIR_CFG) ? "yes" : "no",
-                       boundary->rir_boundary_evidence_scope != NULL
-                           ? boundary->rir_boundary_evidence_scope
-                           : "<none>",
-                       boundary->rir_authority_evidence_name != NULL
-                           ? boundary->rir_authority_evidence_name
-                           : "<none>");
+                       air_boundary_evidence_provider(
+                           air,
+                           boundary_index,
+                           AIR_EVIDENCE_RIR_BOUNDARY),
+                       air_boundary_evidence_subject(
+                           air,
+                           boundary_index,
+                           AIR_EVIDENCE_RIR_AUTHORITY));
     if (written < 0)
         return false;
     out[out_size - 1] = '\0';

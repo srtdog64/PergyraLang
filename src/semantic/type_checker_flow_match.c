@@ -13,7 +13,7 @@ match_pattern_is_named_variant(ASTNode *pat, const char **name_out,
     if (pat == NULL)
         return false;
     if (pat->type == AST_IDENTIFIER) {
-        *name_out = pat->data.identifier.name;
+        *name_out = ast_identifier_name(pat);
         return *name_out != NULL;
     }
     if (pat->type == AST_MEMBER_ACCESS
@@ -27,8 +27,8 @@ match_pattern_is_named_variant(ASTNode *pat, const char **name_out,
         return false;
     ASTNode *callee = ast_call_callee(pat);
     if (callee->type == AST_IDENTIFIER
-        && callee->data.identifier.name != NULL) {
-        *name_out = callee->data.identifier.name;
+        && ast_identifier_name(callee) != NULL) {
+        *name_out = ast_identifier_name(callee);
     } else if (callee->type == AST_MEMBER_ACCESS
         && ast_member_object(callee) != NULL
         && ast_member_object(callee)->type == AST_IDENTIFIER
@@ -55,8 +55,8 @@ find_enum_decl_for_type(SemanticContext *ctx, const Type *type)
     if (prog->type != AST_PROGRAM)
         return NULL;
 
-    for (size_t i = 0; i < prog->data.program.count; i++) {
-        ASTNode *stmt = prog->data.program.statements[i];
+    for (size_t i = 0; i < ast_program_statement_count(prog); i++) {
+        ASTNode *stmt = ast_program_statement(prog, i);
         if (stmt == NULL || stmt->type != AST_ENUM_DECL
             || ast_enum_name(stmt) == NULL) {
             continue;
@@ -78,7 +78,7 @@ declare_match_binding(SemanticContext *ctx, ASTNode *binding_node,
     if (ctx == NULL || binding_node == NULL || binding_type == NULL)
         return false;
     if (binding_node->type != AST_IDENTIFIER
-        || binding_node->data.identifier.name == NULL) {
+        || ast_identifier_name(binding_node) == NULL) {
         semantic_error_with_hints(ctx,
             PGY_CODE_SEM_MATCH_PATTERN_INVALID,
             PGY_CAUSE_MATCH_PATTERN_SHAPE,
@@ -88,7 +88,7 @@ declare_match_binding(SemanticContext *ctx, ASTNode *binding_node,
         return false;
     }
 
-    name = binding_node->data.identifier.name;
+    name = ast_identifier_name(binding_node);
     if (scope_lookup_current(ctx->scope, name) != NULL) {
         semantic_error_with_hints(ctx,
             PGY_CODE_SEM_MATCH_PATTERN_INVALID,
@@ -249,8 +249,8 @@ type_check_special_match_pattern(ASTNode *pat, Type *subj_type,
 
             for (size_t p = 0; p < param_count; p++) {
                 Type *binding_type =
-                    (p < variant_sym->type->data.function.param_count)
-                    ? variant_sym->type->data.function.param_types[p]
+                    (p < type_function_param_count(variant_sym->type))
+                    ? type_function_param_type(variant_sym->type, p)
                     : TYPE_UNKNOWN;
                 if (!declare_match_binding(ctx, args[p], binding_type))
                     return false;
@@ -275,8 +275,8 @@ static bool
 match_case_has_or_patterns(ASTNode *mc)
 {
     return mc != NULL && mc->type == AST_MATCH_CASE
-        && mc->data.match_case.patterns != NULL
-        && mc->data.match_case.pattern_count > 1;
+        && ast_match_case_patterns(mc, NULL) != NULL
+        && ast_match_case_pattern_count(mc) > 1;
 }
 
 static bool
@@ -287,8 +287,8 @@ match_case_uses_named_variant_pattern(ASTNode *mc)
 
     if (!match_case_has_or_patterns(mc))
         return false;
-    patterns = mc->data.match_case.patterns;
-    count = mc->data.match_case.pattern_count;
+    patterns = ast_match_case_patterns(mc, NULL);
+    count = ast_match_case_pattern_count(mc);
     for (size_t i = 0; i < count; i++) {
         const char *name = NULL;
         ASTNode **args = NULL;
@@ -309,15 +309,17 @@ type_check_match_case_patterns(ASTNode *mc, Type *subj_type,
 {
     size_t count = 1;
     ASTNode **patterns;
+    ASTNode *single_pattern;
 
     if (mc == NULL || mc->type != AST_MATCH_CASE)
         return true;
 
-    patterns = &mc->data.match_case.pattern;
-    if (mc->data.match_case.patterns != NULL
-        && mc->data.match_case.pattern_count > 0) {
-        patterns = mc->data.match_case.patterns;
-        count = mc->data.match_case.pattern_count;
+    single_pattern = ast_match_case_pattern(mc);
+    patterns = &single_pattern;
+    if (ast_match_case_patterns(mc, NULL) != NULL
+        && ast_match_case_pattern_count(mc) > 0) {
+        patterns = ast_match_case_patterns(mc, NULL);
+        count = ast_match_case_pattern_count(mc);
     }
     if (match_case_uses_named_variant_pattern(mc)) {
         for (size_t i = 0; i < count; i++) {

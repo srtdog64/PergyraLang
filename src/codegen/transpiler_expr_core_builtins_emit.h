@@ -10,7 +10,7 @@ lookup_wrapped_inner_type(TranspilerCtx *ctx, ASTNode *arg, const char *wrapper,
                           char *inner_buf, size_t inner_buf_size)
 {
     if (arg != NULL && arg->type == AST_IDENTIFIER) {
-        const char *type_name = lookup_typed_var(ctx, arg->data.identifier.name);
+        const char *type_name = lookup_typed_var(ctx, ast_identifier_name(arg));
         size_t wrapper_len = strlen(wrapper);
         if (type_name != NULL && strncmp(type_name, wrapper, wrapper_len) == 0
             && type_name[wrapper_len] == '<') {
@@ -182,7 +182,7 @@ emit_builtin_box(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
         else if (arg->type == AST_CALL
                  && ast_call_callee(arg) != NULL
                  && ast_call_callee(arg)->type == AST_IDENTIFIER) {
-            const char *callee_name = ast_call_callee(arg)->data.identifier.name;
+            const char *callee_name = ast_identifier_name(ast_call_callee(arg));
             ASTNode *class_decl = find_class_decl(ctx, callee_name);
             if (class_decl != NULL && class_decl->type == AST_CLASS_DECL)
                 inner = callee_name;
@@ -193,7 +193,7 @@ emit_builtin_box(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
             }
         }
         else if (arg->type == AST_IDENTIFIER) {
-            const char *arg_type = lookup_typed_var(ctx, arg->data.identifier.name);
+            const char *arg_type = lookup_typed_var(ctx, ast_identifier_name(arg));
             if (arg_type != NULL && strcmp(arg_type, "Unknown") != 0)
                 inner = arg_type;
         } else {

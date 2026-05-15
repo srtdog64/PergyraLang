@@ -132,9 +132,9 @@ llvm_decl_emit_zone_authority_check(LLVMGenCtx *ctx)
     if (zone_decl == NULL) {
         if (ctx->current_func_decl != NULL
             && ctx->current_func_decl->type == AST_FUNC_DECL
-            && ctx->current_func_decl->data.func_decl.within_zone != NULL) {
+            && ast_func_within_zone(ctx->current_func_decl) != NULL) {
             llvm_decl_zone_authority_backend_error(ctx, ctx->current_func_decl,
-                ctx->current_func_decl->data.func_decl.within_zone, NULL,
+                ast_func_within_zone(ctx->current_func_decl), NULL,
                 "current function declares a zone boundary but the zone declaration is missing from LLVM inventory");
         }
         return;
@@ -148,8 +148,10 @@ llvm_decl_emit_zone_authority_check(LLVMGenCtx *ctx)
 
     authority = authorities[0];
     zone_name = ast_zone_name(zone_decl);
+    const char *subject_slot =
+        ast_zone_authority_subject_slot_name(authority);
     if (authority->type != AST_ZONE_AUTHORITY
-        || authority->data.zone_authority.subject_slot_name == NULL) {
+        || subject_slot == NULL) {
         llvm_decl_zone_authority_backend_error(ctx, zone_decl, zone_name, NULL,
             "authority declaration is malformed or lacks a subject slot");
         return;
@@ -160,13 +162,13 @@ llvm_decl_emit_zone_authority_check(LLVMGenCtx *ctx)
     check_fn = llvm_lookup_function(ctx, "pgy_zone_authority_check_export");
     if (zone_cls == NULL) {
         llvm_decl_zone_authority_backend_error(ctx, zone_decl, zone_name,
-            authority->data.zone_authority.subject_slot_name,
+            subject_slot,
             "zone class layout is missing");
         return;
     }
     if (self_var == NULL) {
         llvm_decl_zone_authority_backend_error(ctx, ctx->current_func_decl,
-            zone_name, authority->data.zone_authority.subject_slot_name,
+            zone_name, subject_slot,
             "implicit self binding is missing");
         return;
     }
@@ -176,11 +178,10 @@ llvm_decl_emit_zone_authority_check(LLVMGenCtx *ctx)
         return;
     }
 
-    field_index = llvm_class_field_index(zone_cls,
-        authority->data.zone_authority.subject_slot_name);
+    field_index = llvm_class_field_index(zone_cls, subject_slot);
     if (field_index < 0) {
         llvm_decl_zone_authority_backend_error(ctx, zone_decl, zone_name,
-            authority->data.zone_authority.subject_slot_name,
+            subject_slot,
             "authority subject slot is missing from the zone class layout");
         return;
     }
@@ -204,8 +205,8 @@ llvm_decl_emit_zone_authority_check(LLVMGenCtx *ctx)
     }
     args[2] = LLVMBuildGlobalStringPtr(ctx->builder, zone_name,
         llvm_tmp_name(ctx));
-    args[3] = LLVMBuildGlobalStringPtr(ctx->builder,
-        authority->data.zone_authority.subject_slot_name, llvm_tmp_name(ctx));
+    args[3] = LLVMBuildGlobalStringPtr(ctx->builder, subject_slot,
+        llvm_tmp_name(ctx));
     LLVMBuildCall2(ctx->builder, check_fn->fn_type, check_fn->fn, args, 4, "");
 }
 

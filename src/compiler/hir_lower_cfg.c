@@ -47,8 +47,10 @@ hir_lower_block_body_to_cfg(ASTNode *body,
     if (body == NULL)
         return current_block;
     if (body->type == AST_BLOCK) {
-        return hir_lower_stmt_list_to_cfg(body->data.block.statements,
-                                          body->data.block.count,
+        size_t statement_count = 0;
+        ASTNode **statements = ast_block_statements(body, &statement_count);
+        return hir_lower_stmt_list_to_cfg(statements,
+                                          statement_count,
                                           blocks,
                                           block_count,
                                           block_capacity,
@@ -69,7 +71,7 @@ static ASTNode *cfg_choice_body(ASTNode *choice, bool choice_is_match_case)
 {
     if (choice == NULL)
         return NULL;
-    return choice_is_match_case ? choice->data.match_case.body : choice;
+    return choice_is_match_case ? ast_match_case_body(choice) : choice;
 }
 
 static bool
@@ -187,12 +189,12 @@ hir_lower_stmt_node_to_cfg(ASTNode *node,
 
     switch (node->type) {
         case AST_BLOCK:
-            if (node->data.block.is_pin_block) {
+            if (ast_block_is_pin_block(node)) {
                 HIRPinRegionContext nested_pin = {
                     .active = true,
-                    .view_is_write = node->data.block.pin_view_is_write,
-                    .source_name = node->data.block.pin_source_name,
-                    .view_name = node->data.block.pin_view_name,
+                    .view_is_write = ast_block_pin_view_is_write(node),
+                    .source_name = ast_block_pin_source_name(node),
+                    .view_name = ast_block_pin_view_name(node),
                     .block_ast = node
                 };
                 HIRBasicBlock *block = &(*blocks)[(size_t)current_block];
@@ -207,8 +209,10 @@ hir_lower_stmt_node_to_cfg(ASTNode *node,
                     hir_cfg_apply_pin_region(block, &nested_pin);
                 }
 
-                ssize_t pin_open = hir_lower_stmt_list_to_cfg(node->data.block.statements,
-                                                              node->data.block.count,
+                size_t statement_count = 0;
+                ASTNode **statements = ast_block_statements(node, &statement_count);
+                ssize_t pin_open = hir_lower_stmt_list_to_cfg(statements,
+                                                              statement_count,
                                                               blocks,
                                                               block_count,
                                                               block_capacity,
@@ -224,14 +228,18 @@ hir_lower_stmt_node_to_cfg(ASTNode *node,
                 hir_cfg_set_goto(&(*blocks)[(size_t)pin_open], (size_t)after_pin);
                 return after_pin;
             }
-            return hir_lower_stmt_list_to_cfg(node->data.block.statements,
-                                              node->data.block.count,
+            {
+                size_t statement_count = 0;
+                ASTNode **statements = ast_block_statements(node, &statement_count);
+                return hir_lower_stmt_list_to_cfg(statements,
+                                              statement_count,
                                               blocks,
                                               block_count,
                                               block_capacity,
                                               current_block,
                                               pin,
                                               loop);
+            }
 
         case AST_RETURN:
             if (!hir_cfg_append_block_stmt(&(*blocks)[(size_t)current_block], node))
@@ -385,9 +393,9 @@ hir_lower_stmt_node_to_cfg(ASTNode *node,
 
         case AST_MATCH_STMT:
             return hir_lower_choice_to_cfg(node,
-                                           node->data.match_stmt.cases,
-                                           node->data.match_stmt.case_count,
-                                           node->data.match_stmt.default_body,
+                                           ast_match_cases(node, NULL),
+                                           ast_match_case_count(node),
+                                           ast_match_default_body(node),
                                            true,
                                            blocks,
                                            block_count,

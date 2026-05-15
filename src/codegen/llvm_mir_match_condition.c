@@ -1,0 +1,260 @@
+/*
+ * Copyright (c) 2025 Pergyra Language Project
+ * All rights reserved.
+ *
+ * LLVM MIR match-condition lowering.
+ */
+
+#ifdef PGY_LLVM_ENABLED
+
+#include "llvm_internal_api.h"
+#include "../parser/ast_api.h"
+
+#include <string.h>
+
+static ASTNode *
+llvm_mir_find_match_subject_for_case(ASTNode *node, ASTNode *case_node)
+{
+    if (node == NULL || case_node == NULL)
+        return NULL;
+
+    if (node->type == AST_MATCH_STMT) {
+        for (size_t i = 0; i < ast_match_case_count(node); i++) {
+            if (ast_match_case_at(node, i) == case_node)
+                return ast_match_subject(node);
+        }
+        if (ast_match_default_body(node) != NULL) {
+            ASTNode *found = llvm_mir_find_match_subject_for_case(
+                ast_match_default_body(node), case_node);
+            if (found != NULL)
+                return found;
+        }
+    }
+
+    switch (node->type) {
+    case AST_BLOCK:
+        for (size_t i = 0; i < ast_block_statement_count(node); i++) {
+            ASTNode *found = llvm_mir_find_match_subject_for_case(
+                ast_block_statement(node, i), case_node);
+            if (found != NULL)
+                return found;
+        }
+        break;
+    case AST_IF_STMT: {
+        ASTNode *found = llvm_mir_find_match_subject_for_case(
+            ast_if_then_branch(node), case_node);
+        if (found != NULL)
+            return found;
+        return llvm_mir_find_match_subject_for_case(
+            ast_if_else_branch(node), case_node);
+    }
+    case AST_FOR_LOOP:
+        return llvm_mir_find_match_subject_for_case(
+            ast_for_body(node), case_node);
+    case AST_WHILE_LOOP:
+        return llvm_mir_find_match_subject_for_case(
+            ast_while_body(node), case_node);
+    case AST_WITH_STMT:
+        return llvm_mir_find_match_subject_for_case(
+            ast_with_body(node), case_node);
+    default:
+        break;
+    }
+    return NULL;
+}
+
+static bool
+llvm_mir_is_option_destructor(ASTNode *pat, const char **kind,
+                              const char **binding)
+{
+    ASTNode *callee;
+    ASTNode *payload;
+    size_t arg_count;
+
+    if (kind != NULL)
+        *kind = NULL;
+    if (binding != NULL)
+        *binding = NULL;
+    if (pat == NULL)
+        return false;
+
+    if (pat->type == AST_IDENTIFIER) {
+        const char *name = ast_identifier_name(pat);
+        if (name != NULL && strcmp(name, "None") == 0) {
+            if (kind != NULL)
+                *kind = "None";
+            return true;
+        }
+        return false;
+    }
+
+    callee = ast_call_callee(pat);
+    arg_count = ast_call_arg_count(pat);
+    if (pat->type != AST_CALL
+        || callee == NULL
+        || callee->type != AST_IDENTIFIER) {
+        return false;
+    }
+
+    const char *name = ast_identifier_name(callee);
+    if (name == NULL)
+        return false;
+
+    if (strcmp(name, "None") == 0 && arg_count == 0) {
+        if (kind != NULL)
+            *kind = "None";
+        return true;
+    }
+    if (strcmp(name, "Some") == 0 && arg_count == 1) {
+        if (kind != NULL)
+            *kind = "Some";
+        payload = ast_call_argument(pat, 0);
+        if (binding != NULL
+            && payload != NULL
+            && payload->type == AST_IDENTIFIER) {
+            *binding = ast_identifier_name(payload);
+        }
+        return true;
+    }
+
+    return false;
+}
+
+static bool
+llvm_mir_is_result_destructor(ASTNode *pat, const char **kind,
+                              const char **binding)
+{
+    ASTNode *callee;
+    ASTNode *payload;
+    size_t arg_count;
+
+    if (kind != NULL)
+        *kind = NULL;
+    if (binding != NULL)
+        *binding = NULL;
+    callee = ast_call_callee(pat);
+    arg_count = ast_call_arg_count(pat);
+    if (pat == NULL || pat->type != AST_CALL
+        || callee == NULL
+        || callee->type != AST_IDENTIFIER) {
+        return false;
+    }
+
+    const char *name = ast_identifier_name(callee);
+    if (name == NULL)
+        return false;
+
+    if ((strcmp(name, "Ok") == 0 || strcmp(name, "Err") == 0)
+        && arg_count == 1) {
+        if (kind != NULL)
+            *kind = name;
+        payload = ast_call_argument(pat, 0);
+        if (binding != NULL
+            && payload != NULL
+            && payload->type == AST_IDENTIFIER) {
+            *binding = ast_identifier_name(payload);
+        }
+        return true;
+    }
+
+    return false;
+}
+
+LLVMValueRef
+llvm_mir_emit_match_case_condition(ASTNode *func_decl, ASTNode *case_node,
+                                   LLVMGenCtx *ctx)
+{
+    ASTNode *subject_node;
+    LLVMValueRef subject;
+    LLVMValueRef cmp = NULL;
+
+    if (func_decl == NULL || case_node == NULL || ctx == NULL
+        || case_node->type != AST_MATCH_CASE) {
+        return NULL;
+    }
+
+    subject_node = func_decl->type == AST_FUNC_DECL
+        ? llvm_mir_find_match_subject_for_case(ast_func_body(func_decl),
+              case_node)
+        : NULL;
+    if (subject_node == NULL)
+        return NULL;
+
+    subject = llvm_emit_expression(subject_node, ctx);
+    if (subject == NULL)
+        return NULL;
+
+    if (ast_match_case_patterns(case_node, NULL) != NULL
+        && ast_match_case_pattern_count(case_node) > 1) {
+        for (size_t i = 0; i < ast_match_case_pattern_count(case_node); i++) {
+            LLVMValueRef pattern = llvm_emit_expression(
+                ast_match_case_pattern_at(case_node, i), ctx);
+            LLVMValueRef one_cmp;
+            if (pattern == NULL)
+                continue;
+            one_cmp = LLVMBuildICmp(ctx->builder, LLVMIntEQ, subject, pattern,
+                                    llvm_tmp_name(ctx));
+            cmp = cmp == NULL ? one_cmp
+                              : LLVMBuildOr(ctx->builder, cmp, one_cmp,
+                                            llvm_tmp_name(ctx));
+        }
+        return cmp;
+    }
+
+    if (ast_match_case_pattern(case_node) == NULL)
+        return NULL;
+
+    {
+        const char *option_kind = NULL;
+        const char *result_kind = NULL;
+        const char *binding = NULL;
+        ASTNode *pattern_node = ast_match_case_pattern(case_node);
+        if (llvm_mir_is_option_destructor(pattern_node,
+                                          &option_kind, &binding)) {
+            LLVMValueRef tag = LLVMBuildExtractValue(ctx->builder, subject, 0,
+                llvm_tmp_name(ctx));
+            if (binding != NULL) {
+                LLVMValueRef payload = LLVMBuildExtractValue(ctx->builder,
+                    subject, 1, llvm_tmp_name(ctx));
+                LLVMTypeRef payload_ty = LLVMTypeOf(payload);
+                LLVMValueRef payload_alloca = llvm_create_entry_alloca(ctx,
+                    payload_ty, binding);
+                LLVMBuildStore(ctx->builder, payload, payload_alloca);
+                llvm_scope_declare(ctx, pergyra_strdup(binding),
+                    payload_alloca, payload_ty);
+            }
+            return LLVMBuildICmp(ctx->builder, LLVMIntEQ, tag,
+                LLVMConstInt(ctx->type_i32,
+                    strcmp(option_kind, "Some") == 0 ? 0 : 1, 0),
+                llvm_tmp_name(ctx));
+        }
+        if (llvm_mir_is_result_destructor(pattern_node,
+                                          &result_kind, &binding)) {
+            LLVMValueRef tag = LLVMBuildExtractValue(ctx->builder, subject, 0,
+                llvm_tmp_name(ctx));
+            if (binding != NULL) {
+                unsigned payload_index =
+                    (strcmp(result_kind, "Err") == 0) ? 2 : 1;
+                LLVMValueRef payload = LLVMBuildExtractValue(ctx->builder,
+                    subject, payload_index, llvm_tmp_name(ctx));
+                LLVMTypeRef payload_ty = LLVMTypeOf(payload);
+                LLVMValueRef payload_alloca = llvm_create_entry_alloca(ctx,
+                    payload_ty, binding);
+                LLVMBuildStore(ctx->builder, payload, payload_alloca);
+                llvm_scope_declare(ctx, pergyra_strdup(binding),
+                    payload_alloca, payload_ty);
+            }
+            return LLVMBuildICmp(ctx->builder, LLVMIntEQ, tag,
+                LLVMConstInt(ctx->type_i32,
+                    strcmp(result_kind, "Ok") == 0 ? 0 : 1, 0),
+                llvm_tmp_name(ctx));
+        }
+        LLVMValueRef pattern = llvm_emit_expression(pattern_node, ctx);
+        if (pattern == NULL)
+            return NULL;
+        return LLVMBuildICmp(ctx->builder, LLVMIntEQ, subject, pattern,
+                             llvm_tmp_name(ctx));
+    }
+}
+
+#endif /* PGY_LLVM_ENABLED */

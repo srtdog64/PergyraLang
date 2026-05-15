@@ -80,7 +80,7 @@ transpiler_resolve_slot_target_copy(TranspilerCtx *ctx,
         return false;
 
     if (slot_arg->type == AST_IDENTIFIER) {
-        const char *id = slot_arg->data.identifier.name;
+        const char *id = ast_identifier_name(slot_arg);
         TypedVarEntry *entry = lookup_typed_entry(ctx, id);
         if (entry != NULL && (entry->is_view || entry->is_move_token)
             && entry->source_slot[0] != '\0') {
@@ -108,8 +108,8 @@ transpiler_resolve_slot_target_copy(TranspilerCtx *ctx,
                && ast_call_arg_count(slot_arg) >= 1
                && ast_call_argument(slot_arg, 0) != NULL
                && ast_call_argument(slot_arg, 0)->type == AST_IDENTIFIER) {
-        const char *callee = ast_call_callee(slot_arg)->data.identifier.name;
-        const char *src = ast_call_argument(slot_arg, 0)->data.identifier.name;
+        const char *callee = ast_identifier_name(ast_call_callee(slot_arg));
+        const char *src = ast_identifier_name(ast_call_argument(slot_arg, 0));
         if (pgy_codegen_call_name_is_slot_source(callee)) {
             slot_name = src;
             (void)lookup_slot_type_copy(ctx, src, inner_out, inner_out_size);
@@ -148,7 +148,7 @@ transpiler_resolve_device_slot_inner_copy_or_error(TranspilerCtx *ctx,
     inner_out[0] = '\0';
 
     if (slot_arg != NULL && slot_arg->type == AST_IDENTIFIER)
-        type_name = lookup_typed_var(ctx, slot_arg->data.identifier.name);
+        type_name = lookup_typed_var(ctx, ast_identifier_name(slot_arg));
     if (type_name != NULL && strncmp(type_name, "DeviceSlot<", 11) == 0)
         (void)slot_inner_type_name_copy(type_name, inner_out, inner_out_size);
 

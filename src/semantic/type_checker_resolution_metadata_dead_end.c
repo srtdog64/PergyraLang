@@ -30,7 +30,7 @@ metadata_record_named_dead_end_diagnostic(SemanticContext *ctx,
                 : NULL;
             GenericParams *class_generics = ast_class_generic_params(decl);
             if (decl != NULL && decl->type == AST_CLASS_DECL
-                && class_generics != NULL && class_generics->count > 0) {
+                && ast_generic_param_count(class_generics) > 0) {
                 ctx->type_resolution_metadata_unresolved_named_generic_class++;
                 return;
             }
@@ -90,7 +90,8 @@ metadata_trace_dead_end_diagnostic(ASTNode *type_node)
     if (type_node != NULL && type_node->type == AST_TYPE) {
         name = ast_type_name(type_node);
         if (ast_type_generic_args(type_node) != NULL)
-            generic_count = ast_type_generic_args(type_node)->count;
+            generic_count = ast_generic_param_count(
+                ast_type_generic_args(type_node));
     }
     fprintf(stderr,
             "[type-res-dead-end] kind=%s name=%s generic_args=%llu line=%u column=%u\n",
@@ -137,7 +138,7 @@ semantic_type_resolution_record_metadata_dead_end_diagnostic(SemanticContext *ct
     if (type_node->type == AST_TYPE) {
         if (ast_type_name(type_node) != NULL) {
             GenericParams *args = ast_type_generic_args(type_node);
-            if (args != NULL && args->count > 0) {
+            if (ast_generic_param_count(args) > 0) {
                 ctx->type_resolution_metadata_unresolved_generic_named++;
             } else {
                 ctx->type_resolution_metadata_unresolved_named++;
@@ -145,8 +146,7 @@ semantic_type_resolution_record_metadata_dead_end_diagnostic(SemanticContext *ct
             }
             return;
         }
-        if (type_node->data.type.tuple_elements != NULL
-            && type_node->data.type.tuple_element_count > 0) {
+        if (ast_type_tuple_element_count(type_node) > 0) {
             ctx->type_resolution_metadata_unresolved_compound++;
             return;
         }

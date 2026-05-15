@@ -1,14 +1,16 @@
 #ifndef PGY_SRC_CODEGEN_TRANSPILER_EXPR_CALL_USER_EMIT_H
 #define PGY_SRC_CODEGEN_TRANSPILER_EXPR_CALL_USER_EMIT_H
 
+#include "../parser/ast_api.h"
 #include "transpiler_slot_target.h"
 
 static char *
 emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
 {
+    const char *callee_name = ast_identifier_name(callee);
     if (callee->type == AST_IDENTIFIER) {
         ASTNode *host_decl = transpiler_current_host_decl_local(ctx);
-        ASTNode *host_method = current_host_method_decl(ctx, callee->data.identifier.name);
+        ASTNode *host_method = current_host_method_decl(ctx, callee_name);
         const char *host_name = transpiler_decl_name_local(host_decl);
         if (host_method != NULL && host_name != NULL) {
             CodeBuf *args_buf = codebuf_create();
@@ -20,7 +22,7 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             }
             {
                 char *result = strdup_fmt("%s_%s(%s)",
-                    host_name, callee->data.identifier.name, args_buf->data);
+                    host_name, callee_name, args_buf->data);
                 codebuf_destroy(args_buf);
                 return result;
             }
@@ -29,7 +31,7 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
 
     char *callee_str = NULL;
     if (callee->type == AST_IDENTIFIER) {
-        ASTNode *decl = find_function_decl(ctx, callee->data.identifier.name);
+        ASTNode *decl = find_function_decl(ctx, callee_name);
         if (func_has_generic_params(decl)) {
             const char *specialized_name = ensure_generic_specialization(ctx, decl, call);
             if (specialized_name != NULL)
@@ -41,7 +43,7 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
 
     CodeBuf *args_buf = codebuf_create();
     ASTNode *decl = (callee->type == AST_IDENTIFIER)
-        ? find_callable_decl(ctx, callee->data.identifier.name) : NULL;
+        ? find_callable_decl(ctx, callee_name) : NULL;
     for (size_t i = 0; i < ast_call_arg_count(call); i++) {
         FuncParam *param = (decl != NULL && decl->type == AST_FUNC_DECL
                             && i < ast_func_param_count(decl))
@@ -131,7 +133,7 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                 ASTNode *arg_node = ast_call_argument(call, i);
                 if (arg_node != NULL && arg_node->type == AST_IDENTIFIER) {
                     TypedVarEntry *entry = lookup_typed_entry(ctx,
-                        arg_node->data.identifier.name);
+                        ast_identifier_name(arg_node));
                     if (entry != NULL && entry->is_subject_ref)
                         already_ptr = true;
                 }

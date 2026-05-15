@@ -36,7 +36,7 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
     }
     scope_declare(ctx->scope, sym);
 
-    if (role_generics != NULL && role_generics->count > 0) {
+    if (ast_generic_param_count(role_generics) > 0) {
         validate_generic_param_defaults(role_generics, ctx, node, "role");
     }
 
@@ -114,7 +114,7 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
                 ast_role_generic_params(included_role_decl);
             WhereClause *included_where =
                 ast_role_where_clause(included_role_decl);
-            if (included_generics != NULL && included_generics->count > 0) {
+            if (ast_generic_param_count(included_generics) > 0) {
                 size_t effective_count = 0;
                 ASTNode **effective_args = collect_effective_generic_arg_nodes(
                     included_generics,
@@ -259,10 +259,8 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
                         ability_ref != NULL ? ast_type_generic_args(ability_ref) : NULL;
                     GenericParams *ability_generics =
                         ast_ability_generic_params(ability_decl);
-                    size_t arg_count = impl_type_args != NULL
-                        ? impl_type_args->count : 0;
-                    size_t param_count = ability_generics != NULL
-                        ? ability_generics->count : 0;
+                    size_t arg_count = ast_generic_param_count(impl_type_args);
+                    size_t param_count = ast_generic_param_count(ability_generics);
                     bool malformed_impl_args = false;
 
                     if (arg_count > 0 && param_count == 0) {
@@ -326,8 +324,8 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
                         free(impl_text);
                     } else {
                         for (size_t k = 0; k < arg_count; k++) {
-                            GenericParam *gp = impl_type_args->params[k];
-                            ASTNode *arg = gp != NULL ? gp->constraint : NULL;
+                            GenericParam *gp = ast_generic_param_at(impl_type_args, k);
+                            ASTNode *arg = ast_generic_param_constraint(gp);
                             if (arg == NULL) {
                                 char *impl_text =
                                     ability_ref_display(ability_ref);
@@ -386,8 +384,8 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
             }
         } else if (impl->type == AST_OVERRIDE_FUNC) {
             /* Type-check the overridden function */
-            if (impl->data.override_func.func_decl != NULL)
-                type_check_func_decl(impl->data.override_func.func_decl, ctx);
+            if (ast_override_func_decl(impl) != NULL)
+                type_check_func_decl(ast_override_func_decl(impl), ctx);
         }
     }
     scope_exit(&ctx->scope);

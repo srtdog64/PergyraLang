@@ -116,7 +116,7 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
     ASTNode **applies = ast_zone_applies(stmt, &apply_count);
     for (size_t i = 0; i < apply_count; i++) {
         ASTNode *apply = applies[i];
-        const char *state_name = apply != NULL ? apply->data.zone_apply.state_name : NULL;
+        const char *state_name = apply != NULL ? ast_zone_directive_state_name(apply) : NULL;
         if (state_name == NULL && apply != NULL) {
             for (size_t j = 0; j < state_count; j++) {
                 ASTNode *state = states[j];
@@ -124,12 +124,12 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
                     && !ast_zone_state_is_relation(state)
                     && ast_zone_state_layer_slot_name(state) != NULL
                     && ast_zone_state_left_or_target_slot_name(state) != NULL
-                    && apply->data.zone_apply.effect_slot_name != NULL
-                    && apply->data.zone_apply.target_slot_name != NULL
+                    && ast_zone_effect_slot_name(apply) != NULL
+                    && ast_zone_effect_target_slot_name(apply) != NULL
                     && strcmp(ast_zone_state_layer_slot_name(state),
-                              apply->data.zone_apply.effect_slot_name) == 0
+                              ast_zone_effect_slot_name(apply)) == 0
                     && strcmp(ast_zone_state_left_or_target_slot_name(state),
-                              apply->data.zone_apply.target_slot_name) == 0) {
+                              ast_zone_effect_target_slot_name(apply)) == 0) {
                     state_name = ast_zone_state_name(state);
                     break;
                 }
@@ -154,7 +154,7 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
             llvm_stamp_domain_provenance(ctx, decl_cls, self_ptr, "state",
                 state_name, PGY_PROP_CAUSE_APPLY);
             if (apply != NULL) {
-                const char *layer_name = apply->data.zone_apply.effect_slot_name;
+                const char *layer_name = ast_zone_effect_slot_name(apply);
                 if (layer_name == NULL) {
                     for (size_t j = 0; j < state_count; j++) {
                         ASTNode *state = states[j];
@@ -183,9 +183,9 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
                         llvm_stamp_domain_provenance(ctx, decl_cls, self_ptr,
                             "layer", layer_name, PGY_PROP_CAUSE_APPLY);
                     }
-                    if (apply->data.zone_apply.target_slot_name != NULL) {
+                    if (ast_zone_effect_target_slot_name(apply) != NULL) {
                         llvm_zone_bind_effect_layer(stmt, decl_cls, sync_fn, ctx,
-                            layer_name, apply->data.zone_apply.target_slot_name);
+                            layer_name, ast_zone_effect_target_slot_name(apply));
                     } else {
                         for (size_t j = 0; j < state_count; j++) {
                             ASTNode *state = states[j];
@@ -204,14 +204,14 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
                 }
             }
         } else if (apply != NULL
-                   && apply->data.zone_apply.effect_slot_name != NULL
-                   && apply->data.zone_apply.target_slot_name != NULL) {
+                   && ast_zone_effect_slot_name(apply) != NULL
+                   && ast_zone_effect_target_slot_name(apply) != NULL) {
             char layer_field[256];
             int layer_idx;
             LLVMValueRef self_ptr = LLVMGetParam(sync_fn, 0);
             LLVMValueRef layer_ptr;
             if (!llvm_zone_sync_field_name(layer_field, sizeof(layer_field),
-                    "layer_active", apply->data.zone_apply.effect_slot_name))
+                    "layer_active", ast_zone_effect_slot_name(apply)))
                 continue;
             layer_idx = llvm_class_field_index(decl_cls, layer_field);
             if (layer_idx >= 0) {
@@ -220,12 +220,12 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
                 LLVMBuildStore(ctx->builder,
                     LLVMConstInt(ctx->type_i1, 1, 0), layer_ptr);
                 llvm_stamp_domain_provenance(ctx, decl_cls, self_ptr, "layer",
-                    apply->data.zone_apply.effect_slot_name,
+                    ast_zone_effect_slot_name(apply),
                     PGY_PROP_CAUSE_APPLY);
             }
             llvm_zone_bind_effect_layer(stmt, decl_cls, sync_fn, ctx,
-                apply->data.zone_apply.effect_slot_name,
-                apply->data.zone_apply.target_slot_name);
+                ast_zone_effect_slot_name(apply),
+                ast_zone_effect_target_slot_name(apply));
         }
     }
 
@@ -235,8 +235,8 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
     for (size_t i = 0; i < maintained_effect_count; i++) {
         ASTNode *maintain = maintained_effects[i];
         if (maintain == NULL
-            || maintain->data.zone_maintain_effect.effect_slot_name == NULL
-            || maintain->data.zone_maintain_effect.target_slot_name == NULL) {
+            || ast_zone_effect_slot_name(maintain) == NULL
+            || ast_zone_effect_target_slot_name(maintain) == NULL) {
             continue;
         }
         {
@@ -246,7 +246,7 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
             LLVMValueRef layer_ptr;
             if (!llvm_zone_sync_field_name(layer_field, sizeof(layer_field),
                     "layer_active",
-                    maintain->data.zone_maintain_effect.effect_slot_name))
+                    ast_zone_effect_slot_name(maintain)))
                 continue;
             layer_idx = llvm_class_field_index(decl_cls, layer_field);
             if (layer_idx >= 0) {
@@ -255,20 +255,20 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
                 LLVMBuildStore(ctx->builder,
                     LLVMConstInt(ctx->type_i1, 1, 0), layer_ptr);
                 llvm_stamp_domain_provenance(ctx, decl_cls, self_ptr, "layer",
-                    maintain->data.zone_maintain_effect.effect_slot_name,
+                    ast_zone_effect_slot_name(maintain),
                     PGY_PROP_CAUSE_MAINTAIN);
             }
-            if (maintain->data.zone_maintain_relation.left_slot_name != NULL
-                && maintain->data.zone_maintain_relation.right_slot_name != NULL) {
+            if (ast_zone_relation_left_slot_name(maintain) != NULL
+                && ast_zone_relation_right_slot_name(maintain) != NULL) {
                 llvm_zone_bind_relation_layer(stmt, decl_cls, sync_fn, ctx,
-                    maintain->data.zone_maintain_relation.relation_slot_name,
-                    maintain->data.zone_maintain_relation.left_slot_name,
-                    maintain->data.zone_maintain_relation.right_slot_name);
+                    ast_zone_relation_slot_name(maintain),
+                    ast_zone_relation_left_slot_name(maintain),
+                    ast_zone_relation_right_slot_name(maintain));
             }
         }
         llvm_zone_bind_effect_layer(stmt, decl_cls, sync_fn, ctx,
-            maintain->data.zone_maintain_effect.effect_slot_name,
-            maintain->data.zone_maintain_effect.target_slot_name);
+            ast_zone_effect_slot_name(maintain),
+            ast_zone_effect_target_slot_name(maintain));
         for (size_t j = 0; j < state_count; j++) {
             ASTNode *state = states[j];
             const char *state_name;
@@ -281,9 +281,9 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
                 || ast_zone_state_layer_slot_name(state) == NULL
                 || ast_zone_state_left_or_target_slot_name(state) == NULL
                 || strcmp(ast_zone_state_layer_slot_name(state),
-                          maintain->data.zone_maintain_effect.effect_slot_name) != 0
+                          ast_zone_effect_slot_name(maintain)) != 0
                 || strcmp(ast_zone_state_left_or_target_slot_name(state),
-                          maintain->data.zone_maintain_effect.target_slot_name) != 0) {
+                          ast_zone_effect_target_slot_name(maintain)) != 0) {
                 continue;
             }
             state_name = ast_zone_state_name(state);
@@ -308,13 +308,13 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
         ast_zone_maintained_states(stmt, &maintained_state_count);
     for (size_t i = 0; i < maintained_state_count; i++) {
         ASTNode *maintain = maintained_states[i];
-        if (maintain != NULL && maintain->data.zone_maintain_state.state_name != NULL) {
+        if (maintain != NULL && ast_zone_directive_state_name(maintain) != NULL) {
             char field_name[256];
             int field_idx;
             LLVMValueRef self_ptr;
             LLVMValueRef state_ptr;
             if (!llvm_zone_sync_field_name(field_name, sizeof(field_name),
-                    "state", maintain->data.zone_maintain_state.state_name))
+                    "state", ast_zone_directive_state_name(maintain)))
                 continue;
             field_idx = llvm_class_field_index(decl_cls, field_name);
             if (field_idx < 0)
@@ -325,14 +325,14 @@ llvm_emit_zone_sync(ASTNode *stmt, const char *decl_name,
             LLVMBuildStore(ctx->builder,
                 LLVMConstInt(ctx->type_i1, 1, 0), state_ptr);
             llvm_stamp_domain_provenance(ctx, decl_cls, self_ptr, "state",
-                maintain->data.zone_maintain_state.state_name,
+                ast_zone_directive_state_name(maintain),
                 PGY_PROP_CAUSE_MAINTAIN);
             for (size_t j = 0; j < state_count; j++) {
                 ASTNode *state = states[j];
                 if (state != NULL && state->type == AST_ZONE_STATE
                     && ast_zone_state_name(state) != NULL
                     && strcmp(ast_zone_state_name(state),
-                              maintain->data.zone_maintain_state.state_name) == 0) {
+                              ast_zone_directive_state_name(maintain)) == 0) {
                     char layer_field[256];
                     int layer_idx;
                     LLVMValueRef layer_ptr;

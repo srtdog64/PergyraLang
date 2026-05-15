@@ -1,6 +1,8 @@
 #ifndef PGY_TRANSPILER_SPAWN_CHANNEL_EMIT_H
 #define PGY_TRANSPILER_SPAWN_CHANNEL_EMIT_H
 
+#include "../parser/ast_api.h"
+
 char *
 emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
 {
@@ -46,7 +48,7 @@ emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
     }
 
     if (callee != NULL && callee->type == AST_IDENTIFIER)
-        function_name = callee->data.identifier.name;
+        function_name = ast_identifier_name(callee);
     if (function_name == NULL) {
         free(wrapper_name);
         free(return_type_name);
@@ -254,7 +256,7 @@ emit_channel_send(ASTNode *node, TranspilerCtx *ctx)
     if (channel != NULL
         && channel->type == AST_IDENTIFIER) {
         const char *type_name = lookup_typed_var(ctx,
-            channel->data.identifier.name);
+            ast_identifier_name(channel));
         if (type_name != NULL && strncmp(type_name, "Channel<", 8) == 0)
             if (slot_inner_type_name_copy(type_name, inner_buf,
                     sizeof(inner_buf)))
@@ -298,7 +300,7 @@ emit_channel_recv(ASTNode *node, TranspilerCtx *ctx)
     if (channel != NULL
         && channel->type == AST_IDENTIFIER) {
         const char *type_name = lookup_typed_var(ctx,
-            channel->data.identifier.name);
+            ast_identifier_name(channel));
         if (type_name != NULL && strncmp(type_name, "Channel<", 8) == 0)
             if (slot_inner_type_name_copy(type_name, inner_buf,
                     sizeof(inner_buf)))

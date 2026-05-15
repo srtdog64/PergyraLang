@@ -83,13 +83,13 @@ append_type_name(CodeBuf *buf, ASTNode *type_node)
         return;
     }
 
-    if (type_node->data.type.tuple_elements != NULL
-        && type_node->data.type.tuple_element_count > 0) {
+    if (ast_type_tuple_element_count(type_node) > 0) {
         codebuf_write(buf, "(");
-        for (size_t i = 0; i < type_node->data.type.tuple_element_count; i++) {
+        size_t element_count = ast_type_tuple_element_count(type_node);
+        for (size_t i = 0; i < element_count; i++) {
             if (i > 0)
                 codebuf_write(buf, ", ");
-            append_type_name(buf, type_node->data.type.tuple_elements[i]);
+            append_type_name(buf, ast_type_tuple_element(type_node, i));
         }
         codebuf_write(buf, ")");
         return;
@@ -105,18 +105,22 @@ append_type_name(CodeBuf *buf, ASTNode *type_node)
         codebuf_write(buf, "%s",
                       bound != NULL ? bound : ast_type_name(type_node));
     }
-    if (ast_type_generic_args(type_node) != NULL
-        && ast_type_generic_args(type_node)->count > 0) {
+    {
         GenericParams *generic_args = ast_type_generic_args(type_node);
+        size_t generic_count = ast_generic_param_count(generic_args);
+
+        if (generic_count == 0)
+            return;
+
         codebuf_write(buf, "<");
-        for (size_t i = 0; i < generic_args->count; i++) {
-            GenericParam *param = generic_args->params[i];
+        for (size_t i = 0; i < generic_count; i++) {
+            GenericParam *param = ast_generic_param_at(generic_args, i);
             if (i > 0)
                 codebuf_write(buf, ", ");
-            if (param != NULL && param->constraint != NULL) {
-                append_type_name(buf, param->constraint);
-            } else if (param != NULL && param->name != NULL) {
-                codebuf_write(buf, "%s", param->name);
+            if (ast_generic_param_constraint(param) != NULL) {
+                append_type_name(buf, ast_generic_param_constraint(param));
+            } else if (ast_generic_param_name(param) != NULL) {
+                codebuf_write(buf, "%s", ast_generic_param_name(param));
             } else {
                 codebuf_write(buf, "Int");
             }
@@ -132,14 +136,14 @@ render_type_name(ASTNode *type_node)
         return pergyra_strdup("Int");
 
     if (type_node->type == AST_CHANNEL_TYPE) {
-        char *inner = render_type_name(type_node->data.channel_type.element_type);
+        char *inner = render_type_name(ast_channel_type_element_type(type_node));
         char *result = transpiler_type_render_strdup_fmt("Channel<%s>", inner);
         free(inner);
         return result;
     }
 
     if (type_node->type == AST_FUTURE_TYPE) {
-        char *inner = render_type_name(type_node->data.future_type.value_type);
+        char *inner = render_type_name(ast_future_type_value_type(type_node));
         char *result = transpiler_type_render_strdup_fmt("Future<%s>", inner);
         free(inner);
         return result;

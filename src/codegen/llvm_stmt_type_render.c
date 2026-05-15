@@ -25,18 +25,19 @@ llvm_stmt_render_type_arg_scratch(GenericParam *param, PgyArena *arena)
     if (param == NULL)
         return NULL;
 
-    type = param->constraint;
+    type = ast_generic_param_constraint(param);
     if (ast_type_name(type) != NULL) {
         GenericParams *generic_args = ast_type_generic_args(type);
-        if (generic_args == NULL || generic_args->count == 0)
+        size_t generic_count = ast_generic_param_count(generic_args);
+        if (generic_count == 0)
             return pgy_arena_strdup(arena, ast_type_name(type));
 
         char *result = pgy_arena_strdup(arena, ast_type_name(type));
         if (result == NULL)
             return NULL;
-        for (size_t i = 0; i < generic_args->count; i++) {
+        for (size_t i = 0; i < generic_count; i++) {
             char *arg = llvm_stmt_render_type_arg_scratch(
-                generic_args->params[i], arena);
+                ast_generic_param_at(generic_args, i), arena);
             if (arg == NULL || arg[0] == '\0')
                 return NULL;
             size_t cur_len = strlen(result);
@@ -76,8 +77,8 @@ llvm_stmt_render_type_arg_scratch(GenericParam *param, PgyArena *arena)
         return result;
     }
 
-    if (param->name != NULL)
-        return pgy_arena_strdup(arena, param->name);
+    if (ast_generic_param_name(param) != NULL)
+        return pgy_arena_strdup(arena, ast_generic_param_name(param));
     return NULL;
 }
 

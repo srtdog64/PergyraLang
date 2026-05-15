@@ -28,7 +28,7 @@ type_check_let_destructure_tail(ASTNode *node, ASTNode *init,
 
     if (type_is_tuple(init_type)) {
         size_t arity = type_tuple_arity(init_type);
-        size_t binds = node->data.let_destructure.name_count;
+        size_t binds = ast_let_destructure_name_count(node);
         if (arity != binds) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
                 PGY_CAUSE_DESTRUCTURING_ARITY_MISMATCH,
@@ -44,11 +44,11 @@ type_check_let_destructure_tail(ASTNode *node, ASTNode *init,
                 semantic_validate_borrowed_escape(
                     node, init, ctx, init_type, NULL,
                     OWNERSHIP_CONSUMER_DESTRUCTURE_TARGET_BINDING, NULL,
-                    node->data.let_destructure.names[i], NULL,
+                    ast_let_destructure_name(node, i), NULL,
                     false, NULL, NULL);
             }
             Symbol *s = symbol_create_variable(
-                node->data.let_destructure.names[i],
+                ast_let_destructure_name(node, i),
                 elem != NULL ? elem : TYPE_UNKNOWN,
                 node->line, node->column);
             scope_declare(ctx->scope, s);
@@ -56,7 +56,7 @@ type_check_let_destructure_tail(ASTNode *node, ASTNode *init,
         return true;
     }
 
-    for (size_t i = 0; i < node->data.let_destructure.name_count; i++) {
+    for (size_t i = 0; i < ast_let_destructure_name_count(node); i++) {
         Type *elem_type = TYPE_UNKNOWN;
         if (type_is_constructed_named(init_type, "Array")
             || type_is_constructed_named(init_type, "Slice")) {
@@ -66,11 +66,11 @@ type_check_let_destructure_tail(ASTNode *node, ASTNode *init,
             semantic_validate_borrowed_escape(
                 node, init, ctx, init_type, NULL,
                 OWNERSHIP_CONSUMER_DESTRUCTURE_TARGET_BINDING, NULL,
-                node->data.let_destructure.names[i], NULL,
+                ast_let_destructure_name(node, i), NULL,
                 false, NULL, NULL);
         }
         Symbol *s = symbol_create_variable(
-            node->data.let_destructure.names[i], elem_type,
+            ast_let_destructure_name(node, i), elem_type,
             node->line, node->column);
         scope_declare(ctx->scope, s);
     }
@@ -86,16 +86,16 @@ type_check_let_destructure_stmt(ASTNode *node, SemanticContext *ctx)
     if (node == NULL || node->type != AST_LET_DESTRUCTURE)
         return true;
 
-    init = node->data.let_destructure.initializer;
+    init = ast_let_destructure_initializer(node);
 
     if (init != NULL
         && init->type == AST_CALL
         && ast_call_callee(init) != NULL
         && ast_call_callee(init)->type == AST_IDENTIFIER
-        && ast_call_callee(init)->data.identifier.name != NULL
+        && ast_identifier_name(ast_call_callee(init)) != NULL
         && ast_call_generic_arg_count(init) >= 1) {
         const char *callee_name =
-            ast_call_callee(init)->data.identifier.name;
+            ast_identifier_name(ast_call_callee(init));
         bool is_claim_slot =
             (strcmp(callee_name, "ClaimSlot") == 0);
         bool is_claim_secure =
@@ -104,9 +104,9 @@ type_check_let_destructure_stmt(ASTNode *node, SemanticContext *ctx)
             GenericParam *inner_param =
                 ast_call_generic_arg(init, 0);
             const char *inner_name =
-                inner_param != NULL ? inner_param->name : NULL;
+                ast_generic_param_name(inner_param);
             ASTNode *inner_node =
-                inner_param != NULL ? inner_param->constraint : NULL;
+                ast_generic_param_constraint(inner_param);
             Type *inner_type = NULL;
             if (inner_node != NULL)
                 inner_type = domain_resolve_type_ref(inner_node, ctx);
@@ -124,11 +124,11 @@ type_check_let_destructure_stmt(ASTNode *node, SemanticContext *ctx)
             if (is_claim_secure)
                 semantic_record_effect(ctx, EFFECT_SECURE);
 
-            if (is_claim_secure && node->data.let_destructure.name_count == 2) {
+            if (is_claim_secure && ast_let_destructure_name_count(node) == 2) {
                 const char *slot_name =
-                    node->data.let_destructure.names[0];
+                    ast_let_destructure_name(node, 0);
                 const char *token_name =
-                    node->data.let_destructure.names[1];
+                    ast_let_destructure_name(node, 1);
                 Symbol *slot_sym = symbol_create_slot(slot_name, slot_type,
                     true, token_name, node->line, node->column);
                 scope_declare(ctx->scope, slot_sym);
@@ -144,9 +144,9 @@ type_check_let_destructure_stmt(ASTNode *node, SemanticContext *ctx)
                 scope_register_slot(ctx->scope, slot_sym);
                 return true;
             }
-            if (is_claim_slot && node->data.let_destructure.name_count == 1) {
+            if (is_claim_slot && ast_let_destructure_name_count(node) == 1) {
                 const char *slot_name =
-                    node->data.let_destructure.names[0];
+                    ast_let_destructure_name(node, 0);
                 Symbol *slot_sym = symbol_create_slot(slot_name, slot_type,
                     false, NULL, node->line, node->column);
                 scope_declare(ctx->scope, slot_sym);

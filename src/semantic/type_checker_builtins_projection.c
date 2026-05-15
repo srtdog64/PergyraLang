@@ -36,7 +36,7 @@ type_check_projection_call(ASTNode *call,
     source_arg = ast_call_argument(call, 1);
 
     if (target_arg == NULL || target_arg->type != AST_IDENTIFIER
-        || target_arg->data.identifier.name == NULL) {
+        || ast_identifier_name(target_arg) == NULL) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
             PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE,
             call,
@@ -46,7 +46,7 @@ type_check_projection_call(ASTNode *call,
     }
 
     if (source_arg == NULL || source_arg->type != AST_IDENTIFIER
-        || source_arg->data.identifier.name == NULL) {
+        || ast_identifier_name(source_arg) == NULL) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
             PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH, PGY_FIX_MATCH_BUILTIN_SIGNATURE,
             call,
@@ -56,7 +56,7 @@ type_check_projection_call(ASTNode *call,
     }
 
     target_decl = find_named_class_decl(ctx->program_root,
-        target_arg->data.identifier.name);
+        ast_identifier_name(target_arg));
     if (target_decl == NULL
         || !ast_class_is_struct(target_decl)
         || ast_class_nominal_kind(target_decl) != expected_kind) {
@@ -65,19 +65,19 @@ type_check_projection_call(ASTNode *call,
             target_arg,
             "%s target '%s' must be a %s declaration",
             builtin_name,
-            target_arg->data.identifier.name,
+            ast_identifier_name(target_arg),
             expected_label);
         return TYPE_UNKNOWN;
     }
 
-    target_sym = scope_lookup(ctx->scope, target_arg->data.identifier.name);
+    target_sym = scope_lookup(ctx->scope, ast_identifier_name(target_arg));
     if (target_sym == NULL || target_sym->type == NULL) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_UNKNOWN_TYPE,
             PGY_CAUSE_TYPE_UNKNOWN, PGY_FIX_DECLARE_OR_IMPORT_TYPE,
             target_arg,
             "Unknown %s type '%s'",
             expected_label,
-            target_arg->data.identifier.name);
+            ast_identifier_name(target_arg));
         return TYPE_UNKNOWN;
     }
 

@@ -120,10 +120,10 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
 
     for (size_t i = 0; i < activate_count; i++) {
         ASTNode *activate = activations[i];
-        const char *zone_slot_name = activate->data.world_activate.zone_slot_name;
-        if (activate->data.world_activate.state_name != NULL) {
+        const char *zone_slot_name = ast_world_directive_zone_slot_name(activate);
+        if (ast_world_directive_state_name(activate) != NULL) {
             if (!resolve_world_zone_state(node, activate,
-                    activate->data.world_activate.state_name, ctx, "activate",
+                    ast_world_directive_state_name(activate), ctx, "activate",
                     &zone_slot_name)) {
                 continue;
             }
@@ -146,10 +146,10 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
         }
         for (size_t j = i + 1; j < activate_count; j++) {
             ASTNode *other = activations[j];
-            const char *other_zone = other->data.world_activate.zone_slot_name;
-            if (other->data.world_activate.state_name != NULL) {
+            const char *other_zone = ast_world_directive_zone_slot_name(other);
+            if (ast_world_directive_state_name(other) != NULL) {
                 resolve_world_zone_state(node, other,
-                    other->data.world_activate.state_name, ctx, "activate",
+                    ast_world_directive_state_name(other), ctx, "activate",
                     &other_zone);
             }
             if (zone_slot_name != NULL && other_zone != NULL
@@ -168,10 +168,10 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
         }
         for (size_t j = 0; j < deactivate_count; j++) {
             ASTNode *deactivate = deactivations[j];
-            const char *other_zone = deactivate->data.world_deactivate.zone_slot_name;
-            if (deactivate->data.world_deactivate.state_name != NULL) {
+            const char *other_zone = ast_world_directive_zone_slot_name(deactivate);
+            if (ast_world_directive_state_name(deactivate) != NULL) {
                 resolve_world_zone_state(node, deactivate,
-                    deactivate->data.world_deactivate.state_name, ctx, "deactivate",
+                    ast_world_directive_state_name(deactivate), ctx, "deactivate",
                     &other_zone);
             }
             if (zone_slot_name != NULL && other_zone != NULL
@@ -190,10 +190,10 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
         }
         for (size_t j = 0; j < maintained_zone_count; j++) {
             ASTNode *maintain = maintained_zones[j];
-            const char *other_zone = maintain->data.world_maintain.zone_slot_name;
-            if (maintain->data.world_maintain.state_name != NULL) {
+            const char *other_zone = ast_world_directive_zone_slot_name(maintain);
+            if (ast_world_directive_state_name(maintain) != NULL) {
                 resolve_world_zone_state(node, maintain,
-                    maintain->data.world_maintain.state_name, ctx, "maintain",
+                    ast_world_directive_state_name(maintain), ctx, "maintain",
                     &other_zone);
             }
             if (zone_slot_name != NULL && other_zone != NULL
@@ -214,10 +214,10 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
 
     for (size_t i = 0; i < deactivate_count; i++) {
         ASTNode *deactivate = deactivations[i];
-        const char *zone_slot_name = deactivate->data.world_deactivate.zone_slot_name;
-        if (deactivate->data.world_deactivate.state_name != NULL) {
+        const char *zone_slot_name = ast_world_directive_zone_slot_name(deactivate);
+        if (ast_world_directive_state_name(deactivate) != NULL) {
             if (!resolve_world_zone_state(node, deactivate,
-                    deactivate->data.world_deactivate.state_name, ctx, "deactivate",
+                    ast_world_directive_state_name(deactivate), ctx, "deactivate",
                     &zone_slot_name)) {
                 continue;
             }
@@ -240,10 +240,10 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
         }
         for (size_t j = i + 1; j < deactivate_count; j++) {
             ASTNode *other = deactivations[j];
-            const char *other_zone = other->data.world_deactivate.zone_slot_name;
-            if (other->data.world_deactivate.state_name != NULL) {
+            const char *other_zone = ast_world_directive_zone_slot_name(other);
+            if (ast_world_directive_state_name(other) != NULL) {
                 resolve_world_zone_state(node, other,
-                    other->data.world_deactivate.state_name, ctx, "deactivate",
+                    ast_world_directive_state_name(other), ctx, "deactivate",
                     &other_zone);
             }
             if (zone_slot_name != NULL && other_zone != NULL
@@ -264,8 +264,8 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
 
     for (size_t i = 0; i < maintained_zone_count; i++) {
         ASTNode *maintain = maintained_zones[i];
-        const char *zone_slot_name = maintain->data.world_maintain.zone_slot_name;
-        const char *state_name = maintain->data.world_maintain.state_name;
+        const char *zone_slot_name = ast_world_directive_zone_slot_name(maintain);
+        const char *state_name = ast_world_directive_state_name(maintain);
         if (state_name != NULL) {
             if (!resolve_world_zone_state(node, maintain, state_name, ctx, "maintain",
                     &zone_slot_name)) {
@@ -290,10 +290,10 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
         }
         for (size_t j = i + 1; j < maintained_zone_count; j++) {
             ASTNode *other = maintained_zones[j];
-            const char *other_zone = other->data.world_maintain.zone_slot_name;
-            if (other->data.world_maintain.state_name != NULL) {
+            const char *other_zone = ast_world_directive_zone_slot_name(other);
+            if (ast_world_directive_state_name(other) != NULL) {
                 resolve_world_zone_state(node, other,
-                    other->data.world_maintain.state_name, ctx, "maintain", &other_zone);
+                    ast_world_directive_state_name(other), ctx, "maintain", &other_zone);
             }
             if (zone_slot_name != NULL && other_zone != NULL
                 && strcmp(zone_slot_name, other_zone) == 0) {
@@ -311,10 +311,10 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
         }
         for (size_t j = 0; j < deactivate_count; j++) {
             ASTNode *deactivate = deactivations[j];
-            const char *other_zone = deactivate->data.world_deactivate.zone_slot_name;
-            if (deactivate->data.world_deactivate.state_name != NULL) {
+            const char *other_zone = ast_world_directive_zone_slot_name(deactivate);
+            if (ast_world_directive_state_name(deactivate) != NULL) {
                 resolve_world_zone_state(node, deactivate,
-                    deactivate->data.world_deactivate.state_name, ctx, "deactivate",
+                    ast_world_directive_state_name(deactivate), ctx, "deactivate",
                     &other_zone);
             }
             if (zone_slot_name != NULL && other_zone != NULL
@@ -334,10 +334,10 @@ type_check_world_decl(ASTNode *node, SemanticContext *ctx)
         }
         for (size_t j = 0; j < activate_count; j++) {
             ASTNode *activate = activations[j];
-            const char *other_zone = activate->data.world_activate.zone_slot_name;
-            if (activate->data.world_activate.state_name != NULL) {
+            const char *other_zone = ast_world_directive_zone_slot_name(activate);
+            if (ast_world_directive_state_name(activate) != NULL) {
                 resolve_world_zone_state(node, activate,
-                    activate->data.world_activate.state_name, ctx, "activate",
+                    ast_world_directive_state_name(activate), ctx, "activate",
                     &other_zone);
             }
             if (zone_slot_name != NULL && other_zone != NULL

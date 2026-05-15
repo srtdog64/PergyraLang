@@ -208,7 +208,7 @@ llvm_emit_rc_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
     }
 
     if (arg == NULL || arg->type != AST_IDENTIFIER
-        || arg->data.identifier.name == NULL) {
+        || ast_identifier_name(arg) == NULL) {
         llvm_set_error_at_with_hints(ctx, node,
             PGY_CODE_LLVM_TYPE_UNSUPPORTED,
             PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
@@ -218,7 +218,7 @@ llvm_emit_rc_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         return true;
     }
 
-    const char *var_name = arg->data.identifier.name;
+    const char *var_name = ast_identifier_name(arg);
     LLVMVarEntry *var = llvm_scope_lookup(ctx, var_name);
     const char *inner = (is_weak_upgrade || is_weak_drop)
         ? llvm_lookup_weak_inner(ctx, var_name)

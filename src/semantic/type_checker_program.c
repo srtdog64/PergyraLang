@@ -81,8 +81,8 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
      * Pass 1: collect all top-level function and class names
      * so that forward references within the same file work.
      */
-    for (size_t i = 0; i < program->data.program.count; i++) {
-        ASTNode *stmt = program->data.program.statements[i];
+    for (size_t i = 0; i < ast_program_statement_count(program); i++) {
+        ASTNode *stmt = ast_program_statement(program, i);
         if (stmt->type == AST_TYPE_ALIAS) {
             const char *tname = ast_type_alias_name(stmt);
             if (tname != NULL && scope_lookup_current(ctx->scope, tname) == NULL) {
@@ -160,8 +160,8 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                         "function placeholder type");
                 }
                 if (placeholder != NULL)
-                    placeholder->data.function.effect_mask =
-                        declared_effects_from_function_node(stmt, ctx, NULL);
+                    type_function_set_effects(placeholder,
+                        declared_effects_from_function_node(stmt, ctx, NULL));
                 free(ptypes);
                 Symbol *s = symbol_create_function(fname, placeholder,
                                                     stmt->line, stmt->column);
@@ -182,9 +182,9 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                     ASTNode *p = ast_event_param(stmt, j);
                     if (p != NULL
                         && p->type == AST_LET_DECL
-                        && p->data.let_decl.type != NULL) {
+                        && ast_let_type(p) != NULL) {
                         eptypes[j] = program_lookup_dag_type_ref_or_unknown(
-                            p->data.let_decl.type, ctx);
+                            ast_let_type(p), ctx);
                     } else {
                         eptypes[j] = TYPE_UNKNOWN;
                     }
@@ -277,8 +277,8 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
                 if (scope_lookup_current(ctx->scope, fname) == NULL) {
                     Type *placeholder = type_create_function(NULL, 0, TYPE_VOID);
                     if (placeholder != NULL)
-                        placeholder->data.function.effect_mask =
-                            declared_effects_from_function_node(decl, ctx, NULL);
+                        type_function_set_effects(placeholder,
+                            declared_effects_from_function_node(decl, ctx, NULL));
                     if (placeholder == NULL)
                         return program_report_resolution_oom(ctx, decl,
                             "extern placeholder type");
@@ -394,8 +394,8 @@ type_check_program(ASTNode *program, SemanticContext *ctx)
     /*
      * Pass 2: full type-check
      */
-    for (size_t i = 0; i < program->data.program.count; i++)
-        type_check_statement(program->data.program.statements[i], ctx);
+    for (size_t i = 0; i < ast_program_statement_count(program); i++)
+        type_check_statement(ast_program_statement(program, i), ctx);
 
     (void)type_resolution_validate_graph(ctx);
 

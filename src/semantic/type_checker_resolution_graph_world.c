@@ -129,7 +129,7 @@ semantic_type_resolution_precollect_world_inventory(ASTNode *world_decl,
 
         state_label = semantic_type_resolution_world_state_label(
             world_decl,
-            state->data.world_state.state_name);
+            ast_world_state_name(state));
         if (state_label == NULL)
             continue;
 
@@ -138,12 +138,12 @@ semantic_type_resolution_precollect_world_inventory(ASTNode *world_decl,
 
         zone_slot_decl = semantic_world_find_zone_slot_local(
             world_decl,
-            state->data.world_state.zone_slot_name);
+            ast_world_state_zone_slot_name(state));
 
-        if (state->data.world_state.zone_slot_name != NULL) {
+        if (ast_world_state_zone_slot_name(state) != NULL) {
             char *zone_slot_label = semantic_type_resolution_world_zone_slot_label(
                 world_decl,
-                state->data.world_state.zone_slot_name);
+                ast_world_state_zone_slot_name(state));
             if (zone_slot_label != NULL) {
                 semantic_type_resolution_record_local_contract_dependency(
                     ctx,
@@ -159,16 +159,16 @@ semantic_type_resolution_precollect_world_inventory(ASTNode *world_decl,
         if (zone_slot_decl != NULL
             && zone_slot_decl->type == AST_WORLD_ZONE
             && ast_world_zone_type_name(zone_slot_decl) != NULL
-            && state->data.world_state.detail_name != NULL) {
+            && ast_world_state_detail_name(state) != NULL) {
             ASTNode *zone_type_decl = find_domain_decl_by_name(
                 ctx->program_root,
                 AST_ZONE_DECL,
                 ast_world_zone_type_name(zone_slot_decl));
             if (zone_type_decl != NULL) {
-                if (state->data.world_state.source_kind == WORLD_STATE_SOURCE_PROJECTION) {
+                if (ast_world_state_source_kind(state) == WORLD_STATE_SOURCE_PROJECTION) {
                     char *projection_label = semantic_type_resolution_zone_slot_label(
                         zone_type_decl,
-                        state->data.world_state.detail_name);
+                        ast_world_state_detail_name(state));
                     if (projection_label != NULL) {
                         semantic_type_resolution_record_local_contract_dependency(
                             ctx,
@@ -179,10 +179,10 @@ semantic_type_resolution_precollect_world_inventory(ASTNode *world_decl,
                             "world state projection lookup");
                         free(projection_label);
                     }
-                } else if (state->data.world_state.source_kind == WORLD_STATE_SOURCE_LAYER) {
+                } else if (ast_world_state_source_kind(state) == WORLD_STATE_SOURCE_LAYER) {
                     char *layer_label = semantic_type_resolution_zone_layer_label(
                         zone_type_decl,
-                        state->data.world_state.detail_name);
+                        ast_world_state_detail_name(state));
                     if (layer_label != NULL) {
                         semantic_type_resolution_record_local_contract_dependency(
                             ctx,
@@ -193,10 +193,10 @@ semantic_type_resolution_precollect_world_inventory(ASTNode *world_decl,
                             "world state layer lookup");
                         free(layer_label);
                     }
-                } else if (state->data.world_state.source_kind == WORLD_STATE_SOURCE_STATE) {
+                } else if (ast_world_state_source_kind(state) == WORLD_STATE_SOURCE_STATE) {
                     char *nested_state_label = semantic_type_resolution_zone_state_label(
                         zone_type_decl,
-                        state->data.world_state.detail_name);
+                        ast_world_state_detail_name(state));
                     if (nested_state_label != NULL) {
                         semantic_type_resolution_record_local_contract_dependency(
                             ctx,
@@ -211,10 +211,10 @@ semantic_type_resolution_precollect_world_inventory(ASTNode *world_decl,
             }
         }
 
-        if (state->data.world_state.source_kind == WORLD_STATE_SOURCE_ALL
-            || state->data.world_state.source_kind == WORLD_STATE_SOURCE_ANY) {
-            for (size_t input_i = 0; input_i < state->data.world_state.input_count; input_i++) {
-                const char *input_name = state->data.world_state.input_names[input_i];
+        if (ast_world_state_source_kind(state) == WORLD_STATE_SOURCE_ALL
+            || ast_world_state_source_kind(state) == WORLD_STATE_SOURCE_ANY) {
+            for (size_t input_i = 0; input_i < ast_world_state_input_count(state); input_i++) {
+                const char *input_name = ast_world_state_input_name(state, input_i);
                 char *input_state_label = semantic_type_resolution_world_state_label(
                     world_decl,
                     input_name);
@@ -261,17 +261,17 @@ semantic_type_resolution_precollect_world_inventory(ASTNode *world_decl,
                                                      world_name != NULL
                                                          ? world_name
                                                          : "<world>",
-                                                     activate->data.world_activate.state_name != NULL
-                                                         ? activate->data.world_activate.state_name
-                                                         : (activate->data.world_activate.zone_slot_name != NULL
-                                                             ? activate->data.world_activate.zone_slot_name
+                                                     ast_world_directive_state_name(activate) != NULL
+                                                         ? ast_world_directive_state_name(activate)
+                                                         : (ast_world_directive_zone_slot_name(activate) != NULL
+                                                             ? ast_world_directive_zone_slot_name(activate)
                                                              : "<target>"));
         if (consumer_label == NULL)
             continue;
-        if (activate->data.world_activate.state_name != NULL) {
+        if (ast_world_directive_state_name(activate) != NULL) {
             char *state_label = semantic_type_resolution_world_state_label(
                 world_decl,
-                activate->data.world_activate.state_name);
+                ast_world_directive_state_name(activate));
             if (state_label != NULL) {
                 semantic_type_resolution_record_local_contract_dependency(
                     ctx,
@@ -282,10 +282,10 @@ semantic_type_resolution_precollect_world_inventory(ASTNode *world_decl,
                     "world activate state lookup");
                 free(state_label);
             }
-        } else if (activate->data.world_activate.zone_slot_name != NULL) {
+        } else if (ast_world_directive_zone_slot_name(activate) != NULL) {
             char *zone_slot_label = semantic_type_resolution_world_zone_slot_label(
                 world_decl,
-                activate->data.world_activate.zone_slot_name);
+                ast_world_directive_zone_slot_name(activate));
             if (zone_slot_label != NULL) {
                 semantic_type_resolution_record_local_contract_dependency(
                     ctx,
@@ -311,17 +311,17 @@ semantic_type_resolution_precollect_world_inventory(ASTNode *world_decl,
                                                      world_name != NULL
                                                          ? world_name
                                                          : "<world>",
-                                                     deactivate->data.world_deactivate.state_name != NULL
-                                                         ? deactivate->data.world_deactivate.state_name
-                                                         : (deactivate->data.world_deactivate.zone_slot_name != NULL
-                                                             ? deactivate->data.world_deactivate.zone_slot_name
+                                                     ast_world_directive_state_name(deactivate) != NULL
+                                                         ? ast_world_directive_state_name(deactivate)
+                                                         : (ast_world_directive_zone_slot_name(deactivate) != NULL
+                                                             ? ast_world_directive_zone_slot_name(deactivate)
                                                              : "<target>"));
         if (consumer_label == NULL)
             continue;
-        if (deactivate->data.world_deactivate.state_name != NULL) {
+        if (ast_world_directive_state_name(deactivate) != NULL) {
             char *state_label = semantic_type_resolution_world_state_label(
                 world_decl,
-                deactivate->data.world_deactivate.state_name);
+                ast_world_directive_state_name(deactivate));
             if (state_label != NULL) {
                 semantic_type_resolution_record_local_contract_dependency(
                     ctx,
@@ -332,10 +332,10 @@ semantic_type_resolution_precollect_world_inventory(ASTNode *world_decl,
                     "world deactivate state lookup");
                 free(state_label);
             }
-        } else if (deactivate->data.world_deactivate.zone_slot_name != NULL) {
+        } else if (ast_world_directive_zone_slot_name(deactivate) != NULL) {
             char *zone_slot_label = semantic_type_resolution_world_zone_slot_label(
                 world_decl,
-                deactivate->data.world_deactivate.zone_slot_name);
+                ast_world_directive_zone_slot_name(deactivate));
             if (zone_slot_label != NULL) {
                 semantic_type_resolution_record_local_contract_dependency(
                     ctx,
@@ -361,17 +361,17 @@ semantic_type_resolution_precollect_world_inventory(ASTNode *world_decl,
                                                      world_name != NULL
                                                          ? world_name
                                                          : "<world>",
-                                                     maintain->data.world_maintain.state_name != NULL
-                                                         ? maintain->data.world_maintain.state_name
-                                                         : (maintain->data.world_maintain.zone_slot_name != NULL
-                                                             ? maintain->data.world_maintain.zone_slot_name
+                                                     ast_world_directive_state_name(maintain) != NULL
+                                                         ? ast_world_directive_state_name(maintain)
+                                                         : (ast_world_directive_zone_slot_name(maintain) != NULL
+                                                             ? ast_world_directive_zone_slot_name(maintain)
                                                              : "<target>"));
         if (consumer_label == NULL)
             continue;
-        if (maintain->data.world_maintain.state_name != NULL) {
+        if (ast_world_directive_state_name(maintain) != NULL) {
             char *state_label = semantic_type_resolution_world_state_label(
                 world_decl,
-                maintain->data.world_maintain.state_name);
+                ast_world_directive_state_name(maintain));
             if (state_label != NULL) {
                 semantic_type_resolution_record_local_contract_dependency(
                     ctx,
@@ -382,10 +382,10 @@ semantic_type_resolution_precollect_world_inventory(ASTNode *world_decl,
                     "world maintain state lookup");
                 free(state_label);
             }
-        } else if (maintain->data.world_maintain.zone_slot_name != NULL) {
+        } else if (ast_world_directive_zone_slot_name(maintain) != NULL) {
             char *zone_slot_label = semantic_type_resolution_world_zone_slot_label(
                 world_decl,
-                maintain->data.world_maintain.zone_slot_name);
+                ast_world_directive_zone_slot_name(maintain));
             if (zone_slot_label != NULL) {
                 semantic_type_resolution_record_local_contract_dependency(
                     ctx,

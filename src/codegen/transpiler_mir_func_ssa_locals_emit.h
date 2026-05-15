@@ -149,8 +149,8 @@ transpiler_emit_mir_func_ssa_local_decls(TranspilerCtx *ctx,
             }
             ASTNode *body = ast_func_body(node);
             if (!has_param && body != NULL && body->type == AST_BLOCK) {
-                for (size_t s = 0; s < body->data.block.count; s++) {
-                    ASTNode *stmt = body->data.block.statements[s];
+                for (size_t s = 0; s < ast_block_statement_count(body); s++) {
+                    ASTNode *stmt = ast_block_statement(body, s);
                     if (stmt == NULL)
                         continue;
                     if (stmt->type == AST_WITH_STMT

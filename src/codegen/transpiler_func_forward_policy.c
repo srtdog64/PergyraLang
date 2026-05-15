@@ -9,6 +9,7 @@
 
 #include "transpiler.h"
 #include "transpiler_decl_lookup.h"
+#include "../parser/ast_api.h"
 
 bool
 transpiler_can_forward_declare_type_early(TranspilerCtx *ctx,
@@ -56,7 +57,7 @@ transpiler_can_forward_declare_func_early(TranspilerCtx *ctx, ASTNode *func)
     if (ctx == NULL || func == NULL || func->type != AST_FUNC_DECL)
         return false;
     GenericParams *generic_params = ast_func_generic_params(func);
-    if (generic_params != NULL && generic_params->count > 0)
+    if (ast_generic_param_count(generic_params) > 0)
         return false;
     if (!transpiler_can_forward_declare_type_early(ctx,
             ast_func_return_type(func)))
@@ -96,7 +97,7 @@ transpiler_can_forward_declare_func_after_zones(TranspilerCtx *ctx,
     if (ctx == NULL || func == NULL || func->type != AST_FUNC_DECL)
         return false;
     GenericParams *generic_params = ast_func_generic_params(func);
-    if (generic_params != NULL && generic_params->count > 0)
+    if (ast_generic_param_count(generic_params) > 0)
         return false;
     if (!transpiler_can_forward_declare_type_after_zones(ctx,
             ast_func_return_type(func)))

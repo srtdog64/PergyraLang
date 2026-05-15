@@ -2,6 +2,7 @@
 #define PGY_TRANSPILER_EXPR_DISPATCH_EMIT_H
 
 #include "../common/string_compat.h"
+#include "../parser/ast_api.h"
 
 char *
 emit_expression(ASTNode *node, TranspilerCtx *ctx)
@@ -11,25 +12,14 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
 
     switch (node->type) {
     case AST_NUMBER:
-        if (node->data.number.is_long)
-            return strdup_fmt("%lldLL", (long long)(int64_t)node->data.number.value);
-        if (node->data.number.value == (int64_t)node->data.number.value)
-            return strdup_fmt("%lld", (long long)(int64_t)node->data.number.value);
-        return strdup_fmt("%g", node->data.number.value);
-
     case AST_STRING:
-    {
-        char *escaped = escape_c_string_literal(node->data.string.value);
-        char *result = strdup_fmt("\"%s\"", escaped);
-        free(escaped);
-        return result;
-    }
-
     case AST_BOOLEAN:
-        return pergyra_strdup(node->data.boolean.value ? "true" : "false");
+        return emit_literal_expression(node);
 
     case AST_IDENTIFIER: {
-        const char *id_name = node->data.identifier.name;
+        const char *id_name = ast_identifier_name(node);
+        if (id_name == NULL)
+            return pergyra_strdup("0");
         /* None is target-typed; without contextual Option<T> semantic should
          * already reject it, and the backend keeps a hard guard. */
         if (strcmp(id_name, "None") == 0) {
@@ -204,7 +194,7 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
             && member_object->type == AST_IDENTIFIER
             && member_name != NULL) {
             TypedVarEntry *entry = lookup_typed_entry(ctx,
-                member_object->data.identifier.name);
+                ast_identifier_name(member_object));
             if (entry != NULL && entry->is_projection_borrow) {
                 const char *source_type = lookup_typed_var(ctx, entry->source_slot);
                 ASTNode *source_decl = source_type != NULL
@@ -232,14 +222,15 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
         char *obj = emit_expression(member_object, ctx);
         /* Enum variant access: Color.Red ??Color_Red */
         if (member_object->type == AST_IDENTIFIER
-            && member_object->data.identifier.name[0] >= 'A'
-            && member_object->data.identifier.name[0] <= 'Z') {
+            && ast_identifier_name(member_object) != NULL
+            && ast_identifier_name(member_object)[0] >= 'A'
+            && ast_identifier_name(member_object)[0] <= 'Z') {
             char *result = strdup_fmt("%s_%s", obj, member_name);
             free(obj);
             return result;
         }
         if (member_object->type == AST_IDENTIFIER
-            && strcmp(member_object->data.identifier.name, "self") == 0) {
+            && strcmp(ast_identifier_name(member_object), "self") == 0) {
             ASTNode *host_decl = transpiler_current_host_decl_local(ctx);
             bool self_is_pointer = current_class_uses_self_cell(ctx)
                 || (host_decl != NULL
@@ -258,7 +249,7 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
         /* Subject-ref parameter: use -> for member access */
         if (member_object->type == AST_IDENTIFIER) {
             TypedVarEntry *entry = lookup_typed_entry(ctx,
-                member_object->data.identifier.name);
+                ast_identifier_name(member_object));
             if (entry != NULL && entry->is_subject_ref) {
                 char *result = strdup_fmt("%s->%s", obj, member_name);
                 free(obj);
@@ -274,114 +265,16 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
         return emit_array_access_expression(node, ctx);
     }
 
-    case AST_TUPLE_LITERAL: {
-        /* Determine tuple type name from concrete context. Priority:
-         *   1) ctx->expected_type (let binding with annotation)
-         *   2) ctx->current_return_type (inside `return` in tuple-returning fn)
-         *   3) Build from concrete element type names.
-         * All three must start with '(' for tuple classification. */
-        char tuple_name_buf[256];
-        const char *tuple_name = NULL;
-        if (ctx->expected_type != NULL && ctx->expected_type[0] == '(')
-            tuple_name = ctx->expected_type;
-        else if (ctx->current_return_type[0] == '(')
-            tuple_name = ctx->current_return_type;
-        if (tuple_name == NULL) {
-            size_t off = 0;
-            tuple_name_buf[0] = '\0';
-            off = pergyra_str_append(tuple_name_buf, sizeof(tuple_name_buf), "(");
-            for (size_t i = 0; i < ast_tuple_literal_count(node); i++) {
-                const char *et =
-                    infer_expression_type_name(ctx, ast_tuple_literal_element(node, i));
-                if (et == NULL || et[0] == '\0'
-                    || strcmp(et, "Unknown") == 0) {
-                    transpiler_set_backend_error_with_hints(ctx,
-                        PGY_CODE_C_TYPE_UNSUPPORTED,
-                        PGY_CAUSE_C_TYPE_UNSUPPORTED,
-                        PGY_FIX_ANNOTATE_CONCRETE_TYPE,
-                        "C backend: tuple literal requires concrete element type metadata");
-                    return pergyra_strdup("0");
-                }
-                if (i > 0) {
-                    off = pergyra_str_append(tuple_name_buf,
-                        sizeof(tuple_name_buf), ", ");
-                }
-                off = pergyra_str_append(tuple_name_buf,
-                    sizeof(tuple_name_buf), et);
-            }
-            (void)off;
-            (void)pergyra_str_append(tuple_name_buf, sizeof(tuple_name_buf), ")");
-            tuple_name = tuple_name_buf;
-        }
-        char ctype_buf[256];
-        const char *ctype = NULL;
-        if (pergyra_type_to_c_copy(tuple_name, ctype_buf,
-                sizeof(ctype_buf))) {
-            ctype = ctype_buf;
-        }
-        if (ctype == NULL || ctype[0] == '\0'
-            || strcmp(ctype, "Unknown") == 0) {
-            transpiler_set_backend_error_with_hints(ctx,
-                PGY_CODE_C_TYPE_UNSUPPORTED,
-                PGY_CAUSE_C_TYPE_UNSUPPORTED,
-                PGY_FIX_ANNOTATE_CONCRETE_TYPE,
-                "C tuple literal requires concrete tuple layout metadata");
-            return pergyra_strdup("0");
-        }
-        CodeBuf *out = codebuf_create();
-        codebuf_write(out, "((%s){", ctype);
-        for (size_t i = 0; i < ast_tuple_literal_count(node); i++) {
-            char *v = emit_expression(ast_tuple_literal_element(node, i), ctx);
-            if (i > 0)
-                codebuf_write(out, ", ");
-            codebuf_write(out, ".f%zu = %s", i, v);
-            free(v);
-        }
-        codebuf_write(out, "})");
-        char *result = pergyra_strdup(out->data);
-        codebuf_destroy(out);
-        return result;
-    }
-
-    case AST_ARRAY_LITERAL: {
-        const char *array_type = infer_expression_type_name(ctx, node);
-        char inner_buf[128];
-        const char *inner = NULL;
-        if (slot_inner_type_name_copy(array_type, inner_buf,
-                sizeof(inner_buf)))
-            inner = inner_buf;
-        if (array_type == NULL || strncmp(array_type, "Array<", 6) != 0
-            || inner == NULL || inner[0] == '\0'
-            || strcmp(inner, "Unknown") == 0) {
-            transpiler_set_backend_error_with_hints(ctx,
-                PGY_CODE_C_TYPE_UNSUPPORTED,
-                PGY_CAUSE_C_TYPE_UNSUPPORTED,
-                PGY_FIX_ANNOTATE_CONCRETE_TYPE,
-                "C array literal requires concrete Array<T> element metadata");
-            return pergyra_strdup("0");
-        }
-        int tmp_id = ++ctx->tmp_counter;
-        CodeBuf *buf = codebuf_create();
-        codebuf_write(buf, "({ PgyArray_%s _pgy_arr_%d = pgy_array_new_%s(%zu); ",
-            inner, tmp_id, inner, ast_array_literal_count(node));
-        for (size_t i = 0; i < ast_array_literal_count(node); i++) {
-            char *elem = emit_expression(ast_array_literal_element(node, i), ctx);
-            codebuf_write(buf, "pgy_array_push_%s(&_pgy_arr_%d, %s); ",
-                inner, tmp_id, elem);
-            free(elem);
-        }
-        codebuf_write(buf, "_pgy_arr_%d; })", tmp_id);
-        char *result = pergyra_strdup(buf->data);
-        codebuf_destroy(buf);
-        return result;
-    }
+    case AST_TUPLE_LITERAL:
+    case AST_ARRAY_LITERAL:
+        return emit_composite_literal_expression(node, ctx);
 
     case AST_ASSIGNMENT: {
         ASTNode *target_node = ast_assignment_target(node);
         ASTNode *value_node = ast_assignment_value(node);
         /* Slot sugar: x = 5 ??pgy_write_T(&x, 5) */
         if (target_node != NULL && target_node->type == AST_IDENTIFIER) {
-            const char *tgt_name = target_node->data.identifier.name;
+            const char *tgt_name = ast_identifier_name(target_node);
             if (is_slot_var(ctx, tgt_name)) {
                 char inner_buf[128];
                 const char *inner = NULL;
@@ -521,10 +414,10 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
         return emit_channel_recv(node, ctx);
 
     case AST_EVENT_INVOKE: {
-        char *event = emit_expression(node->data.event_invoke.event, ctx);
+        char *event = emit_expression(ast_event_invoke_event(node), ctx);
         CodeBuf *args = codebuf_create();
-        for (size_t i = 0; i < node->data.event_invoke.arg_count; i++) {
-            char *arg = emit_expression(node->data.event_invoke.arguments[i], ctx);
+        for (size_t i = 0; i < ast_event_invoke_arg_count(node); i++) {
+            char *arg = emit_expression(ast_event_invoke_argument(node, i), ctx);
             if (i > 0)
                 codebuf_write(args, ", ");
             codebuf_write(args, "%s", arg);
@@ -541,8 +434,9 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
     }
 
     case AST_CONTEXT_ACCESS:
-        if (node->data.context_access.role_slot_name != NULL) {
-            return strdup_fmt("self->%s", node->data.context_access.role_slot_name);
+        if (ast_context_access_role_slot_name(node) != NULL) {
+            return strdup_fmt("self->%s",
+                              ast_context_access_role_slot_name(node));
         }
         return pergyra_strdup("self");
 

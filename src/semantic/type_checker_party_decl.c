@@ -55,7 +55,7 @@ type_check_party_decl(ASTNode *node, SemanticContext *ctx)
     }
 
     GenericParams *generic_params = ast_party_generic_params(node);
-    if (generic_params != NULL && generic_params->count > 0) {
+    if (ast_generic_param_count(generic_params) > 0) {
         validate_generic_param_defaults(generic_params, ctx, node, "party");
     }
 

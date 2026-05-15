@@ -139,9 +139,9 @@ emit_domain_projection_sync_loop(TranspilerCtx *ctx,
         if (refresh == NULL || refresh->type != AST_ZONE_REFRESH)
             continue;
 
-        target_slot_name = refresh->data.zone_refresh.object_slot_name;
+        target_slot_name = ast_zone_refresh_object_slot_name(refresh);
         if (target_slot_name == NULL
-            || refresh->data.zone_refresh.source_slot_name == NULL) {
+            || ast_zone_refresh_source_slot_name(refresh) == NULL) {
             continue;
         }
 
@@ -155,7 +155,7 @@ emit_domain_projection_sync_loop(TranspilerCtx *ctx,
             if (strcmp(slot_name, target_slot_name) == 0)
                 target_slot = slot;
             if (strcmp(slot_name,
-                       refresh->data.zone_refresh.source_slot_name) == 0) {
+                       ast_zone_refresh_source_slot_name(refresh)) == 0) {
                 source_slot = slot;
             }
         }
@@ -175,7 +175,7 @@ emit_domain_projection_sync_loop(TranspilerCtx *ctx,
         source_decl = find_class_decl(ctx, source_type_name);
         {
             const char *source_expr = transpiler_scratch_fmt(ctx, "self->%s",
-                refresh->data.zone_refresh.source_slot_name);
+                ast_zone_refresh_source_slot_name(refresh));
             literal = emit_projection_literal(ctx, target_decl, source_decl,
                 refresh, target_type_name, source_expr);
         }
@@ -205,8 +205,8 @@ emit_domain_projection_sync_loop(TranspilerCtx *ctx,
 
             if (dependent == NULL || dependent->type != AST_ZONE_REFRESH)
                 continue;
-            dependent_target = dependent->data.zone_refresh.object_slot_name;
-            dependent_source = dependent->data.zone_refresh.source_slot_name;
+            dependent_target = ast_zone_refresh_object_slot_name(dependent);
+            dependent_source = ast_zone_refresh_source_slot_name(dependent);
             if (dependent_target == NULL || dependent_source == NULL
                 || strcmp(dependent_source, target_slot_name) != 0) {
                 continue;

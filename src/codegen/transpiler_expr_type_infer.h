@@ -8,6 +8,7 @@
 #include "transpiler_builtin_type_table.h"
 
 #include "codegen_slot_type_policy.h"
+#include "../parser/ast_api.h"
 
 static const char *
 transpiler_infer_arena_copy_type_name(TranspilerCtx *ctx,
@@ -75,9 +76,9 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
 
     switch (expr->type) {
     case AST_NUMBER:
-        if (expr->data.number.is_long)
+        if (ast_number_is_long(expr))
             return "Long";
-        return expr->data.number.value == (int64_t)expr->data.number.value
+        return ast_number_value(expr) == (int64_t)ast_number_value(expr)
             ? "Int"
             : "Float";
     case AST_STRING:
@@ -105,23 +106,26 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
         return "Unknown";
     }
     case AST_IDENTIFIER: {
-        if (strcmp(expr->data.identifier.name, "None") == 0) {
+        const char *identifier_name = ast_identifier_name(expr);
+        if (identifier_name == NULL)
+            return "Unknown";
+        if (strcmp(identifier_name, "None") == 0) {
             const char *context_type = transpiler_contextual_option_type_name(ctx);
             return context_type != NULL ? context_type : "Option<Unknown>";
         }
-        ASTNode *alias_expr = lookup_alias_expr(ctx, expr->data.identifier.name);
+        ASTNode *alias_expr = lookup_alias_expr(ctx, identifier_name);
         if (alias_expr != NULL)
             return infer_expression_type_name(ctx, alias_expr);
-        const char *type_name = lookup_typed_var(ctx, expr->data.identifier.name);
+        const char *type_name = lookup_typed_var(ctx, identifier_name);
         if (type_name != NULL)
             return type_name;
-        type_name = transpiler_current_field_type_name(ctx, expr->data.identifier.name);
+        type_name = transpiler_current_field_type_name(ctx, identifier_name);
         if (type_name != NULL)
             return type_name;
         {
             char enum_variant[128];
             if (lookup_enum_variant_qualified_name_copy(ctx,
-                    expr->data.identifier.name,
+                    identifier_name,
                     enum_variant, sizeof(enum_variant))) {
                 size_t len = strcspn(enum_variant, "_");
                 char enum_name[128];
@@ -137,7 +141,7 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
     case AST_CHANNEL_RECV: {
         ASTNode *channel = ast_channel_recv_channel(expr);
         if (channel != NULL && channel->type == AST_IDENTIFIER) {
-            const char *type_name = lookup_typed_var(ctx, channel->data.identifier.name);
+            const char *type_name = lookup_typed_var(ctx, ast_identifier_name(channel));
             if (type_name != NULL && strncmp(type_name, "Channel<", 8) == 0)
                 return transpiler_infer_slot_inner_type_name(ctx, type_name);
         }
@@ -259,8 +263,8 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
         }
         if (ast_call_callee(expr) != NULL
             && ast_call_callee(expr)->type == AST_IDENTIFIER
-            && ast_call_callee(expr)->data.identifier.name != NULL) {
-            const char *name = ast_call_callee(expr)->data.identifier.name;
+            && ast_identifier_name(ast_call_callee(expr)) != NULL) {
+            const char *name = ast_identifier_name(ast_call_callee(expr));
             size_t argc = ast_call_arg_count(expr);
             ASTNode *arg0 = ast_call_argument(expr, 0);
             const char *simple_type = NULL;
@@ -439,14 +443,14 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
             if (strcmp(name, "ToTObject") == 0 && argc >= 1
                 && arg0 != NULL
                 && arg0->type == AST_IDENTIFIER
-                && arg0->data.identifier.name != NULL) {
-                return arg0->data.identifier.name;
+                && ast_identifier_name(arg0) != NULL) {
+                return ast_identifier_name(arg0);
             }
             if (strcmp(name, "ToObject") == 0 && argc >= 1
                 && arg0 != NULL
                 && arg0->type == AST_IDENTIFIER
-                && arg0->data.identifier.name != NULL) {
-                return arg0->data.identifier.name;
+                && ast_identifier_name(arg0) != NULL) {
+                return ast_identifier_name(arg0);
             }
             if (find_class_decl(ctx, name) != NULL
                 || find_subject_host_decl(ctx, name) != NULL

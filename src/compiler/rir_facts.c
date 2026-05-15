@@ -238,8 +238,8 @@ rir_nominal_kind_from_name(const char *name)
     if (g_rir_program_root == NULL || name == NULL || g_rir_program_root->type != AST_PROGRAM)
         return RIR_RESOURCE_UNKNOWN;
 
-    for (size_t i = 0; i < g_rir_program_root->data.program.count; i++) {
-        ASTNode *node = g_rir_program_root->data.program.statements[i];
+    for (size_t i = 0; i < ast_program_statement_count(g_rir_program_root); i++) {
+        ASTNode *node = ast_program_statement(g_rir_program_root, i);
         if (node == NULL)
             continue;
         switch (node->type) {
@@ -284,7 +284,7 @@ expr_name(ASTNode *node)
 
     switch (node->type) {
         case AST_IDENTIFIER:
-            return node->data.identifier.name;
+            return ast_identifier_name(node);
         case AST_MEMBER_ACCESS:
             return ast_member_name(node);
         case AST_TYPE:

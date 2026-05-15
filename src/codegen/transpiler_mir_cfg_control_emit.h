@@ -226,9 +226,10 @@ transpiler_mir_select_case_channel(ASTNode *node)
 {
     ASTNode *first;
 
-    if (node == NULL || node->type != AST_BLOCK || node->data.block.count == 0)
+    if (node == NULL || node->type != AST_BLOCK
+        || ast_block_statement_count(node) == 0)
         return NULL;
-    first = node->data.block.statements[0];
+    first = ast_block_statement(node, 0);
     if (first == NULL)
         return NULL;
     if (first->type == AST_CHANNEL_RECV)

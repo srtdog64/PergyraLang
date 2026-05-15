@@ -81,7 +81,7 @@ llvm_collection_required_receiver_var(LLVMGenCtx *ctx,
         return NULL;
     }
 
-    name = receiver->data.identifier.name;
+    name = ast_identifier_name(receiver);
     var = llvm_scope_lookup(ctx, name);
     if (var == NULL) {
         if (ctx != NULL && !ctx->has_error) {
@@ -100,6 +100,27 @@ llvm_collection_required_receiver_var(LLVMGenCtx *ctx,
         return NULL;
     }
     return var;
+}
+
+bool
+llvm_collection_extended_error_out(LLVMGenCtx *ctx, ASTNode *node,
+                                   LLVMValueRef *out, LLVMValueRef recovery,
+                                   const char *message)
+{
+    (void)recovery;
+
+    if (ctx != NULL && !ctx->has_error) {
+        llvm_set_error_at_with_hints(ctx, node,
+            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+            PGY_FIX_INSPECT_MIR_INVENTORY,
+            "%s",
+            message != NULL ? message
+                : "LLVM collection extended builtin could not be lowered");
+    }
+    if (out != NULL)
+        *out = NULL;
+    return true;
 }
 
 #endif

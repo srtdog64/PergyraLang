@@ -7,8 +7,8 @@ semantic_type_resolution_precollect_program(ASTNode *program,
     if (program == NULL || ctx == NULL || program->type != AST_PROGRAM)
         return;
 
-    for (size_t i = 0; i < program->data.program.count; i++) {
-        ASTNode *stmt = program->data.program.statements[i];
+    for (size_t i = 0; i < ast_program_statement_count(program); i++) {
+        ASTNode *stmt = ast_program_statement(program, i);
         if (stmt == NULL)
             continue;
 
@@ -39,11 +39,11 @@ semantic_type_resolution_precollect_program(ASTNode *program,
 
         case AST_LET_DECL:
             semantic_type_resolution_collect_type_refs(
-                stmt->data.let_decl.type,
+                ast_let_type(stmt),
                 ctx,
                 stmt,
-                stmt->data.let_decl.name != NULL
-                    ? stmt->data.let_decl.name : "<top-level-let>",
+                ast_let_name(stmt) != NULL
+                    ? ast_let_name(stmt) : "<top-level-let>",
                 "top-level let annotation lookup");
             break;
 

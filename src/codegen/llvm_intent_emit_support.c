@@ -26,7 +26,7 @@ llvm_intent_step_effective_zone_alias(ASTNode *step)
         return NULL;
     if (ast_intent_step_using_expr(step) != NULL
         && ast_intent_step_using_expr(step)->type == AST_IDENTIFIER) {
-        return ast_intent_step_using_expr(step)->data.identifier.name;
+        return ast_identifier_name(ast_intent_step_using_expr(step));
     }
     return ast_intent_step_transfer_to_alias(step);
 }

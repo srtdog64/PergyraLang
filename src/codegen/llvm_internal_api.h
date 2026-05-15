@@ -235,6 +235,7 @@ void          llvm_mir_emit_owner_sync_exit(LLVMGenCtx *ctx,
 LLVMTypeRef   llvm_stmt_infer_expr_type(LLVMGenCtx *ctx, ASTNode *expr);
 LLVMTypeRef   llvm_stmt_resolve_array_elem_type(LLVMGenCtx *ctx, ASTNode *expr,
                                                 LLVMValueRef data_ptr);
+void          llvm_emit_let_destructure_stmt(ASTNode *node, LLVMGenCtx *ctx);
 LLVMClassTypeEntry *llvm_stmt_lookup_class_by_type(LLVMGenCtx *ctx,
                                                    LLVMTypeRef type);
 const char   *llvm_stmt_infer_nominal_name_from_init(LLVMGenCtx *ctx,

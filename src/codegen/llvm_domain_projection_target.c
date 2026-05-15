@@ -26,10 +26,10 @@ llvm_domain_slot_is_projection_target(ASTNode *slot,
     for (size_t i = 0; i < refresh_count; i++) {
         ASTNode *refresh = refreshes[i];
         if (refresh == NULL || refresh->type != AST_ZONE_REFRESH
-            || refresh->data.zone_refresh.object_slot_name == NULL) {
+            || ast_zone_refresh_object_slot_name(refresh) == NULL) {
             continue;
         }
-        if (strcmp(slot_name, refresh->data.zone_refresh.object_slot_name) == 0) {
+        if (strcmp(slot_name, ast_zone_refresh_object_slot_name(refresh)) == 0) {
             return true;
         }
     }

@@ -45,15 +45,16 @@ llvm_host_projection_source_from_assignment(ASTNode *host_decl,
         return false;
     }
 
-    if (target->type == AST_IDENTIFIER && target->data.identifier.name != NULL) {
+    if (target->type == AST_IDENTIFIER && ast_identifier_name(target) != NULL) {
+        const char *target_name = ast_identifier_name(target);
         for (size_t i = 0; i < slot_count; i++) {
             ASTNode *slot = slots[i];
             const char *slot_name = ast_domain_slot_name(slot);
             if (slot != NULL && slot->type == AST_DOMAIN_SLOT
                 && slot_name != NULL
-                && strcmp(slot_name, target->data.identifier.name) == 0) {
+                && strcmp(slot_name, target_name) == 0) {
                 if (source_slot_out != NULL)
-                    *source_slot_out = target->data.identifier.name;
+                    *source_slot_out = target_name;
                 return true;
             }
         }
@@ -64,15 +65,16 @@ llvm_host_projection_source_from_assignment(ASTNode *host_decl,
         if (source_field == NULL)
             source_field = ast_member_name(cursor);
         if (obj != NULL && obj->type == AST_IDENTIFIER
-            && obj->data.identifier.name != NULL) {
+            && ast_identifier_name(obj) != NULL) {
+            const char *obj_name = ast_identifier_name(obj);
             for (size_t i = 0; i < slot_count; i++) {
                 ASTNode *slot = slots[i];
                 const char *slot_name = ast_domain_slot_name(slot);
                 if (slot != NULL && slot->type == AST_DOMAIN_SLOT
                     && slot_name != NULL
-                    && strcmp(slot_name, obj->data.identifier.name) == 0) {
+                    && strcmp(slot_name, obj_name) == 0) {
                     if (source_slot_out != NULL)
-                        *source_slot_out = obj->data.identifier.name;
+                        *source_slot_out = obj_name;
                     if (source_field_out != NULL)
                         *source_field_out = source_field;
                     return true;
@@ -92,12 +94,12 @@ llvm_refresh_mentions_source_field(ASTNode *refresh, const char *source_field)
         return false;
     if (source_field == NULL)
         return true;
-    if (refresh->data.zone_refresh.field_map_count == 0)
+    if (ast_zone_refresh_field_map_count(refresh) == 0)
         return true;
 
-    for (size_t i = 0; i < refresh->data.zone_refresh.field_map_count; i++) {
+    for (size_t i = 0; i < ast_zone_refresh_field_map_count(refresh); i++) {
         const char *mapped_source =
-            refresh->data.zone_refresh.mapped_source_fields[i];
+            ast_zone_refresh_mapped_source_field(refresh, i);
         if (mapped_source != NULL && strcmp(mapped_source, source_field) == 0)
             return true;
     }
@@ -127,8 +129,8 @@ llvm_emit_projection_invalidations_for_host(LLVMGenCtx *ctx,
 
         if (refresh == NULL || refresh->type != AST_ZONE_REFRESH)
             continue;
-        target_slot = refresh->data.zone_refresh.object_slot_name;
-        refresh_source = refresh->data.zone_refresh.source_slot_name;
+        target_slot = ast_zone_refresh_object_slot_name(refresh);
+        refresh_source = ast_zone_refresh_source_slot_name(refresh);
         if (target_slot == NULL || refresh_source == NULL
             || strcmp(refresh_source, source_slot) != 0
             || !llvm_refresh_mentions_source_field(refresh, source_field)) {
@@ -195,13 +197,13 @@ llvm_world_embedded_projection_source_from_assignment(LLVMGenCtx *ctx,
 
         if (receiver != NULL && slot_name != NULL) {
             if (receiver->type == AST_IDENTIFIER
-                && receiver->data.identifier.name != NULL) {
-                zone_slot_name = receiver->data.identifier.name;
+                && ast_identifier_name(receiver) != NULL) {
+                zone_slot_name = ast_identifier_name(receiver);
             } else if (receiver->type == AST_MEMBER_ACCESS
                        && ast_member_object(receiver) != NULL
                        && ast_member_object(receiver)->type == AST_IDENTIFIER
-                       && ast_member_object(receiver)->data.identifier.name != NULL
-                       && strcmp(ast_member_object(receiver)->data.identifier.name,
+                       && ast_identifier_name(ast_member_object(receiver)) != NULL
+                       && strcmp(ast_identifier_name(ast_member_object(receiver)),
                            "self") == 0
                        && ast_member_name(receiver) != NULL) {
                 zone_slot_name = ast_member_name(receiver);

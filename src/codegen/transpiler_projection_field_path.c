@@ -5,6 +5,7 @@
 
 #include <string.h>
 
+#include "../parser/ast_api.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_projection_field_path.h"
 
@@ -14,13 +15,13 @@ assignment_target_root_slot_name(ASTNode *target)
     if (target == NULL)
         return NULL;
     if (target->type == AST_IDENTIFIER)
-        return target->data.identifier.name;
+        return ast_identifier_name(target);
     if (target->type == AST_MEMBER_ACCESS) {
         ASTNode *member_object = ast_member_object(target);
         if (member_object != NULL
             && member_object->type == AST_IDENTIFIER
-            && member_object->data.identifier.name != NULL
-            && strcmp(member_object->data.identifier.name, "self") == 0) {
+            && ast_identifier_name(member_object) != NULL
+            && strcmp(ast_identifier_name(member_object), "self") == 0) {
             return ast_member_name(target);
         }
         return assignment_target_root_slot_name(member_object);
@@ -40,8 +41,8 @@ assignment_target_root_subfield_name(ASTNode *target)
         ASTNode *inner_object = ast_member_object(inner);
         if (inner_object != NULL
             && inner_object->type == AST_IDENTIFIER
-            && inner_object->data.identifier.name != NULL
-            && strcmp(inner_object->data.identifier.name, "self") == 0) {
+            && ast_identifier_name(inner_object) != NULL
+            && strcmp(ast_identifier_name(inner_object), "self") == 0) {
             return ast_member_name(target);
         }
         return assignment_target_root_subfield_name(inner);
@@ -115,20 +116,20 @@ method_assignment_projection_field_name(TranspilerCtx *ctx,
 
     if (target->type == AST_IDENTIFIER
         && host_projection_relevant_field_exists(ctx, host_type_name,
-            target->data.identifier.name)) {
-        return target->data.identifier.name;
+            ast_identifier_name(target))) {
+        return ast_identifier_name(target);
     }
 
     while (cursor != NULL && cursor->type == AST_MEMBER_ACCESS) {
         ASTNode *obj = ast_member_object(cursor);
         if (obj != NULL && obj->type == AST_IDENTIFIER
-            && obj->data.identifier.name != NULL) {
+            && ast_identifier_name(obj) != NULL) {
             ClassField *field = find_host_field_by_name_local(
-                host_decl, obj->data.identifier.name);
+                host_decl, ast_identifier_name(obj));
             if (field != NULL) {
                 if (field->is_vessel_field)
                     return ast_member_name(cursor);
-                return obj->data.identifier.name;
+                return ast_identifier_name(obj);
             }
         }
         cursor = obj;

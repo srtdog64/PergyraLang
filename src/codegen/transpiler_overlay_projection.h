@@ -28,10 +28,10 @@ domain_slot_is_projection_target_local(ASTNode *slot,
     for (size_t i = 0; i < refresh_count; i++) {
         ASTNode *refresh = refreshes[i];
         if (refresh == NULL || refresh->type != AST_ZONE_REFRESH
-            || refresh->data.zone_refresh.object_slot_name == NULL) {
+            || ast_zone_refresh_object_slot_name(refresh) == NULL) {
             continue;
         }
-        if (strcmp(slot_name, refresh->data.zone_refresh.object_slot_name) == 0) {
+        if (strcmp(slot_name, ast_zone_refresh_object_slot_name(refresh)) == 0) {
             return true;
         }
     }
@@ -138,11 +138,11 @@ projection_target_mentions_source_field(TranspilerCtx *ctx,
         const char *mapped_source_name = field != NULL ? field->name : NULL;
         if (refresh != NULL && refresh->type == AST_ZONE_REFRESH && field != NULL
             && field->name != NULL) {
-            for (size_t j = 0; j < refresh->data.zone_refresh.field_map_count; j++) {
+            for (size_t j = 0; j < ast_zone_refresh_field_map_count(refresh); j++) {
                 const char *mapped_target =
-                    refresh->data.zone_refresh.mapped_target_fields[j];
+                    ast_zone_refresh_mapped_target_field(refresh, j);
                 const char *mapped_source =
-                    refresh->data.zone_refresh.mapped_source_fields[j];
+                    ast_zone_refresh_mapped_source_field(refresh, j);
                 if (mapped_target != NULL && mapped_source != NULL
                     && strcmp(mapped_target, field->name) == 0) {
                     mapped_source_name = mapped_source;
@@ -189,8 +189,8 @@ emit_current_overlay_projection_invalidation(TranspilerCtx *ctx,
 
         if (refresh == NULL)
             continue;
-        target_name = refresh->data.zone_refresh.object_slot_name;
-        refresh_source_name = refresh->data.zone_refresh.source_slot_name;
+        target_name = ast_zone_refresh_object_slot_name(refresh);
+        refresh_source_name = ast_zone_refresh_source_slot_name(refresh);
         if (target_name == NULL || refresh_source_name == NULL
             || strcmp(refresh_source_name, source_slot_name) != 0) {
             continue;

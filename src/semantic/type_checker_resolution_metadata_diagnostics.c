@@ -65,8 +65,7 @@ semantic_type_resolution_metadata_type_ref_has_no_generic_args(
 {
     return type_node != NULL
         && type_node->type == AST_TYPE
-        && (ast_type_generic_args(type_node) == NULL
-            || ast_type_generic_args(type_node)->count == 0);
+        && ast_generic_param_count(ast_type_generic_args(type_node)) == 0;
 }
 
 bool
@@ -144,9 +143,7 @@ semantic_type_resolution_reject_invalid_stable_shell_arity(
     if (semantic_type_resolution_metadata_name_is_shadowed_class(ctx, name))
         return false;
 
-    provided = ast_type_generic_args(type_node) != NULL
-        ? ast_type_generic_args(type_node)->count
-        : 0;
+    provided = ast_generic_param_count(ast_type_generic_args(type_node));
     if (provided >= min_args && provided <= max_args)
         return false;
 
@@ -181,10 +178,12 @@ metadata_resolve_generic_arg_for_diagnostic(SemanticContext *ctx,
 {
     if (ctx == NULL || gp == NULL)
         return NULL;
-    if (gp->constraint != NULL)
+    ASTNode *constraint = ast_generic_param_constraint(gp);
+    const char *name = ast_generic_param_name(gp);
+    if (constraint != NULL)
         return semantic_type_resolution_lookup_metadata_type_ref(ctx,
-                                                                 gp->constraint);
-    return semantic_type_resolution_lookup_metadata_name_or_alias(ctx, gp->name);
+                                                                 constraint);
+    return semantic_type_resolution_lookup_metadata_name_or_alias(ctx, name);
 }
 
 bool
@@ -208,13 +207,13 @@ semantic_type_resolution_reject_invalid_stable_constructed_type(
     if (semantic_type_resolution_metadata_name_is_shadowed_class(ctx, name))
         return false;
     args_node = ast_type_generic_args(type_node);
-    argc = args_node != NULL ? args_node->count : 0;
+    argc = ast_generic_param_count(args_node);
     if (argc < min_args || argc > max_args || argc > 2)
         return false;
 
     for (size_t i = 0; i < argc; i++) {
         args[i] = metadata_resolve_generic_arg_for_diagnostic(
-            ctx, args_node->params[i]);
+            ctx, ast_generic_param_at(args_node, i));
         if (args[i] == TYPE_UNKNOWN)
             return true;
         if (args[i] == NULL)

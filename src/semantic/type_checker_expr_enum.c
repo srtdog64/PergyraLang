@@ -39,8 +39,8 @@ expr_find_enum_decl_by_name(SemanticContext *ctx, const char *enum_name)
         return NULL;
     }
 
-    for (size_t i = 0; i < ctx->program_root->data.program.count; i++) {
-        ASTNode *stmt = ctx->program_root->data.program.statements[i];
+    for (size_t i = 0; i < ast_program_statement_count(ctx->program_root); i++) {
+        ASTNode *stmt = ast_program_statement(ctx->program_root, i);
         if (stmt != NULL && stmt->type == AST_ENUM_DECL
             && ast_enum_name(stmt) != NULL
             && strcmp(ast_enum_name(stmt), enum_name) == 0) {
@@ -115,8 +115,8 @@ expr_type_for_enum_payload_field(SemanticContext *ctx, ASTNode *site,
         return NULL;
     }
 
-    for (size_t i = 0; i < ctx->program_root->data.program.count; i++) {
-        ASTNode *decl = ctx->program_root->data.program.statements[i];
+    for (size_t i = 0; i < ast_program_statement_count(ctx->program_root); i++) {
+        ASTNode *decl = ast_program_statement(ctx->program_root, i);
         size_t enum_len = (size_t)(sep - payload_name);
         const char *variant_name = sep + 1;
 

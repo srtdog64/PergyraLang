@@ -68,9 +68,9 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
 
     switch (expr->type) {
     case AST_NUMBER:
-        if (expr->data.number.is_long)
+        if (ast_number_is_long(expr))
             return TYPE_LONG;
-        return expr->data.number.value == (int64_t)expr->data.number.value
+        return ast_number_value(expr) == (int64_t)ast_number_value(expr)
             ? TYPE_INT
             : TYPE_FLOAT;
 
@@ -81,7 +81,9 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
         return TYPE_BOOL;
 
     case AST_LAMBDA_EXPR: {
-        size_t param_count = expr->data.lambda_expr.param_count;
+        size_t param_count = ast_lambda_param_count(expr);
+        ASTNode *lambda_body = ast_lambda_body(expr);
+        ASTNode *lambda_return_type = ast_lambda_return_type(expr);
         Type **param_types = calloc(param_count > 0 ? param_count : 1, sizeof(Type *));
         Type *return_type = TYPE_VOID;
         uint32_t saved_effects = ctx->current_function_effects;
@@ -96,17 +98,17 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
 
         scope_enter(&ctx->scope, SCOPE_FUNCTION);
         for (size_t i = 0; i < param_count; i++) {
-            ASTNode *param = expr->data.lambda_expr.params[i];
+            ASTNode *param = ast_lambda_param(expr, i);
             const char *param_name = NULL;
             Type *param_type = TYPE_UNKNOWN;
 
             if (param != NULL && param->type == AST_LET_DECL) {
-                param_name = param->data.let_decl.name;
-                if (param->data.let_decl.type != NULL)
+                param_name = ast_let_name(param);
+                if (ast_let_type(param) != NULL)
                     param_type = expr_resolve_type_ref(
-                        param->data.let_decl.type, ctx);
+                        ast_let_type(param), ctx);
             } else if (param != NULL && param->type == AST_IDENTIFIER) {
-                param_name = param->data.identifier.name;
+                param_name = ast_identifier_name(param);
             }
 
             if (param_name != NULL) {
@@ -123,7 +125,7 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
         ctx->current_function_body_summary = BODY_SUMMARY_NONE;
 
         if (semantic_reject_lambda_unsupported_captures(
-                expr->data.lambda_expr.body, ctx)) {
+                lambda_body, ctx)) {
             scope_exit(&ctx->scope);
             ctx->current_function_effects = saved_effects;
             ctx->current_function_body_summary = saved_body_summary;
@@ -132,24 +134,22 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
             return TYPE_UNKNOWN;
         }
 
-        if (expr->data.lambda_expr.return_type != NULL) {
+        if (lambda_return_type != NULL) {
             return_type = expr_resolve_type_ref(
-                expr->data.lambda_expr.return_type, ctx);
-        } else if (expr->data.lambda_expr.body != NULL
-                   && expr->data.lambda_expr.body->type != AST_BLOCK) {
+                lambda_return_type, ctx);
+        } else if (lambda_body != NULL && lambda_body->type != AST_BLOCK) {
             return_type = expr_normalize_type(
-                type_check_expression(expr->data.lambda_expr.body, ctx));
+                type_check_expression(lambda_body, ctx));
         } else {
             return_type = TYPE_VOID;
         }
 
-        if (expr->data.lambda_expr.body != NULL
-            && expr->data.lambda_expr.body->type == AST_BLOCK) {
+        if (lambda_body != NULL && lambda_body->type == AST_BLOCK) {
             bool saved_in_async = ctx->in_async_func;
             Type *saved_return = ctx->current_return;
-            ctx->in_async_func = expr->data.lambda_expr.is_async;
+            ctx->in_async_func = ast_lambda_is_async(expr);
             ctx->current_return = return_type;
-            type_check_block(expr->data.lambda_expr.body, ctx);
+            type_check_block(lambda_body, ctx);
             ctx->current_return = saved_return;
             ctx->in_async_func = saved_in_async;
         }
@@ -159,8 +159,8 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
         scope_exit(&ctx->scope);
         result = type_create_function(param_types, param_count, return_type);
         if (result != NULL) {
-            result->data.function.effect_mask = type_effect_mask_closure(lambda_effects);
-            result->data.function.body_summary_mask = lambda_body_summary;
+            type_function_set_effects(result, type_effect_mask_closure(lambda_effects));
+            type_function_set_body_summary(result, lambda_body_summary);
         }
         ctx->current_function_effects = saved_effects;
         ctx->current_function_body_summary = saved_body_summary;
@@ -170,25 +170,25 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
     }
 
     case AST_IDENTIFIER: {
+        const char *expr_name = ast_identifier_name(expr);
         /* Special handling for Option value constructors used without parens */
-        if (strcmp(expr->data.identifier.name, "None") == 0) {
+        if (strcmp(expr_name, "None") == 0) {
             return wrap_constructed(TYPE_OPTION, TYPE_UNKNOWN);
         }
-        Symbol *sym = scope_lookup(ctx->scope,
-                                    expr->data.identifier.name);
+        Symbol *sym = scope_lookup(ctx->scope, expr_name);
         if (sym == NULL) {
             Type *field_type = expr_current_host_field_type(
-                ctx, expr->data.identifier.name);
+                ctx, expr_name);
             if (field_type != NULL)
                 return field_type;
-            if (name_looks_qualified(expr->data.identifier.name)) {
+            if (name_looks_qualified(expr_name)) {
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_UNDEFINED_SYMBOL, PGY_CAUSE_SYMBOL_UNDEFINED, PGY_FIX_IMPORT_OR_DECLARE_SYMBOL, expr,
                     "Undefined symbol '%s' (check namespace spelling or export visibility)",
-                    expr->data.identifier.name);
+                    expr_name);
             } else {
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_UNDEFINED_SYMBOL, PGY_CAUSE_SYMBOL_UNDEFINED, PGY_FIX_IMPORT_OR_DECLARE_SYMBOL, expr,
                     "Undefined symbol '%s'",
-                    expr->data.identifier.name);
+                    expr_name);
             }
             return TYPE_UNKNOWN;
         }
@@ -208,8 +208,8 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
                 type_is_subject_type(sym->type, ctx)
                     ? type_name_or_unknown(sym->type)
                     : resource_handle_display_name(sym->type),
-                expr->data.identifier.name,
-                expr->data.identifier.name != NULL ? expr->data.identifier.name : "<value>",
+                expr_name,
+                expr_name != NULL ? expr_name : "<value>",
                 type_is_subject_type(sym->type, ctx)
                     ? type_name_or_unknown(sym->type)
                     : resource_handle_display_name(sym->type));
@@ -299,15 +299,14 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
             ASTNode *awaited = ast_await_expression(expr);
             Type *future_type = type_check_expression(awaited, ctx);
             if (future_type != NULL
-                && future_type->kind == TYPE_KIND_CONSTRUCTED
-                && (type_equals(future_type->data.constructed.constructor, TYPE_FUTURE)
-                    || type_equals(future_type->data.constructed.constructor, TYPE_REMOTE_FUTURE))
-                && future_type->data.constructed.arg_count == 1) {
-                Type *inner = future_type->data.constructed.args[0];
+                && (type_equals(type_constructed_constructor(future_type), TYPE_FUTURE)
+                    || type_equals(type_constructed_constructor(future_type), TYPE_REMOTE_FUTURE))
+                && type_constructed_arg_count(future_type) == 1) {
+                Type *inner = type_constructed_arg(future_type, 0);
                 /* RemoteFuture<T> ??Result<T>: remote operations can fail
                  * (network partition, timeout, etc.) so the result must be
                  * explicitly handled.  Local Future<T> ??T as before. */
-                if (type_equals(future_type->data.constructed.constructor, TYPE_REMOTE_FUTURE)) {
+                if (type_equals(type_constructed_constructor(future_type), TYPE_REMOTE_FUTURE)) {
                     Type *result_args[1] = { inner };
                     return type_create_constructed(TYPE_RESULT, result_args, 1);
                 }

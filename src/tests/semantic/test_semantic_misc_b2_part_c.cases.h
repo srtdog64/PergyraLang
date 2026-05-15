@@ -928,7 +928,15 @@
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "Named call arguments are reserved but not implemented yet"));
+            "Named call argument 'a:' is reserved but not implemented yet"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Reason:"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "beta-stable calls currently use positional arguments only"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "Fix:"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "pass this argument positionally for now"));
 
         semantic_result_destroy(result);
         ast_destroy(program);

@@ -4,6 +4,7 @@
 #include "transpiler_mir_reason.h"
 
 #include "transpiler_mir_expr_ssa.h"
+#include "../parser/ast_api.h"
 
 typedef struct TranspilerMirPendingBinding {
     ASTNode *initializer;
@@ -27,14 +28,14 @@ transpiler_pending_binding_from_source_statement_emit(
     stmt = mir_instruction_source_payload(inst);
     if (stmt == NULL
         || stmt->type != AST_LET_DECL
-        || stmt->data.let_decl.name == NULL
-        || strcmp(stmt->data.let_decl.name, name) != 0) {
+        || ast_let_name(stmt) == NULL
+        || strcmp(ast_let_name(stmt), name) != 0) {
         return false;
     }
 
     if (out != NULL) {
-        out->initializer = stmt->data.let_decl.initializer;
-        out->type_annotation = stmt->data.let_decl.type;
+        out->initializer = ast_let_initializer(stmt);
+        out->type_annotation = ast_let_type(stmt);
     }
     return true;
 }
@@ -149,8 +150,8 @@ transpiler_materialize_pending_inst_uses(CodeBuf *buf,
         if (initializer->type == AST_CALL
             && ast_call_callee(initializer) != NULL
             && ast_call_callee(initializer)->type == AST_IDENTIFIER
-            && ast_call_callee(initializer)->data.identifier.name != NULL
-            && strncmp(ast_call_callee(initializer)->data.identifier.name,
+            && ast_identifier_name(ast_call_callee(initializer)) != NULL
+            && strncmp(ast_identifier_name(ast_call_callee(initializer)),
                        "Claim", 5) == 0) {
             continue;
         }

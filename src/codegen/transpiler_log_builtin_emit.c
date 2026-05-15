@@ -24,11 +24,11 @@ emit_builtin_log(ASTNode *call, TranspilerCtx *ctx)
     if (ast_call_arg_count(call) == 1) {
         ASTNode *arg_node = ast_call_argument(call, 0);
         if (arg_node != NULL && arg_node->type == AST_STRING
-            && arg_node->data.string.value != NULL) {
-            const char *raw = arg_node->data.string.value;
+            && ast_string_value(arg_node) != NULL) {
+            const char *raw = ast_string_value(arg_node);
             bool multiline = (strchr(raw, '\n') != NULL)
                            || (strchr(raw, '\r') != NULL);
-            char *escaped = escape_c_string_literal(arg_node->data.string.value);
+            char *escaped = escape_c_string_literal(ast_string_value(arg_node));
             if (escaped != NULL) {
                 char *result;
                 if (multiline) {
@@ -77,8 +77,8 @@ emit_builtin_log_raw(ASTNode *call, TranspilerCtx *ctx)
         ASTNode *arg_node = ast_call_argument(call, 0);
 
         if (arg_node != NULL && arg_node->type == AST_STRING
-            && arg_node->data.string.value != NULL) {
-            char *escaped = escape_c_string_literal(arg_node->data.string.value);
+            && ast_string_value(arg_node) != NULL) {
+            char *escaped = escape_c_string_literal(ast_string_value(arg_node));
             if (escaped != NULL) {
                 char *result = strdup_fmt("pgy_log(\"%s\")", escaped);
                 free(escaped);
@@ -126,7 +126,7 @@ emit_builtin_log_banner(ASTNode *call, TranspilerCtx *ctx)
     if (arg_node->type != AST_STRING)
         return emit_builtin_log(call, ctx);
 
-    char *normalized = normalize_banner_string_literal(arg_node->data.string.value);
+    char *normalized = normalize_banner_string_literal(ast_string_value(arg_node));
     if (normalized == NULL)
         return emit_builtin_log(call, ctx);
 

@@ -134,7 +134,9 @@ static ASTNode* parse_function_like_declaration(Parser* parser, bool is_action) 
         }
         if (parser_match(parser, TOKEN_ASSIGN)) {
             parser_error(parser,
-                "Default value arguments are reserved but not implemented; use an overload or wrapper function");
+                "Default value arguments are reserved but not implemented.\n"
+                "Reason: value defaults need call ABI, overload/dispatch, and named-argument interaction policy.\n"
+                "Fix: use an overload or wrapper function.");
             ast_destroy(parser_parse_expression(parser));
         }
 

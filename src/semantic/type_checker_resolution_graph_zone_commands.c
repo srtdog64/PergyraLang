@@ -137,16 +137,16 @@ semantic_type_resolution_precollect_zone_command_inventory(
         consumer_label = tc_zone_command_strdup_fmt(
             "zone %s.refresh.%s",
             zone_name_or_placeholder(zone_decl),
-            refresh->data.zone_refresh.object_slot_name != NULL
-                ? refresh->data.zone_refresh.object_slot_name : "<refresh>");
+            ast_zone_refresh_object_slot_name(refresh) != NULL
+                ? ast_zone_refresh_object_slot_name(refresh) : "<refresh>");
         if (consumer_label == NULL)
             continue;
 
         record_zone_slot_dependency(zone_decl, refresh, ctx, consumer_label,
-            refresh->data.zone_refresh.object_slot_name,
+            ast_zone_refresh_object_slot_name(refresh),
             "zone refresh target-slot lookup");
         record_zone_slot_dependency(zone_decl, refresh, ctx, consumer_label,
-            refresh->data.zone_refresh.source_slot_name,
+            ast_zone_refresh_source_slot_name(refresh),
             "zone refresh source-slot lookup");
         semantic_type_resolution_precollect_zone_refresh_projection_map(
             zone_decl, refresh, ctx, consumer_label);
@@ -163,19 +163,19 @@ semantic_type_resolution_precollect_zone_command_inventory(
         consumer_label = tc_zone_command_strdup_fmt(
             "zone %s.apply.%s",
             zone_name_or_placeholder(zone_decl),
-            apply->data.zone_apply.effect_slot_name != NULL
-                ? apply->data.zone_apply.effect_slot_name : "<effect-slot>");
+            ast_zone_effect_slot_name(apply) != NULL
+                ? ast_zone_effect_slot_name(apply) : "<effect-slot>");
         if (consumer_label == NULL)
             continue;
 
         record_zone_layer_dependency(zone_decl, apply, ctx, consumer_label,
-            apply->data.zone_apply.effect_slot_name,
+            ast_zone_effect_slot_name(apply),
             "zone apply effect-slot lookup");
         record_zone_slot_dependency(zone_decl, apply, ctx, consumer_label,
-            apply->data.zone_apply.target_slot_name,
+            ast_zone_effect_target_slot_name(apply),
             "zone apply target-slot lookup");
         record_zone_state_dependency(zone_decl, apply, ctx, consumer_label,
-            apply->data.zone_apply.state_name,
+            ast_zone_directive_state_name(apply),
             "zone apply state lookup");
         free(consumer_label);
     }
@@ -190,22 +190,22 @@ semantic_type_resolution_precollect_zone_command_inventory(
         consumer_label = tc_zone_command_strdup_fmt(
             "zone %s.link.%s",
             zone_name_or_placeholder(zone_decl),
-            link->data.zone_link.relation_slot_name != NULL
-                ? link->data.zone_link.relation_slot_name : "<relation-slot>");
+            ast_zone_relation_slot_name(link) != NULL
+                ? ast_zone_relation_slot_name(link) : "<relation-slot>");
         if (consumer_label == NULL)
             continue;
 
         record_zone_layer_dependency(zone_decl, link, ctx, consumer_label,
-            link->data.zone_link.relation_slot_name,
+            ast_zone_relation_slot_name(link),
             "zone link relation-slot lookup");
         record_zone_slot_dependency(zone_decl, link, ctx, consumer_label,
-            link->data.zone_link.left_slot_name,
+            ast_zone_relation_left_slot_name(link),
             "zone link left-slot lookup");
         record_zone_slot_dependency(zone_decl, link, ctx, consumer_label,
-            link->data.zone_link.right_slot_name,
+            ast_zone_relation_right_slot_name(link),
             "zone link right-slot lookup");
         record_zone_state_dependency(zone_decl, link, ctx, consumer_label,
-            link->data.zone_link.state_name,
+            ast_zone_directive_state_name(link),
             "zone link state lookup");
         free(consumer_label);
     }
@@ -220,19 +220,19 @@ semantic_type_resolution_precollect_zone_command_inventory(
         consumer_label = tc_zone_command_strdup_fmt(
             "zone %s.detach.%s",
             zone_name_or_placeholder(zone_decl),
-            detach->data.zone_detach.effect_slot_name != NULL
-                ? detach->data.zone_detach.effect_slot_name : "<effect-slot>");
+            ast_zone_effect_slot_name(detach) != NULL
+                ? ast_zone_effect_slot_name(detach) : "<effect-slot>");
         if (consumer_label == NULL)
             continue;
 
         record_zone_layer_dependency(zone_decl, detach, ctx, consumer_label,
-            detach->data.zone_detach.effect_slot_name,
+            ast_zone_effect_slot_name(detach),
             "zone detach effect-slot lookup");
         record_zone_slot_dependency(zone_decl, detach, ctx, consumer_label,
-            detach->data.zone_detach.target_slot_name,
+            ast_zone_effect_target_slot_name(detach),
             "zone detach target-slot lookup");
         record_zone_state_dependency(zone_decl, detach, ctx, consumer_label,
-            detach->data.zone_detach.state_name,
+            ast_zone_directive_state_name(detach),
             "zone detach state lookup");
         free(consumer_label);
     }
@@ -247,22 +247,22 @@ semantic_type_resolution_precollect_zone_command_inventory(
         consumer_label = tc_zone_command_strdup_fmt(
             "zone %s.unlink.%s",
             zone_name_or_placeholder(zone_decl),
-            unlink->data.zone_unlink.relation_slot_name != NULL
-                ? unlink->data.zone_unlink.relation_slot_name : "<relation-slot>");
+            ast_zone_relation_slot_name(unlink) != NULL
+                ? ast_zone_relation_slot_name(unlink) : "<relation-slot>");
         if (consumer_label == NULL)
             continue;
 
         record_zone_layer_dependency(zone_decl, unlink, ctx, consumer_label,
-            unlink->data.zone_unlink.relation_slot_name,
+            ast_zone_relation_slot_name(unlink),
             "zone unlink relation-slot lookup");
         record_zone_slot_dependency(zone_decl, unlink, ctx, consumer_label,
-            unlink->data.zone_unlink.left_slot_name,
+            ast_zone_relation_left_slot_name(unlink),
             "zone unlink left-slot lookup");
         record_zone_slot_dependency(zone_decl, unlink, ctx, consumer_label,
-            unlink->data.zone_unlink.right_slot_name,
+            ast_zone_relation_right_slot_name(unlink),
             "zone unlink right-slot lookup");
         record_zone_state_dependency(zone_decl, unlink, ctx, consumer_label,
-            unlink->data.zone_unlink.state_name,
+            ast_zone_directive_state_name(unlink),
             "zone unlink state lookup");
         free(consumer_label);
     }
@@ -277,16 +277,16 @@ semantic_type_resolution_precollect_zone_command_inventory(
         consumer_label = tc_zone_command_strdup_fmt(
             "zone %s.maintain-effect.%s",
             zone_name_or_placeholder(zone_decl),
-            maintain->data.zone_maintain_effect.effect_slot_name != NULL
-                ? maintain->data.zone_maintain_effect.effect_slot_name : "<effect-slot>");
+            ast_zone_effect_slot_name(maintain) != NULL
+                ? ast_zone_effect_slot_name(maintain) : "<effect-slot>");
         if (consumer_label == NULL)
             continue;
 
         record_zone_layer_dependency(zone_decl, maintain, ctx, consumer_label,
-            maintain->data.zone_maintain_effect.effect_slot_name,
+            ast_zone_effect_slot_name(maintain),
             "zone maintain-effect slot lookup");
         record_zone_slot_dependency(zone_decl, maintain, ctx, consumer_label,
-            maintain->data.zone_maintain_effect.target_slot_name,
+            ast_zone_effect_target_slot_name(maintain),
             "zone maintain-effect target-slot lookup");
         free(consumer_label);
     }
@@ -301,19 +301,19 @@ semantic_type_resolution_precollect_zone_command_inventory(
         consumer_label = tc_zone_command_strdup_fmt(
             "zone %s.maintain-relation.%s",
             zone_name_or_placeholder(zone_decl),
-            maintain->data.zone_maintain_relation.relation_slot_name != NULL
-                ? maintain->data.zone_maintain_relation.relation_slot_name : "<relation-slot>");
+            ast_zone_relation_slot_name(maintain) != NULL
+                ? ast_zone_relation_slot_name(maintain) : "<relation-slot>");
         if (consumer_label == NULL)
             continue;
 
         record_zone_layer_dependency(zone_decl, maintain, ctx, consumer_label,
-            maintain->data.zone_maintain_relation.relation_slot_name,
+            ast_zone_relation_slot_name(maintain),
             "zone maintain-relation slot lookup");
         record_zone_slot_dependency(zone_decl, maintain, ctx, consumer_label,
-            maintain->data.zone_maintain_relation.left_slot_name,
+            ast_zone_relation_left_slot_name(maintain),
             "zone maintain-relation left-slot lookup");
         record_zone_slot_dependency(zone_decl, maintain, ctx, consumer_label,
-            maintain->data.zone_maintain_relation.right_slot_name,
+            ast_zone_relation_right_slot_name(maintain),
             "zone maintain-relation right-slot lookup");
         free(consumer_label);
     }

@@ -180,6 +180,15 @@ bool        air_boundary_requires_rir_evidence(const AIRBoundaryNode *boundary);
 bool        air_boundary_has_evidence(const AIRProgram *air,
                                       size_t boundary_index,
                                       AIREvidenceKind kind);
+const AIREvidenceNode *air_boundary_evidence_node(const AIRProgram *air,
+                                                  size_t boundary_index,
+                                                  AIREvidenceKind kind);
+const char *air_boundary_evidence_provider(const AIRProgram *air,
+                                           size_t boundary_index,
+                                           AIREvidenceKind kind);
+const char *air_boundary_evidence_subject(const AIRProgram *air,
+                                          size_t boundary_index,
+                                          AIREvidenceKind kind);
 bool        air_collect_mir_evidence(AIRProgram *air,
                                      const MIRProgram *mir,
                                      char **error_message);

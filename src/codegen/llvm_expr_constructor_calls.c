@@ -163,10 +163,10 @@ llvm_emit_class_constructor_projection_dirty(LLVMGenCtx *ctx,
                 ASTNode *refresh = refreshes != NULL ? refreshes[ri] : NULL;
                 if (refresh == NULL
                     || refresh->type != AST_ZONE_REFRESH
-                    || refresh->data.zone_refresh.object_slot_name == NULL) {
+                    || ast_zone_refresh_object_slot_name(refresh) == NULL) {
                     continue;
                 }
-                if (strcmp(slot_name, refresh->data.zone_refresh.object_slot_name) == 0) {
+                if (strcmp(slot_name, ast_zone_refresh_object_slot_name(refresh)) == 0) {
                     projection_slot = true;
                     break;
                 }

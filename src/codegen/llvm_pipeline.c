@@ -291,7 +291,7 @@ llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx)
             || stmt->type != AST_FUNC_DECL)
             continue;
         GenericParams *generic_params = ast_func_generic_params(stmt);
-        if (generic_params != NULL && generic_params->count > 0) {
+        if (ast_generic_param_count(generic_params) > 0) {
             if (!llvm_register_generic_template_decl(ctx, stmt))
                 return false;
             continue;
@@ -320,7 +320,7 @@ llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx)
 
         ASTNode *func_decl = routine->ast;
         GenericParams *generic_params = ast_func_generic_params(func_decl);
-        if (generic_params != NULL && generic_params->count > 0) {
+        if (ast_generic_param_count(generic_params) > 0) {
             continue;
         }
         if (llvm_mir_routine_has_instructions(routine))
@@ -335,7 +335,7 @@ llvm_emit_program_from_mir(const MIRProgram *mir, LLVMGenCtx *ctx)
             && stmt != NULL
             && stmt->type == AST_FUNC_DECL) {
             GenericParams *generic_params = ast_func_generic_params(stmt);
-            if (generic_params != NULL && generic_params->count > 0) {
+            if (ast_generic_param_count(generic_params) > 0) {
                 continue;
             }
             if (!llvm_mir_routine_has_instructions(routine)) {

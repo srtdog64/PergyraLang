@@ -143,8 +143,12 @@ semantic_stage_generic_contract_nodes(GenericParams *gp,
         return;
 
     if (gp != NULL) {
-        for (size_t i = 0; i < gp->count; i++) {
-            GenericParam *param = gp->params[i];
+        size_t generic_count = ast_generic_param_count(gp);
+        for (size_t i = 0; i < generic_count; i++) {
+            GenericParam *param = ast_generic_param_at(gp, i);
+            const char *param_name = ast_generic_param_name(param);
+            ASTNode *default_type = ast_generic_param_default_type(param);
+            ASTNode *constraint = ast_generic_param_constraint(param);
             char *consumer_name;
 
             if (param == NULL)
@@ -154,24 +158,24 @@ semantic_stage_generic_contract_nodes(GenericParams *gp,
                 "%s %s.%s",
                 kind_name != NULL ? kind_name : "decl",
                 owner_name != NULL ? owner_name : "<anon>",
-                param->name != NULL ? param->name : "<type-param>");
+                param_name != NULL ? param_name : "<type-param>");
             if (consumer_name == NULL)
                 continue;
 
-            if (param->default_type != NULL) {
+            if (default_type != NULL) {
                 semantic_record_dag_generic_contract_evidence(ctx);
                 (void)semantic_stage_resolve_type_quiet(
-                    param->default_type,
+                    default_type,
                     ctx,
                     owner,
                     consumer_name,
                     "default-type lookup");
             }
 
-            if (param->constraint != NULL) {
+            if (constraint != NULL) {
                 semantic_record_dag_generic_contract_evidence(ctx);
                 (void)semantic_stage_resolve_type_quiet(
-                    param->constraint,
+                    constraint,
                     ctx,
                     owner,
                     consumer_name,
@@ -267,8 +271,8 @@ semantic_stage_function_signature(ASTNode *func_decl,
         "function return type lookup");
 
     semantic_stage_required_abilities(
-        func_decl->data.func_decl.required_abilities,
-        func_decl->data.func_decl.required_ability_count,
+        ast_func_required_abilities(func_decl, NULL),
+        ast_func_required_ability_count(func_decl),
         ctx,
         func_decl,
         consumer_name,
@@ -276,11 +280,11 @@ semantic_stage_function_signature(ASTNode *func_decl,
     (void)semantic_stage_named_decl_quiet(
         ctx,
         AST_ZONE_DECL,
-        func_decl->data.func_decl.within_zone);
+        ast_func_within_zone(func_decl));
     (void)semantic_stage_named_decl_quiet(
         ctx,
         AST_EFFECT_DECL,
-        func_decl->data.func_decl.causes_effect);
+        ast_func_causes_effect(func_decl));
 }
 
 void
@@ -314,13 +318,13 @@ semantic_stage_event_signature(ASTNode *event_decl,
             "event %s.%s",
             ast_event_name(event_decl) != NULL
                 ? ast_event_name(event_decl) : "<event>",
-            param->data.let_decl.name != NULL
-                ? param->data.let_decl.name : "<param>");
+            ast_let_name(param) != NULL
+                ? ast_let_name(param) : "<param>");
         if (consumer_name == NULL)
             continue;
 
         (void)semantic_stage_resolve_type_quiet(
-            param->data.let_decl.type,
+            ast_let_type(param),
             ctx,
             event_decl,
             consumer_name,

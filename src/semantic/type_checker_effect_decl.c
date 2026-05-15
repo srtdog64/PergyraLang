@@ -35,12 +35,12 @@ type_check_effect_decl(ASTNode *node, SemanticContext *ctx)
         if (refresh == NULL)
             continue;
         const char *action_name =
-            refresh->data.zone_refresh.derive_target_kind ? "bind"
-            : (refresh->data.zone_refresh.requires_dto ? "publish" : "refresh");
+            ast_zone_refresh_derives_target_kind(refresh) ? "bind"
+            : (ast_zone_refresh_requires_dto(refresh) ? "publish" : "refresh");
         ok = type_check_projection_contract(slots, slot_count, "Effect",
             ast_effect_name(node), refresh,
-            refresh->data.zone_refresh.object_slot_name,
-            refresh->data.zone_refresh.source_slot_name, ctx,
+            ast_zone_refresh_object_slot_name(refresh),
+            ast_zone_refresh_source_slot_name(refresh), ctx,
             action_name) && ok;
     }
     size_t target_count = count_bindable_domain_slots(

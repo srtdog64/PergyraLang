@@ -111,7 +111,7 @@ llvm_build_boundary_call_args(LLVMGenCtx *ctx, ASTNode *decl,
         bool pointer_self = llvm_boundary_param_uses_pointer_self(ctx, p);
 
         if (inner != NULL && arg_node != NULL && arg_node->type == AST_IDENTIFIER) {
-            const char *source_name = arg_node->data.identifier.name;
+            const char *source_name = ast_identifier_name(arg_node);
             LLVMVarEntry *slot_var = llvm_scope_lookup(ctx, source_name);
             args[emitted_idx++] = slot_var != NULL
                 ? llvm_boundary_slot_runtime_arg(ctx, slot_var)
@@ -135,7 +135,7 @@ llvm_build_boundary_call_args(LLVMGenCtx *ctx, ASTNode *decl,
 
         if (pointer_self && arg_node != NULL) {
             if (arg_node->type == AST_IDENTIFIER) {
-                const char *source_name = arg_node->data.identifier.name;
+                const char *source_name = ast_identifier_name(arg_node);
                 LLVMVarEntry *var = llvm_scope_lookup(ctx, source_name);
                 if (var != NULL) {
                     args[emitted_idx++] = LLVMGetTypeKind(var->type) == LLVMPointerTypeKind

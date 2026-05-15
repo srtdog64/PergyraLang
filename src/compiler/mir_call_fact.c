@@ -1,5 +1,7 @@
 #include "mir_call_fact.h"
 
+#include "../parser/ast_api.h"
+
 void
 mir_attach_statement_call_fact(MIRInstruction *inst, const ASTNode *stmt)
 {
@@ -10,16 +12,16 @@ mir_attach_statement_call_fact(MIRInstruction *inst, const ASTNode *stmt)
         return;
     }
     if (stmt->type == AST_LET_DECL) {
-        inst->arg0 = stmt->data.let_decl.name;
-        inst->expr0 = stmt->data.let_decl.initializer;
-        inst->expr1 = stmt->data.let_decl.type;
+        inst->arg0 = ast_let_name(stmt);
+        inst->expr0 = ast_let_initializer(stmt);
+        inst->expr1 = ast_let_type(stmt);
         return;
     }
     if (stmt->type == AST_ASSIGNMENT) {
         ASTNode *target = ast_assignment_target(stmt);
         if (target != NULL
             && target->type == AST_IDENTIFIER)
-            inst->arg0 = target->data.identifier.name;
+            inst->arg0 = ast_identifier_name(target);
         inst->expr0 = ast_assignment_value(stmt);
         return;
     }
@@ -29,7 +31,7 @@ mir_attach_statement_call_fact(MIRInstruction *inst, const ASTNode *stmt)
         || ast_call_callee(stmt)->type != AST_IDENTIFIER) {
         return;
     }
-    inst->arg0 = ast_call_callee(stmt)->data.identifier.name;
+    inst->arg0 = ast_identifier_name(ast_call_callee(stmt));
 }
 
 void
@@ -40,8 +42,8 @@ mir_attach_def_initializer_call_fact(MIRInstruction *inst, const ASTNode *stmt)
     if (inst == NULL || inst->kind != MIR_INST_DEF || stmt == NULL)
         return;
     if (stmt->type == AST_LET_DECL) {
-        expr = stmt->data.let_decl.initializer;
-        inst->expr1 = stmt->data.let_decl.type;
+        expr = ast_let_initializer(stmt);
+        inst->expr1 = ast_let_type(stmt);
         inst->requires_source_statement_emit = true;
         inst->requires_source_local_decl_emit = true;
     } else if (stmt->type == AST_ASSIGNMENT) {
@@ -57,7 +59,7 @@ mir_attach_def_initializer_call_fact(MIRInstruction *inst, const ASTNode *stmt)
         || ast_call_callee(expr)->type != AST_IDENTIFIER) {
         return;
     }
-    inst->arg1 = ast_call_callee(expr)->data.identifier.name;
+    inst->arg1 = ast_identifier_name(ast_call_callee(expr));
 }
 
 void

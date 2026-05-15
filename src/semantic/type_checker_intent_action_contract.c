@@ -39,14 +39,14 @@ intent_step_same_ability_list(ASTNode *step, ASTNode *action_decl)
     }
     step_abilities = ast_intent_step_required_abilities(
         step, &step_ability_count);
-    if (step_ability_count != action_decl->data.func_decl.required_ability_count) {
+    if (step_ability_count != ast_func_required_ability_count(action_decl)) {
         return false;
     }
 
     for (size_t i = 0; i < step_ability_count; i++) {
         char *step_text = ability_ref_display(step_abilities[i]);
         char *action_text = ability_ref_display(
-            action_decl->data.func_decl.required_abilities[i]);
+            ast_func_required_ability(action_decl, i));
         bool same = step_text != NULL && action_text != NULL
             && strcmp(step_text, action_text) == 0;
         free(step_text);
@@ -109,12 +109,12 @@ intent_step_same_authorized_by_list(ASTNode *intent_decl,
         step, &step_authorized_count);
     step_who = ast_intent_step_who_names(step, &step_who_count);
     involves_nodes = ast_intent_decl_involves(intent_decl, &involve_count);
-    if (step_authorized_count != action_decl->data.func_decl.authorized_by_count) {
+    if (step_authorized_count != ast_func_authorized_by_count(action_decl)) {
         return false;
     }
 
-    for (size_t i = 0; i < action_decl->data.func_decl.authorized_by_count; i++) {
-        const char *binding_name = action_decl->data.func_decl.authorized_by[i];
+    for (size_t i = 0; i < ast_func_authorized_by_count(action_decl); i++) {
+        const char *binding_name = ast_func_authorized_by(action_decl, i);
         const char *binding_type_name = intent_action_binding_type_name(
             action_decl, action_subject_decl, ctx, binding_name);
         const char *mapped_alias = NULL;
@@ -268,11 +268,11 @@ intent_step_warn_redundant_action_contract(ASTNode *intent_decl,
         && !ast_intent_step_inherited_where_from_action(step)
         && !ast_intent_step_derived_where_from_using(step)
         && !ast_intent_step_derived_where_from_transfer(step)
-        && action_decl->data.func_decl.within_zone != NULL
+        && ast_func_within_zone(action_decl) != NULL
         && step_where->type == AST_TYPE
         && ast_type_name(step_where) != NULL
         && strcmp(ast_type_name(step_where),
-            action_decl->data.func_decl.within_zone) == 0) {
+            ast_func_within_zone(action_decl)) == 0) {
         (void)pergyra_str_appendf(redundant, sizeof(redundant),
                                   "%s- where", has_any ? "\n" : "");
         has_any = true;
@@ -288,7 +288,7 @@ intent_step_warn_redundant_action_contract(ASTNode *intent_decl,
 
     if (ast_intent_step_required_ability_count(step) > 0
         && !ast_intent_step_inherited_requires_from_action(step)
-        && action_decl->data.func_decl.required_ability_count > 0
+        && ast_func_required_ability_count(action_decl) > 0
         && intent_step_same_ability_list(step, action_decl)) {
         (void)pergyra_str_appendf(redundant, sizeof(redundant),
                                   "%s- requires", has_any ? "\n" : "");
@@ -297,8 +297,8 @@ intent_step_warn_redundant_action_contract(ASTNode *intent_decl,
 
     if (step_causes != NULL
         && !ast_intent_step_inherited_causes_from_action(step)
-        && action_decl->data.func_decl.causes_effect != NULL
-        && strcmp(step_causes, action_decl->data.func_decl.causes_effect) == 0) {
+        && ast_func_causes_effect(action_decl) != NULL
+        && strcmp(step_causes, ast_func_causes_effect(action_decl)) == 0) {
         (void)pergyra_str_appendf(redundant, sizeof(redundant),
                                   "%s- causes", has_any ? "\n" : "");
         has_any = true;
@@ -306,7 +306,7 @@ intent_step_warn_redundant_action_contract(ASTNode *intent_decl,
 
     if (ast_intent_step_authorized_by_count(step) > 0
         && !ast_intent_step_inherited_authorized_by_from_action(step)
-        && action_decl->data.func_decl.authorized_by_count > 0
+        && ast_func_authorized_by_count(action_decl) > 0
         && intent_step_same_authorized_by_list(intent_decl, step, action_decl,
                                                action_subject_decl, ctx)) {
         (void)pergyra_str_appendf(redundant, sizeof(redundant),
@@ -421,18 +421,18 @@ intent_step_inherit_action_contract(ASTNode *intent_decl, ASTNode *step,
         return;
 
     if (ast_intent_step_where_type(step) == NULL
-        && action_decl->data.func_decl.within_zone != NULL) {
+        && ast_func_within_zone(action_decl) != NULL) {
         if (ast_intent_step_set_where_type(step,
-                ast_create_type(action_decl->data.func_decl.within_zone))) {
+                ast_create_type(ast_func_within_zone(action_decl)))) {
             ast_intent_step_mark_inherited_where_from_action(step);
         }
     }
 
     if (ast_intent_step_required_ability_count(step) == 0
-        && action_decl->data.func_decl.required_ability_count > 0) {
+        && ast_func_required_ability_count(action_decl) > 0) {
         bool copied_all = true;
-        for (size_t i = 0; i < action_decl->data.func_decl.required_ability_count; i++) {
-            ASTNode *ability_ref = action_decl->data.func_decl.required_abilities[i];
+        for (size_t i = 0; i < ast_func_required_ability_count(action_decl); i++) {
+            ASTNode *ability_ref = ast_func_required_ability(action_decl, i);
             if (!ast_intent_step_append_required_ability_clone(step, ability_ref)) {
                 copied_all = false;
                 break;
@@ -443,15 +443,15 @@ intent_step_inherit_action_contract(ASTNode *intent_decl, ASTNode *step,
     }
 
     if (ast_intent_step_causes_effect(step) == NULL
-        && action_decl->data.func_decl.causes_effect != NULL) {
+        && ast_func_causes_effect(action_decl) != NULL) {
         if (ast_intent_step_set_causes_effect_copy(step,
-                action_decl->data.func_decl.causes_effect)) {
+                ast_func_causes_effect(action_decl))) {
             ast_intent_step_mark_inherited_causes_from_action(step);
         }
     }
 
     if (ast_intent_step_authorized_by_count(step) == 0
-        && action_decl->data.func_decl.authorized_by_count > 0) {
+        && ast_func_authorized_by_count(action_decl) > 0) {
         bool mapped_all = true;
         char **step_who;
         size_t step_who_count;
@@ -461,8 +461,8 @@ intent_step_inherit_action_contract(ASTNode *intent_decl, ASTNode *step,
         step_who = ast_intent_step_who_names(step, &step_who_count);
         involves_nodes = ast_intent_decl_involves(intent_decl, &involve_count);
 
-        for (size_t i = 0; i < action_decl->data.func_decl.authorized_by_count; i++) {
-            const char *binding_name = action_decl->data.func_decl.authorized_by[i];
+        for (size_t i = 0; i < ast_func_authorized_by_count(action_decl); i++) {
+            const char *binding_name = ast_func_authorized_by(action_decl, i);
             const char *binding_type_name = intent_action_binding_type_name(
                 action_decl, action_subject_decl, ctx, binding_name);
             const char *mapped_alias = NULL;

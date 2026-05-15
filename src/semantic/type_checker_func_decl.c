@@ -78,7 +78,7 @@ bool
 type_check_func_decl(ASTNode *node, SemanticContext *ctx)
 {
     const char *name = ast_declaration_name(node);
-    bool is_action = (!node->is_async_decl && node->data.func_decl.is_action);
+    bool is_action = (!node->is_async_decl && ast_func_is_action(node));
     ASTNode *enclosing_nominal = ctx->current_nominal_decl;
     ASTNode *prev_function_decl = ctx->current_function_decl;
     uint32_t prev_effects = ctx->current_function_effects;
@@ -99,17 +99,20 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
      * parameter and return type resolution. */
     GenericParams *func_generics = ast_func_generic_params(node);
     WhereClause *func_where_clause = ast_func_where_clause(node);
-    bool has_generics = (func_generics != NULL && func_generics->count > 0);
+    bool has_generics = (ast_generic_param_count(func_generics) > 0);
     if (has_generics) {
         validate_generic_param_defaults(func_generics, ctx, node, "function");
         scope_enter(&ctx->scope, SCOPE_BLOCK);
         GenericParams *gp = func_generics;
-        for (size_t gi = 0; gi < gp->count; gi++) {
-            if (gp->params[gi] == NULL || gp->params[gi]->name == NULL)
+        size_t generic_count = ast_generic_param_count(gp);
+        for (size_t gi = 0; gi < generic_count; gi++) {
+            GenericParam *param = ast_generic_param_at(gp, gi);
+            const char *param_name = ast_generic_param_name(param);
+            if (param_name == NULL)
                 continue;
-            Type *tp = type_create_generic(gp->params[gi]->name);
+            Type *tp = type_create_generic(param_name);
             Symbol *s = symbol_create_variable(
-                gp->params[gi]->name,
+                param_name,
                 tp != NULL ? tp : TYPE_UNKNOWN,
                 node->line, node->column);
             s->kind = SYMBOL_TYPE_PARAM;
@@ -282,12 +285,15 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
     /* Re-register generic type params inside the function scope */
     if (has_generics) {
         GenericParams *gp = func_generics;
-        for (size_t gi = 0; gi < gp->count; gi++) {
-            if (gp->params[gi] == NULL || gp->params[gi]->name == NULL)
+        size_t generic_count = ast_generic_param_count(gp);
+        for (size_t gi = 0; gi < generic_count; gi++) {
+            GenericParam *param = ast_generic_param_at(gp, gi);
+            const char *param_name = ast_generic_param_name(param);
+            if (param_name == NULL)
                 continue;
-            Type *tp = type_create_generic(gp->params[gi]->name);
+            Type *tp = type_create_generic(param_name);
             Symbol *s = symbol_create_variable(
-                gp->params[gi]->name,
+                param_name,
                 tp != NULL ? tp : TYPE_UNKNOWN,
                 node->line, node->column);
             s->kind = SYMBOL_TYPE_PARAM;
@@ -305,19 +311,19 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
 
     if (declared_effects != EFFECT_NONE)
         semantic_record_body_summary(ctx, BODY_SUMMARY_EFFECTS);
-    if (is_action && node->data.func_decl.within_zone != NULL)
+    if (is_action && ast_func_within_zone(node) != NULL)
         semantic_record_body_summary(ctx, BODY_SUMMARY_REQUIRES_ZONE);
 
     /* Register parameters */
     for (size_t i = 0; i < param_count; i++) {
-        Type *pt = func_type->data.function.param_types[i];
+        Type *pt = type_function_param_type(func_type, i);
         FuncParam *param = ast_func_param(node, i);
         const char *param_name = param != NULL ? param->name : NULL;
         if (param != NULL && param->mode == PARAM_MODE_OWN)
             semantic_record_body_summary(ctx, BODY_SUMMARY_MOVES_PARAM);
         else if (param != NULL && param->mode == PARAM_MODE_REF)
             semantic_record_body_summary(ctx, BODY_SUMMARY_BORROWS_PARAM);
-        if (pt != NULL && pt->kind == TYPE_KIND_SLOT && pt->data.slot.is_secure)
+        if (type_slot_is_secure(pt))
             semantic_record_effect(ctx, EFFECT_SECURE);
         if (type_is_constructed_named(pt, "Token"))
             semantic_record_effect(ctx, EFFECT_SECURE);
@@ -326,7 +332,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
             const char *paired_token = NULL;
             Symbol *slot_sym;
 
-            if (pt->data.slot.is_secure) {
+            if (type_slot_is_secure(pt)) {
                 if (!semantic_format_secure_token_name(
                         token_name, sizeof(token_name), param_name, node, ctx))
                     continue;
@@ -334,16 +340,16 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
             }
 
             slot_sym = symbol_create_slot(param_name, pt,
-                pt->data.slot.is_secure, paired_token,
+                type_slot_is_secure(pt), paired_token,
                 node->line, node->column);
             scope_declare(ctx->scope, slot_sym);
             scope_register_slot(ctx->scope, slot_sym);
 
-            if (pt->data.slot.is_secure) {
+            if (type_slot_is_secure(pt)) {
                 Symbol *tok = symbol_create_token(token_name, param_name,
                     node->line, node->column);
                 if (tok != NULL) {
-                    Type *token_args[1] = { pt->data.slot.inner_type };
+                    Type *token_args[1] = { type_slot_inner_type(pt) };
                     tok->type = type_create_constructed(TYPE_TOKEN, token_args, 1);
                 }
                 scope_declare(ctx->scope, tok);
@@ -358,11 +364,11 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
     }
 
     if (ast_func_body(node) != NULL) {
-        bool body_must_return = false;
-        semantic_check_body_flow(ast_func_body(node), ctx, &body_must_return);
+        SemanticBodyFlowSummary flow_summary = {0};
+        semantic_check_body_flow_summary(ast_func_body(node), ctx, &flow_summary);
         if (!type_equals(return_type, TYPE_VOID)
             && return_type != TYPE_UNKNOWN
-            && !body_must_return) {
+            && !flow_summary.must_return) {
             semantic_error_with_hints(ctx,
                 PGY_CODE_SEM_MISSING_RETURN,
                 PGY_CAUSE_CFG_MISSING_RETURN,
@@ -371,12 +377,18 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                 "Function '%s' with return type '%s' may fall through without returning a value.\n"
                 "Reason:\n"
                 "- the CFG body summary has at least one reachable normal path without a return terminator\n"
+                "- summary: fallthrough=%s return=%s break=%s continue=%s defer=%s\n"
                 "- beta-stable body safety requires non-Void functions to return on every normal path\n"
                 "Fix:\n"
                 "- add a return on the missing branch/path\n"
                 "- or change the function return type to Void if falling through is intended",
                 name != NULL ? name : "<anonymous>",
-                return_type->name != NULL ? return_type->name : "<unknown>");
+                return_type->name != NULL ? return_type->name : "<unknown>",
+                flow_summary.has_fallthrough ? "yes" : "no",
+                flow_summary.has_return ? "yes" : "no",
+                flow_summary.has_break ? "yes" : "no",
+                flow_summary.has_continue ? "yes" : "no",
+                flow_summary.has_defer ? "yes" : "no");
         }
     }
 
@@ -400,12 +412,12 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                 missing_buf, declared_buf, derived_buf);
         }
 
-        func_type->data.function.effect_mask =
-            type_effect_mask_join(declared_effects, derived_effects);
+        type_function_set_effects(func_type,
+            type_effect_mask_join(declared_effects, derived_effects));
 
-        if (type_effect_mask_conflicts(func_type->data.function.effect_mask,
-                                       func_type->data.function.effect_mask)) {
-            effect_mask_to_string(func_type->data.function.effect_mask,
+        if (type_effect_mask_conflicts(type_function_effects(func_type),
+                                       type_function_effects(func_type))) {
+            effect_mask_to_string(type_function_effects(func_type),
                                   derived_buf, sizeof(derived_buf));
             semantic_warning_with_hints(ctx,
                 PGY_CODE_SEM_EFFECT_CONFLICT,
@@ -426,9 +438,9 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
         }
 
         if (is_action
-            && node->data.func_decl.within_zone != NULL
-            && type_effect_mask_requires_authority(func_type->data.function.effect_mask)
-            && node->data.func_decl.authorized_by_count == 0) {
+            && ast_func_within_zone(node) != NULL
+            && type_effect_mask_requires_authority(type_function_effects(func_type))
+            && ast_func_authorized_by_count(node) == 0) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_ACTION_CONTRACT_INVALID, PGY_CAUSE_ACTION_CONTRACT, PGY_FIX_ALIGN_ACTION_SURFACE_WITH_ZONE, node,
                 "secure action '%s' within zone '%s' must declare 'authorized by'.\n"
                 "Reason:\n"
@@ -441,14 +453,14 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                 "- add 'authorized by <subject-slot>' to the action contract\n"
                 "- or move the authority-sensitive work behind a helper that is called from an already-authorized action",
                 name != NULL ? name : "<anonymous>",
-                node->data.func_decl.within_zone,
-                node->data.func_decl.within_zone,
-                node->data.func_decl.within_zone);
+                ast_func_within_zone(node),
+                ast_func_within_zone(node),
+                ast_func_within_zone(node));
         }
         if (is_action
-            && node->data.func_decl.within_zone != NULL
-            && node->data.func_decl.causes_effect != NULL
-            && node->data.func_decl.authorized_by_count == 0) {
+            && ast_func_within_zone(node) != NULL
+            && ast_func_causes_effect(node) != NULL
+            && ast_func_authorized_by_count(node) == 0) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_ACTION_CONTRACT_INVALID, PGY_CAUSE_ACTION_CONTRACT, PGY_FIX_ALIGN_ACTION_SURFACE_WITH_ZONE, node,
                 "action '%s' causing effect '%s' within zone '%s' must declare 'authorized by'.\n"
                 "Reason:\n"
@@ -461,17 +473,17 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                 "- add 'authorized by <subject-slot>' to the action contract\n"
                 "- or remove/change the causes clause if this action should stay authority-free",
                 name != NULL ? name : "<anonymous>",
-                node->data.func_decl.causes_effect,
-                node->data.func_decl.within_zone,
-                node->data.func_decl.causes_effect,
-                node->data.func_decl.within_zone,
-                node->data.func_decl.causes_effect,
-                node->data.func_decl.within_zone);
+                ast_func_causes_effect(node),
+                ast_func_within_zone(node),
+                ast_func_causes_effect(node),
+                ast_func_within_zone(node),
+                ast_func_causes_effect(node),
+                ast_func_within_zone(node));
         }
     }
 
-    func_type->data.function.body_summary_mask =
-        ctx->current_function_body_summary;
+    type_function_set_body_summary(func_type,
+        ctx->current_function_body_summary);
 
     ctx->current_return = prev_return;
     ctx->current_function_decl = prev_function_decl;

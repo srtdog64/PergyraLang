@@ -22,11 +22,11 @@ mir_stmt_def_name(const ASTNode *stmt)
     if (stmt == NULL)
         return NULL;
     if (stmt->type == AST_LET_DECL)
-        return stmt->data.let_decl.name;
+        return ast_let_name(stmt);
     if (stmt->type == AST_ASSIGNMENT
         && ast_assignment_target(stmt) != NULL
         && ast_assignment_target(stmt)->type == AST_IDENTIFIER) {
-        return ast_assignment_target(stmt)->data.identifier.name;
+        return ast_identifier_name(ast_assignment_target(stmt));
     }
     return NULL;
 }
@@ -41,18 +41,18 @@ mir_let_decl_requires_stmt_preservation(const ASTNode *stmt)
     if (stmt == NULL || stmt->type != AST_LET_DECL)
         return false;
 
-    init = stmt->data.let_decl.initializer;
+    init = ast_let_initializer(stmt);
     if (init == NULL || init->type != AST_CALL)
         return false;
 
     callee = ast_call_callee(init);
     if (callee == NULL
         || callee->type != AST_IDENTIFIER
-        || callee->data.identifier.name == NULL) {
+        || ast_identifier_name(callee) == NULL) {
         return false;
     }
 
-    name = callee->data.identifier.name;
+    name = ast_identifier_name(callee);
     return strcmp(name, "Read") == 0
         || strcmp(name, "ViewRead") == 0
         || strcmp(name, "ViewWrite") == 0

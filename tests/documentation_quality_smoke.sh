@@ -66,6 +66,7 @@ required_files=(
     "docs/05_async_concurrency.md"
     "docs/113_memory_concurrency_model.md"
     "docs/114_async_model_positioning.md"
+    "docs/104_air_compiler_architecture.md"
     "examples/async_demo.pgy"
     "docs/semantics/07_air_abstraction_safety.md"
     "docs/semantics/00_proof_contract.md"
@@ -212,6 +213,18 @@ type_medium_terms=(
 for term in "${type_medium_terms[@]}"; do
     require_text "docs/121_types_as_domain_medium.md" "$term"
 done
+
+intent_authoring_terms=(
+    "human-readable and AI-fillable verification frame"
+    "A human can write and review a compact intent skeleton"
+    "AI may propose or fill the intent frame"
+)
+for term in "${intent_authoring_terms[@]}"; do
+    require_text "docs/42_keyword_orthogonality.md" "$term"
+done
+require_text "docs/124_syntax_pattern_matrix.md" "Pergyra intent is designed to be human-readable and AI-fillable."
+require_text "docs/124_syntax_pattern_matrix.md" "human goal/review -> AI-filled intent/code -> compiler YES/NO -> Reason/Fix -> patch"
+require_text "docs/124_syntax_pattern_matrix.md" "AI-generated clauses are not trusted just because they are plausible"
 
 semantic_split_terms=(
     "static rejection  = unsafe transition across a known boundary"
@@ -515,6 +528,13 @@ for term in "${compiler_contract_orthogonality_terms[@]}"; do
     require_text "docs/37_compiler_contracts.md" "$term"
 done
 
+for rel in \
+    "README.md" \
+    "docs/37_compiler_contracts.md" \
+    "docs/42_keyword_orthogonality.md"; do
+    forbid_text "$rel" "??"
+done
+
 air_terms=(
     "DIR -> step -> intent_node"
     "intent_step_ast -> execution_boundary -> boundary_node"
@@ -522,6 +542,18 @@ air_terms=(
 )
 for term in "${air_terms[@]}"; do
     require_text "docs/semantics/07_air_abstraction_safety.md" "$term"
+done
+
+air_architecture_terms=(
+    "Epsilon-Loss Isolation Contract"
+    "AIR does not pretend that abstraction lowering is lossless."
+    "AIR's job is to isolate that epsilon-loss at the boundary."
+    "epsilon quarantine layer, not an epsilon elimination layer"
+    "Semantic truth remains with the owning layer"
+    "cross-layer boundary with explicit evidence"
+)
+for term in "${air_architecture_terms[@]}"; do
+    require_text "docs/104_air_compiler_architecture.md" "$term"
 done
 
 remote_future_terms=(

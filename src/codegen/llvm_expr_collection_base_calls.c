@@ -228,9 +228,9 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
             callee_name, "collection", LLVMConstInt(ctx->type_i32, 0, 0), out);
         if (set_var == NULL)
             return true;
-        inner_name = llvm_lookup_set_inner(ctx, set_arg->data.identifier.name);
+        inner_name = llvm_lookup_set_inner(ctx, ast_identifier_name(set_arg));
         elem_ty = llvm_collection_required_value_type(ctx, node, "Set",
-            set_arg->data.identifier.name, inner_name, NULL);
+            ast_identifier_name(set_arg), inner_name, NULL);
         if (elem_ty == NULL) {
             *out = NULL;
             return true;
@@ -297,9 +297,9 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
             callee_name, "collection", LLVMConstInt(ctx->type_i1, 0, 0), out);
         if (set_var == NULL)
             return true;
-        inner_name = llvm_lookup_set_inner(ctx, set_arg->data.identifier.name);
+        inner_name = llvm_lookup_set_inner(ctx, ast_identifier_name(set_arg));
         elem_ty = llvm_collection_required_value_type(ctx, node, "Set",
-            set_arg->data.identifier.name, inner_name, NULL);
+            ast_identifier_name(set_arg), inner_name, NULL);
         if (elem_ty == NULL) {
             *out = NULL;
             return true;
@@ -370,9 +370,9 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
             callee_name, "collection", LLVMConstInt(ctx->type_i32, 0, 0), out);
         if (set_var == NULL)
             return true;
-        inner_name = llvm_lookup_set_inner(ctx, set_arg->data.identifier.name);
+        inner_name = llvm_lookup_set_inner(ctx, ast_identifier_name(set_arg));
         elem_ty = llvm_collection_required_value_type(ctx, node, "Set",
-            set_arg->data.identifier.name, inner_name, NULL);
+            ast_identifier_name(set_arg), inner_name, NULL);
         if (elem_ty == NULL) {
             *out = NULL;
             return true;

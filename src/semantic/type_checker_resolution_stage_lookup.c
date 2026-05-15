@@ -60,8 +60,8 @@ semantic_find_top_level_decl_by_label(ASTNode *program,
     if (program == NULL || program->type != AST_PROGRAM || label == NULL)
         return NULL;
 
-    for (size_t i = 0; i < program->data.program.count; i++) {
-        ASTNode *stmt = program->data.program.statements[i];
+    for (size_t i = 0; i < ast_program_statement_count(program); i++) {
+        ASTNode *stmt = ast_program_statement(program, i);
         const char *stmt_label;
 
         if (stmt == NULL)

@@ -38,8 +38,8 @@ type_check_select_stmt(ASTNode *node, SemanticContext *ctx)
         ASTNode *c = ast_select_case(node, i);
         if (c != NULL) {
             bool valid_case = false;
-            if (c->type == AST_BLOCK && c->data.block.count > 0) {
-                ASTNode *first = c->data.block.statements[0];
+            if (c->type == AST_BLOCK && ast_block_statement_count(c) > 0) {
+                ASTNode *first = ast_block_statement(c, 0);
                 ASTNode *recv_expr = NULL;
                 const char *bind_name = NULL;
 
@@ -52,7 +52,7 @@ type_check_select_stmt(ASTNode *node, SemanticContext *ctx)
                            && ast_assignment_value(first) != NULL
                            && ast_assignment_value(first)->type == AST_CHANNEL_RECV) {
                     valid_case = true;
-                    bind_name = ast_assignment_target(first)->data.identifier.name;
+                    bind_name = ast_identifier_name(ast_assignment_target(first));
                     recv_expr = ast_assignment_value(first);
                 }
 
@@ -73,9 +73,9 @@ type_check_select_stmt(ASTNode *node, SemanticContext *ctx)
                         scope_declare(ctx->scope, binding);
                     }
                 }
-                for (size_t j = 1; j < c->data.block.count; j++)
+                for (size_t j = 1; j < ast_block_statement_count(c); j++)
                     (void)type_check_statement_flow_boundary(
-                        c->data.block.statements[j], ctx);
+                        ast_block_statement(c, j), ctx);
                 scope_exit(&ctx->scope);
             } else {
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_SELECT_CASE_INVALID, PGY_CAUSE_SELECT_CASE_SHAPE, PGY_FIX_START_WITH_CHANNEL_RECV, c,

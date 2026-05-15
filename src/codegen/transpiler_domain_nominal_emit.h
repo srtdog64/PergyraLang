@@ -282,7 +282,7 @@ emit_role_decl(ASTNode *node, TranspilerCtx *ctx)
                 return;
 
         } else if (impl->type == AST_OVERRIDE_FUNC) {
-            ASTNode *func = impl->data.override_func.func_decl;
+            ASTNode *func = ast_override_func_decl(impl);
             if (func == NULL || func->type != AST_FUNC_DECL)
                 continue;
 

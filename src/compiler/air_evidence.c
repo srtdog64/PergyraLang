@@ -4,9 +4,6 @@
 #include "mir_cfg_contract_cleanup_root_membership.h"
 #include "mir_cfg_contract_pin.h"
 
-#include "../runtime/pgy_runtime_observability_schema.h"
-#include "../runtime/pgy_frontier_policy.h"
-
 #include <string.h>
 
 static bool
@@ -410,47 +407,6 @@ air_has_global_evidence_provider_subject(const AIRProgram *air,
                                                      subject_name) != NULL;
 }
 
-static bool
-air_collect_singleton_global_evidence(AIRProgram *air,
-                                      AIREvidenceKind kind,
-                                      const char *provider_name,
-                                      const char *subject_name,
-                                      size_t fact_count,
-                                      size_t *summary_counter,
-                                      char **error_message)
-{
-    const AIREvidenceNode *existing;
-
-    if (air == NULL)
-        return true;
-    existing = air_find_global_evidence_provider_subject(air,
-                                                        kind,
-                                                        provider_name,
-                                                        subject_name);
-    if (existing != NULL) {
-        if (existing->fact_count != fact_count
-            || existing->fallback_count != 0) {
-            air_set_error(error_message,
-                          "AIR singleton global evidence has conflicting counts");
-            return false;
-        }
-        return true;
-    }
-    if (!air_append_evidence_node_ex(air,
-                                     kind,
-                                     SIZE_MAX,
-                                     provider_name,
-                                     subject_name,
-                                     fact_count,
-                                     0,
-                                     error_message)) {
-        return false;
-    }
-    if (summary_counter != NULL)
-        (*summary_counter)++;
-    return true;
-}
-
 bool
 air_collect_mir_evidence(AIRProgram *air, const MIRProgram *mir, char **error_message)
 {
@@ -550,31 +506,4 @@ air_collect_mir_evidence(AIRProgram *air, const MIRProgram *mir, char **error_me
         }
     }
     return true;
-}
-
-bool
-air_collect_observability_schema_evidence(AIRProgram *air, char **error_message)
-{
-    return air_collect_singleton_global_evidence(
-        air,
-        AIR_EVIDENCE_OBSERVABILITY_SCHEMA,
-        "runtime-observability-schema",
-        PGY_OBSERVABILITY_ABI_SCHEMA,
-        PGY_OBSERVABILITY_SCHEMA_FACT_COUNT,
-        air != NULL ? &air->observability_schema_evidence_count : NULL,
-        error_message);
-}
-
-bool
-air_collect_runtime_frontier_policy_evidence(AIRProgram *air,
-                                             char **error_message)
-{
-    return air_collect_singleton_global_evidence(
-        air,
-        AIR_EVIDENCE_RUNTIME_FRONTIER_POLICY,
-        PGY_FRONTIER_POLICY_SCHEMA,
-        PGY_FRONTIER_POLICY_SUBJECT,
-        PGY_FRONTIER_POLICY_FACT_COUNT,
-        air != NULL ? &air->runtime_frontier_policy_evidence_count : NULL,
-        error_message);
 }

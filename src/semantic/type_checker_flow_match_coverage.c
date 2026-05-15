@@ -9,8 +9,8 @@ static bool
 match_case_has_or_patterns(ASTNode *mc)
 {
     return mc != NULL && mc->type == AST_MATCH_CASE
-        && mc->data.match_case.patterns != NULL
-        && mc->data.match_case.pattern_count > 1;
+        && ast_match_case_patterns(mc, NULL) != NULL
+        && ast_match_case_pattern_count(mc) > 1;
 }
 
 static bool
@@ -54,23 +54,23 @@ case_list_covers_variant(ASTNode *node, const Type *subj_type,
     if (node == NULL || subj_type == NULL || variant_name == NULL)
         return false;
 
-    for (size_t i = 0; i < node->data.match_stmt.case_count; i++) {
-        ASTNode *mc = node->data.match_stmt.cases[i];
+    for (size_t i = 0; i < ast_match_case_count(node); i++) {
+        ASTNode *mc = ast_match_case_at(node, i);
         if (mc == NULL || mc->type != AST_MATCH_CASE)
             continue;
-        if (mc->data.match_case.guard != NULL)
+        if (ast_match_case_guard(mc) != NULL)
             continue;
 
         if (!match_case_has_or_patterns(mc)
-            && pattern_covers_variant(mc->data.match_case.pattern,
+            && pattern_covers_variant(ast_match_case_pattern(mc),
                                       subj_type,
                                       variant_name)) {
             return true;
         }
 
         if (match_case_has_or_patterns(mc)) {
-            size_t count = mc->data.match_case.pattern_count;
-            ASTNode **patterns = mc->data.match_case.patterns;
+            size_t count = ast_match_case_pattern_count(mc);
+            ASTNode **patterns = ast_match_case_patterns(mc, NULL);
             for (size_t j = 0; j < count; j++) {
                 if (pattern_covers_variant(patterns[j],
                                            subj_type,
@@ -153,10 +153,10 @@ check_match_redundancy(ASTNode *node, Type *subj_type, SemanticContext *ctx)
     if (seen == NULL)
         return;
 
-    for (size_t i = 0; i < node->data.match_stmt.case_count; i++) {
-        ASTNode *mc = node->data.match_stmt.cases[i];
+    for (size_t i = 0; i < ast_match_case_count(node); i++) {
+        ASTNode *mc = ast_match_case_at(node, i);
         if (mc == NULL || mc->type != AST_MATCH_CASE
-            || mc->data.match_case.guard != NULL) {
+            || ast_match_case_guard(mc) != NULL) {
             continue;
         }
 
@@ -165,14 +165,14 @@ check_match_redundancy(ASTNode *node, Type *subj_type, SemanticContext *ctx)
             if (variant == NULL)
                 continue;
             if (match_case_has_or_patterns(mc)
-                || !pattern_covers_variant(mc->data.match_case.pattern,
+                || !pattern_covers_variant(ast_match_case_pattern(mc),
                                            subj_type,
                                            variant)) {
                 continue;
             }
 
             if (seen[v]) {
-                semantic_warning(ctx, mc->data.match_case.pattern,
+                semantic_warning(ctx, ast_match_case_pattern(mc),
                     "Redundant match case for '%s'; an earlier case already covers it",
                     variant);
             } else {
@@ -198,7 +198,7 @@ check_match_exhaustiveness(ASTNode *node, Type *subj_type, SemanticContext *ctx)
 
     if (node == NULL || subj_type == NULL || ctx == NULL)
         return;
-    if (node->data.match_stmt.default_body != NULL)
+    if (ast_match_default_body(node) != NULL)
         return;
 
     for (size_t i = 0; i < variant_count; i++) {
@@ -232,7 +232,7 @@ match_stmt_has_total_case_coverage(ASTNode *node, Type *subj_type,
 
     if (node == NULL || subj_type == NULL)
         return false;
-    if (node->data.match_stmt.default_body != NULL)
+    if (ast_match_default_body(node) != NULL)
         return true;
 
     variant_count = collect_match_variant_space(subj_type, ctx, &variants);

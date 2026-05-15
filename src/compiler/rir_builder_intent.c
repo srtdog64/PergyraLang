@@ -17,8 +17,8 @@ find_top_level_zone_named(const char *zone_name)
         || zone_name == NULL) {
         return NULL;
     }
-    for (size_t i = 0; i < g_rir_program_root->data.program.count; i++) {
-        ASTNode *node = g_rir_program_root->data.program.statements[i];
+    for (size_t i = 0; i < ast_program_statement_count(g_rir_program_root); i++) {
+        ASTNode *node = ast_program_statement(g_rir_program_root, i);
         if (node != NULL
             && node->type == AST_ZONE_DECL
             && ast_zone_name(node) != NULL

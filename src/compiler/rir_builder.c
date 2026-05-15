@@ -83,16 +83,18 @@ rir_collect_zone_like_scope(RIRProgram *rir, ASTNode *node, RIRScopeKind kind, c
         ASTNode **authorities = ast_zone_authorities(node, &authority_count);
         for (size_t i = 0; i < authority_count; i++) {
             ASTNode *auth = authorities[i];
-            if (!add_authority_fact(&scope, auth->data.zone_authority.subject_slot_name, NULL, auth))
+            const char *subject_slot =
+                ast_zone_authority_subject_slot_name(auth);
+            if (!add_authority_fact(&scope, subject_slot, NULL, auth))
                 goto oom;
-            for (size_t j = 0; j < auth->data.zone_authority.ability_count; j++) {
-                ASTNode *ability_ref = auth->data.zone_authority.required_abilities[j];
+            for (size_t j = 0; j < ast_zone_authority_ability_count(auth); j++) {
+                ASTNode *ability_ref = ast_zone_authority_required_ability(auth, j);
                 const char *ability_name = (ability_ref != NULL && ability_ref->type == AST_TYPE)
                     ? ast_type_name(ability_ref) : NULL;
                 if (ability_name == NULL)
                     continue;
                 if (!add_authority_fact(&scope,
-                                        auth->data.zone_authority.subject_slot_name,
+                                        subject_slot,
                                         ability_name,
                                         auth))
                     goto oom;
@@ -107,9 +109,9 @@ rir_collect_zone_like_scope(RIRProgram *rir, ASTNode *node, RIRScopeKind kind, c
         for (size_t i = 0; i < apply_count; i++) {
             ASTNode *apply = applies[i];
             if (!add_op(&scope, RIR_OP_ATTACH_EFFECT,
-                        apply->data.zone_apply.effect_slot_name,
-                        apply->data.zone_apply.target_slot_name,
-                        apply->data.zone_apply.participant_slot_name,
+                        ast_zone_effect_slot_name(apply),
+                        ast_zone_effect_target_slot_name(apply),
+                        ast_zone_directive_participant_slot_name(apply),
                         apply))
                 goto oom;
         }
@@ -118,9 +120,9 @@ rir_collect_zone_like_scope(RIRProgram *rir, ASTNode *node, RIRScopeKind kind, c
         for (size_t i = 0; i < link_count; i++) {
             ASTNode *link = links[i];
             if (!add_op(&scope, RIR_OP_LINK_RELATION,
-                        link->data.zone_link.relation_slot_name,
-                        link->data.zone_link.left_slot_name,
-                        link->data.zone_link.right_slot_name,
+                        ast_zone_relation_slot_name(link),
+                        ast_zone_relation_left_slot_name(link),
+                        ast_zone_relation_right_slot_name(link),
                         link))
                 goto oom;
         }
@@ -129,9 +131,9 @@ rir_collect_zone_like_scope(RIRProgram *rir, ASTNode *node, RIRScopeKind kind, c
         for (size_t i = 0; i < detach_count; i++) {
             ASTNode *detach = detaches[i];
             if (!add_op(&scope, RIR_OP_DETACH_EFFECT,
-                        detach->data.zone_detach.effect_slot_name,
-                        detach->data.zone_detach.target_slot_name,
-                        detach->data.zone_detach.participant_slot_name,
+                        ast_zone_effect_slot_name(detach),
+                        ast_zone_effect_target_slot_name(detach),
+                        ast_zone_directive_participant_slot_name(detach),
                         detach))
                 goto oom;
         }
@@ -140,9 +142,9 @@ rir_collect_zone_like_scope(RIRProgram *rir, ASTNode *node, RIRScopeKind kind, c
         for (size_t i = 0; i < unlink_count; i++) {
             ASTNode *unlink = unlinks[i];
             if (!add_op(&scope, RIR_OP_UNLINK_RELATION,
-                        unlink->data.zone_unlink.relation_slot_name,
-                        unlink->data.zone_unlink.left_slot_name,
-                        unlink->data.zone_unlink.right_slot_name,
+                        ast_zone_relation_slot_name(unlink),
+                        ast_zone_relation_left_slot_name(unlink),
+                        ast_zone_relation_right_slot_name(unlink),
                         unlink))
                 goto oom;
         }
@@ -183,27 +185,27 @@ rir_collect_zone_like_scope(RIRProgram *rir, ASTNode *node, RIRScopeKind kind, c
     for (size_t i = 0; i < refresh_count; i++) {
         ASTNode *refresh = refreshes[i];
         ASTNode *target_slot = rir_find_domain_slot_in_owner(
-            node, refresh->data.zone_refresh.object_slot_name);
+            node, ast_zone_refresh_object_slot_name(refresh));
         bool tobject =
-            refresh->data.zone_refresh.requires_dto
-            || (refresh->data.zone_refresh.derive_target_kind
+            ast_zone_refresh_requires_dto(refresh)
+            || (ast_zone_refresh_derives_target_kind(refresh)
                 && target_slot != NULL
                 && ast_domain_slot_is_tobject(target_slot));
 
         if (!add_projection_fact(&scope,
-                                 refresh->data.zone_refresh.object_slot_name,
-                                 refresh->data.zone_refresh.source_slot_name,
-                                 tobject ? "publish" : (refresh->data.zone_refresh.derive_target_kind ? "bind" : "refresh"),
+                                 ast_zone_refresh_object_slot_name(refresh),
+                                 ast_zone_refresh_source_slot_name(refresh),
+                                 tobject ? "publish" : (ast_zone_refresh_derives_target_kind(refresh) ? "bind" : "refresh"),
                                  tobject ? RIR_STATE_PUBLISHED
-                                     : (refresh->data.zone_refresh.derive_target_kind ? RIR_STATE_DIRTY : RIR_STATE_SYNCED),
+                                     : (ast_zone_refresh_derives_target_kind(refresh) ? RIR_STATE_DIRTY : RIR_STATE_SYNCED),
                                  tobject ? RIR_RESOURCE_PROJECTION_TOBJECT : RIR_RESOURCE_PROJECTION_OBJECT,
                                  refresh))
             goto oom;
         if (!add_op(&scope,
                     tobject ? RIR_OP_PROJECT_PUBLISH : RIR_OP_PROJECT_REFRESH,
-                    refresh->data.zone_refresh.object_slot_name,
-                    refresh->data.zone_refresh.source_slot_name,
-                    refresh->data.zone_refresh.participant_slot_name,
+                    ast_zone_refresh_object_slot_name(refresh),
+                    ast_zone_refresh_source_slot_name(refresh),
+                    ast_zone_refresh_participant_slot_name(refresh),
                     refresh))
             goto oom;
     }
@@ -248,13 +250,13 @@ rir_lower(ASTNode *annotated_ast, char **error_message)
         return NULL;
     }
 
-    for (size_t i = 0; i < annotated_ast->data.program.count; i++) {
-        ASTNode *node = annotated_ast->data.program.statements[i];
+    for (size_t i = 0; i < ast_program_statement_count(annotated_ast); i++) {
+        ASTNode *node = ast_program_statement(annotated_ast, i);
         bool ok = true;
         switch (node->type) {
             case AST_FUNC_DECL:
                 ok = rir_collect_func_scope(rir,
-                                            node->data.func_decl.is_action ? RIR_SCOPE_METHOD : RIR_SCOPE_FUNCTION,
+                                            ast_func_is_action(node) ? RIR_SCOPE_METHOD : RIR_SCOPE_FUNCTION,
                                             NULL,
                                             node);
                 break;

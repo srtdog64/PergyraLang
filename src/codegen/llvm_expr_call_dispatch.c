@@ -28,6 +28,7 @@
 #include "llvm_internal_api.h"
 #include "llvm_inventory_decl_lookup.h"
 #include "llvm_member_call_emit.h"
+#include "../parser/ast_api.h"
 
 static ASTNode *
 llvm_intent_call_binding_at(ASTNode *intent_decl, size_t index,
@@ -71,7 +72,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
     /* Get callee name */
     const char *callee_name = NULL;
     if (callee_node->type == AST_IDENTIFIER)
-        callee_name = callee_node->data.identifier.name;
+        callee_name = ast_identifier_name(callee_node);
 
     if (callee_name == NULL)
         return llvm_call_error_recovery(ctx, node,
@@ -241,7 +242,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                                 && arg_node != NULL
                                 && arg_node->type == AST_IDENTIFIER) {
                                 const char *arg_name =
-                                    arg_node->data.identifier.name;
+                                    ast_identifier_name(arg_node);
                                 LLVMVarEntry *arg_var = llvm_scope_lookup(ctx, arg_name);
                                 if (arg_var != NULL) {
                                     if (LLVMGetTypeKind(arg_var->type) == LLVMPointerTypeKind)
@@ -318,7 +319,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                 pointer_self = llvm_type_name_uses_pointer_self(ctx, type_name);
                 if (pointer_self) {
                     if (arg_node != NULL && arg_node->type == AST_IDENTIFIER) {
-                        const char *arg_name = arg_node->data.identifier.name;
+                        const char *arg_name = ast_identifier_name(arg_node);
                         LLVMVarEntry *arg_var = llvm_scope_lookup(ctx, arg_name);
                         if (arg_var != NULL) {
                             if (LLVMGetTypeKind(arg_var->type) == LLVMPointerTypeKind)
@@ -454,10 +455,10 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
             if (param_ty != NULL
             && LLVMGetTypeKind(param_ty) == LLVMPointerTypeKind) {
             if (arg_node->type == AST_IDENTIFIER) {
-                LLVMVarEntry *v = llvm_scope_lookup(ctx,
-                    arg_node->data.identifier.name);
+                const char *arg_name = ast_identifier_name(arg_node);
+                LLVMVarEntry *v = llvm_scope_lookup(ctx, arg_name);
                 LLVMCallableVarEntry *callable_entry =
-                    llvm_lookup_callable_entry(ctx, arg_node->data.identifier.name);
+                    llvm_lookup_callable_entry(ctx, arg_name);
                 if (v != NULL) {
                     if (callable_entry != NULL) {
                         LLVMTypeRef callable_sig =

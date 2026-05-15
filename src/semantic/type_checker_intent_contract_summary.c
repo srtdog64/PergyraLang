@@ -37,7 +37,7 @@ intent_summary_subject_action(ASTNode *decl, const char *action_name)
         ASTNode *method = methods != NULL ? methods[i] : NULL;
         const char *method_name = ast_declaration_name(method);
         if (method != NULL && method->type == AST_FUNC_DECL
-            && method->data.func_decl.is_action
+            && ast_func_is_action(method)
             && method_name != NULL
             && strcmp(method_name, action_name) == 0) {
             return method;
@@ -239,11 +239,11 @@ intent_step_format_contract_source_summary(const ASTNode *intent_decl,
         && !ast_intent_step_derived_using_from_transfer(step)
         && !ast_intent_step_derived_using_from_where(step)
         && ast_intent_step_using_expr(step)->type == AST_IDENTIFIER
-        && ast_intent_step_using_expr(step)->data.identifier.name != NULL) {
+        && ast_identifier_name(ast_intent_step_using_expr(step)) != NULL) {
         intent_step_summary_append(buffer, buffer_size, &used,
             "%s- locally declared using on step: %s",
             has_any ? "\n" : "",
-            ast_intent_step_using_expr(step)->data.identifier.name);
+            ast_identifier_name(ast_intent_step_using_expr(step)));
         has_any = true;
     }
     if (ast_intent_step_transfer_from_alias(step) != NULL
@@ -419,8 +419,8 @@ intent_step_format_contract_source_summary(const ASTNode *intent_decl,
         const char *using_name =
             (ast_intent_step_using_expr(step) != NULL
              && ast_intent_step_using_expr(step)->type == AST_IDENTIFIER
-             && ast_intent_step_using_expr(step)->data.identifier.name != NULL)
-                ? ast_intent_step_using_expr(step)->data.identifier.name
+             && ast_identifier_name(ast_intent_step_using_expr(step)) != NULL)
+                ? ast_identifier_name(ast_intent_step_using_expr(step))
                 : "<binding>";
         intent_step_summary_append(buffer, buffer_size, &used,
             "%s- derived using from transfer target: %s",
@@ -431,8 +431,8 @@ intent_step_format_contract_source_summary(const ASTNode *intent_decl,
         const char *using_name =
             (ast_intent_step_using_expr(step) != NULL
              && ast_intent_step_using_expr(step)->type == AST_IDENTIFIER
-             && ast_intent_step_using_expr(step)->data.identifier.name != NULL)
-                ? ast_intent_step_using_expr(step)->data.identifier.name
+             && ast_identifier_name(ast_intent_step_using_expr(step)) != NULL)
+                ? ast_identifier_name(ast_intent_step_using_expr(step))
                 : "<binding>";
         intent_step_summary_append(buffer, buffer_size, &used,
             "%s- derived using from zone type: %s",

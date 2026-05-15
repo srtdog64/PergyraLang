@@ -108,11 +108,11 @@ resolve_required_ability_decl(ASTNode *ability_ref,
     }
 
     if (ast_type_generic_args(ability_ref) != NULL) {
-        size_t arg_count = ast_type_generic_args(ability_ref)->count;
+        GenericParams *ability_args = ast_type_generic_args(ability_ref);
+        size_t arg_count = ast_generic_param_count(ability_args);
         GenericParams *ability_generics =
             ast_ability_generic_params(ability_decl);
-        size_t param_count = ability_generics != NULL
-            ? ability_generics->count : 0;
+        size_t param_count = ast_generic_param_count(ability_generics);
         char *expected_text = ability_decl_signature_display(
             ability, ability_generics);
 
@@ -171,8 +171,8 @@ resolve_required_ability_decl(ASTNode *ability_ref,
         }
 
         for (size_t i = 0; i < arg_count; i++) {
-            GenericParam *gp = ast_type_generic_args(ability_ref)->params[i];
-            ASTNode *arg = gp != NULL ? gp->constraint : NULL;
+            GenericParam *gp = ast_generic_param_at(ability_args, i);
+            ASTNode *arg = ast_generic_param_constraint(gp);
             if (arg == NULL) {
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_ABILITY_CONTRACT_INVALID, PGY_CAUSE_ABILITY_CONTRACT, PGY_FIX_ALIGN_ABILITY_GENERICS_OR_FIELDS, site,
                     "Ability '%s' has an invalid generic argument in requires clause.\n"
@@ -234,8 +234,8 @@ validate_action_required_abilities(ASTNode *node,
         subject_name = ast_class_name(enclosing_nominal);
     }
 
-    for (size_t i = 0; i < node->data.func_decl.required_ability_count; i++) {
-        ASTNode *ability_ref = node->data.func_decl.required_abilities[i];
+    for (size_t i = 0; i < ast_func_required_ability_count(node); i++) {
+        ASTNode *ability_ref = ast_func_required_ability(node, i);
         const char *ability = ability_ref_name(ability_ref);
         char *required_text = ability_ref_display(ability_ref);
         semantic_type_resolution_record_type_ref_dependency(

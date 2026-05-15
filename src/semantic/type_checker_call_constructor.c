@@ -52,7 +52,7 @@ type_check_constructor_symbol_call(ASTNode *expr,
                 GenericParams *class_generics = ast_class_generic_params(decl);
                 (void) ast_class_fields(decl, &field_count);
                 decl_is_generic =
-                    (class_generics != NULL && class_generics->count > 0);
+                    (ast_generic_param_count(class_generics) > 0);
             } else if (decl != NULL
                        && (decl->type == AST_RELATION_DECL
                            || decl->type == AST_EFFECT_DECL
@@ -129,8 +129,9 @@ type_check_constructor_symbol_call(ASTNode *expr,
                             && decl->type == AST_WORLD_DECL
                             && arg != NULL
                             && arg->type == AST_IDENTIFIER) {
+                            const char *arg_name = ast_identifier_name(arg);
                             Symbol *arg_sym = scope_lookup(ctx->scope,
-                                arg->data.identifier.name);
+                                arg_name);
                             if (arg_sym != NULL && arg_sym->kind == SYMBOL_VARIABLE) {
                                 const char *arg_type_name = NULL;
                                 if (arg_sym->type != NULL
@@ -177,29 +178,21 @@ type_check_constructor_symbol_call(ASTNode *expr,
                                             "- use Clone(%s) for an explicit copy\n"
                                             "- or construct the zone inline / mutate it through the owning world after embedding",
                                             display_name != NULL ? display_name : "<world>",
-                                            arg->data.identifier.name != NULL
-                                                ? arg->data.identifier.name
-                                                : "<zone>",
+                                            arg_name != NULL ? arg_name : "<zone>",
                                             zone_slot_name != NULL
                                                 ? zone_slot_name : "<slot>",
-                                            arg->data.identifier.name != NULL
-                                                ? arg->data.identifier.name
-                                                : "<zone>",
+                                            arg_name != NULL ? arg_name : "<zone>",
                                             display_name != NULL ? display_name : "<world>",
                                             zone_slot_name != NULL
                                                 ? zone_slot_name : "<slot>",
-                                            arg->data.identifier.name != NULL
-                                                ? arg->data.identifier.name
-                                                : "<zone>",
+                                            arg_name != NULL ? arg_name : "<zone>",
                                             display_name != NULL ? display_name : "<world>",
                                             zone_slot_name != NULL
                                                 ? zone_slot_name : "<slot>",
-                                            arg->data.identifier.name != NULL
-                                                ? arg->data.identifier.name
-                                                : "<zone>");
+                                            arg_name != NULL ? arg_name : "<zone>");
                                         arg_sym->embedded_in_world = true;
                                         semantic_ctx_mark_embedded_world_zone_name(ctx,
-                                            arg->data.identifier.name,
+                                            arg_name,
                                             display_name,
                                             zone_slot_name);
                                         break;

@@ -160,7 +160,8 @@ type_check_intent_step_transfer_contract(ASTNode *node,
     if (using_expr != NULL
         && using_expr->type == AST_IDENTIFIER
         && to_alias != NULL
-        && strcmp(using_expr->data.identifier.name, to_alias) != 0) {
+        && strcmp(ast_identifier_name(using_expr), to_alias) != 0) {
+        const char *using_name = ast_identifier_name(using_expr);
         char contract_summary[512];
         intent_step_format_contract_source_summary(
             node, step, ctx, contract_summary, sizeof(contract_summary));
@@ -181,15 +182,13 @@ type_check_intent_step_transfer_contract(ASTNode *node,
             step_name != NULL ? step_name : "<step>",
             from_alias != NULL ? from_alias : "<source>",
             to_alias != NULL ? to_alias : "<target>",
-            using_expr->data.identifier.name != NULL
-                ? using_expr->data.identifier.name : "<binding>",
+            using_name != NULL ? using_name : "<binding>",
             to_alias,
             to_alias,
             to_alias,
             contract_summary[0] != '\0' ? "" : "- no additional step contract provenance was recorded\n",
             contract_summary[0] != '\0' ? contract_summary : "",
             contract_summary[0] != '\0' ? "\n" : "",
-            using_expr->data.identifier.name != NULL
-                ? using_expr->data.identifier.name : "<binding>");
+            using_name != NULL ? using_name : "<binding>");
     }
 }

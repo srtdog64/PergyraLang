@@ -314,11 +314,11 @@ llvm_world_sync_emit_frontier(ASTNode *stmt, LLVMClassTypeEntry *decl_cls,
         LLVMValueRef derived_val = NULL;
         LLVMValueRef changed_val;
         if (state == NULL || state->type != AST_WORLD_STATE
-            || state->data.world_state.state_name == NULL)
+            || ast_world_state_name(state) == NULL)
             continue;
-        slot_name = state->data.world_state.zone_slot_name;
+        slot_name = ast_world_state_zone_slot_name(state);
         if (!llvm_world_frontier_field_name(state_field, sizeof(state_field),
-                "zone_state", state->data.world_state.state_name))
+                "zone_state", ast_world_state_name(state)))
             continue;
         state_idx = llvm_class_field_index(decl_cls, state_field);
         if (state_idx < 0)
@@ -342,12 +342,12 @@ llvm_world_sync_emit_frontier(ASTNode *stmt, LLVMClassTypeEntry *decl_cls,
         }
         derived_val = active_val;
 
-        if (state->data.world_state.source_kind == WORLD_STATE_SOURCE_ALL
-            || state->data.world_state.source_kind == WORLD_STATE_SOURCE_ANY) {
+        if (ast_world_state_source_kind(state) == WORLD_STATE_SOURCE_ALL
+            || ast_world_state_source_kind(state) == WORLD_STATE_SOURCE_ANY) {
             derived_val = LLVMConstInt(ctx->type_i1,
-                state->data.world_state.source_kind == WORLD_STATE_SOURCE_ALL ? 1 : 0, 0);
-            for (size_t input_i = 0; input_i < state->data.world_state.input_count; input_i++) {
-                const char *input_name = state->data.world_state.input_names[input_i];
+                ast_world_state_source_kind(state) == WORLD_STATE_SOURCE_ALL ? 1 : 0, 0);
+            for (size_t input_i = 0; input_i < ast_world_state_input_count(state); input_i++) {
+                const char *input_name = ast_world_state_input_name(state, input_i);
                 int input_idx = -1;
                 LLVMValueRef input_ptr;
                 LLVMValueRef input_val;
@@ -372,7 +372,7 @@ llvm_world_sync_emit_frontier(ASTNode *stmt, LLVMClassTypeEntry *decl_cls,
                     self_ptr, (unsigned)input_idx, llvm_tmp_name(ctx));
                 input_val = LLVMBuildLoad2(ctx->builder, ctx->type_i1,
                     input_ptr, llvm_tmp_name(ctx));
-                if (state->data.world_state.source_kind == WORLD_STATE_SOURCE_ALL)
+                if (ast_world_state_source_kind(state) == WORLD_STATE_SOURCE_ALL)
                     derived_val = LLVMBuildAnd(ctx->builder, derived_val, input_val,
                         llvm_tmp_name(ctx));
                 else
@@ -381,10 +381,10 @@ llvm_world_sync_emit_frontier(ASTNode *stmt, LLVMClassTypeEntry *decl_cls,
             }
         }
 
-        if (state->data.world_state.source_kind != WORLD_STATE_SOURCE_ZONE
-            && state->data.world_state.source_kind != WORLD_STATE_SOURCE_ALL
-            && state->data.world_state.source_kind != WORLD_STATE_SOURCE_ANY
-            && state->data.world_state.detail_name != NULL) {
+        if (ast_world_state_source_kind(state) != WORLD_STATE_SOURCE_ZONE
+            && ast_world_state_source_kind(state) != WORLD_STATE_SOURCE_ALL
+            && ast_world_state_source_kind(state) != WORLD_STATE_SOURCE_ANY
+            && ast_world_state_detail_name(state) != NULL) {
             int zone_idx = llvm_class_field_index(decl_cls, slot_name);
             LLVMClassTypeEntry *zone_cls = NULL;
             if (zone_idx >= 0) {
@@ -399,23 +399,23 @@ llvm_world_sync_emit_frontier(ASTNode *stmt, LLVMClassTypeEntry *decl_cls,
                 LLVMValueRef detail_ptr;
                 LLVMValueRef detail_val;
 
-                switch (state->data.world_state.source_kind) {
+                switch (ast_world_state_source_kind(state)) {
                 case WORLD_STATE_SOURCE_PROJECTION:
                     if (!llvm_world_frontier_field_name(detail_field,
                             sizeof(detail_field), "projection_ready",
-                            state->data.world_state.detail_name))
+                            ast_world_state_detail_name(state)))
                         detail_field[0] = '\0';
                     break;
                 case WORLD_STATE_SOURCE_LAYER:
                     if (!llvm_world_frontier_field_name(detail_field,
                             sizeof(detail_field), "layer_active",
-                            state->data.world_state.detail_name))
+                            ast_world_state_detail_name(state)))
                         detail_field[0] = '\0';
                     break;
                 case WORLD_STATE_SOURCE_STATE:
                     if (!llvm_world_frontier_field_name(detail_field,
                             sizeof(detail_field), "state",
-                            state->data.world_state.detail_name))
+                            ast_world_state_detail_name(state)))
                         detail_field[0] = '\0';
                     break;
                 case WORLD_STATE_SOURCE_ZONE:
@@ -452,7 +452,7 @@ llvm_world_sync_emit_frontier(ASTNode *stmt, LLVMClassTypeEntry *decl_cls,
                 changed_val, llvm_tmp_name(ctx)),
             changed_any_addr);
         llvm_stamp_domain_provenance(ctx, decl_cls, self_ptr, "zone_state",
-            state->data.world_state.state_name, PGY_PROP_CAUSE_WORLD_DERIVED);
+            ast_world_state_name(state), PGY_PROP_CAUSE_WORLD_DERIVED);
     }
     LLVMBuildBr(ctx->builder, loop_check_bb);
 

@@ -1,10 +1,12 @@
 #ifndef PGY_TRANSPILER_DESTRUCTURE_EMIT_H
 #define PGY_TRANSPILER_DESTRUCTURE_EMIT_H
 
+#include "../parser/ast_api.h"
+
 static inline void
 emit_let_destructure_statement(ASTNode *node, TranspilerCtx *ctx)
 {
-    ASTNode *init = node->data.let_destructure.initializer;
+    ASTNode *init = ast_let_destructure_initializer(node);
     char *init_expr = emit_expression(init, ctx);
     const char *init_type = infer_expression_type_name(ctx, init);
     char c_init_type_buf[128];
@@ -14,9 +16,9 @@ emit_let_destructure_statement(ASTNode *node, TranspilerCtx *ctx)
     if ((init_type == NULL || strcmp(init_type, "Unknown") == 0)
         && init != NULL
         && init->type == AST_IDENTIFIER
-        && init->data.identifier.name != NULL) {
+        && ast_identifier_name(init) != NULL) {
         const char *resolved =
-            transpiler_current_local_type_name(ctx, init->data.identifier.name);
+            transpiler_current_local_type_name(ctx, ast_identifier_name(init));
         if (resolved != NULL)
             init_type = resolved;
     }
@@ -58,11 +60,11 @@ emit_let_destructure_statement(ASTNode *node, TranspilerCtx *ctx)
                 i++;
         }
 
-        if (arity != node->data.let_destructure.name_count) {
+        if (arity != ast_let_destructure_name_count(node)) {
             transpiler_set_mir_topology_invalid(
                 ctx,
                 "tuple destructuring arity mismatch: binding %llu, tuple arity %llu",
-                (unsigned long long)node->data.let_destructure.name_count,
+                (unsigned long long)ast_let_destructure_name_count(node),
                 (unsigned long long)arity);
             free(init_expr);
             return;
@@ -82,8 +84,8 @@ emit_let_destructure_statement(ASTNode *node, TranspilerCtx *ctx)
             write_indent(ctx);
             codebuf_write(ctx->out, "%s %s = _pgy_destr_%d.f%zu;\n",
                 e_ctype != NULL ? e_ctype : elem_names[j],
-                node->data.let_destructure.names[j], tmp_id, j);
-            register_typed_var(ctx, node->data.let_destructure.names[j],
+                ast_let_destructure_name(node, j), tmp_id, j);
+            register_typed_var(ctx, ast_let_destructure_name(node, j),
                 elem_names[j]);
         }
         free(init_expr);
@@ -121,11 +123,11 @@ emit_let_destructure_statement(ASTNode *node, TranspilerCtx *ctx)
     write_indent(ctx);
     codebuf_write(ctx->out, "%s _pgy_destr_%d = %s;\n",
         c_init_type, tmp_id, init_expr);
-    for (size_t i = 0; i < node->data.let_destructure.name_count; i++) {
+    for (size_t i = 0; i < ast_let_destructure_name_count(node); i++) {
         write_indent(ctx);
         codebuf_write(ctx->out, "%s %s = _pgy_destr_%d.data[%zu];\n",
-            elem_c_type, node->data.let_destructure.names[i], tmp_id, i);
-        register_typed_var(ctx, node->data.let_destructure.names[i], inner);
+            elem_c_type, ast_let_destructure_name(node, i), tmp_id, i);
+        register_typed_var(ctx, ast_let_destructure_name(node, i), inner);
     }
     free(init_expr);
 }

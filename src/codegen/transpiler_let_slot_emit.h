@@ -55,19 +55,18 @@ transpiler_let_slot_inner_from_annotation(TranspilerCtx *ctx, ASTNode *ann)
     if (ann == NULL || ann->type != AST_TYPE || ast_type_name(ann) == NULL)
         return NULL;
     generic_args = ast_type_generic_args(ann);
-    if (generic_args != NULL
-        && generic_args->count > 0
-        && generic_args->params != NULL
-        && generic_args->params[0] != NULL) {
-        GenericParam *param = generic_args->params[0];
-        if (param->constraint != NULL
-            && param->constraint->type == AST_TYPE) {
+    if (ast_generic_param_count(generic_args) > 0) {
+        GenericParam *param = ast_generic_param_at(generic_args, 0);
+        ASTNode *constraint = ast_generic_param_constraint(param);
+        if (constraint != NULL && constraint->type == AST_TYPE) {
             return transpiler_let_slot_keep_inner(ctx,
-                render_type_name(param->constraint));
+                render_type_name(constraint));
         }
+        if (ast_generic_param_name(param) == NULL)
+            return NULL;
         if (ctx == NULL)
-            return param->name;
-        return pgy_arena_strdup(&ctx->arena, param->name);
+            return ast_generic_param_name(param);
+        return pgy_arena_strdup(&ctx->arena, ast_generic_param_name(param));
     }
     {
         char inner_buf[128];
@@ -94,14 +93,16 @@ transpiler_let_slot_inner_from_call_type_arg(TranspilerCtx *ctx, ASTNode *call)
         return NULL;
     }
     param = ast_call_generic_arg(call, 0);
-    if (param->constraint != NULL
-        && param->constraint->type == AST_TYPE) {
+    ASTNode *constraint = ast_generic_param_constraint(param);
+    if (constraint != NULL && constraint->type == AST_TYPE) {
         return transpiler_let_slot_keep_inner(ctx,
-            render_type_name(param->constraint));
+            render_type_name(constraint));
     }
+    if (ast_generic_param_name(param) == NULL)
+        return NULL;
     if (ctx == NULL)
-        return param->name;
-    return pgy_arena_strdup(&ctx->arena, param->name);
+        return ast_generic_param_name(param);
+    return pgy_arena_strdup(&ctx->arena, ast_generic_param_name(param));
 }
 
 static bool
@@ -123,7 +124,7 @@ transpiler_try_emit_let_slot_claim(ASTNode *node,
         return false;
     }
 
-    const char *callee_name = ast_call_callee(init)->data.identifier.name;
+    const char *callee_name = ast_identifier_name(ast_call_callee(init));
     if (pgy_codegen_call_name_is_claim_slot(callee_name)) {
         is_slot = true;
     } else if (pgy_codegen_call_name_is_claim_secure_slot(callee_name)) {
@@ -228,8 +229,8 @@ transpiler_try_emit_let_slot_view_or_move(TranspilerCtx *ctx,
         return false;
     }
 
-    const char *callee_name = ast_call_callee(init)->data.identifier.name;
-    const char *source_name = ast_call_argument(init, 0)->data.identifier.name;
+    const char *callee_name = ast_identifier_name(ast_call_callee(init));
+    const char *source_name = ast_identifier_name(ast_call_argument(init, 0));
     bool is_view_decl = pgy_codegen_call_name_is_view_constructor(callee_name);
     bool is_move_decl = strcmp(callee_name, "Move") == 0;
     if (!is_view_decl && !is_move_decl)
@@ -356,18 +357,19 @@ transpiler_try_emit_let_slot_sugar(TranspilerCtx *ctx,
     }
 
     if (init != NULL && init->type == AST_IDENTIFIER) {
-        TypedVarEntry *move_entry = lookup_typed_entry(ctx, init->data.identifier.name);
+        const char *init_name = ast_identifier_name(init);
+        TypedVarEntry *move_entry = lookup_typed_entry(ctx, init_name);
         if (move_entry != NULL && move_entry->is_move_token) {
             write_indent(ctx);
             if (sugar_secure) {
                 codebuf_write(ctx->out, "PgySecureSlot_%s %s = %s;\n",
-                    sugar_inner, name, init->data.identifier.name);
+                    sugar_inner, name, init_name);
                 write_indent(ctx);
                 codebuf_write(ctx->out, "PgyToken_%s %s_token = %s_token;\n",
-                    sugar_inner, name, init->data.identifier.name);
+                    sugar_inner, name, init_name);
             } else {
                 codebuf_write(ctx->out, "PgySlot_%s %s = %s;\n",
-                    sugar_inner, name, init->data.identifier.name);
+                    sugar_inner, name, init_name);
             }
             register_slot_var(ctx, name, sugar_inner, sugar_secure, false);
             if (*ann_type_name_io != NULL)

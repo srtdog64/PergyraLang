@@ -139,7 +139,8 @@ resolve_ability_require_field_type_scope(ASTNode *ability_decl,
     }
 
     decl_params = ast_ability_generic_params(ability_decl);
-    if (decl_params == NULL || decl_params->count == 0) {
+    size_t decl_count = ast_generic_param_count(decl_params);
+    if (decl_count == 0) {
         *out_type = intent_normalize_type(intent_resolve_type_ref(type_node, ctx));
         return;
     }
@@ -176,12 +177,13 @@ resolve_ability_require_field_type_scope(ASTNode *ability_decl,
     }
 
     scope_enter(&ctx->scope, SCOPE_BLOCK);
-    for (size_t i = 0; i < decl_params->count && i < effective_count; i++) {
-        GenericParam *param = decl_params->params[i];
+    for (size_t i = 0; i < decl_count && i < effective_count; i++) {
+        GenericParam *param = ast_generic_param_at(decl_params, i);
+        const char *param_name = ast_generic_param_name(param);
         Type *arg_type = NULL;
         Symbol *s = NULL;
 
-        if (param == NULL || param->name == NULL)
+        if (param_name == NULL)
             continue;
         if (i >= effective_count || effective_types[i] == NULL) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_INFER_GENERIC,
@@ -198,17 +200,17 @@ resolve_ability_require_field_type_scope(ASTNode *ability_decl,
                 "- provide/supply a type argument for '%s'\n"
                 "- or fix the ability generic/default parameter list so '%s' is materialized",
                 ability_label,
-                param->name,
+                param_name,
                 ability_label,
                 ability_text != NULL ? ability_text
                                      : ability_label,
                 ability_text != NULL ? ability_text
                                      : ability_label,
-                param->name,
+                param_name,
                 ability_text != NULL ? ability_text
                                      : ability_label,
-                param->name,
-                param->name);
+                param_name,
+                param_name);
             continue;
         }
 
@@ -228,20 +230,20 @@ resolve_ability_require_field_type_scope(ASTNode *ability_decl,
                 "- provide a concrete type argument for '%s'\n"
                 "- or fix the default type argument / imported type so '%s' resolves",
                 ability_label,
-                param->name,
+                param_name,
                 ability_label,
                 ability_text != NULL ? ability_text
                                      : ability_label,
                 ability_text != NULL ? ability_text
                                      : ability_label,
-                param->name,
+                param_name,
                 ability_text != NULL ? ability_text
                                      : ability_label,
-                param->name,
-                param->name);
+                param_name,
+                param_name);
             continue;
         }
-        s = symbol_create_variable(param->name,
+        s = symbol_create_variable(param_name,
                                    arg_type != NULL ? arg_type : TYPE_UNKNOWN,
                                    site != NULL ? site->line : ability_decl->line,
                                    site != NULL ? site->column : ability_decl->column);
@@ -470,7 +472,7 @@ intent_step_derive_zone_binding_context(ASTNode *intent_decl, ASTNode *step,
         && using_expr != NULL
         && using_expr->type == AST_IDENTIFIER) {
         Type *using_type = intent_role_resolve_binding_type(intent_decl,
-            using_expr->data.identifier.name, ctx);
+            ast_identifier_name(using_expr), ctx);
         ASTNode *zone_decl = find_domain_decl_by_name(ctx->program_root,
             AST_ZONE_DECL, using_type != NULL ? using_type->name : NULL);
         if (zone_decl != NULL && using_type != NULL && using_type->name != NULL) {

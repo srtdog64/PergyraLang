@@ -57,8 +57,8 @@ for_loop_known_iteration_cap(const ASTNode *node, bool *known)
         return 0;
     }
 
-    double start = range_start->data.number.value;
-    double end = range_end->data.number.value;
+    double start = ast_number_value(range_start);
+    double end = ast_number_value(range_end);
     if (known != NULL)
         *known = true;
     if (end <= start)
@@ -209,10 +209,7 @@ type_check_for_loop_flow(ASTNode *node, SemanticContext *ctx)
     size_t known_cap = for_loop_known_iteration_cap(node, &known_iterations);
     bool has_break_exit = false;
     bool body_must_return = false;
-    if (flow_ast_contains_defer_stmt(body)
-        && (!known_iterations || known_cap > 1)) {
-        flow_reject_dynamic_defer_control(ctx, node, "for");
-    }
+    bool dynamic_defer_rejected = false;
     size_t max_iterations = (known_iterations && known_cap <= 1)
         ? 1
         : (base.count + 1);
@@ -233,6 +230,12 @@ type_check_for_loop_flow(ASTNode *node, SemanticContext *ctx)
         scope_enter(&ctx->scope, SCOPE_BLOCK);
         body_flags = type_check_block_flow(body, ctx, &loop_flow);
         scope_exit(&ctx->scope);
+        if (!dynamic_defer_rejected
+            && (body_flags & FLOW_HAS_DEFER) != 0
+            && (!known_iterations || known_cap > 1)) {
+            flow_reject_dynamic_defer_control(ctx, node, "for");
+            dynamic_defer_rejected = true;
+        }
         iter_effect_delta =
             effect_delta_from_baseline(effect_base, ctx->current_function_effects);
         flow_merge_effect_delta(ctx, node,
@@ -343,10 +346,7 @@ type_check_while_loop_flow(ASTNode *node, SemanticContext *ctx)
     ResourceConsumeSnapshot base = snapshot_resource_states(ctx);
     ResourceConsumeSnapshot merged = copy_resource_snapshot(&base);
     ResourceConsumeSnapshot entry = copy_resource_snapshot(&base);
-    if (flow_ast_contains_defer_stmt(ast_while_body(node))
-        && !flow_condition_is_static_bool(ast_while_condition(node))) {
-        flow_reject_dynamic_defer_control(ctx, node, "while");
-    }
+    bool dynamic_defer_rejected = false;
     size_t max_iterations = base.count + 1;
     if (max_iterations == 0)
         max_iterations = 1;
@@ -377,6 +377,12 @@ type_check_while_loop_flow(ASTNode *node, SemanticContext *ctx)
         scope_enter(&ctx->scope, SCOPE_BLOCK);
         body_flags = type_check_block_flow(ast_while_body(node), ctx, &loop_flow);
         scope_exit(&ctx->scope);
+        if (!dynamic_defer_rejected
+            && (body_flags & FLOW_HAS_DEFER) != 0
+            && !flow_condition_is_static_bool(ast_while_condition(node))) {
+            flow_reject_dynamic_defer_control(ctx, node, "while");
+            dynamic_defer_rejected = true;
+        }
         iter_effect_delta =
             effect_delta_from_baseline(effect_base, ctx->current_function_effects);
         flow_merge_effect_delta(ctx, node,

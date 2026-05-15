@@ -81,7 +81,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                 expr,
                 "Callable '%s' is not accessible across the current visibility boundary",
                 display_name);
-            return sym->type->data.function.return_type;
+            return type_function_return_type(sym->type);
         }
     }
     sym->is_used = true;
@@ -94,12 +94,13 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
         semantic_error_with_hints(ctx, PGY_CODE_SEM_PARALLEL_SECURE_FORBIDDEN, PGY_CAUSE_PARALLEL_SECURE_IN_TASK, PGY_FIX_SERIALIZE_OUTSIDE_PARALLEL, expr,
             "Parallel context does not permit calling secure-effect function '%s'; serialize authority-bearing operations outside the parallel block",
             display_name);
-        return sym->type->data.function.return_type;
+        return type_function_return_type(sym->type);
     }
 
-    size_t expected = sym->type->data.function.param_count;
+    size_t expected = type_function_param_count(sym->type);
     size_t provided = ast_call_arg_count(expr);
     GenericParams *callable_generic_params = NULL;
+    size_t callable_generic_count = 0;
     Type **effective_generic_types = NULL;
     if (provided != expected) {
         char sig_buf[256];
@@ -110,7 +111,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
             "'%s' expects %llu argument(s), got %llu. Declared signature: %s. "
             "Adjust caller arguments to satisfy the declaration.",
             display_name, (unsigned long long) expected, (unsigned long long) provided, sig_buf);
-        return sym->type->data.function.return_type;
+        return type_function_return_type(sym->type);
     }
 
     Type **call_arg_types = calloc(provided > 0 ? provided : 1, sizeof(Type *));
@@ -127,24 +128,26 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
             "- reduce this compilation unit size and retry\n"
             "- or report the input if this happens on a small program",
             display_name != NULL ? display_name : "<call>");
-        return sym->type->data.function.return_type;
+        return type_function_return_type(sym->type);
     }
     if (ctx->program_root != NULL
         && (sym->kind == SYMBOL_FUNCTION || sym->kind == SYMBOL_INTENT)) {
         callable_decl = find_callable_decl_by_name(ctx->program_root, display_name);
         callable_generic_params = ast_func_generic_params(callable_decl);
-        if (callable_generic_params != NULL
-            && callable_generic_params->count > 0) {
+        callable_generic_count = ast_generic_param_count(callable_generic_params);
+        if (callable_generic_count > 0) {
             effective_generic_types = calloc(
-                callable_generic_params->count > 0
-                    ? callable_generic_params->count : 1,
+                callable_generic_count > 0
+                    ? callable_generic_count : 1,
                 sizeof(Type *));
             if (effective_generic_types != NULL) {
-                for (size_t gi = 0; gi < callable_generic_params->count; gi++) {
-                    GenericParam *gp = callable_generic_params->params[gi];
-                    if (gp != NULL && gp->default_type != NULL)
+                for (size_t gi = 0; gi < callable_generic_count; gi++) {
+                    GenericParam *gp =
+                        ast_generic_param_at(callable_generic_params, gi);
+                    ASTNode *default_type = ast_generic_param_default_type(gp);
+                    if (default_type != NULL)
                         effective_generic_types[gi] =
-                            domain_resolve_type_ref(gp->default_type, ctx);
+                            domain_resolve_type_ref(default_type, ctx);
                 }
             }
         }
@@ -152,7 +155,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
 
     for (size_t i = 0; i < provided; i++) {
         ASTNode *arg_expr = ast_call_argument(expr, i);
-        Type *param_type = sym->type->data.function.param_types[i];
+        Type *param_type = type_function_param_type(sym->type, i);
         OwnershipTypeClass declared_param_ownership =
             semantic_classify_ownership_type(param_type, ctx);
         Type *arg_type = declared_param_ownership == OWNERSHIP_TYPE_MOVE_ONLY
@@ -170,7 +173,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                     ast_type_name(fp->type));
             }
             if (param_index >= 0
-                && (size_t)param_index < callable_generic_params->count) {
+                && (size_t)param_index < callable_generic_count) {
                 effective_generic_types[param_index] = arg_type;
                 if (arg_type != NULL) {
                     param_type = arg_type;
@@ -386,7 +389,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                     continue;
                 }
                 if (arg_expr->type == AST_IDENTIFIER) {
-                    const char *src = arg_expr->data.identifier.name;
+                    const char *src = ast_identifier_name(arg_expr);
                     Symbol *src_sym = scope_lookup(ctx->scope, src);
                     const char *active_view_name = NULL;
                     const char *active_view_kind = NULL;
@@ -430,7 +433,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
                     continue;
                 }
                 if (arg_expr->type == AST_IDENTIFIER) {
-                    const char *src = arg_expr->data.identifier.name;
+                    const char *src = ast_identifier_name(arg_expr);
                     Symbol *src_sym = scope_lookup(ctx->scope, src);
                     if (pmode == PARAM_MODE_OWN) {
                         if (src_sym != NULL && src_sym->kind == SYMBOL_SLOT) {
@@ -472,7 +475,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
     semantic_validate_function_call_generic_where(
         expr, ctx, display_name, provided, call_arg_types);
 
-    Type *return_type = sym->type->data.function.return_type;
+    Type *return_type = type_function_return_type(sym->type);
     if (effective_generic_types != NULL
         && callable_decl != NULL
         && callable_decl->type == AST_FUNC_DECL
@@ -482,7 +485,7 @@ type_check_function_symbol_call(ASTNode *expr, Symbol *sym,
             callable_generic_params,
             ast_type_name(ast_func_return_type(callable_decl)));
         if (return_index >= 0
-            && (size_t)return_index < callable_generic_params->count
+            && (size_t)return_index < callable_generic_count
             && effective_generic_types[return_index] != NULL) {
             return_type = effective_generic_types[return_index];
         }

@@ -13,7 +13,8 @@ llvm_stmt_render_type_annotation_copy(LLVMGenCtx *ctx, ASTNode *type_ann)
     if (ast_type_name(type_ann) == NULL)
         return NULL;
     generic_args = ast_type_generic_args(type_ann);
-    if (generic_args == NULL || generic_args->count == 0) {
+    size_t generic_count = ast_generic_param_count(generic_args);
+    if (generic_count == 0) {
         if (ctx == NULL)
             return ast_type_name(type_ann);
         return pgy_arena_strdup(&ctx->scratch, ast_type_name(type_ann));
@@ -26,9 +27,9 @@ llvm_stmt_render_type_annotation_copy(LLVMGenCtx *ctx, ASTNode *type_ann)
             return NULL;
         offset = (size_t)written;
     }
-    for (size_t i = 0; i < generic_args->count; i++) {
+    for (size_t i = 0; i < generic_count; i++) {
         char *arg = llvm_stmt_render_type_arg(
-            generic_args->params[i]);
+            ast_generic_param_at(generic_args, i));
         if (arg == NULL || arg[0] == '\0') {
             free(arg);
             return NULL;
@@ -101,12 +102,12 @@ llvm_stmt_lambda_signature_type(LLVMGenCtx *ctx, ASTNode *expr)
     if (ctx == NULL || expr == NULL || expr->type != AST_LAMBDA_EXPR)
         return NULL;
 
-    int pc = (int)expr->data.lambda_expr.param_count;
+    int pc = (int)ast_lambda_param_count(expr);
     LLVMTypeRef *params = NULL;
     LLVMTypeRef ret_type = ctx->type_i32;
 
-    if (expr->data.lambda_expr.return_type != NULL) {
-        ret_type = ast_type_to_llvm(ctx, expr->data.lambda_expr.return_type);
+    if (ast_lambda_return_type(expr) != NULL) {
+        ret_type = ast_type_to_llvm(ctx, ast_lambda_return_type(expr));
         if (ctx->has_error || ret_type == NULL)
             return NULL;
     }
@@ -123,10 +124,12 @@ llvm_stmt_lambda_signature_type(LLVMGenCtx *ctx, ASTNode *expr)
             return NULL;
         }
         for (int i = 0; i < pc; i++) {
-            ASTNode *p = expr->data.lambda_expr.params[i];
-            if (p != NULL && p->type == AST_LET_DECL
-                && p->data.let_decl.type != NULL) {
-                params[i] = ast_type_to_llvm(ctx, p->data.let_decl.type);
+            ASTNode *p = ast_lambda_param(expr, (size_t)i);
+            ASTNode *p_type = p != NULL && p->type == AST_LET_DECL
+                ? ast_let_type(p)
+                : NULL;
+            if (p_type != NULL) {
+                params[i] = ast_type_to_llvm(ctx, p_type);
                 if (ctx->has_error || params[i] == NULL)
                     return NULL;
             } else {
@@ -154,7 +157,7 @@ llvm_simple_expr_type_name(LLVMGenCtx *ctx, ASTNode *expr)
     case AST_STRING: return "String";
     case AST_BOOLEAN: return "Bool";
     case AST_IDENTIFIER: {
-        LLVMVarEntry *entry = llvm_scope_lookup(ctx, expr->data.identifier.name);
+        LLVMVarEntry *entry = llvm_scope_lookup(ctx, ast_identifier_name(expr));
         if (entry != NULL)
             return llvm_type_to_suffix(ctx, entry->type);
         return NULL;
@@ -167,7 +170,7 @@ llvm_simple_expr_type_name(LLVMGenCtx *ctx, ASTNode *expr)
             receiver = ast_member_object(callee);
             method_name = ast_member_name(callee);
             if (receiver != NULL && receiver->type == AST_IDENTIFIER) {
-                const char *name = receiver->data.identifier.name;
+                const char *name = ast_identifier_name(receiver);
                 const char *inner = llvm_lookup_slot_inner(ctx, name);
                 if (inner == NULL) {
                     LLVMViewVarEntry *view = llvm_lookup_view_var(ctx, name);
@@ -203,13 +206,13 @@ llvm_simple_expr_type_name(LLVMGenCtx *ctx, ASTNode *expr)
         }
         if (callee != NULL
             && callee->type == AST_IDENTIFIER
-            && callee->data.identifier.name != NULL) {
-            const char *callee_name = callee->data.identifier.name;
+            && ast_identifier_name(callee) != NULL) {
+            const char *callee_name = ast_identifier_name(callee);
             if (ast_call_arg_count(expr) >= 1
                 && ast_call_argument(expr, 0) != NULL
                 && ast_call_argument(expr, 0)->type == AST_IDENTIFIER) {
                 const char *name =
-                    ast_call_argument(expr, 0)->data.identifier.name;
+                    ast_identifier_name(ast_call_argument(expr, 0));
                 const char *inner = NULL;
                 if (strcmp(callee_name, "Read") == 0
                     || strcmp(callee_name, "Write") == 0
@@ -252,7 +255,7 @@ llvm_infer_spawn_future_inner(LLVMGenCtx *ctx, ASTNode *spawn_expr)
         callee = ast_call_callee(target);
     }
     if (callee != NULL && callee->type == AST_IDENTIFIER)
-        callee_name = callee->data.identifier.name;
+        callee_name = ast_identifier_name(callee);
     if (callee_name == NULL)
         return NULL;
 

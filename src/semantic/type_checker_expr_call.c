@@ -63,21 +63,27 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
     }
 
     for (size_t i = 0; i < arg_count; i++) {
-        if (expr->data.call.arg_names != NULL
-            && expr->data.call.arg_names[i] != NULL) {
+        const char *arg_name = ast_call_argument_name(expr, i);
+        if (arg_name != NULL) {
             semantic_error_with_hints(ctx,
                 PGY_CODE_SEM_BUILTIN_ARGS_INVALID,
                 PGY_CAUSE_BUILTIN_SIGNATURE_MISMATCH,
                 PGY_FIX_MATCH_BUILTIN_SIGNATURE,
                 expr,
-                "Named call arguments are reserved but not implemented yet: '%s:'",
-                expr->data.call.arg_names[i]);
+                "Named call argument '%s:' is reserved but not implemented yet.\n"
+                "Reason:\n"
+                "- named/default argument dispatch needs a frozen call ABI, overload policy, and default-value interaction\n"
+                "- beta-stable calls currently use positional arguments only\n"
+                "Fix:\n"
+                "- pass this argument positionally for now\n"
+                "- keep named arguments behind the reserved syntax until call dispatch is implemented end-to-end",
+                arg_name);
             return TYPE_UNKNOWN;
         }
     }
 
     if (callee->type == AST_IDENTIFIER) {
-        const char *name = callee->data.identifier.name;
+        const char *name = ast_identifier_name(callee);
         BuiltinKind bk   = builtin_resolve(name);
         if (bk != BUILTIN_NOT_BUILTIN)
             return type_check_builtin_call(expr, bk, ctx);
@@ -119,19 +125,19 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
                 bool inject_token = false;
                 char token_name_buf[256];
                 const char *token_name = NULL;
-                ASTNode token_arg;
+                ASTNode *token_arg_node = NULL;
                 ASTNode *synthetic_args[4];
                 ASTNode fake_call;
                 size_t new_argc = 1 + orig_argc;
 
-                memset(&token_arg, 0, sizeof(token_arg));
                 memset(&fake_call, 0, sizeof(fake_call));
 
-                if (slot_type->data.slot.is_secure
+                if (type_slot_is_secure(slot_type)
                     && object->type == AST_IDENTIFIER
-                    && object->data.identifier.name != NULL) {
+                    && ast_identifier_name(object) != NULL) {
+                    const char *object_name = ast_identifier_name(object);
                     Symbol *slot_sym =
-                        scope_lookup(ctx->scope, object->data.identifier.name);
+                        scope_lookup(ctx->scope, object_name);
                     if (slot_sym != NULL
                         && slot_sym->kind == SYMBOL_SLOT
                         && slot_sym->slot_info.paired_token_name != NULL) {
@@ -139,7 +145,7 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
                     } else {
                         if (!semantic_format_secure_token_name(
                                 token_name_buf, sizeof(token_name_buf),
-                                object->data.identifier.name, expr, ctx))
+                                object_name, expr, ctx))
                             return TYPE_UNKNOWN;
                         token_name = token_name_buf;
                     }
@@ -149,8 +155,9 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
                             && orig_argc < 1)) {
                         inject_token = true;
                         new_argc++;
-                        token_arg.type = AST_IDENTIFIER;
-                        token_arg.data.identifier.name = (char *)token_name;
+                        token_arg_node = ast_create_identifier(token_name);
+                        if (token_arg_node == NULL)
+                            return TYPE_UNKNOWN;
                     }
                 }
 
@@ -159,7 +166,7 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
                     for (size_t i = 0; i < orig_argc; i++)
                         synthetic_args[i + 1] = ast_call_argument(expr, i);
                     if (inject_token)
-                        synthetic_args[new_argc - 1] = &token_arg;
+                        synthetic_args[new_argc - 1] = token_arg_node;
 
                     ast_init_call_borrowed_view(&fake_call, callee,
                         synthetic_args, new_argc);
@@ -168,14 +175,20 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
 
                     if (strcmp(method_name, "Write") == 0) {
                         (void)type_check_write_slot(&fake_call, ctx);
+                        ast_destroy(token_arg_node);
                         return TYPE_VOID;
                     }
-                    if (strcmp(method_name, "Read") == 0)
-                        return type_check_read_slot(&fake_call, ctx);
+                    if (strcmp(method_name, "Read") == 0) {
+                        Type *read_type = type_check_read_slot(&fake_call, ctx);
+                        ast_destroy(token_arg_node);
+                        return read_type;
+                    }
 
                     (void)type_check_release_slot(&fake_call, ctx);
+                    ast_destroy(token_arg_node);
                     return TYPE_VOID;
                 }
+                ast_destroy(token_arg_node);
             }
         }
 
@@ -196,9 +209,9 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
 
         if (!(object != NULL
               && object->type == AST_IDENTIFIER
-              && object->data.identifier.name != NULL
-              && object->data.identifier.name[0] >= 'A'
-              && object->data.identifier.name[0] <= 'Z')) {
+              && ast_identifier_name(object) != NULL
+              && ast_identifier_name(object)[0] >= 'A'
+              && ast_identifier_name(object)[0] <= 'Z')) {
             reject_if_embedded_world_zone_mutation(ctx, expr, object,
                                                    "hosted func/action call");
             Type *object_type = expr_call_normalize_type(
@@ -227,11 +240,10 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
                         type_check_expression(len_arg, ctx)),
                     TYPE_INT, len_arg, ctx);
 
-                if (object_type->kind == TYPE_KIND_CONSTRUCTED
-                    && object_type->data.constructed.arg_count >= 1
-                    && object_type->data.constructed.args[0] != NULL) {
+                if (type_constructed_arg_count(object_type) >= 1
+                    && type_constructed_arg(object_type, 0) != NULL) {
                     Type *slice_args[1] = {
-                        object_type->data.constructed.args[0]
+                        type_constructed_arg(object_type, 0)
                     };
                     return type_create_constructed(TYPE_SLICE, slice_args, 1);
                 }
@@ -242,7 +254,7 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
                 Symbol *sym = NULL;
                 Symbol *owner = NULL;
                 if (object->type == AST_IDENTIFIER)
-                    sym = scope_lookup(ctx->scope, object->data.identifier.name);
+                    sym = scope_lookup(ctx->scope, ast_identifier_name(object));
 
                 if (strcmp(method_name, "Write") == 0) {
                     ASTNode *value_arg = ast_call_argument(expr, 0);
@@ -261,7 +273,7 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
                             "Cannot write through MoveToken<T>");
                         return TYPE_UNKNOWN;
                     }
-                    if (object_type->data.slot.is_secure)
+                    if (type_slot_is_secure(object_type))
                         semantic_record_effect(ctx, EFFECT_SECURE);
                     if (sym != NULL && sym->kind == SYMBOL_SLOT) {
                         if (sym->slot_info.state == SLOT_STATE_RELEASED) {
@@ -294,7 +306,7 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
                     require_assignable(
                         expr_call_normalize_type(
                             type_check_expression(value_arg, ctx)),
-                        object_type->data.slot.inner_type,
+                        type_slot_inner_type(object_type),
                         value_arg, ctx);
                     return TYPE_VOID;
                 }
@@ -310,7 +322,7 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
                             "Cannot read through MoveToken<T>");
                         return TYPE_UNKNOWN;
                     }
-                    if (object_type->data.slot.is_secure)
+                    if (type_slot_is_secure(object_type))
                         semantic_record_effect(ctx, EFFECT_SECURE);
                     if (sym != NULL && sym->kind == SYMBOL_SLOT) {
                         if (sym->slot_info.state == SLOT_STATE_RELEASED) {
@@ -340,7 +352,7 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
                         if (owner != NULL && owner->slot_info.is_secure)
                             semantic_record_effect(ctx, EFFECT_SECURE);
                     }
-                    return expr_call_normalize_type(object_type->data.slot.inner_type);
+                    return expr_call_normalize_type(type_slot_inner_type(object_type));
                 }
 
                 if (strcmp(method_name, "Release") == 0) {
@@ -384,8 +396,8 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
                                 declared_effects_from_function_node(method, ctx, NULL);
                             if (!explicit_member_access_allowed(host_decl,
                                     object_type,
-                                    method->data.func_decl.access,
-                                    method->data.func_decl.has_explicit_access,
+                                    ast_func_access(method),
+                                    ast_func_has_explicit_access(method),
                                     ctx)) {
                                 semantic_error_with_hints(ctx, PGY_CODE_SEM_VISIBILITY_BOUNDARY, PGY_CAUSE_VISIBILITY_BOUNDARY_CROSS, PGY_FIX_WIDEN_VISIBILITY_OR_MOVE_CALLER, expr,
                                     "Member '%s.%s' is not accessible across the current visibility boundary",

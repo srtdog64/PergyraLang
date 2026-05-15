@@ -8,6 +8,7 @@
 #include <string.h>
 
 #include "transpiler_decl_lookup.h"
+#include "../parser/ast_api.h"
 
 static ASTNode *
 transpiler_find_local_type_ast_in_block(TranspilerCtx *ctx,
@@ -17,26 +18,28 @@ transpiler_find_local_type_ast_in_block(TranspilerCtx *ctx,
     if (body == NULL || base_name == NULL)
         return NULL;
     if (body->type == AST_BLOCK) {
-        for (size_t i = 0; i < body->data.block.count; i++) {
+        for (size_t i = 0; i < ast_block_statement_count(body); i++) {
             ASTNode *found = transpiler_find_local_type_ast_in_block(
-                ctx, body->data.block.statements[i], base_name);
+                ctx, ast_block_statement(body, i), base_name);
             if (found != NULL)
                 return found;
         }
         return NULL;
     }
     if (body->type == AST_LET_DECL
-        && body->data.let_decl.name != NULL
-        && strcmp(body->data.let_decl.name, base_name) == 0) {
-        if (body->data.let_decl.type != NULL)
-            return body->data.let_decl.type;
-        if (body->data.let_decl.initializer != NULL
-            && body->data.let_decl.initializer->type == AST_CALL
-            && ast_call_callee(body->data.let_decl.initializer) != NULL
-            && ast_call_callee(body->data.let_decl.initializer)->type == AST_IDENTIFIER
-            && ast_call_callee(body->data.let_decl.initializer)->data.identifier.name != NULL) {
-            ASTNode *decl = find_function_decl(ctx,
-                ast_call_callee(body->data.let_decl.initializer)->data.identifier.name);
+        && ast_let_name(body) != NULL
+        && strcmp(ast_let_name(body), base_name) == 0) {
+        ASTNode *let_type = ast_let_type(body);
+        ASTNode *let_init = ast_let_initializer(body);
+        if (let_type != NULL)
+            return let_type;
+        if (let_init != NULL
+            && let_init->type == AST_CALL
+            && ast_call_callee(let_init) != NULL
+            && ast_call_callee(let_init)->type == AST_IDENTIFIER
+            && ast_identifier_name(ast_call_callee(let_init)) != NULL) {
+            ASTNode *decl = find_function_decl(
+                ctx, ast_identifier_name(ast_call_callee(let_init)));
             if (decl != NULL
                 && decl->type == AST_FUNC_DECL
                 && ast_func_return_type(decl) != NULL
@@ -44,11 +47,11 @@ transpiler_find_local_type_ast_in_block(TranspilerCtx *ctx,
                 return ast_func_return_type(decl);
             }
         }
-        if (body->data.let_decl.initializer != NULL
-            && body->data.let_decl.initializer->type == AST_IDENTIFIER
-            && body->data.let_decl.initializer->data.identifier.name != NULL) {
+        if (let_init != NULL
+            && let_init->type == AST_IDENTIFIER
+            && ast_identifier_name(let_init) != NULL) {
             ASTNode *decl = find_function_decl(ctx,
-                body->data.let_decl.initializer->data.identifier.name);
+                ast_identifier_name(let_init));
             if (decl != NULL
                 && decl->type == AST_FUNC_DECL
                 && ast_func_return_type(decl) != NULL

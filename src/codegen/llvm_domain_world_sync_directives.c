@@ -27,8 +27,8 @@ llvm_world_sync_find_state_decl(ASTNode *world_decl, const char *state_name)
     for (size_t i = 0; i < state_count; i++) {
         ASTNode *state = states[i];
         if (state != NULL && state->type == AST_WORLD_STATE
-            && state->data.world_state.state_name != NULL
-            && strcmp(state->data.world_state.state_name, state_name) == 0) {
+            && ast_world_state_name(state) != NULL
+            && strcmp(ast_world_state_name(state), state_name) == 0) {
             return state;
         }
     }
@@ -65,7 +65,7 @@ llvm_world_sync_resolve_zone_slot(ASTNode *stmt,
     if (state_name != NULL) {
         ASTNode *state = llvm_world_sync_find_state_decl(stmt, state_name);
         if (state != NULL)
-            return state->data.world_state.zone_slot_name;
+            return ast_world_state_zone_slot_name(state);
         if (llvm_world_sync_has_zone_slot(stmt, state_name))
             return state_name;
     }
@@ -114,8 +114,8 @@ llvm_world_sync_emit_directives(ASTNode *stmt,
         ASTNode *act = activations[i];
         const char *slot_name = act != NULL
             ? llvm_world_sync_resolve_zone_slot(stmt,
-                act->data.world_activate.zone_slot_name,
-                act->data.world_activate.state_name)
+                ast_world_directive_zone_slot_name(act),
+                ast_world_directive_state_name(act))
             : NULL;
         llvm_world_sync_store_zone_active(decl_cls, sync_fn, ctx, slot_name,
             LLVMConstInt(ctx->type_i1, 1, 0), PGY_PROP_CAUSE_WORLD_ACTIVATE);
@@ -128,8 +128,8 @@ llvm_world_sync_emit_directives(ASTNode *stmt,
         ASTNode *mnt = maintained_zones[i];
         const char *slot_name = mnt != NULL
             ? llvm_world_sync_resolve_zone_slot(stmt,
-                mnt->data.world_maintain.zone_slot_name,
-                mnt->data.world_maintain.state_name)
+                ast_world_directive_zone_slot_name(mnt),
+                ast_world_directive_state_name(mnt))
             : NULL;
         llvm_world_sync_store_zone_active(decl_cls, sync_fn, ctx, slot_name,
             LLVMConstInt(ctx->type_i1, 1, 0), PGY_PROP_CAUSE_WORLD_MAINTAIN);
@@ -141,8 +141,8 @@ llvm_world_sync_emit_directives(ASTNode *stmt,
         ASTNode *act = deactivations[i];
         const char *slot_name = act != NULL
             ? llvm_world_sync_resolve_zone_slot(stmt,
-                act->data.world_deactivate.zone_slot_name,
-                act->data.world_deactivate.state_name)
+                ast_world_directive_zone_slot_name(act),
+                ast_world_directive_state_name(act))
             : NULL;
         llvm_world_sync_store_zone_active(decl_cls, sync_fn, ctx, slot_name,
             LLVMConstInt(ctx->type_i1, 0, 0), PGY_PROP_CAUSE_WORLD_DEACTIVATE);

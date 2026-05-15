@@ -137,11 +137,11 @@ type_check_stdlib_map_call(ASTNode *expr, const char *name,
         reject_borrowed_boundary_container_store(
             stdlib_map_arg(expr, 2), value_type, "map", "MapSet", ctx);
         if (type_is_constructed_named(map_type, "HashMap")
-            && map_type->data.constructed.arg_count == 2) {
-            Type *expected_key = map_type->data.constructed.args[0];
+            && type_constructed_arg_count(map_type) == 2) {
+            Type *expected_key = type_constructed_arg(map_type, 0);
             require_assignable(key_type, expected_key,
                 stdlib_map_arg(expr, 1), ctx);
-            require_assignable(value_type, map_type->data.constructed.args[1],
+            require_assignable(value_type, type_constructed_arg(map_type, 1),
                 stdlib_map_arg(expr, 2), ctx);
             if (!stdlib_map_key_supported(expected_key))
                 report_unsupported_map_key(expr, name, map_type, ctx);
@@ -161,15 +161,15 @@ type_check_stdlib_map_call(ASTNode *expr, const char *name,
         key_type = stdlib_map_normalize_type(
             type_check_expression(stdlib_map_arg(expr, 1), ctx));
         if (type_is_constructed_named(map_type, "HashMap")
-            && map_type->data.constructed.arg_count == 2) {
-            Type *expected_key = map_type->data.constructed.args[0];
+            && type_constructed_arg_count(map_type) == 2) {
+            Type *expected_key = type_constructed_arg(map_type, 0);
             require_assignable(key_type, expected_key,
                 stdlib_map_arg(expr, 1), ctx);
             if (!stdlib_map_key_supported(expected_key))
                 report_unsupported_map_key(expr, name, map_type, ctx);
             if (kind == STDLIB_MAP_BUILTIN_GET)
                 return stdlib_map_normalize_type(
-                    map_type->data.constructed.args[1]);
+                    type_constructed_arg(map_type, 1));
         } else if (map_type != NULL && map_type != TYPE_UNKNOWN) {
             report_expected_hashmap(expr, name, map_type, ctx);
         }
@@ -197,8 +197,8 @@ type_check_stdlib_map_call(ASTNode *expr, const char *name,
         map_type = stdlib_map_normalize_type(
             type_check_expression(stdlib_map_arg(expr, 0), ctx));
         if (type_is_constructed_named(map_type, "HashMap")
-            && map_type->data.constructed.arg_count == 2) {
-            key_type = map_type->data.constructed.args[0];
+            && type_constructed_arg_count(map_type) == 2) {
+            key_type = type_constructed_arg(map_type, 0);
             if (!stdlib_map_key_supported(key_type))
                 report_unsupported_map_key(expr, name, map_type, ctx);
             args[0] = key_type != NULL ? key_type : TYPE_UNKNOWN;

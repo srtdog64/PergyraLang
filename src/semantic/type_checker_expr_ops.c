@@ -126,8 +126,8 @@ type_check_role_operator_overload(ASTNode *expr, SemanticContext *ctx,
         return NULL;
 
     ASTNode *program = ctx->program_root;
-    for (size_t i = 0; i < program->data.program.count; i++) {
-        ASTNode *stmt = program->data.program.statements[i];
+    for (size_t i = 0; i < ast_program_statement_count(program); i++) {
+        ASTNode *stmt = ast_program_statement(program, i);
         const char *role_type = semantic_role_for_type_name(stmt);
         if (role_type == NULL || strcmp(role_type, left->name) != 0) {
             continue;
@@ -181,16 +181,16 @@ type_check_operator_overload(ASTNode *expr, SemanticContext *ctx,
         || sym->type == NULL || sym->type->kind != TYPE_KIND_FUNCTION)
         return NULL;
 
-    if (sym->type->data.function.param_count != 2)
+    if (type_function_param_count(sym->type) != 2)
         return NULL;
 
-    Type *lhs = sym->type->data.function.param_types[0];
-    Type *rhs = sym->type->data.function.param_types[1];
+    Type *lhs = type_function_param_type(sym->type, 0);
+    Type *rhs = type_function_param_type(sym->type, 1);
     if (!type_is_assignable(left, lhs) || !type_is_assignable(right, rhs))
         return NULL;
 
     sym->is_used = true;
-    return sym->type->data.function.return_type;
+    return type_function_return_type(sym->type);
 }
 
 static Type *
@@ -207,10 +207,10 @@ type_check_binary(ASTNode *expr, SemanticContext *ctx)
     Type *right = expr_ops_normalize_type(
         type_check_expression(ast_binary_right(expr), ctx));
 
-    if (type_is_slot_handle(left) && left->data.slot.inner_type != NULL)
-        left = left->data.slot.inner_type;
-    if (type_is_slot_handle(right) && right->data.slot.inner_type != NULL)
-        right = right->data.slot.inner_type;
+    if (type_is_slot_handle(left) && type_slot_inner_type(left) != NULL)
+        left = type_slot_inner_type(left);
+    if (type_is_slot_handle(right) && type_slot_inner_type(right) != NULL)
+        right = type_slot_inner_type(right);
 
     Type *overloaded = type_check_operator_overload(expr, ctx, left, right);
     if (overloaded == NULL)

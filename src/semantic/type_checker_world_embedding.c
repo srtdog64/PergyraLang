@@ -15,7 +15,7 @@ mark_world_embedded_zone_arguments(ASTNode *call, SemanticContext *ctx)
         return;
     }
 
-    world_name = ast_call_callee(call)->data.identifier.name;
+    world_name = ast_identifier_name(ast_call_callee(call));
     world_decl = find_domain_decl_by_name(ctx->program_root, AST_WORLD_DECL,
         world_name);
     if (world_decl == NULL || world_decl->type != AST_WORLD_DECL)
@@ -26,13 +26,15 @@ mark_world_embedded_zone_arguments(ASTNode *call, SemanticContext *ctx)
 
     for (size_t i = 0; i < ast_call_arg_count(call); i++) {
         ASTNode *arg = ast_call_argument(call, i);
+        const char *arg_name;
         Symbol *arg_sym;
         bool matched_zone_slot = false;
 
         if (arg == NULL || arg->type != AST_IDENTIFIER)
             continue;
 
-        arg_sym = scope_lookup(ctx->scope, arg->data.identifier.name);
+        arg_name = ast_identifier_name(arg);
+        arg_sym = scope_lookup(ctx->scope, arg_name);
         if (arg_sym == NULL || arg_sym->kind != SYMBOL_VARIABLE
             || arg_sym->type == NULL || arg_sym->type->name == NULL) {
             if (arg_sym == NULL || arg_sym->kind != SYMBOL_VARIABLE)
@@ -59,22 +61,18 @@ mark_world_embedded_zone_arguments(ASTNode *call, SemanticContext *ctx)
                     "- use Clone(%s) for an explicit copy\n"
                     "- or construct the zone inline / mutate it through the owning world after embedding",
                     world_name != NULL ? world_name : "<world>",
-                    arg->data.identifier.name != NULL
-                        ? arg->data.identifier.name : "<zone>",
+                    arg_name != NULL ? arg_name : "<zone>",
                     zone_slot_name != NULL ? zone_slot_name : "<slot>",
-                    arg->data.identifier.name != NULL
-                        ? arg->data.identifier.name : "<zone>",
+                    arg_name != NULL ? arg_name : "<zone>",
                     world_name != NULL ? world_name : "<world>",
                     zone_slot_name != NULL ? zone_slot_name : "<slot>",
-                    arg->data.identifier.name != NULL
-                        ? arg->data.identifier.name : "<zone>",
+                    arg_name != NULL ? arg_name : "<zone>",
                     world_name != NULL ? world_name : "<world>",
                     zone_slot_name != NULL ? zone_slot_name : "<slot>",
-                    arg->data.identifier.name != NULL
-                        ? arg->data.identifier.name : "<zone>");
+                    arg_name != NULL ? arg_name : "<zone>");
                 arg_sym->embedded_in_world = true;
                 semantic_ctx_mark_embedded_world_zone_name(ctx,
-                    arg->data.identifier.name,
+                    arg_name,
                     world_name,
                     zone_slot_name);
                 matched_zone_slot = true;
@@ -108,22 +106,18 @@ mark_world_embedded_zone_arguments(ASTNode *call, SemanticContext *ctx)
                     "- use Clone(%s) for an explicit copy\n"
                     "- or construct the zone inline / mutate it through the owning world after embedding",
                     world_name != NULL ? world_name : "<world>",
-                    arg->data.identifier.name != NULL
-                        ? arg->data.identifier.name : "<zone>",
+                    arg_name != NULL ? arg_name : "<zone>",
                     zone_slot_name != NULL ? zone_slot_name : "<slot>",
-                    arg->data.identifier.name != NULL
-                        ? arg->data.identifier.name : "<zone>",
+                    arg_name != NULL ? arg_name : "<zone>",
                     world_name != NULL ? world_name : "<world>",
                     zone_slot_name != NULL ? zone_slot_name : "<slot>",
-                    arg->data.identifier.name != NULL
-                        ? arg->data.identifier.name : "<zone>",
+                    arg_name != NULL ? arg_name : "<zone>",
                     world_name != NULL ? world_name : "<world>",
                     zone_slot_name != NULL ? zone_slot_name : "<slot>",
-                    arg->data.identifier.name != NULL
-                        ? arg->data.identifier.name : "<zone>");
+                    arg_name != NULL ? arg_name : "<zone>");
                 arg_sym->embedded_in_world = true;
                 semantic_ctx_mark_embedded_world_zone_name(ctx,
-                    arg->data.identifier.name,
+                    arg_name,
                     world_name,
                     zone_slot_name);
                 break;

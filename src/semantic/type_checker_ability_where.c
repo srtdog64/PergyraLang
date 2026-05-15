@@ -11,13 +11,16 @@
 static int
 ability_decl_generic_param_index(GenericParams *gp, const char *param_name)
 {
+    size_t param_count;
+
     if (gp == NULL || param_name == NULL)
         return -1;
 
-    for (size_t i = 0; i < gp->count; i++) {
-        if (gp->params[i] != NULL
-            && gp->params[i]->name != NULL
-            && strcmp(gp->params[i]->name, param_name) == 0) {
+    param_count = ast_generic_param_count(gp);
+    for (size_t i = 0; i < param_count; i++) {
+        GenericParam *param = ast_generic_param_at(gp, i);
+        const char *name = ast_generic_param_name(param);
+        if (name != NULL && strcmp(name, param_name) == 0) {
             return (int)i;
         }
     }
@@ -91,7 +94,7 @@ validate_ability_decl_where_clause_reference(ASTNode *ability_decl,
 
     decl_params = ast_ability_generic_params(ability_decl);
     wc = ast_ability_where_clause(ability_decl);
-    if (decl_params == NULL || decl_params->count == 0
+    if (decl_params == NULL || ast_generic_param_count(decl_params) == 0
         || wc == NULL || wc->count == 0) {
         return true;
     }

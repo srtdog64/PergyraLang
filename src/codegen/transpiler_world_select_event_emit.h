@@ -99,9 +99,9 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
     for (size_t i = 0; i < state_count; i++) {
         ASTNode *state = states[i];
         codebuf_write(ctx->out, "    bool __zone_state_%s;\n",
-            state->data.world_state.state_name);
+            ast_world_state_name(state));
         emit_hidden_provenance_fields(ctx, "zone_state",
-            state->data.world_state.state_name);
+            ast_world_state_name(state));
     }
     codebuf_write(ctx->out, "    bool __world_derived_dirty;\n");
 
@@ -128,13 +128,13 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
     codebuf_write(ctx->out, "/* world command pass: directives */\n");
     for (size_t i = 0; i < activate_count; i++) {
         ASTNode *act = activations[i];
-        const char *slot_name = act->data.world_activate.zone_slot_name;
-        if (slot_name == NULL && act->data.world_activate.state_name != NULL) {
-            ASTNode *state = find_world_state_decl(node, act->data.world_activate.state_name);
+        const char *slot_name = ast_world_directive_zone_slot_name(act);
+        if (slot_name == NULL && ast_world_directive_state_name(act) != NULL) {
+            ASTNode *state = find_world_state_decl(node, ast_world_directive_state_name(act));
             if (state != NULL)
-                slot_name = state->data.world_state.zone_slot_name;
-            else if (transpiler_world_has_zone_slot(node, act->data.world_activate.state_name))
-                slot_name = act->data.world_activate.state_name;
+                slot_name = ast_world_state_zone_slot_name(state);
+            else if (transpiler_world_has_zone_slot(node, ast_world_directive_state_name(act)))
+                slot_name = ast_world_directive_state_name(act);
         }
         if (slot_name != NULL) {
             write_indent(ctx);
@@ -145,13 +145,13 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
     }
     for (size_t i = 0; i < maintained_zone_count; i++) {
         ASTNode *mnt = maintained_zones[i];
-        const char *slot_name = mnt->data.world_maintain.zone_slot_name;
-        if (slot_name == NULL && mnt->data.world_maintain.state_name != NULL) {
-            ASTNode *state = find_world_state_decl(node, mnt->data.world_maintain.state_name);
+        const char *slot_name = ast_world_directive_zone_slot_name(mnt);
+        if (slot_name == NULL && ast_world_directive_state_name(mnt) != NULL) {
+            ASTNode *state = find_world_state_decl(node, ast_world_directive_state_name(mnt));
             if (state != NULL)
-                slot_name = state->data.world_state.zone_slot_name;
-            else if (transpiler_world_has_zone_slot(node, mnt->data.world_maintain.state_name))
-                slot_name = mnt->data.world_maintain.state_name;
+                slot_name = ast_world_state_zone_slot_name(state);
+            else if (transpiler_world_has_zone_slot(node, ast_world_directive_state_name(mnt)))
+                slot_name = ast_world_directive_state_name(mnt);
         }
         if (slot_name != NULL) {
             write_indent(ctx);
@@ -162,13 +162,13 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
     }
     for (size_t i = 0; i < deactivate_count; i++) {
         ASTNode *act = deactivations[i];
-        const char *slot_name = act->data.world_deactivate.zone_slot_name;
-        if (slot_name == NULL && act->data.world_deactivate.state_name != NULL) {
-            ASTNode *state = find_world_state_decl(node, act->data.world_deactivate.state_name);
+        const char *slot_name = ast_world_directive_zone_slot_name(act);
+        if (slot_name == NULL && ast_world_directive_state_name(act) != NULL) {
+            ASTNode *state = find_world_state_decl(node, ast_world_directive_state_name(act));
             if (state != NULL)
-                slot_name = state->data.world_state.zone_slot_name;
-            else if (transpiler_world_has_zone_slot(node, act->data.world_deactivate.state_name))
-                slot_name = act->data.world_deactivate.state_name;
+                slot_name = ast_world_state_zone_slot_name(state);
+            else if (transpiler_world_has_zone_slot(node, ast_world_directive_state_name(act)))
+                slot_name = ast_world_directive_state_name(act);
         }
         if (slot_name != NULL) {
             write_indent(ctx);
@@ -277,26 +277,26 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
     for (size_t i = 0; i < state_count; i++) {
         ASTNode *state = states[i];
         const char *expr_fmt = "self->__zone_active_%s";
-        const char *detail_name = state->data.world_state.detail_name;
+        const char *detail_name = ast_world_state_detail_name(state);
         write_indent(ctx);
         codebuf_write(ctx->out, "bool _pgy_prev_zone_state_%s = self->__zone_state_%s;\n",
-            state->data.world_state.state_name,
-            state->data.world_state.state_name);
+            ast_world_state_name(state),
+            ast_world_state_name(state));
         write_indent(ctx);
-        switch (state->data.world_state.source_kind) {
+        switch (ast_world_state_source_kind(state)) {
         case WORLD_STATE_SOURCE_ALL:
         case WORLD_STATE_SOURCE_ANY: {
             bool first = true;
             codebuf_write(ctx->out, "self->__zone_state_%s = ",
-                state->data.world_state.state_name);
+                ast_world_state_name(state));
             codebuf_write(ctx->out, "(");
-            for (size_t input_i = 0; input_i < state->data.world_state.input_count; input_i++) {
-                const char *input_name = state->data.world_state.input_names[input_i];
+            for (size_t input_i = 0; input_i < ast_world_state_input_count(state); input_i++) {
+                const char *input_name = ast_world_state_input_name(state, input_i);
                 if (input_name == NULL)
                     continue;
                 if (!first) {
                     codebuf_write(ctx->out,
-                        state->data.world_state.source_kind == WORLD_STATE_SOURCE_ALL
+                        ast_world_state_source_kind(state) == WORLD_STATE_SOURCE_ALL
                             ? " && " : " || ");
                 }
                 if (transpiler_world_has_zone_slot(node, input_name))
@@ -307,52 +307,52 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
             }
             if (first)
                 codebuf_write(ctx->out,
-                    state->data.world_state.source_kind == WORLD_STATE_SOURCE_ALL
+                    ast_world_state_source_kind(state) == WORLD_STATE_SOURCE_ALL
                         ? "true" : "false");
             codebuf_write(ctx->out, ");\n");
             break;
         }
         case WORLD_STATE_SOURCE_PROJECTION:
             expr_fmt = "(self->__zone_active_%s && self->%s.__projection_ready_%s)";
-            codebuf_write(ctx->out, "self->__zone_state_%s = ", state->data.world_state.state_name);
+            codebuf_write(ctx->out, "self->__zone_state_%s = ", ast_world_state_name(state));
             codebuf_write(ctx->out, expr_fmt,
-                state->data.world_state.zone_slot_name,
-                state->data.world_state.zone_slot_name,
+                ast_world_state_zone_slot_name(state),
+                ast_world_state_zone_slot_name(state),
                 detail_name != NULL ? detail_name : "");
             codebuf_write(ctx->out, ";\n");
             break;
         case WORLD_STATE_SOURCE_LAYER:
             expr_fmt = "(self->__zone_active_%s && self->%s.__layer_active_%s)";
-            codebuf_write(ctx->out, "self->__zone_state_%s = ", state->data.world_state.state_name);
+            codebuf_write(ctx->out, "self->__zone_state_%s = ", ast_world_state_name(state));
             codebuf_write(ctx->out, expr_fmt,
-                state->data.world_state.zone_slot_name,
-                state->data.world_state.zone_slot_name,
+                ast_world_state_zone_slot_name(state),
+                ast_world_state_zone_slot_name(state),
                 detail_name != NULL ? detail_name : "");
             codebuf_write(ctx->out, ";\n");
             break;
         case WORLD_STATE_SOURCE_STATE:
             expr_fmt = "(self->__zone_active_%s && self->%s.__state_%s)";
-            codebuf_write(ctx->out, "self->__zone_state_%s = ", state->data.world_state.state_name);
+            codebuf_write(ctx->out, "self->__zone_state_%s = ", ast_world_state_name(state));
             codebuf_write(ctx->out, expr_fmt,
-                state->data.world_state.zone_slot_name,
-                state->data.world_state.zone_slot_name,
+                ast_world_state_zone_slot_name(state),
+                ast_world_state_zone_slot_name(state),
                 detail_name != NULL ? detail_name : "");
             codebuf_write(ctx->out, ";\n");
             break;
         case WORLD_STATE_SOURCE_ZONE:
         default:
             codebuf_write(ctx->out, "self->__zone_state_%s = self->__zone_active_%s;\n",
-                state->data.world_state.state_name,
-                state->data.world_state.zone_slot_name);
+                ast_world_state_name(state),
+                ast_world_state_zone_slot_name(state));
             break;
         }
         emit_hidden_provenance_stamp(ctx, "self", "zone_state",
-            state->data.world_state.state_name, PGY_PROP_CAUSE_WORLD_DERIVED);
+            ast_world_state_name(state), PGY_PROP_CAUSE_WORLD_DERIVED);
         write_indent(ctx);
         codebuf_write(ctx->out,
             "if (self->__zone_state_%s != _pgy_prev_zone_state_%s) {\n",
-            state->data.world_state.state_name,
-            state->data.world_state.state_name);
+            ast_world_state_name(state),
+            ast_world_state_name(state));
         ctx->indent++;
         write_indent(ctx);
         codebuf_write(ctx->out, "_pgy_world_continue = true;\n");

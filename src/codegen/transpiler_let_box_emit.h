@@ -17,14 +17,17 @@ transpiler_try_emit_box_array_let(TranspilerCtx *ctx,
     char inner_buf[64];
     char *capacity;
     char *allocator;
+    const char *callee_name;
 
     if (ctx == NULL || name == NULL || init == NULL || ann_type_name_ptr == NULL)
         return false;
+    callee_name = ast_identifier_name(ast_call_callee(init));
     ann_type_name = *ann_type_name_ptr;
     if (init->type != AST_CALL
         || ast_call_callee(init) == NULL
         || ast_call_callee(init)->type != AST_IDENTIFIER
-        || strcmp(ast_call_callee(init)->data.identifier.name, "BoxArray") != 0) {
+        || callee_name == NULL
+        || strcmp(callee_name, "BoxArray") != 0) {
         return false;
     }
 
@@ -85,16 +88,15 @@ transpiler_box_inner_from_annotation(ASTNode *ann)
 
     if (ann == NULL
         || ann->type != AST_TYPE
-        || generic_args == NULL
-        || generic_args->count == 0) {
+        || ast_generic_param_count(generic_args) == 0) {
         return NULL;
     }
 
-    GenericParam *param = generic_args->params[0];
-    if (param != NULL && param->constraint != NULL)
-        return render_type_name(param->constraint);
-    if (param != NULL && param->name != NULL)
-        return pergyra_strdup(param->name);
+    GenericParam *param = ast_generic_param_at(generic_args, 0);
+    if (ast_generic_param_constraint(param) != NULL)
+        return render_type_name(ast_generic_param_constraint(param));
+    if (ast_generic_param_name(param) != NULL)
+        return pergyra_strdup(ast_generic_param_name(param));
     return NULL;
 }
 
@@ -133,7 +135,7 @@ transpiler_try_emit_box_or_rc_let(TranspilerCtx *ctx,
         return false;
     }
 
-    callee_name = ast_call_callee(init)->data.identifier.name;
+    callee_name = ast_identifier_name(ast_call_callee(init));
     if (callee_name == NULL
         || ((strcmp(callee_name, "Box") != 0 || find_class_decl(ctx, callee_name) != NULL)
             && (strcmp(callee_name, "Rc") != 0 || find_class_decl(ctx, callee_name) != NULL))) {

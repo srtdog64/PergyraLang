@@ -113,9 +113,9 @@ llvm_emit_world_embedded_action_effect_sync(LLVMGenCtx *ctx,
     if (ctx == NULL || receiver == NULL || method_decl == NULL
         || method_decl->type != AST_FUNC_DECL
         || method_decl->is_async_decl
-        || !method_decl->data.func_decl.is_action
-        || method_decl->data.func_decl.within_zone == NULL
-        || method_decl->data.func_decl.causes_effect == NULL) {
+        || !ast_func_is_action(method_decl)
+        || ast_func_within_zone(method_decl) == NULL
+        || ast_func_causes_effect(method_decl) == NULL) {
         return;
     }
 
@@ -127,12 +127,12 @@ llvm_emit_world_embedded_action_effect_sync(LLVMGenCtx *ctx,
             &zone_slot_name, &zone_decl, &source_slot_name, NULL)
         || zone_slot_name == NULL || zone_decl == NULL || source_slot_name == NULL
         || ast_zone_name(zone_decl) == NULL
-        || strcmp(method_decl->data.func_decl.within_zone,
+        || strcmp(ast_func_within_zone(method_decl),
                   ast_zone_name(zone_decl)) != 0) {
         return;
     }
 
-    effect_name = method_decl->data.func_decl.causes_effect;
+    effect_name = ast_func_causes_effect(method_decl);
     effect_decl = llvm_call_find_domain_decl(ctx, AST_EFFECT_DECL, effect_name);
     target_slot = llvm_call_find_first_effect_subject_slot(effect_decl);
     const char *target_slot_name = ast_domain_slot_name(target_slot);
@@ -408,8 +408,8 @@ llvm_emit_world_embedded_action_effect_sync(LLVMGenCtx *ctx,
             int ready_idx;
             if (refresh == NULL || refresh->type != AST_ZONE_REFRESH)
                 continue;
-            projection_name = refresh->data.zone_refresh.object_slot_name;
-            refresh_source = refresh->data.zone_refresh.source_slot_name;
+            projection_name = ast_zone_refresh_object_slot_name(refresh);
+            refresh_source = ast_zone_refresh_source_slot_name(refresh);
             if (projection_name == NULL || refresh_source == NULL
                 || strcmp(refresh_source, target_slot_name) != 0) {
                 continue;

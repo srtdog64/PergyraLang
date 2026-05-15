@@ -284,7 +284,9 @@ parser_reject_reserved_cast_after_expression(Parser *parser)
 
     if (parser_match(parser, TOKEN_AS)) {
         parser_error(parser,
-            "Cast syntax 'expr as Type' is reserved but not implemented; use an explicit conversion helper");
+            "Cast syntax 'expr as Type' is reserved but not implemented.\n"
+            "Reason: implicit cast/type-test lowering is not frozen across semantic, ABI, and backend diagnostics.\n"
+            "Fix: use an explicit conversion helper.");
         (void)parse_type(parser);
         return;
     }
@@ -292,14 +294,18 @@ parser_reject_reserved_cast_after_expression(Parser *parser)
     if (parser_check_contextual_is(parser)) {
         parser_advance(parser);
         parser_error(parser,
-            "Type-test syntax 'expr is Type' is reserved but not implemented; use an explicit predicate helper");
+            "Type-test syntax 'expr is Type' is reserved but not implemented.\n"
+            "Reason: runtime type-test semantics are not frozen for the beta subset.\n"
+            "Fix: use an explicit predicate helper.");
         (void)parse_type(parser);
         return;
     }
 
     if (parser_check(parser, TOKEN_LBRACE)) {
         parser_error(parser,
-            "Object initializer syntax 'Type { ... }' is reserved but not implemented; use a constructor or factory function");
+            "Object initializer syntax 'Type { ... }' is reserved but not implemented.\n"
+            "Reason: initializer sugar must not bypass constructor, projection, or ownership contracts.\n"
+            "Fix: use a constructor or factory function.");
     }
 }
 
@@ -338,7 +344,9 @@ ASTNode* parser_parse_program(Parser* parser) {
 ASTNode* parser_parse_let_declaration(Parser* parser) {
     if (parser_check(parser, TOKEN_LBRACE)) {
         parser_error(parser,
-            "Named field destructuring is reserved but not implemented; use positional destructuring or explicit field reads");
+            "Named field destructuring is reserved but not implemented.\n"
+            "Reason: named destructuring must preserve field provenance and CFG ownership facts.\n"
+            "Fix: use positional destructuring or explicit field reads.");
         parser_synchronize(parser);
         return NULL;
     }

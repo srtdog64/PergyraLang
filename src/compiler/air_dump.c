@@ -235,18 +235,12 @@ air_dump(const AIRProgram *air, FILE *out)
         fprintf(out,
                 "    evidence hir=%s(%s) hir_cfg=%s rir_boundary=%s(%s) rir_authority=%s(%s)\n",
                 air_boundary_has_evidence(air, i, AIR_EVIDENCE_HIR_ROUTINE) ? "yes" : "no",
-                boundary->hir_routine_evidence_name != NULL
-                    ? boundary->hir_routine_evidence_name
-                    : "<none>",
+                air_boundary_evidence_provider(air, i, AIR_EVIDENCE_HIR_ROUTINE),
                 air_boundary_has_evidence(air, i, AIR_EVIDENCE_HIR_CFG) ? "yes" : "no",
                 air_boundary_has_evidence(air, i, AIR_EVIDENCE_RIR_BOUNDARY) ? "yes" : "no",
-                boundary->rir_boundary_evidence_scope != NULL
-                    ? boundary->rir_boundary_evidence_scope
-                    : "<none>",
+                air_boundary_evidence_provider(air, i, AIR_EVIDENCE_RIR_BOUNDARY),
                 air_boundary_has_evidence(air, i, AIR_EVIDENCE_RIR_AUTHORITY) ? "yes" : "no",
-                boundary->rir_authority_evidence_name != NULL
-                    ? boundary->rir_authority_evidence_name
-                    : "<none>");
+                air_boundary_evidence_subject(air, i, AIR_EVIDENCE_RIR_AUTHORITY));
     }
     for (size_t i = 0; i < air->evidence_count; i++) {
         const AIREvidenceNode *evidence = &air->evidence_nodes[i];

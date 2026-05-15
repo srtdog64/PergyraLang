@@ -39,7 +39,7 @@ llvm_emit_member_lvalue_ptr(ASTNode *node, LLVMGenCtx *ctx,
         return NULL;
 
     if (obj_node->type == AST_IDENTIFIER) {
-        const char *var_name = obj_node->data.identifier.name;
+        const char *var_name = ast_identifier_name(obj_node);
         base_ptr = llvm_identifier_base_ptr(ctx, var_name, cls);
         if (base_ptr == NULL)
             return NULL;

@@ -60,7 +60,7 @@ grep -Fq "intent_step_derive_who_from_on_receiver" \
     "$ROOT_DIR/src/semantic/type_checker_intent_on_inference.c"
 grep -Fq "intent_step_derive_where_from_on_receiver" \
     "$ROOT_DIR/src/semantic/type_checker_intent_on_inference.c"
-grep -Fq "inherited_where_from_action = true" \
+grep -Fq "ast_intent_step_mark_inherited_where_from_action" \
     "$ROOT_DIR/src/semantic/type_checker_intent_on_inference.c"
 grep -Fq "intent_step_derive_where_from_on_receiver" \
     "$ROOT_DIR/src/semantic/type_checker_intent_decl.c"
@@ -70,9 +70,17 @@ grep -Fq "intent_step_authorized_by_alias_from_action" \
     "$ROOT_DIR/src/semantic/type_checker_intent_on_inference.c"
 grep -Fq "intent_on_call_arg_for_action_param" \
     "$ROOT_DIR/src/semantic/type_checker_intent_on_inference.c"
-grep -Fq "intent_step_append_required_ability_clone" \
-    "$ROOT_DIR/src/semantic/type_checker_intent_helpers.c"
-grep -Fq "inherited_authorized_by_from_action = true" \
+grep -Fq "ast_intent_step_append_required_ability_clone" \
+    "$ROOT_DIR/src/semantic/type_checker_intent_on_inference.c"
+grep -Fq "ast_intent_step_mark_inherited_authorized_by_from_action" \
+    "$ROOT_DIR/src/semantic/type_checker_intent_on_inference.c"
+grep -Fq "ast_func_within_zone" \
+    "$ROOT_DIR/src/semantic/type_checker_intent_on_inference.c"
+grep -Fq "ast_func_causes_effect" \
+    "$ROOT_DIR/src/semantic/type_checker_intent_on_inference.c"
+grep -Fq "ast_func_required_ability" \
+    "$ROOT_DIR/src/semantic/type_checker_intent_on_inference.c"
+grep -Fq "ast_func_authorized_by" \
     "$ROOT_DIR/src/semantic/type_checker_intent_on_inference.c"
 grep -Fq "intent_step_can_derive_zone_authority" \
     "$ROOT_DIR/src/semantic/type_checker_intent_authority.c"
@@ -288,11 +296,11 @@ if grep -F "locally declared who on step" \
     | grep -Fq "inherited_who_from_intent"; then
     :
 else
-    grep -Fq "&& !step->data.intent_step.inherited_who_from_intent" \
+    grep -Fq "&& !ast_intent_step_inherited_who_from_intent(step)" \
         "$ROOT_DIR/src/semantic/type_checker_intent_contract_summary.c"
 fi
 
-grep -Fq "&& !step->data.intent_step.inherited_where_from_intent" \
+grep -Fq "&& !ast_intent_step_inherited_where_from_intent(step)" \
     "$ROOT_DIR/src/semantic/type_checker_intent_contract_summary.c"
 
 echo "[intent-compression-contract] intent compression provenance is source-gated through DIR/AIR/RIR"

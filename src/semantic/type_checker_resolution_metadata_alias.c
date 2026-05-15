@@ -186,7 +186,7 @@ metadata_type_from_name_with_alias_stack(SemanticContext *ctx,
             : NULL;
         GenericParams *class_generics = ast_class_generic_params(decl);
         if (decl != NULL && decl->type == AST_CLASS_DECL
-            && class_generics != NULL && class_generics->count > 0) {
+            && ast_generic_param_count(class_generics) > 0) {
             return NULL;
         }
     }
@@ -285,8 +285,8 @@ semantic_type_resolution_metadata_alias_type(SemanticContext *ctx,
 
     if (ctx == NULL || type_node == NULL || type_node->type != AST_TYPE)
         return NULL;
-    if (ast_type_generic_args(type_node) != NULL
-        && ast_type_generic_args(type_node)->count > 0)
+    if (!semantic_type_resolution_metadata_type_ref_has_no_generic_args(
+            type_node))
         return NULL;
 
     name = ast_type_name(type_node);

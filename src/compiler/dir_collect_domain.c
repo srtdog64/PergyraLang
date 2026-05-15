@@ -20,7 +20,7 @@ dir_add_projection_contract_edges(DIRProgram *dir,
     projection_slot_id = dir_find_slot_node(dir,
                                             DIR_NODE_PROJECTION_SLOT,
                                             owner_name,
-                                            refresh->data.zone_refresh.object_slot_name);
+                                            ast_zone_refresh_object_slot_name(refresh));
     if (projection_slot_id < 0)
         return dir_failf(
             "DIR projection contract for '%s' is missing target projection slot '%s'.\n"
@@ -30,11 +30,11 @@ dir_add_projection_contract_edges(DIRProgram *dir,
             "- declare the projection slot on '%s' before lowering\n"
             "- or fix the projection target name so DIR can resolve it",
             owner_name,
-            refresh->data.zone_refresh.object_slot_name != NULL
-                ? refresh->data.zone_refresh.object_slot_name : "(unnamed)",
+            ast_zone_refresh_object_slot_name(refresh) != NULL
+                ? ast_zone_refresh_object_slot_name(refresh) : "(unnamed)",
             owner_name);
 
-    source_name = refresh->data.zone_refresh.source_slot_name;
+    source_name = ast_zone_refresh_source_slot_name(refresh);
     source_slot_id = dir_find_slot_node(dir,
                                         DIR_NODE_ZONE_SLOT,
                                         owner_name,
@@ -61,9 +61,9 @@ dir_add_projection_contract_edges(DIRProgram *dir,
                             DIR_EDGE_PROJECTION_SLOT_SOURCE,
                             (size_t)projection_slot_id,
                             source_slot_id >= 0 ? (size_t)source_slot_id : SIZE_MAX,
-                            refresh->data.zone_refresh.derive_target_kind
+                            ast_zone_refresh_derives_target_kind(refresh)
                                 ? "bind"
-                                : (refresh->data.zone_refresh.requires_dto
+                                : (ast_zone_refresh_requires_dto(refresh)
                                        ? "publish"
                                        : "refresh"),
                             source_name))
@@ -74,7 +74,7 @@ dir_add_projection_contract_edges(DIRProgram *dir,
                                 DIR_EDGE_OWNER_HAS_PROJECTION_SLOT,
                                 owner_id,
                                 (size_t)projection_slot_id,
-                                refresh->data.zone_refresh.object_slot_name,
+                                ast_zone_refresh_object_slot_name(refresh),
                                 dir->nodes[(size_t)projection_slot_id].name))
             return false;
     }
@@ -149,47 +149,48 @@ dir_collect_zone_edges(DIRProgram *dir, size_t from_id, ASTNode *node)
     }
     for (size_t i = 0; i < authority_count; i++) {
         ASTNode *auth = authorities[i];
+        const char *subject_slot = ast_zone_authority_subject_slot_name(auth);
         ssize_t auth_slot_id = dir_ensure_qualified_slot_node(dir,
                                                               DIR_NODE_AUTHORITY_SLOT,
                                                               ast_zone_name(node),
-                                                              auth->data.zone_authority.subject_slot_name,
+                                                              subject_slot,
                                                               auth);
         ssize_t subject_slot_id = dir_find_slot_node(dir,
                                                      DIR_NODE_ZONE_SLOT,
                                                      ast_zone_name(node),
-                                                     auth->data.zone_authority.subject_slot_name);
+                                                     subject_slot);
         if (auth_slot_id < 0)
             return false;
         if (!dir_add_named_edge(dir,
                                 DIR_EDGE_ZONE_HAS_AUTHORITY_SLOT,
                                 from_id,
                                 (size_t)auth_slot_id,
-                                auth->data.zone_authority.subject_slot_name,
+                                subject_slot,
                                 dir->nodes[(size_t)auth_slot_id].name))
             return false;
         if (!dir_add_named_edge(dir,
                                 DIR_EDGE_AUTHORITY_SLOT_SUBJECT,
                                 (size_t)auth_slot_id,
                                 subject_slot_id >= 0 ? (size_t)subject_slot_id : SIZE_MAX,
-                                auth->data.zone_authority.subject_slot_name,
-                                auth->data.zone_authority.subject_slot_name))
+                                subject_slot,
+                                subject_slot))
             return false;
-        for (size_t j = 0; j < auth->data.zone_authority.ability_count; j++) {
-            ASTNode *ability_ref = auth->data.zone_authority.required_abilities[j];
+        for (size_t j = 0; j < ast_zone_authority_ability_count(auth); j++) {
+            ASTNode *ability_ref = ast_zone_authority_required_ability(auth, j);
             const char *ability_name = ast_type_name(ability_ref);
             if (ability_name == NULL)
                 continue;
             ssize_t to = dir_find_ability_node_by_name(dir, ability_name);
             if (!dir_add_named_edge(dir, DIR_EDGE_ZONE_AUTHORITY_ABILITY, from_id,
                                     to >= 0 ? (size_t)to : SIZE_MAX,
-                                    auth->data.zone_authority.subject_slot_name,
+                                    subject_slot,
                                     ability_name))
                 return false;
             if (!dir_add_named_edge(dir,
                                     DIR_EDGE_ZONE_AUTHORITY_ABILITY,
                                     (size_t)auth_slot_id,
                                     to >= 0 ? (size_t)to : SIZE_MAX,
-                                    auth->data.zone_authority.subject_slot_name,
+                                    subject_slot,
                                     ability_name))
                 return false;
         }

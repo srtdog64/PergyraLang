@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/branding/PergyraLangLogo_256.png" alt="Gyri — Pergyra Mascot" width="180" />
+  <img src="assets/branding/PergyraLangLogo_256.png" alt="Gyri - Pergyra Mascot" width="180" />
   <br/>
   <sub>Meet <strong>Gyri</strong>, the Nautilus.</sub>
 </p>
@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <a href="docs/README_ko.md">한국어</a> ·
+  <a href="docs/README_ko.md">Korean README</a> ·
   <a href="docs/01_intent_first_design.md">Intent-First Design</a> ·
   <a href="docs/grammar/01_syntax.md">Syntax Reference</a> ·
   <a href="docs/grammar/02_grammar.md">Grammar</a> ·
@@ -55,7 +55,7 @@ Current classification snapshot:
   - source of truth: [docs/99_language_module_taxonomy.md](docs/99_language_module_taxonomy.md), [docs/language_module_manifest.json](docs/language_module_manifest.json), and [docs/language_module_cases.json](docs/language_module_cases.json)
 - generics
   - stable subset: exact/ability/multi-bound baseline plus implemented default type argument resolution on supported declaration/call/module-consumer paths
-  - beta-out-of-scope: broader generic generalization, higher-kinded types, Functor / `fmap`-style abstraction (soft-no — see [docs/04_generic_design.md](docs/04_generic_design.md))
+  - beta-out-of-scope: broader generic generalization, higher-kinded types, Functor / `fmap`-style abstraction (soft-no - see [docs/04_generic_design.md](docs/04_generic_design.md))
 - own/ref
   - stable subset: anchored slot-handle boundaries plus generalized provenance/escape diagnostics on the currently-closed consumer paths
   - explicit reject: any general own/ref combination that still falls outside the current semantic contract
@@ -75,13 +75,12 @@ This policy exists to prevent partial surfaces from being described as complete.
 Pergyra is a compiled language with C and LLVM backends. It distinguishes **who acts**, **where they act**, and **what qualifies them** at the language level.
 
 ```
-.pgy → Lexer → Parser → Semantic Typed AST → HIR → DIR → RIR → MIR
-                                              │           │     ├→ LLVM Backend → Binary
-                                              │           │     └→ C Backend    → GCC → Binary
-                                              ↓           ↓
-                                              AIR (read-only synthesis, verification-only)
-                                                          ↓
-                                              drift / abstraction-safety check
+.pgy -> Lexer -> Parser -> Semantic Typed AST -> HIR -> DIR -> RIR -> MIR
+                                                       |                  |-> LLVM Backend -> Binary
+                                                       |                  |-> C Backend -> GCC -> Binary
+                                                       |
+                                                       |-> AIR (read-only synthesis, verification-only)
+                                                           drift / abstraction-safety check
 ```
 
 - `HIR` normalizes language structure and pass-friendly program shape
@@ -89,7 +88,7 @@ Pergyra is a compiled language with C and LLVM backends. It distinguishes **who 
 - `RIR` locks slot/resource/projection/authority/lifecycle semantics
 - `MIR` locks CFG/SSA/cleanup/resource-flow before backend emission
 - Backends consume `MIR`, not `RIR`
-- `AIR` is a side-loaded verification IR synthesized from `HIR`/`RIR`; it never lowers to backends and exists solely for intent ↔ implementation abstraction-safety checks (see `docs/104_air_compiler_architecture.md`)
+- `AIR` is a side-loaded verification IR synthesized from `HIR`/`RIR`; it never lowers to backends and exists solely for intent-to-implementation abstraction-safety checks (see `docs/104_air_compiler_architecture.md`)
 
 ## How to read Pergyra examples
 
@@ -205,8 +204,8 @@ post-beta `pgy.render.webgl` module track.
 
 - smoke-covered examples: see [docs/65_stable_example_surface_board.md](docs/65_stable_example_surface_board.md)
 - ordinary entry examples:
-  - `examples/hello.pgy` — smallest ordinary log/value path
-  - `examples/basic.pgy` — basic ordinary-value syntax; no Slot lifecycle APIs
+  - `examples/hello.pgy` - smallest ordinary log/value path
+  - `examples/basic.pgy` - basic ordinary-value syntax; no Slot lifecycle APIs
 - domain examples:
   - `examples/logistics_intent_probe/`
   - `examples/order_analytics/`
@@ -216,7 +215,7 @@ post-beta `pgy.render.webgl` module track.
   - `examples/slots_simple.pgy`
   - `examples/resource_scheduler_async_probe/`
 - dogfood bridge examples:
-  - `examples/wasm_hello/` — WebGL/WASM host bridge via C `--emit-c`, not stable WebGL language surface
+  - `examples/wasm_hello/` - WebGL/WASM host bridge via C `--emit-c`, not stable WebGL language surface
 - contract compression canonical pairs:
   - `examples/intent_contract_pair_minimal.pgy`
   - `examples/authority_contract_pair_minimal.pgy`
@@ -275,6 +274,12 @@ code crosses an explicit resource, authority, backend-handle, or lifecycle
 boundary. Slot is the resource-boundary model; it is not the default value
 model.
 
+Slot is not a Rust-style borrow checker. The beta safety model is layered:
+static checks reject unsafe boundary transitions, while runtime Slot handles
+validate generation, token capability, release state, and pin state at the
+resource boundary. This is a deliberate address-abstraction choice, not a
+claim of full Rust lifetime proof.
+
 ### Control Flow
 
 ```pergyra
@@ -300,14 +305,17 @@ Pergyra uses 6 keywords to declare types. Each keyword carries **intended** dist
 
 | Keyword | Role | Memory | Behavior | Implementation |
 |---------|------|--------|----------|----------------|
-| `subject` | Active entity (protagonist) | Reference (ptr self) | action + func | ✅ Full |
-| `class` | Passive thing (tool) | Value | func only | ✅ Full |
-| `struct` | Pure data | Value | None | ✅ Full |
-| `vessel` | Internal state (inside subject) | Value | None | ✅ Semantic + codegen surface |
-| `object` | Internal projection/view contract | Value | func only | ✅ Distinct projection contract |
-| `tobject` | Transfer/export boundary contract | Value | func only | ✅ Distinct transfer contract |
+| `subject` | Active entity (protagonist) | Reference (ptr self) | action + func | Full |
+| `class` | Passive thing (tool) | Value | func only | Full |
+| `struct` | Pure data | Value | None | Full |
+| `vessel` | Internal state (inside subject) | Value | None | Semantic + codegen surface |
+| `object` | Internal projection/view contract | Value | func only | Distinct projection contract |
+| `tobject` | Transfer/export boundary contract | Value | func only | Distinct transfer contract |
 
-> **현재 구현 상태**: `subject`와 `class`는 시맨틱/코드젠 수준에서 분리되어 있다. `object`와 `tobject`는 선언 키워드와 계약이 모두 distinct하며, `object`는 local/internal projection contract, `tobject`는 publish/transfer/export boundary contract로 고정되어 있다.
+> **Current implementation state**: `subject` and `class` are separated in
+> semantic and codegen paths. `object` and `tobject` are distinct declaration
+> surfaces and contracts: `object` is the local/internal projection contract;
+> `tobject` is the publish/transfer/export boundary contract.
 
 ```pergyra
 subject Player
@@ -400,7 +408,7 @@ zone BattleZone
 }
 ```
 
-> `action`은 `subject` 내부에 선언합니다. zone은 subject slot과 authority만 정의합니다.
+> `action` is declared inside `subject`. A `zone` defines subject slots and authority boundaries.
 
 ### World
 
@@ -440,9 +448,8 @@ intent DriveCar(cockpit: CockpitZone, driver: Driver)
 
     step Ignite
     {
-        where: CockpitZone;
-        using: cockpit;
-        who: driver;
+        // Compact form: who/where/using/authorized-by are inferred
+        // from `on:` plus the Driver.Ignite action contract.
         on: driver.Ignite();
         compensate: driver.RollbackIgnite();
         pre: true;
@@ -465,13 +472,18 @@ func Main() -> Void
 ```
 
 Features:
-- `exclusive` / `concurrent` — conflict policy
-- `priority` — numeric priority for scheduling
-- `on:` — event trigger (action call)
-- `compensate:` — rollback action on failure
-- `pre` / `post` / `guard` / `invariant` / `expect` — conditions
-- `IntentLastTrace()`, `IntentHistoryCount()` — runtime observability
-- `intent:` inside a step — sub-intent orchestration
+
+Compact intent is the preferred beta authoring style. Explicit `who`, `where`,
+`using`, `requires`, and `authorized by` remain valid when inference is
+ambiguous or when the author wants the boundary to be visually explicit.
+
+- `exclusive` / `concurrent` - conflict policy
+- `priority` - numeric priority for scheduling
+- `on:` - event trigger (action call)
+- `compensate:` - rollback action on failure
+- `pre` / `post` / `guard` / `invariant` / `expect` - conditions
+- `IntentLastTrace()`, `IntentHistoryCount()` - runtime observability
+- `intent:` inside a step - sub-intent orchestration
 
 Example:
 
@@ -515,7 +527,7 @@ QueuePush(queue, 1);
 let front: Int = QueuePop(queue);
 ```
 
-> `Set<T>`은 현재 `SetNew`, `SetAdd`, `SetHas`, `SetRemove`, `SetSize` 표면이 semantic/C/LLVM 경로에 연결되어 있다. `Array<T>`는 리터럴 `[1, 2, 3]`과 `ArrayPush`/`ArrayPop`/`ArrayLength` 함수로 사용한다.
+> `Set<T>` is connected through the semantic/C/LLVM path via `SetNew`, `SetAdd`, `SetHas`, `SetRemove`, and `SetSize`. `Array<T>` uses literals such as `[1, 2, 3]` plus `ArrayPush`, `ArrayPop`, and `ArrayLength`.
 
 ## Standard Library (`use`)
 
@@ -578,21 +590,21 @@ Source of truth:
 
 Recommended examples to start from:
 
-- `examples/hello.pgy` — smallest ordinary log/value path
-- `examples/basic.pgy` — ordinary values, functions, control flow, and logging
-- `examples/logistics_intent_probe/` — IR/domain pipeline probe
-- `examples/order_analytics/` — larger compile-smoke covered application example
-- `examples/subject_object_tobject/` — nominal/projection baseline
+- `examples/hello.pgy` - smallest ordinary log/value path
+- `examples/basic.pgy` - ordinary values, functions, control flow, and logging
+- `examples/logistics_intent_probe/` - IR/domain pipeline probe
+- `examples/order_analytics/` - larger compile-smoke covered application example
+- `examples/subject_object_tobject/` - nominal/projection baseline
 
 Resource-boundary examples are intentionally separate:
 
-- `examples/slots_simple.pgy` — explicit Slot lifecycle and scoped `with slot`
-- `examples/resource_scheduler_async_probe/` — async/parallel/resource probe
-- `examples/ownership_forwarding_probe/` — current `own/ref` anchored-slot boundary subset
+- `examples/slots_simple.pgy` - explicit Slot lifecycle and scoped `with slot`
+- `examples/resource_scheduler_async_probe/` - async/parallel/resource probe
+- `examples/ownership_forwarding_probe/` - current `own/ref` anchored-slot boundary subset
 
 Dogfood bridge examples:
 
-- `examples/wasm_hello/` — beta dogfood bridge: C `--emit-c` plus optional Emscripten
+- `examples/wasm_hello/` - beta dogfood bridge: C `--emit-c` plus optional Emscripten
 
 Design-sketch examples:
 
@@ -641,7 +653,7 @@ candidates, "in use" adoption strategy) is tracked in
 - [Stable Example Surface Board](docs/65_stable_example_surface_board.md)
 - [Design Vision](docs/00_vision.md)
 - [Linguist Submission Checklist](docs/96_linguist_submission.md)
-- [한국어 README](docs/README_ko.md)
+- [Korean README](docs/README_ko.md)
 
 ## License
 

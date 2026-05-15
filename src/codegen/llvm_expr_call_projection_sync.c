@@ -200,7 +200,7 @@ llvm_emit_current_zone_subject_projection_sync(LLVMGenCtx *ctx, ASTNode *receive
     if (host_decl == NULL || host_decl->type != AST_ZONE_DECL)
         return;
 
-    source_slot_name = receiver->data.identifier.name;
+    source_slot_name = ast_identifier_name(receiver);
     host_name = ast_zone_name(host_decl);
     if (source_slot_name == NULL || host_name == NULL)
         return;
@@ -227,8 +227,8 @@ llvm_emit_current_zone_subject_projection_sync(LLVMGenCtx *ctx, ASTNode *receive
         if (refresh == NULL || refresh->type != AST_ZONE_REFRESH)
             continue;
 
-        target_name = refresh->data.zone_refresh.object_slot_name;
-        refresh_source = refresh->data.zone_refresh.source_slot_name;
+        target_name = ast_zone_refresh_object_slot_name(refresh);
+        refresh_source = ast_zone_refresh_source_slot_name(refresh);
         if (target_name == NULL || refresh_source == NULL
             || strcmp(refresh_source, source_slot_name) != 0) {
             continue;

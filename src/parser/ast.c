@@ -82,12 +82,50 @@ ast_reserve_call_argument_capacity(ASTNode *call, size_t required_capacity)
     return true;
 }
 
+bool
+ast_program_append_statement(ASTNode* node, ASTNode* statement)
+{
+    if (node == NULL || node->type != AST_PROGRAM || statement == NULL)
+        return false;
+    return ast_append_node(&node->data.program.statements,
+                           &node->data.program.count,
+                           &node->data.program.capacity,
+                           statement);
+}
+
+ASTNode*
+ast_program_detach_statement(ASTNode* node, size_t index)
+{
+    ASTNode *statement;
+
+    if (node == NULL || node->type != AST_PROGRAM
+        || index >= node->data.program.count) {
+        return NULL;
+    }
+
+    statement = node->data.program.statements[index];
+    node->data.program.statements[index] = NULL;
+    return statement;
+}
+
+bool
+ast_program_replace_statements(ASTNode* node,
+                               ASTNode** statements,
+                               size_t count,
+                               size_t capacity)
+{
+    if (node == NULL || node->type != AST_PROGRAM || capacity < count)
+        return false;
+    free(node->data.program.statements);
+    node->data.program.statements = statements;
+    node->data.program.count = count;
+    node->data.program.capacity = capacity;
+    return true;
+}
+
 void ast_add_statement(ASTNode* parent, ASTNode* statement) {
     if (parent->type == AST_PROGRAM) {
-        ast_append_node(&parent->data.program.statements,
-                        &parent->data.program.count,
-                        &parent->data.program.capacity,
-                        statement);
+        (void)ast_program_append_statement(parent, statement);
     } else if (parent->type == AST_BLOCK) {
         ast_append_node(&parent->data.block.statements,
                         &parent->data.block.count,

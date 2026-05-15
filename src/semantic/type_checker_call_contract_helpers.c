@@ -23,8 +23,8 @@ semantic_lookup_function_param_contract(SemanticContext *ctx,
         return NULL;
 
     ASTNode *prog = ctx->program_root;
-    for (size_t si = 0; si < prog->data.program.count; si++) {
-        ASTNode *stmt = prog->data.program.statements[si];
+    for (size_t si = 0; si < ast_program_statement_count(prog); si++) {
+        ASTNode *stmt = ast_program_statement(prog, si);
         const char *stmt_name = ast_declaration_name(stmt);
         if (stmt == NULL || stmt->type != AST_FUNC_DECL
             || stmt_name == NULL

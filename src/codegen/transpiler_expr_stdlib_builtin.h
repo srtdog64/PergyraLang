@@ -135,7 +135,7 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
 {
     /* Standard library built-in functions */
     if (callee->type == AST_IDENTIFIER) {
-        const char *fn = callee->data.identifier.name;
+        const char *fn = ast_identifier_name(callee);
         size_t argc = ast_call_arg_count(call);
         ASTNode *arg0 = ast_call_argument(call, 0);
         ASTNode *arg1 = ast_call_argument(call, 1);

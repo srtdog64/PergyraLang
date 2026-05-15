@@ -189,12 +189,12 @@ llvm_mir_boundary_slot_inner_name(LLVMGenCtx *ctx, FuncParam *param,
         return NULL;
 
     generic_args = ast_type_generic_args(param->type);
-    if (generic_args == NULL || generic_args->count == 0
-        || generic_args->params == NULL || generic_args->params[0] == NULL)
+    GenericParam *inner_param = ast_generic_param_at(generic_args, 0);
+    if (inner_param == NULL)
         return NULL;
 
     inner_name = llvm_keep_rendered_persistent(ctx,
-        llvm_stmt_render_type_arg(generic_args->params[0]),
+        llvm_stmt_render_type_arg(inner_param),
         "out of memory copying LLVM MIR slot type");
     if (inner_name == NULL)
         return NULL;

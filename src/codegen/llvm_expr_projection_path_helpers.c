@@ -288,17 +288,19 @@ llvm_emit_subject_projection(ASTNode *node, LLVMGenCtx *ctx)
 
     target_arg = ast_call_argument(node, 0);
     source_arg = ast_call_argument(node, 1);
+    const char *target_name = ast_identifier_name(target_arg);
+    const char *source_name = ast_identifier_name(source_arg);
     if (target_arg == NULL || target_arg->type != AST_IDENTIFIER
-        || target_arg->data.identifier.name == NULL
+        || target_name == NULL
         || source_arg == NULL || source_arg->type != AST_IDENTIFIER
-        || source_arg->data.identifier.name == NULL) {
+        || source_name == NULL) {
         return llvm_projection_error_recovery(ctx, node,
             "LLVM subject projection requires identifier target and source arguments");
     }
 
-    target_cls = llvm_lookup_class(ctx, target_arg->data.identifier.name);
-    source_var = llvm_scope_lookup(ctx, source_arg->data.identifier.name);
-    source_class_name = llvm_lookup_var_class(ctx, source_arg->data.identifier.name);
+    target_cls = llvm_lookup_class(ctx, target_name);
+    source_var = llvm_scope_lookup(ctx, source_name);
+    source_class_name = llvm_lookup_var_class(ctx, source_name);
     source_cls = source_class_name != NULL
         ? llvm_lookup_class(ctx, source_class_name) : NULL;
     source_decl = source_class_name != NULL

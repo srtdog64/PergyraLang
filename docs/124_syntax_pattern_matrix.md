@@ -196,7 +196,7 @@ speed and order-independent declarations as first-class compiler constraints.
 | Relationship table | ORM relationship / association | `relation` | `stable` | Authority-resource-effect ordering must stay coherent. |
 | Effect attachment | mixin/decorator/state extension | `effect` | `stable` | Domain policy, not full Koka-style effect calculus. |
 | Transaction rollback | transaction/saga compensation | `compensate`, rollback, `Result` | `partial` | Intent failure model must remain queryable. |
-| Intent compact form | decorators / minimal workflow DSL | inferred clauses from `on:` | `partial` | `who`, action `within`, `requires`, `causes`, simple `authorized by self`, and `using` derivation are active; remaining work is default documentation and richer conflict diagnostics. |
+| Intent compact form | decorators / minimal workflow DSL | AI-fillable intent frame plus compiler verification | `partial` | `who`, action `within`, `requires`, `causes`, simple/parameter `authorized by`, and `using` derivation are active. The compiler verifies declared evidence; it must not invent domain policy from a goal sentence. Remaining work is richer conflict diagnostics and edge-case provenance. |
 
 ## 11. Type-Level And Generic Patterns
 
@@ -325,7 +325,7 @@ surface compatibility or force awkward sugar around the wrong AST shape.
 
 | Syntax pattern | Current code state | Required next step |
 | --- | --- | --- |
-| Intent compact step | Active partial surface: `on:` receiver/action inference covers `who`, action `within`, action `requires`, action `causes`, simple/parameter `authorized by`, and derived `using` when unambiguous. | Promote compact step to the default documented form, then close richer conflict diagnostics and edge-case provenance. |
+| Intent compact step | Active partial surface: `on:` receiver/action inference covers `who`, action `within`, action `requires`, action `causes`, simple/parameter `authorized by`, and derived `using` when unambiguous. | Keep compact step as the default documented form, then close richer conflict diagnostics and edge-case provenance. |
 | String interpolation | Active lexer/parser surface exists: normal strings with `${...}` and `f"..."` route to interpolation parsing; escaped `\${` / `\{` openers and malformed fragments remain literal. | Freeze one public spelling and keep C/LLVM output parity gated. |
 | Collection literals | Array literals exist; `List`/`Set`/`HashMap` literals are not frozen; `{ ... }` literal syntax rejects explicitly. | Reserve typed collection literal grammar only after collection ABI/key policy is stable. |
 | Closure literal | Active AST surface exists as `AST_LAMBDA_EXPR`; parser recognizes lambda starts and `=>`. | Current beta contract: parameter-only/standalone callable bodies are allowed; lambda-local bindings stay local, while outer local/resource captures reject with borrow-escape diagnostics. |
@@ -352,7 +352,65 @@ Reservation does not mean immediate implementation. It means the grammar,
 precedence, and semantic owner are chosen before beta freeze, so later
 implementation does not require incompatible syntax.
 
-## 19. Patterns Pergyra Should Not Copy
+## 19. Human/AI Intent Authoring Loop
+
+Pergyra intent is designed to be human-readable and AI-fillable. Humans should
+be able to write or review the compact frame without spelling every low-level
+resource/runtime detail, and AI agents should be able to expand the same frame
+into explicit contracts. The compiler is not responsible for turning natural
+language into policy. Its job is to verify the explicit frame that the human or
+AI produced.
+
+Minimal human or AI proposal:
+
+```pergyra
+intent Login for User in AuthZone {
+    on: user.Validate(credentials);
+    on: session.Issue(user);
+    expect: session.active;
+}
+```
+
+Compiler response if the proposal is incomplete:
+
+```text
+NO
+Reason:
+- step `session.Issue(user)` writes SecureSlot<SessionToken>
+- AuthZone does not provide TokenIssuer authority for that write
+Fix:
+- add `authorized by TokenIssuer`
+- or move token issuing into a zone that owns that authority
+```
+
+Expanded frame after human or AI patching:
+
+```pergyra
+intent Login for User in AuthZone
+    authorized by TokenIssuer
+{
+    on: user.Validate(credentials);
+    on: session.Issue(user);
+    expect: session.active;
+}
+```
+
+Intended loop:
+
+```text
+human goal/review -> AI-filled intent/code -> compiler YES/NO -> Reason/Fix -> patch
+```
+
+Rules:
+
+1. Compact authoring may omit clauses only when declared action/zone/authority
+   evidence exists.
+2. AI-generated clauses are not trusted just because they are plausible; they
+   must pass semantic, AIR, CFG/MIR, runtime, C, LLVM, diagnostic, and
+   regression gates.
+3. Derived facts must be explainable. Hidden inference is not stable surface.
+
+## 20. Patterns Pergyra Should Not Copy
 
 | Pattern | Reason |
 | --- | --- |
@@ -364,7 +422,7 @@ implementation does not require incompatible syntax.
 | Core WebGL/GPU keywords | Rendering and GPU are module ecosystem surfaces. |
 | Switch fallthrough / goto | Conflicts with CFG safety and diagnostic clarity. |
 
-## 20. Operational Rule
+## 21. Operational Rule
 
 Before adding or copying a familiar syntax pattern:
 

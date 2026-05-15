@@ -1,4 +1,4 @@
-﻿#include "type_checker_internal.h"
+#include "type_checker_internal.h"
 #include "diag_codes.h"
 
 #include <string.h>
@@ -69,10 +69,10 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
 
     for (size_t i = 0; i < apply_count; i++) {
         ASTNode *apply = applies[i];
-        const char *effect_slot_name = apply->data.zone_apply.effect_slot_name;
-        const char *target_slot_name = apply->data.zone_apply.target_slot_name;
-        const char *state_name = apply->data.zone_apply.state_name;
-        const char *participant_slot_name = apply->data.zone_apply.participant_slot_name;
+        const char *effect_slot_name = ast_zone_effect_slot_name(apply);
+        const char *target_slot_name = ast_zone_effect_target_slot_name(apply);
+        const char *state_name = ast_zone_directive_state_name(apply);
+        const char *participant_slot_name = ast_zone_directive_participant_slot_name(apply);
         bool state_ok = true;
         if (state_name != NULL) {
             state_ok = resolve_zone_effect_state(node, apply, state_name, ctx, "apply",
@@ -120,11 +120,11 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
 
     for (size_t i = 0; i < link_count; i++) {
         ASTNode *link = links[i];
-        const char *relation_slot_name = link->data.zone_link.relation_slot_name;
-        const char *left_slot_name = link->data.zone_link.left_slot_name;
-        const char *right_slot_name = link->data.zone_link.right_slot_name;
-        const char *state_name = link->data.zone_link.state_name;
-        const char *participant_slot_name = link->data.zone_link.participant_slot_name;
+        const char *relation_slot_name = ast_zone_relation_slot_name(link);
+        const char *left_slot_name = ast_zone_relation_left_slot_name(link);
+        const char *right_slot_name = ast_zone_relation_right_slot_name(link);
+        const char *state_name = ast_zone_directive_state_name(link);
+        const char *participant_slot_name = ast_zone_directive_participant_slot_name(link);
         bool state_ok = true;
         if (state_name != NULL) {
             state_ok = resolve_zone_relation_state(node, link, state_name, ctx, "link",
@@ -187,10 +187,10 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
 
     for (size_t i = 0; i < detach_count; i++) {
         ASTNode *detach = detaches[i];
-        const char *effect_slot_name = detach->data.zone_detach.effect_slot_name;
-        const char *target_slot_name = detach->data.zone_detach.target_slot_name;
-        const char *state_name = detach->data.zone_detach.state_name;
-        const char *participant_slot_name = detach->data.zone_detach.participant_slot_name;
+        const char *effect_slot_name = ast_zone_effect_slot_name(detach);
+        const char *target_slot_name = ast_zone_effect_target_slot_name(detach);
+        const char *state_name = ast_zone_directive_state_name(detach);
+        const char *participant_slot_name = ast_zone_directive_participant_slot_name(detach);
         bool state_ok = true;
         if (state_name != NULL) {
             state_ok = resolve_zone_effect_state(node, detach, state_name, ctx, "detach",
@@ -238,11 +238,11 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
 
     for (size_t i = 0; i < unlink_count; i++) {
         ASTNode *unlink = unlinks[i];
-        const char *relation_slot_name = unlink->data.zone_unlink.relation_slot_name;
-        const char *left_slot_name = unlink->data.zone_unlink.left_slot_name;
-        const char *right_slot_name = unlink->data.zone_unlink.right_slot_name;
-        const char *state_name = unlink->data.zone_unlink.state_name;
-        const char *participant_slot_name = unlink->data.zone_unlink.participant_slot_name;
+        const char *relation_slot_name = ast_zone_relation_slot_name(unlink);
+        const char *left_slot_name = ast_zone_relation_left_slot_name(unlink);
+        const char *right_slot_name = ast_zone_relation_right_slot_name(unlink);
+        const char *state_name = ast_zone_directive_state_name(unlink);
+        const char *participant_slot_name = ast_zone_directive_participant_slot_name(unlink);
         bool state_ok = true;
         if (state_name != NULL) {
             state_ok = resolve_zone_relation_state(node, unlink, state_name, ctx, "unlink",
@@ -306,9 +306,9 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
     type_check_zone_projection_rules(node, ctx);
     for (size_t i = 0; i < maintained_effect_count; i++) {
         ASTNode *maintain = maintained_effects[i];
-        const char *effect_slot_name = maintain->data.zone_maintain_effect.effect_slot_name;
-        const char *target_slot_name = maintain->data.zone_maintain_effect.target_slot_name;
-        const char *participant_slot_name = maintain->data.zone_maintain_effect.participant_slot_name;
+        const char *effect_slot_name = ast_zone_effect_slot_name(maintain);
+        const char *target_slot_name = ast_zone_effect_target_slot_name(maintain);
+        const char *participant_slot_name = ast_zone_directive_participant_slot_name(maintain);
         if (find_zone_effect_slot(node, effect_slot_name) == NULL) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, maintain,
                 "Zone maintain references unknown effect slot '%s'.\n"
@@ -348,8 +348,8 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
 
         for (size_t j = i + 1; j < maintained_effect_count; j++) {
             ASTNode *other = maintained_effects[j];
-            if (strcmp(effect_slot_name, other->data.zone_maintain_effect.effect_slot_name) == 0
-                && strcmp(target_slot_name, other->data.zone_maintain_effect.target_slot_name) == 0) {
+            if (strcmp(effect_slot_name, ast_zone_effect_slot_name(other)) == 0
+                && strcmp(target_slot_name, ast_zone_effect_target_slot_name(other)) == 0) {
                 semantic_warning(ctx, other,
                     "Zone '%s' maintains effect '%s' on '%s' more than once.\n"
                     "Reason:\n"
@@ -367,11 +367,11 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         }
         for (size_t j = 0; j < detach_count; j++) {
             ASTNode *detach = detaches[j];
-            const char *detach_effect_slot_name = detach->data.zone_detach.effect_slot_name;
-            const char *detach_target_slot_name = detach->data.zone_detach.target_slot_name;
-            if (detach->data.zone_detach.state_name != NULL) {
+            const char *detach_effect_slot_name = ast_zone_effect_slot_name(detach);
+            const char *detach_target_slot_name = ast_zone_effect_target_slot_name(detach);
+            if (ast_zone_directive_state_name(detach) != NULL) {
                 resolve_zone_effect_state(node, detach,
-                    detach->data.zone_detach.state_name, ctx, "detach",
+                    ast_zone_directive_state_name(detach), ctx, "detach",
                     &detach_effect_slot_name, &detach_target_slot_name);
             }
             if (detach_effect_slot_name != NULL
@@ -397,10 +397,10 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
 
     for (size_t i = 0; i < maintained_relation_count; i++) {
         ASTNode *maintain = maintained_relations[i];
-        const char *relation_slot_name = maintain->data.zone_maintain_relation.relation_slot_name;
-        const char *left_slot_name = maintain->data.zone_maintain_relation.left_slot_name;
-        const char *right_slot_name = maintain->data.zone_maintain_relation.right_slot_name;
-        const char *participant_slot_name = maintain->data.zone_maintain_relation.participant_slot_name;
+        const char *relation_slot_name = ast_zone_relation_slot_name(maintain);
+        const char *left_slot_name = ast_zone_relation_left_slot_name(maintain);
+        const char *right_slot_name = ast_zone_relation_right_slot_name(maintain);
+        const char *participant_slot_name = ast_zone_directive_participant_slot_name(maintain);
         if (find_zone_relation_slot(node, relation_slot_name) == NULL) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, maintain,
                 "Zone maintain references unknown relation slot '%s'.\n"
@@ -455,9 +455,9 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
 
         for (size_t j = i + 1; j < maintained_relation_count; j++) {
             ASTNode *other = maintained_relations[j];
-            if (strcmp(relation_slot_name, other->data.zone_maintain_relation.relation_slot_name) == 0
-                && strcmp(left_slot_name, other->data.zone_maintain_relation.left_slot_name) == 0
-                && strcmp(right_slot_name, other->data.zone_maintain_relation.right_slot_name) == 0) {
+            if (strcmp(relation_slot_name, ast_zone_relation_slot_name(other)) == 0
+                && strcmp(left_slot_name, ast_zone_relation_left_slot_name(other)) == 0
+                && strcmp(right_slot_name, ast_zone_relation_right_slot_name(other)) == 0) {
                 semantic_warning(ctx, other,
                     "Zone '%s' maintains relation '%s' between '%s' and '%s' more than once.\n"
                     "Reason:\n"
@@ -477,12 +477,12 @@ type_check_zone_decl(ASTNode *node, SemanticContext *ctx)
         }
         for (size_t j = 0; j < unlink_count; j++) {
             ASTNode *unlink = unlinks[j];
-            const char *unlink_relation_slot_name = unlink->data.zone_unlink.relation_slot_name;
-            const char *unlink_left_slot_name = unlink->data.zone_unlink.left_slot_name;
-            const char *unlink_right_slot_name = unlink->data.zone_unlink.right_slot_name;
-            if (unlink->data.zone_unlink.state_name != NULL) {
+            const char *unlink_relation_slot_name = ast_zone_relation_slot_name(unlink);
+            const char *unlink_left_slot_name = ast_zone_relation_left_slot_name(unlink);
+            const char *unlink_right_slot_name = ast_zone_relation_right_slot_name(unlink);
+            if (ast_zone_directive_state_name(unlink) != NULL) {
                 resolve_zone_relation_state(node, unlink,
-                    unlink->data.zone_unlink.state_name, ctx, "unlink",
+                    ast_zone_directive_state_name(unlink), ctx, "unlink",
                     &unlink_relation_slot_name, &unlink_left_slot_name, &unlink_right_slot_name);
             }
             if (unlink_relation_slot_name != NULL

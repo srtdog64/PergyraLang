@@ -1,72 +1,76 @@
 # Pergyra Compiler Contracts
 
-Last updated: 2026-05-04
+Last updated: 2026-05-15
 
-이 문서는 Pergyra compiler pipeline의 source-of-truth 계약을 고정한다. 목적은
-“현재 구현이 완성됐다”는 선언이 아니라, 구현이 어느 방향으로 수렴해야 하는지
-정확히 제한하는 것이다.
+This document fixes the compiler source-of-truth contracts. It is not a claim
+that every implementation path is complete. It defines the direction each path
+must move toward during beta closure.
 
 ## 1. IR Layer Contracts
 
 ### AST
 
-AST는 raw parse tree와 source span을 보존한다. AST는 사용자-facing 진단 문맥으로
-사용할 수 있지만, backend semantic 판단의 source-of-truth가 되면 안 된다.
+AST is the raw parse tree plus source span carrier. AST may be used for
+user-facing diagnostic context, but it must not be the backend semantic
+source-of-truth.
 
-금지:
+Forbidden:
 
-- backend가 AST를 다시 걸어 semantic feature를 재발견하는 것
-- ownership, authority, effect, zone safety를 AST helper가 최종 판정하는 것
-- C/LLVM backend가 서로 다른 AST-carried inventory를 읽는 것
+- backend semantic rediscovery by walking AST payloads again
+- ownership, authority, effect, or zone safety decided by AST helper traversal
+- C and LLVM consuming different AST-carried declaration inventories
 
 ### HIR
 
-HIR은 sugar가 제거된 typed language tree와 function/body CFG view를 제공한다.
-all-path return, unreachable flow, CFG-owned control lowering의 근거는 HIR CFG에서
-시작한다.
+HIR owns sugar-free typed language structure and the function/body CFG view.
+All-path return, unreachable flow, and CFG-owned control lowering start here.
 
 ### DIR
 
-DIR은 declaration/domain graph다. `subject`, `ability`, `role`, `party`, `zone`,
-`world`, `relation`, `effect`, `projection`, `intent`의 선언 관계를 graph edge로
-소유한다.
+DIR owns declaration and domain graph facts: `subject`, `ability`, `role`,
+`party`, `zone`, `world`, `relation`, `effect`, `projection`, and `intent`
+relations as graph edges.
 
 ### RIR
 
-RIR은 resource/resource-flow IR이다. Slot, projection, authority, relation/effect
-전파, rollback/invalidation 후보 같은 runtime-relevant resource facts를 소유한다.
+RIR owns resource-flow facts. Slot operations, projection state, authority
+evidence, relation/effect propagation, rollback, invalidation, and runtime
+resource facts belong here.
 
 ### MIR
 
-MIR은 backend가 소비하는 execution IR이다. CFG block, instruction, cleanup root,
-rollback/invalidation root, pin cleanup fact, direct call fact, terminator provenance를
-명시적으로 소유한다.
+MIR owns backend-executable control and cleanup facts. It carries CFG blocks,
+instructions, cleanup roots, rollback/invalidation roots, pin cleanup facts,
+direct-call facts, and terminator provenance.
 
 ### AIR
 
-AIR는 codegen IR이 아니다. AIR는 abstraction-boundary verification layer다.
-HIR/RIR/MIR/DAG evidence를 모아 intent/zone/world/authority/effect boundary drift를
-검증한다. AIR가 backend text를 바꾸면 설계 위반이다.
+AIR is not a codegen IR. AIR is an abstraction-boundary verification layer. It
+collects HIR/RIR/MIR/DAG evidence and checks intent, zone, world, authority, and
+effect boundary drift. AIR must not change backend text. If AIR changes emitted
+C or LLVM, that is a design violation.
 
 ## 2. Compiler-Facing Orthogonality Rule
 
 Compiler-facing orthogonality rule:
 
-> 각 semantic 축은 자기 owner IR에서 한 번만 확정되고, 이후 단계는 그 fact를 소비한다.
+> Each semantic axis is decided once by its owner IR, then later phases consume
+> that fact.
 
-구체 규칙:
+Concrete rules:
 
-- backend가 AST를 다시 걸어 semantic feature를 재발견하는 것을 금지한다.
-- authority/effect/zone의 최종 판정은 DIR/RIR/AIR evidence로 고정한다.
-- Slot / Pin vs Static Lifetime: Slot은 runtime-validated handle이고, pin/cleanup은
-  MIR cleanup fact와 CFG/AIR verifier가 보강한다.
-- 이전 문서에서 이들을 `TOKEN_IDENTIFIER`로만 표기한 경우는 lexer/parser 계약
-  drift로 본다. keyword contract 문서는 semantic axis를 기준으로 표기해야 한다.
+- backend semantic rediscovery from AST is forbidden.
+- authority/effect/zone decisions are fixed by DIR/RIR/AIR evidence.
+- Slot / Pin vs Static Lifetime: Slot is a runtime-validated handle model;
+  pin/cleanup safety is backed by MIR cleanup facts plus CFG/AIR verification.
+- If a document or test only refers to a domain keyword as `TOKEN_IDENTIFIER`,
+  that is lexer/parser contract drift. Keyword contract documents should name
+  the semantic axis, not just the token spelling.
 
 ## 3. Cleanup And Pin Contract
 
 MIR cleanup fact names are owned by `src/compiler/mir_cleanup_fact_names.h`.
-Consumers must use that vocabulary instead of duplicating literals.
+Consumers must use that vocabulary instead of duplicating string literals.
 
 Required facts:
 
@@ -75,13 +79,14 @@ Required facts:
 - invalidation cleanup edge: `MIR_CLEANUP_FACT_EDGE_FROM_INVALIDATION`
 - pin cleanup edge: `MIR_CLEANUP_FACT_PIN_UNPIN_EDGE`
 
-MIR validation must reject topology-only cleanup claims when the matching fact is
-missing. AIR may audit MIR cleanup evidence, but MIR remains the cleanup owner.
+MIR validation must reject topology-only cleanup claims when the matching fact
+is missing. AIR may audit MIR cleanup evidence, but MIR remains the cleanup
+owner.
 
 ## 4. Type Resolution Contract
 
-DAG metadata is the beta source-of-truth for type dependency ordering. Recursive
-resolver fallback is retired for the frozen beta surface.
+DAG metadata is the beta source-of-truth for type dependency ordering.
+Recursive resolver fallback is retired for the frozen beta surface.
 
 Allowed:
 
@@ -97,10 +102,27 @@ Forbidden:
 
 ## 5. Backend Contract
 
-C and LLVM may use different implementation techniques, but for the frozen subset
-they must consume the same MIR/DIR/RIR inventory and produce equivalent behavior.
+C and LLVM may use different implementation techniques, but for the frozen
+subset they must consume the same MIR/DIR/RIR inventory and produce equivalent
+behavior.
 
-The beta rule is not “LLVM is fully refactored.” The beta rule is:
+The beta rule is not "LLVM is fully refactored." The beta rule is:
 
 > frozen subset parity is locked, and declaration/top-level inventory seams are
 > narrowed until backend truth drift is no longer observable.
+
+## 6. Diagnostics Contract
+
+Every user-facing diagnostic should carry:
+
+- source span when available
+- stable diagnostic code
+- severity
+- `Reason:` when the failure is semantic or contractual
+- `Fix:` when an actionable rewrite exists
+- layer classification (`syntax`, `type`, `resource`, `concurrency`,
+  `domain`, `driver`, or `backend`)
+
+Layered diagnostics are not cosmetic. They are how Pergyra avoids making
+Resource, Execution, Domain, and Type/Contract failures look like one generic
+semantic error.

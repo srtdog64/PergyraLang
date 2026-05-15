@@ -117,14 +117,14 @@ llvm_stmt_resolve_zone_subject_receiver(LLVMGenCtx *ctx, ASTNode *receiver,
     if (zone_decl == NULL || zone_decl->type != AST_ZONE_DECL)
         return false;
 
-    if (receiver->type == AST_IDENTIFIER && receiver->data.identifier.name != NULL) {
-        slot_name = receiver->data.identifier.name;
+    if (receiver->type == AST_IDENTIFIER && ast_identifier_name(receiver) != NULL) {
+        slot_name = ast_identifier_name(receiver);
         slot_decl = llvm_stmt_find_zone_domain_slot_decl(zone_decl, slot_name);
     } else if (receiver->type == AST_MEMBER_ACCESS
                && ast_member_object(receiver) != NULL
                && ast_member_object(receiver)->type == AST_IDENTIFIER
-               && ast_member_object(receiver)->data.identifier.name != NULL
-               && strcmp(ast_member_object(receiver)->data.identifier.name, "self") == 0
+               && ast_identifier_name(ast_member_object(receiver)) != NULL
+               && strcmp(ast_identifier_name(ast_member_object(receiver)), "self") == 0
                && ast_member_name(receiver) != NULL) {
         slot_name = ast_member_name(receiver);
         slot_decl = llvm_stmt_find_zone_domain_slot_decl(zone_decl, slot_name);
@@ -190,15 +190,15 @@ llvm_stmt_emit_zone_action_effect_runtime(ASTNode *call, LLVMGenCtx *ctx)
                                                         method_name);
     if (method_decl == NULL || method_decl->type != AST_FUNC_DECL
         || method_decl->is_async_decl
-        || !method_decl->data.func_decl.is_action
-        || method_decl->data.func_decl.within_zone == NULL
-        || method_decl->data.func_decl.causes_effect == NULL
-        || strcmp(method_decl->data.func_decl.within_zone,
+        || !ast_func_is_action(method_decl)
+        || ast_func_within_zone(method_decl) == NULL
+        || ast_func_causes_effect(method_decl) == NULL
+        || strcmp(ast_func_within_zone(method_decl),
                   ast_zone_name(zone_decl)) != 0) {
         return;
     }
 
-    effect_name = method_decl->data.func_decl.causes_effect;
+    effect_name = ast_func_causes_effect(method_decl);
     effect_decl = llvm_stmt_find_effect_decl(ctx, effect_name);
     zone_cls = llvm_lookup_class(ctx, ast_zone_name(zone_decl));
     effect_cls = llvm_lookup_class(ctx, effect_name);
@@ -288,8 +288,8 @@ llvm_stmt_emit_zone_action_effect_runtime(ASTNode *call, LLVMGenCtx *ctx)
 
             if (refresh == NULL || refresh->type != AST_ZONE_REFRESH)
                 continue;
-            projection_name = refresh->data.zone_refresh.object_slot_name;
-            source_name = refresh->data.zone_refresh.source_slot_name;
+            projection_name = ast_zone_refresh_object_slot_name(refresh);
+            source_name = ast_zone_refresh_source_slot_name(refresh);
             if (projection_name == NULL || source_name == NULL
                 || strcmp(source_name, subject_slot_name) != 0) {
                 continue;

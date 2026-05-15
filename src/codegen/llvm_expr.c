@@ -161,7 +161,7 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
                 "LLVM array access could not lower receiver or index expression");
 
         if (array_node != NULL && array_node->type == AST_IDENTIFIER) {
-            const char *name = array_node->data.identifier.name;
+            const char *name = ast_identifier_name(array_node);
             LLVMVarEntry *arr_var = llvm_scope_lookup(ctx, name);
             LLVMArrayVarEntry *entry = llvm_lookup_array_var(ctx, name);
             if (arr_var != NULL && entry != NULL) {
@@ -262,7 +262,7 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
     case AST_PARTY_INSTANCE: {
         /* PartyType { slot1: val1, slot2: val2 }
          * → alloca struct, store fields, return value */
-        const char *pty = node->data.party_instance.party_type;
+        const char *pty = ast_party_instance_party_type(node);
         LLVMClassTypeEntry *cls = llvm_lookup_class(ctx, pty);
         if (cls == NULL)
             return llvm_expression_error(ctx, node,
@@ -279,9 +279,11 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
         LLVMBuildStore(ctx->builder, zero, alloca);
 
         /* Store each assignment */
-        for (size_t i = 0; i < node->data.party_instance.assignment_count; i++) {
-            const char *slot_name = node->data.party_instance.assignments[i].slot_name;
-            ASTNode *val_node = node->data.party_instance.assignments[i].value;
+        for (size_t i = 0; i < ast_party_instance_assignment_count(node); i++) {
+            const char *slot_name =
+                ast_party_instance_assignment_slot_name(node, i);
+            ASTNode *val_node =
+                ast_party_instance_assignment_value(node, i);
             bool found_field = false;
 
             /* Find field index */
@@ -340,9 +342,9 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
             const char *inner = NULL;
             bool is_remote = false;
             if (inner_expr->type == AST_IDENTIFIER)
-                inner = llvm_lookup_future_inner(ctx, inner_expr->data.identifier.name);
+                inner = llvm_lookup_future_inner(ctx, ast_identifier_name(inner_expr));
             if (inner_expr->type == AST_IDENTIFIER)
-                is_remote = llvm_lookup_future_is_remote(ctx, inner_expr->data.identifier.name);
+                is_remote = llvm_lookup_future_is_remote(ctx, ast_identifier_name(inner_expr));
             if (inner != NULL) {
                 LLVMValueRef task = llvm_emit_expression(inner_expr, ctx);
                 return llvm_await_task_handle(ctx, node, task, inner, is_remote);
@@ -354,31 +356,32 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
     case AST_LAMBDA_EXPR: {
         /* Generate a static LLVM function and return its pointer */
         int lid = ctx->lambda_counter++;
-        int pc = (int)node->data.lambda_expr.param_count;
+        int pc = (int)ast_lambda_param_count(node);
+        ASTNode *lambda_body = ast_lambda_body(node);
+        ASTNode *lambda_return_type = ast_lambda_return_type(node);
         if (pc > 8)
             return llvm_expression_error(ctx, node,
                 "LLVM lambda expression supports at most 8 parameters");
 
         /* Determine return type */
         LLVMTypeRef ret_type = ctx->type_i32;
-        if (node->data.lambda_expr.return_type != NULL) {
-            ret_type = ast_type_to_llvm(ctx, node->data.lambda_expr.return_type);
+        if (lambda_return_type != NULL) {
+            ret_type = ast_type_to_llvm(ctx, lambda_return_type);
             if (ctx->has_error || ret_type == NULL)
                 return llvm_expression_error(ctx, node,
                     "LLVM lambda expression could not lower return type");
-        } else if (node->data.lambda_expr.body != NULL
-                 && node->data.lambda_expr.body->type == AST_BLOCK)
+        } else if (lambda_body != NULL && lambda_body->type == AST_BLOCK)
             ret_type = ctx->type_void;
 
         /* Parameter types (default i32) */
         LLVMTypeRef lparams[8];
         for (int j = 0; j < pc && j < 8; j++) {
-            ASTNode *p = node->data.lambda_expr.params[j];
+            ASTNode *p = ast_lambda_param(node, (size_t)j);
             if (p == NULL)
                 return llvm_expression_error(ctx, node,
                     "LLVM lambda expression has a missing parameter");
-            if (p->type == AST_LET_DECL && p->data.let_decl.type != NULL) {
-                lparams[j] = ast_type_to_llvm(ctx, p->data.let_decl.type);
+            if (p->type == AST_LET_DECL && ast_let_type(p) != NULL) {
+                lparams[j] = ast_type_to_llvm(ctx, ast_let_type(p));
                 if (ctx->has_error || lparams[j] == NULL)
                     return llvm_expression_error(ctx, node,
                         "LLVM lambda expression could not lower parameter type");
@@ -410,12 +413,12 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
 
         llvm_scope_push(ctx);
         for (int j = 0; j < pc; j++) {
-            ASTNode *p = node->data.lambda_expr.params[j];
+            ASTNode *p = ast_lambda_param(node, (size_t)j);
             const char *pname = NULL;
             if (p != NULL && p->type == AST_IDENTIFIER)
-                pname = p->data.identifier.name;
+                pname = ast_identifier_name(p);
             else if (p != NULL && p->type == AST_LET_DECL)
-                pname = p->data.let_decl.name;
+                pname = ast_let_name(p);
             if (pname == NULL || pname[0] == '\0') {
                 llvm_expression_error(ctx, node,
                     "LLVM lambda expression requires named parameters");
@@ -428,12 +431,12 @@ llvm_emit_expression(ASTNode *node, LLVMGenCtx *ctx)
             llvm_scope_declare(ctx, pname, alloca, lparams[j]);
         }
 
-        if (node->data.lambda_expr.body != NULL) {
-            if (node->data.lambda_expr.body->type == AST_BLOCK) {
-                llvm_emit_block(node->data.lambda_expr.body, ctx);
+        if (lambda_body != NULL) {
+            if (lambda_body->type == AST_BLOCK) {
+                llvm_emit_block(lambda_body, ctx);
             } else {
                 LLVMValueRef val = llvm_emit_expression(
-                    node->data.lambda_expr.body, ctx);
+                    lambda_body, ctx);
                 if (ret_type != ctx->type_void && val != NULL)
                     LLVMBuildRet(ctx->builder, val);
                 else if (ret_type == ctx->type_void)

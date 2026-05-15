@@ -107,20 +107,21 @@ Type *
 type_check_qubit_use(ASTNode *expr, SemanticContext *ctx)
 {
     if (expr != NULL && expr->type == AST_IDENTIFIER) {
+        const char *expr_name = ast_identifier_name(expr);
         Symbol *sym = lookup_identifier_symbol(expr, ctx);
         if (sym == NULL) {
-            if (name_looks_qualified(expr->data.identifier.name)) {
+            if (name_looks_qualified(expr_name)) {
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_UNDEFINED_SYMBOL,
                     PGY_CAUSE_SYMBOL_UNDEFINED,
                     PGY_FIX_IMPORT_OR_DECLARE_SYMBOL, expr,
                     "Undefined symbol '%s' (check namespace spelling or export visibility)",
-                    expr->data.identifier.name);
+                    expr_name);
             } else {
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_UNDEFINED_SYMBOL,
                     PGY_CAUSE_SYMBOL_UNDEFINED,
                     PGY_FIX_IMPORT_OR_DECLARE_SYMBOL, expr,
                     "Undefined symbol '%s'",
-                    expr->data.identifier.name);
+                    expr_name);
             }
             return TYPE_UNKNOWN;
         }
@@ -137,8 +138,7 @@ type_check_qubit_use(ASTNode *expr, SemanticContext *ctx)
                 "- pass a QubitSlot value instead\n"
                 "- or keep this value on the non-movable path",
                 sym->type->name,
-                expr->data.identifier.name != NULL
-                    ? expr->data.identifier.name : "<value>",
+                expr_name != NULL ? expr_name : "<value>",
                 sym->type->name);
             return TYPE_UNKNOWN;
         }
@@ -155,9 +155,8 @@ type_check_qubit_use(ASTNode *expr, SemanticContext *ctx)
                 "- create/acquire a fresh %s value\n"
                 "- or keep ownership in one binding and avoid the earlier move",
                 resource_handle_display_name(sym->type),
-                expr->data.identifier.name,
-                expr->data.identifier.name != NULL
-                    ? expr->data.identifier.name : "<value>",
+                expr_name,
+                expr_name != NULL ? expr_name : "<value>",
                 resource_handle_display_name(sym->type));
             return TYPE_UNKNOWN;
         }

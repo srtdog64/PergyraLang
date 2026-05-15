@@ -12,7 +12,7 @@ world_state_name(ASTNode *state)
 
     if (state == NULL || state->type != AST_WORLD_STATE)
         return "<unknown>";
-    name = state->data.world_state.state_name;
+    name = ast_world_state_name(state);
     return name != NULL ? name : "<unknown>";
 }
 
@@ -25,7 +25,7 @@ check_composed_world_state(ASTNode *world,
     bool saw_direct_zone_input = false;
     bool saw_state_input = false;
 
-    if (state->data.world_state.input_count == 0) {
+    if (ast_world_state_input_count(state) == 0) {
         semantic_error_with_hints(ctx,
             PGY_CODE_SEM_WORLD_CONTRACT_INVALID,
             PGY_CAUSE_WORLD_CONTRACT,
@@ -43,14 +43,14 @@ check_composed_world_state(ASTNode *world,
     }
 
     for (size_t input_i = 0;
-         input_i < state->data.world_state.input_count;
+         input_i < ast_world_state_input_count(state);
          input_i++) {
         const char *input_name =
-            state->data.world_state.input_names[input_i];
+            ast_world_state_input_name(state, input_i);
         if (input_name == NULL)
             continue;
-        if (state->data.world_state.state_name != NULL
-            && strcmp(state->data.world_state.state_name, input_name) == 0) {
+        if (ast_world_state_name(state) != NULL
+            && strcmp(ast_world_state_name(state), input_name) == 0) {
             semantic_error_with_hints(ctx,
                 PGY_CODE_SEM_WORLD_CONTRACT_INVALID,
                 PGY_CAUSE_WORLD_CONTRACT,
@@ -96,10 +96,10 @@ check_composed_world_state(ASTNode *world,
     }
 
     for (size_t input_i = 0;
-         input_i < state->data.world_state.input_count;
+         input_i < ast_world_state_input_count(state);
          input_i++) {
         const char *input_name =
-            state->data.world_state.input_names[input_i];
+            ast_world_state_input_name(state, input_i);
         const char *input_plain_zone;
         if (input_name == NULL)
             continue;
@@ -107,7 +107,7 @@ check_composed_world_state(ASTNode *world,
                                                                input_name);
         for (size_t prev_i = 0; prev_i < input_i; prev_i++) {
             const char *prev_name =
-                state->data.world_state.input_names[prev_i];
+                ast_world_state_input_name(state, prev_i);
             const char *prev_plain_zone;
             if (prev_name == NULL)
                 continue;
@@ -184,11 +184,11 @@ check_world_state_detail(ASTNode *state,
     const char *detail_name;
     ASTNode *detail_decl = NULL;
 
-    if (zone_decl == NULL || state->data.world_state.detail_name == NULL)
+    if (zone_decl == NULL || ast_world_state_detail_name(state) == NULL)
         return;
 
-    detail_name = state->data.world_state.detail_name;
-    if (state->data.world_state.source_kind == WORLD_STATE_SOURCE_PROJECTION) {
+    detail_name = ast_world_state_detail_name(state);
+    if (ast_world_state_source_kind(state) == WORLD_STATE_SOURCE_PROJECTION) {
         detail_decl = find_zone_domain_slot(zone_decl, detail_name);
         if (detail_decl == NULL || ast_domain_slot_is_subject(detail_decl)) {
             semantic_error_with_hints(ctx,
@@ -211,7 +211,7 @@ check_world_state_detail(ASTNode *state,
                 zone_slot_name,
                 detail_name);
         }
-    } else if (state->data.world_state.source_kind
+    } else if (ast_world_state_source_kind(state)
                == WORLD_STATE_SOURCE_LAYER) {
         detail_decl = find_zone_layer_slot_local(zone_decl, detail_name);
         if (detail_decl == NULL) {
@@ -235,7 +235,7 @@ check_world_state_detail(ASTNode *state,
                 zone_slot_name,
                 detail_name);
         }
-    } else if (state->data.world_state.source_kind
+    } else if (ast_world_state_source_kind(state)
                == WORLD_STATE_SOURCE_STATE) {
         detail_decl = find_zone_state_decl_local(zone_decl, detail_name);
         if (detail_decl == NULL) {
@@ -274,17 +274,17 @@ check_world_state_duplicate(ASTNode *world,
     for (size_t j = state_index + 1; j < state_count; j++) {
         ASTNode *other = states[j];
         if (other != NULL
-            && other->data.world_state.state_name != NULL
-            && state->data.world_state.state_name != NULL
-            && strcmp(other->data.world_state.state_name,
-                      state->data.world_state.state_name) == 0) {
+            && ast_world_state_name(other) != NULL
+            && ast_world_state_name(state) != NULL
+            && strcmp(ast_world_state_name(other),
+                      ast_world_state_name(state)) == 0) {
             semantic_error_with_hints(ctx,
                 PGY_CODE_SEM_REDECLARATION,
                 PGY_CAUSE_WORLD_STATE_DUPLICATE_NAME,
                 PGY_FIX_RENAME_OR_REMOVE_DUPLICATE,
                 other,
                 "Redeclaration of world state '%s'",
-                state->data.world_state.state_name);
+                ast_world_state_name(state));
         }
     }
 }
@@ -297,11 +297,11 @@ type_check_world_states(ASTNode *world, SemanticContext *ctx)
 
     for (size_t i = 0; i < state_count; i++) {
         ASTNode *state = states[i];
-        const char *zone_slot_name = state->data.world_state.zone_slot_name;
+        const char *zone_slot_name = ast_world_state_zone_slot_name(state);
         ASTNode *zone_decl = NULL;
 
-        if (state->data.world_state.source_kind == WORLD_STATE_SOURCE_ALL
-            || state->data.world_state.source_kind == WORLD_STATE_SOURCE_ANY) {
+        if (ast_world_state_source_kind(state) == WORLD_STATE_SOURCE_ALL
+            || ast_world_state_source_kind(state) == WORLD_STATE_SOURCE_ANY) {
             check_composed_world_state(world, state, ctx, i);
         } else if (find_world_zone_slot_local(world, zone_slot_name) == NULL) {
             semantic_error_with_hints(ctx,

@@ -51,12 +51,12 @@ static bool
 slot_call_is_non_escape_builtin(ASTNode *callee)
 {
     if (callee == NULL || callee->type != AST_IDENTIFIER
-        || callee->data.identifier.name == NULL) {
+        || ast_identifier_name(callee) == NULL) {
         return false;
     }
 
     return slot_builtin_call_is_local_non_escape(
-        callee->data.identifier.name);
+        ast_identifier_name(callee));
 }
 
 unsigned
@@ -94,8 +94,8 @@ collect_slot_escapes(ASTNode *node, SlotEscapeEntry **entries,
 
     switch (node->type) {
     case AST_BLOCK:
-        for (size_t i = 0; i < node->data.block.count; i++)
-            collect_slot_escapes(node->data.block.statements[i], entries,
+        for (size_t i = 0; i < ast_block_statement_count(node); i++)
+            collect_slot_escapes(ast_block_statement(node, i), entries,
                 count, capacity, program_root, depth);
         break;
     case AST_IF_STMT:
@@ -132,7 +132,7 @@ collect_slot_escapes(ASTNode *node, SlotEscapeEntry **entries,
                 capacity, program_root, depth);
         break;
     case AST_LET_DECL:
-        collect_slot_escapes(node->data.let_decl.initializer, entries, count,
+        collect_slot_escapes(ast_let_initializer(node), entries, count,
             capacity, program_root, depth);
         break;
     case AST_ASSIGNMENT:
@@ -152,10 +152,10 @@ collect_slot_escapes(ASTNode *node, SlotEscapeEntry **entries,
             program_root, depth);
         if (callee != NULL
             && callee->type == AST_IDENTIFIER
-            && callee->data.identifier.name != NULL
+            && ast_identifier_name(callee) != NULL
             && program_root != NULL) {
             callee_decl = slot_analyzer_find_function_decl(
-                program_root, callee->data.identifier.name);
+                program_root, ast_identifier_name(callee));
             if (callee_decl != NULL) {
                 if (callee_decl->is_async_decl) {
                     params = ast_async_func_params(callee_decl, &param_count);
@@ -171,7 +171,7 @@ collect_slot_escapes(ASTNode *node, SlotEscapeEntry **entries,
             ASTNode *arg = ast_call_argument(node, i);
             if (arg != NULL && arg->type == AST_IDENTIFIER
                 && !slot_call_is_non_escape_builtin(callee)
-                && arg->data.identifier.name != NULL) {
+                && ast_identifier_name(arg) != NULL) {
                 bool handled = false;
 
                 if (body != NULL && i < param_count) {
@@ -184,20 +184,20 @@ collect_slot_escapes(ASTNode *node, SlotEscapeEntry **entries,
                                 body, param->name, program_root, depth + 1);
                             if ((callee_mask & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) != 0) {
                                 slot_escape_record(entries, count, capacity,
-                                    arg->data.identifier.name, SLOT_ESCAPE_RETURN);
+                                    ast_identifier_name(arg), SLOT_ESCAPE_RETURN);
                             }
                             if ((callee_mask & SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE) != 0) {
                                 slot_escape_record(entries, count, capacity,
-                                    arg->data.identifier.name, SLOT_ESCAPE_CHANNEL);
+                                    ast_identifier_name(arg), SLOT_ESCAPE_CHANNEL);
                             }
                             if ((callee_mask & SLOT_PARAM_SUMMARY_CALL_ESCAPE) != 0) {
                                 slot_escape_record(entries, count, capacity,
-                                    arg->data.identifier.name, SLOT_ESCAPE_CALL);
+                                    ast_identifier_name(arg), SLOT_ESCAPE_CALL);
                             }
                             handled = true;
                         } else if (param->mode == PARAM_MODE_OWN) {
                             slot_escape_record(entries, count, capacity,
-                                arg->data.identifier.name, SLOT_ESCAPE_CALL);
+                                ast_identifier_name(arg), SLOT_ESCAPE_CALL);
                             handled = true;
                         }
                     }
@@ -205,7 +205,7 @@ collect_slot_escapes(ASTNode *node, SlotEscapeEntry **entries,
 
                 if (!handled) {
                     slot_escape_record(entries, count, capacity,
-                        arg->data.identifier.name, SLOT_ESCAPE_CALL);
+                        ast_identifier_name(arg), SLOT_ESCAPE_CALL);
                 }
             }
             collect_slot_escapes(arg, entries, count, capacity, program_root, depth);
@@ -217,9 +217,9 @@ collect_slot_escapes(ASTNode *node, SlotEscapeEntry **entries,
             capacity, program_root, depth);
         if (ast_channel_send_value(node) != NULL
             && ast_channel_send_value(node)->type == AST_IDENTIFIER
-            && ast_channel_send_value(node)->data.identifier.name != NULL) {
+            && ast_identifier_name(ast_channel_send_value(node)) != NULL) {
             slot_escape_record(entries, count, capacity,
-                ast_channel_send_value(node)->data.identifier.name,
+                ast_identifier_name(ast_channel_send_value(node)),
                 SLOT_ESCAPE_CHANNEL);
         }
         collect_slot_escapes(ast_channel_send_value(node), entries, count,
@@ -228,9 +228,9 @@ collect_slot_escapes(ASTNode *node, SlotEscapeEntry **entries,
     case AST_RETURN:
         if (ast_return_value(node) != NULL
             && ast_return_value(node)->type == AST_IDENTIFIER
-            && ast_return_value(node)->data.identifier.name != NULL) {
+            && ast_identifier_name(ast_return_value(node)) != NULL) {
             slot_escape_record(entries, count, capacity,
-                ast_return_value(node)->data.identifier.name,
+                ast_identifier_name(ast_return_value(node)),
                 SLOT_ESCAPE_RETURN);
         }
         collect_slot_escapes(ast_return_value(node), entries, count,

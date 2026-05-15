@@ -77,11 +77,14 @@ validate_generic_param_defaults(GenericParams *gp, SemanticContext *ctx,
     if (gp == NULL || ctx == NULL)
         return;
 
-    for (size_t i = 0; i < gp->count; i++) {
-        GenericParam *param = gp->params[i];
+    size_t param_count = ast_generic_param_count(gp);
+    for (size_t i = 0; i < param_count; i++) {
+        GenericParam *param = ast_generic_param_at(gp, i);
+        ASTNode *default_type = ast_generic_param_default_type(param);
+        const char *param_name = ast_generic_param_name(param);
         if (param == NULL)
             continue;
-        if (param->default_type != NULL) {
+        if (default_type != NULL) {
             saw_default = true;
         } else if (saw_default) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_INFER_GENERIC,
@@ -95,24 +98,24 @@ validate_generic_param_defaults(GenericParams *gp, SemanticContext *ctx,
                 "Fix:\n"
                 "- move '%s' before all defaulted generic parameters\n"
                 "- or give '%s' a default type argument too",
-                param->name != NULL ? param->name : "<type-param>",
+                param_name != NULL ? param_name : "<type-param>",
                 kind_name != NULL ? kind_name : "generic",
-                param->name != NULL ? param->name : "<type-param>",
-                param->name != NULL ? param->name : "<type-param>");
+                param_name != NULL ? param_name : "<type-param>",
+                param_name != NULL ? param_name : "<type-param>");
         }
-        if (param == NULL || param->default_type == NULL)
+        if (default_type == NULL)
             continue;
         {
             semantic_type_resolution_record_type_ref_dependency(
                 ctx,
-                owner != NULL ? owner : param->default_type,
-                param->name != NULL ? param->name : "<type-param>",
-                param->default_type,
+                owner != NULL ? owner : default_type,
+                param_name != NULL ? param_name : "<type-param>",
+                default_type,
                 "default-type lookup");
             size_t saved_diag = ctx->diagnostic_count;
             bool saved_err = ctx->has_error;
             Type *resolved = generic_validation_resolve_type_ref(
-                param->default_type, ctx);
+                default_type, ctx);
             if (resolved == NULL || resolved == TYPE_UNKNOWN
                 || ctx->diagnostic_count > saved_diag) {
                 ctx->diagnostic_count = saved_diag;
@@ -120,7 +123,7 @@ validate_generic_param_defaults(GenericParams *gp, SemanticContext *ctx,
                 semantic_error_with_hints(ctx, PGY_CODE_SEM_INFER_GENERIC,
                     PGY_CAUSE_GENERIC_DEFAULT_UNRESOLVED,
                     PGY_FIX_ALIGN_GENERIC_ARG_LIST,
-                    owner != NULL ? owner : param->default_type,
+                    owner != NULL ? owner : default_type,
                     "Invalid default generic type argument '%s' in %s declaration (parameter '%s').\n"
                     "Reason:\n"
                     "- the declared default type could not be resolved as a valid concrete type\n"
@@ -128,13 +131,13 @@ validate_generic_param_defaults(GenericParams *gp, SemanticContext *ctx,
                     "Fix:\n"
                     "- replace '%s' with a resolvable concrete type\n"
                     "- or remove the default and require the caller to supply it",
-                    ast_type_name(param->default_type) != NULL
-                        ? ast_type_name(param->default_type)
+                    ast_type_name(default_type) != NULL
+                        ? ast_type_name(default_type)
                         : "<type>",
                     kind_name != NULL ? kind_name : "generic",
-                    param->name != NULL ? param->name : "<type-param>",
-                    ast_type_name(param->default_type) != NULL
-                        ? ast_type_name(param->default_type)
+                    param_name != NULL ? param_name : "<type-param>",
+                    ast_type_name(default_type) != NULL
+                        ? ast_type_name(default_type)
                         : "<type>");
             }
         }

@@ -237,7 +237,7 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
                     && authorities != NULL
                     && authorities[0] != NULL) {
                     const char *auth_slot =
-                        authorities[0]->data.zone_authority.subject_slot_name;
+                        ast_zone_authority_subject_slot_name(authorities[0]);
                     if (auth_slot != NULL) {
                         char *participant_expr =
                             transpiler_scratch_fmt(ctx, "&self->%s", auth_slot);

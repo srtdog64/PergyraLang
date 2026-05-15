@@ -23,33 +23,34 @@ semantic_validate_function_call_generic_where(ASTNode *expr,
         return;
 
     ASTNode *prog = ctx->program_root;
-    for (size_t si = 0; si < prog->data.program.count; si++) {
-        ASTNode *stmt = prog->data.program.statements[si];
+    for (size_t si = 0; si < ast_program_statement_count(prog); si++) {
+        ASTNode *stmt = ast_program_statement(prog, si);
         const char *stmt_name = ast_declaration_name(stmt);
         GenericParams *decl_gp = ast_func_generic_params(stmt);
+        size_t decl_count = ast_generic_param_count(decl_gp);
         WhereClause *wc = ast_func_where_clause(stmt);
         if (stmt == NULL || stmt->type != AST_FUNC_DECL
             || stmt_name == NULL
             || strcmp(stmt_name, display_name) != 0
-            || decl_gp == NULL
-            || decl_gp->count == 0
+            || decl_count == 0
             || wc == NULL) {
             continue;
         }
 
         char *expected_sig = format_generic_subject_signature(display_name, decl_gp);
         Type **effective_generic_types =
-            calloc(decl_gp->count > 0 ? decl_gp->count : 1, sizeof(Type *));
+            calloc(decl_count > 0 ? decl_count : 1, sizeof(Type *));
         if (effective_generic_types == NULL) {
             free(expected_sig);
             break;
         }
 
-        for (size_t gi = 0; gi < decl_gp->count; gi++) {
-            GenericParam *gp = decl_gp->params[gi];
-            if (gp != NULL && gp->default_type != NULL) {
+        for (size_t gi = 0; gi < decl_count; gi++) {
+            GenericParam *gp = ast_generic_param_at(decl_gp, gi);
+            ASTNode *default_type = ast_generic_param_default_type(gp);
+            if (default_type != NULL) {
                 effective_generic_types[gi] =
-                    domain_resolve_type_ref(gp->default_type, ctx);
+                    domain_resolve_type_ref(default_type, ctx);
             }
         }
         for (size_t ai = 0; ai < provided; ai++) {
@@ -75,14 +76,14 @@ semantic_validate_function_call_generic_where(ASTNode *expr,
             Type *concrete_type;
             const char *actual_sig =
                 format_effective_generic_type_list_scratch(
-                    ctx, display_name, effective_generic_types, decl_gp->count);
+                    ctx, display_name, effective_generic_types, decl_count);
 
             if (tc == NULL || tc->type_param == NULL)
                 continue;
 
             param_name = tc->type_param;
             param_index = find_generic_param_index(decl_gp, param_name);
-            if (param_index < 0 || (size_t)param_index >= decl_gp->count) {
+            if (param_index < 0 || (size_t)param_index >= decl_count) {
                 semantic_error_with_hints(ctx,
                     PGY_CODE_SEM_CLASS_CONTRACT_INVALID,
                     PGY_CAUSE_CLASS_CONTRACT,

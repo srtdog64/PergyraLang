@@ -149,8 +149,8 @@ slot_analyze_block(ASTNode *block, SlotAnalyzer *sa)
         return true;
 
     if (block->type == AST_BLOCK) {
-        for (size_t i = 0; i < block->data.block.count; i++) {
-            ASTNode *stmt = block->data.block.statements[i];
+        for (size_t i = 0; i < ast_block_statement_count(block); i++) {
+            ASTNode *stmt = ast_block_statement(block, i);
             bool ok = true;
 
             switch (stmt->type) {
@@ -435,8 +435,8 @@ slot_analyze_program(ASTNode *program, SlotAnalyzer *sa)
 
     sa->program_root = program;
 
-    for (size_t i = 0; i < program->data.program.count; i++) {
-        ASTNode *stmt = program->data.program.statements[i];
+    for (size_t i = 0; i < ast_program_statement_count(program); i++) {
+        ASTNode *stmt = ast_program_statement(program, i);
         if (stmt->type == AST_FUNC_DECL)
             slot_analyze_func_body(stmt, sa);
     }

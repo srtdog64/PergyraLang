@@ -12,13 +12,13 @@
 bool
 llvm_is_upper_ident(ASTNode *node)
 {
+    const char *name = ast_identifier_name(node);
     if (node == NULL || node->type != AST_IDENTIFIER
-        || node->data.identifier.name == NULL
-        || node->data.identifier.name[0] == '\0')
+        || name == NULL
+        || name[0] == '\0')
         return false;
 
-    return node->data.identifier.name[0] >= 'A'
-        && node->data.identifier.name[0] <= 'Z';
+    return name[0] >= 'A' && name[0] <= 'Z';
 }
 
 LLVMValueRef
@@ -134,7 +134,7 @@ llvm_expr_custom_type_name(ASTNode *node, LLVMGenCtx *ctx)
 
     switch (node->type) {
     case AST_IDENTIFIER: {
-        const char *name = node->data.identifier.name;
+        const char *name = ast_identifier_name(node);
         const char *class_name = llvm_lookup_var_class(ctx, name);
         if (class_name != NULL)
             return class_name;
@@ -162,9 +162,10 @@ llvm_expr_custom_type_name(ASTNode *node, LLVMGenCtx *ctx)
     }
     case AST_MEMBER_ACCESS:
         if (llvm_is_upper_ident(ast_member_object(node))) {
+            const char *object_name = ast_identifier_name(ast_member_object(node));
             LLVMEnumVariantEntry *variant =
                 llvm_lookup_enum_variant_qualified(ctx,
-                    ast_member_object(node)->data.identifier.name,
+                    object_name,
                     ast_member_name(node));
             if (variant != NULL)
                 return variant->enum_name;
@@ -191,7 +192,7 @@ llvm_expr_custom_type_name(ASTNode *node, LLVMGenCtx *ctx)
     case AST_CALL:
         if (ast_call_callee(node) != NULL
             && ast_call_callee(node)->type == AST_IDENTIFIER) {
-            const char *callee = ast_call_callee(node)->data.identifier.name;
+            const char *callee = ast_identifier_name(ast_call_callee(node));
             if (llvm_lookup_class(ctx, callee) != NULL)
                 return callee;
             {
@@ -264,9 +265,9 @@ llvm_find_enum_decl(LLVMGenCtx *ctx, const char *enum_name)
 LLVMValueRef
 llvm_emit_number(ASTNode *node, LLVMGenCtx *ctx)
 {
-    double val = node->data.number.value;
+    double val = ast_number_value(node);
 
-    if (node->data.number.is_long) {
+    if (ast_number_is_long(node)) {
         return LLVMConstInt(ctx->type_i64, (unsigned long long)(int64_t)val, 1);
     }
 
@@ -284,7 +285,7 @@ llvm_emit_number(ASTNode *node, LLVMGenCtx *ctx)
 LLVMValueRef
 llvm_emit_string(ASTNode *node, LLVMGenCtx *ctx)
 {
-    const char *str = node->data.string.value;
+    const char *str = ast_string_value(node);
     LLVMValueRef global = LLVMBuildGlobalStringPtr(ctx->builder, str,
                                                     llvm_tmp_name(ctx));
     return global;

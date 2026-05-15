@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "../parser/ast_api.h"
+
 static bool
 hir_analysis_next_capacity(size_t *capacity, size_t initial, size_t elem_size)
 {
@@ -64,11 +66,12 @@ hir_collect_type_refs(ASTNode *type_node, const char ***names, size_t *count, si
                 return false;
             if (ast_type_generic_args(type_node) != NULL) {
                 GenericParams *generic_args = ast_type_generic_args(type_node);
-                for (size_t i = 0; i < generic_args->count; i++) {
-                    GenericParam *arg = generic_args->params[i];
-                    if (arg != NULL
-                        && arg->constraint != NULL
-                        && !hir_collect_type_refs(arg->constraint, names, count, capacity)) {
+                size_t generic_count = ast_generic_param_count(generic_args);
+                for (size_t i = 0; i < generic_count; i++) {
+                    GenericParam *arg = ast_generic_param_at(generic_args, i);
+                    if (ast_generic_param_constraint(arg) != NULL
+                        && !hir_collect_type_refs(ast_generic_param_constraint(arg),
+                                                  names, count, capacity)) {
                         return false;
                     }
                 }
@@ -76,13 +79,13 @@ hir_collect_type_refs(ASTNode *type_node, const char ***names, size_t *count, si
             return true;
 
         case AST_CHANNEL_TYPE:
-            return hir_collect_type_refs(type_node->data.channel_type.element_type,
+            return hir_collect_type_refs(ast_channel_type_element_type(type_node),
                                          names,
                                          count,
                                          capacity);
 
         case AST_FUTURE_TYPE:
-            return hir_collect_type_refs(type_node->data.future_type.value_type,
+            return hir_collect_type_refs(ast_future_type_value_type(type_node),
                                          names,
                                          count,
                                          capacity);
@@ -110,13 +113,13 @@ hir_collect_func_signature_refs(ASTNode *node,
     if (!hir_collect_type_refs(ast_func_return_type(node), names, count, capacity))
         return false;
 
-    if (node->data.func_decl.within_zone != NULL
-        && !append_call_name(names, count, capacity, node->data.func_decl.within_zone)) {
+    if (ast_func_within_zone(node) != NULL
+        && !append_call_name(names, count, capacity, ast_func_within_zone(node))) {
         return false;
     }
 
-    if (node->data.func_decl.causes_effect != NULL
-        && !append_call_name(names, count, capacity, node->data.func_decl.causes_effect)) {
+    if (ast_func_causes_effect(node) != NULL
+        && !append_call_name(names, count, capacity, ast_func_causes_effect(node))) {
         return false;
     }
 
@@ -199,15 +202,15 @@ hir_ast_contains_control_flow(ASTNode *node)
 
     switch (node->type) {
         case AST_BLOCK:
-            for (size_t i = 0; i < node->data.block.count; i++) {
-                if (hir_ast_contains_control_flow(node->data.block.statements[i]))
+            for (size_t i = 0; i < ast_block_statement_count(node); i++) {
+                if (hir_ast_contains_control_flow(ast_block_statement(node, i)))
                     return true;
             }
             return false;
         case AST_RETURN:
             return hir_ast_contains_control_flow(ast_return_value(node));
         case AST_LET_DECL:
-            return hir_ast_contains_control_flow(node->data.let_decl.initializer);
+            return hir_ast_contains_control_flow(ast_let_initializer(node));
         case AST_ASSIGNMENT:
             return hir_ast_contains_control_flow(ast_assignment_target(node))
                    || hir_ast_contains_control_flow(ast_assignment_value(node));
@@ -236,9 +239,9 @@ hir_ast_contains_control_flow(ASTNode *node)
             }
             return false;
         case AST_MATCH_CASE:
-            return hir_ast_contains_control_flow(node->data.match_case.pattern)
-                   || hir_ast_contains_control_flow(node->data.match_case.guard)
-                   || hir_ast_contains_control_flow(node->data.match_case.body);
+            return hir_ast_contains_control_flow(ast_match_case_pattern(node))
+                   || hir_ast_contains_control_flow(ast_match_case_guard(node))
+                   || hir_ast_contains_control_flow(ast_match_case_body(node));
         case AST_ASYNC_BLOCK:
             for (size_t i = 0; i < ast_async_block_statement_count(node); i++) {
                 if (hir_ast_contains_control_flow(ast_async_block_statement(node, i)))
@@ -278,7 +281,7 @@ hir_collect_direct_calls(ASTNode *node,
                 && !append_call_name(names,
                                      count,
                                      capacity,
-                                     ast_call_callee(node)->data.identifier.name)) {
+                                     ast_identifier_name(ast_call_callee(node)))) {
                 return false;
             }
             if (!hir_collect_direct_calls(ast_call_callee(node), names, count, capacity))
@@ -289,15 +292,15 @@ hir_collect_direct_calls(ASTNode *node,
             }
             return true;
         case AST_BLOCK:
-            for (size_t i = 0; i < node->data.block.count; i++) {
-                if (!hir_collect_direct_calls(node->data.block.statements[i], names, count, capacity))
+            for (size_t i = 0; i < ast_block_statement_count(node); i++) {
+                if (!hir_collect_direct_calls(ast_block_statement(node, i), names, count, capacity))
                     return false;
             }
             return true;
         case AST_RETURN:
             return hir_collect_direct_calls(ast_return_value(node), names, count, capacity);
         case AST_LET_DECL:
-            return hir_collect_direct_calls(node->data.let_decl.initializer, names, count, capacity);
+            return hir_collect_direct_calls(ast_let_initializer(node), names, count, capacity);
         case AST_ASSIGNMENT:
             return hir_collect_direct_calls(ast_assignment_target(node), names, count, capacity)
                    && hir_collect_direct_calls(ast_assignment_value(node), names, count, capacity);
@@ -330,17 +333,17 @@ hir_collect_direct_calls(ASTNode *node,
             return hir_collect_direct_calls(ast_while_condition(node), names, count, capacity)
                    && hir_collect_direct_calls(ast_while_body(node), names, count, capacity);
         case AST_MATCH_STMT:
-            if (!hir_collect_direct_calls(node->data.match_stmt.subject, names, count, capacity))
+            if (!hir_collect_direct_calls(ast_match_subject(node), names, count, capacity))
                 return false;
-            for (size_t i = 0; i < node->data.match_stmt.case_count; i++) {
-                if (!hir_collect_direct_calls(node->data.match_stmt.cases[i], names, count, capacity))
+            for (size_t i = 0; i < ast_match_case_count(node); i++) {
+                if (!hir_collect_direct_calls(ast_match_case_at(node, i), names, count, capacity))
                     return false;
             }
-            return hir_collect_direct_calls(node->data.match_stmt.default_body, names, count, capacity);
+            return hir_collect_direct_calls(ast_match_default_body(node), names, count, capacity);
         case AST_MATCH_CASE:
-            return hir_collect_direct_calls(node->data.match_case.pattern, names, count, capacity)
-                   && hir_collect_direct_calls(node->data.match_case.guard, names, count, capacity)
-                   && hir_collect_direct_calls(node->data.match_case.body, names, count, capacity);
+            return hir_collect_direct_calls(ast_match_case_pattern(node), names, count, capacity)
+                   && hir_collect_direct_calls(ast_match_case_guard(node), names, count, capacity)
+                   && hir_collect_direct_calls(ast_match_case_body(node), names, count, capacity);
         case AST_SELECT_STMT:
             for (size_t i = 0; i < ast_select_case_count(node); i++) {
                 if (!hir_collect_direct_calls(ast_select_case(node, i), names, count, capacity))

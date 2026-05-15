@@ -39,8 +39,8 @@ semantic_type_resolution_precollect_expr_type_refs(ASTNode *expr,
 
     switch (expr->type) {
     case AST_LAMBDA_EXPR:
-        for (size_t i = 0; i < expr->data.lambda_expr.param_count; i++) {
-            ASTNode *param = expr->data.lambda_expr.params[i];
+        for (size_t i = 0; i < ast_lambda_param_count(expr); i++) {
+            ASTNode *param = ast_lambda_param(expr, i);
             char *consumer_name;
 
             if (param == NULL || param->type != AST_LET_DECL)
@@ -49,11 +49,11 @@ semantic_type_resolution_precollect_expr_type_refs(ASTNode *expr,
             consumer_name = resolution_body_strdup_fmt(
                 "lambda %s.%s",
                 owner_name != NULL ? owner_name : "<lambda>",
-                param->data.let_decl.name != NULL
-                    ? param->data.let_decl.name : "<param>");
+                ast_let_name(param) != NULL
+                    ? ast_let_name(param) : "<param>");
             if (consumer_name != NULL) {
                 semantic_type_resolution_collect_type_refs(
-                    param->data.let_decl.type,
+                    ast_let_type(param),
                     ctx,
                     param,
                     consumer_name,
@@ -62,18 +62,18 @@ semantic_type_resolution_precollect_expr_type_refs(ASTNode *expr,
             }
         }
         semantic_type_resolution_collect_type_refs(
-            expr->data.lambda_expr.return_type,
+            ast_lambda_return_type(expr),
             ctx,
             expr,
             owner_name != NULL ? owner_name : "<lambda>",
             "lambda return type lookup");
-        if (expr->data.lambda_expr.body != NULL
-            && expr->data.lambda_expr.body->type == AST_BLOCK) {
+        if (ast_lambda_body(expr) != NULL
+            && ast_lambda_body(expr)->type == AST_BLOCK) {
             semantic_type_resolution_precollect_body_type_refs(
-                expr->data.lambda_expr.body, ctx, owner, owner_name);
+                ast_lambda_body(expr), ctx, owner, owner_name);
         } else {
             semantic_type_resolution_precollect_expr_type_refs(
-                expr->data.lambda_expr.body, ctx, owner, owner_name);
+                ast_lambda_body(expr), ctx, owner, owner_name);
         }
         return;
 
@@ -87,9 +87,10 @@ semantic_type_resolution_precollect_expr_type_refs(ASTNode *expr,
         if (ast_call_generic_args(expr) != NULL) {
             for (size_t i = 0; i < ast_call_generic_arg_count(expr); i++) {
                 GenericParam *arg = ast_call_generic_arg(expr, i);
-                if (arg != NULL) {
+                ASTNode *constraint = ast_generic_param_constraint(arg);
+                if (constraint != NULL) {
                     semantic_type_resolution_collect_type_refs(
-                        arg->constraint,
+                        constraint,
                         ctx,
                         expr,
                         owner_name != NULL ? owner_name : "<call>",
@@ -173,17 +174,17 @@ semantic_type_resolution_precollect_expr_type_refs(ASTNode *expr,
     case AST_EVENT_SUBSCRIBE:
     case AST_EVENT_UNSUBSCRIBE:
         semantic_type_resolution_precollect_expr_type_refs(
-            expr->data.event_op.event, ctx, owner, owner_name);
+            ast_event_op_event(expr), ctx, owner, owner_name);
         semantic_type_resolution_precollect_expr_type_refs(
-            expr->data.event_op.handler, ctx, owner, owner_name);
+            ast_event_op_handler(expr), ctx, owner, owner_name);
         return;
 
     case AST_EVENT_INVOKE:
         semantic_type_resolution_precollect_expr_type_refs(
-            expr->data.event_invoke.event, ctx, owner, owner_name);
-        for (size_t i = 0; i < expr->data.event_invoke.arg_count; i++) {
+            ast_event_invoke_event(expr), ctx, owner, owner_name);
+        for (size_t i = 0; i < ast_event_invoke_arg_count(expr); i++) {
             semantic_type_resolution_precollect_expr_type_refs(
-                expr->data.event_invoke.arguments[i], ctx, owner, owner_name);
+                ast_event_invoke_argument(expr, i), ctx, owner, owner_name);
         }
         return;
 
@@ -210,23 +211,23 @@ semantic_type_resolution_precollect_body_type_refs(ASTNode *stmt,
 
     switch (stmt->type) {
     case AST_BLOCK:
-        for (size_t i = 0; i < stmt->data.block.count; i++) {
+        for (size_t i = 0; i < ast_block_statement_count(stmt); i++) {
             semantic_type_resolution_precollect_body_type_refs(
-                stmt->data.block.statements[i], ctx, owner, owner_name);
+                ast_block_statement(stmt, i), ctx, owner, owner_name);
         }
         return;
 
     case AST_LET_DECL:
         semantic_type_resolution_precollect_expr_type_refs(
-            stmt->data.let_decl.initializer, ctx, owner, owner_name);
+            ast_let_initializer(stmt), ctx, owner, owner_name);
         consumer_name = resolution_body_strdup_fmt(
             "body %s.%s",
             owner_name != NULL ? owner_name : "<body>",
-            stmt->data.let_decl.name != NULL
-                ? stmt->data.let_decl.name : "<local>");
+            ast_let_name(stmt) != NULL
+                ? ast_let_name(stmt) : "<local>");
         if (consumer_name != NULL) {
             semantic_type_resolution_collect_type_refs(
-                stmt->data.let_decl.type,
+                ast_let_type(stmt),
                 ctx,
                 stmt,
                 consumer_name,
@@ -304,20 +305,20 @@ semantic_type_resolution_precollect_body_type_refs(ASTNode *stmt,
 
     case AST_MATCH_STMT:
         semantic_type_resolution_precollect_expr_type_refs(
-            stmt->data.match_stmt.subject, ctx, owner, owner_name);
-        for (size_t i = 0; i < stmt->data.match_stmt.case_count; i++) {
+            ast_match_subject(stmt), ctx, owner, owner_name);
+        for (size_t i = 0; i < ast_match_case_count(stmt); i++) {
             semantic_type_resolution_precollect_body_type_refs(
-                stmt->data.match_stmt.cases[i], ctx, owner, owner_name);
+                ast_match_case_at(stmt, i), ctx, owner, owner_name);
         }
         semantic_type_resolution_precollect_body_type_refs(
-            stmt->data.match_stmt.default_body, ctx, owner, owner_name);
+            ast_match_default_body(stmt), ctx, owner, owner_name);
         return;
 
     case AST_MATCH_CASE:
         semantic_type_resolution_precollect_expr_type_refs(
-            stmt->data.match_case.guard, ctx, owner, owner_name);
+            ast_match_case_guard(stmt), ctx, owner, owner_name);
         semantic_type_resolution_precollect_body_type_refs(
-            stmt->data.match_case.body, ctx, owner, owner_name);
+            ast_match_case_body(stmt), ctx, owner, owner_name);
         return;
 
     case AST_UNSAFE_BLOCK:

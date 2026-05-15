@@ -277,11 +277,12 @@ llvm_emit_slot_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         ASTNode *slot_arg = ast_call_argument(node, 0);
         const char *inner = llvm_call_arg_device_inner(ctx, slot_arg);
         LLVMVarEntry *slot_var = NULL;
+        const char *slot_name = ast_identifier_name(slot_arg);
         if (slot_arg != NULL && slot_arg->type == AST_IDENTIFIER)
-            slot_var = llvm_scope_lookup(ctx, slot_arg->data.identifier.name);
+            slot_var = llvm_scope_lookup(ctx, slot_name);
         if (inner == NULL && slot_arg != NULL && slot_arg->type == AST_IDENTIFIER) {
             llvm_set_error_at_with_hints(ctx, slot_arg, PGY_CODE_LLVM_TYPE_UNSUPPORTED, PGY_CAUSE_LLVM_SLOT_INNER_TYPE_MISSING, PGY_FIX_ANNOTATE_CONCRETE_TYPE, "LLVM DeviceWrite on '%s' requires a concrete DeviceSlot<T> inner type",
-                slot_arg->data.identifier.name);
+                slot_name);
             return true;
         }
         if (slot_var == NULL) {
@@ -317,11 +318,12 @@ llvm_emit_slot_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         ASTNode *slot_arg = ast_call_argument(node, 0);
         const char *inner = llvm_call_arg_device_inner(ctx, slot_arg);
         LLVMVarEntry *slot_var = NULL;
+        const char *slot_name = ast_identifier_name(slot_arg);
         if (slot_arg != NULL && slot_arg->type == AST_IDENTIFIER)
-            slot_var = llvm_scope_lookup(ctx, slot_arg->data.identifier.name);
+            slot_var = llvm_scope_lookup(ctx, slot_name);
         if (inner == NULL && slot_arg != NULL && slot_arg->type == AST_IDENTIFIER) {
             llvm_set_error_at_with_hints(ctx, slot_arg, PGY_CODE_LLVM_TYPE_UNSUPPORTED, PGY_CAUSE_LLVM_SLOT_INNER_TYPE_MISSING, PGY_FIX_ANNOTATE_CONCRETE_TYPE, "LLVM %s on '%s' requires a concrete DeviceSlot<T> inner type",
-                callee_name, slot_arg->data.identifier.name);
+                callee_name, slot_name);
             return true;
         }
         if (slot_var == NULL) {
@@ -359,7 +361,7 @@ llvm_emit_slot_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         } else {
             LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 1, "");
             if (slot_arg->type == AST_IDENTIFIER)
-                llvm_mark_device_slot_released(ctx, slot_arg->data.identifier.name);
+                llvm_mark_device_slot_released(ctx, slot_name);
             *out = LLVMConstInt(ctx->type_i32, 0, 0);
         }
         return true;

@@ -333,8 +333,8 @@ import_resolver_load_internal(const char *source_path,
         goto fail;
     }
 
-    for (size_t i = 0; i < ast->data.program.count; i++) {
-        ASTNode *stmt = ast->data.program.statements[i];
+    for (size_t i = 0; i < ast_program_statement_count(ast); i++) {
+        ASTNode *stmt = ast_program_statement(ast, i);
         if (stmt == NULL || (stmt->type != AST_IMPORT_DECL && stmt->type != AST_USE_DECL))
             continue;
 
@@ -343,14 +343,14 @@ import_resolver_load_internal(const char *source_path,
         ASTNode *imp_ast = NULL;
 
         if (stmt->type == AST_IMPORT_DECL) {
-            import_path = stmt->data.import_decl.path;
+            import_path = ast_import_path(stmt);
             full_path = path_join_dup(base_dir, import_path);
             if (full_path == NULL) {
                 set_error(error_message, "out of memory while resolving import '%s'", import_path);
                 goto fail;
             }
         } else {
-            import_path = stmt->data.use_decl.module_name;
+            import_path = ast_use_module_name(stmt);
             full_path = resolve_stdlib_module_path(canonical_source, import_path);
             if (full_path == NULL) {
                 set_error(error_message, "cannot resolve stdlib module '%s'", import_path);
@@ -395,9 +395,12 @@ import_resolver_load_internal(const char *source_path,
         if (imp_ast == NULL)
             goto fail;
 
-        size_t imp_count = imp_ast->data.program.count;
+        size_t imp_count = ast_program_statement_count(imp_ast);
         if (imp_count > 0) {
-            size_t old_count = ast->data.program.count;
+            size_t old_count = ast_program_statement_count(ast);
+            ASTNode **old_statements = ast_program_statements(ast, NULL);
+            ASTNode **imported_statements = ast_program_statements(imp_ast, NULL);
+            ASTNode *import_stmt = ast_program_statement(ast, i);
             size_t new_count;
             if (old_count == 0 || imp_count > SIZE_MAX - (old_count - 1)) {
                 ast_destroy(imp_ast);
@@ -418,25 +421,54 @@ import_resolver_load_internal(const char *source_path,
             }
 
             for (size_t j = 0; j < i; j++)
-                new_stmts[j] = ast->data.program.statements[j];
+                new_stmts[j] = old_statements[j];
             for (size_t j = 0; j < imp_count; j++)
-                new_stmts[i + j] = imp_ast->data.program.statements[j];
+                new_stmts[i + j] = imported_statements[j];
             for (size_t j = i + 1; j < old_count; j++)
-                new_stmts[j - 1 + imp_count] = ast->data.program.statements[j];
+                new_stmts[j - 1 + imp_count] = old_statements[j];
 
-            ast_destroy(ast->data.program.statements[i]);
-            free(ast->data.program.statements);
-            ast->data.program.statements = new_stmts;
-            ast->data.program.count = new_count;
+            if (!ast_program_replace_statements(ast,
+                                                new_stmts,
+                                                new_count,
+                                                new_count)) {
+                free(new_stmts);
+                ast_destroy(imp_ast);
+                set_error(error_message, "failed to replace import statements");
+                goto fail;
+            }
+            ast_destroy(import_stmt);
 
-            imp_ast->data.program.statements = NULL;
-            imp_ast->data.program.count = 0;
+            (void)ast_program_replace_statements(imp_ast, NULL, 0, 0);
             i += imp_count - 1;
         } else {
-            ast_destroy(ast->data.program.statements[i]);
-            for (size_t j = i; j + 1 < ast->data.program.count; j++)
-                ast->data.program.statements[j] = ast->data.program.statements[j + 1];
-            ast->data.program.count--;
+            size_t old_count = ast_program_statement_count(ast);
+            ASTNode **old_statements = ast_program_statements(ast, NULL);
+            ASTNode *import_stmt = ast_program_statement(ast, i);
+            size_t new_count = old_count > 0 ? old_count - 1 : 0;
+            ASTNode **new_stmts = NULL;
+            if (new_count > 0) {
+                new_stmts = malloc(new_count * sizeof(ASTNode *));
+                if (new_stmts == NULL) {
+                    ast_destroy(imp_ast);
+                    set_error(error_message,
+                              "out of memory while removing import");
+                    goto fail;
+                }
+                for (size_t j = 0; j < i; j++)
+                    new_stmts[j] = old_statements[j];
+                for (size_t j = i + 1; j < old_count; j++)
+                    new_stmts[j - 1] = old_statements[j];
+            }
+            if (!ast_program_replace_statements(ast,
+                                                new_stmts,
+                                                new_count,
+                                                new_count)) {
+                free(new_stmts);
+                ast_destroy(imp_ast);
+                set_error(error_message, "failed to remove import statement");
+                goto fail;
+            }
+            ast_destroy(import_stmt);
             i--;
         }
 

@@ -18,10 +18,10 @@ append_overlay_method_projection_invalidations(CodeBuf *buf,
 
     switch (node->type) {
     case AST_BLOCK:
-        for (size_t i = 0; i < node->data.block.count; i++) {
+        for (size_t i = 0; i < ast_block_statement_count(node); i++) {
             append_overlay_method_projection_invalidations(
                 buf, ctx, source_slot_name, host_type_name,
-                node->data.block.statements[i], depth + 1);
+                ast_block_statement(node, i), depth + 1);
         }
         break;
     case AST_IF_STMT:
@@ -43,19 +43,19 @@ append_overlay_method_projection_invalidations(CodeBuf *buf,
             ast_while_body(node), depth + 1);
         break;
     case AST_MATCH_STMT:
-        for (size_t i = 0; i < node->data.match_stmt.case_count; i++) {
+        for (size_t i = 0; i < ast_match_case_count(node); i++) {
             append_overlay_method_projection_invalidations(
                 buf, ctx, source_slot_name, host_type_name,
-                node->data.match_stmt.cases[i], depth + 1);
+                ast_match_case_at(node, i), depth + 1);
         }
         append_overlay_method_projection_invalidations(
             buf, ctx, source_slot_name, host_type_name,
-            node->data.match_stmt.default_body, depth + 1);
+            ast_match_default_body(node), depth + 1);
         break;
     case AST_MATCH_CASE:
         append_overlay_method_projection_invalidations(
             buf, ctx, source_slot_name, host_type_name,
-            node->data.match_case.body, depth + 1);
+            ast_match_case_body(node), depth + 1);
         break;
     case AST_SELECT_STMT:
         for (size_t i = 0; i < ast_select_case_count(node); i++) {
@@ -92,14 +92,14 @@ append_overlay_method_projection_invalidations(CodeBuf *buf,
             && ast_call_callee(node)->type == AST_MEMBER_ACCESS
             && ast_member_object(ast_call_callee(node)) != NULL
             && ast_member_object(ast_call_callee(node))->type == AST_IDENTIFIER
-            && ast_member_object(ast_call_callee(node))->data.identifier.name != NULL
+            && ast_identifier_name(ast_member_object(ast_call_callee(node))) != NULL
             && ast_member_name(ast_call_callee(node)) != NULL) {
             ASTNode *host_decl = find_class_decl(ctx, host_type_name);
             ClassField *field = NULL;
 
             if (host_decl != NULL && host_decl->type == AST_CLASS_DECL) {
                 field = find_host_field_by_name_local(host_decl,
-                    ast_member_object(ast_call_callee(node))->data.identifier.name);
+                    ast_identifier_name(ast_member_object(ast_call_callee(node))));
             }
             if (field != NULL && field->is_vessel_field
                 && field->type != NULL

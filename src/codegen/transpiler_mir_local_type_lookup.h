@@ -41,14 +41,14 @@ transpiler_infer_local_type_name_from_expr(TranspilerCtx *ctx,
         return NULL;
     switch (expr->type) {
     case AST_NUMBER:
-        return expr->data.number.is_long ? "Long" : "Int";
+        return ast_number_is_long(expr) ? "Long" : "Int";
     case AST_STRING:
         return "String";
     case AST_BOOLEAN:
         return "Bool";
     case AST_IDENTIFIER:
         return transpiler_find_local_type_name(ctx, func_decl,
-                                               expr->data.identifier.name);
+                                               ast_identifier_name(expr));
     case AST_CHANNEL_RECV: {
         const char *channel_type = transpiler_infer_local_type_name_from_expr(
             ctx, func_decl, ast_channel_recv_channel(expr));
@@ -146,8 +146,8 @@ transpiler_infer_local_type_name_from_expr(TranspilerCtx *ctx,
         }
         if (ast_call_callee(expr) != NULL
             && ast_call_callee(expr)->type == AST_IDENTIFIER
-            && ast_call_callee(expr)->data.identifier.name != NULL) {
-            const char *callee_name = ast_call_callee(expr)->data.identifier.name;
+            && ast_identifier_name(ast_call_callee(expr)) != NULL) {
+            const char *callee_name = ast_identifier_name(ast_call_callee(expr));
             ASTNode *callee_decl = find_function_decl(ctx, callee_name);
             ASTNode *callee_return_type = ast_func_return_type(callee_decl);
             if (callee_return_type != NULL) {
@@ -184,33 +184,35 @@ transpiler_find_local_type_name_in_block(TranspilerCtx *ctx,
     if (body == NULL || base_name == NULL)
         return NULL;
     if (body->type == AST_BLOCK) {
-        for (size_t i = 0; i < body->data.block.count; i++) {
+        for (size_t i = 0; i < ast_block_statement_count(body); i++) {
             const char *found = transpiler_find_local_type_name_in_block(
-                ctx, func_decl, body->data.block.statements[i], base_name);
+                ctx, func_decl, ast_block_statement(body, i), base_name);
             if (found != NULL)
                 return found;
         }
         return NULL;
     }
     if (body->type == AST_LET_DECL
-        && body->data.let_decl.name != NULL
-        && strcmp(body->data.let_decl.name, base_name) == 0) {
-        if (body->data.let_decl.type != NULL) {
+        && ast_let_name(body) != NULL
+        && strcmp(ast_let_name(body), base_name) == 0) {
+        ASTNode *let_type = ast_let_type(body);
+        ASTNode *let_init = ast_let_initializer(body);
+        if (let_type != NULL) {
             char *effective = transpiler_render_effective_local_type_name(
-                ctx, body->data.let_decl.type);
+                ctx, let_type);
             const char *copied =
                 transpiler_mir_arena_copy_type_name(ctx, effective);
             free(effective);
             return copied;
         }
         return transpiler_infer_local_type_name_from_expr(
-            ctx, func_decl, body->data.let_decl.initializer);
+            ctx, func_decl, let_init);
     }
     if (body->type == AST_ASSIGNMENT
         && ast_assignment_target(body) != NULL
         && ast_assignment_target(body)->type == AST_IDENTIFIER
-        && ast_assignment_target(body)->data.identifier.name != NULL
-        && strcmp(ast_assignment_target(body)->data.identifier.name,
+        && ast_identifier_name(ast_assignment_target(body)) != NULL
+        && strcmp(ast_identifier_name(ast_assignment_target(body)),
                   base_name) == 0
         && ast_assignment_value(body) != NULL
         && ast_assignment_value(body)->type == AST_CHANNEL_RECV) {
@@ -218,17 +220,17 @@ transpiler_find_local_type_name_in_block(TranspilerCtx *ctx,
             ctx, func_decl, ast_assignment_value(body));
     }
     if (body->type == AST_LET_DESTRUCTURE) {
-        for (size_t i = 0; i < body->data.let_destructure.name_count; i++) {
-            const char *pname = body->data.let_destructure.names[i];
+        for (size_t i = 0; i < ast_let_destructure_name_count(body); i++) {
+            const char *pname = ast_let_destructure_name(body, i);
             if (pname == NULL || strcmp(pname, base_name) != 0)
                 continue;
-            ASTNode *init = body->data.let_destructure.initializer;
+            ASTNode *init = ast_let_destructure_initializer(body);
             if (init != NULL
                 && init->type == AST_CALL
                 && ast_call_callee(init) != NULL
                 && ast_call_callee(init)->type == AST_IDENTIFIER
-                && ast_call_callee(init)->data.identifier.name != NULL) {
-                const char *callee = ast_call_callee(init)->data.identifier.name;
+                && ast_identifier_name(ast_call_callee(init)) != NULL) {
+                const char *callee = ast_identifier_name(ast_call_callee(init));
                 if (pgy_codegen_call_name_is_claim_secure_slot(callee)) {
                     const char *inner = NULL;
                     if (ast_call_generic_arg(init, 0) != NULL) {
@@ -265,9 +267,9 @@ transpiler_find_local_type_name_in_block(TranspilerCtx *ctx,
             if ((init_type == NULL || strcmp(init_type, "Unknown") == 0)
                 && init != NULL
                 && init->type == AST_IDENTIFIER
-                && init->data.identifier.name != NULL) {
+                && ast_identifier_name(init) != NULL) {
                 const char *resolved = transpiler_find_local_type_name(
-                    ctx, func_decl, init->data.identifier.name);
+                    ctx, func_decl, ast_identifier_name(init));
                 if (resolved != NULL)
                     init_type = resolved;
             }

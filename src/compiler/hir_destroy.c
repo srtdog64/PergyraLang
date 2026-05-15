@@ -10,13 +10,13 @@ hir_destroy_synthetic_executable_func(ASTNode *func)
     if (func == NULL || func->type != AST_FUNC_DECL)
         return;
 
-    body = func->data.func_decl.body;
-    free(func->data.func_decl.name);
+    body = ast_func_detach_body(func);
     if (body != NULL && body->type == AST_BLOCK) {
-        free(body->data.block.statements);
-        free(body);
+        ASTNode **borrowed_statements = ast_block_detach_statements(body, NULL);
+        free(borrowed_statements);
     }
-    free(func);
+    ast_destroy(body);
+    ast_destroy(func);
 }
 
 void

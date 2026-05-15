@@ -15,8 +15,8 @@ intent_clause_invokes_authority_sensitive_call(ASTNode *expr, SemanticContext *c
     if (callee == NULL)
         return false;
 
-    if (callee->type == AST_IDENTIFIER && callee->data.identifier.name != NULL) {
-        Symbol *sym = scope_lookup(ctx->scope, callee->data.identifier.name);
+    if (callee->type == AST_IDENTIFIER && ast_identifier_name(callee) != NULL) {
+        Symbol *sym = scope_lookup(ctx->scope, ast_identifier_name(callee));
         return sym != NULL
             && sym->type != NULL
             && sym->type->kind == TYPE_KIND_FUNCTION
@@ -50,9 +50,9 @@ intent_clause_invokes_authority_sensitive_call(ASTNode *expr, SemanticContext *c
                     declared_effects_from_function_node(method, ctx, NULL);
                 if (type_effect_mask_requires_authority(method_effects))
                     return true;
-                if (method->data.func_decl.is_action
-                    && (method->data.func_decl.within_zone != NULL
-                        || method->data.func_decl.causes_effect != NULL)) {
+                if (ast_func_is_action(method)
+                    && (ast_func_within_zone(method) != NULL
+                        || ast_func_causes_effect(method) != NULL)) {
                     return true;
                 }
                 return false;
@@ -89,9 +89,9 @@ intent_forbidden_control_construct(ASTNode *node)
         case AST_TASK_GROUP:
             return "task-group";
         case AST_LAMBDA_EXPR:
-            if (node->data.lambda_expr.is_async)
+            if (ast_lambda_is_async(node))
                 return "async lambda";
-            return intent_forbidden_control_construct(node->data.lambda_expr.body);
+            return intent_forbidden_control_construct(ast_lambda_body(node));
         case AST_BINARY:
             nested = intent_forbidden_control_construct(ast_binary_left(node));
             if (nested != NULL)
@@ -133,25 +133,25 @@ intent_forbidden_control_construct(ASTNode *node)
                 return nested;
             return intent_forbidden_control_construct(ast_assignment_value(node));
         case AST_MATCH_STMT:
-            nested = intent_forbidden_control_construct(node->data.match_stmt.subject);
+            nested = intent_forbidden_control_construct(ast_match_subject(node));
             if (nested != NULL)
                 return nested;
-            for (size_t i = 0; i < node->data.match_stmt.case_count; i++) {
+            for (size_t i = 0; i < ast_match_case_count(node); i++) {
                 nested = intent_forbidden_control_construct(
-                    node->data.match_stmt.cases[i]);
+                    ast_match_case_at(node, i));
                 if (nested != NULL)
                     return nested;
             }
             return intent_forbidden_control_construct(
-                node->data.match_stmt.default_body);
+                ast_match_default_body(node));
         case AST_MATCH_CASE:
-            nested = intent_forbidden_control_construct(node->data.match_case.pattern);
+            nested = intent_forbidden_control_construct(ast_match_case_pattern(node));
             if (nested != NULL)
                 return nested;
-            nested = intent_forbidden_control_construct(node->data.match_case.guard);
+            nested = intent_forbidden_control_construct(ast_match_case_guard(node));
             if (nested != NULL)
                 return nested;
-            return intent_forbidden_control_construct(node->data.match_case.body);
+            return intent_forbidden_control_construct(ast_match_case_body(node));
         case AST_IF_STMT:
             nested = intent_forbidden_control_construct(ast_if_condition(node));
             if (nested != NULL)
@@ -161,9 +161,9 @@ intent_forbidden_control_construct(ASTNode *node)
                 return nested;
             return intent_forbidden_control_construct(ast_if_else_branch(node));
         case AST_BLOCK:
-            for (size_t i = 0; i < node->data.block.count; i++) {
+            for (size_t i = 0; i < ast_block_statement_count(node); i++) {
                 nested = intent_forbidden_control_construct(
-                    node->data.block.statements[i]);
+                    ast_block_statement(node, i));
                 if (nested != NULL)
                     return nested;
             }

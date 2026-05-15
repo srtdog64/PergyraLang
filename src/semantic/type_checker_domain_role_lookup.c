@@ -9,8 +9,8 @@ semantic_find_role_decl(ASTNode *program, const char *role_name)
     if (program == NULL || program->type != AST_PROGRAM || role_name == NULL)
         return NULL;
 
-    for (size_t i = 0; i < program->data.program.count; i++) {
-        ASTNode *stmt = program->data.program.statements[i];
+    for (size_t i = 0; i < ast_program_statement_count(program); i++) {
+        ASTNode *stmt = ast_program_statement(program, i);
         const char *stmt_role_name = ast_role_name(stmt);
         if (stmt != NULL && stmt->type == AST_ROLE_DECL
             && stmt_role_name != NULL
@@ -44,8 +44,8 @@ any_subject_role_has_ability(ASTNode *program, ASTNode *ability_ref)
         return false;
     }
 
-    for (size_t i = 0; i < program->data.program.count; i++) {
-        ASTNode *stmt = program->data.program.statements[i];
+    for (size_t i = 0; i < ast_program_statement_count(program); i++) {
+        ASTNode *stmt = ast_program_statement(program, i);
         ASTNode *type_decl;
         const char *type_name = semantic_role_for_type_name(stmt);
 
@@ -72,8 +72,8 @@ any_subject_role_find_base_ability_impl(ASTNode *program,
         return NULL;
     }
 
-    for (size_t i = 0; i < program->data.program.count; i++) {
-        ASTNode *stmt = program->data.program.statements[i];
+    for (size_t i = 0; i < ast_program_statement_count(program); i++) {
+        ASTNode *stmt = ast_program_statement(program, i);
         ASTNode *type_decl;
         const char *type_name = semantic_role_for_type_name(stmt);
 

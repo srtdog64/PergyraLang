@@ -80,7 +80,7 @@ llvm_emit_domain_projection_sync_body(ASTNode *stmt,
 
             if (refresh == NULL || refresh->type != AST_ZONE_REFRESH)
                 continue;
-            target_slot_name = refresh->data.zone_refresh.object_slot_name;
+            target_slot_name = ast_zone_refresh_object_slot_name(refresh);
             if (target_slot_name == NULL)
                 continue;
             if (!llvm_projection_sync_field_name(field_name,
@@ -146,8 +146,8 @@ llvm_emit_domain_projection_sync_body(ASTNode *stmt,
             if (refresh == NULL || refresh->type != AST_ZONE_REFRESH)
                 continue;
 
-            target_slot_name = refresh->data.zone_refresh.object_slot_name;
-            source_slot_name = refresh->data.zone_refresh.source_slot_name;
+            target_slot_name = ast_zone_refresh_object_slot_name(refresh);
+            source_slot_name = ast_zone_refresh_source_slot_name(refresh);
             if (target_slot_name == NULL || source_slot_name == NULL)
                 continue;
 
@@ -261,8 +261,8 @@ llvm_emit_domain_projection_sync_body(ASTNode *stmt,
 
                         if (dependent == NULL || dependent->type != AST_ZONE_REFRESH)
                             continue;
-                        dependent_target_name = dependent->data.zone_refresh.object_slot_name;
-                        dependent_source_name = dependent->data.zone_refresh.source_slot_name;
+                        dependent_target_name = ast_zone_refresh_object_slot_name(dependent);
+                        dependent_source_name = ast_zone_refresh_source_slot_name(dependent);
                         if (dependent_target_name == NULL || dependent_source_name == NULL
                             || strcmp(dependent_source_name, target_slot_name) != 0) {
                             continue;

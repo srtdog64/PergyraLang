@@ -105,11 +105,11 @@ llvm_emit_event_invocation_call(ASTNode *node, LLVMGenCtx *ctx,
 LLVMValueRef
 llvm_emit_event_subscribe_expr(ASTNode *node, LLVMGenCtx *ctx)
 {
-    ASTNode *evt = node->data.event_op.event;
-    ASTNode *handler = node->data.event_op.handler;
+    ASTNode *evt = ast_event_op_event(node);
+    ASTNode *handler = ast_event_op_handler(node);
     const char *evt_name = NULL;
     if (evt != NULL && evt->type == AST_IDENTIFIER)
-        evt_name = evt->data.identifier.name;
+        evt_name = ast_identifier_name(evt);
     if (evt_name == NULL)
         return llvm_event_expr_error(ctx, node,
             "LLVM event subscribe requires an identifier event target");
@@ -147,11 +147,11 @@ llvm_emit_event_subscribe_expr(ASTNode *node, LLVMGenCtx *ctx)
 LLVMValueRef
 llvm_emit_event_unsubscribe_expr(ASTNode *node, LLVMGenCtx *ctx)
 {
-    ASTNode *evt = node->data.event_op.event;
-    ASTNode *handler = node->data.event_op.handler;
+    ASTNode *evt = ast_event_op_event(node);
+    ASTNode *handler = ast_event_op_handler(node);
     const char *evt_name = NULL;
     if (evt != NULL && evt->type == AST_IDENTIFIER)
-        evt_name = evt->data.identifier.name;
+        evt_name = ast_identifier_name(evt);
     if (evt_name == NULL)
         return llvm_event_expr_error(ctx, node,
             "LLVM event unsubscribe requires an identifier event target");
@@ -189,10 +189,10 @@ llvm_emit_event_unsubscribe_expr(ASTNode *node, LLVMGenCtx *ctx)
 LLVMValueRef
 llvm_emit_event_invoke_expr(ASTNode *node, LLVMGenCtx *ctx)
 {
-    ASTNode *evt = node->data.event_invoke.event;
+    ASTNode *evt = ast_event_invoke_event(node);
     const char *evt_name = NULL;
     if (evt != NULL && evt->type == AST_IDENTIFIER)
-        evt_name = evt->data.identifier.name;
+        evt_name = ast_identifier_name(evt);
     if (evt_name == NULL)
         return llvm_event_expr_error(ctx, node,
             "LLVM event invoke requires an identifier event target");
@@ -217,7 +217,7 @@ llvm_emit_event_invoke_expr(ASTNode *node, LLVMGenCtx *ctx)
         return NULL;
     }
 
-    size_t ac = node->data.event_invoke.arg_count;
+    size_t ac = ast_event_invoke_arg_count(node);
     LLVMValueRef *args = pgy_arena_calloc(&ctx->scratch,
         (ac + 1) * sizeof(LLVMValueRef));
     if (args == NULL)
@@ -226,7 +226,7 @@ llvm_emit_event_invoke_expr(ASTNode *node, LLVMGenCtx *ctx)
     args[0] = ev_ptr;
     for (size_t j = 0; j < ac; j++) {
         args[j + 1] = llvm_emit_expression(
-            node->data.event_invoke.arguments[j], ctx);
+            ast_event_invoke_argument(node, j), ctx);
         if (args[j + 1] == NULL)
             return llvm_event_expr_error(ctx, node,
                 "LLVM event invoke could not lower argument expression");

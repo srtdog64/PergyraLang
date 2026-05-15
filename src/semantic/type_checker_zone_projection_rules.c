@@ -1,4 +1,4 @@
-﻿#include "type_checker_internal.h"
+#include "type_checker_internal.h"
 #include "diag_codes.h"
 #include "parser/ast_api.h"
 
@@ -12,14 +12,14 @@ type_check_zone_projection_rules(ASTNode *node, SemanticContext *ctx)
 
     for (size_t i = 0; i < refresh_count; i++) {
         ASTNode *refresh = refreshes[i];
-        const char *object_slot_name = refresh->data.zone_refresh.object_slot_name;
-        const char *source_slot_name = refresh->data.zone_refresh.source_slot_name;
-        const char *participant_slot_name = refresh->data.zone_refresh.participant_slot_name;
+        const char *object_slot_name = ast_zone_refresh_object_slot_name(refresh);
+        const char *source_slot_name = ast_zone_refresh_source_slot_name(refresh);
+        const char *participant_slot_name = ast_zone_refresh_participant_slot_name(refresh);
         ASTNode *target_slot = NULL;
         bool boundary_projection = false;
         const char *action_name =
-            refresh->data.zone_refresh.derive_target_kind ? "bind"
-            : (refresh->data.zone_refresh.requires_dto ? "publish" : "refresh");
+            ast_zone_refresh_derives_target_kind(refresh) ? "bind"
+            : (ast_zone_refresh_requires_dto(refresh) ? "publish" : "refresh");
         if (find_zone_domain_slot(node, object_slot_name) == NULL) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, refresh,
                 "Zone %s references unknown target slot '%s'.\n"

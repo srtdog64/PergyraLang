@@ -10,7 +10,7 @@ emit_call_domain_constructor(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
 {
     /* Tagged union variant constructors: Circle(42) ??Shape_Circle(42) */
     if (callee->type == AST_IDENTIFIER) {
-        const char *fn = callee->data.identifier.name;
+        const char *fn = ast_identifier_name(callee);
         ASTNode *class_decl = find_class_decl(ctx, fn);
         if (class_decl != NULL && class_decl->type == AST_CLASS_DECL) {
             const char *ctor_type = fn;

@@ -248,21 +248,22 @@ transpiler_resolve_nominal_host_expr_type_name(TranspilerCtx *ctx, ASTNode *expr
     if (ctx == NULL || expr == NULL)
         return NULL;
 
-    if (expr->type == AST_IDENTIFIER && expr->data.identifier.name != NULL) {
-        ASTNode *alias_expr = lookup_alias_expr(ctx, expr->data.identifier.name);
+    if (expr->type == AST_IDENTIFIER && ast_identifier_name(expr) != NULL) {
+        const char *name = ast_identifier_name(expr);
+        ASTNode *alias_expr = lookup_alias_expr(ctx, name);
         if (alias_expr != NULL)
             return transpiler_resolve_nominal_host_expr_type_name(ctx, alias_expr);
-        const char *type_name = lookup_typed_var(ctx, expr->data.identifier.name);
+        const char *type_name = lookup_typed_var(ctx, name);
         if (type_name != NULL)
             return type_name;
-        return transpiler_current_field_type_name(ctx, expr->data.identifier.name);
+        return transpiler_current_field_type_name(ctx, name);
     }
 
     if (expr->type == AST_MEMBER_ACCESS
         && ast_member_object(expr) != NULL
         && ast_member_name(expr) != NULL) {
         if (ast_member_object(expr)->type == AST_IDENTIFIER
-            && strcmp(ast_member_object(expr)->data.identifier.name, "self") == 0) {
+            && strcmp(ast_identifier_name(ast_member_object(expr)), "self") == 0) {
             return transpiler_current_field_type_name(ctx, ast_member_name(expr));
         }
         {

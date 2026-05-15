@@ -107,11 +107,11 @@ semantic_reject_active_slot_owner_escape(ASTNode *site,
     const char *active_view_kind = NULL;
 
     if (site == NULL || ctx == NULL || site->type != AST_IDENTIFIER
-        || site->data.identifier.name == NULL) {
+        || ast_identifier_name(site) == NULL) {
         return false;
     }
 
-    slot_name = site->data.identifier.name;
+    slot_name = ast_identifier_name(site);
     sym = scope_lookup(ctx->scope, slot_name);
     if (sym == NULL || sym->kind != SYMBOL_SLOT || sym->type == NULL
         || !type_is_owned_slot_handle(sym->type)) {

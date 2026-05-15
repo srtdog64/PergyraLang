@@ -17,8 +17,8 @@ require_assignable(Type *from, Type *to, const ASTNode *site,
     if (type_is_assignable(from, to))
         return true;
 
-    if (to->kind == TYPE_KIND_SLOT && to->data.slot.inner_type != NULL
-        && type_is_assignable(from, to->data.slot.inner_type)) {
+    if (type_is_slot_handle(to) && type_slot_inner_type(to) != NULL
+        && type_is_assignable(from, type_slot_inner_type(to))) {
         return true;
     }
 

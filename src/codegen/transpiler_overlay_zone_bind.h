@@ -94,8 +94,8 @@ emit_zone_bind_effect_layer(CodeBuf *out, ASTNode *zone, const char *layer_slot_
 
             if (refresh == NULL || refresh->type != AST_ZONE_REFRESH)
                 continue;
-            projection_name = refresh->data.zone_refresh.object_slot_name;
-            source_name = refresh->data.zone_refresh.source_slot_name;
+            projection_name = ast_zone_refresh_object_slot_name(refresh);
+            source_name = ast_zone_refresh_source_slot_name(refresh);
             if (projection_name == NULL || source_name == NULL
                 || strcmp(source_name, target_binding_name) != 0) {
                 continue;
@@ -139,8 +139,8 @@ emit_zone_bind_effect_layer(CodeBuf *out, ASTNode *zone, const char *layer_slot_
 
         if (refresh == NULL || refresh->type != AST_ZONE_REFRESH)
             continue;
-        projection_name = refresh->data.zone_refresh.object_slot_name;
-        source_name = refresh->data.zone_refresh.source_slot_name;
+        projection_name = ast_zone_refresh_object_slot_name(refresh);
+        source_name = ast_zone_refresh_source_slot_name(refresh);
         if (projection_name == NULL || source_name == NULL
             || strcmp(source_name, target_binding_name) != 0) {
             continue;
@@ -225,8 +225,8 @@ emit_zone_bind_relation_layer(CodeBuf *out, ASTNode *zone, const char *layer_slo
 
         if (refresh == NULL || refresh->type != AST_ZONE_REFRESH)
             continue;
-        projection_name = refresh->data.zone_refresh.object_slot_name;
-        source_name = refresh->data.zone_refresh.source_slot_name;
+        projection_name = ast_zone_refresh_object_slot_name(refresh);
+        source_name = ast_zone_refresh_source_slot_name(refresh);
         if (projection_name == NULL || source_name == NULL)
             continue;
         if (strcmp(source_name, left_binding_name) != 0

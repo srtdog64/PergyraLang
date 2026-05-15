@@ -10,6 +10,7 @@ emit_builtin_to_dto(ASTNode *call, TranspilerCtx *ctx)
     ASTNode *source_arg;
     ASTNode *target_decl;
     ASTNode *source_decl;
+    const char *target_name;
     const char *source_type_name;
     char *source_expr;
     char *result;
@@ -20,13 +21,14 @@ emit_builtin_to_dto(ASTNode *call, TranspilerCtx *ctx)
     target_arg = ast_call_argument(call, 0);
     source_arg = ast_call_argument(call, 1);
     if (target_arg == NULL || target_arg->type != AST_IDENTIFIER
-        || target_arg->data.identifier.name == NULL) {
+        || ast_identifier_name(target_arg) == NULL) {
         return pergyra_strdup("/* ToTObject: need target tobject type */");
     }
+    target_name = ast_identifier_name(target_arg);
     if (source_arg == NULL || source_arg->type != AST_IDENTIFIER)
         return pergyra_strdup("/* ToTObject: need named subject source */");
 
-    target_decl = find_class_decl(ctx, target_arg->data.identifier.name);
+    target_decl = find_class_decl(ctx, target_name);
     if (target_decl == NULL || !ast_class_is_struct(target_decl))
         return pergyra_strdup("/* ToTObject: target must be tobject/struct */");
 
@@ -37,7 +39,7 @@ emit_builtin_to_dto(ASTNode *call, TranspilerCtx *ctx)
 
     source_expr = emit_expression(source_arg, ctx);
     result = emit_projection_literal(ctx, target_decl, source_decl, NULL,
-        target_arg->data.identifier.name, source_expr);
+        target_name, source_expr);
     free(source_expr);
     return result;
 }

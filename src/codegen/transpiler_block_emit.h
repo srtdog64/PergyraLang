@@ -71,16 +71,16 @@ emit_pin_block_enter_local(ASTNode *node, TranspilerCtx *ctx)
     const char *token_addr_expr;
 
     if (node == NULL || ctx == NULL || node->type != AST_BLOCK
-        || !node->data.block.is_pin_block
-        || node->data.block.pin_source_name == NULL)
+        || !ast_block_is_pin_block(node)
+        || ast_block_pin_source_name(node) == NULL)
         return false;
 
-    slot = transpiler_find_slot_var_local(ctx, node->data.block.pin_source_name);
+    slot = transpiler_find_slot_var_local(ctx, ast_block_pin_source_name(node));
     if (slot == NULL || slot->inner_type[0] == '\0')
         return false;
 
     pin_id = ctx->tmp_counter++;
-    mode = node->data.block.pin_view_is_write ? "write" : "read";
+    mode = ast_block_pin_view_is_write(node) ? "write" : "read";
 
     write_indent(ctx);
     codebuf_write(ctx->out, "{\n");
@@ -134,8 +134,8 @@ emit_block(ASTNode *node, TranspilerCtx *ctx)
         int saved_typed_count = ctx->typed_var_count;
         int saved_alias_count = ctx->alias_var_count;
         transpiler_defer_scope_push(ctx);
-        for (size_t i = 0; i < node->data.block.count; i++)
-            emit_statement(node->data.block.statements[i], ctx);
+        for (size_t i = 0; i < ast_block_statement_count(node); i++)
+            emit_statement(ast_block_statement(node, i), ctx);
 
         transpiler_emit_defers_from(ctx, ctx->defer_scope_depth - 1);
 
