@@ -82,6 +82,29 @@ Option/Result destructor-pattern condition lowering now live in
 `src/codegen/llvm_mir_match_condition.c`. `llvm_mir_cfg_control.c` is reduced to
 CFG-container classification, select readiness, and channel receive DEF
 lowering, so match semantics no longer share the channel/select control owner.
+2026-05-16 follow-up: the match-condition owner now includes `llvm_internal.h`
+instead of the declaration-only private API, so it compiles as a normal codegen
+translation unit with complete `ASTNode`, `LLVMGenCtx`, and LLVM-C types.
+Gate: `LLVM_ENABLED=1 pgy`.
+
+Current MIR declaration inventory tightening (2026-05-16): role hosted-method
+metadata no longer has a method-count validation exception.
+`ast_role_impl_method_total_count(...)` is the shared parser-owned count seam
+for role impl-ability methods, and the MIR declaration-header validator plus
+C/LLVM hosted-method views consume that same accessor. Role `method_count` and
+`method_metadata_count` must match the AST compatibility count, so missing role
+declaration metadata fails as a MIR-inventory error instead of silently yielding
+an empty role method view. Gates: `test-mir`,
+`mir-declaration-inventory-test-smoke`, `perf-contract-test-smoke`, and
+`LLVM_ENABLED=1 pgy`.
+
+Current MIR surface-usage tightening (2026-05-16):
+`mir_inventory_surface_usage_summary(...)` is now the single inventory summary
+seam for thread-pool and intent-observability usage. MIR lowering records both
+bits from that summary, and MIR validation recomputes the same summary once
+instead of independently walking inventory for each usage bit. Gates:
+`test-mir`, `perf-contract-test-smoke`, `parallel-core-contract-test-smoke`,
+`build-source-inventory-test-smoke`, and `source-utf8-test-smoke`.
 
 Current LLVM statement owner cleanup (2026-05-15): select statement readiness
 and round-robin lowering now lives in `src/codegen/llvm_stmt_select.c`.
@@ -1676,6 +1699,31 @@ Operational mode:
   `src/compiler/air_evidence_runtime.c`. `air_evidence.c` now stays focused on
   HIR/MIR evidence collection at 509 LOC, while `test_air` keeps singleton
   global evidence behavior and diagnostics unchanged.
+- 2026-05-16 AIR boundary evidence validator owner split:
+  `src/compiler/air_validate_boundary_evidence.c` now owns boundary-scoped
+  evidence shape validation and provider/same-boundary matching.
+  `air_validate_evidence.c` remains focused on inventory traversal, duplicate
+  detection, and count checks. This keeps EvidenceNode inventory as the source
+  of truth while preventing boundary policy from growing inside the inventory
+  owner. Gates: `test-air`, `air-drift-test-smoke`, and
+  `air-json-schema-test-smoke`.
+- 2026-05-16 AIR drift storage owner split: `src/compiler/air_drift.c` now owns
+  drift allocation, clearing, and formatted append. `air_verify.c` remains the
+  strict rule owner instead of managing AIRProgram drift capacity directly.
+  Gates: `test-air`, `air-drift-test-smoke`,
+  `build-source-inventory-test-smoke`, and `test-inc-size-test-smoke`.
+- 2026-05-16 CFG parallel/defer owner split:
+  `src/semantic/type_checker_flow_parallel.c` now owns defer cleanup boundary
+  checks and parallel task resource joins. The former implementation header is
+  removed, keeping CFG body-flow dispatch linked through a semantic owner
+  instead of including body code. Gates: `test-semantic` and
+  `cfg-body-dataflow-test-smoke`.
+- 2026-05-16 type-resolution program-stats owner split:
+  `src/semantic/type_checker_program_stats.c` now owns `PGY_TYPE_RES_STATS`
+  formatting, duplicate-label counting, in-degree reporting, and DAG evidence
+  counter output. `type_checker_program.c` is reduced to top-level semantic
+  orchestration plus graph validation/worklist sequencing. Gates:
+  `test-semantic` and `type-resolution-dag-test-smoke`.
 - LLVM MIR CFG control owner debt is partially closed: CFG-expanded range
   `for`, `select`, and `match` lowering now lives in
   `src/codegen/llvm_mir_cfg_control.c`, and `llvm_mir_block_emit.h` is below
@@ -1762,7 +1810,12 @@ Operational mode:
   and `break` / `continue` resource snapshot recording are also split into
   `type_checker_flow_loop_control.c`, keeping the statement dispatcher from
   owning loop-label diagnostics. This removes another implementation-style
-  private-header seam from the body-safety path.
+  private-header seam from the body-safety path. Branch/join flow policy is
+  now split as well: `type_checker_flow_branch.c` owns `if`/`match` branch
+  snapshots, effect joins, dynamic-defer rejection, and match subject
+  beta-surface checks, while `type_checker_flow.c` keeps the recursive
+  dispatcher, block sequencing, with-scope flow, namespace flow, and public
+  body-flow summaries. Current local gate: `test-semantic` (`2532/0`).
 - HIR CFG ownership is split below the 600 LOC review threshold:
   `hir_cfg.c` owns predecessor finalization, reachability,
   dominance/frontier, dominator tree, natural loops, and CFG summary

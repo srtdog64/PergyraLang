@@ -34,7 +34,7 @@ llvm_stmt_emit_view_or_move_let(ASTNode *node, LLVMGenCtx *ctx)
             && pgy_codegen_call_name_is_view_write(callee))
         || ((strcmp(ann_name, "MoveToken") == 0
              || strncmp(ann_name, "MoveToken<", 10) == 0)
-            && strcmp(callee, "Move") == 0);
+            && pgy_codegen_call_name_is_move(callee));
     if (!alias_decl)
         return false;
 
@@ -55,7 +55,7 @@ llvm_stmt_emit_view_or_move_let(ASTNode *node, LLVMGenCtx *ctx)
         return true;
     }
 
-    bool is_move = (strcmp(callee, "Move") == 0);
+    bool is_move = pgy_codegen_call_name_is_move(callee);
     if (is_move) {
         LLVMTypeRef slot_ty = llvm_slot_struct_type(ctx, inner);
         if (ctx->has_error || slot_ty == NULL) {
@@ -133,10 +133,9 @@ llvm_stmt_emit_slot_sugar_let(ASTNode *node, LLVMGenCtx *ctx)
         return false;
 
     const char *ann_name = ast_type_name(type_ann);
-    bool is_slot_sugar = (strcmp(ann_name, "Slot") == 0
-                       || strncmp(ann_name, "Slot<", 5) == 0);
-    bool is_secure_slot_sugar = (strcmp(ann_name, "SecureSlot") == 0
-                              || strncmp(ann_name, "SecureSlot<", 11) == 0);
+    bool is_slot_sugar = pgy_codegen_type_name_is_slot(ann_name);
+    bool is_secure_slot_sugar =
+        pgy_codegen_type_name_is_secure_slot(ann_name);
     if (!is_slot_sugar && !is_secure_slot_sugar)
         return false;
 

@@ -303,7 +303,7 @@ semantic_type_resolution_precollect_class_inventory(ASTNode *class_decl,
 void
 semantic_type_resolution_precollect_action_contract(ASTNode *method,
                                                     SemanticContext *ctx,
-                                                    const char *fallback_name)
+                                                    const char *owner_name_hint)
 {
     const char *consumer_name;
 
@@ -312,7 +312,7 @@ semantic_type_resolution_precollect_action_contract(ASTNode *method,
 
     consumer_name = ast_declaration_name(method) != NULL
         ? ast_declaration_name(method)
-        : (fallback_name != NULL ? fallback_name : "<action>");
+        : (owner_name_hint != NULL ? owner_name_hint : "<action>");
 
     semantic_type_resolution_collect_generic_contract_inventory(
         ast_func_generic_params(method),

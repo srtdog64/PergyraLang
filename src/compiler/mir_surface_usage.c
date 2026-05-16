@@ -4,78 +4,95 @@
 
 #include "../parser/ast_analysis.h"
 
-static bool
-mir_ast_array_uses_thread_pool_surface(ASTNode *const *nodes, size_t count)
+static void
+mir_accumulate_ast_surface_usage(MIRSurfaceUsageSummary *summary,
+                                 const ASTNode *node)
 {
-    for (size_t i = 0; i < count; i++) {
-        if (ast_uses_thread_pool_surface(nodes[i]))
-            return true;
+    if (summary == NULL || node == NULL)
+        return;
+
+    if (!summary->uses_thread_pool)
+        summary->uses_thread_pool = ast_uses_thread_pool_surface(node);
+    if (!summary->uses_intent_observability) {
+        summary->uses_intent_observability =
+            ast_uses_intent_observability_surface(node);
     }
-    return false;
 }
 
-static bool
-mir_ast_array_uses_intent_observability_surface(ASTNode *const *nodes,
-                                                size_t count)
+static void
+mir_accumulate_ast_array_surface_usage(MIRSurfaceUsageSummary *summary,
+                                       ASTNode *const *nodes,
+                                       size_t count)
 {
     for (size_t i = 0; i < count; i++) {
-        if (ast_uses_intent_observability_surface(nodes[i]))
-            return true;
+        if (summary != NULL && summary->uses_thread_pool
+            && summary->uses_intent_observability) {
+            return;
+        }
+        mir_accumulate_ast_surface_usage(summary, nodes[i]);
     }
-    return false;
+}
+
+MIRSurfaceUsageSummary
+mir_inventory_surface_usage_summary(const MIRProgram *mir)
+{
+    MIRSurfaceUsageSummary summary = {0};
+
+    if (mir == NULL)
+        return summary;
+
+    mir_accumulate_ast_array_surface_usage(
+        &summary, mir->types, mir->type_count);
+    mir_accumulate_ast_array_surface_usage(
+        &summary, mir->abilities, mir->ability_count);
+    mir_accumulate_ast_array_surface_usage(
+        &summary, mir->roles, mir->role_count);
+    mir_accumulate_ast_array_surface_usage(
+        &summary, mir->parties, mir->party_count);
+    mir_accumulate_ast_array_surface_usage(
+        &summary, mir->rosters, mir->roster_count);
+    mir_accumulate_ast_array_surface_usage(
+        &summary, mir->worlds, mir->world_count);
+    mir_accumulate_ast_array_surface_usage(
+        &summary, mir->relations, mir->relation_count);
+    mir_accumulate_ast_array_surface_usage(
+        &summary, mir->effects, mir->effect_count);
+    mir_accumulate_ast_array_surface_usage(
+        &summary, mir->zones, mir->zone_count);
+    mir_accumulate_ast_array_surface_usage(
+        &summary, mir->events, mir->event_count);
+    mir_accumulate_ast_array_surface_usage(
+        &summary, mir->intents, mir->intent_count);
+    mir_accumulate_ast_array_surface_usage(
+        &summary, mir->functions, mir->function_count);
+    mir_accumulate_ast_array_surface_usage(
+        &summary, mir->externs, mir->extern_count);
+    return summary;
 }
 
 bool
 mir_inventory_uses_thread_pool_surface(const MIRProgram *mir)
 {
-    if (mir == NULL)
-        return false;
-
-    return mir_ast_array_uses_thread_pool_surface(mir->types, mir->type_count)
-        || mir_ast_array_uses_thread_pool_surface(mir->abilities, mir->ability_count)
-        || mir_ast_array_uses_thread_pool_surface(mir->roles, mir->role_count)
-        || mir_ast_array_uses_thread_pool_surface(mir->parties, mir->party_count)
-        || mir_ast_array_uses_thread_pool_surface(mir->rosters, mir->roster_count)
-        || mir_ast_array_uses_thread_pool_surface(mir->worlds, mir->world_count)
-        || mir_ast_array_uses_thread_pool_surface(mir->relations, mir->relation_count)
-        || mir_ast_array_uses_thread_pool_surface(mir->effects, mir->effect_count)
-        || mir_ast_array_uses_thread_pool_surface(mir->zones, mir->zone_count)
-        || mir_ast_array_uses_thread_pool_surface(mir->events, mir->event_count)
-        || mir_ast_array_uses_thread_pool_surface(mir->intents, mir->intent_count)
-        || mir_ast_array_uses_thread_pool_surface(mir->functions, mir->function_count)
-        || mir_ast_array_uses_thread_pool_surface(mir->externs, mir->extern_count);
+    return mir_inventory_surface_usage_summary(mir).uses_thread_pool;
 }
 
 bool
 mir_inventory_uses_intent_observability_surface(const MIRProgram *mir)
 {
-    if (mir == NULL)
-        return false;
-
-    return mir_ast_array_uses_intent_observability_surface(mir->types, mir->type_count)
-        || mir_ast_array_uses_intent_observability_surface(mir->abilities, mir->ability_count)
-        || mir_ast_array_uses_intent_observability_surface(mir->roles, mir->role_count)
-        || mir_ast_array_uses_intent_observability_surface(mir->parties, mir->party_count)
-        || mir_ast_array_uses_intent_observability_surface(mir->rosters, mir->roster_count)
-        || mir_ast_array_uses_intent_observability_surface(mir->worlds, mir->world_count)
-        || mir_ast_array_uses_intent_observability_surface(mir->relations, mir->relation_count)
-        || mir_ast_array_uses_intent_observability_surface(mir->effects, mir->effect_count)
-        || mir_ast_array_uses_intent_observability_surface(mir->zones, mir->zone_count)
-        || mir_ast_array_uses_intent_observability_surface(mir->events, mir->event_count)
-        || mir_ast_array_uses_intent_observability_surface(mir->intents, mir->intent_count)
-        || mir_ast_array_uses_intent_observability_surface(mir->functions, mir->function_count)
-        || mir_ast_array_uses_intent_observability_surface(mir->externs, mir->extern_count);
+    return mir_inventory_surface_usage_summary(mir).uses_intent_observability;
 }
 
 void
 mir_program_record_inventory_surface_usage(MIRProgram *mir)
 {
+    MIRSurfaceUsageSummary summary;
+
     if (mir == NULL)
         return;
 
+    summary = mir_inventory_surface_usage_summary(mir);
     mir->has_inventory_surface_usage_facts = true;
-    mir->inventory_uses_thread_pool_surface =
-        mir_inventory_uses_thread_pool_surface(mir);
+    mir->inventory_uses_thread_pool_surface = summary.uses_thread_pool;
     mir->inventory_uses_intent_observability_surface =
-        mir_inventory_uses_intent_observability_surface(mir);
+        summary.uses_intent_observability;
 }

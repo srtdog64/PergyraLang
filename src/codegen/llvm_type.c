@@ -270,7 +270,7 @@ pgy_split_result_args(const char *inner,
 }
 
 /* Extract `Result<..>` inner section into a heap-free scratch. Returns
- * false if `name` is not a Result type or is single-arg (legacy path). */
+ * false if `name` is not a Result type or has the old single-arg spelling. */
 static bool
 pgy_result_inner_args(const char *name,
                       char *inner_out, size_t inner_n)

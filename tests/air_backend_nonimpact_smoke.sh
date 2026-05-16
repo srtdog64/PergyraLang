@@ -2,6 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 WORK_ROOT="$ROOT_DIR/.tmp"
 mkdir -p "$WORK_ROOT"
 WORK_DIR="$(mktemp -d "$WORK_ROOT/pgy_air_backend_nonimpact.XXXXXX")"
@@ -10,10 +11,10 @@ trap 'rm -rf "$WORK_DIR"' EXIT
 DEFAULT_PGY="$ROOT_DIR/bin/pgy"
 TMP_PGY="${TMPDIR:-/tmp}/pgy-$(basename "$ROOT_DIR")-bin/pgy"
 EXPLICIT_PGY=0
-if [[ -x "${DEFAULT_PGY}.exe" ]]; then
+if pgy_binary_expects_windows_paths "${DEFAULT_PGY}.exe"; then
     DEFAULT_PGY="${DEFAULT_PGY}.exe"
 fi
-if [[ -x "${TMP_PGY}.exe" ]]; then
+if pgy_binary_expects_windows_paths "${TMP_PGY}.exe"; then
     TMP_PGY="${TMP_PGY}.exe"
 fi
 if [[ -n "${PGY_BIN:-}" ]]; then
@@ -34,7 +35,7 @@ if [[ ! -x "$PGY_BIN" ]]; then
     exit 0
 fi
 
-if [[ "$PGY_BIN" == *.exe ]]; then
+if pgy_binary_expects_windows_paths "$PGY_BIN"; then
     for dir in \
         "/c/Program Files/LLVM/bin" \
         "/c/ProgramData/mingw64/mingw64/bin" \
@@ -47,27 +48,7 @@ if [[ "$PGY_BIN" == *.exe ]]; then
 fi
 
 pgy_path_arg() {
-    local path="$1"
-
-    if [[ "$PGY_BIN" != *.exe ]]; then
-        printf '%s\n' "$path"
-        return 0
-    fi
-    if command -v cygpath >/dev/null 2>&1; then
-        cygpath -w "$path"
-        return 0
-    fi
-    if command -v wslpath >/dev/null 2>&1; then
-        wslpath -w "$path"
-        return 0
-    fi
-    if [[ "$path" =~ ^/mnt/([A-Za-z])/(.*)$ ]]; then
-        local drive="${BASH_REMATCH[1]}"
-        local rest="${BASH_REMATCH[2]//\//\\}"
-        printf '%s:\\%s\n' "${drive^^}" "$rest"
-        return 0
-    fi
-    printf '%s\n' "$path"
+    pgy_path_for_compiler "$PGY_BIN" "$1"
 }
 
 require_normal_backend_air_mir_gate() {
@@ -80,7 +61,8 @@ require_normal_backend_air_mir_gate() {
     source_arg="$(pgy_path_arg "$ROOT_DIR/$source_rel")"
     out_arg="$(pgy_path_arg "$out")"
 
-    if [[ "$PGY_BIN" == *.exe ]] && command -v powershell.exe >/dev/null 2>&1; then
+    if pgy_binary_expects_windows_paths "$PGY_BIN" \
+        && command -v powershell.exe >/dev/null 2>&1; then
         local ps1="$WORK_DIR/air-mir-gate.ps1"
         local win_pgy win_source win_out win_log win_ps1
         win_pgy="$(pgy_path_arg "$PGY_BIN")"
@@ -250,7 +232,8 @@ run_emit_pair() {
     relaxed_out_arg="$(pgy_path_arg "$relaxed_out")"
     strict_out_arg="$(pgy_path_arg "$strict_out")"
 
-    if [[ "$PGY_BIN" == *.exe ]] && command -v powershell.exe >/dev/null 2>&1; then
+    if pgy_binary_expects_windows_paths "$PGY_BIN" \
+        && command -v powershell.exe >/dev/null 2>&1; then
         local relaxed_ps1="$WORK_DIR/${case_name}_${name}_relaxed.ps1"
         local strict_ps1="$WORK_DIR/${case_name}_${name}_strict.ps1"
         local win_pgy win_source win_relaxed_out win_strict_out

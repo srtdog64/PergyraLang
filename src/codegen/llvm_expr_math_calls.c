@@ -9,7 +9,51 @@
 #include "llvm_expr_math_calls.h"
 #include "parser/ast_api.h"
 
+#include <stdlib.h>
 #include <string.h>
+
+typedef enum LLVMMathOp {
+    LLVM_MATH_OP_NONE = 0,
+    LLVM_MATH_OP_ABS,
+    LLVM_MATH_OP_MAX,
+    LLVM_MATH_OP_MIN,
+} LLVMMathOp;
+
+typedef struct LLVMMathSpec {
+    const char *name;
+    size_t argc;
+    LLVMMathOp op;
+} LLVMMathSpec;
+
+static int
+llvm_math_spec_compare(const void *key, const void *entry)
+{
+    const char *name = *(const char * const *)key;
+    const LLVMMathSpec *spec = (const LLVMMathSpec *)entry;
+
+    return strcmp(name, spec->name);
+}
+
+static LLVMMathOp
+llvm_math_lookup(const char *callee_name, size_t argc)
+{
+    static const LLVMMathSpec kLLVMMathSpecs[] = {
+        { "Abs", 1, LLVM_MATH_OP_ABS },
+        { "Max", 2, LLVM_MATH_OP_MAX },
+        { "Min", 2, LLVM_MATH_OP_MIN },
+    };
+    const LLVMMathSpec *match;
+
+    if (callee_name == NULL)
+        return LLVM_MATH_OP_NONE;
+
+    match = (const LLVMMathSpec *)bsearch(&callee_name, kLLVMMathSpecs,
+        sizeof(kLLVMMathSpecs) / sizeof(kLLVMMathSpecs[0]),
+        sizeof(kLLVMMathSpecs[0]), llvm_math_spec_compare);
+    if (match == NULL || match->argc != argc)
+        return LLVM_MATH_OP_NONE;
+    return match->op;
+}
 
 static bool
 llvm_math_error_out(LLVMGenCtx *ctx, ASTNode *node,
@@ -33,10 +77,16 @@ bool
 llvm_emit_scalar_math_call(ASTNode *node, LLVMGenCtx *ctx,
                            const char *callee_name, LLVMValueRef *out)
 {
+    size_t argc;
+    LLVMMathOp op;
+
     if (out == NULL)
         return false;
 
-    if (strcmp(callee_name, "Abs") == 0 && ast_call_arg_count(node) == 1) {
+    argc = ast_call_arg_count(node);
+    op = llvm_math_lookup(callee_name, argc);
+
+    if (op == LLVM_MATH_OP_ABS) {
         LLVMValueRef x = llvm_emit_expression(ast_call_argument(node, 0), ctx);
         if (x == NULL)
             return llvm_math_error_out(ctx, node, out,
@@ -49,7 +99,7 @@ llvm_emit_scalar_math_call(ASTNode *node, LLVMGenCtx *ctx,
         return true;
     }
 
-    if (strcmp(callee_name, "Min") == 0 && ast_call_arg_count(node) == 2) {
+    if (op == LLVM_MATH_OP_MIN) {
         LLVMValueRef a = llvm_emit_expression(ast_call_argument(node, 0), ctx);
         LLVMValueRef b = llvm_emit_expression(ast_call_argument(node, 1), ctx);
         if (a == NULL || b == NULL)
@@ -61,7 +111,7 @@ llvm_emit_scalar_math_call(ASTNode *node, LLVMGenCtx *ctx,
         return true;
     }
 
-    if (strcmp(callee_name, "Max") == 0 && ast_call_arg_count(node) == 2) {
+    if (op == LLVM_MATH_OP_MAX) {
         LLVMValueRef a = llvm_emit_expression(ast_call_argument(node, 0), ctx);
         LLVMValueRef b = llvm_emit_expression(ast_call_argument(node, 1), ctx);
         if (a == NULL || b == NULL)

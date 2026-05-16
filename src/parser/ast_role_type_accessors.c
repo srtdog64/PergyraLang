@@ -170,6 +170,32 @@ ast_role_impl(const ASTNode* node, size_t index)
     return node->data.role_decl.impl_abilities[index];
 }
 
+bool
+ast_role_impl_method_total_count(const ASTNode* node, size_t* count_out)
+{
+    size_t count = 0;
+
+    if (count_out == NULL)
+        return false;
+    if (node == NULL || node->type != AST_ROLE_DECL) {
+        *count_out = 0;
+        return true;
+    }
+    for (size_t i = 0; i < ast_role_impl_count(node); i++) {
+        ASTNode *impl = ast_role_impl(node, i);
+        size_t method_count;
+
+        if (impl == NULL || impl->type != AST_IMPL_ABILITY)
+            continue;
+        method_count = ast_impl_ability_method_count(impl);
+        if (method_count > SIZE_MAX - count)
+            return false;
+        count += method_count;
+    }
+    *count_out = count;
+    return true;
+}
+
 const char*
 ast_include_role_name(const ASTNode* node)
 {

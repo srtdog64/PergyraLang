@@ -2,12 +2,14 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
 PGY_EXPLICIT=0
 if [[ -n "${PGY_BIN:-}" ]]; then
     PGY_EXPLICIT=1
 fi
-if [[ "$PGY" != *.exe && -x "${PGY}.exe" ]]; then
+
+if [[ "$PGY" != *.exe ]] && pgy_binary_expects_windows_paths "${PGY}.exe"; then
     PGY="${PGY}.exe"
 fi
 if [[ ! -x "$PGY" ]]; then
@@ -61,7 +63,7 @@ setup_windows_compiler_runtime_path() {
 setup_windows_compiler_runtime_path
 
 TMP_BASE="${TMPDIR:-${TEMP:-/tmp}}"
-if [[ "$PGY" == *.exe ]]; then
+if pgy_binary_expects_windows_paths "$PGY"; then
     TMP_BASE="$ROOT_DIR/.tmp"
     mkdir -p "$TMP_BASE"
 fi
@@ -69,28 +71,7 @@ WORK_DIR="$(mktemp -d "${TMP_BASE%/}/pgy_air_json_schema.XXXXXX")"
 trap 'rm -rf "$WORK_DIR"' EXIT
 
 to_native_path_for_pgy() {
-    local path="$1"
-    if [[ "$PGY" != *.exe ]]; then
-        printf '%s\n' "$path"
-        return 0
-    fi
-    if command -v cygpath >/dev/null 2>&1; then
-        cygpath -w "$path"
-        return 0
-    fi
-    if [[ "$path" =~ ^/mnt/([A-Za-z])/(.*)$ ]]; then
-        local drive="${BASH_REMATCH[1]}"
-        local rest="${BASH_REMATCH[2]//\//\\}"
-        printf '%s:\\%s\n' "${drive^^}" "$rest"
-        return 0
-    fi
-    if [[ "$path" =~ ^/([A-Za-z])/(.*)$ ]]; then
-        local drive="${BASH_REMATCH[1]}"
-        local rest="${BASH_REMATCH[2]//\//\\}"
-        printf '%s:\\%s\n' "${drive^^}" "$rest"
-        return 0
-    fi
-    printf '%s\n' "$path"
+    pgy_path_for_compiler "$PGY" "$1"
 }
 
 if ! "$PGY" --help >"$WORK_DIR/pgy-help.out" 2>"$WORK_DIR/pgy-help.err"; then

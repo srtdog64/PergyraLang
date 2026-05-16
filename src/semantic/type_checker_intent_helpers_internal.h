@@ -3,7 +3,7 @@
  * owners.
  *
  * Definitions live in focused semantic owner TUs; this header keeps the seam
- * explicit without depending on a legacy include-fragment chain.
+ * explicit without depending on the former include-fragment chain.
  */
 #ifndef PERGYRA_TYPE_CHECKER_INTENT_HELPERS_INTERNAL_H
 #define PERGYRA_TYPE_CHECKER_INTENT_HELPERS_INTERNAL_H

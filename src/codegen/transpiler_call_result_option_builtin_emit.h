@@ -1,6 +1,68 @@
 #ifndef PGY_SRC_CODEGEN_TRANSPILER_CALL_RESULT_OPTION_BUILTIN_EMIT_H
 #define PGY_SRC_CODEGEN_TRANSPILER_CALL_RESULT_OPTION_BUILTIN_EMIT_H
 
+#include <stdlib.h>
+
+typedef enum TranspilerResultOptionOp {
+    TRANS_RESULT_OPTION_OP_NONE = 0,
+    TRANS_RESULT_OPTION_OP_ERR,
+    TRANS_RESULT_OPTION_OP_IS_ERR,
+    TRANS_RESULT_OPTION_OP_IS_NONE,
+    TRANS_RESULT_OPTION_OP_IS_OK,
+    TRANS_RESULT_OPTION_OP_IS_SOME,
+    TRANS_RESULT_OPTION_OP_NONE_VALUE,
+    TRANS_RESULT_OPTION_OP_OK,
+    TRANS_RESULT_OPTION_OP_SOME,
+    TRANS_RESULT_OPTION_OP_UNWRAP,
+    TRANS_RESULT_OPTION_OP_UNWRAP_OPTION,
+    TRANS_RESULT_OPTION_OP_UNWRAP_OR,
+} TranspilerResultOptionOp;
+
+typedef struct TranspilerResultOptionSpec {
+    const char *name;
+    TranspilerResultOptionOp op;
+} TranspilerResultOptionSpec;
+
+static int
+transpiler_result_option_spec_compare(const void *key, const void *entry)
+{
+    const char *name = *(const char * const *)key;
+    const TranspilerResultOptionSpec *spec =
+        (const TranspilerResultOptionSpec *)entry;
+
+    return strcmp(name, spec->name);
+}
+
+static TranspilerResultOptionOp
+transpiler_result_option_lookup(const char *fn)
+{
+    static const TranspilerResultOptionSpec kTranspilerResultOptionSpecs[] = {
+        { "Err", TRANS_RESULT_OPTION_OP_ERR },
+        { "IsErr", TRANS_RESULT_OPTION_OP_IS_ERR },
+        { "IsNone", TRANS_RESULT_OPTION_OP_IS_NONE },
+        { "IsOk", TRANS_RESULT_OPTION_OP_IS_OK },
+        { "IsSome", TRANS_RESULT_OPTION_OP_IS_SOME },
+        { "None", TRANS_RESULT_OPTION_OP_NONE_VALUE },
+        { "Ok", TRANS_RESULT_OPTION_OP_OK },
+        { "Some", TRANS_RESULT_OPTION_OP_SOME },
+        { "Unwrap", TRANS_RESULT_OPTION_OP_UNWRAP },
+        { "UnwrapOption", TRANS_RESULT_OPTION_OP_UNWRAP_OPTION },
+        { "UnwrapOr", TRANS_RESULT_OPTION_OP_UNWRAP_OR },
+    };
+    const TranspilerResultOptionSpec *match;
+
+    if (fn == NULL)
+        return TRANS_RESULT_OPTION_OP_NONE;
+
+    match = (const TranspilerResultOptionSpec *)bsearch(&fn,
+        kTranspilerResultOptionSpecs,
+        sizeof(kTranspilerResultOptionSpecs)
+            / sizeof(kTranspilerResultOptionSpecs[0]),
+        sizeof(kTranspilerResultOptionSpecs[0]),
+        transpiler_result_option_spec_compare);
+    return match != NULL ? match->op : TRANS_RESULT_OPTION_OP_NONE;
+}
+
 static bool
 transpiler_option_type_has_concrete_inner(const char *opt_type)
 {
@@ -28,16 +90,16 @@ emit_call_result_option_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *c
         size_t argc = ast_call_arg_count(call);
         ASTNode *arg0 = ast_call_argument(call, 0);
         ASTNode *arg1 = ast_call_argument(call, 1);
-        bool is_result_ctor = false;
-        bool is_result_consumer = false;
+        TranspilerResultOptionOp op = transpiler_result_option_lookup(fn);
+        bool is_result_ctor = op == TRANS_RESULT_OPTION_OP_OK
+            || op == TRANS_RESULT_OPTION_OP_ERR;
+        bool is_result_consumer = op == TRANS_RESULT_OPTION_OP_IS_OK
+            || op == TRANS_RESULT_OPTION_OP_IS_ERR
+            || op == TRANS_RESULT_OPTION_OP_UNWRAP
+            || op == TRANS_RESULT_OPTION_OP_UNWRAP_OR;
         char result_suffix[128] = {0};
         bool have_result_suffix = transpiler_result_suffix_from_context(
             ctx, result_suffix, sizeof(result_suffix));
-        is_result_ctor = strcmp(fn, "Ok") == 0 || strcmp(fn, "Err") == 0;
-        is_result_consumer = strcmp(fn, "IsOk") == 0
-            || strcmp(fn, "IsErr") == 0
-            || strcmp(fn, "Unwrap") == 0
-            || strcmp(fn, "UnwrapOr") == 0;
 
         if (!have_result_suffix && is_result_consumer
             && argc >= 1
@@ -54,37 +116,37 @@ emit_call_result_option_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *c
             return pergyra_strdup("0");
         }
 
-        if (strcmp(fn, "Ok") == 0 && argc == 1) {
+        if (op == TRANS_RESULT_OPTION_OP_OK && argc == 1) {
             char *arg = emit_expression(arg0, ctx);
             char *result = strdup_fmt("Ok_%s(%s)", result_suffix, arg);
             free(arg);
             return result;
         }
-        if (strcmp(fn, "Err") == 0 && argc == 1) {
+        if (op == TRANS_RESULT_OPTION_OP_ERR && argc == 1) {
             char *arg = emit_expression(arg0, ctx);
             char *result = strdup_fmt("Err_%s(%s)", result_suffix, arg);
             free(arg);
             return result;
         }
-        if (strcmp(fn, "IsOk") == 0 && argc == 1) {
+        if (op == TRANS_RESULT_OPTION_OP_IS_OK && argc == 1) {
             char *arg = emit_expression(arg0, ctx);
             char *result = strdup_fmt("IsOk_%s(%s)", result_suffix, arg);
             free(arg);
             return result;
         }
-        if (strcmp(fn, "IsErr") == 0 && argc == 1) {
+        if (op == TRANS_RESULT_OPTION_OP_IS_ERR && argc == 1) {
             char *arg = emit_expression(arg0, ctx);
             char *result = strdup_fmt("IsErr_%s(%s)", result_suffix, arg);
             free(arg);
             return result;
         }
-        if (strcmp(fn, "Unwrap") == 0 && argc == 1) {
+        if (op == TRANS_RESULT_OPTION_OP_UNWRAP && argc == 1) {
             char *arg = emit_expression(arg0, ctx);
             char *result = strdup_fmt("Unwrap_%s(%s)", result_suffix, arg);
             free(arg);
             return result;
         }
-        if (strcmp(fn, "UnwrapOr") == 0 && argc == 2) {
+        if (op == TRANS_RESULT_OPTION_OP_UNWRAP_OR && argc == 2) {
             char *arg = emit_expression(arg0, ctx);
             char *fallback = emit_expression(arg1, ctx);
             char *result = strdup_fmt("UnwrapOr_%s(%s, %s)", result_suffix, arg, fallback);
@@ -92,7 +154,7 @@ emit_call_result_option_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *c
             free(fallback);
             return result;
         }
-        if (strcmp(fn, "Some") == 0 && argc == 1) {
+        if (op == TRANS_RESULT_OPTION_OP_SOME && argc == 1) {
             char *arg = emit_expression(arg0, ctx);
             const char *inner = infer_expression_type_name(ctx, arg0);
             char inner_buf[128];
@@ -117,10 +179,10 @@ emit_call_result_option_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *c
             free(arg);
             return result;
         }
-        if (strcmp(fn, "None") == 0 && argc == 0) {
+        if (op == TRANS_RESULT_OPTION_OP_NONE_VALUE && argc == 0) {
             return transpiler_emit_none_with_context(ctx, call);
         }
-        if (strcmp(fn, "IsSome") == 0 && argc == 1) {
+        if (op == TRANS_RESULT_OPTION_OP_IS_SOME && argc == 1) {
             const char *opt_type = infer_expression_type_name(ctx, arg0);
             if (!transpiler_option_type_has_concrete_inner(opt_type)) {
                 transpiler_set_backend_error_with_hints(ctx,
@@ -140,7 +202,7 @@ emit_call_result_option_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *c
             free(arg);
             return result;
         }
-        if (strcmp(fn, "IsNone") == 0 && argc == 1) {
+        if (op == TRANS_RESULT_OPTION_OP_IS_NONE && argc == 1) {
             const char *opt_type = infer_expression_type_name(ctx, arg0);
             if (!transpiler_option_type_has_concrete_inner(opt_type)) {
                 transpiler_set_backend_error_with_hints(ctx,
@@ -160,7 +222,7 @@ emit_call_result_option_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *c
             free(arg);
             return result;
         }
-        if (strcmp(fn, "UnwrapOption") == 0 && argc == 1) {
+        if (op == TRANS_RESULT_OPTION_OP_UNWRAP_OPTION && argc == 1) {
             const char *opt_type = infer_expression_type_name(ctx, arg0);
             if (!transpiler_option_type_has_concrete_inner(opt_type)) {
                 transpiler_set_backend_error_with_hints(ctx,

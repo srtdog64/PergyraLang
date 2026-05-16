@@ -56,14 +56,11 @@ llvm_collection_required_receiver_var(LLVMGenCtx *ctx,
                                       ASTNode *receiver,
                                       const char *callee_name,
                                       const char *collection_kind,
-                                      LLVMValueRef fallback,
                                       LLVMValueRef *out)
 {
     const char *kind;
     const char *name;
     LLVMVarEntry *var;
-
-    (void)fallback;
 
     kind = collection_kind != NULL ? collection_kind : "collection";
     if (receiver == NULL || receiver->type != AST_IDENTIFIER) {
@@ -104,11 +101,8 @@ llvm_collection_required_receiver_var(LLVMGenCtx *ctx,
 
 bool
 llvm_collection_extended_error_out(LLVMGenCtx *ctx, ASTNode *node,
-                                   LLVMValueRef *out, LLVMValueRef recovery,
-                                   const char *message)
+                                   LLVMValueRef *out, const char *message)
 {
-    (void)recovery;
-
     if (ctx != NULL && !ctx->has_error) {
         llvm_set_error_at_with_hints(ctx, node,
             PGY_CODE_LLVM_TYPE_UNSUPPORTED,

@@ -53,6 +53,32 @@ typedef struct LLVMStdlibRuntimeCallSpec {
     size_t      arg_count;
 } LLVMStdlibRuntimeCallSpec;
 
+typedef enum LLVMStdlibStringSpecialOp {
+    LLVM_STDLIB_STRING_SPECIAL_NONE = 0,
+    LLVM_STDLIB_STRING_SPECIAL_LENGTH,
+    LLVM_STDLIB_STRING_SPECIAL_TO_STRING,
+} LLVMStdlibStringSpecialOp;
+
+typedef struct LLVMStdlibStringSpecialSpec {
+    const char *name;
+    size_t arg_count;
+    LLVMStdlibStringSpecialOp op;
+} LLVMStdlibStringSpecialSpec;
+
+typedef enum LLVMStdlibIoSpecialOp {
+    LLVM_STDLIB_IO_SPECIAL_NONE = 0,
+    LLVM_STDLIB_IO_SPECIAL_NOW,
+    LLVM_STDLIB_IO_SPECIAL_PRINT,
+    LLVM_STDLIB_IO_SPECIAL_READ_LINE,
+    LLVM_STDLIB_IO_SPECIAL_SLEEP,
+} LLVMStdlibIoSpecialOp;
+
+typedef struct LLVMStdlibIoSpecialSpec {
+    const char *name;
+    size_t arg_count;
+    LLVMStdlibIoSpecialOp op;
+} LLVMStdlibIoSpecialSpec;
+
 static int
 llvm_stdlib_runtime_call_compare(const void *key, const void *entry)
 {
@@ -63,10 +89,30 @@ llvm_stdlib_runtime_call_compare(const void *key, const void *entry)
     return strcmp(name, spec->name);
 }
 
+static int
+llvm_stdlib_string_special_compare(const void *key, const void *entry)
+{
+    const char *name = *(const char * const *)key;
+    const LLVMStdlibStringSpecialSpec *spec =
+        (const LLVMStdlibStringSpecialSpec *)entry;
+
+    return strcmp(name, spec->name);
+}
+
+static int
+llvm_stdlib_io_special_compare(const void *key, const void *entry)
+{
+    const char *name = *(const char * const *)key;
+    const LLVMStdlibIoSpecialSpec *spec =
+        (const LLVMStdlibIoSpecialSpec *)entry;
+
+    return strcmp(name, spec->name);
+}
+
 static const LLVMStdlibRuntimeCallSpec *
 llvm_stdlib_string_file_runtime_call_lookup(const char *callee_name)
 {
-    static const LLVMStdlibRuntimeCallSpec specs[] = {
+    static const LLVMStdlibRuntimeCallSpec kLLVMStdlibStringFileRuntimeSpecs[] = {
         { "Concat", "stdlib string", "StringConcat", 2 },
         { "Contains", "stdlib string", "StringContains", 2 },
         { "Input", "stdlib io", "pgy_input", 1 },
@@ -92,8 +138,81 @@ llvm_stdlib_string_file_runtime_call_lookup(const char *callee_name)
         return NULL;
 
     return (const LLVMStdlibRuntimeCallSpec *)bsearch(
-        &callee_name, specs, sizeof(specs) / sizeof(specs[0]),
-        sizeof(specs[0]), llvm_stdlib_runtime_call_compare);
+        &callee_name, kLLVMStdlibStringFileRuntimeSpecs,
+        sizeof(kLLVMStdlibStringFileRuntimeSpecs)
+            / sizeof(kLLVMStdlibStringFileRuntimeSpecs[0]),
+        sizeof(kLLVMStdlibStringFileRuntimeSpecs[0]),
+        llvm_stdlib_runtime_call_compare);
+}
+
+static const LLVMStdlibRuntimeCallSpec *
+llvm_stdlib_runtime_io_call_lookup(const char *callee_name)
+{
+    static const LLVMStdlibRuntimeCallSpec kLLVMStdlibRuntimeIoSpecs[] = {
+        { "FileClose", "stdlib file", "pgy_file_close", 1 },
+        { "FileOpen", "stdlib file", "pgy_file_open", 2 },
+        { "FileRead", "stdlib file", "pgy_file_read", 1 },
+        { "FileWrite", "stdlib file", "pgy_file_write", 2 },
+        { "SeedRandom", "stdlib runtime", "SeedRandom", 1 },
+    };
+
+    if (callee_name == NULL)
+        return NULL;
+
+    return (const LLVMStdlibRuntimeCallSpec *)bsearch(
+        &callee_name, kLLVMStdlibRuntimeIoSpecs,
+        sizeof(kLLVMStdlibRuntimeIoSpecs)
+            / sizeof(kLLVMStdlibRuntimeIoSpecs[0]),
+        sizeof(kLLVMStdlibRuntimeIoSpecs[0]),
+        llvm_stdlib_runtime_call_compare);
+}
+
+static LLVMStdlibStringSpecialOp
+llvm_stdlib_string_special_lookup(const char *callee_name, size_t argc)
+{
+    static const LLVMStdlibStringSpecialSpec kLLVMStdlibStringSpecialSpecs[] = {
+        { "StringLength", 1, LLVM_STDLIB_STRING_SPECIAL_LENGTH },
+        { "ToString", 1, LLVM_STDLIB_STRING_SPECIAL_TO_STRING },
+    };
+    const LLVMStdlibStringSpecialSpec *match;
+
+    if (callee_name == NULL)
+        return LLVM_STDLIB_STRING_SPECIAL_NONE;
+
+    match = (const LLVMStdlibStringSpecialSpec *)bsearch(
+        &callee_name, kLLVMStdlibStringSpecialSpecs,
+        sizeof(kLLVMStdlibStringSpecialSpecs)
+            / sizeof(kLLVMStdlibStringSpecialSpecs[0]),
+        sizeof(kLLVMStdlibStringSpecialSpecs[0]),
+        llvm_stdlib_string_special_compare);
+    if (match == NULL || match->arg_count != argc)
+        return LLVM_STDLIB_STRING_SPECIAL_NONE;
+    return match->op;
+}
+
+static LLVMStdlibIoSpecialOp
+llvm_stdlib_io_special_lookup(const char *callee_name, size_t argc)
+{
+    static const LLVMStdlibIoSpecialSpec kLLVMStdlibIoSpecialSpecs[] = {
+        { "Now", 0, LLVM_STDLIB_IO_SPECIAL_NOW },
+        { "Print", 1, LLVM_STDLIB_IO_SPECIAL_PRINT },
+        { "ReadLine", 0, LLVM_STDLIB_IO_SPECIAL_READ_LINE },
+        { "Sleep", 1, LLVM_STDLIB_IO_SPECIAL_SLEEP },
+    };
+    const LLVMStdlibIoSpecialSpec *match;
+
+    if (callee_name == NULL)
+        return LLVM_STDLIB_IO_SPECIAL_NONE;
+
+    match = (const LLVMStdlibIoSpecialSpec *)bsearch(
+        &callee_name, kLLVMStdlibIoSpecialSpecs,
+        sizeof(kLLVMStdlibIoSpecialSpecs)
+            / sizeof(kLLVMStdlibIoSpecialSpecs[0]),
+        sizeof(kLLVMStdlibIoSpecialSpecs[0]),
+        llvm_stdlib_io_special_compare);
+    if (match == NULL || match->arg_count != argc)
+        return LLVM_STDLIB_IO_SPECIAL_NONE;
+    return match->op;
 }
 
 bool
@@ -101,10 +220,14 @@ llvm_emit_stdlib_string_file_call(ASTNode *node, LLVMGenCtx *ctx,
                                   const char *callee_name,
                                   LLVMValueRef *out_result)
 {
+    LLVMStdlibStringSpecialOp op;
+
     if (node == NULL || ctx == NULL || callee_name == NULL || out_result == NULL)
         return false;
 
-    if (strcmp(callee_name, "StringLength") == 0 && ast_call_arg_count(node) == 1) {
+    op = llvm_stdlib_string_special_lookup(callee_name, ast_call_arg_count(node));
+
+    if (op == LLVM_STDLIB_STRING_SPECIAL_LENGTH) {
         LLVMValueRef s = llvm_emit_expression(ast_call_argument(node, 0), ctx);
         LLVMFuncEntry *strlen_fn = llvm_lookup_function(ctx, "strlen");
         LLVMValueRef args[] = { s };
@@ -128,8 +251,7 @@ llvm_emit_stdlib_string_file_call(ASTNode *node, LLVMGenCtx *ctx,
         return true;
     }
 
-    if (strcmp(callee_name, "ToString") == 0
-        && ast_call_arg_count(node) == 1) {
+    if (op == LLVM_STDLIB_STRING_SPECIAL_TO_STRING) {
         LLVMValueRef value = llvm_emit_expression(ast_call_argument(node, 0), ctx);
         if (value == NULL) {
             *out_result = llvm_stdlib_error_value(node, ctx, callee_name,
@@ -161,40 +283,24 @@ llvm_emit_stdlib_runtime_io_call(ASTNode *node, LLVMGenCtx *ctx,
                                  const char *callee_name,
                                  LLVMValueRef *out_result)
 {
+    LLVMStdlibIoSpecialOp op;
+
     if (node == NULL || ctx == NULL || callee_name == NULL || out_result == NULL)
         return false;
 
-    if (strcmp(callee_name, "SeedRandom") == 0
-        && ast_call_arg_count(node) == 1) {
-        return llvm_emit_required_runtime_call_result(node, ctx,
-            "stdlib runtime", callee_name, "SeedRandom", 1, out_result);
+    {
+        const LLVMStdlibRuntimeCallSpec *spec =
+            llvm_stdlib_runtime_io_call_lookup(callee_name);
+        if (spec != NULL && ast_call_arg_count(node) == spec->arg_count) {
+            return llvm_emit_required_runtime_call_result(node, ctx,
+                spec->family, callee_name, spec->runtime_name,
+                spec->arg_count, out_result);
+        }
     }
 
-    if (strcmp(callee_name, "FileOpen") == 0
-        && ast_call_arg_count(node) == 2) {
-        return llvm_emit_required_runtime_call_result(node, ctx,
-            "stdlib file", callee_name, "pgy_file_open", 2, out_result);
-    }
+    op = llvm_stdlib_io_special_lookup(callee_name, ast_call_arg_count(node));
 
-    if (strcmp(callee_name, "FileRead") == 0
-        && ast_call_arg_count(node) == 1) {
-        return llvm_emit_required_runtime_call_result(node, ctx,
-            "stdlib file", callee_name, "pgy_file_read", 1, out_result);
-    }
-
-    if (strcmp(callee_name, "FileWrite") == 0
-        && ast_call_arg_count(node) == 2) {
-        return llvm_emit_required_runtime_call_result(node, ctx,
-            "stdlib file", callee_name, "pgy_file_write", 2, out_result);
-    }
-
-    if (strcmp(callee_name, "FileClose") == 0
-        && ast_call_arg_count(node) == 1) {
-        return llvm_emit_required_runtime_call_result(node, ctx,
-            "stdlib file", callee_name, "pgy_file_close", 1, out_result);
-    }
-
-    if (strcmp(callee_name, "Print") == 0 && ast_call_arg_count(node) == 1) {
+    if (op == LLVM_STDLIB_IO_SPECIAL_PRINT) {
         LLVMValueRef val = llvm_emit_expression(ast_call_argument(node, 0), ctx);
         LLVMTypeRef vt;
         LLVMFuncEntry *pf = llvm_required_runtime_function(ctx, node,
@@ -224,7 +330,7 @@ llvm_emit_stdlib_runtime_io_call(ASTNode *node, LLVMGenCtx *ctx,
         return true;
     }
 
-    if (strcmp(callee_name, "ReadLine") == 0 && ast_call_arg_count(node) == 0) {
+    if (op == LLVM_STDLIB_IO_SPECIAL_READ_LINE) {
         LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
             "stdlib io", callee_name, "pgy_input");
         if (fn != NULL) {
@@ -239,7 +345,7 @@ llvm_emit_stdlib_runtime_io_call(ASTNode *node, LLVMGenCtx *ctx,
         return true;
     }
 
-    if (strcmp(callee_name, "Now") == 0 && ast_call_arg_count(node) == 0) {
+    if (op == LLVM_STDLIB_IO_SPECIAL_NOW) {
         LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
             "stdlib time", callee_name, "pgy_now_ms");
         if (fn != NULL) {
@@ -251,7 +357,7 @@ llvm_emit_stdlib_runtime_io_call(ASTNode *node, LLVMGenCtx *ctx,
         return true;
     }
 
-    if (strcmp(callee_name, "Sleep") == 0 && ast_call_arg_count(node) == 1) {
+    if (op == LLVM_STDLIB_IO_SPECIAL_SLEEP) {
         LLVMFuncEntry *fn = llvm_required_runtime_function(ctx, node,
             "stdlib time", callee_name, "pgy_sleep_ms");
         if (fn == NULL) {

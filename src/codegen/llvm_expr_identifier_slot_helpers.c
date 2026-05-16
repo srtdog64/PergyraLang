@@ -67,8 +67,8 @@ llvm_derive_slot_inner_from_current_decl(LLVMGenCtx *ctx,
         }
 
         type_name = ast_type_name(p->type);
-        if (strcmp(type_name, "Slot") != 0
-            && strcmp(type_name, "SecureSlot") != 0) {
+        if (!pgy_codegen_type_name_is_slot(type_name)
+            && !pgy_codegen_type_name_is_secure_slot(type_name)) {
             continue;
         }
 
@@ -85,7 +85,7 @@ llvm_derive_slot_inner_from_current_decl(LLVMGenCtx *ctx,
             continue;
 
         if (secure_out != NULL)
-            *secure_out = (strcmp(type_name, "SecureSlot") == 0);
+            *secure_out = pgy_codegen_type_name_is_secure_slot(type_name);
         return inner_name;
     }
 

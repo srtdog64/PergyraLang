@@ -28,11 +28,11 @@ void semantic_stage_generic_contract_nodes(GenericParams *gp,
                                            const char *owner_name);
 void semantic_stage_function_signature(ASTNode *func_decl,
                                        SemanticContext *ctx,
-                                       const char *fallback_name);
+                                       const char *owner_name_hint);
 void semantic_stage_method_array(ASTNode **methods,
                                  size_t method_count,
                                  SemanticContext *ctx,
-                                 const char *fallback_name);
+                                 const char *owner_name_hint);
 void semantic_stage_event_signature(ASTNode *event_decl,
                                     SemanticContext *ctx);
 void semantic_stage_class_decl(ASTNode *decl, SemanticContext *ctx);

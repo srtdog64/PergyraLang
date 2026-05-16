@@ -53,9 +53,7 @@ transpiler_refine_slot_target_from_emitted_expr(TranspilerCtx *ctx,
         return;
     }
     const char *type_name = lookup_typed_var(ctx, slot_expr);
-    if (type_name != NULL
-        && (strcmp(type_name, "SecureSlot") == 0
-            || strncmp(type_name, "SecureSlot<", 11) == 0)) {
+    if (pgy_codegen_type_name_is_secure_slot(type_name)) {
         *slot_name_io = slot_expr;
         *secure_io = true;
     }

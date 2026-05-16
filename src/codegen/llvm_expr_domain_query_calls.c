@@ -3,11 +3,65 @@
 #include "llvm_expr_domain_query_calls.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "llvm_internal_api.h"
 #include "llvm_inventory_decl_lookup.h"
 #include "parser/ast_api.h"
+
+typedef enum LLVMDomainQueryOp {
+    LLVM_DOMAIN_QUERY_OP_NONE = 0,
+    LLVM_DOMAIN_QUERY_OP_HAS_LAYER,
+    LLVM_DOMAIN_QUERY_OP_HAS_PROJECTION,
+    LLVM_DOMAIN_QUERY_OP_HAS_STATE,
+    LLVM_DOMAIN_QUERY_OP_HAS_ZONE,
+    LLVM_DOMAIN_QUERY_OP_HAS_ZONE_LAYER,
+    LLVM_DOMAIN_QUERY_OP_HAS_ZONE_PROJECTION,
+    LLVM_DOMAIN_QUERY_OP_HAS_ZONE_STATE,
+} LLVMDomainQueryOp;
+
+typedef struct LLVMDomainQuerySpec {
+    const char *name;
+    size_t min_argc;
+    size_t max_argc;
+    LLVMDomainQueryOp op;
+} LLVMDomainQuerySpec;
+
+static int
+llvm_domain_query_spec_compare(const void *key, const void *entry)
+{
+    const char *name = *(const char * const *)key;
+    const LLVMDomainQuerySpec *spec = (const LLVMDomainQuerySpec *)entry;
+
+    return strcmp(name, spec->name);
+}
+
+static LLVMDomainQueryOp
+llvm_domain_query_lookup(const char *callee_name, size_t argc)
+{
+    static const LLVMDomainQuerySpec kLLVMDomainQuerySpecs[] = {
+        { "HasLayer", 1, 1, LLVM_DOMAIN_QUERY_OP_HAS_LAYER },
+        { "HasProjection", 1, 1, LLVM_DOMAIN_QUERY_OP_HAS_PROJECTION },
+        { "HasState", 1, (size_t)-1, LLVM_DOMAIN_QUERY_OP_HAS_STATE },
+        { "HasZone", 1, 1, LLVM_DOMAIN_QUERY_OP_HAS_ZONE },
+        { "HasZoneLayer", 2, 2, LLVM_DOMAIN_QUERY_OP_HAS_ZONE_LAYER },
+        { "HasZoneProjection", 2, 2, LLVM_DOMAIN_QUERY_OP_HAS_ZONE_PROJECTION },
+        { "HasZoneState", 2, 2, LLVM_DOMAIN_QUERY_OP_HAS_ZONE_STATE },
+    };
+    const LLVMDomainQuerySpec *match;
+
+    if (callee_name == NULL)
+        return LLVM_DOMAIN_QUERY_OP_NONE;
+
+    match = (const LLVMDomainQuerySpec *)bsearch(&callee_name,
+        kLLVMDomainQuerySpecs,
+        sizeof(kLLVMDomainQuerySpecs) / sizeof(kLLVMDomainQuerySpecs[0]),
+        sizeof(kLLVMDomainQuerySpecs[0]), llvm_domain_query_spec_compare);
+    if (match == NULL || argc < match->min_argc || argc > match->max_argc)
+        return LLVM_DOMAIN_QUERY_OP_NONE;
+    return match->op;
+}
 
 static LLVMValueRef
 llvm_load_current_bool_field(LLVMGenCtx *ctx, LLVMClassTypeEntry *cls,
@@ -235,7 +289,7 @@ llvm_emit_has_zone_query(ASTNode *node, LLVMGenCtx *ctx, LLVMValueRef *out)
 
 static bool
 llvm_emit_has_zone_detail_query(ASTNode *node, LLVMGenCtx *ctx,
-                                const char *callee_name, LLVMValueRef *out)
+                                LLVMDomainQueryOp op, LLVMValueRef *out)
 {
     ASTNode *host_decl = llvm_current_host_decl(ctx);
     const char *host_name = llvm_decl_node_name(host_decl);
@@ -271,7 +325,7 @@ llvm_emit_has_zone_detail_query(ASTNode *node, LLVMGenCtx *ctx,
         return true;
     }
 
-    if (strcmp(callee_name, "HasZoneProjection") == 0) {
+    if (op == LLVM_DOMAIN_QUERY_OP_HAS_ZONE_PROJECTION) {
         ASTNode *slot = llvm_find_zone_domain_slot_decl(zone_decl, detail_name);
         if (slot != NULL && !ast_domain_slot_is_subject(slot)) {
             char field_name[256];
@@ -282,7 +336,7 @@ llvm_emit_has_zone_detail_query(ASTNode *node, LLVMGenCtx *ctx,
             }
             field_idx = llvm_class_field_index(zone_cls, field_name);
         }
-    } else if (strcmp(callee_name, "HasZoneLayer") == 0) {
+    } else if (op == LLVM_DOMAIN_QUERY_OP_HAS_ZONE_LAYER) {
         if (llvm_find_zone_layer_slot_decl(zone_decl, detail_name) != NULL) {
             char field_name[256];
             if (!llvm_domain_query_field_name(ctx, field_name, sizeof(field_name),
@@ -292,7 +346,7 @@ llvm_emit_has_zone_detail_query(ASTNode *node, LLVMGenCtx *ctx,
             }
             field_idx = llvm_class_field_index(zone_cls, field_name);
         }
-    } else if (strcmp(callee_name, "HasZoneState") == 0) {
+    } else if (op == LLVM_DOMAIN_QUERY_OP_HAS_ZONE_STATE) {
         if (llvm_find_zone_state_decl(ctx, zone_decl, detail_name) != NULL) {
             char field_name[256];
             if (!llvm_domain_query_field_name(ctx, field_name, sizeof(field_name),
@@ -326,20 +380,20 @@ llvm_emit_domain_query_call(ASTNode *node, LLVMGenCtx *ctx,
                             const char *callee_name, LLVMValueRef *out)
 {
     size_t arg_count = ast_call_arg_count(node);
+    LLVMDomainQueryOp op = llvm_domain_query_lookup(callee_name, arg_count);
 
-    if (strcmp(callee_name, "HasProjection") == 0 && arg_count == 1)
+    if (op == LLVM_DOMAIN_QUERY_OP_HAS_PROJECTION)
         return llvm_emit_has_projection_query(node, ctx, out);
-    if (strcmp(callee_name, "HasLayer") == 0 && arg_count == 1)
+    if (op == LLVM_DOMAIN_QUERY_OP_HAS_LAYER)
         return llvm_emit_has_layer_query(node, ctx, out);
-    if (strcmp(callee_name, "HasState") == 0 && arg_count >= 1)
+    if (op == LLVM_DOMAIN_QUERY_OP_HAS_STATE)
         return llvm_emit_has_state_query(node, ctx, out);
-    if (strcmp(callee_name, "HasZone") == 0 && arg_count == 1)
+    if (op == LLVM_DOMAIN_QUERY_OP_HAS_ZONE)
         return llvm_emit_has_zone_query(node, ctx, out);
-    if ((strcmp(callee_name, "HasZoneProjection") == 0
-         || strcmp(callee_name, "HasZoneLayer") == 0
-         || strcmp(callee_name, "HasZoneState") == 0)
-        && arg_count == 2) {
-        return llvm_emit_has_zone_detail_query(node, ctx, callee_name, out);
+    if (op == LLVM_DOMAIN_QUERY_OP_HAS_ZONE_PROJECTION
+        || op == LLVM_DOMAIN_QUERY_OP_HAS_ZONE_LAYER
+        || op == LLVM_DOMAIN_QUERY_OP_HAS_ZONE_STATE) {
+        return llvm_emit_has_zone_detail_query(node, ctx, op, out);
     }
     return false;
 }

@@ -3,6 +3,8 @@
 #include "codegen_slot_type_policy.h"
 #include "transpiler_builtin_type_table.h"
 
+#include <stdlib.h>
+
 #define PGY_ARRAY_COUNT(items) (sizeof(items) / sizeof((items)[0]))
 
 typedef const char *(*LLVMCollectionInnerLookup)(LLVMGenCtx *ctx,
@@ -14,30 +16,47 @@ typedef struct
     LLVMCollectionInnerLookup lookup;
 } LLVMCollectionGetSpec;
 
+static int
+llvm_stmt_string_spec_compare(const void *key, const void *entry)
+{
+    const char *name = *(const char * const *)key;
+    const char *item = *(const char * const *)entry;
+
+    return strcmp(name, item);
+}
+
+static int
+llvm_stmt_collection_get_spec_compare(const void *key, const void *entry)
+{
+    const char *name = *(const char * const *)key;
+    const LLVMCollectionGetSpec *spec = (const LLVMCollectionGetSpec *)entry;
+
+    return strcmp(name, spec->name);
+}
+
 static bool
-llvm_stmt_name_in_table(const char *name, const char *const *items,
-                        size_t item_count)
+llvm_stmt_name_in_sorted_table(const char *name,
+                               const char *const *items,
+                               size_t item_count)
 {
     if (name == NULL)
         return false;
-    for (size_t i = 0; i < item_count; i++) {
-        if (strcmp(name, items[i]) == 0)
-            return true;
-    }
-    return false;
+
+    return bsearch(&name, items, item_count, sizeof(items[0]),
+        llvm_stmt_string_spec_compare) != NULL;
 }
 
 static bool
 llvm_stmt_type_name_is_simple_builtin_return(const char *type_name)
 {
     static const char *const return_types[] = {
-        "Int",
         "Bool",
         "Float",
+        "Int",
         "String",
         "Void",
     };
-    return llvm_stmt_name_in_table(type_name, return_types,
+    return llvm_stmt_name_in_sorted_table(type_name, return_types,
         PGY_ARRAY_COUNT(return_types));
 }
 
@@ -148,20 +167,20 @@ llvm_stmt_call_returns_collection_size(const char *callee)
 {
     static const char *const calls[] = {
         "ListSize",
-        "QueueSize",
         "MapSize",
+        "QueueSize",
     };
-    return llvm_stmt_name_in_table(callee, calls, PGY_ARRAY_COUNT(calls));
+    return llvm_stmt_name_in_sorted_table(callee, calls, PGY_ARRAY_COUNT(calls));
 }
 
 bool
 llvm_stmt_call_returns_collection_bool(const char *callee)
 {
     static const char *const calls[] = {
-        "QueueEmpty",
         "MapHas",
+        "QueueEmpty",
     };
-    return llvm_stmt_name_in_table(callee, calls, PGY_ARRAY_COUNT(calls));
+    return llvm_stmt_name_in_sorted_table(callee, calls, PGY_ARRAY_COUNT(calls));
 }
 
 bool
@@ -169,22 +188,22 @@ llvm_stmt_call_returns_collection_value(const char *callee)
 {
     static const char *const calls[] = {
         "ListGet",
-        "QueuePop",
         "MapGet",
+        "QueuePop",
     };
-    return llvm_stmt_name_in_table(callee, calls, PGY_ARRAY_COUNT(calls));
+    return llvm_stmt_name_in_sorted_table(callee, calls, PGY_ARRAY_COUNT(calls));
 }
 
 bool
 llvm_stmt_call_returns_domain_bool(const char *callee)
 {
     static const char *const calls[] = {
-        "HasZone",
-        "HasState",
         "HasLayer",
         "HasProjection",
+        "HasState",
+        "HasZone",
     };
-    return llvm_stmt_name_in_table(callee, calls, PGY_ARRAY_COUNT(calls));
+    return llvm_stmt_name_in_sorted_table(callee, calls, PGY_ARRAY_COUNT(calls));
 }
 
 const char *
@@ -193,16 +212,19 @@ llvm_stmt_lookup_collection_get_inner(LLVMGenCtx *ctx, const char *callee,
 {
     if (ctx == NULL || callee == NULL || collection == NULL)
         return NULL;
-    static const LLVMCollectionGetSpec specs[] = {
+    static const LLVMCollectionGetSpec kLLVMCollectionGetSpecs[] = {
         { "ListGet", llvm_lookup_list_inner },
-        { "QueuePop", llvm_lookup_queue_inner },
         { "MapGet", llvm_lookup_map_value },
+        { "QueuePop", llvm_lookup_queue_inner },
     };
-    for (size_t i = 0; i < PGY_ARRAY_COUNT(specs); i++) {
-        if (strcmp(callee, specs[i].name) == 0)
-            return specs[i].lookup(ctx, collection);
-    }
-    return NULL;
+    const LLVMCollectionGetSpec *spec =
+        (const LLVMCollectionGetSpec *)bsearch(&callee,
+            kLLVMCollectionGetSpecs,
+            PGY_ARRAY_COUNT(kLLVMCollectionGetSpecs),
+            sizeof(kLLVMCollectionGetSpecs[0]),
+            llvm_stmt_collection_get_spec_compare);
+
+    return spec != NULL ? spec->lookup(ctx, collection) : NULL;
 }
 
 const char *

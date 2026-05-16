@@ -28,6 +28,8 @@ typedef struct
 Type *flow_normalize_type(Type *type);
 bool flow_condition_is_static_bool(const ASTNode *node);
 bool flow_static_bool_value(const ASTNode *node, bool *value_out);
+FlowFlags flow_terminating_flags(FlowFlags flags);
+bool flow_has_fallthrough(FlowFlags flags);
 void flow_reject_dynamic_defer_control(SemanticContext *ctx,
                                        ASTNode *site,
                                        const char *control_kind);
@@ -40,6 +42,15 @@ void loop_flow_record(LoopFlowState *loop_flow,
 FlowFlags type_check_block_flow(ASTNode *node,
                                 SemanticContext *ctx,
                                 LoopFlowState *loop_flow);
+FlowFlags type_check_statement_flow(ASTNode *node,
+                                    SemanticContext *ctx,
+                                    LoopFlowState *loop_flow);
+FlowFlags type_check_if_stmt_flow(ASTNode *node,
+                                  SemanticContext *ctx,
+                                  LoopFlowState *loop_flow);
+FlowFlags type_check_match_stmt_flow(ASTNode *node,
+                                     SemanticContext *ctx,
+                                     LoopFlowState *loop_flow);
 FlowFlags type_check_statement_flow_boundary(ASTNode *node,
                                              SemanticContext *ctx);
 FlowFlags type_check_loop_control_flow(ASTNode *node,

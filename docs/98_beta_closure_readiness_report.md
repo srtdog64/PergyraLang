@@ -402,13 +402,14 @@ tails now live in `src/semantic/type_checker_context_helpers.h`,
 `src/codegen/transpiler_mir_emit_decls.h`, and
 `src/codegen/transpiler_mir_pending_uses.h`. The production `.inc` inventory is
 now 19 files / 835 LOC.
-Formatter layout/io, semantic flow effects/parallel checks, LLVM intent
-observability calls, and assignment checking now live in `src/compiler/fmt_layout.h`,
+Formatter layout/io, semantic flow effects, LLVM intent observability calls,
+and assignment checking now live in `src/compiler/fmt_layout.h`,
 `src/compiler/fmt_io.h`, `src/semantic/type_checker_flow_effects.h`,
-`src/semantic/type_checker_flow_parallel.h`,
 `src/codegen/llvm_expr_intent_observability_calls.h`, and
 `src/semantic/type_checker_assignment.h`. The production `.inc` inventory is now
 13 files / 297 LOC.
+The former semantic flow parallel implementation header has since moved to the
+compiled owner `src/semantic/type_checker_flow_parallel.c`.
 C backend MIR emission contract/resource-hook helpers now live in
 `src/codegen/transpiler_mir_emission_contract.h`, removing the remaining
 `src/codegen/transpiler_emitters_base_a_part_d.inc` body while preserving the

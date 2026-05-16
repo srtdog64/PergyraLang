@@ -10,15 +10,6 @@
 #include "type_checker_flow_effects.h"
 #include "type_checker_flow_loops.h"
 
-static FlowFlags type_check_statement_flow(ASTNode *node,
-                                           SemanticContext *ctx,
-                                           LoopFlowState *loop_flow);
-static FlowFlags type_check_if_stmt_flow(ASTNode *node,
-                                         SemanticContext *ctx,
-                                         LoopFlowState *loop_flow);
-static FlowFlags type_check_match_stmt_flow(ASTNode *node,
-                                            SemanticContext *ctx,
-                                            LoopFlowState *loop_flow);
 static FlowFlags type_check_with_stmt_flow(ASTNode *node,
                                            SemanticContext *ctx,
                                            LoopFlowState *loop_flow);
@@ -26,7 +17,7 @@ static FlowFlags type_check_namespace_flow(ASTNode *node,
                                            SemanticContext *ctx,
                                            LoopFlowState *loop_flow);
 
-static FlowFlags
+FlowFlags
 flow_terminating_flags(FlowFlags flags)
 {
     return flags & (FLOW_BREAK | FLOW_CONTINUE | FLOW_RETURN);
@@ -44,7 +35,7 @@ flow_record_statement_result(FlowFlags current, FlowFlags statement)
     return current;
 }
 
-static bool
+bool
 flow_has_fallthrough(FlowFlags flags)
 {
     return (flags & FLOW_FALLTHROUGH) != 0;
@@ -70,32 +61,6 @@ flow_static_bool_value(const ASTNode *node, bool *value_out)
     if (value_out != NULL)
         *value_out = ast_boolean_value(node);
     return true;
-}
-
-static bool
-flow_expr_is_static_literal(const ASTNode *node)
-{
-    return node != NULL
-        && (node->type == AST_NUMBER
-            || node->type == AST_STRING
-            || node->type == AST_BOOLEAN);
-}
-
-static bool
-flow_match_subject_is_beta_supported(const Type *type)
-{
-    if (type == NULL || type == TYPE_UNKNOWN)
-        return true;
-    if (type_equals(type, TYPE_INT)
-        || type_equals(type, TYPE_LONG)
-        || type_equals(type, TYPE_BOOL))
-        return true;
-    if (type->kind == TYPE_KIND_ENUM)
-        return true;
-    if (type_is_constructed_named(type, "Option")
-        || type_is_constructed_named(type, "Result"))
-        return true;
-    return false;
 }
 
 void
@@ -141,223 +106,6 @@ type_check_block_flow(ASTNode *node, SemanticContext *ctx,
 }
 
 static FlowFlags
-type_check_if_stmt_flow(ASTNode *node, SemanticContext *ctx,
-                        LoopFlowState *loop_flow)
-{
-    Type *cond = flow_normalize_type(
-        type_check_expression(ast_if_condition(node), ctx));
-    uint32_t effect_base = ctx->current_function_effects;
-    ResourceConsumeSnapshot base = snapshot_resource_states(ctx);
-    ResourceConsumeSnapshot fallthrough = {0};
-    bool has_fallthrough = false;
-    bool branch_has_defer = false;
-    FlowFlags flags = FLOW_NONE;
-    FlowFlags then_flags = FLOW_NONE;
-    uint32_t then_effect_delta = EFFECT_NONE;
-    uint32_t else_effect_delta = EFFECT_NONE;
-
-    if (!type_equals(cond, TYPE_BOOL)) {
-        semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
-            PGY_CAUSE_CONDITION_NON_BOOL, PGY_FIX_CONVERT_CONDITION_TO_BOOL,
-            node,
-            "If condition must be Bool, got '%s'", cond->name);
-    }
-
-    restore_resource_states(&base);
-    ctx->current_function_effects = effect_base;
-    scope_enter(&ctx->scope, SCOPE_BLOCK);
-    then_flags = type_check_block_flow(ast_if_then_branch(node), ctx, loop_flow);
-    scope_exit(&ctx->scope);
-    then_effect_delta = effect_delta_from_baseline(effect_base,
-        ctx->current_function_effects);
-    if ((then_flags & FLOW_HAS_DEFER) != 0)
-        branch_has_defer = true;
-    flags |= flow_terminating_flags(then_flags);
-    if (flow_has_fallthrough(then_flags)) {
-        ResourceConsumeSnapshot then_snap = snapshot_resource_states(ctx);
-        merge_resource_snapshots_or(&fallthrough, &has_fallthrough, &then_snap);
-        destroy_resource_snapshot(&then_snap);
-        flags |= FLOW_FALLTHROUGH;
-    }
-
-    if (ast_if_else_branch(node) != NULL) {
-        FlowFlags else_flags = FLOW_NONE;
-        restore_resource_states(&base);
-        ctx->current_function_effects = effect_base;
-        scope_enter(&ctx->scope, SCOPE_BLOCK);
-        else_flags =
-            type_check_statement_flow(ast_if_else_branch(node), ctx, loop_flow);
-        scope_exit(&ctx->scope);
-        else_effect_delta = effect_delta_from_baseline(effect_base,
-            ctx->current_function_effects);
-        if ((else_flags & FLOW_HAS_DEFER) != 0)
-            branch_has_defer = true;
-        flags |= flow_terminating_flags(else_flags);
-        if (flow_has_fallthrough(else_flags)) {
-            ResourceConsumeSnapshot else_snap = snapshot_resource_states(ctx);
-            merge_resource_snapshots_or(&fallthrough, &has_fallthrough, &else_snap);
-            destroy_resource_snapshot(&else_snap);
-            flags |= FLOW_FALLTHROUGH;
-        }
-    } else {
-        merge_resource_snapshots_or(&fallthrough, &has_fallthrough, &base);
-        flags |= FLOW_FALLTHROUGH;
-        else_effect_delta = EFFECT_NONE;
-    }
-
-    if (!flow_condition_is_static_bool(ast_if_condition(node))
-        && branch_has_defer) {
-        flow_reject_dynamic_defer_control(ctx, node, "if");
-    }
-
-    flow_record_branch_effect_conflict_labeled(ctx, node,
-        then_effect_delta, "then branch",
-        else_effect_delta,
-        ast_if_else_branch(node) != NULL ? "else branch" : "implicit fallthrough path");
-    ctx->current_function_effects = type_effect_mask_join(
-        effect_base,
-        type_effect_mask_join(then_effect_delta, else_effect_delta));
-
-    if (has_fallthrough)
-        restore_resource_states(&fallthrough);
-    else
-        restore_resource_states(&base);
-
-    destroy_resource_snapshot(&base);
-    destroy_resource_snapshot(&fallthrough);
-    return flags;
-}
-
-static FlowFlags
-type_check_match_stmt_flow(ASTNode *node, SemanticContext *ctx,
-                           LoopFlowState *loop_flow)
-{
-    ASTNode *subject = ast_match_subject(node);
-    Type *subj_type = type_check_expression(subject, ctx);
-    uint32_t effect_base = ctx->current_function_effects;
-    uint32_t merged_effect_delta = EFFECT_NONE;
-    uint32_t previous_case_delta = EFFECT_NONE;
-    bool have_previous_case_delta = false;
-    ResourceConsumeSnapshot base = snapshot_resource_states(ctx);
-    ResourceConsumeSnapshot fallthrough = {0};
-    bool has_fallthrough = false;
-    bool match_has_defer = false;
-    FlowFlags flags = FLOW_NONE;
-
-    if (!flow_match_subject_is_beta_supported(subj_type)) {
-        semantic_error_with_hints(ctx,
-            PGY_CODE_SEM_MATCH_PATTERN_INVALID,
-            PGY_CAUSE_MATCH_PATTERN_SHAPE,
-            PGY_FIX_ALIGN_PATTERN_ARITY_OR_KIND,
-            subject,
-            "Match subject type '%s' is not beta-stable; supported subjects are Int, Long, Bool, enum, Option<T>, and Result<T>",
-            subj_type != NULL && subj_type->name != NULL ? subj_type->name : "<unknown>");
-    }
-
-    for (size_t i = 0; i < ast_match_case_count(node); i++) {
-        ASTNode *mc = ast_match_case_at(node, i);
-        uint32_t case_effect_delta = EFFECT_NONE;
-        restore_resource_states(&base);
-        ctx->current_function_effects = effect_base;
-        scope_enter(&ctx->scope, SCOPE_BLOCK);
-
-        if (ast_match_case_pattern(mc) != NULL) {
-            type_check_match_case_patterns(mc, subj_type, ctx);
-        }
-
-        if (ast_match_case_guard(mc) != NULL) {
-            Type *guard_type = flow_normalize_type(
-                type_check_expression(ast_match_case_guard(mc), ctx));
-            if (!type_equals(guard_type, TYPE_BOOL)) {
-                semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
-                    PGY_CAUSE_CONDITION_NON_BOOL, PGY_FIX_CONVERT_CONDITION_TO_BOOL,
-                    ast_match_case_guard(mc),
-                    "Case guard must be Bool, got '%s'", guard_type->name);
-            }
-        }
-
-        FlowFlags case_flags =
-            type_check_block_flow(ast_match_case_body(mc), ctx, loop_flow);
-        scope_exit(&ctx->scope);
-        if ((case_flags & FLOW_HAS_DEFER) != 0)
-            match_has_defer = true;
-        case_effect_delta = effect_delta_from_baseline(effect_base,
-            ctx->current_function_effects);
-        if (merged_effect_delta != EFFECT_NONE)
-            flow_record_branch_effect_conflict_labeled(ctx, mc,
-                merged_effect_delta, "merged prior cases",
-                case_effect_delta, "current case");
-        else if (have_previous_case_delta)
-            flow_record_branch_effect_conflict_labeled(ctx, mc,
-                previous_case_delta, "previous case",
-                case_effect_delta, "current case");
-        merged_effect_delta =
-            type_effect_mask_join(merged_effect_delta, case_effect_delta);
-        previous_case_delta = case_effect_delta;
-        have_previous_case_delta = true;
-        flags |= flow_terminating_flags(case_flags);
-        if (flow_has_fallthrough(case_flags)) {
-            ResourceConsumeSnapshot case_snap = snapshot_resource_states(ctx);
-            merge_resource_snapshots_or(&fallthrough, &has_fallthrough, &case_snap);
-            destroy_resource_snapshot(&case_snap);
-            flags |= FLOW_FALLTHROUGH;
-        }
-    }
-
-    if (ast_match_default_body(node) != NULL) {
-        FlowFlags default_flags = FLOW_NONE;
-        uint32_t default_effect_delta = EFFECT_NONE;
-        restore_resource_states(&base);
-        ctx->current_function_effects = effect_base;
-        scope_enter(&ctx->scope, SCOPE_BLOCK);
-        default_flags =
-            type_check_block_flow(ast_match_default_body(node), ctx, loop_flow);
-        scope_exit(&ctx->scope);
-        if ((default_flags & FLOW_HAS_DEFER) != 0)
-            match_has_defer = true;
-        default_effect_delta = effect_delta_from_baseline(effect_base,
-            ctx->current_function_effects);
-        if (merged_effect_delta != EFFECT_NONE)
-            flow_record_branch_effect_conflict_labeled(ctx, node,
-                merged_effect_delta, "merged explicit cases",
-                default_effect_delta, "default case");
-        else if (have_previous_case_delta)
-            flow_record_branch_effect_conflict_labeled(ctx, node,
-                previous_case_delta, "previous case",
-                default_effect_delta, "default case");
-        merged_effect_delta =
-            type_effect_mask_join(merged_effect_delta, default_effect_delta);
-        flags |= flow_terminating_flags(default_flags);
-        if (flow_has_fallthrough(default_flags)) {
-            ResourceConsumeSnapshot default_snap = snapshot_resource_states(ctx);
-            merge_resource_snapshots_or(&fallthrough, &has_fallthrough, &default_snap);
-            destroy_resource_snapshot(&default_snap);
-            flags |= FLOW_FALLTHROUGH;
-        }
-    } else if (!match_stmt_has_total_case_coverage(node, subj_type, ctx)) {
-        merge_resource_snapshots_or(&fallthrough, &has_fallthrough, &base);
-        flags |= FLOW_FALLTHROUGH;
-    }
-
-    if (match_has_defer && !flow_expr_is_static_literal(subject))
-        flow_reject_dynamic_defer_control(ctx, node, "match");
-
-    check_match_redundancy(node, subj_type, ctx);
-    check_match_exhaustiveness(node, subj_type, ctx);
-    ctx->current_function_effects =
-        type_effect_mask_join(effect_base, merged_effect_delta);
-
-    if (has_fallthrough)
-        restore_resource_states(&fallthrough);
-    else
-        restore_resource_states(&base);
-
-    destroy_resource_snapshot(&base);
-    destroy_resource_snapshot(&fallthrough);
-    return flags;
-}
-
-static FlowFlags
 type_check_with_stmt_flow(ASTNode *node, SemanticContext *ctx,
                           LoopFlowState *loop_flow)
 {
@@ -382,7 +130,7 @@ type_check_with_stmt_flow(ASTNode *node, SemanticContext *ctx,
     return flags;
 }
 
-static FlowFlags
+FlowFlags
 type_check_statement_flow(ASTNode *node, SemanticContext *ctx,
                           LoopFlowState *loop_flow)
 {
@@ -485,8 +233,6 @@ type_check_statement_flow_boundary(ASTNode *node, SemanticContext *ctx)
 {
     return type_check_statement_flow(node, ctx, NULL);
 }
-
-#include "type_checker_flow_parallel.h"
 
 bool
 type_check_block(ASTNode *node, SemanticContext *ctx)

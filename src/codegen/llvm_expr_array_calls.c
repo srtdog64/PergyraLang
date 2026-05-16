@@ -3,10 +3,58 @@
 #include "llvm_expr_array_calls.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "llvm_internal_api.h"
 #include "parser/ast_api.h"
+
+typedef enum {
+    LLVM_ARRAY_BUILTIN_NONE = 0,
+    LLVM_ARRAY_BUILTIN_LENGTH,
+    LLVM_ARRAY_BUILTIN_POP,
+    LLVM_ARRAY_BUILTIN_PUSH,
+    LLVM_ARRAY_BUILTIN_SET,
+} LLVMArrayBuiltinOp;
+
+typedef struct {
+    const char *name;
+    unsigned argc;
+    LLVMArrayBuiltinOp op;
+} LLVMArrayBuiltinSpec;
+
+static const LLVMArrayBuiltinSpec kArrayBuiltinSpecs[] = {
+    {"ArrayLength", 1, LLVM_ARRAY_BUILTIN_LENGTH},
+    {"ArrayPop", 1, LLVM_ARRAY_BUILTIN_POP},
+    {"ArrayPush", 2, LLVM_ARRAY_BUILTIN_PUSH},
+    {"ArraySet", 3, LLVM_ARRAY_BUILTIN_SET},
+};
+
+static int
+llvm_array_builtin_spec_compare(const void *key, const void *entry)
+{
+    const char *name = (const char *)key;
+    const LLVMArrayBuiltinSpec *spec = (const LLVMArrayBuiltinSpec *)entry;
+    return strcmp(name, spec->name);
+}
+
+static LLVMArrayBuiltinOp
+llvm_array_builtin_lookup(const char *callee_name, unsigned argc)
+{
+    const LLVMArrayBuiltinSpec *spec;
+
+    if (callee_name == NULL)
+        return LLVM_ARRAY_BUILTIN_NONE;
+    spec = (const LLVMArrayBuiltinSpec *)bsearch(
+        callee_name,
+        kArrayBuiltinSpecs,
+        sizeof(kArrayBuiltinSpecs) / sizeof(kArrayBuiltinSpecs[0]),
+        sizeof(kArrayBuiltinSpecs[0]),
+        llvm_array_builtin_spec_compare);
+    if (spec == NULL || spec->argc != argc)
+        return LLVM_ARRAY_BUILTIN_NONE;
+    return spec->op;
+}
 
 static LLVMVarEntry *
 llvm_array_required_receiver_var(LLVMGenCtx *ctx, ASTNode *node,
@@ -94,11 +142,15 @@ bool
 llvm_emit_array_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
                              const char *callee_name, LLVMValueRef *out)
 {
+    LLVMArrayBuiltinOp op;
+
     if (out == NULL)
         return false;
 
-    if (strcmp(callee_name, "ArrayLength") == 0
-        && ast_call_arg_count(node) == 1) {
+    op = llvm_array_builtin_lookup(callee_name,
+        (unsigned)ast_call_arg_count(node));
+
+    if (op == LLVM_ARRAY_BUILTIN_LENGTH) {
         LLVMValueRef arr = llvm_emit_expression(ast_call_argument(node, 0), ctx);
         if (arr != NULL && LLVMGetTypeKind(LLVMTypeOf(arr)) == LLVMStructTypeKind) {
             LLVMValueRef len = llvm_array_length_i64(ctx, arr);
@@ -114,8 +166,7 @@ llvm_emit_array_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         return true;
     }
 
-    if (strcmp(callee_name, "ArrayPush") == 0
-        && ast_call_arg_count(node) == 2) {
+    if (op == LLVM_ARRAY_BUILTIN_PUSH) {
         ASTNode *arr_arg = ast_call_argument(node, 0);
         LLVMArrayVarEntry *entry = NULL;
         LLVMVarEntry *arr_var = llvm_array_required_receiver_var(
@@ -159,8 +210,7 @@ llvm_emit_array_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         return true;
     }
 
-    if (strcmp(callee_name, "ArraySet") == 0
-        && ast_call_arg_count(node) == 3) {
+    if (op == LLVM_ARRAY_BUILTIN_SET) {
         ASTNode *arr_arg = ast_call_argument(node, 0);
         LLVMArrayVarEntry *entry = NULL;
         LLVMVarEntry *arr_var = llvm_array_required_receiver_var(
@@ -210,8 +260,7 @@ llvm_emit_array_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         return true;
     }
 
-    if (strcmp(callee_name, "ArrayPop") == 0
-        && ast_call_arg_count(node) == 1) {
+    if (op == LLVM_ARRAY_BUILTIN_POP) {
         ASTNode *arr_arg = ast_call_argument(node, 0);
         LLVMArrayVarEntry *entry = NULL;
         LLVMVarEntry *arr_var = llvm_array_required_receiver_var(

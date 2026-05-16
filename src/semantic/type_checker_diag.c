@@ -102,7 +102,7 @@ emit_diagnostic_full(SemanticContext *ctx, DiagnosticLevel level,
             continue;
         }
         if (existing->message != NULL && strcmp(existing->message, message) == 0) {
-            /* Upgrade legacy entry's metadata if the new call provides
+            /* Upgrade an earlier plain diagnostic if the new call provides
              * fields the existing entry lacks. Keeps richer routing info
              * when a plain semantic_error hits the same site first. */
             if (existing->code == NULL && code != NULL)

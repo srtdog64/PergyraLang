@@ -6,10 +6,9 @@
 #ifdef PGY_LLVM_ENABLED
 
 #include "llvm_expr_task_channel_calls.h"
+#include "llvm_expr_task_channel_policy.h"
 
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 #include "llvm_internal_api.h"
 #include "llvm_expr_task_calls.h"
@@ -129,83 +128,6 @@ llvm_task_channel_format_op_runtime_name(char *out, size_t out_size,
     return written >= 0 && (size_t)written < out_size;
 }
 
-typedef struct LLVMTaskChannelNameSpec {
-    const char *name;
-} LLVMTaskChannelNameSpec;
-
-typedef struct LLVMChannelQueryOpSpec {
-    const char *name;
-    const char *runtime_op;
-} LLVMChannelQueryOpSpec;
-
-static int
-llvm_task_channel_name_compare(const void *key, const void *entry)
-{
-    const char *name = *(const char * const *)key;
-    const LLVMTaskChannelNameSpec *spec =
-        (const LLVMTaskChannelNameSpec *)entry;
-
-    return strcmp(name, spec->name);
-}
-
-static int
-llvm_channel_query_op_compare(const void *key, const void *entry)
-{
-    const char *name = *(const char * const *)key;
-    const LLVMChannelQueryOpSpec *spec =
-        (const LLVMChannelQueryOpSpec *)entry;
-
-    return strcmp(name, spec->name);
-}
-
-static bool
-llvm_is_task_channel_builtin_name(const char *callee_name)
-{
-    static const LLVMTaskChannelNameSpec specs[] = {
-        { "ChannelCapacity" },
-        { "ChannelClose" },
-        { "ChannelClosed" },
-        { "ChannelFull" },
-        { "ChannelLength" },
-        { "ChannelReady" },
-        { "ChannelSpace" },
-        { "RecvTimeout" },
-        { "SendTimeout" },
-        { "SendTimeoutStatus" },
-        { "TryRecv" },
-        { "TrySend" },
-        { "TrySendStatus" },
-    };
-
-    if (callee_name == NULL)
-        return false;
-
-    return bsearch(&callee_name, specs, sizeof(specs) / sizeof(specs[0]),
-        sizeof(specs[0]), llvm_task_channel_name_compare) != NULL;
-}
-
-static const char *
-llvm_channel_query_runtime_op(const char *callee_name)
-{
-    static const LLVMChannelQueryOpSpec specs[] = {
-        { "ChannelCapacity", "capacity" },
-        { "ChannelClosed", "closed" },
-        { "ChannelFull", "full" },
-        { "ChannelLength", "length" },
-        { "ChannelReady", "ready" },
-        { "ChannelSpace", "space" },
-    };
-    const LLVMChannelQueryOpSpec *match;
-
-    if (callee_name == NULL)
-        return NULL;
-
-    match = (const LLVMChannelQueryOpSpec *)bsearch(
-        &callee_name, specs, sizeof(specs) / sizeof(specs[0]),
-        sizeof(specs[0]), llvm_channel_query_op_compare);
-    return match != NULL ? match->runtime_op : NULL;
-}
-
 static bool
 llvm_channel_arg(LLVMGenCtx *ctx, ASTNode *node, const char *callee_name,
                  ASTNode **out_channel, LLVMVarEntry **out_var,
@@ -243,11 +165,14 @@ LLVMValueRef
 llvm_emit_task_channel_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_name)
 {
     size_t argc = ast_call_arg_count(node);
+    LLVMTaskChannelOp op;
 
     if (llvm_is_task_runtime_builtin_name(callee_name))
         return llvm_emit_task_runtime_call(node, ctx, callee_name);
 
-    if (strcmp(callee_name, "ChannelClose") == 0 && argc == 1) {
+    op = llvm_task_channel_op_lookup(callee_name, argc);
+
+    if (op == LLVM_TASK_CHANNEL_OP_CLOSE) {
         ASTNode *channel = NULL;
         LLVMVarEntry *ch_var = NULL;
         const char *inner = NULL;
@@ -269,7 +194,7 @@ llvm_emit_task_channel_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_n
         return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 1, "");
     }
 
-    if (strcmp(callee_name, "TrySend") == 0 && argc == 2) {
+    if (op == LLVM_TASK_CHANNEL_OP_TRY_SEND) {
         ASTNode *channel = NULL;
         LLVMVarEntry *ch_var = NULL;
         const char *inner = NULL;
@@ -297,7 +222,7 @@ llvm_emit_task_channel_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_n
             args, 2, llvm_tmp_name(ctx));
     }
 
-    if (strcmp(callee_name, "TrySendStatus") == 0 && argc == 2) {
+    if (op == LLVM_TASK_CHANNEL_OP_TRY_SEND_STATUS) {
         ASTNode *channel = NULL;
         LLVMVarEntry *ch_var = NULL;
         const char *inner = NULL;
@@ -336,7 +261,7 @@ llvm_emit_task_channel_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_n
         return llvm_build_option_value(ctx, ctx->type_i1, has_value, ok);
     }
 
-    if (strcmp(callee_name, "SendTimeout") == 0 && argc == 3) {
+    if (op == LLVM_TASK_CHANNEL_OP_SEND_TIMEOUT) {
         ASTNode *channel = NULL;
         LLVMVarEntry *ch_var = NULL;
         const char *inner = NULL;
@@ -373,7 +298,7 @@ llvm_emit_task_channel_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_n
             args, 3, llvm_tmp_name(ctx));
     }
 
-    if (strcmp(callee_name, "SendTimeoutStatus") == 0 && argc == 3) {
+    if (op == LLVM_TASK_CHANNEL_OP_SEND_TIMEOUT_STATUS) {
         ASTNode *channel = NULL;
         LLVMVarEntry *ch_var = NULL;
         const char *inner = NULL;
@@ -428,8 +353,8 @@ llvm_emit_task_channel_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_n
         return llvm_build_option_value(ctx, ctx->type_i1, has_value, ok);
     }
 
-    if ((strcmp(callee_name, "TryRecv") == 0 && argc == 1)
-        || (strcmp(callee_name, "RecvTimeout") == 0 && argc == 2)) {
+    if (op == LLVM_TASK_CHANNEL_OP_TRY_RECV
+        || op == LLVM_TASK_CHANNEL_OP_RECV_TIMEOUT) {
         ASTNode *channel = NULL;
         LLVMVarEntry *ch_var = NULL;
         const char *inner = NULL;
@@ -450,7 +375,7 @@ llvm_emit_task_channel_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_n
                 "could not allocate receive temporary");
         LLVMBuildStore(ctx->builder, LLVMConstNull(value_ty), tmp);
 
-        if (strcmp(callee_name, "TryRecv") == 0) {
+        if (op == LLVM_TASK_CHANNEL_OP_TRY_RECV) {
             if (!llvm_task_channel_format_runtime_name(fname, sizeof(fname),
                     "pgy_channel_try_recv", inner)) {
                 return llvm_task_channel_error(ctx, channel, callee_name,

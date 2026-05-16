@@ -20,12 +20,12 @@ typedef struct
 static const SlotBuiltinFact slot_builtin_facts[] = {
     {"Move", SLOT_ACCESS_WRITE, false},
     {"Read", SLOT_ACCESS_READ, true},
-    {"ReadView", 0, true},   /* legacy/parser-adjacent spelling */
+    {"ReadView", 0, true},   /* parser-adjacent view spelling */
     {"Release", SLOT_ACCESS_RELEASE, true},
     {"ViewRead", SLOT_ACCESS_READ, true},
     {"ViewWrite", SLOT_ACCESS_WRITE, true},
     {"Write", SLOT_ACCESS_WRITE, true},
-    {"WriteView", 0, true},  /* legacy/parser-adjacent spelling */
+    {"WriteView", 0, true},  /* parser-adjacent view spelling */
 };
 
 static int

@@ -6,6 +6,50 @@
 
 #include "../parser/ast_api.h"
 
+#include <stdlib.h>
+
+typedef enum TranspilerBoxLetOp {
+    TRANS_BOX_LET_OP_NONE = 0,
+    TRANS_BOX_LET_OP_BOX,
+    TRANS_BOX_LET_OP_BOX_ARRAY,
+    TRANS_BOX_LET_OP_RC,
+} TranspilerBoxLetOp;
+
+typedef struct TranspilerBoxLetSpec {
+    const char *name;
+    TranspilerBoxLetOp op;
+} TranspilerBoxLetSpec;
+
+static int
+transpiler_box_let_spec_compare(const void *key, const void *entry)
+{
+    const char *name = *(const char * const *)key;
+    const TranspilerBoxLetSpec *spec = (const TranspilerBoxLetSpec *)entry;
+
+    return strcmp(name, spec->name);
+}
+
+static TranspilerBoxLetOp
+transpiler_box_let_lookup(const char *callee_name)
+{
+    static const TranspilerBoxLetSpec kTranspilerBoxLetSpecs[] = {
+        { "Box", TRANS_BOX_LET_OP_BOX },
+        { "BoxArray", TRANS_BOX_LET_OP_BOX_ARRAY },
+        { "Rc", TRANS_BOX_LET_OP_RC },
+    };
+    const TranspilerBoxLetSpec *match;
+
+    if (callee_name == NULL)
+        return TRANS_BOX_LET_OP_NONE;
+
+    match = (const TranspilerBoxLetSpec *)bsearch(&callee_name,
+        kTranspilerBoxLetSpecs,
+        sizeof(kTranspilerBoxLetSpecs) / sizeof(kTranspilerBoxLetSpecs[0]),
+        sizeof(kTranspilerBoxLetSpecs[0]),
+        transpiler_box_let_spec_compare);
+    return match != NULL ? match->op : TRANS_BOX_LET_OP_NONE;
+}
+
 static bool
 transpiler_try_emit_box_array_let(TranspilerCtx *ctx,
                                   const char *name,
@@ -27,7 +71,8 @@ transpiler_try_emit_box_array_let(TranspilerCtx *ctx,
         || ast_call_callee(init) == NULL
         || ast_call_callee(init)->type != AST_IDENTIFIER
         || callee_name == NULL
-        || strcmp(callee_name, "BoxArray") != 0) {
+        || transpiler_box_let_lookup(callee_name)
+            != TRANS_BOX_LET_OP_BOX_ARRAY) {
         return false;
     }
 
@@ -136,9 +181,9 @@ transpiler_try_emit_box_or_rc_let(TranspilerCtx *ctx,
     }
 
     callee_name = ast_identifier_name(ast_call_callee(init));
-    if (callee_name == NULL
-        || ((strcmp(callee_name, "Box") != 0 || find_class_decl(ctx, callee_name) != NULL)
-            && (strcmp(callee_name, "Rc") != 0 || find_class_decl(ctx, callee_name) != NULL))) {
+    TranspilerBoxLetOp op = transpiler_box_let_lookup(callee_name);
+    if ((op != TRANS_BOX_LET_OP_BOX && op != TRANS_BOX_LET_OP_RC)
+        || find_class_decl(ctx, callee_name) != NULL) {
         return false;
     }
 

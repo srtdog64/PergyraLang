@@ -61,8 +61,8 @@ grep -Fq "pgy_runtime_lib_mir_trace_exports.c" "$ROOT_DIR/src/compiler/compiler_
 grep -Fq '#include "pgy_runtime_lib_mir_trace_exports.c"' "$ROOT_DIR/src/runtime/pgy_runtime_lib.c"
 grep -Fq "pgy_mir_resource_op_export" "$ROOT_DIR/src/runtime/pgy_runtime_lib_mir_trace_exports.c"
 grep -Fq "pgy_mir_cleanup_op_export" "$ROOT_DIR/src/runtime/pgy_runtime_lib_mir_trace_exports.c"
-grep -Fq "g_schedulerByTag" "$ROOT_DIR/src/runtime/party_runtime.c"
-grep -Fq "return g_schedulerByTag[tag]" "$ROOT_DIR/src/runtime/party_runtime.c"
+grep -Fq "g_schedulerByTag" "$ROOT_DIR/src/runtime/party_runtime_scheduler.c"
+grep -Fq "return g_schedulerByTag[tag]" "$ROOT_DIR/src/runtime/party_runtime_scheduler.c"
 grep -Fq "party_runtime_stats.c" "$ROOT_DIR/Makefile"
 grep -Fq "indexHashes" "$ROOT_DIR/src/runtime/party_runtime_stats.c"
 grep -Fq "indexHealthy" "$ROOT_DIR/src/runtime/party_runtime_stats.c"
@@ -82,7 +82,7 @@ if grep -A12 -F "pgy_intent_active_count_export(void)" \
     exit 1
 fi
 if grep -A14 -F "GetSchedulerForTag(SchedulerTag tag)" \
-    "$ROOT_DIR/src/runtime/party_runtime.c" | \
+    "$ROOT_DIR/src/runtime/party_runtime_scheduler.c" | \
     grep -Fq "g_schedulerCount"; then
     echo "[perf-contract] scheduler tag lookup regressed to registry scan" >&2
     exit 1
@@ -111,6 +111,33 @@ grep -Fq "bsearch(" "$ROOT_DIR/src/compiler/driver_scaffold.c"
 grep -Fq "TranspilerTypeNameMap" "$ROOT_DIR/src/codegen/transpiler_type_mapping.c"
 grep -Fq "transpiler_lookup_type_name_map" "$ROOT_DIR/src/codegen/transpiler_type_mapping.c"
 grep -Fq "bsearch(" "$ROOT_DIR/src/codegen/transpiler_type_mapping.c"
+grep -Fq "transpiler_forward_type_name_is_allowed" "$ROOT_DIR/src/codegen/transpiler_func_forward_policy.c"
+grep -Fq "transpiler_forward_allowed_type_compare" "$ROOT_DIR/src/codegen/transpiler_func_forward_policy.c"
+grep -Fq "bsearch(&name" "$ROOT_DIR/src/codegen/transpiler_func_forward_policy.c"
+for direct_forward_type in \
+    Int Float Bool String Char Byte Void Qubit Result Option Slot SecureSlot \
+    DeviceSlot RemoteFuture Array Slice Channel Box Rc Weak Future; do
+    if grep -Fq "strcmp(name, \"$direct_forward_type\")" \
+        "$ROOT_DIR/src/codegen/transpiler_func_forward_policy.c"; then
+        echo "[perf-contract] function forward policy reintroduced direct type branch: $direct_forward_type" >&2
+        exit 1
+    fi
+done
+forward_allowed_type_names="$(
+    sed -n '/static const char \*allowed_names\[\]/,/^    };/p' \
+        "$ROOT_DIR/src/codegen/transpiler_func_forward_policy.c" \
+        | grep -o '"[A-Za-z0-9_]*"' \
+        | tr -d '"'
+)"
+forward_allowed_type_names_sorted="$(
+    printf '%s\n' "$forward_allowed_type_names" | sort
+)"
+if [[ "$forward_allowed_type_names" != "$forward_allowed_type_names_sorted" ]]; then
+    echo "function forward allowed type names must stay sorted for bsearch" >&2
+    diff -u <(printf '%s\n' "$forward_allowed_type_names_sorted") \
+        <(printf '%s\n' "$forward_allowed_type_names") >&2 || true
+    exit 1
+fi
 grep -Fq "lexer_keywords.c" "$ROOT_DIR/Makefile"
 grep -Fq "lexer_lookup_keyword" "$ROOT_DIR/src/lexer/lexer.c"
 grep -Fq "keyword_compare_slice" "$ROOT_DIR/src/lexer/lexer_keywords.c"
@@ -144,7 +171,7 @@ grep -Fq "type_resolution_dag_generic_contract_evidence_count" "$ROOT_DIR/src/se
 grep -Fq "type_resolution_dag_ability_consumer_evidence_count" "$ROOT_DIR/src/semantic/semantic.h"
 grep -Fq "ctx->type_resolution_dag_generic_contract_evidence_count" "$ROOT_DIR/src/semantic/semantic.c"
 grep -Fq "semantic_record_dag_generic_contract_evidence" "$ROOT_DIR/src/semantic/type_checker_resolution_stage_signature.c"
-grep -Fq "[type-res-stats] dag-evidence:" "$ROOT_DIR/src/semantic/type_checker_program.c"
+grep -Fq "[type-res-stats] dag-evidence:" "$ROOT_DIR/src/semantic/type_checker_program_stats.c"
 grep -Fq "dag_generic_contract_evidence" "$ROOT_DIR/tests/type_resolution_dag_smoke.sh"
 grep -Fq "dag_ability_consumer_evidence" "$ROOT_DIR/tests/type_resolution_dag_smoke.sh"
 grep -Fq "sem->type_resolution_dag_generic_contract_evidence_count" "$ROOT_DIR/src/compiler/air_evidence_dag.c"
@@ -169,10 +196,10 @@ grep -Fq "air_evidence_kind_is_known(evidence->kind)" "$ROOT_DIR/src/compiler/ai
 grep -Fq "air_evidence_kind_is_known(kind)" "$ROOT_DIR/src/compiler/air_validate_global_evidence.c"
 grep -Fq "!air_evidence_kind_is_boundary_scoped(kind)" "$ROOT_DIR/src/compiler/air_validate_global_evidence.c"
 grep -Fq "AIR boundary node %zu has %s summary without evidence node" "$ROOT_DIR/src/compiler/air_validate_evidence.c"
-grep -Fq "AIR boundary evidence node %zu has no matching boundary summary flag" "$ROOT_DIR/src/compiler/air_validate_evidence.c"
+grep -Fq "AIR boundary evidence node %zu has no matching boundary summary flag" "$ROOT_DIR/src/compiler/air_validate_boundary_evidence.c"
 grep -Fq "HIR CFG evidence summary without evidence node" "$ROOT_DIR/src/tests/air/test_air_core_part_a.cases.h"
 grep -Fq "no matching boundary summary flag" "$ROOT_DIR/src/tests/air/test_air_core_part_a.cases.h"
-grep -Fq "AIR strict evidence rejects stale legacy summary flags" "$ROOT_DIR/src/test_air.c"
+grep -Fq "AIR strict evidence rejects stale boundary summary flags" "$ROOT_DIR/src/test_air.c"
 grep -Fq "DriverDiagCodeMap" "$ROOT_DIR/src/compiler/driver_diag.c"
 grep -Fq "driver_diag_code_map_find" "$ROOT_DIR/src/compiler/driver_diag.c"
 grep -Fq "driver_diag_code_map_compare" "$ROOT_DIR/src/compiler/driver_diag.c"
@@ -188,8 +215,120 @@ grep -Fq "PgyCodegenSlotCallSpec specs[]" "$ROOT_DIR/src/codegen/codegen_slot_ty
 grep -Fq "pgy_codegen_slot_call_spec_compare" "$ROOT_DIR/src/codegen/codegen_slot_type_policy.c"
 grep -Fq "pgy_hashmap_key_spec_compare" "$ROOT_DIR/src/codegen/codegen_hashmap_key_policy.c"
 grep -Fq "bsearch(effective_name" "$ROOT_DIR/src/codegen/codegen_hashmap_key_policy.c"
+grep -Fq "codegen_match_variant_policy.c" "$ROOT_DIR/Makefile"
+grep -Fq "pgy_codegen_match_variant_lookup" "$ROOT_DIR/src/codegen/codegen_match_variant_policy.c"
+grep -Fq "pgy_codegen_match_variant_compare" "$ROOT_DIR/src/codegen/codegen_match_variant_policy.c"
+grep -Fq "bsearch(&name" "$ROOT_DIR/src/codegen/codegen_match_variant_policy.c"
+for match_variant_owner in \
+    "$ROOT_DIR/src/codegen/transpiler_match_emit.h" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_match_condition_emit.h" \
+    "$ROOT_DIR/src/codegen/llvm_stmt_match.c" \
+    "$ROOT_DIR/src/codegen/llvm_mir_match_condition.c"; do
+    grep -Fq "pgy_codegen_match_variant_lookup" "$match_variant_owner"
+    for direct_match_variant in Some None Ok Err; do
+        if grep -Fq "strcmp(name, \"$direct_match_variant\")" \
+            "$match_variant_owner"; then
+            echo "[perf-contract] match lowering reintroduced direct destructor-name branch: $direct_match_variant in $match_variant_owner" >&2
+            exit 1
+        fi
+        if grep -Fq "strcmp(kind, \"$direct_match_variant\")" \
+            "$match_variant_owner"; then
+            echo "[perf-contract] match lowering reintroduced direct destructor-kind branch: $direct_match_variant in $match_variant_owner" >&2
+            exit 1
+        fi
+        if grep -Fq "strcmp(option_kind, \"$direct_match_variant\")" \
+            "$match_variant_owner"; then
+            echo "[perf-contract] match lowering reintroduced direct option-kind branch: $direct_match_variant in $match_variant_owner" >&2
+            exit 1
+        fi
+        if grep -Fq "strcmp(result_kind, \"$direct_match_variant\")" \
+            "$match_variant_owner"; then
+            echo "[perf-contract] match lowering reintroduced direct result-kind branch: $direct_match_variant in $match_variant_owner" >&2
+            exit 1
+        fi
+    done
+done
+match_variant_names="$(
+    sed -n '/static const PgyCodegenMatchVariantSpec specs\[\]/,/^    };/p' \
+        "$ROOT_DIR/src/codegen/codegen_match_variant_policy.c" \
+        | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
+        | grep -o '"[A-Za-z0-9_]*"' \
+        | tr -d '"'
+)"
+match_variant_names_sorted="$(
+    printf '%s\n' "$match_variant_names" | sort
+)"
+if [[ "$match_variant_names" != "$match_variant_names_sorted" ]]; then
+    echo "match variant destructor names must stay sorted for bsearch" >&2
+    diff -u <(printf '%s\n' "$match_variant_names_sorted") \
+        <(printf '%s\n' "$match_variant_names") >&2 || true
+    exit 1
+fi
+grep -Fq "llvm_registry_type_kind" "$ROOT_DIR/src/codegen/llvm_backend_type_registry.c"
+grep -Fq "llvm_registry_type_spec_compare" "$ROOT_DIR/src/codegen/llvm_backend_type_registry.c"
+grep -Fq "bsearch(&type_name" "$ROOT_DIR/src/codegen/llvm_backend_type_registry.c"
+for direct_llvm_registry_type in \
+    Array Slice List Set Queue HashMap Future RemoteFuture Channel Rc Weak; do
+    if grep -Fq "strcmp(type_name, \"$direct_llvm_registry_type\")" \
+        "$ROOT_DIR/src/codegen/llvm_backend_type_registry.c"; then
+        echo "[perf-contract] LLVM type registry reintroduced direct type-family branch: $direct_llvm_registry_type" >&2
+        exit 1
+    fi
+done
+llvm_registry_type_names="$(
+    sed -n '/static const LLVMRegistryTypeSpec specs\[\]/,/^    };/p' \
+        "$ROOT_DIR/src/codegen/llvm_backend_type_registry.c" \
+        | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
+        | grep -o '"[A-Za-z0-9_]*"' \
+        | tr -d '"'
+)"
+llvm_registry_type_names_sorted="$(
+    printf '%s\n' "$llvm_registry_type_names" | sort
+)"
+if [[ "$llvm_registry_type_names" != "$llvm_registry_type_names_sorted" ]]; then
+    echo "LLVM type registry names must stay sorted for bsearch" >&2
+    diff -u <(printf '%s\n' "$llvm_registry_type_names_sorted") \
+        <(printf '%s\n' "$llvm_registry_type_names") >&2 || true
+    exit 1
+fi
 grep -Fq "slot_runtime_fn_spec_compare" "$ROOT_DIR/src/codegen/transpiler_mir_resource_name.c"
+grep -Fq "transpiler_mir_resource_op_lookup" "$ROOT_DIR/src/codegen/transpiler_mir_resource_name.c"
 grep -Fq "bsearch(op_name" "$ROOT_DIR/src/codegen/transpiler_mir_resource_name.c"
+for direct_mir_resource_op in Claim Read Write Release Move; do
+    if grep -Fq "strcmp(op_name, \"$direct_mir_resource_op\")" \
+        "$ROOT_DIR/src/codegen/transpiler_mir_resource_op_core.c"; then
+        echo "[perf-contract] MIR resource op emission reintroduced direct op branch: $direct_mir_resource_op" >&2
+        exit 1
+    fi
+done
+for direct_mir_view_op in BorrowRead BorrowWrite; do
+    if grep -Fq "strcmp(inst->name, \"$direct_mir_view_op\")" \
+        "$ROOT_DIR/src/codegen/transpiler_mir_pin_emit.c"; then
+        echo "[perf-contract] C MIR pin alias seeding reintroduced direct op branch: $direct_mir_view_op" >&2
+        exit 1
+    fi
+    if grep -Fq "strcmp(inst->name, \"$direct_mir_view_op\")" \
+        "$ROOT_DIR/src/codegen/llvm_mir_resource_view.c"; then
+        echo "[perf-contract] LLVM MIR borrow-view aliasing reintroduced direct op branch: $direct_mir_view_op" >&2
+        exit 1
+    fi
+done
+mir_resource_op_names="$(
+    sed -n '/static const TranspilerMIRResourceOpSpec specs\[\]/,/^    };/p' \
+        "$ROOT_DIR/src/codegen/transpiler_mir_resource_name.c" \
+        | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
+        | grep -o '"[A-Za-z0-9_]*"' \
+        | tr -d '"'
+)"
+mir_resource_op_names_sorted="$(
+    printf '%s\n' "$mir_resource_op_names" | sort
+)"
+if [[ "$mir_resource_op_names" != "$mir_resource_op_names_sorted" ]]; then
+    echo "MIR resource op names must stay sorted for bsearch" >&2
+    diff -u <(printf '%s\n' "$mir_resource_op_names_sorted") \
+        <(printf '%s\n' "$mir_resource_op_names") >&2 || true
+    exit 1
+fi
 grep -Fq "slot_builtin_type_compare" "$ROOT_DIR/src/runtime/slot_type_utils.c"
 grep -Fq "bsearch(" "$ROOT_DIR/src/runtime/slot_type_utils.c"
 grep -B10 -A2 -F "entry = find_free_entry_locked(manager);" \
@@ -544,7 +683,7 @@ if [[ "$(grep -Fc "ctx->uses_intent_observability = pgy_mir_program_uses_intent_
     exit 1
 fi
 grep -Fq "return llvm_result_error_fmt_with_hints(" "$ROOT_DIR/src/codegen/llvm_api.c"
-grep -Fq "allow_legacy_payload_probe" "$ROOT_DIR/src/codegen/intent_observability_usage.c"
+grep -Fq "allow_fixture_payload_probe" "$ROOT_DIR/src/codegen/intent_observability_usage.c"
 ! grep -Fq "allow_legacy_ast_probe" "$ROOT_DIR/src/codegen/intent_observability_usage.c"
 grep -Fq "inst->has_surface_usage_facts" "$ROOT_DIR/src/codegen/intent_observability_usage.c"
 grep -Fq "uses_intent_observability_surface" "$ROOT_DIR/src/codegen/intent_observability_usage.c"
@@ -620,21 +759,25 @@ grep -Fq "routine->blocks[routine->cleanup_block].is_reachable" "$ROOT_DIR/src/c
 grep -Fq "if (!block->is_reachable || block->is_cleanup)" "$ROOT_DIR/src/compiler/air_evidence.c"
 grep -Fq "AIR ignores unreachable MIR cleanup root evidence" "$ROOT_DIR/src/test_air.c"
 grep -Fq "AIR ignores unreachable MIR cleanup source evidence" "$ROOT_DIR/src/test_air.c"
-grep -Fq "air_global_evidence_has_provider" "$ROOT_DIR/src/compiler/air_validate_evidence.c"
+grep -Fq "air_global_evidence_has_provider" "$ROOT_DIR/src/compiler/air_validate_boundary_evidence.c"
+grep -Fq "air_boundary_has_evidence_kind_provider" "$ROOT_DIR/src/compiler/air_validate_boundary_evidence.c"
+grep -Fq "kBoundaryEvidencePolicies" "$ROOT_DIR/src/compiler/air_boundary_evidence_policy.c"
+grep -Fq "air_boundary_requires_hir_routine_evidence" "$ROOT_DIR/src/compiler/air_boundary_evidence_policy.c"
+grep -Fq "air_boundary_requires_mir_pin_cleanup_evidence" "$ROOT_DIR/src/compiler/air_boundary_evidence_policy.c"
 grep -Fq "air_boundary_has_evidence_kind_subject" "$ROOT_DIR/src/compiler/air_validate_evidence.c"
 grep -Fq "air_boundary_missing_authority_evidence" "$ROOT_DIR/src/compiler/air_verify.c"
 grep -Fq "strict AIR requires every authorized participant" "$ROOT_DIR/src/compiler/air_verify.c"
 grep -Fq "AIR synthesis collects all RIR authority evidence" "$ROOT_DIR/src/test_air.c"
 grep -Fq "AIR strict evidence requires all authority participants" "$ROOT_DIR/src/test_air.c"
 grep -Fq "AIR_EVIDENCE_RUNTIME_FRONTIER_POLICY" "$ROOT_DIR/src/compiler/air.h"
-grep -Fq "air_collect_runtime_frontier_policy_evidence" "$ROOT_DIR/src/compiler/air_evidence.c"
-grep -Fq "air_collect_singleton_global_evidence" "$ROOT_DIR/src/compiler/air_evidence.c"
-grep -Fq "AIR singleton global evidence has conflicting counts" "$ROOT_DIR/src/compiler/air_evidence.c"
+grep -Fq "air_collect_runtime_frontier_policy_evidence" "$ROOT_DIR/src/compiler/air_evidence_runtime.c"
+grep -Fq "air_collect_singleton_runtime_evidence" "$ROOT_DIR/src/compiler/air_evidence_runtime.c"
+grep -Fq "AIR singleton global evidence has conflicting counts" "$ROOT_DIR/src/compiler/air_evidence_runtime.c"
 grep -Fq "PGY_FRONTIER_POLICY_SCHEMA" "$ROOT_DIR/src/runtime/pgy_frontier_policy.h"
 grep -Fq "AIR rejects invalid runtime frontier policy provider" "$ROOT_DIR/src/test_air.c"
 grep -Fq "AIR collects singleton global evidence idempotently" "$ROOT_DIR/src/test_air.c"
 grep -Fq "AIR rejects conflicting singleton global evidence" "$ROOT_DIR/src/test_air.c"
-grep -Fq "no matching MIR cleanup evidence" "$ROOT_DIR/src/compiler/air_validate_evidence.c"
+grep -Fq "no matching MIR cleanup evidence" "$ROOT_DIR/src/compiler/air_validate_boundary_evidence.c"
 ! grep -Fq "static char *rendered" "$ROOT_DIR/src/codegen/transpiler_mir_local_type_lookup.h"
 ! grep -Fq "static char rendered" "$ROOT_DIR/src/codegen/transpiler_mir_local_type_lookup.h"
 ! grep -Fq "transpiler_mir_copy_type_name" "$ROOT_DIR/src/codegen/transpiler_mir_local_type_lookup.h"
@@ -649,10 +792,11 @@ grep -Fq "pergyra_ast_type_to_c_copy" "$ROOT_DIR/src/codegen/transpiler_type_ren
 ! grep -Fq "const char *pergyra_ast_type_to_c" "$ROOT_DIR/src/codegen/transpiler_type_render.h"
 ! grep -Fq "pergyra_ast_type_to_c(ASTNode" "$ROOT_DIR/src/codegen/transpiler_func_forward_helpers.h"
 grep -Fq "pergyra_ast_type_to_c_copy(type_ast" "$ROOT_DIR/src/codegen/transpiler_type_require.c"
-grep -Fq "pergyra_ast_type_to_c_copy(param->data.let_decl.type" "$ROOT_DIR/src/codegen/transpiler_event_emit.c"
-grep -Fq "pergyra_ast_type_to_c_copy(node->data.type_alias.target_type" "$ROOT_DIR/src/codegen/transpiler_type_alias.c"
+grep -Fq "param_type = ast_let_type(param)" "$ROOT_DIR/src/codegen/transpiler_event_emit.c"
+grep -Fq "pergyra_ast_type_to_c_copy(param_type" "$ROOT_DIR/src/codegen/transpiler_event_emit.c"
+grep -Fq "pergyra_ast_type_to_c_copy(ast_type_alias_target_type(node)" "$ROOT_DIR/src/codegen/transpiler_type_alias.c"
 grep -Fq "slot_inner_type_name_copy" "$ROOT_DIR/src/codegen/transpiler_type_mapping.c"
-grep -Fq "slot_inner_type_name_write" "$ROOT_DIR/src/codegen/transpiler_type_mapping.c"
+grep -Fq "slot_inner_type_name_write" "$ROOT_DIR/src/codegen/transpiler_type_name_utils.c"
 grep -Fq "slot_inner_type_name_copy" "$ROOT_DIR/src/codegen/transpiler_type_mapping.h"
 ! grep -Fq "const char *slot_inner_type_name" "$ROOT_DIR/src/codegen/transpiler_type_mapping.h"
 ! grep -Fq "const char *slot_inner_type_name" "$ROOT_DIR/src/codegen/transpiler.h"
@@ -684,10 +828,75 @@ grep -Fq "slot_inner_type_name_copy(type_name, inner_buf" "$ROOT_DIR/src/codegen
 grep -Fq "slot_inner_type_name_copy(type_name, inner_buf" "$ROOT_DIR/src/codegen/transpiler_mir_func_emit.h"
 ! grep -Fq "register_slot_var(ctx, p->name, slot_inner_type_name" "$ROOT_DIR/src/codegen/transpiler_func_class_flow_emit.h"
 ! grep -Fq "register_slot_var(ctx, p->name, slot_inner_type_name" "$ROOT_DIR/src/codegen/transpiler_mir_func_emit.h"
+grep -Fq "kTranspilerReturnOptionCtorSpecs" "$ROOT_DIR/src/codegen/transpiler_func_class_flow_emit.h"
+grep -Fq "transpiler_return_option_ctor_lookup" "$ROOT_DIR/src/codegen/transpiler_func_class_flow_emit.h"
+grep -Fq "bsearch(" "$ROOT_DIR/src/codegen/transpiler_func_class_flow_emit.h"
+! grep -Fq 'strcmp(callee_name, "Some")' "$ROOT_DIR/src/codegen/transpiler_func_class_flow_emit.h"
+! grep -Fq 'strcmp(callee_name, "None")' "$ROOT_DIR/src/codegen/transpiler_func_class_flow_emit.h"
+transpiler_return_option_ctor_names="$(
+    sed -n '/kTranspilerReturnOptionCtorSpecs\[\]/,/^        };/p' \
+        "$ROOT_DIR/src/codegen/transpiler_func_class_flow_emit.h" \
+        | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
+        | grep -o '"[A-Za-z0-9_]*"' \
+        | tr -d '"'
+)"
+transpiler_return_option_ctor_names_sorted="$(
+    printf '%s\n' "$transpiler_return_option_ctor_names" | sort
+)"
+if [[ "$transpiler_return_option_ctor_names" != "$transpiler_return_option_ctor_names_sorted" ]]; then
+    echo "C backend return Option ctor names must stay sorted for bsearch" >&2
+    diff -u <(printf '%s\n' "$transpiler_return_option_ctor_names_sorted") \
+        <(printf '%s\n' "$transpiler_return_option_ctor_names") >&2 || true
+    exit 1
+fi
 grep -Fq "transpiler_infer_slot_inner_type_name" "$ROOT_DIR/src/codegen/transpiler_expr_type_infer.h"
+grep -Fq "pgy_codegen_call_name_is_read(method_name)" "$ROOT_DIR/src/codegen/transpiler_expr_type_infer.h"
+grep -Fq "pgy_codegen_call_name_is_write(method_name)" "$ROOT_DIR/src/codegen/transpiler_expr_type_infer.h"
+grep -Fq "pgy_codegen_call_name_is_release(method_name)" "$ROOT_DIR/src/codegen/transpiler_expr_type_infer.h"
+grep -Fq "pgy_codegen_call_name_is_read(name)" "$ROOT_DIR/src/codegen/transpiler_expr_type_infer.h"
+grep -Fq "pgy_codegen_call_name_is_write(name)" "$ROOT_DIR/src/codegen/transpiler_expr_type_infer.h"
+grep -Fq "pgy_codegen_call_name_is_release(name)" "$ROOT_DIR/src/codegen/transpiler_expr_type_infer.h"
+! grep -Fq 'strcmp(method_name, "Read")' "$ROOT_DIR/src/codegen/transpiler_expr_type_infer.h"
+! grep -Fq 'strcmp(method_name, "Write")' "$ROOT_DIR/src/codegen/transpiler_expr_type_infer.h"
+! grep -Fq 'strcmp(method_name, "Release")' "$ROOT_DIR/src/codegen/transpiler_expr_type_infer.h"
+! grep -Fq 'strcmp(name, "Read")' "$ROOT_DIR/src/codegen/transpiler_expr_type_infer.h"
+! grep -Fq 'strcmp(name, "Write")' "$ROOT_DIR/src/codegen/transpiler_expr_type_infer.h"
+! grep -Fq 'strcmp(name, "Release")' "$ROOT_DIR/src/codegen/transpiler_expr_type_infer.h"
+grep -Fq "kTranspilerInferCallSpecs" "$ROOT_DIR/src/codegen/transpiler_expr_type_infer_call_policy.c"
+grep -Fq "transpiler_infer_call_lookup" "$ROOT_DIR/src/codegen/transpiler_expr_type_infer.h"
+grep -Fq "transpiler_infer_call_is_numeric_passthrough" "$ROOT_DIR/src/codegen/transpiler_expr_type_infer_call_policy.c"
+grep -Fq "transpiler_infer_call_returns_channel_option" "$ROOT_DIR/src/codegen/transpiler_expr_type_infer_call_policy.c"
+grep -Fq "bsearch(" "$ROOT_DIR/src/codegen/transpiler_expr_type_infer_call_policy.c"
+for direct_infer_name in \
+    Min Max Abs Clone MapGet MapKeys ListGet ViewRead ViewWrite Measure \
+    QubitState DeviceRead SubmitDeviceRead TryRecv RecvTimeout \
+    TrySendStatus SendTimeoutStatus Some None IsSome IsNone \
+    UnwrapOption ToObject ToTObject; do
+    if grep -Fq "strcmp(name, \"$direct_infer_name\")" \
+        "$ROOT_DIR/src/codegen/transpiler_expr_type_infer.h"; then
+        echo "[perf-contract] C expression type inference reintroduced direct builtin branch: $direct_infer_name" >&2
+        exit 1
+    fi
+done
+transpiler_infer_call_names="$(
+    sed -n '/kTranspilerInferCallSpecs\[\]/,/^    };/p' \
+        "$ROOT_DIR/src/codegen/transpiler_expr_type_infer_call_policy.c" \
+        | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
+        | grep -o '"[A-Za-z0-9_]*"' \
+        | tr -d '"'
+)"
+transpiler_infer_call_names_sorted="$(
+    printf '%s\n' "$transpiler_infer_call_names" | sort
+)"
+if [[ "$transpiler_infer_call_names" != "$transpiler_infer_call_names_sorted" ]]; then
+    echo "C expression type inference builtin names must stay sorted for bsearch" >&2
+    diff -u <(printf '%s\n' "$transpiler_infer_call_names_sorted") \
+        <(printf '%s\n' "$transpiler_infer_call_names") >&2 || true
+    exit 1
+fi
 grep -Fq "slot_inner_type_name_copy(type_name, inner_buf" "$ROOT_DIR/src/codegen/transpiler_expr_type_infer.h"
 ! grep -Fq "return slot_inner_type_name" "$ROOT_DIR/src/codegen/transpiler_expr_type_infer.h"
-grep -Fq "constructed_arg_name_write" "$ROOT_DIR/src/codegen/transpiler_type_mapping.c"
+grep -Fq "constructed_arg_name_write" "$ROOT_DIR/src/codegen/transpiler_type_name_utils.c"
 ! grep -Fq "const char *constructed_arg_name_at" "$ROOT_DIR/src/codegen/transpiler_type_mapping.h"
 ! grep -Fq "constructed_arg_name_at(const char" "$ROOT_DIR/src/codegen/transpiler_type_mapping.c"
 ! grep -A12 -F "copy_constructed_arg_name_at" "$ROOT_DIR/src/codegen/transpiler_type_mapping.c" | grep -Fq "constructed_arg_name_at("
@@ -695,7 +904,7 @@ grep -Fq "constructed_arg_name_write" "$ROOT_DIR/src/codegen/transpiler_type_map
 ! grep -Fq "pergyra_type_to_c(const char" "$ROOT_DIR/src/codegen/transpiler_type_mapping.c"
 ! grep -A320 -F "pergyra_type_to_c_copy(const char *name" "$ROOT_DIR/src/codegen/transpiler_type_mapping.c" | grep -Fq "pergyra_type_to_c(name)"
 grep -Fq "generic_args_to_c_suffix_copy" "$ROOT_DIR/src/codegen/transpiler_type_mapping.c"
-grep -Fq "generic_args_to_c_suffix_write" "$ROOT_DIR/src/codegen/transpiler_type_mapping.c"
+grep -Fq "generic_args_to_c_suffix_write" "$ROOT_DIR/src/codegen/transpiler_type_name_utils.c"
 grep -Fq "generic_args_to_c_suffix_copy" "$ROOT_DIR/src/codegen/transpiler_type_result_mapping_helpers.h"
 ! grep -Fq "const char *generic_args_to_c_suffix" "$ROOT_DIR/src/codegen/transpiler_type_mapping.h"
 ! grep -Fq "generic_args_to_c_suffix(const char" "$ROOT_DIR/src/codegen/transpiler_type_mapping.c"
@@ -710,8 +919,30 @@ grep -Fq "lookup_enum_variant_qualified_name_copy" "$ROOT_DIR/src/codegen/transp
 ! grep -Fq "static ASTNode *binding_types_buf" "$ROOT_DIR/src/codegen/transpiler_match_emit.h"
 grep -Fq "const char *bindings_buf[8]" "$ROOT_DIR/src/codegen/transpiler_match_emit.h"
 grep -Fq "collection_runtime_suffix_copy(inner, suffix_buf" "$ROOT_DIR/src/codegen/transpiler_let_emit.h"
-grep -Fq "collection_runtime_suffix_copy(value, suffix_buf" "$ROOT_DIR/src/codegen/transpiler_let_emit.h"
+grep -Fq "collection_runtime_suffix_copy(value, suffix_buf" "$ROOT_DIR/src/codegen/transpiler_let_collection_emit.h"
 ! grep -Fq "static char inner_buf[64]" "$ROOT_DIR/src/codegen/transpiler_let_box_emit.h"
+grep -Fq "kTranspilerBoxLetSpecs" "$ROOT_DIR/src/codegen/transpiler_let_box_emit.h"
+grep -Fq "transpiler_box_let_lookup" "$ROOT_DIR/src/codegen/transpiler_let_box_emit.h"
+grep -Fq "bsearch(" "$ROOT_DIR/src/codegen/transpiler_let_box_emit.h"
+! grep -Fq 'strcmp(callee_name, "BoxArray")' "$ROOT_DIR/src/codegen/transpiler_let_box_emit.h"
+! grep -Fq 'strcmp(callee_name, "Box")' "$ROOT_DIR/src/codegen/transpiler_let_box_emit.h"
+! grep -Fq 'strcmp(callee_name, "Rc")' "$ROOT_DIR/src/codegen/transpiler_let_box_emit.h"
+transpiler_box_let_names="$(
+    sed -n '/static const TranspilerBoxLetSpec kTranspilerBoxLetSpecs\[\]/,/^    };/p' \
+        "$ROOT_DIR/src/codegen/transpiler_let_box_emit.h" \
+        | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
+        | grep -o '"[A-Za-z0-9_]*"' \
+        | tr -d '"'
+)"
+transpiler_box_let_names_sorted="$(
+    printf '%s\n' "$transpiler_box_let_names" | sort
+)"
+if [[ "$transpiler_box_let_names" != "$transpiler_box_let_names_sorted" ]]; then
+    echo "C backend Box/Rc let builtin names must stay sorted for bsearch" >&2
+    diff -u <(printf '%s\n' "$transpiler_box_let_names_sorted") \
+        <(printf '%s\n' "$transpiler_box_let_names") >&2 || true
+    exit 1
+fi
 ! grep -A70 -F 'strcmp(key, "String") == 0 && value != NULL' "$ROOT_DIR/src/codegen/transpiler_let_emit.h" | grep -Fq "collection_runtime_suffix(value)"
 ! grep -A70 -F 'strcmp(callee_name, "ListNew")' "$ROOT_DIR/src/codegen/transpiler_let_emit.h" | grep -Fq "collection_runtime_suffix(inner)"
 ! grep -A70 -F 'strcmp(callee_name, "QueueNew")' "$ROOT_DIR/src/codegen/transpiler_let_emit.h" | grep -Fq "collection_runtime_suffix(inner)"
@@ -833,6 +1064,7 @@ grep -Fq "LLVMConstInt(LLVMInt1TypeInContext(ctx->context), 0, 0)" "$ROOT_DIR/sr
 grep -Fq "transpiler_mir_def_uses_source_statement_emit" "$ROOT_DIR/src/codegen/transpiler_mir_block_emit_helpers.h"
 grep -Fq "transpiler_mir_inst_is_cfg_container" "$ROOT_DIR/src/codegen/transpiler_mir_block_emit_helpers.h"
 grep -Fq "mir_instruction_source_matches_ast_node(inst, stmt)" "$ROOT_DIR/src/codegen/transpiler_mir_block_emit_helpers.h"
+grep -Fq "mir_instruction_source_is_cfg_container(inst)" "$ROOT_DIR/src/codegen/transpiler_mir_block_emit_helpers.h"
 grep -Fq "transpiler_mir_def_uses_source_local_decl_emit" "$ROOT_DIR/src/codegen/transpiler_mir_block_emit_helpers.h"
 grep -Fq "transpiler_mir_def_uses_channel_receive_statement_emit" "$ROOT_DIR/src/codegen/transpiler_mir_block_emit_helpers.h"
 grep -Fq "transpiler_mir_def_uses_select_receive_statement_emit" "$ROOT_DIR/src/codegen/transpiler_mir_block_emit_helpers.h"
@@ -845,14 +1077,18 @@ grep -Fq "missing select receive emit fact" "$ROOT_DIR/src/codegen/transpiler_mi
 grep -Fq "!mir_instruction_uses_source_statement_emit(inst)" "$ROOT_DIR/src/codegen/transpiler_mir_block_emit.h"
 grep -Fq "mir_instruction_source_is_defer_stmt(inst)" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"
 grep -Fq "mir_instruction_source_is_defer_stmt" "$ROOT_DIR/src/compiler/mir_source_shape.c"
-grep -Fq "inst->expr1 = stmt->data.let_decl.type" "$ROOT_DIR/src/compiler/mir_call_fact.c"
-grep -Fq "inst->expr0 = stmt->data.defer_stmt.body" "$ROOT_DIR/src/compiler/mir_call_fact.c"
-grep -Fq "inst->arg0 = stmt->data.let_decl.name" "$ROOT_DIR/src/compiler/mir_call_fact.c"
+grep -Fq "inst->expr1 = ast_let_type(stmt)" "$ROOT_DIR/src/compiler/mir_call_fact.c"
+grep -Fq "inst->expr0 = ast_defer_body(stmt)" "$ROOT_DIR/src/compiler/mir_call_fact.c"
+grep -Fq "inst->arg0 = ast_let_name(stmt)" "$ROOT_DIR/src/compiler/mir_call_fact.c"
 grep -Fq "inst->requires_source_statement_emit = true" "$ROOT_DIR/src/compiler/mir_call_fact.c"
 grep -Fq "stale thread-pool surface usage fact" "$ROOT_DIR/src/compiler/mir_fact_validate.c"
 grep -Fq "stale intent observability surface usage fact" "$ROOT_DIR/src/compiler/mir_fact_validate.c"
 grep -Fq "inventory surface usage facts" "$ROOT_DIR/src/compiler/mir_fact_validate.c"
 grep -Fq "inventory_uses_intent_observability_surface" "$ROOT_DIR/src/compiler/mir.h"
+grep -Fq "mir_inventory_surface_usage_summary" "$ROOT_DIR/src/compiler/mir_surface_usage.h"
+grep -Fq "summary = mir_inventory_surface_usage_summary(mir)" "$ROOT_DIR/src/compiler/mir_fact_validate.c"
+grep -Fq "return inventory_uses_surface" "$ROOT_DIR/src/codegen/intent_observability_usage.c"
+grep -Fq "return mir->inventory_uses_thread_pool_surface" "$ROOT_DIR/src/codegen/thread_pool_usage.c"
 grep -Fq "mir_source_ast_stmt_has_side_effect_hint(" "$ROOT_DIR/src/compiler/mir_dce.c"
 grep -Fq "mir_instruction_source_payload(inst)" "$ROOT_DIR/src/compiler/mir_dce.c"
 grep -Fq "mir_source_ast_type_stmt_has_side_effect_hint" "$ROOT_DIR/src/compiler/mir_source_shape.c"
@@ -908,7 +1144,7 @@ grep -Fq "missing intent step source mapping" "$ROOT_DIR/src/codegen/transpiler_
 ! grep -R -Fq "collect_mir_intent_steps" "$ROOT_DIR/src/codegen"
 grep -Fq "has_surface_usage_facts" "$ROOT_DIR/src/codegen/thread_pool_usage.c"
 grep -Fq "uses_thread_pool_surface" "$ROOT_DIR/src/codegen/thread_pool_usage.c"
-grep -Fq "allow_legacy_payload_probe" "$ROOT_DIR/src/codegen/thread_pool_usage.c"
+grep -Fq "allow_fixture_payload_probe" "$ROOT_DIR/src/codegen/thread_pool_usage.c"
 grep -Fq "block->instruction_count > 0 && block->instructions == NULL" "$ROOT_DIR/src/codegen/thread_pool_usage.c"
 ! grep -Fq "allow_legacy_ast_probe" "$ROOT_DIR/src/codegen/thread_pool_usage.c"
 ! grep -Fq "allow_ast_fallback" "$ROOT_DIR/src/codegen/thread_pool_usage.c"
@@ -916,6 +1152,7 @@ grep -Fq "block->instruction_count > 0 && block->instructions == NULL" "$ROOT_DI
 grep -Fq "routine->hir_routine == NULL" "$ROOT_DIR/src/codegen/thread_pool_usage.c"
 grep -Fq "pgy_mir_program_uses_thread_pool" "$ROOT_DIR/src/codegen/thread_pool_usage.c"
 grep -Fq "inventory_uses_thread_pool_surface" "$ROOT_DIR/src/codegen/thread_pool_usage.c"
+! grep -Fq "pgy_mir_routine_uses_thread_pool" "$ROOT_DIR/src/codegen/thread_pool_usage.h"
 grep -Fq "pgy_mir_program_uses_thread_pool(ctx->mir)" "$ROOT_DIR/src/codegen/transpiler_thread_pool.c"
 grep -Fq "pgy_mir_program_uses_thread_pool(ctx->mir)" "$ROOT_DIR/src/codegen/llvm_pipeline.c"
 grep -Fq "branch_shape == MIR_BRANCH_FOR_IN" "$ROOT_DIR/src/codegen/transpiler_mir_cfg_control_emit.h"
@@ -926,8 +1163,10 @@ grep -Fq "pgy_channel_ready_%s(&%s)" "$ROOT_DIR/src/codegen/transpiler_mir_cfg_c
 grep -Fq "MIR select dispatch emits channel readiness in C backend" "$ROOT_DIR/src/tests/transpile/test_transpile_mir_part_b.cases.h"
 grep -Fq "MIR select dispatch materializes bound receive local type" "$ROOT_DIR/src/tests/transpile/test_transpile_mir_part_b.cases.h"
 grep -Fq "transpiler_select_case_has_receive_binding" "$ROOT_DIR/src/codegen/transpiler_mir_local_binding.c"
-grep -Fq "node->data.assignment.value->type == AST_CHANNEL_RECV" "$ROOT_DIR/src/codegen/transpiler_mir_local_binding.c"
-grep -Fq "body->data.assignment.value->type == AST_CHANNEL_RECV" "$ROOT_DIR/src/codegen/transpiler_mir_local_type_lookup.h"
+grep -Fq "ASTNode *value = ast_assignment_value(node)" "$ROOT_DIR/src/codegen/transpiler_mir_local_binding.c"
+grep -Fq "value->type == AST_CHANNEL_RECV" "$ROOT_DIR/src/codegen/transpiler_mir_local_binding.c"
+grep -Fq "ast_assignment_value(body) != NULL" "$ROOT_DIR/src/codegen/transpiler_mir_local_type_lookup.h"
+grep -Fq "ast_assignment_value(body)->type == AST_CHANNEL_RECV" "$ROOT_DIR/src/codegen/transpiler_mir_local_type_lookup.h"
 grep -Fq "case AST_CHANNEL_RECV" "$ROOT_DIR/src/codegen/transpiler_mir_local_type_lookup.h"
 grep -Fq "_pgy_ssa_v_1 = pgy_channel_recv_val_Int(&ch)" "$ROOT_DIR/src/tests/transpile/test_transpile_mir_part_b.cases.h"
 grep -Fq "strstr(output, \"\\nv = pgy_channel_recv_val_Int(&ch)\") == NULL" "$ROOT_DIR/src/tests/transpile/test_transpile_mir_part_b.cases.h"
@@ -1006,8 +1245,8 @@ grep -Fq "strcmp(subject_type, \"Unknown\") == 0" "$ROOT_DIR/src/codegen/transpi
 ! grep -Fq "owned_type_name : \"Unknown\"" "$ROOT_DIR/src/codegen/transpiler_expr_call_spawn_emit.h"
 grep -Fq "C array access requires concrete Array<T> element metadata" "$ROOT_DIR/src/codegen/transpiler_expr_array_access_emit.h"
 grep -Fq "C slice access requires concrete Slice<T> element metadata" "$ROOT_DIR/src/codegen/transpiler_expr_array_access_emit.h"
-grep -Fq "C tuple literal requires concrete tuple layout metadata" "$ROOT_DIR/src/codegen/transpiler_expr_dispatch_emit.h"
-grep -Fq "C array literal requires concrete Array<T> element metadata" "$ROOT_DIR/src/codegen/transpiler_expr_dispatch_emit.h"
+grep -Fq "C tuple literal requires concrete tuple layout metadata" "$ROOT_DIR/src/codegen/transpiler_expr_composite_literal_emit.h"
+grep -Fq "C array literal requires concrete Array<T> element metadata" "$ROOT_DIR/src/codegen/transpiler_expr_composite_literal_emit.h"
 grep -Fq "C slot SSA auto-read requires concrete Slot<T> payload metadata" "$ROOT_DIR/src/codegen/transpiler_expr_dispatch_emit.h"
 grep -Fq "cannot determine slot payload type for assignment" "$ROOT_DIR/src/codegen/transpiler_expr_dispatch_emit.h"
 grep -Fq "C await expression requires concrete Future<T> result metadata" "$ROOT_DIR/src/codegen/transpiler_expr_dispatch_emit.h"
@@ -1030,6 +1269,25 @@ grep -Fq "transpiler_result_arg_list_has_unknown" "$ROOT_DIR/src/codegen/transpi
 grep -Fq "transpiler_result_type_ident_char" "$ROOT_DIR/src/codegen/transpiler_type_result_mapping_helpers.h"
 grep -Fq "Ok(value) with unknown Result payload emits diagnostic recovery" "$ROOT_DIR/src/tests/transpile/test_transpile_core_part_a.cases.h"
 grep -Fq "Result suffix keeps user type names containing Unknown" "$ROOT_DIR/src/tests/transpile/test_transpile_core_part_a.cases.h"
+grep -Fq "kTranspilerResultOptionSpecs" "$ROOT_DIR/src/codegen/transpiler_call_result_option_builtin_emit.h"
+grep -Fq "transpiler_result_option_lookup" "$ROOT_DIR/src/codegen/transpiler_call_result_option_builtin_emit.h"
+grep -Fq "bsearch(" "$ROOT_DIR/src/codegen/transpiler_call_result_option_builtin_emit.h"
+transpiler_result_option_names="$(
+    sed -n '/static const TranspilerResultOptionSpec kTranspilerResultOptionSpecs\[\]/,/^    };/p' \
+        "$ROOT_DIR/src/codegen/transpiler_call_result_option_builtin_emit.h" \
+        | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
+        | grep -o '"[A-Za-z0-9_]*"' \
+        | tr -d '"'
+)"
+transpiler_result_option_names_sorted="$(
+    printf '%s\n' "$transpiler_result_option_names" | sort
+)"
+if [[ "$transpiler_result_option_names" != "$transpiler_result_option_names_sorted" ]]; then
+    echo "C backend Result/Option builtin names must stay sorted for bsearch" >&2
+    diff -u <(printf '%s\n' "$transpiler_result_option_names_sorted") \
+        <(printf '%s\n' "$transpiler_result_option_names") >&2 || true
+    exit 1
+fi
 grep -Fq "pgy_result_type_arg_has_unknown" "$ROOT_DIR/src/codegen/llvm_type.c"
 grep -Fq "cannot materialize Unknown result layout" "$ROOT_DIR/src/codegen/llvm_type.c"
 ! grep -A56 -F "case PGY_TK_RESULT" "$ROOT_DIR/src/codegen/llvm_backend_type_map.c" | grep -Fq "return ctx->type_i32"
@@ -1038,6 +1296,25 @@ grep -Fq "ok_ty == NULL || err_ty == NULL" "$ROOT_DIR/src/codegen/llvm_backend_t
 grep -Fq "LLVM Some(value) requires contextual Option<T>" "$ROOT_DIR/src/codegen/llvm_expr_result_option_calls.c"
 grep -Fq "anonymous Option layout fallback is disabled" "$ROOT_DIR/src/codegen/llvm_expr_result_option_calls.c"
 grep -Fq "llvm_result_option_error" "$ROOT_DIR/src/codegen/llvm_expr_result_option_calls.c"
+grep -Fq "kLLVMResultOptionSpecs" "$ROOT_DIR/src/codegen/llvm_expr_result_option_calls.c"
+grep -Fq "llvm_result_option_lookup" "$ROOT_DIR/src/codegen/llvm_expr_result_option_calls.c"
+grep -Fq "bsearch(" "$ROOT_DIR/src/codegen/llvm_expr_result_option_calls.c"
+result_option_builtin_names="$(
+    sed -n '/static const LLVMResultOptionSpec kLLVMResultOptionSpecs\[\]/,/^    };/p' \
+        "$ROOT_DIR/src/codegen/llvm_expr_result_option_calls.c" \
+        | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
+        | grep -o '"[A-Za-z0-9_]*"' \
+        | tr -d '"'
+)"
+result_option_builtin_names_sorted="$(
+    printf '%s\n' "$result_option_builtin_names" | sort
+)"
+if [[ "$result_option_builtin_names" != "$result_option_builtin_names_sorted" ]]; then
+    echo "LLVM Result/Option builtin names must stay sorted for bsearch" >&2
+    diff -u <(printf '%s\n' "$result_option_builtin_names_sorted") \
+        <(printf '%s\n' "$result_option_builtin_names") >&2 || true
+    exit 1
+fi
 ! grep -A16 -F "llvm_result_option_error(LLVMGenCtx *ctx" \
     "$ROOT_DIR/src/codegen/llvm_expr_result_option_calls.c" | \
     grep -Fq "LLVMConstInt(ctx->type_i32, 0, 0)"
@@ -1051,9 +1328,57 @@ grep -Fq "LLVM ListNew() requires contextual List<T>" "$ROOT_DIR/src/codegen/llv
 grep -Fq "LLVM SetNew() requires contextual Set<T>" "$ROOT_DIR/src/codegen/llvm_expr_collection_base_calls.c"
 grep -Fq "implicit i32 fallback is disabled" "$ROOT_DIR/src/codegen/llvm_expr_collection_base_calls.c"
 grep -Fq "llvm_collection_base_error_out" "$ROOT_DIR/src/codegen/llvm_expr_collection_base_calls.c"
-grep -Fq "(void)recovery;" "$ROOT_DIR/src/codegen/llvm_expr_collection_base_calls.c"
+! grep -Fq "(void)recovery;" "$ROOT_DIR/src/codegen/llvm_expr_collection_base_calls.c"
 grep -Fq "LLVM ListNew() could not allocate list temporary" "$ROOT_DIR/src/codegen/llvm_expr_collection_base_calls.c"
 grep -Fq "LLVM SetAdd could not lower value expression" "$ROOT_DIR/src/codegen/llvm_expr_collection_base_calls.c"
+grep -Fq "kLLVMStmtCollectionCtorSpecs" "$ROOT_DIR/src/codegen/llvm_stmt_let_collection_policy.c"
+grep -Fq "llvm_stmt_collection_ctor_lookup(callee)" "$ROOT_DIR/src/codegen/llvm_stmt_let_collections.c"
+grep -Fq "kLLVMStmtLetCallSpecs" "$ROOT_DIR/src/codegen/llvm_stmt_let_collection_policy.c"
+grep -Fq "llvm_stmt_let_call_op(init)" "$ROOT_DIR/src/codegen/llvm_stmt_let_collections.c"
+grep -Fq "llvm_stmt_register_collection_var" "$ROOT_DIR/src/codegen/llvm_stmt_let_collections.c"
+grep -Fq "bsearch(" "$ROOT_DIR/src/codegen/llvm_stmt_let_collection_policy.c"
+! grep -Fq 'strcmp(ann_name, "List")' "$ROOT_DIR/src/codegen/llvm_stmt_let_collections.c"
+! grep -Fq 'strcmp(ann_name, "Set")' "$ROOT_DIR/src/codegen/llvm_stmt_let_collections.c"
+! grep -Fq 'strcmp(ann_name, "Queue")' "$ROOT_DIR/src/codegen/llvm_stmt_let_collections.c"
+! grep -Fq 'strcmp(ann_name, "HashMap")' "$ROOT_DIR/src/codegen/llvm_stmt_let_collections.c"
+! grep -Fq 'strcmp(callee, "ListNew")' "$ROOT_DIR/src/codegen/llvm_stmt_let_collections.c"
+! grep -Fq 'strcmp(callee, "SetNew")' "$ROOT_DIR/src/codegen/llvm_stmt_let_collections.c"
+! grep -Fq 'strcmp(callee, "QueueNew")' "$ROOT_DIR/src/codegen/llvm_stmt_let_collections.c"
+! grep -Fq 'strcmp(callee, "MapNew")' "$ROOT_DIR/src/codegen/llvm_stmt_let_collections.c"
+! grep -Fq 'strcmp(ast_identifier_name(ast_call_callee(init)), "ToObject")' "$ROOT_DIR/src/codegen/llvm_stmt_let_collections.c"
+! grep -Fq 'strcmp(ast_identifier_name(ast_call_callee(init)), "Channel")' "$ROOT_DIR/src/codegen/llvm_stmt_let_collections.c"
+llvm_stmt_collection_ctor_names="$(
+    sed -n '/kLLVMStmtCollectionCtorSpecs\[\]/,/^    };/p' \
+        "$ROOT_DIR/src/codegen/llvm_stmt_let_collection_policy.c" \
+        | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
+        | grep -o '"[A-Za-z0-9_]*"' \
+        | tr -d '"'
+)"
+llvm_stmt_collection_ctor_names_sorted="$(
+    printf '%s\n' "$llvm_stmt_collection_ctor_names" | sort
+)"
+if [[ "$llvm_stmt_collection_ctor_names" != "$llvm_stmt_collection_ctor_names_sorted" ]]; then
+    echo "LLVM let collection ctor names must stay sorted for bsearch" >&2
+    diff -u <(printf '%s\n' "$llvm_stmt_collection_ctor_names_sorted") \
+        <(printf '%s\n' "$llvm_stmt_collection_ctor_names") >&2 || true
+    exit 1
+fi
+llvm_stmt_let_call_names="$(
+    sed -n '/static const LLVMStmtLetCallSpec kLLVMStmtLetCallSpecs\[\]/,/^    };/p' \
+        "$ROOT_DIR/src/codegen/llvm_stmt_let_collection_policy.c" \
+        | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
+        | grep -o '"[A-Za-z0-9_]*"' \
+        | tr -d '"'
+)"
+llvm_stmt_let_call_names_sorted="$(
+    printf '%s\n' "$llvm_stmt_let_call_names" | sort
+)"
+if [[ "$llvm_stmt_let_call_names" != "$llvm_stmt_let_call_names_sorted" ]]; then
+    echo "LLVM let special call names must stay sorted for bsearch" >&2
+    diff -u <(printf '%s\n' "$llvm_stmt_let_call_names_sorted") \
+        <(printf '%s\n' "$llvm_stmt_let_call_names") >&2 || true
+    exit 1
+fi
 grep -Fq "*out = NULL;" "$ROOT_DIR/src/codegen/llvm_expr_call_collections_extended.c"
 grep -Fq "kLLVMCollectionBaseSpecs" "$ROOT_DIR/src/codegen/llvm_expr_collection_base_calls.c"
 grep -Fq "llvm_collection_base_lookup" "$ROOT_DIR/src/codegen/llvm_expr_collection_base_calls.c"
@@ -1091,8 +1416,8 @@ grep -Fq "char err_name_buf[256]" "$ROOT_DIR/src/codegen/llvm_backend_type_map.c
 ! grep -A8 -F "PGY_TK_OPTION" "$ROOT_DIR/src/codegen/llvm_backend_type_map.c" | grep -Fq "return ctx->type_i32"
 grep -Fq "if (ctx->has_error || inner == NULL)" "$ROOT_DIR/src/codegen/llvm_backend_type_map.c"
 grep -Fq "if (ctx->has_error || list_ty == NULL || elem_ty == NULL)" "$ROOT_DIR/src/codegen/llvm_stmt_let_collections.c"
-grep -Fq "if (ctx->has_error || set_ty == NULL || elem_ty == NULL)" "$ROOT_DIR/src/codegen/llvm_stmt_let_collections.c"
-grep -Fq "if (ctx->has_error || queue_ty == NULL || elem_ty == NULL)" "$ROOT_DIR/src/codegen/llvm_stmt_let_collections.c"
+grep -Fq "case LLVM_STMT_COLLECTION_CTOR_SET" "$ROOT_DIR/src/codegen/llvm_stmt_let_collections.c"
+grep -Fq "case LLVM_STMT_COLLECTION_CTOR_QUEUE" "$ROOT_DIR/src/codegen/llvm_stmt_let_collections.c"
 grep -Fq "if (ctx->has_error || map_ty == NULL || value_ty == NULL)" "$ROOT_DIR/src/codegen/llvm_stmt_let_collections.c"
 ! grep -A8 -F "PGY_TK_SLOT" "$ROOT_DIR/src/codegen/llvm_backend_type_map.c" | grep -Fq "return ctx->type_i32"
 ! grep -A8 -F "PGY_TK_SECURE_SLOT" "$ROOT_DIR/src/codegen/llvm_backend_type_map.c" | grep -Fq "return ctx->type_i32"
@@ -1109,9 +1434,15 @@ grep -Fq "*out = NULL;" "$ROOT_DIR/src/codegen/llvm_expr_array_calls.c"
 grep -Fq "llvm_collection_required_receiver_var" "$ROOT_DIR/src/codegen/llvm_expr_call_collections_extended.h"
 grep -Fq "llvm_collection_required_receiver_var" "$ROOT_DIR/src/codegen/llvm_expr_call_collections_extended.c"
 grep -Fq "llvm_collection_required_receiver_var" "$ROOT_DIR/src/codegen/llvm_expr_call_collections_require.c"
-grep -Fq "(void)fallback;" "$ROOT_DIR/src/codegen/llvm_expr_call_collections_require.c"
-grep -Fq "(void)recovery;" "$ROOT_DIR/src/codegen/llvm_expr_call_collections_extended.c"
+! grep -Fq "(void)fallback;" "$ROOT_DIR/src/codegen/llvm_expr_call_collections_require.c"
+! grep -Fq "(void)recovery;" "$ROOT_DIR/src/codegen/llvm_expr_call_collections_require.c"
 grep -Fq "{ *out = NULL; return true; }" "$ROOT_DIR/src/codegen/llvm_expr_call_collections_extended.c"
+grep -Fq "kListExtendedSpecs" "$ROOT_DIR/src/codegen/llvm_expr_call_list_extended.c"
+grep -Fq "llvm_list_extended_lookup" "$ROOT_DIR/src/codegen/llvm_expr_call_list_extended.c"
+grep -Fq "bsearch(" "$ROOT_DIR/src/codegen/llvm_expr_call_list_extended.c"
+grep -Fq "kMapExtendedSpecs" "$ROOT_DIR/src/codegen/llvm_expr_call_collections_extended.c"
+grep -Fq "llvm_map_extended_lookup" "$ROOT_DIR/src/codegen/llvm_expr_call_collections_extended.c"
+grep -Fq "bsearch(" "$ROOT_DIR/src/codegen/llvm_expr_call_collections_extended.c"
 grep -Fq "llvm_collection_required_receiver_var(ctx, node, set_arg" "$ROOT_DIR/src/codegen/llvm_expr_collection_base_calls.c"
 grep -Fq "llvm_collection_required_receiver_var(ctx, node, queue_arg" "$ROOT_DIR/src/codegen/llvm_expr_call_queue_extended.c"
 grep -Fq "requires an identifier receiver" "$ROOT_DIR/src/codegen/llvm_expr_call_collections_require.c"
@@ -1119,7 +1450,7 @@ grep -Fq "requires registered %s local" "$ROOT_DIR/src/codegen/llvm_expr_call_co
 grep -Fq "MapKeys" "$ROOT_DIR/src/codegen/llvm_expr_call_collections_extended.c"
 grep -Fq "\"queue\"" "$ROOT_DIR/src/codegen/llvm_expr_call_queue_extended.c"
 grep -Fq "llvm_queue_error_out" "$ROOT_DIR/src/codegen/llvm_expr_call_queue_extended.c"
-grep -Fq "(void)recovery;" "$ROOT_DIR/src/codegen/llvm_expr_call_queue_extended.c"
+! grep -Fq "(void)recovery;" "$ROOT_DIR/src/codegen/llvm_expr_call_queue_extended.c"
 grep -Fq "kQueueExtendedSpecs" "$ROOT_DIR/src/codegen/llvm_expr_call_queue_extended.c"
 grep -Fq "llvm_queue_extended_lookup" "$ROOT_DIR/src/codegen/llvm_expr_call_queue_extended.c"
 grep -Fq "bsearch(" "$ROOT_DIR/src/codegen/llvm_expr_call_queue_extended.c"
@@ -1140,6 +1471,87 @@ if [[ "$transpiler_collection_names" != "$transpiler_collection_names_sorted" ]]
     echo "C backend collection builtin names must stay sorted for bsearch" >&2
     diff -u <(printf '%s\n' "$transpiler_collection_names_sorted") \
         <(printf '%s\n' "$transpiler_collection_names") >&2 || true
+    exit 1
+fi
+grep -Fq "kTranspilerArraySpecs" "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_builtin.h"
+grep -Fq "transpiler_array_lookup" "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_builtin.h"
+grep -Fq "bsearch(" "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_builtin.h"
+transpiler_array_names="$(
+    sed -n '/static const TranspilerArrayStdlibSpec kTranspilerArraySpecs\[\]/,/^};/p' \
+        "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_builtin.h" \
+        | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
+        | grep -o '"[A-Za-z0-9_]*"' \
+        | tr -d '"'
+)"
+transpiler_array_names_sorted="$(
+    printf '%s\n' "$transpiler_array_names" | sort
+)"
+if [[ "$transpiler_array_names" != "$transpiler_array_names_sorted" ]]; then
+    echo "C backend Array builtin names must stay sorted for bsearch" >&2
+    diff -u <(printf '%s\n' "$transpiler_array_names_sorted") \
+        <(printf '%s\n' "$transpiler_array_names") >&2 || true
+    exit 1
+fi
+grep -Fq "kTranspilerStdlibSpecs" "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_builtin.h"
+grep -Fq "transpiler_stdlib_lookup" "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_builtin.h"
+grep -Fq "TranspilerToStringSpec" "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_builtin.h"
+grep -Fq "transpiler_to_string_kind" "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_builtin.h"
+for direct_to_string_type in String Bool Float Double Long; do
+    if grep -Fq "strcmp(arg_type, \"$direct_to_string_type\")" \
+        "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_builtin.h"; then
+        echo "[perf-contract] C ToString lowering reintroduced direct type branch: $direct_to_string_type" >&2
+        exit 1
+    fi
+done
+transpiler_to_string_names="$(
+    sed -n '/static const TranspilerToStringSpec specs\[\]/,/^    };/p' \
+        "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_builtin.h" \
+        | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
+        | grep -o '"[A-Za-z0-9_]*"' \
+        | tr -d '"'
+)"
+transpiler_to_string_names_sorted="$(
+    printf '%s\n' "$transpiler_to_string_names" | sort
+)"
+if [[ "$transpiler_to_string_names" != "$transpiler_to_string_names_sorted" ]]; then
+    echo "C backend ToString type names must stay sorted for bsearch" >&2
+    diff -u <(printf '%s\n' "$transpiler_to_string_names_sorted") \
+        <(printf '%s\n' "$transpiler_to_string_names") >&2 || true
+    exit 1
+fi
+transpiler_stdlib_names="$(
+    sed -n '/static const TranspilerStdlibSpec kTranspilerStdlibSpecs\[\]/,/^};/p' \
+        "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_builtin.h" \
+        | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
+        | grep -o '"[A-Za-z0-9_]*"' \
+        | tr -d '"'
+)"
+transpiler_stdlib_names_sorted="$(
+    printf '%s\n' "$transpiler_stdlib_names" | sort
+)"
+if [[ "$transpiler_stdlib_names" != "$transpiler_stdlib_names_sorted" ]]; then
+    echo "C backend stdlib builtin names must stay sorted for bsearch" >&2
+    diff -u <(printf '%s\n' "$transpiler_stdlib_names_sorted") \
+        <(printf '%s\n' "$transpiler_stdlib_names") >&2 || true
+    exit 1
+fi
+grep -Fq "kTranspilerMiscSpecs" "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_misc_builtin.c"
+grep -Fq "transpiler_misc_lookup" "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_misc_builtin.c"
+grep -Fq "bsearch(" "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_misc_builtin.c"
+transpiler_misc_names="$(
+    sed -n '/static const TranspilerMiscSpec kTranspilerMiscSpecs\[\]/,/^};/p' \
+        "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_misc_builtin.c" \
+        | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
+        | grep -o '"[A-Za-z0-9_]*"' \
+        | tr -d '"'
+)"
+transpiler_misc_names_sorted="$(
+    printf '%s\n' "$transpiler_misc_names" | sort
+)"
+if [[ "$transpiler_misc_names" != "$transpiler_misc_names_sorted" ]]; then
+    echo "C backend misc builtin names must stay sorted for bsearch" >&2
+    diff -u <(printf '%s\n' "$transpiler_misc_names_sorted") \
+        <(printf '%s\n' "$transpiler_misc_names") >&2 || true
     exit 1
 fi
 grep -Fq "kTranspilerMapSpecs" "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_map_builtin.h"
@@ -1180,17 +1592,43 @@ grep -Fq "llvm_stmt_render_type_annotation_copy" "$ROOT_DIR/src/codegen/llvm_stm
 ! grep -Fq "llvm_stmt_render_type_annotation_static" "$ROOT_DIR/src/codegen/llvm_internal_api.h"
 ! grep -Fq "static char buf[256]" "$ROOT_DIR/src/codegen/llvm_stmt_let_helpers.c"
 grep -Fq "pgy_arena_strdup(&ctx->scratch, actual_type)" "$ROOT_DIR/src/codegen/llvm_stmt_let_helpers.c"
+grep -Fq "pgy_codegen_call_name_is_slot_operation(callee_name)" "$ROOT_DIR/src/codegen/llvm_stmt_let_helpers.c"
+grep -Fq "pgy_codegen_call_name_is_read(callee_name)" "$ROOT_DIR/src/codegen/llvm_stmt_let_helpers.c"
+! grep -Fq 'strcmp(callee_name, "Read")' "$ROOT_DIR/src/codegen/llvm_stmt_let_helpers.c"
+! grep -Fq 'strcmp(callee_name, "Write")' "$ROOT_DIR/src/codegen/llvm_stmt_let_helpers.c"
+! grep -Fq 'strcmp(callee_name, "Release")' "$ROOT_DIR/src/codegen/llvm_stmt_let_helpers.c"
 ! grep -A60 -F "llvm_infer_spawn_future_inner" "$ROOT_DIR/src/codegen/llvm_stmt_let_helpers.c" | grep -Fq "static char buf"
 grep -Fq "ctx->expected_type_name = llvm_stmt_render_type_annotation_copy" "$ROOT_DIR/src/codegen/llvm_stmt.c"
 grep -Fq "llvm_stmt_render_type_annotation_copy(ctx" "$ROOT_DIR/src/codegen/llvm_stmt_let_with.c"
 grep -Fq "suffix_buf" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
+grep -Fq "llvm_stmt_name_in_sorted_table" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer_helpers.c"
+grep -Fq "kLLVMCollectionGetSpecs" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer_helpers.c"
+grep -Fq "llvm_stmt_collection_get_spec_compare" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer_helpers.c"
+grep -Fq "bsearch(" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer_helpers.c"
+! grep -Fq "strcmp(callee, specs[i].name)" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer_helpers.c"
+llvm_stmt_collection_get_names="$(
+    sed -n '/static const LLVMCollectionGetSpec kLLVMCollectionGetSpecs\[\]/,/^    };/p' \
+        "$ROOT_DIR/src/codegen/llvm_stmt_type_infer_helpers.c" \
+        | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
+        | grep -o '"[A-Za-z0-9_]*"' \
+        | tr -d '"'
+)"
+llvm_stmt_collection_get_names_sorted="$(
+    printf '%s\n' "$llvm_stmt_collection_get_names" | sort
+)"
+if [[ "$llvm_stmt_collection_get_names" != "$llvm_stmt_collection_get_names_sorted" ]]; then
+    echo "LLVM stmt collection-get names must stay sorted for bsearch" >&2
+    diff -u <(printf '%s\n' "$llvm_stmt_collection_get_names_sorted") \
+        <(printf '%s\n' "$llvm_stmt_collection_get_names") >&2 || true
+    exit 1
+fi
 grep -Fq "return pergyra_type_to_llvm(ctx, inner_buf)" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
 grep -Fq "inner_name = inner_name_buf" "$ROOT_DIR/src/codegen/llvm_expr_collection_base_calls.c"
 grep -Fq "return_type_owned = pergyra_strdup(return_type)" "$ROOT_DIR/src/codegen/transpiler_lambda_emit.h"
 grep -Fq "pergyra_type_to_c_copy(inferred_return_type" "$ROOT_DIR/src/codegen/transpiler_lambda_emit.h"
 grep -Fq "transpiler_infer_lambda_param_c_type_copy" "$ROOT_DIR/src/codegen/transpiler_lambda_emit.h"
-grep -Fq "pergyra_ast_type_to_c_copy(node->data.lambda_expr.return_type" "$ROOT_DIR/src/codegen/transpiler_lambda_emit.h"
-grep -Fq "pergyra_ast_type_to_c_copy(param->data.let_decl.type" "$ROOT_DIR/src/codegen/transpiler_lambda_emit.h"
+grep -Fq "pergyra_ast_type_to_c_copy(lambda_return_type" "$ROOT_DIR/src/codegen/transpiler_lambda_emit.h"
+grep -Fq "pergyra_ast_type_to_c_copy(param_type_ast" "$ROOT_DIR/src/codegen/transpiler_lambda_emit.h"
 grep -Fq "char ok_ctype_buf[128]" "$ROOT_DIR/src/codegen/transpiler_specialization_helpers.h"
 grep -Fq "pergyra_type_to_c_copy(ok_type" "$ROOT_DIR/src/codegen/transpiler_specialization_helpers.h"
 grep -Fq "pergyra_type_to_c_copy(err_type" "$ROOT_DIR/src/codegen/transpiler_specialization_helpers.h"
@@ -1203,13 +1641,55 @@ grep -Fq "pergyra_type_to_c_copy(ann_source_type" "$ROOT_DIR/src/codegen/transpi
 grep -Fq "pergyra_type_to_c_copy(array_type_name" "$ROOT_DIR/src/codegen/transpiler_let_emit.h"
 grep -Fq "char set_c_type_buf[256]" "$ROOT_DIR/src/codegen/transpiler_let_emit.h"
 grep -Fq "pergyra_type_to_c_copy(ann_type_name" "$ROOT_DIR/src/codegen/transpiler_let_emit.h"
-grep -Fq "pergyra_type_to_c_copy(ann_type_name, map_c_type_buf" "$ROOT_DIR/src/codegen/transpiler_let_emit.h"
-grep -Fq "pergyra_type_to_c_copy(ann_type_name, list_c_type_buf" "$ROOT_DIR/src/codegen/transpiler_let_emit.h"
-grep -Fq "pergyra_type_to_c_copy(ann_type_name, queue_c_type_buf" "$ROOT_DIR/src/codegen/transpiler_let_emit.h"
+grep -Fq "pergyra_type_to_c_copy(ann_type_name, map_c_type_buf" "$ROOT_DIR/src/codegen/transpiler_let_collection_emit.h"
+grep -Fq "transpiler_try_emit_list_or_queue_new_let" "$ROOT_DIR/src/codegen/transpiler_let_collection_emit.h"
+grep -Fq "pergyra_type_to_c_copy(ann_type_name, c_type_buf" "$ROOT_DIR/src/codegen/transpiler_let_collection_emit.h"
+grep -Fq "kTranspilerLetOptionCtorSpecs" "$ROOT_DIR/src/codegen/transpiler_let_collection_emit.h"
+grep -Fq "transpiler_let_option_ctor_lookup" "$ROOT_DIR/src/codegen/transpiler_let_collection_emit.h"
+grep -Fq "kTranspilerLetCollectionCtorSpecs" "$ROOT_DIR/src/codegen/transpiler_let_collection_emit.h"
+grep -Fq "transpiler_let_collection_ctor_lookup" "$ROOT_DIR/src/codegen/transpiler_let_collection_emit.h"
+grep -Fq "bsearch(" "$ROOT_DIR/src/codegen/transpiler_let_collection_emit.h"
+! grep -Fq 'strcmp(callee_name, "Some")' "$ROOT_DIR/src/codegen/transpiler_let_collection_emit.h"
+! grep -Fq 'strcmp(callee_name, "None")' "$ROOT_DIR/src/codegen/transpiler_let_collection_emit.h"
+! grep -Fq 'strcmp(callee_name, "ListNew")' "$ROOT_DIR/src/codegen/transpiler_let_collection_emit.h"
+! grep -Fq 'strcmp(callee_name, "QueueNew")' "$ROOT_DIR/src/codegen/transpiler_let_collection_emit.h"
+! grep -Fq 'strcmp(callee_name, "MapNew")' "$ROOT_DIR/src/codegen/transpiler_let_collection_emit.h"
+transpiler_let_option_ctor_names="$(
+    sed -n '/static const TranspilerLetOptionCtorSpec kTranspilerLetOptionCtorSpecs\[\]/,/^    };/p' \
+        "$ROOT_DIR/src/codegen/transpiler_let_collection_emit.h" \
+        | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
+        | grep -o '"[A-Za-z0-9_]*"' \
+        | tr -d '"'
+)"
+transpiler_let_option_ctor_names_sorted="$(
+    printf '%s\n' "$transpiler_let_option_ctor_names" | sort
+)"
+if [[ "$transpiler_let_option_ctor_names" != "$transpiler_let_option_ctor_names_sorted" ]]; then
+    echo "C backend let Option ctor names must stay sorted for bsearch" >&2
+    diff -u <(printf '%s\n' "$transpiler_let_option_ctor_names_sorted") \
+        <(printf '%s\n' "$transpiler_let_option_ctor_names") >&2 || true
+    exit 1
+fi
+transpiler_let_collection_ctor_names="$(
+    sed -n '/kTranspilerLetCollectionCtorSpecs\[\]/,/^        };/p' \
+        "$ROOT_DIR/src/codegen/transpiler_let_collection_emit.h" \
+        | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
+        | grep -o '"[A-Za-z0-9_]*"' \
+        | tr -d '"'
+)"
+transpiler_let_collection_ctor_names_sorted="$(
+    printf '%s\n' "$transpiler_let_collection_ctor_names" | sort
+)"
+if [[ "$transpiler_let_collection_ctor_names" != "$transpiler_let_collection_ctor_names_sorted" ]]; then
+    echo "C backend let collection ctor names must stay sorted for bsearch" >&2
+    diff -u <(printf '%s\n' "$transpiler_let_collection_ctor_names_sorted") \
+        <(printf '%s\n' "$transpiler_let_collection_ctor_names") >&2 || true
+    exit 1
+fi
 grep -Fq "result_c_type = result_c_type_buf" "$ROOT_DIR/src/codegen/transpiler_let_emit.h"
 grep -Fq "pergyra_type_to_c_copy(result_type" "$ROOT_DIR/src/codegen/transpiler_let_emit.h"
-grep -Fq "char ctype_buf[256]" "$ROOT_DIR/src/codegen/transpiler_expr_dispatch_emit.h"
-grep -Fq "pergyra_type_to_c_copy(tuple_name" "$ROOT_DIR/src/codegen/transpiler_expr_dispatch_emit.h"
+grep -Fq "char ctype_buf[256]" "$ROOT_DIR/src/codegen/transpiler_expr_composite_literal_emit.h"
+grep -Fq "pergyra_type_to_c_copy(tuple_name" "$ROOT_DIR/src/codegen/transpiler_expr_composite_literal_emit.h"
 grep -Fq "pergyra_type_to_c_copy(result_type" "$ROOT_DIR/src/codegen/transpiler_mir_block_emit.h"
 grep -Fq "pergyra_type_to_c_copy(subject_type" "$ROOT_DIR/src/codegen/transpiler_match_emit.h"
 grep -Fq "pergyra_type_to_c_copy(inner, inner_c_type_buf" "$ROOT_DIR/src/codegen/transpiler_match_emit.h"
@@ -1222,6 +1702,21 @@ grep -Fq "pergyra_type_to_c_copy(bound_type" "$ROOT_DIR/src/codegen/transpiler_s
 grep -Fq "pergyra_type_to_c_copy(inferred_arg_type" "$ROOT_DIR/src/codegen/transpiler_spawn_channel_emit.h"
 grep -Fq "pergyra_type_to_c_copy(secure_name" "$ROOT_DIR/src/codegen/transpiler_let_slot_emit.h"
 grep -Fq "pergyra_type_to_c_copy(slot_name_buf" "$ROOT_DIR/src/codegen/transpiler_let_slot_emit.h"
+grep -Fq "pgy_codegen_call_name_is_move(callee_name)" "$ROOT_DIR/src/codegen/transpiler_let_slot_emit.h"
+grep -Fq "pgy_codegen_call_name_is_move(callee)" "$ROOT_DIR/src/codegen/llvm_stmt_let_resources.c"
+grep -Fq "type_name_is_exact_or_generic(type_name, \"Slot\", \"Slot<\")" "$ROOT_DIR/src/codegen/codegen_slot_type_policy.c"
+grep -Fq "type_name_is_exact_or_generic(type_name, \"SecureSlot\"" "$ROOT_DIR/src/codegen/codegen_slot_type_policy.c"
+grep -Fq "pgy_codegen_type_name_is_secure_slot(type_name)" "$ROOT_DIR/src/codegen/llvm_boundary_slot_param.c"
+grep -Fq "pgy_codegen_type_name_is_secure_slot(type_name)" "$ROOT_DIR/src/codegen/llvm_expr_identifier_slot_helpers.c"
+grep -Fq "pgy_codegen_type_name_is_secure_slot(type_name)" "$ROOT_DIR/src/codegen/llvm_mir_type_helpers.c"
+grep -Fq "pgy_codegen_type_name_is_secure_slot(type_name)" "$ROOT_DIR/src/codegen/transpiler_slot_target.c"
+grep -Fq "pgy_codegen_type_name_is_slot(ann_name)" "$ROOT_DIR/src/codegen/llvm_stmt_let_resources.c"
+grep -Fq "pgy_codegen_type_name_is_slot(ann_name)" "$ROOT_DIR/src/codegen/transpiler_let_slot_emit.h"
+! grep -Fq 'strcmp(type_name, "Slot") != 0 && strcmp(type_name, "SecureSlot") != 0' "$ROOT_DIR/src/codegen/llvm_boundary_slot_param.c"
+! grep -Fq 'strcmp(type_name, "Slot") != 0' "$ROOT_DIR/src/codegen/llvm_expr_identifier_slot_helpers.c"
+! grep -Fq 'strcmp(type_name, "Slot") != 0 && strcmp(type_name, "SecureSlot") != 0' "$ROOT_DIR/src/codegen/llvm_mir_type_helpers.c"
+! grep -Fq 'strcmp(callee_name, "Move")' "$ROOT_DIR/src/codegen/transpiler_let_slot_emit.h"
+! grep -Fq 'strcmp(callee, "Move")' "$ROOT_DIR/src/codegen/llvm_stmt_let_resources.c"
 grep -Fq "pergyra_type_to_c_copy(type_name, c_type_buf" "$ROOT_DIR/src/codegen/transpiler_mir_func_ssa_locals_emit.h"
 grep -Fq "pergyra_type_to_c_copy(ret_name" "$ROOT_DIR/src/codegen/transpiler_domain_role_ability_emit.h"
 grep -Fq "pergyra_type_to_c_copy(ret_type_name" "$ROOT_DIR/src/codegen/transpiler_expr_call_spawn_emit.h"
@@ -1230,12 +1725,12 @@ grep -Fq "pergyra_type_to_c_copy(owner_role_subject_name" "$ROOT_DIR/src/codegen
 grep -Fq "pergyra_ast_type_to_c_copy(p->type, pt_buf" "$ROOT_DIR/src/codegen/transpiler_mir_func_emit.h"
 grep -Fq "pergyra_ast_type_to_c_copy(return_type" "$ROOT_DIR/src/codegen/transpiler_func_forward_metadata.c"
 grep -Fq "pergyra_ast_type_to_c_copy(" "$ROOT_DIR/src/codegen/transpiler_spawn_channel_emit.h"
-grep -Fq "pergyra_ast_type_to_c_copy(method->data.func_decl.return_type" "$ROOT_DIR/src/codegen/transpiler_class_decl_emit.h"
-grep -Fq "pergyra_ast_type_to_c_copy(method->data.func_decl.return_type" "$ROOT_DIR/src/codegen/transpiler_enum_decl_emit.h"
-grep -Fq "pergyra_ast_type_to_c_copy(method->data.func_decl.return_type" "$ROOT_DIR/src/codegen/transpiler_domain_nominal_emit.h"
-grep -Fq "pergyra_ast_type_to_c_copy(func->data.func_decl.return_type" "$ROOT_DIR/src/codegen/transpiler_domain_nominal_emit.h"
-grep -Fq "pergyra_ast_type_to_c_copy(method->data.func_decl.return_type" "$ROOT_DIR/src/codegen/transpiler_domain_role_methods_emit.h"
-grep -Fq "pergyra_ast_type_to_c_copy(method->data.func_decl.return_type" "$ROOT_DIR/src/codegen/transpiler_generic_class_specialization_emit.h"
+grep -Fq "pergyra_ast_type_to_c_copy(ast_func_return_type(method)" "$ROOT_DIR/src/codegen/transpiler_class_decl_emit.h"
+grep -Fq "pergyra_ast_type_to_c_copy(ast_func_return_type(method)" "$ROOT_DIR/src/codegen/transpiler_enum_decl_emit.h"
+grep -Fq "pergyra_ast_type_to_c_copy(ast_func_return_type(method)" "$ROOT_DIR/src/codegen/transpiler_domain_nominal_emit.h"
+grep -Fq "pergyra_ast_type_to_c_copy(ast_func_return_type(func)" "$ROOT_DIR/src/codegen/transpiler_domain_nominal_emit.h"
+grep -Fq "pergyra_ast_type_to_c_copy(ast_func_return_type(method)" "$ROOT_DIR/src/codegen/transpiler_domain_role_methods_emit.h"
+grep -Fq "pergyra_ast_type_to_c_copy(ast_func_return_type(method)" "$ROOT_DIR/src/codegen/transpiler_generic_class_specialization_emit.h"
 grep -Fq "pergyra_ast_type_to_c_copy(bt2[b]" "$ROOT_DIR/src/codegen/transpiler_match_emit.h"
 grep -Fq "pergyra_ast_type_to_c_copy(type_ast, out" "$ROOT_DIR/src/codegen/transpiler_type_require.c"
 grep -Fq "pergyra_type_to_c_copy(participant_type" "$ROOT_DIR/src/codegen/transpiler_block_intent_rebind_helpers.h"
@@ -1266,7 +1761,7 @@ grep -Fq "transpiler_require_type_name_c_type_copy(ctx" "$ROOT_DIR/src/codegen/t
 grep -Fq "transpiler_require_type_name_c_type_copy(ctx" "$ROOT_DIR/src/codegen/transpiler_intent_prologue_emit.h"
 grep -Fq "transpiler_require_type_name_c_type_copy(ctx" "$ROOT_DIR/src/codegen/transpiler_domain_role_ability_emit.h"
 grep -Fq "slot_inner_type_name_copy(array_type, inner_buf" \
-    "$ROOT_DIR/src/codegen/transpiler_expr_dispatch_emit.h"
+    "$ROOT_DIR/src/codegen/transpiler_expr_composite_literal_emit.h"
 grep -Fq "if (result == NULL)" "$ROOT_DIR/src/codegen/llvm_backend_type_render.c"
 grep -Fq "if (gp == NULL)" "$ROOT_DIR/src/codegen/llvm_backend_type_render.c"
 ! grep -A8 -F "LLVM type '%s' is not registered in the LLVM type map" \
@@ -1317,6 +1812,25 @@ grep -Fq "llvm_stmt_for_in_required_runtime" "$ROOT_DIR/src/codegen/llvm_stmt_lo
 grep -Fq "LLVM statement for-in lowering requires registered runtime function" "$ROOT_DIR/src/codegen/llvm_stmt_loop_match.c"
 ! grep -Fq "LLVMFuncEntry *size_fn = llvm_lookup_function(ctx, \"pgy_list_size_raw_export\")" "$ROOT_DIR/src/codegen/llvm_stmt_loop_match.c"
 ! grep -Fq "LLVMFuncEntry *get_fn = llvm_lookup_function(ctx, \"pgy_list_get_raw_export\")" "$ROOT_DIR/src/codegen/llvm_stmt_loop_match.c"
+grep -Fq "kLLVMDomainQuerySpecs" "$ROOT_DIR/src/codegen/llvm_expr_domain_query_calls.c"
+grep -Fq "llvm_domain_query_lookup" "$ROOT_DIR/src/codegen/llvm_expr_domain_query_calls.c"
+grep -Fq "bsearch(" "$ROOT_DIR/src/codegen/llvm_expr_domain_query_calls.c"
+domain_query_names="$(
+    sed -n '/static const LLVMDomainQuerySpec kLLVMDomainQuerySpecs\[\]/,/^    };/p' \
+        "$ROOT_DIR/src/codegen/llvm_expr_domain_query_calls.c" \
+        | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
+        | grep -o '"[A-Za-z0-9_]*"' \
+        | tr -d '"'
+)"
+domain_query_names_sorted="$(
+    printf '%s\n' "$domain_query_names" | sort
+)"
+if [[ "$domain_query_names" != "$domain_query_names_sorted" ]]; then
+    echo "LLVM domain query names must stay sorted for bsearch" >&2
+    diff -u <(printf '%s\n' "$domain_query_names_sorted") \
+        <(printf '%s\n' "$domain_query_names") >&2 || true
+    exit 1
+fi
 grep -Fq "llvm_required_log_function" "$ROOT_DIR/src/codegen/llvm_expr_log_calls.c"
 grep -Fq "LLVM log operation requires registered runtime function" "$ROOT_DIR/src/codegen/llvm_expr_log_calls.c"
 grep -Fq "LLVM intent observability builtin" "$ROOT_DIR/src/codegen/llvm_expr_intent_observability_calls.c"
@@ -1325,7 +1839,22 @@ grep -Fq "could not lower argument expression" "$ROOT_DIR/src/codegen/llvm_expr_
 grep -Fq "llvm_required_runtime_function" "$ROOT_DIR/src/codegen/llvm_runtime_require.c"
 grep -Fq "LLVM %s builtin '%s' requires registered runtime function '%s'" "$ROOT_DIR/src/codegen/llvm_runtime_require.c"
 grep -Fq "array\", callee_name, fn_name" "$ROOT_DIR/src/codegen/llvm_expr_array_calls.c"
+grep -Fq "kArrayBuiltinSpecs" "$ROOT_DIR/src/codegen/llvm_expr_array_calls.c"
+grep -Fq "llvm_array_builtin_lookup" "$ROOT_DIR/src/codegen/llvm_expr_array_calls.c"
+grep -Fq "bsearch(" "$ROOT_DIR/src/codegen/llvm_expr_array_calls.c"
 ! grep -Fq "LLVMFuncEntry *fn = llvm_lookup_function(ctx, fn_name)" "$ROOT_DIR/src/codegen/llvm_expr_array_calls.c"
+array_builtin_names="$(
+    sed -n '/static const LLVMArrayBuiltinSpec kArrayBuiltinSpecs\[\]/,/^};/p' \
+        "$ROOT_DIR/src/codegen/llvm_expr_array_calls.c" |
+        sed -n 's/.*{"\([^"]*\)".*/\1/p'
+)"
+array_builtin_names_sorted="$(printf '%s\n' "$array_builtin_names" | sort)"
+if [[ "$array_builtin_names" != "$array_builtin_names_sorted" ]]; then
+    echo "LLVM Array builtin names must stay sorted for bsearch" >&2
+    diff -u <(printf '%s\n' "$array_builtin_names_sorted") \
+        <(printf '%s\n' "$array_builtin_names") >&2 || true
+    exit 1
+fi
 grep -Fq "llvm_required_runtime_function(ctx, node" "$ROOT_DIR/src/codegen/llvm_expr_stdlib_scalar_io_calls.c"
 grep -Fq "llvm_emit_required_runtime_call_result" "$ROOT_DIR/src/codegen/llvm_expr_stdlib_scalar_io_calls.c"
 grep -Fq "llvm_stdlib_error_value" "$ROOT_DIR/src/codegen/llvm_expr_stdlib_scalar_io_calls.c"
@@ -1356,11 +1885,49 @@ grep -Fq "PGY_FIX_ALIGN_RESULT_ERROR_TYPE" "$ROOT_DIR/src/codegen/llvm_expr_unar
 ! grep -Fq "err_val = LLVMConstNull(dst_ty)" "$ROOT_DIR/src/codegen/llvm_expr_unary_core.c"
 grep -Fq "LLVM binary expression could not lower operand expression" "$ROOT_DIR/src/codegen/llvm_expr_scalar_core.c"
 grep -Fq "llvm_math_error_out" "$ROOT_DIR/src/codegen/llvm_expr_math_calls.c"
+grep -Fq "kLLVMMathSpecs" "$ROOT_DIR/src/codegen/llvm_expr_math_calls.c"
+grep -Fq "llvm_math_lookup" "$ROOT_DIR/src/codegen/llvm_expr_math_calls.c"
+grep -Fq "bsearch(" "$ROOT_DIR/src/codegen/llvm_expr_math_calls.c"
+math_builtin_names="$(
+    sed -n '/static const LLVMMathSpec kLLVMMathSpecs\[\]/,/^    };/p' \
+        "$ROOT_DIR/src/codegen/llvm_expr_math_calls.c" \
+        | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
+        | grep -o '"[A-Za-z0-9_]*"' \
+        | tr -d '"'
+)"
+math_builtin_names_sorted="$(
+    printf '%s\n' "$math_builtin_names" | sort
+)"
+if [[ "$math_builtin_names" != "$math_builtin_names_sorted" ]]; then
+    echo "LLVM math builtin names must stay sorted for bsearch" >&2
+    diff -u <(printf '%s\n' "$math_builtin_names_sorted") \
+        <(printf '%s\n' "$math_builtin_names") >&2 || true
+    exit 1
+fi
 grep -Fq "LLVM Abs could not lower operand expression" "$ROOT_DIR/src/codegen/llvm_expr_math_calls.c"
 grep -Fq "LLVM Min could not lower operand expression" "$ROOT_DIR/src/codegen/llvm_expr_math_calls.c"
 grep -Fq "LLVM Max could not lower operand expression" "$ROOT_DIR/src/codegen/llvm_expr_math_calls.c"
 grep -Fq "LLVM string coercion requires registered runtime function" "$ROOT_DIR/src/codegen/llvm_expr_string_coerce.c"
 grep -Fq "llvm_log_error" "$ROOT_DIR/src/codegen/llvm_expr_log_calls.c"
+grep -Fq "kLLVMLogSpecs" "$ROOT_DIR/src/codegen/llvm_expr_log_calls.c"
+grep -Fq "llvm_log_lookup" "$ROOT_DIR/src/codegen/llvm_expr_log_calls.c"
+grep -Fq "bsearch(" "$ROOT_DIR/src/codegen/llvm_expr_log_calls.c"
+log_builtin_names="$(
+    sed -n '/static const LLVMLogSpec kLLVMLogSpecs\[\]/,/^    };/p' \
+        "$ROOT_DIR/src/codegen/llvm_expr_log_calls.c" \
+        | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
+        | grep -o '"[A-Za-z0-9_]*"' \
+        | tr -d '"'
+)"
+log_builtin_names_sorted="$(
+    printf '%s\n' "$log_builtin_names" | sort
+)"
+if [[ "$log_builtin_names" != "$log_builtin_names_sorted" ]]; then
+    echo "LLVM log builtin names must stay sorted for bsearch" >&2
+    diff -u <(printf '%s\n' "$log_builtin_names_sorted") \
+        <(printf '%s\n' "$log_builtin_names") >&2 || true
+    exit 1
+fi
 ! grep -A16 -F "llvm_log_error(LLVMGenCtx *ctx" \
     "$ROOT_DIR/src/codegen/llvm_expr_log_calls.c" | \
     grep -Fq "LLVMConstInt(ctx->type_i32, 0, 0)"
@@ -1405,6 +1972,13 @@ grep -Fq "pgy_array_pop_##Suffix" "$ROOT_DIR/src/runtime/pgy_runtime_lib_array_m
 grep -Fq "LLVM Slice() receiver requires concrete element type metadata" "$ROOT_DIR/src/codegen/llvm_expr_call_methods_domain_slice.c"
 grep -Fq "LLVM Slice() receiver requires registered Slice<T> element metadata" "$ROOT_DIR/src/codegen/llvm_expr_call_methods_domain_slice.c"
 grep -Fq "LLVM slot method '%s' requires registered slot local" "$ROOT_DIR/src/codegen/llvm_expr_call_methods_domain_slice.c"
+grep -Fq "pgy_codegen_call_name_is_slot_operation(method_name)" "$ROOT_DIR/src/codegen/llvm_expr_call_methods_domain_slice.c"
+grep -Fq "pgy_codegen_call_name_is_write(method_name)" "$ROOT_DIR/src/codegen/llvm_expr_call_methods_domain_slice.c"
+grep -Fq "pgy_codegen_call_name_is_read(method_name)" "$ROOT_DIR/src/codegen/llvm_expr_call_methods_domain_slice.c"
+grep -Fq "pgy_codegen_call_name_is_release(method_name)" "$ROOT_DIR/src/codegen/llvm_expr_call_methods_domain_slice.c"
+! grep -Fq 'strcmp(method_name, "Write")' "$ROOT_DIR/src/codegen/llvm_expr_call_methods_domain_slice.c"
+! grep -Fq 'strcmp(method_name, "Read")' "$ROOT_DIR/src/codegen/llvm_expr_call_methods_domain_slice.c"
+! grep -Fq 'strcmp(method_name, "Release")' "$ROOT_DIR/src/codegen/llvm_expr_call_methods_domain_slice.c"
 grep -Fq "llvm_domain_slice_error" "$ROOT_DIR/src/codegen/llvm_expr_call_methods_domain_slice.c"
 ! grep -A16 -F "llvm_domain_slice_error(ASTNode *node" \
     "$ROOT_DIR/src/codegen/llvm_expr_call_methods_domain_slice.c" | \
@@ -1429,6 +2003,25 @@ grep -Fq "LLVM event invoke requires generated event function" "$ROOT_DIR/src/co
 grep -Fq "LLVM event invocation call requires generated event function and storage" "$ROOT_DIR/src/codegen/llvm_expr_event_calls.c"
 grep -Fq "LLVM event invocation call could not lower argument expression" "$ROOT_DIR/src/codegen/llvm_expr_event_calls.c"
 grep -Fq "if (ctx->has_error)" "$ROOT_DIR/src/codegen/llvm_expr_call_dispatch.c"
+grep -Fq "kLLVMCallInlineSpecs" "$ROOT_DIR/src/codegen/llvm_expr_call_inline_policy.c"
+grep -Fq "llvm_call_inline_lookup" "$ROOT_DIR/src/codegen/llvm_expr_call_dispatch.c"
+grep -Fq "bsearch(" "$ROOT_DIR/src/codegen/llvm_expr_call_inline_policy.c"
+call_inline_names="$(
+    sed -n '/static const LLVMCallInlineSpec kLLVMCallInlineSpecs\[\]/,/^    };/p' \
+        "$ROOT_DIR/src/codegen/llvm_expr_call_inline_policy.c" \
+        | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
+        | grep -o '"[A-Za-z0-9_]*"' \
+        | tr -d '"'
+)"
+call_inline_names_sorted="$(
+    printf '%s\n' "$call_inline_names" | sort
+)"
+if [[ "$call_inline_names" != "$call_inline_names_sorted" ]]; then
+    echo "LLVM central inline call names must stay sorted for bsearch" >&2
+    diff -u <(printf '%s\n' "$call_inline_names_sorted") \
+        <(printf '%s\n' "$call_inline_names") >&2 || true
+    exit 1
+fi
 grep -Fq "llvm_member_access_error" "$ROOT_DIR/src/codegen/llvm_expr_member_access.c"
 ! grep -A16 -F "llvm_member_access_error(LLVMGenCtx *ctx" \
     "$ROOT_DIR/src/codegen/llvm_expr_member_access.c" | \
@@ -1491,15 +2084,15 @@ grep -Fq "LLVM boundary call source argument count does not match function signa
 grep -Fq "LLVM secure boundary slot argument requires paired token binding" "$ROOT_DIR/src/codegen/llvm_expr_boundary_projection_helpers.c"
 grep -Fq "LLVM boundary call argument could not be lowered" "$ROOT_DIR/src/codegen/llvm_expr_boundary_projection_helpers.c"
 grep -Fq "LLVM call helper could not lower argument %zu" "$ROOT_DIR/src/codegen/llvm_expr_call_args.c"
-grep -Fq "llvm_generic_call_required_suffix" "$ROOT_DIR/src/codegen/llvm_expr_spawn_call_helpers.c"
-grep -Fq "requires concrete argument %zu type metadata for specialization" "$ROOT_DIR/src/codegen/llvm_expr_spawn_call_helpers.c"
-grep -Fq "requires argument %zu to bind generic parameter" "$ROOT_DIR/src/codegen/llvm_expr_spawn_call_helpers.c"
-grep -Fq "LLVM generic spawn specialization parameter type allocation failed" "$ROOT_DIR/src/codegen/llvm_expr_spawn_call_helpers.c"
+grep -Fq "llvm_generic_call_required_suffix" "$ROOT_DIR/src/codegen/llvm_expr_spawn_generic.c"
+grep -Fq "requires concrete argument %zu type metadata for specialization" "$ROOT_DIR/src/codegen/llvm_expr_spawn_generic.c"
+grep -Fq "requires argument %zu to bind generic parameter" "$ROOT_DIR/src/codegen/llvm_expr_spawn_generic.c"
+grep -Fq "LLVM generic spawn specialization parameter type allocation failed" "$ROOT_DIR/src/codegen/llvm_expr_spawn_generic.c"
 grep -Fq "LLVM spawn expression requires an identifier target" "$ROOT_DIR/src/codegen/llvm_expr_spawn_call_helpers.c"
 grep -Fq "LLVM spawn expression requires a target expression" "$ROOT_DIR/src/codegen/llvm_expr_spawn_call_helpers.c"
 ! grep -Fq "return LLVMConstNull(ctx->type_task_handle)" "$ROOT_DIR/src/codegen/llvm_expr_spawn_call_helpers.c"
 ! grep -A16 -F "llvm_spawn_required_param_type(LLVMGenCtx *ctx" \
-    "$ROOT_DIR/src/codegen/llvm_expr_spawn_call_helpers.c" | \
+    "$ROOT_DIR/src/codegen/llvm_expr_spawn_generic.c" | \
     grep -Fq "return ctx->type_i32"
 ! grep -A32 -F "llvm_mir_required_type_from_ast(LLVMGenCtx *ctx" \
     "$ROOT_DIR/src/codegen/llvm_mir_type_helpers.c" | \
@@ -1567,6 +2160,25 @@ grep -Fq "LLVM call target '%s' is not declared in the backend function registry
 ! grep -Fq "[llvm] warning: unknown function" "$ROOT_DIR/src/codegen/llvm_expr_call_dispatch.c"
 grep -Fq "if (ctx->has_error)" "$ROOT_DIR/src/codegen/llvm_expr_call_dispatch.c"
 grep -Fq "llvm_rc_error_recovery" "$ROOT_DIR/src/codegen/llvm_expr_rc_calls.c"
+grep -Fq "kLLVMRcSpecs" "$ROOT_DIR/src/codegen/llvm_expr_rc_calls.c"
+grep -Fq "llvm_rc_lookup" "$ROOT_DIR/src/codegen/llvm_expr_rc_calls.c"
+grep -Fq "bsearch(" "$ROOT_DIR/src/codegen/llvm_expr_rc_calls.c"
+rc_builtin_names="$(
+    sed -n '/static const LLVMRcSpec kLLVMRcSpecs\[\]/,/^    };/p' \
+        "$ROOT_DIR/src/codegen/llvm_expr_rc_calls.c" \
+        | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
+        | grep -o '"[A-Za-z0-9_]*"' \
+        | tr -d '"'
+)"
+rc_builtin_names_sorted="$(
+    printf '%s\n' "$rc_builtin_names" | sort
+)"
+if [[ "$rc_builtin_names" != "$rc_builtin_names_sorted" ]]; then
+    echo "LLVM Rc/Weak builtin names must stay sorted for bsearch" >&2
+    diff -u <(printf '%s\n' "$rc_builtin_names_sorted") \
+        <(printf '%s\n' "$rc_builtin_names") >&2 || true
+    exit 1
+fi
 ! grep -A16 -F "llvm_rc_error_recovery(LLVMGenCtx *ctx" \
     "$ROOT_DIR/src/codegen/llvm_expr_rc_calls.c" | \
     grep -Fq "LLVMConstInt(ctx->type_i32, 0, 0)"
@@ -1582,20 +2194,41 @@ grep -Fq "return decl_header->ast_type == decl_type" "$ROOT_DIR/src/codegen/tran
 grep -Fq "AST_PARTY_DECL" "$ROOT_DIR/src/codegen/llvm_inventory_decl_lookup.c"
 grep -Fq "AST_ROLE_DECL" "$ROOT_DIR/src/codegen/llvm_inventory_decl_lookup.c"
 grep -Fq "AST_ROSTER_DECL" "$ROOT_DIR/src/codegen/llvm_inventory_decl_lookup.c"
-grep -Fq "ChannelClose" "$ROOT_DIR/src/codegen/llvm_expr_task_channel_calls.c"
+grep -Fq "ChannelClose" "$ROOT_DIR/src/codegen/llvm_expr_task_channel_policy.c"
 grep -Fq "llvm_task_channel_format_runtime_name" "$ROOT_DIR/src/codegen/llvm_expr_task_channel_calls.c"
 grep -Fq "\"pgy_channel_close\"" "$ROOT_DIR/src/codegen/llvm_expr_task_channel_calls.c"
 grep -Fq "llvm_task_channel_error" "$ROOT_DIR/src/codegen/llvm_expr_task_channel_calls.c"
 grep -Fq "could not lower send value expression" "$ROOT_DIR/src/codegen/llvm_expr_task_channel_calls.c"
 grep -Fq "has unsupported arity for the LLVM task/channel builtin" "$ROOT_DIR/src/codegen/llvm_expr_task_channel_calls.c"
-grep -Fq "llvm_task_channel_name_compare" "$ROOT_DIR/src/codegen/llvm_expr_task_channel_calls.c"
-grep -Fq "llvm_channel_query_op_compare" "$ROOT_DIR/src/codegen/llvm_expr_task_channel_calls.c"
+grep -Fq "kTaskRuntimeSpecs" "$ROOT_DIR/src/codegen/llvm_expr_task_calls.c"
+grep -Fq "llvm_task_runtime_lookup" "$ROOT_DIR/src/codegen/llvm_expr_task_calls.c"
+grep -Fq "bsearch(" "$ROOT_DIR/src/codegen/llvm_expr_task_calls.c"
+task_runtime_names="$(
+    sed -n '/static const LLVMTaskRuntimeSpec kTaskRuntimeSpecs\[\]/,/^};/p' \
+        "$ROOT_DIR/src/codegen/llvm_expr_task_calls.c" \
+        | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
+        | grep -o '"[A-Za-z0-9_]*"' \
+        | tr -d '"'
+)"
+task_runtime_names_sorted="$(
+    printf '%s\n' "$task_runtime_names" | sort
+)"
+if [[ "$task_runtime_names" != "$task_runtime_names_sorted" ]]; then
+    echo "LLVM task runtime names must stay sorted for bsearch" >&2
+    diff -u <(printf '%s\n' "$task_runtime_names_sorted") \
+        <(printf '%s\n' "$task_runtime_names") >&2 || true
+    exit 1
+fi
+grep -Fq "llvm_task_channel_name_compare" "$ROOT_DIR/src/codegen/llvm_expr_task_channel_policy.c"
+grep -Fq "llvm_channel_query_op_compare" "$ROOT_DIR/src/codegen/llvm_expr_task_channel_policy.c"
 grep -Fq "llvm_channel_query_runtime_op(callee_name)" "$ROOT_DIR/src/codegen/llvm_expr_task_channel_calls.c"
+grep -Fq "kTaskChannelOpSpecs" "$ROOT_DIR/src/codegen/llvm_expr_task_channel_policy.c"
+grep -Fq "llvm_task_channel_op_lookup" "$ROOT_DIR/src/codegen/llvm_expr_task_channel_calls.c"
 grep -Fq "llvm_stdlib_runtime_call_compare" "$ROOT_DIR/src/codegen/llvm_expr_stdlib_scalar_io_calls.c"
 grep -Fq "llvm_stdlib_string_file_runtime_call_lookup" "$ROOT_DIR/src/codegen/llvm_expr_stdlib_scalar_io_calls.c"
 task_channel_names="$(
     sed -n '/static const LLVMTaskChannelNameSpec specs\[\]/,/^    };/p' \
-        "$ROOT_DIR/src/codegen/llvm_expr_task_channel_calls.c" \
+        "$ROOT_DIR/src/codegen/llvm_expr_task_channel_policy.c" \
         | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
         | grep -o '"[A-Za-z0-9_]*"' \
         | tr -d '"'
@@ -1609,9 +2242,25 @@ if [[ "$task_channel_names" != "$task_channel_names_sorted" ]]; then
         <(printf '%s\n' "$task_channel_names") >&2 || true
     exit 1
 fi
+task_channel_op_names="$(
+    sed -n '/static const LLVMTaskChannelOpSpec kTaskChannelOpSpecs\[\]/,/^    };/p' \
+        "$ROOT_DIR/src/codegen/llvm_expr_task_channel_policy.c" \
+        | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
+        | grep -o '"[A-Za-z0-9_]*"' \
+        | tr -d '"'
+)"
+task_channel_op_names_sorted="$(
+    printf '%s\n' "$task_channel_op_names" | sort
+)"
+if [[ "$task_channel_op_names" != "$task_channel_op_names_sorted" ]]; then
+    echo "LLVM task/channel operation names must stay sorted for bsearch" >&2
+    diff -u <(printf '%s\n' "$task_channel_op_names_sorted") \
+        <(printf '%s\n' "$task_channel_op_names") >&2 || true
+    exit 1
+fi
 channel_query_names="$(
     sed -n '/static const LLVMChannelQueryOpSpec specs\[\]/,/^    };/p' \
-        "$ROOT_DIR/src/codegen/llvm_expr_task_channel_calls.c" \
+        "$ROOT_DIR/src/codegen/llvm_expr_task_channel_policy.c" \
         | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
         | grep -o '"[A-Za-z0-9_]*"' \
         | tr -d '"'
@@ -1626,7 +2275,7 @@ if [[ "$channel_query_names" != "$channel_query_names_sorted" ]]; then
     exit 1
 fi
 llvm_stdlib_string_file_names="$(
-    sed -n '/static const LLVMStdlibRuntimeCallSpec specs\[\]/,/^    };/p' \
+    sed -n '/static const LLVMStdlibRuntimeCallSpec kLLVMStdlibStringFileRuntimeSpecs\[\]/,/^    };/p' \
         "$ROOT_DIR/src/codegen/llvm_expr_stdlib_scalar_io_calls.c" \
         | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
         | grep -o '"[A-Za-z0-9_]*"' \
@@ -1639,6 +2288,61 @@ if [[ "$llvm_stdlib_string_file_names" != "$llvm_stdlib_string_file_names_sorted
     echo "LLVM stdlib string/file runtime-call names must stay sorted for bsearch" >&2
     diff -u <(printf '%s\n' "$llvm_stdlib_string_file_names_sorted") \
         <(printf '%s\n' "$llvm_stdlib_string_file_names") >&2 || true
+    exit 1
+fi
+grep -Fq "llvm_stdlib_runtime_io_call_lookup" "$ROOT_DIR/src/codegen/llvm_expr_stdlib_scalar_io_calls.c"
+grep -Fq "llvm_stdlib_string_special_lookup" "$ROOT_DIR/src/codegen/llvm_expr_stdlib_scalar_io_calls.c"
+grep -Fq "llvm_stdlib_io_special_lookup" "$ROOT_DIR/src/codegen/llvm_expr_stdlib_scalar_io_calls.c"
+grep -Fq "kLLVMStdlibStringFileRuntimeSpecs" "$ROOT_DIR/src/codegen/llvm_expr_stdlib_scalar_io_calls.c"
+grep -Fq "kLLVMStdlibRuntimeIoSpecs" "$ROOT_DIR/src/codegen/llvm_expr_stdlib_scalar_io_calls.c"
+grep -Fq "kLLVMStdlibStringSpecialSpecs" "$ROOT_DIR/src/codegen/llvm_expr_stdlib_scalar_io_calls.c"
+grep -Fq "kLLVMStdlibIoSpecialSpecs" "$ROOT_DIR/src/codegen/llvm_expr_stdlib_scalar_io_calls.c"
+llvm_stdlib_runtime_io_names="$(
+    sed -n '/static const LLVMStdlibRuntimeCallSpec kLLVMStdlibRuntimeIoSpecs\[\]/,/^    };/p' \
+        "$ROOT_DIR/src/codegen/llvm_expr_stdlib_scalar_io_calls.c" \
+        | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
+        | grep -o '"[A-Za-z0-9_]*"' \
+        | tr -d '"'
+)"
+llvm_stdlib_runtime_io_names_sorted="$(
+    printf '%s\n' "$llvm_stdlib_runtime_io_names" | sort
+)"
+if [[ "$llvm_stdlib_runtime_io_names" != "$llvm_stdlib_runtime_io_names_sorted" ]]; then
+    echo "LLVM stdlib runtime/io names must stay sorted for bsearch" >&2
+    diff -u <(printf '%s\n' "$llvm_stdlib_runtime_io_names_sorted") \
+        <(printf '%s\n' "$llvm_stdlib_runtime_io_names") >&2 || true
+    exit 1
+fi
+llvm_stdlib_string_special_names="$(
+    sed -n '/static const LLVMStdlibStringSpecialSpec kLLVMStdlibStringSpecialSpecs\[\]/,/^    };/p' \
+        "$ROOT_DIR/src/codegen/llvm_expr_stdlib_scalar_io_calls.c" \
+        | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
+        | grep -o '"[A-Za-z0-9_]*"' \
+        | tr -d '"'
+)"
+llvm_stdlib_string_special_names_sorted="$(
+    printf '%s\n' "$llvm_stdlib_string_special_names" | sort
+)"
+if [[ "$llvm_stdlib_string_special_names" != "$llvm_stdlib_string_special_names_sorted" ]]; then
+    echo "LLVM stdlib string special names must stay sorted for bsearch" >&2
+    diff -u <(printf '%s\n' "$llvm_stdlib_string_special_names_sorted") \
+        <(printf '%s\n' "$llvm_stdlib_string_special_names") >&2 || true
+    exit 1
+fi
+llvm_stdlib_io_special_names="$(
+    sed -n '/static const LLVMStdlibIoSpecialSpec kLLVMStdlibIoSpecialSpecs\[\]/,/^    };/p' \
+        "$ROOT_DIR/src/codegen/llvm_expr_stdlib_scalar_io_calls.c" \
+        | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
+        | grep -o '"[A-Za-z0-9_]*"' \
+        | tr -d '"'
+)"
+llvm_stdlib_io_special_names_sorted="$(
+    printf '%s\n' "$llvm_stdlib_io_special_names" | sort
+)"
+if [[ "$llvm_stdlib_io_special_names" != "$llvm_stdlib_io_special_names_sorted" ]]; then
+    echo "LLVM stdlib io special names must stay sorted for bsearch" >&2
+    diff -u <(printf '%s\n' "$llvm_stdlib_io_special_names_sorted") \
+        <(printf '%s\n' "$llvm_stdlib_io_special_names") >&2 || true
     exit 1
 fi
 grep -Fq "llvm_required_runtime_function(ctx, node" "$ROOT_DIR/src/codegen/llvm_expr_rc_calls.c"
@@ -1668,6 +2372,25 @@ grep -Fq "llvm_identifier_error" "$ROOT_DIR/src/codegen/llvm_expr_identifier_slo
 grep -Fq "LLVM host field access requires a self receiver" "$ROOT_DIR/src/codegen/llvm_expr_identifier_slot_helpers.c"
 grep -Fq "LLVM identifier is not declared in the active scope" "$ROOT_DIR/src/codegen/llvm_expr_identifier_slot_helpers.c"
 grep -Fq "llvm_slot_builtin_require_argc" "$ROOT_DIR/src/codegen/llvm_expr_slot_device_calls.c"
+grep -Fq "kLLVMSlotBuiltinSpecs" "$ROOT_DIR/src/codegen/llvm_expr_slot_device_calls.c"
+grep -Fq "llvm_slot_builtin_lookup" "$ROOT_DIR/src/codegen/llvm_expr_slot_device_calls.c"
+grep -Fq "bsearch(" "$ROOT_DIR/src/codegen/llvm_expr_slot_device_calls.c"
+slot_builtin_names="$(
+    sed -n '/static const LLVMSlotBuiltinSpec kLLVMSlotBuiltinSpecs\[\]/,/^    };/p' \
+        "$ROOT_DIR/src/codegen/llvm_expr_slot_device_calls.c" \
+        | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
+        | grep -o '"[A-Za-z0-9_]*"' \
+        | tr -d '"'
+)"
+slot_builtin_names_sorted="$(
+    printf '%s\n' "$slot_builtin_names" | sort
+)"
+if [[ "$slot_builtin_names" != "$slot_builtin_names_sorted" ]]; then
+    echo "LLVM Slot/DeviceSlot builtin names must stay sorted for bsearch" >&2
+    diff -u <(printf '%s\n' "$slot_builtin_names_sorted") \
+        <(printf '%s\n' "$slot_builtin_names") >&2 || true
+    exit 1
+fi
 grep -Fq "requires at least %zu argument(s)" "$ROOT_DIR/src/codegen/llvm_expr_slot_device_calls.c"
 grep -Fq "*out = NULL;" "$ROOT_DIR/src/codegen/llvm_expr_slot_device_calls.c"
 grep -Fq "LLVM slot auto-read requires registered runtime function" "$ROOT_DIR/src/codegen/llvm_expr_identifier_slot_helpers.c"
@@ -1691,15 +2414,15 @@ grep -Fq "LLVM slot initializer requires registered runtime function" "$ROOT_DIR
 grep -Fq "LLVM auto-release requires registered runtime function" "$ROOT_DIR/src/codegen/llvm_stmt.c"
 grep -Fq "LLVM secure slot auto-release requires paired token binding" "$ROOT_DIR/src/codegen/llvm_stmt.c"
 grep -Fq "LLVM secure with-slot cleanup requires paired token binding" "$ROOT_DIR/src/codegen/llvm_stmt_with.c"
-grep -Fq "llvm_select_required_runtime_function" "$ROOT_DIR/src/codegen/llvm_stmt_parallel_async.c"
-grep -Fq "LLVMSelectCaseInfo" "$ROOT_DIR/src/codegen/llvm_stmt_parallel_async.c"
-grep -Fq "llvm_select_case_info" "$ROOT_DIR/src/codegen/llvm_stmt_parallel_async.c"
-grep -Fq "llvm_select_emit_bound_receive_case" "$ROOT_DIR/src/codegen/llvm_stmt_parallel_async.c"
-grep -Fq "llvm_select_emit_ready_consume_case" "$ROOT_DIR/src/codegen/llvm_stmt_parallel_async.c"
-grep -Fq "\"LLVM select %s requires registered runtime function '%s'\"" "$ROOT_DIR/src/codegen/llvm_stmt_parallel_async.c"
-grep -Fq "ctx, info->channel, \"receive\", fn_name" "$ROOT_DIR/src/codegen/llvm_stmt_parallel_async.c"
-grep -Fq "ctx, info->channel, \"readiness\", fn_name" "$ROOT_DIR/src/codegen/llvm_stmt_parallel_async.c"
-grep -Fq "ctx, info->channel, \"consume\", recv_name" "$ROOT_DIR/src/codegen/llvm_stmt_parallel_async.c"
+grep -Fq "llvm_select_required_runtime_function" "$ROOT_DIR/src/codegen/llvm_stmt_select.c"
+grep -Fq "LLVMSelectCaseInfo" "$ROOT_DIR/src/codegen/llvm_stmt_select.c"
+grep -Fq "llvm_select_case_info" "$ROOT_DIR/src/codegen/llvm_stmt_select.c"
+grep -Fq "llvm_select_emit_bound_receive_case" "$ROOT_DIR/src/codegen/llvm_stmt_select.c"
+grep -Fq "llvm_select_emit_ready_consume_case" "$ROOT_DIR/src/codegen/llvm_stmt_select.c"
+grep -Fq "\"LLVM select %s requires registered runtime function '%s'\"" "$ROOT_DIR/src/codegen/llvm_stmt_select.c"
+grep -Fq "ctx, info->channel, \"receive\", fn_name" "$ROOT_DIR/src/codegen/llvm_stmt_select.c"
+grep -Fq "ctx, info->channel, \"readiness\", fn_name" "$ROOT_DIR/src/codegen/llvm_stmt_select.c"
+grep -Fq "ctx, info->channel, \"consume\", recv_name" "$ROOT_DIR/src/codegen/llvm_stmt_select.c"
 grep -Fq "select_write_case_guard" "$ROOT_DIR/src/codegen/transpiler_select.c"
 grep -Fq "select_emit_unbound_consume" "$ROOT_DIR/src/codegen/transpiler_select.c"
 grep -Fq "select_channel_inner_type" "$ROOT_DIR/src/codegen/transpiler_select.c"
@@ -1723,6 +2446,25 @@ if [[ "$transpiler_scalar_unary_names" != "$transpiler_scalar_unary_names_sorted
         <(printf '%s\n' "$transpiler_scalar_unary_names") >&2 || true
     exit 1
 fi
+grep -Fq "kTranspilerScalarSpecs" "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_scalar_builtin.h"
+grep -Fq "transpiler_scalar_lookup" "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_scalar_builtin.h"
+grep -Fq "bsearch(" "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_scalar_builtin.h"
+transpiler_scalar_names="$(
+    sed -n '/static const TranspilerScalarSpec kTranspilerScalarSpecs\[\]/,/^};/p' \
+        "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_scalar_builtin.h" \
+        | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
+        | grep -o '"[A-Za-z0-9_]*"' \
+        | tr -d '"'
+)"
+transpiler_scalar_names_sorted="$(
+    printf '%s\n' "$transpiler_scalar_names" | sort
+)"
+if [[ "$transpiler_scalar_names" != "$transpiler_scalar_names_sorted" ]]; then
+    echo "C backend scalar builtin names must stay sorted for bsearch" >&2
+    diff -u <(printf '%s\n' "$transpiler_scalar_names_sorted") \
+        <(printf '%s\n' "$transpiler_scalar_names") >&2 || true
+    exit 1
+fi
 transpiler_channel_query_names="$(
     sed -n '/static const TranspilerChannelQuerySpec specs\[\]/,/^    };/p' \
         "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_channel_builtin.h" \
@@ -1737,6 +2479,25 @@ if [[ "$transpiler_channel_query_names" != "$transpiler_channel_query_names_sort
     echo "C backend channel query names must stay sorted for bsearch" >&2
     diff -u <(printf '%s\n' "$transpiler_channel_query_names_sorted") \
         <(printf '%s\n' "$transpiler_channel_query_names") >&2 || true
+    exit 1
+fi
+grep -Fq "transpiler_channel_spec_compare" "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_channel_builtin.h"
+grep -Fq "transpiler_channel_lookup(fn, argc)" "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_channel_builtin.h"
+grep -Fq "bsearch(" "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_channel_builtin.h"
+transpiler_channel_names="$(
+    sed -n '/static const TranspilerChannelSpec specs\[\]/,/^    };/p' \
+        "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_channel_builtin.h" \
+        | grep -Eo '\{[[:space:]]*"[A-Za-z0-9_]*"' \
+        | grep -o '"[A-Za-z0-9_]*"' \
+        | tr -d '"'
+)"
+transpiler_channel_names_sorted="$(
+    printf '%s\n' "$transpiler_channel_names" | sort
+)"
+if [[ "$transpiler_channel_names" != "$transpiler_channel_names_sorted" ]]; then
+    echo "C backend channel builtin names must stay sorted for bsearch" >&2
+    diff -u <(printf '%s\n' "$transpiler_channel_names_sorted") \
+        <(printf '%s\n' "$transpiler_channel_names") >&2 || true
     exit 1
 fi
 ! grep -Fq "ast_create_channel_recv(channel)" "$ROOT_DIR/src/codegen/transpiler_select.c"
@@ -1764,7 +2525,7 @@ grep -Fq '{ "StringConcat", "String", PGY_BUILTIN_FLAG_NONE }' "$ROOT_DIR/src/co
 ! grep -Fq 'strcmp(callee, "Concat")' "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
 ! grep -Fq 'strcmp(callee, "StringConcat")' "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c"
 grep -A14 -F "case AST_NUMBER" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c" | \
-    grep -Fq "expr->data.number.is_long"
+    grep -Fq "ast_number_is_long(expr)"
 grep -A14 -F "case AST_NUMBER" "$ROOT_DIR/src/codegen/llvm_stmt_type_infer.c" | \
     grep -Fq "return ctx->type_f64"
 grep -A6 -F "if (init->type == AST_NUMBER)" "$ROOT_DIR/src/codegen/transpiler_let_emit.h" | \
@@ -1829,13 +2590,13 @@ if command -v rg >/dev/null 2>&1 && rg --version >/dev/null 2>&1; then
         exit 1
     fi
 fi
-grep -Fq "render_type_name(param->constraint)" \
+grep -Fq "render_type_name(constraint)" \
     "$ROOT_DIR/src/codegen/transpiler_let_slot_emit.h"
 ! grep -Fq "constraint->data.type.name" \
     "$ROOT_DIR/src/codegen/transpiler_let_slot_emit.h"
 grep -Fq "transpiler_generic_class_effective_arg_name" \
     "$ROOT_DIR/src/codegen/transpiler_generic_class_specialization_emit.h"
-grep -Fq "render_type_name(arg->constraint)" \
+grep -Fq "render_type_name(arg_constraint)" \
     "$ROOT_DIR/src/codegen/transpiler_generic_class_specialization_emit.h"
 ! grep -Fq "garg->constraint->data.type.name" \
     "$ROOT_DIR/src/codegen/transpiler_generic_class_specialization_emit.h"
@@ -1871,7 +2632,7 @@ grep -Fq "LLVM MIR select readiness requires registered runtime function" "$ROOT
 grep -Fq "if (ctx->has_error || value_ty == NULL)" "$ROOT_DIR/src/codegen/llvm_mir_cfg_control.c"
 grep -Fq "if (ctx->has_error || elem_ty == NULL)" "$ROOT_DIR/src/codegen/llvm_mir_for_in_control.c"
 grep -Fq "if (ctx->has_error || elem_ty == NULL)" "$ROOT_DIR/src/codegen/llvm_stmt_loop_match.c"
-grep -Fq "if (ctx->has_error || val_ty == NULL)" "$ROOT_DIR/src/codegen/llvm_stmt_parallel_async.c"
+grep -Fq "if (ctx->has_error || val_ty == NULL)" "$ROOT_DIR/src/codegen/llvm_stmt_select.c"
 grep -Fq "LLVM MIR secure pin requires registered runtime function" "$ROOT_DIR/src/codegen/llvm_mir_pin_region.c"
 grep -Fq "LLVM MIR pin requires registered runtime function" "$ROOT_DIR/src/codegen/llvm_mir_pin_region.c"
 grep -Fq "LLVM MIR pin cleanup requires registered runtime function" "$ROOT_DIR/src/codegen/llvm_mir_pin_region.c"

@@ -3,22 +3,9 @@
  * C backend MIR CFG control policy helpers.
  */
 
-#include <string.h>
-
 #include "transpiler_mir_cfg_policy.h"
 
-bool
-transpiler_mir_stmt_is_cfg_container(const ASTNode *node)
-{
-    if (node == NULL)
-        return false;
-    return node->type == AST_WITH_STMT
-        || node->type == AST_IF_STMT
-        || node->type == AST_WHILE_LOOP
-        || node->type == AST_FOR_LOOP
-        || node->type == AST_SELECT_STMT
-        || node->type == AST_MATCH_STMT;
-}
+#include <string.h>
 
 const char *
 transpiler_mir_for_in_length_field(const char *collection_type)

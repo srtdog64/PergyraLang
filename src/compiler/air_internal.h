@@ -36,6 +36,19 @@ bool        air_append_evidence_node_ex(AIRProgram *air,
                                         size_t fallback_count,
                                         char **error_message);
 void        air_clear_drifts(AIRProgram *air);
+bool        air_append_drift(AIRProgram *air,
+                             AIRDriftKind kind,
+                             size_t intent_index,
+                             size_t boundary_index,
+                             const char *message,
+                             char **error_message);
+bool        air_append_driftf(AIRProgram *air,
+                              AIRDriftKind kind,
+                              size_t intent_index,
+                              size_t boundary_index,
+                              char **error_message,
+                              const char *fmt,
+                              ...);
 bool        air_name_matches(const char *a, const char *b);
 bool        air_ast_contains_node(const ASTNode *container,
                                   const ASTNode *needle);
@@ -74,6 +87,8 @@ const char *air_boundary_missing_authority_evidence(const AIRProgram *air,
 bool        air_boundary_declares_authority_name(
                 const AIRBoundaryNode *boundary,
                 const char *authority_name);
+bool        air_boundary_requires_hir_routine_evidence(
+                const AIRBoundaryNode *boundary);
 bool        air_boundary_requires_mir_pin_cleanup_evidence(
                 const AIRBoundaryNode *boundary);
 bool        air_evidence_inventory_is_authoritative(const AIRProgram *air);
@@ -87,12 +102,17 @@ size_t      air_global_evidence_fact_count(const AIRProgram *air,
                                            AIREvidenceKind kind);
 bool        air_global_has_evidence_kind(const AIRProgram *air,
                                          AIREvidenceKind kind);
+bool        air_boundary_has_summary_flag(const AIRBoundaryNode *boundary,
+                                          AIREvidenceKind kind);
 bool        air_validate_global_evidence_node(const AIREvidenceNode *evidence,
                                               size_t evidence_index,
                                               char **error_message);
-bool        air_validate_boundary_legacy_evidence_shape(const AIRProgram *air,
-                                                        size_t boundary_index,
-                                                        char **error_message);
+bool        air_evidence_node_matches_boundary_shape(const AIRProgram *air,
+                                                     size_t evidence_index,
+                                                     char **error_message);
+bool        air_validate_boundary_summary_shape(const AIRProgram *air,
+                                                size_t boundary_index,
+                                                char **error_message);
 bool        air_validate_summary_counters(const AIRProgram *air,
                                           char **error_message);
 char       *air_format_authority_names_owned(

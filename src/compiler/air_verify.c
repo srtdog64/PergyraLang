@@ -8,9 +8,7 @@
 
 #include "../semantic/diag_codes.h"
 
-#include <stdarg.h>
 #include <stdint.h>
-#include <stdio.h>
 #include <stdlib.h>
 
 static bool
@@ -21,100 +19,6 @@ air_sync_conflicts(AIRSyncClass expected, AIRSyncClass actual)
     if (expected == AIR_SYNC_EITHER || actual == AIR_SYNC_EITHER)
         return false;
     return expected != actual;
-}
-
-static bool
-air_boundary_requires_hir_routine_evidence(const AIRBoundaryNode *boundary)
-{
-    if (boundary == NULL)
-        return false;
-    switch (boundary->kind) {
-    case AIR_BOUNDARY_ZONE:
-    case AIR_BOUNDARY_WORLD:
-    case AIR_BOUNDARY_PARALLEL:
-    case AIR_BOUNDARY_IO:
-    case AIR_BOUNDARY_CHANNEL:
-    case AIR_BOUNDARY_EXECUTION:
-        return true;
-    case AIR_BOUNDARY_UNKNOWN:
-    default:
-        return false;
-    }
-}
-
-bool
-air_boundary_requires_mir_pin_cleanup_evidence(const AIRBoundaryNode *boundary)
-{
-    return boundary != NULL
-        && boundary->kind == AIR_BOUNDARY_EXECUTION
-        && air_name_matches(boundary->source_name, "pin");
-}
-
-static bool
-air_append_drift(AIRProgram *air,
-                 AIRDriftKind kind,
-                 size_t intent_index,
-                 size_t boundary_index,
-                 const char *message,
-                 char **error_message)
-{
-    char *message_copy = air_strdup_owned(message);
-
-    if (message_copy == NULL) {
-        air_set_error(error_message, "AIR drift message allocation failed");
-        return false;
-    }
-    if (air->drift_count >= air->drift_capacity) {
-        AIRDrift *next;
-        size_t new_capacity = air->drift_capacity;
-        if (!air_next_capacity(&new_capacity, 8, sizeof(AIRDrift))) {
-            free(message_copy);
-            air_set_error(error_message, "AIR drift allocation failed");
-            return false;
-        }
-        next = (AIRDrift *)realloc(air->drifts,
-                                   sizeof(AIRDrift) * new_capacity);
-        if (next == NULL) {
-            free(message_copy);
-            air_set_error(error_message, "AIR drift allocation failed");
-            return false;
-        }
-        air->drifts = next;
-        air->drift_capacity = new_capacity;
-    }
-    air->drifts[air->drift_count].kind = kind;
-    air->drifts[air->drift_count].intent_index = intent_index;
-    air->drifts[air->drift_count].boundary_index = boundary_index;
-    air->drifts[air->drift_count].message = message_copy;
-    air->drift_count++;
-    return true;
-}
-
-static bool
-air_append_driftf(AIRProgram *air,
-                  AIRDriftKind kind,
-                  size_t intent_index,
-                  size_t boundary_index,
-                  char **error_message,
-                  const char *fmt,
-                  ...)
-{
-    va_list args;
-    char *message;
-    bool ok;
-
-    va_start(args, fmt);
-    message = air_vformat_owned(fmt, args);
-    va_end(args);
-    if (message == NULL) {
-        air_set_error(error_message, "AIR drift message formatting failed");
-        return false;
-    }
-
-    ok = air_append_drift(air, kind, intent_index, boundary_index,
-                          message, error_message);
-    free(message);
-    return ok;
 }
 
 static bool

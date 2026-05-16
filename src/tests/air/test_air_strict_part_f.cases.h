@@ -37,7 +37,7 @@ test_air_verify_rejects_world_boundary_without_transfer_provenance(void)
 }
 
 static bool
-test_air_strict_evidence_rejects_legacy_flags_with_real_input(void)
+test_air_strict_evidence_rejects_summary_flags_with_real_input(void)
 {
     AIRIntentNode intents[] = {
         {
@@ -83,7 +83,7 @@ test_air_strict_evidence_rejects_legacy_flags_with_real_input(void)
 }
 
 static bool
-test_air_verify_rejects_legacy_summary_without_inventory(void)
+test_air_verify_rejects_summary_without_inventory(void)
 {
     AIRIntentNode intents[] = {
         {

@@ -107,4 +107,35 @@ llvm_intent_reason_name(LLVMGenCtx *ctx, char *out, size_t out_size,
     return false;
 }
 
+bool
+llvm_emit_intent_predicate_check(LLVMGenCtx *ctx,
+                                 LLVMValueRef fn,
+                                 LLVMBasicBlockRef fail_bb,
+                                 LLVMValueRef fail_reason_alloca,
+                                 ASTNode *expr,
+                                 const char *reason_prefix,
+                                 const char *step_name,
+                                 const char *ok_block_name)
+{
+    char reason[256];
+    LLVMBasicBlockRef next_bb;
+    LLVMValueRef cond;
+
+    if (expr == NULL)
+        return true;
+    next_bb = LLVMAppendBasicBlockInContext(ctx->context, fn, ok_block_name);
+    cond = llvm_emit_expression(expr, ctx);
+    if (cond == NULL)
+        return false;
+    if (!llvm_intent_reason_name(ctx, reason, sizeof(reason),
+            reason_prefix, step_name))
+        return false;
+    LLVMBuildStore(ctx->builder,
+        LLVMBuildGlobalStringPtr(ctx->builder, reason, llvm_tmp_name(ctx)),
+        fail_reason_alloca);
+    LLVMBuildCondBr(ctx->builder, cond, next_bb, fail_bb);
+    LLVMPositionBuilderAtEnd(ctx->builder, next_bb);
+    return true;
+}
+
 #endif

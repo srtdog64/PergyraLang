@@ -119,6 +119,12 @@ require_term "src/codegen/llvm_inventory_host_methods.h" "ast_compat_methods"
 require_term "src/codegen/llvm_inventory_host_methods.h" "ast_compat_count"
 require_term "src/codegen/llvm_inventory_host_methods.c" \
     "view->count != view->ast_compat_count"
+require_term "src/codegen/llvm_inventory_host_methods.c" \
+    "ast_role_impl_method_total_count"
+require_term "src/codegen/llvm_inventory_host_methods.c" \
+    "ast_compat_count = (size_t)-1"
+require_term "src/codegen/llvm_inventory_host_methods.c" \
+    "case AST_ROLE_DECL"
 if grep -Fq "llvm_hosted_method_view(" \
         "$ROOT_DIR/src/codegen/llvm_inventory_host_methods.c" \
     && grep -Fq "NULL, 0)" \
@@ -367,6 +373,9 @@ done
 for term in \
     "method->has_routine" \
     "transpiler_is_host_decl_type(header->ast_type)" \
+    "ast_role_impl_method_total_count" \
+    "ast_compat_count = (size_t)-1" \
+    "case AST_ROLE_DECL" \
     "transpiler_active_routine_inventory(ctx, &inventory)" \
     "transpiler_routine_inventory_get(&inventory, method->routine_index)"; do
     require_term "src/codegen/transpiler_decl_method_view.c" "$term"
@@ -671,7 +680,7 @@ fi
 for term in \
     "mir_decl_next_capacity" \
     "mir_decl_header_set_role_impl_methods" \
-    "mir_role_impl_method_count" \
+    "ast_role_impl_method_total_count" \
     "SIZE_MAX / sizeof(MIRDeclMethod)" \
     "case AST_ROLE_DECL"; do
     require_term "src/compiler/mir_decl_headers.c" "$term"
@@ -840,6 +849,12 @@ require_term "src/codegen/llvm_domain_role_emit.c" \
     "ast_impl_ability_method(impl, j)"
 require_term "src/compiler/mir_decl_headers.c" \
     "ast_impl_ability_method(impl, j)"
+require_term "src/parser/ast_api.h" \
+    "ast_role_impl_method_total_count"
+require_term "src/parser/ast_role_type_accessors.c" \
+    "ast_role_impl_method_total_count"
+require_term "src/compiler/mir_decl_header_validate.c" \
+    "ast_role_impl_method_total_count"
 if grep -R "data\.include_stmt" "$ROOT_DIR/src/codegen" >/dev/null; then
     fail "C/LLVM codegen include payload consumers must use AST include accessors"
 fi
@@ -965,6 +980,7 @@ done
 for term in \
     "mir_validate_decl_header_ast_compat" \
     "mir_validate_decl_header_metadata" \
+    "ast_role_impl_method_total_count" \
     "AST method-count compatibility drift" \
     "name metadata drift" \
     "duplicates declaration header" \
@@ -974,6 +990,10 @@ for term in \
     "routine index"; do
     require_term "src/compiler/mir_decl_header_validate.c" "$term"
 done
+if grep -Fq "header->ast_type != AST_ROLE_DECL" \
+    "$ROOT_DIR/src/compiler/mir_decl_header_validate.c"; then
+    fail "MIR declaration header validation must not keep role method-count exceptions"
+fi
 require_term "src/compiler/mir_public_surface.h" \
     "mir_validate_decl_header_metadata(mir, error_message)"
 require_term "src/tests/mir/test_mir_lowering_part_c.cases.h" \

@@ -3,9 +3,11 @@
 
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "transpiler_builtin_type_table.h"
+#include "transpiler_expr_type_infer_call_policy.h"
 
 #include "codegen_slot_type_policy.h"
 #include "../parser/ast_api.h"
@@ -221,18 +223,18 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
             const char *receiver_type = infer_expression_type_name(ctx, receiver);
             if (receiver_type != NULL && method_name != NULL) {
                 if (pgy_codegen_type_name_is_slot_or_view(receiver_type)
-                    && strcmp(method_name, "Read") == 0) {
+                    && pgy_codegen_call_name_is_read(method_name)) {
                     return transpiler_infer_slot_inner_type_name(ctx,
                         receiver_type);
                 }
                 if (pgy_codegen_type_name_is_device_slot(receiver_type)
-                    && strcmp(method_name, "Read") == 0) {
+                    && pgy_codegen_call_name_is_read(method_name)) {
                     return transpiler_infer_slot_inner_type_name(ctx,
                         receiver_type);
                 }
                 if (pgy_codegen_type_name_is_slot_family(receiver_type)
-                    && (strcmp(method_name, "Write") == 0
-                        || strcmp(method_name, "Release") == 0)) {
+                    && (pgy_codegen_call_name_is_write(method_name)
+                        || pgy_codegen_call_name_is_release(method_name))) {
                     return "Void";
                 }
                 if ((strncmp(receiver_type, "Array<", 6) == 0
@@ -268,10 +270,8 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
             size_t argc = ast_call_arg_count(expr);
             ASTNode *arg0 = ast_call_argument(expr, 0);
             const char *simple_type = NULL;
-            if (strcmp(name, "Min") == 0
-                || strcmp(name, "Max") == 0
-                || strcmp(name, "Abs") == 0
-                || strcmp(name, "Clone") == 0) {
+            TranspilerInferCallOp op = transpiler_infer_call_lookup(name);
+            if (transpiler_infer_call_is_numeric_passthrough(op)) {
                 if (argc >= 1) {
                     const char *arg_type = infer_expression_type_name(ctx,
                         arg0);
@@ -280,7 +280,7 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                 }
                 return "Int";
             }
-            if (strcmp(name, "MapGet") == 0 && argc >= 1) {
+            if (op == TRANS_INFER_CALL_MAP_GET && argc >= 1) {
                 const char *map_type = infer_expression_type_name(ctx,
                     arg0);
                 if (map_type != NULL && strncmp(map_type, "HashMap<", 8) == 0) {
@@ -293,7 +293,7 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                 }
                 return "Unknown";
             }
-            if (strcmp(name, "MapKeys") == 0 && argc >= 1) {
+            if (op == TRANS_INFER_CALL_MAP_KEYS && argc >= 1) {
                 const char *map_type = infer_expression_type_name(ctx,
                     arg0);
                 if (map_type != NULL && strncmp(map_type, "HashMap<", 8) == 0) {
@@ -307,7 +307,7 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                 }
                 return "Unknown";
             }
-            if (strcmp(name, "ListGet") == 0 && argc >= 1) {
+            if (op == TRANS_INFER_CALL_LIST_GET && argc >= 1) {
                 const char *list_type = infer_expression_type_name(ctx,
                     arg0);
                 if (list_type != NULL && strncmp(list_type, "List<", 5) == 0)
@@ -323,7 +323,7 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                 }
                 return "Unknown";
             }
-            if (strcmp(name, "ViewRead") == 0 && argc >= 1) {
+            if (op == TRANS_INFER_CALL_VIEW_READ && argc >= 1) {
                 const char *slot_type = infer_expression_type_name(ctx,
                     arg0);
                 const char *inner = transpiler_infer_slot_inner_type_name(ctx,
@@ -333,7 +333,7 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                 return transpiler_infer_arena_format_type_name(
                     ctx, "ReadView", inner);
             }
-            if (strcmp(name, "ViewWrite") == 0 && argc >= 1) {
+            if (op == TRANS_INFER_CALL_VIEW_WRITE && argc >= 1) {
                 const char *slot_type = infer_expression_type_name(ctx,
                     arg0);
                 const char *inner = transpiler_infer_slot_inner_type_name(ctx,
@@ -343,9 +343,10 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                 return transpiler_infer_arena_format_type_name(
                     ctx, "WriteView", inner);
             }
-            if (strcmp(name, "Measure") == 0 || strcmp(name, "QubitState") == 0)
+            if (op == TRANS_INFER_CALL_MEASURE
+                || op == TRANS_INFER_CALL_QUBIT_STATE)
                 return "Int";
-            if (strcmp(name, "Read") == 0 && argc >= 1) {
+            if (pgy_codegen_call_name_is_read(name) && argc >= 1) {
                 const char *slot_type = infer_expression_type_name(ctx,
                     arg0);
                 if (pgy_codegen_type_name_is_slot_family(slot_type)) {
@@ -354,7 +355,8 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                     return (inner != NULL && inner[0] != '\0') ? inner : "Unknown";
                 }
             }
-            if ((strcmp(name, "Write") == 0 || strcmp(name, "Release") == 0)
+            if ((pgy_codegen_call_name_is_write(name)
+                 || pgy_codegen_call_name_is_release(name))
                 && argc >= 1) {
                 const char *slot_type = infer_expression_type_name(ctx,
                     arg0);
@@ -362,7 +364,7 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                     return "Void";
                 }
             }
-            if (strcmp(name, "DeviceRead") == 0 && argc >= 1) {
+            if (op == TRANS_INFER_CALL_DEVICE_READ && argc >= 1) {
                 const char *slot_type = infer_expression_type_name(ctx,
                     arg0);
                 if (strncmp(slot_type, "DeviceSlot<", 11) == 0) {
@@ -371,7 +373,7 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                     return (inner != NULL && inner[0] != '\0') ? inner : "Unknown";
                 }
             }
-            if (strcmp(name, "SubmitDeviceRead") == 0 && argc >= 1) {
+            if (op == TRANS_INFER_CALL_SUBMIT_DEVICE_READ && argc >= 1) {
                 const char *slot_type = infer_expression_type_name(ctx,
                     arg0);
                 if (strncmp(slot_type, "DeviceSlot<", 11) == 0) {
@@ -384,13 +386,9 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                 }
                 return "Unknown";
             }
-            if ((strcmp(name, "TryRecv") == 0
-                 || strcmp(name, "RecvTimeout") == 0
-                || strcmp(name, "TrySendStatus") == 0
-                || strcmp(name, "SendTimeoutStatus") == 0)
+            if (transpiler_infer_call_returns_channel_option(op)
                 && argc >= 1) {
-                if (strcmp(name, "TrySendStatus") == 0
-                    || strcmp(name, "SendTimeoutStatus") == 0) {
+                if (transpiler_infer_call_returns_channel_status(op)) {
                     return "Option<Bool>";
                 } else {
                     char inner_buf[128];
@@ -404,7 +402,7 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                         ctx, "Option", inner);
                 }
             }
-            if (strcmp(name, "Some") == 0 && argc == 1) {
+            if (op == TRANS_INFER_CALL_SOME && argc == 1) {
                 const char *inner = infer_expression_type_name(ctx, arg0);
                 char inner_buf[128];
                 if (inner == NULL || inner[0] == '\0'
@@ -419,17 +417,18 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                 return transpiler_infer_arena_format_type_name(
                     ctx, "Option", inner);
             }
-            if (strcmp(name, "None") == 0) {
+            if (op == TRANS_INFER_CALL_NONE_CTOR) {
                 const char *context_type = transpiler_contextual_option_type_name(ctx);
                 return context_type != NULL ? context_type : "Option<Unknown>";
             }
-            if ((strcmp(name, "IsSome") == 0 || strcmp(name, "IsNone") == 0)
+            if ((op == TRANS_INFER_CALL_IS_SOME
+                 || op == TRANS_INFER_CALL_IS_NONE)
                 && argc == 1)
                 return "Bool";
             simple_type = pgy_builtin_simple_return_type(name);
             if (simple_type != NULL)
                 return simple_type;
-            if (strcmp(name, "UnwrapOption") == 0 && argc == 1) {
+            if (op == TRANS_INFER_CALL_UNWRAP_OPTION && argc == 1) {
                 const char *opt_type = infer_expression_type_name(ctx, arg0);
                 if (strncmp(opt_type, "Option<", 7) == 0) {
                     char inner_buf[128];
@@ -440,13 +439,13 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                     }
                 }
             }
-            if (strcmp(name, "ToTObject") == 0 && argc >= 1
+            if (op == TRANS_INFER_CALL_TO_TOBJECT && argc >= 1
                 && arg0 != NULL
                 && arg0->type == AST_IDENTIFIER
                 && ast_identifier_name(arg0) != NULL) {
                 return ast_identifier_name(arg0);
             }
-            if (strcmp(name, "ToObject") == 0 && argc >= 1
+            if (op == TRANS_INFER_CALL_TO_OBJECT && argc >= 1
                 && arg0 != NULL
                 && arg0->type == AST_IDENTIFIER
                 && ast_identifier_name(arg0) != NULL) {

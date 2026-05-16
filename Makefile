@@ -201,6 +201,8 @@ PARSER_SOURCES   = $(PARSER_DIR)/ast.c \
                    $(PARSER_DIR)/ast_print_inline.c \
                    $(PARSER_DIR)/ast_print_intent.c \
                    $(PARSER_DIR)/ast_print_misc.c \
+                   $(PARSER_DIR)/ast_print_world.c \
+                   $(PARSER_DIR)/ast_print_zone.c \
                    $(PARSER_DIR)/parser.c \
                    $(PARSER_DIR)/parser_decl_hints.c \
                    $(PARSER_DIR)/parser_doc.c \
@@ -310,6 +312,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_host_overlay.c \
                    $(SEMANTIC_DIR)/type_checker_host_helpers.c \
                    $(SEMANTIC_DIR)/type_checker_program.c \
+                   $(SEMANTIC_DIR)/type_checker_program_stats.c \
                    $(SEMANTIC_DIR)/type_checker_func_decl.c \
                    $(SEMANTIC_DIR)/type_checker_func_action_contract.c \
                    $(SEMANTIC_DIR)/type_checker_relation_decl.c \
@@ -402,6 +405,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_builtins_stdlib_body.c \
                    $(SEMANTIC_DIR)/type_checker_domain_role_lookup.c \
                    $(SEMANTIC_DIR)/type_checker_domain_projection.c \
+                   $(SEMANTIC_DIR)/type_checker_domain_projection_fields.c \
                    $(SEMANTIC_DIR)/type_checker_overlay_common.c \
                    $(SEMANTIC_DIR)/type_checker_projection_path.c \
                    $(SEMANTIC_DIR)/type_checker_world_embedding.c \
@@ -419,6 +423,8 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_flow_resources.c \
                    $(SEMANTIC_DIR)/type_checker_flow_loop_control.c \
                    $(SEMANTIC_DIR)/type_checker_flow_loops.c \
+                   $(SEMANTIC_DIR)/type_checker_flow_branch.c \
+                   $(SEMANTIC_DIR)/type_checker_flow_parallel.c \
                    $(SEMANTIC_DIR)/type_checker_flow_match_coverage.c \
                    $(SEMANTIC_DIR)/type_checker_flow_match.c \
                    $(SEMANTIC_DIR)/type_checker_flow.c \
@@ -430,6 +436,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
 CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_allocator_builtin_emit.c \
                    $(CODEGEN_DIR)/transpiler_context.c \
                    $(CODEGEN_DIR)/codegen_hashmap_key_policy.c \
+                   $(CODEGEN_DIR)/codegen_match_variant_policy.c \
                    $(CODEGEN_DIR)/codegen_scalar_arithmetic_policy.c \
                    $(CODEGEN_DIR)/codegen_slot_type_policy.c \
                    $(CODEGEN_DIR)/domain_frontier_policy.c \
@@ -445,6 +452,8 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_allocator_builtin_emit.c \
                    $(CODEGEN_DIR)/transpiler_event_emit.c \
                    $(CODEGEN_DIR)/transpiler_event_builtin_emit.c \
                    $(CODEGEN_DIR)/transpiler_extern.c \
+                   $(CODEGEN_DIR)/transpiler_expr_stdlib_builtin_policy.c \
+                   $(CODEGEN_DIR)/transpiler_expr_type_infer_call_policy.c \
                    $(CODEGEN_DIR)/transpiler_expr_stdlib_misc_builtin.c \
                    $(CODEGEN_DIR)/transpiler_format.c \
                    $(CODEGEN_DIR)/transpiler_func_forward_policy.c \
@@ -499,6 +508,7 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_allocator_builtin_emit.c \
                    $(CODEGEN_DIR)/transpiler.c
 COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/compiler_result.c \
+                   $(COMPILER_DIR)/compiler_process.c \
                    $(COMPILER_DIR)/compiler_llvm.c \
                    $(COMPILER_DIR)/dir.c \
                    $(COMPILER_DIR)/dir_collect.c \
@@ -507,11 +517,13 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/dir_validate.c \
                    $(COMPILER_DIR)/io_boundary_builtin.c \
                    $(COMPILER_DIR)/air_names.c \
+                   $(COMPILER_DIR)/air_drift.c \
                    $(COMPILER_DIR)/air.c \
                    $(COMPILER_DIR)/air_boundary.c \
                    $(COMPILER_DIR)/air_boundary_walk.c \
                    $(COMPILER_DIR)/air_dump.c \
                    $(COMPILER_DIR)/air_vocabulary.c \
+                   $(COMPILER_DIR)/air_boundary_evidence_policy.c \
                    $(COMPILER_DIR)/air_evidence_node.c \
                    $(COMPILER_DIR)/air_evidence_ast.c \
                    $(COMPILER_DIR)/air_evidence.c \
@@ -519,8 +531,9 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/air_evidence_dag.c \
                    $(COMPILER_DIR)/air_evidence_rir.c \
                    $(COMPILER_DIR)/air_validate_global_evidence.c \
-                   $(COMPILER_DIR)/air_validate_legacy_evidence.c \
+                   $(COMPILER_DIR)/air_validate_boundary_summary.c \
                    $(COMPILER_DIR)/air_validate_summary_counters.c \
+                   $(COMPILER_DIR)/air_validate_boundary_evidence.c \
                    $(COMPILER_DIR)/air_validate_evidence.c \
                    $(COMPILER_DIR)/air_validate.c \
                    $(COMPILER_DIR)/air_verify.c \
@@ -529,9 +542,11 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/rir_names.c \
                     $(COMPILER_DIR)/rir_public_surface.c \
                     $(COMPILER_DIR)/rir_validation.c \
+                    $(COMPILER_DIR)/rir_validation_dir.c \
                     $(COMPILER_DIR)/rir_flow_state.c \
                     $(COMPILER_DIR)/rir_flow.c \
                     $(COMPILER_DIR)/rir_facts.c \
+                   $(COMPILER_DIR)/rir_scope_storage.c \
                    $(COMPILER_DIR)/rir_builder.c \
                    $(COMPILER_DIR)/rir_builder_walk.c \
                    $(COMPILER_DIR)/rir_builder_intent.c \
@@ -562,11 +577,13 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/mir_abi_layout.c \
                    $(COMPILER_DIR)/mir_surface_usage.c \
                    $(COMPILER_DIR)/mir_fact_validate.c \
+                   $(COMPILER_DIR)/mir_fact_surface_validate.c \
                    $(COMPILER_DIR)/mir_fact_terminator_validate.c \
                    $(COMPILER_DIR)/mir_decl_header_validate.c \
                    $(COMPILER_DIR)/mir_decl_headers.c \
                    $(COMPILER_DIR)/mir_stmt_population.c \
                    $(COMPILER_DIR)/mir_stmt_population_resource_ops.c \
+                   $(COMPILER_DIR)/mir_stmt_population_source.c \
                    $(COMPILER_DIR)/mir_stmt_source_inventory.c \
                    $(COMPILER_DIR)/mir_stmt_source.c \
                    $(COMPILER_DIR)/mir_non_cfg_stmt_population.c \
@@ -592,6 +609,7 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/module_normalizer_shadow.c \
                    $(COMPILER_DIR)/import_resolver.c \
                    $(COMPILER_DIR)/driver_app.c \
+                   $(COMPILER_DIR)/driver_usage.c \
                    $(COMPILER_DIR)/driver_diag.c \
                    $(COMPILER_DIR)/driver_scaffold.c \
                    $(COMPILER_DIR)/driver_scaffold_project.c \
@@ -659,10 +677,12 @@ ifneq ($(LLVM_ENABLED),0)
                         $(CODEGEN_DIR)/llvm_intent_zone.c \
                         $(CODEGEN_DIR)/llvm_intent_effect.c \
                         $(CODEGEN_DIR)/llvm_intent_flow.c \
+                        $(CODEGEN_DIR)/llvm_intent_forward.c \
                         $(CODEGEN_DIR)/llvm_inventory_internal.c \
                         $(CODEGEN_DIR)/llvm_inventory_decl_lookup.c \
                         $(CODEGEN_DIR)/llvm_inventory_host_methods.c \
                         $(CODEGEN_DIR)/llvm_expr.c \
+                        $(CODEGEN_DIR)/llvm_expr_aggregate.c \
                         $(CODEGEN_DIR)/llvm_expr_emit_support.c \
                         $(CODEGEN_DIR)/llvm_expr_aggregate_utils.c \
                         $(CODEGEN_DIR)/llvm_expr_assignment_member_projection.c \
@@ -694,6 +714,7 @@ ifneq ($(LLVM_ENABLED),0)
                         $(CODEGEN_DIR)/llvm_expr_projection_path_helpers.c \
                         $(CODEGEN_DIR)/llvm_expr_host_spawn_literal_helpers.c \
                         $(CODEGEN_DIR)/llvm_expr_identifier_slot_helpers.c \
+                        $(CODEGEN_DIR)/llvm_expr_call_inline_policy.c \
                         $(CODEGEN_DIR)/llvm_member_call_emit.c \
                         $(CODEGEN_DIR)/llvm_member_call_support.c \
                         $(CODEGEN_DIR)/llvm_expr_intent_observability_calls.c \
@@ -708,10 +729,12 @@ ifneq ($(LLVM_ENABLED),0)
                         $(CODEGEN_DIR)/llvm_expr_slot_device_calls.c \
                         $(CODEGEN_DIR)/llvm_expr_slot_runtime_utils.c \
                         $(CODEGEN_DIR)/llvm_expr_spawn_names.c \
+                        $(CODEGEN_DIR)/llvm_expr_spawn_generic.c \
                         $(CODEGEN_DIR)/llvm_expr_spawn_call_helpers.c \
                         $(CODEGEN_DIR)/llvm_expr_stdlib_scalar_io_calls.c \
                         $(CODEGEN_DIR)/llvm_expr_string_coerce.c \
                         $(CODEGEN_DIR)/llvm_expr_task_calls.c \
+                        $(CODEGEN_DIR)/llvm_expr_task_channel_policy.c \
                         $(CODEGEN_DIR)/llvm_expr_task_channel_calls.c \
                         $(CODEGEN_DIR)/llvm_stmt.c \
                         $(CODEGEN_DIR)/llvm_stmt_emit_support.c \
@@ -721,6 +744,7 @@ ifneq ($(LLVM_ENABLED),0)
                         $(CODEGEN_DIR)/llvm_stmt_type_infer_await.c \
                         $(CODEGEN_DIR)/llvm_stmt_type_infer_helpers.c \
                         $(CODEGEN_DIR)/llvm_stmt_let_callable.c \
+                        $(CODEGEN_DIR)/llvm_stmt_let_collection_policy.c \
                         $(CODEGEN_DIR)/llvm_stmt_let_collections.c \
                         $(CODEGEN_DIR)/llvm_stmt_let_helpers.c \
                         $(CODEGEN_DIR)/llvm_stmt_let_slots.c \
@@ -911,19 +935,23 @@ RIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/rir.o \
                    $(BUILD_DIR)/compiler/rir_names.o \
                     $(BUILD_DIR)/compiler/rir_public_surface.o \
                     $(BUILD_DIR)/compiler/rir_validation.o \
+                    $(BUILD_DIR)/compiler/rir_validation_dir.o \
                     $(BUILD_DIR)/compiler/rir_flow_state.o \
                     $(BUILD_DIR)/compiler/rir_flow.o \
                    $(BUILD_DIR)/compiler/rir_facts.o \
+                   $(BUILD_DIR)/compiler/rir_scope_storage.o \
                    $(BUILD_DIR)/compiler/rir_builder.o \
                    $(BUILD_DIR)/compiler/rir_builder_walk.o \
                    $(BUILD_DIR)/compiler/rir_builder_intent.o
 AIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/air_names.o \
+                   $(BUILD_DIR)/compiler/air_drift.o \
                    $(BUILD_DIR)/compiler/io_boundary_builtin.o \
                    $(BUILD_DIR)/compiler/air.o \
                    $(BUILD_DIR)/compiler/air_boundary.o \
                    $(BUILD_DIR)/compiler/air_boundary_walk.o \
                    $(BUILD_DIR)/compiler/air_dump.o \
                    $(BUILD_DIR)/compiler/air_vocabulary.o \
+                   $(BUILD_DIR)/compiler/air_boundary_evidence_policy.o \
                    $(BUILD_DIR)/compiler/air_evidence_node.o \
                    $(BUILD_DIR)/compiler/air_evidence_ast.o \
                    $(BUILD_DIR)/compiler/air_evidence.o \
@@ -939,8 +967,9 @@ AIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/air_names.o \
                    $(BUILD_DIR)/compiler/mir_cfg_contract_cleanup_root_membership.o \
                    $(BUILD_DIR)/compiler/air_evidence_rir.o \
                    $(BUILD_DIR)/compiler/air_validate_global_evidence.o \
-                   $(BUILD_DIR)/compiler/air_validate_legacy_evidence.o \
+                   $(BUILD_DIR)/compiler/air_validate_boundary_summary.o \
                    $(BUILD_DIR)/compiler/air_validate_summary_counters.o \
+                   $(BUILD_DIR)/compiler/air_validate_boundary_evidence.o \
                    $(BUILD_DIR)/compiler/air_validate_evidence.o \
                    $(BUILD_DIR)/compiler/air_validate.o \
                    $(BUILD_DIR)/compiler/air_verify.o \
@@ -964,11 +993,13 @@ MIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/mir.o \
                    $(BUILD_DIR)/compiler/mir_abi_layout.o \
                    $(BUILD_DIR)/compiler/mir_surface_usage.o \
                    $(BUILD_DIR)/compiler/mir_fact_validate.o \
+                   $(BUILD_DIR)/compiler/mir_fact_surface_validate.o \
                    $(BUILD_DIR)/compiler/mir_fact_terminator_validate.o \
                    $(BUILD_DIR)/compiler/mir_decl_header_validate.o \
                    $(BUILD_DIR)/compiler/mir_decl_headers.o \
                    $(BUILD_DIR)/compiler/mir_stmt_population.o \
                    $(BUILD_DIR)/compiler/mir_stmt_population_resource_ops.o \
+                   $(BUILD_DIR)/compiler/mir_stmt_population_source.o \
                    $(BUILD_DIR)/compiler/mir_stmt_source_inventory.o \
                    $(BUILD_DIR)/compiler/mir_stmt_source.o \
                    $(BUILD_DIR)/compiler/mir_non_cfg_stmt_population.o \

@@ -3,12 +3,62 @@
 #include "llvm_expr_slot_device_calls.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "codegen_slot_type_policy.h"
 #include "llvm_expr_identifier_slot_helpers.h"
 #include "llvm_internal_api.h"
 #include "parser/ast_api.h"
+
+typedef enum LLVMSlotBuiltinOp {
+    LLVM_SLOT_BUILTIN_OP_NONE = 0,
+    LLVM_SLOT_BUILTIN_OP_DEVICE_READ,
+    LLVM_SLOT_BUILTIN_OP_DEVICE_WRITE,
+    LLVM_SLOT_BUILTIN_OP_READ,
+    LLVM_SLOT_BUILTIN_OP_RELEASE,
+    LLVM_SLOT_BUILTIN_OP_RELEASE_DEVICE_SLOT,
+    LLVM_SLOT_BUILTIN_OP_SUBMIT_DEVICE_READ,
+    LLVM_SLOT_BUILTIN_OP_WRITE,
+} LLVMSlotBuiltinOp;
+
+typedef struct LLVMSlotBuiltinSpec {
+    const char *name;
+    LLVMSlotBuiltinOp op;
+} LLVMSlotBuiltinSpec;
+
+static int
+llvm_slot_builtin_spec_compare(const void *key, const void *entry)
+{
+    const char *name = *(const char * const *)key;
+    const LLVMSlotBuiltinSpec *spec = (const LLVMSlotBuiltinSpec *)entry;
+
+    return strcmp(name, spec->name);
+}
+
+static LLVMSlotBuiltinOp
+llvm_slot_builtin_lookup(const char *callee_name)
+{
+    static const LLVMSlotBuiltinSpec kLLVMSlotBuiltinSpecs[] = {
+        { "DeviceRead", LLVM_SLOT_BUILTIN_OP_DEVICE_READ },
+        { "DeviceWrite", LLVM_SLOT_BUILTIN_OP_DEVICE_WRITE },
+        { "Read", LLVM_SLOT_BUILTIN_OP_READ },
+        { "Release", LLVM_SLOT_BUILTIN_OP_RELEASE },
+        { "ReleaseDeviceSlot", LLVM_SLOT_BUILTIN_OP_RELEASE_DEVICE_SLOT },
+        { "SubmitDeviceRead", LLVM_SLOT_BUILTIN_OP_SUBMIT_DEVICE_READ },
+        { "Write", LLVM_SLOT_BUILTIN_OP_WRITE },
+    };
+    const LLVMSlotBuiltinSpec *match;
+
+    if (callee_name == NULL)
+        return LLVM_SLOT_BUILTIN_OP_NONE;
+
+    match = (const LLVMSlotBuiltinSpec *)bsearch(&callee_name,
+        kLLVMSlotBuiltinSpecs,
+        sizeof(kLLVMSlotBuiltinSpecs) / sizeof(kLLVMSlotBuiltinSpecs[0]),
+        sizeof(kLLVMSlotBuiltinSpecs[0]), llvm_slot_builtin_spec_compare);
+    return match != NULL ? match->op : LLVM_SLOT_BUILTIN_OP_NONE;
+}
 
 static bool
 llvm_slot_builtin_require_argc(ASTNode *node, LLVMGenCtx *ctx,
@@ -61,6 +111,8 @@ bool
 llvm_emit_slot_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
                             const char *callee_name, LLVMValueRef *out)
 {
+    LLVMSlotBuiltinOp op;
+
     if (out == NULL)
         return false;
     *out = NULL;
@@ -79,7 +131,9 @@ llvm_emit_slot_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         return true;
     }
 
-    if (strcmp(callee_name, "Write") == 0) {
+    op = llvm_slot_builtin_lookup(callee_name);
+
+    if (op == LLVM_SLOT_BUILTIN_OP_WRITE) {
         if (!llvm_slot_builtin_require_argc(node, ctx, callee_name,
                 ast_call_arg_count(node), 2, out))
             return true;
@@ -145,7 +199,7 @@ llvm_emit_slot_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         return true;
     }
 
-    if (strcmp(callee_name, "Read") == 0) {
+    if (op == LLVM_SLOT_BUILTIN_OP_READ) {
         if (!llvm_slot_builtin_require_argc(node, ctx, callee_name,
                 ast_call_arg_count(node), 1, out))
             return true;
@@ -203,7 +257,7 @@ llvm_emit_slot_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         return true;
     }
 
-    if (strcmp(callee_name, "Release") == 0) {
+    if (op == LLVM_SLOT_BUILTIN_OP_RELEASE) {
         if (!llvm_slot_builtin_require_argc(node, ctx, callee_name,
                 ast_call_arg_count(node), 1, out))
             return true;
@@ -269,7 +323,7 @@ llvm_emit_slot_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         return true;
     }
 
-    if (strcmp(callee_name, "DeviceWrite") == 0) {
+    if (op == LLVM_SLOT_BUILTIN_OP_DEVICE_WRITE) {
         if (!llvm_slot_builtin_require_argc(node, ctx, callee_name,
                 ast_call_arg_count(node), 2, out))
             return true;
@@ -308,9 +362,9 @@ llvm_emit_slot_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         return true;
     }
 
-    if (strcmp(callee_name, "DeviceRead") == 0
-        || strcmp(callee_name, "ReleaseDeviceSlot") == 0
-        || strcmp(callee_name, "SubmitDeviceRead") == 0) {
+    if (op == LLVM_SLOT_BUILTIN_OP_DEVICE_READ
+        || op == LLVM_SLOT_BUILTIN_OP_RELEASE_DEVICE_SLOT
+        || op == LLVM_SLOT_BUILTIN_OP_SUBMIT_DEVICE_READ) {
         if (!llvm_slot_builtin_require_argc(node, ctx, callee_name,
                 ast_call_arg_count(node), 1, out))
             return true;
@@ -332,11 +386,11 @@ llvm_emit_slot_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         }
 
         char fn_name[64];
-        if (strcmp(callee_name, "DeviceRead") == 0) {
+        if (op == LLVM_SLOT_BUILTIN_OP_DEVICE_READ) {
             if (!llvm_slot_format_runtime_name(fn_name, sizeof(fn_name),
                     "pgy_device_read", inner))
                 return llvm_slot_report_runtime_name(node, ctx, callee_name, out);
-        } else if (strcmp(callee_name, "ReleaseDeviceSlot") == 0) {
+        } else if (op == LLVM_SLOT_BUILTIN_OP_RELEASE_DEVICE_SLOT) {
             if (!llvm_slot_format_runtime_name(fn_name, sizeof(fn_name),
                     "pgy_release_device", inner))
                 return llvm_slot_report_runtime_name(node, ctx, callee_name, out);
@@ -354,8 +408,8 @@ llvm_emit_slot_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         }
 
         LLVMValueRef args[] = { slot_var->alloca };
-        if (strcmp(callee_name, "DeviceRead") == 0
-            || strcmp(callee_name, "SubmitDeviceRead") == 0) {
+        if (op == LLVM_SLOT_BUILTIN_OP_DEVICE_READ
+            || op == LLVM_SLOT_BUILTIN_OP_SUBMIT_DEVICE_READ) {
             *out = LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn,
                                   args, 1, llvm_tmp_name(ctx));
         } else {

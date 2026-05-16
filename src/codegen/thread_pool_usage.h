@@ -5,7 +5,6 @@
 
 #include "../compiler/mir.h"
 
-bool pgy_mir_routine_uses_thread_pool(const MIRRoutine *routine);
 bool pgy_mir_program_uses_thread_pool(const MIRProgram *mir);
 
 #endif

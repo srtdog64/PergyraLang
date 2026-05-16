@@ -8,6 +8,7 @@
 #ifdef PGY_LLVM_ENABLED
 
 #include "llvm_internal.h"
+#include "transpiler_mir_resource_name_helpers.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -20,12 +21,14 @@ llvm_mir_emit_borrow_view_alias(const MIRInstruction *inst, LLVMGenCtx *ctx)
     LLVMVarEntry *source_entry;
     const char *inner;
     bool is_secure;
+    TranspilerMIRResourceOp op;
 
     if (inst == NULL || ctx == NULL || inst->name == NULL
         || inst->arg0 == NULL || inst->arg1 == NULL)
         return;
-    if (strcmp(inst->name, "BorrowRead") != 0
-        && strcmp(inst->name, "BorrowWrite") != 0)
+    op = transpiler_mir_resource_op_lookup(inst->name);
+    if (op != TRANS_MIR_RESOURCE_OP_BORROW_READ
+        && op != TRANS_MIR_RESOURCE_OP_BORROW_WRITE)
         return;
 
     source_entry = llvm_scope_lookup(ctx, inst->arg0);

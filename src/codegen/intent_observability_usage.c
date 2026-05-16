@@ -41,7 +41,7 @@ pgy_name_array_uses_intent_observability(const char *const *names, size_t count)
 
 static bool
 pgy_mir_instruction_uses_intent_observability(const MIRInstruction *inst,
-                                              bool allow_legacy_payload_probe)
+                                              bool allow_fixture_payload_probe)
 {
     if (inst == NULL)
         return false;
@@ -57,14 +57,14 @@ pgy_mir_instruction_uses_intent_observability(const MIRInstruction *inst,
     if (inst->has_surface_usage_facts)
         return inst->uses_intent_observability_surface;
 
-    if (!allow_legacy_payload_probe)
+    if (!allow_fixture_payload_probe)
         return false;
 
     /*
      * Direct statement calls are carried in MIR_STMT.arg0, direct initializer
      * calls are carried in MIR_INST_DEF.arg1, and lowered declaration
      * inventory is carried by MIRProgram inventory surface facts. Keep only
-     * payload probing for hand-built legacy MIR fixtures without HIR
+     * payload probing for hand-built compatibility MIR fixtures without HIR
      * provenance; source statement AST scanning is no longer a codegen usage
      * discovery path.
      */
@@ -74,7 +74,7 @@ pgy_mir_instruction_uses_intent_observability(const MIRInstruction *inst,
 
 static bool
 pgy_mir_block_uses_intent_observability(const MIRBasicBlock *block,
-                                        bool allow_legacy_payload_probe)
+                                        bool allow_fixture_payload_probe)
 {
     if (block == NULL)
         return false;
@@ -84,7 +84,7 @@ pgy_mir_block_uses_intent_observability(const MIRBasicBlock *block,
 
     for (size_t i = 0; i < block->instruction_count; i++) {
         if (pgy_mir_instruction_uses_intent_observability(
-                &block->instructions[i], allow_legacy_payload_probe)) {
+                &block->instructions[i], allow_fixture_payload_probe)) {
             return true;
         }
     }
@@ -116,7 +116,8 @@ pgy_mir_routine_uses_intent_observability(const MIRRoutine *routine)
 }
 
 static bool
-pgy_mir_inventory_uses_intent_observability(const MIRProgram *mir)
+pgy_mir_inventory_intent_observability_usage_is_known(const MIRProgram *mir,
+                                                      bool *uses_surface)
 {
     if (mir == NULL)
         return false;
@@ -129,16 +130,24 @@ pgy_mir_inventory_uses_intent_observability(const MIRProgram *mir)
     if (!mir->has_inventory_surface_usage_facts)
         return false;
 
-    return mir->inventory_uses_intent_observability_surface;
+    if (uses_surface != NULL)
+        *uses_surface = mir->inventory_uses_intent_observability_surface;
+    return true;
 }
 
 bool
 pgy_mir_program_uses_intent_observability(const MIRProgram *mir)
 {
     MIRRoutineInventory inventory;
+    bool inventory_uses_surface = false;
 
     if (mir == NULL)
         return false;
+
+    if (pgy_mir_inventory_intent_observability_usage_is_known(
+            mir, &inventory_uses_surface)) {
+        return inventory_uses_surface;
+    }
 
     mir_routine_inventory_from_program(mir, &inventory);
     for (size_t i = 0; i < inventory.count; i++) {
@@ -147,5 +156,5 @@ pgy_mir_program_uses_intent_observability(const MIRProgram *mir)
             return true;
     }
 
-    return pgy_mir_inventory_uses_intent_observability(mir);
+    return false;
 }

@@ -117,7 +117,7 @@ constructed_single_arg_is_unknown(const char *type_name)
 bool
 pergyra_type_to_c_copy(const char *name, char *out, size_t out_size)
 {
-    static const TranspilerTypeNameMap legacy_maps[] = {
+    static const TranspilerTypeNameMap builtin_alias_maps[] = {
         {"Allocator", "PgyAllocator"},
         {"Cooldown", "PgyCooldown"},
         {"Fsm", "PgyFsm"},
@@ -143,8 +143,8 @@ pergyra_type_to_c_copy(const char *name, char *out, size_t out_size)
         return true;
     }
 
-    mapped = transpiler_lookup_type_name_map(name, legacy_maps,
-        sizeof(legacy_maps) / sizeof(legacy_maps[0]));
+    mapped = transpiler_lookup_type_name_map(name, builtin_alias_maps,
+        sizeof(builtin_alias_maps) / sizeof(builtin_alias_maps[0]));
     if (mapped != NULL) {
         copy_capped_string(out, out_size, mapped);
         return out[0] != '\0';

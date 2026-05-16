@@ -84,7 +84,7 @@ void driver_print_usage(void);
 void driver_emit_single_diag_json(const char *stage, const char *message);
 
 /* Variant that attaches a stable diagnostic code (e.g. "PGY_MIR_UNRESOLVED_LOCAL").
- * If `code` is NULL, the emitted JSON omits the "code" field (legacy shape).
+ * If `code` is NULL, the emitted JSON omits the "code" field for compatibility.
  * Otherwise the JSON includes "code": "<code>". */
 void driver_emit_single_diag_json_with_code(const char *stage,
                                              const char *code,

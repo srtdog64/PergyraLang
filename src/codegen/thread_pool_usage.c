@@ -19,7 +19,7 @@ pgy_ast_uses_thread_pool(const ASTNode *node)
 
 static bool
 pgy_mir_instruction_uses_thread_pool(const MIRInstruction *inst,
-                                     bool allow_legacy_payload_probe)
+                                     bool allow_fixture_payload_probe)
 {
     if (inst == NULL)
         return false;
@@ -27,12 +27,12 @@ pgy_mir_instruction_uses_thread_pool(const MIRInstruction *inst,
     if (inst->has_surface_usage_facts)
         return inst->uses_thread_pool_surface;
 
-    if (!allow_legacy_payload_probe)
+    if (!allow_fixture_payload_probe)
         return false;
 
     /*
      * Normal lowered MIR has HIR provenance and validated surface facts. Keep
-     * only expression-payload scanning for hand-built legacy MIR without HIR
+     * only expression-payload scanning for hand-built compatibility MIR without HIR
      * provenance; source statement AST scanning is not a codegen dependency
      * discovery path.
      */
@@ -40,7 +40,7 @@ pgy_mir_instruction_uses_thread_pool(const MIRInstruction *inst,
         || pgy_ast_uses_thread_pool(inst->expr1);
 }
 
-bool
+static bool
 pgy_mir_routine_uses_thread_pool(const MIRRoutine *routine)
 {
     if (routine == NULL)
@@ -71,10 +71,8 @@ pgy_mir_program_uses_thread_pool(const MIRProgram *mir)
     if (mir == NULL)
         return false;
 
-    if (mir->has_inventory_surface_usage_facts
-        && mir->inventory_uses_thread_pool_surface) {
-        return true;
-    }
+    if (mir->has_inventory_surface_usage_facts)
+        return mir->inventory_uses_thread_pool_surface;
 
     mir_routine_inventory_from_program(mir, &inventory);
     for (size_t i = 0; i < inventory.count; i++) {

@@ -2,6 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 DEFAULT_PGY="$ROOT_DIR/bin/pgy"
 
 fail() {
@@ -60,31 +61,6 @@ require_terms() {
     done
 }
 
-windows_path_for() {
-    local path="$1"
-    local drive
-    local rest
-
-    if command -v cygpath >/dev/null 2>&1; then
-        cygpath -m "$path"
-        return 0
-    fi
-    if command -v wslpath >/dev/null 2>&1; then
-        wslpath -w "$path"
-        return 0
-    fi
-    case "$path" in
-        /mnt/[A-Za-z]/*)
-            drive="${path#/mnt/}"
-            drive="${drive%%/*}"
-            rest="${path#/mnt/$drive/}"
-            printf '%s:/%s\n' "$drive" "$rest"
-            return 0
-            ;;
-    esac
-    printf '%s\n' "$path"
-}
-
 require_generated_frontier_limit() {
     local pgy_bin="${PGY_BIN:-$DEFAULT_PGY}"
     local explicit_pgy=0
@@ -97,7 +73,8 @@ require_generated_frontier_limit() {
 
     if [[ -n "${PGY_BIN:-}" ]]; then
         explicit_pgy=1
-    elif [[ ! -x "$pgy_bin" && -x "${pgy_bin}.exe" ]]; then
+    elif [[ ! -x "$pgy_bin" ]] \
+        && pgy_binary_expects_windows_paths "${pgy_bin}.exe"; then
         pgy_bin="${pgy_bin}.exe"
     fi
 
@@ -108,14 +85,15 @@ require_generated_frontier_limit() {
         echo "[runtime-frontier-contract] SKIP generated frontier fixture; no default pgy executable" >&2
         return 0
     fi
-    if [[ "$pgy_bin" == *.exe ]] && command -v powershell.exe >/dev/null 2>&1; then
+    if pgy_binary_expects_windows_paths "$pgy_bin" \
+        && command -v powershell.exe >/dev/null 2>&1; then
         local ps1="$tmp_dir/run-frontier-fixture.ps1"
         local win_pgy win_source win_out win_log win_ps1
-        win_pgy="$(windows_path_for "$pgy_bin")"
-        win_source="$(windows_path_for "$source")"
-        win_out="$(windows_path_for "$out_c")"
-        win_log="$(windows_path_for "$log")"
-        win_ps1="$(windows_path_for "$ps1")"
+        win_pgy="$(pgy_path_for_compiler "$pgy_bin" "$pgy_bin")"
+        win_source="$(pgy_path_for_compiler "$pgy_bin" "$source")"
+        win_out="$(pgy_path_for_compiler "$pgy_bin" "$out_c")"
+        win_log="$(pgy_path_for_compiler "$pgy_bin" "$log")"
+        win_ps1="$(pgy_path_for_compiler "$pgy_bin" "$ps1")"
 cat >"$ps1" <<EOF
 \$ErrorActionPreference = 'Continue'
 \$env:PATH = 'C:\Program Files\LLVM\bin;C:\ProgramData\mingw64\mingw64\bin;C:\msys64\mingw64\bin;' + \$env:PATH
@@ -132,9 +110,9 @@ EOF
             fail "failed to emit generated frontier fixture with default $pgy_bin"
         fi
         emitted=1
-    elif [[ "$pgy_bin" == *.exe ]] && command -v cygpath >/dev/null 2>&1; then
-        source_arg="$(cygpath -m "$source")"
-        out_c_arg="$(cygpath -m "$out_c")"
+    elif pgy_binary_expects_windows_paths "$pgy_bin"; then
+        source_arg="$(pgy_path_for_compiler "$pgy_bin" "$source")"
+        out_c_arg="$(pgy_path_for_compiler "$pgy_bin" "$out_c")"
     fi
     if [[ "$emitted" -eq 0 ]] && ! "$pgy_bin" "$source_arg" --emit-c -o "$out_c_arg" >"$log" 2>&1; then
         if [[ -f "$log" ]]; then

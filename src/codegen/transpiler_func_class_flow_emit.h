@@ -3,7 +3,52 @@
 
 #include "../parser/ast_api.h"
 
+#include <stdlib.h>
+
 #include "transpiler_mir_reason_classifier.h"
+
+typedef enum TranspilerReturnOptionCtorOp {
+    TRANS_RETURN_OPTION_CTOR_NONE = 0,
+    TRANS_RETURN_OPTION_CTOR_NONE_VALUE,
+    TRANS_RETURN_OPTION_CTOR_SOME,
+} TranspilerReturnOptionCtorOp;
+
+typedef struct TranspilerReturnOptionCtorSpec {
+    const char *name;
+    TranspilerReturnOptionCtorOp op;
+} TranspilerReturnOptionCtorSpec;
+
+static int
+transpiler_return_option_ctor_compare(const void *key, const void *entry)
+{
+    const char *name = *(const char * const *)key;
+    const TranspilerReturnOptionCtorSpec *spec =
+        (const TranspilerReturnOptionCtorSpec *)entry;
+
+    return strcmp(name, spec->name);
+}
+
+static TranspilerReturnOptionCtorOp
+transpiler_return_option_ctor_lookup(const char *callee_name)
+{
+    static const TranspilerReturnOptionCtorSpec
+        kTranspilerReturnOptionCtorSpecs[] = {
+            { "None", TRANS_RETURN_OPTION_CTOR_NONE_VALUE },
+            { "Some", TRANS_RETURN_OPTION_CTOR_SOME },
+        };
+    const TranspilerReturnOptionCtorSpec *match;
+
+    if (callee_name == NULL)
+        return TRANS_RETURN_OPTION_CTOR_NONE;
+
+    match = (const TranspilerReturnOptionCtorSpec *)bsearch(&callee_name,
+        kTranspilerReturnOptionCtorSpecs,
+        sizeof(kTranspilerReturnOptionCtorSpecs)
+            / sizeof(kTranspilerReturnOptionCtorSpecs[0]),
+        sizeof(kTranspilerReturnOptionCtorSpecs[0]),
+        transpiler_return_option_ctor_compare);
+    return match != NULL ? match->op : TRANS_RETURN_OPTION_CTOR_NONE;
+}
 
 static bool
 transpiler_func_copy_current_return_type(TranspilerCtx *ctx,
@@ -373,24 +418,25 @@ emit_return_stmt(ASTNode *node, TranspilerCtx *ctx)
                 && ast_call_callee(value)->type == AST_IDENTIFIER) {
                 const char *callee_name =
                     ast_identifier_name(ast_call_callee(value));
-                if (callee_name != NULL
-                    && strcmp(callee_name, "Some") == 0
+                TranspilerReturnOptionCtorOp op =
+                    transpiler_return_option_ctor_lookup(callee_name);
+                if (op == TRANS_RETURN_OPTION_CTOR_SOME
                     && ast_call_arg_count(value) == 1) {
                     char *arg = emit_expression(ast_call_argument(value, 0), ctx);
                     codebuf_write(ctx->out, "return Some_%s(%s);\n", inner, arg);
                     free(arg);
                     return;
                 }
-                if (callee_name != NULL
-                    && strcmp(callee_name, "None") == 0
+                if (op == TRANS_RETURN_OPTION_CTOR_NONE_VALUE
                     && ast_call_arg_count(value) == 0) {
                     codebuf_write(ctx->out, "return None_%s();\n", inner);
                     return;
                 }
             }
             if (value->type == AST_IDENTIFIER
-                && ast_identifier_name(value) != NULL
-                && strcmp(ast_identifier_name(value), "None") == 0) {
+                && transpiler_return_option_ctor_lookup(
+                    ast_identifier_name(value))
+                    == TRANS_RETURN_OPTION_CTOR_NONE_VALUE) {
                 codebuf_write(ctx->out, "return None_%s();\n", inner);
                 return;
             }

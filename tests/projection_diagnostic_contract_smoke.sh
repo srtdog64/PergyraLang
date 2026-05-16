@@ -16,6 +16,7 @@ require_literal() {
 run_literal_contract_smoke() {
     local semantic_test="src/tests/semantic/test_semantic_projection_diagnostics.cases.h"
     local projection_source="src/semantic/type_checker_domain_projection.c"
+    local projection_field_source="src/semantic/type_checker_domain_projection_fields.c"
     local proof_doc="docs/semantics/02_relation_effect_projection.md"
 
     require_literal "$semantic_test" "zone refresh reports missing source field with structured diagnostic"
@@ -31,12 +32,15 @@ run_literal_contract_smoke() {
     require_literal "$projection_source" "Reason:"
     require_literal "$projection_source" "Fix:"
     require_literal "$projection_source" "target slot '%s' uses the wrong projection kind"
-    require_literal "$projection_source" "projection map duplicates target field '%s'"
-    require_literal "$projection_source" "target field '%s' is ambiguous in source slot '%s'"
-    require_literal "$projection_source" "target field '%s' maps from missing source field '%s' in slot '%s'"
     require_literal "$projection_source" "source slot '%s' cannot be a tobject slot"
     require_literal "$projection_source" "source slot '%s' is not a valid projection source"
-    require_literal "$projection_source" "projection map refers to unknown target field '%s'"
+    require_literal "$projection_field_source" "Contract source:"
+    require_literal "$projection_field_source" "Reason:"
+    require_literal "$projection_field_source" "Fix:"
+    require_literal "$projection_field_source" "projection map duplicates target field '%s'"
+    require_literal "$projection_field_source" "target field '%s' is ambiguous in source slot '%s'"
+    require_literal "$projection_field_source" "target field '%s' maps from missing source field '%s' in slot '%s'"
+    require_literal "$projection_field_source" "projection map refers to unknown target field '%s'"
 
     require_literal "$proof_doc" "## Theorem: Projection Diagnostic Completeness"
     require_literal "$proof_doc" "missing source field"
@@ -66,8 +70,10 @@ semantic_test = root / "src" / "tests" / "semantic" / "test_semantic_projection_
 diagnostic_sources = [
     root / "src" / "semantic" / "type_checker_decls_domain_helpers.c",
     root / "src" / "semantic" / "type_checker_domain_projection.c",
+    root / "src" / "semantic" / "type_checker_domain_projection_fields.c",
 ]
 projection_source = root / "src" / "semantic" / "type_checker_domain_projection.c"
+projection_field_source = root / "src" / "semantic" / "type_checker_domain_projection_fields.c"
 proof_doc = root / "docs" / "semantics" / "02_relation_effect_projection.md"
 
 for path in [semantic_test, *diagnostic_sources, proof_doc]:
@@ -76,7 +82,10 @@ for path in [semantic_test, *diagnostic_sources, proof_doc]:
 
 test_text = semantic_test.read_text(encoding="utf-8")
 source_text = "\n".join(path.read_text(encoding="utf-8") for path in diagnostic_sources)
-projection_text = projection_source.read_text(encoding="utf-8")
+projection_contract_text = "\n".join(
+    path.read_text(encoding="utf-8")
+    for path in [projection_source, projection_field_source]
+)
 proof_text = proof_doc.read_text(encoding="utf-8")
 
 required_tests = {
@@ -136,8 +145,8 @@ if missing_source_terms:
         + ", ".join(missing_source_terms)
     )
 
-projection_error_count = projection_text.count("semantic_error_with_hints")
-projection_contract_source_count = projection_text.count('"Contract source:\\n"')
+projection_error_count = projection_contract_text.count("semantic_error_with_hints")
+projection_contract_source_count = projection_contract_text.count('"Contract source:\\n"')
 if projection_error_count != projection_contract_source_count:
     raise SystemExit(
         "projection diagnostic implementation must give every projection "
@@ -152,7 +161,7 @@ newly_gated_paths = [
     "target field '%s' maps from missing source field '%s'",
     "target field '%s' cannot accept source path '%s'",
 ]
-missing_new_paths = [term for term in newly_gated_paths if term not in projection_text]
+missing_new_paths = [term for term in newly_gated_paths if term not in source_text]
 if missing_new_paths:
     raise SystemExit(
         "projection diagnostic implementation missing newly gated path(s): "

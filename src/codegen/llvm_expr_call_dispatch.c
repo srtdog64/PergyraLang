@@ -7,6 +7,7 @@
 
 #include "llvm_expr_array_calls.h"
 #include "llvm_expr_boundary_projection_helpers.h"
+#include "llvm_expr_call_inline_policy.h"
 #include "llvm_expr_call_collections_extended.h"
 #include "llvm_expr_collection_base_calls.h"
 #include "llvm_expr_call_variable.h"
@@ -78,7 +79,9 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         return llvm_call_error_recovery(ctx, node,
             "LLVM call expression requires an identifier or member callee");
 
-    if (strcmp(callee_name, "Clone") == 0 && argc == 1) {
+    LLVMCallInlineOp inline_op = llvm_call_inline_lookup(callee_name, argc);
+
+    if (inline_op == LLVM_CALL_INLINE_OP_CLONE) {
         return llvm_emit_expression(ast_call_argument(node, 0), ctx);
     }
 
@@ -91,8 +94,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
             return constructor_value;
     }
 
-    if ((strcmp(callee_name, "ToTObject") == 0 || strcmp(callee_name, "ToObject") == 0)
-        && argc == 2) {
+    if (inline_op == LLVM_CALL_INLINE_OP_TO_OBJECT) {
         LLVMValueRef projection = llvm_emit_subject_projection(node, ctx);
         if (ctx->has_error)
             return NULL;

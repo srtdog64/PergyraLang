@@ -61,7 +61,7 @@ progress ledger, not a new language surface.
 ## Current Owner-Size Audit
 
 The active debt is no longer `.inc` inventory or hard-size overflow. It is
-owner cohesion. As of the 2026-05-12 audit, all non-test production `.c` and
+owner cohesion. As of the 2026-05-16 audit, all non-test production `.c` and
 `.h` owners are below the 600 LOC split-review threshold. The immediate
 priority is to keep the owner queue closed without reintroducing
 behavior-owning `.inc` files, `_helpers` buckets, or mega-headers.
@@ -70,12 +70,14 @@ Current largest non-test production owners:
 
 | File | LOC | Status |
 | --- | ---: | --- |
-| `src/codegen/llvm_internal.h` | 574 | LLVM private declarations; below split threshold, keep declaration-only |
-| `src/codegen/llvm_expr_task_channel_calls.c` | 570 | LLVM task/channel call owner; below split threshold |
-| `src/codegen/llvm_stmt_parallel_async.c` | 554 | LLVM parallel/async statement owner; below split threshold |
-| `src/codegen/llvm_stmt_parallel_async.c` | 554 | LLVM parallel/async statement owner; below split threshold |
-| `src/codegen/transpiler_type_mapping.c` | 547 | C backend type mapping owner; below split threshold |
-| `src/codegen/transpiler_type_mapping.c` | 547 | C backend type mapping owner; below split threshold |
+| `src/parser/ast_api.h` | 571 | Parser accessor surface; below split threshold, watch API cohesion |
+| `src/semantic/type_checker_internal.h` | 518 | Semantic internal declaration surface; below split threshold |
+| `src/semantic/type_checker_domain_projection.c` | 514 | Domain projection checker owner; below split threshold |
+| `src/parser/ast.h` | 510 | Core AST declarations; below split threshold |
+| `src/compiler/mir_stmt_population.c` | 505 | MIR statement population owner; below split threshold |
+| `src/codegen/llvm_intent.c` | 504 | LLVM intent orchestration owner; below split threshold |
+| `src/codegen/transpiler_mir_block_emit.h` | 504 | C MIR block emission owner; below split threshold |
+| `src/semantic/type_checker_zone_decl.c` | 502 | Zone declaration checker owner; below split threshold |
 - MIR CFG/body ownership is no longer a hard-size blocker:
   `src/compiler/mir.c` stays orchestration-only after SSA rename moved into
   `src/compiler/mir_ssa_rename.c`, versioned use-edge population moved into
@@ -1955,8 +1957,8 @@ Observed results:
   into `src/compiler/fmt_layout.h`, `src/compiler/fmt_io.inc` into
   `src/compiler/fmt_io.h`, `src/semantic/type_checker_flow_effects.inc` into
   `src/semantic/type_checker_flow_effects.h`,
-  `src/semantic/type_checker_flow_parallel.inc` into
-  `src/semantic/type_checker_flow_parallel.h`,
+  `src/semantic/type_checker_flow_parallel.inc` into the later compiled owner
+  `src/semantic/type_checker_flow_parallel.c`,
   `src/codegen/llvm_expr_call_intent_observability.inc` into
   `src/codegen/llvm_expr_intent_observability_calls.h`, and
   `src/semantic/type_checker_assignment.inc` into
@@ -2085,3 +2087,11 @@ Observed results:
 - Future splits must not move dangling return-type fragments across include
   boundaries. The build now enforces this through
   `-Werror=implicit-function-declaration` and `-Werror=implicit-int`.
+- Latest AIR/CFG/DAG owner cleanup moved AIR drift storage to
+  `src/compiler/air_drift.c`, boundary evidence shape validation to
+  `src/compiler/air_validate_boundary_evidence.c`, CFG branch flow to
+  `src/semantic/type_checker_flow_branch.c`, CFG parallel/defer flow to
+  `src/semantic/type_checker_flow_parallel.c`, and type-resolution stats to
+  `src/semantic/type_checker_program_stats.c`. `perf_contract_smoke.sh` was
+  updated to follow these current owner seams and accessor-based payload reads
+  instead of stale pre-split locations.

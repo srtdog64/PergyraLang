@@ -59,6 +59,7 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
     bool is_secure_slot = false;
     bool is_device_slot = false;
     const char *op_name;
+    TranspilerMIRResourceOp op;
     char anchor_expr_buf[128];
     const char *anchor_expr = NULL;
 
@@ -67,6 +68,7 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
 
     slot_anchor = inst->slot_anchor;
     op_name = inst->name;
+    op = transpiler_mir_resource_op_lookup(op_name);
 
     if (effective_layout == NULL) {
         const char *abi_key = inst->arg0 != NULL ? inst->arg0 : inst->slot_anchor;
@@ -84,7 +86,7 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
                    || strncmp(layout_fn, "pgy_device_", 11) == 0) {
             is_device_slot = true;
         }
-        if (op_name != NULL && strcmp(op_name, "Claim") == 0)
+        if (op == TRANS_MIR_RESOURCE_OP_CLAIM)
             fn = layout_fn;
         if (inner_name == NULL
             && effective_layout->abi_type_name != NULL
@@ -163,7 +165,7 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
         return false;
     anchor_expr = anchor_expr_buf;
 
-    if (op_name != NULL && strcmp(op_name, "Claim") == 0) {
+    if (op == TRANS_MIR_RESOURCE_OP_CLAIM) {
         char c_type_buf[64];
         const char *anchor = inst->slot_anchor != NULL ? inst->slot_anchor : "slot";
         if (suffix == NULL)
@@ -193,7 +195,7 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
         }
         write_indent_to(out, indent);
         codebuf_write(out, "(void)%s;\n", anchor);
-    } else if (op_name != NULL && strcmp(op_name, "Read") == 0) {
+    } else if (op == TRANS_MIR_RESOURCE_OP_READ) {
         const char *read_inner_c = inner_c;
         const char *anchor = inst->slot_anchor != NULL ? inst->slot_anchor : "slot";
         const char *result = ssa_result_name != NULL ? ssa_result_name : "tmp";
@@ -224,7 +226,7 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
             codebuf_write(out, "%s %s = %s(%s);\n", read_inner_c, result, fn,
                           local_anchor_expr);
         }
-    } else if (op_name != NULL && strcmp(op_name, "Write") == 0) {
+    } else if (op == TRANS_MIR_RESOURCE_OP_WRITE) {
         const char *value = inst->arg1 != NULL ? inst->arg1
             : (inst->arg0 != NULL ? inst->arg0 : "0");
         char value_expr_buf[160];
@@ -288,7 +290,7 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
             codebuf_write(out, "%s(%s, %s);\n", fn, anchor_expr, value);
         }
         free(ast_value_expr);
-    } else if (op_name != NULL && strcmp(op_name, "Release") == 0) {
+    } else if (op == TRANS_MIR_RESOURCE_OP_RELEASE) {
         const char *token_name = NULL;
         if (is_secure_slot) {
             token_name = lookup_slot_token_name(ctx, slot_anchor);
@@ -301,7 +303,7 @@ transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
         } else {
             codebuf_write(out, "%s(%s);\n", fn, anchor_expr);
         }
-    } else if (op_name != NULL && strcmp(op_name, "Move") == 0) {
+    } else if (op == TRANS_MIR_RESOURCE_OP_MOVE) {
         const char *src = inst->arg0 != NULL ? inst->arg0 : "src";
         const char *dst = inst->arg1 != NULL ? inst->arg1 : "dst";
         if (ctx != NULL && ctx->active_ssa_map != NULL) {

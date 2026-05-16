@@ -221,7 +221,7 @@ semantic_stage_generic_contract_nodes(GenericParams *gp,
 void
 semantic_stage_function_signature(ASTNode *func_decl,
                                   SemanticContext *ctx,
-                                  const char *fallback_name)
+                                  const char *owner_name_hint)
 {
     const char *consumer_name;
 
@@ -230,7 +230,7 @@ semantic_stage_function_signature(ASTNode *func_decl,
 
     consumer_name = ast_declaration_name(func_decl) != NULL
         ? ast_declaration_name(func_decl)
-        : (fallback_name != NULL ? fallback_name : "<func>");
+        : (owner_name_hint != NULL ? owner_name_hint : "<func>");
 
     semantic_stage_generic_contract_nodes(
         ast_func_generic_params(func_decl),
@@ -291,13 +291,13 @@ void
 semantic_stage_method_array(ASTNode **methods,
                             size_t method_count,
                             SemanticContext *ctx,
-                            const char *fallback_name)
+                            const char *owner_name_hint)
 {
     if (methods == NULL || ctx == NULL)
         return;
 
     for (size_t i = 0; i < method_count; i++)
-        semantic_stage_function_signature(methods[i], ctx, fallback_name);
+        semantic_stage_function_signature(methods[i], ctx, owner_name_hint);
 }
 
 void

@@ -50,6 +50,26 @@ mir_append_decl_header(MIRProgram *mir, MIRDeclHeader header)
     return true;
 }
 
+static void
+mir_decl_method_metadata_init(MIRDeclMethod *meta,
+                              const MIRDeclHeader *header,
+                              ASTNode *method)
+{
+    if (meta == NULL || header == NULL)
+        return;
+
+    meta->source_ast = method;
+    meta->owner_name = header->name;
+    if (method == NULL || method->type != AST_FUNC_DECL)
+        return;
+
+    meta->name = ast_declaration_name(method);
+    meta->params = ast_func_params(method, &meta->param_count);
+    meta->return_type = ast_func_return_type(method);
+    meta->is_action_like = ast_func_is_action(method);
+    meta->within_zone = ast_func_within_zone(method);
+}
+
 static bool
 mir_decl_header_set_methods(MIRDeclHeader *header,
                             ASTNode **methods,
@@ -74,41 +94,9 @@ mir_decl_header_set_methods(MIRDeclHeader *header,
     for (size_t i = 0; i < method_count; i++) {
         ASTNode *method = methods != NULL ? methods[i] : NULL;
         MIRDeclMethod *meta = &header->method_metadata[i];
-        meta->source_ast = method;
-        meta->owner_name = header->name;
-        if (method != NULL && method->type == AST_FUNC_DECL) {
-            meta->name = ast_declaration_name(method);
-            meta->params = ast_func_params(method, &meta->param_count);
-            meta->return_type = ast_func_return_type(method);
-            meta->is_action_like = ast_func_is_action(method);
-            meta->within_zone = ast_func_within_zone(method);
-        }
+        mir_decl_method_metadata_init(meta, header, method);
     }
     header->method_metadata_count = method_count;
-    return true;
-}
-
-static bool
-mir_role_impl_method_count(ASTNode *role_decl, size_t *count_out)
-{
-    size_t count = 0;
-    if (count_out == NULL)
-        return false;
-    if (role_decl == NULL || role_decl->type != AST_ROLE_DECL) {
-        *count_out = 0;
-        return true;
-    }
-    for (size_t i = 0; i < ast_role_impl_count(role_decl); i++) {
-        ASTNode *impl = ast_role_impl(role_decl, i);
-        size_t method_count;
-        if (impl == NULL || impl->type != AST_IMPL_ABILITY)
-            continue;
-        method_count = ast_impl_ability_method_count(impl);
-        if (method_count > SIZE_MAX - count)
-            return false;
-        count += method_count;
-    }
-    *count_out = count;
     return true;
 }
 
@@ -121,7 +109,7 @@ mir_decl_header_set_role_impl_methods(MIRDeclHeader *header, ASTNode *role_decl)
     if (header == NULL || role_decl == NULL || role_decl->type != AST_ROLE_DECL)
         return false;
 
-    if (!mir_role_impl_method_count(role_decl, &count))
+    if (!ast_role_impl_method_total_count(role_decl, &count))
         return false;
     header->method_count = count;
     header->method_metadata = NULL;
@@ -142,15 +130,7 @@ mir_decl_header_set_role_impl_methods(MIRDeclHeader *header, ASTNode *role_decl)
         for (size_t j = 0; j < ast_impl_ability_method_count(impl); j++) {
             ASTNode *method = ast_impl_ability_method(impl, j);
             MIRDeclMethod *meta = &header->method_metadata[out++];
-            meta->source_ast = method;
-            meta->owner_name = header->name;
-            if (method != NULL && method->type == AST_FUNC_DECL) {
-                meta->name = ast_declaration_name(method);
-                meta->params = ast_func_params(method, &meta->param_count);
-                meta->return_type = ast_func_return_type(method);
-                meta->is_action_like = ast_func_is_action(method);
-                meta->within_zone = ast_func_within_zone(method);
-            }
+            mir_decl_method_metadata_init(meta, header, method);
         }
     }
     header->method_metadata_count = out;

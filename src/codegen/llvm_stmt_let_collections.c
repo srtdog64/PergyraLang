@@ -1,6 +1,11 @@
 #ifdef PGY_LLVM_ENABLED
 #include "llvm_internal.h"
+#include "llvm_stmt_let_collection_policy.h"
 #include "parser/ast_api.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 typedef enum
 {
@@ -75,6 +80,45 @@ llvm_stmt_collection_runtime_name(LLVMGenCtx *ctx,
     return false;
 }
 
+static LLVMStmtLetCallOp
+llvm_stmt_let_call_op(ASTNode *init)
+{
+    ASTNode *callee;
+
+    if (init == NULL || init->type != AST_CALL)
+        return LLVM_STMT_LET_CALL_NONE;
+
+    callee = ast_call_callee(init);
+    if (callee == NULL || callee->type != AST_IDENTIFIER)
+        return LLVM_STMT_LET_CALL_NONE;
+
+    return llvm_stmt_let_call_lookup(ast_identifier_name(callee));
+}
+
+static void
+llvm_stmt_register_collection_var(LLVMGenCtx *ctx,
+                                  const char *name,
+                                  const char *inner,
+                                  const LLVMStmtCollectionCtorSpec *spec)
+{
+    if (spec == NULL)
+        return;
+
+    switch (spec->op) {
+    case LLVM_STMT_COLLECTION_CTOR_LIST:
+        llvm_register_list_var(ctx, name, inner);
+        break;
+    case LLVM_STMT_COLLECTION_CTOR_QUEUE:
+        llvm_register_queue_var(ctx, name, inner);
+        break;
+    case LLVM_STMT_COLLECTION_CTOR_SET:
+        llvm_register_set_var(ctx, name, inner);
+        break;
+    default:
+        break;
+    }
+}
+
 bool
 llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
 {
@@ -97,7 +141,7 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
         && ast_call_callee(init) != NULL
         && ast_call_callee(init)->type == AST_IDENTIFIER
         && ast_identifier_name(ast_call_callee(init)) != NULL
-        && strcmp(ast_identifier_name(ast_call_callee(init)), "ToObject") == 0
+        && llvm_stmt_let_call_op(init) == LLVM_STMT_LET_CALL_TO_OBJECT
         && ast_call_arg_count(init) >= 2
         && ast_call_argument(init, 1) != NULL
         && ast_call_argument(init, 1)->type == AST_IDENTIFIER) {
@@ -124,6 +168,8 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
         const char *ann_name = ast_type_name(type_ann);
         GenericParams *generic_args = ast_type_generic_args(type_ann);
         const char *callee = ast_identifier_name(ast_call_callee(init));
+        const LLVMStmtCollectionCtorSpec *ctor_spec =
+            llvm_stmt_collection_ctor_lookup(callee);
         char *inner = NULL;
 
         GenericParam *inner_param = ast_generic_param_at(generic_args, 0);
@@ -135,7 +181,9 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
             return false;
         }
 
-        if (strcmp(ann_name, "List") == 0 && strcmp(callee, "ListNew") == 0) {
+        if (ctor_spec != NULL
+            && strcmp(ann_name, ctor_spec->annotation_name) == 0
+            && ctor_spec->op != LLVM_STMT_COLLECTION_CTOR_HASH_MAP) {
             if (inner == NULL || inner[0] == '\0') {
                 bool ok = llvm_stmt_diag_collection(ctx, node,
                     LLVM_STMT_COLLECTION_DIAG_TYPE_ARG, name, ann_name, 0, NULL);
@@ -149,12 +197,12 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
                 return true;
             }
             LLVMValueRef alloca_val = llvm_create_entry_alloca(ctx, list_ty, name);
-            LLVMFuncEntry *new_fn = llvm_lookup_function(ctx, "pgy_list_new_raw_export");
+            LLVMFuncEntry *new_fn = llvm_lookup_function(ctx, ctor_spec->runtime_fn);
             if (new_fn == NULL) {
                 free(inner);
                 return llvm_stmt_diag_collection(ctx, node,
                     LLVM_STMT_COLLECTION_DIAG_RUNTIME_FN, name,
-                    "List", 0, "pgy_list_new_raw_export");
+                    ctor_spec->annotation_name, 0, ctor_spec->runtime_fn);
             }
             {
                 LLVMValueRef args[] = {
@@ -164,80 +212,14 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
                 LLVMBuildCall2(ctx->builder, new_fn->fn_type, new_fn->fn, args, 2, "");
             }
             llvm_scope_declare(ctx, name, alloca_val, list_ty);
-            llvm_register_list_var(ctx, name, inner);
+            llvm_stmt_register_collection_var(ctx, name, inner, ctor_spec);
             free(inner);
             return true;
         }
 
-        if (strcmp(ann_name, "Set") == 0 && strcmp(callee, "SetNew") == 0) {
-            if (inner == NULL || inner[0] == '\0') {
-                bool ok = llvm_stmt_diag_collection(ctx, node,
-                    LLVM_STMT_COLLECTION_DIAG_TYPE_ARG, name, ann_name, 0, NULL);
-                free(inner);
-                return ok;
-            }
-            LLVMTypeRef set_ty = ast_type_to_llvm(ctx, type_ann);
-            LLVMTypeRef elem_ty = pergyra_type_to_llvm(ctx, inner);
-            if (ctx->has_error || set_ty == NULL || elem_ty == NULL) {
-                free(inner);
-                return true;
-            }
-            LLVMValueRef alloca_val = llvm_create_entry_alloca(ctx, set_ty, name);
-            LLVMFuncEntry *new_fn = llvm_lookup_function(ctx, "pgy_set_new_raw_export");
-            if (new_fn == NULL) {
-                free(inner);
-                return llvm_stmt_diag_collection(ctx, node,
-                    LLVM_STMT_COLLECTION_DIAG_RUNTIME_FN, name,
-                    "Set", 0, "pgy_set_new_raw_export");
-            }
-            {
-                LLVMValueRef args[] = {
-                    LLVMBuildBitCast(ctx->builder, alloca_val, ctx->type_i8ptr, llvm_tmp_name(ctx)),
-                    llvm_sizeof_type_i64(ctx, elem_ty)
-                };
-                LLVMBuildCall2(ctx->builder, new_fn->fn_type, new_fn->fn, args, 2, "");
-            }
-            llvm_scope_declare(ctx, name, alloca_val, set_ty);
-            llvm_register_set_var(ctx, name, inner);
-            free(inner);
-            return true;
-        }
-
-        if (strcmp(ann_name, "Queue") == 0 && strcmp(callee, "QueueNew") == 0) {
-            if (inner == NULL || inner[0] == '\0') {
-                bool ok = llvm_stmt_diag_collection(ctx, node,
-                    LLVM_STMT_COLLECTION_DIAG_TYPE_ARG, name, ann_name, 0, NULL);
-                free(inner);
-                return ok;
-            }
-            LLVMTypeRef queue_ty = ast_type_to_llvm(ctx, type_ann);
-            LLVMTypeRef elem_ty = pergyra_type_to_llvm(ctx, inner);
-            if (ctx->has_error || queue_ty == NULL || elem_ty == NULL) {
-                free(inner);
-                return true;
-            }
-            LLVMValueRef alloca_val = llvm_create_entry_alloca(ctx, queue_ty, name);
-            LLVMFuncEntry *new_fn = llvm_lookup_function(ctx, "pgy_queue_new_raw_export");
-            if (new_fn == NULL) {
-                free(inner);
-                return llvm_stmt_diag_collection(ctx, node,
-                    LLVM_STMT_COLLECTION_DIAG_RUNTIME_FN, name,
-                    "Queue", 0, "pgy_queue_new_raw_export");
-            }
-            {
-                LLVMValueRef args[] = {
-                    LLVMBuildBitCast(ctx->builder, alloca_val, ctx->type_i8ptr, llvm_tmp_name(ctx)),
-                    llvm_sizeof_type_i64(ctx, elem_ty)
-                };
-                LLVMBuildCall2(ctx->builder, new_fn->fn_type, new_fn->fn, args, 2, "");
-            }
-            llvm_scope_declare(ctx, name, alloca_val, queue_ty);
-            llvm_register_queue_var(ctx, name, inner);
-            free(inner);
-            return true;
-        }
-
-        if (strcmp(ann_name, "HashMap") == 0 && strcmp(callee, "MapNew") == 0) {
+        if (ctor_spec != NULL
+            && strcmp(ann_name, ctor_spec->annotation_name) == 0
+            && ctor_spec->op == LLVM_STMT_COLLECTION_CTOR_HASH_MAP) {
             char *value_type = NULL;
             char *key_type = NULL;
             LLVMTypeRef map_ty = ast_type_to_llvm(ctx, type_ann);
@@ -277,11 +259,11 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
                 return true;
             }
             alloca_val = llvm_create_entry_alloca(ctx, map_ty, name);
-            new_fn = llvm_lookup_function(ctx, "pgy_map_new_raw_export");
+            new_fn = llvm_lookup_function(ctx, ctor_spec->runtime_fn);
             if (new_fn == NULL) {
                 bool ok = llvm_stmt_diag_collection(ctx, node,
                     LLVM_STMT_COLLECTION_DIAG_RUNTIME_FN, name,
-                    "HashMap", 0, "pgy_map_new_raw_export");
+                    "HashMap", 0, ctor_spec->runtime_fn);
                 free(inner);
                 free(key_type);
                 free(value_type);
@@ -308,7 +290,7 @@ llvm_stmt_emit_collection_like_let(ASTNode *node, LLVMGenCtx *ctx)
         && ast_call_callee(init) != NULL
         && ast_call_callee(init)->type == AST_IDENTIFIER
         && ast_identifier_name(ast_call_callee(init)) != NULL
-        && strcmp(ast_identifier_name(ast_call_callee(init)), "Channel") == 0) {
+        && llvm_stmt_let_call_op(init) == LLVM_STMT_LET_CALL_CHANNEL) {
         GenericParams *generic_args = ast_type_generic_args(type_ann);
         char *channel_inner = NULL;
         char init_fn_name[128];

@@ -48,19 +48,6 @@ air_assign_authority_names(AIRProgram *air,
     return true;
 }
 
-void
-air_clear_drifts(AIRProgram *air)
-{
-    if (air == NULL)
-        return;
-    for (size_t i = 0; i < air->drift_count; i++)
-        free((char *)air->drifts[i].message);
-    free(air->drifts);
-    air->drifts = NULL;
-    air->drift_count = 0;
-    air->drift_capacity = 0;
-}
-
 static const char *
 air_dir_node_name(const DIRProgram *dir, size_t node_id)
 {

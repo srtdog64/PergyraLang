@@ -2,7 +2,7 @@
  * Copyright (c) 2025 Pergyra Language Project
  * All rights reserved.
  *
- * Lightweight expression type inference fallback.  Full semantic expression
+ * Lightweight expression type inference utility.  Full semantic expression
  * typing remains in the type checker; this owner keeps the Type core focused
  * on construction, equality, assignability, and generic instantiation.
  */

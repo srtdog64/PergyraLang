@@ -261,6 +261,7 @@ size_t ast_role_include_count(const ASTNode* node);
 ASTNode* ast_role_include(const ASTNode* node, size_t index);
 size_t ast_role_impl_count(const ASTNode* node);
 ASTNode* ast_role_impl(const ASTNode* node, size_t index);
+bool ast_role_impl_method_total_count(const ASTNode* node, size_t* count_out);
 const char* ast_include_role_name(const ASTNode* node);
 GenericParams* ast_include_type_args(const ASTNode* node);
 ASTNode* ast_create_require_field(const char* name);

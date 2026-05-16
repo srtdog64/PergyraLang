@@ -34,7 +34,7 @@ transpiler_mir_inst_is_cfg_container(const MIRInstruction *inst,
     return inst != NULL
         && stmt != NULL
         && mir_instruction_source_matches_ast_node(inst, stmt)
-        && transpiler_mir_stmt_is_cfg_container(stmt);
+        && mir_instruction_source_is_cfg_container(inst);
 }
 
 static bool

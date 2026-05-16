@@ -232,7 +232,7 @@ transpiler_try_emit_let_slot_view_or_move(TranspilerCtx *ctx,
     const char *callee_name = ast_identifier_name(ast_call_callee(init));
     const char *source_name = ast_identifier_name(ast_call_argument(init, 0));
     bool is_view_decl = pgy_codegen_call_name_is_view_constructor(callee_name);
-    bool is_move_decl = strcmp(callee_name, "Move") == 0;
+    bool is_move_decl = pgy_codegen_call_name_is_move(callee_name);
     if (!is_view_decl && !is_move_decl)
         return false;
 
@@ -332,10 +332,9 @@ transpiler_try_emit_let_slot_sugar(TranspilerCtx *ctx,
     ann_name = ast_type_name(ann);
     if (ann_name == NULL)
         return false;
-    if (strcmp(ann_name, "Slot") == 0 || strncmp(ann_name, "Slot<", 5) == 0) {
+    if (pgy_codegen_type_name_is_slot(ann_name)) {
         is_slot_sugar = true;
-    } else if (strcmp(ann_name, "SecureSlot") == 0
-               || strncmp(ann_name, "SecureSlot<", 11) == 0) {
+    } else if (pgy_codegen_type_name_is_secure_slot(ann_name)) {
         is_slot_sugar = true;
         sugar_secure = true;
     }

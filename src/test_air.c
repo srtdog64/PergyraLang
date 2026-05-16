@@ -116,17 +116,17 @@ main(void)
     TEST("AIR strict evidence requires HIR for implementation boundary");
     EXPECT(test_air_strict_evidence_requires_hir_for_implementation_boundary());
 
-    TEST("AIR strict evidence rejects stale legacy summary flags");
-    EXPECT(test_air_strict_evidence_prefers_inventory_over_legacy_flags());
+    TEST("AIR strict evidence rejects stale boundary summary flags");
+    EXPECT(test_air_strict_evidence_prefers_inventory_over_summary_flags());
 
-    TEST("AIR evidence helper ignores legacy flags with real input");
-    EXPECT(test_air_has_evidence_ignores_legacy_flags_with_real_input());
+    TEST("AIR evidence helper ignores summary flags with real input");
+    EXPECT(test_air_has_evidence_ignores_summary_flags_with_real_input());
 
-    TEST("AIR strict evidence rejects legacy flags with real input");
-    EXPECT(test_air_strict_evidence_rejects_legacy_flags_with_real_input());
+    TEST("AIR strict evidence rejects summary flags with real input");
+    EXPECT(test_air_strict_evidence_rejects_summary_flags_with_real_input());
 
-    TEST("AIR verify rejects legacy summary without inventory");
-    EXPECT(test_air_verify_rejects_legacy_summary_without_inventory());
+    TEST("AIR verify rejects boundary summary without inventory");
+    EXPECT(test_air_verify_rejects_summary_without_inventory());
 
     TEST("AIR task group boundary requires RIR and HIR evidence");
     EXPECT(test_air_task_group_boundary_requires_rir_and_hir_evidence());

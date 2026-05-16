@@ -1,5 +1,56 @@
 #include "llvm_internal.h"
 
+#include <stdlib.h>
+#include <string.h>
+
+typedef enum LLVMRcOp {
+    LLVM_RC_OP_NONE = 0,
+    LLVM_RC_OP_RC_CLONE,
+    LLVM_RC_OP_RC_DOWNGRADE,
+    LLVM_RC_OP_RC_DROP,
+    LLVM_RC_OP_RC_GET,
+    LLVM_RC_OP_RC_NEW,
+    LLVM_RC_OP_WEAK_DROP,
+    LLVM_RC_OP_WEAK_UPGRADE,
+} LLVMRcOp;
+
+typedef struct LLVMRcSpec {
+    const char *name;
+    LLVMRcOp op;
+} LLVMRcSpec;
+
+static int
+llvm_rc_spec_compare(const void *key, const void *entry)
+{
+    const char *name = *(const char * const *)key;
+    const LLVMRcSpec *spec = (const LLVMRcSpec *)entry;
+
+    return strcmp(name, spec->name);
+}
+
+static LLVMRcOp
+llvm_rc_lookup(const char *callee_name)
+{
+    static const LLVMRcSpec kLLVMRcSpecs[] = {
+        { "RcClone", LLVM_RC_OP_RC_CLONE },
+        { "RcDowngrade", LLVM_RC_OP_RC_DOWNGRADE },
+        { "RcDrop", LLVM_RC_OP_RC_DROP },
+        { "RcGet", LLVM_RC_OP_RC_GET },
+        { "RcNew", LLVM_RC_OP_RC_NEW },
+        { "WeakDrop", LLVM_RC_OP_WEAK_DROP },
+        { "WeakUpgrade", LLVM_RC_OP_WEAK_UPGRADE },
+    };
+    const LLVMRcSpec *match;
+
+    if (callee_name == NULL)
+        return LLVM_RC_OP_NONE;
+
+    match = (const LLVMRcSpec *)bsearch(&callee_name, kLLVMRcSpecs,
+        sizeof(kLLVMRcSpecs) / sizeof(kLLVMRcSpecs[0]),
+        sizeof(kLLVMRcSpecs[0]), llvm_rc_spec_compare);
+    return match != NULL ? match->op : LLVM_RC_OP_NONE;
+}
+
 static const char *
 llvm_rc_suffix_from_inner(LLVMGenCtx *ctx, const char *inner)
 {
@@ -130,16 +181,11 @@ bool
 llvm_emit_rc_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
                           const char *callee_name, LLVMValueRef *out)
 {
-    bool is_rc_new = strcmp(callee_name, "RcNew") == 0;
-    bool is_rc_clone = strcmp(callee_name, "RcClone") == 0;
-    bool is_rc_get = strcmp(callee_name, "RcGet") == 0;
-    bool is_rc_drop = strcmp(callee_name, "RcDrop") == 0;
-    bool is_rc_downgrade = strcmp(callee_name, "RcDowngrade") == 0;
-    bool is_weak_upgrade = strcmp(callee_name, "WeakUpgrade") == 0;
-    bool is_weak_drop = strcmp(callee_name, "WeakDrop") == 0;
+    LLVMRcOp op = llvm_rc_lookup(callee_name);
+    bool is_weak_op = op == LLVM_RC_OP_WEAK_UPGRADE
+        || op == LLVM_RC_OP_WEAK_DROP;
 
-    if (!is_rc_new && !is_rc_clone && !is_rc_get && !is_rc_drop
-        && !is_rc_downgrade && !is_weak_upgrade && !is_weak_drop)
+    if (op == LLVM_RC_OP_NONE)
         return false;
 
     if (out == NULL)
@@ -156,7 +202,7 @@ llvm_emit_rc_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
     }
 
     ASTNode *arg = ast_call_argument(node, 0);
-    if (is_rc_new) {
+    if (op == LLVM_RC_OP_RC_NEW) {
         char expected_inner_buf[128];
         const char *expected_inner = NULL;
         if (!llvm_rc_expected_inner_copy(ctx, expected_inner_buf,
@@ -220,7 +266,7 @@ llvm_emit_rc_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
 
     const char *var_name = ast_identifier_name(arg);
     LLVMVarEntry *var = llvm_scope_lookup(ctx, var_name);
-    const char *inner = (is_weak_upgrade || is_weak_drop)
+    const char *inner = is_weak_op
         ? llvm_lookup_weak_inner(ctx, var_name)
         : llvm_lookup_rc_inner(ctx, var_name);
     const char *suffix = llvm_rc_suffix_from_inner(ctx, inner);
@@ -236,7 +282,7 @@ llvm_emit_rc_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
     }
 
     char fn_name[64];
-    if (is_rc_clone) {
+    if (op == LLVM_RC_OP_RC_CLONE) {
         if (!llvm_rc_runtime_name(ctx, fn_name, sizeof(fn_name),
                 "pgy_rc_clone_", suffix, callee_name))
             return true;
@@ -251,7 +297,7 @@ llvm_emit_rc_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         return true;
     }
 
-    if (is_rc_get) {
+    if (op == LLVM_RC_OP_RC_GET) {
         if (!llvm_rc_runtime_name(ctx, fn_name, sizeof(fn_name),
                 "pgy_rc_get_", suffix, callee_name))
             return true;
@@ -273,7 +319,7 @@ llvm_emit_rc_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         return true;
     }
 
-    if (is_rc_drop) {
+    if (op == LLVM_RC_OP_RC_DROP) {
         if (!llvm_rc_runtime_name(ctx, fn_name, sizeof(fn_name),
                 "pgy_rc_drop_", suffix, callee_name))
             return true;
@@ -287,7 +333,7 @@ llvm_emit_rc_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         return true;
     }
 
-    if (is_rc_downgrade) {
+    if (op == LLVM_RC_OP_RC_DOWNGRADE) {
         if (!llvm_rc_runtime_name(ctx, fn_name, sizeof(fn_name),
                 "pgy_rc_downgrade_", suffix, callee_name))
             return true;
@@ -302,7 +348,7 @@ llvm_emit_rc_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         return true;
     }
 
-    if (is_weak_upgrade) {
+    if (op == LLVM_RC_OP_WEAK_UPGRADE) {
         if (!llvm_rc_runtime_name(ctx, fn_name, sizeof(fn_name),
                 "pgy_weak_upgrade_", suffix, callee_name))
             return true;
@@ -317,7 +363,7 @@ llvm_emit_rc_builtin_call(ASTNode *node, LLVMGenCtx *ctx,
         return true;
     }
 
-    if (is_weak_drop) {
+    if (op == LLVM_RC_OP_WEAK_DROP) {
         if (!llvm_rc_runtime_name(ctx, fn_name, sizeof(fn_name),
                 "pgy_weak_drop_", suffix, callee_name))
             return true;

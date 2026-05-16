@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "codegen_slot_type_policy.h"
 #include "llvm_internal_api.h"
 #include "parser/ast_api.h"
 
@@ -56,9 +57,7 @@ llvm_emit_member_call_slot_method(ASTNode *node, LLVMGenCtx *ctx,
 {
     if (obj_node != NULL && obj_node->type == AST_IDENTIFIER
         && method_name != NULL
-        && (strcmp(method_name, "Write") == 0
-            || strcmp(method_name, "Read") == 0
-            || strcmp(method_name, "Release") == 0)) {
+        && pgy_codegen_call_name_is_slot_operation(method_name)) {
         const char *slot_name = ast_identifier_name(obj_node);
         const char *inner = llvm_lookup_slot_inner(ctx, slot_name);
         bool is_secure = llvm_lookup_slot_is_secure(ctx, slot_name);
@@ -73,7 +72,7 @@ llvm_emit_member_call_slot_method(ASTNode *node, LLVMGenCtx *ctx,
             return NULL;
         }
         if (inner != NULL && slot_var != NULL) {
-            if (strcmp(method_name, "Write") == 0
+            if (pgy_codegen_call_name_is_write(method_name)
                 && ast_call_arg_count(node) >= 1) {
                 LLVMValueRef val = llvm_emit_expression(
                     ast_call_argument(node, 0), ctx);
@@ -133,7 +132,7 @@ llvm_emit_member_call_slot_method(ASTNode *node, LLVMGenCtx *ctx,
                 return LLVMConstInt(ctx->type_i32, 0, 0);
             }
 
-            if (strcmp(method_name, "Read") == 0) {
+            if (pgy_codegen_call_name_is_read(method_name)) {
                 if (is_secure) {
                     LLVMVarEntry *token_var = llvm_require_secure_token_var(ctx,
                         node, slot_name, method_name);
@@ -188,7 +187,7 @@ llvm_emit_member_call_slot_method(ASTNode *node, LLVMGenCtx *ctx,
                 }
             }
 
-            if (strcmp(method_name, "Release") == 0) {
+            if (pgy_codegen_call_name_is_release(method_name)) {
                 if (is_secure) {
                     LLVMVarEntry *token_var = llvm_require_secure_token_var(ctx,
                         node, slot_name, method_name);

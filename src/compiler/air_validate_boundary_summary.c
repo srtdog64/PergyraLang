@@ -1,14 +1,14 @@
 /*
  * Copyright (c) 2026 Pergyra Language Project
- * AIR legacy boundary evidence summary validation owner.
+ * AIR boundary summary-flag validation owner.
  */
 
 #include "air_internal.h"
 
 bool
-air_validate_boundary_legacy_evidence_shape(const AIRProgram *air,
-                                            size_t boundary_index,
-                                            char **error_message)
+air_validate_boundary_summary_shape(const AIRProgram *air,
+                                    size_t boundary_index,
+                                    char **error_message)
 {
     const AIRBoundaryNode *boundary;
 

@@ -18,12 +18,10 @@ LLVMVarEntry *llvm_collection_required_receiver_var(LLVMGenCtx *ctx,
                                                     ASTNode *receiver,
                                                     const char *callee_name,
                                                     const char *collection_kind,
-                                                    LLVMValueRef fallback,
                                                     LLVMValueRef *out);
 bool llvm_collection_extended_error_out(LLVMGenCtx *ctx,
                                         ASTNode *node,
                                         LLVMValueRef *out,
-                                        LLVMValueRef recovery,
                                         const char *message);
 bool llvm_emit_list_extended_call(ASTNode *node,
                                   LLVMGenCtx *ctx,

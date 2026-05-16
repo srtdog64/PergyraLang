@@ -280,6 +280,8 @@ intent_step_warn_redundant_action_contract(ASTNode *intent_decl,
 
     if (ast_intent_step_who_count(step) > 0
         && !ast_intent_step_inherited_who_from_action(step)
+        && !ast_intent_step_derived_who_from_on_receiver(step)
+        && !ast_intent_step_derived_who_from_single_participant(step)
         && intent_step_same_who_binding(intent_decl, step, action_subject_decl)) {
         (void)pergyra_str_appendf(redundant, sizeof(redundant),
                                   "%s- who", has_any ? "\n" : "");

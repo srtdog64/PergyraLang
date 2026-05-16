@@ -14,8 +14,12 @@ char *rir_strdup_fmt(const char *fmt, ...);
 ASTNode *rir_find_domain_slot_in_owner(ASTNode *owner, const char *slot_name);
 bool append_scope(RIRProgram *rir, RIRScope scope);
 void rir_free_flow_blocks(RIRScope *scope);
+bool scope_add_fact(RIRScope *scope, RIRFact fact);
+bool scope_add_op(RIRScope *scope, RIROp op);
 bool scope_ensure_state_summary(RIRScope *scope, const RIRFact *fact);
 RIRStateSummary *scope_find_state_summary(RIRScope *scope, const char *name);
+const RIRFact *rir_scope_find_projection_fact(const RIRScope *scope,
+                                              const char *name);
 bool rir_normalize_scope_shared(RIRScope *scope);
 
 const char *rir_type_name(ASTNode *type_node);

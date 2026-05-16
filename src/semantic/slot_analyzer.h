@@ -20,9 +20,9 @@
 typedef struct SemanticContext SemanticContext;
 
 /*
- * SlotLifetimeEntry — tracks one resource-boundary slot across all paths.
- * The type name is legacy; the semantic contract is resource-boundary state,
- * not user-authored lifetime parameters.
+ * SlotLifetimeEntry tracks one resource-boundary slot across all paths. This
+ * analyzer models Slot state transitions, not user-authored lifetime
+ * parameters.
  */
 typedef struct
 {
@@ -33,7 +33,7 @@ typedef struct
 } SlotLifetimeEntry;
 
 /*
- * SlotAnalyzer — runs after type checking
+ * SlotAnalyzer runs after type checking.
  */
 typedef struct
 {

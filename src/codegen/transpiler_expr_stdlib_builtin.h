@@ -5,6 +5,7 @@
 #include "transpiler_expr_stdlib_scalar_builtin.h"
 #include "transpiler_expr_stdlib_collection_builtin.h"
 #include "transpiler_expr_stdlib_misc_builtin.h"
+#include "transpiler_expr_stdlib_builtin_policy.h"
 
 static bool
 transpiler_stdlib_copy_type_name(char *out, size_t out_size,
@@ -137,6 +138,8 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
     if (callee->type == AST_IDENTIFIER) {
         const char *fn = ast_identifier_name(callee);
         size_t argc = ast_call_arg_count(call);
+        TranspilerArrayStdlibOp array_op;
+        TranspilerStdlibOp stdlib_op;
         ASTNode *arg0 = ast_call_argument(call, 0);
         ASTNode *arg1 = ast_call_argument(call, 1);
         ASTNode *arg2 = ast_call_argument(call, 2);
@@ -144,7 +147,8 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
         if (scalar_builtin != NULL)
             return scalar_builtin;
 
-        if (strcmp(fn, "ArrayLength") == 0 && argc == 1) {
+        array_op = transpiler_array_lookup(fn, argc);
+        if (array_op == TRANSPILER_ARRAY_OP_LENGTH) {
             char *arg = emit_expression(arg0, ctx);
             const char *inner = NULL;
             char inner_buf[64];
@@ -158,7 +162,7 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             free(arg);
             return result;
         }
-        if (strcmp(fn, "ArrayPush") == 0 && argc == 2) {
+        if (array_op == TRANSPILER_ARRAY_OP_PUSH) {
             char *arr = emit_expression(arg0, ctx);
             char *val = emit_expression(arg1, ctx);
             const char *suffix = NULL;
@@ -175,7 +179,7 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             free(arr); free(val);
             return result;
         }
-        if (strcmp(fn, "ArraySet") == 0 && argc == 3) {
+        if (array_op == TRANSPILER_ARRAY_OP_SET) {
             char *arr = emit_expression(arg0, ctx);
             char *idx = emit_expression(arg1, ctx);
             char *val = emit_expression(arg2, ctx);
@@ -192,7 +196,7 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             free(arr); free(idx); free(val);
             return result;
         }
-        if (strcmp(fn, "ArrayPop") == 0 && argc == 1) {
+        if (array_op == TRANSPILER_ARRAY_OP_POP) {
             char *arr = emit_expression(arg0, ctx);
             const char *inner = NULL;
             char inner_buf[64];
@@ -207,7 +211,7 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             return result;
         }
         /* ArraySort ??hybrid sort using AlphaDev kernels for small arrays */
-        if (strcmp(fn, "ArraySort") == 0 && argc == 1) {
+        if (array_op == TRANSPILER_ARRAY_OP_SORT) {
             char *arr = emit_expression(arg0, ctx);
             const char *inner = NULL;
             char inner_buf[64];
@@ -224,7 +228,7 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             return result;
         }
         /* ArrayMap ??apply function to each element, return new array */
-        if (strcmp(fn, "ArrayMap") == 0 && argc == 2) {
+        if (array_op == TRANSPILER_ARRAY_OP_MAP) {
             char *arr = emit_expression(arg0, ctx);
             char *fn_arg = emit_expression(arg1, ctx);
             const char *inner = NULL;
@@ -249,7 +253,7 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             return result;
         }
         /* ArrayFilter ??keep elements where predicate returns true */
-        if (strcmp(fn, "ArrayFilter") == 0 && argc == 2) {
+        if (array_op == TRANSPILER_ARRAY_OP_FILTER) {
             char *arr = emit_expression(arg0, ctx);
             char *fn_arg = emit_expression(arg1, ctx);
             const char *inner = NULL;
@@ -276,7 +280,7 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             return result;
         }
         /* ArrayReverse ??in-place reverse */
-        if (strcmp(fn, "ArrayReverse") == 0 && argc == 1) {
+        if (array_op == TRANSPILER_ARRAY_OP_REVERSE) {
             char *arr = emit_expression(arg0, ctx);
             const char *arr_type = infer_expression_type_name(ctx,
                 arg0);
@@ -310,8 +314,9 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
         char *channel_builtin = emit_call_stdlib_channel_builtin(fn, call, ctx);
         if (channel_builtin != NULL)
             return channel_builtin;
+        stdlib_op = transpiler_stdlib_lookup(fn, argc);
         /* Clone: explicit copy of Slot */
-        if (strcmp(fn, "Clone") == 0 && argc == 1) {
+        if (stdlib_op == TRANSPILER_STDLIB_OP_CLONE) {
             char *src = emit_expression(arg0, ctx);
             const char *tn = infer_expression_type_name(
                 ctx, arg0);
@@ -339,27 +344,29 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             return src;
         }
         /* Print (no newline) vs Log (with newline) */
-        if (strcmp(fn, "Print") == 0 && argc == 1) {
+        if (stdlib_op == TRANSPILER_STDLIB_OP_PRINT) {
             char *arg = emit_expression(arg0, ctx);
             char *result = strdup_fmt("printf(\"%%s\", %s)", arg);
             free(arg);
             return result;
         }
         /* ToString */
-        if (strcmp(fn, "ToString") == 0 && argc == 1) {
+        if (stdlib_op == TRANSPILER_STDLIB_OP_TO_STRING) {
             char *arg = emit_expression(arg0, ctx);
             const char *arg_type = infer_expression_type_name(ctx,
                 arg0);
+            TranspilerToStringKind to_string_kind =
+                transpiler_to_string_kind(arg_type);
             char *result = NULL;
-            if (arg_type != NULL && strcmp(arg_type, "String") == 0) {
+            if (to_string_kind == TRANSPILER_TO_STRING_KIND_STRING) {
                 result = pergyra_strdup(arg);
-            } else if (arg_type != NULL && strcmp(arg_type, "Bool") == 0) {
+            } else if (to_string_kind == TRANSPILER_TO_STRING_KIND_BOOL) {
                 result = strdup_fmt("pgy_bool_to_string(%s)", arg);
-            } else if (arg_type != NULL && strcmp(arg_type, "Float") == 0) {
+            } else if (to_string_kind == TRANSPILER_TO_STRING_KIND_FLOAT) {
                 result = strdup_fmt("pgy_float_to_string(%s)", arg);
-            } else if (arg_type != NULL && strcmp(arg_type, "Double") == 0) {
+            } else if (to_string_kind == TRANSPILER_TO_STRING_KIND_DOUBLE) {
                 result = strdup_fmt("pgy_float_to_string((float)(%s))", arg);
-            } else if (arg_type != NULL && strcmp(arg_type, "Long") == 0) {
+            } else if (to_string_kind == TRANSPILER_TO_STRING_KIND_LONG) {
                 result = strdup_fmt("pgy_int_to_string((int32_t)(%s))", arg);
             } else {
                 result = strdup_fmt("pgy_int_to_string(%s)", arg);

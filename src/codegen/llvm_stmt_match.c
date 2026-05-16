@@ -1,4 +1,5 @@
 #ifdef PGY_LLVM_ENABLED
+#include "codegen_match_variant_policy.h"
 #include "llvm_internal.h"
 #include "parser/ast_api.h"
 
@@ -19,8 +20,10 @@ llvm_match_is_option_destructor(ASTNode *pat,
 
     if (pat->type == AST_IDENTIFIER) {
         const char *name = ast_identifier_name(pat);
-        if (name != NULL && strcmp(name, "None") == 0) {
-            *kind = "None";
+        PgyCodegenMatchVariantKind variant =
+            pgy_codegen_match_variant_lookup(name);
+        if (variant == PGY_MATCH_VARIANT_NONE_CTOR) {
+            *kind = pgy_codegen_match_variant_name(variant);
             return true;
         }
         return false;
@@ -35,15 +38,17 @@ llvm_match_is_option_destructor(ASTNode *pat,
     }
 
     const char *name = ast_identifier_name(callee);
+    PgyCodegenMatchVariantKind variant =
+        pgy_codegen_match_variant_lookup(name);
     if (name == NULL)
         return false;
 
-    if (strcmp(name, "None") == 0 && arg_count == 0) {
-        *kind = "None";
+    if (variant == PGY_MATCH_VARIANT_NONE_CTOR && arg_count == 0) {
+        *kind = pgy_codegen_match_variant_name(variant);
         return true;
     }
-    if (strcmp(name, "Some") == 0 && arg_count == 1) {
-        *kind = "Some";
+    if (variant == PGY_MATCH_VARIANT_SOME && arg_count == 1) {
+        *kind = pgy_codegen_match_variant_name(variant);
         payload = ast_call_argument(pat, 0);
         if (payload != NULL && payload->type == AST_IDENTIFIER)
             *binding = ast_identifier_name(payload);
@@ -74,12 +79,14 @@ llvm_match_is_result_destructor(ASTNode *pat,
     }
 
     const char *name = ast_identifier_name(callee);
+    PgyCodegenMatchVariantKind variant =
+        pgy_codegen_match_variant_lookup(name);
     if (name == NULL)
         return false;
 
-    if ((strcmp(name, "Ok") == 0 || strcmp(name, "Err") == 0)
+    if (pgy_codegen_match_variant_is_result(variant)
         && arg_count == 1) {
-        *kind = name;
+        *kind = pgy_codegen_match_variant_name(variant);
         payload = ast_call_argument(pat, 0);
         if (payload != NULL && payload->type == AST_IDENTIFIER)
             *binding = ast_identifier_name(payload);
@@ -137,7 +144,8 @@ llvm_emit_match_stmt(ASTNode *node, LLVMGenCtx *ctx)
                 llvm_tmp_name(ctx));
             cmp = LLVMBuildICmp(ctx->builder, LLVMIntEQ, tag,
                 LLVMConstInt(ctx->type_i32,
-                    strcmp(option_kind, "Some") == 0 ? 0 : 1, 0),
+                    pgy_codegen_match_variant_llvm_tag(
+                        pgy_codegen_match_variant_lookup(option_kind)), 0),
                 llvm_tmp_name(ctx));
         } else if (llvm_match_is_result_destructor(
                        ast_match_case_pattern(mc),
@@ -147,7 +155,8 @@ llvm_emit_match_stmt(ASTNode *node, LLVMGenCtx *ctx)
                 llvm_tmp_name(ctx));
             cmp = LLVMBuildICmp(ctx->builder, LLVMIntEQ, tag,
                 LLVMConstInt(ctx->type_i32,
-                    strcmp(result_kind, "Ok") == 0 ? 0 : 1, 0),
+                    pgy_codegen_match_variant_llvm_tag(
+                        pgy_codegen_match_variant_lookup(result_kind)), 0),
                 llvm_tmp_name(ctx));
         } else {
             LLVMValueRef pattern = llvm_emit_expression(
@@ -180,7 +189,8 @@ llvm_emit_match_stmt(ASTNode *node, LLVMGenCtx *ctx)
         }
         if (result_binding != NULL) {
             unsigned payload_index =
-                (result_kind != NULL && strcmp(result_kind, "Err") == 0) ? 2 : 1;
+                pgy_codegen_match_variant_result_payload_index(
+                    pgy_codegen_match_variant_lookup(result_kind));
             LLVMValueRef payload = LLVMBuildExtractValue(ctx->builder, subject,
                 payload_index, llvm_tmp_name(ctx));
             LLVMTypeRef payload_ty = LLVMTypeOf(payload);

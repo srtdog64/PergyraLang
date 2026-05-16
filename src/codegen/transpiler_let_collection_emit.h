@@ -1,6 +1,99 @@
 #ifndef PGY_TRANSPILER_LET_COLLECTION_EMIT_H
 #define PGY_TRANSPILER_LET_COLLECTION_EMIT_H
 
+#include <stdlib.h>
+
+typedef enum TranspilerLetOptionCtorOp {
+    TRANS_LET_OPTION_CTOR_NONE = 0,
+    TRANS_LET_OPTION_CTOR_NONE_VALUE,
+    TRANS_LET_OPTION_CTOR_SOME,
+} TranspilerLetOptionCtorOp;
+
+typedef struct TranspilerLetOptionCtorSpec {
+    const char *name;
+    TranspilerLetOptionCtorOp op;
+} TranspilerLetOptionCtorSpec;
+
+static int
+transpiler_let_option_ctor_compare(const void *key, const void *entry)
+{
+    const char *name = *(const char * const *)key;
+    const TranspilerLetOptionCtorSpec *spec =
+        (const TranspilerLetOptionCtorSpec *)entry;
+
+    return strcmp(name, spec->name);
+}
+
+static TranspilerLetOptionCtorOp
+transpiler_let_option_ctor_lookup(const char *callee_name)
+{
+    static const TranspilerLetOptionCtorSpec kTranspilerLetOptionCtorSpecs[] = {
+        { "None", TRANS_LET_OPTION_CTOR_NONE_VALUE },
+        { "Some", TRANS_LET_OPTION_CTOR_SOME },
+    };
+    const TranspilerLetOptionCtorSpec *match;
+
+    if (callee_name == NULL)
+        return TRANS_LET_OPTION_CTOR_NONE;
+
+    match = (const TranspilerLetOptionCtorSpec *)bsearch(&callee_name,
+        kTranspilerLetOptionCtorSpecs,
+        sizeof(kTranspilerLetOptionCtorSpecs)
+            / sizeof(kTranspilerLetOptionCtorSpecs[0]),
+        sizeof(kTranspilerLetOptionCtorSpecs[0]),
+        transpiler_let_option_ctor_compare);
+    return match != NULL ? match->op : TRANS_LET_OPTION_CTOR_NONE;
+}
+
+typedef enum TranspilerLetCollectionCtorOp {
+    TRANS_LET_COLLECTION_CTOR_NONE = 0,
+    TRANS_LET_COLLECTION_CTOR_LIST,
+    TRANS_LET_COLLECTION_CTOR_MAP,
+    TRANS_LET_COLLECTION_CTOR_QUEUE,
+} TranspilerLetCollectionCtorOp;
+
+typedef struct TranspilerLetCollectionCtorSpec {
+    const char *name;
+    const char *annotation_type;
+    const char *collection;
+    const char *runtime_prefix;
+    TranspilerLetCollectionCtorOp op;
+} TranspilerLetCollectionCtorSpec;
+
+static int
+transpiler_let_collection_ctor_compare(const void *key, const void *entry)
+{
+    const char *name = *(const char * const *)key;
+    const TranspilerLetCollectionCtorSpec *spec =
+        (const TranspilerLetCollectionCtorSpec *)entry;
+
+    return strcmp(name, spec->name);
+}
+
+static const TranspilerLetCollectionCtorSpec *
+transpiler_let_collection_ctor_lookup(const char *callee_name)
+{
+    static const TranspilerLetCollectionCtorSpec
+        kTranspilerLetCollectionCtorSpecs[] = {
+            { "ListNew", "List", "List", "pgy_list_new",
+              TRANS_LET_COLLECTION_CTOR_LIST },
+            { "MapNew", "HashMap", "Map", "pgy_map_new",
+              TRANS_LET_COLLECTION_CTOR_MAP },
+            { "QueueNew", "Queue", "Queue", "pgy_queue_new",
+              TRANS_LET_COLLECTION_CTOR_QUEUE },
+        };
+
+    if (callee_name == NULL)
+        return NULL;
+
+    return (const TranspilerLetCollectionCtorSpec *)bsearch(&callee_name,
+        kTranspilerLetCollectionCtorSpecs,
+        sizeof(kTranspilerLetCollectionCtorSpecs)
+            / sizeof(kTranspilerLetCollectionCtorSpecs[0]),
+        sizeof(kTranspilerLetCollectionCtorSpecs[0]),
+        transpiler_let_collection_ctor_compare);
+}
+
 static bool
 transpiler_try_emit_option_let(TranspilerCtx *ctx,
                                const char *name,
@@ -36,7 +129,10 @@ transpiler_try_emit_option_let(TranspilerCtx *ctx,
 
     ASTNode *callee = ast_call_callee(init);
     const char *callee_name = ast_identifier_name(callee);
-    if (strcmp(callee_name, "Some") == 0 && ast_call_arg_count(init) == 1) {
+    TranspilerLetOptionCtorOp op =
+        transpiler_let_option_ctor_lookup(callee_name);
+    if (op == TRANS_LET_OPTION_CTOR_SOME
+        && ast_call_arg_count(init) == 1) {
         char *arg = emit_expression(ast_call_argument(init, 0), ctx);
         write_indent(ctx);
         codebuf_write(ctx->out, "PgyOption_%s %s = Some_%s(%s);\n",
@@ -47,7 +143,8 @@ transpiler_try_emit_option_let(TranspilerCtx *ctx,
         *ann_type_name_io = NULL;
         return true;
     }
-    if (strcmp(callee_name, "None") == 0 && ast_call_arg_count(init) == 0) {
+    if (op == TRANS_LET_OPTION_CTOR_NONE_VALUE
+        && ast_call_arg_count(init) == 0) {
         write_indent(ctx);
         codebuf_write(ctx->out, "PgyOption_%s %s = None_%s();\n",
             inner, name, inner);
@@ -136,8 +233,7 @@ transpiler_try_emit_map_new_let(TranspilerCtx *ctx,
 static bool
 transpiler_try_emit_list_or_queue_new_let(TranspilerCtx *ctx,
                                           const char *name,
-                                          const char *callee_name,
-                                          const char *type_name,
+                                          const TranspilerLetCollectionCtorSpec *spec,
                                           const char *inner,
                                           char **ann_type_name_io)
 {
@@ -145,17 +241,10 @@ transpiler_try_emit_list_or_queue_new_let(TranspilerCtx *ctx,
     char suffix_buf[128];
     const char *c_type = NULL;
     char *ann_type_name = ann_type_name_io != NULL ? *ann_type_name_io : NULL;
-    const char *collection = NULL;
-    const char *runtime_prefix = NULL;
 
-    if (strcmp(callee_name, "ListNew") == 0 && strcmp(type_name, "List") == 0) {
-        collection = "List";
-        runtime_prefix = "pgy_list_new";
-    } else if (strcmp(callee_name, "QueueNew") == 0
-               && strcmp(type_name, "Queue") == 0) {
-        collection = "Queue";
-        runtime_prefix = "pgy_queue_new";
-    } else {
+    if (spec == NULL
+        || (spec->op != TRANS_LET_COLLECTION_CTOR_LIST
+            && spec->op != TRANS_LET_COLLECTION_CTOR_QUEUE)) {
         return false;
     }
 
@@ -167,17 +256,17 @@ transpiler_try_emit_list_or_queue_new_let(TranspilerCtx *ctx,
             PGY_CAUSE_C_TYPE_UNSUPPORTED,
             PGY_FIX_ANNOTATE_CONCRETE_TYPE,
             "C backend: %s binding '%s' annotation cannot be rendered as a stable C type",
-            collection,
+            spec->collection,
             name != NULL ? name : "<binding>");
         free(ann_type_name);
         *ann_type_name_io = NULL;
         return true;
     }
-    ensure_collection_specialization(ctx, collection, inner);
+    ensure_collection_specialization(ctx, spec->collection, inner);
     collection_runtime_suffix_copy(inner, suffix_buf, sizeof(suffix_buf));
     write_indent(ctx);
     codebuf_write(ctx->out, "%s %s = %s_%s();\n",
-        c_type, name, runtime_prefix, suffix_buf);
+        c_type, name, spec->runtime_prefix, suffix_buf);
     register_typed_var(ctx, name, ann_type_name);
     free(ann_type_name);
     *ann_type_name_io = NULL;
@@ -194,6 +283,7 @@ transpiler_try_emit_collection_ctor_let(TranspilerCtx *ctx,
 {
     const char *callee_name;
     const char *type_name = resolved_ann_type_name;
+    const TranspilerLetCollectionCtorSpec *spec;
     char inner_buf[128];
     const char *inner = NULL;
     char *ann_type_name = ann_type_name_io != NULL ? *ann_type_name_io : NULL;
@@ -215,19 +305,20 @@ transpiler_try_emit_collection_ctor_let(TranspilerCtx *ctx,
     }
 
     callee_name = ast_identifier_name(ast_call_callee(init));
+    spec = transpiler_let_collection_ctor_lookup(callee_name);
+    if (spec == NULL || strcmp(type_name, spec->annotation_type) != 0)
+        return false;
     if (slot_inner_type_name_copy(ann_type_name, inner_buf, sizeof(inner_buf)))
         inner = inner_buf;
 
-    if (strcmp(callee_name, "MapNew") == 0
-        && strcmp(type_name, "HashMap") == 0
+    if (spec->op == TRANS_LET_COLLECTION_CTOR_MAP
         && ast_generic_param_count(ast_type_generic_args(resolved_ann)) == 2) {
         return transpiler_try_emit_map_new_let(ctx, name, resolved_ann,
                                                ann_type_name_io);
     }
     return transpiler_try_emit_list_or_queue_new_let(ctx,
                                                      name,
-                                                     callee_name,
-                                                     type_name,
+                                                     spec,
                                                      inner,
                                                      ann_type_name_io);
 }

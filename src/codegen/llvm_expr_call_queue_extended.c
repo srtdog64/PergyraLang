@@ -57,10 +57,8 @@ llvm_queue_extended_lookup(const char *callee_name, unsigned argc)
 
 static bool
 llvm_queue_error_out(LLVMGenCtx *ctx, ASTNode *node, LLVMValueRef *out,
-                     LLVMValueRef recovery, const char *message)
+                     const char *message)
 {
-    (void)recovery;
-
     if (ctx != NULL && !ctx->has_error) {
         llvm_set_error_at_with_hints(ctx, node,
             PGY_CODE_LLVM_TYPE_UNSUPPORTED,
@@ -96,7 +94,7 @@ llvm_emit_queue_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         LLVMValueRef tmp;
         LLVMFuncEntry *fn;
         queue_var = llvm_collection_required_receiver_var(ctx, node, queue_arg,
-            callee_name, "queue", LLVMConstInt(ctx->type_i32, 0, 0), out);
+            callee_name, "queue", out);
         if (queue_var == NULL)
             return true;
         inner_name = llvm_lookup_queue_inner(ctx, ast_identifier_name(queue_arg));
@@ -107,7 +105,6 @@ llvm_emit_queue_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         value = llvm_emit_expression(ast_call_argument(node, 1), ctx);
         if (value == NULL)
             return llvm_queue_error_out(ctx, node, out,
-                LLVMConstInt(ctx->type_i32, 0, 0),
                 "LLVM QueuePush could not lower value expression");
         if (inner_name != NULL && strcmp(inner_name, "String") == 0) {
             fn = llvm_required_collection_function(ctx, node, callee_name,
@@ -134,7 +131,6 @@ llvm_emit_queue_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         tmp = llvm_create_entry_alloca(ctx, elem_ty, llvm_tmp_name(ctx));
         if (tmp == NULL)
             return llvm_queue_error_out(ctx, node, out,
-                LLVMConstInt(ctx->type_i32, 0, 0),
                 "LLVM QueuePush could not allocate element temporary");
         LLVMBuildStore(ctx->builder, value, tmp);
         fn = llvm_required_collection_function(ctx, node, callee_name,
@@ -160,7 +156,7 @@ llvm_emit_queue_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         LLVMValueRef tmp;
         LLVMFuncEntry *fn;
         queue_var = llvm_collection_required_receiver_var(ctx, node, queue_arg,
-            callee_name, "queue", LLVMConstInt(ctx->type_i32, 0, 0), out);
+            callee_name, "queue", out);
         if (queue_var == NULL)
             return true;
         inner_name = llvm_lookup_queue_inner(ctx, ast_identifier_name(queue_arg));
@@ -171,7 +167,6 @@ llvm_emit_queue_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         tmp = llvm_create_entry_alloca(ctx, elem_ty, llvm_tmp_name(ctx));
         if (tmp == NULL)
             return llvm_queue_error_out(ctx, node, out,
-                LLVMConstNull(elem_ty),
                 "LLVM QueuePop could not allocate result temporary");
         LLVMBuildStore(ctx->builder, LLVMConstNull(elem_ty), tmp);
         if (inner_name != NULL && strcmp(inner_name, "String") == 0) {
@@ -204,7 +199,7 @@ llvm_emit_queue_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         LLVMVarEntry *queue_var;
         LLVMFuncEntry *fn;
         queue_var = llvm_collection_required_receiver_var(ctx, node, queue_arg,
-            callee_name, "queue", LLVMConstInt(ctx->type_i32, 0, 0), out);
+            callee_name, "queue", out);
         if (queue_var == NULL)
             return true;
         fn = llvm_required_collection_function(ctx, node, callee_name,
@@ -224,7 +219,7 @@ llvm_emit_queue_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         LLVMVarEntry *queue_var;
         LLVMFuncEntry *fn;
         queue_var = llvm_collection_required_receiver_var(ctx, node, queue_arg,
-            callee_name, "queue", LLVMConstInt(ctx->type_i1, 1, 0), out);
+            callee_name, "queue", out);
         if (queue_var == NULL)
             return true;
         fn = llvm_required_collection_function(ctx, node, callee_name,

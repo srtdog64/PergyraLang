@@ -286,36 +286,15 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
                     step_ctx.who_aliases, step_ctx.who_alias_count, saved_participant_ptrs);
         }
 
-        if (step_ctx.pre_expr != NULL) {
-            char reason[256];
-            LLVMBasicBlockRef next_bb = LLVMAppendBasicBlockInContext(ctx->context, fn, "intent.pre.ok");
-            LLVMValueRef cond = llvm_emit_expression(step_ctx.pre_expr, ctx);
-            if (!llvm_intent_reason_name(ctx, reason, sizeof(reason), "pre",
-                    step_name))
-                return;
-            LLVMBuildStore(ctx->builder,
-                LLVMBuildGlobalStringPtr(ctx->builder,
-                    reason,
-                    llvm_tmp_name(ctx)),
-                fail_reason_alloca);
-            LLVMBuildCondBr(ctx->builder, cond, next_bb, fail_bb);
-            LLVMPositionBuilderAtEnd(ctx->builder, next_bb);
+        if (!llvm_emit_intent_predicate_check(ctx, fn, fail_bb,
+                fail_reason_alloca, step_ctx.pre_expr, "pre", step_name,
+                "intent.pre.ok")) {
+            goto intent_emit_fail;
         }
-
-        if (step_ctx.invariant_pre_expr != NULL) {
-            char reason[256];
-            LLVMBasicBlockRef next_bb = LLVMAppendBasicBlockInContext(ctx->context, fn, "intent.invariant.pre.ok");
-            LLVMValueRef cond = llvm_emit_expression(step_ctx.invariant_pre_expr, ctx);
-            if (!llvm_intent_reason_name(ctx, reason, sizeof(reason),
-                    "invariant-pre", step_name))
-                return;
-            LLVMBuildStore(ctx->builder,
-                LLVMBuildGlobalStringPtr(ctx->builder,
-                    reason,
-                    llvm_tmp_name(ctx)),
-                fail_reason_alloca);
-            LLVMBuildCondBr(ctx->builder, cond, next_bb, fail_bb);
-            LLVMPositionBuilderAtEnd(ctx->builder, next_bb);
+        if (!llvm_emit_intent_predicate_check(ctx, fn, fail_bb,
+                fail_reason_alloca, step_ctx.invariant_pre_expr,
+                "invariant-pre", step_name, "intent.invariant.pre.ok")) {
+            goto intent_emit_fail;
         }
 
         if (step_ctx.on_expr_count > 0) {
@@ -388,68 +367,25 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
             LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 1, 0), completed_allocas[i]);
         }
 
-        if (step_ctx.guard_expr != NULL) {
-            char reason[256];
-            LLVMBasicBlockRef next_bb = LLVMAppendBasicBlockInContext(ctx->context, fn, "intent.guard.ok");
-            LLVMValueRef cond = llvm_emit_expression(step_ctx.guard_expr, ctx);
-            if (!llvm_intent_reason_name(ctx, reason, sizeof(reason), "guard",
-                    step_name))
-                return;
-            LLVMBuildStore(ctx->builder,
-                LLVMBuildGlobalStringPtr(ctx->builder,
-                    reason,
-                    llvm_tmp_name(ctx)),
-                fail_reason_alloca);
-            LLVMBuildCondBr(ctx->builder, cond, next_bb, fail_bb);
-            LLVMPositionBuilderAtEnd(ctx->builder, next_bb);
+        if (!llvm_emit_intent_predicate_check(ctx, fn, fail_bb,
+                fail_reason_alloca, step_ctx.guard_expr, "guard", step_name,
+                "intent.guard.ok")) {
+            goto intent_emit_fail;
         }
-
-        if (step_ctx.expect_expr != NULL) {
-            char reason[256];
-            LLVMBasicBlockRef next_bb = LLVMAppendBasicBlockInContext(ctx->context, fn, "intent.expect.ok");
-            LLVMValueRef cond = llvm_emit_expression(step_ctx.expect_expr, ctx);
-            if (!llvm_intent_reason_name(ctx, reason, sizeof(reason), "expect",
-                    step_name))
-                return;
-            LLVMBuildStore(ctx->builder,
-                LLVMBuildGlobalStringPtr(ctx->builder,
-                    reason,
-                    llvm_tmp_name(ctx)),
-                fail_reason_alloca);
-            LLVMBuildCondBr(ctx->builder, cond, next_bb, fail_bb);
-            LLVMPositionBuilderAtEnd(ctx->builder, next_bb);
+        if (!llvm_emit_intent_predicate_check(ctx, fn, fail_bb,
+                fail_reason_alloca, step_ctx.expect_expr, "expect", step_name,
+                "intent.expect.ok")) {
+            goto intent_emit_fail;
         }
-
-        if (step_ctx.post_expr != NULL) {
-            char reason[256];
-            LLVMBasicBlockRef next_bb = LLVMAppendBasicBlockInContext(ctx->context, fn, "intent.post.ok");
-            LLVMValueRef cond = llvm_emit_expression(step_ctx.post_expr, ctx);
-            if (!llvm_intent_reason_name(ctx, reason, sizeof(reason), "post",
-                    step_name))
-                return;
-            LLVMBuildStore(ctx->builder,
-                LLVMBuildGlobalStringPtr(ctx->builder,
-                    reason,
-                    llvm_tmp_name(ctx)),
-                fail_reason_alloca);
-            LLVMBuildCondBr(ctx->builder, cond, next_bb, fail_bb);
-            LLVMPositionBuilderAtEnd(ctx->builder, next_bb);
+        if (!llvm_emit_intent_predicate_check(ctx, fn, fail_bb,
+                fail_reason_alloca, step_ctx.post_expr, "post", step_name,
+                "intent.post.ok")) {
+            goto intent_emit_fail;
         }
-
-        if (step_ctx.invariant_post_expr != NULL) {
-            char reason[256];
-            LLVMBasicBlockRef next_bb = LLVMAppendBasicBlockInContext(ctx->context, fn, "intent.invariant.post.ok");
-            LLVMValueRef cond = llvm_emit_expression(step_ctx.invariant_post_expr, ctx);
-            if (!llvm_intent_reason_name(ctx, reason, sizeof(reason),
-                    "invariant-post", step_name))
-                return;
-            LLVMBuildStore(ctx->builder,
-                LLVMBuildGlobalStringPtr(ctx->builder,
-                    reason,
-                    llvm_tmp_name(ctx)),
-                fail_reason_alloca);
-            LLVMBuildCondBr(ctx->builder, cond, next_bb, fail_bb);
-            LLVMPositionBuilderAtEnd(ctx->builder, next_bb);
+        if (!llvm_emit_intent_predicate_check(ctx, fn, fail_bb,
+                fail_reason_alloca, step_ctx.invariant_post_expr,
+                "invariant-post", step_name, "intent.invariant.post.ok")) {
+            goto intent_emit_fail;
         }
         /* saved_participant_ptrs is ctx->scratch-owned; clear the local
          * reference so the next step rebinds fresh (blocks stay in arena). */

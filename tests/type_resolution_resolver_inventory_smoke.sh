@@ -235,7 +235,7 @@ grep -q 'type_resolution_metadata_dead_ends' \
 }
 
 grep -q 'dead_ends=%llu' \
-  src/semantic/type_checker_program.c || {
+  src/semantic/type_checker_program_stats.c || {
   echo "[type-resolution-resolver-inventory] type-resolution stats do not expose dead_ends" >&2
   exit 1
 }

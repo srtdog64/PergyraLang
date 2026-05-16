@@ -5,11 +5,59 @@
  * C backend function-forward declaration policy.
  */
 
+#include <stdlib.h>
 #include <string.h>
 
 #include "transpiler.h"
 #include "transpiler_decl_lookup.h"
 #include "../parser/ast_api.h"
+
+static int
+transpiler_forward_allowed_type_compare(const void *key, const void *entry)
+{
+    const char *name = *(const char * const *)key;
+    const char *allowed = *(const char * const *)entry;
+
+    return strcmp(name, allowed);
+}
+
+static bool
+transpiler_forward_type_name_is_allowed(const char *name)
+{
+    static const char *allowed_names[] = {
+        "Array",
+        "Bool",
+        "Box",
+        "Byte",
+        "Channel",
+        "Char",
+        "DeviceSlot",
+        "Float",
+        "Future",
+        "Int",
+        "Option",
+        "Qubit",
+        "Rc",
+        "RemoteFuture",
+        "Result",
+        "SecureSlot",
+        "Slice",
+        "Slot",
+        "String",
+        "Void",
+        "Weak",
+    };
+    const char **match;
+
+    if (name == NULL)
+        return false;
+    match = (const char **)bsearch(&name,
+        allowed_names,
+        sizeof(allowed_names) / sizeof(allowed_names[0]),
+        sizeof(allowed_names[0]),
+        transpiler_forward_allowed_type_compare);
+    return match != NULL;
+}
 
 bool
 transpiler_can_forward_declare_type_early(TranspilerCtx *ctx,
@@ -23,29 +71,7 @@ transpiler_can_forward_declare_type_early(TranspilerCtx *ctx,
         return true;
 
     name = ast_type_name(type_node);
-    if (strcmp(name, "Int") == 0
-        || strcmp(name, "Float") == 0
-        || strcmp(name, "Bool") == 0
-        || strcmp(name, "String") == 0
-        || strcmp(name, "Char") == 0
-        || strcmp(name, "Byte") == 0
-        || strcmp(name, "Void") == 0
-        || strcmp(name, "Qubit") == 0)
-        return true;
-
-    if (strcmp(name, "Result") == 0
-        || strcmp(name, "Option") == 0
-        || strcmp(name, "Slot") == 0
-        || strcmp(name, "SecureSlot") == 0
-        || strcmp(name, "DeviceSlot") == 0
-        || strcmp(name, "RemoteFuture") == 0
-        || strcmp(name, "Array") == 0
-        || strcmp(name, "Slice") == 0
-        || strcmp(name, "Channel") == 0
-        || strcmp(name, "Box") == 0
-        || strcmp(name, "Rc") == 0
-        || strcmp(name, "Weak") == 0
-        || strcmp(name, "Future") == 0)
+    if (transpiler_forward_type_name_is_allowed(name))
         return true;
 
     return find_class_decl(ctx, name) != NULL;

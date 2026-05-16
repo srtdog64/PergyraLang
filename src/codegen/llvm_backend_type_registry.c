@@ -11,6 +11,68 @@
 #include <stdlib.h>
 #include <string.h>
 
+typedef enum LLVMRegistryTypeKind {
+    LLVM_REGISTRY_TYPE_UNKNOWN = 0,
+    LLVM_REGISTRY_TYPE_ARRAY,
+    LLVM_REGISTRY_TYPE_CHANNEL,
+    LLVM_REGISTRY_TYPE_FUTURE,
+    LLVM_REGISTRY_TYPE_HASHMAP,
+    LLVM_REGISTRY_TYPE_LIST,
+    LLVM_REGISTRY_TYPE_QUEUE,
+    LLVM_REGISTRY_TYPE_RC,
+    LLVM_REGISTRY_TYPE_REMOTE_FUTURE,
+    LLVM_REGISTRY_TYPE_SET,
+    LLVM_REGISTRY_TYPE_SLICE,
+    LLVM_REGISTRY_TYPE_WEAK,
+} LLVMRegistryTypeKind;
+
+typedef struct LLVMRegistryTypeSpec {
+    const char *name;
+    LLVMRegistryTypeKind kind;
+} LLVMRegistryTypeSpec;
+
+static int
+llvm_registry_type_spec_compare(const void *key, const void *entry)
+{
+    const char *name = *(const char * const *)key;
+    const LLVMRegistryTypeSpec *spec = (const LLVMRegistryTypeSpec *)entry;
+
+    return strcmp(name, spec->name);
+}
+
+static LLVMRegistryTypeKind
+llvm_registry_type_kind(const char *type_name)
+{
+    static const LLVMRegistryTypeSpec specs[] = {
+        { "Array", LLVM_REGISTRY_TYPE_ARRAY },
+        { "Channel", LLVM_REGISTRY_TYPE_CHANNEL },
+        { "Future", LLVM_REGISTRY_TYPE_FUTURE },
+        { "HashMap", LLVM_REGISTRY_TYPE_HASHMAP },
+        { "List", LLVM_REGISTRY_TYPE_LIST },
+        { "Queue", LLVM_REGISTRY_TYPE_QUEUE },
+        { "Rc", LLVM_REGISTRY_TYPE_RC },
+        { "RemoteFuture", LLVM_REGISTRY_TYPE_REMOTE_FUTURE },
+        { "Set", LLVM_REGISTRY_TYPE_SET },
+        { "Slice", LLVM_REGISTRY_TYPE_SLICE },
+        { "Weak", LLVM_REGISTRY_TYPE_WEAK },
+    };
+    const LLVMRegistryTypeSpec *spec;
+
+    if (type_name == NULL)
+        return LLVM_REGISTRY_TYPE_UNKNOWN;
+    if (strncmp(type_name, "Rc<", 3) == 0)
+        return LLVM_REGISTRY_TYPE_RC;
+    if (strncmp(type_name, "Weak<", 5) == 0)
+        return LLVM_REGISTRY_TYPE_WEAK;
+
+    spec = (const LLVMRegistryTypeSpec *)bsearch(&type_name,
+        specs,
+        sizeof(specs) / sizeof(specs[0]),
+        sizeof(specs[0]),
+        llvm_registry_type_spec_compare);
+    return spec != NULL ? spec->kind : LLVM_REGISTRY_TYPE_UNKNOWN;
+}
+
 static char *
 llvm_copy_first_constructed_arg_name(LLVMGenCtx *ctx, const char *type_name)
 {
@@ -66,6 +128,7 @@ llvm_register_typed_var(LLVMGenCtx *ctx, const char *var_name,
                         ASTNode *type_node)
 {
     const char *type_name;
+    LLVMRegistryTypeKind type_kind;
     GenericParams *generic_args;
     ASTNode *arg0_type;
     ASTNode *arg1_type;
@@ -82,11 +145,13 @@ llvm_register_typed_var(LLVMGenCtx *ctx, const char *var_name,
         return;
 
     type_name = ast_type_name(type_node);
+    type_kind = llvm_registry_type_kind(type_name);
     generic_args = ast_type_generic_args(type_node);
     arg0_type = llvm_registry_generic_arg_type(generic_args, 0);
     arg1_type = llvm_registry_generic_arg_type(generic_args, 1);
 
-    if ((strcmp(type_name, "Array") == 0 || strcmp(type_name, "Slice") == 0)
+    if ((type_kind == LLVM_REGISTRY_TYPE_ARRAY
+         || type_kind == LLVM_REGISTRY_TYPE_SLICE)
         && arg0_type != NULL) {
         char *elem_name = llvm_render_type_name_scratch(
             arg0_type, &ctx->scratch);
@@ -104,7 +169,7 @@ llvm_register_typed_var(LLVMGenCtx *ctx, const char *var_name,
         llvm_register_array_var(ctx, var_name, elem_type, -1);
     }
 
-    if (strcmp(type_name, "List") == 0
+    if (type_kind == LLVM_REGISTRY_TYPE_LIST
         && arg0_type != NULL) {
         char *inner_name = llvm_registry_render_required_type_name(ctx,
             type_node, arg0_type,
@@ -116,7 +181,7 @@ llvm_register_typed_var(LLVMGenCtx *ctx, const char *var_name,
         return;
     }
 
-    if (strcmp(type_name, "Set") == 0
+    if (type_kind == LLVM_REGISTRY_TYPE_SET
         && arg0_type != NULL) {
         char *inner_name = llvm_registry_render_required_type_name(ctx,
             type_node, arg0_type,
@@ -128,7 +193,7 @@ llvm_register_typed_var(LLVMGenCtx *ctx, const char *var_name,
         return;
     }
 
-    if (strcmp(type_name, "Queue") == 0
+    if (type_kind == LLVM_REGISTRY_TYPE_QUEUE
         && arg0_type != NULL) {
         char *inner_name = llvm_registry_render_required_type_name(ctx,
             type_node, arg0_type,
@@ -140,7 +205,7 @@ llvm_register_typed_var(LLVMGenCtx *ctx, const char *var_name,
         return;
     }
 
-    if (strcmp(type_name, "HashMap") == 0
+    if (type_kind == LLVM_REGISTRY_TYPE_HASHMAP
         && arg0_type != NULL
         && arg1_type != NULL) {
         char *key_name = llvm_registry_render_required_type_name(ctx,
@@ -160,7 +225,8 @@ llvm_register_typed_var(LLVMGenCtx *ctx, const char *var_name,
         return;
     }
 
-    if ((strcmp(type_name, "Future") == 0 || strcmp(type_name, "RemoteFuture") == 0)
+    if ((type_kind == LLVM_REGISTRY_TYPE_FUTURE
+         || type_kind == LLVM_REGISTRY_TYPE_REMOTE_FUTURE)
         && arg0_type != NULL) {
         char *inner_name = llvm_registry_render_required_type_name(ctx,
             type_node, arg0_type,
@@ -168,12 +234,12 @@ llvm_register_typed_var(LLVMGenCtx *ctx, const char *var_name,
         if (inner_name == NULL)
             return;
         llvm_register_future_var(ctx, var_name, inner_name,
-            strcmp(type_name, "RemoteFuture") == 0);
+            type_kind == LLVM_REGISTRY_TYPE_REMOTE_FUTURE);
         free(inner_name);
         return;
     }
 
-    if (strcmp(type_name, "Channel") == 0
+    if (type_kind == LLVM_REGISTRY_TYPE_CHANNEL
         && arg0_type != NULL) {
         char *inner_name = llvm_registry_render_required_type_name(ctx,
             type_node, arg0_type,
@@ -185,9 +251,8 @@ llvm_register_typed_var(LLVMGenCtx *ctx, const char *var_name,
         return;
     }
 
-    if (strcmp(type_name, "Rc") == 0 || strcmp(type_name, "Weak") == 0
-        || strncmp(type_name, "Rc<", 3) == 0
-        || strncmp(type_name, "Weak<", 5) == 0) {
+    if (type_kind == LLVM_REGISTRY_TYPE_RC
+        || type_kind == LLVM_REGISTRY_TYPE_WEAK) {
         char *inner_name = NULL;
         bool free_inner_name = false;
         if (arg0_type != NULL) {
@@ -208,7 +273,7 @@ llvm_register_typed_var(LLVMGenCtx *ctx, const char *var_name,
             }
             return;
         }
-        if (strcmp(type_name, "Rc") == 0 || strncmp(type_name, "Rc<", 3) == 0)
+        if (type_kind == LLVM_REGISTRY_TYPE_RC)
             llvm_register_rc_var(ctx, var_name, inner_name);
         else
             llvm_register_weak_var(ctx, var_name, inner_name);

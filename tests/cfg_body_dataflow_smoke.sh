@@ -69,7 +69,8 @@ run_literal_doc_contract_smoke() {
         "src/semantic/type_checker_flow.c"
         "src/semantic/type_checker_flow_internal.h"
         "src/semantic/type_checker_flow_resources.h"
-        "src/semantic/type_checker_flow_parallel.h"
+        "src/semantic/type_checker_flow_parallel.c"
+        "src/semantic/type_checker_flow_branch.c"
         "src/semantic/type_checker_async_decl.c"
         "src/semantic/type_checker_lambda_capture.c"
         "src/compiler/mir_cleanup.c"
@@ -340,7 +341,7 @@ run_literal_doc_contract_smoke() {
     fi
     require_literal "src/semantic/type_checker_flow.c" "restore_resource_states(&base)"
     require_literal "src/semantic/type_checker_flow_loops.c" "restore_resource_states(&merged)"
-    require_literal "src/semantic/type_checker_flow_parallel.h" "restore_resource_states(&base)"
+    require_literal "src/semantic/type_checker_flow_parallel.c" "restore_resource_states(&base)"
     require_literal "src/tests/semantic/test_semantic_misc_a_part_a.cases.h" "CFG body flow accepts while-true all-path return"
     require_literal "src/tests/semantic/test_semantic_misc_a_part_a.cases.h" "CFG body flow accepts static single-iteration for all-path return"
     require_literal "src/tests/semantic/test_semantic_misc_a_part_a.cases.h" "CFG body flow keeps zero-iteration for as fallthrough"
@@ -395,12 +396,13 @@ report_path = root / "docs" / "98_beta_closure_readiness_report.md"
 flow_path = root / "src" / "semantic" / "type_checker_flow.c"
 flow_effects_path = root / "src" / "semantic" / "type_checker_flow_effects.c"
 flow_match_path = root / "src" / "semantic" / "type_checker_flow_match.c"
+flow_branch_path = root / "src" / "semantic" / "type_checker_flow_branch.c"
 flow_resources_header_path = root / "src" / "semantic" / "type_checker_flow_resources.h"
 flow_resources_path = root / "src" / "semantic" / "type_checker_flow_resources.c"
 flow_loop_control_path = root / "src" / "semantic" / "type_checker_flow_loop_control.c"
 flow_loops_header_path = root / "src" / "semantic" / "type_checker_flow_loops.h"
 flow_loops_path = root / "src" / "semantic" / "type_checker_flow_loops.c"
-flow_parallel_path = root / "src" / "semantic" / "type_checker_flow_parallel.h"
+flow_parallel_path = root / "src" / "semantic" / "type_checker_flow_parallel.c"
 mir_cleanup_path = root / "src" / "compiler" / "mir_cleanup.c"
 mir_intent_path = root / "src" / "compiler" / "mir_intent.c"
 mir_cleanup_fact_names_path = root / "src" / "compiler" / "mir_cleanup_fact_names.h"
@@ -485,6 +487,7 @@ for path in (
     flow_path,
     flow_effects_path,
     flow_match_path,
+    flow_branch_path,
     flow_resources_header_path,
     flow_resources_path,
     flow_loop_control_path,
@@ -574,6 +577,8 @@ flow = (
     + flow_effects_path.read_text(encoding="utf-8")
     + "\n"
     + flow_match_path.read_text(encoding="utf-8")
+    + "\n"
+    + flow_branch_path.read_text(encoding="utf-8")
     + "\n"
     + flow_resources_path.read_text(encoding="utf-8")
     + "\n"
@@ -1546,10 +1551,12 @@ fi
 DEFAULT_PGY="$ROOT_DIR/bin/pgy"
 TMP_BASE="${TMPDIR:-${TEMP:-/tmp}}"
 TMP_PGY="${TMP_BASE%/}/pgy-PergyraLang-bin/pgy"
-if [[ -x "${DEFAULT_PGY}.exe" ]]; then
+source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+
+if pgy_binary_expects_windows_paths "${DEFAULT_PGY}.exe"; then
     DEFAULT_PGY="${DEFAULT_PGY}.exe"
 fi
-if [[ -x "${TMP_PGY}.exe" ]]; then
+if pgy_binary_expects_windows_paths "${TMP_PGY}.exe"; then
     TMP_PGY="${TMP_PGY}.exe"
 fi
 PGY_EXPLICIT=0
@@ -1571,28 +1578,7 @@ WORK_DIR="$(mktemp -d "$WORK_BASE.XXXXXX")"
 trap 'rm -rf "$WORK_DIR"' EXIT
 
 to_native_path_for_pgy() {
-    local path="$1"
-    if [[ "$PGY" != *.exe ]]; then
-        printf '%s\n' "$path"
-        return 0
-    fi
-    if command -v cygpath >/dev/null 2>&1; then
-        cygpath -w "$path"
-        return 0
-    fi
-    if [[ "$path" =~ ^/mnt/([A-Za-z])/(.*)$ ]]; then
-        local drive="${BASH_REMATCH[1]}"
-        local rest="${BASH_REMATCH[2]//\//\\}"
-        printf '%s:\\%s\n' "${drive^^}" "$rest"
-        return 0
-    fi
-    if [[ "$path" =~ ^/([A-Za-z])/(.*)$ ]]; then
-        local drive="${BASH_REMATCH[1]}"
-        local rest="${BASH_REMATCH[2]//\//\\}"
-        printf '%s:\\%s\n' "${drive^^}" "$rest"
-        return 0
-    fi
-    printf '%s\n' "$path"
+    pgy_path_for_compiler "$PGY" "$1"
 }
 
 if [[ ! -x "$PGY" ]]; then

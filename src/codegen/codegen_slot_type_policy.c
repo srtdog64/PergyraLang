@@ -30,19 +30,21 @@ type_name_is_exact_or_generic(const char *type_name, const char *name,
 bool
 pgy_codegen_type_name_is_slot(const char *type_name)
 {
-    return type_name_has_generic_prefix(type_name, "Slot<");
+    return type_name_is_exact_or_generic(type_name, "Slot", "Slot<");
 }
 
 bool
 pgy_codegen_type_name_is_secure_slot(const char *type_name)
 {
-    return type_name_has_generic_prefix(type_name, "SecureSlot<");
+    return type_name_is_exact_or_generic(type_name, "SecureSlot",
+                                         "SecureSlot<");
 }
 
 bool
 pgy_codegen_type_name_is_device_slot(const char *type_name)
 {
-    return type_name_has_generic_prefix(type_name, "DeviceSlot<");
+    return type_name_is_exact_or_generic(type_name, "DeviceSlot",
+                                         "DeviceSlot<");
 }
 
 bool

@@ -1,0 +1,38 @@
+#ifndef PGY_TRANSPILER_EXPR_STDLIB_BUILTIN_POLICY_H
+#define PGY_TRANSPILER_EXPR_STDLIB_BUILTIN_POLICY_H
+
+#include <stddef.h>
+
+typedef enum {
+    TRANSPILER_ARRAY_OP_NONE = 0,
+    TRANSPILER_ARRAY_OP_FILTER,
+    TRANSPILER_ARRAY_OP_LENGTH,
+    TRANSPILER_ARRAY_OP_MAP,
+    TRANSPILER_ARRAY_OP_POP,
+    TRANSPILER_ARRAY_OP_PUSH,
+    TRANSPILER_ARRAY_OP_REVERSE,
+    TRANSPILER_ARRAY_OP_SET,
+    TRANSPILER_ARRAY_OP_SORT,
+} TranspilerArrayStdlibOp;
+
+typedef enum {
+    TRANSPILER_STDLIB_OP_NONE = 0,
+    TRANSPILER_STDLIB_OP_CLONE,
+    TRANSPILER_STDLIB_OP_PRINT,
+    TRANSPILER_STDLIB_OP_TO_STRING,
+} TranspilerStdlibOp;
+
+typedef enum {
+    TRANSPILER_TO_STRING_KIND_DEFAULT = 0,
+    TRANSPILER_TO_STRING_KIND_BOOL,
+    TRANSPILER_TO_STRING_KIND_DOUBLE,
+    TRANSPILER_TO_STRING_KIND_FLOAT,
+    TRANSPILER_TO_STRING_KIND_LONG,
+    TRANSPILER_TO_STRING_KIND_STRING,
+} TranspilerToStringKind;
+
+TranspilerArrayStdlibOp transpiler_array_lookup(const char *fn, size_t argc);
+TranspilerStdlibOp transpiler_stdlib_lookup(const char *fn, size_t argc);
+TranspilerToStringKind transpiler_to_string_kind(const char *type_name);
+
+#endif /* PGY_TRANSPILER_EXPR_STDLIB_BUILTIN_POLICY_H */

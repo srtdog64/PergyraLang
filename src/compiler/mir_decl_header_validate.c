@@ -111,6 +111,10 @@ mir_decl_header_ast_shape(const MIRDeclHeader *header,
     case AST_ROLE_DECL:
         if (name_out != NULL)
             *name_out = ast_role_name(ast);
+        if (method_count_out != NULL
+            && !ast_role_impl_method_total_count(ast, method_count_out)) {
+            return false;
+        }
         if (uses_pointer_self_out != NULL)
             *uses_pointer_self_out = true;
         return true;
@@ -208,8 +212,7 @@ mir_validate_decl_header_ast_compat(const MIRDeclHeader *header,
         }
         return false;
     }
-    if (header->method_count != ast_method_count
-        && header->ast_type != AST_ROLE_DECL) {
+    if (header->method_count != ast_method_count) {
         if (error_message != NULL) {
             *error_message = mir_strdup_fmt(
                 "MIR declaration header[%zu] '%s' AST method-count compatibility drift",
@@ -264,8 +267,7 @@ mir_validate_decl_method_metadata(const MIRProgram *mir,
         return false;
     }
 
-    if (header->ast_type != AST_ROLE_DECL
-        && header->method_metadata_count != header->method_count) {
+    if (header->method_metadata_count != header->method_count) {
         if (error_message != NULL) {
             *error_message = mir_strdup_fmt(
                 "MIR declaration header[%zu] '%s' method metadata count %zu does not match AST compatibility count %zu",

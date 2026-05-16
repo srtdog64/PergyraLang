@@ -1,5 +1,6 @@
 #ifdef PGY_LLVM_ENABLED
 #include "llvm_internal.h"
+#include "codegen_slot_type_policy.h"
 #include "parser/ast_api.h"
 #include "../semantic/slot_summary.h"
 
@@ -179,11 +180,12 @@ llvm_simple_expr_type_name(LLVMGenCtx *ctx, ASTNode *expr)
                 }
                 if (inner == NULL)
                     inner = llvm_lookup_device_slot_inner(ctx, name);
-                if (inner != NULL && strcmp(method_name, "Read") == 0)
+                if (inner != NULL
+                    && pgy_codegen_call_name_is_read(method_name))
                     return inner;
                 if (inner != NULL
-                    && (strcmp(method_name, "Write") == 0
-                        || strcmp(method_name, "Release") == 0)) {
+                    && (pgy_codegen_call_name_is_write(method_name)
+                        || pgy_codegen_call_name_is_release(method_name))) {
                     return "Void";
                 }
                 const char *receiver_type = NULL;
@@ -214,9 +216,7 @@ llvm_simple_expr_type_name(LLVMGenCtx *ctx, ASTNode *expr)
                 const char *name =
                     ast_identifier_name(ast_call_argument(expr, 0));
                 const char *inner = NULL;
-                if (strcmp(callee_name, "Read") == 0
-                    || strcmp(callee_name, "Write") == 0
-                    || strcmp(callee_name, "Release") == 0) {
+                if (pgy_codegen_call_name_is_slot_operation(callee_name)) {
                     inner = llvm_lookup_slot_inner(ctx, name);
                     if (inner == NULL) {
                         LLVMViewVarEntry *view = llvm_lookup_view_var(ctx, name);
@@ -225,7 +225,8 @@ llvm_simple_expr_type_name(LLVMGenCtx *ctx, ASTNode *expr)
                     }
                     if (inner == NULL)
                         inner = llvm_lookup_device_slot_inner(ctx, name);
-                    if (inner != NULL && strcmp(callee_name, "Read") == 0)
+                    if (inner != NULL
+                        && pgy_codegen_call_name_is_read(callee_name))
                         return inner;
                     if (inner != NULL)
                         return "Void";

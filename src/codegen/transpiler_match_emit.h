@@ -2,6 +2,7 @@
 #define PGY_TRANSPILER_MATCH_EMIT_H
 
 #include "../parser/ast_api.h"
+#include "codegen_match_variant_policy.h"
 
 /* Check if a match-case pattern is a destructor like Ok(x), Err(x),
  * or a tagged union variant like Circle(r), Rect(w, h) */
@@ -17,9 +18,11 @@ is_result_destructor(ASTNode *pat, const char **kind, const char **binding)
     if (callee == NULL || callee->type != AST_IDENTIFIER)
         return false;
     const char *name = ast_identifier_name(callee);
-    if (strcmp(name, "Ok") != 0 && strcmp(name, "Err") != 0)
+    PgyCodegenMatchVariantKind variant =
+        pgy_codegen_match_variant_lookup(name);
+    if (!pgy_codegen_match_variant_is_result(variant))
         return false;
-    *kind = name;
+    *kind = pgy_codegen_match_variant_name(variant);
     payload = ast_call_argument(pat, 0);
     if (ast_call_arg_count(pat) > 0
         && payload != NULL
@@ -46,8 +49,10 @@ is_option_destructor(ASTNode *pat, const char **kind, const char **binding)
 
     if (pat->type == AST_IDENTIFIER) {
         const char *name = ast_identifier_name(pat);
-        if (name != NULL && strcmp(name, "None") == 0) {
-            *kind = "None";
+        PgyCodegenMatchVariantKind variant =
+            pgy_codegen_match_variant_lookup(name);
+        if (variant == PGY_MATCH_VARIANT_NONE_CTOR) {
+            *kind = pgy_codegen_match_variant_name(variant);
             return true;
         }
         return false;
@@ -62,15 +67,17 @@ is_option_destructor(ASTNode *pat, const char **kind, const char **binding)
     }
 
     const char *name = ast_identifier_name(callee);
+    PgyCodegenMatchVariantKind variant =
+        pgy_codegen_match_variant_lookup(name);
     if (name == NULL)
         return false;
 
-    if (strcmp(name, "None") == 0 && arg_count == 0) {
-        *kind = "None";
+    if (variant == PGY_MATCH_VARIANT_NONE_CTOR && arg_count == 0) {
+        *kind = pgy_codegen_match_variant_name(variant);
         return true;
     }
-    if (strcmp(name, "Some") == 0 && arg_count == 1) {
-        *kind = "Some";
+    if (variant == PGY_MATCH_VARIANT_SOME && arg_count == 1) {
+        *kind = pgy_codegen_match_variant_name(variant);
         payload = ast_call_argument(pat, 0);
         if (payload != NULL
             && payload->type == AST_IDENTIFIER) {
@@ -235,8 +242,8 @@ emit_match_stmt(ASTNode *node, TranspilerCtx *ctx)
                 free(pat);
             }
         } else if (option_case) {
-            const char *tag_val = (strcmp(kind, "Some") == 0)
-                ? "PgyOptionSome" : "PgyOptionNone";
+            const char *tag_val = pgy_codegen_match_variant_c_option_tag(
+                pgy_codegen_match_variant_lookup(kind));
             if (i == 0)
                 codebuf_write(ctx->out, "if (__match_%d.tag == %s",
                     tmp_id, tag_val);
@@ -244,8 +251,8 @@ emit_match_stmt(ASTNode *node, TranspilerCtx *ctx)
                 codebuf_write(ctx->out, "else if (__match_%d.tag == %s",
                     tmp_id, tag_val);
         } else if (is_result_destructor(pattern_node, &kind, &binding)) {
-            const char *tag_val = (strcmp(kind, "Ok") == 0)
-                ? "PgyResultOk" : "PgyResultErr";
+            const char *tag_val = pgy_codegen_match_variant_c_result_tag(
+                pgy_codegen_match_variant_lookup(kind));
             if (i == 0)
                 codebuf_write(ctx->out, "if (__match_%d.tag == %s",
                     tmp_id, tag_val);
@@ -293,8 +300,10 @@ emit_match_stmt(ASTNode *node, TranspilerCtx *ctx)
         ctx->indent++;
 
         if (binding != NULL && kind != NULL) {
+            PgyCodegenMatchVariantKind match_variant =
+                pgy_codegen_match_variant_lookup(kind);
             write_indent(ctx);
-            if (strcmp(kind, "Some") == 0) {
+            if (match_variant == PGY_MATCH_VARIANT_SOME) {
                 char inner_buf[128];
                 const char *inner = NULL;
                 if (subject_is_option
@@ -329,7 +338,7 @@ emit_match_stmt(ASTNode *node, TranspilerCtx *ctx)
                         inner_c_type, binding, tmp_id);
                     }
                 }
-            } else if (strcmp(kind, "Ok") == 0) {
+            } else if (match_variant == PGY_MATCH_VARIANT_OK) {
                 char ok_type_buf[128];
                 const char *ok_type = NULL;
                 if (strncmp(subject_type, "Result<", 7) == 0) {
@@ -364,7 +373,7 @@ emit_match_stmt(ASTNode *node, TranspilerCtx *ctx)
                         ok_c_type, binding, tmp_id);
                     }
                 }
-            } else if (strcmp(kind, "Err") == 0) {
+            } else if (match_variant == PGY_MATCH_VARIANT_ERR) {
                 char err_type_buf[128];
                 char result_inner_buf[128];
                 const char *err_type = "PgyError";
@@ -412,10 +421,8 @@ emit_match_stmt(ASTNode *node, TranspilerCtx *ctx)
             }
         }
         if (kind != NULL
-            && strcmp(kind, "Some") != 0
-            && strcmp(kind, "None") != 0
-            && strcmp(kind, "Ok") != 0
-            && strcmp(kind, "Err") != 0) {
+            && !pgy_codegen_match_variant_is_builtin(
+                pgy_codegen_match_variant_lookup(kind))) {
             const char *vn2 = NULL, *en2 = NULL;
             const char **bs2 = NULL;
             ASTNode **bt2 = NULL;

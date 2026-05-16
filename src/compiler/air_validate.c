@@ -77,45 +77,6 @@ air_boundary_declares_authority_name(const AIRBoundaryNode *boundary,
     return false;
 }
 
-bool
-air_boundary_requires_rir_evidence(const AIRBoundaryNode *boundary)
-{
-    if (boundary == NULL)
-        return false;
-    switch (boundary->kind) {
-    case AIR_BOUNDARY_ZONE:
-    case AIR_BOUNDARY_WORLD:
-    case AIR_BOUNDARY_IO:
-    case AIR_BOUNDARY_CHANNEL:
-        return true;
-    case AIR_BOUNDARY_PARALLEL:
-        return true;
-    case AIR_BOUNDARY_EXECUTION:
-    case AIR_BOUNDARY_UNKNOWN:
-    default:
-        return false;
-    }
-}
-
-bool
-air_boundary_requires_hir_evidence(const AIRBoundaryNode *boundary)
-{
-    if (boundary == NULL)
-        return false;
-    switch (boundary->kind) {
-    case AIR_BOUNDARY_PARALLEL:
-    case AIR_BOUNDARY_IO:
-    case AIR_BOUNDARY_CHANNEL:
-    case AIR_BOUNDARY_EXECUTION:
-        return true;
-    case AIR_BOUNDARY_ZONE:
-    case AIR_BOUNDARY_WORLD:
-    case AIR_BOUNDARY_UNKNOWN:
-    default:
-        return false;
-    }
-}
-
 static bool
 air_drift_kind_valid(AIRDriftKind kind)
 {
@@ -276,7 +237,7 @@ air_validate(const AIRProgram *air, char **error_message)
                                     i);
             return false;
         }
-        if (!air_validate_boundary_legacy_evidence_shape(air, i, error_message))
+        if (!air_validate_boundary_summary_shape(air, i, error_message))
             return false;
     }
     for (size_t i = 0; i < air->drift_count; i++) {

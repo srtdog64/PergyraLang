@@ -7,12 +7,54 @@
 
 #include "llvm_expr_log_calls.h"
 
+#include <stdlib.h>
 #include <string.h>
 
 #include "llvm_expr_banner_string_helpers.h"
 #include "llvm_expr_string_coerce.h"
 #include "llvm_internal_api.h"
 #include "parser/ast_api.h"
+
+typedef enum LLVMLogOp {
+    LLVM_LOG_OP_NONE = 0,
+    LLVM_LOG_OP_BANNER,
+    LLVM_LOG_OP_LOG,
+    LLVM_LOG_OP_RAW,
+} LLVMLogOp;
+
+typedef struct LLVMLogSpec {
+    const char *name;
+    LLVMLogOp op;
+} LLVMLogSpec;
+
+static int
+llvm_log_spec_compare(const void *key, const void *entry)
+{
+    const char *name = *(const char * const *)key;
+    const LLVMLogSpec *spec = (const LLVMLogSpec *)entry;
+
+    return strcmp(name, spec->name);
+}
+
+static LLVMLogOp
+llvm_log_lookup(const char *callee_name)
+{
+    static const LLVMLogSpec kLLVMLogSpecs[] = {
+        { "Log", LLVM_LOG_OP_LOG },
+        { "LogBanner", LLVM_LOG_OP_BANNER },
+        { "LogBlock", LLVM_LOG_OP_BANNER },
+        { "LogRaw", LLVM_LOG_OP_RAW },
+    };
+    const LLVMLogSpec *match;
+
+    if (callee_name == NULL)
+        return LLVM_LOG_OP_NONE;
+
+    match = (const LLVMLogSpec *)bsearch(&callee_name, kLLVMLogSpecs,
+        sizeof(kLLVMLogSpecs) / sizeof(kLLVMLogSpecs[0]),
+        sizeof(kLLVMLogSpecs[0]), llvm_log_spec_compare);
+    return match != NULL ? match->op : LLVM_LOG_OP_NONE;
+}
 
 static LLVMValueRef
 llvm_log_error(LLVMGenCtx *ctx, ASTNode *node, const char *message)
@@ -201,19 +243,22 @@ bool
 llvm_emit_log_family_call(ASTNode *node, LLVMGenCtx *ctx,
                           const char *callee_name, LLVMValueRef *out)
 {
+    LLVMLogOp op;
+
     if (out == NULL)
         return false;
 
-    if (strcmp(callee_name, "Log") == 0) {
+    op = llvm_log_lookup(callee_name);
+
+    if (op == LLVM_LOG_OP_LOG) {
         *out = llvm_emit_log_call(node, ctx);
         return true;
     }
-    if (strcmp(callee_name, "LogRaw") == 0) {
+    if (op == LLVM_LOG_OP_RAW) {
         *out = llvm_emit_log_raw_call(node, ctx);
         return true;
     }
-    if (strcmp(callee_name, "LogBanner") == 0
-        || strcmp(callee_name, "LogBlock") == 0) {
+    if (op == LLVM_LOG_OP_BANNER) {
         *out = llvm_emit_log_banner_call(node, ctx);
         return true;
     }

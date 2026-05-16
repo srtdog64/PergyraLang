@@ -11,11 +11,8 @@
 
 static bool
 llvm_collection_base_error_out(LLVMGenCtx *ctx, ASTNode *node,
-                               LLVMValueRef *out, LLVMValueRef recovery,
-                               const char *message)
+                               LLVMValueRef *out, const char *message)
 {
-    (void)recovery;
-
     if (ctx != NULL && !ctx->has_error) {
         llvm_set_error_at_with_hints(ctx, node,
             PGY_CODE_LLVM_TYPE_UNSUPPORTED,
@@ -132,7 +129,6 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
         elem_ty = pergyra_type_to_llvm(ctx, inner_name);
         if (elem_ty == NULL)
             return llvm_collection_base_error_out(ctx, node, out,
-                LLVMConstInt(ctx->type_i32, 0, 0),
                 "LLVM ListNew() requires concrete element LLVM type metadata");
         fn = llvm_required_collection_function(ctx, node, callee_name,
             "pgy_list_new_raw_export");
@@ -143,7 +139,6 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
         tmp = llvm_create_entry_alloca(ctx, list_ty, llvm_tmp_name(ctx));
         if (tmp == NULL)
             return llvm_collection_base_error_out(ctx, node, out,
-                LLVMConstInt(ctx->type_i32, 0, 0),
                 "LLVM ListNew() could not allocate list temporary");
         LLVMBuildStore(ctx->builder, LLVMConstNull(list_ty), tmp);
         LLVMValueRef args[] = {
@@ -193,7 +188,6 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
         elem_ty = pergyra_type_to_llvm(ctx, inner_name);
         if (elem_ty == NULL)
             return llvm_collection_base_error_out(ctx, node, out,
-                LLVMConstInt(ctx->type_i32, 0, 0),
                 "LLVM SetNew() requires concrete element LLVM type metadata");
         fn = llvm_required_collection_function(ctx, node, callee_name,
             "pgy_set_new_raw_export");
@@ -204,7 +198,6 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
         tmp = llvm_create_entry_alloca(ctx, set_ty, llvm_tmp_name(ctx));
         if (tmp == NULL)
             return llvm_collection_base_error_out(ctx, node, out,
-                LLVMConstInt(ctx->type_i32, 0, 0),
                 "LLVM SetNew() could not allocate set temporary");
         LLVMBuildStore(ctx->builder, LLVMConstNull(set_ty), tmp);
         LLVMValueRef args[] = {
@@ -225,7 +218,7 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
         LLVMValueRef tmp;
         LLVMFuncEntry *fn;
         set_var = llvm_collection_required_receiver_var(ctx, node, set_arg,
-            callee_name, "collection", LLVMConstInt(ctx->type_i32, 0, 0), out);
+            callee_name, "collection", out);
         if (set_var == NULL)
             return true;
         inner_name = llvm_lookup_set_inner(ctx, ast_identifier_name(set_arg));
@@ -238,7 +231,6 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
         value = llvm_emit_expression(ast_call_argument(node, 1), ctx);
         if (value == NULL)
             return llvm_collection_base_error_out(ctx, node, out,
-                LLVMConstInt(ctx->type_i32, 0, 0),
                 "LLVM SetAdd could not lower value expression");
         if (LLVMTypeOf(value) != elem_ty) {
             if ((elem_ty == ctx->type_i32 || elem_ty == ctx->type_i64)
@@ -266,7 +258,6 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
         tmp = llvm_create_entry_alloca(ctx, elem_ty, llvm_tmp_name(ctx));
         if (tmp == NULL)
             return llvm_collection_base_error_out(ctx, node, out,
-                LLVMConstInt(ctx->type_i32, 0, 0),
                 "LLVM SetAdd could not allocate element temporary");
         LLVMBuildStore(ctx->builder, value, tmp);
         fn = llvm_required_collection_function(ctx, node, callee_name,
@@ -294,7 +285,7 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
         LLVMValueRef tmp;
         LLVMFuncEntry *fn;
         set_var = llvm_collection_required_receiver_var(ctx, node, set_arg,
-            callee_name, "collection", LLVMConstInt(ctx->type_i1, 0, 0), out);
+            callee_name, "collection", out);
         if (set_var == NULL)
             return true;
         inner_name = llvm_lookup_set_inner(ctx, ast_identifier_name(set_arg));
@@ -307,7 +298,6 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
         value = llvm_emit_expression(ast_call_argument(node, 1), ctx);
         if (value == NULL)
             return llvm_collection_base_error_out(ctx, node, out,
-                LLVMConstInt(ctx->type_i1, 0, 0),
                 "LLVM SetHas could not lower value expression");
         if (LLVMTypeOf(value) != elem_ty) {
             if ((elem_ty == ctx->type_i32 || elem_ty == ctx->type_i64)
@@ -337,7 +327,6 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
         tmp = llvm_create_entry_alloca(ctx, elem_ty, llvm_tmp_name(ctx));
         if (tmp == NULL)
             return llvm_collection_base_error_out(ctx, node, out,
-                LLVMConstInt(ctx->type_i1, 0, 0),
                 "LLVM SetHas could not allocate element temporary");
         LLVMBuildStore(ctx->builder, value, tmp);
         fn = llvm_required_collection_function(ctx, node, callee_name,
@@ -367,7 +356,7 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
         LLVMValueRef tmp;
         LLVMFuncEntry *fn;
         set_var = llvm_collection_required_receiver_var(ctx, node, set_arg,
-            callee_name, "collection", LLVMConstInt(ctx->type_i32, 0, 0), out);
+            callee_name, "collection", out);
         if (set_var == NULL)
             return true;
         inner_name = llvm_lookup_set_inner(ctx, ast_identifier_name(set_arg));
@@ -380,7 +369,6 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
         value = llvm_emit_expression(ast_call_argument(node, 1), ctx);
         if (value == NULL)
             return llvm_collection_base_error_out(ctx, node, out,
-                LLVMConstInt(ctx->type_i32, 0, 0),
                 "LLVM SetRemove could not lower value expression");
         if (LLVMTypeOf(value) != elem_ty) {
             if ((elem_ty == ctx->type_i32 || elem_ty == ctx->type_i64)
@@ -408,7 +396,6 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
         tmp = llvm_create_entry_alloca(ctx, elem_ty, llvm_tmp_name(ctx));
         if (tmp == NULL)
             return llvm_collection_base_error_out(ctx, node, out,
-                LLVMConstInt(ctx->type_i32, 0, 0),
                 "LLVM SetRemove could not allocate element temporary");
         LLVMBuildStore(ctx->builder, value, tmp);
         fn = llvm_required_collection_function(ctx, node, callee_name,
@@ -432,7 +419,7 @@ llvm_emit_collection_base_call(ASTNode *node, LLVMGenCtx *ctx,
         LLVMVarEntry *set_var;
         LLVMFuncEntry *fn;
         set_var = llvm_collection_required_receiver_var(ctx, node, set_arg,
-            callee_name, "collection", LLVMConstInt(ctx->type_i32, 0, 0), out);
+            callee_name, "collection", out);
         if (set_var == NULL)
             return true;
         fn = llvm_required_collection_function(ctx, node, callee_name,

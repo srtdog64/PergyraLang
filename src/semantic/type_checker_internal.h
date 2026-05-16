@@ -365,7 +365,7 @@ void semantic_type_resolution_precollect_body_type_refs(ASTNode *stmt,
                                                         const char *owner_name);
 void semantic_type_resolution_precollect_action_contract(ASTNode *method,
                                                          SemanticContext *ctx,
-                                                         const char *fallback_name);
+                                                         const char *owner_name_hint);
 void semantic_type_resolution_precollect_ability_inventory(ASTNode *ability_decl,
                                                            SemanticContext *ctx);
 void semantic_type_resolution_precollect_role_inventory(ASTNode *role_decl,
@@ -415,6 +415,7 @@ bool semantic_check_body_flow_summary(ASTNode *body,
 bool semantic_check_body_flow(ASTNode *body,
                               SemanticContext *ctx,
                               bool *must_return_out);
+void semantic_maybe_print_type_resolution_stats(SemanticContext *ctx);
 void semantic_type_resolution_precollect_relation_inventory(ASTNode *relation_decl,
                                                             SemanticContext *ctx);
 void semantic_type_resolution_precollect_effect_inventory(ASTNode *effect_decl,

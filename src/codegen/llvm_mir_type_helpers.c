@@ -8,6 +8,7 @@
 
 #include <string.h>
 
+#include "codegen_slot_type_policy.h"
 #include "llvm_internal_api.h"
 
 LLVMTypeRef
@@ -185,7 +186,8 @@ llvm_mir_boundary_slot_inner_name(LLVMGenCtx *ctx, FuncParam *param,
         return NULL;
 
     type_name = ast_type_name(param->type);
-    if (strcmp(type_name, "Slot") != 0 && strcmp(type_name, "SecureSlot") != 0)
+    if (!pgy_codegen_type_name_is_slot(type_name)
+        && !pgy_codegen_type_name_is_secure_slot(type_name))
         return NULL;
 
     generic_args = ast_type_generic_args(param->type);
@@ -200,7 +202,7 @@ llvm_mir_boundary_slot_inner_name(LLVMGenCtx *ctx, FuncParam *param,
         return NULL;
 
     if (is_secure_out != NULL)
-        *is_secure_out = (strcmp(type_name, "SecureSlot") == 0);
+        *is_secure_out = pgy_codegen_type_name_is_secure_slot(type_name);
     return inner_name;
 }
 

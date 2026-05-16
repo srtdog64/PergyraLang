@@ -16,5 +16,7 @@ bool ast_print_domain_node(ASTNode *node, int indent);
 bool ast_print_event_node(ASTNode *node, int indent);
 bool ast_print_expr_node(ASTNode *node, int indent);
 bool ast_print_intent_node(ASTNode *node, int indent);
+bool ast_print_world_node(ASTNode *node, int indent);
+bool ast_print_zone_node(ASTNode *node, int indent);
 
 #endif

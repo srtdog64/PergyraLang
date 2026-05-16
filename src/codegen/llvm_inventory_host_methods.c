@@ -108,6 +108,14 @@ llvm_hosted_method_view_from_decl(const LLVMGenCtx *ctx,
         case AST_ROSTER_DECL:
             ast_compat_methods = ast_roster_methods(decl, &ast_compat_count);
             break;
+        case AST_ROLE_DECL:
+            if (ctx != NULL && ctx->mir != NULL) {
+                if (!ast_role_impl_method_total_count(
+                        decl, &ast_compat_count)) {
+                    ast_compat_count = (size_t)-1;
+                }
+            }
+            break;
         case AST_WORLD_DECL:
             ast_compat_methods = ast_world_methods(decl, &ast_compat_count);
             break;

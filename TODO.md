@@ -50,11 +50,143 @@ English anchor for tooling/doc gates:
   drifts that become semantically valid instead of pre-AIR rejected.
 - AIR text dump and driver diagnostic evidence summaries now read provider /
   subject provenance from `AIREvidenceNode` inventory instead of reopening
-  legacy boundary summary name fields. The shared
+  boundary summary name fields. The shared
   `air_boundary_evidence_node/provider/subject` accessors are now the read seam
   for user-facing evidence details. The summary booleans remain compatibility
   telemetry; EvidenceNode inventory is the display and verification source of
   truth for AIR evidence details.
+- AIR boundary evidence shape validation now has a dedicated owner:
+  `src/compiler/air_validate_boundary_evidence.c` owns boundary-scoped
+  HIR/RIR/MIR evidence shape checks, provider lookups, and same-boundary
+  matching. `air_validate_evidence.c` remains the inventory/duplicate/counting
+  owner, so strict AIR evidence validation no longer mixes inventory traversal
+  with boundary compatibility policy. Gates: `test-air`, `air-drift-test-smoke`,
+  and `air-json-schema-test-smoke`.
+- AIR boundary evidence requirement policy now has a single owner:
+  `src/compiler/air_boundary_evidence_policy.c` owns the HIR routine, HIR CFG,
+  RIR boundary, and MIR pin-cleanup requirement matrix. `air_validate.c` and
+  `air_verify.c` consume that policy instead of restating boundary/evidence
+  switches locally. Gates: `make pgy`, `air-drift-test-smoke`, and
+  `perf-contract-test-smoke`.
+- MIR statement source materialization now has a dedicated owner:
+  `src/compiler/mir_stmt_population_source.c` owns DEF matching, source
+  statement instruction construction, loop-init instruction construction, and
+  semantic-carrier classification. `mir_stmt_population.c` is reduced to CFG
+  source-order interleaving and block rewrite orchestration. Gates:
+  `make pgy`, `test-mir`, `cfg-body-dataflow-test-smoke`, and
+  `build-source-inventory-test-smoke`.
+- RIR scope storage now has a dedicated owner:
+  `src/compiler/rir_scope_storage.c` owns scope/fact/op/state-summary array
+  growth, formatted diagnostic string allocation, and flow-block cleanup.
+  `rir_facts.c` is reduced to RIR resource/projection/authority/policy/op fact
+  construction. Gates: `make pgy`, `test-rir`, and
+  `build-source-inventory-test-smoke`.
+- RIR/DIR contract validation now has a dedicated owner:
+  `src/compiler/rir_validation_dir.c` owns DIR slot-contract, authority
+  capability, and projection-source cross-checks against lowered RIR facts.
+  `rir_validation.c` is reduced to RIR-internal fact/op/flow validation, so
+  DIR compatibility no longer reopens the core RIR validator owner. Gates:
+  `make pgy`, `test-rir`, `build-source-inventory-test-smoke`, and
+  `test-inc-size-test-smoke`.
+- Projection field diagnostics now have a dedicated semantic owner:
+  `src/semantic/type_checker_domain_projection_fields.c` owns explicit field
+  maps, duplicate target fields, ambiguous source paths, missing source fields,
+  and field type compatibility diagnostics. `type_checker_domain_projection.c`
+  is reduced to projection slot/kind/source-host contract selection. Gates:
+  `make pgy`, `projection-diagnostic-contract-test-smoke`, and
+  `build-source-inventory-test-smoke`.
+- AST domain print ownership now splits world and zone surfaces into dedicated
+  parser owners: `src/parser/ast_print_world.c` owns world/systemic/zone/state
+  print nodes, and `src/parser/ast_print_zone.c` owns zone slot, lifecycle,
+  authority, and state print nodes. `ast_print_domain.c` remains the domain
+  dispatcher for ability/role/party/roster/relation/effect/shared domain
+  surfaces. Gates: `make pgy`, `test-parser`,
+  `build-source-inventory-test-smoke`, and `test-inc-size-test-smoke`.
+- C stdlib builtin dispatch policy now has a compiled owner:
+  `src/codegen/transpiler_expr_stdlib_builtin_policy.c` owns Array builtin,
+  scalar stdlib builtin, and `ToString` type-kind lookup tables.
+  `transpiler_expr_stdlib_builtin.h` is reduced to expression emission and
+  metadata validation instead of embedding static dispatch tables in the
+  emitter header. Gates: `make pgy`, `test-transpile`,
+  `build-source-inventory-test-smoke`, and `test-inc-size-test-smoke`.
+- Compiler process execution now has a dedicated owner:
+  `src/compiler/compiler_process.c` owns safe argv execution, silent tool
+  probing, Windows command quoting, and Windows `/tmp`/drive path normalization.
+  `compiler_toolchain.c` is reduced to compiler-selection, timing, linker, and
+  path-safety policy. Gates: `make pgy`, `build-source-inventory-test-smoke`,
+  and `test-inc-size-test-smoke`.
+- Driver usage text now has a dedicated owner:
+  `src/compiler/driver_usage.c` owns `pgy --help` / CLI usage text while
+  `driver_app.c` remains the pipeline orchestration owner. This keeps the
+  driver owner focused on IR lowering, validation, AIR evidence, and backend
+  dispatch instead of mixing command help text into the execution path. Gates:
+  `make pgy`, `build-source-inventory-test-smoke`, and
+  `test-inc-size-test-smoke`.
+- Runtime intent recent observability exports now have a dedicated owner:
+  `src/runtime/pgy_runtime_lib_intent_recent_exports.h` owns the recent ring
+  count/handle/trace/name/failure/step-count exports while
+  `pgy_runtime_lib_intent_exports.h` keeps last/history/active export
+  orchestration. The redundant-clause warning now ignores `who` values derived
+  by intent compression (`on` receiver or single participant), so compressed
+  intent fixtures do not fail clean-compile observability gates. Gates:
+  `make pgy`, `observability-schema-test-smoke` with the C backend,
+  `intent-compression-contract-test-smoke`, `build-source-inventory-test-smoke`,
+  and `test-inc-size-test-smoke`.
+- LLVM aggregate expression lowering now has a dedicated owner:
+  `src/codegen/llvm_expr_aggregate.c` owns tuple literals, array literals, and
+  array/slice/string/pointer indexed access. `llvm_expr.c` is reduced to the
+  central expression dispatcher plus context/party/lambda/event fallback
+  surfaces. Gates: `make pgy`, `llvm-test-smoke`,
+  `build-source-inventory-test-smoke`, and `test-inc-size-test-smoke`.
+- LLVM intent predicate checks now share one support owner:
+  `llvm_emit_intent_predicate_check(...)` owns pre/guard/expect/post and
+  invariant success/failure branch emission. `llvm_intent.c` stays focused on
+  intent orchestration and step sequencing instead of repeating the same
+  failure-reason and branch lowering blocks for each predicate phase. Gate:
+  `make pgy`.
+- C MIR block emission no longer owns source-local let materialization inline:
+  `transpiler_mir_preserved_let_emit.h` now owns source-local `AST_LET_DECL`
+  DEF lowering, including Result `?` propagation, Slot/View/Channel fallback,
+  and SSA map/type registration. `transpiler_mir_block_emit.h` is reduced to
+  block scheduling and per-instruction dispatch. This is a responsibility split
+  inside the existing C backend include owner; compiled-owner promotion remains
+  a later seam because `transpiler.c` still exposes many emitter functions as
+  translation-unit local dependencies. Gate: `make pgy`.
+- LLVM intent forward declaration now has a dedicated owner:
+  `src/codegen/llvm_intent_forward.c` owns MIR-backed intent signature and
+  participant/value parameter declaration, while `llvm_intent_flow.c` is reduced
+  to MIR intent routine lookup, step metadata collection, resource hooks, and
+  authority validation. This narrows the declaration-bootstrap seam without
+  changing the public LLVM pipeline API. Gate: `make pgy`.
+- MIR instruction surface-usage validation now has a dedicated owner:
+  `src/compiler/mir_fact_surface_validate.c` owns source-statement emit facts,
+  channel/select receive facts, with-slot ABI layout checks, and thread-pool /
+  intent-observability surface fact freshness. `mir_fact_validate.c` is reduced
+  to allocation helpers, inventory surface usage, statement inventory, and
+  routine-level validation orchestration. Gate: `make pgy`.
+- AIR drift storage now has a dedicated owner: `src/compiler/air_drift.c` owns
+  drift allocation, clearing, and formatted append. `air_verify.c` is narrowed
+  to strict verification rules and no longer owns AIRProgram drift buffer
+  growth. Gates: `test-air`, `air-drift-test-smoke`,
+  `build-source-inventory-test-smoke`, and `test-inc-size-test-smoke`.
+- CFG parallel/defer body-flow implementation now has a compiled owner:
+  `src/semantic/type_checker_flow_parallel.c` owns defer cleanup boundary checks
+  and parallel task resource joins. The former implementation header is
+  removed, so `type_checker_flow.c` dispatches to a linked semantic owner
+  instead of including a body header. Gates: `test-semantic` and
+  `cfg-body-dataflow-test-smoke`.
+- Type-resolution program stats now have a dedicated owner:
+  `src/semantic/type_checker_program_stats.c` owns `PGY_TYPE_RES_STATS`
+  formatting, duplicate-label counting, in-degree reporting, and DAG evidence
+  counter output. `type_checker_program.c` is reduced to top-level semantic
+  orchestration plus graph validation/worklist sequencing. Gates:
+  `test-semantic` and `type-resolution-dag-test-smoke`.
+- The perf/debt contract smoke was resynchronized with the current owner split
+  and accessor seams. It now checks collection constructor lowering in
+  `transpiler_let_collection_emit.h`, composite literal lowering in
+  `transpiler_expr_composite_literal_emit.h`, select lowering in
+  `llvm_stmt_select.c`, and AST accessor-based return/type reads instead of
+  stale direct-payload grep strings. Gate: `perf-contract-test-smoke`.
 - Function declaration return checking now consumes `SemanticBodyFlowSummary`
   through `semantic_check_body_flow_summary(...)` instead of a bare boolean.
   `PGY_SEM_MISSING_RETURN` diagnostics expose the CFG summary facts
@@ -107,11 +239,52 @@ English anchor for tooling/doc gates:
   emission plus task-runtime function diagnostics. `llvm_expr_task_channel_calls.c`
   is reduced to channel operation lowering, so task cancellation no longer shares
   the same owner as `Channel<T>` metadata and query dispatch.
+- LLVM task/channel operation lowering now enters through a table-driven
+  operation contract: `kTaskChannelOpSpecs` maps `ChannelClose`, `TryRecv`,
+  `RecvTimeout`, `TrySend`, `TrySendStatus`, `SendTimeout`, and
+  `SendTimeoutStatus` to arity-checked enum operations before the existing
+  lowering bodies run. The name/query tables remain separate, and
+  `perf_contract_smoke` now gates the operation table plus sorted bsearch
+  invariant so direct operation-selection `strcmp` chains do not return.
 - LLVM MIR match-condition lowering now has a dedicated owner:
   `src/codegen/llvm_mir_match_condition.c` owns match subject discovery plus
   Option/Result destructor pattern lowering. `llvm_mir_cfg_control.c` is reduced
   to CFG-container classification, select readiness, and channel receive DEF
   lowering, keeping match semantics separate from channel/select control flow.
+- LLVM MIR match-condition owner now includes the full LLVM internal context
+  boundary instead of including the private declaration-only API directly. This
+  keeps the owner buildable as a normal codegen translation unit and prevents
+  incomplete `ASTNode` / `LLVMGenCtx` / `LLVMValueRef` type drift. Gate:
+  `LLVM_ENABLED=1 pgy`.
+- Role hosted-method declaration metadata is no longer a method-count exception.
+  `ast_role_impl_method_total_count(...)` is the shared parser-owned count seam
+  for role impl-ability methods; `MIRDeclHeader` validation and C/LLVM
+  hosted-method views consume that same accessor and require
+  `method_count == method_metadata_count` like other hosted declarations. A
+  missing role declaration header therefore fails closed instead of silently
+  producing an empty role method view. Gates:
+  `test-mir`, `mir-declaration-inventory-test-smoke`, `perf-contract-test-smoke`,
+  and `LLVM_ENABLED=1 pgy`.
+- MIR inventory surface-usage calculation now has a single summary seam:
+  `mir_inventory_surface_usage_summary(...)` computes thread-pool and
+  intent-observability usage together, `mir_program_record_inventory_surface_usage`
+  stores that summary, and `mir_validate_inventory_surface_usage` validates
+  against the same summary instead of rewalking inventory separately for each
+  bit. This keeps the no-trace / thread-pool dependency facts under one MIR
+  source-of-truth entry point. Gates: `test-mir`, `perf-contract-test-smoke`,
+  `parallel-core-contract-test-smoke`, `build-source-inventory-test-smoke`, and
+  `source-utf8-test-smoke`.
+- Codegen runtime-usage consumers now treat recorded MIR inventory surface
+  facts as terminal true/false decisions. Intent-observability and thread-pool
+  codegen only scan routine payloads when the program-level MIR fact is absent,
+  preserving legacy hand-built MIR fixtures without letting normal lowered MIR
+  rediscover surface usage from AST payloads. Gate: `perf-contract-test-smoke`.
+- MIR declaration-header method metadata now has a single initializer helper:
+  hosted methods and role impl-ability methods both populate `MIRDeclMethod`
+  through `mir_decl_method_metadata_init(...)`, removing the duplicated
+  source/owner/signature/action/zone field copy path. Gates:
+  `mir-declaration-inventory-test-smoke`, `test-mir`, and
+  `perf-contract-test-smoke`.
 - LLVM collection extended diagnostics now route through the collection-require
   owner: `llvm_collection_extended_error_out(...)` moved to
   `src/codegen/llvm_expr_call_collections_require.c`, reducing the extended
@@ -205,7 +378,7 @@ English anchor for tooling/doc gates:
   `ast_identifier_name`. Remaining semantic direct identifier payload reads are
   down to 41 and are concentrated in large expression/constructor/type-infer
   owners plus the ownership-let body.
-- Type inference fallback, expression host static-access detection, and the
+- Type inference utility, expression host static-access detection, and the
   remaining ownership-let body paths now consume `ast_identifier_name`.
   Remaining semantic direct identifier payload reads are down to 33 and are
   concentrated in the central expression, expression-call, constructor, and
@@ -640,7 +813,7 @@ English anchor for tooling/doc gates:
   constructed-argument helper moved out of `type_checker.c`, and the first
   channel transport, SecureToken, Slot read/write/move builtins, Slot view,
   stdlib collection/map builtins, assignment, event, and symbol-table consumers
-  plus the lightweight type-inference fallback, resource-handle classification,
+  plus the lightweight type-inference utility, resource-handle classification,
   host slot transfer compatibility checks, and late callable signature checks
   plus operator-overload/slot-normalization, lambda function effect mutation,
   function declaration effect/slot registration, ownership-let, generic
@@ -2537,9 +2710,9 @@ English anchor for tooling/doc gates:
   `NO`) while keeping strict evidence enabled by default. Gate:
   `air-drift-test-smoke`.
 - 2026-05-11 AIR evidence owner split follow-up:
-  legacy boundary summary-shape validation moved out of the first-class
+  boundary summary-shape validation moved out of the first-class
   `AIREvidenceNode` inventory validator into
-  `src/compiler/air_validate_legacy_evidence.c`. The main evidence inventory
+  `src/compiler/air_validate_boundary_summary.c`. The main evidence inventory
   owner is now back down to 504 LOC and only owns authoritative evidence lookup,
   global/boundary evidence counters, duplicate detection, and inventory shape
   validation. Gates: targeted object builds for both owners, `test-air`
@@ -3896,9 +4069,9 @@ Progress log, 2026-05-08:
   `test-air` (87/0), `air-drift-test-smoke`, `perf-contract-test-smoke`.
 - Moved AIR boundary evidence lookup out of the verifier:
   `air_boundary_has_evidence(...)` now lives in `air_validate_evidence.c`, so
-  legacy summary fallback remains inside the evidence owner instead of being
+  boundary summary fallback remains inside the evidence owner instead of being
   duplicated in the global verifier. `air_verify.c` consumes the same accessor
-  as dumps/driver diagnostics, and the smoke gate rejects direct legacy summary
+  as dumps/driver diagnostics, and the smoke gate rejects direct boundary summary
   flag reads from verifier code. Gates: `test-air` (87/0),
   `air-drift-test-smoke`, `perf-contract-test-smoke`.
 - Centralized AIR step AST provenance:
@@ -3980,10 +4153,10 @@ Progress log, 2026-05-08:
   instead of open-coded `method->data.func_decl.name` reads in each bridge
   site. Gate: `mir-declaration-inventory-test-smoke`.
 - Tightened AIR evidence ownership one more step:
-  `air-drift-test-smoke` now rejects direct reads of the legacy
+  `air-drift-test-smoke` now rejects direct reads of the boundary summary
   `AIRBoundaryNode.has_*_evidence` summary booleans outside the AIR evidence /
   validation / verification owners. New compiler/backend consumers must use
-  `air_boundary_has_evidence(...)` or EvidenceNode inventory, so legacy summary
+  `air_boundary_has_evidence(...)` or EvidenceNode inventory, so boundary summary
   flags cannot become a second source of truth again. Gate:
   `air-drift-test-smoke` (`test-air` 87/0).
 - Narrowed AIR verification to the shared evidence accessor:
@@ -3992,7 +4165,7 @@ Progress log, 2026-05-08:
   boundary, HIR routine/CFG, authority, and MIR pin-cleanup checks now consume
   `air_boundary_has_evidence(...)` / subject-specific EvidenceNode lookup
   directly. The drift smoke rejects reintroducing the removed helper and also
-  restricts legacy summary flag reads in `air_verify.c` to the shared accessor
+  restricts boundary summary flag reads in `air_verify.c` to the shared accessor
   body, so verifier checks cannot bypass the EvidenceNode seam again. Gate:
   `air-drift-test-smoke` (`test-air` 87/0).
 - Hardened CFG/MIR contract validation against malformed MIR:
@@ -4081,12 +4254,12 @@ Progress log, 2026-05-08:
   `stage_materialize_non_alias=0`. Gates: `perf-contract-test-smoke`,
   `type-resolution-dag-test-smoke`, and
   `type-resolution-resolver-inventory-test-smoke`.
-- Moved AIR legacy summary evidence-shape validation behind the evidence owner:
+- Moved AIR boundary summary evidence-shape validation behind a dedicated owner:
   `air_validate(...)` no longer reads `AIRBoundaryNode.has_*_evidence` summary
   booleans directly. Boundary evidence provenance/shape checks now live in
-  `air_validate_boundary_legacy_evidence_shape(...)` inside
-  `src/compiler/air_validate_legacy_evidence.c`, and `air-drift-test-smoke`
-  rejects summary-flag reads escaping the legacy evidence / synthesis /
+  `air_validate_boundary_summary_shape(...)` inside
+  `src/compiler/air_validate_boundary_summary.c`, and `air-drift-test-smoke`
+  rejects summary-flag reads escaping the boundary-summary / synthesis /
   verification owners.
   This keeps AIR validation closer to the first-class `AIREvidenceNode` source
   of truth while preserving compatibility summaries for dumps and driver
@@ -4139,8 +4312,10 @@ Progress log, 2026-05-08:
   LLVM no longer falls back to `llvm_mir_stmt_is_cfg_container(inst->ast)` when
   source-location facts are missing, and the C backend now skips CFG-owned
   source statements only through `transpiler_mir_inst_is_cfg_container(...)`,
-  which requires matching `source_ast_type` facts. This keeps CFG-owned
-  statement suppression fact-driven instead of AST-shape rediscovery. Gates:
+  which requires matching `source_ast_type` facts and consumes
+  `mir_instruction_source_is_cfg_container(...)`. The old C-side duplicate AST
+  CFG-container policy has been removed, keeping CFG-owned statement
+  suppression fact-driven instead of AST-shape rediscovery. Gates:
   `test-transpile` (745/0) and `perf-contract-test-smoke`.
 - Locked the source-branch drift regression:
   the MIR negative test for source-compatible branches now covers mismatched
@@ -5352,7 +5527,7 @@ Progress log, 2026-05-04:
   `air_evidence_inventory_is_authoritative(...)` policy, so real HIR/RIR/MIR
   input and explicit evidence inventories cannot drift through separate legacy
   summary-flag checks. Follow-up validator tightening makes the same rule an
-  `air_verify(...)` invariant: with real HIR/RIR/MIR input, legacy summary flags
+  `air_verify(...)` invariant: with real HIR/RIR/MIR input, boundary summary flags
   without matching `AIREvidenceNode` inventory are rejected before drift
   checking. Gates: `test-air` (`77/0`), `air-drift-test-smoke`,
   `air-json-schema-test-smoke`, and `air-backend-nonimpact-full-test-smoke`.
@@ -6982,9 +7157,9 @@ dispatch / semantic lookup / runtime data structure 3축 결과 통합. *정확�
   appending repeated identical evidence. Gate: `make test-air` (`74/0`) and
   `air-drift-test-smoke`.
 - Follow-up AIR evidence read closure: `air_boundary_has_evidence(...)` now
-  ignores legacy boundary summary booleans when real HIR/RIR/MIR input is
+  ignores boundary summary booleans when real HIR/RIR/MIR input is
   attached and no evidence inventory exists. Compatibility fixtures without
-  real input may still use legacy flags. Gate: `make test-air` (`74/0`) and
+  real input may still use summary flags. Gate: `make test-air` (`74/0`) and
   `air-drift-test-smoke`.
 - Follow-up CFG/MIR guard: the non-CFG statement population helper now rejects
   CFG-backed HIR routines if it is called accidentally. This keeps non-CFG
@@ -7034,7 +7209,7 @@ dispatch / semantic lookup / runtime data structure 3축 결과 통합. *정확�
   strict HIR/RIR/MIR evidence by themselves once inventory nodes exist.
 - AIR consumer migration step: `air_boundary_has_evidence(...)` is now the
   public boundary evidence query. Driver diagnostics and AIR dumps use it, so
-  user-facing AIR output consumes evidence inventory before legacy cached flags.
+  user-facing AIR output consumes evidence inventory before cached summary flags.
 - AIR now has the first MIR evidence seam: `air_collect_mir_evidence(...)`
   records `pin-unpin-cleanup-edge` as `AIR_EVIDENCE_MIR_PIN_CLEANUP` for the
   matching AIR `pin` execution boundary. AIR still does not create or validate
@@ -11968,7 +12143,8 @@ Local verification for this debt refresh:
 - C and LLVM backend entry points no longer re-scan the synthetic
   `__pgy_top_level_exec` AST body. Top-level executable code must appear in the
   MIR routine inventory, so thread-pool detection now has one backend entry
-  contract: iterate MIR routines and consume `pgy_mir_routine_uses_thread_pool`.
+  contract: iterate MIR routines through the private thread-pool usage owner
+  and expose only `pgy_mir_program_uses_thread_pool` to backend entrypoints.
 - Closed in this slice: the source-only block fallback was removed from
   `thread_pool_usage.c`. If a future construct needs the runtime thread pool,
   it must be materialized as MIR instruction-carried provenance.
@@ -12824,3 +13000,331 @@ Local verification for this debt refresh:
   visibility/arity/where-bound enforcement locally. Local MinGW verification:
   `type-resolution-resolver-inventory-test-smoke`,
   `type-resolution-dag-test-smoke`.
+- Split CFG branch/join body-flow ownership: `type_checker_flow.c` now keeps the
+  recursive body-flow dispatcher, block sequencing, with-scope flow, namespace
+  flow, and public summary entrypoints, while
+  `type_checker_flow_branch.c` owns `if`/`match` branch snapshots, effect
+  joins, dynamic-defer rejection, and match subject beta-surface checks. This
+  keeps branch/join policy out of the dispatcher without changing the CFG fact
+  vocabulary. Local MinGW verification: `test-semantic` (`2532/0`).
+- Tightened local WSL/Git-Bash smoke path classification:
+  `tests/pgy_binary_path_helpers.sh` owns the shared compiler-binary/path
+  decision, and `cfg_body_dataflow_smoke.sh`, `air_json_schema_smoke.sh`, and
+  `air_backend_nonimpact_smoke.sh`, `runtime_none_contract_smoke.sh`, and
+  `runtime_frontier_contract_smoke.sh` no longer treat a `.exe` suffix as proof
+  that the compiler expects native Windows paths. If `file(1)` reports an
+  ELF/Mach-O binary, the smoke keeps POSIX paths even when the filename ends in
+  `.exe`. This prevents false compiler failures when `bin/pgy.exe` is a WSL ELF
+  copy. Local verification: `cfg-body-dataflow-test-smoke`,
+  `air-json-schema-test-smoke`, `air-backend-nonimpact-smoke`,
+  `runtime-none-contract-smoke`, `runtime-frontier-contract-smoke`,
+  `build-source-inventory-test-smoke`.
+- Tightened codegen runtime-usage consumption: intent observability detection
+  now short-circuits on validated MIR inventory surface facts before scanning
+  routine bodies, matching the thread-pool fast path and keeping declaration
+  surface usage as a consumed MIR fact rather than a rediscovered codegen
+  property. Local verification: `perf-contract-test-smoke`, `make pgy`.
+- Renamed the remaining codegen payload-probe seam from legacy wording to
+  fixture compatibility wording. Intent-observability and thread-pool usage
+  still keep expression-payload probing only for hand-built MIR fixtures without
+  HIR provenance, but normal lowered MIR must consume validated surface facts.
+  Local verification: `perf-contract-test-smoke`, `source-utf8-test-smoke`.
+- Renamed AIR boundary summary validation from legacy wording to the current
+  summary-flag contract: `air_validate_boundary_summary.c` now owns
+  `air_validate_boundary_summary_shape(...)`, and AIR tests/smokes name cached
+  summary flags as compatibility summaries rather than a live legacy path.
+  Local verification: `air-drift-test-smoke`, `perf-contract-test-smoke`,
+  `test-air`.
+- Removed false legacy wording from codegen/slot vocabulary: the C type mapper's
+  built-in alias table is now named `builtin_alias_maps`, and Slot view spellings
+  are documented as parser-adjacent view syntax rather than legacy spellings.
+  Local verification: `perf-contract-test-smoke`, `source-utf8-test-smoke`,
+  `make pgy`.
+- Removed the last false fallback-name seam from DAG signature staging:
+  `semantic_stage_function_signature(...)`,
+  `semantic_stage_method_array(...)`, and
+  `semantic_type_resolution_precollect_action_contract(...)` now call the
+  diagnostic owner-name parameter `owner_name_hint`, clarifying that it is not a
+  resolver fallback path. Local verification:
+  `type-resolution-resolver-inventory-test-smoke`,
+  `type-resolution-dag-test-smoke`, `test-semantic`.
+- Removed remaining false legacy wording from semantic/compiler comments. The
+  diagnostic path now distinguishes uncoded compatibility output from stable
+  diagnostic-code routing, text-mode diagnostics are named as plain-text UX, and
+  intent helper seams refer to the former include-fragment chain explicitly.
+  Local verification: `documentation-quality-test-smoke`,
+  `source-utf8-test-smoke`.
+- Narrowed the LLVM collection receiver validation API: the unused recovery /
+  fallback value parameter was removed from
+  `llvm_collection_required_receiver_var(...)`, and List/Set/HashMap/Queue
+  extended emitters now pass only the receiver contract inputs they actually
+  consume. Local verification: `perf-contract-test-smoke`, `make pgy`.
+- Narrowed the shared LLVM collection extended error API:
+  `llvm_collection_extended_error_out(...)` no longer accepts a synthetic
+  recovery value that it discarded. Failure now exposes the actual contract:
+  report a diagnostic and set `out` to `NULL`. `perf-contract-test-smoke`
+  rejects reintroducing the unused `(void)recovery;` seam in the shared
+  collection error owner.
+- Narrowed the remaining LLVM collection/queue static error helpers:
+  `llvm_collection_base_error_out(...)` and `llvm_queue_error_out(...)` now
+  expose the same diagnostic-plus-`NULL` failure contract and no longer accept
+  discarded recovery values. The perf contract rejects reintroducing the unused
+  recovery casts in those owners. Local verification: `perf-contract-test-smoke`,
+  `make pgy`.
+- Refreshed the production owner-size audit: current non-test `src` production
+  `.c` / `.h` files remain below the 600 LOC split-review threshold. The largest
+  owners are now parser/semantic declaration surfaces (`ast_api.h` 571 LOC,
+  `type_checker_internal.h` 518 LOC) rather than behavior-owning `.inc` or
+  mega-helper files. The active rule stays source-of-truth cohesion, not
+  mechanical splitting.
+- Aligned LLVM List extended-call dispatch with Queue dispatch: List builtins
+  now use a sorted spec table plus `bsearch` instead of an open `strcmp`
+  sequence. This keeps List/Queue collection owners on the same dispatch
+  contract and gives `perf-contract-test-smoke` a regression guard.
+- Aligned LLVM HashMap extended-call dispatch with the same collection dispatch
+  contract: `MapGet` / `MapHas` / `MapKeys` / `MapRemove` / `MapSet` /
+  `MapSize` now enter through `kMapExtendedSpecs` plus `bsearch`, leaving the
+  per-operation lowering bodies unchanged while removing another open
+  `strcmp(callee_name, ...)` chain. Local verification:
+  `perf-contract-test-smoke`, `make pgy`.
+- Aligned LLVM Array builtin dispatch with the same collection dispatch
+  contract: `ArrayLength` / `ArrayPop` / `ArrayPush` / `ArraySet` now enter
+  through `kArrayBuiltinSpecs` plus `bsearch`. The operation bodies are
+  unchanged; the closed dispatch table prevents new Array builtin handling from
+  growing another open `strcmp(callee_name, ...)` chain. Local verification:
+  `perf-contract-test-smoke`, `make pgy`.
+- Aligned C backend Array stdlib dispatch with the same table-driven contract:
+  `ArrayFilter` / `ArrayLength` / `ArrayMap` / `ArrayPop` / `ArrayPush` /
+  `ArrayReverse` / `ArraySet` / `ArraySort` now enter through
+  `kTranspilerArraySpecs` plus `bsearch`, with operation lowering bodies left
+  unchanged. The perf contract now checks both the table and sorted-name
+  invariant so new Array builtins do not reopen the direct `strcmp` chain.
+  Local verification: `perf-contract-test-smoke`, `make pgy`.
+- Aligned C backend channel builtin dispatch with the same table-driven
+  contract: `Cancel` / `ChannelClose` / `IsCancelled` / timeout send/recv /
+  `TryRecv` / `TrySend` now enter through `transpiler_channel_lookup(...)`
+  instead of a direct `strcmp(fn, ...)` chain. Channel query builtins were
+  already table-driven; the perf contract now gates both query and operation
+  tables. Local verification: `perf-contract-test-smoke`, `make pgy`.
+- Aligned C backend misc stdlib dispatch with the same table-driven contract:
+  FSM, timer, cooldown, and string-map helper builtins now enter through
+  `kTranspilerMiscSpecs` plus `bsearch`. `FsmNew` preserves its existing
+  argc-agnostic behavior through the `(size_t)-1` table sentinel, while the
+  rest of the lowering bodies remain unchanged. Local verification:
+  `perf-contract-test-smoke`, `make pgy`.
+- Aligned C backend scalar/string stdlib dispatch with the same table-driven
+  contract: scalar aliases such as `Contains` / `StringContains`, `Concat` /
+  `StringConcat`, and trim/case/split/join pairs now enter through
+  `kTranspilerScalarSpecs` plus `bsearch`. The existing scalar-unary table is
+  retained, and `PI` / `Random` preserve their previous loose arity behavior
+  through the table sentinel. Local verification: `perf-contract-test-smoke`,
+  `make pgy`.
+- Closed the remaining direct C stdlib builtin dispatch in
+  `transpiler_expr_stdlib_builtin.h`: `Clone`, `Print`, and `ToString` now use
+  `kTranspilerStdlibSpecs` plus `bsearch` after scalar/array/channel handling.
+  This leaves the C stdlib owner family on table-driven dispatch rather than
+  ad-hoc `strcmp(fn, ...)` checks. Local verification:
+  `perf-contract-test-smoke`, `make pgy`.
+- Aligned LLVM task runtime dispatch with the same table-driven contract:
+  `Cancel` and `IsCancelled` now use `kTaskRuntimeSpecs` plus `bsearch` for
+  both builtin-name classification and arity-specific lowering. This keeps task
+  runtime detection from drifting away from the task/channel dispatch tables.
+  Local verification: `perf-contract-test-smoke`, `make pgy`.
+- Aligned LLVM task/channel operation dispatch with the same table-driven
+  contract: `ChannelClose`, `TryRecv`, `RecvTimeout`, `TrySend`,
+  `TrySendStatus`, `SendTimeout`, and `SendTimeoutStatus` now enter through
+  `kTaskChannelOpSpecs` plus arity-checked enum selection before the existing
+  lowering bodies run. Local verification: `perf-contract-test-smoke`,
+  `make pgy`.
+- Aligned LLVM scalar math builtin dispatch with the same table-driven
+  contract: `Abs`, `Min`, and `Max` now enter through `kLLVMMathSpecs` plus
+  `bsearch`, preserving the hardened null-on-failed-operand diagnostics while
+  removing another direct `strcmp(callee_name, ...)` operation chain. Local
+  verification: `perf-contract-test-smoke`, `make pgy`.
+- Aligned LLVM log-family dispatch with the same table-driven contract:
+  `Log`, `LogRaw`, `LogBanner`, and `LogBlock` now enter through
+  `kLLVMLogSpecs` plus `bsearch`, with `LogBlock` explicitly sharing the banner
+  lowering operation. The argument/runtime diagnostics remain unchanged while
+  the operation-selection `strcmp` chain is removed. Local verification:
+  `perf-contract-test-smoke`, `make pgy`.
+- Aligned LLVM Result/Option builtin dispatch with the same table-driven
+  contract: `Ok`, `Err`, `IsOk`, `IsErr`, `Unwrap`, `UnwrapOr`, `Some`,
+  `None`, `IsSome`, `IsNone`, and `UnwrapOption` now enter through
+  `kLLVMResultOptionSpecs` plus arity-checked enum selection. The contextual
+  layout and checked-unwrap diagnostics remain unchanged while the direct
+  operation-selection `strcmp` chain is removed. Local verification:
+  `perf-contract-test-smoke`, `make pgy`.
+- Aligned LLVM Rc/Weak builtin dispatch with the same table-driven contract:
+  `RcNew`, `RcClone`, `RcGet`, `RcDrop`, `RcDowngrade`, `WeakUpgrade`, and
+  `WeakDrop` now enter through `kLLVMRcSpecs` plus enum selection. The
+  owner-detection `out == NULL` protocol and runtime-name/body lowering stay
+  unchanged while the scattered boolean `strcmp` probes are removed. Local
+  verification: `perf-contract-test-smoke`, `make pgy`.
+- Aligned LLVM domain-query builtin dispatch with the same table-driven
+  contract: `HasProjection`, `HasLayer`, `HasState`, `HasZone`, and the
+  `HasZone*` detail queries now enter through `kLLVMDomainQuerySpecs` plus
+  range-checked arity selection. The domain/world/zone field lookup bodies stay
+  unchanged while direct query-name `strcmp` dispatch is removed. Local
+  verification: `perf-contract-test-smoke`, `make pgy`.
+- Aligned LLVM Slot/DeviceSlot builtin dispatch with the same table-driven
+  contract: `Write`, `Read`, `Release`, `DeviceWrite`, `DeviceRead`,
+  `ReleaseDeviceSlot`, and `SubmitDeviceRead` now enter through
+  `kLLVMSlotBuiltinSpecs` plus enum selection. Standalone ClaimSlot rejection,
+  structural slot fallback, secure-token handling, and device runtime bodies
+  stay unchanged while direct operation-name `strcmp` dispatch is removed.
+  Local verification: `perf-contract-test-smoke`, `make pgy`.
+- Aligned LLVM stdlib scalar/io dispatch with the same table-driven contract:
+  `StringLength` / `ToString` special lowering, `SeedRandom` / `File*`
+  runtime calls, and `Print` / `ReadLine` / `Now` / `Sleep` now enter through
+  lookup tables before their existing bodies run. The pre-existing string/file
+  runtime-call table is retained, and the perf contract now gates all four
+  stdlib scalar/io table families. Local verification:
+  `perf-contract-test-smoke`, `make pgy`.
+- Aligned LLVM central inline call dispatch with the same table-driven
+  contract: `Clone`, `ToObject`, and `ToTObject` now enter through
+  `kLLVMCallInlineSpecs` plus arity-checked enum selection before the existing
+  clone/projection bodies run. The fixed inline-call vocabulary now lives in
+  `src/codegen/llvm_expr_call_inline_policy.c`, leaving
+  `llvm_expr_call_dispatch.c` focused on central dispatch and hosted-call
+  lowering. Local verification: `perf-contract-test-smoke`, `make pgy`,
+  `test-inc-size-test-smoke`, `build-source-inventory-test-smoke`.
+- Aligned C backend Result/Option builtin dispatch with the same table-driven
+  contract as the LLVM owner: `Ok`, `Err`, `IsOk`, `IsErr`, `Unwrap`,
+  `UnwrapOr`, `Some`, `None`, `IsSome`, `IsNone`, and `UnwrapOption` now enter
+  through `kTranspilerResultOptionSpecs` plus name-only enum selection. The
+  existing arity/context checks remain in the lowering bodies, so known builtin
+  bad-arity diagnostics do not collapse into unknown-call fallback. Local
+  verification: `perf-contract-test-smoke`, `make pgy`.
+- Aligned C backend let-initializer collection dispatch with the same
+  table-driven contract: Option binding constructors now enter through
+  `kTranspilerLetOptionCtorSpecs`, and `ListNew` / `MapNew` / `QueueNew`
+  lowering enters through `kTranspilerLetCollectionCtorSpecs` before the
+  existing concrete-type and specialization bodies run. The perf contract now
+  rejects direct constructor-name `strcmp` chains in this owner. Local
+  verification: `perf-contract-test-smoke`, `make pgy`.
+- Aligned C backend Box/Rc let-initializer dispatch with the same table-driven
+  contract: `Box`, `BoxArray`, and `Rc` now enter through
+  `kTranspilerBoxLetSpecs` plus enum selection before the existing annotation,
+  class-shadowing, and runtime-body logic runs. The perf contract now rejects
+  direct Box/Rc constructor-name `strcmp` chains in this owner. Local
+  verification: `perf-contract-test-smoke`, `make pgy`.
+- Aligned C backend return-side Option constructor dispatch with the same
+  table-driven contract: `return Some(...)`, `return None()`, and bare
+  `return None` in `Option<T>` functions now consume
+  `kTranspilerReturnOptionCtorSpecs` before the existing concrete payload
+  lowering runs. The perf contract now rejects direct return constructor-name
+  `strcmp` chains in this owner. Local verification: `perf-contract-test-smoke`,
+  `make pgy`.
+- Routed remaining Slot move/read/write/release let-side dispatch through the
+  shared codegen slot-name policy: C `MoveToken` lowering now uses
+  `pgy_codegen_call_name_is_move`, LLVM view/move lowering uses the same move
+  predicate, and LLVM let type inference uses
+  `pgy_codegen_call_name_is_slot_operation` / `pgy_codegen_call_name_is_read`
+  instead of direct `Read` / `Write` / `Release` string branches. The perf
+  contract now rejects those direct operation-name branches in the let owners.
+  Local verification: `perf-contract-test-smoke`, `make pgy`.
+- Aligned LLVM let-side collection constructor dispatch with the same
+  table-driven contract: `ListNew`, `SetNew`, `QueueNew`, and `MapNew` now enter
+  through `kLLVMStmtCollectionCtorSpecs`, which binds the callee, required
+  annotation family, and runtime export before the existing allocation and
+  registry bodies run. The constructor and special let-call vocabulary now live
+  in `src/codegen/llvm_stmt_let_collection_policy.c`, leaving
+  `llvm_stmt_let_collections.c` focused on allocation/registration lowering.
+  The perf contract now rejects direct annotation/callee-name constructor
+  branches in this owner. Local verification: `perf-contract-test-smoke`,
+  `make pgy`, `test-inc-size-test-smoke`, `build-source-inventory-test-smoke`.
+- Split LLVM generic callee specialization out of spawn expression lowering:
+  `src/codegen/llvm_expr_spawn_generic.c` now owns
+  `llvm_resolve_callee_entry(...)`, generic argument suffix validation,
+  monomorphized wrapper emission, and secure-slot token binding inside generic
+  wrappers. `llvm_expr_spawn_call_helpers.c` is now focused on spawn wrapper
+  allocation/call lowering while the existing public header keeps the shared
+  callee-resolution seam. Local verification: `perf-contract-test-smoke`,
+  `make pgy`, `test-inc-size-test-smoke`, `build-source-inventory-test-smoke`.
+- Aligned LLVM statement type-inference helper lookup with the same sorted-table
+  contract: simple builtin-return name sets now use
+  `llvm_stmt_name_in_sorted_table`, and collection value lookups now use
+  `kLLVMCollectionGetSpecs` plus `bsearch` instead of a linear
+  `strcmp(callee, specs[i].name)` loop. The perf contract now gates the sorted
+  collection-get table. Local verification: `perf-contract-test-smoke`,
+  `make pgy`.
+- Aligned LLVM let-side special call detection with the same table-driven
+  contract: `Channel` initialization and `ToObject` projection-borrow lets now
+  enter through `kLLVMStmtLetCallSpecs` / `llvm_stmt_let_call_op(...)` rather
+  than direct `ast_identifier_name(...), "..."` comparisons. This keeps special
+  let-call classification in one owner-local lookup seam. Local verification:
+  `perf-contract-test-smoke`, `make pgy`.
+- Routed LLVM member-call Slot method dispatch through the shared codegen
+  slot-name policy: `obj.Write(...)`, `obj.Read()`, and `obj.Release()` now use
+  `pgy_codegen_call_name_is_slot_operation` plus the read/write/release
+  predicates instead of owner-local direct method-name branches. The perf
+  contract now rejects direct Slot method-name branches in the domain/slice
+  member-call owner. Local verification: `perf-contract-test-smoke`,
+  `make pgy`.
+- Centralized exact/generic Slot family type-name classification in the shared
+  codegen slot policy: `pgy_codegen_type_name_is_slot`,
+  `pgy_codegen_type_name_is_secure_slot`, and
+  `pgy_codegen_type_name_is_device_slot` now accept both exact and generic
+  spellings. LLVM boundary-slot params, identifier slot-source lookup, MIR
+  slot-param lowering, LLVM/C slot sugar, and C secure-slot target refinement now
+  consume that policy instead of repeating direct `Slot` / `SecureSlot` checks.
+  Local verification: `perf-contract-test-smoke`, `make pgy`.
+- Routed C expression type inference for Slot operations through the shared
+  codegen slot-name policy: member-call and standalone `Read` / `Write` /
+  `Release` inference now consume `pgy_codegen_call_name_is_read`,
+  `pgy_codegen_call_name_is_write`, and `pgy_codegen_call_name_is_release`
+  instead of direct operation-name branches. The perf contract now rejects those
+  direct Slot operation branches in the C type-inference owner. Local
+  verification: `perf-contract-test-smoke`, `make pgy`.
+- Aligned C expression type inference builtin-name classification with the same
+  table-driven contract: numeric passthroughs, collection readers, view/device
+  calls, channel status/option calls, Option constructors, and object
+  conversion calls now enter through `kTranspilerInferCallSpecs` plus enum
+  predicates before the existing type-resolution bodies run. The fixed
+  vocabulary table and grouping predicates now live in
+  `src/codegen/transpiler_expr_type_infer_call_policy.c`, keeping
+  `transpiler_expr_type_infer.h` focused on expression-shape inference and back
+  below the 600 LOC owner-size signal. The perf contract now gates the table,
+  sorted order, and direct builtin-name branch ban. Local verification:
+  `perf-contract-test-smoke`, `make pgy`, `test-transpile`,
+  `test-inc-size-test-smoke`, `build-source-inventory-test-smoke`.
+- Split LLVM task/channel builtin vocabulary policy out of the lowering owner:
+  `src/codegen/llvm_expr_task_channel_policy.c` owns the sorted builtin-name,
+  query-op, and arity-to-operation tables, while
+  `llvm_expr_task_channel_calls.c` keeps runtime-name formatting and lowering
+  bodies. This keeps the near-threshold task/channel emitter below the
+  600 LOC owner-size signal without a generic helper split. Local verification:
+  `make pgy`, `perf-contract-test-smoke`, `test-inc-size-test-smoke`,
+  `build-source-inventory-test-smoke`.
+- Aligned C/LLVM MIR resource operation handling with a resource-op vocabulary
+  seam: `Claim`, `Read`, `Write`, `Release`, `Move`, `BorrowRead`, and
+  `BorrowWrite` now resolve through `transpiler_mir_resource_op_lookup(...)`
+  before concrete resource emission, C pin-alias seeding, or LLVM borrow-view
+  aliasing chooses a body. The perf contract now gates the sorted op table and
+  direct branch bans. Local verification: `perf-contract-test-smoke`,
+  `make pgy`.
+- Aligned LLVM constructed-type registry dispatch with a sorted type-family
+  table: Array/Slice, List/Set/Queue, HashMap, Future/RemoteFuture, Channel,
+  Rc, and Weak registration now resolves through `llvm_registry_type_kind(...)`
+  before the existing metadata validation and registry bodies run. The perf
+  contract now gates the sorted table and direct exact type-family branch ban.
+  Local verification: `perf-contract-test-smoke`, `make pgy`.
+- Aligned C function forward-declaration policy with a sorted allow-list:
+  primitive, container, resource, future/channel, and Rc/Weak types now pass
+  through `transpiler_forward_type_name_is_allowed(...)` instead of two direct
+  `strcmp(name, ...)` chains. The perf contract now gates the sorted allow-list
+  and direct branch ban. Local verification: `perf-contract-test-smoke`,
+  `make pgy`.
+- Aligned C `ToString` lowering with a sorted scalar type table: String, Bool,
+  Float, Double, and Long now resolve through `transpiler_to_string_kind(...)`
+  before the existing formatting bodies run, leaving unknown/default values on
+  the Int formatting fallback. The perf contract now gates the sorted type table
+  and direct `arg_type` branch ban. Local verification:
+  `perf-contract-test-smoke`, `make pgy`.
+- Aligned match destructor vocabulary across C, LLVM, and MIR lowering:
+  `Some`, `None`, `Ok`, and `Err` now resolve through
+  `pgy_codegen_match_variant_lookup(...)` before option/result detection, tag
+  selection, payload-field selection, and LLVM payload-index selection run.
+  The perf contract now gates the sorted policy table and rejects direct
+  destructor-name/kind branches in the four match lowering owners. Local
+  verification: `perf-contract-test-smoke`, `make pgy`.

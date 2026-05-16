@@ -2,12 +2,13 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 PGY_BIN_WAS_DEFAULT=0
 if [[ -z "${PGY_BIN:-}" ]]; then
     PGY_BIN="$ROOT_DIR/bin/pgy"
     PGY_BIN_WAS_DEFAULT=1
 fi
-if [[ "$PGY_BIN" != *.exe && -x "${PGY_BIN}.exe" ]]; then
+if [[ "$PGY_BIN" != *.exe ]] && pgy_binary_expects_windows_paths "${PGY_BIN}.exe"; then
     PGY_BIN="${PGY_BIN}.exe"
 fi
 WORK_DIR="$(mktemp -d "${TMPDIR:-/tmp}/pgy-runtime-none.XXXXXX")"
@@ -47,18 +48,7 @@ if ! "$PGY_BIN" --help >"$WORK_DIR/pgy-help.out" 2>"$WORK_DIR/pgy-help.err"; the
 fi
 
 pgy_path_arg() {
-    local path="$1"
-    if [[ "$PGY_BIN" == *.exe ]] && command -v cygpath >/dev/null 2>&1; then
-        cygpath -w "$path"
-        return
-    fi
-    if [[ "$PGY_BIN" == *.exe && "$path" =~ ^/mnt/([a-zA-Z])/(.*)$ ]]; then
-        local drive="${BASH_REMATCH[1]}"
-        local rest="${BASH_REMATCH[2]//\//\\}"
-        printf '%s:\\%s\n' "${drive^^}" "$rest"
-        return
-    fi
-    printf '%s\n' "$path"
+    pgy_path_for_compiler "$PGY_BIN" "$1"
 }
 
 run_reject() {

@@ -7,16 +7,63 @@
 
 #include "llvm_expr_task_calls.h"
 
+#include <stdlib.h>
 #include <string.h>
 
 #include "llvm_internal_api.h"
 
+typedef enum {
+    LLVM_TASK_RUNTIME_NONE = 0,
+    LLVM_TASK_RUNTIME_CANCEL,
+    LLVM_TASK_RUNTIME_IS_CANCELLED,
+} LLVMTaskRuntimeOp;
+
+typedef struct {
+    const char *name;
+    unsigned argc;
+    LLVMTaskRuntimeOp op;
+} LLVMTaskRuntimeSpec;
+
+static const LLVMTaskRuntimeSpec kTaskRuntimeSpecs[] = {
+    {"Cancel", 1, LLVM_TASK_RUNTIME_CANCEL},
+    {"IsCancelled", 0, LLVM_TASK_RUNTIME_IS_CANCELLED},
+};
+
+static int
+llvm_task_runtime_spec_compare(const void *key, const void *entry)
+{
+    const char *name = (const char *)key;
+    const LLVMTaskRuntimeSpec *spec = (const LLVMTaskRuntimeSpec *)entry;
+    return strcmp(name, spec->name);
+}
+
+static const LLVMTaskRuntimeSpec *
+llvm_task_runtime_lookup_spec(const char *callee_name)
+{
+    if (callee_name == NULL)
+        return NULL;
+    return (const LLVMTaskRuntimeSpec *)bsearch(
+        callee_name,
+        kTaskRuntimeSpecs,
+        sizeof(kTaskRuntimeSpecs) / sizeof(kTaskRuntimeSpecs[0]),
+        sizeof(kTaskRuntimeSpecs[0]),
+        llvm_task_runtime_spec_compare);
+}
+
+static LLVMTaskRuntimeOp
+llvm_task_runtime_lookup(const char *callee_name, unsigned argc)
+{
+    const LLVMTaskRuntimeSpec *spec =
+        llvm_task_runtime_lookup_spec(callee_name);
+    if (spec == NULL || spec->argc != argc)
+        return LLVM_TASK_RUNTIME_NONE;
+    return spec->op;
+}
+
 bool
 llvm_is_task_runtime_builtin_name(const char *callee_name)
 {
-    return callee_name != NULL
-        && (strcmp(callee_name, "Cancel") == 0
-            || strcmp(callee_name, "IsCancelled") == 0);
+    return llvm_task_runtime_lookup_spec(callee_name) != NULL;
 }
 
 static LLVMFuncEntry *
@@ -61,8 +108,9 @@ llvm_emit_task_runtime_call(ASTNode *node, LLVMGenCtx *ctx,
                             const char *callee_name)
 {
     size_t argc = ast_call_arg_count(node);
+    LLVMTaskRuntimeOp op = llvm_task_runtime_lookup(callee_name, (unsigned)argc);
 
-    if (strcmp(callee_name, "Cancel") == 0 && argc == 1) {
+    if (op == LLVM_TASK_RUNTIME_CANCEL) {
         LLVMFuncEntry *fn = llvm_required_task_function(ctx, node, callee_name,
             "pgy_task_cancel_export");
         LLVMValueRef task = llvm_emit_expression(ast_call_argument(node, 0), ctx);
@@ -76,7 +124,7 @@ llvm_emit_task_runtime_call(ASTNode *node, LLVMGenCtx *ctx,
         return LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 1, "");
     }
 
-    if (strcmp(callee_name, "IsCancelled") == 0 && argc == 0) {
+    if (op == LLVM_TASK_RUNTIME_IS_CANCELLED) {
         LLVMFuncEntry *fn = llvm_required_task_function(ctx, node, callee_name,
             "pgy_task_is_cancelled_export");
         if (fn == NULL)

@@ -2,20 +2,73 @@
 
 #include "llvm_expr_call_collections_extended.h"
 
+#include <stdlib.h>
 #include <string.h>
 
 #include "llvm_internal_api.h"
+
+typedef enum {
+    LLVM_LIST_EXT_NONE = 0,
+    LLVM_LIST_EXT_GET,
+    LLVM_LIST_EXT_PUSH,
+    LLVM_LIST_EXT_REMOVE,
+    LLVM_LIST_EXT_SET,
+    LLVM_LIST_EXT_SIZE,
+} LLVMListExtendedOp;
+
+typedef struct {
+    const char *name;
+    unsigned argc;
+    LLVMListExtendedOp op;
+} LLVMListExtendedSpec;
+
+static const LLVMListExtendedSpec kListExtendedSpecs[] = {
+    {"ListGet", 2, LLVM_LIST_EXT_GET},
+    {"ListPush", 2, LLVM_LIST_EXT_PUSH},
+    {"ListRemove", 2, LLVM_LIST_EXT_REMOVE},
+    {"ListSet", 3, LLVM_LIST_EXT_SET},
+    {"ListSize", 1, LLVM_LIST_EXT_SIZE},
+};
+
+static int
+llvm_list_extended_spec_compare(const void *key, const void *entry)
+{
+    const char *name = (const char *)key;
+    const LLVMListExtendedSpec *spec = (const LLVMListExtendedSpec *)entry;
+    return strcmp(name, spec->name);
+}
+
+static LLVMListExtendedOp
+llvm_list_extended_lookup(const char *callee_name, unsigned argc)
+{
+    const LLVMListExtendedSpec *spec;
+
+    if (callee_name == NULL)
+        return LLVM_LIST_EXT_NONE;
+    spec = (const LLVMListExtendedSpec *)bsearch(
+        callee_name,
+        kListExtendedSpecs,
+        sizeof(kListExtendedSpecs) / sizeof(kListExtendedSpecs[0]),
+        sizeof(kListExtendedSpecs[0]),
+        llvm_list_extended_spec_compare);
+    if (spec == NULL || spec->argc != argc)
+        return LLVM_LIST_EXT_NONE;
+    return spec->op;
+}
 
 bool
 llvm_emit_list_extended_call(ASTNode *node, LLVMGenCtx *ctx,
                              const char *callee_name, LLVMValueRef *out)
 {
+    LLVMListExtendedOp op;
+
     if (out == NULL)
         return false;
 
-    size_t argc = ast_call_arg_count(node);
+    op = llvm_list_extended_lookup(callee_name,
+        (unsigned)ast_call_arg_count(node));
 
-    if (strcmp(callee_name, "ListPush") == 0 && argc == 2) {
+    if (op == LLVM_LIST_EXT_PUSH) {
         ASTNode *list_arg = ast_call_argument(node, 0);
         LLVMVarEntry *list_var;
         const char *inner_name;
@@ -24,7 +77,7 @@ llvm_emit_list_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         LLVMValueRef tmp;
         LLVMFuncEntry *fn;
         list_var = llvm_collection_required_receiver_var(ctx, node, list_arg,
-            callee_name, "collection", LLVMConstInt(ctx->type_i32, 0, 0), out);
+            callee_name, "collection", out);
         if (list_var == NULL)
             return true;
         inner_name = llvm_lookup_list_inner(ctx, ast_identifier_name(list_arg));
@@ -35,7 +88,6 @@ llvm_emit_list_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         value = llvm_emit_expression(ast_call_argument(node, 1), ctx);
         if (value == NULL)
             return llvm_collection_extended_error_out(ctx, node, out,
-                LLVMConstInt(ctx->type_i32, 0, 0),
                 "LLVM ListPush could not lower value expression");
         if (LLVMTypeOf(value) != elem_ty) {
             if ((elem_ty == ctx->type_i32 || elem_ty == ctx->type_i64)
@@ -62,7 +114,6 @@ llvm_emit_list_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         tmp = llvm_create_entry_alloca(ctx, elem_ty, llvm_tmp_name(ctx));
         if (tmp == NULL)
             return llvm_collection_extended_error_out(ctx, node, out,
-                LLVMConstInt(ctx->type_i32, 0, 0),
                 "LLVM ListPush could not allocate element temporary");
         LLVMBuildStore(ctx->builder, value, tmp);
         fn = llvm_required_collection_function(ctx, node, callee_name,
@@ -79,7 +130,7 @@ llvm_emit_list_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 3, "");
         { *out = LLVMConstInt(ctx->type_i32, 0, 0); return true; }
     }
-    if (strcmp(callee_name, "ListGet") == 0 && argc == 2) {
+    if (op == LLVM_LIST_EXT_GET) {
         ASTNode *list_arg = ast_call_argument(node, 0);
         LLVMVarEntry *list_var;
         const char *inner_name;
@@ -88,7 +139,7 @@ llvm_emit_list_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         LLVMValueRef tmp;
         LLVMFuncEntry *fn;
         list_var = llvm_collection_required_receiver_var(ctx, node, list_arg,
-            callee_name, "collection", LLVMConstInt(ctx->type_i32, 0, 0), out);
+            callee_name, "collection", out);
         if (list_var == NULL)
             return true;
         inner_name = llvm_lookup_list_inner(ctx, ast_identifier_name(list_arg));
@@ -99,14 +150,12 @@ llvm_emit_list_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         idx = llvm_emit_expression(ast_call_argument(node, 1), ctx);
         if (idx == NULL)
             return llvm_collection_extended_error_out(ctx, node, out,
-                LLVMConstInt(ctx->type_i32, 0, 0),
                 "LLVM ListGet could not lower index expression");
         if (LLVMTypeOf(idx) != ctx->type_i32)
             idx = LLVMBuildTruncOrBitCast(ctx->builder, idx, ctx->type_i32, llvm_tmp_name(ctx));
         tmp = llvm_create_entry_alloca(ctx, elem_ty, llvm_tmp_name(ctx));
         if (tmp == NULL)
             return llvm_collection_extended_error_out(ctx, node, out,
-                LLVMConstNull(elem_ty),
                 "LLVM ListGet could not allocate result temporary");
         LLVMBuildStore(ctx->builder, LLVMConstNull(elem_ty), tmp);
         if (inner_name != NULL && strcmp(inner_name, "String") == 0) {
@@ -135,7 +184,7 @@ llvm_emit_list_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 4, "");
         { *out = LLVMBuildLoad2(ctx->builder, elem_ty, tmp, llvm_tmp_name(ctx)); return true; }
     }
-    if (strcmp(callee_name, "ListSet") == 0 && argc == 3) {
+    if (op == LLVM_LIST_EXT_SET) {
         ASTNode *list_arg = ast_call_argument(node, 0);
         LLVMVarEntry *list_var;
         const char *inner_name;
@@ -145,7 +194,7 @@ llvm_emit_list_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         LLVMValueRef tmp;
         LLVMFuncEntry *fn;
         list_var = llvm_collection_required_receiver_var(ctx, node, list_arg,
-            callee_name, "collection", LLVMConstInt(ctx->type_i32, 0, 0), out);
+            callee_name, "collection", out);
         if (list_var == NULL)
             return true;
         inner_name = llvm_lookup_list_inner(ctx, ast_identifier_name(list_arg));
@@ -157,7 +206,6 @@ llvm_emit_list_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         value = llvm_emit_expression(ast_call_argument(node, 2), ctx);
         if (idx == NULL || value == NULL)
             return llvm_collection_extended_error_out(ctx, node, out,
-                LLVMConstInt(ctx->type_i32, 0, 0),
                 "LLVM ListSet could not lower index or value expression");
         if (LLVMTypeOf(idx) != ctx->type_i32)
             idx = LLVMBuildTruncOrBitCast(ctx->builder, idx, ctx->type_i32, llvm_tmp_name(ctx));
@@ -187,7 +235,6 @@ llvm_emit_list_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         tmp = llvm_create_entry_alloca(ctx, elem_ty, llvm_tmp_name(ctx));
         if (tmp == NULL)
             return llvm_collection_extended_error_out(ctx, node, out,
-                LLVMConstInt(ctx->type_i32, 0, 0),
                 "LLVM ListSet could not allocate element temporary");
         LLVMBuildStore(ctx->builder, value, tmp);
         fn = llvm_required_collection_function(ctx, node, callee_name,
@@ -205,12 +252,12 @@ llvm_emit_list_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 4, "");
         { *out = LLVMConstInt(ctx->type_i32, 0, 0); return true; }
     }
-    if (strcmp(callee_name, "ListSize") == 0 && argc == 1) {
+    if (op == LLVM_LIST_EXT_SIZE) {
         ASTNode *list_arg = ast_call_argument(node, 0);
         LLVMVarEntry *list_var;
         LLVMFuncEntry *fn;
         list_var = llvm_collection_required_receiver_var(ctx, node, list_arg,
-            callee_name, "collection", LLVMConstInt(ctx->type_i32, 0, 0), out);
+            callee_name, "collection", out);
         if (list_var == NULL)
             return true;
         fn = llvm_required_collection_function(ctx, node, callee_name,
@@ -224,7 +271,7 @@ llvm_emit_list_extended_call(ASTNode *node, LLVMGenCtx *ctx,
             { *out = LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn, args, 1, llvm_tmp_name(ctx)); return true; }
         }
     }
-    if (strcmp(callee_name, "ListRemove") == 0 && argc == 2) {
+    if (op == LLVM_LIST_EXT_REMOVE) {
         ASTNode *list_arg = ast_call_argument(node, 0);
         LLVMVarEntry *list_var;
         const char *inner_name;
@@ -232,7 +279,7 @@ llvm_emit_list_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         LLVMValueRef idx;
         LLVMFuncEntry *fn;
         list_var = llvm_collection_required_receiver_var(ctx, node, list_arg,
-            callee_name, "collection", LLVMConstInt(ctx->type_i32, 0, 0), out);
+            callee_name, "collection", out);
         if (list_var == NULL)
             return true;
         inner_name = llvm_lookup_list_inner(ctx, ast_identifier_name(list_arg));
@@ -243,7 +290,6 @@ llvm_emit_list_extended_call(ASTNode *node, LLVMGenCtx *ctx,
         idx = llvm_emit_expression(ast_call_argument(node, 1), ctx);
         if (idx == NULL)
             return llvm_collection_extended_error_out(ctx, node, out,
-                LLVMConstInt(ctx->type_i32, 0, 0),
                 "LLVM ListRemove could not lower index expression");
         if (LLVMTypeOf(idx) != ctx->type_i32)
             idx = LLVMBuildTruncOrBitCast(ctx->builder, idx, ctx->type_i32, llvm_tmp_name(ctx));

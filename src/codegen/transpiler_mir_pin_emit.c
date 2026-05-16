@@ -9,6 +9,7 @@
 #include <string.h>
 
 #include "transpiler_context.h"
+#include "transpiler_mir_resource_name_helpers.h"
 #include "transpiler_mir_reason.h"
 #include "transpiler_mir_ssa_map.h"
 
@@ -240,11 +241,13 @@ transpiler_mir_seed_resource_alias_local(TranspilerSSANameMap *ssa_map,
         return true;
     }
 
-    if (strcmp(inst->name, "Claim") == 0 && inst->arg0 != NULL) {
+    TranspilerMIRResourceOp op = transpiler_mir_resource_op_lookup(inst->name);
+
+    if (op == TRANS_MIR_RESOURCE_OP_CLAIM && inst->arg0 != NULL) {
         return transpiler_ssa_name_map_set(ssa_map, inst->arg0, inst->arg0);
     }
-    if ((strcmp(inst->name, "BorrowRead") == 0
-         || strcmp(inst->name, "BorrowWrite") == 0)
+    if ((op == TRANS_MIR_RESOURCE_OP_BORROW_READ
+         || op == TRANS_MIR_RESOURCE_OP_BORROW_WRITE)
         && inst->arg0 != NULL
         && inst->arg1 != NULL) {
         return transpiler_ssa_name_map_set(ssa_map, inst->arg1, inst->arg0);

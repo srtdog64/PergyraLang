@@ -29,7 +29,7 @@ typedef enum
  * (e.g. "PGY_SEM_TYPE_MISMATCH"). It points to a string literal
  * owned by the compiler text segment and is not freed by diagnostic
  * destruction. NULL means the site has not yet been assigned a
- * stable code (legacy path). Once assigned, a code's meaning
+ * stable code (uncoded compatibility path). Once assigned, a code's meaning
  * does not change across versions.
  */
 typedef struct Diagnostic

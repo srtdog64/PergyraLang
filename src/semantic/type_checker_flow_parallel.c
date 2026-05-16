@@ -1,5 +1,7 @@
-#ifndef PGY_SRC_SEMANTIC_TYPE_CHECKER_FLOW_PARALLEL_H
-#define PGY_SRC_SEMANTIC_TYPE_CHECKER_FLOW_PARALLEL_H
+#include "type_checker_internal.h"
+#include "type_checker_ownership_consumers_internal.h"
+#include "diag_codes.h"
+#include "type_checker_flow_internal.h"
 
 bool
 type_check_defer_body_flow(ASTNode *body, SemanticContext *ctx)
@@ -105,4 +107,3 @@ type_check_parallel_block_flow(ASTNode *node, SemanticContext *ctx)
     destroy_resource_snapshot(&joined);
     return !ctx->has_error;
 }
-#endif /* PGY_SRC_SEMANTIC_TYPE_CHECKER_FLOW_PARALLEL_H */

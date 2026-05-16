@@ -256,7 +256,7 @@ test_air_strict_evidence_requires_hir_for_implementation_boundary(void)
 }
 
 static bool
-test_air_strict_evidence_prefers_inventory_over_legacy_flags(void)
+test_air_strict_evidence_prefers_inventory_over_summary_flags(void)
 {
     AIRIntentNode intents[] = {
         {
@@ -318,7 +318,7 @@ test_air_strict_evidence_prefers_inventory_over_legacy_flags(void)
 }
 
 static bool
-test_air_has_evidence_ignores_legacy_flags_with_real_input(void)
+test_air_has_evidence_ignores_summary_flags_with_real_input(void)
 {
     AIRBoundaryNode boundaries[] = {
         {
