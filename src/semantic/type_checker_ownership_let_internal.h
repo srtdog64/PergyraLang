@@ -21,6 +21,12 @@ bool  ownership_let_find_conflicting_view(Scope *scope,
                                           bool new_write_view,
                                           const char **existing_name,
                                           const char **existing_kind);
+bool  ownership_let_try_declare_view_binding(ASTNode *node,
+                                             SemanticContext *ctx,
+                                             const char *name,
+                                             Type *decl_type,
+                                             ASTNode *init,
+                                             bool *handled);
 bool  ownership_let_is_unresolved_none_option(const Type *type);
 bool  ownership_let_is_unresolved_empty_array(const Type *type);
 bool  ownership_let_is_unresolved_device_slot(const Type *type);

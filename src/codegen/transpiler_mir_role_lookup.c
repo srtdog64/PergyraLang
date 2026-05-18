@@ -17,14 +17,14 @@ transpiler_find_role_impl_mir_method(const TranspilerCtx *ctx,
     const char *target = NULL;
     const MIRDeclHeader *header = NULL;
 
-    if (ctx == NULL || ctx->mir == NULL || owner_name == NULL
+    if (ctx == NULL || owner_name == NULL
         || method_decl == NULL || method_decl->type != AST_FUNC_DECL
         || ast_declaration_name(method_decl) == NULL) {
         return NULL;
     }
 
     target = ast_declaration_name(method_decl);
-    header = mir_find_decl_header(ctx->mir, owner_name);
+    header = transpiler_active_decl_header(ctx, owner_name);
     if (header == NULL || header->ast_type != AST_ROLE_DECL)
         return NULL;
 

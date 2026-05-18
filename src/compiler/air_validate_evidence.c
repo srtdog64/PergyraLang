@@ -134,10 +134,40 @@ air_global_evidence_fact_count(const AIRProgram *air, AIREvidenceKind kind)
     return count;
 }
 
+size_t
+air_global_evidence_fallback_count(const AIRProgram *air, AIREvidenceKind kind)
+{
+    size_t count = 0;
+
+    if (air == NULL || !air_evidence_kind_is_global(kind))
+        return 0;
+    for (size_t i = 0; i < air->evidence_count; i++) {
+        const AIREvidenceNode *evidence = &air->evidence_nodes[i];
+        if (evidence->kind == kind && evidence->boundary_index == SIZE_MAX)
+            count += evidence->fallback_count;
+    }
+    return count;
+}
+
 bool
 air_global_has_evidence_kind(const AIRProgram *air, AIREvidenceKind kind)
 {
     return air_global_evidence_node_count(air, kind) > 0;
+}
+
+size_t
+air_boundary_evidence_node_count(const AIRProgram *air, AIREvidenceKind kind)
+{
+    size_t count = 0;
+
+    if (air == NULL || !air_evidence_kind_is_boundary_scoped(kind))
+        return 0;
+    for (size_t i = 0; i < air->evidence_count; i++) {
+        const AIREvidenceNode *evidence = &air->evidence_nodes[i];
+        if (evidence->kind == kind && evidence->boundary_index != SIZE_MAX)
+            count++;
+    }
+    return count;
 }
 
 bool
@@ -186,19 +216,6 @@ air_boundary_missing_authority_evidence(const AIRProgram *air,
     return boundary->authority_name_count == 0 ? "<authority>" : NULL;
 }
 
-typedef struct
-{
-    AIREvidenceKind kind;
-    const char     *label;
-} AIRBoundaryEvidenceSummaryRule;
-
-static const AIRBoundaryEvidenceSummaryRule kBoundaryEvidenceSummaryRules[] = {
-    { AIR_EVIDENCE_HIR_ROUTINE, "HIR routine evidence" },
-    { AIR_EVIDENCE_HIR_CFG, "HIR CFG evidence" },
-    { AIR_EVIDENCE_RIR_BOUNDARY, "RIR boundary evidence" },
-    { AIR_EVIDENCE_RIR_AUTHORITY, "RIR authority evidence" },
-};
-
 static bool
 air_evidence_nodes_duplicate(const AIREvidenceNode *left,
                              const AIREvidenceNode *right)
@@ -209,29 +226,6 @@ air_evidence_nodes_duplicate(const AIREvidenceNode *left,
         && left->boundary_index == right->boundary_index
         && air_name_matches(left->provider_name, right->provider_name)
         && air_name_matches(left->subject_name, right->subject_name);
-}
-
-static bool
-air_validate_boundary_summary_evidence(const AIRProgram *air,
-                                       size_t boundary_index,
-                                       AIREvidenceKind kind,
-                                       const char *label,
-                                       char **error_message)
-{
-    const AIRBoundaryNode *boundary;
-
-    if (air == NULL || boundary_index >= air->boundary_count)
-        return false;
-    boundary = &air->boundaries[boundary_index];
-    if (!air_boundary_has_summary_flag(boundary, kind))
-        return true;
-    if (air_boundary_has_evidence_kind(air, boundary_index, kind))
-        return true;
-    air_set_invariant_error(error_message,
-                            "AIR boundary node %zu has %s summary without evidence node",
-                            boundary_index,
-                            label);
-    return false;
 }
 
 bool
@@ -282,16 +276,9 @@ air_validate_evidence_inventory(const AIRProgram *air, char **error_message)
         return false;
     if (air_evidence_inventory_is_authoritative(air)) {
         for (size_t i = 0; i < air->boundary_count; i++) {
-            for (size_t j = 0;
-                 j < sizeof(kBoundaryEvidenceSummaryRules)
-                    / sizeof(kBoundaryEvidenceSummaryRules[0]);
-                 j++) {
-                const AIRBoundaryEvidenceSummaryRule *rule =
-                    &kBoundaryEvidenceSummaryRules[j];
-                if (!air_validate_boundary_summary_evidence(
-                        air, i, rule->kind, rule->label, error_message)) {
-                    return false;
-                }
+            if (!air_validate_boundary_summary_inventory(
+                    air, i, error_message)) {
+                return false;
             }
         }
     }

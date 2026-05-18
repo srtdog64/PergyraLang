@@ -3,25 +3,6 @@
 
 #include "parser/ast_api.h"
 
-char *
-emit_unary(ASTNode *expr, TranspilerCtx *ctx)
-{
-    /* Postfix ? ??try/propagate: expr? ??early return on error */
-    if (ast_unary_operator(expr).type == TOKEN_QUESTION) {
-        transpiler_set_backend_error_with_hints(ctx,
-            PGY_CODE_C_TYPE_UNSUPPORTED,
-            PGY_CAUSE_C_TYPE_UNSUPPORTED,
-            PGY_FIX_ANNOTATE_BINDING_TYPE,
-            "C backend: '?' is only supported in let-initializer statement context; use 'let value: T = result?;' before using the value");
-        return pergyra_strdup("0");
-    }
-
-    char *operand = emit_expression(ast_unary_operand(expr), ctx);
-    const char *op = (ast_unary_operator(expr).type == TOKEN_NOT) ? "!" : "-";
-    char *result = strdup_fmt("(%s%s)", op, operand);
-    free(operand);
-    return result;
-}
 static char *
 emit_call_builtin_dispatch(ASTNode *call, BuiltinKind bk, TranspilerCtx *ctx, bool *handled)
 {

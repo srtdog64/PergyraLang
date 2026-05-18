@@ -8,7 +8,6 @@
 #ifdef PGY_LLVM_ENABLED
 
 #include "llvm_internal.h"
-#include "intent_observability_usage.h"
 #include "../common/string_compat.h"
 
 static void
@@ -189,7 +188,8 @@ llvm_codegen_mir_only(const MIRProgram *mir, const char *module_name)
         return llvm_result_error("Out of memory");
 
     ctx->mir = mir;
-    ctx->uses_intent_observability = pgy_mir_program_uses_intent_observability(mir);
+    ctx->uses_intent_observability =
+        llvm_active_uses_intent_observability(ctx);
 
     llvm_debug_stage("codegen_with_mir:validate_mir");
     verify_result = llvm_validate_mir_for_codegen(mir);
@@ -258,7 +258,8 @@ llvm_codegen_to_object_core(const MIRProgram *mir,
         return llvm_result_error("Out of memory");
 
     ctx->mir = mir;
-    ctx->uses_intent_observability = pgy_mir_program_uses_intent_observability(mir);
+    ctx->uses_intent_observability =
+        llvm_active_uses_intent_observability(ctx);
 
     llvm_debug_stage("codegen_to_object:validate_mir");
     verify_result = llvm_validate_mir_for_codegen(mir);

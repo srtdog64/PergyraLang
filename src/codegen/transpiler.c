@@ -133,7 +133,6 @@ emit_c_nominal_forward_decls(TranspilerCtx *ctx,
 void
 emit_program(TranspilerCtx *ctx)
 {
-    const MIRProgram *mir = (ctx != NULL) ? ctx->mir : NULL;
     ASTNode *synthetic_executable_func = NULL;
     ASTNode **abilities = NULL;
     ASTNode **types = NULL;
@@ -164,7 +163,7 @@ emit_program(TranspilerCtx *ctx)
     bool has_main_function = false;
     bool has_top_level_exec = false;
 
-    if (mir == NULL)
+    if (!transpiler_active_has_mir(ctx))
         return;
 
     synthetic_executable_func = transpiler_active_synthetic_executable_func(ctx);
@@ -209,11 +208,11 @@ emit_program(TranspilerCtx *ctx)
 
     /*
      * Multi-pass strategy for valid C output:
-     *   Pass 1 — ability declarations (vtable typedefs)
-     *   Pass 2 — class declarations (type completeness)
-     *   Pass 3 — role declarations (vtable instances + methods)
-     *   Pass 4 — function declarations (file scope)
-     *   Pass 5 — remaining top-level statements → wrapped in main()
+     *   Pass 1 ??ability declarations (vtable typedefs)
+     *   Pass 2 ??class declarations (type completeness)
+     *   Pass 3 ??role declarations (vtable instances + methods)
+     *   Pass 4 ??function declarations (file scope)
+     *   Pass 5 ??remaining top-level statements ??wrapped in main()
      */
 
     /* Pass 0.5: nominal forward typedefs used by ability signatures. */
@@ -326,7 +325,7 @@ emit_program(TranspilerCtx *ctx)
     for (size_t i = 0; i < intent_count; i++)
         emit_intent_forward_decl(intents[i], ctx->decls, ctx);
 
-    /* Pass 4: functions — emit in two sub-passes so that helpers
+    /* Pass 4: functions ??emit in two sub-passes so that helpers
      * (parallel context structs, wrapper functions) generated during
      * function emission are available.  First pass: emit all functions
      * into a temporary buffer. */

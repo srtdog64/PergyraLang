@@ -122,7 +122,7 @@ PY
 compile_expect_for_case() {
     case "$1" in
         projection_abi) printf '0 error(s), 2 warning(s)' ;;
-        intent_failure_abi) printf '0 error(s), 1 warning(s)' ;;
+        intent_failure_abi) printf '0 error(s), 0 warning(s)' ;;
         *) printf '0 error(s), 0 warning(s)' ;;
     esac
 }

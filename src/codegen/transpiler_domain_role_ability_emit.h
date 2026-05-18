@@ -391,7 +391,7 @@ ensure_ability_ref_vtable_decl(ASTNode *ability_ref, TranspilerCtx *ctx)
             return;
         }
         if (ast_func_return_type(method) != NULL) {
-            ret_name = render_type_name_with_bindings(ctx,
+            ret_name = transpiler_render_type_name_with_bindings(ctx,
                 ast_func_return_type(method), bindings, binding_count);
             if (pergyra_type_to_c_copy(ret_name, ret_type_buf,
                     sizeof(ret_type_buf))) {
@@ -416,7 +416,8 @@ ensure_ability_ref_vtable_decl(ASTNode *ability_ref, TranspilerCtx *ctx)
             if (strcmp(p->name, "self") == 0 && p->type == NULL)
                 continue;
             if (p->type != NULL) {
-                param_name = render_type_name_with_bindings(ctx, p->type, bindings, binding_count);
+                param_name = transpiler_render_type_name_with_bindings(
+                    ctx, p->type, bindings, binding_count);
                 pointer_param = param_name != NULL
                     && is_pointer_self_host_type_name(ctx, param_name);
             }

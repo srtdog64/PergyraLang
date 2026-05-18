@@ -14,7 +14,7 @@ emit_role_method_impl(const char *role_name, ASTNode *method, TranspilerCtx *ctx
 
     mir_method = transpiler_find_role_impl_mir_method(ctx, role_name, method);
     method_name = ast_declaration_name(method);
-    if (ctx != NULL && ctx->mir != NULL && mir_method == NULL) {
+    if (transpiler_active_has_mir(ctx) && mir_method == NULL) {
         transpiler_set_mir_inventory_missing(
             ctx,
             "MIR-only C path missing routine for role method '%s.%s'",

@@ -32,7 +32,7 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
     char *callee_str = NULL;
     if (callee->type == AST_IDENTIFIER) {
         ASTNode *decl = find_function_decl(ctx, callee_name);
-        if (func_has_generic_params(decl)) {
+        if (transpiler_func_has_generic_params(decl)) {
             const char *specialized_name = ensure_generic_specialization(ctx, decl, call);
             if (specialized_name != NULL)
                 callee_str = pergyra_strdup(specialized_name);

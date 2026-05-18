@@ -2,7 +2,7 @@
  * Copyright (c) 2025 Pergyra Language Project
  * All rights reserved.
  *
- * LLVM backend — event registry helpers
+ * LLVM backend ??event registry helpers
  */
 
 #ifdef PGY_LLVM_ENABLED

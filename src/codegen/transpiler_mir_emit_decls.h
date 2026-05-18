@@ -4,21 +4,13 @@
 /* MIR SSA lookup/entry helpers are compiled owners; expose the seams early. */
 #include "transpiler_mir_ssa_entry.h"
 #include "transpiler_mir_ssa_lookup.h"
+#include "transpiler_mir_ssa_contract.h"
 #include "transpiler_mir_ssa_names.h"
+#include "transpiler_mir_resource_hook_emit.h"
 #include "transpiler_mir_signature.h"
 
 static int transpiler_find_loop_label_depth(const TranspilerCtx *ctx,
                                             const char *label);
-static bool transpiler_expr_identifiers_mapped(const TranspilerCtx *ctx,
-                                              const ASTNode *expr,
-                                              const TranspilerSSANameMap *ssa_map,
-                                              const char *routine_name,
-                                              char *reason,
-                                              size_t reason_cap);
-static bool transpiler_seed_expr_identifier_mappings(const MIRBasicBlock *block,
-                                                     size_t inst_index,
-                                                     const ASTNode *expr,
-                                                     TranspilerSSANameMap *ssa_map_out);
 static bool transpiler_emit_mir_block_statements(CodeBuf *buf,
                                                  const ASTNode *func_decl,
                                                  const MIRRoutine *mir_routine,
@@ -43,12 +35,6 @@ static bool transpiler_can_emit_intent_cleanup_from_mir_with_reason(const Transp
                                                                   const MIRRoutine **mir_routine_out,
                                                                   char *reason,
                                                                   size_t reason_cap);
-static bool transpiler_emit_mir_resource_hook(TranspilerCtx *ctx,
-                                              CodeBuf *out,
-                                              int indent,
-                                              const MIRInstruction *inst,
-                                              const char *handle_expr,
-                                              bool cleanup_hook);
 static bool transpiler_validate_mir_emission_block_shape(const MIRBasicBlock *block,
                                                         const char *routine_name,
                                                         bool require_cleanup,

@@ -101,7 +101,7 @@ emit_func_decl_named(ASTNode *node, const char *emitted_name,
 {
     const MIRRoutine *mir_routine = NULL;
     bool opened_body = false;
-    if (ctx != NULL && ctx->mir != NULL) {
+    if (transpiler_active_has_mir(ctx)) {
         char reason[256];
         if (transpiler_can_emit_function_from_mir_with_reason(
                 ctx, node, &mir_routine, reason, sizeof(reason))) {

@@ -157,7 +157,7 @@ emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
         if (method_name == NULL)
             method_name = ast_declaration_name(method);
         mir_method = transpiler_hosted_method_view_routine(ctx, &method_view, i);
-        if (ctx != NULL && ctx->mir != NULL && mir_method == NULL) {
+        if (transpiler_active_has_mir(ctx) && mir_method == NULL) {
             transpiler_set_mir_inventory_missing(
                 ctx,
                 "MIR-only C path missing routine for class method '%s.%s'",

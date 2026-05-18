@@ -62,10 +62,10 @@ llvm_hosted_method_view(const LLVMGenCtx *ctx,
     view.ast_compat_count = ast_compat_count;
     view.count = ast_compat_count;
     view.uses_mir_metadata = false;
-    view.requires_mir_metadata = ctx != NULL && ctx->mir != NULL
+    view.requires_mir_metadata = llvm_active_has_mir(ctx)
         && ast_compat_count > 0;
 
-    if (ctx != NULL && ctx->mir != NULL && host_type_name != NULL)
+    if (llvm_active_has_mir(ctx) && host_type_name != NULL)
         decl_header = llvm_find_host_decl_header_in_context(ctx, host_type_name);
     if (decl_header != NULL) {
         llvm_host_decl_method_metadata(decl_header,
@@ -109,7 +109,7 @@ llvm_hosted_method_view_from_decl(const LLVMGenCtx *ctx,
             ast_compat_methods = ast_roster_methods(decl, &ast_compat_count);
             break;
         case AST_ROLE_DECL:
-            if (ctx != NULL && ctx->mir != NULL) {
+            if (llvm_active_has_mir(ctx)) {
                 if (!ast_role_impl_method_total_count(
                         decl, &ast_compat_count)) {
                     ast_compat_count = (size_t)-1;
@@ -219,7 +219,7 @@ llvm_mir_decl_method_routine(const LLVMGenCtx *ctx,
 {
     LLVMMIRRoutineInventory inventory;
 
-    if (ctx == NULL || ctx->mir == NULL || method == NULL)
+    if (!llvm_active_has_mir(ctx) || method == NULL)
         return NULL;
     if (!method->has_routine)
         return NULL;

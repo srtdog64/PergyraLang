@@ -448,6 +448,7 @@ main() {
         "tests/cases/backend_compare/ownership_forwarding"
         "tests/cases/backend_compare/generic_default_contracts"
         "tests/cases/backend_compare/generic_multi_bound_defaults"
+        "tests/cases/backend_compare/nested_generic_containers"
         "tests/cases/backend_compare/forward_ability_order"
         "tests/cases/backend_compare/role_include_methods"
         "tests/cases/backend_compare/party_roster_host_methods"

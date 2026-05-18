@@ -46,6 +46,7 @@ do
 done
 
 task_channel_owner="$ROOT_DIR/src/codegen/llvm_expr_task_channel_calls.c"
+task_runtime_owner="$ROOT_DIR/src/codegen/llvm_expr_task_calls.c"
 
 if grep -RIn "fallback_ty = ctx->type_i32" \
     "$task_channel_owner" >/dev/null 2>&1; then
@@ -65,8 +66,7 @@ fi
 
 for required_term in \
     "llvm_required_channel_function" \
-    "llvm_required_channel_var" \
-    "llvm_required_task_function"
+    "llvm_required_channel_var"
 do
     if ! grep -q "$required_term" \
         "$task_channel_owner"; then
@@ -74,5 +74,10 @@ do
         exit 1
     fi
 done
+
+if ! grep -q "llvm_required_task_function" "$task_runtime_owner"; then
+    echo "LLVM task runtime builtin lost explicit failure helper: llvm_required_task_function" >&2
+    exit 1
+fi
 
 echo "[backend-inc-size] runtime/codegen/compiler production .inc files = 0; production implementation headers <= 600 LOC; legacy RIR implementation headers = 0; LLVM task/channel fallback = 0"

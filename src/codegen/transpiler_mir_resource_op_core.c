@@ -5,6 +5,7 @@
 
 #include "transpiler.h"
 #include "transpiler_context.h"
+#include "transpiler_mir_resource_op_core.h"
 #include "transpiler_mir_resource_name_helpers.h"
 #include "transpiler_mir_ssa_map.h"
 #include "transpiler_symbols.h"

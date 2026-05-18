@@ -10,6 +10,12 @@
 #include "transpiler_type_mapping.h"
 
 static bool
+transpiler_type_name_join_fits(int written, size_t out_size)
+{
+    return written >= 0 && (size_t)written < out_size;
+}
+
+static bool
 transpiler_type_name_join(char *out, size_t out_size, const char *prefix,
                           const char *suffix)
 {
@@ -19,7 +25,7 @@ transpiler_type_name_join(char *out, size_t out_size, const char *prefix,
         return false;
 
     written = snprintf(out, out_size, "%s%s", prefix, suffix);
-    if (written < 0 || (size_t)written >= out_size) {
+    if (!transpiler_type_name_join_fits(written, out_size)) {
         out[0] = '\0';
         return false;
     }

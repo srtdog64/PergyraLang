@@ -64,7 +64,7 @@ emit_enum_decl_stmt(ASTNode *node, TranspilerCtx *ctx)
         return;
     }
 
-        /* Check if any variant has data → tagged union */
+        /* Check if any variant has data ??tagged union */
         bool has_data = false;
         for (size_t i = 0; i < variant_count; i++) {
             if (ast_enum_variant_param_count(node, i) > 0) {
@@ -199,7 +199,7 @@ emit_enum_decl_stmt(ASTNode *node, TranspilerCtx *ctx)
             if (method_name == NULL)
                 method_name = ast_declaration_name(method);
             mir_method = transpiler_hosted_method_view_routine(ctx, &method_view, i);
-            if (ctx != NULL && ctx->mir != NULL && mir_method == NULL) {
+            if (transpiler_active_has_mir(ctx) && mir_method == NULL) {
                 transpiler_set_mir_inventory_missing(
                     ctx,
                     "MIR-only C path missing routine for enum method '%s.%s'",

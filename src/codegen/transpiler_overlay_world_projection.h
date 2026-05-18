@@ -32,7 +32,7 @@ resolve_world_embedded_projection_invalidation(TranspilerCtx *ctx,
         const char *source_slot_name = NULL;
         const char *source_type_name = NULL;
 
-        if (resolve_world_zone_subject_receiver(ctx, cursor,
+        if (transpiler_resolve_world_zone_subject_receiver(ctx, cursor,
                 &zone_slot_name, &zone_type_name,
                 &source_slot_name, &source_type_name)
             && zone_slot_name != NULL
@@ -156,7 +156,7 @@ emit_world_embedded_receiver_projection_sync(TranspilerCtx *ctx, ASTNode *receiv
     if (host_decl == NULL || host_decl->type != AST_WORLD_DECL)
         return NULL;
 
-    if (!resolve_world_zone_subject_receiver(ctx, receiver,
+    if (!transpiler_resolve_world_zone_subject_receiver(ctx, receiver,
             &zone_slot_name, &zone_type_name,
             &source_slot_name, &source_type_name)
         || zone_slot_name == NULL

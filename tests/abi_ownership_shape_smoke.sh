@@ -78,7 +78,7 @@ require_term "src/runtime/pgy_runtime_lib_secure_slot_exports.h" "pgy_secure_pin
 
 require_term "src/codegen/transpiler_mir_pin_emit.c" "pgy_pin_%s_%s"
 require_term "src/codegen/transpiler_mir_pin_emit.c" "pgy_unpin_%s(&%s);"
-require_term "src/codegen/transpiler_block_emit.h" "__attribute__((cleanup(pgy_unpin_cleanup_%s)))"
+require_term "src/codegen/transpiler_block_emit.c" "__attribute__((cleanup(pgy_unpin_cleanup_%s)))"
 require_term "src/codegen/llvm_runtime.c" "llvm_runtime_slot_name"
 require_term "src/codegen/llvm_runtime.c" "pin_read"
 require_term "src/codegen/llvm_runtime.c" "pin_write"

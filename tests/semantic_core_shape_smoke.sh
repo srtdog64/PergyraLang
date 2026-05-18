@@ -243,13 +243,13 @@ grep -q 'ast_impl_ability_ref(impl)' src/semantic/type_checker_role_decl.c \
 grep -q 'ast_impl_ability_method(impl, j)' src/semantic/type_checker_role_decl.c \
     || fail "role declaration impl method validation must consume AST impl-ability accessor"
 
-grep -q 'ast_include_role_name(inc)' src/semantic/type_checker_resolution_graph_decl.c \
+grep -q 'ast_include_role_name(inc)' src/semantic/type_checker_resolution_graph_decl_participants.c \
     || fail "DAG role include precollect must consume AST include accessor"
 
-grep -q 'ast_impl_ability_ref(impl)' src/semantic/type_checker_resolution_graph_decl.c \
+grep -q 'ast_impl_ability_ref(impl)' src/semantic/type_checker_resolution_graph_decl_participants.c \
     || fail "DAG role impl precollect must consume AST impl-ability accessor"
 
-grep -q 'semantic_role_for_type_node(role_decl)' src/semantic/type_checker_resolution_graph_decl.c \
+grep -q 'semantic_role_for_type_node(role_decl)' src/semantic/type_checker_resolution_graph_decl_participants.c \
     || fail "DAG role host-type precollect must consume the semantic role target-type helper"
 
 grep -q 'ast_include_role_name(inc)' src/semantic/type_checker_resolution_stage_nominal.c \
@@ -378,20 +378,27 @@ for path in \
     src/codegen/llvm_stmt_type_infer_nominal.c \
     src/codegen/transpiler_call_constructor_result_emit.h \
     src/codegen/transpiler_call_result_option_builtin_emit.h \
+    src/codegen/transpiler_channel_type_query.c \
     src/codegen/transpiler_destructure_emit.h \
+    src/codegen/transpiler_domain_receiver_query.c \
     src/codegen/transpiler_event_builtin_emit.c \
     src/codegen/transpiler_expr_call_user_emit.h \
+    src/codegen/transpiler_expr_core_builtins_emit.c \
     src/codegen/transpiler_expr_core_builtins_emit.h \
+    src/codegen/transpiler_expr_projection_builtin.c \
     src/codegen/transpiler_expr_dispatch_emit.h \
+    src/codegen/transpiler_expr_stdlib_builtin.c \
     src/codegen/transpiler_expr_stdlib_builtin.h \
     src/codegen/transpiler_func_class_flow_emit.h \
     src/codegen/transpiler_func_forward_helpers.h \
+    src/codegen/transpiler_generic_binding_query.c \
+    src/codegen/transpiler_generic_param_query.c \
     src/codegen/transpiler_helpers_core_b.h \
     src/codegen/transpiler_intent_context.c \
     src/codegen/transpiler_lambda_emit.h \
     src/codegen/transpiler_let_box_emit.h \
     src/codegen/transpiler_let_slot_emit.h \
-    src/codegen/transpiler_match_emit.h \
+    src/codegen/transpiler_match_emit.c \
     src/codegen/transpiler_mir_assignment_emit.h \
     src/codegen/transpiler_mir_block_emit.h \
     src/codegen/transpiler_mir_destructure_emit.h \
@@ -720,6 +727,7 @@ if grep -R "data\.func_decl\.\(param_count\|params\|return_type\|body\)" \
     src/codegen/transpiler_enum_decl_emit.h \
     src/codegen/transpiler_expr_call_spawn_emit.h \
     src/codegen/transpiler_expr_call_user_emit.h \
+    src/codegen/transpiler_expr_type_infer.c \
     src/codegen/transpiler_expr_type_infer.h \
     src/codegen/transpiler_func_class_flow_emit.h \
     src/codegen/transpiler_func_forward_emit.c \
@@ -954,13 +962,19 @@ if grep -R "data\.call\.\(callee\|arguments\|arg_count\)" \
     src/codegen/llvm_mir_local_emit.c \
     src/codegen/transpiler_event_builtin_emit.c \
     src/codegen/transpiler_call_result_option_builtin_emit.h \
+    src/codegen/transpiler_channel_type_query.c \
+    src/codegen/transpiler_domain_receiver_query.c \
+    src/codegen/transpiler_expr_core_builtins_emit.c \
     src/codegen/transpiler_expr_core_builtins_emit.h \
+    src/codegen/transpiler_expr_projection_builtin.c \
     src/codegen/transpiler_expr_builtin_dispatch.h \
+    src/codegen/transpiler_expr_stdlib_builtin.c \
     src/codegen/transpiler_expr_stdlib_builtin.h \
     src/codegen/transpiler_func_class_flow_emit.h \
     src/codegen/transpiler_func_forward_helpers.h \
     src/codegen/transpiler_helpers_core_b.h \
     src/codegen/transpiler_intent_observability_builtin_emit.h \
+    src/codegen/transpiler_generic_binding_query.c \
     src/codegen/transpiler_expr_stdlib_collection_builtin.h \
     src/codegen/transpiler_expr_stdlib_channel_builtin.h \
     src/codegen/transpiler_expr_stdlib_map_builtin.h \
@@ -968,10 +982,11 @@ if grep -R "data\.call\.\(callee\|arguments\|arg_count\)" \
     src/codegen/transpiler_expr_stdlib_queue_builtin.h \
     src/codegen/transpiler_expr_stdlib_scalar_builtin.h \
     src/codegen/transpiler_log_builtin_emit.c \
+    src/codegen/transpiler_generic_param_query.c \
     src/codegen/transpiler_let_channel_emit.h \
     src/codegen/transpiler_let_box_emit.h \
     src/codegen/transpiler_let_slot_emit.h \
-    src/codegen/transpiler_match_emit.h \
+    src/codegen/transpiler_match_emit.c \
     src/codegen/transpiler_mir_destructure_emit.h \
     src/codegen/transpiler_mir_match_condition_emit.h \
     src/codegen/transpiler_mir_local_type_lookup.h \
@@ -1885,6 +1900,7 @@ if grep -R "data\.\(constructed\|slot\|function\|tuple\|generic\|primitive\)\." 
     src/semantic src/compiler src/codegen \
     | grep -v "src/semantic/type_system.c" \
     | grep -v "src/semantic/type_system_slot.c" \
+    | grep -v "src/semantic/type_system_tuple.c" \
     | grep -v "src/semantic/type_system_compat.c" \
     | grep -v "src/semantic/type_effects.c" \
     | grep -v "src/semantic/type_checker_resolution_metadata_storage.c" >/dev/null; then

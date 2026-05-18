@@ -106,7 +106,7 @@ transpiler_cache_nominal_host_decl(TranspilerCtx *ctx,
         ctx->last_nominal_host_decl = NULL;
         return;
     }
-    ctx->last_nominal_host_mir = ctx->mir;
+    ctx->last_nominal_host_mir = transpiler_active_mir_identity(ctx);
     ctx->last_nominal_host_decl = decl;
 }
 
@@ -128,7 +128,7 @@ transpiler_cache_nominal_method_decl(TranspilerCtx *ctx,
         ctx->last_nominal_method_decl = NULL;
         return;
     }
-    ctx->last_nominal_method_mir = ctx->mir;
+    ctx->last_nominal_method_mir = transpiler_active_mir_identity(ctx);
     ctx->last_nominal_method_decl = method;
 }
 
@@ -232,7 +232,7 @@ transpiler_find_nominal_host_decl_local(TranspilerCtx *ctx,
         return NULL;
 
     if (ctx->last_nominal_host_decl != NULL
-        && ctx->last_nominal_host_mir == ctx->mir
+        && ctx->last_nominal_host_mir == transpiler_active_mir_identity(ctx)
         && strcmp(ctx->last_nominal_host_name, host_type_name) == 0) {
         return ctx->last_nominal_host_decl;
     }
@@ -264,12 +264,10 @@ current_host_method_decl(TranspilerCtx *ctx, const char *method_name)
 
     decl = transpiler_current_host_decl_local(ctx);
     host_name = transpiler_decl_name_local(decl);
-    if (ctx->mir != NULL && host_name != NULL) {
-        header = mir_find_decl_header(ctx->mir, host_name);
-        if (transpiler_decl_header_is_nominal_host(header))
-            return transpiler_find_method_source_ast_in_mir_header(
-                header, method_name);
-    }
+    header = transpiler_active_decl_header(ctx, host_name);
+    if (transpiler_decl_header_is_nominal_host(header))
+        return transpiler_find_method_source_ast_in_mir_header(
+            header, method_name);
 
     method_view = transpiler_hosted_method_view_from_decl(ctx, host_name, decl);
 
@@ -300,23 +298,21 @@ find_nominal_host_method_decl(TranspilerCtx *ctx, const char *host_type_name,
         return NULL;
 
     if (ctx->last_nominal_method_decl != NULL
-        && ctx->last_nominal_method_mir == ctx->mir
+        && ctx->last_nominal_method_mir == transpiler_active_mir_identity(ctx)
         && strcmp(ctx->last_nominal_method_host_name, host_type_name) == 0
         && strcmp(ctx->last_nominal_method_name, method_name) == 0) {
         return ctx->last_nominal_method_decl;
     }
 
-    if (ctx->mir != NULL) {
-        header = mir_find_decl_header(ctx->mir, host_type_name);
-        if (transpiler_decl_header_is_nominal_host(header)) {
-            method_from_mir = transpiler_find_method_source_ast_in_mir_header(
-                header, method_name);
-            if (method_from_mir == NULL)
-                return NULL;
-            transpiler_cache_nominal_method_decl(ctx, host_type_name,
-                method_name, method_from_mir);
-            return method_from_mir;
-        }
+    header = transpiler_active_decl_header(ctx, host_type_name);
+    if (transpiler_decl_header_is_nominal_host(header)) {
+        method_from_mir = transpiler_find_method_source_ast_in_mir_header(
+            header, method_name);
+        if (method_from_mir == NULL)
+            return NULL;
+        transpiler_cache_nominal_method_decl(ctx, host_type_name,
+            method_name, method_from_mir);
+        return method_from_mir;
     }
 
     decl = transpiler_find_nominal_host_decl_local(ctx, host_type_name);

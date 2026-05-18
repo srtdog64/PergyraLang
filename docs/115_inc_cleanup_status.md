@@ -1875,11 +1875,11 @@ Observed results:
   contract smokes now read the named owner path. The current production source
   `.inc` inventory is 45 files / 6,212 LOC.
 - Latest C backend match lowering cleanup moved the former
-  `src/codegen/transpiler_emitters_match.inc` body into
-  `src/codegen/transpiler_match_emit.h`. Result/Option/enum destructor pattern
-  helpers and `emit_match_stmt(...)` now have a named private owner while
-  `transpiler_func_class_flow_emit.h` preserves include order. The current
-  production source `.inc` inventory is 44 files / 5,932 LOC.
+  `src/codegen/transpiler_emitters_match.inc` body through
+  `src/codegen/transpiler_match_emit.h` and now into the compiled owner
+  `src/codegen/transpiler_match_emit.c`. Result/Option/enum destructor pattern
+  helpers and `emit_match_stmt(...)` no longer live in the include chain.
+  The current production source `.inc` inventory is 44 files / 5,932 LOC.
 - Latest LLVM domain query call cleanup moved the former
   `src/codegen/llvm_expr_call_domain_queries.inc` body into
   `src/codegen/llvm_expr_domain_query_calls.h`. `HasProjection`, `HasLayer`,
@@ -1997,7 +1997,7 @@ Observed results:
   990 LOC.
 - `inc-sentinel-test-smoke`: no `.inc` files are allowed under `src`,
   `.cases.h` is allowed only under `src/tests`, the current `.cases.h`
-  inventory is capped at 30 files, `.cases.h` includes are allowed only from
+  inventory is capped at 85 files, `.cases.h` includes are allowed only from
   dedicated test harnesses, no empty test fragments are allowed, and no orphan
   test fragments are allowed. The sentinel is shell-only and does not require a
   Python runtime on CI.

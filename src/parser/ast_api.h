@@ -521,8 +521,6 @@ ASTNode* ast_create_party_shared(const char* name);
 const char* ast_party_shared_name(const ASTNode* node);
 ASTNode* ast_party_shared_type(const ASTNode* node);
 ASTNode* ast_party_shared_initializer(const ASTNode* node);
-const char* ast_require_field_name(const ASTNode* node);
-ASTNode* ast_require_field_type(const ASTNode* node);
 ASTNode* ast_create_context_access(const char* method_name, const char* slot_name);
 const char* ast_context_access_method_name(const ASTNode* node);
 const char* ast_context_access_role_slot_name(const ASTNode* node);

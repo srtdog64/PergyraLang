@@ -104,6 +104,8 @@ bool type_check_zone_relation_contract(ASTNode *zone,
                                        const char *action_name);
 void type_check_zone_authorities(ASTNode *zone, SemanticContext *ctx);
 void type_check_zone_layer_slots(ASTNode *zone, SemanticContext *ctx);
+void type_check_zone_lifecycle_mutations(ASTNode *zone, SemanticContext *ctx);
+void type_check_zone_lifecycle_maintenance(ASTNode *zone, SemanticContext *ctx);
 void type_check_zone_state_aliases(ASTNode *zone, SemanticContext *ctx);
 size_t type_check_zone_shape_warnings(ASTNode *zone, SemanticContext *ctx);
 void type_check_zone_projection_rules(ASTNode *zone, SemanticContext *ctx);

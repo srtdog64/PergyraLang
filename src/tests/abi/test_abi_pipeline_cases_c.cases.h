@@ -15,7 +15,7 @@
                       "0 error(s), 0 warning(s)",
                       BACKEND_C, !perf_mode, 30.0, 5.0);
     run_pipeline_case("intent_failure_abi", intent_failure_source, intent_failure_expected,
-                      "0 error(s), 1 warning(s)",
+                      "0 error(s), 0 warning(s)",
                       BACKEND_C, !perf_mode, 30.0, 5.0);
     run_pipeline_case("world_clone_ownership_abi", world_clone_source, world_clone_expected,
                       "0 error(s), 0 warning(s)",

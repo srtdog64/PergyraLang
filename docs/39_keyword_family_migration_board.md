@@ -122,7 +122,7 @@
 | --- | --- | --- |
 | `src/codegen/llvm_backend.c` `llvm_emit_program_from_mir` | Pass 4 전체가 HIR fallback 블록 | Pass 4를 migration debt 블록으로 표시하고 항목별 제거 |
 | `src/codegen/llvm_backend.c` `llvm_emit_intent_decl` | intent는 HIR lowering 전용 경로 | MIR intent routine schema를 먼저 확정 |
-| `src/codegen/llvm_pipeline.c` `llvm_emit_main_wrapper` | wrapper가 active executable/main metadata를 읽는다 | entry metadata를 declaration IR로 더 분리할지 검토 |
+| `src/codegen/llvm_main_wrapper.c` `llvm_emit_main_wrapper` | wrapper가 active executable/main metadata를 읽는다 | entry metadata를 declaration IR로 더 분리할지 검토 |
 
 ### 6.3 intent MIR-only 조건
 

@@ -10,6 +10,9 @@ LLVMValueRef llvm_call_arg_error_recovery(LLVMGenCtx *ctx,
                                           ASTNode *node,
                                           const char *callee_name,
                                           size_t arg_index);
+LLVMValueRef llvm_emit_hosted_self_call(ASTNode *node,
+                                        LLVMGenCtx *ctx,
+                                        const char *callee_name);
 LLVMValueRef llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx);
 
 #endif

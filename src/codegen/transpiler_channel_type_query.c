@@ -1,0 +1,112 @@
+/*
+ * Copyright (c) 2026 Pergyra Language Project
+ * C backend channel expression type queries.
+ */
+
+#include "transpiler_channel_type_query.h"
+
+#include <stddef.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "../common/string_compat.h"
+#include "../parser/ast_api.h"
+#include "../semantic/diag_codes.h"
+#include "transpiler_context.h"
+#include "transpiler_decl_lookup.h"
+#include "transpiler_expr_type_infer.h"
+#include "transpiler_type_mapping.h"
+#include "transpiler_type_render.h"
+
+static bool
+transpiler_channel_resolve_inner_type(TranspilerCtx *ctx,
+                                      const char *type_name,
+                                      char *inner_buf,
+                                      size_t inner_buf_size,
+                                      const char **inner_out)
+{
+    const char *resolved_type = type_name;
+    char resolved_buf[128];
+    const size_t family_len = strlen("Channel");
+
+    if (resolved_type != NULL
+        && !(strncmp(resolved_type, "Channel", family_len) == 0
+             && resolved_type[family_len] == '<')) {
+        ASTNode *alias_decl = transpiler_find_type_alias_decl(ctx,
+            resolved_type);
+        if (alias_decl != NULL
+            && ast_type_alias_target_type(alias_decl) != NULL) {
+            ASTNode *target = resolve_type_alias_target(ctx,
+                ast_type_alias_target_type(alias_decl));
+            char *rendered = render_type_name(target);
+            if (rendered != NULL) {
+                bool copied = pergyra_str_copy(resolved_buf,
+                    sizeof(resolved_buf), rendered);
+                free(rendered);
+                if (!copied) {
+                    transpiler_set_backend_error_with_hints(ctx,
+                        PGY_CODE_C_TYPE_UNSUPPORTED,
+                        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                        PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+                        "C backend: resolved Channel type is too long");
+                    return false;
+                }
+                resolved_type = resolved_buf;
+            }
+        }
+    }
+
+    if (resolved_type != NULL
+        && strncmp(resolved_type, "Channel", family_len) == 0
+        && resolved_type[family_len] == '<'
+        && slot_inner_type_name_copy(resolved_type, inner_buf,
+            inner_buf_size)
+        && inner_buf[0] != '\0'
+        && strcmp(inner_buf, "Unknown") != 0) {
+        if (inner_out != NULL)
+            *inner_out = inner_buf;
+        return true;
+    }
+    return false;
+}
+
+bool
+channel_inner_type_name_copy(TranspilerCtx *ctx, ASTNode *expr,
+                             char *out, size_t out_size)
+{
+    const char *type_name;
+
+    if (out == NULL || out_size == 0)
+        return false;
+    out[0] = '\0';
+
+    type_name = transpiler_expr_infer_type_name(ctx, expr);
+    if (transpiler_channel_resolve_inner_type(ctx, type_name, out, out_size,
+            NULL)) {
+        return true;
+    }
+    return pergyra_str_copy(out, out_size, "Unknown");
+}
+
+const char *
+transpiler_require_channel_inner_type(TranspilerCtx *ctx, ASTNode *expr,
+                                      const char *operation,
+                                      char *inner_buf,
+                                      size_t inner_buf_size)
+{
+    const char *inner = NULL;
+    const char *type_name = transpiler_expr_infer_type_name(ctx, expr);
+
+    if (transpiler_channel_resolve_inner_type(ctx, type_name, inner_buf,
+            inner_buf_size, &inner)) {
+        return inner;
+    }
+
+    transpiler_set_backend_error_with_hints(ctx,
+        PGY_CODE_C_TYPE_UNSUPPORTED,
+        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+        PGY_FIX_ANNOTATE_CONCRETE_TYPE,
+        "C backend: %s requires concrete Channel<T> metadata",
+        operation != NULL ? operation : "Channel operation");
+    return NULL;
+}

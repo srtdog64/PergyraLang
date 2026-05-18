@@ -55,6 +55,16 @@ mir_instruction_source_location_matches_node(const MIRInstruction *inst,
         && inst->source_column == node->column;
 }
 
+bool
+mir_instruction_source_line_matches_node(const MIRInstruction *inst,
+                                         const ASTNode *node)
+{
+    return mir_instruction_has_source_location(inst)
+        && node != NULL
+        && node->line != 0
+        && inst->source_line == node->line;
+}
+
 uint32_t
 mir_instruction_source_line(const MIRInstruction *inst)
 {
@@ -345,14 +355,6 @@ mir_instruction_source_matches_ast_type(const MIRInstruction *inst,
     return inst != NULL
         && inst->has_source_location
         && inst->source_ast_type == expected_type;
-}
-
-bool
-mir_instruction_source_matches_ast_node(const MIRInstruction *inst,
-                                        const ASTNode *node)
-{
-    return node != NULL
-        && mir_instruction_source_matches_ast_type(inst, node->type);
 }
 
 bool

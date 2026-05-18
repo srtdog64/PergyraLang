@@ -103,4 +103,72 @@ test_source_order_mir_emit(void)
         hir_destroy(hir);
         ast_destroy(program);
     }
+
+    TEST("with-slot MIR resource ops do not outrun preceding locals");
+    {
+        const char *source =
+            "func Seed() -> Int {\n"
+            "    return 7;\n"
+            "}\n"
+            "\n"
+            "func Main() -> Void {\n"
+            "    let base: Int = Seed();\n"
+            "    with slot<Int> as first {\n"
+            "        Write(first, base + 1);\n"
+            "        Print(ToString(Read(first)));\n"
+            "    }\n"
+            "    with slot<Int> as second {\n"
+            "        Write(second, base + 2);\n"
+            "        Print(ToString(Read(second)));\n"
+            "    }\n"
+            "}\n";
+        ASTNode *program = NULL;
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = NULL;
+        TranspilerCtx *ctx = NULL;
+        const char *base_pos = NULL;
+        const char *first_claim_pos = NULL;
+        const char *first_write_pos = NULL;
+        const char *second_claim_pos = NULL;
+        const char *second_write_pos = NULL;
+        bool ok = lower_pipeline_from_source(source, &program, &hir, &rir, &mir);
+
+        if (ok) {
+            ctx = transpiler_ctx_create();
+            ctx->mir = mir;
+            emit_program(ctx);
+        }
+
+        if (ok && ctx != NULL && ctx->out != NULL && ctx->out->data != NULL) {
+            base_pos = strstr(ctx->out->data, "Seed()");
+            first_claim_pos = strstr(ctx->out->data,
+                "PgySlot_Int first = pgy_claim_Int();");
+            first_write_pos = strstr(ctx->out->data, "pgy_write_Int(&first,");
+            second_claim_pos = strstr(ctx->out->data,
+                "PgySlot_Int second = pgy_claim_Int();");
+            second_write_pos = strstr(ctx->out->data, "pgy_write_Int(&second,");
+        }
+
+        EXPECT(ok && ctx != NULL && ctx->out != NULL && ctx->out->data != NULL);
+        EXPECT(base_pos != NULL);
+        EXPECT(first_claim_pos != NULL);
+        EXPECT(first_write_pos != NULL);
+        EXPECT(second_claim_pos != NULL);
+        EXPECT(second_write_pos != NULL);
+        if (base_pos != NULL && first_write_pos != NULL)
+            EXPECT(base_pos < first_write_pos);
+        if (first_claim_pos != NULL && first_write_pos != NULL)
+            EXPECT(first_claim_pos < first_write_pos);
+        if (second_claim_pos != NULL && second_write_pos != NULL)
+            EXPECT(second_claim_pos < second_write_pos);
+        if (first_write_pos != NULL && second_claim_pos != NULL)
+            EXPECT(first_write_pos < second_claim_pos);
+
+        transpiler_ctx_destroy(ctx);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+        ast_destroy(program);
+    }
 }

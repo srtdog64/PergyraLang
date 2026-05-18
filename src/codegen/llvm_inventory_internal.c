@@ -6,6 +6,8 @@
 #include <string.h>
 
 #include "llvm_internal.h"
+#include "intent_observability_usage.h"
+#include "thread_pool_usage.h"
 
 void
 llvm_active_nominal_inventory(const LLVMGenCtx *ctx,
@@ -67,6 +69,26 @@ llvm_routine_inventory_get(const LLVMMIRRoutineInventory *inventory,
         return NULL;
     }
     return &inventory->routines[index];
+}
+
+ASTNode *
+llvm_mir_routine_source_ast(const MIRRoutine *routine)
+{
+    return routine != NULL ? routine->ast : NULL;
+}
+
+ASTNode *
+llvm_mir_routine_source_ast_of_type(const MIRRoutine *routine,
+                                    MIRScopeKind expected_kind,
+                                    ASTNodeType expected_ast_type)
+{
+    ASTNode *source_ast = llvm_mir_routine_source_ast(routine);
+
+    if (routine == NULL || routine->kind != expected_kind)
+        return NULL;
+    if (source_ast == NULL || source_ast->type != expected_ast_type)
+        return NULL;
+    return source_ast;
 }
 
 void
@@ -139,6 +161,12 @@ llvm_active_synthetic_executable_func(const LLVMGenCtx *ctx)
 }
 
 bool
+llvm_active_has_mir(const LLVMGenCtx *ctx)
+{
+    return ctx != NULL && ctx->mir != NULL;
+}
+
+bool
 llvm_active_has_main_function(const LLVMGenCtx *ctx)
 {
     if (ctx != NULL && ctx->mir != NULL)
@@ -152,4 +180,20 @@ llvm_active_has_top_level_exec(const LLVMGenCtx *ctx)
     if (ctx != NULL && ctx->mir != NULL)
         return ctx->mir->has_top_level_exec;
     return false;
+}
+
+bool
+llvm_active_uses_intent_observability(const LLVMGenCtx *ctx)
+{
+    if (ctx == NULL || ctx->mir == NULL)
+        return false;
+    return pgy_mir_program_uses_intent_observability(ctx->mir);
+}
+
+bool
+llvm_active_uses_thread_pool(const LLVMGenCtx *ctx)
+{
+    if (ctx == NULL || ctx->mir == NULL)
+        return false;
+    return pgy_mir_program_uses_thread_pool(ctx->mir);
 }

@@ -142,7 +142,7 @@ if ! grep -Fq '#include "transpiler_zone_methods_emit.h"' \
 fi
 
 if ! grep -Fq '#include "transpiler_expr_stdlib_queue_builtin.h"' \
-    "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_collection_builtin.h"; then
+    "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_collection_builtin.c"; then
     echo "[build-source-inventory] stdlib queue builtin emitter is not linked by the C collection builtin include chain" >&2
     missing=1
 fi

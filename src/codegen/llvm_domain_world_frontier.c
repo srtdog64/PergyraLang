@@ -1,11 +1,12 @@
 #ifdef PGY_LLVM_ENABLED
 #include "llvm_internal.h"
 #include "llvm_domain_sync_frontier.h"
+#include "llvm_domain_world_frontier_internal.h"
 #include "llvm_domain_world_sync_internal.h"
 #include "llvm_inventory_decl_lookup.h"
 #include "domain_frontier_policy.h"
 
-static bool
+bool
 llvm_world_frontier_field_name(char *out,
                                size_t out_size,
                                const char *kind,
@@ -19,7 +20,7 @@ llvm_world_frontier_field_name(char *out,
     return written >= 0 && (size_t)written < out_size;
 }
 
-static bool
+bool
 llvm_world_frontier_sync_name(char *out,
                               size_t out_size,
                               const char *zone_type)
@@ -158,110 +159,8 @@ llvm_world_sync_emit_frontier(ASTNode *stmt, LLVMClassTypeEntry *decl_cls,
             needs_derived_addr);
     }
 
-    for (size_t i = 0; i < zone_count; i++) {
-        ASTNode *zone = zones[i];
-        int zone_idx;
-        int dirty_idx;
-        int seen_idx;
-        char dirty_field[256];
-        char seen_field[256];
-        LLVMValueRef self_ptr;
-        LLVMValueRef dirty_ptr;
-        LLVMValueRef dirty_val;
-        LLVMBasicBlockRef sync_bb;
-        LLVMBasicBlockRef cont_bb;
-        const char *slot_name = ast_world_zone_slot_name(zone);
-        const char *zone_type_name = ast_world_zone_type_name(zone);
-        if (slot_name == NULL)
-            continue;
-        zone_idx = llvm_class_field_index(decl_cls, slot_name);
-        if (!llvm_world_frontier_field_name(dirty_field, sizeof(dirty_field),
-                "zone_dirty", slot_name))
-            continue;
-        if (!llvm_world_frontier_field_name(seen_field, sizeof(seen_field),
-                "zone_seen_generation", slot_name))
-            continue;
-        dirty_idx = llvm_class_field_index(decl_cls, dirty_field);
-        seen_idx = llvm_class_field_index(decl_cls, seen_field);
-        self_ptr = LLVMGetParam(sync_fn, 0);
-        if (zone_idx < 0 || dirty_idx < 0 || zone_type_name == NULL)
-            continue;
-        {
-            LLVMClassTypeEntry *zone_cls = llvm_lookup_class(ctx, zone_type_name);
-            char sync_name[256];
-            LLVMFuncEntry *zone_sync;
-            if (!llvm_world_frontier_sync_name(sync_name, sizeof(sync_name),
-                    zone_type_name))
-                continue;
-            zone_sync = llvm_lookup_function(ctx, sync_name);
-            if (zone_cls == NULL || zone_sync == NULL)
-                continue;
-            dirty_ptr = LLVMBuildStructGEP2(ctx->builder, decl_cls->struct_type,
-                self_ptr, (unsigned)dirty_idx, llvm_tmp_name(ctx));
-            if (seen_idx >= 0) {
-                int generation_idx = llvm_class_field_index(zone_cls, "__sync_generation");
-                if (generation_idx >= 0) {
-                    LLVMValueRef zone_ptr = LLVMBuildStructGEP2(ctx->builder,
-                        decl_cls->struct_type, self_ptr, (unsigned)zone_idx,
-                        llvm_tmp_name(ctx));
-                    LLVMValueRef generation_ptr = LLVMBuildStructGEP2(ctx->builder,
-                        zone_cls->struct_type, zone_ptr, (unsigned)generation_idx,
-                        llvm_tmp_name(ctx));
-                    LLVMValueRef seen_ptr = LLVMBuildStructGEP2(ctx->builder,
-                        decl_cls->struct_type, self_ptr, (unsigned)seen_idx,
-                        llvm_tmp_name(ctx));
-                    LLVMValueRef generation_val = LLVMBuildLoad2(ctx->builder,
-                        ctx->type_i32, generation_ptr, llvm_tmp_name(ctx));
-                    LLVMValueRef seen_val = LLVMBuildLoad2(ctx->builder,
-                        ctx->type_i32, seen_ptr, llvm_tmp_name(ctx));
-                    LLVMValueRef generation_changed = LLVMBuildICmp(ctx->builder,
-                        LLVMIntNE, generation_val, seen_val, llvm_tmp_name(ctx));
-                    LLVMValueRef dirty_prev = LLVMBuildLoad2(ctx->builder,
-                        ctx->type_i1, dirty_ptr, llvm_tmp_name(ctx));
-                    LLVMValueRef dirty_next = LLVMBuildOr(ctx->builder,
-                        dirty_prev, generation_changed, llvm_tmp_name(ctx));
-                    LLVMBuildStore(ctx->builder, dirty_next, dirty_ptr);
-                    if (derived_ptr != NULL) {
-                        LLVMValueRef derived_next = LLVMBuildOr(ctx->builder,
-                            LLVMBuildLoad2(ctx->builder, ctx->type_i1,
-                                derived_ptr, llvm_tmp_name(ctx)),
-                            generation_changed, llvm_tmp_name(ctx));
-                        LLVMBuildStore(ctx->builder, derived_next, derived_ptr);
-                    }
-                }
-            }
-            dirty_val = LLVMBuildLoad2(ctx->builder, ctx->type_i1,
-                dirty_ptr, llvm_tmp_name(ctx));
-            sync_bb = LLVMAppendBasicBlockInContext(ctx->context, sync_fn, "world.zone.sync");
-            cont_bb = LLVMAppendBasicBlockInContext(ctx->context, sync_fn, "world.zone.cont");
-            LLVMBuildCondBr(ctx->builder, dirty_val, sync_bb, cont_bb);
-            LLVMPositionBuilderAtEnd(ctx->builder, sync_bb);
-            {
-                LLVMValueRef zone_ptr = LLVMBuildStructGEP2(ctx->builder, decl_cls->struct_type,
-                    self_ptr, (unsigned)zone_idx, llvm_tmp_name(ctx));
-                LLVMValueRef args[] = { zone_ptr };
-                LLVMBuildCall2(ctx->builder, zone_sync->fn_type, zone_sync->fn, args, 1, "");
-                if (seen_idx >= 0) {
-                    int generation_idx = llvm_class_field_index(zone_cls, "__sync_generation");
-                    if (generation_idx >= 0) {
-                        LLVMValueRef generation_ptr = LLVMBuildStructGEP2(ctx->builder,
-                            zone_cls->struct_type, zone_ptr, (unsigned)generation_idx,
-                            llvm_tmp_name(ctx));
-                        LLVMValueRef seen_ptr = LLVMBuildStructGEP2(ctx->builder,
-                            decl_cls->struct_type, self_ptr, (unsigned)seen_idx,
-                            llvm_tmp_name(ctx));
-                        LLVMValueRef generation_val = LLVMBuildLoad2(ctx->builder,
-                            ctx->type_i32, generation_ptr, llvm_tmp_name(ctx));
-                        LLVMBuildStore(ctx->builder, generation_val, seen_ptr);
-                    }
-                }
-            }
-            LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 0, 0), dirty_ptr);
-            LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 1, 0), needs_derived_addr);
-            LLVMBuildBr(ctx->builder, cont_bb);
-            LLVMPositionBuilderAtEnd(ctx->builder, cont_bb);
-        }
-    }
+    llvm_world_frontier_emit_zone_sync_pass(stmt, decl_cls, sync_fn,
+        needs_derived_addr, derived_ptr, zones, zone_count, ctx);
 
     LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i32, 0, 0), pass_addr);
     LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 0, 0), continue_addr);
@@ -299,162 +198,8 @@ llvm_world_sync_emit_frontier(ASTNode *stmt, LLVMClassTypeEntry *decl_cls,
                 LLVMConstInt(ctx->type_i32, 1, 0), llvm_tmp_name(ctx)),
             pass_addr);
     }
-    for (size_t i = 0; i < state_count; i++) {
-        ASTNode *state = states[i];
-        const char *slot_name;
-        char state_field[256];
-        char active_field[256];
-        int state_idx;
-        int active_idx = -1;
-        LLVMValueRef self_ptr;
-        LLVMValueRef state_ptr;
-        LLVMValueRef prev_state_val;
-        LLVMValueRef active_ptr = NULL;
-        LLVMValueRef active_val = LLVMConstInt(ctx->type_i1, 0, 0);
-        LLVMValueRef derived_val = NULL;
-        LLVMValueRef changed_val;
-        if (state == NULL || state->type != AST_WORLD_STATE
-            || ast_world_state_name(state) == NULL)
-            continue;
-        slot_name = ast_world_state_zone_slot_name(state);
-        if (!llvm_world_frontier_field_name(state_field, sizeof(state_field),
-                "zone_state", ast_world_state_name(state)))
-            continue;
-        state_idx = llvm_class_field_index(decl_cls, state_field);
-        if (state_idx < 0)
-            continue;
-        self_ptr = LLVMGetParam(sync_fn, 0);
-        state_ptr = LLVMBuildStructGEP2(ctx->builder, decl_cls->struct_type,
-            self_ptr, (unsigned)state_idx, llvm_tmp_name(ctx));
-        prev_state_val = LLVMBuildLoad2(ctx->builder, ctx->type_i1,
-            state_ptr, llvm_tmp_name(ctx));
-        if (slot_name != NULL) {
-            if (!llvm_world_frontier_field_name(active_field,
-                    sizeof(active_field), "zone_active", slot_name))
-                continue;
-            active_idx = llvm_class_field_index(decl_cls, active_field);
-            if (active_idx >= 0) {
-                active_ptr = LLVMBuildStructGEP2(ctx->builder, decl_cls->struct_type,
-                    self_ptr, (unsigned)active_idx, llvm_tmp_name(ctx));
-                active_val = LLVMBuildLoad2(ctx->builder, ctx->type_i1,
-                    active_ptr, llvm_tmp_name(ctx));
-            }
-        }
-        derived_val = active_val;
-
-        if (ast_world_state_source_kind(state) == WORLD_STATE_SOURCE_ALL
-            || ast_world_state_source_kind(state) == WORLD_STATE_SOURCE_ANY) {
-            derived_val = LLVMConstInt(ctx->type_i1,
-                ast_world_state_source_kind(state) == WORLD_STATE_SOURCE_ALL ? 1 : 0, 0);
-            for (size_t input_i = 0; input_i < ast_world_state_input_count(state); input_i++) {
-                const char *input_name = ast_world_state_input_name(state, input_i);
-                int input_idx = -1;
-                LLVMValueRef input_ptr;
-                LLVMValueRef input_val;
-                if (input_name == NULL)
-                    continue;
-                if (llvm_world_sync_has_zone_slot(stmt, input_name)) {
-                    char input_field[256];
-                    if (!llvm_world_frontier_field_name(input_field,
-                            sizeof(input_field), "zone_active", input_name))
-                        continue;
-                    input_idx = llvm_class_field_index(decl_cls, input_field);
-                } else {
-                    char input_field[256];
-                    if (!llvm_world_frontier_field_name(input_field,
-                            sizeof(input_field), "zone_state", input_name))
-                        continue;
-                    input_idx = llvm_class_field_index(decl_cls, input_field);
-                }
-                if (input_idx < 0)
-                    continue;
-                input_ptr = LLVMBuildStructGEP2(ctx->builder, decl_cls->struct_type,
-                    self_ptr, (unsigned)input_idx, llvm_tmp_name(ctx));
-                input_val = LLVMBuildLoad2(ctx->builder, ctx->type_i1,
-                    input_ptr, llvm_tmp_name(ctx));
-                if (ast_world_state_source_kind(state) == WORLD_STATE_SOURCE_ALL)
-                    derived_val = LLVMBuildAnd(ctx->builder, derived_val, input_val,
-                        llvm_tmp_name(ctx));
-                else
-                    derived_val = LLVMBuildOr(ctx->builder, derived_val, input_val,
-                        llvm_tmp_name(ctx));
-            }
-        }
-
-        if (ast_world_state_source_kind(state) != WORLD_STATE_SOURCE_ZONE
-            && ast_world_state_source_kind(state) != WORLD_STATE_SOURCE_ALL
-            && ast_world_state_source_kind(state) != WORLD_STATE_SOURCE_ANY
-            && ast_world_state_detail_name(state) != NULL) {
-            int zone_idx = llvm_class_field_index(decl_cls, slot_name);
-            LLVMClassTypeEntry *zone_cls = NULL;
-            if (zone_idx >= 0) {
-                LLVMTypeRef zone_field_ty = decl_cls->fields[zone_idx].field_type;
-                zone_cls = llvm_lookup_class_by_struct_type(ctx, zone_field_ty);
-            }
-            if (zone_cls != NULL && zone_idx >= 0) {
-                char detail_field[256];
-                int detail_idx = -1;
-                LLVMValueRef zone_ptr = LLVMBuildStructGEP2(ctx->builder, decl_cls->struct_type,
-                    self_ptr, (unsigned)zone_idx, llvm_tmp_name(ctx));
-                LLVMValueRef detail_ptr;
-                LLVMValueRef detail_val;
-
-                switch (ast_world_state_source_kind(state)) {
-                case WORLD_STATE_SOURCE_PROJECTION:
-                    if (!llvm_world_frontier_field_name(detail_field,
-                            sizeof(detail_field), "projection_ready",
-                            ast_world_state_detail_name(state)))
-                        detail_field[0] = '\0';
-                    break;
-                case WORLD_STATE_SOURCE_LAYER:
-                    if (!llvm_world_frontier_field_name(detail_field,
-                            sizeof(detail_field), "layer_active",
-                            ast_world_state_detail_name(state)))
-                        detail_field[0] = '\0';
-                    break;
-                case WORLD_STATE_SOURCE_STATE:
-                    if (!llvm_world_frontier_field_name(detail_field,
-                            sizeof(detail_field), "state",
-                            ast_world_state_detail_name(state)))
-                        detail_field[0] = '\0';
-                    break;
-                case WORLD_STATE_SOURCE_ZONE:
-                default:
-                    detail_field[0] = '\0';
-                    break;
-                }
-
-                if (detail_field[0] != '\0')
-                    detail_idx = llvm_class_field_index(zone_cls, detail_field);
-                if (detail_idx >= 0) {
-                    detail_ptr = LLVMBuildStructGEP2(ctx->builder, zone_cls->struct_type,
-                        zone_ptr, (unsigned)detail_idx, llvm_tmp_name(ctx));
-                    detail_val = LLVMBuildLoad2(ctx->builder, ctx->type_i1,
-                        detail_ptr, llvm_tmp_name(ctx));
-                    derived_val = LLVMBuildAnd(ctx->builder, active_val, detail_val,
-                        llvm_tmp_name(ctx));
-                }
-            }
-        }
-
-        LLVMBuildStore(ctx->builder, derived_val, state_ptr);
-        changed_val = LLVMBuildICmp(ctx->builder, LLVMIntNE, prev_state_val,
-            derived_val, llvm_tmp_name(ctx));
-        LLVMBuildStore(ctx->builder,
-            LLVMBuildOr(ctx->builder,
-                LLVMBuildLoad2(ctx->builder, ctx->type_i1, continue_addr, llvm_tmp_name(ctx)),
-                changed_val, llvm_tmp_name(ctx)),
-            continue_addr);
-        LLVMBuildStore(ctx->builder,
-            LLVMBuildOr(ctx->builder,
-                LLVMBuildLoad2(ctx->builder, ctx->type_i1, changed_any_addr,
-                    llvm_tmp_name(ctx)),
-                changed_val, llvm_tmp_name(ctx)),
-            changed_any_addr);
-        llvm_stamp_domain_provenance(ctx, decl_cls, self_ptr, "zone_state",
-            ast_world_state_name(state), PGY_PROP_CAUSE_WORLD_DERIVED);
-    }
-    LLVMBuildBr(ctx->builder, loop_check_bb);
+    llvm_world_frontier_emit_derived_state_pass(stmt, decl_cls, sync_fn,
+        states, state_count, continue_addr, changed_any_addr, loop_check_bb, ctx);
 
     LLVMPositionBuilderAtEnd(ctx->builder, done_bb);
     {
@@ -473,41 +218,9 @@ llvm_world_sync_emit_frontier(ASTNode *stmt, LLVMClassTypeEntry *decl_cls,
         LLVMBuildStore(ctx->builder, LLVMConstInt(ctx->type_i1, 0, 0), derived_ptr);
     LLVMBuildBr(ctx->builder, derived_exit_bb);
     LLVMPositionBuilderAtEnd(ctx->builder, derived_exit_bb);
-    {
-        LLVMValueRef pending_val = LLVMBuildLoad2(ctx->builder, ctx->type_i1,
-            changed_any_addr, llvm_tmp_name(ctx));
-        LLVMValueRef dirty_pending = derived_ptr != NULL
-            ? LLVMBuildLoad2(ctx->builder, ctx->type_i1, derived_ptr, llvm_tmp_name(ctx))
-            : LLVMBuildLoad2(ctx->builder, ctx->type_i1, derived_dirty_addr,
-                llvm_tmp_name(ctx));
-        pending_val = LLVMBuildOr(ctx->builder, pending_val, dirty_pending,
-            llvm_tmp_name(ctx));
-        for (size_t i = 0; i < zone_count; i++) {
-            ASTNode *zone = zones[i];
-            char dirty_field[256];
-            int dirty_idx;
-            LLVMValueRef self_ptr;
-            LLVMValueRef dirty_ptr;
-            LLVMValueRef dirty_val;
-            const char *slot_name = ast_world_zone_slot_name(zone);
-            if (slot_name == NULL)
-                continue;
-            if (!llvm_world_frontier_field_name(dirty_field,
-                    sizeof(dirty_field), "zone_dirty", slot_name))
-                continue;
-            dirty_idx = llvm_class_field_index(decl_cls, dirty_field);
-            if (dirty_idx < 0)
-                continue;
-            self_ptr = LLVMGetParam(sync_fn, 0);
-            dirty_ptr = LLVMBuildStructGEP2(ctx->builder, decl_cls->struct_type,
-                self_ptr, (unsigned)dirty_idx, llvm_tmp_name(ctx));
-            dirty_val = LLVMBuildLoad2(ctx->builder, ctx->type_i1,
-                dirty_ptr, llvm_tmp_name(ctx));
-            pending_val = LLVMBuildOr(ctx->builder, pending_val, dirty_val,
-                llvm_tmp_name(ctx));
-        }
-        LLVMBuildStore(ctx->builder, pending_val, frontier_continue_addr);
-    }
+    llvm_world_frontier_emit_pending_zone_dirty(decl_cls, sync_fn,
+        derived_dirty_addr, derived_ptr, frontier_continue_addr,
+        changed_any_addr, zones, zone_count, ctx);
     LLVMBuildBr(ctx->builder, frontier_check_bb);
 
     LLVMPositionBuilderAtEnd(ctx->builder, frontier_done_bb);

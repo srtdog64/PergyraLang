@@ -86,6 +86,11 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
             : NULL;
         if (old_count > 0 && copied_flags == NULL)
             return false;
+        mir_assign_resource_op_source_statement_indices(
+            old_insts,
+            old_count,
+            mir_block_source_inventory_items(block),
+            inventory_count);
 
         /* Count max possible new STMT instructions (worst case: all
          * non-control-flow statements including let/assignment that
@@ -153,6 +158,10 @@ mir_populate_stmt_instructions(MIRRoutine *routine)
         for (size_t r = old_cursor; r < def_cursor; r++) {
             if (old_insts[r].kind == MIR_INST_RESOURCE_OP
                 || old_insts[r].kind == MIR_INST_CLEANUP_EDGE) {
+                if (old_insts[r].kind == MIR_INST_RESOURCE_OP
+                    && mir_instruction_has_source_statement_order(&old_insts[r])) {
+                    continue;
+                }
                 if (!mir_stmt_population_append(new_insts,
                                                 new_cap,
                                                 &new_count,

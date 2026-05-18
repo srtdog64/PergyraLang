@@ -405,7 +405,7 @@ direct_metadata_type_ref_users="$(
     | grep -Ev 'src/semantic/type_checker_expr_enum\.c' \
     | grep -Ev 'src/semantic/type_checker_ability_decl\.c' \
     | grep -Ev 'src/semantic/type_checker_decls_domain_helpers\.c' \
-    | grep -Ev 'src/semantic/type_checker_func_decl\.c' \
+    | grep -Ev 'src/semantic/type_checker_func_types\.c' \
     | grep -Ev 'src/semantic/type_checker_host_helpers\.c' \
     | grep -Ev 'src/semantic/type_checker_intent_types\.c' \
     | grep -Ev 'src/semantic/type_checker_ownership_let_helpers\.c' \
@@ -714,12 +714,12 @@ grep -q 'semantic_type_resolution_metadata_stable_constructed_shell(' \
   exit 1
 }
 
-grep -q 'find_intent_value_local' src/semantic/type_checker_intent_role_fields.c || {
+grep -q 'find_intent_value_local' src/semantic/type_checker_intent_binding_context.c || {
   echo "[type-resolution-resolver-inventory] intent compressed using derivation no longer resolves value bindings" >&2
   exit 1
 }
 
-grep -q 'intent_role_resolve_binding_type' src/semantic/type_checker_intent_role_fields.c || {
+grep -q 'intent_binding_context_resolve_binding_type' src/semantic/type_checker_intent_binding_context.c || {
   echo "[type-resolution-resolver-inventory] intent using derivation must use the shared binding type resolver" >&2
   exit 1
 }

@@ -1,0 +1,136 @@
+#include "import_resolver_internal.h"
+
+#include <ctype.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "../common/string_compat.h"
+#include "path_utils.h"
+
+#ifdef _WIN32
+#include <direct.h>
+#define pgy_fullpath _fullpath
+#else
+#include <limits.h>
+#include <unistd.h>
+#endif
+
+static bool
+import_path_file_exists(const char *path)
+{
+    FILE *f = fopen(path, "rb");
+    if (f == NULL)
+        return false;
+    fclose(f);
+    return true;
+}
+
+static char *
+path_parent_dir_dup(const char *path)
+{
+    char *dir = path_dirname_dup(path);
+    char *parent;
+
+    if (dir == NULL)
+        return NULL;
+    if (strcmp(dir, ".") == 0 || strcmp(dir, "/") == 0 || strcmp(dir, "\\") == 0)
+        return dir;
+
+    parent = path_dirname_dup(dir);
+    free(dir);
+    return parent;
+}
+
+char *
+import_resolver_canonicalize_path_dup(const char *path)
+{
+    char *canonical = NULL;
+
+    if (path == NULL)
+        return NULL;
+
+#ifdef _WIN32
+    {
+        char buffer[_MAX_PATH];
+        if (pgy_fullpath(buffer, path, _MAX_PATH) != NULL)
+            canonical = pergyra_strdup(buffer);
+    }
+#else
+    {
+        char *resolved = realpath(path, NULL);
+        if (resolved != NULL)
+            canonical = resolved;
+    }
+#endif
+
+    if (canonical == NULL)
+        canonical = pergyra_strdup(path);
+    if (canonical == NULL)
+        return NULL;
+
+#ifndef _WIN32
+    if (strncmp(canonical, "/mnt/", 5) == 0
+        && canonical[5] != '\0'
+        && canonical[6] == '/') {
+        for (char *p = canonical; *p != '\0'; ++p)
+            *p = (char)tolower((unsigned char)*p);
+    }
+#endif
+
+    return canonical;
+}
+
+char *
+import_resolver_resolve_stdlib_module_path(const char *source_path,
+                                           const char *module_name)
+{
+    char *search_dir = NULL;
+    char *module_file = NULL;
+    char *resolved = NULL;
+
+    if (source_path == NULL || module_name == NULL)
+        return NULL;
+
+    search_dir = path_dirname_dup(source_path);
+    module_file = malloc(strlen(module_name) + 5);
+    if (search_dir == NULL || module_file == NULL)
+        goto cleanup;
+
+    snprintf(module_file, strlen(module_name) + 5, "%s.pgy", module_name);
+
+    while (search_dir != NULL) {
+        char *stdlib_dir = path_join_dup(search_dir, "stdlib");
+        char *candidate = stdlib_dir != NULL ? path_join_dup(stdlib_dir, module_file) : NULL;
+        char *parent = NULL;
+
+        free(stdlib_dir);
+
+        if (candidate != NULL && import_path_file_exists(candidate)) {
+            resolved = candidate;
+            break;
+        }
+        free(candidate);
+
+        parent = path_parent_dir_dup(search_dir);
+        if (parent == NULL || strcmp(parent, search_dir) == 0) {
+            free(parent);
+            break;
+        }
+        free(search_dir);
+        search_dir = parent;
+    }
+
+    if (resolved == NULL) {
+        char *candidate = path_join_dup("stdlib", module_file);
+        if (candidate != NULL && import_path_file_exists(candidate))
+            resolved = candidate;
+        else
+            free(candidate);
+    }
+
+cleanup:
+    free(search_dir);
+    free(module_file);
+    return resolved;
+}

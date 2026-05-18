@@ -89,6 +89,18 @@ TypeNominalFlavor nominal_flavor_from_decl(const ASTNode *decl);
 uint32_t declared_effects_from_function_node(ASTNode *node,
                                              SemanticContext *ctx,
                                              bool *has_contract_out);
+Type *type_check_func_resolve_param_type(FuncParam *param,
+                                         SemanticContext *ctx);
+Type *type_check_func_resolve_return_type(ASTNode *func_decl,
+                                          SemanticContext *ctx);
+const char *type_check_func_current_implicit_self_host_name(
+    SemanticContext *ctx);
+bool type_check_func_symbol_is_self_host(Symbol *sym);
+void type_check_func_validate_param_boundary(ASTNode *node,
+                                             SemanticContext *ctx,
+                                             const char *func_name,
+                                             FuncParam *param,
+                                             Type *param_type);
 char *flatten_static_member_access(const ASTNode *expr, char separator);
 Type *expr_current_host_field_type(SemanticContext *ctx,
                                    const char *field_name);
@@ -218,6 +230,13 @@ ASTNode *intent_step_resolve_transfer_target_involves(
     ASTNode *intent_decl,
     ASTNode *step,
     const char **resolved_alias_out);
+bool type_check_intent_update_existing_signature(ASTNode *intent,
+                                                 Symbol *existing,
+                                                 SemanticContext *ctx);
+void type_check_intent_resolve_binding_types(ASTNode *intent,
+                                             SemanticContext *ctx);
+void type_check_intent_declare_binding_symbols(ASTNode *intent,
+                                               SemanticContext *ctx);
 Type *intent_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx);
 Type *intent_normalize_type(Type *type);
 Type *intent_resolve_involves_type(ASTNode *involves, SemanticContext *ctx);

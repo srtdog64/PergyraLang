@@ -25,7 +25,7 @@ examples/**/results.txt
 examples/**/results.*.txt
 !examples/raid_graph_fsm/results.txt
 
-# Example expected output ??keep ONE canonical expected_stdout.txt per project,
+# Example expected output: keep ONE canonical expected_stdout.txt per project,
 # ignore backend-specific variants
 examples/**/expected_stdout.c.txt
 examples/**/expected_stdout.llvm.txt
@@ -33,10 +33,10 @@ examples/**/expected_results.c.txt
 examples/**/expected_results.llvm.txt
 
 # Keep tracked:
-#   examples/**/*.pgy                ??source files
-#   examples/**/expected_stdout.txt  ??canonical expected output
-#   examples/**/expected_results.txt ??canonical expected results
-#   examples/raid_graph_fsm/results.txt ??representative generated report
+#   examples/**/*.pgy                 source files
+#   examples/**/expected_stdout.txt   canonical expected output
+#   examples/**/expected_results.txt  canonical expected results
+#   examples/raid_graph_fsm/results.txt representative generated report
 
 # Temporary compiler artifacts
 *.o.tmp
@@ -52,7 +52,7 @@ examples/**/expected_results.llvm.txt
 .DS_Store
 Thumbs.db
 
-# Review notes (private ??folder + README tracked, contents ignored)
+# Review notes (private folder + README tracked, contents ignored)
 review/*
 !review/README.md
 

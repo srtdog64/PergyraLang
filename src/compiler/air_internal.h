@@ -74,6 +74,38 @@ bool        air_collect_observability_schema_evidence(AIRProgram *air,
                                                       char **error_message);
 bool        air_collect_runtime_frontier_policy_evidence(AIRProgram *air,
                                                          char **error_message);
+bool        air_mir_cleanup_root_is_valid(const MIRRoutine *routine);
+size_t      air_mir_routine_cleanup_fact_count(const MIRRoutine *routine);
+size_t      air_mir_routine_terminator_fact_count(const MIRRoutine *routine);
+size_t      air_mir_routine_select_receive_fact_count(const MIRRoutine *routine);
+const char *air_mir_routine_provider_name(const MIRRoutine *routine);
+bool        air_require_mir_routine_provider(const MIRRoutine *routine,
+                                             char **error_message);
+bool        air_has_global_evidence_provider_subject(
+                const AIRProgram *air,
+                AIREvidenceKind kind,
+                const char *provider_name,
+                const char *subject_name);
+bool        air_collect_mir_pin_block_evidence(AIRProgram *air,
+                                               const MIRRoutine *routine,
+                                               const MIRBasicBlock *block,
+                                               const char *routine_name,
+                                               char **error_message);
+const char *air_rir_scope_provider_name(const RIRScope *scope);
+bool        air_require_rir_scope_provider(const RIRScope *scope,
+                                           char **error_message);
+bool        air_rir_parallel_op_matches_boundary(
+                const RIROp *op,
+                const AIRBoundaryNode *boundary);
+bool        air_rir_scope_provides_boundary_evidence(
+                const RIRScope *scope,
+                const AIRBoundaryNode *boundary);
+bool        air_collect_rir_scope_propagation_evidence(AIRProgram *air,
+                                                       const RIRScope *scope,
+                                                       char **error_message);
+bool        air_collect_rir_scope_boundary_evidence(AIRProgram *air,
+                                                    const RIRScope *scope,
+                                                    char **error_message);
 bool        air_boundary_has_evidence_kind(const AIRProgram *air,
                                            size_t boundary_index,
                                            AIREvidenceKind kind);
@@ -100,7 +132,15 @@ size_t      air_global_evidence_node_count(const AIRProgram *air,
                                            AIREvidenceKind kind);
 size_t      air_global_evidence_fact_count(const AIRProgram *air,
                                            AIREvidenceKind kind);
+size_t      air_global_evidence_fallback_count(const AIRProgram *air,
+                                               AIREvidenceKind kind);
 bool        air_global_has_evidence_kind(const AIRProgram *air,
+                                         AIREvidenceKind kind);
+size_t      air_boundary_evidence_node_count(const AIRProgram *air,
+                                             AIREvidenceKind kind);
+size_t      air_evidence_summary_count(const AIRProgram *air,
+                                        AIREvidenceKind kind);
+size_t      air_evidence_required_count(const AIRProgram *air,
                                          AIREvidenceKind kind);
 bool        air_boundary_has_summary_flag(const AIRBoundaryNode *boundary,
                                           AIREvidenceKind kind);
@@ -113,6 +153,9 @@ bool        air_evidence_node_matches_boundary_shape(const AIRProgram *air,
 bool        air_validate_boundary_summary_shape(const AIRProgram *air,
                                                 size_t boundary_index,
                                                 char **error_message);
+bool        air_validate_boundary_summary_inventory(const AIRProgram *air,
+                                                    size_t boundary_index,
+                                                    char **error_message);
 bool        air_validate_summary_counters(const AIRProgram *air,
                                           char **error_message);
 char       *air_format_authority_names_owned(
@@ -122,5 +165,7 @@ char       *air_format_boundary_provenance_owned(
                 const AIRBoundaryNode *boundary);
 bool        air_validate_evidence_inventory(const AIRProgram *air,
                                             char **error_message);
+bool        air_verify_global_evidence_requirements(AIRProgram *air,
+                                                    char **error_message);
 
 #endif

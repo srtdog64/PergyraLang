@@ -2,7 +2,7 @@
  * Copyright (c) 2025 Pergyra Language Project
  * All rights reserved.
  *
- * LLVM backend — runtime declaration registry
+ * LLVM backend ??runtime declaration registry
  */
 
 #ifdef PGY_LLVM_ENABLED

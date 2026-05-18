@@ -211,11 +211,13 @@ PARSER_SOURCES   = $(PARSER_DIR)/ast.c \
                    $(PARSER_DIR)/parser_expr.c \
                    $(PARSER_DIR)/parser_expr_call_args.c \
                    $(PARSER_DIR)/parser_expr_lambda.c \
+                   $(PARSER_DIR)/parser_expr_postfix.c \
                    $(PARSER_DIR)/parser_expr_string.c \
                    $(PARSER_DIR)/parser_expr_util.c \
                    $(PARSER_DIR)/parser_pin.c \
                    $(PARSER_DIR)/parser_stmt.c \
                    $(PARSER_DIR)/parser_statement_dispatch.c \
+                   $(PARSER_DIR)/parser_name_tokens.c \
                    $(PARSER_DIR)/parser_type.c \
                    $(PARSER_DIR)/parser_zone_context.c \
                    $(PARSER_DIR)/parser_decl.c \
@@ -223,6 +225,7 @@ PARSER_SOURCES   = $(PARSER_DIR)/ast.c \
                    $(PARSER_DIR)/parser_decl_function_clause.c \
                    $(PARSER_DIR)/parser_decl_start.c \
                    $(PARSER_DIR)/parser_intent.c \
+                   $(PARSER_DIR)/parser_intent_bindings.c \
                    $(PARSER_DIR)/parser_intent_defaults.c \
                    $(PARSER_DIR)/parser_intent_step.c \
                    $(PARSER_DIR)/parser_domain.c \
@@ -234,14 +237,17 @@ PARSER_SOURCES   = $(PARSER_DIR)/ast.c \
                    $(PARSER_DIR)/parser_domain_zone.c \
                    $(PARSER_DIR)/parser_async.c
 RUNTIME_SOURCES  = $(RUNTIME_DIR)/slot_manager.c \
+                   $(RUNTIME_DIR)/slot_manager_core_ops.c \
                    $(RUNTIME_DIR)/slot_manager_storage.c \
                    $(RUNTIME_DIR)/slot_manager_pin.c \
                    $(RUNTIME_DIR)/slot_manager_query_lock.c \
                    $(RUNTIME_DIR)/slot_manager_secure_ops.c \
                    $(RUNTIME_DIR)/slot_type_utils.c \
                    $(RUNTIME_DIR)/slot_pool.c \
+                   $(RUNTIME_DIR)/slot_pool_linked_list.c \
                    $(RUNTIME_DIR)/slot_pool_perf.c \
                    $(RUNTIME_DIR)/slot_security.c \
+                   $(RUNTIME_DIR)/slot_security_fingerprint.c \
                    $(RUNTIME_DIR)/slot_security_crypto.c \
                    $(RUNTIME_DIR)/slot_security_memory.c \
                    $(RUNTIME_DIR)/slot_security_platform.c \
@@ -253,6 +259,7 @@ RUNTIME_SOURCES  = $(RUNTIME_DIR)/slot_manager.c \
                    $(RUNTIME_DIR)/party_runtime_stats.c \
                    $(RUNTIME_DIR)/party_runtime_dispatch.c \
                    $(RUNTIME_DIR)/world_roster.c \
+                   $(RUNTIME_DIR)/world_roster_async.c \
                    $(RUNTIME_DIR)/world_roster_lookup.c \
                    $(RUNTIME_DIR)/world_roster_plan_stats.c
 ASYNC_SOURCES    = $(ASYNC_DIR)/concurrent_queue.c \
@@ -265,6 +272,7 @@ RUNTIME_SOURCES  += $(ASYNC_SOURCES)
 RUNTIME_ASM_SOURCES = $(RUNTIME_DIR)/slot_asm.s
 SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_system_slot.c \
+                   $(SEMANTIC_DIR)/type_system_tuple.c \
                    $(SEMANTIC_DIR)/type_system_compat.c \
                    $(SEMANTIC_DIR)/type_effects.c \
                    $(SEMANTIC_DIR)/type_infer.c \
@@ -291,6 +299,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_resolution_graph_inventory.c \
                    $(SEMANTIC_DIR)/type_checker_resolution_graph_body.c \
                    $(SEMANTIC_DIR)/type_checker_resolution_graph_decl.c \
+                   $(SEMANTIC_DIR)/type_checker_resolution_graph_decl_participants.c \
                    $(SEMANTIC_DIR)/type_checker_resolution_metadata_dead_end.c \
                    $(SEMANTIC_DIR)/type_checker_resolution_metadata_constructed.c \
                    $(SEMANTIC_DIR)/type_checker_resolution_metadata_alias.c \
@@ -314,11 +323,15 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_program.c \
                    $(SEMANTIC_DIR)/type_checker_program_stats.c \
                    $(SEMANTIC_DIR)/type_checker_func_decl.c \
+                   $(SEMANTIC_DIR)/type_checker_func_types.c \
+                   $(SEMANTIC_DIR)/type_checker_func_param_contract.c \
                    $(SEMANTIC_DIR)/type_checker_func_action_contract.c \
                    $(SEMANTIC_DIR)/type_checker_relation_decl.c \
                    $(SEMANTIC_DIR)/type_checker_effect_decl.c \
                    $(SEMANTIC_DIR)/type_checker_zone_decl.c \
                    $(SEMANTIC_DIR)/type_checker_zone_decl_authority.c \
+                   $(SEMANTIC_DIR)/type_checker_zone_lifecycle.c \
+                   $(SEMANTIC_DIR)/type_checker_zone_maintenance.c \
                    $(SEMANTIC_DIR)/type_checker_zone_shape.c \
                    $(SEMANTIC_DIR)/type_checker_zone_projection_rules.c \
                    $(SEMANTIC_DIR)/type_checker_zone_state.c \
@@ -331,6 +344,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_intent_action_contract.c \
                    $(SEMANTIC_DIR)/type_checker_intent_ability.c \
                    $(SEMANTIC_DIR)/type_checker_intent_on_inference.c \
+                   $(SEMANTIC_DIR)/type_checker_intent_binding_context.c \
                    $(SEMANTIC_DIR)/type_checker_intent_bindings.c \
                    $(SEMANTIC_DIR)/type_checker_intent_types.c \
                    $(SEMANTIC_DIR)/type_checker_intent_contract_summary.c \
@@ -365,6 +379,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_ownership_destructure.c \
                    $(SEMANTIC_DIR)/type_checker_ownership_let.c \
                    $(SEMANTIC_DIR)/type_checker_ownership_let_helpers.c \
+                   $(SEMANTIC_DIR)/type_checker_ownership_let_view.c \
                    $(SEMANTIC_DIR)/type_checker_ownership_let_slot_claim.c \
                    $(SEMANTIC_DIR)/type_checker_ownership_param_summary.c \
                    $(SEMANTIC_DIR)/type_checker_ownership_return.c \
@@ -443,22 +458,41 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_allocator_builtin_emit.c \
                    $(CODEGEN_DIR)/intent_observability_usage.c \
                    $(CODEGEN_DIR)/transpiler_builtin_type_table.c \
                    $(CODEGEN_DIR)/thread_pool_usage.c \
+                   $(CODEGEN_DIR)/transpiler_channel_type_query.c \
+                   $(CODEGEN_DIR)/transpiler_collection_runtime_suffix.c \
+                   $(CODEGEN_DIR)/transpiler_block_emit.c \
+                   $(CODEGEN_DIR)/transpiler_defer_emit.c \
                    $(CODEGEN_DIR)/transpiler_entry.c \
                    $(CODEGEN_DIR)/transpiler_symbols.c \
                    $(CODEGEN_DIR)/transpiler_decl_lookup.c \
                    $(CODEGEN_DIR)/transpiler_decl_method_view.c \
                    $(CODEGEN_DIR)/transpiler_decl_host_lookup.c \
+                   $(CODEGEN_DIR)/transpiler_domain_provenance_emit.c \
                    $(CODEGEN_DIR)/transpiler_enum.c \
                    $(CODEGEN_DIR)/transpiler_event_emit.c \
                    $(CODEGEN_DIR)/transpiler_event_builtin_emit.c \
                    $(CODEGEN_DIR)/transpiler_extern.c \
+                   $(CODEGEN_DIR)/transpiler_expr_stdlib_builtin.c \
                    $(CODEGEN_DIR)/transpiler_expr_stdlib_builtin_policy.c \
                    $(CODEGEN_DIR)/transpiler_expr_type_infer_call_policy.c \
+                   $(CODEGEN_DIR)/transpiler_expr_core_builtins_emit.c \
+                   $(CODEGEN_DIR)/transpiler_expr_literal_emit.c \
+                   $(CODEGEN_DIR)/transpiler_expr_party_instance_emit.c \
+                   $(CODEGEN_DIR)/transpiler_expr_projection_builtin.c \
+                   $(CODEGEN_DIR)/transpiler_expr_stdlib_channel_builtin.c \
+                   $(CODEGEN_DIR)/transpiler_expr_stdlib_collection_builtin.c \
+                   $(CODEGEN_DIR)/transpiler_expr_stdlib_collection_support.c \
+                   $(CODEGEN_DIR)/transpiler_expr_type_infer.c \
                    $(CODEGEN_DIR)/transpiler_expr_stdlib_misc_builtin.c \
+                   $(CODEGEN_DIR)/transpiler_expr_stdlib_scalar_builtin.c \
+                   $(CODEGEN_DIR)/transpiler_expr_unary_emit.c \
                    $(CODEGEN_DIR)/transpiler_format.c \
+                   $(CODEGEN_DIR)/transpiler_match_emit.c \
                    $(CODEGEN_DIR)/transpiler_func_forward_policy.c \
                    $(CODEGEN_DIR)/transpiler_func_forward_emit.c \
                    $(CODEGEN_DIR)/transpiler_func_forward_metadata.c \
+                   $(CODEGEN_DIR)/transpiler_generic_binding_query.c \
+                   $(CODEGEN_DIR)/transpiler_generic_param_query.c \
                    $(CODEGEN_DIR)/transpiler_intent_failure_emit.c \
                    $(CODEGEN_DIR)/transpiler_intent_emit_metadata_helpers.c \
                    $(CODEGEN_DIR)/transpiler_intent_context.c \
@@ -471,6 +505,12 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_allocator_builtin_emit.c \
                    $(CODEGEN_DIR)/transpiler_mangled_name.c \
                    $(CODEGEN_DIR)/transpiler_misc_decl.c \
                    $(CODEGEN_DIR)/transpiler_mir_expr_ssa.c \
+                   $(CODEGEN_DIR)/transpiler_mir_assignment_emit.c \
+                   $(CODEGEN_DIR)/transpiler_mir_block_emit_helpers.c \
+                   $(CODEGEN_DIR)/transpiler_mir_block_schedule_emit.c \
+                   $(CODEGEN_DIR)/transpiler_mir_resource_hook_emit.c \
+                   $(CODEGEN_DIR)/transpiler_mir_resource_op_emit.c \
+                   $(CODEGEN_DIR)/transpiler_mir_ssa_contract.c \
                    $(CODEGEN_DIR)/transpiler_mir_emit_state.c \
                    $(CODEGEN_DIR)/transpiler_mir_local_binding.c \
                    $(CODEGEN_DIR)/transpiler_mir_local_type_ast_lookup.c \
@@ -481,6 +521,7 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_allocator_builtin_emit.c \
                    $(CODEGEN_DIR)/transpiler_mir_phi_emit.c \
                    $(CODEGEN_DIR)/transpiler_mir_resource_op_core.c \
                    $(CODEGEN_DIR)/transpiler_mir_resource_name.c \
+                   $(CODEGEN_DIR)/transpiler_mir_reason.c \
                    $(CODEGEN_DIR)/transpiler_mir_reason_classifier.c \
                    $(CODEGEN_DIR)/transpiler_mir_role_lookup.c \
                    $(CODEGEN_DIR)/transpiler_mir_signature.c \
@@ -492,6 +533,8 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_allocator_builtin_emit.c \
                    $(CODEGEN_DIR)/transpiler_nominal.c \
                    $(CODEGEN_DIR)/transpiler_option_context.c \
                    $(CODEGEN_DIR)/transpiler_operator.c \
+                   $(CODEGEN_DIR)/transpiler_overlay_host_fields.c \
+                   $(CODEGEN_DIR)/transpiler_domain_receiver_query.c \
                    $(CODEGEN_DIR)/transpiler_projection_field_path.c \
                    $(CODEGEN_DIR)/transpiler_projection.c \
                    $(CODEGEN_DIR)/transpiler_role_ability.c \
@@ -511,6 +554,7 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/compiler_process.c \
                    $(COMPILER_DIR)/compiler_llvm.c \
                    $(COMPILER_DIR)/dir.c \
+                   $(COMPILER_DIR)/dir_storage.c \
                    $(COMPILER_DIR)/dir_collect.c \
                    $(COMPILER_DIR)/dir_collect_intent.c \
                    $(COMPILER_DIR)/dir_collect_domain.c \
@@ -522,20 +566,28 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/air_boundary.c \
                    $(COMPILER_DIR)/air_boundary_walk.c \
                    $(COMPILER_DIR)/air_dump.c \
+                   $(COMPILER_DIR)/air_dump_json.c \
                    $(COMPILER_DIR)/air_vocabulary.c \
                    $(COMPILER_DIR)/air_boundary_evidence_policy.c \
                    $(COMPILER_DIR)/air_evidence_node.c \
                    $(COMPILER_DIR)/air_evidence_ast.c \
-                   $(COMPILER_DIR)/air_evidence.c \
+                   $(COMPILER_DIR)/air_evidence_hir.c \
+                   $(COMPILER_DIR)/air_evidence_mir.c \
+                   $(COMPILER_DIR)/air_evidence_mir_facts.c \
+                   $(COMPILER_DIR)/air_evidence_mir_pin.c \
                    $(COMPILER_DIR)/air_evidence_runtime.c \
                    $(COMPILER_DIR)/air_evidence_dag.c \
                    $(COMPILER_DIR)/air_evidence_rir.c \
+                   $(COMPILER_DIR)/air_evidence_rir_match.c \
+                   $(COMPILER_DIR)/air_evidence_rir_propagation.c \
+                   $(COMPILER_DIR)/air_evidence_rir_boundary.c \
                    $(COMPILER_DIR)/air_validate_global_evidence.c \
                    $(COMPILER_DIR)/air_validate_boundary_summary.c \
                    $(COMPILER_DIR)/air_validate_summary_counters.c \
                    $(COMPILER_DIR)/air_validate_boundary_evidence.c \
                    $(COMPILER_DIR)/air_validate_evidence.c \
                    $(COMPILER_DIR)/air_validate.c \
+                   $(COMPILER_DIR)/air_verify_global.c \
                    $(COMPILER_DIR)/air_verify.c \
                    $(COMPILER_DIR)/air_verify_provenance.c \
                    $(COMPILER_DIR)/rir.c \
@@ -607,7 +659,9 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/module_normalizer_domain_refs.c \
                    $(COMPILER_DIR)/module_normalizer_scope.c \
                    $(COMPILER_DIR)/module_normalizer_shadow.c \
+                   $(COMPILER_DIR)/import_stack.c \
                    $(COMPILER_DIR)/import_resolver.c \
+                   $(COMPILER_DIR)/import_resolver_paths.c \
                    $(COMPILER_DIR)/driver_app.c \
                    $(COMPILER_DIR)/driver_usage.c \
                    $(COMPILER_DIR)/driver_diag.c \
@@ -639,6 +693,7 @@ ifneq ($(LLVM_ENABLED),0)
                    $(CODEGEN_DIR)/llvm_api.c \
                    $(CODEGEN_DIR)/llvm_backend_generic.c \
                    $(CODEGEN_DIR)/llvm_pipeline.c \
+                   $(CODEGEN_DIR)/llvm_main_wrapper.c \
                          $(CODEGEN_DIR)/llvm_intent.c \
                          $(CODEGEN_DIR)/llvm_intent_emit_support.c \
                          $(CODEGEN_DIR)/llvm_intent_setup.c \
@@ -675,6 +730,7 @@ ifneq ($(LLVM_ENABLED),0)
                         $(CODEGEN_DIR)/llvm_mir_loop_control.c \
                         $(CODEGEN_DIR)/llvm_intent_mir_meta.c \
                         $(CODEGEN_DIR)/llvm_intent_zone.c \
+                        $(CODEGEN_DIR)/llvm_intent_zone_bind.c \
                         $(CODEGEN_DIR)/llvm_intent_effect.c \
                         $(CODEGEN_DIR)/llvm_intent_flow.c \
                         $(CODEGEN_DIR)/llvm_intent_forward.c \
@@ -698,6 +754,7 @@ ifneq ($(LLVM_ENABLED),0)
                         $(CODEGEN_DIR)/llvm_expr_call_collections_require.c \
                         $(CODEGEN_DIR)/llvm_expr_call_dispatch.c \
                         $(CODEGEN_DIR)/llvm_expr_call_errors.c \
+                        $(CODEGEN_DIR)/llvm_expr_call_hosted.c \
                         $(CODEGEN_DIR)/llvm_expr_call_variable.c \
                         $(CODEGEN_DIR)/llvm_expr_call_queue_extended.c \
                         $(CODEGEN_DIR)/llvm_expr_call_methods_domain_slice.c \
@@ -780,9 +837,13 @@ ifneq ($(LLVM_ENABLED),0)
                         $(CODEGEN_DIR)/llvm_domain_zone_sync_relations.c \
                         $(CODEGEN_DIR)/llvm_domain_zone_bind_helpers.c \
                         $(CODEGEN_DIR)/llvm_domain_world_sync_directives.c \
+                        $(CODEGEN_DIR)/llvm_domain_world_frontier_derived.c \
                         $(CODEGEN_DIR)/llvm_domain_world_frontier.c \
+                        $(CODEGEN_DIR)/llvm_domain_world_frontier_zones.c \
                         $(CODEGEN_DIR)/llvm_domain_world_sync.c \
                          $(CODEGEN_DIR)/llvm_domain_forward.c \
+                         $(CODEGEN_DIR)/llvm_domain_forward_ability.c \
+                         $(CODEGEN_DIR)/llvm_domain_forward_role.c \
                          $(CODEGEN_DIR)/llvm_domain_struct_fields.c \
                          $(CODEGEN_DIR)/llvm_domain_struct_register.c \
                          $(CODEGEN_DIR)/llvm_domain_struct_register_fields.c \
@@ -905,7 +966,9 @@ LSP_OBJECTS            = $(LSP_SRC:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
 FRONTEND_OBJECTS = $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) \
                    $(SEMANTIC_OBJECTS) $(CODEGEN_OBJECTS) $(COMPILER_OBJECTS) \
                    $(LLVM_BACKEND_OBJECTS) $(RUNTIME_LIB_OBJECTS)
-SEMANTIC_LINK_SUPPORT = $(BUILD_DIR)/compiler/import_resolver.o \
+SEMANTIC_LINK_SUPPORT = $(BUILD_DIR)/compiler/import_stack.o \
+                        $(BUILD_DIR)/compiler/import_resolver.o \
+                        $(BUILD_DIR)/compiler/import_resolver_paths.o \
                         $(BUILD_DIR)/compiler/module_normalizer.o \
                         $(BUILD_DIR)/compiler/module_normalizer_refs.o \
                         $(BUILD_DIR)/compiler/module_normalizer_domain_refs.o \
@@ -913,6 +976,7 @@ SEMANTIC_LINK_SUPPORT = $(BUILD_DIR)/compiler/import_resolver.o \
                         $(BUILD_DIR)/compiler/module_normalizer_shadow.o \
                         $(BUILD_DIR)/compiler/path_utils.o
 DIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/dir.o \
+                   $(BUILD_DIR)/compiler/dir_storage.o \
                    $(BUILD_DIR)/compiler/dir_collect.o \
                    $(BUILD_DIR)/compiler/dir_collect_intent.o \
                    $(BUILD_DIR)/compiler/dir_collect_domain.o \
@@ -950,11 +1014,15 @@ AIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/air_names.o \
                    $(BUILD_DIR)/compiler/air_boundary.o \
                    $(BUILD_DIR)/compiler/air_boundary_walk.o \
                    $(BUILD_DIR)/compiler/air_dump.o \
+                   $(BUILD_DIR)/compiler/air_dump_json.o \
                    $(BUILD_DIR)/compiler/air_vocabulary.o \
                    $(BUILD_DIR)/compiler/air_boundary_evidence_policy.o \
                    $(BUILD_DIR)/compiler/air_evidence_node.o \
                    $(BUILD_DIR)/compiler/air_evidence_ast.o \
-                   $(BUILD_DIR)/compiler/air_evidence.o \
+                   $(BUILD_DIR)/compiler/air_evidence_hir.o \
+                   $(BUILD_DIR)/compiler/air_evidence_mir.o \
+                   $(BUILD_DIR)/compiler/air_evidence_mir_facts.o \
+                   $(BUILD_DIR)/compiler/air_evidence_mir_pin.o \
                    $(BUILD_DIR)/compiler/air_evidence_runtime.o \
                    $(BUILD_DIR)/compiler/air_evidence_dag.o \
                    $(BUILD_DIR)/compiler/mir_source_shape.o \
@@ -966,12 +1034,16 @@ AIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/air_names.o \
                    $(BUILD_DIR)/compiler/mir_cfg_contract_cleanup_fact.o \
                    $(BUILD_DIR)/compiler/mir_cfg_contract_cleanup_root_membership.o \
                    $(BUILD_DIR)/compiler/air_evidence_rir.o \
+                   $(BUILD_DIR)/compiler/air_evidence_rir_match.o \
+                   $(BUILD_DIR)/compiler/air_evidence_rir_propagation.o \
+                   $(BUILD_DIR)/compiler/air_evidence_rir_boundary.o \
                    $(BUILD_DIR)/compiler/air_validate_global_evidence.o \
                    $(BUILD_DIR)/compiler/air_validate_boundary_summary.o \
                    $(BUILD_DIR)/compiler/air_validate_summary_counters.o \
                    $(BUILD_DIR)/compiler/air_validate_boundary_evidence.o \
                    $(BUILD_DIR)/compiler/air_validate_evidence.o \
                    $(BUILD_DIR)/compiler/air_validate.o \
+                   $(BUILD_DIR)/compiler/air_verify_global.o \
                    $(BUILD_DIR)/compiler/air_verify.o \
                    $(BUILD_DIR)/compiler/air_verify_provenance.o
 MIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/mir.o \
@@ -1131,14 +1203,15 @@ $(PARSER_TEST): $(COMMON_OBJECTS) $(LEXER_OBJECTS) $(PARSER_OBJECTS) $(PARSER_TE
 
 # Data structures test
 $(DATASTRUCTURES_TEST): $(BUILD_DIR)/runtime/slot_pool.o \
+                         $(BUILD_DIR)/runtime/slot_pool_linked_list.o \
                          $(BUILD_DIR)/runtime/slot_pool_perf.o \
                          $(TEST_DATASTRUCTURES_OBJ) | $(BIN_DIR)
 	@$(call pgy_mkdir_p,$(dir $@))
 	$(call pgy_link,$(THREAD_LINK_LIB))
 
 # Security test
-$(SECURITY_TEST): check-security-toolchain $(RUNTIME_OBJECTS) $(RUNTIME_ASM_OBJECTS) \
-                   $(TEST_SECURITY_OBJ) | $(BIN_DIR)
+$(SECURITY_TEST): $(RUNTIME_OBJECTS) $(RUNTIME_ASM_OBJECTS) \
+                   $(TEST_SECURITY_OBJ) | check-security-toolchain $(BIN_DIR)
 	@$(call pgy_mkdir_p,$(dir $@))
 	$(call pgy_link,$(THREAD_LINK_LIB) -lssl -lcrypto)
 

@@ -112,13 +112,16 @@ llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx)
     const char *owner_name = NULL;
     LLVMClassTypeEntry *owner_cls = NULL;
     LLVMFuncEntry *owner_sync = NULL;
+    ASTNode *func_decl = NULL;
     const char *fn_name = NULL;
     char qualified_name[256];
-    if (routine == NULL || ctx == NULL || routine->ast == NULL)
+    if (routine == NULL || ctx == NULL)
+        return NULL;
+    func_decl = llvm_mir_routine_source_ast(routine);
+    if (func_decl == NULL)
         return NULL;
     llvm_mir_debug_stage("emit_func_from_mir:begin", routine);
 
-    ASTNode *func_decl = routine->ast;
     if (func_decl == NULL
         || (func_decl->type != AST_FUNC_DECL && func_decl->type != AST_INTENT_DECL))
         return NULL;

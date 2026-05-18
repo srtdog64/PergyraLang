@@ -34,6 +34,46 @@ llvm_lookup_generic_template(LLVMGenCtx *ctx, const char *name)
 }
 
 bool
+llvm_register_generic_template_decl(LLVMGenCtx *ctx, ASTNode *func_decl)
+{
+    if (ctx == NULL || func_decl == NULL || func_decl->type != AST_FUNC_DECL)
+        return false;
+
+    const char *name = ast_declaration_name(func_decl);
+    if (name == NULL)
+        return false;
+    if (llvm_lookup_generic_template(ctx, name) != NULL)
+        return true;
+
+    if (ctx->generic_template_count >= ctx->generic_template_capacity) {
+        int new_capacity = ctx->generic_template_capacity == 0
+            ? 16
+            : ctx->generic_template_capacity * 2;
+        LLVMGenericTemplate *new_templates =
+            realloc(ctx->generic_templates,
+                    (size_t)new_capacity * sizeof(LLVMGenericTemplate));
+        if (new_templates == NULL) {
+            llvm_set_error_with_hints(ctx,
+                PGY_CODE_LLVM_OOM,
+                PGY_CAUSE_LLVM_MEMORY_EXHAUSTED,
+                PGY_FIX_REDUCE_UNIT_SIZE_OR_RAISE_LIMIT,
+                "out of memory growing generic_templates");
+            return false;
+        }
+        memset(new_templates + ctx->generic_template_capacity, 0,
+               (size_t)(new_capacity - ctx->generic_template_capacity)
+                   * sizeof(LLVMGenericTemplate));
+        ctx->generic_templates = new_templates;
+        ctx->generic_template_capacity = new_capacity;
+    }
+
+    ctx->generic_templates[ctx->generic_template_count].name = name;
+    ctx->generic_templates[ctx->generic_template_count].ast = func_decl;
+    ctx->generic_template_count++;
+    return true;
+}
+
+bool
 llvm_mono_already_emitted(LLVMGenCtx *ctx, const char *mangled)
 {
     for (int i = 0; i < ctx->mono_count; i++) {

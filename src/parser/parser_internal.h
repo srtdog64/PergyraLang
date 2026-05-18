@@ -33,6 +33,8 @@ bool            parser_check_decl_name_token(Parser *parser);
 Token           consume_decl_name_token(Parser *parser, const char *message);
 bool            parser_check_binding_name_token(Parser *parser);
 Token           consume_binding_name_token(Parser *parser, const char *message);
+bool            parser_append_destructure_name(Parser *parser, ASTNode *node,
+                                               const char *name);
 bool            parser_check_expr_name_token(Parser *parser);
 bool            parser_match_expr_name_token(Parser *parser);
 Token           consume_member_name_token(Parser *parser, const char *message);
@@ -124,9 +126,15 @@ ASTNode *parse_intent_step(Parser *parser);
 bool parser_intent_match_keyword(Parser *parser, const char *keyword);
 bool intent_append_node(ASTNode ***items, size_t *count, size_t *capacity,
                         ASTNode *node);
+void intent_append_binding(ASTNode *intent, ASTNode *node);
+bool intent_append_name(char ***items, size_t *count, size_t *capacity,
+                        const char *name);
+bool intent_has_involves_alias(ASTNode *intent, const char *alias);
+bool intent_has_value_alias(ASTNode *intent, const char *alias);
 void parse_intent_apply_defaults(ASTNode *intent);
 void parse_intent_name_list(Parser *parser, char ***items, size_t *count,
                             size_t *capacity, const char *message);
+void parse_intent_param_list(Parser *parser, ASTNode *intent);
 ASTNode *parse_relation_declaration(Parser *parser);
 ASTNode *parse_effect_declaration(Parser *parser);
 ASTNode *parse_zone_declaration(Parser *parser);

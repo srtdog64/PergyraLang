@@ -34,12 +34,16 @@ const MIRRoutine *
 llvm_find_mir_intent_routine(const LLVMGenCtx *ctx, ASTNode *intent_decl)
 {
     LLVMMIRRoutineInventory routine_inventory;
+    const char *intent_name;
 
-    const char *intent_name = ast_intent_decl_name(intent_decl);
-    if (ctx == NULL || ctx->mir == NULL || intent_decl == NULL
-        || intent_decl->type != AST_INTENT_DECL || intent_name == NULL) {
+    if (ctx == NULL || intent_decl == NULL
+        || intent_decl->type != AST_INTENT_DECL) {
         return NULL;
     }
+
+    intent_name = ast_intent_decl_name(intent_decl);
+    if (intent_name == NULL)
+        return NULL;
 
     llvm_active_routine_inventory(ctx, &routine_inventory);
     for (size_t i = 0; i < routine_inventory.count; i++) {

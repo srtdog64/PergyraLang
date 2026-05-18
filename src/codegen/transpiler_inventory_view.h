@@ -21,6 +21,13 @@ transpiler_routine_inventory_get(
     const TranspilerMIRRoutineInventory *inventory,
     size_t index);
 
+ASTNode *transpiler_mir_routine_source_ast(const MIRRoutine *routine);
+
+ASTNode *transpiler_mir_routine_source_ast_of_type(
+    const MIRRoutine *routine,
+    MIRScopeKind expected_kind,
+    ASTNodeType expected_ast_type);
+
 size_t transpiler_active_routine_count(const TranspilerCtx *ctx);
 
 void
@@ -28,6 +35,10 @@ transpiler_active_inventory(const TranspilerCtx *ctx,
                             ASTNodeType decl_type,
                             ASTNode ***nodes_out,
                             size_t *count_out);
+
+const MIRDeclHeader *transpiler_active_decl_header(
+    const TranspilerCtx *ctx,
+    const char *name);
 
 void
 transpiler_active_externs(const TranspilerCtx *ctx,
@@ -42,8 +53,16 @@ transpiler_active_executables(const TranspilerCtx *ctx,
 ASTNode *transpiler_active_synthetic_executable_func(
     const TranspilerCtx *ctx);
 
+bool transpiler_active_has_mir(const TranspilerCtx *ctx);
+
+const MIRProgram *transpiler_active_mir_identity(const TranspilerCtx *ctx);
+
 bool transpiler_active_has_main_function(const TranspilerCtx *ctx);
 
 bool transpiler_active_has_top_level_exec(const TranspilerCtx *ctx);
+
+bool transpiler_active_uses_intent_observability(const TranspilerCtx *ctx);
+
+bool transpiler_active_uses_thread_pool(const TranspilerCtx *ctx);
 
 #endif /* PERGYRA_TRANSPILER_INVENTORY_VIEW_H */

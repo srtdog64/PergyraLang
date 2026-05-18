@@ -113,7 +113,7 @@ require_literal "src/codegen/llvm_expr_scalar_core.c" \
     "type_len > ((size_t)-1) - prefix_len - suffix_len - 2"
 require_literal "src/semantic/type_checker_class_decl.c" \
     "method_len > ((size_t)-1) - name_len - 2"
-require_literal "src/semantic/type_system.c" \
+require_literal "src/semantic/type_system_slot.c" \
     "inner_len > ((size_t)-1) - prefix_len - 2"
 require_literal "src/compiler/path_utils.c" \
     "ext_len > ((size_t)-1) - base_len - 1"
@@ -129,7 +129,7 @@ require_literal "src/codegen/llvm_expr_task_channel_calls.c" \
     "llvm_task_channel_format_op_runtime_name"
 require_literal "src/codegen/llvm_expr_task_channel_calls.c" \
     "return written >= 0 && (size_t)written < out_size"
-require_literal "src/codegen/llvm_stmt_parallel_async.c" \
+require_literal "src/codegen/llvm_stmt_parallel_names.c" \
     "llvm_select_channel_runtime_name"
 require_literal "src/codegen/llvm_stmt_parallel_names.c" \
     "written >= 0 && (size_t)written < out_size"
@@ -286,13 +286,13 @@ require_literal "src/codegen/transpiler_decl_host_lookup.c" \
 require_literal "src/codegen/transpiler_decl_host_lookup.c" \
     "len >= dst_size"
 require_literal "src/codegen/transpiler_mir_local_type_lookup.h" \
-    "transpiler_mir_render_type_name"
+    "transpiler_mir_arena_render_type_name"
 require_literal "src/codegen/transpiler_mir_local_type_lookup.h" \
-    "return written >= 0 && (size_t)written < out_size"
-require_literal "src/codegen/transpiler_expr_type_infer.h" \
-    "transpiler_infer_format_type_name"
-require_literal "src/codegen/transpiler_expr_type_infer.h" \
-    "return written >= 0 && (size_t)written < out_size"
+    "pgy_arena_fmt(&ctx->arena, \"%s<%s>\", prefix, inner)"
+require_literal "src/codegen/transpiler_expr_type_infer.c" \
+    "transpiler_infer_arena_format_type_name"
+require_literal "src/codegen/transpiler_expr_type_infer.c" \
+    "pgy_arena_fmt(&ctx->arena, \"%s<%s>\", prefix, inner)"
 require_literal "src/codegen/transpiler_mir_destructure_emit.h" \
     "transpiler_mir_destructure_format_type"
 require_literal "src/codegen/transpiler_mir_destructure_emit.h" \
@@ -319,9 +319,9 @@ require_literal "src/codegen/transpiler_class_decl_emit.h" \
     "transpiler_class_surface_desc"
 require_literal "src/codegen/transpiler_class_decl_emit.h" \
     "transpiler_class_method_emit_name"
-require_literal "src/codegen/transpiler_expr_stdlib_collection_builtin.h" \
+require_literal "src/codegen/transpiler_expr_stdlib_collection_builtin.c" \
     "transpiler_collection_copy_type_name"
-require_literal "src/codegen/transpiler_expr_stdlib_collection_builtin.h" \
+require_literal "src/codegen/transpiler_expr_stdlib_collection_builtin.c" \
     "len >= out_size"
 require_literal "src/codegen/transpiler_func_class_flow_emit.h" \
     "transpiler_func_copy_current_return_type"
@@ -339,17 +339,17 @@ require_literal "src/codegen/transpiler_intent_zone_binding_emit.h" \
     "transpiler_intent_binding_surface_desc"
 require_literal "src/codegen/transpiler_intent_zone_binding_emit.h" \
     "transpiler_intent_binding_surface_desc_too_long"
-require_literal "src/codegen/transpiler_expr_stdlib_builtin.h" \
+require_literal "src/codegen/transpiler_expr_stdlib_builtin.c" \
     "transpiler_stdlib_copy_type_name"
-require_literal "src/codegen/transpiler_expr_stdlib_builtin.h" \
+require_literal "src/codegen/transpiler_expr_stdlib_builtin.c" \
     "len >= out_size"
 require_literal "src/codegen/transpiler_enum_decl_emit.h" \
     "transpiler_enum_method_emit_name"
 require_literal "src/codegen/transpiler_enum_decl_emit.h" \
     "transpiler_enum_method_surface_desc"
-require_literal "src/codegen/transpiler_block_emit.h" \
+require_literal "src/codegen/transpiler_block_emit.c" \
     "transpiler_block_pin_address_too_long"
-require_literal "src/codegen/transpiler_block_emit.h" \
+require_literal "src/codegen/transpiler_block_emit.c" \
     "written >= 0 && (size_t)written < buf_size"
 require_literal "src/codegen/transpiler_decl_lookup.c" \
     "transpiler_decl_lookup_cache_store"
@@ -424,20 +424,20 @@ require_literal "src/codegen/llvm_stmt.c" \
 require_literal "src/codegen/llvm_stmt_let_helpers.c" \
     "written < 0 || (size_t)written >= sizeof(buf)"
 require_literal "src/codegen/llvm_stmt_let_helpers.c" \
-    "strlen(actual_type) >= sizeof(buf)"
+    "pgy_arena_strdup(&ctx->scratch, actual_type)"
 require_literal "src/codegen/llvm_stmt_with.c" \
     "llvm_with_token_name"
 require_literal "src/codegen/llvm_stmt_with.c" \
     "llvm_with_release_name"
-require_literal "src/codegen/llvm_expr.c" \
+require_literal "src/codegen/llvm_expr_emit_support.c" \
     "llvm_expr_runtime_name"
-require_literal "src/codegen/llvm_expr.c" \
+require_literal "src/codegen/llvm_expr_emit_support.c" \
     "llvm_expr_lambda_name"
-require_literal "src/codegen/llvm_expr_spawn_call_helpers.c" \
+require_literal "src/codegen/llvm_expr_spawn_names.c" \
     "llvm_spawn_copy_name"
-require_literal "src/codegen/llvm_expr_spawn_call_helpers.c" \
+require_literal "src/codegen/llvm_expr_spawn_names.c" \
     "llvm_spawn_format_name"
-require_literal "src/codegen/llvm_expr_spawn_call_helpers.c" \
+require_literal "src/codegen/llvm_expr_spawn_names.c" \
     "llvm_spawn_wrapper_name"
 require_literal "src/compiler/air_names.c" \
     "air_vformat_owned"

@@ -78,7 +78,7 @@ llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx)
         mir_steps = llvm_build_mir_intent_step_sources(
             node, mir_step_names, step_count, ctx);
     }
-    if (ctx->mir != NULL && decl_step_count > 0) {
+    if (llvm_active_has_mir(ctx) && decl_step_count > 0) {
         if (mir_routine == NULL) {
             llvm_set_mir_inventory_missing(ctx,
                 "MIR-only LLVM path missing intent routine for '%s'",
@@ -464,6 +464,26 @@ intent_emit_fail:
         LLVMBasicBlockRef last = LLVMGetLastBasicBlock(saved_fn);
         if (last != NULL)
             LLVMPositionBuilderAtEnd(ctx->builder, last);
+    }
+}
+
+void
+llvm_emit_intent_routines_from_inventory(
+    LLVMGenCtx *ctx,
+    const LLVMMIRRoutineInventory *inventory)
+{
+    if (ctx == NULL || inventory == NULL)
+        return;
+
+    for (size_t i = 0; i < inventory->count; i++) {
+        const MIRRoutine *routine = &inventory->routines[i];
+        ASTNode *intent_decl = llvm_mir_routine_source_ast_of_type(
+            routine, MIR_SCOPE_INTENT, AST_INTENT_DECL);
+        if (intent_decl == NULL)
+            continue;
+        llvm_emit_intent_decl(intent_decl, ctx);
+        if (ctx->has_error)
+            return;
     }
 }
 

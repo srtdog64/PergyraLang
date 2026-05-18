@@ -408,9 +408,9 @@ for path, tokens in unwrap_lowering_paths.items():
             raise SystemExit(f"{path.relative_to(root)} missing unwrap panic token {token}")
 
 array_lowering_paths = {
-    root / "src" / "codegen" / "transpiler_expr_stdlib_builtin.h": ["pgy_array_set_"],
+    root / "src" / "codegen" / "transpiler_expr_stdlib_builtin.c": ["pgy_array_set_"],
     root / "src" / "codegen" / "transpiler_expr_array_access_emit.h": ["pgy_array_get_", "pgy_slice_get_"],
-    root / "src" / "codegen" / "llvm_expr.c": ["pgy_array_get_", "pgy_slice_get_", "llvm_emit_checked_collection_get"],
+    root / "src" / "codegen" / "llvm_expr_aggregate.c": ["pgy_array_get_", "pgy_slice_get_", "llvm_emit_checked_collection_get"],
     root / "src" / "codegen" / "llvm_expr_array_calls.c": ["pgy_array_set_"],
     root / "src" / "codegen" / "llvm_runtime.c": ["array_get", "array_set", "slice_get"],
 }

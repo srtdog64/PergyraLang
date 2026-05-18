@@ -5,29 +5,19 @@
 #include "type_checker_module_contract_internal.h"
 #include "diag_codes.h"
 
-#include <stdlib.h>
 #include <string.h>
 
 bool
 type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
 {
     const char *name = ast_intent_decl_name(node);
-    ASTNode **bindings = NULL;
-    ASTNode **involves_nodes = NULL;
-    ASTNode **values = NULL;
     ASTNode **steps = NULL;
-    size_t binding_count = 0;
-    size_t involve_count = 0;
-    size_t value_count = 0;
     size_t step_count = 0;
     ASTNode *priority_expr;
     ASTNode *success_expr;
     ASTNode *failure_expr;
     Symbol *existing = scope_lookup_current(ctx->scope, name);
 
-    bindings = ast_intent_decl_bindings(node, &binding_count);
-    involves_nodes = ast_intent_decl_involves(node, &involve_count);
-    values = ast_intent_decl_values(node, &value_count);
     steps = ast_intent_decl_steps(node, &step_count);
     priority_expr = ast_intent_decl_priority_expr(node);
     success_expr = ast_intent_decl_success_expr(node);
@@ -42,87 +32,14 @@ type_check_intent_decl(ASTNode *node, SemanticContext *ctx)
         return false;
     }
     if (existing != NULL && existing->kind == SYMBOL_INTENT) {
-        size_t ipc = binding_count > 0 ? binding_count
-            : (involve_count + value_count);
-        Type **ptypes = calloc(ipc > 0 ? ipc : 1, sizeof(Type *));
-        Type *ft;
-        if (ptypes == NULL) {
-            semantic_error_with_hints(ctx,
-                PGY_CODE_SEM_UNKNOWN_TYPE,
-                PGY_CAUSE_RESOLUTION_OOM,
-                PGY_FIX_REDUCE_SCOPE_OR_RETRY,
-                node,
-                "Could not update duplicate intent signature for '%s'.\n"
-                "Reason:\n"
-                "- semantic type-resolution metadata allocation failed while rebuilding the intent parameter list\n"
-                "Fix:\n"
-                "- reduce this compilation unit size and retry\n"
-                "- or report the input if this happens on a small program",
-                name != NULL ? name : "<intent>");
+        if (!type_check_intent_update_existing_signature(node, existing, ctx))
             return false;
-        }
-        for (size_t i = 0; i < ipc; i++) {
-            ASTNode *binding = binding_count > 0
-                ? bindings[i]
-                : (i < involve_count ? involves_nodes[i]
-                    : values[i - involve_count]);
-            if (binding != NULL && binding->type == AST_INTENT_INVOLVES
-                && ast_intent_involves_subject_type(binding) != NULL) {
-                ptypes[i] = intent_resolve_involves_type(binding, ctx);
-            } else if (binding != NULL && binding->type == AST_INTENT_VALUE
-                && ast_intent_value_type(binding) != NULL) {
-                ptypes[i] = intent_resolve_value_type(binding, ctx);
-            } else {
-                ptypes[i] = TYPE_UNKNOWN;
-            }
-        }
-        ft = type_create_function(ptypes, ipc, TYPE_BOOL);
-        free(ptypes);
-        if (ft != NULL) {
-            existing->type = ft;
-        }
     }
 
-    for (size_t i = 0; i < involve_count; i++) {
-        ASTNode *involves = involves_nodes[i];
-        if (involves == NULL || involves->type != AST_INTENT_INVOLVES)
-            continue;
-        (void)intent_resolve_involves_type(involves, ctx);
-    }
-    for (size_t i = 0; i < value_count; i++) {
-        ASTNode *value = values[i];
-        if (value == NULL || value->type != AST_INTENT_VALUE)
-            continue;
-        (void)intent_resolve_value_type(value, ctx);
-    }
+    type_check_intent_resolve_binding_types(node, ctx);
 
     scope_enter(&ctx->scope, SCOPE_BLOCK);
-    for (size_t i = 0; i < involve_count; i++) {
-        ASTNode *involves = involves_nodes[i];
-        Type *subject_type;
-        Symbol *participant_sym;
-
-        if (involves == NULL || involves->type != AST_INTENT_INVOLVES)
-            continue;
-
-        subject_type = intent_resolve_involves_type(involves, ctx);
-        participant_sym = symbol_create_variable(ast_intent_involves_alias(involves),
-            subject_type, involves->line, involves->column);
-        scope_declare(ctx->scope, participant_sym);
-    }
-    for (size_t i = 0; i < value_count; i++) {
-        ASTNode *value = values[i];
-        Type *value_type;
-        Symbol *value_sym;
-
-        if (value == NULL || value->type != AST_INTENT_VALUE)
-            continue;
-
-        value_type = intent_resolve_value_type(value, ctx);
-        value_sym = symbol_create_variable(ast_intent_value_alias(value),
-            value_type, value->line, value->column);
-        scope_declare(ctx->scope, value_sym);
-    }
+    type_check_intent_declare_binding_symbols(node, ctx);
 
     for (size_t i = 0; i < step_count; i++) {
         ASTNode *step = steps[i];

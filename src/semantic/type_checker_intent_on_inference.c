@@ -230,6 +230,83 @@ intent_step_derive_who_from_on_receiver(ASTNode *intent_decl,
 }
 
 void
+intent_step_derive_who_from_action(ASTNode *intent_decl, ASTNode *step,
+                                   SemanticContext *ctx)
+{
+    const char *matched_alias = NULL;
+    const char *step_name;
+    ASTNode **involves_nodes;
+    size_t involve_count;
+
+    if (intent_decl == NULL || step == NULL || ctx == NULL
+        || step->type != AST_INTENT_STEP
+        || ast_intent_step_who_count(step) != 0) {
+        return;
+    }
+    step_name = ast_intent_step_name(step);
+    involves_nodes = ast_intent_decl_involves(intent_decl, &involve_count);
+
+    for (size_t i = 0; i < involve_count; i++) {
+        ASTNode *involves = involves_nodes[i];
+        ASTNode *subject_decl;
+        ASTNode *action_decl;
+
+        if (!intent_involves_is_subject_host(ctx->program_root, involves))
+            continue;
+        subject_decl = find_subject_host_decl_by_name(
+            ctx->program_root, intent_involves_type_name(involves));
+        action_decl = subject_decl_find_action_named(subject_decl, step_name);
+        if (action_decl == NULL)
+            continue;
+
+        if (matched_alias != NULL)
+            return;
+        matched_alias = ast_intent_involves_alias(involves);
+    }
+
+    if (matched_alias != NULL
+        && ast_intent_step_append_who_name_copy(step, matched_alias)) {
+        ast_intent_step_mark_inherited_who_from_action(step);
+    }
+}
+
+void
+intent_step_derive_who_from_single_participant(ASTNode *intent_decl,
+                                               ASTNode *step,
+                                               SemanticContext *ctx)
+{
+    const char *matched_alias = NULL;
+    ASTNode **involves_nodes;
+    size_t involve_count;
+
+    if (intent_decl == NULL || step == NULL || ctx == NULL
+        || step->type != AST_INTENT_STEP
+        || ast_intent_step_who_count(step) != 0) {
+        return;
+    }
+
+    involves_nodes = ast_intent_decl_involves(intent_decl, &involve_count);
+    for (size_t i = 0; i < involve_count; i++) {
+        ASTNode *involves = involves_nodes[i];
+        const char *alias;
+
+        if (!intent_involves_is_subject_host(ctx->program_root, involves))
+            continue;
+        alias = ast_intent_involves_alias(involves);
+        if (alias == NULL)
+            continue;
+        if (matched_alias != NULL)
+            return;
+        matched_alias = alias;
+    }
+
+    if (matched_alias != NULL
+        && ast_intent_step_append_who_name_copy(step, matched_alias)) {
+        ast_intent_step_mark_derived_who_from_single_participant(step);
+    }
+}
+
+void
 intent_step_inherit_contract_from_on_receiver(ASTNode *intent_decl,
                                               ASTNode *step,
                                               SemanticContext *ctx)

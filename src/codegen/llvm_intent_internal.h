@@ -103,6 +103,9 @@ size_t      llvm_collect_mir_intent_participants(const MIRRoutine *routine,
 
 const char *llvm_intent_zone_binding_type_name(LLVMGenCtx *ctx,
                                                const char *alias);
+bool        llvm_intent_zone_sync_name(char *out,
+                                       size_t out_size,
+                                       const char *zone_type_name);
 const char *llvm_resolve_intent_zone_slot_name_for_zone(LLVMGenCtx *ctx,
                                                         ASTNode *intent,
                                                         const char *zone_type_name,

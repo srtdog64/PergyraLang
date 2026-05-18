@@ -14,7 +14,8 @@ ensure_generic_specialization(TranspilerCtx *ctx, ASTNode *decl, ASTNode *call)
         || decl_name == NULL) {
         return NULL;
     }
-    if (!infer_generic_call_bindings(ctx, decl, call, bindings, &binding_count))
+    if (!transpiler_infer_generic_call_bindings(ctx, decl, call, bindings,
+            &binding_count))
         return NULL;
 
     CodeBuf *name_buf = codebuf_create();

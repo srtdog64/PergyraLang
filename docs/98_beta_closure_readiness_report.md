@@ -347,11 +347,12 @@ LLVM-linkable runtime intent/slot-core exports now live in
 `pgy_runtime_lib.c` include order. `pgy_intent_exit_export(...)`, the runtime
 deadline helper, and primitive `Slot<Int/Long/Float>` exports now have a named
 private owner. The production `.inc` inventory is now 45 files / 6,212 LOC.
-C backend match lowering now lives in `src/codegen/transpiler_match_emit.h`,
-removing the former `src/codegen/transpiler_emitters_match.inc` body while
-preserving `transpiler_func_class_flow_emit.h` include order. Result, Option,
-and enum destructor pattern lowering now have a named private owner. The
-production `.inc` inventory is now 44 files / 5,932 LOC.
+C backend match lowering moved out of the old
+`src/codegen/transpiler_emitters_match.inc` body and now lives in the compiled
+owner `src/codegen/transpiler_match_emit.c`; the header is declaration-only.
+Result, Option, and enum destructor pattern lowering now have a named private
+owner outside the include chain. The production `.inc` inventory is now 44
+files / 5,932 LOC.
 LLVM domain query call lowering now lives in
 `src/codegen/llvm_expr_domain_query_calls.h`, removing the former
 `src/codegen/llvm_expr_call_domain_queries.inc` body while preserving

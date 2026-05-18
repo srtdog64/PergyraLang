@@ -349,6 +349,9 @@ int         mir_instruction_source_ast_type_or(const MIRInstruction *inst,
 bool        mir_instruction_source_location_matches_node(
                 const MIRInstruction *inst,
                 const ASTNode *node);
+bool        mir_instruction_source_line_matches_node(
+                const MIRInstruction *inst,
+                const ASTNode *node);
 uint32_t    mir_instruction_source_line(const MIRInstruction *inst);
 uint32_t    mir_instruction_source_column(const MIRInstruction *inst);
 bool        mir_instruction_has_source_statement_order(
@@ -390,9 +393,6 @@ bool        mir_source_ast_stmt_has_side_effect_hint(const ASTNode *stmt);
 bool        mir_instruction_source_matches_ast_type(
                 const MIRInstruction *inst,
                 ASTNodeType expected_type);
-bool        mir_instruction_source_matches_ast_node(
-                const MIRInstruction *inst,
-                const ASTNode *node);
 bool        mir_instruction_uses_channel_receive_statement_emit(
                 const MIRInstruction *inst);
 bool        mir_instruction_uses_select_receive_statement_emit(

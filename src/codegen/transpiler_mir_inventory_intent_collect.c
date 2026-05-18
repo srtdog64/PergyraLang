@@ -38,7 +38,7 @@ transpiler_find_mir_function(const TranspilerCtx *ctx,
     TranspilerMIRRoutineInventory inventory;
     const char *target;
 
-    if (ctx == NULL || ctx->mir == NULL || func_decl == NULL
+    if (ctx == NULL || func_decl == NULL
         || func_decl->type != AST_FUNC_DECL
         || ast_declaration_name(func_decl) == NULL) {
         return NULL;
@@ -75,7 +75,7 @@ transpiler_find_mir_intent(const TranspilerCtx *ctx,
 {
     TranspilerMIRRoutineInventory inventory;
 
-    if (ctx == NULL || ctx->mir == NULL || intent_decl == NULL
+    if (ctx == NULL || intent_decl == NULL
         || intent_decl->type != AST_INTENT_DECL
         || ast_intent_decl_name(intent_decl) == NULL) {
         return NULL;

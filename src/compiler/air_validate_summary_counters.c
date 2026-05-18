@@ -6,6 +6,54 @@
 
 #include "air_internal.h"
 
+size_t
+air_evidence_summary_count(const AIRProgram *air, AIREvidenceKind kind)
+{
+    if (air == NULL)
+        return 0;
+    switch (kind) {
+    case AIR_EVIDENCE_MIR_CLEANUP:
+        return air->mir_cleanup_evidence_count;
+    case AIR_EVIDENCE_MIR_PIN_CLEANUP:
+        return air->mir_pin_cleanup_evidence_count;
+    case AIR_EVIDENCE_MIR_TERMINATOR:
+        return air->mir_terminator_evidence_count;
+    case AIR_EVIDENCE_MIR_SELECT_RECEIVE:
+        return air->mir_select_receive_evidence_count;
+    case AIR_EVIDENCE_RIR_EFFECT_PROPAGATION:
+        return air->rir_effect_propagation_evidence_count;
+    case AIR_EVIDENCE_RIR_RELATION_PROPAGATION:
+        return air->rir_relation_propagation_evidence_count;
+    case AIR_EVIDENCE_DAG_METADATA:
+        return air->dag_metadata_evidence_count;
+    case AIR_EVIDENCE_DAG_GENERIC:
+        return air->dag_generic_evidence_count;
+    case AIR_EVIDENCE_DAG_ABILITY:
+        return air->dag_ability_evidence_count;
+    case AIR_EVIDENCE_OBSERVABILITY_SCHEMA:
+        return air->observability_schema_evidence_count;
+    case AIR_EVIDENCE_RUNTIME_FRONTIER_POLICY:
+        return air->runtime_frontier_policy_evidence_count;
+    default:
+        return 0;
+    }
+}
+
+size_t
+air_evidence_required_count(const AIRProgram *air, AIREvidenceKind kind)
+{
+    if (air == NULL)
+        return 0;
+    switch (kind) {
+    case AIR_EVIDENCE_RIR_EFFECT_PROPAGATION:
+        return air->rir_effect_propagation_required_count;
+    case AIR_EVIDENCE_RIR_RELATION_PROPAGATION:
+        return air->rir_relation_propagation_required_count;
+    default:
+        return 0;
+    }
+}
+
 static bool
 air_validate_mir_summary_counter(const AIRProgram *air,
                                  AIREvidenceKind kind,
@@ -26,21 +74,6 @@ air_validate_mir_summary_counter(const AIRProgram *air,
                             summary_count,
                             node_count);
     return false;
-}
-
-static size_t
-air_boundary_evidence_node_count(const AIRProgram *air, AIREvidenceKind kind)
-{
-    size_t count = 0;
-
-    if (air == NULL || !air_evidence_kind_is_boundary_scoped(kind))
-        return 0;
-    for (size_t i = 0; i < air->evidence_count; i++) {
-        const AIREvidenceNode *evidence = &air->evidence_nodes[i];
-        if (evidence->kind == kind && evidence->boundary_index != SIZE_MAX)
-            count++;
-    }
-    return count;
 }
 
 static bool
@@ -119,67 +152,67 @@ air_validate_summary_counters(const AIRProgram *air, char **error_message)
     return air_validate_mir_summary_counter(
                air,
                AIR_EVIDENCE_MIR_CLEANUP,
-               air != NULL ? air->mir_cleanup_evidence_count : 0,
+               air_evidence_summary_count(air, AIR_EVIDENCE_MIR_CLEANUP),
                "cleanup",
                error_message)
         && air_validate_mir_boundary_summary_counter(
                air,
                AIR_EVIDENCE_MIR_PIN_CLEANUP,
-               air != NULL ? air->mir_pin_cleanup_evidence_count : 0,
+               air_evidence_summary_count(air, AIR_EVIDENCE_MIR_PIN_CLEANUP),
                "pin cleanup",
                error_message)
         && air_validate_mir_summary_counter(
                air,
                AIR_EVIDENCE_MIR_TERMINATOR,
-               air != NULL ? air->mir_terminator_evidence_count : 0,
+               air_evidence_summary_count(air, AIR_EVIDENCE_MIR_TERMINATOR),
                "terminator",
                error_message)
         && air_validate_mir_summary_counter(
                air,
                AIR_EVIDENCE_MIR_SELECT_RECEIVE,
-               air != NULL ? air->mir_select_receive_evidence_count : 0,
+               air_evidence_summary_count(air, AIR_EVIDENCE_MIR_SELECT_RECEIVE),
                "select receive",
                error_message)
         && air_validate_rir_propagation_summary_counter(
                air,
                AIR_EVIDENCE_RIR_EFFECT_PROPAGATION,
-               air != NULL ? air->rir_effect_propagation_evidence_count : 0,
+               air_evidence_summary_count(air, AIR_EVIDENCE_RIR_EFFECT_PROPAGATION),
                "effect",
                error_message)
         && air_validate_rir_propagation_summary_counter(
                air,
                AIR_EVIDENCE_RIR_RELATION_PROPAGATION,
-               air != NULL ? air->rir_relation_propagation_evidence_count : 0,
+               air_evidence_summary_count(air, AIR_EVIDENCE_RIR_RELATION_PROPAGATION),
                "relation",
                error_message)
         && air_validate_global_node_summary_counter(
                air,
                AIR_EVIDENCE_DAG_METADATA,
-               air != NULL ? air->dag_metadata_evidence_count : 0,
+               air_evidence_summary_count(air, AIR_EVIDENCE_DAG_METADATA),
                "DAG metadata",
                error_message)
         && air_validate_global_node_summary_counter(
                air,
                AIR_EVIDENCE_DAG_GENERIC,
-               air != NULL ? air->dag_generic_evidence_count : 0,
+               air_evidence_summary_count(air, AIR_EVIDENCE_DAG_GENERIC),
                "DAG generic",
                error_message)
         && air_validate_global_node_summary_counter(
                air,
                AIR_EVIDENCE_DAG_ABILITY,
-               air != NULL ? air->dag_ability_evidence_count : 0,
+               air_evidence_summary_count(air, AIR_EVIDENCE_DAG_ABILITY),
                "DAG ability",
                error_message)
         && air_validate_global_node_summary_counter(
                air,
                AIR_EVIDENCE_OBSERVABILITY_SCHEMA,
-               air != NULL ? air->observability_schema_evidence_count : 0,
+               air_evidence_summary_count(air, AIR_EVIDENCE_OBSERVABILITY_SCHEMA),
                "observability schema",
                error_message)
         && air_validate_global_node_summary_counter(
                air,
                AIR_EVIDENCE_RUNTIME_FRONTIER_POLICY,
-               air != NULL ? air->runtime_frontier_policy_evidence_count : 0,
+               air_evidence_summary_count(air, AIR_EVIDENCE_RUNTIME_FRONTIER_POLICY),
                "runtime frontier policy",
                error_message);
 }

@@ -363,7 +363,7 @@ llvm_result_suffix_from_context(LLVMGenCtx *ctx,
 /* Best-effort: resolve a source-level type name to an LLVM type.
  * Handles primitives, user-defined classes/subjects (via llvm_lookup_class),
  * and enums (represented as i32 in the LLVM backend). Returns NULL if the
- * name cannot be resolved — callers should emit a diagnostic. */
+ * name cannot be resolved ??callers should emit a diagnostic. */
 LLVMTypeRef
 llvm_resolve_source_type(LLVMGenCtx *ctx, const char *type_name)
 {

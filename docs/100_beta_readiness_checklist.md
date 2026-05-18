@@ -2886,10 +2886,11 @@ Closed now:
   no location. Parsed IO boundary regression ties the missing-evidence drift to
   the synthesized `ReadFile` boundary node instead of only checking that some
   drift exists.
-- AIR dump/vocabulary ownership now lives in `src/compiler/air_dump.c`, and AIR
-  validation/drift ownership now lives in `src/compiler/air_verify.c`, leaving
-  `src/compiler/air.c` below the 600 LOC split-review threshold while keeping
-  synthesis behavior focused.
+- AIR dump ownership is split by consumer: `src/compiler/air_dump.c` owns
+  human-readable debug output, `src/compiler/air_dump_json.c` owns the stable
+  `pgy.air.graph.v1` JSON graph, and AIR validation/drift ownership now lives in
+  `src/compiler/air_verify.c`. This keeps `src/compiler/air.c` below the 600
+  LOC split-review threshold while keeping synthesis behavior focused.
 - `where + transfer` no longer collapses to only a zone boundary. AIR emits a
   zone boundary for `where: Type` and a separate world boundary for the transfer
   handoff, with the world source anchored to the transfer target alias when
@@ -4123,9 +4124,8 @@ grep -R "resolve_type_node" -n src/semantic
   authority participant shape, evidence provenance invariants, drift emission,
   and strict evidence failures no longer live in the synthesis owner.
   `air-drift-test-smoke` treats `air.c + air_boundary.c + air_dump.c +
-  air_evidence.c + air_verify.c` as the implementation inventory and requires
-  both `$(COMPILER_DIR)/air_verify.c` and `$(BUILD_DIR)/compiler/air_verify.o`
-  wiring.
+  air_dump_json.c + air_evidence_* + air_verify.c` as the implementation
+  inventory and requires the corresponding Makefile source/object wiring.
 
 남은 것:
 
@@ -4371,8 +4371,8 @@ split, and the active 1,000+ production `.c` owner queue is now AST-only:
   rejection without changing existing slot layouts.
 - C source-block emission now consumes pin-block metadata by emitting a typed
   wrapper local with `pgy_unpin_cleanup_*` / `pgy_secure_unpin_cleanup_*` cleanup
-  hooks. The owner is `src/codegen/transpiler_block_emit.h`, split out of the
-  old block/intent helper so both files stay below the 600 LOC review threshold.
+  hooks. The implementation owner is `src/codegen/transpiler_block_emit.c`;
+  `src/codegen/transpiler_block_emit.h` is declaration-only.
 - Source-level typed-view pin now rejects `Release(source_slot)` and
   `Move(source_slot)` while a `ReadView<T>` / `WriteView<T>` over that source is
   live. This closes the immediate marketing-vs-implementation drift for

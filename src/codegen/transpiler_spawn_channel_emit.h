@@ -74,8 +74,9 @@ emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
 
     decl = find_function_decl(ctx, function_name);
     emitted_function_name = function_name;
-    if (call != NULL && func_has_generic_params(decl)
-        && infer_generic_call_bindings(ctx, decl, call, bindings, &binding_count)) {
+    if (call != NULL && transpiler_func_has_generic_params(decl)
+        && transpiler_infer_generic_call_bindings(ctx, decl, call, bindings,
+            &binding_count)) {
         const char *specialized = ensure_generic_specialization(ctx, decl, call);
         if (specialized != NULL)
             emitted_function_name = specialized;
@@ -91,7 +92,8 @@ emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
             FuncParam *param = ast_func_param(decl, i);
             if (param != NULL && param->type != NULL) {
                 if (binding_count > 0) {
-                    char *bound_type = render_type_name_with_bindings(ctx,
+                    char *bound_type =
+                        transpiler_render_type_name_with_bindings(ctx,
                         param->type, bindings, binding_count);
                     if (pergyra_type_to_c_copy(bound_type, arg_type_buf,
                             sizeof(arg_type_buf))) {

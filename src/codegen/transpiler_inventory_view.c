@@ -4,6 +4,8 @@
  */
 
 #include "transpiler.h"
+#include "intent_observability_usage.h"
+#include "thread_pool_usage.h"
 
 void
 transpiler_active_routine_inventory(const TranspilerCtx *ctx,
@@ -46,6 +48,27 @@ transpiler_routine_inventory_get(
     return &inventory->routines[index];
 }
 
+ASTNode *
+transpiler_mir_routine_source_ast(const MIRRoutine *routine)
+{
+    return routine != NULL ? routine->ast : NULL;
+}
+
+ASTNode *
+transpiler_mir_routine_source_ast_of_type(
+    const MIRRoutine *routine,
+    MIRScopeKind expected_kind,
+    ASTNodeType expected_ast_type)
+{
+    ASTNode *source_ast = transpiler_mir_routine_source_ast(routine);
+
+    if (routine == NULL || routine->kind != expected_kind)
+        return NULL;
+    if (source_ast == NULL || source_ast->type != expected_ast_type)
+        return NULL;
+    return source_ast;
+}
+
 size_t
 transpiler_active_routine_count(const TranspilerCtx *ctx)
 {
@@ -70,6 +93,14 @@ transpiler_active_inventory(const TranspilerCtx *ctx,
         *nodes_out = nodes;
     if (count_out != NULL)
         *count_out = count;
+}
+
+const MIRDeclHeader *
+transpiler_active_decl_header(const TranspilerCtx *ctx, const char *name)
+{
+    if (ctx == NULL || ctx->mir == NULL || name == NULL)
+        return NULL;
+    return mir_find_decl_header(ctx->mir, name);
 }
 
 void
@@ -115,6 +146,18 @@ transpiler_active_synthetic_executable_func(const TranspilerCtx *ctx)
 }
 
 bool
+transpiler_active_has_mir(const TranspilerCtx *ctx)
+{
+    return ctx != NULL && ctx->mir != NULL;
+}
+
+const MIRProgram *
+transpiler_active_mir_identity(const TranspilerCtx *ctx)
+{
+    return transpiler_active_has_mir(ctx) ? ctx->mir : NULL;
+}
+
+bool
 transpiler_active_has_main_function(const TranspilerCtx *ctx)
 {
     if (ctx != NULL && ctx->mir != NULL)
@@ -128,4 +171,20 @@ transpiler_active_has_top_level_exec(const TranspilerCtx *ctx)
     if (ctx != NULL && ctx->mir != NULL)
         return ctx->mir->has_top_level_exec;
     return false;
+}
+
+bool
+transpiler_active_uses_intent_observability(const TranspilerCtx *ctx)
+{
+    if (ctx == NULL || ctx->mir == NULL)
+        return false;
+    return pgy_mir_program_uses_intent_observability(ctx->mir);
+}
+
+bool
+transpiler_active_uses_thread_pool(const TranspilerCtx *ctx)
+{
+    if (ctx == NULL || ctx->mir == NULL)
+        return false;
+    return pgy_mir_program_uses_thread_pool(ctx->mir);
 }

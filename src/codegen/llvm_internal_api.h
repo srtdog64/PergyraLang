@@ -242,9 +242,11 @@ const char   *llvm_stmt_infer_nominal_name_from_init(LLVMGenCtx *ctx,
                                                      ASTNode *init);
 
 /* =================================================================
- * Generic monomorphization helpers (llvm_backend.c)
+ * Generic monomorphization helpers (llvm_backend_generic.c)
  * ================================================================= */
 ASTNode    *llvm_lookup_generic_template(LLVMGenCtx *ctx, const char *name);
+bool        llvm_register_generic_template_decl(LLVMGenCtx *ctx,
+                                                ASTNode *func_decl);
 bool        llvm_mono_already_emitted(LLVMGenCtx *ctx, const char *mangled);
 void        llvm_register_mono(LLVMGenCtx *ctx, const char *mangled);
 const char *llvm_type_to_suffix(LLVMGenCtx *ctx, LLVMTypeRef ty);
@@ -299,7 +301,14 @@ bool llvm_nominal_uses_immutable_projection_storage(NominalDeclKind kind);
 bool llvm_nominal_is_boundary_transfer_contract(NominalDeclKind kind);
 void llvm_forward_declare_intent(ASTNode *node, LLVMGenCtx *ctx);
 void llvm_emit_intent_decl(ASTNode *node, LLVMGenCtx *ctx);
+void llvm_forward_declare_intent_routines_from_inventory(
+    LLVMGenCtx *ctx,
+    const LLVMMIRRoutineInventory *inventory);
+void llvm_emit_intent_routines_from_inventory(
+    LLVMGenCtx *ctx,
+    const LLVMMIRRoutineInventory *inventory);
 void llvm_emit_main_wrapper(LLVMGenCtx *ctx);
+bool llvm_emit_class_method_bodies_from_inventory(LLVMGenCtx *ctx);
 void llvm_register_enum_decl(LLVMGenCtx *ctx, ASTNode *stmt);
 void llvm_register_nominal_decl(LLVMGenCtx *ctx, ASTNode *stmt);
 ASTNode *llvm_find_enum_decl(LLVMGenCtx *ctx, const char *enum_name);
@@ -425,6 +434,15 @@ void llvm_stmt_emit_zone_action_effect_runtime(ASTNode *call, LLVMGenCtx *ctx);
 void llvm_forward_declare_func(ASTNode *node, LLVMGenCtx *ctx);
 void llvm_emit_func_decl(ASTNode *node, LLVMGenCtx *ctx);
 LLVMValueRef llvm_emit_func_from_mir(const MIRRoutine *routine, LLVMGenCtx *ctx);
+bool llvm_forward_declare_function_routines_from_inventory(
+    LLVMGenCtx *ctx,
+    const LLVMMIRRoutineInventory *inventory);
+bool llvm_emit_function_routines_from_inventory(
+    LLVMGenCtx *ctx,
+    const LLVMMIRRoutineInventory *inventory);
+bool llvm_validate_function_routine_bodies_from_inventory(
+    LLVMGenCtx *ctx,
+    const LLVMMIRRoutineInventory *inventory);
 bool llvm_mir_validate_cleanup_contract(const MIRRoutine *routine,
                                         LLVMGenCtx *ctx);
 bool llvm_intent_involves_uses_pointer_self(LLVMGenCtx *ctx, ASTNode *involves);

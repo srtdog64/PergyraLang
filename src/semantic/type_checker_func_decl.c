@@ -8,72 +8,6 @@
 #include "type_checker_module_contract_internal.h"
 #include "type_checker_ownership_consumers_internal.h"
 
-static Type *
-program_body_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
-{
-    Type *resolved = semantic_type_resolution_lookup_metadata_type_ref(ctx,
-                                                                       type_ref);
-    return resolved != NULL ? resolved : TYPE_UNKNOWN;
-}
-
-static Type *
-program_body_resolve_param_type(FuncParam *param, SemanticContext *ctx)
-{
-    if (param == NULL || param->type == NULL)
-        return TYPE_UNKNOWN;
-    return program_body_resolve_type_ref(param->type, ctx);
-}
-
-static Type *
-program_body_resolve_func_return_type(ASTNode *func_decl, SemanticContext *ctx)
-{
-    if (func_decl == NULL || func_decl->type != AST_FUNC_DECL
-        || ast_func_return_type(func_decl) == NULL) {
-        return TYPE_VOID;
-    }
-    return program_body_resolve_type_ref(ast_func_return_type(func_decl), ctx);
-}
-
-static const char *
-program_body_current_implicit_self_host_name(SemanticContext *ctx)
-{
-    if (ctx == NULL)
-        return NULL;
-    if (ctx->current_nominal_decl != NULL) {
-        if (ctx->current_nominal_decl->type == AST_CLASS_DECL)
-            return ast_class_name(ctx->current_nominal_decl);
-        if (ctx->current_nominal_decl->type == AST_ENUM_DECL)
-            return ast_enum_name(ctx->current_nominal_decl);
-    }
-    if (ctx->current_relation != NULL)
-        return ast_relation_name(ctx->current_relation);
-    if (ctx->current_effect != NULL)
-        return ast_effect_name(ctx->current_effect);
-    if (ctx->current_party != NULL)
-        return ast_party_name(ctx->current_party);
-    if (ctx->current_roster != NULL)
-        return ast_roster_name(ctx->current_roster);
-    if (ctx->current_zone != NULL)
-        return ast_zone_name(ctx->current_zone);
-    if (ctx->current_world != NULL)
-        return ast_world_name(ctx->current_world);
-    return NULL;
-}
-
-static bool
-program_body_symbol_is_self_host(Symbol *sym)
-{
-    if (sym == NULL || sym->type == NULL)
-        return false;
-    return sym->kind == SYMBOL_CLASS
-        || sym->kind == SYMBOL_ZONE
-        || sym->kind == SYMBOL_WORLD
-        || sym->kind == SYMBOL_RELATION
-        || sym->kind == SYMBOL_EFFECT
-        || sym->kind == SYMBOL_ROSTER
-        || sym->kind == SYMBOL_PARTY;
-}
-
 bool
 type_check_func_decl(ASTNode *node, SemanticContext *ctx)
 {
@@ -132,7 +66,7 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
         }
     }
 
-    Type *return_type = program_body_resolve_func_return_type(node, ctx);
+    Type *return_type = type_check_func_resolve_return_type(node, ctx);
     if (type_is_class_object_type(return_type, ctx)) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_ANCHORED_HANDLE_COPY,
             PGY_CAUSE_ANCHORED_HANDLE_RETURN_BOUNDARY,
@@ -161,14 +95,14 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
             && strcmp(param->name, "self") == 0
             && ctx->scope != NULL
             && (ctx->scope->kind == SCOPE_CLASS
-                || program_body_current_implicit_self_host_name(ctx) != NULL)) {
+                || type_check_func_current_implicit_self_host_name(ctx) != NULL)) {
             Scope *parent = ctx->scope->parent;
             const char *nominal_name =
-                program_body_current_implicit_self_host_name(ctx);
+                type_check_func_current_implicit_self_host_name(ctx);
 
             if (parent != NULL && nominal_name != NULL) {
                 Symbol *self_sym = scope_lookup(parent, nominal_name);
-                if (program_body_symbol_is_self_host(self_sym))
+                if (type_check_func_symbol_is_self_host(self_sym))
                     param_types[i] = self_sym->type;
             }
 
@@ -189,55 +123,12 @@ type_check_func_decl(ASTNode *node, SemanticContext *ctx)
                 param_types[i] = TYPE_UNKNOWN;
             }
         } else {
-            param_types[i] = program_body_resolve_param_type(param, ctx);
+            param_types[i] = type_check_func_resolve_param_type(param, ctx);
         }
-        if (param->mode != PARAM_MODE_DEFAULT
-            && semantic_classify_ownership_type(param_types[i], ctx)
-                == OWNERSHIP_TYPE_COPY_ONLY) {
-            /* copy-only values keep trivial own/ref semantics */
-        } else if (param->mode != PARAM_MODE_DEFAULT
-                   && !type_is_anchored_resource_handle(param_types[i])) {
-            if (!type_is_general_boundary_type(param_types[i], ctx)) {
-                semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
-                    PGY_CAUSE_PARAM_MODE_UNSUPPORTED_BOUNDARY_TYPE,
-                    PGY_FIX_USE_BOUNDARY_VISIBLE_TYPE_OR_DROP_QUALIFIER,
-                    node,
-                    "'%s' parameter mode requires a boundary-visible type at function boundaries.\n"
-                    "Reason:\n"
-                    "- value is parameter '%s'\n"
-                    "- ownership mode is '%s'\n"
-                    "- consumer path is function '%s'\n"
-                    "- type '%s' is not a copy-visible value, boundary-tracked aggregate, subject identity, or slot handle (movable)\n"
-                    "- own/ref only changes boundary semantics when the parameter carries ownership-relevant state across the call\n"
-                    "Fix:\n"
-                    "- remove '%s' and pass it as an ordinary value\n"
-                    "- or change the parameter type to a boundary-visible value / subject / slot handle",
-                    param->mode == PARAM_MODE_OWN ? "own" : "ref",
-                    param->name != NULL ? param->name : "<param>",
-                    param->mode == PARAM_MODE_OWN ? "own" : "ref",
-                    name != NULL ? name : "<anonymous>",
-                    param_types[i] != NULL && param_types[i]->name != NULL
-                        ? param_types[i]->name : "<type>",
-                    param->mode == PARAM_MODE_OWN ? "own" : "ref");
-            }
-        }
-        if (type_is_anchored_resource_handle(param_types[i])) {
-            if (param->mode == PARAM_MODE_DEFAULT) {
-                semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
-                    PGY_CAUSE_SLOT_PARAM_QUALIFIER_MISSING,
-                    PGY_FIX_ANNOTATE_SLOT_PARAM_QUALIFIER,
-                    node,
-                    "Slot handle (anchored) parameters require explicit 'own' or 'ref'.\n"
-                    "Reason:\n"
-                    "- slot handles (anchored) must declare whether the boundary borrows or transfers ownership\n"
-                    "- implicit parameter passing would hide that boundary contract\n"
-                    "Fix:\n"
-                    "- mark the parameter as 'ref' for borrowing\n"
-                    "- or mark it as 'own' for transfer");
-            }
-        }
+        type_check_func_validate_param_boundary(node, ctx, name, param,
+            param_types[i]);
         /* Subject parameters are passed by reference (pointer) internally.
-         * The language hides pointer semantics from the user — subjects
+         * The language hides pointer semantics from the user: subjects
          * are identity-bearing types, so reference passing is automatic. */
     }
 

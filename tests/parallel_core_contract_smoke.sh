@@ -52,10 +52,12 @@ run_literal_contract_smoke() {
     require_literal "src/codegen/thread_pool_usage.c" "mir_routine_inventory_from_program"
     reject_literal "src/codegen/thread_pool_usage.c" "Compatibility fallback for source-only MIR blocks"
 
-    require_literal "src/codegen/transpiler_thread_pool.c" "pgy_mir_program_uses_thread_pool(ctx->mir)"
+    require_literal "src/codegen/transpiler_inventory_view.c" "pgy_mir_program_uses_thread_pool(ctx->mir)"
+    require_literal "src/codegen/transpiler_thread_pool.c" "transpiler_active_uses_thread_pool(ctx)"
     reject_literal "src/codegen/transpiler_thread_pool.c" "pgy_ast_uses_thread_pool("
-    require_literal "src/codegen/llvm_pipeline.c" "pgy_mir_program_uses_thread_pool(ctx->mir)"
-    reject_literal "src/codegen/llvm_pipeline.c" "pgy_ast_uses_thread_pool("
+    require_literal "src/codegen/llvm_inventory_internal.c" "pgy_mir_program_uses_thread_pool(ctx->mir)"
+    require_literal "src/codegen/llvm_main_wrapper.c" "llvm_active_uses_thread_pool(ctx)"
+    reject_literal "src/codegen/llvm_main_wrapper.c" "pgy_ast_uses_thread_pool("
 
     require_literal "src/tests/semantic/test_semantic_parallel_context.cases.h" "parallel-rejected: write-write slot conflict"
     require_literal "src/tests/semantic/test_semantic_parallel_family.cases.h" "parallel-family: spawn expression returns Future<T>"
@@ -196,9 +198,15 @@ require_text(
 )
 
 require_text(
-    "src/codegen/transpiler_thread_pool.c",
+    "src/codegen/transpiler_inventory_view.c",
     [
         "pgy_mir_program_uses_thread_pool(ctx->mir)",
+    ],
+)
+require_text(
+    "src/codegen/transpiler_thread_pool.c",
+    [
+        "transpiler_active_uses_thread_pool(ctx)",
     ],
 )
 reject_text(
@@ -209,13 +217,19 @@ reject_text(
 )
 
 require_text(
-    "src/codegen/llvm_pipeline.c",
+    "src/codegen/llvm_inventory_internal.c",
     [
         "pgy_mir_program_uses_thread_pool(ctx->mir)",
     ],
 )
+require_text(
+    "src/codegen/llvm_main_wrapper.c",
+    [
+        "llvm_active_uses_thread_pool(ctx)",
+    ],
+)
 reject_text(
-    "src/codegen/llvm_pipeline.c",
+    "src/codegen/llvm_main_wrapper.c",
     [
         "pgy_ast_uses_thread_pool(",
     ],

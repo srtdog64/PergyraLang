@@ -238,7 +238,7 @@ run_literal_doc_contract_smoke() {
     require_literal "src/compiler/mir_lifecycle.c" "source-branch-emit"
     require_literal "src/codegen/llvm_mir_block_emit.c" "mir_instruction_branch_requires_source_emit(inst)"
     require_literal "src/codegen/transpiler_mir_emission_contract.h" "mir_instruction_branch_requires_source_emit(inst)"
-    require_literal "src/compiler/air_evidence.c" "mir_block_has_hir_source_mapping(block)"
+    require_literal "src/compiler/air_evidence_mir.c" "mir_block_has_hir_source_mapping(block)"
     require_literal "src/codegen/transpiler_mir_ssa_map.c" "mir_block_source_hir_id(block)"
     require_literal "src/codegen/transpiler_mir_ssa_map.c" "mir_block_source_line(block)"
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_uses_source_statement_emit"
@@ -247,6 +247,7 @@ run_literal_doc_contract_smoke() {
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_is_first_source_statement"
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_statement_index_or"
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_statement_order_compare"
+    require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_line_matches_node"
     require_literal "src/codegen/llvm_mir_block_emit.c" "mir_instruction_uses_source_statement_emit(inst)"
     require_literal "src/codegen/llvm_mir_block_emit.c" "llvm_mir_def_uses_source_local_decl_emit"
     require_literal "src/codegen/llvm_mir_block_emit.c" "llvm_mir_def_uses_channel_receive_statement_emit"
@@ -257,7 +258,7 @@ run_literal_doc_contract_smoke() {
     require_literal "src/codegen/llvm_mir_resource_claim.c" "llvm_mir_claim_inner_type_name(inst"
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_is_with_slot_claim"
     require_literal "src/codegen/llvm_mir_block_emit.c" "mir_instruction_is_with_slot_claim(inst)"
-    require_literal "src/codegen/transpiler_mir_resource_op_emit.h" "mir_instruction_is_with_slot_claim(inst)"
+    require_literal "src/codegen/transpiler_mir_resource_op_emit.c" "mir_instruction_is_with_slot_claim(inst)"
     require_literal "src/codegen/llvm_mir_resource_claim.c" "inst->type_layout->abi_type_name"
     require_literal "Makefile" '$(CODEGEN_DIR)/llvm_mir_resource_claim.c'
     require_literal "src/codegen/llvm_mir_block_emit.c" "llvm_mir_emit_borrow_view_alias(inst, ctx)"
@@ -268,17 +269,18 @@ run_literal_doc_contract_smoke() {
     require_literal "tests/llvm_smoke.sh" "case v = <-a:"
     require_literal "tests/llvm_smoke.sh" "case v = <-b:"
     require_literal "src/codegen/transpiler_mir_pending_uses.h" "!mir_instruction_uses_source_local_decl_emit(inst)"
-    require_literal "src/codegen/transpiler_mir_block_emit_helpers.h" "transpiler_mir_def_uses_source_statement_emit"
-    require_literal "src/codegen/transpiler_mir_block_emit_helpers.h" "transpiler_mir_def_uses_source_local_decl_emit"
-    require_literal "src/codegen/transpiler_mir_block_emit_helpers.h" "transpiler_mir_def_uses_channel_receive_statement_emit"
-    require_literal "src/codegen/transpiler_mir_block_emit_helpers.h" "transpiler_mir_def_uses_select_receive_statement_emit"
-    require_literal "src/codegen/transpiler_mir_block_emit_helpers.h" "transpiler_mir_find_stmt_for_inst(const MIRInstruction *inst)"
-    require_literal "src/codegen/transpiler_mir_block_emit_helpers.h" "return mir_instruction_source_payload(inst)"
-    require_literal "src/compiler/mir_stmt_population.c" "mir_instruction_source_matches_ast_node(inst, stmt)"
+    require_literal "src/codegen/transpiler_mir_block_emit_helpers.c" "transpiler_mir_def_uses_source_statement_emit"
+    require_literal "src/codegen/transpiler_mir_block_emit_helpers.c" "transpiler_mir_def_uses_source_local_decl_emit"
+    require_literal "src/codegen/transpiler_mir_block_emit_helpers.c" "transpiler_mir_def_uses_channel_receive_statement_emit"
+    require_literal "src/codegen/transpiler_mir_block_emit_helpers.c" "transpiler_mir_def_uses_select_receive_statement_emit"
+    require_literal "src/codegen/transpiler_mir_block_emit_helpers.c" "transpiler_mir_find_stmt_for_inst(const MIRInstruction *inst)"
+    require_literal "src/codegen/transpiler_mir_block_emit_helpers.c" "return mir_instruction_source_payload(inst)"
+    require_literal "src/compiler/mir_stmt_population_resource_ops.c" "mir_instruction_source_payload(inst) == stmt"
+    require_literal "src/compiler/mir_stmt_population.c" "mir_instruction_has_source_statement_order(&old_insts[r])"
     require_literal "src/compiler/mir_stmt_population.c" "mir_stmt_population_append"
-    require_literal "src/codegen/transpiler_mir_assignment_emit.h" "transpiler_mir_def_uses_source_statement_emit("
-    require_literal "src/codegen/transpiler_mir_assignment_emit.h" "missing receive emit fact"
-    require_literal "src/codegen/transpiler_mir_assignment_emit.h" "missing select receive emit fact"
+    require_literal "src/codegen/transpiler_mir_assignment_emit.c" "transpiler_mir_def_uses_source_statement_emit("
+    require_literal "src/codegen/transpiler_mir_assignment_emit.c" "missing receive emit fact"
+    require_literal "src/codegen/transpiler_mir_assignment_emit.c" "missing select receive emit fact"
     if grep -Fq "transpiler_find_let_decl_by_name(func_decl, inst->arg0)" \
         "$ROOT_DIR/src/codegen/transpiler_mir_block_emit_helpers.h"; then
         echo "C MIR block emission helper reintroduced function-body let lookup fallback" >&2
@@ -294,10 +296,10 @@ run_literal_doc_contract_smoke() {
         exit 1
     fi
     if grep -RIn -- 'has_source_statement_index\|source_statement_index' \
-        "$ROOT_DIR/src/codegen/transpiler_mir_block_schedule_emit.h" >/dev/null; then
+        "$ROOT_DIR/src/codegen/transpiler_mir_block_schedule_emit.c" >/dev/null; then
         echo "C MIR block scheduling reopened raw source statement order fields; use MIR source-shape ordering helpers" >&2
         grep -RIn -- 'has_source_statement_index\|source_statement_index' \
-            "$ROOT_DIR/src/codegen/transpiler_mir_block_schedule_emit.h" >&2
+            "$ROOT_DIR/src/codegen/transpiler_mir_block_schedule_emit.c" >&2
         exit 1
     fi
     if grep -RIn -- 'has_source_statement_index\|source_statement_index' \
@@ -357,8 +359,8 @@ run_literal_doc_contract_smoke() {
     require_literal "src/codegen/llvm_mir_contract.c" "mir_validate_routine_emission_facts(routine"
     require_literal "src/codegen/llvm_mir_contract.c" "mir_block_has_expected_cleanup_edge_fact(routine, i)"
     require_literal "src/codegen/llvm_mir_contract.c" "mir_block_has_pin_cleanup_edge(block)"
-    require_literal "src/compiler/air_evidence.c" "mir_block_has_expected_cleanup_edge_fact(routine, i)"
-    require_literal "src/compiler/air_evidence.c" "mir_block_find_pin_cleanup_edge_fact(block)"
+    require_literal "src/compiler/air_evidence_mir.c" "mir_block_has_expected_cleanup_edge_fact(routine, i)"
+    require_literal "src/compiler/air_evidence_mir.c" "mir_block_find_pin_cleanup_edge_fact(block)"
     require_literal "src/tests/mir/test_mir_lowering_part_e.cases.h" "pin-unpin-cleanup-edge"
     require_literal "src/tests/mir/test_mir_lowering_part_e.cases.h" "MIR validator rejects unreachable cleanup root"
     require_literal "src/tests/mir/test_mir_lowering_part_e.cases.h" "MIR validator rejects unreachable exceptional source"

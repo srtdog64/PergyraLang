@@ -55,7 +55,7 @@ grep -Fq "approval owner stays on the zone/resource layer" \
 grep -Fq "intent_step_derive_authorized_by_from_zone" \
     "$ROOT_DIR/src/semantic/type_checker_intent_authority.c"
 grep -Fq "intent_step_derive_who_from_single_participant" \
-    "$ROOT_DIR/src/semantic/type_checker_intent_action_contract.c"
+    "$ROOT_DIR/src/semantic/type_checker_intent_on_inference.c"
 grep -Fq "intent_step_derive_who_from_on_receiver" \
     "$ROOT_DIR/src/semantic/type_checker_intent_on_inference.c"
 grep -Fq "intent_step_derive_where_from_on_receiver" \

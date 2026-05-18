@@ -81,44 +81,6 @@ bool parser_check(Parser* parser, PgyTokenType type) {
     return parser->current_token.type == type;
 }
 
-static bool
-parser_append_destructure_name(Parser *parser, ASTNode *node, const char *name)
-{
-    char **grown;
-    char *owned_name;
-
-    if (parser == NULL || node == NULL)
-        return false;
-    owned_name = pergyra_strdup(name);
-    if (owned_name == NULL) {
-        parser_error(parser, "Out of memory while parsing destructuring name");
-        return false;
-    }
-
-    if (node->data.let_destructure.name_count == node->data.let_destructure.name_capacity) {
-        size_t next_capacity = node->data.let_destructure.name_capacity == 0
-            ? 4
-            : node->data.let_destructure.name_capacity * 2;
-        if (next_capacity < node->data.let_destructure.name_capacity
-            || next_capacity > SIZE_MAX / sizeof(char *)) {
-            free(owned_name);
-            parser_error(parser, "Out of memory while parsing destructuring names");
-            return false;
-        }
-        grown = realloc(node->data.let_destructure.names, next_capacity * sizeof(char *));
-        if (grown == NULL) {
-            free(owned_name);
-            parser_error(parser, "Out of memory while parsing destructuring names");
-            return false;
-        }
-        node->data.let_destructure.names = grown;
-        node->data.let_destructure.name_capacity = next_capacity;
-    }
-
-    node->data.let_destructure.names[node->data.let_destructure.name_count++] = owned_name;
-    return true;
-}
-
 // 토큰 매칭 및 진행
 bool parser_match(Parser* parser, PgyTokenType type) {
     if (!parser_check(parser, type)) return false;

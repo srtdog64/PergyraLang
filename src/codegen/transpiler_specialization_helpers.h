@@ -4,23 +4,9 @@
 #include "../common/string_compat.h"
 #include "../semantic/diag_codes.h"
 
+#include "transpiler_generic_binding_query.h"
 #include "transpiler_type_mapping_helpers.h"
 #include "transpiler_role_ability_helpers.h"
-
-static char *
-render_type_name_with_bindings(TranspilerCtx *ctx, ASTNode *type_node,
-                               GenericBindingEntry *bindings, size_t binding_count)
-{
-    int saved_binding_count = ctx->generic_binding_count;
-    char *result;
-
-    for (size_t i = 0; i < binding_count && ctx->generic_binding_count < MAX_GENERIC_BINDINGS; i++)
-        ctx->generic_bindings[ctx->generic_binding_count++] = bindings[i];
-
-    result = render_type_name_in_ctx(ctx, type_node);
-    ctx->generic_binding_count = saved_binding_count;
-    return result;
-}
 
 static bool
 transpiler_specialization_copy_spec_name(char *dst, size_t dst_size,

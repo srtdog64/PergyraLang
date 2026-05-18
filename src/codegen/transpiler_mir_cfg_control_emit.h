@@ -10,6 +10,7 @@
 
 #include "transpiler_mir_cfg_policy.h"
 #include "transpiler_mir_expr_ssa.h"
+#include "transpiler_channel_type_query.h"
 #include "../parser/ast_api.h"
 
 static bool

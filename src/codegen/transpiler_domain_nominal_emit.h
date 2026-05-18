@@ -172,7 +172,7 @@ emit_included_role_impls(ASTNode *role, TranspilerCtx *ctx)
 }
 
 /*
- * Ability → vtable struct typedef
+ * Ability ??vtable struct typedef
  *
  *   typedef struct {
  *       RetType (*MethodName)(void* self, ParamType p1, ...);
@@ -243,7 +243,7 @@ emit_ability_decl(ASTNode *node, TranspilerCtx *ctx)
 }
 
 /*
- * Role → vtable instance + free functions
+ * Role ??vtable instance + free functions
  *
  *   static RetType RoleName_MethodName(void* self, ...) { body }
  *   static const AbilityName_vtable RoleName_AbilityName_vtable_instance = {
@@ -343,8 +343,8 @@ emit_role_decl(ASTNode *node, TranspilerCtx *ctx)
  * ================================================================= */
 
 /*
- * Party → C struct with role slot pointers + shared fields
- * Party methods → free functions
+ * Party ??C struct with role slot pointers + shared fields
+ * Party methods ??free functions
  */
 void
 emit_party_decl(ASTNode *node, TranspilerCtx *ctx)
@@ -383,7 +383,7 @@ emit_party_decl(ASTNode *node, TranspilerCtx *ctx)
                     return;
                 }
                 if (is_dyn) {
-                    /* dyn: mutable vtable pointer — swappable at runtime */
+                    /* dyn: mutable vtable pointer ??swappable at runtime */
                     codebuf_write(ctx->out,
                         "    const %s *%s_%s_vt; /* dyn */\n",
                         typedef_name, slot_name, vtable_tag);

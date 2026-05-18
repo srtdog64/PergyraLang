@@ -32,12 +32,14 @@ infer_spawn_return_type_name(TranspilerCtx *ctx, ASTNode *spawn_expr)
 
     ASTNode *decl = find_function_decl(ctx, function_name);
     if (decl != NULL && ast_func_return_type(decl) != NULL) {
-        if (call != NULL && func_has_generic_params(decl)) {
+        if (call != NULL && transpiler_func_has_generic_params(decl)) {
             GenericBindingEntry bindings[MAX_GENERIC_BINDINGS];
             size_t binding_count = 0;
-            if (infer_generic_call_bindings(ctx, decl, call, bindings, &binding_count))
-                return render_type_name_with_bindings(ctx, ast_func_return_type(decl),
-                    bindings, binding_count);
+            if (transpiler_infer_generic_call_bindings(ctx, decl, call,
+                    bindings, &binding_count)) {
+                return transpiler_render_type_name_with_bindings(ctx,
+                    ast_func_return_type(decl), bindings, binding_count);
+            }
         }
         return render_type_name(ast_func_return_type(decl));
     }
@@ -109,84 +111,6 @@ pergyra_ast_type_to_c_copy(ASTNode *type_node, char *out, size_t out_size)
     if (!ok)
         out[0] = '\0';
     return ok;
-}
-
-static int
-find_generic_param_index(ASTNode *decl, const char *name)
-{
-    if (!func_has_generic_params(decl) || name == NULL)
-        return -1;
-
-    GenericParams *generic_params = ast_func_generic_params(decl);
-    size_t generic_count = ast_generic_param_count(generic_params);
-    for (size_t i = 0; i < generic_count; i++) {
-        GenericParam *param = ast_generic_param_at(generic_params, i);
-        if (ast_generic_param_name(param) != NULL
-            && strcmp(ast_generic_param_name(param), name) == 0)
-            return (int)i;
-    }
-
-    return -1;
-}
-
-static bool
-
-infer_generic_call_bindings(TranspilerCtx *ctx, ASTNode *decl, ASTNode *call,
-                            GenericBindingEntry *bindings, size_t *binding_count)
-{
-    if (!func_has_generic_params(decl)
-        || call == NULL
-        || call->type != AST_CALL
-        || bindings == NULL
-        || binding_count == NULL) {
-        return false;
-    }
-
-    GenericParams *generic_params = ast_func_generic_params(decl);
-    size_t generic_count = ast_generic_param_count(generic_params);
-    memset(bindings, 0, sizeof(GenericBindingEntry) * generic_count);
-
-    for (size_t i = 0; i < generic_count; i++) {
-        GenericParam *param = ast_generic_param_at(generic_params, i);
-        if (ast_generic_param_name(param) != NULL) {
-            pergyra_str_copy(bindings[i].name,
-                sizeof(bindings[i].name), ast_generic_param_name(param));
-        }
-    }
-
-    for (size_t i = 0; i < ast_func_param_count(decl)
-        && i < ast_call_arg_count(call); i++) {
-        FuncParam *param = ast_func_param(decl, i);
-        if (param == NULL || param->type == NULL || param->type->type != AST_TYPE)
-            continue;
-        if (ast_type_generic_args(param->type) != NULL)
-            continue;
-
-        int generic_index = find_generic_param_index(decl, ast_type_name(param->type));
-        if (generic_index < 0)
-            continue;
-
-        const char *arg_type = infer_expression_type_name(ctx,
-            ast_call_argument(call, i));
-        if (arg_type == NULL)
-            continue;
-
-        if (bindings[generic_index].concrete_type[0] != '\0'
-            && strcmp(bindings[generic_index].concrete_type, arg_type) != 0) {
-            return false;
-        }
-
-        pergyra_str_copy(bindings[generic_index].concrete_type,
-            sizeof(bindings[generic_index].concrete_type), arg_type);
-    }
-
-    for (size_t i = 0; i < generic_count; i++) {
-        if (bindings[i].name[0] == '\0' || bindings[i].concrete_type[0] == '\0')
-            return false;
-    }
-
-    *binding_count = generic_count;
-    return true;
 }
 
 void

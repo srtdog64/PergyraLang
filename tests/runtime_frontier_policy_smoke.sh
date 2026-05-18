@@ -118,6 +118,7 @@ for candidate in "$CC_BIN" gcc clang cc; do
         "$tmp_dir/frontier_policy_check.c" \
         src/codegen/domain_frontier_policy.c \
         src/parser/ast_domain_accessors.c \
+        src/parser/ast_domain_accessors_world.c \
         src/parser/ast_zone_accessors.c \
         -o "$probe_exe"; then
         CC_BIN="$candidate"

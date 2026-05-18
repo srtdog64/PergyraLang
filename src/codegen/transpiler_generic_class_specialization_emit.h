@@ -335,7 +335,7 @@ ensure_generic_class_specialization(TranspilerCtx *ctx,
         mir_method = transpiler_hosted_method_view_routine(ctx,
             &method_view, i);
 
-        if (ctx != NULL && ctx->mir != NULL && mir_method == NULL) {
+        if (transpiler_active_has_mir(ctx) && mir_method == NULL) {
             transpiler_set_mir_inventory_missing(
                 ctx,
                 "MIR-only C path missing routine for generic class method '%s.%s' specialization '%s'",

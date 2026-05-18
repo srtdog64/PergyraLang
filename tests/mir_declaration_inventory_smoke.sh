@@ -34,6 +34,7 @@ for rel in \
     "src/codegen/llvm_inventory_decl_lookup.h" \
     "src/codegen/llvm_inventory_host_methods.h" \
     "src/codegen/llvm_pipeline.c" \
+    "src/codegen/llvm_main_wrapper.c" \
     "src/codegen/llvm_domain.c" \
     "src/codegen/llvm_domain_method_helpers.c" \
     "src/codegen/llvm_domain_method_emit.c" \
@@ -158,9 +159,17 @@ for term in \
     "llvm_active_routine_inventory" \
     "llvm_mir_routine_inventory_from_program" \
     "llvm_routine_inventory_get" \
+    "llvm_mir_routine_source_ast" \
+    "llvm_mir_routine_source_ast_of_type" \
     "llvm_active_nominal_inventory" \
     "llvm_active_domain_inventory"; do
     require_term "src/codegen/llvm_inventory_internal.h" "$term"
+done
+for term in \
+    "llvm_mir_routine_source_ast(const MIRRoutine *routine)" \
+    "llvm_mir_routine_source_ast_of_type(const MIRRoutine *routine" \
+    "return routine != NULL ? routine->ast : NULL"; do
+    require_term "src/codegen/llvm_inventory_internal.c" "$term"
 done
 
 for term in "mir_active_inventory" "mir_active_externs"; do
@@ -183,17 +192,170 @@ for rel in "src/codegen/llvm_inventory_internal.c" "src/codegen/transpiler_inven
     require_term "$rel" "mir_active_externs(ctx->mir, &nodes, &count)"
 done
 
+raw_ctx_mir_hits="$(
+    grep -RIn 'ctx->mir' "$ROOT_DIR/src/codegen" |
+        grep -Ev 'src/codegen/(llvm_api\.c|llvm_inventory_decl_lookup\.c|llvm_inventory_internal\.c|transpiler_entry\.c|transpiler_inventory_view\.c|transpiler_mir_emission_contract\.h):' || true
+)"
+if [[ -n "$raw_ctx_mir_hits" ]]; then
+    fail "raw ctx->mir access must stay in backend entrypoints, inventory view/lookup owners, or MIR emission contract probes:
+$raw_ctx_mir_hits"
+fi
+
 for term in \
+    "llvm_register_active_nominal_types(ctx)" \
+    "llvm_emit_class_method_bodies_from_inventory(ctx)" \
+    "llvm_forward_declare_function_routines_from_inventory(" \
+    "llvm_emit_function_routines_from_inventory(" \
+    "llvm_validate_function_routine_bodies_from_inventory(" \
+    "llvm_forward_declare_intent_routines_from_inventory(" \
+    "llvm_emit_intent_routines_from_inventory(" \
+    "llvm_emit_main_wrapper(ctx)" \
+    "declaration inventory is still AST-carried inside MIRProgram"; do
+    require_term "src/codegen/llvm_pipeline.c" "$term"
+done
+for term in \
+    "llvm_active_synthetic_executable_func(ctx)" \
+    "llvm_active_has_mir(ctx)" \
+    "llvm_active_has_top_level_exec(ctx)" \
+    "llvm_active_has_main_function(ctx)" \
+    "llvm_active_uses_thread_pool(ctx)" \
+    "LLVM thread-pool entry requires registered runtime function" \
+    "LLVM event initialization requires generated event function"; do
+    require_term "src/codegen/llvm_main_wrapper.c" "$term"
+done
+require_term "src/codegen/llvm_api.c" \
+    "llvm_active_uses_intent_observability(ctx)"
+require_term "src/codegen/llvm_inventory_internal.h" \
+    "llvm_active_has_mir"
+require_term "src/codegen/llvm_inventory_internal.c" \
+    "llvm_active_has_mir(const LLVMGenCtx *ctx)"
+require_term "src/codegen/llvm_inventory_internal.h" \
+    "llvm_active_uses_intent_observability"
+require_term "src/codegen/llvm_inventory_internal.c" \
+    "pgy_mir_program_uses_intent_observability(ctx->mir)"
+require_term "src/codegen/llvm_inventory_internal.h" \
+    "llvm_active_uses_thread_pool"
+require_term "src/codegen/llvm_inventory_internal.c" \
+    "pgy_mir_program_uses_thread_pool(ctx->mir)"
+for term in \
+    "llvm_register_generic_template_decl(LLVMGenCtx *ctx, ASTNode *func_decl)" \
+    "ctx->generic_templates[ctx->generic_template_count].name = name" \
+    "llvm_lookup_generic_template(ctx, name)"; do
+    require_term "src/codegen/llvm_backend_generic.c" "$term"
+done
+if grep -Fq "ctx->generic_templates" \
+    "$ROOT_DIR/src/codegen/llvm_pipeline.c"; then
+    fail "LLVM pipeline must not mutate the generic-template registry directly"
+fi
+if grep -Fq "routine->ast" \
+    "$ROOT_DIR/src/codegen/llvm_pipeline.c"; then
+    fail "LLVM pipeline must not reopen routine source AST for emit policy"
+fi
+if grep -Fq "MIR_SCOPE_" \
+    "$ROOT_DIR/src/codegen/llvm_pipeline.c"; then
+    fail "LLVM pipeline must not classify routine kinds locally for emit policy"
+fi
+if grep -Fq "mir_find_function_decl(ctx->mir, \"__pgy_top_level_exec\")" \
+    "$ROOT_DIR/src/codegen/llvm_pipeline.c"; then
+    fail "LLVM main wrapper must use the active executable inventory seam"
+fi
+if grep -Fq "mir_find_function_decl(ctx->mir, \"__pgy_top_level_exec\")" \
+    "$ROOT_DIR/src/codegen/llvm_main_wrapper.c"; then
+    fail "LLVM main wrapper must use the active executable inventory seam"
+fi
+if grep -Eq 'ctx->mir->has_(top_level_exec|main_function)' \
+    "$ROOT_DIR/src/codegen/llvm_pipeline.c"; then
+    fail "LLVM main wrapper must use active top-level/main metadata helpers"
+fi
+if grep -Eq 'ctx->mir->has_(top_level_exec|main_function)' \
+    "$ROOT_DIR/src/codegen/llvm_main_wrapper.c"; then
+    fail "LLVM main wrapper must use active top-level/main metadata helpers"
+fi
+for term in \
+    "llvm_forward_declare_function_routines_from_inventory(" \
+    "llvm_emit_function_routines_from_inventory(" \
+    "llvm_validate_function_routine_bodies_from_inventory(" \
+    "llvm_mir_routine_source_ast_of_type(" \
+    "llvm_register_generic_template_decl(ctx, func_decl)" \
+    "llvm_emit_func_from_mir(routine, ctx)" \
+    "MIR-only LLVM path missing routine for function"; do
+    require_term "src/codegen/llvm_decl.c" "$term"
+done
+for rel in \
+    "src/codegen/llvm_decl.c" \
+    "src/codegen/llvm_intent.c" \
+    "src/codegen/llvm_intent_forward.c" \
+    "src/codegen/llvm_mir_emit.c"; do
+    if grep -Fq "routine->ast" "$ROOT_DIR/$rel"; then
+        fail "$rel must consume routine source AST through llvm_mir_routine_source_ast* accessors"
+    fi
+done
+require_term "src/codegen/llvm_mir_emit.c" \
+    "llvm_mir_routine_source_ast(routine)"
+if grep -Fq "MIR-only LLVM path missing routine for function" \
+    "$ROOT_DIR/src/codegen/llvm_pipeline.c"; then
+    fail "LLVM pipeline function residual diagnostics must stay in the decl owner"
+fi
+for term in \
+    "llvm_forward_declare_intent_routines_from_inventory(" \
+    "llvm_mir_routine_source_ast_of_type(" \
+    "llvm_forward_declare_intent(intent_decl, ctx)"; do
+    require_term "src/codegen/llvm_intent_forward.c" "$term"
+done
+for term in \
+    "llvm_emit_intent_routines_from_inventory(" \
+    "llvm_mir_routine_source_ast_of_type(" \
+    "llvm_emit_intent_decl(intent_decl, ctx)"; do
+    require_term "src/codegen/llvm_intent.c" "$term"
+done
+if grep -Fq "llvm_forward_declare_intent(stmt, ctx)" \
+    "$ROOT_DIR/src/codegen/llvm_pipeline.c"; then
+    fail "LLVM pipeline intent forward declaration must stay in the intent owner"
+fi
+if grep -Fq "llvm_emit_intent_decl(stmt, ctx)" \
+    "$ROOT_DIR/src/codegen/llvm_pipeline.c"; then
+    fail "LLVM pipeline intent routine emission must stay in the intent owner"
+fi
+for term in \
+    "llvm_emit_class_method_bodies_from_inventory(LLVMGenCtx *ctx)" \
     "llvm_active_nominal_inventory(ctx, &nominal_nodes, &nominal_count)" \
     "llvm_hosted_method_view_from_decl(ctx, cls_name, decl)" \
     "method_view.uses_mir_metadata" \
     "llvm_hosted_method_view_routine(" \
     "llvm_set_mir_inventory_missing(ctx" \
-    "MIR-only LLVM path missing routine for class method" \
-    "MIR-only LLVM path missing routine for function" \
-    "declaration inventory is still AST-carried inside MIRProgram"; do
-    require_term "src/codegen/llvm_pipeline.c" "$term"
+    "MIR-only LLVM path missing routine for class method"; do
+    require_term "src/codegen/llvm_domain_method_emit.c" "$term"
 done
+require_term "src/codegen/llvm_domain_method_emit.h" \
+    "llvm_emit_class_method_bodies_from_inventory"
+require_term "src/codegen/llvm_internal_api.h" \
+    "bool llvm_emit_class_method_bodies_from_inventory(LLVMGenCtx *ctx);"
+if grep -Fq '#include "llvm_domain_method_emit.h"' \
+    "$ROOT_DIR/src/codegen/llvm_pipeline.c"; then
+    fail "LLVM pipeline must consume class-method emission through llvm_internal_api.h"
+fi
+register_decl_body="$(
+    awk '
+        /emit_program_from_mir:register_decl_items/ { in_body = 1 }
+        /emit_program_from_mir:emit_domain_passes/ { in_body = 0 }
+        in_body { print }
+    ' "$ROOT_DIR/src/codegen/llvm_pipeline.c"
+)"
+if ! grep -Fq "llvm_register_active_nominal_types(ctx)" \
+        <<<"$register_decl_body"; then
+    fail "LLVM pipeline nominal registration must call the register owner helper"
+fi
+if grep -Fq "llvm_active_nominal_inventory" <<<"$register_decl_body"; then
+    fail "LLVM pipeline nominal registration must not reopen the active nominal inventory loop"
+fi
+if grep -Fq "llvm_active_nominal_inventory" \
+    "$ROOT_DIR/src/codegen/llvm_pipeline.c"; then
+    fail "LLVM pipeline must not directly iterate the active nominal inventory"
+fi
+if grep -Fq "llvm_hosted_method_view_from_decl(ctx, cls_name, decl)" \
+    "$ROOT_DIR/src/codegen/llvm_pipeline.c"; then
+    fail "LLVM pipeline class-method emission must stay in the method emit owner"
+fi
 if grep -Fq "llvm_find_mir_method_routine" \
     "$ROOT_DIR/src/codegen/llvm_pipeline.c"; then
     fail "LLVM pipeline class-method emission must use linked MIRDeclMethod routine indexes, not local routine fallback search"
@@ -238,11 +400,12 @@ if grep -RIn "llvm_set_error_with_hints(ctx" \
     "$ROOT_DIR/src/codegen/llvm_mir_contract.c"; then
     fail "LLVM MIR contract diagnostics must use llvm_set_mir_topology_invalid"
 fi
-require_term "src/codegen/llvm_pipeline.c" "llvm_result_error_with_hints(\"MIR program is NULL\""
-require_term "src/codegen/llvm_pipeline.c" "llvm_result_error_with_hints(\"MIR routine is missing name\""
-require_term "src/codegen/llvm_pipeline.c" "llvm_result_error_fmt_with_hints("
+require_term "src/codegen/llvm_mir_contract.c" "llvm_validate_mir_for_codegen"
+require_term "src/codegen/llvm_mir_contract.c" "llvm_result_error_with_hints(\"MIR program is NULL\""
+require_term "src/codegen/llvm_mir_contract.c" "llvm_result_error_with_hints(\"MIR routine is missing name\""
+require_term "src/codegen/llvm_mir_contract.c" "llvm_result_error_fmt_with_hints("
 if grep -A10 -F "MIR routine '%s' emission topology invalid" \
-    "$ROOT_DIR/src/codegen/llvm_pipeline.c" | grep -Fq "llvm_result_error_fmt("; then
+    "$ROOT_DIR/src/codegen/llvm_mir_contract.c" | grep -Fq "llvm_result_error_fmt("; then
     fail "LLVM MIR topology preflight must attach structured diagnostic hints"
 fi
 
@@ -268,7 +431,7 @@ if grep -RIn "llvm_set_error_with_hints(ctx" \
     fail "LLVM intent carrier diagnostics must use llvm_set_mir_intent_carrier_missing"
 fi
 if grep -A8 -F "MIR-only LLVM path missing routine for function" \
-    "$ROOT_DIR/src/codegen/llvm_pipeline.c" | grep -Fq "llvm_set_error(ctx"; then
+    "$ROOT_DIR/src/codegen/llvm_decl.c" | grep -Fq "llvm_set_error(ctx"; then
     fail "LLVM pipeline MIR-missing diagnostics must use llvm_set_mir_inventory_missing"
 fi
 if grep -RIn "llvm_set_error(ctx" "$ROOT_DIR/src/codegen"/llvm_mir*.c \
@@ -292,14 +455,54 @@ for term in \
     "transpiler_active_routine_inventory" \
     "transpiler_mir_routine_inventory_from_program" \
     "transpiler_routine_inventory_get" \
+    "transpiler_mir_routine_source_ast" \
+    "transpiler_mir_routine_source_ast_of_type" \
     "transpiler_active_routine_count" \
+    "transpiler_active_decl_header" \
     "transpiler_active_externs" \
     "transpiler_active_executables" \
     "transpiler_active_synthetic_executable_func" \
+    "transpiler_active_has_mir" \
+    "transpiler_active_mir_identity" \
     "transpiler_active_has_main_function" \
-    "transpiler_active_has_top_level_exec"; do
+    "transpiler_active_has_top_level_exec" \
+    "transpiler_active_uses_intent_observability" \
+    "transpiler_active_uses_thread_pool"; do
     require_term "src/codegen/transpiler_inventory_view.h" "$term"
 done
+require_term "src/codegen/transpiler_inventory_view.c" \
+    "transpiler_active_has_mir(const TranspilerCtx *ctx)"
+require_term "src/codegen/transpiler_inventory_view.c" \
+    "transpiler_active_mir_identity(const TranspilerCtx *ctx)"
+require_term "src/codegen/transpiler_inventory_view.c" \
+    "transpiler_active_decl_header(const TranspilerCtx *ctx, const char *name)"
+require_term "src/codegen/transpiler_inventory_view.c" \
+    "pgy_mir_program_uses_intent_observability(ctx->mir)"
+require_term "src/codegen/transpiler_entry.c" \
+    "transpiler_active_uses_intent_observability(ctx)"
+require_term "src/codegen/transpiler.c" \
+    "transpiler_active_has_mir(ctx)"
+if grep -Fq "ctx->mir" "$ROOT_DIR/src/codegen/transpiler.c"; then
+    fail "C program emitter must use active MIR view helpers, not direct ctx->mir probes"
+fi
+require_term "src/codegen/transpiler_inventory_view.c" \
+    "pgy_mir_program_uses_thread_pool(ctx->mir)"
+for term in \
+    "transpiler_mir_routine_source_ast(const MIRRoutine *routine)" \
+    "transpiler_mir_routine_source_ast_of_type(" \
+    "return routine != NULL ? routine->ast : NULL"; do
+    require_term "src/codegen/transpiler_inventory_view.c" "$term"
+done
+for rel in \
+    "src/codegen/transpiler_mir_emission_contract.h"; do
+    if grep -Fq "routine->ast" "$ROOT_DIR/$rel"; then
+        fail "$rel must consume routine source AST through transpiler_mir_routine_source_ast* accessors"
+    fi
+done
+require_term "src/codegen/transpiler_mir_emission_contract.h" \
+    "transpiler_mir_routine_source_ast(routine)"
+require_term "src/codegen/transpiler_mir_emission_contract.h" \
+    "transpiler_mir_routine_source_ast_of_type("
 
 for term in \
     "transpiler_active_inventory(ctx, AST_ABILITY_DECL, &abilities, &ability_count)" \
@@ -333,7 +536,8 @@ done
 for term in \
     "transpiler_find_method_source_ast_in_mir_header" \
     "transpiler_decl_header_is_nominal_host(header)" \
-    "mir_find_decl_header(ctx->mir, host_type_name)" \
+    "transpiler_active_decl_header(ctx, host_type_name)" \
+    "transpiler_active_mir_identity(ctx)" \
     "static const TranspilerHostOwnerLookup kTranspilerHostOwnerLookups[]" \
     "static const ASTNodeType kTranspilerNominalHostLookupTypes[]" \
     "lookup->lookup_type" \
@@ -347,6 +551,9 @@ for term in \
     "method->source_ast"; do
     require_term "src/codegen/transpiler_decl_host_lookup.c" "$term"
 done
+if grep -Fq "ctx->mir" "$ROOT_DIR/src/codegen/transpiler_decl_host_lookup.c"; then
+    fail "C host-decl lookup cache must use active MIR identity helpers, not direct ctx->mir probes"
+fi
 if grep -RIn 'transpiler_decl_methods_local' "$ROOT_DIR/src/codegen"; then
     fail "C backend must not expose public AST method-array lookup seam"
 fi
@@ -364,7 +571,7 @@ for rel in \
     fi
 done
 for term in \
-    "mir_find_decl_header(ctx->mir, owner_name)" \
+    "transpiler_active_decl_header(ctx, owner_name)" \
     "header->ast_type != AST_ROLE_DECL" \
     "header->method_metadata_count" \
     "transpiler_mir_decl_method_routine(ctx, method)"; do
@@ -656,6 +863,12 @@ if grep -Fq "decl_header->source_ast == decl" \
     "$ROOT_DIR/src/codegen/llvm_inventory_host_methods.h"; then
     fail "LLVM host method inventory must be metadata-first; do not require source_ast identity"
 fi
+require_term "src/codegen/llvm_inventory_host_methods.c" \
+    "llvm_active_has_mir(ctx)"
+if grep -Fq "ctx->mir" \
+    "$ROOT_DIR/src/codegen/llvm_inventory_host_methods.c"; then
+    fail "LLVM host method inventory must use active MIR view helpers, not direct ctx->mir probes"
+fi
 
 if grep -RIn "llvm_find_mir_method_routine_local" "$ROOT_DIR/src/codegen"; then
     fail "LLVM AST/name-based MIR method routine compatibility helper must not reappear"
@@ -745,10 +958,10 @@ if grep -Eq 'method->data\.func_decl\.(param_count|return_type)' \
 fi
 role_method_forward_body="$(
     awk '
-        /llvm_emit_role_method_forward_decls_metadata_first\(LLVMGenCtx \*ctx,/ { in_body = 1 }
+        /llvm_emit_role_method_forward_decls_metadata_first/ { in_body = 1 }
         /llvm_emit_domain_role_forward_decls\(LLVMGenCtx \*ctx,/ { in_body = 0 }
         in_body { print }
-    ' "$ROOT_DIR/src/codegen/llvm_domain_forward.c"
+    ' "$ROOT_DIR/src/codegen/llvm_domain_forward_role.c"
 )"
 for term in \
     "llvm_hosted_method_view_missing_mir_metadata(methods)" \
@@ -767,16 +980,16 @@ fi
 ability_vtable_body="$(
     awk '
         /llvm_emit_domain_ability_vtables\(LLVMGenCtx \*ctx,/ { in_body = 1 }
-        /llvm_emit_role_method_forward_decls_metadata_first\(LLVMGenCtx \*ctx,/ { in_body = 0 }
+        /#endif/ { in_body = 0 }
         in_body { print }
-    ' "$ROOT_DIR/src/codegen/llvm_domain_forward.c"
+    ' "$ROOT_DIR/src/codegen/llvm_domain_forward_ability.c"
 )"
 role_operator_body="$(
     awk '
-        /PgyTokenType ops\[\] =/ { in_body = 1 }
-        /#endif/ { in_body = 0 }
+        /llvm_emit_role_operator_forward_decl/ { in_body = 1 }
+        /llvm_emit_domain_role_forward_decls\(LLVMGenCtx \*ctx,/ { in_body = 0 }
         in_body { print }
-    ' "$ROOT_DIR/src/codegen/llvm_domain_forward.c"
+    ' "$ROOT_DIR/src/codegen/llvm_domain_forward_role.c"
 )"
 for body_name in ability_vtable_body role_operator_body; do
     body="${!body_name}"
@@ -795,7 +1008,7 @@ require_term "src/codegen/llvm_domain_forward.h" \
     "const LLVMHostedMethodView *methods"
 require_term "src/codegen/llvm_domain_forward.c" \
     "llvm_hosted_method_view_metadata(methods, j)"
-require_term "src/codegen/llvm_domain_forward.c" \
+require_term "src/codegen/llvm_domain_forward_role.c" \
     "llvm_emit_role_method_forward_decls_metadata_first"
 require_term "src/codegen/llvm_domain_method_emit.c" \
     "LLVMHostedMethodView method_view"
@@ -819,7 +1032,7 @@ require_term "src/codegen/llvm_domain_role_emit.c" \
     "llvm_role_method_name_from_ast"
 require_term "src/codegen/llvm_domain_role_lookup.c" \
     "llvm_role_for_type_name"
-require_term "src/codegen/llvm_domain_forward.c" \
+require_term "src/codegen/llvm_domain_forward_role.c" \
     "llvm_role_for_type_node(stmt)"
 require_term "src/codegen/llvm_domain_role_emit.c" \
     "llvm_role_for_type_name(stmt)"

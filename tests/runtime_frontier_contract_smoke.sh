@@ -298,6 +298,7 @@ require_terms "frontier runtime policy smoke" "$ROOT_DIR/tests/runtime_frontier_
     "pgy_domain_zone_frontier_pass_limit" \
     "pgy_domain_projection_frontier_pass_limit" \
     "pgy_domain_world_transitive_frontier_pass_limit" \
+    "src/parser/ast_domain_accessors_world.c" \
     "world-transitive-embedded-limit" \
     "UINT32_MAX"
 

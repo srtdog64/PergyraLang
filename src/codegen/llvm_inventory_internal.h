@@ -46,6 +46,10 @@ void llvm_mir_routine_inventory_from_program(const MIRProgram *mir,
 const MIRRoutine *llvm_routine_inventory_get(
     const LLVMMIRRoutineInventory *inventory,
     size_t index);
+ASTNode *llvm_mir_routine_source_ast(const MIRRoutine *routine);
+ASTNode *llvm_mir_routine_source_ast_of_type(const MIRRoutine *routine,
+                                             MIRScopeKind expected_kind,
+                                             ASTNodeType expected_ast_type);
 void llvm_active_domain_inventory(const LLVMGenCtx *ctx,
                                   LLVMDomainInventory *inventory);
 void llvm_active_executables(const LLVMGenCtx *ctx,
@@ -55,7 +59,10 @@ void llvm_active_externs(const LLVMGenCtx *ctx,
                          ASTNode ***nodes_out,
                          size_t *count_out);
 ASTNode *llvm_active_synthetic_executable_func(const LLVMGenCtx *ctx);
+bool llvm_active_has_mir(const LLVMGenCtx *ctx);
 bool llvm_active_has_main_function(const LLVMGenCtx *ctx);
 bool llvm_active_has_top_level_exec(const LLVMGenCtx *ctx);
+bool llvm_active_uses_intent_observability(const LLVMGenCtx *ctx);
+bool llvm_active_uses_thread_pool(const LLVMGenCtx *ctx);
 
 #endif /* PGY_LLVM_INVENTORY_INTERNAL_H */

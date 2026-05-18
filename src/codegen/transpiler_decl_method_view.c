@@ -21,11 +21,10 @@ transpiler_hosted_method_view(const TranspilerCtx *ctx,
     view.ast_compat_count = ast_compat_count;
     view.count = ast_compat_count;
     view.uses_mir_metadata = false;
-    view.requires_mir_metadata = ctx != NULL && ctx->mir != NULL
-        && ast_compat_count > 0;
+    view.requires_mir_metadata =
+        transpiler_active_has_mir(ctx) && ast_compat_count > 0;
 
-    if (ctx != NULL && ctx->mir != NULL && host_name != NULL)
-        header = mir_find_decl_header(ctx->mir, host_name);
+    header = transpiler_active_decl_header(ctx, host_name);
     if (header != NULL && transpiler_is_host_decl_type(header->ast_type)) {
         view.metadata = header->method_metadata;
         view.count = header->method_metadata_count;
@@ -110,7 +109,7 @@ transpiler_mir_decl_method_routine(const TranspilerCtx *ctx,
                                    const MIRDeclMethod *method)
 {
     TranspilerMIRRoutineInventory inventory;
-    if (ctx == NULL || ctx->mir == NULL || method == NULL)
+    if (ctx == NULL || !transpiler_active_has_mir(ctx) || method == NULL)
         return NULL;
     if (!method->has_routine)
         return NULL;
@@ -150,7 +149,7 @@ transpiler_hosted_method_view_from_decl(const TranspilerCtx *ctx,
             ast_compat_methods = ast_roster_methods(decl, &ast_compat_count);
             break;
         case AST_ROLE_DECL:
-            if (ctx != NULL && ctx->mir != NULL) {
+            if (transpiler_active_has_mir(ctx)) {
                 if (!ast_role_impl_method_total_count(
                         decl, &ast_compat_count)) {
                     ast_compat_count = (size_t)-1;

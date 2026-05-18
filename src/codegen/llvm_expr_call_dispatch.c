@@ -2,9 +2,6 @@
 
 #include "llvm_expr_call_dispatch.h"
 
-#include <stdio.h>
-#include <string.h>
-
 #include "llvm_expr_array_calls.h"
 #include "llvm_expr_boundary_projection_helpers.h"
 #include "llvm_expr_call_inline_policy.h"
@@ -207,76 +204,12 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
             return task_channel_call;
     }
     if (callee_node->type == AST_IDENTIFIER) {
-        ASTNode *host_decl = llvm_current_host_decl(ctx);
-        const char *host_name = llvm_decl_node_name(host_decl);
-        ASTNode *host_method = llvm_current_host_method_decl(ctx, callee_name);
-        if (host_name != NULL && host_method != NULL) {
-            char full_name[256];
-            snprintf(full_name, sizeof(full_name), "%s_%s", host_name, callee_name);
-            LLVMFuncEntry *fn = llvm_lookup_function(ctx, full_name);
-            if (fn != NULL) {
-                LLVMValueRef *args = pgy_arena_calloc(&ctx->scratch,
-                    (argc + 1) * sizeof(LLVMValueRef));
-                if (args == NULL)
-                    return llvm_call_error_recovery(ctx, node,
-                        "LLVM hosted method call argument allocation failed");
-                args[0] = llvm_current_self_call_arg(ctx);
-                if (args[0] == NULL)
-                    return llvm_call_error_recovery(ctx, node,
-                        "LLVM hosted method call requires a self receiver");
-                for (size_t i = 0; i < argc; i++) {
-                    ASTNode *arg_node = ast_call_argument(node, i);
-                    LLVMValueRef arg_val = llvm_emit_expression(arg_node, ctx);
-                    size_t logical_idx = 0;
-                    for (size_t pk = 0; pk < ast_func_param_count(host_method); pk++) {
-                        FuncParam *p = ast_func_param(host_method, pk);
-                        const char *ptn = NULL;
-                        LLVMClassTypeEntry *param_cls = NULL;
-                        if (p == NULL || p->name == NULL)
-                            continue;
-                        if (p->type == NULL && strcmp(p->name, "self") == 0)
-                            continue;
-                        if (logical_idx == i) {
-                            if (p->type != NULL && p->type->type == AST_TYPE)
-                                ptn = ast_type_name(p->type);
-                            param_cls = ptn != NULL ? llvm_lookup_class(ctx, ptn) : NULL;
-                            if (param_cls != NULL && param_cls->is_pointer_self_host
-                                && arg_node != NULL
-                                && arg_node->type == AST_IDENTIFIER) {
-                                const char *arg_name =
-                                    ast_identifier_name(arg_node);
-                                LLVMVarEntry *arg_var = llvm_scope_lookup(ctx, arg_name);
-                                if (arg_var != NULL) {
-                                    if (LLVMGetTypeKind(arg_var->type) == LLVMPointerTypeKind)
-                                        arg_val = LLVMBuildLoad2(ctx->builder,
-                                            arg_var->type, arg_var->alloca, llvm_tmp_name(ctx));
-                                    else
-                                        arg_val = arg_var->alloca;
-                                }
-                            }
-                            break;
-                        }
-                        logical_idx++;
-                    }
-                    if (arg_val == NULL)
-                        return llvm_call_arg_error_recovery(ctx, node,
-                            callee_name, i);
-                    args[i + 1] = arg_val;
-                }
-                {
-                    LLVMValueRef result;
-                    if (fn->ret_type == ctx->type_void) {
-                        LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn,
-                            args, (unsigned)(argc + 1), "");
-                        result = LLVMConstInt(ctx->type_i32, 0, 0);
-                    } else {
-                        result = LLVMBuildCall2(ctx->builder, fn->fn_type, fn->fn,
-                            args, (unsigned)(argc + 1), llvm_tmp_name(ctx));
-                    }
-                    return result;
-                }
-            }
-        }
+        LLVMValueRef hosted_call =
+            llvm_emit_hosted_self_call(node, ctx, callee_name);
+        if (ctx->has_error)
+            return NULL;
+        if (hosted_call != NULL)
+            return hosted_call;
     }
 
     ASTNode *decl = llvm_find_function_decl(ctx, callee_name);
@@ -454,7 +387,7 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
         LLVMTypeRef param_ty = (i < param_count)
             ? LLVMTypeOf(LLVMGetParam(func->fn, (unsigned)i))
             : NULL;
-            if (param_ty != NULL
+        if (param_ty != NULL
             && LLVMGetTypeKind(param_ty) == LLVMPointerTypeKind) {
             if (arg_node->type == AST_IDENTIFIER) {
                 const char *arg_name = ast_identifier_name(arg_node);

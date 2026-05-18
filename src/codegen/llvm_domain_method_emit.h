@@ -14,6 +14,7 @@ bool llvm_emit_domain_sync_and_method_bodies(LLVMGenCtx *ctx,
     ASTNode ***domain_groups,
     const size_t *domain_group_counts,
     size_t domain_group_count);
+bool llvm_emit_class_method_bodies_from_inventory(LLVMGenCtx *ctx);
 
 #endif /* PGY_LLVM_ENABLED */
 

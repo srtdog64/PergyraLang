@@ -99,4 +99,68 @@ llvm_emit_domain_sync_and_method_bodies(LLVMGenCtx *ctx,
     return true;
 }
 
+bool
+llvm_emit_class_method_bodies_from_inventory(LLVMGenCtx *ctx)
+{
+    ASTNode **nominal_nodes = NULL;
+    size_t nominal_count = 0;
+
+    if (ctx == NULL)
+        return true;
+
+    llvm_active_nominal_inventory(ctx, &nominal_nodes, &nominal_count);
+    for (size_t i = 0; i < nominal_count; i++) {
+        ASTNode *decl = nominal_nodes != NULL ? nominal_nodes[i] : NULL;
+        const char *cls_name;
+        const MIRDeclHeader *decl_header;
+        const MIRDeclMethod *method_metadata;
+        size_t method_metadata_count;
+
+        if (decl == NULL || decl->type != AST_CLASS_DECL)
+            continue;
+
+        cls_name = llvm_decl_node_name(decl);
+        LLVMHostedMethodView method_view =
+            llvm_hosted_method_view_from_decl(ctx, cls_name, decl);
+        decl_header = method_view.uses_mir_metadata
+            ? llvm_find_host_decl_header_in_context(ctx, cls_name)
+            : NULL;
+        method_metadata = method_view.uses_mir_metadata
+            ? method_view.metadata
+            : NULL;
+        method_metadata_count = method_view.uses_mir_metadata
+            ? method_view.count
+            : 0;
+        if (decl_header == NULL && method_view.count > 0) {
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing declaration metadata for class method '%s.%s'",
+                cls_name != NULL ? cls_name : "(anonymous-class)",
+                "(metadata)");
+            return false;
+        }
+        for (size_t j = 0; j < method_metadata_count; j++) {
+            const MIRDeclMethod *method_meta = &method_metadata[j];
+            const char *method_name;
+            const MIRRoutine *mir_method;
+
+            method_name = llvm_mir_decl_method_name(method_meta);
+            mir_method = llvm_hosted_method_view_routine(
+                ctx, &method_view, j);
+            if (mir_method != NULL) {
+                llvm_emit_func_from_mir(mir_method, ctx);
+                if (ctx->has_error)
+                    return false;
+                continue;
+            }
+            llvm_set_mir_inventory_missing(ctx,
+                "MIR-only LLVM path missing routine for class method '%s.%s'",
+                cls_name != NULL ? cls_name : "(anonymous-class)",
+                method_name != NULL ? method_name : "(anonymous)");
+            return false;
+        }
+    }
+
+    return true;
+}
+
 #endif /* PGY_LLVM_ENABLED */

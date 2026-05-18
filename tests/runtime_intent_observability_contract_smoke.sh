@@ -14,6 +14,30 @@ require_term() {
     grep -Fq -- "$term" "$path" || fail "$path missing term: $term"
 }
 
+require_step_ok_guard_before_history_write() {
+    local path="$1"
+    local guard_line
+    local write_line
+
+    guard_line="$(
+        awk '
+            /pgy_intent_trace_step_ok_export/ { in_fn = 1 }
+            in_fn && /if \(!PGY_INTENT_OBSERVABILITY_ENABLED\)/ {
+                print NR
+                exit
+            }
+        ' "$path"
+    )"
+    write_line="$(
+        grep -nF "entry->steps[entry->step_count - 1].ok = true" "$path" |
+            head -n 1 | cut -d: -f1
+    )"
+
+    if [[ -z "$guard_line" || -z "$write_line" || "$guard_line" -ge "$write_line" ]]; then
+        fail "$path: step_ok must no-trace guard before history write"
+    fi
+}
+
 for rel in \
     "src/runtime/pgy_runtime_intent_active_exports.h" \
     "src/runtime/pgy_runtime_intent_active_index_inline.h" \
@@ -73,6 +97,7 @@ require_term "$ROOT_DIR/src/runtime/pgy_runtime_intent_trace_inline.h" "pgy_inte
 require_term "$ROOT_DIR/src/runtime/pgy_runtime_intent_trace_inline.h" "pgy_intent_find_active_entry(candidate) == NULL"
 require_term "$ROOT_DIR/src/runtime/pgy_runtime_intent_trace_inline.h" "intent handle space exhausted"
 require_term "$ROOT_DIR/src/runtime/pgy_runtime_intent_trace_inline.h" "pgy_intent_next_positive_counter(&pgy_intent_next_trace_id)"
+require_term "$ROOT_DIR/src/runtime/pgy_runtime_intent_trace_inline.h" "name = PGY_INTENT_OBSERVABILITY_ENABLED"
 
 require_term "$ROOT_DIR/src/runtime/pgy_runtime_lib_set_intent_trace_exports.c" "pgy_intent_next_positive_counter_export"
 require_term "$ROOT_DIR/src/runtime/pgy_runtime_lib_set_intent_trace_exports.c" "pgy_intent_next_unused_handle_export"
@@ -80,5 +105,8 @@ require_term "$ROOT_DIR/src/runtime/pgy_runtime_lib_set_intent_trace_exports.c" 
 require_term "$ROOT_DIR/src/runtime/pgy_runtime_lib_set_intent_trace_exports.c" "intent handle space exhausted"
 require_term "$ROOT_DIR/src/runtime/pgy_runtime_lib_set_intent_trace_exports.c" "pgy_intent_next_positive_counter_export(&pgy_intent_next_trace_id)"
 require_term "$ROOT_DIR/src/runtime/pgy_runtime_lib_set_intent_trace_exports.c" "(size_t)subject_count > SIZE_MAX / sizeof(void *)"
+require_term "$ROOT_DIR/src/runtime/pgy_runtime_lib_set_intent_trace_exports.c" "name = PGY_INTENT_OBSERVABILITY_ENABLED"
+require_step_ok_guard_before_history_write "$ROOT_DIR/src/runtime/pgy_runtime_intent_trace_events_inline.h"
+require_step_ok_guard_before_history_write "$ROOT_DIR/src/runtime/pgy_runtime_lib_intent_trace_events_exports.c"
 
 echo "[runtime-intent-observability-contract] active index/handle contract is gated"

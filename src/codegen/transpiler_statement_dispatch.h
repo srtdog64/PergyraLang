@@ -28,11 +28,11 @@ emit_statement(ASTNode *node, TranspilerCtx *ctx)
         break;
     case AST_IMPORT_DECL:
         /* Import is resolved at driver level (AST merging).
-         * Nothing to emit — the imported declarations are
+         * Nothing to emit ??the imported declarations are
          * already present in the merged AST. */
         break;
     case AST_USE_DECL:
-        /* use module; — standard library modules.
+        /* use module; ??standard library modules.
          * Runtime functions are always available via pgy_runtime.h.
          * Future: emit module-specific includes/initializers here. */
         codebuf_write(ctx->out, "/* use %s */\n",
@@ -40,7 +40,7 @@ emit_statement(ASTNode *node, TranspilerCtx *ctx)
                 ? ast_use_module_name(node) : "unknown");
         break;
     case AST_UNSAFE_BLOCK:
-        /* unsafe { ... } → emit body directly (no safety wrappers) */
+        /* unsafe { ... } ??emit body directly (no safety wrappers) */
         write_indent(ctx);
         codebuf_write(ctx->out, "/* unsafe */\n");
         if (ast_unsafe_block_body(node) != NULL)
@@ -52,7 +52,7 @@ emit_statement(ASTNode *node, TranspilerCtx *ctx)
     }
     case AST_BIND_STMT: {
         /* bind party.slot = Role;
-         * → lookup party's typed_var to get PartyType,
+         * ??lookup party's typed_var to get PartyType,
          *   then emit PartyType_bind_slot(&party, NULL, &Role_Ability_vtable_instance)
          * For now: use the typed_var mapping to find the party type. */
         const char *pvar = ast_bind_statement_party_var(node);

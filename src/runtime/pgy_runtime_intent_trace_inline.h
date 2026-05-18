@@ -436,7 +436,8 @@ pgy_intent_enter_export(char *name, void **subjects, int32_t subject_count,
     }
     pgy_intent_active_registry[free_index].handle = handle;
     pgy_intent_active_registry[free_index].parent_handle = parent_handle;
-    pgy_intent_active_registry[free_index].name = pgy_runtime_strdup(name);
+    pgy_intent_active_registry[free_index].name = PGY_INTENT_OBSERVABILITY_ENABLED
+        ? pgy_runtime_strdup(name) : NULL;
     pgy_intent_active_registry[free_index].subjects = subject_copy;
     pgy_intent_active_registry[free_index].subject_count = subject_count;
     pgy_intent_active_registry[free_index].is_concurrent = is_concurrent;

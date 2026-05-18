@@ -55,7 +55,7 @@ llvm_forward_declare_intent(ASTNode *node, LLVMGenCtx *ctx)
         participant_count = llvm_collect_mir_intent_participants(
             mir_routine, ctx, &participant_aliases, &participant_types);
     }
-    mir_only_intent = ctx->mir != NULL && step_count > 0;
+    mir_only_intent = llvm_active_has_mir(ctx) && step_count > 0;
     if (mir_only_intent && involve_count > 0) {
         if (participant_count < involve_count) {
             llvm_set_mir_inventory_missing(ctx,
@@ -140,6 +140,26 @@ llvm_forward_declare_intent(ASTNode *node, LLVMGenCtx *ctx)
         }
     }
     llvm_register_function(ctx, name, fn, fn_type, ctx->type_i1);
+}
+
+void
+llvm_forward_declare_intent_routines_from_inventory(
+    LLVMGenCtx *ctx,
+    const LLVMMIRRoutineInventory *inventory)
+{
+    if (ctx == NULL || inventory == NULL)
+        return;
+
+    for (size_t i = 0; i < inventory->count; i++) {
+        const MIRRoutine *routine = &inventory->routines[i];
+        ASTNode *intent_decl = llvm_mir_routine_source_ast_of_type(
+            routine, MIR_SCOPE_INTENT, AST_INTENT_DECL);
+        if (intent_decl == NULL)
+            continue;
+        llvm_forward_declare_intent(intent_decl, ctx);
+        if (ctx->has_error)
+            return;
+    }
 }
 
 #endif

@@ -11,15 +11,14 @@ transpiler_mir_stmt_is_mirrored_resource(TranspilerCtx *ctx,
                                          const MIRBasicBlock *block,
                                          ASTNode *stmt)
 {
-    if (ctx == NULL || ctx->mir == NULL || block == NULL || stmt == NULL)
+    if (ctx == NULL || !transpiler_active_has_mir(ctx)
+        || block == NULL || stmt == NULL)
         return false;
 
     for (size_t ri = 0; ri < block->instruction_count; ri++) {
         const MIRInstruction *resource_inst = &block->instructions[ri];
         bool resource_is_secure = false;
         if (resource_inst->kind != MIR_INST_RESOURCE_OP)
-            continue;
-        if (!mir_instruction_source_matches_ast_node(resource_inst, stmt))
             continue;
         if (mir_instruction_source_payload(resource_inst) != stmt)
             continue;

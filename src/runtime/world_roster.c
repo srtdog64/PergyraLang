@@ -3,30 +3,18 @@
  * World-Roster Runtime Implementation
  */
 
-#include "world_roster.h"
+#include "world_roster_internal.h"
 
-#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #ifdef _WIN32
 #include <windows.h>
 #else
-#include <sched.h>
 #include <time.h>
 #endif
 
-struct RosterHandle {
-    pthread_t thread;
-    bool threadStarted;
-    bool completed;
-    RosterContext* roster;
-    JoinStrategy defaultStrategy;
-    DispatcherConfig* config;
-    RosterExecutionResult result;
-};
-
-static void world_roster_warn(const char* op, const char* reason)
+void world_roster_warn(const char* op, const char* reason)
 {
     fprintf(stderr,
             "[pgy][world-roster] %s failed: %s\n",
@@ -59,7 +47,7 @@ static bool world_roster_array_fits(size_t count, size_t elem_size)
     return elem_size != 0 && count <= SIZE_MAX / elem_size;
 }
 
-static uint64_t world_roster_now_ns(void)
+uint64_t world_roster_now_ns(void)
 {
 #ifdef _WIN32
     LARGE_INTEGER frequency;
@@ -74,7 +62,7 @@ static uint64_t world_roster_now_ns(void)
 #endif
 }
 
-static void world_roster_sleep_ms(uint64_t timeoutMs)
+void world_roster_sleep_ms(uint64_t timeoutMs)
 {
 #ifdef _WIN32
     Sleep((DWORD)timeoutMs);
@@ -144,17 +132,6 @@ static const char* world_roster_first_error(const RosterExecutionResult* result)
             }
         }
     }
-    return NULL;
-}
-
-static void* world_roster_async_runner(void* arg)
-{
-    struct RosterHandle* handle = (struct RosterHandle*)arg;
-    if (handle == NULL) {
-        return NULL;
-    }
-    handle->result = ExecuteRoster(handle->roster, handle->defaultStrategy, handle->config);
-    handle->completed = true;
     return NULL;
 }
 
@@ -293,75 +270,6 @@ ExecuteRoster(RosterContext* roster,
     if (result.totalExecutionTimeNs == 0) {
         result.totalExecutionTimeNs = world_roster_now_ns() - start;
     }
-    return result;
-}
-
-RosterHandle*
-ExecuteRosterAsync(RosterContext* roster,
-                   JoinStrategy defaultStrategy,
-                   DispatcherConfig* config)
-{
-    if (roster == NULL) {
-        world_roster_warn("execute_roster_async", "roster is null");
-        return NULL;
-    }
-
-    struct RosterHandle* handle = (struct RosterHandle*)calloc(1, sizeof(struct RosterHandle));
-    if (handle == NULL) {
-        world_roster_warn("execute_roster_async", "handle allocation failed");
-        return NULL;
-    }
-
-    handle->roster = roster;
-    handle->defaultStrategy = defaultStrategy;
-    handle->config = config;
-
-    if (pthread_create(&handle->thread, NULL, world_roster_async_runner, handle) != 0) {
-        free(handle);
-        world_roster_warn("execute_roster_async", "thread creation failed");
-        return NULL;
-    }
-    handle->threadStarted = true;
-    return handle;
-}
-
-RosterExecutionResult
-WaitForRoster(RosterHandle* handle, uint64_t timeoutMs)
-{
-    RosterExecutionResult empty = {0};
-    if (handle == NULL) {
-        world_roster_warn("wait_for_roster", "handle is null");
-        return empty;
-    }
-
-    if (!handle->completed) {
-        if (timeoutMs == 0) {
-            while (!handle->completed) {
-#ifdef _WIN32
-                Sleep(0);
-#else
-                sched_yield();
-#endif
-            }
-        } else {
-            uint64_t start = world_roster_now_ns();
-            while (!handle->completed) {
-                if ((world_roster_now_ns() - start) / 1000000ULL >= timeoutMs) {
-                    world_roster_warn("wait_for_roster", "timeout exceeded");
-                    return empty;
-                }
-                world_roster_sleep_ms(1);
-            }
-        }
-    }
-
-    if (handle->threadStarted) {
-        pthread_join(handle->thread, NULL);
-        handle->threadStarted = false;
-    }
-
-    RosterExecutionResult result = handle->result;
-    free(handle);
     return result;
 }
 

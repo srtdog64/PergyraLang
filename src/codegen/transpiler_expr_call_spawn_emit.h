@@ -2,6 +2,7 @@
 #define PGY_TRANSPILER_EXPR_CALL_SPAWN_EMIT_H
 
 #include "../parser/ast_api.h"
+#include "transpiler_host_self_policy.h"
 
 static char *
 emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
@@ -187,7 +188,8 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                         const char *zone_subject_slot_name = NULL;
                         const char *zone_subject_type_name = NULL;
 
-                        if (resolve_world_zone_subject_receiver(ctx, obj,
+                        if (transpiler_resolve_world_zone_subject_receiver(ctx,
+                                obj,
                                 &zone_slot_name, &zone_type_name,
                                 &zone_subject_slot_name, &zone_subject_type_name)
                             && zone_slot_name != NULL
@@ -465,4 +467,3 @@ emit_call(ASTNode *call, TranspilerCtx *ctx)
 }
 
 #endif /* PGY_TRANSPILER_EXPR_CALL_SPAWN_EMIT_H */
-

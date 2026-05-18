@@ -109,15 +109,14 @@ pgy_intent_trace_transfer_export(int32_t handle, char *participant_name,
 void
 pgy_intent_trace_step_ok_export(int32_t handle, char *step_name)
 {
+    if (!PGY_INTENT_OBSERVABILITY_ENABLED)
+        return;
+
     pthread_mutex_lock(&pgy_intent_registry_mutex);
     PgyIntentActiveEntry *entry = pgy_intent_find_active_entry_export(handle);
     if (entry != NULL) {
         if (entry->step_count > 0 && entry->step_count <= PGY_INTENT_ACTIVE_MAX)
             entry->steps[entry->step_count - 1].ok = true;
-        if (!PGY_INTENT_OBSERVABILITY_ENABLED) {
-            pthread_mutex_unlock(&pgy_intent_registry_mutex);
-            return;
-        }
         char line[256];
         snprintf(line, sizeof(line), "[step] ok %s\n",
             step_name != NULL ? step_name : "<step>");

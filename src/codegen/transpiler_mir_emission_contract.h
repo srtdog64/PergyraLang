@@ -347,7 +347,7 @@ transpiler_can_emit_function_from_mir_with_reason(const TranspilerCtx *ctx,
             transpiler_mir_reasonf(reason, reason_cap, "function %s has wrong MIR kind: %d", ast_declaration_name(func_decl), routine->kind);
         return false;
     }
-    if (routine->ast == NULL) {
+    if (transpiler_mir_routine_source_ast(routine) == NULL) {
         if (reason != NULL && reason_cap > 0)
             transpiler_mir_reasonf(reason, reason_cap, "function %s has no declaration AST in MIR", ast_declaration_name(func_decl));
         return false;
@@ -414,15 +414,17 @@ transpiler_can_emit_intent_cleanup_from_mir_with_reason(const TranspilerCtx *ctx
             transpiler_mir_reasonf(reason, reason_cap, "intent cannot lower to MIR: no matching MIR routine (found %llu routines)", (unsigned long long) transpiler_active_routine_count(ctx));
         return false;
     }
+    ASTNode *source_ast = transpiler_mir_routine_source_ast_of_type(
+        routine, MIR_SCOPE_INTENT, AST_INTENT_DECL);
     if (routine->kind != MIR_SCOPE_INTENT
-        || routine->ast == NULL
+        || source_ast == NULL
         || !routine->has_cleanup_block) {
         if (reason != NULL && reason_cap > 0)
             transpiler_mir_reasonf(reason, reason_cap,
                 "intent %s has no MIR cleanup section (kind=%d, has_ast=%d, has_cleanup_block=%d)",
                 ast_intent_decl_name(intent_decl),
                 routine->kind,
-                routine->ast != NULL,
+                source_ast != NULL,
                 routine->has_cleanup_block);
         return false;
     }
