@@ -265,23 +265,4 @@ emit_world_embedded_action_effect_sync(TranspilerCtx *ctx,
     }
 }
 
-static ASTNode *
-find_world_state_decl(ASTNode *world_decl, const char *state_name)
-{
-    if (world_decl == NULL || world_decl->type != AST_WORLD_DECL || state_name == NULL)
-        return NULL;
-
-    size_t state_count = 0;
-    ASTNode **states = ast_world_states(world_decl, &state_count);
-    for (size_t i = 0; i < state_count; i++) {
-        ASTNode *state = states[i];
-        if (state != NULL && state->type == AST_WORLD_STATE
-            && ast_world_state_name(state) != NULL
-            && strcmp(ast_world_state_name(state), state_name) == 0) {
-            return state;
-        }
-    }
-    return NULL;
-}
-
 #endif /* PGY_TRANSPILER_PROJECTION_SYNC_HELPERS_H */

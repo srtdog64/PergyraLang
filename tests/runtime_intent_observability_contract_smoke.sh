@@ -41,13 +41,15 @@ require_step_ok_guard_before_history_write() {
 for rel in \
     "src/runtime/pgy_runtime_intent_active_exports.h" \
     "src/runtime/pgy_runtime_intent_active_index_inline.h" \
+    "src/runtime/pgy_runtime_intent_query_inline.h" \
     "src/runtime/pgy_runtime_intent_trace_inline.h" \
     "src/runtime/pgy_runtime_lib_intent_active_index_exports.c" \
     "src/runtime/pgy_runtime_lib_intent_active_index_exports.h" \
     "src/runtime/pgy_runtime_lib_intent_trace_events_exports.c" \
     "src/runtime/pgy_runtime_lib_intent_slot_core_exports.h" \
     "src/runtime/pgy_runtime_lib_intent_exports.h" \
-    "src/codegen/transpiler_intent_observability_builtin_emit.h" \
+    "src/runtime/pgy_runtime_lib_intent_recent_exports.h" \
+    "src/codegen/transpiler_intent_observability_builtin_emit.c" \
     "src/codegen/llvm_expr_intent_observability_calls.c" \
     "src/codegen/llvm_expr_intent_observability_calls.h"; do
     [[ -f "$ROOT_DIR/$rel" ]] || fail "missing contract input: $rel"
@@ -79,14 +81,16 @@ for rel in \
     done
 done
 
-require_term "$ROOT_DIR/src/codegen/transpiler_intent_observability_builtin_emit.h" "BUILTIN_INTENT_ACTIVE_HANDLE"
-require_term "$ROOT_DIR/src/codegen/transpiler_intent_observability_builtin_emit.h" "pgy_intent_active_handle_export"
+require_term "$ROOT_DIR/src/codegen/transpiler_intent_observability_builtin_emit.c" "BUILTIN_INTENT_ACTIVE_HANDLE"
+require_term "$ROOT_DIR/src/codegen/transpiler_intent_observability_builtin_emit.c" "pgy_intent_active_handle_export"
 require_term "$ROOT_DIR/src/codegen/llvm_expr_intent_observability_calls.c" "IntentActiveHandle"
 require_term "$ROOT_DIR/src/runtime/pgy_runtime_lib_intent_active_index_exports.c" "pgy_intent_find_active_registry_slot_export"
 require_term "$ROOT_DIR/src/runtime/pgy_runtime_intent_trace_inline.h" "PGY_INTENT_ACTIVE_INDEX_MAX must stay a power of two"
 require_term "$ROOT_DIR/src/runtime/pgy_runtime_lib_intent_active_index_exports.c" "PGY_INTENT_ACTIVE_INDEX_MAX must stay a power of two"
 require_term "$ROOT_DIR/src/runtime/pgy_runtime_intent_active_index_inline.h" "pgy_intent_active_index_handles[first_tombstone] = handle"
 require_term "$ROOT_DIR/src/runtime/pgy_runtime_lib_intent_active_index_exports.c" "pgy_intent_active_index_handles[first_tombstone] = handle"
+require_term "$ROOT_DIR/src/runtime/pgy_runtime_intent_active_index_inline.h" "pgy_intent_active_index_set(handle, i)"
+require_term "$ROOT_DIR/src/runtime/pgy_runtime_lib_intent_active_index_exports.c" "pgy_intent_active_index_set_export(handle, i)"
 require_term "$ROOT_DIR/src/runtime/pgy_runtime_lib_intent_slot_core_exports.h" "pgy_intent_find_active_registry_slot_export(handle)"
 require_term "$ROOT_DIR/src/runtime/pgy_runtime_lib_intent_slot_core_exports.h" "pgy_intent_active_index_clear_export(handle)"
 require_term "$ROOT_DIR/src/runtime/pgy_runtime_intent_trace_inline.h" "#include \"pgy_runtime_intent_active_index_inline.h\""

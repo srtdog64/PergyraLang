@@ -79,23 +79,6 @@ pgy_intent_active_index_clear(int32_t handle)
     pgy_intent_active_index_slots[slot] = 0;
 }
 
-static inline PgyIntentActiveEntry *
-pgy_intent_find_active_entry(int32_t handle)
-{
-    int32_t slot = pgy_intent_active_index_find_slot(handle);
-
-    if (slot >= 0) {
-        int32_t active_slot = pgy_intent_active_index_slots[slot];
-        if (active_slot >= 0 && active_slot < PGY_INTENT_ACTIVE_MAX) {
-            PgyIntentActiveEntry *entry =
-                &pgy_intent_active_registry[active_slot];
-            if (entry->active && entry->handle == handle)
-                return entry;
-        }
-    }
-    return pgy_intent_find_active_entry_linear(handle);
-}
-
 static inline int32_t
 pgy_intent_find_active_registry_slot(int32_t handle)
 {
@@ -114,10 +97,21 @@ pgy_intent_find_active_registry_slot(int32_t handle)
     for (int32_t i = 0; i < PGY_INTENT_ACTIVE_MAX; i++) {
         if (pgy_intent_active_registry[i].active
             && pgy_intent_active_registry[i].handle == handle) {
+            pgy_intent_active_index_set(handle, i);
             return i;
         }
     }
     return -1;
+}
+
+static inline PgyIntentActiveEntry *
+pgy_intent_find_active_entry(int32_t handle)
+{
+    int32_t active_slot = pgy_intent_find_active_registry_slot(handle);
+
+    if (active_slot < 0)
+        return NULL;
+    return &pgy_intent_active_registry[active_slot];
 }
 
 #endif /* PGY_RUNTIME_INTENT_ACTIVE_INDEX_INLINE_H */

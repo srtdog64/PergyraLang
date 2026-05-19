@@ -65,6 +65,84 @@ to the let orchestration path, while collection constructor dispatch has a
 responsibility-named owner. `test_transpile`, source inventory, and owner-size
 smokes gate the split.
 
+Current C backend implementation-header cleanup (2026-05-19): generated
+Result/collection/tuple specialization helpers now live in
+`src/codegen/transpiler_specialization_helpers.c`. The header is
+declaration-only. Result suffix parsing and `Result<T,E>` specialization
+discovery now live in `src/codegen/transpiler_type_result_mapping_helpers.c`
+instead of an implementation header. HashMap stdlib builtin dispatch and
+lowering now live in `src/codegen/transpiler_expr_stdlib_map_builtin.c`, with
+HashMap metadata validation owned by the shared collection support owner. The
+Queue stdlib builtin follows the same policy in
+`src/codegen/transpiler_expr_stdlib_queue_builtin.c`, with unary collection
+metadata validation also owned by collection support. Result/Option builtin
+dispatch and lowering moved to
+`src/codegen/transpiler_call_result_option_builtin_emit.c`, and
+`src/codegen/transpiler_option_context.h` now provides the narrow Option context
+declarations needed by linked owners. Intent observability builtin lowering now
+lives in `src/codegen/transpiler_intent_observability_builtin_emit.c`, while the
+header is declaration-only. Projection/world lookup seams also moved into the
+compiled projection owner: `src/codegen/transpiler_projection.c` owns overlay
+domain-slot lookup, projection-target detection, and world-state lookup, and
+`build-source-inventory-test-smoke` rejects the old implementation-header local
+helper names. Domain query builtins (`HasProjection`, `HasLayer`, `HasState`,
+`HasZone`, `HasZoneProjection`, `HasZoneLayer`, and `HasZoneState`) now lower
+through `src/codegen/transpiler_expr_domain_query_builtin.c`, leaving
+`transpiler_expr_builtin_dispatch.h` as builtin-family routing rather than a
+mixed zone/world/projection lowering body. I/O and time builtins (`FileOpen`,
+`FileRead`, `FileWrite`, `FileClose`, `ReadFile`, `WriteFile`, `Input`,
+`Print`, `ReadLine`, `Now`, and `Sleep`) now lower through
+`src/codegen/transpiler_expr_io_builtin.c` for the same reason. Domain
+constructor bodies now live in
+`src/codegen/transpiler_domain_constructor_emit.c`: class compound literals,
+party/roster/relation/effect/zone/world designated initializers, projection
+dirty defaults, world dirty defaults, and enum variant constructor call strings
+are no longer embedded in `transpiler_call_constructor_result_emit.h`; that
+header is a 78 LOC dispatch wrapper around the remaining generic-class
+specialization seam. Expression core, composite literal, and array access
+lowering also moved into linked owners:
+`src/codegen/transpiler_expr_core_emit.c` owns binary/operator, coalescing, and
+checked div/mod lowering; `src/codegen/transpiler_expr_composite_literal_emit.c`
+owns tuple and Array literal lowering; and
+`src/codegen/transpiler_expr_array_access_emit.c` owns Array/Slice checked
+access lowering. `src/codegen/transpiler_let_channel_emit.c` owns Channel let
+lowering and channel metadata registration.
+`src/codegen/transpiler_future_type_query.c` owns spawn/Future/RemoteFuture type
+queries that were previously static forward-helper bodies, and
+`src/codegen/transpiler_let_type_register_emit.c` owns post-let type
+registration.
+`src/codegen/transpiler_let_box_emit.c` owns `Box<T>`, `Box<Array<T>>`, and
+`Rc<T>` let-constructor lowering.
+`src/codegen/transpiler_let_collection_emit.c` now owns `Option<T>` `Some`/`None`
+let lowering plus stable `HashMap<String,T>`, `List<T>`, and `Queue<T>`
+constructor lowering. `src/codegen/transpiler_zone_specialization_emit.c` is
+also source-inventory linked for required zone specialization discovery. Their
+headers are declaration-only. The redundant `transpiler_mir_emit_predicates.h`
+wrapper header is deleted; C function/intent emitters call the canonical
+`*_with_reason(...)` MIR contract APIs directly. `pergyra_ast_type_to_c_copy(...)`
+now lives in `src/codegen/transpiler_type_render.c`, so shared AST type-to-C
+copy ownership matches the public type-render API instead of the forward-helper
+include. `src/codegen/transpiler_expr_builtin_dispatch.c` now owns the
+`BuiltinKind` routing switch for expression builtins instead of carrying that
+body in the expression-emitter include chain.
+`src/codegen/transpiler_control_flow_emit.c` now owns C `if`/`for`/
+`while` lowering, loop-label lookup, and the condition-head formatter shared
+with MIR branch terminator emission; its header is declaration-only. The split
+also moved MIR CFG control rendering to
+`src/codegen/transpiler_mir_cfg_control_emit.c`, leaving the MIR CFG-control
+header declaration-only for loop init, for-in binding, backedge increment,
+branch-condition rendering, and select readiness rendering. The split
+also removed a hidden
+transitive include seam: Result/Option calls, role/ability dispatch, let
+lowering, MIR match conditions, MIR preserved lets, domain nominal/role
+emitters, and statement dispatch now include the type-mapping,
+collection-support, Option-context, intent-observability, or role/ability
+declarations they consume directly. Gates: `test-transpile` (`770/0`),
+`perf-contract-test-smoke`,
+`runtime-panic-contract-test-smoke`, `build-source-inventory-test-smoke`,
+`semantic-core-shape-test-smoke`, `test-inc-size-test-smoke`, and
+`source-utf8-test-smoke`.
+
 Current C type mapping cleanup (2026-05-15): constructed type argument parsing,
 inner-type extraction, suffix sanitization, and capped string copy helpers now
 live in `src/codegen/transpiler_type_name_utils.c`. `transpiler_type_mapping.c`
@@ -1262,8 +1340,9 @@ Operational mode:
 - 2026-04-28 C projection overlay owner update:
   `transpiler_overlay_projection.h` is now below the 600 LOC review
   threshold. Host-field/self-cell probes live in
-  `transpiler_overlay_host_fields.h`, while zone relation/effect bind-layer
-  emission lives in `transpiler_overlay_zone_bind.h`. Parity gate:
+  `transpiler_overlay_host_fields.h`, while zone effect bind-layer emission
+  lives in `transpiler_overlay_zone_bind.h` and zone relation bind-layer
+  emission lives in `transpiler_overlay_zone_relation_bind.h`. Parity gate:
   `make llvm-test-backend-compare` (`196/0` ABI same-process, `64/64`
   backend compare).
 - 2026-04-28 LLVM zone sync owner update:
@@ -1402,6 +1481,26 @@ Operational mode:
   `make cfg-body-dataflow-test-smoke`, `make abi-ownership-shape-test-smoke`,
   `make production-header-size-test-smoke`, and
   `make backend-inc-size-test-smoke`.
+- 2026-05-19 CFG cleanup validator owner update:
+  `mir_cfg_contract_validate.c` is now 334 LOC and keeps non-cleanup CFG
+  validation. `mir_cfg_contract_validate_cleanup.c` is 245 LOC and owns
+  cleanup-block shape, reachable cleanup-edge facts, rollback/invalidation
+  target checks, and cleanup convergence. Gates: `make test-mir`,
+  `make cfg-body-dataflow-test-smoke`, `make build-source-inventory-test-smoke`,
+  `make test-inc-size-test-smoke`, and `make abi-ownership-shape-test-smoke`.
+- 2026-05-19 LLVM declaration authority owner update:
+  zone-authority declaration prelude emission now lives in
+  `llvm_decl_authority.c`. Function routine inventory orchestration now lives
+  in `llvm_decl_routines.c`. `llvm_decl.c` is 278 LOC and keeps function
+  declaration/body emission; the authority owner is 141 LOC and owns
+  current-zone lookup, `pgy_zone_authority_check_export` call emission, and
+  structured inventory-missing diagnostics. The routine owner is 106 LOC and
+  owns generic-template dispatch, non-generic MIR routine emission, and
+  residual missing-routine diagnostics. Gates:
+  `make mir-declaration-inventory-test-smoke`,
+  `make semantic-core-shape-test-smoke`,
+  `make build-source-inventory-test-smoke`, `make test-inc-size-test-smoke`,
+  and `make perf-contract-test-smoke`.
 - 2026-04-29 MIR SSA/local type owner update:
   `transpiler_mir_ssa_names.h` is now below the 600 LOC review threshold.
   AST body local type lookup and expression fallback inference live in
@@ -1415,13 +1514,31 @@ Operational mode:
 - 2026-04-29 C let slot owner update:
   `transpiler_let_emit.h` no longer owns Slot/DeviceSlot claims,
   ReadView/WriteView/MoveToken declarations, or Slot/SecureSlot sugar
-  lowering directly. Those paths live in `transpiler_let_slot_emit.h`.
-  Current sizes are 505 LOC and 297 LOC, so the let-declaration owner family
-  is below the 600 LOC split-review threshold without reintroducing `.inc`
-  files. Gates: `make pgy`, `make test-transpile`,
-  `make production-header-size-test-smoke`,
-  `make backend-inc-size-test-smoke`, and `make llvm-test-backend-compare`
-  (`196/0` ABI same-process, `65/65` backend compare).
+  lowering directly. Those paths now live in the compiled owner
+  `transpiler_let_slot_emit.c`, while `transpiler_let_slot_emit.h` is
+  declaration-only. The let-declaration owner family remains below the 600 LOC
+  split-review threshold without reintroducing `.inc` files. Latest focused
+  gates: `make pgy`, `make test-transpile`,
+  `make build-source-inventory-test-smoke`, `make test-inc-size-test-smoke`,
+  `make memory-string-safety-test-smoke`, and `make perf-contract-test-smoke`.
+- 2026-05-19 C zone struct owner update:
+  `transpiler_zone_struct_emit.h` no longer owns generated zone struct fields
+  or layer accessor bodies. Those paths now live in the compiled owner
+  `transpiler_zone_struct_emit.c`, while the header is declaration-only and
+  covered by the implementation-header guardrail. Focused gates:
+  `make pgy`, `make test-transpile`,
+  `make build-source-inventory-test-smoke`, `make test-inc-size-test-smoke`,
+  `make memory-string-safety-test-smoke`, and
+  `make semantic-core-shape-test-smoke`.
+- 2026-05-19 C MIR match condition owner update:
+  `transpiler_mir_match_condition_emit.h` no longer owns Option/Result
+  destructor pattern conditions, payload binding, or match guard composition.
+  Those paths now live in the compiled owner
+  `transpiler_mir_match_condition_emit.c`, while CFG control lowering consumes
+  only the public condition-rendering API. Focused gates: `make pgy`,
+  `make test-transpile`, `make build-source-inventory-test-smoke`,
+  `make test-inc-size-test-smoke`, `make perf-contract-test-smoke`, and
+  `make semantic-core-shape-test-smoke`.
 - 2026-04-29 C domain provenance owner update:
   projection-chain bounded recompute and hidden epoch/cause field stamping now
   live in `transpiler_domain_provenance_emit.h`. Role/ability lowering remains
@@ -1759,12 +1876,22 @@ Operational mode:
   llvm-test-backend-compare` is green with ABI same-process `196 passed, 0
   failed` and backend compare `64/64 passed, 0 failed`.
 - C intent declaration emission is also below the 600 LOC review threshold:
-  `transpiler_intent_emit.h` now owns orchestration, while
-  `transpiler_intent_prologue_emit.h` owns signature/runtime-entry emission and
-  `transpiler_intent_cleanup_emit.h` owns cleanup/rollback/invalidation tail
-  emission. Current sizes are 577 / 186 / 278 LOC, and
-  `make llvm-test-backend-compare` remains green at ABI same-process
-  `196 passed, 0 failed` and backend compare `64/64 passed, 0 failed`.
+  `transpiler_intent_emit.c` now owns orchestration, while
+  `transpiler_intent_prologue_emit.c` owns signature/runtime-entry emission and
+  `transpiler_intent_cleanup_emit.c` owns cleanup/rollback/invalidation tail
+  emission. `transpiler_intent_emit.h` is declaration-only, and the active MIR
+  cleanup eligibility query now goes through the inventory-view seam instead of
+  direct `ctx->mir` access. Current orchestration/prologue/cleanup owner sizes
+  are 524 / 274 / 292 LOC. Latest local gates: `test-transpile` (`770/0`),
+  `build-source-inventory-test-smoke`, `test-inc-size-test-smoke`, and
+  `mir-declaration-inventory-test-smoke`.
+- C zone declaration emission has also left the implementation-header path.
+  `transpiler_zone_decl_emit.c` now owns zone sync, projection readiness,
+  bounded frontier recompute, and the MIR hosted-method metadata guard, while
+  `transpiler_zone_decl_emit.h` is declaration-only. The zone hosted-method
+  body tail still bridges through the existing `transpiler.c` include-order
+  chain, which keeps this slice low-risk but leaves a smaller helper-chain debt
+  for a later owner extraction. Current zone declaration owner size is 511 LOC.
 - Remaining backend debt for this area is no longer C MIR emitter owner size;
   it is the higher-level source-of-truth work: declaration/top-level inventory
   bootstrap, broader CFG/dataflow semantic consumption, and AIR boundary
@@ -3553,9 +3680,10 @@ find src -path src/tests -prune -o -name '*.inc' -print
   that crossed `emit_call` was replaced with helper owners for builtin
   dispatch, domain constructors, `Result`/`Option`, stdlib, event, member-call,
   and user-call lowering. Each part is under 1,000 LOC.
-- `transpiler_intent_zone_binding_emit.h` and
-  `transpiler_emitters_intent.inc` no longer leave dangling `static void`
-  return-type fragments across include boundaries.
+- `transpiler_intent_zone_binding_emit.c` owns intent forward declaration and
+  zone-bound alias restore emission, while `transpiler_intent_zone_binding_emit.h`
+  is declaration-only. `transpiler_emitters_intent.inc` no longer leaves
+  dangling `static void` return-type fragments across include boundaries.
 - All production `.inc` files under `src` are gone. Production code remains
   guarded as a zero-inventory contract by `make backend-inc-size-test-smoke`
   and `make semantic-inc-size-test-smoke`.
@@ -4654,8 +4782,9 @@ make ast-dispatch-test-smoke
 ## Progress Log — 2026-04-29 C Let Slot Owner Split
 
 - Slot-related let lowering is now a named C backend owner:
-  `transpiler_let_slot_emit.h` owns ClaimSlot/ClaimSecureSlot/ClaimDeviceSlot,
+  `transpiler_let_slot_emit.c` owns ClaimSlot/ClaimSecureSlot/ClaimDeviceSlot,
   ReadView/WriteView/MoveToken declarations, and Slot/SecureSlot sugar.
+  `transpiler_let_slot_emit.h` is declaration-only.
 - `transpiler_let_emit.h` is back to let-declaration orchestration plus
   non-slot specialization paths and stays under the 600 LOC split-review
   threshold.

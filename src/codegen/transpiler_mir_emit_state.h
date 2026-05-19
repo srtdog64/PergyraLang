@@ -3,15 +3,6 @@
 
 #include "transpiler.h"
 
-/* These are defined later by the include-ordered control-flow emitter. */
-#ifndef PGY_TRANSPILER_MIR_EMIT_STATE_OWNER
-static bool transpiler_condition_is_already_parenthesized(const char *expr);
-static void transpiler_write_condition_head(TranspilerCtx *ctx,
-                                            const char *keyword,
-                                            const char *expr,
-                                            const char *suffix);
-#endif
-
 typedef struct TranspilerMirEmitState {
     int slot_count;
     int typed_count;

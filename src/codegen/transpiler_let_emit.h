@@ -2,6 +2,7 @@
 #define PGY_TRANSPILER_LET_EMIT_H
 
 #include "../parser/ast_api.h"
+#include "transpiler_type_mapping.h"
 
 void
 emit_let_decl(ASTNode *node, TranspilerCtx *ctx)

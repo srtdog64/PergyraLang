@@ -39,11 +39,6 @@ typedef enum {
     TRANSPILER_COLLECTION_OP_LIST_REMOVE,
     TRANSPILER_COLLECTION_OP_LIST_SET,
     TRANSPILER_COLLECTION_OP_LIST_SIZE,
-    TRANSPILER_COLLECTION_OP_QUEUE_EMPTY,
-    TRANSPILER_COLLECTION_OP_QUEUE_NEW,
-    TRANSPILER_COLLECTION_OP_QUEUE_POP,
-    TRANSPILER_COLLECTION_OP_QUEUE_PUSH,
-    TRANSPILER_COLLECTION_OP_QUEUE_SIZE,
     TRANSPILER_COLLECTION_OP_SET_ADD,
     TRANSPILER_COLLECTION_OP_SET_HAS,
     TRANSPILER_COLLECTION_OP_SET_NEW,
@@ -64,11 +59,6 @@ static const TranspilerCollectionSpec kTranspilerCollectionSpecs[] = {
     {"ListRemove", 2, TRANSPILER_COLLECTION_OP_LIST_REMOVE},
     {"ListSet", 3, TRANSPILER_COLLECTION_OP_LIST_SET},
     {"ListSize", 1, TRANSPILER_COLLECTION_OP_LIST_SIZE},
-    {"QueueEmpty", 1, TRANSPILER_COLLECTION_OP_QUEUE_EMPTY},
-    {"QueueNew", (size_t)-1, TRANSPILER_COLLECTION_OP_QUEUE_NEW},
-    {"QueuePop", 1, TRANSPILER_COLLECTION_OP_QUEUE_POP},
-    {"QueuePush", 2, TRANSPILER_COLLECTION_OP_QUEUE_PUSH},
-    {"QueueSize", 1, TRANSPILER_COLLECTION_OP_QUEUE_SIZE},
     {"SetAdd", 2, TRANSPILER_COLLECTION_OP_SET_ADD},
     {"SetHas", 2, TRANSPILER_COLLECTION_OP_SET_HAS},
     {"SetNew", (size_t)-1, TRANSPILER_COLLECTION_OP_SET_NEW},
@@ -104,143 +94,6 @@ transpiler_collection_lookup(const char *fn, size_t argc)
     return spec->op;
 }
 
-static bool
-transpiler_collection_copy_type_name(char *out, size_t out_size,
-                                     const char *type_name)
-{
-    size_t len;
-
-    if (out == NULL || out_size == 0 || type_name == NULL)
-        return false;
-
-    len = strlen(type_name);
-    if (len >= out_size)
-        return false;
-
-    memcpy(out, type_name, len + 1);
-    return true;
-}
-
-static bool
-transpiler_require_hashmap_type(TranspilerCtx *ctx, const char *map_type,
-                                const char *operation,
-                                char *key_buf, size_t key_buf_size,
-                                char *value_buf, size_t value_buf_size,
-                                const char **key_out,
-                                const char **value_out)
-{
-    const char *resolved_type = map_type;
-    char resolved_buf[128];
-
-    if (resolved_type != NULL && strncmp(resolved_type, "HashMap<", 8) != 0) {
-        ASTNode *alias_decl = transpiler_find_type_alias_decl(ctx, resolved_type);
-        if (alias_decl != NULL && ast_type_alias_target_type(alias_decl) != NULL) {
-            ASTNode *target = resolve_type_alias_target(
-                ctx, ast_type_alias_target_type(alias_decl));
-            char *rendered = render_type_name(target);
-            if (rendered != NULL) {
-                bool copied = transpiler_collection_copy_type_name(
-                    resolved_buf, sizeof(resolved_buf), rendered);
-                free(rendered);
-                if (!copied) {
-                    transpiler_set_backend_error_with_hints(ctx,
-                        PGY_CODE_C_TYPE_UNSUPPORTED,
-                        PGY_CAUSE_C_TYPE_UNSUPPORTED,
-                        PGY_FIX_ANNOTATE_CONCRETE_TYPE,
-                        "C backend: %s resolved HashMap type is too long",
-                        operation != NULL ? operation : "HashMap operation");
-                    return false;
-                }
-                resolved_type = resolved_buf;
-            }
-        }
-    }
-
-    if (resolved_type != NULL && strncmp(resolved_type, "HashMap<", 8) == 0) {
-        copy_constructed_arg_name_at(resolved_type, 0, key_buf, key_buf_size);
-        copy_constructed_arg_name_at(resolved_type, 1, value_buf, value_buf_size);
-        if (key_buf[0] != '\0' && value_buf[0] != '\0') {
-            if (key_out != NULL)
-                *key_out = key_buf;
-            if (value_out != NULL)
-                *value_out = value_buf;
-            return true;
-        }
-    }
-
-    transpiler_set_backend_error_with_hints(ctx,
-        PGY_CODE_C_TYPE_UNSUPPORTED,
-        PGY_CAUSE_C_TYPE_UNSUPPORTED,
-        PGY_FIX_ANNOTATE_CONCRETE_TYPE,
-        "C backend: %s requires concrete HashMap<K, V> metadata",
-        operation != NULL ? operation : "HashMap operation");
-    return false;
-}
-
-static bool
-transpiler_require_unary_collection_type(TranspilerCtx *ctx,
-                                         const char *type_name,
-                                         const char *family,
-                                         const char *operation,
-                                         char *inner_buf,
-                                         size_t inner_buf_size,
-                                         const char **inner_out)
-{
-    const char *resolved_type = type_name;
-    char resolved_buf[128];
-    size_t family_len = family != NULL ? strlen(family) : 0;
-
-    if (resolved_type != NULL
-        && !(family_len > 0
-             && strncmp(resolved_type, family, family_len) == 0
-             && resolved_type[family_len] == '<')) {
-        ASTNode *alias_decl = transpiler_find_type_alias_decl(ctx, resolved_type);
-        if (alias_decl != NULL && ast_type_alias_target_type(alias_decl) != NULL) {
-            ASTNode *target = resolve_type_alias_target(
-                ctx, ast_type_alias_target_type(alias_decl));
-            char *rendered = render_type_name(target);
-            if (rendered != NULL) {
-                bool copied = transpiler_collection_copy_type_name(
-                    resolved_buf, sizeof(resolved_buf), rendered);
-                free(rendered);
-                if (!copied) {
-                    transpiler_set_backend_error_with_hints(ctx,
-                        PGY_CODE_C_TYPE_UNSUPPORTED,
-                        PGY_CAUSE_C_TYPE_UNSUPPORTED,
-                        PGY_FIX_ANNOTATE_CONCRETE_TYPE,
-                        "C backend: %s resolved %s type is too long",
-                        operation != NULL ? operation : "collection operation",
-                        family != NULL ? family : "collection");
-                    return false;
-                }
-                resolved_type = resolved_buf;
-            }
-        }
-    }
-
-    if (resolved_type != NULL
-        && family_len > 0
-        && strncmp(resolved_type, family, family_len) == 0
-        && resolved_type[family_len] == '<') {
-        if (slot_inner_type_name_copy(resolved_type, inner_buf,
-                inner_buf_size)
-            && inner_buf[0] != '\0') {
-            if (inner_out != NULL)
-                *inner_out = inner_buf;
-            return true;
-        }
-    }
-
-    transpiler_set_backend_error_with_hints(ctx,
-        PGY_CODE_C_TYPE_UNSUPPORTED,
-        PGY_CAUSE_C_TYPE_UNSUPPORTED,
-        PGY_FIX_ANNOTATE_CONCRETE_TYPE,
-        "C backend: %s requires concrete %s<T> metadata",
-        operation != NULL ? operation : "collection operation",
-        family != NULL ? family : "collection");
-    return false;
-}
-
 #include "transpiler_expr_stdlib_map_builtin.h"
 #include "transpiler_expr_stdlib_queue_builtin.h"
 
@@ -250,8 +103,13 @@ emit_call_stdlib_collection_builtin(const char *fn, ASTNode *call, TranspilerCtx
     size_t argc = call != NULL ? ast_call_arg_count(call) : 0;
     TranspilerCollectionOp op;
     char *map_builtin = emit_call_stdlib_map_builtin(fn, call, ctx);
+    char *queue_builtin;
     if (map_builtin != NULL)
         return map_builtin;
+
+    queue_builtin = emit_call_stdlib_queue_builtin(fn, call, ctx);
+    if (queue_builtin != NULL)
+        return queue_builtin;
 
     op = transpiler_collection_lookup(fn, argc);
 
@@ -451,12 +309,6 @@ emit_call_stdlib_collection_builtin(const char *fn, ASTNode *call, TranspilerCtx
         char *r = strdup_fmt("pgy_set_size_%s(&%s)",
             suffix_buf, s);
         free(s); return r;
-    }
-
-    {
-        char *queue_builtin = emit_call_stdlib_queue_builtin(op, call, ctx);
-        if (queue_builtin != NULL)
-            return queue_builtin;
     }
     return NULL;
 }

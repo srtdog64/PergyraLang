@@ -163,6 +163,7 @@ concat_runtime_text "$inline_text" \
     "src/runtime/pgy_runtime_intent_active_exports.h" \
     "src/runtime/pgy_runtime_intent_history.h" \
     "src/runtime/pgy_runtime_intent_exit.h" \
+    "src/runtime/pgy_runtime_intent_query_inline.h" \
     "src/runtime/pgy_runtime_panic_checked_inline.h" \
     "src/runtime/pgy_runtime_memory_array_slot_inline.h" \
     "src/runtime/pgy_runtime_slot_macros.h" \
@@ -181,6 +182,7 @@ concat_runtime_text "$llvm_text" \
     "src/runtime/pgy_runtime_lib_raw_set_exports.h" \
     "src/runtime/pgy_runtime_lib_set_intent_trace_exports.h" \
     "src/runtime/pgy_runtime_lib_intent_exports.h" \
+    "src/runtime/pgy_runtime_lib_intent_recent_exports.h" \
     "src/runtime/pgy_runtime_lib_intent_slot_core_exports.h" \
     "src/runtime/pgy_runtime_lib_slot_exports.h" \
     "src/runtime/pgy_runtime_lib_slot_array_io_string_exports.h" \
@@ -585,7 +587,7 @@ for term in \
     "\"pgy_list_get_string_raw_export\"" \
     "\"pgy_list_set_string_raw_export\"" \
     "\"pgy_list_remove_string_raw_export\""; do
-    grep -Fq "$term" "$ROOT_DIR/src/codegen/llvm_expr_call_collections_extended.c" ||
+    grep -Fq "$term" "$ROOT_DIR/src/codegen/llvm_expr_call_list_extended.c" ||
         fail "LLVM List<String> lowering must use string-owned raw list export: $term"
 done
 

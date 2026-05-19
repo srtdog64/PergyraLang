@@ -188,3 +188,12 @@ transpiler_active_uses_thread_pool(const TranspilerCtx *ctx)
         return false;
     return pgy_mir_program_uses_thread_pool(ctx->mir);
 }
+
+bool
+transpiler_active_can_emit_intent_cleanup_from_mir(
+    const TranspilerCtx *ctx,
+    const ASTNode *intent_decl)
+{
+    return transpiler_can_emit_intent_cleanup_from_mir_with_reason_for_test(
+        intent_decl, transpiler_active_mir_identity(ctx), NULL, 0);
+}

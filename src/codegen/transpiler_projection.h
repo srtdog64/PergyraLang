@@ -12,10 +12,17 @@
 
 ASTNode *transpiler_find_zone_domain_slot(ASTNode *zone_decl,
                                           const char *slot_name);
+bool transpiler_domain_slot_is_projection_target(ASTNode *slot,
+                                                 ASTNode **refreshes,
+                                                 size_t refresh_count);
+ASTNode *transpiler_current_overlay_domain_slot_decl(TranspilerCtx *ctx,
+                                                     const char *slot_name);
 bool transpiler_current_world_has_field(TranspilerCtx *ctx,
                                         const char *field_name);
 ASTNode *transpiler_find_zone_state_decl(ASTNode *zone_decl,
                                          const char *state_name);
+ASTNode *transpiler_find_world_state_decl(ASTNode *world_decl,
+                                          const char *state_name);
 ASTNode *transpiler_find_zone_layer_slot(ASTNode *zone_decl,
                                          const char *slot_name);
 ASTNode *transpiler_find_world_zone_slot_decl(ASTNode *world_decl,

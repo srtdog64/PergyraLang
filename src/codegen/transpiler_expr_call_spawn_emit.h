@@ -2,7 +2,9 @@
 #define PGY_TRANSPILER_EXPR_CALL_SPAWN_EMIT_H
 
 #include "../parser/ast_api.h"
+#include "transpiler_call_result_option_builtin_emit.h"
 #include "transpiler_host_self_policy.h"
+#include "transpiler_role_ability_helpers.h"
 
 static char *
 emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)

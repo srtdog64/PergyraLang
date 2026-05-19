@@ -138,7 +138,7 @@ for rel in \
     "src/runtime/pgy_frontier_policy.h" \
     "src/codegen/transpiler_domain_nominal_emit.h" \
     "src/codegen/transpiler_domain_provenance_emit.h" \
-    "src/codegen/transpiler_zone_decl_emit.h" \
+    "src/codegen/transpiler_zone_decl_emit.c" \
     "src/codegen/transpiler_world_select_event_emit.h" \
     "src/codegen/transpiler_domain_role_ability_emit.h" \
     "src/codegen/llvm_domain.c" \
@@ -168,7 +168,7 @@ c_frontier_text="$tmp_dir/c_frontier_text.txt"
 cat \
     "$ROOT_DIR/src/codegen/transpiler_domain_provenance_emit.h" \
     "$ROOT_DIR/src/codegen/transpiler_domain_nominal_emit.h" \
-    "$ROOT_DIR/src/codegen/transpiler_zone_decl_emit.h" \
+    "$ROOT_DIR/src/codegen/transpiler_zone_decl_emit.c" \
     > "$c_zone_contract"
 
 cat \
@@ -189,7 +189,7 @@ cat \
 cat \
     "$ROOT_DIR/src/codegen/transpiler_domain_provenance_emit.h" \
     "$ROOT_DIR/src/codegen/transpiler_domain_nominal_emit.h" \
-    "$ROOT_DIR/src/codegen/transpiler_zone_decl_emit.h" \
+    "$ROOT_DIR/src/codegen/transpiler_zone_decl_emit.c" \
     "$ROOT_DIR/src/codegen/transpiler_world_select_event_emit.h" \
     > "$c_frontier_text"
 
@@ -217,7 +217,7 @@ require_terms "C world frontier emitter" "$ROOT_DIR/src/codegen/transpiler_world
     "PGY_PANIC" \
     "PGY_FRONTIER_REASON_WORLD_DERIVED_OVERFLOW"
 
-require_terms "C projection frontier emitter" "$ROOT_DIR/src/codegen/transpiler_domain_provenance_emit.h" \
+require_terms "C projection frontier emitter" "$ROOT_DIR/src/codegen/transpiler_domain_provenance_emit.c" \
     "pgy_domain_projection_frontier_pass_limit" \
     "_pgy_%s_pass_limit" \
     "while (_pgy_%s_continue && _pgy_%s_pass < _pgy_%s_pass_limit)" \
@@ -334,7 +334,7 @@ require_terms "backend-compare frontier case registry" "$ROOT_DIR/tests/compare_
     "tests/cases/backend_compare/handoff_world_state_frontier" \
     "tests/cases/backend_compare/handoff_layer_state_frontier"
 
-require_terms "C authority/failure frontier surface" "$ROOT_DIR/src/codegen/transpiler_block_intent_helpers.h" \
+require_terms "C authority/failure frontier surface" "$ROOT_DIR/src/codegen/transpiler_block_intent_helpers.c" \
     "pgy_zone_authority_validate_flags_export" \
     "__intent_failed = true" \
     "authority:%s" \

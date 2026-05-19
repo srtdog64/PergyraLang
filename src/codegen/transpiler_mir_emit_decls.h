@@ -9,8 +9,6 @@
 #include "transpiler_mir_resource_hook_emit.h"
 #include "transpiler_mir_signature.h"
 
-static int transpiler_find_loop_label_depth(const TranspilerCtx *ctx,
-                                            const char *label);
 static bool transpiler_emit_mir_block_statements(CodeBuf *buf,
                                                  const ASTNode *func_decl,
                                                  const MIRRoutine *mir_routine,
@@ -19,17 +17,11 @@ static bool transpiler_emit_mir_block_statements(CodeBuf *buf,
                                                  TranspilerSSANameMap *out_ssa_map,
                                                  char *reason,
                                                  size_t reason_cap);
-static bool transpiler_can_emit_function_from_mir(const TranspilerCtx *ctx,
-                                                  const ASTNode *func_decl,
-                                                  const MIRRoutine **mir_routine_out);
 static bool transpiler_can_emit_function_from_mir_with_reason(const TranspilerCtx *ctx,
                                                              const ASTNode *func_decl,
                                                              const MIRRoutine **mir_routine_out,
                                                              char *reason,
                                                              size_t reason_cap);
-static bool transpiler_can_emit_intent_cleanup_from_mir(const TranspilerCtx *ctx,
-                                                        const ASTNode *intent_decl,
-                                                        const MIRRoutine **mir_routine_out);
 static bool transpiler_can_emit_intent_cleanup_from_mir_with_reason(const TranspilerCtx *ctx,
                                                                   const ASTNode *intent_decl,
                                                                   const MIRRoutine **mir_routine_out,

@@ -186,18 +186,6 @@ pgy_intent_append_line_len_export(char **dst, size_t *dst_len, const char *line)
     *dst_len = old_len + add_len;
 }
 
-static PgyIntentActiveEntry *
-pgy_intent_find_active_entry_linear_export(int32_t handle)
-{
-    for (int i = 0; i < PGY_INTENT_ACTIVE_MAX; i++) {
-        if (pgy_intent_active_registry[i].active
-            && pgy_intent_active_registry[i].handle == handle) {
-            return &pgy_intent_active_registry[i];
-        }
-    }
-    return NULL;
-}
-
 #include "pgy_runtime_lib_intent_active_index_exports.c"
 
 int32_t

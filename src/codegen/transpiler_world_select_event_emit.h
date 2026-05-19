@@ -130,7 +130,7 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
         ASTNode *act = activations[i];
         const char *slot_name = ast_world_directive_zone_slot_name(act);
         if (slot_name == NULL && ast_world_directive_state_name(act) != NULL) {
-            ASTNode *state = find_world_state_decl(node, ast_world_directive_state_name(act));
+            ASTNode *state = transpiler_find_world_state_decl(node, ast_world_directive_state_name(act));
             if (state != NULL)
                 slot_name = ast_world_state_zone_slot_name(state);
             else if (transpiler_world_has_zone_slot(node, ast_world_directive_state_name(act)))
@@ -147,7 +147,7 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
         ASTNode *mnt = maintained_zones[i];
         const char *slot_name = ast_world_directive_zone_slot_name(mnt);
         if (slot_name == NULL && ast_world_directive_state_name(mnt) != NULL) {
-            ASTNode *state = find_world_state_decl(node, ast_world_directive_state_name(mnt));
+            ASTNode *state = transpiler_find_world_state_decl(node, ast_world_directive_state_name(mnt));
             if (state != NULL)
                 slot_name = ast_world_state_zone_slot_name(state);
             else if (transpiler_world_has_zone_slot(node, ast_world_directive_state_name(mnt)))
@@ -164,7 +164,7 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
         ASTNode *act = deactivations[i];
         const char *slot_name = ast_world_directive_zone_slot_name(act);
         if (slot_name == NULL && ast_world_directive_state_name(act) != NULL) {
-            ASTNode *state = find_world_state_decl(node, ast_world_directive_state_name(act));
+            ASTNode *state = transpiler_find_world_state_decl(node, ast_world_directive_state_name(act));
             if (state != NULL)
                 slot_name = ast_world_state_zone_slot_name(state);
             else if (transpiler_world_has_zone_slot(node, ast_world_directive_state_name(act)))

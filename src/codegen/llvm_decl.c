@@ -1,6 +1,7 @@
 #ifdef PGY_LLVM_ENABLED
 #include "llvm_internal.h"
 #include "llvm_boundary_slot_param.h"
+#include "llvm_decl_authority.h"
 
 static unsigned
 llvm_function_emitted_param_count(LLVMGenCtx *ctx, ASTNode *node)
@@ -50,70 +51,6 @@ llvm_decl_required_param_type(LLVMGenCtx *ctx, ASTNode *func, FuncParam *param)
 }
 
 static bool
-llvm_decl_mir_routine_has_instructions(const MIRRoutine *routine)
-{
-    if (routine == NULL)
-        return false;
-    for (size_t i = 0; i < routine->block_count; i++) {
-        if (routine->blocks[i].instruction_count > 0)
-            return true;
-    }
-    return false;
-}
-
-static ASTNode *
-llvm_decl_function_from_routine(const MIRRoutine *routine)
-{
-    return llvm_mir_routine_source_ast_of_type(
-        routine, MIR_SCOPE_FUNCTION, AST_FUNC_DECL);
-}
-
-static bool
-llvm_decl_function_is_generic(ASTNode *func_decl)
-{
-    GenericParams *generic_params;
-
-    if (func_decl == NULL)
-        return false;
-    generic_params = ast_func_generic_params(func_decl);
-    return ast_generic_param_count(generic_params) > 0;
-}
-
-static ASTNode *
-llvm_decl_find_current_host_decl(LLVMGenCtx *ctx)
-{
-    return llvm_current_host_decl(ctx);
-}
-
-static ASTNode *
-llvm_decl_find_current_zone_decl(LLVMGenCtx *ctx)
-{
-    ASTNode *decl = llvm_decl_find_current_host_decl(ctx);
-    if (decl != NULL && decl->type == AST_ZONE_DECL)
-        return decl;
-    return NULL;
-}
-
-static void
-llvm_decl_zone_authority_backend_error(LLVMGenCtx *ctx, ASTNode *node,
-                                       const char *zone_name,
-                                       const char *subject_slot_name,
-                                       const char *reason)
-{
-    if (ctx == NULL || ctx->has_error)
-        return;
-
-    llvm_set_error_at_with_hints(ctx, node,
-        PGY_CODE_LLVM_TYPE_UNSUPPORTED,
-        PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
-        PGY_FIX_INSPECT_MIR_INVENTORY,
-        "LLVM zone authority check could not be emitted for zone '%s' subject slot '%s': %s",
-        zone_name != NULL ? zone_name : "<unknown>",
-        subject_slot_name != NULL ? subject_slot_name : "<unknown>",
-        reason != NULL ? reason : "missing backend metadata");
-}
-
-static bool
 llvm_decl_token_param_name(LLVMGenCtx *ctx, ASTNode *node,
                            char *out, size_t out_size,
                            const char *param_name)
@@ -137,107 +74,6 @@ llvm_decl_token_param_name(LLVMGenCtx *ctx, ASTNode *node,
             param_name != NULL ? param_name : "<param>");
     }
     return false;
-}
-
-static void
-llvm_decl_emit_zone_authority_check(LLVMGenCtx *ctx)
-{
-    ASTNode *zone_decl;
-    ASTNode *authority;
-    LLVMClassTypeEntry *zone_cls;
-    LLVMVarEntry *self_var;
-    LLVMFuncEntry *check_fn;
-    LLVMValueRef self_value;
-    LLVMValueRef field_ptr;
-    LLVMValueRef participant_value;
-    LLVMTypeRef field_type;
-    LLVMValueRef args[4];
-    int field_index;
-    const char *zone_name;
-
-    if (ctx == NULL)
-        return;
-
-    zone_decl = llvm_decl_find_current_zone_decl(ctx);
-    if (zone_decl == NULL) {
-        if (ctx->current_func_decl != NULL
-            && ctx->current_func_decl->type == AST_FUNC_DECL
-            && ast_func_within_zone(ctx->current_func_decl) != NULL) {
-            llvm_decl_zone_authority_backend_error(ctx, ctx->current_func_decl,
-                ast_func_within_zone(ctx->current_func_decl), NULL,
-                "current function declares a zone boundary but the zone declaration is missing from LLVM inventory");
-        }
-        return;
-    }
-
-    size_t authority_count = 0;
-    ASTNode **authorities = ast_zone_authorities(zone_decl, &authority_count);
-    if (authority_count == 0 || authorities == NULL || authorities[0] == NULL) {
-        return;
-    }
-
-    authority = authorities[0];
-    zone_name = ast_zone_name(zone_decl);
-    const char *subject_slot =
-        ast_zone_authority_subject_slot_name(authority);
-    if (authority->type != AST_ZONE_AUTHORITY
-        || subject_slot == NULL) {
-        llvm_decl_zone_authority_backend_error(ctx, zone_decl, zone_name, NULL,
-            "authority declaration is malformed or lacks a subject slot");
-        return;
-    }
-
-    zone_cls = zone_name != NULL ? llvm_lookup_class(ctx, zone_name) : NULL;
-    self_var = llvm_scope_lookup(ctx, "self");
-    check_fn = llvm_lookup_function(ctx, "pgy_zone_authority_check_export");
-    if (zone_cls == NULL) {
-        llvm_decl_zone_authority_backend_error(ctx, zone_decl, zone_name,
-            subject_slot,
-            "zone class layout is missing");
-        return;
-    }
-    if (self_var == NULL) {
-        llvm_decl_zone_authority_backend_error(ctx, ctx->current_func_decl,
-            zone_name, subject_slot,
-            "implicit self binding is missing");
-        return;
-    }
-    if (check_fn == NULL) {
-        llvm_set_mir_inventory_missing(ctx,
-            "LLVM zone authority check runtime export is missing: pgy_zone_authority_check_export");
-        return;
-    }
-
-    field_index = llvm_class_field_index(zone_cls, subject_slot);
-    if (field_index < 0) {
-        llvm_decl_zone_authority_backend_error(ctx, zone_decl, zone_name,
-            subject_slot,
-            "authority subject slot is missing from the zone class layout");
-        return;
-    }
-
-    self_value = LLVMBuildLoad2(ctx->builder, self_var->type, self_var->alloca,
-        llvm_tmp_name(ctx));
-    field_ptr = LLVMBuildStructGEP2(ctx->builder, zone_cls->struct_type,
-        self_value, (unsigned)field_index, llvm_tmp_name(ctx));
-    field_type = LLVMStructGetTypeAtIndex(zone_cls->struct_type, (unsigned)field_index);
-    participant_value = LLVMBuildLoad2(ctx->builder, field_type, field_ptr,
-        llvm_tmp_name(ctx));
-
-    args[0] = LLVMBuildBitCast(ctx->builder, self_value, ctx->type_i8ptr,
-        llvm_tmp_name(ctx));
-    if (LLVMGetTypeKind(field_type) == LLVMPointerTypeKind) {
-        args[1] = LLVMBuildBitCast(ctx->builder, participant_value, ctx->type_i8ptr,
-            llvm_tmp_name(ctx));
-    } else {
-        args[1] = LLVMBuildBitCast(ctx->builder, field_ptr, ctx->type_i8ptr,
-            llvm_tmp_name(ctx));
-    }
-    args[2] = LLVMBuildGlobalStringPtr(ctx->builder, zone_name,
-        llvm_tmp_name(ctx));
-    args[3] = LLVMBuildGlobalStringPtr(ctx->builder, subject_slot,
-        llvm_tmp_name(ctx));
-    LLVMBuildCall2(ctx->builder, check_fn->fn_type, check_fn->fn, args, 4, "");
 }
 
 /* =================================================================
@@ -295,78 +131,6 @@ llvm_forward_declare_func(ASTNode *node, LLVMGenCtx *ctx)
     LLVMValueRef fn = LLVMAddFunction(ctx->module, name, fn_type);
     llvm_register_function(ctx, name, fn, fn_type, ret_type);
 
-}
-
-bool
-llvm_forward_declare_function_routines_from_inventory(
-    LLVMGenCtx *ctx,
-    const LLVMMIRRoutineInventory *inventory)
-{
-    if (ctx == NULL || inventory == NULL)
-        return false;
-
-    for (size_t i = 0; i < inventory->count; i++) {
-        const MIRRoutine *routine = &inventory->routines[i];
-        ASTNode *func_decl = llvm_decl_function_from_routine(routine);
-        if (func_decl == NULL)
-            continue;
-        if (llvm_decl_function_is_generic(func_decl)) {
-            if (!llvm_register_generic_template_decl(ctx, func_decl))
-                return false;
-            continue;
-        }
-        if (llvm_lookup_function(ctx, ast_declaration_name(func_decl)) == NULL)
-            llvm_forward_declare_func(func_decl, ctx);
-        if (ctx->has_error)
-            return false;
-    }
-    return true;
-}
-
-bool
-llvm_emit_function_routines_from_inventory(
-    LLVMGenCtx *ctx,
-    const LLVMMIRRoutineInventory *inventory)
-{
-    if (ctx == NULL || inventory == NULL)
-        return false;
-
-    for (size_t i = 0; i < inventory->count; i++) {
-        const MIRRoutine *routine = &inventory->routines[i];
-        ASTNode *func_decl = llvm_decl_function_from_routine(routine);
-        if (func_decl == NULL || llvm_decl_function_is_generic(func_decl))
-            continue;
-        if (llvm_decl_mir_routine_has_instructions(routine))
-            llvm_emit_func_from_mir(routine, ctx);
-        if (ctx->has_error)
-            return false;
-    }
-    return true;
-}
-
-bool
-llvm_validate_function_routine_bodies_from_inventory(
-    LLVMGenCtx *ctx,
-    const LLVMMIRRoutineInventory *inventory)
-{
-    if (ctx == NULL || inventory == NULL)
-        return false;
-
-    for (size_t i = 0; i < inventory->count; i++) {
-        const MIRRoutine *routine = &inventory->routines[i];
-        ASTNode *func_decl = llvm_decl_function_from_routine(routine);
-        if (func_decl == NULL || llvm_decl_function_is_generic(func_decl))
-            continue;
-        if (llvm_decl_mir_routine_has_instructions(routine))
-            continue;
-        llvm_set_mir_inventory_missing(ctx,
-            "MIR-only LLVM path missing routine for function '%s'",
-            ast_declaration_name(func_decl) != NULL
-                ? ast_declaration_name(func_decl)
-                : "(anonymous)");
-        return false;
-    }
-    return true;
 }
 
 void

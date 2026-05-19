@@ -377,7 +377,7 @@ for path in \
     src/codegen/llvm_stmt_type_infer_await.c \
     src/codegen/llvm_stmt_type_infer_nominal.c \
     src/codegen/transpiler_call_constructor_result_emit.h \
-    src/codegen/transpiler_call_result_option_builtin_emit.h \
+    src/codegen/transpiler_call_result_option_builtin_emit.c \
     src/codegen/transpiler_channel_type_query.c \
     src/codegen/transpiler_destructure_emit.h \
     src/codegen/transpiler_domain_receiver_query.c \
@@ -397,7 +397,7 @@ for path in \
     src/codegen/transpiler_intent_context.c \
     src/codegen/transpiler_lambda_emit.h \
     src/codegen/transpiler_let_box_emit.h \
-    src/codegen/transpiler_let_slot_emit.h \
+    src/codegen/transpiler_let_slot_emit.c \
     src/codegen/transpiler_match_emit.c \
     src/codegen/transpiler_mir_assignment_emit.h \
     src/codegen/transpiler_mir_block_emit.h \
@@ -405,7 +405,7 @@ for path in \
     src/codegen/transpiler_mir_local_binding.c \
     src/codegen/transpiler_mir_local_type_ast_lookup.c \
     src/codegen/transpiler_mir_local_type_lookup.h \
-    src/codegen/transpiler_mir_match_condition_emit.h \
+    src/codegen/transpiler_mir_match_condition_emit.c \
     src/codegen/transpiler_mir_pending_uses.h \
     src/codegen/transpiler_mir_ssa_emit.h \
     src/codegen/transpiler_nominal.c \
@@ -736,7 +736,7 @@ if grep -R "data\.func_decl\.\(param_count\|params\|return_type\|body\)" \
     src/codegen/transpiler_func_forward_policy.c \
     src/codegen/transpiler_generic_class_specialization_emit.h \
     src/codegen/transpiler_let_emit.h \
-    src/codegen/transpiler_intent_zone_binding_emit.h \
+    src/codegen/transpiler_intent_zone_binding_emit.c \
     src/codegen/transpiler_mir_emission_mapping_contract.h \
     src/codegen/transpiler_mir_emit_state.c \
     src/codegen/transpiler_mir_func_emit.h \
@@ -744,7 +744,7 @@ if grep -R "data\.func_decl\.\(param_count\|params\|return_type\|body\)" \
     src/codegen/transpiler_mir_local_binding.c \
     src/codegen/transpiler_mir_local_type_ast_lookup.c \
     src/codegen/transpiler_mir_local_type_lookup.h \
-    src/codegen/transpiler_mir_match_condition_emit.h \
+    src/codegen/transpiler_mir_match_condition_emit.c \
     src/codegen/transpiler_mir_signature.c \
     src/codegen/transpiler_mir_ssa_emit.h \
     src/codegen/transpiler_projection_method_invalidation.h \
@@ -961,7 +961,7 @@ if grep -R "data\.call\.\(callee\|arguments\|arg_count\)" \
     src/codegen/llvm_stmt_type_infer_nominal.c \
     src/codegen/llvm_mir_local_emit.c \
     src/codegen/transpiler_event_builtin_emit.c \
-    src/codegen/transpiler_call_result_option_builtin_emit.h \
+    src/codegen/transpiler_call_result_option_builtin_emit.c \
     src/codegen/transpiler_channel_type_query.c \
     src/codegen/transpiler_domain_receiver_query.c \
     src/codegen/transpiler_expr_core_builtins_emit.c \
@@ -973,22 +973,22 @@ if grep -R "data\.call\.\(callee\|arguments\|arg_count\)" \
     src/codegen/transpiler_func_class_flow_emit.h \
     src/codegen/transpiler_func_forward_helpers.h \
     src/codegen/transpiler_helpers_core_b.h \
-    src/codegen/transpiler_intent_observability_builtin_emit.h \
+    src/codegen/transpiler_intent_observability_builtin_emit.c \
     src/codegen/transpiler_generic_binding_query.c \
     src/codegen/transpiler_expr_stdlib_collection_builtin.h \
     src/codegen/transpiler_expr_stdlib_channel_builtin.h \
-    src/codegen/transpiler_expr_stdlib_map_builtin.h \
+    src/codegen/transpiler_expr_stdlib_map_builtin.c \
     src/codegen/transpiler_expr_stdlib_misc_builtin.c \
-    src/codegen/transpiler_expr_stdlib_queue_builtin.h \
+    src/codegen/transpiler_expr_stdlib_queue_builtin.c \
     src/codegen/transpiler_expr_stdlib_scalar_builtin.h \
     src/codegen/transpiler_log_builtin_emit.c \
     src/codegen/transpiler_generic_param_query.c \
-    src/codegen/transpiler_let_channel_emit.h \
+    src/codegen/transpiler_let_channel_emit.c \
     src/codegen/transpiler_let_box_emit.h \
-    src/codegen/transpiler_let_slot_emit.h \
+    src/codegen/transpiler_let_slot_emit.c \
     src/codegen/transpiler_match_emit.c \
     src/codegen/transpiler_mir_destructure_emit.h \
-    src/codegen/transpiler_mir_match_condition_emit.h \
+    src/codegen/transpiler_mir_match_condition_emit.c \
     src/codegen/transpiler_mir_local_type_lookup.h \
     src/codegen/transpiler_mir_ssa_emit.h \
     src/codegen/transpiler_mir_ssa_contract.h \
@@ -1049,8 +1049,8 @@ if grep -R "data\.type\.\(name\|generic_args\)" \
     src/compiler/rir_builder.c \
     src/compiler/rir_builder_intent.c \
     src/compiler/rir_facts.c \
-    src/codegen/transpiler_block_intent_helpers.h \
-    src/codegen/transpiler_block_intent_rebind_helpers.h \
+    src/codegen/transpiler_block_intent_helpers.c \
+    src/codegen/transpiler_block_intent_rebind_helpers.c \
     src/codegen/transpiler_decl_host_lookup.c \
     src/codegen/transpiler_decl_lookup.c \
     src/codegen/transpiler_domain_nominal_emit.h \
@@ -1061,14 +1061,14 @@ if grep -R "data\.type\.\(name\|generic_args\)" \
     src/codegen/transpiler_func_forward_policy.c \
     src/codegen/transpiler_generic_class_specialization_emit.h \
     src/codegen/transpiler_intent_context.c \
-    src/codegen/transpiler_intent_emit.h \
+    src/codegen/transpiler_intent_emit.c \
     src/codegen/transpiler_intent_participant.c \
     src/codegen/transpiler_domain_provenance_emit.h \
     src/codegen/transpiler_intent_zone_slot.c \
-    src/codegen/transpiler_intent_zone_binding_emit.h \
+    src/codegen/transpiler_intent_zone_binding_emit.c \
     src/codegen/transpiler_let_emit.h \
     src/codegen/transpiler_let_box_emit.h \
-    src/codegen/transpiler_let_slot_emit.h \
+    src/codegen/transpiler_let_slot_emit.c \
     src/codegen/transpiler_mir_ssa_emit.h \
     src/codegen/transpiler_overlay_projection.h \
     src/codegen/transpiler_projection.c \
@@ -1153,7 +1153,7 @@ if grep -R "data\.\(world_decl\|relation_decl\|effect_decl\|zone_decl\)\.name" \
     src/codegen/transpiler_decl_lookup.c \
     src/codegen/transpiler_relation_effect_emit.h \
     src/codegen/transpiler_world_select_event_emit.h \
-    src/codegen/transpiler_zone_decl_emit.h >/dev/null; then
+    src/codegen/transpiler_zone_decl_emit.c >/dev/null; then
     fail "closed world/relation/effect/zone name consumers must use AST domain name accessors"
 fi
 
@@ -1571,7 +1571,8 @@ if grep -R "data\.\(relation_decl\|effect_decl\|zone_decl\)\.\(slots\|slot_count
 fi
 
 if grep -R "data\.\(zone_decl\|relation_decl\|effect_decl\)\.\(layer_slots\|layer_slot_count\|slots\|slot_count\|refreshes\|refresh_count\)" \
-    src/codegen/transpiler_overlay_zone_bind.h >/dev/null; then
+    src/codegen/transpiler_overlay_zone_bind.h \
+    src/codegen/transpiler_overlay_zone_relation_bind.h >/dev/null; then
     fail "C overlay zone bind helpers must use AST domain child accessors"
 fi
 
@@ -1616,7 +1617,8 @@ if grep -R "data\.world_decl\.\(zones\|zone_count\|states\|state_count\|activati
 fi
 
 if grep -R "data\.zone_decl\.\(authorities\|authority_count\)" \
-    src/codegen/llvm_decl.c >/dev/null; then
+    src/codegen/llvm_decl.c \
+    src/codegen/llvm_decl_authority.c >/dev/null; then
     fail "LLVM zone authority checks must use AST zone child accessors"
 fi
 
@@ -1636,7 +1638,7 @@ if grep -R "data\.\(zone_decl\|relation_decl\|effect_decl\)\.\(slots\|slot_count
 fi
 
 if grep -R "data\.zone_decl\.\(layer_slots\|layer_slot_count\|states\|state_count\)" \
-    src/codegen/transpiler_block_intent_helpers.h >/dev/null; then
+    src/codegen/transpiler_block_intent_helpers.c >/dev/null; then
     fail "C intent effect provenance must use AST zone child accessors"
 fi
 
@@ -1646,7 +1648,7 @@ if grep -R "data\.zone_decl\.\(authorities\|authority_count\)" \
 fi
 
 if grep -R "data\.zone_decl\.\(slots\|slot_count\|layer_slots\|layer_slot_count\|shared_fields\|shared_count\|states\|state_count\)" \
-    src/codegen/transpiler_zone_struct_emit.h >/dev/null; then
+    src/codegen/transpiler_zone_struct_emit.c >/dev/null; then
     fail "C zone struct emission must use AST zone child accessors"
 fi
 
@@ -1734,7 +1736,7 @@ if grep -R "data\.\(world_decl\|zone_decl\|relation_decl\|effect_decl\)\.\(share
 fi
 
 if grep -R "data\.zone_decl\.\(applies\|apply_count\|links\|link_count\|detaches\|detach_count\|unlinks\|unlink_count\|maintained_effects\|maintained_effect_count\|maintained_relations\|maintained_relation_count\|maintained_states\|maintained_state_count\)" \
-    src/codegen/transpiler_zone_decl_emit.h >/dev/null; then
+    src/codegen/transpiler_zone_decl_emit.c >/dev/null; then
     fail "C zone declaration sync must use AST zone child accessors"
 fi
 

@@ -319,9 +319,9 @@ require_literal "src/codegen/transpiler_class_decl_emit.h" \
     "transpiler_class_surface_desc"
 require_literal "src/codegen/transpiler_class_decl_emit.h" \
     "transpiler_class_method_emit_name"
-require_literal "src/codegen/transpiler_expr_stdlib_collection_builtin.c" \
+require_literal "src/codegen/transpiler_expr_stdlib_collection_support.c" \
     "transpiler_collection_copy_type_name"
-require_literal "src/codegen/transpiler_expr_stdlib_collection_builtin.c" \
+require_literal "src/codegen/transpiler_expr_stdlib_collection_support.c" \
     "len >= out_size"
 require_literal "src/codegen/transpiler_func_class_flow_emit.h" \
     "transpiler_func_copy_current_return_type"
@@ -331,13 +331,13 @@ require_literal "src/codegen/transpiler_mir_emit_state.c" \
     "transpiler_mir_emit_copy_return_type"
 require_literal "src/codegen/transpiler_mir_emit_state.c" \
     "transpiler_mir_emit_return_type_too_long"
-require_literal "src/codegen/transpiler_zone_struct_emit.h" \
+require_literal "src/codegen/transpiler_zone_struct_emit.c" \
     "transpiler_zone_surface_desc"
-require_literal "src/codegen/transpiler_zone_struct_emit.h" \
+require_literal "src/codegen/transpiler_zone_struct_emit.c" \
     "transpiler_zone_surface_desc_too_long"
-require_literal "src/codegen/transpiler_intent_zone_binding_emit.h" \
+require_literal "src/codegen/transpiler_intent_zone_binding_emit.c" \
     "transpiler_intent_binding_surface_desc"
-require_literal "src/codegen/transpiler_intent_zone_binding_emit.h" \
+require_literal "src/codegen/transpiler_intent_zone_binding_emit.c" \
     "transpiler_intent_binding_surface_desc_too_long"
 require_literal "src/codegen/transpiler_expr_stdlib_builtin.c" \
     "transpiler_stdlib_copy_type_name"
@@ -355,13 +355,13 @@ require_literal "src/codegen/transpiler_decl_lookup.c" \
     "transpiler_decl_lookup_cache_store"
 require_literal "src/codegen/transpiler_decl_lookup.c" \
     "len >= sizeof(ctx->last_decl_lookup_name)"
-require_literal "src/codegen/transpiler_intent_prologue_emit.h" \
+require_literal "src/codegen/transpiler_intent_prologue_emit.c" \
     "transpiler_intent_prologue_surface_desc"
-require_literal "src/codegen/transpiler_intent_prologue_emit.h" \
+require_literal "src/codegen/transpiler_intent_prologue_emit.c" \
     "transpiler_intent_prologue_surface_desc_too_long"
-require_literal "src/codegen/transpiler_let_slot_emit.h" \
+require_literal "src/codegen/transpiler_let_slot_emit.c" \
     "transpiler_let_slot_constructed_type_name"
-require_literal "src/codegen/transpiler_let_slot_emit.h" \
+require_literal "src/codegen/transpiler_let_slot_emit.c" \
     "transpiler_let_slot_constructed_type_too_long"
 require_literal "src/codegen/transpiler_event_builtin_emit.c" \
     "written < 0 || written != needed"
@@ -377,13 +377,13 @@ require_literal "src/codegen/transpiler_generic_class_specialization_emit.h" \
     "transpiler_generic_class_surface_desc"
 require_literal "src/codegen/transpiler_generic_class_specialization_emit.h" \
     "transpiler_generic_class_format_too_long"
-require_literal "src/codegen/transpiler_specialization_helpers.h" \
+require_literal "src/codegen/transpiler_specialization_helpers.c" \
     "transpiler_specialization_copy_spec_name"
-require_literal "src/codegen/transpiler_specialization_helpers.h" \
+require_literal "src/codegen/transpiler_specialization_helpers.c" \
     "transpiler_specialization_append_spec_text"
-require_literal "src/codegen/transpiler_specialization_helpers.h" \
+require_literal "src/codegen/transpiler_specialization_helpers.c" \
     "transpiler_specialization_spec_name_too_long"
-require_literal "src/codegen/transpiler_control_flow_emit.h" \
+require_literal "src/codegen/transpiler_control_flow_emit.c" \
     "transpiler_loop_label_name"
 require_literal "src/codegen/transpiler_mir_reason.h" \
     "transpiler_mir_reasonf"

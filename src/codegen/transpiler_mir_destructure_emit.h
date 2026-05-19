@@ -7,6 +7,7 @@
 #include "../parser/ast_api.h"
 
 #include "codegen_slot_type_policy.h"
+#include "transpiler_let_slot_emit.h"
 #include "transpiler_mir_expr_ssa.h"
 #include "transpiler_mir_reason.h"
 

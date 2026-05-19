@@ -59,6 +59,73 @@ transpiler_find_zone_domain_slot(ASTNode *zone_decl, const char *slot_name)
 }
 
 bool
+transpiler_domain_slot_is_projection_target(ASTNode *slot,
+                                            ASTNode **refreshes,
+                                            size_t refresh_count)
+{
+    const char *slot_name = ast_domain_slot_name(slot);
+    if (slot == NULL || slot->type != AST_DOMAIN_SLOT
+        || slot_name == NULL) {
+        return false;
+    }
+
+    for (size_t i = 0; i < refresh_count; i++) {
+        ASTNode *refresh = refreshes[i];
+        if (refresh == NULL || refresh->type != AST_ZONE_REFRESH
+            || ast_zone_refresh_object_slot_name(refresh) == NULL) {
+            continue;
+        }
+        if (strcmp(slot_name, ast_zone_refresh_object_slot_name(refresh)) == 0) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+ASTNode *
+transpiler_current_overlay_domain_slot_decl(TranspilerCtx *ctx,
+                                            const char *slot_name)
+{
+    ASTNode *decl;
+
+    if (ctx == NULL || slot_name == NULL)
+        return NULL;
+
+    decl = transpiler_current_host_decl_local(ctx);
+    if (decl != NULL && decl->type == AST_RELATION_DECL) {
+        size_t slot_count = 0;
+        ASTNode **slots = ast_relation_slots(decl, &slot_count);
+        for (size_t i = 0; i < slot_count; i++) {
+            ASTNode *slot = slots[i];
+            const char *candidate_name = ast_domain_slot_name(slot);
+            if (slot != NULL && slot->type == AST_DOMAIN_SLOT
+                && candidate_name != NULL
+                && strcmp(candidate_name, slot_name) == 0) {
+                return slot;
+            }
+        }
+    }
+    if (decl != NULL && decl->type == AST_EFFECT_DECL) {
+        size_t slot_count = 0;
+        ASTNode **slots = ast_effect_slots(decl, &slot_count);
+        for (size_t i = 0; i < slot_count; i++) {
+            ASTNode *slot = slots[i];
+            const char *candidate_name = ast_domain_slot_name(slot);
+            if (slot != NULL && slot->type == AST_DOMAIN_SLOT
+                && candidate_name != NULL
+                && strcmp(candidate_name, slot_name) == 0) {
+                return slot;
+            }
+        }
+    }
+    if (decl != NULL && decl->type == AST_ZONE_DECL)
+        return transpiler_find_zone_domain_slot(decl, slot_name);
+
+    return NULL;
+}
+
+bool
 transpiler_current_world_has_field(TranspilerCtx *ctx, const char *field_name)
 {
     ASTNode *decl;
@@ -119,6 +186,25 @@ transpiler_find_zone_state_decl(ASTNode *zone_decl, const char *state_name)
         if (state != NULL && state->type == AST_ZONE_STATE
             && ast_zone_state_name(state) != NULL
             && strcmp(ast_zone_state_name(state), state_name) == 0) {
+            return state;
+        }
+    }
+    return NULL;
+}
+
+ASTNode *
+transpiler_find_world_state_decl(ASTNode *world_decl, const char *state_name)
+{
+    if (world_decl == NULL || world_decl->type != AST_WORLD_DECL || state_name == NULL)
+        return NULL;
+
+    size_t state_count = 0;
+    ASTNode **states = ast_world_states(world_decl, &state_count);
+    for (size_t i = 0; i < state_count; i++) {
+        ASTNode *state = states[i];
+        if (state != NULL && state->type == AST_WORLD_STATE
+            && ast_world_state_name(state) != NULL
+            && strcmp(ast_world_state_name(state), state_name) == 0) {
             return state;
         }
     }

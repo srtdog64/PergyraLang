@@ -23,6 +23,95 @@ zero-inventory gate for the full `src` tree. `src/runtime`, `src/codegen`,
 test fragments use `.cases.h`, and compiler runtime cache freshness tracks the
 renamed runtime owner headers instead of stale `.inc` paths.
 
+2026-05-19 owner cleanup update: the follow-up debt is now implementation-header
+cohesion, not `.inc` inventory. Generated C backend specialization helpers have
+moved from `transpiler_specialization_helpers.h` into the compiled owner
+`src/codegen/transpiler_specialization_helpers.c`; Result suffix parsing and
+`Result<T,E>` specialization discovery moved from
+`transpiler_type_result_mapping_helpers.h` into
+`src/codegen/transpiler_type_result_mapping_helpers.c`. HashMap stdlib builtin
+dispatch and lowering moved from `transpiler_expr_stdlib_map_builtin.h` into
+`src/codegen/transpiler_expr_stdlib_map_builtin.c`, with HashMap metadata
+validation owned by the shared collection support owner. Queue stdlib dispatch
+and lowering also moved from `transpiler_expr_stdlib_queue_builtin.h` into
+`src/codegen/transpiler_expr_stdlib_queue_builtin.c`, with unary collection
+metadata validation owned by the same support owner. Result/Option builtin
+dispatch and lowering moved from
+`transpiler_call_result_option_builtin_emit.h` into
+`src/codegen/transpiler_call_result_option_builtin_emit.c`; linked owners now
+consume `src/codegen/transpiler_option_context.h` for Option context
+declarations instead of pulling in the broad helper shim. Intent observability
+builtin lowering moved from `transpiler_intent_observability_builtin_emit.h`
+into `src/codegen/transpiler_intent_observability_builtin_emit.c`.
+Projection/world lookup seams also moved into
+`src/codegen/transpiler_projection.c`: overlay domain-slot lookup,
+projection-target detection, and world-state lookup are linked owner APIs
+instead of implementation-header static helpers, and source inventory smoke
+rejects reopening the old local helper names. Domain query builtin lowering for
+`HasProjection`, `HasLayer`, `HasState`, `HasZone`, `HasZoneProjection`,
+`HasZoneLayer`, and `HasZoneState` now lives in
+`src/codegen/transpiler_expr_domain_query_builtin.c` instead of the builtin
+dispatch header. I/O and time builtin lowering moved to
+`src/codegen/transpiler_expr_io_builtin.c`, so file/runtime call bodies no
+longer live in the builtin dispatch header either. Domain constructor emission
+moved from `transpiler_call_constructor_result_emit.h` to
+`src/codegen/transpiler_domain_constructor_emit.c`, so class compound literals,
+party/roster/relation/effect/zone/world designated initializers, projection
+dirty defaults, world dirty defaults, and enum variant constructor call strings
+now share a compiled owner. The remaining constructor header is a thin dispatch
+wrapper around the local generic-class specialization seam. Expression core
+lowering moved to `src/codegen/transpiler_expr_core_emit.c`, tuple/Array
+literal lowering moved to
+`src/codegen/transpiler_expr_composite_literal_emit.c`, and Array/Slice checked
+access lowering moved to `src/codegen/transpiler_expr_array_access_emit.c`; all
+three headers are now declaration-only. Channel let lowering also moved to
+`src/codegen/transpiler_let_channel_emit.c`, leaving
+`transpiler_let_channel_emit.h` declaration-only. Future/RemoteFuture type
+queries moved to `src/codegen/transpiler_future_type_query.c`, and post-let
+type registration moved to `src/codegen/transpiler_let_type_register_emit.c`,
+removing another pair of static include-order bodies from spawn/let lowering.
+Box/Rc let lowering moved to
+`src/codegen/transpiler_let_box_emit.c`, leaving
+`transpiler_let_box_emit.h` declaration-only for `Box<T>`, `Box<Array<T>>`, and
+`Rc<T>` constructor let paths. Collection let lowering moved to
+`src/codegen/transpiler_let_collection_emit.c`, leaving
+`transpiler_let_collection_emit.h` declaration-only for `Option<T>` and stable
+collection constructor let paths. Slot/View let lowering moved to
+`src/codegen/transpiler_let_slot_emit.c`, leaving
+`transpiler_let_slot_emit.h` declaration-only for
+ClaimSlot/ClaimSecureSlot/ClaimDeviceSlot, ReadView/WriteView/MoveToken, and
+Slot/SecureSlot sugar paths. Zone specialization emission is now linked
+through `src/codegen/transpiler_zone_specialization_emit.c` instead of relying
+on a declaration-only header without a source inventory entry. Zone struct and
+layer accessor emission also moved from `transpiler_zone_struct_emit.h` into
+the compiled owner `src/codegen/transpiler_zone_struct_emit.c`, so generated
+zone fields and accessors no longer live in an implementation header. The redundant
+`transpiler_mir_emit_predicates.h` wrapper header is gone; function and intent
+emitters now call the reason-capable MIR contract APIs directly.
+MIR match condition lowering moved from `transpiler_mir_match_condition_emit.h`
+to `src/codegen/transpiler_mir_match_condition_emit.c`, so Option/Result
+destructor pattern conditions and payload binding no longer live in a static
+implementation header.
+Expression builtin dispatch moved to
+`src/codegen/transpiler_expr_builtin_dispatch.c`, so the `BuiltinKind` routing
+switch no longer lives in the expression-emitter include chain.
+Control-flow statement lowering moved to
+`src/codegen/transpiler_control_flow_emit.c`, leaving
+`transpiler_control_flow_emit.h` declaration-only for `if`/`for`/`while`,
+loop-label lookup, and the condition-head formatter shared with MIR branch
+terminator emission.
+MIR CFG control lowering moved to
+`src/codegen/transpiler_mir_cfg_control_emit.c`, leaving
+`transpiler_mir_cfg_control_emit.h` declaration-only for MIR loop init, for-in
+binding, backedge increment, branch-condition rendering, and select readiness
+rendering.
+`pergyra_ast_type_to_c_copy(...)` moved to
+`src/codegen/transpiler_type_render.c`, so shared AST type-to-C conversion no
+longer lives in the forward-helper include. Dependent
+emitters now include the type-mapping, collection-support, Option-context,
+intent-observability, or role-ability declarations they consume directly instead
+of relying on hidden include-order bodies.
+
 ## Current Verdict
 
 PergyraLang is no longer blocked by broad surface absence. The remaining beta risk is concentrated in a small number of deep implementation contracts:
@@ -151,17 +240,25 @@ stable `Int`/`String` instantiations now live in
 `src/runtime/pgy_runtime_channel_inline.h`, removing the former
 `src/runtime/pgy_runtime_part_bb.inc` body while preserving `pgy_runtime.h`
 include order.
-C backend zone struct emission, projection readiness/dirty fields, layer/state
-frontier sync, bounded recompute, and hosted zone method lowering now live in
-`src/codegen/transpiler_zone_decl_emit.h`, removing the former
-`src/codegen/transpiler_domain_role_part_c.inc` body while preserving the
-domain-role shim order.
+C backend zone sync, projection readiness/dirty fields, layer/state frontier
+sync, bounded recompute, and the MIR hosted-method metadata guard now live in
+`src/codegen/transpiler_zone_decl_emit.c`; `transpiler_zone_decl_emit.h` is
+declaration-only. This removes the former implementation-header owner created
+from `src/codegen/transpiler_domain_role_part_c.inc` while preserving the
+domain-role shim order through a hosted-method bridge.
 C backend block auto-release emission, intent participant/action lookup,
 inferred causes lookup, and effective-zone sync helpers now live in
-`src/codegen/transpiler_block_intent_helpers.h`, removing the former
+`src/codegen/transpiler_block_intent_helpers.c`, removing the former
 `src/codegen/transpiler_emitters_base_b_part_c.inc` body while preserving the
 base-B shim order and reducing the production `.inc` inventory to
 77 files / 19,652 LOC.
+C backend intent cleanup/rollback/invalidation tail emission now lives in
+`src/codegen/transpiler_intent_cleanup_emit.c`; the matching header exposes
+only the cleanup-tail seam and the MIR carrier-missing diagnostic path remains
+shared through `transpiler_set_mir_intent_carrier_missing(...)`.
+C backend intent signature/runtime-entry emission now lives in
+`src/codegen/transpiler_intent_prologue_emit.c`; the matching header exposes
+only the prologue seam.
 Generated-C inline file/string helpers, `StringSplit` allocation, and the toy
 Qubit runtime now live in `src/runtime/pgy_runtime_io_qubit_inline.h`, removing
 the former `src/runtime/pgy_runtime_part_c.inc` body while preserving
@@ -375,7 +472,8 @@ LLVM slot/device call lowering now lives in
 `llvm_expr_calls.inc` dispatcher order. The production `.inc` inventory is now
 39 files / 4,621 LOC.
 C backend intent-zone binding emit helpers now live in
-`src/codegen/transpiler_intent_zone_binding_emit.h`. LLVM constructor, RC, and
+`src/codegen/transpiler_intent_zone_binding_emit.c`; the header is
+declaration-only. LLVM constructor, RC, and
 task/channel call lowering now live in `src/codegen/llvm_expr_constructor_calls.h`,
 `src/codegen/llvm_expr_rc_calls.h`, and
 `src/codegen/llvm_expr_task_channel_calls.h`. This removes four more anonymous
@@ -448,10 +546,11 @@ in `src/runtime/pgy_runtime_array_sort_inline.h` and
 keeping C transpile, ABI, panic codegen, and representative C/LLVM parity green.
 MIR ABI layout lookup now lives in `src/compiler/mir_abi_layout.h`, reducing
 `src/compiler/mir_public_part_b.inc` from 753 LOC to 420 LOC while keeping DAG,
-AIR drift, and ABI smoke green. CFG contract validation now lives in
-`src/compiler/mir_cfg_contract_validate.h`, reducing
-`src/compiler/mir_public_part_a.inc` from 743 LOC to 290 LOC while keeping the
-CFG body-dataflow smoke green. RIR validation now lives in
+AIR drift, and ABI smoke green. CFG contract validation now lives in compiled
+owners: `src/compiler/mir_cfg_contract_validate.c` handles non-cleanup CFG
+shape/source/fallback checks, and
+`src/compiler/mir_cfg_contract_validate_cleanup.c` handles cleanup-edge,
+rollback/invalidation, and cleanup-convergence checks. RIR validation now lives in
 `src/compiler/rir_validation.h`, reducing `src/compiler/rir_public.inc` from
 741 LOC to 269 LOC while keeping DAG, CFG body-dataflow, AIR drift, and ABI
 smoke green. RIR lowering/enrichment now lives in
@@ -556,11 +655,15 @@ C backend MIR block statement emission now lives in
 source `.inc` total to 49,911 LOC while keeping MIR/DAG/AIR smoke and
 representative MIR-heavy backend compare paths green.
 C backend intent declaration emission now lives in
-`src/codegen/transpiler_intent_emit.h`; the old
+`src/codegen/transpiler_intent_emit.c`; the old
 `transpiler_emitters_intent.inc` include body was removed, dropping source
 `.inc` total to 48,949 LOC and leaving no production `.inc` above 900 LOC.
-Generated-C runtime intent-recent accessors, panic helpers, and checked
-arithmetic exports now live in `src/runtime/pgy_runtime_panic_checked_inline.h`,
+The header is now declaration-only, and intent cleanup MIR eligibility is read
+through `transpiler_active_can_emit_intent_cleanup_from_mir(...)` rather than a
+direct `ctx->mir` probe in the emitter owner.
+Generated-C runtime intent active-step/recent query accessors now live in
+`src/runtime/pgy_runtime_intent_query_inline.h`; panic helpers and checked
+arithmetic exports live in `src/runtime/pgy_runtime_panic_checked_inline.h`,
 reducing `src/runtime/pgy_runtime_part_ba_part_b.inc` from 894 LOC to 705 LOC
 while keeping panic codegen, panic ABI, runtime lifetime, and full ABI smoke
 green.
@@ -769,37 +872,41 @@ Beta closure condition:
 
 ### 4. Type-Resolution DAG Source Of Truth
 
-Status: graph infrastructure exists; source-of-truth authority is not complete. This is now one of the two main structural blockers alongside CFG-backed body safety.
+Status: graph infrastructure exists and the retired recursive/materializer
+fallback counters are now gated at zero for the current stable path. This is
+still a structural closure axis, but the remaining work is evidence/modeling
+completion and owner-local simplification rather than a broad fallback rewrite.
 
 Already closed:
 
 - graph inventory, cycle diagnostics, and topo derivation exist;
 - provider-first staged worklist is active for top-level declarations and synthetic local/projection nodes;
-- generic default type, constraints, where-bound, and several ability consumers run through staged DAG paths;
+- generic default type, constraints, where-bound, and ability consumers run through staged DAG paths;
 - cycle diagnostics use `Contract source`, `Reason`, and `Fix` vocabulary.
-- non-generic nominal class type references and known non-class scope symbols
-  now materialize through DAG metadata, cutting central materializer fallbacks
-  from `4135` to `1296` while preserving generic default/provenance paths.
+- non-generic nominal class type references, known non-class scope symbols,
+  generic consumer paths, and alias-cycle diagnostics are represented by
+  graph-backed metadata/evidence rather than recursive resolver calls.
+- current local evidence (2026-05-19): `retired_resolver_calls=0`,
+  `retired_resolver_body_fallbacks=0`, `stage_materialize_calls=0`,
+  `metadata_dead_ends=0`, `metadata_entries=3718`, `metadata_owned=261`, and
+  `metadata_hits=8695`.
 
 Remaining work:
 
-- move alias materialization, effective generic/default/bound facts, and
-  module/nominal provenance from recursive lookup to graph-backed execution;
-- make the graph the default source for provider/consumer ordering in the semantic paths that already have inventory edges;
+- widen module/generic/ability provenance so diagnostics and AIR evidence can
+  point at the graph fact that proved or rejected the dependency;
+- keep the graph as the default source for provider/consumer ordering in the
+  semantic paths that already have inventory edges;
 - keep module import DFS and type-resolution DAG responsibilities separate.
 
 Concrete next work:
 
-- audit remaining recursive `resolve_type_node` consumers and classify them as `graph-backed`, `namespace-only`, or `legacy`;
-- focus the next migration on alias-heavy named fallback
-  (`alias=1281`, `builtin_shell=2`, `missing=6`, `generic_named=7`) instead of
-  broad builtin-shell expansion;
-- do not shortcut alias metadata through the current symbol cache alone:
-  local testing showed that this bypasses module visibility and generic ability
-  provenance checks. Alias closure needs graph facts for export/private
-  provenance and effective generic bounds before it can replace the central
-  resolver fallback safely;
-- add tests where declaration order would fail without provider-first topo scheduling;
+- keep `type-resolution-dag-test-smoke` and
+  `type-resolution-resolver-inventory-test-smoke` as the hard cap for fallback
+  resurrection: resolver calls, body fallbacks, stage materializer calls, and
+  metadata dead-ends must remain zero;
+- add targeted regressions where declaration order would fail without
+  provider-first topo scheduling;
 - promote local contract and projection path handlers from "covered node family" to "semantic source of truth" where possible.
 
 Beta closure condition:

@@ -39,6 +39,8 @@ for rel in \
     "src/codegen/llvm_mir_block_emit.h" \
     "src/compiler/mir_cfg_contract_pin.h" \
     "src/compiler/mir_cfg_contract_validate.h" \
+    "src/compiler/mir_cfg_contract_validate_cleanup.h" \
+    "src/compiler/mir_cfg_contract_validate_cleanup.c" \
     "tests/cfg_body_dataflow_smoke.sh" \
     "tests/compare_backends.sh" \
     "docs/74_slot_pinning_caching.md" \
@@ -94,7 +96,7 @@ require_term "src/codegen/llvm_mir_pin_region.c" "pgy_unpin_%s"
 
 require_term "src/compiler/mir_cleanup_fact_names.h" "pin-unpin-cleanup-edge"
 require_term "src/compiler/mir_cleanup_fact_names.h" "MIR_CLEANUP_FACT_PIN_UNPIN_EDGE"
-require_term "src/compiler/mir_cfg_contract_validate.c" "pin-region block[%zu] missing pin-unpin cleanup fact"
+require_term "src/compiler/mir_cfg_contract_validate_cleanup.c" "pin-region block[%zu] missing pin-unpin cleanup fact"
 require_term "tests/cfg_body_dataflow_smoke.sh" "ReleaseAfterUnpin(slot, all_cfg_exits)"
 require_term "tests/cfg_body_dataflow_smoke.sh" "WriteView requires exclusive slot view access"
 require_term "tests/compare_backends.sh" "tests/cases/backend_compare/pin_read_view_block"

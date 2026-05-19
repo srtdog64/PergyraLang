@@ -5,6 +5,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "transpiler_type_mapping.h"
+
 /* =================================================================
  * Role/Ability system emitters
  * ================================================================= */

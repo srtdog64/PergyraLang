@@ -6,6 +6,8 @@
 
 #include "../parser/ast_api.h"
 
+#include "transpiler_let_slot_emit.h"
+
 /* Consumed from transpiler_mir_ssa_names.h. Keep slot claim vocabulary in the
  * shared codegen slot policy instead of repeating raw builtin strings here. */
 

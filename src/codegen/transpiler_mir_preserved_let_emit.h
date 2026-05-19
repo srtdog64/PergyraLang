@@ -3,6 +3,7 @@
 
 #include "transpiler_mir_expr_ssa.h"
 #include "transpiler_mir_reason.h"
+#include "transpiler_type_result_mapping_helpers.h"
 #include "../parser/ast_api.h"
 
 typedef enum TranspilerMIRLocalLetEmitResult {

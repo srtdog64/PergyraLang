@@ -3,7 +3,7 @@
  * MIR intent statement query helpers for C backend emission.
  */
 
-#include "transpiler.h"
+#include "transpiler_mir_intent_query.h"
 
 #include <string.h>
 

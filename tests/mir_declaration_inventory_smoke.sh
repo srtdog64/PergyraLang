@@ -40,6 +40,9 @@ for rel in \
     "src/codegen/llvm_domain_method_emit.c" \
     "src/codegen/llvm_domain_forward.c" \
     "src/codegen/llvm_domain_forward.h" \
+    "src/codegen/llvm_decl_authority.c" \
+    "src/codegen/llvm_decl_authority.h" \
+    "src/codegen/llvm_decl_routines.c" \
     "src/codegen/llvm_backend.h" \
     "src/codegen/llvm_register.c" \
     "src/codegen/transpiler.h" \
@@ -279,10 +282,26 @@ for term in \
     "llvm_register_generic_template_decl(ctx, func_decl)" \
     "llvm_emit_func_from_mir(routine, ctx)" \
     "MIR-only LLVM path missing routine for function"; do
-    require_term "src/codegen/llvm_decl.c" "$term"
+    require_term "src/codegen/llvm_decl_routines.c" "$term"
 done
+require_term "src/codegen/llvm_decl.c" '#include "llvm_decl_authority.h"'
+for term in \
+    "llvm_decl_emit_zone_authority_check(LLVMGenCtx *ctx)" \
+    "pgy_zone_authority_check_export" \
+    "ast_zone_authorities(zone_decl" \
+    "ast_zone_authority_subject_slot_name(authority)" \
+    "llvm_set_mir_inventory_missing(ctx"; do
+    require_term "src/codegen/llvm_decl_authority.c" "$term"
+done
+if grep -R "data\.zone_decl\.\(authorities\|authority_count\)" \
+    "$ROOT_DIR/src/codegen/llvm_decl.c" \
+    "$ROOT_DIR/src/codegen/llvm_decl_authority.c" >/dev/null; then
+    fail "LLVM zone authority checks must use AST zone child accessors"
+fi
 for rel in \
     "src/codegen/llvm_decl.c" \
+    "src/codegen/llvm_decl_authority.c" \
+    "src/codegen/llvm_decl_routines.c" \
     "src/codegen/llvm_intent.c" \
     "src/codegen/llvm_intent_forward.c" \
     "src/codegen/llvm_mir_emit.c"; do
@@ -431,7 +450,7 @@ if grep -RIn "llvm_set_error_with_hints(ctx" \
     fail "LLVM intent carrier diagnostics must use llvm_set_mir_intent_carrier_missing"
 fi
 if grep -A8 -F "MIR-only LLVM path missing routine for function" \
-    "$ROOT_DIR/src/codegen/llvm_decl.c" | grep -Fq "llvm_set_error(ctx"; then
+    "$ROOT_DIR/src/codegen/llvm_decl_routines.c" | grep -Fq "llvm_set_error(ctx"; then
     fail "LLVM pipeline MIR-missing diagnostics must use llvm_set_mir_inventory_missing"
 fi
 if grep -RIn "llvm_set_error(ctx" "$ROOT_DIR/src/codegen"/llvm_mir*.c \
@@ -467,7 +486,8 @@ for term in \
     "transpiler_active_has_main_function" \
     "transpiler_active_has_top_level_exec" \
     "transpiler_active_uses_intent_observability" \
-    "transpiler_active_uses_thread_pool"; do
+    "transpiler_active_uses_thread_pool" \
+    "transpiler_active_can_emit_intent_cleanup_from_mir"; do
     require_term "src/codegen/transpiler_inventory_view.h" "$term"
 done
 require_term "src/codegen/transpiler_inventory_view.c" \
@@ -563,7 +583,7 @@ if grep -RInE 'transpiler_(hosted_method_view|mir_decl_method)_ast' \
 fi
 for rel in \
     "src/codegen/transpiler_intent_context.c" \
-    "src/codegen/transpiler_projection_sync_helpers.h"; do
+    "src/codegen/transpiler_domain_receiver_query.c"; do
     require_term "$rel" "find_nominal_host_method_decl(ctx"
     if grep -Eq 'data\.class_decl\.methods\[[^]]+\]|data\.class_decl\.method_count' \
         "$ROOT_DIR/$rel"; then
@@ -686,9 +706,9 @@ for rel in \
     require_term "$rel" "transpiler_hosted_method_view_missing_mir_metadata(&method_view)"
     require_term "$rel" "emit_hosted_method_forward_decl_from_metadata"
 done
-require_term "src/codegen/transpiler_zone_decl_emit.h" \
+require_term "src/codegen/transpiler_zone_decl_emit.c" \
     "transpiler_hosted_method_view_from_decl(ctx"
-require_term "src/codegen/transpiler_zone_decl_emit.h" \
+require_term "src/codegen/transpiler_zone_decl_emit.c" \
     "transpiler_hosted_method_view_missing_mir_metadata(&method_view)"
 require_term "src/codegen/transpiler_zone_methods_emit.h" \
     "transpiler_hosted_method_view_source_ast(method_view, i)"
@@ -703,7 +723,7 @@ for term in \
     "MIR-only C path missing method declaration metadata for effect"; do
     require_term "src/codegen/transpiler_relation_effect_emit.h" "$term"
 done
-require_term "src/codegen/transpiler_zone_decl_emit.h" \
+require_term "src/codegen/transpiler_zone_decl_emit.c" \
     "MIR-only C path missing method declaration metadata for zone"
 require_term "src/codegen/transpiler_world_select_event_emit.h" \
     "MIR-only C path missing method declaration metadata for world"
@@ -740,15 +760,15 @@ require_term "src/codegen/transpiler_domain_role_ability_emit.h" \
     "transpiler_hosted_method_view_missing_mir_metadata(method_view)"
 require_term "src/codegen/transpiler_domain_role_ability_emit.h" \
     "transpiler_set_mir_inventory_missing("
-require_term "src/codegen/transpiler_intent_emit.h" \
+require_term "src/codegen/transpiler_intent_emit.c" \
     "transpiler_set_mir_inventory_missing("
 require_term "src/codegen/transpiler_intent_emit_metadata_helpers.h" \
     "transpiler_set_mir_intent_carrier_missing("
-require_term "src/codegen/transpiler_intent_cleanup_emit.h" \
+require_term "src/codegen/transpiler_intent_cleanup_emit.c" \
     "transpiler_set_mir_intent_carrier_missing("
 if grep -RIn "PGY_CODE_MIR_INTENT_CARRIER_MISSING" \
     "$ROOT_DIR/src/codegen/transpiler_intent_emit_metadata_helpers.h" \
-    "$ROOT_DIR/src/codegen/transpiler_intent_cleanup_emit.h"; then
+    "$ROOT_DIR/src/codegen/transpiler_intent_cleanup_emit.c"; then
     fail "C intent carrier diagnostics must use transpiler_set_mir_intent_carrier_missing"
 fi
 require_term "src/codegen/transpiler_mir_emit_state.c" \

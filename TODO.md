@@ -110,13 +110,20 @@ English anchor for tooling/doc gates:
   The pipeline still detects generic function declarations during forward
   declaration, but it no longer mutates `ctx->generic_templates` directly.
   Gate: `mir-declaration-inventory-test-smoke`.
-- LLVM function routine orchestration now lives in the declaration owner:
-  `llvm_decl.c` owns function forward declaration, generic-template
-  registration dispatch, non-generic MIR routine emission, and residual
-  missing-routine diagnostics through inventory helper entrypoints. The
-  pipeline only calls those stage helpers and no longer restates function
-  generic/body/residual policy locally. Gate:
+- LLVM function routine orchestration now has its own declaration-inventory
+  owner: `llvm_decl_routines.c` owns function routine forward declaration,
+  generic-template registration dispatch, non-generic MIR routine emission,
+  and residual missing-routine diagnostics through inventory helper
+  entrypoints. The pipeline only calls those stage helpers and no longer
+  restates function generic/body/residual policy locally. Gate:
   `mir-declaration-inventory-test-smoke`.
+- LLVM zone-authority declaration prelude emission now has a dedicated owner:
+  `llvm_decl_authority.c` owns current-zone lookup, zone-authority runtime
+  check emission, and structured backend errors for missing authority
+  inventory. `llvm_decl.c` remains function declaration/body emission and
+  calls this owner through `llvm_decl_authority.h`. Gates:
+  `mir-declaration-inventory-test-smoke`, `semantic-core-shape-test-smoke`,
+  `build-source-inventory-test-smoke`, and `test-inc-size-test-smoke`.
 - LLVM intent routine orchestration now lives in the intent owners:
   `llvm_intent_forward.c` owns intent routine forward declarations and
   `llvm_intent.c` owns intent routine emission. `llvm_pipeline.c` calls those
@@ -187,6 +194,16 @@ English anchor for tooling/doc gates:
   cleanup convergence are no longer interleaved in the public
   `mir_validate_cfg_contract_state(...)` body. The public API and diagnostics
   stay unchanged. Gates: `test-mir`, `cfg-body-dataflow-test-smoke`, and
+  `abi-ownership-shape-test-smoke`.
+- MIR CFG cleanup validation is now a separate source-of-truth owner:
+  `src/compiler/mir_cfg_contract_validate.c` keeps instruction inventory, HIR
+  source mapping, pin-region shape, CFG-owned fallback rejection, loop fact
+  payloads, and unreachable exceptional edge checks, while
+  `src/compiler/mir_cfg_contract_validate_cleanup.c` owns cleanup-block shape,
+  reachable cleanup-edge facts, rollback/invalidation target checks, and cleanup
+  convergence. Current sizes are 334 LOC and 245 LOC respectively. Gates:
+  `test-mir`, `cfg-body-dataflow-test-smoke`,
+  `build-source-inventory-test-smoke`, `test-inc-size-test-smoke`, and
   `abi-ownership-shape-test-smoke`.
 - MIR statement source materialization now has a dedicated owner:
   `src/compiler/mir_stmt_population_source.c` owns DEF matching, source
@@ -273,6 +290,199 @@ English anchor for tooling/doc gates:
   `transpiler_domain_provenance_emit.c`, so relation/effect/zone/world emitters
   share one linked provenance owner. Gates: `test-transpile`,
   `cfg-body-dataflow-test-smoke`, and `perf-contract-test-smoke`.
+- C backend generated specialization helpers no longer live as a static
+  implementation in `transpiler_specialization_helpers.h`. The header is now
+  declaration-only and the implementation moved to
+  `transpiler_specialization_helpers.c`; Result/Option calls, role/ability
+  dispatch, let lowering, MIR match conditions, MIR preserved lets, domain
+  nominal/role emitters, and statement dispatch now include their own
+  type-mapping or role/ability declaration seams instead of depending on a
+  hidden include-order body. Gates: `test-transpile`,
+  `perf-contract-test-smoke`, `build-source-inventory-test-smoke`,
+  `test-inc-size-test-smoke`, `semantic-core-shape-test-smoke`, and
+  `source-utf8-test-smoke`.
+- C backend Result suffix parsing and `Result<T,E>` specialization discovery
+  no longer live as static helpers in `transpiler_type_result_mapping_helpers.h`.
+  The implementation moved to `transpiler_type_result_mapping_helpers.c`, so
+  Result/Option call lowering and MIR preserved-let emission consume a linked
+  Result suffix owner instead of duplicating static parsing code through the
+  include chain. Gates: `test-transpile`, `perf-contract-test-smoke`,
+  `build-source-inventory-test-smoke`, `test-inc-size-test-smoke`,
+  `semantic-core-shape-test-smoke`, and `source-utf8-test-smoke`.
+- C backend HashMap stdlib lowering no longer lives as a static implementation
+  in `transpiler_expr_stdlib_map_builtin.h`. The dispatch table and lowering
+  body moved to `transpiler_expr_stdlib_map_builtin.c`, while HashMap type
+  metadata validation moved into the shared collection support owner. This
+  keeps the public map builtin header declaration-only and removes another
+  include-order body from collection lowering. Gates: `pgy`,
+  `perf-contract-test-smoke`, `build-source-inventory-test-smoke`,
+  `test-inc-size-test-smoke`, `semantic-core-shape-test-smoke`, and
+  `source-utf8-test-smoke`.
+- C backend Queue stdlib lowering now follows the same policy:
+  `transpiler_expr_stdlib_queue_builtin.h` is declaration-only, Queue dispatch
+  and lowering live in `transpiler_expr_stdlib_queue_builtin.c`, and unary
+  collection metadata validation lives in the shared collection support owner.
+  The collection builtin owner now delegates HashMap and Queue before handling
+  List/Set directly. Gates: `pgy`, `test-transpile`,
+  `perf-contract-test-smoke`, `build-source-inventory-test-smoke`,
+  `test-inc-size-test-smoke`, `semantic-core-shape-test-smoke`, and
+  `source-utf8-test-smoke`.
+- C backend Result/Option builtin lowering no longer lives as a static
+  implementation in `transpiler_call_result_option_builtin_emit.h`. The
+  dispatch table and lowering body moved to
+  `transpiler_call_result_option_builtin_emit.c`; the header is
+  declaration-only. Option contextual emission declarations now live in
+  `transpiler_option_context.h`, so the Result/Option owner no longer includes
+  the broad `transpiler_helpers_core_a.h` shim and avoids pulling overlay
+  implementation headers into a linked owner. Gates: `pgy`, `test-transpile`,
+  `perf-contract-test-smoke`, `build-source-inventory-test-smoke`,
+  `test-inc-size-test-smoke`, `semantic-core-shape-test-smoke`, and
+  `source-utf8-test-smoke`.
+- C backend intent observability builtin lowering no longer lives as static
+  switch/export helpers in `transpiler_intent_observability_builtin_emit.h`.
+  The implementation moved to `transpiler_intent_observability_builtin_emit.c`,
+  the header is declaration-only, and the runtime observability contract smoke
+  now checks the compiled owner. Gates: `pgy`, `test-transpile`,
+  `runtime-intent-observability-contract-test-smoke`,
+  `perf-contract-test-smoke`, `build-source-inventory-test-smoke`,
+  `test-inc-size-test-smoke`, `semantic-core-shape-test-smoke`, and
+  `source-utf8-test-smoke`.
+- C backend projection/world query helpers no longer live as static
+  implementation-header seams. Overlay domain-slot lookup, projection-target
+  detection, and world-state lookup moved into `transpiler_projection.c`;
+  overlay invalidation, builtin query dispatch, world select emission, and
+  domain constructor lowering consume the linked API. The source inventory
+  smoke rejects reintroducing the old local helper names. Gates: `pgy` and
+  `build-source-inventory-test-smoke`.
+- C backend domain query builtin lowering no longer lives in the builtin
+  dispatch header. `HasProjection`, `HasLayer`, `HasState`, `HasZone`,
+  `HasZoneProjection`, `HasZoneLayer`, and `HasZoneState` now delegate to
+  `transpiler_expr_domain_query_builtin.c`, reducing
+  `transpiler_expr_builtin_dispatch.h` to builtin-family routing instead of
+  carrying zone/world/projection lowering bodies. Gates: `pgy`,
+  `test-transpile`, and `build-source-inventory-test-smoke`.
+- C backend I/O and time builtin lowering also moved out of
+  `transpiler_expr_builtin_dispatch.h`. `FileOpen`, `FileRead`, `FileWrite`,
+  `FileClose`, `ReadFile`, `WriteFile`, `Input`, `Print`, `ReadLine`, `Now`,
+  and `Sleep` now lower through `transpiler_expr_io_builtin.c`, so the dispatch
+  header stays on family routing while the file/runtime-call bodies live in a
+  compiled owner. Gates: `pgy`, `test-transpile`,
+  `build-source-inventory-test-smoke`, `perf-contract-test-smoke`, and
+  `test-inc-size-test-smoke`.
+- C backend domain constructor lowering now has a compiled owner:
+  `transpiler_domain_constructor_emit.c` owns class compound literals,
+  party/roster/relation/effect/zone/world designated initializers, projection
+  dirty defaults, world derived dirty defaults, and enum variant constructor
+  call strings. `transpiler_call_constructor_result_emit.h` is down to a thin
+  dispatch wrapper because generic class specialization still depends on the
+  local specialization seam. Gates: `pgy`, `test-transpile`, and
+  `build-source-inventory-test-smoke`.
+- C backend expression core, composite literal, and array-access lowering now
+  have compiled owners:
+  `transpiler_expr_core_emit.c` owns binary/operator/coalescing/checked
+  div/mod lowering, `transpiler_expr_composite_literal_emit.c` owns tuple and
+  Array literal lowering, and `transpiler_expr_array_access_emit.c` owns
+  Array/Slice checked access lowering. Their headers are declaration-only, and
+  the runtime panic/perf contract smokes now read the compiled owners instead
+  of static implementation headers. Gates: `pgy`, `test-transpile`,
+  `build-source-inventory-test-smoke`, `perf-contract-test-smoke`, and
+  `runtime-panic-contract-test-smoke`.
+- C backend Channel let lowering now has a compiled owner:
+  `transpiler_let_channel_emit.c` owns `let ch: Channel<T> = Channel(n)`
+  lowering and channel metadata registration. `transpiler_let_channel_emit.h`
+  is declaration-only, and `semantic-core-shape-test-smoke` now checks the
+  compiled owner for AST call accessor discipline. Gates: `pgy`,
+  `test-transpile`, `build-source-inventory-test-smoke`,
+  `semantic-core-shape-test-smoke`, and `test-inc-size-test-smoke`.
+- C backend Box/Rc let lowering now has a compiled owner:
+  `transpiler_let_box_emit.c` owns `Box<T>`, `Box<Array<T>>`, and `Rc<T>`
+  let-constructor lowering. `transpiler_let_box_emit.h` is declaration-only, so
+  resource-handle constructor policy no longer lives as a static include-order
+  body. Gates: `pgy`, `test-transpile`, `build-source-inventory-test-smoke`,
+  and `test-inc-size-test-smoke`.
+- C backend Future/RemoteFuture type queries now have a compiled owner:
+  `transpiler_future_type_query.c` owns spawn return type inference,
+  RemoteFuture detection, and Future inner-type extraction. The forward-helper
+  include now consumes this linked API instead of carrying static Future query
+  bodies.
+- C backend post-let type registration now has a compiled owner:
+  `transpiler_let_type_register_emit.c` owns call/spawn/channel receive
+  registration after let emission, and `transpiler_let_type_register_emit.h` is
+  declaration-only. Gates: `pgy`, `test-transpile`,
+  `build-source-inventory-test-smoke`, and `test-inc-size-test-smoke`.
+- C backend collection let lowering now has a compiled owner:
+  `transpiler_let_collection_emit.c` owns `Option<T>` `Some`/`None` let
+  lowering plus `HashMap<String,T>`, `List<T>`, and `Queue<T>` constructor
+  lowering. `transpiler_let_collection_emit.h` is declaration-only, and source
+  inventory now checks the linked owner instead of allowing a static header body.
+  Gates: `pgy`, `test-transpile`, `build-source-inventory-test-smoke`, and
+  `test-inc-size-test-smoke`.
+- C backend expression builtin dispatch now has a compiled owner:
+  `transpiler_expr_builtin_dispatch.c` owns the `BuiltinKind` switch that routes
+  slot, domain query, I/O, allocator, Rc/Box, intent observability, and parallel
+  expression builtins. The header is declaration-only, so builtin dispatch no
+  longer depends on expression-emitter include-order bodies. Gates: `pgy`,
+  `test-transpile`, `build-source-inventory-test-smoke`, and
+  `test-inc-size-test-smoke`.
+- C backend zone specialization emission is now fully linked through the source
+  inventory: `transpiler_zone_specialization_emit.c` owns required zone slot,
+  shared-field, and hosted-method specialization discovery, while the header is
+  declaration-only and includes the canonical hosted-method view declarations.
+  Gates: `pgy`, `test-transpile`, `build-source-inventory-test-smoke`, and
+  `test-inc-size-test-smoke`.
+- C backend zone struct/layer accessor emission now has a compiled owner:
+  `transpiler_zone_struct_emit.c` owns generated zone struct fields,
+  projection readiness fields, hidden provenance fields, and generated layer
+  accessors. `transpiler_zone_struct_emit.h` is declaration-only and is covered
+  by the implementation-header guardrail. Gates: `pgy`, `test-transpile`,
+  `build-source-inventory-test-smoke`, `test-inc-size-test-smoke`,
+  `memory-string-safety-test-smoke`, and `semantic-core-shape-test-smoke`.
+- C backend control-flow statement lowering now has a compiled owner:
+  `transpiler_control_flow_emit.c` owns `if`, `for`, `while`, loop-label lookup,
+  and the shared C condition-head formatter consumed by MIR branch emission.
+  `transpiler_control_flow_emit.h` is declaration-only, and the old
+  include-order seam in `transpiler_mir_emit_state.h` was removed. Gates:
+  `pgy`, `test-transpile`, `build-source-inventory-test-smoke`, and
+  `test-inc-size-test-smoke`.
+- C backend MIR CFG control lowering now has a compiled owner:
+  `transpiler_mir_cfg_control_emit.c` owns MIR loop initialization, for-in body
+  binding, loop backedge increments, branch-condition rendering, and select
+  readiness condition rendering. `transpiler_mir_cfg_control_emit.h` is
+  declaration-only, so MIR block/terminator emission consumes one linked CFG
+  control API instead of a static implementation header. Gates: `pgy`,
+  `test-transpile`, `build-source-inventory-test-smoke`, and
+  `test-inc-size-test-smoke`.
+- C backend MIR match condition lowering now has a compiled owner:
+  `transpiler_mir_match_condition_emit.c` owns Option/Result destructor
+  pattern conditions, payload binding, match guard composition, and
+  match-subject discovery. `transpiler_mir_match_condition_emit.h` is
+  declaration-only, so CFG control lowering consumes a linked condition-render
+  API instead of a static implementation header. Gates: `pgy`,
+  `test-transpile`, `build-source-inventory-test-smoke`,
+  `test-inc-size-test-smoke`, `perf-contract-test-smoke`, and
+  `semantic-core-shape-test-smoke`.
+- C MIR emission predicate wrapper debt is removed:
+  `transpiler_mir_emit_predicates.h` was only two static wrappers around the
+  canonical `*_with_reason(...)` contract APIs. The function and intent emitters
+  now call the reason-capable APIs directly with `NULL` reason buffers when they
+  do not need diagnostics, and the redundant implementation header is deleted.
+  Gates: `pgy`, `test-transpile`, and `test-inc-size-test-smoke`.
+- The implementation-header regression gate now tracks the newest declaration-only
+  C backend headers, including Result/Option, domain constructor, expression
+  builtin dispatch, core/composite/array access, domain query, I/O,
+  HashMap/Queue stdlib, intent observability, Future type query, Box/Rc let,
+  Channel let, collection let, let type-register, zone specialization, zone
+  struct/layer accessor, control-flow / MIR CFG control, and MIR match condition
+  seams. This keeps recently split owners from silently growing static bodies
+  again. Gate:
+  `test-inc-size-test-smoke`.
+- AST type-to-C copy ownership moved out of the forward-helper include:
+  `pergyra_ast_type_to_c_copy(...)` now lives in
+  `src/codegen/transpiler_type_render.c`, matching its public declaration in
+  `transpiler_type_render.h`. `transpiler_func_forward_helpers.h` no longer
+  owns the shared AST type conversion body. Gates: `pgy`, `test-transpile`,
+  `perf-contract-test-smoke`, `semantic-core-shape-test-smoke`, and
+  `test-inc-size-test-smoke`.
 - Backend parity inventory now includes the nested generic container case in
   the default compare suite, and `intent_failure_abi` compile-diagnostic
   expectations match the current zero-warning semantic policy for both C and
@@ -621,11 +831,12 @@ English anchor for tooling/doc gates:
   to current-host, host-decl/method lookup, subject-slot/authority, and
   movable-resource helper facts, so overlay construction no longer shares the
   same owner as host-boundary validation.
-- C let-lowering collection constructors now have a responsibility-named owner:
-  `src/codegen/transpiler_let_collection_emit.h` owns `Option<T>` `Some`/`None`
-  let lowering plus `HashMap<String,T>`, `List<T>`, and `Queue<T>` constructor
-  lowering. `transpiler_let_emit.h` is reduced to 417 LOC and no longer carries
-  the collection constructor dispatch body inline.
+- C let-lowering collection constructors now have a responsibility-named linked
+  owner: `src/codegen/transpiler_let_collection_emit.c` owns `Option<T>`
+  `Some`/`None` let lowering plus `HashMap<String,T>`, `List<T>`, and
+  `Queue<T>` constructor lowering. `transpiler_let_collection_emit.h` is
+  declaration-only, and `transpiler_let_emit.h` stays on orchestration rather
+  than carrying the collection constructor dispatch body inline.
 - C type-name parsing utilities now have a dedicated owner:
   `src/codegen/transpiler_type_name_utils.c` owns constructed-argument
   extraction, inner-type extraction, C suffix sanitization, and capped string
@@ -1556,10 +1767,11 @@ English anchor for tooling/doc gates:
   `transpiler_let_emit.h` (563 LOC after moving let type-registration
   bookkeeping into the 34 LOC `transpiler_let_type_register_emit.h`),
   `transpiler_mir_block_emit.h` (527 LOC),
-  `transpiler_intent_emit.h` (505 LOC),
-  `transpiler_zone_decl_emit.h` (504 LOC after moving specialization and
-  hosted-method emission to `transpiler_zone_specialization_emit.h` /
-  `transpiler_zone_methods_emit.h`),
+  `transpiler_intent_emit.c` (524 LOC compiled owner; `transpiler_intent_emit.h`
+  is now an 8 LOC declaration seam),
+  `transpiler_zone_decl_emit.c` (511 LOC compiled owner; `transpiler_zone_decl_emit.h`
+  is now an 8 LOC declaration seam, while hosted-method body emission still
+  bridges through the legacy `transpiler.c` include-order chain),
   `transpiler_domain_nominal_emit.h` (470 LOC after moving roster declaration
   emission to `transpiler_roster_decl_emit.h`),
   `transpiler_expr_stdlib_collection_builtin.c` (462 LOC after moving Queue/
@@ -1794,11 +2006,11 @@ English anchor for tooling/doc gates:
   names through shared `static char` scratch buffers; recursive expression
   inference now leaves those names in `TranspilerCtx.arena`. Gates:
   `bin/pgy.exe`, `perf-contract-test-smoke`, `test-transpile`.
-- Runtime intent active-handle lookup remains indexed on the hot path. The
-  linear scan in `pgy_intent_find_active_entry_linear*` is a compatibility
-  fallback only; both inline runtime and exported runtime-library paths must
-  probe `pgy_intent_active_index_find_slot*` first. Gate:
-  `perf-contract-test-smoke`.
+- Runtime intent active-handle lookup remains indexed on the hot path. Both
+  inline runtime and exported runtime-library paths probe
+  `pgy_intent_active_index_find_slot*` first, and any defensive registry scan
+  now self-heals the index with `pgy_intent_active_index_set*` before returning
+  the slot. Gate: `perf-contract-test-smoke`.
 - Runtime intent no-trace allocation parity is tightened: the inline runtime
   path now mirrors the runtime-lib export path by avoiding the active-entry
   name `strdup` when `PGY_INTENT_OBSERVABILITY_ENABLED=0`. The active registry
@@ -6127,6 +6339,7 @@ Progress log, 2026-05-04:
 - Split C backend event builtin call lowering out of `transpiler_event_builtin_emit.h` into `transpiler_event_builtin_emit.c`; the header is now declaration-only, and the new owner avoids pulling the broader `transpiler_helpers.h` include-order stack by using a local invoke-string formatter. Gates: targeted `gcc -fsyntax-only` for `transpiler_event_builtin_emit.c` and `transpiler.c`, plus `test-transpile` (`717/0`).
 - Split C backend intent condition-failure lowering out of `transpiler_intent_failure_emit.h` into `transpiler_intent_failure_emit.c`; the header is now declaration-only and the body consumes only the public context/output helper seam. Gates: targeted `gcc -fsyntax-only` for `transpiler_intent_failure_emit.c` and `transpiler.c`, plus `test-transpile` (`717/0`).
 - Split C backend intent emit metadata helpers out of `transpiler_intent_emit_metadata_helpers.h` into `transpiler_intent_emit_metadata_helpers.c`; the remaining header surface is limited to intent-emission control macros that intentionally bind call-site `goto`/context restoration. Gates: targeted `gcc -fsyntax-only` for `transpiler_intent_emit_metadata_helpers.c` and `transpiler.c`, plus `test-transpile` (`717/0`).
+- Split the main C backend intent declaration emitter out of `transpiler_intent_emit.h` into `transpiler_intent_emit.c`; the header is now an 8 LOC declaration seam, the compiled owner is 524 LOC, and intent cleanup MIR eligibility now flows through `transpiler_active_can_emit_intent_cleanup_from_mir(...)` instead of direct `ctx->mir` access. Gates: targeted object build for `transpiler_intent_emit.c`, `pgy`, `build-source-inventory-test-smoke`, `test-inc-size-test-smoke`, `mir-declaration-inventory-test-smoke`, and `test-transpile` (`770/0`).
 - Moved the C backend indentation compatibility wrappers out of `transpiler_context.h` into `transpiler_context.c`; the header now declares `write_indent(...)` / `write_indent_to(...)` instead of embedding inline bodies at every include site. Gates: targeted `gcc -fsyntax-only` for `transpiler_context.c` and `transpiler.c`, plus `test-transpile` (`717/0`).
 - Moved ability vtable tag rendering out of `transpiler_role_ability_helpers.h` into the existing `transpiler_role_ability.c` owner, and introduced declaration-only `transpiler_type_mapping.h` so compiled owners can consume type-mapping APIs without pulling implementation headers. Gates: targeted `gcc -fsyntax-only` for `transpiler_role_ability.c` and `transpiler.c`, plus `test-transpile` (`717/0`).
 - Moved event declaration/subscription emission out of `transpiler_event_emit.h` into `transpiler_event_emit.c`; the header is now declaration-only, and event lowering now links through a normal C backend owner instead of exporting global function bodies through an implementation header. Gates: targeted `gcc -fsyntax-only` for `transpiler_event_emit.c` and `transpiler.c`, plus `test-transpile` (`717/0`).
@@ -6186,7 +6399,7 @@ Progress log, 2026-05-04:
 - Added include guards to four more C backend implementation headers: `transpiler_expr_core_builtins_emit.h`, `transpiler_call_constructor_result_emit.h`, `transpiler_projection_sync_helpers.h`, and `transpiler_mir_emission_contract.h`. This keeps the current include-order implementation model stable while future extraction remains responsibility-first instead of size-only. Gates: targeted `gcc -fsyntax-only` for `transpiler.c` and `test-transpile` (`717/0`).
 - Added include guards to the next C backend implementation-header batch: `transpiler_domain_role_ability_emit.h`, `transpiler_specialization_helpers.h`, and `transpiler_expr_call_spawn_emit.h`. These guards do not claim extraction completion; they make the remaining include-order debt safer while responsibility-owned `.c` splits are staged. Gates: targeted `gcc -fsyntax-only` for `transpiler.c` and `test-transpile` (`717/0`).
 - Added include guards to C backend expression/let dispatch implementation headers `transpiler_let_emit.h`, `transpiler_expr_dispatch_emit.h`, and `transpiler_expr_builtin_dispatch.h`. These remain implementation headers, but accidental double-include redefinition is now blocked while the future `.c` owner extraction is staged behind explicit helper APIs. Gates: targeted `gcc -fsyntax-only` for `transpiler.c` and `test-transpile` (`717/0`).
-- Added include guards to high-traffic C backend implementation headers `transpiler_mir_block_emit.h`, `transpiler_helpers.h`, `transpiler_intent_emit.h`, and `transpiler_zone_decl_emit.h`. This is a structural safety pass, not a replacement for future responsibility-owned `.c` extraction. Gates: targeted `gcc -fsyntax-only` for `transpiler.c`, `build-source-inventory-test-smoke`, `test-inc-size-test-smoke`, and `test-transpile` (`717/0`).
+- Added include guards to high-traffic C backend implementation headers `transpiler_mir_block_emit.h`, `transpiler_helpers.h`, `transpiler_intent_emit.h`, and `transpiler_zone_decl_emit.h`. This was a structural safety pass, not a replacement for future responsibility-owned `.c` extraction; `transpiler_intent_emit.h` and `transpiler_zone_decl_emit.h` have since been promoted to declaration-only headers with compiled owners. Gates: targeted `gcc -fsyntax-only` for `transpiler.c`, `build-source-inventory-test-smoke`, `test-inc-size-test-smoke`, and `test-transpile` (`717/0`).
 - Added include guards to the three C backend include-order shims `transpiler_base_a_emitters.h`, `transpiler_base_b_emitters.h`, and `transpiler_domain_role_emit.h`. This does not remove the shim debt, but it prevents accidental double-include redefinition while the remaining C backend helper APIs are extracted responsibility-first. Gates: targeted `gcc -fsyntax-only` for `transpiler.c`, `build-source-inventory-test-smoke`, `test-inc-size-test-smoke`, and `test-transpile` (`717/0`).
 - Refreshed `mir_declaration_inventory_smoke.sh` after declaration-inventory implementation headers moved into compiled owners. The gate now distinguishes declaration-only headers from implementation owners for LLVM inventory lookup, LLVM hosted method views, C hosted method views, C role MIR lookup, and transpiler inventory views. Gates: `mir-declaration-inventory-test-smoke`, `test-mir` (`41/0`), `build-source-inventory-test-smoke`, and `test-inc-size-test-smoke`.
 - Split codegen frontier policy AST wrappers out of `domain_frontier_policy.h` into `domain_frontier_policy.c`; the runtime frontier arithmetic remains the source of truth in `pgy_frontier_policy.h`, while C/LLVM domain emitters now consume a declaration-only codegen compatibility seam. Gates: `runtime-frontier-contract-test-smoke`, `runtime-frontier-policy-test-smoke`, `build-source-inventory-test-smoke`, `test-inc-size-test-smoke`, and `test-transpile` (`717/0`).
@@ -6202,6 +6415,9 @@ Progress log, 2026-05-04:
 - Split LLVM hosted method inventory view helpers out of `llvm_inventory_host_methods.h` into `llvm_inventory_host_methods.c`; the header is now a 46-line declaration/shape owner instead of a static implementation body. Gates: `llvm-test-smoke`, `build-source-inventory-test-smoke`.
 - Split LLVM MIR-backed declaration lookup helpers out of `llvm_inventory_decl_lookup.h` into `llvm_inventory_decl_lookup.c`; the header is now a 25-line declaration owner and keeps party/role/roster host fallback parity in the single lookup owner. Gates: `llvm-test-smoke`, `build-source-inventory-test-smoke`.
 - Split C backend intent context/binding lookup helpers out of `transpiler_block_intent_helpers.h` into `transpiler_intent_context.c`, reducing `transpiler_block_intent_helpers.h` from 452 LOC / 18 static bodies to 354 LOC / 11 static bodies. Gates: `test-transpile`, `build-source-inventory-test-smoke`.
+- Split C backend intent zone bind/rebind emission out of `transpiler_block_intent_helpers.h` and `transpiler_block_intent_rebind_helpers.h` into compiled owners `transpiler_block_intent_helpers.c` and `transpiler_block_intent_rebind_helpers.c`; both headers are declaration-only and keep intent cleanup/step emission off static include-order bodies. Gates: standalone owner compile, `pgy`, `build-source-inventory-test-smoke`, `test-inc-size-test-smoke`, `runtime-frontier-contract-test-smoke`, `perf-contract-test-smoke`, `semantic-core-shape-test-smoke`, and `test-transpile` (`770/0`).
+- Split C backend intent cleanup/rollback/invalidation tail emission out of `transpiler_intent_cleanup_emit.h` into compiled owner `transpiler_intent_cleanup_emit.c`; the header now exposes only the cleanup-tail seam, and MIR carrier-missing diagnostics stay on the shared `transpiler_set_mir_intent_carrier_missing(...)` path. Gates: standalone owner compile, `pgy`, `build-source-inventory-test-smoke`, `test-inc-size-test-smoke`, `mir-declaration-inventory-test-smoke`, and `test-transpile` (`770/0`).
+- Split C backend intent signature/runtime-entry emission out of `transpiler_intent_prologue_emit.h` into compiled owner `transpiler_intent_prologue_emit.c`; the header now exposes only the prologue seam, while type-copy diagnostics and string surface guards remain smoke-gated at the compiled owner. Gates: standalone owner compile, `pgy`, `build-source-inventory-test-smoke`, `test-inc-size-test-smoke`, `memory-string-safety-test-smoke`, `perf-contract-test-smoke`, and `test-transpile` (`770/0`).
 - Split C backend hosted method view helpers out of `transpiler_decl_lookup.h` into `transpiler_decl_method_view.c`; the header now declares the MIR-backed view API instead of embedding 13 static inline bodies in every consumer. Gates: `test-transpile`, `build-source-inventory-test-smoke`.
 - Removed the LLVM `ChannelClose` fake integer fallback: the channel close lowering now retuns the generated void call instead of materializing `i32 0`, keeping task/channel builtins aligned with the explicit failure-helper policy. Gates: `backend-inc-size-test-smoke`, `llvm-test-smoke`.
 - Split LLVM domain-query argument/false-constant utilities out of `llvm_expr_domain_query_calls.h` into `llvm_expr_domain_query_utils.c`, reducing the query header before the next include-order-sensitive domain split. Gates: `llvm-test-smoke`, `build-source-inventory-test-smoke`.
@@ -6252,6 +6468,7 @@ Progress log, 2026-05-04:
 - Split LLVM expression call dispatcher out of `llvm_expr_call_dispatch.h` into `llvm_expr_call_dispatch.c`; `llvm_expr_call_owners.h` now shrinks to the call-dispatch declaration seam instead of importing every call-family implementation header into `llvm_expr.c`. Gates: targeted `gcc -fsyntax-only` for `llvm_expr_call_dispatch.c` and `llvm_expr.c`; full make gates are currently blocked locally by shell/WSL permission errors.
 - Split LLVM projection-sync body emission out of `llvm_domain_projection_sync_body_helpers.h` into `llvm_domain_projection_sync_body_helpers.c`; domain method/zone sync owners now share a declaration-only projection body seam while bounded projection recompute code lives in one compiled owner. Gates: targeted `gcc -fsyntax-only` for `llvm_domain_projection_sync_body_helpers.c`, `llvm_domain_projection_sync_helpers.c`, `llvm_domain_zone_sync.c`, and `llvm_domain_method_emit.c`; full make gates are currently blocked locally by shell/WSL permission errors.
 - Split C backend intent zone-slot resolution out of `transpiler_intent_zone_binding_emit.h` into `transpiler_intent_zone_slot.c`; block intent binding and intent trace emit now consume a named compiled owner for alias/zone slot resolution instead of relying on header include order. Gates: targeted `gcc -fsyntax-only` for `transpiler.c` and `transpiler_intent_zone_slot.c`; full make gates are currently blocked locally by shell/WSL permission errors.
+- Split C backend intent zone-binding emission out of `transpiler_intent_zone_binding_emit.h` into `transpiler_intent_zone_binding_emit.c`; intent forward declarations and zone-bound alias restore emission now live in a compiled owner, and the header is declaration-only. Gates: standalone owner compile, `pgy`, `build-source-inventory-test-smoke`, `test-inc-size-test-smoke`, `memory-string-safety-test-smoke`, `perf-contract-test-smoke`, `semantic-core-shape-test-smoke`, and `test-transpile` (`770/0`).
 - Split C backend MIR SSA lookup helpers out of `transpiler_mir_ssa_lookup.h` into `transpiler_mir_ssa_lookup.c`; prior-block, block-exit, renamed-local, and routine-exit SSA name resolution now share one compiled owner while `transpiler_mir_emit_decls.h` only exposes the early declaration seam. Gates: targeted `gcc -fsyntax-only` for `transpiler.c` and `transpiler_mir_ssa_lookup.c`; full make gates are currently blocked locally by shell/WSL permission errors.
 - Split C backend MIR role-method lookup and SSA entry/name rendering out of `transpiler_mir_ssa_names.h` into `transpiler_mir_role_lookup.c`, `transpiler_mir_ssa_entry.c`, and `transpiler_mir_ssa_names.c`; the SSA names header is now declaration-only, and SSA C-name rendering now receives `TranspilerCtx *` explicitly instead of reading the type-render context global. Gates: targeted `gcc -fsyntax-only` for `transpiler.c`, `transpiler_mir_role_lookup.c`, `transpiler_mir_ssa_entry.c`, and `transpiler_mir_ssa_names.c`; full make gates are currently blocked locally by shell/WSL permission errors.
 - Split C backend MIR pin-region emission out of `transpiler_mir_pin_emit.h` into `transpiler_mir_pin_emit.c`; pin enter/exit, pin-slot lookup, anchor-def probing, and resource-alias seeding are now a compiled owner, while the pin header is declaration-only. Gates: targeted `gcc -fsyntax-only` for `transpiler.c` and `transpiler_mir_pin_emit.c`; full make gates are currently blocked locally by shell/WSL permission errors.
@@ -7944,14 +8161,14 @@ dispatch / semantic lookup / runtime data structure 3축 결과 통합. *정확�
 - C backend let-declaration lowering no longer carries Slot/DeviceSlot,
   ReadView/WriteView/MoveToken, and Slot/SecureSlot sugar logic inside the
   mixed `emit_let_decl(...)` owner. Those paths now live in
-  `src/codegen/transpiler_let_slot_emit.h`.
-- `src/codegen/transpiler_let_emit.h` is now 505 LOC and
-  `src/codegen/transpiler_let_slot_emit.h` is 297 LOC, so the let-declaration
-  owner family is below the 600 LOC split-review threshold without adding
-  `.inc` files.
-- Local gates: `make pgy`, `make test-transpile`,
-  `make production-header-size-test-smoke`, and
-  `make backend-inc-size-test-smoke` are green.
+  `src/codegen/transpiler_let_slot_emit.c`; the public
+  `src/codegen/transpiler_let_slot_emit.h` seam is declaration-only.
+- The compiled slot/view let owner remains below the 600 LOC split-review
+  threshold without adding `.inc` files.
+- Latest focused gates: `make pgy`, `make test-transpile`,
+  `make build-source-inventory-test-smoke`, `make test-inc-size-test-smoke`,
+  `make memory-string-safety-test-smoke`, and `make perf-contract-test-smoke`
+  are green.
 - C domain role/ability ownership is also split away from propagation
   provenance. `transpiler_domain_provenance_emit.h` now owns hidden
   epoch/cause field emission and projection-chain bounded recompute, while
@@ -7983,6 +8200,14 @@ dispatch / semantic lookup / runtime data structure 3축 결과 통합. *정확�
   `make production-header-size-test-smoke`,
   `make backend-inc-size-test-smoke`, and `make llvm-test-backend-compare`
   are green (`196/0` ABI same-process, `65/65` backend compare).
+- C let slot lowering is now linked through a compiled owner:
+  `src/codegen/transpiler_let_slot_emit.c` owns
+  ClaimSlot/ClaimSecureSlot/ClaimDeviceSlot, ReadView/WriteView/MoveToken
+  declarations, and Slot/SecureSlot sugar. `transpiler_let_slot_emit.h` is
+  declaration-only and listed in the header body-free gate. Local gates:
+  `make pgy`, `make test-transpile`, `make build-source-inventory-test-smoke`,
+  `make test-inc-size-test-smoke`, `make memory-string-safety-test-smoke`, and
+  `make perf-contract-test-smoke` are green.
 - C type mapping ownership is now split by concen:
   `transpiler_type_mapping_helpers.h` keeps primitive/collection/slot/result
   mapping and suffix helpers at 563 LOC, while
@@ -8202,6 +8427,11 @@ dispatch / semantic lookup / runtime data structure 3축 결과 통합. *정확�
   now consumes the same `mir_stmt_ast_is_cfg_owned_control(...)` classifier
   instead of keeping its own CFG-control AST switch, so statement population,
   validation, and DCE share one source of truth for control-container STMTs.
+- Follow-up closure: C overlay zone effect bind-layer emission remains in
+  `transpiler_overlay_zone_bind.h`, while relation bind-layer emission is split
+  into `transpiler_overlay_zone_relation_bind.h`. This prevents the generic
+  overlay projection path from carrying an unused static relation helper after
+  `emit_zone_decl` moved to a compiled owner.
 - Follow-up closure: CFG-owned `for value in List<T>` now uses the same MIR
   facts on both backends. C and LLVM emit a MIR-owned index slot, list-size
   condition, list-get body binding, and backedge increment instead of falling
@@ -8495,13 +8725,14 @@ dispatch / semantic lookup / runtime data structure 3축 결과 통합. *정확�
 
 - `src/codegen/transpiler_intent_emit.h` is no longer a single 965 LOC
   declaration emitter. Intent signature/runtime-entry emission moved to
-  `src/codegen/transpiler_intent_prologue_emit.h`, and cleanup/rollback/
+  `src/codegen/transpiler_intent_prologue_emit.c`, cleanup/rollback/
   invalidation tail emission moved to
-  `src/codegen/transpiler_intent_cleanup_emit.h`.
-- Current C intent owner sizes are `transpiler_intent_emit.h` 577 LOC,
-  `transpiler_intent_prologue_emit.h` 186 LOC, and
-  `transpiler_intent_cleanup_emit.h` 278 LOC, all below the 600 LOC
-  split-review threshold.
+  `src/codegen/transpiler_intent_cleanup_emit.c`, and the remaining
+  orchestration body moved to `src/codegen/transpiler_intent_emit.c`.
+- Current C intent owner sizes are `transpiler_intent_emit.c` 524 LOC,
+  `transpiler_intent_prologue_emit.c` 274 LOC, and
+  `transpiler_intent_cleanup_emit.c` 292 LOC, all below the 600 LOC
+  split-review threshold. `transpiler_intent_emit.h` is declaration-only.
 - Local gate: `make pgy` and `make llvm-test-backend-compare` are green with
   ABI same-process `196 passed, 0 failed` and backend compare `64/64 passed,
   0 failed`.
@@ -9882,16 +10113,18 @@ dispatch / semantic lookup / runtime data structure 3축 결과 통합. *정확�
   compare for `destructure_array`, `destructure_tuple_retun`,
   `host_method_class_retun`, and `world_embedded_branch_projection_visibility`.
 - Lean debt-slice follow-up: C backend intent declaration emission now has a
-  private owner in `src/codegen/transpiler_intent_emit.h`; the old
+  private owner in `src/codegen/transpiler_intent_emit.c`; the old
   `transpiler_emitters_intent.inc` include body was removed. Source `.inc`
   total drops to 48,949 LOC, and no production `.inc` file remains above 900
-  LOC. Local gate used: `make -B pgy backend-inc-size-test-smoke
+  LOC. A later pass made `src/codegen/transpiler_intent_emit.h`
+  declaration-only. Local gate used: `make -B pgy backend-inc-size-test-smoke
   inc-sentinel-test-smoke test-transpile runtime-panic-codegen-test-smoke` plus
   targeted backend compare for `intent_authority_snapshot` and
   `intent_failure_observability_strings`.
-- Lean debt-slice follow-up: generated-C runtime intent-recent accessors,
-  panic helpers, and checked arithmetic exports now have a private owner in
-  `src/runtime/pgy_runtime_panic_checked_inline.h`;
+- Lean debt-slice follow-up: generated-C runtime intent active-step/recent
+  query accessors now have a private owner in
+  `src/runtime/pgy_runtime_intent_query_inline.h`; panic helpers and checked
+  arithmetic exports remain in `src/runtime/pgy_runtime_panic_checked_inline.h`;
   `pgy_runtime_part_ba_part_b.inc` drops from 894 LOC to 705 LOC and the
   runtime ABI lifetime inventory reads the new header in generated-runtime
   include order. Local gate used: `make -B pgy backend-inc-size-test-smoke

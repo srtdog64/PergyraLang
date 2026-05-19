@@ -129,6 +129,7 @@ and follow-up debt over older design notes.
 | [`124_syntax_pattern_matrix.md`](124_syntax_pattern_matrix.md) | Syntax pattern matrix: Pergyra vs C# / Rust / TS / Python / Go / Swift; gap + unique surface tracking |
 | [`127_compiler_speed_engineering.md`](127_compiler_speed_engineering.md) | Compile-speed / engineering discipline borrowed from D (DMD/LDC/GDC); measurement plan and anti-hype constraints |
 | [`124_ai_coding_atomic_units.md`](124_ai_coding_atomic_units.md) | AI-coding thesis: verifiable intent atoms, pattern-context units, and specification gradients |
+| [`129_tex_semantics_lessons.md`](129_tex_semantics_lessons.md) | TeX-derived contract lessons for scanner boundaries, delayed effects, planner-only parameters, probe-order semantics, token identity, recovery artifacts, and reviewable semantic fixtures |
 
 ## Implementation Guides
 

@@ -1,6 +1,8 @@
 #ifndef PGY_TRANSPILER_DOMAIN_NOMINAL_EMIT_H
 #define PGY_TRANSPILER_DOMAIN_NOMINAL_EMIT_H
 
+#include "transpiler_role_ability_helpers.h"
+
 static bool
 transpiler_domain_nominal_surface_desc(char *out, size_t out_size,
                                        const char *prefix,

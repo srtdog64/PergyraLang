@@ -1,6 +1,9 @@
 #ifndef PGY_TRANSPILER_STATEMENT_DISPATCH_H
 #define PGY_TRANSPILER_STATEMENT_DISPATCH_H
 
+#include "transpiler_control_flow_emit.h"
+#include "transpiler_role_ability_helpers.h"
+
 void
 emit_statement(ASTNode *node, TranspilerCtx *ctx)
 {

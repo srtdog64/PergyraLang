@@ -35,6 +35,11 @@
   declaration inventory/bootstrap iteration, where some top-level method
   discovery still starts from AST-carried inventory before reaching MIR
   metadata.
+- LLVM zone-authority declaration prelude emission now has its own owner in
+  `src/codegen/llvm_decl_authority.c`; `src/codegen/llvm_decl.c` is limited to
+  function declaration/body emission and delegates authority runtime-check
+  emission through that seam. Function routine inventory orchestration lives in
+  `src/codegen/llvm_decl_routines.c`.
 - MIR declaration inventory now has a compiler-owned active-read API seam:
   `mir_active_inventory()` and `mir_active_externs()` centralize the current
   `ASTNodeType -> MIRProgram declaration inventory` mapping. C
@@ -71,12 +76,22 @@
   `make llvm-test-backend-compare` is green with ABI same-process `196 passed,
   0 failed` and backend compare `64/64`.
 - C intent declaration emission is split below the 600 LOC threshold:
-  `transpiler_intent_emit.h` owns orchestration, while
-  `transpiler_intent_prologue_emit.h` owns signature/runtime-entry emission and
-  `transpiler_intent_cleanup_emit.h` owns cleanup/rollback/invalidation tail
-  emission. Current sizes are 577 / 186 / 278 LOC, and
-  `make llvm-test-backend-compare` remains green with ABI same-process
-  `196 passed, 0 failed` and backend compare `64/64`.
+  `transpiler_intent_emit.c` owns orchestration, while
+  `transpiler_intent_prologue_emit.c` owns signature/runtime-entry emission and
+  `transpiler_intent_cleanup_emit.c` owns cleanup/rollback/invalidation tail
+  emission. `transpiler_intent_emit.h` is now an 8 LOC declaration-only seam.
+  Current orchestration/prologue/cleanup owner sizes are 524 / 274 / 292 LOC.
+  The latest local gate for this split is `test-transpile` (`770/0`) plus
+  `build-source-inventory-test-smoke`, `test-inc-size-test-smoke`, and
+  `mir-declaration-inventory-test-smoke`.
+- C zone declaration emission is now a compiled owner instead of an
+  implementation header. `transpiler_zone_decl_emit.c` owns zone sync,
+  projection readiness, bounded frontier recompute, and the MIR hosted-method
+  metadata guard; `transpiler_zone_decl_emit.h` is an 8 LOC declaration-only
+  seam. Hosted zone method body emission still delegates through the existing
+  `transpiler.c` include-order bridge, so the remaining debt is now the smaller
+  hosted-method helper chain rather than the main zone declaration body.
+  Current zone declaration owner size is 511 LOC.
 - World semantic ownership is split below the 600 LOC threshold:
   `type_checker_world_decl.c` owns the declaration pass,
   `type_checker_world_helpers.c` owns world/zone lookup and lifecycle target

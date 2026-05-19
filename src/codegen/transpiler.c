@@ -52,8 +52,6 @@ static const char *transpiler_find_local_type_name(TranspilerCtx *ctx,
 static const char *transpiler_infer_local_type_name_from_expr(TranspilerCtx *ctx,
                                                               const ASTNode *func_decl,
                                                               ASTNode *expr);
-static const char *transpiler_let_slot_inner_from_call_type_arg(
-    TranspilerCtx *ctx, ASTNode *call);
 static bool transpiler_validate_mir_emission_contract(const TranspilerCtx *ctx,
                                                      const MIRRoutine *routine,
                                                      const ASTNode *decl,
@@ -400,6 +398,15 @@ emit_program(TranspilerCtx *ctx)
 }
 
 #include "transpiler_domain_role_emit.h"
+
+void
+transpiler_emit_zone_hosted_methods_bridge(
+    const char *name,
+    const TranspilerHostedMethodView *method_view,
+    TranspilerCtx *ctx)
+{
+    transpiler_emit_zone_hosted_methods(name, method_view, ctx);
+}
 
 void
 emit_event_invoke(ASTNode *node, TranspilerCtx *ctx)

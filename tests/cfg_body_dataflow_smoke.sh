@@ -87,6 +87,8 @@ run_literal_doc_contract_smoke() {
         "src/compiler/mir_cfg_contract_edges.c"
         "src/compiler/mir_cfg_contract_validate.h"
         "src/compiler/mir_cfg_contract_validate.c"
+        "src/compiler/mir_cfg_contract_validate_cleanup.h"
+        "src/compiler/mir_cfg_contract_validate_cleanup.c"
         "src/compiler/mir_cfg_contract_control.c"
         "src/compiler/mir_ssa_rename.c"
         "src/test_mir.c"
@@ -133,7 +135,7 @@ run_literal_doc_contract_smoke() {
         exit 1
     fi
     require_literal "src/compiler/mir_cfg_contract_cleanup_root_membership.c" "mir_cleanup_block_is_registered_root"
-    require_literal "src/compiler/mir_cfg_contract_validate.c" "not registered as a cleanup root"
+    require_literal "src/compiler/mir_cfg_contract_validate_cleanup.c" "not registered as a cleanup root"
     require_literal "src/compiler/mir_cfg_contract_cleanup_roots.c" "cleanup block %zu is not reachable"
     require_literal "src/compiler/mir_cfg_contract_cleanup_fact.c" "instruction_count > 0 && block->instructions == NULL"
     require_literal "src/compiler/mir_cfg_contract_pin.c" "instruction_count > 0 && block->instructions == NULL"
@@ -158,8 +160,8 @@ run_literal_doc_contract_smoke() {
     require_literal "src/codegen/llvm_mir_block_emit.c" "instruction count without instruction inventory"
     require_literal "src/codegen/llvm_mir_block_emit.c" "llvm_set_mir_topology_invalid(ctx"
     require_literal "src/codegen/llvm_mir_contract.c" "instruction count without instruction inventory"
-    require_literal "src/compiler/mir_cfg_contract_validate.c" "rollback successor"
-    require_literal "src/compiler/mir_cfg_contract_validate.c" "invalidation successor"
+    require_literal "src/compiler/mir_cfg_contract_validate_cleanup.c" "rollback successor"
+    require_literal "src/compiler/mir_cfg_contract_validate_cleanup.c" "invalidation successor"
     require_literal "src/compiler/mir_cleanup.c" "#include \"mir_base_helpers.h\""
     require_literal "src/compiler/mir_cleanup.c" "mir_cleanup_next_capacity"
     require_literal "src/compiler/mir_intent.c" "#include \"mir_base_helpers.h\""
@@ -420,6 +422,8 @@ mir_cfg_contract_control_path = root / "src" / "compiler" / "mir_cfg_contract_co
 mir_cfg_contract_control_impl_path = root / "src" / "compiler" / "mir_cfg_contract_control.c"
 mir_cfg_contract_validate_path = root / "src" / "compiler" / "mir_cfg_contract_validate.h"
 mir_cfg_contract_validate_impl_path = root / "src" / "compiler" / "mir_cfg_contract_validate.c"
+mir_cfg_contract_validate_cleanup_path = root / "src" / "compiler" / "mir_cfg_contract_validate_cleanup.h"
+mir_cfg_contract_validate_cleanup_impl_path = root / "src" / "compiler" / "mir_cfg_contract_validate_cleanup.c"
 mir_path = root / "src" / "compiler" / "mir.c"
 mir_ssa_rename_path = root / "src" / "compiler" / "mir_ssa_rename.h"
 mir_ssa_rename_impl_path = root / "src" / "compiler" / "mir_ssa_rename.c"
@@ -442,6 +446,7 @@ hir_lower_intent_cfg_path = root / "src" / "compiler" / "hir_lower_intent_cfg.c"
 hir_analysis_path = root / "src" / "compiler" / "hir_analysis.c"
 hir_routines_path = root / "src" / "compiler" / "hir_routines.c"
 mir_c_control_emit_path = root / "src" / "codegen" / "transpiler_mir_cfg_control_emit.h"
+mir_c_control_emit_impl_path = root / "src" / "codegen" / "transpiler_mir_cfg_control_emit.c"
 mir_llvm_emit_path = root / "src" / "codegen" / "llvm_mir_emit.c"
 mir_llvm_contract_path = root / "src" / "codegen" / "llvm_mir_contract.c"
 mir_llvm_control_emit_path = root / "src" / "codegen" / "llvm_mir_cfg_control.c"
@@ -511,6 +516,8 @@ for path in (
     mir_cfg_contract_control_impl_path,
     mir_cfg_contract_validate_path,
     mir_cfg_contract_validate_impl_path,
+    mir_cfg_contract_validate_cleanup_path,
+    mir_cfg_contract_validate_cleanup_impl_path,
     mir_path,
     mir_ssa_rename_path,
     mir_ssa_rename_impl_path,
@@ -533,6 +540,7 @@ for path in (
     hir_analysis_path,
     hir_routines_path,
     mir_c_control_emit_path,
+    mir_c_control_emit_impl_path,
     mir_llvm_emit_path,
     mir_llvm_contract_path,
     mir_llvm_control_emit_path,
@@ -636,6 +644,10 @@ mir_cfg_contract_validate = (
     mir_cfg_contract_validate_path.read_text(encoding="utf-8")
     + "\n"
     + mir_cfg_contract_validate_impl_path.read_text(encoding="utf-8")
+    + "\n"
+    + mir_cfg_contract_validate_cleanup_path.read_text(encoding="utf-8")
+    + "\n"
+    + mir_cfg_contract_validate_cleanup_impl_path.read_text(encoding="utf-8")
 )
 mir_cfg_contract_validator = (
     mir_cleanup_fact_names
@@ -665,6 +677,8 @@ mir_non_cfg_stmt_population = (
 )
 mir_codegen_control = (
     mir_c_control_emit_path.read_text(encoding="utf-8")
+    + "\n"
+    + mir_c_control_emit_impl_path.read_text(encoding="utf-8")
     + "\n"
     + mir_llvm_emit_path.read_text(encoding="utf-8")
     + "\n"

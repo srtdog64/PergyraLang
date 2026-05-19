@@ -3,8 +3,10 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "../common/string_compat.h"
+#include "transpiler_type_mapping.h"
 
 static TranspilerCtx *g_type_render_ctx = NULL;
 
@@ -181,4 +183,28 @@ transpiler_render_type_name_local(TranspilerCtx *ctx, ASTNode *type_node)
     stable = ctx != NULL ? pgy_arena_strdup(&ctx->arena, owned) : NULL;
     free(owned);
     return stable;
+}
+
+bool
+pergyra_ast_type_to_c_copy(ASTNode *type_node, char *out, size_t out_size)
+{
+    char *type_name;
+    bool ok;
+
+    if (out == NULL || out_size == 0)
+        return false;
+    out[0] = '\0';
+
+    if (type_node == NULL)
+        return pergyra_str_copy(out, out_size, "void");
+
+    if (type_node->type == AST_EVENT_HANDLER_TYPE)
+        return pergyra_str_copy(out, out_size, "void *");
+
+    type_name = render_type_name(type_node);
+    ok = pergyra_type_to_c_copy(type_name, out, out_size);
+    free(type_name);
+    if (!ok)
+        out[0] = '\0';
+    return ok;
 }

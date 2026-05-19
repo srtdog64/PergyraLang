@@ -4,6 +4,7 @@
 #include "pgy_runtime_intent_active_exports.h"
 #include "pgy_runtime_intent_history.h"
 #include "pgy_runtime_intent_exit.h"
+#include "pgy_runtime_intent_query_inline.h"
 #include "pgy_runtime_panic_checked_inline.h"
 #include "pgy_runtime_memory_array_slot_inline.h"
 #include "pgy_runtime_plain_slot_inline.h"

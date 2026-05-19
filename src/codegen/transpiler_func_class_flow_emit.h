@@ -122,7 +122,8 @@ emit_func_decl_named(ASTNode *node, const char *emitted_name,
         }
         return;
     }
-    if (transpiler_can_emit_function_from_mir(ctx, node, &mir_routine)) {
+    if (transpiler_can_emit_function_from_mir_with_reason(
+            ctx, node, &mir_routine, NULL, 0)) {
         emit_func_decl_from_mir_named(node, mir_routine, emitted_name, buf, ctx);
         return;
     }
@@ -387,8 +388,6 @@ emit_with_stmt(ASTNode *node, TranspilerCtx *ctx)
 /* -----------------------------------------------------------------
  * Control flow
  * ----------------------------------------------------------------- */
-
-#include "transpiler_control_flow_emit.h"
 
 #include "transpiler_match_emit.h"
 

@@ -221,18 +221,6 @@ pgy_intent_append_line(char **dst, const char *line)
     pgy_intent_append_line_len(dst, &ignored_len, line);
 }
 
-static inline PgyIntentActiveEntry *
-pgy_intent_find_active_entry_linear(int32_t handle)
-{
-    for (int i = 0; i < PGY_INTENT_ACTIVE_MAX; i++) {
-        if (pgy_intent_active_registry[i].active
-            && pgy_intent_active_registry[i].handle == handle) {
-            return &pgy_intent_active_registry[i];
-        }
-    }
-    return NULL;
-}
-
 #include "pgy_runtime_intent_active_index_inline.h"
 
 static inline int32_t

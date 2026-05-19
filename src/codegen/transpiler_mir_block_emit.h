@@ -331,6 +331,4 @@ transpiler_emit_mir_block_statements(CodeBuf *buf, const ASTNode *func_decl,
     ctx->active_ssa_map = saved_active_ssa_map;
     return ok;
 }
-#include "transpiler_mir_emit_predicates.h"
-
 #endif /* PGY_TRANSPILER_MIR_BLOCK_EMIT_H */

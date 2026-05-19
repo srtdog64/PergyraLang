@@ -4,6 +4,7 @@
 #include "transpiler_domain_receiver_query.h"
 #include "transpiler_expr_type_infer.h"
 #include "transpiler_format.h"
+#include "transpiler_mir_intent_query.h"
 #include "codegen_slot_type_policy.h"
 
 /* transpiler_helpers_core_a split into sub-1000 LOC include chunks.
@@ -17,10 +18,6 @@ bool transpiler_can_forward_declare_func_early(TranspilerCtx *ctx,
                                                ASTNode *func);
 bool transpiler_can_forward_declare_func_after_zones(TranspilerCtx *ctx,
                                                      ASTNode *func);
-bool transpiler_mir_intent_has_stmt(const MIRRoutine *routine,
-                                    const char *step_name,
-                                    const char *inst_name,
-                                    const char *arg0);
 bool transpiler_emit_mir_resource_op(TranspilerCtx *ctx,
                                      CodeBuf *out,
                                      int indent,

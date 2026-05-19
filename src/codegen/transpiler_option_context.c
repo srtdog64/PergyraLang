@@ -3,7 +3,8 @@
  * C backend Option<T> contextual emission helpers.
  */
 
-#include "transpiler.h"
+#include "transpiler_option_context.h"
+
 #include "transpiler_context.h"
 #include "transpiler_format.h"
 

@@ -1,6 +1,7 @@
 #ifndef PGY_TRANSPILER_MIR_TERMINATOR_EMIT_H
 #define PGY_TRANSPILER_MIR_TERMINATOR_EMIT_H
 
+#include "transpiler_control_flow_emit.h"
 #include "transpiler_mir_expr_ssa.h"
 
 /* C backend MIR terminator emission owner. */

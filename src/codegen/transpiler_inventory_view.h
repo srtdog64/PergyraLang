@@ -65,4 +65,8 @@ bool transpiler_active_uses_intent_observability(const TranspilerCtx *ctx);
 
 bool transpiler_active_uses_thread_pool(const TranspilerCtx *ctx);
 
+bool transpiler_active_can_emit_intent_cleanup_from_mir(
+    const TranspilerCtx *ctx,
+    const ASTNode *intent_decl);
+
 #endif /* PERGYRA_TRANSPILER_INVENTORY_VIEW_H */
