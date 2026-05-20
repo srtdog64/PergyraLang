@@ -70,7 +70,7 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
 
     /* Store initializer if present */
     if (init != NULL) {
-        if (getenv("PGY_DEBUG_LLVM_DETAIL") != NULL)
+        if (llvm_debug_detail_enabled())
             fprintf(stderr, "[llvm let] name=%s phase=before-init type-kind=%d\n",
                 name != NULL ? name : "-", (int)LLVMGetTypeKind(var_type));
         LLVMTypeRef saved_expected_type = ctx->current_ret_type;
@@ -84,14 +84,14 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
             ctx->expected_type_name =
                 llvm_stmt_render_type_annotation_copy(ctx, type_ann);
         LLVMValueRef val = llvm_emit_expression(init, ctx);
-        if (getenv("PGY_DEBUG_LLVM_DETAIL") != NULL)
+        if (llvm_debug_detail_enabled())
             fprintf(stderr, "[llvm let] name=%s phase=after-init val=%p\n",
                 name != NULL ? name : "-", (void *)val);
         ctx->expected_type_name = saved_expected_name;
         ctx->current_ret_type = saved_expected_type;
         if (val != NULL) {
             LLVMTypeRef val_type = LLVMTypeOf(val);
-            if (getenv("PGY_DEBUG_LLVM_DETAIL") != NULL)
+            if (llvm_debug_detail_enabled())
                 fprintf(stderr,
                     "[llvm let] name=%s phase=before-store var-kind=%d val-kind=%d\n",
                     name != NULL ? name : "-",
@@ -122,14 +122,14 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
             }
 
             LLVMBuildStore(ctx->builder, val, alloca);
-            if (getenv("PGY_DEBUG_LLVM_DETAIL") != NULL)
+            if (llvm_debug_detail_enabled())
                 fprintf(stderr, "[llvm let] name=%s phase=after-store\n",
                     name != NULL ? name : "-");
         }
     }
 
     llvm_scope_declare(ctx, name, alloca, var_type);
-    if (getenv("PGY_DEBUG_LLVM_DETAIL") != NULL)
+    if (llvm_debug_detail_enabled())
         fprintf(stderr, "[llvm let] name=%s phase=after-scope-declare\n",
             name != NULL ? name : "-");
 
@@ -183,7 +183,7 @@ llvm_emit_let_decl(ASTNode *node, LLVMGenCtx *ctx)
         LLVMTypeRef elem_type = llvm_stmt_resolve_array_elem_type(
             ctx, ast_member_object(ast_call_callee(init)), NULL);
         llvm_register_array_var(ctx, name, elem_type, -1);
-        if (getenv("PGY_DEBUG_LLVM_DETAIL") != NULL)
+        if (llvm_debug_detail_enabled())
             fprintf(stderr, "[llvm let] name=%s phase=after-slice-register\n",
                 name != NULL ? name : "-");
     }

@@ -448,8 +448,8 @@ intent DriveCar(cockpit: CockpitZone, driver: Driver)
 
     step Ignite
     {
-        // Compact form: who/where/using/authorized-by are inferred
-        // from `on:` plus the Driver.Ignite action contract.
+        // Compact form: who/where/using come from `on:` and zone context.
+        // `authorized by` is reused only from an explicit action contract.
         on: driver.Ignite();
         compensate: driver.RollbackIgnite();
         pre: true;
@@ -476,6 +476,9 @@ Features:
 Compact intent is the preferred beta authoring style. Explicit `who`, `where`,
 `using`, `requires`, and `authorized by` remain valid when inference is
 ambiguous or when the author wants the boundary to be visually explicit.
+`who` is the actor/provenance axis; `authorized by` is the approval/authority
+axis. They may name the same participant, but one never substitutes for the
+other.
 
 - `exclusive` / `concurrent` - conflict policy
 - `priority` - numeric priority for scheduling

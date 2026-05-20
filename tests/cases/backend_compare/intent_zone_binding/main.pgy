@@ -12,6 +12,7 @@ object DriverView {
 
 zone CockpitZone {
     subject slot driver: Driver
+    authority driver
     object slot dashboard: DriverView = DriverView(0)
 
     bind dashboard from driver by driver
@@ -22,9 +23,9 @@ intent SyncDrive(cockpit: CockpitZone, driver: Driver) {
     priority: 4;
 
     step Ignite {
-        where: CockpitZone;
         using: cockpit;
         who: driver;
+        authorized by: driver;
         on: driver.Ignite();
         post: cockpit.driver.hp == driver.hp;
         expect: cockpit.dashboard.hp == driver.hp;

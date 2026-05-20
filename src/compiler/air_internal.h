@@ -57,6 +57,17 @@ bool        air_step_has_world_boundary(const DIRIntentStep *step);
 AIRBoundaryKind air_boundary_kind_from_ast(const ASTNode *node);
 AIRSyncClass    air_boundary_sync_from_kind(AIRBoundaryKind kind);
 const char     *air_boundary_source_from_ast(const ASTNode *node);
+bool        air_intent_storage_valid(const AIRProgram *air);
+bool        air_boundary_storage_valid(const AIRProgram *air);
+bool        air_drift_storage_valid(const AIRProgram *air);
+bool        air_has_hir_input(const AIRProgram *air);
+bool        air_has_rir_input(const AIRProgram *air);
+bool        air_has_mir_input(const AIRProgram *air);
+bool        air_requires_strict_evidence(const AIRProgram *air);
+void        air_mark_hir_input(AIRProgram *air);
+void        air_mark_rir_input(AIRProgram *air);
+void        air_mark_mir_input(AIRProgram *air);
+AIRBoundaryNode *air_boundary_node_mut_at(AIRProgram *air, size_t index);
 size_t      air_count_step_expr_boundaries(const DIRIntentStep *step);
 bool        air_append_step_expr_boundaries(AIRProgram *air,
                                             AIRBoundaryNode *boundaries,
@@ -119,6 +130,16 @@ const char *air_boundary_missing_authority_evidence(const AIRProgram *air,
 bool        air_boundary_declares_authority_name(
                 const AIRBoundaryNode *boundary,
                 const char *authority_name);
+bool        air_boundary_authority_storage_valid(
+                const AIRBoundaryNode *boundary);
+size_t      air_boundary_authority_name_count(
+                const AIRBoundaryNode *boundary);
+const char *air_boundary_authority_name_at(
+                const AIRBoundaryNode *boundary,
+                size_t index);
+const char *air_boundary_first_authority_name_or(
+                const AIRBoundaryNode *boundary,
+                const char *fallback);
 bool        air_boundary_requires_hir_routine_evidence(
                 const AIRBoundaryNode *boundary);
 bool        air_boundary_requires_mir_pin_cleanup_evidence(
@@ -128,6 +149,10 @@ bool        air_evidence_kind_is_known(AIREvidenceKind kind);
 bool        air_evidence_kind_is_boundary_scoped(AIREvidenceKind kind);
 bool        air_evidence_kind_is_global(AIREvidenceKind kind);
 bool        air_evidence_kind_has_global_validator(AIREvidenceKind kind);
+bool        air_evidence_inventory_storage_valid(const AIRProgram *air);
+size_t      air_evidence_node_count(const AIRProgram *air);
+const AIREvidenceNode *air_evidence_node_at(const AIRProgram *air,
+                                            size_t index);
 size_t      air_global_evidence_node_count(const AIRProgram *air,
                                            AIREvidenceKind kind);
 size_t      air_global_evidence_fact_count(const AIRProgram *air,
@@ -140,10 +165,16 @@ size_t      air_boundary_evidence_node_count(const AIRProgram *air,
                                              AIREvidenceKind kind);
 size_t      air_evidence_summary_count(const AIRProgram *air,
                                         AIREvidenceKind kind);
+bool        air_increment_evidence_summary_count(AIRProgram *air,
+                                                 AIREvidenceKind kind);
 size_t      air_evidence_required_count(const AIRProgram *air,
                                          AIREvidenceKind kind);
+bool        air_increment_evidence_required_count(AIRProgram *air,
+                                                  AIREvidenceKind kind);
 bool        air_boundary_has_summary_flag(const AIRBoundaryNode *boundary,
                                           AIREvidenceKind kind);
+bool        air_boundary_mark_summary_flag(AIRBoundaryNode *boundary,
+                                           AIREvidenceKind kind);
 bool        air_validate_global_evidence_node(const AIREvidenceNode *evidence,
                                               size_t evidence_index,
                                               char **error_message);

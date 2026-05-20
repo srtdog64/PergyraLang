@@ -1,6 +1,6 @@
 # Pergyra Keyword Orthogonality
 
-Last updated: 2026-05-15
+Last updated: 2026-05-20
 
 This document fixes the semantic question answered by each Pergyra keyword
 family. The goal is not to reduce the number of keywords mechanically. The
@@ -51,6 +51,13 @@ resource fact. Intent combines facts from other axes and records provenance.
 | `causes` | effect lifecycle |
 | `success` / `failure` / `rollback` / `compensate` | intent orchestration path |
 
+`who` and `authorized by` are intentionally separate. `who` records the actor
+and execution/provenance binding for a step. `authorized by` records the
+approval subject that satisfies an authority boundary. They can use the same
+participant alias in a small example, but the compiler must not promote a
+`who` clause into an `authorized by` clause. Missing authority remains
+fail-closed and must be explicit or inherited from an explicit action contract.
+
 If this rule is broken, `intent` becomes a generic workflow VM and the meaning
 of `zone`, `authority`, and `effect` collapses.
 
@@ -79,13 +86,20 @@ Compact intent is still useful, but it is not magic inference:
 - The action header `within BattleZone` can infer the step `where`.
 - If the intent parameter list has exactly one `BattleZone` value, `using` can
   be inferred from that value.
-- `authorized by self` on the action can resolve to the receiver alias.
+- `authorized by self` on an action can be inherited by a matching step because
+  the action contract explicitly declared that approval edge.
+- A local `who` clause never creates an `authorized by` edge by itself.
 - Explicit clauses still win. If inferred and explicit clauses conflict, the
   compiler must fail closed with a diagnostic that names the missing or
   ambiguous axis owner.
 
 The IR must remain explicit after inference. Compact syntax is authoring
 ergonomics, not a hidden semantic shortcut.
+
+Diagnostics should name the concrete axis that supplied a fact. For example,
+action-contract reuse should say `reused who`, `reused zone`, `reused
+requires`, `reused causes`, or `reused authorized by`, rather than collapsing
+those facts into a generic "reused contract" message.
 
 In short: a human states or reviews the goal, AI may propose or fill the intent frame,
 and the compiler verifies the frame. The compiler may derive only facts that

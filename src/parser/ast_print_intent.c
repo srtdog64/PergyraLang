@@ -66,7 +66,7 @@ print_intent_step_contract_sources(const ASTNode *node, int indent)
         printed = true;
     }
     if (node->data.intent_step.derived_authorized_by_from_zone) {
-        printf("%sderived authorized by from zone authority", printed ? ", " : "");
+        printf("%slegacy zone-authority approval field", printed ? ", " : "");
         printed = true;
     }
     if (node->data.intent_step.derived_where_from_transfer) {

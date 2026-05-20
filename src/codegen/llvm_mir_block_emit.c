@@ -20,16 +20,6 @@ llvm_mir_instruction_has_source_ast_payload(const MIRInstruction *inst)
 }
 
 static bool
-llvm_mir_branch_has_required_condition_fact(const MIRInstruction *inst)
-{
-    if (inst == NULL)
-        return false;
-    if (mir_instruction_branch_requires_source_emit(inst))
-        return llvm_mir_instruction_has_source_ast_payload(inst);
-    return inst->expr0 != NULL;
-}
-
-static bool
 llvm_mir_def_uses_source_statement_emit(const MIRInstruction *inst)
 {
     return mir_instruction_uses_source_statement_emit(inst)
@@ -92,7 +82,7 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block, const MIRRoutine 
     for (size_t i = 0; i < mir_block->instruction_count; i++) {
         const MIRInstruction *inst = &mir_block->instructions[i];
         ASTNode *source_payload = mir_instruction_source_payload(inst);
-        if (getenv("PGY_DEBUG_LLVM_DETAIL") != NULL) {
+        if (llvm_debug_detail_enabled()) {
             fprintf(stderr,
                 "[llvm inst] block=%zu inst=%zu kind=%d ast=%d result=%s\n",
                 mir_block->id, i, (int)inst->kind,
@@ -111,7 +101,7 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block, const MIRRoutine 
                 if (llvm_mir_def_uses_channel_receive_statement_emit(inst)) {
                     LLVMValueRef mir_alloca =
                         llvm_mir_get_var(vars, var_count, inst->result_name);
-                    if (getenv("PGY_DEBUG_LLVM_DETAIL") != NULL
+                    if (llvm_debug_detail_enabled()
                         && llvm_mir_def_uses_select_receive_statement_emit(inst)) {
                         fprintf(stderr, "[llvm inst] emit_select_receive_def\n");
                     }
@@ -121,14 +111,14 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block, const MIRRoutine 
                     break;
                 }
                 if (llvm_mir_def_uses_source_statement_emit(inst)) {
-                    if (getenv("PGY_DEBUG_LLVM_DETAIL") != NULL)
+                    if (llvm_debug_detail_enabled())
                         fprintf(stderr, llvm_mir_def_uses_source_local_decl_emit(inst)
                             ? "[llvm inst] emit_source_local_decl\n"
                             : "[llvm inst] emit_source_statement\n");
                     llvm_emit_statement(source_payload, ctx);
                 } else {
                     LLVMValueRef alloca = llvm_mir_get_var(vars, var_count, inst->result_name);
-                    if (getenv("PGY_DEBUG_LLVM_DETAIL") != NULL)
+                    if (llvm_debug_detail_enabled())
                         fprintf(stderr, "[llvm inst] emit_expression_store\n");
                     LLVMValueRef val = inst->expr0 != NULL
                         ? llvm_emit_expression(inst->expr0, ctx)
@@ -146,7 +136,7 @@ llvm_emit_mir_block_with_exprs(const MIRBasicBlock *mir_block, const MIRRoutine 
                 emitted_terminator = true;
                 break;
             }
-            if (llvm_mir_branch_has_required_condition_fact(inst)
+            if (mir_instruction_has_required_branch_condition_fact(inst)
                 && mir_block->has_succ_true
                 && mir_block->has_succ_false) {
                 LLVMValueRef cond;

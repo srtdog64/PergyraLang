@@ -41,6 +41,14 @@ English anchor for tooling/doc gates:
   compiler/codegen guards rejecting direct `GenericParams` storage reopenings
   (`->params[...]`, `->default_type`, `->constraint`, and direct
   `ast_type_generic_args(...)->count/params`).
+- DAG ability-consumer evidence is now named consistently through the semantic
+  context and result surface: the old ambiguous
+  `type_resolution_dag_ability_evidence_count` field was removed, and semantic
+  stats / AIR DAG evidence consume
+  `type_resolution_dag_ability_consumer_evidence_count`. This keeps ability
+  evidence from being mistaken for a generic ability-summary mirror. Gates:
+  `perf-contract-test-smoke`, `type-resolution-dag-test-smoke`, and
+  `test-semantic`.
 - AIR parsed-source transfer/world negative coverage now exists on the source
   lowering path: the AIR test lowers a real `transfer` intent, removes the
   world boundary's boundary-scoped RIR transfer evidence, and verifies strict
@@ -55,6 +63,14 @@ English anchor for tooling/doc gates:
   for user-facing evidence details. The summary booleans remain compatibility
   telemetry; EvidenceNode inventory is the display and verification source of
   truth for AIR evidence details.
+- AIR driver diagnostics now consume the same graph accessors as dump /
+  validation owners: `driver_app.c` uses `air_drift_count(...)`, and
+  `driver_diag.c` uses `air_drift_at(...)`, `air_intent_node_at(...)`, and
+  `air_boundary_node_at(...)` for drift reporting. Driver code may format AIR
+  facts for users, but must not reopen `AIRProgram` graph arrays directly.
+  The read-only graph accessors are now public `air.h` API, while mutating
+  graph accessors and storage/input helpers remain internal. Gates: `test-air`,
+  `perf-contract-test-smoke`, and `make .tmp/bin/pgy`.
 - AIR boundary evidence shape validation now has a dedicated owner:
   `src/compiler/air_validate_boundary_evidence.c` owns boundary-scoped
   HIR/RIR/MIR evidence shape checks, provider lookups, and same-boundary
@@ -142,6 +158,64 @@ English anchor for tooling/doc gates:
   duplicate checks live in `air_evidence_mir_pin.c`, and the top-level MIR
   evidence owner only orchestrates the collectors. Gate:
   `perf-contract-test-smoke`.
+- MIR branch condition availability is now a source-shape fact instead of an
+  LLVM-local heuristic. `mir_source_shape.c` owns
+  `mir_instruction_has_required_branch_condition_fact(...)`; LLVM MIR block
+  emission, C MIR branch-condition rendering, and the C MIR emission contract
+  consume that helper for match/select source-payload branches and
+  expression-backed branches. The same owner now funnels branch shape and
+  with-slot source checks through `mir_instruction_source_matches_ast_type(...)`
+  so raw `source_ast_type == ...` comparisons do not spread inside the
+  source-shape owner. Source-statement fallback and source-statement emit
+  policy now consume `mir_instruction_source_stmt_has_side_effect_hint(...)`
+  and `mir_instruction_source_payload(...)` rather than reopening payload and
+  location fields separately. Gates: `test-mir`,
+  `cfg-body-dataflow-test-smoke`, and `perf-contract-test-smoke`.
+- MIR terminator provenance reads now use source-shape accessors as the
+  consumer seam. `mir_source_shape.c` owns
+  `mir_instruction_source_terminator_matches(...)` and
+  `mir_instruction_source_terminator_has_value(...)`; MIR terminator validation
+  and AIR MIR evidence counting consume those helpers instead of reopening
+  terminator-kind fields directly. Gate: `perf-contract-test-smoke`.
+- AIR DAG evidence now consumes SemanticResult DAG accessors instead of raw
+  `SemanticResult` counter fields. `semantic.c` owns the accessor seam for
+  metadata entries, dead ends, generic-contract evidence, and ability-consumer
+  evidence; `air_evidence_dag.c` only converts those counts into AIR evidence
+  nodes. Gates: `test-air`, `air-drift-test-smoke`, and
+  `type-resolution-resolver-inventory-test-smoke`.
+- AIR evidence summary mutation now goes through the summary-counter owner.
+  `air_validate_summary_counters.c` exposes
+  `air_increment_evidence_summary_count(...)` and
+  `air_increment_evidence_required_count(...)`; HIR, RIR, MIR, DAG, and runtime
+  evidence collectors use those helpers instead of mutating
+  `air->*_evidence_count` or propagation required counters directly.
+  EvidenceNode inventory remains the proof source; summary counters are
+  compatibility telemetry. Human and JSON AIR dumps now consume EvidenceNode
+  inventory through `air_evidence_node_count(...)` and
+  `air_evidence_node_at(...)` instead of reopening the raw inventory array.
+  HIR, MIR duplicate checks, and runtime singleton evidence collection also
+  use the same accessors for read-only inventory probes. Boundary evidence
+  shape validation and inventory validation use the same accessor seam for node
+  lookup, and top-level storage-shape validation goes through the EvidenceNode
+  owner helper. The remaining raw inventory access is limited to the
+  EvidenceNode owner. Boundary summary flag mutation now goes through
+  `air_boundary_mark_summary_flag(...)`, keeping HIR/RIR evidence collectors
+  from setting summary booleans directly. Boundary summary validation reads
+  those flags through `air_boundary_has_summary_flag(...)`, so validation no
+  longer reopens the boolean fields either. Boundary authority-name storage is
+  now also behind `air_boundary_authority_name_count(...)`,
+  `air_boundary_authority_name_at(...)`, and
+  `air_boundary_declares_authority_name(...)`; JSON dump, provenance formatting,
+  evidence validation, and RIR evidence collection no longer iterate the raw
+  authority array.
+  Gates: `test-air`, `air-drift-test-smoke`, and `perf-contract-test-smoke`.
+- LLVM detail debug gating now has one helper seam:
+  `llvm_debug_detail_enabled()`, `llvm_debug_stage_enabled()`, and
+  `llvm_debug_verify_enabled()` in `llvm_debug_flags.h` own
+  `PGY_DEBUG_LLVM_DETAIL`, `PGY_DEBUG_LLVM_STAGE`, and
+  `PGY_DEBUG_LLVM_VERIFY`; MIR block, Slice(), let-lowering, pipeline, and
+  verification traces consume those helpers instead of opening boolean debug
+  environment variables locally. Gate: `debug-hygiene-test-smoke`.
 - Memory/string safety smoke now tracks the current split owners and
   arena-owned formatter contracts: slot type construction overflow checks live
   in `type_system_slot.c`, LLVM select-channel names live in
@@ -212,6 +286,31 @@ English anchor for tooling/doc gates:
   source-order interleaving and block rewrite orchestration. Gates:
   `make pgy`, `test-mir`, `cfg-body-dataflow-test-smoke`, and
   `build-source-inventory-test-smoke`.
+- C semantic statement orchestration is now thinner: enum declaration checking
+  lives in `src/semantic/type_checker_enum_decl.c`, and assignment-target path
+  / borrowed-boundary root rendering lives in
+  `src/semantic/type_checker_assignment_path.c`. Break/continue validation now
+  lives in `src/semantic/type_checker_loop_control.c`, keeping loop-control
+  diagnostics out of the statement dispatcher. Type-resolution DAG worklist
+  execution now lives in `src/semantic/type_checker_resolution_worklist.c`,
+  so `type_checker.c` stays a narrow statement/program dispatch owner instead
+  of carrying those helper bodies. Gates: `test-semantic`,
+  `type-resolution-dag-test-smoke`,
+  `type-resolution-resolver-inventory-test-smoke`,
+  `semantic-core-shape-test-smoke`, and `build-source-inventory-test-smoke`.
+- Intent contract-source diagnostics no longer collapse action reuse into a
+  generic "reused from matching action contract" line. `who`, `where`,
+  `requires`, `causes`, and `authorized by` provenance must stay concrete so
+  actor/provenance and approval/authority axes remain visually separate.
+  Gates: `test-semantic`, `intent-compression-contract-test-smoke`, and
+  `semantic-core-shape-test-smoke`.
+- Do not move `src/codegen/transpiler_mir_block_emit.h` directly into a `.c`
+  owner yet. It still depends on static local-type and generic-specialization
+  seams supplied by the `transpiler.c` include order. The safe sequence is:
+  first promote local-type lookup/render and generic-specialization helpers to
+  compiled owners, then make MIR block emission a compiled owner. A mechanical
+  header-to-`.c` move currently creates implicit-declaration debt instead of
+  removing debt.
 - MIR resource-op source ordering now stays statement-owned instead of
   pre-DEF copied: `mir_populate_stmt_instructions(...)` assigns resource-op
   source-statement indices before block reconstruction and leaves indexed
@@ -1763,7 +1862,8 @@ English anchor for tooling/doc gates:
   Current near-threshold codegen headers to watch before they cross the signal:
   `transpiler_expr_dispatch_emit.h` (585 physical LOC after splitting
   `AST_PARTY_INSTANCE` expression emission into the 27 LOC
-  `transpiler_expr_party_instance_emit.h`), `llvm_internal.h` (574 LOC),
+  `transpiler_expr_party_instance_emit.h`), `llvm_internal.h` (575 LOC after
+  moving LLVM debug env reads into `llvm_debug_flags.h`),
   `transpiler_let_emit.h` (563 LOC after moving let type-registration
   bookkeeping into the 34 LOC `transpiler_let_type_register_emit.h`),
   `transpiler_mir_block_emit.h` (527 LOC),
@@ -6221,6 +6321,9 @@ Progress log, 2026-05-04:
   `non_cfg_body_fallback_total`, and
   `non_cfg_body_fallback_routine_count`; MIR lowering refreshes the inventory,
   MIR dumps print the aggregate, and validation rejects stale aggregate counts.
+  The refresh and validator paths now share
+  `mir_count_non_cfg_body_fallback_inventory(...)` so the aggregate formula has
+  one owner inside `mir.c`.
   This makes the remaining body-population fallback measurable at the MIR
   program boundary instead of only per-routine. While revalidating this slice,
   `test-mir` exposed two real CFG/MIR metadata bugs: `hir_callgraph.o` was
@@ -6361,7 +6464,7 @@ Progress log, 2026-05-04:
 - Split MIR declaration-header validator cases out of `test_mir_lowering_part_b.cases.h` into `test_mir_lowering_part_c.cases.h`, bringing part B back under the 990 LOC test-case header gate after the MIR fact regressions were expanded. Gates: `test-inc-size-test-smoke` and `test-mir` (`44/0`).
 - Tightened whole-program usage discovery for intent observability and thread-pool runtime requirements: normal lowered MIR now consumes validated surface-usage facts, and the legacy fallback probes only explicit expression payloads (`expr0`/`expr1`) for hand-built MIR fixtures without HIR provenance. Source statement AST scanning is smoke-rejected for both usage paths, and the old `allow_legacy_ast_probe` naming is banned to keep the seam payload-only. Gates: `test-transpile` (`717/0`) and `perf-contract-test-smoke`.
 - Renamed the LLVM MIR branch condition gate from `llvm_mir_branch_has_condition_payload(...)` to `llvm_mir_branch_has_required_condition_fact(...)` because match/select compatibility branches still require source AST while ordinary expression/range/for-in branches require MIR expression facts. This keeps the remaining compatibility seam named honestly instead of pretending every branch condition is payload-backed. Gate: `perf-contract-test-smoke`.
-- Rechecked DAG source-of-truth closure after the MIR/codegen cleanup: `type-resolution-resolver-inventory-test-smoke` keeps direct resolver and metadata fallback seam inventory at cap 0, and `type-resolution-dag-test-smoke` reports `retired_resolver_calls=0`, `retired_resolver_body_fallbacks=0`, `metadata_dead_ends=0`, and `materializer_unresolved=0` with `graph-backed skips=2058`, `metadata_entries=3718`, `metadata_owned=261`, and `metadata_hits=8695`. Remaining DAG work is no longer numeric fallback cleanup; it is reducing owner-local compatibility seams that still need graph evidence in their native owner.
+- Rechecked DAG source-of-truth closure after the intent who/approval split: `type-resolution-resolver-inventory-test-smoke` keeps direct resolver and metadata fallback seam inventory at cap 0, and `type-resolution-dag-test-smoke` reports `retired_resolver_calls=0`, `retired_resolver_body_fallbacks=0`, `metadata_dead_ends=0`, and `materializer_unresolved=0` with `graph-backed skips=2064`, `metadata_entries=3735`, `metadata_owned=261`, and `metadata_hits=8769`. Remaining DAG work is no longer numeric fallback cleanup; it is richer evidence coverage and consumer migration.
 - Refreshed the MIR declaration-inventory smoke after the MIR test-case split: declaration-header validator assertions now live in `test_mir_lowering_part_c.cases.h`, and the smoke follows that owner instead of reporting a false regression against part B. Gates: `mir-declaration-inventory-test-smoke`, `test-inc-size-test-smoke`, and `build-source-inventory-test-smoke`.
 - Revalidated AIR after the CFG/MIR/DAG seam tightening. Strict evidence still carries HIR/RIR boundary evidence, MIR cleanup/pin cleanup/terminator evidence, DAG metadata/generic/ability evidence, RIR effect/relation propagation evidence, and observability schema evidence without backend impact. Gates: `test-air` (`77/0`), `air-drift-test-smoke`, and `air-json-schema-test-smoke`.
 - Narrowed the C backend pending-use materialization seam without repeating the earlier implicit-self regression: block-local pending bindings now prefer MIR DEF payload facts (`expr0` initializer and `expr1` type annotation) only for `AST_LET_DECL` DEFs, while assignment DEFs are ignored and source let lookup remains a compatibility/provenance fallback. The perf contract gates the payload-first shape and the `AST_LET_DECL` guard. Gates: `test-transpile` (`717/0`) and `perf-contract-test-smoke`.
@@ -6623,7 +6726,7 @@ boundary transition을 거절하고 runtime은 generation/token/resource state�
 **확정 순서 — BDFL 결정:**
 
 1. **BETA closure** — 현재 (§0a 참조). 70% 기능 / strict beta 기준값 60%,
-   현재 실무 판단 63%
+   현재 실무 판단 68%
    → 100% 신뢰도까지 닫기
 2. **dogfood (compiler-adjacent first)** — §0-selfhost 의 첫 dogfood
    원칙: diagnostic catalog checker, AIR graph JSON validator, MIR dump
@@ -6728,7 +6831,7 @@ runtime-validated handles) 로 대체. 진입 비용 낮춘 자리, 자기인식
 ## 0a. Strict Beta Closure Order — 2026-05-01 재고정
 
 **현재 판정:** 기능 구현률은 약 70%로 본다. strict beta readiness는
-60%를 기준값으로 두고, 현재 실무 판단은 63%다. 차이는 기능 수가 아니라
+60%를 기준값으로 두고, 현재 실무 판단은 68%다. 차이는 기능 수가 아니라
 CFG/AIR/DAG/MIR/ABI가 실제 source-of-truth로 소비되는 깊이다.
 
 **명시적 제외:** quantum full model, Rust급 lifetime/borrow checker, HKT/FP,
@@ -6743,9 +6846,10 @@ module은 beta+1로 둔다.
    evidence가 실제 fact 또는 explicit fallback debt가 있을 때만 생성되게 한다.
    Gate: `make test-air air-drift-test-smoke air-json-schema-test-smoke`.
    - 2026-05-02 slice: intent zone-authority compression now reaches AIR.
-     DIR records `authorized_by_derived_from_zone`, AIR records
-     `authority_from_zone`, AIR JSON exposes it, and drift diagnostics include
-     `authority_provenance=zone-derived|explicit|none`.
+     Superseded by who/approval separation: active beta semantics no longer
+     derive `authorized by` from local `who`. DIR/AIR retain the legacy
+     zone-authority fields for schema compatibility, while active diagnostics
+     use explicit or action-inherited approval provenance.
    - 2026-05-02 slice: action-derived intent `causes` now reaches RIR
      propagation evidence. `rir_builder_intent.c` materializes inherited or
      explicit step causes as `RIR_RESOURCE_EFFECT_INSTANCE` +
@@ -7155,7 +7259,7 @@ intent ProcessPayment for Customer in PaymentZone {
 | `who:` | (a) 호출 site receiver (`customer.process_payment(...)` → who=customer) (b) intent 가 subject 안에 선언된 경우 그 subject (c) 명시 안 되면 require error |
 | `where:` | (a) 호출 site 의 `zone` 컨텍스트 (b) intent 가 zone 안에 선언된 경우 그 zone (c) 명시 안 되면 world scope (d) world scope 도 ambiguous 하면 require error |
 | `requires:` | (a) 본문 분석 — `who.field` 사용 시 자동 `who.field.exists` (b) numeric ops → 범위 추론 (c) ambiguous 자리는 명시 권고 (require 아님 — *strict mode flag* 로 강제 가능) |
-| `authorized by:` | (a) 호출 site 의 `authority` 컨텍스트 propagate (b) `who` 가 authority 가지면 self (c) 명시 안 되면 require error (보안 자리이므로 *fail-closed*) |
+| `authorized by:` | (a) action contract가 명시한 approval edge 상속 (b) 호출 site의 explicit `authority` 컨텍스트 propagate (c) 명시 안 되면 require error (보안 자리이므로 *fail-closed*). `who`는 actor/provenance 축이며 approval 축으로 승격되지 않는다 |
 
 ### 충돌 해소
 
@@ -7827,6 +7931,27 @@ dispatch / semantic lookup / runtime data structure 3축 결과 통합. *정확�
   attached and no evidence inventory exists. Compatibility fixtures without
   real input may still use summary flags. Gate: `make test-air` (`74/0`) and
   `air-drift-test-smoke`.
+- Follow-up AIR graph storage closure: dump, JSON, validation, evidence
+  collection, and verification consumers now read AIR intent/boundary/drift
+  graph storage through `air_intent_node_*`, `air_boundary_node_*`, and
+  `air_drift_*` accessors. Boundary evidence collectors that must annotate
+  summary flags use `air_boundary_node_mut_at(...)`; raw `AIRProgram` graph
+  arrays remain owned by `air.c` and `air_drift.c`. Gate:
+  `perf-contract-test-smoke`.
+- Follow-up AIR input-flag closure: AIR input-presence telemetry now has
+  `air_has_*_input(...)` readers and `air_mark_*_input(...)` writers. Dump,
+  JSON, validation, evidence collection, and verification consumers no longer
+  reopen `has_hir_input` / `has_rir_input` / `has_mir_input` directly; those
+  fields remain storage owned by `air.c`. Gate: `perf-contract-test-smoke`.
+- Follow-up AIR strict-policy closure: strict-evidence policy reads now go
+  through `air_requires_strict_evidence(...)` in dump, JSON, summary-counter
+  validation, and verification owners. The storage flag remains owned by
+  `air.c`, and `perf-contract-test-smoke` blocks consumer-side raw reads.
+- Follow-up ownership diagnostic path cleanup: `type_checker_assignment_path.c`
+  no longer accepts an external `ctx + scratch bool` mode. Heap and scratch
+  public entry points now construct explicit owner lanes internally, and
+  recursive path construction releases intermediate paths only through the
+  shared owner-aware release helper. Gate: `test-semantic` (`2552/0`).
 - Follow-up CFG/MIR guard: the non-CFG statement population helper now rejects
   CFG-backed HIR routines if it is called accidentally. This keeps non-CFG
   source statement fallback from re-entering the body-safety source-of-truth
@@ -12834,33 +12959,33 @@ Local verification for this debt refresh:
 
 ## Progress - 2026-05-02 - Intent Zone-Authority Compression Slice
 
-- Intent compression now covers the first authority slice: when an
-  authority-sensitive step has exactly one `who` participant and that
-  participant resolves unambiguously to the current zone's authority subject
-  slot, semantic analysis derives `authorized by: <who>` instead of forcing
-  duplicate syntax.
-- The canonical owner remains the zone/resource layer. The intent step only
-  records `derived_authorized_by_from_zone` provenance and then consumes the
-  same authorized-by validation path as explicit syntax.
+- Intent compression no longer promotes local `who` into `authorized by`.
+  `who` remains actor/provenance only; authority-sensitive steps in an
+  authority-bearing zone must spell `authorized by` explicitly or inherit it
+  from an explicit action contract.
+- The canonical owner remains the zone/resource layer. The intent step consumes
+  the same authorized-by validation path for explicit and action-inherited
+  approval edges, while missing approval remains fail-closed.
 - Pure local-zone declarations still require explicit approval, so toy
-  declarative steps keep the existing fix-oriented diagnostic. Derivation is
-  limited to authority-sensitive surfaces such as secure helpers, transfers,
-  causes/effects, and action-derived authority flows.
-- Gate: `intent_compression_contract_smoke.sh` now checks the provenance flag,
-  AST print wording, contract-summary wording, authority derivation owner, and
-  semantic regression names.
+  declarative steps keep the existing fix-oriented diagnostic. The only active
+  approval reuse path is explicit action-contract inheritance.
+- Gate: `intent_compression_contract_smoke.sh` now rejects reintroducing
+  `who` -> `authorized by` mutation and checks the explicit-approval semantic
+  regression names.
 
 ## Progress - 2026-05-02 - AIR Authority Provenance Lift
 
-- The zone-derived `authorized by` provenance now flows through
+- The legacy zone-derived authority fields still flow through
   `DIRIntentStep.authorized_by_derived_from_zone` into
-  `AIRBoundaryNode.authority_from_zone`.
-- AIR text/JSON dumps now expose `authority_from_zone`, and strict AIR
-  provenance messages include `authority_provenance=zone-derived|explicit|none`
-  so LSP/CI consumers can distinguish explicit approval from compressed
-  zone-owner inference.
-- AIR validation rejects impossible shapes where zone-derived authority is set
-  on a non-authority boundary or outside zone/world boundaries.
+  `AIRBoundaryNode.authority_from_zone` for schema compatibility, but active
+  beta semantics no longer set them from a local `who` clause.
+- AIR text/JSON dumps still expose `authority_from_zone`; strict AIR active
+  provenance messages use `authority_provenance=action-inherited|explicit|none`,
+  while any legacy field-only path is labeled `legacy-zone-field`.
+  This keeps LSP/CI consumers compatible without implying that actor identity is
+  also approval.
+- AIR validation rejects impossible shapes where legacy zone-derived authority
+  is set on a non-authority boundary or outside zone/world boundaries.
 - AIR cleanup evidence accounting was repaired in the same slice:
   `AIR_EVIDENCE_MIR_CLEANUP` now consumes MIR CFG cleanup successors first,
   while boundary-specific pin evidence stays under

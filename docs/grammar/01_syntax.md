@@ -212,7 +212,10 @@ Purchase(hero, merchant);
 - `intent Name(args...)`와 legacy `involves` 둘 다 파싱되며, 현재 권장 표면은 파라미터형 선언이다
 - `involves` 타입은 subject여야 한다
 - `where`는 선언된 zone type이어야 한다
-- `who` / `authorized by`는 선언된 `involves` alias여야 한다
+- `who`는 actor/provenance alias이고 `authorized by`는 approval/authority
+  alias다. 둘 다 선언된 `involves` alias를 참조하지만, local `who`는
+  authorization을 만들지 않는다. `authorized by`는 명시되거나 action
+  contract가 선언한 approval edge에서만 상속된다.
 - `requires`는 선언된 ability여야 한다
 - `causes`는 선언된 effect여야 한다
 - `pre` / `post` / `expect` / `success` / `failure`는 `Bool`이어야 한다

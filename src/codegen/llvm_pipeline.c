@@ -12,7 +12,7 @@
 static void
 llvm_pipeline_debug_stage(const char *stage)
 {
-    if (stage != NULL && getenv("PGY_DEBUG_LLVM_STAGE") != NULL)
+    if (stage != NULL && llvm_debug_stage_enabled())
         fprintf(stderr, "[llvm stage] %s\n", stage);
 }
 

@@ -24,53 +24,64 @@ air_validate_boundary_summary_shape(const AIRProgram *air,
                                     char **error_message)
 {
     const AIRBoundaryNode *boundary;
+    bool has_hir_routine;
+    bool has_hir_cfg;
+    bool has_rir_boundary;
+    bool has_rir_authority;
 
-    if (air == NULL || boundary_index >= air->boundary_count)
+    if (air == NULL || boundary_index >= air_boundary_node_count(air))
         return false;
-    boundary = &air->boundaries[boundary_index];
-    if (boundary->has_hir_routine_evidence
+    boundary = air_boundary_node_at(air, boundary_index);
+    if (boundary == NULL)
+        return false;
+    has_hir_routine =
+        air_boundary_has_summary_flag(boundary, AIR_EVIDENCE_HIR_ROUTINE);
+    has_hir_cfg =
+        air_boundary_has_summary_flag(boundary, AIR_EVIDENCE_HIR_CFG);
+    has_rir_boundary =
+        air_boundary_has_summary_flag(boundary, AIR_EVIDENCE_RIR_BOUNDARY);
+    has_rir_authority =
+        air_boundary_has_summary_flag(boundary, AIR_EVIDENCE_RIR_AUTHORITY);
+    if (has_hir_routine
         && air_name_is_empty(boundary->hir_routine_evidence_name)) {
         air_set_invariant_error(error_message,
                                 "AIR boundary node %zu has HIR evidence without provenance",
                                 boundary_index);
         return false;
     }
-    if (boundary->has_hir_cfg_evidence
-        && !boundary->has_hir_routine_evidence) {
+    if (has_hir_cfg && !has_hir_routine) {
         air_set_invariant_error(error_message,
                                 "AIR boundary node %zu has HIR CFG evidence without routine evidence",
                                 boundary_index);
         return false;
     }
-    if (boundary->has_rir_boundary_evidence
+    if (has_rir_boundary
         && air_name_is_empty(boundary->rir_boundary_evidence_scope)) {
         air_set_invariant_error(error_message,
                                 "AIR boundary node %zu has RIR boundary evidence without provenance",
                                 boundary_index);
         return false;
     }
-    if (boundary->has_rir_authority_evidence
-        && !boundary->has_rir_boundary_evidence) {
+    if (has_rir_authority && !has_rir_boundary) {
         air_set_invariant_error(error_message,
                                 "AIR boundary node %zu has RIR authority evidence without boundary evidence",
                                 boundary_index);
         return false;
     }
-    if (boundary->has_rir_authority_evidence
-        && !boundary->authority_required) {
+    if (has_rir_authority && !boundary->authority_required) {
         air_set_invariant_error(error_message,
                                 "AIR boundary node %zu has RIR authority evidence on non-authority boundary",
                                 boundary_index);
         return false;
     }
-    if (boundary->has_rir_authority_evidence
+    if (has_rir_authority
         && air_name_is_empty(boundary->rir_authority_evidence_name)) {
         air_set_invariant_error(error_message,
                                 "AIR boundary node %zu has RIR authority evidence without provenance",
                                 boundary_index);
         return false;
     }
-    if (boundary->has_rir_authority_evidence
+    if (has_rir_authority
         && !air_boundary_declares_authority_name(
             boundary,
             boundary->rir_authority_evidence_name)) {
@@ -91,9 +102,11 @@ air_validate_boundary_summary_evidence(const AIRProgram *air,
 {
     const AIRBoundaryNode *boundary;
 
-    if (air == NULL || boundary_index >= air->boundary_count)
+    if (air == NULL || boundary_index >= air_boundary_node_count(air))
         return false;
-    boundary = &air->boundaries[boundary_index];
+    boundary = air_boundary_node_at(air, boundary_index);
+    if (boundary == NULL)
+        return false;
     if (!air_boundary_has_summary_flag(boundary, kind))
         return true;
     if (air_boundary_has_evidence_kind(air, boundary_index, kind))
@@ -110,7 +123,7 @@ air_validate_boundary_summary_inventory(const AIRProgram *air,
                                         size_t boundary_index,
                                         char **error_message)
 {
-    if (air == NULL || boundary_index >= air->boundary_count)
+    if (air == NULL || boundary_index >= air_boundary_node_count(air))
         return false;
 
     for (size_t i = 0;

@@ -109,6 +109,120 @@ air_strict_evidence_enabled(void)
     return true;
 }
 
+bool
+air_intent_storage_valid(const AIRProgram *air)
+{
+    return air != NULL && (air->intent_count == 0 || air->intents != NULL);
+}
+
+bool
+air_boundary_storage_valid(const AIRProgram *air)
+{
+    return air != NULL
+        && (air->boundary_count == 0 || air->boundaries != NULL);
+}
+
+bool
+air_drift_storage_valid(const AIRProgram *air)
+{
+    return air != NULL && (air->drift_count == 0 || air->drifts != NULL);
+}
+
+bool
+air_has_hir_input(const AIRProgram *air)
+{
+    return air != NULL && air->has_hir_input;
+}
+
+bool
+air_has_rir_input(const AIRProgram *air)
+{
+    return air != NULL && air->has_rir_input;
+}
+
+bool
+air_has_mir_input(const AIRProgram *air)
+{
+    return air != NULL && air->has_mir_input;
+}
+
+bool
+air_requires_strict_evidence(const AIRProgram *air)
+{
+    return air != NULL && air->strict_evidence;
+}
+
+void
+air_mark_hir_input(AIRProgram *air)
+{
+    if (air != NULL)
+        air->has_hir_input = true;
+}
+
+void
+air_mark_rir_input(AIRProgram *air)
+{
+    if (air != NULL)
+        air->has_rir_input = true;
+}
+
+void
+air_mark_mir_input(AIRProgram *air)
+{
+    if (air != NULL)
+        air->has_mir_input = true;
+}
+
+size_t
+air_intent_node_count(const AIRProgram *air)
+{
+    return air != NULL ? air->intent_count : 0;
+}
+
+const AIRIntentNode *
+air_intent_node_at(const AIRProgram *air, size_t index)
+{
+    if (air == NULL || index >= air->intent_count)
+        return NULL;
+    return &air->intents[index];
+}
+
+size_t
+air_boundary_node_count(const AIRProgram *air)
+{
+    return air != NULL ? air->boundary_count : 0;
+}
+
+const AIRBoundaryNode *
+air_boundary_node_at(const AIRProgram *air, size_t index)
+{
+    if (air == NULL || index >= air->boundary_count)
+        return NULL;
+    return &air->boundaries[index];
+}
+
+AIRBoundaryNode *
+air_boundary_node_mut_at(AIRProgram *air, size_t index)
+{
+    if (air == NULL || index >= air->boundary_count)
+        return NULL;
+    return &air->boundaries[index];
+}
+
+size_t
+air_drift_count(const AIRProgram *air)
+{
+    return air != NULL ? air->drift_count : 0;
+}
+
+const AIRDrift *
+air_drift_at(const AIRProgram *air, size_t index)
+{
+    if (air == NULL || index >= air->drift_count)
+        return NULL;
+    return &air->drifts[index];
+}
+
 AIRProgram *
 air_synthesize(const HIRProgram *hir,
                const DIRProgram *dir,
@@ -126,8 +240,10 @@ air_synthesize(const HIRProgram *hir,
         return NULL;
     }
     air->strict_evidence = air_strict_evidence_enabled();
-    air->has_hir_input = hir != NULL;
-    air->has_rir_input = rir != NULL;
+    if (hir != NULL)
+        air_mark_hir_input(air);
+    if (rir != NULL)
+        air_mark_rir_input(air);
 
     size_t intent_node_count = 0;
     size_t boundary_node_count = 0;

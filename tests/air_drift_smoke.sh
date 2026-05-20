@@ -78,6 +78,8 @@ run_literal_air_drift_smoke() {
     require_literal "src/compiler/air_evidence_mir_pin.c" "AIR_EVIDENCE_MIR_PIN_CLEANUP"
     require_literal "src/compiler/air_evidence_mir_facts.c" "AIR_EVIDENCE_MIR_TERMINATOR"
     require_literal "src/compiler/air_evidence_mir_facts.c" "mir_instruction_uses_select_receive_statement_emit"
+    require_literal "src/semantic/semantic.c" "semantic_result_type_resolution_metadata_entries"
+    require_literal "src/compiler/air_evidence_dag.c" "semantic_result_type_resolution_metadata_entries"
     require_literal "src/compiler/air_evidence_mir_facts.c" "mir_block_has_expected_cleanup_edge_fact(routine, i)"
     require_literal "src/compiler/mir_cleanup_fact_names.h" "cleanup-edge-from-rollback"
     require_literal "src/compiler/air_evidence_mir_pin.c" "slot_anchor"
@@ -89,6 +91,7 @@ run_literal_air_drift_smoke() {
     require_literal "src/compiler/air_verify_provenance.c" "source_provenance="
     require_literal "src/compiler/air_verify_provenance.c" "who_provenance="
     require_literal "src/compiler/air_verify_provenance.c" "intent-default+transfer"
+    require_literal "src/compiler/air_boundary.c" "air_boundary_declares_authority_name"
     require_literal "src/compiler/air_verify_global.c" "strict AIR requires graph-backed type evidence"
     require_literal "src/compiler/air_verify_global.c" "missing DAG evidence node"
     require_literal "src/compiler/air_verify.c" "strict AIR requires lowered boundary evidence"
@@ -285,6 +288,7 @@ air_evidence = "\n".join([
     air_evidence_runtime_path.read_text(encoding="utf-8"),
     mir_cleanup_fact_names_path.read_text(encoding="utf-8"),
 ])
+air_evidence_dag_text = air_evidence_dag_path.read_text(encoding="utf-8")
 air_impl = "\n".join([
     air_impl_path.read_text(encoding="utf-8"),
     air_drift_path.read_text(encoding="utf-8"),
@@ -478,8 +482,8 @@ required_impl_terms = [
     "pgy_env_value_is_false(value)",
     "FALSE",
     "NO",
-    "air->has_hir_input = hir != NULL",
-    "air->has_rir_input = rir != NULL",
+    "air_mark_hir_input(air)",
+    "air_mark_rir_input(air)",
     "air_sync_conflicts",
     "air_collect_hir_evidence",
     "air_collect_rir_evidence",
@@ -533,7 +537,7 @@ required_impl_terms = [
     "source_provenance=",
     "who_provenance=",
     "intent-default+transfer",
-    "air_boundary_authority_matches",
+    "air_boundary_declares_authority_name",
     "air_boundary_missing_authority_evidence",
     "air_boundary_has_evidence_kind_subject",
     "air_ast_contains_node",
@@ -740,9 +744,7 @@ summary_flags = [
 summary_allowed = {
     root / "src" / "compiler" / "air.h",
     root / "src" / "compiler" / "air_evidence_mir.c",
-    root / "src" / "compiler" / "air_evidence_hir.c",
     root / "src" / "compiler" / "air_evidence_rir.c",
-    root / "src" / "compiler" / "air_evidence_rir_boundary.c",
     root / "src" / "compiler" / "air_validate_evidence.c",
     root / "src" / "compiler" / "air_validate_boundary_summary.c",
 }
@@ -817,8 +819,67 @@ air_validate_summary_counters_text = (
 ).read_text(encoding="utf-8", errors="ignore")
 if "air_evidence_summary_count(const AIRProgram *air" not in air_validate_summary_counters_text:
     raise SystemExit("AIR summary-counter owner must expose summary evidence counting")
+if "air_increment_evidence_summary_count(AIRProgram *air" not in air_validate_summary_counters_text:
+    raise SystemExit("AIR summary-counter owner must expose summary evidence mutation")
 if "air_evidence_required_count(const AIRProgram *air" not in air_validate_summary_counters_text:
     raise SystemExit("AIR summary-counter owner must expose required evidence counting")
+if "air_increment_evidence_required_count(AIRProgram *air" not in air_validate_summary_counters_text:
+    raise SystemExit("AIR summary-counter owner must expose required evidence mutation")
+if "air_increment_evidence_summary_count(" not in air_evidence_dag_text:
+    raise SystemExit("AIR DAG evidence must mutate summary counters through the summary owner")
+if "air->dag_metadata_evidence_count++" in air_evidence_dag_text:
+    raise SystemExit("AIR DAG evidence reintroduced direct metadata summary mutation")
+if "air_increment_evidence_summary_count(air, kind)" not in air_evidence_runtime_path.read_text(encoding="utf-8"):
+    raise SystemExit("AIR runtime evidence must mutate summary counters through the summary owner")
+if "&air->runtime_frontier_policy_evidence_count" in air_evidence_runtime_path.read_text(encoding="utf-8"):
+    raise SystemExit("AIR runtime evidence reintroduced raw summary counter pointers")
+for path in [
+    air_evidence_hir_path,
+    air_evidence_path,
+    air_evidence_mir_pin_path,
+    air_evidence_dag_path,
+    air_evidence_rir_path,
+    air_evidence_rir_propagation_path,
+    air_evidence_rir_boundary_path,
+    air_evidence_runtime_path,
+]:
+    evidence_text = path.read_text(encoding="utf-8")
+    if "_evidence_count++" in evidence_text:
+        raise SystemExit(
+            "AIR evidence collectors must mutate summary counters through "
+            "the summary owner: " + str(path)
+        )
+    if "_propagation_required_count++" in evidence_text:
+        raise SystemExit(
+            "AIR evidence collectors must mutate required counters through "
+            "the summary owner: " + str(path)
+        )
+for path in [air_dump_path, air_dump_json_path]:
+    dump_text = path.read_text(encoding="utf-8")
+    for raw_counter in [
+        "air->hir_routine_evidence_count",
+        "air->hir_cfg_evidence_count",
+        "air->rir_boundary_evidence_count",
+        "air->rir_authority_evidence_count",
+        "air->mir_cleanup_evidence_count",
+        "air->mir_pin_cleanup_evidence_count",
+        "air->mir_terminator_evidence_count",
+        "air->mir_select_receive_evidence_count",
+        "air->dag_metadata_evidence_count",
+        "air->dag_generic_evidence_count",
+        "air->dag_ability_evidence_count",
+        "air->rir_effect_propagation_evidence_count",
+        "air->rir_effect_propagation_required_count",
+        "air->rir_relation_propagation_evidence_count",
+        "air->rir_relation_propagation_required_count",
+        "air->observability_schema_evidence_count",
+        "air->runtime_frontier_policy_evidence_count",
+    ]:
+        if raw_counter in dump_text:
+            raise SystemExit(
+                "AIR dumps must consume summary counters through the "
+                "summary owner: " + raw_counter
+            )
 for accessor in [
     "air_boundary_evidence_node(const AIRProgram *air",
     "air_boundary_evidence_provider(const AIRProgram *air",

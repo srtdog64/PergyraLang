@@ -1,6 +1,6 @@
 # Pergyra Source-Of-Truth Spine
 
-Last updated: 2026-05-13
+Last updated: 2026-05-20
 
 This document freezes the compiler ownership spine for beta closure. It exists
 to stop A -> B -> A refactoring loops. When a future change is unclear, use this
@@ -15,6 +15,24 @@ rediscover or reinterpret it.
 
 Smoke tests are not source of truth. A smoke test only prevents a frozen owner
 contract from drifting.
+
+Current beta closure snapshot:
+
+- `src/semantic/type_checker.c` is a narrow statement/program dispatch owner,
+  not a helper warehouse.
+- enum declaration checking lives in
+  `src/semantic/type_checker_enum_decl.c`.
+- assignment target path and borrowed-boundary root rendering live in
+  `src/semantic/type_checker_assignment_path.c`. That owner must keep
+  scratch-arena and heap ownership behind its path allocator/release helpers;
+  recursive path construction must not directly free intermediate path parts or
+  accept an external scratch/heap mode flag.
+- break/continue semantic validation lives in
+  `src/semantic/type_checker_loop_control.c`.
+- type-resolution DAG worklist execution lives in
+  `src/semantic/type_checker_resolution_worklist.c`.
+- `tests/semantic_core_shape_smoke.sh` gates these ownership boundaries. The
+  test is a drift alarm; the owning `.c` files above are the source of truth.
 
 ### 0.1 Mismatch Containment During Lowering
 
@@ -192,6 +210,31 @@ also use MIR source-shape helpers. Validators may still compare a helper-returne
 index against the owning block's statement inventory bounds, but they should not
 spread raw source-order field interpretation into call-fact or backend owners.
 
+Branch condition availability is also a MIR source-shape fact. Match/select
+branches require a source branch payload whose shape matches the branch
+instruction; expression, range, and for branches require a MIR expression
+payload. C/LLVM consumers must call
+`mir_instruction_has_required_branch_condition_fact(...)` instead of reopening
+`source_ast_type`, source payload, or `expr0` policy locally.
+Inside the source-shape owner, branch shape and with-slot source checks should
+also pass through `mir_instruction_source_matches_ast_type(...)`; raw
+`source_ast_type == ...` comparisons are a construction detail, not a pattern
+for new consumers.
+
+Source-statement fallback is also owned here. Residual `MIR_INST_STMT`
+compatibility should call `mir_instruction_source_stmt_has_side_effect_hint(...)`
+and source-statement emit should call `mir_instruction_source_payload(...)`
+rather than recombining raw payload and source-location fields. This keeps
+"may emit source" and "may retain fallback statement" on the same source-shape
+seam.
+
+Terminator provenance is read through the same source-shape seam. Consumers
+must use `mir_instruction_source_terminator_matches(...)` and
+`mir_instruction_source_terminator_has_value(...)` when they need to validate or
+count branch/return provenance. The durable fact remains on MIR; AIR and
+backend-adjacent validators may consume it but must not invent a second
+terminator-kind policy.
+
 C backend MIR local type consumers may keep bounded stack render buffers for
 immediate formatting, but they must not return mutable `static char *` or
 `static char rendered[...]` scratch as a local type fact. If a rendered type name
@@ -299,6 +342,67 @@ Allowed:
 - metadata index acceleration, as long as the index is a private cache over the
   same metadata owner and validates its open-addressing capacity invariant.
 
+`SemanticResult` is the public seam for exporting DAG evidence out of semantic
+analysis. Later layers must consume `semantic_result_*` accessors for metadata
+entries, dead ends, generic-contract evidence, and ability-consumer evidence;
+they must not couple directly to raw result counter fields. AIR may translate
+those counts into evidence nodes, but the counter vocabulary remains semantic
+DAG-owned.
+
+AIR summary counters are compatibility telemetry. Reads and writes should pass
+through the summary-counter owner (`air_evidence_summary_count(...)` and
+`air_increment_evidence_summary_count(...)`); RIR propagation required counters
+use the same owner through `air_evidence_required_count(...)` and
+`air_increment_evidence_required_count(...)`. Direct counter access is reserved
+for the owner itself or for tests deliberately constructing invalid AIR values.
+EvidenceNode inventory remains the proof source of truth. Human and JSON AIR
+dumps should iterate through `air_evidence_node_count(...)` and
+`air_evidence_node_at(...)` so display code consumes the same inventory seam as
+validators rather than reopening the raw array. Read-only duplicate/singleton
+probes in HIR, MIR, and runtime evidence collectors should use the same
+accessors. Boundary evidence shape validation should also use this accessor
+seam for node lookup, and inventory validation should do the same when reading
+existing nodes. Raw array ownership stays with the EvidenceNode inventory owner;
+top-level storage-shape validation should call the EvidenceNode owner helper
+rather than reopening count/storage fields. Boundary summary flag writes should
+go through `air_boundary_mark_summary_flag(...)`; HIR/RIR evidence collectors
+may request a mark but should not set telemetry booleans directly.
+Boundary summary validation should read summary state through
+`air_boundary_has_summary_flag(...)`, keeping the boolean fields behind one
+flag vocabulary.
+AIR boundary authority-name storage has the same rule: `air_boundary.c` owns
+the list storage, count/at access, and name membership checks. JSON dumps,
+provenance formatting, evidence validation, and RIR evidence collection should
+consume `air_boundary_authority_name_count(...)`,
+`air_boundary_authority_name_at(...)`, and
+`air_boundary_declares_authority_name(...)` rather than iterating the raw
+authority array.
+AIR graph arrays follow the same source-of-truth rule. `air.c` owns
+intent-node and boundary-node storage, and `air_drift.c` owns drift mutation.
+Read-only consumers must use `air_intent_node_count(...)`,
+`air_intent_node_at(...)`, `air_boundary_node_count(...)`,
+`air_boundary_node_at(...)`, `air_drift_count(...)`, and
+`air_drift_at(...)`; evidence collectors and verifiers that legitimately
+annotate boundary summaries must use `air_boundary_node_mut_at(...)`. Raw
+`AIRProgram` graph arrays are not a validation, dump, or evidence-consumer
+API.
+The const graph accessors are public AIR API because driver diagnostics, JSON
+dumping, and future LSP/CI consumers need read-only graph visibility. Mutating
+accessors, storage-validity checks, and input-marking helpers remain internal
+AIR APIs.
+Driver code is a consumer, not an owner, of AIR graph storage. It may report
+drift and evidence provenance, but it must do so through the AIR graph accessors
+and EvidenceNode accessors. Direct reads of `air->drift_count`, `air->drifts`,
+`air->intent_count`, `air->intents`, `air->boundary_count`, or
+`air->boundaries` outside AIR graph owners are source-of-truth drift.
+AIR input-presence flags are also graph metadata. Consumers should read them
+through `air_has_hir_input(...)`, `air_has_rir_input(...)`, and
+`air_has_mir_input(...)`; evidence collectors should mark late-attached inputs
+with `air_mark_*_input(...)`. This keeps verification policy from depending on
+open-coded telemetry fields. The strict-evidence policy bit follows the same
+rule through `air_requires_strict_evidence(...)`; verifiers should not reopen
+the storage flag directly.
+
 Forbidden:
 
 - direct `resolve_type_node(...)` outside the central metadata owner;
@@ -351,6 +455,12 @@ Global `AIREvidenceNode` inventory is the verification source of truth. Summary
 counters remain telemetry and compatibility surface: counter-only evidence may
 produce strict-evidence drift, but evidence-only inventory must remain valid when
 the node payload is complete.
+
+DAG generic and ability-consumer evidence names must stay specific. Generic
+contract evidence uses `type_resolution_dag_generic_contract_evidence_count`;
+ability-consumer evidence uses
+`type_resolution_dag_ability_consumer_evidence_count`. Broader or ambiguous
+`dag_ability_evidence` mirrors are not source-of-truth fields.
 
 Singleton global evidence, such as runtime observability schema and runtime
 frontier policy evidence, is idempotent. Re-collecting the same singleton

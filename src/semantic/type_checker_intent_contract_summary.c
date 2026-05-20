@@ -258,19 +258,7 @@ intent_step_format_contract_source_summary(const ASTNode *intent_decl,
 
     if (ast_intent_step_inherited_who_from_action(step)) {
         intent_step_summary_append(buffer, buffer_size, &used,
-            "%s- reused from matching action contract",
-            has_any ? "\n" : "");
-        has_any = true;
-        intent_step_summary_append(buffer, buffer_size, &used,
             "%s- reused who from matching action contract",
-            has_any ? "\n" : "");
-        has_any = true;
-    } else if (ast_intent_step_inherited_where_from_action(step)
-               || ast_intent_step_inherited_requires_from_action(step)
-               || ast_intent_step_inherited_causes_from_action(step)
-               || ast_intent_step_inherited_authorized_by_from_action(step)) {
-        intent_step_summary_append(buffer, buffer_size, &used,
-            "%s- reused from matching action contract",
             has_any ? "\n" : "");
         has_any = true;
     }
@@ -384,7 +372,7 @@ intent_step_format_contract_source_summary(const ASTNode *intent_decl,
                 "%s%s", alias_used > 0 ? ", " : "", alias);
         }
         intent_step_summary_append(buffer, buffer_size, &used,
-            "%s- derived authorized by from zone authority%s%s (approval owner stays on the zone/resource layer)",
+            "%s- legacy zone-authority approval field%s%s (not active beta inference)",
             has_any ? "\n" : "",
             alias_list[0] != '\0' ? ": " : "",
             alias_list);

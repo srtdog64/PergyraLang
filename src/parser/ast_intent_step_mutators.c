@@ -180,13 +180,6 @@ ast_intent_step_mark_inherited_authorized_by_from_action(ASTNode* node)
 }
 
 void
-ast_intent_step_mark_derived_authorized_by_from_zone(ASTNode* node)
-{
-    if (node != NULL && node->type == AST_INTENT_STEP)
-        node->data.intent_step.derived_authorized_by_from_zone = true;
-}
-
-void
 ast_intent_step_mark_derived_where_from_using(ASTNode* node)
 {
     if (node != NULL && node->type == AST_INTENT_STEP)

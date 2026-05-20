@@ -13,7 +13,7 @@
 static void
 llvm_debug_stage(const char *stage)
 {
-    if (stage != NULL && getenv("PGY_DEBUG_LLVM_STAGE") != NULL)
+    if (stage != NULL && llvm_debug_stage_enabled())
         fprintf(stderr, "[llvm stage] %s\n", stage);
 }
 
@@ -52,7 +52,7 @@ llvm_verify_module_result(LLVMGenCtx *ctx)
 
     if (LLVMVerifyModule(ctx->module, LLVMReturnStatusAction, &verify_error)) {
         LLVMGenResult *res;
-        if (getenv("PGY_DEBUG_LLVM_VERIFY") != NULL) {
+        if (llvm_debug_verify_enabled()) {
             char *ir = LLVMPrintModuleToString(ctx->module);
             if (ir != NULL) {
                 fprintf(stderr, "[llvm verify dump]\n%s\n", ir);

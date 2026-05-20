@@ -21,7 +21,7 @@ mir_validate_terminator_provenance(const MIRRoutine *routine,
         const MIRInstruction *inst = &block->instructions[i];
         if (inst->kind != MIR_INST_BRANCH && inst->kind != MIR_INST_RETURN)
             continue;
-        if (!inst->has_source_terminator_kind) {
+        if (!mir_instruction_has_source_terminator_kind(inst)) {
             if (error_message != NULL) {
                 *error_message = mir_fact_strdup_fmt(
                     "MIR routine '%s' block[%zu] instruction[%zu] has CFG terminator without HIR source terminator kind",
@@ -32,7 +32,8 @@ mir_validate_terminator_provenance(const MIRRoutine *routine,
             return false;
         }
         if (inst->kind == MIR_INST_BRANCH
-            && inst->source_terminator_kind != HIR_BLOCK_BRANCH) {
+            && !mir_instruction_source_terminator_matches(
+                inst, HIR_BLOCK_BRANCH)) {
             if (error_message != NULL) {
                 *error_message = mir_fact_strdup_fmt(
                     "MIR routine '%s' block[%zu] instruction[%zu] branch source terminator is not HIR_BLOCK_BRANCH",
@@ -43,7 +44,8 @@ mir_validate_terminator_provenance(const MIRRoutine *routine,
             return false;
         }
         if (inst->kind == MIR_INST_RETURN
-            && inst->source_terminator_kind != HIR_BLOCK_RETURN) {
+            && !mir_instruction_source_terminator_matches(
+                inst, HIR_BLOCK_RETURN)) {
             if (error_message != NULL) {
                 *error_message = mir_fact_strdup_fmt(
                     "MIR routine '%s' block[%zu] instruction[%zu] return source terminator is not HIR_BLOCK_RETURN",
@@ -105,7 +107,7 @@ mir_validate_terminator_provenance(const MIRRoutine *routine,
             return false;
         }
         if (inst->kind == MIR_INST_RETURN
-            && inst->source_terminator_has_value
+            && mir_instruction_source_terminator_has_value(inst)
             && inst->expr0 == NULL) {
             if (error_message != NULL) {
                 *error_message = mir_fact_strdup_fmt(

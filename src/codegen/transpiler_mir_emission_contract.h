@@ -209,20 +209,10 @@ transpiler_validate_mir_emission_block_shape(const MIRBasicBlock *block,
             }
             has_branch = true;
             branch_count++;
-            if (mir_instruction_branch_requires_source_emit(inst)
-                && (mir_instruction_source_payload(inst) == NULL
-                    || !mir_instruction_source_branch_payload_matches_shape(inst))
+            if (!mir_instruction_has_required_branch_condition_fact(inst)
                 && (reason != NULL && reason_cap > 0)) {
                 transpiler_mir_reasonf(reason, reason_cap,
-                         "MIR contract invalid for %s: block %llu branch instruction has invalid source-branch fact",
-                         routine_name, (unsigned long long) block->id);
-                return false;
-            }
-            if (!mir_instruction_branch_requires_source_emit(inst)
-                && inst->expr0 == NULL
-                && (reason != NULL && reason_cap > 0)) {
-                transpiler_mir_reasonf(reason, reason_cap,
-                         "MIR contract invalid for %s: block %llu branch instruction misses condition expression fact",
+                         "MIR contract invalid for %s: block %llu branch instruction misses required condition fact",
                          routine_name, (unsigned long long) block->id);
                 return false;
             }

@@ -1,6 +1,6 @@
 # PergyraLang Documentation Index
 
-Last updated: 2026-05-12
+Last updated: 2026-05-20
 
 Anti-hype update: 2026-04-29
 

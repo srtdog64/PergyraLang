@@ -20,6 +20,7 @@ test_intent_compression_semantics(void)
             "        where: Arena;\n"
             "        using: arena;\n"
             "        causes: Marked;\n"
+            "        authorized by: player;\n"
             "        expect: true;\n"
             "    }\n"
             "}\n";
@@ -47,7 +48,7 @@ test_intent_compression_semantics(void)
         EXPECT(step != NULL && step->data.intent_step.derived_who_from_single_participant);
         EXPECT(step != NULL && step->data.intent_step.who_count == 1);
         EXPECT(step != NULL && strcmp(step->data.intent_step.who_names[0], "player") == 0);
-        EXPECT(step != NULL && step->data.intent_step.derived_authorized_by_from_zone);
+        EXPECT(step != NULL && !step->data.intent_step.derived_authorized_by_from_zone);
         EXPECT(step != NULL && step->data.intent_step.authorized_by_count == 1);
         EXPECT(step != NULL && strcmp(step->data.intent_step.authorized_by[0], "player") == 0);
 
@@ -596,6 +597,127 @@ test_intent_compression_semantics(void)
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(step != NULL && !step->data.intent_step.derived_who_from_on_receiver);
         EXPECT(step != NULL && step->data.intent_step.who_count == 0);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("intent step who alone does not satisfy zone authorization");
+    {
+        const char *source =
+            "subject Driver {\n"
+            "    let hp: Int;\n"
+            "    action Ignite(self) -> Void {\n"
+            "        self.hp = self.hp + 1;\n"
+            "    }\n"
+            "}\n"
+            "object DriverView { let hp: Int; }\n"
+            "effect Started for bearer: Driver { }\n"
+            "zone CockpitZone {\n"
+            "    subject slot driver: Driver\n"
+            "    authority driver\n"
+            "    object slot dashboard: DriverView = DriverView(0)\n"
+            "    bind dashboard from driver by driver\n"
+            "}\n"
+            "intent SyncDrive(cockpit: CockpitZone, driver: Driver) {\n"
+            "    step Ignite {\n"
+            "        using: cockpit;\n"
+            "        who: driver;\n"
+            "        causes: Started;\n"
+            "        on: driver.Ignite();\n"
+            "        expect: true;\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+        ASTNode *intent = NULL;
+        ASTNode *step = NULL;
+
+        if (program != NULL && program->type == AST_PROGRAM) {
+            for (size_t i = 0; i < program->data.program.count; i++) {
+                ASTNode *stmt = program->data.program.statements[i];
+                if (stmt != NULL && stmt->type == AST_INTENT_DECL) {
+                    intent = stmt;
+                    break;
+                }
+            }
+        }
+        if (intent != NULL && intent->data.intent_decl.step_count > 0)
+            step = intent->data.intent_decl.steps[0];
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(step != NULL && step->data.intent_step.who_count == 1);
+        EXPECT(step != NULL && strcmp(step->data.intent_step.who_names[0],
+                                      "driver") == 0);
+        EXPECT(step != NULL && step->data.intent_step.authorized_by_count == 0);
+        EXPECT(step != NULL && !step->data.intent_step.derived_authorized_by_from_zone);
+        EXPECT(step != NULL && !step->data.intent_step.inherited_authorized_by_from_action);
+
+        semantic_result_destroy(result);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("intent step keeps explicit who separate from explicit authorization");
+    {
+        const char *source =
+            "subject Driver {\n"
+            "    let hp: Int;\n"
+            "    action Ignite(self) -> Void {\n"
+            "        self.hp = self.hp + 1;\n"
+            "    }\n"
+            "}\n"
+            "object DriverView { let hp: Int; }\n"
+            "zone CockpitZone {\n"
+            "    subject slot driver: Driver\n"
+            "    authority driver\n"
+            "    object slot dashboard: DriverView = DriverView(0)\n"
+            "    bind dashboard from driver by driver\n"
+            "}\n"
+            "intent SyncDrive(cockpit: CockpitZone, driver: Driver) {\n"
+            "    step Ignite {\n"
+            "        using: cockpit;\n"
+            "        who: driver;\n"
+            "        authorized by: driver;\n"
+            "        on: driver.Ignite();\n"
+            "        expect: true;\n"
+            "    }\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        SemanticResult *result = semantic_analyze(program);
+        ASTNode *intent = NULL;
+        ASTNode *step = NULL;
+
+        if (program != NULL && program->type == AST_PROGRAM) {
+            for (size_t i = 0; i < program->data.program.count; i++) {
+                ASTNode *stmt = program->data.program.statements[i];
+                if (stmt != NULL && stmt->type == AST_INTENT_DECL) {
+                    intent = stmt;
+                    break;
+                }
+            }
+        }
+        if (intent != NULL && intent->data.intent_decl.step_count > 0)
+            step = intent->data.intent_decl.steps[0];
+
+        EXPECT(!parser_has_error(parser));
+        EXPECT(result != NULL && result->error_count == 0);
+        EXPECT(result != NULL && result->warning_count == 0);
+        EXPECT(step != NULL && !step->data.intent_step.derived_who_from_on_receiver);
+        EXPECT(step != NULL && step->data.intent_step.who_count == 1);
+        EXPECT(step != NULL && strcmp(step->data.intent_step.who_names[0],
+                                      "driver") == 0);
+        EXPECT(step != NULL && step->data.intent_step.authorized_by_count == 1);
+        EXPECT(step != NULL && strcmp(step->data.intent_step.authorized_by[0],
+                                      "driver") == 0);
 
         semantic_result_destroy(result);
         ast_destroy(program);

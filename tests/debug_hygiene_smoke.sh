@@ -46,4 +46,35 @@ require_env_gate PGY_DEBUG_LLVM_VERIFY
 require_env_gate PGY_DEBUG_PIPELINE_STAGE
 require_env_gate PGY_DEBUG_MIR_LOWER
 
+detail_getenv_sites="$(
+    grep -RIn 'getenv("PGY_DEBUG_LLVM_DETAIL")' "$ROOT_DIR/src" \
+        --include='*.c' --include='*.h' || true
+)"
+detail_getenv_count="$(printf '%s\n' "$detail_getenv_sites" | grep -c . || true)"
+if [ "$detail_getenv_count" -ne 1 ]; then
+    printf '%s\n' "$detail_getenv_sites" >&2
+    fail "PGY_DEBUG_LLVM_DETAIL must be read through one LLVM debug-detail helper"
+fi
+if ! printf '%s\n' "$detail_getenv_sites" \
+    | grep -Fq 'src/codegen/llvm_debug_flags.h'; then
+    printf '%s\n' "$detail_getenv_sites" >&2
+    fail "PGY_DEBUG_LLVM_DETAIL env read must live in llvm_debug_flags.h"
+fi
+
+for name in PGY_DEBUG_LLVM_STAGE PGY_DEBUG_LLVM_VERIFY; do
+    sites="$(
+        grep -RIn "getenv(\"$name\")" "$ROOT_DIR/src/codegen" \
+            --include='*.c' --include='*.h' || true
+    )"
+    count="$(printf '%s\n' "$sites" | grep -c . || true)"
+    if [ "$count" -ne 1 ]; then
+        printf '%s\n' "$sites" >&2
+        fail "$name must be read through one LLVM debug helper"
+    fi
+    if ! printf '%s\n' "$sites" | grep -Fq 'src/codegen/llvm_debug_flags.h'; then
+        printf '%s\n' "$sites" >&2
+        fail "$name env read must live in llvm_debug_flags.h"
+    fi
+done
+
 echo "[debug-hygiene] debug traces are opt-in and PGY_DEBUG is not release-defaulted"

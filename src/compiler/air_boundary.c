@@ -129,3 +129,49 @@ air_boundary_source_from_ast(const ASTNode *node)
         return rule->source_name;
     return kind == AIR_BOUNDARY_EXECUTION ? "execution" : "boundary";
 }
+
+bool
+air_boundary_authority_storage_valid(const AIRBoundaryNode *boundary)
+{
+    return boundary != NULL
+        && (boundary->authority_name_count == 0
+            || boundary->authority_names != NULL);
+}
+
+size_t
+air_boundary_authority_name_count(const AIRBoundaryNode *boundary)
+{
+    return boundary != NULL ? boundary->authority_name_count : 0;
+}
+
+const char *
+air_boundary_authority_name_at(const AIRBoundaryNode *boundary, size_t index)
+{
+    if (boundary == NULL || index >= boundary->authority_name_count)
+        return NULL;
+    return boundary->authority_names[index];
+}
+
+const char *
+air_boundary_first_authority_name_or(const AIRBoundaryNode *boundary,
+                                     const char *fallback)
+{
+    const char *name = air_boundary_authority_name_at(boundary, 0);
+    return !air_name_is_empty(name) ? name : fallback;
+}
+
+bool
+air_boundary_declares_authority_name(const AIRBoundaryNode *boundary,
+                                     const char *authority_name)
+{
+    if (boundary == NULL || authority_name == NULL)
+        return false;
+    for (size_t i = 0; i < air_boundary_authority_name_count(boundary); i++) {
+        if (air_name_matches(
+                air_boundary_authority_name_at(boundary, i),
+                authority_name)) {
+            return true;
+        }
+    }
+    return false;
+}

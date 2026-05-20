@@ -279,6 +279,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_env.c \
                    $(SEMANTIC_DIR)/symbol_table.c \
                    $(SEMANTIC_DIR)/type_checker.c \
+                   $(SEMANTIC_DIR)/type_checker_assignment_path.c \
                    $(SEMANTIC_DIR)/type_checker_diag.c \
                    $(SEMANTIC_DIR)/type_checker_generic_diag.c \
                    $(SEMANTIC_DIR)/type_checker_generic_effective_args.c \
@@ -316,8 +317,10 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_resolution_stage_nominal.c \
                    $(SEMANTIC_DIR)/type_checker_resolution_stage_systemic.c \
                    $(SEMANTIC_DIR)/type_checker_resolution_stage_domain_decl.c \
+                   $(SEMANTIC_DIR)/type_checker_resolution_worklist.c \
                    $(SEMANTIC_DIR)/type_checker_resolution_stage.c \
                    $(SEMANTIC_DIR)/type_checker_class_decl.c \
+                   $(SEMANTIC_DIR)/type_checker_enum_decl.c \
                    $(SEMANTIC_DIR)/type_checker_host_overlay.c \
                    $(SEMANTIC_DIR)/type_checker_host_helpers.c \
                    $(SEMANTIC_DIR)/type_checker_program.c \
@@ -363,6 +366,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_ability_ref.c \
                    $(SEMANTIC_DIR)/type_checker_stdlib_use.c \
                    $(SEMANTIC_DIR)/type_checker_module_contract.c \
+                   $(SEMANTIC_DIR)/type_checker_loop_control.c \
                    $(SEMANTIC_DIR)/type_checker_module_contract_diag.c \
                    $(SEMANTIC_DIR)/type_checker_ability_fields.c \
                    $(SEMANTIC_DIR)/type_checker_ability_match.c \

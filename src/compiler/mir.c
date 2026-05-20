@@ -45,6 +45,31 @@ mir_instruction_is_with_slot_claim(const MIRInstruction *inst)
     return mir_instruction_source_is_with_slot_claim(inst);
 }
 
+static void
+mir_count_non_cfg_body_fallback_inventory(const MIRProgram *mir,
+                                          size_t *fallback_total,
+                                          size_t *fallback_routines)
+{
+    size_t total = 0;
+    size_t routines = 0;
+
+    if (mir != NULL && mir->routines != NULL) {
+        for (size_t i = 0; i < mir->routine_count; i++) {
+            const MIRRoutine *routine = &mir->routines[i];
+            total += routine->non_cfg_body_fallback_count;
+            if (routine->used_non_cfg_body_fallback
+                || routine->non_cfg_body_fallback_count > 0) {
+                routines++;
+            }
+        }
+    }
+
+    if (fallback_total != NULL)
+        *fallback_total = total;
+    if (fallback_routines != NULL)
+        *fallback_routines = routines;
+}
+
 void
 mir_refresh_non_cfg_body_fallback_inventory(MIRProgram *mir)
 {
@@ -54,17 +79,9 @@ mir_refresh_non_cfg_body_fallback_inventory(MIRProgram *mir)
     if (mir == NULL)
         return;
 
-    if (mir->routines != NULL) {
-        for (size_t i = 0; i < mir->routine_count; i++) {
-            const MIRRoutine *routine = &mir->routines[i];
-            fallback_total += routine->non_cfg_body_fallback_count;
-            if (routine->used_non_cfg_body_fallback
-                || routine->non_cfg_body_fallback_count > 0) {
-                fallback_routines++;
-            }
-        }
-    }
-
+    mir_count_non_cfg_body_fallback_inventory(mir,
+                                              &fallback_total,
+                                              &fallback_routines);
     mir->has_non_cfg_body_fallback_inventory = true;
     mir->non_cfg_body_fallback_total = fallback_total;
     mir->non_cfg_body_fallback_routine_count = fallback_routines;

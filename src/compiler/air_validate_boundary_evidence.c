@@ -11,10 +11,12 @@ air_boundary_has_evidence_kind_provider(const AIRProgram *air,
                                         AIREvidenceKind kind,
                                         const char *provider_name)
 {
-    if (air == NULL || boundary_index >= air->boundary_count)
+    if (air == NULL || boundary_index >= air_boundary_node_count(air))
         return false;
-    for (size_t i = 0; i < air->evidence_count; i++) {
-        const AIREvidenceNode *evidence = &air->evidence_nodes[i];
+    for (size_t i = 0; i < air_evidence_node_count(air); i++) {
+        const AIREvidenceNode *evidence = air_evidence_node_at(air, i);
+        if (evidence == NULL)
+            continue;
         if (evidence->kind == kind
             && evidence->boundary_index == boundary_index
             && air_name_matches(evidence->provider_name, provider_name)) {
@@ -31,8 +33,10 @@ air_global_evidence_has_provider(const AIRProgram *air,
 {
     if (air == NULL || air_name_is_empty(provider_name))
         return false;
-    for (size_t i = 0; i < air->evidence_count; i++) {
-        const AIREvidenceNode *evidence = &air->evidence_nodes[i];
+    for (size_t i = 0; i < air_evidence_node_count(air); i++) {
+        const AIREvidenceNode *evidence = air_evidence_node_at(air, i);
+        if (evidence == NULL)
+            continue;
         if (evidence->kind == kind
             && evidence->boundary_index == SIZE_MAX
             && air_name_matches(evidence->provider_name, provider_name)) {
@@ -51,10 +55,10 @@ air_program_requires_summary_flag_for_evidence(const AIRProgram *air,
     switch (kind) {
     case AIR_EVIDENCE_HIR_ROUTINE:
     case AIR_EVIDENCE_HIR_CFG:
-        return air->has_hir_input;
+        return air_has_hir_input(air);
     case AIR_EVIDENCE_RIR_BOUNDARY:
     case AIR_EVIDENCE_RIR_AUTHORITY:
-        return air->has_rir_input;
+        return air_has_rir_input(air);
     default:
         return false;
     }
@@ -69,11 +73,13 @@ air_validate_boundary_evidence_base(const AIRProgram *air,
 {
     const AIREvidenceNode *evidence;
 
-    if (air == NULL || evidence_index >= air->evidence_count)
+    if (air == NULL || evidence_index >= air_evidence_node_count(air))
         return false;
 
-    evidence = &air->evidence_nodes[evidence_index];
-    if (evidence->boundary_index >= air->boundary_count) {
+    evidence = air_evidence_node_at(air, evidence_index);
+    if (evidence == NULL)
+        return false;
+    if (evidence->boundary_index >= air_boundary_node_count(air)) {
         air_set_invariant_error(error_message,
                                 "AIR boundary evidence node %zu references missing boundary node %zu",
                                 evidence_index,
@@ -82,7 +88,9 @@ air_validate_boundary_evidence_base(const AIRProgram *air,
     }
 
     *evidence_out = evidence;
-    *boundary_out = &air->boundaries[evidence->boundary_index];
+    *boundary_out = air_boundary_node_at(air, evidence->boundary_index);
+    if (*boundary_out == NULL)
+        return false;
     if (air_program_requires_summary_flag_for_evidence(air, evidence->kind)
         && !air_boundary_has_summary_flag(*boundary_out, evidence->kind)) {
         air_set_invariant_error(error_message,
@@ -246,10 +254,12 @@ air_evidence_node_matches_boundary_shape(const AIRProgram *air,
     const AIREvidenceNode *evidence;
     const AIRBoundaryNode *boundary;
 
-    if (air == NULL || evidence_index >= air->evidence_count)
+    if (air == NULL || evidence_index >= air_evidence_node_count(air))
         return false;
 
-    evidence = &air->evidence_nodes[evidence_index];
+    evidence = air_evidence_node_at(air, evidence_index);
+    if (evidence == NULL)
+        return false;
     if (air_evidence_kind_is_global(evidence->kind))
         return air_validate_global_evidence_shape(evidence,
                                                   evidence_index,

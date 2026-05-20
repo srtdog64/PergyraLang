@@ -105,6 +105,7 @@ for path in \
     src/semantic/type_checker_flow_match.c \
     src/semantic/type_checker_generic_contracts.h \
     src/semantic/type_checker_func_action_contract.c \
+    src/semantic/type_checker_enum_decl.c \
     src/semantic/type_checker_intent_authority.c \
     src/semantic/type_checker_intent_participants.c \
     src/semantic/type_checker_resolution_retired.c \
@@ -136,6 +137,7 @@ for path in \
     src/semantic/type_checker_slot_view_active.c \
     src/semantic/type_checker_func_decl.c \
     src/semantic/type_checker_func_action_contract.c \
+    src/semantic/type_checker_enum_decl.c \
     src/semantic/type_checker_builtins_resolve.c \
     src/semantic/type_checker_builtins_intent_observability.c \
     src/semantic/type_checker_builtins_nominal.c \
@@ -182,8 +184,47 @@ if grep -q '#include "type_checker_resolution_graph_inventory.inc"' src/semantic
     fail "type_checker.c must not include graph inventory body"
 fi
 
+if ! grep -q '^type_check_enum_decl(ASTNode \*node,' \
+    src/semantic/type_checker_enum_decl.c; then
+    fail "enum declaration validation must stay in type_checker_enum_decl.c"
+fi
+
+if grep -q '^type_check_enum_decl(ASTNode \*node,' \
+    src/semantic/type_checker.c; then
+    fail "type_checker.c must not own enum declaration validation"
+fi
+
+if [ ! -f src/semantic/type_checker_resolution_worklist.c ]; then
+    fail "DAG worklist execution must stay in type_checker_resolution_worklist.c"
+fi
+
+if ! grep -q '^semantic_run_type_resolution_worklist(ASTNode \*program,' \
+    src/semantic/type_checker_resolution_worklist.c; then
+    fail "type_checker_resolution_worklist.c must own semantic_run_type_resolution_worklist"
+fi
+
+if grep -q '^semantic_run_type_resolution_worklist(ASTNode \*program,' \
+    src/semantic/type_checker.c; then
+    fail "type_checker.c must not own DAG worklist execution"
+fi
+
 if [ -e src/semantic/type_checker_resolve.c ] || [ -e src/semantic/type_checker_resolve.h ]; then
     fail "obsolete type_checker_resolve compatibility owner must not reappear"
+fi
+
+grep -q 'semantic_assignment_path_heap_owner' src/semantic/type_checker_assignment_path.c \
+    || fail "assignment target path heap lane must stay explicit"
+
+grep -q 'semantic_assignment_path_scratch_owner' src/semantic/type_checker_assignment_path.c \
+    || fail "assignment target path scratch lane must stay explicit"
+
+if grep -q 'semantic_assignment_target_path_impl(ASTNode \*expr' \
+    src/semantic/type_checker_assignment_path.c; then
+    fail "assignment target path must not reopen ctx + scratch bool mode"
+fi
+
+if grep -q 'scratch && ctx' src/semantic/type_checker_assignment_path.c; then
+    fail "assignment target path must not compute scratch mode from a bool seam"
 fi
 
 grep -q 'Retired compatibility resolver audit counters' src/semantic/type_checker_resolution_retired.c \
@@ -662,6 +703,12 @@ fi
 if grep -R "data\.call\.\(callee\|arguments\|arg_count\|arg_names\|generic_args\)" \
     src/semantic src/compiler src/codegen >/dev/null; then
     fail "non-parser call payload consumers must use AST call accessors"
+fi
+
+grep -Fq "semantic_assignment_path_release" \
+    src/semantic/type_checker_assignment_path.c
+if grep -Fq "free(base)" src/semantic/type_checker_assignment_path.c; then
+    fail "assignment target path owner must release intermediate paths through semantic_assignment_path_release"
 fi
 
 if grep -R "data\.func_decl\.\(param_count\|params\|return_type\|body\)" \
@@ -1364,9 +1411,14 @@ if grep -R "data\.intent_step\.\(where_type\|using_expr\|causes_effect\|inherite
     fail "semantic intent-step simple inferred field writes must use AST intent-step mutators"
 fi
 
-if grep -R "data\.intent_step\.\(authorized_by\|authorized_by_count\|authorized_by_capacity\|inherited_authorized_by_from_action\|derived_authorized_by_from_zone\)[[:space:]]*=[^=]" \
+if grep -R "data\.intent_step\.\(authorized_by\|authorized_by_count\|authorized_by_capacity\|inherited_authorized_by_from_action\)[[:space:]]*=[^=]" \
     src/semantic >/dev/null; then
     fail "semantic intent-step authorized-by writes must use AST intent-step mutators"
+fi
+
+if grep -R "data\.intent_step\.derived_authorized_by_from_zone[[:space:]]*=[^=]" \
+    src/semantic src/compiler src/codegen >/dev/null; then
+    fail "legacy zone-derived authorized-by field must not be set by active compiler phases"
 fi
 
 if grep -R "data\.intent_step\.\(who_names\|who_count\|who_capacity\|inherited_who_from_action\|derived_who_from_on_receiver\|derived_who_from_single_participant\)[[:space:]]*=[^=]" \

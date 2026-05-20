@@ -29,6 +29,7 @@
 #include <llvm-c/Transforms/PassBuilder.h>
 
 #include "llvm_limits_internal.h"
+#include "llvm_debug_flags.h"
 
 /* =================================================================
  * Pergyra type classification ??eliminates repeated strcmp dispatch

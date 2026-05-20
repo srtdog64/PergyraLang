@@ -13,8 +13,10 @@ air_find_runtime_evidence(const AIRProgram *air,
 {
     if (air == NULL)
         return NULL;
-    for (size_t i = 0; i < air->evidence_count; i++) {
-        const AIREvidenceNode *node = &air->evidence_nodes[i];
+    for (size_t i = 0; i < air_evidence_node_count(air); i++) {
+        const AIREvidenceNode *node = air_evidence_node_at(air, i);
+        if (node == NULL)
+            continue;
         if (node->kind == kind
             && node->boundary_index == SIZE_MAX
             && air_name_matches(node->provider_name, provider_name)
@@ -31,7 +33,6 @@ air_collect_singleton_runtime_evidence(AIRProgram *air,
                                        const char *provider_name,
                                        const char *subject_name,
                                        size_t fact_count,
-                                       size_t *summary_counter,
                                        char **error_message)
 {
     const AIREvidenceNode *existing;
@@ -61,8 +62,11 @@ air_collect_singleton_runtime_evidence(AIRProgram *air,
                                      error_message)) {
         return false;
     }
-    if (summary_counter != NULL)
-        (*summary_counter)++;
+    if (!air_increment_evidence_summary_count(air, kind)) {
+        air_set_error(error_message,
+                      "AIR runtime evidence counter overflow");
+        return false;
+    }
     return true;
 }
 
@@ -75,7 +79,6 @@ air_collect_observability_schema_evidence(AIRProgram *air, char **error_message)
         "runtime-observability-schema",
         PGY_OBSERVABILITY_ABI_SCHEMA,
         PGY_OBSERVABILITY_SCHEMA_FACT_COUNT,
-        air != NULL ? &air->observability_schema_evidence_count : NULL,
         error_message);
 }
 
@@ -89,6 +92,5 @@ air_collect_runtime_frontier_policy_evidence(AIRProgram *air,
         PGY_FRONTIER_POLICY_SCHEMA,
         PGY_FRONTIER_POLICY_SUBJECT,
         PGY_FRONTIER_POLICY_FACT_COUNT,
-        air != NULL ? &air->runtime_frontier_policy_evidence_count : NULL,
         error_message);
 }

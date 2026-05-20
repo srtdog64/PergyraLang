@@ -119,7 +119,7 @@ struct SemanticContext
     size_t type_resolution_stage_compat_domain_contract_count;
     size_t type_resolution_stage_compat_alias_count;
     size_t type_resolution_stage_compat_other_count;
-    size_t type_resolution_dag_ability_evidence_count;
+    size_t type_resolution_dag_ability_consumer_evidence_count;
     size_t type_resolution_stage_alias_materialized_count;
     size_t type_resolution_stage_alias_diagnostic_unresolved_count;
     size_t type_resolution_stage_alias_diagnostic_resolver_call_count;
@@ -223,6 +223,7 @@ bool type_check_program(ASTNode* program, SemanticContext* ctx);
 
 bool type_check_func_decl(ASTNode* node, SemanticContext* ctx);
 bool type_check_class_decl(ASTNode* node, SemanticContext* ctx);
+bool type_check_enum_decl(ASTNode* node, SemanticContext* ctx);
 bool type_check_extern_block(ASTNode* node, SemanticContext* ctx);
 bool type_check_let_decl(ASTNode* node, SemanticContext* ctx);
 
@@ -237,6 +238,8 @@ bool type_check_for_loop(ASTNode* node, SemanticContext* ctx);
 bool type_check_while_loop(ASTNode* node, SemanticContext* ctx);
 bool type_check_match_stmt(ASTNode* node, SemanticContext* ctx);
 bool type_check_return_stmt(ASTNode* node, SemanticContext* ctx);
+bool type_check_break_stmt(ASTNode* node, SemanticContext* ctx);
+bool type_check_continue_stmt(ASTNode* node, SemanticContext* ctx);
 bool type_check_ability_decl(ASTNode* node, SemanticContext* ctx);
 bool type_check_role_decl(ASTNode* node, SemanticContext* ctx);
 bool type_check_party_decl(ASTNode* node, SemanticContext* ctx);

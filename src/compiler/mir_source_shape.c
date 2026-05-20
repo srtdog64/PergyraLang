@@ -6,13 +6,22 @@
 #include <string.h>
 
 bool
+mir_instruction_source_matches_ast_type(const MIRInstruction *inst,
+                                        ASTNodeType expected_type)
+{
+    return inst != NULL
+        && inst->has_source_location
+        && inst->source_ast_type == expected_type;
+}
+
+bool
 mir_instruction_source_is_with_slot_claim(const MIRInstruction *inst)
 {
     return inst != NULL
         && inst->kind == MIR_INST_RESOURCE_OP
         && inst->name != NULL
         && strcmp(inst->name, "Claim") == 0
-        && inst->source_ast_type == AST_WITH_STMT;
+        && mir_instruction_source_matches_ast_type(inst, AST_WITH_STMT);
 }
 
 bool
@@ -78,6 +87,27 @@ mir_instruction_source_column(const MIRInstruction *inst)
 }
 
 bool
+mir_instruction_has_source_terminator_kind(const MIRInstruction *inst)
+{
+    return inst != NULL && inst->has_source_terminator_kind;
+}
+
+bool
+mir_instruction_source_terminator_matches(
+        const MIRInstruction *inst,
+        HIRBlockTerminatorKind expected_kind)
+{
+    return mir_instruction_has_source_terminator_kind(inst)
+        && inst->source_terminator_kind == expected_kind;
+}
+
+bool
+mir_instruction_source_terminator_has_value(const MIRInstruction *inst)
+{
+    return inst != NULL && inst->source_terminator_has_value;
+}
+
+bool
 mir_instruction_has_source_statement_order(const MIRInstruction *inst)
 {
     return inst != NULL && inst->has_source_statement_index;
@@ -129,13 +159,24 @@ mir_instruction_branch_requires_source_emit(const MIRInstruction *inst)
 bool
 mir_instruction_source_branch_payload_matches_shape(const MIRInstruction *inst)
 {
-    if (inst == NULL || !inst->has_source_location)
+    if (!mir_instruction_has_source_location(inst))
         return false;
     if (inst->branch_shape == MIR_BRANCH_MATCH_CASE)
-        return inst->source_ast_type == AST_MATCH_CASE;
+        return mir_instruction_source_matches_ast_type(inst, AST_MATCH_CASE);
     if (inst->branch_shape == MIR_BRANCH_SELECT_DISPATCH)
-        return inst->source_ast_type == AST_BLOCK;
+        return mir_instruction_source_matches_ast_type(inst, AST_BLOCK);
     return true;
+}
+
+bool
+mir_instruction_has_required_branch_condition_fact(const MIRInstruction *inst)
+{
+    if (inst == NULL || inst->kind != MIR_INST_BRANCH)
+        return false;
+    if (mir_instruction_branch_requires_source_emit(inst))
+        return mir_instruction_source_payload(inst) != NULL
+            && mir_instruction_source_branch_payload_matches_shape(inst);
+    return inst->expr0 != NULL;
 }
 
 bool
@@ -144,8 +185,7 @@ mir_instruction_uses_source_statement_emit(const MIRInstruction *inst)
     return inst != NULL
         && inst->kind == MIR_INST_DEF
         && inst->requires_source_statement_emit
-        && inst->ast != NULL
-        && inst->has_source_location;
+        && mir_instruction_source_payload(inst) != NULL;
 }
 
 bool
@@ -153,47 +193,37 @@ mir_instruction_uses_source_local_decl_emit(const MIRInstruction *inst)
 {
     return mir_instruction_uses_source_statement_emit(inst)
         && inst->requires_source_local_decl_emit
-        && inst->source_ast_type == AST_LET_DECL;
+        && mir_instruction_source_matches_ast_type(inst, AST_LET_DECL);
 }
 
 bool
 mir_instruction_source_is_local_decl(const MIRInstruction *inst)
 {
-    return inst != NULL
-        && inst->has_source_location
-        && inst->source_ast_type == AST_LET_DECL;
+    return mir_instruction_source_matches_ast_type(inst, AST_LET_DECL);
 }
 
 bool
 mir_instruction_source_is_local_destructure(const MIRInstruction *inst)
 {
-    return inst != NULL
-        && inst->has_source_location
-        && inst->source_ast_type == AST_LET_DESTRUCTURE;
+    return mir_instruction_source_matches_ast_type(inst, AST_LET_DESTRUCTURE);
 }
 
 bool
 mir_instruction_source_is_assignment(const MIRInstruction *inst)
 {
-    return inst != NULL
-        && inst->has_source_location
-        && inst->source_ast_type == AST_ASSIGNMENT;
+    return mir_instruction_source_matches_ast_type(inst, AST_ASSIGNMENT);
 }
 
 bool
 mir_instruction_source_is_defer_stmt(const MIRInstruction *inst)
 {
-    return inst != NULL
-        && inst->has_source_location
-        && inst->source_ast_type == AST_DEFER_STMT;
+    return mir_instruction_source_matches_ast_type(inst, AST_DEFER_STMT);
 }
 
 bool
 mir_instruction_source_is_intent_step(const MIRInstruction *inst)
 {
-    return inst != NULL
-        && inst->has_source_location
-        && inst->source_ast_type == AST_INTENT_STEP;
+    return mir_instruction_source_matches_ast_type(inst, AST_INTENT_STEP);
 }
 
 bool
@@ -220,18 +250,23 @@ mir_source_ast_type_is_cfg_container(ASTNodeType type)
 bool
 mir_instruction_source_is_cfg_container(const MIRInstruction *inst)
 {
-    return inst != NULL
-        && inst->has_source_location
-        && mir_source_ast_type_is_cfg_container(inst->source_ast_type);
+    int source_type = mir_instruction_source_ast_type_or(inst, -1);
+
+    return source_type >= 0
+        && mir_source_ast_type_is_cfg_container((ASTNodeType)source_type);
 }
 
 bool
 mir_instruction_source_is_cfg_owned_control(const MIRInstruction *inst)
 {
+    int source_type;
+
     if (inst == NULL)
         return false;
-    if (inst->has_source_location)
-        return mir_stmt_ast_type_is_cfg_owned_control(inst->source_ast_type);
+    source_type = mir_instruction_source_ast_type_or(inst, -1);
+    if (source_type >= 0)
+        return mir_stmt_ast_type_is_cfg_owned_control(
+            (ASTNodeType)source_type);
     return mir_stmt_ast_is_cfg_owned_control(inst->ast);
 }
 
@@ -326,10 +361,12 @@ mir_source_ast_stmt_has_side_effect_hint(const ASTNode *stmt)
 bool
 mir_instruction_source_stmt_has_side_effect_hint(const MIRInstruction *inst)
 {
-    if (inst == NULL || !inst->has_source_location)
+    int source_type = mir_instruction_source_ast_type_or(inst, -1);
+
+    if (source_type < 0)
         return false;
     return mir_source_ast_type_stmt_has_side_effect_hint(
-        inst->source_ast_type, inst->arg0);
+        (ASTNodeType)source_type, inst->arg0);
 }
 
 bool
@@ -344,17 +381,7 @@ mir_instruction_source_stmt_fallback_is_allowed(const MIRInstruction *inst)
         return false;
     if (mir_instruction_source_is_cfg_owned_control(inst))
         return false;
-    return mir_source_ast_type_stmt_has_side_effect_hint(
-        inst->source_ast_type, inst->arg0);
-}
-
-bool
-mir_instruction_source_matches_ast_type(const MIRInstruction *inst,
-                                        ASTNodeType expected_type)
-{
-    return inst != NULL
-        && inst->has_source_location
-        && inst->source_ast_type == expected_type;
+    return mir_instruction_source_stmt_has_side_effect_hint(inst);
 }
 
 bool

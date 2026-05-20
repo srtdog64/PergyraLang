@@ -86,6 +86,16 @@ intent_action_binding_type_name(ASTNode *action_decl, ASTNode *subject_decl,
 }
 
 static bool
+intent_step_has_local_authorized_by(ASTNode *step)
+{
+    return step != NULL
+        && step->type == AST_INTENT_STEP
+        && ast_intent_step_authorized_by_count(step) > 0
+        && !ast_intent_step_inherited_authorized_by_from_action(step)
+        && !ast_intent_step_derived_authorized_by_from_zone(step);
+}
+
+static bool
 intent_step_same_authorized_by_list(ASTNode *intent_decl,
                                     ASTNode *step,
                                     ASTNode *action_decl,
@@ -282,6 +292,7 @@ intent_step_warn_redundant_action_contract(ASTNode *intent_decl,
         && !ast_intent_step_inherited_who_from_action(step)
         && !ast_intent_step_derived_who_from_on_receiver(step)
         && !ast_intent_step_derived_who_from_single_participant(step)
+        && !intent_step_has_local_authorized_by(step)
         && intent_step_same_who_binding(intent_decl, step, action_subject_decl)) {
         (void)pergyra_str_appendf(redundant, sizeof(redundant),
                                   "%s- who", has_any ? "\n" : "");

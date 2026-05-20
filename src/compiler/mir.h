@@ -354,6 +354,13 @@ bool        mir_instruction_source_line_matches_node(
                 const ASTNode *node);
 uint32_t    mir_instruction_source_line(const MIRInstruction *inst);
 uint32_t    mir_instruction_source_column(const MIRInstruction *inst);
+bool        mir_instruction_has_source_terminator_kind(
+                const MIRInstruction *inst);
+bool        mir_instruction_source_terminator_matches(
+                const MIRInstruction *inst,
+                HIRBlockTerminatorKind expected_kind);
+bool        mir_instruction_source_terminator_has_value(
+                const MIRInstruction *inst);
 bool        mir_instruction_has_source_statement_order(
                 const MIRInstruction *inst);
 bool        mir_instruction_is_first_source_statement(
@@ -367,6 +374,8 @@ int         mir_instruction_source_statement_order_compare(
 bool        mir_instruction_branch_requires_source_emit(
                 const MIRInstruction *inst);
 bool        mir_instruction_source_branch_payload_matches_shape(
+                const MIRInstruction *inst);
+bool        mir_instruction_has_required_branch_condition_fact(
                 const MIRInstruction *inst);
 bool        mir_instruction_uses_source_statement_emit(
                 const MIRInstruction *inst);

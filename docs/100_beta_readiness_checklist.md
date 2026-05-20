@@ -18,7 +18,7 @@ Current status (2026-05-10): this checklist is the beta execution contract.
 The criterion is not feature count; it is **surface trust + structural
 sustainability + C/LLVM parity + CFG-backed body safety + AIR-backed
 abstraction safety + dogfood-first path**. Feature feel is about 70%, while
-strict beta readiness is about 63%. When the CFG/AIR/DAG/MIR/ABI
+strict beta readiness is about 68%. When the CFG/AIR/DAG/MIR/ABI
 source-of-truth closures are complete, reassess in the 75-80% range.
 
 Current DAG tightening (2026-05-15): Generic parameter storage is now closed
@@ -273,7 +273,7 @@ incomplete, documentation alone does not count as closure.
 
 마지막 업데이트: 2026-05-04
 
-이 문서는 베타 진입 전 반드시 닫아야 하는 실행 체크리스트다. 기준은 기능 개수가 아니라 **surface trust + 구조 지속 가능성 + C/LLVM parity + CFG-backed body safety + AIR-backed abstraction safety + dogfood-first path**다. 현재 표기는 두 개로 분리한다: 기능 체감 진행도는 약 70%, strict beta readiness는 약 60%를 기준값으로 두고 현재 실무 판단은 63%까지 본다. CFG/AIR/DAG/MIR/ABI source-of-truth closure가 끝나면 75-80% 범위로 재평가한다.
+이 문서는 베타 진입 전 반드시 닫아야 하는 실행 체크리스트다. 기준은 기능 개수가 아니라 **surface trust + 구조 지속 가능성 + C/LLVM parity + CFG-backed body safety + AIR-backed abstraction safety + dogfood-first path**다. 현재 표기는 두 개로 분리한다: 기능 체감 진행도는 약 70%, strict beta readiness는 약 60%를 기준값으로 두고 현재 실무 판단은 68%까지 본다. CFG/AIR/DAG/MIR/ABI source-of-truth closure가 끝나면 75-80% 범위로 재평가한다.
 
 베타 진입 목표는 1년간 코어 문법과 의미론을 멈추고 생태계(`pgy.compat.*`, `pgy.kit.*`, `pgy.std.*`, `pgy.accel.spray`, `pgy.render.skia` 등)를 분리해도 되는 지점을 만드는 것이다. 따라서 beta closure는 **"이 코어가 1년 동안 자력으로 버틸 수 있는가"**를 기준으로 본다. 새 표면을 늘리는 작업은 AIR/CFG/runtime invariant가 닫힌 뒤로 미루며, 문서 합의만으로 완료된 것으로 보지 않는다.
 
@@ -799,12 +799,11 @@ Operational mode:
   other routine. `parallel-core-contract-test-smoke` rejects reintroducing
   source-array fallback in this path.
 - 2026-05-02 intent zone-authority compression:
-  authority-sensitive intent steps can now derive `authorized by` from a single
-  unambiguous `who` participant mapped to the current zone's authority subject
-  slot. The authority owner remains the zone/resource layer; intent records
-  `derived_authorized_by_from_zone` provenance and then validates through the
-  normal authorized-by path. Pure local-zone declarations still require explicit
-  approval and keep the existing diagnostic.
+  superseded by the who/approval separation rule. `who` is actor/provenance
+  only and no longer derives `authorized by`; authority-sensitive steps in
+  authority-bearing zones must spell approval explicitly or inherit it from an
+  explicit action contract. Diagnostics may suggest a matching authority
+  participant, but they must not mutate the step contract from `who` alone.
 - 2026-05-02 intent on-receiver compression:
   intent steps can now derive omitted `who` from `on: receiver.Action(...)`
   when the receiver is an intent subject participant and the subject declares
@@ -830,15 +829,17 @@ Operational mode:
   accessors, so compact syntax does not reopen raw `func_decl` payloads while
   materializing explicit facts for DIR/AIR.
 - 2026-05-02 AIR authority provenance lift:
-  derived approval is no longer semantic-only. DIR carries
-  `authorized_by_derived_from_zone` and
+  derived approval is no longer semantic-only. DIR retains the legacy
+  `authorized_by_derived_from_zone` field for compatibility and carries
   `authorized_by_inherited_from_action`; action-derived `where` also carries
   `where_inherited_from_action`, and action-derived `requires`/`causes` carry
   `requires_inherited_from_action` / `causes_inherited_from_action`. AIR carries
-  `authority_from_zone`, `authority_from_action`, `source_from_action`,
+  the retained `authority_from_zone` schema field, `authority_from_action`,
+  `source_from_action`,
   `requires_from_action`, and `causes_from_action`; JSON dumps expose those
   fields, and AIR diagnostics report
-  `authority_provenance=zone-derived|action-inherited|explicit|none`.
+  `authority_provenance=action-inherited|explicit|none` on active beta paths;
+  any compatibility-only zone field is labeled `legacy-zone-field`.
   The parsed AIR regression also requires action-inherited authority to match
   real RIR authority evidence (`AIR_EVIDENCE_RIR_AUTHORITY` plus
   `rir_authority_evidence_name`), not just the AIR boundary flag.
@@ -1738,8 +1739,9 @@ Operational mode:
   projection-path helper split. `llvm_expr_host_spawn_literal_helpers.h` is
   below the threshold after the spawn/call helper split. This is no longer `.inc` debt, but it is still
   beta readability debt. `llvm_internal.h` has moved below the
-  threshold by splitting private API declarations into `llvm_internal_api.h`
-  and fixed limits / dynamic-array helpers into `llvm_limits_internal.h`. The
+  threshold by splitting private API declarations into `llvm_internal_api.h`,
+  fixed limits / dynamic-array helpers into `llvm_limits_internal.h`, and
+  LLVM developer-trace env reads into `llvm_debug_flags.h`. The
   LLVM registry owner is also below the threshold after splitting resource/type
   registry behavior into `llvm_registry_resources.c`. The world semantic owner
   family is below the threshold after moving lookup/
@@ -3288,10 +3290,10 @@ Closed now:
   `type-resolution-resolver-inventory-test-smoke`.
 - Central metadata materializer fallback is dormant in the semantic suite:
   `materializer_fallbacks=0`.
-- Current local stats are `graph-backed skips=2058`,
+- Current local stats are `graph-backed skips=2061`,
   `resolve_calls=0`, `resolve_unique_nodes=0`,
-  `metadata_entries=3718`, `metadata_owned=261`,
-  `metadata_hits=8695`, and `materializer_fallbacks=0`.
+  `metadata_entries=3726`, `metadata_owned=261`,
+  `metadata_hits=8731`, and `materializer_fallbacks=0`.
 - Metadata fallback families are all zero, including named, generic-named,
   compound, other, builtin shell, generic class, alias, non-class symbol, and
   missing-symbol fallback.
@@ -3770,7 +3772,7 @@ find src -path src/tests -prune -o -name '*.inc' -print
   resolution, and domain slot/shared/named refs moved to metadata-only lookup.
   The unused materializing type-ref compatibility APIs were removed.
 - `resolve_generic_type_arg(...)` is also metadata-first, so constructed builtin and generic consumer paths reuse graph facts before recursive fallback.
-- `make type-resolution-dag-test-smoke` now gates graph-backed stage skips, retired compatibility resolver calls (`retired_resolver_calls<=0`), metadata entries, metadata owned entries, metadata hits, metadata materializer fallback count, zero stage metadata materialization, and alias-stage split accounting. Current local stats for this slice are `graph-backed skips=2058 generic_param_nodes=102 dag_generic_contract_evidence=165 dag_ability_consumer_evidence=72 retired_resolver_calls=0 retired_resolver_unique_nodes=0 retired_resolver_kind_sum=0 retired_resolver_kind_ast_type=0 retired_resolver_kind_compound_or_other=0 retired_resolver_body_fallbacks=0 metadata_entries=3718 metadata_owned=261 metadata_hits=8695 metadata_dead_ends=0 materializer_unresolved=0 metadata_unresolved_named=0 metadata_unresolved_generic_named=0 metadata_unresolved_compound=0 metadata_unresolved_other=0 metadata_unresolved_builtin_shell=0 metadata_unresolved_generic_class=0 metadata_unresolved_alias=0 metadata_unresolved_non_class_symbol=0 metadata_unresolved_missing_symbol=0 stage_materialize_calls=0 stage_materialize_failed=0 stage_materialize_suppressed=0 stage_materialize_alias=0 stage_materialize_non_alias=0 alias_materialized=6 alias_diagnostic_unresolved=78 alias_diagnostic_resolver_calls=0 alias_diagnostic_resolved=0 alias_diagnostic_cycle_unresolved=78`.
+- `make type-resolution-dag-test-smoke` now gates graph-backed stage skips, retired compatibility resolver calls (`retired_resolver_calls<=0`), metadata entries, metadata owned entries, metadata hits, metadata materializer fallback count, zero stage metadata materialization, and alias-stage split accounting. Current local stats for this slice are `graph-backed skips=2061 generic_param_nodes=102 dag_generic_contract_evidence=165 dag_ability_consumer_evidence=72 retired_resolver_calls=0 retired_resolver_unique_nodes=0 retired_resolver_kind_sum=0 retired_resolver_kind_ast_type=0 retired_resolver_kind_compound_or_other=0 retired_resolver_body_fallbacks=0 metadata_entries=3726 metadata_owned=261 metadata_hits=8731 metadata_dead_ends=0 materializer_unresolved=0 metadata_unresolved_named=0 metadata_unresolved_generic_named=0 metadata_unresolved_compound=0 metadata_unresolved_other=0 metadata_unresolved_builtin_shell=0 metadata_unresolved_generic_class=0 metadata_unresolved_alias=0 metadata_unresolved_non_class_symbol=0 metadata_unresolved_missing_symbol=0 stage_materialize_calls=0 stage_materialize_failed=0 stage_materialize_suppressed=0 stage_materialize_alias=0 stage_materialize_non_alias=0 alias_materialized=6 alias_diagnostic_unresolved=78 alias_diagnostic_resolver_calls=0 alias_diagnostic_resolved=0 alias_diagnostic_cycle_unresolved=78`.
 - The DAG smoke now enforces beta floors for graph-backed usage and metadata materialization instead of accepting any non-zero metadata activity.
 - The central metadata materializer fallback is closed, not merely capped:
   `materializer_fallbacks==0` and every metadata unresolved audit family must stay at
@@ -4951,13 +4953,14 @@ make ast-dispatch-test-smoke
 
 ## Progress Log - 2026-05-02 AIR/DAG Source-Of-Truth Tightening
 
-- AIR now carries zone-derived authority provenance through DIR and AIR:
-  `authorized_by_derived_from_zone` becomes `authority_from_zone`, and
-  action-inherited authority becomes `authority_from_action`. Action-inherited
+- AIR retains the legacy `authority_from_zone` schema field, but active beta
+  semantics no longer derive approval from a local `who`. Action-inherited
+  authority becomes `authority_from_action`. Action-inherited
   zone source becomes `source_from_action`, while action-inherited ability/effect
   contracts become `requires_from_action` and `causes_from_action`. AIR JSON plus
   drift diagnostics expose
-  `authority_provenance=zone-derived|action-inherited|explicit|none`.
+  `authority_provenance=action-inherited|explicit|none` on active beta paths;
+  compatibility-only zone authority is labeled `legacy-zone-field`.
 - Action-derived intent `causes` now also reaches RIR propagation evidence:
   intent RIR lowering emits `RIR_RESOURCE_EFFECT_INSTANCE` and
   `RIR_OP_ATTACH_EFFECT`, prefers the unique zone effect-slot anchor when one

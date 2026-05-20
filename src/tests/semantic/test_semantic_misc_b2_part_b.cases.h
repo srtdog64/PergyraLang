@@ -722,9 +722,9 @@
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "reused from matching action contract"));
-        EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "reused zone from matching action contract: CockpitZone"));
+        EXPECT(ctx_has_diagnostic_substring_from_result(result,
+            "add 'authorized by self' to the matching action contract"));
 
         semantic_result_destroy(result);
         ast_destroy(program);
@@ -732,7 +732,7 @@
         lexer_destroy(lexer);
     }
 
-    TEST("intent authority diagnostic suggests single who alias for authorized by");
+    TEST("intent authority diagnostic suggests approval without mutating who");
     {
         const char *source =
             "subject Driver {\n"
@@ -755,9 +755,25 @@
         Parser *parser = parser_create(lexer);
         ASTNode *program = parser_parse_program(parser);
         SemanticResult *result = semantic_analyze(program);
+        ASTNode *intent = NULL;
+        ASTNode *step = NULL;
+
+        if (program != NULL && program->type == AST_PROGRAM) {
+            for (size_t i = 0; i < program->data.program.count; i++) {
+                ASTNode *stmt = program->data.program.statements[i];
+                if (stmt != NULL && stmt->type == AST_INTENT_DECL) {
+                    intent = stmt;
+                    break;
+                }
+            }
+        }
+        if (intent != NULL && intent->data.intent_decl.step_count > 0)
+            step = intent->data.intent_decl.steps[0];
 
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
+        EXPECT(step != NULL && !step->data.intent_step.derived_authorized_by_from_zone);
+        EXPECT(step != NULL && step->data.intent_step.authorized_by_count == 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "cannot run in authority-bearing zone 'CockpitZone' without 'authorized by'"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,

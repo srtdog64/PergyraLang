@@ -231,15 +231,18 @@ run_literal_doc_contract_smoke() {
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_is_cfg_owned_control"
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_stmt_has_side_effect_hint"
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_stmt_fallback_is_allowed"
+    require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_payload(inst) != NULL"
     require_literal "src/compiler/mir_source_shape.c" "k_pure_query_builtins"
     require_literal "src/compiler/mir_source_shape.c" "bsearch(&callee"
     require_literal "src/compiler/mir_cfg_contract_validate.c" "mir_instruction_source_is_cfg_owned_control(inst)"
     require_literal "src/compiler/mir_dce.c" "mir_instruction_source_stmt_has_side_effect_hint(inst)"
     require_literal "src/compiler/mir_source_shape.c" "mir_instruction_source_branch_payload_matches_shape"
+    require_literal "src/compiler/mir_source_shape.c" "mir_instruction_has_required_branch_condition_fact"
     require_literal "src/tests/mir/test_mir_lowering_part_c.cases.h" "MIR validator rejects source-compatible branch without payload"
     require_literal "src/compiler/mir_lifecycle.c" "source-branch-emit"
-    require_literal "src/codegen/llvm_mir_block_emit.c" "mir_instruction_branch_requires_source_emit(inst)"
-    require_literal "src/codegen/transpiler_mir_emission_contract.h" "mir_instruction_branch_requires_source_emit(inst)"
+    require_literal "src/codegen/llvm_mir_block_emit.c" "mir_instruction_has_required_branch_condition_fact(inst)"
+    require_literal "src/codegen/transpiler_mir_cfg_control_emit.c" "mir_instruction_has_required_branch_condition_fact(inst)"
+    require_literal "src/codegen/transpiler_mir_emission_contract.h" "mir_instruction_has_required_branch_condition_fact(inst)"
     require_literal "src/compiler/air_evidence_mir.c" "mir_block_has_hir_source_mapping(block)"
     require_literal "src/codegen/transpiler_mir_ssa_map.c" "mir_block_source_hir_id(block)"
     require_literal "src/codegen/transpiler_mir_ssa_map.c" "mir_block_source_line(block)"
@@ -1025,6 +1028,7 @@ required_mir_owner_terms = {
     "src/compiler/mir_public_surface.h": [
         "mir_validate_non_cfg_fallback_state",
         "mir_validate_non_cfg_fallback_inventory",
+        "mir_count_non_cfg_body_fallback_inventory",
         "used non-CFG body fallback",
         "non_cfg_body_fallback_count",
         "non-CFG fallback inventory is stale",
@@ -1680,8 +1684,8 @@ grep -Fq "loop=" "$HIR_DOM_OUT"
 grep -Fq "rpo=" "$HIR_DOM_OUT"
 
 grep -Fq "flow-block[" "$RIR_OUT"
-grep -Fq "semantics=projection" "$RIR_OUT"
-grep -Fq "semantics=invalidation" "$RIR_OUT"
+grep -Fq "semantics=authority|projection" "$RIR_OUT"
+grep -Fq "semantics=authority|invalidation|authority-loss" "$RIR_OUT"
 grep -Fq "kind=ProjectionObject state=Dirty" "$RIR_OUT"
 
 grep -Fq "routine[01] intent   SyncDrive blocks=5" "$MIR_OUT"

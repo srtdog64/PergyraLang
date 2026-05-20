@@ -265,7 +265,7 @@ llvm_emit_member_call_slice(ASTNode *node, LLVMGenCtx *ctx,
         LLVMValueRef result;
         unsigned field_count = 0;
 
-        if (getenv("PGY_DEBUG_LLVM_DETAIL") != NULL)
+        if (llvm_debug_detail_enabled())
             fprintf(stderr, "[llvm slice] phase=begin\n");
         receiver = llvm_emit_expression(obj_node, ctx);
         start = llvm_emit_expression(ast_call_argument(node, 0), ctx);
@@ -274,18 +274,18 @@ llvm_emit_member_call_slice(ASTNode *node, LLVMGenCtx *ctx,
         if (receiver == NULL || start == NULL || len == NULL)
             return llvm_domain_slice_error(node, ctx,
                 "LLVM Slice() could not lower receiver/start/length operands");
-        if (getenv("PGY_DEBUG_LLVM_DETAIL") != NULL)
+        if (llvm_debug_detail_enabled())
             fprintf(stderr, "[llvm slice] phase=operands-ready\n");
 
-        if (getenv("PGY_DEBUG_LLVM_DETAIL") != NULL)
+        if (llvm_debug_detail_enabled())
             fprintf(stderr, "[llvm slice] phase=receiver-type kind=%d\n",
                 (int)LLVMGetTypeKind(LLVMTypeOf(receiver)));
         if (LLVMGetTypeKind(LLVMTypeOf(receiver)) == LLVMStructTypeKind)
             field_count = LLVMCountStructElementTypes(LLVMTypeOf(receiver));
-        if (getenv("PGY_DEBUG_LLVM_DETAIL") != NULL)
+        if (llvm_debug_detail_enabled())
             fprintf(stderr, "[llvm slice] phase=field-count count=%u\n", field_count);
         data_ptr = llvm_array_data_ptr(ctx, receiver);
-        if (getenv("PGY_DEBUG_LLVM_DETAIL") != NULL)
+        if (llvm_debug_detail_enabled())
             fprintf(stderr, "[llvm slice] phase=data-ptr\n");
         if (data_ptr == NULL)
             return llvm_domain_slice_error(node, ctx,
@@ -308,7 +308,7 @@ llvm_emit_member_call_slice(ASTNode *node, LLVMGenCtx *ctx,
             return NULL;
         }
         suffix = llvm_type_to_suffix(ctx, elem_type);
-        if (getenv("PGY_DEBUG_LLVM_DETAIL") != NULL)
+        if (llvm_debug_detail_enabled())
             fprintf(stderr, "[llvm slice] phase=elem ptr-kind=%d elem-kind=%d suffix=%s\n",
                 (int)LLVMGetTypeKind(LLVMTypeOf(data_ptr)),
                 elem_type != NULL ? (int)LLVMGetTypeKind(elem_type) : -1,
@@ -331,7 +331,7 @@ llvm_emit_member_call_slice(ASTNode *node, LLVMGenCtx *ctx,
 
         offset_ptr = LLVMBuildGEP2(ctx->builder, elem_type, data_ptr, &start64, 1,
             llvm_tmp_name(ctx));
-        if (getenv("PGY_DEBUG_LLVM_DETAIL") != NULL)
+        if (llvm_debug_detail_enabled())
             fprintf(stderr, "[llvm slice] phase=manual-emit\n");
         result = LLVMGetUndef(slice_type);
         result = LLVMBuildInsertValue(ctx->builder, result, offset_ptr, 0, llvm_tmp_name(ctx));

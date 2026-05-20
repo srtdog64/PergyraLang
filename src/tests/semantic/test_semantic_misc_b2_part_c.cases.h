@@ -192,7 +192,7 @@
         lexer_destroy(lexer);
     }
 
-    TEST("intent transfer derives zone using and authorized by from target authority");
+    TEST("intent transfer derives zone using but keeps authorization explicit");
     {
         const char *source =
             "subject Courier { let level: Int; }\n"
@@ -207,6 +207,7 @@
             "    step Deliver {\n"
             "        transfer: load -> deliver;\n"
             "        who: courier;\n"
+            "        authorized by: courier;\n"
             "        expect: true;\n"
             "    }\n"
             "}\n";
@@ -233,7 +234,7 @@
         EXPECT(result != NULL && result->error_count == 0);
         EXPECT(step != NULL && step->data.intent_step.derived_where_from_transfer);
         EXPECT(step != NULL && step->data.intent_step.derived_using_from_transfer);
-        EXPECT(step != NULL && step->data.intent_step.derived_authorized_by_from_zone);
+        EXPECT(step != NULL && !step->data.intent_step.derived_authorized_by_from_zone);
         EXPECT(step != NULL && step->data.intent_step.authorized_by_count == 1);
         EXPECT(step != NULL && strcmp(step->data.intent_step.authorized_by[0], "courier") == 0);
 
@@ -643,7 +644,7 @@
         lexer_destroy(lexer);
     }
 
-    TEST("intent authority-bearing zone derives authorized by for secure helper");
+    TEST("intent authority-bearing zone keeps explicit authorization for secure helper");
     {
         const char *source =
             "/// @effects secure\n"
@@ -661,6 +662,7 @@
             "        where: CockpitZone;\n"
             "        using: cockpit;\n"
             "        who: driver;\n"
+            "        authorized by: driver;\n"
             "        on: Gate();\n"
             "        expect: true;\n"
             "    }\n"
@@ -688,7 +690,7 @@
 
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count == 0);
-        EXPECT(step != NULL && step->data.intent_step.derived_authorized_by_from_zone);
+        EXPECT(step != NULL && !step->data.intent_step.derived_authorized_by_from_zone);
         EXPECT(step != NULL && step->data.intent_step.authorized_by_count == 1);
         EXPECT(step != NULL && strcmp(step->data.intent_step.authorized_by[0], "driver") == 0);
 
@@ -698,7 +700,7 @@
         lexer_destroy(lexer);
     }
 
-    TEST("intent authority-bearing zone-action helper records derived authorized by before action diagnostics");
+    TEST("intent authority-bearing zone-action helper requires explicit authorization");
     {
         const char *source =
             "subject Driver {\n"
@@ -720,6 +722,7 @@
             "        where: CockpitZone;\n"
             "        using: cockpit;\n"
             "        who: driver;\n"
+            "        authorized by: driver;\n"
             "        on: driver.Ignite();\n"
             "        expect: true;\n"
             "    }\n"
@@ -747,7 +750,7 @@
 
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
-        EXPECT(step != NULL && step->data.intent_step.derived_authorized_by_from_zone);
+        EXPECT(step != NULL && !step->data.intent_step.derived_authorized_by_from_zone);
         EXPECT(step != NULL && step->data.intent_step.authorized_by_count == 1);
         EXPECT(step != NULL && strcmp(step->data.intent_step.authorized_by[0], "driver") == 0);
 

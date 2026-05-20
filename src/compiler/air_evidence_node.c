@@ -61,6 +61,27 @@ air_evidence_kind_has_global_validator(AIREvidenceKind kind)
     return meta != NULL && meta->has_global_validator;
 }
 
+bool
+air_evidence_inventory_storage_valid(const AIRProgram *air)
+{
+    return air != NULL
+        && (air->evidence_count == 0 || air->evidence_nodes != NULL);
+}
+
+size_t
+air_evidence_node_count(const AIRProgram *air)
+{
+    return air != NULL ? air->evidence_count : 0;
+}
+
+const AIREvidenceNode *
+air_evidence_node_at(const AIRProgram *air, size_t index)
+{
+    if (air == NULL || index >= air->evidence_count)
+        return NULL;
+    return &air->evidence_nodes[index];
+}
+
 static bool
 air_evidence_node_merge_counts(AIREvidenceNode *node,
                                AIREvidenceKind kind,

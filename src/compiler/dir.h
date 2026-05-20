@@ -103,6 +103,8 @@ typedef struct
     bool        where_derived_from_transfer;
     bool        requires_inherited_from_action;
     bool        causes_inherited_from_action;
+    /* Compatibility field for older DIR/AIR schema consumers. Active beta
+       semantics keep approval explicit or action-inherited. */
     bool        authorized_by_derived_from_zone;
     bool        authorized_by_inherited_from_action;
     bool        using_derived_from_transfer;

@@ -309,8 +309,7 @@ transpiler_mir_render_branch_condition(ASTNode *func_decl,
         || inst->branch_shape == MIR_BRANCH_FOR_IN)
         return transpiler_mir_render_for_loop_condition_inst(inst, ctx, ssa_map);
     if (inst->branch_shape == MIR_BRANCH_MATCH_CASE) {
-        if (!mir_instruction_branch_requires_source_emit(inst)
-            || !mir_instruction_source_branch_payload_matches_shape(inst))
+        if (!mir_instruction_has_required_branch_condition_fact(inst))
             return pergyra_strdup("true");
         condition = mir_instruction_source_payload(inst);
         if (condition == NULL)
@@ -320,8 +319,7 @@ transpiler_mir_render_branch_condition(ASTNode *func_decl,
     }
     if (inst->branch_shape == MIR_BRANCH_SELECT_DISPATCH) {
         char *select_cond;
-        if (!mir_instruction_branch_requires_source_emit(inst)
-            || !mir_instruction_source_branch_payload_matches_shape(inst))
+        if (!mir_instruction_has_required_branch_condition_fact(inst))
             return pergyra_strdup("false");
         select_cond = transpiler_mir_render_select_case_condition(
             mir_instruction_source_payload(inst), routine, target_block, ctx,

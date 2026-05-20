@@ -52,8 +52,10 @@ air_has_mir_pin_cleanup_evidence(const AIRProgram *air,
 {
     if (air == NULL)
         return false;
-    for (size_t i = 0; i < air->evidence_count; i++) {
-        const AIREvidenceNode *node = &air->evidence_nodes[i];
+    for (size_t i = 0; i < air_evidence_node_count(air); i++) {
+        const AIREvidenceNode *node = air_evidence_node_at(air, i);
+        if (node == NULL)
+            continue;
         if (node->kind == AIR_EVIDENCE_MIR_PIN_CLEANUP
             && node->boundary_index == boundary_index
             && air_name_matches(node->provider_name, routine_name)) {
@@ -83,8 +85,10 @@ air_collect_mir_pin_block_evidence(AIRProgram *air,
     if (!air_mir_pin_cleanup_instruction_has_anchor(inst))
         return true;
 
-    for (size_t i = 0; i < air->boundary_count; i++) {
-        AIRBoundaryNode *boundary = &air->boundaries[i];
+    for (size_t i = 0; i < air_boundary_node_count(air); i++) {
+        AIRBoundaryNode *boundary = air_boundary_node_mut_at(air, i);
+        if (boundary == NULL)
+            continue;
 
         if (!air_mir_pin_block_matches_boundary(block, boundary))
             continue;
@@ -98,7 +102,13 @@ air_collect_mir_pin_block_evidence(AIRProgram *air,
                                       error_message)) {
             return false;
         }
-        air->mir_pin_cleanup_evidence_count++;
+        if (!air_increment_evidence_summary_count(
+                air,
+                AIR_EVIDENCE_MIR_PIN_CLEANUP)) {
+            air_set_error(error_message,
+                          "AIR MIR pin cleanup evidence counter overflow");
+            return false;
+        }
     }
     return true;
 }

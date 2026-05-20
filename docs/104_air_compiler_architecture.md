@@ -106,10 +106,14 @@ cross-layer boundary with explicit evidence or rejects the drift.
   `llvm_backend_type_map.c` keeps Pergyra-to-LLVM mapping policy. AIR must not
   infer semantic type truth from backend render strings; semantic type truth
   remains in DAG/frontend evidence.
-- AIR summary counters are compatibility telemetry only. The validation owner
-  now checks DAG metadata/generic/ability, observability schema, and runtime
-  frontier policy counters against first-class `AIREvidenceNode` inventory so
-  these counters cannot drift into a second evidence source of truth.
+- AIR summary counters are compatibility telemetry only. Reads and writes go
+  through `air_validate_summary_counters.c`
+  (`air_evidence_summary_count(...)`,
+  `air_increment_evidence_summary_count(...)`,
+  `air_increment_evidence_required_count(...)`). HIR, RIR, MIR, DAG, and
+  runtime evidence collectors no longer mutate `air->*_evidence_count` or RIR
+  propagation required counters directly, so counters cannot drift into a
+  second evidence source of truth.
 
 마지막 업데이트: 2026-05-02
 
@@ -510,10 +514,12 @@ sixth compiler core and the architecture is wrong.
   있으면 실제 JSON parser로 summary/boundary/evidence/observability schema를
   검증하고, Python이 없는 환경에서는 literal schema gate로 통과한다.
 
-Zone-derived authority provenance is explicit in AIR. Compressed intent steps
-that derive `authorized by` from the current zone authority carry
-`authority_from_zone`, AIR JSON exposes that field, and drift diagnostics
-report `authority_provenance=zone-derived|explicit|none`.
+AIR keeps authority provenance explicit. The `authority_from_zone` JSON field is
+retained for schema compatibility, but active beta semantics do not derive
+`authorized by` from a local `who` clause. Approval must be explicit or
+action-inherited, and drift diagnostics report active provenance as
+`authority_provenance=action-inherited|explicit|none`; compatibility-only
+zone authority fields are labeled `legacy-zone-field`.
 
 ### Phase 2 (post-beta, toward 1.0)
 

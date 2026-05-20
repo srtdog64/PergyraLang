@@ -6,12 +6,22 @@
 
 #include "air_internal.h"
 
+#include <stdint.h>
+
 size_t
 air_evidence_summary_count(const AIRProgram *air, AIREvidenceKind kind)
 {
     if (air == NULL)
         return 0;
     switch (kind) {
+    case AIR_EVIDENCE_HIR_ROUTINE:
+        return air->hir_routine_evidence_count;
+    case AIR_EVIDENCE_HIR_CFG:
+        return air->hir_cfg_evidence_count;
+    case AIR_EVIDENCE_RIR_BOUNDARY:
+        return air->rir_boundary_evidence_count;
+    case AIR_EVIDENCE_RIR_AUTHORITY:
+        return air->rir_authority_evidence_count;
     case AIR_EVIDENCE_MIR_CLEANUP:
         return air->mir_cleanup_evidence_count;
     case AIR_EVIDENCE_MIR_PIN_CLEANUP:
@@ -39,6 +49,68 @@ air_evidence_summary_count(const AIRProgram *air, AIREvidenceKind kind)
     }
 }
 
+bool
+air_increment_evidence_summary_count(AIRProgram *air, AIREvidenceKind kind)
+{
+    size_t *slot = NULL;
+
+    if (air == NULL)
+        return false;
+    switch (kind) {
+    case AIR_EVIDENCE_HIR_ROUTINE:
+        slot = &air->hir_routine_evidence_count;
+        break;
+    case AIR_EVIDENCE_HIR_CFG:
+        slot = &air->hir_cfg_evidence_count;
+        break;
+    case AIR_EVIDENCE_RIR_BOUNDARY:
+        slot = &air->rir_boundary_evidence_count;
+        break;
+    case AIR_EVIDENCE_RIR_AUTHORITY:
+        slot = &air->rir_authority_evidence_count;
+        break;
+    case AIR_EVIDENCE_MIR_CLEANUP:
+        slot = &air->mir_cleanup_evidence_count;
+        break;
+    case AIR_EVIDENCE_MIR_PIN_CLEANUP:
+        slot = &air->mir_pin_cleanup_evidence_count;
+        break;
+    case AIR_EVIDENCE_MIR_TERMINATOR:
+        slot = &air->mir_terminator_evidence_count;
+        break;
+    case AIR_EVIDENCE_MIR_SELECT_RECEIVE:
+        slot = &air->mir_select_receive_evidence_count;
+        break;
+    case AIR_EVIDENCE_RIR_EFFECT_PROPAGATION:
+        slot = &air->rir_effect_propagation_evidence_count;
+        break;
+    case AIR_EVIDENCE_RIR_RELATION_PROPAGATION:
+        slot = &air->rir_relation_propagation_evidence_count;
+        break;
+    case AIR_EVIDENCE_DAG_METADATA:
+        slot = &air->dag_metadata_evidence_count;
+        break;
+    case AIR_EVIDENCE_DAG_GENERIC:
+        slot = &air->dag_generic_evidence_count;
+        break;
+    case AIR_EVIDENCE_DAG_ABILITY:
+        slot = &air->dag_ability_evidence_count;
+        break;
+    case AIR_EVIDENCE_OBSERVABILITY_SCHEMA:
+        slot = &air->observability_schema_evidence_count;
+        break;
+    case AIR_EVIDENCE_RUNTIME_FRONTIER_POLICY:
+        slot = &air->runtime_frontier_policy_evidence_count;
+        break;
+    default:
+        return false;
+    }
+    if (*slot == SIZE_MAX)
+        return false;
+    (*slot)++;
+    return true;
+}
+
 size_t
 air_evidence_required_count(const AIRProgram *air, AIREvidenceKind kind)
 {
@@ -54,6 +126,29 @@ air_evidence_required_count(const AIRProgram *air, AIREvidenceKind kind)
     }
 }
 
+bool
+air_increment_evidence_required_count(AIRProgram *air, AIREvidenceKind kind)
+{
+    size_t *slot = NULL;
+
+    if (air == NULL)
+        return false;
+    switch (kind) {
+    case AIR_EVIDENCE_RIR_EFFECT_PROPAGATION:
+        slot = &air->rir_effect_propagation_required_count;
+        break;
+    case AIR_EVIDENCE_RIR_RELATION_PROPAGATION:
+        slot = &air->rir_relation_propagation_required_count;
+        break;
+    default:
+        return false;
+    }
+    if (*slot == SIZE_MAX)
+        return false;
+    (*slot)++;
+    return true;
+}
+
 static bool
 air_validate_mir_summary_counter(const AIRProgram *air,
                                  AIREvidenceKind kind,
@@ -63,7 +158,7 @@ air_validate_mir_summary_counter(const AIRProgram *air,
 {
     size_t node_count;
 
-    if (air == NULL || !air->has_mir_input)
+    if (air == NULL || !air_has_mir_input(air))
         return true;
     node_count = air_global_evidence_node_count(air, kind);
     if (node_count == 0 || summary_count == node_count)
@@ -85,7 +180,7 @@ air_validate_mir_boundary_summary_counter(const AIRProgram *air,
 {
     size_t node_count;
 
-    if (air == NULL || !air->has_mir_input)
+    if (air == NULL || !air_has_mir_input(air))
         return true;
     node_count = air_boundary_evidence_node_count(air, kind);
     if (node_count == 0 || summary_count == node_count)
@@ -107,7 +202,7 @@ air_validate_rir_propagation_summary_counter(const AIRProgram *air,
 {
     size_t fact_count;
 
-    if (air == NULL || !air->has_rir_input)
+    if (air == NULL || !air_has_rir_input(air))
         return true;
     fact_count = air_global_evidence_fact_count(air, kind);
     if (summary_count == fact_count)
@@ -134,7 +229,7 @@ air_validate_global_node_summary_counter(const AIRProgram *air,
     node_count = air_global_evidence_node_count(air, kind);
     if (summary_count == 0)
         return true;
-    if (air->strict_evidence && summary_count > 0 && node_count == 0)
+    if (air_requires_strict_evidence(air) && summary_count > 0 && node_count == 0)
         return true;
     if (summary_count == node_count)
         return true;

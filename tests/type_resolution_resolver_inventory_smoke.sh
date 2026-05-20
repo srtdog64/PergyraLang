@@ -275,11 +275,16 @@ if grep -q 'semantic_type_resolution_lookup_or_materialize(ctx' \
   exit 1
 fi
 
-grep -q 'type_resolution_metadata_dead_ends' \
+grep -q 'semantic_result_type_resolution_metadata_dead_ends' \
   src/compiler/air_evidence_dag.c || {
-  echo "[type-resolution-resolver-inventory] AIR evidence still consumes compatibility fallback counter directly" >&2
+  echo "[type-resolution-resolver-inventory] AIR evidence must consume SemanticResult DAG accessors" >&2
   exit 1
 }
+
+if grep -q 'sem->type_resolution_' src/compiler/air_evidence_dag.c; then
+  echo "[type-resolution-resolver-inventory] AIR DAG evidence reopens raw SemanticResult DAG counters" >&2
+  exit 1
+fi
 
 grep -q '\[type-res-dead-end\]' \
   src/semantic/type_checker_resolution_metadata_dead_end.c || {

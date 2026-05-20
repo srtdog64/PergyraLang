@@ -192,14 +192,11 @@ semantic_analyze(ASTNode *ast)
     result->type_resolution_dag_generic_contract_evidence_count =
         ctx->type_resolution_dag_generic_contract_evidence_count;
     result->type_resolution_dag_ability_consumer_evidence_count =
-        ctx->type_resolution_dag_ability_evidence_count;
+        ctx->type_resolution_dag_ability_consumer_evidence_count;
     result->type_resolution_stage_compat_generic_contract_count =
         ctx->type_resolution_stage_compat_generic_contract_count;
     result->type_resolution_stage_compat_ability_consumer_count =
         ctx->type_resolution_stage_compat_ability_consumer_count;
-    result->type_resolution_dag_ability_evidence_count =
-        ctx->type_resolution_dag_ability_evidence_count;
-
     for (size_t i = 0; i < ctx->diagnostic_count; i++) {
         if (ctx->diagnostics[i]->level == DIAG_ERROR)
             result->error_count++;
@@ -232,6 +229,38 @@ semantic_result_destroy(SemanticResult *result)
     }
     free(result->diagnostics);
     free(result);
+}
+
+size_t
+semantic_result_type_resolution_metadata_entries(
+        const SemanticResult *result)
+{
+    return result != NULL ? result->type_resolution_metadata_entries : 0;
+}
+
+size_t
+semantic_result_type_resolution_metadata_dead_ends(
+        const SemanticResult *result)
+{
+    return result != NULL ? result->type_resolution_metadata_dead_ends : 0;
+}
+
+size_t
+semantic_result_dag_generic_contract_evidence_count(
+        const SemanticResult *result)
+{
+    return result != NULL
+        ? result->type_resolution_dag_generic_contract_evidence_count
+        : 0;
+}
+
+size_t
+semantic_result_dag_ability_consumer_evidence_count(
+        const SemanticResult *result)
+{
+    return result != NULL
+        ? result->type_resolution_dag_ability_consumer_evidence_count
+        : 0;
 }
 
 void

@@ -6,26 +6,13 @@
 #include "air_internal.h"
 
 static bool
-air_boundary_authority_matches(const AIRBoundaryNode *boundary,
-                               const char *authority_name)
-{
-    if (boundary == NULL || authority_name == NULL)
-        return false;
-    for (size_t i = 0; i < boundary->authority_name_count; i++) {
-        if (air_name_matches(boundary->authority_names[i], authority_name))
-            return true;
-    }
-    return false;
-}
-
-static bool
 air_append_rir_boundary_evidence(AIRProgram *air,
                                  AIRBoundaryNode *boundary,
                                  size_t boundary_index,
                                  const char *scope_name,
                                  char **error_message)
 {
-    if (boundary->has_rir_boundary_evidence)
+    if (air_boundary_has_summary_flag(boundary, AIR_EVIDENCE_RIR_BOUNDARY))
         return true;
     if (!air_assign_first_owned_name(air,
                                      &boundary->rir_boundary_evidence_scope,
@@ -42,8 +29,14 @@ air_append_rir_boundary_evidence(AIRProgram *air,
                                   error_message)) {
         return false;
     }
-    boundary->has_rir_boundary_evidence = true;
-    air->rir_boundary_evidence_count++;
+    air_boundary_mark_summary_flag(boundary, AIR_EVIDENCE_RIR_BOUNDARY);
+    if (!air_increment_evidence_summary_count(
+            air,
+            AIR_EVIDENCE_RIR_BOUNDARY)) {
+        air_set_error(error_message,
+                      "AIR RIR boundary evidence counter overflow");
+        return false;
+    }
     return true;
 }
 
@@ -76,7 +69,7 @@ air_append_rir_authority_evidence(AIRProgram *air,
                                   error_message)) {
         return false;
     }
-    boundary->has_rir_authority_evidence = true;
+    air_boundary_mark_summary_flag(boundary, AIR_EVIDENCE_RIR_AUTHORITY);
     return true;
 }
 
@@ -92,7 +85,7 @@ air_collect_rir_scope_fact_authority(AIRProgram *air,
         const RIRFact *fact = &scope->facts[i];
         if (fact->kind != RIR_FACT_AUTHORITY)
             continue;
-        if (!air_boundary_authority_matches(boundary, fact->name))
+        if (!air_boundary_declares_authority_name(boundary, fact->name))
             continue;
         if (!air_append_rir_authority_evidence(air,
                                                boundary,
@@ -118,7 +111,7 @@ air_collect_rir_scope_op_authority(AIRProgram *air,
         const RIROp *op = &scope->ops[i];
         if (op->kind != RIR_OP_AUTHORIZE)
             continue;
-        if (!air_boundary_authority_matches(boundary, op->subject))
+        if (!air_boundary_declares_authority_name(boundary, op->subject))
             continue;
         if (!air_append_rir_authority_evidence(air,
                                                boundary,
@@ -142,8 +135,10 @@ air_collect_rir_scope_boundary_evidence(AIRProgram *air,
     if (air == NULL || scope == NULL)
         return true;
     scope_name = air_rir_scope_provider_name(scope);
-    for (size_t i = 0; i < air->boundary_count; i++) {
-        AIRBoundaryNode *boundary = &air->boundaries[i];
+    for (size_t i = 0; i < air_boundary_node_count(air); i++) {
+        AIRBoundaryNode *boundary = air_boundary_node_mut_at(air, i);
+        if (boundary == NULL)
+            continue;
 
         if (!air_rir_scope_provides_boundary_evidence(scope, boundary))
             continue;

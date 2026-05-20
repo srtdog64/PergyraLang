@@ -5,11 +5,7 @@
  * Type Checker implementation
  */
 
-#include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
-#include <stdarg.h>
-#include <ctype.h>
 #include "../common/string_compat.h"
 #include "type_checker_internal.h"
 #include "type_checker_visibility.h"
@@ -42,10 +38,6 @@ static char *
 format_effective_generic_type_list(const char *name, Type **types, size_t count);
 /* format_effective_generic_type_list_scratch is declared in type_checker_internal.h
  * (promoted to external linkage for the helpers_late.c TU). */
-static char *
-semantic_assignment_target_path_impl(ASTNode *expr,
-                                     SemanticContext *ctx,
-                                     bool scratch);
 ASTNode **
 collect_effective_generic_arg_nodes(GenericParams *decl_params,
                                     GenericParams *provided_args,
@@ -54,8 +46,6 @@ collect_effective_generic_arg_nodes(GenericParams *decl_params,
                                     const char *owner_kind,
                                     const char *owner_name,
                                     size_t *out_count);
-char *
-semantic_assignment_target_path(ASTNode *expr);
 int
 find_generic_param_index(GenericParams *gp, const char *param_name);
 bool
@@ -70,71 +60,6 @@ concrete_type_satisfies_bound(Type *concrete_type, ASTNode *bound_node,
 /* type_checker_visibility was promoted to type_checker_visibility.{h,c}
  * (P1 axis 1).  See docs/92_inc_split_roadmap.md. */
 
-void
-semantic_run_type_resolution_worklist(ASTNode *program,
-                                      SemanticContext *ctx,
-                                      size_t *topo_order,
-                                      size_t topo_count)
-{
-    TypeResolutionGraph *graph;
-
-    if (program == NULL || ctx == NULL || topo_order == NULL)
-        return;
-
-    graph = &ctx->type_resolution_graph;
-    for (size_t i = topo_count; i > 0; i--) {
-        size_t node_index = topo_order[i - 1];
-        TypeResolutionNode *node;
-        ASTNode *decl;
-        ASTNode *host_decl;
-
-        if (node_index >= graph->node_count)
-            continue;
-        node = &graph->nodes[node_index];
-        if (node->kind == TYPE_RES_NODE_DECL || node->kind == TYPE_RES_NODE_ALIAS) {
-            decl = semantic_find_top_level_decl_by_label(program,
-                                                         node->label,
-                                                         node->kind);
-            if (decl == NULL)
-                continue;
-
-            semantic_stage_top_level_decl(decl, ctx);
-            continue;
-        }
-
-        if (node->kind == TYPE_RES_NODE_LOCAL_CONTRACT
-            || node->kind == TYPE_RES_NODE_PROJECTION_PATH) {
-            host_decl = semantic_find_graph_host_decl(program, node->label);
-            if (host_decl == NULL)
-                continue;
-            if (host_decl->type == AST_WORLD_DECL)
-                semantic_stage_world_local_contract_from_label(host_decl,
-                                                               node->label,
-                                                               ctx);
-            else if (host_decl->type == AST_ZONE_DECL)
-                semantic_stage_zone_local_contract_from_label(host_decl,
-                                                              node->label,
-                                                              ctx);
-        }
-    }
-}
-
-static int
-semantic_find_labeled_loop_depth(SemanticContext *ctx, const char *label)
-{
-    if (ctx == NULL || label == NULL)
-        return -1;
-
-    for (int i = ctx->loop_depth - 1; i >= 0; i--) {
-        if (ctx->loop_labels[i] != NULL
-            && strcmp(ctx->loop_labels[i], label) == 0) {
-            return i;
-        }
-    }
-
-    return -1;
-}
-
 #include "type_checker_generic_support.h"
 
 #include "type_checker_expr.h"
@@ -147,119 +72,10 @@ type_check_parallel_block(ASTNode *node, SemanticContext *ctx)
     return type_check_parallel_block_flow(node, ctx);
 }
 
-/* type_check_ability_decl body moved to type_checker_ability_decl.c — see docs/101_semantic_split_template.md */
+/* type_check_ability_decl body moved to type_checker_ability_decl.c.
+ * See docs/101_semantic_split_template.md. */
 
 #include "type_checker_async_channel.h"
-
-static char *
-semantic_assignment_target_path_impl(ASTNode *expr,
-                                     SemanticContext *ctx,
-                                     bool scratch)
-{
-    char *base = NULL;
-    char index_buf[32];
-
-#define PGY_SEM_PATH_DUP(s) \
-    (scratch \
-        ? pgy_arena_strdup(&ctx->scratch_arena, (s)) \
-        : pergyra_strdup((s)))
-#define PGY_SEM_PATH_FMT(...) \
-    (scratch \
-        ? pgy_arena_fmt(&ctx->scratch_arena, __VA_ARGS__) \
-        : tc_strdup_fmt(__VA_ARGS__))
-
-    if (expr == NULL)
-        return PGY_SEM_PATH_DUP("<target>");
-
-    switch (expr->type) {
-    case AST_IDENTIFIER:
-        return ast_identifier_name(expr) != NULL
-            ? PGY_SEM_PATH_DUP(ast_identifier_name(expr))
-            : PGY_SEM_PATH_DUP("<target>");
-    case AST_MEMBER_ACCESS:
-    {
-        ASTNode *object_node = ast_member_object(expr);
-        const char *member_name = ast_member_name(expr);
-        if (member_name == NULL)
-            return PGY_SEM_PATH_DUP("<target>");
-        base = semantic_assignment_target_path_impl(object_node, ctx, scratch);
-        if (base == NULL)
-            return PGY_SEM_PATH_FMT("<target>.%s", member_name);
-        {
-            char *result = PGY_SEM_PATH_FMT("%s.%s", base, member_name);
-            if (!scratch)
-                free(base);
-            return result != NULL ? result : PGY_SEM_PATH_DUP("<target>");
-        }
-    }
-    case AST_ARRAY_ACCESS:
-    {
-        ASTNode *array_node = ast_array_access_array(expr);
-        ASTNode *index_node = ast_array_access_index(expr);
-        base = semantic_assignment_target_path_impl(array_node, ctx, scratch);
-        if (index_node != NULL && index_node->type == AST_NUMBER) {
-            snprintf(index_buf, sizeof(index_buf), "%g",
-                ast_number_value(index_node));
-        } else if (index_node != NULL
-                   && index_node->type == AST_IDENTIFIER
-                   && ast_identifier_name(index_node) != NULL) {
-            snprintf(index_buf, sizeof(index_buf), "%s",
-                ast_identifier_name(index_node));
-        } else {
-            snprintf(index_buf, sizeof(index_buf), "?");
-        }
-        if (base == NULL)
-            return PGY_SEM_PATH_FMT("<target>[%s]", index_buf);
-        {
-            char *result = PGY_SEM_PATH_FMT("%s[%s]", base, index_buf);
-            if (!scratch)
-                free(base);
-            return result != NULL ? result : PGY_SEM_PATH_DUP("<target>");
-        }
-    }
-    default:
-        return PGY_SEM_PATH_DUP("<target>");
-    }
-
-#undef PGY_SEM_PATH_FMT
-#undef PGY_SEM_PATH_DUP
-}
-
-char *
-semantic_assignment_target_path(ASTNode *expr)
-{
-    return semantic_assignment_target_path_impl(expr, NULL, false);
-}
-
-const char *
-semantic_assignment_target_path_scratch(ASTNode *expr, SemanticContext *ctx)
-{
-    if (ctx == NULL)
-        return semantic_assignment_target_path(expr);
-    return semantic_assignment_target_path_impl(expr, ctx, true);
-}
-
-const char *
-semantic_borrowed_boundary_root_name(ASTNode *expr, SemanticContext *ctx)
-{
-    if (expr == NULL || ctx == NULL)
-        return NULL;
-
-    switch (expr->type) {
-    case AST_IDENTIFIER:
-        return identifier_is_borrowed_boundary_param(expr, ctx)
-            ? ast_identifier_name(expr)
-            : NULL;
-    case AST_MEMBER_ACCESS:
-        return semantic_borrowed_boundary_root_name(
-            ast_member_object(expr), ctx);
-    case AST_ARRAY_ACCESS:
-        return semantic_borrowed_boundary_root_name(
-            ast_array_access_array(expr), ctx);
-    default:
-        return NULL;
-    }
-}
 
 bool
 type_check_statement(ASTNode *node, SemanticContext *ctx)
@@ -296,75 +112,11 @@ type_check_statement(ASTNode *node, SemanticContext *ctx)
     case AST_RETURN:
         return type_check_return_stmt(node, ctx);
     case AST_BREAK:
-        if (ctx->loop_depth <= 0) {
-            semantic_error_with_hints(ctx, PGY_CODE_SEM_LOOP_CONTROL_INVALID, PGY_CAUSE_LOOP_CONTROL, PGY_FIX_MOVE_INTO_LOOP_OR_FIX_LABEL, node, "'break' used outside of loop");
-            return false;
-        }
-        if (ast_break_label(node) != NULL
-            && semantic_find_labeled_loop_depth(ctx,
-                ast_break_label(node)) < 0) {
-            semantic_error_with_hints(ctx, PGY_CODE_SEM_LOOP_CONTROL_INVALID, PGY_CAUSE_LOOP_CONTROL, PGY_FIX_MOVE_INTO_LOOP_OR_FIX_LABEL, node,
-                "Unknown loop label '%s' in break",
-                ast_break_label(node));
-            return false;
-        }
-        return true;
+        return type_check_break_stmt(node, ctx);
     case AST_CONTINUE:
-        if (ctx->loop_depth <= 0) {
-            semantic_error_with_hints(ctx, PGY_CODE_SEM_LOOP_CONTROL_INVALID, PGY_CAUSE_LOOP_CONTROL, PGY_FIX_MOVE_INTO_LOOP_OR_FIX_LABEL, node, "'continue' used outside of loop");
-            return false;
-        }
-        if (ast_continue_label(node) != NULL
-            && semantic_find_labeled_loop_depth(ctx,
-                ast_continue_label(node)) < 0) {
-            semantic_error_with_hints(ctx, PGY_CODE_SEM_LOOP_CONTROL_INVALID, PGY_CAUSE_LOOP_CONTROL, PGY_FIX_MOVE_INTO_LOOP_OR_FIX_LABEL, node,
-                "Unknown loop label '%s' in continue",
-                ast_continue_label(node));
-            return false;
-        }
-        return true;
+        return type_check_continue_stmt(node, ctx);
     case AST_ENUM_DECL:
-        {
-            const char *name = ast_enum_name(node);
-            ASTNode *saved_nominal = ctx->current_nominal_decl;
-            size_t method_count = 0;
-            ASTNode **methods = ast_enum_methods(node, &method_count);
-
-            scope_enter(&ctx->scope, SCOPE_CLASS);
-            ctx->current_nominal_decl = node;
-
-            for (size_t i = 0; i < method_count; i++)
-                type_check_func_decl(methods != NULL ? methods[i] : NULL, ctx);
-
-            for (size_t i = 0; i < method_count; i++) {
-                ASTNode *method = methods != NULL ? methods[i] : NULL;
-                const char *method_name = ast_declaration_name(method);
-                if (method == NULL || method->type != AST_FUNC_DECL
-                    || method_name == NULL || name == NULL)
-                    continue;
-                Symbol *msym = scope_lookup_current(ctx->scope, method_name);
-                if (msym == NULL || msym->kind != SYMBOL_FUNCTION)
-                    continue;
-                /* Mangled name is a scratch string: symbol_create_function
-                 * duplicates it into the symbol, so the arena allocation
-                 * never escapes beyond this block. */
-                char *mangled = pgy_arena_fmt(&ctx->scratch_arena,
-                    "%s_%s", name, method_name);
-                if (mangled == NULL)
-                    continue;
-                Symbol *mangled_sym = symbol_create_function(
-                    mangled, msym->type, method->line, method->column);
-                Scope *enum_scope = ctx->scope;
-                ctx->scope = enum_scope->parent;
-                if (!scope_declare(ctx->scope, mangled_sym))
-                    symbol_destroy(mangled_sym);
-                ctx->scope = enum_scope;
-            }
-
-            scope_exit(&ctx->scope);
-            ctx->current_nominal_decl = saved_nominal;
-            return !ctx->has_error;
-        }
+        return type_check_enum_decl(node, ctx);
     case AST_WITH_STMT:
         return type_check_with_stmt(node, ctx);
     case AST_PARALLEL_BLOCK:
@@ -400,7 +152,7 @@ type_check_statement(ASTNode *node, SemanticContext *ctx)
     case AST_BLOCK:
         return type_check_block(node, ctx);
     case AST_IMPORT_DECL:
-        /* Already resolved by driver — skip */
+        /* Already resolved by driver; skip. */
         return true;
     case AST_USE_DECL:
         validate_stdlib_use_decl(node, ctx);
@@ -417,7 +169,7 @@ type_check_statement(ASTNode *node, SemanticContext *ctx)
     case AST_DEFER_STMT:
         return type_check_defer_body_flow(ast_defer_body(node), ctx);
     case AST_BIND_STMT:
-        /* bind party.slot = Role; — validated at codegen level */
+        /* bind party.slot = Role; validated at codegen level. */
         return true;
     default:
         /* Expression statement */

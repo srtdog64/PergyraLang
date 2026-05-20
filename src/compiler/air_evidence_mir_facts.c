@@ -56,12 +56,15 @@ air_mir_routine_cleanup_fact_count(const MIRRoutine *routine)
 static bool
 air_mir_instruction_has_terminator_provenance(const MIRInstruction *inst)
 {
-    if (inst == NULL || !inst->has_source_terminator_kind)
+    if (inst == NULL
+        || !mir_instruction_has_source_terminator_kind(inst))
         return false;
     if (inst->kind == MIR_INST_BRANCH)
-        return inst->source_terminator_kind == HIR_BLOCK_BRANCH;
+        return mir_instruction_source_terminator_matches(
+            inst, HIR_BLOCK_BRANCH);
     if (inst->kind == MIR_INST_RETURN)
-        return inst->source_terminator_kind == HIR_BLOCK_RETURN;
+        return mir_instruction_source_terminator_matches(
+            inst, HIR_BLOCK_RETURN);
     return false;
 }
 
@@ -157,8 +160,10 @@ air_find_global_evidence_provider_subject(const AIRProgram *air,
 {
     if (air == NULL)
         return NULL;
-    for (size_t i = 0; i < air->evidence_count; i++) {
-        const AIREvidenceNode *node = &air->evidence_nodes[i];
+    for (size_t i = 0; i < air_evidence_node_count(air); i++) {
+        const AIREvidenceNode *node = air_evidence_node_at(air, i);
+        if (node == NULL)
+            continue;
         if (node->kind == kind
             && node->boundary_index == SIZE_MAX
             && air_name_matches(node->provider_name, provider_name)

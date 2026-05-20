@@ -221,7 +221,7 @@ test_effect_inference(void)
         ast_destroy(func);
     }
 
-    TEST("intent step effect in authority-bearing zone derives authorized by");
+    TEST("intent step effect in authority-bearing zone keeps explicit authorization");
     {
         const char *source =
             "subject Player { let hp: Int; }\n"
@@ -241,6 +241,7 @@ test_effect_inference(void)
             "        using: arena;\n"
             "        who: player;\n"
             "        causes: Marked;\n"
+            "        authorized by: player;\n"
             "    }\n"
             "}\n";
         Lexer *lexer = lexer_create(source);
@@ -264,7 +265,7 @@ test_effect_inference(void)
 
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count == 0);
-        EXPECT(step != NULL && step->data.intent_step.derived_authorized_by_from_zone);
+        EXPECT(step != NULL && !step->data.intent_step.derived_authorized_by_from_zone);
         EXPECT(step != NULL && step->data.intent_step.authorized_by_count == 1);
         EXPECT(step != NULL && strcmp(step->data.intent_step.authorized_by[0], "player") == 0);
 

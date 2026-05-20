@@ -405,7 +405,6 @@ void ast_intent_step_mark_inherited_where_from_action(ASTNode* node);
 void ast_intent_step_mark_inherited_requires_from_action(ASTNode* node);
 void ast_intent_step_mark_inherited_causes_from_action(ASTNode* node);
 void ast_intent_step_mark_inherited_authorized_by_from_action(ASTNode* node);
-void ast_intent_step_mark_derived_authorized_by_from_zone(ASTNode* node);
 void ast_intent_step_mark_derived_where_from_using(ASTNode* node);
 void ast_intent_step_mark_derived_where_from_transfer(ASTNode* node);
 void ast_intent_step_mark_derived_using_from_transfer(ASTNode* node);

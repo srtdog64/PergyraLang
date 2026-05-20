@@ -99,6 +99,8 @@ typedef struct
     bool            source_from_intent_default;
     bool            source_from_action;
     bool            source_from_transfer;
+    /* Retained for pgy.air.graph.v1 compatibility; active approval provenance
+       is explicit or action-inherited, never derived from local `who`. */
     bool            authority_from_zone;
     bool            authority_from_action;
     const char    **authority_names;
@@ -204,5 +206,12 @@ const char *air_failure_class_name(AIRFailureClass failure_class);
 const char *air_boundary_kind_name(AIRBoundaryKind kind);
 const char *air_drift_kind_name(AIRDriftKind kind);
 const char *air_evidence_kind_name(AIREvidenceKind kind);
+size_t      air_intent_node_count(const AIRProgram *air);
+const AIRIntentNode *air_intent_node_at(const AIRProgram *air, size_t index);
+size_t      air_boundary_node_count(const AIRProgram *air);
+const AIRBoundaryNode *air_boundary_node_at(const AIRProgram *air,
+                                            size_t index);
+size_t      air_drift_count(const AIRProgram *air);
+const AIRDrift *air_drift_at(const AIRProgram *air, size_t index);
 
 #endif

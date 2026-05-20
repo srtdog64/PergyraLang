@@ -310,7 +310,7 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
             hir_error != NULL ? hir_error : "invalid AIR/DAG evidence");
         goto cleanup;
     }
-    if (air->drift_count > 0 && !flags->dump_air_json) {
+    if (air_drift_count(air) > 0 && !flags->dump_air_json) {
         driver_emit_air_drift_fail(flags, air);
         goto cleanup;
     }
@@ -361,7 +361,7 @@ driver_run_pipeline_timed(const DriverFlags *flags, DriverPhaseTimings *timings)
         exit_code = 0;
         goto cleanup;
     }
-    if (air->drift_count > 0) {
+    if (air_drift_count(air) > 0) {
         driver_emit_air_drift_fail(flags, air);
         goto cleanup;
     }

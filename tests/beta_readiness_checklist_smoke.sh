@@ -172,7 +172,7 @@ Debugger beta-stable: CLI `pgy debug <file>` parse + semantic gate and interacti
 DAP, binary breakpoints, variable watch, multi-file workspace indexing
 beta readiness
 60%
-63%
+68%
 EOF
 
 require_terms "docs/19_design_philosophy.md" <<'EOF'

@@ -5,19 +5,36 @@
 
 #include "air_internal.h"
 
-static void
-air_count_rir_authority_summaries(AIRProgram *air, const RIRScope *scope)
+static bool
+air_count_rir_authority_summaries(AIRProgram *air,
+                                  const RIRScope *scope,
+                                  char **error_message)
 {
     if (air == NULL || scope == NULL)
-        return;
+        return true;
     for (size_t i = 0; i < scope->fact_count; i++) {
-        if (scope->facts[i].kind == RIR_FACT_AUTHORITY)
-            air->rir_authority_evidence_count++;
+        if (scope->facts[i].kind != RIR_FACT_AUTHORITY)
+            continue;
+        if (!air_increment_evidence_summary_count(
+                air,
+                AIR_EVIDENCE_RIR_AUTHORITY)) {
+            air_set_error(error_message,
+                          "AIR RIR authority evidence counter overflow");
+            return false;
+        }
     }
     for (size_t i = 0; i < scope->op_count; i++) {
-        if (scope->ops[i].kind == RIR_OP_AUTHORIZE)
-            air->rir_authority_evidence_count++;
+        if (scope->ops[i].kind != RIR_OP_AUTHORIZE)
+            continue;
+        if (!air_increment_evidence_summary_count(
+                air,
+                AIR_EVIDENCE_RIR_AUTHORITY)) {
+            air_set_error(error_message,
+                          "AIR RIR authority evidence counter overflow");
+            return false;
+        }
     }
+    return true;
 }
 
 bool
@@ -28,11 +45,15 @@ air_collect_rir_evidence(AIRProgram *air,
     if (air == NULL || rir == NULL)
         return true;
 
-    air->has_rir_input = true;
+    air_mark_rir_input(air);
     for (size_t i = 0; i < rir->scope_count; i++) {
         const RIRScope *scope = &rir->scopes[i];
 
-        air_count_rir_authority_summaries(air, scope);
+        if (!air_count_rir_authority_summaries(air,
+                                               scope,
+                                               error_message)) {
+            return false;
+        }
         if (!air_collect_rir_scope_propagation_evidence(air,
                                                         scope,
                                                         error_message)) {

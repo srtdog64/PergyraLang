@@ -17,10 +17,10 @@ air_format_authority_names_owned(const AIRBoundaryNode *boundary)
     char *out;
     size_t used = 0;
 
-    if (boundary == NULL || boundary->authority_names == NULL)
+    if (boundary == NULL || !air_boundary_authority_storage_valid(boundary))
         return NULL;
-    for (size_t i = 0; i < boundary->authority_name_count; i++) {
-        const char *name = boundary->authority_names[i];
+    for (size_t i = 0; i < air_boundary_authority_name_count(boundary); i++) {
+        const char *name = air_boundary_authority_name_at(boundary, i);
         if (name == NULL || name[0] == '\0')
             continue;
         if (emitted && total > SIZE_MAX - 2)
@@ -39,8 +39,8 @@ air_format_authority_names_owned(const AIRBoundaryNode *boundary)
         return NULL;
     out[0] = '\0';
     emitted = false;
-    for (size_t i = 0; i < boundary->authority_name_count; i++) {
-        const char *name = boundary->authority_names[i];
+    for (size_t i = 0; i < air_boundary_authority_name_count(boundary); i++) {
+        const char *name = air_boundary_authority_name_at(boundary, i);
         size_t len;
         if (name == NULL || name[0] == '\0')
             continue;
@@ -86,7 +86,7 @@ air_format_boundary_provenance_owned(const AIRIntentNode *intent,
     else
         who_provenance = "explicit";
     if (boundary->authority_from_zone)
-        authority_provenance = "zone-derived";
+        authority_provenance = "legacy-zone-field";
     else if (boundary->authority_from_action)
         authority_provenance = "action-inherited";
     else

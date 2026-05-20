@@ -14,6 +14,8 @@ grep -Fq "inherited_where_from_intent" \
     "$ROOT_DIR/src/parser/ast_domain_data.h"
 grep -Fq "derived_authorized_by_from_zone" \
     "$ROOT_DIR/src/parser/ast_domain_data.h"
+grep -Fq "Legacy schema field only" \
+    "$ROOT_DIR/src/parser/ast_domain_data.h"
 grep -Fq "derived_who_from_single_participant" \
     "$ROOT_DIR/src/parser/ast_domain_data.h"
 grep -Fq "derived_who_from_on_receiver" \
@@ -40,8 +42,6 @@ grep -Fq "derived who from on-call receiver" \
     "$ROOT_DIR/src/parser/ast_print_intent.c"
 grep -Fq "reused zone from intent-level default" \
     "$ROOT_DIR/src/parser/ast_print_intent.c"
-grep -Fq "derived authorized by from zone authority" \
-    "$ROOT_DIR/src/parser/ast_print_intent.c"
 grep -Fq "reused who from intent-level default" \
     "$ROOT_DIR/src/semantic/type_checker_intent_contract_summary.c"
 grep -Fq "derived who from single subject participant" \
@@ -50,9 +50,23 @@ grep -Fq "derived who from on-call receiver" \
     "$ROOT_DIR/src/semantic/type_checker_intent_contract_summary.c"
 grep -Fq "reused zone from intent-level default" \
     "$ROOT_DIR/src/semantic/type_checker_intent_contract_summary.c"
-grep -Fq "approval owner stays on the zone/resource layer" \
-    "$ROOT_DIR/src/semantic/type_checker_intent_contract_summary.c"
-grep -Fq "intent_step_derive_authorized_by_from_zone" \
+if grep -Fq "intent_step_derive_authorized_by_from_zone" \
+        "$ROOT_DIR/src/semantic/type_checker_intent_authority.c"; then
+    echo "intent who must not be promoted into authorized by" >&2
+    exit 1
+fi
+if grep -R "ast_intent_step_mark_derived_authorized_by_from_zone(" \
+        "$ROOT_DIR/src/semantic" "$ROOT_DIR/src/compiler" "$ROOT_DIR/src/codegen"; then
+    echo "legacy zone-authority approval field must not be set by active compiler phases" >&2
+    exit 1
+fi
+if grep -Fq "ast_intent_step_mark_derived_authorized_by_from_zone" \
+        "$ROOT_DIR/src/parser/ast_api.h" \
+        "$ROOT_DIR/src/parser/ast_intent_step_mutators.c"; then
+    echo "legacy zone-authority approval mutator must not remain public or implemented" >&2
+    exit 1
+fi
+grep -Fq "intent_step_suggest_authorizer_from_zone" \
     "$ROOT_DIR/src/semantic/type_checker_intent_authority.c"
 grep -Fq "intent_step_derive_who_from_single_participant" \
     "$ROOT_DIR/src/semantic/type_checker_intent_on_inference.c"
@@ -82,19 +96,21 @@ grep -Fq "ast_func_required_ability" \
     "$ROOT_DIR/src/semantic/type_checker_intent_on_inference.c"
 grep -Fq "ast_func_authorized_by" \
     "$ROOT_DIR/src/semantic/type_checker_intent_on_inference.c"
-grep -Fq "intent_step_can_derive_zone_authority" \
-    "$ROOT_DIR/src/semantic/type_checker_intent_authority.c"
 grep -Fq "authorized_by_derived_from_zone" \
+    "$ROOT_DIR/src/compiler/dir.h"
+grep -Fq "Compatibility field for older DIR/AIR schema consumers" \
     "$ROOT_DIR/src/compiler/dir.h"
 grep -Fq "derived_authorized_by_from_zone" \
     "$ROOT_DIR/src/compiler/dir_collect_intent.c"
 grep -Fq "authority_from_zone" \
     "$ROOT_DIR/src/compiler/air.h"
+grep -Fq "Retained for pgy.air.graph.v1 compatibility" \
+    "$ROOT_DIR/src/compiler/air.h"
 grep -Fq "authority_from_action" \
     "$ROOT_DIR/src/compiler/air.h"
 grep -Fq "authority_provenance=%s" \
     "$ROOT_DIR/src/compiler/air_verify_provenance.c"
-grep -Fq "zone-derived" \
+grep -Fq "legacy-zone-field" \
     "$ROOT_DIR/src/compiler/air_verify_provenance.c"
 grep -Fq "action-inherited" \
     "$ROOT_DIR/src/compiler/air_verify_provenance.c"
@@ -214,13 +230,13 @@ grep -Fq "source_from_transfer" \
     "$ROOT_DIR/src/compiler/air_dump.c"
 grep -Fq "intent step reuses intent-level who and where defaults" \
     "$ROOT_DIR/src/tests/semantic/test_semantic_misc_b2_part_d.cases.h"
-grep -Fq "intent authority-bearing zone derives authorized by for secure helper" \
+grep -Fq "intent authority-bearing zone keeps explicit authorization for secure helper" \
     "$ROOT_DIR/src/tests/semantic/test_semantic_misc_b2_part_c.cases.h"
-grep -Fq "intent transfer derives zone using and authorized by from target authority" \
+grep -Fq "intent transfer derives zone using but keeps authorization explicit" \
     "$ROOT_DIR/src/tests/semantic/test_semantic_misc_b2_part_c.cases.h"
-grep -Fq "records derived authorized by before action diagnostics" \
+grep -Fq "intent authority-bearing zone-action helper requires explicit authorization" \
     "$ROOT_DIR/src/tests/semantic/test_semantic_misc_b2_part_c.cases.h"
-grep -Fq "intent step effect in authority-bearing zone derives authorized by" \
+grep -Fq "intent step effect in authority-bearing zone keeps explicit authorization" \
     "$ROOT_DIR/src/tests/semantic/test_semantic_effects_part_a.cases.h"
 grep -Fq "intent step maps action parameter authority from on-call argument" \
     "$ROOT_DIR/src/tests/semantic/test_semantic_intent_compression_part_a.cases.h"

@@ -35,7 +35,6 @@ typedef struct SemanticResult
      * code should consume the type_resolution_dag_*_evidence_count fields. */
     size_t       type_resolution_stage_compat_generic_contract_count;
     size_t       type_resolution_stage_compat_ability_consumer_count;
-    size_t       type_resolution_dag_ability_evidence_count;
 } SemanticResult;
 
 /* -----------------------------------------------------------------
@@ -57,6 +56,14 @@ typedef struct SemanticResult
 SemanticResult* semantic_analyze(ASTNode* ast);
 void            semantic_result_destroy(SemanticResult* result);
 void            semantic_result_print(const SemanticResult* result);
+size_t          semantic_result_type_resolution_metadata_entries(
+                    const SemanticResult* result);
+size_t          semantic_result_type_resolution_metadata_dead_ends(
+                    const SemanticResult* result);
+size_t          semantic_result_dag_generic_contract_evidence_count(
+                    const SemanticResult* result);
+size_t          semantic_result_dag_ability_consumer_evidence_count(
+                    const SemanticResult* result);
 
 /*
  * Emit diagnostics as a JSON array to stderr.

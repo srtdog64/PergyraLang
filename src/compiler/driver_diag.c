@@ -265,7 +265,7 @@ driver_format_air_evidence_summary(const AIRProgram *air,
     if (out == NULL || out_size == 0)
         return false;
     out[0] = '\0';
-    if (air == NULL || boundary_index >= air->boundary_count)
+    if (air_boundary_node_at(air, boundary_index) == NULL)
         return false;
 
     written = snprintf(out,
@@ -311,12 +311,12 @@ driver_emit_air_drift_fail(const DriverFlags *flags, const AIRProgram *air)
     unsigned line = 0;
     unsigned column = 0;
 
-    if (air != NULL && air->drift_count > 0)
-        drift = &air->drifts[0];
-    if (drift != NULL && drift->intent_index < air->intent_count)
-        intent = &air->intents[drift->intent_index];
-    if (drift != NULL && drift->boundary_index < air->boundary_count)
-        boundary = &air->boundaries[drift->boundary_index];
+    if (air_drift_count(air) > 0)
+        drift = air_drift_at(air, 0);
+    if (drift != NULL)
+        intent = air_intent_node_at(air, drift->intent_index);
+    if (drift != NULL)
+        boundary = air_boundary_node_at(air, drift->boundary_index);
     if (intent != NULL && intent->ast != NULL)
         site = intent->ast;
     else if (boundary != NULL)

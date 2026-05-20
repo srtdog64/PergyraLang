@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#include "air.h"
+#include "air_internal.h"
 
 #include "../runtime/pgy_frontier_policy.h"
 #include "../runtime/pgy_runtime_observability_schema.h"
@@ -167,10 +167,10 @@ air_evidence_boundary(const AIRProgram *air, const AIREvidenceNode *evidence)
 {
     if (air == NULL || evidence == NULL
         || evidence->boundary_index == SIZE_MAX
-        || evidence->boundary_index >= air->boundary_count) {
+        || evidence->boundary_index >= air_boundary_node_count(air)) {
         return NULL;
     }
-    return &air->boundaries[evidence->boundary_index];
+    return air_boundary_node_at(air, evidence->boundary_index);
 }
 
 static void
@@ -179,17 +179,17 @@ air_dump_json_summary(const AIRProgram *air, FILE *out)
     fprintf(out,
             "\"summary\":{\"intent_count\":%zu,\"boundary_count\":%zu,\"evidence_count\":%zu,\"drift_count\":%zu,"
             "\"strict_evidence\":",
-            air->intent_count,
-            air->boundary_count,
-            air->evidence_count,
-            air->drift_count);
-    air_json_bool(out, air->strict_evidence);
+            air_intent_node_count(air),
+            air_boundary_node_count(air),
+            air_evidence_node_count(air),
+            air_drift_count(air));
+    air_json_bool(out, air_requires_strict_evidence(air));
     fputs(",\"hir_input\":", out);
-    air_json_bool(out, air->has_hir_input);
+    air_json_bool(out, air_has_hir_input(air));
     fputs(",\"rir_input\":", out);
-    air_json_bool(out, air->has_rir_input);
+    air_json_bool(out, air_has_rir_input(air));
     fputs(",\"mir_input\":", out);
-    air_json_bool(out, air->has_mir_input);
+    air_json_bool(out, air_has_mir_input(air));
     fprintf(out,
             ",\"hir_routine_evidence_count\":%zu,\"hir_cfg_evidence_count\":%zu,"
             "\"rir_boundary_evidence_count\":%zu,\"rir_authority_evidence_count\":%zu,"
@@ -201,23 +201,24 @@ air_dump_json_summary(const AIRProgram *air, FILE *out)
             "\"rir_relation_propagation_required_count\":%zu,\"rir_relation_propagation_evidence_count\":%zu,"
             "\"observability_schema_evidence_count\":%zu,"
             "\"runtime_frontier_policy_evidence_count\":%zu}",
-            air->hir_routine_evidence_count,
-            air->hir_cfg_evidence_count,
-            air->rir_boundary_evidence_count,
-            air->rir_authority_evidence_count,
-            air->mir_cleanup_evidence_count,
-            air->mir_pin_cleanup_evidence_count,
-            air->mir_terminator_evidence_count,
-            air->mir_select_receive_evidence_count,
-            air->dag_metadata_evidence_count,
-            air->dag_generic_evidence_count,
-            air->dag_ability_evidence_count,
-            air->rir_effect_propagation_required_count,
-            air->rir_effect_propagation_evidence_count,
-            air->rir_relation_propagation_required_count,
-            air->rir_relation_propagation_evidence_count,
-            air->observability_schema_evidence_count,
-            air->runtime_frontier_policy_evidence_count);
+            air_evidence_summary_count(air, AIR_EVIDENCE_HIR_ROUTINE),
+            air_evidence_summary_count(air, AIR_EVIDENCE_HIR_CFG),
+            air_evidence_summary_count(air, AIR_EVIDENCE_RIR_BOUNDARY),
+            air_evidence_summary_count(air, AIR_EVIDENCE_RIR_AUTHORITY),
+            air_evidence_summary_count(air, AIR_EVIDENCE_MIR_CLEANUP),
+            air_evidence_summary_count(air, AIR_EVIDENCE_MIR_PIN_CLEANUP),
+            air_evidence_summary_count(air, AIR_EVIDENCE_MIR_TERMINATOR),
+            air_evidence_summary_count(air, AIR_EVIDENCE_MIR_SELECT_RECEIVE),
+            air_evidence_summary_count(air, AIR_EVIDENCE_DAG_METADATA),
+            air_evidence_summary_count(air, AIR_EVIDENCE_DAG_GENERIC),
+            air_evidence_summary_count(air, AIR_EVIDENCE_DAG_ABILITY),
+            air_evidence_required_count(air, AIR_EVIDENCE_RIR_EFFECT_PROPAGATION),
+            air_evidence_summary_count(air, AIR_EVIDENCE_RIR_EFFECT_PROPAGATION),
+            air_evidence_required_count(air, AIR_EVIDENCE_RIR_RELATION_PROPAGATION),
+            air_evidence_summary_count(air, AIR_EVIDENCE_RIR_RELATION_PROPAGATION),
+            air_evidence_summary_count(air, AIR_EVIDENCE_OBSERVABILITY_SCHEMA),
+            air_evidence_summary_count(air,
+                                       AIR_EVIDENCE_RUNTIME_FRONTIER_POLICY));
 }
 
 static void
@@ -240,8 +241,10 @@ static void
 air_dump_json_intents(const AIRProgram *air, FILE *out)
 {
     fputs("\"intents\":[", out);
-    for (size_t i = 0; i < air->intent_count; i++) {
-        const AIRIntentNode *intent = &air->intents[i];
+    for (size_t i = 0; i < air_intent_node_count(air); i++) {
+        const AIRIntentNode *intent = air_intent_node_at(air, i);
+        if (intent == NULL)
+            continue;
         if (i > 0)
             fputc(',', out);
         fprintf(out, "{\"id\":%zu,\"owner\":", i);
@@ -274,8 +277,10 @@ static void
 air_dump_json_boundaries(const AIRProgram *air, FILE *out)
 {
     fputs("\"boundaries\":[", out);
-    for (size_t i = 0; i < air->boundary_count; i++) {
-        const AIRBoundaryNode *boundary = &air->boundaries[i];
+    for (size_t i = 0; i < air_boundary_node_count(air); i++) {
+        const AIRBoundaryNode *boundary = air_boundary_node_at(air, i);
+        if (boundary == NULL)
+            continue;
         if (i > 0)
             fputc(',', out);
         fprintf(out, "{\"id\":%zu,\"kind\":", i);
@@ -302,10 +307,13 @@ air_dump_json_boundaries(const AIRProgram *air, FILE *out)
         fputs(",\"authority_from_action\":", out);
         air_json_bool(out, boundary->authority_from_action);
         fputs(",\"authority_names\":[", out);
-        for (size_t j = 0; j < boundary->authority_name_count; j++) {
+        for (size_t j = 0;
+             j < air_boundary_authority_name_count(boundary);
+             j++) {
             if (j > 0)
                 fputc(',', out);
-            air_json_string(out, boundary->authority_names[j]);
+            air_json_string(out,
+                            air_boundary_authority_name_at(boundary, j));
         }
         fputs("],\"evidence_flags\":{", out);
         fputs("\"hir_routine\":", out);
@@ -333,9 +341,11 @@ static void
 air_dump_json_evidence(const AIRProgram *air, FILE *out)
 {
     fputs("\"evidence\":[", out);
-    for (size_t i = 0; i < air->evidence_count; i++) {
-        const AIREvidenceNode *evidence = &air->evidence_nodes[i];
+    for (size_t i = 0; i < air_evidence_node_count(air); i++) {
+        const AIREvidenceNode *evidence = air_evidence_node_at(air, i);
         const AIRBoundaryNode *boundary = air_evidence_boundary(air, evidence);
+        if (evidence == NULL)
+            continue;
         if (i > 0)
             fputc(',', out);
         fprintf(out, "{\"id\":%zu,\"kind\":", i);
@@ -368,8 +378,10 @@ static void
 air_dump_json_drifts(const AIRProgram *air, FILE *out)
 {
     fputs("\"drifts\":[", out);
-    for (size_t i = 0; i < air->drift_count; i++) {
-        const AIRDrift *drift = &air->drifts[i];
+    for (size_t i = 0; i < air_drift_count(air); i++) {
+        const AIRDrift *drift = air_drift_at(air, i);
+        if (drift == NULL)
+            continue;
         if (i > 0)
             fputc(',', out);
         fprintf(out,

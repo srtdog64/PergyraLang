@@ -8,7 +8,7 @@ air_strict_require_dag_evidence_node(AIRProgram *air,
                                      size_t counter,
                                      char **error_message)
 {
-    if (!air->strict_evidence || counter == 0
+    if (!air_requires_strict_evidence(air) || counter == 0
         || air_global_has_evidence_kind(air, kind))
         return true;
     return air_append_driftf(air, AIR_DRIFT_DAG_DEAD_END_PRESENT,
@@ -27,7 +27,7 @@ air_strict_require_mir_evidence_node(AIRProgram *air,
                                      size_t counter,
                                      char **error_message)
 {
-    if (!air->strict_evidence || counter == 0
+    if (!air_requires_strict_evidence(air) || counter == 0
         || air_global_has_evidence_kind(air, kind))
         return true;
     return air_append_driftf(air, AIR_DRIFT_BOUNDARY_EVIDENCE_MISSING,
@@ -46,7 +46,7 @@ air_strict_require_mir_boundary_evidence_node(AIRProgram *air,
                                               size_t counter,
                                               char **error_message)
 {
-    if (!air->strict_evidence || counter == 0
+    if (!air_requires_strict_evidence(air) || counter == 0
         || air_boundary_evidence_node_count(air, kind) > 0) {
         return true;
     }
@@ -63,9 +63,9 @@ air_strict_require_mir_boundary_evidence_node(AIRProgram *air,
 static bool
 air_verify_mir_global_requirements(AIRProgram *air, char **error_message)
 {
-    if (air->strict_evidence
-        && air->has_mir_input
-        && air->boundary_count > 0
+    if (air_requires_strict_evidence(air)
+        && air_has_mir_input(air)
+        && air_boundary_node_count(air) > 0
         && !air_global_has_evidence_kind(air, AIR_EVIDENCE_MIR_TERMINATOR)) {
         const char *message =
             PGY_CODE_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING
@@ -81,7 +81,7 @@ air_verify_mir_global_requirements(AIRProgram *air, char **error_message)
             return false;
         }
     }
-    if (!air->strict_evidence)
+    if (!air_requires_strict_evidence(air))
         return true;
     return air_strict_require_mir_evidence_node(
             air, AIR_EVIDENCE_MIR_CLEANUP,
@@ -104,7 +104,7 @@ air_verify_mir_global_requirements(AIRProgram *air, char **error_message)
 static bool
 air_verify_runtime_global_requirements(AIRProgram *air, char **error_message)
 {
-    if (!air->strict_evidence)
+    if (!air_requires_strict_evidence(air))
         return true;
     if (!air_global_has_evidence_kind(air,
                                       AIR_EVIDENCE_OBSERVABILITY_SCHEMA)) {
@@ -145,7 +145,7 @@ air_verify_rir_propagation_requirements(AIRProgram *air,
 {
     size_t evidence_count;
 
-    if (!air->strict_evidence)
+    if (!air_requires_strict_evidence(air))
         return true;
     evidence_count = air_global_evidence_fact_count(
         air,
@@ -203,7 +203,7 @@ air_verify_dag_global_requirements(AIRProgram *air, char **error_message)
         AIR_EVIDENCE_DAG_ABILITY,
     };
 
-    if (!air->strict_evidence)
+    if (!air_requires_strict_evidence(air))
         return true;
     if (!air_strict_require_dag_evidence_node(
             air, AIR_EVIDENCE_DAG_METADATA,

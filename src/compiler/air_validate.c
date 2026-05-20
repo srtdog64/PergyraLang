@@ -64,19 +64,6 @@ air_boundary_sync_shape_valid(const AIRBoundaryNode *boundary)
     }
 }
 
-bool
-air_boundary_declares_authority_name(const AIRBoundaryNode *boundary,
-                                     const char *authority_name)
-{
-    if (boundary == NULL || authority_name == NULL)
-        return false;
-    for (size_t i = 0; i < boundary->authority_name_count; i++) {
-        if (air_name_matches(boundary->authority_names[i], authority_name))
-            return true;
-    }
-    return false;
-}
-
 static bool
 air_drift_kind_valid(AIRDriftKind kind)
 {
@@ -109,105 +96,124 @@ air_validate(const AIRProgram *air, char **error_message)
         air_set_invariant_error(error_message, "AIR validation requires a program");
         return false;
     }
-    if (air->intent_count > 0 && air->intents == NULL) {
+    if (!air_intent_storage_valid(air)) {
         air_set_invariant_error(error_message, "AIR has intent count without intent array");
         return false;
     }
-    if (air->boundary_count > 0 && air->boundaries == NULL) {
+    if (!air_boundary_storage_valid(air)) {
         air_set_invariant_error(error_message, "AIR has boundary count without boundary array");
         return false;
     }
-    if (air->drift_count > 0 && air->drifts == NULL) {
+    if (!air_drift_storage_valid(air)) {
         air_set_invariant_error(error_message, "AIR has drift count without drift array");
         return false;
     }
-    if (air->evidence_count > 0 && air->evidence_nodes == NULL) {
+    if (!air_evidence_inventory_storage_valid(air)) {
         air_set_invariant_error(error_message, "AIR has evidence count without evidence array");
         return false;
     }
-    for (size_t i = 0; i < air->intent_count; i++) {
-        if (air_name_is_empty(air->intents[i].intent_owner)) {
+    for (size_t i = 0; i < air_intent_node_count(air); i++) {
+        const AIRIntentNode *intent = air_intent_node_at(air, i);
+        if (intent == NULL) {
+            air_set_invariant_error(error_message, "AIR intent node %zu is missing", i);
+            return false;
+        }
+        if (air_name_is_empty(intent->intent_owner)) {
             air_set_invariant_error(error_message, "AIR intent node %zu has no owner name", i);
             return false;
         }
-        if (air_name_is_empty(air->intents[i].step_name)) {
+        if (air_name_is_empty(intent->step_name)) {
             air_set_invariant_error(error_message, "AIR intent node %zu has no step name", i);
             return false;
         }
-        if (air->intents[i].sync_class == AIR_SYNC_UNKNOWN) {
+        if (intent->sync_class == AIR_SYNC_UNKNOWN) {
             air_set_invariant_error(error_message, "AIR intent node %zu has unknown sync class", i);
             return false;
         }
-        if (air->intents[i].failure_class == AIR_FAILURE_UNKNOWN) {
+        if (intent->failure_class == AIR_FAILURE_UNKNOWN) {
             air_set_invariant_error(error_message, "AIR intent node %zu has unknown failure class", i);
             return false;
         }
     }
-    for (size_t i = 0; i < air->boundary_count; i++) {
-        if (air->boundaries[i].kind == AIR_BOUNDARY_UNKNOWN) {
+    for (size_t i = 0; i < air_boundary_node_count(air); i++) {
+        const AIRBoundaryNode *boundary = air_boundary_node_at(air, i);
+        const AIRIntentNode *intent;
+        if (boundary == NULL) {
+            air_set_invariant_error(error_message, "AIR boundary node %zu is missing", i);
+            return false;
+        }
+        if (boundary->kind == AIR_BOUNDARY_UNKNOWN) {
             air_set_invariant_error(error_message, "AIR boundary node %zu has unknown kind", i);
             return false;
         }
-        if (air->boundaries[i].intent_index >= air->intent_count) {
+        if (boundary->intent_index >= air_intent_node_count(air)) {
             air_set_invariant_error(error_message,
                                     "AIR boundary node %zu references missing intent node %zu",
                                     i,
-                                    air->boundaries[i].intent_index);
+                                    boundary->intent_index);
             return false;
         }
-        if (air->boundaries[i].step_index
-            != air->intents[air->boundaries[i].intent_index].step_index) {
+        intent = air_intent_node_at(air, boundary->intent_index);
+        if (intent == NULL) {
+            air_set_invariant_error(error_message,
+                                    "AIR boundary node %zu references missing intent node %zu",
+                                    i,
+                                    boundary->intent_index);
+            return false;
+        }
+        if (boundary->step_index != intent->step_index) {
             air_set_invariant_error(error_message,
                                     "AIR boundary node %zu step index does not match intent node %zu",
                                     i,
-                                    air->boundaries[i].intent_index);
+                                    boundary->intent_index);
             return false;
         }
-        if (air_name_is_empty(air->boundaries[i].owner_name)) {
+        if (air_name_is_empty(boundary->owner_name)) {
             air_set_invariant_error(error_message, "AIR boundary node %zu has no owner name", i);
             return false;
         }
-        if (!air_name_matches(air->boundaries[i].owner_name,
-                              air->intents[air->boundaries[i].intent_index].intent_owner)) {
+        if (!air_name_matches(boundary->owner_name, intent->intent_owner)) {
             air_set_invariant_error(error_message,
                                     "AIR boundary node %zu owner does not match intent node %zu",
                                     i,
-                                    air->boundaries[i].intent_index);
+                                    boundary->intent_index);
             return false;
         }
-        if (air_name_is_empty(air->boundaries[i].source_name)) {
+        if (air_name_is_empty(boundary->source_name)) {
             air_set_invariant_error(error_message, "AIR boundary node %zu has no source name", i);
             return false;
         }
-        if (air->boundaries[i].sync_class == AIR_SYNC_UNKNOWN) {
+        if (boundary->sync_class == AIR_SYNC_UNKNOWN) {
             air_set_invariant_error(error_message, "AIR boundary node %zu has unknown sync class", i);
             return false;
         }
-        if (!air_boundary_sync_shape_valid(&air->boundaries[i])) {
+        if (!air_boundary_sync_shape_valid(boundary)) {
             air_set_invariant_error(error_message,
                                     "AIR boundary node %zu has invalid sync class %s for %s boundary",
                                     i,
-                                    air_sync_class_name(air->boundaries[i].sync_class),
-                                    air_boundary_kind_name(air->boundaries[i].kind));
+                                    air_sync_class_name(boundary->sync_class),
+                                    air_boundary_kind_name(boundary->kind));
             return false;
         }
-        if (air->boundaries[i].kind == AIR_BOUNDARY_WORLD
-            && !air->boundaries[i].source_from_transfer) {
+        if (boundary->kind == AIR_BOUNDARY_WORLD
+            && !boundary->source_from_transfer) {
             air_set_invariant_error(error_message,
                                     "AIR world boundary node %zu has no transfer provenance",
                                     i);
             return false;
         }
-        if (air->boundaries[i].authority_name_count > 0
-            && air->boundaries[i].authority_names == NULL) {
+        if (!air_boundary_authority_storage_valid(boundary)) {
             air_set_invariant_error(error_message,
                                     "AIR boundary node %zu has authority count without names",
                                     i);
             return false;
         }
-        for (size_t j = 0; j < air->boundaries[i].authority_name_count; j++) {
-            if (air->boundaries[i].authority_names[j] == NULL
-                || air->boundaries[i].authority_names[j][0] == '\0') {
+        for (size_t j = 0;
+             j < air_boundary_authority_name_count(boundary);
+             j++) {
+            const char *authority_name =
+                air_boundary_authority_name_at(boundary, j);
+            if (air_name_is_empty(authority_name)) {
                 air_set_invariant_error(error_message,
                                         "AIR boundary node %zu has empty authority name %zu",
                                         i,
@@ -215,55 +221,59 @@ air_validate(const AIRProgram *air, char **error_message)
                 return false;
             }
         }
-        if (air->boundaries[i].authority_required
-            && air->boundaries[i].authority_name_count == 0) {
+        if (boundary->authority_required
+            && air_boundary_authority_name_count(boundary) == 0) {
             air_set_invariant_error(error_message,
                                     "AIR boundary node %zu requires authority but has no participant",
                                     i);
             return false;
         }
-        if (air->boundaries[i].authority_from_zone
-            && !air->boundaries[i].authority_required) {
+        if (boundary->authority_from_zone && !boundary->authority_required) {
             air_set_invariant_error(error_message,
-                                    "AIR boundary node %zu has zone-derived authority provenance without authority",
+                                    "AIR boundary node %zu has legacy zone-authority field without authority",
                                     i);
             return false;
         }
-        if (air->boundaries[i].authority_from_zone
-            && air->boundaries[i].kind != AIR_BOUNDARY_ZONE
-            && air->boundaries[i].kind != AIR_BOUNDARY_WORLD) {
+        if (boundary->authority_from_zone
+            && boundary->kind != AIR_BOUNDARY_ZONE
+            && boundary->kind != AIR_BOUNDARY_WORLD) {
             air_set_invariant_error(error_message,
-                                    "AIR boundary node %zu has zone-derived authority on non-zone/world boundary",
+                                    "AIR boundary node %zu has legacy zone-authority field on non-zone/world boundary",
                                     i);
             return false;
         }
         if (!air_validate_boundary_summary_shape(air, i, error_message))
             return false;
     }
-    for (size_t i = 0; i < air->drift_count; i++) {
-        if (!air_drift_kind_valid(air->drifts[i].kind)) {
+    for (size_t i = 0; i < air_drift_count(air); i++) {
+        const AIRDrift *drift = air_drift_at(air, i);
+        if (drift == NULL) {
+            air_set_invariant_error(error_message, "AIR drift node %zu is missing", i);
+            return false;
+        }
+        if (!air_drift_kind_valid(drift->kind)) {
             air_set_invariant_error(error_message, "AIR drift node %zu has invalid kind", i);
             return false;
         }
-        if (air->drifts[i].intent_index >= air->intent_count
-            && !(air->drifts[i].intent_index == SIZE_MAX
-                 && air_drift_kind_is_global(air->drifts[i].kind))) {
+        if (drift->intent_index >= air_intent_node_count(air)
+            && !(drift->intent_index == SIZE_MAX
+                 && air_drift_kind_is_global(drift->kind))) {
             air_set_invariant_error(error_message,
                                     "AIR drift node %zu references missing intent node %zu",
                                     i,
-                                    air->drifts[i].intent_index);
+                                    drift->intent_index);
             return false;
         }
-        if (air->drifts[i].boundary_index >= air->boundary_count
-            && !(air->drifts[i].boundary_index == SIZE_MAX
-                 && air_drift_kind_is_global(air->drifts[i].kind))) {
+        if (drift->boundary_index >= air_boundary_node_count(air)
+            && !(drift->boundary_index == SIZE_MAX
+                 && air_drift_kind_is_global(drift->kind))) {
             air_set_invariant_error(error_message,
                                     "AIR drift node %zu references missing boundary node %zu",
                                     i,
-                                    air->drifts[i].boundary_index);
+                                    drift->boundary_index);
             return false;
         }
-        if (air_name_is_empty(air->drifts[i].message)) {
+        if (air_name_is_empty(drift->message)) {
             air_set_invariant_error(error_message, "AIR drift node %zu has no message", i);
             return false;
         }

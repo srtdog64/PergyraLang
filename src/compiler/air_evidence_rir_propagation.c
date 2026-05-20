@@ -68,10 +68,11 @@ air_collect_rir_propagation_evidence(AIRProgram *air,
         ? AIR_EVIDENCE_RIR_EFFECT_PROPAGATION
         : AIR_EVIDENCE_RIR_RELATION_PROPAGATION;
 
-    if (effect_op)
-        air->rir_effect_propagation_required_count++;
-    else
-        air->rir_relation_propagation_required_count++;
+    if (!air_increment_evidence_required_count(air, evidence_kind)) {
+        air_set_error(error_message,
+                      "AIR RIR propagation required counter overflow");
+        return false;
+    }
 
     if (!air_rir_scope_has_propagation_state(scope, op, resource_kind))
         return true;
@@ -86,10 +87,11 @@ air_collect_rir_propagation_evidence(AIRProgram *air,
                                   error_message)) {
         return false;
     }
-    if (effect_op)
-        air->rir_effect_propagation_evidence_count++;
-    else
-        air->rir_relation_propagation_evidence_count++;
+    if (!air_increment_evidence_summary_count(air, evidence_kind)) {
+        air_set_error(error_message,
+                      "AIR RIR propagation evidence counter overflow");
+        return false;
+    }
     return true;
 }
 

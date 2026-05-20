@@ -121,7 +121,6 @@
             "Matching action contract: Driver.Ignite"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
             "Redundant clauses:"));
-        EXPECT(ctx_has_diagnostic_substring_from_result(result, "- who"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result, "- where"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result, "- requires"));
         EXPECT(ctx_has_diagnostic_substring_from_result(result, "- causes"));
@@ -348,6 +347,7 @@
             "    where: BattleZone;\n"
             "    step Guard {\n"
             "        using: battle;\n"
+            "        authorized by: hero;\n"
             "        on: hero.Guard();\n"
             "        expect: true;\n"
             "    }\n"
@@ -379,6 +379,9 @@
         EXPECT(step != NULL && !step->data.intent_step.inherited_where_from_action);
         EXPECT(step != NULL && step->data.intent_step.who_count == 1);
         EXPECT(step != NULL && strcmp(step->data.intent_step.who_names[0], "hero") == 0);
+        EXPECT(step != NULL && !step->data.intent_step.derived_authorized_by_from_zone);
+        EXPECT(step != NULL && step->data.intent_step.authorized_by_count == 1);
+        EXPECT(step != NULL && strcmp(step->data.intent_step.authorized_by[0], "hero") == 0);
         EXPECT(step != NULL
             && step->data.intent_step.where_type != NULL
             && step->data.intent_step.where_type->type == AST_TYPE

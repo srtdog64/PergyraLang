@@ -322,7 +322,7 @@ dir_dump(const DIRProgram *dir, FILE *out)
             for (size_t k = 0; k < step->authorized_by_count; k++)
                 fprintf(out, "      authorized_by[%zu] %s\n", k, step->authorized_by[k]);
             if (step->authorized_by_derived_from_zone)
-                fputs("      authorized_by_provenance zone-derived\n", out);
+                fputs("      authorized_by_provenance legacy-zone-field\n", out);
             if (step->authorized_by_inherited_from_action)
                 fputs("      authorized_by_provenance action-inherited\n", out);
         }

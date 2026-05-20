@@ -10,7 +10,7 @@ air_collect_mir_evidence(AIRProgram *air,
     if (air == NULL || mir == NULL)
         return true;
 
-    air->has_mir_input = true;
+    air_mark_mir_input(air);
 
     for (size_t i = 0; i < mir->routine_count; i++) {
         const MIRRoutine *routine = &mir->routines[i];
@@ -47,8 +47,14 @@ air_collect_mir_evidence(AIRProgram *air,
                                              error_message)) {
                 return false;
             }
-            if (!had_terminator_evidence)
-                air->mir_terminator_evidence_count++;
+            if (!had_terminator_evidence
+                && !air_increment_evidence_summary_count(
+                    air,
+                    AIR_EVIDENCE_MIR_TERMINATOR)) {
+                air_set_error(error_message,
+                              "AIR MIR terminator evidence counter overflow");
+                return false;
+            }
         }
         if (select_receive_fact_count > 0) {
             had_select_receive_evidence =
@@ -67,8 +73,14 @@ air_collect_mir_evidence(AIRProgram *air,
                                              error_message)) {
                 return false;
             }
-            if (!had_select_receive_evidence)
-                air->mir_select_receive_evidence_count++;
+            if (!had_select_receive_evidence
+                && !air_increment_evidence_summary_count(
+                    air,
+                    AIR_EVIDENCE_MIR_SELECT_RECEIVE)) {
+                air_set_error(error_message,
+                              "AIR MIR select receive evidence counter overflow");
+                return false;
+            }
         }
         if (cleanup_fact_count == 0)
             continue;
@@ -87,8 +99,14 @@ air_collect_mir_evidence(AIRProgram *air,
                                          error_message)) {
             return false;
         }
-        if (!had_cleanup_evidence)
-            air->mir_cleanup_evidence_count++;
+        if (!had_cleanup_evidence
+            && !air_increment_evidence_summary_count(
+                air,
+                AIR_EVIDENCE_MIR_CLEANUP)) {
+            air_set_error(error_message,
+                          "AIR MIR cleanup evidence counter overflow");
+            return false;
+        }
     }
 
     for (size_t i = 0; i < mir->routine_count; i++) {

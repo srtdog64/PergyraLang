@@ -22,8 +22,10 @@ air_has_boundary_evidence_provider(const AIRProgram *air,
 {
     if (air == NULL || provider_name == NULL)
         return false;
-    for (size_t i = 0; i < air->evidence_count; i++) {
-        const AIREvidenceNode *node = &air->evidence_nodes[i];
+    for (size_t i = 0; i < air_evidence_node_count(air); i++) {
+        const AIREvidenceNode *node = air_evidence_node_at(air, i);
+        if (node == NULL)
+            continue;
         if (node->kind == kind
             && node->boundary_index == boundary_index
             && air_name_matches(node->provider_name, provider_name)) {
@@ -70,9 +72,14 @@ air_collect_hir_evidence(AIRProgram *air, const HIRProgram *hir,
         return true;
     for (size_t i = 0; i < hir->routine_count; i++) {
         const HIRRoutine *routine = &hir->routines[i];
-        for (size_t j = 0; j < air->boundary_count; j++) {
-            AIRBoundaryNode *boundary = &air->boundaries[j];
-            const AIRIntentNode *intent = &air->intents[boundary->intent_index];
+        for (size_t j = 0; j < air_boundary_node_count(air); j++) {
+            AIRBoundaryNode *boundary = air_boundary_node_mut_at(air, j);
+            const AIRIntentNode *intent;
+            if (boundary == NULL)
+                continue;
+            intent = air_intent_node_at(air, boundary->intent_index);
+            if (intent == NULL)
+                continue;
             if (air_hir_routine_matches_boundary(routine, intent, boundary)) {
                 const char *routine_name = routine->name != NULL
                     ? routine->name
@@ -97,10 +104,20 @@ air_collect_hir_evidence(AIRProgram *air, const HIRProgram *hir,
                                                   error_message)) {
                         return false;
                     }
-                    boundary->has_hir_routine_evidence = true;
-                    air->hir_routine_evidence_count++;
+                    air_boundary_mark_summary_flag(
+                        boundary,
+                        AIR_EVIDENCE_HIR_ROUTINE);
+                    if (!air_increment_evidence_summary_count(
+                            air,
+                            AIR_EVIDENCE_HIR_ROUTINE)) {
+                        air_set_error(error_message,
+                                      "AIR HIR routine evidence counter overflow");
+                        return false;
+                    }
                 }
-                if (!boundary->has_hir_cfg_evidence
+                if (!air_boundary_has_summary_flag(
+                        boundary,
+                        AIR_EVIDENCE_HIR_CFG)
                     && air_hir_cfg_contains_boundary_ast(routine, boundary)) {
                     if (!air_append_evidence_node(air,
                                                   AIR_EVIDENCE_HIR_CFG,
@@ -110,8 +127,15 @@ air_collect_hir_evidence(AIRProgram *air, const HIRProgram *hir,
                                                   error_message)) {
                         return false;
                     }
-                    boundary->has_hir_cfg_evidence = true;
-                    air->hir_cfg_evidence_count++;
+                    air_boundary_mark_summary_flag(boundary,
+                                                   AIR_EVIDENCE_HIR_CFG);
+                    if (!air_increment_evidence_summary_count(
+                            air,
+                            AIR_EVIDENCE_HIR_CFG)) {
+                        air_set_error(error_message,
+                                      "AIR HIR CFG evidence counter overflow");
+                        return false;
+                    }
                 }
             }
         }

@@ -29,9 +29,14 @@ air_verify(AIRProgram *air, char **error_message)
 
     air_clear_drifts(air);
 
-    for (size_t i = 0; i < air->boundary_count; i++) {
-        AIRBoundaryNode *boundary = &air->boundaries[i];
-        AIRIntentNode *intent = &air->intents[boundary->intent_index];
+    for (size_t i = 0; i < air_boundary_node_count(air); i++) {
+        AIRBoundaryNode *boundary = air_boundary_node_mut_at(air, i);
+        const AIRIntentNode *intent;
+        if (boundary == NULL)
+            continue;
+        intent = air_intent_node_at(air, boundary->intent_index);
+        if (intent == NULL)
+            continue;
         char *provenance = air_format_boundary_provenance_owned(intent, boundary);
         if (provenance == NULL) {
             air_set_error(error_message, "AIR boundary provenance formatting failed");
@@ -51,7 +56,7 @@ air_verify(AIRProgram *air, char **error_message)
                 return false;
             }
         }
-        if (air->strict_evidence
+        if (air_requires_strict_evidence(air)
             && air_boundary_requires_rir_evidence(boundary)
             && !air_boundary_has_evidence(air, i, AIR_EVIDENCE_RIR_BOUNDARY)) {
             if (!air_append_driftf(
@@ -71,8 +76,8 @@ air_verify(AIRProgram *air, char **error_message)
                 return false;
             }
         }
-        if (air->strict_evidence
-            && air->has_hir_input
+        if (air_requires_strict_evidence(air)
+            && air_has_hir_input(air)
             && air_boundary_requires_hir_routine_evidence(boundary)
             && !air_boundary_has_evidence(air, i, AIR_EVIDENCE_HIR_ROUTINE)) {
             if (!air_append_driftf(
@@ -92,7 +97,7 @@ air_verify(AIRProgram *air, char **error_message)
                 return false;
             }
         }
-        if (air->strict_evidence
+        if (air_requires_strict_evidence(air)
             && air_boundary_requires_hir_evidence(boundary)
             && !air_boundary_has_evidence(air, i, AIR_EVIDENCE_HIR_CFG)) {
             if (!air_append_driftf(
@@ -112,7 +117,7 @@ air_verify(AIRProgram *air, char **error_message)
                 return false;
             }
         }
-        if (air->strict_evidence
+        if (air_requires_strict_evidence(air)
             && boundary->authority_required) {
             const char *missing_authority =
                 air_boundary_missing_authority_evidence(air, boundary, i);
@@ -172,8 +177,8 @@ air_verify(AIRProgram *air, char **error_message)
                 free(authority_names);
             }
         }
-        if (air->strict_evidence
-            && air->has_mir_input
+        if (air_requires_strict_evidence(air)
+            && air_has_mir_input(air)
             && air_boundary_requires_mir_pin_cleanup_evidence(boundary)
             && !air_boundary_has_evidence(air, i, AIR_EVIDENCE_MIR_PIN_CLEANUP)) {
             if (!air_append_driftf(

@@ -185,7 +185,7 @@ semantic_maybe_print_type_resolution_stats(SemanticContext *ctx)
     fprintf(stderr,
             "[type-res-stats] dag-evidence: generic_contract=%llu ability_consumer=%llu\n",
             (unsigned long long)ctx->type_resolution_dag_generic_contract_evidence_count,
-            (unsigned long long)ctx->type_resolution_dag_ability_evidence_count);
+            (unsigned long long)ctx->type_resolution_dag_ability_consumer_evidence_count);
     fprintf(stderr,
             "[type-res-stats] stage-alias: materialized=%llu diagnostic_unresolved=%llu\n",
             (unsigned long long)ctx->type_resolution_stage_alias_materialized_count,

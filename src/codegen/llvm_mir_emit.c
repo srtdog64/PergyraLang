@@ -15,7 +15,7 @@
 static void
 llvm_mir_debug_stage(const char *stage, const MIRRoutine *routine)
 {
-    if (getenv("PGY_DEBUG_LLVM_STAGE") == NULL || stage == NULL)
+    if (!llvm_debug_stage_enabled() || stage == NULL)
         return;
     fprintf(stderr, "[llvm stage] %s", stage);
     if (routine != NULL && routine->name != NULL)

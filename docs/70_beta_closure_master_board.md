@@ -19,11 +19,11 @@
 
 - 현재 단계: `late-stage alpha / beta-closure sprint`
 - 베타 readiness 추정: 기능 체감 `약 70%`, strict beta 기준값 `약 60%`,
-  현재 실무 판단 `약 63%`
+  현재 실무 판단 `약 68%`
 - 판정 방식:
   - 기능 표면 성숙도만 보면 다수 core/foundation surface가 구현되어 더 높게 보인다
   - 그러나 strict beta는 `function body CFG/dataflow source-of-truth`, `DAG source-of-truth`, `runtime propagation generalization`, `MIR declaration inventory`, `arena/lifetime`, `장기 모듈화 stop condition`까지 함께 요구한다
-  - 따라서 현재 공식 수치는 기능 개수 기준이 아니라 **베타 신뢰도 기준값 약 60%, 실무 판단 약 63%**로 둔다
+  - 따라서 현재 공식 수치는 기능 개수 기준이 아니라 **베타 신뢰도 기준값 약 60%, 실무 판단 약 68%**로 둔다
 - 핵심 판단:
   - 표현력 부족보다 `closure depth`와 `surface trust`가 남은 문제다
   - 베타 차단축은 키워드 수가 아니라 `B0 의미론 + function body CFG/dataflow closure + declaration-side MIR-only debt + type-resolution DAG closure + memory/lifetime debt + 장기 모듈화 debt`다
