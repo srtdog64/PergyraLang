@@ -245,6 +245,7 @@ air_test_case_paths = [
     root / "src" / "tests" / "air" / "test_air_mir_terminator_part_h.cases.h",
     root / "src" / "tests" / "air" / "test_air_counter_strict_part_i.cases.h",
     root / "src" / "tests" / "air" / "test_air_rir_propagation_part_j.cases.h",
+    root / "src" / "tests" / "air" / "test_air_core_evidence_part_k.cases.h",
 ]
 rir_test_path = root / "src" / "test_rir.c"
 rir_test_case_paths = [
@@ -382,7 +383,7 @@ if missing_air:
     raise SystemExit("AIR architecture doc missing term(s): " + ", ".join(missing_air))
 
 required_checklist_terms = [
-    "strict beta readiness는 약 60%",
+    "strict beta readiness is fixed at 67%",
     "## 0f. AIR Abstraction Safety Closure",
     "Source of truth: `docs/104_air_compiler_architecture.md`",
     "Status: `BLOCKER`",
@@ -399,7 +400,7 @@ if missing_checklist:
     raise SystemExit("beta checklist missing AIR term(s): " + ", ".join(missing_checklist))
 
 required_todo_terms = [
-    "베타 readiness 추정: 약 `60%`",
+    "strict beta readiness is fixed at 67%",
     "AIR abstraction safety는 Phase 1 데이터 구조 / synthesis / drift checker baseline",
     "strict evidence는 기본값으로 승격됐다",
     "PGY_AIR_STRICT_EVIDENCE=0",

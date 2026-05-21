@@ -1,7 +1,11 @@
 # Pergyra Programming Language
 
+> Current status: executable experimental alpha / beta-closure sprint.
+> Feature-surface feel is about 70%, and strict beta readiness is fixed at 67%.
+> The authoritative beta contract is `docs/100_beta_readiness_checklist.md`.
+
 > 현재 상태: 실행 가능한 experimental alpha이며, 기능 체감 진행도는 약 70%,
-> strict beta readiness는 기준값 약 60%, 현재 실무 판단은 약 68%로 본다.
+> strict beta readiness는 67%로 고정한다.
 > 이 문서는 소개용 문서이고, 베타 계약의 최종 기준은 `docs/107_beta_stable_subset.md`,
 > `docs/100_beta_readiness_checklist.md`, `docs/118_slot_model_rigor_audit.md`,
 > `docs/119_pergyra_lineage_positioning.md`, `docs/120_vision_and_capability_audit.md`다.

@@ -7454,8 +7454,8 @@ Intent-Compress는 척추 변경이므로 "며칠 컷"으로 고정하지 않는
 ## UTF-8 Progress Note - 2026-05-01 - Dogfood-first WebGL Bridge Gate
 
 2026-05-01 update:
-- Beta progress is now tracked as two numbers: user-visible feature progress is
-  about 70%, while strict beta readiness is about 60%. The delta is
+- Beta progress is tracked as two numbers: user-visible feature progress is
+  about 70%, while strict beta readiness is fixed at 67%. The delta is still
   CFG/AIR/DAG/MIR/ABI source-of-truth closure, not missing surface syntax.
 - WebGL/WASM is no longer framed as "native LLVM wasm before beta". The beta
   dogfood entry path is `Pergyra -> C backend --emit-c -> optional Emscripten`.
