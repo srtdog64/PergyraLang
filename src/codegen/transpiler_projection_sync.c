@@ -1,11 +1,20 @@
-#ifndef PGY_TRANSPILER_PROJECTION_SYNC_HELPERS_H
-#define PGY_TRANSPILER_PROJECTION_SYNC_HELPERS_H
+/*
+ * Copyright (c) 2026 Pergyra Language Project
+ * C backend zone/world projection synchronization owner.
+ */
 
-#include "parser/ast_api.h"
+#include "transpiler_projection_sync.h"
+
+#include <string.h>
+
+#include "../common/string_compat.h"
+#include "../parser/ast_api.h"
+#include "transpiler_context.h"
+#include "transpiler_decl_lookup.h"
 #include "transpiler_domain_receiver_query.h"
-#include "transpiler_projection_method_invalidation.h"
+#include "transpiler_overlay_zone_bind.h"
 
-static void
+void
 emit_zone_action_effect_runtime(ASTNode *call, TranspilerCtx *ctx)
 {
     ASTNode *callee;
@@ -76,14 +85,13 @@ emit_zone_action_effect_runtime(ASTNode *call, TranspilerCtx *ctx)
         if (layer_name == NULL)
             continue;
 
-
         write_indent(ctx);
         codebuf_write(ctx->out, "self->__layer_active_%s = true;\n", layer_name);
         emit_zone_bind_effect_layer(ctx->out, zone_decl, layer_name, receiver_slot_name, ctx);
     }
 }
 
-static char *
+char *
 emit_world_embedded_action_effect_sync(TranspilerCtx *ctx,
                                        ASTNode *receiver,
                                        ASTNode *method_decl)
@@ -264,5 +272,3 @@ emit_world_embedded_action_effect_sync(TranspilerCtx *ctx,
         return result;
     }
 }
-
-#endif /* PGY_TRANSPILER_PROJECTION_SYNC_HELPERS_H */

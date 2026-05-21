@@ -509,7 +509,7 @@ if grep -Eq '(^|[^A-Za-z0-9_])current_overlay_domain_slot_decl\(' \
 fi
 
 if grep -Eq '(^|[^A-Za-z0-9_])find_world_state_decl\(' \
-    "$ROOT_DIR/src/codegen/transpiler_projection_sync_helpers.h" \
+    "$ROOT_DIR/src/codegen/transpiler_projection_sync.h" \
     "$ROOT_DIR/src/codegen/transpiler_expr_builtin_dispatch.h" \
     "$ROOT_DIR/src/codegen/transpiler_world_select_event_emit.h"; then
     echo "[build-source-inventory] world-state query regressed to implementation-header local helper" >&2

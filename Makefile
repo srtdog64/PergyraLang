@@ -593,6 +593,7 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_allocator_builtin_emit.c \
                    $(CODEGEN_DIR)/transpiler_overlay_host_fields.c \
                    $(CODEGEN_DIR)/transpiler_domain_receiver_query.c \
                    $(CODEGEN_DIR)/transpiler_projection_field_path.c \
+                   $(CODEGEN_DIR)/transpiler_projection_sync.c \
                    $(CODEGEN_DIR)/transpiler_projection.c \
                    $(CODEGEN_DIR)/transpiler_role_ability.c \
                    $(CODEGEN_DIR)/transpiler_slot_builtin_emit.c \

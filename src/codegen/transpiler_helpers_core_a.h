@@ -35,5 +35,6 @@ TranspilerCtx *transpiler_type_render_ctx_push(TranspilerCtx *ctx);
 void transpiler_type_render_ctx_restore(TranspilerCtx *saved);
 
 #include "transpiler_overlay_projection.h"
-#include "transpiler_projection_sync_helpers.h"
+#include "transpiler_projection_method_invalidation.h"
+#include "transpiler_projection_sync.h"
 #endif /* PGY_SRC_CODEGEN_TRANSPILER_HELPERS_CORE_A_H */

@@ -299,7 +299,7 @@ compiler runtime cache freshness now point at the new named owner. The
 production `.inc` inventory is now 71 files / 16,402 LOC.
 C backend overlay projection invalidation, zone/effect propagation snippets,
 and world-state lookup helpers now live in
-`src/codegen/transpiler_projection_sync_helpers.h`, removing the former
+`src/codegen/transpiler_projection_sync.h`, removing the former
 `src/codegen/transpiler_helpers_core_a_part_c.inc` body while preserving the
 helper-core-A shim order. The production `.inc` inventory is now
 70 files / 15,883 LOC.

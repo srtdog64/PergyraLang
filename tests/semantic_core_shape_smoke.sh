@@ -453,7 +453,7 @@ for path in \
     src/codegen/transpiler_parallel_capture.h \
     src/codegen/transpiler_projection_field_path.c \
     src/codegen/transpiler_projection_method_invalidation.h \
-    src/codegen/transpiler_projection_sync_helpers.h \
+    src/codegen/transpiler_projection_sync.h \
     src/codegen/transpiler_select.c \
     src/codegen/transpiler_slot_builtin_emit.c \
     src/codegen/transpiler_slot_target.c \
@@ -976,7 +976,8 @@ fi
 
 if grep -R "data\.call\.\(callee\|arguments\|arg_count\)" \
     src/codegen/llvm_stmt_zone_action.c \
-    src/codegen/transpiler_projection_sync_helpers.h >/dev/null; then
+    src/codegen/transpiler_projection_sync.c \
+    src/codegen/transpiler_projection_sync.h >/dev/null; then
     fail "codegen zone/projection sync call owners must use AST call accessors"
 fi
 
@@ -1133,7 +1134,7 @@ if grep -R "data\.type\.\(name\|generic_args\)" \
     src/codegen/transpiler_overlay_projection.h \
     src/codegen/transpiler_projection.c \
     src/codegen/transpiler_projection_method_invalidation.h \
-    src/codegen/transpiler_projection_sync_helpers.h \
+    src/codegen/transpiler_projection_sync.h \
     src/codegen/transpiler_specialization_registry.h \
     src/codegen/transpiler_type_render.c \
     src/semantic/type_checker_async_channel.h \
@@ -1468,7 +1469,7 @@ for path in \
     src/codegen/llvm_expr_call_methods_world_effect_sync.c \
     src/codegen/llvm_stmt_zone_action.c \
     src/codegen/transpiler_intent_context.c \
-    src/codegen/transpiler_projection_sync_helpers.h \
+    src/codegen/transpiler_projection_sync.h \
     src/semantic/type_checker_expr_call.c \
     src/semantic/type_checker_func_action_contract.c \
     src/semantic/type_checker_func_decl.c \
@@ -1751,7 +1752,7 @@ if grep -R "data\.\(zone_decl\|effect_decl\)\.\(slots\|slot_count\|layer_slots\|
 fi
 
 if grep -R "data\.\(world_decl\|zone_decl\|effect_decl\)\.\(layer_slots\|layer_slot_count\|states\|state_count\|slots\|slot_count\|refreshes\|refresh_count\)" \
-    src/codegen/transpiler_projection_sync_helpers.h >/dev/null; then
+    src/codegen/transpiler_projection_sync.h >/dev/null; then
     fail "C projection sync helpers must use AST domain child accessors"
 fi
 

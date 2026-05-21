@@ -676,10 +676,18 @@ if grep -Fq "static void" \
     exit 1
 fi
 grep -Fq "transpiler_domain_receiver_query.c" "$ROOT_DIR/Makefile"
+grep -Fq "transpiler_projection_sync.c" "$ROOT_DIR/Makefile"
+grep -Fq "void emit_zone_action_effect_runtime(" \
+    "$ROOT_DIR/src/codegen/transpiler_projection_sync.h"
+if grep -Fq "static " \
+    "$ROOT_DIR/src/codegen/transpiler_projection_sync.h"; then
+    echo "[perf-contract] projection sync emission regressed to implementation header" >&2
+    exit 1
+fi
 grep -Fq "transpiler_resolve_world_zone_subject_receiver" \
     "$ROOT_DIR/src/codegen/transpiler_domain_receiver_query.h"
 if grep -Fq "resolve_world_zone_subject_receiver(TranspilerCtx" \
-    "$ROOT_DIR/src/codegen/transpiler_projection_sync_helpers.h"; then
+    "$ROOT_DIR/src/codegen/transpiler_projection_sync.h"; then
     echo "[perf-contract] world/zone receiver query regressed to projection sync header" >&2
     exit 1
 fi

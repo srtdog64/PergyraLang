@@ -1907,13 +1907,14 @@ Observed results:
   `pgy_runtime_part_ba.inc` preserves include order; compiler cache freshness
   and runtime ABI/panic/authority smoke tests now read the new owner path. The
   current production source `.inc` inventory is 71 files / 16,402 LOC.
-- Latest C backend projection/sync helper cleanup moved the former
-  `src/codegen/transpiler_helpers_core_a_part_c.inc` body into
-  `src/codegen/transpiler_projection_sync_helpers.h`. Overlay projection
-  invalidation scanning, zone/effect relation propagation snippets, and
-  world-state lookup helpers now have a named owner while the helper-core-A
-  shim preserves include order; the current production source `.inc` inventory
-  is 70 files / 15,883 LOC.
+- Latest C backend projection/sync cleanup moved the former
+  `src/codegen/transpiler_helpers_core_a_part_c.inc` body through the
+  projection-sync seam and later promoted zone/world projection sync emission
+  into `src/codegen/transpiler_projection_sync.c`. The
+  `transpiler_projection_sync.h` header is declaration-only; overlay
+  projection invalidation scanning and world-state lookup remain separate
+  staged seams while the projection-sync action/effect owner is linked through
+  the Makefile inventory.
 - Latest generated-C intent trace runtime cleanup moved the former
   `src/runtime/pgy_runtime_part_ba_part_a.inc` body into
   `src/runtime/pgy_runtime_intent_trace_inline.h`. `pgy_runtime_strdup`,
