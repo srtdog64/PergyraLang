@@ -65,6 +65,11 @@ typedef pthread_rwlock_t PgyZoneLock;
  */
 #include <stdatomic.h>
 
+_Static_assert(sizeof(_Atomic uint32_t) == sizeof(uint32_t),
+               "Pergyra zone generation atomic must preserve uint32_t size");
+_Static_assert(_Alignof(_Atomic uint32_t) == _Alignof(uint32_t),
+               "Pergyra zone generation atomic must preserve uint32_t alignment");
+
 #define PGY_ZONE_GENERATION_FIELD  _Atomic uint32_t __sync_generation;
 #define PGY_ZONE_GENERATION_INC(z) \
     ((void)atomic_fetch_add_explicit(&(z)->__sync_generation, 1u, \
@@ -107,7 +112,7 @@ pgy_zone_generation_warn_if_stale_impl(const char *label,
 } while (0)
 
 /* =================================================================
- * Zone Authority ??runtime validation
+ * Zone Authority runtime validation
  *
  * Compile time remains the primary line of defense, but zone-entry
  * code now performs a real runtime contract check instead of a debug

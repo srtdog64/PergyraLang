@@ -594,6 +594,13 @@ beta_progress_terms=(
 for term in "${beta_progress_terms[@]}"; do
     require_text "docs/100_beta_readiness_checklist.md" "$term"
 done
+for term in "${beta_progress_terms[@]}"; do
+    require_text "TODO.md" "$term"
+done
+for rel in "TODO.md" "docs/100_beta_readiness_checklist.md"; do
+    forbid_text "$rel" "strict beta readiness 100%"
+    forbid_text "$rel" "All five targets are fully closed"
+done
 
 for rel in \
     "README.md" \

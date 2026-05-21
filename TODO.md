@@ -2,19 +2,21 @@
 
 English anchor for tooling/doc gates:
 
-- Current beta progress is fixed at strict beta readiness 100% since all
-  source-of-truth blockers are fully closed. Feature-surface feel is complete,
-  and all core targets are verified. The five closure targets are:
+- Current beta progress is fixed: strict beta readiness is fixed at 67% until
+  one of the named source-of-truth blockers is actually closed by code,
+  diagnostics, and smoke evidence. Feature-surface feel is about 70%, but it
+  does not raise strict readiness by itself. The five closure targets are:
   CFG/body safety source-of-truth, AIR abstraction-boundary verification,
-  DAG recursive compatibility seam removal, MIR/LLVM declaration bootstrap
-  parity, and ABI/Slot/Pin ownership freeze. All five targets are fully closed.
+  DAG recursive compatibility seam removal, MIR/LLVM declaration bootstrap parity,
+  and ABI/Slot/Pin ownership freeze.
 - Rework loop guard: beta closure work must not keep rewriting already gated
   seams. Once a seam has a named owner plus a smoke gate, further edits are
   allowed only for a concrete bug, a missing consumer, or a broken gate. Current
   locked seams include generic parameter accessors, DAG metadata unknown-type
   diagnostics, AIR EvidenceNode/dump/boundary evidence accessors,
   `host_decl_compat.c`, C/LLVM domain-constructor lookup, and party-slot ability
-  selection helpers. All remaining targets are successfully resolved and verified.
+  selection helpers. The remaining targets must be closed by moving source-of-
+  truth ownership, not by rewording the percentage.
 - README, `docs/37_compiler_contracts.md`, and
   `docs/42_keyword_orthogonality.md` were normalized back to readable UTF-8 /
   ASCII surface text. The docs now state the Resource / Execution / Domain /
