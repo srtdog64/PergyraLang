@@ -117,9 +117,10 @@ responsibility-named owner. `test_transpile`, source inventory, and owner-size
 smokes gate the split.
 
 Current C backend implementation-header cleanup (2026-05-19): generated
-Result/collection/tuple specialization helpers now live in
-`src/codegen/transpiler_specialization_helpers.c`. The header is
-declaration-only. Result suffix parsing and `Result<T,E>` specialization
+Result/collection/tuple specialization registry logic now lives in
+`src/codegen/transpiler_specialization_registry.c`. The header is
+declaration-only, and AST statement scanning is isolated in
+`src/codegen/transpiler_specialization_scan.c`. Result suffix parsing and `Result<T,E>` specialization
 discovery now live in `src/codegen/transpiler_type_result_mapping_helpers.c`
 instead of an implementation header. HashMap stdlib builtin dispatch and
 lowering now live in `src/codegen/transpiler_expr_stdlib_map_builtin.c`, with

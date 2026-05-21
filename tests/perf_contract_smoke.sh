@@ -641,7 +641,7 @@ if grep -Fq "infer_generic_call_bindings(TranspilerCtx" \
     exit 1
 fi
 if grep -Fq "render_type_name_with_bindings(TranspilerCtx" \
-    "$ROOT_DIR/src/codegen/transpiler_specialization_helpers.h"; then
+    "$ROOT_DIR/src/codegen/transpiler_specialization_registry.h"; then
     echo "[perf-contract] generic binding render regressed to specialization header" >&2
     exit 1
 fi
@@ -2010,10 +2010,10 @@ grep -Fq "pergyra_type_to_c_copy(inferred_return_type" "$ROOT_DIR/src/codegen/tr
 grep -Fq "transpiler_infer_lambda_param_c_type_copy" "$ROOT_DIR/src/codegen/transpiler_lambda_emit.h"
 grep -Fq "pergyra_ast_type_to_c_copy(lambda_return_type" "$ROOT_DIR/src/codegen/transpiler_lambda_emit.h"
 grep -Fq "pergyra_ast_type_to_c_copy(param_type_ast" "$ROOT_DIR/src/codegen/transpiler_lambda_emit.h"
-grep -Fq "char ok_ctype_buf[128]" "$ROOT_DIR/src/codegen/transpiler_specialization_helpers.c"
-grep -Fq "pergyra_type_to_c_copy(ok_type" "$ROOT_DIR/src/codegen/transpiler_specialization_helpers.c"
-grep -Fq "pergyra_type_to_c_copy(err_type" "$ROOT_DIR/src/codegen/transpiler_specialization_helpers.c"
-grep -Fq "pergyra_type_to_c_copy(inner_type, ctype_buf" "$ROOT_DIR/src/codegen/transpiler_specialization_helpers.c"
+grep -Fq "char ok_ctype_buf[128]" "$ROOT_DIR/src/codegen/transpiler_specialization_registry.c"
+grep -Fq "pergyra_type_to_c_copy(ok_type" "$ROOT_DIR/src/codegen/transpiler_specialization_registry.c"
+grep -Fq "pergyra_type_to_c_copy(err_type" "$ROOT_DIR/src/codegen/transpiler_specialization_registry.c"
+grep -Fq "pergyra_type_to_c_copy(inner_type, ctype_buf" "$ROOT_DIR/src/codegen/transpiler_specialization_registry.c"
 grep -Fq "char array_c_type_buf[256]" "$ROOT_DIR/src/codegen/transpiler_let_emit.h"
 grep -Fq "char inferred_c_type_buf[256]" "$ROOT_DIR/src/codegen/transpiler_let_emit.h"
 grep -Fq "char annotated_c_type_buf[256]" "$ROOT_DIR/src/codegen/transpiler_let_emit.h"

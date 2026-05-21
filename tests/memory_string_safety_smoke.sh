@@ -377,11 +377,11 @@ require_literal "src/codegen/transpiler_generic_class_specialization_emit.h" \
     "transpiler_generic_class_surface_desc"
 require_literal "src/codegen/transpiler_generic_class_specialization_emit.h" \
     "transpiler_generic_class_format_too_long"
-require_literal "src/codegen/transpiler_specialization_helpers.c" \
+require_literal "src/codegen/transpiler_specialization_registry.c" \
     "transpiler_specialization_copy_spec_name"
-require_literal "src/codegen/transpiler_specialization_helpers.c" \
+require_literal "src/codegen/transpiler_specialization_registry.c" \
     "transpiler_specialization_append_spec_text"
-require_literal "src/codegen/transpiler_specialization_helpers.c" \
+require_literal "src/codegen/transpiler_specialization_registry.c" \
     "transpiler_specialization_spec_name_too_long"
 require_literal "src/codegen/transpiler_control_flow_emit.c" \
     "transpiler_loop_label_name"

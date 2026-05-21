@@ -57,9 +57,10 @@ progress ledger, not a new language surface.
   `test_semantic_async_part_a.cases.h` /
   `test_semantic_async_part_b.cases.h` so every remaining test case include
   stays below the 990 LOC cap.
-- C backend generated specialization helpers no longer live in
-  `transpiler_specialization_helpers.h`. The implementation moved to
-  `src/codegen/transpiler_specialization_helpers.c`; the header is
+- C backend generated specialization registry logic no longer lives in a
+  broad helper header. The implementation now lives in
+  `src/codegen/transpiler_specialization_registry.c`, AST statement scanning
+  lives in `src/codegen/transpiler_specialization_scan.c`, the header is
   declaration-only, and consumers now include their own type-mapping,
   role/ability, and Result suffix dependencies instead of relying on a hidden
   include-order body.
@@ -220,7 +221,7 @@ Current largest non-test production owners:
 | `src/semantic/type_checker_internal.h` | 546 | Semantic internal declaration surface; below split threshold |
 | `src/parser/ast.h` | 537 | Core AST declarations; below split threshold |
 | `src/codegen/transpiler_expr_type_infer.c` | 537 | C expression type inference owner; below split threshold |
-| `src/codegen/transpiler_specialization_helpers.c` | 536 | C generated specialization owner; below split threshold |
+| `src/codegen/transpiler_specialization_registry.c` | 390 | C generated specialization registry owner; below split threshold |
 | `src/codegen/transpiler_match_emit.c` | 517 | C match lowering owner; below split threshold |
 | `src/runtime/pgy_parallel.h` | 516 | Runtime parallel API surface; below split threshold |
 | `src/parser/ast_domain_constructors.c` | 516 | Parser domain constructor owner; below split threshold |
@@ -1940,12 +1941,12 @@ Observed results:
   core binary expression lowering now have a named private owner while
   `transpiler_expr_emitters.inc` preserves include order. The current
   production source `.inc` inventory is 66 files / 13,869 LOC.
-- Latest C backend specialization-helper cleanup moved the former
+- Latest C backend specialization-registry cleanup moved the former
   `src/codegen/transpiler_helpers_core_b_part_b.inc` body into
-  `src/codegen/transpiler_specialization_helpers.h`. Role ability/method
-  lookup and Result/Option/collection specialization collection now have a
-  named private owner while `transpiler_helpers_core_b.inc` preserves include
-  order. The current production source `.inc` inventory is 65 files /
+  a responsibility-named specialization registry owner. Role ability/method
+  lookup and Result/Option/collection specialization collection now had a
+  named private owner while `transpiler_helpers_core_b.inc` preserved include
+  order. The current production source `.inc` inventory was 65 files /
   13,402 LOC.
 - Latest C backend domain nominal cleanup moved the former
   `src/codegen/transpiler_domain_role_part_b.inc` body into

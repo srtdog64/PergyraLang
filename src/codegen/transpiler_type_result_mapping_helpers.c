@@ -7,7 +7,7 @@
 
 #include <string.h>
 
-#include "transpiler_specialization_helpers.h"
+#include "transpiler_specialization_registry.h"
 #include "transpiler_type_mapping.h"
 
 static bool

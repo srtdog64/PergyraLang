@@ -1,7 +1,7 @@
 #include "transpiler_zone_specialization_emit.h"
 
 #include "parser/ast_api.h"
-#include "transpiler_specialization_helpers.h"
+#include "transpiler_specialization_registry.h"
 
 void
 transpiler_emit_zone_required_specializations(

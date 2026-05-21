@@ -3,7 +3,7 @@
  * C backend AST scan for generated specialization requirements.
  */
 
-#include "transpiler_specialization_helpers.h"
+#include "transpiler_specialization_registry.h"
 
 #include <stddef.h>
 

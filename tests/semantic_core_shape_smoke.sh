@@ -809,7 +809,7 @@ if grep -R "data\.func_decl\.\(param_count\|params\|return_type\|body\)" \
     src/codegen/transpiler_mir_ssa_emit.h \
     src/codegen/transpiler_projection_method_invalidation.h \
     src/codegen/transpiler_spawn_channel_emit.h \
-    src/codegen/transpiler_specialization_helpers.h \
+    src/codegen/transpiler_specialization_registry.h \
     src/codegen/transpiler_type_declarator.c >/dev/null; then
     fail "closed function signature/body slice must use AST function accessors"
 fi
@@ -1134,7 +1134,7 @@ if grep -R "data\.type\.\(name\|generic_args\)" \
     src/codegen/transpiler_projection.c \
     src/codegen/transpiler_projection_method_invalidation.h \
     src/codegen/transpiler_projection_sync_helpers.h \
-    src/codegen/transpiler_specialization_helpers.h \
+    src/codegen/transpiler_specialization_registry.h \
     src/codegen/transpiler_type_render.c \
     src/semantic/type_checker_async_channel.h \
     src/semantic/type_checker_builtins_query_domain.c \

@@ -8,7 +8,7 @@
 #include "transpiler_expr_projection_builtin.h"
 #include "transpiler_generic_binding_query.h"
 #include "transpiler_generic_param_query.h"
-#include "transpiler_specialization_helpers.h"
+#include "transpiler_specialization_registry.h"
 #include "transpiler_expr_type_infer.h"
 #include "transpiler_func_forward_metadata.h"
 #include "transpiler_func_forward_helpers.h"

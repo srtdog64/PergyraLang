@@ -1,5 +1,5 @@
-#ifndef PGY_TRANSPILER_SPECIALIZATION_HELPERS_H
-#define PGY_TRANSPILER_SPECIALIZATION_HELPERS_H
+#ifndef PGY_TRANSPILER_SPECIALIZATION_REGISTRY_H
+#define PGY_TRANSPILER_SPECIALIZATION_REGISTRY_H
 
 #include "transpiler.h"
 
@@ -19,4 +19,4 @@ void ensure_collection_specializations_from_stmt_to(TranspilerCtx *ctx,
                                                     CodeBuf *dst,
                                                     ASTNode *node);
 
-#endif /* PGY_TRANSPILER_SPECIALIZATION_HELPERS_H */
+#endif /* PGY_TRANSPILER_SPECIALIZATION_REGISTRY_H */

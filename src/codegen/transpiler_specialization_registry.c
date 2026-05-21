@@ -1,9 +1,9 @@
 /*
  * Copyright (c) 2026 Pergyra Language Project
- * C backend generated type/collection specialization owner.
+ * C backend generated type/collection specialization registry owner.
  */
 
-#include "transpiler_specialization_helpers.h"
+#include "transpiler_specialization_registry.h"
 
 #include <stdbool.h>
 #include <stddef.h>
