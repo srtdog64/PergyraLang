@@ -1393,9 +1393,11 @@ Operational mode:
 - 2026-04-28 C projection overlay owner update:
   `transpiler_overlay_projection.h` is now below the 600 LOC review
   threshold. Host-field/self-cell probes live in
-  `transpiler_overlay_host_fields.h`, while zone effect bind-layer emission
-  lives in `transpiler_overlay_zone_bind.h` and zone relation bind-layer
-  emission lives in `transpiler_overlay_zone_relation_bind.h`. Parity gate:
+  `transpiler_overlay_host_fields.h`, while zone effect and relation
+  bind-layer emission live in compiled owners
+  `transpiler_overlay_zone_bind.c` and
+  `transpiler_overlay_zone_relation_bind.c`. Their headers are
+  declaration-only. Parity gate:
   `make llvm-test-backend-compare` (`196/0` ABI same-process, `64/64`
   backend compare).
 - 2026-04-28 LLVM zone sync owner update:

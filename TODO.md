@@ -8636,8 +8636,8 @@ dispatch / semantic lookup / runtime data structure 3축 결과 통합. *정확�
 - Projection overlay ownership is also below the threshold:
   `transpiler_overlay_projection.h` now stays at 533 LOC after moving
   host-field/self-cell probes behind the `transpiler_overlay_host_fields.c`
-  owner seam and zone relation/effect bind-layer emission to
-  `transpiler_overlay_zone_bind.h`.
+  owner seam and zone relation/effect bind-layer emission behind compiled
+  overlay bind owners.
 - Backend parity gate after the projection overlay split is still green:
   `make llvm-test-backend-compare` reports ABI same-process `196 passed,
   0 failed` and backend compare `64/64 passed, 0 failed`.
@@ -8695,11 +8695,11 @@ dispatch / semantic lookup / runtime data structure 3축 결과 통합. *정확�
   now consumes the same `mir_stmt_ast_is_cfg_owned_control(...)` classifier
   instead of keeping its own CFG-control AST switch, so statement population,
   validation, and DCE share one source of truth for control-container STMTs.
-- Follow-up closure: C overlay zone effect bind-layer emission remains in
-  `transpiler_overlay_zone_bind.h`, while relation bind-layer emission is split
-  into `transpiler_overlay_zone_relation_bind.h`. This prevents the generic
-  overlay projection path from carrying an unused static relation helper after
-  `emit_zone_decl` moved to a compiled owner.
+- Follow-up closure: C overlay zone effect and relation bind-layer emission now
+  live in compiled owners (`transpiler_overlay_zone_bind.c` and
+  `transpiler_overlay_zone_relation_bind.c`). The matching headers are
+  declaration-only, so projection include chains no longer carry unused static
+  bind helpers after `emit_zone_decl` moved to a compiled owner.
 - Follow-up closure: CFG-owned `for value in List<T>` now uses the same MIR
   facts on both backends. C and LLVM emit a MIR-owned index slot, list-size
   condition, list-get body binding, and backedge increment instead of falling

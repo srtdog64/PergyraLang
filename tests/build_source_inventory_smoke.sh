@@ -164,9 +164,15 @@ if ! grep -Fq '#include "transpiler_zone_methods_emit.h"' \
     missing=1
 fi
 
-if ! grep -Fq '#include "transpiler_overlay_zone_relation_bind.h"' \
-    "$ROOT_DIR/src/codegen/transpiler_zone_decl_emit.c"; then
-    echo "[build-source-inventory] zone relation bind helper is not linked by the C zone declaration owner" >&2
+if ! grep -Fq '$(CODEGEN_DIR)/transpiler_overlay_zone_bind.c' \
+    "$ROOT_DIR/Makefile"; then
+    echo "[build-source-inventory] zone effect bind owner is not linked by the C backend source inventory" >&2
+    missing=1
+fi
+
+if ! grep -Fq '$(CODEGEN_DIR)/transpiler_overlay_zone_relation_bind.c' \
+    "$ROOT_DIR/Makefile"; then
+    echo "[build-source-inventory] zone relation bind owner is not linked by the C backend source inventory" >&2
     missing=1
 fi
 

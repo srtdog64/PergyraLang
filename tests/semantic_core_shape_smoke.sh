@@ -1637,8 +1637,8 @@ if grep -R "data\.\(relation_decl\|effect_decl\|zone_decl\)\.\(slots\|slot_count
 fi
 
 if grep -R "data\.\(zone_decl\|relation_decl\|effect_decl\)\.\(layer_slots\|layer_slot_count\|slots\|slot_count\|refreshes\|refresh_count\)" \
-    src/codegen/transpiler_overlay_zone_bind.h \
-    src/codegen/transpiler_overlay_zone_relation_bind.h >/dev/null; then
+    src/codegen/transpiler_overlay_zone_bind.c \
+    src/codegen/transpiler_overlay_zone_relation_bind.c >/dev/null; then
     fail "C overlay zone bind helpers must use AST domain child accessors"
 fi
 

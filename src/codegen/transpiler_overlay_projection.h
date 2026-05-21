@@ -1,11 +1,10 @@
 #ifndef PGY_TRANSPILER_OVERLAY_PROJECTION_H
 #define PGY_TRANSPILER_OVERLAY_PROJECTION_H
 
-/* C backend overlay/projection invalidation and zone-layer bind helpers.
+/* C backend overlay/projection invalidation helpers.
  * Included inside transpiler.c after declaration lookup/projection seams. */
 
 #include "transpiler_overlay_host_fields.h"
-#include "transpiler_overlay_zone_bind.h"
 #include "transpiler_projection_field_path.h"
 #include "parser/ast_api.h"
 
