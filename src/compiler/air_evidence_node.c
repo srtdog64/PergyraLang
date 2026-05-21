@@ -11,32 +11,35 @@
 
 typedef struct
 {
+    bool present;
     bool boundary_scoped;
     bool has_global_validator;
 } AIREvidenceKindMeta;
 
 static const AIREvidenceKindMeta kEvidenceKindMeta[AIR_EVIDENCE_KIND_COUNT] = {
-    [AIR_EVIDENCE_HIR_ROUTINE] = { true, false },
-    [AIR_EVIDENCE_HIR_CFG] = { true, false },
-    [AIR_EVIDENCE_RIR_BOUNDARY] = { true, false },
-    [AIR_EVIDENCE_RIR_AUTHORITY] = { true, false },
-    [AIR_EVIDENCE_MIR_CLEANUP] = { false, true },
-    [AIR_EVIDENCE_MIR_PIN_CLEANUP] = { true, false },
-    [AIR_EVIDENCE_MIR_TERMINATOR] = { false, true },
-    [AIR_EVIDENCE_MIR_SELECT_RECEIVE] = { false, true },
-    [AIR_EVIDENCE_DAG_METADATA] = { false, true },
-    [AIR_EVIDENCE_DAG_GENERIC] = { false, true },
-    [AIR_EVIDENCE_DAG_ABILITY] = { false, true },
-    [AIR_EVIDENCE_RIR_EFFECT_PROPAGATION] = { false, true },
-    [AIR_EVIDENCE_RIR_RELATION_PROPAGATION] = { false, true },
-    [AIR_EVIDENCE_OBSERVABILITY_SCHEMA] = { false, true },
-    [AIR_EVIDENCE_RUNTIME_FRONTIER_POLICY] = { false, true },
+    [AIR_EVIDENCE_HIR_ROUTINE] = { true, true, false },
+    [AIR_EVIDENCE_HIR_CFG] = { true, true, false },
+    [AIR_EVIDENCE_RIR_BOUNDARY] = { true, true, false },
+    [AIR_EVIDENCE_RIR_AUTHORITY] = { true, true, false },
+    [AIR_EVIDENCE_MIR_CLEANUP] = { true, false, true },
+    [AIR_EVIDENCE_MIR_PIN_CLEANUP] = { true, true, false },
+    [AIR_EVIDENCE_MIR_TERMINATOR] = { true, false, true },
+    [AIR_EVIDENCE_MIR_SELECT_RECEIVE] = { true, false, true },
+    [AIR_EVIDENCE_DAG_METADATA] = { true, false, true },
+    [AIR_EVIDENCE_DAG_GENERIC] = { true, false, true },
+    [AIR_EVIDENCE_DAG_ABILITY] = { true, false, true },
+    [AIR_EVIDENCE_RIR_EFFECT_PROPAGATION] = { true, false, true },
+    [AIR_EVIDENCE_RIR_RELATION_PROPAGATION] = { true, false, true },
+    [AIR_EVIDENCE_OBSERVABILITY_SCHEMA] = { true, false, true },
+    [AIR_EVIDENCE_RUNTIME_FRONTIER_POLICY] = { true, false, true },
 };
 
 static const AIREvidenceKindMeta *
 air_evidence_kind_meta(AIREvidenceKind kind)
 {
     if ((int)kind < 0 || kind >= AIR_EVIDENCE_KIND_COUNT)
+        return NULL;
+    if (!kEvidenceKindMeta[kind].present)
         return NULL;
     return &kEvidenceKindMeta[kind];
 }

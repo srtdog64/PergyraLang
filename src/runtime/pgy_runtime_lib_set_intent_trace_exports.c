@@ -31,6 +31,7 @@ typedef struct {
     void  **subjects;
     void   *inline_subjects[PGY_INTENT_INLINE_SUBJECT_CAPACITY];
     int32_t subject_count;
+    uint64_t subject_fingerprint;
     bool    is_concurrent;
     int32_t priority;
     int32_t trace_id;
@@ -239,17 +240,41 @@ static bool
 pgy_intent_subjects_overlap_export(void **lhs, int32_t lhs_count,
                                    void **rhs, int32_t rhs_count)
 {
+    if (lhs == NULL || rhs == NULL || lhs_count <= 0 || rhs_count <= 0)
+        return false;
     for (int32_t i = 0; i < lhs_count; i++) {
-        if (lhs == NULL || lhs[i] == NULL)
+        if (lhs[i] == NULL)
             continue;
         for (int32_t j = 0; j < rhs_count; j++) {
-            if (rhs == NULL || rhs[j] == NULL)
+            if (rhs[j] == NULL)
                 continue;
             if (lhs[i] == rhs[j])
                 return true;
         }
     }
     return false;
+}
+
+static uint64_t
+pgy_intent_subject_fingerprint_export(void **subjects, int32_t subject_count)
+{
+    uint64_t fingerprint = 0;
+
+    if (subjects == NULL || subject_count <= 0)
+        return 0;
+    for (int32_t i = 0; i < subject_count; i++) {
+        uintptr_t value;
+        uint64_t mixed;
+        if (subjects[i] == NULL)
+            continue;
+        value = (uintptr_t)subjects[i];
+        mixed = (uint64_t)value;
+        mixed ^= mixed >> 33;
+        mixed *= UINT64_C(0xff51afd7ed558ccd);
+        mixed ^= mixed >> 33;
+        fingerprint |= UINT64_C(1) << (mixed & 63U);
+    }
+    return fingerprint;
 }
 
 static int32_t
@@ -309,6 +334,7 @@ pgy_intent_enter_export(char *name, void **subjects, int32_t subject_count,
     int free_index = -1;
     int32_t handle = 0;
     int32_t parent_handle = 0;
+    uint64_t subject_fingerprint = 0;
     void **subject_copy = NULL;
 
     pthread_mutex_lock(&pgy_intent_registry_mutex);
@@ -321,11 +347,15 @@ pgy_intent_enter_export(char *name, void **subjects, int32_t subject_count,
         pthread_mutex_unlock(&pgy_intent_registry_mutex);
         return 0;
     }
+    subject_fingerprint =
+        pgy_intent_subject_fingerprint_export(subjects, subject_count);
 
     if (subject_count > 0) {
         for (int i = 0; i < PGY_INTENT_ACTIVE_MAX; i++) {
             PgyIntentActiveEntry *entry = &pgy_intent_active_registry[i];
             if (!entry->active)
+                continue;
+            if ((entry->subject_fingerprint & subject_fingerprint) == 0)
                 continue;
             if (!pgy_intent_subjects_overlap_export(entry->subjects, entry->subject_count,
                                                     subjects, subject_count))
@@ -396,6 +426,8 @@ pgy_intent_enter_export(char *name, void **subjects, int32_t subject_count,
         : NULL;
     pgy_intent_active_registry[free_index].subjects = subject_copy;
     pgy_intent_active_registry[free_index].subject_count = subject_count;
+    pgy_intent_active_registry[free_index].subject_fingerprint =
+        subject_fingerprint;
     pgy_intent_active_registry[free_index].is_concurrent = is_concurrent;
     pgy_intent_active_registry[free_index].priority = priority;
     pgy_intent_active_registry[free_index].trace_id = PGY_INTENT_OBSERVABILITY_ENABLED

@@ -100,6 +100,19 @@ if [[ -n "$typo_tokens" ]]; then
     missing=1
 fi
 
+for header in \
+    src/compiler/compiler_process.h \
+    src/compiler/mir.h \
+    src/parser/ast_types.h \
+    src/runtime/slot_manager.h
+do
+    if grep -Eq '\bsize_t\b' "$ROOT_DIR/$header" \
+        && ! grep -Eq '#include[[:space:]]*<stddef\.h>' "$ROOT_DIR/$header"; then
+        echo "[build-source-inventory] public header using size_t must include <stddef.h>: $header" >&2
+        missing=1
+    fi
+done
+
 if ! grep -Fq '$(BUILD_DIR)/compiler/hir_callgraph.o' "$ROOT_DIR/Makefile"; then
     echo "[build-source-inventory] HIR callgraph source is not linked by HIR_CORE_OBJECTS" >&2
     missing=1

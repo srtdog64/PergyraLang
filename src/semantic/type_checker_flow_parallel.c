@@ -8,6 +8,12 @@ type_check_defer_body_flow(ASTNode *body, SemanticContext *ctx)
 {
     if (body != NULL) {
         ResourceConsumeSnapshot before_defer = snapshot_resource_states(ctx);
+        if (!before_defer.valid) {
+            semantic_error(ctx, body,
+                "Resource snapshot allocation failed while checking defer cleanup");
+            destroy_resource_snapshot(&before_defer);
+            return false;
+        }
         if (semantic_reject_active_slot_view_boundary(body, ctx,
                 "defer cleanup boundary",
                 "defer executes after the current statement frontier and may run after the pin scope has ended",
@@ -61,6 +67,13 @@ type_check_parallel_block_flow(ASTNode *node, SemanticContext *ctx)
     prev_parallel = ctx->in_parallel;
     ctx->in_parallel = true;
     base = snapshot_resource_states(ctx);
+    if (!base.valid) {
+        semantic_error(ctx, node,
+            "Resource snapshot allocation failed before parallel analysis");
+        ctx->in_parallel = prev_parallel;
+        destroy_resource_snapshot(&base);
+        return false;
+    }
 
     for (size_t i = 0; i < ast_parallel_task_count(node); i++) {
         ASTNode *task = ast_parallel_task(node, i);
@@ -69,6 +82,14 @@ type_check_parallel_block_flow(ASTNode *node, SemanticContext *ctx)
         scope_enter(&ctx->scope, SCOPE_BLOCK);
         (void)type_check_statement_flow(task, ctx, NULL);
         task_snap = snapshot_resource_states(ctx);
+        if (!task_snap.valid) {
+            semantic_error(ctx, task != NULL ? task : node,
+                "Resource snapshot allocation failed while checking parallel task");
+            restore_resource_states(&base);
+            scope_exit(&ctx->scope);
+            destroy_resource_snapshot(&task_snap);
+            break;
+        }
         restore_resource_states(&base);
         scope_exit(&ctx->scope);
         if (has_joined) {
@@ -80,7 +101,7 @@ type_check_parallel_block_flow(ASTNode *node, SemanticContext *ctx)
                     PGY_CAUSE_PARALLEL_RESOURCE_CONFLICT,
                     PGY_FIX_SERIALIZE_OUTSIDE_PARALLEL,
                     task,
-                    "Parallel tasks cannot consume the same resource/boundary '%s'.\n"
+                    "Parallel context slot conflict on '%s': multiple tasks mutate or release the same slot. Parallel tasks cannot consume the same resource/boundary.\n"
                     "Reason:\n"
                     "- each parallel task is checked from the same entry ownership snapshot\n"
                     "- more than one task moves or releases the same ownership-bearing value\n"
@@ -91,10 +112,25 @@ type_check_parallel_block_flow(ASTNode *node, SemanticContext *ctx)
                     conflict != NULL && conflict->name != NULL
                         ? conflict->name
                         : "<resource>");
+            } else if (resource_snapshot_has_parallel_race_risk(&base,
+                    &joined, &task_snap, &conflict)) {
+                semantic_warning_code(ctx,
+                    PGY_CODE_SEM_PARALLEL_SLOT_RACE_RISK,
+                    task,
+                    "Parallel context race risk on '%s': one task reads while another mutates or releases the same slot",
+                    conflict != NULL && conflict->name != NULL
+                        ? conflict->name
+                        : "<resource>");
             }
         }
         merge_resource_snapshots_or(&joined, &has_joined, &task_snap);
+        if (has_joined && !joined.valid) {
+            semantic_error(ctx, task != NULL ? task : node,
+                "Resource snapshot merge failed while checking parallel tasks");
+        }
         destroy_resource_snapshot(&task_snap);
+        if (ctx->has_error)
+            break;
     }
 
     if (has_joined)

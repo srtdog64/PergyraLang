@@ -354,18 +354,10 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
             /* Domain/runtime constructors carry internal state bits.
              * Reuse expression lowering so zone/world/relation/effect
              * literals preserve dirty/ready/runtime metadata. */
-            ASTNode *zone_decl = find_zone_decl(ctx, ann_type_name);
-            ASTNode *world_decl = find_world_decl(ctx, ann_type_name);
-            ASTNode *relation_decl = find_relation_decl(ctx, ann_type_name);
-            ASTNode *effect_decl = find_effect_decl(ctx, ann_type_name);
-            ASTNode *party_decl = find_party_decl(ctx, ann_type_name);
-            ASTNode *roster_decl = find_roster_decl(ctx, ann_type_name);
-            if ((zone_decl != NULL && zone_decl->type == AST_ZONE_DECL)
-                || (world_decl != NULL && world_decl->type == AST_WORLD_DECL)
-                || (party_decl != NULL && party_decl->type == AST_PARTY_DECL)
-                || (roster_decl != NULL && roster_decl->type == AST_ROSTER_DECL)
-                || (relation_decl != NULL && relation_decl->type == AST_RELATION_DECL)
-                || (effect_decl != NULL && effect_decl->type == AST_EFFECT_DECL)) {
+            ASTNode *domain_constructor_decl =
+                transpiler_find_domain_constructor_decl_local(
+                    ctx, ann_type_name);
+            if (domain_constructor_decl != NULL) {
                 char *init_expr = emit_expression(init, ctx);
                 codebuf_write(ctx->out, "%s %s = %s;\n",
                     ann_type_name, name, init_expr != NULL ? init_expr : "0");

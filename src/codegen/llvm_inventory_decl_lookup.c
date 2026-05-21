@@ -5,25 +5,8 @@
 
 #ifdef PGY_LLVM_ENABLED
 
+#include "host_decl_compat.h"
 #include "llvm_internal.h"
-
-static const ASTNodeType kLLVMHostDeclTypes[] = {
-    AST_CLASS_DECL,
-    AST_ENUM_DECL,
-    AST_PARTY_DECL,
-    AST_ROLE_DECL,
-    AST_ROSTER_DECL,
-    AST_RELATION_DECL,
-    AST_EFFECT_DECL,
-    AST_ZONE_DECL,
-    AST_WORLD_DECL,
-};
-
-static size_t
-llvm_host_decl_type_count(void)
-{
-    return sizeof(kLLVMHostDeclTypes) / sizeof(kLLVMHostDeclTypes[0]);
-}
 
 ASTNode *
 llvm_bind_current_host_decl(LLVMGenCtx *ctx, ASTNode *host_decl)
@@ -70,8 +53,14 @@ llvm_active_inventory(const LLVMGenCtx *ctx,
 const char *
 llvm_decl_node_name(ASTNode *node)
 {
+    const char *host_name;
+
     if (node == NULL)
         return NULL;
+
+    host_name = pgy_host_decl_compat_name(node);
+    if (host_name != NULL)
+        return host_name;
 
     switch (node->type) {
     case AST_FUNC_DECL:
@@ -80,26 +69,8 @@ llvm_decl_node_name(ASTNode *node)
         return ast_intent_decl_name(node);
     case AST_ABILITY_DECL:
         return ast_ability_name(node);
-    case AST_ROLE_DECL:
-        return ast_role_name(node);
-    case AST_PARTY_DECL:
-        return ast_party_name(node);
-    case AST_ROSTER_DECL:
-        return ast_roster_name(node);
-    case AST_WORLD_DECL:
-        return ast_world_name(node);
-    case AST_RELATION_DECL:
-        return ast_relation_name(node);
-    case AST_EFFECT_DECL:
-        return ast_effect_name(node);
-    case AST_ZONE_DECL:
-        return ast_zone_name(node);
     case AST_EVENT_DECL:
         return ast_event_name(node);
-    case AST_CLASS_DECL:
-        return ast_class_name(node);
-    case AST_ENUM_DECL:
-        return ast_enum_name(node);
     case AST_TYPE_ALIAS:
         return ast_type_alias_name(node);
     default:
@@ -153,11 +124,7 @@ llvm_param_is_implicit_self(const FuncParam *param)
 bool
 llvm_is_host_decl_type(ASTNodeType decl_type)
 {
-    for (size_t i = 0; i < llvm_host_decl_type_count(); i++) {
-        if (kLLVMHostDeclTypes[i] == decl_type)
-            return true;
-    }
-    return false;
+    return pgy_host_decl_compat_is_type(decl_type);
 }
 
 const MIRDeclHeader *
@@ -183,6 +150,8 @@ ASTNode *
 llvm_find_host_decl_in_active_inventory(const LLVMGenCtx *ctx, const char *name)
 {
     const MIRDeclHeader *decl_header = NULL;
+    const ASTNodeType *host_types = NULL;
+    size_t host_type_count = 0;
 
     if (ctx == NULL || name == NULL)
         return NULL;
@@ -191,9 +160,10 @@ llvm_find_host_decl_in_active_inventory(const LLVMGenCtx *ctx, const char *name)
     if (decl_header != NULL)
         return decl_header->source_ast;
 
-    for (size_t i = 0; i < llvm_host_decl_type_count(); i++) {
+    host_types = pgy_host_decl_compat_types(&host_type_count);
+    for (size_t i = 0; host_types != NULL && i < host_type_count; i++) {
         ASTNode *decl = llvm_find_decl_in_active_inventory(
-            ctx, kLLVMHostDeclTypes[i], name);
+            ctx, host_types[i], name);
         if (decl != NULL)
             return decl;
     }

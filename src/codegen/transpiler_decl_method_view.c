@@ -6,6 +6,7 @@
  */
 
 #include "transpiler_decl_lookup.h"
+#include "host_decl_compat.h"
 
 TranspilerHostedMethodView
 transpiler_hosted_method_view(const TranspilerCtx *ctx,
@@ -131,50 +132,11 @@ transpiler_hosted_method_view_from_decl(const TranspilerCtx *ctx,
                                         const char *host_name,
                                         ASTNode *decl)
 {
-    ASTNode **ast_compat_methods = NULL;
-    size_t ast_compat_count = 0;
-
-    if (decl != NULL) {
-        switch (decl->type) {
-        case AST_CLASS_DECL:
-            ast_compat_methods = ast_class_methods(decl, &ast_compat_count);
-            break;
-        case AST_ENUM_DECL:
-            ast_compat_methods = ast_enum_methods(decl, &ast_compat_count);
-            break;
-        case AST_PARTY_DECL:
-            ast_compat_methods = ast_party_methods(decl, &ast_compat_count);
-            break;
-        case AST_ROSTER_DECL:
-            ast_compat_methods = ast_roster_methods(decl, &ast_compat_count);
-            break;
-        case AST_ROLE_DECL:
-            if (transpiler_active_has_mir(ctx)) {
-                if (!ast_role_impl_method_total_count(
-                        decl, &ast_compat_count)) {
-                    ast_compat_count = (size_t)-1;
-                }
-            }
-            break;
-        case AST_WORLD_DECL:
-            ast_compat_methods = ast_world_methods(decl, &ast_compat_count);
-            break;
-        case AST_RELATION_DECL:
-            ast_compat_methods = ast_relation_methods(decl, &ast_compat_count);
-            break;
-        case AST_EFFECT_DECL:
-            ast_compat_methods = ast_effect_methods(decl, &ast_compat_count);
-            break;
-        case AST_ZONE_DECL:
-            ast_compat_methods = ast_zone_methods(decl, &ast_compat_count);
-            break;
-        default:
-            break;
-        }
-    }
+    PgyHostMethodCompatView compat = pgy_host_method_compat_view_from_decl(
+        decl, transpiler_active_has_mir(ctx));
 
     return transpiler_hosted_method_view(ctx, host_name,
-        ast_compat_methods, ast_compat_count);
+        compat.methods, compat.count);
 }
 
 ASTNode *

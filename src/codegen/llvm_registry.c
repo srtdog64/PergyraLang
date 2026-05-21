@@ -25,6 +25,8 @@ llvm_scope_push(LLVMGenCtx *ctx)
         return;
     }
     ctx->scopes[ctx->scope_depth].count = 0;
+    ctx->scopes[ctx->scope_depth].last_lookup_name = NULL;
+    ctx->scopes[ctx->scope_depth].last_lookup = NULL;
     ctx->scope_depth++;
 }
 
@@ -51,17 +53,30 @@ llvm_scope_declare(LLVMGenCtx *ctx, const char *name,
     frame->entries[frame->count].name   = name;
     frame->entries[frame->count].alloca = alloca_val;
     frame->entries[frame->count].type   = type;
+    frame->last_lookup_name = name;
+    frame->last_lookup = &frame->entries[frame->count];
     frame->count++;
 }
 
 LLVMVarEntry *
 llvm_scope_lookup(LLVMGenCtx *ctx, const char *name)
 {
+    if (ctx == NULL || name == NULL)
+        return NULL;
+
     for (int i = ctx->scope_depth - 1; i >= 0; i--) {
         LLVMScopeFrame *frame = &ctx->scopes[i];
+        if (frame->last_lookup_name != NULL
+            && frame->last_lookup != NULL
+            && strcmp(frame->last_lookup_name, name) == 0) {
+            return frame->last_lookup;
+        }
         for (int j = frame->count - 1; j >= 0; j--) {
-            if (strcmp(frame->entries[j].name, name) == 0)
+            if (strcmp(frame->entries[j].name, name) == 0) {
+                frame->last_lookup_name = frame->entries[j].name;
+                frame->last_lookup = &frame->entries[j];
                 return &frame->entries[j];
+            }
         }
     }
     return NULL;

@@ -22,6 +22,20 @@ The missing beta blocker is different:
 - Some body checks still depend on AST-shaped traversal, local helper summaries, or backend-side fallback behavior.
 - Strict beta requires the compiler to prove routine body behavior across all paths, not just along local syntax order.
 
+Current residual seam: `src/semantic/slot_analyzer.c` still owns AST-walking
+conservative slot escape summaries and helper/provenance compatibility
+diagnostics. Direct parallel `Read` / `Write` / `Release` task-boundary
+conflicts now flow through CFG resource snapshots: slot operations mark
+`slot_flow_access_mask`, snapshots preserve `access_masks`, and
+`resource_snapshot_has_parallel_conflict` /
+`resource_snapshot_has_parallel_race_risk` report
+`PGY_SEM_PARALLEL_SLOT_CONFLICT` / `PGY_SEM_PARALLEL_SLOT_RACE_RISK`.
+`scope_release_slot(...)` also marks `PGY_SLOT_FLOW_ACCESS_RELEASE` before
+mutating slot state, so Move / DeviceSlot-release style helper paths cannot
+release a tracked resource without emitting a CFG access fact.
+The analyzer remains a named pre-CFG residual only for compatibility
+diagnostics; it must not be treated as the final body-safety source of truth.
+
 ## Why CFG Is Necessary
 
 AST traversal is enough to parse and type-check many local expressions. It is not enough to close the safety model that Pergyra advertises.

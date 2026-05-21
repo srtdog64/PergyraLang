@@ -32,6 +32,8 @@ for rel in \
     "src/codegen/llvm_inventory_internal.h" \
     "src/codegen/llvm_inventory_decl_lookup.c" \
     "src/codegen/llvm_inventory_decl_lookup.h" \
+    "src/codegen/host_decl_compat.c" \
+    "src/codegen/host_decl_compat.h" \
     "src/codegen/llvm_inventory_host_methods.h" \
     "src/codegen/llvm_pipeline.c" \
     "src/codegen/llvm_main_wrapper.c" \
@@ -76,15 +78,10 @@ for term in \
     "llvm_active_inventory" \
     "mir_find_decl_header(ctx->mir, name)" \
     "llvm_is_host_decl_type" \
-    "static const ASTNodeType kLLVMHostDeclTypes[]" \
-    "AST_PARTY_DECL" \
-    "AST_ROLE_DECL" \
-    "AST_ROSTER_DECL" \
-    "kLLVMHostDeclTypes[i]" \
-    "llvm_host_decl_type_count()" \
-    "return ast_party_name(node)" \
-    "return ast_role_name(node)" \
-    "return ast_roster_name(node)" \
+    "pgy_host_decl_compat_is_type(decl_type)" \
+    "pgy_host_decl_compat_types(&host_type_count)" \
+    "host_types[i]" \
+    "pgy_host_decl_compat_name(node)" \
     "return llvm_is_host_decl_type(decl->type)" \
     "llvm_decl_node_name(decl)"; do
     require_term "src/codegen/llvm_inventory_decl_lookup.c" "$term"
@@ -123,12 +120,14 @@ require_term "src/codegen/llvm_inventory_host_methods.h" "ast_compat_methods"
 require_term "src/codegen/llvm_inventory_host_methods.h" "ast_compat_count"
 require_term "src/codegen/llvm_inventory_host_methods.c" \
     "view->count != view->ast_compat_count"
-require_term "src/codegen/llvm_inventory_host_methods.c" \
+require_term "src/codegen/host_decl_compat.c" \
     "ast_role_impl_method_total_count"
-require_term "src/codegen/llvm_inventory_host_methods.c" \
-    "ast_compat_count = (size_t)-1"
-require_term "src/codegen/llvm_inventory_host_methods.c" \
+require_term "src/codegen/host_decl_compat.c" \
+    "view.count = (size_t)-1"
+require_term "src/codegen/host_decl_compat.c" \
     "case AST_ROLE_DECL"
+require_term "src/codegen/llvm_inventory_host_methods.c" \
+    "pgy_host_method_compat_view_from_decl(decl, llvm_active_has_mir(ctx))"
 if grep -Fq "llvm_hosted_method_view(" \
         "$ROOT_DIR/src/codegen/llvm_inventory_host_methods.c" \
     && grep -Fq "NULL, 0)" \
@@ -538,30 +537,67 @@ for term in \
     require_term "src/codegen/transpiler.c" "$term"
 done
 for term in \
-    "return ast_role_name(decl)" \
-    "return ast_party_name(decl)" \
-    "return ast_roster_name(decl)" \
+    "return pgy_host_decl_compat_name(decl)" \
     "transpiler_is_host_decl_type" \
-    "find_enum_decl(ctx, name) != NULL" \
-    "find_role_decl(ctx, name) != NULL"; do
+    "return pgy_host_decl_compat_is_type(decl_type)" \
+    "pgy_host_decl_compat_nominal_lookup_types(&host_lookup_type_count)" \
+    "host_lookup_types[i]" \
+    "transpiler_find_domain_constructor_decl_local" \
+    "pgy_host_decl_compat_constructor_domain_types(" \
+    "&constructor_type_count" \
+    "constructor_types[i]"; do
     require_term "src/codegen/transpiler_decl_lookup.c" "$term"
 done
+require_term "src/codegen/transpiler_call_constructor_result_emit.h" \
+    "transpiler_find_domain_constructor_decl_local(ctx, fn)"
+require_term "src/codegen/transpiler_mir_local_type_lookup.h" \
+    "transpiler_find_domain_constructor_decl_local("
+require_term "src/codegen/transpiler_let_emit.h" \
+    "transpiler_find_domain_constructor_decl_local("
+if grep -Fq "find_party_decl(ctx, fn)" \
+    "$ROOT_DIR/src/codegen/transpiler_call_constructor_result_emit.h"; then
+    fail "C constructor dispatch must consume the domain-constructor lookup seam instead of repeating host chains"
+fi
+if grep -Fq "find_zone_decl(ctx, callee_name)" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_local_type_lookup.h"; then
+    fail "C MIR local type lookup must consume the domain-constructor lookup seam instead of repeating host chains"
+fi
+if grep -Fq "find_zone_decl(ctx, ann_type_name)" \
+    "$ROOT_DIR/src/codegen/transpiler_let_emit.h"; then
+    fail "C annotated let constructor fallback must consume the domain-constructor lookup seam instead of repeating host chains"
+fi
+require_term "src/codegen/transpiler_expr_type_infer.c" \
+    "transpiler_has_known_nominal_type(ctx, name)"
+if grep -Fq "find_subject_host_decl(ctx, name)" \
+    "$ROOT_DIR/src/codegen/transpiler_expr_type_infer.c"; then
+    fail "C expression type inference must consume known-nominal policy instead of repeating host chains"
+fi
+require_term "src/codegen/transpiler_projection.c" \
+    "transpiler_find_nominal_host_decl_local(ctx, type_name)"
+if grep -Fq "find_relation_decl(ctx, type_name) != NULL" \
+    "$ROOT_DIR/src/codegen/transpiler_projection.c"; then
+    fail "C nominal host type predicate must consume nominal host lookup instead of repeating domain host chains"
+fi
 for term in \
-    "find_party_decl(ctx, type_name) != NULL" \
-    "find_role_decl(ctx, type_name) != NULL" \
-    "find_roster_decl(ctx, type_name) != NULL"; do
-    require_term "src/codegen/transpiler_projection.c" "$term"
+    "transpiler_find_nominal_host_decl_local(ctx, type_name)" \
+    "pgy_host_decl_compat_uses_pointer_self(decl)"; do
     require_term "src/codegen/transpiler_host_self_policy.c" "$term"
 done
+require_term "src/codegen/transpiler_expr_dispatch_emit.h" \
+    "pgy_host_decl_compat_uses_pointer_self(host_decl)"
+if grep -Fq "host_decl->type == AST_PARTY_DECL" \
+    "$ROOT_DIR/src/codegen/transpiler_expr_dispatch_emit.h"; then
+    fail "C self-member dispatch must consume host pointer-self policy instead of repeating domain host chains"
+fi
 for term in \
     "transpiler_find_method_source_ast_in_mir_header" \
     "transpiler_decl_header_is_nominal_host(header)" \
     "transpiler_active_decl_header(ctx, host_type_name)" \
     "transpiler_active_mir_identity(ctx)" \
     "static const TranspilerHostOwnerLookup kTranspilerHostOwnerLookups[]" \
-    "static const ASTNodeType kTranspilerNominalHostLookupTypes[]" \
     "lookup->lookup_type" \
-    "kTranspilerNominalHostLookupTypes[i]" \
+    "pgy_host_decl_compat_nominal_lookup_types(&host_lookup_type_count)" \
+    "host_lookup_types[i]" \
     "AST_PARTY_DECL" \
     "AST_ROLE_DECL" \
     "AST_ROSTER_DECL" \
@@ -600,12 +636,95 @@ done
 for term in \
     "method->has_routine" \
     "transpiler_is_host_decl_type(header->ast_type)" \
-    "ast_role_impl_method_total_count" \
-    "ast_compat_count = (size_t)-1" \
-    "case AST_ROLE_DECL" \
+    "pgy_host_method_compat_view_from_decl(" \
     "transpiler_active_routine_inventory(ctx, &inventory)" \
     "transpiler_routine_inventory_get(&inventory, method->routine_index)"; do
     require_term "src/codegen/transpiler_decl_method_view.c" "$term"
+done
+for rel in \
+    "src/codegen/llvm_inventory_host_methods.c" \
+    "src/codegen/transpiler_decl_method_view.c"; do
+    if grep -Fq "case AST_ROLE_DECL" "$ROOT_DIR/$rel"; then
+        fail "$rel must delegate hosted-method AST compatibility classification to host_decl_compat.c"
+    fi
+done
+for term in \
+    "kPgyHostDeclCompatTypes[]" \
+    "pgy_host_decl_compat_types" \
+    "pgy_host_decl_compat_is_type" \
+    "pgy_host_decl_compat_name" \
+    "pgy_host_decl_compat_uses_pointer_self" \
+    "pgy_host_decl_compat_has_projection_ready_flag" \
+    "kPgyHostDeclCompatConstructorDomainTypes[]" \
+    "pgy_host_decl_compat_constructor_domain_types" \
+    "PgyHostMethodCompatView" \
+    "pgy_host_method_compat_view_from_decl" \
+    "PgyHostSharedFieldsCompatView" \
+    "pgy_host_shared_fields_compat_view_from_decl" \
+    "case AST_CLASS_DECL" \
+    "case AST_ENUM_DECL" \
+    "case AST_PARTY_DECL" \
+    "case AST_ROSTER_DECL" \
+    "case AST_ROLE_DECL" \
+    "case AST_WORLD_DECL" \
+    "case AST_RELATION_DECL" \
+    "case AST_EFFECT_DECL" \
+    "case AST_ZONE_DECL"; do
+    require_term "src/codegen/host_decl_compat.c" "$term"
+done
+require_term "src/codegen/llvm_expr_constructor_calls.c" \
+    "pgy_host_shared_fields_compat_view_from_decl(host_decl)"
+require_term "src/codegen/llvm_domain_lookup.c" \
+    "llvm_find_domain_constructor_decl"
+require_term "src/codegen/llvm_domain_lookup.c" \
+    "pgy_host_decl_compat_constructor_domain_types("
+require_term "src/codegen/llvm_expr_constructor_calls.c" \
+    "llvm_find_domain_constructor_decl(ctx, callee_name)"
+if grep -Fq "llvm_find_named_domain_decl(ctx, AST_PARTY_DECL, callee_name)" \
+    "$ROOT_DIR/src/codegen/llvm_expr_constructor_calls.c"; then
+    fail "LLVM constructor dispatch must consume the domain-constructor lookup seam instead of repeating host chains"
+fi
+for term in \
+    "transpiler_party_slot_first_ability_tag" \
+    "transpiler_party_slot_method_ability_tag"; do
+    require_term "src/codegen/transpiler_role_ability_helpers.h" "$term"
+    require_term "src/codegen/transpiler_role_ability.c" "$term"
+done
+require_term "src/codegen/transpiler_statement_dispatch.h" \
+    "transpiler_party_slot_first_ability_tag("
+require_term "src/codegen/transpiler_expr_call_spawn_emit.h" \
+    "transpiler_party_slot_method_ability_tag("
+for rel in \
+    "src/codegen/transpiler_statement_dispatch.h" \
+    "src/codegen/transpiler_expr_call_spawn_emit.h"; do
+    if grep -Fq "ast_party_role_count(" "$ROOT_DIR/$rel"; then
+        fail "$rel must consume party-slot ability helpers instead of repeating role-slot scans"
+    fi
+done
+for rel in \
+    "src/codegen/llvm_expr_domain_query_calls.c" \
+    "src/codegen/transpiler_expr_domain_query_builtin.c"; do
+    require_term "$rel" "pgy_host_decl_compat_has_projection_ready_flag(host_decl)"
+    if grep -Fq "host_decl->type == AST_RELATION_DECL" "$ROOT_DIR/$rel"; then
+        fail "$rel must consume host projection-ready policy instead of repeating relation/effect/zone chains"
+    fi
+done
+for term in \
+    "kPgyHostDeclCompatNominalLookupTypes[]" \
+    "pgy_host_decl_compat_nominal_lookup_types"; do
+    require_term "src/codegen/host_decl_compat.c" "$term"
+done
+if grep -Fq "kTranspilerNominalHostLookupTypes" \
+    "$ROOT_DIR/src/codegen/transpiler_decl_host_lookup.c"; then
+    fail "C nominal host lookup must consume host_decl_compat.c lookup order"
+fi
+for term in \
+    "return ast_role_name(decl)" \
+    "return ast_party_name(decl)" \
+    "return ast_roster_name(decl)"; do
+    if grep -Fq "$term" "$ROOT_DIR/src/codegen/transpiler_decl_lookup.c"; then
+        fail "C host declaration names must delegate to host_decl_compat.c"
+    fi
 done
 for term in \
     "transpiler_mir_decl_method_param_count" \

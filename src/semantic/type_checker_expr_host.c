@@ -5,25 +5,6 @@
 #include "diag_codes.h"
 
 static Type *
-expr_host_resolve_named_type_metadata_or_unknown(const char *name,
-                                                 SemanticContext *ctx,
-                                                 ASTNode *site)
-{
-    Type *resolved;
-
-    if (name == NULL || name[0] == '\0')
-        return TYPE_UNKNOWN;
-    resolved = semantic_type_resolution_lookup_metadata_name_or_alias(ctx,
-                                                                      name);
-    if (resolved != NULL)
-        return resolved;
-    semantic_error_with_hints(ctx, PGY_CODE_SEM_UNKNOWN_TYPE,
-        PGY_CAUSE_TYPE_UNKNOWN, PGY_FIX_IMPORT_OR_DECLARE_TYPE, site,
-        "Unknown type '%s'", name);
-    return TYPE_UNKNOWN;
-}
-
-static Type *
 expr_host_normalize_type(Type *type)
 {
     return type != NULL ? type : TYPE_UNKNOWN;
@@ -87,8 +68,8 @@ expr_current_host_field_type(SemanticContext *ctx, const char *field_name)
             const char *slot_name = ast_world_roster_slot_name(slot);
             if (slot != NULL && slot_name != NULL
                 && strcmp(slot_name, field_name) == 0) {
-                return expr_host_resolve_named_type_metadata_or_unknown(
-                    ast_world_roster_type_name(slot), ctx, slot);
+                return semantic_type_resolution_lookup_metadata_name_or_alias_or_unknown(
+                    ctx, ast_world_roster_type_name(slot), slot);
             }
         }
         for (size_t i = 0; i < zone_count; i++) {
@@ -96,8 +77,8 @@ expr_current_host_field_type(SemanticContext *ctx, const char *field_name)
             const char *slot_name = ast_world_zone_slot_name(slot);
             if (slot != NULL && slot_name != NULL
                 && strcmp(slot_name, field_name) == 0) {
-                return expr_host_resolve_named_type_metadata_or_unknown(
-                    ast_world_zone_type_name(slot), ctx, slot);
+                return semantic_type_resolution_lookup_metadata_name_or_alias_or_unknown(
+                    ctx, ast_world_zone_type_name(slot), slot);
             }
         }
     }
@@ -111,8 +92,8 @@ expr_current_host_field_type(SemanticContext *ctx, const char *field_name)
             if (slot != NULL && ast_zone_layer_slot_name(slot) != NULL
                 && strcmp(ast_zone_layer_slot_name(slot),
                           field_name) == 0) {
-                return expr_host_resolve_named_type_metadata_or_unknown(
-                    ast_zone_layer_slot_layer_type(slot), ctx, slot);
+                return semantic_type_resolution_lookup_metadata_name_or_alias_or_unknown(
+                    ctx, ast_zone_layer_slot_layer_type(slot), slot);
             }
         }
     }

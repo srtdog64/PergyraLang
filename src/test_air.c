@@ -104,6 +104,9 @@ main(void)
     TEST("AIR synthesis creates intent and boundary nodes");
     EXPECT(test_air_synthesizes_intent_and_boundary());
 
+    TEST("AIR who inference does not imply authority");
+    EXPECT(test_air_who_inference_does_not_imply_authority());
+
     TEST("AIR drift checker reports sync/async mismatch");
     EXPECT(test_air_detects_sync_async_drift());
 
@@ -169,6 +172,9 @@ main(void)
 
     TEST("AIR append rejects boundary evidence duplicate fallback");
     EXPECT(test_air_append_rejects_boundary_evidence_duplicate_fallback());
+
+    TEST("AIR append rejects unknown evidence kind");
+    EXPECT(test_air_append_rejects_unknown_evidence_kind());
 
     TEST("AIR verify rejects evidence boundary shape mismatch");
     EXPECT(test_air_verify_rejects_evidence_boundary_shape_mismatch());

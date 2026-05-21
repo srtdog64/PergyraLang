@@ -21,6 +21,31 @@ abstraction safety + dogfood-first path**. Feature feel is about 70%, while
 strict beta readiness is about 68%. When the CFG/AIR/DAG/MIR/ABI
 source-of-truth closures are complete, reassess in the 75-80% range.
 
+Current CFG body-flow tightening (2026-05-21): direct parallel slot
+`Read` / `Write` / `Release` conflicts now flow through CFG resource
+snapshots instead of the AST-only slot analyzer. Slot operations mark
+`slot_flow_access_mask`, snapshots preserve `access_masks`, and the parallel
+join emits `PGY_SEM_PARALLEL_SLOT_CONFLICT` / `PGY_SEM_PARALLEL_SLOT_RACE_RISK`
+from `resource_snapshot_has_parallel_conflict` and
+`resource_snapshot_has_parallel_race_risk`. `scope_release_slot(...)` marks
+`PGY_SLOT_FLOW_ACCESS_RELEASE` before mutating slot state, so Move /
+DeviceSlot-release style helper paths cannot release without a CFG access fact.
+`slot_analyzer.c` remains a named
+pre-CFG compatibility seam for conservative escape/helper provenance, not the
+final body-safety source of truth. Gates: `test-semantic` (`2551/0`),
+`test-transpile` (`770/0`), `cfg-body-dataflow-test-smoke`,
+`semantic-core-shape-test-smoke`, `parallel-core-contract-test-smoke`,
+`perf-contract-test-smoke`, `source-utf8-test-smoke`, and
+`build-source-inventory-test-smoke`.
+
+Current AIR evidence-kind tightening (2026-05-21): evidence-kind metadata is
+now fail-closed. `kEvidenceKindMeta` carries an explicit `present` bit, so a
+new `AIR_EVIDENCE_*` enum member is not treated as valid unless its boundary /
+global-validator policy is deliberately initialized. This keeps AIR
+EvidenceNode inventory from accepting silent default metadata while AIR is
+being promoted to the abstraction-boundary verifier. Gate:
+`air-drift-test-smoke`.
+
 Current DAG tightening (2026-05-15): Generic parameter storage is now closed
 behind parser-owned accessors for the main semantic contract path. Generic
 support/contracts, default validation, ability ref/match/where diagnostics,
@@ -43,6 +68,19 @@ compiler/codegen guards rejecting direct `GenericParams` storage reopenings
 `ast_type_generic_args(...)->count/params`); `type-resolution-dag-test-smoke`
 still reports zero retired resolver calls and zero metadata dead-ends after the
 slice.
+
+Current DAG diagnostic-owner tightening (2026-05-21): expression member
+access, hosted-field lookup, and overlay world-zone binding now use
+`semantic_type_resolution_lookup_metadata_name_or_alias_or_unknown(...)` for
+metadata name/alias lookup plus unknown-type diagnostics. The duplicated local
+helpers in expression/host/overlay owners were removed, so unknown named type
+resolution remains metadata-owned and cannot drift across owner-local
+compatibility seams. Local gate: `type-resolution-resolver-inventory-test-smoke`,
+`type-resolution-dag-test-smoke`, `build-source-inventory-test-smoke`, and
+`test-semantic` (`2551/0`; DAG stats include `retired_resolver_calls=0`,
+`metadata_dead_ends=0`, `metadata_hits=8769`). The resolver inventory smoke
+also rejects reintroducing the previous expression/host/overlay local helper
+names.
 
 Current parser owner cleanup (2026-05-15): declaration-name mutation, let,
 scalar literal, identifier, extern/use/import/namespace, type-alias, and event
@@ -4308,6 +4346,40 @@ and domain hosts, and roster hosted methods are now recorded in declaration
 metadata instead of being omitted from `MIRDeclHeader`.
 Duplicate declaration header names are rejected by `mir_validate(...)`, keeping
 `mir_find_decl_header(...)` from resolving ambiguous declaration inventory rows.
+
+2026-05-21 hosted declaration compatibility update: C and LLVM no longer keep
+separate hosted-declaration type sets or separate AST compatibility
+classification switches for hosted methods. `src/codegen/host_decl_compat.c`
+owns the class/enum/party/roster/role/world/relation/effect/zone type set, host
+declaration-name accessor, pointer-self host policy, C nominal-host lookup
+order, known-nominal forwarding, compatibility method view, and shared-field
+compatibility view, while the C and
+LLVM hosted-method view owners only adapt that shared view to their MIR metadata
+readers. C expression type inference also consumes the same known-nominal seam
+for nominal call result inference instead of carrying a separate host-chain
+copy. C nominal host-type predicates resolve through the same nominal-host
+lookup seam while preserving their class/struct/vessel/object filter locally,
+and C `self.member` dispatch consumes the same pointer-self policy instead of
+carrying a local domain-host chain. C/LLVM `HasProjection` lowering consumes the
+same projection-ready host policy instead of each backend repeating
+relation/effect/zone eligibility, and LLVM constructor shared-field defaults
+consume the same shared-field compatibility view instead of repeating
+party/roster/relation/effect/zone/world eligibility. C constructor dispatch keeps
+its class-first precedence but consumes the centralized constructor-domain type
+order for party/roster/relation/effect/zone/world lookup, and C MIR local type
+lookup consumes that same seam for nominal call fallback while keeping class
+constructors separate and preserving enum/role exclusion. Annotated C `let`
+constructor fallback also consumes the same seam when deciding whether
+metadata-bearing domain literals must be emitted through expression lowering
+instead of zero initialization. LLVM constructor dispatch consumes the same
+constructor-domain lookup seam before shared-field defaults and projection/world
+dirty initialization, so C and LLVM constructor-domain order now share one
+compatibility owner. This does not remove the AST compatibility
+payload yet, but it removes one C/LLVM drift seam before the final dedicated
+declaration inventory model.
+Gates: `mir-declaration-inventory-test-smoke`,
+`build-source-inventory-test-smoke`, `test-mir`, `test-transpile`, and
+`llvm-test-smoke`.
 
 2026-05-03 MIR inventory surface-usage update: declaration/function inventory
 surface scans for intent observability and thread-pool usage are now

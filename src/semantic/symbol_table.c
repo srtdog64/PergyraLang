@@ -365,6 +365,7 @@ scope_release_slot(Scope *scope, const char *slot_name)
     while (cur != NULL) {
         Symbol *sym = scope_lookup_current(cur, slot_name);
         if (symbol_tracks_slot_state(sym)) {
+            sym->slot_flow_access_mask |= PGY_SLOT_FLOW_ACCESS_RELEASE;
             sym->slot_info.state = SLOT_STATE_RELEASED;
             return;
         }

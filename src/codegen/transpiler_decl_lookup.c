@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "host_decl_compat.h"
 #include "transpiler_decl_lookup.h"
 
 static void
@@ -282,69 +283,58 @@ find_event_decl(TranspilerCtx *ctx, const char *event_name)
 bool
 transpiler_has_known_nominal_type(TranspilerCtx *ctx, const char *name)
 {
+    const ASTNodeType *host_lookup_types = NULL;
+    size_t host_lookup_type_count = 0;
+
     if (ctx == NULL || name == NULL)
         return false;
 
-    if (find_class_decl(ctx, name) != NULL
-        || find_enum_decl(ctx, name) != NULL
-        || find_role_decl(ctx, name) != NULL
-        || find_zone_decl(ctx, name) != NULL
-        || find_party_decl(ctx, name) != NULL
-        || find_roster_decl(ctx, name) != NULL
-        || find_world_decl(ctx, name) != NULL
-        || find_relation_decl(ctx, name) != NULL
-        || find_effect_decl(ctx, name) != NULL)
-        return true;
+    host_lookup_types =
+        pgy_host_decl_compat_nominal_lookup_types(&host_lookup_type_count);
+    for (size_t i = 0; host_lookup_types != NULL
+         && i < host_lookup_type_count; i++) {
+        if (transpiler_find_decl_in_inventory_local(
+                ctx, host_lookup_types[i], name)
+            != NULL) {
+            return true;
+        }
+    }
     return false;
+}
+
+ASTNode *
+transpiler_find_domain_constructor_decl_local(TranspilerCtx *ctx,
+                                              const char *name)
+{
+    const ASTNodeType *constructor_types = NULL;
+    size_t constructor_type_count = 0;
+
+    if (ctx == NULL || name == NULL)
+        return NULL;
+
+    constructor_types =
+        pgy_host_decl_compat_constructor_domain_types(
+            &constructor_type_count);
+    for (size_t i = 0; constructor_types != NULL
+         && i < constructor_type_count; i++) {
+        ASTNode *decl = transpiler_find_named_decl_local(
+            ctx, constructor_types[i], name);
+        if (decl != NULL)
+            return decl;
+    }
+    return NULL;
 }
 
 const char *
 transpiler_decl_name_local(ASTNode *decl)
 {
-    if (decl == NULL)
-        return NULL;
-
-    switch (decl->type) {
-    case AST_CLASS_DECL:
-        return ast_class_name(decl);
-    case AST_ENUM_DECL:
-        return ast_enum_name(decl);
-    case AST_ROLE_DECL:
-        return ast_role_name(decl);
-    case AST_PARTY_DECL:
-        return ast_party_name(decl);
-    case AST_ROSTER_DECL:
-        return ast_roster_name(decl);
-    case AST_RELATION_DECL:
-        return ast_relation_name(decl);
-    case AST_EFFECT_DECL:
-        return ast_effect_name(decl);
-    case AST_ZONE_DECL:
-        return ast_zone_name(decl);
-    case AST_WORLD_DECL:
-        return ast_world_name(decl);
-    default:
-        return NULL;
-    }
+    return pgy_host_decl_compat_name(decl);
 }
 
 bool
 transpiler_is_host_decl_type(ASTNodeType decl_type)
 {
-    switch (decl_type) {
-    case AST_CLASS_DECL:
-    case AST_ENUM_DECL:
-    case AST_PARTY_DECL:
-    case AST_ROLE_DECL:
-    case AST_ROSTER_DECL:
-    case AST_RELATION_DECL:
-    case AST_EFFECT_DECL:
-    case AST_ZONE_DECL:
-    case AST_WORLD_DECL:
-        return true;
-    default:
-        return false;
-    }
+    return pgy_host_decl_compat_is_type(decl_type);
 }
 
 ASTNode *

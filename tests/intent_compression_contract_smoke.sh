@@ -50,6 +50,11 @@ grep -Fq "derived who from on-call receiver" \
     "$ROOT_DIR/src/semantic/type_checker_intent_contract_summary.c"
 grep -Fq "reused zone from intent-level default" \
     "$ROOT_DIR/src/semantic/type_checker_intent_contract_summary.c"
+if grep -Fq "reused from matching action contract" \
+        "$ROOT_DIR/src/semantic/type_checker_intent_contract_summary.c"; then
+    echo "intent contract summaries must name the concrete reused axis" >&2
+    exit 1
+fi
 if grep -Fq "intent_step_derive_authorized_by_from_zone" \
         "$ROOT_DIR/src/semantic/type_checker_intent_authority.c"; then
     echo "intent who must not be promoted into authorized by" >&2

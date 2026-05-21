@@ -5,6 +5,7 @@
 
 #ifdef PGY_LLVM_ENABLED
 
+#include "host_decl_compat.h"
 #include "llvm_internal.h"
 
 void
@@ -91,50 +92,11 @@ llvm_hosted_method_view_from_decl(const LLVMGenCtx *ctx,
                                   const char *host_type_name,
                                   ASTNode *decl)
 {
-    ASTNode **ast_compat_methods = NULL;
-    size_t ast_compat_count = 0;
-
-    if (decl != NULL) {
-        switch (decl->type) {
-        case AST_CLASS_DECL:
-            ast_compat_methods = ast_class_methods(decl, &ast_compat_count);
-            break;
-        case AST_ENUM_DECL:
-            ast_compat_methods = ast_enum_methods(decl, &ast_compat_count);
-            break;
-        case AST_PARTY_DECL:
-            ast_compat_methods = ast_party_methods(decl, &ast_compat_count);
-            break;
-        case AST_ROSTER_DECL:
-            ast_compat_methods = ast_roster_methods(decl, &ast_compat_count);
-            break;
-        case AST_ROLE_DECL:
-            if (llvm_active_has_mir(ctx)) {
-                if (!ast_role_impl_method_total_count(
-                        decl, &ast_compat_count)) {
-                    ast_compat_count = (size_t)-1;
-                }
-            }
-            break;
-        case AST_WORLD_DECL:
-            ast_compat_methods = ast_world_methods(decl, &ast_compat_count);
-            break;
-        case AST_RELATION_DECL:
-            ast_compat_methods = ast_relation_methods(decl, &ast_compat_count);
-            break;
-        case AST_EFFECT_DECL:
-            ast_compat_methods = ast_effect_methods(decl, &ast_compat_count);
-            break;
-        case AST_ZONE_DECL:
-            ast_compat_methods = ast_zone_methods(decl, &ast_compat_count);
-            break;
-        default:
-            break;
-        }
-    }
+    PgyHostMethodCompatView compat =
+        pgy_host_method_compat_view_from_decl(decl, llvm_active_has_mir(ctx));
 
     return llvm_hosted_method_view(ctx, host_type_name,
-        ast_compat_methods, ast_compat_count);
+        compat.methods, compat.count);
 }
 
 const MIRDeclMethod *

@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "host_decl_compat.h"
 #include "llvm_internal_api.h"
 #include "llvm_inventory_decl_lookup.h"
 #include "parser/ast_api.h"
@@ -105,11 +106,9 @@ llvm_emit_has_projection_query(ASTNode *node, LLVMGenCtx *ctx, LLVMValueRef *out
 {
     ASTNode *host_decl = llvm_current_host_decl(ctx);
     const char *host_name = llvm_decl_node_name(host_decl);
-    ASTNode *decl = (host_decl != NULL
-        && (host_decl->type == AST_RELATION_DECL
-            || host_decl->type == AST_EFFECT_DECL
-            || host_decl->type == AST_ZONE_DECL))
-        ? host_decl : NULL;
+    ASTNode *decl = pgy_host_decl_compat_has_projection_ready_flag(host_decl)
+        ? host_decl
+        : NULL;
     LLVMClassTypeEntry *cls = host_name != NULL ? llvm_lookup_class(ctx, host_name) : NULL;
     const char *slot_name = llvm_call_name_or_string_arg(node, 0);
     int field_idx;

@@ -13,6 +13,7 @@
 #include "../common/string_compat.h"
 #include "../parser/ast_api.h"
 #include "../semantic/diag_codes.h"
+#include "host_decl_compat.h"
 #include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_projection.h"
@@ -80,10 +81,7 @@ emit_builtin_has_projection(ASTNode *call, TranspilerCtx *ctx)
         }
         {
             ASTNode *host_decl = transpiler_current_host_decl_local(ctx);
-            if (host_decl != NULL
-                && (host_decl->type == AST_RELATION_DECL
-                    || host_decl->type == AST_EFFECT_DECL
-                    || host_decl->type == AST_ZONE_DECL)) {
+            if (pgy_host_decl_compat_has_projection_ready_flag(host_decl)) {
                 return domain_query_heap_fmt("self->__projection_ready_%s",
                     slot_name);
             }

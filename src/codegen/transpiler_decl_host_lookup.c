@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "host_decl_compat.h"
 #include "transpiler_decl_lookup.h"
 
 typedef struct
@@ -27,30 +28,11 @@ static const TranspilerHostOwnerLookup kTranspilerHostOwnerLookups[] = {
     { AST_CLASS_DECL, AST_CLASS_DECL },
 };
 
-static const ASTNodeType kTranspilerNominalHostLookupTypes[] = {
-    AST_RELATION_DECL,
-    AST_EFFECT_DECL,
-    AST_ZONE_DECL,
-    AST_WORLD_DECL,
-    AST_PARTY_DECL,
-    AST_ROLE_DECL,
-    AST_ROSTER_DECL,
-    AST_ENUM_DECL,
-    AST_CLASS_DECL,
-};
-
 static size_t
 transpiler_host_owner_lookup_count(void)
 {
     return sizeof(kTranspilerHostOwnerLookups)
         / sizeof(kTranspilerHostOwnerLookups[0]);
-}
-
-static size_t
-transpiler_nominal_host_lookup_type_count(void)
-{
-    return sizeof(kTranspilerNominalHostLookupTypes)
-        / sizeof(kTranspilerNominalHostLookupTypes[0]);
 }
 
 static bool
@@ -227,6 +209,8 @@ transpiler_find_nominal_host_decl_local(TranspilerCtx *ctx,
                                         const char *host_type_name)
 {
     ASTNode *decl = NULL;
+    const ASTNodeType *host_lookup_types = NULL;
+    size_t host_lookup_type_count = 0;
 
     if (ctx == NULL || host_type_name == NULL)
         return NULL;
@@ -237,9 +221,12 @@ transpiler_find_nominal_host_decl_local(TranspilerCtx *ctx,
         return ctx->last_nominal_host_decl;
     }
 
-    for (size_t i = 0; i < transpiler_nominal_host_lookup_type_count(); i++) {
+    host_lookup_types =
+        pgy_host_decl_compat_nominal_lookup_types(&host_lookup_type_count);
+    for (size_t i = 0; host_lookup_types != NULL
+         && i < host_lookup_type_count; i++) {
         decl = transpiler_find_decl_in_inventory_local(
-            ctx, kTranspilerNominalHostLookupTypes[i], host_type_name);
+            ctx, host_lookup_types[i], host_type_name);
         if (decl != NULL)
             goto cache_and_return;
     }

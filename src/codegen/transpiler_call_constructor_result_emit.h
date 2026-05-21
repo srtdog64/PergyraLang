@@ -32,34 +32,8 @@ emit_call_domain_constructor(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
     }
 
     {
-        ASTNode *decl = find_party_decl(ctx, fn);
-        if (decl != NULL && decl->type == AST_PARTY_DECL)
-            return transpiler_emit_domain_constructor_for_decl(
-                call, decl, fn, ctx);
-    }
-    {
-        ASTNode *decl = find_roster_decl(ctx, fn);
-        if (decl != NULL && decl->type == AST_ROSTER_DECL)
-            return transpiler_emit_domain_constructor_for_decl(
-                call, decl, fn, ctx);
-    }
-    {
-        ASTNode *relation_decl = find_relation_decl(ctx, fn);
-        ASTNode *effect_decl = find_effect_decl(ctx, fn);
-        ASTNode *decl = relation_decl != NULL ? relation_decl : effect_decl;
+        ASTNode *decl = transpiler_find_domain_constructor_decl_local(ctx, fn);
         if (decl != NULL)
-            return transpiler_emit_domain_constructor_for_decl(
-                call, decl, fn, ctx);
-    }
-    {
-        ASTNode *decl = find_zone_decl(ctx, fn);
-        if (decl != NULL && decl->type == AST_ZONE_DECL)
-            return transpiler_emit_domain_constructor_for_decl(
-                call, decl, fn, ctx);
-    }
-    {
-        ASTNode *decl = find_world_decl(ctx, fn);
-        if (decl != NULL && decl->type == AST_WORLD_DECL)
             return transpiler_emit_domain_constructor_for_decl(
                 call, decl, fn, ctx);
     }

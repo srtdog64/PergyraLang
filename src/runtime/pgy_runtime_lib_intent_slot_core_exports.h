@@ -99,6 +99,7 @@ pgy_intent_exit_export(int32_t handle)
         entry->name = NULL;
         entry->subjects = NULL;
         entry->subject_count = 0;
+        entry->subject_fingerprint = 0;
         entry->is_concurrent = false;
         entry->priority = 0;
         entry->trace_id = 0;

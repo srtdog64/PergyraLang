@@ -269,6 +269,8 @@ typedef struct
 {
     LLVMVarEntry entries[MAX_SCOPE_VARS];
     int          count;
+    const char  *last_lookup_name;
+    LLVMVarEntry *last_lookup;
 } LLVMScopeFrame;
 
 typedef struct

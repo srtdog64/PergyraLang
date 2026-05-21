@@ -3,6 +3,7 @@
 
 #include "../common/string_compat.h"
 #include "../parser/ast_api.h"
+#include "host_decl_compat.h"
 
 char *
 emit_expression(ASTNode *node, TranspilerCtx *ctx)
@@ -233,13 +234,7 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
             && strcmp(ast_identifier_name(member_object), "self") == 0) {
             ASTNode *host_decl = transpiler_current_host_decl_local(ctx);
             bool self_is_pointer = current_class_uses_self_cell(ctx)
-                || (host_decl != NULL
-                    && (host_decl->type == AST_PARTY_DECL
-                        || host_decl->type == AST_ROSTER_DECL
-                        || host_decl->type == AST_RELATION_DECL
-                        || host_decl->type == AST_EFFECT_DECL
-                        || host_decl->type == AST_ZONE_DECL
-                        || host_decl->type == AST_WORLD_DECL));
+                || pgy_host_decl_compat_uses_pointer_self(host_decl);
             char *result = strdup_fmt(self_is_pointer
                 ? "%s->%s"
                 : "%s.%s", obj, member_name);

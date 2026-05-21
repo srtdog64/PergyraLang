@@ -160,12 +160,8 @@ transpiler_infer_local_type_name_from_expr(TranspilerCtx *ctx,
                 return copied;
             }
             if (find_class_decl(ctx, callee_name) != NULL
-                || find_zone_decl(ctx, callee_name) != NULL
-                || find_world_decl(ctx, callee_name) != NULL
-                || find_relation_decl(ctx, callee_name) != NULL
-                || find_effect_decl(ctx, callee_name) != NULL
-                || find_party_decl(ctx, callee_name) != NULL
-                || find_roster_decl(ctx, callee_name) != NULL) {
+                || transpiler_find_domain_constructor_decl_local(
+                    ctx, callee_name) != NULL) {
                 return callee_name;
             }
         }

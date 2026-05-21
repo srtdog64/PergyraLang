@@ -46,6 +46,13 @@ type_check_if_stmt_flow(ASTNode *node, SemanticContext *ctx,
     uint32_t then_effect_delta = EFFECT_NONE;
     uint32_t else_effect_delta = EFFECT_NONE;
 
+    if (!base.valid) {
+        semantic_error(ctx, node,
+            "Resource snapshot allocation failed before if/else analysis");
+        destroy_resource_snapshot(&base);
+        return FLOW_NONE;
+    }
+
     if (!type_equals(cond, TYPE_BOOL)) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_TYPE_MISMATCH,
             PGY_CAUSE_CONDITION_NON_BOOL, PGY_FIX_CONVERT_CONDITION_TO_BOOL,
@@ -65,6 +72,12 @@ type_check_if_stmt_flow(ASTNode *node, SemanticContext *ctx,
     flags |= flow_terminating_flags(then_flags);
     if (flow_has_fallthrough(then_flags)) {
         ResourceConsumeSnapshot then_snap = snapshot_resource_states(ctx);
+        if (!then_snap.valid) {
+            semantic_error(ctx, ast_if_then_branch(node) != NULL
+                ? ast_if_then_branch(node)
+                : node,
+                "Resource snapshot allocation failed while checking if branch");
+        }
         merge_resource_snapshots_or(&fallthrough, &has_fallthrough, &then_snap);
         destroy_resource_snapshot(&then_snap);
         flags |= FLOW_FALLTHROUGH;
@@ -85,6 +98,10 @@ type_check_if_stmt_flow(ASTNode *node, SemanticContext *ctx,
         flags |= flow_terminating_flags(else_flags);
         if (flow_has_fallthrough(else_flags)) {
             ResourceConsumeSnapshot else_snap = snapshot_resource_states(ctx);
+            if (!else_snap.valid) {
+                semantic_error(ctx, ast_if_else_branch(node),
+                    "Resource snapshot allocation failed while checking else branch");
+            }
             merge_resource_snapshots_or(&fallthrough, &has_fallthrough, &else_snap);
             destroy_resource_snapshot(&else_snap);
             flags |= FLOW_FALLTHROUGH;
@@ -109,6 +126,11 @@ type_check_if_stmt_flow(ASTNode *node, SemanticContext *ctx,
     ctx->current_function_effects = type_effect_mask_join(
         effect_base,
         type_effect_mask_join(then_effect_delta, else_effect_delta));
+
+    if (has_fallthrough && !fallthrough.valid) {
+        semantic_error(ctx, node,
+            "Resource snapshot merge failed while joining if/else branches");
+    }
 
     if (has_fallthrough)
         restore_resource_states(&fallthrough);
@@ -135,6 +157,13 @@ type_check_match_stmt_flow(ASTNode *node, SemanticContext *ctx,
     bool has_fallthrough = false;
     bool match_has_defer = false;
     FlowFlags flags = FLOW_NONE;
+
+    if (!base.valid) {
+        semantic_error(ctx, node,
+            "Resource snapshot allocation failed before match analysis");
+        destroy_resource_snapshot(&base);
+        return FLOW_NONE;
+    }
 
     if (!flow_match_subject_is_beta_supported(subj_type)) {
         semantic_error_with_hints(ctx,
@@ -193,6 +222,10 @@ type_check_match_stmt_flow(ASTNode *node, SemanticContext *ctx,
         flags |= flow_terminating_flags(case_flags);
         if (flow_has_fallthrough(case_flags)) {
             ResourceConsumeSnapshot case_snap = snapshot_resource_states(ctx);
+            if (!case_snap.valid) {
+                semantic_error(ctx, mc,
+                    "Resource snapshot allocation failed while checking match case");
+            }
             merge_resource_snapshots_or(&fallthrough,
                                         &has_fallthrough,
                                         &case_snap);
@@ -228,6 +261,10 @@ type_check_match_stmt_flow(ASTNode *node, SemanticContext *ctx,
         flags |= flow_terminating_flags(default_flags);
         if (flow_has_fallthrough(default_flags)) {
             ResourceConsumeSnapshot default_snap = snapshot_resource_states(ctx);
+            if (!default_snap.valid) {
+                semantic_error(ctx, ast_match_default_body(node),
+                    "Resource snapshot allocation failed while checking match default");
+            }
             merge_resource_snapshots_or(&fallthrough,
                                         &has_fallthrough,
                                         &default_snap);
@@ -246,6 +283,11 @@ type_check_match_stmt_flow(ASTNode *node, SemanticContext *ctx,
     check_match_exhaustiveness(node, subj_type, ctx);
     ctx->current_function_effects =
         type_effect_mask_join(effect_base, merged_effect_delta);
+
+    if (has_fallthrough && !fallthrough.valid) {
+        semantic_error(ctx, node,
+            "Resource snapshot merge failed while joining match cases");
+    }
 
     if (has_fallthrough)
         restore_resource_states(&fallthrough);

@@ -31,8 +31,15 @@ unsigned slot_analyze_escape_flags(ASTNode *node, const char *slot_name);
 unsigned slot_analyze_escape_flags_in_program(ASTNode *node,
                                               const char *slot_name,
                                               ASTNode *program_root);
-unsigned slot_analyze_param_summary_in_program(ASTNode *node,
-                                               const char *slot_name,
-                                               ASTNode *program_root);
+/*
+ * Compatibility seam: AST-walking parameter summaries are retained for
+ * diagnostic/provenance coverage while CFG/MIR body facts are being promoted
+ * to the beta-final source of truth. New safety consumers should prefer
+ * CFG/MIR facts; use this name only when the AST compatibility path is
+ * intentionally accepted and smoke-gated.
+ */
+unsigned slot_analyze_legacy_ast_param_summary_in_program(ASTNode *node,
+                                                          const char *slot_name,
+                                                          ASTNode *program_root);
 
 #endif /* PERGYRA_SLOT_SUMMARY_H */

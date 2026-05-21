@@ -68,6 +68,28 @@ semantic_type_resolution_metadata_type_ref_has_no_generic_args(
         && ast_generic_param_count(ast_type_generic_args(type_node)) == 0;
 }
 
+Type *
+semantic_type_resolution_lookup_metadata_name_or_alias_or_unknown(
+    SemanticContext *ctx,
+    const char *name,
+    ASTNode *site)
+{
+    Type *resolved;
+
+    if (name == NULL || name[0] == '\0')
+        return TYPE_UNKNOWN;
+
+    resolved = semantic_type_resolution_lookup_metadata_name_or_alias(ctx,
+                                                                      name);
+    if (resolved != NULL)
+        return resolved;
+
+    semantic_error_with_hints(ctx, PGY_CODE_SEM_UNKNOWN_TYPE,
+        PGY_CAUSE_TYPE_UNKNOWN, PGY_FIX_IMPORT_OR_DECLARE_TYPE, site,
+        "Unknown type '%s'", name);
+    return TYPE_UNKNOWN;
+}
+
 bool
 semantic_type_resolution_metadata_stable_builtin_shell_arity(
     const char *name,

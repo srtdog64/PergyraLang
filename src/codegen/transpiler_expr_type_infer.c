@@ -470,15 +470,7 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
                 && ast_identifier_name(arg0) != NULL) {
                 return ast_identifier_name(arg0);
             }
-            if (find_class_decl(ctx, name) != NULL
-                || find_subject_host_decl(ctx, name) != NULL
-                || find_party_decl(ctx, name) != NULL
-                || find_role_decl(ctx, name) != NULL
-                || find_roster_decl(ctx, name) != NULL
-                || find_relation_decl(ctx, name) != NULL
-                || find_effect_decl(ctx, name) != NULL
-                || find_zone_decl(ctx, name) != NULL
-                || find_world_decl(ctx, name) != NULL) {
+            if (transpiler_has_known_nominal_type(ctx, name)) {
                 return name;
             }
             if (find_intent_decl(ctx, name) != NULL)

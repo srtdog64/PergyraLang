@@ -228,11 +228,11 @@ driver_format_air_authority_names(const AIRBoundaryNode *boundary,
     if (out == NULL || out_size == 0)
         return false;
     out[0] = '\0';
-    if (boundary == NULL || boundary->authority_names == NULL)
+    if (boundary == NULL)
         return false;
 
-    for (size_t i = 0; i < boundary->authority_name_count; i++) {
-        const char *name = boundary->authority_names[i];
+    for (size_t i = 0; i < air_boundary_authority_name_count(boundary); i++) {
+        const char *name = air_boundary_authority_name_at(boundary, i);
         int written;
 
         if (name == NULL || name[0] == '\0')

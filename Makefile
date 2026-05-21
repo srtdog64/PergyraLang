@@ -460,6 +460,7 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_allocator_builtin_emit.c \
                    $(CODEGEN_DIR)/codegen_scalar_arithmetic_policy.c \
                    $(CODEGEN_DIR)/codegen_slot_type_policy.c \
                    $(CODEGEN_DIR)/domain_frontier_policy.c \
+                   $(CODEGEN_DIR)/host_decl_compat.c \
                    $(CODEGEN_DIR)/intent_observability_usage.c \
                    $(CODEGEN_DIR)/transpiler_intent_observability_builtin_emit.c \
                    $(CODEGEN_DIR)/transpiler_builtin_type_table.c \
@@ -1426,6 +1427,34 @@ perf-contract-test-smoke:
 
 perf-c-baseline-test-smoke: $(PGY)
 	PGY_BIN="$(PGY)" CC="$(CC)" "$(BASH)" tests/perf_c_baseline_smoke.sh
+
+# ============================================================
+# Compile-Speed Timing Baseline (docs/126 §7)
+#
+# Walks the regression suite and records per-phase wall-clock
+# into review/timing_baseline_YYYYMMDD.log so future PRs can
+# diff against a baseline. Not for release-time perf claims;
+# this is engineering-discipline measurement only.
+# ============================================================
+timing: $(PGY)
+	@echo "=== Compile-speed timing baseline (docs/126 §7) ==="
+	@mkdir -p review
+	@TIMING_LOG="review/timing_baseline_$$(date +%Y%m%d).log"; \
+	echo "# Pergyra compile-speed timing baseline" > $$TIMING_LOG; \
+	echo "# date: $$(date -Iseconds)" >> $$TIMING_LOG; \
+	echo "# cc:   $$($(CC) --version | head -n1)" >> $$TIMING_LOG; \
+	echo "# host: $$(uname -srm)" >> $$TIMING_LOG; \
+	echo "" >> $$TIMING_LOG; \
+	for ex in examples/basic.pgy examples/battle_sim.pgy examples/async_demo.pgy; do \
+	  if [ -f "$$ex" ]; then \
+	    echo "## $$ex" >> $$TIMING_LOG; \
+	    /usr/bin/time -f "wall_seconds=%e user_seconds=%U sys_seconds=%S max_rss_kb=%M" \
+	      $(PGY) "$$ex" --emit-llvm -o /tmp/pgy_timing_out 2>>$$TIMING_LOG || \
+	      $(PGY) "$$ex" --emit-llvm -o /tmp/pgy_timing_out 2>&1 | head -n3 >> $$TIMING_LOG; \
+	    echo "" >> $$TIMING_LOG; \
+	  fi; \
+	done; \
+	echo "[timing] baseline written to $$TIMING_LOG"
 
 test-concurrency: $(CONCURRENCY_TEST)
 	@echo "=== Concurrency Test ==="

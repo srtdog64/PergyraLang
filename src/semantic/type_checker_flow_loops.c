@@ -10,6 +10,7 @@ resource_snapshot_count_fits(size_t count)
 {
     return count <= SIZE_MAX / sizeof(Symbol *)
         && count <= SIZE_MAX / sizeof(bool)
+        && count <= SIZE_MAX / sizeof(uint8_t)
         && count <= SIZE_MAX / sizeof(SlotState)
         && count <= SIZE_MAX / sizeof(QubitSemanticState)
         && count <= SIZE_MAX / sizeof(int32_t);
@@ -21,6 +22,8 @@ resource_snapshots_equal(const ResourceConsumeSnapshot *a,
 {
     if (a == NULL || b == NULL)
         return a == b;
+    if (!a->valid || !b->valid)
+        return false;
     if (a->count != b->count)
         return false;
     for (size_t i = 0; i < a->count; i++) {
@@ -29,6 +32,8 @@ resource_snapshots_equal(const ResourceConsumeSnapshot *a,
         if (a->states[i] != b->states[i])
             return false;
         if (a->used_states[i] != b->used_states[i])
+            return false;
+        if (a->access_masks[i] != b->access_masks[i])
             return false;
         if (a->slot_states[i] != b->slot_states[i])
             return false;
@@ -72,27 +77,38 @@ static ResourceConsumeSnapshot
 copy_resource_snapshot(const ResourceConsumeSnapshot *src)
 {
     ResourceConsumeSnapshot dst = {0};
-    if (src == NULL || src->count == 0)
+    if (src == NULL)
         return dst;
-    if (!resource_snapshot_count_fits(src->count))
+    dst.valid = src->valid;
+    if (!src->valid)
         return dst;
+    if (src->count == 0)
+        return dst;
+    if (!resource_snapshot_count_fits(src->count)) {
+        dst.valid = false;
+        return dst;
+    }
 
     dst.symbols    = calloc(src->count, sizeof(Symbol *));
     dst.states     = calloc(src->count, sizeof(bool));
     dst.used_states = calloc(src->count, sizeof(bool));
+    dst.access_masks = calloc(src->count, sizeof(uint8_t));
     dst.slot_states = calloc(src->count, sizeof(SlotState));
     dst.sem_states = calloc(src->count, sizeof(QubitSemanticState));
     dst.pool_ids   = calloc(src->count, sizeof(int32_t));
     if (dst.symbols == NULL || dst.states == NULL
-        || dst.used_states == NULL || dst.slot_states == NULL
+        || dst.used_states == NULL || dst.access_masks == NULL
+        || dst.slot_states == NULL
         || dst.sem_states == NULL || dst.pool_ids == NULL) {
         destroy_resource_snapshot(&dst);
+        dst.valid = false;
         return dst;
     }
 
     memcpy(dst.symbols, src->symbols, src->count * sizeof(Symbol *));
     memcpy(dst.states, src->states, src->count * sizeof(bool));
     memcpy(dst.used_states, src->used_states, src->count * sizeof(bool));
+    memcpy(dst.access_masks, src->access_masks, src->count * sizeof(uint8_t));
     memcpy(dst.slot_states, src->slot_states, src->count * sizeof(SlotState));
     memcpy(dst.sem_states, src->sem_states, src->count * sizeof(QubitSemanticState));
     memcpy(dst.pool_ids, src->pool_ids, src->count * sizeof(int32_t));
@@ -111,8 +127,10 @@ merge_resource_snapshots_or(ResourceConsumeSnapshot *dst,
 
     if (!*dst_initialized) {
         ResourceConsumeSnapshot copy = copy_resource_snapshot(src);
-        if (src->count > 0 && copy.count != src->count) {
+        if (!copy.valid || (src->count > 0 && copy.count != src->count)) {
             destroy_resource_snapshot(&copy);
+            dst->valid = false;
+            *dst_initialized = true;
             return;
         }
         *dst = copy;
@@ -216,6 +234,20 @@ type_check_for_loop_flow(ASTNode *node, SemanticContext *ctx)
     if (max_iterations == 0)
         max_iterations = 1;
 
+    if (!base.valid || !merged.valid || !entry.valid) {
+        semantic_error(ctx, node,
+            "Resource snapshot allocation failed before for-loop analysis");
+        ctx->loop_depth--;
+        if (ctx->loop_depth >= 0 && ctx->loop_depth < SEMANTIC_MAX_LOOP_DEPTH)
+            ctx->loop_labels[ctx->loop_depth] = NULL;
+        scope_exit(&ctx->scope);
+        ctx->current_function_effects = effect_base;
+        destroy_resource_snapshot(&base);
+        destroy_resource_snapshot(&merged);
+        destroy_resource_snapshot(&entry);
+        return FLOW_FALLTHROUGH;
+    }
+
     for (size_t iter = 0; iter < max_iterations; iter++) {
         LoopFlowState loop_flow = {0};
         ResourceConsumeSnapshot backedge = {0};
@@ -244,6 +276,13 @@ type_check_for_loop_flow(ASTNode *node, SemanticContext *ctx)
             iter_effect_delta);
         if (body_flags & FLOW_FALLTHROUGH) {
             ResourceConsumeSnapshot body_snap = snapshot_resource_states(ctx);
+            if (!body_snap.valid) {
+                semantic_error(ctx, body != NULL ? body : node,
+                    "Resource snapshot allocation failed while checking for-loop body");
+                destroy_resource_snapshot(&body_snap);
+                destroy_loop_flow_state(&loop_flow);
+                break;
+            }
             merge_resource_states_or(&merged, &body_snap);
             merge_resource_snapshots_or(&backedge, &has_backedge, &body_snap);
             destroy_resource_snapshot(&body_snap);
@@ -260,6 +299,13 @@ type_check_for_loop_flow(ASTNode *node, SemanticContext *ctx)
             body_must_return = true;
 
         destroy_loop_flow_state(&loop_flow);
+
+        if ((has_backedge && !backedge.valid) || !merged.valid) {
+            semantic_error(ctx, node,
+                "Resource snapshot merge failed while checking for-loop flow");
+            destroy_resource_snapshot(&backedge);
+            break;
+        }
 
         if (!has_backedge) {
             destroy_resource_snapshot(&backedge);
@@ -351,6 +397,20 @@ type_check_while_loop_flow(ASTNode *node, SemanticContext *ctx)
     if (max_iterations == 0)
         max_iterations = 1;
 
+    if (!base.valid || !merged.valid || !entry.valid) {
+        semantic_error(ctx, node,
+            "Resource snapshot allocation failed before while-loop analysis");
+        ctx->loop_depth--;
+        if (ctx->loop_depth >= 0 && ctx->loop_depth < SEMANTIC_MAX_LOOP_DEPTH)
+            ctx->loop_labels[ctx->loop_depth] = NULL;
+        scope_exit(&ctx->scope);
+        ctx->current_function_effects = effect_base;
+        destroy_resource_snapshot(&base);
+        destroy_resource_snapshot(&merged);
+        destroy_resource_snapshot(&entry);
+        return FLOW_FALLTHROUGH;
+    }
+
     for (size_t iter = 0; iter < max_iterations; iter++) {
         LoopFlowState loop_flow = {0};
         ResourceConsumeSnapshot backedge = {0};
@@ -391,6 +451,15 @@ type_check_while_loop_flow(ASTNode *node, SemanticContext *ctx)
             iter_effect_delta);
         if (body_flags & FLOW_FALLTHROUGH) {
             ResourceConsumeSnapshot body_snap = snapshot_resource_states(ctx);
+            if (!body_snap.valid) {
+                semantic_error(ctx, ast_while_body(node) != NULL
+                    ? ast_while_body(node)
+                    : node,
+                    "Resource snapshot allocation failed while checking while-loop body");
+                destroy_resource_snapshot(&body_snap);
+                destroy_loop_flow_state(&loop_flow);
+                break;
+            }
             merge_resource_states_or(&merged, &body_snap);
             merge_resource_snapshots_or(&backedge, &has_backedge, &body_snap);
             destroy_resource_snapshot(&body_snap);
@@ -407,6 +476,13 @@ type_check_while_loop_flow(ASTNode *node, SemanticContext *ctx)
             body_must_return = true;
 
         destroy_loop_flow_state(&loop_flow);
+
+        if ((has_backedge && !backedge.valid) || !merged.valid) {
+            semantic_error(ctx, node,
+                "Resource snapshot merge failed while checking while-loop flow");
+            destroy_resource_snapshot(&backedge);
+            break;
+        }
 
         if (!has_backedge) {
             destroy_resource_snapshot(&backedge);

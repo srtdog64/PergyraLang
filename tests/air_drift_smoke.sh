@@ -125,6 +125,8 @@ run_literal_air_drift_smoke() {
     require_literal "src/compiler/air_names.c" "air_next_capacity"
     require_literal "src/compiler/air_evidence_node.c" "air_next_capacity(&new_capacity"
     require_literal "src/compiler/air_evidence_node.c" "kEvidenceKindMeta"
+    require_literal "src/compiler/air_evidence_node.c" "bool present"
+    require_literal "src/compiler/air_evidence_node.c" "if (!kEvidenceKindMeta[kind].present)"
     require_literal "src/compiler/air_evidence_node.c" "air_evidence_kind_has_global_validator"
     require_literal "src/compiler/air_validate_global_evidence.c" "air_evidence_kind_has_global_validator"
     require_literal "src/compiler/air_evidence_node.c" "AIR evidence append requires a known evidence kind"
@@ -134,12 +136,16 @@ run_literal_air_drift_smoke() {
     require_literal "src/compiler/driver_app.c" "air_synthesize"
     require_literal "docs/72_diagnostic_codes.md" "PGY_SEM_INTENT_BOUNDARY_DRIFT"
     require_literal "src/test_air.c" "AIR strict evidence requires MIR pin cleanup"
+    require_literal "src/test_air.c" "AIR who inference does not imply authority"
+    require_literal "src/tests/air/test_air_core_part_a.cases.h" "test_air_who_inference_does_not_imply_authority"
+    require_literal "src/tests/air/test_air_core_part_a.cases.h" "!air->boundaries[0].authority_required"
     require_literal "src/test_air.c" "AIR strict evidence rejects observability counter only"
     require_literal "src/test_air.c" "AIR strict evidence rejects frontier counter only"
     require_literal "src/test_air.c" "AIR ignores orphan MIR cleanup root evidence"
     require_literal "src/test_air.c" "AIR verify rejects invalid drift inventory"
     require_literal "src/test_air.c" "AIR verify rejects duplicate evidence nodes"
     require_literal "src/test_air.c" "AIR append merges duplicate evidence nodes"
+    require_literal "src/test_air.c" "AIR append rejects unknown evidence kind"
     require_literal "src/test_air.c" "AIR collects MIR terminator evidence"
     require_literal "src/test_air.c" "AIR rejects MIR evidence without routine provider"
     require_literal "src/compiler/air_evidence_mir.c" "AIR MIR evidence requires routine name or owner provenance"
@@ -627,6 +633,8 @@ required_driver_terms = [
     "air_synthesize(hir, dir, rir",
     "driver_emit_air_drift_fail",
     "driver_format_air_authority_names",
+    "air_boundary_authority_name_count(boundary)",
+    "air_boundary_authority_name_at(boundary, i)",
     "driver_format_air_evidence_summary",
     "PGY_CODE_SEM_INTENT_BOUNDARY_DRIFT",
     "PGY_CODE_SEM_INTENT_BOUNDARY_EVIDENCE_MISSING",
@@ -716,6 +724,9 @@ required_evidence_shape_terms = [
     (air_impl, "AIR HIR CFG evidence node", "AIR HIR CFG evidence shape rejection"),
     (air_impl, "AIR RIR authority evidence node", "AIR RIR authority evidence shape rejection"),
     (air_impl, "AIR MIR pin cleanup evidence node", "AIR MIR pin cleanup boundary rejection"),
+    (air_impl, "bool present", "AIR evidence kind explicit presence bit"),
+    (air_impl, "if (!kEvidenceKindMeta[kind].present)", "AIR evidence kind missing-meta rejection"),
+    (air_impl, "AIR evidence append requires a known evidence kind", "AIR unknown evidence append rejection"),
 ]
 missing_evidence_shape_terms = [label for text, needle, label in required_evidence_shape_terms if needle not in text]
 if missing_evidence_shape_terms:
@@ -987,6 +998,7 @@ required_test_terms = [
     "mir_select_receive_evidence_count",
     "AIR collects MIR terminator evidence",
     "AIR collects MIR select receive evidence",
+    "AIR append rejects unknown evidence kind",
     "AIR rejects MIR evidence counter mismatch",
     "AIR collects Void fallthrough terminator evidence",
     "AIR collects MIR pin cleanup evidence",

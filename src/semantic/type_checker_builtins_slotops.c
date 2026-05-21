@@ -190,6 +190,7 @@ type_check_write_slot(ASTNode *call, SemanticContext *ctx)
                     "Write to plain Slot '%s' ignores extra token argument",
                     sym->name);
             }
+            sym->slot_flow_access_mask |= PGY_SLOT_FLOW_ACCESS_WRITE;
         } else if (sym != NULL && type_is_write_view(sym->type)
                    && sym->slot_info.paired_slot_name != NULL) {
             Symbol *owner = scope_lookup(ctx->scope, sym->slot_info.paired_slot_name);
@@ -201,6 +202,8 @@ type_check_write_slot(ASTNode *call, SemanticContext *ctx)
             }
             if (owner != NULL && owner->slot_info.is_secure)
                 semantic_record_effect(ctx, EFFECT_SECURE);
+            if (owner != NULL)
+                owner->slot_flow_access_mask |= PGY_SLOT_FLOW_ACCESS_WRITE;
         }
     }
 
@@ -317,6 +320,7 @@ type_check_read_slot(ASTNode *call, SemanticContext *ctx)
                 if (!builtin_validate_secure_token_arg(token_arg, sym, slot_type, ctx))
                     return TYPE_UNKNOWN;
             }
+            sym->slot_flow_access_mask |= PGY_SLOT_FLOW_ACCESS_READ;
         } else if (sym != NULL && type_is_read_view(sym->type)
                    && sym->slot_info.paired_slot_name != NULL) {
             Symbol *owner = scope_lookup(ctx->scope, sym->slot_info.paired_slot_name);
@@ -328,6 +332,8 @@ type_check_read_slot(ASTNode *call, SemanticContext *ctx)
             }
             if (owner != NULL && owner->slot_info.is_secure)
                 semantic_record_effect(ctx, EFFECT_SECURE);
+            if (owner != NULL)
+                owner->slot_flow_access_mask |= PGY_SLOT_FLOW_ACCESS_READ;
         }
     }
 
@@ -443,6 +449,7 @@ type_check_release_slot(ASTNode *call, SemanticContext *ctx)
         return false;
     }
 
+    sym->slot_flow_access_mask |= PGY_SLOT_FLOW_ACCESS_RELEASE;
     scope_release_slot(ctx->scope, slot_name);
     return true;
 }

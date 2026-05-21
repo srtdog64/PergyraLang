@@ -711,6 +711,19 @@ if grep -Fq "free(base)" src/semantic/type_checker_assignment_path.c; then
     fail "assignment target path owner must release intermediate paths through semantic_assignment_path_release"
 fi
 
+grep -Fq "if (!slot_analyze_block(body, sa))" \
+    src/semantic/slot_analyzer.c \
+    || fail "slot analyzer function bodies must propagate child analysis failure"
+grep -Fq "&& !slot_analyze_func_body(stmt, sa)" \
+    src/semantic/slot_analyzer.c \
+    || fail "slot analyzer program pass must propagate failed function-body analysis"
+grep -Fq "if (!slot_analyze_program(ast, sa) && !ctx->has_error)" \
+    src/semantic/semantic.c \
+    || fail "semantic entry must convert slot analyzer internal failure into a diagnostic"
+grep -Fq "Slot resource-boundary analysis could not allocate state" \
+    src/semantic/semantic.c \
+    || fail "semantic entry must fail closed when slot analyzer allocation fails"
+
 if grep -R "data\.func_decl\.\(param_count\|params\|return_type\|body\)" \
     src/semantic/slot_analyzer.c \
     src/semantic/slot_analyzer_escape.c \

@@ -5,7 +5,7 @@
  * Function parameter ownership escape summary checks.
  */
 
-#include "slot_analyzer.h"
+#include "slot_summary.h"
 #include "type_checker_internal.h"
 #include "type_checker_ownership_consumers_internal.h"
 #include "type_checker_ownership_internal.h"
@@ -35,7 +35,7 @@ semantic_check_param_summary_escapes(ASTNode *node,
         if (ownership_class == OWNERSHIP_TYPE_COPY_ONLY)
             continue;
 
-        summary_mask = slot_analyze_param_summary_in_program(
+        summary_mask = slot_analyze_legacy_ast_param_summary_in_program(
             ast_func_body(node), param->name, ctx->program_root);
         if ((summary_mask & (SLOT_PARAM_SUMMARY_RETURN_ESCAPE
                 | SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE

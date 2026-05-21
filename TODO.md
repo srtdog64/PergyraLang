@@ -2,6 +2,18 @@
 
 English anchor for tooling/doc gates:
 
+- Rework loop guard: beta closure work must not keep rewriting already gated
+  seams. Once a seam has a named owner plus a smoke gate, further edits are
+  allowed only for a concrete bug, a missing consumer, or a broken gate. Current
+  locked seams include generic parameter accessors, DAG metadata unknown-type
+  diagnostics, AIR EvidenceNode/dump/boundary evidence accessors,
+  `host_decl_compat.c`, C/LLVM domain-constructor lookup, and party-slot ability
+  selection helpers. The next beta-progress work should target one of the
+  remaining source-of-truth blockers instead: CFG/body safety consumers, AIR
+  boundary verification coverage, DAG recursive compatibility seams, runtime
+  frontier propagation, or ABI ownership/raw/runtime-none policy. Do not count
+  additional helper reshuffling inside locked seams as beta progress unless it
+  removes an actual duplicate semantic decision.
 - README, `docs/37_compiler_contracts.md`, and
   `docs/42_keyword_orthogonality.md` were normalized back to readable UTF-8 /
   ASCII surface text. The docs now state the Resource / Execution / Domain /
@@ -49,6 +61,16 @@ English anchor for tooling/doc gates:
   evidence from being mistaken for a generic ability-summary mirror. Gates:
   `perf-contract-test-smoke`, `type-resolution-dag-test-smoke`, and
   `test-semantic`.
+- DAG metadata unknown-type diagnostics now have a single owner API:
+  `semantic_type_resolution_lookup_metadata_name_or_alias_or_unknown(...)`.
+  Expression member access, hosted-field lookup, and overlay world-zone binding
+  no longer carry local copies of the same metadata lookup + unknown-type
+  diagnostic path. This keeps owner-local semantic consumers metadata-first
+  while preventing divergent fallback wording. Gates:
+  `type-resolution-resolver-inventory-test-smoke`,
+  `type-resolution-dag-test-smoke`, `build-source-inventory-test-smoke`, and
+  `test-semantic`. The resolver inventory smoke rejects reintroducing the
+  previous expression/host/overlay local helper names.
 - AIR parsed-source transfer/world negative coverage now exists on the source
   lowering path: the AIR test lowers a real `transfer` intent, removes the
   world boundary's boundary-scoped RIR transfer evidence, and verifies strict
@@ -56,6 +78,17 @@ English anchor for tooling/doc gates:
   boundary source. This closes the previous source-backed transfer/world
   negative gap; remaining AIR parsed negatives are later execution-boundary
   drifts that become semantically valid instead of pre-AIR rejected.
+- AIR now gates the `who != authority` policy explicitly. `who` provenance
+  (`who_from_intent_default`, `who_from_on_receiver`, single-participant
+  inference) is actor/source evidence only; it must not imply
+  `authority_required` or synthesize authority participants. The AIR suite has
+  a no-authority zone boundary case, and `air-drift-test-smoke` pins the
+  regression terms. Gates: `test-air` and `air-drift-test-smoke`.
+- AIR evidence-kind metadata is now fail-closed. `kEvidenceKindMeta` carries an
+  explicit `present` bit, and `air_evidence_kind_is_known(...)` rejects enum
+  values whose table entry was not intentionally initialized. This prevents a
+  future `AIR_EVIDENCE_*` enum addition from silently becoming a valid
+  non-boundary, non-validated evidence kind. Gate: `air-drift-test-smoke`.
 - AIR text dump and driver diagnostic evidence summaries now read provider /
   subject provenance from `AIREvidenceNode` inventory instead of reopening
   boundary summary name fields. The shared
@@ -63,6 +96,12 @@ English anchor for tooling/doc gates:
   for user-facing evidence details. The summary booleans remain compatibility
   telemetry; EvidenceNode inventory is the display and verification source of
   truth for AIR evidence details.
+- AIR driver diagnostics now also consume the authority-name read seam.
+  `driver_format_air_authority_names(...)` uses
+  `air_boundary_authority_name_count(...)` /
+  `air_boundary_authority_name_at(...)` instead of reopening
+  `AIRBoundaryNode.authority_names` directly. `perf-contract-test-smoke` and
+  `air-drift-test-smoke` reject raw driver-side authority-name storage reads.
 - AIR driver diagnostics now consume the same graph accessors as dump /
   validation owners: `driver_app.c` uses `air_drift_count(...)`, and
   `driver_diag.c` uses `air_drift_at(...)`, `air_intent_node_at(...)`, and
@@ -965,13 +1004,23 @@ English anchor for tooling/doc gates:
   `LLVM_ENABLED=1 pgy`.
 - Role hosted-method declaration metadata is no longer a method-count exception.
   `ast_role_impl_method_total_count(...)` is the shared parser-owned count seam
-  for role impl-ability methods; `MIRDeclHeader` validation and C/LLVM
-  hosted-method views consume that same accessor and require
+  for role impl-ability methods; `MIRDeclHeader` validation and the shared
+  `pgy_host_method_compat_view_from_decl(...)` codegen compatibility owner
+  consume that same accessor and require
   `method_count == method_metadata_count` like other hosted declarations. A
   missing role declaration header therefore fails closed instead of silently
   producing an empty role method view. Gates:
   `test-mir`, `mir-declaration-inventory-test-smoke`, `perf-contract-test-smoke`,
   and `LLVM_ENABLED=1 pgy`.
+- C/LLVM hosted declaration compatibility is now centralized in
+  `src/codegen/host_decl_compat.c`. The shared owner defines the hosted
+  declaration type set, host declaration-name accessor, pointer-self host
+  policy, C nominal-host lookup order, and the hosted-method AST compatibility
+  view; C and LLVM only pass that view into their MIR metadata readers. The
+  smoke gate rejects reintroducing backend-local host-declaration
+  switch/list/name/pointer-self copies.
+  Gates: `mir-declaration-inventory-test-smoke`, `build-source-inventory-test-smoke`,
+  `test-mir`, and `test-transpile`.
 - MIR inventory surface-usage calculation now has a single summary seam:
   `mir_inventory_surface_usage_summary(...)` computes thread-pool and
   intent-observability usage together, `mir_program_record_inventory_surface_usage`
@@ -2111,6 +2160,11 @@ English anchor for tooling/doc gates:
   `pgy_intent_active_index_find_slot*` first, and any defensive registry scan
   now self-heals the index with `pgy_intent_active_index_set*` before returning
   the slot. Gate: `perf-contract-test-smoke`.
+- LLVM local scope lookup now has a per-frame last-hit cache. The semantic
+  symbol table remains hash-index backed, while LLVM codegen avoids repeated
+  inner-scope linear scans for common locals such as `self`, zone aliases, and
+  channel aliases. Gates: `pgy`, `llvm-test-smoke`, and
+  `llvm-test-backend-compare` (`72/72`), plus `perf-contract-test-smoke`.
 - Runtime intent no-trace allocation parity is tightened: the inline runtime
   path now mirrors the runtime-lib export path by avoiding the active-entry
   name `strdup` when `PGY_INTENT_OBSERVABILITY_ENABLED=0`. The active registry
@@ -2394,6 +2448,14 @@ English anchor for tooling/doc gates:
   `pgy_runtime_intent_active_index_inline.h`, matching the exported active-index
   owner split and keeping `pgy_runtime_intent_trace_inline.h` focused on trace
   registry state plus enter/current semantics.
+- Runtime intent same-subject conflict checks now keep a per-entry
+  `subject_fingerprint` beside the exact subject array. The fingerprint is only
+  a fast negative filter; the runtime still uses pointer-equality overlap before
+  rejecting an intent, so authority/concurrency semantics do not change. The
+  inline runtime and exported runtime both carry the same field/reset path.
+  Gates: `perf-contract-test-smoke`,
+  `runtime-intent-observability-contract-test-smoke`,
+  `runtime-abi-lifetime-test-smoke`, and `test-abi`.
 - Slot manager creation now fails closed for zero-slot managers and failed
   `pthread_mutex_init`, avoiding a runtime handle manager with unusable table or
   mutex state. The payload-size comment was normalized to ASCII to keep source
@@ -3303,6 +3365,36 @@ English anchor for tooling/doc gates:
   resource, slot, qubit, and pool state. `type_checker_flow_match_coverage.c`
   now guards variant coverage bitsets before scratch allocation and rejects a
   missing variant-output pointer instead of writing through it.
+- CFG source-of-truth residual: direct parallel slot `Read` / `Write` /
+  `Release` conflicts now flow through CFG resource snapshots. Slot operations
+  mark `slot_flow_access_mask`, snapshots preserve `access_masks`, and
+  `resource_snapshot_has_parallel_conflict` /
+  `resource_snapshot_has_parallel_race_risk` emit
+  `PGY_SEM_PARALLEL_SLOT_CONFLICT` / `PGY_SEM_PARALLEL_SLOT_RACE_RISK` from
+  the CFG task-boundary join. `scope_release_slot(...)` now marks
+  `PGY_SLOT_FLOW_ACCESS_RELEASE` itself, so release-like helpers cannot bypass
+  the CFG access fact. `slot_analyzer.c` remains only as an explicitly
+  named pre-CFG compatibility seam for conservative escape/helper provenance
+  diagnostics, not the beta-final source of truth. The analyzer now propagates
+  failed child analysis instead of silently continuing after an internal
+  failure, and `semantic_analyze()` now converts analyzer failure/allocation
+  failure into a hard semantic diagnostic rather than treating the slot pass as
+  optional.
+- CFG resource snapshots now carry an explicit `valid` bit. Snapshot
+  allocation/overflow failure can no longer look like "no tracked resources":
+  defer, parallel, branch, match, for-loop, and while-loop analysis report a
+  semantic error when snapshot creation or merge fails, keeping the CFG
+  ownership lattice fail-closed.
+- CFG/body safety residual is now named instead of hidden behind the main Slot
+  analyzer API. Parameter escape summaries used by call/ownership diagnostics
+  consume `slot_analyze_legacy_ast_param_summary_in_program(...)` from
+  `slot_summary.h`, and those consumers no longer include the full
+  `slot_analyzer.h` surface. The legacy implementation entry is no longer a
+  public API, and LLVM local slot sinking must also call the explicit legacy
+  seam while the MIR/CFG replacement fact is not available. This does not
+  finish the CFG migration; it makes the remaining AST-walking compatibility
+  seam explicit and smoke-gated so it can be retired behind CFG/MIR body facts
+  without another A/B/A refactor loop. Gate: `cfg-body-dataflow-test-smoke`.
 - Semantic diagnostic emission is also source-of-truth state. Diagnostic array
   growth now handles zero-capacity contexts and element-size overflow before
   reallocating, so OOM/overflow cannot leave diagnostics half-published or
@@ -4033,12 +4125,12 @@ English anchor for tooling/doc gates:
   `LLVM_ENABLED=1 build/codegen/llvm_domain_lookup.o`, and
   `LLVM_ENABLED=1 build/codegen/llvm_decl.o`, plus
   `mir-declaration-inventory-test-smoke`.
-- 2026-05-15 DAG source-of-truth revalidation:
+- 2026-05-20 DAG source-of-truth revalidation:
   resolver and materializer fallback seams remain at beta cap 0 after the
   latest CFG/body-flow and type-system owner cleanup. Current DAG counters are
-  `graph-backed skips=2058`, `generic_param_nodes=102`,
+  `graph-backed skips=2064`, `generic_param_nodes=102`,
   `dag_generic_contract_evidence=165`, `dag_ability_consumer_evidence=72`,
-  `metadata_entries=3718`, `metadata_owned=261`, `metadata_hits=8695`,
+  `metadata_entries=3735`, `metadata_owned=261`, `metadata_hits=8769`,
   `metadata_dead_ends=0`, `materializer_unresolved=0`,
   `retired_resolver_calls=0`, `retired_resolver_body_fallbacks=0`,
   `stage_materialize_calls=0`, and `alias_diagnostic_resolver_calls=0`.
@@ -6466,7 +6558,14 @@ Progress log, 2026-05-04:
 - Renamed the LLVM MIR branch condition gate from `llvm_mir_branch_has_condition_payload(...)` to `llvm_mir_branch_has_required_condition_fact(...)` because match/select compatibility branches still require source AST while ordinary expression/range/for-in branches require MIR expression facts. This keeps the remaining compatibility seam named honestly instead of pretending every branch condition is payload-backed. Gate: `perf-contract-test-smoke`.
 - Rechecked DAG source-of-truth closure after the intent who/approval split: `type-resolution-resolver-inventory-test-smoke` keeps direct resolver and metadata fallback seam inventory at cap 0, and `type-resolution-dag-test-smoke` reports `retired_resolver_calls=0`, `retired_resolver_body_fallbacks=0`, `metadata_dead_ends=0`, and `materializer_unresolved=0` with `graph-backed skips=2064`, `metadata_entries=3735`, `metadata_owned=261`, and `metadata_hits=8769`. Remaining DAG work is no longer numeric fallback cleanup; it is richer evidence coverage and consumer migration.
 - Refreshed the MIR declaration-inventory smoke after the MIR test-case split: declaration-header validator assertions now live in `test_mir_lowering_part_c.cases.h`, and the smoke follows that owner instead of reporting a false regression against part B. Gates: `mir-declaration-inventory-test-smoke`, `test-inc-size-test-smoke`, and `build-source-inventory-test-smoke`.
-- Revalidated AIR after the CFG/MIR/DAG seam tightening. Strict evidence still carries HIR/RIR boundary evidence, MIR cleanup/pin cleanup/terminator evidence, DAG metadata/generic/ability evidence, RIR effect/relation propagation evidence, and observability schema evidence without backend impact. Gates: `test-air` (`77/0`), `air-drift-test-smoke`, and `air-json-schema-test-smoke`.
+- Revalidated AIR after the CFG/MIR/DAG seam tightening. Strict evidence still
+  carries HIR/RIR boundary evidence, MIR cleanup/pin cleanup/terminator
+  evidence, DAG metadata/generic/ability evidence, RIR effect/relation
+  propagation evidence, and observability schema evidence without backend
+  impact. Current gate count: `test-air` (`113/0`). Gates:
+  `cfg-body-dataflow-test-smoke`, `test-air`, `air-drift-test-smoke`,
+  `air-json-schema-test-smoke`, `type-resolution-dag-test-smoke`, and
+  `type-resolution-resolver-inventory-test-smoke`.
 - Narrowed the C backend pending-use materialization seam without repeating the earlier implicit-self regression: block-local pending bindings now prefer MIR DEF payload facts (`expr0` initializer and `expr1` type annotation) only for `AST_LET_DECL` DEFs, while assignment DEFs are ignored and source let lookup remains a compatibility/provenance fallback. The perf contract gates the payload-first shape and the `AST_LET_DECL` guard. Gates: `test-transpile` (`717/0`) and `perf-contract-test-smoke`.
 - Tightened LLVM select readiness lowering to read channel-receive readiness from DEF `expr0` instead of reopening the DEF source assignment AST. The older assignment-AST helper remains only for source select-case compatibility, while MIR CFG target-block readiness now consumes the same expression payload that DEF emission uses. Gates: `llvm-test-smoke` and `perf-contract-test-smoke`.
 - Replaced the LLVM MIR receive-target predeclare seam with `llvm_mir_declare_recv_target(arg0, expr0, ...)`, so select/channel DEF lowering no longer needs the source assignment AST to synthesize the receive target alloca. Gates: `llvm-test-smoke` and `perf-contract-test-smoke`.
@@ -6475,7 +6574,14 @@ Progress log, 2026-05-04:
 - Split C backend MIR emit-state snapshot/restore helpers out of `transpiler_mir_emit_state.h` into `transpiler_mir_emit_state.c`; the header now exposes the `TranspilerMirEmitState` shape and explicit state APIs while keeping only the include-order forward declarations needed by condition emitters. Removed the now-dead `lookup_generic_binding(...)` static helper from `transpiler_helpers_core_b.h` after type rendering moved generic binding lookup into its own owner. Gates: targeted `gcc -fsyntax-only` for `transpiler_mir_emit_state.c` and `transpiler.c`; `test-transpile` (`717/0`), `build-source-inventory-test-smoke`, and `test-inc-size-test-smoke`.
 - Refreshed runtime panic contract smoke after LLVM expression owners moved from implementation headers into compiled owners. Checked arithmetic now verifies `llvm_expr_scalar_core.c`, checked Result/Option unwrap verifies `llvm_expr_result_option_calls.c`, and array mutation lowering verifies `llvm_expr_array_calls.c`, while the public headers remain declaration-only seams. Gates: `runtime-panic-contract-test-smoke`, `runtime-panic-abi-test-smoke`, `runtime-panic-codegen-test-smoke`, `build-source-inventory-test-smoke`, and `test-inc-size-test-smoke`.
 - Revalidated runtime propagation frontier closure after the runtime/codegen owner cleanup. Bounded zone/world/projection frontier pass-limit arithmetic is gated, generated C frontier code uses the transitive embedded-world limit, and LLVM frontier emitters keep overflow panic/unreachable paths for zone, world, derived-world, and projection recompute. Gates: `runtime-frontier-contract-test-smoke` and `runtime-frontier-policy-test-smoke`.
-- Revalidated AIR as a verification-only abstraction boundary layer after the CFG/DAG/runtime owner cleanup. `test-air` remains `77/0`, `air-json-schema-test-smoke` parses `pgy.air.graph.v1`, and `air-backend-nonimpact-full-test-smoke` passes the full C/LLVM backend-compare corpus with AIR enabled, preserving codegen non-impact while strict evidence stays active. Gates: `air-drift-test-smoke`, `air-json-schema-test-smoke`, and `air-backend-nonimpact-full-test-smoke`.
+- Revalidated AIR as a verification-only abstraction boundary layer after the
+  CFG/DAG/runtime owner cleanup. `test-air` is now `113/0`,
+  `air-json-schema-test-smoke` parses `pgy.air.graph.v1`, and
+  `air-backend-nonimpact-full-test-smoke` remains the backend non-impact gate
+  for AIR-enabled C/LLVM compare runs. Latest full non-impact run passed all
+  backend-compare cases for both C and LLVM. Gates: `test-air`,
+  `air-drift-test-smoke`, `air-json-schema-test-smoke`, and
+  `air-backend-nonimpact-full-test-smoke`.
 - Refreshed `cfg_body_dataflow_smoke.sh` after MIR CFG/body helpers moved from static headers into compiled owners. The smoke now reads the declaration headers plus their `.c` owners for call facts, non-CFG statement population, CFG contract control, pin/cleanup-fact helpers, and validator bodies instead of reporting false regressions against declaration-only headers. Gate: `cfg-body-dataflow-test-smoke`.
 - Revalidated the DAG source-of-truth gates after the owner-split work: retired recursive resolver calls remain `0`, resolver body fallbacks remain `0`, metadata dead-ends remain `0`, materializer unresolved remains `0`, metadata entries are `3498`, owned constructed metadata entries are `258`, and metadata hits are `8380`. Gates: `type-resolution-dag-test-smoke` and `type-resolution-resolver-inventory-test-smoke`.
 - Corrected `test_inc_size_smoke.sh` wording so the gate states its actual contract: no production `.inc` files, no `_IMPLEMENTATION` header blocks, production owners <= 600 LOC, and test case headers <= 990 LOC. Runtime public inline headers remain a separate, explicit runtime ABI/codegen contract instead of being hidden by over-broad gate wording. Gates: `test-inc-size-test-smoke`.
@@ -6660,7 +6766,17 @@ Progress log, 2026-05-04:
 - Reduced LLVM host self-policy duplication: `llvm_type_name_uses_pointer_self(...)` now consumes the single active host-declaration lookup seam before class fallback instead of repeating a separate party/role/roster/relation/effect/zone/world OR-chain. Gate: `mir-declaration-inventory-test-smoke`.
 - Closed a compressed-intent layering seam: C/LLVM codegen no longer re-infers action `causes` from `on` expressions. `causes` must be materialized by semantic/DIR/MIR first, and `intent-compression-contract-test-smoke` now rejects reintroduced codegen-side inference.
 - Closed the matching C backend host-lookup drift: `transpiler_find_nominal_host_decl_local(...)` and `transpiler_find_host_decl_from_owner_local(...)` now mirror the frozen domain host set for party/role/roster in addition to class/enum/relation/effect/zone/world, so C and LLVM declaration lookup consume the same host inventory surface. Gates: `mir-declaration-inventory-test-smoke`, `test-transpile`.
-- Tightened C known-nominal forwarding: `transpiler_has_known_nominal_type(...)` now includes enum and role declarations, keeping C forward-declaration policy aligned with the frozen host/type inventory instead of treating those names as unknown after zone emission. Gate: `mir-declaration-inventory-test-smoke`.
+- Tightened C known-nominal forwarding: `transpiler_has_known_nominal_type(...)` now consumes the centralized `host_decl_compat` nominal lookup order instead of repeating a local class/enum/role/zone/party/roster/world/relation/effect chain. Gate: `mir-declaration-inventory-test-smoke`.
+- C expression type inference now consumes that known-nominal forwarding seam for nominal call result inference instead of repeating its own class/subject/party/role/roster/relation/effect/zone/world chain.
+- C nominal host-type predicates now resolve through the centralized nominal-host lookup seam while preserving the existing class/struct/vessel/object filter locally.
+- C `self.member` dispatch now consumes the centralized host pointer-self policy instead of repeating a party/roster/relation/effect/zone/world domain-host chain in the expression emitter.
+- C/LLVM `HasProjection` lowering now consumes the centralized host projection-ready policy instead of each backend repeating the relation/effect/zone host chain.
+- LLVM constructor shared-field defaults now consume the centralized hosted-declaration shared-field compatibility view instead of repeating a local party/roster/relation/effect/zone/world chain.
+- C constructor dispatch now preserves the existing class-first constructor precedence while moving the domain-constructor party/roster/relation/effect/zone/world lookup order behind the centralized `host_decl_compat` constructor-domain type list.
+- LLVM constructor dispatch now consumes the same constructor-domain lookup seam before applying shared-field defaults and projection/world dirty initialization, so C and LLVM constructor-domain order no longer drift independently.
+- C MIR local type lookup now reuses the same constructor-domain lookup seam for nominal call result fallback while keeping class constructors separate and preserving enum/role exclusion.
+- C annotated `let` constructor fallback now uses the same constructor-domain lookup seam for deciding whether runtime metadata-bearing domain literals should be emitted through expression lowering instead of local zero initialization.
+- C party-slot ability tag selection now lives in `transpiler_role_ability.c`: member-style role calls and bind statements consume `transpiler_party_slot_method_ability_tag(...)` / `transpiler_party_slot_first_ability_tag(...)` instead of each scanning party role slots and rendering vtable tags locally. Gate: `test-transpile`.
 - Rechecked runtime propagation frontier gates: bounded zone/world/projection frontier contracts, runtime panic overflow path, queryable authority/failure surface, generated embedded-world frontier limit, and shared frontier pass-limit arithmetic remain green. Gates: `runtime-frontier-contract-test-smoke`, `runtime-frontier-policy-test-smoke`.
 - Repaired Slot/Pin ABI smoke owner drift after LLVM secure-slot runtime declarations were split: `abi_ownership_shape_smoke.sh` now gates secure pin init declarations in `llvm_runtime_secure_slot_decl.c` instead of the old mixed `llvm_runtime.c` owner. Gates: `abi-ownership-shape-test-smoke`, `runtime-abi-lifetime-test-smoke`, `runtime-panic-contract-test-smoke`, `build-source-inventory-test-smoke`.
 - Repaired intent-compression smoke owner drift after DIR intent collection was split: `intent_compression_contract_smoke.sh` now gates derived authority/using provenance in `dir_collect_intent.c` instead of the old mixed `dir_collect.c` owner. Gate: `intent-compression-contract-test-smoke`.

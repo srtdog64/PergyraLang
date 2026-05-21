@@ -81,7 +81,7 @@ llvm_stmt_slot_can_sink_locally(LLVMGenCtx *ctx, const char *name)
     ASTNode *body = ast_func_body(ctx->current_func_decl);
     if (ctx->current_func_decl->type != AST_FUNC_DECL || body == NULL)
         return false;
-    return (slot_analyze_param_summary_in_program(
+    return (slot_analyze_legacy_ast_param_summary_in_program(
                 body, name, NULL)
             & (SLOT_PARAM_SUMMARY_RETURN_ESCAPE
                | SLOT_PARAM_SUMMARY_CALL_ESCAPE

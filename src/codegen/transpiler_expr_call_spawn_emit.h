@@ -23,52 +23,9 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                 const char *party_var = ast_identifier_name(party_node);
                 const char *party_type = lookup_typed_var(ctx, party_var);
                 ASTNode *party_decl = find_party_decl(ctx, party_type);
-                char *ability_name = NULL;
-
-                if (party_decl != NULL) {
-                    for (size_t i = 0; i < ast_party_role_count(party_decl); i++) {
-                        ASTNode *rs = ast_party_role(party_decl, i);
-                        const char *role_slot_name = ast_role_slot_name(rs);
-                        size_t ability_count =
-                            ast_role_slot_required_ability_count(rs);
-                        if (rs == NULL
-                            || role_slot_name == NULL
-                            || strcmp(role_slot_name, slot_name) != 0)
-                            continue;
-                        for (size_t j = 0; j < ability_count; j++) {
-                            ASTNode *ab =
-                                ast_role_slot_required_ability(rs, j);
-                            ASTNode *ability_decl;
-                            bool has_method = false;
-                            char *ability_tag = NULL;
-                            if (ast_type_name(ab) == NULL)
-                                continue;
-                            ability_decl = find_ability_decl(ctx, ast_type_name(ab));
-                            if (ability_decl != NULL) {
-                                for (size_t mi = 0; mi < ast_ability_method_count(ability_decl); mi++) {
-                                    ASTNode *m = ast_ability_method(ability_decl, mi);
-                                    const char *candidate_name = ast_declaration_name(m);
-                                    if (m != NULL && m->type == AST_FUNC_DECL
-                                        && candidate_name != NULL
-                                        && strcmp(candidate_name, method) == 0) {
-                                        has_method = true;
-                                        break;
-                                    }
-                                }
-                            }
-                            if (has_method || ability_name == NULL) {
-                                free(ability_name);
-                                ability_tag = render_ability_ref_vtable_tag(ab);
-                                ability_name = ability_tag;
-                            } else {
-                                free(ability_tag);
-                            }
-                            if (has_method)
-                                break;
-                        }
-                        break;
-                    }
-                }
+                char *ability_name =
+                    transpiler_party_slot_method_ability_tag(
+                        ctx, party_decl, slot_name, method);
 
                 if (ability_name != NULL) {
                     CodeBuf *args_buf = codebuf_create();

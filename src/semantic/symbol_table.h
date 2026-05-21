@@ -50,6 +50,10 @@ typedef enum
     SLOT_STATE_RELEASED
 } SlotState;
 
+#define PGY_SLOT_FLOW_ACCESS_READ    0x01u
+#define PGY_SLOT_FLOW_ACCESS_WRITE   0x02u
+#define PGY_SLOT_FLOW_ACCESS_RELEASE 0x04u
+
 /*
  * Movable-resource compile-time state machine
  * Current concrete user: QubitSlot
@@ -81,6 +85,7 @@ struct Symbol
     bool       is_used;
     bool       is_consumed;
     bool       embedded_in_world;
+    uint8_t    slot_flow_access_mask;
 
     /* Slot-specific metadata */
     struct

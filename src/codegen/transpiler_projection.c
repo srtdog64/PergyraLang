@@ -468,20 +468,13 @@ is_nominal_host_type_name(TranspilerCtx *ctx, const char *type_name)
     if (ctx == NULL || type_name == NULL)
         return false;
 
-    if (find_enum_decl(ctx, type_name) != NULL)
-        return true;
-    decl = find_class_decl(ctx, type_name);
-    if (decl != NULL && (!ast_class_is_struct(decl)
-        || ast_class_nominal_kind(decl) == NOMINAL_DECL_VESSEL
-        || ast_class_nominal_kind(decl) == NOMINAL_DECL_OBJECT))
-        return true;
-    if (find_relation_decl(ctx, type_name) != NULL
-        || find_effect_decl(ctx, type_name) != NULL
-        || find_zone_decl(ctx, type_name) != NULL
-        || find_party_decl(ctx, type_name) != NULL
-        || find_role_decl(ctx, type_name) != NULL
-        || find_roster_decl(ctx, type_name) != NULL
-        || find_world_decl(ctx, type_name) != NULL)
+    decl = transpiler_find_nominal_host_decl_local(ctx, type_name);
+    if (decl != NULL && decl->type == AST_CLASS_DECL) {
+        return !ast_class_is_struct(decl)
+            || ast_class_nominal_kind(decl) == NOMINAL_DECL_VESSEL
+            || ast_class_nominal_kind(decl) == NOMINAL_DECL_OBJECT;
+    }
+    if (decl != NULL)
         return true;
     for (int i = 0; i < ctx->generic_class_spec_count; i++) {
         if (strcmp(ctx->generic_class_specs[i].specialized_name, type_name) == 0) {

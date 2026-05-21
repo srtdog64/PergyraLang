@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "host_decl_compat.h"
 #include "llvm_internal_api.h"
 #include "parser/ast_api.h"
 
@@ -241,31 +242,20 @@ llvm_emit_class_constructor(ASTNode *node, LLVMGenCtx *ctx, const char *callee_n
             (unsigned)cls->fields[i].index, llvm_tmp_name(ctx));
     }
 
-    ASTNode *party_decl = llvm_find_named_domain_decl(ctx, AST_PARTY_DECL, callee_name);
-    ASTNode *roster_decl = llvm_find_named_domain_decl(ctx, AST_ROSTER_DECL, callee_name);
-    ASTNode *relation_decl = llvm_find_named_domain_decl(ctx, AST_RELATION_DECL, callee_name);
-    ASTNode *effect_decl = llvm_find_named_domain_decl(ctx, AST_EFFECT_DECL, callee_name);
-    ASTNode *zone_decl = llvm_find_named_domain_decl(ctx, AST_ZONE_DECL, callee_name);
-    ASTNode *world_decl = llvm_find_named_domain_decl(ctx, AST_WORLD_DECL, callee_name);
-    ASTNode **shared_fields = NULL;
-    size_t shared_count = 0;
-
-    if (party_decl != NULL) {
-        shared_fields = ast_party_shared_fields(party_decl, &shared_count);
-    } else if (roster_decl != NULL) {
-        shared_fields = ast_roster_shared_fields(roster_decl, &shared_count);
-    } else if (relation_decl != NULL) {
-        shared_fields = ast_relation_shared_fields(relation_decl, &shared_count);
-    } else if (effect_decl != NULL) {
-        shared_fields = ast_effect_shared_fields(effect_decl, &shared_count);
-    } else if (zone_decl != NULL) {
-        shared_fields = ast_zone_shared_fields(zone_decl, &shared_count);
-    } else if (world_decl != NULL) {
-        shared_fields = ast_world_shared_fields(world_decl, &shared_count);
-    }
+    ASTNode *host_decl = llvm_find_domain_constructor_decl(ctx, callee_name);
+    ASTNode *relation_decl = host_decl != NULL
+        && host_decl->type == AST_RELATION_DECL ? host_decl : NULL;
+    ASTNode *effect_decl = host_decl != NULL
+        && host_decl->type == AST_EFFECT_DECL ? host_decl : NULL;
+    ASTNode *zone_decl = host_decl != NULL
+        && host_decl->type == AST_ZONE_DECL ? host_decl : NULL;
+    ASTNode *world_decl = host_decl != NULL
+        && host_decl->type == AST_WORLD_DECL ? host_decl : NULL;
+    PgyHostSharedFieldsCompatView shared_view =
+        pgy_host_shared_fields_compat_view_from_decl(host_decl);
 
     llvm_emit_class_constructor_shared_defaults(node, ctx, cls,
-        shared_fields, shared_count, &object);
+        shared_view.fields, shared_view.count, &object);
     llvm_emit_class_constructor_projection_dirty(ctx, cls,
         relation_decl, effect_decl, zone_decl, &object);
     llvm_emit_class_constructor_world_dirty(ctx, cls, world_decl, &object);

@@ -364,13 +364,20 @@ emit_party_decl(ASTNode *node, TranspilerCtx *ctx)
     /* Role slots as void* + vtable pointer */
     for (size_t i = 0; i < ast_party_role_count(node); i++) {
         ASTNode *rs = ast_party_role(node, i);
-        const char *slot_name = ast_role_slot_name(rs);
-        size_t ability_count = ast_role_slot_required_ability_count(rs);
-        bool is_dyn = ast_role_slot_is_dynamic(rs);
+        const char *slot_name;
+        size_t ability_count;
+        bool is_dyn;
+        if (rs == NULL || rs->type != AST_ROLE_SLOT)
+            continue;
+        slot_name = ast_role_slot_name(rs);
+        if (slot_name == NULL)
+            continue;
+        ability_count = ast_role_slot_required_ability_count(rs);
+        is_dyn = ast_role_slot_is_dynamic(rs);
         codebuf_write(ctx->out, "    void *%s;\n", slot_name);
         for (size_t j = 0; j < ability_count; j++) {
             ASTNode *ab = ast_role_slot_required_ability(rs, j);
-            if (ast_type_name(ab) != NULL) {
+            if (ab != NULL && ast_type_name(ab) != NULL) {
                 char typedef_name[128];
                 char *vtable_tag = render_ability_ref_vtable_tag(ab);
                 ensure_ability_ref_vtable_decl(ab, ctx);
@@ -454,13 +461,19 @@ emit_party_decl(ASTNode *node, TranspilerCtx *ctx)
     /* Emit bind helpers for dyn role slots */
     for (size_t i = 0; i < ast_party_role_count(node); i++) {
         ASTNode *rs = ast_party_role(node, i);
-        size_t ability_count = ast_role_slot_required_ability_count(rs);
+        size_t ability_count;
+        const char *slot_name;
+        if (rs == NULL || rs->type != AST_ROLE_SLOT)
+            continue;
         if (!ast_role_slot_is_dynamic(rs))
             continue;
-        const char *slot_name = ast_role_slot_name(rs);
+        slot_name = ast_role_slot_name(rs);
+        if (slot_name == NULL)
+            continue;
+        ability_count = ast_role_slot_required_ability_count(rs);
         for (size_t j = 0; j < ability_count; j++) {
             ASTNode *ab = ast_role_slot_required_ability(rs, j);
-            if (ast_type_name(ab) == NULL)
+            if (ab == NULL || ast_type_name(ab) == NULL)
                 continue;
             char typedef_name[128];
             char *vtable_tag = render_ability_ref_vtable_tag(ab);

@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "../common/string_compat.h"
+#include "transpiler_decl_lookup.h"
 #include "transpiler_role_ability_helpers.h"
 #include "transpiler_type_mapping.h"
 #include "transpiler_type_render.h"
@@ -77,4 +78,97 @@ role_has_method(ASTNode *role, const char *method_name)
     }
 
     return false;
+}
+
+char *
+transpiler_party_slot_first_ability_tag(ASTNode *party_decl,
+                                        const char *slot_name)
+{
+    if (party_decl == NULL || party_decl->type != AST_PARTY_DECL
+        || slot_name == NULL) {
+        return NULL;
+    }
+
+    for (size_t i = 0; i < ast_party_role_count(party_decl); i++) {
+        ASTNode *role_slot = ast_party_role(party_decl, i);
+        const char *role_slot_name = role_slot != NULL
+            ? ast_role_slot_name(role_slot)
+            : NULL;
+        if (role_slot_name == NULL
+            || strcmp(role_slot_name, slot_name) != 0) {
+            continue;
+        }
+        ASTNode *first_ability = ast_role_slot_required_ability(role_slot, 0);
+        if (first_ability == NULL)
+            return NULL;
+        return render_ability_ref_vtable_tag(first_ability);
+    }
+
+    return NULL;
+}
+
+char *
+transpiler_party_slot_method_ability_tag(TranspilerCtx *ctx,
+                                         ASTNode *party_decl,
+                                         const char *slot_name,
+                                         const char *method_name)
+{
+    char *fallback_tag = NULL;
+
+    if (ctx == NULL || party_decl == NULL || party_decl->type != AST_PARTY_DECL
+        || slot_name == NULL || method_name == NULL) {
+        return NULL;
+    }
+
+    for (size_t i = 0; i < ast_party_role_count(party_decl); i++) {
+        ASTNode *role_slot = ast_party_role(party_decl, i);
+        const char *role_slot_name = role_slot != NULL
+            ? ast_role_slot_name(role_slot)
+            : NULL;
+        size_t ability_count;
+        if (role_slot == NULL
+            || role_slot_name == NULL
+            || strcmp(role_slot_name, slot_name) != 0) {
+            continue;
+        }
+        ability_count = ast_role_slot_required_ability_count(role_slot);
+
+        for (size_t j = 0; j < ability_count; j++) {
+            ASTNode *ability_ref = ast_role_slot_required_ability(role_slot, j);
+            ASTNode *ability_decl;
+            bool has_method = false;
+            char *ability_tag;
+
+            if (ability_ref == NULL || ast_type_name(ability_ref) == NULL)
+                continue;
+            ability_decl = find_ability_decl(ctx, ast_type_name(ability_ref));
+            if (ability_decl != NULL) {
+                for (size_t mi = 0;
+                     mi < ast_ability_method_count(ability_decl); mi++) {
+                    ASTNode *method = ast_ability_method(ability_decl, mi);
+                    const char *candidate_name = ast_declaration_name(method);
+                    if (method != NULL && method->type == AST_FUNC_DECL
+                        && candidate_name != NULL
+                        && strcmp(candidate_name, method_name) == 0) {
+                        has_method = true;
+                        break;
+                    }
+                }
+            }
+
+            ability_tag = render_ability_ref_vtable_tag(ability_ref);
+            if (has_method) {
+                free(fallback_tag);
+                return ability_tag;
+            }
+            if (fallback_tag == NULL) {
+                fallback_tag = ability_tag;
+            } else {
+                free(ability_tag);
+            }
+        }
+        break;
+    }
+
+    return fallback_tag;
 }

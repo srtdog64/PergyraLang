@@ -73,6 +73,60 @@ test_air_synthesizes_intent_and_boundary(void)
 }
 
 static bool
+test_air_who_inference_does_not_imply_authority(void)
+{
+    ASTNode intent_ast = { .line = 21, .column = 3 };
+    DIRNode nodes[] = {
+        { .id = 1, .kind = DIR_NODE_INTENT, .name = "Patrol", .ast = &intent_ast },
+    };
+    DIRIntentStep steps[] = {
+        {
+            .index = 0,
+            .name = "walk",
+            .where_type_name = "CityZone",
+            .authorized_by_count = 0,
+            .who_inherited_from_intent = true,
+            .where_inherited_from_intent = true,
+        },
+    };
+    DIRIntentInfo intents[] = {
+        { .node_id = 1, .steps = steps, .step_count = 1 },
+    };
+    DIRProgram dir = {
+        .nodes = nodes,
+        .node_count = 1,
+        .intents = intents,
+        .intent_count = 1,
+    };
+    RIRScope scopes[] = {
+        {
+            .kind = RIR_SCOPE_ZONE,
+            .owner_name = "Patrol",
+            .name = "CityZone",
+        },
+    };
+    RIRProgram rir = {
+        .scopes = scopes,
+        .scope_count = 1,
+    };
+    char *error = NULL;
+    AIRProgram *air = air_synthesize(NULL, &dir, &rir, &error);
+    bool ok = air != NULL
+        && air->intent_count == 1
+        && air->boundary_count == 1
+        && air->drift_count == 0
+        && air->intents[0].who_from_intent_default
+        && air->boundaries[0].kind == AIR_BOUNDARY_ZONE
+        && air->boundaries[0].source_from_intent_default
+        && !air->boundaries[0].authority_required
+        && air->boundaries[0].authority_name_count == 0
+        && !air->boundaries[0].has_rir_authority_evidence;
+    air_destroy(air);
+    free(error);
+    return ok;
+}
+
+static bool
 test_air_detects_sync_async_drift(void)
 {
     AIRIntentNode intents[] = {

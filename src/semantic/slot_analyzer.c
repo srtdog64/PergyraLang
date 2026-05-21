@@ -153,6 +153,9 @@ slot_analyze_block(ASTNode *block, SlotAnalyzer *sa)
             ASTNode *stmt = ast_block_statement(block, i);
             bool ok = true;
 
+            if (stmt == NULL)
+                continue;
+
             switch (stmt->type) {
             case AST_IF_STMT:
                 ok = slot_analyze_if_stmt(stmt, sa);
@@ -196,7 +199,10 @@ slot_analyze_func_body(ASTNode *func, SlotAnalyzer *sa)
     Symbol **live_before = collect_live_slots(sa->ctx->scope, &live_count);
     symbol_ptr_array_sort(live_before, live_count);
 
-    slot_analyze_block(body, sa);
+    if (!slot_analyze_block(body, sa)) {
+        free(live_before);
+        return false;
+    }
 
     /* L4: warn about slots that were claimed but not released */
     size_t   after_count  = 0;
@@ -308,7 +314,10 @@ slot_analyze_if_stmt(ASTNode *ifstmt, SlotAnalyzer *sa)
     symbol_ptr_array_sort(snap, snap_count);
 
     /* Then-branch */
-    slot_analyze_block(ast_if_then_branch(ifstmt), sa);
+    if (!slot_analyze_block(ast_if_then_branch(ifstmt), sa)) {
+        free(snap);
+        return false;
+    }
 
     size_t   after_then_count = 0;
     Symbol **after_then = collect_live_slots(sa->ctx->scope, &after_then_count);
@@ -321,7 +330,11 @@ slot_analyze_if_stmt(ASTNode *ifstmt, SlotAnalyzer *sa)
          * state ??but we can't easily restore without a deep copy.
          * For now we detect divergence by comparing released sets.
          */
-        slot_analyze_block(ast_if_else_branch(ifstmt), sa);
+        if (!slot_analyze_block(ast_if_else_branch(ifstmt), sa)) {
+            free(snap);
+            free(after_then);
+            return false;
+        }
 
         size_t   after_else_count = 0;
         Symbol **after_else = collect_live_slots(sa->ctx->scope,
@@ -413,8 +426,13 @@ slot_analyze_parallel_block(ASTNode *parallel, SlotAnalyzer *sa)
     }
 
     /* Recurse into each task */
-    for (size_t i = 0; i < n; i++)
-        slot_analyze_block(ast_parallel_task(parallel, i), sa);
+    for (size_t i = 0; i < n; i++) {
+        if (!slot_analyze_block(ast_parallel_task(parallel, i), sa)) {
+            for (size_t k = 0; k < n; k++)
+                free(task_accesses[k]);
+            return false;
+        }
+    }
 
     for (size_t i = 0; i < n; i++)
         free(task_accesses[i]);
@@ -437,8 +455,12 @@ slot_analyze_program(ASTNode *program, SlotAnalyzer *sa)
 
     for (size_t i = 0; i < ast_program_statement_count(program); i++) {
         ASTNode *stmt = ast_program_statement(program, i);
-        if (stmt->type == AST_FUNC_DECL)
-            slot_analyze_func_body(stmt, sa);
+        if (stmt == NULL)
+            continue;
+        if (stmt->type == AST_FUNC_DECL
+            && !slot_analyze_func_body(stmt, sa)) {
+            return false;
+        }
     }
 
     return !sa->ctx->has_error;
@@ -457,9 +479,18 @@ slot_analyze_escape_flags_in_program(ASTNode *node, const char *slot_name,
     return slot_escape_mask_in_program(node, slot_name, program_root, 0);
 }
 
-unsigned
-slot_analyze_param_summary_in_program(ASTNode *node, const char *slot_name,
-                                      ASTNode *program_root)
+static unsigned
+slot_analyze_ast_param_summary_in_program(ASTNode *node, const char *slot_name,
+                                          ASTNode *program_root)
 {
     return slot_param_summary_in_program(node, slot_name, program_root, 0);
+}
+
+unsigned
+slot_analyze_legacy_ast_param_summary_in_program(ASTNode *node,
+                                                 const char *slot_name,
+                                                 ASTNode *program_root)
+{
+    return slot_analyze_ast_param_summary_in_program(node, slot_name,
+                                                     program_root);
 }

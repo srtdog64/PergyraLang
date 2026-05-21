@@ -8,7 +8,7 @@
 #define PERGYRA_PARTY_COMPILER_H
 
 #include "../parser/ast.h"
-#include "party_runtime.h"
+#include "../runtime/party_runtime.h"
 
 /* ============= Compile-time Analysis ============= */
 
@@ -219,6 +219,7 @@ void RegisterPartyParserHandlers(void);
 
 /* Transform party AST nodes to IR */
 typedef struct PartyIR PartyIR;
+struct SymbolTable;
 
 PartyIR* TransformPartyToIR(
     ASTNode* partyDecl,

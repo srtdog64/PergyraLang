@@ -173,8 +173,15 @@ semantic_analyze(ASTNode *ast)
     if (!ctx->has_error) {
         SlotAnalyzer *sa = slot_analyzer_create(ctx);
         if (sa != NULL) {
-            slot_analyze_program(ast, sa);
+            if (!slot_analyze_program(ast, sa) && !ctx->has_error) {
+                semantic_error(ctx, ast,
+                    "Slot resource-boundary analysis failed before it could "
+                    "produce a specific diagnostic");
+            }
             slot_analyzer_destroy(sa);
+        } else {
+            semantic_error(ctx, ast,
+                "Slot resource-boundary analysis could not allocate state");
         }
     }
 

@@ -3,9 +3,9 @@
  * C backend host self-cell classification policy.
  */
 
+#include "host_decl_compat.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_host_self_policy.h"
-#include "transpiler_projection.h"
 
 bool
 is_pointer_self_host_type_name(TranspilerCtx *ctx, const char *type_name)
@@ -14,19 +14,6 @@ is_pointer_self_host_type_name(TranspilerCtx *ctx, const char *type_name)
 
     if (type_name == NULL)
         return false;
-    if (is_subject_type_name(ctx, type_name))
-        return true;
-    decl = find_class_decl(ctx, type_name);
-    if (decl != NULL
-        && decl->type == AST_CLASS_DECL
-        && ast_class_nominal_kind(decl) == NOMINAL_DECL_VESSEL)
-        return true;
-    if (find_party_decl(ctx, type_name) != NULL
-        || find_role_decl(ctx, type_name) != NULL
-        || find_roster_decl(ctx, type_name) != NULL)
-        return true;
-    return find_relation_decl(ctx, type_name) != NULL
-        || find_effect_decl(ctx, type_name) != NULL
-        || find_zone_decl(ctx, type_name) != NULL
-        || find_world_decl(ctx, type_name) != NULL;
+    decl = transpiler_find_nominal_host_decl_local(ctx, type_name);
+    return pgy_host_decl_compat_uses_pointer_self(decl);
 }

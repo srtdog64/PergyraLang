@@ -179,6 +179,11 @@ bool        air_verify(AIRProgram *air, char **error_message);
 bool        air_check_drift(AIRProgram *air, char **error_message);
 bool        air_boundary_requires_hir_evidence(const AIRBoundaryNode *boundary);
 bool        air_boundary_requires_rir_evidence(const AIRBoundaryNode *boundary);
+size_t      air_boundary_authority_name_count(
+                const AIRBoundaryNode *boundary);
+const char *air_boundary_authority_name_at(
+                const AIRBoundaryNode *boundary,
+                size_t index);
 bool        air_boundary_has_evidence(const AIRProgram *air,
                                       size_t boundary_index,
                                       AIREvidenceKind kind);

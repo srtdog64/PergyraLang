@@ -326,6 +326,10 @@ Type *semantic_type_resolution_lookup_metadata_type_ref(SemanticContext *ctx,
                                                         ASTNode *type_node);
 Type *semantic_type_resolution_lookup_metadata_name_or_alias(SemanticContext *ctx,
                                                             const char *name);
+Type *semantic_type_resolution_lookup_metadata_name_or_alias_or_unknown(
+    SemanticContext *ctx,
+    const char *name,
+    ASTNode *site);
 Type *semantic_type_resolution_metadata_alias_type(SemanticContext *ctx,
                                                   ASTNode *type_node);
 Type *semantic_type_resolution_metadata_builtin_singleton(const char *name);

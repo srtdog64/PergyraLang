@@ -1,6 +1,6 @@
 # Pergyra Source-Of-Truth Spine
 
-Last updated: 2026-05-20
+Last updated: 2026-05-21
 
 This document freezes the compiler ownership spine for beta closure. It exists
 to stop A -> B -> A refactoring loops. When a future change is unclear, use this
@@ -31,8 +31,21 @@ Current beta closure snapshot:
   `src/semantic/type_checker_loop_control.c`.
 - type-resolution DAG worklist execution lives in
   `src/semantic/type_checker_resolution_worklist.c`.
+- hosted declaration compatibility policy lives in
+  `src/codegen/host_decl_compat.c`. C and LLVM declaration lookup, hosted
+  method compatibility, pointer-self classification, projection-ready
+  classification, shared-field compatibility, and domain-constructor lookup may
+  consume that policy, but they must not restate local party/role/roster/
+  relation/effect/zone/world switch chains.
+- party-slot ability tag selection lives in
+  `src/codegen/transpiler_role_ability.c`. Bind emission and member-call
+  emission may consume `transpiler_party_slot_first_ability_tag(...)` or
+  `transpiler_party_slot_method_ability_tag(...)`, but they must not reopen
+  party role-slot scans locally.
 - `tests/semantic_core_shape_smoke.sh` gates these ownership boundaries. The
   test is a drift alarm; the owning `.c` files above are the source of truth.
+  `tests/mir_declaration_inventory_smoke.sh` gates the backend declaration and
+  party-slot helper ownership boundaries.
 
 ### 0.1 Mismatch Containment During Lowering
 

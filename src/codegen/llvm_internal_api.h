@@ -375,6 +375,8 @@ LLVMVarEntry *llvm_require_secure_token_var(LLVMGenCtx *ctx, ASTNode *node,
 const char *llvm_call_arg_device_inner(LLVMGenCtx *ctx, ASTNode *node);
 ASTNode *llvm_find_named_domain_decl(LLVMGenCtx *ctx, ASTNodeType decl_type,
                                      const char *name);
+ASTNode *llvm_find_domain_constructor_decl(LLVMGenCtx *ctx,
+                                           const char *name);
 ASTNode *llvm_find_nominal_host_method_decl(LLVMGenCtx *ctx,
                                             const char *host_type_name,
                                             const char *method_name);

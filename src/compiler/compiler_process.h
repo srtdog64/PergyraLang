@@ -2,6 +2,7 @@
 #define PGY_COMPILER_PROCESS_H
 
 #include <stdbool.h>
+#include <stddef.h>
 
 int pgy_exec_probe_argv_silent(const char *const argv[]);
 int pgy_exec_argv(const char *const argv[], bool verbose);

@@ -114,6 +114,11 @@ cross-layer boundary with explicit evidence or rejects the drift.
   runtime evidence collectors no longer mutate `air->*_evidence_count` or RIR
   propagation required counters directly, so counters cannot drift into a
   second evidence source of truth.
+- AIR evidence-kind metadata is fail-closed. Every valid `AIR_EVIDENCE_*` kind
+  must have an explicit `present` entry in `kEvidenceKindMeta`; otherwise
+  `air_evidence_kind_is_known(...)` rejects it. This is intentionally stricter
+  than relying on C zero-initialization, because a missing table entry must not
+  become an accepted evidence kind with accidental default policy.
 
 마지막 업데이트: 2026-05-02
 

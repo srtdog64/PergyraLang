@@ -5,6 +5,7 @@
 
 #ifdef PGY_LLVM_ENABLED
 
+#include "host_decl_compat.h"
 #include "llvm_internal.h"
 #include "parser/ast_api.h"
 
@@ -15,6 +16,28 @@ llvm_find_named_domain_decl(LLVMGenCtx *ctx, ASTNodeType decl_type,
     if (ctx == NULL || name == NULL)
         return NULL;
     return llvm_find_decl_in_active_inventory(ctx, decl_type, name);
+}
+
+ASTNode *
+llvm_find_domain_constructor_decl(LLVMGenCtx *ctx, const char *name)
+{
+    const ASTNodeType *constructor_types = NULL;
+    size_t constructor_type_count = 0;
+
+    if (ctx == NULL || name == NULL)
+        return NULL;
+
+    constructor_types =
+        pgy_host_decl_compat_constructor_domain_types(
+            &constructor_type_count);
+    for (size_t i = 0; constructor_types != NULL
+         && i < constructor_type_count; i++) {
+        ASTNode *decl = llvm_find_named_domain_decl(
+            ctx, constructor_types[i], name);
+        if (decl != NULL)
+            return decl;
+    }
+    return NULL;
 }
 
 ASTNode *
@@ -175,24 +198,7 @@ llvm_find_projection_class_decl(LLVMGenCtx *ctx, const char *name)
 static bool
 llvm_host_decl_uses_pointer_self(ASTNode *decl)
 {
-    if (decl == NULL)
-        return false;
-
-    switch (decl->type) {
-    case AST_PARTY_DECL:
-    case AST_ROLE_DECL:
-    case AST_ROSTER_DECL:
-    case AST_WORLD_DECL:
-    case AST_RELATION_DECL:
-    case AST_EFFECT_DECL:
-    case AST_ZONE_DECL:
-        return true;
-    case AST_CLASS_DECL:
-        return ast_class_nominal_kind(decl) == NOMINAL_DECL_SUBJECT
-            || ast_class_nominal_kind(decl) == NOMINAL_DECL_VESSEL;
-    default:
-        return false;
-    }
+    return pgy_host_decl_compat_uses_pointer_self(decl);
 }
 
 bool

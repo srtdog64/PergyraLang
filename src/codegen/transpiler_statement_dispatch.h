@@ -92,19 +92,8 @@ emit_statement(ASTNode *node, TranspilerCtx *ctx)
                     role != NULL ? role : "<role>");
                 break;
             }
-            for (size_t ri = 0; ri < ast_party_role_count(it); ri++) {
-                ASTNode *rs = ast_party_role(it, ri);
-                const char *role_slot_name = ast_role_slot_name(rs);
-                ASTNode *first_ability = ast_role_slot_required_ability(rs, 0);
-                if (role_slot_name != NULL
-                    && strcmp(role_slot_name, slot) == 0
-                    && first_ability != NULL) {
-                    ability_tag = render_ability_ref_vtable_tag(
-                        first_ability);
-                    ability_name = ability_tag;
-                    break;
-                }
-            }
+            ability_tag = transpiler_party_slot_first_ability_tag(it, slot);
+            ability_name = ability_tag;
         }
         if (ability_name == NULL) {
             transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "cannot resolve required ability tag for party slot '%s.%s' while emitting bind statement",

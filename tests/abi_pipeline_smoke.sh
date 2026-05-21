@@ -1,6 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Ensure a Windows MinGW bin directory is in PATH when running in Git Bash on Windows.
+# This prevents DLL missing issues (like libwinpthread-1.dll) when pgy invokes gcc/clang natively.
+if [[ "${OSTYPE:-}" == "msys" || "${OSTYPE:-}" == "cygwin" ]]; then
+    if [[ -n "${PGY_MINGW_BIN:-}" ]]; then
+        export PATH="$PGY_MINGW_BIN:$PATH"
+    elif [[ -d "/c/ProgramData/mingw64/mingw64/bin" ]]; then
+        export PATH="/c/ProgramData/mingw64/mingw64/bin:$PATH"
+    elif [[ -d "/mingw64/bin" ]]; then
+        export PATH="/mingw64/bin:$PATH"
+    fi
+fi
+
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DEFAULT_PGY="$ROOT_DIR/bin/pgy"
 TMP_BASE="${TMPDIR:-${TEMP:-/tmp}}"
@@ -127,6 +139,14 @@ compile_expect_for_case() {
     esac
 }
 
+to_win_path() {
+    if command -v cygpath >/dev/null 2>&1; then
+        cygpath -m "$1"
+    else
+        echo "$1"
+    fi
+}
+
 run_case() {
     local backend="$1"
     local name="$2"
@@ -148,7 +168,13 @@ run_case() {
         exit 1
     fi
 
-    raw_output="$($PGY "$entry" --run --backend="$backend" -o "$out_bin" 2>&1)"
+    local entry_arg
+    local out_bin_arg
+    # Shell-side checks use POSIX paths; native Windows pgy.exe needs Windows-shaped args under MSYS/Cygwin.
+    entry_arg="$(to_win_path "$entry")"
+    out_bin_arg="$(to_win_path "$out_bin")"
+
+    raw_output="$($PGY "$entry_arg" --run --backend="$backend" -o "$out_bin_arg" 2>&1)"
 
     if ! grep -Fq "$expected_compile" <<<"$raw_output"; then
         echo "[abi-pipeline] $name backend=$backend missing compile diagnostics '$expected_compile'" >&2

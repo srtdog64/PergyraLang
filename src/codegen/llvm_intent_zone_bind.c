@@ -9,6 +9,18 @@
 
 #include "llvm_intent_internal.h"
 
+static LLVMValueRef
+llvm_intent_current_handle_or_zero(LLVMGenCtx *ctx)
+{
+    LLVMVarEntry *handle_entry;
+
+    handle_entry = llvm_scope_lookup(ctx, "__intent_handle");
+    if (handle_entry == NULL)
+        return LLVMConstInt(ctx->type_i32, 0, 0);
+    return LLVMBuildLoad2(ctx->builder, ctx->type_i32,
+        handle_entry->alloca, llvm_tmp_name(ctx));
+}
+
 void
 llvm_emit_intent_step_bind_bound_zone(LLVMGenCtx *ctx,
                                       ASTNode *intent,
@@ -98,11 +110,7 @@ llvm_emit_intent_step_bind_bound_zone(LLVMGenCtx *ctx,
                     participant_var->alloca, llvm_tmp_name(ctx));
                 participant_value = LLVMBuildLoad2(ctx->builder, participant_value_type,
                     participant_ptr, llvm_tmp_name(ctx));
-                handle = llvm_scope_lookup(ctx, "__intent_handle") != NULL
-                    ? LLVMBuildLoad2(ctx->builder, ctx->type_i32,
-                        llvm_scope_lookup(ctx, "__intent_handle")->alloca,
-                        llvm_tmp_name(ctx))
-                    : LLVMConstInt(ctx->type_i32, 0, 0);
+                handle = llvm_intent_current_handle_or_zero(ctx);
 
                 if (from_slot_name != NULL && strcmp(from_slot_name, "<unbound>") != 0) {
                     int from_field_idx = llvm_class_field_index(from_zone_cls, from_slot_name);
@@ -224,11 +232,7 @@ llvm_emit_intent_step_bind_bound_zone(LLVMGenCtx *ctx,
             LLVMBuildStore(ctx->builder, participant_value, slot_ptr);
 
             if (trace_materialize_fn != NULL) {
-                LLVMValueRef handle = llvm_scope_lookup(ctx, "__intent_handle") != NULL
-                    ? LLVMBuildLoad2(ctx->builder, ctx->type_i32,
-                        llvm_scope_lookup(ctx, "__intent_handle")->alloca,
-                        llvm_tmp_name(ctx))
-                    : LLVMConstInt(ctx->type_i32, 0, 0);
+                LLVMValueRef handle = llvm_intent_current_handle_or_zero(ctx);
                 LLVMValueRef args[] = {
                     handle,
                     LLVMBuildGlobalStringPtr(ctx->builder, alias, llvm_tmp_name(ctx)),

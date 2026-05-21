@@ -50,7 +50,7 @@ multi-paradigm reference. The correct reading is selective:
 | --- | --- | --- |
 | `nothrow` | `native-different` | Pergyra's default is Result/failure-contract first, not exception-first. |
 | `@safe` / `@trusted` / `@system` | `native-different` | Similar pressure exists, but Pergyra should express most of it through zone/authority/resource boundaries. |
-| `pure` | `gap` | Worth studying, but likely derived from effect/zone absence rather than a new core annotation. |
+| `pure` | `native-different` | Zone/effect absence already covers the *no observable side-effect* axis; no new core annotation needed. Recorded so the question does not get re-asked. |
 | Multi-paradigm surface | `aligned` | Consistent with the C# lineage: procedural, OO-ish, generic, functional, and domain-oriented surfaces can coexist if the source-of-truth spine is clear. |
 | Trivial C interop | `aligned` | Pergyra's C backend and ABI contract should preserve this direction. |
 | In-source `unittest` blocks | `out-of-beta` | Useful for dogfood/self-host, but not a beta blocker. |
@@ -77,6 +77,8 @@ speed and order-independent declarations as first-class compiler constraints.
 | `out-of-beta` | Useful later, but not a beta blocker. |
 | `reject` / `explicit reject` | Deliberately not part of the core language direction. |
 | `gap` | No satisfactory current answer; track before parser work. |
+| `aligned` | External-language feature whose underlying direction matches Pergyra's design without 1:1 keyword adoption. Used in cross-language comparison tables. |
+| `candidate` | Tracked as a strong post-beta surface candidate. Not committed; recorded so the matrix shows it was considered. |
 
 ## 3. Program, Module, And Visibility Patterns
 
@@ -210,12 +212,21 @@ speed and order-independent declarations as first-class compiler constraints.
 | Zig-style comptime | `comptime`, type-as-value | none | `reject` | Pergyra types carry domain coordinates; they are not compile-time programs. |
 | Dependent type | Idris/Agda style | none | `reject` | Use domain coherence checks instead. |
 | Phantom type | unused type coordinate | possible later | `out-of-beta` | Needs ownership/generic classifier design. |
+| Dynamic dispatch / trait object | Rust `dyn Trait`, C# interface reference | static dispatch only via `ability` constraint | `out-of-beta` | Needs vtable ABI, lifetime rules, and intent/zone interaction policy before any `dyn ability` surface. |
+| Const generic | Rust `const N: usize`, C++ NTTP | none | `out-of-beta` | Useful for array sizing; revisit after generic ownership classifier (Option C) is settled. |
+| Tuple struct / newtype | Rust `struct Wrapper(T)` | use `struct Wrapper { inner: T }` | `native-different` | Use explicit named field; do not adopt positional struct surface. |
+| Implicit numeric conversion | C# `int -> long` implicit | none — explicit cast/conversion helpers only | `native-different` | Prevents silent precision loss; aligned with signed-default decision. |
+| Variance / phantom lifetime markers | Rust PhantomData, variance annotations | none | `out-of-beta` | Pergyra does not expose lifetime parameters; variance is not surface-visible. |
 
 ## 12. Literals, Collections, And Operators
 
 | Pattern | Common shape | Pergyra mapping | Status | Notes |
 | --- | --- | --- | --- | --- |
 | Integer / long / float | `1`, `1L`, `1.0` | numeric literals | `stable` | Backend parity required. |
+| Hex / binary / octal literal | `0x1F`, `0b1010`, `0o17` | decimal integer literal only | `out-of-beta` | Useful for bit-twiddling code; reserve grammar before parser ambiguity emerges. |
+| Negative literal vs unary minus | `-1` parsed as literal vs unary | unary minus over decimal literal | `partial` | Keep unary lowering; literal-negative shorthand reserves a later parser choice. |
+| Character literal | `'a'`, `'\n'` | none — single-character `String` only | `out-of-beta` | Decide whether `Char` is a primitive or a `String` alias before stdlib freeze; current path treats characters as 1-length strings. |
+| Underscore placeholder | `_` unused-binding / type elision | none | `out-of-beta` | Useful for `let _ = expr`, unused param, and generic elision; reserve before grammar conflicts. |
 | String | `"text"` | string literal | `stable` | Unicode policy is separate. |
 | String interpolation | `$"x={x}"`, f-string | active lexer/parser lowering | `partial` | Freeze public spelling, escaping, and backend parity before promoting. |
 | Array literal | `[1, 2, 3]` | array literal | `stable` | Type inference must avoid poison defaults. |
@@ -235,6 +246,7 @@ speed and order-independent declarations as first-class compiler constraints.
 
 | Pattern | Common shape | Pergyra mapping | Status | Notes |
 | --- | --- | --- | --- | --- |
+| Block / line comment | `//`, `/* */` | `//`, `/* */` | `stable` | Standard lexer surface. |
 | Macro | Rust macro, C preprocessor | none | `reject` | Parser/source trust risk for beta. |
 | Source generator | C# source generator, build.rs | none | `out-of-beta` | Package/tooling track. |
 | Attribute/annotation | `[Attr]`, `#[attr]`, decorators | structured comments; `@` reserved/rejected | `out-of-beta` | Do not use as escape hatch for core semantics. |

@@ -1,4 +1,22 @@
 static bool
+test_air_append_rejects_unknown_evidence_kind(void)
+{
+    AIRProgram air = { 0 };
+    char *error = NULL;
+    bool ok = !air_append_evidence_node(&air,
+                                        AIR_EVIDENCE_KIND_COUNT,
+                                        SIZE_MAX,
+                                        "unknown-provider",
+                                        "unknown-subject",
+                                        &error)
+        && error != NULL
+        && strstr(error, "known evidence kind") != NULL
+        && air.evidence_count == 0;
+    free(error);
+    return ok;
+}
+
+static bool
 test_air_verify_rejects_empty_boundary_evidence(void)
 {
     AIRIntentNode intents[] = {

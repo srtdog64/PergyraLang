@@ -286,6 +286,7 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
                                 sym->name != NULL ? sym->name : "<slot>");
                             return TYPE_UNKNOWN;
                         }
+                        sym->slot_flow_access_mask |= PGY_SLOT_FLOW_ACCESS_WRITE;
                     } else if (sym != NULL && type_is_write_view(sym->type)
                                && sym->slot_info.paired_slot_name != NULL) {
                         owner = scope_lookup(ctx->scope, sym->slot_info.paired_slot_name);
@@ -302,6 +303,8 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
                         }
                         if (owner != NULL && owner->slot_info.is_secure)
                             semantic_record_effect(ctx, EFFECT_SECURE);
+                        if (owner != NULL)
+                            owner->slot_flow_access_mask |= PGY_SLOT_FLOW_ACCESS_WRITE;
                     }
                     require_assignable(
                         expr_call_normalize_type(
@@ -335,6 +338,7 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
                                 sym->name != NULL ? sym->name : "<slot>");
                             return TYPE_UNKNOWN;
                         }
+                        sym->slot_flow_access_mask |= PGY_SLOT_FLOW_ACCESS_READ;
                     } else if (sym != NULL && type_is_read_view(sym->type)
                                && sym->slot_info.paired_slot_name != NULL) {
                         owner = scope_lookup(ctx->scope, sym->slot_info.paired_slot_name);
@@ -351,6 +355,8 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
                         }
                         if (owner != NULL && owner->slot_info.is_secure)
                             semantic_record_effect(ctx, EFFECT_SECURE);
+                        if (owner != NULL)
+                            owner->slot_flow_access_mask |= PGY_SLOT_FLOW_ACCESS_READ;
                     }
                     return expr_call_normalize_type(type_slot_inner_type(object_type));
                 }
@@ -369,6 +375,7 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
                     }
                     if (sym->slot_info.is_secure)
                         semantic_record_effect(ctx, EFFECT_SECURE);
+                    sym->slot_flow_access_mask |= PGY_SLOT_FLOW_ACCESS_RELEASE;
                     if (sym->name != NULL)
                         scope_release_slot(ctx->scope, sym->name);
                     return TYPE_VOID;

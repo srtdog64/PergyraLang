@@ -109,6 +109,29 @@ run_literal_doc_contract_smoke() {
     require_literal "docs/103_cfg_body_dataflow_need.md" "Definite assignment"
     require_literal "docs/103_cfg_body_dataflow_need.md" "Move/use-after-move"
     require_literal "docs/103_cfg_body_dataflow_need.md" "Drop/cleanup"
+    require_literal "docs/103_cfg_body_dataflow_need.md" "slot_flow_access_mask"
+    require_literal "docs/103_cfg_body_dataflow_need.md" "resource_snapshot_has_parallel_race_risk"
+    require_literal "docs/103_cfg_body_dataflow_need.md" "PGY_SEM_PARALLEL_SLOT_CONFLICT"
+    require_literal "docs/103_cfg_body_dataflow_need.md" "pre-CFG residual"
+    require_literal "src/semantic/slot_summary.h" "slot_analyze_legacy_ast_param_summary_in_program"
+    require_literal "src/semantic/type_checker_ownership_param_summary.c" "slot_analyze_legacy_ast_param_summary_in_program"
+    require_literal "src/semantic/type_checker_call_contract_helpers.c" "slot_analyze_legacy_ast_param_summary_in_program"
+    require_literal "src/codegen/llvm_stmt_let_helpers.c" "slot_analyze_legacy_ast_param_summary_in_program"
+    if grep -Fq '#include "slot_analyzer.h"' "$ROOT_DIR/src/semantic/type_checker_ownership_param_summary.c" \
+        || grep -Fq '#include "slot_analyzer.h"' "$ROOT_DIR/src/semantic/type_checker_call_contract_helpers.c"; then
+        echo "ownership call/param summary consumers must depend on slot_summary.h, not full slot_analyzer.h" >&2
+        exit 1
+    fi
+    if grep -R -n "slot_analyze_param_summary_in_program(" "$ROOT_DIR/src" \
+        | grep -v "src/semantic/slot_analyzer.c:"; then
+        echo "AST parameter summary compatibility consumers must use the explicit legacy seam" >&2
+        exit 1
+    fi
+    require_literal "src/semantic/type_checker_flow_resources.h" "access_masks"
+    require_literal "src/semantic/type_checker_flow_resources.c" "resource_snapshot_has_parallel_race_risk"
+    require_literal "src/semantic/type_checker_builtins_slotops.c" "slot_flow_access_mask |= PGY_SLOT_FLOW_ACCESS_WRITE"
+    require_literal "src/semantic/type_checker_builtins_slotops.c" "slot_flow_access_mask |= PGY_SLOT_FLOW_ACCESS_READ"
+    require_literal "src/semantic/symbol_table.c" "slot_flow_access_mask |= PGY_SLOT_FLOW_ACCESS_RELEASE"
     require_literal "src/compiler/mir_cleanup_fact_names.h" "MIR_CLEANUP_FACT_EDGE"
     require_literal "src/compiler/mir_cleanup_fact_names.h" "cleanup-edge"
     require_literal "src/compiler/mir_cleanup_fact_names.h" "MIR_CLEANUP_FACT_PIN_UNPIN_EDGE"
@@ -1123,6 +1146,17 @@ required_flow_terms = [
     "PGY_CODE_SEM_BORROW_ESCAPE",
     "SlotState",
     "ResourceConsumeSnapshot before_defer",
+    "valid",
+    "Resource snapshot allocation failed before parallel analysis",
+    "Resource snapshot merge failed while checking parallel tasks",
+    "Resource snapshot allocation failed before if/else analysis",
+    "Resource snapshot merge failed while joining if/else branches",
+    "Resource snapshot allocation failed before match analysis",
+    "Resource snapshot merge failed while joining match cases",
+    "Resource snapshot allocation failed before for-loop analysis",
+    "Resource snapshot merge failed while checking for-loop flow",
+    "Resource snapshot allocation failed before while-loop analysis",
+    "Resource snapshot merge failed while checking while-loop flow",
     "type_check_defer_body_flow(ast_defer_body(node), ctx)",
     "type_check_block_flow(body, ctx, NULL)",
     "restore_resource_states(&before_defer)",

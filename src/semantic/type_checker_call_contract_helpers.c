@@ -5,7 +5,7 @@
  * Shared call contract lookup and callee escape-summary helpers.
  */
 
-#include "slot_analyzer.h"
+#include "slot_summary.h"
 #include "type_checker_internal.h"
 
 #include <string.h>
@@ -52,7 +52,7 @@ semantic_callable_param_escape_summary(ASTNode *callee_decl,
         return 0u;
     }
 
-    return slot_analyze_param_summary_in_program(
+    return slot_analyze_legacy_ast_param_summary_in_program(
         ast_func_body(callee_decl),
         ast_func_param(callee_decl, arg_index) != NULL
             ? ast_func_param(callee_decl, arg_index)->name

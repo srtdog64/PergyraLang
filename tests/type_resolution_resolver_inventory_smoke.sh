@@ -316,6 +316,22 @@ grep -q 'semantic_type_resolution_lookup_metadata_type_ref' \
   exit 1
 }
 
+grep -q 'semantic_type_resolution_lookup_metadata_name_or_alias_or_unknown' \
+  src/semantic/type_checker_resolution_metadata_diagnostics.c || {
+  echo "[type-resolution-resolver-inventory] metadata diagnostics lost central name-or-alias unknown-type helper" >&2
+  exit 1
+}
+
+for local_unknown_helper in \
+  expr_resolve_named_type_metadata_or_unknown \
+  expr_host_resolve_named_type_metadata_or_unknown \
+  overlay_resolve_named_type_metadata_or_unknown; do
+  if grep -RIn "$local_unknown_helper" src/semantic; then
+    echo "[type-resolution-resolver-inventory] owner-local unknown-type metadata helper reappeared: $local_unknown_helper" >&2
+    exit 1
+  fi
+done
+
 grep -q 'semantic_type_resolution_lookup_metadata_type_ref' \
   src/semantic/type_checker_ownership_let_helpers.c || {
   echo "[type-resolution-resolver-inventory] ownership let type-ref path no longer consumes DAG metadata first" >&2
