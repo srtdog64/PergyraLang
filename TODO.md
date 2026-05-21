@@ -17,6 +17,13 @@ English anchor for tooling/doc gates:
   `host_decl_compat.c`, C/LLVM domain-constructor lookup, and party-slot ability
   selection helpers. The remaining targets must be closed by moving source-of-
   truth ownership, not by rewording the percentage.
+- Helper-layer escalation rule: `_helpers` is not an ownership model. If a
+  helper owner grows toward the 600 LOC signal or starts carrying more than one
+  responsibility, split it into a responsibility-named layer/owner instead of
+  adding another generic helper bucket. Keep small local helpers `static` in the
+  owning `.c` file; promote cross-owner utilities only when the caller contract
+  is explicit and smoke-gated. This is a source-of-truth rule, not a cosmetic
+  naming preference.
 - README, `docs/37_compiler_contracts.md`, and
   `docs/42_keyword_orthogonality.md` were normalized back to readable UTF-8 /
   ASCII surface text. The docs now state the Resource / Execution / Domain /
@@ -1934,7 +1941,10 @@ English anchor for tooling/doc gates:
   `transpiler_specialization_helpers.h` (520 LOC after moving collection
   runtime suffix naming into the 22 LOC
   `transpiler_collection_runtime_suffix.h`). Treat these as
-  split-by-responsibility candidates, not automatic mechanical splits.
+  split-by-responsibility candidates, not automatic mechanical splits. If a
+  `_helpers` owner crosses the signal, the default fix is layer escalation into
+  a responsibility-named owner; adding another broad helper bucket is a debt
+  regression.
 - `llvm_internal.h` is intentionally left as the LLVM context/type spine for
   now. It is near the split-review signal, but it mainly owns declarations,
   registry entry shapes, and `LLVMGenCtx` layout rather than implementation

@@ -5,6 +5,9 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 LIMIT="${TEST_CASE_INCLUDE_MAX_LINES:-990}"
 PRODUCTION_LIMIT="${PRODUCTION_OWNER_MAX_LINES:-600}"
 
+grep -Fq "Helper-layer escalation rule" "$ROOT_DIR/TODO.md"
+grep -Fq "\`_helpers\` is not an ownership model" "$ROOT_DIR/TODO.md"
+
 inc_files="$(
     cd "$ROOT_DIR"
     find src -type f -name '*.inc' -print
@@ -140,4 +143,4 @@ if [[ -n "$production_violations" ]]; then
     exit 1
 fi
 
-echo "[test-inc-size] src has no .inc files or _IMPLEMENTATION header blocks; declaration-only headers stay body-free; production owners <= ${PRODUCTION_LIMIT} LOC; src/tests .cases.h files <= ${LIMIT} LOC"
+echo "[test-inc-size] src has no .inc files or _IMPLEMENTATION header blocks; declaration-only headers stay body-free; production owners <= ${PRODUCTION_LIMIT} LOC; helper growth is a layer-escalation signal; src/tests .cases.h files <= ${LIMIT} LOC"
