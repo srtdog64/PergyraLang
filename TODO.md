@@ -6733,7 +6733,11 @@ Progress log, 2026-05-04:
   function-body let lookup under `src/codegen`. Gates: `test-transpile`,
   `cfg-body-dataflow-test-smoke`, and `build-source-inventory-test-smoke`.
 - Split MIR resource runtime-name policy out of `transpiler_helpers.h` into `transpiler_mir_resource_name_helpers.h`, reducing the generic helper owner from 557 LOC to 496 LOC while keeping resource op emission behavior unchanged. Gates: `test-transpile` (`717/0`), `production-header-size-test-smoke`, `build-source-inventory-test-smoke`, `source-utf8-test-smoke`, `bin/pgy.exe`.
-- Split C overlay world-embedded projection sync out of `transpiler_overlay_projection.h` into `transpiler_overlay_world_projection.h`, reducing the generic overlay projection owner from 533 LOC to 339 LOC while preserving assignment invalidation and receiver post-sync behavior. Gates: `test-transpile` (`717/0`), `production-header-size-test-smoke`, `build-source-inventory-test-smoke`, `source-utf8-test-smoke`, `bin/pgy.exe`.
+- Promoted C overlay projection invalidation and world-embedded projection sync
+  into `transpiler_overlay_projection.c`. `transpiler_overlay_projection.h`
+  and `transpiler_overlay_world_projection.h` are now declaration-only
+  compatibility headers, so projection invalidation no longer ships as static
+  implementation header code.
 - Split C intent emission metadata cleanup and local carrier/context macros out of `transpiler_intent_emit.h` into `transpiler_intent_emit_metadata_helpers.h`, reducing the intent declaration emitter from 520 LOC to 487 LOC without changing MIR-only carrier validation or cleanup behavior. Gates: `test-transpile` (`717/0`), `production-header-size-test-smoke`, `build-source-inventory-test-smoke`, `source-utf8-test-smoke`, `bin/pgy.exe`.
 - Split MIR active-inventory inline views out of the public C backend header into `transpiler_inventory_view.h`, reducing `transpiler.h` from 531 LOC to 402 LOC while keeping the same public API available to existing consumers. Gates: `test-transpile` (`717/0`), `production-header-size-test-smoke`, `build-source-inventory-test-smoke`, `source-utf8-test-smoke`, `bin/pgy.exe`.
 - Split C relation/effect declaration emission out of `transpiler_domain_nominal_emit.h` into `transpiler_relation_effect_emit.h`, reducing the mixed domain nominal owner from 562 LOC to 382 LOC while preserving relation/effect projection sync and hosted method emission. Gates: `test-transpile` (`717/0`), `production-header-size-test-smoke`, `build-source-inventory-test-smoke`, `source-utf8-test-smoke`, `bin/pgy.exe`.
@@ -8700,6 +8704,10 @@ dispatch / semantic lookup / runtime data structure 3축 결과 통합. *정확�
   `transpiler_overlay_zone_relation_bind.c`). The matching headers are
   declaration-only, so projection include chains no longer carry unused static
   bind helpers after `emit_zone_decl` moved to a compiled owner.
+- Follow-up closure: C overlay projection invalidation and world-embedded
+  projection sync also live in `transpiler_overlay_projection.c`. The overlay
+  projection headers are now declaration-only, leaving `transpiler.c` include
+  chains free of projection invalidation implementation bodies.
 - Follow-up closure: CFG-owned `for value in List<T>` now uses the same MIR
   facts on both backends. C and LLVM emit a MIR-owned index slot, list-size
   condition, list-get body binding, and backedge increment instead of falling

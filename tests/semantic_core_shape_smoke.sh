@@ -1131,7 +1131,7 @@ if grep -R "data\.type\.\(name\|generic_args\)" \
     src/codegen/transpiler_let_box_emit.h \
     src/codegen/transpiler_let_slot_emit.c \
     src/codegen/transpiler_mir_ssa_emit.h \
-    src/codegen/transpiler_overlay_projection.h \
+    src/codegen/transpiler_overlay_projection.c \
     src/codegen/transpiler_projection.c \
     src/codegen/transpiler_projection_method_invalidation.h \
     src/codegen/transpiler_projection_sync.h \
@@ -1332,7 +1332,7 @@ fi
 if grep -R "data\.class_decl\.\(fields\|field_count\|nominal_kind\|is_struct\)" \
     src/codegen/transpiler_projection.c \
     src/codegen/transpiler_projection_field_path.c \
-    src/codegen/transpiler_overlay_projection.h >/dev/null; then
+    src/codegen/transpiler_overlay_projection.c >/dev/null; then
     fail "C projection helpers must use AST class accessors"
 fi
 
@@ -1627,12 +1627,12 @@ fi
 
 if grep -R "data\.zone_decl\.\(slots\|slot_count\)" \
     src/codegen/transpiler_intent_zone_slot.c \
-    src/codegen/transpiler_overlay_world_projection.h >/dev/null; then
+    src/codegen/transpiler_overlay_projection.c >/dev/null; then
     fail "C intent/overlay zone-slot helpers must use AST zone child accessors"
 fi
 
 if grep -R "data\.\(relation_decl\|effect_decl\|zone_decl\)\.\(slots\|slot_count\|refreshes\|refresh_count\)" \
-    src/codegen/transpiler_overlay_projection.h >/dev/null; then
+    src/codegen/transpiler_overlay_projection.c >/dev/null; then
     fail "C overlay projection must use AST domain child accessors"
 fi
 

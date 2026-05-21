@@ -1391,13 +1391,13 @@ Operational mode:
   `transpiler_misc_decl.c`. Parity gate: `make llvm-test-backend-compare`
   (`196/0` ABI same-process, `64/64` backend compare).
 - 2026-04-28 C projection overlay owner update:
-  `transpiler_overlay_projection.h` is now below the 600 LOC review
-  threshold. Host-field/self-cell probes live in
-  `transpiler_overlay_host_fields.h`, while zone effect and relation
-  bind-layer emission live in compiled owners
+  Overlay projection invalidation now lives in
+  `transpiler_overlay_projection.c`; `transpiler_overlay_projection.h` and
+  `transpiler_overlay_world_projection.h` are declaration-only. Host-field /
+  self-cell probes live in `transpiler_overlay_host_fields.c`, while zone
+  effect and relation bind-layer emission live in compiled owners
   `transpiler_overlay_zone_bind.c` and
-  `transpiler_overlay_zone_relation_bind.c`. Their headers are
-  declaration-only. Parity gate:
+  `transpiler_overlay_zone_relation_bind.c`. Parity gate:
   `make llvm-test-backend-compare` (`196/0` ABI same-process, `64/64`
   backend compare).
 - 2026-04-28 LLVM zone sync owner update:
@@ -1784,8 +1784,8 @@ Operational mode:
   LLVM intent/domain declaration owners are now below the threshold after the
   setup/context/cleanup and forward/struct-field splits, and `transpiler.c`
   is below the threshold after the entry/thread-pool/misc-decl split.
-  `transpiler_overlay_projection.h` is also below the threshold after the
-  host-field and zone-bind splits, and `llvm_domain_zone_sync.c` is below
+  Overlay projection is also owner-backed after the host-field, zone-bind, and
+  projection-invalidation splits, and `llvm_domain_zone_sync.c` is below
   the threshold after the relation-clause split. `llvm_domain_world_sync.c`
   is below the threshold after the directive-pass split. `llvm_runtime.c` is
   below the threshold after the raw collection/channel registry split, and

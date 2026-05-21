@@ -2,6 +2,7 @@
 #define PGY_TRANSPILER_PROJECTION_METHOD_INVALIDATION_H
 
 #include "../parser/ast_api.h"
+#include "transpiler_projection_field_path.h"
 
 static void
 append_overlay_method_projection_invalidations(CodeBuf *buf,

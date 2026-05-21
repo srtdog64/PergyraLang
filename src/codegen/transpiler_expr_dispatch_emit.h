@@ -4,6 +4,7 @@
 #include "../common/string_compat.h"
 #include "../parser/ast_api.h"
 #include "host_decl_compat.h"
+#include "transpiler_overlay_host_fields.h"
 
 char *
 emit_expression(ASTNode *node, TranspilerCtx *ctx)

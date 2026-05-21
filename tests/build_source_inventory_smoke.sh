@@ -170,6 +170,12 @@ if ! grep -Fq '$(CODEGEN_DIR)/transpiler_overlay_zone_bind.c' \
     missing=1
 fi
 
+if ! grep -Fq '$(CODEGEN_DIR)/transpiler_overlay_projection.c' \
+    "$ROOT_DIR/Makefile"; then
+    echo "[build-source-inventory] overlay projection owner is not linked by the C backend source inventory" >&2
+    missing=1
+fi
+
 if ! grep -Fq '$(CODEGEN_DIR)/transpiler_overlay_zone_relation_bind.c' \
     "$ROOT_DIR/Makefile"; then
     echo "[build-source-inventory] zone relation bind owner is not linked by the C backend source inventory" >&2
@@ -508,7 +514,7 @@ if grep -Fq "domain_slot_is_projection_target_local" \
 fi
 
 if grep -Eq '(^|[^A-Za-z0-9_])current_overlay_domain_slot_decl\(' \
-    "$ROOT_DIR/src/codegen/transpiler_overlay_projection.h" \
+    "$ROOT_DIR/src/codegen/transpiler_overlay_projection.c" \
     "$ROOT_DIR/src/codegen/transpiler_expr_builtin_dispatch.h"; then
     echo "[build-source-inventory] overlay domain-slot query regressed to implementation-header local helper" >&2
     missing=1
