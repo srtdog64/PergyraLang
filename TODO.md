@@ -22,8 +22,9 @@ English anchor for tooling/doc gates:
   responsibility, split it into a responsibility-named layer/owner instead of
   adding another generic helper bucket. Keep small local helpers `static` in the
   owning `.c` file; promote cross-owner utilities only when the caller contract
-  is explicit and smoke-gated. This is a source-of-truth rule, not a cosmetic
-  naming preference.
+  is explicit and smoke-gated. `test_inc_size_smoke.sh` now applies a stricter
+  500 LOC helper-owner gate before the general 600 LOC production-owner gate.
+  This is a source-of-truth rule, not a cosmetic naming preference.
 - First helper-layer escalation slice after the rule: C backend specialization
   AST scanning moved out of `transpiler_specialization_helpers.c` into
   `transpiler_specialization_scan.c`. The helper owner now focuses on
