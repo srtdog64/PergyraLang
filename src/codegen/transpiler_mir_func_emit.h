@@ -253,7 +253,7 @@ emit_func_decl_from_mir_named(ASTNode *node, const MIRRoutine *mir_routine,
             if (owner_is_zone) {
                 write_indent(ctx);
                 codebuf_write(ctx->out,
-                    "uint32_t __attribute__((unused)) __pgy_zone_gen = self->__sync_generation;\n");
+                    "uint32_t __attribute__((unused)) __pgy_zone_gen = PGY_ZONE_GENERATION_LOAD(self);\n");
             }
         }
     }

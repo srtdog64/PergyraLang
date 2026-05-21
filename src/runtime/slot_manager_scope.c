@@ -14,6 +14,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+struct SecureSlotScope;
+
+SlotManager *g_pergyraSlotManager = NULL;
+
 struct SecureSlotScope
 {
     SlotManager *manager;

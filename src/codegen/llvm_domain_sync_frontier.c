@@ -10,7 +10,7 @@ llvm_emit_sync_generation_increment(LLVMGenCtx *ctx,
 {
     int generation_idx;
     LLVMValueRef generation_ptr;
-    LLVMValueRef generation_val;
+    LLVMValueRef one;
 
     if (ctx == NULL || decl_cls == NULL || self_ptr == NULL)
         return;
@@ -19,14 +19,23 @@ llvm_emit_sync_generation_increment(LLVMGenCtx *ctx,
     if (generation_idx < 0)
         return;
 
+    /*
+     * Atomic increment with release ordering. Matches the C-backend
+     * macro PGY_ZONE_GENERATION_INC which uses
+     * atomic_fetch_add_explicit(memory_order_release). The atomic
+     * operation is the minimum fix for the data race observed when
+     * parallel/spawn code paths share a zone pointer; the rwlock
+     * (PGY_ZONE_THREADSAFE in C-emit) protects the other zone fields.
+     * The result of the RMW is unused; the call is purely for the
+     * side-effect on the counter.
+     */
     generation_ptr = LLVMBuildStructGEP2(ctx->builder, decl_cls->struct_type,
         self_ptr, (unsigned)generation_idx, llvm_tmp_name(ctx));
-    generation_val = LLVMBuildLoad2(ctx->builder, ctx->type_i32,
-        generation_ptr, llvm_tmp_name(ctx));
-    LLVMBuildStore(ctx->builder,
-        LLVMBuildAdd(ctx->builder, generation_val,
-            LLVMConstInt(ctx->type_i32, 1, 0), llvm_tmp_name(ctx)),
-        generation_ptr);
+    one = LLVMConstInt(ctx->type_i32, 1, 0);
+    (void)LLVMBuildAtomicRMW(ctx->builder, LLVMAtomicRMWBinOpAdd,
+        generation_ptr, one,
+        LLVMAtomicOrderingRelease,
+        /*singleThread=*/0);
 }
 
 void

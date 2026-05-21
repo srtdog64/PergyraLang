@@ -6,6 +6,7 @@
  */
 
 #ifdef PGY_LLVM_ENABLED
+#define PGY_RUNTIME_LIB_INTERNAL
 
 #include "pgy_runtime_lib_authority_file_core.h"
 #include "pgy_runtime_lib_core_exports.h"

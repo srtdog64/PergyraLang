@@ -57,6 +57,29 @@ THREAD_LINK_LIB = -lwinpthread
 # This is MinGW's own documented opt-in - no effect on Linux/macOS.
 PLATFORM_CFLAGS = -D__USE_MINGW_ANSI_STDIO=1
 endif
+# Auto-enable PGY_ZONE_THREADSAFE on hosted systems. The default Pergyra
+# build uses a threaded runtime (parallel/spawn/channel), so the rwlock
+# macros need to be real, not no-ops.
+#
+# - Linux / MinGW: detected via the non-empty THREAD_LINK_LIB.
+# - macOS:         pthread is in libSystem, so THREAD_LINK_LIB is empty
+#                  yet threading is still active; gate on darwin too.
+#
+# The atomic generation counter (in pgy_runtime_zone_result_option_inline.h)
+# is the minimum safety net; the rwlock becomes the structural lock for
+# the rest of the zone state.
+#
+# Embedded / explicit single-threaded targets can override with
+#   make PGY_ZONE_THREADSAFE=0
+# which suppresses the define. Otherwise we always set it.
+PGY_ZONE_THREADSAFE ?= 1
+ifeq ($(PGY_ZONE_THREADSAFE),1)
+ifneq ($(strip $(THREAD_LINK_LIB)),)
+PLATFORM_CFLAGS += -DPGY_ZONE_THREADSAFE
+else ifneq ($(findstring darwin,$(CC_DUMP_MACHINE)),)
+PLATFORM_CFLAGS += -DPGY_ZONE_THREADSAFE
+endif
+endif
 TMPDIR ?= /tmp
 export TMPDIR
 TMPDIR_CI := $(subst \,/,$(TMPDIR))

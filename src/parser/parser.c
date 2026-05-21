@@ -59,19 +59,13 @@ Token parser_advance(Parser* parser) {
 
 // 다음 토큰 미리보기 (non-destructive lookahead)
 Token parser_peek_next(Parser* parser) {
-    /* Save lexer state */
-    const char *saved_current = parser->lexer->current;
-    size_t saved_pos = parser->lexer->position;
-    uint32_t saved_line = parser->lexer->line;
-    uint32_t saved_col = parser->lexer->column;
+    /* Save the full lexer state: lookahead must not publish errors. */
+    Lexer saved_lexer = *parser->lexer;
 
     Token next = lexer_next_token(parser->lexer);
 
     /* Restore lexer state */
-    parser->lexer->current = saved_current;
-    parser->lexer->position = saved_pos;
-    parser->lexer->line = saved_line;
-    parser->lexer->column = saved_col;
+    *parser->lexer = saved_lexer;
 
     return next;
 }

@@ -1,3 +1,5 @@
+#ifdef PGY_RUNTIME_LIB_INTERNAL
+
 #include "pgy_runtime_lib_set_raw_exports.h"
 #include "pgy_runtime_observability_schema.h"
 
@@ -456,3 +458,5 @@ pgy_intent_enter_export(char *name, void **subjects, int32_t subject_count,
 }
 
 #include "pgy_runtime_lib_intent_trace_events_exports.c"
+
+#endif /* PGY_RUNTIME_LIB_INTERNAL */

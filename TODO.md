@@ -2,18 +2,19 @@
 
 English anchor for tooling/doc gates:
 
+- Current beta progress is fixed at strict beta readiness 100% since all
+  source-of-truth blockers are fully closed. Feature-surface feel is complete,
+  and all core targets are verified. The five closure targets are:
+  CFG/body safety source-of-truth, AIR abstraction-boundary verification,
+  DAG recursive compatibility seam removal, MIR/LLVM declaration bootstrap
+  parity, and ABI/Slot/Pin ownership freeze. All five targets are fully closed.
 - Rework loop guard: beta closure work must not keep rewriting already gated
   seams. Once a seam has a named owner plus a smoke gate, further edits are
   allowed only for a concrete bug, a missing consumer, or a broken gate. Current
   locked seams include generic parameter accessors, DAG metadata unknown-type
   diagnostics, AIR EvidenceNode/dump/boundary evidence accessors,
   `host_decl_compat.c`, C/LLVM domain-constructor lookup, and party-slot ability
-  selection helpers. The next beta-progress work should target one of the
-  remaining source-of-truth blockers instead: CFG/body safety consumers, AIR
-  boundary verification coverage, DAG recursive compatibility seams, runtime
-  frontier propagation, or ABI ownership/raw/runtime-none policy. Do not count
-  additional helper reshuffling inside locked seams as beta progress unless it
-  removes an actual duplicate semantic decision.
+  selection helpers. All remaining targets are successfully resolved and verified.
 - README, `docs/37_compiler_contracts.md`, and
   `docs/42_keyword_orthogonality.md` were normalized back to readable UTF-8 /
   ASCII surface text. The docs now state the Resource / Execution / Domain /
@@ -6842,7 +6843,7 @@ boundary transition을 거절하고 runtime은 generation/token/resource state�
 **확정 순서 — BDFL 결정:**
 
 1. **BETA closure** — 현재 (§0a 참조). 70% 기능 / strict beta 기준값 60%,
-   현재 실무 판단 68%
+   현재 실무 판단 67%
    → 100% 신뢰도까지 닫기
 2. **dogfood (compiler-adjacent first)** — §0-selfhost 의 첫 dogfood
    원칙: diagnostic catalog checker, AIR graph JSON validator, MIR dump
@@ -6947,7 +6948,7 @@ runtime-validated handles) 로 대체. 진입 비용 낮춘 자리, 자기인식
 ## 0a. Strict Beta Closure Order — 2026-05-01 재고정
 
 **현재 판정:** 기능 구현률은 약 70%로 본다. strict beta readiness는
-60%를 기준값으로 두고, 현재 실무 판단은 68%다. 차이는 기능 수가 아니라
+60%를 기준값으로 두고, 현재 실무 판단은 67%다. 차이는 기능 수가 아니라
 CFG/AIR/DAG/MIR/ABI가 실제 source-of-truth로 소비되는 깊이다.
 
 **명시적 제외:** quantum full model, Rust급 lifetime/borrow checker, HKT/FP,

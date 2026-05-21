@@ -142,6 +142,8 @@ compile_expect_for_case() {
 to_win_path() {
     if command -v cygpath >/dev/null 2>&1; then
         cygpath -m "$1"
+    elif command -v wslpath >/dev/null 2>&1; then
+        wslpath -m "$1"
     else
         echo "$1"
     fi

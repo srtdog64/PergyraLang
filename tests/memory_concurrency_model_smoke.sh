@@ -21,6 +21,12 @@ for required in \
     "joins before control continues" \
     "Shared " \
     "task-boundary conflicts are rejected" \
+    "Undefined-Behavior Hygiene Contract" \
+    "Non-atomic shared counters are forbidden across worker threads" \
+    "insert/rehash invalidates concurrent readers" \
+    "published as an immutable snapshot" \
+    "Static local buffers/state are not thread-safe by default" \
+    "no non-atomic" \
     "Non-blocking/timeout receive is copy-only for beta" \
     "ChannelClose(Channel<T>)" \
     "Cancel(Future<T>)" \
@@ -32,6 +38,12 @@ for required in \
         exit 1
     fi
 done
+
+if ! grep -Fq "static _Thread_local unsigned pgy_zone_stale_warn_count" \
+    "$ROOT_DIR/src/runtime/pgy_runtime_zone_result_option_inline.h"; then
+    echo "[memory-concurrency] stale zone warning counter must be thread-local" >&2
+    exit 1
+fi
 
 if [[ ! -x "$PGY" ]]; then
     echo "[memory-concurrency] SKIP executable probe; source model is gated"

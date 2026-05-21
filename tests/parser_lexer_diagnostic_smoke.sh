@@ -17,6 +17,8 @@ run_literal_contract_smoke() {
     require_literal "src/parser/parser.c" "PGY_CODE_PARSE_SYNTAX"
     require_literal "src/parser/parser.c" "PGY_CAUSE_PARSE_UNEXPECTED_TOKEN"
     require_literal "src/parser/parser.c" "PGY_FIX_CHECK_SYNTAX"
+    require_literal "src/parser/parser.c" "Lexer saved_lexer = *parser->lexer"
+    require_literal "src/parser/parser.c" "*parser->lexer = saved_lexer"
     require_literal "src/lexer/lexer.c" "PGY_CODE_LEX_INVALID_TOKEN"
     require_literal "src/lexer/lexer.c" "PGY_CAUSE_LEX_INVALID_TOKEN"
     require_literal "src/lexer/lexer.c" "PGY_FIX_REMOVE_OR_ESCAPE_CHARACTER"
@@ -27,10 +29,10 @@ run_literal_contract_smoke() {
     require_literal "src/compiler/driver_diag.c" "driver_diag_code_from_message"
     require_literal "src/compiler/driver_diag.c" "driver_diag_cause_from_code"
     require_literal "src/compiler/driver_diag.c" "driver_diag_fix_from_code"
-    require_literal "src/parser/parser_expr.c" "Optional chaining '?.' is reserved but not implemented."
-    require_literal "src/parser/parser_expr.c" "optional member provenance is not frozen"
-    require_literal "src/parser/parser_expr.c" "Slicing 'xs[a..b]' is reserved but not implemented."
-    require_literal "src/parser/parser_expr.c" "public slice ABI and ownership policy are not frozen"
+    require_literal "src/parser/parser_expr_postfix.c" "Optional chaining '?.' is reserved but not implemented."
+    require_literal "src/parser/parser_expr_postfix.c" "optional member provenance is not frozen"
+    require_literal "src/parser/parser_expr_postfix.c" "Slicing 'xs[a..b]' is reserved but not implemented."
+    require_literal "src/parser/parser_expr_postfix.c" "public slice ABI and ownership policy are not frozen"
     require_literal "src/parser/parser_expr.c" "Object/map literal syntax '{ ... }' is reserved but not implemented."
     require_literal "src/parser/parser_expr.c" "object/map literal ABI, field ownership, and collection key policy"
     require_literal "src/parser/parser_expr.c" "Spread/rest syntax '...' is reserved but not implemented."
@@ -88,6 +90,11 @@ for path, code, cause, fix in checks:
     if "Code:" not in text or "Reason:" not in text or "Fix:" not in text:
         violations.append(f"{path.relative_to(root)} must emit Code/Reason/Fix")
 
+parser_core = (root / "src" / "parser" / "parser.c").read_text(encoding="utf-8", errors="ignore")
+for literal in ("Lexer saved_lexer = *parser->lexer", "*parser->lexer = saved_lexer"):
+    if literal not in parser_core:
+        violations.append("parser_peek_next must restore full Lexer state, including error state")
+
 diag_header = root / "src" / "semantic" / "diag_codes.h"
 diag_doc = root / "docs" / "72_diagnostic_codes.md"
 driver_sources = [
@@ -115,6 +122,7 @@ for literal in ("driver_diag_code_from_message", "driver_diag_cause_from_code",
         violations.append(f"driver diagnostic owners missing parser/lexer JSON routing term {literal}")
 
 parser_expr = (root / "src" / "parser" / "parser_expr.c").read_text(encoding="utf-8", errors="ignore")
+parser_expr_postfix = (root / "src" / "parser" / "parser_expr_postfix.c").read_text(encoding="utf-8", errors="ignore")
 parser_type = (root / "src" / "parser" / "parser_type.c").read_text(encoding="utf-8", errors="ignore")
 parser_stmt = (root / "src" / "parser" / "parser_statement_dispatch.c").read_text(encoding="utf-8", errors="ignore")
 parser_decl = (root / "src" / "parser" / "parser_decl.c").read_text(encoding="utf-8", errors="ignore")
@@ -131,8 +139,8 @@ reserved_expr_terms = (
     "spread/rest needs call ABI, ownership, and collection lowering policy",
 )
 for literal in reserved_expr_terms:
-    if literal not in parser_expr:
-        violations.append(f"parser_expr.c missing reserved-syntax Reason/Fix term {literal}")
+    if literal not in parser_expr and literal not in parser_expr_postfix:
+        violations.append(f"parser expression owners missing reserved-syntax Reason/Fix term {literal}")
 
 reserved_other_terms = (
     (parser_type, "parser_type.c", "Generic parameter placeholder '_' is reserved but not implemented."),

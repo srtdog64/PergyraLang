@@ -83,6 +83,7 @@ lower_air_from_source(const char *source)
 
 
 #include "tests/air/test_air_core_part_a.cases.h"
+#include "tests/air/test_air_core_evidence_part_k.cases.h"
 #include "tests/air/test_air_core_part_h.cases.h"
 #include "tests/air/test_air_evidence_part_b.cases.h"
 #include "tests/air/test_air_cleanup_transfer_part_c.cases.h"

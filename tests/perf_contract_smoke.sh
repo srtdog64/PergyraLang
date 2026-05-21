@@ -379,8 +379,10 @@ grep -Fq "air_boundary_has_summary_flag(boundary, AIR_EVIDENCE_RIR_AUTHORITY)" \
     "$ROOT_DIR/src/compiler/air_validate_boundary_summary.c"
 grep -Fq "AIR boundary node %zu has %s summary without evidence node" "$ROOT_DIR/src/compiler/air_validate_boundary_summary.c"
 grep -Fq "AIR boundary evidence node %zu has no matching boundary summary flag" "$ROOT_DIR/src/compiler/air_validate_boundary_evidence.c"
-grep -Fq "HIR CFG evidence summary without evidence node" "$ROOT_DIR/src/tests/air/test_air_core_part_a.cases.h"
-grep -Fq "no matching boundary summary flag" "$ROOT_DIR/src/tests/air/test_air_core_part_a.cases.h"
+grep -Fq "HIR CFG evidence summary without evidence node" \
+    "$ROOT_DIR/src/tests/air/test_air_core_part_a.cases.h"
+grep -Fq "no matching boundary summary flag" \
+    "$ROOT_DIR/src/tests/air/test_air_core_evidence_part_k.cases.h"
 grep -Fq "AIR strict evidence rejects stale boundary summary flags" "$ROOT_DIR/src/test_air.c"
 grep -Fq "DriverDiagCodeMap" "$ROOT_DIR/src/compiler/driver_diag.c"
 grep -Fq "driver_diag_code_map_find" "$ROOT_DIR/src/compiler/driver_diag.c"
@@ -391,6 +393,12 @@ grep -Fq "pgy_compiler_io_boundary_builtin_is_stable(name)" "$ROOT_DIR/src/compi
 grep -Fq "pgy_compiler_io_boundary_builtin_is_stable(name)" "$ROOT_DIR/src/compiler/rir_builder_walk.c"
 ! grep -Fq "io_names[]" "$ROOT_DIR/src/compiler/air_boundary.c"
 ! grep -Fq "io_names[]" "$ROOT_DIR/src/compiler/rir_builder_walk.c"
+for outputter_builtin in Print Log LogRaw LogBanner; do
+    if grep -Fq "\"$outputter_builtin\"" "$ROOT_DIR/src/compiler/io_boundary_builtin.c"; then
+        echo "[perf-contract] outputter builtin must not become AIR/RIR resource-boundary inputter: $outputter_builtin" >&2
+        exit 1
+    fi
+done
 grep -Fq "pgy_codegen_claim_slot_spec_compare" "$ROOT_DIR/src/codegen/codegen_slot_type_policy.c"
 grep -Fq "bsearch(name" "$ROOT_DIR/src/codegen/codegen_slot_type_policy.c"
 grep -Fq "PgyCodegenSlotCallSpec specs[]" "$ROOT_DIR/src/codegen/codegen_slot_type_policy.c"

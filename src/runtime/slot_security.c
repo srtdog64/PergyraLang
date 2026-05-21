@@ -15,6 +15,7 @@
 #include <stdio.h>
 
 #ifdef _WIN32
+#include <windows.h>
 #include <wincrypt.h>
 #pragma comment(lib, "advapi32.lib")
 #elif defined(__linux__)
@@ -22,11 +23,6 @@
 #include <fcntl.h>
 #include <sys/mman.h>
 #endif
-
-#include <openssl/evp.h>
-#include <openssl/rand.h>
-#include <openssl/sha.h>
-#include <openssl/aes.h>
 
 static void
 slot_security_warn(const char *op, SecurityError err, const char *reason)

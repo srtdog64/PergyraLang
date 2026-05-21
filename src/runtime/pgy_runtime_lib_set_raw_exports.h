@@ -1,6 +1,10 @@
 #ifndef PGY_RUNTIME_LIB_SET_RAW_EXPORTS_H
 #define PGY_RUNTIME_LIB_SET_RAW_EXPORTS_H
 
+#include <stdbool.h>
+#include <stdint.h>
+#include <stddef.h>
+
 bool
 pgy_set_has_raw_export(void *set_ptr, void *elem_ptr, int64_t elem_size)
 {

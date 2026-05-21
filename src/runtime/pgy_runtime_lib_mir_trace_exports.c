@@ -1,3 +1,5 @@
+#ifdef PGY_RUNTIME_LIB_INTERNAL
+
 #include "pgy_runtime_lib_set_intent_trace_exports.h"
 
 #include <stdio.h>
@@ -41,3 +43,5 @@ pgy_mir_cleanup_op_export(int32_t handle,
     (void)arg_name;
 #endif
 }
+
+#endif /* PGY_RUNTIME_LIB_INTERNAL */

@@ -66,8 +66,18 @@ llvm_world_frontier_emit_zone_sync_pass(ASTNode *stmt,
                     LLVMValueRef seen_ptr = LLVMBuildStructGEP2(ctx->builder,
                         decl_cls->struct_type, self_ptr, (unsigned)seen_idx,
                         llvm_tmp_name(ctx));
+                    /*
+                     * Atomic acquire load — pairs with the release-order
+                     * atomic increment emitted by
+                     * llvm_emit_sync_generation_increment and the
+                     * PGY_ZONE_GENERATION_INC macro on the C backend.
+                     * Without this the compare-against-seen race-loses on
+                     * parallel/spawn paths.
+                     */
                     LLVMValueRef generation_val = LLVMBuildLoad2(ctx->builder,
                         ctx->type_i32, generation_ptr, llvm_tmp_name(ctx));
+                    LLVMSetOrdering(generation_val, LLVMAtomicOrderingAcquire);
+                    LLVMSetAlignment(generation_val, 4);
                     LLVMValueRef seen_val = LLVMBuildLoad2(ctx->builder,
                         ctx->type_i32, seen_ptr, llvm_tmp_name(ctx));
                     LLVMValueRef generation_changed = LLVMBuildICmp(ctx->builder,
@@ -106,8 +116,16 @@ llvm_world_frontier_emit_zone_sync_pass(ASTNode *stmt,
                         LLVMValueRef seen_ptr = LLVMBuildStructGEP2(ctx->builder,
                             decl_cls->struct_type, self_ptr, (unsigned)seen_idx,
                             llvm_tmp_name(ctx));
+                        /*
+                         * Atomic acquire load of the zone's
+                         * __sync_generation counter so the seen-cache
+                         * update sees a coherent value when another
+                         * task incremented under release order.
+                         */
                         LLVMValueRef generation_val = LLVMBuildLoad2(ctx->builder,
                             ctx->type_i32, generation_ptr, llvm_tmp_name(ctx));
+                        LLVMSetOrdering(generation_val, LLVMAtomicOrderingAcquire);
+                        LLVMSetAlignment(generation_val, 4);
                         LLVMBuildStore(ctx->builder, generation_val, seen_ptr);
                     }
                 }

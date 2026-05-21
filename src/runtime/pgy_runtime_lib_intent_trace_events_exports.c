@@ -1,3 +1,5 @@
+#ifdef PGY_RUNTIME_LIB_INTERNAL
+
 void
 pgy_intent_trace_step_export(int32_t handle, char *step_name, char *zone_name)
 {
@@ -154,3 +156,5 @@ pgy_intent_trace_fail_export(int32_t handle, char *reason)
     }
     pthread_mutex_unlock(&pgy_intent_registry_mutex);
 }
+
+#endif /* PGY_RUNTIME_LIB_INTERNAL */

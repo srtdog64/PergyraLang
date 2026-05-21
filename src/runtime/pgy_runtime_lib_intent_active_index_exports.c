@@ -1,5 +1,11 @@
+#ifdef PGY_RUNTIME_LIB_INTERNAL
+
 #ifndef PGY_RUNTIME_LIB_INTENT_ACTIVE_INDEX_EXPORTS_H
 #define PGY_RUNTIME_LIB_INTENT_ACTIVE_INDEX_EXPORTS_H
+
+#include <stdint.h>
+#include <stdbool.h>
+#include <stddef.h>
 
 #if (PGY_INTENT_ACTIVE_INDEX_MAX & (PGY_INTENT_ACTIVE_INDEX_MAX - 1)) != 0
 #error "PGY_INTENT_ACTIVE_INDEX_MAX must stay a power of two"
@@ -119,3 +125,5 @@ pgy_intent_find_active_entry_export(int32_t handle)
 }
 
 #endif /* PGY_RUNTIME_LIB_INTENT_ACTIVE_INDEX_EXPORTS_H */
+
+#endif /* PGY_RUNTIME_LIB_INTERNAL */

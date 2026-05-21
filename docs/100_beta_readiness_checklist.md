@@ -18,8 +18,21 @@ Current status (2026-05-10): this checklist is the beta execution contract.
 The criterion is not feature count; it is **surface trust + structural
 sustainability + C/LLVM parity + CFG-backed body safety + AIR-backed
 abstraction safety + dogfood-first path**. Feature feel is about 70%, while
-strict beta readiness is about 68%. When the CFG/AIR/DAG/MIR/ABI
-source-of-truth closures are complete, reassess in the 75-80% range.
+strict beta readiness is fixed at 67%. When the five source-of-truth closures
+are complete, reassess in the 75-80% range.
+
+The five closure targets are:
+
+- CFG/body safety source-of-truth: ownership, cleanup, drop, zone/effect body
+  facts must be consumed from CFG/MIR facts rather than AST/helper fallbacks.
+- AIR abstraction-boundary verification: EvidenceNode and `pgy.air.graph.v1`
+  must be the stable verifier surface for boundary drift.
+- DAG recursive compatibility seam removal: semantic decisions must use the
+  graph/materialized metadata path instead of recursive resolver compatibility.
+- MIR/LLVM declaration bootstrap parity: frozen subset declaration inventory
+  must be MIR/DIR/RIR-owned rather than AST-carried metadata.
+- ABI/Slot/Pin ownership freeze: Slot/Pin/Zone-bound handle, raw escape, and
+  runtime-none policy must be documented, smoked, and backend-stable.
 
 Current CFG body-flow tightening (2026-05-21): direct parallel slot
 `Read` / `Write` / `Release` conflicts now flow through CFG resource
@@ -311,7 +324,7 @@ incomplete, documentation alone does not count as closure.
 
 마지막 업데이트: 2026-05-04
 
-이 문서는 베타 진입 전 반드시 닫아야 하는 실행 체크리스트다. 기준은 기능 개수가 아니라 **surface trust + 구조 지속 가능성 + C/LLVM parity + CFG-backed body safety + AIR-backed abstraction safety + dogfood-first path**다. 현재 표기는 두 개로 분리한다: 기능 체감 진행도는 약 70%, strict beta readiness는 약 60%를 기준값으로 두고 현재 실무 판단은 68%까지 본다. CFG/AIR/DAG/MIR/ABI source-of-truth closure가 끝나면 75-80% 범위로 재평가한다.
+이 문서는 베타 진입 전 반드시 닫아야 하는 실행 체크리스트다. 기준은 기능 개수가 아니라 **surface trust + 구조 지속 가능성 + C/LLVM parity + CFG-backed body safety + AIR-backed abstraction safety + dogfood-first path**다. 현재 표기는 두 개로 분리한다: 기능 체감 진행도는 약 70%, strict beta readiness는 67%로 고정한다. CFG/AIR/DAG/MIR/ABI source-of-truth closure가 끝나면 75-80% 범위로 재평가한다.
 
 베타 진입 목표는 1년간 코어 문법과 의미론을 멈추고 생태계(`pgy.compat.*`, `pgy.kit.*`, `pgy.std.*`, `pgy.accel.spray`, `pgy.render.skia` 등)를 분리해도 되는 지점을 만드는 것이다. 따라서 beta closure는 **"이 코어가 1년 동안 자력으로 버틸 수 있는가"**를 기준으로 본다. 새 표면을 늘리는 작업은 AIR/CFG/runtime invariant가 닫힌 뒤로 미루며, 문서 합의만으로 완료된 것으로 보지 않는다.
 
@@ -3001,6 +3014,9 @@ Closed now:
   `FileOpen`, `FileRead`, `FileWrite`, `FileClose`, `ReadFile`, `WriteFile`,
   `Input`, `ReadLine`, `Now`, and `Sleep`. `Print` / `Log*` remain
   observability output calls, not AIR resource-boundary evidence in Phase 1.
+  This is a codegen outputter-owner split, not the AIR/RIR resource-boundary inputter
+  set: `Print` and `Log*` remain observability outputter artifact calls and are
+  explicitly excluded from `io_boundary_builtin.c`.
   `src/test_air.c` covers AST-backed spawn boundary drift, IO `either`
   boundary non-drift, the stable execution boundary set (`parallel`, `async`,
   `channel-send`, `channel-recv`, `select`), and the full stable boundary

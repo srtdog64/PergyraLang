@@ -654,7 +654,33 @@ Some seams are allowed until the owning path fully replaces them:
 
 Allowed debt must be named. Unnamed fallback is not allowed.
 
-## 7. Working Rule For Agents
+## 7. Inputter / Outputter Boundary Rule
+
+Source-of-truth ownership is not only a data-structure rule. Every compiler
+surface also has an inputter/outputter boundary:
+
+- inputter: what source bytes/tokens/facts were adopted, in which context, and
+  with which recovery value;
+- outputter: what artifact node was built, what was marker/payload/residue, and
+  when the result was committed or discarded.
+
+The canonical checklist is `docs/129_tex_semantics_lessons.md`. A new language
+surface is not beta-ready until its owner can answer the contract questions from
+that document:
+
+- scanner owner, stop condition, lookahead policy, and adopted recovery value;
+- capture point, planner point, commit point, rollback/cancel point, and trace
+  point for delayed effects;
+- marker/payload/residue classification for emitted artifacts;
+- semantic equality or canonicalization rule when raw bytes are not a stable
+  oracle;
+- deterministic side-effect trace for the same seed/profile/environment.
+
+This rule is why pretty output, AST dumps, and byte-for-byte artifacts are not
+accepted as the only oracle. The owner must state the operational transition
+that the test is proving.
+
+## 8. Working Rule For Agents
 
 Before changing compiler architecture, answer these four questions:
 
@@ -662,5 +688,13 @@ Before changing compiler architecture, answer these four questions:
 2. Which consumers should read it?
 3. Which old compatibility seam is being removed or narrowed?
 4. Which smoke/regression proves the owner contract did not drift?
+
+For scanner, recovery, emitter, formatter, diagnostic, runtime-trace, and
+artifact-generation changes, also answer:
+
+5. What is adopted at the input boundary?
+6. What is built but not yet committed at the output boundary?
+7. Which artifact layer is the oracle: raw bytes, parsed artifact, normalized
+   artifact, semantic equality, trace, or rendered output?
 
 If there is no answer, the change is probably another A -> B -> A loop.

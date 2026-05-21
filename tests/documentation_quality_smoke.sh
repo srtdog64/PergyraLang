@@ -75,6 +75,8 @@ required_files=(
     "docs/grammar/01_syntax.md"
     "docs/grammar/02_grammar.md"
     "docs/124_syntax_pattern_matrix.md"
+    "docs/125_source_of_truth_spine.md"
+    "docs/129_tex_semantics_lessons.md"
     "docs/37_compiler_contracts.md"
     "docs/42_keyword_orthogonality.md"
     "TODO.md"
@@ -526,6 +528,71 @@ compiler_contract_orthogonality_terms=(
 )
 for term in "${compiler_contract_orthogonality_terms[@]}"; do
     require_text "docs/37_compiler_contracts.md" "$term"
+done
+
+tex_semantics_terms=(
+    "TeX Semantics Lessons For Pergyra"
+    "Every boundary must say what is consumed, what is restored, what is captured,"
+    "Scanner Boundary Contract"
+    "Error Recovery Must Expose The Adopted Value"
+    "Delayed Effects Need A Capture Point And A Commit Point"
+    "Planner-Only Parameters Must Not Look Like Runtime Material"
+    "Search Preferences Are Not Hard Constraints"
+    "Deferred Projection Must Reveal The Chosen Branch"
+    "Accounting And Materialization Can Diverge"
+    "Exit Hooks Need State-View And Ordering Contracts"
+    "Test Artifacts Must Be Reviewable, Not Just Passing"
+    "Token Identity, Late Freezing, And Arithmetic Drift"
+    "Lattice Witnesses Beat Anecdotal Edge Cases"
+    "Shared Tables Need Consumer-Specific Trigger Semantics"
+    "candidate_order"
+    "selection_rule"
+    "recovery_artifact"
+    "same visible output / different trigger path"
+)
+for term in "${tex_semantics_terms[@]}"; do
+    require_text "docs/129_tex_semantics_lessons.md" "$term"
+done
+
+source_truth_input_output_terms=(
+    "Inputter / Outputter Boundary Rule"
+    "what source bytes/tokens/facts were adopted"
+    "what artifact node was built"
+    "marker/payload/residue"
+    "docs/129_tex_semantics_lessons.md"
+    "scanner owner, stop condition, lookahead policy, and adopted recovery value"
+    "capture point, planner point, commit point, rollback/cancel point"
+    "semantic equality or canonicalization rule"
+    "deterministic side-effect trace"
+    "What is adopted at the input boundary?"
+    "What is built but not yet committed at the output boundary?"
+    "Which artifact layer is the oracle"
+)
+for term in "${source_truth_input_output_terms[@]}"; do
+    require_text "docs/125_source_of_truth_spine.md" "$term"
+done
+
+beta_io_boundary_terms=(
+    "codegen outputter-owner split"
+    "not the AIR/RIR resource-boundary inputter"
+    "\`Print\` and \`Log*\` remain observability outputter artifact calls"
+    "explicitly excluded from \`io_boundary_builtin.c\`"
+)
+for term in "${beta_io_boundary_terms[@]}"; do
+    require_text "docs/100_beta_readiness_checklist.md" "$term"
+done
+
+beta_progress_terms=(
+    "strict beta readiness is fixed at 67%"
+    "The five closure targets are:"
+    "CFG/body safety source-of-truth"
+    "AIR abstraction-boundary verification"
+    "DAG recursive compatibility seam removal"
+    "MIR/LLVM declaration bootstrap parity"
+    "ABI/Slot/Pin ownership freeze"
+)
+for term in "${beta_progress_terms[@]}"; do
+    require_text "docs/100_beta_readiness_checklist.md" "$term"
 done
 
 for rel in \

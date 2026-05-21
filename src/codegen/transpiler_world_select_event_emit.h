@@ -226,7 +226,7 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
             continue;
         write_indent(ctx);
         codebuf_write(ctx->out,
-            "if (self->%s.__sync_generation != self->__zone_seen_generation_%s) {\n",
+            "if (PGY_ZONE_GENERATION_LOAD(&self->%s) != self->__zone_seen_generation_%s) {\n",
             slot_name, slot_name);
         ctx->indent++;
         write_indent(ctx);
@@ -244,7 +244,7 @@ emit_world_decl(ASTNode *node, TranspilerCtx *ctx)
             zone_type, slot_name);
         write_indent(ctx);
         codebuf_write(ctx->out,
-            "self->__zone_seen_generation_%s = self->%s.__sync_generation;\n",
+            "self->__zone_seen_generation_%s = PGY_ZONE_GENERATION_LOAD(&self->%s);\n",
             slot_name, slot_name);
         write_indent(ctx);
         codebuf_write(ctx->out, "self->__zone_dirty_%s = false;\n", slot_name);

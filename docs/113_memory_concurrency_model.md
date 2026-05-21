@@ -43,6 +43,68 @@ Executable gate: `make memory-concurrency-model-test-smoke`.
 - `WriteView<T>` and pinned view conflicts are rejected across parallel tasks.
 - No data-race freedom is promised for `unsafe` or out-of-beta surfaces.
 
+## Undefined-Behavior Hygiene Contract
+
+Pergyra must not treat "it works in the current run" as evidence that shared
+state is safe. The runtime and generated code follow these beta rules:
+
+- Non-atomic shared counters are forbidden across worker threads. Allocation
+  cursors, publish cursors, generation counters, and cache hit/miss counters
+  must be worker-owned, protected by a lock/phase barrier, or implemented with
+  C11 atomics.
+- Non-thread-safe containers may not be mutated while another thread reads
+  them. This is especially strict for open-addressed maps and hash tables:
+  insert/rehash invalidates concurrent readers and is undefined behavior unless
+  the map is locked, phase-separated, or published as an immutable snapshot.
+- Runtime caches are worker-local by default. A shared cache requires an
+  explicit publication protocol: build privately, publish once, then read only;
+  mutation after publication requires a new snapshot or a lock.
+- Static local buffers/state are not thread-safe by default. They must be
+  `_Thread_local`, immutable `const`, or guarded by the owning runtime lock.
+- Generated code may reuse thread-pool workers, but it may not infer ownership
+  from the worker id alone. Worker-id-indexed caches are valid only when the
+  cache is exclusively owned by that worker or when all shared entries use the
+  same publish/lock protocol above.
+- AI-generated parallel code is held to the same rule: no non-atomic
+  `current++`-style cursor sharing, no map read during rehash, and no mutable
+  static scratch storage crossing task boundaries.
+
+This contract is intentionally narrower than a full C memory model. It is a
+source-of-truth rule for Pergyra lowering: if the compiler cannot prove
+worker-local ownership, lock/phase separation, atomic access, or immutable
+snapshot publication, the boundary must stay rejected or be marked `unsafe`.
+
+### Zone Generation Counter — Atomic Contract (2026-05-17)
+
+The zone `__sync_generation` counter is the canonical example of a counter
+that *crosses* parallel/spawn boundaries: producer steps bump it under the
+zone write-lock to invalidate dependent world frontier caches, consumer
+steps read it to decide whether to re-sync.
+
+The beta contract is:
+
+- The counter is stored as `_Atomic uint32_t` regardless of build mode.
+- The C backend uses `PGY_ZONE_GENERATION_INC` (release-order RMW) and
+  `PGY_ZONE_GENERATION_LOAD` (acquire-order load) — never direct field
+  access.
+- The LLVM backend uses `LLVMBuildAtomicRMW(LLVMAtomicRMWBinOpAdd, ...,
+  LLVMAtomicOrderingRelease)` for increment and acquire-ordered loads for
+  reads — never plain load + add + store.
+- `PGY_ZONE_THREADSAFE` is auto-defined for hosted builds (Linux / macOS /
+  MinGW) so the rwlock that guards the rest of the zone struct is also
+  active. Embedded / explicit single-threaded targets can opt out with
+  `make PGY_ZONE_THREADSAFE=0`.
+
+The atomic counter is the *minimum* fix: it removes data-race UB on the
+counter and its read path, even when the rest of the zone struct relies
+on the rwlock. Direct `struct->__sync_generation` access from generated
+code is a regression bug; the compiler must emit the macro or the
+atomic-RMW path instead. See
+`src/runtime/pgy_runtime_zone_result_option_inline.h`,
+`src/codegen/llvm_domain_sync_frontier.c`, and
+`src/codegen/llvm_domain_world_frontier_zones.c` for the current
+contract owners.
+
 ## Channel Contract
 
 - Blocking send/receive is the stable ownership-transfer path for named

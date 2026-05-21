@@ -45,16 +45,40 @@ typedef pthread_rwlock_t PgyZoneLock;
 
 #endif /* PGY_ZONE_THREADSAFE */
 
-/* Generation counter for stale-state detection */
-#define PGY_ZONE_GENERATION_FIELD  uint32_t __sync_generation;
-#define PGY_ZONE_GENERATION_INC(z) ((z)->__sync_generation++)
+/*
+ * Generation counter for stale-state detection.
+ *
+ * Stored as _Atomic uint32_t so increment / read are atomic even in the
+ * default build where PGY_ZONE_THREADSAFE is not defined and the rwlock
+ * macros are no-ops. Parallel/spawn code paths that share a zone pointer
+ * no longer race on the counter itself.
+ *
+ * The rwlock (PGY_ZONE_THREADSAFE) is still the structural lock for the
+ * rest of the zone fields. Atomic generation is the *minimum* fix that
+ * removes the data race on the gen counter and the use-after-write
+ * undefined behaviour on its read path. Other zone-field protection
+ * remains the lock's responsibility.
+ *
+ * Layout: _Atomic uint32_t has the same size/alignment as uint32_t on
+ * the platforms Pergyra targets (Itanium C ABI / Windows x64); ABI shape
+ * of Zone structs is preserved.
+ */
+#include <stdatomic.h>
+
+#define PGY_ZONE_GENERATION_FIELD  _Atomic uint32_t __sync_generation;
+#define PGY_ZONE_GENERATION_INC(z) \
+    ((void)atomic_fetch_add_explicit(&(z)->__sync_generation, 1u, \
+                                     memory_order_release))
+#define PGY_ZONE_GENERATION_LOAD(z) \
+    atomic_load_explicit(&(z)->__sync_generation, memory_order_acquire)
+
 static inline void
 pgy_zone_generation_warn_if_stale_impl(const char *label,
                                        uint32_t expected,
                                        uint32_t actual)
 {
-    static unsigned pgy_zone_stale_warn_count = 0;
-    static bool pgy_zone_stale_warn_suppressed = false;
+    static _Thread_local unsigned pgy_zone_stale_warn_count = 0;
+    static _Thread_local bool pgy_zone_stale_warn_suppressed = false;
 
     if (actual == expected)
         return;
@@ -76,7 +100,7 @@ pgy_zone_generation_warn_if_stale_impl(const char *label,
 
 #define PGY_ZONE_GENERATION_WARN_IF_STALE(z, expected, label) do {                 \
     uint32_t _pgy_expected_gen = (uint32_t)(expected);                             \
-    uint32_t _pgy_actual_gen = (z)->__sync_generation;                             \
+    uint32_t _pgy_actual_gen = PGY_ZONE_GENERATION_LOAD(z);                        \
     pgy_zone_generation_warn_if_stale_impl((label),                                \
         _pgy_expected_gen,                                                          \
         _pgy_actual_gen);                                                           \
