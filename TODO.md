@@ -8708,6 +8708,10 @@ dispatch / semantic lookup / runtime data structure 3축 결과 통합. *정확�
   projection sync also live in `transpiler_overlay_projection.c`. The overlay
   projection headers are now declaration-only, leaving `transpiler.c` include
   chains free of projection invalidation implementation bodies.
+- Follow-up closure: C hosted-method projection invalidation traversal now
+  lives in `transpiler_projection_method_invalidation.c`. The matching header
+  is declaration-only, so method-call invalidation no longer ships as static
+  implementation code through the C backend helper include chain.
 - Follow-up closure: CFG-owned `for value in List<T>` now uses the same MIR
   facts on both backends. C and LLVM emit a MIR-owned index slot, list-size
   condition, list-get body binding, and backedge increment instead of falling

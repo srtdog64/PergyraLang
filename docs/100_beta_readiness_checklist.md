@@ -1393,9 +1393,11 @@ Operational mode:
 - 2026-04-28 C projection overlay owner update:
   Overlay projection invalidation now lives in
   `transpiler_overlay_projection.c`; `transpiler_overlay_projection.h` and
-  `transpiler_overlay_world_projection.h` are declaration-only. Host-field /
-  self-cell probes live in `transpiler_overlay_host_fields.c`, while zone
-  effect and relation bind-layer emission live in compiled owners
+  `transpiler_overlay_world_projection.h` are declaration-only. Hosted-method
+  projection invalidation traversal lives in
+  `transpiler_projection_method_invalidation.c`. Host-field / self-cell probes
+  live in `transpiler_overlay_host_fields.c`, while zone effect and relation
+  bind-layer emission live in compiled owners
   `transpiler_overlay_zone_bind.c` and
   `transpiler_overlay_zone_relation_bind.c`. Parity gate:
   `make llvm-test-backend-compare` (`196/0` ABI same-process, `64/64`

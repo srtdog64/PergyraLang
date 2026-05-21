@@ -452,7 +452,7 @@ for path in \
     src/codegen/transpiler_nominal.c \
     src/codegen/transpiler_parallel_capture.h \
     src/codegen/transpiler_projection_field_path.c \
-    src/codegen/transpiler_projection_method_invalidation.h \
+    src/codegen/transpiler_projection_method_invalidation.c \
     src/codegen/transpiler_projection_sync.h \
     src/codegen/transpiler_select.c \
     src/codegen/transpiler_slot_builtin_emit.c \
@@ -807,7 +807,7 @@ if grep -R "data\.func_decl\.\(param_count\|params\|return_type\|body\)" \
     src/codegen/transpiler_mir_match_condition_emit.c \
     src/codegen/transpiler_mir_signature.c \
     src/codegen/transpiler_mir_ssa_emit.h \
-    src/codegen/transpiler_projection_method_invalidation.h \
+    src/codegen/transpiler_projection_method_invalidation.c \
     src/codegen/transpiler_spawn_channel_emit.h \
     src/codegen/transpiler_specialization_registry.h \
     src/codegen/transpiler_type_declarator.c >/dev/null; then
@@ -1054,7 +1054,7 @@ if grep -R "data\.call\.\(callee\|arguments\|arg_count\)" \
     src/codegen/transpiler_mir_ssa_emit.h \
     src/codegen/transpiler_mir_ssa_contract.h \
     src/codegen/transpiler_parallel_capture.h \
-    src/codegen/transpiler_projection_method_invalidation.h \
+    src/codegen/transpiler_projection_method_invalidation.c \
     src/codegen/transpiler_slot_builtin_emit.c \
     src/codegen/transpiler_slot_target.c >/dev/null; then
     fail "codegen domain/vtable/event/channel/slot call owners must use AST call accessors"
@@ -1133,7 +1133,7 @@ if grep -R "data\.type\.\(name\|generic_args\)" \
     src/codegen/transpiler_mir_ssa_emit.h \
     src/codegen/transpiler_overlay_projection.c \
     src/codegen/transpiler_projection.c \
-    src/codegen/transpiler_projection_method_invalidation.h \
+    src/codegen/transpiler_projection_method_invalidation.c \
     src/codegen/transpiler_projection_sync.h \
     src/codegen/transpiler_specialization_registry.h \
     src/codegen/transpiler_type_render.c \

@@ -596,6 +596,7 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_allocator_builtin_emit.c \
                    $(CODEGEN_DIR)/transpiler_overlay_zone_relation_bind.c \
                    $(CODEGEN_DIR)/transpiler_domain_receiver_query.c \
                    $(CODEGEN_DIR)/transpiler_projection_field_path.c \
+                   $(CODEGEN_DIR)/transpiler_projection_method_invalidation.c \
                    $(CODEGEN_DIR)/transpiler_projection_sync.c \
                    $(CODEGEN_DIR)/transpiler_projection.c \
                    $(CODEGEN_DIR)/transpiler_role_ability.c \

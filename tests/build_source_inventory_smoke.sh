@@ -176,6 +176,12 @@ if ! grep -Fq '$(CODEGEN_DIR)/transpiler_overlay_projection.c' \
     missing=1
 fi
 
+if ! grep -Fq '$(CODEGEN_DIR)/transpiler_projection_method_invalidation.c' \
+    "$ROOT_DIR/Makefile"; then
+    echo "[build-source-inventory] projection method invalidation owner is not linked by the C backend source inventory" >&2
+    missing=1
+fi
+
 if ! grep -Fq '$(CODEGEN_DIR)/transpiler_overlay_zone_relation_bind.c' \
     "$ROOT_DIR/Makefile"; then
     echo "[build-source-inventory] zone relation bind owner is not linked by the C backend source inventory" >&2
