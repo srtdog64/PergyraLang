@@ -1021,6 +1021,16 @@ for term in \
     "llvm_host_decl_uses_pointer_self"; do
     require_term "src/codegen/llvm_domain_lookup.c" "$term"
 done
+for term in \
+    "pgy_host_decl_compat_types(&host_type_count)" \
+    "host_types[i]" \
+    "llvm_find_decl_in_active_inventory("; do
+    require_term "src/codegen/llvm_inventory_decl_lookup.c" "$term"
+done
+if grep -Eq 'llvm_find_decl_in_active_inventory\([^,]+,[[:space:]]*AST_(CLASS|ENUM|RELATION|EFFECT|ZONE|WORLD)_DECL' \
+    "$ROOT_DIR/src/codegen/llvm_inventory_decl_lookup.c"; then
+    fail "LLVM host-decl fallback must iterate host_decl_compat.c, not a partial hard-coded host chain"
+fi
 if grep -Fq "llvm_decl_current_nominal_name" \
     "$ROOT_DIR/src/codegen/llvm_decl.c"; then
     fail "LLVM implicit self lowering must use the shared current host-name helper"
