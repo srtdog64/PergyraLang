@@ -24,6 +24,12 @@ English anchor for tooling/doc gates:
   owning `.c` file; promote cross-owner utilities only when the caller contract
   is explicit and smoke-gated. This is a source-of-truth rule, not a cosmetic
   naming preference.
+- First helper-layer escalation slice after the rule: C backend specialization
+  AST scanning moved out of `transpiler_specialization_helpers.c` into
+  `transpiler_specialization_scan.c`. The helper owner now focuses on
+  specialization generation/registration (390 LOC), while the scan layer owns
+  statement traversal (104 LOC). Gates: `pgy`, `test-transpile`,
+  `build-source-inventory-test-smoke`, and `test-inc-size-test-smoke`.
 - README, `docs/37_compiler_contracts.md`, and
   `docs/42_keyword_orthogonality.md` were normalized back to readable UTF-8 /
   ASCII surface text. The docs now state the Resource / Execution / Domain /
