@@ -212,6 +212,9 @@ PARSER_SOURCES   = $(PARSER_DIR)/ast.c \
                    $(PARSER_DIR)/ast_async_lambda_accessors.c \
                    $(PARSER_DIR)/ast_domain_accessors_world.c \
                    $(PARSER_DIR)/ast_domain_constructors.c \
+                   $(PARSER_DIR)/ast_world_constructors.c \
+                   $(PARSER_DIR)/ast_intent_constructors.c \
+                   $(PARSER_DIR)/ast_zone_constructors.c \
                    $(PARSER_DIR)/ast_domain_tail_constructors.c \
                    $(PARSER_DIR)/ast_intent_step_accessors.c \
                    $(PARSER_DIR)/ast_intent_step_mutators.c \

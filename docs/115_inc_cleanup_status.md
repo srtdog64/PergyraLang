@@ -1328,6 +1328,16 @@ src/compiler/mir_public_surface.h 7
 The production `.inc` gate is now stricter than the previous 1,000 LOC cap:
 no production `.inc` files remain under `src` outside test fixtures.
 
+The parser domain constructor owner is now split by domain responsibility
+instead of file-size slicing:
+
+```text
+src/parser/ast_domain_constructors.c 148
+src/parser/ast_world_constructors.c 101
+src/parser/ast_intent_constructors.c 87
+src/parser/ast_zone_constructors.c 158
+```
+
 ```text
 production_inc_count=0
 production_inc_loc=0

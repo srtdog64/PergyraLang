@@ -41,6 +41,7 @@
 - `driver_run_pipeline_timed()`는 같은 파이프라인을 phase별로 계측한다. ABI benchmark harness는 이 timing을 읽어 CI에서는 hard upper bound, 로컬에서는 comparative metric으로 사용한다. backend timing은 다시 `codegen`, `native_compile`, `link`로 분해된다.
 - HIR는 아직 SSA 같은 깊은 IR은 아니지만, 더 이상 단순 top-level 분류 버킷만도 아니다.
 - compiler 구현 파일은 점진적으로 역할 분리 중이다. 최근에는 `mir.c`가 `mir_lower(...)`와 block construction만 소유하고, instruction insertion primitive는 [`mir_base_helpers.c`](../src/compiler/mir_base_helpers.c), RIR resource/fallback population은 [`mir_lower_population.c`](../src/compiler/mir_lower_population.c), program validation은 [`mir_program_validate.c`](../src/compiler/mir_program_validate.c), public MIR query/surface refresh는 [`mir_public_surface.c`](../src/compiler/mir_public_surface.c)로 분리했다. `mir_lower_public_api.h`는 declaration-only wrapper로 남고, pass-through `mir_public.inc` shim은 제거됐다. `rir.c`도 named owner header로 flow 분석, scope 수집, dump/validation 표면을 갈라놓았다.
+- parser domain constructors also follow the same owner rule: base domain constructors stay in `ast_domain_constructors.c`, while world / intent / zone constructors live in `ast_world_constructors.c`, `ast_intent_constructors.c`, and `ast_zone_constructors.c`.
 
 ## 2. 어디서 시작하나
 

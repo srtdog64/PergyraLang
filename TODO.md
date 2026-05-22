@@ -41,6 +41,12 @@ English anchor for tooling/doc gates:
   non-CFG fallback / inventory-shape validators now live in
   `mir_program_validate.c`. `mir_public_surface.c` is back to public
   query/pass/surface-refresh ownership instead of carrying validator policy.
+- Parser domain constructor split: `ast_domain_constructors.c` no longer owns
+  every domain constructor. World, intent, and zone constructors now live in
+  `ast_world_constructors.c`, `ast_intent_constructors.c`, and
+  `ast_zone_constructors.c`, leaving the base domain constructor owner at 148
+  LOC. Gates: targeted parser owner compiles, `test-parser`,
+  `test-inc-size-test-smoke`, and `build-source-inventory-test-smoke`.
 - LLVM internal API header cleanup: `llvm_ast_type_uses_pointer_self(...)` now
   lives in `llvm_domain_lookup.c`, leaving `llvm_internal_api.h` declaration-
   only. `test_inc_size_smoke.sh` gates the header as body-free so the LLVM
