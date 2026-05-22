@@ -39,19 +39,88 @@ seams. The goal is to avoid repeating unsafe A -> B -> A refactors.
   - Moved role/ability bounded string copy, hosted-method symbol formatting,
     vtable typedef naming, operator alias naming, and surface diagnostic
     formatting out of `transpiler_domain_role_ability_emit.h`.
-  - The remaining role/ability emission header still owns hosted-method MIR
-    emission and vtable body emission, so only the stateless naming policy moved.
+  - Hosted-method MIR body emission later moved to
+    `transpiler_hosted_method_body_emit.c`, so this owner now stays focused on
+    stateless role/ability naming.
   - Verification: `make pgy`, `perf-contract-test-smoke`.
+
+- `transpiler_domain_role_ability_emit.c`
+  - Moved ability-vtable specialization tag rendering, typedef naming, and
+    generic ability vtable declaration emission out of
+    `transpiler_domain_role_ability_emit.h`.
+  - The header is declaration-only and exposes the vtable-specialization API
+    consumed by role method and nominal domain emission owners.
+  - Verification: standalone owner compile, role-method owner compile,
+    `transpiler.o` compile, `test-transpile`, `perf-contract-test-smoke`,
+    `mir-declaration-inventory-test-smoke`, `memory-string-safety-test-smoke`,
+    `semantic-core-shape-test-smoke`, `runtime-frontier-contract-test-smoke`,
+    `build-source-inventory-test-smoke`, and `test-inc-size-test-smoke`.
+
+- `transpiler_hosted_method_body_emit.c`
+  - Moved shared domain hosted-method MIR body emission out of
+    `transpiler_domain_role_ability_emit.h`.
+  - Relation, effect, party, roster, zone, and world hosted-method consumers now
+    call a linked owner API instead of relying on a role/ability include-order
+    helper.
+  - The emitted C symbol policy is the generic `host_method` rule owned by this
+    file, not the role/ability vtable naming layer.
+  - Verification: standalone owner compile, `transpiler.o` compile,
+    `perf-contract-test-smoke`, `mir-declaration-inventory-test-smoke`,
+    `memory-string-safety-test-smoke`, `build-source-inventory-test-smoke`, and
+    `test-inc-size-test-smoke`.
+
+- `transpiler_zone_methods_emit.c`
+  - Moved zone hosted-method forward/body bridge out of an implementation
+    header and out of the late `transpiler.c` include-order bridge.
+  - `transpiler_zone_decl_emit.c` now consumes a declaration-only zone method
+    seam directly.
+  - Verification: standalone owner compile, zone declaration owner compile, and
+    `transpiler.o` compile.
+
+- `transpiler_world_select_event_emit.c`
+  - Moved world sync declaration, select lowering, and event
+    declaration/subscription lowering out of
+    `transpiler_world_select_event_emit.h`.
+  - The header is declaration-only; the owner consumes projection lookup,
+    hosted-method body emission, frontier policy, provenance, and type-require
+    seams explicitly instead of relying on domain-role include order.
+  - Verification: standalone owner compile and `transpiler.o` compile.
+
+- `transpiler_domain_nominal_emit.c`
+  - Moved ability, role, and party declaration emission out of
+    `transpiler_domain_nominal_emit.h`.
+  - The header is declaration-only and exposes the nominal declaration
+    entrypoints plus the nominal surface-diagnostic helper used by roster
+    declaration emission.
+  - The domain-role shim now includes roster and relation/effect declaration
+    seams directly instead of routing them through the nominal implementation
+    header.
+  - Verification: standalone owner compile, `transpiler.o` compile,
+    `test-transpile`, `perf-contract-test-smoke`,
+    `mir-declaration-inventory-test-smoke`, `memory-string-safety-test-smoke`,
+    `semantic-core-shape-test-smoke`, `runtime-frontier-contract-test-smoke`,
+    `build-source-inventory-test-smoke`, and `test-inc-size-test-smoke`.
 
 - `transpiler_enum_method_names.c`
   - Moved enum method emitted-name formatting, enum method surface diagnostic
     formatting, and enum generated-string-too-long diagnostics out of
     `transpiler_enum_decl_emit.h`.
-  - The remaining enum declaration emission header still owns enum layout,
-    constructor, and hosted-method body lowering; only the stateless naming and
-    diagnostic formatting policy moved.
+  - Enum declaration emission later moved to `transpiler_enum_decl_emit.c`;
+    the header is now declaration-only.
   - Verification: single owner compile, `transpiler.o` compile,
     `perf-contract-test-smoke`.
+
+- `transpiler_enum_decl_emit.c`
+  - Moved enum layout, tagged-union constructor, and enum hosted-method body
+    lowering out of an implementation header.
+  - The owner consumes the linked MIR function-body API
+    `emit_func_decl_from_mir_named(...)` instead of relying on include-order
+    static seams.
+  - Verification: standalone owner compile, `transpiler.o` compile,
+    `test-transpile`, `perf-contract-test-smoke`,
+    `memory-string-safety-test-smoke`, `mir-declaration-inventory-test-smoke`,
+    `semantic-core-shape-test-smoke`, `build-source-inventory-test-smoke`, and
+    `test-inc-size-test-smoke`.
 
 - `transpiler_call_subject_arg_policy.c`
   - Moved user-call subject-address decision and already-subject-ref detection
@@ -62,40 +131,148 @@ seams. The goal is to avoid repeating unsafe A -> B -> A refactors.
   - Verification: single owner compile, user-call owner compile,
     `perf-contract-test-smoke`.
 
+- `transpiler_class_decl_emit.c`
+  - Moved non-generic class declaration lowering out of an implementation
+    header.
+  - The header is declaration-only; class fields, generated Slot/Box container
+    scaffolding, class hosted-method forwards, and class method MIR body
+    lowering live behind a compiled owner.
+  - Verification: standalone owner compile, `transpiler.o` compile,
+    `test-transpile`, `perf-contract-test-smoke`,
+    `memory-string-safety-test-smoke`, `mir-declaration-inventory-test-smoke`,
+    `semantic-core-shape-test-smoke`, `build-source-inventory-test-smoke`, and
+    `test-inc-size-test-smoke`.
+
+- `transpiler_func_flow_policy.c`
+  - Moved function fallback policy helpers out of
+    `transpiler_func_class_flow_emit.h`: current-return-type copy,
+    function-parameter diagnostic surface formatting, too-long diagnostics, and
+    Option return-constructor lookup.
+  - This is not a full function-flow owner promotion; the remaining header still
+    acts as the base-B include-order shim for function fallback, with-slot,
+    return lowering, and downstream declaration emitters.
+  - Verification: standalone owner compile and `transpiler.o` compile.
+
 - `transpiler_mir_func_ssa_locals_emit.c`
   - Moved MIR function SSA local declaration emission out of an implementation
     header.
   - The header is declaration-only and the owner includes context, string,
     local-type, and SSA utility seams directly.
-  - `transpiler_mir_local_type_lookup.h` now includes the slot builtin policy
-    it consumes directly, so claim-shape lookup no longer depends on caller
-    include order.
+  - `transpiler_mir_local_type_lookup.c` consumes the slot builtin policy
+    directly, so claim-shape lookup no longer depends on caller include order.
   - Verification: `make pgy`, `test-transpile`, `perf-contract-test-smoke`,
     `test-inc-size-test-smoke`, and `build-source-inventory-test-smoke`.
 
+- `transpiler_mir_terminator_emit.c`
+  - Moved MIR branch/return/fallthrough terminator emission out of an
+    implementation header.
+  - The header is declaration-only and exposes only explicit and fallthrough
+    terminator APIs; branch/return/pin-cleanup error details are private to the
+    owner.
+  - This keeps CFG cleanup/pin-exit emission near the MIR body-safety
+    source-of-truth without relying on caller include order.
+
+- `transpiler_async_parallel_emit.c`
+  - Moved C backend `parallel` block and `async` block emission out of an
+    implementation header.
+  - The header is declaration-only and exposes `emit_parallel_block(...)` and
+    `emit_async_block(...)`.
+  - The owner consumes `transpiler_parallel_capture.h` as a declaration-only
+    surface; capture walking now lives in `transpiler_parallel_capture.c`.
+  - Verification: standalone owner compile, `transpiler.o` compile,
+    `test-transpile`, `perf-contract-test-smoke`,
+    `memory-string-safety-test-smoke`, `semantic-core-shape-test-smoke`,
+    `build-source-inventory-test-smoke`, and `test-inc-size-test-smoke`.
+
+- `transpiler_mir_destructure_emit.c`
+  - Moved MIR destructuring statement emission out of an implementation
+    header.
+  - The header is declaration-only and exposes the MIR let-destructure
+    emission API consumed by MIR block scheduling.
+  - The owner still consumes the current local-type lookup implementation
+    API, now exposed by `transpiler_mir_local_type_lookup.c`.
+  - Verification: standalone owner compile and `transpiler.o` compile.
+
+- `transpiler_mir_local_type_lookup.c`
+  - Moved MIR/source local type lookup out of an implementation header.
+  - The header is declaration-only and exposes arena-backed type-name copy,
+    arena-backed type-name rendering, expression-local inference, and
+    current-function local lookup APIs.
+  - This removes the static `transpiler_find_local_type_name(...)` seam that
+    blocked parallel capture and MIR destructuring owner work.
+  - Verification: standalone owner compile plus dependent async/parallel,
+    destructuring, and `transpiler.o` compiles.
+
+- `transpiler_generic_class_specialization_emit.c`
+  - Moved generic class specialization lookup/ensure and helper emission out
+    of an implementation header.
+  - `transpiler_func_class_flow_emit.h` no longer injects the specialization
+    body through include order; call sites consume the existing
+    `ensure_generic_class_specialization(...)` declaration.
+  - The owner still emits into `ctx->helpers`, but the owner boundary is now a
+    linked C source file and the declaration header is body-free.
+  - Verification: standalone owner compile, `transpiler.o` compile,
+    `build-source-inventory-test-smoke`, `mir-declaration-inventory-test-smoke`,
+    `perf-contract-test-smoke`, and `semantic-core-shape-test-smoke`.
+
+- `transpiler_func_class_flow_emit.c`
+  - Moved function declaration fallback emission, with-slot lowering, and
+    return statement lowering out of an implementation header.
+  - The previous include-order dependency on class/async/enum/match bodies is
+    gone; `transpiler_statement_dispatch.h` now consumes match and enum
+    declaration seams explicitly.
+  - The owner still depends on MIR emission state, function flow policy,
+    host-self policy, and type rendering/require APIs, but those are linked
+    owner seams rather than local static header state.
+  - Verification: standalone owner compile, `transpiler.o` compile,
+    `test-transpile`, `build-source-inventory-test-smoke`,
+    `test-inc-size-test-smoke`, `perf-contract-test-smoke`,
+    `mir-declaration-inventory-test-smoke`, and `semantic-core-shape-test-smoke`.
+
+- `transpiler_expr_call_spawn_emit.c`
+  - Moved the top-level `emit_call(...)` dispatcher shim out of an
+    implementation header.
+  - The owner is intentionally thin: it routes builtin, domain constructor,
+    Result/Option, stdlib/event, member-style, and user-call families to their
+    dedicated linked owners.
+  - Verification: standalone owner compile and `transpiler.o` compile.
+
+- `transpiler_spawn_channel_emit.c`
+  - Moved spawn wrapper emission plus channel send/receive expression lowering
+    out of an implementation header.
+  - The declaration header is body-free; the owner directly consumes future
+    type inference, generic binding/specialization, expression type inference,
+    symbol lookup, type rendering, and diagnostic context APIs.
+  - Verification: standalone owner compile and `transpiler.o` compile.
+
+- `transpiler_expr_dispatch_emit.c`
+  - Moved the root C expression dispatch switch out of an implementation
+    header.
+  - The owner still routes expression families, but it now links as one
+    compiled source and consumes literal, call, spawn/channel, array-access,
+    lambda, slot-target, projection, type-mapping, and diagnostic seams
+    explicitly.
+
+- `transpiler_let_emit.c`
+  - Moved the root C let-declaration orchestration body out of an
+    implementation header.
+  - The owner now links as a compiled source and consumes slot/view/box/channel,
+    Option/Result/collection, generic class specialization, symbol registration,
+    type-rendering, collection runtime suffix, and scalar-zero seams explicitly.
+
 ## Blocked Promotions
 
-### `transpiler_enum_decl_emit.h`
+### `transpiler_call_constructor_result_emit.c`
 
-Current blocker:
+Status:
 
-- Enum method emission calls `emit_func_decl_from_mir_named`.
-- That function is still a `transpiler.c`/MIR emission static seam.
-- Pulling `transpiler_mir_func_emit.h` into a new `.c` owner drags in many
-  private static dependencies and breaks standalone compilation.
-
-Required first step:
-
-- Promote MIR function-body emission into a real owner API, or introduce a
-  narrow hosted-method MIR emission API that enum/class/domain emitters can
-  consume.
-
-### `transpiler_call_constructor_result_emit.h`
-
-Current blocker:
-
+- Closed for the constructor dispatch wrapper. The implementation now lives in
+  `transpiler_call_constructor_result_emit.c`, and
+  `transpiler_call_constructor_result_emit.h` is declaration-only.
 - Class constructor dispatch still depends on
-  `ensure_generic_class_specialization`.
+  `ensure_generic_class_specialization`, but that is now an explicit linked
+  dependency owned by `transpiler_generic_class_specialization_emit.c`, not an
+  include-order implementation-header dependency.
 - Generic class detection itself is now a compiled owner query:
   `transpiler_class_has_generic_params(...)` in
   `transpiler_generic_param_query.c`.
@@ -110,59 +287,67 @@ Current blocker:
   `transpiler_generic_class_naming.c`, with type-name mangling consumed
   through `transpiler_mangled_name.h`. The specialization header now asks for
   the key instead of rebuilding it inline.
-- Specialization ensure/emission remains a private C backend orchestration seam.
+- Specialization ensure/emission remains a private C backend orchestration seam,
+  but it is now a compiled owner rather than a header body.
 
-Required first step:
+### `transpiler_expr_dispatch_emit.c`
 
-- Move generic class specialization lookup/ensure into a compiled owner seam
-  before moving constructor dispatch.
+Status:
 
-### `transpiler_expr_call_spawn_emit.h`
+- Closed as an implementation-header migration. `emit_expression(...)` now
+  lives in `transpiler_expr_dispatch_emit.c`, and the matching header is
+  declaration-only.
+- The owner still has broad expression-family routing responsibility; future
+  work should continue moving family-specific policy to named owners instead of
+  putting implementation back into the header.
 
-Current blocker:
+Remaining seam:
 
-- `emit_call(...)` still routes builtin dispatch, domain constructors,
-  Result/Option, stdlib, event, member-style calls, and user calls from one
-  include-order body.
-- The member-style path consumes slot policy, secure-token lookup, host-method
-  lookup, overlay/world projection invalidation, and generic specialization
-  seams that are not all declaration-only owner APIs yet.
-- A direct `.c` promotion currently exposes those hidden dependencies as
-  implicit declarations, so forcing this move would recreate the A -> B -> A
-  refactor loop.
+- Identifier/member fallback policy, await result rendering, and event invoke
+  expression formatting are still directly coordinated by the root dispatcher.
 
-Required first step:
+### `transpiler_relation_effect_emit.c`
 
-- Split `emit_call(...)` by dispatch family behind declaration-only owner APIs:
-  builtin dispatch, member-style slot/host calls, and user/generic calls must
-  stop depending on transitive implementation-header state before this header
-  can become a compiled owner.
+Status:
 
-### `transpiler_relation_effect_emit.h`
+- The shared hosted-method MIR body path now lives in
+  `transpiler_hosted_method_body_emit.c`, so the old role/ability-local helper
+  blocker is closed.
+- Relation/effect surface formatting, declaration emission, projection sync,
+  hosted-method forward declarations, and hosted-method MIR body calls now live
+  behind the compiled owner `transpiler_relation_effect_emit.c`.
+- The header is declaration-only.
 
-Current blocker:
+Remaining note:
 
-- Relation/effect declaration emission reaches hosted method emission through
-  `emit_hosted_methods_from_mir_or_error_local`.
-- That local hosted-method path still depends on the same private
-  `emit_func_decl_from_mir_named` seam as enum method emission.
+- This owner still consumes domain provenance/projection sync APIs; those APIs
+  are already declaration-backed and should remain the shared runtime
+  propagation boundary.
 
-Required first step:
+### `transpiler_roster_decl_emit.c`
 
-- Extract hosted-method MIR function emission as a narrow compiled owner API,
-  then move enum and relation/effect declaration emission consumers.
+Current status:
 
-### `transpiler_domain_role_methods_emit.h`
+- Roster declaration emission now has its own compiled owner.
+- The header is declaration-only and exposes `emit_roster_decl(...)`.
+- The owner consumes shared nominal surface formatting, declaration inventory,
+  hosted-method metadata view, forward declarations, and hosted-method body
+  emission through explicit APIs instead of relying on the domain-role include
+  chain.
+- Verification: standalone owner compile, `transpiler.o` compile,
+  `build-source-inventory-test-smoke`, `mir-declaration-inventory-test-smoke`,
+  and `test-inc-size-test-smoke`.
 
-Current blocker:
-
-- Domain role method emission also calls `emit_func_decl_from_mir_named`.
-- Moving it alone would repeat the enum/relation-effect failure mode.
-
-Required first step:
-
-- Share the same hosted-method MIR function emission owner API required by enum
-  and relation/effect emission.
+- `transpiler_domain_role_methods_emit.c`
+  - Moved role method MIR lowering, role vtable instance emission, and role
+    operator alias emission out of an implementation header.
+  - The header is declaration-only.
+  - The ability-vtable helper dependency is now declaration-only through
+    `transpiler_domain_role_ability_emit.h`.
+  - Verification: standalone owner compile, `transpiler.o` compile,
+    `test-transpile`, `perf-contract-test-smoke`,
+    `mir-declaration-inventory-test-smoke`, `semantic-core-shape-test-smoke`,
+    `build-source-inventory-test-smoke`, and `test-inc-size-test-smoke`.
 
 ### `transpiler_expr_call_user_emit.h`
 
@@ -192,61 +377,45 @@ Required first step:
   target, receiver behavior, specialization name, and subject-pointer policy.
   Then make spawn/member-style call lowering consume the same policy.
 
-### `transpiler_statement_dispatch.h`
+### `transpiler_statement_dispatch.c`
 
-Current blocker:
+Status:
 
-- Statement dispatch is a root orchestration switch over many emitter owners.
-- It directly coordinates defer/loop labels, bind emission, unsafe blocks, and
-  fallback expression statements.
+- Closed as an implementation-header migration. `emit_statement(...)` now lives
+  in `transpiler_statement_dispatch.c`, and `transpiler_statement_dispatch.h`
+  is declaration-only.
+- The owner remains the single root statement-dispatch switch and now appears
+  in the Makefile source inventory instead of depending on include-order body
+  injection.
 
-Required first step:
+Remaining seam:
 
-- Split policy from dispatch first: move bind emission and loop-control helper
-  policy to named owners, then revisit whether dispatch itself should remain a
-  single source-of-truth switch.
+- Statement dispatch still directly coordinates bind emission, unsafe blocks,
+  defer registration, loop-control labels, and fallback expression statements.
+  Future cleanup should split those policies into responsibility-named owners
+  without moving the dispatch body back into a header.
 
-### `transpiler_mir_pending_uses.h`
+### `transpiler_mir_pending_uses.c`
 
-Current blocker:
+Status:
 
-- Pending-use materialization consumes public SSA/name seams and now consumes
-  effective local type rendering through
-  `transpiler_mir_effective_type.c`.
-- MIR local type lookup is consolidated under
-  `transpiler_mir_local_type_lookup.h`; the old
-  `transpiler_mir_ssa_emit.h` compatibility shim has been removed.
-- Explicit local binding registration now lives in the compiled
-  `transpiler_mir_local_binding.c` owner. Consumers now include the concrete
-  local-binding and type-AST lookup owners directly instead of relying on an
-  include-order shell.
-- The remaining hidden dependency is the generic class specialization ensure
-  seam (`ensure_generic_class_specialization`), which is public enough to link
-  but still implemented by the specialization orchestration header.
-- That ensure path emits generic hosted methods and still calls the same
-  private MIR hosted-method body seam (`emit_func_decl_from_mir_named`) that
-  blocks enum, relation/effect, and domain-role method promotion.
-- Moving pending-use materialization before specialization ensure becomes a
-  compiled owner would only shift that orchestration dependency.
+- Closed. Pending-use materialization now lives in
+  `transpiler_mir_pending_uses.c`, and `transpiler_mir_pending_uses.h` is
+  declaration-only.
+- The owner consumes public SSA/name, local type-AST, effective local type,
+  expression-type inference, symbol, context, and MIR reason APIs directly.
+- The older generic-specialization blocker no longer applies to this owner.
 
-Required first step:
+### `transpiler_mir_emission_mapping_contract.c`
 
-- Extract hosted-method MIR function emission as a narrow compiled owner API.
-  Then promote generic class specialization lookup/ensure into a compiled
-  owner and move pending-use materialization to consume that seam.
+Status:
 
-### `transpiler_mir_emission_mapping_contract.h`
-
-Current blocker:
-
-- Mapping validation calls `transpiler_materialize_pending_inst_uses`.
-- Promoting the mapping contract first would require pulling the pending-use
-  implementation header into a new owner shell.
-
-Required first step:
-
-- Promote pending-use materialization only after effective local type rendering
-  is public, then move the mapping contract to consume that compiled owner.
+- Closed. Mapping validation now lives in
+  `transpiler_mir_emission_mapping_contract.c`, and the header is
+  declaration-only.
+- The owner consumes `transpiler_mir_pending_uses.h` plus public SSA,
+  local-binding, pin-resource-alias, and AST accessor seams instead of
+  relying on the MIR emission contract include body.
 
 ### `transpiler_destructure_emit.c`
 
@@ -261,6 +430,35 @@ Remaining note:
 
 - A broader current-function local type query owner is still useful for other
   C backend headers, but destructuring is no longer blocked on that seam.
+
+### `transpiler_parallel_capture.c`
+
+Current status:
+
+- Capture walking is a compiled owner. `transpiler_parallel_capture.h` is now
+  declaration-only and depends on the local type lookup compiled owner API.
+
+Remaining note:
+
+- Keep future capture inference in this owner; do not grow async/parallel emit
+  with another local AST walker.
+
+### `transpiler_mir_emission_contract.c`
+
+Current status:
+
+- MIR emission contract validation is a compiled owner. The header now exposes
+  only the function/intent MIR emitability query seam consumed by function and
+  intent lowering.
+- CFG/body-safety smoke contracts now check the compiled owner for topology,
+  branch-condition, cleanup-edge, pin-cleanup, and emission-fact validation.
+
+Closed note:
+
+- `transpiler_mir_block_emit.c` now owns block statement emission. The header is
+  declaration-only and exposes `transpiler_emit_mir_block_statements(...)` to
+  the function-body emission stack without keeping the implementation in an
+  include surface.
 
 ## Next Good Targets
 

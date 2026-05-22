@@ -139,7 +139,8 @@ for rel in \
     "src/codegen/transpiler_domain_nominal_emit.h" \
     "src/codegen/transpiler_domain_provenance_emit.h" \
     "src/codegen/transpiler_zone_decl_emit.c" \
-    "src/codegen/transpiler_world_select_event_emit.h" \
+    "src/codegen/transpiler_world_select_event_emit.c" \
+    "src/codegen/transpiler_domain_role_ability_emit.c" \
     "src/codegen/transpiler_domain_role_ability_emit.h" \
     "src/codegen/llvm_domain.c" \
     "src/codegen/llvm_domain_sync_frontier.c" \
@@ -167,7 +168,7 @@ c_frontier_text="$tmp_dir/c_frontier_text.txt"
 
 cat \
     "$ROOT_DIR/src/codegen/transpiler_domain_provenance_emit.h" \
-    "$ROOT_DIR/src/codegen/transpiler_domain_nominal_emit.h" \
+    "$ROOT_DIR/src/codegen/transpiler_domain_nominal_emit.c" \
     "$ROOT_DIR/src/codegen/transpiler_zone_decl_emit.c" \
     > "$c_zone_contract"
 
@@ -188,9 +189,9 @@ cat \
 
 cat \
     "$ROOT_DIR/src/codegen/transpiler_domain_provenance_emit.h" \
-    "$ROOT_DIR/src/codegen/transpiler_domain_nominal_emit.h" \
+    "$ROOT_DIR/src/codegen/transpiler_domain_nominal_emit.c" \
     "$ROOT_DIR/src/codegen/transpiler_zone_decl_emit.c" \
-    "$ROOT_DIR/src/codegen/transpiler_world_select_event_emit.h" \
+    "$ROOT_DIR/src/codegen/transpiler_world_select_event_emit.c" \
     > "$c_frontier_text"
 
 require_terms "C zone frontier emitter" "$c_zone_contract" \
@@ -201,7 +202,7 @@ require_terms "C zone frontier emitter" "$c_zone_contract" \
     "PGY_PANIC" \
     "PGY_FRONTIER_REASON_ZONE_OVERFLOW"
 
-require_terms "C world frontier emitter" "$ROOT_DIR/src/codegen/transpiler_world_select_event_emit.h" \
+require_terms "C world frontier emitter" "$ROOT_DIR/src/codegen/transpiler_world_select_event_emit.c" \
     "transpiler_frontier_lookup_zone" \
     "pgy_domain_world_embedded_frontier_count" \
     "embedded_frontier_count" \

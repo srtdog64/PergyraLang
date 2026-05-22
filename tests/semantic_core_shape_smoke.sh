@@ -338,7 +338,7 @@ for path in \
     src/compiler/mir_stmt_source.c \
     src/semantic/slot_analyzer_escape.c \
     src/semantic/slot_analyzer_summary.c \
-    src/semantic/type_checker_assignment.h \
+    src/semantic/type_checker_assignment.c \
     src/semantic/type_checker_async_channel.c \
     src/semantic/type_checker_async_decl.c \
     src/semantic/type_checker.c \
@@ -417,7 +417,7 @@ for path in \
     src/codegen/llvm_stmt_parallel_async.c \
     src/codegen/llvm_stmt_type_infer_await.c \
     src/codegen/llvm_stmt_type_infer_nominal.c \
-    src/codegen/transpiler_call_constructor_result_emit.h \
+    src/codegen/transpiler_call_constructor_result_emit.c \
     src/codegen/transpiler_call_result_option_builtin_emit.c \
     src/codegen/transpiler_channel_type_query.c \
     src/codegen/transpiler_destructure_emit.c \
@@ -427,10 +427,10 @@ for path in \
     src/codegen/transpiler_expr_core_builtins_emit.c \
     src/codegen/transpiler_expr_core_builtins_emit.h \
     src/codegen/transpiler_expr_projection_builtin.c \
-    src/codegen/transpiler_expr_dispatch_emit.h \
+    src/codegen/transpiler_expr_dispatch_emit.c \
     src/codegen/transpiler_expr_stdlib_builtin.c \
     src/codegen/transpiler_expr_stdlib_builtin.h \
-    src/codegen/transpiler_func_class_flow_emit.h \
+    src/codegen/transpiler_func_class_flow_emit.c \
     src/codegen/transpiler_func_forward_helpers.h \
     src/codegen/transpiler_generic_binding_query.c \
     src/codegen/transpiler_generic_param_query.c \
@@ -441,22 +441,22 @@ for path in \
     src/codegen/transpiler_let_slot_emit.c \
     src/codegen/transpiler_match_emit.c \
     src/codegen/transpiler_mir_assignment_emit.h \
-    src/codegen/transpiler_mir_block_emit.h \
-    src/codegen/transpiler_mir_destructure_emit.h \
+    src/codegen/transpiler_mir_block_emit.c \
+    src/codegen/transpiler_mir_destructure_emit.c \
     src/codegen/transpiler_mir_local_binding.c \
     src/codegen/transpiler_mir_local_type_ast_lookup.c \
-    src/codegen/transpiler_mir_local_type_lookup.h \
+    src/codegen/transpiler_mir_local_type_lookup.c \
     src/codegen/transpiler_mir_match_condition_emit.c \
-    src/codegen/transpiler_mir_pending_uses.h \
+    src/codegen/transpiler_mir_pending_uses.c \
     src/codegen/transpiler_nominal.c \
-    src/codegen/transpiler_parallel_capture.h \
+    src/codegen/transpiler_parallel_capture.c \
     src/codegen/transpiler_projection_field_path.c \
     src/codegen/transpiler_projection_method_invalidation.c \
     src/codegen/transpiler_projection_sync.h \
     src/codegen/transpiler_select.c \
     src/codegen/transpiler_slot_builtin_emit.c \
     src/codegen/transpiler_slot_target.c \
-    src/codegen/transpiler_spawn_channel_emit.h \
+    src/codegen/transpiler_spawn_channel_emit.c \
     src/codegen/llvm_stmt_let_callable.c \
     src/codegen/llvm_stmt_let_collections.c \
     src/codegen/llvm_stmt_let_resources.c \
@@ -777,36 +777,39 @@ if grep -R "data\.func_decl\.\(param_count\|params\|return_type\|body\)" \
     src/codegen/llvm_stmt_type_infer_helpers.c \
     src/codegen/llvm_stmt_type_infer.c \
     src/codegen/llvm_type.c \
-    src/codegen/transpiler_async_parallel_emit.h \
+    src/codegen/transpiler_async_parallel_emit.c \
     src/codegen/transpiler_extern.c \
-    src/codegen/transpiler_class_decl_emit.h \
+    src/codegen/transpiler_class_decl_emit.c \
+    src/codegen/transpiler_domain_nominal_emit.c \
     src/codegen/transpiler_domain_nominal_emit.h \
+    src/codegen/transpiler_domain_role_ability_emit.c \
     src/codegen/transpiler_domain_role_ability_emit.h \
-    src/codegen/transpiler_domain_role_methods_emit.h \
-    src/codegen/transpiler_enum_decl_emit.h \
-    src/codegen/transpiler_expr_call_spawn_emit.h \
+    src/codegen/transpiler_domain_role_methods_emit.c \
+    src/codegen/transpiler_enum_decl_emit.c \
+    src/codegen/transpiler_expr_call_member_emit.c \
+    src/codegen/transpiler_expr_call_spawn_emit.c \
     src/codegen/transpiler_expr_call_user_emit.h \
     src/codegen/transpiler_expr_type_infer.c \
     src/codegen/transpiler_expr_type_infer.h \
-    src/codegen/transpiler_func_class_flow_emit.h \
+    src/codegen/transpiler_func_class_flow_emit.c \
     src/codegen/transpiler_func_forward_emit.c \
     src/codegen/transpiler_func_forward_helpers.h \
     src/codegen/transpiler_func_forward_metadata.c \
     src/codegen/transpiler_func_forward_policy.c \
-    src/codegen/transpiler_generic_class_specialization_emit.h \
-    src/codegen/transpiler_let_emit.h \
+    src/codegen/transpiler_generic_class_specialization_emit.c \
+    src/codegen/transpiler_let_emit.c \
     src/codegen/transpiler_intent_zone_binding_emit.c \
-    src/codegen/transpiler_mir_emission_mapping_contract.h \
+    src/codegen/transpiler_mir_emission_mapping_contract.c \
     src/codegen/transpiler_mir_emit_state.c \
-    src/codegen/transpiler_mir_func_emit.h \
+    src/codegen/transpiler_mir_func_emit.c \
     src/codegen/transpiler_mir_func_ssa_locals_emit.h \
     src/codegen/transpiler_mir_local_binding.c \
     src/codegen/transpiler_mir_local_type_ast_lookup.c \
-    src/codegen/transpiler_mir_local_type_lookup.h \
+    src/codegen/transpiler_mir_local_type_lookup.c \
     src/codegen/transpiler_mir_match_condition_emit.c \
     src/codegen/transpiler_mir_signature.c \
     src/codegen/transpiler_projection_method_invalidation.c \
-    src/codegen/transpiler_spawn_channel_emit.h \
+    src/codegen/transpiler_spawn_channel_emit.c \
     src/codegen/transpiler_specialization_registry.h \
     src/codegen/transpiler_type_declarator.c >/dev/null; then
     fail "closed function signature/body slice must use AST function accessors"
@@ -966,8 +969,9 @@ fi
 
 if grep -R "data\.call\.\(callee\|arguments\|arg_count\)" \
     src/codegen/llvm_stmt_let_callable.c \
-    src/codegen/transpiler_call_constructor_result_emit.h \
-    src/codegen/transpiler_expr_call_spawn_emit.h \
+    src/codegen/transpiler_call_constructor_result_emit.c \
+    src/codegen/transpiler_expr_call_member_emit.c \
+    src/codegen/transpiler_expr_call_spawn_emit.c \
     src/codegen/transpiler_expr_call_user_emit.h >/dev/null; then
     fail "codegen callable call owners must use AST call accessors"
 fi
@@ -1029,7 +1033,7 @@ if grep -R "data\.call\.\(callee\|arguments\|arg_count\)" \
     src/codegen/transpiler_expr_builtin_dispatch.h \
     src/codegen/transpiler_expr_stdlib_builtin.c \
     src/codegen/transpiler_expr_stdlib_builtin.h \
-    src/codegen/transpiler_func_class_flow_emit.h \
+    src/codegen/transpiler_func_class_flow_emit.c \
     src/codegen/transpiler_func_forward_helpers.h \
     src/codegen/transpiler_helpers_core_b.h \
     src/codegen/transpiler_intent_observability_builtin_emit.c \
@@ -1046,11 +1050,11 @@ if grep -R "data\.call\.\(callee\|arguments\|arg_count\)" \
     src/codegen/transpiler_let_box_emit.h \
     src/codegen/transpiler_let_slot_emit.c \
     src/codegen/transpiler_match_emit.c \
-    src/codegen/transpiler_mir_destructure_emit.h \
+    src/codegen/transpiler_mir_destructure_emit.c \
     src/codegen/transpiler_mir_match_condition_emit.c \
-    src/codegen/transpiler_mir_local_type_lookup.h \
+    src/codegen/transpiler_mir_local_type_lookup.c \
     src/codegen/transpiler_mir_ssa_contract.h \
-    src/codegen/transpiler_parallel_capture.h \
+    src/codegen/transpiler_parallel_capture.c \
     src/codegen/transpiler_projection_method_invalidation.c \
     src/codegen/transpiler_slot_builtin_emit.c \
     src/codegen/transpiler_slot_target.c >/dev/null; then
@@ -1059,8 +1063,8 @@ fi
 
 if grep -R "data\.call\.\(callee\|arguments\|arg_count\)" \
     src/codegen/transpiler_mir_local_type_ast_lookup.c \
-    src/codegen/transpiler_mir_pending_uses.h \
-    src/codegen/transpiler_spawn_channel_emit.h >/dev/null; then
+    src/codegen/transpiler_mir_pending_uses.c \
+    src/codegen/transpiler_spawn_channel_emit.c >/dev/null; then
     fail "C backend MIR/spawn call owners must use AST call accessors"
 fi
 
@@ -1111,20 +1115,23 @@ if grep -R "data\.type\.\(name\|generic_args\)" \
     src/codegen/transpiler_block_intent_rebind_helpers.c \
     src/codegen/transpiler_decl_host_lookup.c \
     src/codegen/transpiler_decl_lookup.c \
+    src/codegen/transpiler_domain_nominal_emit.c \
     src/codegen/transpiler_domain_nominal_emit.h \
+    src/codegen/transpiler_domain_role_ability_emit.c \
     src/codegen/transpiler_domain_role_ability_emit.h \
-    src/codegen/transpiler_expr_call_spawn_emit.h \
-    src/codegen/transpiler_func_class_flow_emit.h \
+    src/codegen/transpiler_expr_call_member_emit.c \
+    src/codegen/transpiler_expr_call_spawn_emit.c \
+    src/codegen/transpiler_func_class_flow_emit.c \
     src/codegen/transpiler_func_forward_helpers.h \
     src/codegen/transpiler_func_forward_policy.c \
-    src/codegen/transpiler_generic_class_specialization_emit.h \
+    src/codegen/transpiler_generic_class_specialization_emit.c \
     src/codegen/transpiler_intent_context.c \
     src/codegen/transpiler_intent_emit.c \
     src/codegen/transpiler_intent_participant.c \
     src/codegen/transpiler_domain_provenance_emit.h \
     src/codegen/transpiler_intent_zone_slot.c \
     src/codegen/transpiler_intent_zone_binding_emit.c \
-    src/codegen/transpiler_let_emit.h \
+    src/codegen/transpiler_let_emit.c \
     src/codegen/transpiler_let_box_emit.h \
     src/codegen/transpiler_let_slot_emit.c \
     src/codegen/transpiler_overlay_projection.c \
@@ -1208,8 +1215,8 @@ if grep -R "data\.\(world_decl\|relation_decl\|effect_decl\|zone_decl\)\.name" \
     src/codegen/llvm_domain_decl_parts_helpers.c \
     src/codegen/llvm_inventory_decl_lookup.c \
     src/codegen/transpiler_decl_lookup.c \
-    src/codegen/transpiler_relation_effect_emit.h \
-    src/codegen/transpiler_world_select_event_emit.h \
+    src/codegen/transpiler_relation_effect_emit.c \
+    src/codegen/transpiler_world_select_event_emit.c \
     src/codegen/transpiler_zone_decl_emit.c >/dev/null; then
     fail "closed world/relation/effect/zone name consumers must use AST domain name accessors"
 fi
@@ -1280,7 +1287,7 @@ if grep -R "data\.world_decl\.\(rosters\|roster_count\|zones\|zone_count\|activa
 fi
 
 if grep -R "data\.world_decl\.\(rosters\|roster_count\|zones\|zone_count\|shared_fields\|shared_count\|states\|state_count\|activations\|activate_count\|maintained_zones\|maintained_zone_count\|deactivations\|deactivate_count\)" \
-    src/codegen/transpiler_world_select_event_emit.h >/dev/null; then
+    src/codegen/transpiler_world_select_event_emit.c >/dev/null; then
     fail "C world emission must use AST world child accessors"
 fi
 
@@ -1705,7 +1712,7 @@ if grep -R "data\.zone_decl\.\(layer_slots\|layer_slot_count\|states\|state_coun
 fi
 
 if grep -R "data\.zone_decl\.\(authorities\|authority_count\)" \
-    src/codegen/transpiler_mir_func_emit.h >/dev/null; then
+    src/codegen/transpiler_mir_func_emit.c >/dev/null; then
     fail "C MIR function authority checks must use AST zone child accessors"
 fi
 
@@ -1715,7 +1722,7 @@ if grep -R "data\.zone_decl\.\(slots\|slot_count\|layer_slots\|layer_slot_count\
 fi
 
 if grep -R "data\.\(relation_decl\|effect_decl\)\.\(slots\|slot_count\|shared_fields\|shared_count\|refreshes\|refresh_count\)" \
-    src/codegen/transpiler_relation_effect_emit.h >/dev/null; then
+    src/codegen/transpiler_relation_effect_emit.c >/dev/null; then
     fail "C relation/effect emission must use AST domain child accessors"
 fi
 
@@ -1793,7 +1800,7 @@ if grep -R "data\.\(world_decl\|zone_decl\|relation_decl\|effect_decl\)\.\(share
 fi
 
 if grep -R "data\.\(world_decl\|zone_decl\|relation_decl\|effect_decl\)\.\(shared_fields\|shared_count\|zones\|zone_count\|rosters\|roster_count\|slots\|slot_count\|refreshes\|refresh_count\)" \
-    src/codegen/transpiler_call_constructor_result_emit.h >/dev/null; then
+    src/codegen/transpiler_call_constructor_result_emit.c >/dev/null; then
     fail "C constructor emit must use AST domain child accessors"
 fi
 
@@ -1951,7 +1958,7 @@ for path in \
     src/semantic/type_checker_ownership_let_slot_claim.c \
     src/semantic/type_checker_program.c \
     src/semantic/type_checker_resolution_helpers.c \
-    src/semantic/type_checker_assignment.h \
+    src/semantic/type_checker_assignment.c \
     src/semantic/type_checker_type_helpers.c \
     src/semantic/type_infer.c
 do

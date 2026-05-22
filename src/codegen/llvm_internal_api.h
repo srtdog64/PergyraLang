@@ -317,17 +317,7 @@ void llvm_register_active_extern_prototypes(LLVMGenCtx *ctx);
 bool llvm_type_name_uses_pointer_self(LLVMGenCtx *ctx, const char *type_name);
 const char *llvm_current_field_class_name(LLVMGenCtx *ctx,
                                           const char *field_name);
-
-static inline bool
-llvm_ast_type_uses_pointer_self(LLVMGenCtx *ctx, ASTNode *type_node)
-{
-    if (ctx == NULL || type_node == NULL
-        || type_node->type != AST_TYPE
-        || ast_type_name(type_node) == NULL) {
-        return false;
-    }
-    return llvm_type_name_uses_pointer_self(ctx, ast_type_name(type_node));
-}
+bool llvm_ast_type_uses_pointer_self(LLVMGenCtx *ctx, ASTNode *type_node);
 
 /* =================================================================
  * Emitters -- expressions (llvm_expr.c)

@@ -9,83 +9,9 @@
 #include "../common/string_compat.h"
 #include "../common/arena.h"
 #include "../runtime/pgy_abi_spec.h"
-#include "../parser/ast_analysis.h"
 #include "../parser/ast_api.h"
-
-void
-mir_instruction_record_surface_usage(MIRInstruction *inst)
-{
-    if (inst == NULL)
-        return;
-    if (inst->ast != NULL) {
-        inst->has_source_location = true;
-        inst->source_line = inst->ast->line;
-        inst->source_column = inst->ast->column;
-        inst->source_ast_type = inst->ast->type;
-    } else {
-        inst->has_source_location = false;
-        inst->source_line = 0;
-        inst->source_column = 0;
-        inst->source_ast_type = 0;
-    }
-    inst->has_surface_usage_facts = true;
-    inst->uses_thread_pool_surface =
-        ast_uses_thread_pool_surface(inst->ast)
-        || ast_uses_thread_pool_surface(inst->expr0)
-        || ast_uses_thread_pool_surface(inst->expr1);
-    inst->uses_intent_observability_surface =
-        ast_uses_intent_observability_surface(inst->ast)
-        || ast_uses_intent_observability_surface(inst->expr0)
-        || ast_uses_intent_observability_surface(inst->expr1);
-}
-
-bool
-mir_instruction_is_with_slot_claim(const MIRInstruction *inst)
-{
-    return mir_instruction_source_is_with_slot_claim(inst);
-}
-
-static void
-mir_count_non_cfg_body_fallback_inventory(const MIRProgram *mir,
-                                          size_t *fallback_total,
-                                          size_t *fallback_routines)
-{
-    size_t total = 0;
-    size_t routines = 0;
-
-    if (mir != NULL && mir->routines != NULL) {
-        for (size_t i = 0; i < mir->routine_count; i++) {
-            const MIRRoutine *routine = &mir->routines[i];
-            total += routine->non_cfg_body_fallback_count;
-            if (routine->used_non_cfg_body_fallback
-                || routine->non_cfg_body_fallback_count > 0) {
-                routines++;
-            }
-        }
-    }
-
-    if (fallback_total != NULL)
-        *fallback_total = total;
-    if (fallback_routines != NULL)
-        *fallback_routines = routines;
-}
-
-void
-mir_refresh_non_cfg_body_fallback_inventory(MIRProgram *mir)
-{
-    size_t fallback_total = 0;
-    size_t fallback_routines = 0;
-
-    if (mir == NULL)
-        return;
-
-    mir_count_non_cfg_body_fallback_inventory(mir,
-                                              &fallback_total,
-                                              &fallback_routines);
-    mir->has_non_cfg_body_fallback_inventory = true;
-    mir->non_cfg_body_fallback_total = fallback_total;
-    mir->non_cfg_body_fallback_routine_count = fallback_routines;
-}
+#include "mir_lower_population.h"
+#include "mir_public_surface.h"
 
 static MIRBranchShape
 mir_branch_shape_from_ast(const ASTNode *node)
@@ -107,20 +33,9 @@ mir_branch_shape_from_ast(const ASTNode *node)
 #include "mir_cleanup.h"
 #include "mir_intent.h"
 #include "mir_surface_usage.h"
+#include "mir_stmt_population.h"
 #include "mir_type_helpers.h"
 #include "mir_validation.h"
-
-static bool
-mir_commit_instruction(MIRRoutine *routine, MIRBasicBlock *block, MIRInstruction *inst)
-{
-    if (routine == NULL || block == NULL || inst == NULL)
-        return false;
-    inst->id = routine->instruction_count;
-    if (!append_instruction(block, *inst))
-        return false;
-    routine->instruction_count++;
-    return true;
-}
 
 static bool
 mir_add_phi_placeholders(MIRRoutine *routine, MIRBasicBlock *block)
@@ -266,149 +181,12 @@ mir_block_record_source_location(MIRBasicBlock *block, const ASTNode *source_ast
     block->source_column = source_ast != NULL ? source_ast->column : 0;
 }
 
-static ASTNode *
-mir_resource_write_value_expr_from_call(ASTNode *call)
-{
-    ASTNode *callee;
-
-    if (call == NULL || call->type != AST_CALL)
-        return NULL;
-    callee = ast_call_callee(call);
-    if (callee == NULL)
-        return NULL;
-    if (callee->type == AST_IDENTIFIER
-        && ast_identifier_name(callee) != NULL
-        && strcmp(ast_identifier_name(callee), "Write") == 0
-        && ast_call_arg_count(call) >= 2) {
-        return ast_call_argument(call, 1);
-    }
-    if (callee->type == AST_MEMBER_ACCESS
-        && ast_member_name(callee) != NULL
-        && strcmp(ast_member_name(callee), "Write") == 0
-        && ast_call_arg_count(call) >= 1) {
-        return ast_call_argument(call, 0);
-    }
-    return NULL;
-}
-
-static bool
-mir_add_resource_instruction(MIRRoutine *routine, MIRBasicBlock *block, const RIROp *op)
-{
-    MIRInstruction inst;
-    char *claim_type_name = NULL;
-    const char *abi_type_name = NULL;
-    memset(&inst, 0, sizeof(inst));
-    inst.kind = MIR_INST_RESOURCE_OP;
-    inst.name = rir_op_kind_name(op->kind);
-    inst.slot_anchor = op->slot_anchor;
-    inst.arg0 = op->subject;
-    inst.arg1 = op->arg0;
-    inst.rir_op = op;
-    inst.ast = op->ast;
-    if (op->kind == RIR_OP_WRITE)
-        inst.expr0 = mir_resource_write_value_expr_from_call(op->ast);
-    /* ABI type layout — lookup from type table */
-    if (op->kind == RIR_OP_CLAIM)
-        claim_type_name = mir_claim_abi_type_name_from_ast(op->ast);
-    abi_type_name = claim_type_name != NULL
-        ? claim_type_name
-        : (op->arg0 != NULL ? op->arg0 : op->subject);
-    inst.type_layout = mir_abi_lookup(abi_type_name);
-    free(claim_type_name);
-    return mir_commit_instruction(routine, block, &inst);
-}
-
 #include "mir_ssa_rename.h"
 
 #include "mir_liveness_dce.h"
 #include "mir_dce.h"
 
 #include "mir_fact_validate.h"
-#include "mir_stmt_population.h"
-#include "mir_non_cfg_stmt_population.h"
-
-static bool
-mir_populate_instructions(MIRRoutine *routine)
-{
-    const RIRScope *rir_scope;
-    MIRBasicBlock *entry;
-    MIRBasicBlock *rollback;
-    MIRBasicBlock *invalidation;
-    bool appended_intent_steps = false;
-
-    if (routine == NULL || routine->block_count == 0)
-        return true;
-
-    rir_scope = routine->rir_scope;
-    entry = &routine->blocks[routine->entry_block];
-    rollback = routine->has_rollback_block ? &routine->blocks[routine->rollback_block] : NULL;
-    invalidation = routine->has_invalidation_block ? &routine->blocks[routine->invalidation_block] : NULL;
-
-    if (routine->kind == MIR_SCOPE_INTENT
-        && routine->hir_routine != NULL) {
-        if (!mir_append_intent_step_instructions(routine, entry))
-            return false;
-        appended_intent_steps = true;
-    }
-
-    if (rir_scope == NULL)
-        return true;
-
-    for (size_t i = 0; i < rir_scope->op_count; i++) {
-        const RIROp *op = &rir_scope->ops[i];
-        switch (op->kind) {
-            case RIR_OP_ABORT_INTENT:
-            case RIR_OP_COMPENSATE_INTENT_STEP:
-                if (rollback != NULL) {
-                    if (!mir_add_cleanup_instruction(routine, rollback, op))
-                        return false;
-                    break;
-                }
-                /* fallthrough */
-            default:
-                if (!mir_add_resource_instruction(routine, entry, op))
-                    return false;
-                break;
-        }
-    }
-
-    if (invalidation != NULL) {
-        for (size_t i = 0; i < rir_scope->fact_count; i++) {
-            const RIRFact *fact = &rir_scope->facts[i];
-            MIRInstruction inst;
-            if (fact->kind != RIR_FACT_PROJECTION
-                && fact->resource_kind != RIR_RESOURCE_EFFECT_INSTANCE
-                && fact->resource_kind != RIR_RESOURCE_RELATION_INSTANCE
-                && fact->resource_kind != RIR_RESOURCE_ZONE_HANDLE) {
-                continue;
-            }
-            memset(&inst, 0, sizeof(inst));
-            inst.kind = MIR_INST_CLEANUP_EDGE;
-            inst.name = "DetachInvalidation";
-            inst.slot_anchor = fact->slot_anchor != NULL ? fact->slot_anchor : fact->name;
-            inst.arg0 = fact->name;
-            inst.arg1 = rir_resource_kind_name(fact->resource_kind);
-            inst.ast = fact->ast;
-            if (!mir_commit_instruction(routine, invalidation, &inst))
-                return false;
-            routine->cleanup_instruction_count++;
-        }
-        if (!mir_append_intent_invalidation_markers(routine, invalidation))
-            return false;
-    }
-
-    if (!appended_intent_steps && routine->kind == MIR_SCOPE_INTENT
-        && routine->hir_routine != NULL) {
-        if (!mir_append_intent_step_instructions(routine, entry))
-            return false;
-    } else if (routine->hir_routine != NULL
-               && !routine->hir_routine->has_cfg) {
-        if (!mir_append_non_cfg_body_statements(routine, entry))
-            return false;
-    }
-
-    return true;
-}
 
 static bool
 mir_build_blocks_from_hir(MIRRoutine *routine, const HIRRoutine *hir_routine)
@@ -510,7 +288,222 @@ mir_build_blocks_from_hir(MIRRoutine *routine, const HIRRoutine *hir_routine)
 }
 
 #include "mir_decl_headers.h"
-#include "mir_lower_public_api.h"
 #include "mir_cfg_contract_validate.h"
-#include "mir_public_surface.h"
 #include "mir_abi_layout.h"
+
+MIRProgram *
+mir_lower(const HIRProgram *hir, const RIRProgram *rir, char **error_message)
+{
+    const char *debug_mir_lower;
+    MIRProgram *mir;
+    if (error_message != NULL)
+        *error_message = NULL;
+    if (hir == NULL) {
+        if (error_message != NULL)
+            *error_message = pergyra_strdup("MIR lowering requires HIR");
+        return NULL;
+    }
+
+    debug_mir_lower = getenv("PGY_DEBUG_MIR_LOWER");
+
+    mir_abi_table_init();
+
+    mir = calloc(1, sizeof(MIRProgram));
+    if (mir == NULL) {
+        if (error_message != NULL)
+            *error_message = pergyra_strdup("out of memory");
+        return NULL;
+    }
+
+#define MIR_COPY_AST_LIST(field, count_field) \
+    do { \
+        mir->count_field = hir->count_field; \
+        if (hir->count_field > 0) { \
+            mir->field = calloc(hir->count_field, sizeof(ASTNode *)); \
+            if (mir->field == NULL) { \
+                if (error_message != NULL) \
+                    *error_message = pergyra_strdup("out of memory"); \
+                mir_destroy(mir); \
+                return NULL; \
+            } \
+            memcpy(mir->field, hir->field, hir->count_field * sizeof(ASTNode *)); \
+        } \
+    } while (0)
+
+    MIR_COPY_AST_LIST(externs, extern_count);
+    MIR_COPY_AST_LIST(types, type_count);
+    MIR_COPY_AST_LIST(abilities, ability_count);
+    MIR_COPY_AST_LIST(roles, role_count);
+    MIR_COPY_AST_LIST(parties, party_count);
+    MIR_COPY_AST_LIST(rosters, roster_count);
+    MIR_COPY_AST_LIST(worlds, world_count);
+    MIR_COPY_AST_LIST(relations, relation_count);
+    MIR_COPY_AST_LIST(effects, effect_count);
+    MIR_COPY_AST_LIST(zones, zone_count);
+    MIR_COPY_AST_LIST(events, event_count);
+    MIR_COPY_AST_LIST(intents, intent_count);
+    MIR_COPY_AST_LIST(functions, function_count);
+    mir->has_top_level_exec = false;
+    mir->has_main_function = false;
+    for (size_t i = 0; i < mir->function_count; i++) {
+        ASTNode *fn = mir->functions[i];
+        const char *fn_name = ast_declaration_name(fn);
+        if (fn == NULL || fn->type != AST_FUNC_DECL
+            || fn_name == NULL) {
+            continue;
+        }
+        if (strcmp(fn_name, "__pgy_top_level_exec") == 0)
+            mir->has_top_level_exec = true;
+        if (strcmp(fn_name, "Main") == 0)
+            mir->has_main_function = true;
+    }
+    mir_program_record_inventory_surface_usage(mir);
+
+#undef MIR_COPY_AST_LIST
+
+    for (size_t i = 0; i < hir->type_count; i++) {
+        if (!mir_record_decl_header(mir, hir->types[i])) {
+            if (error_message != NULL)
+                *error_message = pergyra_strdup("out of memory");
+            mir_destroy(mir);
+            return NULL;
+        }
+    }
+    for (size_t i = 0; i < hir->party_count; i++) {
+        if (!mir_record_decl_header(mir, hir->parties[i])) {
+            if (error_message != NULL)
+                *error_message = pergyra_strdup("out of memory");
+            mir_destroy(mir);
+            return NULL;
+        }
+    }
+    for (size_t i = 0; i < hir->role_count; i++) {
+        if (!mir_record_decl_header(mir, hir->roles[i])) {
+            if (error_message != NULL)
+                *error_message = pergyra_strdup("out of memory");
+            mir_destroy(mir);
+            return NULL;
+        }
+    }
+    for (size_t i = 0; i < hir->roster_count; i++) {
+        if (!mir_record_decl_header(mir, hir->rosters[i])) {
+            if (error_message != NULL)
+                *error_message = pergyra_strdup("out of memory");
+            mir_destroy(mir);
+            return NULL;
+        }
+    }
+    for (size_t i = 0; i < hir->world_count; i++) {
+        if (!mir_record_decl_header(mir, hir->worlds[i])) {
+            if (error_message != NULL)
+                *error_message = pergyra_strdup("out of memory");
+            mir_destroy(mir);
+            return NULL;
+        }
+    }
+    for (size_t i = 0; i < hir->relation_count; i++) {
+        if (!mir_record_decl_header(mir, hir->relations[i])) {
+            if (error_message != NULL)
+                *error_message = pergyra_strdup("out of memory");
+            mir_destroy(mir);
+            return NULL;
+        }
+    }
+    for (size_t i = 0; i < hir->effect_count; i++) {
+        if (!mir_record_decl_header(mir, hir->effects[i])) {
+            if (error_message != NULL)
+                *error_message = pergyra_strdup("out of memory");
+            mir_destroy(mir);
+            return NULL;
+        }
+    }
+    for (size_t i = 0; i < hir->zone_count; i++) {
+        if (!mir_record_decl_header(mir, hir->zones[i])) {
+            if (error_message != NULL)
+                *error_message = pergyra_strdup("out of memory");
+            mir_destroy(mir);
+            return NULL;
+        }
+    }
+
+    for (size_t i = 0; i < hir->routine_count; i++) {
+        const HIRRoutine *hir_routine = &hir->routines[i];
+        MIRRoutine routine;
+        const HIRBasicBlock *cfg_blocks_before = NULL;
+        size_t cfg_block_count_before = 0;
+        memset(&routine, 0, sizeof(routine));
+        pgy_arena_init(&routine.scratch, 0);
+        routine.id = mir->routine_count;
+        routine.kind = mir_scope_kind_from_hir(hir_routine);
+        routine.name = hir_routine->name;
+        routine.ast = hir_routine->ast;
+        routine.is_action_like = hir_routine->is_action_like;
+        routine.hir_routine = hir_routine;
+        routine.rir_scope = mir_find_matching_rir_scope(rir, hir_routine);
+        routine.owner_name = routine.rir_scope != NULL
+            ? routine.rir_scope->owner_name
+            : hir_routine->owner_name;
+        routine.owner_ast_type = hir_routine->owner_ast_type;
+        cfg_blocks_before =
+            hir_routine->has_cfg ? hir_routine->cfg.blocks : NULL;
+        cfg_block_count_before =
+            hir_routine->has_cfg ? hir_routine->cfg.block_count : 0;
+
+        if (!mir_build_blocks_from_hir(&routine, hir_routine)
+            || !mir_append_cleanup_block(&routine, routine.rir_scope)
+            || !mir_populate_instructions(&routine)
+            || !mir_apply_ssa_rename(&routine)
+            || !mir_populate_stmt_instructions(&routine)
+            || !mir_populate_use_edges(&routine)
+            || !mir_materialize_cleanup_edges(&routine)
+            || !mir_recompute_analysis(&routine)
+            || !append_routine(mir, routine)) {
+            pgy_arena_destroy(&routine.scratch);
+            if (error_message != NULL)
+                *error_message = pergyra_strdup("out of memory");
+            mir_destroy(mir);
+            return NULL;
+        }
+
+        if (hir_routine->has_cfg
+            && (hir_routine->cfg.blocks != cfg_blocks_before
+                || hir_routine->cfg.block_count != cfg_block_count_before)) {
+            if (error_message != NULL) {
+                *error_message = mir_strdup_fmt(
+                    "HIR CFG storage changed during MIR lowering for routine '%s' (before_count=%zu after_count=%zu)",
+                    routine.name != NULL ? routine.name : "(anonymous)",
+                    cfg_block_count_before,
+                    hir_routine->cfg.block_count);
+            }
+            mir_destroy(mir);
+            return NULL;
+        }
+
+        if (debug_mir_lower != NULL && debug_mir_lower[0] != '\0'
+            && routine.kind == MIR_SCOPE_INTENT) {
+            fprintf(stdout,
+                "[MIR LOWER] Intent '%s' after build: has_cleanup=%d, blocks=%zu\n",
+                routine.name ? routine.name : "(null)",
+                routine.has_cleanup_block,
+                routine.block_count);
+            for (size_t b = 0; b < routine.block_count; b++) {
+                fprintf(stdout,
+                    "  block[%zu] has_cleanup_succ=%d has_rollback_succ=%d has_invalidation_succ=%d\n",
+                    b,
+                    routine.blocks[b].has_cleanup_succ,
+                    routine.blocks[b].has_rollback_succ,
+                    routine.blocks[b].has_invalidation_succ);
+            }
+        }
+    }
+
+    mir_link_decl_method_routines(mir);
+
+    if (!mir_run_dce_pass(mir, error_message)) {
+        mir_destroy(mir);
+        return NULL;
+    }
+    mir_refresh_non_cfg_body_fallback_inventory(mir);
+
+    return mir;
+}

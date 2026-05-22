@@ -56,9 +56,9 @@ if [ "$detail_getenv_count" -ne 1 ]; then
     fail "PGY_DEBUG_LLVM_DETAIL must be read through one LLVM debug-detail helper"
 fi
 if ! printf '%s\n' "$detail_getenv_sites" \
-    | grep -Fq 'src/codegen/llvm_debug_flags.h'; then
+    | grep -Fq 'src/codegen/llvm_debug_flags.c'; then
     printf '%s\n' "$detail_getenv_sites" >&2
-    fail "PGY_DEBUG_LLVM_DETAIL env read must live in llvm_debug_flags.h"
+    fail "PGY_DEBUG_LLVM_DETAIL env read must live in llvm_debug_flags.c"
 fi
 
 for name in PGY_DEBUG_LLVM_STAGE PGY_DEBUG_LLVM_VERIFY; do
@@ -71,9 +71,9 @@ for name in PGY_DEBUG_LLVM_STAGE PGY_DEBUG_LLVM_VERIFY; do
         printf '%s\n' "$sites" >&2
         fail "$name must be read through one LLVM debug helper"
     fi
-    if ! printf '%s\n' "$sites" | grep -Fq 'src/codegen/llvm_debug_flags.h'; then
+    if ! printf '%s\n' "$sites" | grep -Fq 'src/codegen/llvm_debug_flags.c'; then
         printf '%s\n' "$sites" >&2
-        fail "$name env read must live in llvm_debug_flags.h"
+        fail "$name env read must live in llvm_debug_flags.c"
     fi
 done
 

@@ -114,11 +114,13 @@ run_literal_doc_contract_smoke() {
     require_literal "docs/103_cfg_body_dataflow_need.md" "PGY_SEM_PARALLEL_SLOT_CONFLICT"
     require_literal "docs/103_cfg_body_dataflow_need.md" "pre-CFG residual"
     require_literal "src/semantic/slot_summary.h" "slot_analyze_legacy_ast_param_summary_in_program"
+    require_literal "src/semantic/type_checker_ownership_call.c" '#include "slot_summary.h"'
     require_literal "src/semantic/type_checker_ownership_param_summary.c" "slot_analyze_legacy_ast_param_summary_in_program"
     require_literal "src/semantic/type_checker_call_contract_helpers.c" "slot_analyze_legacy_ast_param_summary_in_program"
     require_literal "src/codegen/llvm_stmt_let_helpers.c" "slot_analyze_legacy_ast_param_summary_in_program"
     if grep -Fq '#include "slot_analyzer.h"' "$ROOT_DIR/src/semantic/type_checker_ownership_param_summary.c" \
-        || grep -Fq '#include "slot_analyzer.h"' "$ROOT_DIR/src/semantic/type_checker_call_contract_helpers.c"; then
+        || grep -Fq '#include "slot_analyzer.h"' "$ROOT_DIR/src/semantic/type_checker_call_contract_helpers.c" \
+        || grep -Fq '#include "slot_analyzer.h"' "$ROOT_DIR/src/semantic/type_checker_ownership_call.c"; then
         echo "ownership call/param summary consumers must depend on slot_summary.h, not full slot_analyzer.h" >&2
         exit 1
     fi
@@ -179,7 +181,7 @@ run_literal_doc_contract_smoke() {
     require_literal "src/compiler/mir_cfg_contract_edges.c" "predecessor count without predecessor inventory"
     require_literal "src/compiler/mir_cfg_contract_edges.c" "predecessor count above predecessor capacity"
     require_literal "src/compiler/mir_lifecycle.c" "instructions != NULL"
-    require_literal "src/codegen/transpiler_mir_emission_contract.h" "instruction count without instruction inventory"
+    require_literal "src/codegen/transpiler_mir_emission_contract.c" "instruction count without instruction inventory"
     require_literal "src/codegen/llvm_mir_block_emit.c" "instruction count without instruction inventory"
     require_literal "src/codegen/llvm_mir_block_emit.c" "llvm_set_mir_topology_invalid(ctx"
     require_literal "src/codegen/llvm_mir_contract.c" "instruction count without instruction inventory"
@@ -229,7 +231,7 @@ run_literal_doc_contract_smoke() {
     require_literal "src/compiler/mir_fact_surface_validate.c" "STMT fallback is missing source statement inventory fact"
     require_literal "src/compiler/mir_fact_surface_validate.c" "STMT fallback is outside allowed residual statement policy"
     require_literal "src/codegen/llvm_mir_block_emit.c" "mir_instruction_source_stmt_fallback_is_allowed(inst)"
-    require_literal "src/codegen/transpiler_mir_block_emit.h" "mir_instruction_source_stmt_fallback_is_allowed(inst)"
+    require_literal "src/codegen/transpiler_mir_block_emit.c" "mir_instruction_source_stmt_fallback_is_allowed(inst)"
     require_literal "src/compiler/mir_fact_surface_validate.c" "with-slot Claim resource op is missing MIR ABI type layout fact"
     require_literal "src/compiler/mir_fact_surface_validate.c" "with-slot Claim resource op has invalid MIR ABI type layout fact"
     require_literal "src/compiler/mir_fact_surface_validate.c" "mir_instruction_source_is_local_decl(inst)"
@@ -265,7 +267,7 @@ run_literal_doc_contract_smoke() {
     require_literal "src/compiler/mir_lifecycle.c" "source-branch-emit"
     require_literal "src/codegen/llvm_mir_block_emit.c" "mir_instruction_has_required_branch_condition_fact(inst)"
     require_literal "src/codegen/transpiler_mir_cfg_control_emit.c" "mir_instruction_has_required_branch_condition_fact(inst)"
-    require_literal "src/codegen/transpiler_mir_emission_contract.h" "mir_instruction_has_required_branch_condition_fact(inst)"
+    require_literal "src/codegen/transpiler_mir_emission_contract.c" "mir_instruction_has_required_branch_condition_fact(inst)"
     require_literal "src/compiler/air_evidence_mir_facts.c" "mir_block_has_hir_source_mapping(block)"
     require_literal "src/codegen/transpiler_mir_ssa_map.c" "mir_block_source_hir_id(block)"
     require_literal "src/codegen/transpiler_mir_ssa_map.c" "mir_block_source_line(block)"
@@ -296,7 +298,7 @@ run_literal_doc_contract_smoke() {
     require_literal "tests/llvm_smoke.sh" "select_fairness"
     require_literal "tests/llvm_smoke.sh" "case v = <-a:"
     require_literal "tests/llvm_smoke.sh" "case v = <-b:"
-    require_literal "src/codegen/transpiler_mir_pending_uses.h" "!mir_instruction_uses_source_local_decl_emit(inst)"
+    require_literal "src/codegen/transpiler_mir_pending_uses.c" "!mir_instruction_uses_source_local_decl_emit(inst)"
     require_literal "src/codegen/transpiler_mir_block_emit_helpers.c" "transpiler_mir_def_uses_source_statement_emit"
     require_literal "src/codegen/transpiler_mir_block_emit_helpers.c" "transpiler_mir_def_uses_source_local_decl_emit"
     require_literal "src/codegen/transpiler_mir_block_emit_helpers.c" "transpiler_mir_def_uses_channel_receive_statement_emit"
@@ -376,14 +378,14 @@ run_literal_doc_contract_smoke() {
     require_literal "src/tests/semantic/test_semantic_misc_a_part_a.cases.h" "CFG body flow accepts static single-iteration for all-path return"
     require_literal "src/tests/semantic/test_semantic_misc_a_part_a.cases.h" "CFG body flow keeps zero-iteration for as fallthrough"
     require_literal "src/tests/semantic/test_semantic_misc_a_part_a.cases.h" "CFG static false while does not merge unreachable resource state"
-    require_literal "src/codegen/transpiler_mir_emission_contract.h" "mir_block_has_expected_cleanup_edge_fact(routine, i)"
-    require_literal "src/codegen/transpiler_mir_emission_contract.h" "mir_block_has_pin_cleanup_edge(block)"
-    require_literal "src/codegen/transpiler_mir_emission_contract.h" "pin block %llu has no cleanup successor"
+    require_literal "src/codegen/transpiler_mir_emission_contract.c" "mir_block_has_expected_cleanup_edge_fact(routine, i)"
+    require_literal "src/codegen/transpiler_mir_emission_contract.c" "mir_block_has_pin_cleanup_edge(block)"
+    require_literal "src/codegen/transpiler_mir_emission_contract.c" "pin block %llu has no cleanup successor"
     require_literal "src/compiler/mir_fact_validate.c" "mir_validate_routine_emission_facts"
-    require_literal "src/codegen/transpiler_mir_emission_contract.h" "mir_validate_routine_emission_facts(routine"
+    require_literal "src/codegen/transpiler_mir_emission_contract.c" "mir_validate_routine_emission_facts(routine"
     require_literal "src/codegen/llvm_mir_contract.c" "llvm_mir_validate_cleanup_contract"
     require_literal "src/codegen/llvm_mir_contract.c" "mir_validate_emission_topology(routine"
-    require_literal "src/compiler/mir_public_surface.h" "mir_validate_cfg_contract_state(routine"
+    require_literal "src/compiler/mir_program_validate.c" "mir_validate_cfg_contract_state(routine"
     require_literal "src/codegen/llvm_mir_contract.c" "mir_validate_routine_emission_facts(routine"
     require_literal "src/codegen/llvm_mir_contract.c" "mir_block_has_expected_cleanup_edge_fact(routine, i)"
     require_literal "src/codegen/llvm_mir_contract.c" "mir_block_has_pin_cleanup_edge(block)"
@@ -1048,7 +1050,7 @@ required_mir_owner_terms = {
         "mir_attach_statement_call_fact",
         "mir_attach_def_initializer_call_fact",
     ],
-    "src/compiler/mir_public_surface.h": [
+    "src/compiler/mir_program_validate.c": [
         "mir_validate_non_cfg_fallback_state",
         "mir_validate_non_cfg_fallback_inventory",
         "mir_count_non_cfg_body_fallback_inventory",
@@ -1084,7 +1086,7 @@ mir_owner_text = {
     "src/compiler/mir_stmt_source.c": mir_stmt_source,
     "src/compiler/mir_non_cfg_stmt_population.h": mir_non_cfg_stmt_population,
     "src/compiler/mir_non_cfg_stmt_population.c": mir_non_cfg_stmt_population,
-    "src/compiler/mir_public_surface.h": (root / "src" / "compiler" / "mir_public_surface.h").read_text(encoding="utf-8"),
+    "src/compiler/mir_program_validate.c": (root / "src" / "compiler" / "mir_program_validate.c").read_text(encoding="utf-8"),
     "src/compiler/mir_cfg_contract_control.h": mir_cfg_contract_control,
 }
 for owner, terms in required_mir_owner_terms.items():
@@ -1502,6 +1504,7 @@ raw_source_fields = (
 )
 raw_source_allowed = {
     pathlib.Path("src/compiler/mir.c"),
+    pathlib.Path("src/compiler/mir_public_surface.c"),
     pathlib.Path("src/compiler/mir_source_shape.c"),
 }
 raw_source_leaks = []

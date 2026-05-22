@@ -11,12 +11,8 @@
 #include "transpiler_overlay_zone_bind.h"
 #include "transpiler_overlay_zone_relation_bind.h"
 #include "transpiler_zone_specialization_emit.h"
+#include "transpiler_zone_methods_emit.h"
 #include "transpiler_zone_struct_emit.h"
-
-void transpiler_emit_zone_hosted_methods_bridge(
-    const char *name,
-    const TranspilerHostedMethodView *method_view,
-    TranspilerCtx *ctx);
 
 void
 emit_zone_decl(ASTNode *node, TranspilerCtx *ctx)

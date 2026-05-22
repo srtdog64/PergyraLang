@@ -46,7 +46,10 @@
   `transpiler_active_inventory()` and LLVM `llvm_active_inventory()` both
   consume that MIR API instead of duplicating backend-local switches. This
   reduces replacement cost for the future dedicated declaration IR, while the
-  payload itself remains AST-carried and therefore still beta debt.
+  payload itself remains AST-carried and therefore still beta debt. The public
+  query/pass wrappers now live in `src/compiler/mir_public_surface.c` instead
+  of the MIR lowering implementation header, and `mir_lower(...)` now lives
+  directly in `src/compiler/mir.c`.
 - LLVM statement ownership is split below the 600 LOC threshold:
   `llvm_stmt.c` owns statement dispatch, defers, return/if/block emission, and
   expression-statement forwarding; `llvm_stmt_zone_action.c` owns zone-action
@@ -70,9 +73,9 @@
   escaping `pin ... as view` regions. MIR phi-copy emission now lives in
   `transpiler_mir_phi_emit.h`, keeping `transpiler_mir_ssa_emit.h` below the
   600 LOC review threshold. MIR terminators now live in
-  `transpiler_mir_terminator_emit.h`, and residual MIR statement helpers live
-  in `transpiler_mir_stmt_emit.h`, bringing `transpiler_mir_func_emit.h` and
-  `transpiler_mir_block_emit.h` below the 600 LOC review threshold as well.
+  `transpiler_mir_terminator_emit.c` behind a declaration-only header, and residual MIR statement helpers live
+  in `transpiler_mir_stmt_emit.c` behind a declaration-only header, bringing `transpiler_mir_func_emit.c` and
+  `transpiler_mir_block_emit.c` behind a declaration-only header as well.
   `make llvm-test-backend-compare` is green with ABI same-process `196 passed,
   0 failed` and backend compare `64/64`.
 - C intent declaration emission is split below the 600 LOC threshold:

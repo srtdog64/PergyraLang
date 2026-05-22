@@ -52,12 +52,14 @@ for rel in \
     "src/codegen/transpiler_inventory_view.h" \
     "src/codegen/transpiler.c" \
     "src/codegen/transpiler_decl_host_lookup.c" \
+    "src/codegen/transpiler_domain_role_ability_emit.c" \
     "src/codegen/transpiler_domain_role_ability_emit.h" \
-    "src/codegen/transpiler_generic_class_specialization_emit.h" \
+    "src/codegen/transpiler_generic_class_specialization_emit.c" \
     "src/codegen/transpiler_mir_role_lookup.c" \
     "src/codegen/transpiler_mir_ssa_names.h" \
     "src/compiler/mir.h" \
     "src/compiler/mir_lower_public_api.h" \
+    "src/compiler/mir_public_surface.c" \
     "src/compiler/mir_decl_headers.c" \
     "src/compiler/mir_decl_headers.h" \
     "docs/100_beta_readiness_checklist.md" \
@@ -176,7 +178,19 @@ done
 
 for term in "mir_active_inventory" "mir_active_externs"; do
     require_term "src/compiler/mir.h" "$term"
-    require_term "src/compiler/mir_lower_public_api.h" "$term"
+    require_term "src/compiler/mir_public_surface.c" "$term"
+done
+for term in \
+    "mir_find_function_decl" \
+    "mir_active_inventory" \
+    "mir_active_externs" \
+    "mir_find_decl_header" \
+    "mir_run_liveness_pass" \
+    "mir_run_dce_pass"; do
+    if grep -Eq "^[[:space:]]*(ASTNode[[:space:]*]+|const[[:space:]]+MIRDeclHeader[[:space:]*]+|void[[:space:]]*|bool[[:space:]]*)$term[[:space:]]*\\(" \
+            "$ROOT_DIR/src/compiler/mir_lower_public_api.h"; then
+        fail "MIR public query/pass wrapper '$term' must stay in mir_public_surface.c, not mir_lower_public_api.h"
+    fi
 done
 if grep -Fq "ASTNode    **methods;" "$ROOT_DIR/src/compiler/mir.h"; then
     fail "MIRDeclHeader must not carry AST method-array pointers as inventory state"
@@ -196,7 +210,7 @@ done
 
 raw_ctx_mir_hits="$(
     grep -RIn 'ctx->mir' "$ROOT_DIR/src/codegen" |
-        grep -Ev 'src/codegen/(llvm_api\.c|llvm_inventory_decl_lookup\.c|llvm_inventory_internal\.c|transpiler_entry\.c|transpiler_inventory_view\.c|transpiler_mir_emission_contract\.h):' || true
+        grep -Ev 'src/codegen/(llvm_api\.c|llvm_inventory_decl_lookup\.c|llvm_inventory_internal\.c|transpiler_entry\.c|transpiler_inventory_view\.c|transpiler_mir_emission_contract\.c):' || true
 )"
 if [[ -n "$raw_ctx_mir_hits" ]]; then
     fail "raw ctx->mir access must stay in backend entrypoints, inventory view/lookup owners, or MIR emission contract probes:
@@ -513,14 +527,14 @@ for term in \
     require_term "src/codegen/transpiler_inventory_view.c" "$term"
 done
 for rel in \
-    "src/codegen/transpiler_mir_emission_contract.h"; do
+    "src/codegen/transpiler_mir_emission_contract.c"; do
     if grep -Fq "routine->ast" "$ROOT_DIR/$rel"; then
         fail "$rel must consume routine source AST through transpiler_mir_routine_source_ast* accessors"
     fi
 done
-require_term "src/codegen/transpiler_mir_emission_contract.h" \
+require_term "src/codegen/transpiler_mir_emission_contract.c" \
     "transpiler_mir_routine_source_ast(routine)"
-require_term "src/codegen/transpiler_mir_emission_contract.h" \
+require_term "src/codegen/transpiler_mir_emission_contract.c" \
     "transpiler_mir_routine_source_ast_of_type("
 
 for term in \
@@ -548,22 +562,22 @@ for term in \
     "constructor_types[i]"; do
     require_term "src/codegen/transpiler_decl_lookup.c" "$term"
 done
-require_term "src/codegen/transpiler_call_constructor_result_emit.h" \
+require_term "src/codegen/transpiler_call_constructor_result_emit.c" \
     "transpiler_find_domain_constructor_decl_local(ctx, fn)"
-require_term "src/codegen/transpiler_mir_local_type_lookup.h" \
+require_term "src/codegen/transpiler_mir_local_type_lookup.c" \
     "transpiler_find_domain_constructor_decl_local("
-require_term "src/codegen/transpiler_let_emit.h" \
+require_term "src/codegen/transpiler_let_emit.c" \
     "transpiler_find_domain_constructor_decl_local("
 if grep -Fq "find_party_decl(ctx, fn)" \
-    "$ROOT_DIR/src/codegen/transpiler_call_constructor_result_emit.h"; then
+    "$ROOT_DIR/src/codegen/transpiler_call_constructor_result_emit.c"; then
     fail "C constructor dispatch must consume the domain-constructor lookup seam instead of repeating host chains"
 fi
 if grep -Fq "find_zone_decl(ctx, callee_name)" \
-    "$ROOT_DIR/src/codegen/transpiler_mir_local_type_lookup.h"; then
+    "$ROOT_DIR/src/codegen/transpiler_mir_local_type_lookup.c"; then
     fail "C MIR local type lookup must consume the domain-constructor lookup seam instead of repeating host chains"
 fi
 if grep -Fq "find_zone_decl(ctx, ann_type_name)" \
-    "$ROOT_DIR/src/codegen/transpiler_let_emit.h"; then
+    "$ROOT_DIR/src/codegen/transpiler_let_emit.c"; then
     fail "C annotated let constructor fallback must consume the domain-constructor lookup seam instead of repeating host chains"
 fi
 require_term "src/codegen/transpiler_expr_type_infer.c" \
@@ -583,10 +597,10 @@ for term in \
     "pgy_host_decl_compat_uses_pointer_self(decl)"; do
     require_term "src/codegen/transpiler_host_self_policy.c" "$term"
 done
-require_term "src/codegen/transpiler_expr_dispatch_emit.h" \
+require_term "src/codegen/transpiler_expr_dispatch_emit.c" \
     "pgy_host_decl_compat_uses_pointer_self(host_decl)"
 if grep -Fq "host_decl->type == AST_PARTY_DECL" \
-    "$ROOT_DIR/src/codegen/transpiler_expr_dispatch_emit.h"; then
+    "$ROOT_DIR/src/codegen/transpiler_expr_dispatch_emit.c"; then
     fail "C self-member dispatch must consume host pointer-self policy instead of repeating domain host chains"
 fi
 for term in \
@@ -690,13 +704,13 @@ for term in \
     require_term "src/codegen/transpiler_role_ability_helpers.h" "$term"
     require_term "src/codegen/transpiler_role_ability.c" "$term"
 done
-require_term "src/codegen/transpiler_statement_dispatch.h" \
+require_term "src/codegen/transpiler_statement_dispatch.c" \
     "transpiler_party_slot_first_ability_tag("
-require_term "src/codegen/transpiler_expr_call_spawn_emit.h" \
+require_term "src/codegen/transpiler_expr_call_member_emit.c" \
     "transpiler_party_slot_method_ability_tag("
 for rel in \
-    "src/codegen/transpiler_statement_dispatch.h" \
-    "src/codegen/transpiler_expr_call_spawn_emit.h"; do
+    "src/codegen/transpiler_statement_dispatch.c" \
+    "src/codegen/transpiler_expr_call_member_emit.c"; do
     if grep -Fq "ast_party_role_count(" "$ROOT_DIR/$rel"; then
         fail "$rel must consume party-slot ability helpers instead of repeating role-slot scans"
     fi
@@ -741,23 +755,23 @@ for term in \
     require_term "src/codegen/transpiler_func_forward_metadata.c" "$term"
 done
 for rel in \
-    "src/codegen/transpiler_class_decl_emit.h" \
-    "src/codegen/transpiler_enum_decl_emit.h"; do
+    "src/codegen/transpiler_class_decl_emit.c" \
+    "src/codegen/transpiler_enum_decl_emit.c"; do
     require_term "$rel" "transpiler_hosted_method_view_from_decl(ctx"
     require_term "$rel" "transpiler_hosted_method_view_source_ast(&method_view, i)"
     require_term "$rel" "transpiler_hosted_method_view_routine(ctx, &method_view, i)"
     require_term "$rel" "emit_hosted_method_forward_decl_from_metadata"
 done
-require_term "src/codegen/transpiler_generic_class_specialization_emit.h" \
+require_term "src/codegen/transpiler_generic_class_specialization_emit.c" \
     "transpiler_hosted_method_view_from_decl(ctx, base_class_name"
-require_term "src/codegen/transpiler_generic_class_specialization_emit.h" \
+require_term "src/codegen/transpiler_generic_class_specialization_emit.c" \
     "transpiler_hosted_method_view_source_ast(&method_view, i)"
-require_term "src/codegen/transpiler_generic_class_specialization_emit.h" \
+require_term "src/codegen/transpiler_generic_class_specialization_emit.c" \
     "transpiler_hosted_method_view_routine(ctx,"
-require_term "src/codegen/transpiler_generic_class_specialization_emit.h" \
+require_term "src/codegen/transpiler_generic_class_specialization_emit.c" \
     "emit_hosted_method_forward_decl_from_metadata"
 if grep -Eq 'class_decl->data\.class_decl\.methods\[[^]]+\]' \
-    "$ROOT_DIR/src/codegen/transpiler_generic_class_specialization_emit.h"; then
+    "$ROOT_DIR/src/codegen/transpiler_generic_class_specialization_emit.c"; then
     fail "generic class specialization must consume TranspilerHostedMethodView, not index AST method arrays"
 fi
 for term in \
@@ -818,8 +832,8 @@ if grep -Fq "fallback_count" "$ROOT_DIR/src/codegen/transpiler_decl_lookup.h" \
     fail "C hosted method view must name AST compatibility counts explicitly, not as fallback_count"
 fi
 for rel in \
-    "src/codegen/transpiler_domain_nominal_emit.h" \
-    "src/codegen/transpiler_world_select_event_emit.h"; do
+    "src/codegen/transpiler_domain_nominal_emit.c" \
+    "src/codegen/transpiler_world_select_event_emit.c"; do
     require_term "$rel" "transpiler_hosted_method_view_from_decl(ctx"
     require_term "$rel" "transpiler_hosted_method_view_source_ast(&method_view, i)"
     require_term "$rel" "transpiler_hosted_method_view_missing_mir_metadata(&method_view)"
@@ -829,55 +843,55 @@ require_term "src/codegen/transpiler_zone_decl_emit.c" \
     "transpiler_hosted_method_view_from_decl(ctx"
 require_term "src/codegen/transpiler_zone_decl_emit.c" \
     "transpiler_hosted_method_view_missing_mir_metadata(&method_view)"
-require_term "src/codegen/transpiler_zone_methods_emit.h" \
+require_term "src/codegen/transpiler_zone_methods_emit.c" \
     "transpiler_hosted_method_view_source_ast(method_view, i)"
-require_term "src/codegen/transpiler_zone_methods_emit.h" \
+require_term "src/codegen/transpiler_zone_methods_emit.c" \
     "emit_hosted_method_forward_decl_from_metadata"
-require_term "src/codegen/transpiler_domain_nominal_emit.h" \
+require_term "src/codegen/transpiler_domain_nominal_emit.c" \
     "MIR-only C path missing method declaration metadata for party"
-require_term "src/codegen/transpiler_roster_decl_emit.h" \
+require_term "src/codegen/transpiler_roster_decl_emit.c" \
     "MIR-only C path missing method declaration metadata for roster"
 for term in \
     "MIR-only C path missing method declaration metadata for relation" \
     "MIR-only C path missing method declaration metadata for effect"; do
-    require_term "src/codegen/transpiler_relation_effect_emit.h" "$term"
+    require_term "src/codegen/transpiler_relation_effect_emit.c" "$term"
 done
 require_term "src/codegen/transpiler_zone_decl_emit.c" \
     "MIR-only C path missing method declaration metadata for zone"
-require_term "src/codegen/transpiler_world_select_event_emit.h" \
+require_term "src/codegen/transpiler_world_select_event_emit.c" \
     "MIR-only C path missing method declaration metadata for world"
-require_term "src/codegen/transpiler_generic_class_specialization_emit.h" \
+require_term "src/codegen/transpiler_generic_class_specialization_emit.c" \
     "transpiler_hosted_method_view_missing_mir_metadata(&method_view)"
-require_term "src/codegen/transpiler_generic_class_specialization_emit.h" \
+require_term "src/codegen/transpiler_generic_class_specialization_emit.c" \
     "MIR-only C path missing method declaration metadata for generic class"
 if grep -RIn "emit_hosted_method_forward_decl_named" "$ROOT_DIR/src/codegen"; then
     fail "C hosted method forward declarations must use MIRDeclMethod metadata-first helper"
 fi
-require_term "src/codegen/transpiler_domain_role_ability_emit.h" \
+require_term "src/codegen/transpiler_hosted_method_body_emit.c" \
     "const TranspilerHostedMethodView *method_view"
-require_term "src/codegen/transpiler_domain_role_ability_emit.h" \
+require_term "src/codegen/transpiler_hosted_method_body_emit.c" \
     "transpiler_hosted_method_view_metadata(method_view, i)"
-require_term "src/codegen/transpiler_domain_role_ability_emit.h" \
+require_term "src/codegen/transpiler_hosted_method_body_emit.c" \
     "transpiler_mir_decl_method_routine(ctx, method_meta)"
 if grep -Eq 'emit_hosted_methods_from_mir_or_error_local\([^)]*ASTNode \*\*methods|emit_hosted_methods_from_mir_or_error_local\([^)]*size_t method_count' \
     "$ROOT_DIR/src/codegen/transpiler_domain_role_ability_emit.h"; then
     fail "hosted method body emission must accept TranspilerHostedMethodView, not AST method arrays"
 fi
-require_term "src/codegen/transpiler_class_decl_emit.h" \
+require_term "src/codegen/transpiler_class_decl_emit.c" \
     "transpiler_hosted_method_view_from_decl(ctx, name"
-require_term "src/codegen/transpiler_class_decl_emit.h" \
+require_term "src/codegen/transpiler_class_decl_emit.c" \
     "transpiler_hosted_method_view_missing_mir_metadata(&method_view)"
-require_term "src/codegen/transpiler_class_decl_emit.h" \
+require_term "src/codegen/transpiler_class_decl_emit.c" \
     "transpiler_set_mir_inventory_missing("
-require_term "src/codegen/transpiler_enum_decl_emit.h" \
+require_term "src/codegen/transpiler_enum_decl_emit.c" \
     "transpiler_hosted_method_view_from_decl(ctx, ename"
-require_term "src/codegen/transpiler_enum_decl_emit.h" \
+require_term "src/codegen/transpiler_enum_decl_emit.c" \
     "transpiler_hosted_method_view_missing_mir_metadata(&method_view)"
-require_term "src/codegen/transpiler_enum_decl_emit.h" \
+require_term "src/codegen/transpiler_enum_decl_emit.c" \
     "transpiler_set_mir_inventory_missing("
-require_term "src/codegen/transpiler_domain_role_ability_emit.h" \
+require_term "src/codegen/transpiler_hosted_method_body_emit.c" \
     "transpiler_hosted_method_view_missing_mir_metadata(method_view)"
-require_term "src/codegen/transpiler_domain_role_ability_emit.h" \
+require_term "src/codegen/transpiler_hosted_method_body_emit.c" \
     "transpiler_set_mir_inventory_missing("
 require_term "src/codegen/transpiler_intent_emit.c" \
     "transpiler_set_mir_inventory_missing("
@@ -892,9 +906,9 @@ if grep -RIn "PGY_CODE_MIR_INTENT_CARRIER_MISSING" \
 fi
 require_term "src/codegen/transpiler_mir_emit_state.c" \
     "transpiler_set_mir_inventory_missing("
-require_term "src/codegen/transpiler_mir_func_emit.h" \
+require_term "src/codegen/transpiler_mir_func_emit.c" \
     "transpiler_set_mir_topology_invalid("
-require_term "src/codegen/transpiler_mir_terminator_emit.h" \
+require_term "src/codegen/transpiler_mir_terminator_emit.c" \
     "transpiler_set_mir_topology_invalid("
 require_term "src/codegen/transpiler_mir_reason_classifier.h" \
     "transpiler_classify_mir_function_reason"
@@ -910,20 +924,20 @@ require_term "src/codegen/transpiler_mir_reason_classifier.c" \
     "\"MIR contract invalid\""
 require_term "src/codegen/transpiler_mir_reason_classifier.c" \
     "\"no matching MIR routine\""
-require_term "src/codegen/transpiler_func_class_flow_emit.h" \
+require_term "src/codegen/transpiler_func_class_flow_emit.c" \
     "transpiler_classify_mir_function_reason(reason)"
-if grep -n "strstr(reason" "$ROOT_DIR/src/codegen/transpiler_func_class_flow_emit.h"; then
+if grep -n "strstr(reason" "$ROOT_DIR/src/codegen/transpiler_func_class_flow_emit.c"; then
     fail "C function emitter must not classify MIR reason strings inline"
 fi
 for rel in \
-    "src/codegen/transpiler_class_decl_emit.h" \
-    "src/codegen/transpiler_enum_decl_emit.h" \
-    "src/codegen/transpiler_generic_class_specialization_emit.h"; do
+    "src/codegen/transpiler_class_decl_emit.c" \
+    "src/codegen/transpiler_enum_decl_emit.c" \
+    "src/codegen/transpiler_generic_class_specialization_emit.c"; do
     if grep -Fq "transpiler_find_mir_method(ctx" "$ROOT_DIR/$rel"; then
         fail "$rel must use TranspilerHostedMethodView routine metadata, not a secondary method lookup"
     fi
 done
-if sed -n '1,70p' "$ROOT_DIR/src/codegen/transpiler_domain_role_ability_emit.h" \
+if sed -n '1,110p' "$ROOT_DIR/src/codegen/transpiler_hosted_method_body_emit.c" \
     | grep -Fq "transpiler_find_mir_method(ctx"; then
     fail "hosted role/domain method emission must use MIRDeclMethod routine metadata, not a secondary method lookup"
 fi
@@ -1050,7 +1064,7 @@ done
 for term in \
     "hir->role_count" \
     "mir_record_decl_header(mir, hir->roles[i])"; do
-    require_term "src/compiler/mir_lower_public_api.h" "$term"
+    require_term "src/compiler/mir.c" "$term"
 done
 if grep -Fq "routine->ast == method_decl" \
     "$ROOT_DIR/src/codegen/transpiler_mir_role_lookup.c"; then
@@ -1189,9 +1203,9 @@ require_term "src/codegen/llvm_domain_role_emit.c" \
     "MIR-only LLVM path missing registered function for role method"
 require_term "src/codegen/llvm_domain_role_emit.c" \
     "MIR-only LLVM path missing vtable function for role method"
-require_term "src/codegen/transpiler_domain_nominal_emit.h" \
+require_term "src/codegen/transpiler_domain_nominal_emit.c" \
     "ctx != NULL && ctx->backend_error != NULL"
-require_term "src/codegen/transpiler_domain_nominal_emit.h" \
+require_term "src/codegen/transpiler_domain_nominal_emit.c" \
     "ast_include_role_name(include_stmt)"
 require_term "src/codegen/transpiler_operator.c" \
     "ast_include_role_name(include_stmt)"
@@ -1201,9 +1215,9 @@ require_term "src/codegen/transpiler_operator.c" \
     "ast_impl_ability_method(impl, j)"
 require_term "src/codegen/llvm_domain_role_lookup.c" \
     "ast_impl_ability_method(impl, j)"
-require_term "src/codegen/transpiler_domain_role_methods_emit.h" \
+require_term "src/codegen/transpiler_domain_role_methods_emit.c" \
     "ast_impl_ability_ref(impl)"
-require_term "src/codegen/transpiler_domain_role_methods_emit.h" \
+require_term "src/codegen/transpiler_domain_role_methods_emit.c" \
     "ast_impl_ability_method(impl, j)"
 require_term "src/codegen/llvm_domain_role_emit.c" \
     "ast_impl_ability_name(impl)"
@@ -1230,31 +1244,31 @@ if grep -R "data\.role_decl\.\(for_type\|includes\|include_count\|impl_abilities
     "$ROOT_DIR/src/codegen/llvm_domain_role_emit.c" \
     "$ROOT_DIR/src/codegen/transpiler_decl_host_lookup.c" \
     "$ROOT_DIR/src/codegen/transpiler_operator.c" \
-    "$ROOT_DIR/src/codegen/transpiler_domain_nominal_emit.h" >/dev/null; then
+    "$ROOT_DIR/src/codegen/transpiler_domain_nominal_emit.c" >/dev/null; then
     fail "MIR/C/LLVM role inventory paths must use AST role accessors"
 fi
 if grep -R "data\.ability_decl\.\(methods\|method_count\)" \
     "$ROOT_DIR/src/codegen/llvm_domain_forward.c" \
-    "$ROOT_DIR/src/codegen/transpiler_domain_nominal_emit.h" \
-    "$ROOT_DIR/src/codegen/transpiler_domain_role_ability_emit.h" >/dev/null; then
+    "$ROOT_DIR/src/codegen/transpiler_domain_nominal_emit.c" \
+    "$ROOT_DIR/src/codegen/transpiler_domain_role_ability_emit.c" >/dev/null; then
     fail "C/LLVM ability method inventory paths must use AST ability accessors"
 fi
 if grep -R "data\.impl_ability" \
     "$ROOT_DIR/src/codegen/transpiler_operator.c" \
-    "$ROOT_DIR/src/codegen/transpiler_domain_role_methods_emit.h" \
+    "$ROOT_DIR/src/codegen/transpiler_domain_role_methods_emit.c" \
     "$ROOT_DIR/src/codegen/llvm_domain_role_lookup.c" \
     "$ROOT_DIR/src/codegen/llvm_domain_role_emit.c" >/dev/null; then
     fail "C/LLVM role emission compatibility paths must use AST impl-ability accessors"
 fi
-require_term "src/codegen/transpiler_domain_role_methods_emit.h" \
+require_term "src/codegen/transpiler_domain_role_methods_emit.c" \
     "ctx != NULL && ctx->backend_error != NULL"
-require_term "src/codegen/transpiler_domain_role_methods_emit.h" \
+require_term "src/codegen/transpiler_domain_role_methods_emit.c" \
     "ensure_ability_ref_vtable_decl(ability_ref, ctx)"
 require_term "src/codegen/transpiler_decl_host_lookup.c" \
     "transpiler_role_subject_type_name_local"
 require_term "src/codegen/transpiler_operator.c" \
     "transpiler_role_subject_type_name_local(role)"
-require_term "src/codegen/transpiler_domain_role_methods_emit.h" \
+require_term "src/codegen/transpiler_domain_role_methods_emit.c" \
     "transpiler_role_subject_type_node_local(role)"
 if grep -Fq "llvm_find_mir_method_routine_local(ctx," \
     "$ROOT_DIR/src/codegen/llvm_domain_role_emit.c"; then
@@ -1271,7 +1285,7 @@ if grep -Eq 'role_decl\.for_type' \
 fi
 if grep -Eq 'role_decl\.for_type' \
     "$ROOT_DIR/src/codegen/transpiler_operator.c" \
-    "$ROOT_DIR/src/codegen/transpiler_domain_role_methods_emit.h"; then
+    "$ROOT_DIR/src/codegen/transpiler_domain_role_methods_emit.c"; then
     fail "C role operator emission must read role target type through transpiler decl-host helpers"
 fi
 if grep -Eq 'llvm_emit_domain_method_forward_decls\([^)]*ASTNode \*\*methods|llvm_emit_domain_method_forward_decls\([^)]*size_t method_count' \
@@ -1334,6 +1348,7 @@ for term in \
     "routine_index"; do
     if ! grep -Fq "$term" "$ROOT_DIR/src/compiler/mir.h" \
         && ! grep -Fq "$term" "$ROOT_DIR/src/compiler/mir_lower_public_api.h" \
+        && ! grep -Fq "$term" "$ROOT_DIR/src/compiler/mir_public_surface.c" \
         && ! grep -Fq "$term" "$ROOT_DIR/src/compiler/mir_decl_headers.h" \
         && ! grep -Fq "$term" "$ROOT_DIR/src/compiler/mir_decl_headers.c"; then
         fail "MIR declaration method metadata missing term: $term"
@@ -1356,7 +1371,7 @@ if grep -Fq "header->ast_type != AST_ROLE_DECL" \
     "$ROOT_DIR/src/compiler/mir_decl_header_validate.c"; then
     fail "MIR declaration header validation must not keep role method-count exceptions"
 fi
-require_term "src/compiler/mir_public_surface.h" \
+require_term "src/compiler/mir_public_surface.c" \
     "mir_validate_decl_header_metadata(mir, error_message)"
 require_term "src/tests/mir/test_mir_lowering_part_c.cases.h" \
     "MIR validator rejects hosted method signature metadata drift"

@@ -303,6 +303,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/symbol_table.c \
                    $(SEMANTIC_DIR)/type_checker.c \
                    $(SEMANTIC_DIR)/type_checker_context_helpers.c \
+                   $(SEMANTIC_DIR)/type_checker_assignment.c \
                    $(SEMANTIC_DIR)/type_checker_assignment_path.c \
                    $(SEMANTIC_DIR)/type_checker_diag.c \
                    $(SEMANTIC_DIR)/type_checker_generic_diag.c \
@@ -480,6 +481,8 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/slot_analyzer_summary.c \
                    $(SEMANTIC_DIR)/semantic.c
 CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_allocator_builtin_emit.c \
+                   $(CODEGEN_DIR)/transpiler_async_parallel_emit.c \
+                   $(CODEGEN_DIR)/transpiler_call_constructor_result_emit.c \
                    $(CODEGEN_DIR)/transpiler_call_subject_arg_policy.c \
                    $(CODEGEN_DIR)/transpiler_call_result_option_builtin_emit.c \
                    $(CODEGEN_DIR)/transpiler_context.c \
@@ -494,6 +497,7 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_allocator_builtin_emit.c \
                    $(CODEGEN_DIR)/transpiler_builtin_type_table.c \
                    $(CODEGEN_DIR)/thread_pool_usage.c \
                    $(CODEGEN_DIR)/transpiler_channel_type_query.c \
+                   $(CODEGEN_DIR)/transpiler_class_decl_emit.c \
                    $(CODEGEN_DIR)/transpiler_collection_runtime_suffix.c \
                    $(CODEGEN_DIR)/transpiler_block_intent_helpers.c \
                    $(CODEGEN_DIR)/transpiler_block_intent_rebind_helpers.c \
@@ -506,9 +510,14 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_allocator_builtin_emit.c \
                    $(CODEGEN_DIR)/transpiler_decl_host_lookup.c \
                    $(CODEGEN_DIR)/transpiler_destructure_emit.c \
                    $(CODEGEN_DIR)/transpiler_domain_constructor_emit.c \
+                   $(CODEGEN_DIR)/transpiler_domain_nominal_emit.c \
                    $(CODEGEN_DIR)/transpiler_domain_provenance_emit.c \
+                   $(CODEGEN_DIR)/transpiler_domain_role_ability_emit.c \
+                   $(CODEGEN_DIR)/transpiler_domain_role_methods_emit.c \
                    $(CODEGEN_DIR)/transpiler_domain_role_ability_names.c \
+                   $(CODEGEN_DIR)/transpiler_roster_decl_emit.c \
                    $(CODEGEN_DIR)/transpiler_enum.c \
+                   $(CODEGEN_DIR)/transpiler_enum_decl_emit.c \
                    $(CODEGEN_DIR)/transpiler_enum_method_names.c \
                    $(CODEGEN_DIR)/transpiler_event_emit.c \
                    $(CODEGEN_DIR)/transpiler_event_builtin_emit.c \
@@ -518,8 +527,11 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_allocator_builtin_emit.c \
                    $(CODEGEN_DIR)/transpiler_expr_type_infer_call_policy.c \
                    $(CODEGEN_DIR)/transpiler_expr_builtin_dispatch.c \
                    $(CODEGEN_DIR)/transpiler_expr_core_builtins_emit.c \
+                   $(CODEGEN_DIR)/transpiler_expr_call_member_emit.c \
+                   $(CODEGEN_DIR)/transpiler_expr_call_spawn_emit.c \
                    $(CODEGEN_DIR)/transpiler_expr_core_emit.c \
                    $(CODEGEN_DIR)/transpiler_expr_composite_literal_emit.c \
+                   $(CODEGEN_DIR)/transpiler_expr_dispatch_emit.c \
                    $(CODEGEN_DIR)/transpiler_expr_call_user_emit.c \
                    $(CODEGEN_DIR)/transpiler_expr_domain_query_builtin.c \
                    $(CODEGEN_DIR)/transpiler_expr_io_builtin.c \
@@ -537,8 +549,11 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_allocator_builtin_emit.c \
                    $(CODEGEN_DIR)/transpiler_expr_stdlib_scalar_builtin.c \
                    $(CODEGEN_DIR)/transpiler_expr_unary_emit.c \
                    $(CODEGEN_DIR)/transpiler_format.c \
+                   $(CODEGEN_DIR)/transpiler_func_class_flow_emit.c \
+                   $(CODEGEN_DIR)/transpiler_func_flow_policy.c \
                    $(CODEGEN_DIR)/transpiler_future_type_query.c \
                    $(CODEGEN_DIR)/transpiler_control_flow_emit.c \
+                   $(CODEGEN_DIR)/transpiler_statement_dispatch.c \
                    $(CODEGEN_DIR)/transpiler_match_emit.c \
                    $(CODEGEN_DIR)/transpiler_specialization_registry.c \
                    $(CODEGEN_DIR)/transpiler_specialization_scan.c \
@@ -547,7 +562,9 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_allocator_builtin_emit.c \
                    $(CODEGEN_DIR)/transpiler_func_forward_emit.c \
                    $(CODEGEN_DIR)/transpiler_func_forward_metadata.c \
                    $(CODEGEN_DIR)/transpiler_generic_binding_query.c \
+                   $(CODEGEN_DIR)/transpiler_hosted_method_body_emit.c \
                    $(CODEGEN_DIR)/transpiler_generic_class_naming.c \
+                   $(CODEGEN_DIR)/transpiler_generic_class_specialization_emit.c \
                    $(CODEGEN_DIR)/transpiler_generic_param_query.c \
                    $(CODEGEN_DIR)/transpiler_generic_specialization_emit.c \
                    $(CODEGEN_DIR)/transpiler_intent_cleanup_emit.c \
@@ -564,6 +581,7 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_allocator_builtin_emit.c \
                    $(CODEGEN_DIR)/transpiler_let_box_emit.c \
                    $(CODEGEN_DIR)/transpiler_let_channel_emit.c \
                    $(CODEGEN_DIR)/transpiler_let_collection_emit.c \
+                   $(CODEGEN_DIR)/transpiler_let_emit.c \
                    $(CODEGEN_DIR)/transpiler_let_slot_emit.c \
                    $(CODEGEN_DIR)/transpiler_let_type_register_emit.c \
                    $(CODEGEN_DIR)/transpiler_lambda_emit.c \
@@ -573,23 +591,33 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_allocator_builtin_emit.c \
                    $(CODEGEN_DIR)/transpiler_misc_decl.c \
                    $(CODEGEN_DIR)/transpiler_mir_expr_ssa.c \
                    $(CODEGEN_DIR)/transpiler_mir_assignment_emit.c \
+                   $(CODEGEN_DIR)/transpiler_mir_block_emit.c \
                    $(CODEGEN_DIR)/transpiler_mir_block_emit_helpers.c \
                    $(CODEGEN_DIR)/transpiler_mir_block_schedule_emit.c \
                    $(CODEGEN_DIR)/transpiler_mir_resource_hook_emit.c \
                    $(CODEGEN_DIR)/transpiler_mir_resource_op_emit.c \
+                   $(CODEGEN_DIR)/transpiler_mir_stmt_emit.c \
                    $(CODEGEN_DIR)/transpiler_mir_ssa_contract.c \
                    $(CODEGEN_DIR)/transpiler_mir_effective_type.c \
+                   $(CODEGEN_DIR)/transpiler_mir_emission_mapping_contract.c \
+                   $(CODEGEN_DIR)/transpiler_mir_emission_contract.c \
                    $(CODEGEN_DIR)/transpiler_mir_emit_state.c \
+                   $(CODEGEN_DIR)/transpiler_mir_func_emit.c \
                    $(CODEGEN_DIR)/transpiler_mir_func_ssa_locals_emit.c \
                    $(CODEGEN_DIR)/transpiler_mir_local_binding.c \
+                   $(CODEGEN_DIR)/transpiler_mir_local_type_lookup.c \
                    $(CODEGEN_DIR)/transpiler_mir_local_type_ast_lookup.c \
+                   $(CODEGEN_DIR)/transpiler_parallel_capture.c \
                    $(CODEGEN_DIR)/transpiler_mir_inventory_intent_collect.c \
                    $(CODEGEN_DIR)/transpiler_mir_intent_query.c \
                    $(CODEGEN_DIR)/transpiler_mir_cfg_policy.c \
                    $(CODEGEN_DIR)/transpiler_mir_cfg_control_emit.c \
+                   $(CODEGEN_DIR)/transpiler_mir_destructure_emit.c \
                    $(CODEGEN_DIR)/transpiler_mir_match_condition_emit.c \
                    $(CODEGEN_DIR)/transpiler_mir_pin_emit.c \
+                   $(CODEGEN_DIR)/transpiler_mir_pending_uses.c \
                    $(CODEGEN_DIR)/transpiler_mir_phi_emit.c \
+                   $(CODEGEN_DIR)/transpiler_mir_preserved_let_emit.c \
                    $(CODEGEN_DIR)/transpiler_mir_resource_op_core.c \
                    $(CODEGEN_DIR)/transpiler_mir_resource_name.c \
                    $(CODEGEN_DIR)/transpiler_mir_reason.c \
@@ -599,6 +627,7 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_allocator_builtin_emit.c \
                    $(CODEGEN_DIR)/transpiler_mir_ssa_entry.c \
                    $(CODEGEN_DIR)/transpiler_mir_ssa_lookup.c \
                    $(CODEGEN_DIR)/transpiler_mir_ssa_map.c \
+                   $(CODEGEN_DIR)/transpiler_mir_terminator_emit.c \
                    $(CODEGEN_DIR)/transpiler_mir_ssa_names.c \
                    $(CODEGEN_DIR)/transpiler_mir_ssa_utils.c \
                    $(CODEGEN_DIR)/transpiler_nominal.c \
@@ -612,9 +641,11 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_allocator_builtin_emit.c \
                    $(CODEGEN_DIR)/transpiler_projection_field_path.c \
                    $(CODEGEN_DIR)/transpiler_projection_method_invalidation.c \
                    $(CODEGEN_DIR)/transpiler_projection_sync.c \
+                   $(CODEGEN_DIR)/transpiler_relation_effect_emit.c \
                    $(CODEGEN_DIR)/transpiler_projection.c \
                    $(CODEGEN_DIR)/transpiler_role_ability.c \
                    $(CODEGEN_DIR)/transpiler_slot_builtin_emit.c \
+                   $(CODEGEN_DIR)/transpiler_spawn_channel_emit.c \
                    $(CODEGEN_DIR)/transpiler_slot_target.c \
                    $(CODEGEN_DIR)/transpiler_thread_pool.c \
                    $(CODEGEN_DIR)/transpiler_select.c \
@@ -625,8 +656,10 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_allocator_builtin_emit.c \
                    $(CODEGEN_DIR)/transpiler_type_render.c \
                    $(CODEGEN_DIR)/transpiler_type_require.c \
                    $(CODEGEN_DIR)/transpiler_zone_decl_emit.c \
+                   $(CODEGEN_DIR)/transpiler_zone_methods_emit.c \
                    $(CODEGEN_DIR)/transpiler_zone_specialization_emit.c \
                    $(CODEGEN_DIR)/transpiler_zone_struct_emit.c \
+                   $(CODEGEN_DIR)/transpiler_world_select_event_emit.c \
                    $(CODEGEN_DIR)/transpiler.c
 COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/compiler_result.c \
@@ -694,6 +727,9 @@ COMPILER_SOURCES = $(COMPILER_DIR)/compiler.c \
                    $(COMPILER_DIR)/mir_names.c \
                    $(COMPILER_DIR)/mir_lifecycle.c \
                    $(COMPILER_DIR)/mir_base_helpers.c \
+                   $(COMPILER_DIR)/mir_public_surface.c \
+                   $(COMPILER_DIR)/mir_lower_population.c \
+                   $(COMPILER_DIR)/mir_program_validate.c \
                    $(COMPILER_DIR)/mir_call_fact.c \
                    $(COMPILER_DIR)/mir_validation.c \
                    $(COMPILER_DIR)/mir_cleanup_fact_names.c \
@@ -769,6 +805,7 @@ ifneq ($(LLVM_ENABLED),0)
                    $(CODEGEN_DIR)/llvm_backend_type_map.c \
                         $(CODEGEN_DIR)/llvm_backend_type_registry.c \
                         $(CODEGEN_DIR)/llvm_boundary_slot_param.c \
+                        $(CODEGEN_DIR)/llvm_debug_flags.c \
                         $(CODEGEN_DIR)/llvm_type.c \
                    $(CODEGEN_DIR)/llvm_api.c \
                    $(CODEGEN_DIR)/llvm_backend_generic.c \
@@ -829,6 +866,7 @@ ifneq ($(LLVM_ENABLED),0)
                         $(CODEGEN_DIR)/llvm_expr_common.c \
                         $(CODEGEN_DIR)/llvm_expr_array_calls.c \
                         $(CODEGEN_DIR)/llvm_expr_call_args.c \
+                        $(CODEGEN_DIR)/llvm_expr_call_collections_map_exports.c \
                         $(CODEGEN_DIR)/llvm_expr_call_collections_extended.c \
                         $(CODEGEN_DIR)/llvm_expr_call_list_extended.c \
                         $(CODEGEN_DIR)/llvm_expr_call_collections_require.c \
@@ -1133,6 +1171,9 @@ MIR_CORE_OBJECTS = $(BUILD_DIR)/compiler/mir.o \
                    $(BUILD_DIR)/compiler/mir_names.o \
                    $(BUILD_DIR)/compiler/mir_lifecycle.o \
                    $(BUILD_DIR)/compiler/mir_base_helpers.o \
+                   $(BUILD_DIR)/compiler/mir_public_surface.o \
+                   $(BUILD_DIR)/compiler/mir_lower_population.o \
+                   $(BUILD_DIR)/compiler/mir_program_validate.o \
                    $(BUILD_DIR)/compiler/mir_call_fact.o \
                    $(BUILD_DIR)/compiler/mir_validation.o \
                    $(BUILD_DIR)/compiler/mir_cleanup_fact_names.o \

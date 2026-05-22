@@ -146,9 +146,9 @@ if ! grep -Fq '#include "transpiler_collection_runtime_suffix.h"' \
     missing=1
 fi
 
-if ! grep -Fq '#include "transpiler_roster_decl_emit.h"' \
-    "$ROOT_DIR/src/codegen/transpiler_domain_nominal_emit.h"; then
-    echo "[build-source-inventory] roster declaration emitter is not linked by the C domain nominal include chain" >&2
+if ! grep -Fq '$(CODEGEN_DIR)/transpiler_roster_decl_emit.c' \
+    "$ROOT_DIR/Makefile"; then
+    echo "[build-source-inventory] roster declaration emitter is not linked by the C backend source inventory" >&2
     missing=1
 fi
 
@@ -158,9 +158,9 @@ if ! grep -Fq '$(CODEGEN_DIR)/transpiler_zone_decl_emit.c' \
     missing=1
 fi
 
-if ! grep -Fq '#include "transpiler_zone_methods_emit.h"' \
-    "$ROOT_DIR/src/codegen/transpiler_domain_role_emit.h"; then
-    echo "[build-source-inventory] zone hosted-method emitter is not linked by the C domain role include chain" >&2
+if ! grep -Fq '$(CODEGEN_DIR)/transpiler_zone_methods_emit.c' \
+    "$ROOT_DIR/Makefile"; then
+    echo "[build-source-inventory] zone hosted-method emitter is not linked by the C backend source inventory" >&2
     missing=1
 fi
 
@@ -514,7 +514,7 @@ grep -Fq "transpiler_find_world_state_decl" \
 
 if grep -Fq "domain_slot_is_projection_target_local" \
     "$ROOT_DIR/src/codegen/transpiler_overlay_projection.h" \
-    "$ROOT_DIR/src/codegen/transpiler_call_constructor_result_emit.h"; then
+    "$ROOT_DIR/src/codegen/transpiler_call_constructor_result_emit.c"; then
     echo "[build-source-inventory] projection-target query regressed to implementation-header local helper" >&2
     missing=1
 fi
@@ -529,7 +529,7 @@ fi
 if grep -Eq '(^|[^A-Za-z0-9_])find_world_state_decl\(' \
     "$ROOT_DIR/src/codegen/transpiler_projection_sync.h" \
     "$ROOT_DIR/src/codegen/transpiler_expr_builtin_dispatch.h" \
-    "$ROOT_DIR/src/codegen/transpiler_world_select_event_emit.h"; then
+    "$ROOT_DIR/src/codegen/transpiler_world_select_event_emit.c"; then
     echo "[build-source-inventory] world-state query regressed to implementation-header local helper" >&2
     missing=1
 fi

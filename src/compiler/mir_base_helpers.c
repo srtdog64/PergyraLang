@@ -50,6 +50,20 @@ append_instruction(MIRBasicBlock *block, MIRInstruction inst)
     return true;
 }
 
+bool
+mir_commit_instruction(MIRRoutine *routine,
+                       MIRBasicBlock *block,
+                       MIRInstruction *inst)
+{
+    if (routine == NULL || block == NULL || inst == NULL)
+        return false;
+    inst->id = routine->instruction_count;
+    if (!append_instruction(block, *inst))
+        return false;
+    routine->instruction_count++;
+    return true;
+}
+
 char *
 mir_strdup_fmt(const char *fmt, ...)
 {

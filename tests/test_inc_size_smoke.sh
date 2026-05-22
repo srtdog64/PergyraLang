@@ -95,7 +95,9 @@ declaration_only_headers=(
     "src/codegen/transpiler_zone_specialization_emit.h"
     "src/codegen/transpiler_zone_struct_emit.h"
     "src/codegen/llvm_decl_authority.h"
+    "src/codegen/llvm_internal_api.h"
     "src/compiler/mir_cfg_contract_validate_cleanup.h"
+    "src/semantic/type_checker_assignment.h"
 )
 
 declaration_only_body_violations="$(
@@ -113,6 +115,70 @@ declaration_only_body_violations="$(
 if [[ -n "$declaration_only_body_violations" ]]; then
     echo "declaration-only headers must not grow function bodies:" >&2
     echo "$declaration_only_body_violations" >&2
+    exit 1
+fi
+
+semantic_header_body_violations="$(
+    cd "$ROOT_DIR"
+    find src/semantic -name '*.h' -print0 \
+        | xargs -0 awk '
+            /^[[:space:]]*(static[[:space:]]+)?[A-Za-z_][A-Za-z0-9_[:space:]*]+\(.*\)[[:space:]]*\{/ {
+                print FILENAME ":" FNR ":" $0
+            }
+        '
+)"
+
+if [[ -n "$semantic_header_body_violations" ]]; then
+    echo "semantic headers must stay declaration-only; move bodies to .c owners:" >&2
+    echo "$semantic_header_body_violations" >&2
+    exit 1
+fi
+
+compiler_header_body_violations="$(
+    cd "$ROOT_DIR"
+    find src/compiler -name '*.h' -print0 \
+        | xargs -0 awk '
+            /^[[:space:]]*(static[[:space:]]+)?[A-Za-z_][A-Za-z0-9_[:space:]*]+\(.*\)[[:space:]]*\{/ {
+                print FILENAME ":" FNR ":" $0
+            }
+        '
+)"
+
+if [[ -n "$compiler_header_body_violations" ]]; then
+    echo "compiler headers must stay declaration-only; move bodies to .c owners:" >&2
+    echo "$compiler_header_body_violations" >&2
+    exit 1
+fi
+
+frontend_header_body_violations="$(
+    cd "$ROOT_DIR"
+    find src/parser src/lexer -name '*.h' -print0 \
+        | xargs -0 awk '
+            /^[[:space:]]*(static[[:space:]]+)?[A-Za-z_][A-Za-z0-9_[:space:]*]+\(.*\)[[:space:]]*\{/ {
+                print FILENAME ":" FNR ":" $0
+            }
+        '
+)"
+
+if [[ -n "$frontend_header_body_violations" ]]; then
+    echo "parser/lexer headers must stay declaration-only; move bodies to .c owners:" >&2
+    echo "$frontend_header_body_violations" >&2
+    exit 1
+fi
+
+codegen_header_body_violations="$(
+    cd "$ROOT_DIR"
+    find src/codegen -name '*.h' ! -name 'llvm_limits_internal.h' -print0 \
+        | xargs -0 awk '
+            /^[[:space:]]*(static[[:space:]]+)?[A-Za-z_][A-Za-z0-9_[:space:]*]+\(.*\)[[:space:]]*\{/ {
+                print FILENAME ":" FNR ":" $0
+            }
+        '
+)"
+
+if [[ -n "$codegen_header_body_violations" ]]; then
+    echo "codegen headers must stay declaration-only; llvm_limits_internal.h is the only current macro-body exception:" >&2
+    echo "$codegen_header_body_violations" >&2
     exit 1
 fi
 
@@ -162,4 +228,4 @@ if [[ -n "$helper_violations" ]]; then
     exit 1
 fi
 
-echo "[test-inc-size] src has no .inc files or _IMPLEMENTATION header blocks; declaration-only headers stay body-free; production owners <= ${PRODUCTION_LIMIT} LOC; helper owners <= ${HELPER_LIMIT} LOC; helper growth is a layer-escalation signal; src/tests .cases.h files <= ${LIMIT} LOC"
+echo "[test-inc-size] src has no .inc files or _IMPLEMENTATION header blocks; frontend/semantic/compiler/codegen headers stay body-free except the named LLVM macro exception; production owners <= ${PRODUCTION_LIMIT} LOC; helper owners <= ${HELPER_LIMIT} LOC; helper growth is a layer-escalation signal; src/tests .cases.h files <= ${LIMIT} LOC"

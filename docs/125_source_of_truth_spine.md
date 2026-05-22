@@ -27,10 +27,18 @@ Current beta closure snapshot:
   scratch-arena and heap ownership behind its path allocator/release helpers;
   recursive path construction must not directly free intermediate path parts or
   accept an external scratch/heap mode flag.
+- assignment expression checking lives in
+  `src/semantic/type_checker_assignment.c`; the header is declaration-only.
 - break/continue semantic validation lives in
   `src/semantic/type_checker_loop_control.c`.
 - type-resolution DAG worklist execution lives in
   `src/semantic/type_checker_resolution_worklist.c`.
+- MIR lowering lives in `src/compiler/mir.c`, next to the owner-local lowering
+  helpers it consumes. Public MIR query/pass wrappers live in
+  `src/compiler/mir_public_surface.c`.
+- Parser, lexer, semantic, compiler, and codegen headers are declaration
+  surfaces by default. The only current non-runtime implementation-header
+  exception is the macro-only `src/codegen/llvm_limits_internal.h`.
 - hosted declaration compatibility policy lives in
   `src/codegen/host_decl_compat.c`. C and LLVM declaration lookup, hosted
   method compatibility, pointer-self classification, projection-ready
@@ -109,6 +117,7 @@ keep the source-level business vocabulary clean.
 | MIR source shape and source-location compatibility | MIR source-shape owner | MIR validators, DCE, C/LLVM emitters, dumps | Consumers reopening raw `source_ast_type` / `source_line` fields |
 | MIR compatibility AST payload | MIR source-shape owner | C/LLVM residual source emitters, diagnostics, validators | Consumers reading `inst->ast` directly outside MIR construction/population/source-shape owners |
 | Declaration/domain inventory | DIR/RIR/MIR declaration headers | C/LLVM declaration emitters | AST-carried backend inventory as final truth |
+| MIR public inventory/query/pass wrappers | `mir_public_surface.c` | C/LLVM inventory views, MIR tests | Public query/DCE/liveness wrappers living in the lowering implementation header |
 | Type/declaration dependency | Type-resolution DAG metadata | Semantic owners, AIR DAG evidence | Recursive resolver fallback on frozen paths |
 | Generic/ability contract evidence | Type-resolution DAG | Semantic contract checks, AIR | Compatibility counters as semantic truth |
 | Resource/authority/effect propagation | RIR | AIR, runtime/codegen policy emitters | AIR or backend inventing authority/resource facts |

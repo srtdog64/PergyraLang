@@ -10,24 +10,9 @@
 #define PGY_LLVM_DEBUG_FLAGS_H
 
 #include <stdbool.h>
-#include <stdlib.h>
 
-static inline bool
-llvm_debug_detail_enabled(void)
-{
-    return getenv("PGY_DEBUG_LLVM_DETAIL") != NULL;
-}
-
-static inline bool
-llvm_debug_stage_enabled(void)
-{
-    return getenv("PGY_DEBUG_LLVM_STAGE") != NULL;
-}
-
-static inline bool
-llvm_debug_verify_enabled(void)
-{
-    return getenv("PGY_DEBUG_LLVM_VERIFY") != NULL;
-}
+bool llvm_debug_detail_enabled(void);
+bool llvm_debug_stage_enabled(void);
+bool llvm_debug_verify_enabled(void);
 
 #endif /* PGY_LLVM_DEBUG_FLAGS_H */

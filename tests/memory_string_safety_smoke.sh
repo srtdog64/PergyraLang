@@ -285,47 +285,47 @@ require_literal "src/codegen/transpiler_decl_host_lookup.c" \
     "transpiler_cache_nominal_method_decl"
 require_literal "src/codegen/transpiler_decl_host_lookup.c" \
     "len >= dst_size"
-require_literal "src/codegen/transpiler_mir_local_type_lookup.h" \
+require_literal "src/codegen/transpiler_mir_local_type_lookup.c" \
     "transpiler_mir_arena_render_type_name"
-require_literal "src/codegen/transpiler_mir_local_type_lookup.h" \
+require_literal "src/codegen/transpiler_mir_local_type_lookup.c" \
     "pgy_arena_fmt(&ctx->arena, \"%s<%s>\", prefix, inner)"
 require_literal "src/codegen/transpiler_expr_type_infer.c" \
     "transpiler_infer_arena_format_type_name"
 require_literal "src/codegen/transpiler_expr_type_infer.c" \
     "pgy_arena_fmt(&ctx->arena, \"%s<%s>\", prefix, inner)"
-require_literal "src/codegen/transpiler_mir_destructure_emit.h" \
+require_literal "src/codegen/transpiler_mir_destructure_emit.c" \
     "transpiler_mir_destructure_format_type"
-require_literal "src/codegen/transpiler_mir_destructure_emit.h" \
+require_literal "src/codegen/transpiler_mir_destructure_emit.c" \
     "transpiler_mir_destructure_ssa_local"
-require_literal "src/codegen/transpiler_domain_role_ability_emit.h" \
+require_literal "src/codegen/transpiler_domain_role_ability_names.c" \
     "transpiler_role_ability_copy_name"
-require_literal "src/codegen/transpiler_domain_role_ability_emit.h" \
+require_literal "src/codegen/transpiler_domain_role_ability_names.c" \
     "transpiler_role_ability_host_method_name"
-require_literal "src/codegen/transpiler_domain_role_ability_emit.h" \
+require_literal "src/codegen/transpiler_domain_role_ability_names.c" \
     "transpiler_role_ability_vtable_typedef_name"
-require_literal "src/codegen/transpiler_domain_role_ability_emit.h" \
+require_literal "src/codegen/transpiler_domain_role_ability_names.c" \
     "transpiler_role_operator_alias_name"
-require_literal "src/codegen/transpiler_domain_role_ability_emit.h" \
+require_literal "src/codegen/transpiler_domain_role_ability_names.c" \
     "transpiler_role_ability_surface_desc"
-require_literal "src/codegen/transpiler_domain_nominal_emit.h" \
+require_literal "src/codegen/transpiler_domain_nominal_emit.c" \
     "transpiler_domain_nominal_surface_desc"
-require_literal "src/codegen/transpiler_domain_nominal_emit.h" \
+require_literal "src/codegen/transpiler_domain_nominal_emit.c" \
     "transpiler_domain_nominal_surface_desc_too_long"
-require_literal "src/codegen/transpiler_relation_effect_emit.h" \
+require_literal "src/codegen/transpiler_relation_effect_emit.c" \
     "transpiler_relation_effect_surface_desc"
-require_literal "src/codegen/transpiler_relation_effect_emit.h" \
+require_literal "src/codegen/transpiler_relation_effect_emit.c" \
     "transpiler_relation_effect_surface_desc_too_long"
-require_literal "src/codegen/transpiler_class_decl_emit.h" \
+require_literal "src/codegen/transpiler_class_decl_emit.c" \
     "transpiler_class_surface_desc"
-require_literal "src/codegen/transpiler_class_decl_emit.h" \
+require_literal "src/codegen/transpiler_class_decl_emit.c" \
     "transpiler_class_method_emit_name"
 require_literal "src/codegen/transpiler_expr_stdlib_collection_support.c" \
     "transpiler_collection_copy_type_name"
 require_literal "src/codegen/transpiler_expr_stdlib_collection_support.c" \
     "len >= out_size"
-require_literal "src/codegen/transpiler_func_class_flow_emit.h" \
+require_literal "src/codegen/transpiler_func_flow_policy.c" \
     "transpiler_func_copy_current_return_type"
-require_literal "src/codegen/transpiler_func_class_flow_emit.h" \
+require_literal "src/codegen/transpiler_func_flow_policy.c" \
     "transpiler_func_parameter_surface_desc"
 require_literal "src/codegen/transpiler_mir_emit_state.c" \
     "transpiler_mir_emit_copy_return_type"
@@ -343,9 +343,9 @@ require_literal "src/codegen/transpiler_expr_stdlib_builtin.c" \
     "transpiler_stdlib_copy_type_name"
 require_literal "src/codegen/transpiler_expr_stdlib_builtin.c" \
     "len >= out_size"
-require_literal "src/codegen/transpiler_enum_decl_emit.h" \
+require_literal "src/codegen/transpiler_enum_decl_emit.c" \
     "transpiler_enum_method_emit_name"
-require_literal "src/codegen/transpiler_enum_decl_emit.h" \
+require_literal "src/codegen/transpiler_enum_decl_emit.c" \
     "transpiler_enum_method_surface_desc"
 require_literal "src/codegen/transpiler_block_emit.c" \
     "transpiler_block_pin_address_too_long"
@@ -365,13 +365,13 @@ require_literal "src/codegen/transpiler_let_slot_emit.c" \
     "transpiler_let_slot_constructed_type_too_long"
 require_literal "src/codegen/transpiler_event_builtin_emit.c" \
     "written < 0 || written != needed"
-require_literal "src/codegen/transpiler_async_parallel_emit.h" \
+require_literal "src/codegen/transpiler_async_parallel_emit.c" \
     "transpiler_capture_surface_desc"
-require_literal "src/codegen/transpiler_async_parallel_emit.h" \
+require_literal "src/codegen/transpiler_async_parallel_emit.c" \
     "transpiler_capture_surface_desc_too_long"
-require_literal "src/codegen/transpiler_expr_call_spawn_emit.h" \
+require_literal "src/codegen/transpiler_expr_call_member_emit.c" \
     "pergyra_str_copy(stable_type_name"
-require_literal "src/codegen/transpiler_expr_call_spawn_emit.h" \
+require_literal "src/codegen/transpiler_expr_call_member_emit.c" \
     "nominal receiver type name is too long"
 require_literal "src/codegen/transpiler_generic_class_naming.c" \
     "transpiler_generic_class_method_name"
@@ -499,6 +499,12 @@ require_literal "src/compiler/mir_ssa_use_edges.c" \
     "pergyra_strndup(versioned, len)"
 require_literal "src/common/string_compat.h" \
     "written < 0 || written != needed"
+require_literal "src/common/string_compat.h" \
+    "length > SIZE_MAX - 1"
+require_literal "src/common/string_compat.h" \
+    "src == NULL && length > 0"
+require_literal "src/common/string_compat.h" \
+    "if (src == NULL)"
 
 if grep -Fq "snprintf(" "$ROOT_DIR/src/compiler/air_verify.c"; then
     fail "AIR verifier drift diagnostics must use owned dynamic formatting, not fixed stack snprintf"

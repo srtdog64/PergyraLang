@@ -335,6 +335,7 @@ void emit_while_loop(ASTNode *node, TranspilerCtx *ctx);
 void emit_return_stmt(ASTNode *node, TranspilerCtx *ctx);
 void emit_with_stmt(ASTNode *node, TranspilerCtx *ctx);
 void emit_parallel_block(ASTNode *node, TranspilerCtx *ctx);
+void emit_async_block(ASTNode *node, TranspilerCtx *ctx);
 
 /* Expressions ??return a C expression string (caller frees) */
 char *emit_expression(ASTNode *node, TranspilerCtx *ctx);

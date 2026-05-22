@@ -155,7 +155,7 @@ compare = require_text(
 require(compare.count("parallel_channel") >= 2, "backend compare must keep multiple parallel cases")
 
 require_text(
-    "src/codegen/transpiler_mir_stmt_emit.h",
+    "src/codegen/transpiler_mir_stmt_emit.c",
     [
         "stmt->type == AST_PARALLEL_BLOCK",
         "resource ops are observability hooks, not semantic",

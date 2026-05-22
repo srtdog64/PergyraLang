@@ -4,10 +4,12 @@
 /* transpiler_domain_role split into sub-1000 LOC include chunks.
  * Keep this shim for the existing include order. */
 #include "transpiler_domain_provenance_emit.h"
+#include "transpiler_hosted_method_body_emit.h"
 #include "transpiler_domain_role_ability_emit.h"
 #include "transpiler_domain_role_methods_emit.h"
 #include "transpiler_domain_nominal_emit.h"
-#include "transpiler_zone_methods_emit.h"
+#include "transpiler_roster_decl_emit.h"
+#include "transpiler_relation_effect_emit.h"
 #include "transpiler_zone_decl_emit.h"
 #include "transpiler_world_select_event_emit.h"
 #include "transpiler_event_emit.h"

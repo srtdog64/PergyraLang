@@ -24,7 +24,6 @@
 #include "type_checker_ability_fields_internal.h"
 #include "type_checker_ability_match_internal.h"
 #include "type_checker_ability_where_internal.h"
-#include "slot_analyzer.h"
 
 /* Helper owner headers (ownership/qubit helpers, etc).
  * Former wrapper include chains were deleted once the helpers_late.c TU went
@@ -34,7 +33,6 @@
  * (P1 axis 1).  See docs/92_inc_split_roadmap.md. */
 
 #include "type_checker_expr.h"
-#include "type_checker_assignment.h"
 
 
 bool

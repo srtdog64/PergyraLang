@@ -9,34 +9,8 @@
 #include "transpiler_mir_resource_hook_emit.h"
 #include "transpiler_mir_signature.h"
 
-static bool transpiler_emit_mir_block_statements(CodeBuf *buf,
-                                                 const ASTNode *func_decl,
-                                                 const MIRRoutine *mir_routine,
-                                                 const MIRBasicBlock *block,
-                                                 TranspilerCtx *ctx,
-                                                 TranspilerSSANameMap *out_ssa_map,
-                                                 char *reason,
-                                                 size_t reason_cap);
-static bool transpiler_can_emit_function_from_mir_with_reason(const TranspilerCtx *ctx,
-                                                             const ASTNode *func_decl,
-                                                             const MIRRoutine **mir_routine_out,
-                                                             char *reason,
-                                                             size_t reason_cap);
-static bool transpiler_can_emit_intent_cleanup_from_mir_with_reason(const TranspilerCtx *ctx,
-                                                                  const ASTNode *intent_decl,
-                                                                  const MIRRoutine **mir_routine_out,
-                                                                  char *reason,
-                                                                  size_t reason_cap);
-static bool transpiler_validate_mir_emission_block_shape(const MIRBasicBlock *block,
-                                                        const char *routine_name,
-                                                        bool require_cleanup,
-                                                        char *reason,
-                                                        size_t reason_cap);
-static void emit_func_decl_from_mir_named(ASTNode *node,
-                                          const MIRRoutine *mir_routine,
-                                          const char *emitted_name,
-                                          CodeBuf *buf,
-                                          TranspilerCtx *ctx);
+#include "transpiler_mir_emission_contract.h"
+#include "transpiler_mir_func_emit.h"
 /* -----------------------------------------------------------------
  * Let declaration emitter
  * ----------------------------------------------------------------- */

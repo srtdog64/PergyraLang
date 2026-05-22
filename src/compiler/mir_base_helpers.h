@@ -4,6 +4,9 @@
 #include "mir.h"
 
 bool append_instruction(MIRBasicBlock *block, MIRInstruction inst);
+bool mir_commit_instruction(MIRRoutine *routine,
+                            MIRBasicBlock *block,
+                            MIRInstruction *inst);
 char *mir_strdup_fmt(const char *fmt, ...);
 bool insert_instruction(MIRBasicBlock *block, size_t index, MIRInstruction inst);
 bool append_name(const char ***names,

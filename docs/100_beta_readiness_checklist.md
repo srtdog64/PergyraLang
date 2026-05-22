@@ -115,7 +115,7 @@ movable-resource helper facts; `test_semantic`, `semantic_core_shape_smoke`,
 
 Current C backend owner cleanup (2026-05-15): `Option<T>` let constructors and
 `HashMap<String,T>` / `List<T>` / `Queue<T>` constructor lowering now live in
-`src/codegen/transpiler_let_collection_emit.h`. `transpiler_let_emit.h` is back
+`src/codegen/transpiler_let_collection_emit.h`. `transpiler_let_emit.c` is back
 to the let orchestration path, while collection constructor dispatch has a
 responsibility-named owner. `test_transpile`, source inventory, and owner-size
 smokes gate the split.
@@ -153,9 +153,17 @@ constructor bodies now live in
 `src/codegen/transpiler_domain_constructor_emit.c`: class compound literals,
 party/roster/relation/effect/zone/world designated initializers, projection
 dirty defaults, world dirty defaults, and enum variant constructor call strings
-are no longer embedded in `transpiler_call_constructor_result_emit.h`; that
-header is a 78 LOC dispatch wrapper around the remaining generic-class
-specialization seam. Expression core, composite literal, and array access
+are no longer embedded in `transpiler_call_constructor_result_emit.h`; the
+remaining dispatch wrapper now lives in `transpiler_call_constructor_result_emit.c`
+and the header is declaration-only. Generic class specialization lookup/ensure
+now lives in `src/codegen/transpiler_generic_class_specialization_emit.c`;
+`transpiler_generic_class_specialization_emit.h` is declaration-only and
+`transpiler_func_class_flow_emit.h` no longer injects specialization bodies
+through include order. Function declaration fallback emission, with-slot
+lowering, and return lowering now live in
+`src/codegen/transpiler_func_class_flow_emit.c`, so
+`transpiler_func_class_flow_emit.h` is also declaration-only. Expression core,
+composite literal, and array access
 lowering also moved into linked owners:
 `src/codegen/transpiler_expr_core_emit.c` owns binary/operator, coalescing, and
 checked div/mod lowering; `src/codegen/transpiler_expr_composite_literal_emit.c`
@@ -259,7 +267,7 @@ List and Map policy from growing in one owner.
 
 Current C expression owner cleanup (2026-05-15): scalar literal expression
 emission now lives in `src/codegen/transpiler_expr_literal_emit.h`.
-`transpiler_expr_dispatch_emit.h` dispatches literals through that owner and
+`transpiler_expr_dispatch_emit.c` dispatches literals through that owner and
 keeps the remaining dispatcher focused on expression-form routing.
 
 Current C composite literal owner cleanup (2026-05-15): tuple and Array literal
@@ -307,7 +315,7 @@ is smaller and has a shared diagnostic seam ready for a later List-vs-Map split.
 
 Current C expression owner cleanup (2026-05-15): number/string/bool literal
 rendering now lives in `src/codegen/transpiler_expr_literal_emit.h`.
-`transpiler_expr_dispatch_emit.h` is reduced to expression-family dispatch and
+`transpiler_expr_dispatch_emit.c` is reduced to expression-family dispatch and
 non-literal lowering while preserving `test_transpile` behavior.
 
 Current runtime owner cleanup (2026-05-15): world/roster lookup APIs now live in
@@ -1565,7 +1573,7 @@ Operational mode:
 - 2026-04-29 MIR SSA/local type owner update:
   `transpiler_mir_ssa_names.h` is now below the 600 LOC review threshold.
   AST body local type lookup and expression fallback inference live in
-  `transpiler_mir_local_type_lookup.h`; the original owner keeps SSA name
+  `transpiler_mir_local_type_lookup.c`; the original owner keeps SSA name
   resolution, SSA map setup, claim-shape predicates, and implicit-field
   rendering. Gates: `make pgy`, `make test-mir`,
   `make cfg-body-dataflow-test-smoke`, `make test-transpile`,
@@ -1573,7 +1581,7 @@ Operational mode:
   and `make llvm-test-backend-compare` (`196/0` ABI same-process,
   `65/65` backend compare).
 - 2026-04-29 C let slot owner update:
-  `transpiler_let_emit.h` no longer owns Slot/DeviceSlot claims,
+  `transpiler_let_emit.c` no longer owns Slot/DeviceSlot claims,
   ReadView/WriteView/MoveToken declarations, or Slot/SecureSlot sugar
   lowering directly. Those paths now live in the compiled owner
   `transpiler_let_slot_emit.c`, while `transpiler_let_slot_emit.h` is
@@ -1609,18 +1617,61 @@ Operational mode:
   `make runtime-frontier-contract-test-smoke`; parity gate:
   `make llvm-test-backend-compare` (`196/0` ABI same-process, `65/65`
   backend compare).
+- 2026-05-23 C hosted-method body owner update:
+  shared domain hosted-method MIR body lowering now lives in the compiled owner
+  `transpiler_hosted_method_body_emit.c`. Party, roster, relation, effect,
+  zone, and world hosted-method consumers no longer depend on a role/ability
+  implementation-header helper for MIR routine emission. Focused gates:
+  `perf-contract-test-smoke`, `mir-declaration-inventory-test-smoke`,
+  `memory-string-safety-test-smoke`, `build-source-inventory-test-smoke`, and
+  `test-inc-size-test-smoke`.
+- 2026-05-23 C relation/effect owner update:
+  relation/effect declaration emission now lives in
+  `transpiler_relation_effect_emit.c`; the header is declaration-only.
+  Projection sync, provenance field stamping, hosted-method forwarding, and
+  hosted-method MIR body calls are consumed through explicit owner APIs.
+  Focused gates: `test-transpile`, `perf-contract-test-smoke`,
+  `mir-declaration-inventory-test-smoke`, `memory-string-safety-test-smoke`,
+  `semantic-core-shape-test-smoke`, `build-source-inventory-test-smoke`, and
+  `test-inc-size-test-smoke`.
+- 2026-05-23 C zone hosted-method owner update:
+  zone hosted-method forwarding/body emission now lives in
+  `transpiler_zone_methods_emit.c`; the header is declaration-only and
+  `transpiler.c` no longer contains a late bridge function for this path.
+  Focused gates: standalone zone-method owner compile, zone-declaration owner
+  compile, and `transpiler.o` compile.
+- 2026-05-23 C ability-vtable owner update:
+  ability-vtable specialization tag rendering, typedef naming, and generic
+  ability vtable declaration emission now live in
+  `transpiler_domain_role_ability_emit.c`; the header is declaration-only.
+  Focused gates: `test-transpile`, `perf-contract-test-smoke`,
+  `mir-declaration-inventory-test-smoke`, `memory-string-safety-test-smoke`,
+  `semantic-core-shape-test-smoke`, `runtime-frontier-contract-test-smoke`,
+  `build-source-inventory-test-smoke`, and `test-inc-size-test-smoke`.
+- 2026-05-23 C nominal-domain owner update:
+  ability, role, and party declaration emission now live in
+  `transpiler_domain_nominal_emit.c`; the header is declaration-only. The
+  domain-role shim includes roster and relation/effect seams directly, so
+  nominal emission no longer acts as an implementation include router.
+  Focused gates: `test-transpile`, `perf-contract-test-smoke`,
+  `mir-declaration-inventory-test-smoke`, `memory-string-safety-test-smoke`,
+  `semantic-core-shape-test-smoke`, `runtime-frontier-contract-test-smoke`,
+  `build-source-inventory-test-smoke`, and `test-inc-size-test-smoke`.
 - 2026-04-29 C class declaration owner update:
-  non-generic class declaration lowering now lives in
-  `transpiler_class_decl_emit.h`. `transpiler_func_class_flow_emit.h` keeps
+  non-generic class declaration lowering now lives in the compiled owner
+  `transpiler_class_decl_emit.c`. `transpiler_func_class_flow_emit.h` keeps
   function fallback, generic class specialization, with-slot, and return
-  lowering, and is now 594 LOC. The class owner is 138 LOC. Gates:
+  lowering. Function fallback policy helpers now live in
+  `transpiler_func_flow_policy.c`, and the function-flow shim is now 370 LOC.
+  The class owner is 138 LOC. Gates:
   `make pgy`, `make test-transpile`, `make production-header-size-test-smoke`,
   `make backend-inc-size-test-smoke`, and `make llvm-test-backend-compare`
   (`196/0` ABI same-process, `65/65` backend compare).
 - 2026-04-29 C MIR block owner update:
   small MIR emission predicate wrappers now live in
-  `transpiler_mir_emit_predicates.h`. `transpiler_mir_block_emit.h` is 589 LOC
-  and remains focused on MIR block statement emission. Gates:
+  `transpiler_mir_emit_predicates.h`. The current block statement emission
+  owner is `transpiler_mir_block_emit.c`; `transpiler_mir_block_emit.h` is a
+  declaration-only seam. Gates:
   `make test-mir`, `make cfg-body-dataflow-test-smoke`,
   `make production-header-size-test-smoke`, and
   `make backend-inc-size-test-smoke`.
@@ -1801,7 +1852,10 @@ Operational mode:
   beta readability debt. `llvm_internal.h` has moved below the
   threshold by splitting private API declarations into `llvm_internal_api.h`,
   fixed limits / dynamic-array helpers into `llvm_limits_internal.h`, and
-  LLVM developer-trace env reads into `llvm_debug_flags.h`. The
+  LLVM developer-trace env reads into `llvm_debug_flags.c`. The private API
+  helper `llvm_ast_type_uses_pointer_self(...)` now lives in
+  `llvm_domain_lookup.c`, so `llvm_internal_api.h` is declaration-only and
+  included in the header body-free gate. The
   LLVM registry owner is also below the threshold after splitting resource/type
   registry behavior into `llvm_registry_resources.c`. The world semantic owner
   family is below the threshold after moving lookup/
@@ -1933,10 +1987,11 @@ Operational mode:
   `transpiler_mir_phi_emit.h`; a later owner pass retired the former
   `transpiler_mir_ssa_emit.h` shell entirely after its local-type,
   local-binding, effective-type, signature, expression-SSA, phi, and exit-SSA
-  responsibilities moved to concrete owners. MIR terminator emission was split to
-  `transpiler_mir_terminator_emit.h`, and residual statement helpers were split
-  to `transpiler_mir_stmt_emit.h`, so `transpiler_mir_func_emit.h` and
-  `transpiler_mir_block_emit.h` are also below the 600 LOC threshold. `make
+  responsibilities moved to concrete owners. MIR terminator emission now lives in
+  `transpiler_mir_terminator_emit.c` behind a declaration-only header, and
+  residual statement helpers were split to `transpiler_mir_stmt_emit.c` with a
+  declaration-only header, so `transpiler_mir_func_emit.c` and
+  `transpiler_mir_block_emit.c` are linked owners behind narrow headers. `make
   llvm-test-backend-compare` is green with ABI same-process `196 passed, 0
   failed` and backend compare `64/64 passed, 0 failed`.
 - C intent declaration emission is also below the 600 LOC review threshold:
@@ -1968,6 +2023,9 @@ Operational mode:
   backend-local `ASTNodeType -> mir->...` switches. This tightens the future
   dedicated declaration-IR migration boundary, but it does not close the
   remaining debt that the current inventory payloads are still AST-carried.
+  Inventory/query/pass wrappers now live in `src/compiler/mir_public_surface.c`
+  rather than the MIR lowering implementation header, and `mir_lower(...)`
+  now lives directly in `src/compiler/mir.c`.
   Gate: `make mir-declaration-inventory-test-smoke`.
 - Intent helper ownership is now also split below the 600 LOC review threshold:
   `type_checker_intent_helpers.c` owns condition/involves/projection-adjacent
@@ -3613,11 +3671,10 @@ make test-semantic
   `make mir-declaration-inventory-test-smoke` cover the split.
 - C MIR block emission is no longer a replacement mega-header: destructuring
   lowering, preserved source-order let emission, and source-order/claim
-  scheduling now live in `transpiler_mir_destructure_emit.h`,
+  scheduling now live in `transpiler_mir_destructure_emit.c`,
   `transpiler_mir_preserved_let_emit.h`, and
-  `transpiler_mir_block_schedule_emit.h`. The main
-  `transpiler_mir_block_emit.h` owner is below the 600 LOC split-review
-  threshold.
+  `transpiler_mir_block_schedule_emit.h`. The main block statement owner is
+  `transpiler_mir_block_emit.c` behind a declaration-only header.
 - 2026-05-04 with-slot source-order repair: `src/compiler/mir_stmt_population.h`
   now propagates `source_statement_index` onto matched `MIR_INST_RESOURCE_OP`
   facts, including residual `with slot` Claim/Write/Read facts, before C
@@ -3636,7 +3693,7 @@ make test-semantic
   resource/cleanup hook emission now lives in
   `transpiler_mir_resource_hook_emit.h`, and SSA name-map utilities plus MIR
   block mapping comments now live in `transpiler_mir_ssa_map.h`.
-  `transpiler_mir_emission_contract.h` and
+  `transpiler_mir_emission_contract.c` and
   `transpiler_mir_inventory_intent.h` are both below the 600 LOC split-review
   threshold.
 - LLVM member-call method debt is split further: vtable dispatch now lives in
@@ -3654,8 +3711,12 @@ make test-semantic
   threshold.
 - C backend expression call/spawn ownership is split further: spawn wrapper
   emission and channel send/receive emission now live in
-  `transpiler_spawn_channel_emit.h`, leaving
+  `transpiler_spawn_channel_emit.c`, leaving the matching header
+  declaration-only and
   `transpiler_expr_call_spawn_emit.h` below the 600 LOC split-review threshold.
+- Member-style slot/host/slice call lowering now lives in
+  `transpiler_expr_call_member_emit.c`, leaving `transpiler_expr_call_spawn_emit.h`
+  as the call-dispatch shim.
 - MIR cleanup/rollback/invalidation edge ownership now lives in
   `src/compiler/mir_cleanup.c` / `.h`. Cleanup block creation, rollback-policy
   invalidation, and cleanup edge materialization are no longer mixed into
@@ -4872,7 +4933,7 @@ make ast-dispatch-test-smoke
   pass-limit arithmetic is checked by a compiled executable, not only by
   string terms.
 - C world/select/event lowering is split into focused owners:
-  `transpiler_world_select_event_emit.h` (370 LOC), `transpiler_select_emit.h`
+  `transpiler_world_select_event_emit.c` (457 LOC), `transpiler_select_emit.h`
   (155 LOC), and `transpiler_event_emit.h` (103 LOC). This removes the
   600+ LOC mixed owner without reintroducing `.inc` files.
 - Verified with `make pgy`, `make runtime-frontier-contract-test-smoke`,
@@ -4886,7 +4947,7 @@ make ast-dispatch-test-smoke
   `transpiler_let_slot_emit.c` owns ClaimSlot/ClaimSecureSlot/ClaimDeviceSlot,
   ReadView/WriteView/MoveToken declarations, and Slot/SecureSlot sugar.
   `transpiler_let_slot_emit.h` is declaration-only.
-- `transpiler_let_emit.h` is back to let-declaration orchestration plus
+- `transpiler_let_emit.c` is back to let-declaration orchestration plus
   non-slot specialization paths and stays under the 600 LOC split-review
   threshold.
 - Verified with `make pgy`, `make test-transpile`,
@@ -4907,10 +4968,12 @@ make ast-dispatch-test-smoke
 
 ## Progress Log — 2026-04-29 C Class Declaration Owner Split
 
-- Non-generic class declaration lowering moved to
-  `transpiler_class_decl_emit.h`.
+- Non-generic class declaration lowering moved to the compiled owner
+  `transpiler_class_decl_emit.c`.
 - `transpiler_func_class_flow_emit.h` is now below the 600 LOC split-review
   threshold and no longer owns class field/container/method emission directly.
+- `transpiler_func_flow_policy.c` owns function fallback policy helpers, keeping
+  the function-flow shim focused on emission orchestration.
 - Verified with `make pgy`, `make test-transpile`,
   `make production-header-size-test-smoke`,
   `make backend-inc-size-test-smoke`, and `make llvm-test-backend-compare`
@@ -4919,8 +4982,8 @@ make ast-dispatch-test-smoke
 ## Progress Log — 2026-04-29 C MIR Block Owner Split
 
 - MIR emission predicate wrappers moved to `transpiler_mir_emit_predicates.h`.
-- `transpiler_mir_block_emit.h` is below the 600 LOC split-review threshold
-  and keeps block statement emission ownership focused.
+- `transpiler_mir_block_emit.c` owns block statement emission; the header is
+  declaration-only and no longer participates in implementation LOC debt.
 - Verified with `make test-mir`, `make cfg-body-dataflow-test-smoke`,
   `make production-header-size-test-smoke`, and
   `make backend-inc-size-test-smoke`.
@@ -4967,10 +5030,10 @@ make ast-dispatch-test-smoke
 ## Progress Log - 2026-04-29 MIR SSA Local Type Owner Split
 
 - AST body local type lookup and expression fallback inference moved to
-  `transpiler_mir_local_type_lookup.h`.
+  `transpiler_mir_local_type_lookup.c`.
 - `transpiler_mir_ssa_names.h` is now 357 LOC and keeps SSA name resolution,
   SSA map setup, claim-shape predicates, and implicit-field rendering focused.
-- `transpiler_mir_local_type_lookup.h` is 293 LOC and owns MIR local type
+- `transpiler_mir_local_type_lookup.c` owns MIR local type
   recovery for let declarations, destructuring, with aliases, branch bodies,
   member calls, and nominal constructor calls.
 - Verified with `make pgy`, `make test-mir`,

@@ -362,10 +362,10 @@ grep -Fq "if (start > arr->length || len > arr->length - start)" \
     "$ROOT_DIR/src/runtime/pgy_runtime_lib_array_map_exports.h" ||
     fail "LLVM array slice export must avoid start+len overflow"
 grep -Fq "_pgy_start_%d > _pgy_slice_%d.length || _pgy_len_%d > _pgy_slice_%d.length - _pgy_start_%d" \
-    "$ROOT_DIR/src/codegen/transpiler_expr_call_spawn_emit.h" ||
+    "$ROOT_DIR/src/codegen/transpiler_expr_call_member_emit.c" ||
     fail "C backend generated Slice<T>.Slice code must avoid start+len overflow"
 if grep -Fq "_pgy_start_%d + _pgy_len_%d > _pgy_slice_%d.length" \
-    "$ROOT_DIR/src/codegen/transpiler_expr_call_spawn_emit.h"; then
+    "$ROOT_DIR/src/codegen/transpiler_expr_call_member_emit.c"; then
     fail "C backend generated Slice<T>.Slice code reintroduced start+len overflow"
 fi
 for term in \

@@ -4,13 +4,19 @@
 #include <stddef.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
 static inline char *
 pergyra_strndup(const char *src, size_t length)
 {
-    char *copy = malloc(length + 1);
+    char *copy;
+
+    if (length > SIZE_MAX - 1 || (src == NULL && length > 0))
+        return NULL;
+
+    copy = malloc(length + 1);
 
     if (copy == NULL) {
         return NULL;
@@ -24,6 +30,8 @@ pergyra_strndup(const char *src, size_t length)
 static inline char *
 pergyra_strdup(const char *src)
 {
+    if (src == NULL)
+        return NULL;
     return pergyra_strndup(src, strlen(src));
 }
 

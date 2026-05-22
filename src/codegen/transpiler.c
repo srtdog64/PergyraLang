@@ -46,25 +46,6 @@ void emit_relation_decl(ASTNode *node, TranspilerCtx *ctx);
 void emit_effect_decl(ASTNode *node, TranspilerCtx *ctx);
 void emit_zone_decl(ASTNode *node, TranspilerCtx *ctx);
 void emit_world_decl(ASTNode *node, TranspilerCtx *ctx);
-static const char *transpiler_find_local_type_name(TranspilerCtx *ctx,
-                                                   const ASTNode *func_decl,
-                                                   const char *base_name);
-static const char *transpiler_infer_local_type_name_from_expr(TranspilerCtx *ctx,
-                                                              const ASTNode *func_decl,
-                                                              ASTNode *expr);
-static bool transpiler_validate_mir_emission_contract(const TranspilerCtx *ctx,
-                                                     const MIRRoutine *routine,
-                                                     const ASTNode *decl,
-                                                     bool require_cleanup,
-                                                     bool require_cleanup_blocks,
-                                                     char *reason,
-                                                     size_t reason_cap);
-static bool transpiler_has_mapping_for_all_emitted_blocks(const TranspilerCtx *ctx,
-                                                        const MIRRoutine *routine,
-                                                        const ASTNode *func_decl,
-                                                        bool require_non_cleanup,
-                                                        char *reason,
-                                                        size_t reason_cap);
 #include "transpiler_helpers.h"
 #include "transpiler_defer_emit.h"
 #include "transpiler_base_a_emitters.h"
@@ -394,15 +375,6 @@ emit_program(TranspilerCtx *ctx)
 }
 
 #include "transpiler_domain_role_emit.h"
-
-void
-transpiler_emit_zone_hosted_methods_bridge(
-    const char *name,
-    const TranspilerHostedMethodView *method_view,
-    TranspilerCtx *ctx)
-{
-    transpiler_emit_zone_hosted_methods(name, method_view, ctx);
-}
 
 void
 emit_event_invoke(ASTNode *node, TranspilerCtx *ctx)

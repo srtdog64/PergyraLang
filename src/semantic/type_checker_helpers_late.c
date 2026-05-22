@@ -13,7 +13,6 @@
 #include "type_checker_ownership_internal.h"
 #include "type_checker_ownership_consumers_internal.h"
 #include "diag_codes.h"
-#include "slot_analyzer.h"
 #include "../common/string_compat.h"
 
 #include <stdlib.h>

@@ -13,7 +13,6 @@
 #include "transpiler_mir_pending_uses.h"
 #include "transpiler_mir_cfg_control_emit.h"
 #include "transpiler_mir_pin_emit.h"
-#include "transpiler_mir_block_emit.h"
 #include "transpiler_mir_ssa_contract.h"
 #include "transpiler_mir_emission_contract.h"
 #include "transpiler_mir_resource_hook_emit.h"

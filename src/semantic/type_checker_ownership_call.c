@@ -5,7 +5,7 @@
  * Call-argument ownership-boundary checks.
  */
 
-#include "slot_analyzer.h"
+#include "slot_summary.h"
 #include "diag_codes.h"
 #include "type_checker_internal.h"
 #include "type_checker_ownership_consumers_internal.h"
