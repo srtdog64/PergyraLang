@@ -2,6 +2,7 @@
 #define PERGYRA_TRANSPILER_MIR_PRESERVED_LET_EMIT_H
 
 #include "transpiler_mir_expr_ssa.h"
+#include "transpiler_mir_local_type_ast_lookup.h"
 #include "transpiler_mir_reason.h"
 #include "transpiler_type_result_mapping_helpers.h"
 #include "../parser/ast_api.h"

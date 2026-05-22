@@ -32,6 +32,7 @@ if [[ -n "$implementation_headers" ]]; then
 fi
 
 removed_implementation_headers=(
+    "src/codegen/transpiler_lambda_emit.h"
     "src/runtime/world_roster_plan_stats.h"
 )
 

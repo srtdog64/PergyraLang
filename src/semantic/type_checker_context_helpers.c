@@ -1,7 +1,15 @@
-#ifndef PGY_TYPE_CHECKER_CONTEXT_HELPERS_H
-#define PGY_TYPE_CHECKER_CONTEXT_HELPERS_H
+#include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-static char *
+#include "../common/string_compat.h"
+#include "diag_payload.h"
+#include "type_checker_internal.h"
+
+#define INITIAL_DIAG_CAPACITY 16
+
+char *
 tc_strdup_fmt(const char *fmt, ...)
 {
     va_list ap, ap2;
@@ -221,4 +229,3 @@ semantic_context_destroy(SemanticContext *ctx)
 /* -----------------------------------------------------------------
  * Utility — resolve AST type node to Type*
  * ----------------------------------------------------------------- */
-#endif /* PGY_TYPE_CHECKER_CONTEXT_HELPERS_H */

@@ -2,6 +2,8 @@
 #define PGY_TRANSPILER_LET_EMIT_H
 
 #include "../parser/ast_api.h"
+#include "transpiler_generic_class_specialization.h"
+#include "transpiler_generic_param_query.h"
 #include "transpiler_type_mapping.h"
 
 void
@@ -32,7 +34,7 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
     if (ann != NULL && ann->type == AST_TYPE
         && ann_node_type_name != NULL) {
         ASTNode *gc_decl = find_class_decl(ctx, ann_node_type_name);
-        if (gc_decl != NULL && class_has_generic_params(gc_decl)) {
+        if (gc_decl != NULL && transpiler_class_has_generic_params(gc_decl)) {
             generic_class_spec_name =
                 ensure_generic_class_specialization(ctx, gc_decl, ann);
             if (generic_class_spec_name == NULL)

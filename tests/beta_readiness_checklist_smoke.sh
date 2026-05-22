@@ -171,7 +171,8 @@ LSP beta-stable: initialize capability response, keyword hover, and keyword comp
 Debugger beta-stable: CLI `pgy debug <file>` parse + semantic gate and interactive quit path
 DAP, binary breakpoints, variable watch, multi-file workspace indexing
 beta readiness
-strict beta readiness is fixed at 67%
+strict beta readiness is now about 70-72%
+Do not round this to 75% yet
 EOF
 
 require_terms "docs/19_design_philosophy.md" <<'EOF'

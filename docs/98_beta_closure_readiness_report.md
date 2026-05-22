@@ -230,11 +230,11 @@ intent trace mutation, and MIR trace hooks now live in
 RIR flow semantic flags, state merge rules, and HIR CFG enrichment now live in
 `src/compiler/rir_flow.h`, removing the former `src/compiler/rir_flow.inc` body
 while preserving `rir.c` include order.
-C backend MIR local type lookup, explicit binding registration, MIR function
-signature support checks, SSA expression emission, phi copy emission, and
-exit-SSA lookup now live in `src/codegen/transpiler_mir_ssa_emit.h`, removing
-the former `src/codegen/transpiler_emitters_mir_inventory_ssa_emit.inc` body
-while preserving the MIR inventory/SSA shim order.
+C backend MIR local type lookup, explicit binding registration, effective local
+type rendering, MIR function signature support checks, SSA expression emission,
+phi copy emission, and exit-SSA lookup now live behind concrete MIR owners. The
+former `src/codegen/transpiler_mir_ssa_emit.h` compatibility shell has been
+retired after removing `src/codegen/transpiler_emitters_mir_inventory_ssa_emit.inc`.
 Generated-C threaded channel and SPSC channel inline macro definitions plus the
 stable `Int`/`String` instantiations now live in
 `src/runtime/pgy_runtime_channel_inline.h`, removing the former
@@ -349,10 +349,10 @@ MIR public names/destroy/validate/dump surface now lives in
 order. The production `.inc` inventory is now 62 files / 12,066 LOC.
 Semantic generic parameter lookup, default-bound validation, and
 class-specialization where-bound validation now live in
-`src/semantic/type_checker_generic_contracts.h`, removing the former
-`src/semantic/type_checker_generic_contracts.inc` body while preserving
-`type_checker_generic_support.h` include order. The production `.inc`
-inventory is now 61 files / 11,663 LOC.
+`src/semantic/type_checker_generic_contracts.c`, removing the former
+`src/semantic/type_checker_generic_contracts.inc` body and the temporary
+implementation-header dependency. The production `.inc` inventory was
+61 files / 11,663 LOC at that extraction point.
 LLVM member-call dispatch and nominal hosted-method self argument lowering now
 live in `src/codegen/llvm_member_call_emit.h`, removing the former
 `src/codegen/llvm_expr_call_methods_part_b.inc` body while preserving
@@ -382,10 +382,10 @@ resolution, and banner literal normalization now live in
 `src/codegen/llvm_expr_helpers_part_c.inc` body while preserving `llvm_expr.c`
 include order. The production `.inc` inventory is now 56 files / 9,753 LOC.
 Semantic spawn token boundary checks and channel send/recv ownership
-diagnostics now live in `src/semantic/type_checker_async_channel.h`, removing
-the former `src/semantic/type_checker_async_channel.inc` body while preserving
-`type_checker.c` include order. The production `.inc` inventory is now
-55 files / 9,384 LOC.
+diagnostics now live in `src/semantic/type_checker_async_channel.c`, removing
+the former `src/semantic/type_checker_async_channel.inc` body and superseding
+the temporary implementation header. The production `.inc` inventory at that
+extraction point was 55 files / 9,384 LOC.
 LLVM callable/event signature helpers, scalar string coercion, binary lowering,
 unary lowering, and `?` propagation lowering now live in
 `src/codegen/llvm_expr_scalar_core.h`, removing the former
@@ -394,10 +394,10 @@ order. Runtime panic contract smoke now reads the named owner path. The
 production `.inc` inventory is now 54 files / 9,024 LOC.
 Semantic generic subject signature formatting and effective default generic
 argument derivation now live in
-`src/semantic/type_checker_generic_support.h`, removing the former
-`src/semantic/type_checker_generic_support.inc` body while preserving
-`type_checker.c` include order. The production `.inc` inventory is now
-53 files / 8,666 LOC.
+`src/semantic/type_checker_generic_support.c`, removing the former
+`src/semantic/type_checker_generic_support.inc` body and the temporary
+`type_checker.c` include-order dependency. The production `.inc` inventory was
+53 files / 8,666 LOC at that extraction point.
 LLVM projection field-copy lowering and bounded projection sync loop generation
 now live in `src/codegen/llvm_domain_projection_sync_helpers.h`, removing the
 former `src/codegen/llvm_domain_helpers_part_b.inc` body while preserving
@@ -495,7 +495,7 @@ local/block emission, DAG graph core, and enum declaration emission now live in
 `src/codegen/transpiler_enum_decl_emit.h`. The production `.inc` inventory is
 now 25 files / 1,675 LOC.
 Semantic context helpers, LLVM log/array calls, and C backend MIR/base emitter
-tails now live in `src/semantic/type_checker_context_helpers.h`,
+tails now live in `src/semantic/type_checker_context_helpers.c`,
 `src/codegen/llvm_expr_log_calls.h`, `src/codegen/llvm_expr_array_calls.h`,
 `src/codegen/transpiler_mir_emit_state.h`,
 `src/codegen/transpiler_mir_emit_decls.h`, and
@@ -609,9 +609,11 @@ keeping exported symbol names unchanged. LLVM-linkable raw `List<T>` exports
 now live in `src/runtime/pgy_runtime_lib_list_raw_exports.h`, reducing
 `src/runtime/pgy_runtime_lib_part_b_part_a.inc` further from 909 LOC to 759 LOC
 while keeping raw collection ABI smoke green. C backend `let` destructuring lowering
-now lives in `src/codegen/transpiler_destructure_emit.h`, reducing
+now lives in `src/codegen/transpiler_destructure_emit.c`, superseding the
+temporary implementation header and keeping `transpiler_destructure_emit.h`
+declaration-only. The original extraction reduced
 `src/codegen/transpiler_emitters_base_b_part_c.inc` from 976 LOC to 873 LOC and
-keeping destructure array/tuple C/LLVM parity green. Generated-C queue inline
+kept destructure array/tuple C/LLVM parity green. Generated-C queue inline
 runtime now lives in `src/runtime/pgy_runtime_queue_inline.h`, reducing
 `src/runtime/pgy_runtime_part_ba_part_e.inc` from 969 LOC to 773 LOC while
 keeping queue/channel smoke parity green. Generated-C `HashMap<Int>` key

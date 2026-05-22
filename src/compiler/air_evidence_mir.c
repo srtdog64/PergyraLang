@@ -2,6 +2,17 @@
 
 #include "air_internal.h"
 
+static bool
+air_collect_mir_requires_routine_provider(const MIRRoutine *routine,
+                                          char **error_message)
+{
+    if (air_mir_routine_provider_name(routine) != NULL)
+        return true;
+    air_set_error(error_message,
+                  "AIR MIR evidence requires routine name or owner provenance");
+    return false;
+}
+
 bool
 air_collect_mir_evidence(AIRProgram *air,
                          const MIRProgram *mir,
@@ -20,6 +31,10 @@ air_collect_mir_evidence(AIRProgram *air,
             air_mir_routine_terminator_fact_count(routine);
         size_t select_receive_fact_count =
             air_mir_routine_select_receive_fact_count(routine);
+        AIREvidenceKind cleanup_kind = air_mir_cleanup_evidence_kind();
+        AIREvidenceKind terminator_kind = air_mir_terminator_evidence_kind();
+        AIREvidenceKind select_receive_kind =
+            air_mir_select_receive_evidence_kind();
         bool had_terminator_evidence;
         bool had_select_receive_evidence;
         bool had_cleanup_evidence;
@@ -27,18 +42,19 @@ air_collect_mir_evidence(AIRProgram *air,
         if ((terminator_fact_count > 0
              || select_receive_fact_count > 0
              || cleanup_fact_count > 0)
-            && !air_require_mir_routine_provider(routine, error_message)) {
+            && !air_collect_mir_requires_routine_provider(routine,
+                                                          error_message)) {
             return false;
         }
         if (terminator_fact_count > 0) {
             had_terminator_evidence =
                 air_has_global_evidence_provider_subject(
                     air,
-                    AIR_EVIDENCE_MIR_TERMINATOR,
+                    terminator_kind,
                     routine_name,
                     "cfg-terminator");
             if (!air_append_evidence_node_ex(air,
-                                             AIR_EVIDENCE_MIR_TERMINATOR,
+                                             terminator_kind,
                                              SIZE_MAX,
                                              routine_name,
                                              "cfg-terminator",
@@ -50,7 +66,7 @@ air_collect_mir_evidence(AIRProgram *air,
             if (!had_terminator_evidence
                 && !air_increment_evidence_summary_count(
                     air,
-                    AIR_EVIDENCE_MIR_TERMINATOR)) {
+                    terminator_kind)) {
                 air_set_error(error_message,
                               "AIR MIR terminator evidence counter overflow");
                 return false;
@@ -60,11 +76,11 @@ air_collect_mir_evidence(AIRProgram *air,
             had_select_receive_evidence =
                 air_has_global_evidence_provider_subject(
                     air,
-                    AIR_EVIDENCE_MIR_SELECT_RECEIVE,
+                    select_receive_kind,
                     routine_name,
                     "select-receive");
             if (!air_append_evidence_node_ex(air,
-                                             AIR_EVIDENCE_MIR_SELECT_RECEIVE,
+                                             select_receive_kind,
                                              SIZE_MAX,
                                              routine_name,
                                              "select-receive",
@@ -76,7 +92,7 @@ air_collect_mir_evidence(AIRProgram *air,
             if (!had_select_receive_evidence
                 && !air_increment_evidence_summary_count(
                     air,
-                    AIR_EVIDENCE_MIR_SELECT_RECEIVE)) {
+                    select_receive_kind)) {
                 air_set_error(error_message,
                               "AIR MIR select receive evidence counter overflow");
                 return false;
@@ -86,11 +102,11 @@ air_collect_mir_evidence(AIRProgram *air,
             continue;
         had_cleanup_evidence = air_has_global_evidence_provider_subject(
             air,
-            AIR_EVIDENCE_MIR_CLEANUP,
+            cleanup_kind,
             routine_name,
             "cleanup-block");
         if (!air_append_evidence_node_ex(air,
-                                         AIR_EVIDENCE_MIR_CLEANUP,
+                                         cleanup_kind,
                                          SIZE_MAX,
                                          routine_name,
                                          "cleanup-block",
@@ -102,7 +118,7 @@ air_collect_mir_evidence(AIRProgram *air,
         if (!had_cleanup_evidence
             && !air_increment_evidence_summary_count(
                 air,
-                AIR_EVIDENCE_MIR_CLEANUP)) {
+                cleanup_kind)) {
             air_set_error(error_message,
                           "AIR MIR cleanup evidence counter overflow");
             return false;

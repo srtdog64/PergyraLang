@@ -53,6 +53,7 @@ bool type_is_class_object_type(const Type *type, SemanticContext *ctx);
 bool type_requires_boundary_borrow_tracking(const Type *type, SemanticContext *ctx);
 const char *type_name_or_unknown(const Type *type);
 bool name_looks_qualified(const char *name);
+char *tc_strdup_fmt(const char *fmt, ...);
 void semantic_format_function_signature(const Type *type,
                                         char *out,
                                         size_t out_cap);
@@ -85,6 +86,9 @@ ClassField *projection_source_field_at(ASTNode *decl, size_t index);
 Type *projection_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx);
 char *format_generic_subject_signature(const char *name,
                                        GenericParams *params);
+const char *format_generic_subject_signature_scratch(SemanticContext *ctx,
+                                                     const char *name,
+                                                     GenericParams *params);
 TypeNominalFlavor nominal_flavor_from_decl(const ASTNode *decl);
 uint32_t declared_effects_from_function_node(ASTNode *node,
                                              SemanticContext *ctx,

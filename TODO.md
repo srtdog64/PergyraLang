@@ -2,10 +2,13 @@
 
 English anchor for tooling/doc gates:
 
-- Current beta progress is fixed: strict beta readiness is fixed at 67% until
-  one of the named source-of-truth blockers is actually closed by code,
-  diagnostics, and smoke evidence. Feature-surface feel is about 70%, but it
-  does not raise strict readiness by itself. The five closure targets are:
+- Current beta progress: feature-surface feel remains about 70%, and
+  strict beta readiness is now about 70-72% after current CFG body-dataflow, AIR drift/schema,
+  DAG resolver-inventory/metadata, runtime-frontier, and C backend owner gates
+  pass locally. Do not call this 75% yet. Do not round this to 75% yet. The
+  remaining 75% line requires consumer-completeness across CFG/AIR plus
+  MIR/LLVM declaration bootstrap parity and ABI/Slot/Pin ownership freeze.
+  The five closure targets are:
   CFG/body safety source-of-truth, AIR abstraction-boundary verification,
   DAG recursive compatibility seam removal, MIR/LLVM declaration bootstrap parity,
   and ABI/Slot/Pin ownership freeze.
@@ -2263,10 +2266,11 @@ English anchor for tooling/doc gates:
   `ClaimSecureSlot<T>` MIR/C lowering aligned with the constructed-generic
   source-of-truth rule.
 - C generic class specialization keys and concrete bindings now resolve actual
-  generic arguments through one `transpiler_generic_class_effective_arg_name(...)`
-  helper. Constructed actuals/defaults use `render_type_name(...)`, so
+  generic arguments through the compiled `transpiler_generic_param_effective_arg_name(...)`
+  query. Constructed actuals/defaults use `render_type_name(...)`, so
   monomorphization no longer collapses `Node<Array<Int>>`-style arguments to a
-  base-name-only specialization key.
+  base-name-only specialization key, and the implementation header no longer owns
+  the effective-argument rendering policy.
 - LLVM `Array<T>` / `Slice<T>` literal lowering now renders the annotated
   element type through `llvm_stmt_render_type_arg(...)` instead of reading
   `generic_args->params[0]->name` directly. This preserves nested constructed
@@ -6625,9 +6629,9 @@ Progress log, 2026-05-04:
 - Split MIR CFG contract root validators out of the single-include `mir_cfg_contract_roots.h` and `mir_cfg_contract_cleanup_roots.h` implementation headers into `mir_cfg_contract_roots.c` and `mir_cfg_contract_cleanup_roots.c`; both headers are now declaration-only, and `mir_cfg_contract_validate.h` now declares its cleanup-root membership dependency directly instead of relying on an indirect include. Gates: targeted `gcc -fsyntax-only` for `mir.c`, `mir_cfg_contract_roots.c`, and `mir_cfg_contract_cleanup_roots.c`; `build-source-inventory-test-smoke`, `test-inc-size-test-smoke`, and `test-mir` (`41/0`).
 - Split formatter I/O and parseability helpers out of the single-include `fmt_io.h` implementation header into `fmt_io.c`; `fmt_io.h` is now declaration-only and `fmt.c` keeps only the stream-local formatting roundtrip helper that depends on `format_source_to_stream`. Gates: targeted `gcc -fsyntax-only` for `fmt.c` and `fmt_io.c`, `build-source-inventory-test-smoke`, `test-inc-size-test-smoke`, and `fmt-test-smoke`.
 - Completed the remaining non-runtime header guard sweep for `src/codegen`, `src/compiler`, `src/semantic`, and `src/parser`: all previously guard-less implementation/helper headers now reject accidental double inclusion. This is still a safety pass, not a claim that every implementation header has been extracted into a `.c` owner. Gates: targeted `gcc -fsyntax-only` for `transpiler.c`, `type_checker.c`, `mir.c`, and `fmt.c`; `test-transpile` (`717/0`), `test-semantic` (`2500/0`), and `test-mir` (`41/0`).
-- Added include guards to another semantic/codegen implementation-helper batch: `type_checker_context_helpers.h`, `transpiler_func_forward_helpers.h`, `transpiler_expr_stdlib_map_builtin.h`, `transpiler_intent_observability_builtin_emit.h`, `transpiler_class_decl_emit.h`, `transpiler_mir_emission_mapping_contract.h`, `transpiler_mir_pending_uses.h`, and `transpiler_projection_method_invalidation.h`. Gates: targeted `gcc -fsyntax-only` for `type_checker.c` and `transpiler.c`, `test-transpile` (`717/0`), and `test-semantic` (`2500/0`).
+- Added include guards to another semantic/codegen implementation-helper batch: the former `type_checker_context_helpers.h`, `transpiler_func_forward_helpers.h`, `transpiler_expr_stdlib_map_builtin.h`, `transpiler_intent_observability_builtin_emit.h`, `transpiler_class_decl_emit.h`, `transpiler_mir_emission_mapping_contract.h`, `transpiler_mir_pending_uses.h`, and `transpiler_projection_method_invalidation.h`. `type_checker_context_helpers.h` has since been promoted to `type_checker_context_helpers.c`. Gates: targeted `gcc -fsyntax-only` for `type_checker.c` and `transpiler.c`, `test-transpile` (`717/0`), and `test-semantic` (`2500/0`).
 - Added include guards to ten smaller C backend implementation headers: `transpiler_enum_decl_emit.h`, `transpiler_intent_zone_binding_emit.h`, `transpiler_mir_terminator_emit.h`, `transpiler_overlay_world_projection.h`, `transpiler_mir_func_ssa_locals_emit.h`, `transpiler_intent_prologue_emit.h`, `transpiler_mir_emit_state.h`, `transpiler_let_box_emit.h`, `transpiler_relation_effect_emit.h`, and `transpiler_expr_stdlib_scalar_builtin.h`. Gates: targeted `gcc -fsyntax-only` for `transpiler.c` and `test-transpile` (`717/0`).
-- Added include guards to the single-TU semantic/MIR implementation headers `type_checker_generic_contracts.h`, `type_checker_async_channel.h`, `type_checker_generic_support.h`, `mir_public_surface.h`, `mir_lower_public_api.h`, `mir_abi_layout.h`, and `mir_cfg_contract_validate.h`. These remain implementation headers for now; the guard pass only removes accidental double-include risk before any later `.c` owner extraction. Gates: targeted `gcc -fsyntax-only` for `type_checker.c` and `mir.c`, `test-semantic` (`2500/0`), and `test-mir` (`41/0`).
+- Added include guards to the single-TU semantic/MIR implementation headers that later included the former generic-contracts, async-channel, and generic-support implementation headers, plus `mir_public_surface.h`, `mir_lower_public_api.h`, `mir_abi_layout.h`, and `mir_cfg_contract_validate.h`. The async-channel, generic-contracts, and generic-support semantic owners have since been promoted to compiled `.c` owners; the guard pass only removed accidental double-include risk before later `.c` owner extraction. Gates: targeted `gcc -fsyntax-only` for `type_checker.c` and `mir.c`, `test-semantic` (`2500/0`), and `test-mir` (`41/0`).
 - Added include guards to the C backend domain/spawn/overlay/MIR implementation-header batch: `transpiler_domain_provenance_emit.h`, `transpiler_spawn_channel_emit.h`, `transpiler_overlay_projection.h`, `transpiler_mir_ssa_emit.h`, and `transpiler_mir_cfg_control_emit.h`. This keeps MIR/CFG-related lowering single-include safe while the actual owner extraction remains a separate debt item. Gates: targeted `gcc -fsyntax-only` for `transpiler.c` and `test-transpile` (`717/0`).
 - Added include guards to the next C backend control/MIR/generic implementation-header batch: `transpiler_block_intent_helpers.h`, `transpiler_mir_match_condition_emit.h`, `transpiler_mir_local_type_lookup.h`, `transpiler_intent_cleanup_emit.h`, `transpiler_generic_class_specialization_emit.h`, `transpiler_statement_dispatch.h`, `transpiler_control_flow_emit.h`, and `transpiler_expr_stdlib_channel_builtin.h`. Gates: targeted `gcc -fsyntax-only` for `transpiler.c` and `test-transpile` (`717/0`).
 - Added include guards to C backend stdlib/match/function-flow implementation headers: `transpiler_expr_stdlib_collection_builtin.h`, `transpiler_match_emit.h`, `transpiler_let_slot_emit.h`, `transpiler_func_class_flow_emit.h`, and `transpiler_expr_stdlib_builtin.h`. `transpiler_match_emit.h` and `transpiler_expr_stdlib_builtin.h` have since been promoted to declaration-only headers with compiled owners. This specifically guarded the stdlib builtin parent/child include chain before extraction. Gates: targeted `gcc -fsyntax-only` for `transpiler.c` and `test-transpile` (`717/0`).
@@ -6872,8 +6876,8 @@ boundary transition을 거절하고 runtime은 generation/token/resource state�
 
 **확정 순서 — BDFL 결정:**
 
-1. **BETA closure** — 현재 (§0a 참조). 70% 기능 / strict beta 기준값 60%,
-   현재 실무 판단 67%
+1. **BETA closure** — 현재 (§0a 참조). 기능 체감 약 70% /
+   strict beta readiness 약 70-72%
    → 100% 신뢰도까지 닫기
 2. **dogfood (compiler-adjacent first)** — §0-selfhost 의 첫 dogfood
    원칙: diagnostic catalog checker, AIR graph JSON validator, MIR dump
@@ -6978,8 +6982,10 @@ runtime-validated handles) 로 대체. 진입 비용 낮춘 자리, 자기인식
 ## 0a. Strict Beta Closure Order — 2026-05-01 재고정
 
 **현재 판정:** 기능 구현률은 약 70%로 본다. strict beta readiness는
-60%를 기준값으로 두고, 현재 실무 판단은 67%다. 차이는 기능 수가 아니라
-CFG/AIR/DAG/MIR/ABI가 실제 source-of-truth로 소비되는 깊이다.
+약 70-72%다. 차이는 기능 수가 아니라 CFG/AIR/DAG/MIR/ABI가 실제
+source-of-truth로 소비되는 깊이다. 75%는 CFG/AIR consumer-completeness,
+MIR/LLVM declaration bootstrap, ABI/Slot/Pin freeze가 모두 닫힌 뒤
+재평가한다.
 
 **명시적 제외:** quantum full model, Rust급 lifetime/borrow checker, HKT/FP,
 새 대형 언어 축은 beta 100% 계산에서 제외한다. WASM/WebGL은 실제 dogfooding
@@ -7167,7 +7173,7 @@ module은 beta+1로 둔다.
      type-resolution-resolver-inventory-test-smoke`.
    - 2026-05-03 DAG generic materializer seam removal:
      `type_checker_generic_effective_args.c`,
-     `type_checker_generic_contracts.h`, and
+     `type_checker_generic_contracts.c`, and
      `type_checker_generic_validation.c` now consume annotation metadata and
      `semantic_type_resolution_lookup_metadata_type_ref(...)` only; they no
      longer call the materializing type-ref helper. `type_checker_host_helpers.c`
@@ -7483,8 +7489,9 @@ Intent-Compress는 척추 변경이므로 "며칠 컷"으로 고정하지 않는
 
 2026-05-01 update:
 - Beta progress is tracked as two numbers: user-visible feature progress is
-  about 70%, while strict beta readiness is fixed at 67%. The delta is still
-  CFG/AIR/DAG/MIR/ABI source-of-truth closure, not missing surface syntax.
+  about 70%, while strict beta readiness is about 70-72%. The delta to 75% is
+  CFG/AIR consumer-completeness, MIR/LLVM declaration bootstrap, and
+  ABI/Slot/Pin freeze, not missing surface syntax.
 - WebGL/WASM is no longer framed as "native LLVM wasm before beta". The beta
   dogfood entry path is `Pergyra -> C backend --emit-c -> optional Emscripten`.
   Native LLVM wasm and richer render modules stay beta+1.
@@ -8712,6 +8719,12 @@ dispatch / semantic lookup / runtime data structure 3축 결과 통합. *정확�
   lives in `transpiler_projection_method_invalidation.c`. The matching header
   is declaration-only, so method-call invalidation no longer ships as static
   implementation code through the C backend helper include chain.
+- Owner migration guardrail: `docs/130_c_backend_owner_migration_map.md`
+  records which C backend implementation headers are safe to promote and which
+  are blocked by private static seams. In particular, enum declaration emission
+  is blocked by `emit_func_decl_from_mir_named`, and constructor dispatch is
+  blocked by generic-class specialization ensure. Do not force these moves
+  until those seams become real owner APIs.
 - Follow-up closure: CFG-owned `for value in List<T>` now uses the same MIR
   facts on both backends. C and LLVM emit a MIR-owned index slot, list-size
   condition, list-get body binding, and backedge increment instead of falling
@@ -9036,13 +9049,15 @@ dispatch / semantic lookup / runtime data structure 3축 결과 통합. *정확�
   into break/exit successors. This closes the previous
   `pin_break_cleanup_block` compile failure.
 - MIR phi-copy emission now has a named owner in
-  `src/codegen/transpiler_mir_phi_emit.h`; `transpiler_mir_ssa_emit.h` is back
-  below the 600 LOC split-review threshold.
+  `src/codegen/transpiler_mir_phi_emit.h`; the later owner pass retired
+  `transpiler_mir_ssa_emit.h` entirely after its remaining responsibilities
+  moved to concrete MIR SSA/local-type/local-binding owners.
 - MIR terminator emission now has a named owner in
   `src/codegen/transpiler_mir_terminator_emit.h`, and residual MIR statement
   helpers now live in `src/codegen/transpiler_mir_stmt_emit.h`. This brings
   `transpiler_mir_func_emit.h`, `transpiler_mir_block_emit.h`, and
-  `transpiler_mir_ssa_emit.h` all below the 600 LOC split-review threshold.
+  the former MIR SSA shell all below the 600 LOC split-review threshold before
+  that shell was removed.
 - Local gate: `make llvm-test-backend-compare` is green again with
   ABI same-process `196 passed, 0 failed` and backend compare `64/64 passed,
   0 failed`.
@@ -10299,12 +10314,15 @@ dispatch / semantic lookup / runtime data structure 3축 결과 통합. *정확�
   Local gate used: `make pgy backend-inc-size-test-smoke inc-sentinel-test-smoke`,
   `make runtime-abi-lifetime-test-smoke test-abi`, plus touched path
   `git diff --check`.
-- Lean debt-slice follow-up: C backend `let` destructuring lowering now has a
-  private owner in `src/codegen/transpiler_destructure_emit.h`;
-  `transpiler_emitters_base_b_part_c.inc` drops from 976 LOC to 873 LOC. Local
-  gate used: `make pgy backend-inc-size-test-smoke inc-sentinel-test-smoke`,
-  targeted backend compare for `destructure_array` and
-  `destructure_tuple_retun`, plus touched path `git diff --check`.
+- Lean debt-slice follow-up: C backend `let` destructuring lowering first moved
+  into a private implementation header and has now been promoted to the
+  compiled owner `src/codegen/transpiler_destructure_emit.c`;
+  `transpiler_destructure_emit.h` is declaration-only. The original
+  `transpiler_emitters_base_b_part_c.inc` extraction dropped from 976 LOC to
+  873 LOC. Local gate used for the compiled-owner promotion:
+  `mingw32-make LLVM_ENABLED=0 test-transpile perf-contract-test-smoke
+  semantic-core-shape-test-smoke test-inc-size-test-smoke
+  build-source-inventory-test-smoke` (`770/0` transpile).
 - Lean debt-slice follow-up: generated-C queue macro and built-in queue
   implementations now have a private owner in
   `src/runtime/pgy_runtime_queue_inline.h`; `pgy_runtime_part_ba_part_e.inc`
@@ -14291,3 +14309,243 @@ Local verification for this debt refresh:
   The perf contract now gates the sorted policy table and rejects direct
   destructor-name/kind branches in the four match lowering owners. Local
   verification: `perf-contract-test-smoke`, `make pgy`.
+- Moved C lambda expression lowering out of the implementation header into
+  `src/codegen/transpiler_lambda_emit.c`; the old lambda-specific compatibility
+  header was removed because `transpiler.h` already owns the public emitter
+  prototype. The Makefile source inventory owns the new compiled owner.
+  `docs/130_c_backend_owner_migration_map.md` records this as a safe promotion
+  and records `transpiler_relation_effect_emit.h` as blocked by the same
+  hosted-method MIR static seam that blocks enum declaration emission. The same
+  map previously recorded destructuring emission as blocked by local type lookup
+  / current-function local type query. The compiled-owner promotion closed the
+  block by consuming the public typed-var registry seam instead. It also
+  records `transpiler_domain_role_methods_emit.h`,
+  `transpiler_expr_call_user_emit.h`, and `transpiler_statement_dispatch.h` as
+  blocked by hosted-method MIR emission, call-resolution/generic specialization,
+  and root statement orchestration seams respectively. It also records
+  `transpiler_mir_pending_uses.h` and
+  `transpiler_mir_emission_mapping_contract.h` as blocked until effective local
+  type rendering / pending-use materialization become compiled owner APIs; the
+  effective-local-type seam itself still waits on generic class specialization
+  lookup/ensure becoming an owner API. Local
+  verification: `make pgy`, `documentation-quality-test-smoke`,
+  `build-source-inventory-test-smoke`, `test-inc-size-test-smoke`,
+  `semantic-core-shape-test-smoke`, `perf-contract-test-smoke`,
+  `git diff --check`. `test_inc_size_smoke.sh` now also treats the deleted
+  lambda implementation header as a removed-header guard so it cannot reappear
+  as a compatibility shell.
+- Moved C generic class parameter detection out of the specialization
+  implementation header into `transpiler_generic_param_query.c` as
+  `transpiler_class_has_generic_params(...)`. Constructor dispatch, class
+  declaration emission, let emission, and MIR effective local type rendering now
+  consume the compiled query; the remaining blocker is
+  `ensure_generic_class_specialization(...)`, not class-generic detection.
+  Effective generic argument naming also moved to the same compiled query owner
+  as `transpiler_generic_param_effective_arg_name(...)`, so the specialization
+  implementation header no longer owns `render_type_name(...)`-based effective
+  argument policy. Generic class specialization bounded-name/symbol/surface
+  formatting and naming-length diagnostics moved to
+  `transpiler_generic_class_naming.c`, leaving the specialization header focused
+  on emission orchestration rather than naming policy. Specialization key
+  construction now lives in that same naming owner and consumes
+  `append_mangled_type_name(...)` through `transpiler_mangled_name.h`; the
+  specialization header no longer rebuilds mangled specialization keys inline.
+  Generic function specialization ensure also moved from
+  `transpiler_generic_specialization_emit.h` into
+  `transpiler_generic_specialization_emit.c`, making the header declaration-only
+  and leaving user-call/spawn consumers to call a compiled owner seam. The new
+  owner rejects overlong generated specialization names instead of silently
+  truncating through `pergyra_str_copy(...)`.
+  Local verification:
+  `make pgy`, targeted backend compare for
+  `generic_default_contracts`, `generic_multi_bound_defaults`, and
+  `nested_generic_containers`; `perf-contract-test-smoke` now gates both queries
+  plus the naming owner and rejects a regression back into
+  `transpiler_generic_class_specialization_emit.h`.
+- Rechecked the beta status anchors after the current source-of-truth gates:
+  `docs/100_beta_readiness_checklist.md`,
+  `docs/70_beta_closure_master_board.md`, and this TODO now use the same
+  strict beta readiness range: about 70-72%, not 75%. The remaining 75% line is
+  explicitly CFG/AIR consumer-completeness, MIR/LLVM declaration bootstrap, and
+  ABI/Slot/Pin freeze. Also tightened the C call emitter receiver-type copy:
+  method-style nominal calls now reject overlong receiver type names instead of
+  silently truncating the dispatch type. Local verification:
+  `make pgy`, `test-transpile` (`770/0`),
+  `memory-string-safety-test-smoke`, `perf-contract-test-smoke`,
+  `documentation-quality-test-smoke`, `beta-readiness-checklist-test-smoke`,
+  `build-source-inventory-test-smoke`, and `semantic-core-shape-test-smoke`.
+- Moved MIR effective local type rendering out of
+  `transpiler_mir_ssa_emit.h` into the compiled owner
+  `transpiler_mir_effective_type.c`. MIR SSA emission now consumes a named
+  owner seam instead of carrying generic-specialized local type rendering
+  inline. `docs/130_c_backend_owner_migration_map.md` now marks this seam as
+  closed and narrows the remaining pending-use blocker to generic class
+  specialization ensure still living in the specialization orchestration
+  header. That ensure path still emits hosted generic methods through the same
+  private MIR hosted-method seam that blocks enum/relation/effect/domain-role
+  owner promotion, so the next safe cut is hosted-method MIR emission rather
+  than forcing another owner shell. Local verification: `make pgy`;
+  `perf-contract-test-smoke` now gates the new owner and rejects regression of
+  the `find_class_decl(...)` effective type body back into the MIR SSA emission
+  header.
+- Consolidated MIR local type lookup/member fallback under
+  `transpiler_mir_local_type_lookup.h` instead of leaving
+  `transpiler_find_local_type_name(...)` and current-owner member lookup in
+  `transpiler_mir_ssa_emit.h`. This does not yet make local type lookup a
+  compiled owner, but it removes one responsibility from SSA emission and makes
+  the next owner extraction less circular. Local verification: `make pgy`;
+  `perf-contract-test-smoke` now requires the local type lookup functions to
+  stay in the local-type lookup owner and rejects regression back into
+  `transpiler_mir_ssa_emit.h`.
+- Moved explicit MIR local binding registration out of
+  `transpiler_mir_ssa_emit.h` into the compiled
+  `transpiler_mir_local_binding.c` owner. The old
+  `transpiler_mir_ssa_emit.h` include-order shim is now deleted; MIR pending
+  use, preserved-let, block, and function-local emission include the concrete
+  type-AST/local-type owners they consume directly. Local verification:
+  `make pgy`, `perf-contract-test-smoke`, `semantic-core-shape-test-smoke`,
+  `test-inc-size-test-smoke`, `build-source-inventory-test-smoke`,
+  `documentation-quality-test-smoke`, `beta-readiness-checklist-test-smoke`,
+  and `git diff --check` (CRLF warnings only).
+- Promoted MIR function SSA local declaration emission from
+  `transpiler_mir_func_ssa_locals_emit.h` into the compiled owner
+  `transpiler_mir_func_ssa_locals_emit.c`. The header is declaration-only, the
+  new owner directly includes context/string/local-type/SSA utility seams, and
+  `transpiler_mir_local_type_lookup.h` now includes the slot builtin policy it
+  actually consumes instead of relying on caller include order. Local
+  verification: `make pgy`, `test-transpile` (`770/0`),
+  `perf-contract-test-smoke`,
+  `test-inc-size-test-smoke`, `build-source-inventory-test-smoke`,
+  `semantic-core-shape-test-smoke`, `documentation-quality-test-smoke`, and
+  `git diff --check` (CRLF warnings only).
+- Checked `transpiler_expr_call_spawn_emit.h` for owner promotion and rejected
+  the move for now. A direct `.c` promotion exposes hidden include-order seams
+  in builtin dispatch, slot/security policy, host-method lookup,
+  overlay/world projection invalidation, and generic specialization. This is
+  recorded in `docs/130_c_backend_owner_migration_map.md` as a blocked
+  promotion so the project does not repeat another A -> B -> A refactor loop.
+- Moved stateless role/ability naming policy out of
+  `transpiler_domain_role_ability_emit.h` into the compiled owner
+  `transpiler_domain_role_ability_names.c`. Hosted-method MIR emission and
+  vtable body emission remain in the existing role/ability emission header, but
+  bounded string copy, hosted-method symbol formatting, vtable typedef naming,
+  operator alias naming, and surface diagnostic formatting now have a linked
+  owner. Local verification: `make pgy`; `perf-contract-test-smoke` now gates
+  the new owner and rejects regression of role/ability naming back into the
+  implementation header.
+- Promoted direct user-call lowering from
+  `transpiler_expr_call_user_emit.h` into the compiled owner
+  `transpiler_expr_call_user_emit.c`. The header is declaration-only and the
+  owner now explicitly includes host lookup, callable lookup, type rendering,
+  slot-target, and generic specialization seams instead of relying on caller
+  include order. This does not solve the broader call-resolution policy debt:
+  spawn/member-style calls still need a shared compiled policy owner before the
+  whole `emit_call(...)` family can be simplified. Local verification:
+  `mingw32-make LLVM_ENABLED=0 build/codegen/transpiler_expr_call_user_emit.o`;
+  `perf-contract-test-smoke` now gates the new owner and rejects regression of
+  `emit_call_user_function(...)` back into the implementation header.
+- Moved enum method emitted-name formatting, enum method surface diagnostic
+  formatting, and enum generated-string-too-long diagnostics out of
+  `transpiler_enum_decl_emit.h` into `transpiler_enum_method_names.c`. Enum
+  declaration emission still owns enum layout/constructor/hosted-method body
+  lowering, but stateless enum naming policy now has a compiled owner and a
+  declaration-only header. Local verification:
+  `mingw32-make LLVM_ENABLED=0 build/codegen/transpiler_enum_method_names.o`,
+  `mingw32-make LLVM_ENABLED=0 build/codegen/transpiler.o`, and
+  `perf-contract-test-smoke`; the smoke now rejects regression of enum method
+  naming back into the implementation header.
+- Moved user-call subject-address policy out of
+  `transpiler_expr_call_user_emit.c` into the compiled owner
+  `transpiler_call_subject_arg_policy.c`. The new owner decides whether a
+  generated call argument must be emitted as `&arg` or `arg` for pointer-self
+  host subjects, and it detects already-subject-ref arguments through the typed
+  symbol table. This keeps subject/who lowering policy separate from
+  authorization policy and reduces the direct call emitter's ownership of
+  `render_type_name(...)` + host-self + typed-entry checks. Local verification:
+  `mingw32-make LLVM_ENABLED=0 build/codegen/transpiler_call_subject_arg_policy.o`,
+  `mingw32-make LLVM_ENABLED=0 build/codegen/transpiler_expr_call_user_emit.o`,
+  and `perf-contract-test-smoke`.
+- Tightened AIR drift owner seams without changing backend output:
+  MIR cleanup/terminator/select-receive evidence kinds now come through the MIR
+  evidence fact owner instead of direct enum literals in collection; global
+  evidence validation uses a local
+  `air_global_evidence_kind_has_validator(...)` policy seam; runtime singleton
+  evidence collection exposes the global singleton owner before the runtime
+  wrapper; and MIR routine-provider diagnostics now live in the MIR evidence
+  collection owner rather than the fact-count owner.
+  Local verification: `tests/air_drift_smoke.sh`,
+  `mingw32-make LLVM_ENABLED=0 test-air` (`115/0`),
+  `perf-contract-test-smoke`, and `mingw32-make LLVM_ENABLED=0 pgy`.
+- Rechecked ABI/Slot/Pin ownership gates after the AIR/C backend owner work.
+  Local C-only gates remain green: `runtime-abi-lifetime-test-smoke`,
+  `abi-ownership-shape-test-smoke`, `runtime-panic-abi-test-smoke` (Windows
+  local compiler probe skips, CI still owns the executable gate), and
+  `test-abi` (`58/0` plus C ABI pipeline fixtures). This keeps the ABI axis
+  stable but does not close the 75% line by itself; the remaining blocker is
+  still consumer-completeness across CFG/AIR and MIR/LLVM declaration bootstrap
+  parity.
+- Repaired CFG/body-dataflow smoke ownership drift after recent owner splits:
+  source-statement index attachment is now gated in
+  `mir_stmt_population_resource_ops.c`, surface-usage validation diagnostics are
+  gated in `mir_fact_surface_validate.c`, AIR MIR HIR-source/cleanup fact terms
+  are gated in the MIR evidence fact/pin owners, and branch resource-state
+  restore is gated in `type_checker_flow_branch.c`. The executable MIR suite
+  was already green (`test-mir` `68/0`); the source contract now matches the
+  current owner split again. Local verification:
+  `mingw32-make LLVM_ENABLED=0 cfg-body-dataflow-test-smoke`.
+- Rechecked runtime frontier and MIR declaration inventory blockers after the
+  AIR/C backend owner cleanup. Bounded runtime frontier policy/contract gates
+  remain green, and `mir-declaration-inventory-test-smoke` still keeps C/LLVM
+  hosted-declaration lookup on the shared `host_decl_compat.c` and active MIR
+  inventory seams. This confirms the current blocker is broader scheduler /
+  dedicated declaration-IR coverage, not a broken smoke or a reintroduced
+  partial hosted-decl type chain. Local verification:
+  `runtime-frontier-contract-test-smoke`, `runtime-frontier-policy-test-smoke`,
+  and `mir-declaration-inventory-test-smoke`.
+- Moved function-call ownership argument policy out of
+  `type_checker_helpers_late.c` into the existing ownership-call owner
+  `type_checker_ownership_call.c`. Late helper call checking now asks one
+  compiled ownership seam to handle move-only, subject, borrow-tracked value,
+  and anchored handle arguments, then falls back to ordinary assignability only
+  when no ownership-sensitive argument class is involved. This reduces
+  `type_checker_helpers_late.c` from 478 LOC to 214 LOC without creating a
+  new generic helper bucket; `type_checker_ownership_call.c` remains under the
+  helper-owner threshold at 462 LOC. Local verification:
+  `mingw32-make LLVM_ENABLED=0 build/semantic/type_checker_ownership_call.o build/semantic/type_checker_helpers_late.o test-semantic`
+  (`2551/0`), `test-inc-size-test-smoke`, and
+  `semantic-core-shape-test-smoke`.
+- Promoted semantic async/channel checking from the single-include
+  implementation header `type_checker_async_channel.h` into the compiled owner
+  `type_checker_async_channel.c`. Spawn token/ref boundary checks and channel
+  send/recv transport diagnostics now compile as an independent semantic owner
+  with direct includes for diagnostic, ownership, and channel-transport seams;
+  `type_checker.c` no longer owns that implementation by include order. Local
+  verification:
+  `mingw32-make LLVM_ENABLED=0 build/semantic/type_checker_async_channel.o build/semantic/type_checker.o test-semantic`
+  (`2551/0`), `test-inc-size-test-smoke`, `semantic-core-shape-test-smoke`,
+  `cfg-body-dataflow-test-smoke`, and `build-source-inventory-test-smoke`.
+- Promoted semantic context lifecycle and embedded world-zone context tracking
+  from the single-include implementation header `type_checker_context_helpers.h`
+  into the compiled owner `type_checker_context_helpers.c`. `tc_strdup_fmt`,
+  `semantic_context_create/destroy`, and embedded-world-zone context mutation
+  now compile independently with direct string/diagnostic/type-checker
+  dependencies instead of inheriting `type_checker.c` include order. The
+  remaining semantic/compiler implementation headers with static bodies are now
+  limited to generic-support/contract seams, MIR public surface helpers, and
+  the small diagnostic-payload initializer. Local verification:
+  `mingw32-make LLVM_ENABLED=0 test-semantic` (`2551/0`),
+  `test-inc-size-test-smoke`, `semantic-core-shape-test-smoke`,
+  `build-source-inventory-test-smoke`, and `documentation-quality-test-smoke`.
+- Promoted semantic generic support and generic contract checking from
+  single-include implementation headers into compiled owners
+  `type_checker_generic_support.c` and `type_checker_generic_contracts.c`.
+  Generic subject signature formatting, effective generic argument derivation,
+  generic parameter lookup, default-bound validation, and class-specialization
+  where-bound validation now compile through named semantic owners instead of
+  `type_checker.c` include order. The DAG inventory smoke was updated to keep
+  the same metadata-only owner classification after the extension change.
+  Local verification:
+  `mingw32-make LLVM_ENABLED=0 test-semantic` (`2551/0`),
+  `type-resolution-resolver-inventory-test-smoke`,
+  `type-resolution-dag-test-smoke`, `semantic-core-shape-test-smoke`,
+  `test-inc-size-test-smoke`, and `build-source-inventory-test-smoke`.

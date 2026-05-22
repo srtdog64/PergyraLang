@@ -76,6 +76,7 @@ run_literal_air_drift_smoke() {
     require_literal "Makefile" "air-drift-test-smoke"
     require_literal "src/compiler/air.h" "AIREvidenceNode"
     require_literal "src/compiler/air_evidence_mir_pin.c" "AIR_EVIDENCE_MIR_PIN_CLEANUP"
+    require_literal "src/compiler/air_evidence_mir_facts.c" "air_mir_cleanup_evidence_kind"
     require_literal "src/compiler/air_evidence_mir_facts.c" "AIR_EVIDENCE_MIR_TERMINATOR"
     require_literal "src/compiler/air_evidence_mir_facts.c" "mir_instruction_uses_select_receive_statement_emit"
     require_literal "src/semantic/semantic.c" "semantic_result_type_resolution_metadata_entries"

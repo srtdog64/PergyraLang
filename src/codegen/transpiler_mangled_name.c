@@ -5,7 +5,7 @@
  * C backend type/name mangling helpers.
  */
 
-#include "transpiler.h"
+#include "transpiler_mangled_name.h"
 
 void
 append_mangled_type_name(CodeBuf *buf, const char *type_name)

@@ -7,6 +7,7 @@
 #include "transpiler_overlay_host_fields.h"
 #include "transpiler_projection_field_path.h"
 #include "transpiler_role_ability_helpers.h"
+#include "../common/string_compat.h"
 
 static char *
 emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
@@ -62,8 +63,18 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                     && strcmp(ast_identifier_name(obj), "self") == 0);
                 ASTNode *method_decl = find_nominal_host_method_decl(ctx, owned_type_name, method);
 
-                snprintf(stable_type_name, sizeof(stable_type_name), "%s",
-                    owned_type_name);
+                if (!pergyra_str_copy(stable_type_name,
+                        sizeof(stable_type_name), owned_type_name)) {
+                    transpiler_set_backend_error_with_hints(
+                        ctx,
+                        PGY_CODE_C_TYPE_UNSUPPORTED,
+                        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                        PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+                        "C backend: nominal receiver type name is too long for method '%s'",
+                        method != NULL ? method : "(anonymous)");
+                    codebuf_destroy(args_buf);
+                    return NULL;
+                }
                 owned_type_name = stable_type_name;
                 use_self_cell = is_pointer_self_host_type_name(ctx, owned_type_name);
 

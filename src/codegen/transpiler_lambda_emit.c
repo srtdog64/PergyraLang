@@ -1,7 +1,18 @@
-#ifndef PGY_TRANSPILER_LAMBDA_EMIT_H
-#define PGY_TRANSPILER_LAMBDA_EMIT_H
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdlib.h>
+#include <string.h>
 
+#include "transpiler.h"
+#include "transpiler_context.h"
+#include "transpiler_expr_type_infer.h"
+#include "transpiler_format.h"
+#include "transpiler_symbols.h"
+#include "transpiler_type_render.h"
+
+#include "../common/string_compat.h"
 #include "../parser/ast_api.h"
+#include "../semantic/diag_codes.h"
 
 static bool
 transpiler_infer_lambda_param_c_type_copy(ASTNode *lambda_node,
@@ -156,7 +167,7 @@ emit_lambda_expr(ASTNode *node, TranspilerCtx *ctx)
         return_type = "void";
     } else if (lambda_body != NULL) {
         const char *inferred_return_type =
-            infer_expression_type_name(ctx, lambda_body);
+            transpiler_expr_infer_type_name(ctx, lambda_body);
         if (inferred_return_type != NULL
             && pergyra_type_to_c_copy(inferred_return_type,
                 inferred_return_c_type_buf,
@@ -217,5 +228,3 @@ emit_lambda_expr(ASTNode *node, TranspilerCtx *ctx)
     ctx->typed_var_count = saved_typed_var_count;
     return lambda_name;
 }
-
-#endif /* PGY_TRANSPILER_LAMBDA_EMIT_H */

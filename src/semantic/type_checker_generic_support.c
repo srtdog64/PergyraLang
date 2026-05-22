@@ -1,5 +1,8 @@
-#ifndef PGY_TYPE_CHECKER_GENERIC_SUPPORT_H
-#define PGY_TYPE_CHECKER_GENERIC_SUPPORT_H
+#include <stdlib.h>
+#include <string.h>
+
+#include "diag_codes.h"
+#include "type_checker_internal.h"
 
 char *
 format_generic_subject_signature(const char *name, GenericParams *params)
@@ -53,7 +56,7 @@ format_generic_subject_signature(const char *name, GenericParams *params)
     return result;
 }
 
-static const char *
+const char *
 format_generic_subject_signature_scratch(SemanticContext *ctx,
                                          const char *name,
                                          GenericParams *params)
@@ -409,7 +412,3 @@ collect_effective_generic_arg_nodes(GenericParams *decl_params,
         *out_count = decl_count;
     return effective;
 }
-
-#include "type_checker_generic_contracts.h"
-
-#endif /* PGY_TYPE_CHECKER_GENERIC_SUPPORT_H */

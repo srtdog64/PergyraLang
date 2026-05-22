@@ -80,17 +80,6 @@ air_mir_routine_provider_name(const MIRRoutine *routine)
     return NULL;
 }
 
-bool
-air_require_mir_routine_provider(const MIRRoutine *routine,
-                                 char **error_message)
-{
-    if (air_mir_routine_provider_name(routine) != NULL)
-        return true;
-    air_set_error(error_message,
-                  "AIR MIR evidence requires routine name or owner provenance");
-    return false;
-}
-
 size_t
 air_mir_routine_terminator_fact_count(const MIRRoutine *routine)
 {
@@ -150,6 +139,24 @@ air_mir_routine_select_receive_fact_count(const MIRRoutine *routine)
         }
     }
     return count;
+}
+
+AIREvidenceKind
+air_mir_cleanup_evidence_kind(void)
+{
+    return AIR_EVIDENCE_MIR_CLEANUP;
+}
+
+AIREvidenceKind
+air_mir_terminator_evidence_kind(void)
+{
+    return AIR_EVIDENCE_MIR_TERMINATOR;
+}
+
+AIREvidenceKind
+air_mir_select_receive_evidence_kind(void)
+{
+    return AIR_EVIDENCE_MIR_SELECT_RECEIVE;
 }
 
 static const AIREvidenceNode *

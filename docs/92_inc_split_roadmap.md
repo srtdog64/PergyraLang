@@ -1,4 +1,4 @@
-# `.inc` Split Roadmap
+﻿# `.inc` Split Roadmap
 
 마지막 업데이트: 2026-04-30
 
@@ -226,7 +226,7 @@ Backend 진행:
 - `type_checker_program.c` / `type_checker_program.inc`의 declaration/body type materialization은 quiet/body resolver seam으로 수렴했다. function body materialization은 graph-backed resolved metadata를 먼저 재사용한다.
 - `type_checker_event.c`의 event declaration/subscription signature materialization은 `semantic_event_resolve_type_ref(...)` 단일 seam으로 수렴했다. 다음 DAG slice는 event signature metadata reader로 교체하는 것이다.
 - `type_checker_world_decl.c`의 shared field/domain slot materialization은 `world_resolve_type_ref(...)` / `world_resolve_domain_slot_type(...)` seam으로 수렴했다. 다음 DAG slice는 world shared/slot checks가 graph-backed resolved metadata를 재사용하게 만드는 것이다.
-- `type_checker_role_decl.c`, `type_checker_generic_contracts.h`, `type_checker_helpers_late.c`, `type_checker_expr.inc`는 각각 local resolver seam 1개로 수렴했다. 다음 DAG slice는 role include/impl, generic default/bound, call default, lambda/member metadata를 graph-backed result로 교체하는 것이다.
+- `type_checker_role_decl.c`, `type_checker_generic_contracts.c`, `type_checker_helpers_late.c`, `type_checker_expr.inc`는 각각 local resolver seam 1개로 수렴했다. 다음 DAG slice는 role include/impl, generic default/bound, call default, lambda/member metadata를 graph-backed result로 교체하는 것이다.
 - `type_checker_generic_validation.c`, `type_checker_ability_where.c`, `type_checker_module_contract.c`, `type_checker_ability_decl.c`, `type_checker_class_decl.c`, `type_checker_operator_expr.h`, `type_checker_ownership_destructure_stmt.inc`도 local resolver seam으로 수렴했다. 다음 DAG slice는 이 seam들을 graph-backed metadata reader로 교체하고 remaining direct count를 implementation/comment/seam만 남기는 것이다.
 - statement/type-alias, ability fields, projection/query builtins, flow with-slot, generic support, helper effects, ownership let, party/roster/zone single-call resolver paths도 local seam으로 수렴했다. zone domain-slot seam은 graph metadata-first 조회를 사용하며, `type-resolution-resolver-inventory-test-smoke`가 새 direct resolver 호출을 allowlist 밖에서 금지한다.
 - declaration validators는 `subject/class`, `zone`, `world`, `intent`, `relation/effect/projection`, `ability/role/party/roster` 단위의 `.c`로 분리한다.
@@ -342,10 +342,10 @@ semantic_classify_ownership_type
 축 단위로 `.c+.h` 절단. 의존성이 가장 낮은 → 높은 순:
 
 ### 1. **diagnostic helpers** (P0 — 다음 sprint 시작점)
-- 대상: `type_checker_context_helpers.h` (emit_diagnostic_full 등)
+- Target: former `type_checker_context_helpers.h` (emit_diagnostic_full etc.), now promoted to `type_checker_context_helpers.c`
 - 종속: `Type`, `SemanticContext`, `ASTNode` 만 사용 — leaf
 - 출력: `type_checker_diag.c`; public declarations remain in `type_checker.h` / `diag_payload.h`
-- 상태: DONE — `type_checker_context_helpers.h`에서 diagnostic snapshot/emission/printing 243 LOC 제거
+- Status: DONE — diagnostic snapshot/emission/printing moved earlier, and the remaining context lifecycle/world-zone helpers are now in `type_checker_context_helpers.c`
 - 검증: `make test-semantic`, `make test-all`
 
 ### 2. **ownership classifier + labels**
@@ -357,7 +357,7 @@ semantic_classify_ownership_type
 - 검증: `make test-semantic`
 
 ### 3. **channel transport validator**
-- 대상: `type_checker_async_channel.h:11-217` (validator + reporters)
+- Target: former `type_checker_async_channel.h:11-217` (validator + reporters), now promoted to `type_checker_async_channel.c`
 - 종속: ownership classifier (위 axis 2 선행 필요), `OwnershipConsumerKind`
 - 출력: `type_checker_channel_transport.c` + 기존 `type_checker_channel_transport_internal.h` 갱신
 - 상태: DONE — borrowed transfer, named-binding transfer, transport mismatch/policy reporters를 별도 TU로 이동

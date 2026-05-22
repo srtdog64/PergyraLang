@@ -11,7 +11,6 @@
  * Keep this shim for the existing include order. */
 char *render_type_name(ASTNode *type_node);
 char *render_type_name_in_ctx(TranspilerCtx *ctx, ASTNode *type_node);
-void append_mangled_type_name(CodeBuf *buf, const char *type_name);
 bool transpiler_can_forward_declare_type_early(TranspilerCtx *ctx,
                                                ASTNode *type_node);
 bool transpiler_can_forward_declare_func_early(TranspilerCtx *ctx,

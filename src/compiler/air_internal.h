@@ -89,9 +89,10 @@ bool        air_mir_cleanup_root_is_valid(const MIRRoutine *routine);
 size_t      air_mir_routine_cleanup_fact_count(const MIRRoutine *routine);
 size_t      air_mir_routine_terminator_fact_count(const MIRRoutine *routine);
 size_t      air_mir_routine_select_receive_fact_count(const MIRRoutine *routine);
+AIREvidenceKind air_mir_cleanup_evidence_kind(void);
+AIREvidenceKind air_mir_terminator_evidence_kind(void);
+AIREvidenceKind air_mir_select_receive_evidence_kind(void);
 const char *air_mir_routine_provider_name(const MIRRoutine *routine);
-bool        air_require_mir_routine_provider(const MIRRoutine *routine,
-                                             char **error_message);
 bool        air_has_global_evidence_provider_subject(
                 const AIRProgram *air,
                 AIREvidenceKind kind,

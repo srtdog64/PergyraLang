@@ -31,6 +31,17 @@ semantic_validate_borrowed_boundary_call_argument(ASTNode *arg_expr,
                                                   const char *local_fix_label,
                                                   bool track_borrow_provenance);
 
+bool
+semantic_check_function_call_ownership_argument(ASTNode *arg_expr,
+                                                SemanticContext *ctx,
+                                                const char *display_name,
+                                                size_t arg_index,
+                                                Type *param_type,
+                                                Type *arg_type,
+                                                OwnershipTypeClass param_ownership,
+                                                OwnershipTypeClass arg_ownership,
+                                                bool *handled_out);
+
 void
 semantic_check_param_summary_escapes(ASTNode *node,
                                      size_t param_count,

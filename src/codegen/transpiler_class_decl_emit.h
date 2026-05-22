@@ -1,6 +1,8 @@
 #ifndef PGY_TRANSPILER_CLASS_DECL_EMIT_H
 #define PGY_TRANSPILER_CLASS_DECL_EMIT_H
 
+#include "transpiler_generic_param_query.h"
+
 /* Class declaration lowering owner. Included after generic class specialization helpers. */
 
 static bool
@@ -63,7 +65,7 @@ void
 emit_class_decl(ASTNode *node, TranspilerCtx *ctx)
 {
     /* Generic classes are emitted lazily when first used (monomorphized). */
-    if (class_has_generic_params(node))
+    if (transpiler_class_has_generic_params(node))
         return;
 
     const char *name = ast_class_name(node);

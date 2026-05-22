@@ -5,6 +5,8 @@
 #include "transpiler_decl_lookup.h"
 #include "transpiler_domain_constructor_emit.h"
 #include "transpiler_enum.h"
+#include "transpiler_generic_class_specialization.h"
+#include "transpiler_generic_param_query.h"
 
 static char *
 emit_call_domain_constructor(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
@@ -16,7 +18,7 @@ emit_call_domain_constructor(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
     ASTNode *class_decl = find_class_decl(ctx, fn);
     if (class_decl != NULL && class_decl->type == AST_CLASS_DECL) {
         const char *ctor_type = fn;
-        if (class_has_generic_params(class_decl)) {
+        if (transpiler_class_has_generic_params(class_decl)) {
             ASTNode *synthetic_type = ast_create_type(fn);
             if (synthetic_type != NULL) {
                 const char *spec_name =

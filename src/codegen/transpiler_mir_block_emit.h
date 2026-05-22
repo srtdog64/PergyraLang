@@ -9,6 +9,7 @@
 #include "transpiler_mir_stmt_emit.h"
 #include "transpiler_mir_resource_op_emit.h"
 #include "transpiler_mir_assignment_emit.h"
+#include "transpiler_mir_local_type_ast_lookup.h"
 #include "transpiler_mir_reason.h"
 #include "../parser/ast_api.h"
 static bool

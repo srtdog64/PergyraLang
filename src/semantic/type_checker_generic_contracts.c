@@ -1,5 +1,10 @@
-#ifndef PGY_TYPE_CHECKER_GENERIC_CONTRACTS_H
-#define PGY_TYPE_CHECKER_GENERIC_CONTRACTS_H
+#include <stdlib.h>
+#include <string.h>
+
+#include "diag_codes.h"
+#include "type_checker_ability_match_internal.h"
+#include "type_checker_generic_diag_internal.h"
+#include "type_checker_internal.h"
 
 int
 find_generic_param_index(GenericParams *gp, const char *param_name)
@@ -457,5 +462,3 @@ validate_class_where_clause_specialization_ast(ASTNode *class_decl,
     }
     free(effective_types);
 }
-
-#endif /* PGY_TYPE_CHECKER_GENERIC_CONTRACTS_H */

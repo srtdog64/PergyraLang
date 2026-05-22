@@ -77,6 +77,8 @@ required_files=(
     "docs/124_syntax_pattern_matrix.md"
     "docs/125_source_of_truth_spine.md"
     "docs/129_tex_semantics_lessons.md"
+    "docs/130_c_backend_owner_migration_map.md"
+    "docs/131_ai_coding_atomic_units.md"
     "docs/37_compiler_contracts.md"
     "docs/42_keyword_orthogonality.md"
     "TODO.md"
@@ -90,6 +92,19 @@ for rel in "${required_files[@]}"; do
     validate_utf8_file "$ROOT_DIR/$rel"
 done
 validate_utf8_file "$ROOT_DIR/TODO.md"
+
+doc_number_prefixes="$(mktemp "${TMPDIR:-/tmp}/pgy-doc-prefixes.XXXXXX")"
+trap 'rm -f "$doc_number_prefixes"' EXIT
+for path in "$ROOT_DIR"/docs/[0-9][0-9][0-9]_*.md; do
+    [[ -e "$path" ]] || continue
+    file="$(basename "$path")"
+    prefix="${file:0:3}"
+    previous="$(grep "^$prefix " "$doc_number_prefixes" | head -n 1 || true)"
+    if [[ -n "$previous" ]]; then
+        fail "duplicate numbered docs prefix $prefix: ${previous#"$prefix "} and $file"
+    fi
+    printf '%s %s\n' "$prefix" "$file" >>"$doc_number_prefixes"
+done
 
 if [[ "$PGY_DOC_QUALITY_FULL_UTF8" == "1" ]]; then
     while IFS= read -r -d '' path; do
@@ -583,7 +598,8 @@ for term in "${beta_io_boundary_terms[@]}"; do
 done
 
 beta_progress_terms=(
-    "strict beta readiness is fixed at 67%"
+    "strict beta readiness is now about 70-72%"
+    "Do not call this 75% yet"
     "The five closure targets are:"
     "CFG/body safety source-of-truth"
     "AIR abstraction-boundary verification"

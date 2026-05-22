@@ -103,7 +103,7 @@ for path in \
     src/semantic/type_checker_slot_view_active.c \
     src/semantic/type_checker_func_decl.c \
     src/semantic/type_checker_flow_match.c \
-    src/semantic/type_checker_generic_contracts.h \
+    src/semantic/type_checker_generic_contracts.c \
     src/semantic/type_checker_func_action_contract.c \
     src/semantic/type_checker_enum_decl.c \
     src/semantic/type_checker_intent_authority.c \
@@ -339,7 +339,7 @@ for path in \
     src/semantic/slot_analyzer_escape.c \
     src/semantic/slot_analyzer_summary.c \
     src/semantic/type_checker_assignment.h \
-    src/semantic/type_checker_async_channel.h \
+    src/semantic/type_checker_async_channel.c \
     src/semantic/type_checker_async_decl.c \
     src/semantic/type_checker.c \
     src/semantic/type_checker_builtins_device_slot.c \
@@ -355,7 +355,7 @@ for path in \
     src/semantic/type_checker_event.c \
     src/semantic/type_checker_expr_names.c \
     src/semantic/type_checker_flow_match.c \
-    src/semantic/type_checker_generic_support.h \
+    src/semantic/type_checker_generic_support.c \
     src/semantic/type_checker_helpers_late.c \
     src/semantic/type_checker_host_helpers.c \
     src/semantic/type_checker_intent_contract_summary.c \
@@ -420,7 +420,7 @@ for path in \
     src/codegen/transpiler_call_constructor_result_emit.h \
     src/codegen/transpiler_call_result_option_builtin_emit.c \
     src/codegen/transpiler_channel_type_query.c \
-    src/codegen/transpiler_destructure_emit.h \
+    src/codegen/transpiler_destructure_emit.c \
     src/codegen/transpiler_domain_receiver_query.c \
     src/codegen/transpiler_event_builtin_emit.c \
     src/codegen/transpiler_expr_call_user_emit.h \
@@ -436,7 +436,7 @@ for path in \
     src/codegen/transpiler_generic_param_query.c \
     src/codegen/transpiler_helpers_core_b.h \
     src/codegen/transpiler_intent_context.c \
-    src/codegen/transpiler_lambda_emit.h \
+    src/codegen/transpiler_lambda_emit.c \
     src/codegen/transpiler_let_box_emit.h \
     src/codegen/transpiler_let_slot_emit.c \
     src/codegen/transpiler_match_emit.c \
@@ -448,7 +448,6 @@ for path in \
     src/codegen/transpiler_mir_local_type_lookup.h \
     src/codegen/transpiler_mir_match_condition_emit.c \
     src/codegen/transpiler_mir_pending_uses.h \
-    src/codegen/transpiler_mir_ssa_emit.h \
     src/codegen/transpiler_nominal.c \
     src/codegen/transpiler_parallel_capture.h \
     src/codegen/transpiler_projection_field_path.c \
@@ -731,13 +730,13 @@ if grep -R "data\.func_decl\.\(param_count\|params\|return_type\|body\)" \
     src/semantic/type_checker_ability_decl.c \
     src/semantic/type_checker_call_contract_helpers.c \
     src/semantic/type_checker_call_generic_where.c \
-    src/semantic/type_checker_async_channel.h \
+    src/semantic/type_checker_async_channel.c \
     src/semantic/type_checker_expr_host.c \
     src/semantic/type_checker_expr_call.c \
     src/semantic/type_checker_expr_ops.c \
     src/semantic/type_checker_func_action_contract.c \
     src/semantic/type_checker_func_decl.c \
-    src/semantic/type_checker_generic_support.h \
+    src/semantic/type_checker_generic_support.c \
     src/semantic/type_checker_helpers_effects.c \
     src/semantic/type_checker_helpers_late.c \
     src/semantic/type_checker_host_helpers.c \
@@ -806,7 +805,6 @@ if grep -R "data\.func_decl\.\(param_count\|params\|return_type\|body\)" \
     src/codegen/transpiler_mir_local_type_lookup.h \
     src/codegen/transpiler_mir_match_condition_emit.c \
     src/codegen/transpiler_mir_signature.c \
-    src/codegen/transpiler_mir_ssa_emit.h \
     src/codegen/transpiler_projection_method_invalidation.c \
     src/codegen/transpiler_spawn_channel_emit.h \
     src/codegen/transpiler_specialization_registry.h \
@@ -893,7 +891,7 @@ if grep -R "data\.call\.\(callee\|arguments\|arg_count\)" \
 fi
 
 if grep -R "data\.call\.\(callee\|arguments\|arg_count\)" \
-    src/semantic/type_checker_async_channel.h \
+    src/semantic/type_checker_async_channel.c \
     src/semantic/type_checker_builtins_channel_state.c \
     src/semantic/type_checker_builtins_intent_observability.c >/dev/null; then
     fail "semantic async/channel/observability call owners must use AST call accessors"
@@ -1051,7 +1049,6 @@ if grep -R "data\.call\.\(callee\|arguments\|arg_count\)" \
     src/codegen/transpiler_mir_destructure_emit.h \
     src/codegen/transpiler_mir_match_condition_emit.c \
     src/codegen/transpiler_mir_local_type_lookup.h \
-    src/codegen/transpiler_mir_ssa_emit.h \
     src/codegen/transpiler_mir_ssa_contract.h \
     src/codegen/transpiler_parallel_capture.h \
     src/codegen/transpiler_projection_method_invalidation.c \
@@ -1130,18 +1127,17 @@ if grep -R "data\.type\.\(name\|generic_args\)" \
     src/codegen/transpiler_let_emit.h \
     src/codegen/transpiler_let_box_emit.h \
     src/codegen/transpiler_let_slot_emit.c \
-    src/codegen/transpiler_mir_ssa_emit.h \
     src/codegen/transpiler_overlay_projection.c \
     src/codegen/transpiler_projection.c \
     src/codegen/transpiler_projection_method_invalidation.c \
     src/codegen/transpiler_projection_sync.h \
     src/codegen/transpiler_specialization_registry.h \
     src/codegen/transpiler_type_render.c \
-    src/semantic/type_checker_async_channel.h \
+    src/semantic/type_checker_async_channel.c \
     src/semantic/type_checker_builtins_query_domain.c \
     src/semantic/type_checker_call_generic_where.c \
     src/semantic/type_checker_domain_role_lookup.c \
-    src/semantic/type_checker_generic_contracts.h \
+    src/semantic/type_checker_generic_contracts.c \
     src/semantic/type_checker_generic_validation.c \
     src/semantic/type_checker_helpers_late.c \
     src/semantic/type_checker_intent_helpers.c \
@@ -1936,7 +1932,7 @@ fi
 
 for path in \
     src/semantic/symbol_table.c \
-    src/semantic/type_checker_async_channel.h \
+    src/semantic/type_checker_async_channel.c \
     src/semantic/type_checker_event.c \
     src/semantic/type_checker_expr.c \
     src/semantic/type_checker_expr_call.c \
@@ -1982,6 +1978,15 @@ fi
 
 if grep -R "resolve_type_node(" src/semantic/type_checker_resolution_graph_*.c >/dev/null; then
     fail "DAG graph core/precollect layer must not call resolve_type_node directly"
+fi
+
+if ! grep -Fq "semantic_assignment_path_release(owner, base)" \
+    src/semantic/type_checker_assignment_path.c; then
+    fail "assignment target path must release through owner-aware wrapper"
+fi
+
+if grep -Fq "free(base)" src/semantic/type_checker_assignment_path.c; then
+    fail "assignment target path must not directly free base path strings"
 fi
 
 echo "[semantic-core-shape] semantic owner boundaries ok"

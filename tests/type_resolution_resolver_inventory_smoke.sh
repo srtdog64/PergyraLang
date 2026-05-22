@@ -418,7 +418,7 @@ fi
 
 direct_metadata_type_ref_users="$(
   grep -RIn 'semantic_type_resolution_lookup_metadata_type_ref(ctx' src/semantic \
-    | grep -Ev 'src/semantic/type_checker_generic_contracts\.h' \
+    | grep -Ev 'src/semantic/type_checker_generic_contracts\.c' \
     | grep -Ev 'src/semantic/type_checker_generic_effective_args\.c' \
     | grep -Ev 'src/semantic/type_checker_generic_validation\.c' \
     | grep -Ev 'src/semantic/type_checker_program\.c' \
@@ -497,8 +497,8 @@ grep -q 'ast_generic_param_count' \
 }
 
 for generic_owner in \
-  src/semantic/type_checker_generic_support.h \
-  src/semantic/type_checker_generic_contracts.h \
+  src/semantic/type_checker_generic_support.c \
+  src/semantic/type_checker_generic_contracts.c \
   src/semantic/type_checker_ability_ref.c \
   src/semantic/type_checker_ability_match.c \
   src/semantic/type_checker_ability_where.c; do
@@ -510,13 +510,13 @@ for generic_owner in \
 done
 
 grep -q 'ast_generic_param_count' \
-  src/semantic/type_checker_generic_support.h || {
+  src/semantic/type_checker_generic_support.c || {
   echo "[type-resolution-resolver-inventory] generic support lost GenericParams accessor seam" >&2
   exit 1
 }
 
 if grep -nE 'ast_type_generic_args\([^)]*\)->(count|params)\b' \
-  src/semantic/type_checker_generic_contracts.h; then
+  src/semantic/type_checker_generic_contracts.c; then
   echo "[type-resolution-resolver-inventory] generic contracts reopened type generic-args storage directly" >&2
   exit 1
 fi

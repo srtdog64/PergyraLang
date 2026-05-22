@@ -37,13 +37,6 @@ static void emit_func_decl_from_mir_named(ASTNode *node,
                                           const char *emitted_name,
                                           CodeBuf *buf,
                                           TranspilerCtx *ctx);
-static char *transpiler_render_effective_local_type_name(TranspilerCtx *ctx,
-                                                         ASTNode *type_node);
-/* Forward declarations for generic class monomorphization */
-static bool class_has_generic_params(ASTNode *node);
-static const char *ensure_generic_class_specialization(
-    TranspilerCtx *ctx, ASTNode *class_decl, ASTNode *ann);
-
 /* -----------------------------------------------------------------
  * Let declaration emitter
  * ----------------------------------------------------------------- */

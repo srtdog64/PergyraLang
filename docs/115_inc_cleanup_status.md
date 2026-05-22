@@ -1131,10 +1131,10 @@ in `src/codegen/llvm_decl_routines.c` at 106 LOC, so
 - `src/runtime/pgy_runtime_lib_list_raw_exports.h` now owns LLVM-linkable raw
   `List<T>` collection exports. Runtime lib part A is now focused on raw queue
   and map exports instead of carrying all raw collection families together.
-- `src/codegen/transpiler_destructure_emit.h` now owns C backend
-  `let`-destructuring statement lowering. The base-B statement dispatcher keeps
-  the same switch surface but no longer carries tuple/array destructuring
-  lowering inline.
+- `src/codegen/transpiler_destructure_emit.c` now owns C backend
+  `let`-destructuring statement lowering. The declaration-only header keeps
+  the base-B statement dispatcher surface stable, but tuple/array destructuring
+  lowering no longer depends on include order.
 - `src/runtime/pgy_runtime_queue_inline.h` now owns generated-C inline queue
   macro and built-in `Int`/`String` queue implementations. Runtime part E is no
   longer a mixed queue/pool/FSM/authority/result include body.
@@ -1438,11 +1438,13 @@ Observed results:
   `make runtime-abi-lifetime-test-smoke test-abi`, and touched path
   `git diff --check`.
 - Latest C backend destructuring extraction moved `AST_LET_DESTRUCTURE`
-  lowering into `src/codegen/transpiler_destructure_emit.h`, reducing
+  lowering into `src/codegen/transpiler_destructure_emit.c`, superseding the
+  temporary implementation header and keeping `transpiler_destructure_emit.h`
+  declaration-only. The original extraction reduced
   `src/codegen/transpiler_emitters_base_b_part_c.inc` from 976 LOC to 873 LOC.
-  Verified by `make pgy backend-inc-size-test-smoke inc-sentinel-test-smoke`,
-  targeted backend compare for `destructure_array` and
-  `destructure_tuple_return`, and touched path `git diff --check`.
+  Verified by `test-transpile`, `perf-contract-test-smoke`,
+  `semantic-core-shape-test-smoke`, `test-inc-size-test-smoke`, and
+  `build-source-inventory-test-smoke`.
 - Latest generated-C queue extraction moved queue macro and built-in queue
   implementations into `src/runtime/pgy_runtime_queue_inline.h`, reducing
   `src/runtime/pgy_runtime_part_ba_part_e.inc` from 969 LOC to 773 LOC.
@@ -1826,13 +1828,12 @@ Observed results:
   and HIR CFG enrichment now have a named owner while `rir.c` preserves include
   order; the current production source `.inc` inventory is 81 files /
   21,877 LOC.
-- Latest C backend MIR SSA emit cleanup moved the former
-  `src/codegen/transpiler_emitters_mir_inventory_ssa_emit.inc` body into
-  `src/codegen/transpiler_mir_ssa_emit.h`. MIR local type lookup, explicit
-  binding registration, MIR function signature support checks, SSA expression
-  emission, phi copy emission, and exit-SSA lookup now have a named owner while
-  the MIR inventory/SSA shim preserves include order; the current production
-  source `.inc` inventory is 80 files / 21,313 LOC.
+- Later C backend MIR SSA cleanup retired
+  `src/codegen/transpiler_mir_ssa_emit.h` after moving MIR local type lookup,
+  explicit binding registration, effective local type rendering, MIR function
+  signature checks, SSA expression emission, phi copy emission, and exit-SSA
+  lookup behind concrete owners. MIR inventory/SSA consumers now include the
+  owners they use directly instead of preserving a compatibility shim.
 - Latest generated-C channel runtime cleanup moved the former
   `src/runtime/pgy_runtime_part_bb.inc` body into
   `src/runtime/pgy_runtime_channel_inline.h`. Threaded channel and SPSC channel
@@ -1970,11 +1971,11 @@ Observed results:
   inventory is 62 files / 12,066 LOC.
 - Latest semantic generic-contract cleanup moved the former
   `src/semantic/type_checker_generic_contracts.inc` body into
-  `src/semantic/type_checker_generic_contracts.h`. Generic parameter lookup,
+  `src/semantic/type_checker_generic_contracts.c`. Generic parameter lookup,
   default-bound validation, and class-specialization where-bound validation now
-  have a named private owner while `type_checker_generic_support.h` preserves
-  include order. The current production source `.inc` inventory is 61 files /
-  11,663 LOC.
+  have a compiled owner instead of relying on `type_checker.c` include order.
+  The historical production source `.inc` inventory at that extraction point
+  was 61 files / 11,663 LOC.
 - Latest LLVM member-call cleanup moved the former
   `src/codegen/llvm_expr_call_methods_part_b.inc` body into
   `src/codegen/llvm_member_call_emit.h`. `llvm_emit_member_call()` and nominal
@@ -2009,10 +2010,12 @@ Observed results:
   9,753 LOC.
 - Latest semantic async/channel cleanup moved the former
   `src/semantic/type_checker_async_channel.inc` body into
-  `src/semantic/type_checker_async_channel.h`. Spawn token boundary checks and
-  channel send/recv ownership diagnostics now have a named private owner while
-  `type_checker.c` preserves include order. The current production source
-  `.inc` inventory is 55 files / 9,384 LOC.
+  a named owner, and that owner has since been promoted from the temporary
+  `src/semantic/type_checker_async_channel.h` implementation header into
+  `src/semantic/type_checker_async_channel.c`. Spawn token boundary checks and
+  channel send/recv ownership diagnostics now compile independently instead of
+  depending on `type_checker.c` include order. The historical production source
+  `.inc` inventory at this step was 55 files / 9,384 LOC.
 - Latest LLVM scalar-expression cleanup moved the former
   `src/codegen/llvm_expr_core.inc` body into
   `src/codegen/llvm_expr_scalar_core.h`. Callable/event signature helpers,
@@ -2022,10 +2025,11 @@ Observed results:
   LOC.
 - Latest semantic generic-support cleanup moved the former
   `src/semantic/type_checker_generic_support.inc` body into
-  `src/semantic/type_checker_generic_support.h`. Generic subject signature
-  formatting and effective default generic argument derivation now have a named
-  private owner while `type_checker.c` preserves include order. The current
-  production source `.inc` inventory is 53 files / 8,666 LOC.
+  `src/semantic/type_checker_generic_support.c`. Generic subject signature
+  formatting and effective default generic argument derivation now have a
+  compiled owner instead of relying on `type_checker.c` include order. The
+  historical production source `.inc` inventory at that extraction point was
+  53 files / 8,666 LOC.
 - Latest LLVM domain projection-sync cleanup moved the former
   `src/codegen/llvm_domain_helpers_part_b.inc` body into
   `src/codegen/llvm_domain_projection_sync_helpers.h`. Projection field-copy
@@ -2149,7 +2153,8 @@ Observed results:
   `.inc` inventory is 25 files / 1,675 LOC.
 - Latest helper/call owner cleanup moved
   `src/semantic/type_checker_helpers_context.inc` into
-  `src/semantic/type_checker_context_helpers.h`,
+  `src/semantic/type_checker_context_helpers.h` (later promoted to
+  `src/semantic/type_checker_context_helpers.c`),
   `src/codegen/llvm_expr_call_log.inc` into
   `src/codegen/llvm_expr_log_calls.h`,
   `src/codegen/llvm_expr_call_arrays.inc` into

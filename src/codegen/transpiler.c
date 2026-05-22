@@ -65,10 +65,6 @@ static bool transpiler_has_mapping_for_all_emitted_blocks(const TranspilerCtx *c
                                                         bool require_non_cleanup,
                                                         char *reason,
                                                         size_t reason_cap);
-static bool class_has_generic_params(ASTNode *node);
-static const char *ensure_generic_class_specialization(
-    TranspilerCtx *ctx, ASTNode *class_decl, ASTNode *ann);
-
 #include "transpiler_helpers.h"
 #include "transpiler_defer_emit.h"
 #include "transpiler_base_a_emitters.h"
@@ -415,5 +411,3 @@ emit_event_invoke(ASTNode *node, TranspilerCtx *ctx)
     (void)node;
     (void)ctx;
 }
-
-#include "transpiler_lambda_emit.h"

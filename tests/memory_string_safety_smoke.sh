@@ -369,20 +369,36 @@ require_literal "src/codegen/transpiler_async_parallel_emit.h" \
     "transpiler_capture_surface_desc"
 require_literal "src/codegen/transpiler_async_parallel_emit.h" \
     "transpiler_capture_surface_desc_too_long"
-require_literal "src/codegen/transpiler_generic_class_specialization_emit.h" \
+require_literal "src/codegen/transpiler_expr_call_spawn_emit.h" \
+    "pergyra_str_copy(stable_type_name"
+require_literal "src/codegen/transpiler_expr_call_spawn_emit.h" \
+    "nominal receiver type name is too long"
+require_literal "src/codegen/transpiler_generic_class_naming.c" \
     "transpiler_generic_class_method_name"
-require_literal "src/codegen/transpiler_generic_class_specialization_emit.h" \
+require_literal "src/codegen/transpiler_generic_class_naming.c" \
     "transpiler_generic_class_copy_name"
-require_literal "src/codegen/transpiler_generic_class_specialization_emit.h" \
+require_literal "src/codegen/transpiler_generic_class_naming.c" \
     "transpiler_generic_class_surface_desc"
-require_literal "src/codegen/transpiler_generic_class_specialization_emit.h" \
+require_literal "src/codegen/transpiler_generic_class_naming.c" \
     "transpiler_generic_class_format_too_long"
+require_literal "src/codegen/transpiler_generic_class_naming.c" \
+    "transpiler_generic_class_specialization_name"
+require_literal "src/codegen/transpiler_generic_class_naming.c" \
+    "append_mangled_type_name"
 require_literal "src/codegen/transpiler_specialization_registry.c" \
     "transpiler_specialization_copy_spec_name"
 require_literal "src/codegen/transpiler_specialization_registry.c" \
     "transpiler_specialization_append_spec_text"
 require_literal "src/codegen/transpiler_specialization_registry.c" \
     "transpiler_specialization_spec_name_too_long"
+require_literal "src/codegen/transpiler_generic_specialization_emit.c" \
+    "transpiler_generic_specialization_copy_name"
+require_literal "src/codegen/transpiler_generic_specialization_emit.c" \
+    "transpiler_generic_specialization_name_too_long"
+if grep -Fq "pergyra_str_copy(entry->specialized_name" \
+    "$ROOT_DIR/src/codegen/transpiler_generic_specialization_emit.c"; then
+    fail "generic function specialization names must reject overlong names instead of truncating"
+fi
 require_literal "src/codegen/transpiler_control_flow_emit.c" \
     "transpiler_loop_label_name"
 require_literal "src/codegen/transpiler_mir_reason.h" \

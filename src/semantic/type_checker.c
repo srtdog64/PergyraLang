@@ -26,41 +26,12 @@
 #include "type_checker_ability_where_internal.h"
 #include "slot_analyzer.h"
 
-#define INITIAL_DIAG_CAPACITY 16
-
-char *
-format_generic_subject_signature(const char *name, GenericParams *params);
-static const char *
-format_generic_subject_signature_scratch(SemanticContext *ctx,
-                                         const char *name,
-                                         GenericParams *params);
-static char *
-format_effective_generic_type_list(const char *name, Type **types, size_t count);
-/* format_effective_generic_type_list_scratch is declared in type_checker_internal.h
- * (promoted to external linkage for the helpers_late.c TU). */
-ASTNode **
-collect_effective_generic_arg_nodes(GenericParams *decl_params,
-                                    GenericParams *provided_args,
-                                    const ASTNode *site,
-                                    SemanticContext *ctx,
-                                    const char *owner_kind,
-                                    const char *owner_name,
-                                    size_t *out_count);
-int
-find_generic_param_index(GenericParams *gp, const char *param_name);
-bool
-concrete_type_satisfies_bound(Type *concrete_type, ASTNode *bound_node,
-                              SemanticContext *ctx);
-
-/* Helper owner headers (tc_strdup_fmt, ownership/qubit helpers, etc).
+/* Helper owner headers (ownership/qubit helpers, etc).
  * Former wrapper include chains were deleted once the helpers_late.c TU went
  * out. */
-#include "type_checker_context_helpers.h"
 #include "type_checker_helpers_effects.h"
 /* type_checker_visibility was promoted to type_checker_visibility.{h,c}
  * (P1 axis 1).  See docs/92_inc_split_roadmap.md. */
-
-#include "type_checker_generic_support.h"
 
 #include "type_checker_expr.h"
 #include "type_checker_assignment.h"
@@ -74,8 +45,6 @@ type_check_parallel_block(ASTNode *node, SemanticContext *ctx)
 
 /* type_check_ability_decl body moved to type_checker_ability_decl.c.
  * See docs/101_semantic_split_template.md. */
-
-#include "type_checker_async_channel.h"
 
 bool
 type_check_statement(ASTNode *node, SemanticContext *ctx)

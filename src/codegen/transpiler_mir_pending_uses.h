@@ -4,6 +4,7 @@
 #include "transpiler_mir_reason.h"
 
 #include "transpiler_mir_expr_ssa.h"
+#include "transpiler_mir_local_type_ast_lookup.h"
 #include "../parser/ast_api.h"
 
 typedef struct TranspilerMirPendingBinding {

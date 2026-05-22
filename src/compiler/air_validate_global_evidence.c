@@ -17,6 +17,12 @@ air_evidence_kind_is_global(AIREvidenceKind kind)
 }
 
 static bool
+air_global_evidence_kind_has_validator(AIREvidenceKind kind)
+{
+    return air_evidence_kind_has_global_validator(kind);
+}
+
+static bool
 air_validate_mir_global_evidence(const AIREvidenceNode *evidence,
                                  size_t evidence_index,
                                  char **error_message)
@@ -233,7 +239,7 @@ air_validate_global_evidence_node(const AIREvidenceNode *evidence,
 {
     if (evidence == NULL)
         return false;
-    if (!air_evidence_kind_has_global_validator(evidence->kind)) {
+    if (!air_global_evidence_kind_has_validator(evidence->kind)) {
         air_set_invariant_error(error_message,
                                 "AIR global evidence node %zu has no global validator for kind '%s'",
                                 evidence_index,

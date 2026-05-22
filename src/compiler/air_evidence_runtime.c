@@ -28,12 +28,12 @@ air_find_runtime_evidence(const AIRProgram *air,
 }
 
 static bool
-air_collect_singleton_runtime_evidence(AIRProgram *air,
-                                       AIREvidenceKind kind,
-                                       const char *provider_name,
-                                       const char *subject_name,
-                                       size_t fact_count,
-                                       char **error_message)
+air_collect_singleton_global_evidence(AIRProgram *air,
+                                      AIREvidenceKind kind,
+                                      const char *provider_name,
+                                      const char *subject_name,
+                                      size_t fact_count,
+                                      char **error_message)
 {
     const AIREvidenceNode *existing;
 
@@ -68,6 +68,22 @@ air_collect_singleton_runtime_evidence(AIRProgram *air,
         return false;
     }
     return true;
+}
+
+static bool
+air_collect_singleton_runtime_evidence(AIRProgram *air,
+                                       AIREvidenceKind kind,
+                                       const char *provider_name,
+                                       const char *subject_name,
+                                       size_t fact_count,
+                                       char **error_message)
+{
+    return air_collect_singleton_global_evidence(air,
+                                                kind,
+                                                provider_name,
+                                                subject_name,
+                                                fact_count,
+                                                error_message);
 }
 
 bool

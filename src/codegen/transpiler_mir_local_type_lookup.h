@@ -6,7 +6,14 @@
 
 #include "../parser/ast_api.h"
 
+#include "codegen_slot_type_policy.h"
+#include "transpiler_decl_lookup.h"
+#include "transpiler_expr_type_infer.h"
 #include "transpiler_let_slot_emit.h"
+#include "transpiler_mir_effective_type.h"
+#include "transpiler_nominal.h"
+#include "transpiler_symbols.h"
+#include "transpiler_type_render.h"
 
 /* Consumed from transpiler_mir_ssa_names.h. Keep slot claim vocabulary in the
  * shared codegen slot policy instead of repeating raw builtin strings here. */
@@ -28,6 +35,11 @@ transpiler_mir_arena_render_type_name(TranspilerCtx *ctx,
         return NULL;
     return pgy_arena_fmt(&ctx->arena, "%s<%s>", prefix, inner);
 }
+
+static const char *
+transpiler_find_local_type_name(TranspilerCtx *ctx,
+                                const ASTNode *func_decl,
+                                const char *base_name);
 
 static const char *
 transpiler_infer_local_type_name_from_expr(TranspilerCtx *ctx,
@@ -357,6 +369,94 @@ transpiler_find_local_type_name_in_block(TranspilerCtx *ctx,
             ctx, func_decl, ast_select_default_case(body), base_name);
     }
     return NULL;
+}
+
+static const char *
+transpiler_lookup_current_owner_member_type_name(TranspilerCtx *ctx,
+                                                 const char *member_name)
+{
+    const char *member_type = NULL;
+    const char *host_name = NULL;
+    ASTNode *host_decl = NULL;
+
+    if (ctx == NULL || member_name == NULL)
+        return NULL;
+
+    host_decl = transpiler_current_host_decl_local(ctx);
+    if (host_decl != NULL) {
+        switch (host_decl->type) {
+        case AST_CLASS_DECL:
+            host_name = ast_class_name(host_decl);
+            break;
+        case AST_RELATION_DECL:
+            host_name = ast_relation_name(host_decl);
+            break;
+        case AST_EFFECT_DECL:
+            host_name = ast_effect_name(host_decl);
+            break;
+        case AST_ZONE_DECL:
+            host_name = ast_zone_name(host_decl);
+            break;
+        case AST_WORLD_DECL:
+            host_name = ast_world_name(host_decl);
+            break;
+        default:
+            break;
+        }
+        if (host_name != NULL) {
+            member_type = transpiler_lookup_nominal_host_member_type_name(ctx,
+                host_name, member_name);
+            if (member_type != NULL)
+                return member_type;
+        }
+    }
+
+    return NULL;
+}
+
+static const char *
+transpiler_find_local_type_name(TranspilerCtx *ctx,
+                                const ASTNode *func_decl,
+                                const char *base_name)
+{
+    const char *typed_name = NULL;
+
+    if (base_name == NULL)
+        return NULL;
+    if (ctx != NULL) {
+        typed_name = lookup_typed_var(ctx, base_name);
+        if (typed_name != NULL && strcmp(typed_name, "Unknown") != 0)
+            return typed_name;
+    }
+    if (func_decl == NULL || func_decl->type != AST_FUNC_DECL)
+        return transpiler_lookup_current_owner_member_type_name(ctx, base_name);
+    size_t param_count = ast_func_param_count(func_decl);
+    for (size_t i = 0; i < param_count; i++) {
+        FuncParam *p = ast_func_param(func_decl, i);
+        if (p != NULL && p->name != NULL && strcmp(p->name, base_name) == 0 && p->type != NULL) {
+            char *owned_param =
+                transpiler_render_effective_local_type_name(ctx, p->type);
+            const char *rendered_param =
+                transpiler_mir_arena_copy_type_name(ctx, owned_param);
+            if (rendered_param == NULL) {
+                free(owned_param);
+                return NULL;
+            }
+            free(owned_param);
+            if (ctx != NULL)
+                register_typed_var(ctx, base_name, rendered_param);
+            return rendered_param;
+        }
+    }
+    typed_name = transpiler_find_local_type_name_in_block(ctx, func_decl,
+        ast_func_body(func_decl), base_name);
+    if (typed_name != NULL) {
+        if (ctx != NULL)
+            register_typed_var(ctx, base_name, typed_name);
+        return typed_name;
+    }
+
+    return transpiler_lookup_current_owner_member_type_name(ctx, base_name);
 }
 
 #endif /* PGY_TRANSPILER_MIR_LOCAL_TYPE_LOOKUP_H */

@@ -72,7 +72,7 @@ its own ecosystem.
 - `../00_vision.md` - beta then self-hosting decision.
 - `../117_backend_strategy_positioning.md` - why full self-host is deferred.
 - `../120_vision_and_capability_audit.md` - self-host claims allowed/forbidden.
-- `../124_ai_coding_atomic_units.md` - intent-verification pair workflow.
+- `../131_ai_coding_atomic_units.md` - intent-verification pair workflow.
 - `../100_beta_readiness_checklist.md` - beta gates that must close first.
 - `04_beta_exit_handoff.md` - exact handoff checklist from beta closure to
   soft self-host.
