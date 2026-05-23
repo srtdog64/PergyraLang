@@ -50,7 +50,10 @@ semantic_validate_function_call_generic_where(ASTNode *expr,
             ASTNode *default_type = ast_generic_param_default_type(gp);
             if (default_type != NULL) {
                 effective_generic_types[gi] =
-                    domain_resolve_type_ref(default_type, ctx);
+                    semantic_type_resolution_lookup_metadata_type_ref(
+                        ctx, default_type);
+                if (effective_generic_types[gi] == NULL)
+                    effective_generic_types[gi] = TYPE_UNKNOWN;
             }
         }
         for (size_t ai = 0; ai < provided; ai++) {

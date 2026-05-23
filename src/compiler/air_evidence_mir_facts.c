@@ -158,37 +158,3 @@ air_mir_select_receive_evidence_kind(void)
 {
     return AIR_EVIDENCE_MIR_SELECT_RECEIVE;
 }
-
-static const AIREvidenceNode *
-air_find_global_evidence_provider_subject(const AIRProgram *air,
-                                          AIREvidenceKind kind,
-                                          const char *provider_name,
-                                          const char *subject_name)
-{
-    if (air == NULL)
-        return NULL;
-    for (size_t i = 0; i < air_evidence_node_count(air); i++) {
-        const AIREvidenceNode *node = air_evidence_node_at(air, i);
-        if (node == NULL)
-            continue;
-        if (node->kind == kind
-            && node->boundary_index == SIZE_MAX
-            && air_name_matches(node->provider_name, provider_name)
-            && air_name_matches(node->subject_name, subject_name)) {
-            return node;
-        }
-    }
-    return NULL;
-}
-
-bool
-air_has_global_evidence_provider_subject(const AIRProgram *air,
-                                         AIREvidenceKind kind,
-                                         const char *provider_name,
-                                         const char *subject_name)
-{
-    return air_find_global_evidence_provider_subject(air,
-                                                     kind,
-                                                     provider_name,
-                                                     subject_name) != NULL;
-}

@@ -65,6 +65,38 @@ intent_step_single_who_alias(const ASTNode *step)
 }
 
 bool
+intent_step_set_where_type_name(ASTNode *step,
+                                const char *zone_name,
+                                IntentStepWhereProvenance provenance)
+{
+    ASTNode *where_type;
+
+    if (step == NULL || step->type != AST_INTENT_STEP || zone_name == NULL)
+        return false;
+
+    where_type = ast_create_type(zone_name);
+    if (where_type == NULL)
+        return false;
+    if (!ast_intent_step_set_where_type(step, where_type)) {
+        ast_destroy(where_type);
+        return false;
+    }
+
+    switch (provenance) {
+    case INTENT_STEP_WHERE_PROVENANCE_INHERITED_ACTION:
+        ast_intent_step_mark_inherited_where_from_action(step);
+        break;
+    case INTENT_STEP_WHERE_PROVENANCE_DERIVED_USING:
+        ast_intent_step_mark_derived_where_from_using(step);
+        break;
+    case INTENT_STEP_WHERE_PROVENANCE_DERIVED_TRANSFER:
+        ast_intent_step_mark_derived_where_from_transfer(step);
+        break;
+    }
+    return true;
+}
+
+bool
 intent_condition_is_bool(ASTNode *expr, SemanticContext *ctx, const char *label)
 {
     Type *ty;

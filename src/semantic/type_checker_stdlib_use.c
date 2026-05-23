@@ -8,7 +8,7 @@
 #include <string.h>
 
 #include "diag_codes.h"
-#include "type_checker_stdlib_use_internal.h"
+#include "type_checker.h"
 
 static bool
 semantic_is_known_stdlib_use_module(const char *module_name)
@@ -38,7 +38,7 @@ semantic_is_known_stdlib_use_module(const char *module_name)
     return false;
 }
 
-void
+static void
 validate_stdlib_use_decl(ASTNode *stmt, SemanticContext *ctx)
 {
     if (stmt == NULL || stmt->type != AST_USE_DECL || ctx == NULL
@@ -72,4 +72,11 @@ validate_stdlib_use_decl(ASTNode *stmt, SemanticContext *ctx)
             break;
         }
     }
+}
+
+bool
+type_check_use_decl(ASTNode *node, SemanticContext *ctx)
+{
+    validate_stdlib_use_decl(node, ctx);
+    return ctx == NULL || !ctx->has_error;
 }

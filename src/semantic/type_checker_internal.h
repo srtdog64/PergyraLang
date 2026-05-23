@@ -36,6 +36,10 @@ ASTNode *semantic_lookup_function_param_contract(SemanticContext *ctx,
 unsigned semantic_callable_param_escape_summary(ASTNode *callee_decl,
                                                 size_t arg_index,
                                                 SemanticContext *ctx);
+bool semantic_param_summary_has_any_escape(unsigned summary_mask);
+bool semantic_param_summary_has_return_escape(unsigned summary_mask);
+bool semantic_param_summary_has_channel_escape(unsigned summary_mask);
+bool semantic_param_summary_has_call_escape(unsigned summary_mask);
 void semantic_validate_function_call_generic_where(ASTNode *expr,
                                                    SemanticContext *ctx,
                                                    const char *display_name,
@@ -97,6 +101,8 @@ Type *type_check_func_resolve_param_type(FuncParam *param,
                                          SemanticContext *ctx);
 Type *type_check_func_resolve_return_type(ASTNode *func_decl,
                                           SemanticContext *ctx);
+Type *type_check_signature_resolve_type_ref(ASTNode *type_ref,
+                                            SemanticContext *ctx);
 const char *type_check_func_current_implicit_self_host_name(
     SemanticContext *ctx);
 bool type_check_func_symbol_is_self_host(Symbol *sym);
@@ -121,6 +127,7 @@ Type *expr_type_for_enum_payload_field(SemanticContext *ctx,
                                        ASTNode *site,
                                        const Type *payload_type,
                                        const char *field_name);
+Type *semantic_host_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx);
 ASTNode *semantic_host_decl_for_type(SemanticContext *ctx, const Type *type);
 ASTNode **semantic_host_decl_methods(ASTNode *decl, size_t *method_count);
 bool expr_type_is_nominal_host_type(const Type *type,
@@ -227,7 +234,16 @@ bool semantic_stage_should_defer_to_graph(ASTNode *type_node,
 void semantic_stage_record_alias_diagnostic_unresolved(ASTNode *alias_decl,
                                                        SemanticContext *ctx);
 const char *semantic_symbol_kind_label(SymbolKind kind);
+typedef enum IntentStepWhereProvenance {
+    INTENT_STEP_WHERE_PROVENANCE_INHERITED_ACTION,
+    INTENT_STEP_WHERE_PROVENANCE_DERIVED_USING,
+    INTENT_STEP_WHERE_PROVENANCE_DERIVED_TRANSFER
+} IntentStepWhereProvenance;
+
 const char *intent_step_single_who_alias(const ASTNode *step);
+bool intent_step_set_where_type_name(ASTNode *step,
+                                     const char *zone_name,
+                                     IntentStepWhereProvenance provenance);
 ASTNode *find_intent_involves_local(ASTNode *intent, const char *alias);
 ASTNode *find_intent_value_local(ASTNode *intent, const char *alias);
 ASTNode *intent_step_resolve_transfer_target_involves(
@@ -259,10 +275,9 @@ const char *find_action_binding_type_name(ASTNode *func,
 bool zone_has_authority_for_subject_type(ASTNode *zone,
                                          SemanticContext *ctx,
                                          const char *type_name);
-Type *domain_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx);
-Type *domain_resolve_slot_type(ASTNode *slot, SemanticContext *ctx);
-Type *domain_resolve_shared_type(ASTNode *shared, SemanticContext *ctx);
-Type *domain_resolve_named_type_ref(ASTNode *type_ref, SemanticContext *ctx);
+Type *domain_lookup_slot_type_metadata(ASTNode *slot, SemanticContext *ctx);
+Type *domain_lookup_shared_type_metadata(ASTNode *shared, SemanticContext *ctx);
+Type *domain_lookup_named_type_metadata(ASTNode *type_ref, SemanticContext *ctx);
 ASTNode *find_domain_slot_local(ASTNode **slots,
                                 size_t slot_count,
                                 const char *slot_name);
@@ -484,7 +499,7 @@ int resolve_projection_source_field_path(ASTNode *program_root,
                                          ASTNode *source_decl,
                                          const char *field_name,
                                          SemanticContext *ctx,
-                                         char **path_out,
+                                         const char **path_out,
                                          Type **field_type_out);
 void semantic_type_resolution_precollect_event_inventory(ASTNode *event_decl,
                                                          SemanticContext *ctx);

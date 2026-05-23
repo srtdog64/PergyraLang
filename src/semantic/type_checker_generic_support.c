@@ -243,7 +243,7 @@ identifier_is_borrowed_boundary_param(ASTNode *expr, SemanticContext *ctx)
         if (strcmp(param->name, ident_name) != 0)
             continue;
 
-        param_type = domain_resolve_type_ref(param->type, ctx);
+        param_type = type_check_func_resolve_param_type(param, ctx);
         return type_is_general_boundary_type(param_type, ctx);
     }
 

@@ -13,7 +13,7 @@ action_contract_resolve_domain_slot_type(ASTNode *slot, SemanticContext *ctx)
 {
     if (slot == NULL || slot->type != AST_DOMAIN_SLOT)
         return TYPE_UNKNOWN;
-    return domain_resolve_slot_type(slot, ctx);
+    return domain_lookup_slot_type_metadata(slot, ctx);
 }
 
 static Type *
@@ -21,7 +21,7 @@ action_contract_resolve_param_type(FuncParam *param, SemanticContext *ctx)
 {
     if (param == NULL || param->type == NULL)
         return TYPE_UNKNOWN;
-    return domain_resolve_type_ref(param->type, ctx);
+    return type_check_func_resolve_param_type(param, ctx);
 }
 
 static bool

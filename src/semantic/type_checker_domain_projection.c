@@ -107,8 +107,8 @@ type_check_projection_contract(ASTNode **slots,
             object_slot_name != NULL ? object_slot_name : "<slot>");
         return true;
     }
-    target_type = domain_resolve_slot_type(object_slot, ctx);
-    source_type = domain_resolve_slot_type(source_slot, ctx);
+    target_type = domain_lookup_slot_type_metadata(object_slot, ctx);
+    source_type = domain_lookup_slot_type_metadata(source_slot, ctx);
     if (target_type == NULL || source_type == NULL
         || target_type == TYPE_UNKNOWN || source_type == TYPE_UNKNOWN) {
         return true;

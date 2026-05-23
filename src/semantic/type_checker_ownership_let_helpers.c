@@ -45,15 +45,9 @@ ownership_let_resolve_first_call_type_arg(ASTNode *call, SemanticContext *ctx)
     inner_name = ast_generic_param_name(param);
     if (inner_node != NULL)
         return ownership_let_resolve_type_ref(inner_node, ctx);
-    if (inner_name != NULL) {
-        Type *resolved_type;
-        ASTNode *synth = ast_create_type(inner_name);
-        if (synth == NULL)
-            return TYPE_UNKNOWN;
-        resolved_type = ownership_let_resolve_type_ref(synth, ctx);
-        ast_destroy(synth);
-        return resolved_type;
-    }
+    if (inner_name != NULL)
+        return semantic_type_resolution_lookup_metadata_name_or_alias_or_unknown(
+            ctx, inner_name, call);
     return NULL;
 }
 

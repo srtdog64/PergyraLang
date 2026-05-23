@@ -78,6 +78,7 @@ and follow-up debt over older design notes.
 | [`92_inc_split_roadmap.md`](92_inc_split_roadmap.md) | Include-split cleanup roadmap |
 | [`115_inc_cleanup_status.md`](115_inc_cleanup_status.md) | Current `.inc` cleanup ledger |
 | [`128_pointer_risk_register.md`](128_pointer_risk_register.md) | Pointer/lifetime risk register for ABI, containers, scratch buffers, and raw escape |
+| [`131_unsafe_capability_scope.md`](131_unsafe_capability_scope.md) | Unsafe capability scope contract |
 
 ## Language Surface
 

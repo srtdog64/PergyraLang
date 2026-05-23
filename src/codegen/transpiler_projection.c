@@ -5,38 +5,13 @@
  * Internal C backend projection provenance and nominal type predicates.
  */
 
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
+#include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_projection.h"
 #include "parser/ast_api.h"
 #include "../common/string_compat.h"
-
-static char *
-projection_heap_fmt(const char *fmt, ...)
-{
-    va_list ap;
-    int n;
-    char *s;
-
-    va_start(ap, fmt);
-    n = vsnprintf(NULL, 0, fmt, ap);
-    va_end(ap);
-    if (n < 0)
-        return pergyra_strdup("");
-
-    s = (char *)malloc((size_t)n + 1);
-    if (s == NULL)
-        return pergyra_strdup("");
-
-    va_start(ap, fmt);
-    vsnprintf(s, (size_t)n + 1, fmt, ap);
-    va_end(ap);
-    return s;
-}
 
 ASTNode *
 transpiler_find_zone_domain_slot(ASTNode *zone_decl, const char *slot_name)
@@ -316,7 +291,7 @@ resolve_projection_source_path_rec(TranspilerCtx *ctx, ASTNode *source_decl,
         if (field != NULL && field->name != NULL
             && strcmp(field->name, field_name) == 0) {
             if (path_out != NULL)
-                *path_out = pergyra_strdup(field_name);
+                *path_out = transpiler_scratch_strdup(ctx, field_name);
             return 1;
         }
     }
@@ -343,15 +318,15 @@ resolve_projection_source_path_rec(TranspilerCtx *ctx, ASTNode *source_decl,
         nested_status = resolve_projection_source_path_rec(
             ctx, vessel_decl, field_name, depth + 1, &nested_path);
         if (nested_status != 1) {
-            if (nested_path != NULL)
-                free(nested_path);
             if (nested_status == 2)
                 match_count = 2;
             continue;
         }
 
-        prefixed_path = projection_heap_fmt("%s.%s", field->name, nested_path);
-        free(nested_path);
+        prefixed_path = transpiler_scratch_fmt(ctx,
+                                               "%s.%s",
+                                               field->name,
+                                               nested_path);
         if (prefixed_path == NULL)
             continue;
 
@@ -359,8 +334,6 @@ resolve_projection_source_path_rec(TranspilerCtx *ctx, ASTNode *source_decl,
         if (match_count == 1) {
             resolved_path = prefixed_path;
         } else {
-            free(prefixed_path);
-            free(resolved_path);
             resolved_path = NULL;
         }
     }
@@ -368,13 +341,9 @@ resolve_projection_source_path_rec(TranspilerCtx *ctx, ASTNode *source_decl,
     if (match_count == 1) {
         if (path_out != NULL)
             *path_out = resolved_path;
-        else
-            free(resolved_path);
         return 1;
     }
 
-    if (resolved_path != NULL)
-        free(resolved_path);
     return match_count > 1 ? 2 : 0;
 }
 
@@ -435,7 +404,6 @@ emit_projection_literal(TranspilerCtx *ctx, ASTNode *target_decl, ASTNode *sourc
         } else {
             codebuf_write(buf, ".%s = 0", target_field->name);
         }
-        free(source_path);
     }
 
     codebuf_write(buf, " }");

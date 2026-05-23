@@ -11,6 +11,7 @@
 #include "type_checker_internal.h"
 #include "type_checker_ownership_consumers_internal.h"
 #include "type_checker_ownership_internal.h"
+#include "type_checker_ownership_let_internal.h"
 
 static Type *
 ownership_destructure_normalize_type(Type *type)
@@ -101,22 +102,8 @@ type_check_let_destructure_stmt(ASTNode *node, SemanticContext *ctx)
         bool is_claim_secure =
             (strcmp(callee_name, "ClaimSecureSlot") == 0);
         if (is_claim_slot || is_claim_secure) {
-            GenericParam *inner_param =
-                ast_call_generic_arg(init, 0);
-            const char *inner_name =
-                ast_generic_param_name(inner_param);
-            ASTNode *inner_node =
-                ast_generic_param_constraint(inner_param);
-            Type *inner_type = NULL;
-            if (inner_node != NULL)
-                inner_type = domain_resolve_type_ref(inner_node, ctx);
-            if (inner_type == NULL && inner_name != NULL) {
-                ASTNode *synth = ast_create_type(inner_name);
-                if (synth != NULL) {
-                    inner_type = domain_resolve_type_ref(synth, ctx);
-                    ast_destroy(synth);
-                }
-            }
+            Type *inner_type =
+                ownership_let_resolve_first_call_type_arg(init, ctx);
             if (inner_type == NULL)
                 inner_type = TYPE_UNKNOWN;
 

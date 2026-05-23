@@ -152,13 +152,12 @@ type_check_role_operator_overload(ASTNode *expr, SemanticContext *ctx,
 
         Type *rhs_type = TYPE_INT;
         if (rhs_param != NULL && rhs_param->type != NULL)
-            rhs_type = domain_resolve_type_ref(rhs_param->type, ctx);
+            rhs_type = type_check_func_resolve_param_type(rhs_param, ctx);
         if (!type_is_assignable(right, rhs_type))
             continue;
 
         if (ast_func_return_type(method) != NULL)
-            return domain_resolve_type_ref(
-                ast_func_return_type(method), ctx);
+            return type_check_func_resolve_return_type(method, ctx);
         return TYPE_VOID;
     }
 

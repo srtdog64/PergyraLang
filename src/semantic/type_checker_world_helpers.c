@@ -12,7 +12,12 @@
 Type *
 world_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
 {
-    return domain_resolve_type_ref(type_ref, ctx);
+    Type *resolved;
+
+    if (type_ref == NULL || ctx == NULL)
+        return TYPE_UNKNOWN;
+    resolved = semantic_type_resolution_lookup_metadata_type_ref(ctx, type_ref);
+    return resolved != NULL ? resolved : TYPE_UNKNOWN;
 }
 
 Type *

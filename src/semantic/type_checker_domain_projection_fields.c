@@ -2,7 +2,6 @@
 #include "diag_codes.h"
 #include "parser/ast_api.h"
 
-#include <stdlib.h>
 #include <string.h>
 
 bool
@@ -115,7 +114,7 @@ type_check_projection_field_contracts(ASTNode *target_decl,
         Type *target_field_type;
         Type *source_field_type;
         const char *source_field_name;
-        char *source_path = NULL;
+        const char *source_path = NULL;
         int source_status;
 
         if (target_field == NULL || target_field->name == NULL
@@ -237,7 +236,7 @@ type_check_projection_field_contracts(ASTNode *target_decl,
             continue;
         }
 
-        target_field_type = domain_resolve_named_type_ref(target_field->type, ctx);
+        target_field_type = domain_lookup_named_type_metadata(target_field->type, ctx);
         if (!type_is_assignable(source_field_type, target_field_type)) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, site,
                 "%s %s target field '%s' cannot accept source path '%s' from slot '%s'.\n"
@@ -273,10 +272,8 @@ type_check_projection_field_contracts(ASTNode *target_decl,
                 type_name_or_unknown(source_field_type),
                 target_field->name,
                 type_name_or_unknown(target_field_type));
-            free(source_path);
             continue;
         }
-        free(source_path);
     }
 
     return true;

@@ -12,6 +12,7 @@
 
 #include "../common/string_compat.h"
 #include "../parser/ast_api.h"
+#include "transpiler_expr_stdlib_collection_support.h"
 #include "transpiler_format.h"
 
 typedef struct TranspilerScalarUnarySpec {
@@ -240,6 +241,9 @@ emit_call_stdlib_scalar_builtin(const char *fn, ASTNode *call, TranspilerCtx *ct
         return result;
     }
     if (op == TRANSPILER_SCALAR_OP_STRING_JOIN) {
+        if (!transpiler_require_c_addressable_storage(ctx, a0,
+                "StringJoin", "Array"))
+            return pergyra_strdup("0");
         char *arr = emit_expression(a0, ctx);
         char *sep = emit_expression(a1, ctx);
         char *result = strdup_fmt("StringJoin(&%s, %s)", arr, sep);

@@ -179,10 +179,14 @@ if grep -A28 -F "scope_lookup_current(Scope *scope" \
     exit 1
 fi
 grep -Fq "air_collect_mir_pin_block_evidence" "$ROOT_DIR/src/compiler/air_evidence_mir.c"
-grep -Fq "air_has_mir_pin_cleanup_evidence" "$ROOT_DIR/src/compiler/air_evidence_mir_pin.c"
+grep -Fq "air_boundary_has_evidence_kind_provider" "$ROOT_DIR/src/compiler/air_evidence_mir_pin.c"
+! grep -Fq "air_has_mir_pin_cleanup_evidence" "$ROOT_DIR/src/compiler/air_evidence_mir_pin.c"
+! grep -Fq "air_has_boundary_evidence_provider" "$ROOT_DIR/src/compiler/air_evidence_hir.c"
 grep -Fq "type_resolution_dag_generic_contract_evidence_count" "$ROOT_DIR/src/semantic/semantic.h"
 grep -Fq "type_resolution_dag_ability_consumer_evidence_count" "$ROOT_DIR/src/semantic/semantic.h"
 grep -Fq "type_resolution_dag_ability_consumer_evidence_count" "$ROOT_DIR/src/semantic/type_checker.h"
+grep -Fq "semantic_result_type_resolution_metadata_hits" "$ROOT_DIR/src/semantic/semantic.h"
+grep -Fq "semantic_result_type_resolution_metadata_hits(" "$ROOT_DIR/src/semantic/semantic.c"
 grep -Fq "ctx->type_resolution_dag_generic_contract_evidence_count" "$ROOT_DIR/src/semantic/semantic.c"
 grep -Fq "ctx->type_resolution_dag_ability_consumer_evidence_count" "$ROOT_DIR/src/semantic/semantic.c"
 grep -Fq "semantic_record_dag_generic_contract_evidence" "$ROOT_DIR/src/semantic/type_checker_resolution_stage_signature.c"
@@ -192,7 +196,10 @@ grep -Fq "dag_ability_consumer_evidence" "$ROOT_DIR/tests/type_resolution_dag_sm
 grep -Fq "semantic_result_dag_generic_contract_evidence_count(sem)" "$ROOT_DIR/src/compiler/air_evidence_dag.c"
 grep -Fq "semantic_result_dag_ability_consumer_evidence_count(sem)" "$ROOT_DIR/src/compiler/air_evidence_dag.c"
 grep -Fq "semantic_result_type_resolution_metadata_entries(sem)" "$ROOT_DIR/src/compiler/air_evidence_dag.c"
+grep -Fq "semantic_result_type_resolution_metadata_hits(sem)" "$ROOT_DIR/src/compiler/air_evidence_dag.c"
 grep -Fq "semantic_result_type_resolution_metadata_dead_ends(sem)" "$ROOT_DIR/src/compiler/air_evidence_dag.c"
+grep -Fq "air_publish_dag_evidence(" "$ROOT_DIR/src/compiler/air_evidence_dag.c"
+grep -Fq "metadata hits without metadata inventory" "$ROOT_DIR/src/compiler/air_evidence_dag.c"
 ! grep -Fq "sem->type_resolution_" "$ROOT_DIR/src/compiler/air_evidence_dag.c"
 if grep -A1 -F "result->type_resolution_dag_generic_contract_evidence_count =" \
     "$ROOT_DIR/src/semantic/semantic.c" | \
@@ -315,16 +322,14 @@ grep -Fq "air_evidence_node_count(air)" "$ROOT_DIR/src/compiler/air_dump.c"
 grep -Fq "air_evidence_node_at(air, i)" "$ROOT_DIR/src/compiler/air_dump.c"
 grep -Fq "air_evidence_node_count(air)" "$ROOT_DIR/src/compiler/air_dump_json.c"
 grep -Fq "air_evidence_node_at(air, i)" "$ROOT_DIR/src/compiler/air_dump_json.c"
-grep -Fq "air_evidence_node_count(air)" "$ROOT_DIR/src/compiler/air_evidence_hir.c"
-grep -Fq "air_evidence_node_at(air, i)" "$ROOT_DIR/src/compiler/air_evidence_hir.c"
-grep -Fq "air_evidence_node_count(air)" "$ROOT_DIR/src/compiler/air_evidence_mir_facts.c"
-grep -Fq "air_evidence_node_at(air, i)" "$ROOT_DIR/src/compiler/air_evidence_mir_facts.c"
-grep -Fq "air_evidence_node_count(air)" "$ROOT_DIR/src/compiler/air_evidence_mir_pin.c"
-grep -Fq "air_evidence_node_at(air, i)" "$ROOT_DIR/src/compiler/air_evidence_mir_pin.c"
-grep -Fq "air_evidence_node_count(air)" "$ROOT_DIR/src/compiler/air_evidence_runtime.c"
-grep -Fq "air_evidence_node_at(air, i)" "$ROOT_DIR/src/compiler/air_evidence_runtime.c"
-grep -Fq "air_evidence_node_count(air)" "$ROOT_DIR/src/compiler/air_validate_boundary_evidence.c"
-grep -Fq "air_evidence_node_at(air, i)" "$ROOT_DIR/src/compiler/air_validate_boundary_evidence.c"
+grep -Fq "air_boundary_has_evidence_kind_provider" "$ROOT_DIR/src/compiler/air_evidence_hir.c"
+! grep -Fq "air_evidence_node_count(air)" "$ROOT_DIR/src/compiler/air_evidence_mir_facts.c"
+! grep -Fq "air_evidence_node_at(air, i)" "$ROOT_DIR/src/compiler/air_evidence_mir_facts.c"
+grep -Fq "air_boundary_has_evidence_kind_provider" "$ROOT_DIR/src/compiler/air_evidence_mir_pin.c"
+grep -Fq "air_global_evidence_node_provider_subject" "$ROOT_DIR/src/compiler/air_evidence_runtime.c"
+! grep -Fq "air_evidence_node_count(air)" "$ROOT_DIR/src/compiler/air_evidence_runtime.c"
+! grep -Fq "air_evidence_node_at(air, i)" "$ROOT_DIR/src/compiler/air_evidence_runtime.c"
+grep -Fq "air_boundary_has_evidence_kind_provider" "$ROOT_DIR/src/compiler/air_validate_boundary_evidence.c"
 grep -Fq "air_evidence_node_at(air, evidence_index)" "$ROOT_DIR/src/compiler/air_validate_boundary_evidence.c"
 grep -Fq "air_evidence_node_count(air)" "$ROOT_DIR/src/compiler/air_validate_evidence.c"
 grep -Fq "air_evidence_node_at(air, i)" "$ROOT_DIR/src/compiler/air_validate_evidence.c"
@@ -1239,8 +1244,19 @@ grep -Fq "routine->blocks[routine->cleanup_block].is_reachable" "$ROOT_DIR/src/c
 grep -Fq "if (!block->is_reachable || block->is_cleanup)" "$ROOT_DIR/src/compiler/air_evidence_mir_pin.c"
 grep -Fq "AIR ignores unreachable MIR cleanup root evidence" "$ROOT_DIR/src/test_air.c"
 grep -Fq "AIR ignores unreachable MIR cleanup source evidence" "$ROOT_DIR/src/test_air.c"
-grep -Fq "air_global_evidence_has_provider" "$ROOT_DIR/src/compiler/air_validate_boundary_evidence.c"
+grep -Fq "air_has_global_evidence_provider" "$ROOT_DIR/src/compiler/air_validate_boundary_evidence.c"
+grep -Fq "air_has_global_evidence_provider" "$ROOT_DIR/src/compiler/air_validate_evidence.c"
+grep -Fq "air_has_global_evidence_provider_subject" "$ROOT_DIR/src/compiler/air_validate_evidence.c"
+grep -Fq "air_global_evidence_node_provider_subject" "$ROOT_DIR/src/compiler/air_validate_evidence.c"
+grep -Fq "air_global_evidence_node_provider_subject" "$ROOT_DIR/src/compiler/air_evidence_runtime.c"
+! grep -Fq "air_find_runtime_evidence" "$ROOT_DIR/src/compiler/air_evidence_runtime.c"
+! grep -Fq "air_has_global_evidence_provider(" "$ROOT_DIR/src/compiler/air_evidence_mir_facts.c"
+! grep -Fq "air_find_global_evidence_provider_subject" "$ROOT_DIR/src/compiler/air_evidence_mir_facts.c"
 grep -Fq "air_boundary_has_evidence_kind_provider" "$ROOT_DIR/src/compiler/air_validate_boundary_evidence.c"
+! grep -Fq "air_global_evidence_has_provider" "$ROOT_DIR/src/compiler/air_validate_boundary_evidence.c"
+grep -Fq "air_evidence_node_matches_scope(" "$ROOT_DIR/src/compiler/air_validate_evidence.c"
+grep -Fq "air_evidence_node_matches_subject(" "$ROOT_DIR/src/compiler/air_validate_evidence.c"
+grep -Fq "air_evidence_node_matches_provider(" "$ROOT_DIR/src/compiler/air_validate_evidence.c"
 grep -Fq "kBoundaryEvidencePolicies" "$ROOT_DIR/src/compiler/air_boundary_evidence_policy.c"
 grep -Fq "air_boundary_requires_hir_routine_evidence" "$ROOT_DIR/src/compiler/air_boundary_evidence_policy.c"
 grep -Fq "air_boundary_requires_mir_pin_cleanup_evidence" "$ROOT_DIR/src/compiler/air_boundary_evidence_policy.c"
@@ -1301,9 +1317,196 @@ grep -Fq "transpiler_contextual_option_inner_type_copy(ctx" "$ROOT_DIR/src/codeg
 ! grep -Fq "transpiler_contextual_option_inner_type_name" "$ROOT_DIR/src/codegen/transpiler_option_context.c"
 grep -Fq "lookup_future_inner_type_copy" "$ROOT_DIR/src/codegen/transpiler_future_type_query.h"
 ! grep -Fq "lookup_future_inner_type(" "$ROOT_DIR/src/codegen/transpiler_future_type_query.h"
+grep -Fq "type_check_func_resolve_param_type(param, ctx)" "$ROOT_DIR/src/semantic/type_checker_async_channel.c"
+if grep -Fq "domain_resolve_type_ref(param->type, ctx)" \
+    "$ROOT_DIR/src/semantic/type_checker_async_channel.c"; then
+    echo "[perf-contract] async spawn boundary bypassed function signature type resolver" >&2
+    exit 1
+fi
+grep -Fq "type_check_func_resolve_return_type(method, ctx)" "$ROOT_DIR/src/semantic/type_checker_expr_host.c"
+grep -Fq "type_check_func_resolve_param_type(param, ctx)" "$ROOT_DIR/src/semantic/type_checker_expr_host.c"
+grep -Fq "type_check_func_resolve_return_type(" "$ROOT_DIR/src/semantic/type_checker_expr_call.c"
+grep -Fq "type_check_func_resolve_return_type(method, ctx)" "$ROOT_DIR/src/semantic/type_checker_expr_ops.c"
+grep -Fq "type_check_func_resolve_param_type(rhs_param, ctx)" "$ROOT_DIR/src/semantic/type_checker_expr_ops.c"
+grep -Fq "semantic_host_resolve_type_ref(field->type, ctx)" "$ROOT_DIR/src/semantic/type_checker_expr_host.c"
+grep -Fq "semantic_host_resolve_type_ref(type_node, ctx)" "$ROOT_DIR/src/semantic/type_checker_expr_host.c"
+grep -Fq "semantic_host_resolve_type_ref(field->type, ctx)" "$ROOT_DIR/src/semantic/type_checker_class_decl.c"
+grep -Fq "semantic_host_resolve_type_ref(" "$ROOT_DIR/src/semantic/type_checker_call_constructor.c"
+grep -Fq "semantic_host_resolve_type_ref(for_type, ctx)" "$ROOT_DIR/src/semantic/type_checker_role_decl.c"
+grep -Fq "type_check_func_resolve_param_type(param, ctx)" "$ROOT_DIR/src/semantic/type_checker_func_action_contract.c"
+grep -Fq "type_check_func_resolve_param_type(param, ctx)" "$ROOT_DIR/src/semantic/type_checker_generic_support.c"
+if grep -Fq "domain_resolve_type_ref(field->type, ctx)" \
+    "$ROOT_DIR/src/semantic/type_checker_expr_host.c" \
+    || grep -Fq "domain_resolve_type_ref(type_node, ctx)" \
+        "$ROOT_DIR/src/semantic/type_checker_expr_host.c" \
+    || grep -Fq "domain_resolve_type_ref(field->type, ctx)" \
+        "$ROOT_DIR/src/semantic/type_checker_class_decl.c" \
+    || grep -Fq "domain_resolve_type_ref(field_type_node, ctx)" \
+        "$ROOT_DIR/src/semantic/type_checker_call_constructor.c" \
+    || grep -Fq "domain_resolve_type_ref(for_type, ctx)" \
+        "$ROOT_DIR/src/semantic/type_checker_role_decl.c"; then
+    echo "[perf-contract] host-field consumers bypassed host metadata owner" >&2
+    exit 1
+fi
+if grep -RIn 'domain_resolve_type_ref(param->type, ctx)\|domain_resolve_type_ref(ast_func_return_type' \
+    "$ROOT_DIR/src/semantic" --include='*.c'; then
+    echo "[perf-contract] function signature consumers bypassed type_check_func_types owner" >&2
+    exit 1
+fi
+if grep -Fq "domain_resolve_type_ref(ast_func_return_type(method), ctx)" \
+    "$ROOT_DIR/src/semantic/type_checker_expr_call.c"; then
+    echo "[perf-contract] member-call return consumers bypassed function signature owner" >&2
+    exit 1
+fi
+if grep -Fq "domain_resolve_type_ref(rhs_param->type, ctx)" \
+    "$ROOT_DIR/src/semantic/type_checker_expr_ops.c" \
+    || grep -Fq "domain_resolve_type_ref(ast_func_return_type(method), ctx)" \
+        "$ROOT_DIR/src/semantic/type_checker_expr_ops.c"; then
+    echo "[perf-contract] operator overload consumers bypassed function signature owner" >&2
+    exit 1
+fi
+grep -Fq "semantic_event_resolve_type_ref" "$ROOT_DIR/src/semantic/type_checker_event.c"
+grep -Fq "type_check_signature_resolve_type_ref(type_ref, ctx)" "$ROOT_DIR/src/semantic/type_checker_event.c"
+if grep -Fq "domain_resolve_type_ref(ast_let_type(param), ctx)" \
+    "$ROOT_DIR/src/semantic/type_checker_event.c" \
+    || grep -Fq "domain_resolve_type_ref(" \
+        "$ROOT_DIR/src/semantic/type_checker_event.c"; then
+    echo "[perf-contract] event signature validation bypassed event metadata owner" >&2
+    exit 1
+fi
+grep -Fq "semantic_type_resolution_lookup_metadata_type_ref(" \
+    "$ROOT_DIR/src/semantic/type_checker_generic_effective_args.c"
+if grep -Fq "domain_resolve_type_ref(effective_nodes[i], ctx)" \
+    "$ROOT_DIR/src/semantic/type_checker_generic_effective_args.c"; then
+    echo "[perf-contract] generic effective args reopened the broad domain resolver" >&2
+    exit 1
+fi
+if grep -Fq "domain_resolve_type_ref(default_type, ctx)" \
+    "$ROOT_DIR/src/semantic/type_checker_call_generic_where.c" \
+    || grep -Fq "domain_resolve_type_ref(default_type, ctx)" \
+        "$ROOT_DIR/src/semantic/type_checker_helpers_late.c"; then
+    echo "[perf-contract] generic default type consumers reopened the broad domain resolver" >&2
+    exit 1
+fi
+grep -Fq "collect_effective_generic_arg_types(" "$ROOT_DIR/src/semantic/type_checker_role_decl.c"
+grep -Fq "ability_resolve_type_ref(arg, ctx)" "$ROOT_DIR/src/semantic/type_checker_role_decl.c"
+if grep -Fq "domain_resolve_type_ref(effective_args[param_index], ctx)" \
+    "$ROOT_DIR/src/semantic/type_checker_role_decl.c" \
+    || grep -Fq "domain_resolve_type_ref(arg, ctx)" \
+        "$ROOT_DIR/src/semantic/type_checker_role_decl.c"; then
+    echo "[perf-contract] role generic validation reopened the broad domain resolver" >&2
+    exit 1
+fi
+grep -Fq "flow_resolve_type_ref(slot_type_node, ctx)" \
+    "$ROOT_DIR/src/semantic/type_checker_flow_statement_kinds.c"
+grep -Fq "semantic_type_resolution_lookup_metadata_type_ref(ctx, type_ref)" \
+    "$ROOT_DIR/src/semantic/type_checker_world_helpers.c"
+if grep -Fq "domain_resolve_type_ref(slot_type_node, ctx)" \
+    "$ROOT_DIR/src/semantic/type_checker_flow.c" \
+    || grep -Fq "return domain_resolve_type_ref(type_ref, ctx)" \
+        "$ROOT_DIR/src/semantic/type_checker_world_helpers.c"; then
+    echo "[perf-contract] flow/world type-ref owners reopened the broad domain resolver" >&2
+    exit 1
+fi
+grep -Fq "type_check_type_alias_stmt(node, ctx)" "$ROOT_DIR/src/semantic/type_checker.c"
+grep -Fq "semantic_type_resolution_lookup_metadata_type_ref(ctx" \
+    "$ROOT_DIR/src/semantic/type_checker_type_alias.c"
+grep -Fq "type_check_namespace_decl(node, ctx)" "$ROOT_DIR/src/semantic/type_checker.c"
+grep -Fq "type_check_unsafe_block(node, ctx)" "$ROOT_DIR/src/semantic/type_checker.c"
+grep -Fq "type_check_defer_stmt(node, ctx)" "$ROOT_DIR/src/semantic/type_checker.c"
+grep -Fq "type_check_parallel_block_flow(node, ctx)" \
+    "$ROOT_DIR/src/semantic/type_checker_flow_parallel.c"
+! grep -Fq "type_check_parallel_block_flow(node, ctx)" \
+    "$ROOT_DIR/src/semantic/type_checker.c"
+grep -Fq "type_checker_namespace_decl.c" "$ROOT_DIR/Makefile"
+grep -Fq "type_checker_unsafe_block.c" "$ROOT_DIR/Makefile"
+grep -Fq "type_check_use_decl(node, ctx)" "$ROOT_DIR/src/semantic/type_checker.c"
+! grep -Fq "validate_stdlib_use_decl(node, ctx)" "$ROOT_DIR/src/semantic/type_checker.c"
+! grep -Fq "type_checker_stdlib_use_internal.h" "$ROOT_DIR/src/semantic/type_checker.c"
+grep -Fq "type_check_use_stmt_flow(node, ctx)" "$ROOT_DIR/src/semantic/type_checker_flow.c"
+! grep -Fq "validate_stdlib_use_decl(node, ctx)" "$ROOT_DIR/src/semantic/type_checker_flow.c"
+! grep -Fq "type_checker_stdlib_use_internal.h" "$ROOT_DIR/src/semantic/type_checker_flow.c"
+! test -e "$ROOT_DIR/src/semantic/type_checker_stdlib_use_internal.h"
+grep -Fq "static void" "$ROOT_DIR/src/semantic/type_checker_stdlib_use.c"
+grep -Fq "type_checker_flow_statement_kinds.c" "$ROOT_DIR/Makefile"
+grep -Fq "type_check_with_stmt_flow(node, ctx, loop_flow)" "$ROOT_DIR/src/semantic/type_checker_flow.c"
+grep -Fq "type_check_unsafe_block_flow(node, ctx, loop_flow)" "$ROOT_DIR/src/semantic/type_checker_flow.c"
+grep -Fq "type_check_defer_stmt_flow(node, ctx)" "$ROOT_DIR/src/semantic/type_checker_flow.c"
+grep -Fq "type_check_namespace_flow(node, ctx, loop_flow)" "$ROOT_DIR/src/semantic/type_checker_flow.c"
+grep -Fq "type_check_with_stmt_flow(ASTNode *node" "$ROOT_DIR/src/semantic/type_checker_flow_statement_kinds.c"
+grep -Fq "type_check_return_stmt_flow(ASTNode *node" "$ROOT_DIR/src/semantic/type_checker_flow_statement_kinds.c"
+grep -Fq "type_check_use_stmt_flow(ASTNode *node" "$ROOT_DIR/src/semantic/type_checker_flow_statement_kinds.c"
+grep -Fq "type_check_event_stmt_flow(ASTNode *node" "$ROOT_DIR/src/semantic/type_checker_flow_statement_kinds.c"
+grep -Fq "type_check_unsafe_block_flow(ASTNode *node" "$ROOT_DIR/src/semantic/type_checker_flow_statement_kinds.c"
+grep -Fq "type_check_defer_stmt_flow(ASTNode *node" "$ROOT_DIR/src/semantic/type_checker_flow_statement_kinds.c"
+grep -Fq "type_check_namespace_flow(ASTNode *node" "$ROOT_DIR/src/semantic/type_checker_flow_statement_kinds.c"
+! grep -Fq "ast_with_slot_type(node)" "$ROOT_DIR/src/semantic/type_checker_flow.c"
+! grep -Fq "ast_with_body(node)" "$ROOT_DIR/src/semantic/type_checker_flow.c"
+! grep -Fq "ast_unsafe_block_body(node)" "$ROOT_DIR/src/semantic/type_checker_flow.c"
+! grep -Fq "ast_defer_body(node)" "$ROOT_DIR/src/semantic/type_checker_flow.c"
+! grep -Fq "ast_namespace_statement_count(node)" "$ROOT_DIR/src/semantic/type_checker_flow.c"
+! grep -Fq "type_check_return_stmt(node, ctx)" "$ROOT_DIR/src/semantic/type_checker_flow.c"
+! grep -Fq "type_check_use_decl(node, ctx)" "$ROOT_DIR/src/semantic/type_checker_flow.c"
+! grep -Fq "type_check_event_subscription(node, ctx" "$ROOT_DIR/src/semantic/type_checker_flow.c"
+! grep -Fq "type_check_event_invoke_stmt(node, ctx)" "$ROOT_DIR/src/semantic/type_checker_flow.c"
+if grep -Fq "ast_defer_body(" "$ROOT_DIR/src/semantic/type_checker.c" \
+   || grep -Fq "ast_unsafe_block_body(" "$ROOT_DIR/src/semantic/type_checker.c" \
+   || grep -Fq "ast_namespace_statement" "$ROOT_DIR/src/semantic/type_checker.c"; then
+    echo "[perf-contract] statement dispatcher reopened body traversal" >&2
+    exit 1
+fi
+if grep -Fq "domain_resolve_type_ref(" \
+    "$ROOT_DIR/src/semantic/type_checker_type_alias.c" \
+    || grep -Fq "domain_resolve_type_ref(" \
+        "$ROOT_DIR/src/semantic/type_checker.c"; then
+    echo "[perf-contract] type-alias statement validation reopened the broad domain resolver" >&2
+    exit 1
+fi
+grep -Fq "ownership_let_resolve_first_call_type_arg(init, ctx)" \
+    "$ROOT_DIR/src/semantic/type_checker_ownership_destructure.c"
+grep -Fq "semantic_type_resolution_lookup_metadata_name_or_alias_or_unknown(" \
+    "$ROOT_DIR/src/semantic/type_checker_ownership_let_helpers.c"
+if grep -Fq "domain_resolve_type_ref(" \
+    "$ROOT_DIR/src/semantic/type_checker_ownership_destructure.c"; then
+    echo "[perf-contract] destructure ClaimSlot generic validation reopened the broad domain resolver" >&2
+    exit 1
+fi
+if grep -Fq "ast_create_type(inner_name)" \
+    "$ROOT_DIR/src/semantic/type_checker_ownership_let_helpers.c"; then
+    echo "[perf-contract] ClaimSlot generic name validation regressed to synthetic AST construction" >&2
+    exit 1
+fi
+domain_resolver_consumers="$(
+    grep -RIn --include='*.c' --include='*.h' "domain_resolve_type_ref(" \
+        "$ROOT_DIR/src/semantic" || true
+)"
+if [ -n "$domain_resolver_consumers" ]; then
+    echo "[perf-contract] broad domain resolver API reappeared" >&2
+    echo "$domain_resolver_consumers" >&2
+    exit 1
+fi
+if grep -RIn --include='*.c' --include='*.h' \
+    'domain_resolve_slot_type(\|domain_resolve_shared_type(\|domain_resolve_named_type_ref(' \
+    "$ROOT_DIR/src/semantic"; then
+    echo "[perf-contract] domain metadata helper regressed to resolver naming" >&2
+    exit 1
+fi
+grep -Fq "domain_lookup_slot_type_metadata" "$ROOT_DIR/src/semantic/type_checker_decls_domain_helpers.c"
+grep -Fq "domain_lookup_shared_type_metadata" "$ROOT_DIR/src/semantic/type_checker_decls_domain_helpers.c"
+grep -Fq "domain_lookup_named_type_metadata" "$ROOT_DIR/src/semantic/type_checker_decls_domain_helpers.c"
+grep -Fq "intent_step_set_where_type_name" "$ROOT_DIR/src/semantic/type_checker_intent_helpers.c"
+if grep -RIn --include='type_checker_intent*.c' \
+    "ast_intent_step_set_where_type(" "$ROOT_DIR/src/semantic" | \
+    grep -v "type_checker_intent_helpers.c"; then
+    echo "[perf-contract] intent where inference bypassed shared provenance owner" >&2
+    exit 1
+fi
 grep -Fq "channel_inner_type_name_copy" "$ROOT_DIR/src/codegen/transpiler_channel_type_query.h"
 ! grep -Fq "channel_inner_type_name(TranspilerCtx" "$ROOT_DIR/src/codegen/transpiler_type_mapping_helpers.h"
 grep -Fq "select_channel_inner_type_copy" "$ROOT_DIR/src/codegen/transpiler_select.c"
+grep -Fq "channel_inner_type_name_copy(ctx, channel" "$ROOT_DIR/src/codegen/transpiler_select.c"
+grep -Fq "channel == NULL || channel->type != AST_IDENTIFIER" "$ROOT_DIR/src/codegen/transpiler_select.c"
+! grep -Fq "lookup_typed_var(ctx, ast_identifier_name(channel))" "$ROOT_DIR/src/codegen/transpiler_select.c"
 ! grep -Fq "select_channel_inner_type(ASTNode" "$ROOT_DIR/src/codegen/transpiler_select.c"
 grep -Fq "slot_inner_type_name_copy(type_name, inner_buf" "$ROOT_DIR/src/codegen/transpiler_func_forward_emit.c"
 grep -Fq "slot_inner_type_name_copy(type_name, inner_buf" "$ROOT_DIR/src/codegen/transpiler_func_class_flow_emit.c"
@@ -1377,6 +1580,14 @@ if [[ "$transpiler_infer_call_names" != "$transpiler_infer_call_names_sorted" ]]
     exit 1
 fi
 grep -Fq "slot_inner_type_name_copy(type_name, inner_buf" "$ROOT_DIR/src/codegen/transpiler_expr_type_infer.c"
+grep -A12 -F "case AST_CHANNEL_RECV" "$ROOT_DIR/src/codegen/transpiler_expr_type_infer.c" | \
+    grep -Fq "channel_inner_type_name_copy"
+if grep -A12 -F "case AST_CHANNEL_RECV" \
+    "$ROOT_DIR/src/codegen/transpiler_expr_type_infer.c" | \
+    grep -Fq "lookup_typed_var"; then
+    echo "[perf-contract] C channel-recv type inference bypassed channel query owner" >&2
+    exit 1
+fi
 ! grep -Fq "return slot_inner_type_name" "$ROOT_DIR/src/codegen/transpiler_expr_type_infer.c"
 grep -Fq "constructed_arg_name_write" "$ROOT_DIR/src/codegen/transpiler_type_name_utils.c"
 ! grep -Fq "const char *constructed_arg_name_at" "$ROOT_DIR/src/codegen/transpiler_type_mapping.h"
@@ -1767,8 +1978,37 @@ grep -Fq "C await expression requires concrete Future<T> result metadata" "$ROOT
 grep -Fq "C spawn expression requires a target expression" "$ROOT_DIR/src/codegen/transpiler_spawn_channel_emit.c"
 grep -Fq "C spawn expression requires concrete Future<T> return metadata" "$ROOT_DIR/src/codegen/transpiler_spawn_channel_emit.c"
 grep -Fq "requires concrete C type metadata for call" "$ROOT_DIR/src/codegen/transpiler_spawn_channel_emit.c"
-grep -Fq "channel send requires concrete Channel<T> payload metadata" "$ROOT_DIR/src/codegen/transpiler_spawn_channel_emit.c"
-grep -Fq "channel receive requires concrete Channel<T> payload metadata" "$ROOT_DIR/src/codegen/transpiler_spawn_channel_emit.c"
+grep -Fq "transpiler_require_channel_inner_type" "$ROOT_DIR/src/codegen/transpiler_spawn_channel_emit.c"
+grep -Fq "transpiler_channel_expr_is_c_lvalue" "$ROOT_DIR/src/codegen/transpiler_spawn_channel_emit.c"
+grep -Fq "requires a named Channel<T> binding" "$ROOT_DIR/src/codegen/transpiler_channel_type_query.c"
+grep -Fq "requires concrete Channel<T> payload metadata" "$ROOT_DIR/src/codegen/transpiler_channel_type_query.c"
+grep -Fq "transpiler_channel_require_lvalue" "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_channel_builtin.c"
+grep -Fq "transpiler_require_channel_inner_type(ctx, expr" "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_channel_builtin.c"
+! grep -Fq "transpiler_channel_resolve_inner(" "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_channel_builtin.c"
+grep -Fq "transpiler_require_c_addressable_storage" "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_collection_support.h"
+grep -Fq "transpiler_expr_is_c_addressable_storage" "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_collection_support.c"
+grep -Fq "requires addressable %s storage" "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_collection_support.c"
+grep -Fq "transpiler_require_c_addressable_storage(ctx, list_arg" "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_collection_builtin.c"
+grep -Fq "transpiler_require_c_addressable_storage(ctx, map_arg" "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_map_builtin.c"
+grep -Fq "transpiler_require_c_addressable_storage(ctx, queue_arg" "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_queue_builtin.c"
+grep -Fq "transpiler_require_c_addressable_storage(ctx, a0" "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_misc_builtin.c"
+grep -Fq "transpiler_require_c_addressable_storage(ctx, arg0" "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_builtin.c"
+grep -Fq "transpiler_require_c_addressable_storage(ctx, a0" "$ROOT_DIR/src/codegen/transpiler_expr_stdlib_scalar_builtin.c"
+grep -Fq "BUILTIN_RC_DROP || kind == BUILTIN_RC_GET" "$ROOT_DIR/src/codegen/transpiler_expr_core_builtins_emit.c"
+grep -Fq "BUILTIN_BOX_SET || kind == BUILTIN_BOX_DROP" "$ROOT_DIR/src/codegen/transpiler_expr_core_builtins_emit.c"
+grep -Fq "BoxSet requires exactly two arguments" "$ROOT_DIR/src/codegen/transpiler_expr_core_builtins_emit.c"
+grep -Fq "intent_observability_require_arg_count" "$ROOT_DIR/src/codegen/transpiler_intent_observability_builtin_emit.c"
+grep -Fq "transpiler_call_arg_can_take_subject_address" "$ROOT_DIR/src/codegen/transpiler_call_subject_arg_policy.c"
+grep -Fq "requires addressable storage" "$ROOT_DIR/src/codegen/transpiler_expr_call_user_emit.c"
+grep -Fq "requires addressable storage" "$ROOT_DIR/src/codegen/transpiler_expr_call_member_emit.c"
+grep -Fq "LLVM boundary subject argument requires addressable storage" "$ROOT_DIR/src/codegen/llvm_expr_boundary_projection_helpers.c"
+grep -Fq "LLVM intent subject argument" "$ROOT_DIR/src/codegen/llvm_expr_call_dispatch.c"
+grep -Fq "requires addressable Rc/Weak storage" "$ROOT_DIR/src/tests/transpile/test_transpile_core_part_a.cases.h"
+grep -Fq "requires addressable Box storage" "$ROOT_DIR/src/tests/transpile/test_transpile_core_part_a.cases.h"
+grep -Fq "IntentRecentName missing index emits diagnostic recovery" "$ROOT_DIR/src/tests/transpile/test_transpile_core_part_a.cases.h"
+grep -Fq "subject temporary argument rejects pointer-self boundary" "$ROOT_DIR/src/tests/transpile/test_transpile_program_part_a.cases.h"
+grep -Fq "subject method temporary argument rejects pointer-self boundary" "$ROOT_DIR/src/tests/transpile/test_transpile_program_part_a.cases.h"
+! grep -Fq "slot_inner_type_name_copy(type_name, inner_buf" "$ROOT_DIR/src/codegen/transpiler_spawn_channel_emit.c"
 grep -Fq "constructed_single_arg_is_unknown" "$ROOT_DIR/src/codegen/transpiler_type_mapping.c"
 grep -Fq "constructed_arg_name_is_unknown" "$ROOT_DIR/src/codegen/transpiler_type_mapping.c"
 grep -Fq "transpiler_type_name_join" "$ROOT_DIR/src/codegen/transpiler_type_mapping.c"
@@ -2111,6 +2351,17 @@ grep -Fq "llvm_stmt_render_type_annotation_copy" "$ROOT_DIR/src/codegen/llvm_stm
 ! grep -Fq "llvm_stmt_render_type_annotation_static" "$ROOT_DIR/src/codegen/llvm_internal_api.h"
 ! grep -Fq "static char buf[256]" "$ROOT_DIR/src/codegen/llvm_stmt_let_helpers.c"
 grep -Fq "pgy_arena_strdup(&ctx->scratch, actual_type)" "$ROOT_DIR/src/codegen/llvm_stmt_let_helpers.c"
+grep -Fq "transpiler_scratch_fmt(ctx," "$ROOT_DIR/src/codegen/transpiler_projection.c"
+grep -Fq "transpiler_scratch_strdup(ctx, field_name)" "$ROOT_DIR/src/codegen/transpiler_projection.c"
+! grep -Fq "projection_heap_fmt" "$ROOT_DIR/src/codegen/transpiler_projection.c"
+! grep -Fq "free(source_path)" "$ROOT_DIR/src/codegen/transpiler_projection.c"
+! grep -Fq "free(source_path)" "$ROOT_DIR/src/codegen/transpiler_expr_dispatch_emit.c"
+! grep -Fq "pergyra_strdup(field_name)" "$ROOT_DIR/src/codegen/transpiler_projection.c"
+grep -Fq "pgy_arena_strdup(&ctx->scratch_arena, text)" "$ROOT_DIR/src/semantic/type_checker_projection_path.c"
+grep -Fq "pgy_arena_fmt(&ctx->scratch_arena" "$ROOT_DIR/src/semantic/type_checker_projection_path.c"
+! grep -Fq "projection_path_strdup_fmt" "$ROOT_DIR/src/semantic/type_checker_projection_path.c"
+! grep -Fq "free(source_path)" "$ROOT_DIR/src/semantic/type_checker_domain_projection_fields.c"
+! grep -Fq "free(resolved_source_path)" "$ROOT_DIR/src/semantic/type_checker_resolution_graph_zone.c"
 grep -Fq "pgy_codegen_call_name_is_slot_operation(callee_name)" "$ROOT_DIR/src/codegen/llvm_stmt_let_helpers.c"
 grep -Fq "pgy_codegen_call_name_is_read(callee_name)" "$ROOT_DIR/src/codegen/llvm_stmt_let_helpers.c"
 ! grep -Fq 'strcmp(callee_name, "Read")' "$ROOT_DIR/src/codegen/llvm_stmt_let_helpers.c"
@@ -2219,6 +2470,20 @@ grep -Fq "pergyra_type_to_c_copy(inner, inner_c_type_buf" "$ROOT_DIR/src/codegen
 grep -Fq "pergyra_type_to_c_copy(return_type_name" "$ROOT_DIR/src/codegen/transpiler_spawn_channel_emit.c"
 grep -Fq "pergyra_type_to_c_copy(bound_type" "$ROOT_DIR/src/codegen/transpiler_spawn_channel_emit.c"
 grep -Fq "pergyra_type_to_c_copy(inferred_arg_type" "$ROOT_DIR/src/codegen/transpiler_spawn_channel_emit.c"
+grep -Fq "transpiler_scratch_fmt(" "$ROOT_DIR/src/codegen/transpiler_spawn_channel_emit.c"
+grep -Fq "infer_spawn_return_type_name_scratch" "$ROOT_DIR/src/codegen/transpiler_spawn_channel_emit.c"
+grep -Fq "infer_spawn_return_type_name_scratch" "$ROOT_DIR/src/codegen/transpiler_let_type_register_emit.c"
+grep -Fq "transpiler_scratch_fmt(ctx, \"Future<%s>\"" "$ROOT_DIR/src/codegen/transpiler_let_type_register_emit.c"
+! grep -Fq "infer_spawn_return_type_name(ctx" "$ROOT_DIR/src/codegen/transpiler_spawn_channel_emit.c"
+! grep -Fq "infer_spawn_return_type_name(ctx" "$ROOT_DIR/src/codegen/transpiler_let_type_register_emit.c"
+! grep -Fq "free(owned_return_type_name)" "$ROOT_DIR/src/codegen/transpiler_spawn_channel_emit.c"
+! grep -Fq 'strdup_fmt("Future<' "$ROOT_DIR/src/codegen/transpiler_let_type_register_emit.c"
+! grep -Fq 'strdup_fmt("pgy_spawn_wrapper_' "$ROOT_DIR/src/codegen/transpiler_spawn_channel_emit.c"
+! grep -Fq 'strdup_fmt("PgySpawnArgs_' "$ROOT_DIR/src/codegen/transpiler_spawn_channel_emit.c"
+! grep -Fq "free(wrapper_name)" "$ROOT_DIR/src/codegen/transpiler_spawn_channel_emit.c"
+! grep -Fq "free(args_type_name)" "$ROOT_DIR/src/codegen/transpiler_spawn_channel_emit.c"
+! grep -Fq "free(return_type_name)" "$ROOT_DIR/src/codegen/transpiler_spawn_channel_emit.c"
+! grep -Fq "free(return_c_type)" "$ROOT_DIR/src/codegen/transpiler_spawn_channel_emit.c"
 grep -Fq "pergyra_type_to_c_copy(secure_name" "$ROOT_DIR/src/codegen/transpiler_let_slot_emit.c"
 grep -Fq "pergyra_type_to_c_copy(slot_name_buf" "$ROOT_DIR/src/codegen/transpiler_let_slot_emit.c"
 grep -Fq "pgy_codegen_call_name_is_move(callee_name)" "$ROOT_DIR/src/codegen/transpiler_let_slot_emit.c"

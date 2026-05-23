@@ -59,7 +59,11 @@ cross-layer boundary with explicit evidence or rejects the drift.
   reading legacy cached booleans directly.
 - DAG metadata evidence is connected to AIR as provenance, but semantic
   judgement still belongs to the DAG owner. AIR must reject drift or missing
-  evidence; it must not materialize generic/ability facts itself.
+  evidence; it must not materialize generic/ability facts itself. DAG metadata
+  reuse telemetry also stays owner-backed: AIR reads metadata hits through the
+  `SemanticResult` accessor and rejects the impossible shape where hits are
+  non-zero but the metadata inventory is empty. DAG evidence publication is a
+  single AIR owner operation, not three separate local append/counter branches.
 - MIR cleanup/pin evidence is connected to AIR as provenance, but cleanup
   generation and validation still belong to MIR. AIR must audit the evidence,
   not synthesize cleanup edges. A local `pin-unpin-cleanup-edge` fact is not
@@ -114,11 +118,30 @@ cross-layer boundary with explicit evidence or rejects the drift.
   runtime evidence collectors no longer mutate `air->*_evidence_count` or RIR
   propagation required counters directly, so counters cannot drift into a
   second evidence source of truth.
+- AIR boundary evidence provider checks also go through a shared EvidenceNode
+  accessor (`air_boundary_has_evidence_kind_provider(...)`). HIR collection,
+  MIR pin cleanup collection, and boundary-evidence validation must not carry
+  local provider-loop policy; they may only query whether the authoritative
+  EvidenceNode inventory already contains a matching boundary/provider fact.
+- Global provider checks follow the same rule through
+  `air_has_global_evidence_provider(...)`. Boundary validation may require a
+  matching global MIR cleanup provider, but it must ask the AIR evidence owner
+  instead of reopening the global EvidenceNode inventory locally.
+- Runtime singleton evidence uses
+  `air_global_evidence_node_provider_subject(...)` for idempotence and count
+  conflict checks. Runtime evidence collectors own which runtime facts are
+  published; EvidenceNode identity lookup remains centralized with the AIR
+  evidence query owner.
 - AIR evidence-kind metadata is fail-closed. Every valid `AIR_EVIDENCE_*` kind
   must have an explicit `present` entry in `kEvidenceKindMeta`; otherwise
   `air_evidence_kind_is_known(...)` rejects it. This is intentionally stricter
   than relying on C zero-initialization, because a missing table entry must not
   become an accepted evidence kind with accidental default policy.
+- AIR EvidenceNode identity matching is centralized inside the evidence
+  inventory validator. Boundary/provider/subject checks must use the shared
+  `air_evidence_node_matches_*` predicates through the public accessors rather
+  than rewriting `kind + boundary + provider/subject` comparisons at each
+  consumer.
 
 마지막 업데이트: 2026-05-02
 

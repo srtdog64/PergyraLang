@@ -19,6 +19,14 @@ semantic_event_normalize_type(Type *type)
     return type != NULL ? type : TYPE_UNKNOWN;
 }
 
+static Type *
+semantic_event_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
+{
+    if (type_ref == NULL || ctx == NULL)
+        return TYPE_UNKNOWN;
+    return type_check_signature_resolve_type_ref(type_ref, ctx);
+}
+
 bool
 type_check_event_decl(ASTNode *node, SemanticContext *ctx)
 {
@@ -55,12 +63,12 @@ type_check_event_decl(ASTNode *node, SemanticContext *ctx)
             continue;
         }
 
-        if (domain_resolve_type_ref(ast_let_type(param), ctx) == NULL)
+        if (semantic_event_resolve_type_ref(ast_let_type(param), ctx) == NULL)
             ok = false;
     }
 
     if (ast_event_return_type(node) != NULL) {
-        Type *return_type = domain_resolve_type_ref(
+        Type *return_type = semantic_event_resolve_type_ref(
             ast_event_return_type(node), ctx);
         if (return_type != NULL && !type_equals(return_type, TYPE_VOID)) {
             semantic_error_with_hints(ctx, PGY_CODE_SEM_EVENT_CONTRACT_INVALID,

@@ -17,19 +17,19 @@ test_program_emit_head(void)
         mir_destroy(mir);
         rir_destroy(rir);
         hir_destroy(hir);
+        ast_destroy(prog);
     }
 
     TEST("function emitted at top level with correct signature");
     {
         /* func Add(a: Int, b: Int) -> Int { return a + b } */
-        FuncParam pa, pb;
-        memset(&pa, 0, sizeof(pa)); pa.name = "a"; pa.type = make_type_node("Int");
-        memset(&pb, 0, sizeof(pb)); pb.name = "b"; pb.type = make_type_node("Int");
-        FuncParam *params[2] = { &pa, &pb };
+        FuncParam **params = calloc(2, sizeof(FuncParam *));
+        params[0] = make_func_param("a", "Int");
+        params[1] = make_func_param("b", "Int");
 
         ASTNode *fn = calloc(1, sizeof(ASTNode));
         fn->type = AST_FUNC_DECL;
-        fn->data.func_decl.name        = "Add";
+        fn->data.func_decl.name        = pergyra_strdup("Add");
         fn->data.func_decl.params      = params;
         fn->data.func_decl.param_count = 2;
         fn->data.func_decl.return_type = make_type_node("Int");
@@ -49,20 +49,18 @@ test_program_emit_head(void)
         mir_destroy(mir);
         rir_destroy(rir);
         hir_destroy(hir);
+        ast_destroy(prog);
     }
 
     TEST("generic function call emits concrete specialization in C");
     {
-        FuncParam px;
-        memset(&px, 0, sizeof(px));
-        px.name = "x";
-        px.type = make_type_node("T");
-        FuncParam *identity_params[1] = { &px };
+        FuncParam **identity_params = calloc(1, sizeof(FuncParam *));
+        identity_params[0] = make_func_param("x", "T");
 
         ASTNode *identity_return_stmts[1] = { make_return(make_identifier("x", 1), 1) };
         ASTNode *identity = calloc(1, sizeof(ASTNode));
         identity->type = AST_FUNC_DECL;
-        identity->data.func_decl.name = "Identity";
+        identity->data.func_decl.name = pergyra_strdup("Identity");
         identity->data.func_decl.params = identity_params;
         identity->data.func_decl.param_count = 1;
         identity->data.func_decl.return_type = make_type_node("T");
@@ -78,7 +76,7 @@ test_program_emit_head(void)
 
         ASTNode *main = calloc(1, sizeof(ASTNode));
         main->type = AST_FUNC_DECL;
-        main->data.func_decl.name = "Main";
+        main->data.func_decl.name = pergyra_strdup("Main");
         main->data.func_decl.return_type = make_type_node("Void");
         main->data.func_decl.body = make_block(main_stmts, 3);
 
@@ -98,20 +96,18 @@ test_program_emit_head(void)
         mir_destroy(mir);
         rir_destroy(rir);
         hir_destroy(hir);
+        ast_destroy(prog);
     }
 
     TEST("spawn emits wrapper-based task launch");
     {
-        FuncParam px;
-        memset(&px, 0, sizeof(px));
-        px.name = "x";
-        px.type = make_type_node("Int");
-        FuncParam *identity_params[1] = { &px };
+        FuncParam **identity_params = calloc(1, sizeof(FuncParam *));
+        identity_params[0] = make_func_param("x", "Int");
 
         ASTNode *identity_return_stmts[1] = { make_return(make_identifier("x", 1), 1) };
         ASTNode *identity = calloc(1, sizeof(ASTNode));
         identity->type = AST_FUNC_DECL;
-        identity->data.func_decl.name = "IdentityInt";
+        identity->data.func_decl.name = pergyra_strdup("IdentityInt");
         identity->data.func_decl.params = identity_params;
         identity->data.func_decl.param_count = 1;
         identity->data.func_decl.return_type = make_type_node("Int");
@@ -127,7 +123,7 @@ test_program_emit_head(void)
         ast_add_statement(main_body, spawn);
         ASTNode *main = calloc(1, sizeof(ASTNode));
         main->type = AST_FUNC_DECL;
-        main->data.func_decl.name = "Main";
+        main->data.func_decl.name = pergyra_strdup("Main");
         main->data.func_decl.return_type = make_type_node("Void");
         main->data.func_decl.body = main_body;
 
@@ -147,14 +143,14 @@ test_program_emit_head(void)
         mir_destroy(mir);
         rir_destroy(rir);
         hir_destroy(hir);
+        ast_destroy(prog);
     }
 
     TEST("parallel block emits pgy_spawn / pgy_await per task");
     {
-        ASTNode *tasks[2] = {
-            make_call("A", NULL, 0, 1),
-            make_call("B", NULL, 0, 1)
-        };
+        ASTNode **tasks = calloc(2, sizeof(ASTNode *));
+        tasks[0] = make_call("A", NULL, 0, 1);
+        tasks[1] = make_call("B", NULL, 0, 1);
         ASTNode *par = calloc(1, sizeof(ASTNode));
         par->type = AST_PARALLEL_BLOCK;
         par->data.parallel.tasks      = tasks;
@@ -162,12 +158,12 @@ test_program_emit_head(void)
 
         ASTNode *fnA = calloc(1, sizeof(ASTNode));
         fnA->type = AST_FUNC_DECL;
-        fnA->data.func_decl.name = "A";
+        fnA->data.func_decl.name = pergyra_strdup("A");
         fnA->data.func_decl.return_type = make_type_node("Void");
         fnA->data.func_decl.body = ast_create_block();
         ASTNode *fnB = calloc(1, sizeof(ASTNode));
         fnB->type = AST_FUNC_DECL;
-        fnB->data.func_decl.name = "B";
+        fnB->data.func_decl.name = pergyra_strdup("B");
         fnB->data.func_decl.return_type = make_type_node("Void");
         fnB->data.func_decl.body = ast_create_block();
 
@@ -175,7 +171,7 @@ test_program_emit_head(void)
         ast_add_statement(main_body, par);
         ASTNode *main = calloc(1, sizeof(ASTNode));
         main->type = AST_FUNC_DECL;
-        main->data.func_decl.name = "Main";
+        main->data.func_decl.name = pergyra_strdup("Main");
         main->data.func_decl.return_type = make_type_node("Void");
         main->data.func_decl.body = main_body;
         main->data.func_decl.param_count = 0;
@@ -196,35 +192,33 @@ test_program_emit_head(void)
         mir_destroy(mir);
         rir_destroy(rir);
         hir_destroy(hir);
+        ast_destroy(prog);
     }
 
     TEST("struct emits typedef struct and method function");
     {
         ASTNode *st = calloc(1, sizeof(ASTNode));
         st->type = AST_CLASS_DECL;
-        st->data.class_decl.name = "Vec3";
+        st->data.class_decl.name = pergyra_strdup("Vec3");
         st->data.class_decl.is_struct = true;
 
-        ClassField fx, fy, fz;
-        memset(&fx, 0, sizeof(fx));
-        memset(&fy, 0, sizeof(fy));
-        memset(&fz, 0, sizeof(fz));
-        fx.name = "x"; fx.type = make_type_node("Float");
-        fy.name = "y"; fy.type = make_type_node("Float");
-        fz.name = "z"; fz.type = make_type_node("Float");
-        ClassField *fields[3] = { &fx, &fy, &fz };
+        ClassField **fields = calloc(3, sizeof(ClassField *));
+        fields[0] = make_class_field("x", "Float");
+        fields[1] = make_class_field("y", "Float");
+        fields[2] = make_class_field("z", "Float");
         st->data.class_decl.fields = fields;
         st->data.class_decl.field_count = 3;
 
-        ASTNode method; memset(&method, 0, sizeof(method));
-        method.type = AST_FUNC_DECL;
-        method.data.func_decl.name = "Length";
-        method.data.func_decl.params = NULL;
-        method.data.func_decl.param_count = 0;
-        method.data.func_decl.return_type = make_type_node("Float");
-        method.data.func_decl.body = NULL;
+        ASTNode *method = calloc(1, sizeof(ASTNode));
+        method->type = AST_FUNC_DECL;
+        method->data.func_decl.name = pergyra_strdup("Length");
+        method->data.func_decl.params = NULL;
+        method->data.func_decl.param_count = 0;
+        method->data.func_decl.return_type = make_type_node("Float");
+        method->data.func_decl.body = NULL;
 
-        ASTNode *methods[1] = { &method };
+        ASTNode **methods = calloc(1, sizeof(ASTNode *));
+        methods[0] = method;
         st->data.class_decl.methods = methods;
         st->data.class_decl.method_count = 1;
 
@@ -247,6 +241,7 @@ test_program_emit_head(void)
         mir_destroy(mir);
         rir_destroy(rir);
         hir_destroy(hir);
+        ast_destroy(prog);
     }
 
     TEST("subject method call lowers to self-cell call");
@@ -463,6 +458,73 @@ test_program_emit_head(void)
         EXPECT_STR_CONTAINS(ctx->out->data, "Info");
         EXPECT_STR_CONTAINS(ctx->out->data, "weapon");
         EXPECT_STR_CONTAINS(ctx->out->data, "target->hp");
+
+        transpiler_ctx_destroy(ctx);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("subject temporary argument rejects pointer-self boundary");
+    {
+        const char *source =
+            "subject Player { let hp: Int; }\n"
+            "func Touch(target: Player) -> Void { return; }\n"
+            "func Main() -> Void {\n"
+            "    Touch(Player());\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
+        TranspilerCtx *ctx = transpiler_ctx_create();
+
+        emit_program(ctx);
+
+        EXPECT(ctx->backend_error != NULL);
+        EXPECT_STR_CONTAINS(ctx->backend_error,
+            "requires addressable storage");
+        EXPECT_STR_NOT_CONTAINS(ctx->out->data, "&Player(");
+
+        transpiler_ctx_destroy(ctx);
+        mir_destroy(mir);
+        rir_destroy(rir);
+        hir_destroy(hir);
+        ast_destroy(program);
+        parser_destroy(parser);
+        lexer_destroy(lexer);
+    }
+
+    TEST("subject method temporary argument rejects pointer-self boundary");
+    {
+        const char *source =
+            "subject Player { let hp: Int; }\n"
+            "subject Actor {\n"
+            "    action Touch(self, target: Player) -> Void { return; }\n"
+            "}\n"
+            "func Main() -> Void {\n"
+            "    let actor: Actor = Actor();\n"
+            "    actor.Touch(Player());\n"
+            "}\n";
+        Lexer *lexer = lexer_create(source);
+        Parser *parser = parser_create(lexer);
+        ASTNode *program = parser_parse_program(parser);
+        HIRProgram *hir = NULL;
+        RIRProgram *rir = NULL;
+        MIRProgram *mir = lower_program_to_mir_strict(program, &hir, &rir);
+        TranspilerCtx *ctx = transpiler_ctx_create();
+
+        emit_program(ctx);
+
+        EXPECT(ctx->backend_error != NULL);
+        EXPECT_STR_CONTAINS(ctx->backend_error,
+            "requires addressable storage");
+        EXPECT_STR_NOT_CONTAINS(ctx->out->data, "&Player(");
 
         transpiler_ctx_destroy(ctx);
         mir_destroy(mir);

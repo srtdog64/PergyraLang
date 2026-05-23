@@ -15,27 +15,6 @@ air_hir_routine_matches_boundary(const HIRRoutine *routine,
 }
 
 static bool
-air_has_boundary_evidence_provider(const AIRProgram *air,
-                                   AIREvidenceKind kind,
-                                   size_t boundary_index,
-                                   const char *provider_name)
-{
-    if (air == NULL || provider_name == NULL)
-        return false;
-    for (size_t i = 0; i < air_evidence_node_count(air); i++) {
-        const AIREvidenceNode *node = air_evidence_node_at(air, i);
-        if (node == NULL)
-            continue;
-        if (node->kind == kind
-            && node->boundary_index == boundary_index
-            && air_name_matches(node->provider_name, provider_name)) {
-            return true;
-        }
-    }
-    return false;
-}
-
-static bool
 air_hir_cfg_contains_boundary_ast(const HIRRoutine *routine,
                                   const AIRBoundaryNode *boundary)
 {
@@ -84,10 +63,11 @@ air_collect_hir_evidence(AIRProgram *air, const HIRProgram *hir,
                 const char *routine_name = routine->name != NULL
                     ? routine->name
                     : routine->owner_name;
-                if (!air_has_boundary_evidence_provider(air,
-                                                        AIR_EVIDENCE_HIR_ROUTINE,
-                                                        j,
-                                                        routine_name)) {
+                if (!air_boundary_has_evidence_kind_provider(
+                        air,
+                        j,
+                        AIR_EVIDENCE_HIR_ROUTINE,
+                        routine_name)) {
                     if (!air_assign_first_owned_name(
                             air,
                             &boundary->hir_routine_evidence_name,

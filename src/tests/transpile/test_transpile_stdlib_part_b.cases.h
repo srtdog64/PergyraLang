@@ -97,6 +97,101 @@ test_stdlib_and_enum_emit(void)
         lexer_destroy(lexer);
     }
 
+    TEST("List builtin rejects non-addressable storage expression");
+    {
+        ASTNode *list_call = make_call("MakeList", NULL, 0, 1);
+        ASTNode *args[2] = { list_call, make_number(7, 1) };
+        ASTNode *call = make_call("ListPush", args, 2, 1);
+        ctx = transpiler_ctx_create();
+        char *result = emit_expression(call, ctx);
+
+        EXPECT(result != NULL);
+        EXPECT_STR_NOT_CONTAINS(result, "&MakeList");
+        EXPECT(ctx->backend_error != NULL);
+        EXPECT_STR_CONTAINS(ctx->backend_error,
+            "requires addressable List storage");
+
+        free(result);
+        ast_destroy(call);
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("Array mutator rejects non-addressable storage expression");
+    {
+        ASTNode *array_call = make_call("MakeArray", NULL, 0, 1);
+        ASTNode *args[2] = { array_call, make_number(7, 1) };
+        ASTNode *call = make_call("ArrayPush", args, 2, 1);
+        ctx = transpiler_ctx_create();
+        char *result = emit_expression(call, ctx);
+
+        EXPECT(result != NULL);
+        EXPECT_STR_NOT_CONTAINS(result, "&MakeArray");
+        EXPECT(ctx->backend_error != NULL);
+        EXPECT_STR_CONTAINS(ctx->backend_error,
+            "requires addressable Array storage");
+
+        free(result);
+        ast_destroy(call);
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("StringJoin rejects non-addressable array expression");
+    {
+        ASTNode *array_call = make_call("StringSplit", NULL, 0, 1);
+        ASTNode *args[2] = { array_call, make_string_lit(",", 1) };
+        ASTNode *call = make_call("StringJoin", args, 2, 1);
+        ctx = transpiler_ctx_create();
+        char *result = emit_expression(call, ctx);
+
+        EXPECT(result != NULL);
+        EXPECT_STR_NOT_CONTAINS(result, "&StringSplit");
+        EXPECT(ctx->backend_error != NULL);
+        EXPECT_STR_CONTAINS(ctx->backend_error,
+            "requires addressable Array storage");
+
+        free(result);
+        ast_destroy(call);
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("Map builtin rejects non-addressable storage expression");
+    {
+        ASTNode *map_call = make_call("MakeMap", NULL, 0, 1);
+        ASTNode *args[2] = { map_call, make_string_lit("hero", 1) };
+        ASTNode *call = make_call("MapGet", args, 2, 1);
+        ctx = transpiler_ctx_create();
+        char *result = emit_expression(call, ctx);
+
+        EXPECT(result != NULL);
+        EXPECT_STR_NOT_CONTAINS(result, "&MakeMap");
+        EXPECT(ctx->backend_error != NULL);
+        EXPECT_STR_CONTAINS(ctx->backend_error,
+            "requires addressable HashMap storage");
+
+        free(result);
+        ast_destroy(call);
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("FSM builtin rejects non-addressable storage expression");
+    {
+        ASTNode *fsm_call = make_call("MakeFsm", NULL, 0, 1);
+        ASTNode *args[1] = { fsm_call };
+        ASTNode *call = make_call("FsmCurrent", args, 1, 1);
+        ctx = transpiler_ctx_create();
+        char *result = emit_expression(call, ctx);
+
+        EXPECT(result != NULL);
+        EXPECT_STR_NOT_CONTAINS(result, "&MakeFsm");
+        EXPECT(ctx->backend_error != NULL);
+        EXPECT_STR_CONTAINS(ctx->backend_error,
+            "requires addressable FSM storage");
+
+        free(result);
+        ast_destroy(call);
+        transpiler_ctx_destroy(ctx);
+    }
+
     TEST("string equality lowers through runtime helper");
     {
         const char *source =
@@ -684,17 +779,16 @@ test_stdlib_and_enum_emit(void)
 
     TEST("operator overload dispatch uses operator_add_Type");
     {
-        FuncParam opa, opb, maina, mainb;
-        memset(&opa, 0, sizeof(opa)); opa.name = "a"; opa.type = make_type_node("Vec2");
-        memset(&opb, 0, sizeof(opb)); opb.name = "b"; opb.type = make_type_node("Vec2");
-        memset(&maina, 0, sizeof(maina)); maina.name = "a"; maina.type = make_type_node("Vec2");
-        memset(&mainb, 0, sizeof(mainb)); mainb.name = "b"; mainb.type = make_type_node("Vec2");
-        FuncParam *op_params[2] = { &opa, &opb };
-        FuncParam *main_params[2] = { &maina, &mainb };
+        FuncParam **op_params = calloc(2, sizeof(FuncParam *));
+        FuncParam **main_params = calloc(2, sizeof(FuncParam *));
+        op_params[0] = make_func_param("a", "Vec2");
+        op_params[1] = make_func_param("b", "Vec2");
+        main_params[0] = make_func_param("a", "Vec2");
+        main_params[1] = make_func_param("b", "Vec2");
 
         ASTNode *op_fn = calloc(1, sizeof(ASTNode));
         op_fn->type = AST_FUNC_DECL;
-        op_fn->data.func_decl.name = "operator_add_Vec2";
+        op_fn->data.func_decl.name = pergyra_strdup("operator_add_Vec2");
         op_fn->data.func_decl.params = op_params;
         op_fn->data.func_decl.param_count = 2;
         op_fn->data.func_decl.return_type = make_type_node("Vec2");
@@ -704,7 +798,7 @@ test_stdlib_and_enum_emit(void)
 
         ASTNode *main_fn = calloc(1, sizeof(ASTNode));
         main_fn->type = AST_FUNC_DECL;
-        main_fn->data.func_decl.name = "Main";
+        main_fn->data.func_decl.name = pergyra_strdup("Main");
         main_fn->data.func_decl.params = main_params;
         main_fn->data.func_decl.param_count = 2;
         main_fn->data.func_decl.return_type = make_type_node("Vec2");
@@ -727,11 +821,11 @@ test_stdlib_and_enum_emit(void)
         mir_destroy(mir);
         rir_destroy(rir);
         hir_destroy(hir);
+        ast_destroy(prog);
     }
 
     TEST("operator overload dispatch keeps left-type suffix stable across nested inferred calls");
     {
-        FuncParam opa, opb;
         ASTNode *op_fn;
         ASTNode *make_vec_fn;
         ASTNode *make_count_fn;
@@ -741,23 +835,17 @@ test_stdlib_and_enum_emit(void)
         ASTNode *left_call;
         ASTNode *right_call;
         ASTNode *stmts[4];
+        ASTNode *prog;
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
         MIRProgram *mir;
 
-        memset(&opa, 0, sizeof(opa));
-        memset(&opb, 0, sizeof(opb));
-        opa.name = "a";
-        opa.type = make_type_node("Vec2");
-        opb.name = "b";
-        opb.type = make_type_node("Int");
-
         op_fn = calloc(1, sizeof(ASTNode));
         op_fn->type = AST_FUNC_DECL;
-        op_fn->data.func_decl.name = "operator_add_Vec2";
+        op_fn->data.func_decl.name = pergyra_strdup("operator_add_Vec2");
         op_fn->data.func_decl.params = calloc(2, sizeof(FuncParam *));
-        op_fn->data.func_decl.params[0] = &opa;
-        op_fn->data.func_decl.params[1] = &opb;
+        op_fn->data.func_decl.params[0] = make_func_param("a", "Vec2");
+        op_fn->data.func_decl.params[1] = make_func_param("b", "Int");
         op_fn->data.func_decl.param_count = 2;
         op_fn->data.func_decl.return_type = make_type_node("Vec2");
         op_fn->data.func_decl.body = ast_create_block();
@@ -766,7 +854,7 @@ test_stdlib_and_enum_emit(void)
 
         make_vec_fn = calloc(1, sizeof(ASTNode));
         make_vec_fn->type = AST_FUNC_DECL;
-        make_vec_fn->data.func_decl.name = "MakeVec";
+        make_vec_fn->data.func_decl.name = pergyra_strdup("MakeVec");
         make_vec_fn->data.func_decl.return_type = make_type_node("Vec2");
         make_vec_fn->data.func_decl.body = ast_create_block();
         ast_add_statement(make_vec_fn->data.func_decl.body,
@@ -774,7 +862,7 @@ test_stdlib_and_enum_emit(void)
 
         make_count_fn = calloc(1, sizeof(ASTNode));
         make_count_fn->type = AST_FUNC_DECL;
-        make_count_fn->data.func_decl.name = "MakeCount";
+        make_count_fn->data.func_decl.name = pergyra_strdup("MakeCount");
         make_count_fn->data.func_decl.return_type = make_type_node("Int");
         make_count_fn->data.func_decl.body = ast_create_block();
         ast_add_statement(make_count_fn->data.func_decl.body,
@@ -786,7 +874,7 @@ test_stdlib_and_enum_emit(void)
 
         main_fn = calloc(1, sizeof(ASTNode));
         main_fn->type = AST_FUNC_DECL;
-        main_fn->data.func_decl.name = "Main";
+        main_fn->data.func_decl.name = pergyra_strdup("Main");
         main_fn->data.func_decl.return_type = make_type_node("Vec2");
         main_body = ast_create_block();
         ast_add_statement(main_body, make_return(sum, 4));
@@ -797,7 +885,8 @@ test_stdlib_and_enum_emit(void)
         stmts[2] = make_count_fn;
         stmts[3] = main_fn;
 
-        mir = lower_program_to_mir(make_program(stmts, 4), &hir, &rir);
+        prog = make_program(stmts, 4);
+        mir = lower_program_to_mir(prog, &hir, &rir);
         ctx = transpiler_ctx_create();
         emit_program(ctx);
 
@@ -808,6 +897,7 @@ test_stdlib_and_enum_emit(void)
         mir_destroy(mir);
         rir_destroy(rir);
         hir_destroy(hir);
+        ast_destroy(prog);
     }
 
     TEST("role ability Add emits operator_add_Type alias");

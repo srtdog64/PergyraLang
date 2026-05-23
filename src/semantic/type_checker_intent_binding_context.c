@@ -90,10 +90,9 @@ intent_step_derive_transfer_context(ASTNode *intent_decl,
     if (ast_intent_step_where_type(step) == NULL
         && to_type != NULL
         && to_type->name != NULL) {
-        if (ast_intent_step_set_where_type(step,
-                ast_create_type(to_type->name))) {
-            ast_intent_step_mark_derived_where_from_transfer(step);
-        }
+        (void)intent_step_set_where_type_name(
+            step, to_type->name,
+            INTENT_STEP_WHERE_PROVENANCE_DERIVED_TRANSFER);
     }
 }
 
@@ -120,10 +119,9 @@ intent_step_derive_zone_binding_context(ASTNode *intent_decl,
         ASTNode *zone_decl = find_domain_decl_by_name(ctx->program_root,
             AST_ZONE_DECL, using_type != NULL ? using_type->name : NULL);
         if (zone_decl != NULL && using_type != NULL && using_type->name != NULL) {
-            if (ast_intent_step_set_where_type(step,
-                    ast_create_type(using_type->name))) {
-                ast_intent_step_mark_derived_where_from_using(step);
-            }
+            (void)intent_step_set_where_type_name(
+                step, using_type->name,
+                INTENT_STEP_WHERE_PROVENANCE_DERIVED_USING);
         }
     }
 

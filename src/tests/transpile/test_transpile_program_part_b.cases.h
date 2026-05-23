@@ -370,36 +370,36 @@ test_program_emit_tail(void)
 
     TEST("extern block emits C prototypes");
     {
-        ASTNode ext; memset(&ext, 0, sizeof(ext));
-        ext.type = AST_EXTERN_BLOCK;
-        ext.data.extern_block.abi = "C";
+        ASTNode *ext = calloc(1, sizeof(ASTNode));
+        ext->type = AST_EXTERN_BLOCK;
+        ext->data.extern_block.abi = pergyra_strdup("C");
 
-        FuncParam p; memset(&p, 0, sizeof(p));
-        p.name = "flags";
-        p.type = make_type_node("Int");
-        FuncParam *params[1] = { &p };
+        FuncParam **params = calloc(1, sizeof(FuncParam *));
+        params[0] = make_func_param("flags", "Int");
 
-        ASTNode fn1; memset(&fn1, 0, sizeof(fn1));
-        fn1.type = AST_FUNC_DECL;
-        fn1.data.func_decl.name = "SDL_Init";
-        fn1.data.func_decl.params = params;
-        fn1.data.func_decl.param_count = 1;
-        fn1.data.func_decl.return_type = make_type_node("Int");
-        fn1.data.func_decl.body = NULL;
+        ASTNode *fn1 = calloc(1, sizeof(ASTNode));
+        fn1->type = AST_FUNC_DECL;
+        fn1->data.func_decl.name = pergyra_strdup("SDL_Init");
+        fn1->data.func_decl.params = params;
+        fn1->data.func_decl.param_count = 1;
+        fn1->data.func_decl.return_type = make_type_node("Int");
+        fn1->data.func_decl.body = NULL;
 
-        ASTNode fn2; memset(&fn2, 0, sizeof(fn2));
-        fn2.type = AST_FUNC_DECL;
-        fn2.data.func_decl.name = "SDL_Quit";
-        fn2.data.func_decl.params = NULL;
-        fn2.data.func_decl.param_count = 0;
-        fn2.data.func_decl.return_type = make_type_node("Void");
-        fn2.data.func_decl.body = NULL;
+        ASTNode *fn2 = calloc(1, sizeof(ASTNode));
+        fn2->type = AST_FUNC_DECL;
+        fn2->data.func_decl.name = pergyra_strdup("SDL_Quit");
+        fn2->data.func_decl.params = NULL;
+        fn2->data.func_decl.param_count = 0;
+        fn2->data.func_decl.return_type = make_type_node("Void");
+        fn2->data.func_decl.body = NULL;
 
-        ASTNode *decls[2] = { &fn1, &fn2 };
-        ext.data.extern_block.declarations = decls;
-        ext.data.extern_block.count = 2;
+        ASTNode **decls = calloc(2, sizeof(ASTNode *));
+        decls[0] = fn1;
+        decls[1] = fn2;
+        ext->data.extern_block.declarations = decls;
+        ext->data.extern_block.count = 2;
 
-        ASTNode *stmts[1] = { &ext };
+        ASTNode *stmts[1] = { ext };
         ASTNode *prog = make_program(stmts, 1);
         HIRProgram *hir = NULL;
         RIRProgram *rir = NULL;
@@ -416,6 +416,7 @@ test_program_emit_tail(void)
         mir_destroy(mir);
         rir_destroy(rir);
         hir_destroy(hir);
+        ast_destroy(prog);
     }
 
     TEST("extern Bool return uses bool stringification");
@@ -463,9 +464,9 @@ test_program_emit_tail(void)
 
     TEST("event declaration stays at file scope");
     {
-        ASTNode event_node;
-        ASTNode param_node;
-        ASTNode *params[1] = { &param_node };
+        ASTNode *event_node;
+        ASTNode *param_node;
+        ASTNode **params;
         ASTNode *stmts[2];
         ASTNode *prog;
         HIRProgram *hir;
@@ -474,20 +475,22 @@ test_program_emit_tail(void)
         TranspilerCtx *ctx;
         const char *event_pos;
 
-        memset(&event_node, 0, sizeof(event_node));
-        memset(&param_node, 0, sizeof(param_node));
+        event_node = calloc(1, sizeof(ASTNode));
+        param_node = calloc(1, sizeof(ASTNode));
+        params = calloc(1, sizeof(ASTNode *));
+        params[0] = param_node;
 
-        event_node.type = AST_EVENT_DECL;
-        event_node.data.event_decl.name = "OnHit";
-        event_node.data.event_decl.params = params;
-        event_node.data.event_decl.param_count = 1;
-        event_node.data.event_decl.return_type = make_type_node("Void");
+        event_node->type = AST_EVENT_DECL;
+        event_node->data.event_decl.name = pergyra_strdup("OnHit");
+        event_node->data.event_decl.params = params;
+        event_node->data.event_decl.param_count = 1;
+        event_node->data.event_decl.return_type = make_type_node("Void");
 
-        param_node.type = AST_LET_DECL;
-        param_node.data.let_decl.name = "damage";
-        param_node.data.let_decl.type = make_type_node("Int");
+        param_node->type = AST_LET_DECL;
+        param_node->data.let_decl.name = pergyra_strdup("damage");
+        param_node->data.let_decl.type = make_type_node("Int");
 
-        stmts[0] = &event_node;
+        stmts[0] = event_node;
         stmts[1] = make_let("boot", make_type_node("Int"), make_number(1, 1), 1);
         prog = make_program(stmts, 2);
         rir = NULL;
@@ -502,6 +505,7 @@ test_program_emit_tail(void)
         mir_destroy(mir);
         rir_destroy(rir);
         hir_destroy(hir);
+        ast_destroy(prog);
     }
 }
 

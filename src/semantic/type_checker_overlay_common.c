@@ -44,7 +44,7 @@ type_check_overlay_decl_common(ASTNode *node,
     for (size_t i = 0; i < shared_count; i++) {
         ASTNode *shared = shared_fields[i];
         if (ast_party_shared_type(shared) != NULL)
-            domain_resolve_shared_type(shared, ctx);
+            domain_lookup_shared_type_metadata(shared, ctx);
         if (ast_party_shared_initializer(shared) != NULL)
             type_check_expression(ast_party_shared_initializer(shared), ctx);
     }
@@ -62,7 +62,7 @@ type_check_overlay_decl_common(ASTNode *node,
             if (slot != NULL && slot->type == AST_DOMAIN_SLOT
                 && slot_name != NULL
                 && ast_domain_slot_type(slot) != NULL) {
-                Type *slot_type = domain_resolve_slot_type(slot, ctx);
+                Type *slot_type = domain_lookup_slot_type_metadata(slot, ctx);
                 Symbol *slot_sym = calloc(1, sizeof(Symbol));
                 slot_sym->name = pergyra_strdup(slot_name);
                 slot_sym->kind = SYMBOL_VARIABLE;
@@ -105,7 +105,7 @@ type_check_overlay_decl_common(ASTNode *node,
         if (shared != NULL && shared_name != NULL) {
             Type *field_type = TYPE_UNKNOWN;
             if (ast_party_shared_type(shared) != NULL)
-                field_type = domain_resolve_shared_type(shared, ctx);
+                field_type = domain_lookup_shared_type_metadata(shared, ctx);
             Symbol *field_sym = calloc(1, sizeof(Symbol));
             field_sym->name = pergyra_strdup(shared_name);
             field_sym->kind = SYMBOL_VARIABLE;

@@ -302,9 +302,11 @@ The `unsafe { ... }` keyword exists as a lexical marker, but it is not a
 beta-stable raw pointer / inline-assembly / MMIO contract.
 
 - **Reason**: raw escape needs explicit syntax, semantic gates, ABI lowering,
-  diagnostics, and determinism tests before it can be accepted.
+  diagnostics, scoped unsafe capability evidence, and determinism tests before
+  it can be accepted.
 - **Fix**: use typed Pin/Lease views for repeated slot access, or wait for the
-  raw escape contract.
+  scoped raw escape contract, for example a future `unsafe(raw) { ... }`
+  boundary.
 - **cause_ir**: `semantic:raw_escape:unstable`
 - **fix_source**: `use-pin-or-wait-for-raw-escape-contract`
 

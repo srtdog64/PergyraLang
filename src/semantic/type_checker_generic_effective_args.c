@@ -37,11 +37,8 @@ collect_effective_generic_arg_types(GenericParams *decl_params,
     }
 
     for (size_t i = 0; i < effective_count; i++) {
-        Type *resolved = domain_resolve_type_ref(effective_nodes[i], ctx);
-        if (resolved == NULL || resolved == TYPE_UNKNOWN) {
-            resolved = semantic_type_resolution_lookup_metadata_type_ref(
-                ctx, effective_nodes[i]);
-        }
+        Type *resolved = semantic_type_resolution_lookup_metadata_type_ref(
+            ctx, effective_nodes[i]);
         effective_types[i] = resolved != NULL ? resolved : TYPE_UNKNOWN;
     }
 

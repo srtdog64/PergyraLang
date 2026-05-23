@@ -5,7 +5,6 @@
  * Call-argument ownership-boundary checks.
  */
 
-#include "slot_summary.h"
 #include "diag_codes.h"
 #include "type_checker_internal.h"
 #include "type_checker_ownership_consumers_internal.h"
@@ -54,9 +53,7 @@ semantic_check_movable_call_argument(ASTNode *arg_expr,
         callee_mask = semantic_callable_param_escape_summary(
             callee_decl, arg_index, ctx);
         if (borrowed_name != NULL
-            && (callee_mask & (SLOT_PARAM_SUMMARY_RETURN_ESCAPE
-                               | SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE
-                               | SLOT_PARAM_SUMMARY_CALL_ESCAPE)) != 0) {
+            && semantic_param_summary_has_any_escape(callee_mask)) {
             semantic_validate_borrowed_escape(
                 arg_expr,
                 arg_expr,
@@ -467,9 +464,7 @@ semantic_validate_borrowed_boundary_call_argument(ASTNode *arg_expr,
     if (pmode == PARAM_MODE_REF && track_borrow_provenance) {
         unsigned callee_mask = semantic_callable_param_escape_summary(
             callee_decl, arg_index, ctx);
-        if ((callee_mask & (SLOT_PARAM_SUMMARY_RETURN_ESCAPE
-                            | SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE
-                            | SLOT_PARAM_SUMMARY_CALL_ESCAPE)) != 0
+        if (semantic_param_summary_has_any_escape(callee_mask)
             && borrowed_name != NULL) {
             semantic_validate_borrowed_escape(
                 arg_expr, arg_expr, ctx, arg_type, borrowed_name,

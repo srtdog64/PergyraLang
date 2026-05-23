@@ -13,15 +13,68 @@
 
 typedef struct SemanticAssignmentPathOwner {
     SemanticContext *ctx;
-    bool scratch;
+    char *(*dup)(struct SemanticAssignmentPathOwner owner, const char *s);
+    char *(*vfmt)(struct SemanticAssignmentPathOwner owner, const char *fmt,
+                  va_list args);
+    void (*release)(struct SemanticAssignmentPathOwner owner, char *path);
 } SemanticAssignmentPathOwner;
+
+static char *
+semantic_assignment_path_heap_dup(SemanticAssignmentPathOwner owner,
+                                  const char *s)
+{
+    (void)owner;
+    return pergyra_strdup(s);
+}
+
+static char *
+semantic_assignment_path_heap_vfmt(SemanticAssignmentPathOwner owner,
+                                   const char *fmt,
+                                   va_list args)
+{
+    (void)owner;
+    return pergyra_strdup_vprintf(fmt, args);
+}
+
+static void
+semantic_assignment_path_heap_release(SemanticAssignmentPathOwner owner,
+                                      char *path)
+{
+    (void)owner;
+    free(path);
+}
+
+static char *
+semantic_assignment_path_scratch_dup(SemanticAssignmentPathOwner owner,
+                                     const char *s)
+{
+    return pgy_arena_strdup(&owner.ctx->scratch_arena, s);
+}
+
+static char *
+semantic_assignment_path_scratch_vfmt(SemanticAssignmentPathOwner owner,
+                                      const char *fmt,
+                                      va_list args)
+{
+    return pgy_arena_vfmt(&owner.ctx->scratch_arena, fmt, args);
+}
+
+static void
+semantic_assignment_path_scratch_release(SemanticAssignmentPathOwner owner,
+                                         char *path)
+{
+    (void)owner;
+    (void)path;
+}
 
 static SemanticAssignmentPathOwner
 semantic_assignment_path_heap_owner(void)
 {
     SemanticAssignmentPathOwner owner = {
         .ctx = NULL,
-        .scratch = false,
+        .dup = semantic_assignment_path_heap_dup,
+        .vfmt = semantic_assignment_path_heap_vfmt,
+        .release = semantic_assignment_path_heap_release,
     };
     return owner;
 }
@@ -31,17 +84,18 @@ semantic_assignment_path_scratch_owner(SemanticContext *ctx)
 {
     SemanticAssignmentPathOwner owner = {
         .ctx = ctx,
-        .scratch = ctx != NULL,
+        .dup = semantic_assignment_path_scratch_dup,
+        .vfmt = semantic_assignment_path_scratch_vfmt,
+        .release = semantic_assignment_path_scratch_release,
     };
     return owner;
 }
 
 static char *
-semantic_assignment_path_dup(SemanticAssignmentPathOwner owner, const char *s)
+semantic_assignment_path_dup(SemanticAssignmentPathOwner owner,
+                             const char *s)
 {
-    if (owner.scratch)
-        return pgy_arena_strdup(&owner.ctx->scratch_arena, s);
-    return pergyra_strdup(s);
+    return owner.dup(owner, s);
 }
 
 static char *
@@ -52,18 +106,16 @@ semantic_assignment_path_fmt(SemanticAssignmentPathOwner owner,
     char *result;
 
     va_start(args, fmt);
-    result = owner.scratch
-        ? pgy_arena_vfmt(&owner.ctx->scratch_arena, fmt, args)
-        : pergyra_strdup_vprintf(fmt, args);
+    result = owner.vfmt(owner, fmt, args);
     va_end(args);
     return result;
 }
 
 static void
-semantic_assignment_path_release(SemanticAssignmentPathOwner owner, char *path)
+semantic_assignment_path_release(SemanticAssignmentPathOwner owner,
+                                 char *path)
 {
-    if (!owner.scratch)
-        free(path);
+    owner.release(owner, path);
 }
 
 static char *

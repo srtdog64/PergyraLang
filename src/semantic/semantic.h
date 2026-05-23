@@ -58,6 +58,8 @@ void            semantic_result_destroy(SemanticResult* result);
 void            semantic_result_print(const SemanticResult* result);
 size_t          semantic_result_type_resolution_metadata_entries(
                     const SemanticResult* result);
+size_t          semantic_result_type_resolution_metadata_hits(
+                    const SemanticResult* result);
 size_t          semantic_result_type_resolution_metadata_dead_ends(
                     const SemanticResult* result);
 size_t          semantic_result_dag_generic_contract_evidence_count(

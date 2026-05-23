@@ -6,47 +6,6 @@
 #include "air_internal.h"
 
 static bool
-air_boundary_has_evidence_kind_provider(const AIRProgram *air,
-                                        size_t boundary_index,
-                                        AIREvidenceKind kind,
-                                        const char *provider_name)
-{
-    if (air == NULL || boundary_index >= air_boundary_node_count(air))
-        return false;
-    for (size_t i = 0; i < air_evidence_node_count(air); i++) {
-        const AIREvidenceNode *evidence = air_evidence_node_at(air, i);
-        if (evidence == NULL)
-            continue;
-        if (evidence->kind == kind
-            && evidence->boundary_index == boundary_index
-            && air_name_matches(evidence->provider_name, provider_name)) {
-            return true;
-        }
-    }
-    return false;
-}
-
-static bool
-air_global_evidence_has_provider(const AIRProgram *air,
-                                 AIREvidenceKind kind,
-                                 const char *provider_name)
-{
-    if (air == NULL || air_name_is_empty(provider_name))
-        return false;
-    for (size_t i = 0; i < air_evidence_node_count(air); i++) {
-        const AIREvidenceNode *evidence = air_evidence_node_at(air, i);
-        if (evidence == NULL)
-            continue;
-        if (evidence->kind == kind
-            && evidence->boundary_index == SIZE_MAX
-            && air_name_matches(evidence->provider_name, provider_name)) {
-            return true;
-        }
-    }
-    return false;
-}
-
-static bool
 air_program_requires_summary_flag_for_evidence(const AIRProgram *air,
                                                AIREvidenceKind kind)
 {
@@ -232,7 +191,7 @@ air_validate_boundary_mir_pin_cleanup_evidence(const AIRProgram *air,
                                 evidence->boundary_index);
         return false;
     }
-    if (!air_global_evidence_has_provider(air,
+    if (!air_has_global_evidence_provider(air,
                                           AIR_EVIDENCE_MIR_CLEANUP,
                                           evidence->provider_name)) {
         air_set_invariant_error(error_message,

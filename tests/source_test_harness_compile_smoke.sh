@@ -23,6 +23,38 @@ fi
 
 mkdir -p "$OUT_DIR"
 
+require_term() {
+    local file="$1"
+    local term="$2"
+    if ! grep -Fq "$term" "$file"; then
+        echo "[source-test-harness-compile] missing harness ownership term in $file: $term" >&2
+        exit 1
+    fi
+}
+
+reject_regex() {
+    local file="$1"
+    local regex="$2"
+    local label="$3"
+    if grep -Eq "$regex" "$file"; then
+        echo "[source-test-harness-compile] forbidden harness ownership pattern in $file: $label" >&2
+        grep -En "$regex" "$file" >&2 || true
+        exit 1
+    fi
+}
+
+transpile_helpers="$ROOT_DIR/src/tests/transpile/test_transpile_helpers.cases.h"
+require_term "$transpile_helpers" "make_func_param"
+require_term "$transpile_helpers" "make_class_field"
+
+for fixture in \
+    "$ROOT_DIR/src/tests/transpile/test_transpile_program_part_a.cases.h" \
+    "$ROOT_DIR/src/tests/transpile/test_transpile_program_part_b.cases.h" \
+    "$ROOT_DIR/src/tests/transpile/test_transpile_stdlib_part_b.cases.h"; do
+    reject_regex "$fixture" 'FuncParam [A-Za-z_, ]+;' 'stack FuncParam in AST-owned program fixture'
+    reject_regex "$fixture" 'ClassField [A-Za-z_, ]+;' 'stack ClassField in AST-owned program fixture'
+done
+
 probe_src="$OUT_DIR/compiler-probe.c"
 probe_obj="$OUT_DIR/compiler-probe.o"
 printf '%s\n' 'int main(void) { return 0; }' > "$probe_src"

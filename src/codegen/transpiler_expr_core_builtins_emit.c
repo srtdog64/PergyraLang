@@ -65,6 +65,13 @@ emit_builtin_rc(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
         ? ast_call_argument(call, 0)
         : NULL;
 
+    if ((kind == BUILTIN_RC_DROP || kind == BUILTIN_RC_GET
+            || kind == BUILTIN_WEAK_DROP)
+        && !transpiler_require_c_addressable_storage(ctx, arg,
+            "Rc/Weak operation", "Rc/Weak")) {
+        return pergyra_strdup("0");
+    }
+
     switch (kind) {
     case BUILTIN_RC_NEW:
         if (ast_call_arg_count(call) != 1) {
@@ -192,6 +199,13 @@ emit_builtin_box(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
         ? ast_call_argument(call, 0)
         : NULL;
 
+    if ((kind == BUILTIN_BOX_SET || kind == BUILTIN_BOX_DROP
+            || kind == BUILTIN_BOX_IS_VALID)
+        && !transpiler_require_c_addressable_storage(ctx, arg,
+            "Box operation", "Box")) {
+        return pergyra_strdup("0");
+    }
+
     switch (kind) {
     case BUILTIN_BOX:
         if (ast_call_arg_count(call) != 1) {
@@ -295,6 +309,14 @@ emit_builtin_box(ASTNode *call, BuiltinKind kind, TranspilerCtx *ctx)
         return result;
     }
     if (kind == BUILTIN_BOX_SET) {
+        if (ast_call_arg_count(call) != 2) {
+            transpiler_set_backend_error_with_hints(ctx,
+                PGY_CODE_C_TYPE_UNSUPPORTED,
+                PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+                "C backend: BoxSet requires exactly two arguments");
+            return pergyra_strdup("0");
+        }
         char *box_expr = emit_expression(arg, ctx);
         char *value = emit_expression(ast_call_argument(call, 1), ctx);
         char *result = strdup_fmt("pgy_box_set_%s(&%s, %s)", inner, box_expr,

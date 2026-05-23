@@ -45,26 +45,6 @@ air_mir_pin_block_has_cleanup_successor(const MIRRoutine *routine,
     return true;
 }
 
-static bool
-air_has_mir_pin_cleanup_evidence(const AIRProgram *air,
-                                 size_t boundary_index,
-                                 const char *routine_name)
-{
-    if (air == NULL)
-        return false;
-    for (size_t i = 0; i < air_evidence_node_count(air); i++) {
-        const AIREvidenceNode *node = air_evidence_node_at(air, i);
-        if (node == NULL)
-            continue;
-        if (node->kind == AIR_EVIDENCE_MIR_PIN_CLEANUP
-            && node->boundary_index == boundary_index
-            && air_name_matches(node->provider_name, routine_name)) {
-            return true;
-        }
-    }
-    return false;
-}
-
 bool
 air_collect_mir_pin_block_evidence(AIRProgram *air,
                                    const MIRRoutine *routine,
@@ -92,8 +72,13 @@ air_collect_mir_pin_block_evidence(AIRProgram *air,
 
         if (!air_mir_pin_block_matches_boundary(block, boundary))
             continue;
-        if (air_has_mir_pin_cleanup_evidence(air, i, routine_name))
+        if (air_boundary_has_evidence_kind_provider(
+                air,
+                i,
+                AIR_EVIDENCE_MIR_PIN_CLEANUP,
+                routine_name)) {
             continue;
+        }
         if (!air_append_evidence_node(air,
                                       AIR_EVIDENCE_MIR_PIN_CLEANUP,
                                       i,

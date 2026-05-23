@@ -88,6 +88,9 @@ emit_call_stdlib_queue_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx
     }
     if (op == TRANSPILER_QUEUE_OP_PUSH) {
         ASTNode *queue_arg = ast_call_argument(call, 0);
+        if (!transpiler_require_c_addressable_storage(ctx, queue_arg,
+                "QueuePush", "Queue"))
+            return pergyra_strdup("0");
         char *q = emit_expression(queue_arg, ctx);
         char *v = emit_expression(ast_call_argument(call, 1), ctx);
         const char *queue_type = transpiler_expr_infer_type_name(ctx, queue_arg);
@@ -110,6 +113,9 @@ emit_call_stdlib_queue_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx
     }
     if (op == TRANSPILER_QUEUE_OP_POP) {
         ASTNode *queue_arg = ast_call_argument(call, 0);
+        if (!transpiler_require_c_addressable_storage(ctx, queue_arg,
+                "QueuePop", "Queue"))
+            return pergyra_strdup("0");
         char *q = emit_expression(queue_arg, ctx);
         const char *queue_type = transpiler_expr_infer_type_name(ctx, queue_arg);
         char inner_buf[64];
@@ -129,6 +135,9 @@ emit_call_stdlib_queue_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx
     }
     if (op == TRANSPILER_QUEUE_OP_SIZE) {
         ASTNode *queue_arg = ast_call_argument(call, 0);
+        if (!transpiler_require_c_addressable_storage(ctx, queue_arg,
+                "QueueSize", "Queue"))
+            return pergyra_strdup("0");
         char *q = emit_expression(queue_arg, ctx);
         const char *queue_type = transpiler_expr_infer_type_name(ctx, queue_arg);
         char inner_buf[64];
@@ -148,6 +157,9 @@ emit_call_stdlib_queue_builtin(const char *fn, ASTNode *call, TranspilerCtx *ctx
     }
     if (op == TRANSPILER_QUEUE_OP_EMPTY) {
         ASTNode *queue_arg = ast_call_argument(call, 0);
+        if (!transpiler_require_c_addressable_storage(ctx, queue_arg,
+                "QueueEmpty", "Queue"))
+            return pergyra_strdup("0");
         char *q = emit_expression(queue_arg, ctx);
         const char *queue_type = transpiler_expr_infer_type_name(ctx, queue_arg);
         char inner_buf[64];

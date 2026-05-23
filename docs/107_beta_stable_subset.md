@@ -20,7 +20,8 @@ Systems baseline:
   `Channel`, `parallel`) are first-class but layered on top of the systems
   baseline, not a replacement for it.
 - System-tier raw pointer escape is not beta-stable until its syntax, semantic
-  gate, ABI lowering, diagnostics, and regression gates are implemented.
+  gate, scoped unsafe capability evidence, ABI lowering, diagnostics, and
+  regression gates are implemented.
   Current `unsafe { ... }` support is not by itself a raw-pointer escape
   contract.
 - `SlotRawPointer(...)` is reserved for the future system-tier raw escape

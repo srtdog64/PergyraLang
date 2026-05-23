@@ -246,6 +246,13 @@ semantic_result_type_resolution_metadata_entries(
 }
 
 size_t
+semantic_result_type_resolution_metadata_hits(
+        const SemanticResult *result)
+{
+    return result != NULL ? result->type_resolution_metadata_hits : 0;
+}
+
+size_t
 semantic_result_type_resolution_metadata_dead_ends(
         const SemanticResult *result)
 {

@@ -61,3 +61,29 @@ semantic_callable_param_escape_summary(ASTNode *callee_decl,
             : NULL,
         ctx != NULL ? ctx->program_root : NULL);
 }
+
+bool
+semantic_param_summary_has_any_escape(unsigned summary_mask)
+{
+    return (summary_mask & (SLOT_PARAM_SUMMARY_RETURN_ESCAPE
+                            | SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE
+                            | SLOT_PARAM_SUMMARY_CALL_ESCAPE)) != 0;
+}
+
+bool
+semantic_param_summary_has_return_escape(unsigned summary_mask)
+{
+    return (summary_mask & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) != 0;
+}
+
+bool
+semantic_param_summary_has_channel_escape(unsigned summary_mask)
+{
+    return (summary_mask & SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE) != 0;
+}
+
+bool
+semantic_param_summary_has_call_escape(unsigned summary_mask)
+{
+    return (summary_mask & SLOT_PARAM_SUMMARY_CALL_ESCAPE) != 0;
+}

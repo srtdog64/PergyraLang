@@ -5,7 +5,6 @@
  * Function parameter ownership escape summary checks.
  */
 
-#include "slot_summary.h"
 #include "type_checker_internal.h"
 #include "type_checker_ownership_consumers_internal.h"
 #include "type_checker_ownership_internal.h"
@@ -35,26 +34,23 @@ semantic_check_param_summary_escapes(ASTNode *node,
         if (ownership_class == OWNERSHIP_TYPE_COPY_ONLY)
             continue;
 
-        summary_mask = slot_analyze_legacy_ast_param_summary_in_program(
-            ast_func_body(node), param->name, ctx->program_root);
-        if ((summary_mask & (SLOT_PARAM_SUMMARY_RETURN_ESCAPE
-                | SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE
-                | SLOT_PARAM_SUMMARY_CALL_ESCAPE)) != 0) {
+        summary_mask = semantic_callable_param_escape_summary(node, i, ctx);
+        if (semantic_param_summary_has_any_escape(summary_mask)) {
             semantic_record_body_summary(ctx, BODY_SUMMARY_MAY_ESCAPE_REF);
         }
-        if ((summary_mask & SLOT_PARAM_SUMMARY_RETURN_ESCAPE) != 0) {
+        if (semantic_param_summary_has_return_escape(summary_mask)) {
             semantic_validate_borrowed_escape(
                 node, node, ctx, param_types[i], param->name,
                 OWNERSHIP_CONSUMER_RETURN, NULL, NULL, NULL,
                 false, NULL, NULL);
         }
-        if ((summary_mask & SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE) != 0) {
+        if (semantic_param_summary_has_channel_escape(summary_mask)) {
             semantic_validate_borrowed_escape(
                 node, node, ctx, param_types[i], param->name,
                 OWNERSHIP_CONSUMER_CHANNEL_SEND, NULL, NULL, NULL,
                 false, NULL, NULL);
         }
-        if ((summary_mask & SLOT_PARAM_SUMMARY_CALL_ESCAPE) != 0) {
+        if (semantic_param_summary_has_call_escape(summary_mask)) {
             semantic_validate_borrowed_escape(
                 node, node, ctx, param_types[i], param->name,
                 OWNERSHIP_CONSUMER_HELPER_CALL, NULL,

@@ -150,6 +150,11 @@ Operational beta checklist: `docs/100_beta_readiness_checklist.md`. The checklis
   truth. `docs/98_beta_closure_readiness_report.md` is retained as a historical
   snapshot from the earlier 50% readiness line and must not be cited as the
   current verdict.
+- Type-resolution DAG current gate: direct recursive resolver/fallback seams
+  remain capped at 0, unresolved metadata families remain 0, and the raised
+  beta floors are now `metadata_entries>=3600` and `metadata_hits>=8500`
+  (`metadata_entries=3735`, `metadata_hits=8771` in the latest local gate).
+  The remaining DAG gap is evidence/modeling coverage, not fallback cleanup.
 - AST 타입 디스패치 partition 규칙 문서화 완료 — `docs/95_ast_dispatch_partition.md`. 4 카테고리 (type annotation / decl sub-metadata / top-level decl / root) 로 전체 AST 타입이 disjoint 분할되고, 각 카테고리별로 case label 추가/금지/safety-net 판단 기준이 고정됨. `llvm_stmt.c` skip 리스트 + Zone/World safety-net forward 가 이 문서 기준으로 정렬됨
 - AST dispatch partition smoke 추가 — `tests/ast_dispatch_partition_smoke.sh`, `make ast-dispatch-test-smoke`. LLVM `stmt/expr`의 unknown/default path가 warning-only나 silent `0/null` fallback으로 회귀하지 못하게 Linux CI acceptance line에 연결됨
 - type-resolution DAG cycle provenance 강화 — graph validator cycle과 legacy alias-resolution cycle 모두 `Contract source:` / `Reason:` / `Fix:` 구조를 갖도록 정렬. semantic graph regression은 해당 vocabulary를 요구하며 `test-semantic 2019/0`으로 검증됨
@@ -247,7 +252,7 @@ beta 직전 운영 규칙:
 - provider-after-consumer generic default / alias / zone authority / party role-slot ability ordering은 backend compare case까지 올라가 C/LLVM parity에서 고정됨
 - graph regression이 world lifecycle / relation-effect propagation / generic consumer schedule / alias cycle provenance / generic default-bound cycle provenance / role-action-intent-zone-party ability consumer provenance까지 확장됨
 - graph validator cycle과 legacy alias cycle diagnostic이 모두 `Contract source` / `Reason` / `Fix` vocabulary로 정렬됨
-- non-generic nominal class and known non-class scope type references now use DAG metadata lookup rather than the central recursive resolver. The smoke gate is tightened to `metadata_entries>=3300`, `metadata_hits>=4900`, `metadata_owned>=200`, `metadata_dead_ends==0`, and exact unresolved-family zero accounting. Current unresolved families are `named=0`, `generic_named=0`, `compound=0`, and `other=0`.
+- non-generic nominal class and known non-class scope type references now use DAG metadata lookup rather than the central recursive resolver. The smoke gate is tightened to `metadata_entries>=3600`, `metadata_hits>=8500`, `metadata_owned>=240`, `metadata_dead_ends==0`, and exact unresolved-family zero accounting. Current unresolved families are `named=0`, `generic_named=0`, `compound=0`, and `other=0`.
 
 남은 것:
 

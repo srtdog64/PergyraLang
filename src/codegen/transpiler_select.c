@@ -9,8 +9,8 @@
 #include <string.h>
 
 #include "transpiler.h"
+#include "transpiler_channel_type_query.h"
 #include "transpiler_context.h"
-#include "transpiler_symbols.h"
 #include "../parser/ast_api.h"
 #include "../semantic/diag_codes.h"
 
@@ -57,18 +57,14 @@ static bool
 select_channel_inner_type_copy(ASTNode *channel, TranspilerCtx *ctx,
                                char *out, size_t out_size)
 {
-    const char *type_name;
-
     if (out == NULL || out_size == 0)
         return false;
     out[0] = '\0';
     if (channel == NULL || channel->type != AST_IDENTIFIER)
         return false;
-
-    type_name = lookup_typed_var(ctx, ast_identifier_name(channel));
-    if (type_name != NULL && strncmp(type_name, "Channel<", 8) == 0)
-        return slot_inner_type_name_copy(type_name, out, out_size);
-    return false;
+    return channel_inner_type_name_copy(ctx, channel, out, out_size)
+        && out[0] != '\0'
+        && strcmp(out, "Unknown") != 0;
 }
 
 static void

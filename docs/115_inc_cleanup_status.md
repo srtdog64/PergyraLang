@@ -2427,8 +2427,121 @@ Observed results:
   that optimization, LLVM uses the entry-allocation path and the CFG smoke
   rejects reintroducing `slot_analyze_legacy_ast_param_summary_in_program(...)`
   under `src/codegen` or `src/compiler`. The same smoke now allow-lists the
-  remaining semantic compatibility consumers so the legacy summary seam cannot
-  spread while CFG/MIR facts are being promoted.
+  single semantic compatibility owner so the legacy summary seam cannot spread
+  while CFG/MIR facts are being promoted.
+- Ownership parameter summary checking now goes through
+  `semantic_callable_param_escape_summary(...)` instead of calling
+  `slot_analyze_legacy_ast_param_summary_in_program(...)` directly. The direct
+  legacy AST summary call is isolated in `type_checker_call_contract_helpers.c`,
+  and `cfg_body_dataflow_smoke.sh` rejects new direct consumers outside that
+  owner. Ownership call and parameter-summary consumers also read the returned
+  summary through `semantic_param_summary_has_*` predicates, keeping
+  `slot_summary.h` flag bits inside the compatibility owner.
+- Assignment target path formatting no longer has a heap-owned compatibility
+  mode. `type_checker_assignment_path.c` is scratch-only, channel transport
+  diagnostics consume the scratch path helper, and the CFG smoke rejects
+  `semantic_assignment_target_path(...)` so the old allocate/free lifetime seam
+  cannot spread back into ownership diagnostics.
+- C backend projection source-path rendering also moved to the owner scratch
+  lane. `resolve_projection_source_path_rec(...)` now returns `TranspilerCtx`
+  scratch-owned paths, and the projection emitter / expression dispatcher no
+  longer carry local `free(source_path)` cleanup. The perf contract rejects the
+  old heap formatter so this returned-string seam stays closed.
+- Semantic projection source-field path resolution now mirrors that policy:
+  `resolve_projection_source_field_path(...)` returns `SemanticContext`
+  scratch-owned path text, and both projection diagnostics and DAG projection
+  precollection consume it without local `free(source_path)` /
+  `free(resolved_source_path)` cleanup.
+- Statement dispatcher ownership was narrowed again: namespace traversal and
+  unsafe-block body checking now live in
+  `src/semantic/type_checker_namespace_decl.c` and
+  `src/semantic/type_checker_unsafe_block.c`, so `type_checker.c` remains a
+  dispatch owner instead of carrying statement-body validation. Defer
+  statements now go through `type_check_defer_stmt(...)`, keeping defer body
+  extraction behind the flow/defer owner as well. The public
+  `type_check_parallel_block(...)` entry point also moved to the parallel-flow
+  owner, and `use stdlib ...` validation now enters through
+  `type_check_use_decl(...)` instead of the dispatcher including the
+  stdlib-use internal validator header. CFG body-flow consumes the same public
+  seam instead of reopening the validator directly. The obsolete
+  `type_checker_stdlib_use_internal.h` seam was removed and the raw validator
+  is now file-local. CFG statement-kind body traversal for `unsafe`, `defer`,
+  and raw `namespace` declarations now lives in
+  `src/semantic/type_checker_flow_statement_kinds.c`; the same owner also owns
+  `with`-slot flow registration/scope cleanup plus the simple flow-flag
+  wrappers for `parallel`, `async`, `select`, `let`, `return`, event, and
+  `use` statements. This leaves `type_checker_flow.c` closer to pure block
+  sequencing and AST-kind dispatch, and leaves `type_checker.c` without local
+  statement wrapper bodies or statement-owner private includes.
+- C spawn/Future lowering also moved local wrapper/type-name temporaries to the
+  transpiler scratch lane. `infer_spawn_return_type_name_*` now exposes
+  scratch/copy contracts instead of a public heap-return API, `emit_spawn_expr`
+  no longer frees wrapper/type-name temporaries on every early return, and
+  post-let `Future<T>` metadata is scratch-rendered before registration. Only
+  genuinely heap-owned emitted expressions remain on the manual cleanup path.
+  Channel send/receive lowering also consumes the existing
+  `transpiler_require_channel_inner_type(...)` query owner instead of carrying
+  local channel payload parsing. The perf contract gates this scratch-owned and
+  owner-consumed shape.
+- Async spawn-boundary validation now consumes the function-signature type
+  resolver (`type_check_func_resolve_param_type(...)`) for token/ref parameter
+  checks instead of calling the broad domain resolver directly. This keeps the
+  spawn-boundary checker on the same DAG metadata-backed signature owner as
+  ordinary function declaration validation. Hosted-method expression checking,
+  action contract parameter validation, and generic ref-boundary classification
+  now consume the same owner as well. The perf contract rejects reopening
+  direct `domain_resolve_type_ref(param->type, ctx)` or
+  `domain_resolve_type_ref(ast_func_return_type(...))` in function signature
+  consumers.
+- Event signature validation keeps the event-local diagnostic wrapper but
+  resolves parameter and return annotations through the classified
+  function/signature owner (`type_check_signature_resolve_type_ref(...)`).
+  This prevents `type_checker_event.c` from becoming a new direct DAG metadata
+  lookup owner. Hosted class-field and overlay-field lookup also now resolves
+  through `semantic_host_resolve_type_ref(...)` instead of reopening the broad
+  domain resolver inside `type_checker_expr_host.c`. Role operator overload
+  param/return validation now also consumes the function signature owner
+  instead of using a local domain resolver path, and member-call method return
+  lookup follows the same signature-owner seam. Generic effective argument
+  collection now uses the DAG metadata type-ref fact directly instead of doing
+  a broad-domain-resolver attempt before the metadata lookup. Generic default
+  type consumers in call-site where validation and late helper validation now
+  follow the same metadata-only path. Class declaration field typing and
+  constructor field argument validation now also resolve through the host
+  metadata owner. Role host-type validation now uses the same host owner seam.
+  Role include generic validation now consumes the effective-generic-arg type
+  owner, and impl ability generic arguments use the ability type-ref owner.
+  World helper type refs, CFG `with` slot body-flow type refs, and type-alias
+  statement validation are now classified metadata-backed owner reads instead
+  of broad domain resolver calls; type aliases use
+  `src/semantic/type_checker_type_alias.c` so `type_checker.c` remains a
+  dispatcher rather than a type-resolution owner.
+  ClaimSlot destructuring now reuses the let-binding generic type-argument
+  resolver owner, and that owner now resolves bare generic argument names
+  through metadata name/alias lookup directly. This removes the synthetic AST
+  fallback for both normal let-bindings and destructuring, and closes the last
+  non-owner broad resolver consumer.
+  Intent compact-step where inference now follows the same owner rule:
+  action-contract inheritance, using-derived zones, and transfer-derived zones
+  all call `intent_step_set_where_type_name(...)`, which owns where-type AST
+  construction and provenance marking in one place.
+  The public `domain_resolve_type_ref(...)` seam is now removed; the domain
+  helper wrappers use a private metadata lookup, the public slot/shared/named
+  helpers are now `domain_lookup_*_metadata(...)`, and the perf contract
+  rejects reintroducing broad resolver APIs or resolver-style helper names.
+- AIR boundary-provider evidence lookup now follows the same owner rule:
+  `air_boundary_has_evidence_kind_provider(...)` is the shared EvidenceNode
+  accessor used by HIR evidence collection, MIR pin cleanup evidence collection,
+  and boundary-evidence validation. These owners no longer carry local provider
+  loops, so provider matching cannot drift across AIR collectors and validators.
+- AIR global-provider evidence lookup is also centralized through
+  `air_has_global_evidence_provider(...)`; boundary-evidence validation no
+  longer carries a validator-local global EvidenceNode provider loop when
+  proving MIR pin cleanup has a matching MIR cleanup provider.
+- AIR runtime singleton evidence lookup now uses
+  `air_global_evidence_node_provider_subject(...)`; the runtime evidence owner
+  no longer carries its own provider/subject EvidenceNode scan before deciding
+  whether to publish or validate a singleton runtime evidence node.
 - Runtime frontier contract smoke now follows the split C zone frontier owner
   (`transpiler_zone_frontier_emit.c`) when checking `PGY_PANIC` and
   `PGY_FRONTIER_REASON_ZONE_OVERFLOW`, so owner cleanup cannot silently drop the

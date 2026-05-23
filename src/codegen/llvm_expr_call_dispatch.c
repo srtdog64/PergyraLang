@@ -52,6 +52,16 @@ llvm_intent_call_binding_at(ASTNode *intent_decl, size_t index,
     return (values != NULL && index < value_count) ? values[index] : NULL;
 }
 
+static bool
+llvm_call_arg_can_take_subject_address(ASTNode *arg_node)
+{
+    if (arg_node == NULL)
+        return false;
+    return arg_node->type == AST_IDENTIFIER
+        || arg_node->type == AST_MEMBER_ACCESS
+        || arg_node->type == AST_ARRAY_ACCESS;
+}
+
 LLVMValueRef
 llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
 {
@@ -281,6 +291,16 @@ llvm_emit_call(ASTNode *node, LLVMGenCtx *ctx)
                         }
                     } else if (arg_node != NULL && arg_node->type == AST_MEMBER_ACCESS) {
                         args[i] = llvm_emit_member_lvalue_ptr(arg_node, ctx, NULL);
+                    }
+                    if (args[i] == NULL
+                        && !llvm_call_arg_can_take_subject_address(arg_node)) {
+                        llvm_set_error_at_with_hints(ctx, arg_node,
+                            PGY_CODE_LLVM_TYPE_UNSUPPORTED,
+                            PGY_CAUSE_LLVM_TYPE_UNSUPPORTED,
+                            PGY_FIX_BIND_TO_NAMED_VARIABLE_BEFORE_MOVE,
+                            "LLVM intent subject argument %zu for '%s' requires addressable storage",
+                            i + 1, callee_name != NULL ? callee_name : "<intent>");
+                        return NULL;
                     }
                 }
                 if (args[i] == NULL)

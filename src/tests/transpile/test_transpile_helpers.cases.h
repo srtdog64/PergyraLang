@@ -190,6 +190,24 @@ make_type_node(const char *type_name)
     return n;
 }
 
+static FuncParam *
+make_func_param(const char *name, const char *type_name)
+{
+    FuncParam *param = calloc(1, sizeof(FuncParam));
+    param->name = pergyra_strdup(name);
+    param->type = make_type_node(type_name);
+    return param;
+}
+
+static ClassField *
+make_class_field(const char *name, const char *type_name)
+{
+    ClassField *field = calloc(1, sizeof(ClassField));
+    field->name = pergyra_strdup(name);
+    field->type = make_type_node(type_name);
+    return field;
+}
+
 static ASTNode *
 make_let(const char *name, ASTNode *ann, ASTNode *init, uint32_t line)
 {

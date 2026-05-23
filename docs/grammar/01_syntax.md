@@ -820,7 +820,7 @@ Current grammar contract:
 | Slicing/spread/rest | reserved/rejected | `xs[a..b]`, `xs[..]`, and `...` spread/rest are explicit parser rejects; requires collection/call ABI, failure, and ownership policy first. |
 | Match guard/or-pattern | active partial | Guard/or-pattern syntax is parser-supported; promotion depends on CFG/backend parity gates. |
 | Block expression | not beta grammar | Blocks are statements unless a local grammar section says otherwise. |
-| Unsafe/raw | partial | `unsafe { ... }` is a boundary marker, not permission to bypass Slot/authority contracts. |
+| Unsafe/raw | partial | `unsafe { ... }` is a boundary marker, not permission to bypass Slot/authority contracts. Raw escape requires a future scoped capability contract such as `unsafe(raw) { ... }`. |
 | Attribute annotation | reserved/rejected | `@` is reserved; structured comments remain the stable metadata path. |
 | Generic shorthand/elision | reserved/rejected | `_` type/generic placeholder syntax is rejected until DAG diagnostics own it. |
 

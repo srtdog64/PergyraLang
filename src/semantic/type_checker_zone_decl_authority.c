@@ -37,7 +37,7 @@ type_check_zone_authorities(ASTNode *zone, SemanticContext *ctx)
                 "Zone authority '%s' must reference a subject slot",
                 subject_slot);
         }
-        slot_type = domain_resolve_slot_type(slot, ctx);
+        slot_type = domain_lookup_slot_type_metadata(slot, ctx);
         for (size_t j = 0; j < ast_zone_authority_ability_count(authority); j++) {
             ASTNode *ability_ref = ast_zone_authority_required_ability(authority, j);
             const char *ability_name = ability_ref_name(ability_ref);

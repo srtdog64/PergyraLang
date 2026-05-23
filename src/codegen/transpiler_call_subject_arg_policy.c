@@ -42,6 +42,16 @@ transpiler_call_arg_needs_subject_address(TranspilerCtx *ctx,
 }
 
 bool
+transpiler_call_arg_can_take_subject_address(ASTNode *arg_node)
+{
+    if (arg_node == NULL)
+        return false;
+    return arg_node->type == AST_IDENTIFIER
+        || arg_node->type == AST_MEMBER_ACCESS
+        || arg_node->type == AST_ARRAY_ACCESS;
+}
+
+bool
 transpiler_call_arg_is_subject_ref(TranspilerCtx *ctx, ASTNode *arg_node)
 {
     TypedVarEntry *entry;

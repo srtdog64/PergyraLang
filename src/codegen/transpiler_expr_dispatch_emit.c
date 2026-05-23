@@ -240,10 +240,8 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
                             ? "%s->%s"
                             : "%s.%s",
                         entry->source_slot, source_path);
-                    free(source_path);
                     return result;
                 }
-                free(source_path);
             }
         }
         char *obj = emit_expression(member_object, ctx);

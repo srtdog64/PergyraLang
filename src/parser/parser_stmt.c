@@ -201,6 +201,20 @@ ASTNode* parse_if_statement(Parser* parser) {
 }
 
 ASTNode* parse_unsafe_block(Parser* parser) {
+    if (parser_check(parser, TOKEN_LPAREN)) {
+        parser_error(parser,
+            "Scoped unsafe capability syntax 'unsafe(...) { ... }' is reserved but not implemented.\n"
+            "Reason: unsafe must be a named lexical capability scope, not a universal mode bit.\n"
+            "Fix: use plain 'unsafe { ... }' only as today's boundary marker, or wait for scoped unsafe(raw)/unsafe(ffi) gates.");
+        return ast_create_unsafe_block(ast_create_block());
+    }
+    if (parser_check(parser, TOKEN_IDENTIFIER)) {
+        parser_error(parser,
+            "Scoped unsafe capability label syntax 'unsafe raw { ... }' is reserved but not implemented.\n"
+            "Reason: unsafe labels must lower to the same capability-scope model as unsafe(raw), not to a loose parser shortcut.\n"
+            "Fix: use plain 'unsafe { ... }' only as today's boundary marker, or wait for scoped unsafe capability gates.");
+        return ast_create_unsafe_block(ast_create_block());
+    }
     parser_consume(parser, TOKEN_LBRACE, "Expected '{' after unsafe");
     ASTNode* body = parser_parse_block(parser);
     return ast_create_unsafe_block(body);

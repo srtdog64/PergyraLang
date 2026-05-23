@@ -38,6 +38,27 @@ slot_builtin_strdup_fmt(const char *fmt, ...)
     return buf;
 }
 
+static bool
+slot_builtin_require_arg_count(TranspilerCtx *ctx,
+                               ASTNode *call,
+                               const char *operation,
+                               size_t required)
+{
+    size_t argc = ast_call_arg_count(call);
+    if (argc >= required)
+        return true;
+    transpiler_set_backend_error_with_hints(
+        ctx,
+        PGY_CODE_C_TYPE_UNSUPPORTED,
+        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+        PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+        "C backend: %s requires %zu argument%s",
+        operation != NULL ? operation : "slot operation",
+        required,
+        required == 1 ? "" : "s");
+    return false;
+}
+
 char *
 emit_builtin_claim_slot(ASTNode *call, TranspilerCtx *ctx)
 {
@@ -249,6 +270,8 @@ emit_builtin_release(ASTNode *call, TranspilerCtx *ctx)
 char *
 emit_builtin_device_write(ASTNode *call, TranspilerCtx *ctx)
 {
+    if (!slot_builtin_require_arg_count(ctx, call, "DeviceWrite", 2))
+        return pergyra_strdup("0");
     ASTNode *slot_arg = ast_call_argument(call, 0);
     char inner_buf[128];
     const char *inner = inner_buf;
@@ -271,6 +294,8 @@ emit_builtin_device_write(ASTNode *call, TranspilerCtx *ctx)
 char *
 emit_builtin_device_read(ASTNode *call, TranspilerCtx *ctx)
 {
+    if (!slot_builtin_require_arg_count(ctx, call, "DeviceRead", 1))
+        return pergyra_strdup("0");
     ASTNode *slot_arg = ast_call_argument(call, 0);
     char inner_buf[128];
     const char *inner = inner_buf;
@@ -291,6 +316,8 @@ emit_builtin_device_read(ASTNode *call, TranspilerCtx *ctx)
 char *
 emit_builtin_release_device_slot(ASTNode *call, TranspilerCtx *ctx)
 {
+    if (!slot_builtin_require_arg_count(ctx, call, "ReleaseDeviceSlot", 1))
+        return pergyra_strdup("0");
     ASTNode *slot_arg = ast_call_argument(call, 0);
     char inner_buf[128];
     const char *inner = inner_buf;
@@ -311,6 +338,8 @@ emit_builtin_release_device_slot(ASTNode *call, TranspilerCtx *ctx)
 char *
 emit_builtin_submit_device_read(ASTNode *call, TranspilerCtx *ctx)
 {
+    if (!slot_builtin_require_arg_count(ctx, call, "SubmitDeviceRead", 1))
+        return pergyra_strdup("0");
     ASTNode *slot_arg = ast_call_argument(call, 0);
     char inner_buf[128];
     const char *inner = inner_buf;

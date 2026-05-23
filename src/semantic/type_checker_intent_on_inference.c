@@ -384,10 +384,10 @@ intent_step_derive_where_from_on_receiver(ASTNode *intent_decl,
         matched_zone = zone_name;
     }
 
-    if (matched_zone != NULL
-        && ast_intent_step_set_where_type(step, ast_create_type(matched_zone))) {
-        ast_intent_step_mark_inherited_where_from_action(step);
-    }
+    if (matched_zone != NULL)
+        (void)intent_step_set_where_type_name(
+            step, matched_zone,
+            INTENT_STEP_WHERE_PROVENANCE_INHERITED_ACTION);
 }
 
 bool

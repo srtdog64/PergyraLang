@@ -703,7 +703,7 @@ Grammar-level classification for common patterns:
 | Construction | constructors/factory calls and declaration initializers | C#/TS-style object initializers |
 | Optionality | `Option<T>`, `Result<T,E>`, postfix `?` result propagation, `Option<T> ?? T` | `?.` |
 | Metadata | structured doc comments | `@` attributes/decorators |
-| Unsafe | `unsafe { ... }` boundary marker | raw pointer escape without a separate contract |
+| Unsafe | `unsafe { ... }` boundary marker | raw pointer escape without a scoped unsafe capability contract such as `unsafe(raw) { ... }` |
 | Generic shorthand | explicit type args/default type args | `_` placeholder elision |
 
 Reserved grammar must fail explicitly. It should not be accepted silently by the

@@ -4,6 +4,7 @@
 
 #include "../parser/ast_api.h"
 #include "../common/string_compat.h"
+#include "../semantic/diag_codes.h"
 #include "transpiler.h"
 #include "transpiler_call_subject_arg_policy.h"
 #include "transpiler_context.h"
@@ -131,8 +132,20 @@ emit_call_user_function(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                 ASTNode *arg_node = ast_call_argument(call, i);
                 if (transpiler_call_arg_is_subject_ref(ctx, arg_node))
                     codebuf_write(args_buf, "%s", arg);
-                else
+                else if (transpiler_call_arg_can_take_subject_address(arg_node))
                     codebuf_write(args_buf, "&%s", arg);
+                else {
+                    transpiler_set_backend_error_with_hints(ctx,
+                        PGY_CODE_C_TYPE_UNSUPPORTED,
+                        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                        PGY_FIX_BIND_TO_NAMED_VARIABLE_BEFORE_MOVE,
+                        "C backend: subject argument %zu for '%s' requires addressable storage",
+                        i + 1, callee_name != NULL ? callee_name : "<call>");
+                    free(arg);
+                    free(callee_str);
+                    codebuf_destroy(args_buf);
+                    return pergyra_strdup("0");
+                }
             } else {
                 codebuf_write(args_buf, "%s", arg);
             }

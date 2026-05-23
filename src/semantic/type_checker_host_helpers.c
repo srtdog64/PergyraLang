@@ -9,6 +9,17 @@ host_helper_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
     return semantic_type_resolution_lookup_metadata_type_ref(ctx, type_ref);
 }
 
+Type *
+semantic_host_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
+{
+    Type *resolved;
+
+    if (type_ref == NULL || ctx == NULL)
+        return TYPE_UNKNOWN;
+    resolved = host_helper_resolve_type_ref(type_ref, ctx);
+    return resolved != NULL ? resolved : TYPE_UNKNOWN;
+}
+
 static Type *
 host_helper_resolve_func_param_type(FuncParam *param, SemanticContext *ctx)
 {

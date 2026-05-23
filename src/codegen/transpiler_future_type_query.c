@@ -11,14 +11,15 @@
 #include "../common/string_compat.h"
 #include "../parser/ast_api.h"
 #include "transpiler_decl_lookup.h"
+#include "transpiler_context.h"
 #include "transpiler_generic_binding_query.h"
 #include "transpiler_generic_param_query.h"
 #include "transpiler_symbols.h"
 #include "transpiler_type_mapping.h"
 #include "transpiler_type_render.h"
 
-char *
-infer_spawn_return_type_name(TranspilerCtx *ctx, ASTNode *spawn_expr)
+static char *
+infer_spawn_return_type_name_owned(TranspilerCtx *ctx, ASTNode *spawn_expr)
 {
     ASTNode *target = ast_spawn_function(spawn_expr);
     const char *function_name = NULL;
@@ -60,6 +61,34 @@ infer_spawn_return_type_name(TranspilerCtx *ctx, ASTNode *spawn_expr)
     return pergyra_strdup("Void");
 }
 
+const char *
+infer_spawn_return_type_name_scratch(TranspilerCtx *ctx, ASTNode *spawn_expr)
+{
+    char *owned = infer_spawn_return_type_name_owned(ctx, spawn_expr);
+    const char *result = owned != NULL
+        ? transpiler_scratch_strdup(ctx, owned)
+        : NULL;
+
+    free(owned);
+    return result != NULL ? result : "Void";
+}
+
+bool
+infer_spawn_return_type_name_copy(TranspilerCtx *ctx,
+                                  ASTNode *spawn_expr,
+                                  char *out,
+                                  size_t out_size)
+{
+    const char *type_name;
+
+    if (out == NULL || out_size == 0)
+        return false;
+    out[0] = '\0';
+
+    type_name = infer_spawn_return_type_name_scratch(ctx, spawn_expr);
+    return pergyra_str_copy(out, out_size, type_name);
+}
+
 bool
 is_remote_future_expr(TranspilerCtx *ctx, ASTNode *expr)
 {
@@ -94,10 +123,7 @@ lookup_future_inner_type_copy(TranspilerCtx *ctx, ASTNode *expr,
     }
 
     if (expr != NULL && expr->type == AST_SPAWN_EXPR) {
-        char *owned = infer_spawn_return_type_name(ctx, expr);
-        bool ok = owned != NULL && pergyra_str_copy(out, out_size, owned);
-        free(owned);
-        return ok;
+        return infer_spawn_return_type_name_copy(ctx, expr, out, out_size);
     }
 
     return pergyra_str_copy(out, out_size, "Void");

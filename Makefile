@@ -306,6 +306,8 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/symbol_table.c \
                    $(SEMANTIC_DIR)/type_checker.c \
                    $(SEMANTIC_DIR)/type_checker_context_helpers.c \
+                   $(SEMANTIC_DIR)/type_checker_namespace_decl.c \
+                   $(SEMANTIC_DIR)/type_checker_unsafe_block.c \
                    $(SEMANTIC_DIR)/type_checker_assignment.c \
                    $(SEMANTIC_DIR)/type_checker_assignment_path.c \
                    $(SEMANTIC_DIR)/type_checker_diag.c \
@@ -349,6 +351,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_resolution_stage_domain_decl.c \
                    $(SEMANTIC_DIR)/type_checker_resolution_worklist.c \
                    $(SEMANTIC_DIR)/type_checker_resolution_stage.c \
+                   $(SEMANTIC_DIR)/type_checker_type_alias.c \
                    $(SEMANTIC_DIR)/type_checker_class_decl.c \
                    $(SEMANTIC_DIR)/type_checker_enum_decl.c \
                    $(SEMANTIC_DIR)/type_checker_host_overlay.c \
@@ -476,6 +479,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_flow_loops.c \
                    $(SEMANTIC_DIR)/type_checker_flow_branch.c \
                    $(SEMANTIC_DIR)/type_checker_flow_parallel.c \
+                   $(SEMANTIC_DIR)/type_checker_flow_statement_kinds.c \
                    $(SEMANTIC_DIR)/type_checker_flow_match_coverage.c \
                    $(SEMANTIC_DIR)/type_checker_flow_match.c \
                    $(SEMANTIC_DIR)/type_checker_flow.c \

@@ -4,6 +4,20 @@
 #include "type_checker_flow_internal.h"
 
 bool
+type_check_parallel_block(ASTNode *node, SemanticContext *ctx)
+{
+    return type_check_parallel_block_flow(node, ctx);
+}
+
+bool
+type_check_defer_stmt(ASTNode *node, SemanticContext *ctx)
+{
+    if (node == NULL || node->type != AST_DEFER_STMT)
+        return true;
+    return type_check_defer_body_flow(ast_defer_body(node), ctx);
+}
+
+bool
 type_check_defer_body_flow(ASTNode *body, SemanticContext *ctx)
 {
     if (body != NULL) {

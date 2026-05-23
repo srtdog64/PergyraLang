@@ -12,12 +12,11 @@
 #include "../common/string_compat.h"
 #include "../parser/ast_api.h"
 #include "../semantic/diag_codes.h"
+#include "transpiler_channel_type_query.h"
 #include "transpiler_context.h"
-#include "transpiler_decl_lookup.h"
 #include "transpiler_expr_stdlib_collection_support.h"
 #include "transpiler_format.h"
 #include "transpiler_type_mapping.h"
-#include "transpiler_type_render.h"
 
 typedef enum {
     TRANSPILER_CHANNEL_OP_NONE = 0,
@@ -108,97 +107,24 @@ transpiler_channel_query_spec_lookup(const char *fn)
         sizeof(specs[0]), transpiler_channel_query_spec_compare);
 }
 
-static bool
-transpiler_channel_copy_type_name(char *out, size_t out_size,
-                                  const char *type_name)
-{
-    size_t len;
-
-    if (out == NULL || out_size == 0 || type_name == NULL)
-        return false;
-
-    len = strlen(type_name);
-    if (len >= out_size)
-        return false;
-
-    memcpy(out, type_name, len + 1);
-    return true;
-}
-
-static bool
-transpiler_channel_resolve_inner(TranspilerCtx *ctx,
-                                 const char *type_name,
-                                 char *inner_buf,
-                                 size_t inner_buf_size,
-                                 const char **inner_out)
-{
-    const char *resolved_type = type_name;
-    char resolved_buf[128];
-    const size_t family_len = strlen("Channel");
-
-    if (resolved_type != NULL
-        && !(strncmp(resolved_type, "Channel", family_len) == 0
-             && resolved_type[family_len] == '<')) {
-        ASTNode *alias_decl = transpiler_find_type_alias_decl(ctx,
-            resolved_type);
-        if (alias_decl != NULL
-            && ast_type_alias_target_type(alias_decl) != NULL) {
-            ASTNode *target = resolve_type_alias_target(ctx,
-                ast_type_alias_target_type(alias_decl));
-            char *rendered = render_type_name(target);
-            if (rendered != NULL) {
-                bool copied = transpiler_channel_copy_type_name(
-                    resolved_buf, sizeof(resolved_buf), rendered);
-                free(rendered);
-                if (!copied) {
-                    transpiler_set_backend_error_with_hints(ctx,
-                        PGY_CODE_C_TYPE_UNSUPPORTED,
-                        PGY_CAUSE_C_TYPE_UNSUPPORTED,
-                        PGY_FIX_ANNOTATE_CONCRETE_TYPE,
-                        "C backend: resolved Channel type is too long");
-                    return false;
-                }
-                resolved_type = resolved_buf;
-            }
-        }
-    }
-
-    if (resolved_type != NULL
-        && strncmp(resolved_type, "Channel", family_len) == 0
-        && resolved_type[family_len] == '<'
-        && slot_inner_type_name_copy(resolved_type, inner_buf,
-            inner_buf_size)
-        && inner_buf[0] != '\0'
-        && strcmp(inner_buf, "Unknown") != 0) {
-        if (inner_out != NULL)
-            *inner_out = inner_buf;
-        return true;
-    }
-    return false;
-}
-
 static const char *
 transpiler_channel_require_inner_type(TranspilerCtx *ctx, ASTNode *expr,
                                       const char *operation,
                                       char *inner_buf,
                                       size_t inner_buf_size)
 {
-    const char *inner = NULL;
-    const char *type_name =
-        transpiler_expr_infer_type_name(ctx, expr);
+    return transpiler_require_channel_inner_type(ctx, expr, operation,
+        inner_buf, inner_buf_size);
+}
 
-    if (transpiler_channel_resolve_inner(ctx, type_name, inner_buf,
-            inner_buf_size, &inner)) {
-        return inner;
-    }
-
-    transpiler_set_backend_error_with_hints(ctx,
-        PGY_CODE_C_TYPE_UNSUPPORTED,
-        PGY_CAUSE_C_TYPE_UNSUPPORTED,
-        PGY_FIX_ANNOTATE_CONCRETE_TYPE,
-        "C backend: %s requires concrete Channel<T> metadata",
-        operation != NULL ? operation : "Channel operation");
-    return NULL;
+static bool
+transpiler_channel_require_lvalue(TranspilerCtx *ctx, ASTNode *expr,
+                                  const char *operation)
+{
+    if (transpiler_channel_expr_is_c_lvalue(expr))
+        return true;
+    transpiler_set_channel_lvalue_error(ctx, operation);
+    return false;
 }
 
 static char *
@@ -217,6 +143,8 @@ emit_call_stdlib_channel_query_builtin(const char *fn, ASTNode *call,
         return NULL;
 
     channel_arg = ast_call_argument(call, 0);
+    if (!transpiler_channel_require_lvalue(ctx, channel_arg, spec->name))
+        return pergyra_strdup("0");
     ch = emit_expression(channel_arg, ctx);
     inner = transpiler_channel_require_inner_type(ctx,
         channel_arg, spec->name, inner_buf,
@@ -248,6 +176,8 @@ emit_call_stdlib_channel_builtin(const char *fn, ASTNode *call,
 
     if (op == TRANSPILER_CHANNEL_OP_TRY_RECV) {
         ASTNode *channel_arg = ast_call_argument(call, 0);
+        if (!transpiler_channel_require_lvalue(ctx, channel_arg, "TryRecv"))
+            return pergyra_strdup("0");
         char *ch = emit_expression(channel_arg, ctx);
         char inner_buf[64];
         const char *inner = transpiler_channel_require_inner_type(ctx,
@@ -277,6 +207,9 @@ emit_call_stdlib_channel_builtin(const char *fn, ASTNode *call,
     }
     if (op == TRANSPILER_CHANNEL_OP_RECV_TIMEOUT) {
         ASTNode *channel_arg = ast_call_argument(call, 0);
+        if (!transpiler_channel_require_lvalue(ctx, channel_arg,
+                "RecvTimeout"))
+            return pergyra_strdup("0");
         char *ch = emit_expression(channel_arg, ctx);
         char *timeout = emit_expression(ast_call_argument(call, 1), ctx);
         char inner_buf[64];
@@ -310,6 +243,8 @@ emit_call_stdlib_channel_builtin(const char *fn, ASTNode *call,
     }
     if (op == TRANSPILER_CHANNEL_OP_TRY_SEND) {
         ASTNode *channel_arg = ast_call_argument(call, 0);
+        if (!transpiler_channel_require_lvalue(ctx, channel_arg, "TrySend"))
+            return pergyra_strdup("0");
         char *ch = emit_expression(channel_arg, ctx);
         char *val = emit_expression(ast_call_argument(call, 1), ctx);
         char inner_buf[64];
@@ -331,6 +266,9 @@ emit_call_stdlib_channel_builtin(const char *fn, ASTNode *call,
     }
     if (op == TRANSPILER_CHANNEL_OP_TRY_SEND_STATUS) {
         ASTNode *channel_arg = ast_call_argument(call, 0);
+        if (!transpiler_channel_require_lvalue(ctx, channel_arg,
+                "TrySendStatus"))
+            return pergyra_strdup("0");
         char *ch = emit_expression(channel_arg, ctx);
         char *val = emit_expression(ast_call_argument(call, 1), ctx);
         char inner_buf[64];
@@ -359,6 +297,8 @@ emit_call_stdlib_channel_builtin(const char *fn, ASTNode *call,
         const char *runtime_op = op == TRANSPILER_CHANNEL_OP_SEND_TIMEOUT
             ? "send_timeout"
             : "send_timeout_status";
+        if (!transpiler_channel_require_lvalue(ctx, channel_arg, label))
+            return pergyra_strdup("0");
         char *ch = emit_expression(channel_arg, ctx);
         char *val = emit_expression(ast_call_argument(call, 1), ctx);
         char *timeout = emit_expression(ast_call_argument(call, 2), ctx);
@@ -390,6 +330,9 @@ emit_call_stdlib_channel_builtin(const char *fn, ASTNode *call,
         return strdup_fmt("pgy_task_is_cancelled()");
     if (op == TRANSPILER_CHANNEL_OP_CLOSE) {
         ASTNode *channel_arg = ast_call_argument(call, 0);
+        if (!transpiler_channel_require_lvalue(ctx, channel_arg,
+                "ChannelClose"))
+            return pergyra_strdup("0");
         char *ch = emit_expression(channel_arg, ctx);
         char inner_buf[64];
         const char *inner = transpiler_channel_require_inner_type(ctx,

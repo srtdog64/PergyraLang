@@ -8,6 +8,7 @@
 #include "../semantic/diag_codes.h"
 
 #include "transpiler_context.h"
+#include "transpiler_channel_type_query.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_expr_type_infer.h"
 #include "transpiler_format.h"
@@ -16,8 +17,8 @@
 #include "transpiler_generic_param_query.h"
 #include "transpiler_generic_specialization_emit.h"
 #include "transpiler_symbols.h"
-#include "transpiler_type_mapping.h"
 #include "transpiler_type_render.h"
+#include "transpiler_type_mapping.h"
 
 char *
 emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
@@ -30,17 +31,19 @@ emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
     ASTNode *decl = NULL;
     size_t arg_count = 0;
     int wrapper_id = ++ctx->tmp_counter;
-    char *wrapper_name = strdup_fmt("pgy_spawn_wrapper_%d", wrapper_id);
-    char *args_type_name = NULL;
-    char *return_type_name = infer_spawn_return_type_name(ctx, node);
+    const char *wrapper_name = transpiler_scratch_fmt(
+        ctx, "pgy_spawn_wrapper_%d", wrapper_id);
+    const char *args_type_name = NULL;
+    const char *return_type_name = infer_spawn_return_type_name_scratch(
+        ctx, node);
     char return_c_type_buf[256];
-    char *return_c_type = NULL;
+    const char *return_c_type = NULL;
     GenericBindingEntry bindings[MAX_GENERIC_BINDINGS];
     size_t binding_count = 0;
 
     if (pergyra_type_to_c_copy(return_type_name, return_c_type_buf,
             sizeof(return_c_type_buf))) {
-        return_c_type = pergyra_strdup(return_c_type_buf);
+        return_c_type = return_c_type_buf;
     }
 
     if (target == NULL) {
@@ -49,9 +52,6 @@ emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
             PGY_CAUSE_C_TYPE_UNSUPPORTED,
             PGY_FIX_ANNOTATE_CONCRETE_TYPE,
             "C spawn expression requires a target expression");
-        free(wrapper_name);
-        free(return_type_name);
-        free(return_c_type);
         return pergyra_strdup("pgy_async_spawn(NULL, NULL)");
     }
 
@@ -66,9 +66,6 @@ emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
     if (callee != NULL && callee->type == AST_IDENTIFIER)
         function_name = ast_identifier_name(callee);
     if (function_name == NULL) {
-        free(wrapper_name);
-        free(return_type_name);
-        free(return_c_type);
         transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "C backend: unsupported spawn target at line %d", target->line);
         return pergyra_strdup("pgy_async_spawn(NULL, NULL)");
     }
@@ -82,9 +79,6 @@ emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
             PGY_FIX_ANNOTATE_CONCRETE_TYPE,
             "C spawn expression requires concrete Future<T> return metadata for '%s'",
             function_name);
-        free(wrapper_name);
-        free(return_type_name);
-        free(return_c_type);
         return pergyra_strdup("pgy_async_spawn(NULL, NULL)");
     }
 
@@ -98,7 +92,9 @@ emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
             emitted_function_name = specialized;
     }
     if (arg_count > 0)
-        args_type_name = strdup_fmt("PgySpawnArgs_%d", wrapper_id);
+        args_type_name = transpiler_scratch_fmt(ctx,
+                                                "PgySpawnArgs_%d",
+                                                wrapper_id);
 
     if (args_type_name != NULL) {
         codebuf_write(ctx->decls, "\ntypedef struct {\n");
@@ -127,10 +123,6 @@ emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
                             (unsigned long long)i,
                             function_name != NULL ? function_name : "<function>");
                         free(bound_type);
-                        free(args_type_name);
-                        free(wrapper_name);
-                        free(return_type_name);
-                        free(return_c_type);
                         return pergyra_strdup("pgy_async_spawn(NULL, NULL)");
                     }
                     codebuf_write(ctx->decls, "    %s arg%zu;\n", arg_type, i);
@@ -155,10 +147,6 @@ emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
                 transpiler_set_backend_error_with_hints(ctx, PGY_CODE_C_TYPE_UNSUPPORTED, PGY_CAUSE_C_TYPE_UNSUPPORTED, PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER, "cannot determine spawn wrapper argument type for call '%s' at argument %llu",
                     function_name != NULL ? function_name : "<function>",
                     (unsigned long long) i);
-                free(args_type_name);
-                free(wrapper_name);
-                free(return_type_name);
-                free(return_c_type);
                 return pergyra_strdup("pgy_async_spawn(NULL, NULL)");
             }
             if (arg_type[0] == '\0' || strcmp(arg_type, "Unknown") == 0) {
@@ -169,10 +157,6 @@ emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
                     "C spawn wrapper argument %llu requires concrete C type metadata for call '%s'",
                     (unsigned long long)i,
                     function_name != NULL ? function_name : "<function>");
-                free(args_type_name);
-                free(wrapper_name);
-                free(return_type_name);
-                free(return_c_type);
                 return pergyra_strdup("pgy_async_spawn(NULL, NULL)");
             }
             codebuf_write(ctx->decls, "    %s arg%zu;\n", arg_type, i);
@@ -226,10 +210,6 @@ emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
             PGY_CAUSE_C_TYPE_UNSUPPORTED,
             PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
             "C spawn expression could not allocate wrapper call buffer");
-        free(wrapper_name);
-        free(args_type_name);
-        free(return_type_name);
-        free(return_c_type);
         return pergyra_strdup("/* spawn alloc failed */");
     }
 
@@ -254,10 +234,6 @@ emit_spawn_expr(ASTNode *node, TranspilerCtx *ctx)
 
     char *result = pergyra_strdup(expr->data);
     codebuf_destroy(expr);
-    free(wrapper_name);
-    free(args_type_name);
-    free(return_type_name);
-    free(return_c_type);
     return result;
 }
 
@@ -266,36 +242,18 @@ emit_channel_send(ASTNode *node, TranspilerCtx *ctx)
 {
     ASTNode *channel = ast_channel_send_channel(node);
     ASTNode *value = ast_channel_send_value(node);
-    char *ch  = emit_expression(channel, ctx);
-    char *val = emit_expression(value, ctx);
-    const char *inner = NULL;
-    char inner_buf[128];
-
-    if (channel != NULL
-        && channel->type == AST_IDENTIFIER) {
-        const char *type_name = lookup_typed_var(ctx,
-            ast_identifier_name(channel));
-        if (type_name != NULL && strncmp(type_name, "Channel<", 8) == 0)
-            if (slot_inner_type_name_copy(type_name, inner_buf,
-                    sizeof(inner_buf)))
-                inner = inner_buf;
-    }
-    if (inner == NULL || inner[0] == '\0') {
-        transpiler_set_backend_error_with_hints(ctx,
-            PGY_CODE_C_TYPE_UNSUPPORTED,
-            PGY_CAUSE_C_TYPE_UNSUPPORTED,
-            PGY_FIX_ANNOTATE_CONCRETE_TYPE,
-            "C backend: channel send requires concrete Channel<T> metadata");
-        free(ch);
-        free(val);
+    if (!transpiler_channel_expr_is_c_lvalue(channel)) {
+        transpiler_set_channel_lvalue_error(ctx, "channel send");
         return pergyra_strdup("0");
     }
-    if (strcmp(inner, "Unknown") == 0) {
-        transpiler_set_backend_error_with_hints(ctx,
-            PGY_CODE_C_TYPE_UNSUPPORTED,
-            PGY_CAUSE_C_TYPE_UNSUPPORTED,
-            PGY_FIX_ANNOTATE_CONCRETE_TYPE,
-            "C backend: channel send requires concrete Channel<T> payload metadata");
+
+    char *ch  = emit_expression(channel, ctx);
+    char *val = emit_expression(value, ctx);
+    char inner_buf[128];
+    const char *inner = transpiler_require_channel_inner_type(
+        ctx, channel, "channel send", inner_buf, sizeof(inner_buf));
+
+    if (inner == NULL) {
         free(ch);
         free(val);
         return pergyra_strdup("0");
@@ -311,34 +269,17 @@ char *
 emit_channel_recv(ASTNode *node, TranspilerCtx *ctx)
 {
     ASTNode *channel = ast_channel_recv_channel(node);
-    char *ch = emit_expression(channel, ctx);
-    const char *inner = NULL;
-    char inner_buf[128];
-
-    if (channel != NULL
-        && channel->type == AST_IDENTIFIER) {
-        const char *type_name = lookup_typed_var(ctx,
-            ast_identifier_name(channel));
-        if (type_name != NULL && strncmp(type_name, "Channel<", 8) == 0)
-            if (slot_inner_type_name_copy(type_name, inner_buf,
-                    sizeof(inner_buf)))
-                inner = inner_buf;
-    }
-    if (inner == NULL || inner[0] == '\0') {
-        transpiler_set_backend_error_with_hints(ctx,
-            PGY_CODE_C_TYPE_UNSUPPORTED,
-            PGY_CAUSE_C_TYPE_UNSUPPORTED,
-            PGY_FIX_ANNOTATE_CONCRETE_TYPE,
-            "C backend: channel receive requires concrete Channel<T> metadata");
-        free(ch);
+    if (!transpiler_channel_expr_is_c_lvalue(channel)) {
+        transpiler_set_channel_lvalue_error(ctx, "channel receive");
         return pergyra_strdup("0");
     }
-    if (strcmp(inner, "Unknown") == 0) {
-        transpiler_set_backend_error_with_hints(ctx,
-            PGY_CODE_C_TYPE_UNSUPPORTED,
-            PGY_CAUSE_C_TYPE_UNSUPPORTED,
-            PGY_FIX_ANNOTATE_CONCRETE_TYPE,
-            "C backend: channel receive requires concrete Channel<T> payload metadata");
+
+    char *ch = emit_expression(channel, ctx);
+    char inner_buf[128];
+    const char *inner = transpiler_require_channel_inner_type(
+        ctx, channel, "channel receive", inner_buf, sizeof(inner_buf));
+
+    if (inner == NULL) {
         free(ch);
         return pergyra_strdup("0");
     }

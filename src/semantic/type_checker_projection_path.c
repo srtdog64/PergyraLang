@@ -1,37 +1,13 @@
 #include "type_checker_internal.h"
-#include "../common/string_compat.h"
 
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
-static char *
-projection_path_strdup_fmt(const char *fmt, ...)
+static const char *
+projection_path_scratch_strdup(SemanticContext *ctx, const char *text)
 {
-    va_list ap;
-    va_list ap2;
-    int needed;
-    char *buf;
-
-    va_start(ap, fmt);
-    va_copy(ap2, ap);
-    needed = vsnprintf(NULL, 0, fmt, ap);
-    va_end(ap);
-    if (needed < 0) {
-        va_end(ap2);
+    if (ctx == NULL || text == NULL)
         return NULL;
-    }
-
-    buf = malloc((size_t)needed + 1);
-    if (buf == NULL) {
-        va_end(ap2);
-        return NULL;
-    }
-
-    vsnprintf(buf, (size_t)needed + 1, fmt, ap2);
-    va_end(ap2);
-    return buf;
+    return pgy_arena_strdup(&ctx->scratch_arena, text);
 }
 
 size_t
@@ -77,12 +53,12 @@ resolve_projection_source_field_path_rec(ASTNode *program_root,
                                          const char *field_name,
                                          unsigned depth,
                                          SemanticContext *ctx,
-                                         char **path_out,
+                                         const char **path_out,
                                          Type **field_type_out)
 {
     size_t field_count;
     int match_count = 0;
-    char *resolved_path = NULL;
+    const char *resolved_path = NULL;
     Type *resolved_type = NULL;
 
     if (path_out != NULL)
@@ -90,7 +66,8 @@ resolve_projection_source_field_path_rec(ASTNode *program_root,
     if (field_type_out != NULL)
         *field_type_out = NULL;
 
-    if (program_root == NULL || source_decl == NULL || field_name == NULL || depth > 8)
+    if (program_root == NULL || source_decl == NULL || field_name == NULL
+        || ctx == NULL || depth > 8)
         return 0;
 
     field_count = projection_source_field_count(source_decl);
@@ -99,7 +76,7 @@ resolve_projection_source_field_path_rec(ASTNode *program_root,
         if (field != NULL && field->name != NULL
             && strcmp(field->name, field_name) == 0) {
             if (path_out != NULL)
-                *path_out = pergyra_strdup(field_name);
+                *path_out = projection_path_scratch_strdup(ctx, field_name);
             if (field_type_out != NULL)
                 *field_type_out = field->type != NULL
                     ? projection_resolve_type_ref(field->type, ctx)
@@ -111,9 +88,9 @@ resolve_projection_source_field_path_rec(ASTNode *program_root,
     for (size_t i = 0; i < field_count; i++) {
         ClassField *field = projection_source_field_at(source_decl, i);
         ASTNode *vessel_decl;
-        char *nested_path = NULL;
+        const char *nested_path = NULL;
         Type *nested_type = NULL;
-        char *prefixed_path;
+        const char *prefixed_path;
         int nested_status;
         const char *field_type_name = field != NULL ? ast_type_name(field->type) : NULL;
 
@@ -132,15 +109,13 @@ resolve_projection_source_field_path_rec(ASTNode *program_root,
             program_root, vessel_decl, field_name, depth + 1, ctx,
             &nested_path, &nested_type);
         if (nested_status != 1) {
-            if (nested_path != NULL)
-                free(nested_path);
             if (nested_status == 2)
                 match_count = 2;
             continue;
         }
 
-        prefixed_path = projection_path_strdup_fmt("%s.%s", field->name, nested_path);
-        free(nested_path);
+        prefixed_path = pgy_arena_fmt(&ctx->scratch_arena, "%s.%s",
+            field->name, nested_path);
         if (prefixed_path == NULL)
             continue;
 
@@ -149,8 +124,6 @@ resolve_projection_source_field_path_rec(ASTNode *program_root,
             resolved_path = prefixed_path;
             resolved_type = nested_type;
         } else {
-            free(prefixed_path);
-            free(resolved_path);
             resolved_path = NULL;
             resolved_type = NULL;
         }
@@ -159,15 +132,11 @@ resolve_projection_source_field_path_rec(ASTNode *program_root,
     if (match_count == 1) {
         if (path_out != NULL)
             *path_out = resolved_path;
-        else
-            free(resolved_path);
         if (field_type_out != NULL)
             *field_type_out = resolved_type;
         return 1;
     }
 
-    if (resolved_path != NULL)
-        free(resolved_path);
     return match_count > 1 ? 2 : 0;
 }
 
@@ -176,7 +145,7 @@ resolve_projection_source_field_path(ASTNode *program_root,
                                      ASTNode *source_decl,
                                      const char *field_name,
                                      SemanticContext *ctx,
-                                     char **path_out,
+                                     const char **path_out,
                                      Type **field_type_out)
 {
     return resolve_projection_source_field_path_rec(program_root, source_decl,

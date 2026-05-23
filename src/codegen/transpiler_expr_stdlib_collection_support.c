@@ -177,6 +177,38 @@ transpiler_require_unary_collection_type(TranspilerCtx *ctx,
     return false;
 }
 
+bool
+transpiler_expr_is_c_addressable_storage(ASTNode *expr)
+{
+    if (expr == NULL)
+        return false;
+    if (expr->type == AST_IDENTIFIER)
+        return true;
+    if (expr->type == AST_MEMBER_ACCESS)
+        return transpiler_expr_is_c_addressable_storage(
+            ast_member_object(expr));
+    return false;
+}
+
+bool
+transpiler_require_c_addressable_storage(TranspilerCtx *ctx,
+                                         ASTNode *expr,
+                                         const char *operation,
+                                         const char *storage_kind)
+{
+    if (transpiler_expr_is_c_addressable_storage(expr))
+        return true;
+
+    transpiler_set_backend_error_with_hints(ctx,
+        PGY_CODE_C_TYPE_UNSUPPORTED,
+        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+        PGY_FIX_BIND_TO_NAMED_VARIABLE_BEFORE_SEND,
+        "C backend: %s requires addressable %s storage because the runtime call takes its address",
+        operation != NULL ? operation : "collection operation",
+        storage_kind != NULL ? storage_kind : "collection");
+    return false;
+}
+
 static void
 transpiler_collection_ensure_specialization_to(TranspilerCtx *ctx, CodeBuf *dst,
                                                const char *kind,

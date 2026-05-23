@@ -18,6 +18,7 @@
 #include "transpiler_expr_stdlib_builtin_policy.h"
 #include "transpiler_expr_stdlib_channel_builtin.h"
 #include "transpiler_expr_stdlib_collection_builtin.h"
+#include "transpiler_expr_stdlib_collection_support.h"
 #include "transpiler_expr_stdlib_misc_builtin.h"
 #include "transpiler_expr_stdlib_scalar_builtin.h"
 #include "transpiler_expr_type_infer.h"
@@ -157,6 +158,9 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             return result;
         }
         if (array_op == TRANSPILER_ARRAY_OP_PUSH) {
+            if (!transpiler_require_c_addressable_storage(ctx, arg0,
+                    "ArrayPush", "Array"))
+                return pergyra_strdup("0");
             char *arr = emit_expression(arg0, ctx);
             char *val = emit_expression(arg1, ctx);
             const char *suffix = NULL;
@@ -174,6 +178,9 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             return result;
         }
         if (array_op == TRANSPILER_ARRAY_OP_SET) {
+            if (!transpiler_require_c_addressable_storage(ctx, arg0,
+                    "ArraySet", "Array"))
+                return pergyra_strdup("0");
             char *arr = emit_expression(arg0, ctx);
             char *idx = emit_expression(arg1, ctx);
             char *val = emit_expression(arg2, ctx);
@@ -191,6 +198,9 @@ emit_call_stdlib_builtin(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
             return result;
         }
         if (array_op == TRANSPILER_ARRAY_OP_POP) {
+            if (!transpiler_require_c_addressable_storage(ctx, arg0,
+                    "ArrayPop", "Array"))
+                return pergyra_strdup("0");
             char *arr = emit_expression(arg0, ctx);
             const char *inner = NULL;
             char inner_buf[64];

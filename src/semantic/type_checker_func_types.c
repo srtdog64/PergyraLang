@@ -11,6 +11,14 @@ func_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
 }
 
 Type *
+type_check_signature_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
+{
+    if (type_ref == NULL)
+        return TYPE_UNKNOWN;
+    return func_resolve_type_ref(type_ref, ctx);
+}
+
+Type *
 type_check_func_resolve_param_type(FuncParam *param, SemanticContext *ctx)
 {
     if (param == NULL || param->type == NULL)

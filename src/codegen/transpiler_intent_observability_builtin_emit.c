@@ -7,7 +7,9 @@
 
 #include <stdlib.h>
 
+#include "../common/string_compat.h"
 #include "../parser/ast_api.h"
+#include "../semantic/diag_codes.h"
 #include "transpiler_context.h"
 #include "transpiler_format.h"
 
@@ -140,6 +142,25 @@ intent_observability_two_arg_export(BuiltinKind bk)
     }
 }
 
+static bool
+intent_observability_require_arg_count(ASTNode *call, TranspilerCtx *ctx,
+                                       const char *export_name,
+                                       size_t required)
+{
+    size_t actual = ast_call_arg_count(call);
+
+    if (actual == required)
+        return true;
+    transpiler_set_backend_error_with_hints(ctx,
+        PGY_CODE_C_TYPE_UNSUPPORTED,
+        PGY_CAUSE_C_TYPE_UNSUPPORTED,
+        PGY_FIX_USE_LLVM_BACKEND_OR_EXTEND_TRANSPILER,
+        "C backend: %s requires exactly %zu argument%s",
+        export_name != NULL ? export_name : "intent observability builtin",
+        required, required == 1 ? "" : "s");
+    return false;
+}
+
 char *
 emit_builtin_intent_observability(ASTNode *call, BuiltinKind bk,
                                   TranspilerCtx *ctx)
@@ -156,6 +177,8 @@ emit_builtin_intent_observability(ASTNode *call, BuiltinKind bk,
 
     one_export = intent_observability_one_arg_export(bk);
     if (one_export != NULL) {
+        if (!intent_observability_require_arg_count(call, ctx, one_export, 1))
+            return pergyra_strdup("0");
         char *index = emit_expression(ast_call_argument(call, 0), ctx);
         char *result = strdup_fmt("%s(%s)", one_export, index);
         free(index);
@@ -164,6 +187,8 @@ emit_builtin_intent_observability(ASTNode *call, BuiltinKind bk,
 
     two_export = intent_observability_two_arg_export(bk);
     if (two_export != NULL) {
+        if (!intent_observability_require_arg_count(call, ctx, two_export, 2))
+            return pergyra_strdup("0");
         char *intent_index = emit_expression(ast_call_argument(call, 0), ctx);
         char *step_index = emit_expression(ast_call_argument(call, 1), ctx);
         char *result = strdup_fmt("%s(%s, %s)", two_export, intent_index,

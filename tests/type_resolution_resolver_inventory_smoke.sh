@@ -13,8 +13,7 @@ annotation_or_unknown_matches="$(mktemp)"
 bad_annotation_or_unknown="$(mktemp)"
 bad_record="$(mktemp)"
 type_ref_helper_matches="$(mktemp)"
-bad_type_ref_helper="$(mktemp)"
-trap 'rm -f "$bad_direct" "$bad_fallback" "$fallback_matches" "$annotation_matches" "$bad_annotation" "$annotation_or_unknown_matches" "$bad_annotation_or_unknown" "$bad_record" "$type_ref_helper_matches" "$bad_type_ref_helper"' EXIT
+trap 'rm -f "$bad_direct" "$bad_fallback" "$fallback_matches" "$annotation_matches" "$bad_annotation" "$annotation_or_unknown_matches" "$bad_annotation_or_unknown" "$bad_record" "$type_ref_helper_matches"' EXIT
 
 { grep -RIn "resolve_type_node(" src/semantic || true; } | while IFS=: read -r path line text; do
   case "$path" in
@@ -45,6 +44,13 @@ fi
 
 if grep -q 'resolve_type_node(ASTNode' src/semantic/type_checker.h; then
   echo "[type-resolution-resolver-inventory] public type_checker.h re-exposed resolve_type_node" >&2
+  exit 1
+fi
+
+if grep -RIn --include='*.c' --include='*.h' 'domain_resolve_type_ref(' src/semantic >"$bad_direct"; then
+  echo "[type-resolution-resolver-inventory] broad domain resolver API reappeared:" >&2
+  cat "$bad_direct" >&2
+  echo "Use metadata-backed owner seams such as domain_lookup_slot_type_metadata(...) or semantic_type_resolution_lookup_metadata_type_ref(...)." >&2
   exit 1
 fi
 
@@ -395,20 +401,6 @@ grep -q 'resolve_required_ability_decl' \
 { grep -RIn 'semantic_type_resolution_lookup_type_ref_or_materialize' src/semantic || true; } \
   >"$type_ref_helper_matches" || true
 
-grep -Ev 'src/semantic/type_checker_internal\.h' "$type_ref_helper_matches" \
-  | grep -Ev 'src/semantic/type_checker_intent_types\.c' \
-  | grep -Ev 'src/semantic/type_checker_projection_path\.c' \
-  | grep -Ev 'src/semantic/type_checker_expr_enum\.c' \
-  | grep -Ev 'src/semantic/type_checker_resolution_metadata\.c' \
-  >"$bad_type_ref_helper" || true
-
-if [ -s "$bad_type_ref_helper" ]; then
-  echo "[type-resolution-resolver-inventory] unclassified metadata-first type-ref helper user(s):" >&2
-  cat "$bad_type_ref_helper" >&2
-  echo "Add a narrow owner classification before expanding DAG materializing helper use." >&2
-  exit 1
-fi
-
 type_ref_helper_count="$(wc -l <"$type_ref_helper_matches")"
 if [ "$type_ref_helper_count" -ne 0 ]; then
   echo "[type-resolution-resolver-inventory] metadata-first type-ref helper inventory changed: $type_ref_helper_count != 0" >&2
@@ -431,6 +423,9 @@ direct_metadata_type_ref_users="$(
     | grep -Ev 'src/semantic/type_checker_intent_types\.c' \
     | grep -Ev 'src/semantic/type_checker_ownership_let_helpers\.c' \
     | grep -Ev 'src/semantic/type_checker_projection_path\.c' \
+    | grep -Ev 'src/semantic/type_checker_type_alias\.c' \
+    | grep -Ev 'src/semantic/type_checker_flow\.c' \
+    | grep -Ev 'src/semantic/type_checker_world_helpers\.c' \
     | grep -Ev 'src/semantic/type_checker_resolution_metadata\.c' \
     | grep -Ev 'src/semantic/type_checker_resolution_metadata_constructed\.c' \
     | grep -Ev 'src/semantic/type_checker_resolution_metadata_diagnostics\.c' \
@@ -442,7 +437,7 @@ direct_metadata_type_ref_users="$(
     || true
 )"
 if [ -n "$direct_metadata_type_ref_users" ]; then
-  echo "[type-resolution-resolver-inventory] semantic owner bypassed metadata-first type-ref helper:" >&2
+  echo "[type-resolution-resolver-inventory] unclassified direct metadata type-ref consumer(s):" >&2
   echo "$direct_metadata_type_ref_users" >&2
   exit 1
 fi
@@ -453,7 +448,7 @@ direct_materializer_users="$(
     || true
 )"
 if [ -n "$direct_materializer_users" ]; then
-  echo "[type-resolution-resolver-inventory] semantic owner bypassed metadata-first type-ref helper:" >&2
+  echo "[type-resolution-resolver-inventory] semantic owner reopened direct metadata materializer:" >&2
   echo "$direct_materializer_users" >&2
   exit 1
 fi

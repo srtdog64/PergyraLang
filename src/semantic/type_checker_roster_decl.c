@@ -85,7 +85,7 @@ type_check_roster_decl(ASTNode *node, SemanticContext *ctx)
     for (size_t i = 0; i < shared_count; i++) {
         ASTNode *shared = shared_fields[i];
         if (ast_party_shared_type(shared) != NULL)
-            domain_resolve_shared_type(shared, ctx);
+            domain_lookup_shared_type_metadata(shared, ctx);
         if (ast_party_shared_initializer(shared) != NULL)
             type_check_expression(ast_party_shared_initializer(shared), ctx);
     }

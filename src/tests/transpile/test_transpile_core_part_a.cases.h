@@ -407,6 +407,32 @@ test_expression_emit(void)
         transpiler_ctx_destroy(ctx);
     }
 
+    TEST("DeviceWrite missing value emits diagnostic recovery");
+    {
+        ctx = transpiler_ctx_create();
+        register_typed_var(ctx, "gpu", "DeviceSlot<Int>");
+        ASTNode *args[1] = { make_identifier("gpu", 1) };
+        result = emit_expression(make_call("DeviceWrite", args, 1, 1), ctx);
+        EXPECT(strcmp(result, "0") == 0);
+        EXPECT(ctx->backend_error != NULL);
+        EXPECT_STR_CONTAINS(ctx->backend_error,
+                            "DeviceWrite requires 2 arguments");
+        free(result);
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("SubmitDeviceRead missing slot emits diagnostic recovery");
+    {
+        ctx = transpiler_ctx_create();
+        result = emit_expression(make_call("SubmitDeviceRead", NULL, 0, 1), ctx);
+        EXPECT(strcmp(result, "0") == 0);
+        EXPECT(ctx->backend_error != NULL);
+        EXPECT_STR_CONTAINS(ctx->backend_error,
+                            "SubmitDeviceRead requires 1 argument");
+        free(result);
+        transpiler_ctx_destroy(ctx);
+    }
+
     TEST("array access -> values[0]");
     {
         ctx = transpiler_ctx_create();
@@ -463,6 +489,84 @@ test_expression_emit(void)
         ASTNode *args[2] = { make_identifier("boxed", 1), make_number(42, 1) };
         result = emit_expression(make_call("BoxSet", args, 2, 1), ctx);
         EXPECT(strcmp(result, "pgy_box_set_Int(&boxed, 42)") == 0);
+        free(result);
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("BoxSet missing value emits diagnostic recovery");
+    {
+        ctx = transpiler_ctx_create();
+        ASTNode *init_args[1] = { make_number(1, 1) };
+        emit_statement(
+            make_let("boxed",
+                     make_generic_type("Box", "Int"),
+                     make_call("Box", init_args, 1, 1), 1),
+            ctx);
+        ASTNode *args[1] = { make_identifier("boxed", 1) };
+        result = emit_expression(make_call("BoxSet", args, 1, 1), ctx);
+        EXPECT(strcmp(result, "0") == 0);
+        EXPECT(ctx->backend_error != NULL);
+        EXPECT_STR_CONTAINS(ctx->backend_error,
+                            "BoxSet requires exactly two arguments");
+        free(result);
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("RcGet rejects non-addressable Rc expression");
+    {
+        ctx = transpiler_ctx_create();
+        ASTNode *init_args[1] = { make_number(1, 1) };
+        ASTNode *rc_new = make_call("RcNew", init_args, 1, 1);
+        ASTNode *args[1] = { rc_new };
+        result = emit_expression(make_call("RcGet", args, 1, 1), ctx);
+        EXPECT(result != NULL);
+        EXPECT_STR_NOT_CONTAINS(result, "&RcNew");
+        EXPECT(ctx->backend_error != NULL);
+        EXPECT_STR_CONTAINS(ctx->backend_error,
+            "requires addressable Rc/Weak storage");
+        free(result);
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("BoxSet rejects non-addressable Box expression");
+    {
+        ctx = transpiler_ctx_create();
+        ASTNode *init_args[1] = { make_number(1, 1) };
+        ASTNode *box_new = make_call("Box", init_args, 1, 1);
+        ASTNode *args[2] = { box_new, make_number(42, 1) };
+        result = emit_expression(make_call("BoxSet", args, 2, 1), ctx);
+        EXPECT(result != NULL);
+        EXPECT_STR_NOT_CONTAINS(result, "&Box");
+        EXPECT(ctx->backend_error != NULL);
+        EXPECT_STR_CONTAINS(ctx->backend_error,
+            "requires addressable Box storage");
+        free(result);
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("IntentRecentName missing index emits diagnostic recovery");
+    {
+        ctx = transpiler_ctx_create();
+        result = emit_expression(make_call("IntentRecentName", NULL, 0, 1),
+                                 ctx);
+        EXPECT(strcmp(result, "0") == 0);
+        EXPECT(ctx->backend_error != NULL);
+        EXPECT_STR_CONTAINS(ctx->backend_error,
+                            "requires exactly 1 argument");
+        free(result);
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("IntentActiveStepName missing step emits diagnostic recovery");
+    {
+        ctx = transpiler_ctx_create();
+        ASTNode *args[1] = { make_number(0, 1) };
+        result = emit_expression(make_call("IntentActiveStepName", args, 1, 1),
+                                 ctx);
+        EXPECT(strcmp(result, "0") == 0);
+        EXPECT(ctx->backend_error != NULL);
+        EXPECT_STR_CONTAINS(ctx->backend_error,
+                            "requires exactly 2 arguments");
         free(result);
         transpiler_ctx_destroy(ctx);
     }

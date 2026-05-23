@@ -5,41 +5,7 @@
  * Type Checker implementation
  */
 
-#include <string.h>
-#include "../common/string_compat.h"
 #include "type_checker_internal.h"
-#include "type_checker_visibility.h"
-#include "diag_payload.h"
-#include "diag_codes.h"
-#include "type_checker_generic_diag_internal.h"
-#include "type_checker_ability_ref_internal.h"
-#include "type_checker_ownership_internal.h"
-#include "type_checker_ownership_diag_internal.h"
-#include "type_checker_ownership_consumers_internal.h"
-#include "type_checker_channel_transport_internal.h"
-#include "type_checker_ownership_support_internal.h"
-#include "type_checker_stdlib_use_internal.h"
-#include "type_checker_module_contract_internal.h"
-#include "type_checker_module_contract_diag_internal.h"
-#include "type_checker_ability_fields_internal.h"
-#include "type_checker_ability_match_internal.h"
-#include "type_checker_ability_where_internal.h"
-
-/* Helper owner headers (ownership/qubit helpers, etc).
- * Former wrapper include chains were deleted once the helpers_late.c TU went
- * out. */
-#include "type_checker_helpers_effects.h"
-/* type_checker_visibility was promoted to type_checker_visibility.{h,c}
- * (P1 axis 1).  See docs/92_inc_split_roadmap.md. */
-
-#include "type_checker_expr.h"
-
-
-bool
-type_check_parallel_block(ASTNode *node, SemanticContext *ctx)
-{
-    return type_check_parallel_block_flow(node, ctx);
-}
 
 /* type_check_ability_decl body moved to type_checker_ability_decl.c.
  * See docs/101_semantic_split_template.md. */
@@ -60,10 +26,7 @@ type_check_statement(ASTNode *node, SemanticContext *ctx)
     case AST_EVENT_DECL:
         return type_check_event_decl(node, ctx);
     case AST_TYPE_ALIAS:
-        if (ast_type_alias_target_type(node) != NULL)
-            (void)domain_resolve_type_ref(
-                ast_type_alias_target_type(node), ctx);
-        return !ctx->has_error;
+        return type_check_type_alias_stmt(node, ctx);
     case AST_CLASS_DECL:
         return type_check_class_decl(node, ctx);
     case AST_EXTERN_BLOCK:
@@ -122,19 +85,13 @@ type_check_statement(ASTNode *node, SemanticContext *ctx)
         /* Already resolved by driver; skip. */
         return true;
     case AST_USE_DECL:
-        validate_stdlib_use_decl(node, ctx);
-        return !ctx->has_error;
+        return type_check_use_decl(node, ctx);
     case AST_NAMESPACE_DECL:
-        for (size_t i = 0; i < ast_namespace_statement_count(node); i++)
-            type_check_statement(ast_namespace_statement(node, i), ctx);
-        return !ctx->has_error;
+        return type_check_namespace_decl(node, ctx);
     case AST_UNSAFE_BLOCK:
-        /* Type-check body normally; safety constraints relaxed at codegen */
-        if (ast_unsafe_block_body(node) != NULL)
-            type_check_block(ast_unsafe_block_body(node), ctx);
-        return !ctx->has_error;
+        return type_check_unsafe_block(node, ctx);
     case AST_DEFER_STMT:
-        return type_check_defer_body_flow(ast_defer_body(node), ctx);
+        return type_check_defer_stmt(node, ctx);
     case AST_BIND_STMT:
         /* bind party.slot = Role; validated at codegen level. */
         return true;

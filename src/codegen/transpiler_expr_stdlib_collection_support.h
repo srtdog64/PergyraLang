@@ -11,6 +11,11 @@ const char *transpiler_expr_infer_type_name(TranspilerCtx *ctx,
 void transpiler_collection_ensure_specialization(TranspilerCtx *ctx,
                                                  const char *kind,
                                                  const char *inner_type);
+bool transpiler_expr_is_c_addressable_storage(ASTNode *expr);
+bool transpiler_require_c_addressable_storage(TranspilerCtx *ctx,
+                                              ASTNode *expr,
+                                              const char *operation,
+                                              const char *storage_kind);
 bool transpiler_require_hashmap_type(TranspilerCtx *ctx,
                                      const char *map_type,
                                      const char *operation,

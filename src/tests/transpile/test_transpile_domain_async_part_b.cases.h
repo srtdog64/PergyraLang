@@ -174,6 +174,105 @@ test_parallel_execution_emit(void)
         transpiler_ctx_destroy(ctx);
     }
 
+    TEST("channel send rejects non-lvalue channel expression");
+    {
+        ASTNode *channel_call = make_call("MakeChannel", NULL, 0, 1);
+        ASTNode *value = make_number(42, 1);
+        ASTNode *send = ast_create_channel_send(channel_call, value);
+
+        TranspilerCtx *ctx = transpiler_ctx_create();
+        char *result = emit_expression(send, ctx);
+
+        EXPECT(result != NULL);
+        EXPECT_STR_NOT_CONTAINS(result, "&MakeChannel");
+        EXPECT(ctx->backend_error != NULL);
+        EXPECT_STR_CONTAINS(ctx->backend_error,
+                            "requires a named Channel<T> binding");
+
+        free(result);
+        ast_destroy(send);
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("channel recv rejects non-lvalue channel expression");
+    {
+        ASTNode *channel_call = make_call("MakeChannel", NULL, 0, 1);
+        ASTNode *recv = ast_create_channel_recv(channel_call);
+
+        TranspilerCtx *ctx = transpiler_ctx_create();
+        char *result = emit_expression(recv, ctx);
+
+        EXPECT(result != NULL);
+        EXPECT_STR_NOT_CONTAINS(result, "&MakeChannel");
+        EXPECT(ctx->backend_error != NULL);
+        EXPECT_STR_CONTAINS(ctx->backend_error,
+                            "requires a named Channel<T> binding");
+
+        free(result);
+        ast_destroy(recv);
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("channel send preserves unknown payload diagnostic");
+    {
+        ASTNode *channel = make_identifier("ch", 1);
+        ASTNode *value = make_number(42, 1);
+        ASTNode *send = ast_create_channel_send(channel, value);
+
+        TranspilerCtx *ctx = transpiler_ctx_create();
+        register_typed_var(ctx, "ch", "Channel<Unknown>");
+        char *result = emit_expression(send, ctx);
+
+        EXPECT(result != NULL);
+        EXPECT(ctx->backend_error != NULL);
+        EXPECT_STR_CONTAINS(ctx->backend_error,
+                            "requires concrete Channel<T> payload metadata");
+
+        free(result);
+        ast_destroy(send);
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("TryRecv rejects non-lvalue channel expression");
+    {
+        ASTNode *channel_call = make_call("MakeChannel", NULL, 0, 1);
+        ASTNode *args[1] = { channel_call };
+
+        TranspilerCtx *ctx = transpiler_ctx_create();
+        ASTNode *call = make_call("TryRecv", args, 1, 1);
+        char *result = emit_expression(call, ctx);
+
+        EXPECT(result != NULL);
+        EXPECT_STR_NOT_CONTAINS(result, "&MakeChannel");
+        EXPECT(ctx->backend_error != NULL);
+        EXPECT_STR_CONTAINS(ctx->backend_error,
+                            "requires a named Channel<T> binding");
+
+        free(result);
+        ast_destroy(call);
+        transpiler_ctx_destroy(ctx);
+    }
+
+    TEST("ChannelLength rejects non-lvalue channel expression");
+    {
+        ASTNode *channel_call = make_call("MakeChannel", NULL, 0, 1);
+        ASTNode *args[1] = { channel_call };
+
+        TranspilerCtx *ctx = transpiler_ctx_create();
+        ASTNode *call = make_call("ChannelLength", args, 1, 1);
+        char *result = emit_expression(call, ctx);
+
+        EXPECT(result != NULL);
+        EXPECT_STR_NOT_CONTAINS(result, "&MakeChannel");
+        EXPECT(ctx->backend_error != NULL);
+        EXPECT_STR_CONTAINS(ctx->backend_error,
+                            "requires a named Channel<T> binding");
+
+        free(result);
+        ast_destroy(call);
+        transpiler_ctx_destroy(ctx);
+    }
+
     TEST("TryRecv emits Option-based non-blocking receive");
     {
         TranspilerCtx *ctx = transpiler_ctx_create();

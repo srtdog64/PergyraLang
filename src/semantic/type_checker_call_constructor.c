@@ -86,7 +86,7 @@ type_check_constructor_symbol_call(ASTNode *expr,
                         }
                         if (field_type_node == NULL)
                             continue;
-                        Type *field_type = domain_resolve_type_ref(
+                        Type *field_type = semantic_host_resolve_type_ref(
                             field_type_node, ctx);
                         ASTNode *arg = ast_call_argument(expr, i);
                         Type *arg_type = constructor_call_normalize_type(

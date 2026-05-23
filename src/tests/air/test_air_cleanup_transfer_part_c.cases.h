@@ -640,6 +640,28 @@ test_air_collects_dag_generic_ability_evidence(void)
 }
 
 static bool
+test_air_rejects_dag_hits_without_metadata_inventory(void)
+{
+    AIRProgram *air = (AIRProgram *)calloc(1, sizeof(AIRProgram));
+    SemanticResult sem;
+    char *error = NULL;
+    bool ok;
+
+    if (air == NULL)
+        return false;
+    memset(&sem, 0, sizeof(sem));
+    sem.type_resolution_metadata_hits = 1;
+
+    ok = !air_collect_dag_evidence(air, &sem, &error)
+        && error != NULL
+        && strstr(error,
+            "AIR DAG evidence saw metadata hits without metadata inventory") != NULL;
+    free(error);
+    air_destroy(air);
+    return ok;
+}
+
+static bool
 test_air_reports_dag_dead_end_drift(void)
 {
     AIRProgram *air = (AIRProgram *)calloc(1, sizeof(AIRProgram));

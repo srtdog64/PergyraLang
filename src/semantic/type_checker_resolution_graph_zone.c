@@ -101,7 +101,7 @@ semantic_type_resolution_precollect_zone_refresh_projection_map(
                 zone_decl,
                 ast_zone_refresh_source_slot_name(refresh),
                 ctx);
-            char *resolved_source_path = NULL;
+            const char *resolved_source_path = NULL;
             const char *source_path_text = source_field;
 
             if (source_decl != NULL) {
@@ -145,9 +145,6 @@ semantic_type_resolution_precollect_zone_refresh_projection_map(
                     free(source_field_label);
                 }
             }
-
-            if (resolved_source_path != NULL)
-                free(resolved_source_path);
         }
 
         free(projection_label);

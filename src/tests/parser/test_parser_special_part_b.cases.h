@@ -942,3 +942,67 @@ run_reserved_object_initializer_diagnostic_test(void)
     lexer_destroy(lexer);
     return failed;
 }
+
+static int
+run_reserved_scoped_unsafe_diagnostic_test(void)
+{
+    const char *code =
+        "func Main() -> Void {\n"
+        "    unsafe(raw) {\n"
+        "        Log(1);\n"
+        "    }\n"
+        "}\n";
+    int failed = 0;
+    Lexer *lexer = lexer_create(code);
+    Parser *parser = lexer != NULL ? parser_create(lexer) : NULL;
+    ASTNode *ast = parser != NULL ? parser_parse_program(parser) : NULL;
+    const char *error = parser != NULL ? parser_get_error(parser) : NULL;
+
+    printf("\n=== Test: Reserved Scoped Unsafe Diagnostic ===\n");
+
+    if (parser == NULL || !parser_has_error(parser)
+        || error == NULL
+        || strstr(error, "Scoped unsafe capability syntax") == NULL
+        || strstr(error, "not a universal mode bit") == NULL) {
+        printf("[FAIL] expected scoped unsafe diagnostic, got: %s\n",
+            error != NULL ? error : "<none>");
+        failed = 1;
+    }
+
+    ast_destroy(ast);
+    parser_destroy(parser);
+    lexer_destroy(lexer);
+    return failed;
+}
+
+static int
+run_reserved_labeled_unsafe_diagnostic_test(void)
+{
+    const char *code =
+        "func Main() -> Void {\n"
+        "    unsafe raw {\n"
+        "        Log(1);\n"
+        "    }\n"
+        "}\n";
+    int failed = 0;
+    Lexer *lexer = lexer_create(code);
+    Parser *parser = lexer != NULL ? parser_create(lexer) : NULL;
+    ASTNode *ast = parser != NULL ? parser_parse_program(parser) : NULL;
+    const char *error = parser != NULL ? parser_get_error(parser) : NULL;
+
+    printf("\n=== Test: Reserved Labeled Unsafe Diagnostic ===\n");
+
+    if (parser == NULL || !parser_has_error(parser)
+        || error == NULL
+        || strstr(error, "Scoped unsafe capability label syntax") == NULL
+        || strstr(error, "not to a loose parser shortcut") == NULL) {
+        printf("[FAIL] expected labeled unsafe diagnostic, got: %s\n",
+            error != NULL ? error : "<none>");
+        failed = 1;
+    }
+
+    ast_destroy(ast);
+    parser_destroy(parser);
+    lexer_destroy(lexer);
+    return failed;
+}

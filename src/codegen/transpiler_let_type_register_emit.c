@@ -7,10 +7,9 @@
 
 #include <stdlib.h>
 
-#include "../common/string_compat.h"
 #include "../parser/ast_api.h"
+#include "transpiler_context.h"
 #include "transpiler_expr_type_infer.h"
-#include "transpiler_format.h"
 #include "transpiler_future_type_query.h"
 #include "transpiler_symbols.h"
 
@@ -29,11 +28,11 @@ transpiler_register_let_type_after_emit(TranspilerCtx *ctx,
     if (init != NULL && init->type == AST_CALL) {
         register_typed_var(ctx, name, infer_expression_type_name(ctx, init));
     } else if (init != NULL && init->type == AST_SPAWN_EXPR) {
-        char *future_type = infer_spawn_return_type_name(ctx, init);
-        char *wrapped = strdup_fmt("Future<%s>", future_type);
+        const char *future_type = infer_spawn_return_type_name_scratch(
+            ctx, init);
+        const char *wrapped = transpiler_scratch_fmt(ctx, "Future<%s>",
+                                                     future_type);
         register_typed_var(ctx, name, wrapped);
-        free(future_type);
-        free(wrapped);
     } else if (init != NULL && init->type == AST_CHANNEL_RECV) {
         const char *inner = infer_expression_type_name(ctx, init);
         register_typed_var(ctx, name, inner);

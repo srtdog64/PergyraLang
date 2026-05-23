@@ -9,6 +9,7 @@
 #include "../parser/ast_api.h"
 #include "../semantic/diag_codes.h"
 #include "codegen_slot_type_policy.h"
+#include "transpiler_call_subject_arg_policy.h"
 #include "transpiler_context.h"
 #include "transpiler_decl_lookup.h"
 #include "transpiler_domain_receiver_query.h"
@@ -152,8 +153,20 @@ emit_call_member_style(ASTNode *call, ASTNode *callee, TranspilerCtx *ctx)
                             codebuf_write(args_buf, ", self");
                         else if (already_pointer)
                             codebuf_write(args_buf, ", %s", arg);
-                        else
+                        else if (transpiler_call_arg_can_take_subject_address(
+                                     arg_node)) {
                             codebuf_write(args_buf, ", &%s", arg);
+                        } else {
+                            transpiler_set_backend_error_with_hints(ctx,
+                                PGY_CODE_C_TYPE_UNSUPPORTED,
+                                PGY_CAUSE_C_TYPE_UNSUPPORTED,
+                                PGY_FIX_BIND_TO_NAMED_VARIABLE_BEFORE_MOVE,
+                                "C backend: subject argument %zu for method '%s' requires addressable storage",
+                                i + 1, method != NULL ? method : "<method>");
+                            free(arg);
+                            codebuf_destroy(args_buf);
+                            return pergyra_strdup("0");
+                        }
                     } else {
                         codebuf_write(args_buf, ", %s", arg);
                     }

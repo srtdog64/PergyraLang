@@ -38,18 +38,14 @@ They are alias-cycle diagnostic coverage and are separately gated by
 
 - Stable constructed refs materialize through graph/topo metadata before any
   retired compatibility audit counter can be incremented.
-- Semantic owners are smoke-gated to use
-  `semantic_type_resolution_lookup_type_ref_or_materialize(...)` instead of
-  hand-rolled direct fallback calls.
-- Signature-stage quiet resolution is also routed through that metadata-first
-  type-ref helper after metadata preflight misses. The stage owner is no longer
-  on the direct diagnostic-materializer allowlist.
-- Stable constructed-type diagnostic argument resolution uses the same helper.
-  The only remaining direct `semantic_type_resolution_lookup_or_materialize(ctx,
-  ...)` call is the central metadata type-ref helper's fallback branch.
-- The direct materializer smoke allowlist is narrowed to that central metadata
-  owner only. The obsolete `type_checker_resolve.c` owner is gone; retired
-  zero-call audit counters live in `type_checker_resolution_retired.c`.
+- Semantic owners are smoke-gated to consume metadata facts plus narrow
+  diagnostic helpers instead of hand-rolled direct fallback calls.
+- Signature-stage quiet resolution and stable constructed-type diagnostics now
+  stay on metadata-only owner paths; the intermediate materializing type-ref
+  helper has been removed from `src/semantic`.
+- The direct materializer smoke allowlist is closed at zero. The obsolete
+  `type_checker_resolve.c` owner is gone; retired zero-call audit counters live
+  in `type_checker_resolution_retired.c`.
 - Stable constructed shell vocabulary is centralized in the metadata diagnostics
   owner. Constructed metadata materialization and fallback accounting now consume
   the same `stable shell` / `slot-like shell` helpers instead of maintaining

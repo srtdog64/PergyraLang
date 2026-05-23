@@ -5,28 +5,6 @@
 
 #include <stdint.h>
 
-static const AIREvidenceNode *
-air_find_runtime_evidence(const AIRProgram *air,
-                          AIREvidenceKind kind,
-                          const char *provider_name,
-                          const char *subject_name)
-{
-    if (air == NULL)
-        return NULL;
-    for (size_t i = 0; i < air_evidence_node_count(air); i++) {
-        const AIREvidenceNode *node = air_evidence_node_at(air, i);
-        if (node == NULL)
-            continue;
-        if (node->kind == kind
-            && node->boundary_index == SIZE_MAX
-            && air_name_matches(node->provider_name, provider_name)
-            && air_name_matches(node->subject_name, subject_name)) {
-            return node;
-        }
-    }
-    return NULL;
-}
-
 static bool
 air_collect_singleton_global_evidence(AIRProgram *air,
                                       AIREvidenceKind kind,
@@ -39,10 +17,10 @@ air_collect_singleton_global_evidence(AIRProgram *air,
 
     if (air == NULL)
         return true;
-    existing = air_find_runtime_evidence(air,
-                                         kind,
-                                         provider_name,
-                                         subject_name);
+    existing = air_global_evidence_node_provider_subject(air,
+                                                         kind,
+                                                         provider_name,
+                                                         subject_name);
     if (existing != NULL) {
         if (existing->fact_count != fact_count
             || existing->fallback_count != 0) {

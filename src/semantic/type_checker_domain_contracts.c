@@ -147,8 +147,8 @@ type_check_zone_effect_contract(ASTNode *zone,
     if (decl_target == NULL)
         return false;
 
-    target_type = domain_resolve_slot_type(target_slot, ctx);
-    decl_target_type = domain_resolve_slot_type(decl_target, ctx);
+    target_type = domain_lookup_slot_type_metadata(target_slot, ctx);
+    decl_target_type = domain_lookup_slot_type_metadata(decl_target, ctx);
     if (!type_is_assignable(target_type, decl_target_type)) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, apply_like,
             "Zone %s target slot '%s' has type '%s' but effect '%s' expects target type '%s'.\n"
@@ -248,7 +248,7 @@ relation_slot_matches_between_kind(ASTNode *slot,
             && ast_class_nominal_kind(decl) != NOMINAL_DECL_TOBJECT;
     }
 
-    named_type = domain_resolve_named_type_ref(named_type_ref, ctx);
+    named_type = domain_lookup_named_type_metadata(named_type_ref, ctx);
     return slot_type != NULL
         && named_type != NULL
         && type_equals(slot_type, named_type);
@@ -311,8 +311,8 @@ type_check_zone_relation_contract(ASTNode *zone,
     between_right_kind = ast_relation_between_right_kind(relation_decl);
     between_left_type = ast_relation_between_left_type(relation_decl);
     between_right_type = ast_relation_between_right_type(relation_decl);
-    left_type = domain_resolve_slot_type(left_slot, ctx);
-    right_type = domain_resolve_slot_type(right_slot, ctx);
+    left_type = domain_lookup_slot_type_metadata(left_slot, ctx);
+    right_type = domain_lookup_slot_type_metadata(right_slot, ctx);
 
     if (between_left_kind != RELATION_ENDPOINT_NAMED || between_right_kind != RELATION_ENDPOINT_NAMED
         || between_left_type != NULL || between_right_type != NULL) {
@@ -401,8 +401,8 @@ type_check_zone_relation_contract(ASTNode *zone,
     if (decl_left == NULL || decl_right == NULL)
         return false;
 
-    decl_left_type = domain_resolve_slot_type(decl_left, ctx);
-    decl_right_type = domain_resolve_slot_type(decl_right, ctx);
+    decl_left_type = domain_lookup_slot_type_metadata(decl_left, ctx);
+    decl_right_type = domain_lookup_slot_type_metadata(decl_right, ctx);
 
     if (!type_is_assignable(left_type, decl_left_type)) {
         semantic_error_with_hints(ctx, PGY_CODE_SEM_ZONE_CONTRACT_INVALID, PGY_CAUSE_ZONE_CONTRACT, PGY_FIX_ALIGN_ZONE_SLOT_OR_STATE_NAMING, link_like,

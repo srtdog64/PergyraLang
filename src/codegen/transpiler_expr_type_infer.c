@@ -161,10 +161,14 @@ infer_expression_type_name(TranspilerCtx *ctx, ASTNode *expr)
     }
     case AST_CHANNEL_RECV: {
         ASTNode *channel = ast_channel_recv_channel(expr);
-        if (channel != NULL && channel->type == AST_IDENTIFIER) {
-            const char *type_name = lookup_typed_var(ctx, ast_identifier_name(channel));
-            if (type_name != NULL && strncmp(type_name, "Channel<", 8) == 0)
-                return transpiler_infer_slot_inner_type_name(ctx, type_name);
+        char inner_buf[128];
+        if (ctx == NULL)
+            return "Unknown";
+        if (channel_inner_type_name_copy(ctx, channel, inner_buf,
+                sizeof(inner_buf))
+            && inner_buf[0] != '\0'
+            && strcmp(inner_buf, "Unknown") != 0) {
+            return transpiler_infer_arena_copy_type_name(ctx, inner_buf);
         }
         return "Unknown";
     }

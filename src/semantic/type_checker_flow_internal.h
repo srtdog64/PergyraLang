@@ -26,9 +26,12 @@ typedef struct
 } LoopFlowState;
 
 Type *flow_normalize_type(Type *type);
+Type *flow_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx);
 bool flow_condition_is_static_bool(const ASTNode *node);
 bool flow_static_bool_value(const ASTNode *node, bool *value_out);
 FlowFlags flow_terminating_flags(FlowFlags flags);
+FlowFlags flow_record_statement_result(FlowFlags current,
+                                       FlowFlags statement);
 bool flow_has_fallthrough(FlowFlags flags);
 void flow_reject_dynamic_defer_control(SemanticContext *ctx,
                                        ASTNode *site,
@@ -61,6 +64,31 @@ FlowFlags type_check_loop_control_flow(ASTNode *node,
                                        SemanticContext *ctx,
                                        LoopFlowState *loop_flow,
                                        bool is_break);
+FlowFlags type_check_unsafe_block_flow(ASTNode *node,
+                                       SemanticContext *ctx,
+                                       LoopFlowState *loop_flow);
+FlowFlags type_check_defer_stmt_flow(ASTNode *node,
+                                     SemanticContext *ctx);
+FlowFlags type_check_namespace_flow(ASTNode *node,
+                                    SemanticContext *ctx,
+                                    LoopFlowState *loop_flow);
+FlowFlags type_check_with_stmt_flow(ASTNode *node,
+                                    SemanticContext *ctx,
+                                    LoopFlowState *loop_flow);
+FlowFlags type_check_parallel_stmt_flow(ASTNode *node, SemanticContext *ctx);
+FlowFlags type_check_async_stmt_flow(ASTNode *node, SemanticContext *ctx);
+FlowFlags type_check_select_stmt_flow_kind(ASTNode *node,
+                                           SemanticContext *ctx);
+FlowFlags type_check_let_stmt_flow(ASTNode *node, SemanticContext *ctx);
+FlowFlags type_check_destructure_stmt_flow(ASTNode *node,
+                                           SemanticContext *ctx);
+FlowFlags type_check_return_stmt_flow(ASTNode *node, SemanticContext *ctx);
+FlowFlags type_check_event_stmt_flow(ASTNode *node,
+                                     SemanticContext *ctx,
+                                     const char *event_kind);
+FlowFlags type_check_event_invoke_stmt_flow(ASTNode *node,
+                                            SemanticContext *ctx);
+FlowFlags type_check_use_stmt_flow(ASTNode *node, SemanticContext *ctx);
 FlowFlags type_check_for_loop_flow(ASTNode *node, SemanticContext *ctx);
 FlowFlags type_check_while_loop_flow(ASTNode *node, SemanticContext *ctx);
 

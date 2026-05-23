@@ -52,7 +52,7 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
                 name != NULL ? name : "<role>",
                 for_type,
                 "role host-type lookup");
-            bound_type = domain_resolve_type_ref(for_type, ctx);
+            bound_type = semantic_host_resolve_type_ref(for_type, ctx);
             if (bound_type != NULL && for_type_name != NULL) {
                 ASTNode *type_decl = find_type_decl_by_name(
                     ctx->program_root, for_type_name);
@@ -116,7 +116,7 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
                 ast_role_where_clause(included_role_decl);
             if (ast_generic_param_count(included_generics) > 0) {
                 size_t effective_count = 0;
-                ASTNode **effective_args = collect_effective_generic_arg_nodes(
+                Type **effective_types = collect_effective_generic_arg_types(
                     included_generics,
                     ast_include_type_args(inc),
                     inc,
@@ -124,7 +124,7 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
                     "role include",
                     role_name,
                     &effective_count);
-                if (effective_args != NULL && included_where != NULL) {
+                if (effective_types != NULL && included_where != NULL) {
                     char *expected_text = format_generic_subject_signature(
                         role_name,
                         included_generics);
@@ -140,8 +140,7 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
                             tc->type_param);
                         if (param_index < 0 || (size_t)param_index >= effective_count)
                             continue;
-                        concrete_type = domain_resolve_type_ref(
-                            effective_args[param_index], ctx);
+                        concrete_type = effective_types[param_index];
                         if (concrete_type == NULL)
                             continue;
                         for (size_t bi = 0; bi < tc->bound_count; bi++) {
@@ -186,7 +185,7 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
                     }
                     free(expected_text);
                 }
-                free(effective_args);
+                free(effective_types);
             }
         }
     }
@@ -358,7 +357,7 @@ type_check_role_decl(ASTNode *node, SemanticContext *ctx)
                                 malformed_impl_args = true;
                                 continue;
                             }
-                            domain_resolve_type_ref(arg, ctx);
+                            ability_resolve_type_ref(arg, ctx);
                         }
                     }
                     if (!malformed_impl_args) {

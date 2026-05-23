@@ -55,6 +55,16 @@ llvm_boundary_param_uses_pointer_self(LLVMGenCtx *ctx, FuncParam *param)
     return param != NULL && llvm_ast_type_uses_pointer_self(ctx, param->type);
 }
 
+static bool
+llvm_boundary_arg_can_take_subject_address(ASTNode *arg_node)
+{
+    if (arg_node == NULL)
+        return false;
+    return arg_node->type == AST_IDENTIFIER
+        || arg_node->type == AST_MEMBER_ACCESS
+        || arg_node->type == AST_ARRAY_ACCESS;
+}
+
 static LLVMValueRef *
 llvm_boundary_args_error(LLVMGenCtx *ctx, ASTNode *node, const char *message)
 {
@@ -149,6 +159,10 @@ llvm_build_boundary_call_args(LLVMGenCtx *ctx, ASTNode *decl,
                     args[emitted_idx++] = ptr;
                     continue;
                 }
+            }
+            if (!llvm_boundary_arg_can_take_subject_address(arg_node)) {
+                return llvm_boundary_args_error(ctx, arg_node,
+                    "LLVM boundary subject argument requires addressable storage");
             }
         }
 

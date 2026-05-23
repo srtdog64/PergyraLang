@@ -333,6 +333,9 @@ main(void)
     TEST("AIR collects DAG generic ability evidence");
     EXPECT(test_air_collects_dag_generic_ability_evidence());
 
+    TEST("AIR rejects DAG metadata hits without inventory");
+    EXPECT(test_air_rejects_dag_hits_without_metadata_inventory());
+
     TEST("AIR reports DAG dead-end drift");
     EXPECT(test_air_reports_dag_dead_end_drift());
 

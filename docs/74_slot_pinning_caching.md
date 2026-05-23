@@ -31,7 +31,8 @@ System-language boundary:
 - It does not by itself satisfy driver/kernel/embedded/ISR needs such as raw
   pointer exposure, MMIO pointer arithmetic, or inline assembly operands.
 - If Pergyra adds a system-tier raw pointer escape, that surface must be a
-  separate `unsafe` contract with explicit syntax, semantic gates, ABI lowering,
+  separate scoped unsafe capability contract, such as `unsafe(raw) { ... }`,
+  with explicit syntax, semantic gates, AIR evidence, ABI lowering,
   diagnostics, and determinism tests. It must not weaken the typed Pin/Lease
   contract.
 - `SlotRawPointer(...)` is reserved for that future direction but currently

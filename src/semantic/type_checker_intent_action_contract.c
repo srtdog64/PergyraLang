@@ -357,10 +357,9 @@ intent_step_inherit_action_contract(ASTNode *intent_decl, ASTNode *step,
 
     if (ast_intent_step_where_type(step) == NULL
         && ast_func_within_zone(action_decl) != NULL) {
-        if (ast_intent_step_set_where_type(step,
-                ast_create_type(ast_func_within_zone(action_decl)))) {
-            ast_intent_step_mark_inherited_where_from_action(step);
-        }
+        (void)intent_step_set_where_type_name(
+            step, ast_func_within_zone(action_decl),
+            INTENT_STEP_WHERE_PROVENANCE_INHERITED_ACTION);
     }
 
     if (ast_intent_step_required_ability_count(step) == 0

@@ -20,8 +20,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-Type *
-domain_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
+static Type *
+domain_lookup_metadata_type_ref(ASTNode *type_ref, SemanticContext *ctx)
 {
     Type *resolved;
 
@@ -33,29 +33,29 @@ domain_resolve_type_ref(ASTNode *type_ref, SemanticContext *ctx)
 }
 
 Type *
-domain_resolve_slot_type(ASTNode *slot, SemanticContext *ctx)
+domain_lookup_slot_type_metadata(ASTNode *slot, SemanticContext *ctx)
 {
     ASTNode *type_ref;
     if (slot == NULL || slot->type != AST_DOMAIN_SLOT)
         return TYPE_UNKNOWN;
     type_ref = ast_domain_slot_type(slot);
-    return domain_resolve_type_ref(type_ref, ctx);
+    return domain_lookup_metadata_type_ref(type_ref, ctx);
 }
 
 Type *
-domain_resolve_shared_type(ASTNode *shared, SemanticContext *ctx)
+domain_lookup_shared_type_metadata(ASTNode *shared, SemanticContext *ctx)
 {
     ASTNode *type_ref;
     if (shared == NULL || shared->type != AST_PARTY_SHARED)
         return TYPE_UNKNOWN;
     type_ref = ast_party_shared_type(shared);
-    return domain_resolve_type_ref(type_ref, ctx);
+    return domain_lookup_metadata_type_ref(type_ref, ctx);
 }
 
 Type *
-domain_resolve_named_type_ref(ASTNode *type_ref, SemanticContext *ctx)
+domain_lookup_named_type_metadata(ASTNode *type_ref, SemanticContext *ctx)
 {
-    return domain_resolve_type_ref(type_ref, ctx);
+    return domain_lookup_metadata_type_ref(type_ref, ctx);
 }
 
 /* Intent and world declaration bodies are owned by type_checker_intent_decl.c
@@ -316,7 +316,7 @@ resolve_zone_subject_slot_for_participant(ASTNode *zone,
                 *ambiguous_out = false;
             return slot;
         }
-        slot_type = domain_resolve_slot_type(slot, ctx);
+        slot_type = domain_lookup_slot_type_metadata(slot, ctx);
         type_name_match = slot_type != NULL && slot_type->name != NULL
             && strcmp(slot_type->name, participant_type_name) == 0;
         if (!type_name_match) {

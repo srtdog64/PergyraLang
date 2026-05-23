@@ -98,6 +98,15 @@ bool        air_has_global_evidence_provider_subject(
                 AIREvidenceKind kind,
                 const char *provider_name,
                 const char *subject_name);
+const AIREvidenceNode *air_global_evidence_node_provider_subject(
+                const AIRProgram *air,
+                AIREvidenceKind kind,
+                const char *provider_name,
+                const char *subject_name);
+bool        air_has_global_evidence_provider(
+                const AIRProgram *air,
+                AIREvidenceKind kind,
+                const char *provider_name);
 bool        air_collect_mir_pin_block_evidence(AIRProgram *air,
                                                const MIRRoutine *routine,
                                                const MIRBasicBlock *block,
@@ -125,6 +134,10 @@ bool        air_boundary_has_evidence_kind_subject(const AIRProgram *air,
                                                    size_t boundary_index,
                                                    AIREvidenceKind kind,
                                                    const char *subject_name);
+bool        air_boundary_has_evidence_kind_provider(const AIRProgram *air,
+                                                    size_t boundary_index,
+                                                    AIREvidenceKind kind,
+                                                    const char *provider_name);
 const char *air_boundary_missing_authority_evidence(const AIRProgram *air,
                                                     const AIRBoundaryNode *boundary,
                                                     size_t boundary_index);

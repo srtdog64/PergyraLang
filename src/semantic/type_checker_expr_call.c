@@ -424,8 +424,8 @@ type_check_call(ASTNode *expr, SemanticContext *ctx)
                                 return TYPE_UNKNOWN;
                             }
                             if (ast_func_return_type(method) != NULL)
-                                return domain_resolve_type_ref(
-                                    ast_func_return_type(method), ctx);
+                                return type_check_func_resolve_return_type(
+                                    method, ctx);
                             return TYPE_VOID;
                         }
                     }

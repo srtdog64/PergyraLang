@@ -5,8 +5,6 @@
  * Type Checker channel transport policy and diagnostics.
  */
 
-#include <stdlib.h>
-
 #include "diag_codes.h"
 #include "type_checker_channel_transport_internal.h"
 #include "type_checker_ownership_support_internal.h"
@@ -31,14 +29,14 @@ semantic_check_channel_send_borrowed_transfer(ASTNode *value_expr,
 
     if (semantic_channel_transfer_requires_named_binding(value_expr,
             borrowed_root_name)) {
-        char *source_path = semantic_assignment_target_path(value_expr);
+        const char *source_path =
+            semantic_assignment_target_path_scratch(value_expr, ctx);
         semantic_report_named_channel_transfer_required(
             value_expr, ctx, "channel send",
             value_label != NULL ? value_label : "boundary value",
             source_path,
             named_binding_fix != NULL ? named_binding_fix
                                       : "bind the value first in a local variable");
-        free(source_path);
         return true;
     }
 
@@ -70,14 +68,14 @@ semantic_check_borrowed_channel_transfer(ASTNode *value_expr,
     borrowed_root_name = semantic_borrowed_boundary_root_name(value_expr, ctx);
     if (semantic_channel_transfer_requires_named_binding(value_expr,
             borrowed_root_name)) {
-        char *source_path = semantic_assignment_target_path(value_expr);
+        const char *source_path =
+            semantic_assignment_target_path_scratch(value_expr, ctx);
         semantic_report_named_channel_transfer_required(
             value_expr, ctx, "send",
             value_label != NULL ? value_label : "boundary value",
             source_path,
             named_binding_fix != NULL ? named_binding_fix
                                       : "bind the value first in a local variable");
-        free(source_path);
         return true;
     }
 

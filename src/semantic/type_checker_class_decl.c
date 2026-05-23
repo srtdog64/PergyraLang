@@ -127,7 +127,7 @@ type_check_class_decl(ASTNode *node, SemanticContext *ctx)
         if (field == NULL || field->name == NULL || field->type == NULL)
             continue;
 
-        field_type = domain_resolve_type_ref(field->type, ctx);
+        field_type = semantic_host_resolve_type_ref(field->type, ctx);
         if (field->is_vessel_field) {
             ASTNode *field_decl = NULL;
             if (field_type != NULL && field_type->kind == TYPE_KIND_CLASS

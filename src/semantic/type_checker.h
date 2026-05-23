@@ -222,6 +222,7 @@ bool type_check_program(ASTNode* program, SemanticContext* ctx);
  * ----------------------------------------------------------------- */
 
 bool type_check_func_decl(ASTNode* node, SemanticContext* ctx);
+bool type_check_type_alias_stmt(ASTNode* node, SemanticContext* ctx);
 bool type_check_class_decl(ASTNode* node, SemanticContext* ctx);
 bool type_check_enum_decl(ASTNode* node, SemanticContext* ctx);
 bool type_check_extern_block(ASTNode* node, SemanticContext* ctx);
@@ -233,6 +234,10 @@ bool type_check_let_decl(ASTNode* node, SemanticContext* ctx);
 
 bool type_check_statement(ASTNode* node, SemanticContext* ctx);
 bool type_check_block(ASTNode* node, SemanticContext* ctx);
+bool type_check_use_decl(ASTNode* node, SemanticContext* ctx);
+bool type_check_let_destructure_stmt(ASTNode* node, SemanticContext* ctx);
+bool type_check_namespace_decl(ASTNode* node, SemanticContext* ctx);
+bool type_check_unsafe_block(ASTNode* node, SemanticContext* ctx);
 bool type_check_if_stmt(ASTNode* node, SemanticContext* ctx);
 bool type_check_for_loop(ASTNode* node, SemanticContext* ctx);
 bool type_check_while_loop(ASTNode* node, SemanticContext* ctx);
@@ -240,6 +245,7 @@ bool type_check_match_stmt(ASTNode* node, SemanticContext* ctx);
 bool type_check_return_stmt(ASTNode* node, SemanticContext* ctx);
 bool type_check_break_stmt(ASTNode* node, SemanticContext* ctx);
 bool type_check_continue_stmt(ASTNode* node, SemanticContext* ctx);
+bool type_check_defer_stmt(ASTNode* node, SemanticContext* ctx);
 bool type_check_ability_decl(ASTNode* node, SemanticContext* ctx);
 bool type_check_role_decl(ASTNode* node, SemanticContext* ctx);
 bool type_check_party_decl(ASTNode* node, SemanticContext* ctx);

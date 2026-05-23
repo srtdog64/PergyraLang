@@ -49,7 +49,7 @@ type_check_builtin_call(ASTNode *call, BuiltinKind kind, SemanticContext *ctx)
             PGY_CAUSE_RAW_ESCAPE_UNSTABLE,
             PGY_FIX_USE_PIN_OR_WAIT_FOR_RAW_ESCAPE_CONTRACT,
             call,
-            "SlotRawPointer is not beta-stable. Reason: unsafe { } is only a lexical escape marker today, not a system-tier raw pointer contract. Fix: use typed Pin/Lease views for hot-path slot access, or wait for the raw escape contract with ABI lowering and diagnostics.");
+            "SlotRawPointer is not beta-stable. Reason: unsafe { } is only a lexical escape marker today, not a scoped unsafe(raw) capability or system-tier raw pointer contract. Fix: use typed Pin/Lease views for hot-path slot access, or wait for the scoped raw escape contract with ABI lowering and diagnostics.");
         return TYPE_UNKNOWN;
     case BUILTIN_DEVICE_WRITE:
     case BUILTIN_DEVICE_READ:

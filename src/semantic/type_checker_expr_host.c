@@ -15,7 +15,7 @@ expr_host_resolve_class_field_type(ClassField *field, SemanticContext *ctx)
 {
     if (field == NULL)
         return NULL;
-    return domain_resolve_type_ref(field->type, ctx);
+    return semantic_host_resolve_type_ref(field->type, ctx);
 }
 
 static Type *
@@ -25,7 +25,7 @@ expr_host_resolve_func_return_type(ASTNode *method, SemanticContext *ctx)
         || ast_func_return_type(method) == NULL) {
         return TYPE_VOID;
     }
-    return domain_resolve_type_ref(ast_func_return_type(method), ctx);
+    return type_check_func_resolve_return_type(method, ctx);
 }
 
 static Type *
@@ -33,7 +33,7 @@ expr_host_resolve_func_param_type(FuncParam *param, SemanticContext *ctx)
 {
     if (param == NULL || param->type == NULL)
         return TYPE_UNKNOWN;
-    return domain_resolve_type_ref(param->type, ctx);
+    return type_check_func_resolve_param_type(param, ctx);
 }
 
 Type *
@@ -102,7 +102,7 @@ expr_current_host_field_type(SemanticContext *ctx, const char *field_name)
         const char *name = NULL;
         ASTNode *type_node = overlay_field_decl_at(decl, i, &name);
         if (name != NULL && strcmp(name, field_name) == 0)
-            return domain_resolve_type_ref(type_node, ctx);
+            return semantic_host_resolve_type_ref(type_node, ctx);
     }
 
     return NULL;

@@ -106,7 +106,7 @@ semantic_validate_spawn_token_boundary(ASTNode *expr, SemanticContext *ctx)
 
         param_is_token = semantic_type_ref_names_token(param->type);
         if (!param_is_token) {
-            param_type = domain_resolve_type_ref(param->type, ctx);
+            param_type = type_check_func_resolve_param_type(param, ctx);
             param_is_token = semantic_channel_type_is_token(param_type);
         }
         if (!param_is_token)
@@ -163,7 +163,7 @@ semantic_validate_spawn_ref_boundary(ASTNode *expr,
         if (arg == NULL || param == NULL || param->mode != PARAM_MODE_REF)
             continue;
 
-        param_type = domain_resolve_type_ref(param->type, ctx);
+        param_type = type_check_func_resolve_param_type(param, ctx);
         ownership_class = semantic_classify_ownership_type(param_type, ctx);
         if (ownership_class == OWNERSHIP_TYPE_COPY_ONLY)
             continue;

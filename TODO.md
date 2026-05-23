@@ -94,8 +94,129 @@ English anchor for tooling/doc gates:
   sinking. Slot allocas are emitted through the entry-allocation path until
   MIR/CFG facts provide a codegen-owned escape fact. `cfg_body_dataflow_smoke.sh`
   now rejects legacy AST parameter-summary consumers under `src/codegen` and
-  `src/compiler`, and allow-lists the remaining semantic consumers so the
-  compatibility seam cannot spread again.
+  `src/compiler`, and allow-lists only the semantic compatibility owner so the
+  direct legacy seam cannot spread again.
+- CFG legacy summary seam narrowed again: ownership parameter summary checking
+  now consumes `semantic_callable_param_escape_summary(...)` instead of calling
+  `slot_analyze_legacy_ast_param_summary_in_program(...)` directly. The direct
+  legacy AST summary call is isolated in `type_checker_call_contract_helpers.c`,
+  while `cfg_body_dataflow_smoke.sh` rejects new direct consumers outside that
+  owner. Ownership call and parameter-summary consumers also treat the returned
+  summary as an opaque call-contract fact through
+  `semantic_param_summary_has_*` predicates instead of depending on
+  `slot_summary.h` flag bits directly. Gates: `cfg-body-dataflow-test-smoke`,
+  `test-semantic`.
+- Semantic assignment-target path formatting is now scratch-only. The old heap
+  `semantic_assignment_target_path(...)` API and dual `ctx + scratch` owner mode
+  were removed, and channel transport diagnostics consume
+  `semantic_assignment_target_path_scratch(...)` instead of allocating/freeing a
+  temporary path. `cfg_body_dataflow_smoke.sh` rejects reintroducing the heap
+  path API so ownership diagnostics do not reopen this lifetime seam.
+- C backend projection source-path resolution now follows the same scratch
+  lifetime rule. `resolve_projection_source_path_rec(...)` returns
+  `TranspilerCtx` scratch-owned paths, the projection emitter and expression
+  dispatcher no longer free `source_path`, and `perf_contract_smoke.sh` rejects
+  the old `projection_heap_fmt` / `free(source_path)` shape.
+- Semantic projection source-field path resolution now follows the semantic
+  scratch lane as well. `resolve_projection_source_field_path(...)` returns
+  `SemanticContext` scratch-owned path text, so projection diagnostics and DAG
+  projection-path precollection no longer free `source_path` /
+  `resolved_source_path` locally.
+- C spawn/Future lowering no longer exposes a heap-returned spawn type-name
+  query to wrapper or let-registration owners. `infer_spawn_return_type_name_*`
+  now publishes scratch/copy APIs, wrapper names and spawn argument struct names
+  live in `TranspilerCtx` scratch, `Future<T>` let metadata is scratch-rendered,
+  and the C return type uses the existing stack buffer. The emitter still
+  returns its final expression as heap-owned, but the internal wrapper/future
+  temp cleanup seam is gone and `perf_contract_smoke.sh` rejects reintroducing
+  those frees or the old heap-return call shape. Channel send/receive lowering
+  also consumes the existing `transpiler_require_channel_inner_type(...)` owner
+  instead of reopening local `Channel<T>` payload parsing; the perf contract
+  rejects local channel inner-type parsing in the spawn/channel owner.
+- Async spawn-boundary validation now consumes the function-signature type
+  resolver (`type_check_func_resolve_param_type(...)`) instead of calling the
+  broad domain resolver directly for parameter annotations. This keeps spawn
+  token/ref boundary checks on the same DAG metadata-backed function signature
+  owner used by ordinary function declaration validation. The same owner is
+  now also consumed by hosted-method expression checks, action contract
+  parameter validation, and generic ref-boundary classification; the perf
+  contract rejects direct `domain_resolve_type_ref(param->type, ctx)` and
+  `domain_resolve_type_ref(ast_func_return_type(...))` in function signature
+  consumers. Gates: `perf-contract-test-smoke`, `test-semantic`.
+- Event signature validation now keeps diagnostics event-local while delegating
+  type-ref materialization to the function/signature owner
+  (`type_check_signature_resolve_type_ref(...)`). This keeps direct DAG
+  metadata lookup in the classified signature owner and removes another broad
+  domain resolver consumer from event declarations. Hosted class-field and
+  overlay-field lookup now also consumes `semantic_host_resolve_type_ref(...)`
+  instead of reopening the broad domain resolver, and role operator overload
+  param/return validation plus member-call method return lookup now consume the
+  same function signature owner as hosted methods. Generic effective argument
+  collection no longer tries the broad domain resolver before metadata lookup;
+  it now consumes the DAG metadata type-ref fact directly. Generic default
+  type consumers in call-site where validation and late helper validation also
+  read DAG metadata directly instead of reopening the broad domain resolver.
+  Class declaration field typing and constructor field argument validation now
+  also use the host metadata owner (`semantic_host_resolve_type_ref(...)`).
+  Role host-type validation now uses the same host owner instead of the broad
+  domain resolver. Role include generic validation now consumes
+  `collect_effective_generic_arg_types(...)`, and impl ability generic
+  arguments use the ability type-ref owner instead of the broad domain resolver.
+  World helper type refs, CFG `with` slot body-flow type refs, and type-alias
+  statement validation are now classified metadata-backed owner reads instead
+  of broad domain resolver calls; type aliases use
+  `type_checker_type_alias.c` so `type_checker.c` remains orchestration.
+  ClaimSlot destructuring now reuses the let-binding generic type-argument
+  owner (`ownership_let_resolve_first_call_type_arg(...)`) instead of
+  constructing synthetic AST nodes and reopening the broad domain resolver.
+  The shared let-binding ClaimSlot generic owner now resolves bare generic
+  argument names through metadata name/alias lookup directly, so both normal
+  let-bindings and destructuring avoid synthetic `AST_TYPE` construction.
+  Intent compact-step where inference now uses a single
+  `intent_step_set_where_type_name(...)` owner for action/using/transfer
+  provenance, so local inference sites no longer construct where-type AST nodes
+  or set provenance flags independently.
+  The public `domain_resolve_type_ref(...)` seam is now removed; domain helper
+  wrappers use a private metadata lookup and the public slot/shared/named
+  helpers are renamed to `domain_lookup_*_metadata(...)`; the perf contract
+  rejects reintroducing broad resolver APIs or resolver-style helper names.
+  Gate:
+  `perf-contract-test-smoke`, `type-resolution-resolver-inventory-test-smoke`,
+  `test-semantic`.
+- AIR evidence provider seam narrowed: HIR evidence collection, MIR pin cleanup
+  evidence collection, and boundary-evidence validation now use
+  `air_boundary_has_evidence_kind_provider(...)` instead of carrying local
+  EvidenceNode provider loops. EvidenceNode inventory remains the source of
+  truth; per-owner collectors only ask the shared accessor whether a boundary
+  already has a provider-backed evidence node. Gates: `test-air`,
+  `air-drift-test-smoke`, and `perf-contract-test-smoke`.
+- AIR global evidence provider checks now follow the same accessor rule:
+  MIR pin-cleanup validation uses `air_has_global_evidence_provider(...)`
+  instead of a validator-local EvidenceNode loop when checking the matching
+  MIR cleanup provider. Global EvidenceNode provider policy stays with the AIR
+  evidence fact owner rather than boundary validation.
+- AIR runtime singleton evidence now consumes
+  `air_global_evidence_node_provider_subject(...)` instead of carrying a local
+  runtime EvidenceNode scan. The runtime collector still owns schema/frontier
+  fact publication, but EvidenceNode identity lookup stays centralized.
+- AIR evidence matching inside the inventory validator is now centralized
+  through local `air_evidence_node_matches_*` predicates. Boundary-scoped,
+  provider-scoped, and global provider lookups no longer carry separate
+  ad-hoc `kind + boundary + provider/subject` comparisons inside the same
+  owner, keeping EvidenceNode identity rules in one place. Gate:
+  `test-air`, `air-drift-test-smoke`, `perf-contract-test-smoke`.
+- DAG metadata hit telemetry now has a public `SemanticResult` accessor and AIR
+  DAG evidence rejects the impossible shape where metadata hits are non-zero
+  while the metadata inventory is empty. This keeps reuse telemetry tied to the
+  metadata source-of-truth instead of becoming a raw field convention. DAG
+  evidence publication now goes through `air_publish_dag_evidence(...)`, so
+  metadata/generic/ability evidence cannot grow three separate append/counter
+  branches again. Gate: `test-air`, `perf-contract-test-smoke`.
+- The resolver-inventory smoke no longer carries the old materializing
+  type-ref helper allowlist. Since the beta cap is now `type-ref helper refs=0`,
+  any occurrence of `semantic_type_resolution_lookup_type_ref_or_materialize`
+  under `src/semantic` is a direct failure instead of a classified exception.
+  Gate: `type-resolution-resolver-inventory-test-smoke`.
 - MIR declaration inventory smoke now follows `mir_program_validate.c` for
   `mir_validate_decl_header_metadata(...)`; declaration-header validation no
   longer lives in `mir_public_surface.c` after the program-validator split.
@@ -600,7 +721,26 @@ English anchor for tooling/doc gates:
   / borrowed-boundary root rendering lives in
   `src/semantic/type_checker_assignment_path.c`. Break/continue validation now
   lives in `src/semantic/type_checker_loop_control.c`, keeping loop-control
-  diagnostics out of the statement dispatcher. Type-resolution DAG worklist
+  diagnostics out of the statement dispatcher. Namespace and unsafe-block body
+  traversal now live in `src/semantic/type_checker_namespace_decl.c` and
+  `src/semantic/type_checker_unsafe_block.c`, keeping `type_checker.c` on
+  dispatch rather than statement-body ownership. Defer statement validation now
+  goes through `type_check_defer_stmt(...)`, so defer body extraction also
+  stays out of the dispatcher. The public parallel-block statement entry point
+  now lives with the parallel flow owner instead of as a local dispatcher
+  wrapper. `use stdlib ...` validation also enters through
+  `type_check_use_decl(...)`, so `type_checker.c` no longer includes the
+  stdlib-use internal validator header; the CFG body-flow owner consumes the
+  same public seam instead of reopening the validator directly. The old
+  `type_checker_stdlib_use_internal.h` seam was removed and the raw validator
+  is now file-local to `type_checker_stdlib_use.c`. CFG statement-kind body
+  traversal for `unsafe`, `defer`, and raw `namespace` declarations now lives
+  in `src/semantic/type_checker_flow_statement_kinds.c`; the same owner also
+  owns `with`-slot flow registration/scope cleanup and the simple statement
+  flow-flag wrappers for `parallel`, `async`, `select`, `let`, `return`,
+  event, and `use` statements. This leaves `type_checker_flow.c` closer to
+  pure block sequencing and AST-kind dispatch.
+  Type-resolution DAG worklist
   execution now lives in `src/semantic/type_checker_resolution_worklist.c`,
   so `type_checker.c` stays a narrow statement/program dispatch owner instead
   of carrying those helper bodies. Gates: `test-semantic`,
@@ -3974,14 +4114,18 @@ English anchor for tooling/doc gates:
   ability declaration signatures, ability `fields` requirements, and ability
   where-bound validation now share `ability_resolve_type_ref(...)` instead of
   each owner calling the metadata materializer seam directly. The resolver
-  inventory smoke now caps materializing type-ref helper users at `32`, keeping
-  fallback seams, annotation-only reads, and nullable annotation reads at `0`.
-- 2026-05-11 DAG projection owner seam consolidation follow-up:
+  inventory smoke now keeps fallback seams, annotation-only reads, nullable
+  annotation reads, and materializing type-ref helper refs at `0`.
+- 2026-05-11 DAG projection/role/intent/host/event/world/expression owner seam
+  consolidation follow-up:
   projection builtin target-field validation, domain-query projection source
   lookup, and recursive projection path lookup now share
   `projection_resolve_type_ref(...)`. This keeps projection diagnostics owned by
-  projection validators while reducing direct materializing type-ref helper
-  users to `30`; fallback seams and annotation-only reads remain at `0`.
+  projection validators while the broader declaration/domain consumers moved
+  toward metadata-only owner seams. The intermediate cap staircase
+  (`30/27/24/21/18/15/12/9/6`) has converged to
+  `type-ref helper refs=0 cap=0`; historical per-owner cap notes are superseded
+  by the resolver-inventory smoke.
 - 2026-05-13 DAG unresolved-family naming follow-up:
   `SemanticContext` dead-end family counters now use
   `type_resolution_metadata_unresolved_*` names internally. The public stats
@@ -3997,47 +4141,6 @@ English anchor for tooling/doc gates:
   consumers read it. Gates: targeted `hir_validate.c` /
   `mir_cfg_contract_edges.c` object builds, `src/test_hir.c` /
   `src/test_mir.c` syntax probes, and `cfg-body-dataflow-test-smoke`.
-- 2026-05-11 DAG overlay declaration seam consolidation follow-up:
-  role host/generic-arg validation and party/roster shared-field validation now
-  reuse the declaration/domain type-ref seams instead of carrying local
-  materializer wrappers. The resolver inventory smoke now caps materializing
-  type-ref helper users at `27`.
-- 2026-05-11 DAG intent owner seam consolidation follow-up:
-  intent action contract binding lookup, participant transfer source lookup,
-  and transfer where/involves lookup now reuse the shared intent type-ref seam
-  instead of carrying local materializer wrappers. The resolver inventory smoke
-  now caps materializing type-ref helper users at `24`.
-- 2026-05-11 DAG host/constructor seam consolidation follow-up:
-  class field validation, constructor field validation, and current-host
-  field/method type lookup now reuse the declaration/domain type-ref seam
-  instead of local materializer wrappers. The resolver inventory smoke now caps
-  materializing type-ref helper users at `21`.
-- 2026-05-11 DAG event/action/module seam consolidation follow-up:
-  event signatures, action contract slot/param matching, and module ability
-  contract type arguments now reuse domain/ability owner seams instead of local
-  materializer wrappers. The resolver inventory smoke now caps materializing
-  type-ref helper users at `18`.
-- 2026-05-11 DAG world/flow/late-call seam consolidation follow-up:
-  world type refs, with-slot flow type refs, and late call default generic
-  argument refs now reuse the declaration/domain type-ref seam instead of local
-  materializer wrappers. The resolver inventory smoke now caps materializing
-  type-ref helper users at `15`.
-- 2026-05-11 DAG expression/generic-call seam consolidation follow-up:
-  method-call return type lookup, operator overload param/return type lookup,
-  and function generic where default-argument lookup now reuse the
-  declaration/domain type-ref seam. The resolver inventory smoke now caps
-  materializing type-ref helper users at `12`.
-- 2026-05-11 DAG statement/generic-support/ownership seam consolidation follow-up:
-  type-alias statement resolution, borrowed-boundary generic support, and
-  destructured slot-claim generic argument resolution now reuse the
-  declaration/domain type-ref seam. The resolver inventory smoke now caps
-  materializing type-ref helper users at `9`.
-- 2026-05-11 DAG async/effective-generic consumer seam closure:
-  async spawn-boundary parameter checks and effective generic argument
-  materialization now reuse the declaration/domain type-ref seam. Direct
-  materializing type-ref helper users are now capped at `6`: the internal
-  declaration, central metadata implementation, and the four formal owner seams
-  (`ability`, `domain`, `intent`, `projection`).
 - 2026-05-11 CFG/MIR pin cleanup root regression follow-up:
   added an executable MIR regression for the existing invariant that any
   reachable pin region must have a cleanup root, not just a matching
@@ -4407,7 +4510,7 @@ English anchor for tooling/doc gates:
   latest CFG/body-flow and type-system owner cleanup. Current DAG counters are
   `graph-backed skips=2064`, `generic_param_nodes=102`,
   `dag_generic_contract_evidence=165`, `dag_ability_consumer_evidence=72`,
-  `metadata_entries=3735`, `metadata_owned=261`, `metadata_hits=8769`,
+  `metadata_entries=3735`, `metadata_owned=261`, `metadata_hits=8771`,
   `metadata_dead_ends=0`, `materializer_unresolved=0`,
   `retired_resolver_calls=0`, `retired_resolver_body_fallbacks=0`,
   `stage_materialize_calls=0`, and `alias_diagnostic_resolver_calls=0`.
@@ -4557,113 +4660,34 @@ English anchor for tooling/doc gates:
   `air-json-schema-smoke`; `test-air` could not run in this local shell because
   Git Bash lacks `make`, native `mingw32-make` runs Unix shell recipes under
   `cmd`, and WSL has no installed distribution.
-- 2026-05-10 intent type-ref DAG seam follow-up:
-  intent participant/value/where type references now enter the central
-  `semantic_type_resolution_lookup_type_ref_or_materialize(...)` seam through
-  `intent_resolve_type_ref(...)` instead of stopping at metadata-only lookup.
-  This keeps compressed intent inference and ability/where validation on the
-  DAG materialization path without reviving recursive resolver compatibility.
-- 2026-05-10 intent participant transfer DAG seam follow-up:
-  intent transfer source-zone participant type resolution now uses
-  `semantic_type_resolution_lookup_type_ref_or_materialize(...)` instead of an
-  annotation-only lookup. The resolver-inventory smoke now searches for
-  the retired annotation-or-unknown API regardless of line wrapping, so
-  semantic consumers cannot hide annotation-only reads by splitting the call
-  over multiple lines. Gate used: targeted `gcc -fsyntax-only` and
-  `type-resolution-resolver-inventory-smoke`.
-- 2026-05-10 DAG boundary/type-contract seam follow-up:
-  type-alias targets, event signatures/handler lambda signatures, with-slot
-  flow slot types, spawn token-parameter boundary checks, and generic effective
-  argument collection now use the materializing type-ref seam instead of
-  annotation-only nullable reads. This moves another set of boundary/contract
-  decisions onto DAG materialization while keeping the only remaining
-  `annotation_or_unknown` semantic consumer limited to the program placeholder
-  path. The resolver-inventory smoke now also gates non-metadata
-  `semantic_type_resolution_lookup_annotation_nullable(...)` consumers at zero.
-  Gate used: targeted `gcc -fsyntax-only` and
-  `type-resolution-resolver-inventory-smoke`.
-- 2026-05-10 DAG annotation-only seam reduction follow-up:
-  generic call-site default type arguments, projection source field-path type
-  resolution, and let-destructure ownership type refs now use
-  `semantic_type_resolution_lookup_type_ref_or_materialize(...)` instead of
-  annotation-only lookup. The resolver-inventory smoke now caps annotation-only
-  reads at 7 and materializing type-ref helper users at 22, keeping
-  expression/helper placeholder paths separate from contract/boundary
-  semantics. Gates used: targeted `gcc -fsyntax-only` and
-  `type-resolution-resolver-inventory-smoke`.
-- 2026-05-10 DAG constructor/generic-boundary seam follow-up:
-  constructor field type validation and generic borrowed-boundary parameter
-  classification now use
-  `semantic_type_resolution_lookup_type_ref_or_materialize(...)` instead of
-  annotation-only reads. These paths affect constructor contract checking and
-  ownership boundary classification, so they belong on the DAG materialization
-  seam rather than the expression placeholder seam. The resolver-inventory
-  smoke now caps annotation-only reads at 5 and materializing type-ref helper
-  users at 24.
-- 2026-05-10 DAG host/call contract seam follow-up:
-  hosted member field/method parameter/return type checks and late function
-  call default-generic argument resolution now use the materializing type-ref
-  seam. These paths determine user-facing call contracts and parallel/secure
-  effect diagnostics, so they should not depend on annotation-only placeholders.
-  The resolver-inventory smoke now caps annotation-only reads at 3 and
-  materializing type-ref helper users at 26.
-- 2026-05-10 DAG expression contract seam follow-up:
-  nominal method return-type lookup and role operator overload param/return
-  lookup now also use the materializing type-ref seam. The only remaining
-  annotation-only read is the explicit top-level program placeholder path,
-  which consumes precollected DAG metadata before full declaration checking.
-  The resolver-inventory smoke now caps annotation-only reads at 1 and
-  materializing type-ref helper users at 28.
-  Gates used: targeted `gcc -fsyntax-only`; full DAG execution smoke still
-  requires `SEMANTIC_TEST_BIN` in this local shell.
+- 2026-05-10 DAG type-ref seam follow-ups:
+  the earlier intent, transfer, boundary/type-contract, annotation-only,
+  constructor/generic-boundary, host/call-contract, and expression-contract
+  materializing-seam slices are superseded by the 2026-05-11 closure above.
+  Current policy is metadata-only owner seams plus local diagnostics; the old
+  `semantic_type_resolution_lookup_type_ref_or_materialize(...)` helper is
+  absent under `src/semantic`, and annotation-only / nullable reads are gated
+  at zero.
 - 2026-05-10 domain slot type-ref DAG seam follow-up:
   domain slot/shared type references now enter the central
-  `semantic_type_resolution_lookup_type_ref_or_materialize(...)` seam through
-  `domain_resolve_type_ref(...)` instead of annotation-only lookup. This puts
-  zone authority subject-slot matching and relation/effect/zone/world domain
-  slot validation on the same DAG materialization path as intent type refs.
+  metadata type-ref seam through domain slot/shared/named owner APIs instead
+  of annotation-only lookup or the retired broad `domain_resolve_type_ref(...)`
+  API. This puts zone authority subject-slot matching and
+  relation/effect/zone/world domain slot validation on the same DAG metadata
+  path as intent type refs.
   Gates used: targeted `gcc -fsyntax-only`; full semantic DAG execution still
   requires `SEMANTIC_TEST_BIN` in this local shell.
 - 2026-05-10 zone authority slot-type DAG seam follow-up:
   zone authority validation no longer owns a local annotation-only subject-slot
-  type resolver. It now consumes `domain_resolve_slot_type(...)`, so authority
+  type resolver. It now consumes `domain_lookup_slot_type_metadata(...)`, so authority
   subject-slot matching shares the domain DAG materialization path.
 - 2026-05-10 ability contract DAG seam follow-up:
   ability declaration signatures, `fields` requirements, and ability
-  where-bound validation now consume
-  `semantic_type_resolution_lookup_type_ref_or_materialize(...)` instead of
-  annotation-only lookup. This keeps ability contract validation on the same
-  metadata-first materialization seam as intent/domain declarations without
-  reviving recursive resolver compatibility. The resolver inventory smoke now
-  classifies these three owners explicitly and caps total type-ref helper users
-  at 7. Gates used: targeted `gcc -fsyntax-only`,
-  `type-resolution-resolver-inventory-smoke`, `perf-contract-smoke`, and
-  `git diff --check` (CRLF warnings only).
-- 2026-05-10 nominal/overlay declaration DAG seam follow-up:
-  class field signatures, role host/include generic arguments, party shared
-  fields, and roster shared fields now consume the same central
-  metadata-first materializing type-ref seam. This moves declaration contract
-  validation away from annotation-only reads without changing the recursive
-  resolver retirement rule. The resolver inventory smoke now caps classified
-  type-ref helper users at 11. Gates used: targeted `gcc -fsyntax-only` and
-  `type-resolution-resolver-inventory-smoke`.
-- 2026-05-10 world/action/module contract DAG seam follow-up:
-  world slot helpers, action contract binding checks, intent action-contract
-  inheritance checks, and required-ability module contracts now consume the
-  central metadata-first materializing type-ref seam. This keeps user-facing
-  contract validation on DAG facts while leaving expression/call/builtin
-  helper annotation reads for a separate audit. The resolver inventory smoke
-  now caps classified type-ref helper users at 15. Gates used: targeted
-  `gcc -fsyntax-only` and `type-resolution-resolver-inventory-smoke`.
-- 2026-05-10 boundary/projection DAG seam follow-up:
-  intent transfer/handoff checks, async spawn ref-boundary validation, and
-  projection/domain-query builtin contract checks now consume the central
-  metadata-first materializing type-ref seam. Expression/call/operator helper
-  annotation reads remain separate because they consume already-attached
-  expression annotations and can change diagnostic order if migrated without a
-  dedicated expression-DAG audit. The resolver inventory smoke now caps
-  classified type-ref helper users at 19. Gates used: targeted
-  `gcc -fsyntax-only` and `type-resolution-resolver-inventory-smoke`.
+  where-bound validation now consume metadata-only owner facts instead of
+  annotation-only lookup. Nominal/overlay, world/action/module, and
+  boundary/projection consumers have likewise converged to metadata-only
+  owners. The old classified helper-user caps are superseded by the current
+  `type-ref helper refs=0` gate.
 - 2026-05-10 annotation-only DAG read guard:
   `type_resolution_resolver_inventory_smoke.sh` now also caps direct
   annotation-or-unknown users at zero regardless of line wrapping. New
@@ -5325,17 +5349,17 @@ Progress log, 2026-05-08:
 - Revalidated DAG source-of-truth gates after the AIR/CFG pass:
   retired resolver calls remain `0`, resolver body fallbacks remain `0`,
   metadata dead-ends remain `0`, and materializer unresolved remains `0`;
-  current metadata inventory is `metadata_entries=3718`, `metadata_owned=261`,
-  and `metadata_hits=8695`. Gates:
+  current metadata inventory is `metadata_entries=3735`, `metadata_owned=261`,
+  and `metadata_hits=8771`. Gates:
   `type-resolution-resolver-inventory-test-smoke` and
   `type-resolution-dag-test-smoke`.
 - Revalidated DAG gates after the CFG/MIR source-fact tightening:
   `type-resolution-dag-test-smoke` still reports
   `retired_resolver_calls=0`, `retired_resolver_body_fallbacks=0`,
   `metadata_dead_ends=0`, `materializer_unresolved=0`,
-  `metadata_entries=3718`, `metadata_owned=261`, and
-  `metadata_hits=8695`; resolver inventory remains `fallback seams=0` and
-  `type-ref helper refs=2`.
+  `metadata_entries=3735`, `metadata_owned=261`, and
+  `metadata_hits=8771`; resolver inventory remains `fallback seams=0` and
+  `type-ref helper refs=0`.
 - Split DAG generic-contract evidence from compat materialization counters:
   `SemanticResult.type_resolution_dag_generic_contract_evidence_count` now
   comes from a DAG-named context counter recorded while staging generic
@@ -5549,9 +5573,9 @@ Progress log, 2026-05-08:
 - Revalidated DAG source-of-truth gates:
   `type-resolution-dag-test-smoke` reports `retired_resolver_calls=0`,
   `retired_resolver_body_fallbacks=0`, `metadata_dead_ends=0`,
-  `materializer_unresolved=0`, `metadata_entries=3718`, `metadata_owned=261`,
-  and `metadata_hits=8695`; `type-resolution-resolver-inventory-test-smoke`
-  keeps fallback seams at `0` and type-ref helper refs at `2`.
+  `materializer_unresolved=0`, `metadata_entries=3735`, `metadata_owned=261`,
+  and `metadata_hits=8771`; `type-resolution-resolver-inventory-test-smoke`
+  keeps fallback seams at `0` and type-ref helper refs at `0`.
 - Tightened intent observability surface facts:
   MIR/AST surface usage now checks the exact stable observability builtin list
   instead of treating every `Intent*` call as observability. This preserves the
@@ -6499,7 +6523,7 @@ Progress log, 2026-05-04:
   `perf-contract-test-smoke`, and `cfg-body-dataflow-test-smoke`.
 - Rechecked DAG/source inventory after the CFG/MIR cleanup slice:
   `type-resolution-resolver-inventory-test-smoke` still reports
-  `fallback seams=0 cap=0` and `type-ref helper refs=2 cap=2`; source remains
+  `fallback seams=0 cap=0` and `type-ref helper refs=0 cap=0`; source remains
   `.inc=0` and the Makefile build inventory includes the new transpile owner.
   Gates: `type-resolution-resolver-inventory-test-smoke`,
   `test-inc-size-test-smoke`, and `build-source-inventory-test-smoke`.
@@ -6729,7 +6753,7 @@ Progress log, 2026-05-04:
   recursive resolver calls, resolver body fallbacks, metadata dead-ends,
   materializer unresolved, stage materializer calls, and alias diagnostic
   resolver calls all remain `0`; the active graph-backed counters are
-  `metadata_entries=3718`, `metadata_owned=261`, and `metadata_hits=8695`.
+  `metadata_entries=3735`, `metadata_owned=261`, and `metadata_hits=8771`.
   Gates: `type-resolution-dag-test-smoke` and
   `type-resolution-resolver-inventory-test-smoke`.
 - Rechecked MIR declaration inventory / parallel surface gates after the AIR and
@@ -6799,7 +6823,7 @@ Progress log, 2026-05-04:
 - Moved C backend `ToObject` / `ToTObject` projection-conversion lowering out of the `transpiler_helpers_core_b.h` include-order shim into `transpiler_expr_projection_builtin.c`; the shim now only carries the remaining generic-parameter include-order seam plus declarations/includes. Gates: `test-transpile` (`770/0`), `perf-contract-test-smoke`, `build-source-inventory-test-smoke`, `test-inc-size-test-smoke`, `source-utf8-test-smoke`, and `semantic-core-shape-test-smoke`.
 - Moved the shared C backend `func_has_generic_params` query out of `transpiler_helpers_core_b.h` into `transpiler_generic_param_query.c`; call-user, forward-declaration, spawn-channel, and expression type-inference owners now consume the same namespaced query instead of an include-order-local static helper. Gates: `test-transpile` (`770/0`), `perf-contract-test-smoke`, `build-source-inventory-test-smoke`, `test-inc-size-test-smoke`, `source-utf8-test-smoke`, and `semantic-core-shape-test-smoke`.
 - Moved shared C backend generic call binding inference and render-with-bindings out of `transpiler_func_forward_helpers.h`, `transpiler_expr_stdlib_collection_support.c`, and the former specialization helper seam into `transpiler_generic_binding_query.c`; function forward declarations, generic specialization, spawn-channel lowering, role ability emission, and expression type inference now share one generic binding owner. Gates: `test-transpile` (`770/0`), `perf-contract-test-smoke`, `build-source-inventory-test-smoke`, `test-inc-size-test-smoke`, `source-utf8-test-smoke`, and `semantic-core-shape-test-smoke`.
-- Moved the C backend channel inner-type query out of `transpiler_type_mapping_helpers.h` into `transpiler_channel_type_query.c`; the type-mapping helper header is now declaration/include-only for this seam, while the expression type-inference owner consumes the same `channel_inner_type_name_copy(...)` API. Gates: `test-transpile` (`770/0`), `perf-contract-test-smoke`, `build-source-inventory-test-smoke`, `test-inc-size-test-smoke`, `source-utf8-test-smoke`, and `semantic-core-shape-test-smoke`.
+- Moved the C backend channel inner-type query out of `transpiler_type_mapping_helpers.h` into `transpiler_channel_type_query.c`; the type-mapping helper header is now declaration/include-only for this seam, while expression type inference, select lowering, and spawn/channel lowering consume the same `channel_inner_type_name_copy(...)` / `transpiler_require_channel_inner_type(...)` owner APIs. Gates: `test-transpile` (`770/0`), `perf-contract-test-smoke`, `build-source-inventory-test-smoke`, `test-inc-size-test-smoke`, `source-utf8-test-smoke`, and `semantic-core-shape-test-smoke`.
 - Renamed the shared C backend expression type-inference support seam from collection-specific `transpiler_collection_infer_expression_type_name(...)` to `transpiler_expr_infer_type_name(...)`; channel, core-builtin, projection, and collection stdlib owners now consume a vocabulary-neutral expression query, and `perf-contract-test-smoke` rejects reopening the old collection-named API or a local channel-query copy inside collection support. Gates: `test-transpile` (`770/0`), `perf-contract-test-smoke`, `build-source-inventory-test-smoke`, `test-inc-size-test-smoke`, `source-utf8-test-smoke`, and `semantic-core-shape-test-smoke`.
 - Moved C backend zone/world subject receiver resolution out of the projection-sync seam into `transpiler_domain_receiver_query.c`; projection sync, world overlay invalidation, and spawn overlay action paths now consume one linked domain receiver query owner instead of reopening the receiver classification logic in an implementation header. Gates: `test-transpile` (`770/0`), `perf-contract-test-smoke`, `build-source-inventory-test-smoke`, `test-inc-size-test-smoke`, `source-utf8-test-smoke`, and `semantic-core-shape-test-smoke`.
 - Moved the C backend expression type-inference implementation out of `transpiler_expr_type_infer.h` into `transpiler_expr_type_infer.c`; the header now exposes only `transpiler_expr_infer_type_name(...)` plus the temporary compatibility alias for remaining implementation-header consumers. This closes another high-traffic include-order body while preserving the existing expression-query API for collection, projection, channel, and core builtin owners. Gates: `test-transpile` (`770/0`), `perf-contract-test-smoke`, `build-source-inventory-test-smoke`, `test-inc-size-test-smoke`, `source-utf8-test-smoke`, `semantic-core-shape-test-smoke`, and `memory-string-safety-test-smoke`.
@@ -6833,7 +6857,7 @@ Progress log, 2026-05-04:
 - Split MIR declaration-header validator cases out of `test_mir_lowering_part_b.cases.h` into `test_mir_lowering_part_c.cases.h`, bringing part B back under the 990 LOC test-case header gate after the MIR fact regressions were expanded. Gates: `test-inc-size-test-smoke` and `test-mir` (`44/0`).
 - Tightened whole-program usage discovery for intent observability and thread-pool runtime requirements: normal lowered MIR now consumes validated surface-usage facts, and the legacy fallback probes only explicit expression payloads (`expr0`/`expr1`) for hand-built MIR fixtures without HIR provenance. Source statement AST scanning is smoke-rejected for both usage paths, and the old `allow_legacy_ast_probe` naming is banned to keep the seam payload-only. Gates: `test-transpile` (`717/0`) and `perf-contract-test-smoke`.
 - Renamed the LLVM MIR branch condition gate from `llvm_mir_branch_has_condition_payload(...)` to `llvm_mir_branch_has_required_condition_fact(...)` because match/select compatibility branches still require source AST while ordinary expression/range/for-in branches require MIR expression facts. This keeps the remaining compatibility seam named honestly instead of pretending every branch condition is payload-backed. Gate: `perf-contract-test-smoke`.
-- Rechecked DAG source-of-truth closure after the intent who/approval split: `type-resolution-resolver-inventory-test-smoke` keeps direct resolver and metadata fallback seam inventory at cap 0, and `type-resolution-dag-test-smoke` reports `retired_resolver_calls=0`, `retired_resolver_body_fallbacks=0`, `metadata_dead_ends=0`, and `materializer_unresolved=0` with `graph-backed skips=2064`, `metadata_entries=3735`, `metadata_owned=261`, and `metadata_hits=8769`. Remaining DAG work is no longer numeric fallback cleanup; it is richer evidence coverage and consumer migration.
+- Rechecked DAG source-of-truth closure after the intent who/approval split: `type-resolution-resolver-inventory-test-smoke` keeps direct resolver and metadata fallback seam inventory at cap 0, and `type-resolution-dag-test-smoke` reports `retired_resolver_calls=0`, `retired_resolver_body_fallbacks=0`, `metadata_dead_ends=0`, and `materializer_unresolved=0` with `graph-backed skips=2064`, `metadata_entries=3735`, `metadata_owned=261`, and `metadata_hits=8771`. Remaining DAG work is no longer numeric fallback cleanup; it is richer evidence coverage and consumer migration.
 - Refreshed the MIR declaration-inventory smoke after the MIR test-case split: declaration-header validator assertions now live in `test_mir_lowering_part_c.cases.h`, and the smoke follows that owner instead of reporting a false regression against part B. Gates: `mir-declaration-inventory-test-smoke`, `test-inc-size-test-smoke`, and `build-source-inventory-test-smoke`.
 - Revalidated AIR after the CFG/MIR/DAG seam tightening. Strict evidence still
   carries HIR/RIR boundary evidence, MIR cleanup/pin cleanup/terminator
@@ -7030,7 +7054,7 @@ Progress log, 2026-05-04:
   Gates: `perf-contract-test-smoke` and `air-drift-test-smoke`.
 - Moved AIR global verification off raw summary-counter fields as well: `air_validate_summary_counters.c` now exposes `air_evidence_summary_count(...)` and `air_evidence_required_count(...)`, so `air_verify_global.c` consumes the summary-counter owner instead of reopening MIR/RIR/DAG counter fields directly. The AIR drift smoke rejects raw counter access in global verification. Gate: `air-drift-test-smoke`.
 - Routed C function-body MIR emission and residual-statement mirrored-resource checks through `transpiler_active_has_mir(...)`, further narrowing raw MIR context probes outside the active inventory/view owner. Gates: `test-transpile` and `mir-declaration-inventory-test-smoke`.
-- Rechecked DAG source-of-truth gates after the AIR accessor cleanup: `type-resolution-dag-test-smoke` reports `retired_resolver_calls=0`, `stage_materialize_calls=0`, `metadata_dead_ends=0`, `metadata_entries=3718`, and `metadata_hits=8695`; `type-resolution-resolver-inventory-test-smoke` keeps direct resolver/fallback/annotation helper seams at zero. This keeps the remaining DAG work focused on richer evidence coverage rather than live recursive fallback removal.
+- Rechecked DAG source-of-truth gates after the AIR accessor cleanup: `type-resolution-dag-test-smoke` reports `retired_resolver_calls=0`, `stage_materialize_calls=0`, `metadata_dead_ends=0`, `metadata_entries=3735`, and `metadata_hits=8771`; `type-resolution-resolver-inventory-test-smoke` keeps direct resolver/fallback/annotation helper seams at zero. This keeps the remaining DAG work focused on richer evidence coverage rather than live recursive fallback removal.
 - Revalidated LLVM smoke after AIR/DAG source-of-truth cleanup: `llvm-test-smoke` passes the current C/LLVM frozen subset coverage, including true PHI lowering, relation/effect/projection sync, world/zone dirty propagation, select/fairness, defer, generic spawn, maps, events, party/role binding, slots, channels, and extern functions.
 - Closed an AIR boundary evidence drift bug: duplicate boundary-scoped evidence appends are idempotent, while global evidence counters still accumulate. This preserves the invariant that each boundary evidence node carries exactly one boundary fact. Gate: `test-air` (`76/0`).
 - Closed a LLVM Slot/Pin ABI parity bug: LLVM lowering now calls out-param `pgy_pin_*_init_*` / `pgy_secure_pin_*_init_*` wrappers instead of relying on struct-by-value retuns. Gates: `abi-ownership-shape-test-smoke`, `test-abi`, `llvm-test-smoke`, `llvm-test-backend-compare` (`69/69`, ABI same-process precheck `196/196`).
@@ -9471,11 +9495,11 @@ dispatch / semantic lookup / runtime data structure 3축 결과 통합. *정확�
 ## UTF-8 Progress Note - 2026-04-28 - DAG Fallback Recheck
 
 - Rechecked the type-resolution DAG gates. Current local stats are
-  `graph-backed skips=2058 generic_param_nodes=102
+  `graph-backed skips=2064 generic_param_nodes=102
   dag_generic_contract_evidence=165 dag_ability_consumer_evidence=72
   retired_resolver_calls=0 retired_resolver_unique_nodes=0
   retired_resolver_kind_sum=0 retired_resolver_body_fallbacks=0
-  metadata_entries=3718 metadata_owned=261 metadata_hits=8695
+  metadata_entries=3735 metadata_owned=261 metadata_hits=8771
   metadata_dead_ends=0 materializer_fallbacks=0`.
 - Metadata unresolved audit families are all zero:
   `metadata_unresolved_named=0 metadata_unresolved_generic_named=0
@@ -9544,13 +9568,13 @@ dispatch / semantic lookup / runtime data structure 3축 결과 통합. *정확�
   `make type-resolution-resolver-inventory-test-smoke`,
   `make semantic-fixture-isolation-test-smoke`, and concurrent
   `make test-semantic` + `make type-resolution-dag-test-smoke`.
-- Follow-up DAG consumer seam closure: the materializing type-ref helper is now
-  present only at its declaration and implementation (`helper refs=2 cap=2`).
-  No semantic consumer calls `semantic_type_resolution_lookup_type_ref_or_materialize(...)`
+- Follow-up DAG consumer seam closure: the old materializing type-ref helper is
+  no longer present under `src/semantic` (`helper refs=0 cap=0`). No semantic
+  consumer calls `semantic_type_resolution_lookup_type_ref_or_materialize(...)`
   directly. Current DAG local stats after the longer DAG smoke rerun:
-  `graph-backed skips=2058`, `generic_param_nodes=102`,
+  `graph-backed skips=2064`, `generic_param_nodes=102`,
   `dag_generic_contract_evidence=165`, `dag_ability_consumer_evidence=72`,
-  `metadata_entries=3718`, `metadata_owned=261`, `metadata_hits=8695`,
+  `metadata_entries=3735`, `metadata_owned=261`, `metadata_hits=8771`,
   `retired_resolver_calls=0`, `retired_resolver_unique_nodes=0`,
   `retired_resolver_kind_sum=0`, `retired_resolver_body_fallbacks=0`,
   `metadata_dead_ends=0`, `materializer_unresolved=0`, all unresolved
@@ -10025,6 +10049,29 @@ dispatch / semantic lookup / runtime data structure 3축 결과 통합. *정확�
   `PGY_SEM_RAW_ESCAPE_UNSTABLE`; `unsafe { ... }` remains a lexical marker
   only. This blocks marketing-vs-implementation drift until raw pointer /
   inline-asm / MMIO escape has ABI lowering and diagnostics.
+- Unsafe is now recorded as a scoped capability direction, not a mode bit.
+  Plain `unsafe { ... }` must not become a universal escape hatch; raw, FFI,
+  layout, runtime, and concurrency escapes need named lexical scopes such as
+  `unsafe(raw) { ... }`, semantic gates, AIR evidence, ABI lowering, and
+  backend parity. Source of truth: `docs/131_unsafe_capability_scope.md`.
+  Implementation order:
+  1. Keep `unsafe(raw) { ... }` parser-reserved with an explicit diagnostic
+     until the semantic capability model is ready. Current gate:
+     `test-parser` includes the reserved scoped-unsafe diagnostic.
+  2. Add AST storage for an unsafe capability list only when there is at least
+     one accepted capability gate. Do not add a generic string payload that
+     would allow ad-hoc capability names.
+  3. Add semantic scope tracking so raw/FFI/layout/runtime/concurrency
+     operations ask for a specific active capability (`unsafe(raw)`,
+     `unsafe(ffi)`, etc.) instead of asking for generic unsafe.
+  4. Publish unsafe capability evidence into AIR. The verifier must be able to
+     answer which operation was accepted, which scope authorized it, and why it
+     does not cross `await`, `spawn`, `parallel`, channel, or world handoff.
+  5. Add C/LLVM parity only after AIR evidence exists. Raw escape must lower
+     from scoped evidence, not from AST shape alone.
+  6. Keep `SlotRawPointer(...)` rejected with `PGY_SEM_RAW_ESCAPE_UNSTABLE`
+     until all five layers above are green. Any attempt to make plain
+     `unsafe { ... }` grant raw pointer access is a beta-blocking regression.
 
 ## UTF-8 Progress Note - 2026-04-27 - Slot Security Owner Split
 
@@ -10185,8 +10232,9 @@ dispatch / semantic lookup / runtime data structure 3축 결과 통합. *정확�
   metadata_unresolved_generic_named=7 metadata_named_builtin_shell=2
   metadata_named_generic_class=0 metadata_named_alias=1281
   metadata_named_non_class_symbol=0 metadata_named_missing_symbol=6`.
-  The DAG smoke gate now requires `metadata_entries>=3300`,
-  `metadata_hits>=4900`, and `materializer_fallbacks<=1296`.
+  Superseded gate note: the current DAG smoke gate now requires
+  `metadata_entries>=3600`, `metadata_hits>=8500`, and
+  `materializer_fallbacks==0`.
 - Verified locally: `make type-resolution-dag-test-smoke` and
   `make type-resolution-resolver-inventory-test-smoke`.
 - 2026-04-27 tightening: alias chains now short-circuit in the metadata
@@ -12202,7 +12250,7 @@ Source of truth:
     - 진행: `resolve_generic_type_arg(...)`도 metadata-first 조회 후 fallback으로 내려간다. constructed builtin/generic consumer path의 recursive resolver 의존 면적을 줄였다
     - 진행: owner-local resolver seams는 `semantic_type_resolution_lookup_or_materialize(...)` 공용 materializer로 수렴했다. resolver 구현체 밖에서 직접 `resolve_type_node(...)`를 호출하면 `type-resolution-resolver-inventory-test-smoke`가 실패한다. Central metadata owner도 `type_checker_resolution_metadata_diagnostics.c`를 분리해 stable-shell arity, invalid constructed HashMap key, unknown bare named diagnostics를 별도 owner가 맡고, alias-chain/cycle materialization은 `type_checker_resolution_metadata_alias.c`가 맡는다. central metadata materializer recursive escape hatch는 제거됐고 central metadata owner는 268 LOC, alias owner는 315 LOC로 분리됐다. 낡은 `resolve_type_alias_decl(...)`와 `SemanticContext.alias_resolution_*` stack도 제거되어 direct named alias resolution은 metadata alias owner만 통과한다. `resolve_named_type(...)` itself is now metadata-first for stable builtin/scope/generic/nominal/alias names, and the resolver-inventory smoke rejects recursive alias resolver debt if it reappears
     - 진행: party/role ability lookup은 `type_checker_domain_role_lookup.c`로 분리했다. 이후 projection contract diagnostics와 overlay scope setup도 각각 `type_checker_domain_projection.c` / `type_checker_overlay_common.c`로 분리되어 `type_checker_decls_domain_helpers.c`는 972 LOC까지 낮아졌다. 남은 helper owner는 zone/effect/relation slot helper 책임에 집중한다
-    - 진행: `type-resolution-dag-test-smoke`가 graph-backed skips뿐 아니라 retired compatibility resolver call cap, metadata entries/owned/hits, metadata materializer fallback count, zero stage metadata materialization, alias-stage split accounting을 검사한다. 최신 local stats: `graph-backed skips=2058 generic_param_nodes=102 dag_generic_contract_evidence=165 dag_ability_consumer_evidence=72 retired_resolver_calls=0 retired_resolver_unique_nodes=0 retired_resolver_kind_sum=0 retired_resolver_body_fallbacks=0 metadata_entries=3718 metadata_owned=261 metadata_hits=8695 metadata_dead_ends=0 materializer_fallbacks=0 stage_materialize_alias=0 stage_materialize_non_alias=0 alias_materialized=6 alias_diagnostic_unresolved=78 alias_diagnostic_resolver_calls=0 alias_diagnostic_resolved=0 alias_diagnostic_cycle_unresolved=78`
+    - 진행: `type-resolution-dag-test-smoke`가 graph-backed skips뿐 아니라 retired compatibility resolver call cap, metadata entries/owned/hits, metadata materializer fallback count, zero stage metadata materialization, alias-stage split accounting을 검사한다. 최신 local stats: `graph-backed skips=2064 generic_param_nodes=102 dag_generic_contract_evidence=165 dag_ability_consumer_evidence=72 retired_resolver_calls=0 retired_resolver_unique_nodes=0 retired_resolver_kind_sum=0 retired_resolver_body_fallbacks=0 metadata_entries=3735 metadata_owned=261 metadata_hits=8771 metadata_dead_ends=0 materializer_fallbacks=0 stage_materialize_alias=0 stage_materialize_non_alias=0 alias_materialized=6 alias_diagnostic_unresolved=78 alias_diagnostic_resolver_calls=0 alias_diagnostic_resolved=0 alias_diagnostic_cycle_unresolved=78`
     - 진행: DAG smoke는 이제 graph-backed skip/metadata entry/metadata hit/owned metadata가 단순히 0보다 큰지만 보지 않고 beta floor(`skips>=1900`, `entries>=3400`, `hits>=7500`, `owned>=240`)와 retired compatibility resolver cap(`retired_resolver_calls<=0`)를 검사한다. DAG source-of-truth 사용량이 크게 후퇴하면 CI에서 즉시 잡는다
     - 진행: 중앙 metadata materializer의 마지막 recursive fallback은 0으로 닫혔다. `type-resolution-dag-test-smoke`는 `materializer_fallbacks==0`과 모든 metadata unresolved audit family 0을 고정한다
     - 진행: stage metadata materialization surface는 alias/non-alias 모두 0으로 고정됐다. `type_checker_resolution_stage_alias.c`가 unique alias diagnostic unresolved accounting과 optional trace를 소유한다. 성공 alias materialization과 diagnostic unresolved inventory를 별도 계측하고, 남은 78건은 recursive resolver 재진입이 아니라 alias-cycle diagnostic coverage에서 나오는 unresolved inventory다. `alias_diagnostic_resolver_calls==0` gate가 이 경계를 차단한다
