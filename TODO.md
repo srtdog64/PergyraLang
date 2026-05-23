@@ -154,6 +154,13 @@ English anchor for tooling/doc gates:
   already used the helper-derived PATH prefix; this keeps the direct and
   fallback launch paths under one helper contract. Gate:
   `type-resolution-dag-test-smoke`.
+- `pgy_windows_powershell_path_prefix(...)` intentionally does not convert the
+  generic Git-Bash `/mingw64/bin` mount into PowerShell PATH. In Git Bash that
+  path resolves to `C:\Program Files\Git\mingw64\bin`, which can shadow the
+  real MinGW runtime and re-open `127` executable-launch failures. Use
+  `MSYSTEM_PREFIX` or explicit `/c/msys64/...` / `/c/ProgramData/...`
+  candidates for PowerShell launch-path priority. Gates:
+  `type-resolution-dag-test-smoke`, `runtime-panic-abi-test-smoke`.
 - LLVM internal API header cleanup: `llvm_ast_type_uses_pointer_self(...)` now
   lives in `llvm_domain_lookup.c`, leaving `llvm_internal_api.h` declaration-
   only. `test_inc_size_smoke.sh` gates the header as body-free so the LLVM

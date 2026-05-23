@@ -2485,3 +2485,9 @@ Observed results:
   setup before its direct semantic `.exe` launch path; its PowerShell fallback
   already used the helper-derived PATH prefix. Gate:
   `type-resolution-dag-test-smoke`.
+  The PowerShell prefix intentionally does not convert the generic Git-Bash
+  `/mingw64/bin` mount: under Git for Windows that path becomes
+  `C:\Program Files\Git\mingw64\bin` and can shadow the actual MinGW runtime.
+  PowerShell launch priority must come from `MSYSTEM_PREFIX` or explicit
+  `/c/msys64/...` / `/c/ProgramData/...` candidates. Gates:
+  `type-resolution-dag-test-smoke`, `runtime-panic-abi-test-smoke`.

@@ -50,7 +50,37 @@ pgy_prepend_windows_runtime_paths() {
 }
 
 pgy_windows_powershell_path_prefix() {
-    printf '%s' 'C:\Program Files\LLVM\bin;C:\ProgramData\mingw64\mingw64\bin;C:\msys64\mingw64\bin;'
+    local prefix=""
+    local candidate
+    local win_candidate
+
+    if [[ -n "${MSYSTEM_PREFIX:-}" && -d "${MSYSTEM_PREFIX}/bin" ]]; then
+        win_candidate="$(pgy_path_for_windows_tool "${MSYSTEM_PREFIX}/bin")"
+        prefix="${prefix}${win_candidate};"
+    fi
+
+    for candidate in \
+        "/c/LLVM/bin" \
+        "/c/Program Files/LLVM/bin" \
+        "/c/msys64/mingw64/bin" \
+        "/c/ProgramData/mingw64/mingw64/bin"; do
+        [[ -d "$candidate" ]] || continue
+        win_candidate="$(pgy_path_for_windows_tool "$candidate")"
+        prefix="${prefix}${win_candidate};"
+    done
+
+    if [[ -n "${LLVM_INSTALL:-}" ]]; then
+        if [[ -d "$LLVM_INSTALL" ]]; then
+            win_candidate="$(pgy_path_for_windows_tool "$LLVM_INSTALL")"
+            prefix="${prefix}${win_candidate};"
+        fi
+        if [[ -d "$LLVM_INSTALL/bin" ]]; then
+            win_candidate="$(pgy_path_for_windows_tool "$LLVM_INSTALL/bin")"
+            prefix="${prefix}${win_candidate};"
+        fi
+    fi
+
+    printf '%s' "${prefix}C:\\Program Files\\LLVM\\bin;C:\\ProgramData\\mingw64\\mingw64\\bin;C:\\msys64\\mingw64\\bin;"
 }
 
 pgy_path_for_windows_tool() {
