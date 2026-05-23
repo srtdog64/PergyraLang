@@ -131,7 +131,11 @@ English anchor for tooling/doc gates:
   same-process PowerShell fallback now use the same generic Windows-tool path
   helper instead of reopening local `cygpath -w` calls, and
   `build_source_inventory_smoke.sh` rejects new script-local `cygpath -w/-m`
-  or `wslpath -w/-m` conversions outside `pgy_binary_path_helpers.sh`. Gate:
+  or `wslpath -w/-m` conversions outside `pgy_binary_path_helpers.sh`.
+  `runtime_panic_abi_smoke.sh` also prepends the shared Windows runtime PATH
+  before executing compiled `.exe` fixtures and gives its PowerShell compiler
+  fallback the same PATH prefix, so local Windows/Git-Bash runs exercise the
+  inline/exported panic classes instead of skipping the executable probe. Gate:
   `runtime-panic-abi-test-smoke`, `build-source-inventory-test-smoke`,
   `test-abi`,
   `type-resolution-dag-test-smoke`,

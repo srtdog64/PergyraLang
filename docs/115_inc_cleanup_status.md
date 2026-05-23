@@ -2466,7 +2466,11 @@ Observed results:
   ABI smoke and backend-compare's same-process PowerShell fallback now use the
   same generic Windows-tool path helper, and the build-source inventory smoke
   rejects new script-local `cygpath -w/-m` or `wslpath -w/-m` conversions
-  outside the helper. Gates: `runtime-panic-abi-test-smoke`,
+  outside the helper. Runtime panic ABI smoke also prepends the shared Windows
+  runtime PATH before executing compiled `.exe` fixtures and gives its
+  PowerShell compiler fallback the same PATH prefix, so local Windows/Git-Bash
+  runs now exercise inline/exported panic classes instead of skipping the
+  executable probe. Gates: `runtime-panic-abi-test-smoke`,
   `build-source-inventory-test-smoke`, `test-abi`,
   `type-resolution-dag-test-smoke`, `type-resolution-resolver-inventory-test-smoke`.
   The helper intentionally prioritizes launch-path order over PATH

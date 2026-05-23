@@ -3,6 +3,8 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+pgy_prepend_windows_runtime_paths
+PGY_WINDOWS_PS_PATH_PREFIX="$(pgy_windows_powershell_path_prefix)"
 CC_BIN="${CC:-cc}"
 WORK_DIR="$(mktemp -d "${TMPDIR:-/tmp}/pgy-runtime-panic-abi.XXXXXX")"
 trap 'rm -rf "$WORK_DIR"' EXIT
@@ -40,8 +42,11 @@ compile_case() {
     local cc_source="$WORK_DIR/$name.c"
     local cc_bin="$bin"
     local cc_include="src"
+    local cc_source_win=""
+    local cc_bin_win=""
+    local cc_include_win=""
     local is_windows_shell=0
-    local cc_exe="$CC_BIN"
+    local cc_exe_win="$CC_BIN"
 
     if [[ -f "$WORK_DIR/compile_skipped" ]]; then
         printf '%s\n' "$WORK_DIR/__compile_skipped__"
@@ -52,18 +57,18 @@ compile_case() {
     case "$(uname -s 2>/dev/null || echo unknown)" in
         MINGW*|MSYS*|CYGWIN*)
             is_windows_shell=1
-            cc_source="$(pgy_path_for_windows_tool "$cc_source")"
-            cc_bin="$(pgy_path_for_windows_tool "$cc_bin")"
-            cc_include="$(pgy_path_for_windows_tool "$ROOT_DIR/src")"
+            cc_source_win="$(pgy_path_for_windows_tool "$cc_source")"
+            cc_bin_win="$(pgy_path_for_windows_tool "$cc_bin")"
+            cc_include_win="$(pgy_path_for_windows_tool "$ROOT_DIR/src")"
             if command -v "$CC_BIN" >/dev/null 2>&1; then
-                cc_exe="$(pgy_path_for_windows_tool "$(command -v "$CC_BIN")")"
+                cc_exe_win="$(pgy_path_for_windows_tool "$(command -v "$CC_BIN")")"
             fi
             ;;
     esac
     if ! "$CC_BIN" -std=c11 -O0 -g -I"$cc_include" "$cc_source" -o "$cc_bin" -pthread -lm; then
         if [[ "$is_windows_shell" == "1" ]] && command -v powershell.exe >/dev/null 2>&1; then
             if ! powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \
-                "\$ErrorActionPreference='Stop'; & '$cc_exe' -std=c11 -O0 -g '-I$cc_include' '$cc_source' -o '$cc_bin' -pthread -lm; exit \$LASTEXITCODE"; then
+                "\$ErrorActionPreference='Stop'; \$env:PATH='${PGY_WINDOWS_PS_PATH_PREFIX}' + \$env:PATH; & '$cc_exe_win' -std=c11 -O0 -g '-I$cc_include_win' '$cc_source_win' -o '$cc_bin_win' -pthread -lm; exit \$LASTEXITCODE"; then
                 compile_failure "$name"
             fi
         else
