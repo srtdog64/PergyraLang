@@ -2481,3 +2481,7 @@ Observed results:
   concurrent fixture-isolation contract instead of failing with environment-only
   `127` process exits. Gates: `semantic-fixture-isolation-test-smoke`,
   `build-source-inventory-test-smoke`.
+  Type-resolution DAG smoke now also calls the shared Windows runtime PATH
+  setup before its direct semantic `.exe` launch path; its PowerShell fallback
+  already used the helper-derived PATH prefix. Gate:
+  `type-resolution-dag-test-smoke`.

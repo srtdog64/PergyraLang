@@ -149,6 +149,11 @@ English anchor for tooling/doc gates:
   of failing with environment-only `127` process exits. Gates:
   `semantic-fixture-isolation-test-smoke`,
   `build-source-inventory-test-smoke`.
+- Type-resolution DAG smoke now also calls the shared Windows runtime PATH
+  setup before its direct semantic `.exe` launch path. The PowerShell fallback
+  already used the helper-derived PATH prefix; this keeps the direct and
+  fallback launch paths under one helper contract. Gate:
+  `type-resolution-dag-test-smoke`.
 - LLVM internal API header cleanup: `llvm_ast_type_uses_pointer_self(...)` now
   lives in `llvm_domain_lookup.c`, leaving `llvm_internal_api.h` declaration-
   only. `test_inc_size_smoke.sh` gates the header as body-free so the LLVM

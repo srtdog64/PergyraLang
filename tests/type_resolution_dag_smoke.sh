@@ -5,6 +5,7 @@ bin="${SEMANTIC_TEST_BIN:-}"
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$ROOT/tests/pgy_binary_path_helpers.sh"
+pgy_prepend_windows_runtime_paths
 PGY_WINDOWS_PS_PATH_PREFIX="$(pgy_windows_powershell_path_prefix)"
 if [ -z "$bin" ]; then
   if [ -x "$ROOT/bin/test_semantic" ]; then
