@@ -3,6 +3,8 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+pgy_prepend_windows_runtime_paths
+PGY_WINDOWS_PS_PATH_PREFIX="$(pgy_windows_powershell_path_prefix)"
 DEFAULT_PGY="$ROOT_DIR/bin/pgy"
 
 fail() {
@@ -96,7 +98,7 @@ require_generated_frontier_limit() {
         win_ps1="$(pgy_path_for_compiler "$pgy_bin" "$ps1")"
 cat >"$ps1" <<EOF
 \$ErrorActionPreference = 'Continue'
-\$env:PATH = 'C:\Program Files\LLVM\bin;C:\ProgramData\mingw64\mingw64\bin;C:\msys64\mingw64\bin;' + \$env:PATH
+\$env:PATH = '$PGY_WINDOWS_PS_PATH_PREFIX' + \$env:PATH
 & '$win_pgy' '$win_source' --emit-c -o '$win_out' 2>&1 | ForEach-Object { \$_.ToString() } | Set-Content -LiteralPath '$win_log' -Encoding utf8
 exit \$LASTEXITCODE
 EOF
@@ -139,6 +141,8 @@ for rel in \
     "src/codegen/transpiler_domain_nominal_emit.h" \
     "src/codegen/transpiler_domain_provenance_emit.h" \
     "src/codegen/transpiler_zone_decl_emit.c" \
+    "src/codegen/transpiler_zone_frontier_emit.c" \
+    "src/codegen/transpiler_zone_frontier_emit.h" \
     "src/codegen/transpiler_world_select_event_emit.c" \
     "src/codegen/transpiler_domain_role_ability_emit.c" \
     "src/codegen/transpiler_domain_role_ability_emit.h" \
@@ -170,6 +174,7 @@ cat \
     "$ROOT_DIR/src/codegen/transpiler_domain_provenance_emit.h" \
     "$ROOT_DIR/src/codegen/transpiler_domain_nominal_emit.c" \
     "$ROOT_DIR/src/codegen/transpiler_zone_decl_emit.c" \
+    "$ROOT_DIR/src/codegen/transpiler_zone_frontier_emit.c" \
     > "$c_zone_contract"
 
 cat \
@@ -191,6 +196,7 @@ cat \
     "$ROOT_DIR/src/codegen/transpiler_domain_provenance_emit.h" \
     "$ROOT_DIR/src/codegen/transpiler_domain_nominal_emit.c" \
     "$ROOT_DIR/src/codegen/transpiler_zone_decl_emit.c" \
+    "$ROOT_DIR/src/codegen/transpiler_zone_frontier_emit.c" \
     "$ROOT_DIR/src/codegen/transpiler_world_select_event_emit.c" \
     > "$c_frontier_text"
 

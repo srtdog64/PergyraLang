@@ -4,6 +4,8 @@ set -euo pipefail
 bin="${SEMANTIC_TEST_BIN:-}"
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$ROOT/tests/pgy_binary_path_helpers.sh"
+PGY_WINDOWS_PS_PATH_PREFIX="$(pgy_windows_powershell_path_prefix)"
 if [ -z "$bin" ]; then
   if [ -x "$ROOT/bin/test_semantic" ]; then
     bin="$ROOT/bin/test_semantic"
@@ -54,31 +56,6 @@ cleanup() {
 }
 trap cleanup EXIT
 
-windows_path_for() {
-  local path="$1"
-  local drive
-  local rest
-
-  if command -v cygpath >/dev/null 2>&1; then
-    cygpath -m "$path"
-    return 0
-  fi
-  if command -v wslpath >/dev/null 2>&1; then
-    wslpath -w "$path"
-    return 0
-  fi
-  case "$path" in
-    /mnt/[A-Za-z]/*)
-      drive="${path#/mnt/}"
-      drive="${drive%%/*}"
-      rest="${path#/mnt/$drive/}"
-      printf '%s:/%s\n' "$drive" "$rest"
-      return 0
-      ;;
-  esac
-  printf '%s\n' "$path"
-}
-
 # The semantic suite writes temporary import fixtures with fixed filenames.
 # Run the DAG stats pass from an isolated cwd so it can coexist with a direct
 # make test-semantic run without corrupting those fixtures.
@@ -88,14 +65,14 @@ run_semantic_stats() {
       if command -v powershell.exe >/dev/null 2>&1; then
         local ps1="$work/run-semantic-stats.ps1"
         local win_bin win_work win_log win_ps1
-        win_bin="$(windows_path_for "$bin")"
-        win_work="$(windows_path_for "$work")"
-        win_log="$(windows_path_for "$log")"
-        win_ps1="$(windows_path_for "$ps1")"
+        win_bin="$(pgy_path_for_compiler "$bin" "$bin")"
+        win_work="$(pgy_path_for_compiler "$bin" "$work")"
+        win_log="$(pgy_path_for_compiler "$bin" "$log")"
+        win_ps1="$(pgy_path_for_compiler "$bin" "$ps1")"
 cat >"$ps1" <<EOF
 \$ErrorActionPreference = 'Continue'
 Set-Location -LiteralPath '$win_work'
-\$env:PATH = 'C:\Program Files\LLVM\bin;C:\ProgramData\mingw64\mingw64\bin;C:\msys64\mingw64\bin;' + \$env:PATH
+\$env:PATH = '$PGY_WINDOWS_PS_PATH_PREFIX' + \$env:PATH
 \$env:PGY_TYPE_RES_STATS = '1'
 & '$win_bin' 2>&1 | ForEach-Object { \$_.ToString() } | Set-Content -LiteralPath '$win_log' -Encoding utf8
 exit \$LASTEXITCODE

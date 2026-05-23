@@ -2,7 +2,7 @@
  * Copyright (c) 2025 Pergyra Language Project
  * All rights reserved.
  *
- * Type Checker ??stdlib builtin dispatch body.
+ * Type Checker stdlib builtin dispatch body.
  * Owns the stdlib builtin body that used to be hidden in the builtins
  * include chain.
  * Cross-TU helpers live in type_checker_builtins_internal.h.

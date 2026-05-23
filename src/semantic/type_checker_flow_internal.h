@@ -33,6 +33,10 @@ bool flow_has_fallthrough(FlowFlags flags);
 void flow_reject_dynamic_defer_control(SemanticContext *ctx,
                                        ASTNode *site,
                                        const char *control_kind);
+bool resource_snapshots_equal(const ResourceConsumeSnapshot *a,
+                              const ResourceConsumeSnapshot *b);
+ResourceConsumeSnapshot copy_resource_snapshot(
+    const ResourceConsumeSnapshot *src);
 void merge_resource_snapshots_or(ResourceConsumeSnapshot *dst,
                                  bool *dst_initialized,
                                  const ResourceConsumeSnapshot *src);

@@ -2,7 +2,6 @@
 #include "llvm_internal.h"
 #include "codegen_slot_type_policy.h"
 #include "parser/ast_api.h"
-#include "../semantic/slot_summary.h"
 
 const char *
 llvm_stmt_render_type_annotation_copy(LLVMGenCtx *ctx, ASTNode *type_ann)
@@ -73,27 +72,9 @@ llvm_stmt_declared_return_type_name(LLVMGenCtx *ctx, const char *name)
     return ast_type_name(return_type);
 }
 
-static bool
-llvm_stmt_slot_can_sink_locally(LLVMGenCtx *ctx, const char *name)
-{
-    if (ctx == NULL || name == NULL || ctx->current_func_decl == NULL)
-        return false;
-    ASTNode *body = ast_func_body(ctx->current_func_decl);
-    if (ctx->current_func_decl->type != AST_FUNC_DECL || body == NULL)
-        return false;
-    return (slot_analyze_legacy_ast_param_summary_in_program(
-                body, name, NULL)
-            & (SLOT_PARAM_SUMMARY_RETURN_ESCAPE
-               | SLOT_PARAM_SUMMARY_CALL_ESCAPE
-               | SLOT_PARAM_SUMMARY_CHANNEL_ESCAPE))
-        == 0;
-}
-
 LLVMValueRef
 llvm_stmt_create_slot_alloca(LLVMGenCtx *ctx, LLVMTypeRef type, const char *name)
 {
-    if (llvm_stmt_slot_can_sink_locally(ctx, name))
-        return LLVMBuildAlloca(ctx->builder, type, name);
     return llvm_create_entry_alloca(ctx, type, name);
 }
 

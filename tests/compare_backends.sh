@@ -69,6 +69,8 @@ PY
 }
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+PGY_WINDOWS_PS_PATH_PREFIX="$(pgy_windows_powershell_path_prefix)"
 case "$(uname -s 2>/dev/null || echo unknown)" in
     MINGW*|MSYS*|CYGWIN*)
         TMP_BASE="${TMPDIR:-${TEMP:-/tmp}}"
@@ -119,24 +121,6 @@ add_path_if_dir() {
     esac
 }
 
-prepend_path_if_dir() {
-    local dir="$1"
-    [[ -d "$dir" ]] || return 0
-    PATH="$dir:$PATH"
-}
-
-add_windows_path_candidate() {
-    local dir="$1"
-    local posix_dir=""
-
-    [[ -n "$dir" ]] || return 0
-    add_path_if_dir "$dir"
-    if command -v cygpath >/dev/null 2>&1; then
-        posix_dir="$(cygpath -u "$dir" 2>/dev/null || true)"
-        add_path_if_dir "$posix_dir"
-    fi
-}
-
 add_tool_dir_to_path() {
     local tool="$1"
     local tool_dir=""
@@ -150,23 +134,7 @@ add_tool_dir_to_path() {
     fi
 }
 
-setup_windows_llvm_runtime_path() {
-    case "$(uname -s 2>/dev/null || echo unknown)" in
-        MINGW*|MSYS*|CYGWIN*)
-            add_windows_path_candidate "${MSYSTEM_PREFIX:-}/bin"
-            add_windows_path_candidate "${LLVM_INSTALL:-}"
-            add_windows_path_candidate "${LLVM_INSTALL:-}/bin"
-            prepend_path_if_dir "/c/ProgramData/mingw64/mingw64/bin"
-            prepend_path_if_dir "/c/msys64/mingw64/bin"
-            prepend_path_if_dir "/c/Program Files/LLVM/bin"
-            prepend_path_if_dir "/c/LLVM/bin"
-            add_path_if_dir "/clang64/bin"
-            add_path_if_dir "/ucrt64/bin"
-            ;;
-    esac
-}
-
-setup_windows_llvm_runtime_path
+pgy_prepend_windows_runtime_paths
 
 normalize_executable_path() {
     local path="$1"
@@ -221,12 +189,10 @@ run_windows_abi_pipeline_precheck_fallback() {
         *) return 127 ;;
     esac
     command -v powershell.exe >/dev/null 2>&1 || return 127
-    if command -v cygpath >/dev/null 2>&1; then
-        abi_native="$(cygpath -w "$ABI_PIPELINE_BIN" 2>/dev/null || printf '%s\n' "$ABI_PIPELINE_BIN")"
-    fi
+    abi_native="$(pgy_path_for_windows_tool "$ABI_PIPELINE_BIN")"
 
     powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \
-        "\$env:PATH='C:\\Program Files\\LLVM\\bin;C:\\ProgramData\\mingw64\\mingw64\\bin;' + \$env:PATH; \$env:PGY_ABI_PIPELINE_SAME_PROCESS='1'; \$env:PGY_ABI_PIPELINE_BACKEND='llvm'; & '${abi_native}'; exit \$LASTEXITCODE"
+        "\$env:PATH='${PGY_WINDOWS_PS_PATH_PREFIX}' + \$env:PATH; \$env:PGY_ABI_PIPELINE_SAME_PROCESS='1'; \$env:PGY_ABI_PIPELINE_BACKEND='llvm'; & '${abi_native}'; exit \$LASTEXITCODE"
 }
 
 if [[ ! -x "$PGY_BIN" ]]; then

@@ -327,7 +327,7 @@ slot_analyze_if_stmt(ASTNode *ifstmt, SlotAnalyzer *sa)
     if (ast_if_else_branch(ifstmt) != NULL) {
         /*
          * Restore snapshot states so else-branch sees the original
-         * state ??but we can't easily restore without a deep copy.
+         * state, but we cannot restore it cheaply without a deep copy.
          * For now we detect divergence by comparing released sets.
          */
         if (!slot_analyze_block(ast_if_else_branch(ifstmt), sa)) {
@@ -479,18 +479,10 @@ slot_analyze_escape_flags_in_program(ASTNode *node, const char *slot_name,
     return slot_escape_mask_in_program(node, slot_name, program_root, 0);
 }
 
-static unsigned
-slot_analyze_ast_param_summary_in_program(ASTNode *node, const char *slot_name,
-                                          ASTNode *program_root)
-{
-    return slot_param_summary_in_program(node, slot_name, program_root, 0);
-}
-
 unsigned
 slot_analyze_legacy_ast_param_summary_in_program(ASTNode *node,
                                                  const char *slot_name,
                                                  ASTNode *program_root)
 {
-    return slot_analyze_ast_param_summary_in_program(node, slot_name,
-                                                     program_root);
+    return slot_param_summary_in_program(node, slot_name, program_root, 0);
 }

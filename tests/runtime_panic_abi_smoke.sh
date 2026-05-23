@@ -2,6 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 CC_BIN="${CC:-cc}"
 WORK_DIR="$(mktemp -d "${TMPDIR:-/tmp}/pgy-runtime-panic-abi.XXXXXX")"
 trap 'rm -rf "$WORK_DIR"' EXIT
@@ -51,19 +52,17 @@ compile_case() {
     case "$(uname -s 2>/dev/null || echo unknown)" in
         MINGW*|MSYS*|CYGWIN*)
             is_windows_shell=1
-            if command -v cygpath >/dev/null 2>&1; then
-                cc_source="$(cygpath -w "$cc_source")"
-                cc_bin="$(cygpath -w "$cc_bin")"
-                cc_include="$(cygpath -w "$ROOT_DIR/src")"
-                if command -v "$CC_BIN" >/dev/null 2>&1; then
-                    cc_exe="$(cygpath -w "$(command -v "$CC_BIN")")"
-                fi
+            cc_source="$(pgy_path_for_windows_tool "$cc_source")"
+            cc_bin="$(pgy_path_for_windows_tool "$cc_bin")"
+            cc_include="$(pgy_path_for_windows_tool "$ROOT_DIR/src")"
+            if command -v "$CC_BIN" >/dev/null 2>&1; then
+                cc_exe="$(pgy_path_for_windows_tool "$(command -v "$CC_BIN")")"
             fi
             ;;
     esac
     if ! "$CC_BIN" -std=c11 -O0 -g -I"$cc_include" "$cc_source" -o "$cc_bin" -pthread -lm; then
         if [[ "$is_windows_shell" == "1" ]] && command -v powershell.exe >/dev/null 2>&1; then
-            if ! powershell.exe -NoProfile -Command \
+            if ! powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \
                 "\$ErrorActionPreference='Stop'; & '$cc_exe' -std=c11 -O0 -g '-I$cc_include' '$cc_source' -o '$cc_bin' -pthread -lm; exit \$LASTEXITCODE"; then
                 compile_failure "$name"
             fi

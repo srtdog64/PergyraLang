@@ -2,6 +2,8 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+pgy_prepend_windows_runtime_paths
 PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
 if [[ "$PGY" != *.exe && -x "${PGY}.exe" ]]; then
     PGY="${PGY}.exe"
@@ -12,18 +14,6 @@ if [[ ! -x "$PGY" ]]; then
     exit 1
 fi
 
-if [[ "$PGY" == *.exe ]]; then
-    for dir in \
-        "/c/Program Files/LLVM/bin" \
-        "/c/ProgramData/mingw64/mingw64/bin" \
-        "/c/msys64/mingw64/bin"; do
-        if [[ -d "$dir" ]]; then
-            PATH="$dir:$PATH"
-        fi
-    done
-    export PATH
-fi
-
 TMPDIR="$(mktemp -d)"
 trap 'rm -rf "$TMPDIR"' EXIT
 
@@ -31,11 +21,13 @@ run_case() {
     local name="$1"
     local file="$2"
     shift 2
+    local file_arg
     local output
 
+    file_arg="$(pgy_path_for_compiler "$PGY" "$file")"
     output="$(
         cd "$(dirname "$file")"
-        "$PGY" "$file" --run --backend=llvm 2>&1
+        "$PGY" "$file_arg" --run --backend=llvm 2>&1
     )"
     for expected in "$@"; do
         if ! grep -Fq -- "$expected" <<<"$output"; then
@@ -54,11 +46,15 @@ run_ir_contains_case() {
     local file="$2"
     local needle="$3"
     local ll="$TMPDIR/${name}.ll"
+    local file_arg
+    local ll_arg
     local output
 
+    file_arg="$(pgy_path_for_compiler "$PGY" "$file")"
+    ll_arg="$(pgy_path_for_compiler "$PGY" "$ll")"
     output="$(
         cd "$(dirname "$file")"
-        "$PGY" "$file" --emit-llvm -o "$ll" 2>&1
+        "$PGY" "$file_arg" --emit-llvm -o "$ll_arg" 2>&1
     )"
     if [[ ! -f "$ll" ]] || ! grep -Fq -- "$needle" "$ll"; then
         echo "[llvm-smoke] $name failed" >&2

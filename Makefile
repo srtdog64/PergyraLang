@@ -472,6 +472,7 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_flow_effects.c \
                    $(SEMANTIC_DIR)/type_checker_flow_resources.c \
                    $(SEMANTIC_DIR)/type_checker_flow_loop_control.c \
+                   $(SEMANTIC_DIR)/type_checker_flow_loop_snapshot.c \
                    $(SEMANTIC_DIR)/type_checker_flow_loops.c \
                    $(SEMANTIC_DIR)/type_checker_flow_branch.c \
                    $(SEMANTIC_DIR)/type_checker_flow_parallel.c \
@@ -480,6 +481,8 @@ SEMANTIC_SOURCES = $(SEMANTIC_DIR)/type_system.c \
                    $(SEMANTIC_DIR)/type_checker_flow.c \
                    $(SEMANTIC_DIR)/slot_analyzer.c \
                    $(SEMANTIC_DIR)/slot_analyzer_builtin.c \
+                   $(SEMANTIC_DIR)/slot_analyzer_lookup.c \
+                   $(SEMANTIC_DIR)/slot_analyzer_access.c \
                    $(SEMANTIC_DIR)/slot_analyzer_escape.c \
                    $(SEMANTIC_DIR)/slot_analyzer_summary.c \
                    $(SEMANTIC_DIR)/semantic.c
@@ -557,6 +560,7 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_allocator_builtin_emit.c \
                    $(CODEGEN_DIR)/transpiler_future_type_query.c \
                    $(CODEGEN_DIR)/transpiler_control_flow_emit.c \
                    $(CODEGEN_DIR)/transpiler_statement_dispatch.c \
+                   $(CODEGEN_DIR)/transpiler_match_bindings.c \
                    $(CODEGEN_DIR)/transpiler_match_emit.c \
                    $(CODEGEN_DIR)/transpiler_specialization_registry.c \
                    $(CODEGEN_DIR)/transpiler_specialization_scan.c \
@@ -611,6 +615,7 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_allocator_builtin_emit.c \
                    $(CODEGEN_DIR)/transpiler_mir_local_type_lookup.c \
                    $(CODEGEN_DIR)/transpiler_mir_local_type_ast_lookup.c \
                    $(CODEGEN_DIR)/transpiler_parallel_capture.c \
+                   $(CODEGEN_DIR)/transpiler_mir_inventory_intent_alias_collect.c \
                    $(CODEGEN_DIR)/transpiler_mir_inventory_intent_collect.c \
                    $(CODEGEN_DIR)/transpiler_mir_intent_query.c \
                    $(CODEGEN_DIR)/transpiler_mir_cfg_policy.c \
@@ -659,6 +664,7 @@ CODEGEN_SOURCES  = $(CODEGEN_DIR)/transpiler_allocator_builtin_emit.c \
                    $(CODEGEN_DIR)/transpiler_type_render.c \
                    $(CODEGEN_DIR)/transpiler_type_require.c \
                    $(CODEGEN_DIR)/transpiler_zone_decl_emit.c \
+                   $(CODEGEN_DIR)/transpiler_zone_frontier_emit.c \
                    $(CODEGEN_DIR)/transpiler_zone_methods_emit.c \
                    $(CODEGEN_DIR)/transpiler_zone_specialization_emit.c \
                    $(CODEGEN_DIR)/transpiler_zone_struct_emit.c \

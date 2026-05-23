@@ -3,6 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+pgy_prepend_windows_runtime_paths
 PGY_BIN_WAS_DEFAULT=0
 if [[ -z "${PGY_BIN:-}" ]]; then
     PGY_BIN="$ROOT_DIR/bin/pgy"

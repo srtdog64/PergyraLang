@@ -2,7 +2,7 @@
  * Copyright (c) 2025 Pergyra Language Project
  * All rights reserved.
  *
- * LLVM native backend ??Phase 1: expressions, functions, control flow
+ * LLVM native backend: Phase 1 expressions, functions, and control flow.
  *
  * This file is only compiled when PGY_LLVM_ENABLED is defined.
  */

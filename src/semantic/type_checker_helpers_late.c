@@ -2,7 +2,7 @@
  * Copyright (c) 2025 Pergyra Language Project
  * All rights reserved.
  *
- * Type Checker ??late / call-path helpers.
+ * Type Checker late / call-path helpers.
  * Owns the large call-typing and borrowed-boundary argument validator logic
  * as a focused translation unit. See docs/101_semantic_split_template.md.
  */

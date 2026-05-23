@@ -2,19 +2,19 @@
  * Copyright (c) 2025 Pergyra Language Project
  * All rights reserved.
  *
- * C backend ??converts lowered Pergyra HIR to C source code.
+ * C backend: converts lowered Pergyra HIR to C source code.
  *
  * Strategy:
- *   Pergyra Slot<T>          ??PgySlot_<T> struct  (pgy_runtime.h)
- *   ClaimSlot<T>()           ??pgy_claim_<t>()
- *   Write(slot, val)         ??pgy_write_<t>(&slot, val)
- *   Read(slot)               ??pgy_read_<t>(&slot)
- *   Release(slot)            ??pgy_release_<t>(&slot)
- *   with slot<T> as s { }   ??{ PgySlot_T s = ...; ... pgy_release(&s); }
- *   Parallel { A() B() }    ??_Pragma("omp parallel sections") { ... }
- *   func F(x: Int) -> Int   ??int F(int x)
- *   class Foo { }           ??typedef struct Foo { ... } Foo;
- *   let x: Int = 42         ??int x = 42;
+ *   Pergyra Slot<T>         -> PgySlot_<T> struct  (pgy_runtime.h)
+ *   ClaimSlot<T>()          -> pgy_claim_<t>()
+ *   Write(slot, val)        -> pgy_write_<t>(&slot, val)
+ *   Read(slot)              -> pgy_read_<t>(&slot)
+ *   Release(slot)           -> pgy_release_<t>(&slot)
+ *   with slot<T> as s { }   -> { PgySlot_T s = ...; ... pgy_release(&s); }
+ *   Parallel { A() B() }    -> _Pragma("omp parallel sections") { ... }
+ *   func F(x: Int) -> Int   -> int F(int x)
+ *   class Foo { }           -> typedef struct Foo { ... } Foo;
+ *   let x: Int = 42         -> int x = 42;
  */
 
 #ifndef PERGYRA_TRANSPILER_H
@@ -28,7 +28,7 @@
 #include "../common/arena.h"
 
 /* -----------------------------------------------------------------
- * Output buffer ??grows dynamically
+ * Output buffer: grows dynamically.
  * ----------------------------------------------------------------- */
 
 typedef struct
@@ -45,7 +45,7 @@ void     codebuf_write_raw(CodeBuf *buf, const char *s, size_t n);
 bool     codebuf_dump_file(const CodeBuf *buf, const char *path);
 
 /* -----------------------------------------------------------------
- * Slot variable tracking ??maps variable name ??inner type name
+ * Slot variable tracking: maps variable name to inner type name.
  * ----------------------------------------------------------------- */
 
 #define MAX_SLOT_VARS 256
@@ -75,7 +75,7 @@ typedef struct
     bool is_view;
     bool is_move_token;
     bool source_secure;
-    bool is_subject_ref;  /* subject parameter ??pointer, use -> for member access */
+    bool is_subject_ref;  /* subject parameter pointer; use -> for member access */
     bool is_projection_borrow; /* object projection borrowed from a local source */
 } TypedVarEntry;
 
@@ -137,7 +137,7 @@ typedef struct
     /* Unique counter for anonymous temp variables */
     int      tmp_counter;
 
-    /* Slot variable ??inner type mapping */
+    /* Slot variable to inner type mapping. */
     SlotVarEntry slot_vars[MAX_SLOT_VARS];
     int          slot_var_count;
     int          last_slot_var_index;
@@ -252,7 +252,7 @@ typedef struct
     const char *expected_type;
 
     char *backend_error;
-    /* Stable diagnostic code attached to backend_error. non-owning ??must
+    /* Stable diagnostic code attached to backend_error. non-owning; must
      * be a string literal (e.g. "PGY_MIR_UNRESOLVED_LOCAL"). NULL when
      * the failing site has not been assigned a code. Propagated to
      * CompilerResult.error_code at transpiler.c:552. */
@@ -337,7 +337,7 @@ void emit_with_stmt(ASTNode *node, TranspilerCtx *ctx);
 void emit_parallel_block(ASTNode *node, TranspilerCtx *ctx);
 void emit_async_block(ASTNode *node, TranspilerCtx *ctx);
 
-/* Expressions ??return a C expression string (caller frees) */
+/* Expressions return a C expression string (caller frees). */
 char *emit_expression(ASTNode *node, TranspilerCtx *ctx);
 char *emit_call(ASTNode *node, TranspilerCtx *ctx);
 char *emit_binary(ASTNode *node, TranspilerCtx *ctx);
@@ -347,14 +347,14 @@ char *emit_unary(ASTNode *node, TranspilerCtx *ctx);
  * Type mapping helpers
  * ----------------------------------------------------------------- */
 
-/* "Int" ??"int", "String" ??"char*", "Slot<Int>" ??"PgySlot_Int" */
+/* "Int" -> "int", "String" -> "char*", "Slot<Int>" -> "PgySlot_Int" */
 bool pergyra_type_to_c_copy(const char *pergyra_type_name,
                             char *out, size_t out_size);
 
-/* "Int" ??"int", used for slot operation suffixes */
+/* "Int" -> "int", used for slot operation suffixes. */
 const char *pergyra_primitive_to_c(const char *name);
 
-/* "Slot<Int>" ??"Int",  "SecureSlot<String>" ??"String" */
+/* "Slot<Int>" -> "Int", "SecureSlot<String>" -> "String" */
 bool slot_inner_type_name_copy(const char *slot_type_name,
                                char *out,
                                size_t out_size);

@@ -1371,7 +1371,7 @@ if grep -Fq "header->ast_type != AST_ROLE_DECL" \
     "$ROOT_DIR/src/compiler/mir_decl_header_validate.c"; then
     fail "MIR declaration header validation must not keep role method-count exceptions"
 fi
-require_term "src/compiler/mir_public_surface.c" \
+require_term "src/compiler/mir_program_validate.c" \
     "mir_validate_decl_header_metadata(mir, error_message)"
 require_term "src/tests/mir/test_mir_lowering_part_c.cases.h" \
     "MIR validator rejects hosted method signature metadata drift"

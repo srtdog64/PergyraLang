@@ -3,6 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+pgy_prepend_windows_runtime_paths
 PGY="${PGY_BIN:-$ROOT_DIR/bin/pgy}"
 PGY_EXPLICIT=0
 if [[ -n "${PGY_BIN:-}" ]]; then
@@ -16,51 +17,6 @@ if [[ ! -x "$PGY" ]]; then
     echo "[air-json-schema] SKIP executable probe; missing compiler binary: $PGY"
     exit 0
 fi
-
-add_path_if_dir() {
-    local dir="$1"
-    [[ -d "$dir" ]] || return 0
-    case ":${PATH}:" in
-        *":$dir:"*) ;;
-        *) PATH="$dir:$PATH" ;;
-    esac
-}
-
-prepend_path_if_dir() {
-    local dir="$1"
-    [[ -d "$dir" ]] || return 0
-    PATH="$dir:$PATH"
-}
-
-add_windows_path_candidate() {
-    local dir="$1"
-    local posix_dir=""
-
-    [[ -n "$dir" ]] || return 0
-    add_path_if_dir "$dir"
-    if command -v cygpath >/dev/null 2>&1; then
-        posix_dir="$(cygpath -u "$dir" 2>/dev/null || true)"
-        add_path_if_dir "$posix_dir"
-    fi
-}
-
-setup_windows_compiler_runtime_path() {
-    case "$(uname -s 2>/dev/null || echo unknown)" in
-        MINGW*|MSYS*|CYGWIN*)
-            add_windows_path_candidate "${MSYSTEM_PREFIX:-}/bin"
-            add_windows_path_candidate "${LLVM_INSTALL:-}"
-            add_windows_path_candidate "${LLVM_INSTALL:-}/bin"
-            prepend_path_if_dir "/c/ProgramData/mingw64/mingw64/bin"
-            prepend_path_if_dir "/c/msys64/mingw64/bin"
-            prepend_path_if_dir "/c/Program Files/LLVM/bin"
-            prepend_path_if_dir "/c/LLVM/bin"
-            add_path_if_dir "/clang64/bin"
-            add_path_if_dir "/ucrt64/bin"
-            ;;
-    esac
-}
-
-setup_windows_compiler_runtime_path
 
 TMP_BASE="${TMPDIR:-${TEMP:-/tmp}}"
 if pgy_binary_expects_windows_paths "$PGY"; then

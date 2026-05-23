@@ -2,7 +2,7 @@
  * Copyright (c) 2025 Pergyra Language Project
  * All rights reserved.
  *
- * LLVM backend internal header ??shared types, context, and helpers.
+ * LLVM backend internal header: shared types, context, and helpers.
  * Included by llvm_backend.c, llvm_expr.c, llvm_stmt.c, llvm_decl.c, llvm_domain.c
  */
 
@@ -32,7 +32,7 @@
 #include "llvm_debug_flags.h"
 
 /* =================================================================
- * Pergyra type classification ??eliminates repeated strcmp dispatch
+ * Pergyra type classification: eliminates repeated strcmp dispatch.
  *
  * Call pgy_classify_type() once on a type name string, then use
  * switch() everywhere else for exhaustive, typo-proof dispatch.
@@ -51,7 +51,7 @@ typedef enum
     PGY_TK_REMOTE_FUTURE,
     PGY_TK_DEVICE_SLOT,
 
-    /* Generic container types ??inner type parsed separately */
+    /* Generic container types: inner type parsed separately. */
     PGY_TK_SLOT,
     PGY_TK_SECURE_SLOT,
     PGY_TK_RESULT,
@@ -296,7 +296,7 @@ typedef struct
     char *name;   /* heap-allocated, freed in ctx_destroy */
 } LLVMMonoInstance;
 
-/* Type substitution entry (T ??concrete LLVM type) */
+/* Type substitution entry (T -> concrete LLVM type). */
 typedef struct
 {
     const char  *param_name;  /* "T" */
@@ -304,7 +304,7 @@ typedef struct
     const char  *type_name;   /* "Int" */
 } LLVMTypeSubst;
 
-/* Result<T, E> specialization cache ??parity with C backend's
+/* Result<T, E> specialization cache: parity with C backend's
  * ensure_result_specialization (transpiler_helpers_core_b.h).
  * LLVM has no preprocessor, so each unique (T, E) gets a named struct
  * {i32 tag, ok_ty value, err_ty err} created once and reused. */
@@ -348,7 +348,7 @@ typedef struct LLVMGenCtx
     LLVMBuilderRef  builder;
     LLVMContextRef  context;
 
-    /* Scope stack ??fixed depth (nesting rarely exceeds 64) */
+    /* Scope stack: fixed depth (nesting rarely exceeds 64). */
     LLVMScopeFrame  scopes[MAX_SCOPE_DEPTH];
     int             scope_depth;
 
@@ -498,7 +498,7 @@ typedef struct LLVMGenCtx
     int                   enum_variant_count;
     int                   enum_variant_capacity;
 
-    /* Loop tracking ??fixed depth (bounded by scope depth) */
+    /* Loop tracking: fixed depth (bounded by scope depth). */
     LLVMBasicBlockRef loop_continue_blocks[MAX_SCOPE_DEPTH];
     LLVMBasicBlockRef loop_break_blocks[MAX_SCOPE_DEPTH];
     int              loop_defer_base_depth[MAX_SCOPE_DEPTH];
@@ -512,7 +512,7 @@ typedef struct LLVMGenCtx
     int             lambda_counter;
     int             tmp_counter;
 
-    /* Generic monomorphization ??dynamic */
+    /* Generic monomorphization: dynamic. */
     LLVMGenericTemplate  *generic_templates;
     int                   generic_template_count;
     int                   generic_template_capacity;
@@ -521,7 +521,7 @@ typedef struct LLVMGenCtx
     int                   mono_count;
     int                   mono_capacity;
 
-    /* Active type substitution map ??small fixed size */
+    /* Active type substitution map: small fixed size. */
     LLVMTypeSubst   type_subst[MAX_TYPE_SUBST];
     int             type_subst_count;
 
@@ -540,12 +540,12 @@ typedef struct LLVMGenCtx
     /* Slot sugar: suppress auto-Read when emitting slot handle arguments */
     bool            suppress_slot_auto_read;
 
-    /* Error state ??structured with optional source location */
+    /* Error state: structured with optional source location. */
     bool            has_error;
     char            error_msg[512];
     uint32_t        error_line;    /* 0 = no location info */
     uint32_t        error_column;
-    /* Stable diagnostic code attached to error_msg. non-owning ??must be
+    /* Stable diagnostic code attached to error_msg. non-owning; must be
      * a string literal (e.g. "PGY_LLVM_SPEC_LIMIT"). NULL when the failing
      * site has not been assigned a code. Propagated to CompilerResult.error_code
      * when the LLVM pipeline rolls up its result. */
@@ -558,7 +558,7 @@ typedef struct LLVMGenCtx
     const char     *error_fix_source;
 
     /* Pass-local scratch arena: reused across LLVM lowering passes.
-     * Lifetime binds to the enclosing LLVMGenCtx ??initialised in
+     * Lifetime binds to the enclosing LLVMGenCtx; initialised in
      * llvm_ctx_create(), destroyed in llvm_ctx_destroy().  Used for
      * transient type-ref / name-buffer assembly that never escapes into
      * the LLVM module, class registry, or MIR. */

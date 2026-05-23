@@ -18,7 +18,7 @@
  * struct layouts.
  * ================================================================= */
 
-/* Static ABI type table ??populated at MIR lower time */
+/* Static ABI type table populated at MIR lower time. */
 static MIRTypeLayout g_abi_type_table[64];
 static size_t g_abi_type_count = 0;
 
@@ -142,7 +142,7 @@ abi_type_table_init(void)
 
     MIRTypeLayout *t = NULL;
 
-    /* Slot<T> ??Debug mode */
+    /* Slot<T>: debug mode. */
     ADD_TYPE(t, "Slot<Int>",    "pgy_abi_slot_int_dbg",     8,  4, "pgy_claim_Int",     "int32_t");
     ADD_FIELD_STRUCT(t, "value", pgy_abi_slot_int_dbg, value);
     ADD_FIELD_STRUCT(t, "occupied", pgy_abi_slot_int_dbg, occupied);
@@ -162,7 +162,7 @@ abi_type_table_init(void)
     ADD_FIELD_STRUCT(t, "value", pgy_abi_slot_string_dbg, value);
     ADD_FIELD_STRUCT(t, "occupied", pgy_abi_slot_string_dbg, occupied);
 
-    /* Slot<T> ??Release mode (sizes differ, but fn names are same) */
+    /* Slot<T>: release mode (sizes differ, but fn names are same). */
     ADD_TYPE(t, "Slot<Int>_rel",    "pgy_abi_slot_int_rel",    4, 4, "pgy_claim_Int",    "int32_t");
     ADD_FIELD_STRUCT(t, "value", pgy_abi_slot_int_rel, value);
     ADD_TYPE(t, "Slot<Long>_rel",   "pgy_abi_slot_long_rel",   8, 8, "pgy_claim_Long",   "int64_t");
@@ -237,7 +237,7 @@ abi_type_table_init(void)
     ADD_FIELD_STRUCT(t, "ok", pgy_abi_result_string, ok);
     ADD_FIELD_STRUCT(t, "err", pgy_abi_result_string, err);
 
-    /* Channel ??opaque handles */
+    /* Channel opaque handles. */
     ADD_TYPE(t, "ZoneChannel<Int>",    "pgy_abi_zone_channel_handle",    4, 4, "pgy_zone_channel_create_Int",    "int32_t");
     ADD_FIELD_SCALAR(t, "handle", pgy_abi_zone_channel_handle);
     ADD_TYPE(t, "WorldChannel<Int>",   "pgy_abi_world_channel_handle",   4, 4, "pgy_world_channel_create_Int",   "int32_t");
@@ -300,7 +300,7 @@ abi_type_table_init(void)
 #undef ADD_FIELD_SCALAR
 }
 
-/* Extract inner type from "Slot<Int>" ??"Int" */
+/* Extract inner type from "Slot<Int>" -> "Int". */
 static char *
 mir_extract_inner_type_suffix_owned(const char *pergyra_type_name)
 {

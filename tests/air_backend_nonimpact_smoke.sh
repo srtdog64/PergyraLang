@@ -3,6 +3,8 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+pgy_prepend_windows_runtime_paths
+PGY_WINDOWS_PS_PATH_PREFIX="$(pgy_windows_powershell_path_prefix)"
 WORK_ROOT="$ROOT_DIR/.tmp"
 mkdir -p "$WORK_ROOT"
 WORK_DIR="$(mktemp -d "$WORK_ROOT/pgy_air_backend_nonimpact.XXXXXX")"
@@ -35,18 +37,6 @@ if [[ ! -x "$PGY_BIN" ]]; then
     exit 0
 fi
 
-if pgy_binary_expects_windows_paths "$PGY_BIN"; then
-    for dir in \
-        "/c/Program Files/LLVM/bin" \
-        "/c/ProgramData/mingw64/mingw64/bin" \
-        "/c/msys64/mingw64/bin"; do
-        if [[ -d "$dir" ]]; then
-            PATH="$dir:$PATH"
-        fi
-    done
-    export PATH
-fi
-
 pgy_path_arg() {
     pgy_path_for_compiler "$PGY_BIN" "$1"
 }
@@ -72,7 +62,7 @@ require_normal_backend_air_mir_gate() {
         win_ps1="$(pgy_path_arg "$ps1")"
 cat >"$ps1" <<EOF
 \$ErrorActionPreference = 'Continue'
-\$env:PATH = 'C:\Program Files\LLVM\bin;C:\ProgramData\mingw64\mingw64\bin;C:\msys64\mingw64\bin;' + \$env:PATH
+\$env:PATH = '$PGY_WINDOWS_PS_PATH_PREFIX' + \$env:PATH
 \$env:PGY_DEBUG_PIPELINE_STAGE = '1'
 & '$win_pgy' '$win_source' --emit-c -o '$win_out' 2>&1 | ForEach-Object { \$_.ToString() } | Set-Content -LiteralPath '$win_log' -Encoding utf8
 exit \$LASTEXITCODE
@@ -248,7 +238,7 @@ run_emit_pair() {
         win_strict_ps1="$(pgy_path_arg "$strict_ps1")"
 cat >"$relaxed_ps1" <<EOF
 \$ErrorActionPreference = 'Continue'
-\$env:PATH = 'C:\Program Files\LLVM\bin;C:\ProgramData\mingw64\mingw64\bin;C:\msys64\mingw64\bin;' + \$env:PATH
+\$env:PATH = '$PGY_WINDOWS_PS_PATH_PREFIX' + \$env:PATH
 \$env:PGY_AIR_STRICT_EVIDENCE = '0'
 & '$win_pgy' '$win_source' '$flag' -o '$win_relaxed_out' 2>&1 | ForEach-Object { \$_.ToString() } | Set-Content -LiteralPath '$win_relaxed_log' -Encoding utf8
 exit \$LASTEXITCODE
@@ -260,7 +250,7 @@ EOF
         fi
 cat >"$strict_ps1" <<EOF
 \$ErrorActionPreference = 'Continue'
-\$env:PATH = 'C:\Program Files\LLVM\bin;C:\ProgramData\mingw64\mingw64\bin;C:\msys64\mingw64\bin;' + \$env:PATH
+\$env:PATH = '$PGY_WINDOWS_PS_PATH_PREFIX' + \$env:PATH
 Remove-Item Env:\PGY_AIR_STRICT_EVIDENCE -ErrorAction SilentlyContinue
 & '$win_pgy' '$win_source' '$flag' -o '$win_strict_out' 2>&1 | ForEach-Object { \$_.ToString() } | Set-Content -LiteralPath '$win_strict_log' -Encoding utf8
 exit \$LASTEXITCODE

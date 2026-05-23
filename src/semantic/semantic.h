@@ -13,7 +13,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include "../parser/ast.h"
-#include "../semantic/diagnostic_types.h"
+#include "diagnostic_types.h"
 
 /*
  * Result of semantic analysis

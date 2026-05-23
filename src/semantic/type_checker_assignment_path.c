@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2026 Pergyra Language Project
+ * Assignment target path formatting and borrowed-boundary root lookup.
+ */
+
 #include "type_checker_ownership_support_internal.h"
 
 #include <stdarg.h>

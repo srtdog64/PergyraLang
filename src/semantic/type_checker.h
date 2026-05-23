@@ -13,10 +13,10 @@
 #include <stdint.h>
 #include "../parser/ast.h"
 #include "../common/arena.h"
-#include "../semantic/diagnostic_types.h"
-#include "../semantic/type_system.h"
-#include "../semantic/symbol_table.h"
-#include "../semantic/builtin_kind.h"
+#include "diagnostic_types.h"
+#include "type_system.h"
+#include "symbol_table.h"
+#include "builtin_kind.h"
 
 #if defined(__GNUC__) || defined(__clang__)
 #define PGY_PRINTF_LIKE(fmt_index, first_arg) \

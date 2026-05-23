@@ -18,10 +18,10 @@
 LLVMTypeRef pergyra_type_to_llvm(LLVMGenCtx *ctx, const char *type_name);
 
 /* =================================================================
- * Pergyra type ??LLVM type mapping
+ * Pergyra type to LLVM type mapping.
  * ================================================================= */
 
-/* Resolve inner type for generic containers: "Result<Int>" ??i32 */
+/* Resolve inner type for generic containers: "Result<Int>" -> i32. */
 static bool
 llvm_required_constructed_arg_name_copy(LLVMGenCtx *ctx,
                                         const char *type_name,
@@ -264,7 +264,7 @@ pergyra_type_to_llvm(LLVMGenCtx *ctx, const char *type_name)
 
     PgyTypeKind kind = pgy_classify_type(type_name);
 
-    /* Primitive types ??direct mapping */
+    /* Primitive types: direct mapping. */
     LLVMTypeRef primitive = pgy_kind_to_llvm(ctx, kind);
     if (primitive != NULL)
         return primitive;

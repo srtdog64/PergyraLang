@@ -47,6 +47,98 @@ English anchor for tooling/doc gates:
   `ast_zone_constructors.c`, leaving the base domain constructor owner at 148
   LOC. Gates: targeted parser owner compiles, `test-parser`,
   `test-inc-size-test-smoke`, and `build-source-inventory-test-smoke`.
+- CFG loop snapshot owner split: loop resource snapshot copy/equality/OR-merge
+  and break/continue snapshot recording now live in
+  `type_checker_flow_loop_snapshot.c`. `type_checker_flow_loops.c` is back to
+  loop fixpoint analysis only, and `cfg_body_dataflow_smoke.sh` includes the
+  snapshot owner in the semantic CFG evidence set. Gates:
+  `cfg-body-dataflow-test-smoke`, `test-semantic`, `test-inc-size-test-smoke`,
+  and `build-source-inventory-test-smoke`.
+- C backend match binding split: `transpiler_match_emit.c` now owns match
+  statement control-flow emission only. Result/Option/enum destructor matching
+  and payload binding emission live in `transpiler_match_bindings.c`, with a
+  declaration-only `transpiler_match_bindings.h` seam. Gates:
+  `test-transpile`, `test-inc-size-test-smoke`, and
+  `build-source-inventory-test-smoke`.
+- C backend MIR intent collector split: `transpiler_mir_inventory_intent_collect.c`
+  now owns routine lookup plus intent meta/check/eval expression collection.
+  Alias, authorization, participant, and dispatch alias collection moved to
+  `transpiler_mir_inventory_intent_alias_collect.c` without changing the public
+  collector header. Gates: `test-transpile`, `test-inc-size-test-smoke`, and
+  `build-source-inventory-test-smoke`.
+- C backend zone frontier split: bounded zone frontier change detection and
+  overflow panic lowering moved to `transpiler_zone_frontier_emit.c`, leaving
+  `transpiler_zone_decl_emit.c` focused on zone declaration and sync phase
+  orchestration. `runtime_frontier_contract_smoke.sh` now follows the split
+  owner when checking the C zone frontier panic/overflow contract. Gates:
+  `test-transpile`, `runtime-frontier-contract-test-smoke`,
+  `test-inc-size-test-smoke`, and `build-source-inventory-test-smoke`.
+- Slot analyzer owner split: program function lookup and slot access
+  traversal/call-alias propagation moved out of `slot_analyzer_summary.c` into
+  `slot_analyzer_lookup.c` and `slot_analyzer_access.c`. The summary owner now
+  only composes access/escape masks into the param summary compatibility
+  result. Gates: semantic owner compile, `test-semantic`,
+  `test-inc-size-test-smoke`, and `build-source-inventory-test-smoke`.
+- Split-owner regression guard: `build_source_inventory_smoke.sh` now checks
+  that the current match-binding, MIR intent alias, zone-frontier, slot-analyzer
+  lookup/access, and CFG loop-snapshot owners are linked and still own their
+  implementation bodies. Existing orchestration owners may call these seams,
+  but must not reabsorb the bodies. Gate:
+  `build-source-inventory-test-smoke`.
+- Semantic same-directory include cleanup: semantic headers now include sibling
+  semantic headers directly instead of through `../semantic/...`, and
+  `build_source_inventory_smoke.sh` rejects reintroducing that path shape.
+  Gates: `build-source-inventory-test-smoke`, `test-semantic`.
+- CFG legacy summary consumer tightening: LLVM codegen no longer calls
+  `slot_analyze_legacy_ast_param_summary_in_program(...)` to decide slot alloca
+  sinking. Slot allocas are emitted through the entry-allocation path until
+  MIR/CFG facts provide a codegen-owned escape fact. `cfg_body_dataflow_smoke.sh`
+  now rejects legacy AST parameter-summary consumers under `src/codegen` and
+  `src/compiler`, and allow-lists the remaining semantic consumers so the
+  compatibility seam cannot spread again.
+- MIR declaration inventory smoke now follows `mir_program_validate.c` for
+  `mir_validate_decl_header_metadata(...)`; declaration-header validation no
+  longer lives in `mir_public_surface.c` after the program-validator split.
+  Gates: `mir-declaration-inventory-test-smoke`,
+  `abi-ownership-shape-test-smoke`, and `runtime-abi-lifetime-test-smoke`.
+- Windows smoke runner tightening: `pgy_binary_path_helpers.sh` now prepends
+  known MinGW/LLVM runtime DLL directories before executing `pgy.exe` from
+  Git Bash/MSYS, and JSON diagnostic smoke normalizes compiler file arguments
+  through the same path helper. This closes the false local `127` / empty-JSON
+  failures without weakening the runtime-none or diagnostics contracts. Gates:
+  `runtime-none-contract-test-smoke`, `diagnostics-json-test-smoke`,
+  `air-json-schema-test-smoke`, `air-backend-nonimpact-full-test-smoke`, and
+  `runtime-frontier-contract-test-smoke`. `cfg-body-dataflow-test-smoke` also
+  uses this helper now instead of carrying its own Windows runtime-PATH setup.
+  `llvm_smoke.sh` and `abi_pipeline_smoke.sh` also consume the same helper for
+  MinGW/LLVM launch-path setup instead of maintaining local candidate lists.
+  `compare_backends.sh` now uses the same helper for its initial LLVM/MinGW
+  runtime path setup, with the old local Windows candidate conversion helpers
+  removed. Gates: `test-abi`, `llvm-test-smoke`, and
+  `llvm-test-backend-compare` (`72/72` backend compare).
+- Windows PowerShell fallback path tightening: the native PowerShell PATH
+  prefix used by AIR non-impact, runtime frontier, type-resolution DAG, and
+  backend compare fallback now comes from `pgy_binary_path_helpers.sh` instead
+  of repeated string literals. Gates:
+  `type-resolution-dag-test-smoke`,
+  `type-resolution-resolver-inventory-test-smoke`,
+  `runtime-frontier-contract-test-smoke`, and
+  `air-backend-nonimpact-test-smoke`.
+- Windows compiler-argument path conversion is also centralized in
+  `pgy_path_for_compiler(...)`: `abi_pipeline_smoke.sh` and
+  `type_resolution_dag_smoke.sh` no longer carry local `cygpath` / `wslpath`
+  conversion helpers. `runtime_panic_abi_smoke.sh` and the backend-compare
+  same-process PowerShell fallback now use the same generic Windows-tool path
+  helper instead of reopening local `cygpath -w` calls, and
+  `build_source_inventory_smoke.sh` rejects new script-local `cygpath -w/-m`
+  or `wslpath -w/-m` conversions outside `pgy_binary_path_helpers.sh`. Gate:
+  `runtime-panic-abi-test-smoke`, `build-source-inventory-test-smoke`,
+  `test-abi`,
+  `type-resolution-dag-test-smoke`,
+  `type-resolution-resolver-inventory-test-smoke`.
+  The runtime PATH helper intentionally prepends candidate directories even
+  when PATH already contains them; the contract is priority-order pinning for
+  native Windows executable launch, not de-duplicated PATH shape.
 - LLVM internal API header cleanup: `llvm_ast_type_uses_pointer_self(...)` now
   lives in `llvm_domain_lookup.c`, leaving `llvm_internal_api.h` declaration-
   only. `test_inc_size_smoke.sh` gates the header as body-free so the LLVM
@@ -2288,7 +2380,7 @@ English anchor for tooling/doc gates:
   declaration emit fact remains on the `MIR_INST_DEF`; it is no longer demoted
   to a residual STMT fallback that leaves `return value` using `value.0`.
   Gates: `test-mir`, targeted backend compare for pin-return fixtures, and
-  full `llvm-test-backend-compare` / backend compare (`71/71` after the
+  full `llvm-test-backend-compare` / backend compare (`72/72` after the
   party/roster hosted-method and role-include wrapper fixtures were added).
 - C-vs-Pergyra generated-C performance now has a concrete baseline fixture.
   `tests/perf_c_baseline_smoke.sh` compiles the same bounded arithmetic loop as
@@ -2503,7 +2595,7 @@ English anchor for tooling/doc gates:
   body checking, matching world/zone/relation/effect methods. Unknown
   `self.member` in party/roster methods is rejected by semantic diagnostics
   instead of surfacing later as a C/LLVM backend field-lookup failure. Gate:
-  `test-semantic`; full backend compare remains green (`71/71`).
+  `test-semantic`; full backend compare remains green (`72/72`).
 - C backend implicit host-field lowering now includes party/roster method fields,
   so accepted bare fields like `round` / `tick` lower as `self->round` /
   `self->tick` instead of leaking to C global/function lookup. The
@@ -2523,7 +2615,7 @@ English anchor for tooling/doc gates:
   ability vtables to keep those signatures type-complete, and the wrapper
   freezes its return C type before parameter type rendering so the shared
   type-render static buffer cannot turn `Void` wrappers into `return expr;`.
-  Full backend compare is now `71/71`.
+  Full backend compare is now `72/72`.
 - C backend role operator alias emission now follows the same return-type
   freezing rule before rendering lhs/rhs parameter types. Any C emitter that
   stores a pointer returned by `pergyra_ast_type_to_c(...)` and then renders a
@@ -6947,6 +7039,10 @@ Progress log, 2026-05-04:
 - Rechecked runtime propagation frontier gates: bounded zone/world/projection frontier contracts, runtime panic overflow path, queryable authority/failure surface, generated embedded-world frontier limit, and shared frontier pass-limit arithmetic remain green. Gates: `runtime-frontier-contract-test-smoke`, `runtime-frontier-policy-test-smoke`.
 - Repaired Slot/Pin ABI smoke owner drift after LLVM secure-slot runtime declarations were split: `abi_ownership_shape_smoke.sh` now gates secure pin init declarations in `llvm_runtime_secure_slot_decl.c` instead of the old mixed `llvm_runtime.c` owner. Gates: `abi-ownership-shape-test-smoke`, `runtime-abi-lifetime-test-smoke`, `runtime-panic-contract-test-smoke`, `build-source-inventory-test-smoke`.
 - Repaired intent-compression smoke owner drift after DIR intent collection was split: `intent_compression_contract_smoke.sh` now gates derived authority/using provenance in `dir_collect_intent.c` instead of the old mixed `dir_collect.c` owner. Gate: `intent-compression-contract-test-smoke`.
+- Repaired the same intent-compression smoke owner drift for parser
+  constructors: derived intent-step provenance defaults are now checked in
+  `ast_intent_constructors.c`, not the older mixed domain constructor owner.
+  Gate: `intent-compression-contract-test-smoke`.
 - Rechecked LLVM parity around the current debt slice without claiming a full local compare: `llvm-test-abi-same-process` is green (`196/0`), targeted C/LLVM backend compare for Slot/Pin cleanup, compressed intent, world frontier, and zone host ABI is green (`9/9`), and `air-backend-nonimpact-full-test-smoke` is green across the backend-compare fixture set. A full `llvm-test-backend-compare` run exceeded the local 5-minute tool timeout on Windows and still needs a longer CI/local window for final parity certification.
 - Removed a single-include LLVM implementation header: early forward-declaration eligibility now lives in `llvm_backend_forward_declare.c` instead of being injected through `llvm_backend_forward_declare.h` at the end of the type-map owner. Gates: `build-source-inventory-test-smoke`, `llvm-test-smoke`.
 - Removed another LLVM implementation-header body: projection slot counting now lives in `llvm_domain_projection_count.c`, while `llvm_domain_projection_count_helpers.h` is declaration-only. The split also made `llvm_domain_struct_register.c`'s projection-target helper dependency explicit instead of relying on a transitive include. Gates: `build-source-inventory-test-smoke`, `production-header-size-test-smoke`, `llvm-test-smoke`.

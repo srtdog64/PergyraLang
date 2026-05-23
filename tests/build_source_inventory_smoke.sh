@@ -100,6 +100,32 @@ if [[ -n "$typo_tokens" ]]; then
     missing=1
 fi
 
+local_windows_path_helpers="$(
+    cd "$ROOT_DIR"
+    grep -RInE 'cygpath[[:space:]]+-(m|w)|wslpath[[:space:]]+-(m|w)' tests \
+        --include='*.sh' || true
+)"
+local_windows_path_helpers="$(
+    printf '%s\n' "$local_windows_path_helpers" \
+        | grep -v 'tests/pgy_binary_path_helpers.sh' || true
+)"
+if [[ -n "$local_windows_path_helpers" ]]; then
+    printf '%s\n' "$local_windows_path_helpers" >&2
+    echo "[build-source-inventory] Windows path conversion must use tests/pgy_binary_path_helpers.sh" >&2
+    missing=1
+fi
+
+semantic_self_include_leaks="$(
+    cd "$ROOT_DIR"
+    grep -RIn '#include "\.\./semantic/' src/semantic \
+        --include='*.c' --include='*.h' || true
+)"
+if [[ -n "$semantic_self_include_leaks" ]]; then
+    printf '%s\n' "$semantic_self_include_leaks" >&2
+    echo "[build-source-inventory] semantic files must include same-directory headers directly" >&2
+    missing=1
+fi
+
 for header in \
     src/compiler/compiler_process.h \
     src/compiler/mir.h \
@@ -155,6 +181,86 @@ fi
 if ! grep -Fq '$(CODEGEN_DIR)/transpiler_zone_decl_emit.c' \
     "$ROOT_DIR/Makefile"; then
     echo "[build-source-inventory] zone declaration emitter is not linked by the C backend source inventory" >&2
+    missing=1
+fi
+
+for owner in \
+    '$(CODEGEN_DIR)/transpiler_match_bindings.c' \
+    '$(CODEGEN_DIR)/transpiler_mir_inventory_intent_alias_collect.c' \
+    '$(CODEGEN_DIR)/transpiler_zone_frontier_emit.c' \
+    '$(SEMANTIC_DIR)/slot_analyzer_lookup.c' \
+    '$(SEMANTIC_DIR)/slot_analyzer_access.c' \
+    '$(SEMANTIC_DIR)/type_checker_flow_loop_snapshot.c'
+do
+    if ! grep -Fq "$owner" "$ROOT_DIR/Makefile"; then
+        echo "[build-source-inventory] split owner is not linked by the source inventory: $owner" >&2
+        missing=1
+    fi
+done
+
+grep -Fq "transpiler_emit_builtin_match_binding" \
+    "$ROOT_DIR/src/codegen/transpiler_match_bindings.c" || {
+    echo "[build-source-inventory] match binding lowering must stay in transpiler_match_bindings.c" >&2
+    missing=1
+}
+
+if grep -Eq "^(transpiler_emit_builtin_match_binding|transpiler_match_is_enum_variant_destructor)\\(" \
+    "$ROOT_DIR/src/codegen/transpiler_match_emit.c"; then
+    echo "[build-source-inventory] match binding lowering regressed into transpiler_match_emit.c" >&2
+    missing=1
+fi
+
+grep -Fq "transpiler_collect_mir_intent_who_aliases" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_inventory_intent_alias_collect.c" || {
+    echo "[build-source-inventory] MIR intent alias collection must stay in its split owner" >&2
+    missing=1
+}
+
+if grep -Eq "^(transpiler_collect_mir_intent_(who|authorized|dispatch)_aliases|transpiler_collect_mir_intent_participants)\\(" \
+    "$ROOT_DIR/src/codegen/transpiler_mir_inventory_intent_collect.c"; then
+    echo "[build-source-inventory] MIR intent alias/participant collection regressed into the step/eval collector" >&2
+    missing=1
+fi
+
+grep -Fq "transpiler_emit_zone_frontier_change_checks" \
+    "$ROOT_DIR/src/codegen/transpiler_zone_frontier_emit.c" || {
+    echo "[build-source-inventory] zone frontier lowering must stay in transpiler_zone_frontier_emit.c" >&2
+    missing=1
+}
+
+if grep -Eq "^(transpiler_emit_zone_frontier_change_checks|transpiler_emit_zone_frontier_overflow_guard)\\(" \
+    "$ROOT_DIR/src/codegen/transpiler_zone_decl_emit.c"; then
+    echo "[build-source-inventory] zone frontier lowering regressed into transpiler_zone_decl_emit.c" >&2
+    missing=1
+fi
+
+grep -Fq "slot_analyzer_find_function_decl" \
+    "$ROOT_DIR/src/semantic/slot_analyzer_lookup.c" || {
+    echo "[build-source-inventory] slot analyzer function lookup must stay in slot_analyzer_lookup.c" >&2
+    missing=1
+}
+
+grep -Fq "collect_slot_accesses" \
+    "$ROOT_DIR/src/semantic/slot_analyzer_access.c" || {
+    echo "[build-source-inventory] slot analyzer access traversal must stay in slot_analyzer_access.c" >&2
+    missing=1
+}
+
+if grep -Eq "^(slot_analyzer_find_function_decl|collect_slot_accesses|slot_access_mask_for_named_symbol)\\(" \
+    "$ROOT_DIR/src/semantic/slot_analyzer_summary.c"; then
+    echo "[build-source-inventory] slot summary owner must not reopen lookup/access traversal" >&2
+    missing=1
+fi
+
+grep -Fq "loop_flow_record" \
+    "$ROOT_DIR/src/semantic/type_checker_flow_loop_snapshot.c" || {
+    echo "[build-source-inventory] loop snapshot merge must stay in type_checker_flow_loop_snapshot.c" >&2
+    missing=1
+}
+
+if grep -Eq "^(copy_resource_snapshot|merge_resource_snapshots_or|loop_flow_record)\\(" \
+    "$ROOT_DIR/src/semantic/type_checker_flow_loops.c"; then
+    echo "[build-source-inventory] loop snapshot merge regressed into type_checker_flow_loops.c" >&2
     missing=1
 fi
 

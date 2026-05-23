@@ -198,7 +198,8 @@ progress ledger, not a new language surface.
   intent observability, and Future type query, Box/Rc let, Channel let,
   collection let, slot let, let
   type-register, zone specialization, zone struct/layer accessor,
-  control-flow, MIR CFG control, and MIR match condition headers.
+  control-flow, MIR CFG control, MIR match condition, match binding, and
+  zone frontier headers.
   `test-inc-size-test-smoke` rejects new function bodies in those headers.
 - Shared AST type-to-C copy ownership now lives with type rendering:
   `pergyra_ast_type_to_c_copy(...)` moved from
@@ -235,20 +236,37 @@ Current largest non-test production owners:
 
 | File | LOC | Status |
 | --- | ---: | --- |
-| `src/parser/ast_api.h` | 581 | Parser accessor surface; below split threshold, watch API cohesion |
-| `src/semantic/type_checker_internal.h` | 546 | Semantic internal declaration surface; below split threshold |
-| `src/parser/ast.h` | 537 | Core AST declarations; below split threshold |
-| `src/codegen/transpiler_expr_type_infer.c` | 537 | C expression type inference owner; below split threshold |
-| `src/codegen/transpiler_specialization_registry.c` | 390 | C generated specialization registry owner; below split threshold |
-| `src/codegen/transpiler_match_emit.c` | 517 | C match lowering owner; below split threshold |
-| `src/runtime/pgy_parallel.h` | 516 | Runtime parallel API surface; below split threshold |
-| `src/parser/ast_domain_constructors.c` | 516 | Parser domain constructor owner; below split threshold |
-| `src/codegen/transpiler_intent_emit.c` | 524 | C intent orchestration compiled owner; below split threshold |
+| `src/parser/ast_api.h` | 568 | Parser accessor surface; below split threshold, watch API cohesion |
+| `src/semantic/type_checker_internal.h` | 545 | Semantic internal declaration surface; below split threshold |
+| `src/codegen/transpiler_expr_type_infer.c` | 513 | C expression type inference owner; below split threshold |
+| `src/parser/ast.h` | 510 | Core AST declarations; below split threshold |
+| `src/codegen/transpiler_intent_emit.c` | 503 | C intent orchestration compiled owner; below split threshold |
+| `src/codegen/llvm_internal.h` | 486 | LLVM internal API surface; below split threshold |
+| `src/codegen/llvm_stmt_type_infer.c` | 478 | LLVM statement type inference owner; below split threshold |
+| `src/semantic/type_checker_builtins_stdlib_collections.c` | 477 | Stdlib collection semantic owner; below split threshold |
+| `src/compiler/mir.c` | 474 | MIR lowering orchestration owner; below split threshold |
+| `src/parser/ast_analysis.c` | 473 | AST analysis surface; below split threshold |
+| `src/codegen/llvm_member_call_emit.c` | 466 | LLVM member-call emission owner; below split threshold |
+| `src/semantic/type_checker_ownership_call.c` | 462 | Ownership call semantic owner; below split threshold |
+| `src/codegen/llvm_intent.c` | 462 | LLVM intent emission owner; below split threshold |
+| `src/codegen/transpiler_domain_constructor_emit.c` | 458 | C domain constructor emission owner; below split threshold |
+| `src/codegen/llvm_domain_zone_bind_helpers.c` | 436 | LLVM zone-bind helper owner; below helper-owner threshold |
+| `src/semantic/type_checker_decls_domain_helpers.c` | 420 | Semantic domain helper owner; below helper-owner threshold |
+
+Recent split owners that deliberately fall far below the largest-owner list:
+
+| File | LOC | Status |
+| --- | ---: | --- |
+| `src/codegen/transpiler_match_bindings.c` | 358 | C match destructor/binding owner; split from match control-flow |
+| `src/codegen/transpiler_match_emit.c` | 168 | C match control-flow lowering owner |
+| `src/codegen/transpiler_mir_inventory_intent_collect.c` | 269 | MIR intent routine/meta/check/eval collector |
+| `src/codegen/transpiler_mir_inventory_intent_alias_collect.c` | 271 | MIR intent alias/participant collector |
+| `src/codegen/transpiler_zone_decl_emit.c` | 475 | C zone declaration/sync orchestration owner |
+| `src/codegen/transpiler_zone_frontier_emit.c` | 56 | C zone bounded frontier guard owner |
+| `src/semantic/slot_analyzer_summary.c` | 34 | Slot analyzer param-summary composer |
+| `src/semantic/slot_analyzer_access.c` | 382 | Slot analyzer access traversal and call-alias owner |
+| `src/semantic/slot_analyzer_lookup.c` | 29 | Slot analyzer function lookup owner |
 | `src/codegen/transpiler_intent_emit.h` | 8 | C intent orchestration declaration seam |
-| `src/codegen/transpiler_mir_inventory_intent_collect.c` | 508 | MIR intent inventory collector; below split threshold |
-| `src/semantic/slot_analyzer_summary.c` | 507 | Slot analyzer summary owner; below split threshold |
-| `src/parser/ast_role_type_accessors.c` | 505 | AST role/type accessor owner; below split threshold |
-| `src/codegen/llvm_internal.h` | 483 | LLVM internal API surface; below split threshold |
 | `src/codegen/llvm_internal_api.h` | body-free | LLVM private API declarations; `test-inc-size` gates this as declaration-only |
 | `src/semantic/type_checker_assignment.h` | body-free | Semantic assignment declaration seam; `test-inc-size` gates this as declaration-only |
 | `src/codegen/llvm_decl.c` | 278 | LLVM function declaration/body emission owner after authority/routine split |
@@ -298,8 +316,11 @@ in `src/codegen/llvm_decl_routines.c` at 106 LOC, so
 - CFG/body flow keeps `type_checker_flow.c` as the if/match/block orchestration
   owner required by the CFG smoke, while `type_checker_flow_loop_control.c`
   owns `break` / `continue` loop-depth, label validation, and loop resource
-  snapshot recording. `type_checker_flow.c` is now 488 LOC and the new
-  loop-control owner is 55 LOC.
+  control validation. Loop resource snapshot copy/equality/OR-merge and
+  break/continue snapshot recording now live in
+  `src/semantic/type_checker_flow_loop_snapshot.c`, so
+  `type_checker_flow_loops.c` owns loop fixpoint analysis only. The CFG/body
+  smoke includes the snapshot owner in its semantic evidence set.
 - Runtime slot utility ownership now has a separate TU:
   `src/runtime/slot_type_utils.c` owns `TypeTagHash`, `TypeTagToString`,
   `TypeIsPrimitive`, `TypeGetSize`, `SlotHashFunction`,
@@ -552,11 +573,15 @@ in `src/codegen/llvm_decl_routines.c` at 106 LOC, so
   split-review threshold. Verified with targeted `gcc` object builds for
   `ast_print.c` and `ast_print_expr.c`.
 - AST constructor ownership now has constructor, async-constructor,
-  domain-constructor, and clone
+  domain/world/intent/zone-constructor, and clone
   owners: `src/parser/ast_constructors.c` owns core statement/expression/basic
   type constructors, `src/parser/ast_async_constructors.c` owns async/channel
-  constructors, `src/parser/ast_domain_constructors.c` owns domain/intent/
-  party/event constructors, `src/parser/ast_domain_accessors.c` owns read-only
+  constructors, `src/parser/ast_domain_constructors.c` owns base
+  relation/effect/party/role/ability/event constructors,
+  `src/parser/ast_world_constructors.c` owns world constructors,
+  `src/parser/ast_intent_constructors.c` owns intent constructors,
+  `src/parser/ast_zone_constructors.c` owns zone constructors,
+  `src/parser/ast_domain_accessors.c` owns read-only
   ability/role/roster/world/relation/effect accessors,
   `src/parser/ast_zone_accessors.c` owns read-only zone accessors, and
   `src/parser/ast_clone.c` owns AST clone helpers.
@@ -2159,10 +2184,22 @@ Observed results:
   `.inc` inventory is 45 files / 6,212 LOC.
 - Latest C backend match lowering cleanup moved the former
   `src/codegen/transpiler_emitters_match.inc` body through
-  `src/codegen/transpiler_match_emit.h` and now into the compiled owner
-  `src/codegen/transpiler_match_emit.c`. Result/Option/enum destructor pattern
-  helpers and `emit_match_stmt(...)` no longer live in the include chain.
-  The current production source `.inc` inventory is 44 files / 5,932 LOC.
+  `src/codegen/transpiler_match_emit.h` and then into compiled owners.
+  `src/codegen/transpiler_match_emit.c` now owns match statement control-flow
+  lowering, while `src/codegen/transpiler_match_bindings.c` owns
+  Result/Option/enum destructor recognition and payload binding emission.
+  `src/codegen/transpiler_match_bindings.h` is declaration-only. The current
+  production source `.inc` inventory is 44 files / 5,932 LOC.
+- Latest C backend MIR intent inventory cleanup split
+  `src/codegen/transpiler_mir_inventory_intent_collect.c` into routine/meta/
+  check/eval collection and
+  `src/codegen/transpiler_mir_inventory_intent_alias_collect.c` for who,
+  authorized-by, participant, and dispatch alias collection. The public
+  collector header remains unchanged.
+- Latest C backend zone frontier cleanup moved bounded frontier change
+  detection and overflow panic lowering into
+  `src/codegen/transpiler_zone_frontier_emit.c`. `transpiler_zone_decl_emit.c`
+  now stays focused on zone declaration and sync phase orchestration.
 - Latest LLVM domain query call cleanup moved the former
   `src/codegen/llvm_expr_call_domain_queries.inc` body into
   `src/codegen/llvm_expr_domain_query_calls.h`. `HasProjection`, `HasLayer`,
@@ -2380,3 +2417,58 @@ Observed results:
   `src/semantic/type_checker_program_stats.c`. `perf_contract_smoke.sh` was
   updated to follow these current owner seams and accessor-based payload reads
   instead of stale pre-split locations.
+- Latest slot analyzer cleanup moved program function lookup and access
+  traversal/call-alias propagation into `src/semantic/slot_analyzer_lookup.c`
+  and `src/semantic/slot_analyzer_access.c`. `slot_analyzer_summary.c` now
+  composes access/escape facts only, so the remaining legacy analyzer seam is
+  narrower while CFG/MIR body facts continue moving toward source-of-truth.
+- LLVM statement let lowering no longer consumes the legacy AST parameter
+  summary to choose local slot alloca sinking. Until MIR/CFG escape facts own
+  that optimization, LLVM uses the entry-allocation path and the CFG smoke
+  rejects reintroducing `slot_analyze_legacy_ast_param_summary_in_program(...)`
+  under `src/codegen` or `src/compiler`. The same smoke now allow-lists the
+  remaining semantic compatibility consumers so the legacy summary seam cannot
+  spread while CFG/MIR facts are being promoted.
+- Runtime frontier contract smoke now follows the split C zone frontier owner
+  (`transpiler_zone_frontier_emit.c`) when checking `PGY_PANIC` and
+  `PGY_FRONTIER_REASON_ZONE_OVERFLOW`, so owner cleanup cannot silently drop the
+  bounded frontier overflow contract from the gate.
+- Build source inventory smoke now also guards the latest split-owner seams:
+  match binding lowering, MIR intent alias/participant collection, C zone
+  frontier lowering, slot analyzer lookup/access traversal, and CFG loop
+  snapshot merging must stay in their named owners. The old orchestration
+  owners are allowed to call those APIs, but a function-body regression back
+  into the orchestration owner is a smoke failure.
+- MIR declaration inventory smoke now follows `mir_program_validate.c` for
+  declaration-header metadata validation. That keeps the gate aligned with the
+  validator owner after the public-surface/program-validator split.
+- Windows/Git-Bash smoke execution now has one runtime-path helper. The helper
+  prepends known MinGW/LLVM runtime DLL directories before probing `pgy.exe`,
+  and diagnostics JSON smoke converts POSIX temp paths before handing them to a
+  Windows compiler binary. This keeps smoke failures tied to real contracts
+  instead of local PATH or path-shape drift. AIR JSON/backend-nonimpact and
+  runtime-frontier smokes now enter through the same runtime-path helper, with
+  their local duplicate runtime-PATH setup removed where it had become
+  redundant. The CFG body-dataflow smoke now uses the same helper instead of a
+  private Windows runtime-PATH implementation. LLVM smoke and ABI pipeline
+  smoke also consume the helper for MinGW/LLVM launch-path setup, and backend
+  compare now uses the same helper for initial LLVM/MinGW runtime path setup.
+  Gates: `test-abi`, `llvm-test-smoke`, `llvm-test-backend-compare` (`72/72`).
+  The native PowerShell PATH prefix used by AIR non-impact, runtime frontier,
+  type-resolution DAG, and backend compare fallback now comes from the same
+  helper rather than repeated script-local string literals. Gates:
+  `type-resolution-dag-test-smoke`,
+  `type-resolution-resolver-inventory-test-smoke`,
+  `runtime-frontier-contract-test-smoke`, `air-backend-nonimpact-test-smoke`.
+  Compiler-argument path conversion is also centralized through
+  `pgy_path_for_compiler(...)`; ABI pipeline and type-resolution DAG smoke no
+  longer carry local `cygpath` / `wslpath` conversion helpers. Runtime panic
+  ABI smoke and backend-compare's same-process PowerShell fallback now use the
+  same generic Windows-tool path helper, and the build-source inventory smoke
+  rejects new script-local `cygpath -w/-m` or `wslpath -w/-m` conversions
+  outside the helper. Gates: `runtime-panic-abi-test-smoke`,
+  `build-source-inventory-test-smoke`, `test-abi`,
+  `type-resolution-dag-test-smoke`, `type-resolution-resolver-inventory-test-smoke`.
+  The helper intentionally prioritizes launch-path order over PATH
+  de-duplication, because skipping an existing lower-priority `/mingw64/bin`
+  entry can re-open native Windows `pgy.exe` launch failures.

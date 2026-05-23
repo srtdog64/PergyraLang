@@ -2,53 +2,10 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
+pgy_prepend_windows_runtime_paths
 PYTHON_BIN="${PYTHON_BIN:-}"
 DOCS_CHECK_DONE=0
-
-add_path_if_dir() {
-    local dir="$1"
-    [[ -d "$dir" ]] || return 0
-    case ":${PATH}:" in
-        *":$dir:"*) ;;
-        *) PATH="$dir:$PATH" ;;
-    esac
-}
-
-prepend_path_if_dir() {
-    local dir="$1"
-    [[ -d "$dir" ]] || return 0
-    PATH="$dir:$PATH"
-}
-
-add_windows_path_candidate() {
-    local dir="$1"
-    local posix_dir=""
-
-    [[ -n "$dir" ]] || return 0
-    add_path_if_dir "$dir"
-    if command -v cygpath >/dev/null 2>&1; then
-        posix_dir="$(cygpath -u "$dir" 2>/dev/null || true)"
-        add_path_if_dir "$posix_dir"
-    fi
-}
-
-setup_windows_compiler_runtime_path() {
-    case "$(uname -s 2>/dev/null || echo unknown)" in
-        MINGW*|MSYS*|CYGWIN*)
-            add_windows_path_candidate "${MSYSTEM_PREFIX:-}/bin"
-            add_windows_path_candidate "${LLVM_INSTALL:-}"
-            add_windows_path_candidate "${LLVM_INSTALL:-}/bin"
-            prepend_path_if_dir "/c/ProgramData/mingw64/mingw64/bin"
-            prepend_path_if_dir "/c/msys64/mingw64/bin"
-            prepend_path_if_dir "/c/Program Files/LLVM/bin"
-            prepend_path_if_dir "/c/LLVM/bin"
-            add_path_if_dir "/clang64/bin"
-            add_path_if_dir "/ucrt64/bin"
-            ;;
-    esac
-}
-
-setup_windows_compiler_runtime_path
 
 require_literal() {
     local rel="$1"
@@ -117,11 +74,29 @@ run_literal_doc_contract_smoke() {
     require_literal "src/semantic/type_checker_ownership_call.c" '#include "slot_summary.h"'
     require_literal "src/semantic/type_checker_ownership_param_summary.c" "slot_analyze_legacy_ast_param_summary_in_program"
     require_literal "src/semantic/type_checker_call_contract_helpers.c" "slot_analyze_legacy_ast_param_summary_in_program"
-    require_literal "src/codegen/llvm_stmt_let_helpers.c" "slot_analyze_legacy_ast_param_summary_in_program"
     if grep -Fq '#include "slot_analyzer.h"' "$ROOT_DIR/src/semantic/type_checker_ownership_param_summary.c" \
         || grep -Fq '#include "slot_analyzer.h"' "$ROOT_DIR/src/semantic/type_checker_call_contract_helpers.c" \
         || grep -Fq '#include "slot_analyzer.h"' "$ROOT_DIR/src/semantic/type_checker_ownership_call.c"; then
         echo "ownership call/param summary consumers must depend on slot_summary.h, not full slot_analyzer.h" >&2
+        exit 1
+    fi
+    if grep -R -n "slot_analyze_legacy_ast_param_summary_in_program" "$ROOT_DIR/src/codegen" "$ROOT_DIR/src/compiler"; then
+        echo "codegen/compiler must not consume legacy AST parameter summaries" >&2
+        exit 1
+    fi
+    legacy_slot_summary_consumers="$(
+        cd "$ROOT_DIR"
+        grep -R -n "slot_analyze_legacy_ast_param_summary_in_program" src \
+            --include='*.c' --include='*.h' \
+            | grep -v '^src/semantic/slot_summary.h:' \
+            | grep -v '^src/semantic/slot_analyzer.c:' \
+            | grep -v '^src/semantic/type_checker_ownership_param_summary.c:' \
+            | grep -v '^src/semantic/type_checker_call_contract_helpers.c:' \
+            || true
+    )"
+    if [[ -n "$legacy_slot_summary_consumers" ]]; then
+        printf '%s\n' "$legacy_slot_summary_consumers" >&2
+        echo "legacy AST parameter summary consumers must stay on the narrow semantic allow-list" >&2
         exit 1
     fi
     if grep -R -n "slot_analyze_param_summary_in_program(" "$ROOT_DIR/src" \
@@ -432,6 +407,7 @@ flow_branch_path = root / "src" / "semantic" / "type_checker_flow_branch.c"
 flow_resources_header_path = root / "src" / "semantic" / "type_checker_flow_resources.h"
 flow_resources_path = root / "src" / "semantic" / "type_checker_flow_resources.c"
 flow_loop_control_path = root / "src" / "semantic" / "type_checker_flow_loop_control.c"
+flow_loop_snapshot_path = root / "src" / "semantic" / "type_checker_flow_loop_snapshot.c"
 flow_loops_header_path = root / "src" / "semantic" / "type_checker_flow_loops.h"
 flow_loops_path = root / "src" / "semantic" / "type_checker_flow_loops.c"
 flow_parallel_path = root / "src" / "semantic" / "type_checker_flow_parallel.c"
@@ -526,6 +502,7 @@ for path in (
     flow_resources_header_path,
     flow_resources_path,
     flow_loop_control_path,
+    flow_loop_snapshot_path,
     flow_loops_header_path,
     flow_loops_path,
     flow_parallel_path,
@@ -621,6 +598,8 @@ flow = (
     + flow_resources_path.read_text(encoding="utf-8")
     + "\n"
     + flow_loop_control_path.read_text(encoding="utf-8")
+    + "\n"
+    + flow_loop_snapshot_path.read_text(encoding="utf-8")
     + "\n"
     + flow_loops_path.read_text(encoding="utf-8")
     + "\n"
@@ -1608,7 +1587,6 @@ fi
 DEFAULT_PGY="$ROOT_DIR/bin/pgy"
 TMP_BASE="${TMPDIR:-${TEMP:-/tmp}}"
 TMP_PGY="${TMP_BASE%/}/pgy-PergyraLang-bin/pgy"
-source "$ROOT_DIR/tests/pgy_binary_path_helpers.sh"
 
 if pgy_binary_expects_windows_paths "${DEFAULT_PGY}.exe"; then
     DEFAULT_PGY="${DEFAULT_PGY}.exe"

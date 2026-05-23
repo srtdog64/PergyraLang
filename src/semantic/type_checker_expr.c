@@ -284,9 +284,9 @@ type_check_expression(ASTNode *expr, SemanticContext *ctx)
                     || type_equals(type_constructed_constructor(future_type), TYPE_REMOTE_FUTURE))
                 && type_constructed_arg_count(future_type) == 1) {
                 Type *inner = type_constructed_arg(future_type, 0);
-                /* RemoteFuture<T> ??Result<T>: remote operations can fail
+                /* RemoteFuture<T> -> Result<T>: remote operations can fail
                  * (network partition, timeout, etc.) so the result must be
-                 * explicitly handled.  Local Future<T> ??T as before. */
+                 * explicitly handled. Local Future<T> -> T as before. */
                 if (type_equals(type_constructed_constructor(future_type), TYPE_REMOTE_FUTURE)) {
                     Type *result_args[1] = { inner };
                     return type_create_constructed(TYPE_RESULT, result_args, 1);

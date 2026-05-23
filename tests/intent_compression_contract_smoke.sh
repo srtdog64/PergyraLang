@@ -21,15 +21,15 @@ grep -Fq "derived_who_from_single_participant" \
 grep -Fq "derived_who_from_on_receiver" \
     "$ROOT_DIR/src/parser/ast_domain_data.h"
 grep -Fq "inherited_who_from_intent = false" \
-    "$ROOT_DIR/src/parser/ast_domain_constructors.c"
+    "$ROOT_DIR/src/parser/ast_intent_constructors.c"
 grep -Fq "inherited_where_from_intent = false" \
-    "$ROOT_DIR/src/parser/ast_domain_constructors.c"
+    "$ROOT_DIR/src/parser/ast_intent_constructors.c"
 grep -Fq "derived_authorized_by_from_zone = false" \
-    "$ROOT_DIR/src/parser/ast_domain_constructors.c"
+    "$ROOT_DIR/src/parser/ast_intent_constructors.c"
 grep -Fq "derived_who_from_single_participant = false" \
-    "$ROOT_DIR/src/parser/ast_domain_constructors.c"
+    "$ROOT_DIR/src/parser/ast_intent_constructors.c"
 grep -Fq "derived_who_from_on_receiver = false" \
-    "$ROOT_DIR/src/parser/ast_domain_constructors.c"
+    "$ROOT_DIR/src/parser/ast_intent_constructors.c"
 grep -Fq "inherited_who_from_intent = copied_any" \
     "$ROOT_DIR/src/parser/parser_intent_defaults.c"
 grep -Fq "inherited_where_from_intent =" \

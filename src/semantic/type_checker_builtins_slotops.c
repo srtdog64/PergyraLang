@@ -362,7 +362,7 @@ type_check_release_slot(ASTNode *call, SemanticContext *ctx)
         return false;
     }
 
-    /* RemoteFuture has no Release ??it is consumed by await */
+    /* RemoteFuture has no Release; it is consumed by await. */
     if (slot_arg->type == AST_IDENTIFIER) {
         Symbol *rsym = scope_lookup(ctx->scope, ast_identifier_name(slot_arg));
         if (rsym != NULL && rsym->type != NULL

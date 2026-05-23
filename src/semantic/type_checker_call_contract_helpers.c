@@ -25,11 +25,13 @@ semantic_lookup_function_param_contract(SemanticContext *ctx,
     ASTNode *prog = ctx->program_root;
     for (size_t si = 0; si < ast_program_statement_count(prog); si++) {
         ASTNode *stmt = ast_program_statement(prog, si);
-        const char *stmt_name = ast_declaration_name(stmt);
+        const char *stmt_name = NULL;
         if (stmt == NULL || stmt->type != AST_FUNC_DECL
-            || stmt_name == NULL
-            || strcmp(stmt_name, display_name) != 0
             || arg_index >= ast_func_param_count(stmt)) {
+            continue;
+        }
+        stmt_name = ast_declaration_name(stmt);
+        if (stmt_name == NULL || strcmp(stmt_name, display_name) != 0) {
             continue;
         }
         if (mode_out != NULL && ast_func_param(stmt, arg_index) != NULL)

@@ -11,7 +11,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
-#include "../semantic/type_system.h"
+#include "type_system.h"
 
 /* Forward declarations */
 typedef struct Symbol  Symbol;

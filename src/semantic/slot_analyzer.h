@@ -14,8 +14,8 @@
 
 #include <stdbool.h>
 #include "../parser/ast.h"
-#include "../semantic/symbol_table.h"
-#include "../semantic/slot_summary.h"
+#include "symbol_table.h"
+#include "slot_summary.h"
 
 typedef struct SemanticContext SemanticContext;
 
