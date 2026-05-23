@@ -3,6 +3,8 @@ set -euo pipefail
 
 bin="${SEMANTIC_TEST_BIN:-}"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$ROOT/tests/pgy_binary_path_helpers.sh"
+pgy_prepend_windows_runtime_paths
 if [ -z "$bin" ]; then
   if [ -x "$ROOT/bin/test_semantic" ]; then
     bin="$ROOT/bin/test_semantic"

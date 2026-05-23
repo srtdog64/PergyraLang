@@ -2476,3 +2476,8 @@ Observed results:
   The helper intentionally prioritizes launch-path order over PATH
   de-duplication, because skipping an existing lower-priority `/mingw64/bin`
   entry can re-open native Windows `pgy.exe` launch failures.
+  Semantic fixture isolation smoke now uses the same helper before launching
+  the semantic test binary, so local Windows/Git-Bash runs exercise the
+  concurrent fixture-isolation contract instead of failing with environment-only
+  `127` process exits. Gates: `semantic-fixture-isolation-test-smoke`,
+  `build-source-inventory-test-smoke`.

@@ -143,6 +143,12 @@ English anchor for tooling/doc gates:
   The runtime PATH helper intentionally prepends candidate directories even
   when PATH already contains them; the contract is priority-order pinning for
   native Windows executable launch, not de-duplicated PATH shape.
+- Windows semantic fixture isolation smoke now also enters through
+  `pgy_binary_path_helpers.sh` before launching the semantic test binary. Local
+  Windows/Git-Bash runs execute the concurrent fixture-isolation gate instead
+  of failing with environment-only `127` process exits. Gates:
+  `semantic-fixture-isolation-test-smoke`,
+  `build-source-inventory-test-smoke`.
 - LLVM internal API header cleanup: `llvm_ast_type_uses_pointer_self(...)` now
   lives in `llvm_domain_lookup.c`, leaving `llvm_internal_api.h` declaration-
   only. `test_inc_size_smoke.sh` gates the header as body-free so the LLVM
