@@ -660,7 +660,7 @@ func Main() -> Void {
 EOF
 LEX_ERR="$WORK_DIR/lex.err"
 if pgy_run "$LEX_SRC" --backend=c --error-format=json 2>"$LEX_ERR"; then
-    echo "[diag-json] lex: FAIL ??expected non-zero exit" >&2
+    echo "[diag-json] lex: FAIL: expected non-zero exit" >&2
     cat "$LEX_ERR" >&2
     exit 1
 fi

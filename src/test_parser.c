@@ -155,6 +155,7 @@ run_parser_test(const TestCase *test)
 
 #include "tests/parser/test_parser_special_part_a.cases.h"
 #include "tests/parser/test_parser_special_part_b.cases.h"
+#include "tests/parser/test_parser_special_part_c.cases.h"
 
 int
 main(void)
@@ -206,6 +207,8 @@ main(void)
     failures += run_pin_block_metadata_test();
     printf("\n");
     failures += run_named_call_argument_ast_print_test();
+    printf("\n");
+    failures += run_option_coalesce_ast_print_test();
     printf("\n");
     failures += run_reserved_slice_expression_diagnostic_test();
     printf("\n");

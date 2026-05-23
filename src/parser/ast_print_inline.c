@@ -59,6 +59,7 @@ const char* ast_print_operator_to_string(PgyTokenType type) {
         case TOKEN_OR: return "||";
         case TOKEN_NOT: return "!";
         case TOKEN_ASSIGN: return "=";
+        case TOKEN_COALESCE: return "??";
         default: return "?";
     }
 }

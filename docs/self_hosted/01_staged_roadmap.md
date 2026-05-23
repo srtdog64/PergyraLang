@@ -64,6 +64,6 @@ Hard self-host is allowed only when:
 - generated artifacts are deterministic,
 - tooling can debug Pergyra-written compiler code,
 - module/package resolver is stable,
-- FFI and raw escape contracts are stable,
+- FFI and scoped unsafe raw-escape contracts are stable; plain `unsafe { ... }`
+  must not grant raw/system-tier escape,
 - C compiler parity remains available as a reference.
-

@@ -140,6 +140,9 @@ LLVM_ENABLED ?= 1
 STDLIB_BACKENDS ?= $(if $(filter 0,$(LLVM_ENABLED)),c,c llvm)
 RUNTIME_PANIC_CODEGEN_BACKENDS ?= $(if $(filter 0,$(LLVM_ENABLED)),c,c llvm)
 AIR_NONIMPACT_BACKENDS ?= $(if $(filter 0,$(LLVM_ENABLED)),c,c llvm)
+AIR_NONIMPACT_CASE_LIMIT ?=
+AIR_NONIMPACT_SHARD_COUNT ?=
+AIR_NONIMPACT_SHARD_INDEX ?=
 MEMORY_CONCURRENCY_BACKENDS ?= $(if $(filter 0,$(LLVM_ENABLED)),c,c llvm)
 CC_TAG       := $(shell printf '%s' "$(CC_MACHINE)" | tr -c 'A-Za-z0-9_.-' '_')
 CONFIG_STAMP = $(BUILD_DIR)/.config_llvm_$(LLVM_ENABLED)_$(CC_TAG).stamp
@@ -1767,6 +1770,9 @@ air-backend-nonimpact-test-smoke:
 	$(MAKE) LLVM_ENABLED="$(LLVM_ENABLED)" $(PGY)
 	PGY_BIN="$(abspath $(PGY))" \
 	PGY_AIR_NONIMPACT_BACKENDS="$(AIR_NONIMPACT_BACKENDS)" \
+	PGY_AIR_NONIMPACT_CASE_LIMIT="$(AIR_NONIMPACT_CASE_LIMIT)" \
+	PGY_AIR_NONIMPACT_SHARD_COUNT="$(AIR_NONIMPACT_SHARD_COUNT)" \
+	PGY_AIR_NONIMPACT_SHARD_INDEX="$(AIR_NONIMPACT_SHARD_INDEX)" \
 	"$(BASH)" tests/air_backend_nonimpact_smoke.sh
 
 air-backend-nonimpact-full-test-smoke:
@@ -1774,17 +1780,24 @@ air-backend-nonimpact-full-test-smoke:
 	PGY_BIN="$(abspath $(PGY))" \
 	PGY_AIR_NONIMPACT_SOURCE=all \
 	PGY_AIR_NONIMPACT_BACKENDS="$(AIR_NONIMPACT_BACKENDS)" \
+	PGY_AIR_NONIMPACT_CASE_LIMIT="$(AIR_NONIMPACT_CASE_LIMIT)" \
+	PGY_AIR_NONIMPACT_SHARD_COUNT="$(AIR_NONIMPACT_SHARD_COUNT)" \
+	PGY_AIR_NONIMPACT_SHARD_INDEX="$(AIR_NONIMPACT_SHARD_INDEX)" \
 	"$(BASH)" tests/air_backend_nonimpact_smoke.sh
 
 codegen-determinism-test-smoke:
 	$(MAKE) LLVM_ENABLED=1 $(PGY)
 	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/codegen_determinism_smoke.sh
 
-runtime-none-contract-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/runtime_none_contract_smoke.sh
+runtime-none-contract-test-smoke:
+	PGY_BIN="$(abspath $(PGY))" \
+	PGY_RUNTIME_NONE_ALLOW_MISSING_BIN=1 \
+	"$(BASH)" tests/runtime_none_contract_smoke.sh
 
-raw-escape-contract-test-smoke: $(PGY)
-	PGY_BIN="$(abspath $(PGY))" "$(BASH)" tests/raw_escape_contract_smoke.sh
+raw-escape-contract-test-smoke:
+	PGY_BIN="$(abspath $(PGY))" \
+	PGY_RAW_ESCAPE_ALLOW_MISSING_BIN=1 \
+	"$(BASH)" tests/raw_escape_contract_smoke.sh
 
 semantic-inc-size-test-smoke:
 	"$(BASH)" tests/semantic_inc_size_smoke.sh

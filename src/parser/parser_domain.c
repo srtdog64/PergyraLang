@@ -450,7 +450,7 @@ ASTNode* parse_role_declaration(Parser* parser) {
             ovr->line = func->line;
             ovr->column = func->column;
 
-            /* Check if body contains 'super' calls ??simple heuristic */
+            /* Check if body contains 'super' calls; simple heuristic. */
             ovr->data.override_func.calls_super = false;
 
             /* Add as an impl with special name "__override__" */

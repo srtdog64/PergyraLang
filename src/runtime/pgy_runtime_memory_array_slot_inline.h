@@ -1,18 +1,18 @@
 
 /* =================================================================
- * Stack Memory (Default ??Zero Overhead)
+ * Stack Memory (Default - Zero Overhead)
  *
  * All plain variables are stack-allocated by default in C.
  * No special macros needed.
  * ================================================================= */
 
 /* Example:
- *   let x: Int = 42;     ??  int32_t x = 42;
- *   let v: Vec3;         ??  Vec3 v;
+ *   let x: Int = 42;     ->  int32_t x = 42;
+ *   let v: Vec3;         ->  Vec3 v;
  */
 
 /* =================================================================
- * Heap Memory ??Box<T> (Owned Heap Allocation)
+ * Heap Memory - Box<T> (Owned Heap Allocation)
  * ================================================================= */
 
 #define PGY_BOX_DEFINE(SuffixName, CType) \
@@ -75,7 +75,7 @@ pgy_box_is_valid_##SuffixName(PgyBox_##SuffixName* b) \
     } while (0)
 
 /* =================================================================
- * Heap Memory ??Arena Allocator (Frame-based)
+ * Heap Memory - Arena Allocator (Frame-based)
  * ================================================================= */
 
 typedef struct {

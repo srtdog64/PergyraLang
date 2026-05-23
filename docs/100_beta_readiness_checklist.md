@@ -2342,7 +2342,7 @@ Remaining:
   must remain a lexical boundary marker until a scoped spelling such as
   `unsafe(raw) { ... }` / `unsafe(ffi) { ... }` has semantic gates, AIR
   evidence, ABI lowering, and C/LLVM parity. Source of truth:
-  `docs/131_unsafe_capability_scope.md`.
+  `docs/132_unsafe_capability_scope.md`.
 - Implement verified freestanding C/LLVM lowering for `--runtime=none`.
   Current mode is intentionally conservative: it defines the CLI contract and
   rejection surface, but it does not emit a no-runtime binary yet.
@@ -3185,7 +3185,10 @@ Closed now:
   validation path does not mutate backend output.
 - `make air-backend-nonimpact-full-test-smoke` runs the full frozen
   backend-compare fixture sweep (`PGY_AIR_NONIMPACT_SOURCE=all`) and is now the
-  CI Linux AIR backend non-impact gate.
+  CI Linux AIR backend non-impact gate. Large local runs may shard the same
+  frozen sweep with `AIR_NONIMPACT_SHARD_COUNT` / `AIR_NONIMPACT_SHARD_INDEX`,
+  or cap a triage run with `AIR_NONIMPACT_CASE_LIMIT`; these options do not
+  change the default full gate.
 - `make air-strict-backend-compare-test-smoke` runs the normal C/LLVM backend
   execution compare under default strict AIR validation, so strict AIR
   validation is covered by real binary parity, not only generated text
@@ -3254,7 +3257,7 @@ Remaining (Phase 1 — beta 진입 전 반드시 실 구현):
 
 Out of Phase 1 (베타 후 생태계 단계에서 추가 가능):
 
-- Phase 2: Constraint Node (sync/async, local/distributed, fallible/infallible, persistence), Effect Node (DB/Network/FS/Extenal), 추가 drift fact (failure-class mismatch, transactional-scope mismatch).
+- Phase 2: Constraint Node (sync/async, local/distributed, fallible/infallible, persistence), Effect Node (DB/Network/FS/External), 추가 drift fact (failure-class mismatch, transactional-scope mismatch).
 - Phase 3: AIR 가 안정되면 일부 metadata 의 단일 source-of-truth 화 (예: zone boundary 정보가 DIR 와 AIR 양쪽에 있던 것을 AIR 단일화).
 
 Evidence command:
@@ -3264,6 +3267,8 @@ make air-drift-test-smoke
 make air-json-schema-test-smoke
 make air-backend-nonimpact-test-smoke
 make air-backend-nonimpact-full-test-smoke
+make AIR_NONIMPACT_SHARD_COUNT=2 AIR_NONIMPACT_SHARD_INDEX=0 air-backend-nonimpact-full-test-smoke
+make AIR_NONIMPACT_SHARD_COUNT=2 AIR_NONIMPACT_SHARD_INDEX=1 air-backend-nonimpact-full-test-smoke
 make air-strict-backend-compare-test-smoke
 make formal-semantics-test-smoke
 make diagnostic-registry-test-smoke

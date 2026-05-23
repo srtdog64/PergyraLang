@@ -251,7 +251,7 @@ PGY_INLINE_PIN_EXPORT_DEFINE(String)
 #undef PGY_INLINE_PIN_EXPORT_DEFINE
 
 /* =================================================================
- * Slot operations ??Int
+ * Slot operations - Int
  * ================================================================= */
 
 PgySlot_Int pgy_claim_Int(void)
@@ -303,7 +303,7 @@ void pgy_release_Int(PgySlot_Int *s)
 }
 
 /* =================================================================
- * Slot operations ??Long
+ * Slot operations - Long
  * ================================================================= */
 
 PgySlot_Long pgy_claim_Long(void)
@@ -355,7 +355,7 @@ void pgy_release_Long(PgySlot_Long *s)
 }
 
 /* =================================================================
- * Slot operations ??Float
+ * Slot operations - Float
  * ================================================================= */
 
 PgySlot_Float pgy_claim_Float(void)

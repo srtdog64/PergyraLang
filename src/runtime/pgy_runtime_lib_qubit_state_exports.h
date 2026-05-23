@@ -1,5 +1,5 @@
 /* =================================================================
- * QubitSlot runtime ??N-qubit entanglement pool model
+ * QubitSlot runtime - N-qubit entanglement pool model
  *
  * Matches pgy_runtime.h's pool_id / PgyEntanglementPool design.
  * Supports GHZ states via pool merge on Entangle().

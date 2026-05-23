@@ -235,7 +235,7 @@ type_check_binary(ASTNode *expr, SemanticContext *ctx)
                 PGY_CAUSE_BINOP_OPERAND_TYPES,
                 PGY_FIX_ALIGN_OPERAND_TYPES_OR_OVERLOAD,
                 expr,
-                "'?""?' requires Option<T> on the left, got '%s'",
+                "Option coalescing requires Option<T> on the left, got '%s'",
                 type_name_or_unknown(left));
             return TYPE_UNKNOWN;
         }
@@ -246,7 +246,7 @@ type_check_binary(ASTNode *expr, SemanticContext *ctx)
                 PGY_CAUSE_BINOP_OPERAND_TYPES,
                 PGY_FIX_ALIGN_OPERAND_TYPES_OR_OVERLOAD,
                 expr,
-                "'?""?' fallback type '%s' is not assignable to '%s'",
+                "Option coalescing fallback type '%s' is not assignable to '%s'",
                 type_name_or_unknown(right), type_name_or_unknown(inner));
             return TYPE_UNKNOWN;
         }

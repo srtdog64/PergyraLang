@@ -1,5 +1,5 @@
 /* =================================================================
- * Secure slot operations ??extern wrappers for LLVM linker
+ * Secure slot operations - extern wrappers for LLVM linker
  * ================================================================= */
 
 #define PGY_DEFINE_SECURE_SLOT_EXPORTS(Suffix, CType, ZeroExpr)                \

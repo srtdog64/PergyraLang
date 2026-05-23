@@ -672,7 +672,7 @@
         EXPECT(!parser_has_error(parser));
         EXPECT(result != NULL && result->error_count > 0);
         EXPECT(ctx_has_diagnostic_substring_from_result(result,
-            "'?""?' requires Option<T> on the left"));
+            "Option coalescing requires Option<T> on the left"));
 
         semantic_result_destroy(result);
         ast_destroy(program);

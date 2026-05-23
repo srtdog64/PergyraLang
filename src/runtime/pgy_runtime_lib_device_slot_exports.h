@@ -1,5 +1,5 @@
 /* =================================================================
- * Device Slot operations ??extern wrappers for LLVM linker
+ * Device Slot operations - extern wrappers for LLVM linker
  * ================================================================= */
 
 #define PGY_DEFINE_DEVICE_SLOT_EXPORTS(Suffix, CType, ZeroExpr)                 \

@@ -97,7 +97,7 @@ stability, raw escape, optional runtime, and compile-time determinism
 system-tier raw escape contract
 PGY_SEM_RAW_ESCAPE_UNSTABLE
 Freeze unsafe as scoped capability, not a mode bit.
-docs/131_unsafe_capability_scope.md
+docs/132_unsafe_capability_scope.md
 unsafe(raw) { ... }
 make raw-escape-contract-test-smoke
 `--runtime=none`

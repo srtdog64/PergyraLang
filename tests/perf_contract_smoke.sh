@@ -75,6 +75,23 @@ grep -Fq "indexHealthy" "$ROOT_DIR/src/runtime/party_runtime_stats.c"
 grep -Fq "fiber_stats_lookup(roleId)" "$ROOT_DIR/src/runtime/party_runtime_stats.c"
 grep -Fq "fiber_stats_index_insert(stats->roleId" "$ROOT_DIR/src/runtime/party_runtime_stats.c"
 grep -Fq "return fiber_stats_lookup_linear(roleId);" "$ROOT_DIR/src/runtime/party_runtime_stats.c"
+grep -Fq "g_fiberStatsMutex" "$ROOT_DIR/src/runtime/party_runtime_stats.c"
+grep -Fq "pthread_mutex_lock(&g_fiberStatsMutex);" "$ROOT_DIR/src/runtime/party_runtime_stats.c"
+grep -Fq "pthread_mutex_unlock(&g_fiberStatsMutex);" "$ROOT_DIR/src/runtime/party_runtime_stats.c"
+grep -A10 -F "GetFiberStats(const char* roleId)" \
+    "$ROOT_DIR/src/runtime/party_runtime_stats.c" | \
+    grep -Fq "pthread_mutex_lock(&g_fiberStatsMutex);"
+grep -A30 -F "party_runtime_dump_fiber_stats(void)" \
+    "$ROOT_DIR/src/runtime/party_runtime_stats.c" | \
+    grep -Fq "snapshot_count = g_fiberStats.count;"
+grep -A30 -F "party_runtime_dump_fiber_stats(void)" \
+    "$ROOT_DIR/src/runtime/party_runtime_stats.c" | \
+    grep -Fq "pthread_mutex_unlock(&g_fiberStatsMutex);"
+grep -A45 -F "party_runtime_dump_fiber_stats(void)" \
+    "$ROOT_DIR/src/runtime/party_runtime_stats.c" | \
+    grep -Fq "party_runtime_free_fiber_stats_snapshot(snapshot, snapshot_count);"
+grep -Fq "party_runtime_copy_fiber_stats_snapshot_role" "$ROOT_DIR/src/runtime/party_runtime_stats.c"
+grep -Fq "memcpy(roleId, source->roleId" "$ROOT_DIR/src/runtime/party_runtime_stats.c"
 if grep -A4 -F "if (g_fiberStats.indexHashes[slot] == 0)" \
     "$ROOT_DIR/src/runtime/party_runtime_stats.c" | \
     grep -Fq "fiber_stats_lookup_linear(roleId)"; then
@@ -1767,7 +1784,7 @@ grep -Fq "LLVMBuildPhi(ctx->builder, fields[1]" "$ROOT_DIR/src/codegen/llvm_expr
 if grep -A95 -F "llvm_emit_option_coalesce" \
     "$ROOT_DIR/src/codegen/llvm_expr_scalar_core.c" | \
     grep -Fq "LLVMBuildSelect"; then
-    echo "[perf-contract] LLVM ?? lowering regressed to eager select fallback" >&2
+    echo "[perf-contract] LLVM coalescing lowering regressed to eager select fallback" >&2
     exit 1
 fi
 grep -Fq "LLVMConstInt(LLVMInt1TypeInContext(ctx->context), 0, 0)" "$ROOT_DIR/src/codegen/llvm_mir_block_emit.c"

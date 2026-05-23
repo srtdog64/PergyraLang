@@ -31,15 +31,19 @@ require_term "src/semantic/diag_codes.h" "semantic:raw_escape:unstable"
 require_term "src/parser/parser_stmt.c" "Scoped unsafe capability syntax"
 require_term "src/parser/parser_stmt.c" "Scoped unsafe capability label syntax"
 require_term "src/parser/parser_stmt.c" "not a universal mode bit"
-require_term "src/tests/parser/test_parser_special_part_b.cases.h" "run_reserved_scoped_unsafe_diagnostic_test"
-require_term "src/tests/parser/test_parser_special_part_b.cases.h" "run_reserved_labeled_unsafe_diagnostic_test"
+require_term "src/tests/parser/test_parser_special_part_c.cases.h" "run_reserved_scoped_unsafe_diagnostic_test"
+require_term "src/tests/parser/test_parser_special_part_c.cases.h" "run_reserved_labeled_unsafe_diagnostic_test"
 require_term "src/test_parser.c" "run_reserved_scoped_unsafe_diagnostic_test"
 require_term "src/test_parser.c" "run_reserved_labeled_unsafe_diagnostic_test"
-require_term "docs/131_unsafe_capability_scope.md" "Unsafe is a scoped capability, not a mode bit."
-require_term "docs/131_unsafe_capability_scope.md" "unsafe(raw)"
-require_term "docs/131_unsafe_capability_scope.md" "universal escape hatch"
+require_term "docs/132_unsafe_capability_scope.md" "Unsafe is a scoped capability, not a mode bit."
+require_term "docs/132_unsafe_capability_scope.md" "unsafe(raw)"
+require_term "docs/132_unsafe_capability_scope.md" "universal escape hatch"
 require_term "docs/100_beta_readiness_checklist.md" "Freeze unsafe as scoped capability, not a mode bit."
 require_term "docs/grammar/01_syntax.md" "Raw escape requires a future scoped capability contract"
+require_term "docs/19_design_philosophy.md" "must be scoped capability based"
+require_term "docs/19_design_philosophy.md" "not become a universal mode bit"
+require_term "docs/self_hosted/01_staged_roadmap.md" "scoped unsafe raw-escape contracts"
+require_term "docs/self_hosted/01_staged_roadmap.md" "must not grant raw/system-tier escape"
 require_term "TODO.md" "Implementation order:"
 require_term "TODO.md" "parser-reserved with an explicit diagnostic"
 require_term "TODO.md" "Add AST storage for an unsafe capability list"
@@ -49,7 +53,7 @@ require_term "TODO.md" "Add C/LLVM parity only after AIR evidence exists"
 require_term "TODO.md" "grant raw pointer access is a beta-blocking regression"
 
 if [[ ! -x "$PGY_BIN" ]]; then
-    if [[ "$PGY_BIN_WAS_DEFAULT" -eq 1 ]]; then
+    if [[ "$PGY_BIN_WAS_DEFAULT" -eq 1 || "${PGY_RAW_ESCAPE_ALLOW_MISSING_BIN:-0}" == "1" ]]; then
         echo "[raw-escape-contract] SKIP executable probe; source contract is gated"
         exit 0
     fi

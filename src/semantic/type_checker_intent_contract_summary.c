@@ -372,7 +372,7 @@ intent_step_format_contract_source_summary(const ASTNode *intent_decl,
                 "%s%s", alias_used > 0 ? ", " : "", alias);
         }
         intent_step_summary_append(buffer, buffer_size, &used,
-            "%s- legacy zone-authority approval field%s%s (not active beta inference)",
+            "%s- zone-authority approval provenance%s%s (legacy field; not who inference)",
             has_any ? "\n" : "",
             alias_list[0] != '\0' ? ": " : "",
             alias_list);

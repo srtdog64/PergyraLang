@@ -21,7 +21,7 @@ pgy_timespec_after_ns(uint64_t timeout_ns)
 #endif
 
 /* =================================================================
- * Panic ??Unrecoverable Error
+ * Panic - Unrecoverable Error
  * ================================================================= */
 
 #define PGY_PANIC(msg) \

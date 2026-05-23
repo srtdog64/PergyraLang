@@ -1,5 +1,5 @@
 /* =================================================================
- * Array operations ??extern wrappers for LLVM linker
+ * Array operations - extern wrappers for LLVM linker
  * ================================================================= */
 
 #define PGY_DEFINE_ARRAY_EXPORTS(Suffix, CType)                                  \

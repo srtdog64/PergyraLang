@@ -68,7 +68,7 @@ static int g_fail = 0;
     } while (0)
 
 /* -----------------------------------------------------------------
- * Panic trap ??catch PGY_PANIC (which calls abort ??SIGABRT)
+ * Panic trap - catch PGY_PANIC (which calls abort -> SIGABRT)
  * ----------------------------------------------------------------- */
 
 static jmp_buf g_panic_jmp;
@@ -176,7 +176,7 @@ panic_handler(int sig)
         g_panic_expected = 0;
         longjmp(g_panic_jmp, 1);
     }
-    /* Unexpected abort ??re-raise */
+    /* Unexpected abort - re-raise. */
     signal(SIGABRT, SIG_DFL);
     raise(SIGABRT);
 }

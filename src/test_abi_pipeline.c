@@ -2,7 +2,7 @@
  * Copyright (c) 2026 Pergyra Language Project
  * All rights reserved.
  *
- * test_abi_pipeline.c ??ABI Pipeline Integration Test
+ * test_abi_pipeline.c - ABI Pipeline Integration Test
  *
  * PURPOSE:
  *   Validate the ABI contract through the real compiler pipeline:

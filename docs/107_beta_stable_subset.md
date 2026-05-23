@@ -26,7 +26,8 @@ Systems baseline:
   contract.
 - `SlotRawPointer(...)` is reserved for the future system-tier raw escape
   direction and currently rejects with `PGY_SEM_RAW_ESCAPE_UNSTABLE`; `unsafe`
-  does not bypass that gate.
+  does not bypass that gate. Raw escape must be introduced through scoped
+  unsafe capability evidence, not plain `unsafe { ... }`.
 - `--runtime=none` is beta-gated: the driver parses the mode and emits
   `PGY_DRIVER_RUNTIME_NONE_UNSUPPORTED` for runtime-dependent surfaces or the
   remaining freestanding-lowering blocker. It is not a successful no-runtime

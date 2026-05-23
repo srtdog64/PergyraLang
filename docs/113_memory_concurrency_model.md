@@ -74,6 +74,13 @@ source-of-truth rule for Pergyra lowering: if the compiler cannot prove
 worker-local ownership, lock/phase separation, atomic access, or immutable
 snapshot publication, the boundary must stay rejected or be marked `unsafe`.
 
+Implementation checkpoint: `src/runtime/party_runtime_stats.c` treats the
+process-global fiber stats table as a shared registry. `UpdateFiberStats`,
+`GetFiberStats`, and `party_runtime_dump_fiber_stats` all acquire the same
+registry mutex before touching the open-addressed index, and dump output uses
+a deep-copied snapshot before printing outside the lock. A shallow pointer
+snapshot would re-open the same rehash/lifetime UB class this section forbids.
+
 ### Zone Generation Counter — Atomic Contract (2026-05-17)
 
 The zone `__sync_generation` counter is the canonical example of a counter

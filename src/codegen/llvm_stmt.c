@@ -260,7 +260,7 @@ llvm_emit_statement(ASTNode *node, LLVMGenCtx *ctx)
         }
         break;
     case AST_ENUM_DECL:
-        /* Enums are compile-time only ??no IR needed */
+        /* Enums are compile-time only; no IR needed. */
         break;
     case AST_CONTINUE:
         if (ctx->loop_depth > 0) {
@@ -343,11 +343,11 @@ llvm_emit_statement(ASTNode *node, LLVMGenCtx *ctx)
         break;
 
     case AST_EXTERN_BLOCK:
-        /* extern "C" { func ...; } ??handled in program pass (Pass 0) */
+        /* extern "C" { func ...; } is handled in program pass (Pass 0). */
         break;
 
     case AST_UNSAFE_BLOCK:
-        /* unsafe { ... } ??emit body directly, no safety wrappers */
+        /* unsafe { ... } is a lexical boundary; emit the body directly. */
         if (ast_unsafe_block_body(node) != NULL)
             llvm_emit_block(ast_unsafe_block_body(node), ctx);
         break;
@@ -359,7 +359,7 @@ llvm_emit_statement(ASTNode *node, LLVMGenCtx *ctx)
 
     case AST_BIND_STMT: {
         /* bind party.slot = Role;
-         * ??party_var.slot_vtable = &Role_Ability_vtable_instance */
+         * party_var.slot_vtable = &Role_Ability_vtable_instance */
         const char *party_var = ast_bind_statement_party_var(node);
         const char *slot_name = ast_bind_statement_slot_name(node);
         const char *role_name = ast_bind_statement_role_name(node);
@@ -459,9 +459,9 @@ llvm_emit_statement(ASTNode *node, LLVMGenCtx *ctx)
          * world_decl / zone_decl in parser_domain.c, and llvm_domain.c
          * consumes those arrays directly with dedicated handlers.  Under
          * the current parser they never reach this switch, but the
-         * verbs' identifier semantics ("activate", "apply", "link", ??
-         * make future function-body use plausible, so the forward routes
-         * any accidental arrival into llvm_emit_expression ??where
+         * verbs' identifier semantics ("activate", "apply", "link") make
+         * future function-body use plausible, so the forward routes
+         * any accidental arrival into llvm_emit_expression, where
          * PGY_CODE_LLVM_TYPE_UNSUPPORTED surfaces the breakage with an
          * actionable diagnostic instead of a silent no-op. */
         llvm_emit_expression(node, ctx);

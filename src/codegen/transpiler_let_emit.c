@@ -142,7 +142,7 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
         }
     }
 
-    /* Array literal: let arr = [1, 2, 3] ??PgyArray_Int arr = ({ ... }); */
+    /* Array literal: let arr = [1, 2, 3] -> PgyArray_Int arr = ({ ... }); */
     if (init != NULL && init->type == AST_ARRAY_LITERAL) {
         const char *array_type_name = ann_type_name != NULL
             ? ann_type_name
@@ -345,7 +345,8 @@ emit_let_decl(ASTNode *node, TranspilerCtx *ctx)
                 && strcmp(ast_identifier_name(ast_call_callee(init)), ann_node_type_name) == 0))
         ) {
         ASTNode *class_decl = find_class_decl(ctx, ann_type_name);
-        /* For generic classes, find_class_decl won't find "Node_Int" ??         * fall back to the original generic class declaration. */
+        /* For generic classes, find_class_decl won't find "Node_Int";
+         * fall back to the original generic class declaration. */
         if (class_decl == NULL && generic_class_spec_name != NULL
             && ann_node_type_name != NULL)
             class_decl = find_class_decl(ctx, ann_node_type_name);

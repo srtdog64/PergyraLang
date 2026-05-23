@@ -200,7 +200,8 @@ llvm_coerce_result_option_payload(LLVMGenCtx *ctx,
 
 LLVMValueRef
 llvm_emit_result_option_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_name)
-{    /* Built-in: Ok(value) ??Result<T, E>; prefer active expected layout. */
+{
+    /* Built-in: Ok(value) -> Result<T, E>; prefer active expected layout. */
     size_t argc = ast_call_arg_count(node);
     LLVMResultOptionOp op = llvm_result_option_lookup(callee_name, argc);
 
@@ -249,7 +250,7 @@ llvm_emit_result_option_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_
         return r;
     }
 
-    /* Built-in: Err(value) ??Result<T, E>; prefer active expected layout. */
+    /* Built-in: Err(value) -> Result<T, E>; prefer active expected layout. */
     if (op == LLVM_RESULT_OPTION_OP_ERR) {
         LLVMValueRef val;
         LLVMTypeRef result_ty = NULL;
@@ -295,7 +296,7 @@ llvm_emit_result_option_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_
         return r;
     }
 
-    /* Built-in: IsOk(result) ??extract ok field */
+    /* Built-in: IsOk(result) extracts the ok field. */
     if (op == LLVM_RESULT_OPTION_OP_IS_OK) {
         LLVMValueRef r = llvm_emit_expression(ast_call_argument(node, 0), ctx);
         LLVMTypeRef fields[3];
@@ -313,7 +314,7 @@ llvm_emit_result_option_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_
             LLVMConstInt(ctx->type_i32, 0, 0), llvm_tmp_name(ctx));
     }
 
-    /* Built-in: IsErr(result) ??!ok */
+    /* Built-in: IsErr(result) checks !ok. */
     if (op == LLVM_RESULT_OPTION_OP_IS_ERR) {
         LLVMValueRef r = llvm_emit_expression(ast_call_argument(node, 0), ctx);
         LLVMTypeRef fields[3];
@@ -331,7 +332,7 @@ llvm_emit_result_option_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_
             LLVMConstInt(ctx->type_i32, 1, 0), llvm_tmp_name(ctx));
     }
 
-    /* Built-in: Unwrap(result) ??extract value field */
+    /* Built-in: Unwrap(result) extracts the value field. */
     if (op == LLVM_RESULT_OPTION_OP_UNWRAP) {
         LLVMValueRef r = llvm_emit_expression(ast_call_argument(node, 0), ctx);
         LLVMTypeRef fields[3];
@@ -348,7 +349,7 @@ llvm_emit_result_option_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_
             "Result unwrap on Err value");
     }
 
-    /* Built-in: UnwrapOr(result, default) ??ok ? value : default */
+    /* Built-in: UnwrapOr(result, default) emits ok ? value : default. */
     if (op == LLVM_RESULT_OPTION_OP_UNWRAP_OR) {
         LLVMValueRef r = llvm_emit_expression(ast_call_argument(node, 0), ctx);
         LLVMValueRef def = llvm_emit_expression(ast_call_argument(node, 1), ctx);
@@ -373,7 +374,7 @@ llvm_emit_result_option_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_
         return LLVMBuildSelect(ctx->builder, ok, val, def, llvm_tmp_name(ctx));
     }
 
-    /* Built-in: Some(value) ??{ .tag=PgyOptionSome, .value=value } */
+    /* Built-in: Some(value) creates { .tag=PgyOptionSome, .value=value }. */
     if (op == LLVM_RESULT_OPTION_OP_SOME) {
         LLVMValueRef val;
         LLVMTypeRef option_ty = NULL;
@@ -400,7 +401,7 @@ llvm_emit_result_option_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_
         return o;
     }
 
-    /* Built-in: None() ??{ .tag=PgyOptionNone, .value=zero } */
+    /* Built-in: None() creates { .tag=PgyOptionNone, .value=zero }. */
     if (op == LLVM_RESULT_OPTION_OP_NONE_VALUE) {
         LLVMTypeRef fields[2];
         if (!llvm_result_option_context_struct(ctx, 2, fields)
@@ -445,7 +446,7 @@ llvm_emit_result_option_call(ASTNode *node, LLVMGenCtx *ctx, const char *callee_
             llvm_tmp_name(ctx));
     }
 
-    /* Built-in: UnwrapOption(option) ??extract value field */
+    /* Built-in: UnwrapOption(option) extracts the value field. */
     if (op == LLVM_RESULT_OPTION_OP_UNWRAP_OPTION) {
         LLVMValueRef o = llvm_emit_expression(ast_call_argument(node, 0), ctx);
         LLVMTypeRef fields[2];

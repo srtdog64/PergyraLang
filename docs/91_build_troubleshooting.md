@@ -1,6 +1,6 @@
 # Build Troubleshooting
 
-마지막 업데이트: 2026-04-20
+마지막 업데이트: 2026-05-24
 
 빌드/회귀 도중 자주 마주치는 문제와 대응. **항상 `mingw32-make rebuild`를 먼저 시도**하면 절반은 풀린다.
 
@@ -125,7 +125,50 @@ mingw32-make ci-windows         # 또는 ci-linux
 
 ---
 
-## 7. 참고
+## 7. Shared `build/` 병렬 실행 금지
+
+### 증상
+
+두 개 이상의 `mingw32-make` gate를 같은 checkout에서 동시에 실행한 뒤,
+링커가 다음과 비슷한 오류를 낸다.
+
+```text
+file in wrong format
+unrecognized storage class
+local symbol has no section
+```
+
+### 원인
+
+여러 gate가 같은 `build/`와 `bin/`을 공유하면서 같은 `.o`를 동시에
+컴파일/링크한다. MinGW object가 부분적으로 쓰인 상태에서 다른 링크가
+읽으면 이후 증분 빌드까지 오염된다.
+
+### 대응
+
+순차 실행한다.
+
+```sh
+mingw32-make test-transpile
+mingw32-make raw-escape-contract-test-smoke
+```
+
+`raw-escape-contract-test-smoke`와 `runtime-none-contract-test-smoke`는 source
+contract를 항상 검사하고, 이미 있는 `pgy`만 실행 probe에 사용한다. 이 둘은
+다른 build gate를 검증하기 위해 전체 compiler rebuild를 강제하지 않는다.
+
+병렬 검증이 필요하면 gate마다 별도 디렉터리를 지정한다.
+
+```sh
+mingw32-make BUILD_DIR=/tmp/pgy-a-build BIN_DIR=/tmp/pgy-a-bin test-transpile
+mingw32-make BUILD_DIR=/tmp/pgy-b-build BIN_DIR=/tmp/pgy-b-bin raw-escape-contract-test-smoke
+```
+
+이미 오염됐다면 해당 `.o`/`.d`를 지우거나 `rebuild`를 사용한다.
+
+---
+
+## 8. 참고
 
 - `Makefile:704` — `clean` target
 - `Makefile:707` — `clean-objects` (object만 삭제, 디렉터리 유지)

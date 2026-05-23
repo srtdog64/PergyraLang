@@ -4,9 +4,25 @@
  */
 
 #include "party_runtime_internal.h"
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+/*
+ * g_fiberStats is a process-global registry. Multiple party_runtime_dispatch
+ * call paths from different scheduler threads can drive UpdateFiberStats
+ * concurrently. The growth path realloc()s the stats array and rebuilds the
+ * open-addressed index, so a concurrent reader following an unlocked path
+ * would race against rehash, which is the AI-generated UB pattern documented
+ * in docs/113_memory_concurrency_model.md.
+ *
+ * Lock discipline: every reader and writer of g_fiberStats acquires this
+ * mutex. The lock is a flat per-process mutex because the registry is
+ * already a single shared aggregate; per-bucket locking would add
+ * complexity without buying anything for the small expected stat volume.
+ */
+static pthread_mutex_t g_fiberStatsMutex = PTHREAD_MUTEX_INITIALIZER;
 
 static struct {
     FiberStats* stats;
@@ -17,6 +33,43 @@ static struct {
     size_t indexCapacity;
     bool indexHealthy;
 } g_fiberStats = {0};
+
+static void
+party_runtime_free_fiber_stats_snapshot(FiberStats *snapshot, size_t count)
+{
+    if (snapshot == NULL)
+        return;
+
+    for (size_t i = 0; i < count; i++) {
+        free((void *)snapshot[i].roleId);
+        snapshot[i].roleId = NULL;
+    }
+    free(snapshot);
+}
+
+static bool
+party_runtime_copy_fiber_stats_snapshot_role(FiberStats *slot,
+                                             const FiberStats *source)
+{
+    char *roleId;
+    size_t len;
+
+    if (slot == NULL || source == NULL)
+        return false;
+
+    *slot = *source;
+    slot->roleId = NULL;
+    if (source->roleId == NULL)
+        return true;
+
+    len = strlen(source->roleId);
+    roleId = (char *)malloc(len + 1U);
+    if (roleId == NULL)
+        return false;
+    memcpy(roleId, source->roleId, len + 1U);
+    slot->roleId = roleId;
+    return true;
+}
 
 static char*
 party_stats_strdup(const char* text)
@@ -216,6 +269,7 @@ UpdateFiberStats(const char* roleId, const FiberResult* result)
     if (roleId == NULL || result == NULL)
         return;
 
+    pthread_mutex_lock(&g_fiberStatsMutex);
     stats = fiber_stats_lookup(roleId);
     if (stats == NULL) {
         if (g_fiberStats.count >= g_fiberStats.capacity) {
@@ -226,19 +280,19 @@ UpdateFiberStats(const char* roleId, const FiberResult* result)
             } else {
                 if (g_fiberStats.capacity > SIZE_MAX / 2U) {
                     party_runtime_warn("fiber_stats", "stats capacity overflow");
-                    return;
+                    goto done;
                 }
                 newCapacity = g_fiberStats.capacity * 2U;
             }
             if (!party_stats_array_fits(newCapacity, sizeof(FiberStats))) {
                 party_runtime_warn("fiber_stats", "stats allocation size overflow");
-                return;
+                goto done;
             }
             newStats = (FiberStats*)realloc(g_fiberStats.stats,
                                             newCapacity * sizeof(FiberStats));
             if (newStats == NULL) {
                 party_runtime_warn("fiber_stats", "stats array growth failed");
-                return;
+                goto done;
             }
             g_fiberStats.stats = newStats;
             g_fiberStats.capacity = newCapacity;
@@ -250,7 +304,7 @@ UpdateFiberStats(const char* roleId, const FiberResult* result)
         if (stats->roleId == NULL) {
             g_fiberStats.count--;
             party_runtime_warn("fiber_stats", "role id allocation failed");
-            return;
+            goto done;
         }
         if (!fiber_stats_index_insert(stats->roleId, g_fiberStats.count - 1U))
             party_runtime_warn("fiber_stats", "stats index update failed");
@@ -267,6 +321,9 @@ UpdateFiberStats(const char* roleId, const FiberResult* result)
         stats->totalExecutions > 0 ? stats->totalTimeNs / stats->totalExecutions : 0;
     if (!result->success)
         stats->errorCount++;
+
+done:
+    pthread_mutex_unlock(&g_fiberStatsMutex);
 }
 
 FiberStats
@@ -274,21 +331,53 @@ GetFiberStats(const char* roleId)
 {
     FiberStats empty = {0};
     FiberStats* stats;
+    FiberStats result;
 
     if (roleId == NULL)
         return empty;
 
+    pthread_mutex_lock(&g_fiberStatsMutex);
     stats = fiber_stats_lookup(roleId);
-    return stats != NULL ? *stats : empty;
+    /* roleId is registry-owned storage; callers must treat it as borrowed. */
+    result = stats != NULL ? *stats : empty;
+    pthread_mutex_unlock(&g_fiberStatsMutex);
+    return result;
 }
 
 void
 party_runtime_dump_fiber_stats(void)
 {
+    FiberStats* snapshot = NULL;
+    size_t snapshot_count = 0;
+
     printf("\nFiber Statistics:\n");
-    for (size_t i = 0; i < g_fiberStats.count; i++) {
-        FiberStats* stats = &g_fiberStats.stats[i];
-        printf("  Role: %s\n", stats->roleId);
+
+    pthread_mutex_lock(&g_fiberStatsMutex);
+    snapshot_count = g_fiberStats.count;
+    if (snapshot_count > 0
+        && party_stats_array_fits(snapshot_count, sizeof(FiberStats))) {
+        snapshot = (FiberStats*)malloc(snapshot_count * sizeof(FiberStats));
+        if (snapshot != NULL) {
+            size_t copied = 0;
+            for (; copied < snapshot_count; copied++) {
+                if (!party_runtime_copy_fiber_stats_snapshot_role(
+                        &snapshot[copied], &g_fiberStats.stats[copied])) {
+                    party_runtime_free_fiber_stats_snapshot(snapshot, copied);
+                    snapshot = NULL;
+                    break;
+                }
+            }
+        }
+    }
+    if (snapshot_count > 0 && snapshot == NULL) {
+        party_runtime_warn("fiber_stats", "stats snapshot allocation failed");
+        snapshot_count = 0;
+    }
+    pthread_mutex_unlock(&g_fiberStatsMutex);
+
+    for (size_t i = 0; i < snapshot_count; i++) {
+        FiberStats* stats = &snapshot[i];
+        printf("  Role: %s\n", stats->roleId != NULL ? stats->roleId : "<unknown>");
         printf("    Executions: %llu\n", (unsigned long long)stats->totalExecutions);
         printf("    Avg Time: %llu ns\n", (unsigned long long)stats->avgTimeNs);
         printf("    Min/Max: %llu / %llu\n",
@@ -296,4 +385,5 @@ party_runtime_dump_fiber_stats(void)
                (unsigned long long)stats->maxTimeNs);
         printf("    Errors: %u\n", stats->errorCount);
     }
+    party_runtime_free_fiber_stats_snapshot(snapshot, snapshot_count);
 }

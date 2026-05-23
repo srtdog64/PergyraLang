@@ -1146,6 +1146,9 @@ if missing_diag_docs:
 required_nonimpact_terms = [
     "PGY_AIR_STRICT_EVIDENCE=0",
     "PGY_AIR_NONIMPACT_SOURCE",
+    "PGY_AIR_NONIMPACT_CASE_LIMIT",
+    "PGY_AIR_NONIMPACT_SHARD_COUNT",
+    "PGY_AIR_NONIMPACT_SHARD_INDEX",
     "find tests/cases/backend_compare",
     "intent_cross_world_transfer",
     "handoff_projection_frontier",

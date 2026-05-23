@@ -154,7 +154,7 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
                 return emit_expression(alias_expr, ctx);
         }
         TypedVarEntry *projection_entry = lookup_typed_entry(ctx, id_name);
-        /* Slot sugar: auto-Read ??emit pgy_read_T(&x) instead of x */
+        /* Slot sugar: auto-Read emits pgy_read_T(&x) instead of x. */
         if (!ctx->suppress_slot_auto_read && is_slot_var(ctx, id_name)) {
             char inner_buf[128];
             const char *inner = NULL;
@@ -245,7 +245,7 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
             }
         }
         char *obj = emit_expression(member_object, ctx);
-        /* Enum variant access: Color.Red ??Color_Red */
+        /* Enum variant access: Color.Red -> Color_Red. */
         if (member_object->type == AST_IDENTIFIER
             && ast_identifier_name(member_object) != NULL
             && ast_identifier_name(member_object)[0] >= 'A'
@@ -291,7 +291,7 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
     case AST_ASSIGNMENT: {
         ASTNode *target_node = ast_assignment_target(node);
         ASTNode *value_node = ast_assignment_value(node);
-        /* Slot sugar: x = 5 ??pgy_write_T(&x, 5) */
+        /* Slot sugar: x = 5 -> pgy_write_T(&x, 5). */
         if (target_node != NULL && target_node->type == AST_IDENTIFIER) {
             const char *tgt_name = ast_identifier_name(target_node);
             if (is_slot_var(ctx, tgt_name)) {
@@ -380,7 +380,7 @@ emit_expression(ASTNode *node, TranspilerCtx *ctx)
             if (strcmp(inner, "Void") == 0) {
                 result = strdup_fmt("pgy_await_void(%s)", expr);
             } else if (is_remote) {
-                /* RemoteFuture<T> ??Result<T>: wrap in PgyResult */
+                /* RemoteFuture<T> -> Result<T>: wrap in PgyResult. */
                 char inner_c_type_buf[256];
                 const char *inner_c_type = NULL;
                 if (pergyra_type_to_c_copy(inner, inner_c_type_buf,

@@ -340,7 +340,7 @@ bool pgy_string_equals(const char *a, const char *b)
  * StringSplit / StringJoin / ToInt / ToFloat / Math
  * ----------------------------------------------------------------- */
 
-/* StringSplit(str, delim) ??Array<String> (caller-allocated PgyArray_String) */
+/* StringSplit(str, delim) -> Array<String> (caller-allocated PgyArray_String) */
 PgyArray_String StringSplit(const char *s, const char *delim)
 {
     PgyArray_String result = pgy_array_new_String(8);

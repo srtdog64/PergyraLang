@@ -3,6 +3,14 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
+require_semantic_term() {
+    local term="$1"
+    if ! grep -R -Fq "$term" "$ROOT_DIR/src/semantic"; then
+        echo "missing semantic intent-compression contract term: $term" >&2
+        exit 1
+    fi
+}
+
 if grep -R "infer_intent_step_causes_from_on_exprs" "$ROOT_DIR/src/codegen"; then
     echo "intent causes inference must be materialized before codegen" >&2
     exit 1
@@ -62,7 +70,7 @@ if grep -Fq "intent_step_derive_authorized_by_from_zone" \
 fi
 if grep -R "ast_intent_step_mark_derived_authorized_by_from_zone(" \
         "$ROOT_DIR/src/semantic" "$ROOT_DIR/src/compiler" "$ROOT_DIR/src/codegen"; then
-    echo "legacy zone-authority approval field must not be set by active compiler phases" >&2
+    echo "zone-authority approval provenance must not be inferred from who by active compiler phases" >&2
     exit 1
 fi
 if grep -Fq "ast_intent_step_mark_derived_authorized_by_from_zone" \
@@ -73,34 +81,21 @@ if grep -Fq "ast_intent_step_mark_derived_authorized_by_from_zone" \
 fi
 grep -Fq "intent_step_suggest_authorizer_from_zone" \
     "$ROOT_DIR/src/semantic/type_checker_intent_authority.c"
-grep -Fq "intent_step_derive_who_from_single_participant" \
-    "$ROOT_DIR/src/semantic/type_checker_intent_on_inference.c"
-grep -Fq "intent_step_derive_who_from_on_receiver" \
-    "$ROOT_DIR/src/semantic/type_checker_intent_on_inference.c"
-grep -Fq "intent_step_derive_where_from_on_receiver" \
-    "$ROOT_DIR/src/semantic/type_checker_intent_on_inference.c"
-grep -Fq "ast_intent_step_mark_inherited_where_from_action" \
-    "$ROOT_DIR/src/semantic/type_checker_intent_on_inference.c"
+require_semantic_term "intent_step_derive_who_from_single_participant"
+require_semantic_term "intent_step_derive_who_from_on_receiver"
+require_semantic_term "intent_step_derive_where_from_on_receiver"
+require_semantic_term "ast_intent_step_mark_inherited_where_from_action"
 grep -Fq "intent_step_derive_where_from_on_receiver" \
     "$ROOT_DIR/src/semantic/type_checker_intent_decl.c"
-grep -Fq "intent_step_inherit_contract_from_on_receiver" \
-    "$ROOT_DIR/src/semantic/type_checker_intent_on_inference.c"
-grep -Fq "intent_step_authorized_by_alias_from_action" \
-    "$ROOT_DIR/src/semantic/type_checker_intent_on_inference.c"
-grep -Fq "intent_on_call_arg_for_action_param" \
-    "$ROOT_DIR/src/semantic/type_checker_intent_on_inference.c"
-grep -Fq "ast_intent_step_append_required_ability_clone" \
-    "$ROOT_DIR/src/semantic/type_checker_intent_on_inference.c"
-grep -Fq "ast_intent_step_mark_inherited_authorized_by_from_action" \
-    "$ROOT_DIR/src/semantic/type_checker_intent_on_inference.c"
-grep -Fq "ast_func_within_zone" \
-    "$ROOT_DIR/src/semantic/type_checker_intent_on_inference.c"
-grep -Fq "ast_func_causes_effect" \
-    "$ROOT_DIR/src/semantic/type_checker_intent_on_inference.c"
-grep -Fq "ast_func_required_ability" \
-    "$ROOT_DIR/src/semantic/type_checker_intent_on_inference.c"
-grep -Fq "ast_func_authorized_by" \
-    "$ROOT_DIR/src/semantic/type_checker_intent_on_inference.c"
+require_semantic_term "intent_step_inherit_contract_from_on_receiver"
+require_semantic_term "intent_step_authorized_by_alias_from_action"
+require_semantic_term "intent_on_call_arg_for_action_param"
+require_semantic_term "ast_intent_step_append_required_ability_clone"
+require_semantic_term "ast_intent_step_mark_inherited_authorized_by_from_action"
+require_semantic_term "ast_func_within_zone"
+require_semantic_term "ast_func_causes_effect"
+require_semantic_term "ast_func_required_ability"
+require_semantic_term "ast_func_authorized_by"
 grep -Fq "authorized_by_derived_from_zone" \
     "$ROOT_DIR/src/compiler/dir.h"
 grep -Fq "Compatibility field for older DIR/AIR schema consumers" \

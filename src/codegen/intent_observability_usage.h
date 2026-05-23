@@ -2,12 +2,11 @@
  * Copyright (c) 2025 Pergyra Language Project
  * All rights reserved.
  *
- * Whole-program intent observability usage scan.
+ * Whole-program intent observability usage query.
  *
- * Codegen needs this before emitting declarations: intent declarations may
- * appear before a later routine that calls IntentLast/IntentHistory builtins.
- * Builtin emission is therefore too late to decide whether trace/history
- * bookkeeping should be generated.
+ * Codegen needs this before emitting declarations. Lowered MIR should carry
+ * inventory surface facts; compatibility scans remain only for hand-built MIR
+ * fixtures that do not have HIR provenance.
  */
 
 #ifndef PERGYRA_INTENT_OBSERVABILITY_USAGE_H

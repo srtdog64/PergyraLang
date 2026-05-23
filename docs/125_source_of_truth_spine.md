@@ -125,7 +125,9 @@ keep the source-level business vocabulary clean.
 | Abstraction boundary drift | AIR | Driver diagnostics, CI, LSP/JSON consumers | Backends consuming AIR for codegen |
 | Runtime pass/failure policy | Runtime policy headers | C/LLVM codegen wrappers, AIR global evidence | Duplicated pass limits or failure strings in emitters |
 | ABI surface | ABI/runtime headers | C/LLVM, tests, docs | Domain layer leaking layout changes into C FFI silently |
+| Unsafe/raw capability scope | `docs/132_unsafe_capability_scope.md` plus semantic/AIR gates once implemented | Parser diagnostics, semantic raw escape diagnostics, ABI lowering, self-host roadmap | Plain `unsafe { ... }` granting raw/system-tier escape |
 | Build source inventory | Makefile source/object inventory | CI, local smoke targets, dependency inclusion | Shell `find` rediscovering build artifacts or source files on Windows paths |
+| Local build artifact ownership | One `BUILD_DIR`/`BIN_DIR` pair per active make process | Local gates, CI recipes, troubleshooting docs | Parallel gates sharing the same `build/` and corrupting `.o` files |
 
 Runtime frontier AIR evidence must count the complete frozen runtime policy
 surface: pass-limit arithmetic facts plus bounded-overflow reason facts. A

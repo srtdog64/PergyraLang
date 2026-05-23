@@ -87,6 +87,11 @@ Current beta-gated state:
 - The accepted hot-path answer remains typed Pin/Lease views; raw pointer,
   inline-asm operand, MMIO, and pointer arithmetic escape still require a
   separate ABI/lowering contract.
+- That future contract must be scoped capability based. Plain
+  `unsafe { ... }` must not become a universal mode bit; raw/FFI/layout/runtime
+  escape needs a named lexical scope such as `unsafe(raw) { ... }` plus AIR
+  evidence and C/LLVM parity. Source of truth:
+  `docs/132_unsafe_capability_scope.md`.
 
 #### 위험 2: Runtime이 default로 들어감
 

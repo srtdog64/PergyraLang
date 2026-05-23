@@ -1,5 +1,5 @@
 /* =================================================================
- * Object Pool ??fixed-capacity reusable slot pool
+ * Object Pool - fixed-capacity reusable slot pool
  * use pool;
  * ================================================================= */
 
@@ -82,7 +82,7 @@ static inline int32_t pgy_pool_count(PgyPool *p) { return p != NULL ? (int32_t)p
 static inline int32_t pgy_pool_capacity(PgyPool *p) { return p != NULL ? (int32_t)p->capacity : 0; }
 
 /* =================================================================
- * FSM ??Finite State Machine
+ * FSM - Finite State Machine
  * use fsm;
  * ================================================================= */
 

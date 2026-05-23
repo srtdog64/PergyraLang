@@ -328,17 +328,17 @@ void pgy_zone_authority_check_token_export(void *zone_ptr, void *participant_ptr
 } while (0)
 
 /* =================================================================
- * Effect Pool ??multiple instances of the same effect type
+ * Effect Pool - multiple instances of the same effect type
  *
  * Usage in generated zone struct:
  *   PGY_EFFECT_POOL_DEFINE(DamageEffect, 8)
  *   -> typedef struct { DamageEffect items[8]; bool active[8]; uint8_t count; uint8_t cap; } PgyEffectPool_DamageEffect_8;
  *
  * API:
- *   PGY_EFFECT_POOL_APPLY(pool, instance)  ??activate next slot
- *   PGY_EFFECT_POOL_DETACH(pool, index)    ??deactivate slot
- *   PGY_EFFECT_POOL_ACTIVE_COUNT(pool)     ??number of active instances
- *   PGY_EFFECT_POOL_FOR_EACH(pool, i, item) ??iterate active instances
+ *   PGY_EFFECT_POOL_APPLY(pool, instance)   -> activate next slot
+ *   PGY_EFFECT_POOL_DETACH(pool, index)     -> deactivate slot
+ *   PGY_EFFECT_POOL_ACTIVE_COUNT(pool)      -> number of active instances
+ *   PGY_EFFECT_POOL_FOR_EACH(pool, i, item) -> iterate active instances
  * ================================================================= */
 
 #define PGY_EFFECT_POOL_DEFINE(Type, Cap)                              \

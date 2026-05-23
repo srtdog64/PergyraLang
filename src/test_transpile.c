@@ -48,6 +48,7 @@ static MIRProgram *g_last_mir = NULL;
 
 
 #include "tests/transpile/test_transpile_helpers.cases.h"
+#include "tests/transpile/test_transpile_core_part_0.cases.h"
 #include "tests/transpile/test_transpile_core_part_a.cases.h"
 #include "tests/transpile/test_transpile_core_part_b.cases.h"
 #include "tests/transpile/test_transpile_program_part_a.cases.h"

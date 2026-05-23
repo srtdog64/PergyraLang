@@ -376,12 +376,32 @@ slot_pinning_terms=(
     "SlotRawPointer(...)"
     "PGY_SEM_RAW_ESCAPE_UNSTABLE"
     "driver/kernel/embedded/ISR"
-    "separate"
+    "scoped unsafe capability"
+    "unsafe(raw)"
     "unsafe"
     "contract"
 )
 for term in "${slot_pinning_terms[@]}"; do
     require_text "docs/74_slot_pinning_caching.md" "$term"
+done
+
+build_troubleshooting_terms=(
+    "Shared \`build/\` 병렬 실행 금지"
+    "file in wrong format"
+    "BUILD_DIR=/tmp/pgy-a-build"
+    "BIN_DIR=/tmp/pgy-b-bin"
+)
+for term in "${build_troubleshooting_terms[@]}"; do
+    require_text "docs/91_build_troubleshooting.md" "$term"
+done
+source_spine_build_terms=(
+    "Unsafe/raw capability scope"
+    "Plain \`unsafe { ... }\` granting raw/system-tier escape"
+    "Local build artifact ownership"
+    "Parallel gates sharing the same \`build/\`"
+)
+for term in "${source_spine_build_terms[@]}"; do
+    require_text "docs/125_source_of_truth_spine.md" "$term"
 done
 
 stable_subset_slot_terms=(

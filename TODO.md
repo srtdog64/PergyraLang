@@ -20,6 +20,11 @@ English anchor for tooling/doc gates:
   `host_decl_compat.c`, C/LLVM domain-constructor lookup, and party-slot ability
   selection helpers. The remaining targets must be closed by moving source-of-
   truth ownership, not by rewording the percentage.
+- Build gate guard: do not run two `make` targets that share the same `build/`
+  directory in parallel. MinGW can corrupt a shared `.o` when two gates compile
+  the same owner concurrently, which later surfaces as `file in wrong format`.
+  Parallel validation must use distinct `BUILD_DIR`/`BIN_DIR` values or run
+  sequentially.
 - CFG seam narrowing update: ownership call consumers now include the explicit
   `slot_summary.h` compatibility surface instead of the full `slot_analyzer.h`
   analyzer API, and `cfg-body-dataflow-test-smoke` gates that the call/param
@@ -6883,6 +6888,16 @@ Progress log, 2026-05-04:
   backend-compare cases for both C and LLVM. Gates: `test-air`,
   `air-drift-test-smoke`, `air-json-schema-test-smoke`, and
   `air-backend-nonimpact-full-test-smoke`.
+- Added shard/limit controls for the AIR backend non-impact sweep so the same
+  full frozen fixture set can be split across local or CI windows without
+  weakening the default full target. Use
+  `AIR_NONIMPACT_SHARD_COUNT` / `AIR_NONIMPACT_SHARD_INDEX` for full coverage
+  shards and `AIR_NONIMPACT_CASE_LIMIT` only for triage.
+- Converted `runtime-none-contract-test-smoke` and
+  `raw-escape-contract-test-smoke` back to fast contract gates: they always
+  grep the source/documentation contract, run the executable diagnostic probe
+  when an existing `pgy` is available, and no longer force a full compiler
+  rebuild just to check contract text.
 - Refreshed `cfg_body_dataflow_smoke.sh` after MIR CFG/body helpers moved from static headers into compiled owners. The smoke now reads the declaration headers plus their `.c` owners for call facts, non-CFG statement population, CFG contract control, pin/cleanup-fact helpers, and validator bodies instead of reporting false regressions against declaration-only headers. Gate: `cfg-body-dataflow-test-smoke`.
 - Revalidated the DAG source-of-truth gates after the owner-split work: retired recursive resolver calls remain `0`, resolver body fallbacks remain `0`, metadata dead-ends remain `0`, materializer unresolved remains `0`, metadata entries are `3498`, owned constructed metadata entries are `258`, and metadata hits are `8380`. Gates: `type-resolution-dag-test-smoke` and `type-resolution-resolver-inventory-test-smoke`.
 - Corrected `test_inc_size_smoke.sh` wording so the gate states its actual contract: no production `.inc` files, no `_IMPLEMENTATION` header blocks, production owners <= 600 LOC, and test case headers <= 990 LOC. Runtime public inline headers remain a separate, explicit runtime ABI/codegen contract instead of being hidden by over-broad gate wording. Gates: `test-inc-size-test-smoke`.
@@ -10053,7 +10068,7 @@ dispatch / semantic lookup / runtime data structure 3축 결과 통합. *정확�
   Plain `unsafe { ... }` must not become a universal escape hatch; raw, FFI,
   layout, runtime, and concurrency escapes need named lexical scopes such as
   `unsafe(raw) { ... }`, semantic gates, AIR evidence, ABI lowering, and
-  backend parity. Source of truth: `docs/131_unsafe_capability_scope.md`.
+  backend parity. Source of truth: `docs/132_unsafe_capability_scope.md`.
   Implementation order:
   1. Keep `unsafe(raw) { ... }` parser-reserved with an explicit diagnostic
      until the semantic capability model is ready. Current gate:

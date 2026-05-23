@@ -1,10 +1,10 @@
 /* =================================================================
- * Channel ??Int (thread-safe with mutex + condvar)
+ * Channel - Int (thread-safe with mutex + condvar)
  * ================================================================= */
 
 #include <pthread.h>
 
-/* PgyOption_Bool ??needed for try_send_status / send_timeout_status.
+/* PgyOption_Bool is needed for try_send_status / send_timeout_status.
  * Must match PGY_OPTION_DEFINE(Bool, bool) in pgy_runtime.h. */
 typedef struct { int tag; bool value; } PgyOption_Bool;
 static inline PgyOption_Bool Some_Bool(bool v) { return (PgyOption_Bool){ 1, v }; }

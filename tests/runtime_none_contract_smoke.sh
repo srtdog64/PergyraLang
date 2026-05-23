@@ -31,7 +31,7 @@ require_term "src/semantic/diag_codes.h" "PGY_DRIVER_RUNTIME_NONE_UNSUPPORTED"
 require_term "src/semantic/diag_codes.h" "driver:runtime:none_unsupported"
 
 if [[ ! -x "$PGY_BIN" ]]; then
-    if [[ "$PGY_BIN_WAS_DEFAULT" -eq 1 ]]; then
+    if [[ "$PGY_BIN_WAS_DEFAULT" -eq 1 || "${PGY_RUNTIME_NONE_ALLOW_MISSING_BIN:-0}" == "1" ]]; then
         echo "[runtime-none-contract] SKIP executable probe; source contract is gated"
         exit 0
     fi
@@ -39,7 +39,7 @@ if [[ ! -x "$PGY_BIN" ]]; then
     exit 1
 fi
 if ! "$PGY_BIN" --help >"$WORK_DIR/pgy-help.out" 2>"$WORK_DIR/pgy-help.err"; then
-    if [[ "$PGY_BIN_WAS_DEFAULT" -eq 1 ]]; then
+    if [[ "$PGY_BIN_WAS_DEFAULT" -eq 1 || "${PGY_RUNTIME_NONE_ALLOW_MISSING_BIN:-0}" == "1" ]]; then
         echo "[runtime-none-contract] SKIP executable probe; source contract is gated"
         exit 0
     fi

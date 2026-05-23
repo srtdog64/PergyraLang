@@ -41,6 +41,15 @@ pgy_path_arg() {
     pgy_path_for_compiler "$PGY_BIN" "$1"
 }
 
+show_log_if_present() {
+    local log="$1"
+    if [[ -f "$log" ]]; then
+        cat "$log" >&2
+    else
+        echo "air-backend-nonimpact: expected log was not written: $log" >&2
+    fi
+}
+
 require_normal_backend_air_mir_gate() {
     local source_rel="tests/cases/backend_compare/intent_zone_binding/main.pgy"
     local out="$WORK_DIR/air_mir_gate.c"
@@ -72,7 +81,7 @@ EOF
                 return 1
             fi
             echo "air-backend-nonimpact: normal backend AIR/MIR gate probe failed" >&2
-            cat "$log" >&2
+            show_log_if_present "$log"
             return 1
         fi
     else
@@ -82,14 +91,14 @@ EOF
                 return 1
             fi
             echo "air-backend-nonimpact: normal backend AIR/MIR gate probe failed" >&2
-            cat "$log" >&2
+            show_log_if_present "$log"
             return 1
         fi
     fi
 
     if ! grep -Fq "[driver stage] air_mir_evidence" "$log"; then
         echo "air-backend-nonimpact: normal backend path did not report AIR MIR evidence stage" >&2
-        cat "$log" >&2
+        show_log_if_present "$log"
         return 1
     fi
     if ! awk '
@@ -98,7 +107,7 @@ EOF
         END { exit !(saw_air > 0 && saw_backend > saw_air) }
     ' "$log"; then
         echo "air-backend-nonimpact: backend stage did not run after AIR MIR evidence gate" >&2
-        cat "$log" >&2
+        show_log_if_present "$log"
         return 1
     fi
 }
@@ -129,6 +138,43 @@ elif [[ -n "${PGY_AIR_NONIMPACT_SOURCE:-}" ]]; then
 else
     SOURCES=("${DEFAULT_SOURCES[@]}")
 fi
+
+if [[ -n "${PGY_AIR_NONIMPACT_SHARD_COUNT:-}" || -n "${PGY_AIR_NONIMPACT_SHARD_INDEX:-}" ]]; then
+    shard_count="${PGY_AIR_NONIMPACT_SHARD_COUNT:-}"
+    shard_index="${PGY_AIR_NONIMPACT_SHARD_INDEX:-}"
+    if [[ ! "$shard_count" =~ ^[1-9][0-9]*$ || ! "$shard_index" =~ ^[0-9]+$ ]]; then
+        echo "air-backend-nonimpact: shard requires integer PGY_AIR_NONIMPACT_SHARD_COUNT and PGY_AIR_NONIMPACT_SHARD_INDEX" >&2
+        exit 1
+    fi
+    if (( shard_index >= shard_count )); then
+        echo "air-backend-nonimpact: shard index must be smaller than shard count" >&2
+        exit 1
+    fi
+    FILTERED_SOURCES=()
+    for i in "${!SOURCES[@]}"; do
+        if (( i % shard_count == shard_index )); then
+            FILTERED_SOURCES+=("${SOURCES[$i]}")
+        fi
+    done
+    SOURCES=("${FILTERED_SOURCES[@]}")
+fi
+
+if [[ -n "${PGY_AIR_NONIMPACT_CASE_LIMIT:-}" ]]; then
+    if [[ ! "$PGY_AIR_NONIMPACT_CASE_LIMIT" =~ ^[1-9][0-9]*$ ]]; then
+        echo "air-backend-nonimpact: case limit must be a positive integer" >&2
+        exit 1
+    fi
+    if (( ${#SOURCES[@]} > PGY_AIR_NONIMPACT_CASE_LIMIT )); then
+        SOURCES=("${SOURCES[@]:0:PGY_AIR_NONIMPACT_CASE_LIMIT}")
+    fi
+fi
+
+if (( ${#SOURCES[@]} == 0 )); then
+    echo "air-backend-nonimpact: no source fixtures selected" >&2
+    exit 1
+fi
+
+echo "air-backend-nonimpact: selected ${#SOURCES[@]} source fixture(s)"
 
 PYTHON_BIN="${PYTHON_BIN:-}"
 if [[ -z "$PYTHON_BIN" ]]; then
@@ -245,7 +291,7 @@ exit \$LASTEXITCODE
 EOF
         if ! powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$win_relaxed_ps1"; then
             echo "air-backend-nonimpact: relaxed AIR emit failed for $name" >&2
-            cat "$relaxed_log" >&2
+            show_log_if_present "$relaxed_log"
             return 1
         fi
 cat >"$strict_ps1" <<EOF
@@ -257,33 +303,33 @@ exit \$LASTEXITCODE
 EOF
         if ! powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$win_strict_ps1"; then
             echo "air-backend-nonimpact: default strict AIR emit failed for $name" >&2
-            cat "$strict_log" >&2
+            show_log_if_present "$strict_log"
             return 1
         fi
     else
         if ! (cd "$ROOT_DIR" && PGY_AIR_STRICT_EVIDENCE=0 "$PGY_BIN" "$source_arg" "$flag" -o "$relaxed_out_arg") \
             >"$relaxed_log" 2>&1; then
             echo "air-backend-nonimpact: relaxed AIR emit failed for $name" >&2
-            cat "$relaxed_log" >&2
+            show_log_if_present "$relaxed_log"
             return 1
         fi
 
         if ! (cd "$ROOT_DIR" && unset PGY_AIR_STRICT_EVIDENCE && "$PGY_BIN" "$source_arg" "$flag" -o "$strict_out_arg") \
             >"$strict_log" 2>&1; then
             echo "air-backend-nonimpact: default strict AIR emit failed for $name" >&2
-            cat "$strict_log" >&2
+            show_log_if_present "$strict_log"
             return 1
         fi
     fi
 
     if [[ ! -f "$relaxed_out" ]]; then
         echo "air-backend-nonimpact: relaxed AIR emit failed for $name" >&2
-        cat "$relaxed_log" >&2
+        show_log_if_present "$relaxed_log"
         return 1
     fi
     if [[ ! -f "$strict_out" ]]; then
         echo "air-backend-nonimpact: default strict AIR emit failed for $name" >&2
-        cat "$strict_log" >&2
+        show_log_if_present "$strict_log"
         return 1
     fi
 
